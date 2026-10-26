@@ -13,6 +13,11 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdi
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ecrireReglages, lireReglages, readRawSettings, monterRoutes, REGLAGES_DEFAUT } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-18): the page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let ok0 = 0
 let ko = 0
@@ -227,7 +232,7 @@ console.log('\n── through the HTTP route (what the Settings page really call
   const routes = {}
   monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: f, sessionsHome: join(racine, 'sessions'), kybersHome: join(racine, 'kybers') })
   const requete = (method, corps) => ({
-    method, url: '/kybernos-sessions/settings', headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 },
+    method, url: '/kybernos-sessions/settings', headers: { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080') }, socket: { localPort: 3080 },
     on (ev, cb) { if (ev === 'data' && corps !== undefined) cb(JSON.stringify(corps)); if (ev === 'end') cb() }
   })
   const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }

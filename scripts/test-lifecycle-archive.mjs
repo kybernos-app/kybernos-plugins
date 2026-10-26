@@ -18,7 +18,7 @@
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import * as paquet from './paquet.mjs'
 import * as moteur from './lifecycle-engine.mjs'
@@ -318,6 +318,42 @@ process.exit(1)`)
   r = lancer(v6, ['upgrade', '--source', v6], { FAKE_DSH_WARN: '1' })
   ok('…but a bundle of THIS release that fails to load is still refused, even next to the old warning', r.status === 1 && readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantV6, sortie(r).slice(-500))
   ok('…and the robot names the failing bundle (not only « the boot fails »)', /kybernos-alpha did not activate/.test(sortie(r)), sortie(r).slice(-500))
+  r = lancer(v2, ['upgrade', '--source', v2])
+
+  // 11. One installer at a time (L3-85). The Suite panel’s robot is a child that outlives a DSH killed with `kill -9`, and two robots writing the same profile (and pulling
+  //     package.json.lock from each other) is what the installation lock exists to prevent. A harmless stand-in (a node process that waits, never a robot) plays the
+  //     installer that is already running: its pid is in <DSH home>/lifecycle/install.lock, written the way the robot writes its own.
+  const verrouFichier = join(DSH_HOME, 'lifecycle', 'install.lock')
+  const v7 = fabriquerPaquet(join(RACINE, 'pkgs', 'v7'), '1.6.0', NOMS_2)
+  const dejaEnCours = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
+  await new Promise((x) => dejaEnCours.once('spawn', x))
+  const pjAvantV7 = readFileSync(join(PROFIL, 'package.json'), 'utf8')
+  const photosAvantV7 = photos()
+  const posePidVivant = () => writeFileSync(verrouFichier, JSON.stringify({ v: 1, pid: dejaEnCours.pid, debut: Date.now(), genre: 'suite', source: v7 }) + '\n')
+  posePidVivant()
+  r = lancer(v7, ['upgrade', '--source', v7])
+  ok('while a live installer holds the lock the robot refuses (exit 1), in a sentence that names the pid', r.status === 1 && /another installation is already running/.test(sortie(r)) && sortie(r).includes('pid ' + dejaEnCours.pid), sortie(r).slice(-400))
+  ok('…it changed nothing: profile identical, no safety photo, and the lock is still the other installer’s', readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantV7 && photos() === photosAvantV7 && JSON.parse(readFileSync(verrouFichier, 'utf8')).pid === dejaEnCours.pid)
+  ok('…install and rollback are refused the same way', [lancer(v7, ['install', '--source', v7]), lancer(v7, ['rollback'])].every((x) => x.status === 1 && /another installation is already running/.test(sortie(x))) && JSON.parse(readFileSync(verrouFichier, 'utf8')).pid === dejaEnCours.pid)
+  r = lancer(v7, ['upgrade', '--source', v7, '--dry'])
+  ok('a dry run writes nothing and takes nothing, so it is not refused', r.status === 0 && JSON.parse(readFileSync(verrouFichier, 'utf8')).pid === dejaEnCours.pid, sortie(r).slice(-300))
+  writeFileSync(join(PROFIL, 'package.json.lock'), 'held by the other installer')
+  lancer(v7, ['upgrade', '--source', v7])
+  ok('…and the refused robot did not pull package.json.lock from under the installer that holds the lock', existsSync(join(PROFIL, 'package.json.lock')))
+  rmSync(join(PROFIL, 'package.json.lock'), { force: true })
+
+  await new Promise((x) => { dejaEnCours.once('exit', x); dejaEnCours.kill('SIGKILL') })   // the installer is killed: its lock stays on disk, stale
+  ok('(the killed installer left its lock on disk)', existsSync(verrouFichier))
+  writeFileSync(join(PROFIL, 'package.json.lock'), 'left by the killed installer')
+  r = lancer(v7, ['upgrade', '--source', v7])
+  ok('a lock whose process is gone is stale: the robot takes over and installs', r.status === 0 && tousVersOuDev(v7) && /orphaned lock removed/.test(sortie(r)), sortie(r).slice(-400))
+  ok('…the orphaned package.json.lock is cleaned as before (nobody holds the installation lock)', existsSync(join(PROFIL, 'package.json.lock')) === false)
+  ok('…and the robot gives its lock back when it ends', existsSync(verrouFichier) === false)
+  r = lancer(mauvais, ['upgrade', '--source', mauvais])
+  ok('a robot that stops on an error gives it back too (a refused archive: exit 1, no lock left)', r.status === 1 && existsSync(verrouFichier) === false, sortie(r).slice(-300))
+  writeFileSync(verrouFichier, '{"pid": 12')
+  r = lancer(v7, ['upgrade', '--source', v7])
+  ok('a corrupt lock file is stale too', r.status === 0 && existsSync(verrouFichier) === false, sortie(r).slice(-300))
   r = lancer(v2, ['upgrade', '--source', v2])
 
   writeFileSync(join(dossierTar, 'bon', '..tar.gz'), octets)

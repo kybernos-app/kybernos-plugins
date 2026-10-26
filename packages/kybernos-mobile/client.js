@@ -837,6 +837,9 @@ window.__ModuleLoader__.load({
           // the choice is kept for when it does).
           const reachable = s !== null && s.available !== false
           const enabled = s === null || s.enabled !== false
+          // A plan without the phone link (the host's `entitled` is false; null is « not known yet »): the paywall below says so, and the switch does not claim a link that cannot exist:
+          // drawn off and greyed, with the same words as a title (recette L1-104). Only when the paywall IS what the card shows: «not offered», «unavailable» and «sign in» come first (Body).
+          const locked = s !== null && s.available !== false && s.configured !== false && s.connected !== false && s.entitled === false
           const [error, setError] = React.useState(null)
           const [busy, setBusy] = React.useState(false)
           const turn = async (on) => {
@@ -864,7 +867,7 @@ window.__ModuleLoader__.load({
               h('span', { className: 'kbpc-tag warn', 'data-kb': 'phone-remote-tag' }, kt('Contrôle complet', 'Full control'))),
             h('div', { className: 'kbpc-swrow' },
               h('span', { className: 'kbmr-sub', 'data-kb': 'phone-remote-lead' }, kt('Ouvrir cet ordinateur sur ton téléphone.', 'Open this computer on your phone.')),
-              h(Switch, { on: enabled, disabled: busy || !reachable, kb: 'phone-remote-switch', label: kt('Contrôle à distance', 'Remote control'), onClick: () => { void turn(!enabled) } })),
+              h(Switch, { on: enabled && !locked, disabled: busy || !reachable || locked, kb: 'phone-remote-switch', label: kt('Contrôle à distance', 'Remote control'), title: locked ? kt('Non inclus dans ton offre', 'Not included in your plan') : undefined, onClick: () => { void turn(!enabled) } })),
             error !== null ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'phone-remote-error' }, error) : null,
             body,
             h('div', { className: 'kbpc-does', 'data-kb': 'phone-remote-does' },

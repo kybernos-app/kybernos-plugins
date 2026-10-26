@@ -621,12 +621,15 @@ const mod = await import('./index.js')
 // (test-write-guard.mjs reads it from the file; here the seam gives it).
 const { sessionSource } = await import('./session-guard.mjs')
 const { SESSION_SECRET, browserHeaders } = await import('./lib-session-test.mjs')
-const { SESSION_WRITE_PATHS, STRICT_WRITE_PATHS } = await import('./lib-session-routes-test.mjs')
+const { SESSION_WRITE_PATHS, STRICT_WRITE_PATHS, STRICT_ONLY_EXCEPTIONS } = await import('./lib-session-routes-test.mjs')
 sessionSource.secret = () => SESSION_SECRET
 // Aucun minuteur ne doit tirer sur le faux serveur en arriere-plan : un
 // rechargement non demande fausserait les compteurs de requetes des tests.
 mod.MEMORY_TUNING.writeRefreshMs = -1
 mod.MEMORY_TUNING.tickMs = 3600000
+// A route the test breaks on purpose is mended by itself 10 s, 30 s and 2 min later (L3-76): this file runs longer than that and counts the server's calls, so the tries are off here
+// (test-chat-space-host.mjs plays them).
+mod.ROUTE_REPAIR_TUNING.delaysMs = []
 mod.apply(ctx)
 
 const fakeRes = () => ({
@@ -742,6 +745,11 @@ try {
   // The read-only relay went with the account frame (docs/dev/frame-removal.md): nothing answers there, so DSH's web server answers 404.
   assert.equal(routes.has('/kybernos-cloud/relay'), false, 'the Team console relay must stay gone')
   ok(String(expectedPaths.length) + ' routes /kybernos-cloud/* montees (catalogue + artefacts + memoire)')
+  // L3-04 / L3-05: every write of the table is under the cookie rule, except the routes whose caller is not a browser, which say so in `noSession`
+  // (test-write-guard.mjs plays the requests; here the table itself is read, so that a new row cannot slip through at the Origin alone).
+  const originOnly = mod.ROUTES.filter((r) => r.method !== 'GET' && r.session !== true).map((r) => r.path).sort()
+  assert.deepEqual(originOnly, [...STRICT_ONLY_EXCEPTIONS.keys()].sort(), 'POST routes at the Origin alone are the documented exceptions: ' + originOnly.join(', '))
+  ok('les ecritures de la table sont toutes sous le cookie de session, sauf ' + originOnly.length + ' exceptions documentees')
 
   // Custom instructions → <DSH home>/AGENTS.md. The write is strict: a request that names no origin of this server is refused.
   // These calls carry a socket (as on a real connection), because the strict guard compares the Origin with the listener's real port.
@@ -750,9 +758,11 @@ try {
     mkdirSync(ci_home, { recursive: true })
     const ci_saved = process.env.DSH_HOME
     process.env.DSH_HOME = ci_home
-    const ci_call = async (path, method, origin, body) => {
+    // `cookie: false` is a local program that sends the right Origin and nothing else; the default is the person's page (Origin and DSH's signed session).
+    const ci_call = async (path, method, origin, body, cookie = true) => {
       const req = fakeReq(method, origin, body, path)
       req.socket = { localPort: 3080 }
+      if (cookie === true) req.headers = { ...req.headers, cookie: browserHeaders().cookie }
       const res = fakeRes()
       await routes.get(path)(req, res)
       return res
@@ -769,7 +779,12 @@ try {
       assert.equal(foreign.status, 403)
       assert.equal(existsSync(file), false)
       ok('instructions : l\'ecriture sans origine ou d\'une autre origine est refusee, rien n\'est ecrit')
-      const wrote = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 'Be direct.' })
+      // L3-04: the right Origin is not enough. The agents read this file and have a shell, so a bare program must not write it: DSH's signed session is needed too.
+      const noCookie = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 'x' }, false)
+      assert.equal(noCookie.status, 401)
+      assert.equal(existsSync(file), false)
+      ok('instructions : la bonne origine sans le cookie de session signe est refusee (401), rien n\'est ecrit')
+      const wrote =await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 'Be direct.' })
       assert.equal(wrote.body.ok, true)
       assert.ok(readFileSync(file, 'utf8').includes('Be direct.'))
       const back = await ci_call('/kybernos-cloud/instructions', 'GET')
@@ -1362,6 +1377,76 @@ try {
   assert.equal(seen.embedCalls.at(-1).model, 'kybernos/embed', 'an older server keeps its role route for embeddings')
   ok('vanilla catalogue: chat models imported under the server names, embeddings model kept apart and used; older catalogue unchanged')
 
+  {
+  // 6d-bis. A model the server declares as seeing pictures (`capabilities` holds `vision`) is written `input: ['text', 'image']`, because the engine takes every model for text-only
+  //         unless its entry says otherwise and refuses an image sent to it (session/attachment-invalid, recette L1-58). A model without that capability is left as it was.
+  const noVision = catalog
+  catalog = { object: 'list', data: [
+    { id: 'vision-lite', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'Vision Lite', capabilities: ['chat', 'vision'] },
+    { id: 'glm-5.3', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'GLM 5.3', capabilities: ['chat', 'tools'] },
+    { id: 'bare', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'Bare' },
+    { id: 'odd', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'Odd', capabilities: 'vision' },
+  ] }
+  const seeing = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(seeing.body.ok, true)
+  const seeingRoute = settingsCalls.at(-1).value
+  assert.deepEqual(seeingRoute.models.find((m) => m.id === 'vision-lite').input, ['text', 'image'], 'a model that lists « vision » is declared to read pictures')
+  for (const id of ['glm-5.3', 'bare', 'odd']) assert.equal(Object.prototype.hasOwnProperty.call(seeingRoute.models.find((m) => m.id === id), 'input'), false, id + ': no capability « vision » (or not a list): left text-only, nothing invented')
+  assert.deepEqual(readState().models.vision, ['vision-lite'], 'the import remembers which models read pictures')
+  // An import made before this existed holds no such list and a route without `input`: the next READ of the profile (no manual sync) sees that the server lists a model that sees and
+  // rewrites the route once, so an installation that already had its models gets the fix without anyone pressing « Re-import ». A second read changes nothing.
+  const olderImport = readState()
+  delete olderImport.models.vision
+  writeFileSync(statePath, JSON.stringify(olderImport), { mode: 0o600 })
+  const writesBefore = settingsCalls.length
+  const refreshed = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(refreshed.body.ok, true)
+  assert.ok(settingsCalls.length > writesBefore, 'the route was rewritten by the profile read')
+  assert.deepEqual(settingsCalls.at(-1).value.models.find((m) => m.id === 'vision-lite').input, ['text', 'image'])
+  assert.deepEqual(readState().models.vision, ['vision-lite'])
+  const writesAfter = settingsCalls.length
+  await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(settingsCalls.length, writesAfter, 'and only once')
+  catalog = noVision
+  await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.deepEqual(readState().models.vision, [], 'a catalogue with no such model leaves an empty list')
+  ok('vision: a model that lists « vision » is written input [text, image] (the engine refuses images otherwise); the others are untouched; an older import is rewritten once at the next profile read')
+  }
+
+  // 6e. Creation models (kind image / video / speech): listed for the Models page, NEVER written to the chat route (DSH's chat picker lists every
+  //     model of a route). The price of one unit is kept as the server writes it; a price that does not read is left out, not guessed; a kind the
+  //     plugin does not know (rerank) is dropped.
+  const beforeCreation = catalog
+  catalog = { object: 'list', data: [
+    { id: 'glm-5.3', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'GLM 5.3', context_length: 200000, max_output_tokens: 32768 },
+    { id: 'seedream-5.0', object: 'model', owned_by: 'kybernos', kind: 'image', display_name: 'Seedream 5.0', unit_pricing: { unit: 'image', usd: '0.14' } },
+    { id: 'wan-3.0', object: 'model', owned_by: 'kybernos', kind: 'video', display_name: 'Wan 3.0', unit_pricing: { unit: 'second', usd: '0.40' } },
+    { id: 'fish-s2.1-pro', object: 'model', owned_by: 'kybernos', kind: 'speech', unit_pricing: { unit: 'thousand_characters', usd: '0.06' } },
+    { id: 'odd-price', object: 'model', owned_by: 'kybernos', kind: 'video', unit_pricing: { unit: 'second', usd: 'free' } },
+    { id: 'fine-price', object: 'model', owned_by: 'kybernos', kind: 'speech', unit_pricing: { unit: 'thousand_characters', usd: '0.015000000' } },
+    { id: 'too-fine', object: 'model', owned_by: 'kybernos', kind: 'image', unit_pricing: { unit: 'image', usd: '0.1400000001' } },
+    { id: 'rerank-1', object: 'model', owned_by: 'kybernos', kind: 'rerank' },
+  ] }
+  const creative = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(creative.body.ok, true)
+  assert.deepEqual(creative.body.models.ids, ['glm-5.3'], 'the chat route holds chat models only')
+  assert.deepEqual(settingsCalls.at(-1).value.models.map((m) => m.id), ['glm-5.3'], 'a picture, video or voice model never enters the chat route')
+  assert.deepEqual(creative.body.models.creation.map((c) => c.id), ['seedream-5.0', 'wan-3.0', 'fish-s2.1-pro', 'odd-price', 'fine-price', 'too-fine'], 'in the server order; an unknown kind is dropped')
+  assert.deepEqual(creative.body.models.creation[0], { id: 'seedream-5.0', name: 'Seedream 5.0', kind: 'image', unit: 'image', usd: '0.14' })
+  assert.deepEqual(creative.body.models.creation[1], { id: 'wan-3.0', name: 'Wan 3.0', kind: 'video', unit: 'second', usd: '0.40' })
+  assert.deepEqual(creative.body.models.creation[2], { id: 'fish-s2.1-pro', name: 'fish-s2.1-pro', kind: 'speech', unit: 'thousand_characters', usd: '0.06' }, 'no display name: the id, never an invented one')
+  assert.deepEqual(creative.body.models.creation[3], { id: 'odd-price', name: 'odd-price', kind: 'video', unit: null, usd: null }, 'a price that does not read is left out')
+  assert.deepEqual(creative.body.models.creation[4], { id: 'fine-price', name: 'fine-price', kind: 'speech', unit: 'thousand_characters', usd: '0.015000000' }, 'the server writes up to nine decimals: kept as written')
+  assert.deepEqual(creative.body.models.creation[5], { id: 'too-fine', name: 'too-fine', kind: 'image', unit: null, usd: null }, 'ten decimals is not a price the server writes: left out')
+  const creationList = await hit('/kybernos-cloud/models', 'GET')
+  assert.deepEqual(creationList.body.models.creation.map((c) => c.id), ['seedream-5.0', 'wan-3.0', 'fish-s2.1-pro', 'odd-price', 'fine-price', 'too-fine'], 'the Models page reads them from the models route')
+  assert.equal(leaks(creationList.body), false, 'never the token')
+  // A catalogue without any creation model (an older server) leaves an empty list, and the plugin\'s next import writes it back.
+  catalog = beforeCreation
+  const plain = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.deepEqual(plain.body.models.creation, [])
+  ok('creation models: listed with their unit price, kept out of the chat route, bad price and unknown kind handled')
+
   // 6c. Services absents : dégradation propre, aucune écriture, aucun secret
   //     orphelin — le motif est explicite.
   settingsEnabled = false
@@ -1428,6 +1513,12 @@ try {
     const waPath = '/kybernos-cloud/whatsapp/pairing'
     const waReq = fakeReq('POST', 'http://127.0.0.1:3080', {}, waPath)
     waReq.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+    // L3-05: the pairing link is the page's, so it carries the signed session besides the Origin (a program with the Origin alone gets a 401 and no link).
+    const waBare = fakeRes()
+    await routes.get(waPath)(waReq, waBare)
+    assert.equal(waBare.status, 401)
+    assert.equal(waBare.body.link, undefined, 'no pairing link for a request without the session')
+    waReq.headers = { ...waReq.headers, cookie: browserHeaders().cookie }
     const started = fakeRes()
     await routes.get(waPath)(waReq, started)
     assert.equal(started.body.ok, true)
@@ -1440,10 +1531,12 @@ try {
 
   // 6g. The Home computer's actions: wake, put to sleep, open. The page never names a computer; the server's refusals come back as codes.
   {
-    const act = async (verb, origin = 'http://127.0.0.1:3080') => {
+    // The person's page sends the signed session besides its Origin (L3-05: a program that sends the Origin alone must not wake, sleep or open the Home computer).
+    const act = async (verb, origin = 'http://127.0.0.1:3080', cookie = true) => {
       const path = '/kybernos-cloud/computer/' + verb
       const req = fakeReq('POST', origin, {}, path)
       req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      if (cookie === true) req.headers = { ...req.headers, cookie: browserHeaders().cookie }
       const res = fakeRes()
       await routes.get(path)(req, res)
       return res
@@ -1488,6 +1581,9 @@ try {
     kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', name: 'Home', state: 'running' }
     assert.equal((await act('resume', 'https://evil.example')).status, 403, 'a foreign origin is refused before anything')
     assert.equal((await act('resume', 'null')).status, 403)
+    // The right Origin without the signed session is a local program, not the person's page: refused, and nothing is asked of the server.
+    for (const verb of ['resume', 'suspend', 'open']) assert.equal((await act(verb, 'http://127.0.0.1:3080', false)).status, 401, verb + ': the right Origin and no cookie')
+    assert.deepEqual(computerActionSeen, [], 'a refused request called nothing')
     assert.deepEqual(computerActionSeen, [], 'no call reached the server')
     assert.equal(routes.get('/kybernos-cloud/computer/resume') !== undefined && routes.get('/kybernos-cloud/computer/unknown'), undefined)
     ok('actions du Home : pas de Home, origine etrangere : rien n\'est appele')

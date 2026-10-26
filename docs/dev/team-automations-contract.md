@@ -40,6 +40,27 @@ A **definition**, never a running thing and never a person's data. It carries on
 receives them untrimmed trims them before it computes `version`. `note` (the proposer's remark to the reviewers, optional) is at most 2 000 characters (`invalid_automation` / `too_large`) and is scanned like the rest. The
 body of `POST` and `POST /check` is at most 128 KiB.
 
+**Nothing a person cannot see (decision DL-09 of the 2026-10 recette, findings L2-18 and L2-20).** An admin approves what the sheet shows and a model reads every character, so a prompt whose visible
+words are harmless and whose end is a run of Unicode tag characters installs an instruction nobody read. The text of a proposal is therefore looked at **as sent, before it is trimmed** (a BOM that `trim`
+would take off is still refused), in `name`, `description`, `prompt`, `note`, the `cron` and every app name, and **refused, never removed**: the version is the SHA-256 of the exact text and every client computes
+it too, so taking characters out would change the version the client expects. The answer is `400 invalid_automation` with `reason: "hidden"`, the `field`, `first` (the first one, as `U+E0041`) and `count`.
+The check comes after the shape checks above (a name of nothing visible is still `name`, a NUL still `binary`).
+
+- **Refused** (457 code points): the Unicode tags block U+E0000-U+E007F; the direction controls U+202A-U+202E and U+2066-U+2069; the zero-width space U+200B; the word joiner U+2060; the invisible operators
+  U+2061-U+2064; the deprecated formatting characters U+206A-U+206F; the byte-order mark U+FEFF **anywhere** (a BOM is not text); the soft hyphen U+00AD; the Mongolian vowel separator U+180E; the interlinear
+  marks U+FFF9-U+FFFB; the variation selectors U+E0100-U+E01EF; and the C0 and C1 controls except tab, line feed and carriage return (NUL included).
+- **Kept**: U+200C and U+200D (the zero-width non-joiner and joiner: emoji sequences, Persian), U+200E and U+200F (the left-to-right and right-to-left marks: Arabic and Hebrew), U+FE0E and U+FE0F (text and
+  emoji presentation), ordinary spaces and every other character. A text that was fine keeps its version: both test vectors above still hold.
+- **The same set everywhere.** The server (`src/lib/hidden-text.ts`) and the three plugin clients (`kybernos-plugin/automation-team.mjs`, `kybernos-cloud/team-automations.mjs`,
+  `kybernos-skills/team-skills.mjs`) carry it, and are all tested against one list of texts, [`hidden-text-vectors.json`](hidden-text-vectors.json) (`{note, text, accepted}`, written in escapes; the same file,
+  byte for byte, as `test/fixtures/hidden-text-vectors.json` in the server; sha256 `e64586d672b86c3c9607c4420da4819e2810baeafdc4686d1605105d31d4e6b8`), and against the decision's table code point by code point
+  (`scripts/test-hidden-text-clients.mjs`). It includes the 77, 59, 49 and 66 hidden characters the recette saw.
+- **The secret scan reads the text without what draws nothing** (the refused set, and the joiners, marks and selectors that are kept, and the other default-ignorable characters): a key cut by a zero-width
+  character, or by a joiner that text may hold, is still a key, on the same line number.
+- **Data already stored is not migrated.** The read path (list, `GET /{id}`) is unchanged: an automation stored before the rule is listed and served as it was, with its version. Only new writes are refused.
+  A copy already installed on a member's machine is not touched (the server never sees it; DSH does not re-scan installed tasks): it keeps its text. A stored definition that holds one cannot be **installed or
+  updated** any more: the host refuses it (`hidden`, nothing written), and the review sheet says so instead of « Checked » (an admin should reject it; there is no counter of the characters yet).
+
 **What never travels** (the plugin leaves it out when it builds the proposal; the server has no field for it): the keys, tokens and passwords of the person; webhook addresses and
 secrets; run history and results; the files of the person's work folder; the connected accounts (only the app names in `needs`); where it runs (`runsOn`); its on/off state; the
 notification choices; the session or workspace it was made in; the approval mode (each member chooses theirs at install).
@@ -108,7 +129,7 @@ The vocabulary of the skills module, plus the automation-specific ones.
 
 | Status | Body | When |
 | --- | --- | --- |
-| 400 | `{error: "invalid_automation", reason, field?}` | `reason` is one of `key`, `name`, `description`, `prompt`, `schedule` (a `once` schedule, a bad shape, a time zone sent), `needs`, `binary`, `too_large` |
+| 400 | `{error: "invalid_automation", reason, field?}` | `reason` is one of `key`, `name`, `description`, `prompt`, `schedule` (a `once` schedule, a bad shape, a time zone sent), `needs`, `binary`, `hidden` (an invisible or direction-changing character; `field` is `name`, `description`, `prompt`, `note`, `schedule` or `needs`, and the body carries `first` and `count`), `too_large` |
 | 400 | `{error: "scan_rejected", field, line?}` | a secret was found (the match itself is never returned) |
 | 401 / 403 | as skills | no identity / `admin_required` / `plan_required` |
 | 404 | `{error: "Workspace not found"}` or `{error: "Team automation not found"}` | not a member (same answer as an unknown workspace) / no such automation, or someone else's proposal. These two texts are what the plugin tells apart from a server that has no Team automations at all (any other 404): keep them exact |
@@ -136,7 +157,7 @@ token, for the ACTIVE workspace, only in a team space (`teamWorkspace`), and tur
 
 | Route | Body | Answer |
 | --- | --- | --- |
-| `/kybernos/automation/team-pack` | `{ id }` (a task id) | `{ ok: true, proposal: { key, name, description, prompt, schedule, needs, version }, team: null \| { workspaceId, id, key, version, edited } }` or `{ ok: false, error }` with `error` = `not_found`, `once_not_shareable`, `empty_prompt`. The description is pre-filled from the first sentence of the prompt (at most 200 characters, cut on a word). `schedule` is `{ mode: "cron", cron }` or `{ mode: "webhook" }` with no zone. `needs` are the task's slugs. Nothing else of the task is returned. |
+| `/kybernos/automation/team-pack` | `{ id }` (a task id) | `{ ok: true, proposal: { key, name, description, prompt, schedule, needs, version }, team: null \| { workspaceId, id, key, version, edited } }` or `{ ok: false, error }` with `error` = `not_found`, `once_not_shareable`, `empty_prompt`, or `invalid_automation` with `reason: "hidden"` and the `field` (an invisible character in the prompt, the name or the description: nothing is packed). The description is pre-filled from the first sentence of the prompt (at most 200 characters, cut on a word). `schedule` is `{ mode: "cron", cron }` or `{ mode: "webhook" }` with no zone. `needs` are the task's slugs. Nothing else of the task is returned. |
 | `/kybernos/automation/team-copies` | `{}` | `{ ok: true, copies: [{ taskId, workspaceId, id, key, version, edited, missingApps: [slug] }] }`: the local copies that came from a team (those with a `team` mark), `edited` as defined below. |
 | `/kybernos/automation/team-install` | `{ definition: { id, key, name, description, prompt, schedule, needs, version }, workspaceId, approvals: "ask" \| "auto", turnOn: boolean }` | `{ ok: true, taskId, active, missingApps: [slug] }` or `{ ok: false, error }`. The host re-validates the definition with the rules above, **recomputes `version` and refuses a mismatch** (`version_mismatch`), refuses a `key` that already has a copy for that workspace (`already_installed`: use `team-update`), writes a **paused** automation through the same sanitizer and store as a created one (cron parsed and checked to be able to fire; the installer's own zone), `runsOn: "local"`, with the `team` mark. `active` is true only if `turnOn` and no app is missing. A webhook definition mints its own secret. |
 | `/kybernos/automation/team-update` | `{ taskId, definition, mode: "keep" \| "both" \| "replace" }` | `{ ok: true, taskId, newTaskId? }` or `{ ok: false, error }`. `replace` rewrites name, prompt and needs from `definition`, and the schedule only if the person did not change it since install; active state, place, approval mode and notifications stay as they are; the mark moves to the new version. `both` first saves the current copy as a separate paused automation named « <name> (mine) » with no mark (`newTaskId`), then does `replace`. `keep` changes nothing (answers `ok`). An unedited copy accepts `replace` only. |
@@ -148,7 +169,7 @@ version is no longer served to members, so the « Changes since v3 » view is co
 **As built (piece 2).** The rules and the update logic are `packages/kybernos-plugin/automation-team.mjs` (pure; `test-automation-team.mjs`); the four routes are `kbTeamHandle` in `index.js` (`scripts/test-tasks-team.mjs`; each carries the strict
 Origin and DSH's signed session, `test-write-guard.mjs`). What the table above leaves open:
 
-- **Errors, beyond the ones named.** A definition that breaks a rule: `{ ok: false, error: "invalid_automation", reason, field }` with the server's own `reason` words (`key`, `name`, `description`, `prompt`, `schedule`, `needs`, `binary`) plus `id`; a cron
+- **Errors, beyond the ones named.** A definition that breaks a rule: `{ ok: false, error: "invalid_automation", reason, field }` with the server's own `reason` words (`key`, `name`, `description`, `prompt`, `schedule`, `needs`, `binary`, `hidden`) plus `id`; a cron
   the host cannot parse or that never fires is `reason: "schedule"`. Also `invalid_workspace`, `store_unreadable` (a `tasks.json` that cannot be trusted; nothing is written), and on `team-update` `not_found`, `not_a_team_copy`, `key_mismatch`,
   `invalid_mode` and `not_edited` (`keep` and `both` on a copy nobody edited). `already_installed` also carries the `taskId` of the copy. `team-pack` answers `invalid_schedule` for a stored cron outside the server's shape and `not_found` for a suggestion that was
   not added yet.

@@ -48,26 +48,58 @@ export const slugFor = (name, host) => {
   return /^[a-z0-9]/.test(s) ? s : 'server'
 }
 
+/** The text of a response, with never more than `max` bytes of it read: `null` when the body is bigger (the reading is cancelled, the rest is never pulled).
+ *  A server that answers 200 and then sends without end used to be read in full by `res.text()` (+2 GB of memory in 3 s, recette L3-25) before the size was
+ *  looked at. The announced length is believed only to refuse early; the bytes are counted as they arrive. A response with no stream (a stand-in in a test)
+ *  is read with `text()`, as before. */
+const readBounded = async (res, max) => {
+  const announced = Number(res.headers?.get?.('content-length'))
+  const stream = res.body
+  if (Number.isFinite(announced) && announced > max) { try { await stream?.cancel?.() } catch (e) { /* closing anyway */ } return null }
+  if (stream === null || stream === undefined || typeof stream.getReader !== 'function') {
+    const whole = await res.text()
+    return whole.length > max ? null : whole
+  }
+  const reader = stream.getReader()
+  const decoder = new TextDecoder()
+  let read = 0
+  let text = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    read += value.byteLength
+    if (read > max) { try { await reader.cancel() } catch (e) { /* closing anyway */ } return null }
+    text += decoder.decode(value, { stream: true })
+  }
+  return text + decoder.decode()
+}
+
 /** Never throws. `{ ok, steps: [{ id, ok, note? }], profile?, published?, host?, base?, error? }`.
- *  Errors: bad_address, insecure_address, unreachable, redirect, no_profile, incompatible (+ `dsh_min`). */
+ *  Errors: bad_address, insecure_address, unreachable, redirect, no_profile, incompatible (+ `dsh_min`).
+ *  `timeoutMs` bounds the whole exchange, the body included: the timer runs until the document has been read (or refused), not only until the headers arrive. */
 export const discover = async (address, { fetch: doFetch = globalThis.fetch, dshVersion = null, timeoutMs = 8000 } = {}) => {
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), timeoutMs)
+  // Aborting at the end is a no-op for a body that was read in full, and it frees the connection of one that was not (a 404 or a redirect with a body nobody reads).
+  try { return await discoverWithin(address, doFetch, dshVersion, ctl.signal) } finally { clearTimeout(timer); ctl.abort() }
+}
+
+const discoverWithin = async (address, doFetch, dshVersion, signal) => {
   const steps = []
   const parsed = parseAddress(address)
   if (parsed.ok !== true) return { ok: false, steps, error: parsed.error }
-  const ctl = new AbortController()
-  const timer = setTimeout(() => ctl.abort(), timeoutMs)
   let res = null
-  try { res = await doFetch(parsed.base + WELL_KNOWN, { redirect: 'manual', signal: ctl.signal, headers: { accept: 'application/json' } }) } catch (e) {
+  try { res = await doFetch(parsed.base + WELL_KNOWN, { redirect: 'manual', signal, headers: { accept: 'application/json' } }) } catch (e) {
     steps.push({ id: 'reach', ok: false, note: 'unreachable' })
     return { ok: false, steps, error: 'unreachable' }
-  } finally { clearTimeout(timer) }
+  }
   if (res.status >= 300 && res.status < 400) { steps.push({ id: 'reach', ok: false, note: 'redirect' }); return { ok: false, steps, error: 'redirect' } }
   steps.push({ id: 'reach', ok: true })
   if (res.status !== 200) { steps.push({ id: 'wellknown', ok: false, note: 'status_' + res.status }); return { ok: false, steps, error: 'no_profile' } }
   let doc = null
   try {
-    const text = await res.text()
-    if (text.length > MAX_BYTES) throw new Error('too big')
+    const text = await readBounded(res, MAX_BYTES)
+    if (text === null) throw new Error('too big')
     doc = JSON.parse(text)
   } catch (e) { steps.push({ id: 'wellknown', ok: false, note: 'unreadable' }); return { ok: false, steps, error: 'no_profile' } }
   if (doc === null || typeof doc !== 'object' || Array.isArray(doc) || typeof doc.api !== 'string') { steps.push({ id: 'wellknown', ok: false, note: 'no_api' }); return { ok: false, steps, error: 'no_profile' } }

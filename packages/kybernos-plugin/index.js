@@ -19,6 +19,7 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
+import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
@@ -140,6 +141,20 @@ const errText = (e) => (e && e.message ? String(e.message) : String(e))
 const isDir = (info) => info !== undefined && info !== null && info.type === 'directory'
 const isFile = (info) => info !== undefined && info !== null && info.type === 'file'
 const str = (v) => (typeof v === 'string' ? v : null)
+// Runs one command through the engine's shell service and gives back what the command reported (`{ exitCode, … }`), or null when no handle came. The service answers
+// `execute(spec)` with a handle whose `result` is a METHOD in the engine (dsh-bash-local, every version we ship against) and a promise in the older engines that
+// dsh-compat.json still admits: awaiting the method as a value hands the function back, with no exit code, and every file action of Creations then answered « refused » although the
+// command had run (recette 2026-10-25, L1-44). A service with only `run(request)` is still served. A rejection travels to the caller, who owns the wording.
+const shellRun = async (shellSvc, request) => {
+  if (typeof shellSvc.resolve === 'function' && typeof shellSvc.execute === 'function') {
+    const handle = await shellSvc.execute(shellSvc.resolve(request))
+    if (handle === null || handle === undefined) return null
+    const pending = handle.result
+    return await (typeof pending === 'function' ? pending.call(handle) : pending)
+  }
+  if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
+  throw new Error('shell service has neither execute nor run')
+}
 // A text in both languages for the host's approval prompts: `displayReason` carries { en, fr } and the shell picks the one of its language.
 const kbPair = (fr, en) => ({ en: en, fr: fr })
 
@@ -6774,6 +6789,9 @@ function boot(ctx) {
       kbRealRootCache.set(p, out)
       return out
     }
+    // DL-05: whatever the mode, a path that goes through a folder or a file named like a secret (`.credentials*`, `.env*`, `.ssh`, below the
+    // root that let it in) is refused: a project folder is not where DSH keeps its keys, and a file that holds one must not be read by a page.
+    const kbSecretName = (rest) => rest.split('/').some((seg) => /^\.(credentials|env|ssh)/i.test(seg))
     const kbSousRealRoots = async (real, options) => {
       const strict = options !== null && options !== undefined && options.strict === true
       const rootsAll = await rootsFor(options === null || options === undefined ? undefined : options.sessionId)
@@ -6783,7 +6801,7 @@ function boot(ctx) {
       }
       for (const r of rootsAll) {
         const rr = await kbRealRoot(r.path)
-        if (real === rr || real.indexOf(rr + '/') === 0) return true
+        if (real === rr || (real.indexOf(rr + '/') === 0 && kbSecretName(real.slice(rr.length + 1)) === false)) return true
       }
       const wsSvc = workspacesAt()
       if (wsSvc !== undefined && typeof wsSvc.list === 'function') {
@@ -6793,7 +6811,7 @@ function boot(ctx) {
               const wp = str(w && w[key])
               if (wp !== null) {
                 const rr = await kbRealRoot(wp)
-                if (real === rr || real.indexOf(rr + '/') === 0) return true
+                if (real === rr || (real.indexOf(rr + '/') === 0 && kbSecretName(real.slice(rr.length + 1)) === false)) return true
               }
             }
           }
@@ -7515,8 +7533,9 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const path = str(req.path)
         if (path === null || path.length < 4) return { ok: false, error: 'path expected' }
-        // garde-fou : le fichier doit vivre sous le workspace courant ou un workspace connu
-        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
+        // garde-fou : le fichier doit vivre sous un workspace connu, jamais sous le dossier de lancement de DSH (DL-05: c'est souvent le home), et rester un livrable (comme art-raw)
+        if ((await cheminAutorise(path, { strict: true })) === false) return { ok: false, error: 'file outside the known workspaces' }
+        if (kbReadableExt(path) === false) return { ok: false, error: 'file type not readable here' }
         const target = await fs.resolve(path)
         const info = await fs.stat(target).catch(() => null)
         if (!isFile(info)) return { ok: false, error: 'file not found' }
@@ -7549,21 +7568,6 @@ function boot(ctx) {
         if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
         if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'shell service unavailable' }
-        // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
-        // expose execute() — jamais run(). L'ancien appel shellSvc.run(spec)
-        // levait « shellSvc.run is not a function » et cassait reveal/delete/
-        // duplicate/rename.
-        const shellRun = async (request) => {
-          // Protocole du ShellExecutor : resolve(request) → spec, puis
-          // execute(spec) → handle dont .result porte { exitCode, ... }.
-          if (typeof shellSvc.resolve === 'function' && typeof shellSvc.execute === 'function') {
-            const spec = shellSvc.resolve(request)
-            const handle = await shellSvc.execute(spec)
-            return await (handle !== null && handle !== undefined ? handle.result : null)
-          }
-          if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
-          throw new Error('shell service has neither execute nor run')
-        }
         let writeRoot = null
         {
           const wsSvc = workspacesAt()
@@ -7583,7 +7587,7 @@ function boot(ctx) {
         const run = async (command) => {
           const request = { command: command, timeoutMs: 10000, stdoutMaxBytes: 4096 }
           if (writeRoot !== null) request.sandboxPolicy = { mode: 'workspace-write', workspaceRoot: writeRoot }
-          const res = await shellRun(request)
+          const res = await shellRun(shellSvc, request)
           const code = res !== null && res !== undefined && typeof res.exitCode === 'number' ? res.exitCode : (res !== null && res !== undefined && typeof res.code === 'number' ? res.code : null)
           // Un résultat sans exitCode (infra/timeout) n'est PAS un succès.
           return code === 0
@@ -7640,26 +7644,11 @@ function boot(ctx) {
         if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
         if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'shell service unavailable' }
-        // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
-        // expose execute() — jamais run(). L'ancien appel shellSvc.run(spec)
-        // levait « shellSvc.run is not a function » et cassait reveal/delete/
-        // duplicate/rename.
-        const shellRun = async (request) => {
-          // Protocole du ShellExecutor : resolve(request) → spec, puis
-          // execute(spec) → handle dont .result porte { exitCode, ... }.
-          if (typeof shellSvc.resolve === 'function' && typeof shellSvc.execute === 'function') {
-            const spec = shellSvc.resolve(request)
-            const handle = await shellSvc.execute(spec)
-            return await (handle !== null && handle !== undefined ? handle.result : null)
-          }
-          if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
-          throw new Error('shell service has neither execute nor run')
-        }
         // H-03 (recette 03/10) : entre doubles quotes, $(…) et `…` S'exécutent —
         // l'échappement de " seul ne protège rien. Quote POSIX à la q() du bloc
         // actions (l.6459), qui neutralise aussi la substitution de commande.
         const q2 = (p) => "'" + String(p).replace(/'/g, "'\\''") + "'"
-        const resReveal = await shellRun({ command: 'open -R ' + q2(path), timeoutMs: 8000, stdoutMaxBytes: 4096 })
+        const resReveal = await shellRun(shellSvc, { command: 'open -R ' + q2(path), timeoutMs: 8000, stdoutMaxBytes: 4096 })
         const codeReveal = (resReveal !== null && resReveal !== undefined && typeof resReveal.exitCode === 'number') ? resReveal.exitCode : null
         if (codeReveal !== null && codeReveal !== 0) return { ok: false, error: 'Finder unavailable (exit ' + codeReveal + ')' }
         return { ok: true }
@@ -7677,7 +7666,8 @@ function boot(ctx) {
           const path = str(p)
           if (path === null) continue
           try {
-            if ((await cheminAutorise(path)) === false) continue
+            if ((await cheminAutorise(path, { strict: true })) === false) continue
+            if (kbReadableExt(path) === false) continue
             const target = await fs.resolve(path)
             const info = await fs.stat(target).catch(() => null)
             if (!isFile(info)) continue
@@ -8074,6 +8064,8 @@ function boot(ctx) {
       const dot = n.lastIndexOf('.')
       return dot >= 0 ? n.slice(dot + 1) : ''
     }
+    // The files the Creations routes (art-read, art-previews, art-raw) agree to read or send: an image or a deliverable of the whitelist, nothing else.
+    const kbReadableExt = (name) => { const e = kbExtOf(name); return KB_RAW_EXTS.indexOf(e) >= 0 || ARTIFACT_EXTS.has(e) === true }
     const avatarRelFor = (ext, kyberId) => '.kyber-avatars/' + kyberId + '.' + ext + '.b64'
     const saveAvatar = async (args) => {
       try {
@@ -8140,11 +8132,7 @@ function boot(ctx) {
         const info = await fs.stat(target).catch(() => null)
         if (!isFile(info)) return null
         const text = await fs.readText(target)
-        const bytes = Buffer.from(text.replace(/\s+/g, ''), 'base64')
-        const avatarName = entry.avatar.slice(entry.avatar.lastIndexOf('/') + 1)
-        const parts = avatarName.split('.')
-        const ext = parts.length >= 3 ? parts[parts.length - 2] : ''
-        return { bytes: bytes, mime: mimeForExt(ext) }
+        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64') }
       } catch (e) { return null }
     }
 
@@ -8278,7 +8266,7 @@ function boot(ctx) {
         if (!isFile(info)) return null
         const bytes = Buffer.from((await fs.readText(target)).replace(/\s+/g, ''), 'base64')
         if (bytes.length === 0) return null
-        return { bytes: bytes, mime: (str(entry.mime) !== null ? String(entry.mime) : 'audio/wav') }
+        return { bytes: bytes }
       } catch (e) { return null }
     }
     /** Retire l'entrée de l'index ; le fichier reste (cette surface fs n'a pas d'unlink). */
@@ -8531,7 +8519,7 @@ function boot(ctx) {
         const info = await fs.stat(target).catch(() => null)
         if (isFile(info) !== true) return null
         const text = await fs.readText(target)
-        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64'), mime: 'image/png' }
+        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64') }
       } catch (e) { return null }
     }
 
@@ -9568,6 +9556,20 @@ function boot(ctx) {
         res.end(body)
       } catch (e) { try { res.writeHead(500); res.end('{}') } catch (e2) { /* socket ferme */ } }
     }
+    // The session half of a write route's guard (session-guard.mjs, docs/dev/route-origin-rule.md), for the routes that call `writeRefused(req, res)` after their strict Origin check:
+    // `true` once it has answered the refusal (403 for an Origin that is not this listener's, 401 when DSH's signed session cookie is missing or forged, 503 when the machine secret
+    // cannot be read), and the route stops there. An Origin header alone is forgeable by any local program, and plugin routes are served before DSH's own sign-in.
+    const writeRefused = (req, res) => {
+      const refused = writeGuard(req)
+      if (refused === null) return false
+      sendJson(res, refused.status, { ok: false, error: refused.error })
+      return true
+    }
+    // For the four voice routes the call worker also uses (/voice/transcribe, /models/audio/listen, /models/audio/probe, /tts/speak): the worker is a program with no cookie, so beside the
+    // signed session they accept the one-run secret the call host gave it, never an Origin alone. The call bundle (kybernos-call, worker-token.mjs) publishes a check for it in a
+    // process-global slot, as the trusted-authority hook does; without that bundle the slot is empty and only the cookie works. The check answers true only for the current worker run.
+    const callWorkerOK = (req) => { try { const check = globalThis[Symbol.for('kybernos.callWorkerToken')]; return typeof check === 'function' && check(req) === true } catch (e) { return false } }
+    const workerOrSessionRefused = (req, res) => (callWorkerOK(req) ? false : writeRefused(req, res))
     // Contrôle d'origine STRICT, pour les routes qui écrivent. DSH sert les
     // routes des plugins AVANT son authentification (constat de campagne : `/`
     // répond 401 sans cookie, `/kybernos/*` répond 200), donc chaque plugin doit
@@ -10148,6 +10150,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/gateway/approvals/decision', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: this answers an agent's request for approval (it lets a task run), so a program that only sends the Origin must not be able to say yes: the signed session is needed
+        // too. Nothing in this repository calls it (no page, no worker): the bridge it belongs to is inert without a hand-set pairing token.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const rep = await gatewayWatcher.decider(
@@ -10301,6 +10306,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-reveal', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: it opens a Finder window on a file of the person's disk, so the signed session is needed too (its only caller is a page; the phone replays the cookie).
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await revealArtifact(await readJsonBody(req)))
       } }), 'kybernos: route art-reveal')
       // ── vendor « technique » : three.js + le renderer 3D ──────────────────
@@ -10335,12 +10342,12 @@ function boot(ctx) {
         try {
           const p = str(queryOf(req).get('path'))
           if (p === null || p.length < 4) { res.writeHead(400); res.end(''); return }
-          if ((await cheminAutorise(p)) === false) { res.writeHead(403); res.end(''); return }
+          if ((await cheminAutorise(p, { strict: true })) === false) { res.writeHead(403); res.end(''); return }
           const ext = kbExtOf(p)
           // Images : servies directement (kind image côté aperçu). Les autres
           // livrables de la liste blanche passent aussi — le menu « Télécharger
           // » des cartes (26/09) repose sur cette route.
-          if (KB_RAW_EXTS.indexOf(ext) < 0 && ARTIFACT_EXTS.has(ext) === false) { res.writeHead(415); res.end(''); return }
+          if (kbReadableExt(p) === false) { res.writeHead(415); res.end(''); return }
           const target = await fs.resolve(p)
           const info = await fs.stat(target).catch(() => null)
           if (!isFile(info)) { res.writeHead(404); res.end(''); return }
@@ -10480,6 +10487,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-progress', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06 (recette 2026-10-25): a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         const action = str(body.action)
         // The registry belongs to the person, in the DSH home (DSH_HOME honoured): next to the plugin it was replaced by every update,
@@ -10568,6 +10577,8 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: which skills a project follows is read by its agents, so the write needs the signed session too.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await saveWorkspaceSkills(await readJsonBody(req)))
       } }), 'kybernos: route workspace-skills')
       // ── Connectors used by a project: GET reads, POST writes the selection ──
@@ -10578,6 +10589,8 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: which apps a project may use is what its agents can reach, so the write needs the signed session too.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await saveWorkspaceConnectors(await readJsonBody(req)))
       } }), 'kybernos: route workspace-connectors')
       // ── Instructions of a workspace: a text sent with the prompt of its sessions (private store, optional AGENTS.md section) ──
@@ -10589,6 +10602,9 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: the text lands in the system prompt of every chat of the project and, when asked, in the project's AGENTS.md (committed, shared), and the agent has a shell:
+        // the write needs the signed session too, not only an Origin that any local program can send.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         sendJson(res, 200, wsInstructions.set({ workspaceId: body !== null && typeof body === 'object' ? str(body.workspaceId) : null, text: body !== null && typeof body === 'object' ? body.text : undefined, alsoAgents: body !== null && typeof body === 'object' && body.alsoAgents === true }))
       } }), 'kybernos: route workspace-instructions')
@@ -10633,6 +10649,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/project-data', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it answers which agent team worked in which chat, from the sessions on disk: a read, but a POST that only the pages (this one and Atlas) send, so it follows the rule.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await projectData(await readJsonBody(req)))
       } }), 'kybernos: route project-data')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/menu-save', handler: async (req, res) => {
@@ -10707,6 +10725,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domain/skill', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it writes a skill the agents will load, so the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         const name = body !== null && typeof body === 'object' ? str(body.name) : null
@@ -10730,6 +10750,8 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: the wizard's answers (domain, goals, how the agents are powered) are written to disk, so the signed session is needed too. The wizard is a page of DSH: it has the cookie.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         const action = str(body.action)
         const state = (await onboardingRead()) || onboardingDefault()
@@ -10760,6 +10782,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/model/auto', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it changes the model the next message uses (the person's settings), so the signed session is needed too.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         const deps = {
           llm: ctx.get('llm'),
@@ -10850,10 +10874,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route avatar')
       // Visages d'équipe : UN appel image (planche deux sections) puis découpe
       // locale — la route écrit l'avatar d'équipe et un avatar par rôle.
@@ -10869,10 +10891,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readMemberAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route member-avatar')
       // Un portrait seul : un appel image (~65 s), la scène d'équipe n'est pas relue.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/member-portrait', handler: async (req, res) => {
@@ -10902,10 +10922,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await kbSampleAudio(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route voice-sample-audio')
       // Les modèles image réellement configurés (+ leur prix connu, leur sonde).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image-models', handler: async (req, res) => {
@@ -10922,6 +10940,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image/generate', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19 (recette 2026-10-25): a picture is paid for with the owner's image credits, and a route that spends money cannot rest on an Origin that any local program can send:
+        // the signed session is needed too. Its only caller is a page (Settings › Kaby).
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16384) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const prompt = str(body !== null && body !== undefined ? body.prompt : null)
@@ -11001,6 +11022,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/quality-feedback', handler: async (req, res) => {
         if (req.method === 'POST') {
           if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+          // Recette 2026-10-25: a write to the person's feedback log: the signed session is needed too (the page sends it).
+          if (writeRefused(req, res)) return
           let body = null
           try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
           return sendJson(res, 200, await saveQualityFeedback(body))
@@ -11016,6 +11039,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/quality-rating', handler: async (req, res) => {
         if (req.method === 'POST') {
           if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+          // Recette 2026-10-25: a write to the person's rating log: the signed session is needed too (the page sends it).
+          if (writeRefused(req, res)) return
           let body = null
           try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
           return sendJson(res, 200, await saveQualityRating(body))
@@ -11031,6 +11056,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/salary-detect', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: it makes a real call to the person's model (their credits): the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await detectSalary(body))
@@ -11040,6 +11067,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/starters-suggest', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: a real call to the person's model (their credits): the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await startersSuggest(body))
@@ -11048,6 +11077,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-translate', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: a batch of translations is a call to the person's model (their credits): the signed session is needed too. Its only caller is the Language page.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await i18nTranslate(body))
@@ -11060,18 +11091,32 @@ function boot(ctx) {
       } }), 'kybernos: route i18n-models')
       // Translations saved on the user's disk (~/.dsh/kybernos/i18n/<lang>.json), shared by
       // every browser: see i18n-store.mjs. The browser keeps a copy for first paint.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-store', handler: (req, res) => serveI18nStore(req, res, {
-        home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
-      }) }), 'kybernos: route i18n-store')
+      // Recette 2026-10-25: a POST writes (or removes) a language of the person's interface on disk, and the strings it holds are drawn in every page: it needs the signed session too, not only the strict
+      // Origin serveI18nStore checks. The callers are the pages (Language, and the runtime that reconciles the disk copy); the GET (list, read) keeps its lax rule.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-store', handler: (req, res) => {
+        if (req.method === 'POST' && writeRefused(req, res)) return undefined
+        return serveI18nStore(req, res, {
+          home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
+        })
+      } }), 'kybernos: route i18n-store')
       // Ready-made translations (signed language packs): which exist, refresh, install one into the on-disk store. i18n-packs.mjs.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-packs', handler: (req, res) => servePacks(req, res, {
-        home: dshHomeOrNull, store: (kybernosDir) => createI18nStore({ dir: joinPath(kybernosDir, 'i18n') }), keys: () => loadLanguagePackKeys(joinPath(pluginDir, 'languages-pubkey.json')),
-        sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
-      }) }), 'kybernos: route i18n-packs')
+      // Recette 2026-10-25: a POST asks the network for the signed index (`refresh`) and installs a pack into the on-disk store (`install`): the signed session is needed too. Its only caller is the Language page.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-packs', handler: (req, res) => {
+        if (req.method === 'POST' && writeRefused(req, res)) return undefined
+        return servePacks(req, res, {
+          home: dshHomeOrNull, store: (kybernosDir) => createI18nStore({ dir: joinPath(kybernosDir, 'i18n') }), keys: () => loadLanguagePackKeys(joinPath(pluginDir, 'languages-pubkey.json')),
+          sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
+        })
+      } }), 'kybernos: route i18n-packs')
       // The run itself: start / pause / resume / cancel / acknowledge, and its state. See i18n-job.mjs.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-job', handler: (req, res) => serveJobs(req, res, {
-        runner: i18nJobRunner, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
-      }) }), 'kybernos: route i18n-job')
+      // L3-19: `start` translates the missing texts with the person's model (their credits) and the other ops steer that run, so a POST needs the signed session too, not only the
+      // strict Origin serveJobs checks. The GET (the state of the runs) keeps its lax rule.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-job', handler: (req, res) => {
+        if (req.method === 'POST' && writeRefused(req, res)) return undefined
+        return serveJobs(req, res, {
+          runner: i18nJobRunner, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
+        })
+      } }), 'kybernos: route i18n-job')
       try { resumeI18nJobs() } catch (e) { /* the boot does not depend on it */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-cap', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
@@ -11104,9 +11149,13 @@ function boot(ctx) {
       } }), 'kybernos: route models/audio')
       // Which way of asking one of those models works (a few words of text, or a second of silence, sent to the provider with the key the
       // app already holds for it; the key never leaves this process and is not in the answer). On a click only: it is a call to the provider.
+      // L3-19 / L3-03: this route and `models/audio/listen`, `voice/transcribe` and `tts/speak` below spend the owner's key and are called by pages (which have the cookie) AND by something that is not a
+      // browser — kybernos-call's Python worker (agent/call_stt.py, agent/call_voice.py), which has no DSH session. They take the signed session OR the worker's one-run secret (callWorkerOK), never an Origin alone.
+      // (kybernos-call's health check is a page's: it hands the page's own cookie on.) test-write-guard.mjs lists them with who may call.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/probe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbModelsAudio.check({ provider: str(body.provider) ?? '', model: str(body.model) ?? '' }))
@@ -11115,6 +11164,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/speak', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: it asks the provider for speech with the person's key (their credits): the signed session is needed too. Nothing in this repository calls it (the call worker speaks
+        // through `tts/speak`), so no caller is left without the cookie.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 8192) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const said = str(body.text)
@@ -11125,6 +11177,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/listen', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const b64 = str(body.audio)
@@ -11136,6 +11189,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbVoiceTranscribe(body))
@@ -11143,6 +11197,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: it writes a recording (up to 16 MB) into the person's workspace: the signed session is needed too. Its only caller is the dictation of the page.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbVoiceSave(body))
@@ -11232,6 +11288,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/yml-proposer', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: a real call to the person's model with their key (their credits): the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbYmlProposer(body))
@@ -11253,6 +11311,8 @@ function boot(ctx) {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, config: await kbTtsGetConfig(kbTtsUiLangOf(req)) })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it chooses the voice engine, and a cloud engine sends the text of a reply out of the machine, so the write needs the signed session too.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const patch = (body !== null && body !== undefined && typeof body === 'object') ? body.patch : null
@@ -11268,6 +11328,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/speak', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbTtsSpeak(body, kbTtsUiLangOf(req)))
@@ -11279,6 +11340,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/cache-trim', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: it deletes cached voice files: the signed session is needed too. Nothing in this repository calls it.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, { ok: true, trim: await kbTtsCacheTrim() })
       } }), 'kybernos: route tts/cache-trim')
       // ── Tâches planifiées (store ~/.dsh/kybernos/tasks.json) ─────────────
@@ -11318,15 +11381,27 @@ function boot(ctx) {
         } catch (e) { /* unparsable Host: loopback authorities only */ }
         return kbVerifySessionCookie(req.headers.cookie, authorities, secret, Date.now(), { createHash, createHmac, timingSafeEqual })
       }
+      // A write replayed from a paired phone (kybernos-mobile marks every request it replays) is refused, as session-guard.mjs's writeGuard refuses it on the other routes:
+      // a phone has the power of the keyboard, and this route schedules runs of the agent. Reads stay open to it.
+      const kbTunnelledWrite = (req) => ['GET', 'HEAD', 'OPTIONS'].indexOf(String(req.method || 'GET').toUpperCase()) === -1 && req.headers != null && req.headers['x-kybernos-tunnel'] !== undefined
+      // `markerJudgedLater`: the caller reads the body first and judges the marker itself (the tasks route, whose `list` action only reads).
+      const kbTasksRefused = async (req, markerJudgedLater) => (kbTunnelledWrite(req) && markerJudgedLater !== true ? { status: 403, error: 'refused_on_phone' } : (await kbTasksAuthorized(req) === true ? null : { status: 401, error: 'sign-in required' }))
+      // What a phone is told of an automation: the same, without the secret of its webhook (the secret lets anyone who holds it start the automation).
+      const kbWithoutHookSecret = (task) => (task !== null && typeof task === 'object' && task.trigger !== null && typeof task.trigger === 'object' ? Object.assign({}, task, { trigger: Object.fromEntries(Object.entries(task.trigger).filter(([key]) => key !== 'secret')) }) : task)
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        { const refused = await kbTasksRefused(req, true); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         let body = null
         try { body = await readJsonBody(req, 200000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         if (body === null || typeof body !== 'object' || Array.isArray(body) === true) return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
+        // A paired phone's request (kybernos-mobile marks it) is judged here, once the action is known: `list` is the Automations page reading its list (a POST that only
+        // reads, and it is told no webhook secret); every other action creates, changes, deletes or runs an automation, which a phone never does.
+        const phone = kbTunnelledWrite(req)
+        if (phone && body.action !== 'list') return sendJson(res, 403, { ok: false, error: 'refused_on_phone' })
         try {
-          sendJson(res, 200, await kbTasksHandle(body))
+          const answer = await kbTasksHandle(body)
+          sendJson(res, 200, phone && answer !== null && typeof answer === 'object' && Array.isArray(answer.tasks) ? Object.assign({}, answer, { tasks: answer.tasks.map(kbWithoutHookSecret) }) : answer)
         } catch (e) {
           // A store that cannot be trusted is a normal answer the page can show (the client only
           // reads JSON on a 200); anything else is an internal error whose text stays in the log.
@@ -11400,7 +11475,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/suggestions', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         try {
           if (req.method === 'GET') {
             const kind = queryOf(req).get('kind')
@@ -11420,7 +11495,7 @@ function boot(ctx) {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         if (req.method === 'GET') return sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(await kbAutoSettingsRead())))
-        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         let body = null
         try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         const next = autoSettingsApply(await kbAutoSettingsRead(), body)
@@ -11447,7 +11522,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-skills', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-        if (req.method === 'POST' && await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        if (req.method === 'POST') { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         try {
           let id = ''
           if (req.method === 'GET') id = String(queryOf(req).get('id') || '')
@@ -11921,6 +11996,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tools/apply', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it adds or removes a driver (Computer Use, Browser Use, a coding agent) in the profile's cordis.patch.yml, which DSH reloads at once, and the agent has a shell: the
+        // write needs the signed session too. Its callers are the Tools tab and the Workers page, both pages.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await kbToolsApply(await readJsonBody(req, 200000)))
       } }), 'kybernos: route tools/apply')
 

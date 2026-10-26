@@ -7,7 +7,7 @@
 //   4. a chat of another team opened while a turn runs shows the notice and the switch happens by itself when the turn ends;
 //   5. a chat in an arbitrary (non-team) folder is billed to Personal.
 // Then the invariant over the whole journey: every agent request carries the header of the team that owns the folder of its chat.
-import { openGui, recorder, sleep, mainCalls, chatCalls, cwdOf } from './common.mjs'
+import { openGui, recorder, sleep, mainCalls, chatCalls, cwdOf, cwdOrWhy } from './common.mjs'
 import { cookieDeSession } from '../cdp-lib.mjs'
 
 export const run = async (ctx) => {
@@ -89,7 +89,7 @@ export const run = async (ctx) => {
     check('the card follows: T1 is active (no click on a team, no new chat)', !!followed1 && (await hostActive()) === t1)
     const o1 = await turn('J9 continued in the T1 chat')
     check('every request of the continued chat carries T1 (proxy)', o1.chats.length > 0 && o1.chats.every((c) => c.workspace === t1), o1.chats.map((c) => name[c.workspace]))
-    check('the chat works in T1\'s folder', ctx.ownerOfCwd(cwdOf(o1.mains[0])) === 't1', cwdOf(o1.mains[0]))
+    check('the chat works in T1\'s folder', ctx.ownerOfCwd(cwdOf(o1.mains[0])) === 't1', cwdOrWhy(o1.mains[0]))
     await sleep(1200)
     const after1 = await usageAll()
     const seen1 = acceptedBy(ctx.rows(tMark1))
@@ -111,7 +111,7 @@ export const run = async (ctx) => {
     const tMark2 = Date.now()
     const o2 = await turn('J9 the first message of a new chat in T2\'s folder')
     check('its requests carry T2 (the host switched at claim time and held the first request)', o2.chats.length > 0 && o2.chats.every((c) => c.workspace === t2), o2.chats.map((c) => name[c.workspace]))
-    check('and the chat works in T2\'s folder', ctx.ownerOfCwd(cwdOf(o2.mains[0])) === 't2', cwdOf(o2.mains[0]))
+    check('and the chat works in T2\'s folder', ctx.ownerOfCwd(cwdOf(o2.mains[0])) === 't2', cwdOrWhy(o2.mains[0]))
     const first2 = o2.mains[0]
     note('Enter → the first request left after ' + (first2 ? first2.t0 - o2.t : '?') + ' ms')
     await sleep(1200)
@@ -140,7 +140,7 @@ export const run = async (ctx) => {
     await sleep(1500)
     const o2b = await turn('J9 what is my J9 word?')
     check('its requests carry T2', o2b.chats.length > 0 && o2b.chats.every((c) => c.workspace === t2), o2b.chats.map((c) => name[c.workspace]))
-    check('and the chat works in T2\'s folder', ctx.ownerOfCwd(cwdOf(o2b.mains[0])) === 't2', cwdOf(o2b.mains[0]))
+    check('and the chat works in T2\'s folder', ctx.ownerOfCwd(cwdOf(o2b.mains[0])) === 't2', cwdOrWhy(o2b.mains[0]))
     check('the personal memory word is in NO request of that turn (agent, title, classification): the cut was in place for the very first request', has(o2b.chats, WORD) === 0, { calls: o2b.chats.length, withWord: has(o2b.chats, WORD) })
 
     // ── 3. a switch click while a turn is running ──────────────────────────────────────────────────────────────────────────────────────────
@@ -211,7 +211,7 @@ export const run = async (ctx) => {
     check('the card follows: Personal is active', !!toPersonal && (await hostActive()) === P, await cardText())
     const o5 = await turn('J9 continued in the personal chat')
     check('its requests carry Personal', o5.chats.length > 0 && o5.chats.every((c) => c.workspace === P), o5.chats.map((c) => name[c.workspace]))
-    check('and the chat works in a folder that is no team\'s', ctx.ownerOfCwd(cwdOf(o5.mains[0])) === 'P', cwdOf(o5.mains[0]))
+    check('and the chat works in a folder that is no team\'s', ctx.ownerOfCwd(cwdOf(o5.mains[0])) === 'P', cwdOrWhy(o5.mains[0]))
     await sleep(1200)
     const after5 = await usageAll()
     check('the server billed Personal and nobody else (usage read)', sameCalls(deltas(before5, after5), acceptedBy(ctx.rows(tMark5))) && deltas(before5, after5).Personal >= 1 && deltas(before5, after5).T1 === 0 && deltas(before5, after5).T2 === 0, { server: deltas(before5, after5), proxy: acceptedBy(ctx.rows(tMark5)) })

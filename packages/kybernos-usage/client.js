@@ -267,12 +267,15 @@ window.__ModuleLoader__.load({
         planStore.inflight = Promise.all([getJson('/kybernos-cloud/quota'), getJson('/kybernos-cloud/status')]).then(([quota, status]) => {
           let v = null
           if (isObj(quota) && quota.ok === true) {
-            const sp = isObj(status) && isObj(status.space_plan) ? status.space_plan : null
+            // The host answers { ok, connected, state: { …, space_plan } } (kybernos-cloud's statusRoute): the plan of the active space lives under `state`. Read at the top of the
+            // answer it was never found, and « Credits left » never appeared (recette L2-36). A balance the server did not give is `null` there: no row, not « 0 credits ».
+            const st = isObj(status) && isObj(status.state) ? status.state : null
+            const sp = st !== null && isObj(st.space_plan) ? st.space_plan : null
             const now = typeof quota.server_time === 'string' ? quota.server_time : null
             v = {
               connected: true,
               name: sp !== null && typeof sp.label === 'string' ? sp.label : null,
-              credits: sp !== null && Number.isFinite(Number(sp.credit_balance_credits)) ? Number(sp.credit_balance_credits) : null,
+              credits: sp !== null && typeof sp.credit_balance_credits === 'number' && Number.isFinite(sp.credit_balance_credits) ? sp.credit_balance_credits : null,
               blocked: quota.payment_blocked === true,
               windows: (Array.isArray(quota.usage) ? quota.usage : []).map((w) => windowView(w, now)).filter((w) => w !== null),
             }
@@ -746,7 +749,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
       return {
         name: 'kybernos-usage',
         inject: ['slots'],
-        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock },
+        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock, loadPlan, planStore, CreditsRow },
         apply (ctx) {
           // After the sessions pills (order 5) and the changes chip (order 4). The id must NOT be `kybernos-usage`:
           // the core's usage probe already registers that id in this slot.

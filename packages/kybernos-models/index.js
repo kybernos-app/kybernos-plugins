@@ -153,9 +153,9 @@ const readBody = (req) => new Promise((resolve) => {
 // login and an Origin header is forgeable by any local program, so before this a `curl -X POST` with a made-up Origin rewrote the person's
 // notes or parked their provider. Every caller is a page of this DSH (the Models page and the first-run wizard of kybernos-plugin), which
 // carries the cookie by itself; nothing else calls these routes (scripts/audit-routes.mjs). The reads stay open behind the Host fence.
-// Answers the refusal and returns true when the request must stop there.
-const kbRefused = (req, res) => {
-  const refused = writeGuard(req)
+// Answers the refusal and returns true when the request must stop there. `options` goes to the guard: `{ phoneMayRead: true }` lets a paired phone make a POST that only reads.
+const kbRefused = (req, res, options) => {
+  const refused = writeGuard(req, options)
   if (refused === null) return false
   sendJson(res, refused.status, { ok: false, error: refused.error })
   return true
@@ -343,7 +343,9 @@ const kbCatalogEntry = (route) => {
 export const kbLiveMount = (register, services = () => ({}), options = {}) => {
   register({ kind: 'exact', path: '/kybernos-models/models/live', handler: async (req, res) => {
     if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-    if (kbRefused(req, res)) return
+    // A POST that only reads (live-models.mjs: one GET of the provider's model list, nothing stored, never the key back; a key goes only where the saved
+    // profile or the catalogue says, or beside a key the page typed itself), so a paired phone may ask for it: its model picker needs the list.
+    if (kbRefused(req, res, { phoneMayRead: true })) return
     const body = await readBody(req)
     if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
     let svc = {}

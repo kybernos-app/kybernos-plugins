@@ -16,8 +16,10 @@ const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i
 const LINE_SEPARATOR = String.fromCharCode(0x2028)
 const PARAGRAPH_SEPARATOR = String.fromCharCode(0x2029)
 
-/** A short, stable word from a team's id (its first eight letters and digits): what tells two teams of the same name apart. */
-export const shortId = (id) => (typeof id === 'string' ? id.replace(/[^A-Za-z0-9]/g, '').slice(0, 8).toLowerCase() : '')
+/** A short, stable word from a team's id (its LAST eight letters and digits): what tells two teams of the same name apart. The server's ids are UUIDv7, whose head is the clock (the first
+ *  eight characters are the same for every team made inside the same ~65 seconds, so two teams called « Acme », or two called « CON », made in the same minute shared one folder, and a
+ *  message in it was billed to the other team) and whose tail is random. */
+export const shortId = (id) => (typeof id === 'string' ? id.replace(/[^A-Za-z0-9]/g, '').slice(-8).toLowerCase() : '')
 
 /** The name of a team's folder: ONE segment, whatever the team is called. A separator, a drive colon, a control character, `..` and a leading or trailing dot are gone; the length is
  *  capped (by characters, never cutting one in half); a name that leaves nothing, or that Windows reserves, becomes « Team <id> ». Never throws. */

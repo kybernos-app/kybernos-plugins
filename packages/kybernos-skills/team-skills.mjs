@@ -39,6 +39,23 @@ const SECRET_PATTERNS = Object.freeze([
 
 const isWordChar = (c) => c !== undefined && /[A-Za-z0-9_]/.test(c)
 
+// What no person can see in a text, or what changes how it reads (decision DL-09 of the 2026-10 recette, findings L2-18 and L2-20): the tags block U+E0000-U+E007F, the direction controls
+// U+202A-U+202E and U+2066-U+2069, U+200B, U+2060, the invisible operators U+2061-U+2064, U+206A-U+206F, U+FEFF anywhere (a BOM is not text), U+00AD, U+180E, U+FFF9-U+FFFB, the variation
+// selectors U+E0100-U+E01EF, and the C0 and C1 controls except tab, line feed and carriage return (457 code points). REFUSED, never removed: the version is the SHA-256 of the exact text.
+// Kept: U+200C and U+200D (emoji sequences, Persian), U+200E and U+200F (Arabic and Hebrew), U+FE0E and U+FE0F. The SAME set as the server (`src/lib/hidden-text.ts`) and the two other clients
+// (`kybernos-plugin/automation-team.mjs`, `kybernos-cloud/team-automations.mjs`); docs/dev/hidden-text-vectors.json is the list of texts all of them are tested against.
+const HIDDEN_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u180e\u200b\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\u{e0000}-\u{e007f}\u{e0100}-\u{e01ef}]/u
+const HIDDEN_ALL_RE = new RegExp(HIDDEN_RE.source, 'gu')
+// What the secret scan looks through: the refused set, and every other character that draws nothing (the joiners and marks that are kept, the Hangul fillers, the combining grapheme joiner...).
+const INVISIBLE_ALL_RE = new RegExp(HIDDEN_RE.source.slice(0, -1) + '\\p{Default_Ignorable_Code_Point}\\p{Cf}]', 'gu')
+
+/** The refused characters of a text: `{ first: 'U+E0041', count }`, or null when it has none (or when `text` is not text). Linear. */
+export const hiddenIn = (text) => {
+  if (typeof text !== 'string' || !HIDDEN_RE.test(text)) return null
+  const all = text.match(HIDDEN_ALL_RE)
+  return { first: 'U+' + all[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0'), count: all.length }
+}
+
 /**
  * Pure. Whether a line holds a JWT: `\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b`. That regular expression is
  * QUADRATIC on a line such as `-eyJ-eyJ-eyJ…` (every `eyJ` scans to the end of the run, then backtracks): 160 000 characters took 6.7 s,
@@ -71,10 +88,13 @@ export const hasJwt = (line) => {
   return false
 }
 
-/** Pure. `{ file, line, kind }` of the first secret-looking line, or null. The matched text is never returned. */
+/**
+ * Pure. `{ file, line, kind }` of the first secret-looking line, or null. The matched text is never returned. Each file is read AFTER what draws nothing is taken out of it (the server
+ * does the same): a key cut by a zero-width character, or by a joiner that text may hold, is still a key. Line breaks are untouched, so a line number does not move.
+ */
 export const findSecret = (files) => {
   for (const f of files) {
-    const lines = String(f.content).split(/\r?\n/)
+    const lines = String(f.content).replace(INVISIBLE_ALL_RE, '').split(/\r?\n/)
     for (let i = 0; i < lines.length; i += 1) {
       const text = lines[i]
       // The shortest secret (`xoxa-` and ten characters) is 15 characters: most lines of a file are shorter.
@@ -162,7 +182,7 @@ const windowsUnsafe = (path) => path.split('/').some((seg) => seg.endsWith('.') 
 
 /**
  * Pure. `{ ok: true, version, count, bytes, scripts, description }` when the skill may travel, else `{ ok: false, reason, file? }` with a
- * reason of the contract: name, description, no_skill_md, frontmatter, bad_path, binary, too_many_files, file_too_large, too_large,
+ * reason of the contract: name, no_skill_md, frontmatter, bad_path, binary, hidden, too_many_files, file_too_large, too_large,
  * scan_rejected. The first problem found, in that order of seriousness.
  */
 export const validateTeamSkill = (skill) => {
@@ -182,6 +202,8 @@ export const validateTeamSkill = (skill) => {
     seen.add(f.path)
     folded.add(f.path.toLowerCase())
     if (!isStorableText(f.content)) return { ok: false, reason: 'binary', file: f.path }
+    // What no person can see (DL-09): refused, never removed. A skill is installed on every member's disk and read by their agent; the version is the hash of the exact text.
+    if (hiddenIn(f.content) !== null) return { ok: false, reason: 'hidden', file: f.path }
     const size = Buffer.byteLength(f.content, 'utf8')
     if (size > TEAM_SKILL_LIMITS.fileBytes) return { ok: false, reason: 'file_too_large', file: f.path }
     bytes += size
@@ -199,7 +221,7 @@ export const validateTeamSkill = (skill) => {
   const fm = frontmatterOfText(entry.content)
   const description = typeof fm.description === 'string' ? fm.description.trim() : ''
   if (fm.name !== s.name || description === '' || description.length > TEAM_SKILL_LIMITS.description) return { ok: false, reason: 'frontmatter', file: 'SKILL.md' }
-  if (!isStorableText(description)) return { ok: false, reason: 'description' }
+  // (No storable-text check of the description here: it is cut from SKILL.md, whose text passed `isStorableText` and `hiddenIn` above, so it cannot be anything else.)
   // The description is shown to every member and is its own field, not a file: a secret in it is as public as one in a file.
   const secret = findSecret([...files, { path: '<description>', content: description }])
   if (secret !== null) return { ok: false, reason: 'scan_rejected', file: secret.file, line: secret.line }

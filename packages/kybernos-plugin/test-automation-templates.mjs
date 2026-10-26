@@ -27,7 +27,7 @@ const trFr = (k) => (pairs[k] !== undefined ? pairs[k].fr : 'MISSING:' + k)
 
 /* ── The catalogue ───────────────────────────────────────────────────────── */
 eq('four categories, each with a title in both languages and a colour of the theme (no literal hex)', m.KB_TPL_CATS.map((c) => [c.id, c.title.length, /^var\(--dsw-alias-state-(warn|business|success)-primary\)$/.test(c.color)]), [['social', 2, true], ['prospecting', 2, true], ['support', 2, true], ['skills', 2, true]])
-eq('eleven templates, none twice', [m.KB_TPLS.length, new Set(m.KB_TPLS.map((t) => t.id)).size], [11, 11])
+eq('twelve templates, none twice', [m.KB_TPLS.length, new Set(m.KB_TPLS.map((t) => t.id)).size], [12, 12])
 eq('every template belongs to a category', m.KB_TPLS.every((t) => m.KB_TPL_CATS.some((c) => c.id === t.cat)), true)
 {
   const pairOk = (p) => Array.isArray(p) === true && p.length === 2 && typeof p[0] === 'string' && typeof p[1] === 'string' && p[0].trim().length > 0 && p[1].trim().length > 0
@@ -63,15 +63,30 @@ eq('the icons are ones the page draws', m.KB_TPLS.map((t) => t.icon).filter((i) 
   eq('the seam builds the same chat text as the Discover card, and answers false without a template or a chat', [/KB_TPLS\.filter\(\(x\) => x\.id === id\)\[0\]/.test(seam), /kbTplChatText\(tpl, kbt, kbTplPick, kbTplLangName\(kbLangResolve\(\)\)\)/.test(seam), /return false/.test(seam)], [true, true, true])
 }
 
+{
+  // The daily TikTok video: the person validates each step, and the models are the account's own (nothing to enter).
+  const t = m.KB_TPLS.find((x) => x.id === 'social-tiktok')
+  const at = (re) => t.steps.findIndex((s) => re.test(en(s[1])))
+  eq('the daily TikTok video exists, in the social category, on weekdays at 09:00, and names TikTok as its app', [t !== undefined, t.cat, t.cron, t.apps], [true, 'social', '0 9 * * 1-5', ['TikTok']])
+  eq('it names both skills, the models check coming first, then the scout, the storyboard with its price, the generation, the draft', [at(/^PREFLIGHT/), at(/tiktok-studio skill’s check/), at(/tiktok-scout skill/), at(/storyboard/), at(/can generate/), at(/send the finished video/)], [0, 1, 2, 3, 4, 5])
+  eq('nothing is generated before the person\'s word on the price, and the video only reaches TikTok as a draft, in both languages', [/Wait for my word on that price before anything is generated/.test(en(t.steps[3][1])), /Attendre mon accord sur ce prix avant de générer/.test(fr(t.steps[3][1])), /as a draft\. Publish nothing/.test(en(t.steps[5][1])), /comme brouillon\. Ne rien publier/.test(fr(t.steps[5][1]))], [true, true, true, true])
+  eq('the generation step does not promise what the account cannot do yet: it stops with the storyboard and says so', [/if it cannot yet, stop with the storyboard and the approved price and say so/.test(en(t.steps[4][1])), /sinon, s’arrêter avec le storyboard et le prix validé et le dire/.test(fr(t.steps[4][1]))], [true, true])
+  eq('the guard says the models are checked at every run and the run stops and asks when one is gone or repriced', t.guard.some((g) => /checked at every run/.test(en(g)) && /gone or its price moved/.test(en(g)) && /vérifiés à chaque exécution/.test(fr(g))), true)
+  eq('the models question starts with the account\'s own models: no key to paste, and no key is asked for anywhere in it', [en(t.ask[3].o[0]), JSON.stringify(t).toLowerCase().indexOf('key') >= 0 ? t.needs.some((n) => /no key to enter/.test(en(n))) : true, t.ask.some((q) => q.o.some((o) => /paste/i.test(en(o))))], ['The models of my Kybernos account', true, false])
+  eq('its chat text names the skill that builds the task and keeps it OFF', [m.kbTplChatText(t, trEn, en).indexOf('tiktok-studio') >= 0, m.kbTplChatText(t, trEn, en).indexOf('tiktok-scout') >= 0, /active: false/.test(m.kbTplChatText(t, trEn, en))], [true, true, true])
+  const daily = m.KB_TPLS.find((x) => x.id === 'social-daily')
+  eq('the daily post pack offers the account\'s models first and no longer starts with pasting keys', [en(daily.ask[1].o[0]), en(daily.ask[1].o[2])], ['The models of my Kybernos account (nothing to enter)', 'I will paste my own keys'])
+}
+
 /* ── Words and filters ───────────────────────────────────────────────────── */
 eq('a pair is read in the language `pick` chooses, English by default', [m.kbTplText(['a', 'b'], en), m.kbTplText(['a', 'b'], fr), m.kbTplText(['a', 'b']), m.kbTplText(null, en)], ['a', 'b', 'a', ''])
-eq('all templates when no category and no words', m.kbTplFilter(m.KB_TPLS, 'all', '', en).length, 11)
-eq('a category keeps its own', [m.kbTplFilter(m.KB_TPLS, 'social', '', en).length, m.kbTplFilter(m.KB_TPLS, 'prospecting', '', en).length, m.kbTplFilter(m.KB_TPLS, 'support', '', en).length], [3, 3, 4])
+eq('all templates when no category and no words', m.kbTplFilter(m.KB_TPLS, 'all', '', en).length, 12)
+eq('a category keeps its own', [m.kbTplFilter(m.KB_TPLS, 'social', '', en).length, m.kbTplFilter(m.KB_TPLS, 'prospecting', '', en).length, m.kbTplFilter(m.KB_TPLS, 'support', '', en).length], [4, 3, 4])
 eq('words are looked for in the title, the text, the tags and the apps', [m.kbTplFilter(m.KB_TPLS, 'all', 'whatsapp', en).map((t) => t.id), m.kbTplFilter(m.KB_TPLS, 'all', 'shopify', en).map((t) => t.id)], [['cs-whatsapp', 'cs-shopify'], ['cs-shopify']])
 eq('every word must match, in any order, whatever the case', m.kbTplFilter(m.KB_TPLS, 'all', 'CALL  outbound', en).map((t) => t.id), ['prosp-calls'])
 eq('the filter reads the page’s language: a French word finds the French text', [m.kbTplFilter(m.KB_TPLS, 'all', 'appels sortants', fr).map((t) => t.id), m.kbTplFilter(m.KB_TPLS, 'all', 'appels sortants', en).length], [['prosp-calls'], 0])
 eq('a category and words together', m.kbTplFilter(m.KB_TPLS, 'support', 'whatsapp', en).map((t) => t.id), ['cs-whatsapp', 'cs-shopify'])
-eq('nothing matches, nothing breaks', [m.kbTplFilter(m.KB_TPLS, 'all', 'zzzz', en), m.kbTplFilter(null, 'all', '', en), m.kbTplFilter(m.KB_TPLS, 'all', undefined, en).length], [[], [], 11])
+eq('nothing matches, nothing breaks', [m.kbTplFilter(m.KB_TPLS, 'all', 'zzzz', en), m.kbTplFilter(null, 'all', '', en), m.kbTplFilter(m.KB_TPLS, 'all', undefined, en).length], [[], [], 12])
 eq('a step kind is ai or act, act when unknown', [m.kbTplStepKind(['ai', ['x', 'y']]), m.kbTplStepKind(['act', ['x', 'y']]), m.kbTplStepKind(null), m.kbTplStepKind(['?'])], ['ai', 'act', 'act', 'act'])
 
 /* ── Logos and the page's language ──────────────────────────────────────── */

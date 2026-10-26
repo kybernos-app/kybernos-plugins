@@ -18,6 +18,8 @@
 // All I/O is injected (`deps`, `io`): test-host.mjs plays this file without DSH, without a
 // real disk and without a browser. No @deepseek-ai/* import.
 
+import { writeGuard } from './session-guard.mjs'
+
 export const PAQUET_OUTIL = '@deepseek-ai/dsh-tool-subagent'
 export const PAQUET_MCP = '@deepseek-ai/dsh-mcp-client'
 
@@ -532,9 +534,15 @@ export function monterWorkers (webServer, deps, liens = {}) {
     if (typeof demande !== 'string' || !liste.includes(demande)) return { erreur: 'profile-unknown' }
     return { profil: demande }
   }
+  // Every POST here runs or writes something on the machine (it starts the install of a coding agent with « curl … | bash », mounts a package in the profile's cordis.patch.yml,
+  // rewrites that patch, runs the agents' own binaries), so it needs DSH's signed browser session as well as the right Origin (session-guard.mjs, kybernos-terminal's rule, L3-15):
+  // plugin routes are served before DSH's own login and an Origin header is forgeable by any local program. The only caller is the Workers page, which carries the cookie by itself;
+  // a paired phone is refused (`refused_on_phone`).
   const corpsJson = async (req, res) => {
     if (req.method !== 'POST') { envoyer(res, 405, { ok: false, error: 'method-not-allowed' }); return undefined }
     if (sameOriginStrict(req) === false) { envoyer(res, 403, { ok: false, error: 'origin-refused' }); return undefined }
+    const refuse = writeGuard(req)
+    if (refuse !== null) { envoyer(res, refuse.status, { ok: false, error: refuse.error }); return undefined }
     if (!String(req.headers?.['content-type'] ?? '').toLowerCase().startsWith('application/json')) { envoyer(res, 415, { ok: false, error: 'json-required' }); return undefined }
     try { return (await lireCorps(req)) ?? {} } catch { envoyer(res, 400, { ok: false, error: 'bad-body' }); return undefined }
   }

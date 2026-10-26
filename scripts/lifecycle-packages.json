@@ -184,6 +184,10 @@
     {
       "dir": "kybernos-servers",
       "nom": "@local/kybernos-servers"
+    },
+    {
+      "dir": "kybernos-pulse",
+      "nom": "@local/kybernos-pulse"
     }
   ]
 }

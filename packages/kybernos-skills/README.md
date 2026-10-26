@@ -9,7 +9,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 
 - The **Skills** tab of the Kybernos *Resources* page. The bundle fills the slot `main.kybernos-skills`, which
   `@local/kybernos` (core) declares and mounts; with this bundle off, the core falls back to its own skills page.
-- **Featured** (the landing tab): the 24 picks Kybernos proposes, as cards with a cover, the title, a one-line outcome, the creator and the
+- **Featured** (the landing tab): the 21 picks Kybernos proposes, as cards with a cover, the title, a one-line outcome, the creator and the
   install count on the right of the title, the security verdict of the five skills.sh providers, and what the skill needs (a key, a
   sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
   stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar, which also switches **cards or list** (the list is one
@@ -32,7 +32,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   roots only). A copy of the invocation to paste in the composer is on the card.
 - **Discover**: the skills.sh ranking (all-time / trending / hot), search, the first-party "curated" set, security audits of a
   skill, one-click install of GitHub-hosted skills. A click on a row opens its **own panel**: its repository, the folder it sits
-  in, its description and the start of its `SKILL.md` (read from the repository itself), who publishes it, its audits. *Install*
+  in, its description and the start of its `SKILL.md` (read from the repository itself), who publishes it, its audits. When the text would bring nothing usable (a body of a few lines that only calls another skill, a required read of a folder the install does not copy) or deserves a look (a program to install, steering phrases), a **warning** is drawn at the top of the panel and again in the install confirmation, in plain words: never a block, and nothing at all for a skill with nothing to say. *Install*
   asks first: a dialog says, for that skill, which archive is downloaded, where the skill is found, and the exact folder it is
   copied to (a copy, never a link). It reads the index through Kybernos's own relay (`services/skills-index`), so it works for
   every user with no token. The table shows 20 rows a page by default (20 / 50 / 100 / 250 in the bar), with the pager under it only; the
@@ -62,7 +62,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST toggle {root,name,active}` | renames `SKILL.md` ⇄ `SKILL.md.disabled` |
 | `POST create {root?,name,description,whenToUse?,body?,modelInvocable?}` | writes a valid `SKILL.md` |
 | `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder (answers with the `folder` it sat in) |
-| `GET preview?source=&name=` | a Discover card's `folder`, `description` and the start of its `SKILL.md`, read from the repository (listing of its files, then the one file); `found: false` when the repository has no such folder |
+| `GET preview?source=&name=` | a Discover card's `folder`, `description` and the start of its `SKILL.md`, read from the repository (listing of its files, then the one file), plus a `check` of that text: `{ level: ok\|warn\|bad, findings: [{ rule, level, names?, chars? }] }` from the rules in `skill-rules.mjs` (empty body, hands over to another skill, reads a folder the install does not bring, needs a program, secret-like text, steering phrases); the host sends codes and facts, the screen words them; `found: false` when the repository has no such folder |
 | `POST skill/read {root,name}` | the real `SKILL.md` (frontmatter included, 128 KiB cap), the folder, a file count and `actions {reveal, edit, duplicate, delete}`: what the host will accept, so the screen offers nothing it would refuse |
 | `POST skill/reveal {root,name,target}` | `target` `folder` or `file`: opens it on this machine (`open`, `open -t`, `xdg-open`, `explorer`; one argument, no shell); refused from another address |
 | `POST skill/duplicate {root,name}` | copies a listed skill (a read-only one too) into `<DSH home>/skills/<name>-copy[-n]`, renames `name:` in the frontmatter, leaves links, `.git`, `node_modules` and the Team mark behind |
@@ -100,9 +100,11 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   a pick without its file draws a tile unless the host can fetch it: a pick ships the SHA-256 of its cover, and the cover route asks the relay
   for `<relay>/covers/<id>.webp` once (never more often than every ten minutes after a failure), keeps the file only if its bytes are a
   WebP of the shipped hash, and otherwise leaves the tile. `node scripts/prepare-covers.mjs --write-picks` records the hashes.
-- `featured-picks.json` (shipped with the package): the 24 picks — id, source repository, category, title / outcome / example in English
+- `featured-picks.json` (shipped with the package): the 21 picks — id, source repository, category, title / outcome / example in English
   and French, `needs`, install count and audit verdicts read from skills.sh on `asOf`. A pick is only listed if no provider's audit is in
-  failure and if the host's own install route installs it (`test-picks.mjs` guards the first; the second was checked by installing all 24).
+  failure and if the host's own install route installs it (`test-picks.mjs` guards the first; the second was checked by installing every one of them).
+  Whether a pick is *worth* installing (a real body, no hand-over to a skill the install does not bring) is checked by a maintainer tool outside the
+  package: `node scripts/vet-skills.mjs`, see `docs/dev/skills-vetting.md`. A pick the tool rejects is not shipped (`scripts/test-vet-skills.mjs` guards it).
 - Reads the first event of `<DSH_HOME or ~/.dsh>/sessions/<project>/<session>/session.v3.jsonl.zstd` to learn an idle session's
   folder (so its project skills show). Temp dir `kybernos-skill-*` during install. Env: `DSH_HOME`, and optionally `KYBERNOS_SKILLS_INDEX_URL` (below).
 
@@ -128,9 +130,12 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 
 ## Tests
 
-`node packages/kybernos-skills/test-picks.mjs` covers the Featured picks: the reader (what it keeps and drops), the shipped file (24 valid picks,
+`node packages/kybernos-skills/test-skill-check.mjs` covers the check Discover shows before an install (`skill-rules.mjs`, the rules it shares with `scripts/vet-skills.mjs`).
+
+`node packages/kybernos-skills/test-picks.mjs` covers the Featured picks: the reader (what it keeps and drops), the shipped file (21 valid picks,
 both languages, no audit in failure), the `picks` route with its cover URLs, and the card on the screen (source level).
 
+`node packages/kybernos-skills/test-write-guard.mjs` covers the signed-session rule on every POST route (table-driven, on a throw-away home with the network replaced by a counter).
 `node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the eleven POST routes
 mounted on a fake context. `test-skill-routes.mjs` covers the panel's host half on a throw-away home (read, open, duplicate, delete,
 the preview against a stub of the two GitHub hosts). `test-ui.mjs` renders the screen with a few lines of React and a fake host:
@@ -143,9 +148,10 @@ harness is in this repo.
 
 ## Known limits
 
-- DSH serves plugin routes before its own auth, so the POST guard (`sameOrigin`, same rule as `sameOriginStrict` in the core) requires
-  an `Origin` (or a `Referer`) from this machine, compared with the socket's real listening address and not with the `Host` header.
-  It cannot stop a local process that forges an `Origin`: only authentication would. The GET routes have no guard.
+- DSH serves plugin routes before its own auth, so the POST guard requires an `Origin` (or a `Referer`) from this machine (`sameOrigin`, same rule as `sameOriginStrict` in the core),
+  compared with the socket's real listening address and not with the `Host` header, **and DSH's signed session cookie** (`session-guard.mjs`, L3-17): an Origin alone is forgeable by any local
+  program, and these routes spend the DeepInfra key, install from GitHub and write skills. 401 without the cookie, 403 `refused_on_phone` through the phone link, except `skill/read`, a POST that only reads.
+  `test-write-guard.mjs` enumerates the routes and fails on a POST route that is not guarded. The GET routes have no guard.
 - *Delete* is permanent (no trash) and only reaches a skill folder inside `~/.dsh/skills` or `~/.agents/skills`; *Open folder* and
   *Edit* open a window on the machine DSH runs on, so a DSH reached from another address is not offered them. *Edit* hands
   `SKILL.md` to the machine's text editor: there is no in-app editor (a save route would have to keep the frontmatter valid, or the

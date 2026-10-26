@@ -780,6 +780,31 @@ writeFileSync(file, good)
   eq('...and no lock or temporary file is left', readdirSync(join(dshHome, 'kybernos')).filter((n) => /\.lock$|\.tmp-/.test(n)).length, 0)
 }
 
+// The phone link (recette 2026-10-25, L3-11): a request replayed from a paired phone carries `x-kybernos-tunnel`. The Automations page reads its list with a POST, so a phone may LIST
+// (and is told no webhook secret: it lets whoever holds it start the automation); every other action creates, changes, deletes or runs an automation, and is refused.
+{
+  const PHONE = { 'x-kybernos-tunnel': '1' }
+  const made = (await api({ action: 'create', task: task({ name: 'phone view' }) })).json.task
+  const hook = (await api({ action: 'hook-generate', id: made.id })).json
+  const browserSees = (await api({ action: 'list' })).json.tasks.find((x) => x.id === made.id)
+  eq('the browser sees the automation with its webhook secret', browserSees.trigger.secret === hook.secret && hook.secret.length === 32, true)
+  const phoneList = await call('POST', JSON.stringify({ action: 'list' }), PHONE)
+  const phoneSees = phoneList.json && Array.isArray(phoneList.json.tasks) ? phoneList.json.tasks.find((x) => x.id === made.id) : undefined
+  eq('a phone can list the automations', phoneList.status === 200 && phoneSees !== undefined && phoneSees.name === 'phone view', true)
+  eq('...told its webhook id but not its secret', phoneSees !== undefined && phoneSees.trigger.hookId === hook.hookId && phoneSees.trigger.secret === undefined && JSON.stringify(phoneList.json).indexOf(hook.secret) < 0, true)
+  eq('the stored file keeps the secret (the phone\'s answer is a copy)', onDisk().find((x) => x.id === made.id).trigger.secret, hook.secret)
+  const stored = readFileSync(file, 'utf8')
+  const sessionsBefore = sessions.created
+  for (const body of [{ action: 'create', task: task({ name: 'from a phone' }) }, { action: 'toggle', id: made.id, active: false }, { action: 'update', id: made.id, task: task({ name: 'renamed' }) }, { action: 'run-now', id: made.id }, { action: 'hook-generate', id: made.id }, { action: 'hook-revoke', id: made.id }, { action: 'delete', id: made.id }, { action: 'LIST' }, {}]) {
+    const r = await call('POST', JSON.stringify(body), PHONE)
+    eq('a phone cannot ' + (body.action || 'send an empty action') + ': 403 refused_on_phone', r.status === 403 && r.json.error === 'refused_on_phone', true)
+  }
+  eq('...and nothing changed: same file, no session started', readFileSync(file, 'utf8') === stored && sessions.created === sessionsBefore, true)
+  eq('the marker does not replace the cookie: a phone list without it is 401', (await call('POST', JSON.stringify({ action: 'list' }), { ...PHONE, cookie: '' })).status, 401)
+  eq('...nor the Origin: a foreign one is 403 origin refused', (await call('POST', JSON.stringify({ action: 'list' }), { ...PHONE, origin: 'http://evil.example' })).json.error, 'origin refused')
+  eq('the browser (no marker) still creates, changes and deletes', (await api({ action: 'delete', id: made.id })).json.ok, true)
+}
+
 /* ── No cookie to read: the Origin rule alone, said once ──────────────────── */
 {
   const other = mkdtempSync(join(tmpdir(), 'kb-tasks-route-nocred-'))

@@ -12,7 +12,7 @@ import re
 import urllib.request
 from typing import Callable
 
-from call_meta import CallMeta
+from call_meta import CallMeta, host_headers
 
 
 def listen_request(host: str, provider: str, model: str, wav: bytes, language: str = "",
@@ -36,7 +36,7 @@ def listen_request(host: str, provider: str, model: str, wav: bytes, language: s
         body["language"] = language
     request = urllib.request.Request(
         host.rstrip("/") + path, data=json.dumps(body).encode("utf-8"), method="POST",
-        headers={"content-type": "application/json", "origin": host.rstrip("/")},
+        headers=host_headers(host, {"content-type": "application/json"}),
     )
     with opener(request, timeout=timeout) as reply:
         answer = json.loads(reply.read().decode("utf-8"))

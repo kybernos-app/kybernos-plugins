@@ -55,9 +55,9 @@ ok('a damaged file never holds the scheduler')
   assert.ok(route !== null, 'the route exists')
   assert.ok(/kbAutoSkillsPass\(\)\.catch\(\(\) => null\)/.test(idx), 'the automatic skill pass runs after the tick and never delays or breaks it')
   const skills = /path: '\/kybernos\/automation-skills'[\s\S]{0,2600}/.exec(idx)
-  assert.ok(skills !== null && /sameOriginStrict\(req\)/.test(skills[0]) && /req\.method === 'POST' && await kbTasksAuthorized\(req\)/.test(skills[0]), 'the skills route checks the origin and needs the signed session to write')
+  assert.ok(skills !== null && /sameOriginStrict\(req\)/.test(skills[0]) && /req\.method === 'POST'\) \{ const refused = await kbTasksRefused\(req\)/.test(skills[0]), 'the skills route checks the origin and needs the signed session to write')
   assert.ok(/sameOriginStrict\(req\)/.test(route[0]), 'the route checks the origin')
-  assert.ok(/kbTasksAuthorized\(req\)/.test(route[0]), 'a change needs the signed session, like /kybernos/tasks')
+  assert.ok(/kbTasksRefused\(req\)/.test(route[0]), 'a change needs the signed session, like /kybernos/tasks')
   ok('host wiring: tick held when paused, route guarded like the tasks route')
 }
 

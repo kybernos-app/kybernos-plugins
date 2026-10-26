@@ -97,15 +97,22 @@ export function cookieSessionValide (cookieHeader, authoritiesList, secret, nowM
 /** Where the guard reads the machine secret and the clock; a test replaces them (the guard has no other switch). */
 export const sessionSource = { secret: () => lireSecretSession(), now: () => Date.now() }
 
+// A request that came through the phone link carries this marker: kybernos-mobile's remote half sets it on every request it replays and drops any a phone sends.
+// A phone has the power of the keyboard, not of the machinery that decides what this computer trusts, so a write that carries it never passes this guard.
+const TUNNEL_HEADER = 'x-kybernos-tunnel'
+const tunnelled = (req) => { try { return req.headers[TUNNEL_HEADER] !== undefined } catch (e) { return true } }
+
 /**
  * Whether a request may write. `null` lets it go on; otherwise `{ status, error }` is the refusal to send:
- * 403 when the request names no Origin or Referer, or one that is not this listener's; 503 when the machine secret cannot be read
+ * 403 when the request names no Origin or Referer, or one that is not this listener's; 403 `refused_on_phone` when a write came through the phone link
+ * (unless the caller passes `{ phoneMayRead: true }`, having checked in its own source that this POST only reads: a list); 503 when the machine secret cannot be read
  * (a guard that cannot judge refuses, like the terminal's); 401 when DSH's signed session cookie is missing, forged or expired.
  * The cookie is looked up under the loopback authorities, and under the public one when DSH was told about it (--trusted-host):
  * a forged Host can only choose which cookie name is looked up, the value still has to carry a valid signature.
  */
-export function writeGuard (req) {
+export function writeGuard (req, options) {
   if (!origineOK(req)) return { status: 403, error: 'origin refused' }
+  if (METHODES_LECTURE.indexOf(String((req && req.method) || 'GET').toUpperCase()) === -1 && tunnelled(req) && !(options && options.phoneMayRead === true)) return { status: 403, error: 'refused_on_phone' }
   const secret = sessionSource.secret()
   if (secret === null || secret === undefined) return { status: 503, error: 'the DSH session secret cannot be read, so this write stays closed' }
   const authorities = autorites(req)

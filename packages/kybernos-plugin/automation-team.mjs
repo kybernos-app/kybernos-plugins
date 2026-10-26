@@ -25,6 +25,19 @@ const isObj = (v) => v !== null && typeof v === 'object' && Array.isArray(v) !==
 // A half of a surrogate pair or a NUL is not text.
 const BINARY_RE = /\u0000|[\ud800-\udbff](?![\udc00-\udfff])|(?:^|[^\ud800-\udbff])[\udc00-\udfff]/
 const ZERO_WIDTH_RE = /[\u200b-\u200f\u2060\ufeff]/g
+// What no person can see in a text, or what changes how it reads (decision DL-09 of the 2026-10 recette, finding L2-18): the tags block U+E0000-U+E007F, the direction controls
+// U+202A-U+202E and U+2066-U+2069, U+200B, U+2060, the invisible operators U+2061-U+2064, U+206A-U+206F, U+FEFF anywhere (a BOM is not text), U+00AD, U+180E, U+FFF9-U+FFFB, the variation
+// selectors U+E0100-U+E01EF, and the C0 and C1 controls except tab, line feed and carriage return (457 code points). REFUSED, never removed: the version is the SHA-256 of the exact text.
+// Kept: U+200C and U+200D (emoji sequences, Persian), U+200E and U+200F (Arabic and Hebrew), U+FE0E and U+FE0F. The SAME set as the server (`src/lib/hidden-text.ts`) and the two other clients
+// (`kybernos-cloud/team-automations.mjs`, `kybernos-skills/team-skills.mjs`); docs/dev/hidden-text-vectors.json is the list of texts all of them are tested against.
+const HIDDEN_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u180e\u200b\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\u{e0000}-\u{e007f}\u{e0100}-\u{e01ef}]/u
+const HIDDEN_ALL_RE = new RegExp(HIDDEN_RE.source, 'gu')
+/** The refused characters of a text: `{ first: 'U+E0041', count }`, or null when it has none. Linear. */
+export const hiddenIn = (text) => {
+  if (typeof text !== 'string' || HIDDEN_RE.test(text) !== true) return null
+  const all = text.match(HIDDEN_ALL_RE)
+  return { first: 'U+' + all[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0'), count: all.length }
+}
 // A string cut at `max` code units never ends on half of a surrogate pair (the sanitizer's own rule).
 const clip = (value, max) => {
   const out = value.slice(0, max)
@@ -146,6 +159,11 @@ export const packOf = (task) => {
     schedule,
     needs: needsOf(task.needs),
   }
+  // Before anything is sent: a text the person cannot see all of (a pasted run of tag characters, a right-to-left override) is not proposed (DL-09). Nothing is removed from it: the version is the hash of the exact text.
+  // The prompt first: the description is cut from its first sentence, so a hidden run in the prompt shows there too, and the person should be told about the prompt.
+  for (const field of ['prompt', 'name', 'description']) {
+    if (hiddenIn(proposal[field]) !== null) return { ok: false, error: 'invalid_automation', reason: 'hidden', field }
+  }
   proposal.version = versionOf(proposal)
   return { ok: true, proposal }
 }
@@ -154,7 +172,7 @@ const bad = (reason, field) => ({ ok: false, reason, field })
 
 /**
  * The contract's rules on a definition, at the level of shape: `{ ok: true, definition }` (`name`, `description` and `prompt` trimmed, `needs` sorted, `id` a number) or `{ ok: false, reason, field }` with `reason`
- * one of id, key, name, description, prompt, schedule, needs, binary. The cron is parsed for real by the host; the `version` is checked by `versionOf`.
+ * one of id, key, name, description, prompt, schedule, needs, binary, hidden (a character a person cannot see: `hiddenIn`). The cron is parsed for real by the host; the `version` is checked by `versionOf`.
  */
 export const validateDefinition = (def) => {
   if (!isObj(def)) return bad('key', 'definition')
@@ -171,6 +189,12 @@ export const validateDefinition = (def) => {
   if (description.length === 0 || description.length > LIMITS.description) return bad('description', 'description')
   const prompt = def.prompt.trim()
   if (prompt.length === 0 || prompt.length > LIMITS.prompt) return bad('prompt', 'prompt')
+  // What no person can see (DL-09), on the text as received, before the trim: the name, the description, the prompt, the cron and the app names. An install refuses it: nothing is written.
+  const sch = isObj(def.schedule) ? def.schedule : {}
+  const texts = [['name', def.name], ['description', def.description], ['prompt', def.prompt], ['schedule', sch.cron]].concat(Array.isArray(def.needs) ? def.needs.map((n) => ['needs', n]) : [])
+  for (const [field, text] of texts) {
+    if (hiddenIn(text) !== null) return bad('hidden', field)
+  }
   const sc = def.schedule
   if (isObj(sc) !== true) return bad('schedule', 'schedule')
   const keys = Object.keys(sc)

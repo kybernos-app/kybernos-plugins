@@ -162,12 +162,12 @@
         "fr": "Tableurs"
       },
       "outcome": {
-        "en": "Create, clean and analyse Excel files: formulas, formatting and charts.",
-        "fr": "Créer, nettoyer et analyser des fichiers Excel : formules, mise en forme et graphiques."
+        "en": "Create, clean and analyse Excel files: formulas, formatting and totals.",
+        "fr": "Créer, nettoyer et analyser des fichiers Excel : formules, mise en forme et totaux."
       },
       "prompt": {
-        "en": "Clean this export, add a monthly total per customer and chart the trend.",
-        "fr": "Nettoie cet export, ajoute un total mensuel par client et trace la tendance."
+        "en": "Clean this export and add a monthly total per customer.",
+        "fr": "Nettoie cet export et ajoute un total mensuel par client."
       },
       "needs": null,
       "installs": 182833,
@@ -829,100 +829,6 @@
       "coverSha256": "c3a63f3f168ed0f42581b22fa55f96591964e03899d30fa94090c9547513fac5"
     },
     {
-      "id": "gws-gmail-triage",
-      "source": "googleworkspace/cli",
-      "category": "Automation",
-      "title": {
-        "en": "Inbox triage",
-        "fr": "Tri de la boîte mail"
-      },
-      "outcome": {
-        "en": "A summary of your unread Gmail: sender, subject, date.",
-        "fr": "Un résumé de tes mails Gmail non lus : expéditeur, objet, date."
-      },
-      "prompt": {
-        "en": "What is unread in my inbox, and what needs an answer today?",
-        "fr": "Qu’y a-t-il de non lu dans ma boîte, et qu’est-ce qui demande une réponse aujourd’hui ?"
-      },
-      "needs": "google",
-      "installs": 45768,
-      "audits": [
-        [
-          "Gen Agent Trust Hub",
-          "pass",
-          "SAFE"
-        ],
-        [
-          "Socket",
-          "pass",
-          ""
-        ],
-        [
-          "Snyk",
-          "warn",
-          "MEDIUM"
-        ],
-        [
-          "Runlayer",
-          "pass",
-          "NONE"
-        ],
-        [
-          "ZeroLeaks",
-          "pass",
-          "NONE"
-        ]
-      ],
-      "coverSha256": "e80d93110f82a757659327b9cf4a00500e95aa83e36297a967215955cd21575b"
-    },
-    {
-      "id": "gws-workflow-meeting-prep",
-      "source": "googleworkspace/cli",
-      "category": "Automation",
-      "title": {
-        "en": "Meeting prep",
-        "fr": "Préparer une réunion"
-      },
-      "outcome": {
-        "en": "Agenda, attendees and linked documents for your next meeting.",
-        "fr": "Ordre du jour, participants et documents liés pour ta prochaine réunion."
-      },
-      "prompt": {
-        "en": "Prepare me for my next meeting.",
-        "fr": "Prépare-moi pour ma prochaine réunion."
-      },
-      "needs": "google",
-      "installs": 31351,
-      "audits": [
-        [
-          "Gen Agent Trust Hub",
-          "pass",
-          "SAFE"
-        ],
-        [
-          "Socket",
-          "pass",
-          ""
-        ],
-        [
-          "Snyk",
-          "warn",
-          "MEDIUM"
-        ],
-        [
-          "Runlayer",
-          "pass",
-          "NONE"
-        ],
-        [
-          "ZeroLeaks",
-          "pass",
-          "NONE"
-        ]
-      ],
-      "coverSha256": "e990c71180f7b10773dea546340a04f60401c23bc8318b3dea35faef64d688d1"
-    },
-    {
       "id": "task-management",
       "source": "anthropics/knowledge-work-plugins",
       "category": "Automation",
@@ -968,53 +874,6 @@
         ]
       ],
       "coverSha256": "ca55ffb1476c1e7276b7f534541dcb45e3c0d3af30af1016441814c252e66ad9"
-    },
-    {
-      "id": "grill-me",
-      "source": "mattpocock/skills",
-      "category": "Build",
-      "title": {
-        "en": "Grill me",
-        "fr": "Interroge-moi"
-      },
-      "outcome": {
-        "en": "A relentless interview that finds the holes in your plan.",
-        "fr": "Un entretien implacable qui trouve les trous de ton plan."
-      },
-      "prompt": {
-        "en": "Grill me on this migration plan until nothing is left vague.",
-        "fr": "Interroge-moi sur ce plan de migration jusqu’à ce que plus rien ne soit flou."
-      },
-      "needs": null,
-      "installs": 1363165,
-      "audits": [
-        [
-          "Gen Agent Trust Hub",
-          "pass",
-          "SAFE"
-        ],
-        [
-          "Socket",
-          "pass",
-          ""
-        ],
-        [
-          "Snyk",
-          "pass",
-          "LOW"
-        ],
-        [
-          "Runlayer",
-          "pass",
-          "NONE"
-        ],
-        [
-          "ZeroLeaks",
-          "pass",
-          "NONE"
-        ]
-      ],
-      "coverSha256": "59a9a2b112225f6e5c56069b0f7c7407f243a351e33001276d23ee93407deec1"
     },
     {
       "id": "systematic-debugging",

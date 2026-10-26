@@ -472,6 +472,11 @@ window.__ModuleLoader__.load({
         'kb.models.error.nokey': { kybernos: 'renseigne la route et l identifiant', en: 'set the route and the model id' },
         'kb.models.error.path': { kybernos: 'chemin d écriture inconnu', en: 'unknown write path' },
         'kb.models.error.local': { kybernos: 'ligne locale : les champs appliqués exigent un modèle déclaré', en: 'local row: applied fields need a declared model' },
+        'kb.models.error.managed': { kybernos: 'géré par ton compte Kybernos : rien à modifier ici', en: 'managed by your Kybernos account: nothing to change here' },
+        'kb.models.creation': { kybernos: 'Modèle de création, géré par ton compte Kybernos : rien à régler et aucune clé à saisir. Le prix est celui d\'une unité.', en: 'Creation model, managed by your Kybernos account: nothing to set up and no key to enter. The price is that of one unit.' },
+        'kb.models.unit.image': { kybernos: 'image', en: 'image' },
+        'kb.models.unit.second': { kybernos: 's', en: 's' },
+        'kb.models.unit.thousand_characters': { kybernos: '1 000 car.', en: '1,000 chars' },
         'kb.models.error.number': { kybernos: 'entre un nombre positif (131072, 256K, 1M)', en: 'enter a positive count (131072, 256K, 1M)' },
         'kb.models.error.wire': { kybernos: 'valeur non traduisible (niveaux de raisonnement inconnus : synchronise d abord)', en: 'value cannot be translated (unknown reasoning levels: sync first)' },
         'kb.models.error.conflict': { kybernos: 'Tes réglages ont changé entre-temps — relus', en: 'Your settings changed meanwhile — reloaded' },
@@ -886,7 +891,7 @@ window.__ModuleLoader__.load({
        *  host's models.dev index is read (one request, answers cached). */
       const kbmSync = (key) => {
         const mo = kbmModel(key)
-        if (mo === null || mo.loading === true) return
+        if (mo === null || mo.loading === true || mo.kind === 'creation') return
         if (KBM.live !== true) {
           mo.loading = true
           kbmNotify()
@@ -1386,6 +1391,12 @@ window.__ModuleLoader__.load({
         ? m('kb.models.col.previewed', { n: Object.keys(mo.remote).length })
         : null)
       const uiPrix = (mo) => {
+        // A creation model costs per unit (an image, a second, a thousand characters), not per million tokens.
+        if (mo.kind === 'creation') {
+          const p = String(mo.baseCtl.unitPrice === undefined ? '' : mo.baseCtl.unitPrice)
+          const u = String(mo.baseCtl.unit === undefined ? '' : mo.baseCtl.unit)
+          return p === '' ? null : '$' + p + (u === '' ? '' : ' / ' + m('kb.models.unit.' + u))
+        }
         const a = String(kbmVal(mo, 'costIn') === null || kbmVal(mo, 'costIn') === undefined ? '' : kbmVal(mo, 'costIn'))
         const b = String(kbmVal(mo, 'costOut') === null || kbmVal(mo, 'costOut') === undefined ? '' : kbmVal(mo, 'costOut'))
         if (a === '' && b === '') return null
@@ -1490,7 +1501,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmp-nameline' },
             h('input', Object.assign({
               className: 'kbm-in-input kbmp-nom', 'aria-label': m('kb.models.name'), 'data-kbm': 'model-name',
-              title: mo.name || mo.id,
+              title: mo.name || mo.id, readOnly: mo.kind === 'creation',
             }, draft))),
           h('div', { className: 'kbmp-metaline' },
             h('input', {
@@ -1543,7 +1554,8 @@ window.__ModuleLoader__.load({
             'aria-expanded': ouvert, 'aria-label': (ouvert === true ? m('kb.models.hide') : m('kb.models.show')) + ' ' + mo.id,
             onClick: () => kbmOpen(mo.key),
           }, h('span', { className: 'kbmp-chev' + (ouvert === true ? ' open' : '') }, Ic('chevron', 16))),
-          h('button', {
+          // A creation model belongs to the server: there is nothing to erase here.
+          mo.kind === 'creation' ? null : h('button', {
             type: 'button', className: 'kbm-btn kbm-btn-icon kbm-btn-ghost kbmp-danger', 'data-kbm': 'remove',
             'aria-label': (KBM.live === true && mo.kind !== 'local' ? m('kb.models.remove.annotations') : m('kb.models.delete')) + ' ' + (mo.id || mo.name || ''),
             onClick: () => kbmRemove(mo.key),
@@ -1577,6 +1589,7 @@ window.__ModuleLoader__.load({
             }, h('span', { className: 'kbmp-x' }, '×'))),
           h('div', { className: 'kbm-mdl-body kbmp-mdlbody' },
             mo.error !== null && mo.error !== undefined && kbmFieldOwned(mo) !== true ? h('div', { className: 'kbmp-err kbmp-err-mdl', 'data-kbm': 'modal-error', role: 'alert' }, String(mo.error)) : null,
+            mo.kind === 'creation' ? h('div', { className: 'kbmp-note', 'data-kbm': 'modal-creation' }, m('kb.models.creation')) : null,
             h(Details, { mo: mo }))))
           : null)
       }
@@ -3077,6 +3090,8 @@ window.__ModuleLoader__.load({
         '.kbmp-msep{flex:none;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-mroute{flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);max-width:40%}',
         '.kbmp-mtype,.kbmp-mprix{flex:none;white-space:nowrap;color:var(--dsw-alias-label-tertiary)}',
+        // A creation model has no context window and no per-token price: its type and the price of one unit are what tells it apart, so they stay on the line.
+        '.kbmp-lig[data-kbm-kind="creation"] .kbmp-mtype,.kbmp-lig[data-kbm-kind="creation"] .kbmp-mprix,.kbmp-lig[data-kbm-kind="creation"] .kbmp-sep2{display:inline-flex;align-items:center;gap:4px}',
         '.kbmp-tyi{display:inline-flex}',
         '.kbmp-caprow{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}',
         '.kbmp-capi{display:inline-flex}',
@@ -3425,6 +3440,7 @@ window.__ModuleLoader__.load({
 
       /** Writing a control. Two channels, never mixed. */
       const kbMPersist = async (mo, k, v) => {
+        if (mo.kind === 'creation') { mo.error = m('kb.models.error.managed'); kbmNotify(); return false }
         const api = kbMApi()
         if (api === null || api.settings === null) { mo.error = m('kb.models.error.remote'); kbmNotify(); return false }
         if (KBM.writable !== true) { mo.error = m('kb.models.error.readonly'); kbmNotify(); return false }
@@ -3507,6 +3523,42 @@ window.__ModuleLoader__.load({
         const cles = new Set(apres.map((mo) => mo.key))
         for (const b of avant) if (b.kind === 'local' && cles.has(b.key) !== true) apres.push(b)
         return apres
+      }
+
+      // KB-CREATION-PURE-BEGIN
+      /** The server's creation models (pictures, videos, voices) as rows of this page. They come from `GET /kybernos-cloud/models`
+       *  (`models.creation`), never from settings.yaml: DSH's chat picker lists every model of a route and these are not chat models.
+       *  `kind` image | video | speech gives the page's type and the output capability that is lit; the price is that of ONE unit
+       *  (an image, a second, a thousand characters). A row is read-only: the server owns it. Pure. */
+      const KB_CREATION_TYPE = { image: 'image', video: 'video', speech: 'audio' }
+      const kbMCreationType = (kind) => (typeof kind === 'string' && Object.prototype.hasOwnProperty.call(KB_CREATION_TYPE, kind) ? KB_CREATION_TYPE[kind] : null)
+      const kbMCreationRows = (body) => {
+        const ok = body !== null && typeof body === 'object' && body.connected === true && body.models !== null && typeof body.models === 'object' && Array.isArray(body.models.creation)
+        const rows = []
+        for (const c of ok ? body.models.creation : []) {
+          if (c === null || typeof c !== 'object' || typeof c.id !== 'string' || c.id === '' || kbMCreationType(c.kind) === null) continue
+          rows.push({
+            route: 'kybernos', kind: 'creation', index: -1, id: c.id,
+            name: typeof c.name === 'string' && c.name !== '' ? c.name : c.id,
+            open: false, synced: false, remote: {}, ov: {},
+            baseCtl: {
+              textIn: false, vision: false, textOut: false,
+              imageGen: c.kind === 'image', videoGen: c.kind === 'video', tts: c.kind === 'speech',
+              type: kbMCreationType(c.kind),
+              unitPrice: typeof c.usd === 'string' ? c.usd : '', unit: typeof c.unit === 'string' ? c.unit : '',
+            },
+          })
+        }
+        return rows
+      }
+      // KB-CREATION-PURE-END
+      /** The rows above, read from the host; a plugin that is not there, a signed-out account or an older server gives none. */
+      const kbMCreation = async () => {
+        try {
+          const res = await fetch('/kybernos-cloud/models', { headers: { accept: 'application/json' } })
+          if (res.ok !== true) return []
+          return kbMCreationRows(await res.json())
+        } catch (e) { return [] }
       }
 
       /** Lecture : settings.yaml (couches value/base/user) + annotations locales. */
@@ -3598,6 +3650,8 @@ window.__ModuleLoader__.load({
               mo.ov[k] = noted[k]
             }
           }
+          // The server's pictures, videos and voices: read-only rows, never from settings.yaml (see KB-CREATION-PURE).
+          for (const c of await kbMCreation()) rows.push(kbmMakeModel(c, c.route + '/' + c.id))
           KBM.routes = routes
           KBM.models = kbMReprendre(avant, rows)
           KBM.loadError = null

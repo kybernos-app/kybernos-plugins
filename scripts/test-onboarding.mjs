@@ -378,5 +378,59 @@ const ag = mod.KB_OB_T['ag.s']
 eq('the autonomy sub-line says how to change it: replay the welcome pages, in four languages', [/replay the welcome pages/.test(ag[0]), /rejoue les pages d’accueil/.test(ag[1]), /vuelve a ver las páginas de bienvenida/.test(ag[2]), ag[3].includes('أعد تشغيل صفحات الترحيب')], [true, true, true, true])
 eq('and does not claim a control « any time in Settings »', ag.some((s) => /any time|à tout moment|en cualquier momento|في أي وقت/.test(s)), false)
 
+/* ── Replaying the wizard updates the first memory instead of adding a second (L1-04, 2026-10-25) ── */
+// The server's memory id is a NUMBER; the wizard kept an id only when it was a string, so `memoryId` stayed null and every pass added a memory line. The real
+// `memoryWrite` is cut out of the UI block and run against a stand-in for the host's two routes, then the state file is asked to keep what the wizard posts.
+{
+  const a = ui[1].indexOf('const memoryWrite = async () => {')
+  const b = ui[1].indexOf('      // « What we set up for you »: the end screen reads the areas', a)
+  eq('the memory write is in the UI block', a > 0 && b > a, true)
+  const onboardingState = await import('../packages/kybernos-plugin/onboarding-state.mjs')
+  const host = { memories: [], nextId: 20, calls: [] }
+  const call = async (path, method, body) => {
+    host.calls.push(path.replace('/kybernos-cloud/memory/', '') + (body && body.id !== undefined ? ':' + typeof body.id + ':' + body.id : ''))
+    if (path === '/kybernos-cloud/memory/add') { const m = { id: host.nextId++, content: body.content }; host.memories.push(m); return { ok: true, memory: { ...m } } }
+    if (path === '/kybernos-cloud/memory/update') {
+      const m = host.memories.find((x) => String(x.id) === String(body.id))
+      if (m === undefined) return { ok: false, error: 'not_found' }
+      m.content = body.content
+      return { ok: true, memory: { ...m } }
+    }
+    return null
+  }
+  const pass = (memoryId) => {
+    const S = { standalone: false, memState: null, ready: 'cloud', model: null, lang: 'en', domain: 'law', goals: [], custom: [], mode: 'bureau', site: '', social: '', words: '', agents: null, memoryId, screen: 'welcome' }
+    const run = new Function('S', 'call', 'curPack', 'packName', 'kbObGoalsOf', 'kbObPackText', 'kbObMemoryText', 'root', 'render',
+      ui[1].slice(a, b) + '\nreturn memoryWrite')(S, call, () => ({ id: 'law' }), () => 'Law', () => [], (lang, name) => name, mod.kbObMemoryText, null, () => {})
+    return run().then(() => S)
+  }
+  // The first pass of the wizard: no id yet → one memory is added; the wizard keeps the id (as text) and posts it with `complete`.
+  const first = await pass(null)
+  eq('first pass: one memory added', [host.calls, host.memories.length], [['add'], 1])
+  eq('the wizard keeps the numeric id the server answered, as text', first.memoryId, '20')
+  const saved = onboardingState.publicView(onboardingState.complete(onboardingState.defaultState(new Date('2026-10-25T09:00:00Z')), { profil: 'law', uiMode: 'bureau', model: 'cloud', lang: 'en', memoryId: first.memoryId }, new Date('2026-10-25T09:05:00Z')))
+  eq('and the onboarding file keeps it for the next replay', saved.memoryId, '20')
+  // The replay: the wizard opens with that id (`typeof init.memoryId === 'string'`) → the same memory is updated, nothing is added.
+  host.calls.length = 0
+  const again = await pass(typeof saved.memoryId === 'string' ? saved.memoryId : null)
+  eq('replay: the first memory is updated (its id sent as text) and no second one is added', [host.calls, host.memories.length], [['update:string:20'], 1])
+  eq('and the id stays', again.memoryId, '20')
+  // The memory was deleted in between: the update is refused and the wizard adds one again (and keeps the new id).
+  host.memories.length = 0
+  host.calls.length = 0
+  const lost = await pass('20')
+  eq('replay after the memory was deleted: update refused, then one add', [host.calls, host.memories.length, lost.memoryId], [['update:string:20', 'add'], 1, '21'])
+}
+
+/* ── The domain tiles do not run out of a phone-width window (L1-01, 2026-10-25) ── */
+// `1fr` is `minmax(auto, 1fr)`: a column never gets narrower than its longest word, so two columns overflowed under 430 px (the right column was cut at 375 px).
+// jsdom has no layout, so the rule is pinned at source level; the width itself is measured on the real page (scripts/check-onboarding-live.mjs, KB_VIEW).
+{
+  const tiles = /'\.kb-ob-tiles\{([^}]*)\}'/.exec(src)
+  eq('the tiles grid exists', tiles !== null, true)
+  eq('two columns that may shrink (minmax(0,1fr)), never a bare 1fr', tiles !== null && /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/.test(tiles[1]) && !/grid-template-columns:1fr 1fr/.test(tiles[1]), true)
+  eq('and one column of the same kind under 430 px', /@media \(max-width:430px\)\{\.kb-ob-tiles\{grid-template-columns:minmax\(0,1fr\)\}\}/.test(src), true)
+}
+
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)
