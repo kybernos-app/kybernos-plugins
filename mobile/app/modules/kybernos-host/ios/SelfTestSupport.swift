@@ -12,6 +12,6 @@ enum SelfTestSupport {
     private static var modelKey: String { (Bundle.main.object(forInfoDictionaryKey: "KBSelfTestAnthropicKey") as? String) ?? ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] ?? "" }
 
     /// A test build can carry a model key (Info.plist KBSelfTestAnthropicKey, or ANTHROPIC_API_KEY in the environment on a simulator). It becomes the engine's ANTHROPIC_API_KEY, and the
-    /// payload's bootstrap seeds the Claude provider from it (mobile/payload/provider-seed.mjs), so the automation can finish with a real answer.
+    /// payload's bootstrap seeds the Claude provider from it (mobile/payload/seed.mjs), so the automation can finish with a real answer.
     static func environment() -> [String: String] { delaySeconds != nil && hasKey ? ["ANTHROPIC_API_KEY": modelKey] : [:] }
 }

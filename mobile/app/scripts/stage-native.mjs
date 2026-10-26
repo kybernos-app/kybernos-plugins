@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Stages the build inputs the native module needs and the repository never carries: the Node library of each platform (fogtape build) and the runtime payload (mobile/payload).
-//   node scripts/stage-native.mjs --payload <dir with payload.kbpack, payload.json, bootstrap.mjs, kbpack.mjs, provider-seed.mjs> [--platform ios|android|all] [--node-xcframework <path>] [--node-android <dir>] [--abis arm64-v8a,x86_64]
+//   node scripts/stage-native.mjs --payload <dir with payload.kbpack, payload.json, bootstrap.mjs, kbpack.mjs, seed.mjs> [--platform ios|android|all] [--node-xcframework <path>] [--node-android <dir>] [--abis arm64-v8a,x86_64]
 // Defaults: the libraries fetched and checked by mobile/ios/fetch-node.sh (.deps/node-mobile) and mobile/android/fetch-node.sh. Copies are APFS clones where possible.
 import { constants, cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -13,7 +13,7 @@ const die = (m) => { console.error(m); process.exit(2) }
 const payload = arg('payload')
 if (!payload) die('usage: stage-native.mjs --payload <dir> [--platform ios|android|all] [--node-xcframework <path>] [--node-android <dir>] [--abis a,b]')
 const platform = arg('platform') ?? 'all'
-const FILES = ['payload.kbpack', 'payload.json', 'bootstrap.mjs', 'kbpack.mjs', 'provider-seed.mjs']
+const FILES = ['payload.kbpack', 'payload.json', 'bootstrap.mjs', 'kbpack.mjs', 'seed.mjs']
 for (const f of FILES) if (!existsSync(join(resolve(payload), f))) die('missing ' + join(payload, f))
 const clone = { recursive: true, mode: constants.COPYFILE_FICLONE }
 const staged = []

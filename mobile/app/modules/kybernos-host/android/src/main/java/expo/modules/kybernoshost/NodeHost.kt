@@ -14,7 +14,7 @@ internal class NodeHost(private val context: Context, private val config: Launch
   private val home = File(support, "data")
   private val workspace = context.getExternalFilesDir("Kybernos") ?: File(support, "workspace")
   private val log = File(support, "node.log")
-  private val files = listOf("payload.kbpack", "payload.json", "bootstrap.mjs", "kbpack.mjs", "provider-seed.mjs")
+  private val files = listOf("payload.kbpack", "payload.json", "bootstrap.mjs", "kbpack.mjs", "seed.mjs")
   @Volatile private var started = false
   @Volatile private var failure: Int? = null
 
