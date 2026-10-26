@@ -1,10 +1,13 @@
 // kybernos-pulse — host half: it watches the runs the Automations scheduler fired, keeps a small inbox of what happened, and serves it to the
 // browser half. It reads tasks.json and the engine's session journals and writes one file of its own. No engine patch, no @deepseek-ai/* import.
 // Everything in apply() is guarded: an error here must never stop DSH from starting.
+import { randomBytes } from 'node:crypto'
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { brandMarkFrom, buildPanelPage, extractCore, PANEL_CSP } from './panel-page.mjs'
 import { readRun, SESSION_ID_RE } from './pulse-core.mjs'
-import { createPulse, createWatcher, mountRoutes } from './pulse-host.mjs'
+import { createPulse, createWatcher, helperTokenOk, mountRoutes } from './pulse-host.mjs'
 import { dshHome, writeGuard } from './session-guard.mjs'
 
 export const name = 'kybernos-pulse'
@@ -40,6 +43,32 @@ export function storeIo (home) {
   }
 }
 
+const here = dirname(fileURLToPath(import.meta.url))
+
+/** The page of the Mac menu-bar app, built from two source files: the panel code of client.js and the brand mark of the brand code. Null when client.js
+ *  cannot be read (the route is then not mounted and nothing else is affected); no brand code only means no mark in the page. */
+export const readPanelPage = (dir = here) => {
+  try {
+    const core = extractCore(readFileSync(join(dir, 'client.js'), 'utf8'))
+    let mark = ''
+    try { mark = brandMarkFrom(readFileSync(join(dir, '..', 'kybernos-plugin', 'client.js'), 'utf8')) } catch (e) { mark = '' }
+    return buildPanelPage({ core, mark })
+  } catch (e) { return null }
+}
+
+export const tokenFile = (home) => join(home, 'kybernos', 'pulse', 'helper.token')
+/** The Mac app's token: made once, kept in a file only its owner can read (0600, in the same folder as the store). The app reads it and puts it in its panel. */
+export const ensureHelperToken = (home) => {
+  const file = tokenFile(home)
+  try { const t = readFileSync(file, 'utf8').trim(); if (/^[0-9a-f]{64}$/.test(t)) return t } catch (e) { /* made below */ }
+  const token = randomBytes(32).toString('hex')
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+  const tmp = file + '.tmp-' + process.pid
+  writeFileSync(tmp, token + '\n', { mode: 0o600 })
+  renameSync(tmp, file)
+  return token
+}
+
 /** tasks.json as a list; anything else (missing, corrupt, not a list) is an empty list: nothing to follow, nothing claimed. */
 export const readTasksFile = (home) => async () => {
   try { const list = JSON.parse(readFileSync(tasksFile(home), 'utf8')); return Array.isArray(list) ? list : [] } catch (e) { return [] }
@@ -67,8 +96,15 @@ export function apply (ctx) {
     const pulse = createPulse({ ...storeIo(home) })
     const getPersistence = () => { try { return ctx.get('sessionPersistence') } catch (e) { return undefined } }
     const watcher = createWatcher({ pulse, readTasks: readTasksFile(home), readRunOf: readRunFrom(getPersistence), log: dire })
+    // The Mac app has no browser session to show: its two writes carry its own token instead (a file only the owner can read). A browser write still needs the cookie.
+    let token = null
+    try { token = ensureHelperToken(home) } catch (e) { dire('no token for the Mac app: ' + String(e?.message ?? e)) }
+    const panelPage = readPanelPage()
     const mount = (webServer) => {
-      try { mountRoutes(kbSuivi(webServer), pulse, (req) => writeGuard(req)); dire('routes mounted') } catch (e) { dire('routes not mounted: ' + String(e?.message ?? e)) }
+      try {
+        mountRoutes(kbSuivi(webServer), pulse, (req) => (helperTokenOk(req, token) ? null : writeGuard(req)), { panelPage, panelCsp: PANEL_CSP })
+        dire('routes mounted')
+      } catch (e) { dire('routes not mounted: ' + String(e?.message ?? e)) }
     }
     if (ctx.get('webServer') !== undefined) mount(ctx.get('webServer'))
     else ctx.inject(['webServer'], (host) => mount(host.webServer))

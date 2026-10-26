@@ -4,5 +4,8 @@
   ],
   "kybernos-atlas": [
     { "file": "client.js", "categories": ["dom"], "why": "The only MutationObserver watches the map's own container to recolour its own nodes; it never reads or changes an element Atlas does not own." }
+  ],
+  "kybernos-pulse": [
+    { "file": "panel-page.mjs", "categories": ["net"], "why": "The `fetch(` calls are text inside the page script the host serves to the Mac app's web view; they run in that page, against its own host (connect-src 'self'). The host code makes no request." }
   ]
 }

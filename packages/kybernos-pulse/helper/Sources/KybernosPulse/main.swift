@@ -1,17 +1,22 @@
 import AppKit
 import UserNotifications
+import WebKit
 
-// Kybernos Pulse: the menu-bar half of the « Widget » module. It only READS `GET /kybernos-pulse/state` of the local DSH
-// (names and counts of runs, nothing else), shows the Kybernos K with a count next to the Wi-Fi icon, lists what needs the person,
-// posts a system banner when an automation ends, and brings the person back to Kybernos. It writes nothing to DSH.
+// Kybernos Pulse: the menu-bar half of the « Widget » module. It reads `GET /kybernos-pulse/state` of the local DSH (names and counts of
+// runs, nothing else), shows the Kybernos K with a count next to the Wi-Fi icon, posts a system banner when an automation ends, and brings the
+// person back to Kybernos. A click on the K opens the panel of the floating window: the host serves that page (`/kybernos-pulse/panel`, drawn
+// by the same code as the floating window) and the app only shows it in a web view. The app itself sends no write: the page does, with the
+// app's own token (a file only the owner can read), and only for the plugin's two writes (mark read, dismiss, quiet).
 //
-//   KybernosPulse [--port 3080] [--lang fr|en] [--selftest state.json]
+//   KybernosPulse [--port 3080] [--lang fr|en] [--selftest state.json] [--panelcheck]
+//   --panelcheck loads the panel page of the local DSH in the real web view, clicks its first arrow, prints what it saw as JSON and quits (no icon).
 
 // MARK: - Arguments
 
 struct Options {
     var port = Int(ProcessInfo.processInfo.environment["KYBERNOS_PORT"] ?? "") ?? 3080
     var selftest: String?
+    var panelcheck = false
 }
 
 func parseOptions() -> Options {
@@ -23,6 +28,7 @@ func parseOptions() -> Options {
         case "--port": if let v = args.first, let n = Int(v), (1...65535).contains(n) { o.port = n; args.removeFirst() }
         case "--lang": if let v = args.first { Words.forced = v.lowercased().hasPrefix("fr"); args.removeFirst() }
         case "--selftest": if let v = args.first { o.selftest = v; args.removeFirst() }
+        case "--panelcheck": o.panelcheck = true
         default: break
         }
     }
@@ -55,12 +61,93 @@ if let path = options.selftest {
     }
 }
 
+// MARK: - The panel: the page of the plugin, in a web view
+
+/// The app's token for the plugin's two writes: a file in the DSH folder that only its owner can read (0600).
+func readHelperToken() -> String? {
+    let env = ProcessInfo.processInfo.environment
+    let home = env["DSH_HOME"] ?? (NSHomeDirectory() + "/.dsh")
+    guard let raw = try? String(contentsOfFile: home + "/kybernos/pulse/helper.token", encoding: .utf8) else { return nil }
+    let token = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    return token.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil ? token : nil
+}
+
+final class PanelView: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
+    let controller = NSViewController()
+    private let webView: WKWebView
+    private let base: URL
+    private let onAct: (String) -> Void
+    private var loaded = false
+
+    init(base: URL, onAct: @escaping (String) -> Void) {
+        self.base = base
+        self.onAct = onAct
+        let content = WKUserContentController()
+        let config = WKWebViewConfiguration()
+        config.userContentController = content
+        config.websiteDataStore = .nonPersistent()
+        webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 380, height: 580), configuration: config)
+        super.init()
+        content.add(self, name: "pulse")
+        webView.navigationDelegate = self
+        webView.uiDelegate = self
+        webView.setValue(false, forKey: "drawsBackground")
+        controller.view = webView
+    }
+
+    private var pageURL: URL {
+        var c = URLComponents(url: base.appendingPathComponent("kybernos-pulse/panel"), resolvingAgainstBaseURL: false)!
+        c.queryItems = [URLQueryItem(name: "lang", value: Words.isFrench() ? "fr" : "en")]
+        return c.url!
+    }
+
+    /// The token goes into the page of this app's own address, and only there (the navigation is held to that address below).
+    private func putToken() {
+        guard let t = readHelperToken() else { return }
+        webView.evaluateJavaScript("window.__PULSE_TOKEN__ = \"\(t)\"; window.__pulseRefresh && window.__pulseRefresh()", completionHandler: nil)
+    }
+
+    /// For `--panelcheck`: runs a script in the page and hands back its result.
+    func evaluate(_ js: String, _ done: @escaping (Any?) -> Void) { webView.evaluateJavaScript(js) { result, _ in done(result) } }
+
+    func reload() { loaded = false; webView.load(URLRequest(url: pageURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)) }
+
+    func willShow() {
+        if loaded { putToken() } else { reload() }
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { loaded = true; putToken() }
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { loaded = false }
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { loaded = false }
+
+    /// Only this app's own address is ever shown here; anything else goes to the browser and the token never meets it.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
+        if url.scheme == "http", url.host == base.host, url.port == base.port { decisionHandler(.allow); return }
+        if url.scheme == "about" { decisionHandler(.allow); return }
+        decisionHandler(.cancel)
+        if url.scheme == "http" || url.scheme == "https" { NSWorkspace.shared.open(url) }
+    }
+
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if let url = navigationAction.request.url, url.scheme == "http" || url.scheme == "https" { NSWorkspace.shared.open(url) }
+        return nil
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.frameInfo.isMainFrame, let body = message.body as? [String: Any], let act = body["act"] as? String else { return }
+        onAct(act)
+    }
+}
+
 // MARK: - The app
 
 final class PulseApp: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUserNotificationCenterDelegate {
     private let port: Int
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
+    private let popover = NSPopover()
+    private var panel: PanelView?
     private var state: PulseState?
     private var timer: Timer?
     private var bannersAllowed = false
@@ -91,7 +178,15 @@ final class PulseApp: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUserNot
         item.button?.toolTip = "Kybernos"
         menu.delegate = self
         menu.autoenablesItems = false
-        item.menu = menu
+        // A click on the K opens the panel; a right click (or a click while DSH is not running) opens the small menu.
+        item.button?.target = self
+        item.button?.action = #selector(statusClicked)
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        let view = PanelView(base: base, onAct: { [weak self] act in self?.panelAct(act) })
+        panel = view
+        popover.contentViewController = view.controller
+        popover.contentSize = NSSize(width: 380, height: 580)
+        popover.behavior = .transient
         redraw()
         askForBanners()
         refresh()
@@ -114,7 +209,9 @@ final class PulseApp: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUserNot
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.inFlight = false
+                let cameBack = self.state == nil && fresh != nil
                 self.state = fresh
+                if cameBack { self.panel?.reload() }
                 self.redraw()
                 if let s = fresh { self.postBanners(s) }
             }
@@ -188,6 +285,32 @@ final class PulseApp: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUserNot
 
     func menuWillOpen(_ menu: NSMenu) { refresh() }
 
+    @objc private func statusClicked() {
+        let right = NSApp.currentEvent?.type == .rightMouseUp
+        guard let button = item.button else { return }
+        if right || state == nil {
+            popover.performClose(nil)
+            buildMenu()
+            item.menu = menu
+            button.performClick(nil)
+            item.menu = nil
+            return
+        }
+        if popover.isShown { popover.performClose(nil); return }
+        panel?.willShow()
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// What the panel page asks of the app: bring the person to Kybernos, or close the panel. Nothing else is accepted.
+    private func panelAct(_ act: String) {
+        switch act {
+        case "open", "settings": popover.performClose(nil); NSWorkspace.shared.open(base)
+        case "close": popover.performClose(nil)
+        default: break
+        }
+    }
+
     @objc private func openKybernos() { NSWorkspace.shared.open(base) }
     @objc private func quitApp() { NSApp.terminate(nil) }
 
@@ -229,6 +352,29 @@ final class PulseApp: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUserNot
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
-let delegate = PulseApp(port: options.port)
-app.delegate = delegate
-app.run()
+
+if options.panelcheck {
+    // The page, in the real web view, the way the panel shows it: what it drew, whether its arrow reaches the app, whether it got the token.
+    let base = URL(string: "http://127.0.0.1:\(options.port)/")!
+    var acts: [String] = []
+    let view = PanelView(base: base, onAct: { acts.append($0) })
+    view.reload()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        let probe = "JSON.stringify({ title: document.title, cards: document.querySelectorAll('[data-kb=\"pulse-card\"]').length, hero: (document.querySelector('.kbpu-hero h2') || {}).innerText || null, tabs: document.querySelectorAll('.kbpu-tab').length, text: (document.body.innerText || '').replace(/\\s+/g, ' ').slice(0, 240), token: typeof window.__PULSE_TOKEN__ === 'string' && window.__PULSE_TOKEN__.length === 64 })"
+        view.evaluate(probe) { first in
+            view.evaluate("(function () { var b = document.querySelector('[data-act=\"open\"]'); if (b) { b.click(); return true } return false })()") { clicked in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    let page = (first as? String).flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) } ?? NSNull()
+                    let out: [String: Any] = ["page": page, "clicked": (clicked as? Bool) ?? false, "acts": acts]
+                    if let data = try? JSONSerialization.data(withJSONObject: out, options: [.prettyPrinted, .sortedKeys]) { print(String(data: data, encoding: .utf8) ?? "") }
+                    exit(0)
+                }
+            }
+        }
+    }
+    app.run()
+} else {
+    let delegate = PulseApp(port: options.port)
+    app.delegate = delegate
+    app.run()
+}
