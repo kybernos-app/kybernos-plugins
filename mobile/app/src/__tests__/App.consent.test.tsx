@@ -11,7 +11,6 @@ jest.mock('../../modules/kybernos-host/src', () => ({
 jest.mock('../secureStorage', () => ({ deviceStorage: { get: async (n: string) => mockStore.get(n) ?? null, set: async (n: string, v: string) => { mockStore.set(n, v) }, remove: async (n: string) => { mockStore.delete(n) } } }))
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default)
 jest.mock('react-native-webview', () => ({ WebView: () => null }))
-jest.mock('expo-clipboard', () => ({ getStringAsync: jest.fn() }))
 
 const start = host!.start as jest.Mock
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 20)) })
@@ -29,7 +28,7 @@ describe('App: the engine starts only after the person agrees', () => {
     await flush()
     expect(mockStore.get(WELCOME_SLOT)).toBe('1')
     expect(screen.getByTestId('consent-agree')).toBeTruthy()
-    expect(screen.getByTestId('page-dots')).toBeTruthy() // « page 2 of 2 »: the welcome page came just before
+    expect(screen.queryByTestId('page-dots')).toBeNull() // one question per page: no counter of pages
     expect(start).not.toHaveBeenCalled()
     await fireEvent.press(screen.getByTestId('consent-decline'))
     await flush()
@@ -41,13 +40,12 @@ describe('App: the engine starts only after the person agrees', () => {
     first.unmount()
   })
 
-  it('does not show the welcome page again once it was seen: only the agreement, without the page dots', async () => {
+  it('does not show the welcome page again once it was seen: only the agreement', async () => {
     mockStore.set(WELCOME_SLOT, '1')
     const r = await render(<App />)
     await flush()
     expect(screen.queryByTestId('welcome-continue')).toBeNull()
     expect(screen.getByTestId('consent-agree')).toBeTruthy()
-    expect(screen.queryByTestId('page-dots')).toBeNull()
     expect(start).not.toHaveBeenCalled()
     r.unmount()
   })

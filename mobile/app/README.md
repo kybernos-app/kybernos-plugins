@@ -34,7 +34,6 @@ node scripts/stage-native.mjs --payload <payload dir> --platform android
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 npx expo prebuild --platform android --no-install && echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 (cd android && ./gradlew assembleRelease)
-AVD=<emulator name> bash ../tests/key-android.sh   # M3: key typed in the settings screen, stored in the Keystore, Claude answers, key in no file (spends one small model call)
 AVD=<emulator name> bash ../tests/emu-android.sh   # L4: first launch, self-test automation, warm relaunch, and behind a proxy that answers 503 (S6)
 ANDROID_SERIAL=<serial> SKIP_INSTALL=1 bash ../tests/emu-android.sh   # the same on a plugged-in phone whose owner confirms each install
 ```
@@ -58,9 +57,11 @@ node mobile/devicecloud/app.mjs devices android               # real devices the
 
 `mobile/.env` holds the keys (see `mobile/env.example`). `--model` needs a throwaway key with a spend limit, revoked afterwards.
 
-## Model key (M3)
+## Model key
 
-The Anthropic key is entered in the app's settings (the gear button, or a `kybernos://settings` link from the web interface; the first launch no longer opens that page by itself), stored in the iOS Keychain / Android Keystore, and handed to the engine as `ANTHROPIC_API_KEY` when it starts: never written to a file. A changed key needs the app closed and reopened. On iOS the Paste button reads the clipboard from code and iOS asks permission for that; press and hold the field and choose Paste always works.
+The app has no screen for the model key. It is asked in the first-run wizard of the web interface (`packages/kybernos-plugin`, step « Which models should Kybernos use? »): an account, or an own key, with a logo on each provider and « Other providers » for the whole catalogue of the models page. On the phone that wizard is one question per screen and ends on the chat (`scripts/check-onboarding-phone-live.mjs`).
+
+DSH keeps the key in `.dsh/.credentials.yaml` inside the app's private data folder: readable by the app alone, **not encrypted**, never sent to Kybernos. The screens therefore say « stays on this phone and is only sent to your provider » and never « encrypted ». Android leaves that folder out of its backups (expo-secure-store's backup rules keep only the shared preferences); on iOS the native module marks the file `isExcludedFromBackup` at every start and whenever the app goes to the background or comes back (DSH rewrites the file by renaming a new one over it, which drops the mark). A device-cloud test build can still carry a key of its own (`--model`, see below): the payload's `provider-seed.mjs` seeds the Claude provider from it.
 
 ## Links from the web interface
 

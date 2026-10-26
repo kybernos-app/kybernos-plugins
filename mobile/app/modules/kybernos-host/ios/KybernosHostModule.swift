@@ -21,7 +21,7 @@ public class KybernosHostModule: Module {
             ]
         }
 
-        Function("start") { (port: Int, env: [String: String]) -> Bool in NodeHost.shared.start(port: port, extraEnv: env) }
+        Function("start") { (port: Int) -> Bool in NodeHost.shared.start(port: port) }
         Function("status") { () -> [String: Any] in NodeHost.shared.unpackStatus() }
         Function("exitCode") { () -> Int? in NodeHost.shared.currentExitCode().map { Int($0) } }
         Function("logTail") { (maxBytes: Int) -> String in NodeHost.shared.logTail(maxBytes: maxBytes) }
@@ -67,6 +67,7 @@ public class KybernosHostModule: Module {
 
         // iOS gives a few seconds of extra time when the app leaves the screen: ask for them, and give them back on the way in
         OnAppEntersBackground { [weak self] in
+            NodeHost.shared.excludeVaultFromBackup()
             guard let self else { return }
             self.backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "kybernos-finish") { [weak self] in
                 guard let self else { return }
@@ -74,6 +75,7 @@ public class KybernosHostModule: Module {
             }
         }
         OnAppEntersForeground { [weak self] in
+            NodeHost.shared.excludeVaultFromBackup()
             guard let self, self.backgroundTask != .invalid else { return }
             UIApplication.shared.endBackgroundTask(self.backgroundTask); self.backgroundTask = .invalid
         }

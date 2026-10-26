@@ -6,7 +6,7 @@ describe('ConsentScreen', () => {
   it('names who receives the text, with no provider as the default, and nothing happens until the person agrees', async () => {
     const onAgree = jest.fn()
     await render(<ConsentScreen onAgree={onAgree} lang="en" />)
-    expect(screen.getByText(/sent to the company that runs the model/)).toBeTruthy()
+    expect(screen.getByText(/is sent to Kybernos and its model providers, or straight to the provider whose key you add/)).toBeTruthy()
     for (const l of ['en', 'fr'] as const) {
       const text = CONSENT_TEXT[l].lines.join(' ')
       expect(text).toMatch(/Kybernos/)
@@ -30,12 +30,19 @@ describe('ConsentScreen', () => {
     expect(screen.getByTestId('consent-declined')).toBeTruthy()
     expect(onAgree).not.toHaveBeenCalled()
   })
-  it('shows the two page dots only when the welcome page came just before', async () => {
-    const a = await render(<ConsentScreen onAgree={jest.fn()} lang="en" />)
+  it('is short: two sentences, the detail of who receives what is one tap away and goes away again', async () => {
+    await render(<ConsentScreen onAgree={jest.fn()} lang="en" />)
+    expect(CONSENT_TEXT.en.lines.length).toBe(2); expect(CONSENT_TEXT.en.lines.join(' ').split(/\s+/).length).toBeLessThanOrEqual(60)
+    expect(screen.queryByTestId('consent-more')).toBeNull()
+    await fireEvent.press(screen.getByTestId('consent-more-toggle'))
+    expect(screen.getByTestId('consent-more')).toBeTruthy()
+    expect(screen.getByText(/straight from this phone to that provider/)).toBeTruthy()
+    await fireEvent.press(screen.getByTestId('consent-more-toggle'))
+    expect(screen.queryByTestId('consent-more')).toBeNull()
+  })
+  it('has no page dots: one question per page', async () => {
+    await render(<ConsentScreen onAgree={jest.fn()} lang="en" />)
     expect(screen.queryByTestId('page-dots')).toBeNull()
-    await a.unmount()
-    await render(<ConsentScreen onAgree={jest.fn()} lang="en" dots />)
-    expect(screen.getByTestId('page-dots')).toBeTruthy()
   })
   it('shows the privacy link only when there is an address, and opens it', async () => {
     const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
