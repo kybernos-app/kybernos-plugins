@@ -94,6 +94,8 @@ yes('app.json: the splash plugin is configured', entry !== undefined)
 eq('app.json: the splash background is the app background', entry?.[1]?.backgroundColor, APP_BACKGROUND)
 eq('app.json: the splash picture is the one make-assets draws', entry?.[1]?.image, './assets/splash-icon.png')
 eq('app.json: the app icon is the one make-assets draws', cfg.icon, './assets/icon.png')
+// without it iOS hands an English-only app the locale « en_FR » on a French phone, and the native screens (src/i18n.ts) never show French
+eq('app.json: iOS is told the app speaks English and French', cfg.ios.infoPlist.CFBundleLocalizations, ['en', 'fr'])
 eq('app.json: the adaptive layers are the ones make-assets draws', [cfg.android.adaptiveIcon.backgroundImage, cfg.android.adaptiveIcon.foregroundImage, cfg.android.adaptiveIcon.monochromeImage].map((f) => f.replace('./assets/', '')), ['android-icon-background.png', 'android-icon-foreground.png', 'android-icon-monochrome.png'])
 const pkg = JSON.parse(readFileSync(join(app, 'package.json'), 'utf8'))
 yes('package.json: expo-splash-screen is a dependency (the plugin needs it)', typeof pkg.dependencies['expo-splash-screen'] === 'string')
