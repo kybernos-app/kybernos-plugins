@@ -1,6 +1,6 @@
 # Skills · Featured: how the covers are made
 
-The covers of the Featured tab (21 picks since 2026-10-26) are **one transparent cut-out per skill**. The screen composes everything else in CSS (the category tint or the
+The covers of the Featured tab (24 picks; three of them, `grilling`, `internal-comms` and `summarize-meeting`, were added on 2026-10-26 with no picture yet: a tile is drawn, and the host makes one on the fly when the person has a key) are **one transparent cut-out per skill**. The screen composes everything else in CSS (the category tint or the
 plain card surface, the crop, the title). They are not in the repository (AGENTS rule 4): each one is `<id>.webp` in
 `<DSH home>/kybernos/skills-featured/`, which the host serves at `GET /kybernos-skills/cover/<id>`. A pick without its file draws a tile.
 
