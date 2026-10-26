@@ -30,7 +30,7 @@
 //   POST /kybernos-skills/skill/reveal    : opens its folder, or SKILL.md in a text editor, on this machine.
 //   POST /kybernos-skills/skill/duplicate : copies it into the user's own skills folder under a free name.
 //   POST /kybernos-skills/skill/delete    : removes its folder (only inside a writable root, never a link or a root).
-//   GET  /kybernos-skills/preview   : a remote skill's folder, description and start of SKILL.md, read from its repository (?source=&name=)
+//   GET  /kybernos-skills/preview   : a remote skill's folder, description, start of SKILL.md and a `check` of its text (empty? hands over? needs a sibling?), read from its repository (?source=&name=)
 //
 // WHAT THIS PACKAGE BRINGS, AND WHAT DSH DOES NOT HAVE:
 //   1. the registry is READ-ONLY — nobody can disable a skill;
@@ -54,6 +54,7 @@ import { SCOUT_LIMITS, dismissFound, goalsOf, runScout, scanning, viewScout } fr
 import { answerNotice, forgetNotice, listNotices, noticeFor } from './learned-repeat.mjs'
 import { hideWeek, weekView } from './learned-week.mjs'
 import { readPicks } from './featured-picks.mjs'
+import { checkSkillText } from './skill-rules.mjs'
 import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -1433,6 +1434,14 @@ const skillFilesOf = async (source) => {
   return out
 }
 
+// The other skills of the repository, as folders: what the rules need to tell a skill that hands over to a sibling the install does not bring.
+// A skill at the root of its repository has none (every other skill sits inside it).
+const MAX_SIBLING_DIRS = 2000
+const siblingDirsOf = (files, folder) => files
+  .slice(0, MAX_SIBLING_DIRS)
+  .map((p) => (dirname(p) === '.' ? '' : dirname(p)))
+  .filter((d) => d !== '' && d !== folder && folder !== '' && !d.startsWith(folder + '/'))
+
 // A path comes from the repository's listing, but it is still a path in a URL: plain characters only, no `..`.
 const SAFE_PATH_RE = /^[A-Za-z0-9._ @+-]+(?:\/[A-Za-z0-9._ @+-]+)*$/
 // `textChars` (the scout's) asks for more than the usual start of the file; `size` is always the whole file's length.
@@ -1475,6 +1484,8 @@ const previewSkill = async (source, name, textChars) => {
       text: text.length > cut ? text.slice(0, cut) : text,
       size: text.length,
       truncated: text.length > cut,
+      // What the rules shared with the maintainer's vetting tool say about this text (skill-rules.mjs): the screen words it and warns before an install.
+      check: checkSkillText(text, siblingDirsOf(listing.files, folder)),
       url: 'https://github.com/' + source + (folder === '' ? '' : '/tree/HEAD/' + folder.split('/').map(encodeURIComponent).join('/'))
     }
   }
