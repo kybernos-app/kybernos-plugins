@@ -37354,6 +37354,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             list.appendChild(h('li', null, T('key.o1')))
             list.appendChild(h('li', null, T('key.o2')))
           }
+          // On the phone the three steps shrink to the one that is needed (the page of the keys, or the provider's documentation): the field, its note and the button stay on one screen.
+          if (S.phone) { const keepN = prov === null ? 2 : 1; while (list.children.length > keepN) list.removeChild(list.lastChild) }
           s.appendChild(list)
           const a = actions()
           // A provider the wizard knows, and the page that saves keys is there: the key is pasted here. Anything else
@@ -37392,6 +37394,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               st.setAttribute('role', 'alert')
               st.appendChild(h('span', null, T('key.err.' + S.keyMsg, { name: name })))
               s.appendChild(st)
+              // the fixed bar of the actions can hide it on a phone: the message is brought into view once it is on the page
+              win.setTimeout(() => { try { st.scrollIntoView({ block: 'center' }) } catch (e) { /* the message stays where it is */ } }, 60)
             }
             s.appendChild(note(T(S.phone ? 'key.note.phone' : 'key.note')))
             const save = primary(S.keyMsg === 'unreach' ? T('key.again') : T('key.save'), () => { submitKey() })
