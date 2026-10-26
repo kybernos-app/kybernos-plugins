@@ -42,3 +42,6 @@ yarn-error.*
 
 # placeholder icons drawn by scripts/make-assets.mjs (the repository carries no images)
 /assets/*.png
+
+# build logs written next to the app by the build commands
+build-*.log
