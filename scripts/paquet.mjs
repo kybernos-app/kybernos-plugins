@@ -36,6 +36,7 @@ export const SCRIPTS_DU_ROBOT = [
   'scripts/lifecycle-engine.mjs',
   'scripts/plateforme.mjs',
   'scripts/dsh-relance.mjs',
+  'scripts/kybernos-open.mjs',
   'scripts/lifecycle-packages.json',
   'scripts/patches.json',
   'dsh-compat.json',
