@@ -22,6 +22,8 @@ bash ../../tests/sim-ios.sh                   # L4: first launch, self-test auto
 
 **Icon and splash.** `scripts/make-assets.mjs` draws the app icon, the Android adaptive layers (background, foreground, one-colour) and the splash picture from the K's own code: it reads the block `KB-BRAND-CORE` of `packages/kybernos-plugin/client.js` (`scripts/brand-art.mjs`), so the icon cannot drift from the logo. Background `#121217`, the colour of every screen of the app. `app.json` names the same colour for the splash (plugin `expo-splash-screen`). `expo prebuild` copies the pictures into `ios/` and `android/`: after changing them, run `npx expo prebuild --no-install` and rebuild. Test: `node scripts/test-mobile-brand-assets.mjs`.
 
+**Licences.** The payload redistributes third-party code, so `mobile/payload/build-payload.mjs` audits every package it ships (`mobile/payload/notices.mjs`: permissive licences only; a package with no licence, `UNLICENSED`, GPL or similar stops the build, and a package that cannot be redistributed is dropped in `DROP_PACKAGE` or its licence is recorded by hand in `OVERRIDES`). It writes `THIRD-PARTY-NOTICES.txt` into the payload; the engine serves it at `/kybernos-mobile/notices` (« The Kybernos app » page, card « Open-source components »). Pass `--node-license <file>` (the Node.js `LICENSE`, with the licences of its bundled components) to include its text; without it the notice carries a link. Our own packages declare Apache-2.0; the name and the K are covered by `TRADEMARK.md`. Test: `node scripts/test-mobile-licences.mjs`.
+
 Android (arm64 only, see `plugins/with-arm64-only.js`):
 
 ```bash

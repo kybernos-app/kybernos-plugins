@@ -1,6 +1,7 @@
 {
   "name": "@local/kybernos-mobile",
   "version": "0.3.0",
+  "license": "Apache-2.0",
   "description": "The phone: DSH usable on a narrow screen (sidebar as a drawer, Settings stacked; nothing changes above 700 px) and a QR code that links a phone to this computer through the Kybernos relay, end to end encrypted.",
   "private": true,
   "type": "module",

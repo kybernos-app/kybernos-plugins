@@ -1,6 +1,7 @@
 {
   "name": "@local/kybernos-usage",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "Usage and cost: a chip under the composer and a Settings page that show how much of your plan the work uses, and what your own keys and local models cost.",
   "private": true,
   "type": "module",

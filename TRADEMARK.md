@@ -47,6 +47,13 @@ when all of the following hold:
 Offering a hosted or managed service under the Kybernos name is still covered
 by rule 2 above, with or without a Team brand.
 
+## Apps built from this source
+
+The phone app in `mobile/` is open source like the rest. You may build it for yourself, study it, and publish a modified version, but an app you publish (on an app store or anywhere else) must **not**
+use the name "Kybernos", the Kybernos "K" logo (the red K with three dots, drawn by `kbBrandArt` in `packages/kybernos-plugin/client.js` and by `mobile/app/scripts/brand-art.mjs`) or the Kybernos
+bundle identifiers (`app.kybernos.host`): give it your own name, icon and identifiers, and say that it is based on Kybernos. The official apps are the ones published by the Kybernos
+maintainers; they are signed with keys that are not in this repository. Rules 2 to 4 above apply to apps like any other product.
+
 ## Enforcement
 
 This policy is enforced at the sole discretion of the trademark owner. If you

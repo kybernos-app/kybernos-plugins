@@ -1141,11 +1141,26 @@ window.__ModuleLoader__.load({
           h('h3', { className: 'kbapp-h' }, props.title),
           h('p', { className: 'kbapp-sub' }, props.text),
           props.act === undefined ? null : h('div', { className: 'kbapp-row' }, h('button', { type: 'button', className: 'kbapp-btn', 'data-act': props.act, onClick: props.onClick }, props.button)))
+        // The list of open-source components the app is made of (served by the host half from the payload; absent in a build that did not write it).
+        const Notices = () => {
+          const [st, setSt] = React.useState({ phase: 'closed', text: '' })
+          const load = async () => {
+            setSt({ phase: 'loading', text: '' })
+            try { const r = await fetch('/kybernos-mobile/notices'); const t = r.ok ? await r.text() : ''; setSt(t === '' ? { phase: 'missing', text: '' } : { phase: 'open', text: t }) } catch (e) { setSt({ phase: 'missing', text: '' }) }
+          }
+          return h('section', { className: 'kbapp-card', 'data-kb': 'mobile-app-notices' },
+            h('h3', { className: 'kbapp-h' }, kt('Composants open source', 'Open-source components')),
+            h('p', { className: 'kbapp-sub' }, kt('Les licences de tout ce dont cette app est faite.', 'The licences of everything this app is made of.')),
+            h('div', { className: 'kbapp-row' }, h('button', { type: 'button', className: 'kbapp-btn', 'data-act': 'open-notices', onClick: st.phase === 'open' ? () => setSt({ phase: 'closed', text: '' }) : load }, st.phase === 'open' ? kt('Masquer', 'Hide') : kt('Afficher', 'Show'))),
+            st.phase === 'missing' ? h('p', { className: 'kbapp-sub', 'data-kb': 'notices-missing' }, kt('La liste n’est pas disponible dans cette version.', 'The list is not available in this build.')) : null,
+            st.phase === 'open' ? h('pre', { className: 'kbapp-notices', 'data-kb': 'notices-text' }, st.text) : null)
+        }
         const Page = () => h('div', { className: 'kbapp-page', 'data-kb': 'mobile-app-page' },
           h('h2', { className: 'kbapp-title' }, kt('L’app Kybernos', 'The Kybernos app')),
           h('p', { className: 'kbapp-sub' }, kt('Le moteur de Kybernos tourne sur ce téléphone, dans l’app. Version ' + host.version + ' · ' + where + '.', 'The Kybernos engine runs on this phone, inside the app. Version ' + host.version + ' · ' + where + '.')),
           h(Card, { kb: 'mobile-app-key', title: kt('Clé du modèle', 'Model key'), text: kt('Ta clé Anthropic est gardée dans le coffre sécurisé du téléphone (Trousseau sur iPhone, Keystore sur Android), jamais dans un fichier. Un changement de clé demande de fermer puis rouvrir l’app.', 'Your Anthropic key is kept in the phone’s secure storage (Keychain on iPhone, Keystore on Android), never in a file. A changed key needs the app closed and opened again.'), act: 'open-key', button: kt('Ouvrir', 'Open'), onClick: () => open('settings') }),
           h(Card, { kb: 'mobile-app-log', title: kt('Journal du moteur', 'Engine log'), text: kt('Ce que dit le moteur, avec les clés masquées : utile pour comprendre un souci ou le partager.', 'What the engine says, with keys hidden: useful to understand a problem or to share it.'), act: 'open-log', button: kt('Afficher', 'Show'), onClick: () => open('log') }),
+          h(Notices, null),
           h(Card, { kb: 'mobile-app-auto', title: kt('Automatisations sur le téléphone', 'Automations on this phone'), text: kt('Elles tournent pendant que l’app est ouverte ou vient d’être utilisée. Si le téléphone a suspendu l’app, une tâche arrivée à échéance attend et s’exécute dès que tu reviens. Pour une tâche à heure fixe, téléphone verrouillé, utilise un ordinateur cloud.', 'They run while the app is open or was just used. If the phone has suspended the app, a task that came due waits and runs as soon as you come back. For a task at a fixed time with the phone locked, use a cloud computer.') }))
         // Purchase, sign-up and plugin-install controls the app never shows (store rules: no purchase flow inside the app, no sign-up in the first version, only the plugins the app carries; mobile/STORES.md items 1, 5 and 6). They are hidden by their
         // data-kb hooks, not removed: the desktop and the browser keep them. test-client.mjs checks every hook still exists in the bundle that draws it.
@@ -1242,6 +1257,7 @@ html.kb-app :is(${STORE_HIDDEN.map((k) => '[data-kb="' + k + '"]').join(',')}){d
 .kbrp-primary{background:var(--dsw-alias-label-primary, rgb(243,243,245));color:var(--dsw-alias-bg-layer-1, rgb(18,18,23));font-weight:600}
 .kbrp-btn:disabled{opacity:.4}
 .kbapp-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
+.kbapp-notices{margin:8px 0 0;max-height:50vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
 .kbapp-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbapp-sub{margin:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
 .kbapp-card{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}

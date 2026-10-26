@@ -20,6 +20,10 @@ export const SHEET_ID = 'kbmob-sheet'
 export const ROUTE = '/kybernos-mobile/mobile.css'
 const here = dirname(fileURLToPath(import.meta.url))
 export const CSS_FILE = join(here, 'mobile.css')
+// The licences of what the phone app ships: mobile/payload/build-payload.mjs writes THIRD-PARTY-NOTICES.txt into the payload and the bootstrap names the unpacked folder KB_RUNTIME.
+export const NOTICES_ROUTE = '/kybernos-mobile/notices'
+export const NOTICES_FILE = 'THIRD-PARTY-NOTICES.txt'
+const NOTICES_MAX = 8 * 1024 * 1024
 
 const logError = (what, e) => { try { if (e === undefined) console.error('[kybernos-mobile] ' + what); else console.error('[kybernos-mobile] ' + what, e) } catch (e2) { /* console unavailable */ } }
 
@@ -77,6 +81,19 @@ export function serveSheet (req, res, file = CSS_FILE) {
     if (css === '') { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('stylesheet not found'); return }
     res.writeHead(200, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-cache', 'x-content-type-options': 'nosniff' })
     res.end(css)
+  } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket closed */ } }
+}
+
+/** The list of open-source components, as plain text. Only inside the phone app (the engine there has KB_RUNTIME); anywhere else it is not found. A read, behind the Host fence. */
+export function serveNotices (req, res, dir = process.env.KB_RUNTIME) {
+  try {
+    if (hostOK(req) !== true || sameOriginLax(req) !== true) { res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' }); res.end('origin refused'); return }
+    if (req.method !== 'GET') { res.writeHead(405, { 'content-type': 'text/plain; charset=utf-8' }); res.end('GET expected'); return }
+    let text = ''
+    try { const f = join(typeof dir === 'string' ? dir : '', NOTICES_FILE); if (typeof dir === 'string' && dir !== '' && statSync(f).size <= NOTICES_MAX) text = readFileSync(f, 'utf8') } catch (e) { text = '' }
+    if (text === '') { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('notices not found'); return }
+    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-cache', 'x-content-type-options': 'nosniff' })
+    res.end(text)
   } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket closed */ } }
 }
 
@@ -143,8 +160,12 @@ export function apply (ctx, options = {}) {
   try {
     const mount = (svc) => {
       try { ctx.effect(() => svc.register({ kind: 'exact', path: ROUTE, handler: (req, res) => serveSheet(req, res) }), 'kybernos-mobile: route stylesheet') } catch (e) { logError('route not mounted', e) }
+      // The list of open-source components: only inside the phone app, and apart from the stylesheet so neither can take the other down.
+      if (phone) {
+        try { ctx.effect(() => svc.register({ kind: 'exact', path: NOTICES_ROUTE, handler: (req, res) => serveNotices(req, res) }), 'kybernos-mobile: route notices') } catch (e) { logError('notices route not mounted', e) }
+        return
+      }
       // The remote half's routes: separate from the stylesheet's, so one cannot take the other down.
-      if (phone) return
       for (const name of Object.keys(REMOTE_ROUTES)) {
         try { ctx.effect(() => svc.register({ kind: 'exact', path: REMOTE_PREFIX + name, handler: (req, res) => serveRemote(name, req, res) }), 'kybernos-mobile: route remote ' + name) } catch (e) { logError('remote route not mounted', e) }
       }
