@@ -849,6 +849,18 @@ window.__ModuleLoader__.load({
         'dp.start': { fr: 'Début de SKILL.md', en: 'Start of SKILL.md' },
         'dp.notfound': { fr: 'Aucun dossier « {name} » dans le dépôt : l\'installation cherche, dans toute l\'archive, le skill dont le frontmatter porte ce nom.', en: 'No “{name}” folder in the repository: the install looks, in the whole archive, for the skill whose frontmatter carries that name.' },
         'dp.nopreview': { fr: 'Aperçu indisponible : {why}', en: 'Preview unavailable: {why}' },
+        'vet.title.bad': { fr: 'Ce skill semble vide ou inutilisable', en: 'This skill looks empty or unusable' },
+        'vet.title.warn': { fr: 'À vérifier avant d\'installer', en: 'Check before installing' },
+        'vet.hint.bad': { fr: 'L\'installer n\'apportera probablement rien d\'utile. Tu peux quand même continuer : ce n\'est pas un blocage.', en: 'Installing it will probably give you nothing useful. You can still go on: this is not a block.' },
+        'vet.hint.warn': { fr: 'Ce n\'est pas un blocage : il peut fonctionner, mais mieux vaut lire son texte avant.', en: 'This is not a block: it may work, but it is worth reading its text first.' },
+        'vet.empty_body': { fr: 'Ses instructions ne font que {chars} caractères : il n\'y a presque rien à suivre.', en: 'Its instructions are only {chars} characters long: there is almost nothing to follow.' },
+        'vet.delegates': { fr: 'Il confie le travail à un autre skill ({names}) que cette installation n\'apporte pas.', en: 'It hands the work to another skill ({names}) that this install does not bring.' },
+        'vet.needs_sibling': { fr: 'Il doit lire le dossier d\'un autre skill ({names}) qui n\'est pas installé avec lui.', en: 'It must read the folder of another skill ({names}) that is not installed with it.' },
+        'vet.sibling_reference': { fr: 'Il renvoie vers d\'autres skills ({names}) qui ne sont pas installés avec lui.', en: 'It points to other skills ({names}) that are not installed with it.' },
+        'vet.needs_binary': { fr: 'Il a besoin d\'un programme installé sur ton ordinateur : {names}.', en: 'It needs a program installed on your computer: {names}.' },
+        'vet.secret_like': { fr: 'Son texte contient ce qui ressemble à une clé ou à un mot de passe.', en: 'Its text contains something that looks like a key or a password.' },
+        'vet.injection_marker': { fr: 'Son texte contient des phrases qui cherchent à orienter l\'IA ou à te cacher des choses.', en: 'Its text contains phrases that try to steer the AI or hide things from you.' },
+        'vet.frontmatter_incomplete': { fr: 'Son en-tête est incomplet : l\'installation le refuserait.', en: 'Its header is incomplete: the install would refuse it.' },
         'dp.viewgh': { fr: 'Voir sur GitHub', en: 'View on GitHub' },
         'ic.title': { fr: 'Installer « {name} » ?', en: 'Install “{name}”?' },
         'ic.repo': { fr: 'Dépôt', en: 'Repository' },
@@ -1388,6 +1400,13 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-input::placeholder,.kbs-root .kbs-area::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbs-root .kbs-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .kbs-root .kbs-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
+.kbs-root .kbs-vet{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,transparent);border-radius:10px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 9%,transparent);font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbs-vet.bad{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 55%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 9%,transparent)}
+.kbs-root .kbs-vet .t{display:flex;align-items:center;gap:8px;font-weight:600}
+.kbs-root .kbs-vet .t svg{flex:none;color:var(--dsw-alias-state-warn-primary)}
+.kbs-root .kbs-vet.bad .t svg{color:var(--dsw-alias-state-error-primary)}
+.kbs-root .kbs-vet ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:3px}
+.kbs-root .kbs-vet .h{color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .kbs-root .kbs-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:210;display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:12px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);box-shadow:0 14px 34px rgba(0,0,0,.5);font-size:13px;color:var(--dsw-alias-label-primary);max-width:70vw}
 .kbs-root .kbs-toast.err{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 55%,transparent)}
@@ -2305,12 +2324,14 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
 
         // The same for the preview: asked only for the open card, only for a GitHub source (the others cannot be read this way), and a
         // card that is closed or replaced drops its answer.
+        // An install asked from a row, with no card open, reads the same preview: the confirmation warns about what the text says.
+        const previewOf = detail !== null ? detail : askInstall
         React.useEffect(() => {
-          if (detail === null) { setPreview({ state: 'idle', data: null, error: '' }); return undefined }
-          if (detail.installable !== true) { setPreview({ state: 'none', data: null, error: '' }); return undefined }
+          if (previewOf === null) { setPreview({ state: 'idle', data: null, error: '' }); return undefined }
+          if (previewOf.installable !== true) { setPreview({ state: 'none', data: null, error: '' }); return undefined }
           let stopped = false
           setPreview({ state: 'loading', data: null, error: '' })
-          getJson('/kybernos-skills/preview?source=' + encodeURIComponent(detail.source) + '&name=' + encodeURIComponent(detail.name)).then((j) => {
+          getJson('/kybernos-skills/preview?source=' + encodeURIComponent(previewOf.source) + '&name=' + encodeURIComponent(previewOf.name)).then((j) => {
             if (stopped === true || alive.current !== true) return
             if (j !== null && typeof j === 'object' && j.ok === true) setPreview({ state: j.found === true ? 'ready' : 'missing', data: j, error: '' })
             else setPreview({ state: 'error', data: null, error: why(j, t('err.preview')) })
@@ -2318,7 +2339,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             if (stopped !== true && alive.current === true) setPreview({ state: 'error', data: null, error: t('err.unavail', { r: 'preview' }) })
           })
           return () => { stopped = true }
-        }, [detail === null ? '' : detail.source + '/' + detail.name])
+        }, [previewOf === null ? '' : previewOf.source + '/' + previewOf.name])
 
         React.useEffect(() => {
           if (notice === null) return undefined
@@ -3506,6 +3527,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           })
           if (askInstall !== null) return h(InstallConfirm, {
             x: askInstall, dest: installDest, folder: preview.state === 'ready' && preview.data !== null ? preview.data.folder : null,
+            check: preview.state === 'ready' && preview.data !== null && preview.data.source === askInstall.source && preview.data.name === askInstall.name ? preview.data.check : null,
             busy: busy.__modal === true, error: errors.__modal,
             onClose: () => setAskInstall(null),
             onConfirm: () => {
@@ -4156,6 +4178,22 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
       // One layout for every skill that is opened, whatever it is (a pick, an entry of Discover, a find, a skill of Yours): the name and ✕ at the top, a hero (its picture, its name,
       // who made it, what it does, its state), the facts beside the audits, the start of its SKILL.md, and its actions at the foot. Only what the places know differs; the frame
       // is this one, so the three kinds of window look like one family. The pieces are given by the caller (the cover and the lines of facts come from closures of the page).
+      // What the rules shared with the maintainer's vetting tool say about a skill's text (the host's `check` of the preview), in plain words, BEFORE
+      // an install. A warning, never a block; nothing at all for a skill with nothing to say, or when the host (not restarted yet) sends no check.
+      const VET_RULES = ['frontmatter_incomplete', 'empty_body', 'delegates', 'needs_sibling', 'sibling_reference', 'needs_binary', 'secret_like', 'injection_marker']
+      function SkillVet(props) {
+        const c = props.check
+        if (c === null || c === undefined || typeof c !== 'object' || !Array.isArray(c.findings)) return null
+        const rows = c.findings.filter((f) => f !== null && typeof f === 'object' && VET_RULES.indexOf(f.rule) >= 0)
+        if (rows.length === 0) return null
+        const bad = rows.some((f) => f.level === 'reject')
+        return h('div', { className: 'kbs-vet ' + (bad ? 'bad' : 'warn'), role: 'note', 'data-kb': 'skill-vet', 'data-level': bad ? 'bad' : 'warn' },
+          h('div', { className: 't' }, icon('alert', 16), h('span', null, t(bad ? 'vet.title.bad' : 'vet.title.warn'))),
+          h('ul', null, ...rows.map((f, i) => h('li', { key: i, 'data-rule': f.rule },
+            t('vet.' + f.rule, { chars: Number.isInteger(f.chars) ? f.chars : 0, names: Array.isArray(f.names) ? f.names.map(String).join(', ') : '' })))),
+          h('span', { className: 'h' }, t(bad ? 'vet.hint.bad' : 'vet.hint.warn')))
+      }
+
       function SkillSheet(props) {
         const audits = props.audits !== null && props.audits !== undefined
         return h('article', { className: 'kbsf-detail' + (props.plain === true ? ' kbsf-plain' : ''), 'data-kb': props.kb, 'aria-label': props.label },
@@ -4172,6 +4210,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               props.outcome !== undefined && props.outcome !== null && props.outcome !== '' ? h('p', { className: 'kbsf-dout' }, props.outcome) : null,
               props.pills,
               props.aside !== undefined ? props.aside : null)),
+          props.notice !== undefined && props.notice !== null ? props.notice : null,
           h('div', { className: 'kbsf-dcols' + (audits ? '' : ' one') },
             h('section', { className: 'kbsf-dcard' },
               h('span', { className: 'kb-section-label' }, props.factsTitle),
@@ -4284,6 +4323,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           art: props.art !== undefined ? props.art : tile(x.name, 'pkg'), making: props.making === true, tag: props.tag,
           title: humanName(x.name), meta: [ownerBy(publisher), countOf(x.installs), h('span', { key: 'n', className: 'kb8-mono' }, '/' + x.name)],
           outcome: pv !== null ? pv.description : '',
+          notice: pv !== null ? h(SkillVet, { check: pv.check }) : null,
           pills: h('div', { className: 'kbsf-pills' },
             props.curated === true ? h('span', { key: 'o', className: 'kbsf-pill ok' }, 'curated') : h('span', { key: 'o', className: 'kbsf-pill' }, t('row.community')),
             props.installed === true ? h('span', { key: 'i', className: 'kbsf-pill ok' }, icon('check', 12), t('row.already')) : null),
@@ -4366,6 +4406,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               row(t('ic.repo'), 'github.com/' + x.source),
               row(t('ic.folder'), props.folder !== null && props.folder !== undefined ? (props.folder !== '' ? props.folder : t('dp.root')) : t('dp.folderUnknown')),
               row(t('ic.dest'), target)),
+            h(SkillVet, { check: props.check }),
             h('div', { className: 'kb-note' }, icon('info', 14), h('span', null, t('ic.after'))),
             props.error ? h('div', { className: 'kbs-err', role: 'alert' }, props.error) : null,
             h('div', { className: 'kbs-actions' },

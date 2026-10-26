@@ -335,7 +335,7 @@ window.__ModuleLoader__.load({
 .kbus-btn{margin-top:14px;width:100%;height:40px;border:0;border-radius:12px;background:var(--dsw-alias-button-primary-fill,#f9fafb);color:var(--dsw-alias-label-primary-foreground,#0f1115);font:inherit;font-weight:600;cursor:pointer}
 .kbus-link{color:var(--dsw-alias-link,#7aaaff);font-size:12.5px;text-decoration:none}
 .kbus-link:hover{text-decoration:underline}
-@media (max-width:760px){.kbus-pop{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto;max-height:calc(100vh - 120px)}}
+@media (max-width:760px){.kbus-pop{position:fixed;left:16px;right:16px;bottom:calc(16px + var(--kb-sab, env(safe-area-inset-bottom,0px)));width:auto;max-height:calc(100vh - 120px)}}
 
 .kbus-page{padding:0 0 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */

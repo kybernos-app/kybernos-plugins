@@ -606,7 +606,19 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
     computer, not from the Kybernos server: no allowance of ours applies to them, and the server's guardrails do not see them.
   - **An API key** for Anthropic, OpenAI, DeepSeek or Google: pasted in the wizard, checked with the provider
     (`POST /kybernos-models/key/check`, one word back), then saved by `window.__KB_MODELS__.saveKey`, the same write as
-    the Add provider flow. Another provider, or `kybernos-models` off, is handed to Settings.
+    the Add provider flow. Each of the four carries its logo (the models page's own SVG, painted as a mask). **« Other
+    providers »** opens the whole catalogue of the models page (`window.__KB_MODELS__.catalogue()`: free-quota, popular,
+    all, with a search): a key for any of them is saved the same way, only checked with the provider when it is one of
+    the four (for the others the key is saved unchecked). A custom API, a provider whose address is the account's own, or
+    `kybernos-models` off, is handed to Settings.
+  - **On the phone app** (the page carries `html.kb-app`, set by `kybernos-mobile`) the wizard is the first run in
+    one question per screen: it opens on the model question (no welcome, field, goals or kit: the domain and the kit stay
+    reachable later from the chat), shows no step number and no « Back » on that first screen, and ends on the chat, so
+    there is no « connected » or « key saved » screen. « Skip » (the button of the page and the link of the question)
+    does not open a chat that has no model: it goes to a screen that says what a model is for (`nomodel`: create an
+    account, or use an own key). Its note says the key **stays on the phone and is only sent to the provider**, never
+    « encrypted »: DSH keeps provider keys in `.credentials.yaml`, readable by the app alone but not encrypted. Test:
+    `scripts/check-onboarding-phone-live.mjs` (sandbox only).
   - **A local model**: the recommendation and the connection come from `window.__KB_LOCAL__` of
     `kybernos-modeles-locaux`; the download is the host's own `/modeles-locaux/installer` job (Homebrew, macOS), with a
     progress bar. Leaving the wizard mid-download keeps it going and connects the model when it ends.

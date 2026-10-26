@@ -3,7 +3,7 @@
  *
  *  Three layers, none of them on the network or on the user's home:
  *   1. featured-picks.mjs, the pure reader: what it keeps, what it drops, that nothing the file carries beyond its fields travels on;
- *   2. the shipped file featured-picks.json (the 21 picks): every entry valid, both languages written, no security audit in failure;
+ *   2. the shipped file featured-picks.json (the 24 picks): every entry valid, both languages written, no security audit in failure;
  *   3. GET /kybernos-skills/picks through apply() on a fake web server and a throw-away DSH home: a cover URL only when its file exists;
  *   4. the client (a browser half), pinned at source level like test-bar.mjs: the card, the hover actions, the install confirmation.
  *
@@ -73,10 +73,10 @@ try {
   // 2. the shipped file ----------------------------------------------------------------------------
   const raw = JSON.parse(readFileSync(join(here, 'featured-picks.json'), 'utf8'))
   const picks = readPicks(join(here, 'featured-picks.json'))
-  assert.equal(raw.items.length, 21) // 24 until 2026-10-26: three picks were taken out after vetting (docs/dev/skills-vetting.md)
+  assert.equal(raw.items.length, 24) // 24 -> 21 -> 24 on 2026-10-26: three rejected picks out, three vetted ones in (docs/dev/skills-vetting.md)
   assert.equal(picks.items.length, raw.items.length, 'no entry of the shipped file is dropped by the reader')
   assert.match(picks.asOf, /^\d{4}-\d{2}-\d{2}$/)
-  ok('the shipped file holds 21 picks and the reader keeps every one of them')
+  ok('the shipped file holds 24 picks and the reader keeps every one of them')
 
   const ids = picks.items.map((p) => p.id)
   assert.equal(new Set(ids).size, ids.length, 'unique ids')
@@ -93,9 +93,14 @@ try {
   }
   ok('every pick has its title, outcome and example in both languages, its install count and its audit verdicts')
 
-  assert.ok(picks.items.every((p) => typeof p.coverSha256 === 'string'), 'every pick ships the hash of its cover')
-  assert.equal(new Set(picks.items.map((p) => p.coverSha256)).size, picks.items.length, 'no two picks share a picture')
-  ok('every pick ships the SHA-256 of its cover, and no two covers are the same file')
+  // Three picks were added on 2026-10-26 without a picture: their card draws a tile, and the host makes one on the fly when the person has a key.
+  // When their covers are shipped (scripts/prepare-covers.mjs --write-picks) this list goes away.
+  const bare = picks.items.filter((p) => p.coverSha256 === null).map((p) => p.id).sort()
+  assert.deepEqual(bare, ['grilling', 'internal-comms', 'summarize-meeting'], 'only the three recent picks ship without the hash of a cover')
+  const hashes = picks.items.filter((p) => typeof p.coverSha256 === 'string').map((p) => p.coverSha256)
+  assert.equal(hashes.length, picks.items.length - bare.length)
+  assert.equal(new Set(hashes).size, hashes.length, 'no two picks share a picture')
+  ok('every pick but the three recent ones ships the SHA-256 of its cover, and no two covers are the same file')
 
   const failing = picks.items.filter((p) => p.audits.some((a) => a[1] === 'fail')).map((p) => p.id)
   assert.deepEqual(failing, [], 'a pick with an audit in failure is not featured: ' + failing.join(', '))
@@ -116,9 +121,10 @@ try {
   const first = await call()
   assert.equal(first.code, 200)
   assert.equal(first.body.ok, true)
-  assert.equal(first.body.items.length, 21)
-  assert.ok(first.body.items.every((p) => p.cover === '/kybernos-skills/cover/' + p.id), 'every pick ships its cover hash, so every pick has a cover URL (fetched on first use)')
-  ok('GET /kybernos-skills/picks serves the 21 picks, each with its cover URL')
+  assert.equal(first.body.items.length, 24)
+  assert.ok(first.body.items.filter((p) => p.coverSha256 !== null).every((p) => p.cover === '/kybernos-skills/cover/' + p.id), 'a pick that ships its cover hash has a cover URL (fetched on first use)')
+  assert.ok(first.body.items.filter((p) => p.coverSha256 === null).every((p) => p.cover === null), 'a pick with no cover has none: the card draws a tile')
+  ok('GET /kybernos-skills/picks serves the 24 picks, a cover URL for those that ship one and none for the others')
 
   // 3b. a cover that is not in the folder is fetched from the relay ONCE, and only the picture that was shipped is kept ---------------
   const { createHash } = await import('node:crypto')

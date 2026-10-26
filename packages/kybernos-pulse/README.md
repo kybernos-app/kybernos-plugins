@@ -1,8 +1,7 @@
 # `@local/kybernos-pulse`
 
 Tells you when an automation finished, failed or waits for your approval, without keeping Kybernos in front, and brings you back to Kybernos
-with one click. A module of the Kybernos Suite: **off by default**, switched on in Settings › Kybernos Suite (the card says « Active after restart »),
-then it has its own page, **Settings › Widget**.
+with one click. A module of the Kybernos Suite: **off by default**, switched on in Settings › Kybernos Suite (its card says « Active after restart »), then it has its own page, **Settings › Widget**.
 
 ## What the user sees
 

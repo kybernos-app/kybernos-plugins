@@ -1,6 +1,6 @@
 # `@local/kybernos-mobile`
 
-DSH on a phone, in two parts that do not depend on each other:
+DSH on a phone, in two parts that do not depend on each other (and a third that only exists inside the Kybernos app, below):
 
 1. **The layout** (every account, every plan): the DSH shell becomes usable below 700 px.
 2. **The phone link**: a QR code on the computer links a phone to it, through the Kybernos relay, end to end encrypted.
@@ -8,6 +8,19 @@ DSH on a phone, in two parts that do not depend on each other:
    in the Free plan too since 2026-10-15); the plugin only shows what the server answers.
 
 A failure in the second part never touches the first, and neither can stop DSH from starting.
+
+## Inside the Kybernos app
+
+The Kybernos phone app (`mobile/app`) runs the engine ON the phone and shows this same interface in a WebView, whose user agent ends with `KybernosHost/<version> (ios|android)`. There the layout above is exactly what makes the interface usable (the app's payload carries this bundle for that), and the phone link has no meaning: the phone is the device. So, and only there:
+
+- the host half mounts no link routes and starts no relay (it recognises the app by the platform of the embedded engine, `ios` or `android`);
+- the browser half registers a Settings page called « The Kybernos app » (in the same place of the list, under Devices & cloud) instead of « Phone and channels »: the model key (opens the app's secure key screen through `kybernos://settings`), the engine log (`kybernos://log`), and what a phone changes for automations (they run while the app is open or was just used; a suspended app runs what came due as soon as you come back; for a fixed time with the phone locked, use a cloud computer);
+- `window.__KB_APP__ = { version, platform, appVersion, openSettings, openLog }` is there for the other bundles, `<html>` gets the classes `kb-app` and `kb-app-ios` / `kb-app-android`, and the app is told once (`ReactNativeWebView.postMessage`, `{ kybernos: 'app-entry' }`) that the interface has its entry, so it drops the small gear button it shows until then;
+- the phone link window (`window.__KB_MOBILE__`) is not published, so the account menu and Kaby's strip do not offer it.
+- store rules (`mobile/STORES.md` items 1, 5, 6): under `html.kb-app` the controls that buy a plan, create an account or add a plugin are hidden by their `data-kb` hooks (`STORE_HIDDEN` in `client.js`; the test checks every hook still exists in the bundle that draws it). The desktop and the browser keep them.
+- a « Report » link under each finished answer (slot `conversation.chat.turnTail`, id `kybernos-mobile-report`): reason, optional comment, optional answer text (ticked by the person, editable). It saves the report in the core feedback box, then sends it with the signed-in account; signed out or offline, it offers an e-mail to the product's address. Nothing is added in a browser.
+
+In a browser none of this exists: the user agent is not the app's, and nothing above runs.
 
 ## What the user sees
 

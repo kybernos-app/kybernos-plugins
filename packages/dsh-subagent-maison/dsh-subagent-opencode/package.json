@@ -1,6 +1,7 @@
 {
   "name": "dsh-subagent-opencode",
   "version": "0.0.1",
+  "license": "Apache-2.0",
   "type": "module",
   "description": "DSH subagent provider for the OpenCode CLI (opencode run)",
   "main": "index.js",

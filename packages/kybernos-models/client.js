@@ -4380,7 +4380,7 @@ window.__ModuleLoader__.load({
       // ── A key pasted outside this page: the first-run wizard's seam (window.__KB_MODELS__) ───────────────
       // The wizard asks for a provider and a key, nothing else; the write is the one the Add provider flow makes (kbPvCreate,
       // or, when the route is already declared, only its key), so a key saved from the wizard looks exactly like one saved here.
-      // The four providers the wizard offers: the address and the key reference come from the shipped catalogue.
+      // The four providers the wizard offers first (the others come from `catalogue()`): the address and the key reference come from the shipped catalogue.
       const KB_QK_PROVIDERS = ['anthropic', 'openai', 'deepseek', 'google']
       const kbQkEntry = async (provider) => {
         let entry = catDe(provider)
@@ -4391,11 +4391,30 @@ window.__ModuleLoader__.load({
             if (b !== null && Array.isArray(b.providers) && b.providers.length > 0) { KB_CATALOGUE = kbCatalogueFusion(b.providers); entry = catDe(provider) }
           } catch (e) { entry = null }
         }
-        return entry !== null && typeof entry.url === 'string' && entry.url !== '' ? entry : null
+        return entry !== null && typeof entry.url === 'string' && entry.url !== '' && entry.url.indexOf('${') < 0 ? entry : null
+      }
+      /** The catalogue the wizard lists under « Other providers »: every provider of the shipped catalogue with its address, docs page,
+       *  local logo id (or null) and free-quota flag, plus the popular ids, in the order of this page. Read from the host once when
+       *  only the short built-in list is there. `usable` says whether a key can be saved here (an address the catalogue knows). */
+      const kbQuickCatalogue = async () => {
+        if (KB_CATALOGUE === PROV_CATALOG) {
+          try {
+            const r = await fetch('/kybernos-models/providers', { headers: { accept: 'application/json' } })
+            const b = r.status === 200 ? await r.json() : null
+            if (b !== null && Array.isArray(b.providers) && b.providers.length > 0) KB_CATALOGUE = kbCatalogueFusion(b.providers)
+          } catch (e) { /* the short built-in list stays */ }
+        }
+        const providers = KB_CATALOGUE.map((p) => {
+          const url = typeof p.url === 'string' ? p.url : ''
+          const logoId = p.logo === true ? p.id : (typeof p.logo === 'string' && p.logo !== '' ? kbLogoLocalId(p.logo, KB_CATALOGUE) : null)
+          return { id: p.id, nom: p.nom, doc: typeof p.doc === 'string' ? p.doc : '', logoId: logoId, libre: p.libre === true, usable: url !== '' && url.indexOf('${') < 0 }
+        })
+        return { ok: true, popular: POPULAIRES.slice(), providers: providers }
       }
       /** @returns {Promise<{ok:true,slug:string,existed:boolean}|{ok:false,reason:string}>} reason is a code, never a provider's words */
       const kbQuickKey = async (provider, key) => {
-        if (KB_QK_PROVIDERS.indexOf(provider) < 0) return { ok: false, reason: 'unknown_provider' }
+        // Any provider of the catalogue (the entry lookup below refuses the others and the ones whose address is the account's own).
+        if (typeof provider !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,60}$/.test(provider)) return { ok: false, reason: 'unknown_provider' }
         const value = typeof key === 'string' ? key.trim() : ''
         if (value === '') return { ok: false, reason: 'empty' }
         const api = kbMApi()
@@ -4906,7 +4925,7 @@ window.__ModuleLoader__.load({
           ctx.effect(() => { kbPoseControles(); return styles.insert(CSS) }, 'kybernos-models: styles')
           // The first-run wizard (kybernos-plugin) saves a pasted key through this; it checks the function is there.
           ctx.effect(() => {
-            const seam = { saveKey: kbQuickKey, saveCredential: kbQuickCredential, providers: KB_QK_PROVIDERS.slice() }
+            const seam = { saveKey: kbQuickKey, saveCredential: kbQuickCredential, providers: KB_QK_PROVIDERS.slice(), catalogue: kbQuickCatalogue }
             try { window.__KB_MODELS__ = seam } catch (e) { /* no window */ }
             return () => { try { if (window.__KB_MODELS__ === seam) delete window.__KB_MODELS__ } catch (e) { /* no window */ } }
           }, 'kybernos-models: wizard seam')
