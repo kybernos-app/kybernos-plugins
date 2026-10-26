@@ -14,6 +14,8 @@ import { fetchTasks, planReminders } from './src/reminders'
 import { isAppEntryMessage } from './src/webMessage'
 import { webTextZoom } from './src/textZoom'
 import { ConsentScreen } from './src/ConsentScreen'
+import { LoadingScreen } from './src/LoadingScreen'
+import { WelcomeScreen } from './src/WelcomeScreen'
 import { SettingsScreen } from './src/SettingsScreen'
 import { BootState, baseOf, createSupervisor } from './src/supervisor'
 
@@ -29,18 +31,27 @@ export default function App() {
   const [log, setLog] = useState('')
   const [selfTest, setSelfTest] = useState<string | null>(null)
   const [diagnostics, setDiagnostics] = useState('')
+  const [elapsed, setElapsed] = useState(0)
   const settings = useMemo(() => createSettings(deviceStorage), [])
   const [showSettings, setShowSettings] = useState(false)
-  const [firstRun, setFirstRun] = useState(false)
   const [keyStored, setKeyStored] = useState(false)
   const [webEntry, setWebEntry] = useState(false) // the interface says it has its own entry to the settings: the fallback gear goes
   // the engine starts only after the person has agreed to send what they write to their AI provider; a device-cloud self-test build has nobody to ask
-  const [consent, setConsent] = useState<'checking' | 'needed' | 'given'>(host && host.selfTestDelay !== null ? 'given' : 'checking')
+  const selfTestBuild = host !== null && host.selfTestDelay !== null
+  const [consent, setConsent] = useState<'checking' | 'needed' | 'given'>(selfTestBuild ? 'given' : 'checking')
   useEffect(() => {
     if (consent !== 'checking') return
     void settings.consented().then((ok) => setConsent(ok ? 'given' : 'needed'))
   }, [])
   const agree = () => { setConsent('given'); void settings.giveConsent() }
+  // the welcome page comes first on a first launch only (before the agreement it leads to); a person who agreed already, or a self-test build, never sees it
+  const [welcome, setWelcome] = useState<'checking' | 'needed' | 'seen'>(selfTestBuild ? 'seen' : 'checking')
+  const [welcomeShown, setWelcomeShown] = useState(false)
+  useEffect(() => {
+    if (welcome !== 'checking') return
+    void settings.welcomeSeen().then((seen) => setWelcome(seen ? 'seen' : 'needed'))
+  }, [])
+  const goOn = () => { setWelcome('seen'); setWelcomeShown(true); void settings.markWelcomeSeen() }
   const keyStoredRef = useRef(false)
   const started = useRef(false)
   const noteKey = (stored: boolean) => { keyStoredRef.current = stored; setKeyStored(stored) }
@@ -60,11 +71,11 @@ export default function App() {
     return () => { off(); sub.remove(); supervisor.stop() }
   }, [supervisor, consent === 'given'])
 
-  // while the engine is not ready the screen says what it is doing: a start that hangs must show where
+  // while the engine is not ready the screen says what it is doing (and, behind « Details », where a start that hangs is stuck)
   useEffect(() => {
     if (!supervisor || !host || state.phase === 'ready' || consent !== 'given') return
     const t0 = Date.now()
-    const tick = () => setDiagnostics(bootDiagnosticsText(supervisor.diagnostics(), host!.logTail(4096), Math.round((Date.now() - t0) / 1000)))
+    const tick = () => { const secs = Math.round((Date.now() - t0) / 1000); setElapsed(secs); setDiagnostics(bootDiagnosticsText(supervisor.diagnostics(), host!.logTail(4096), secs)) }
     tick()
     const id = setInterval(tick, 2000)
     return () => clearInterval(id)
@@ -75,12 +86,6 @@ export default function App() {
     const t = runSelfTest(state.url, host.selfTestDelay, { fetch: fetch as any, now: () => new Date(), show: setSelfTest, writeResult: (j) => host!.writeSelfTestResult(j), hasKey: host.selfTestHasKey || keyStoredRef.current, memory: () => host!.memory() })
     return t.stop
   }, [state.phase === 'ready' ? state.url : null])
-
-  // first launch without a key: offer the key screen once (never in a device-cloud self-test build, which must not wait for a person)
-  useEffect(() => {
-    if (state.phase !== 'ready' || !host || host.selfTestDelay !== null) return
-    void settings.promptDone().then((done) => { if (!done && !keyStoredRef.current) { setFirstRun(true); setShowSettings(true) } })
-  }, [state.phase === 'ready'])
 
   // Background section of the settings. Android: a foreground service keeps the engine's process alive (the person is told by a notification). iOS: nothing can run while the app is suspended,
   // so a reminder says when an automation is due.
@@ -141,13 +146,16 @@ export default function App() {
 
   const openLog = () => { setLog(redact(host?.logTail(20000) ?? '')); setShowLog(true) }
   const shareLog = () => { void Share.share({ title: 'Kybernos engine log', message: redact(host?.logTail(60000) ?? '') }) }
-  const closeSettings = () => { setShowSettings(false); if (firstRun) { setFirstRun(false); void settings.markPromptDone() } }
+  const closeSettings = () => setShowSettings(false)
 
   if (consent !== 'given') {
     return (
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <SafeAreaView style={styles.fill}>{consent === 'needed' && <ConsentScreen onAgree={agree} />}</SafeAreaView>
+        <SafeAreaView style={styles.fill}>
+          {consent === 'needed' && welcome === 'needed' && <WelcomeScreen onContinue={goOn} />}
+          {consent === 'needed' && welcome === 'seen' && <ConsentScreen onAgree={agree} dots={welcomeShown} />}
+        </SafeAreaView>
       </SafeAreaProvider>
     )
   }
@@ -180,19 +188,15 @@ export default function App() {
           {selfTest !== null && <Text testID="selftest" accessibilityLabel={selfTest} style={styles.selfTest}>{selfTest}</Text>}
         </SafeAreaView>
       ) : (
-        <View style={styles.boot}>
-          <Text testID="boot-status" style={styles.status}>{describe(state)}</Text>
-          {(state.phase === 'unpacking' || state.phase === 'copying') && <View style={styles.track}><View style={[styles.bar, { width: `${state.total > 0 ? Math.round((state.done / state.total) * 100) : 0}%` }]} /></View>}
-          {diagnostics !== '' && <Text testID="boot-log" accessibilityLabel={diagnostics} style={styles.diagnostics}>{diagnostics}</Text>}
-          <Pressable testID="show-log" onPress={openLog}><Text style={styles.link}>Show log</Text></Pressable>
-          <Pressable testID="boot-settings" onPress={() => setShowSettings(true)}><Text style={styles.link}>Settings</Text></Pressable>
-        </View>
+        <SafeAreaView style={styles.fill}>
+          <LoadingScreen state={state} elapsedS={elapsed} diagnostics={diagnostics} onShowLog={openLog} onSettings={() => setShowSettings(true)} onShareLog={shareLog} />
+        </SafeAreaView>
       )}
       {/* a Modal is its own window: it needs its own safe-area provider or its content slides under the status bar */}
       <Modal visible={showSettings} animationType="slide" onRequestClose={closeSettings}>
         <SafeAreaProvider>
           <SafeAreaView style={styles.fill}>
-            <SettingsScreen settings={settings} engineRunning={state.phase !== 'failed'} firstRun={firstRun} onClose={closeSettings} onShareLog={shareLog} onKeyChanged={noteKey} platform={Platform.OS === 'android' ? 'android' : 'ios'} onBackgroundChange={changeBackground} />
+            <SettingsScreen settings={settings} engineRunning={state.phase !== 'failed'} onClose={closeSettings} onShareLog={shareLog} onKeyChanged={noteKey} platform={Platform.OS === 'android' ? 'android' : 'ios'} onBackgroundChange={changeBackground} />
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
@@ -214,24 +218,8 @@ function Gear({ onPress }: { onPress: () => void }) {
   return <Pressable testID="open-settings" accessibilityLabel="Settings" style={[styles.gear, { bottom: insets.bottom + 16 }]} onPress={onPress}><Text style={styles.gearText}>⚙</Text></Pressable>
 }
 
-const describe = (s: BootState): string => {
-  switch (s.phase) {
-    case 'starting': return 'Starting Kybernos…'
-    case 'copying': return `First launch: copying the runtime out of the app (${s.done} of ${s.total} files)`
-    case 'unpacking': return `First launch: preparing the runtime (${s.done} of ${s.total} files)`
-    case 'booting': return 'Starting the engine…'
-    case 'ready': return 'Ready'
-    case 'failed': return s.message
-  }
-}
-
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#121217' },
-  boot: { flex: 1, backgroundColor: '#121217', alignItems: 'stretch', justifyContent: 'center', padding: 24, gap: 16 },
-  status: { color: '#fff', fontSize: 17, textAlign: 'center' },
-  track: { height: 4, backgroundColor: '#333', borderRadius: 2, overflow: 'hidden' },
-  bar: { height: 4, backgroundColor: '#fff' },
-  diagnostics: { color: '#8a8a95', fontSize: 10, fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }) },
   link: { color: '#8ab4ff', fontSize: 16, textAlign: 'center', padding: 8 },
   logPage: { flex: 1, backgroundColor: '#fff', padding: 12 },
   logText: { fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }), fontSize: 11 },

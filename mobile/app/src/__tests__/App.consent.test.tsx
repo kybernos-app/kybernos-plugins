@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import App from '../../App'
 import { host } from '../../modules/kybernos-host/src'
-import { CONSENT_SLOT, CONSENT_VERSION } from '../settings'
+import { CONSENT_SLOT, CONSENT_VERSION, WELCOME_SLOT } from '../settings'
 
 // the native half and the device storage are stood in for: this test is about WHEN the engine is started, which is App's job
 const mockStore = new Map<string, string>()
@@ -19,10 +19,17 @@ const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 20)
 describe('App: the engine starts only after the person agrees', () => {
   beforeEach(() => { mockStore.clear(); start.mockClear(); (host as any).selfTestDelay = null })
 
-  it('shows the consent screen first and starts nothing until « I agree », which is then remembered', async () => {
+  it('a first launch shows the welcome page, then the agreement, and starts nothing until « I agree », which is then remembered', async () => {
     const first = await render(<App />)
     await flush()
+    expect(screen.getByTestId('welcome-continue')).toBeTruthy()
+    expect(screen.queryByTestId('consent-agree')).toBeNull()
+    expect(start).not.toHaveBeenCalled()
+    await fireEvent.press(screen.getByTestId('welcome-continue'))
+    await flush()
+    expect(mockStore.get(WELCOME_SLOT)).toBe('1')
     expect(screen.getByTestId('consent-agree')).toBeTruthy()
+    expect(screen.getByTestId('page-dots')).toBeTruthy() // « page 2 of 2 »: the welcome page came just before
     expect(start).not.toHaveBeenCalled()
     await fireEvent.press(screen.getByTestId('consent-decline'))
     await flush()
@@ -34,17 +41,39 @@ describe('App: the engine starts only after the person agrees', () => {
     first.unmount()
   })
 
-  it('does not ask again once the agreement is stored', async () => {
+  it('does not show the welcome page again once it was seen: only the agreement, without the page dots', async () => {
+    mockStore.set(WELCOME_SLOT, '1')
+    const r = await render(<App />)
+    await flush()
+    expect(screen.queryByTestId('welcome-continue')).toBeNull()
+    expect(screen.getByTestId('consent-agree')).toBeTruthy()
+    expect(screen.queryByTestId('page-dots')).toBeNull()
+    expect(start).not.toHaveBeenCalled()
+    r.unmount()
+  })
+
+  it('never asks for a model key at the first launch: the engine starts and the loading page shows', async () => {
+    mockStore.set(CONSENT_SLOT, CONSENT_VERSION)
+    const r = await render(<App />)
+    await flush()
+    expect(screen.queryByText('Add your model key')).toBeNull()
+    expect(screen.queryByText(/Paste your Anthropic key/)).toBeNull()
+    expect(screen.getByTestId('loading-screen')).toBeTruthy()
+    r.unmount()
+  })
+
+  it('does not ask again once the agreement is stored, and a person who agreed never sees the welcome page', async () => {
     mockStore.set(CONSENT_SLOT, CONSENT_VERSION)
     const r = await render(<App />)
     await flush()
     expect(screen.queryByTestId('consent-agree')).toBeNull()
+    expect(screen.queryByTestId('welcome-continue')).toBeNull()
     expect(start).toHaveBeenCalledTimes(1)
     r.unmount()
   })
 
   it('asks again when the stored agreement is for an older text', async () => {
-    mockStore.set(CONSENT_SLOT, 'old')
+    mockStore.set(CONSENT_SLOT, 'old'); mockStore.set(WELCOME_SLOT, '1')
     const r = await render(<App />)
     await flush()
     expect(screen.getByTestId('consent-agree')).toBeTruthy(); expect(start).not.toHaveBeenCalled()
@@ -79,6 +108,7 @@ describe('App: the engine starts only after the person agrees', () => {
     const r = await render(<App />)
     await flush()
     expect(screen.queryByTestId('consent-agree')).toBeNull()
+    expect(screen.queryByTestId('welcome-continue')).toBeNull()
     expect(start).toHaveBeenCalledTimes(1)
     r.unmount()
   })

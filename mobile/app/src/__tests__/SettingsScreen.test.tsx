@@ -70,10 +70,11 @@ describe('SettingsScreen', () => {
     expect(await screen.findByText(/Nothing to paste/)).toBeTruthy()
   })
 
-  it('first run explains itself and offers to skip; later it is just Settings with Done', async () => {
-    const first = await setup({ firstRun: true })
-    expect(screen.getByText('Add your model key')).toBeTruthy()
-    await fireEvent.press(screen.getByText('Skip for now'))
+  it('is Settings with a Done button, never a page that pushes one provider\u2019s key at the first launch', async () => {
+    const first = await setup({})
+    expect(screen.getByText('Settings')).toBeTruthy()
+    expect(screen.queryByText('Add your model key')).toBeNull()
+    await fireEvent.press(screen.getByText('Done'))
     expect(first.props.onClose).toHaveBeenCalled()
   })
   it('shows the background switch of the phone it runs on, and only that one', async () => {

@@ -8,7 +8,6 @@ export interface SettingsScreenProps {
   /** The engine is already running: a changed key only reaches it at the next launch. */
   engineRunning: boolean
   /** First-run version of the screen: says why it is here and offers to skip. */
-  firstRun?: boolean
   onClose: () => void
   onShareLog: () => void
   /** Told when the stored key changes (true: a key is stored now). */
@@ -21,7 +20,7 @@ export interface SettingsScreenProps {
   onConsentWithdrawn?: () => void
 }
 
-export function SettingsScreen({ settings, engineRunning, firstRun = false, onClose, onShareLog, onKeyChanged, platform, onBackgroundChange, onConsentWithdrawn }: SettingsScreenProps) {
+export function SettingsScreen({ settings, engineRunning, onClose, onShareLog, onKeyChanged, platform, onBackgroundChange, onConsentWithdrawn }: SettingsScreenProps) {
   const [hint, setHint] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [message, setMessage] = useState<string | null>(null)
@@ -66,8 +65,7 @@ export function SettingsScreen({ settings, engineRunning, firstRun = false, onCl
   return (
     <View style={styles.page}>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{firstRun ? 'Add your model key' : 'Settings'}</Text>
-        {firstRun && <Text style={styles.note}>Kybernos answers with a model you pay for yourself. Paste your Anthropic key now, or skip and add it later from the gear button.</Text>}
+        <Text style={styles.title}>Settings</Text>
         <Text style={styles.label}>Anthropic key</Text>
         <Text testID="key-status" style={styles.status}>{hint ? 'Stored in the secure storage of this phone (' + hint + ')' : 'No key stored'}</Text>
         <TextInput
@@ -119,7 +117,7 @@ export function SettingsScreen({ settings, engineRunning, firstRun = false, onCl
         )}
         <Text style={styles.note}>The key is kept in the iOS Keychain or the Android Keystore, never in a file, and is given to the engine only when it starts.</Text>
         <Pressable testID="share-log" style={styles.link} onPress={onShareLog}><Text style={styles.linkText}>Share the engine log</Text></Pressable>
-        <Pressable testID="settings-close" style={styles.link} onPress={onClose}><Text style={styles.linkText}>{firstRun ? 'Skip for now' : 'Done'}</Text></Pressable>
+        <Pressable testID="settings-close" style={styles.link} onPress={onClose}><Text style={styles.linkText}>Done</Text></Pressable>
       </ScrollView>
     </View>
   )
