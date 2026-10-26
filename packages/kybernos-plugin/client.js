@@ -38051,7 +38051,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-ini{font-size:12px;font-weight:700;line-height:1}',
       '.kb-ob-psearch{margin-top:18px}',
       '.kb-ob-plist{display:flex;flex-direction:column;gap:6px;margin-top:12px}',
-      '.kb-ob-sec{margin:12px 0 2px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}',
+      '.kb-ob-sec{margin:12px 0 2px;font-size:13px;font-weight:600;color:var(--ink3)}',
       '.kb-ob-prow{display:flex;align-items:center;gap:12px;width:100%;padding:8px 12px 8px 8px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:15px;font-weight:600;text-align:left;cursor:pointer}',
       '.kb-ob-prow:hover{border-color:var(--ink3)}',
       '.kb-ob-prow .kb-ob-lgt{width:34px;height:34px;border-radius:10px}',
