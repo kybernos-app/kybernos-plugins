@@ -162,12 +162,12 @@
         "fr": "Tableurs"
       },
       "outcome": {
-        "en": "Create, clean and analyse Excel files: formulas, formatting and charts.",
-        "fr": "Créer, nettoyer et analyser des fichiers Excel : formules, mise en forme et graphiques."
+        "en": "Create, clean and analyse Excel files: formulas, formatting and totals.",
+        "fr": "Créer, nettoyer et analyser des fichiers Excel : formules, mise en forme et totaux."
       },
       "prompt": {
-        "en": "Clean this export, add a monthly total per customer and chart the trend.",
-        "fr": "Nettoie cet export, ajoute un total mensuel par client et trace la tendance."
+        "en": "Clean this export and add a monthly total per customer.",
+        "fr": "Nettoie cet export et ajoute un total mensuel par client."
       },
       "needs": null,
       "installs": 182833,
