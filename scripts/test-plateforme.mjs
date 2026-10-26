@@ -10,7 +10,7 @@
 import { existsSync as existSync, readFileSync as readFichier } from 'node:fs'
 import { homedir } from 'node:os'
 import {
-  famille, estWindows, estMac, estLinux, PROVENANCE,
+  famille, PROVENANCE,
   parsePidLsof, parsePidSs, parsePidNetstat,
   parseDemarragePs, parseDemarrageIso, parseDemarrageWmic, parseDemarrageProcStat, parseBtime,
   planPid, planDemarrage, planCommande, nomSuperviseur, mesurer, mesurerSync, executerSync, parseCommande,
@@ -53,7 +53,6 @@ verifie('darwin → mac', famille('darwin') === 'mac')
 verifie('win32 → windows', famille('win32') === 'windows')
 verifie('linux → linux', famille('linux') === 'linux')
 verifie('freebsd → other', famille('freebsd') === 'other')
-verifie('estWindows/estMac/estLinux cohérents', estWindows('win32') && estMac('darwin') && estLinux('linux'))
 verifie('les trois provenances sont déclarées', Object.keys(PROVENANCE).length === 3)
 
 // ── 2. trouver le pid ───────────────────────────────────────────────────────

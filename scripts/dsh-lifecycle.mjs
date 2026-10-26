@@ -18,13 +18,15 @@
 import { execFile, spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync, rmSync, statSync, symlinkSync, realpathSync, renameSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { basename, join, dirname, resolve, relative, sep } from 'node:path'
+import { basename, delimiter, join, dirname, resolve, relative, sep } from 'node:path'
+import { createInterface } from 'node:readline/promises'
 import { fileURLToPath } from 'node:url'
 import { auditerSurfaces } from '../packages/kybernos-maintenance/surfaces.mjs'
 import { FICHIER_ETAT, normaliser as normaliserEtatBoot, entrerSafe, sortirSafe, recommandation as recommandationBoot } from '../packages/kybernos-hub/boot-guard.mjs'
 // One installer at a time: the lock file the Suite panel reads to know that an installer runs, even after DSH was killed (see install-lock.mjs).
 import { fichierVerrou, libererVerrou, lireVerrou, prendreVerrou } from '../packages/kybernos-hub/install-lock.mjs'
-import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage } from './plateforme.mjs'
+import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage, executer as executerCommande } from './plateforme.mjs'
+import { FAMILLES_INSTALLABLES, contexteService, decisionDemarrageAuto, etat as etatService, installer as installerService, retirer as retirerService, trouverDsh, commandeRedemarrage } from './service-demarrage.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
@@ -463,12 +465,15 @@ const opts = {
   source: args.indexOf('--source') >= 0 ? args[args.indexOf('--source') + 1] : null,
   // `--restart` (English, the spelling of the hints and the docs); `--relancer`, its former French name, is still accepted.
   relancer: args.includes('--restart') || args.includes('--relancer'),
+  // Start at login (see service-demarrage.mjs): the person's answer can be given on the command line; without one, only an interactive install asks.
+  autostart: args.includes('--autostart'),
+  refuseAutostart: args.includes('--no-autostart'),
   // The target version is the first FREE argument. The values of the options
   // are not: without this skip, `--source dist/x.tar.gz` made
   // npm look for a package named after a file path.
   versionCible: (() => {
     const aParametre = new Set(['--source', '--port', '--photo', '--url', '--ref', '--migrer-depuis'])
-    const ordres = new Set(['doctor', 'install', 'upgrade', 'rollback', 'uninstall', 'verify', 'bootstrap', 'satellites', 'safe-mode'])
+    const ordres = new Set(['doctor', 'install', 'upgrade', 'rollback', 'uninstall', 'verify', 'bootstrap', 'satellites', 'safe-mode', 'service'])
     for (let i = 0; i < args.length; i++) {
       if (aParametre.has(args[i])) { i += 1; continue }
       if (args[i].startsWith('-')) continue
@@ -589,6 +594,21 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function relancerDsh (port) {
   const trouve = await pidSurPort(port)
+  // A DSH that runs under launchd/systemd is restarted by it: killing it would make the supervisor start a second one on the same port.
+  if (FAMILLES_INSTALLABLES.includes(famille())) {
+    const ctx = contexteDuService()
+    const cmd = (await etatService({ fam: famille(), ctx, io: ioService })).charge ? commandeRedemarrage(famille(), ctx) : null
+    if (cmd !== null) {
+      console.log('  ⏹ restarting DSH through ' + nomSuperviseur(famille()) + '…')
+      await executerCommande(cmd)
+      for (let i = 0; i < 60; i++) {
+        await attendre(500)
+        const p = await pidSurPort(port)
+        if (p.valeur !== null && String(p.valeur) !== String(trouve.valeur)) return { ok: true, pid: p.valeur }
+      }
+      return { ok: false, raison: 'no new server answered on port ' + port + ' within 30 s' }
+    }
+  }
   const plan = planRelance(famille(), { port, pid: trouve.valeur })
   if (plan.arreter !== null) {
     console.log('  ⏹ stopping DSH (pid ' + plan.arreter.pid + ')…')
@@ -1023,6 +1043,96 @@ if (ordre === 'safe-mode') {
   quitter(64, 'Usage: safe-mode [status | on | off] [--dry]')
 }
 
+// ── Start at login: the unit the operating system supervises (the logic is in service-demarrage.mjs) ──
+const serveurRepond = async (port, ms) => {
+  const fin = Date.now() + ms
+  while (Date.now() < fin) {
+    try { if ((await fetch('http://127.0.0.1:' + port + '/kybernos-hub/state', { signal: AbortSignal.timeout(2000) })).ok) return true } catch (e) { /* not yet */ }
+    await attendre(500)
+  }
+  return false
+}
+const ioService = {
+  existe: existsSync,
+  lire: (c) => readFileSync(c, 'utf8'),
+  ecrire: (c, contenu) => { mkdirSync(dirname(c), { recursive: true }); writeFileSync(c, contenu) },
+  supprimer: (c) => rmSync(c, { force: true }),
+  // The unit that was there (often a hand-made one) is kept, never overwritten silently.
+  sauvegarder: (c, contenu) => { const dest = join(DSH_HOME, 'kybernos', 'service-sauvegardes', basename(c) + '.avant-' + horodatage()); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, contenu); return dest },
+  executer: (cmd) => executerCommande(cmd),
+  serveurRepond,
+}
+/** What the unit is built from. `dsh` is '' when `dsh` is not on the PATH (enough to read a state, not to install). */
+const contexteDuService = () => contexteService({
+  home: homedir(), dshHome: DSH_HOME, port: portGui, node: process.execPath, path: process.env.PATH ?? '', uid: process.getuid?.() ?? '', sep: delimiter,
+  dsh: trouverDsh({ dirs: String(process.env.PATH ?? '').split(delimiter), home: homedir(), existe: existsSync }) ?? '',
+})
+/** A unit carries no DSH_HOME: a custom one would silently start another profile. */
+const dshHomePersonnalise = () => process.env.DSH_HOME !== undefined && process.env.DSH_HOME !== '' && resolve(process.env.DSH_HOME) !== join(homedir(), '.dsh')
+const demanderOuiNon = async (texte) => {
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  try { return ['', 'y', 'yes', 'o', 'oui'].includes((await rl.question(texte)).trim().toLowerCase()) } finally { rl.close() }
+}
+
+/** Installs (or refreshes) the unit when the person said yes, says what it did. Never fails the installation it is part of. */
+async function proposerDemarrageAuto () {
+  const fam = famille()
+  if (!FAMILLES_INSTALLABLES.includes(fam)) return { actif: false }
+  const ctx = contexteDuService()
+  const e = await etatService({ fam, ctx, io: ioService })
+  const decision = decisionDemarrageAuto({
+    autostart: opts.autostart, refuse: opts.refuseAutostart, present: e.present,
+    interactif: Boolean(process.stdin.isTTY && process.stdout.isTTY), depotDeDev: existsSync(join(REPO, '.git')),
+  })
+  if (decision === 'non') return { actif: e.charge }
+  if (decision === 'ignorer') {
+    if (!e.present) console.log('\n  Kybernos does not start by itself after a restart of this computer. To turn that on: node scripts/dsh-lifecycle.mjs service install')
+    return { actif: e.charge }
+  }
+  if (ctx.dsh === '') { console.log('\n  ⚠ start at login: `dsh` is not on the PATH, nothing was set up.'); return { actif: e.charge } }
+  if (dshHomePersonnalise()) { console.log('\n  ⚠ start at login is not set up: DSH_HOME is customised and the unit would not carry it.'); return { actif: e.charge } }
+  if (decision === 'demander') {
+    const oui = await demanderOuiNon('\n  Start Kybernos by itself when you log in, and bring it back if it stops? [Y/n] ')
+    if (!oui) { console.log('  OK, not set up. You can turn it on later: node scripts/dsh-lifecycle.mjs service install'); return { actif: false } }
+  }
+  const pid = (await pidSurPort(portGui)).valeur
+  const r = await installerService({ fam, ctx, io: ioService, portOccupe: pid !== null && e.charge !== true })
+  if (!r.ok) { console.log('\n  ⚠ start at login was not set up: ' + (r.message ?? r.raison) + ' (the installation itself is fine).'); return { actif: false } }
+  console.log('\n  ✓ Kybernos starts by itself at login and comes back if it stops (' + nomSuperviseur(fam) + ').')
+  for (const l of r.etapes) console.log('      · ' + l)
+  if (r.sauvegarde) console.log('      · the unit that was there is kept in ' + r.sauvegarde)
+  return { actif: true, demarre: r.demarre === true }
+}
+
+// ── SERVICE: start at login, by hand (what the installer offers, as a command) ──
+if (ordre === 'service') {
+  const sous = args[1] ?? 'status'
+  const fam = famille()
+  const ctx = contexteDuService()
+  if (!FAMILLES_INSTALLABLES.includes(fam)) quitter(1, '🔴 starting at login is written for macOS and Linux only (this system: ' + fam + '): the Windows task was never run, so nothing is written.')
+  if (sous === 'status') {
+    const e = await etatService({ fam, ctx, io: ioService })
+    quitter(0, '  Start at login (' + nomSuperviseur(fam) + '): ' + (e.charge ? '✓ on, DSH runs under it' : (e.present ? (e.desactive ? '✗ the unit is there but launchd has it switched off, so it never starts (`service install` switches it on)' : '○ the unit is there but not running') : '○ off')) + '\n  Unit: ' + e.chemin + (e.present && !e.identique ? '\n  ⚠ the file differs from the one this version writes (hand-made, or an older version): `service install` replaces it and keeps a copy.' : ''))
+  }
+  if (sous === 'install') {
+    if (ctx.dsh === '') quitter(1, '🔴 `dsh` is not on the PATH: run ./kybernos-install first.')
+    if (dshHomePersonnalise()) quitter(1, '🔴 DSH_HOME is customised and the unit would not carry it: nothing was written.')
+    const pid = (await pidSurPort(portGui)).valeur
+    const e = await etatService({ fam, ctx, io: ioService })
+    const r = await installerService({ fam, ctx, io: ioService, portOccupe: pid !== null && e.charge !== true, dry: opts.dry })
+    for (const l of r.etapes ?? []) console.log('  · ' + l)
+    if (!r.ok) quitter(1, '🔴 ' + (r.message ?? r.raison))
+    if (r.sauvegarde) console.log('  · the unit that was there is kept in ' + r.sauvegarde)
+    quitter(0, opts.dry ? '\n  (dry-run: nothing was changed)' : '\n🟢 Kybernos starts by itself at login' + (r.demarre ? ' and is running now.' : '.'))
+  }
+  if (sous === 'uninstall') {
+    const r = await retirerService({ fam, ctx, io: ioService })
+    for (const l of r.etapes) console.log('  · ' + l)
+    quitter(0, '\n🟢 start at login removed.' + (r.arrete ? ' The DSH it ran was stopped: start it again with `dsh web --port ' + portGui + '`.' : ''))
+  }
+  quitter(64, 'Usage: dsh-lifecycle.mjs service status|install|uninstall [--dry] [--port N]')
+}
+
 if (ordre === 'doctor') {
   const etat = await etatDoctor({ fs: fsReel, exec: execReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES_ACTIFS, patches: PATCHES, compatChemin: COMPAT_CHEMIN })
   const verresPatchs = []
@@ -1073,6 +1183,7 @@ if (ordre === 'doctor') {
   // compares `doctor --json` from one machine to another, so it needs the pid,
   // the dates AND the source that measured.
   etat.plateforme = { os: process.platform, famille: famille(), supervision: nomSuperviseur(famille()) }
+  etat.demarrageAuto = FAMILLES_INSTALLABLES.includes(famille()) ? await etatService({ fam: famille(), ctx: contexteDuService(), io: ioService }) : { gere: false, fam: famille() }
   etat.serveur = {
     pid: fraicheur.pid ?? null,
     demarrageServeur: fraicheur.demarrageServeur ?? null,
@@ -1094,6 +1205,7 @@ if (ordre === 'doctor') {
   if (fraicheur.sourceDemarrage !== null && fraicheur.sourceDemarrage !== undefined) par.push(fraicheur.sourceDemarrage)
   console.log(`  Platform: ${process.platform} (${fam}) — supervision ${nomSuperviseur(fam)}` +
     (par.length === 0 ? ' — server measured by no source' : ' — server measured via ' + par.join(' + ')))
+  console.log(`  Start at login: ${etat.demarrageAuto.gere ? (etat.demarrageAuto.charge ? '✓ on' : (etat.demarrageAuto.present ? (etat.demarrageAuto.desactive ? '✗ unit present but switched off in launchd (service install)' : '○ unit present, not running') : '○ off (node scripts/dsh-lifecycle.mjs service install)')) : '— not available on ' + fam}`)
   console.log(`  Server: ${fraicheur.verdict === 'frais' ? '✓ started after the installation' : (fraicheur.perime === true ? '✗ started before the installation' : '○ ' + fraicheur.raison)}`)
   if (etat.problemes.length > 0) { console.log('  Problems:'); for (const p of etat.problemes) console.log('    · ' + p) }
   console.log(`  Patches: ${verresPatchs.filter((p) => p.pose).length}/${verresPatchs.length} applied`)
@@ -1195,6 +1307,7 @@ async function faireInstall () {
     quitter(1, '\n🔴 the installation failed — your machine is back to how it was. Nothing changed.')
   }
   await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'reussi', raison: 'installation', photo: photo.dossier })
+  const auto = await proposerDemarrageAuto()
   if (opts.relancer) {
     if (!opts.force) quitter(1, '\n  --restart shuts down the DSH that is running. Add --force if that is what you want.')
     const suite = await relancerDsh(portGui)
@@ -1205,6 +1318,12 @@ async function faireInstall () {
     }
     quitter(0, '\n🟢 installation succeeded, DSH restarted (pid ' + suite.pid + '). Reload the DSH page to see Kybernos.\n' +
       '   (page closed? `dsh web --port ' + portGui + '` opens your browser already signed in.)')
+  }
+  if (auto.demarre) {
+    quitter(0, '\n🟢 installation succeeded, Kybernos is running with it.\n  Open it: node ' + join(REPO, 'scripts', 'kybernos-open.mjs'))
+  }
+  if (auto.actif) {
+    quitter(0, '\n🟢 installation succeeded.\n  DSH runs under ' + nomSuperviseur(famille()) + ' and still serves the old version: restart it with `./kybernos-install --restart --force`, then open it: node ' + join(REPO, 'scripts', 'kybernos-open.mjs'))
   }
   quitter(0, '\n🟢 installation succeeded.\n' + instructionsRedemarrage(famille(), portGui))
 }
@@ -1285,6 +1404,7 @@ if (ordre === 'upgrade') {
     const boot = await verifierBoot(opts.url, { avant: bootAvant })
     if (!boot.ok) { direEchecBoot(boot); throw new Error('boot failed') }
     await journalOp({ date, quoi: 'moteur', de: depuis, vers: cible, resultat: 'reussi', photo: photo.dossier })
+    await proposerDemarrageAuto()
     quitter(0, `\n🟢 update succeeded: engine ${depuis} → ${cible}, plugin ${versions.plugin}. Reload the DSH page.`)
   } catch (e) {
     console.log('\n  ❌ ' + (e.message || e) + ' — back to the photo')
@@ -1337,4 +1457,4 @@ if (ordre === 'verify') {
   quitter(boot.ok ? 0 : 1, boot.ok ? '\n🟢 the boot is healthy.' : '\n🔴 the boot fails.\n' + boot.sortie.slice(0, 600))
 }
 
-quitter(64, 'Usage: dsh-lifecycle.mjs doctor|install|upgrade|rollback|uninstall|verify [--force] [--dry] [--restart] [--json] [--url <url>] [version]')
+quitter(64, 'Usage: dsh-lifecycle.mjs doctor|install|upgrade|rollback|uninstall|verify|service [--force] [--dry] [--restart] [--autostart|--no-autostart] [--json] [--url <url>] [version]')
