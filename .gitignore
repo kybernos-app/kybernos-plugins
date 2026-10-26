@@ -21,3 +21,7 @@ __pycache__/
 *.env
 audits/
 .chasse-bugs-ui/
+
+# Kybernos Pulse (Mac menu-bar app): Swift build output
+packages/kybernos-pulse/helper/.build/
+packages/kybernos-pulse/helper/build/

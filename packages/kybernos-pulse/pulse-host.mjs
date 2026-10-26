@@ -123,13 +123,24 @@ const readBody = async (req, max = 8192) => {
 }
 const isJson = (req) => String((req.headers && req.headers['content-type']) || '').toLowerCase().startsWith('application/json')
 
-/** `guard(req)` answers null when the write may go on, or `{ status, error }` (session-guard.mjs's writeGuard). */
-export function mountRoutes (webServer, pulse, guard) {
+/** The Mac menu-bar app (helper/) says who it is on each read: `X-Kybernos-Helper: v1; banners=ok|off`. A page cannot send a custom header to
+ *  this route without a preflight, which the route never answers, so only a local program can. It is heard for HELPER_FRESH_MS after its last read. */
+export const HELPER_HEADER_RE = /^v1; banners=(ok|off)$/
+export const HELPER_FRESH_MS = 45000
+
+/** `guard(req)` answers null when the write may go on, or `{ status, error }` (session-guard.mjs's writeGuard). `opts.now` is the clock. */
+export function mountRoutes (webServer, pulse, guard, opts = {}) {
+  const clock = typeof opts.now === 'function' ? opts.now : Date.now
+  let helper = { at: 0, banners: false }
   webServer.register({ kind: 'exact', path: '/kybernos-pulse/state', handler: (req, res) => {
     if (hostOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
     if (req.method !== 'GET') return send(res, 405, { ok: false, error: 'method-not-allowed' })
     if (originOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
-    return send(res, 200, { ok: true, ...pulse.view() })
+    const said = HELPER_HEADER_RE.exec(str(req.headers && req.headers['x-kybernos-helper']) || '')
+    const now = clock()
+    if (said !== null) helper = { at: now, banners: said[1] === 'ok' }
+    const seen = helper.at > 0 && now - helper.at < HELPER_FRESH_MS
+    return send(res, 200, { ok: true, ...pulse.view(), helper: { seen, banners: seen && helper.banners } })
   } })
   const post = (path, run) => webServer.register({ kind: 'exact', path, handler: async (req, res) => {
     if (hostOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
