@@ -26,7 +26,7 @@ import { FICHIER_ETAT, normaliser as normaliserEtatBoot, entrerSafe, sortirSafe,
 // One installer at a time: the lock file the Suite panel reads to know that an installer runs, even after DSH was killed (see install-lock.mjs).
 import { fichierVerrou, libererVerrou, lireVerrou, prendreVerrou } from '../packages/kybernos-hub/install-lock.mjs'
 import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage, executer as executerCommande } from './plateforme.mjs'
-import { FAMILLES_INSTALLABLES, contexteService, decisionDemarrageAuto, etat as etatService, installer as installerService, retirer as retirerService, trouverDsh, commandeRedemarrage } from './service-demarrage.mjs'
+import { FAMILLES_INSTALLABLES, contexteService, decisionDemarrageAuto, etat as etatService, installer as installerService, retirer as retirerService, trouverDsh, trouverNode, commandeRedemarrage } from './service-demarrage.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
@@ -1058,13 +1058,13 @@ const ioService = {
   ecrire: (c, contenu) => { mkdirSync(dirname(c), { recursive: true }); writeFileSync(c, contenu) },
   supprimer: (c) => rmSync(c, { force: true }),
   // The unit that was there (often a hand-made one) is kept, never overwritten silently.
-  sauvegarder: (c, contenu) => { const dest = join(DSH_HOME, 'kybernos', 'service-sauvegardes', basename(c) + '.avant-' + horodatage()); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, contenu); return dest },
+  sauvegarder: (c, contenu) => { const dest = join(DSH_HOME, 'kybernos', 'service-sauvegardes', basename(c) + '.avant-' + horodatage().replace(/\D/g, '')); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, contenu); return dest },
   executer: (cmd) => executerCommande(cmd),
   serveurRepond,
 }
 /** What the unit is built from. `dsh` is '' when `dsh` is not on the PATH (enough to read a state, not to install). */
 const contexteDuService = () => contexteService({
-  home: homedir(), dshHome: DSH_HOME, port: portGui, node: process.execPath, path: process.env.PATH ?? '', uid: process.getuid?.() ?? '', sep: delimiter,
+  home: homedir(), dshHome: DSH_HOME, port: portGui, node: trouverNode({ dirs: String(process.env.PATH ?? '').split(delimiter), home: homedir(), existe: existsSync, execPath: process.execPath }), path: process.env.PATH ?? '', uid: process.getuid?.() ?? '', sep: delimiter,
   dsh: trouverDsh({ dirs: String(process.env.PATH ?? '').split(delimiter), home: homedir(), existe: existsSync }) ?? '',
 })
 /** A unit carries no DSH_HOME: a custom one would silently start another profile. */
