@@ -1,0 +1,46 @@
+{
+  "contract": 1,
+  "id": "kybernos/pulse",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Widget",
+    "fr": "Widget"
+  },
+  "description": {
+    "en": "Tells you when an automation finished, failed or waits for you: a floating window, a banner and a badge, each with a link back to Kybernos.",
+    "fr": "Te dit quand une automation est terminée, a échoué ou attend ton accord : une fenêtre flottante, une bannière et un badge, chacun avec un lien pour revenir dans Kybernos."
+  },
+  "icon": "bell",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-pulse",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "host.routes:/kybernos-pulse:write",
+    "fs.read:dsh-home",
+    "fs.write:dsh-home",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-pulse"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}
