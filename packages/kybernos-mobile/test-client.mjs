@@ -186,7 +186,7 @@ console.log('when the shortcut was rebound')
 
 console.log('the phone link, mounted apart from the layout')
 {
-  const fakeReact = { createElement: (...a) => ({ a }) }
+  const fakeReact = { createElement: (...a) => ({ a }), useState: (v) => [v, () => {}], useRef: () => ({ current: null }) }
   const run = ({ withSlots = true, withRequire = true, injectThrows = false } = {}) => {
     const dom = makeDom({ collapsed: true })
     const def = load(dom, { lang: 'en' })
@@ -223,7 +223,7 @@ console.log('the phone link, mounted apart from the layout')
 
 console.log('inside the Kybernos app')
 {
-  const fakeReact = { createElement: (...a) => ({ a }) }
+  const fakeReact = { createElement: (...a) => ({ a }), useState: (v) => [v, () => {}], useRef: () => ({ current: null }) }
   const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 27_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KybernosHost/0.1.0 (ios)'
   const runApp = ({ ua = IOS_UA, rn = true, lang = 'en' } = {}) => {
     const dom = makeDom({ collapsed: true })
@@ -324,10 +324,10 @@ console.log('inside the Kybernos app')
   check('every hidden hook is still drawn by the bundle that owns it (a rename would silently show the control again)', HIDDEN.every((k) => (k.startsWith('menu-') && !k.startsWith('menu-plan-') ? bundles.includes("entree('" + k.slice(5) + "'") : bundles.includes("'" + k + "'"))), HIDDEN.filter((k) => !(k.startsWith('menu-') && !k.startsWith('menu-plan-') ? bundles.includes("entree('" + k.slice(5) + "'") : bundles.includes("'" + k + "'"))))
   const page = expand(app.components[0]())
   const acts = walk(page).filter((n) => n.props['data-act'] !== undefined)
-  check('the page has two buttons: the model key and the engine log', acts.map((n) => n.props['data-act']).join() === 'open-key,open-log', acts.map((n) => n.props['data-act']))
+  check('the page has three buttons: the model key, the engine log and the open-source components', acts.map((n) => n.props['data-act']).join() === 'open-key,open-log,open-notices', acts.map((n) => n.props['data-act']))
   acts.forEach((n) => n.props.onClick())
   check('they open the app\'s own screens through its links', app.assigned.join() === 'kybernos://settings,kybernos://log', app.assigned)
-  check('every card has a stable hook for live checks', ['mobile-app-page', 'mobile-app-key', 'mobile-app-log', 'mobile-app-auto'].every((k) => walk(page).some((n) => n.props['data-kb'] === k)))
+  check('every card has a stable hook for live checks', ['mobile-app-page', 'mobile-app-key', 'mobile-app-log', 'mobile-app-notices', 'mobile-app-auto'].every((k) => walk(page).some((n) => n.props['data-kb'] === k)))
   const said = textOf(page)
   check('it says where the key lives, that the engine runs on the phone, and what happens to automations', /secure storage/.test(said) && /runs on this phone/.test(said) && /cloud computer/.test(said))
   check('it does not talk about linking a phone to a computer', !/QR|link a phone|relay/i.test(said))

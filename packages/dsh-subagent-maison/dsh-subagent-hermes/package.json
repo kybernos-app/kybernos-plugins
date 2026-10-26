@@ -1,6 +1,7 @@
 {
   "name": "dsh-subagent-hermes",
   "version": "0.0.1",
+  "license": "Apache-2.0",
   "type": "module",
   "description": "DSH subagent provider for the Hermes CLI (hermes -z)",
   "main": "index.js",

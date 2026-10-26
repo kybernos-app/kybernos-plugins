@@ -2,16 +2,18 @@
 // Builds the runtime payload of the mobile apps: the DSH engine, the iOS profile with its plugins, the start-up shims and the bootstrap, pruned of everything a phone cannot use,
 // then packed into one kbpack file. Nothing here is committed: the payload is a build product.
 //
-//   node mobile/payload/build-payload.mjs --engine <moteur dir> --profile <installed profile dir> --packages <repo packages dir> --out <dir> [--extra-modules <node_modules-like dir>]
+//   node mobile/payload/build-payload.mjs --engine <moteur dir> --profile <installed profile dir> --packages <repo packages dir> --out <dir> [--extra-modules <node_modules-like dir>] [--node-license <file>]
 //
 // --engine    the engine tree of one DSH release (holds node_modules/@deepseek-ai/dsh)
 // --profile   a profile directory whose node_modules is installed (the source of the third-party packages and of the shipped @deepseek-ai bundles)
 // --packages  this repository's packages/ folder: every @local/* package is taken from there, never from the profile's links
 // --extra-modules  extra packages copied into the profile's node_modules (for example just-bash and its dependencies)
+// --node-license  the licence file of the embedded Node.js (with the licences of the components it bundles), appended to THIRD-PARTY-NOTICES.txt; without it the notice carries a link
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { pack } from './kbpack.mjs'
+import { audit, render, scanTrees } from './notices.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -27,6 +29,10 @@ const DROP_PACKAGE = [
   /^@local\//, /^@openai\/codex/, /^@anthropic-ai\/claude-agent-sdk/, /^@deepseek-ai\/dsh-subagent-(claude-code|codex)$/, /^@trycua\//, /^@vscode\/ripgrep/,
   /^@deepseek-ai\/libreoffice-kit/, /^sherpa-onnx/, /^@img\//, /^@koromix\/koffi-/, /^@tencent-qqmail\/agently-cli/,
   /^playwright(-core)?$/, /^chrome-devtools-mcp$/, /^puppeteer/,
+  // The chat-channel plugin (QQ, WeCom, DingTalk, e-mail): not one of the phone's bundles, and its QQ connector carries no licence at all, which an app we publish cannot redistribute.
+  /^@xmanrui\/dsh-im$/, /^@tencent-connect\//,
+  // Our own sub-agent providers for command-line programs (Gemini, Hermes, OpenCode, Qwen): the phone cannot launch programs, and none of them is one of the phone's bundles.
+  /^dsh-subagent-(gemini|hermes|opencode|qwen)$/,
   /-(darwin|linux|win32|freebsd|android|openbsd)-(x64|arm64|arm|ia32|riscv64|ppc64|s390x)(-[a-z]+)?$/,
 ]
 // Files that are never needed at run time. Markdown stays unless it is a readme or a changelog: skills and prompt templates are markdown. A folder called `doc` can hold code
@@ -119,6 +125,26 @@ cpSync(join(here, 'profile-ios', 'cordis.patch.yml'), join(stage, 'profile', 'co
 
 // 4. shims and bootstrap
 cpSync(join(here, 'shims'), join(stage, 'shims'), { recursive: true })
+
+// 4b. licences: every package that ships must have a licence that allows it (the build stops otherwise), and the app carries the list with the licence texts
+const shipped = scanTrees([join(stage, 'engine', 'node_modules'), join(stage, 'profile', 'node_modules')])
+const checked = audit(shipped)
+if (checked.problems.length > 0) {
+  console.error('licences: ' + checked.problems.length + ' package(s) cannot be redistributed as they are:')
+  for (const p of checked.problems) console.error('  ' + p.name + '@' + p.version + ' [' + p.license + '] ' + p.reason)
+  console.error('drop them in DROP_PACKAGE, or record the licence you checked by hand in OVERRIDES (mobile/payload/notices.mjs)')
+  process.exit(3)
+}
+const nodeText = args['node-license'] ? readFileSync(resolve(args['node-license']), 'utf8') : 'The embedded Node.js (a nodejs-mobile build) is under the MIT licence together with the components it bundles (V8, OpenSSL, ICU, zlib, ...). Their licence texts: https://github.com/nodejs/node/blob/main/LICENSE'
+const noticesText = render({
+  entries: checked.ok,
+  extra: [
+    { title: 'Kybernos', body: 'The Kybernos plugins and this app are released under the Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0). The names Kybernos and the K logo are trademarks and are not covered by that licence (TRADEMARK.md in the source repository).' },
+    { title: 'Node.js', body: nodeText },
+  ],
+})
+writeFileSync(join(stage, 'THIRD-PARTY-NOTICES.txt'), noticesText)
+console.log('licences ', checked.ok.length, 'packages checked,', mb(Buffer.byteLength(noticesText)), 'of notices')
 
 // 5. pack
 const engineVersion = JSON.parse(readFileSync(join(engineNm, '@deepseek-ai', 'dsh', 'package.json'), 'utf8')).version

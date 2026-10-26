@@ -23,6 +23,7 @@ const status = (o) => { try { writeFileSync(join(env.KB_ROOT, 'status.json'), JS
 process.env.HOME = env.KB_HOME
 const dshHome = join(env.KB_HOME, '.dsh')
 process.env.DSH_HOME = dshHome
+process.env.KB_RUNTIME = dest // the unpacked runtime: the engine's plugins read THIRD-PARTY-NOTICES.txt from it
 const profile = join(dshHome, 'profiles', 'web')
 const profileModules = join(profile, 'node_modules')
 const marker = join(profile, '.payload')

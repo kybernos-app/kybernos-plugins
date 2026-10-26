@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 // The remote half is not started here (it has its own tests): this file is about the layout and the routes' fences.
 process.env.KYBERNOS_MOBILE_REMOTE = '0'
-const { CSS_FILE, ROUTE, SHEET_ID, REMOTE_PREFIX, REMOTE_ROUTES, apply, onPhoneHost, resetCache, serveRemote, serveSheet, sheetCss, sheetRows } = await import('./index.js')
+const { CSS_FILE, NOTICES_ROUTE, ROUTE, SHEET_ID, REMOTE_PREFIX, REMOTE_ROUTES, apply, onPhoneHost, resetCache, serveRemote, serveSheet, sheetCss, sheetRows } = await import('./index.js')
 const REMOTE_COUNT = Object.keys(REMOTE_ROUTES).length
 
 let failed = 0
@@ -164,9 +164,9 @@ console.log('inside the phone app (the embedded engine reports ios or android)')
   console.error = realError
   if (saved !== undefined) process.env.KYBERNOS_MOBILE_REMOTE = saved; else process.env.KYBERNOS_MOBILE_REMOTE = '0'
   check('on a computer the link is mounted as before: its routes and its relay link', desktop.routes.length === 1 + REMOTE_COUNT && desktop.effects.includes('kybernos-mobile: remote link'), desktop.effects)
-  check('on the phone the layout is untouched: the stylesheet row and its route', phone.threw === null && phone.handlers.has('webserver/index-inject') && phone.routes.length === 1 && phone.routes[0].path === ROUTE, phone.routes.map((r) => r.path))
+  check('on the phone the layout is untouched: the stylesheet row, its route and the notices route', phone.threw === null && phone.handlers.has('webserver/index-inject') && phone.routes.length === 2 && phone.routes[0].path === ROUTE && phone.routes[1].path === NOTICES_ROUTE, phone.routes.map((r) => r.path))
   check('and no link routes (a phone never links phones), nor the relay', phone.routes.every((r) => !r.path.startsWith(REMOTE_PREFIX)) && !phone.effects.includes('kybernos-mobile: remote link'), phone.effects)
-  check('Android is the same', android.threw === null && android.routes.length === 1 && !android.effects.includes('kybernos-mobile: remote link'))
+  check('Android is the same', android.threw === null && android.routes.length === 2 && !android.effects.includes('kybernos-mobile: remote link'))
 }
 
 console.log('the remote routes\' fences')

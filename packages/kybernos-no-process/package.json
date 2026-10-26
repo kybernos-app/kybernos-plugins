@@ -1,6 +1,7 @@
 {
   "name": "@local/kybernos-no-process",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "For the Kybernos phone app only: runs shell commands, search and tools inside the app, where a phone cannot launch programs.",
   "private": true,
   "type": "module",
