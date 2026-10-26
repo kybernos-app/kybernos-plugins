@@ -58,6 +58,6 @@ Changing a picture means a new file, a new hash in the picks file and a plugin r
 ## Deploying
 
 From this folder, linked to the `kybernos-skills-index` project (`vercel link`): first `node scripts/prepare-covers.mjs` (from the repository
-root: it fills `covers/` and checks the 24 pictures), then `vercel deploy --prod`. Publishing makes a
+root: it fills `covers/` and checks one picture per pick), then `vercel deploy --prod`. Publishing makes a
 public endpoint, so it is done on purpose, not by CI. After a deploy, check the four index routes and one cover (`curl -sI https://skills.kybernos.app/v1/covers/pdf.webp`: 200, `image/webp`) from
 outside the project, and that production is not behind Vercel Authentication.

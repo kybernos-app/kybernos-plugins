@@ -10,7 +10,7 @@
 //   node kybernos-cloud/test-account-state.mjs
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, readSync, rmSync, statSync, truncateSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { asBrowser } from './lib-session-routes-test.mjs'
@@ -117,6 +117,7 @@ const hit = async (path, method, body) => {
   return res
 }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const leakFree = (body) => JSON.stringify(body).indexOf(TOKEN) < 0
 const endedFile = statePath + '.ended'
 const connect = async () => {
   fake.mode = 'good'; fake.poll = 'claimed'
@@ -309,6 +310,90 @@ try {
     const long = mod.deviceLabel(3161)
     assert.ok(/\(port 3161\)$/.test(long) && long.length <= 64, long)
     ok('the device label names the port when it is not 3080 (two DSH of one computer read differently), within the label limit')
+  }
+
+  // ── L3-83 / L3-57: the connection file holds the device token. It was written in place, and a file that could not be read was « not connected » with no word ─────────────────
+  // Now: written through a temporary file that is renamed over it (a reader sees the old file or the new one, never half), the last good version kept as `.bak` and read when the file
+  // cannot be, and a file that is damaged with no copy to help says so instead of the first-time words.
+  {
+    const bakFile = statePath + '.bak'
+    const mode = (f) => statSync(f).mode & 0o777
+    const strays = () => readdirSync(dir).filter((f) => /\.tmp$/.test(f))
+    await connect()
+    // 1. A write is « a temporary file renamed over the file », not an opening and filling of the file itself.
+    await hit('/kybernos-cloud/refresh', 'POST')           // a second write: the first good version becomes the copy
+    assert.ok(existsSync(bakFile), 'the last good version is kept beside the file as .bak')
+    assert.equal(JSON.parse(readFileSync(bakFile, 'utf8')).token, TOKEN, 'a whole copy')
+    assert.equal(mode(statePath), 0o600, 'the file keeps mode 0600')
+    assert.equal(mode(bakFile), 0o600, 'and so does its copy (it holds the token)')
+    const before = readFileSync(statePath, 'utf8')
+    const inode = statSync(statePath).ino
+    const reader = openSync(statePath, 'r')                  // a reader that opened the file BEFORE the next write
+    await hit('/kybernos-cloud/refresh', 'POST')
+    assert.notEqual(statSync(statePath).ino, inode, 'the write went through a temporary file renamed over the file (the same file was not opened and filled again)')
+    const heard = Buffer.alloc(before.length + 64)
+    const n = readSync(reader, heard, 0, heard.length, 0)
+    closeSync(reader)
+    assert.equal(heard.toString('utf8', 0, n), before, 'the reader that was in the middle of the file saw the old one whole: a write cut at any point leaves the old file or the new one')
+    assert.deepEqual(strays(), [], 'no temporary file is left behind')
+    assert.equal(mode(statePath), 0o600)
+    ok('state file: written through a temporary file renamed over it (a reader that had it open keeps the old content whole), mode 0600, the last good version kept as .bak, no stray file')
+
+    // 2. A write cut half way (the file truncated) with a good copy: still connected, and the next write mends the file.
+    const whole = readFileSync(statePath, 'utf8')
+    writeFileSync(bakFile, whole, { mode: 0o600 })
+    truncateSync(statePath, Math.floor(whole.length / 2))
+    assert.throws(() => JSON.parse(readFileSync(statePath, 'utf8')), 'the file is really damaged now')
+    const st = (await hit('/kybernos-cloud/status', 'GET')).body
+    assert.equal(st.connected, true, 'a truncated file with a good copy is still connected: ' + JSON.stringify(st).slice(0, 200))
+    assert.equal(st.state.user.email, 'a@example.test', 'with the person it knew')
+    assert.equal(leakFree(st), true)
+    const refreshed = await hit('/kybernos-cloud/refresh', 'POST')
+    assert.equal(refreshed.body.connected, true, 'and the host still works with the token from the copy')
+    assert.equal(JSON.parse(readFileSync(statePath, 'utf8')).token, TOKEN, 'the next write mends the file itself')
+    assert.equal(mode(statePath), 0o600)
+    ok('a write cut half way (truncated file): the .bak is read, DSH stays connected and the next write mends the file')
+
+    // 3. Every way of damaging the file, with a good copy: connected. A copy that is itself damaged never replaces a good one.
+    for (const [label, content] of [['empty', ''], ['JSON cut', '{"token": "kys-'], ['text', 'not json at all'], ['null', 'null'], ['a number', '42'], ['an array', '[]'], ['NUL bytes', '\u0000\u0000\u0000']]) {
+      writeFileSync(bakFile, JSON.stringify({ ...JSON.parse(whole) }), { mode: 0o600 })
+      writeFileSync(statePath, content)
+      assert.equal((await hit('/kybernos-cloud/status', 'GET')).body.connected, true, label + ': the copy is read')
+    }
+    writeFileSync(statePath, '{"token": "kys-')           // damaged main
+    await hit('/kybernos-cloud/refresh', 'POST')          // the host writes: the damaged file must not become the copy
+    assert.equal(JSON.parse(readFileSync(bakFile, 'utf8')).token, TOKEN, 'a damaged file never replaces a good copy')
+    ok('empty, cut, text, null, a number, an array, NUL bytes: each is read from the copy; a damaged file never becomes the copy')
+
+    // 4. Damaged and no copy that helps: not « Sign in / Sign up » (nobody ever connected) and not « session ended » (the server did not end it): the host says it cannot read it.
+    writeFileSync(statePath, '{"token": "kys-', { mode: 0o600 })
+    writeFileSync(bakFile, 'also damaged', { mode: 0o600 })
+    let st2 = (await hit('/kybernos-cloud/status', 'GET')).body
+    assert.deepEqual({ ok: st2.ok, connected: st2.connected, status: st2.status }, { ok: true, connected: false, status: 'unreadable' }, 'both damaged: the status says unreadable')
+    rmSync(bakFile)
+    st2 = (await hit('/kybernos-cloud/status', 'GET')).body
+    assert.equal(st2.status, 'unreadable', 'no copy at all: the same')
+    assert.equal(existsSync(endedFile), false, 'it is not an ended session')
+    assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.connected, false, 'nothing is read from a file the host cannot read')
+    ok('a damaged file with no usable copy: /status says « unreadable » (not none, not revoked)')
+
+    // 5. Signing in again replaces the damaged file; and a file that is simply ABSENT is « none », a deliberate sign-out leaves no copy to come back from.
+    fake.mode = 'good'; fake.poll = 'claimed'
+    const started = await hit('/kybernos-cloud/start', 'POST')
+    assert.equal(started.body.ok, true, JSON.stringify(started.body))
+    assert.equal((await hit('/kybernos-cloud/status', 'GET')).body.status, 'pending', 'a new pairing replaces the damaged file')
+    const claimed = await hit('/kybernos-cloud/poll', 'POST')
+    assert.equal(claimed.body.connected, true)
+    await hit('/kybernos-cloud/refresh', 'POST')
+    assert.ok(existsSync(bakFile), 'connected again, with a copy')
+    await hit('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+    assert.equal(existsSync(statePath), false)
+    assert.equal(existsSync(bakFile), false, 'a sign-out removes the copy too: the signed-out person does not come back from it')
+    const out = (await hit('/kybernos-cloud/status', 'GET')).body
+    assert.deepEqual({ connected: out.connected, status: out.status }, { connected: false, status: 'none' }, 'a file that is absent is « none », never « unreadable »')
+    ok('signing in again replaces a damaged file; a sign-out removes the copy as well and an absent file stays « none »')
+
+    assert.deepEqual(strays(), [], 'no stray temporary file after all of this')
   }
 
   console.log('\n' + pass + ' checks passed')

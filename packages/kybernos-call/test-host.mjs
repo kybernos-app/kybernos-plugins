@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { callMetadata, createCall } from './call-host.mjs'
 import { createStore } from './call-store.mjs'
+import { createWorkerToken } from './worker-token.mjs'
 import { createSpeechFeed } from './speech-feed.mjs'
 
 let pass = 0
@@ -109,13 +110,16 @@ try {
   const execCalls = []
   const spawnCalls = []
   const twirpCalls = []
+  let workerAlive = false
   const fakeExec = (cmd, args, opts, cb) => {
     execCalls.push({ cmd, args, opts })
-    // pgrep: no worker until one was spawned, then the one we spawned
-    setImmediate(() => (spawnCalls.length === 0 ? cb(Object.assign(new Error('none'), { code: 1 }), '', '') : cb(null, '4242\n', '')))
+    // pgrep: no worker until one was spawned, then the one we spawned, until it is killed
+    if (cmd === 'kill') workerAlive = false
+    setImmediate(() => (cmd === 'pgrep' && workerAlive ? cb(null, '4242\n', '') : cb(cmd === 'pgrep' ? Object.assign(new Error('none'), { code: 1 }) : null, '', '')))
     return undefined
   }
   const fakeSpawn = (cmd, args, opts) => {
+    workerAlive = true
     spawnCalls.push({ cmd, args, opts })
     writeFileSync(log, 'registered worker\n', { flag: 'a' }) // the worker "registers" as soon as it starts
     const child = new EventEmitter()
@@ -218,6 +222,134 @@ try {
     assert.equal(noWorker.ok, true)
     assert.equal(feed.sessionOf('room-noworker'), null)
     ok('with no worker (no venv) nothing is registered either')
+  }
+
+  console.log('kybernos-call: the worker\'s one-run secret (L3-03)')
+  {
+    // A fake process table: `spawn` starts a worker, `kill` ends it, `pgrep` lists the running ones. The secret is in the environment the worker is started with, and only there.
+    const running = new Set()
+    const spawned = []
+    const killed = []
+    let nextPid = 5000
+    const exec = (cmd, args, opts, cb) => {
+      if (cmd === 'kill') for (const a of args) { if (a !== '-9') { running.delete(Number(a)); killed.push(Number(a)) } }
+      setImmediate(() => (cmd === 'pgrep' ? (running.size > 0 ? cb(null, [...running].join('\n') + '\n', '') : cb(Object.assign(new Error('none'), { code: 1 }), '', '')) : cb(null, '', '')))
+      return undefined
+    }
+    let failNext = false
+    const spawn = (cmd, args, opts) => {
+      const child = new EventEmitter()
+      child.pid = nextPid++
+      child.unref = () => {}
+      spawned.push({ child, env: opts.env })
+      if (failNext) { failNext = false; setImmediate(() => child.emit('error', new Error('spawn EACCES'))); return child }
+      running.add(child.pid)
+      writeFileSync(log, 'registered worker\n', { flag: 'a' })
+      setImmediate(() => child.emit('spawn'))
+      return child
+    }
+    const host = () => base({ execFile: exec, spawn: spawn, fetch: fakeFetch })
+    const secretOf = (n) => spawned[n].env.KYBER_CALL_TOKEN
+    const bearing = (secret, extra = {}) => ({ headers: Object.assign({ 'x-kybernos-call-token': secret }, extra) })
+    // The credential itself: one live secret at a time, issued random, replaced (not added to) by the next.
+    {
+      const t = createWorkerToken()
+      assert.equal(t.accepts(bearing('x')), false)
+      const first = t.issue()
+      const second = t.issue()
+      assert.notEqual(first, second)
+      assert.equal(t.accepts(bearing(first)), false)
+      assert.equal(t.accepts(bearing(second)), true)
+      t.revoke()
+      assert.equal(t.accepts(bearing(second)), false)
+      ok('issuing a new secret replaces the previous one (one live secret at a time), and revoking leaves none')
+    }
+    const call1 = host()
+
+    assert.equal(call1.workerAccepts(bearing('anything')), false)
+    ok('before any worker has been started, no secret is accepted')
+    assert.equal((await call1.agentStart()).started, true)
+    const one = secretOf(0)
+    assert.match(one, /^[0-9a-f]{64}$/)
+    assert.equal(call1.workerAccepts(bearing(one)), true)
+    ok('a worker is started with a random 256-bit secret in its environment, and the host accepts it from the request header')
+    for (const bad of [undefined, '', 'x', one.slice(0, -1), one + '0', one.toUpperCase(), ' ' + one, one.slice(0, -1) + (one.endsWith('0') ? '1' : '0')]) {
+      assert.equal(call1.workerAccepts(bad === undefined ? { headers: {} } : bearing(bad)), false, String(bad))
+    }
+    assert.equal(call1.workerAccepts({ headers: { origin: 'http://127.0.0.1:3080' } }), false)
+    assert.equal(call1.workerAccepts(undefined), false)
+    assert.equal(call1.workerAccepts({}), false)
+    ok('no header, an empty, truncated, extended, upper-cased, padded or one-character-off secret is refused (and so is a request with no headers at all)')
+    assert.equal(call1.workerAccepts(bearing(one, { 'x-kybernos-tunnel': '1' })), false)
+    ok('the right secret on a request relayed by the phone tunnel is refused')
+    // Nothing the host says carries it.
+    const said = JSON.stringify([await call1.agentState(), await call1.status(), await call1.mint({ room: 'room-secret' }), await call1.agentStart(), Object.keys(call1)])
+    assert.equal(said.includes(one), false)
+    assert.equal(readFileSync(log, 'utf8').includes(one), false)
+    ok('the secret is in no answer of the host and not in the log: it is in the worker\'s environment only')
+    assert.equal(spawned.length, 1)
+    assert.equal(call1.workerAccepts(bearing(one)), true)
+    ok('a second call (and a mint) reuse the running worker: no new process, the same secret still holds')
+
+    await call1.agentStop()
+    assert.equal(call1.workerAccepts(bearing(one)), false)
+    assert.equal(spawned.length, 1)
+    ok('once the worker is stopped its secret is refused')
+    assert.equal((await call1.agentStart()).started, true)
+    const two = secretOf(1)
+    assert.notEqual(two, one)
+    assert.equal(call1.workerAccepts(bearing(one)), false)
+    assert.equal(call1.workerAccepts(bearing(two)), true)
+    ok('a restarted worker gets a new secret; the old one stays refused')
+    spawned[0].child.emit('exit', 0)
+    assert.equal(call1.workerAccepts(bearing(two)), true)
+    ok('the late exit of the OLD worker does not take the new worker\'s secret away')
+    running.delete(spawned[1].child.pid)
+    spawned[1].child.emit('exit', 1)
+    assert.equal(call1.workerAccepts(bearing(two)), false)
+    ok('a worker that exits by itself loses its secret')
+
+    // A worker that outlived the host (a DSH restart): the new host never knew its secret, so it replaces it.
+    const before = spawned.length
+    const call2 = host()
+    assert.equal((await call2.agentStart()).started, true)
+    const three = secretOf(before)
+    assert.equal(call2.workerAccepts(bearing(three)), true)
+    const orphan = host()
+    const killedBefore = killed.length
+    assert.equal((await orphan.agentStart()).started, true)
+    assert.equal(spawned.length, before + 2)
+    assert.equal(killed.length > killedBefore, true)
+    assert.equal(running.size, 1)
+    assert.equal(orphan.workerAccepts(bearing(three)), false)
+    assert.equal(orphan.workerAccepts(bearing(secretOf(before + 1))), true)
+    ok('a worker this host did not start (it outlived a DSH restart) is ended and replaced, with a secret this host knows; the old process is gone')
+
+    // The plugin stops: the secret goes, the worker (which outlives it) is replaced at the next call.
+    const secretNow = secretOf(before + 1)
+    orphan.dropWorker()
+    assert.equal(orphan.workerAccepts(bearing(secretNow)), false)
+    assert.equal(running.size, 1)
+    ok('when the plugin stops its secret is withdrawn')
+
+    // A failed start leaves nothing valid behind.
+    running.clear()
+    const failing = host()
+    const tries = spawned.length
+    failNext = true
+    const bad = await failing.agentStart()
+    assert.equal(bad.ok, false)
+    assert.equal(failing.workerAccepts(bearing(secretOf(tries))), false)
+    ok('a worker that fails to start leaves no valid secret')
+
+    // Two starts at once make one worker.
+    running.clear()
+    const racing = host()
+    const n = spawned.length
+    await Promise.all([racing.agentStart(), racing.agentStart(), racing.agentStart()])
+    assert.equal(spawned.length, n + 1)
+    assert.equal(racing.workerAccepts(bearing(secretOf(n))), true)
+    ok('three starts at once make one worker, with one secret that holds')
   }
 
   console.log('kybernos-call: the member\'s voice')

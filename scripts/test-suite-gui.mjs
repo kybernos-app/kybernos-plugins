@@ -71,10 +71,14 @@ window.fetch = async (url, init) => {
     const corps = JSON.parse(init.body)
     window.__calls.push(['post', chemin, corps])
     if (chemin === '/kybernos-hub/beacon') return { ok: true, json: async () => ({ ok: true, bootId: 'B' }) }
+    // 409 busy: an installer holds the installation lock (L3-85)
+    if (chemin === '/kybernos-hub/relaunch' && SCEN.relanceOccupee) return { ok: false, json: async () => ({ ok: false, error: 'busy', detail: 'An installation is running: wait until it ends, then restart DSH.' }) }
     if (chemin === '/kybernos-hub/module' && corps.action === 'installer') { await new Promise((r) => setTimeout(r, SCEN.dureeInstall || 50)); return { ok: true, json: async () => (SCEN.installRefuse ? { ok: false, error: 'robot-refused', detail: 'boot check failed' } : { ok: true, relanceRequise: true }) } }
     return { ok: true, json: async () => ({ ok: true }) }
   }
   if (chemin === '/kybernos-hub/suite' && SCEN.suiteKO) return { ok: false, json: async () => ({}) }
+  // The host's reading of the update, one per call, the last one for good (what a restarted DSH says while an installer it did not start still runs, then when it has ended)
+  if (chemin === '/kybernos-hub/update/status' && SCEN.statutMaj) { window.__statutN = (window.__statutN || 0) + 1; const lu = SCEN.statutMaj[Math.min(window.__statutN, SCEN.statutMaj.length) - 1]; return { ok: true, json: async () => lu } }
   const r = reponses[chemin]
   return r === undefined ? { ok: false, json: async () => null } : { ok: true, json: async () => r }
 }
@@ -127,6 +131,7 @@ const ouvrir = async (lang, scenario, largeur = 1000) => {
 const cartes = (p) => p.$$eval('[data-kb="suite-card"]', (els) => els.map((e) => ({ id: e.dataset.id, etat: e.dataset.etat })))
 const appels = (p) => p.evaluate(() => window.__calls)
 const montrer = async (p, nom) => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await p.screenshot({ path: join(SHOTS, nom + '.png'), fullPage: true }) } }
+const montrerJpeg = async (p, nom) => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await p.screenshot({ path: join(SHOTS, nom + '.jpg'), type: 'jpeg', quality: 70 }) } }
 
 try {
   console.log('── section ──')
@@ -234,6 +239,43 @@ try {
     const t = await p.textContent('[data-id="dsh-mermaid"]')
     ok('a refused install is shown on the card with the robot\'s reason, and stays installable', t.includes('Install refused') && t.includes('boot check failed') && (await cartes(p)).find((c) => c.id === 'dsh-mermaid').etat === 'available')
     ok('a refused install does not raise the restart banner', (await p.$('.kbsu-relance')) === null)
+    await p.close()
+  }
+
+  // L3-85: DSH was killed in the middle of an update and restarted; the installer (a child process) went on. The host reads its lock and says « installation ».
+  console.log('── an installer that outlived a DSH restart ──')
+  {
+    const enCours = { ok: true, etat: 'installation', orpheline: true }
+    const p = await ouvrir('en', scenarioBase({ statutMaj: [enCours, enCours, { ok: true, etat: 'idle' }] }))
+    await p.waitForSelector('[data-kb="suite-maj-en-cours"]', { timeout: 3000 })
+    ok('the panel opened after a restart shows the installation that still runs, with the line of its own update', (await p.textContent('[data-kb="suite-maj-en-cours"]')).includes('Installing: safety snapshot, link, boot check'))
+    await montrerJpeg(p, 'suite-installation-apres-redemarrage')
+    await p.waitForSelector('[data-kb="suite-maj-en-cours"]', { state: 'detached', timeout: 9000 })
+    ok('when the host says idle again the banner goes', (await p.$('[data-kb="suite-maj-en-cours"]')) === null)
+    ok('…and the summary says it ended and to restart if something changed', (await p.textContent('.kbsu-summary')).includes('The installation that was running before the restart has ended. Restart DSH if something changed.'))
+    ok('no JS error', p.erreurs.length === 0, p.erreurs.join(' | '))
+    await montrerJpeg(p, 'suite-installation-terminee')
+    await p.close()
+    const fr = await ouvrir('fr', scenarioBase({ statutMaj: [enCours] }))
+    await fr.waitForSelector('[data-kb="suite-maj-en-cours"]', { timeout: 3000 })
+    ok('in French too', (await fr.textContent('[data-kb="suite-maj-en-cours"]')).includes('Installation : photo de sécurité'))
+    await fr.close()
+    const rien = await ouvrir('en', scenarioBase())
+    await rien.waitForTimeout(400)
+    ok('with no installer running the panel opens as it always did: no banner, no summary line about an installation', (await rien.$('[data-kb="suite-maj-en-cours"]')) === null && !(await rien.textContent('.kbsu-summary')).includes('before the restart'))
+    await rien.close()
+  }
+  {
+    // The relaunch is refused while an installer runs: the page says why, not « cannot restart from here, stop dsh web in your terminal ».
+    const p = await ouvrir('en', scenarioBase({ dureeInstall: 100, relanceOccupee: true }))
+    await p.click('[data-id="dsh-mermaid"] button:has-text("Install")')
+    await p.waitForTimeout(400)
+    await p.click('.kbsu-relance button:has-text("Restart DSH")')
+    await p.click('.kbsu-relance button:has-text("Restart now")')
+    await p.waitForSelector('[data-kb="suite-relance-occupee"]', { timeout: 3000 })
+    const t = await p.textContent('.kbsu-relance')
+    ok('a relaunch refused because an installer runs says so, in words', t.includes('An installation is running: wait until it ends before restarting DSH.') && !t.includes('Cannot restart from here'), t)
+    await montrerJpeg(p, 'suite-relance-refusee-installation')
     await p.close()
   }
 

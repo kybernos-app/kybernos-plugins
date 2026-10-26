@@ -59,6 +59,7 @@ const PLACES = {
   calls: ['appels'],
   kaby: [],
   usage: [],
+  widget: [],
   'phone and channels': ['téléphone et canaux'],
 }
 // A page that lives INSIDE another one under the same name as a page of the menu (a tab or a row, not a second entry): the Voice

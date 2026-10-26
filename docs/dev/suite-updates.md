@@ -105,6 +105,23 @@ is started on the new profile and its output is read. Two rules keep that check 
 - **A failing step puts everything back.** The profile install (pnpm: no network, a registry that is down, a full disk) goes through the same way
   out as an engine patch that cannot be applied: the photo is restored, the journal gets a line, the person reads a sentence, not a stack trace.
 
+## One installer at a time
+
+The robot is a child process of DSH, and it outlives DSH: after a `kill -9` in the middle of an update it goes on as an orphan. So « an installer is running » is a fact on
+disk, not a boolean in the memory of the hub: `<DSH home>/lifecycle/install.lock`, written by the robot with its own pid and start time when it starts `install`, `upgrade`,
+`bootstrap`, `rollback` or `uninstall` (not `--dry`), and removed when it ends (`packages/kybernos-hub/install-lock.mjs`).
+
+- A restarted DSH reads it: while the pid is alive (and the lock is younger than 30 minutes, which keeps a reused pid from blocking updates for ever) the status is
+  `installation` (with `orpheline: true`), and a second update, a module install, a refresh and **the relaunch** answer 409 `busy`; the panel opened after the restart
+  shows the same « Installing… » step and follows it. A lock whose pid is gone, that is corrupt or too old is stale: reading it removes it.
+- The robot refuses to start beside a live holder (exit 1, « another installation is already running (pid …) »), whoever started the other one (the panel, `./kybernos-update`
+  by hand). It removes `package.json.lock` only when no *other* installer holds the installation lock: two robots used to pull that file from each other.
+- The temp folders of an update (`kybernos-update-*`, an archive of up to 300 MB and its extraction) are normally removed in the `finally` of the update, which a `kill -9`
+  never reaches. Each folder carries a marker with the pid of the DSH that made it; they are swept when the suite routes are mounted and when an installer that was running
+  ends. A folder an installer still runs from, or whose maker is alive (another DSH of the machine), is kept.
+- A module whose **install** fails is not left « wanted »: the activation is written before the robot runs (it links what the file names), so when the robot cannot start
+  or refuses, the file is written back to what it was (`null` = there was no file, everything on).
+
 ## Routes
 
 | Route | |
@@ -114,7 +131,8 @@ is started on the new profile and its output is read. Two rules keep that check 
 | `GET /kybernos-hub/update/status` | `{ etat: idle \| telechargement \| extraction \| installation \| termine \| echec, version?, erreur?, detail? }` |
 | `GET /kybernos-hub/suite` | now also `catalogue.source` (`signe` or `embarque`), `catalogue.suite` and `distant` (key, release, whether an update can be applied and why not) |
 
-All POSTs are strict same-origin JSON. One operation at a time: while the update runs, a second update, a refresh and a module install answer 409.
+All POSTs are strict same-origin JSON. One operation at a time: while the update runs (or while an installer holds the installation lock, even one that outlived a restart),
+a second update, a refresh, a module install and `POST /kybernos-hub/relaunch` answer 409 `busy`.
 
 ## Not done
 
@@ -125,6 +143,7 @@ All POSTs are strict same-origin JSON. One operation at a time: while the update
 ## Tests
 
 `packages/kybernos-hub/test-catalogue-distant.mjs` (document shape, signature, rollback guard, the publishing CLI), `test-telechargement.mjs`
-(local server, real tar), `test-suite-update.mjs` (refresh, cached verdict, status, the update, every route), `test-suite-store.mjs` (the words and the
-wiring in the panel). On the real GUI, read-only, with the host routes faked: the check, a development checkout's reason, the confirmation, the steps, the
+(local server, real tar), `test-suite-update.mjs` (refresh, cached verdict, status, the update, every route, an installer that outlived its DSH), `test-install-lock.mjs`
+(the lock and the sweep of temp folders, with a stand-in process), `test-suite-store.mjs` (the words and the wiring in the panel); `scripts/test-lifecycle-archive.mjs`
+runs the real robot against a live and a dead lock holder. On the real GUI, read-only, with the host routes faked: the check, a development checkout's reason, the confirmation, the steps, the
 restart banner, a refused catalogue, the release notes.

@@ -727,6 +727,9 @@ window.__ModuleLoader__.load({
 .kbmem-ib{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:var(--m-r-sm);color:var(--m-ink2)}.kbmem-ib:hover{background:var(--m-fill)}
 .kbmem-toast{position:fixed;inset-inline:0;bottom:24px;margin-inline:auto;width:max-content;max-width:90vw;display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:999px;background:var(--m-toast);color:var(--m-ink);box-shadow:var(--kb-elev,0 8px 24px rgba(0,0,0,.35));font-size:13px;z-index:10001}
 .kbmem-toast button{font-weight:600;color:var(--m-acc)}
+/* Everything drawn on the toast fill (--m-toast) takes the toast's own ink, the label that pairs with it: the fill is dark in both schemes, the page ink is dark in the light one (1.56:1, recette L1-21). The accent is lifted
+   toward white on that fill, so « Undo » reads in both schemes too. */
+.kbmem-toast,.kbmem-menu,.kbmem-fc,.kbmem-r.sel,.kbmem-pg.on,.kbmem-tip{--m-ink:var(--dsw-alias-toast-label,#fff);--m-ink2:color-mix(in srgb,var(--m-ink) 78%,transparent);--m-muted:color-mix(in srgb,var(--m-ink) 70%,transparent);--m-cap:color-mix(in srgb,var(--m-ink) 66%,transparent);--m-acc:color-mix(in srgb,var(--kb-accent,#7aaaff) 55%,#fff);color:var(--m-ink)}
 .kbmem-crumb{display:inline-flex;gap:6px;align-items:center;margin-bottom:12px;font-size:13px;color:var(--m-muted)}.kbmem-crumb:hover{color:var(--m-ink)}
 .kbmem-sec{margin:28px 0 0}.kbmem-sec>h2{margin:0;display:flex;gap:8px;align-items:baseline;font-size:14px;font-weight:600}.kbmem-sec>h2 small{font-size:12px;font-weight:400;color:var(--m-muted)}
 .kbmem-srow{display:flex;gap:24px;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--m-line2);max-width:760px}

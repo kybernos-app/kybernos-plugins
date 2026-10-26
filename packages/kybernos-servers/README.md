@@ -31,7 +31,7 @@ Phase 2, **not built and not shown**: « Other ways to sign in » (an access key
 
 | File | Role |
 |---|---|
-| `index.js`, `host.mjs` | host half: routes `/kybernos-servers/{status,check,add,switch,rename,remove}`, every POST same-origin strict |
+| `index.js`, `host.mjs` | host half: routes `/kybernos-servers/{status,check,add,switch,rename,remove}`, every POST same-origin strict **and** under DSH's signed session cookie (`session-guard.mjs`, `test-write-guard.mjs`; 401 without it, 403 `refused_on_phone` through the phone link) |
 | `discovery.mjs` | pure: the address typed → `/.well-known/kybernos-server.json` → a profile, in three steps; never throws |
 | `registry.mjs` | pure: names, ids, duplicates |
 | `client.js` | the Settings page; `__test` exposes the view for the tests |

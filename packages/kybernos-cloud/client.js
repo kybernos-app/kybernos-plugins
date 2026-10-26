@@ -133,6 +133,8 @@ window.__ModuleLoader__.load({
         footSignInAgain: 'Se reconnecter',
         footEnded: 'Ta session est terminée',
         sessionEnded: 'Ta session est terminée : le serveur ne reconnaît plus cet appareil. Reconnecte-toi pour continuer.',
+        footUnreadable: 'Session impossible à lire',
+        sessionUnreadable: 'Le fichier de connexion de ce DSH n\'a pas pu être lu (il est abîmé ou illisible), donc DSH te croit déconnecté. Reconnecte-toi pour continuer.',
         // ── Footer rework (30/09, « Open menu » mockup) ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
@@ -159,13 +161,19 @@ window.__ModuleLoader__.load({
         quotaBackDays: 'dans environ {n}\u00a0jours',
         quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après ton dernier appel',
         quotaMoreSolo: ' Passe à une formule supérieure ou ajoute des crédits pour continuer maintenant.',
+        quotaMoreSoloWait: ' Passe à une formule supérieure pour continuer maintenant, ou attends.',
         rowNoAdapter: 'Ce modèle vient de ton compte Kybernos, et ce DSH n\'y est plus connecté. Reconnecte-toi pour l\'utiliser.',
+        rowTeamGone: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH met tes équipes à jour : renvoie-le dans un instant.',
+        rowTeamGoneNow: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH est maintenant dans {name} : renvoie-le.',
+        rowRouteStale: 'Tes messages seraient facturés à {name}. Réessaie.',
         rowRetryDown: 'Le serveur Kybernos « {name} » ({host}) ne répond pas : DSH continue d\'essayer',
         quotaNoPlan: '{name} n\'a pas encore de formule : personne ne peut y utiliser les modèles.',
         quotaNoPlanAdmin: ' Choisis-en une pour les activer.',
         quotaNoPlanMember: ' Demande à un propriétaire ou à un admin de {name} d\'en choisir une.',
         quotaMoreAdmin: ' Ajoute des crédits ou releve le plafond dans Formule et crédits.',
         quotaMoreMember: ' Demande plus de crédits à un propriétaire ou à un admin de {name}.',
+        quotaMoreAdminWait: ' Passe à une formule supérieure ou relève le plafond dans Formule et crédits, ou attends.',
+        quotaMoreMemberWait: ' Demande à un propriétaire ou à un admin de {name} de changer de formule ou de relever le plafond, ou attends.',
         quotaOpenConsole: 'Ouvrir Formule et crédits',
         quotaClose: 'Fermer',
         quotaWorkspace: 'cette équipe',
@@ -419,6 +427,8 @@ window.__ModuleLoader__.load({
         footSignInAgain: 'Sign in again',
         footEnded: 'Your session ended',
         sessionEnded: 'Your session ended: the server no longer recognises this device. Sign in again to carry on.',
+        footUnreadable: 'Session could not be read',
+        sessionUnreadable: 'This DSH\'s connection file could not be read (it is damaged or unreadable), so DSH takes you for signed out. Sign in again to carry on.',
         notifTitle: 'Notifications',
         notifEmpty: 'Nothing new so far.',
         notifClear: 'Clear all',
@@ -444,13 +454,19 @@ window.__ModuleLoader__.load({
         quotaBackDays: 'in about {n}\u00a0days',
         quotaBackUnknown: 'as older use leaves that window, and is whole again {window} after your last call',
         quotaMoreSolo: ' Upgrade or add credits to go on now.',
+        quotaMoreSoloWait: ' Upgrade to go on now, or wait.',
         rowNoAdapter: 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.',
+        rowTeamGone: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is updating your teams: send it again in a moment.',
+        rowTeamGoneNow: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is now in {name}: send it again.',
+        rowRouteStale: 'Your messages would be billed to {name}. Try again.',
         rowRetryDown: 'The Kybernos server “{name}” ({host}) is not answering: DSH keeps retrying',
         quotaNoPlan: '{name} has no plan yet, so nobody in it can use the models.',
         quotaNoPlanAdmin: ' Choose a plan to turn them on.',
         quotaNoPlanMember: ' Ask an owner or admin of {name} to choose one.',
         quotaMoreAdmin: ' Add credits or raise the cap in Plan & Credits.',
         quotaMoreMember: ' Ask an owner or admin of {name} for more credits.',
+        quotaMoreAdminWait: ' Upgrade the plan or raise the cap in Plan & Credits, or wait.',
+        quotaMoreMemberWait: ' Ask an owner or admin of {name} to upgrade the plan or raise the cap, or wait.',
         quotaOpenConsole: 'Open Plan & Credits',
         quotaClose: 'Close',
         quotaWorkspace: 'this team',
@@ -1199,6 +1215,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     }
     // From this share of a window on, the notice says so even when nothing is used up yet.
     const QUOTA_NEAR_PERCENT = 75
+    // The shortest window a balance of credits lifts (a month, as the server counts it).
+    const QUOTA_BALANCE_LIFTS_SECONDS = 30 * 86400
     // « in about 3 h »: when a window that is used up has room again, from the server's time. Null when the server gave none (or one already past).
     const quotaWhen = (iso, now, t) => {
       const ms = typeof iso === 'string' ? Date.parse(iso) - now : NaN
@@ -1252,7 +1270,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       // Nothing used up: a gentle word when one window is close to it, nothing at all otherwise (the failing provider is another one).
       const w = out !== null ? out : quotaMostUsed(windows.filter((x) => x.used_percent >= QUOTA_NEAR_PERCENT))
       if (w === null) return null
-      const more = out === null ? '' : (shared ? (admin ? t('quotaMoreAdmin') : quotaFill(t('quotaMoreMember'), { name })) : t('quotaMoreSolo'))
+      // How to go on. A balance of credits lifts the 30-day window only: the short ones (5 hours, 24 hours, 7 days) always apply (the terms, 7.2; budget-figures.ts on the server), so
+      // a short window never promises credits (recette L2-38, decision DL-02) and says the two things that are true: change the plan (or the cap), or wait.
+      const short = w.window_seconds < QUOTA_BALANCE_LIFTS_SECONDS
+      const moreKey = shared
+        ? (admin ? (short ? 'quotaMoreAdminWait' : 'quotaMoreAdmin') : (short ? 'quotaMoreMemberWait' : 'quotaMoreMember'))
+        : (short ? 'quotaMoreSoloWait' : 'quotaMoreSolo')
+      const more = out === null ? '' : quotaFill(t(moreKey), { name })
       return { text: quotaWindowSentence(w, name, t, now) + more, action: !shared || admin }
     }
     // The small meter on the card of the active team: the percent of the window that counts, and the sentence behind it (its title). An owner or admin of a team sees the
@@ -1298,6 +1322,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     // a fixed minimum; a route that never shows up ends the wait at the maximum, and the person is told. `route` is what `space/active` said became of the route.
     const SWITCH_WAIT_MIN_MS = 3500
     const SWITCH_WAIT_MAX_MS = 15000
+    // The page asks the host to read the account again (index.js `/refresh`): at most once per HOST_REFRESH_GAP_MS for a timer or a focus, per HOST_REFRESH_ACTION_GAP_MS after a team action.
+    const HOST_REFRESH_GAP_MS = 25000
+    const HOST_REFRESH_ACTION_GAP_MS = 3000
     const SWITCH_POLL_MS = 250
     const switchPlan = (route) => (route === 'current' || route === 'none' ? 'done' : (route === 'failed' || route === 'not_written' ? 'stale' : 'wait'))
     const switchState = (applied, elapsed) => {
@@ -3202,6 +3229,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const followerRef = React.useRef(null)
           // The server ended this connection (a device revoked from the account page, a new database): the signed-out row then says « Sign in again » and why, not the plain words.
           const [ended, setEnded] = React.useState(false)
+          // The connection file of this DSH is there but cannot be read (damaged, half written, wrong rights) and no copy helps: the row says so instead of the first-time words.
+          const [unreadable, setUnreadable] = React.useState(false)
           // How the last pairing ended when it was not a success (`denied`, `expired`): said in the row, which stays until the person tries again.
           const [pairNote, setPairNote] = React.useState(null)
           const wasConnectedRef = React.useRef(false)
@@ -3216,16 +3245,20 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             if (status !== null && status.connected === true) {
               wasConnectedRef.current = true
               setEnded(false)
+              setUnreadable(false)
               setPairNote(null)
               setState(status.state !== undefined && status.state !== null ? status.state : {})
               setPhase('connected')
               return
             }
-            if (status !== null && status.status === 'pending') { setPairNote(null); setPhase('pairing'); return }
+            if (status !== null && status.status === 'pending') { setPairNote(null); setUnreadable(false); setPhase('pairing'); return }
             const gone = status !== null && status.status === 'revoked'
+            const damaged = status !== null && status.status === 'unreadable'
             setEnded(gone)
+            setUnreadable(damaged)
             // The row flipped from the account to « Sign in again » while the person was looking elsewhere: tell them why, once.
             if (gone === true && wasConnectedRef.current === true) { setFlashSwitch(false); setFlash(t('sessionEnded')) }
+            if (damaged === true && wasConnectedRef.current === true) { setFlashSwitch(false); setFlash(t('sessionUnreadable')) }
             wasConnectedRef.current = false
             setPhase('disconnected')
           }, [])
@@ -3288,6 +3321,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               return { ok: false, error: res !== null && typeof res.error === 'string' ? res.error : 'failed' }
             }
             void load()
+            // A switch the person made by hand: read the account too (roles, teams) now rather than at the next timer; one that follows a chat does not.
+            if (keepChat !== true) refreshThenLoad(HOST_REFRESH_ACTION_GAP_MS)
             const plan = switchPlan(res.route)
             if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); if (keepChat !== true) enterChat(res.state, id); return { ok: true, stale: true } }
             if (plan === 'wait') {
@@ -3334,16 +3369,33 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             } catch (e) { /* the switch goes on */ }
           }
 
-          // The host reads the account again by itself (a token revoked from the account page, a removal from a team: index.js `profileRefreshTick`), and the
-          // chip followed only when the card was opened or closed: measured, it said « Rita Rich · Solo Studio » for 45 s after the host had signed out. /status
-          // is a local read: every 30 s while the window is visible, and when it comes back into view.
+          // The host reads the SERVER again only every five minutes by itself (index.js `profileRefreshTick`), so a role changed, a person removed, a team joined or left on the web
+          // reached DSH up to five minutes late (recette L2-05). The window now asks the host to read it: when it comes back into view and every 30 s while it is visible, and
+          // after the team actions it makes itself (create, join, switch by hand). Bounded: never more than one read in flight, never two within HOST_REFRESH_GAP_MS (a focus right
+          // after a timer costs nothing: the host also skips a read younger than `max_age_ms`), only while the person is signed in. /status (a local read) follows each one.
+          const refreshAtRef = React.useRef(0)
+          const refreshingRef = React.useRef(false)
+          const refreshHost = React.useCallback(async (gap) => {
+            if (refreshingRef.current === true || wasConnectedRef.current !== true) return false
+            if (Date.now() - refreshAtRef.current < gap) return false
+            refreshingRef.current = true
+            refreshAtRef.current = Date.now()
+            try { await callLocal('/refresh', 'POST', { max_age_ms: gap }); return true } catch (e) { return false } finally { refreshingRef.current = false }
+          }, [])
+          const refreshThenLoad = React.useCallback((gap) => {
+            void load()
+            void refreshHost(gap).then((read) => { if (read === true && liveRef.current === true) return load(); return undefined }).catch(() => null)
+          }, [load, refreshHost])
           React.useEffect(() => {
-            const again = () => { if (document.visibilityState === 'visible') void load() }
+            const again = () => { if (document.visibilityState === 'visible') refreshThenLoad(HOST_REFRESH_GAP_MS) }
+            // A failed turn that shows the host's teams are out of date (the error row below) asks for the same thing, at once.
+            const changed = () => { refreshThenLoad(HOST_REFRESH_ACTION_GAP_MS) }
             const timer = window.setInterval(again, 30000)
             document.addEventListener('visibilitychange', again)
             window.addEventListener('focus', again)
-            return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', again); window.removeEventListener('focus', again) }
-          }, [load])
+            window.addEventListener('kybernos-cloud:profile-changed', changed)
+            return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', again); window.removeEventListener('focus', again); window.removeEventListener('kybernos-cloud:profile-changed', changed) }
+          }, [refreshThenLoad])
 
           // A pairing under way is asked about from here too: it used to end (refused in the browser, expired, or confirmed) and the row said nothing until the card was
           // opened. The host makes one call of simultaneous askers (this and the open card), so the two never fight over the token. A refusal or an expiry is said where the
@@ -3697,20 +3749,20 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 h('div', { className: 'kbfp-card' },
                   h('button', {
                     type: 'button', className: 'kbfp-cardmain', ref: gearRef, 'data-kb': 'foot-signin',
-                    title: pairing ? t('footPairing') : (pairNote !== null ? t(pairNote === 'denied' ? 'pairingDenied' : 'pairingExpired') : (ended === true ? t('sessionEnded') : t('footHint'))), 'aria-label': pairing ? t('pairingTitle') : (ended === true ? t('footSignInAgain') : t(inPhoneApp ? 'footConnect' : 'footSignInUp')),
+                    title: pairing ? t('footPairing') : (pairNote !== null ? t(pairNote === 'denied' ? 'pairingDenied' : 'pairingExpired') : (ended === true ? t('sessionEnded') : (unreadable === true ? t('sessionUnreadable') : t('footHint')))), 'aria-label': pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t(inPhoneApp ? 'footConnect' : 'footSignInUp')),
                     'aria-haspopup': 'menu', 'aria-expanded': menuOpen === true ? 'true' : 'false',
                     onClick: () => setMenuOpen(menuOpen !== true),
                   },
                   h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, h(UserIcon, { size: 18 })),
                   h('span', { className: 'kbfp-cardtxt' },
-                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true ? t('footSignInAgain') : t(inPhoneApp ? 'footConnect' : 'footSignInUp'))),
-                    h('span', { className: 'kbfp-cardsub', 'data-kb': pairNote !== null && pairing !== true ? 'foot-pair-note' : (ended === true && pairing !== true ? 'foot-ended' : undefined) },
-                      pairing ? t('footPairingAction') : (pairNote !== null ? t(pairNote === 'denied' ? 'footPairDenied' : 'footPairExpired') : (ended === true ? t('footEnded') : (phase === 'loading' ? t('loading') : t('footSyncSub')))))),
+                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t(inPhoneApp ? 'footConnect' : 'footSignInUp'))),
+                    h('span', { className: 'kbfp-cardsub', 'data-kb': pairNote !== null && pairing !== true ? 'foot-pair-note' : (ended === true && pairing !== true ? 'foot-ended' : (unreadable === true && pairing !== true ? 'foot-unreadable' : undefined)) },
+                      pairing ? t('footPairingAction') : (pairNote !== null ? t(pairNote === 'denied' ? 'footPairDenied' : 'footPairExpired') : (ended === true ? t('footEnded') : (unreadable === true ? t('footUnreadable') : (phase === 'loading' ? t('loading') : t('footSyncSub'))))))),
                   h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 14 }))))),
               menuOpen === true
                 ? h(OffMenu, {
                   pairing: pairing,
-                  ended: ended === true,
+                  ended: ended === true || unreadable === true,
                   anchorRef: offRowRef,
                   toggleRef: gearRef,
                   signupUrl: (serverInfo !== null && typeof serverInfo.web === 'string' && serverInfo.web !== '' ? serverInfo.web : (serverInfo !== null && typeof serverInfo.api === 'string' ? serverInfo.api : '')),
@@ -3733,7 +3785,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             newOpen === true
               ? h(NewSpacePanel, {
                 onClose: () => setNewOpen(false),
-                onCreated: (res) => { void load(); announceCreated(res); void enterCreated(res) },
+                onCreated: (res) => { void load(); refreshThenLoad(HOST_REFRESH_ACTION_GAP_MS); announceCreated(res); void enterCreated(res) },
               })
               : null,
             joinOpen === true
@@ -3741,7 +3793,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 onClose: () => setJoinOpen(false),
                 web: typeof state.web_url === 'string' ? state.web_url : '',
                 email: typeof user.email === 'string' ? user.email : '',
-                onJoined: (res) => { void load(); announceJoined(res) },
+                onJoined: (res) => { void load(); refreshThenLoad(HOST_REFRESH_ACTION_GAP_MS); announceJoined(res) },
               })
               : null,
             open === true
@@ -3819,14 +3871,40 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         // documents that a later entry for a key shadows the shipped one (lowest priority renders), so this wraps the SHIPPED component: every other failure is drawn by it,
         // untouched, and for these two it is drawn with a sentence (and no code badge) and an action beside it.
         const KB_NO_ADAPTER = /no adapter registered for provider "kybernos"/
+        // A person removed from a team (or who left it) keeps the team's id in the model route until DSH reads the account again; the server answers every model call 404 `workspace_not_found`
+        // and the engine writes the raw body (recette L2-05). The sentence says what happened; the host is asked to read the account at once (it then falls back to a space the person is in).
+        const KB_TEAM_GONE = /workspace_not_found|No such workspace in `?x-kybernos-workspace/
+        // The host refused a turn whose model route still names the previous team (a switch made while the server did not answer, recette L3-76): its sentence is « Your messages would be
+        // billed to <team>. Try again. », word for word, so the row can say it in the person's language.
+        const KB_ROUTE_STALE = /^Your messages would be billed to (.+)\. Try again\.$/
+        // The failure is recent enough to be worth a read of the account (an old row in a chat's history is only worded, never acted on).
+        const failureIsRecent = (data) => { const at = typeof data.time === 'number' ? data.time : Date.parse(String(data.time)); return Number.isFinite(at) ? Date.now() - at < 10 * 60 * 1000 : true }
         const turnErrorRow = (Shipped) => {
           const KbTurnError = (props) => {
             const data = props !== null && props !== undefined && props.node !== null && props.node !== undefined && props.node.data !== null && typeof props.node.data === 'object' ? props.node.data : {}
             const noAdapter = typeof data.message === 'string' && KB_NO_ADAPTER.test(data.message)
+            const teamGone = typeof data.message === 'string' && KB_TEAM_GONE.test(data.message)
+            const staleRoute = typeof data.message === 'string' ? KB_ROUTE_STALE.exec(data.message) : null
             const quotaRefused = data.code === 'QUOTA'
             const factsPair = React.useState(null)
             const facts = factsPair[0]
             const setFacts = factsPair[1]
+            // The space DSH is in once the account has been read again after a removal (its name goes into the sentence).
+            const nowPair = React.useState(null)
+            const nowIn = nowPair[0]
+            const setNowIn = nowPair[1]
+            React.useEffect(() => {
+              if (teamGone !== true || failureIsRecent(data) !== true) return undefined
+              let on = true
+              callLocal('/refresh', 'POST', { max_age_ms: HOST_REFRESH_ACTION_GAP_MS }).then((r) => {
+                try { window.dispatchEvent(new Event('kybernos-cloud:profile-changed')) } catch (e) { /* no window events here */ }
+                const st = r !== null && r !== undefined && r.state !== null && typeof r.state === 'object' ? r.state : null
+                const spaces = st !== null && Array.isArray(st.workspaces) ? st.workspaces : []
+                const here = spaces.filter((w) => w !== null && typeof w === 'object' && w.id === st.active_workspace_id)[0]
+                if (on === true && here !== undefined) setNowIn(espaceVue(here, t).name)
+              }).catch(() => null)
+              return () => { on = false }
+            }, [teamGone, data.seq])
             React.useEffect(() => {
               if (quotaRefused !== true) return undefined
               let on = true
@@ -3834,7 +3912,11 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               return () => { on = false }
             }, [quotaRefused])
             let say = null
-            if (noAdapter === true) {
+            if (teamGone === true) {
+              say = { text: nowIn !== null && nowIn !== '' ? quotaFill(t('rowTeamGoneNow'), { name: nowIn }) : t('rowTeamGone'), label: null, run: null }
+            } else if (staleRoute !== null) {
+              say = { text: quotaFill(t('rowRouteStale'), { name: staleRoute[1] }), label: null, run: null }
+            } else if (noAdapter === true) {
               say = { text: t('rowNoAdapter'), label: t('footSignInAgain'), run: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event absent */ } } }
             } else if (quotaRefused === true && facts !== null && facts !== undefined && facts.ok === true && facts.no_plan === true) {
               const verdict = quotaNoticeText(facts, t)

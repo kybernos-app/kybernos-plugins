@@ -155,6 +155,46 @@ try {
     ok('overlapping ticks make one read')
   }
 
+  // 5b. L2-05 — the window asks the host to read the account (POST /refresh) when it comes into view and every 30 s: a role changed on the server reaches DSH then, not at the next
+  // five-minute tick. `max_age_ms` says how old a read the page accepts, so several windows, or a focus right after a timer, cost the server ONE read; no `max_age_ms` always reads.
+  {
+    pending()
+    await hit('/kybernos-cloud/poll', 'POST')
+    fake.workspaces = [{ id: PERSONAL, name: 'My workspace', personal: true, role: 'owner' }, { id: TEAM, name: 'Acme', personal: false, role: 'member' }]
+    assert.equal((await hit('/kybernos-cloud/refresh', 'POST', {})).body.ok, true)
+    const roleOf = () => readState().workspaces.find((w) => w.id === TEAM).role
+    assert.equal(roleOf(), 'member')
+    fake.workspaces = [{ id: PERSONAL, name: 'My workspace', personal: true, role: 'owner' }, { id: TEAM, name: 'Acme', personal: false, role: 'admin' }]   // promoted on the web
+    fake.calls.length = 0
+    const skipped = await hit('/kybernos-cloud/refresh', 'POST', { max_age_ms: 25000 })
+    assert.equal(skipped.body.ok, true)
+    assert.equal(skipped.body.skipped, true, 'a read younger than the page accepts is not repeated')
+    assert.deepEqual(fake.calls, [], 'and the server is not asked anything')
+    assert.equal(roleOf(), 'member')
+    // The same read, but old enough: the server is asked and the new role is DSH's.
+    const old = readState()
+    old.refreshed_at = new Date(Date.now() - 40000).toISOString()
+    writeFileSync(statePath, JSON.stringify(old), { mode: 0o600 })
+    const read = await hit('/kybernos-cloud/refresh', 'POST', { max_age_ms: 25000 })
+    assert.equal(read.body.skipped, undefined)
+    assert.ok(fake.calls.includes('GET /v1/workspaces'), 'the server was asked')
+    assert.equal(roleOf(), 'admin', 'the promotion reached DSH on the page\'s ask, not at the next tick')
+    // No `max_age_ms` (the open Cloud window, after a payment): always the server. Junk is no `max_age_ms`.
+    for (const body of [{}, { max_age_ms: 0 }, { max_age_ms: -5 }, { max_age_ms: 'soon' }, { max_age_ms: null }]) {
+      fake.calls.length = 0
+      assert.equal((await hit('/kybernos-cloud/refresh', 'POST', body)).body.skipped, undefined, JSON.stringify(body))
+      assert.ok(fake.calls.includes('GET /v1/workspaces'), 'always reads for ' + JSON.stringify(body))
+    }
+    // A huge age is cut: a read from ten minutes ago is never taken for fresh.
+    const stale = readState()
+    stale.refreshed_at = new Date(Date.now() - 11 * 60 * 1000).toISOString()
+    writeFileSync(statePath, JSON.stringify(stale), { mode: 0o600 })
+    fake.calls.length = 0
+    assert.equal((await hit('/kybernos-cloud/refresh', 'POST', { max_age_ms: 1e12 })).body.skipped, undefined)
+    assert.ok(fake.calls.includes('GET /v1/workspaces'), 'the age a page may accept is capped')
+    ok('the refresh route reads the server on the page\'s ask and skips a read younger than max_age_ms (one read for several windows); without max_age_ms it always reads')
+  }
+
   // 6. The periodic read is mounted through ctx.effect (cleaned with the plugin).
   assert.ok(effects.some((l) => /periodic profile read/.test(String(l))), 'the tick must be mounted through ctx.effect')
   ok('the periodic read is mounted through ctx.effect')

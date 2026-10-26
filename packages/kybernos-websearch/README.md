@@ -49,6 +49,7 @@ results to a client without a browser session), Mojeek's HTML page (a script cha
 |---|---|
 | `index.js` | host half: registers provider `kybernos-search` with `ctx.web`, mounts the routes, reads keys through DSH's credentials service |
 | `host.mjs` | the service and the five routes (pure, I/O injected): state, settings, key, test, seam |
+| `session-guard.mjs`, `test-write-guard.mjs` | the four POST routes (settings, key, test, seam) need DSH's signed session cookie as well as the right Origin (L3-20): an Origin alone is forgeable by any local program, and these routes store or clear a key, redirect the searches and call an address. 401 without it, 403 `refused_on_phone` through the phone link |
 | `router.mjs` | the chain: order, pauses, per-engine spacing, answer cache, domain filter, abort |
 | `engines.mjs` | one object per engine: the request it sends and what it makes of the answer |
 | `parse.mjs` | HTML and text helpers: the result pages, entities, URL safety, de-duplication |

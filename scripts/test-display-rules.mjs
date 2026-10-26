@@ -122,12 +122,14 @@ const TOKENS = {
     'bg-base': '#ffffff', 'bg-layer-1': '#ffffff', 'bg-layer-2': '#ffffff', 'bg-layer-3': '#ffffff', 'bg-module-platform': '#f5f6f7',
     'border-l1': '#0000000a', 'border-l2': '#0000001a', 'border-l3': '#0000001f', 'border-l4': '#00000029', 'interactive-bg-hover': '#2631480f',
     'state-success-primary': '#22c55e', 'state-success-tertiary': '#e6faed', 'state-warn-primary': '#f59e0b', 'state-warn-tertiary': '#fef5e7',
-    'state-error-primary': '#ec1313', 'state-business-primary': '#4176e6', 'state-business-tertiary': '#e4edfd', 'brand-primary': '#0f1115', link: '#4176e6' },
+    'state-error-primary': '#ec1313', 'state-business-primary': '#4176e6', 'state-business-tertiary': '#e4edfd', 'brand-primary': '#0f1115', link: '#4176e6',
+    'toast-bg': '#353638', 'toast-label': '#ffffff' },
   dark: { 'label-primary': '#f9fafb', 'label-secondary': '#cfd3d6', 'label-tertiary': '#adb2b8', 'label-caption': '#81858c', 'label-primary-foreground': '#0f1115',
     'bg-base': '#161617', 'bg-layer-1': '#232324', 'bg-layer-2': '#2c2c2e', 'bg-layer-3': '#353638', 'bg-module-platform': '#353638',
     'border-l1': '#ffffff0f', 'border-l2': '#ffffff1f', 'border-l3': '#ffffff29', 'border-l4': '#ffffff33', 'interactive-bg-hover': '#ffffff14',
     'state-success-primary': '#22c55e', 'state-success-tertiary': '#233c2c', 'state-warn-primary': '#f59e0b', 'state-warn-tertiary': '#27241f',
-    'state-error-primary': '#f25a5a', 'state-business-primary': '#7aaaff', 'state-business-tertiary': '#34415b', 'brand-primary': '#f9fafb', link: '#7aaaff' },
+    'state-error-primary': '#f25a5a', 'state-business-primary': '#7aaaff', 'state-business-tertiary': '#34415b', 'brand-primary': '#f9fafb', link: '#7aaaff',
+    'toast-bg': '#43454a', 'toast-label': '#ffffff' },
 }
 const hexRgba = (h) => { h = h.replace('#', ''); if (h.length <= 4) h = h.split('').map((c) => c + c).join(''); const n = (i) => parseInt(h.slice(i, i + 2), 16); return [n(0), n(2), n(4), h.length === 8 ? n(6) / 255 : 1] }
 /** A colour expression to [r, g, b, a]; `vars` are the custom properties in scope (e.g. { '--kb6-ink': '#fdba74' }). */
@@ -696,6 +698,65 @@ ok('Connectors: no literal indigo is left; the primary button, the Kybernos mete
   const app = rule(file, '.kbcp-kcapp.on')
   assert.match(lastDecl(app.body, 'border-color'), /brand-primary/)
   assert.match(lastDecl(app.body, 'background'), /brand-primary/)
+})
+
+// ── L1-21 (recette 2026-10-25): what is drawn on the toast fill reads 4.5:1 in both schemes ──────────────────────────────────────────────────────
+// DSH's toast fill is dark in BOTH schemes (bluish-800 in the light one) and its label token, white, is the ink made for it. Memory drew its toast, its filter menu, its chosen row, its current
+// page number and its map tooltip on that fill with the page ink (near-black in the light scheme): 1.56:1, and the accent of « Undo » 2.9:1. Commands drew its toast and its tooltips with
+// the page label for ink. The test takes EVERY rule of Memory that paints the toast fill, so a new one cannot be forgotten.
+ok('Memory: every surface painted with the toast fill takes the toast\'s ink, 4.5:1 for the four inks and for « Undo », in both schemes (L1-21)', () => {
+  const file = 'kybernos-memory/client.js'
+  const customs = (body) => Object.fromEntries([...body.matchAll(/(--[\w-]+)\s*:\s*((?:var\([^;]*?\)|color-mix\([^;]*?\)|[^;])+)/g)].map((m) => [m[1], m[2].trim()]))
+  const all = multiRules(file).map((r) => ({ sels: r.selector.split(',').map((x) => x.trim()), body: r.body }))
+  // what the slash bundle's theme bridge puts on :root, the way the page sees it (kybernos-theme defines none of these)
+  const root = { '--kb-toast': 'var(--dsw-alias-toast-bg)', '--kb-ink': 'var(--dsw-alias-label-primary)', '--kb-accent': 'var(--dsw-alias-link)' }
+  // (the page's own block of custom properties is longer than the one-rule scan allows: it is cut out by hand)
+  const text = srcOf(file)
+  const from = text.indexOf('\n.kbmem-page{--m-ink:')
+  assert.ok(from > 0, 'the custom properties of .kbmem-page are found')
+  const page = Object.assign({}, root, customs(text.slice(from + '\n.kbmem-page{'.length, text.indexOf('}', from))))
+  const painted = all.filter((r) => /^var\(--m-toast\)$/.test(lastDecl(r.body, 'background(?:-color)?') || ''))
+  const selectors = [...new Set(painted.flatMap((r) => r.sels))]
+  assert.ok(selectors.length >= 6, 'the rules that paint the toast fill are found: ' + selectors.join(' | '))
+  for (const sel of selectors) {
+    const own = all.filter((r) => r.sels.includes(sel))
+    const scope = Object.assign({}, page, ...own.map((r) => customs(r.body)))
+    const color = [...own].reverse().map((r) => lastDecl(r.body, 'color')).find((c) => c !== null)
+    for (const scheme of ['light', 'dark']) {
+      const bg = colour('var(--m-toast)', scheme, scope)
+      // An element that sets no ink of its own inherits the page's COMPUTED one (read where the page declares it), not the one its own custom properties would give.
+      const ink = color !== undefined ? colour(color, scheme, scope) : colour('var(--m-ink)', scheme, page)
+      atLeast(sel + ' ink (' + scheme + ')', contrast(ink, bg), 4.5)
+      for (const [name, expr] of Object.entries({ ink2: 'var(--m-ink2)', muted: 'var(--m-muted)', caption: 'var(--m-cap)' })) atLeast(sel + ' ' + name + ' (' + scheme + ')', contrast(colour(expr, scheme, scope), bg), 4.5)
+    }
+  }
+  // « Undo »: the accent on the toast fill
+  const undo = rule(file, '.kbmem-toast button')
+  const toastScope = Object.assign({}, page, ...all.filter((r) => r.sels.includes('.kbmem-toast')).map((r) => customs(r.body)))
+  for (const scheme of ['light', 'dark']) atLeast('Undo (' + scheme + ')', contrast(colour(lastDecl(undo.body, 'color'), scheme, toastScope), colour('var(--m-toast)', scheme, toastScope)), 4.5)
+})
+
+ok('Commands: the toast and the tooltips take the toast\'s label for ink, in the stylesheet and in the theme bridge, 4.5:1 in both schemes; « Undo » follows the ink (L1-21)', () => {
+  const file = 'kybernos-slash/client.js'
+  const src = srcOf(file)
+  // the stylesheet's own definition (the page without the bridge) ...
+  const defs = [...src.matchAll(/(--kb-toast(?:-ink)?)\s*:\s*(var\([^;]*?\))\s*;/g)].map((m) => [m[1], m[2]])
+  assert.ok(defs.length >= 2, 'the stylesheet defines --kb-toast and --kb-toast-ink')
+  const fromCss = Object.fromEntries(defs)
+  // ... and the bridge's pairs, which are what the page really sees once DSH's tokens are read
+  const pair = (name) => { const m = new RegExp("\\['" + name + "', '(--dsw-[\\w-]+)'\\]").exec(src); assert.ok(m !== null, name + ' is in the theme bridge'); return 'var(' + m[1] + ')' }
+  const fromBridge = { '--kb-toast': pair('--kb-toast'), '--kb-toast-ink': pair('--kb-toast-ink') }
+  for (const [where, vars] of [['stylesheet', fromCss], ['bridge', fromBridge]]) {
+    for (const scheme of ['light', 'dark']) atLeast('toast ink on toast fill, ' + where + ' (' + scheme + ')', contrast(colour('var(--kb-toast-ink)', scheme, vars), colour('var(--kb-toast)', scheme, vars)), 4.5)
+  }
+  const wrap = rule(file, '.kbsl-toastwrap')
+  assert.equal(lastDecl(wrap.body, 'color'), 'var(--kb-toast-ink)')
+  assert.equal(lastDecl(wrap.body, 'background'), 'var(--kb-toast)')
+  const btn = rule(file, '.kbsl-toast-btn')
+  assert.equal(lastDecl(btn.body, 'color'), 'inherit', 'the Undo button takes the toast\'s ink (it is a tint of it)')
+  const tip = rule(file, '.kbsl-tt::after')
+  assert.equal(lastDecl(tip.body, 'color'), 'var(--kb-toast-ink)')
+  assert.equal(lastDecl(tip.body, 'background'), 'var(--kb-toast)')
 })
 
 console.log('\n' + count + ' tests passed')

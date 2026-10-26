@@ -262,6 +262,28 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     ok('switched off: « désactivé », not green', textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip')) === 'Contrôle à distance · désactivé' && !/ok/.test(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip').props.className))
     T.state.remote = { ...REMOTE_READY, configured: false }
     ok('a server that does not offer the phone link: « pas encore proposé »', textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip')) === 'Contrôle à distance · pas encore proposé')
+    // L1-104 (recette 2026-10-25): a plan that does not include the phone link was drawn « prêt », in green, while the window « Set up… » opens said « Not included in your plan ».
+    T.state.remote = { ...REMOTE_READY, entitled: false }
+    {
+      const chip = one(ui(T.views.Strip), 'kybernos-kyber-remote-chip')
+      ok('a plan without the phone link: « hors de ton offre », not green, and never « prêt »', textOf(chip) === 'Contrôle à distance · hors de ton offre' && !/ok/.test(chip.props.className) && !/prêt/.test(textOf(chip)), textOf(chip))
+      globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+      const en = textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip'))
+      globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr'
+      ok('and in English', en === 'Remote control · not in your plan' && !/ready/.test(en), en)
+      T.state.remote = { ...REMOTE_READY, entitled: false, devices: [{ id: 'a' }] }
+      ok('even with a phone still linked from the earlier plan: the window shows the paywall first, so the strip says the same', textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip')) === 'Contrôle à distance · hors de ton offre')
+      T.state.remote = { ...REMOTE_READY, entitled: false, enabled: false }
+      ok('switched off AND not in the plan: « désactivé » (the window draws its « off » state before the paywall, so does the strip)', textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip')) === 'Contrôle à distance · désactivé')
+      T.state.remote = { ...REMOTE_READY, entitled: false, configured: false }
+      ok('a server that does not offer the phone link AND a plan without it: « pas encore proposé » (the window says that first)', textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip')) === 'Contrôle à distance · pas encore proposé')
+      T.state.remote = { ...REMOTE_READY, entitled: false, connected: false }
+      ok('signed out AND a plan without it: no claim about the plan (the window says « Sign in needed » first)', !/hors de ton offre/.test(textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip'))))
+      for (const known of [true, null, undefined]) {
+        T.state.remote = { ...REMOTE_READY, entitled: known }
+        ok('entitled ' + known + ' (in the plan, or not known yet): « prêt » as before', textOf(one(ui(T.views.Strip), 'kybernos-kyber-remote-chip')) === 'Contrôle à distance · prêt')
+      }
+    }
     for (const none of [null, { ok: false }, { ok: true, available: false }]) {
       T.state.remote = none
       ok('no phone link on this DSH (' + JSON.stringify(none) + '): the strip says nothing of it, and still says the rest', byKb(ui(T.views.Strip), 'kybernos-kyber-remote-chip').length === 0 && byKb(ui(T.views.Strip), 'kybernos-kyber-computer-chip').length === 1)
@@ -319,6 +341,18 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     globalThis.window.__KB_MOBILE__ = was
     set({ tg: LINKED, home: null })
     ok('connected: the row says who (Connecté : …) and the button is « Gérer »', textOf(one(ui(T.views.StatusList), 'kybernos-kyber-tg-row')).includes('Connecté : Amina (@alex)') && textOf(one(ui(T.views.StatusList), 'kybernos-kyber-set-telegram')) === 'Gérer')
+    T.state.remote = { ...REMOTE_READY, entitled: false }
+    {
+      const locked = ui(T.views.StatusList)
+      const line = one(locked, 'kybernos-kyber-row-remote')
+      ok('a plan without the phone link: the list says « Non inclus dans ton offre » and nothing of « Actif » or « prêt », and the row is marked locked', textOf(line) === 'Contrôle à distance Non inclus dans ton offre Régler…' && !/Actif|prêt/.test(textOf(line)) && line.props['data-state'] === 'locked', textOf(line))
+      ok('the tab, which is this list, says the same', textOf(one(ui(T.views.Pane), 'kybernos-kyber-row-remote')).includes('Non inclus dans ton offre'))
+      globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+      const en = textOf(one(ui(T.views.StatusList), 'kybernos-kyber-row-remote'))
+      globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr'
+      ok('in English: « Not included in your plan » (the words of the window)', en.includes('Not included in your plan') && !/On, ready|Actif/.test(en), en)
+      ok('the list has no switch for it (it shows states, it does not act)', byKb(locked, 'kybernos-kyber-remote-switch').length === 0 && nodes(locked).filter((n) => n.props !== undefined && n.props.role === 'switch').length === 0)
+    }
     T.state.remote = null
     ok('with no phone link on this DSH the list has no remote line', byKb(ui(T.views.StatusList), 'kybernos-kyber-row-remote').length === 0)
     ok('the tab is this list under the assistant\'s name, with the refresh button', (() => { const pane = ui(T.views.Pane); return byKb(pane, 'kybernos-kyber-status-list').length === 1 && byKb(pane, 'kybernos-kyber-refresh').length === 1 })())

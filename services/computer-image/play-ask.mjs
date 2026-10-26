@@ -52,6 +52,7 @@ const text = (m) => (typeof m.content === 'string' ? m.content : Array.isArray(m
 
 const server = createServer((req, res) => {
   let raw = ''
+  // body-cap: the stand-in platform of a replay script, on loopback, for one run on the developer's machine; it is not a route of a product
   req.on('data', (d) => { raw += d })
   req.on('end', () => {
     let body = {}

@@ -4,12 +4,14 @@
 """
 
 import json
+import os
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from unittest import mock
 
-from call_meta import (CallLimits, CallMeta, CallState, VoiceChoice, fetch_speech, filler, instructions,
-                       parse_job_metadata, speakable, speech_url, stt_options, utterance_payload)
+from call_meta import (CALL_TOKEN_ENV, CALL_TOKEN_HEADER, CallLimits, CallMeta, CallState, VoiceChoice, fetch_speech, filler, host_headers,
+                       instructions, parse_job_metadata, speakable, speech_url, stt_options, utterance_payload)
 
 
 class ParseJobMetadata(unittest.TestCase):
@@ -185,7 +187,7 @@ class _Speech(BaseHTTPRequestHandler):
     seen = []
 
     def do_GET(self):
-        _Speech.seen.append({"path": self.path, "origin": self.headers.get("origin")})
+        _Speech.seen.append({"path": self.path, "origin": self.headers.get("origin"), "token": self.headers.get(CALL_TOKEN_HEADER)})
         body = json.dumps({"ok": True, "known": True, "items": [{"seq": 1, "kind": "text", "text": "hello"}], "next": 1}).encode()
         self.send_response(200)
         self.send_header("content-type", "application/json")
@@ -215,9 +217,40 @@ class FetchSpeech(unittest.TestCase):
         self.assertEqual(_Speech.seen[-1]["origin"], host)
         self.assertIn("room=room-1&after=3&wait=0", _Speech.seen[-1]["path"])
 
+    def test_it_presents_this_runs_secret(self):
+        # L3-03: an Origin alone proves nothing, so the host gives each worker run a secret (KYBER_CALL_TOKEN) and the poll sends it in a header.
+        server = HTTPServer(("127.0.0.1", 0), _Speech)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            host = "http://127.0.0.1:%d" % server.server_port
+            with mock.patch.dict(os.environ, {CALL_TOKEN_ENV: "run-secret-1"}):
+                fetch_speech(host, "room-1", 0, 0)
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertEqual(_Speech.seen[-1]["token"], "run-secret-1")
+
     def test_a_network_error_raises(self):
         with self.assertRaises(Exception):
             fetch_speech("http://127.0.0.1:1", "room-1", 0, 0)
+
+
+class HostHeaders(unittest.TestCase):
+    def test_the_origin_and_this_runs_secret(self):
+        headers = host_headers("http://127.0.0.1:3080/", {"content-type": "application/json"}, {CALL_TOKEN_ENV: "s3cret"})
+        self.assertEqual(headers, {"origin": "http://127.0.0.1:3080", CALL_TOKEN_HEADER: "s3cret", "content-type": "application/json"})
+
+    def test_without_a_secret_only_the_origin_goes(self):
+        # A hand-started worker has none: it sends the Origin alone and the host refuses it, which is the point.
+        self.assertEqual(host_headers("http://127.0.0.1:3080", None, {}), {"origin": "http://127.0.0.1:3080"})
+        self.assertEqual(host_headers("http://127.0.0.1:3080", None, {CALL_TOKEN_ENV: ""}), {"origin": "http://127.0.0.1:3080"})
+
+    def test_the_secret_is_read_from_the_process_environment(self):
+        with mock.patch.dict(os.environ, {CALL_TOKEN_ENV: "from-the-env"}):
+            self.assertEqual(host_headers("http://h")[CALL_TOKEN_HEADER], "from-the-env")
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(CALL_TOKEN_ENV, None)
+            self.assertNotIn(CALL_TOKEN_HEADER, host_headers("http://h"))
 
 
 class CloneAndLimits(unittest.TestCase):

@@ -181,6 +181,13 @@ try {
   }
   check('the publisher is the repository\'s owner', src1 !== undefined && new RegExp('(Published by|Publié par)\\s*' + src1.split('/')[0] + '\\b').test(d1), d1.slice(0, 300))
   await shot('discover-panel')
+  if (!limited && pick === 'grill-me') {
+    // The real grill-me of mattpocock/skills (2026-10-26: a 36-character body that only calls the « grilling » skill, which is not installed with it).
+    const vet = await panelText('skill-vet')
+    check('the real grill-me carries the warning at the top of its panel: empty or unusable, hands over to grilling', vet.length > 0 && /grilling/.test(vet) && /empty or unusable|vide ou inutilisable/.test(vet), vet)
+    check('and it is the only block of that kind in the panel, drawn as a warning (a role, not an alert)', (await js("document.querySelectorAll('[data-kb=\"skill-vet\"]').length")) === 1 && (await js("document.querySelector('[data-kb=\"skill-vet\"]').getAttribute('role')")) === 'note')
+    await shot('discover-warning')
+  }
   await openRow(other)
   const d2 = await panelText('disc-panel')
   check('another card (' + other + ') has its own detail', d2.includes(other) && d2 !== d1)
@@ -194,6 +201,7 @@ try {
     const ic = await panelText('install-confirm')
     check('Install asks first, with this skill, its repository and the folder it will be copied to', ic.includes(pick) && ic.includes(src1) && ic.includes(join(config.dsh, 'skills', pick)), ic.slice(0, 500))
     check('with the explanation of what the button does', /Installing downloads the archive|Installer télécharge l.archive/.test(ic) && /COPIES|COPIE/.test(ic), ic.slice(0, 300))
+    if (pick === 'grill-me' && !limited) check('for the empty skill the confirmation says it again, before anything is downloaded', /grilling/.test(ic) && (await js("document.querySelectorAll('[data-kb=\"skill-vet\"]').length")) === 2 && blocked.every((b) => b.indexOf('/install') < 0), ic.slice(0, 300))
     await shot('install-confirm')
     await js("document.querySelector('[data-kb=\"install-confirm-no\"]').click()")
     await sleep(400)

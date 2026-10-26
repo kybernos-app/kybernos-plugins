@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-pulse
+      name: '@local/kybernos-pulse'

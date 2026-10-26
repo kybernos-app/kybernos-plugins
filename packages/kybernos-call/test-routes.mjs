@@ -84,7 +84,7 @@ const fakeAdmin = {
   deleteClone: async (id) => { adminCalls.push(['delete', id]); return { ok: true } },
   applyPreset: async (id) => { adminCalls.push(['preset', id]); return id === 'live' ? { ok: true, settings: {} } : { ok: false, error: 'this preset is not available yet' } },
   avatars: async () => { adminCalls.push(['avatars']); return { ok: true, avatars: [] } },
-  runHealth: async (base) => { adminCalls.push(['health', base]); return { ok: true, checks: [] } },
+  runHealth: async (base, auth) => { adminCalls.push(['health', base, auth]); return { ok: true, checks: [] } },
   engine: async (action) => { adminCalls.push(['engine', action]); return action === 'status' || action === 'install' ? { ok: true, state: 'idle' } : { ok: false, error: 'unknown action' } }
 }
 mountCallRoutes(webServer, fakeCall, here, (fn, label) => { effects.push(label); return fn() }, feed, fakeAdmin)
@@ -225,11 +225,16 @@ assert.deepEqual(adminCalls.pop(), ['engine', 'install'])
 res = await run(ROUTES.engine, makeReq('POST', { ...same, body: { action: 'format-disk' } }))
 assert.equal(res.status, 400)
 adminCalls.pop()
-ok('preset, avatars, health and engine: same origin only; a preset that cannot be applied, or an unknown engine action, is 400')
+ok('preset, avatars, health and engine: same origin and the signed cookie; a preset that cannot be applied, or an unknown engine action, is 400')
+const adminBefore = adminCalls.length
 res = await run(ROUTES.health, makeReq('POST', { origin: 'http://127.0.0.1:3099', port: 3099, body: {} }))
+assert.equal(res.status, 401)
+assert.equal(adminCalls.length, adminBefore, 'the health check, which spends the owner\'s keys, needs the signed cookie')
+const healthCookie = sessionCookie('127.0.0.1:3099')
+res = await run(ROUTES.health, makeReq('POST', { origin: 'http://127.0.0.1:3099', port: 3099, cookie: healthCookie, body: {} }))
 assert.equal(res.status, 200)
-assert.deepEqual(adminCalls.pop(), ['health', 'http://127.0.0.1:3099'])
-ok('the health check asks this DSH\'s own voice engine, at the address of the socket the request came in on')
+assert.deepEqual(adminCalls.pop(), ['health', 'http://127.0.0.1:3099', { cookie: healthCookie }])
+ok('the health check asks this DSH\'s own voice engine, at the address of the socket the request came in on, and hands the page\'s own cookie on (the core\'s voice routes want it)')
 
 console.log('kybernos-call: the speech route')
 feed.register('room-speak', 'session-aaaaaaaa')
@@ -284,6 +289,17 @@ try {
   const effects1 = []
   const reg1 = new Map()
   apply({ get: (n) => (n === 'webServer' ? { register: (r) => { reg1.set(r.path, r); return () => {} } } : undefined), inject: () => { throw new Error('should not inject') }, effect: (fn, l) => { effects1.push(l); return fn() } })
+  // The worker's check is published for the core's voice routes, and withdrawn when the plugin stops.
+  const slot = Symbol.for('kybernos.callWorkerToken')
+  delete globalThis[slot]
+  const disposers = []
+  apply({ get: (n) => (n === 'webServer' ? { register: () => () => {} } : undefined), inject: () => {}, effect: (fn) => { const off = fn(); if (typeof off === 'function') disposers.push(off); return off } })
+  const published = globalThis[slot]
+  assert.equal(typeof published, 'function')
+  assert.equal(published({ headers: { 'x-kybernos-call-token': 'nothing was started' } }), false)
+  assert.equal(published({ headers: {} }), false)
+  disposers.forEach((off) => off())
+  assert.equal(globalThis[slot], undefined)
   // webServer arrives later
   const reg2 = new Map()
   let injected = null
