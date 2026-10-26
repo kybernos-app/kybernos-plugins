@@ -11,6 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.kybernos.host",
       "infoPlist": {
+        "CFBundleLocalizations": ["en", "fr"],
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         },
