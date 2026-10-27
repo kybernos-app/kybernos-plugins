@@ -15,13 +15,14 @@
     "index.js",
     "lib",
     "skills",
+    "templates",
     "session-guard.mjs",
     "lib-session-test.mjs",
     "cordis.patch.yml",
     "README.md"
   ],
   "scripts": {
-    "check": "node --check index.js && node --check lib/apps.mjs && node --check lib/runtime.mjs"
+    "check": "node --check index.js && node --check lib/apps.mjs && node --check lib/runtime.mjs && node --check lib/templates.mjs && node --check templates/statique/server.js && node --check templates/web/server.js && node --check templates/web/api.js"
   },
   "dsh": {
     "bundle": {

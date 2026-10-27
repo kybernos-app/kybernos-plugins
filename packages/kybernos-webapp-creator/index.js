@@ -24,6 +24,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeGuard } from './session-guard.mjs'
 import { appsRoot, discoverApps, findApp, scaffoldApp } from './lib/apps.mjs'
+import { scaffoldFromTemplate } from './lib/templates.mjs'
 import { readLogs, startApp, statusApp, stopApp } from './lib/runtime.mjs'
 
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle
@@ -154,10 +155,12 @@ const etatDesApps = async () => {
 }
 
 const creerApp = async (corps) => {
-  const r = scaffoldApp(appsRoot(), { nom: corps && corps.nom, slug: corps && corps.slug })
+  const r = scaffoldApp(appsRoot(), { nom: corps && corps.nom, slug: corps && corps.slug, stack: corps && corps.stack })
   if (r.ok !== true) return { ok: false, error: r.error }
-  dire('app scaffolded: ' + r.app.slug)
-  return { ok: true, app: r.app }
+  const t = scaffoldFromTemplate(r.dir, r.app.stack)
+  if (t.ok !== true) return { ok: false, error: t.error, app: r.app }
+  dire('app scaffolded: ' + r.app.slug + ' (stack ' + t.stack + ')')
+  return { ok: true, app: r.app, stack: t.stack }
 }
 
 const avecApp = (corps, action) => {

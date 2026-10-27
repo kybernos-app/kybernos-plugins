@@ -41,6 +41,7 @@ const chaine = (v, repli) => (typeof v === 'string' && v.trim() !== '' ? v.trim(
 const normaliser = (brut, dir) => ({
   nom: chaine(brut.nom, chaine(brut.slug, 'webapp')),
   slug: chaine(brut.slug, ''),
+  stack: chaine(brut.stack, 'web'),
   pages: Array.isArray(brut.pages) ? brut.pages.slice(0, 20).map((p) => chaine(p, '')).filter((p) => p !== '') : [],
   acces: brut.acces === 'public' ? 'public' : 'cle',
   donnees: brut.donnees === 'none' ? 'none' : 'personnel',
@@ -76,7 +77,7 @@ export function findApp (slug, root = appsRoot()) {
  * Scaffold one app folder: `<root>/<slug>/webapp.json`. The mini base, the mockup and the code are
  * the skills' work (webapp-build), not this function's: it only claims the slug and writes the brief.
  */
-export function scaffoldApp (root, { nom, slug }) {
+export function scaffoldApp (root, { nom, slug, stack }) {
   const verdict = validateSlug(slug)
   if (verdict.ok !== true) return { ok: false, error: verdict.error }
   const dir = join(root, slug)
@@ -87,6 +88,7 @@ export function scaffoldApp (root, { nom, slug }) {
       version: 1,
       nom: chaine(nom, slug),
       slug,
+      stack: chaine(stack, 'web'),
       pages: [],
       entites: [],
       style: {},
