@@ -2870,6 +2870,51 @@
           "en": "The floating window only exists in Chrome, Edge, Brave and their cousins, and always opens from a click; the banners and the count on the tab work everywhere."
         }
       }
+    },
+    {
+      "id": "kybernos-webapp-creator",
+      "nom": "@local/kybernos-webapp-creator",
+      "titre": "Webapp Creator",
+      "glyphe": "cal",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 24,
+      "promesse": {
+        "fr": "Crée des apps web avec une mini base SQLite et les fait tourner en local ; le lien de chaque app arrive dans un lot suivant.",
+        "en": "Create web apps with a mini SQLite base and run them locally; each app gets its own link in a later batch."
+      },
+      "aide": {
+        "what": {
+          "fr": "Crée des apps web avec une mini base SQLite et les fait tourner en local ; les skills embarquées pilotent la boucle : brief, build, publish.",
+          "en": "Creates small web apps from the chat, each with its own mini SQLite base, and runs them on this computer. The three bundled skills drive the whole loop: brief, build (mockup first), publish."
+        },
+        "steps": [
+          {
+            "fr": "Demande une app dans le chat : le skill webapp-brief t'interviewe et écrit le brief.",
+            "en": "Ask for an app in the chat: the webapp-brief skill interviews you and writes the brief."
+          },
+          {
+            "fr": "webapp-build dessine la maquette, construit la mini base, puis l'app — après sa passe UI.",
+            "en": "webapp-build draws the mockup, builds the mini base, then the app — after its UI pass."
+          },
+          {
+            "fr": "Démarre et arrête chaque app via les routes de l'hôte ; les logs restent dans son dossier.",
+            "en": "Start and stop each app from the host routes; the logs stay in the app folder."
+          }
+        ],
+        "where": {
+          "fr": "Depuis le chat ; l'onglet Webapps du volet droit arrive au lot suivant",
+          "en": "From the chat; the right-sidebar Webapps tab comes in the next batch",
+          "page": false
+        },
+        "good": {
+          "fr": "POC : création et exécution en local. Publication sur *.kaby.app, versions et volet ensuite.",
+          "en": "POC: creation and local runs only. Publishing on *.kaby.app, versions and the pane come next."
+        }
+      }
     }
   ]
 }

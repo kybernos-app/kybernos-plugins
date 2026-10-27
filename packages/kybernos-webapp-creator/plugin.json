@@ -1,0 +1,44 @@
+{
+  "contract": 1,
+  "id": "kybernos/webapp-creator",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Webapp Creator",
+    "fr": "Webapp Creator"
+  },
+  "description": {
+    "en": "Create web apps with a mini SQLite base and run them locally; each app gets its own link in a later batch.",
+    "fr": "Crée des apps web avec une mini base SQLite et les fait tourner en local ; le lien de chaque app arrive dans un lot suivant."
+  },
+  "icon": "cal",
+  "family": "create",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-webapp-creator",
+  "entry": {
+    "host": "index.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "host.routes:/kybernos-webapp-creator:write",
+    "fs.read:dsh-home",
+    "fs.write:dsh-home",
+    "exec:node"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-webapp-creator"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

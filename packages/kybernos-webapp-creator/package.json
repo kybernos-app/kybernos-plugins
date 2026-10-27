@@ -1,0 +1,31 @@
+{
+  "name": "@local/kybernos-webapp-creator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Create web apps with a mini SQLite base and run them locally; the Webapps pane and *.kaby.app publishing follow in the next batches.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "skills",
+    "session-guard.mjs",
+    "lib-session-test.mjs",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check lib/apps.mjs && node --check lib/runtime.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
