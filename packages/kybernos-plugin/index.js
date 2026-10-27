@@ -37,6 +37,7 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 // résumé ÉPINGLÉ. (Sans config, `resolveConfig` laisse « » et l'engine tombe sur
 // le modèle de session — c'est là que le compactage meurt.)
 import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './preset-legacy.mjs'
+import { poserEconomieContexte } from './economie-contexte.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
 import { createI18nStore, serveI18nStore } from './i18n-store.mjs'
@@ -2523,6 +2524,16 @@ function boot(ctx) {
           const repli = await replierSurStandard({ agentPresets: service, settings: reglages })
           if (repli.ecrit === true) console.log('[kybers] default preset put back on ' + repli.id + ' (' + repli.ns + ')')
           else console.log('[kybers] default preset left as it is — ' + repli.raison)
+          // Compaction economy (27/10/2026): the native trigger is 80 % of the window, so a 262K route grows to ~188K
+          // before it condenses. Lower it in every preset, in memory, at boot — no file, survives upgrades, and the
+          // summary keeps the session model (no pin, so the provider's warm prefix cache is kept). Rollback: delete
+          // this call (or set RATIO_ECONOMIE to 0.8).
+          try {
+            const economie = await poserEconomieContexte({ agentPresets: service })
+            if (economie.rows > 0) console.log('[kybers] compaction economy: ratio ' + economie.ratio + ' on ' + economie.rows + ' row(s) (' + economie.presets.join(', ') + ')')
+            else if (economie.raison !== undefined) console.log('[kybers] compaction economy — ' + economie.raison)
+            else console.log('[kybers] compaction economy already in place')
+          } catch (e) { console.log('[kybers] compaction economy: failed — ' + errText(e)) }
         })
         .catch((e) => console.log('[kybers] legacy preset: failed — ' + errText(e)))
     }
