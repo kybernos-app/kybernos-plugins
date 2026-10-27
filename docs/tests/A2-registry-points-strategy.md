@@ -71,7 +71,7 @@ AMBIGUITY: 3 — the name of the new point field. Pinned here as `files` with th
 
 - `kybernos/dashboards#preset` and any `dashboards/` (or `presets/`) folder: not in A2's folder list (contract row,
   `docs/dev/plugin-contract.md:266`), though the strategy example lists it
-  (`docs/etudes/2026-10-27-vertical-bundles-strategy.md:62`). Decided, recorded, not built.
+  (`docs/etudes/2026-10-27-sector-packs-strategy.md:62`). Decided, recorded, not built.
 - Defining `kybernos/theme#theme` (batch A1-theme-seam), `kybernos/core#team-template` and
   `kybernos/core#automation-template` (batch A2-pack-format). A2 **consumes** them; its tests stub them.
 - Any write to `<DSH home>/skills` or `<DSH home>/kybernos/**` (I5), and any sixth `seed-skills.mjs` copy.

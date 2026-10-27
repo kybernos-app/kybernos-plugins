@@ -1,7 +1,7 @@
 # A2-pack-format — test strategy (written before any code)
 
 Batch: `A2-pack-format` — *pack format: theme reference, multi-point merge, host routes, onboarding state*.
-Campaign: Phase A of the vertical-bundles strategy (`docs/etudes/2026-10-27-vertical-bundles-strategy.md`, sections 3, 4, 8).
+Campaign: Phase A of the sector-packs strategy (`docs/etudes/2026-10-27-sector-packs-strategy.md`, sections 3, 4, 8).
 Binding contracts: skill `contrat-pack-vertical` (build contract 1-4), `AGENTS.md`, `docs/dev/domain-packs.md`, `docs/dev/plugin-contract.md`.
 Triage verdict on disk: `docs/tests/triage.md` (`chemin: complet`).
 
@@ -113,7 +113,7 @@ prefers the exact-set equality, then A3 needs a one-line exception on a file thi
   does not) are not touched here — the DoD only asserts this batch leaves every real pack file loadable and in order.
 - **A new pack key other than `theme`**; a second accent; an `a11y` key; free CSS; a fonts URL. All of them stay refused (`domain-pack.mjs:71`, `:45`).
 - **Raising `ONBOARDING_VERSION`** (`onboarding-state.mjs:6-11`: it would reopen the wizard for everyone).
-- **The starter template and the "Build a sector bundle" page** — batch A4-starter-docs.
+- **The starter template and the "Build a sector pack" page** — batch A4-starter-docs.
 - **i18n of the new strings** beyond the pack's own language objects (`LANGS`, `domain-pack.mjs:18`); no new UI string is introduced here.
 - **Per-goal enforcement of the kit bounds.** Templates are bounded *per file*; a goal is not re-counted against `LIMITS` (`:28`).
 
