@@ -1,9 +1,15 @@
-# Vertical bundles: a theme + plugin strategy for sector setups
+# Sector packs: a theme + plugin strategy for sector setups
 
 Status: **strategy proposal, 2026-10-27**. It changes neither `docs/dev/plugin-contract.md`
 (draft v0) nor `docs/dev/domain-packs.md`; it reads them as the two halves of one WordPress-like
-system and sequences the missing pieces around a single user-visible concept: the **vertical
-bundle** (one installable unit per field of work).
+system and sequences the missing pieces around a single user-visible concept: the **sector pack** (one installable unit per field of work).
+
+> **Naming (2026-10-27, owner decision).** « plugin » is reserved for DSH plugins (code modules
+> installed in the engine) and « bundle » for DSH's install unit. The sector unit is a **sector
+> pack** (*pack secteur*): one installable unit per field of work, composing a **theme** (token
+> overlay), a **domain pack** (the field JSON) and a **kit** (skills, teams, automations).
+> Technically it travels in the plugin contract's *data-plugin* format — the format's name is not
+> the product's name.
 
 ## 1. The question, and the one-line answer
 
@@ -29,7 +35,7 @@ So the ecosystem does not need inventing: it needs **one composition unit** (sec
 theme seam wired to the field** (section 4), and **the delivery pipe for other authors**
 (sections 5–6).
 
-## 2. Why the vertical bundle is the right unit
+## 2. Why the sector pack is the right unit
 
 Two people in the same sector want the same three things at once: a look, a vocabulary, and the
 features their goals imply. Selling or installing those three separately is the mistake. The
@@ -152,7 +158,7 @@ says the level, never more.
    be read like `domains/` already is (registry folder scan, per-point validators).
 3. Ship two verticals end to end — **Health and Law** (their packs are the most complete) — as
    `kybernos/*` bundles: theme preset + pack + kit, on the real wizard.
-4. Publish the starter template and the « Build a sector bundle » page.
+4. Publish the starter template and the « Build a sector pack » page.
    *Gate:* a fresh profile that picks Health lands on its theme, its menu words and its kit; a
    broken bundle is a line in a list and never stops DSH (existing fault test).
 

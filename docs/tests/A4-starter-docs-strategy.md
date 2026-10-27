@@ -54,7 +54,7 @@ Readings:
 - **(a) the five data points that exist or land in this wave**, i.e. `kybernos/core#domain-pack`,
   `kybernos/theme#theme`, `kybernos/skills#skill`, `kybernos/core#team-template`,
   `kybernos/core#automation-template` — the five rows of the contract table
-  (`docs/dev/plugin-contract.md:265-272`) that a sector bundle can actually target, with
+  (`docs/dev/plugin-contract.md:265-272`) that a sector pack can actually target, with
   `kybernos/dashboards#preset` deliberately **out** because it is still not built;
 - (b) the five-part *bundle anatomy* of the strategy (`plugin.json` + four folders);
 - (c) something the human has in mind that is written down nowhere.
@@ -165,14 +165,14 @@ Every `file:line` below was opened and read in this repository before it was wri
 | `packages/kybernos-plugin/domain-pack.mjs:68`, `:225-231` | `validatePack`, `validateContribution`, `DOMAIN_POINT` (with `max: 12`), `DOMAIN_POINT_REF` |
 | `packages/kybernos-theme/preset-store.mjs:43-52`, `:63-66`, `:92-115` | the token vocabulary (`acc`, `fontText`, `radius`…), `HEX6`, `sanitizePreset` (`{ id, name, settings }`, unknown keys dropped, ≥1 known setting) |
 | `packages/kybernos-registry/skills/plugin-creator/SKILL.md:13-20`, `:47-67`, `:69-85`, `:87-88` | the ceiling: data only, runs nothing, four files, no `scripts`/`bin`/`main`, `local/<name>` id, `description` ≤ 240 characters |
-| `docs/etudes/2026-10-27-vertical-bundles-strategy.md:125-127` | the starter's expected anatomy; `:25` still says `plugin-check.mjs … not built`; `:161` puts its publication in phase B |
+| `docs/etudes/2026-10-27-sector-packs-strategy.md:125-127` | the starter's expected anatomy; `:25` still says `plugin-check.mjs … not built`; `:161` puts its publication in phase B |
 | `scripts/run-all-tests.mjs:73-77`, `:104-114` | `--only <text>` filters discovered files; discovery is `scripts/test-*.mjs` + `packages/*/test*.mjs` + two `node --test` folders |
 | `scripts/test-en-quotes.mjs:10`, `:16-23` | scans **only** `packages/*/client.js` |
 | `docs/tests/triage.md:1-3` | the binding triage: `chemin: complet`, three sensitive files |
 
 Measured, not assumed (commands run in this repository on 2026-10-27):
 
-1. **The strategy's own example manifest is invalid.** `docs/etudes/2026-10-27-vertical-bundles-strategy.md:49-65`
+1. **The strategy's own example manifest is invalid.** `docs/etudes/2026-10-27-sector-packs-strategy.md:49-65`
    fed to `manifestErrors({}, …)` returns, in order:
    `(root) "description" is required`; and once a `description` is added,
    `extends "kybernos/skills#skill" but "kybernos/skills" is not in requires.plugins` and
@@ -207,7 +207,7 @@ Measured, not assumed (commands run in this repository on 2026-10-27):
 
 ## 3. AMBIGUITY: what a human must settle, not me
 
-AMBIGUITY A1 — **the five frozen interfaces.** `I1`..`I5` are named nowhere in the repository. I read them as the five data points a sector bundle can target (`kybernos/core#domain-pack`, `kybernos/theme#theme`, `kybernos/skills#skill`, `kybernos/core#team-template`, `kybernos/core#automation-template`, with `kybernos/dashboards#preset` excluded because it is not built). Confirm this list, or supply the five and I freeze the page's table on them.
+AMBIGUITY A1 — **the five frozen interfaces.** `I1`..`I5` are named nowhere in the repository. I read them as the five data points a sector pack can target (`kybernos/core#domain-pack`, `kybernos/theme#theme`, `kybernos/skills#skill`, `kybernos/core#team-template`, `kybernos/core#automation-template`, with `kybernos/dashboards#preset` excluded because it is not built). Confirm this list, or supply the five and I freeze the page's table on them.
 
 AMBIGUITY A2 — **the starter's `package.json`.** Strict reading of the batch's interdiction = no `dsh` key (my choice, validated by `registry.mjs:54-72`), which diverges from the four-file draft shape of `plugin-creator/SKILL.md:47-67` and from the registry's own fixtures (`test-host.mjs:44-45`). Do we accept the divergence (the page explains why a data bundle needs no patch), or does the template copy the skill's shape verbatim?
 
@@ -223,8 +223,8 @@ AMBIGUITY A5 — **who exports the point objects for a static run.** The tool ne
 
 ### A. The page `docs/dev/sector-bundles.md`
 
-- [ ] H1 is "Build a sector bundle" (the file name stays the kebab-case topic name `sector-bundles.md`).
-- [ ] One opening paragraph says what a bundle is (one folder, one `plugin.json`, several `extends`) and cites the strategy (`docs/etudes/2026-10-27-vertical-bundles-strategy.md:44-47`) — no invented framing.
+- [ ] H1 is "Build a sector pack" (the file name stays the kebab-case topic name `sector-bundles.md`).
+- [ ] One opening paragraph says what a bundle is (one folder, one `plugin.json`, several `extends`) and cites the strategy (`docs/etudes/2026-10-27-sector-packs-strategy.md:44-47`) — no invented framing.
 - [ ] A section **Primitives first** (page / dashboard / listing, one view kind per datum / kit) with the "fits none of them → platform-evolution request, never a custom screen in a pack" sentence, cited to the build-contract skill `contrat-pack-vertical` and strategy `:74-84`.
 - [ ] A section **Custom UI lives in Settings** (bounded fields, data only, no journey logic).
 - [ ] A section **A theme is a token overlay** — one hex per sector, no CSS, no fetched font; the vocabulary cited to `packages/kybernos-theme/preset-store.mjs:43-52`, `:92-115`.
@@ -478,7 +478,7 @@ this batch. The English-docs rule is held by review and by D3/D4 instead.
   "not built" in the page and in section 11.
 - **The `kybernos/dashboards#preset` point**: it stays "not built"; A4 must not make it look built to
   fill a table.
-- **The strategy document** (`docs/etudes/2026-10-27-vertical-bundles-strategy.md`) and
+- **The strategy document** (`docs/etudes/2026-10-27-sector-packs-strategy.md`) and
   `docs/tests/triage.md`: not in this batch's file list. Its invalid example (`:49-65`) and its stale
   `plugin-check.mjs … not built` line (`:25`) are recorded as follow-ups, not fixed here.
 - **A second template** (a Law or recruitment variant): one worked example beats an SDK; more would be
@@ -489,7 +489,7 @@ this batch. The English-docs rule is held by review and by D3/D4 instead.
 
 ## 8. Follow-ups recorded (not silently closed)
 
-- **F1** — `docs/etudes/2026-10-27-vertical-bundles-strategy.md:49-65`: its example manifest is refused
+- **F1** — `docs/etudes/2026-10-27-sector-packs-strategy.md:49-65`: its example manifest is refused
   by the repo's own validator (missing `description`; then `kybernos/skills` and `kybernos/dashboards`
   missing from `requires.plugins`). Fix belongs to the strategy's owner; A4 shows the valid version.
 - **F2** — the batch's dod line on `test-en-quotes.mjs` is vacuous (the test reads only

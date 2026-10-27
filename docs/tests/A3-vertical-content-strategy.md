@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Batch | `A3-vertical-content` — two vertical packs end to end: cabinet medical + recrutement SSII |
-| Campaign | Phase A of `docs/etudes/2026-10-27-vertical-bundles-strategy.md` (sections 3, 4, 8 → lines 44-105, 146-157) |
+| Campaign | Phase A of `docs/etudes/2026-10-27-sector-packs-strategy.md` (sections 3, 4, 8 → lines 44-105, 146-157) |
 | Lane | **B** (no file of this batch touches auth, billing, RLS, migrations or secrets) |
 | Author role | `redacteur-spec` — this file only; no code, no test module, no pack edited here |
 | Binding contract | skill `contrat-pack-vertical` (primitives first, custom UI in Settings, theme = token overlay, cited or labelled) |
@@ -30,7 +30,7 @@
 **Chosen: (a).** Any new goal, skill name or sentence would be invented (contract 4; no source exists), and `domains/skills/` is *already* fully referenced — `packages/kybernos-plugin/test-domain-pack.mjs:222-225` fails on any skill folder no pack names, so an unused folder is a red suite. Consequence: the batch may leave `packages/kybernos-plugin/domains/skills/` **untouched** and still be complete.
 
 **I2 — where the word "PROPOSAL" physically lives.**
-(a) outside the JSON: in the sortie's citation table, in this spec, and in A4's "Build a sector bundle" page;
+(a) outside the JSON: in the sortie's citation table, in this spec, and in A4's "Build a sector pack" page;
 (b) inside the pack, as a new key.
 **Chosen: (a).** The pack shape is frozen by A2 (`v, id, order, accent, icon, name, tagline, keywords, home, legacyJobs, menu, mode, agents, goals` + `theme`), and today's validator refuses any other key — measured: a `theme` key added to `sante.json` in memory returns `ok=false, errors=["pack: unknown key \"theme\""]` (`packages/kybernos-plugin/domain-pack.mjs:71`). A free-text "status" key would be refused the same way. → `AMBIGUITY:` 2.
 
@@ -201,7 +201,7 @@ DoD: deterministic boolean commands of this repo, **all measured red today** (ex
 | A2-pack-format | `theme` added to the pack allowlist + in the cleaned pack object, **and** the two exact-set assertions of `test-domain-pack.mjs` widened (`:257` id list, `:290` preset map) | **missing** — `pack: unknown key "theme"`; the sibling spec `docs/tests/A2-pack-format-strategy.md:83-85` widens `:257` and `:322-327` but leaves `:290` outside its perimeter, so `:290` must be added to it or `dev` stays red after A3 | `domain-pack.mjs:71`, cleaned object `:187`; `test-domain-pack.mjs:257,290` |
 | A1-kit-wizard | the Kit step reads the pack's `theme` and applies the catalogue preset through the preset store | **missing** — the doc still says « no public apply-a-preset call was found » | `docs/dev/domain-packs.md:108` |
 | A2-registry-points | `themes/`, `skills/`, `teams/`, `automations/` folder scans (not needed by *this* batch, which ships repo-folder content) | **missing** | strategy `:150-152` |
-| A4 | the "Build a sector bundle" page that carries the PROPOSAL label in public docs | **missing** | strategy `:155` |
+| A4 | the "Build a sector pack" page that carries the PROPOSAL label in public docs | **missing** | strategy `:155` |
 
 ## Out of scope
 
@@ -247,7 +247,7 @@ DoD: deterministic boolean commands of this repo, **all measured red today** (ex
 | live gallery check reads its own count, exits 3 without a GUI | `scripts/check-theme-live.mjs:1543`, `:1561`, `:1573`, `:1542` |
 | the theme seam is « next », saved choice is « wired » | `docs/dev/domain-packs.md:108`, `:107`, `:110` |
 | shipped catalogue travels inside the Suite archive | `docs/dev/theme-gallery.md:12-13` |
-| build contract 4 (cited or labelled), theme = token overlay, Phase A gate | `docs/etudes/2026-10-27-vertical-bundles-strategy.md:85-87`, `:93-105`, `:146-157` |
+| build contract 4 (cited or labelled), theme = token overlay, Phase A gate | `docs/etudes/2026-10-27-sector-packs-strategy.md:85-87`, `:93-105`, `:146-157` |
 | the two named mockups are absent from disk | `find` depth 8 under `~/dyad-apps/dsh-kybernos`: nothing; `docs/handoff/` here holds only `desktop-electron`, `session-msg` |
 | a tenth pack's hard guards: 4-6 goals, `fr` everywhere, only `VERIFIED` skills, `agents.why.fr`, one accent per field, connectors in the catalogue, three market teams, `home`, menu rows, `legacyJobs` | `packages/kybernos-plugin/test-domain-pack.mjs:263`, `:267`, `:271`, `:288`, `:289`, `:253`, `:298-302`, `:304-306`, `:251`, `:319`, `:311-313` |
 | the two exact-set assertions a tenth pack turns red, and the file-name list it escapes | `packages/kybernos-plugin/test-domain-pack.mjs:257`, `:290`, `:322-327`; the sibling plan for them `docs/tests/A2-pack-format-strategy.md:83-85,100-101` |

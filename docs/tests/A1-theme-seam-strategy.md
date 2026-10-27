@@ -15,7 +15,7 @@ schema migration or money path is added. It becomes lane A the day the import ne
 (`packages/kybernos-registry/session-guard.mjs` is the only such door in the repo) or writes anything outside
 `<DSH home>/kybernos`.
 
-**Sources read (binding, in this order):** `docs/etudes/2026-10-27-vertical-bundles-strategy.md` sections 3, 4 and 8;
+**Sources read (binding, in this order):** `docs/etudes/2026-10-27-sector-packs-strategy.md` sections 3, 4 and 8;
 `docs/dev/domain-packs.md` (the « Theme per field » row, line 108, marked **next**); `docs/dev/plugin-contract.md`
 sections on `provides` (93, 131, 197, 251-265) and the two seams (302-317); `docs/tests/triage.md`; the wizard's
 frozen wire (`docs/tests/A1-kit-wizard-strategy.md:34-40`); the starter's shape

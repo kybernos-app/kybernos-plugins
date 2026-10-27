@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Batch | `A1-kit-wizard` — *onboarding Kit step applies the pack's theme preset through the seam* |
-| Campaign | Phase A of `docs/etudes/2026-10-27-vertical-bundles-strategy.md` (sections 3, 4, 8 → `:44-106`, `:146-168`) |
+| Campaign | Phase A of `docs/etudes/2026-10-27-sector-packs-strategy.md` (sections 3, 4, 8 → `:44-106`, `:146-168`) |
 | Lane | **B** (no file of this batch touches auth, billing, RLS, migrations or secrets) |
 | Author role | `redacteur-spec` — this file only; no code, no test module, no pack edited here |
 | Binding contract | skill `contrat-pack-vertical` (primitives first, custom UI in Settings, theme = token overlay, cited or labelled) |
@@ -72,7 +72,7 @@ AMBIGUITY: **what the Kit step shows about the theme — the display only, becau
 
 AMBIGUITY: **consent model (I5).** Chosen: the theme rides on `kitApply` and "Not now" skips it. The alternative — a tickable kit row, default ticked, counted in the summary line — is a more literal reading of "never imposed" and of the batch's own phrase "plus the theme preset" as kit *content*. It is a product decision, not a technical one: it changes what the person sees and counts. Arbitrate.
 
-AMBIGUITY: **which two verticals ship.** `docs/etudes/2026-10-27-vertical-bundles-strategy.md:153-154` says "Health and Law"; the campaign brief and the batch's frozen pack/theme ids say `sante` + `recrutement`. Chosen: **the campaign** (`sante` + `recrutement`), because the delegation contract is the later and binding word, and because the strategy doc lists the choice itself as an open question to the owner (`:181`, question 1). Consequence for this batch: none — the wizard reads an id, never a sector list — but A3 ships the pack and the two documents must not disagree in the release note.
+AMBIGUITY: **which two verticals ship.** `docs/etudes/2026-10-27-sector-packs-strategy.md:153-154` says "Health and Law"; the campaign brief and the batch's frozen pack/theme ids say `sante` + `recrutement`. Chosen: **the campaign** (`sante` + `recrutement`), because the delegation contract is the later and binding word, and because the strategy doc lists the choice itself as an open question to the owner (`:181`, question 1). Consequence for this batch: none — the wizard reads an id, never a sector list — but A3 ships the pack and the two documents must not disagree in the release note.
 
 AMBIGUITY: **the campaign's interface letters are overloaded — a human must reconcile the list, not the wires.** Corrected reading (the earlier draft of this file wrongly said "nothing under `docs/` defines them"): the seam half **exists on disk and is frozen** (`docs/tests/A1-theme-seam-strategy.md:24-53`, browser answer `:48-53`), and the pack key plus the onboarding field are written by `docs/tests/A2-pack-format-strategy.md:92-93`. What does not exist is one consistent campaign-level letter list: this delegation calls the seam "interface I1/I2" **and** the pack shapes "interfaces I2/I3", while `A2:93` calls the kit slices "I1". Chosen here: no letter is used as an authority — the wizard consumes `A1-theme-seam`'s browser answer verbatim (I2 above) and `A2`'s `pack.theme` + `theme` body field by reference (I6), and the campaign owner publishes one I1-I4 list (fixing the briefs that disagree) before any release note quotes an interface number. Nothing in the code depends on this choice; only the documents do.
 
@@ -317,7 +317,7 @@ node --input-type=module -e 'import{readFileSync}from"node:fs";import{createHash
 - **The `{action:'domain'}` body** (`:36637`) does **not** carry `theme` in this batch: changing the field later from Settings leaves the theme where it was. Recorded follow-up, not a silent gap.
 - **The two packs and the theme sources** (`domains/sante.json` gaining `theme`, `domains/recrutement.json`, `catalog/themes/*`, `gallery.json`): batch **`A3-vertical-content`**.
 - **The registry folder scans and the per-point validators** (`themes/`, `skills/`, `teams/`, `automations/`): batch **`A2-registry-points`**.
-- **The starter template and the "Build a sector bundle" page**: batch **`A4-starter-docs`**.
+- **The starter template and the "Build a sector pack" page**: batch **`A4-starter-docs`**.
 - **`pack.kit`** (A2's ambiguity 2, its `:90-91`): not read by the wizard at all — see the boundary section above. The wizard keeps deriving its kit from the pack's goals; contributed kit rows in the Kit screen are a follow-up against the frozen wire.
 - **`KB_MARKET_TEAMS` (`:23303-23361`) and the `KB-AUTOTPL` block (`:7799-8056`)**: frozen this phase; their extraction into point data is a recorded follow-up.
 - **The phone Kit step**: it does not exist in the live script today; adding one is a separate batch, and this batch must not invent it.
