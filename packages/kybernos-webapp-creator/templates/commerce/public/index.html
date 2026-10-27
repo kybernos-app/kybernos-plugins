@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; line-height: 1.5; background: Canvas; color: CanvasText; }
+  main { max-width: 56rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); margin: 0 0 1.25rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 .75rem; }
+  .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .9rem; }
+  .carte { border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: .8rem; padding: 1rem; display: grid; gap: .55rem; }
+  .prix { font-weight: 700; }
+  .stock { opacity: .65; font-size: .9rem; }
+  input, button { font: inherit; border-radius: .6rem; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); background: transparent; color: inherit; padding: .55rem .8rem; width: 100%; }
+  button { cursor: pointer; }
+  button.primary { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .panier { border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: .8rem; padding: 1rem; display: grid; gap: .55rem; }
+  .ligne { display: flex; gap: .75rem; align-items: center; justify-content: space-between; }
+  .vide { opacity: .6; }
+  .total { font-weight: 700; }
+  .ok { border: 1px solid #16a34a; border-radius: .8rem; padding: 1rem; margin-top: 1rem; }
+  @media (max-width: 480px) { .grille { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Shop</h1>
+  <p class="vide" id="aucun" hidden>No product yet — add one from the chat or the API.</p>
+  <div class="grille" id="grille"></div>
+
+  <h2>Your cart</h2>
+  <div class="panier">
+    <div id="lignes" class="vide">The cart is empty.</div>
+    <div class="ligne total"><span>Total</span><span id="total">0,00 €</span></div>
+    <input id="nom" placeholder="Your name">
+    <input id="email" type="email" placeholder="Your email">
+    <button class="primary" id="commander" disabled>Place the order</button>
+    <div id="confirmation" hidden class="ok"></div>
+  </div>
+</main>
+<script>
+const api = (path, body) => fetch(path, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json())
+const euro = (cents) => (cents / 100).toFixed(2).replace('.', ',') + ' €'
+let produits = []
+let panier = []
+
+const rendreProduits = () => {
+  const g = document.getElementById('grille')
+  g.innerHTML = ''
+  document.getElementById('aucun').hidden = produits.length !== 0
+  for (const p of produits) {
+    const carte = document.createElement('div'); carte.className = 'carte'
+    const nom = document.createElement('div'); nom.textContent = p.nom
+    const desc = document.createElement('div'); desc.className = 'stock'; desc.textContent = p.description || ''
+    const prix = document.createElement('div'); prix.className = 'prix'; prix.textContent = euro(p.prix_cents)
+    const stock = document.createElement('div'); stock.className = 'stock'; stock.textContent = p.stock + ' in stock'
+    const bouton = document.createElement('button'); bouton.textContent = 'Add to cart'
+    bouton.disabled = p.stock < 1
+    bouton.addEventListener('click', () => { panier.push(p); rendrePanier() })
+    carte.append(nom, desc, prix, stock, bouton)
+    g.appendChild(carte)
+  }
+}
+
+const rendrePanier = () => {
+  const l = document.getElementById('lignes')
+  if (panier.length === 0) { l.className = 'vide'; l.textContent = 'The cart is empty.' }
+  else {
+    l.className = ''
+    l.innerHTML = ''
+    const compte = new Map()
+    for (const p of panier) compte.set(p.id, (compte.get(p.id) || 0) + 1)
+    for (const [id, q] of compte) {
+      const p = produits.find((x) => x.id === id)
+      const ligne = document.createElement('div'); ligne.className = 'ligne'
+      ligne.textContent = q + ' × ' + p.nom + ' — ' + euro(p.prix_cents * q)
+      const retirer = document.createElement('button'); retirer.textContent = 'Remove'
+      retirer.addEventListener('click', () => { const i = panier.findIndex((x) => x.id === id); panier.splice(i, 1); rendrePanier() })
+      ligne.appendChild(retirer)
+      l.appendChild(ligne)
+    }
+  }
+  const total = panier.reduce((s, p) => s + p.prix_cents, 0)
+  document.getElementById('total').textContent = euro(total)
+  document.getElementById('commander').disabled = panier.length === 0
+}
+
+document.getElementById('commander').addEventListener('click', () => {
+  const nom = document.getElementById('nom').value.trim()
+  const email = document.getElementById('email').value.trim()
+  const compte = new Map()
+  for (const p of panier) compte.set(p.id, (compte.get(p.id) || 0) + 1)
+  const lignes = [...compte].map(([id, q]) => ({ produit_id: id, quantite: q }))
+  api('/api/commandes', { client_nom: nom, client_email: email, lignes }).then((r) => {
+    const c = document.getElementById('confirmation')
+    c.hidden = false
+    c.textContent = r.ok === true ? 'Order #' + r.id + ' placed — ' + euro(r.total_cents) + '. Thank you!' : 'Order refused: ' + r.error
+    if (r.ok === true) { panier = []; rendrePanier(); chargerProduits() }
+  })
+})
+
+const chargerProduits = () => api('/api/produits').then((d) => { produits = d.produits || []; rendreProduits(); rendrePanier() })
+chargerProduits()
+</script>
+</body>
+</html>
