@@ -188,6 +188,10 @@
     {
       "dir": "kybernos-pulse",
       "nom": "@local/kybernos-pulse"
+    },
+    {
+      "dir": "kybernos-webapp-creator",
+      "nom": "@local/kybernos-webapp-creator"
     }
   ]
 }

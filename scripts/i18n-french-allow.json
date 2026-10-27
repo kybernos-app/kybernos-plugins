@@ -91,6 +91,7 @@
     "kybernos-usage": [],
     "kybernos-websearch": [],
     "kybernos-workers": [],
-    "messaging": []
+    "messaging": [],
+    "kybernos-webapp-creator": "pending"
   }
 }

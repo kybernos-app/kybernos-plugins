@@ -458,6 +458,15 @@
         "role": "the Servers page: add a Kybernos server from its address, switch between servers, rename and remove them",
         "poids_ko": 80,
         "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-webapp-creator",
+        "nom": "@local/kybernos-webapp-creator",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "Webapp Creator POC: create web apps with a mini SQLite base and run them locally; publishing on a dedicated domain follows",
+        "poids_ko": 24,
+        "lib_vendor": null
       }
     ]
   },
@@ -511,7 +520,8 @@
       "@local/kybernos-search",
       "@local/kybernos-servers",
       "@local/kybernos-session-msg",
-      "@local/kybernos-pulse"
+      "@local/kybernos-pulse",
+      "@local/kybernos-webapp-creator"
     ]
   }
 }

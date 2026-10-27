@@ -67,6 +67,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-bricks`](packages/kybernos-bricks/README.md) | Brick mockups driven by chat |
 | [`kybernos-modeleur`](packages/kybernos-modeleur/README.md) | 2D/3D models driven by chat |
 | [`kybernos-miniapps`](packages/kybernos-miniapps/README.md) | "Install as app" for right-sidebar mini-apps |
+| [`kybernos-webapp-creator`](packages/kybernos-webapp-creator/README.md) | Create web apps with a mini SQLite base and run them locally (POC; publishing next) |
 | [`kybernos-maintenance`](packages/kybernos-maintenance/README.md) | About page: version, compatibility with DSH, update log |
 | [`kybernos-relance`](packages/kybernos-relance/README.md) | Approved restart of DSH |
 | [`dsh-mermaid`](packages/dsh-mermaid/README.md) | Renders mermaid fences as SVG |

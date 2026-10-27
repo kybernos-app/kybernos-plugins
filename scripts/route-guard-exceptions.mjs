@@ -35,6 +35,8 @@ export const EXCEPTIONS = [
     reason: 'The gateway\'s reads (the panel\'s state, the live probe, the model list); they answer every method alike and are called by the engine and the panel. They refuse what a browser marks as another site (test-gateway-origin.mjs).' },
   { bundle: 'kybernos-miniapps', path: '/kybernos-miniapps/list',
     reason: 'The list of installed native apps: a read that answers every method alike. Its install and uninstall siblings are under the rule.' },
+  { bundle: 'kybernos-webapp-creator', paths: ['/kybernos-webapp-creator/state', '/kybernos-webapp-creator/logs'],
+    reason: 'The app list with their status and the app log tail: reads that answer every method alike; nothing is written behind them. Their create, start and stop siblings are under the signed-session rule.' },
   { bundle: 'kybernos-modeles-locaux', paths: ['/modeles-locaux/installation', '/modeles-locaux/machine'],
     reason: 'The state of the install job and the machine\'s chip and memory: reads that answer every method alike. The routes that install or download are under the rule.' },
   { bundle: 'kybernos-models', paths: ['/kybernos-models/annotations', '/kybernos-models/logo', '/kybernos-models/modelsdev', '/kybernos-models/providers', '/kybernos-models/scores', '/kybernos-models/scores/status', '/kybernos-models/status'],
