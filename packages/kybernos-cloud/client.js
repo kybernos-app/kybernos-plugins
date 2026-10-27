@@ -18,7 +18,7 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const ReactDOM = require('react-dom')
     const h = React.createElement
-    // Inside the Kybernos phone app (user agent `KybernosHost/<v> (ios|android)`) the app offers no sign-up (store rules, mobile/STORES.md item 6): the footer says "Sign in" only.
+    // Inside the Kybernos phone app (user agent `KybernosHost/<v> (ios|android)`) the app offers no sign-up (store rules, kybernos-host/STORES.md item 6): the footer says "Sign in" only.
     const inPhoneApp = typeof navigator !== 'undefined' && /\bKybernosHost\/\S+ \((ios|android)\)/.test(String(navigator.userAgent))
 
     // Same local contract as kybernos-plugin: insert(css) → dispose.

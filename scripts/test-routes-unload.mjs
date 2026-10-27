@@ -67,7 +67,7 @@ const applyOn = async (apply, host) => {
 }
 
 const packages = readdirSync(join(root, 'packages')).filter((p) => existsSync(join(root, 'packages', p, 'index.js'))).sort()
-// Engine-only bundles: they extend engine classes, so they cannot be imported outside an engine profile, and they register no route (kybernos-no-process: mobile/payload/test-boot.mjs boots it for real).
+// Engine-only bundles: they extend engine classes, so they cannot be imported outside an engine profile, and they register no route (kybernos-no-process: kybernos-host/payload/test-boot.mjs boots it for real).
 const ENGINE_ONLY = new Set(['kybernos-no-process'])
 for (const pkg of packages) {
   if (ENGINE_ONLY.has(pkg)) continue

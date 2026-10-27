@@ -271,7 +271,7 @@ console.log('inside the Kybernos app')
   check('the page is marked with classes a stylesheet can use', app.classes.has('kb-app') && app.classes.has('kb-app-ios'), [...app.classes])
   check('the app is told once that the interface has its entry (it then drops its fallback gear)', app.posted.length === 1 && JSON.parse(app.posted[0]).kybernos === 'app-entry' && JSON.parse(app.posted[0]).entry === 'settings', app.posted)
   check('its styles are its own, under a prefix nobody else uses', app.styles.length === 1 && /\.kbapp-/.test(app.styles[0].textContent) && !/\.kbmr-|\.kbmob-/.test(app.styles[0].textContent))
-  // report an AI answer (store rules, mobile/STORES.md item 4): a control under each finished answer, in the app only, saved then sent, never silent
+  // report an AI answer (store rules, kybernos-host/STORES.md item 4): a control under each finished answer, in the app only, saved then sent, never silent
   const R = app.test !== undefined ? app.test : null
   const turnTail = app.registered.filter((r) => r.name === 'conversation.chat.turnTail')
   check('inside the app one entry is added under each finished answer, with an id of its own', turnTail.length === 1 && turnTail[0].id === 'kybernos-mobile-report' && typeof turnTail[0].order === 'number', turnTail)
@@ -315,7 +315,7 @@ console.log('inside the Kybernos app')
     check('the e-mail route goes to the one address of the product, with the report in the body', mailto.startsWith('mailto:contact@kybernos.app?subject=') && mailto.includes(encodeURIComponent('x & y')) && R.REPORT_CONTACT === 'contact@kybernos.app', mailto)
   }
 
-  // store rules: no purchase flow and no sign-up inside the app (mobile/STORES.md items 5 and 6), hidden under the app class only
+  // store rules: no purchase flow and no sign-up inside the app (kybernos-host/STORES.md items 5 and 6), hidden under the app class only
   const css = app.styles[0].textContent
   const HIDDEN = ['menu-signup', 'menu-plans', 'menu-plan-cta', 'menu-plan-credits', 'upgrade-dialog', 'team-lock-plans', 'provider-plans', 'kc-pro-plans', 'kybernos-kyber-upgrade', 'plugins-add', 'plugins-add-empty', 'plugins-drafts']
   check('inside the app the purchase, sign-up and plugin-install controls are hidden, under the app class only', /html\.kb-app :is\(/.test(css) && HIDDEN.every((k) => css.includes('[data-kb="' + k + '"]')) && /display:none !important/.test(css), css.slice(0, 200))

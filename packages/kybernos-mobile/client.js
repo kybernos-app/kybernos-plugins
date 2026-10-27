@@ -52,7 +52,7 @@ window.__ModuleLoader__.load({
         return en
       }
 
-      // ── the Kybernos app: its WebView puts `KybernosHost/<version> (ios|android)` in the user agent (mobile/app/App.tsx). Inside it the engine runs ON the phone, so the phone link (a
+      // ── the Kybernos app: its WebView puts `KybernosHost/<version> (ios|android)` in the user agent (kybernos-host/app/App.tsx). Inside it the engine runs ON the phone, so the phone link (a
       // QR code that links a phone to a computer) has no meaning and the app's own page takes its place. Anywhere else this is null and nothing below changes. ──
       const APP_UA = /KybernosHost\/([0-9][0-9A-Za-z.+-]*) \((ios|android)\)/
       const parseAppHost = (ua) => {
@@ -1080,7 +1080,7 @@ window.__ModuleLoader__.load({
         return { Dialog, Page, CSS, open: openWindow }
       }
 
-      // ── Report an AI answer (store rules: mobile/STORES.md item 4) ──
+      // ── Report an AI answer (store rules: kybernos-host/STORES.md item 4) ──
       // A small « Report » control under each finished answer, inside the app only. It reuses the feedback box of the core plugin: the report is SAVED on the phone first (POST /kybernos/feedback),
       // then SENT to the Kybernos team through the signed-in account's relay (POST /kybernos/feedback/send). When it cannot be sent (signed out, no network) the person is told so and offered the
       // e-mail route: the report never silently stays on the phone. The answer's text is added ONLY when the person ticks the box, and what goes is what the box shows (editable).
@@ -1165,7 +1165,7 @@ window.__ModuleLoader__.load({
           h(Card, { kb: 'mobile-app-log', title: kt('Journal du moteur', 'Engine log'), text: kt('Ce que dit le moteur, avec les clés masquées : utile pour comprendre un souci ou le partager.', 'What the engine says, with keys hidden: useful to understand a problem or to share it.'), act: 'open-log', button: kt('Afficher', 'Show'), onClick: () => open('log') }),
           h(Notices, null),
           h(Card, { kb: 'mobile-app-auto', title: kt('Automatisations sur le téléphone', 'Automations on this phone'), text: kt('Elles tournent pendant que l’app est ouverte ou vient d’être utilisée. Si le téléphone a suspendu l’app, une tâche arrivée à échéance attend et s’exécute dès que tu reviens. Pour une tâche à heure fixe, téléphone verrouillé, utilise un ordinateur cloud.', 'They run while the app is open or was just used. If the phone has suspended the app, a task that came due waits and runs as soon as you come back. For a task at a fixed time with the phone locked, use a cloud computer.') }))
-        // Purchase, sign-up and plugin-install controls the app never shows (store rules: no purchase flow inside the app, no sign-up in the first version, only the plugins the app carries; mobile/STORES.md items 1, 5 and 6). They are hidden by their
+        // Purchase, sign-up and plugin-install controls the app never shows (store rules: no purchase flow inside the app, no sign-up in the first version, only the plugins the app carries; kybernos-host/STORES.md items 1, 5 and 6). They are hidden by their
         // data-kb hooks, not removed: the desktop and the browser keep them. test-client.mjs checks every hook still exists in the bundle that draws it.
         const STORE_HIDDEN = ['menu-signup', 'menu-plans', 'menu-plan-cta', 'menu-plan-credits', 'upgrade-dialog', 'team-lock-plans', 'provider-plans', 'kc-pro-plans', 'kybernos-kyber-upgrade', 'plugins-add', 'plugins-add-empty', 'plugins-drafts']
         // The control under each finished answer. State is local; nothing leaves the phone until « Send ».

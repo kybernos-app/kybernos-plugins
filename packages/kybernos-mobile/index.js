@@ -20,7 +20,7 @@ export const SHEET_ID = 'kbmob-sheet'
 export const ROUTE = '/kybernos-mobile/mobile.css'
 const here = dirname(fileURLToPath(import.meta.url))
 export const CSS_FILE = join(here, 'mobile.css')
-// The licences of what the phone app ships: mobile/payload/build-payload.mjs writes THIRD-PARTY-NOTICES.txt into the payload and the bootstrap names the unpacked folder KB_RUNTIME.
+// The licences of what the phone app ships: kybernos-host/payload/build-payload.mjs writes THIRD-PARTY-NOTICES.txt into the payload and the bootstrap names the unpacked folder KB_RUNTIME.
 export const NOTICES_ROUTE = '/kybernos-mobile/notices'
 export const NOTICES_FILE = 'THIRD-PARTY-NOTICES.txt'
 const NOTICES_MAX = 8 * 1024 * 1024
