@@ -34,8 +34,8 @@ mkdirSync(process.env.DSH_HOME, { recursive: true })
 
 // Bundles whose routes are not mounted by this test, and where they are proven instead (none today: the master bundle is mounted with a bare `fs`).
 const NOT_MOUNTED = {
-  // extends engine classes (SubprocessRuntime, SandboxProvider): it only loads inside an engine profile, and it registers no web route; mobile/payload/test-boot.mjs boots it for real
-  'kybernos-no-process': 'mobile/payload/test-boot.mjs',
+  // extends engine classes (SubprocessRuntime, SandboxProvider): it only loads inside an engine profile, and it registers no web route; kybernos-host/payload/test-boot.mjs boots it for real
+  'kybernos-no-process': 'kybernos-host/payload/test-boot.mjs',
 }
 
 // Routes that are PUBLIC BY DESIGN: a website's widget and its API (loaded from another site) and the webhook receiver (called by another service, secret

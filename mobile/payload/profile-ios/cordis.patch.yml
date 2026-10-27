@@ -1,3 +1,0 @@
-# Your patch layer for the phone profile, applied after every bundle layer. Empty on a fresh install: the first run seeds it,
-# and the app keeps whatever the settings screens write here across updates of the runtime.
-[]
