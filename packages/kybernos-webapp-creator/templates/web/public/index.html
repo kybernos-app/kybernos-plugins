@@ -3,32 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My app</title>
+<title>Notes</title>
 <style>
   :root { color-scheme: light dark; }
-  body { margin: 0; font-family: system-ui, sans-serif; line-height: 1.5; }
-  main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.25rem; }
-  h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin: 0 0 .5rem; }
-  .status { display: inline-flex; gap: .5rem; align-items: center; padding: .45rem .8rem; border-radius: .6rem; border: 1px solid rgba(127,127,127,.35); font-size: .95rem; }
-  .dot { width: .55rem; height: .55rem; border-radius: 50%; background: #9ca3af; }
-  .dot.ok { background: #16a34a; }
-  code { font-size: .9em; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; line-height: 1.5; background: Canvas; color: CanvasText; }
+  main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); margin: 0 0 1.25rem; }
+  form { display: grid; gap: .6rem; margin-bottom: 1.75rem; }
+  input, textarea { font: inherit; padding: .65rem .8rem; border-radius: .6rem; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); background: transparent; color: inherit; width: 100%; }
+  textarea { min-height: 4.5rem; resize: vertical; }
+  button { font: inherit; cursor: pointer; border-radius: .6rem; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); background: transparent; color: inherit; padding: .55rem 1rem; }
+  button.primary { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  li { display: flex; gap: .75rem; align-items: flex-start; padding: .8rem 1rem; border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: .7rem; }
+  li.fait .titre { text-decoration: line-through; opacity: .55; }
+  .corps { flex: 1 1 auto; min-width: 0; }
+  .titre { font-weight: 600; }
+  .vide { opacity: .6; padding: 1.5rem 0; }
+  .compte { opacity: .6; font-size: .9rem; margin: 1rem 0; }
 </style>
 </head>
 <body>
 <main>
-  <h1>My app</h1>
-  <p>The shell is live. The admin UI, auth and the mini base views arrive with the foundation batch.</p>
-  <p class="status"><span class="dot" id="dot"></span><span id="status">checking the API…</span></p>
-  <p>Edit <code>public/index.html</code> for the pages, <code>api.js</code> for the routes.</p>
+  <h1>Notes</h1>
+  <form id="form">
+    <input id="titre" placeholder="Title" required maxlength="200">
+    <textarea id="contenu" placeholder="Content (optional)" maxlength="10000"></textarea>
+    <button class="primary" type="submit">Add a note</button>
+  </form>
+  <p class="compte" id="compte"></p>
+  <ul id="liste"></ul>
+  <p class="vide" id="vide" hidden>No note yet — add the first one above.</p>
 </main>
 <script>
-  fetch('/api/health').then((r) => r.json()).then((d) => {
-    document.getElementById('dot').className = 'dot ok'
-    document.getElementById('status').textContent = 'API ok — stack ' + d.stack + ', base: ' + (d.base.present ? d.base.tables + ' tables' : 'not created yet')
-  }).catch(() => {
-    document.getElementById('status').textContent = 'API unreachable'
+const api = (path, opts) => fetch(path, opts).then((r) => r.json())
+
+const rendre = (notes) => {
+  const ul = document.getElementById('liste')
+  ul.innerHTML = ''
+  for (const n of notes) {
+    const li = document.createElement('li')
+    if (n.fait === 1) li.className = 'fait'
+    const cb = document.createElement('input')
+    cb.type = 'checkbox'; cb.checked = n.fait === 1
+    cb.addEventListener('change', () => api('/api/notes/' + n.id, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fait: cb.checked ? 1 : 0 }) }).then(charger))
+    const corps = document.createElement('div'); corps.className = 'corps'
+    const t = document.createElement('div'); t.className = 'titre'; t.textContent = n.titre
+    corps.appendChild(t)
+    if (n.contenu !== '') { const c = document.createElement('div'); c.textContent = n.contenu; corps.appendChild(c) }
+    const del = document.createElement('button'); del.textContent = 'Delete'
+    del.addEventListener('click', () => api('/api/notes/' + n.id, { method: 'DELETE' }).then(charger))
+    li.append(cb, corps, del)
+    ul.appendChild(li)
+  }
+  document.getElementById('vide').hidden = notes.length !== 0
+  const restantes = notes.filter((n) => n.fait !== 1).length
+  document.getElementById('compte').textContent = notes.length === 0 ? '' : restantes + ' open · ' + notes.length + ' total'
+}
+
+const charger = () => api('/api/notes').then((d) => rendre(d.notes || []))
+
+document.getElementById('form').addEventListener('submit', (e) => {
+  e.preventDefault()
+  const titre = document.getElementById('titre').value.trim()
+  const contenu = document.getElementById('contenu').value
+  if (titre === '') return
+  api('/api/notes', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ titre, contenu }) }).then(() => {
+    document.getElementById('titre').value = ''
+    document.getElementById('contenu').value = ''
+    charger()
   })
+})
+
+charger()
 </script>
 </body>
 </html>

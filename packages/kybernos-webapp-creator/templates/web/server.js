@@ -22,6 +22,17 @@ const serveStatic = (req, res) => {
 
 http.createServer((req, res) => {
   const url = String(req.url || '/')
-  if (url === '/api' || url.startsWith('/api/')) { api.handle(req, res, url); return }
+  if (url === '/api' || url.startsWith('/api/')) {
+    const morceaux = []
+    req.on('data', (d) => morceaux.push(d))
+    req.on('end', () => {
+      try {
+        const brut = Buffer.concat(morceaux).toString('utf8')
+        req.body = brut === '' ? {} : JSON.parse(brut)
+      } catch (e) { req.body = {} }
+      api.handle(req, res, url)
+    })
+    return
+  }
   serveStatic(req, res)
 }).listen(port, '127.0.0.1', () => console.log('listening ' + port))

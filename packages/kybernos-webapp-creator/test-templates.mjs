@@ -54,7 +54,21 @@ try {
   const corps = await sante.json()
   check('the API answers', sante.status === 200 && corps.ok === true && corps.stack === 'web', corps)
   const shell = await fetch('http://127.0.0.1:' + dw.port + '/')
-  check('the shell answers 200', shell.status === 200 && (await shell.text()).includes('/api/health'))
+  check('the shell answers 200', shell.status === 200 && (await shell.text()).includes('/api/notes'))
+  // the CRUD loop through the wire: create, list, toggle, delete — the POC's heart
+  const cree = await fetch('http://127.0.0.1:' + dw.port + '/api/notes', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ titre: 'Premiere note', contenu: 'demo' }) })
+  check('a note is created', cree.status === 200 && (await cree.json()).ok === true)
+  const vide = await fetch('http://127.0.0.1:' + dw.port + '/api/notes', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contenu: 'sans titre' }) })
+  check('a note without a title is refused', vide.status === 400 && (await vide.json()).ok === false)
+  const liste = await (await fetch('http://127.0.0.1:' + dw.port + '/api/notes')).json()
+  check('the list carries it', liste.ok === true && liste.notes.length === 1 && liste.notes[0].titre === 'Premiere note', liste)
+  const id = liste.notes[0].id
+  await fetch('http://127.0.0.1:' + dw.port + '/api/notes/' + id, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fait: 1 }) })
+  check('it toggles done', (await (await fetch('http://127.0.0.1:' + dw.port + '/api/notes')).json()).notes[0].fait === 1)
+  await fetch('http://127.0.0.1:' + dw.port + '/api/notes/' + id, { method: 'DELETE' })
+  check('it deletes', (await (await fetch('http://127.0.0.1:' + dw.port + '/api/notes')).json()).notes.length === 0)
+  const sante2 = await (await fetch('http://127.0.0.1:' + dw.port + '/api/health')).json()
+  check('the migrations were recorded (notes + _migrations)', sante2.base.present === true && sante2.base.tables >= 2, sante2.base)
   await stopApp(join(racine, 'app'))
 
   console.log('brief + template, the way /create does it')
