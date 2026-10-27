@@ -4,6 +4,11 @@ Batch: **A4-starter-docs** (Phase A, wave 4 of 4: theme seam, registry multi-poi
 verticals, then this one). Lane: **B**. Everything below was checked against this repository on
 `dev`, 2026-10-27, before a single line of this batch existed.
 
+**Revised 2026-10-27 after the gate's `AMEND`** (two corrections, section 9): the starter's theme
+file is the **full catalogue entry** (`id, v, name, author, description.fr/en, settings`) and not the
+light `{ id, name, settings }`; and the page's table is keyed by **point id**, never by the
+unpublished `I1`-`I5` labels.
+
 This batch ships no runtime behaviour: one English page, one copyable template folder, one read-only
 report tool and its own test. So "green" here means three falsifiable things, and nothing else:
 
