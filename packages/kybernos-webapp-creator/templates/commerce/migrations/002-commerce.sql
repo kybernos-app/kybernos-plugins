@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS commandes (
   id           INTEGER PRIMARY KEY,
   client_nom   TEXT NOT NULL,
   client_email TEXT NOT NULL,
-  statut       TEXT NOT NULL DEFAULT 'recue' CHECK (statut IN ('recue','payee','expediee','annulee')),
+  statut       TEXT NOT NULL DEFAULT 'recue' CHECK (statut IN ('recue','reservee','payee','expediee','livree','annulee','remboursee')),
   total_cents  INTEGER NOT NULL DEFAULT 0,
   cree_le      TEXT NOT NULL DEFAULT (datetime('now'))
 );
