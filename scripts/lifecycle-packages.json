@@ -176,6 +176,10 @@
     {
       "dir": "kybernos-servers",
       "nom": "@local/kybernos-servers"
+    },
+    {
+      "dir": "kybernos-log",
+      "nom": "@local/kybernos-log"
     }
   ]
 }
