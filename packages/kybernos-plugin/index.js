@@ -28,7 +28,7 @@ import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as
 import { mountAutomationTools } from './automation-tools.mjs'
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
-import { handleThemes } from './theme-installer.mjs'
+import { fetchArchiveBytes, fetchCatalogueSources, handleThemes, readThemes, themeTarget, verifyArchive } from './theme-installer.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -10743,16 +10743,43 @@ function boot(ctx) {
       // writes or forgets a record, and manages the source list. The package itself enters the profile through DSH's own manager, in the
       // page — this route never writes the profile (INT1, plugin-contract.md:562). The guards are the existing ones, in their order.
       const themesStore = () => ({ dir: nodePathJoin(String(dshHomeSync()), 'kybernos') })
+      // The TRANSPORT of the declared sources (M16): the person's bounded https list is read from the record file and its bytes
+      // fetched through A6:43's bounded rules before the route body runs. A dead address is a `refused` line on the page, never a
+      // 5xx and never a boot dependency; no source costs no request. The archive half of `install` is fetched from the address the
+      // VERIFIED entry carries (never one the page sent) and goes through `verifyArchive` before handleThemes stages it.
+      const themesCatalogues = async (dir) => {
+        try {
+          const sources = readThemes(dir).sources
+          return sources.length === 0 ? [] : await fetchCatalogueSources(sources)
+        } catch (e) { return [] }
+      }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/themes', handler: async (req, res) => {
         let body = null
         if (req.method === 'POST') {
           try { body = await readJsonBody(req, 64 * 1024) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         }
-        const answer = handleThemes(themesStore(), { method: req.method, body }, {
+        const dir = themesStore().dir
+        const ports = {
           sameOrigin: sameOriginStrict,
           session: (r) => { try { const refused = writeGuard(r); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
           registry: registrySeam(),
-        })
+        }
+        const action = body !== null && typeof body.action === 'string' ? body.action : ''
+        // No outbound request for a caller the route will refuse anyway: the origin is checked first, and a write needs the signed
+        // session. handleThemes runs the same guards in their frozen order; this only keeps a refused caller from spending the fetch.
+        const mayRead = sameOriginStrict(req) === true && (req.method !== 'POST' || writeGuard(req) === null)
+        if (mayRead && (req.method === 'GET' || action === 'refresh' || action === 'install')) ports.catalogues = await themesCatalogues(dir)
+        if (mayRead && req.method === 'POST' && action === 'install') {
+          const target = themeTarget(dir, ports.catalogues, typeof body.id === 'string' ? body.id : '', body.version)
+          if (target.ok === true) {
+            const got = await fetchArchiveBytes(target.archive.url)
+            if (got.ok === true) {
+              const verified = verifyArchive({ bytes: got.bytes, id: target.id, version: target.version, entry: target.entry, catalogueKey: target.catalogueKey, keys: target.keys, reviewerKeys: target.reviewerKeys, officialKeys: target.officialKeys })
+              ports.archive = { id: target.id, version: target.version, bytes: got.bytes, verified }
+            }
+          }
+        }
+        const answer = handleThemes({ dir }, { method: req.method, body }, ports)
         sendJson(res, answer.status, answer.body)
       } }), 'kybernos: route themes')
       // A skill a domain pack ships (domains/skills/<name>/SKILL.md): written into <DSH home>/skills by the same careful seeding as every skill this

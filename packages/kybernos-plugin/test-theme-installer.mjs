@@ -7,7 +7,7 @@
 // is tested is the code the browser runs, not a copy of it.
 import assert from 'node:assert/strict'
 import { createHash, generateKeyPairSync, sign } from 'node:crypto'
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync, rmSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -294,8 +294,11 @@ ok('stage refuses a folder that is not a theme, a code plugin, a path going up, 
   try {
     const store = { dir }
     const stage = (folder) => T.handleThemes(store, { method: 'POST', body: { action: 'stage', folder } }, portsOK())
-    assert.equal(stage('/etc').body.error, 'not-a-theme')
+    assert.equal(stage(dir).body.error, 'not-a-theme')
     assert.equal(stage('../..').status, 400)
+    // F-2: the symlink guard is lstat-based, so a link to a real folder is refused instead of silently followed.
+    const linked = join(dir, 'linked')
+    try { symlinkSync(dir, linked); assert.deepEqual([stage(linked).status, stage(linked).body.reason], [400, 'the folder is a symbolic link']) } catch (e) { if (e.code !== 'EPERM') throw e }
     const code = join(dir, 'code')
     mkdirSync(code)
     writeFileSync(join(code, 'plugin.json'), JSON.stringify({ contract: 1, id: 'acme/code', kind: 'code', version: '1.0.0' }))
@@ -365,6 +368,85 @@ ok('a verified catalogue behind a pinned key answers its entries through the GET
     const tampered = Object.assign(portsOK(), { catalogues: [{ source: 'https://a.invalid/c.json', bytes: Buffer.from(JSON.stringify(doc) + ' '), signature: signed(doc) }] })
     assert.equal(T.handleThemes(store, { method: 'GET' }, tampered).body.refused[0].error, 'signature')
   } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+ok('the level is computed by verifyEntry, never copied from the document (F-25)', () => {
+  const dir = fresh('a6-trust-')
+  try {
+    const store = { dir }
+    // The person's OWN source, pinned with ITS OWN key (TOFU): the document signs itself `level: 'official'` and the manifest
+    // claims every trust word it likes. `official` needs the `kybernos/` namespace AND a shipped official key — none ships.
+    const claim = { level: 'official', manifest: { level: 'official', trust: 'official', official: true } }
+    const doc = docOf({ catalogue: { id: 'self', name: 'A catalogue someone added', seq: 1, publishedAt: '2026-10-28T00:00:00Z' }, authors: { kybernos: { keys: [{ keyId: 'a1', pem: acme.pem }] } }, plugins: [{ id: 'kybernos/medecin', versions: [entryOf('kybernos/medecin')] }] })
+    doc.plugins[0].versions[0].level = claim.level
+    Object.assign(doc.plugins[0].versions[0].manifest, claim.manifest)
+    T.handleThemes(store, { method: 'POST', body: { action: 'source-add', url: 'https://self.invalid/c.json', key: { keyId: 'k1', pem: official.pem } } }, portsOK())
+    const get = T.handleThemes(store, { method: 'GET' }, Object.assign(portsOK(), { catalogues: [{ source: 'https://self.invalid/c.json', bytes: bytesOf(doc), signature: signed(doc) }] }))
+    assert.equal(get.body.themes.length, 1)
+    assert.equal(get.body.themes[0].level, 'verified', 'the author and the reviewer signed this entry')
+    assert.equal(JSON.stringify(get.body.themes[0]).indexOf('official'), -1, 'no trust word of the document survives')
+    assert.equal(T.OFFICIAL_KEYS.length, 0, 'no placeholder official key ships')
+    // An author signature that does not verify is refused with the verifier's own code: proof that verifyEntry ran.
+    const forged = docOf({ plugins: [{ id: 'acme/vet', versions: [entryOf('acme/vet', stranger)] }] })
+    const refused = T.handleThemes(store, { method: 'GET' }, Object.assign(portsOK(), { catalogues: [{ source: 'https://self.invalid/c.json', bytes: bytesOf(forged), signature: signed(forged) }] }))
+    assert.equal(refused.body.themes.length, 0)
+    assert.equal(refused.body.refused[0].error, 'signature')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+ok('the production path calls the verifiers, and reads no level from the document', () => {
+  const installer = readFileSync(join(here, 'theme-installer.mjs'), 'utf8')
+  const route = readFileSync(join(here, 'index.js'), 'utf8')
+  const view = installer.slice(installer.indexOf('const catalogueView ='), installer.indexOf('const readAll ='))
+  assert.ok(/verifyEntry\s*\(/.test(view), 'catalogueView calls verifyEntry')
+  assert.ok(/verifyArchive\s*\(/.test(route), 'the route caller runs verifyArchive on the fetched archive')
+  assert.ok(!/newest\.level/.test(installer) && !/\.level\s*===/.test(installer), 'no level is copied from the document')
+  assert.ok(/fetchCatalogueSources\s*\(/.test(route) && /themeTarget\s*\(/.test(route), 'the route passes the fetched sources, and resolves the install target from them')
+})
+ok('the install action stages only bytes whose verdict names them, and never unbounded', () => {
+  const dir = fresh('a6-inst-')
+  try {
+    const store = { dir }
+    const entry = entryOf('acme/vet')
+    const keys = [{ keyId: 'a1', pem: acme.pem }]
+    const reviewerKeys = [{ keyId: 'r1', pem: reviewer.pem }]
+    const verdict = T.verifyArchive({ bytes: ARCHIVE, id: 'acme/vet', version: '1.0.0', entry, catalogueKey: 'k1', keys, reviewerKeys, officialKeys: [] })
+    assert.deepEqual([verdict.ok, verdict.level, verdict.sha256], [true, 'verified', HASH])
+    const install = (ports) => T.handleThemes(store, { method: 'POST', body: { action: 'install', id: 'acme/vet', version: '1.0.0' } }, Object.assign(portsOK(), ports))
+    const staged = install({ archive: { id: 'acme/vet', version: '1.0.0', bytes: ARCHIVE, verified: verdict } })
+    assert.equal(staged.status, 200)
+    assert.equal(staged.body.ok, true)
+    assert.equal(staged.body.sha256, HASH)
+    assert.ok(staged.body.path.indexOf(join(dir, 'plugin-imports')) === 0 && staged.body.path.endsWith('.tgz'))
+    assert.equal(readFileSync(staged.body.path).equals(ARCHIVE), true, 'the staged file is exactly the verified bytes')
+    const other = T.verifyArchive({ bytes: Buffer.from('other'), id: 'acme/vet', version: '1.0.0', entry, catalogueKey: 'k1', keys, reviewerKeys, officialKeys: [] })
+    assert.equal(install({ archive: { id: 'acme/vet', version: '1.0.0', bytes: ARCHIVE, verified: other } }).body.error, 'unverified')
+    assert.equal(install({}).body.error, 'no-archive')
+    assert.equal(T.handleThemes(store, { method: 'POST', body: { action: 'install', id: 'nope' } }, portsOK()).status, 400)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+ok('the bounded transport refuses http, oversize and a missing signature, and never throws', async () => {
+  const seen = []
+  const fake = (url) => {
+    seen.push(url)
+    if (url === 'https://a.invalid/c.json') return Promise.resolve(new Response(bytesOf(docOf()), { status: 200 }))
+    if (url === 'https://a.invalid/c.json.sig') return Promise.resolve(new Response(signed(docOf()), { status: 200 }))
+    if (url === 'https://big.invalid/c.json') return Promise.resolve(new Response(Buffer.alloc(T.MAX_DOC_BYTES + 1, 0x20), { status: 200 }))
+    if (url === 'https://nosig.invalid/c.json') return Promise.resolve(new Response(bytesOf(docOf()), { status: 200 }))
+    if (url === 'https://arc.invalid/a.tgz') return Promise.resolve(new Response(ARCHIVE, { status: 200 }))
+    if (url === 'https://huge.invalid/a.tgz') return Promise.resolve(new Response(Buffer.alloc(T.IMPORT_MAX + 1), { status: 200 }))
+    return Promise.resolve(new Response('', { status: 404 }))
+  }
+  const out = await T.fetchCatalogueSources([
+    { url: 'http://insecure.invalid/c.json' },
+    { url: 'https://a.invalid/c.json' },
+    { url: 'https://big.invalid/c.json' },
+    { url: 'https://nosig.invalid/c.json' },
+    { url: 'https://dead.invalid/c.json' },
+  ], { fetch: fake, timeoutMs: 1000 })
+  assert.deepEqual(out.map((r) => r.error ?? 'ok'), ['download', 'ok', 'size', 'signature', 'download'])
+  assert.equal(out[1].bytes.equals(bytesOf(docOf())), true)
+  assert.equal(seen.indexOf('http://insecure.invalid/c.json'), -1, 'an http address is never requested')
+  assert.deepEqual([(await T.fetchArchiveBytes('https://arc.invalid/a.tgz', { fetch: fake, timeoutMs: 1000 })).ok, (await T.fetchArchiveBytes('https://huge.invalid/a.tgz', { fetch: fake, timeoutMs: 1000 })).error], [true, 'size'])
+  assert.equal((await T.fetchArchiveBytes('http://insecure.invalid/a.tgz', { fetch: fake, timeoutMs: 1000 })).error, 'download')
 })
 ok('plan answers from the registry seam, and says so when there is none', () => {
   const dir = fresh('a6-rt-')

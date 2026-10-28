@@ -475,5 +475,24 @@ eq('and does not claim a control « any time in Settings »', ag.some((s) => /an
   eq('and one column of the same kind under 430 px', /@media \(max-width:430px\)\{\.kb-ob-tiles\{grid-template-columns:minmax\(0,1fr\)\}\}/.test(src), true)
 }
 
+/* ── The one published seam, read consumer-aware (adversarial review F-39/F-40, narrowed 2026-10-28) ── */
+// The file-wide counts A1-kit-wizard froze could not survive a second legitimate consumer (A7's marketplace). The invariant is
+// now the one the spec meant: ONE raw reader, in KB-OB-CORE, every other consumer through kbObThemeSeam, and no pack.kit family
+// token inside the wizard's own blocks.
+{
+  const reads = (t) => t.split('__KB_THEME_APPLY__').length - 1
+  const coreAt = src.indexOf('// KB-OB-CORE-BEGIN')
+  const coreEnd = src.indexOf('// KB-OB-CORE-END')
+  const first = src.indexOf('__KB_THEME_APPLY__')
+  const ports = src.slice(src.indexOf('const kbThPorts = () => {'), src.indexOf('const kbThPresence ='))
+  eq('exactly one raw read of the seam in the file', reads(src), 1)
+  eq('...and it sits inside KB-OB-CORE, the block that publishes it', first > coreAt && first < coreEnd, true)
+  eq('the wizard UI reads it through kbObThemeSeam, never raw', [reads(ui[1]), /kbObThemeSeam\s*\(/.test(ui[1])], [0, true])
+  eq('the installer page\'s style port reads through the helper too', [ports.length > 0, reads(ports)], [true, 0])
+  const family = ['pack.kit', '.kit.teams', '.kit.automations', 'kit.themes'].map((t) => (core[1] + ui[1]).split(t).length - 1)
+  eq('the wizard\'s own blocks consume no pack.kit family token', family, [0, 0, 0, 0])
+  eq('the wizard still derives its kit from the pack\'s goals (kbObKitOf)', /const kbObKitOf = \(pack, goalIds/.test(core[1]), true)
+}
+
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

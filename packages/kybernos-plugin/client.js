@@ -3025,7 +3025,7 @@ const KB_NAV_KEYS = {
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls', 'kybernos-kaby-customisation': 'kaby',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
-  'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
+  'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-log': 'activity log', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
   // The themes listing's Settings entrance (A7, M2): « Thèmes » is drawn from the label, and the page title the menu knows is 'themes'.
   'kybernos-themes-market': 'themes',
@@ -3127,6 +3127,8 @@ const KB_SS_INDEX = [
   ['widget', '', 'Tell me when', 'Something needs me, every run, or never.', '', 'prevenir notification quand echec accord automation terminee alerte'],
   ['widget', '', 'Banners and badge', 'One banner per event. A count on the tab and on the Dock.', '', 'banniere notification badge compteur dock onglet autorisation navigateur'],
   ['widget', '', 'Quiet automations', 'No banner when they finish.', '', 'silencieuse muette automation ne plus prevenir'],
+  ['activity log', '', 'Families', 'Tick the families to show: model calls, connectors, web search, tools, automatic titles and compactions.', '', 'famille famille filtre journal journal activite modele connecteur recherche web outil titre compactage sonde tokens'],
+  ['activity log', '', 'Live tail', 'Watch the calls arrive as they happen, or search a model, a tool, an error.', '', 'direct live flux temps reel defiler tail recherche modele outil session erreur journal activite envoie'],
 
   ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
   ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar', '', 'Identity'],
@@ -3184,6 +3186,7 @@ const KB_SS_PAGE_KW = {
   theme: 'couleurs palette fond police colors style skin import export share reset apparence aspecto mode sombre clair look dark light night system', language: 'langue idioma traduction translate locale french spanish',
   servers: 'serveurs equipe reseau server team enterprise', 'code sandbox (e2b)': 'sandbox bac a sable e2b cloud computers ordinateurs cloud vm',
   'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp phone remote messaging', 'kybernos suite': 'plugins modules extensions install update restart',
+  'activity log': 'journal activite envoie appels modeles connectors web search tools tokens metadata',
   'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour update restart relaunch'
 }
 // What the page draws in French: page|label of a row -> [label, description, text to go to when it is not the label]. A row the French menu draws in
@@ -3233,6 +3236,8 @@ const KB_SS_FR = {
   'widget|Tell me when': ['Prévenir', 'Quand quelque chose m’attend, à chaque run, ou jamais.'],
   'widget|Banners and badge': ['Bannières et badge', 'Une bannière par événement. Un nombre sur l’onglet et sur le Dock.'],
   'widget|Quiet automations': ['Automations silencieuses', 'Sans bannière quand elles finissent.'],
+  'activity log|Families': ['Familles', 'Coche les familles à afficher : appels modèle, connecteurs, recherche web, outils, titres automatiques et compactages.'],
+  'activity log|Live tail': ['En direct', 'Regarde les appels arriver au fil de l’eau, ou cherche un modèle, un outil, une erreur.'],
   'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.', 'Identité'],
   'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
   'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
@@ -26085,8 +26090,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           return body
         },
         style: async (input) => {
-          let fn = null
-          try { fn = typeof window !== 'undefined' ? window.__KB_THEME_APPLY__ : null } catch (e) { fn = null }
+          // The ONE publisher of the seam is the wizard's `kbObThemeSeam` (KB-OB-CORE): every consumer — this installer page and the
+          // wizard — reads it through that helper, never through a second raw window read (A1-kit-wizard DoD 4, narrowed
+          // 2026-10-28 by the adversarial review). No alias, no second door.
+          const fn = typeof window !== 'undefined' ? kbObThemeSeam(window) : null
           if (typeof fn !== 'function') return { ok: false, reason: 'no-seam' }
           try { return await fn(input) } catch (e) { return { ok: false, reason: 'seam-failed' } }
         },
@@ -26162,21 +26169,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       await kbThApi({ action: 'forget', id: record.id })
       return { ok: result.ok === true, report: result, removed }
     }
-    /** A catalogue theme's archive: fetched, then handed to the registry's own import route, which keeps it for the manager. */
-    const kbThImportArchive = async (theme) => {
-      try {
-        const archive = kbThPlain(theme) && kbThPlain(theme.archive) ? theme.archive : null
-        if (archive === null || typeof archive.url !== 'string' || !/^https:\/\//.test(archive.url)) return { ok: false, error: 'no-archive' }
-        const res = await fetch(archive.url, { cache: 'no-store' })
-        if (res.ok !== true) return { ok: false, error: 'download' }
-        const bytes = await res.blob()
-        if (bytes.size > 8 * 1024 * 1024) return { ok: false, error: 'size' }
-        const name = String(archive.url).replace(/^.*\//, '') || 'theme.tgz'
-        const put = await fetch('/kybernos-registry/import', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/octet-stream', 'x-filename': name }, body: bytes })
-        const j = await put.json().catch(() => null)
-        return kbThPlain(j) && j.ok === true && typeof j.path === 'string' ? { ok: true, path: j.path } : { ok: false, error: kbThPlain(j) ? kbThStr(j.error) ?? 'import' : 'import' }
-      } catch (e) { return { ok: false, error: 'import' } }
-    }
+    // A catalogue theme's archive is NOT fetched here: `install` asks A6's route for the verified archive (the host downloads it
+    // from the address the signed entry carries, hashes it and checks the signatures with `verifyArchive`), and the path it
+    // answers is what DSH's manager installs. The page never hashes, never downloads a package and never picks an address.
     // The two seams this page publishes (M7, frozen: `{ source: 'catalogue', id, version }`). ONE function for the life of the page
     // — a second activation must not replace a door a caller already holds — and never a boot stopper: both stay inside try/catch.
     const kbThSeamInstall = async (input) => {
@@ -26186,12 +26181,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const themes = kbThPlain(answer) && Array.isArray(answer.themes) ? answer.themes : []
         const found = themes.find((t) => kbThPlain(t) && t.id === input.id && (input.version === undefined || t.version === String(input.version))) ?? null
         if (found === null) return { ok: false, error: 'unknown-theme' }
-        const imported = await kbThImportArchive(found)
-        if (imported.ok !== true) return imported
+        const staged = await kbThApi({ action: 'install', id: found.id, version: found.version })
+        if (!kbThPlain(staged) || staged.ok !== true || typeof staged.path !== 'string') return { ok: false, error: kbThPlain(staged) ? kbThStr(staged.error) ?? 'install' : 'install' }
         const mgr = kbThManager()
         if (mgr === null) return { ok: false, error: 'no-manager' }
         let installed = null
-        try { installed = await mgr.installBundle(imported.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
+        try { installed = await mgr.installBundle(staged.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
         if (installed === null) return { ok: false, error: 'install' }
         const run = await kbThRunPlan(found.id, null)
         return run.ok === true ? { ok: true, id: found.id, version: found.version, report: run.report } : { ok: false, error: run.error, report: run.report }
@@ -30455,9 +30450,11 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       return marketSay(['Ajoute ', 'Adds '], lang) + list
     }
     /**
-     * A6's answer (its GET /kybernos/themes) as cards, in the answer's order (the catalogue's own, INT3): the manifest's words verbatim,
-     * the level copied as it came — never computed, never defaulted to a flattering one. An entry the verifier refused (yanked,
-     * revoked) or left without an id or a version makes no card: that is the route's `refused` business.
+     * A6's answer (its GET /kybernos/themes) as cards, in the answer's order (the catalogue's own, INT3): the manifest's words as
+     * the route sends them — FLAT (`name`/`description` as `{ fr, en }`, `author`, `licence`), never a `manifest` object the route
+     * does not emit (F-27) — and the level the verifier computed, copied as it came, never computed, never defaulted to a
+     * flattering one. An entry the verifier refused (yanked, revoked) or left without an id or a version makes no card: that is
+     * the route's `refused` business.
      */
     const marketCards = (view, lang) => {
       if (view === null || typeof view !== 'object' || view.ok !== true || !Array.isArray(view.themes)) return []
@@ -30470,18 +30467,17 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
         const level = typeof entry.level === 'string' ? entry.level : ''
         // Unlisted is DSH's own door, not a marketplace level (plugin-contract.md:415-421): a catalogue entry never carries it.
         if (level === 'yanked' || level === 'revoked' || level === 'unlisted') continue
-        const man = entry.manifest !== null && typeof entry.manifest === 'object' ? entry.manifest : {}
         const arc = entry.archive !== null && typeof entry.archive === 'object' ? entry.archive : {}
-        const author = man.author !== null && typeof man.author === 'object'
-          ? (man.author.name !== undefined ? man.author.name : man.author.id)
-          : man.author
+        const author = entry.author !== null && typeof entry.author === 'object'
+          ? (entry.author.name !== undefined ? entry.author.name : entry.author.id)
+          : entry.author
         out.push({
           id,
           version,
-          name: marketField(man.name, lang),
-          description: marketField(man.description, lang),
+          name: marketField(entry.name, lang),
+          description: marketField(entry.description, lang),
           author: marketField(author, lang),
-          license: typeof man.license === 'string' ? man.license : '',
+          license: typeof entry.licence === 'string' ? entry.licence : '',
           level,
           source: typeof entry.source === 'string' ? entry.source : '',
           sha256: typeof arc.sha256 === 'string' ? arc.sha256 : '',
@@ -30571,10 +30567,13 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
     }
     /**
      * The report of one click, in A6's own vocabulary (`kbThApply` answers a count; an older answer a list of named items): the style
-     * row with the plan's accent (INT4), the kit counts (INT5), then what was added, skipped and failed.
+     * row with the plan's accent (INT4), the kit counts (INT5), then what was added, skipped and failed. The published seam answers
+     * `{ ok, id, version, report }` (client.js:26192), so the counters are read from `report`; a caller that hands the report
+     * itself is still read (F-27).
      */
     const marketReport = (result, plan, lang) => {
-      const r = result !== null && typeof result === 'object' ? result : {}
+      const whole = result !== null && typeof result === 'object' ? result : {}
+      const r = whole.report !== null && typeof whole.report === 'object' ? whole.report : whole
       const p = plan !== null && typeof plan === 'object' ? plan : {}
       const rows = []
       const style = p.style !== null && typeof p.style === 'object' ? p.style : null
@@ -34902,6 +34901,8 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         'servers': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
         'kybernos': '<rect x="3" y="4" width="18" height="12" rx="2" ' + trait + '/><path d="M2 20h20" ' + trait + '/>',
         'general': '<path d="M4 7h10M18 7h2M4 17h2M10 17h10" ' + trait + '/><circle cx="16" cy="7" r="2" ' + trait + '/><circle cx="8" cy="17" r="2" ' + trait + '/>',
+        // The activity log's own page (kybernos-log): a journal sheet with its lines and a live dot.
+        'activity log': '<path d="M5 3h12a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z" ' + trait + '/><path d="M9 8h6M9 12h6M9 16h4" ' + trait + '/><circle cx="17.5" cy="16" r="1.5" ' + trait + '/>',
         'commandes': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'commands': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'theme': '<circle cx="12" cy="12" r="9" ' + trait + '/><path d="M12 3v18M12 3a9 9 0 0 1 0 18z" ' + trait + '/>',

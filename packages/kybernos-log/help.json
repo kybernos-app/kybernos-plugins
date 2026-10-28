@@ -1,6 +1,6 @@
 {
   "what": {
-    "fr": "Une page qui montre tout ce que cette machine envoie : appels modèle (avec leurs tokens), connecteurs, recherche web, outils — et les appels que personne n’a demandés (titres automatiques, compactages, sondes).",
+    "fr": "Ce que cette machine envoie : appels modèle (avec leurs tokens), connecteurs, recherche web, outils — et les appels que personne n’a demandés (titres, compactages, sondes).",
     "en": "A page that shows everything this machine sends out: model calls (with their tokens), connectors, web search, tools — and the calls nobody asked for (automatic titles, compactions, probes)."
   },
   "steps": [

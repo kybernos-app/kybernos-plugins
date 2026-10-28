@@ -210,33 +210,42 @@ export function applyPreset(store, input) {
     const library = plain(read.library) ? read.library : { presets: [], updatedAt: 0 }
     const presets = Array.isArray(library.presets) ? library.presets : []
     const name = clean(input.name)
+    const lower = (s) => clean(s).toLowerCase()
+    const sameName = (p, n) => typeof p.name === 'string' && lower(p.name) === lower(n)
+    // A record belongs to THIS import — never to the person, never to another document — only when it is not one the
+    // person made (`source:'me'`) AND it carries the name this import gives (plain or suffixed). A1-1 freezes both
+    // rules: « the `me` record is never touched (byte for byte) » and « the import never evicts a theme the person
+    // kept ». So a candidate id held by any other record is SKIPPED, never overwritten, and a `me` record is never a
+    // candidate at all — whatever id the document names, and whatever suffix the walk reaches.
+    const ours = (p, n) => p !== undefined && p !== null && p.source !== 'me' && sameName(p, n)
     const base = typeof input.id === 'string' && ID_RE.test(input.id) ? input.id : presetSlug(name)
-    const named = (n) => presets.find((p) => typeof p.name === 'string' && clean(p.name).toLowerCase() === n.toLowerCase())
+    const named = (n) => presets.find((p) => sameName(p, n))
+    const at = (id) => presets.find((p) => p.id === id)
     // The identity of an import: the id it is given, else the slug of its name. A name ALREADY carried by another
     // record yields a free name and the next suffixed id (a second row in « My styles » rather than a silent
     // failure to apply); walking the suffixes again is how an identical second import finds its record back, so
     // the collision case stays idempotent too.
     let id = base
     let free = null
-    const holder = named(name)
-    if (holder !== undefined && holder.id !== base) {
+    let existing = ours(at(base), name) ? at(base) : null
+    if (existing === null && (at(base) !== undefined || (named(name) !== undefined && named(name).id !== base))) {
       let found = false
       for (let i = 2; i <= 999 && found === false; i += 1) {
         const cand = base + '-' + i
         const candName = presetSuffixed(name, i)
-        if (presets.some((p) => p.id === cand)) { id = cand; found = true } // this very import, applied before
-        else if (named(candName) === undefined) { id = cand; free = candName; found = true }
+        const held = at(cand)
+        if (held !== undefined) { if (ours(held, candName)) { id = cand; existing = held; found = true } } // this very import, applied before
+        else if (named(candName) === undefined) { id = cand; free = named(name) === undefined ? name : candName; found = true }
       }
       if (found === false) return fail('no free id')
     }
-    const existing = presets.find((p) => p.id === id)
     // The import never evicts a theme the person kept: a full library refuses it, unless it is a record already there.
-    if (existing === undefined && presets.length >= LIMITS.presets) return fail('library full')
+    if (existing === null && presets.length >= LIMITS.presets) return fail('library full')
     const v = sanitizePreset({
       id,
-      name: existing === undefined ? (free === null ? name : free) : existing.name,
+      name: existing !== null ? existing.name : (free !== null ? free : name),
       source: input.source, settings: input.settings, gid: input.gid, v: input.v, author: input.author,
-      at: existing === undefined ? undefined : existing.at,
+      at: existing !== null ? existing.at : undefined,
     })
     if (v.ok !== true) return fail(v.error)
     const preset = v.preset

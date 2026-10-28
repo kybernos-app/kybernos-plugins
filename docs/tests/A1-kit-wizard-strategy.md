@@ -94,7 +94,7 @@ DECISION (was `AMBIGUITY:`, and the premise behind it is **withdrawn** — the m
 
 `docs/tests/A2-pack-format-strategy.md:95-96` freezes `pack.kit = { themes?, skills?, teams?, automations? }` for a contributing plugin and records the consumer as **deferred**, not open — quoted as written at the baseline: « The consumer is **recorded as deferred**, not left open: batch A1-kit-wizard measures that the wizard reads no `pack.kit` today and will render contributed kit rows only in a later phase ». The sentence an earlier revision of this file quoted ("the two batches cannot merge with different answers") is **not in A2 at the baseline**: the AMBIGUITY-2 paragraph was rewritten into that DECISION, and the batch-to-batch rule it stated went with it. **The answer is: this batch reads neither shape.** Measured on 2026-10-27, re-measured on the baseline on 2026-10-28:
 
-1. The wizard's kit is derived from the pack's **goals** today — `kbObKitOf` (`client.js:35732`, its goal loops `:35738` and `:35740`) — and `kitApply` (`:36664-36720`) installs item by item; `client.js` contains **no** occurrence of `pack.kit`, `.kit.teams`, `.kit.automations` or `kit.themes` (grep count 0 at the baseline). Nothing here needs a kit wire.
+1. The wizard's kit is derived from the pack's **goals** today — `kbObKitOf` (its goal loops read the pack's own `goals`) — and `kitApply` installs item by item; **the wizard's blocks** (`KB-OB-CORE` + `KB-OB-UI`) contain **no** occurrence of `pack.kit`, `.kit.teams`, `.kit.automations` or `kit.themes` (grep count 0). `client.js` **as a whole** does, in A7's marketplace `plan.kit` rendering — a second consumer this batch does not own (review narrowing 2026-10-28: a file-wide count cannot survive a legitimate second consumer, and says nothing about this wizard). Nothing here needs a kit wire.
 2. The only pack datum this batch adds is the **top-level `theme` string**, read by `kbObThemeOf(pack)` from `pack.theme`, never from `pack.kit.themes`: `A2:160-161` itself marks `kit.themes` and `kit.skills` "reference only", and the campaign's frozen pair (pack `sante` → style preset `cabinet-medical`) is the single `theme` key `A2` freezes (`:64`, `:127-128`).
 3. No shipped pack carries a `kit` key today (`A2:225` asserts the same), so a wizard reading it would be untestable until both `A2` and a contributed data plugin land.
 
@@ -256,38 +256,57 @@ console.log("ok   preview: theme id carried, pack accent and menu untouched")
 
 Today: `FAIL preview: the miniature does not carry the pack theme id` + `FAIL preview: a pack without a theme does not answer theme:null` (exit 1).
 
-**DoD 4 — the wiring: one seam read in the core, applied by `kitApply`, sent as `theme`, shown by the Kit screen.**
+**DoD 4 — the wiring: one published seam read in the core, applied by `kitApply`, sent as `theme`, shown by the Kit screen.**
+
+**Review narrowing 2026-10-28 (adversarial review, F-39/F-40).** The original DoD 4 counted `__KB_THEME_APPLY__` and the
+`pack.kit` family over the WHOLE of `client.js`. A second legitimate consumer — A7's marketplace — landed in that same file
+with its own `plan.kit` rendering and (at first) a raw seam read, so a file-wide count could only be RED on a merged tree,
+and it said nothing about the wizard. The invariant this spec actually means is consumer-aware: **one** raw reader in the
+file, inside `KB-OB-CORE`, and every other consumer through the published helper `kbObThemeSeam`; and **the wizard's own
+blocks** (`KB-OB-CORE` + `KB-OB-UI`) consume no `pack.kit`. The marketplace's raw read was routed through the helper in the
+same fix, so the file-wide read count is 1 again too; `pack.kit` is measured only where the wizard lives. The rest of DoD 4
+(`kitApply` applies through `kbObThemeApplied`, the `complete` post carries `theme`, the Kit screen shows `kit-theme`, the
+`k.theme.note` line) is untouched and stays file-scoped: it is genuinely the wizard's own.
 
 ```bash
 node --input-type=module -e '
-import{readFileSync}from"node:fs"
-const s=readFileSync("packages/kybernos-plugin/client.js","utf8")
-const cj=s.indexOf("// KB-OB-CORE-END")
-const ui=s.slice(s.indexOf("// KB-OB-UI-BEGIN"),s.indexOf("// KB-OB-UI-END"))
-const bad=[]
-const hits=s.split("__KB_THEME_APPLY__").length-1
-if(hits!==1)bad.push("__KB_THEME_APPLY__ appears "+hits+" time(s): exactly one, in the core helper")
-else if(s.indexOf("__KB_THEME_APPLY__")>cj)bad.push("__KB_THEME_APPLY__ is read outside the KB-OB-CORE block")
-const k0=ui.indexOf("const kitApply = async"),k1=ui.indexOf("const setupLoad")
-if(k0<0||k1<=k0)bad.push("the kitApply block cannot be located")
-else{
-  const apply=ui.slice(k0,k1)
-  if(!/kbObThemeApplied\s*\(/.test(apply))bad.push("kitApply does not apply the theme through kbObThemeApplied")
-  if(!/theme\s*[:=]/.test(apply))bad.push("kitApply does not record the theme it applied (S.theme = … or theme: …)")
+import { readFileSync } from "node:fs"
+const s = readFileSync("packages/kybernos-plugin/client.js", "utf8")
+const core = s.slice(s.indexOf("// KB-OB-CORE-BEGIN"), s.indexOf("// KB-OB-CORE-END"))
+const ui = s.slice(s.indexOf("// KB-OB-UI-BEGIN"), s.indexOf("// KB-OB-UI-END"))
+const ports = s.slice(s.indexOf("const kbThPorts = () => {"), s.indexOf("const kbThPresence ="))
+const reads = (t) => t.split("__KB_THEME_APPLY__").length - 1
+const bad = []
+if (reads(s) !== 1) bad.push("__KB_THEME_APPLY__ is read " + reads(s) + " time(s) in the file: ONE raw reader, in the core")
+if (reads(core) !== 1) bad.push("the one raw read is not in KB-OB-CORE")
+if (reads(ui) !== 0) bad.push("the wizard UI reads the window itself instead of kbObThemeSeam")
+if (reads(ports) !== 0) bad.push("the installer page style port reads the window itself instead of the published helper")
+for (const t of ["pack.kit", ".kit.teams", ".kit.automations", "kit.themes"]) {
+  const n = (core + ui).split(t).length - 1
+  if (n !== 0) bad.push("the wizard consumes " + t + " (" + n + ")")
 }
-const post=ui.split("\n").find((l)=>/action: .complete/.test(l))
-if(post===undefined)bad.push("the complete post line is not found")
-else if(!/theme\s*:/.test(post))bad.push("the complete body carries no theme field")
-if(!ui.includes("kit-theme"))bad.push("the kit screen has no theme row (data-kb-ob kit-theme)")
-if(!/kbObThemeOf\s*\(/.test(ui))bad.push("the screen does not read the pack theme through kbObThemeOf")
-if(!/kbObThemeSeam\s*\(/.test(ui))bad.push("the screen does not probe the seam through kbObThemeSeam")
-if(!/T\(.k\.theme\.note.\)/.test(ui))bad.push("the theme line does not use the k.theme.note text")
-if(bad.length>0){for(const b of bad)console.log("FAIL wiring:",b);process.exit(1)}
-console.log("ok   wiring: one seam read in the core, applied by kitApply, sent as theme, shown by the kit screen")
+const k0 = ui.indexOf("const kitApply = async"), k1 = ui.indexOf("const setupLoad")
+if (k0 < 0 || k1 <= k0) bad.push("the kitApply block cannot be located")
+else {
+  const apply = ui.slice(k0, k1)
+  if (!/kbObThemeApplied\s*\(/.test(apply)) bad.push("kitApply does not apply the theme through kbObThemeApplied")
+  if (!/theme\s*[:=]/.test(apply)) bad.push("kitApply does not record the theme it applied (S.theme = … or theme: …)")
+}
+const post = ui.split("\n").find((l) => /action: .complete/.test(l))
+if (post === undefined) bad.push("the complete post line is not found")
+else if (!/theme\s*:/.test(post)) bad.push("the complete body carries no theme field")
+if (!ui.includes("kit-theme")) bad.push("the kit screen has no theme row (data-kb-ob kit-theme)")
+if (!/kbObThemeOf\s*\(/.test(ui)) bad.push("the screen does not read the pack theme through kbObThemeOf")
+if (!/kbObThemeSeam\s*\(/.test(ui)) bad.push("the screen does not probe the seam through kbObThemeSeam")
+if (!/T\(.k\.theme\.note.\)/.test(ui)) bad.push("the theme line does not use the k.theme.note text")
+if (bad.length > 0) { for (const b of bad) console.log("FAIL wiring: " + b); process.exit(1) }
+console.log("ok   wiring: one published seam, and the wizard consumes no pack.kit")
 '
 ```
 
-Today: eight `FAIL wiring:` lines, starting with `__KB_THEME_APPLY__ appears 0 time(s)` (exit 1).
+Today (after the review narrowing, 2026-10-28): no `FAIL wiring:` line, exit 0. Before it, the file-wide form read
+`__KB_THEME_APPLY__ appears 2 time(s)` and counted the marketplace's `plan.kit` — both facts about the merged tree, neither
+about this wizard.
 
 **DoD 5 — the extraction list and the four labels really run green.**
 

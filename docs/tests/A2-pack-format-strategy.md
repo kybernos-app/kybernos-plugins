@@ -65,7 +65,7 @@ No honest third way existed while the question was open: `domainPacks()` is sync
 
 ## Interpretations (the request admits several; chosen + why)
 
-1. **The `theme` key is a reference, not a payload.** A pack carries **one** string id (`/^[a-z0-9][a-z0-9-]{0,40}$/`, the same vocabulary as `TEAM_RE` at
+1. **The `theme` key is a reference, not a payload.** A pack carries **one** string id (`/^[a-z0-9][a-z0-9-]{0,39}$/`, the same vocabulary as `TEAM_RE` at
    `domain-pack.mjs:35`), never settings bytes, never CSS. Chosen because build contract 3 makes the theme a token overlay and because §4.2 of the strategy keeps
    Settings › Style as the last word; the host must not copy a preset into a pack file.
    *Rejected alternative:* carrying the settings inline in the pack (would make the pack a theme store and re-open free CSS).
@@ -99,9 +99,9 @@ No honest third way existed while the question was open: `domainPacks()` is sync
 **DECISION (was AMBIGUITY 2) — the kit wire is `pack.kit = { themes?, skills?, teams?, automations? }`; authored goals are never mutated.** The consumer is **recorded as deferred**, not left open: batch A1-kit-wizard measures that the wizard reads no `pack.kit` today and will render contributed kit rows only in a later phase (`docs/tests/A1-kit-wizard-strategy.md:86-94`).
 This phase therefore serves and tests the slices; the contract for the phase that consumes them is frozen here — read this shape verbatim, no second wire, no mutation of `goal.teams`/`goal.automations`.
 **RETIRED (was AMBIGUITY 3) — the campaign's interface letters.** Bound decision D3 (`docs/tests/porte-go-verdicts.md:40-43`) retires the campaign's `I`-letter labels campaign-wide: they were overloaded (three specs said so independently) and no file under `docs/` ever defined one list. Every wire this batch carries is now named by its **point id**, which is on disk and checkable: `kybernos/core#domain-pack` (the pack itself), `kybernos/theme#theme` (the pack's `theme` key and the onboarding `theme` field), `kybernos/skills#skill`, `kybernos/core#team-template` and `kybernos/core#automation-template` (the two kit slices owned here). This document is still the wire for the pack `theme` key, the onboarding `theme` field and the `kit` slices; it simply no longer mints a letter to say so.
-AMBIGUITY: **the theme id vocabulary** — the pack regex `/^[a-z0-9][a-z0-9-]{0,40}$/` is *narrower* than the preset store's `ID_RE`
+AMBIGUITY: **the theme id vocabulary** — the pack regex `/^[a-z0-9][a-z0-9-]{0,39}$/` is *narrower* than the preset store's `ID_RE`
 (`/^[a-z0-9][a-z0-9-]{0,63}$/`, `preset-store.mjs:26`), so a preset whose id is 41-63 characters can never be named by a pack. Widen the pack key to 63, or
-accept that such a preset is unreferenceable. This batch implements 40 (the delegation's brief) and states the consequence.
+accept that such a preset is unreferenceable. This batch implements 40 characters (`{0,39}` after the first — the earlier `{0,40}` was an off-by-one, `revue-adversariale.md` F-15) and states the consequence.
 AMBIGUITY: **`theme` is served by the pre-sign-in GET** — `GET /kybernos/onboarding` is answered before DSH's own sign-in (`onboarding-state.mjs:51-52`).
 Choosing "public" (interpretation 7) means any local page can read which style preset the person picked. It is a real (small) disclosure decision, not a detail.
 AMBIGUITY: **who fixes `test-domain-pack.mjs:257` and `:290` when A3 adds a pack** — this batch widens both to relative-order/pair assertions (interpretation 11). If the campaign
@@ -127,7 +127,7 @@ prefers the exact-set equality, then A3 needs a one-line exception on a file thi
 ## The format this batch freezes
 
 **Final pack key list (15 keys, `domain-pack.mjs:71` + `theme`).** `v`, `id`, `order`, **`theme`**, `accent`, `icon`, `name`, `tagline`, `keywords`, `home`,
-`legacyJobs`, `menu`, `mode`, `agents`, `goals`. `theme` is optional, one string, `/^[a-z0-9][a-z0-9-]{0,40}$/`, read as `null` when absent. Everything else in
+`legacyJobs`, `menu`, `mode`, `agents`, `goals`. `theme` is optional, one string, `/^[a-z0-9][a-z0-9-]{0,39}$/`, read as `null` when absent. Everything else in
 `:71-77` is unchanged; an unknown key is still an error, never trimmed (`:45`).
 
 **`plugin.json` provides block added after the existing entry (`:30-41`).** Exactly these two objects; `name` must satisfy the manifest schema

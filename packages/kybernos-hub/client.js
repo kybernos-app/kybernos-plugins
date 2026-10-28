@@ -946,6 +946,8 @@ window.__ModuleLoader__.load({
       map:'<path class="a" d="M3 8l8-3 10 3 8-3v19l-8 3-10-3-8 3z"/><path class="b" d="M11 5l10 3v19l-10-3z"/><path class="l" d="M3 8l8-3 10 3 8-3v19l-8 3-10-3-8 3zM11 5v19M21 8v19"/><circle class="w" cx="16" cy="14" r="2"/>',
       branch:'<path class="l" d="M9 10.5v11M23 15.5c0 5-14 3-14 8"/><circle class="b" cx="9" cy="7" r="3.5"/><circle class="b" cx="9" cy="25" r="3.5"/><circle class="a" cx="23" cy="12" r="3.5"/><circle class="l" cx="9" cy="7" r="3.5"/><circle class="l" cx="9" cy="25" r="3.5"/><circle class="l" cx="23" cy="12" r="3.5"/>',
       doc:'<path class="a" d="M7 3h13l6 6v20H7z"/><path class="b" d="M20 3l6 6h-6z"/><path class="l" d="M7 3h13l6 6v20H7zM11.5 15h10M11.5 19h10M11.5 23h6"/><path class="w" d="M11 10.5h3M11 8h6"/>',
+      // A journal sheet: what the machine sent out, line by line (kybernos-log).
+      list:'<rect class="a" x="4" y="3" width="24" height="26" rx="5"/><path class="l" d="M4 8a5 5 0 0 1 5-5h14a5 5 0 0 1 5 5v16a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path class="l" d="M13 10h10M13 16h10M13 22h6"/><circle class="b" cx="9" cy="10" r="1.5"/><circle class="b" cx="9" cy="16" r="1.5"/><circle class="w" cx="9" cy="22" r="1.5"/>',
       cal:'<rect class="a" x="3" y="6" width="26" height="22" rx="4"/><path class="b" d="M3 10a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><path class="l" d="M3 13h26M10 3v6M22 3v6"/><path class="l" d="M10 21l3 3 6-7"/>',
       summary:'<rect class="a" x="4" y="3" width="24" height="26" rx="4"/><path class="b" d="M4 7a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v3H4z"/><path class="l" d="M9.5 16.5l1.8 1.8 3.2-3.6M17.5 16.5h6M9.5 23l1.8 1.8 3.2-3.6M17.5 23h6"/>',
       kyber:'<circle class="a" cx="16" cy="16" r="12"/><path class="l" d="M12 9v14M12 16l8-7M14.5 15l6.5 8"/>',

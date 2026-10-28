@@ -13,9 +13,12 @@
 //   readThemes / writeThemes   <DSH home>/kybernos/themes.json: one bounded file, atomic, 0600
 //   handleThemes     the body of /kybernos/themes: method, origin, session, then one action
 //
-// Nothing here fetches: `handleThemes` is pure over its ports and synchronous, so a test drives it without a socket. The
-// catalogue bytes reach it already fetched, through `ports.catalogues`; with no key pinned a source is REFUSED as
-// unverifiable rather than trusted (A6's AMBIGUITY 5, ratified M4: no placeholder official key ships).
+// `handleThemes` is pure over its ports and synchronous, so a test drives it without a socket: the catalogue bytes reach it
+// through `ports.catalogues`, the archive bytes through `ports.archive`. The BOUNDED transport that produces them lives at the
+// bottom of this file (`fetchCatalogueSources`, `fetchArchiveBytes`, the few lines copied from
+// `packages/kybernos-hub/telechargement.mjs`, as A6:43 freezes), and `index.js` — the one caller — runs it before the route
+// body. With no key pinned a source is REFUSED as unverifiable rather than trusted (A6's AMBIGUITY 5, ratified M4: no
+// placeholder official key ships).
 //
 // The catalogue document (docs/dev/plugin-contract.md §9-10):
 //   { schema: 1, kind: 'kybernos-plugin-catalogue',
@@ -29,7 +32,7 @@
 //   kybernos-plugin-v1\n<id>\n<version>\n<sha256>
 //   kybernos-plugin-review-v1\n<id>\n<version>\n<sha256>\nverified
 import { createHash, verify as verifySignature } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync, chmodSync } from 'node:fs'
+import { chmodSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 export const CATALOGUE_KIND = 'kybernos-plugin-catalogue'
@@ -45,6 +48,18 @@ export const RECORDS_MAX = 8
 export const THEMES_MAX_BYTES = 256 * 1024
 /** A write body: the plan screen sends ticks and ids, never a document. */
 export const BODY_MAX = 64 * 1024
+/**
+ * The keys `official` requires: the Kybernos namespace AND one of these ids (A6's AMBIGUITY 5, ratified M4). The list ships
+ * EMPTY on purpose — no placeholder official key exists — so a source the person pinned, however it signs itself, can earn
+ * `verified` at best. A key here is a release decision, never a string a document may claim.
+ */
+export const OFFICIAL_KEYS = Object.freeze([])
+/** The transport bounds: a document and its signature are small; an archive is the registry's import bound. */
+export const SOURCE_TIMEOUT_MS = 8000
+export const ARCHIVE_TIMEOUT_MS = 60000
+const SIGNATURE_MAX_BYTES = 8 * 1024
+/** How many verified archives stay beside the record for DSH's manager (the registry's own housekeeping count). */
+export const ARCHIVES_KEEP = 20
 
 const OWNER = /^[a-z][a-z0-9-]{1,31}\/[a-z][a-z0-9-]{1,39}$/
 const PRESET_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
@@ -434,49 +449,121 @@ const folderProblem = (folder) => {
   if (folder.split(/[\\/]+/).indexOf('..') >= 0) return 'the path goes up its own tree'
   if (folder.startsWith('/') === false && /^[A-Za-z]:[\\/]/.test(folder) === false) return 'an absolute path is expected'
   try {
-    const st = statSync(folder)
+    const st = lstatSync(folder) // lstat, not stat: stat FOLLOWS a link, so isSymbolicLink() would never be true (F-2)
     if (st.isSymbolicLink()) return 'the folder is a symbolic link'
     if (!st.isDirectory()) return 'this is not a folder'
   } catch (e) { return 'the folder cannot be read' }
   return null
 }
 
-/** The catalogue entries the caller already fetched, verified: `{ themes, refused }`. Nothing is parsed before its signature. */
+/**
+ * The author keys a signed catalogue names for one plugin id (`<author>/<name>`): the document is signed as a whole, so what it
+ * says about its own authors is attested by the key the person pinned. An author the document does not name has no key, and
+ * its entries cannot verify — refused as `signature`, never trusted.
+ */
+const authorKeysOf = (doc, id) => {
+  const owner = String(id).split('/')[0]
+  const authors = plain(doc.authors) ? doc.authors : {}
+  const author = plain(authors[owner]) ? authors[owner] : null
+  return author === null ? [] : keysOf(author.keys)
+}
+
+/**
+ * The catalogue entries the caller already fetched, verified: `{ themes, refused, entries }`. Nothing is parsed before its
+ * signature; every offered entry goes through `verifyEntry`, so the level comes from the signatures and never from a field the
+ * document wrote about itself (F-25). `entries` keeps what the archive check needs (`archive.url` and the key lists).
+ */
 const catalogueView = (sources, catalogues) => {
   const themes = []
   const refused = []
+  const entries = []
   const fetched = list(catalogues).filter(plain)
   for (const s of sources) {
     const pinned = typeof s.pem === 'string' && s.pem !== '' ? [{ keyId: typeof s.keyId === 'string' ? s.keyId : 'pinned', pem: s.pem }] : []
     if (pinned.length === 0) { refused.push({ source: s.url, error: 'no-key', reason: 'unverifiable source — not installable' }); continue }
     const got = fetched.find((c) => c.source === s.url) ?? null
     if (got === null) { refused.push({ source: s.url, error: 'no-byte', reason: 'not read yet — refresh' }); continue }
+    if (typeof got.error === 'string') { refused.push({ source: s.url, error: tidy(got.error, 20), reason: 'the catalogue could not be read' }); continue }
     const doc = verifyCatalogue({ bytes: got.bytes, signature: got.signature, keys: pinned, floor: Number.isInteger(s.seq) ? { seq: s.seq } : null })
     if (doc.ok !== true) { refused.push({ source: s.url, error: doc.error, reason: 'the catalogue was refused' }); continue }
+    const reviewerKeys = keysOf(doc.doc.reviewers)
     for (const p of doc.doc.plugins) {
       const versions = list(p.versions)
       const newest = versions.length > 0 ? versions[versions.length - 1] : null
       if (newest === null) continue
-      const rev = revocationOf(doc.doc, p.id, newest.version)
-      if (rev.revoked === true && rev.action === 'disable') { refused.push({ source: s.url, error: 'revoked', reason: rev.reason, id: p.id, version: newest.version }); continue }
+      const version = String(newest.version)
+      const rev = revocationOf(doc.doc, p.id, version)
+      if (rev.revoked === true && rev.action === 'disable') { refused.push({ source: s.url, error: 'revoked', reason: rev.reason, id: p.id, version }); continue }
+      const keys = authorKeysOf(doc.doc, p.id)
+      // The level is COMPUTED here, once (A6's INT4): official needs the namespace AND a shipped official key, verified needs
+      // the reviewer's countersignature, community is the author's signature alone. A self-pinned source can never mint more.
+      const verified = verifyEntry({ id: p.id, version, entry: newest, catalogueKey: doc.key, keys, reviewerKeys, officialKeys: OFFICIAL_KEYS })
+      if (verified.ok !== true) { refused.push({ source: s.url, error: verified.error, reason: 'the entry was refused', id: p.id, version }); continue }
       const m = plain(newest.manifest) ? newest.manifest : {}
       themes.push({
         id: p.id,
-        version: String(newest.version),
+        version,
         source: s.url,
         catalogueKey: doc.key,
-        level: typeof newest.level === 'string' ? newest.level : 'community',
-        name: plain(m.name) ? m.name : null,
-        author: plain(m.author) ? m.author : null,
+        level: verified.level,
+        name: plain(m.name) || typeof m.name === 'string' ? m.name : null,
+        description: plain(m.description) || typeof m.description === 'string' ? m.description : null,
+        author: plain(m.author) || typeof m.author === 'string' ? m.author : null,
         licence: typeof m.license === 'string' ? m.license : null,
         points: list(m.extends).map((e) => tidy(plain(e) ? e.point : '', 64)).filter((x) => x !== ''),
         permissions: list(m.permissions).map((x) => tidy(x, 64)),
         archive: plain(newest.archive) ? { url: tidy(newest.archive.url, 2000), sha256: tidy(newest.archive.sha256, 64), size: Number.isInteger(newest.archive.size) ? newest.archive.size : null } : null,
         revoked: rev.revoked === true ? { reason: rev.reason, action: rev.action } : null,
       })
+      entries.push({ id: p.id, version, entry: newest, catalogueKey: doc.key, keys, reviewerKeys, officialKeys: OFFICIAL_KEYS })
     }
   }
-  return { themes, refused }
+  return { themes, refused, entries }
+}
+
+/**
+ * The verified entry an install targets, and the key lists its archive must verify against: `{ ok, id, version, entry,
+ * catalogueKey, keys, reviewerKeys, officialKeys, archive }` or `{ ok: false, error }`. The caller (index.js) fetches the
+ * archive from `archive.url`; it never takes an address from the page.
+ */
+export function themeTarget (dir, catalogues, id, version) {
+  try {
+    if (typeof id !== 'string' || OWNER.test(id) === false) return { ok: false, error: 'id' }
+    const view = catalogueView(readThemes(dir).sources, catalogues)
+    const found = view.entries.find((e) => e.id === id && (version === undefined || version === null || version === '' || e.version === String(version))) ?? null
+    if (found === null) return { ok: false, error: 'unknown-theme' }
+    const archive = plain(found.entry.archive) ? found.entry.archive : null
+    if (archive === null || typeof archive.url !== 'string') return { ok: false, error: 'no-archive' }
+    return { ok: true, id: found.id, version: found.version, entry: found.entry, catalogueKey: found.catalogueKey, keys: found.keys, reviewerKeys: found.reviewerKeys, officialKeys: found.officialKeys, archive }
+  } catch (e) { return { ok: false, error: 'schema' } }
+}
+
+/** The archive file the manager is pointed at: its name is ours (no header, no client string), bounded and gzip-named. */
+const archivePath = (dir, id, version) => {
+  const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
+  const name = String(id).replace(/[^a-z0-9-]+/gi, '-') + '-' + String(version).replace(/[^0-9A-Za-z.+-]+/g, '-') + '.tgz'
+  return join(dir, 'plugin-imports', stamp + '-' + name.slice(0, 160))
+}
+
+/**
+ * Keeps the VERIFIED archive where DSH's manager can read it (the folder the registry's import route already uses), atomic and
+ * 0600, and prunes the oldest. `{ ok: true, path }` or `{ ok: false, error }`.
+ */
+const writeArchive = (dir, id, version, bytes) => {
+  try {
+    if (typeof dir !== 'string' || dir === '') return { ok: false, error: 'dir' }
+    const folder = join(dir, 'plugin-imports')
+    mkdirSync(folder, { recursive: true, mode: 0o700 })
+    const p = archivePath(dir, id, version)
+    const tmp = p + '.tmp-' + process.pid
+    writeFileSync(tmp, bytes, { mode: 0o600 })
+    renameSync(tmp, p)
+    try {
+      const old = readdirSync(folder).filter((f) => /\.tgz$/.test(f)).sort().slice(0, -ARCHIVES_KEEP)
+      for (const f of old) rmSync(join(folder, f), { force: true })
+    } catch (e) { /* housekeeping only */ }
+    return { ok: true, path: p }
+  } catch (e) { return { ok: false, error: 'write' } }
 }
 
 /** The GET of the one read: the bounded sources, the installed records, the verified catalogue entries and the refused lines. */
@@ -501,10 +588,12 @@ const readAll = (dir, ports) => {
 /**
  * `handleThemes({ dir }, request, ports)` → `{ status, body }`: the body of `/kybernos/themes`, pure over its ports and
  * synchronous, never throwing on garbage. Method first (405), origin second (403), signed session third (401/403/503), the body
- * cap (413), then one action: `stage`, `plan`, `record`, `forget`, `source-add`, `source-remove`, `refresh`. Unknown is 400.
+ * cap (413), then one action: `stage`, `plan`, `install`, `record`, `forget`, `source-add`, `source-remove`, `refresh`. Unknown is
+ * 400.
  *
  * Ports: `sameOrigin(req)` → boolean; `session(req)` → `true` or `{ status, error }`; `registry` (the seam, or null);
- * `catalogues` → `[{ source, bytes, signature }]` already fetched (the caller owns the transport, so this file never fetches).
+ * `catalogues` → `[{ source, bytes, signature }]` already fetched; `archive` → `{ id, version, entry, catalogueKey, keys,
+ * reviewerKeys, officialKeys, bytes }` already fetched for `install` (the caller owns the transport, so this file never fetches).
  */
 export function handleThemes (store, request, ports) {
   const answer = (status, body) => ({ status, body: plain(body) ? body : { ok: false, error: 'internal error' } })
@@ -552,6 +641,24 @@ export function handleThemes (store, request, ports) {
       const plan = planTheme(preview)
       return answer(200, plan.ok === true ? { ok: true, plan } : { ok: false, error: plan.error })
     }
+    // The archive half of the click: the caller (index.js) fetched the bytes AND ran `verifyArchive` on them before handing
+    // them over — hash compared to the entry, author and reviewer signatures checked (F-26). This body refuses a port whose
+    // verdict does not name these exact bytes, checks the gzip shape, then stages the VERIFIED bytes for DSH's manager. The page
+    // never hashes, never writes a path and never picks the address.
+    if (action === 'install') {
+      const id = text(body.id) ?? ''
+      if (OWNER.test(id) === false) return answer(400, { ok: false, error: 'id' })
+      const got = plain(p.archive) ? p.archive : null
+      if (got === null || got.id !== id) return answer(200, { ok: false, error: 'no-archive' })
+      const bytes = asBytes(got.bytes)
+      if (bytes === null) return answer(200, { ok: false, error: 'download' })
+      const verdict = plain(got.verified) ? got.verified : null
+      if (verdict === null || verdict.ok !== true || verdict.sha256 !== hashOf(bytes)) return answer(200, { ok: false, error: 'unverified' })
+      if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return answer(200, { ok: false, error: 'archive' })
+      const staged = writeArchive(dir, id, String(got.version), bytes)
+      if (staged.ok !== true) return answer(500, { ok: false, error: staged.error })
+      return answer(200, { ok: true, id, version: String(got.version), sha256: verdict.sha256, level: verdict.level, path: staged.path })
+    }
     if (action === 'record') {
       const id = text(body.id) ?? ''
       if (OWNER.test(id) === false) return answer(400, { ok: false, error: 'id' })
@@ -598,4 +705,75 @@ export function handleThemes (store, request, ports) {
   } catch (e) {
     return answer(500, { ok: false, error: 'internal error' })
   }
+}
+
+// ── the transport: the few lines of `packages/kybernos-hub/telechargement.mjs` this bundle copies (A6:43) ────────────────
+// A bundle cannot import another bundle's file, so the bounded rules are re-stated here: https only (a redirect must not
+// downgrade it), a size cap enforced WHILE reading (never after a full download), a deadline, and a document parsed only
+// once its own size is within the bound. Nothing here is trusted: the bytes still go through `verifyCatalogue`/`verifyEntry`.
+const openBounded = async (url, ms, fetchImpl) => {
+  let u = null
+  try { u = new URL(url) } catch (e) { return null }
+  if (u.protocol !== 'https:') return null
+  const rep = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(ms), headers: { accept: '*/*' } })
+  if (rep.ok !== true) return null
+  if (typeof rep.url === 'string' && rep.url !== '') { try { if (new URL(rep.url).protocol !== 'https:') return null } catch (e) { return null } }
+  if (rep.body === null || rep.body === undefined) return null
+  return rep
+}
+
+/** The body, read in chunks and refused the moment it passes `max`: an oversized document is never buffered whole. */
+const readCapped = async (rep, max) => {
+  const reader = rep.body.getReader()
+  const chunks = []
+  let n = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    n += value.length
+    if (n > max) { try { await reader.cancel() } catch (e) { /* closing anyway */ } const e = new Error('size'); e.code = 'size'; throw e }
+    chunks.push(Buffer.from(value))
+  }
+  return Buffer.concat(chunks)
+}
+
+/**
+ * The declared sources, fetched: `[{ source, bytes, signature }]` or `[{ source, error }]` per source, never a throw. The
+ * signature is the document's sibling `<url>.sig` (a bare base64 body, or `{ "signature": "…" }`), so a source is a pair of
+ * addresses the person added, not one. The caller passes the result to `handleThemes` as `ports.catalogues`.
+ */
+export async function fetchCatalogueSources (sources, opts = {}) {
+  const fetchImpl = typeof opts.fetch === 'function' ? opts.fetch : fetch
+  const timeout = Number.isInteger(opts.timeoutMs) ? opts.timeoutMs : SOURCE_TIMEOUT_MS
+  const wanted = list(sources).filter((s) => plain(s) && typeof s.url === 'string')
+  // In parallel: three dead addresses must cost one deadline, not three (the page waits on this read).
+  const one = async (s) => {
+    try {
+      const doc = await openBounded(s.url, timeout, fetchImpl)
+      if (doc === null) return { source: s.url, error: 'download' }
+      const bytes = await readCapped(doc, MAX_DOC_BYTES)
+      const sig = await openBounded(s.url + '.sig', timeout, fetchImpl)
+      if (sig === null) return { source: s.url, error: 'signature' }
+      const raw = (await readCapped(sig, SIGNATURE_MAX_BYTES)).toString('utf8').trim()
+      let signature = raw
+      try { const j = JSON.parse(raw); if (plain(j) && typeof j.signature === 'string') signature = j.signature.trim() } catch (e) { /* a bare base64 body */ }
+      if (signature === '') return { source: s.url, error: 'signature' }
+      return { source: s.url, bytes, signature }
+    } catch (e) { return { source: s.url, error: e !== null && e !== undefined && e.code === 'size' ? 'size' : 'download' } }
+  }
+  return Promise.all(wanted.map(one))
+}
+
+/**
+ * An archive the verified entry points at, under the import bound: `{ ok: true, bytes }` or `{ ok: false, error }` (`download`,
+ * `size`). The URL is the one the signed catalogue carries, never one the page sent; `verifyArchive` still hashes these bytes.
+ */
+export async function fetchArchiveBytes (url, opts = {}) {
+  const fetchImpl = typeof opts.fetch === 'function' ? opts.fetch : fetch
+  const timeout = Number.isInteger(opts.timeoutMs) ? opts.timeoutMs : ARCHIVE_TIMEOUT_MS
+  try {
+    const rep = await openBounded(url, timeout, fetchImpl)
+    if (rep === null) return { ok: false, error: 'download' }
+    return { ok: true, bytes: await readCapped(rep, IMPORT_MAX) }
+  } catch (e) { return { ok: false, error: e !== null && e !== undefined && e.code === 'size' ? 'size' : 'download' } }
 }

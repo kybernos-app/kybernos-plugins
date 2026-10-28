@@ -130,6 +130,16 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-log",
+        "nom": "@local/kybernos-log",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "the activity log: what this machine sends out — model calls with their tokens, connectors, web search, tools and the calls nobody asked for — with family filters and a live tail, on its own Settings page \"Activity log\"",
+        "poids_ko": 80,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-maintenance",
         "nom": "@local/kybernos-maintenance",
         "tier": 2,
@@ -521,6 +531,7 @@
       "@local/kybernos-servers",
       "@local/kybernos-session-msg",
       "@local/kybernos-pulse",
+      "@local/kybernos-log",
       "@local/kybernos-webapp-creator"
     ]
   }

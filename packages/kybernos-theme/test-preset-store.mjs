@@ -161,6 +161,53 @@ section('an import through the host entry (applyPreset)')
     collidedAgain.ok === true && collidedAgain.id === collided.id && store.read().library.presets.filter((p) => p.name.indexOf('Soigné') === 0).length === 2, store.read().library.presets.map((p) => p.id + ':' + p.name))
   check('no two records share an id', new Set(store.read().library.presets.map((p) => p.id)).size === store.read().library.presets.length)
 
+  // A1-1's literal rule, over every id shape: « the `me` record is never touched (byte for byte) », and an import
+  // only ever names a record it created. The old test narrowed this to « a different id », which is how F-41 shipped.
+  {
+    const cases = []
+    for (const id of ['soigne', 'u-mine', 'x-1', 'a']) {
+      cases.push({ id, input: { name: 'Soigne', settings: { acc: '#abcdef' } } })
+      cases.push({ id, input: { id, name: 'Soigne', settings: { acc: '#abcdef' } } })
+      cases.push({ id, input: { id, name: 'Autre', settings: { acc: '#abcdef' } } })
+    }
+    let untouched = 0
+    let isolated = 0
+    for (const c of cases) {
+      const caseDir = tmp()
+      const caseStore = createPresetStore({ dir: caseDir, now: () => 5000 })
+      caseStore.write({ presets: [good({ id: c.id, name: 'Soigne', source: 'me', settings: { acc: '#000001' } })], updatedAt: 100 })
+      const record = () => JSON.stringify(caseStore.read().library.presets.find((p) => p.id === c.id))
+      const frozen = record()
+      const answer = applyPreset(caseStore, c.input)
+      const after = caseStore.read().library.presets
+      if (record() === frozen) untouched += 1
+      if (answer.ok !== true || (answer.id !== c.id && after.length === 2)) isolated += 1
+      rmSync(caseDir, { recursive: true, force: true })
+    }
+    check('a me record is untouched, byte for byte, whatever id an import names (' + cases.length + ' cases)', untouched === cases.length, { untouched, cases: cases.length })
+    check('...and the import lands on a record of its own (or refuses), never on the person\'s', isolated === cases.length, { isolated, cases: cases.length })
+  }
+  // F-42: the suffixed-id walk may only find a record the import itself created — never a stranger at that id.
+  {
+    const strangerDir = tmp()
+    const strangerStore = createPresetStore({ dir: strangerDir, now: () => 5000 })
+    strangerStore.write({
+      presets: [
+        good({ id: 'u-mine', name: 'Soigne', source: 'me', settings: { acc: '#000001' } }),
+        good({ id: 'soigne-2', name: 'Cabinet', source: 'gallery', gid: 'cab', v: 3, settings: { acc: '#123456' } }),
+      ],
+      updatedAt: 100,
+    })
+    const before = JSON.stringify(strangerStore.read().library.presets.find((p) => p.id === 'soigne-2'))
+    const answer = applyPreset(strangerStore, { name: 'Soigne', settings: { acc: '#abcdef' } })
+    const cabinet = strangerStore.read().library.presets.find((p) => p.id === 'soigne-2')
+    check('a suffixed-id collision never rewrites a record of another name (its gid and v survive)',
+      JSON.stringify(cabinet) === before && cabinet.gid === 'cab' && cabinet.v === 3, cabinet)
+    check('...the import answers its own name, and lands a record of its own',
+      answer.ok === true && answer.preset.name.indexOf('Soigne') === 0 && answer.preset.name !== 'Cabinet' && answer.id !== 'soigne-2', answer)
+    rmSync(strangerDir, { recursive: true, force: true })
+  }
+
   const routed = handlePresetStore(store, { method: 'POST', body: { import: { name: 'Route', settings: { acc: '#112233' } } } })
   check('POST { import } is the same entry, answered 200 { ok, preset }', routed.status === 200 && routed.body.ok === true && routed.body.preset.settings.acc === '#112233', routed)
   const refused = handlePresetStore(store, { method: 'POST', body: { import: { name: 'Route', settings: { cbSafe: true } } } })

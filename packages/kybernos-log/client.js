@@ -202,7 +202,9 @@ window.__ModuleLoader__.load({
         }
 
         return h('div', { className: 'kblg-page' },
-          h('h2', { style: { margin: 0, fontSize: 17, fontWeight: 650 } }, L('title')),
+          h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } },
+            h('h2', { style: { margin: 0, fontSize: 17, fontWeight: 650 } }, L('title')),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-log' }) : null)),
           h('p', { className: 'kblg-lead' }, L('lead')),
           h('p', { className: 'kblg-priv' }, L('privacy')),
           err ? h('p', { className: 'kblg-err' }, L('unreachable')) : null,
