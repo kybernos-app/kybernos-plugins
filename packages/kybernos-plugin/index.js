@@ -11641,11 +11641,11 @@ function boot(ctx) {
         if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         const entete = req.headers['content-type'] === undefined ? '' : String(req.headers['content-type'])
         const type = entete.split(';')[0].trim().toLowerCase()
-        if (KB_FEEDBACK_IMAGE_TYPES.indexOf(type) < 0) return sendJson(res, 415, { ok: false, error: 'image attendue (png, jpeg ou webp)' })
+        if (KB_FEEDBACK_IMAGE_TYPES.indexOf(type) < 0) return sendJson(res, 415, { ok: false, error: 'an image is expected (png, jpeg or webp)' })
         let bytes = null
-        try { bytes = await readRawBody(req, KB_FEEDBACK_IMAGE_MAX + 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: 'image trop lourde' }) }
-        if (bytes === null || bytes.length === 0) return sendJson(res, 400, { ok: false, error: 'image vide' })
-        if (bytes.length > KB_FEEDBACK_IMAGE_MAX) return sendJson(res, 413, { ok: false, error: 'image trop lourde' })
+        try { bytes = await readRawBody(req, KB_FEEDBACK_IMAGE_MAX + 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: 'image too large' }) }
+        if (bytes === null || bytes.length === 0) return sendJson(res, 400, { ok: false, error: 'empty image' })
+        if (bytes.length > KB_FEEDBACK_IMAGE_MAX) return sendJson(res, 413, { ok: false, error: 'image too large' })
         const up = await kbFeedbackUploadAttachment(type, bytes)
         if (up.ok === true) return sendJson(res, 201, up)
         // The server does not take screenshots (not deployed yet, or unreachable): the image is KEPT on this computer, with the

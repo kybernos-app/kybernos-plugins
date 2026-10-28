@@ -4793,7 +4793,7 @@ const KbLearnedDot = () => {
   const label = kbt(n === 1 ? 'kbui.skills.suggested.1' : 'kbui.skills.suggested').replace('{n}', String(n))
   return h('span', { className: 'kb4-dot kb-ping', role: 'img', 'aria-label': label, title: label, 'data-kb': 'learned-dot' })
 }
-const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
+const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', themes: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
 const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
 /** What the person gave Kaby (the kybernos-kaby-customisation bundle): { name, portrait: { url } | null } or null when that bundle is not there. */
 const kbKabyMe = () => {
