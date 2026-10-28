@@ -22,6 +22,9 @@ import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+// The field of work this run plays. Its pack is served WITHOUT its `theme` key (see the response handler below): M11 says the « field without a style »
+// fixture must be a pack that carries no theme, and A8 gave Education `"theme": "education"` — so the run plays the host's own pack, that one key removed.
+const NO_STYLE_PACK = 'edu'
 const authority = process.env.KB_HOST || '127.0.0.1:3080'
 if (authority === '127.0.0.1:3080') { console.error('refusing to run against :3080: this check writes a key and a model to the settings. Use the sandbox (source scripts/sandbox/env.sh).'); process.exit(3) }
 const dshHome = process.env.DSH_HOME
@@ -79,10 +82,11 @@ const backToTheStartingPoint = async () => {
 // The starter kit installs its two teams into DSH's own home (A6-24), where they stay: a second run would find them installed and tick nothing.
 // The sandbox is this check's own, so they are removed before the run and after it.
 const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ }
-  // what the kit also made: the skill the plugin ships (and its mark in the seeding record) and the automation, which is a task of the sandbox's own file
+  // what the kit also made: the skill the plugin ships (and its mark in the seeding record) and BOTH automations, which are tasks of the sandbox's own file.
+  // « Learn my business » is the one the kit switches ON: left behind, a second run finds it made, ticks one row less, and every count on that screen drifts.
   for (const name of ['quiz-builder', 'deadline-check']) try { rmSync(join(dshHome, 'skills', name), { recursive: true, force: true }) } catch (e) { /* none */ }
   try { const f = join(dshHome, 'kybernos/seeded-skills.json'); if (existsSync(f)) { const j = JSON.parse(readFileSync(f, 'utf8')); if (j && j.skills) { delete j.skills['deadline-check']; delete j.skills['quiz-builder']; writeFileSync(f, JSON.stringify(j)) } } } catch (e) { /* none */ }
-  try { const f = join(dshHome, 'kybernos/tasks.json'); if (existsSync(f)) { const t = JSON.parse(readFileSync(f, 'utf8')); if (Array.isArray(t)) writeFileSync(f, JSON.stringify(t.filter((x) => !(x && ['Refresh my revision plan', 'Mettre à jour mon plan de révision'].includes(x.name))), null, 2) + '\n') } } catch (e) { /* none */ }
+  try { const f = join(dshHome, 'kybernos/tasks.json'); if (existsSync(f)) { const t = JSON.parse(readFileSync(f, 'utf8')); if (Array.isArray(t)) writeFileSync(f, JSON.stringify(t.filter((x) => !(x && ['Refresh my revision plan', 'Mettre à jour mon plan de révision', 'Learn my business', 'Apprendre mon métier'].includes(x.name))), null, 2) + '\n') } } catch (e) { /* none */ }
 }
 forgetKitTeams()
 
@@ -116,7 +120,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { fails += 
 process.on('unhandledRejection', (e) => { fails += 1; console.log('FAIL an error nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)) })
 process.on('uncaughtException', (e) => { fails += 1; console.log('FAIL an exception nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)); try { restoreSandbox() } catch (e2) { /* gone */ } verdict(); process.exit(1) })
 try {
-  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [], completeBodies: [] }
+  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [], completeBodies: [], domainsReal: null, domainsServed: null }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
   const answers = (url, method, postData) => {
     const path = new URL(url).pathname
@@ -196,6 +200,15 @@ try {
         let j = null
         try { j = JSON.parse(raw) } catch (e) { j = null }
         if (j !== null && typeof j === 'object' && j.machine && typeof j.machine === 'object' && j.machine.ollama && typeof j.machine.ollama === 'object') j.machine.ollama.models = []
+        // The no-style fixture (M11): the field this run plays is served as a theme-LESS copy of the host's own pack — that one key removed, never a pack written
+        // here — because A8 gave Education a theme and a themed pack can no longer be « a field without a style ». The host's untouched answer is kept so the check
+        // can prove the fixture on the way (same pack, one key gone, the shipped route DOES name `education`); 6b proves the styled path on Health's real pack.
+        if (j !== null && typeof j === 'object' && Array.isArray(j.packs) && new URL(p.request.url).pathname === '/kybernos/domains') {
+          if (fake.domainsReal === null) fake.domainsReal = raw
+          const pack = j.packs.find((x) => x !== null && typeof x === 'object' && x.id === NO_STYLE_PACK)
+          if (pack !== undefined && pack !== null) delete pack.theme
+          fake.domainsServed = JSON.stringify(j)
+        }
         const headers = (p.responseHeaders || []).filter((h) => !/^(content-length|content-encoding|transfer-encoding)$/i.test(h.name))
         await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: p.responseStatusCode, responseHeaders: headers, body: Buffer.from(j === null ? raw : JSON.stringify(j), 'utf8').toString('base64') })
       } catch (e) { try { await page.send('Fetch.continueResponse', { requestId: p.requestId }) } catch (e2) { /* the page moved on */ } }
@@ -211,7 +224,7 @@ try {
   await page.send('Fetch.enable', { patterns: ['kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-cloud/status', 'kybernos-cloud/memory/', 'kybernos-models/key/check',
     'kybernos-skills/skills', 'kybernos-skills/install', 'kybernos/onboarding',
     'modeles-locaux/installer', 'modeles-locaux/installation', 'free-llms/auto-enable', 'kybernos/model/auto'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' }))
-    .concat([{ urlPattern: '*/modeles-locaux/machine*', requestStage: 'Response' }]) })
+    .concat([{ urlPattern: '*/modeles-locaux/machine*', requestStage: 'Response' }, { urlPattern: '*/kybernos/domains*', requestStage: 'Response' }]) })
   await page.send('Page.reload', { ignoreCache: true })
 
   const q = async (expr) => (await page.evalJs(expr, 8000)).val
@@ -438,7 +451,10 @@ try {
   check('Replay reopens the wizard on a connected machine', await replay())
   await goEnglish()
   await press('Get started')
-  check('the field of work is asked, with the nine fields the packs ship as tiles (an icon, a name, what it covers)', (await h1()) === 'Which field do you work in?' && (await q(`document.querySelectorAll('.kb-ob-tiles .kb-ob-tile').length`)) === 9 && (await q(`[...document.querySelectorAll('.kb-ob-tile')].every((t) => t.querySelector('.kb-ob-tile-b svg') && t.querySelector('b').textContent.length > 2 && t.querySelector('small').textContent.length > 8)`)) === true, String(await h1()))
+  // The frozen count is the packs folder itself: `packages/kybernos-plugin/domains/*.json` holds ONE file per field, ten of them since A3 shipped `recrutement`
+  // (the ninth field the wizard shipped with was `general`). The host reads them sorted by `order` (packages/kybernos-plugin/domain-pack.mjs, `packs.sort`), so
+  // the tiles and the route's ids are that list. A pack added or removed updates this count and the ids in 5e — nothing else in this file knows how many there are.
+  check('the field of work is asked, with the ten fields the packs ship as tiles (an icon, a name, what it covers)', (await h1()) === 'Which field do you work in?' && (await q(`document.querySelectorAll('.kb-ob-tiles .kb-ob-tile').length`)) === 10 && (await q(`[...document.querySelectorAll('.kb-ob-tile')].every((t) => t.querySelector('.kb-ob-tile-b svg') && t.querySelector('b').textContent.length > 2 && t.querySelector('small').textContent.length > 8)`)) === true, String(await h1()))
   const pvName = () => q(`(() => { const n = document.querySelector('.kb-ob-pv-name'); return n && n.style.display !== 'none' ? n.textContent : null })()`)
   const pvMenu = () => q(`[...document.querySelectorAll('.kb-ob-pv .kb-ob-pw-mi span:last-child')].map((e) => e.textContent.trim())`)
   check('a live miniature of Kybernos sits beside the step, neutral until a field is shown', (await q(`!!document.querySelector('.kb-ob-split .kb-ob-pv .kb-ob-pw')`)) === true && (await pvName()) === null && (await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-tint')`)) === false)
@@ -526,8 +542,15 @@ try {
   check('Learn my business is in the same list, ticked, with its chip, what it does and the apps it is better with', kitRows.includes('Learn my business:on') && /proposes only/.test(String(await q(`document.querySelector('.kb-ob').innerText`))) && /Better with Gmail and Google Calendar/.test(String(await q(`document.querySelector('.kb-ob').innerText`))) && /It only proposes: nothing is added or switched on without your click/.test(String(await q(`document.querySelector('.kb-ob').innerText`))))
   check('the teams of the marketplace are offered and ticked', Array.isArray(kitRows) && kitRows.includes('Studencik:on') && kitRows.includes('Research Desk:on'), JSON.stringify(kitRows))
   check('the primary button counts what is ticked', /^Add 8 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))), String(await q(`document.querySelector('.kb-ob-primary').textContent`)))
-  // A1-kit-wizard, the no-style side: Education names no style preset, so the Kit screen shows no style line and the kit applies none. The seam is
-  // stood in for BEFORE the press, so that a call would be seen: with no seam at all an absent call could pass for the wrong reason.
+  // A1-kit-wizard, the no-style side — played on a genuinely theme-less input (M11). Education carries `"theme": "education"` since A8, so the host's own answer
+  // is served here as that same pack with its ONE theme key removed (the response handler above), and the check proves the fixture before it relies on it: the
+  // shipped route names `education`, and the copy the page got is that pack minus `theme` and nothing else. 6b proves the styled path on Health's real pack.
+  const fixture = (() => { try { return { real: JSON.parse(fake.domainsReal), served: JSON.parse(fake.domainsServed) } } catch (e) { return null } })()
+  const packIn = (answer) => answer === null || answer === undefined ? null : ((answer.packs || []).find((x) => x !== null && typeof x === 'object' && x.id === NO_STYLE_PACK) || null)
+  const realPack = fixture === null ? null : packIn(fixture.real)
+  const servedPack = fixture === null ? null : packIn(fixture.served)
+  check('the no-style fixture is the host\'s own Education pack with its one theme key removed (M11 — A8 themed it)', realPack !== null && servedPack !== null && realPack.theme === 'education' && !Object.prototype.hasOwnProperty.call(servedPack, 'theme') && JSON.stringify({ ...realPack, theme: undefined }) === JSON.stringify(servedPack), JSON.stringify({ shippedTheme: realPack === null ? null : realPack.theme, servedKeys: servedPack === null ? null : Object.keys(servedPack) }))
+  // The seam is stood in for BEFORE the press, so that a call would be seen: with no seam at all an absent call could pass for the wrong reason.
   await q(`(() => { window.__kbThemeReal = window.__KB_THEME_APPLY__; window.__kbThemeCalls = []; window.__KB_THEME_APPLY__ = (id) => { window.__kbThemeCalls = (window.__kbThemeCalls || []).concat([id]); return { ok: true } }; return true })()`)
   check('a field without a style shows no style line on the Kit screen', (await q(`!document.querySelector('[data-kb-ob="kit-theme"]')`)) === true)
   await page.shot(join(shotDir, 'starter-kit.png'))
@@ -536,7 +559,9 @@ try {
   await sleep(150)
   check('a skill can be unticked', /^Add 7 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))))
   await press('Add 7 selected')
-  check('...and the kit applies no style for it: the seam is never called', (await q(`(window.__kbThemeCalls || []).length`)) === 0, JSON.stringify(await q(`window.__kbThemeCalls`)))
+  // The step leaving the kit is what makes the absence of a call mean something: read before the installs are in, « no call yet » and « no call » are the same.
+  const kitStepDone = await waitFor(page, `document.querySelectorAll('.kb-ob-kit').length === 0 || document.querySelector('.kb-ob-state') !== null`, 40000)
+  check('...and the kit applies no style for it: the seam is never called', kitStepDone !== null && (await q(`(window.__kbThemeCalls || []).length`)) === 0, JSON.stringify(await q(`window.__kbThemeCalls`)))
   check('the plan is the last thing asked, with an account on the machine: Team solo, or free', (await seen('So it keeps running without you', 40000)) !== null && (await q(`[...document.querySelectorAll('.kb-ob button')].filter((b) => !b.disabled).map((b) => b.textContent.trim()).filter((t) => /^Continue (with|for)/.test(t)).join('|')`)) === 'Continue with Team solo|Continue for free' && !/\$|€/.test(String(await q(`document.querySelector('.kb-ob').innerText`))), String(await h1()))
   await page.shot(join(shotDir, 'plan.png'))
   await press('Continue for free')
@@ -580,10 +605,11 @@ try {
   await sleep(300)
   await press('Open Kybernos')
   // A1-kit-wizard: the batch proves the SEND. The body is read where it leaves the page (intercepted above), never from the file — a green here
-  // means « the request carried theme », and the store is the pack-format batch's proof.
+  // means « the request carried theme », and the store is the pack-format batch's proof. Null is the right answer HERE because the page was served the
+  // theme-less copy of Education (M11's fixture, proved above); the shipped themed path carries `education` and is proved by 6b with Health's real pack.
   for (let i = 0; i < 40 && fake.completeBodies.length === 0; i += 1) await sleep(250)
   const completedBody = fake.completeBodies[fake.completeBodies.length - 1]
-  check('the complete answer carries the theme field — null here, because Education names no style', completedBody !== undefined && Object.prototype.hasOwnProperty.call(completedBody, 'theme') && completedBody.theme === null && completedBody.profil === 'edu', JSON.stringify(completedBody))
+  check('the complete answer carries the theme field — null here, because the served Education pack carries no theme key', completedBody !== undefined && Object.prototype.hasOwnProperty.call(completedBody, 'theme') && completedBody.theme === null && completedBody.profil === 'edu', JSON.stringify(completedBody))
   await q(`(() => { try { if (window.__kbThemeReal === undefined) delete window.__KB_THEME_APPLY__; else window.__KB_THEME_APPLY__ = window.__kbThemeReal } catch (e) { /* no seam */ } return true })()`)
   let st6 = null
   try { st6 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st6 = null }
@@ -669,8 +695,10 @@ try {
   check('it closes with Close', (await press('Close')) === true && (await q(`document.querySelector('.kb-ob') === null`)) === true)
 
   /* ── 5e. the packs and the saved choice, from the host ── */
+  // The host's own answer, ids in the loader's `order`: edu 10, sante 20, immo 30, droit 40, fin 50, com 60, mkt 70, dev 80, recrutement 90 (A3's tenth), general 99.
+  // The list is frozen on purpose — a pack that stops being served or a rejected file must show here — and it is the same ten as the tiles of 5c.
   const packsRes = await q(`fetch('/kybernos/domains', { cache: 'no-store' }).then((r) => r.json()).then((j) => ({ ok: j.ok, ids: (j.packs || []).map((p) => p.id), rejected: j.rejected }))`)
-  check('the host serves the nine packs, none rejected', packsRes !== undefined && packsRes.ok === true && JSON.stringify(packsRes.ids) === JSON.stringify(['edu', 'sante', 'immo', 'droit', 'fin', 'com', 'mkt', 'dev', 'general']) && packsRes.rejected === 0, JSON.stringify(packsRes))
+  check('the host serves the ten packs, none rejected', packsRes !== undefined && packsRes.ok === true && JSON.stringify(packsRes.ids) === JSON.stringify(['edu', 'sante', 'immo', 'droit', 'fin', 'com', 'mkt', 'dev', 'recrutement', 'general']) && packsRes.rejected === 0, JSON.stringify(packsRes))
   const postDomain = (body) => q(`fetch('/kybernos/onboarding', { method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }).then((r) => r.status)`)
   const fileBefore = read('kybernos/onboarding.json')
   check('a field no pack ships is refused, and the file is left as it was', (await postDomain({ action: 'domain', profil: 'nope', goals: [] })) === 400 && read('kybernos/onboarding.json') === fileBefore)
@@ -872,7 +900,8 @@ try {
   check('the kit opens on its own again, for the style check', (await waitFor(page, `!!document.querySelector('.kb-ob')`, 20000)) === true)
   // The field is chosen by its own name in either language the run may be in: the chips carry no id of their own.
   await q(`(() => { const b = [...document.querySelectorAll('.kb-ob-chips-tight .kb-ob-chip')].find((x) => /^(Health|Santé)$/.test(x.textContent.trim())); if (!b) return false; b.click(); return true })()`)
-  check('a field with a style announces it on the Kit screen with one plain line, not a control', (await waitFor(page, `!!document.querySelector('[data-kb-ob="kit-theme"]')`, 8000)) !== null && (await q(`(() => { const n = document.querySelector('[data-kb-ob="kit-theme"]'); return n.tagName === 'DIV' && n.querySelectorAll('button, input, a, select, textarea').length === 0 && /applied with the kit/.test(n.textContent) && /Style/.test(n.textContent) })()`)) === true, String(await q(`(document.querySelector('[data-kb-ob="kit-theme"]') || {}).textContent`)))
+  // M10: the note names the page as it exists TODAY (« Settings › Theme ») — A5's rename updates this expectation with the page itself, and only then.
+  check('a field with a style announces it on the Kit screen with one plain line, not a control', (await waitFor(page, `!!document.querySelector('[data-kb-ob="kit-theme"]')`, 8000)) !== null && (await q(`(() => { const n = document.querySelector('[data-kb-ob="kit-theme"]'); return n.tagName === 'DIV' && n.querySelectorAll('button, input, a, select, textarea').length === 0 && /applied with the kit/.test(n.textContent) && /Settings › Theme keeps the last word/.test(n.textContent) })()`)) === true, String(await q(`(document.querySelector('[data-kb-ob="kit-theme"]') || {}).textContent`)))
   const lookNow = () => q(`(() => { const cs = getComputedStyle(document.documentElement); return JSON.stringify([cs.getPropertyValue('--dsw-alias-bg-base').trim(), cs.getPropertyValue('--dsw-specific-sidebar-fill').trim(), getComputedStyle(document.body).backgroundColor, document.querySelectorAll('style').length, document.documentElement.getAttribute('data-kbth-brand')]) })()`)
   const lookBefore = await lookNow()
   const stylePressed = await q(`(() => { const b = document.querySelector('[data-kb-ob-primary]'); if (!b || b.disabled) return false; b.click(); return true })()`)
