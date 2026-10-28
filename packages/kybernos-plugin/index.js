@@ -38,6 +38,7 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 // le modèle de session — c'est là que le compactage meurt.)
 import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './preset-legacy.mjs'
 import { poserEconomieContexte } from './economie-contexte.mjs'
+import { mountToolProfiles } from './tool-profiles.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
 import { createI18nStore, serveI18nStore } from './i18n-store.mjs'
@@ -12886,6 +12887,21 @@ export function apply(ctx) {
         try {
             console.error('[kybers] shipped skills not installed', kbShippedError)
         } catch (e5) { /* console unavailable */ }
+    }
+    // ── Tool profiles (2026-10-28) ──────────────────────────────────────────────────────────
+    // A task-appropriate tool set chosen ONCE at session start, through the native
+    // per-agent `tools.restrict` seam: no bundle is switched off, and plugin pages,
+    // routes and scheduled jobs keep working. `full` is the safe fallback; a session
+    // whose profile cannot be applied keeps every tool. Rollback: delete this call
+    // (or set KYBERNOS_TOOL_PROFILES=full) — nothing else depends on it.
+    try {
+        const profils = mountToolProfiles(ctx)
+        if (profils.mode === 'auto') console.log('[kybers] tool profiles: on (auto, full fallback)')
+        else if (profils.mode === 'off') console.log('[kybers] tool profiles: off (KYBERNOS_TOOL_PROFILES)')
+    } catch (kbProfilsError) {
+        try {
+            console.error('[kybers] tool profiles unavailable', kbProfilsError)
+        } catch (e6) { /* console unavailable */ }
     }
 }
 

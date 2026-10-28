@@ -25,7 +25,7 @@ stored state and tests keep working; only the visible label and title changed.
 
 `GET /kybernos-maintenance/state` (`index.js`). Other methods get 405; an `Origin` header that is not the
 local host and port gets 403.
-It measures, and never writes: `dsh --version`, `git rev-parse --short HEAD`, `npm root -g`, and
+The routes measure and never write: `dsh --version`, `git rev-parse --short HEAD`, `npm root -g`, and
 `npm view @deepseek-ai/dsh version dist-tags` (cached for 10 minutes). The answer carries `global` (engine),
 `plugin` (git hash), `version` (shipped semver or null), `problemes`, `niveau`, `compat`, `maj`, `distant`,
 `versions`, `surfaces`, `serveur`, `journal`. The sentences and the level words (`Perfect`, `Compatible`, `Partial`,
@@ -58,7 +58,7 @@ When a press does not go through (a refusal, no answer, an answer that is not JS
 
 `index.js` host route · `client.js` page (React, bilingual: `FR`/`EN` tables, `kt(fr, en)`, `FR_HOST`/`FR_HOST_RX`/
 `FR_LEVEL` for the host's sentences and levels) · `surfaces.mjs` engine audit (also used by `scripts/dsh-lifecycle.mjs`) · `version.mjs`
-reads `VERSION` · `test-about.mjs` tests · `cordis.patch.yml`, `package.json` bundle wiring.
+reads `VERSION` · `janitor.mjs` the memory/lesson janitor · `test-about.mjs`, `test-janitor.mjs` tests · `cordis.patch.yml`, `package.json` bundle wiring.
 The bundle is an optional satellite (`obligatoire: false` in `docs/beta/satellites.json`).
 
 ## The update dialog (no terminal)
@@ -74,6 +74,36 @@ The account menu, the card at launch and the *Update available* dialog share `wi
 - A hosted instance (server, container) is rebuilt, never patched: it keeps the instructions, no button.
 
 Tests: `test-engine-dialog.mjs` (the words and the wiring), and `packages/kybernos-hub/test-engine-route.mjs` (the route).
+
+## Memory and lesson janitor (`janitor.mjs`)
+
+One host-level scheduler (never one timer per chat) that, every five hours while DSH runs — and once after a
+boot catch-up — calls the public cleaning seam of the account memories (`kybernos-cloud`) and of the local
+lessons (`kybernos-memory`). It only looks at a store whose revision changed since the last successful
+inspection; memory off skips the janitor entirely. Pass 1 (deterministic duplicates) and pass 2 (semantic,
+through the store's existing Study-model tidy path) stay the stores' work: this bundle is the schedule, the
+one inter-session lock, the bounds, the backup, the bounded report and the retry/circuit breaker around them.
+
+**Scan-only by default.** A real cleaning run needs the user's explicit approval, through the environment
+variable `KYBERNOS_JANITOR=apply` or `{"apply": true}` in the state file below. `KYBERNOS_JANITOR=off` stops
+the scheduler from being mounted at all. Nothing is ever cleaned on boot without that approval.
+
+Everything lives under `KYBERNOS_JANITOR_DIR`, default `<DSH home>/kybernos/janitor/`:
+
+| file | what it holds |
+| --- | --- |
+| `state.json` | last success, last revisions, consecutive failures, circuit, the `apply` flag |
+| `report.jsonl` | one line per run, bounded to the last 200 lines / 256 KiB |
+| `notices.jsonl` | local notifications, change or failure only |
+| `lock` | the inter-session lock (PID + time, reclaimed after one interval or a dead PID) |
+| `backups/` | timestamped snapshot written before any change, pruned to the last 40 |
+
+**Rollback.** In scan-only mode no store content is ever written: delete the janitor directory and the
+schedule restarts from the same scan-only default. Once apply mode was approved, a backup is written before
+every change (the store also keeps its own archive and Undo): put the backup content back through the store's
+restore path, and delete the janitor directory to stop the schedule.
+
+Tests: `node test-janitor.mjs` — fixture stores only, every path under a temporary directory, never `~/.dsh`.
 
 ## Tests
 

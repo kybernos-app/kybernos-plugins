@@ -36,7 +36,7 @@
 // catalogue). The subscription (glm, deepseek… available depending on the plan) is
 // applied by the proxy on every request — this plugin filters nothing.
 import { execFileSync, spawn } from 'node:child_process'
-import { timingSafeEqual } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { appendFileSync, chmodSync, closeSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -48,7 +48,7 @@ import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayN
 import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill, hiddenPlaceOf } from './team-skills.mjs'
 import { teamAutomationsBase, isAutomationId, teamAutomationsFailure, asTeamAutomation, asTeamAutomationsPage, teamAutomationShape, definitionOf, versionOf, accessEntry, TEAM_AUTOMATION_LIMITS, TEAM_AUTOMATION_VIEWS } from './team-automations.mjs'
 import { createConnections } from './connections-host.mjs'
-import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
+import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
@@ -2969,7 +2969,7 @@ const RELEVANCE_TUNING = {
   minCoverage: 0.25,      // ≥ 2 words matched and a quarter of the question's rarity …
   strongCoverage: 0.5,    // … or 1 word that is half of it (a rare word: « tev1 »)
   relative: 0.5,          // and never less than this fraction of the best match's coverage (the tail of a long list is noise)
-  maxPicked: 6,           // at most this many memories picked
+  maxPicked: 8,           // at most this many NON-PINNED memories picked by relevance (the 5–8 cap of the spec); the rest go through memory_search
   maxCandidates: 15,      // … and only when the question is SELECTIVE: if more than this many memories qualify, none stands out
   share: 0.4,             // … and at most this share of the memories budget
   keepOverlap: 0.6,       // a new pick that overlaps the last one this much changes nothing
@@ -3044,8 +3044,20 @@ const pickRelevant = (sessionId, candidates, picks = sessionPick, tuning = RELEV
  * always kept the oldest: on a 631-memory account only 12 pinned ones got in,
  * and nothing of what the model had just learned.
  * A memory too long for the rest of the budget is skipped (we try a smaller one).
+ *
+ * Exact rule for PINNED memories (workstream A, 2026-10-28): pinned sector/profile facts used to be injected
+ * blindly, so an unrelated coding session carried them all. Now:
+ *   1. a pinned `policy` memory is a safety rule — it is taken FIRST, whatever the question, before the
+ *      ordinary memories can fill the budget; it is the only pinned kind never filtered by relevance;
+ *   2. any other pinned memory, when the relevance pick is ON (`options.relevance`), enters only through
+ *      `preferred` — i.e. only when it clearly matches the session's question — and never through the blind
+ *      base selection; it keeps its own share of the budget like any pick;
+ *   3. with no relevance pick (the page's counters, the very first assembly of a session before any human
+ *      message) the historical base selection is unchanged: newest pinned first, capped at `pinnedShare`.
+ * No new TTL is introduced: `memoryCache` freshness and the relevance pick's turn spacing still decide.
  */
-const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredShare = 0) => {
+const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredShare = 0, options = {}) => {
+  const relevance = options.relevance === true
   const cost = (m) => memoryLine(m).length + 1
   const chosen = new Set()
   let used = 0
@@ -3055,10 +3067,15 @@ const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredSh
     chosen.add(m)
     used += c
   }
+  const isPolicy = (m) => m.pinned === true && m.kind === 'policy'
   const pinned = items.filter((m) => m.pinned === true).sort(newestFirst)
+  const policies = pinned.filter(isPolicy)
   const loose = items.filter((m) => m.pinned !== true).sort(newestFirst)
   const pinCap = Math.floor(budget * pinnedShare)
-  pinned.forEach((m) => take(m, pinCap))
+  // 1. Safety policies first, at the full budget: a full block can never crowd them out.
+  policies.forEach((m) => take(m, budget))
+  // 3. Base selection (no relevance pick): pinned memories share their cap.
+  if (relevance !== true) pinned.forEach((m) => take(m, pinCap))
   // What matches the current question comes right after the pinned and BEFORE the newest, within its own share.
   let relevantUsed = 0
   const relevantCap = Math.floor(budget * preferredShare)
@@ -3069,8 +3086,9 @@ const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredSh
     relevantUsed += c
   }
   loose.forEach((m) => take(m, budget))
-  // Of the budget left free (few free memories): pinned ones are put back into it.
-  pinned.forEach((m) => take(m, budget))
+  // Of the budget left free (few free memories): pinned ones are put back into it — but never with a relevance
+  // pick ON (rule 2: a pinned memory that did not match the question stays out, that was the blind injection).
+  if (relevance !== true) pinned.forEach((m) => take(m, budget))
   return { chosen: sortMemories(items.filter((m) => chosen.has(m))), used, omitted: items.length - chosen.size }
 }
 
@@ -3089,11 +3107,16 @@ const planInjection = (state, info) => {
   const kyberKeys = Object.keys(memoryCache.kyber).filter((k) => memoryCache.kyber[k].length > 0)
   const lineBudget = Math.max(0, MEMORY_MAX_INJECT_CHARS - MEMORY_FRAME_CHARS - MEMORY_KYBER_FRAME_CHARS * kyberKeys.length)
   const accountBudget = kyberKeys.length > 0 ? Math.floor(lineBudget * (1 - MEMORY_KYBER_SHARE)) : lineBudget
-  // `info.sessionId` is only given by the prompt itself: the page's counts and « sent » flags stay the base selection.
-  const preferred = cfg.relevant === true && info !== undefined && typeof info.sessionId === 'string'
-    ? pickRelevant(info.sessionId, memoryCache.account.filter((m) => m.pinned !== true))
-    : []
-  const account = selectForPrompt(memoryCache.account, accountBudget, MEMORY_PINNED_SHARE, preferred, RELEVANCE_TUNING.share)
+  // A question exists only once the human's latest message was noted for this session (the relevance pick needs
+  // it): the page's counts and « sent » flags have no session at all, and a session whose first assembly happens
+  // before any claim keeps the deterministic base selection (its numbers stay comparable with the model).
+  const hasQuery = cfg.relevant === true && info !== undefined && typeof info.sessionId === 'string' && sessionQuery.has(info.sessionId)
+  // Candidates of the relevance pick: every NON-PINNED memory, plus the pinned ones that are not policies — those
+  // are ranked by relevance too when a question exists, instead of being injected blindly (a policy always stays
+  // visible, see selectForPrompt). `pickRelevant` applies RELEVANCE_TUNING.maxPicked to the non-pinned picks.
+  const candidates = hasQuery ? memoryCache.account.filter((m) => m.pinned !== true || m.kind !== 'policy') : []
+  const preferred = hasQuery ? pickRelevant(info.sessionId, candidates) : []
+  const account = selectForPrompt(memoryCache.account, accountBudget, MEMORY_PINNED_SHARE, preferred, RELEVANCE_TUNING.share, { relevance: hasQuery })
   const kyber = {}
   let used = account.used
   const left = lineBudget - used
@@ -4774,8 +4797,98 @@ const captureTurn = async (ctx, agent, signal) => {
   }
 }
 
-const sessionIdOfContext = (context) => {
-  try { return context.agent.session.id } catch (e) { return undefined }
+const agentOfContext = (context) => {
+  try { return context === null || context === undefined ? undefined : context.agent } catch (e) { return undefined }
+}
+const sessionIdOfAgent = (agent) => {
+  try { return agent.session.id } catch (e) { return undefined }
+}
+const sessionIdOfContext = (context) => sessionIdOfAgent(agentOfContext(context))
+
+// ── Stable memory/lesson blocks: a per-agent `section`, not a durable `context` ──
+// `systemPrompt.context` is a DURABLE runtime-context snapshot: the engine writes it into the history as a
+// user-role message and appends a new copy every time its text changes. Memory and lessons change rarely,
+// but each change leaves another stale copy in a long chat (the 22k tokens of four snapshots measured in
+// docs/etudes/2026-10-28-context-budget-and-memory-janitor.md). `systemPrompt.section` is part of the system
+// prompt: it is evaluated at every assembly and never retained in the history. Native plugins install one
+// section per agent (dsh-file-reference-local `installPrompt`, dsh-tool-subagent `installScoped`):
+//
+//   const fiber = agent.ctx.inject(['systemPrompt'], (scope) => {
+//     scope.systemPrompt.section({ name, order, text: () => <stable text for this agent> })
+//   })
+//
+// The text provider stays SYNCHRONOUS and never throws; it reads only the existing caches and the settings
+// file (no network, no timer) and is byte-identical between steps while nothing changes, so the prompt
+// prefix stays cacheable. A pick or a memory edit invalidates it once, which is the acceptable cost.
+//
+// FAIL SAFE: when the agent seam is not readable (no agent registry, no event bus, every live agent without
+// `ctx.inject`), the historical `systemPrompt.context` registration is kept — boot never breaks and the
+// blocks are never silently lost. `installed` makes the two paths exclusive: never both, or every agent
+// would read each block twice.
+const mountAgentSections = (ctx, entries) => {
+  const fibers = new WeakMap()     // agent -> the fiber that owns its sections
+  let fallbackFiber = null
+  let installed = 0
+  const installFallback = () => {
+    // Never both: once a section is installed for at least one agent, a later refusal leaves that agent
+    // without the block rather than putting the same text in the global context for everybody.
+    if (fallbackFiber !== null || installed > 0) return
+    fallbackFiber = ctx.inject(['systemPrompt'], (scope) => {
+      for (const entry of entries) {
+        scope.systemPrompt.context({ name: entry.name, order: entry.order, text: (context) => entry.text(agentOfContext(context)) })
+      }
+    })
+  }
+  const install = (agent) => {
+    if (agent === null || typeof agent !== 'object' || fibers.has(agent)) return
+    const agentCtx = agent.ctx
+    if (agentCtx === null || typeof agentCtx !== 'object' || typeof agentCtx.inject !== 'function') { installFallback(); return }
+    try {
+      const fiber = agentCtx.inject(['systemPrompt'], (scope) => {
+        for (const entry of entries) {
+          scope.systemPrompt.section({ name: entry.name, order: entry.order, text: () => { try { return entry.text(agent) } catch (e) { return '' } } })
+        }
+      })
+      fibers.set(agent, fiber)
+      installed += 1
+    } catch (e) {
+      // The seam answered but refused (an engine without `section`): the context path is the last resort.
+      if (installed === 0) installFallback()
+      console.error('[kybernos-cloud] prompt section not installed for an agent: ' + String((e && e.message) || e))
+    }
+  }
+  const dispose = (agent) => {
+    const fiber = fibers.get(agent)
+    if (fiber === undefined) return
+    fibers.delete(agent)
+    try {
+      const task = typeof fiber.dispose === 'function' ? fiber.dispose() : undefined
+      if (task !== undefined && typeof task.catch === 'function') task.catch(() => {})
+    } catch (e) { /* the agent is going away anyway */ }
+  }
+  // `get` (and not `ctx.agents`): cordis refuses a direct property read of a service this apply() did not
+  // declare through `inject`, and the access must stay optional — no agent registry means the fallback path.
+  let agents = null
+  try { agents = ctx.get('agents') } catch (e) { agents = null }
+  if (agents === null || typeof agents !== 'object' || typeof agents.list !== 'function' || typeof ctx.on !== 'function') {
+    installFallback()
+    return
+  }
+  let live = null
+  try { live = agents.list() } catch (e) { live = null }
+  if (Array.isArray(live) !== true) { installFallback(); return }
+  for (const agent of live) install(agent)
+  if (installed === 0 && live.length > 0) installFallback()
+  ctx.on('agent/created', ({ agent }) => { try { install(agent) } catch (e) { /* never break boot */ } })
+  ctx.on('agent/disposed', ({ agent }) => { try { dispose(agent) } catch (e) { /* never break boot */ } })
+  // The fibers live on the agents' own contexts: a plugin unload does not dispose them, so do it here.
+  if (typeof ctx.effect === 'function') {
+    ctx.effect(() => () => {
+      let current = []
+      try { current = agents.list() } catch (e) { current = [] }
+      if (Array.isArray(current)) for (const agent of current) dispose(agent)
+    }, 'kybernos-cloud: prompt sections')
+  }
 }
 
 const mountMemoryPrompt = (ctx) => {
@@ -4788,18 +4901,13 @@ const mountMemoryPrompt = (ctx) => {
     try {
       scope.systemPrompt.section({ name: 'kybernos:memory-off', order: 9500, interpolate: false, text: () => (spaceOf(readStateForSpace()) === 'team' ? MEMORY_OFF_MARKER : '') })
     } catch (e) { console.error('[kybernos-cloud] memory-off section: ' + String((e && e.message) || e)) }
-    scope.systemPrompt.context({
-      name: 'kybernos:memory',
-      order: MEMORY_INJECT_ORDER,
-      text: (context) => renderMemoryPrompt(readStateForSpace(), { sessionId: sessionIdOfContext(context) }),
-    })
-    // The lessons the team approved: a block of its own, from the cache only (refreshed below and by the tick).
-    scope.systemPrompt.context({
-      name: TEAM_CHUNK_NAME,
-      order: TEAM_CHUNK_ORDER,
-      text: (context) => renderTeamPrompt(readState(), sessionIdOfContext(context)),
-    })
   })
+  // The memories and the lessons the team approved, as stable per-agent sections. Both read only the caches
+  // (refreshed by the tick and after a write) and the settings; the team block keeps its own order (136).
+  mountAgentSections(ctx, [
+    { name: 'kybernos:memory', order: MEMORY_INJECT_ORDER, text: (agent) => renderMemoryPrompt(readStateForSpace(), { sessionId: sessionIdOfAgent(agent) }) },
+    { name: TEAM_CHUNK_NAME, order: TEAM_CHUNK_ORDER, text: (agent) => renderTeamPrompt(readState(), sessionIdOfAgent(agent)) },
+  ])
   // The human's message of each turn, to pick the memories that match it (see « The memories that matter »). Kept in a team space too: it writes nothing,
   // and the team lessons block ranks its lessons with the same word.
   ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => {
@@ -5937,9 +6045,218 @@ const publishCloudSeam = (target = globalThis) => {
   try { target[Symbol.for('kybernos.cloud')] = Object.freeze({ version: 1, call: cloudSeamCall }) } catch (e) { /* a frozen global: the other bundles degrade */ }
 }
 
+// ── The janitor seam: bounded, dirty-aware cleaning of the account memories ───────────────────────────────────────────
+// kybernos-maintenance owns ONE host-level scheduler (janitor.mjs) and reaches this store through
+// globalThis[Symbol.for('kybernos.janitor.memory')], a frozen { version: 1, enabled(), revision(), scanAndClean() }.
+// SAME CONTRACT IN kybernos-memory (lessons). The janitor is the schedule/lock/backup/report layer; this file owns
+// the data rules and reuses the paths that already exist (dedupe.mjs, pickAuto, applyGroups, tidy archive + Undo).
+//
+//   · SCAN-ONLY (apply !== true) IS INSPECT-ONLY: no Study-model call, no write of any kind — not even the tidy
+//     scan side file — and no backup. A boot with the janitor mounted leaves no trace in the account and sends no
+//     personal content anywhere. It only counts: exact duplicate groups (pass 1) and near-duplicate candidates.
+//   · apply === true is the user's explicit approval (KYBERNOS_JANITOR=apply or the janitor state file). Then:
+//       – a timestamped JSON backup of the rows as they were is written to options.backupPath BEFORE any change;
+//       – pass 1 applies the store's OWN rule (findDuplicateGroups + pickAuto: tidy mode « auto », score >= 80);
+//         only same-kind rows are compared; a pinned memory is the keeper of its group and is NEVER removed;
+//         policies and explicit preferences are never touched outside that same-kind duplicate rule;
+//       – pass 2 (Study model) runs only when the tidy `brain` setting is on and candidates exist, bounded to
+//         20 candidates / 4 calls; only a « same » verdict is merged — « replaces » (a contradiction) is counted
+//         in `conflicts` and both rows are KEPT, never auto-resolved; the keeper's own words are kept (a model
+//         rewrite is never injected into the user's store);
+//       – every removal goes through applyGroups, which writes the local tidy archive first (Undo, 30 days);
+//       – at most `maxRemovals` items are removed (merges + archives counted together) and every number is returned.
+//   · Expired ephemeral memories (expires_at / retention_days) are the SERVER's retention business: this seam
+//     invents no TTL and never deletes on age alone.
+//   · Nothing throws across the boundary: every failure returns { ok: false, error } and the store is untouched
+//     (the backup is written before the first write; a refused backup stops the run before any change).
+const JANITOR_MEMORY_BOUNDS = Object.freeze({ maxInspected: 200, maxCandidates: 20, maxModelCalls: 4, maxRemovals: 20 })
+const JANITOR_MEMORY_SEAM = Symbol.for('kybernos.janitor.memory')
+
+/** The janitor's bounds, never wider than the product defaults, whatever a caller asks. */
+const janitorBounds = (bounds) => {
+  const b = bounds !== null && typeof bounds === 'object' ? bounds : {}
+  const num = (key, fallback) => (Number.isFinite(b[key]) && b[key] >= 0 ? Math.min(Math.floor(b[key]), fallback) : fallback)
+  return {
+    maxInspected: num('maxInspected', JANITOR_MEMORY_BOUNDS.maxInspected),
+    maxCandidates: num('maxCandidates', JANITOR_MEMORY_BOUNDS.maxCandidates),
+    maxModelCalls: num('maxModelCalls', JANITOR_MEMORY_BOUNDS.maxModelCalls),
+    maxRemovals: num('maxRemovals', JANITOR_MEMORY_BOUNDS.maxRemovals),
+  }
+}
+
+/** The memory rows the user and the model see, as dedupe items (bucket = kind: a policy only meets a policy). */
+const janitorMemoryItems = () => memoryCache.account.map((m) => ({ id: m.id, content: m.content, createdAt: m.createdAt, pinned: m.pinned === true, bucket: m.kind }))
+
+/** A stable hash of those rows: SYNCHRONOUS and no network (what the janitor compares between two runs). */
+const janitorMemoryRevision = () => {
+  try {
+    if (!Array.isArray(memoryCache.account) || memoryCache.account.length === 0) return null
+    const rows = memoryCache.account.map((m) => [String(m.id), String(m.content === undefined ? '' : m.content), m.pinned === true ? 1 : 0, String(m.kind === undefined ? '' : m.kind)])
+    rows.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    return createHash('sha1').update(JSON.stringify(rows)).digest('hex')
+  } catch (e) { return null }
+}
+
+/** enabled(): a connected account, the memories switch on, and NOT a team space. No network, never throws. */
+const janitorMemoryEnabled = () => {
+  try {
+    if (isConnected(readState()) !== true) return false
+    if (readMemorySettings().memories !== true) return false
+    return spaceOf(readStateForSpace()) !== 'team'
+  } catch (e) { return false }
+}
+
+/** The backup file, written atomically, next to everything else the janitor asked for. */
+const writeJanitorBackup = (file, payload) => {
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+  const tmp = file + '.tmp-' + String(process.pid)
+  try {
+    writeFileSync(tmp, JSON.stringify({ at: new Date().toISOString(), ...payload }, null, 2) + '\n', { mode: 0o600 })
+    renameSync(tmp, file)
+  } catch (e) {
+    try { rmSync(tmp, { force: true }) } catch (e2) { /* nothing to clean */ }
+    throw e
+  }
+}
+
+/** The Study model's judgement of at most `maxCandidates` pairs, bounded by `maxModelCalls`. Never called in scan-only. */
+const janitorJudgePairs = async (pairs, maxCalls) => {
+  const model = { route: null, calls: 0 }
+  const verdicts = []
+  const route = studyModel()
+  const llm = tidyLlm()
+  if (route === '' || llm === undefined) return { model, verdicts }
+  model.route = route
+  for (let at = 0; at < pairs.length && model.calls < maxCalls; at += BRAIN_BATCH) {
+    const batch = pairs.slice(at, at + BRAIN_BATCH)
+    const res = await askModel(llm, route, brainPrompt(batch, 'memories'), { timeoutMs: BRAIN_TIMEOUT_MS })
+    if (res.error !== undefined) break
+    model.calls += 1
+    const parsed = parseVerdicts(res.text, batch.length, MEMORY_MAX_CONTENT)
+    batch.forEach((pair, index) => verdicts.push({ pair, verdict: parsed[index] }))
+  }
+  return { model, verdicts }
+}
+
+/**
+ * The janitor's cleaning pass. See the contract above: scan-only inspects and counts, apply writes a backup
+ * first then merges through applyGroups. Returns the numbers the janitor reports, or { ok: false, error }.
+ */
+const janitorMemoryScanAndClean = async (options = {}) => {
+  try {
+    const opts = options !== null && typeof options === 'object' ? options : {}
+    const bounds = janitorBounds(opts.bounds)
+    const apply = opts.apply === true
+    const now = Date.now()
+    const state = readState()
+    if (isConnected(state) !== true) return { ok: false, unavailable: true, error: 'not_connected' }
+    if (readMemorySettings().memories !== true) return { ok: false, unavailable: true, error: 'memoires_desactivees' }
+    if (spaceOf(readStateForSpace()) === 'team') return { ok: false, unavailable: true, error: 'espace_equipe' }
+    // The rows as the user sees them: a stale cache is refreshed (the janitor only gets here when it is due).
+    await refreshMemoryCache(state, true)
+    // A forced refresh that failed means the rows we hold may be stale: report it, never work on a stale picture.
+    if (memoryCache.error !== null) return { ok: false, unavailable: true, error: memoryCache.error }
+    const all = janitorMemoryItems()
+    const inspectedItems = all.slice(0, bounds.maxInspected)
+    const before = { items: all.length, chars: all.reduce((n, it) => n + String(it.content).length, 0) }
+    const t = tidyState()
+    // Pass 1 — deterministic and local.
+    const local = findDuplicateGroups(inspectedItems).filter((g) => t.dismissed.indexOf(g.id) < 0)
+    const taken = new Set(local.flatMap((g) => g.items.map((i) => i.id)))
+    // Candidates for pass 2 — collected in every mode, asked only when the user approved an applying run.
+    const unclear = unclearPairs(inspectedItems, { taken, max: bounds.maxCandidates }).filter((p) => t.dismissed.indexOf(p.id) < 0)
+    const model = { route: null, calls: 0 }
+    // A pass-1 « clash » (one text says « not », or the numbers differ) is a contradiction dedupe.mjs has already
+    // refused to call a duplicate: it is COUNTED and both rows are kept, and the model is never asked to override it.
+    const conflictIds = new Set(unclear.filter((p) => p.why === 'negation' || p.why === 'number').map((p) => p.id))
+    const judgeable = unclear.filter((p) => !conflictIds.has(p.id))
+    const semantic = []
+    if (apply === true && t.settings.brain === true && judgeable.length > 0) {
+      const judged = await janitorJudgePairs(judgeable, bounds.maxModelCalls)
+      model.route = judged.model.route
+      model.calls = judged.model.calls
+      for (const judgedPair of judged.verdicts) {
+        const p = judgedPair.pair
+        const v = judgedPair.verdict
+        if (v.verdict === 'replaces') { conflictIds.add(p.id); continue }   // a contradiction: counted, both rows kept
+        if (v.verdict !== 'same') continue
+        const pinned = [p.a, p.b].filter((x) => x.pinned === true)
+        const newest = (parseWhen(p.a.createdAt) || 0) <= (parseWhen(p.b.createdAt) || 0) ? p.b : p.a
+        const keeper = pinned.length > 0 ? pinned[0] : newest
+        const other = keeper.id === p.a.id ? p.b : p.a
+        if (other.pinned === true) continue   // never remove a pinned memory
+        semantic.push({
+          id: p.id, keeperId: keeper.id, type: 'merge', by: 'brain', score: null, saves: 1,
+          items: [
+            { id: keeper.id, content: keeper.content, createdAt: keeper.createdAt, pinned: keeper.pinned, keep: true, like: p.like / 100 },
+            { id: other.id, content: other.content, createdAt: other.createdAt, pinned: other.pinned, keep: false, like: p.like / 100 },
+          ],
+        })
+      }
+    }
+    // What may be applied: the store's own « merge without asking » rule decides pass 1 (mode « auto »); pass 2
+    // only adds the model's « same » verdicts, and the janitor's removals budget caps the whole run.
+    const order = apply === true && t.settings.mode === 'auto' ? [...pickAuto(local, t.settings), ...semantic] : []
+    const picked = []
+    let removals = 0
+    for (const group of order) {
+      const r = Math.max(0, group.items.length - 1)
+      if (r === 0) continue
+      if ((picked.length + 1) + (removals + r) > bounds.maxRemovals) continue
+      picked.push(group)
+      removals += r
+    }
+    let merges = 0
+    let archives = 0
+    let backupPath = null
+    const counts = () => ({ ok: false, before, after: before, inspected: inspectedItems.length, candidates: unclear.length, merges, archives, conflicts: conflictIds.size, model: { route: model.calls > 0 ? model.route : null, calls: model.calls }, backupPath })
+    if (apply === true && picked.length > 0) {
+      if (typeof opts.backupPath !== 'string' || opts.backupPath.trim() === '') return { ...counts(), error: 'backup_requis' }
+      writeJanitorBackup(opts.backupPath, { kind: 'memory', rows: memoryCache.account })
+      backupPath = opts.backupPath
+      // The store's own scan record: applyGroups re-checks every group against the rows it reads NOW.
+      t.scan = { at: new Date(now).toISOString(), total: all.length, unclear: unclear.length, groups: [...local, ...semantic] }
+      writeTidy(t)
+      const done = await applyGroups(state, picked.map((g) => ({ id: g.id, keep: g.keeperId })), 'janitor', now)
+      if (done.error !== undefined) return { ...counts(), error: done.error }
+      let partial = false
+      for (const r of done.results) {
+        if (r.ok === true) { merges += 1; archives += Number.isFinite(r.removed) ? r.removed : 0 }
+        else partial = true
+      }
+      if (partial) return { ...counts(), error: 'merge_partiel' }
+    }
+    if (merges > 0) await refreshMemoryCache(state, true)
+    const remaining = janitorMemoryItems()
+    const after = { items: remaining.length, chars: remaining.reduce((n, it) => n + String(it.content).length, 0) }
+    return {
+      ok: true, before, after,
+      inspected: inspectedItems.length, candidates: unclear.length,
+      merges, archives, conflicts: conflictIds.size,
+      model: { route: model.calls > 0 ? model.route : null, calls: model.calls },
+      backupPath, changed: merges > 0, protectedViolations: [],
+    }
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) }
+  }
+}
+
+const janitorMemorySeam = () => Object.freeze({
+  version: 1,
+  enabled: janitorMemoryEnabled,
+  revision: janitorMemoryRevision,
+  scanAndClean: janitorMemoryScanAndClean,
+})
+
+/** Publishes (or republishes) the seam. Last writer wins; a frozen global is not an error. */
+const publishJanitorSeam = (target = globalThis) => {
+  try { target[JANITOR_MEMORY_SEAM] = janitorMemorySeam() } catch (e) { /* a frozen global: the janitor degrades to "no seam" */ }
+}
+
 export function apply(ctx) {
   hostCtx = ctx
   try { publishCloudSeam() } catch (e) { console.error('[kybernos-cloud] seam: ' + String((e && e.message) || e)) }
+  try { publishJanitorSeam() } catch (e) { console.error('[kybernos-cloud] janitor seam: ' + String((e && e.message) || e)) }
   // The other bundles ask here whether the active space is a team (kybernos-memory cuts its lessons there).
   try { publishSpaceSeam(() => spaceOf(readStateForSpace())) } catch (e) { console.error('[kybernos-cloud] space seam: ' + String((e && e.message) || e)) }
   // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
@@ -5968,7 +6285,7 @@ export function apply(ctx) {
 // Exported for the out-of-DSH test (scripts/test-cloud-host.mjs): no other
 // public surface is promised.
 export {
-  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES,
+  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES, publishJanitorSeam, JANITOR_MEMORY_SEAM,
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
   profileRefreshTick, PROFILE_REFRESH_TUNING, ROUTE_REPAIR_TUNING, sameOrigin, hostAllowed,
