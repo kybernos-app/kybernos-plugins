@@ -53,6 +53,16 @@ import { loadKeys as loadLanguagePackKeys, servePacks } from './i18n-packs.mjs'
 // a aucune violation (aucune écriture, patch de profil intact). Détails dans
 // retry-policy.mjs.
 import { appliquerPlafondRetries } from './retry-policy.mjs'
+// ── The product's name on outbound calls (28/10/2026) ──────────────────────
+// Provider requests left with the ENGINE's attribution (`deepseek-harness/<version> (+github url)`),
+// which showed up in the providers' request logs: the brand of the engine, not of the product the
+// person runs. The engine offers no seam to change it — attributionHeaders() reads a hard-coded
+// APP_IDENTITY, and a pi-ai profile `headers` entry cannot win (the adapter drops attribution
+// collisions) — so the bundle rewrites the header on the transport at boot, without touching a single
+// engine file (AGENTS.md rule 1). Narrow: only a `deepseek-harness/…` value is rewritten, so an
+// upstream contract (`opencode/<version>`) or an OAuth (`claude-cli/…`) value passes through. Proof
+// log: `~/.dsh/logs/app-identity.log`. Switches and measurements: app-identity.mjs.
+import { installAppIdentity } from './app-identity.mjs'
 // Brique gateway : watcher long-poll + file locale vers kybernos.app. Module
 // AUTONOME (kybernos-plugin/gateway-watcher.mjs) : sans token d'appairage dans
 // ~/.dsh/kybernos/settings.json (clé `pairingToken`), il reste inactif et rien
@@ -13027,6 +13037,20 @@ const kbFeedbackInstallTool = (ctx) => {
 }
 
 export function apply(ctx) {
+    // The product's name on every outbound call (28/10/2026) — app-identity.mjs.
+    // Installed FIRST and outside any service: the LLM adapters send their first request as soon as a
+    // session exists, so the wrapper has to be on `globalThis.fetch` before anything else happens.
+    // Its own try/catch keeps AGENTS.md rule 2: a branding failure never stops DSH from starting.
+    try {
+        const identite = installAppIdentity()
+        if (identite.installed === true) {
+            console.log('[kybers] app identity: outbound user-agent ' + identite.ua + (identite.reused === true ? ' (already installed)' : ''))
+        } else {
+            console.log('[kybers] app identity — ' + identite.reason)
+        }
+    } catch (e) {
+        try { console.log('[kybers] app identity: failed — ' + errText(e)) } catch (e2) { /* console indisponible */ }
+    }
     // Meme filet que cote client : une erreur au demarrage ne doit pas faire
     // echouer l'entree du plugin (ce qui coupe la GUI) mais seulement laisser
     // tomber les routes /kybernos/*, avec l'erreur tracee pour correction.
