@@ -7,14 +7,59 @@
 
 Batch: `A2-registry-points` — "Registry: read `themes/`, `skills/`, `teams/`, `automations/` folders with per-point validators".
 Perimeter is the twelve files of the delegation contract, and nothing else.
-Read on `dev` at `fc0005e3` (2026-10-27). Every `file:line` below was opened in this tree; the anchors the delegation
-gave and that do not hold are listed under **corrections**.
+**baseline: 2ac67fb4** (correction cycle 2, 2026-10-28). Every `file:line` below was re-verified with
+`git show 2ac67fb4:<path>`; the anchors the delegation gave and that do not hold are listed under **corrections**, and
+the ones cycle 2 had to move are gathered in **C8**. The first draft declared "Read on `dev` at `fc0005e3`": false for
+the two `docs/etudes/` documents it cites (`2026-10-27-sector-packs-strategy.md`, `2026-10-27-webapp-creator-cadrage.md`),
+which exist at `2ac67fb4` and **not** at `fc0005e3`. The declaration is replaced, not amended.
 
-Baseline measured on this tree before writing (all exit 0, so none of them can be a DoD — see `DoD:`):
-`packages/kybernos-registry/test-registry.mjs`, `test-host.mjs`, `test-skill.mjs`, `test-write-guard.mjs`,
-`packages/kybernos-skills/test-index.mjs`, `scripts/test-seed-skills-drift.mjs`, `scripts/test-plugin-manifest.mjs`,
-`scripts/test-plugin-scan.mjs`, `scripts/test-layout.mjs`, `node scripts/build-catalog.mjs --check`,
-`node scripts/garde-depot.mjs` (1868 tracked files, 0 error, 0 warning).
+**Worktree drift — declared, never pinned.** At measurement time the dirty tree carries, on top of `2ac67fb4`:
+`packages/kybernos-plugin/index.js` (+216 lines, a neighbour's chantier), `packages/kybernos-plugin/client.js`,
+`docs/etudes/2026-10-27-sector-packs-strategy.md` (6 lines: the naming banner), `scripts/check-hit-targets-live.mjs`,
+`scripts/check-ux-probes.mjs`, and the untracked neighbour bundle `packages/kybernos-log/`. Consequence, measured: the
+three seam exemplars of `packages/kybernos-plugin/index.js` are `:10718` (the `try/catch` seam reader), `:10724` (told at
+each question) and `:10728` (told at boot) at `2ac67fb4`, and `:10730`, `:10736`, `:10740` in the dirty worktree.
+Re-pin at the opening of the implementation; a spec never pins the moving worktree.
+
+Baseline measured on this tree before writing — exit codes are the measurement, never a recollection:
+
+| command | exit | last line, verbatim |
+|---|---|---|
+| `node packages/kybernos-registry/test-registry.mjs` | 0 | `REGISTRY OK` |
+| `node packages/kybernos-registry/test-host.mjs` | 0 | — |
+| `node packages/kybernos-registry/test-skill.mjs` | 0 | — |
+| `node packages/kybernos-registry/test-write-guard.mjs` | 0 | — |
+| `node packages/kybernos-skills/test-index.mjs` | 0 | — |
+| `node scripts/test-seed-skills-drift.mjs` | 0 | — |
+| `node scripts/test-plugin-manifest.mjs` | 0 | — |
+| `node scripts/test-plugin-scan.mjs` | **1** | `PLUGIN SCAN — 15 ok, 1 failed` (`kybernos-pulse → exec`, `helper/gen-icon.mjs:9`) |
+| `node scripts/test-layout.mjs` | **1** | `LAYOUT — 21 checks, 2 failure(s)` (both `kybernos-log`) |
+| `node scripts/build-catalog.mjs --check` | 0 | `✓ catalogue up to date (48 modules)` |
+| `node scripts/garde-depot.mjs` | 0 | `1922 tracked files — 0 error(s), 0 warning(s)` |
+| `node scripts/run-all-tests.mjs` | **1** | `529 test files in 200 s: 521 green, 8 RED` |
+
+**The first draft's "all exit 0" and its regression "green today" are falsified** (gate; D8). Two of those commands are
+red before any line of A2, and the suite is **8 red**, not the 6 the arbitration report noted at 02:10 — the neighbours
+moved in between. The 8, attributed:
+
+| red file | attributed to | the failing check, verbatim |
+|---|---|---|
+| `scripts/test-consistency-guards.mjs` | untracked neighbour `kybernos-log` | `kybernos-log 1 (allowed 0)` |
+| `scripts/test-help-mounts.mjs` | `kybernos-log` | `help.json is shipped, client.js never mounts __KB_HELP__.Help` |
+| `scripts/test-layout.mjs` | `kybernos-log` | `every DSH bundle is declared to the robot with a name` · `every DSH bundle is in satellites.json` |
+| `scripts/test-readmes.mjs` | `kybernos-log` | `each one is linked from README.md` — `["kybernos-log"]` |
+| `scripts/test-no-french-literals.mjs` | `kybernos-log` **and** the uncommitted diff | `every bundle is listed` (`kybernos-log`) · `client.js:33803 "journal d’activite"`, `index.js:11635 "image vide"` (added lines of the dirty tree) |
+| `packages/kybernos-plugin/test-settings-nav.mjs` | `kybernos-log` | `every registered settings page has a key in KB_NAV_KEYS` |
+| `scripts/test-plugin-scan.mjs` | `kybernos-pulse` | `no module declares less than its code shows` |
+| `scripts/test-help.mjs` | unattributed, pre-existing docs gap | `every module links to an article of the help site` — 11 modules named |
+
+Seven of the eight name a neighbour's bundle; the last is a docs gap that predates the batch. Per D8 the "0 red before
+merge" rule of `AGENTS.md` lists them as **pre-existing** and attributes them to the owner's tracker: A2 must not add a
+ninth, and its merge message names them. Nothing in this document claims the tree is green.
+
+None of those commands is a DoD, for two different reasons: the green ones **already pass**, so they prove nothing about
+A2, and the red ones belong to neighbours, so A2 cannot make them pass. The DoD further down all fail *because the batch
+does not exist yet*, each with its own quoted last line.
 
 lane: **A** — critical, by file adjacency rather than by changed behaviour. `packages/kybernos-registry/host.mjs:166-170`
 carries the origin fence and the signed-session guard (`sameOrigin`, `writeGuard`) of the six routes, and
@@ -24,10 +69,17 @@ routes), so the reviewer may close it as B only after `git diff` proves both hun
 
 ## interpretations
 
-I1. **Where the shape of a contribution is declared.** (a) In the point contract at runtime — a new optional
+**Label hygiene (D3).** The campaign's interface letters are **retired**: the page that lists the points is keyed by
+**point ids**, never by `I1`..`I5`, so no cross-batch wire is named by a letter anywhere in this document — a wire is
+cited by its on-disk definition or by its point id (`kybernos/core#domain-pack`, `kybernos/theme#theme`,
+`kybernos/skills#skill`, `kybernos/core#team-template`, `kybernos/core#automation-template`). The choices below are this
+document's own readings, labelled **INT1..INT6**; the first draft's `I1`..`I6` were local too, but the letter was
+overloaded campaign-wide (three specs said so independently), so it is not re-minted here.
+
+INT1. **Where the shape of a contribution is declared.** (a) In the point contract at runtime — a new optional
 `files: "json" | "folder"` on `definePoint` (`packages/kybernos-registry/registry.mjs:199-210`), the only authority the
 registry actually reads (`registry.mjs:301`, `host.mjs:114`), mirrored by an optional `files` on the manifest's
-`provides` entry (`packages/kybernos-registry/plugin.schema.json:214-229`) so a reader, the conformance tool and the A4
+`provides` entry (`packages/kybernos-registry/plugin.schema.json:214-230`, its `properties` block `:221-229`) so a reader, the conformance tool and the A4
 page see the shape; (b) manifest only — the registry would have to read the manifests of installed plugins, which it does
 not do today, or the field would be decorative; (c) a hard-coded map of point name → shape inside `registry.mjs`.
 **Chosen: (a).** It is the only option where what is declared is what is enforced, it is additive (a point that says
@@ -36,50 +88,50 @@ nothing keeps `json`, so `kybernos/core#domain-pack` — `packages/kybernos-plug
 checked by a JSON schema). (c) is rejected: the registry would carry third-party point names, while `definePoint` accepts
 any `owner/name#point` (`registry.mjs:201`).
 
-I2. **What `raw` is for a folder contribution.** (a) An envelope `{ name: "<folder name>", files: [{ path, content }] }`;
+INT2. **What `raw` is for a folder contribution.** (a) An envelope `{ name: "<folder name>", files: [{ path, content }] }`;
 (b) the text of `SKILL.md` alone; (c) `{ text, files }`. **Chosen: (a)** — it is exactly the input of the skill checker the
 owner already has (`validateTeamSkill`, `packages/kybernos-skills/team-skills.mjs:188-228`, which also carries the bounds:
 50 files, 256 KiB per file, 1 MiB per skill, `team-skills.mjs:9-16`), so the point's validator is an adapter over existing
 code and A2 writes no second implementation of skill rules. (b) loses the "files inside kept" requirement; (c) invents a
 third shape for nothing.
 
-I3. **What one contribution is.** For a `json` point (today's rule, unchanged): one flat `*.json` file at the root of
+INT3. **What one contribution is.** For a `json` point (today's rule, unchanged): one flat `*.json` file at the root of
 `dir` (`registry.mjs:240`). For a `folder` point: one immediate sub-directory of `dir`, read recursively. **Chosen**,
-with the bounds of I2 and `LIMITS.file` (`registry.mjs:20`, 256 KiB): depth ≤ 4, ≤ 50 files, ≤ 1 MiB per contribution. The
+with the bounds of INT2 and `LIMITS.file` (`registry.mjs:20`, 256 KiB): depth ≤ 4, ≤ 50 files, ≤ 1 MiB per contribution. The
 registry does not know what a skill is: a folder without `SKILL.md` is refused by the point's validator, not by the
 registry (per-point validators, "reject, never trim").
 
-I4. **The cap counts contributions.** For a `folder` point `point.max` counts folders, not files; the message keeps the
+INT4. **The cap counts contributions.** For a `folder` point `point.max` counts folders, not files; the message keeps the
 verb of `registry.mjs:241` and names the unit (`holds more than N folders: only the first N are read`). A non-directory
 entry at the root of a folder point's `dir` is **named** in `rejected`, never silently dropped (today's filter drops it
 unseen — measured: `rejected: []`).
 
-I5. **Who writes a contributed skill to `<DSH home>/skills`.** **Chosen for A2: nobody — the batch is read-only.** The
+INT5. **Who writes a contributed skill to `<DSH home>/skills`.** **Chosen for A2: nobody — the batch is read-only.** The
 five `seed-skills.mjs` copies must stay identical (`scripts/test-seed-skills-drift.mjs:16`) and a sixth is forbidden;
 `seedSkills` copies only `<name>/SKILL.md` (`packages/kybernos-registry/seed-skills.mjs:62-72`), so it cannot carry a
 folder's sibling files, and teaching it to would change all five copies — four of them outside this batch
 (`kybernos-theme`, `kybernos-plugin`, `kybernos-dashboards`, `kybernos-slash`). The disk write is therefore written as a
 platform-evolution request, not smuggled in. See AMBIGUITY 2.
 
-I6. **`packages/kybernos-skills/plugin.json` keeps `version: 1.0.0`** (no bump in this batch). A bump changes
+INT6. **`packages/kybernos-skills/plugin.json` keeps `version: 1.0.0`** (no bump in this batch). A bump changes
 `packages/kybernos-hub/catalog.json` (`scripts/build-catalog.mjs:198` copies `mf.version`), a file no Phase A batch owns,
 and `scripts/test-layout.mjs:81` fails on a stale catalogue. Adding a point is additive in the contract, not a version
 event.
 
 AMBIGUITY: 1 — the lane. A file of the perimeter (`host.mjs`) holds the auth guard, so the rule makes the batch A; the batch plans no diff there, which would make it B. Arbitrate: A with a proof of zero diff in `host.mjs:166-170`, or B on the owner's word?
 
-AMBIGUITY: 2 — the seeding of a plugin-shipped skill folder. A2 reads a skill folder as one contribution but writes nothing to `<DSH home>/skills` (I5), so a vertical pack's skills reach the registry and not the agents. A3 (end-to-end packs) needs the write side. Arbitrate: (i) A2 stays read-only and the write belongs to the owner (`kybernos/skills`) in a later batch; (ii) A2 extends the five `seed-skills.mjs` copies together, in the same PR, with `scripts/test-seed-skills-drift.mjs` untouched — which puts four foreign packages in this batch; (iii) A2 ships the write in `kybernos-skills/index.js` and accepts a second implementation of the "never over a person-edited file" rule that the drift test cannot see. The writer recommends (i).
+AMBIGUITY: 2 — the seeding of a plugin-shipped skill folder. A2 reads a skill folder as one contribution but writes nothing to `<DSH home>/skills` (INT5), so a vertical pack's skills reach the registry and not the agents. A3 (end-to-end packs) needs the write side. Arbitrate: (i) A2 stays read-only and the write belongs to the owner (`kybernos/skills`) in a later batch; (ii) A2 extends the five `seed-skills.mjs` copies together, in the same PR, with `scripts/test-seed-skills-drift.mjs` untouched — which puts four foreign packages in this batch; (iii) A2 ships the write in `kybernos-skills/index.js` and accepts a second implementation of the "never over a person-edited file" rule that the drift test cannot see. The writer recommends (i).
 
-AMBIGUITY: 3 — the name of the new point field. Pinned here as `files` with the enum `["json","folder"]` (I1), and A4's page and the contract's `provides` row must use the same word. If the owner prefers `contribution` or `shape`, say so now: the DoD commands below are written against `files` and will fail otherwise.
+AMBIGUITY: 3 — the name of the new point field. Pinned here as `files` with the enum `["json","folder"]` (INT1), and A4's page and the contract's `provides` row must use the same word. If the owner prefers `contribution` or `shape`, say so now: the DoD commands below are written against `files` and will fail otherwise.
 
 ## out of scope
 
 - `kybernos/dashboards#preset` and any `dashboards/` (or `presets/`) folder: not in A2's folder list (contract row,
   `docs/dev/plugin-contract.md:266`), though the strategy example lists it
-  (`docs/etudes/2026-10-27-sector-packs-strategy.md:62`). Decided, recorded, not built.
+  (`docs/etudes/2026-10-27-sector-packs-strategy.md:71`). Decided, recorded, not built.
 - Defining `kybernos/theme#theme` (batch A1-theme-seam), `kybernos/core#team-template` and
   `kybernos/core#automation-template` (batch A2-pack-format). A2 **consumes** them; its tests stub them.
-- Any write to `<DSH home>/skills` or `<DSH home>/kybernos/**` (I5), and any sixth `seed-skills.mjs` copy.
+- Any write to `<DSH home>/skills` or `<DSH home>/kybernos/**` (INT5), and any sixth `seed-skills.mjs` copy.
 - `packages/kybernos-registry/client.js` and every other UI file: no page, no wording, no screenshot in this batch.
 - The real scan folder (`<DSH home>/kybernos/plugins/<author>/<name>/` of the docs vs
   `<DSH home>/profiles/web/node_modules/<name>/` of the code): reported for A4, **not** changed here.
@@ -94,21 +146,36 @@ C1. **The host already answers the points.** `host.mjs:114` returns `points: reg
 `registry.mjs:300-301` builds them, and `test-host.mjs:54` asserts it. Nothing is missing there, so A2 changes **no line of
 `host.mjs`**. The doc's `GET /kybernos-registry/points` (`plugin-contract.md:253`) describes a route that does not exist
 (the answer lives in `/state`); A2 adds no route (interdit) and leaves that sentence to A4.
-C2. **The delegation's whole `dod` list is green on this tree** (see the baseline above). It proves nothing about A2 and is
-kept below as a regression gate, not as a DoD.
+C2. **The delegation's whole `dod` list is NOT green on this tree.** Measured above, per command: `scripts/test-plugin-scan.mjs`
+exits 1 (`kybernos-pulse`) and `scripts/test-layout.mjs` exits 1 (two `kybernos-log` checks), and `run-all-tests` is 8 red.
+The first draft wrote "all exit 0": false, and it is exactly why a `dod` list is judged command by command, never as a list.
+Those red commands stay in the regression gate with their baseline written next to them, never as "green today".
 C3. **`themes/`, `teams/` and `automations/` work today** when their points are JSON points: `dir` is arbitrary and the
 reader walks any folder name (`registry.mjs:236-241`; `presets/` at `test-registry.mjs:96-97` proves it). Measured with a
 throw-away profile: one contribution per folder for both `teams/` and `automations/`. Those cases are regression guards,
 not evidence; the only new mechanic is the folder shape (skills).
-C4. **The citation for the seeding rule is wrong in the delegation.** `docs/etudes/2026-10-27-webapp-creator-cadrage.md:129`
-is about TLDs; the "never over a person-edited file" rule is at `:161` and `:189` of that document.
-C5. **Schema anchors:** `$defs.provided` is `plugin.schema.json:214-229`, `$defs.extension` is `:231-240` (the delegation
-gave 214-229 for both). The `provides`/`extends` references are at `:87-88`; `extends` requires `dir` for a data plugin
-through `:167-169`.
-C6. `scripts/test-seed-skills-drift.mjs:2` says the module "exists four times" while `:16` lists **five** copies. Not fixed
+C4. **The citation for the seeding rule is wrong in the delegation — and the first draft's own correction was wrong too.**
+`docs/etudes/2026-10-27-webapp-creator-cadrage.md:129` is about TLDs (`.app` over `.site`); the "never over a person-edited
+file" rule is at **`:162` only**. Measured at `2ac67fb4`: `:161` is the row saying the plugin contract and registry exist,
+`:189` is the "Access: link key" question, so the first draft's ":161 and :189" (struck by the gate) named two lines that do
+not carry the rule. The document does not exist at `fc0005e3`: it is one of the two etudes anchors that had to be re-read
+at the base commit (head note).
+C5. **Schema anchors:** `$defs.provided` is `plugin.schema.json:214-230` (its `properties` block `:221-229`),
+`$defs.extension` is `:231-240` (the delegation gave 214-229 for both). The `provides`/`extends` references are at `:87-88`;
+`extends` requires `dir` for a data plugin through `:167-169`.
+C6. `scripts/test-seed-skills-drift.mjs:1` says the module "exists four times" while `:16` lists **five** copies. Not fixed
 here (that file is in the perimeter only if a sixth copy appeared); recorded so nobody re-derives the wrong count.
 C7. `scripts/plugin-manifest.mjs` is a two-line re-export of `packages/kybernos-registry/manifest.mjs`, so the new manifest
 rule is enforced by `scripts/test-layout.mjs:107-122` and `scripts/build-catalog.mjs:221` without a second copy to keep in sync.
+C8. **Anchors re-pinned in cycle 2** (every one re-measured with `git show 2ac67fb4:<path>`, never against the worktree):
+`packages/kybernos-plugin/index.js:10706`/`:10716` → `:10718` (seam reader), `:10724` (told at each question), `:10728`
+(told at boot), stale since `fc0005e3`; C4's `:161`/`:189` → `:162`; `scripts/test-seed-skills-drift.mjs:2` → `:1`;
+`docs/etudes/2026-10-27-sector-packs-strategy.md:62` → `:71`; `plugin.schema.json:214-229` → `:214-230` (the closing brace);
+the A3 mockups `docs/handoff/vertical-medecin/maquette-v1/` and `docs/handoff/vertical-recrutement-ssii/maquette-v1/` →
+`docs/handoff/theme-medecin/maquette-v1/` and `docs/handoff/theme-recrutement-ssii/maquette-v1/`, which are **inside** this
+repository (tracked at `2ac67fb4`), not outside it. Two numbers of the first draft were also stale, not wrong in method:
+`garde-depot` counted 1868 tracked files (1922 today) and the `--only` widths were 32/26/4 (33/27/4 today, one more in
+`test-host` because the untracked neighbour `packages/kybernos-log/test-host.mjs` is picked up).
 
 e2e: one data plugin ships a whole vertical, and the registry reads it point by point.
 The journey (added to `packages/kybernos-registry/test-registry.mjs`, whose fixture `fresh()`/`install()` already builds a
@@ -135,8 +202,8 @@ of each DoD command, verbatim, in the batch report — including every failure m
 (the delegation asks for that, and the four red lines recorded below are the shape of it).
 
 maquette: **not applicable** — reason: no interface is drawn or changed, so there is no mockup to validate; the validated
-mockups of Phase A (`docs/handoff/vertical-medecin/maquette-v1/`, `docs/handoff/vertical-recrutement-ssii/maquette-v1/`,
-outside this repository) concern batch A3 and its visual surfaces, not the registry's reader. No mockup is invented for a
+mockups of Phase A (`docs/handoff/theme-medecin/maquette-v1/`, `docs/handoff/theme-recrutement-ssii/maquette-v1/`,
+tracked in this repository at `2ac67fb4`) concern batch A3 and its visual surfaces, not the registry's reader. No mockup is invented for a
 data layer; if one were, it would be a custom screen smuggled into a pack — forbidden by the build contract.
 
 unit: the cases to add, file by file, plus what must not move.
@@ -148,7 +215,7 @@ unit: the cases to add, file by file, plus what must not move.
   only known keys, so an unknown one vanishes — measured).
 - `points()` (`:300-301`) reports `files` for every point, defaulted, so `/state` carries it without a route change.
 - `readExtension` (`:232-253`): `json` path untouched (flat `*.json`, cap in files, `readBounded` per file); the `folder`
-  path reads one immediate sub-directory per contribution, recursively under the bounds of I3, refuses a link anywhere
+  path reads one immediate sub-directory per contribution, recursively under the bounds of INT3, refuses a link anywhere
   (`readBounded:39` for files, `lstat` for folders), names a non-directory root entry, keeps a folder entry only when its
   name matches `/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/` (the family of the JSON filter at `:240`; anything else is named in
   `rejected`, never shown raw), and passes
@@ -165,15 +232,16 @@ is a fault, worded `provides "<name>": a folder contribution cannot be checked b
 (DoD 4 asserts it): `$defs.provided.properties.files` = `{ "enum": ["json", "folder"], "description": … }`.
 
 **`packages/kybernos-skills/plugin.json`** — one `provides` entry (text in the handoff below); `version`, `family`,
-`entry`, `permissions`, `claims` untouched (I6, C7).
+`entry`, `permissions`, `claims` untouched (INT6, C7).
 
 **`packages/kybernos-skills/index.js`** — the point object (`owner: 'kybernos/skills'`, `ownerVersion: '1.0.0'` by the
 convention of `packages/kybernos-plugin/domain-pack.mjs:223-230`, `name: 'skill'`, `version: '1.0'`, `kind: 'data'`,
 `class: 'instruction'`, `files: 'folder'`, `max: 32`, `validate` as an adapter over `validateTeamSkill` mapping
 `{ ok: false, reason, file }` to `{ ok: false, errors: [...] }`), told through
-`globalThis[Symbol.for('kybernos.registry')]` guarded by `try/catch` exactly like `packages/kybernos-plugin/index.js:10706`
-— at boot **and** at the next question, because the registry may mount after this bundle (the core does the same,
-`:10716`). `/kybernos-skills/install` (`:1807-1815`) keeps its contract byte for byte.
+`globalThis[Symbol.for('kybernos.registry')]` guarded by `try/catch` exactly like `packages/kybernos-plugin/index.js:10718`
+(the `try/catch` seam reader; `:10730` in the dirty worktree) — at boot **and** at each question, because the registry may
+mount after this bundle, and the core tells it at both places: `:10728` at boot, `:10724` on the question-time path
+(`:10740` and `:10736` in the worktree). `/kybernos-skills/install` (`:1807-1815`) keeps its contract byte for byte.
 
 **`packages/kybernos-registry/test-registry.mjs`** — new cases, titles pinned so the DoD can grep them:
 `one plugin ships five folders: each point reads its own, nothing runs`, `a skill folder is one contribution, its files kept whole`,
@@ -183,11 +251,14 @@ convention of `packages/kybernos-plugin/domain-pack.mjs:223-230`, `name: 'skill'
 **Must stay green, untouched:** the JSON point rules (`:216` symlinked folder, `:221` symlinked file, `:240` cap in
 files, `:301` throwing validator), the schema pair (`:350`), the no-dynamic-code scan of the registry's sources (`:259-261`),
 the six routes and the points answer (`test-host.mjs:26,54`), the five seeding copies
-(`scripts/test-seed-skills-drift.mjs:16`), the first-party manifests as a set (`scripts/test-layout.mjs:107-122`), the
-catalogue (`scripts/build-catalog.mjs --check`).
+(`scripts/test-seed-skills-drift.mjs:16`), the first-party manifests as a set (`scripts/test-layout.mjs:107-122`, green —
+the two red checks of that file are its bundle-declaration ones for the untracked `kybernos-log`, `:9-10` of its output),
+the catalogue (`scripts/build-catalog.mjs --check`, green — `test-layout.mjs:81` covers the same freshness).
 
-DoD: DoD 1 to DoD 6 **fail on this tree today** (each with its exact last line quoted, measured, not guessed) and must
-exit 0 after the batch; DoD 7 is the repository gate, green today, kept because a batch is not done without it.
+DoD: DoD 1 to DoD 6 **fail on this tree today** (each with its exact last line quoted, measured, not guessed, and each
+re-run in correction cycle 2) and must exit 0 after the batch; DoD 7 is the repository pre-push gate, measured green
+below, kept because a batch is not done without it. "Fail today" here means *fails because A2 does not exist yet* — never
+"the tree is red": the tree is red on 8 neighbour files, listed at the top, and none of them is touched by this batch.
 Run them from the repository root.
 
 **DoD 1 — a folder point contributes one contribution per folder, its files kept whole.**
@@ -349,32 +420,41 @@ grep -qF '✓ a folder contribution cannot be checked by a JSON schema' /tmp/a2-
 ```bash
 node scripts/garde-depot.mjs && node scripts/test-lifecycle-engine.mjs && node scripts/test-paquet.mjs
 ```
-This one is the pre-push gate of `AGENTS.md`, not evidence about A2: it is green today. It is listed because the batch
-cannot be declared done without it.
+This one is the pre-push gate of `AGENTS.md`, not evidence about A2. **Measured at `2ac67fb4`, three commands, three
+exits 0** (not "all exit 0" of a list): `garde-depot.mjs` → `1922 tracked files — 0 error(s), 0 warning(s)`,
+`test-lifecycle-engine.mjs` → `MOTEUR DE CYCLE DE VIE — 82 assertions, 0 échec`,
+`test-paquet.mjs` → `PAQUETAGE — 111 assertions, 0 échec(s)`. It is listed because the batch cannot be declared done
+without it — and because it is the only gate that is green: the merge gate `run-all-tests` is 8 red today (top of this
+document), so DoD 7 passing does not mean the tree may merge.
 
-## regression gate (green today — a red here is a regression, not a missing feature)
+## regression gate (baseline measured, never assumed — a new red is a regression, not a missing feature)
 
 ```bash
-node scripts/run-all-tests.mjs --only kybernos-registry
-node scripts/run-all-tests.mjs --only test-host
-node scripts/run-all-tests.mjs --only test-write-guard
-node scripts/run-all-tests.mjs --only test-skill
+node scripts/run-all-tests.mjs --only kybernos-registry        # 6 files
+node scripts/run-all-tests.mjs --only test-host                # 33 files, one of them the untracked kybernos-log
+node scripts/run-all-tests.mjs --only test-write-guard         # 27 files
+node scripts/run-all-tests.mjs --only test-skill               # 4 files
 node scripts/run-all-tests.mjs --only kybernos-skills/test-index
 node scripts/run-all-tests.mjs --only test-seed-skills-drift
-node scripts/run-all-tests.mjs --only test-plugin-scan
+node scripts/run-all-tests.mjs --only test-plugin-scan         # RED today: kybernos-pulse, pre-existing
 node scripts/run-all-tests.mjs --only test-plugin-manifest
 node scripts/build-catalog.mjs --check
-node scripts/run-all-tests.mjs          # the gate before a merge into dev, 0 red
+node scripts/run-all-tests.mjs          # the gate before a merge into dev: 8 red today, none of them A2's
 ```
-Read them as regression only: measured green on `fc0005e3` before any line of A2 existed, so none of them proves the batch.
+Read them as regression only, with the baseline of the head note (measured, not remembered): the registry package's four
+files, `kybernos-skills/test-index`, `test-seed-skills-drift`, `test-plugin-manifest` and `build-catalog --check` are
+green; `--only test-plugin-scan` is **red before A2 exists** and must stay *that* red (one `kybernos-pulse` failure, no
+second); `run-all-tests` is **8 red** today, attributed one by one at the top, and the batch may not make it 9. The
+first draft claimed them all "measured green on `fc0005e3`": false as written, and this line replaces it.
 `--only test-host`, `--only test-write-guard` and `--only test-skill` each select dozens of files across packages
-(32, 26 and 4 — `node scripts/run-all-tests.mjs --only test-host --list`): they are wide by design, not precise.
+(33, 27 and 4 measured today with `--list`; one more in `test-host` than the first draft's 32 because the untracked
+neighbour bundle ships `packages/kybernos-log/test-host.mjs`): they are wide by design, not precise.
 
 ## handoff (for batch A4-starter-docs and for A1/A2-pack-format)
 
 **Exact text for A4's spec rows — manifest and schema delta.**
 
-`plugin.schema.json`, inside `$defs.provided.properties` (`:214-229`), after `validator`:
+`plugin.schema.json`, inside `$defs.provided.properties` (`:221-229`; `$defs.provided` is `:214-230`), after `validator`:
 ```json
 "files": { "enum": ["json", "folder"], "description": "The shape of one contribution: 'json' (default) one flat .json file per contribution, 'folder' one folder per contribution whose files are read whole. A data point whose contributions are folders has a validator, never a schema." }
 ```
@@ -394,7 +474,7 @@ The contract's `provides` row (`docs/dev/plugin-contract.md:93`) and §6.2/§6.4
 `@local/` and `@deepseek-ai/` (`registry.mjs:86`), following a link only at the top for `file:`/`link:` sources
 (`registry.mjs:103-104`) and never inside a package (`:35-43`, `:238`). The documented folder is not read at all.
 
-**The seeding decision for plugin-shipped skills:** read-only in A2 (I5, AMBIGUITY 2) — no sixth copy, no write, the disk
+**The seeding decision for plugin-shipped skills:** read-only in A2 (INT5, AMBIGUITY 2) — no sixth copy, no write, the disk
 install is a platform-evolution request. A pack's skill therefore reaches the registry and the consent screen, not yet the
 agents; A3 must not be declared end to end for skills until that request is built.
 
@@ -407,4 +487,4 @@ already shipped (`packages/kybernos-plugin/domain-pack.mjs:230`). `kybernos/dash
 **Failures met while writing this strategy (recorded, not ignored):**
 1. A first probe used `id: 'acme/v'` and the manifest was refused — `/id does not match ^[a-z][a-z0-9-]{1,31}/[a-z][a-z0-9-]{1,39}$` (the owner segment needs two characters). Probes use `acme/vertical`.
 2. A first version of DoD 2 expected two contributions with `max: 2` over three folders; the cap makes the third folder unread, so the "no `SKILL.md`" refusal was unreachable. Rewritten with the cap exercised in a second pass.
-3. The delegation's `dod` list, its "add the points answer" and its `themes/teams/automations` evidence were all already true on this tree (C1–C3).
+3. The delegation's "add the points answer" and its `themes/teams/automations` evidence were both already true on this tree (C1, C3); its `dod` list was **not** all true — two of its commands are red before A2 (C2), which is exactly the claim cycle 2 had to correct.

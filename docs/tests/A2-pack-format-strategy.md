@@ -10,9 +10,12 @@ Campaign: Phase A of the sector-packs strategy (`docs/etudes/2026-10-27-sector-p
 Binding contracts: skill `contrat-pack-vertical` (build contract 1-4), `AGENTS.md`, `docs/dev/domain-packs.md`, `docs/dev/plugin-contract.md`.
 Triage verdict on disk: `docs/tests/triage.md` (`chemin: complet`).
 
-**Lane: B (standard); status: BLOCKED (fail-closed) on `index.js:30` — see the blocking point below.** No file of this batch touches auth, billing, RLS, migrations or secrets: `plugin.json` gains two `provides` entries and no permission,
-`onboarding-state.mjs` is pure, `domain-pack.mjs` is pure, and the only `index.js` lines touched sit in the route zone that already calls
-`sameOriginStrict` / `writeRefused` without changing either. Reviewer note: the diff must show **zero** change on those two guards — if it does not, the batch
+**Baseline: `2ac67fb4`** (bound decision D1, `docs/tests/porte-go-verdicts.md:29-33`). Every `file:line` anchor in this document is verified against that commit (`git show 2ac67fb4:<path>`), never against the moving worktree, and must be re-pinned when implementation starts.
+Worktree drift, measured 2026-10-28: the `index.js` route zone sits **+12 lines** in `2ac67fb4` and **+24 lines** in the current worktree, both relative to the `c6197a8c` numbering this document's first draft used — `domainPacks()` is at `:10707` there, `:10719` at the baseline, `:10731` in the worktree. A line number carried across a commit is a guess, not an anchor.
+
+**Lane: B (standard); status: spec, unblocked — the `index.js:30` blocking point is arbitrated (bound decision D4, `docs/tests/porte-go-verdicts.md:46-48`: the single import line is granted to this batch's write perimeter, see the table below).** No file of this batch touches auth, billing, RLS, migrations or secrets: `plugin.json` gains two `provides` entries and no permission,
+`onboarding-state.mjs` is pure, `domain-pack.mjs` is pure, and the only `index.js` lines touched are the route zone that already calls
+`sameOriginStrict` / `writeRefused` (neither guard changes) plus the one granted import line at `:30` (D4). Reviewer note: the diff must show **zero** change on those two guards — if it does not, the batch
 becomes lane A on the spot.
 
 ## Write perimeter (and the one place it bites)
@@ -20,26 +23,27 @@ becomes lane A on the spot.
 | File | What changes |
 |---|---|
 | `packages/kybernos-plugin/domain-pack.mjs` | one optional pack key, two point definitions + validators, the kit merge, `packsOf` |
-| `packages/kybernos-plugin/index.js` | route zone only: `domainPacks` (`:10707-10715`), boot-time `definePoint` (`:10716`), the onboarding POST echo (`:10775-10777`) |
+| `packages/kybernos-plugin/index.js` | route zone only, re-pinned at `2ac67fb4`: `domainPacks` (`:10719-10727`), boot-time `definePoint` (`:10728`), the onboarding POST echo (`:10787-10789`) |
+| `packages/kybernos-plugin/index.js:30` | **the single import line from `domain-pack.mjs` — GRANTED by bound decision D4** (`docs/tests/porte-go-verdicts.md:46-48`): it is neither a route nor a guard, it changes no behaviour, and without the two new points and `packsOf` in its name list nothing reaches the host. This is the one line outside the routes zone; it is granted, not taken |
 | `packages/kybernos-plugin/onboarding-state.mjs` | `theme` field: `defaultState` `:92-106`, `publicView` `:109-121`, `complete` `:124-145` |
 | `packages/kybernos-plugin/plugin.json` | `provides` `:30-41` gains two entries |
 | `packages/kybernos-plugin/test-domain-pack.mjs` | new checks; `loadPacks` at `:181` stays; the shipped-set assertions at `:257`, `:290` and `:322-327` are widened by interpretation 11 |
 | `packages/kybernos-plugin/test-onboarding-state.mjs` | new checks on the `theme` field |
 
-**Status: BLOCKED (fail-closed) — no code is written until the human answers.** The delegation's perimeter is the routes zone (`~10694-10790`) only, but `index.js:30` is the single import line from `domain-pack.mjs` and the two new points plus `packsOf` cannot reach the host without a name added to it.
-This document does not grant itself the line: `:30` is **outside** the granted perimeter, so every DoD below stays red by construction and none may be claimed. The human chooses: (a) **grant one line at `:30`** (recommended: not a route, not a guard, no behaviour), or
-(b) **re-scope** to the library-only half — `theme` key, the two validators, the merge and the onboarding field, with no host wiring (no observable route change; the `e2e:` 2-4 of this spec drops with it).
-No honest third way: `domainPacks()` is synchronous, so a dynamic `import()` inside the zone cannot feed it, and abusing a property of `DOMAIN_POINT` would be an invented seam. This is the first AMBIGUITY below;
-until it is answered, no file of this batch is written, no DoD is claimed, and the batch report says **blocked**.
+**The blocking point, and its answer.** The delegation's perimeter is the routes zone only (it wrote `~10694-10790` in its own numbering; that zone is `~10706-10790` at `2ac67fb4` — the block from the domain-packs comment to the end of the onboarding route, the next route family starting at `:10794`). `index.js:30` is the single import line from `domain-pack.mjs`, and the two new points plus `packsOf` cannot reach the host without a name added to it.
+This document did not grant itself that line: it held **fail-closed**, every DoD red by construction, until the human answered. The answer is on disk: **bound decision D4** (`docs/tests/porte-go-verdicts.md:46-48`) **grants one line at `:30`** — recommended option (a), not a route, not a guard, no behaviour — so the batch is **unblocked** and option (b), re-scoping to the library-only half (no host wiring, `e2e:` 2-4 dropped), is **not** taken.
+No honest third way existed while the question was open: `domainPacks()` is synchronous, so a dynamic `import()` inside the zone cannot feed it, and abusing a property of `DOMAIN_POINT` would be an invented seam. The grant is one line and the diff must show it as one line.
 
 ## Verified anchors (read in the tree, not remembered)
 
 - `domain-pack.mjs:71` — the `only()` key list of a pack (14 keys today); `:76` — `accent` is one `#rrggbb`; `:35` `TEAM_RE`, `:37` `COLOR_RE`, `:23` `ICONS`.
 - `domain-pack.mjs:230-233` — `DOMAIN_POINT` (owner `kybernos/core`, version `1.0`, kind `data`, class `instruction`, `max: 12`), `DOMAIN_POINT_REF`, `CONTRIBUTED_ORDER {min:50,max:98}`.
 - `domain-pack.mjs:240-253` — `mergePackSets(shipped, contributions)`: id collision refused, legacy-job clash refused, order clamped `:249`, re-sorted `:251`.
-- `index.js:10707-10715` — `domainPacks()`: `registry.definePoint(DOMAIN_POINT)` then `mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))`, `catch` → shipped only.
-- `index.js:10716` — boot-time `definePoint`; `:10717-10721` — `GET /kybernos/domains` (`{ ok, packs, rejected }`); `:10725-10740` — `POST /kybernos/domain/skill`
-  ("only a name some pack lists as bundled is accepted", `:10733-10734`); `:10741-10778` — `/kybernos/onboarding` GET (`:10749` spreads `...view`) and POST (`:10773-10777`).
+- `index.js:10719-10727` — `domainPacks()`: `registry.definePoint(DOMAIN_POINT)` (`:10724`) then `mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))` (`:10725`), `catch` → shipped only (`:10726`).
+- `index.js:10728` — boot-time `definePoint`; `:10729-10733` — `GET /kybernos/domains` (`{ ok, packs, rejected }` at `:10732`); `:10734-10736` — the comment that
+  "only a name some pack lists as bundled is accepted"; `:10737-10752` — `POST /kybernos/domain/skill`, the `listed` check at `:10745` and the refusal `unknown skill` at `:10746`.
+- `index.js:10753-10790` — `/kybernos/onboarding`: GET `:10754-10762` (`:10761` spreads `...view`), POST from `:10763`; `replay` `:10770-10773`, `domain` `:10774-10783`,
+  `complete` → `onboardingComplete(state, body)` at `:10785`, the echo at `:10787-10789`.
 - `onboarding-state.mjs:6-11` — the comment that keeps `ONBOARDING_VERSION = 1`, and the constant; `:92-106` `defaultState`; `:109-121` `publicView`; `:124-145` `complete`
   (keeps a saved value when the client sends none, as `agents` does at `:142`); `:148-151` `chooseDomain`; `:154` `replay`.
 - `test-domain-pack.mjs:181` — `loadPacks(join(here, 'domains'))` (the real folder); `:257` — the exact shipped id list in order; `:322-327` — the hardcoded file list of the
@@ -56,7 +60,7 @@ until it is answered, no file of this batch is written, no DoD is claimed, and t
 - Team template vocabulary cited from `client.js:23303-23361` (`KB_MARKET_TEAMS`: `id, name, color, icon, category, desc, mission, topology, tags, skills, roles[{id,kind,provider,model,prompt}], stages[{id,roles,mode,cap,gate,inputs}]`)
   and `client.js:5914` — `FORMES = ['pool', 'pipeline', 'adversarial', 'mapreduce', 'loop']`.
 - Automation template vocabulary cited from `client.js:7814-7830` (`KB_TPLS`: `id, cat, icon, title, cadence, cron, desc, tags, apps, steps[[kind, pair]], needs, guard, ask[{q,o}]`)
-  and `test-automation-templates.mjs:36` (the field list), `:29` (the four `cat` ids of `KB_TPL_CATS`, `client.js:7808`), `:42` (a step is `ai` or `act`, 2-6 per template), `:43` (2-4 questions, at least two options each), `:44` (needs, tags and apps are non-empty), `:46` (a template with no cron says webhook in its cadence).
+  and `test-automation-templates.mjs:36` (the field list), `:29` (the four `cat` ids of `KB_TPL_CATS`, `client.js:7808`), `:42` (a step is `ai` or `act`, 2-6 per template), `:43` (2-4 questions, at least two options each), `:44` (**non-emptiness only** for needs, guard, tags and apps — it sets no maximum, so every upper bound in this document is marked *proposal*), `:46` (a template with no cron says webhook in its cadence).
 - Theme ids: `preset-store.mjs:26` `ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/`; `:43-52` `SETTINGS_KEYS` (`acc`, `fontText`, `radius`…); `:92-115` `sanitizePreset`.
 
 ## Interpretations (the request admits several; chosen + why)
@@ -91,15 +95,13 @@ until it is answered, no file of this batch is written, no DoD is claimed, and t
 
 ## AMBIGUITY (the human arbitrates; the batch cannot settle these silently)
 
-AMBIGUITY: **`index.js:30` vs the write perimeter** — grant one import line, or re-scope the batch; fail-closed until the human answers (blocking point above), because without it the two new points cannot be defined in the host.
-**DECISION (was AMBIGUITY 2) — the kit wire is `pack.kit = { themes?, skills?, teams?, automations? }`; authored goals are never mutated.** The consumer is **recorded as deferred**, not left open: batch A1-kit-wizard measures that the wizard reads no `pack.kit` today and will render contributed kit rows only in a later phase (`docs/tests/A1-kit-wizard-strategy.md:81-89`).
+**DECISION (was AMBIGUITY 1) — `index.js:30` is granted to this batch's perimeter.** Bound decision D4 (`docs/tests/porte-go-verdicts.md:46-48`) answers the blocking point: the one import line is neither a route nor a guard, it changes no behaviour, and the two new points plus `packsOf` cannot reach the host without it. The batch is unblocked; the re-scope to a library-only half is not taken; the reviewer checks that the diff shows that line as **one** line and touches `sameOriginStrict` / `writeRefused` nowhere.
+**DECISION (was AMBIGUITY 2) — the kit wire is `pack.kit = { themes?, skills?, teams?, automations? }`; authored goals are never mutated.** The consumer is **recorded as deferred**, not left open: batch A1-kit-wizard measures that the wizard reads no `pack.kit` today and will render contributed kit rows only in a later phase (`docs/tests/A1-kit-wizard-strategy.md:86-94`).
 This phase therefore serves and tests the slices; the contract for the phase that consumes them is frozen here — read this shape verbatim, no second wire, no mutation of `goal.teams`/`goal.automations`.
-AMBIGUITY: **the interface catalogue** — the delegation cites "interface I1" and "interface I4"; no file under `docs/` defines an interface list (searched).
-This document therefore *is* the wire: pack `theme` (I4, the onboarding field) and the `kit` slices (I1, what the wizard resolves). If the campaign keeps an
-interface catalogue elsewhere, it must be published in the repo or the labels retired.
+**RETIRED (was AMBIGUITY 3) — the campaign's interface letters.** Bound decision D3 (`docs/tests/porte-go-verdicts.md:40-43`) retires the campaign's `I`-letter labels campaign-wide: they were overloaded (three specs said so independently) and no file under `docs/` ever defined one list. Every wire this batch carries is now named by its **point id**, which is on disk and checkable: `kybernos/core#domain-pack` (the pack itself), `kybernos/theme#theme` (the pack's `theme` key and the onboarding `theme` field), `kybernos/skills#skill`, `kybernos/core#team-template` and `kybernos/core#automation-template` (the two kit slices owned here). This document is still the wire for the pack `theme` key, the onboarding `theme` field and the `kit` slices; it simply no longer mints a letter to say so.
 AMBIGUITY: **the theme id vocabulary** — the pack regex `/^[a-z0-9][a-z0-9-]{0,40}$/` is *narrower* than the preset store's `ID_RE`
 (`/^[a-z0-9][a-z0-9-]{0,63}$/`, `preset-store.mjs:26`), so a preset whose id is 41-63 characters can never be named by a pack. Widen the pack key to 63, or
-accept that such a preset is unreferenceable. This batch implements 40 (the delegation's letter) and states the consequence.
+accept that such a preset is unreferenceable. This batch implements 40 (the delegation's brief) and states the consequence.
 AMBIGUITY: **`theme` is served by the pre-sign-in GET** — `GET /kybernos/onboarding` is answered before DSH's own sign-in (`onboarding-state.mjs:51-52`).
 Choosing "public" (interpretation 7) means any local page can read which style preset the person picked. It is a real (small) disclosure decision, not a detail.
 AMBIGUITY: **who fixes `test-domain-pack.mjs:257` and `:290` when A3 adds a pack** — this batch widens both to relative-order/pair assertions (interpretation 11). If the campaign
@@ -193,24 +195,26 @@ empty prompt, an id that is not the file name.
 | `cat`, `icon` | optional tokens (`KB_TPL_CATS` ids today: `social`, `prospecting`, `support`, `skills`, `test-automation-templates.mjs:29`) |
 | `title`, `cadence`, `desc` | `textOf`, `title` and `desc` required |
 | `cron` | optional, `CRON_RE` (`:39`); absent means the cadence carries the trigger, as at `client.js:7815` |
-| `tags` | 1-6 lower-case words (`test-automation-templates.mjs:44`) |
-| `apps` | 1-4 app slugs (`APP_RE`, `:34`, `test-automation-templates.mjs:44`) |
-| `steps` | 2-6 objects `{ kind ('ai'|'act'), text (textOf, `LIMITS.prompt` 900) }` (`test-automation-templates.mjs:42`) |
-| `needs` | 1-4 texts: what the person must have (`test-automation-templates.mjs:44`) |
-| `guard` | **1-4 texts, required** — the "never without approval" lines; the guard is what makes a contributed automation safe (build contract 5) |
-| `ask` | 2-4 objects `{ q (textOf), o (2-6 texts) }` (`test-automation-templates.mjs:43`) |
+| `tags` | 1-6 lower-case words (`:44` requires **non-empty** only; the upper bound 6 is a proposal) |
+| `apps` | 1-4 app slugs (`APP_RE`, `:34`; `:44` requires non-empty only — the upper bound 4 is a proposal) |
+| `steps` | 2-6 objects `{ kind ('ai'|'act'), text (textOf, `LIMITS.prompt` 900) }` (`test-automation-templates.mjs:42`, cited: both the 2-6 range and the two kinds) |
+| `needs` | 1-4 texts: what the person must have (`:44` requires non-empty only — the upper bound 4 is a proposal) |
+| `guard` | **at least one text, required** — the "never without approval" lines; the guard is what makes a contributed automation safe (build contract 5). `:44` requires it non-empty; the upper bound 4 is a proposal |
+| `ask` | 2-4 objects `{ q (textOf), o (2-6 texts) }` (`test-automation-templates.mjs:43` cites 2-4 questions and ≥2 options; the **upper** bound of 6 options is a proposal) |
 
 Refusals: unknown key, fewer than 2 or more than 6 `steps`, an empty `guard`, `ask` outside 2-4 questions, `ask.o` under two options, an empty `needs` or
-`tags`, a cron with fewer than five fields, an id that is not the file name. The bounds above are **cited from the client's own catalogue test**, not chosen: a
-contributed template is drawn and turned into a chat by the same code as a shipped one, so a looser shape would create a second class of template the page cannot
-render. One declared divergence: the client's rule "no cron ⇒ the cadence says webhook" (`test-automation-templates.mjs:46`) is **not** enforced here — the
+`tags`, a cron with fewer than five fields, an id that is not the file name. **What is cited, and what is ours.** The *shape* and the *lower* bounds are cited from the
+client's own catalogue test (`test-automation-templates.mjs:42`, `:43`, `:44`): a contributed template is drawn and turned into a chat by the same code as a shipped one,
+so a looser shape would create a second class of template the page cannot render. The **upper** bounds are **not** cited — `:44` asserts non-emptiness only, no maximum — so
+`tags` ≤ 6, `apps` ≤ 4, `needs` ≤ 4, `guard` ≤ 4 and `ask.o` ≤ 6 are **this batch's proposals** (build contract 4: a number no file fixes is labelled, and the human may change
+one without changing a test's intent). One declared divergence: the client's rule "no cron ⇒ the cadence says webhook" (`test-automation-templates.mjs:46`) is **not** enforced here — the
 cadence of a pack automation is often a sentence ("every morning at 8") and the wizard creates the schedule itself; if the human wants the rule, it is one
 line in the validator.
 
-**Onboarding route change** (`index.js:10741-10778`, inside the perimeter). `publicView` gains `theme`, so `GET` carries it with no route edit (`:10749` spreads
-`...view`). `POST {action:"complete"}` already passes the body to `onboardingComplete(state, body)` (`:10773`); the only route edit is the echo, which becomes
-`{ ok: true, completed: true, profil, uiMode, model, lang, theme: next.theme, goals, agents }` (`:10775-10777`). `{action:"domain"}` (`:10762-10771`) and
-`{action:"replay"}` (`:10758-10761`) do not read `theme`.
+**Onboarding route change** (`index.js:10753-10790`, inside the perimeter). `publicView` gains `theme`, so `GET` carries it with no route edit (`:10761` spreads
+`...view`). `POST {action:"complete"}` already passes the body to `onboardingComplete(state, body)` (`:10785`); the only route edit is the echo, which becomes
+`{ ok: true, completed: true, profil, uiMode, model, lang, theme: next.theme, goals, agents }` (`:10787-10789`). `{action:"domain"}` (`:10774-10783`) and
+`{action:"replay"}` (`:10770-10773`) do not read `theme`.
 
 e2e: the journey this batch must not break, then the ones it must make possible, anchored on the existing end-to-end block
 `test-domain-pack.mjs:370-399`, which builds a real profile (`package.json` + `node_modules/<name>/plugin.json` + an empty `cordis.patch.yml`), constructs a real
@@ -228,7 +232,7 @@ e2e: the journey this batch must not break, then the ones it must make possible,
 4. **A template for a pack that is not offered** is reported (`no pack of acme/other is offered`) and merges nothing.
 5. **A theme the person picked survives a real round trip** on `onboarding.json`: complete with `theme`, reload, `GET` still answers it; an older file (no
    `theme`) still answers `completed: true` with `theme: null`.
-6. **A broken registry.** `packsOf(shipped, registryThatThrows)` answers the shipped packs (the existing `catch` at `index.js:10714`), never an error: a bundle
+6. **A broken registry.** `packsOf(shipped, registryThatThrows)` answers the shipped packs (the existing `catch` at `index.js:10726`), never an error: a bundle
    must never stop DSH from starting (repo rule 2).
 
 Not an e2e in this batch: the wizard's Kit step applying the preset (A1), and any third-party install from a catalogue (phase B). They are written here as
@@ -295,7 +299,7 @@ accepts is not a validator.
 
 - `loadPacks` still returns the nine shipped packs in their relative order, `general` last (`:257`), with their `agents.preset` values (`:290`) — both rewritten as tolerant assertions (interpretation 11), never silently dropped.
 - `mergePackSets` id collision / legacy-job clash / `CONTRIBUTED_ORDER` clamp (`:246-249`, `:354-357`) unchanged.
-- `POST /kybernos/domain/skill` still refuses any name no pack lists (`index.js:10733-10734`) — untouched zone, no test to add, one line of the PR to show it.
+- `POST /kybernos/domain/skill` still refuses any name no pack lists (`index.js:10745-10746`) — untouched zone, no test to add, one line of the PR to show it.
 
 DoD: every command below **was run on the current tree and fails there**; the observed message is quoted next to it (`Failures recorded`). All are deterministic: no
 port, no clock, no network, no `<DSH home>` write. Run them from the repository root. A checkbox is ticked only when the command exits 0.
@@ -344,10 +348,19 @@ port, no clock, no network, no `<DSH home>` write. Run them from the repository 
   legacy job. It fails today at the exact nine-id assertion (`:257`) and must pass after the widening of `:257`, `:290` and `:322-327`.
 
 **Regression gate — already green today, therefore *not* a DoD (listed because the batch contract asks for it; a red here blocks the merge anyway).**
-Measured on the current tree: `node scripts/garde-depot.mjs` → `1868 tracked files — 0 error(s), 0 warning(s)` (exit 0);
+Measured on the tree at `dev`, 2026-10-27: `node scripts/garde-depot.mjs` → `1868 tracked files — 0 error(s), 0 warning(s)` (exit 0; re-measured 2026-10-28 on the baseline, `1922 tracked files — 0 error(s), 0 warning(s)`, exit 0 — the count moves with the tree, the verdict does not);
 `node scripts/test-lifecycle-engine.mjs` → `82 assertions, 0 échec` (exit 0); `node scripts/test-paquet.mjs` → `111 assertions, 0 échec(s)` (exit 0);
-`node scripts/run-all-tests.mjs --only domain` → 1 green; `--only onboarding` → 2 green. Before a merge into `dev`: `node scripts/run-all-tests.mjs`, 0 red, no
-"known red". A compat bump is not needed: `dsh-compat.json` is not touched by this batch.
+`node scripts/run-all-tests.mjs --only domain` → 1 green; `--only onboarding` → 2 green.
+
+**Baseline honesty (D8): the full suite is NOT green on this tree, and this document does not claim it is.** Measured 2026-10-28:
+`node scripts/run-all-tests.mjs` → **529 test files in 189 s: 521 green, 8 RED**. The eight, none of them a file of this batch:
+`scripts/test-consistency-guards.mjs`, `scripts/test-help-mounts.mjs`, `scripts/test-help.mjs`, `scripts/test-layout.mjs`, `scripts/test-no-french-literals.mjs`,
+`scripts/test-plugin-scan.mjs`, `scripts/test-readmes.mjs`, `packages/kybernos-plugin/test-settings-nav.mjs`. Seven trace to the **untracked `kybernos-log` bundle**
+(help.json shipped but never mounted, no nav key, no robot declaration, no French-literal listing, no README link, an unallowed entry) and one to **`kybernos-pulse`**
+(`exec` used in `helper/gen-icon.mjs` without being declared). They are **pre-existing and belong to the owner's tracker**, not to this batch: the merge gate therefore
+reads "0 red **caused by this batch**", and the merge message names the pre-existing ones instead of pretending the suite is clean. The arbitration report measured
+**6** RED on the same tree (`docs/tests/porte-go-verdicts.md:17`); it is **8** today — the number is measured each time, never quoted. A compat bump is not needed:
+`dsh-compat.json` is not touched by this batch.
 
 **Failures recorded on the current tree (run at `dev`, 2026-10-27, before any write to the batch's files)**
 
@@ -373,19 +386,60 @@ for a goal and was refused with `goals[0].id: not a valid id` (the goal id minim
 The final pack key list, the two `provides` objects, the four-row merge table, the `kit` slice of one fixture pack, the one-line onboarding echo, and the proof
 that the nine shipped ids and their presets are untouched (`:257`/`:290` green, `general` last) and that a tenth shipped pack does not redden the suite (D10).
 
-## Revision (gate `AMEND`, 2026-10-27)
+## Revision 1 (gate `AMEND`, 2026-10-27)
 
-Four fixes on the spec only; no code, no other batch's file. Every replacement above line 333 kept the same number of source lines, so the anchors this file lends to
-sibling specs (`A1-kit-wizard-strategy.md:90-91`, `:93`, `:155`, `:220`) still land on the same paragraphs — re-read during this revision.
+Four fixes on the spec only; no code, no other batch's file.
 
-1. **The perimeter is fail-closed, not argued.** `index.js:30` is outside the granted routes zone and this batch grants itself nothing; the batch is **BLOCKED** until the human
-   grants that one line or re-scopes (blocking point, first `AMBIGUITY:`). No DoD is claimed before the answer.
+1. **The perimeter is fail-closed, not argued.** `index.js:30` was outside the granted routes zone and this batch granted itself nothing; the batch stayed **BLOCKED** until the
+   human granted that one line or re-scoped (blocking point). No DoD was claimed before the answer — and none is claimed now, the answer only lifts the block (revision 2, item 4).
 2. **The A3-proofing is complete at `test-domain-pack.mjs:290`.** The exact nine-id `agents.preset` map is widened with `:257` (nine ids in relative order, `general` last, extras
    anywhere — not a prefix, which a pack ordered at 90 would break) and `:322-327` (sweep over what `loadPacks` returned); D10 proves it by running the batch's own test file on a
    tenth shipped pack inserted at order 90.
 3. **The kit wire is a decision, not an open question.** `pack.kit = { themes?, skills?, teams?, automations? }`, authored goals never mutated; the consumer is **assigned and
-   recorded as deferred**: batch A1-kit-wizard consumes this shape verbatim in a later phase and reads no `pack.kit` today (`docs/tests/A1-kit-wizard-strategy.md:81-89`). The former
-   AMBIGUITY 2 therefore moved to a `DECISION`; the remaining `AMBIGUITY:` lines are the human's.
+   recorded as deferred**: batch A1-kit-wizard consumes this shape verbatim in a later phase and reads no `pack.kit` today (`docs/tests/A1-kit-wizard-strategy.md:86-94`). The former
+   AMBIGUITY 2 therefore moved to a `DECISION`.
 4. **An invented exemplar removed while re-reading (not in the gate's list).** The `maquette:` section claimed the campaign mockups "do exist"; the `dsh-kybernos` tree is absent
    (measured 2026-10-27, same absence as `docs/tests/A3-vertical-content-strategy.md` and `A1-kit-wizard-strategy.md:79`). The section now says they are absent, and that this
    batch needs none of them.
+
+## Revision 2 (gate `AMEND`, cycle 2 — the last one — 2026-10-28)
+
+Baseline **`2ac67fb4`**, declared in the head with the worktree drift. Five corrections, on this file only; the DoD commands and their `Failures recorded` table are untouched.
+
+1. **Every `index.js` route-zone pin is re-pinned against `2ac67fb4`** — 13 distinct `:107xx` pins (19 occurrences) plus the delegation's zone range. The old numbers were `c6197a8c`'s; the zone moved **+12** at the baseline and
+   **+24** in the current worktree, so *none* of them landed on the paragraph they named. The mapping, all read with `git show 2ac67fb4:packages/kybernos-plugin/index.js`:
+
+   | Was | Is (baseline) | What it names |
+   |---|---|---|
+   | `:10707-10715` | `:10719-10727` | `domainPacks()` (`definePoint` `:10724`, `mergePackSets` `:10725`, `catch` `:10726`) |
+   | `:10716` | `:10728` | boot-time `definePoint` |
+   | `:10717-10721` | `:10729-10733` | `GET /kybernos/domains` (payload `:10732`) |
+   | `:10725-10740`, `:10733-10734` | `:10737-10752`, `:10745-10746` | `POST /kybernos/domain/skill`, `listed` + refusal |
+   | `:10741-10778`, `:10749` | `:10753-10790`, `:10761` | the `/kybernos/onboarding` route, GET spreading `...view` |
+   | `:10773`, `:10775-10777` | `:10785`, `:10787-10789` | `onboardingComplete(state, body)`, the complete echo |
+   | `:10762-10771`, `:10758-10761` | `:10774-10783`, `:10770-10773` | the `domain` and `replay` actions |
+   | `:10714` | `:10726` | the `catch` that answers shipped packs |
+   | `~10694-10790` (delegation) | `~10706-10790` | the routes zone (next family starts `:10794`) |
+   | `:30` | `:30` (unchanged) | the single import line — verified, not assumed |
+
+2. **The false "lent anchors still land" assurance is gone, replaced by the measurement.** Revision 1 claimed every replacement kept its line count so A1-kit-wizard's four cites
+   (`A2:90-91`, `:93`, `:155`, `:220`) still landed. Measured on this file: they do not. `:90-91` is now interpretation 10 (the "(proposal)" bounds rule), `:93` is interpretation
+   11's continuation about the `agents.preset` map, `:155` is the `summary`/manifest paragraph (the kit table is `:160-165`), and `:220` is the `e2e:` intro line (the six numbered
+   items start at `:223`). Worse, `A1:88` quotes `A2`'s old kit-wire wording ("the wizard … must read whichever is chosen; the two batches cannot merge with different answers") that revision 1 deleted when it turned
+   AMBIGUITY 2 into a `DECISION`. **Consequence, recorded rather than patched:** this file lends **no** line anchors to any sibling; a cross-batch reference cites a point id or a
+   section title. The four cites and the dead quote are A1-kit-wizard's to repair — that file is not this batch's, so it is a named follow-up for its owner, not an edit here.
+3. **The automations upper bounds are relabelled as proposals, not citations.** `test-automation-templates.mjs:44` asserts non-emptiness only (`needs.length > 0 && guard.length > 0
+   && tags.length > 0 && apps.length > 0`); it fixes **no** maximum. So `tags` ≤ 6, `apps` ≤ 4, `needs` ≤ 4, `guard` ≤ 4 and `ask.o` ≤ 6 are this batch's own numbers, marked
+   *proposal* in the shape table and in the paragraph that follows it. Genuinely cited and left as citations: `:42` (2-6 steps, kinds `ai`/`act`), `:43` (2-4 questions, ≥ 2
+   options), `:44`'s lower bounds, `:45`/`:39` (five-field cron), `:46` (webhook cadence, deliberately not enforced).
+4. **Bound decision D4 is reflected in the write-perimeter table.** `index.js:30` — the single `domain-pack.mjs` import line — now has its own row, marked **GRANTED**
+   (`docs/tests/porte-go-verdicts.md:46-48`): not a route, not a guard, no behaviour. The blocking point is therefore answered, the status moves from BLOCKED to unblocked, and
+   the re-scope to a library-only half is not taken. The fail-closed posture is kept as history, not as the current state: nothing was written before the answer, and no DoD was
+   claimed before it either.
+5. **Bound decision D3 retires the campaign's `I`-letter cross-references in this file.** The former "interface catalogue" AMBIGUITY is now a `RETIRED` note: the wires are named by point id
+   (`kybernos/core#domain-pack`, `kybernos/theme#theme`, `kybernos/skills#skill`, `kybernos/core#team-template`, `kybernos/core#automation-template`), which is on disk and
+   checkable, instead of by a letter no file ever defined.
+
+**Deliberately not changed** (outside the gate's reason): the ten DoD commands and the `Failures recorded` table (reproduced verbatim; still the honest baseline of this tree),
+the `vision:` / `capture:` / `maquette:` sections, the two remaining `AMBIGUITY:` lines that are the human's (the 40 vs 63-character theme id, and `theme` served by the
+pre-sign-in GET), and the interpretations 1-11.
