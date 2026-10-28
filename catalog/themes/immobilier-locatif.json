@@ -1,0 +1,23 @@
+{
+  "id": "immobilier-locatif",
+  "v": 1,
+  "name": "Immobilier locatif",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Le terracotta d’une agence de location, sur fond clair.",
+    "en": "A letting agency’s terracotta, on a light ground."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#b4532a",
+    "ov": {
+      "light:base": "#faf6f3",
+      "light:l1": "#ffffff",
+      "light:l2": "#f4ece7",
+      "light:side": "#f7f1ec",
+      "light:input": "#ffffff"
+    },
+    "fontText": "inter",
+    "radius": "standard"
+  }
+}

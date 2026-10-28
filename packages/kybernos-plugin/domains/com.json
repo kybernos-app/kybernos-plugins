@@ -2,6 +2,7 @@
   "v": 1,
   "id": "com",
   "order": 60,
+  "theme": "e-commerce",
   "accent": "#C25E0A",
   "icon": "bag",
   "name": {

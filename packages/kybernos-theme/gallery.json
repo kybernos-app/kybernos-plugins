@@ -1,9 +1,32 @@
 {
   "schema": 1,
   "kind": "kybernos-themes",
-  "publishedAt": "2026-10-28T03:40:19.692Z",
-  "seq": 5,
+  "publishedAt": "2026-10-28T04:16:48.271Z",
+  "seq": 6,
   "themes": [
+    {
+      "id": "cabinet-avocats",
+      "v": 1,
+      "name": "Cabinet d’avocats",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Le bordeaux feutré d’un cabinet d’avocats, sur fond sombre.",
+        "en": "A law firm’s muted burgundy, on a dark ground."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#7a2236",
+        "ov": {
+          "dark:base": "#16100f",
+          "dark:l1": "#221816",
+          "dark:l2": "#2d201d",
+          "dark:side": "#1a1210",
+          "dark:input": "#261a18"
+        },
+        "fontText": "georgia",
+        "radius": "sharp"
+      }
+    },
     {
       "id": "cabinet-medical",
       "v": 1,
@@ -117,6 +140,52 @@
       }
     },
     {
+      "id": "e-commerce",
+      "v": 1,
+      "name": "E-commerce",
+      "author": "Kybernos",
+      "description": {
+        "fr": "L’orange chaud d’une boutique en ligne, sur fond clair.",
+        "en": "An online shop’s warm orange, on a light ground."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#c25e0a",
+        "ov": {
+          "light:base": "#fdf7f1",
+          "light:l1": "#ffffff",
+          "light:l2": "#f9ecdf",
+          "light:side": "#fbf1e6",
+          "light:input": "#ffffff"
+        },
+        "fontText": "inter",
+        "radius": "soft"
+      }
+    },
+    {
+      "id": "education",
+      "v": 1,
+      "name": "Éducation",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Le violet d’une salle de classe connectée, sur fond clair.",
+        "en": "A connected classroom’s violet, on a light ground."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#6c4df6",
+        "ov": {
+          "light:base": "#f7f5ff",
+          "light:l1": "#ffffff",
+          "light:l2": "#efeaff",
+          "light:side": "#f3efff",
+          "light:input": "#ffffff"
+        },
+        "fontText": "poppins",
+        "radius": "soft"
+      }
+    },
+    {
       "id": "egaliseur",
       "v": 1,
       "name": "Égaliseur",
@@ -182,6 +251,29 @@
           "dark:input": "#1e1f23"
         },
         "radius": "sharp"
+      }
+    },
+    {
+      "id": "immobilier-locatif",
+      "v": 1,
+      "name": "Immobilier locatif",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Le terracotta d’une agence de location, sur fond clair.",
+        "en": "A letting agency’s terracotta, on a light ground."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#b4532a",
+        "ov": {
+          "light:base": "#faf6f3",
+          "light:l1": "#ffffff",
+          "light:l2": "#f4ece7",
+          "light:side": "#f7f1ec",
+          "light:input": "#ffffff"
+        },
+        "fontText": "inter",
+        "radius": "standard"
       }
     },
     {
