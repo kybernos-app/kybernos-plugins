@@ -174,19 +174,21 @@ console.log('\n── through the host: the settings answer, the health switch, 
   const publie = globalThis[GLOBAL]
   ok('the automatic Study model is published for the bundles that cannot import this one (Memory), as a plain function', typeof publie === 'function' && publie() === 'kybernos/auto', typeof publie)
   const sonde = await appeler('POST', '/kybernos-sessions/brain/health', { models: ['kybernos/auto', 'openai/gpt-5-mini', 'ollama-local/qwen2.5:3b'], force: true })
-  ok('the health probe is ON by default now (Automatic is a Study model in force), and it sees the Cloud model failing', sonde.actif === true && sonde.alertes.length === 1 && sonde.alertes[0].cle === 'kybernos/auto', sonde)
-  ok('...and in Automatic only the connected models were probed (the Cloud has a token here, OpenAI and the local engine have keys): none left out by mistake', sonde.total === 3, sonde.total)
+  // 2026-10-28: our own gateway is never pinged — it meters and bills what it receives, and one sweep of the old
+  // probe was 78 paid calls. The Cloud model is left out by name, and the answer says so.
+  ok('the probe never asks our own gateway: the Cloud model is left out, and the answer says so', sonde.actif === true && sonde.alertes.length === 0 && sonde.ecartes.some((x) => x.cle === 'kybernos/auto'), sonde)
+  ok('...and the other (connected, free-to-ping) models were probed: none left out by mistake', sonde.total === 2, sonde.total)
   horloge += 61 * 1000
   e = await etude()
-  ok('...and a minute later the automatic choice moves to the next model that answers', e.cle === 'openai/gpt-5-mini' && e.raison === 'petit' && e.auto === 'openai/gpt-5-mini', e)
-  ok('...the published function follows', publie() === 'openai/gpt-5-mini')
+  ok('...and the automatic choice does not move for a probe that never ran: it stays on the Cloud', e.cle === 'kybernos/auto' && e.raison === 'cloud' && e.auto === 'kybernos/auto', e)
+  ok('...and the published function still follows the choice (the Cloud, since no probe moved it)', publie() === 'kybernos/auto')
   nuageConnecte = false
   horloge += 61 * 1000
   const auto2 = await appeler('POST', '/kybernos-sessions/brain/health', { models: ['kybernos/auto', 'openai/gpt-5-mini', 'ollama-local/qwen2.5:3b'], force: true })
   ok('the Cloud has no token any more: Automatic does not probe it (it would shout « not answering » for a model nobody connected)', auto2.total === 2 && auto2.alertes.length === 0, { total: auto2.total, alertes: auto2.alertes })
   poser({ brain: 'ollama-local/qwen2.5:3b' })
   const choisi2 = await appeler('POST', '/kybernos-sessions/brain/health', { models: ['kybernos/auto', 'openai/gpt-5-mini', 'ollama-local/qwen2.5:3b'], force: true })
-  ok('...while a person who picked their Study model keeps the old behaviour: every model they asked about is probed', choisi2.total === 3 && choisi2.alertes.length === 1, { total: choisi2.total, alertes: choisi2.alertes.map((x) => x.cle) })
+  ok('...while a person who picked their Study model gets the same guard: the gateway stays out', choisi2.total === 2 && choisi2.alertes.length === 0 && choisi2.ecartes.some((x) => x.cle === 'kybernos/auto'), { total: choisi2.total, alertes: choisi2.alertes.map((x) => x.cle) })
   e = await etude()
   ok('a pick wins over Automatic, and Automatic is still named for the select', e.mode === 'choisi' && e.cle === 'ollama-local/qwen2.5:3b' && e.auto !== '', e)
   poser({ brain: 'none' })
