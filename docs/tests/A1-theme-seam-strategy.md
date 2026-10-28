@@ -3,6 +3,18 @@
 > **theme**. Code paths stay unchanged (`packages/kybernos-theme`, `theme-presets.json`) until the
 > product-rename batch (kybernos-theme → kybernos-style) lands.
 
+> **Baseline: `2ac67fb4` (bound decision D1).** Every `file:line` anchor below is verified against that commit
+> (`git show 2ac67fb4:<path>`), never against the moving worktree, and must be re-pinned when
+> implementation starts. Worktree drift, measured 2026-10-28: `packages/kybernos-theme/` is
+> **byte-identical** to the baseline (30 files; `git diff --numstat 2ac67fb4 -- packages/kybernos-theme/`
+> is empty), so every anchor in this batch's own files reads the same in both trees. The only two
+> anchored files that have moved are `packages/kybernos-plugin/index.js` (+205/−11: the registry-global
+> comment and seam sit at `:10728-10730` and the boot tell at `:10740`, against `:10716-10728` at the
+> baseline) and `packages/kybernos-plugin/client.js` (+133/−7: the `__KB__.provide` idiom sits at
+> `:26242-26244`, against `:26226-26228` at the baseline). The baseline numbers are the anchors; the
+> worktree pairs are given so a reader in either tree finds the code. A line number carried across a
+> commit is a guess, not an anchor.
+
 # A1-theme-seam — test strategy (written before the code)
 
 **Batch:** `A1-theme-seam` — one public "apply a style preset" seam, end to end inside `kybernos-theme`, plus the
@@ -10,23 +22,39 @@
 folder is read the way `domains/` already is.
 
 **Status:** strategy. Nothing here is a result: it is the contract the implementation of this batch is judged by, and
-every command in the `DoD` section is proven to FAIL on the code as it stands today (2026-10-27, `fc0005e3`).
+every command in the `DoD` section is proven to FAIL on the code as it stands today — re-measured 2026-10-28 in this
+worktree, whose `packages/kybernos-theme/` is byte-identical to the baseline `2ac67fb4` (the earlier reading of
+2026-10-27, `fc0005e3`, is superseded by that measurement, not by a claim).
 
 **Lane: B — standard.** The lane rule is "A as soon as a single file of the batch touches auth, billing, RLS,
 migrations or secrets". None of the nine files does: the route already exists behind the same-origin guard
 (`packages/kybernos-theme/preset-store.mjs:194-210`), the manifest already declares
 `host.routes:/kybernos-theme:write` and `claims.routePrefixes` (`plugin.json:30-41`), and no new permission, secret,
-schema migration or money path is added. It becomes lane A the day the import needs the signed session cookie
-(`packages/kybernos-registry/session-guard.mjs` is the only such door in the repo) or writes anything outside
-`<DSH home>/kybernos`.
+schema migration or money path is added. It becomes lane A the day the import needs the signed session cookie —
+`session-guard.mjs` is **copied per bundle**, not one shared door: 28 copies under `packages/` at the baseline
+(`git ls-tree -r --name-only 2ac67fb4 | grep 'session-guard'` → 29 files, the 29th being
+`scripts/test-session-guard.mjs`), and `docs/dev/plugin-contract.md:317` already records the intent to make that
+shared code a versioned service — or writes anything outside `<DSH home>/kybernos`.
 
 **Sources read (binding, in this order):** `docs/etudes/2026-10-27-sector-packs-strategy.md` sections 3, 4 and 8;
 `docs/dev/domain-packs.md` (the « Theme per field » row, line 108, marked **next**); `docs/dev/plugin-contract.md`
 sections on `provides` (93, 131, 197, 251-265) and the two seams (302-317); `docs/tests/triage.md`; the wizard's
-frozen wire (`docs/tests/A1-kit-wizard-strategy.md:34-40`); the starter's shape
-(`docs/tests/A4-starter-docs-strategy.md:241`); the skill `contrat-pack-vertical`; `AGENTS.md`.
+frozen wire (`docs/tests/A1-kit-wizard-strategy.md:42-47`, the `theme` string only at `:49`); the starter's theme-file
+shape (`docs/tests/A4-starter-docs-strategy.md:251` — `:241` is the install/preview loop, not it); the skill
+`contrat-pack-vertical`; `AGENTS.md`.
 
-## The interface this batch must build — I1 (frozen by the orchestrator, completed by the correction below)
+## The seam wire this batch builds — `kybernos/theme#theme`
+
+Frozen by the orchestrator, completed by the correction below.
+
+**Label hygiene (bound decision D3).** The campaign's `I1`..`I5` letters are **retired** (`docs/tests/porte-go-verdicts.md:40-43`:
+three specs reported them independently as overloaded — one letter named several wires, so a letter cannot identify a
+contract). This batch opens exactly one point, `kybernos/theme#theme`, and every wire below is named rather than
+lettered. The two numbers `I6` and `I7` survive on purpose: `docs/tests/porte-go-verdicts.md:37` and the bound
+decision D2 cite them by number, so renaming them would orphan the arbitration trail — they are defined here and
+nowhere else, and they are not the campaign's letters. **Two different `D` series also meet in this file:** the bare
+`D1`..`D9` of the `DoD` section are this document's own commands, while « bound decision Dn » means the arbitration
+report's decision `n` (`docs/tests/porte-go-verdicts.md`); where a sentence could be read either way, it says which.
 
 Host, `packages/kybernos-theme/preset-store.mjs`:
 
@@ -91,26 +119,27 @@ succeeds, and the disk convergence is left to the existing `libPull` (`client.js
 
 ## Interpretations (the request admits several; each choice is argued)
 
-**I2 — The registry is reached through `globalThis[Symbol.for('kybernos.registry')]`, not by importing the registry.**
+**The registry is reached through `globalThis[Symbol.for('kybernos.registry')]`, not by importing the registry.**
 A bundle cannot import another bundle's file: the rule is written in `packages/kybernos-registry/host.mjs:10-11`
 (« the host halves of other bundles (they import nothing from each other) »), and the repo's own idiom is the global
-(`kybernos-plugin/index.js:10706-10716`). "Read the registry via `registry.definePoint(def)`" is satisfied by that
+(`kybernos-plugin/index.js:10716-10728` at the baseline: the comment, `registrySeam` at `:10718`, the boot-time
+`definePoint` at `:10728`). "Read the registry via `registry.definePoint(def)`" is satisfied by that
 global, guarded, and told again at each call because mount order is not guaranteed (`registry.mjs:206-209`).
 
-**I3 — The a11y refusal applies to published documents, not to the person's own library.**
+**The a11y refusal applies to published documents, not to the person's own library.**
 `contrastMode`, `cbSafe`, `reduceMotion`, `focusRing`, `largeTargets`, `underlineLinks` are the person's own business
 (stated at `themes-catalogue.mjs:12-15` and `:57`), and `PRESET_GROUPS.a11y` is part of what a preset retains
 (`client.js:1854`). So: the POST import and a settings bag are documents and are REFUSED; a library record applied
 by id — the person's own theme, or a validated gallery one — is applied as it is. Refusing it would mean "apply my
 own theme" cannot work.
 
-**I4 — "Apply" means the non-transient Settings commit, not a trial and not a boot re-apply.**
+**"Apply" means the non-transient Settings commit, not a trial and not a boot re-apply.**
 Merge over the current stored look (`{ ...cur, ...patch }`), `writeState(next)` (which also posts the boot sheet,
 `client.js:992-995`), then `appliquerTout(themeSvc, next)` (`client.js:1310-1318`). Not `transient:true` (a trial is
 drawn and not stored), not `appliquerBoot` (that also (re)applies the boot transition of a fresh load). Cost,
 accepted: an already open Settings page does not redraw live; it shows the applied look on its next mount.
 
-**I5 — The seam is published by `apply(ctx)`, plus the versioned alias when the page seam exists.**
+**The seam is published by `apply(ctx)`, plus the versioned alias when the page seam exists.**
 The wizard can run with Settings never opened, so a React effect of the Settings page would be too late. The frozen
 global is the primary door; when `window.__KB__.version === 1` the same function is also offered as `kybernos/theme`
 `1.0.0` (`{ apply }`), following `kybernos-plugin/client.js:26226-26228` and re-offered on the `kybernos:registry`
@@ -122,9 +151,13 @@ for its catalogue link (`client.js:2142`). Ids are what the library dedupes on (
 and what `{ ok: true, id }` can return.
 
 **I7 — A pack's `themes/<id>.json` is the light preset document `{ id, name, settings }`, and a full catalogue entry
-is accepted as a superset (this is the gate's reconciliation with A4).**
-A4's starter already froze the shape: `themes/vet-clinic.json` passes `sanitizePreset` with `{ id, name, settings }`
-and no author/description (`A4-starter-docs-strategy.md:241`). The point therefore validates with the store's
+is accepted as a superset (the gate's reconciliation with A4, ratified by bound decision D2).**
+A4's **body** froze the shape: `themes/vet-clinic.json` passes `sanitizePreset` with `{ id, name, settings }` and no
+author/description (`A4-starter-docs-strategy.md:251`; `:241`, cited by the previous draft, is the install/preview
+loop and never held this). A4's **revised head note** (`A4-starter-docs-strategy.md:12-15`) now says the opposite — a
+full catalogue entry — and that reading is **superseded**: bound decision D2 settles it on the body plus this I7, and
+`sanitizePreset` drops `description` anyway, so the full entry would lose data silently (the arbitration report's own
+reason, `docs/tests/porte-go-verdicts.md:36-39`). The point therefore validates with the store's
 `sanitizePreset` (the catalogue's own delegate, `themes-catalogue.mjs:59`) plus the two catalogue-only rules that
 matter for a published document: the a11y refusal (`:57-58`) and `id === fileId` (`domain-pack.mjs:67-74`). The
 catalogue's author / two-language description / `v` checks are NOT applied to a pack file — a full catalogue entry
@@ -135,7 +168,7 @@ refusal list for settings and accessibility; the card metadata is a gallery conc
 
 | Claim | Verified at | Verdict |
 |---|---|---|
-| Settings vocabulary, 40 keys | `preset-store.mjs:43-52` (`SETTINGS_KEYS`) | exact |
+| Settings vocabulary, **37 keys** (node-counted — the draft's "40" was never the file's) | `preset-store.mjs:43-52` (`SETTINGS_KEYS`) | corrected — see 9 |
 | An unknown key is dropped, not obeyed | `preset-store.mjs:104` | exact |
 | The store is pure and testable on a temp folder | `preset-store.mjs:136-175` (`createPresetStore` 136-138) | exact |
 | The pure request handler | `preset-store.mjs:178-186` (`handlePresetStore`) | 177 is its doc comment |
@@ -149,25 +182,25 @@ refusal list for settings and accessibility; the card metadata is a gallery conc
 | The catalogue entry shape (for the online catalogue, not the point) | `themes-catalogue.mjs:44-62` (`sanitizeTheme`), `:65-82` (`sanitizeDocument`) | exact |
 | A pack's id must be its file name | `packages/kybernos-plugin/domain-pack.mjs:67-74` | exact |
 | The point idiom of this repo | `domain-pack.mjs:223-231` (`DOMAIN_POINT`, `validateContribution`) | exact |
-| The registry is reached through a global, never an import | `packages/kybernos-registry/host.mjs:10-11`, `kybernos-plugin/index.js:10706-10716` | corrected — see 6 |
+| The registry is reached through a global, never an import | `packages/kybernos-registry/host.mjs:10-11`; `kybernos-plugin/index.js:10716-10728` (comment `:10716-10717`, `registrySeam` `:10718`, boot tell `:10728`) | corrected — see 6 |
 | `requires.plugins` is judged against the point owner's `ownerVersion` | `registry.mjs:217-220` | exact |
 | Every point owner declares `ownerVersion: '1.0.0'` | `packages/kybernos-registry/test-registry.mjs:36-37` | exact |
 | `definePoint` shape and idempotence | `registry.mjs:199-210` | exact |
 | The folder scan is already generic over points | `registry.mjs:233-253` (`readExtension`), `:277-283` | exact — proven by the probe behind DoD D6 |
 | Consent is required for the `instruction` class only | `registry.mjs:274-276` | exact |
-| What a preset carries | `client.js:1847-1855` (`PRESET_GROUPS`, doc at 1847) | exact |
+| What a preset carries | `client.js:1847-1855` (`PRESET_GROUPS`; its doc comment is `:1846`, not `:1847`) | corrected — see 10 |
 | The library's disk door and deferred whole-library push | `client.js:1926-1934` (`libHost`), `:1935-1945` (`libSchedulePush`), `:1964-1968` (`libSet`), `:1983-1989` (`libAdd`) | exact |
 | Closest existing "install a catalogue theme" | `client.js:2141-2142` (`galInstalled`, `galInstall`) | exact |
 | A gallery theme's a11y keys are stripped on the way in | `client.js:2092-2099` (`galTheme`) | exact |
-| A non-transient Settings commit (merge over state) | `client.js:3948-3957` (`commit`) | see correction 3 |
+| A non-transient Settings commit (merge over state) | `client.js:3948-3957` (`commit`), the `appliquerTout` call **inside** it at `:3954` | see correction 3 |
 | Applying to the page | `client.js:1310-1318` (`appliquerTout`), `:992-995` (`writeState` also posts the boot sheet) | see correction 3 |
 | What `__test` exposes | `client.js:4793-4804` | exact |
-| The optional-seam idiom (`__KB__.provide`, guarded, re-offered on an event) | `kybernos-plugin/client.js:26226-26228` | exact |
+| The optional-seam idiom (`__KB__.provide`, guarded, re-offered on an event) | `kybernos-plugin/client.js:26226-26228` (baseline; worktree `:26242-26244`, see the head note) | exact |
 | The host-store off switch already exists | `client.js:1573` (`__KB_THEME_HOST_STORE__ !== false`) | exact |
 | `gallery.json` is derived, never hand-edited | `scripts/test-themes-catalogue.mjs:6-7` | exact |
 | The theme per-field row is marked **next** | `docs/dev/domain-packs.md:108` | exact |
-| The starter's theme file is the light `{ id, name, settings }` | `docs/tests/A4-starter-docs-strategy.md:241` | exact |
-| The wizard calls the seam with the pack's `theme` string | `docs/tests/A1-kit-wizard-strategy.md:34-40` | exact |
+| The starter's theme file is the light `{ id, name, settings }` | `docs/tests/A4-starter-docs-strategy.md:251` (`:241` is the install/preview loop) | corrected — see 8 and 12 |
+| The wizard calls the seam with the pack's `theme` string | `docs/tests/A1-kit-wizard-strategy.md:42-47` (the frozen wire), `:49` (the `theme` string only) | corrected — see 12 |
 
 **Corrections to the delegation's context and to the previous draft** (verified, so the spec does not propagate them):
 
@@ -175,49 +208,82 @@ refusal list for settings and accessibility; the card metadata is a gallery conc
    `:57-58`.
 2. `:57-58` is not "the checked-document shape": it is the a11y refusal inside one theme. The document shape is
    `sanitizeDocument` (`:65-82`) and `readDocument` (`:85-90`).
-3. `commit + appliquerTout at client.js:3951-3960`: `commit` is `:3948-3957` and `appliquerTout` is `:1310-1318`.
-   `3951-3960` holds only part of `commit`'s body — an implementer who greps it finds no `appliquerTout`.
+3. **`commit` + `appliquerTout`, corrected again (gate, cycle 2).** The previous draft claimed an implementer who
+   greps `client.js:3951-3960` « finds no `appliquerTout` ». **That is false**: the call sits at **`:3954`, inside the
+   range** (`if (themeSvc !== null) appliquerTout(themeSvc, next)`, verified at the baseline). What is wrong with
+   `3951-3960` is something else: it straddles two functions and is the boundary of neither — `commit` is `:3948-3957`
+   and `appliquerTout` is defined at `:1310-1318`. Pin those two, not a window over both.
 4. `handlePresetStore` is `:178-186`; `:177` is its doc comment.
 5. `test-client.mjs` imports `A11Y_KEYS` at `:27`, not `:26`.
-6. **I2's citation, fixed (gate).** `themes-catalogue.mjs:5` is the Suite-archive/signature comment, not the
-   cross-bundle import rule. The rule is `host.mjs:10-11`: the host halves of other bundles « import nothing from each
-   other », and the seam is `globalThis[Symbol.for('kybernos.registry')]`.
+6. **The registry global's citation, re-pinned (gate + bound decision D1).** The rule is `host.mjs:10-11`: the host
+   halves of other bundles « import nothing from each other », and the seam is
+   `globalThis[Symbol.for('kybernos.registry')]`. The
+   repo's idiom is `kybernos-plugin/index.js:10716-10728` at the baseline — the comment at `:10716-10717`,
+   `registrySeam` (the global read) at `:10718`, the boot-time `definePoint` at `:10728`. The draft's `10706-10716`
+   covered the domain-pack loader and stopped one line short of the seam itself. The rest of the old correction stands:
+   `themes-catalogue.mjs:5` is the Suite-archive/signature comment, never the cross-bundle rule.
 7. **The import path, fixed (gate).** The previous draft wrote the record through `libSet` and left the `{ import }`
-   route unused, contradicting the frozen I1. I1 and the unit criteria now make the host entry the single import
-   path, and D7 is a fake-fetch assertion that fails if the seam POSTs `{ library }` or skips the POST.
-8. **A1-5, reconciled (gate).** The previous default ("a full catalogue entry") contradicted A4's starter. I7 now
-   takes the starter's light shape as the minimum and accepts a full entry as a superset; D5 asserts both.
+   route unused, contradicting the frozen wire. That wire and the unit criteria now make the host entry the single
+   import path, and DoD D7 is a fake-fetch assertion that fails if the seam POSTs `{ library }` or skips the POST.
+8. **The pack theme file's shape, reconciled (gate + bound decision D2).** The previous default ("a full catalogue
+   entry") contradicted A4's body. I7 now takes the light shape of `A4-starter-docs-strategy.md:251` as the minimum and accepts
+   a full entry as a superset; DoD D5 asserts both. Two corrections on top: the citation `:241` the draft used is the
+   install/preview loop, not the shape; and A4's **revised head note** (`:12-15`) now argues the full entry, which is
+   **superseded** by bound decision D2 (the body plus I7 win), not silently ignored.
+9. **The settings vocabulary is 37 keys, not 40.** `SETTINGS_KEYS` (`preset-store.mjs:43-52`) counts **37** by node
+   (count the frozen array's string literals); A4 cites the same range (`A4-starter-docs-strategy.md:235`) and never
+   claims a count. The number was the draft's.
+10. **`PRESET_GROUPS`' doc comment is at `client.js:1846`, not `:1847`** — `:1847` is the `const PRESET_GROUPS = {`
+    line itself, `:1846` is « What a theme may retain ».
+11. **`session-guard.mjs` is not « the only such door ».** It is copied per bundle: **28 copies** under `packages/`
+    at the baseline (29 files match `session-guard`, the 29th being `scripts/test-session-guard.mjs`), and
+    `docs/dev/plugin-contract.md:317` already records the plan to make that shared code a versioned service. The lane
+    argument is unchanged — this batch adds no auth door — but the citation had to stop claiming a uniqueness that
+    the tree contradicts.
+12. **The wizard's frozen wire is at `A1-kit-wizard-strategy.md:42-47`, not `:34-40`.** `:42` is the « frozen
+    elsewhere, nothing minted here » statement and `:44-47` is the fenced `window.__KB_THEME_APPLY__` block; `:49` is
+    where the wizard promises to pass the pack's `theme` string only. `:34-40` holds two measured facts about
+    `validatePack` and `onboardingComplete`, plus the interpretations header — it says nothing about the wire.
+13. **The four seam defaults are ratified (bound decision D7), so they are no longer open.** See « Settled defaults »
+    below: a name taken by the person's own record yields a free name and a suffixed id (the one idempotence
+    exception), a settings bag writes a localized « My styles » row, an unreachable host still applies locally, and
+    the `source` stays `gallery`/`file`.
 
-None of these changes the intent of the batch; each one changes what a reader would grep.
+None of these changes the intent of the batch; each one changes what a reader would grep, and 9, 11 and 12 change
+what a reader would **measure or cite**.
 
-## AMBIGUITY lines (the owner must arbitrate these; the rest is settled)
+## Settled defaults (bound decision D7 — ratified as written; the owner may veto one in a word)
 
-AMBIGUITY: A1-1 — a pack theme whose name is already a theme the person made ("Soigne"). Default: never touch the
-`me` record, give the import a free name and a suffixed id, and still apply the look, because a wizard that silently
-fails to apply the sector's look is worse than a second row in « My styles ». The host `applyPreset` implements it
-(it is the idempotence rule's exception); refusing with `{ ok: false, reason: 'name taken' }` is defensible too (it
-is visible), and only the owner can choose. The implementation must make one of the two true and test it; the other
-becomes a one-line change.
+Bound decision D7 ratifies the five seam defaults as written (`docs/tests/porte-go-verdicts.md:67-74`). Nothing below waits on the
+owner any more: each item is an assertion the implementation must make true, and the ids `A1-1`..`A1-4` are kept so
+the citations in `A1-kit-wizard` and in the arbitration report still resolve.
 
-AMBIGUITY: A1-2 — does a *settings bag* (no id) write a « My styles » entry at all? Default: yes, under a localized
-default name, so that `{ ok: true, id }` is always meaningful and the person can edit or delete what was applied.
-The chosen import path makes this the natural answer (the host entry writes a record). The alternative is a
-transient apply (`{ ok: true, id: null }`), which keeps the library clean but needs a second route mode the freeze
-does not name and leaves nothing to revert to. This is a product choice about the Kit step, so it is arbitrated, not
-assumed.
+**A1-1 — a pack theme whose name is already a theme the person made ("Soigne"): free name, suffixed id, look applied.**
+The `me` record is never touched (byte for byte), the import gets a free name ("Soigne (2)") and a suffixed id, and
+the look is applied anyway — a wizard that silently fails to apply the sector's look is worse than a second row in
+« My styles ». This is the idempotence rule's **one** exception, and the distinction matters to the implementer: the
+*same* input applied twice is idempotent (same slug id, one record — DoD D3), while a name colliding with a record of
+a **different** id gets the suffix. `{ ok: false, reason: 'name taken' }` stays the one-line fallback if the owner
+vetoes.
 
-AMBIGUITY: A1-3 — a host store that cannot be reached. Default reading: (a) a **400 refusal** from the host
-(accessibility key, invalid value, full library) is authoritative → `{ ok: false, reason }`; (b) a **host
-off/unreachable/5xx** is not a failure of applying, because the browser is the source of truth for the look → a
-local-only record (source `'file'`, no disk copy) and the apply still succeeds, left to the existing `libPull`
-convergence (`client.js:1947-1962`); (c) a host answer whose `preset` fails `presetRecord` → `{ ok: false, reason }`.
-An onboarding that fails offline would be a regression. Confirm, because it decides the wizard's error path.
+**A1-2 — a settings bag (no id) does write a « My styles » entry, under a localized default name.**
+`{ ok: true, id }` is therefore always meaningful and the person can edit or delete what was applied; the host entry
+writes the record, which is what makes this the natural answer. On the Kit side the theme shows as **one
+non-interactive note line without a preset name** (bound decision D7): the seam carries an id in and `{ ok, id }` out,
+never a display name.
 
-AMBIGUITY: A1-4 — the `source` recorded for a pack theme. Default: the existing vocabulary, chosen by where the id
-resolved — `'gallery'` for a shipped catalogue id, `'file'` for a settings bag and for the offline fallback. The row
-then reads « from the gallery » / « from a file ». A new value (`'pack'`, `'field'`) would read better in « My
-themes » but changes a public vocabulary shared by `SOURCES` (`preset-store.mjs:27`), `PRESET_SOURCES`
-(`client.js:1871`) and the gallery rows. Needs arbitration before the label is shipped to authors.
+**A1-3 — a host store that cannot be reached is not a failure of applying.**
+(a) a **400 refusal** from the host (accessibility key, invalid value, full library) is authoritative →
+`{ ok: false, reason }`; (b) **host off/unreachable/5xx** → a local-only record (source `'file'`, no disk copy) and
+the apply still succeeds, left to the existing `libPull` convergence (`client.js:1947-1962`); (c) a host answer whose
+`preset` fails `presetRecord` → `{ ok: false, reason }`. An onboarding that fails offline would be a regression, which
+is why (b) is the ratified reading rather than a question.
+
+**A1-4 — the `source` recorded for a pack theme is the existing vocabulary: `'gallery'` or `'file'`.**
+`'gallery'` for a shipped catalogue id, `'file'` for a settings bag and for the offline fallback; the row reads
+« from the gallery » / « from a file ». No new value (`'pack'`, `'field'`) in this batch: `SOURCES`
+(`preset-store.mjs:27`), `PRESET_SOURCES` (`client.js:1871`) and the gallery rows share that public vocabulary, and the
+wording of « Mes styles » is a follow-up (`A5`).
 
 OUT OF SCOPE:
 
@@ -226,7 +292,7 @@ OUT OF SCOPE:
 - **The registry's other points.** `skills/`, `teams/`, `automations/` and their per-point validators are
   `A2-registry-points`. `themes/` needs NO registry change: `readExtension` is already generic over points
   (`registry.mjs:233-253`), which DoD D6 proves with the real point — if a reviewer is tempted to patch the registry,
-  D6 is the answer.
+  DoD D6 is the answer.
 - **Applying a pack theme that is not in the shipped gallery.** The frozen wire resolves an id from the gallery, the
   library and the preset store, nothing else. A third-party bundle's `themes/<id>.json` is *visible* through the
   point (registry) but this seam does not read the registry contributions to apply it; the two campaign verticals
@@ -278,11 +344,26 @@ e2e:
       (`AGENTS.md` rule 2, extended to the new seam).
 - [ ] **E4, no drift in the bundle.** `node scripts/run-all-tests.mjs --only kybernos-theme` → 0 red: `test-client`,
       `test-preset-store`, `test-themes-catalogue`, `test-themes-gallery`, `test-boot-store`, `test-theme-hold`,
-      `test-seed-skills`, `test-icon-sets`, `test-loader-store`. These pass today: they are a regression gate, not a
-      DoD. Also `git diff --quiet -- packages/kybernos-theme/gallery.json catalog/` (derived, untouched here).
-- [ ] **E5, the merge gate.** `node scripts/run-all-tests.mjs` → 0 red at integration, with any pre-existing red
-      named in the merge message. Also `node scripts/garde-depot.mjs && node scripts/test-lifecycle-engine.mjs &&
-      node scripts/test-paquet.mjs` before the push.
+      `test-seed-skills`, `test-icon-sets`, `test-loader-store`. These pass today — measured 2026-10-28:
+      `--only kybernos-theme` → 9 test files, 9 green, 0 red — so they are a regression gate, not a DoD. Also
+      `git diff --quiet -- packages/kybernos-theme/gallery.json catalog/` (derived, untouched here).
+- [ ] **E5, the merge gate — with the baseline measured, never assumed (bound decision D8).** Measured 2026-10-28 from
+      this worktree: `node scripts/run-all-tests.mjs` → **529 files in 183 s, 521 green, 8 RED**. The 8 are pre-existing,
+      none of them is in this batch's perimeter, and each is attributed here rather than waved at, so the merge message
+      can name them:
+      (a) **`kybernos-log`**, the untracked bundle of the neighbouring session — `test-consistency-guards`
+      (`kybernos-log 1 (allowed 0)`), `test-help-mounts`, `test-layout` (×2: no robot name, absent from
+      `satellites.json`), `test-readmes`, `test-settings-nav`, plus one of the two `test-no-french-literals` failures;
+      (b) **`kybernos-pulse`** declares no `exec` while its host code starts processes (`helper/gen-icon.mjs:9`) —
+      `test-plugin-scan`;
+      (c) **3 French literals from the uncommitted worktree diff** (`client.js:33803` twice, `index.js:11635`) — the
+      other `test-no-french-literals` failure;
+      (d) **`test-help`**: 11 modules still have no help-site article (a pre-existing docs gap, unattributed).
+      Bound decision D8 counted 6 red and 2 literals when the gate measured it; the measured state today is 8 and 3, and
+      this line is the one that has to be true at merge time. The gate itself stays « **0 red** at integration », with
+      the 8 above listed as pre-existing and attributed to the owner's tracker — and no command in this document claims
+      « all exit 0 » without a run behind it. Also `node scripts/garde-depot.mjs && node scripts/test-lifecycle-engine.mjs
+      && node scripts/test-paquet.mjs` before the push.
 
 vision:
 
@@ -311,7 +392,8 @@ capture:
 - [ ] `http-import.json` — the exact POST body and the answer for `{ import: … }`, `{ library: … }`, and both
       (400 `invalid body`), plus the a11y refusal through the route.
 - [ ] `network.txt` — the seam's own requests, in order: one POST `{ import }` to the preset-store, the boot-sheet
-      POST from `writeState`, and **no** `{ library }` POST from the seam. This is the capture of I1's import path.
+      POST from `writeState`, and **no** `{ library }` POST from the seam. This is the capture of the import path
+      described above — the wire this batch builds, `kybernos/theme#theme`.
 - [ ] `library-before.json` / `library-after.json` — the disk copy at `<DSH home>/kybernos/theme-presets.json`.
 - [ ] `registry-preview.json` — for the E2 fixture: `plugins()` status/extends and `contributions('kybernos/theme#theme')`.
 - [ ] `computed-tokens.txt` — `getComputedStyle(document.documentElement)` for `--dsw-alias-brand-primary`,
@@ -344,13 +426,15 @@ unit:
       without the registry.
 - [ ] Identity (I6): `input.id` when it matches `ID_RE` (`:26`), else the slug of the name; deterministic — the same
       input twice returns the same id and leaves exactly ONE record.
-- [ ] **The single import path (I1):** `applyPreset` is the only place the disk library grows from an import; the
-      browser POSTs `{ import }` and never `{ library }` for it (asserted in the client suite and D7). `libSet` is
-      not called by the seam.
-- [ ] The person's own work is never replaced: after importing a theme whose name is already one of the person's own
-      (`source: 'me'`), that record is unchanged byte for byte and no two records share an id. The policy itself — a
-      free name (A1-1's default) or `{ ok: false, reason: 'name taken' }` — is ONE assertion, written once the owner
-      has answered A1-1; it is not a second test.
+- [ ] **The single import path:** `applyPreset` is the only place the disk library grows from an import; the browser
+      POSTs `{ import }` and never `{ library }` for it (asserted in the client suite and DoD D7). `libSet` is not
+      called by the seam.
+- [ ] The person's own work is never replaced, and the ratified exception is the only one (A1-1, bound decision D7):
+      after importing a theme whose name is already one of the person's own (`source: 'me'`, a **different** id), that
+      record is unchanged byte for byte, the import lands under a free name ("Soigne (2)") with a suffixed id, the look
+      is still applied, and no two records share an id. The same input applied twice stays idempotent (same id, one
+      record, previous box) — the suffix is not a second idempotence rule, it is the collision case. One assertion,
+      because the owner has ratified it; `{ ok: false, reason: 'name taken' }` would replace it in one line if vetoed.
 - [ ] A full library (`LIMITS.presets`, `:29`) → `{ ok: false, error: 'library full' }`, count unchanged: the import
       never evicts a theme the person kept.
 - [ ] `updatedAt` moves forward on every import (`:131-133`), so the newer-wins rule between the browser copy and the
@@ -373,8 +457,9 @@ unit:
       (the rule of `domain-pack.mjs:67-74`), returning `{ ok: true, value }` (a deterministic
       `{ id, name, settings }`, plus `author`/`gid`/`v` when present) or `{ ok: false, errors: [...] }` — never a
       throw, never a partial value.
-- [ ] **I7:** a light `{ id, name, settings }` file passes (A4's starter shape), and a full catalogue entry (author,
-      two-language description, `v`) passes as a superset. The point is NOT `sanitizeTheme`: it does not require card
+- [ ] **I7:** a light `{ id, name, settings }` file passes — A4's **body** shape, `A4-starter-docs-strategy.md:251` —
+      and a full catalogue entry (author, two-language description, `v`) passes as a superset, which is what bound
+      decision D2 ratified against A4's revised head note. The point is NOT `sanitizeTheme`: it does not require card
       metadata, and the test table says so.
 - [ ] Each of the six a11y keys is refused with an error naming it (`:58`), refused and not trimmed.
 - [ ] The point's settings refusals ARE the catalogue's: one case table, asserted in BOTH copies
@@ -408,19 +493,19 @@ unit:
       `{ ok: false, reason }` with no throw and no unbounded wait; a shipped id never needs the internet.
 - [ ] A settings bag: a11y key → `{ ok: false, reason: 'accessibility setting: …' }` and nothing written; unknown keys
       ignored; a bag with no known key → `{ ok: false, reason }`.
-- [ ] **Import path (I1):** a new import POSTs exactly one `{ import: { name, settings, source, [gid], [v], [author] } }`
+- [ ] **Import path (the single import path above):** a new import POSTs exactly one `{ import: { name, settings, source, [gid], [v], [author] } }`
       through `libHost` (`:1927-1934`) to `/kybernos-theme/preset-store`; the returned `preset` is adopted into the
       local library with `libWrite()`/`libNotify()` and **no** `libSchedulePush()` (no `{ library }` POST); an id
       already in the library (by `id` or `gid`) is applied without a POST. The fake-fetch test asserts the body has
       `import`, no `library`, exactly one preset-store POST (the boot-sheet POST from `writeState` is expected and
       filtered out).
-- [ ] Apply semantics (I4): merge over `readState()`, `writeState(next)` (which posts the boot sheet, `:992-995`),
-      `appliquerTout(themeSvc, next)` when `ctx.theme` exists (`:1310-1318`); a preset without `mode` never calls
-      `setTheme` (the native preference is the person's).
+- [ ] Apply semantics (the non-transient commit): merge over `readState()`, `writeState(next)` (which posts the
+      boot sheet, `:992-995`), then `appliquerTout(themeSvc, next)` when `ctx.theme` exists (`:1310-1318`); a preset
+      without `mode` never calls `setTheme` (the native preference is the person's).
 - [ ] Idempotent and non-duplicating: the same id twice → one record, same id; a gallery theme already installed
       (`galInstalled`, `:2141`) is reused; the local adoption replaces by id, never appends a duplicate.
 - [ ] A host **400** refusal (a11y, invalid, full) → `{ ok: false, reason }`, nothing adopted, nothing applied; a host
-      **unreachable/5xx** → the local fallback applies (A1-3's default) and nothing throws; a host answer whose
+      **unreachable/5xx** → the local fallback applies (A1-3, ratified) and nothing throws; a host answer whose
       `preset` fails `presetRecord` → `{ ok: false, reason }`.
 - [ ] A broken local library (`localStorage.setItem` throws, or the record fails `presetRecord`) → `{ ok: false,
       reason }`, no throw, no partial state; the page keeps the look it had.
@@ -433,8 +518,8 @@ unit:
 
 DoD:
 
-**Commands of THIS repository, to be run from its root. Every one of them FAILS today (2026-10-27) — a command that
-already passes is not listed here; the gates that already pass are in E4/E5 instead.**
+**Commands of THIS repository, to be run from its root. Every one of them FAILS today (re-measured 2026-10-28 on a
+tree byte-identical to the baseline for this batch's files) — a command that already passes is not listed here; the gates that already pass are in E4/E5 instead.**
 
 D1 — the point is declared, inert, data, validator builtin (fails today: `plugin.json` has no `provides`):
 
@@ -530,20 +615,23 @@ D9 — the store's own suite covers the new entry (fails today: no `applyPreset`
 grep -q "applyPreset" packages/kybernos-theme/test-preset-store.mjs && node packages/kybernos-theme/test-preset-store.mjs
 ```
 
-Notes on how these are read. D3, D5 and D6 are behavioural on purpose: they fail today for the right reason (a
-missing export), and they can only pass by implementing the contract, not by adding a string to a file. D7 is the
+Notes on how these are read. DoD D3, D5 and D6 are behavioural on purpose: they fail today for the right reason (a
+missing export), and they can only pass by implementing the contract, not by adding a string to a file. DoD D7 is the
 gate's discriminator: it is a fake-fetch assertion, not a grep — it fails today because the global is absent, and it
-would fail an implementation that wrote the disk copy through `{ library }` or skipped the host entry. D8 and D9 pair
+would fail an implementation that wrote the disk copy through `{ library }` or skipped the host entry. DoD D8 and D9 pair
 a presence check with the existing suite because the batch adds no test file (the nine files of the batch are fixed)
-— the presence check is what fails today; the suite run is what keeps it honest afterwards. The four acceptance
-policies left open above (A1-1..A1-4) change no DoD command: they change exactly one unit checkbox each (a free name
-versus `{ ok: false }`; a stored row versus a transient apply; a local success versus `{ ok: false }` when the host is
-unreachable; no new source versus a new source value), so the arbitration lands as a one-line edit, not as a rewrite.
+— the presence check is what fails today; the suite run is what keeps it honest afterwards. All nine were re-measured
+on 2026-10-28 against a tree byte-identical to the baseline for this batch's files, and each fails for the reason its
+line states. The four seam defaults are ratified (A1-1..A1-4, bound decision D7) and change no DoD command: each fixes
+exactly one unit checkbox (a free name and a suffixed id; a stored « My styles » row; a local success when the host is
+unreachable; the existing `gallery`/`file` vocabulary), so a veto lands as a one-line edit, not as a rewrite.
 
 ## Acceptance note
 
 The checkboxes are the review grid. A box is closed by a test or by a capture, never by a comment; a closed box whose
-test lives only in a throw-away script is an open box. The four AMBIGUITY lines the owner must answer before the
-merge (A1-1..A1-4) decide the wizard's failure path in `A1-kit-wizard` and what the person sees in « Mes thèmes ».
-I7 is settled: A4's starter shape is the minimum, so the implementation and the starter template agree in this cycle.
-Nothing else in this document is waiting on a decision.
+test lives only in a throw-away script is an open box. The four seam defaults are **ratified** (A1-1..A1-4, bound
+decision D7), so nothing in this document waits on a decision any more: they fix the wizard's failure path in
+`A1-kit-wizard` and what the person sees in « Mes thèmes », and the owner may still veto one in a word. I7 is settled by
+bound decision D2 on A4's **body** (`A4-starter-docs-strategy.md:251`) — the light shape is the minimum, a full entry
+passes as a superset — so the implementation and the starter template agree in this cycle; A4's head note reading it the
+other way is superseded and is A4's own correction to make.
