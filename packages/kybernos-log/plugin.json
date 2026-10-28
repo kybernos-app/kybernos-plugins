@@ -1,0 +1,27 @@
+{
+  "contract": 1,
+  "id": "kybernos/log",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": { "en": "Activity log", "fr": "Journal d’activité" },
+  "description": {
+    "en": "What this machine sends out: model calls, connectors, web search, tools — and the calls nobody asked for, with family filters and a live tail.",
+    "fr": "Ce que cette machine envoie : appels modèle, connecteurs, recherche web, outils — et les appels que personne n’a demandés, avec filtres par famille et suivi en direct."
+  },
+  "icon": "list",
+  "family": "base",
+  "author": { "id": "kybernos", "name": "Kybernos" },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-log",
+  "entry": { "host": "index.js", "client": "client.js" },
+  "requires": { "kybernos": ">=0.1.0" },
+  "permissions": [
+    "ui.slot:settings.section",
+    "host.routes:/kybernos-log:read",
+    "fs.write:dsh-home"
+  ],
+  "claims": { "routePrefixes": ["/kybernos-log"] },
+  "help": "help.json",
+  "suite": { "default": "on" }
+}
