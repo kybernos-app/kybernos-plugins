@@ -74,6 +74,12 @@ if (cssMatch !== null) {
 // ── the classifier used by the page agrees with the host's ─────────────────────────────────────────────────────
 ok('toolKind still routes an MCP tool to the connector family', toolKind('mcp__github__pr') === 'connector')
 
+// ── the row says when, and what came back (2026-10-28) ──────────────────────────────────────────────────────────
+ok('the date is rendered beside the time', /const day = \(ms\) =>/.test(src) && src.includes("day(e.at)"))
+ok('the result column exists', src.includes("colResult: ['Résultat', 'Result']") && src.includes("L('colResult')"))
+ok('a row never cuts the model name', src.includes('.kblg-table td.kblg-what{white-space:normal;overflow-wrap:anywhere}'))
+ok('the table shows 7 columns', (src.match(/h\('th'/g) || []).length === 7)
+ok('the result is read from the host record, not guessed', /const result = \(e\) => \{[\s\S]{0,400}e\.status[\s\S]{0,200}e\.ok[\s\S]{0,200}retry/.test(src))
 console.log((fails.length === 0 ? '✓ ' : '✗ ') + pass + ' passed' + (fails.length === 0 ? '' : ', ' + fails.length + ' failed'))
 for (const f of fails) console.log('   ✗ ' + f)
 process.exit(fails.length === 0 ? 0 : 1)

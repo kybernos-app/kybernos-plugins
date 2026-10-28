@@ -130,19 +130,29 @@ export const classifyEvent = (sessionId, event, state = {}) => {
     if (tool === undefined) return null
     return { ...base, type: toolKind(tool), kind: 'call', tool }
   }
+  // What a tool answered: the harness records it separately from the call, and it carries the outcome (isError) and, when
+  // it failed, an error code. Without it the page could not say « result » at all — a tool call and its result were one row.
+  if (type === 'tool/result') {
+    const message = isObj(data.message) ? data.message : {}
+    const ok = message.isError !== true
+    const info = isObj(data.error) ? data.error : {}
+    const code = clampText(info.code, 40) || clampText(info.message, 80)
+    return { ...base, type: 'tool', kind: 'result', ok, ...(code !== undefined ? { detail: code } : {}) }
+  }
   if (type === 'approval/asked' || type === 'approval/decided') {
     return { ...base, type: 'approval', kind: type === 'approval/asked' ? 'asked' : 'decided' }
   }
   if (type === 'job/registered' || type === 'job/settled') {
     const job = clampText(isObj(data) ? String(data.kind || '') : '', 20)
-    return { ...base, type: 'job', kind: type === 'job/registered' ? 'start' : 'end', ...(job ? { tool: job } : {}) }
+    const status = type === 'job/settled' ? clampText(data.status, 20) : undefined
+    return { ...base, type: 'job', kind: type === 'job/registered' ? 'start' : 'end', ...(job ? { tool: job } : {}), ...(status !== undefined ? { status } : {}) }
   }
   if (type === 'sandbox/mode') return { ...base, type: 'sandbox', kind: 'mode' }
   if (type === 'turn/start') return { ...base, type: 'session', kind: 'turn-start' }
   if (type === 'turn/end') {
     const reason = isObj(data.reason) ? data.reason : {}
     const failed = reason.kind !== undefined && reason.kind !== 'completed'
-    return { ...base, type: 'session', kind: 'turn-end', ...(failed ? { error: clampText(String(reason.kind), ERROR_MAX) } : {}) }
+    return { ...base, type: 'session', kind: 'turn-end', status: failed ? 'failed' : 'completed', ...(failed ? { error: clampText(String(reason.kind), ERROR_MAX) } : {}) }
   }
   return null
 }

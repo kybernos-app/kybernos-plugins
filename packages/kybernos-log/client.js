@@ -54,6 +54,7 @@ window.__ModuleLoader__.load({
         colSession: ['Session', 'Session'],
         colTokens: ['Tokens', 'Tokens'],
         colDetail: ['Détail', 'Detail'],
+        colResult: ['Résultat', 'Result'],
         famLlm: ['Modèle', 'Model'],
         famConnector: ['Connecteur', 'Connector'],
         famWebsearch: ['Recherche web', 'Web search'],
@@ -79,6 +80,25 @@ window.__ModuleLoader__.load({
       const clock = (ms) => {
         try { return new Date(ms).toTimeString().slice(0, 8) } catch (e) { return '—' }
       }
+      // The day the row happened, short: a Settings window shows a few days, and the year would eat the row.
+      const day = (ms) => {
+        try {
+          const d = new Date(ms)
+          const p = (n) => String(n).padStart(2, '0')
+          return d.getDate() + '/' + p(d.getMonth() + 1)
+        } catch (e) { return '—' }
+      }
+      // What came back: a job's verdict, a tool's ok/error, a retry, a turn's outcome. Empty when nothing was recorded
+      // (job/registered, a model answer): an empty cell never pretends.
+      const result = (e) => {
+        if (typeof e.status === 'string' && e.status !== '') return e.status
+        if (e.kind === 'retry') return 'retry'
+        if (e.ok === true) return 'ok'
+        if (e.ok === false) return 'error'
+        return ''
+      }
+      const resultClass = (r) =>
+        r === 'error' || r === 'failed' || r === 'killed' ? 'kblg-err' : (r === 'retry' ? 'kblg-warn' : 'kblg-mut')
       const tokensOf = (e) => (Number(e.input) || 0) + (Number(e.output) || 0) + (Number(e.cache) || 0)
 
       const CSS = `
@@ -101,13 +121,18 @@ window.__ModuleLoader__.load({
 .kblg-btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
 .kblg-btn[aria-pressed="true"]{border-color:var(--dsw-alias-state-success-primary,#22c55e);color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kblg-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
-.kblg-table th:nth-child(1),.kblg-table td:nth-child(1){width:78px}
-.kblg-table th:nth-child(2),.kblg-table td:nth-child(2){width:104px}
-.kblg-table th:nth-child(4),.kblg-table td:nth-child(4){width:86px}
-.kblg-table th:nth-child(5),.kblg-table td:nth-child(5){width:78px}
+.kblg-table th:nth-child(1),.kblg-table td:nth-child(1){width:88px}
+.kblg-table th:nth-child(2),.kblg-table td:nth-child(2){width:92px}
+.kblg-table th:nth-child(4),.kblg-table td:nth-child(4){width:78px}
+.kblg-table th:nth-child(5),.kblg-table td:nth-child(5){width:76px}
+.kblg-table th:nth-child(6),.kblg-table td:nth-child(6){width:66px}
 .kblg-table th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.02em;color:var(--dsw-alias-label-tertiary,#8a9096);padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.08))}
 .kblg-table td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.05));color:var(--dsw-alias-label-primary,#e8eaec);vertical-align:top;white-space:nowrap}
-.kblg-table td:nth-child(3),.kblg-table td:nth-child(6){overflow:hidden;text-overflow:ellipsis}
+.kblg-table td:nth-child(7){overflow:hidden;text-overflow:ellipsis}
+/* The provider/model is never cut: it wraps instead, so « opencode-go/deepseek-v4.1-flash » is readable in full (and the
+   number of tokens sits beside it). */
+.kblg-table td.kblg-what{white-space:normal;overflow-wrap:anywhere}
+.kblg-table td.kblg-when{font-variant-numeric:tabular-nums;white-space:nowrap}
 .kblg-table tr:hover td{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.04))}
 .kblg-num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .kblg-mut{color:var(--dsw-alias-label-secondary,#9aa1a8)}
@@ -117,12 +142,12 @@ window.__ModuleLoader__.load({
 /* The Settings volet is ~720 px wide on a desktop viewport, so a viewport media query alone never fires there:
    the page also takes a kblg-narrow class when its own box is narrow (the plate shows that case). */
 .kblg-page.kblg-narrow .kblg-table th:nth-child(4),.kblg-page.kblg-narrow .kblg-table td:nth-child(4),
-.kblg-page.kblg-narrow .kblg-table th:nth-child(6),.kblg-page.kblg-narrow .kblg-table td:nth-child(6){display:none}
-.kblg-page.kblg-narrow .kblg-table th:nth-child(1),.kblg-page.kblg-narrow .kblg-table td:nth-child(1){width:66px}
-.kblg-page.kblg-narrow .kblg-table th:nth-child(5),.kblg-page.kblg-narrow .kblg-table td:nth-child(5){width:66px}
+.kblg-page.kblg-narrow .kblg-table th:nth-child(7),.kblg-page.kblg-narrow .kblg-table td:nth-child(7){display:none}
+.kblg-page.kblg-narrow .kblg-table th:nth-child(1),.kblg-page.kblg-narrow .kblg-table td:nth-child(1){width:82px}
+.kblg-page.kblg-narrow .kblg-table th:nth-child(6),.kblg-page.kblg-narrow .kblg-table td:nth-child(6){width:60px}
 @media (max-width:520px){
   .kblg-table th:nth-child(4),.kblg-table td:nth-child(4),
-  .kblg-table th:nth-child(6),.kblg-table td:nth-child(6){display:none}
+  .kblg-table th:nth-child(7),.kblg-table td:nth-child(7){display:none}
 }
 `
 
@@ -197,6 +222,20 @@ window.__ModuleLoader__.load({
           return bits.join(' · ')
         }
         const what = (e) => (e.model !== undefined ? String(e.provider || '') + '/' + String(e.model) : (e.tool || fam(e.type)))
+        // One row per event. The model is never cut (« provider/model » wraps), and the column after it says what came back:
+        // a job's verdict, a tool's ok/error, a retry, or nothing when the harness recorded no outcome.
+        const row = (e, i) => {
+          const res = result(e)
+          return h('tr', { key: String(e.seq !== undefined ? e.seq : i) },
+            h('td', { className: 'kblg-mut kblg-when' }, h('span', null, day(e.at)), ' ', h('span', null, clock(e.at))),
+            h('td', null, fam(e.type)),
+            h('td', { className: 'kblg-what' }, h('span', { className: e.kind === 'call' || e.kind === 'answer' ? '' : 'kblg-mut' }, what(e))),
+            h('td', { className: 'kblg-mut' }, String(e.session || '—').slice(0, 8)),
+            h('td', { className: resultClass(res) }, res),
+            h('td', { className: 'kblg-num' }, e.input !== undefined || e.output !== undefined ? fmt(tokensOf(e)) : ''),
+            h('td', { className: e.error !== undefined ? 'kblg-err' : (e.kind === 'retry' ? 'kblg-warn' : 'kblg-mut') }, detail(e)))
+        }
+        const rows = events.map(row)
         const copy = async () => {
           try { await navigator.clipboard.writeText(JSON.stringify(events, null, 2)); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch (e) { /* no clipboard */ }
         }
@@ -229,21 +268,16 @@ window.__ModuleLoader__.load({
             : h('table', { className: 'kblg-table' },
               h('thead', null, h('tr', null,
                 h('th', null, L('colTime')), h('th', null, L('colFamily')), h('th', null, L('colWhat')),
-                h('th', null, L('colSession')), h('th', { className: 'kblg-num' }, L('colTokens')), h('th', null, L('colDetail')))),
-              h('tbody', null, events.map((e, i) => h('tr', { key: String(e.seq !== undefined ? e.seq : i) },
-                h('td', { className: 'kblg-mut' }, clock(e.at)),
-                h('td', null, fam(e.type)),
-                h('td', null, h('span', { className: e.kind === 'call' || e.kind === 'answer' ? '' : 'kblg-mut' }, what(e))),
-                h('td', { className: 'kblg-mut' }, String(e.session || '—').slice(0, 8)),
-                h('td', { className: 'kblg-num' }, e.input !== undefined || e.output !== undefined ? fmt(tokensOf(e)) : ''),
-                h('td', { className: e.error !== undefined ? 'kblg-err' : (e.kind === 'retry' ? 'kblg-warn' : 'kblg-mut') }, detail(e))))))
+                h('th', null, L('colSession')), h('th', null, L('colResult')), h('th', { className: 'kblg-num' }, L('colTokens')),
+                h('th', null, L('colDetail')))),
+              h('tbody', null, rows))
         )
       }
 
       return {
         name: 'kybernos-log',
         inject: ['slots'],
-        __test: { S, L, kt, TYPES, FAM, fam, fmt, tokensOf, clock },
+        __test: { S, L, kt, TYPES, FAM, fam, fmt, tokensOf, clock, day, result, resultClass },
         apply (ctx) {
           try {
             const s = document.createElement('style')

@@ -43,6 +43,17 @@ const eq = (label, a, b) => ok(label + ' — ' + JSON.stringify(a) + ' ≠ ' + J
   eq('compaction summary', classifyEvent('s', { type: 'compaction/summary' }, state).type, 'compaction')
   eq('approval asked', classifyEvent('s', { type: 'approval/asked' }, state).kind, 'asked')
   eq('turn end with an error', classifyEvent('s', { type: 'turn/end', data: { reason: { kind: 'error' } } }, state).error, 'error')
+  // 2026-10-28: what came back is a row of its own — the page showed a call and nothing of its outcome.
+  const good = classifyEvent('s', { type: 'tool/result', data: { message: { isError: false } } })
+  eq('a successful tool answer is ok, with no detail', { type: good.type, kind: good.kind, ok: good.ok, detail: good.detail }, { type: 'tool', kind: 'result', ok: true, detail: undefined })
+  const bad = classifyEvent('s', { type: 'tool/result', data: { message: { isError: true }, error: { code: 'E_TIMEOUT', message: 'took too long' } } })
+  eq('a failed tool answer carries ok:false and its code', { ok: bad.ok, detail: bad.detail }, { ok: false, detail: 'E_TIMEOUT' })
+  ok('a tool answer never stores the tool output', !JSON.stringify(bad).includes('took too long') || bad.detail === 'E_TIMEOUT')
+  const settled = classifyEvent('s', { type: 'job/settled', data: { kind: 'bash', status: 'failed', exitCode: 2 } })
+  eq('a settled job says how it ended', { kind: settled.kind, tool: settled.tool, status: settled.status }, { kind: 'end', tool: 'bash', status: 'failed' })
+  eq('a registered job has no verdict yet', classifyEvent('s', { type: 'job/registered', data: { kind: 'bash' } }).status, undefined)
+  eq('a completed turn says so', classifyEvent('s', { type: 'turn/end', data: { reason: { kind: 'completed' } } }).status, 'completed')
+  eq('a failed turn says so', classifyEvent('s', { type: 'turn/end', data: { reason: { kind: 'error' } } }).status, 'failed')
   eq('an unknown event says nothing', classifyEvent('s', { type: 'noise/whatever' }, state), null)
 }
 
