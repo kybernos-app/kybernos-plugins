@@ -55,6 +55,19 @@
       "/kybernos-skills"
     ]
   },
+  "provides": [
+    {
+      "name": "skill",
+      "version": "1.0",
+      "kind": "data",
+      "class": "instruction",
+      "summary": {
+        "en": "A skill folder: SKILL.md and the files beside it."
+      },
+      "validator": "builtin",
+      "files": "folder"
+    }
+  ],
   "help": "help.json",
   "suite": {
     "core": true,

@@ -37,6 +37,26 @@
       "summary": {
         "en": "A field of work: goals, skills, teams, automations and menu wording the onboarding offers."
       }
+    },
+    {
+      "name": "team-template",
+      "version": "1.0",
+      "kind": "data",
+      "class": "instruction",
+      "validator": "builtin",
+      "summary": {
+        "en": "A ready-made Agent Team a pack can offer in its kit: roles, stages, bounded prompts."
+      }
+    },
+    {
+      "name": "automation-template",
+      "version": "1.0",
+      "kind": "data",
+      "class": "instruction",
+      "validator": "builtin",
+      "summary": {
+        "en": "A ready-made automation a pack can offer in its kit, always created switched off."
+      }
     }
   ],
   "permissions": [

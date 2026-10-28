@@ -37,6 +37,7 @@ import { fileURLToPath } from 'node:url'
 import { serveLoaderStore } from './loader-store.mjs'
 import { servePresetStore } from './preset-store.mjs'
 import { loadKeys, loadShipped, serveGallery } from './themes-gallery.mjs'
+import { THEME_POINT } from './themes-catalogue.mjs'
 import { seedSkills } from './seed-skills.mjs'
 import { BOOT_ID, readBoot, renderBootCss, serveBoot } from './boot-store.mjs'
 import { holdRows } from './theme-hold.mjs'
@@ -148,6 +149,15 @@ const readJsonBody = async (req, maxBytes) => {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch (e) { return {} }
 }
 
+// ── the plugin registry ──────────────────────────────────────────────────────────
+// This bundle owns the point `kybernos/theme#theme` (a pack contributes `themes/<id>.json`). The registry is
+// reached through a global, never imported (packages/kybernos-registry/host.mjs: the host halves of two bundles
+// import nothing from each other), and it may mount after this one: the point is told at boot and again on this
+// bundle's own host surfaces (the preset-store and gallery routes).
+const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+/** Tells the registry what `kybernos/theme#theme` is. A missing registry, or a throwing one, is never a reason not to serve. */
+export const tellThemePoint = () => { try { const r = registrySeam(); if (r !== null) r.definePoint(THEME_POINT) } catch (e) { logError('theme point not declared', e) } }
+
 // ── the Lottie runtime ───────────────────────────────────────────────────────────
 let lottieCache = { key: '', body: null, etag: '' }
 const etagMatches = (header, etag) => typeof header === 'string' && header.split(',').some((t) => {
@@ -221,13 +231,19 @@ function mountRoutes(ctx, webServerSvc) {
   mount(ROUTES.store, (req, res) => serveLoaderStore(req, res, {
     home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
   }), 'kybernos-theme: route loader-store')
-  mount(ROUTES.presets, (req, res) => servePresetStore(req, res, {
-    home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
-  }), 'kybernos-theme: route preset-store')
-  mount(ROUTES.gallery, (req, res) => serveGallery(req, res, {
-    home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
-    shipped: () => loadShipped(GALLERY_FILE), keys: () => loadKeys(THEMES_KEYS_FILE),
-  }), 'kybernos-theme: route gallery')
+  mount(ROUTES.presets, (req, res) => {
+    tellThemePoint() // the registry may mount after this bundle: the point is told again where a pack's themes are read
+    return servePresetStore(req, res, {
+      home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
+    })
+  }, 'kybernos-theme: route preset-store')
+  mount(ROUTES.gallery, (req, res) => {
+    tellThemePoint()
+    return serveGallery(req, res, {
+      home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
+      shipped: () => loadShipped(GALLERY_FILE), keys: () => loadKeys(THEMES_KEYS_FILE),
+    })
+  }, 'kybernos-theme: route gallery')
   mount(ROUTES.boot, (req, res) => serveBoot(req, res, {
     home: dshHomeOrNull, sameOriginStrict, readJson: readJsonBody, send: sendJson, changed: (css) => { bootCss = css },
   }), 'kybernos-theme: route boot')
@@ -245,6 +261,9 @@ function seedOwnSkills() {
 
 export function apply(ctx) {
   // A failure here must never stop DSH from starting: log it and let the rest go on.
+  try {
+    tellThemePoint()
+  } catch (e) { logError('theme point not declared', e) }
   try {
     ctx.inject(['webServer'], (hostCtx) => {
       try {

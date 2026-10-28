@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LIMITS, createRegistry, dataPackageProblems, readBounded, scanProfile } from './registry.mjs'
+import { manifestErrors } from './manifest.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const warnings = []
@@ -35,6 +36,17 @@ const validate = (raw, fileId) => {
 }
 const INSTRUCTION = { owner: 'kybernos/core', ownerVersion: '1.0.0', name: 'domain-pack', version: '1.0', kind: 'data', class: 'instruction', validate }
 const INERT = { owner: 'kybernos/dashboards', ownerVersion: '1.0.0', name: 'preset', version: '1.0', kind: 'data', class: 'inert', validate }
+// A folder point, as a pack ships skills: one folder per skill, `SKILL.md` and the files beside it. The real rules live in kybernos-skills/team-skills.mjs.
+const skillEnvelope = (raw, folder) => {
+  if (raw === null || typeof raw !== 'object' || raw.name !== folder || !Array.isArray(raw.files)) return { ok: false, errors: ['an envelope { name, files } is expected'] }
+  if (raw.name === 'boom') throw new Error('a validator of the test, throwing')
+  if (!raw.files.some((f) => f.path === 'SKILL.md')) return { ok: false, errors: ['SKILL.md is missing'] }
+  return { ok: true, value: { id: folder, files: raw.files.map((f) => f.path), texts: Object.fromEntries(raw.files.map((f) => [f.path, f.content])) } }
+}
+const SKILL = { owner: 'kybernos/skills', ownerVersion: '1.0.0', name: 'skill', version: '1.0', kind: 'data', class: 'instruction', files: 'folder', max: 32, validate: skillEnvelope }
+const THEME = { owner: 'kybernos/theme', ownerVersion: '1.0.0', name: 'theme', version: '1.0', kind: 'data', class: 'inert', validate }
+const TEAM = { owner: 'kybernos/core', ownerVersion: '1.0.0', name: 'team-template', version: '1.0', kind: 'data', class: 'instruction', validate }
+const AUTOMATION = { owner: 'kybernos/core', ownerVersion: '1.0.0', name: 'automation-template', version: '1.0', kind: 'data', class: 'instruction', validate }
 const DATA_PKG = (name) => ({ name, version: '0.1.0', dsh: { bundle: { patch: './cordis.patch.yml' } } })
 
 /** A DSH profile on disk. `install(name, files, { spec, selected, asLink, outside })` does what `dsh plugin add` leaves. */
@@ -343,6 +355,129 @@ console.log('what is logged')
   const before = warnings.length
   registry.plugins(); registry.plugins(); registry.contributions('kybernos/core#domain-pack')
   check('a refused file is logged once per registry, not at every scan', before >= 1 && warnings.length === before, { before, after: warnings.length })
+}
+
+console.log('one plugin ships five folders: each point reads its own, nothing runs')
+{
+  const f = fresh()
+  for (const p of [SKILL, THEME, TEAM, AUTOMATION]) f.registry.definePoint(p)
+  const marker = join(f.dir, 'RAN')
+  const real = f.install('kybernos-plugin-vertical', {
+    'plugin.json': manifest({
+      id: 'acme/vertical',
+      requires: { kybernos: '^0.1', plugins: { 'kybernos/core': '^1.0', 'kybernos/theme': '^1.0', 'kybernos/skills': '^1.0' } },
+      extends: [
+        { point: 'kybernos/core#domain-pack', range: '^1.0', dir: 'domains' },
+        { point: 'kybernos/theme#theme', range: '^1.0', dir: 'themes' },
+        { point: 'kybernos/skills#skill', range: '^1.0', dir: 'skills' },
+        { point: 'kybernos/core#team-template', range: '^1.0', dir: 'teams' },
+        { point: 'kybernos/core#automation-template', range: '^1.0', dir: 'automations' }
+      ]
+    }),
+    'package.json': DATA_PKG('kybernos-plugin-vertical'),
+    'cordis.patch.yml': '[]\n',
+    'domains/clinic.json': pack('clinic'),
+    'themes/clinic.json': pack('clinic'),
+    'skills/consultation/SKILL.md': '---\nname: consultation\ndescription: d\n---\n',
+    'skills/consultation/hook.mjs': 'import { writeFileSync } from "node:fs"\nwriteFileSync(' + JSON.stringify(marker) + ', "ran")\n',
+    'skills/broken/notes.md': 'x\n',
+    'teams/clinic.json': pack('clinic'),
+    'automations/reminder.json': pack('reminder')
+  })
+  f.registry.setConsent('acme/vertical', true)
+  const p = get(f.registry, 'acme/vertical')
+  const refs = ['kybernos/core#domain-pack', 'kybernos/theme#theme', 'kybernos/skills#skill', 'kybernos/core#team-template', 'kybernos/core#automation-template']
+  const each = refs.map((ref) => f.registry.contributions(ref))
+  check('one plugin ships five folders: each point reads its own, nothing runs', p.status === 'ok' && p.extends.length === 5 &&
+    each.every((c) => c.length === 1 && c[0].plugin === 'acme/vertical') &&
+    each.map((c) => c[0].file).join() === 'domains/clinic.json,themes/clinic.json,skills/consultation,teams/clinic.json,automations/reminder.json' &&
+    existsSync(join(real, 'skills', 'consultation', 'hook.mjs')) === true, { status: p.status, files: each.map((c) => c[0]?.file) })
+  check('a script kept in a skill folder is read as text, never run', existsSync(marker) === false)
+  const skills = p.extends.find((e) => e.point === 'kybernos/skills#skill')
+  check('a skill folder without SKILL.md is skipped with its error list while the four other points still contribute', skills.contributions === 1 && skills.rejected.some((x) => x.file === 'skills/broken' && /SKILL.md is missing/.test(x.errors.join())) && p.extends.filter((e) => e.point !== 'kybernos/skills#skill').every((e) => e.contributions === 1 && e.rejected.length === 0), skills)
+  let again = null
+  try { again = createRegistry({ profileDir: f.profileDir, stateFile: f.stateFile, ttlMs: 0 }); again.plugins() } catch (e) { again = null }
+  check('an invalid contribution never throws to the caller: a fresh registry on the same profile answers', again !== null && again.plugins().length === 1)
+}
+
+console.log('a skill folder is one contribution, its files kept whole')
+{
+  const f = fresh()
+  f.registry.definePoint(SKILL)
+  f.install('kybernos-plugin-skills', {
+    'plugin.json': manifest({ id: 'acme/skills', requires: { kybernos: '^0.1', plugins: { 'kybernos/skills': '^1.0' } }, extends: [{ point: 'kybernos/skills#skill', range: '^1.0', dir: 'skills' }] }),
+    'package.json': DATA_PKG('kybernos-plugin-skills'),
+    'cordis.patch.yml': '[]\n',
+    'skills/consultation/SKILL.md': '---\nname: consultation\ndescription: d\n---\n',
+    'skills/consultation/reference.md': 'one\ntwo\n',
+    'skills/consultation/examples/sub/note.md': 'x\n',
+    'skills/triage/SKILL.md': '---\nname: triage\ndescription: d\n---\n'
+  })
+  f.registry.setConsent('acme/skills', true)
+  const c = f.registry.contributions('kybernos/skills#skill')
+  check('a skill folder is one contribution, its files kept whole', c.length === 2 && c[0].file === 'skills/consultation' && c[0].value.id === 'consultation' &&
+    c[0].value.files.join() === 'SKILL.md,examples/sub/note.md,reference.md' && c[0].value.texts['reference.md'] === 'one\ntwo\n' && c[1].value.id === 'triage', c)
+  const preview = f.registry.preview('acme/skills')
+  check('what the person reads before accepting shows the same folder, whole', preview !== null && preview[0].files.length === 2 && preview[0].files[0].file === 'skills/consultation' && preview[0].files[0].value.files.length === 3, preview)
+}
+
+console.log('a folder point refuses what it cannot trust, with its error list')
+{
+  const f = fresh()
+  f.registry.definePoint(SKILL)
+  const real = f.install('kybernos-plugin-badskills', {
+    'plugin.json': manifest({ id: 'acme/badskills', requires: { kybernos: '^0.1', plugins: { 'kybernos/skills': '^1.0' } }, extends: [{ point: 'kybernos/skills#skill', range: '^1.0', dir: 'skills' }] }),
+    'package.json': DATA_PKG('kybernos-plugin-badskills'),
+    'cordis.patch.yml': '[]\n',
+    'skills/good/SKILL.md': '---\nname: good\ndescription: d\n---\n',
+    'skills/README.md': 'a stray file at the root of the folder\n',
+    'skills/.hidden/SKILL.md': '---\nname: hidden\ndescription: d\n---\n',
+    'skills/noskillmd/notes.md': 'x\n',
+    'skills/boom/SKILL.md': '---\nname: boom\ndescription: d\n---\n',
+    'skills/deep/a/b/c/d/SKILL.md': '---\nname: deep\ndescription: d\n---\n',
+    'skills/big/notes.md': 'x'.repeat(LIMITS.file + 1),
+    'skills/linked/SKILL.md': '---\nname: linked\ndescription: d\n---\n'
+  })
+  mkdirSync(join(f.dir, 'elsewhere'), { recursive: true })
+  write(join(f.dir, 'elsewhere', 'stolen.md'), 'x\n')
+  symlinkSync(join(f.dir, 'elsewhere', 'stolen.md'), join(real, 'skills', 'linked', 'stolen.md'))
+  symlinkSync(join(f.dir, 'elsewhere'), join(real, 'skills', 'elsewhere'))
+  for (let n = 0; n < LIMITS.folderFiles + 1; n += 1) write(join(real, 'skills', 'many', 'f' + String(n).padStart(2, '0') + '.md'), 'x\n')
+  for (let n = 0; n < 5; n += 1) write(join(real, 'skills', 'huge', 'h' + n + '.md'), 'x'.repeat(250 * 1024))
+  f.registry.setConsent('acme/badskills', true)
+  const p = get(f.registry, 'acme/badskills')
+  const rej = p.extends[0].rejected
+  const has = (file, re) => rej.some((x) => x.file === file && re.test(x.errors.join(' ')))
+  check('a folder point refuses what it cannot trust, with its error list', has('skills/README.md', /is not a folder/) && has('skills/.hidden', /is not a valid folder name/) &&
+    has('skills/noskillmd', /SKILL.md is missing/) && has('skills/boom', /the check itself failed/) && has('skills/elsewhere', /is a symbolic link/), rej)
+  check('a link inside a contribution refuses the contribution, not just the file', has('skills/linked', /is a symbolic link/) && p.extends[0].contributions === 1)
+  check('a file over a bound, too many files or a folder too deep refuses the contribution', has('skills/big', /larger than/) && has('skills/many', /holds more than 50 files/) && has('skills/huge', /holds more than 1024 KiB/) && has('skills/deep', /deeper than 4 folders/), rej)
+  check('only the folder that passes its check contributes', f.registry.contributions('kybernos/skills#skill').map((x) => x.value.id).join() === 'good')
+}
+
+console.log('a point says whether its contributions are files or folders')
+{
+  const { registry } = fresh()
+  const theme = { owner: 'kybernos/theme', ownerVersion: '1.0.0', name: 'theme', version: '1.0', kind: 'data', class: 'inert', validate }
+  registry.definePoint(theme)
+  const json = registry.points().find((p) => p.id === 'kybernos/theme#theme')
+  registry.definePoint({ ...theme, files: 'folder' })
+  const folder = registry.points().find((p) => p.id === 'kybernos/theme#theme')
+  let message = ''
+  try { registry.definePoint({ ...theme, name: 'other', files: 'folders' }) } catch (e) { message = e.message }
+  check('a point says whether its contributions are files or folders', json?.files === 'json' && folder?.files === 'folder' && /a point needs/.test(message), { json: json?.files, folder: folder?.files, message })
+}
+
+console.log('a folder contribution cannot be checked by a JSON schema')
+{
+  const withPoint = (provided) => manifest({ provides: [provided] })
+  const point = (over) => ({ name: 'skill', version: '1.0', kind: 'data', class: 'instruction', validator: 'builtin', ...over })
+  const folder = manifestErrors(withPoint(point({ files: 'folder' })), {})
+  const withSchema = manifestErrors(withPoint(point({ files: 'folder', schema: 'skills.schema.json' })), {})
+  const asCode = manifestErrors(withPoint({ name: 'skill', version: '1.0', kind: 'code', files: 'folder' }), {})
+  const json = manifestErrors(withPoint({ name: 'skill', version: '1.0', kind: 'data', class: 'inert', schema: 'skills.schema.json' }), {})
+  check('a folder contribution cannot be checked by a JSON schema', folder.length === 0 && /a folder contribution cannot be checked by a JSON schema/.test(withSchema.join(' | ')) &&
+    /files describes a data point/.test(asCode.join(' | ')) && json.length === 0, { folder, withSchema, asCode, json })
 }
 
 console.log('the schema a person reads is the schema the registry runs')

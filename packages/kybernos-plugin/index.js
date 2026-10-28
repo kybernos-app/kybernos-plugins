@@ -27,7 +27,7 @@ import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acc
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
-import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
+import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -10726,18 +10726,11 @@ function boot(ctx) {
         return packsLoaded
       }
       // The plugin registry (kybernos-registry, docs/dev/plugin-contract.md) is reached through a global, never imported: without it the packs are the shipped ones, as before.
-      // This plugin owns the point `kybernos/core#domain-pack`; it tells the registry at boot and again at each question (the registry may mount after this plugin).
+      // This plugin owns three points (`kybernos/core#domain-pack`, `#team-template`, `#automation-template`); it tells the registry at boot and again at each question
+      // (the registry may mount after this plugin), then asks what the plugins contribute to them.
       const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
-      const domainPacks = () => {
-        const shipped = shippedPacks()
-        const registry = registrySeam()
-        if (registry === null) return shipped
-        try {
-          registry.definePoint(DOMAIN_POINT)
-          return mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))
-        } catch (e) { return shipped }
-      }
-      try { const registry = registrySeam(); if (registry !== null) registry.definePoint(DOMAIN_POINT) } catch (e) { /* the point is told again at the first question */ }
+      const domainPacks = () => packsOf(shippedPacks(), registrySeam())
+      try { const registry = registrySeam(); if (registry !== null) for (const point of CORE_POINTS) registry.definePoint(point.def) } catch (e) { /* the points are told again at the first question */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domains', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const r = domainPacks()
@@ -10797,7 +10790,7 @@ function boot(ctx) {
         const next = onboardingComplete(state, body)
         const written = await onboardingWrite(next)
         sendJson(res, 200, written === true
-          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, goals: next.goals, agents: next.agents }
+          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, theme: next.theme, goals: next.goals, agents: next.agents }
           : { ok: false, error: 'write failed' })
       } }), 'kybernos: onboarding route')
       // After a way to a model is connected (the first-run wizard, the chat's card): make that model the one the next

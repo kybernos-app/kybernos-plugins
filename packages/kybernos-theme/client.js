@@ -988,10 +988,14 @@ window.__ModuleLoader__.load({
         } catch (e) { return { ...DEF } }
       }
       // The host is told what is PERSISTED, never a trial being previewed: closing the tab during a trial must not make the
-      // next load paint a theme nobody kept (see posterBoot).
+      // next load paint a theme nobody kept (see posterBoot). Returns whether the page kept it: the seam answers `{ ok:false }`
+      // on a full quota rather than pretending the look was applied.
       const writeState = (s) => {
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch (e) { /* quota */ }
+        let kept = true
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch (e) { kept = false }
+        if (kept !== true) return false
         try { posterBoot(s) } catch (e) { /* the host is not told: one more flash on the next load */ }
+        return true
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -1307,8 +1311,9 @@ window.__ModuleLoader__.load({
         } catch (e) { /* hors plage */ }
       }
 
+      // `keepNativeMode`: a look that carries no mode must not write DSH's own light/dark preference (the person's choice).
       const appliquerTout = (themeSvc, S) => {
-        appliquerMode(themeSvc, S)
+        if (S.keepNativeMode !== true) appliquerMode(themeSvc, S)
         appliquerIcones(S)
         appliquerJetons(themeSvc, S)
         appliquerFond(S)
@@ -1929,7 +1934,10 @@ window.__ModuleLoader__.load({
         try {
           const res = await fetch(libHostUrl(), body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
           const j = await res.json().catch(() => null)
-          return (j !== null && typeof j === 'object') ? j : { ok: false, unreachable: true, error: 'unreadable answer' }
+          const out = (j !== null && typeof j === 'object') ? j : { ok: false, unreachable: true, error: 'unreadable answer' }
+          // The status tells the seam a refusal (400) from a host fault (5xx), which it treats differently (A1-3).
+          if (typeof res.status === 'number') out.status = res.status
+          return out
         } catch (e) { return { ok: false, unreachable: true, error: String(e !== null && e.message ? e.message : e) } }
       }
       const libSchedulePush = () => {
@@ -2164,6 +2172,120 @@ window.__ModuleLoader__.load({
             'The online catalog was refused' + (why === undefined ? '' : ' (' + why + ')') + ': the themes already known are shown.')
         }
         return ''
+      }
+
+      // ══════════════════════════════════════════════════════════════════════
+      // 4e. THE SEAM — `window.__KB_THEME_APPLY__`, the one public "apply a
+      //     style preset" door (A1-theme-seam). A preset is DATA: an id, or a
+      //     bag of known settings. An id already in « My styles » is applied as
+      //     it is; a NEW one is an import and goes through the host entry, which
+      //     is the only writer of the disk copy from an import. The look applied
+      //     is a non-transient commit: merged over the stored look, stored, then
+      //     drawn. Nothing here is ever executed.
+      // ══════════════════════════════════════════════════════════════════════
+
+      /** The name a settings bag gets in « My styles » (A1-2): a localized default, never a name invented by a caller. */
+      const seamName = () => kt('Mon style', 'My style')
+      /** One record put in the browser library WITHOUT pushing the whole document: the host already has it (A1-1..A1-3). */
+      const seamAdopt = (rec) => {
+        lib.presets = lib.presets.filter((p) => p.id !== rec.id).concat([rec]).slice(0, PRESET_LIMIT)
+        lib.updatedAt = Math.max(Date.now(), lib.updatedAt + 1)
+        libWrite(); libNotify()
+      }
+      /**
+       * Why a host answer refuses the import, or null when it does not: a 400 is authoritative (a11y, invalid
+       * value, full library), while off, unreachable and a 5xx are not a failure of applying (A1-3).
+       */
+      const seamRefusal = (j) => {
+        if (j === null || typeof j !== 'object') return 'no answer'
+        if (j.ok === true) return null
+        if (j.unreachable === true) return null
+        if (typeof j.status === 'number' && j.status >= 500) return null
+        return typeof j.error === 'string' && j.error !== '' ? j.error : 'refused'
+      }
+      /** The commit of a preset: merged over the stored look, stored (which posts the boot sheet), then drawn. */
+      const seamApply = (ctx, settings) => {
+        const next = { ...readState(), ...settings }
+        if (writeState(next) !== true) return { ok: false, reason: 'the page could not store the look' }
+        const themeSvc = ctx !== null && ctx !== undefined && ctx.theme !== undefined && ctx.theme !== null ? ctx.theme : null
+        if (themeSvc !== null) {
+          // No `mode` in the preset: the person's light/dark preference is theirs; the rest of the look is applied.
+          const drawn = settings.mode === undefined ? { ...next, keepNativeMode: true } : next
+          try { appliquerTout(themeSvc, drawn) } catch (e) { return { ok: false, reason: 'the look could not be drawn: ' + String(e !== null && e.message ? e.message : e) } }
+        }
+        return null
+      }
+      /** A record already in the library (the person's own theme, or an installed catalogue one): applied as it is, never POSTed. */
+      const seamCommit = (ctx, rec) => {
+        const r = presetRecord(rec)
+        if (r === null) return { ok: false, reason: 'invalid preset' }
+        const bad = seamApply(ctx, r.settings)
+        return bad !== null ? bad : { ok: true, id: r.id }
+      }
+      /** The import: the host writes the disk copy, the browser adopts its answer (A1-3 for the fallback). */
+      const seamImport = async (ctx, doc) => {
+        const j = await libHost({ import: doc })
+        const refusal = seamRefusal(j)
+        if (refusal !== null) return { ok: false, reason: refusal }
+        let rec = null
+        if (j.ok === true) {
+          rec = presetRecord(j.preset)
+          if (rec === null) return { ok: false, reason: 'the host answered an invalid preset' }
+        } else {
+          // Off, unreachable or a host fault: a local-only row, no disk copy; libPull brings the disk up to date later.
+          rec = presetRecord({ id: presetId('u'), name: libFreeName(doc.name), source: 'file', at: Date.now(), settings: doc.settings, gid: doc.gid, v: doc.v, author: doc.author })
+          if (rec === null) return { ok: false, reason: 'invalid preset' }
+        }
+        // The look is applied BEFORE the row is adopted: a look the page could not store leaves no row behind either
+        // (the disk copy the host wrote comes back through libPull).
+        const bad = seamApply(ctx, rec.settings)
+        if (bad !== null) return bad
+        seamAdopt(rec)
+        return { ok: true, id: rec.id }
+      }
+      /** A settings bag: known keys and valid values only, never an accessibility key (the person's own business). */
+      const seamBag = (ctx, input) => {
+        const a11y = PRESET_GROUPS.a11y.filter((k) => Object.prototype.hasOwnProperty.call(input, k))
+        if (a11y.length > 0) return { ok: false, reason: 'accessibility setting: ' + a11y[0] }
+        const settings = presetSettings(input)
+        if (settings === null) return { ok: false, reason: 'no known setting' }
+        return seamImport(ctx, { name: seamName(), settings, source: 'file' })
+      }
+      /** A string id: the library (by id, then by catalogue id), then the shipped gallery — which needs no network. */
+      const seamById = async (ctx, wanted) => {
+        const own = lib.presets.find((p) => p.id === wanted)
+        if (own !== undefined) return seamCommit(ctx, own)
+        const installed = galInstalled(wanted)
+        if (installed !== null) return seamCommit(ctx, installed)
+        if (gal.state !== 'ready' && (await galLoad()) !== true) return { ok: false, reason: 'unknown preset: ' + wanted }
+        const theme = (gal.data === null ? [] : gal.data.themes).find((t) => t.id === wanted)
+        if (theme === undefined) return { ok: false, reason: 'unknown preset: ' + wanted }
+        return seamImport(ctx, { name: theme.name, settings: theme.settings, source: 'gallery', gid: theme.id, v: theme.v, author: theme.author })
+      }
+      /** `window.__KB_THEME_APPLY__(input)`: an id (string) or a settings bag. Never throws, always answers. */
+      const seamApplyInput = async (ctx, input) => {
+        try {
+          if (typeof input === 'string') return await seamById(ctx, input)
+          if (input !== null && typeof input === 'object' && !Array.isArray(input)) return await seamBag(ctx, input)
+          return { ok: false, reason: 'a preset id or a settings object is expected' }
+        } catch (e) { return { ok: false, reason: String(e !== null && e.message ? e.message : e) } }
+      }
+      /** One function for the life of the page — a second `apply(ctx)` must not replace a door the wizard already holds — that always
+       *  reads the CURRENT context (a re-activation rebinds the services, not the function). */
+      let seamFn = null
+      let seamCtx = null
+      const publierSeam = (ctx) => {
+        try {
+          seamCtx = ctx
+          if (seamFn === null) seamFn = (input) => seamApplyInput(seamCtx, input)
+          try { if (window.__KB_THEME_APPLY__ === undefined) window.__KB_THEME_APPLY__ = seamFn } catch (e) { /* outside a browser */ }
+          // The versioned alias, when the page seam exists (docs/dev/plugin-contract.md): additive, re-offered on `kybernos:registry`.
+          const offrir = () => { try { if (window.__KB__ !== undefined && window.__KB__ !== null && window.__KB__.version === 1) window.__KB__.provide('kybernos/theme', '1.0.0', { apply: seamFn }) } catch (e) { /* the seam is optional */ } }
+          offrir()
+          try { window.addEventListener('kybernos:registry', offrir) } catch (e) { /* no events */ }
+        } catch (e) {
+          try { console.error('[kybernos-theme] apply seam not published', e) } catch (e2) { /* console indisponible */ }
+        }
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -4885,6 +5007,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 
           // “My themes”: the disk copy, once the page is up. Never a reason for DSH not to start.
           try { setTimeout(() => { libPull(true) }, 900) } catch (e) { /* no timers */ }
+
+          // The public seam of this bundle (A1-theme-seam): the wizard runs with Settings never opened, so a page
+          // effect would be too late. Published here, guarded, and never replaced by a second activation.
+          try { publierSeam(ctx) } catch (e) {
+            try { console.error('[kybernos-theme] apply seam not published', e) } catch (e2) { /* console indisponible */ }
+          }
 
           // The bottom-status animation: defensive end to end (a failure here does not touch DSH).
           try {

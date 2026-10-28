@@ -16,7 +16,7 @@
 //
 // Pure: no network, no disk. The caller injects them (themes-gallery.mjs), which is also what makes it testable.
 import { createPublicKey, verify } from 'node:crypto'
-import { sanitizePreset, tidyText } from './preset-store.mjs'
+import { A11Y_KEYS, sanitizePreset, tidyText } from './preset-store.mjs'
 
 export const KIND = 'kybernos-themes'
 export const SCHEMA = 1
@@ -26,10 +26,11 @@ export const THEME_ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/
 /** Where `main` of the open-core repo publishes it; the setting `themesCatalogueUrl` overrides it ('' turns the online catalogue off). */
 export const DEFAULT_URL = 'https://raw.githubusercontent.com/kybernos-app/kybernos-plugins/main/catalog/themes.catalog.json'
 /**
- * The settings a catalogue theme may NOT carry. Mirrors PRESET_GROUPS.a11y in client.js
+ * The settings a document may NOT carry, from the settings vocabulary itself (preset-store.mjs): one frozen list
+ * for the catalogue, the import entry and the point below — mirrored by PRESET_GROUPS.a11y in client.js
  * (test-client.mjs fails when the two lists drift).
  */
-export const A11Y_KEYS = Object.freeze(['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks'])
+export { A11Y_KEYS }
 export const LIMITS = { name: 40, author: 60, description: 200 }
 
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -60,6 +61,32 @@ export function sanitizeTheme(raw) {
   if (p.ok !== true) return fail('settings: ' + p.error)
   return { ok: true, theme: { id: raw.id, v: raw.v, name, author, description: { fr, en }, settings: p.preset.settings } }
 }
+
+// ── The point of the plugin contract (docs/dev/plugin-contract.md): a pack contributes `themes/<id>.json` ──
+/** The version of this bundle as a point owner: a pack saying `requires: { "kybernos/theme": "^1.0" }` is judged against it, not against the release. */
+export const OWNER_VERSION = '1.0.0'
+/**
+ * One contributed theme file for the registry: the rules that matter for a PUBLISHED document — the accessibility
+ * refusal, the settings vocabulary through the store's own `sanitizePreset`, and `id === fileId` (as a domain pack
+ * must be named after its file). A pack's file is the light `{ id, name, settings }`; a full catalogue entry passes
+ * as a superset (`sanitizePreset` keeps author, gid and v), because the card metadata is a gallery concern.
+ * @returns {{ ok: true, value: object } | { ok: false, errors: string[] }}
+ */
+export function validateTheme(raw, fileId) {
+  if (!plain(raw)) return { ok: false, errors: ['a theme is a JSON object'] }
+  const errors = []
+  if (plain(raw.settings)) for (const k of A11Y_KEYS) if (Object.prototype.hasOwnProperty.call(raw.settings, k)) errors.push('accessibility setting: ' + k)
+  if (typeof raw.id !== 'string' || raw.id !== fileId) errors.push('id: "' + String(raw.id) + '" is not the file name "' + String(fileId) + '"')
+  const p = sanitizePreset(raw, () => 0)
+  if (p.ok !== true) errors.push(p.error)
+  if (errors.length > 0) return { ok: false, errors }
+  const value = { id: p.preset.id, name: p.preset.name, settings: p.preset.settings }
+  // The catalogue link a gallery theme carries travels too, and only when it is valid (sanitizePreset decided).
+  for (const k of ['author', 'gid', 'v']) if (p.preset[k] !== undefined) value[k] = p.preset[k]
+  return { ok: true, value }
+}
+/** What the registry is told about this point (the owner calls `definePoint` with it, guarded). Data, inert: a theme is settings, never CSS and never a prompt. */
+export const THEME_POINT = { owner: 'kybernos/theme', ownerVersion: OWNER_VERSION, name: 'theme', version: '1.0', kind: 'data', class: 'inert', validate: validateTheme }
 
 /** The shape of a whole catalogue document. { ok, doc } with a clean copy, or { ok:false, error, detail? }. */
 export function sanitizeDocument(doc) {

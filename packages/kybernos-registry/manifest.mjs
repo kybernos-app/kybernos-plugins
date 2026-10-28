@@ -81,7 +81,11 @@ export function manifestErrors (manifest, ctx = {}) {
   // 3. points: unique names; a data point is checked by a schema OR by a validator the owner registers, never neither, never both
   const names = (m.provides ?? []).map((p) => p.name)
   if (new Set(names).size !== names.length) fault('provides lists a point name twice')
-  for (const p of m.provides ?? []) if (p.kind === 'data' && (p.schema === undefined) === (p.validator === undefined)) fault('provides "' + p.name + '": a data point has exactly one of schema and validator')
+  for (const p of m.provides ?? []) {
+    if (p.kind === 'data' && (p.schema === undefined) === (p.validator === undefined)) fault('provides "' + p.name + '": a data point has exactly one of schema and validator')
+    if (p.kind === 'data' && p.files === 'folder' && p.schema !== undefined) fault('provides "' + p.name + '": a folder contribution cannot be checked by a JSON schema')
+    if (p.kind === 'code' && p.files !== undefined) fault('provides "' + p.name + '": files describes a data point\'s contributions')
+  }
 
   // 4. you cannot extend what you do not depend on
   for (const e of m.extends ?? []) {
