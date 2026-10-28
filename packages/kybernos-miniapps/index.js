@@ -138,6 +138,7 @@ async function installer (corps) {
 <key>CFBundleVersion</key><string>1.0</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleExecutable</key><string>miniapp</string>
+<key>CFBundleIconFile</key><string>icon</string>
 <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
 <key>LSUIElement</key><true/>
 <key>KBWindowWidth</key><integer>${largeur}</integer>
@@ -147,6 +148,24 @@ async function installer (corps) {
 `
   writeFileSync(join(appDir, 'Contents', 'Info.plist'), plist)
   writeFileSync(join(appDir, 'Contents', 'Resources', 'index.html'), html)
+
+  // The app icon, painted from the shared K geometry (scripts/icone-kybernos.mjs).
+  // Without it the bundle carries no CFBundleIconFile and macOS shows its own
+  // generic white placeholder — the blank icon measured on built miniapps, whose
+  // Resources held only index.html. Generated at build time: no icon binary is
+  // committed (repo rule, no media in git). A failure here degrades to the old
+  // generic icon rather than blocking the build.
+  try {
+    const { NOMS_ICONSET, pngK } = await import('../../scripts/icone-kybernos.mjs')
+    const fs = await import('node:fs')
+    const os = await import('node:os')
+    const jeu = fs.mkdtempSync(join(os.tmpdir(), 'kb-miniapp-icon-'))
+    for (const [nom, pixels] of NOMS_ICONSET) writeFileSync(join(jeu, nom), pngK(pixels))
+    await executer('/usr/bin/iconutil', ['-c', 'icns', jeu, '-o', join(appDir, 'Contents', 'Resources', 'icon.icns')])
+    rmSync(jeu, { recursive: true, force: true })
+  } catch (e) {
+    dire(`icon generation failed: ${e?.message ?? e}`)
+  }
 
   const signature = await executer('/usr/bin/codesign', ['-f', '-s', '-', appDir])
   if (signature.err) {
