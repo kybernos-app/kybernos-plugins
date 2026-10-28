@@ -51,7 +51,7 @@ try {
     effect: () => {},
   }
   apply(ctx)
-  check('five routes mounted', routes.length === 5, routes.map((r) => r.path))
+  check('six routes mounted', routes.length === 6, routes.map((r) => r.path))
   check('every route is under our prefix', routes.every((r) => r.path.startsWith('/kybernos-webapp-creator/')), routes.map((r) => r.path))
 
   const reqSansCookie = {
