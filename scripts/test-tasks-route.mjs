@@ -80,7 +80,7 @@ mod.apply({ get: (n) => services[n], inject: (deps, fn) => { if (Array.isArray(d
 await new Promise((r) => realSetTimeout(r, 50))
 console.error = realErr; console.log = realLog
 
-const call = async (method, bodyText, headers, path) => {
+const callRaw = async (method, bodyText, headers, path) => {
   const url = path === undefined ? '/kybernos/tasks' : path
   const req = Readable.from(bodyText === undefined ? [] : [Buffer.from(bodyText)])
   req.method = method; req.url = url
@@ -92,6 +92,28 @@ const call = async (method, bodyText, headers, path) => {
   let json = null
   try { json = JSON.parse(res.body) } catch (e) { /* not JSON */ }
   return { status: res.status, json, headers: res.headers }
+}
+// `create` seeds a draft gate record (finding P2 #3). This file proves the route and the tick, not the certification
+// ladder, so every automation it creates is put back to the legacy shape — no record, no gate — which is exactly what an
+// automation that predates the gate looks like, and what toggle/update/run-now/the tick keep for it. The closed fire paths
+// of a GATED automation are proved in packages/kybernos-plugin/test-automation-gate-routes.mjs.
+const gatesFile = join(dshHome, 'kybernos', 'gates.json')
+const ungate = (id) => {
+  if (existsSync(gatesFile) !== true) return
+  const all = JSON.parse(readFileSync(gatesFile, 'utf8'))
+  const kept = all.records.filter((r) => r.automationId !== id)
+  if (kept.length === all.records.length) return
+  all.records = kept
+  writeFileSync(gatesFile, JSON.stringify(all, null, 2), { mode: 0o600 })
+}
+const call = async (method, bodyText, headers, path) => {
+  const answer = await callRaw(method, bodyText, headers, path)
+  if (method === 'POST' && answer.json !== null && answer.json.ok === true && answer.json.task !== undefined && typeof answer.json.task.id === 'string') {
+    let asked = null
+    try { asked = JSON.parse(String(bodyText)) } catch (e) { asked = null }
+    if (asked !== null && typeof asked === 'object' && asked.action === 'create') ungate(answer.json.task.id)
+  }
+  return answer
 }
 const api = (obj) => call('POST', JSON.stringify(obj))
 const tick = async () => { const t = captured.filter((x) => x.ms === 30000).pop(); const before = captured.length; t.fn(); const t0 = Date.now(); while (captured.length === before && Date.now() - t0 < 5000) await new Promise((r) => realSetTimeout(r, 5)) }

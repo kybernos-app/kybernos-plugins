@@ -69,14 +69,53 @@ window.__ModuleLoader__.load({
       }
       const callsText = (n) => (n === 1 ? kn('{n} appel', '{n} call', { n }) : kn('{n} appels', '{n} calls', { n }))
 
-      /** The two lines of a card, and the title and body of its banner. */
-      const itemText = (it) => {
+      // The sentence of a machine code the host half writes (the gate and the queue). A code that is not here keeps the wording of its kind,
+      // so the engine's own failure codes read exactly as they did before this table existed.
+      const CODE_TEXT = {
+        'gate.static.failed': () => kt('Les contrôles statiques ont échoué', 'The static checks failed'),
+        'gate.trial.failed': () => kt('L’essai supervisé a échoué', 'The supervised trial failed'),
+        'gate.trial.effects': () => kt('L’essai a touché quelque chose à l’extérieur', 'The trial reached outside something'),
+        'gate.awaiting-approval': () => kt('Essai réussi : ton accord est attendu', 'Trial passed: your approval is due'),
+        'gate.approved': () => kt('Validée : à toi de la mettre en route', 'Approved: switching it on is yours'),
+        'gate.trial.passed': () => kt('Essai supervisé réussi, sans effet extérieur', 'Supervised trial passed, no external effect'),
+        'gate.activated': () => kt('Mise en route', 'Switched on'),
+        'queue.draft': () => kt('Un brouillon t’attend, rien n’a été envoyé', 'A draft waits for you, nothing was sent')
+      }
+      /** The sentence of a code, or null: a card whose code is unknown keeps its current wording. */
+      const codeText = (code) => {
+        if (typeof code !== 'string') return null
+        const said = CODE_TEXT[code]
+        return typeof said === 'function' ? said() : null
+      }
+
+      /** The two lines of a card by its kind alone: what a scheduler run has always read as. */
+      const baseItemText = (it) => {
         if (it.kind === 'waiting') return { title: kn('{task} a besoin de toi', '{task} needs you', { task: it.task }), sub: it.tool ? kn('Demande à utiliser {tool}', 'Asks to use {tool}', { tool: it.tool }) : kt('Attend ton accord', 'Waits for your approval') }
         if (it.kind === 'failed') return { title: kn('{task} a échoué', '{task} failed', { task: it.task }), sub: it.message || it.code || kt('Sans détail', 'No detail') }
         const bits = []
         if (typeof it.calls === 'number') bits.push(callsText(it.calls))
         if (typeof it.durMs === 'number') bits.push(fmtDur(it.durMs))
         return { title: kn('{task} est terminée', '{task} finished', { task: it.task }), sub: bits.length > 0 ? bits.join(' · ') : kt('Terminée', 'Finished') }
+      }
+
+      /** The two lines of a card, and the title and body of its banner. */
+      const itemText = (it) => {
+        const code = typeof it.code === 'string' ? it.code : ''
+        // A draft of the initiative queue: the entry is the title, the sentence says nothing was sent, then the draft itself.
+        if (code === 'queue.draft') {
+          const said = codeText(code)
+          return { title: it.task || 'Automation', sub: said + (it.message ? ' · ' + it.message : '') }
+        }
+        const base = baseItemText(it)
+        const said = codeText(code)
+        if (said === null) return base
+        // A gate event: the sentence of the code first, then the data the item carries (the verdict's numbers, the failure's detail).
+        const bits = []
+        if (typeof it.calls === 'number') bits.push(callsText(it.calls))
+        const took = fmtDur(it.durMs)
+        if (took !== '') bits.push(took)
+        if (it.kind === 'failed' && it.message) bits.push(it.message)
+        return { title: base.title, sub: bits.length > 0 ? said + ' · ' + bits.join(' · ') : said }
       }
 
       /** The big sentence of the panel: what needs the person, what runs, what is new, or nothing. */
@@ -114,7 +153,7 @@ window.__ModuleLoader__.load({
         const list = m.filter === 'results' ? results : todo
         const card = (it) => {
           const t = itemText(it)
-          return '<article class="kbpu-card ' + esc(it.tone) + (it.unread ? ' un' : '') + (it.quiet ? ' q' : '') + '" data-kb="pulse-card" data-id="' + esc(it.id) + '">' +
+          return '<article class="kbpu-card ' + esc(it.tone) + (it.unread ? ' un' : '') + (it.quiet ? ' q' : '') + '" data-kb="pulse-card" data-id="' + esc(it.id) + '" data-src="' + esc(it.source || 'scheduler') + '">' +
             '<span class="kbpu-ci">' + svg(it.kind) + '</span>' +
             '<div class="kbpu-ct"><b>' + esc(t.title) + '</b><span>' + esc(t.sub) + ' · ' + esc(ago(it.at, m.now)) + '</span></div>' +
             '<div class="kbpu-cx">' +
@@ -181,6 +220,8 @@ window.__ModuleLoader__.load({
         '.kbpu-seg .kbpu-xs{margin-inline-start:auto}',
         '.kbpu-card{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.06));background:var(--dsw-alias-bg-layer-2,#1e1f21);border-radius:14px;padding:9px 9px 9px 10px}',
         '.kbpu-card.q{opacity:.6}',
+        // a card of the gate or of the queue: the same card, told apart by its feed (a capture and a DOM probe can check it)
+        '.kbpu-card[data-src="gate"],.kbpu-card[data-src="queue"]{border-color:var(--dsw-alias-border-l2,rgba(255,255,255,.1))}',
         '.kbpu-ci,.kbpu-ri{position:relative;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--dsw-alias-bg-layer-3,rgba(255,255,255,.06));color:var(--dsw-alias-label-secondary,#cfd3d6)}',
         '.kbpu-card.ask .kbpu-ci,.kbpu-ri.ask{color:var(--dsw-alias-state-warn-primary,#f59e0b)}',
         '.kbpu-card.bad .kbpu-ci{color:var(--dsw-alias-state-error-primary,#f87171)}',
@@ -538,7 +579,7 @@ window.__ModuleLoader__.load({
         } catch (e) { /* optional */ }
       }
 
-      return { name: NAME, inject: [], apply: start, __test: { esc, fmtDur, ago, itemText, hero, badgeTitle, bannersToShow, panelHTML, validSnap, kt, kn, PACK_STRINGS, CSS, TOKENS, FRESH_MS, POLL_MS, openFloating, closeFloating, isFloating, openKybernos, openMySettings, refresh, buildPage } }
+      return { name: NAME, inject: [], apply: start, __test: { esc, fmtDur, ago, itemText, CODE_TEXT, hero, badgeTitle, bannersToShow, panelHTML, validSnap, kt, kn, PACK_STRINGS, CSS, TOKENS, FRESH_MS, POLL_MS, openFloating, closeFloating, isFloating, openKybernos, openMySettings, refresh, buildPage } }
     } catch (e) {
       console.warn('[kybernos-pulse] disabled:', e)
       return { apply () {} }

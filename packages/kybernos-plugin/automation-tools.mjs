@@ -10,7 +10,10 @@ export const PROMPT = [
   'Use memory_suggest for a fact about the person you SAW several times (give the count and where), and instructions_suggest for ONE short section of custom instructions. Both wait for the person\'s Add; neither is saved before.',
   'To propose a dashboard call kybernos_dashboard with suggested: true and a one-sentence proof: it is kept aside until the person adds it, and it is not opened for them.',
   'Never put in a suggestion a name, an e-mail address, a phone number, an amount or any data of a client: it is refused. Write patterns, not people.',
-  'An automation never sends, deletes, pays or publishes on its own: write prompts that prepare drafts and ask first.'
+  'An automation never sends, deletes, pays or publishes on its own: write prompts that prepare drafts and ask first.',
+  'When the same need, chore or correction comes back with measured evidence, call initiative_record once: it parks the entry in the initiative queue, where it waits for the person\'s decision on the Automations page. An initiative never creates, schedules or switches on an automation.',
+  'The next action of an initiative is a draft: it prepares text or a plan, it never sends, publishes, deletes or pays.',
+  'Call initiative_list to read what still waits. Never say an initiative was added, is active or ran unless the queue says so.'
 ].join('\n')
 
 const TEXT = (text) => [{ type: 'text', text }]
@@ -33,17 +36,44 @@ const WHY = {
   'too long': 'the text is too long',
   empty: 'the text is empty',
   'already waiting': 'that was already suggested',
-  'too many waiting': 'too many suggestions of that kind already wait: the person has to answer some first'
+  'too many waiting': 'too many suggestions of that kind already wait: the person has to answer some first',
+  'empty title': 'the title is empty',
+  'no evidence': 'an initiative needs what you measured: a count of at least 1 and where you saw it, without names',
+  'unknown risk': 'risk must be low, medium or high',
+  'unknown reversibility': 'reversibility must be trivial, easy or hard',
+  'next action must be a draft': 'the next action of an initiative is a draft: it prepares text or a plan, it never sends, publishes, deletes or pays',
+  'empty next action': 'say in one line what the draft would prepare',
+  'already queued': 'an initiative with that title already waits',
+  'already added': 'the person already added that initiative: nothing to propose again',
+  'needs new evidence': 'that one was dropped before: bring it back only with a higher count',
+  'too many initiatives': 'eight initiatives already wait: the person has to answer some first'
+}
+
+/** The pending initiatives in one bounded sentence: it says what waits, never that something ran. `cap` is the queue's own bound when the caller has one. */
+const initiativeListText = (items, cap) => {
+  const bound = typeof cap === 'number' && cap > 0 ? cap : 8
+  const list = Array.isArray(items) ? items.slice(0, bound) : []
+  if (list.length === 0) return 'The initiative queue is empty: nothing waits for the person.'
+  const one = (i) => {
+    const item = i !== null && typeof i === 'object' ? i : {}
+    const title = typeof item.title === 'string' ? Array.from(item.title).slice(0, 120).join('') : ''
+    return '“' + title + '” (' + (typeof item.risk === 'string' ? item.risk : 'unknown') + ' risk, ' + (typeof item.reversibility === 'string' ? item.reversibility : 'unknown') + ' to undo)'
+  }
+  return 'Waiting for the person (' + list.length + (list.length >= bound ? ', full' : '') + '): ' + list.map(one).join('; ') + '. Nothing ran.'
 }
 const say = (value, what) => (value !== null && typeof value === 'object' && value.ok === true
   ? (what === 'memory' || what === 'instructions'
     ? 'Suggested: it waits for the person\'s Add in ' + (what === 'memory' ? 'Memory' : 'Custom instructions') + '. It is NOT saved yet.'
     : what === 'suggest'
     ? 'Suggested: “' + String(value.task.name) + '” waits for the person\'s Add in Automations. It is switched OFF and will not run before that.'
+    : what === 'initiative'
+    ? 'Recorded in the initiative queue: it waits for the person to answer on the Automations page. Nothing ran.'
+    : what === 'initiative list'
+    ? initiativeListText(value.items, value.cap)
     : 'Bound: the runs of “' + String(value.task.name) + '” will happen in this chat.')
   : 'Not done: ' + (value !== null && typeof value === 'object' ? (WHY[value.error] || String(value.error)) : 'no answer') + '.')
 
-/** The tools as literals the registry accepts. `deps`: `{ tasks(body), ledger? }`, the tasks route's own handler and the suggestions ledger (without it, only the two automation tools). */
+/** The tools as literals the registry accepts. `deps`: `{ tasks(body), ledger?, initiative? }`, the tasks route's own handler, the suggestions ledger and the initiative queue (without them, only the two automation tools). */
 export const toolDefinitions = (deps) => {
   const suggestTool = {
     name: 'automation_suggest',
@@ -121,6 +151,55 @@ export const toolDefinitions = (deps) => {
       },
       output: { schema: { type: 'object' }, render: (args, value) => TEXT(say(value, 'instructions')) },
       async execute (args) { return deps.ledger.add('instructions', { text: str(args, 'text') }) }
+    })
+  }
+  if (deps.initiative !== undefined && deps.initiative !== null && typeof deps.initiative.add === 'function') {
+    tools.push({
+      name: 'initiative_record',
+      description: 'Parks one initiative in the initiative queue, with the evidence you measured. It waits for the person\'s decision on the Automations page; nothing runs before, and its next action is a draft.',
+      parameters: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          title: { type: 'string', description: 'A pattern, 120 characters at most: what keeps coming back. No names, no addresses, no numbers.' },
+          n: { type: 'number', description: 'How many times you saw it (at least 1).' },
+          span: { type: 'string', description: 'Over what period, for example "60 days".' },
+          where: { type: 'string', description: 'Where you saw it, for example "Gmail › Contact form". No names.' },
+          risk: { type: 'string', enum: ['low', 'medium', 'high'], description: 'What it would cost the person if the draft were wrong.' },
+          reversibility: { type: 'string', enum: ['trivial', 'easy', 'hard'], description: 'How hard it is to undo the work the draft prepares.' },
+          summary: { type: 'string', description: 'One line: what the draft would prepare. It never sends, publishes, deletes or pays.' }
+        },
+        required: ['title', 'n', 'where', 'risk', 'reversibility', 'summary']
+      },
+      output: { schema: { type: 'object' }, render: (args, value) => TEXT(say(value, 'initiative')) },
+      async execute (args) {
+        return deps.initiative.add({
+          title: str(args, 'title'),
+          n: args !== null && typeof args === 'object' ? args.n : undefined,
+          span: str(args, 'span'),
+          where: str(args, 'where'),
+          risk: str(args, 'risk'),
+          reversibility: str(args, 'reversibility'),
+          nextAction: { kind: 'draft', summary: str(args, 'summary') }
+        })
+      }
+    })
+    tools.push({
+      name: 'initiative_list',
+      description: 'Reads what still waits in the initiative queue, with its evidence. It says what waits for the person; nothing has run.',
+      parameters: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { status: { type: 'string', enum: ['proposed', 'asked', 'added', 'dropped'], description: 'Optional: only entries in that state. Omit for what still waits.' } }
+      },
+      output: { schema: { type: 'object' }, render: (args, value) => TEXT(say(value, 'initiative list')) },
+      async execute (args) {
+        const status = str(args, 'status')
+        const listed = await deps.initiative.list(status === '' ? undefined : status)
+        const items = Array.isArray(listed) ? listed : []
+        const cap = typeof deps.initiative.cap === 'number' ? deps.initiative.cap : undefined
+        return cap === undefined ? { ok: true, items } : { ok: true, items, cap }
+      }
     })
   }
   return tools

@@ -1,12 +1,13 @@
 // kybernos-pulse — host half: it watches the runs the Automations scheduler fired, keeps a small inbox of what happened, and serves it to the
-// browser half. It reads tasks.json and the engine's session journals and writes one file of its own. No engine patch, no @deepseek-ai/* import.
-// Everything in apply() is guarded: an error here must never stop DSH from starting.
+// browser half. It reads tasks.json, the engine's session journals and, when they exist, the two stores beside tasks.json (the gate's gates.json
+// and the queue's initiatives.json) — read only, each bounded and caught on its own — and writes one file of its own. No engine patch, no
+// @deepseek-ai/* import. Everything in apply() is guarded: an error here must never stop DSH from starting.
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { brandMarkFrom, buildPanelPage, extractCore, PANEL_CSP } from './panel-page.mjs'
-import { readRun, SESSION_ID_RE } from './pulse-core.mjs'
+import { PROACTIVE_FILE_MAX, QUEUE_ITEMS_PER_PASS, readRun, SESSION_ID_RE } from './pulse-core.mjs'
 import { createPulse, createWatcher, helperTokenOk, mountRoutes } from './pulse-host.mjs'
 import { dshHome, writeGuard } from './session-guard.mjs'
 
@@ -19,6 +20,10 @@ export const PASS_MS = 15000
 
 const stateFile = (home) => join(home, 'kybernos', 'pulse', 'pulse.json')
 const tasksFile = (home) => join(home, 'kybernos', 'tasks.json')
+/** The certification gate's store (its owner writes it), beside tasks.json: `GATE_FILE` — 'gates.json' — in pulse-core.mjs. */
+export const gatesFile = (home) => join(home, 'kybernos', 'gates.json')
+/** The initiative ledger (its owner writes it), beside tasks.json: 'initiatives.json', the file the `queue list` action serves. */
+export const entriesFile = (home) => join(home, 'kybernos', 'initiatives.json')
 
 // What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
 // added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
@@ -89,13 +94,68 @@ export const readRunFrom = (getPersistence) => async (sessionId) => {
   }
 }
 
+// ── The two feeds beside tasks.json: the gate store and the initiative ledger ────────────────────────────────
+// Pulse only reads them (their owner writes them), bounded by PROACTIVE_FILE_MAX and caught on their own: an absent or broken file
+// yields no item and never stops the session half of a pass. Nothing is read from globalThis and nothing is cached at load time.
+
+const QUEUE_ENTRIES_READ = 4 * QUEUE_ITEMS_PER_PASS
+const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+
+/** A feed file parsed, or null when it is absent (the normal state), not a file, over PROACTIVE_FILE_MAX, or not JSON (one log line). */
+const readFeed = (file, label) => {
+  try {
+    const info = statSync(file)
+    if (info.isFile() !== true) return null
+    if (info.size > PROACTIVE_FILE_MAX) { dire(label + ' ignored: over ' + PROACTIVE_FILE_MAX + ' bytes'); return null }
+    return JSON.parse(readFileSync(file, 'utf8'))
+  } catch (e) {
+    if (e !== null && typeof e === 'object' && e.code === 'ENOENT') return null
+    dire(label + ' ignored: ' + String(e && e.message ? e.message : e))
+    return null
+  }
+}
+
+/** The gate records: the `records` envelope its owner writes, or a bare GateRecord[]; a record with no automationId is skipped. */
+export const readGatesFile = (home) => async () => {
+  const data = readFeed(gatesFile(home), 'gates.json')
+  if (data === null) return []
+  const list = Array.isArray(data) ? data : (isPlain(data) && Array.isArray(data.records) ? data.records : null)
+  if (list === null) { dire('gates.json ignored: no records list'); return [] }
+  return list.filter((r) => isPlain(r) && typeof r.automationId === 'string' && r.automationId !== '')
+}
+
+/** The ledger entries: a bare InitiativeEntry[], or the `entries` / `items` wrapper of the queue's own file. Bounded, never a throw. */
+export const readEntriesFile = (home) => async () => {
+  const data = readFeed(entriesFile(home), 'initiatives.json')
+  if (data === null) return []
+  const list = Array.isArray(data) ? data : (isPlain(data) && Array.isArray(data.entries) ? data.entries : (isPlain(data) && Array.isArray(data.items) ? data.items : null))
+  if (list === null) { dire('initiatives.json ignored: no entries list'); return [] }
+  const out = []
+  for (const e of list) {
+    if (out.length >= QUEUE_ENTRIES_READ) break
+    if (isPlain(e) && typeof e.id === 'string' && e.id !== '') out.push(e)
+  }
+  return out
+}
+
+/** The two feeds of one pass, each read in its own try/catch: `{ gates, entries }`, empty lists when they are absent or broken. */
+export const readProactiveFrom = (home) => async () => {
+  const gates = readGatesFile(home)
+  const entries = readEntriesFile(home)
+  let g = []
+  let e = []
+  try { g = await gates() } catch (err) { g = [] }
+  try { e = await entries() } catch (err) { e = [] }
+  return { gates: Array.isArray(g) ? g : [], entries: Array.isArray(e) ? e : [] }
+}
+
 export function apply (ctx) {
   if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-pulse: routes')
   try {
     const home = dshHome()
     const pulse = createPulse({ ...storeIo(home) })
     const getPersistence = () => { try { return ctx.get('sessionPersistence') } catch (e) { return undefined } }
-    const watcher = createWatcher({ pulse, readTasks: readTasksFile(home), readRunOf: readRunFrom(getPersistence), log: dire })
+    const watcher = createWatcher({ pulse, readTasks: readTasksFile(home), readRunOf: readRunFrom(getPersistence), log: dire, readProactive: readProactiveFrom(home) })
     // The Mac app has no browser session to show: its two writes carry its own token instead (a file only the owner can read). A browser write still needs the cookie.
     let token = null
     try { token = ensureHelperToken(home) } catch (e) { dire('no token for the Mac app: ' + String(e?.message ?? e)) }
