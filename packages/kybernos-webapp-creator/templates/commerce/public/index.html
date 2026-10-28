@@ -92,6 +92,7 @@ button { font: inherit; cursor: pointer; }
 .card:hover { transform: translateY(-3px); box-shadow: var(--tk-shadow-md); }
 .card .visual { aspect-ratio: 4 / 3; background: var(--img, var(--tk-img-1)); position: relative; display: grid; place-items: center; }
 .card .visual .blob { width: 52%; aspect-ratio: 1; border-radius: 38% 62% 55% 45% / 45% 42% 58% 55%; background: var(--tk-shape-1); box-shadow: 0 18px 30px -18px var(--tk-shape-2); }
+.card .visual img { width: 100%; height: 100%; object-fit: cover; }
 .card .visual .stripes { width: 100%; height: 100%; background: repeating-linear-gradient(135deg, transparent 0 14px, var(--tk-shape-1) 14px 28px); opacity: 0.65; }
 .badge { position: absolute; top: var(--tk-space-3); left: var(--tk-space-3); padding: 0.3rem 0.75rem; border-radius: var(--tk-radius-pill); font-size: var(--tk-fs-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .badge-sale { background: var(--tk-sale); color: var(--tk-accent-ink); }
@@ -274,7 +275,8 @@ const rendreProduits = () => {
     carte.className = 'card'
     const img = (p.id % 6) + 1
     carte.innerHTML =
-      '<div class="visual" style="--img: var(--tk-img-' + img + ')"><div class="blob"></div>' +
+      '<div class="visual" style="--img: var(--tk-img-' + img + ')">' +
+      (p.image_id ? '<img src="/api/medias/' + p.image_id + '" alt="">' : '<div class="blob"></div>') +
       (p.dispo < 1 ? '<span class="badge badge-sale">Épuisé</span>' : (p.stock - p.dispo > 0 ? '<span class="badge badge-new">Réservé</span>' : '')) +
       '</div>' +
       '<div class="body"><h3></h3><p class="note"></p></div>' +

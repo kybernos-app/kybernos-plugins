@@ -45,13 +45,14 @@ exports.handle = (req, res, url) => {
     if (cle.slice(0, espace) !== methode) continue
     const params = matcher(cle.slice(espace + 1), chemin)
     if (params === null) continue
-    try { resultat = routes[cle](req, params) } catch (e) {
+    try { resultat = routes[cle](req, params, res) } catch (e) {
       res.writeHead(500, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ ok: false, error: String((e && e.message) || e).slice(0, 120) }))
       return
     }
     break
   }
+  if (resultat === undefined) return // the handler answered the response itself (binary routes)
   if (resultat === null) resultat = { ok: false, error: 'unknown route' }
   const code = resultat.ok === true ? 200 : (resultat.error === 'unknown route' ? 404 : 400)
   res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' })

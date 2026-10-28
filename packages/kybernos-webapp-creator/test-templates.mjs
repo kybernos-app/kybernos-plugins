@@ -124,6 +124,27 @@ try {
   const vitrine = await (await fetch('http://127.0.0.1:' + dc.port + '/')).text()
   check('the storefront carries the kit sections', ['sec-announcement', 'sec-header', 'sec-hero', 'sec-products', 'sec-cart', 'sec-footer'].every((s) => vitrine.includes(s)), vitrine.length)
   check('the storefront reads the shop config and the product API', vitrine.includes('/api/shop') && vitrine.includes('/api/produits'))
+  // the media chain: magic-byte sniffing, quota, serving from outside the public root
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  const up = await (await P('/api/medias', { data: png })).json()
+  check('a PNG uploads', up.ok === true && up.mime === 'image/png', up)
+  const fichier = await fetch('http://127.0.0.1:' + dc.port + '/api/medias/' + up.id)
+  check('it is served with its real type and its bytes', fichier.status === 200 && fichier.headers.get('content-type') === 'image/png' && (await fichier.arrayBuffer()).byteLength === up.taille)
+  const spoof = await (await P('/api/medias', { data: 'data:text/html;base64,' + Buffer.from('<script>x</script>').toString('base64') })).json()
+  check('a spoofed type is refused by its magic bytes', spoof.ok === false, spoof)
+  const lourd = await (await P('/api/medias', { data: 'data:image/png;base64,' + 'A'.repeat(700000) })).json()
+  check('an oversized file is refused', lourd.ok === false, lourd)
+  const att = await (await P('/api/produits/' + prods.produits[0].id + '/image', { media_id: up.id })).json()
+  check('it attaches to a product', att.ok === true, att)
+  const avecImage = await (await fetch('http://127.0.0.1:' + dc.port + '/api/produits')).json()
+  check('the product carries its image id', avecImage.produits[0].image_id === up.id, avecImage.produits[0])
+  // one confirmation email per payment event, never two
+  const base2 = new DatabaseSync(join(racine, 'boutique', 'donnees.sqlite'))
+  const mails = () => base2.prepare('SELECT COUNT(*) AS n FROM emails').get().n
+  check('the paid order sent exactly one email', mails() === 1, mails())
+  await P('/api/webhooks/stripe', { event_id: 'evt_2', type: 'checkout.session.completed', commande_id: cmd.id, amount_cents: 2400, currency: 'eur' })
+  check('the replayed payment sends no second email', mails() === 1, mails())
+  base2.close()
   await stopApp(join(racine, 'boutique'))
 
   console.log('brief + template, the way /create does it')

@@ -9,6 +9,7 @@
 const db = require('../db.js')
 const fs = require('node:fs')
 const path = require('node:path')
+const emails = require('../emails.js')
 
 /** The shop configuration (shop.json at the template root): words and palette, never layout. */
 const shop = () => {
@@ -41,7 +42,7 @@ const expirer = (b) => {
 const produits = () => {
   const b = db.open()
   expirer(b)
-  return { ok: true, produits: b.prepare('SELECT id, nom, description, prix_cents, stock, reserve, stock - reserve AS dispo FROM produits WHERE actif = 1 ORDER BY id').all() }
+  return { ok: true, produits: b.prepare('SELECT id, nom, description, prix_cents, stock, reserve, image_id, stock - reserve AS dispo FROM produits WHERE actif = 1 ORDER BY id').all() }
 }
 
 const creerProduit = (corps) => {
@@ -107,7 +108,7 @@ const webhook = (corps) => {
   const vu = b.prepare('INSERT OR IGNORE INTO webhooks (event_id, type) VALUES (?, ?)').run(eventId, type)
   if (Number(vu.changes) === 0) return { ok: true, effet: 'deja-traite' }
   const marquer = (effet) => b.prepare('UPDATE webhooks SET effet = ? WHERE event_id = ?').run(effet, eventId)
-  const c = b.prepare('SELECT id, statut, total_cents FROM commandes WHERE id = ?').get(commandeId)
+  const c = b.prepare('SELECT id, statut, total_cents, client_email FROM commandes WHERE id = ?').get(commandeId)
   if (type === 'checkout.session.completed') {
     if (c === undefined) { marquer('refuse'); return { ok: false, error: 'unknown commande' } }
     const montant = Number(corps && corps.amount_cents)
@@ -123,6 +124,11 @@ const webhook = (corps) => {
       b.exec('COMMIT')
     } catch (e) { b.exec('ROLLBACK'); throw e }
     marquer('payee')
+    // one confirmation email per payment event — a replay never reaches this line (003)
+    const lignesMail = b.prepare('SELECT l.quantite, l.prix_cents, p.nom AS produit FROM commande_lignes l JOIN produits p ON p.id = l.produit_id WHERE l.commande_id = ?').all(commandeId)
+    const message = emails.rendreConfirmation({ id: commandeId, total_cents: c.total_cents }, lignesMail)
+    emails.envoyer(c.client_email, message)
+    b.prepare('INSERT INTO emails (commande_id, sujet, destinataire) VALUES (?, ?, ?)').run(commandeId, message.sujet, c.client_email)
     return { ok: true, effet: 'payee' }
   }
   if (type === 'charge.refunded') {
