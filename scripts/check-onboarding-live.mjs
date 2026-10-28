@@ -116,7 +116,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { fails += 
 process.on('unhandledRejection', (e) => { fails += 1; console.log('FAIL an error nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)) })
 process.on('uncaughtException', (e) => { fails += 1; console.log('FAIL an exception nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)); try { restoreSandbox() } catch (e2) { /* gone */ } verdict(); process.exit(1) })
 try {
-  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
+  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [], completeBodies: [] }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
   const answers = (url, method, postData) => {
     const path = new URL(url).pathname
@@ -168,6 +168,14 @@ try {
       return { ok: true, memory: { id: 'mem_test_1', content: body.content } }
     }
     if (path === '/kybernos-cloud/disconnect') { fake.calls.push('cloud-disconnect'); return { ok: true } }
+    // A1-kit-wizard: the complete answer is read where it leaves the page, not from the file — what this batch proves is the SEND (a green here
+    // means « the request carried theme », never « it was saved »: the store is the pack-format batch's proof). The request itself goes on.
+    if (path === '/kybernos/onboarding' && method === 'POST') {
+      let sent = null
+      try { sent = JSON.parse(postData || '{}') } catch (e) { sent = null }
+      if (sent !== null && sent.action === 'complete') fake.completeBodies.push(sent)
+      return null
+    }
     if (path === '/kybernos-models/key/check') { fake.calls.push('key-check'); return { ok: true, result: fake.keyVerdict } }
     if (path === '/modeles-locaux/installer') { fake.calls.push('install-start'); return { ok: true, demarre: true, cmd: 'ollama pull qwen3.5:9b' } }
     if (path === '/modeles-locaux/installation') {
@@ -201,7 +209,7 @@ try {
     } catch (e) { /* the page moved on */ }
   })
   await page.send('Fetch.enable', { patterns: ['kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-cloud/status', 'kybernos-cloud/memory/', 'kybernos-models/key/check',
-    'kybernos-skills/skills', 'kybernos-skills/install',
+    'kybernos-skills/skills', 'kybernos-skills/install', 'kybernos/onboarding',
     'modeles-locaux/installer', 'modeles-locaux/installation', 'free-llms/auto-enable', 'kybernos/model/auto'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' }))
     .concat([{ urlPattern: '*/modeles-locaux/machine*', requestStage: 'Response' }]) })
   await page.send('Page.reload', { ignoreCache: true })
@@ -518,12 +526,17 @@ try {
   check('Learn my business is in the same list, ticked, with its chip, what it does and the apps it is better with', kitRows.includes('Learn my business:on') && /proposes only/.test(String(await q(`document.querySelector('.kb-ob').innerText`))) && /Better with Gmail and Google Calendar/.test(String(await q(`document.querySelector('.kb-ob').innerText`))) && /It only proposes: nothing is added or switched on without your click/.test(String(await q(`document.querySelector('.kb-ob').innerText`))))
   check('the teams of the marketplace are offered and ticked', Array.isArray(kitRows) && kitRows.includes('Studencik:on') && kitRows.includes('Research Desk:on'), JSON.stringify(kitRows))
   check('the primary button counts what is ticked', /^Add 8 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))), String(await q(`document.querySelector('.kb-ob-primary').textContent`)))
+  // A1-kit-wizard, the no-style side: Education names no style preset, so the Kit screen shows no style line and the kit applies none. The seam is
+  // stood in for BEFORE the press, so that a call would be seen: with no seam at all an absent call could pass for the wrong reason.
+  await q(`(() => { window.__kbThemeReal = window.__KB_THEME_APPLY__; window.__kbThemeCalls = []; window.__KB_THEME_APPLY__ = (id) => { window.__kbThemeCalls = (window.__kbThemeCalls || []).concat([id]); return { ok: true } }; return true })()`)
+  check('a field without a style shows no style line on the Kit screen', (await q(`!document.querySelector('[data-kb-ob="kit-theme"]')`)) === true)
   await page.shot(join(shotDir, 'starter-kit.png'))
   // untick one, then add: only what is ticked is installed
   await q(`[...document.querySelectorAll('.kb-ob-kit')].find((r) => r.querySelector('b').textContent === 'docx').click()`)
   await sleep(150)
   check('a skill can be unticked', /^Add 7 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))))
   await press('Add 7 selected')
+  check('...and the kit applies no style for it: the seam is never called', (await q(`(window.__kbThemeCalls || []).length`)) === 0, JSON.stringify(await q(`window.__kbThemeCalls`)))
   check('the plan is the last thing asked, with an account on the machine: Team solo, or free', (await seen('So it keeps running without you', 40000)) !== null && (await q(`[...document.querySelectorAll('.kb-ob button')].filter((b) => !b.disabled).map((b) => b.textContent.trim()).filter((t) => /^Continue (with|for)/.test(t)).join('|')`)) === 'Continue with Team solo|Continue for free' && !/\$|€/.test(String(await q(`document.querySelector('.kb-ob').innerText`))), String(await h1()))
   await page.shot(join(shotDir, 'plan.png'))
   await press('Continue for free')
@@ -566,6 +579,12 @@ try {
   await page.send('Emulation.clearDeviceMetricsOverride', {})
   await sleep(300)
   await press('Open Kybernos')
+  // A1-kit-wizard: the batch proves the SEND. The body is read where it leaves the page (intercepted above), never from the file — a green here
+  // means « the request carried theme », and the store is the pack-format batch's proof.
+  for (let i = 0; i < 40 && fake.completeBodies.length === 0; i += 1) await sleep(250)
+  const completedBody = fake.completeBodies[fake.completeBodies.length - 1]
+  check('the complete answer carries the theme field — null here, because Education names no style', completedBody !== undefined && Object.prototype.hasOwnProperty.call(completedBody, 'theme') && completedBody.theme === null && completedBody.profil === 'edu', JSON.stringify(completedBody))
+  await q(`(() => { try { if (window.__kbThemeReal === undefined) delete window.__KB_THEME_APPLY__; else window.__KB_THEME_APPLY__ = window.__kbThemeReal } catch (e) { /* no seam */ } return true })()`)
   let st6 = null
   try { st6 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st6 = null }
   check('the memory id is kept in the onboarding file, so the next replay updates it', st6 !== null && st6.memoryId === 'mem_test_1' && st6.profil === 'edu' && JSON.stringify(st6.goals) === JSON.stringify(['exams', 'courses']) && st6.agents === 'auto' && st6.about !== undefined && st6.about !== null && st6.about.site === 'svt-lemaire.example' && st6.about.words === 'Years 10 and 11, a quiz every week.', JSON.stringify(st6))
@@ -828,6 +847,43 @@ try {
     check('the message is put back in the box, not sent', (await q(`(document.querySelector('[contenteditable="true"]') || {}).innerText`)).includes('Hello again'))
     check('and the card says so', (await q(`document.querySelector('${cardSel}').innerText`)).includes('press Enter'))
   }
+
+  /* ── 6b. the field's style rides on the kit, through the seam (A1-kit-wizard) ───────────────────────── */
+  // The Kit screen announces the field's look with one plain line — no preset name: the wire carries an id and answers ok — and the primary
+  // action applies the pack's own preset id through `window.__KB_THEME_APPLY__`, the seam the theme bundle publishes. The seam is CHAINED here:
+  // the call and its answer are recorded, and the bundle's own apply still runs, so an installed bundle really changes the look. A sandbox
+  // without that bundle proves the call and the line with a stand-in, and says so instead of passing the look check silently.
+  // Health names `cabinet-medical` (its pack's `theme`, the same id as the field catalogue's preset), so a call with any other id is a bug.
+  fake.skillsInstalled = []
+  await q(`(() => {
+    window.__kbThemeReal = window.__KB_THEME_APPLY__
+    window.__kbThemeCalls = []
+    window.__kbThemeAnswer = null
+    window.__KB_THEME_APPLY__ = (id) => {
+      window.__kbThemeCalls = (window.__kbThemeCalls || []).concat([id])
+      const real = window.__kbThemeReal
+      const answer = typeof real === 'function' ? real(id) : { ok: true }
+      window.__kbThemeAnswer = answer
+      return answer
+    }
+    return true
+  })()`)
+  await q(`window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } }))`)
+  check('the kit opens on its own again, for the style check', (await waitFor(page, `!!document.querySelector('.kb-ob')`, 20000)) === true)
+  // The field is chosen by its own name in either language the run may be in: the chips carry no id of their own.
+  await q(`(() => { const b = [...document.querySelectorAll('.kb-ob-chips-tight .kb-ob-chip')].find((x) => /^(Health|Santé)$/.test(x.textContent.trim())); if (!b) return false; b.click(); return true })()`)
+  check('a field with a style announces it on the Kit screen with one plain line, not a control', (await waitFor(page, `!!document.querySelector('[data-kb-ob="kit-theme"]')`, 8000)) !== null && (await q(`(() => { const n = document.querySelector('[data-kb-ob="kit-theme"]'); return n.tagName === 'DIV' && n.querySelectorAll('button, input, a, select, textarea').length === 0 && /applied with the kit/.test(n.textContent) && /Style/.test(n.textContent) })()`)) === true, String(await q(`(document.querySelector('[data-kb-ob="kit-theme"]') || {}).textContent`)))
+  const lookNow = () => q(`(() => { const cs = getComputedStyle(document.documentElement); return JSON.stringify([cs.getPropertyValue('--dsw-alias-bg-base').trim(), cs.getPropertyValue('--dsw-specific-sidebar-fill').trim(), getComputedStyle(document.body).backgroundColor, document.querySelectorAll('style').length, document.documentElement.getAttribute('data-kbth-brand')]) })()`)
+  const lookBefore = await lookNow()
+  const stylePressed = await q(`(() => { const b = document.querySelector('[data-kb-ob-primary]'); if (!b || b.disabled) return false; b.click(); return true })()`)
+  check('the primary action applies the field\'s preset through the seam, with the id the pack declares', stylePressed === true && (await waitFor(page, `window.__kbThemeCalls.length === 1`, 20000)) === true && JSON.stringify(await q(`window.__kbThemeCalls`)) === '["cabinet-medical"]', JSON.stringify(await q(`window.__kbThemeCalls`)))
+  check('a style that is refused or absent leaves no error state: the kit step completes as it did', (await waitFor(page, `document.querySelector('.kb-ob-state') !== null`, 20000)) !== null && (await q(`!document.querySelector('.kb-ob-state.err')`)) === true)
+  const seamAnswered = await q(`Promise.resolve(window.__kbThemeAnswer).then((a) => (a !== null && typeof a === 'object' && a.ok === true ? 'ok' : 'refused:' + String(a && a.reason ? a.reason : a))).catch(() => 'refused')`)
+  const lookAfter = await lookNow()
+  if (String(seamAnswered) !== 'ok') console.log('SKIP the look really changed: the seam answered ' + String(seamAnswered) + ' on this sandbox — the call and the line are proven, the store is A1-theme-seam\'s own proof')
+  else check('the look really changed: the store applied the preset the pack names', lookBefore !== lookAfter, JSON.stringify({ lookBefore, lookAfter }))
+  await q(`(() => { try { if (window.__kbThemeReal === undefined) delete window.__KB_THEME_APPLY__; else window.__KB_THEME_APPLY__ = window.__kbThemeReal } catch (e) { /* no seam */ } const b = document.querySelector('[data-kb-ob-primary]'); if (b) b.click(); return true })()`)
+  await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)
 
   // ...and still not there once the first run is over: a reload (the wizard is done, no model was chosen) shows the home, not DSH's dialog
   await page.send('Page.reload', { ignoreCache: true })

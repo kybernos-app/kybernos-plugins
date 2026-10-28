@@ -35772,6 +35772,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'k.done': ['Installed', 'Installé', 'Instalado', 'مثبّت'],
       'k.soon': ['Soon', 'Bientôt', 'Pronto', 'قريبًا'],
       'k.note': ['Nothing runs by itself: a skill is a file, a team is a folder. You start them from the chat.', 'Rien ne tourne tout seul : un skill est un fichier, une équipe un dossier. Tu les lances depuis le chat.', 'Nada se ejecuta solo: un skill es un archivo y un equipo una carpeta. Los inicias desde el chat.', 'لا شيء يعمل من تلقاء نفسه: المهارة ملف والفريق مجلد. تشغّلها من المحادثة.'],
+      // The look the field brings is announced, never asked: one plain line, and no preset name — the apply seam carries an id and answers ok, never a name.
+      // The page is named as the Settings menu draws it TODAY ("Theme", packages/kybernos-theme/client.js:5026); the « Style » renaming is the A5 batch's,
+      // and naming a page that does not exist yet is the dead signpost scripts/test-signposts.mjs refuses.
+      'k.theme.note': ['This field’s look is applied with the kit. Settings › Theme keeps the last word.', 'L’apparence de ce domaine s’applique avec le kit. Réglages › Thème garde le dernier mot.', 'La apariencia de este ámbito se aplica con el kit. Ajustes › Theme tiene la última palabra.', 'يُطبَّق مظهر هذا المجال مع المجموعة. الإعدادات ← Theme لها الكلمة الأخيرة.'],
       'k.busy': ['Adding {i} of {n}…', 'Ajout {i} sur {n}…', 'Añadiendo {i} de {n}…', 'جارٍ إضافة {i} من {n}…'],
       'k.err1': ['1 could not be added. You can find it later in Skills and in Agent Teams.', '1 n’a pas pu être ajouté. Tu le trouveras plus tard dans Skills et dans Agent Teams.', 'No se pudo añadir 1. Lo encontrarás más tarde en Skills y en Agent Teams.', 'تعذّرت إضافة عنصر واحد. يمكنك إيجاده لاحقًا في المهارات وفي فرق الوكلاء.'],
       'k.err': ['{n} could not be added. You can find them later in Skills and in Agent Teams.', '{n} n’ont pas pu être ajoutés. Tu les trouveras plus tard dans Skills et dans Agent Teams.', 'No se pudieron añadir {n}. Los encontrarás más tarde en Skills y en Agent Teams.', 'تعذّرت إضافة {n}. يمكنك إيجادها لاحقًا في المهارات وفي فرق الوكلاء.'],
@@ -35941,6 +35945,34 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
       return kit
     }
+    /**
+     * The style a field asks for: the pack's own `theme`, one preset id (never a colour and never a display name), or null when the pack is silent,
+     * carries something else than a non-empty string, or when there is no pack. The preset itself belongs to the theme bundle: this is a reference.
+     */
+    const kbObThemeOf = (pack) => (pack !== null && pack !== undefined && typeof pack.theme === 'string' && pack.theme.trim() !== '' ? pack.theme : null)
+    /**
+     * The seam the theme bundle publishes to apply a preset: the function, or null when nothing publishes it, when what is published is not a
+     * function, or when reading it throws. Read inside try/catch — a missing bundle is the normal case, never an error the wizard could fail on.
+     */
+    const kbObThemeSeam = (w) => {
+      try {
+        const fn = w !== null && w !== undefined ? w.__KB_THEME_APPLY__ : null
+        return typeof fn === 'function' ? fn : null
+      } catch (e) { return null }
+    }
+    /**
+     * Whether a field's look was applied: true only when the seam answers `{ ok: true }`, the only shape of the frozen wire this caller reads.
+     * Awaiting a plain object is a no-op, so a synchronous stub passes; an absent seam, a throw, `{ ok: false }`, garbage or no answer are all false.
+     * The id handed to the seam is the one the pack declares: the refusal of a store that would normalise it is a data bug, not a fallback here.
+     */
+    const kbObThemeApplied = async (w, id) => {
+      const fn = kbObThemeSeam(w)
+      if (fn === null) return false
+      try {
+        const r = await fn(id)
+        return r !== null && r !== undefined && typeof r === 'object' && r.ok === true
+      } catch (e) { return false }
+    }
     /** A skill's one-line description in a language (its own language, else English). */
     const kbObSkillText = (lang, skill) => kbObPackText(lang, skill.d)
     /** A text for matching: lower case, no accents. */
@@ -35984,8 +36016,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const KB_OB_ROWS = [['kyber', 'chat', 'kbui.kyber'], ['dashboards', 'grid', 'kbui.dashboards'], ['aiteams', 'users', 'menu.aiteams'], ['projects', 'files', 'menu.projects'], ['deliverables', 'doc', 'menu.deliverables'], ['tasks', 'repeat', 'menu.tasks'], ['skills', 'zap', 'kbui.skills'], ['connectors', 'plug', 'kbui.connecteurs'], ['documents', 'doc', 'kbui.documents']]
     /**
      * What the live miniature shows for a field and the goals ticked in it (none ticked: the first two goals, flagged `example`): the menu with the
-     * wording the pack gives, the first questions, the skills, the suggested team id and the automations of the kit. `rows` are the menu rows to draw,
-     * `{ id, label }` with the default label. `null` without a pack.
+     * wording the pack gives, the first questions, the skills, the suggested team id and the automations of the kit, and the style preset the field
+     * asks for (`theme`, an id or null). `rows` are the menu rows to draw, `{ id, label }` with the default label. `null` without a pack.
      */
     const kbObPreviewOf = (pack, goalIds, lang, rows) => {
       if (pack === null || pack === undefined) return null
@@ -35996,7 +36028,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const menu = (Array.isArray(rows) ? rows : []).filter((r) => overlay.hide.indexOf(r.id) < 0).map((r) => ({ id: r.id, label: typeof overlay.labels[r.id] === 'string' ? overlay.labels[r.id] : r.label }))
       const starters = kbObGoalsOf(pack, ids).map((g) => kbObPackText(lang, g.starter)).filter((t) => t !== '')
       return {
-        example: !ticked, accent: pack.accent, icon: pack.icon, name: kbObPackText(lang, pack.name), menu: menu, starters: starters.slice(0, 3),
+        example: !ticked, accent: pack.accent, icon: pack.icon, name: kbObPackText(lang, pack.name), theme: kbObThemeOf(pack), menu: menu, starters: starters.slice(0, 3),
         skills: kit.skills.map((x) => x.name).slice(0, 7), teams: kit.teams.slice(0, 1), autos: kit.autos.map((x) => kbObPackText(lang, x.name)).slice(0, 3),
         goalCount: ticked ? ids.length : 0,
       }
@@ -36219,6 +36251,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         accountEmail: null, accountModels: null,
         // the starter kit: what is installed, what is ticked, the run in progress, and what failed
         kitInstalled: null, kitSel: null, kitBusy: null, kitFailed: 0, kitAdded: 0, kitDone: false, kitOnly: false,
+        // the look the kit applied: the field's preset id, or null when there is none, it was refused or no seam answers. Sent as it is.
+        theme: null,
         // the memory written about the profession: its id, and where the write stands (null, 'saving', 'saved', 'failed')
         memoryId: null, memState: null,
         // « What we set up for you » on the end screen: null until read, then the rows (kbObSetupRows)
@@ -36355,7 +36389,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card or from a page that suggests the kit (standalone), the wizard is not the first run: the
         // onboarding file is left alone.
-        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, customGoals: S.custom, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
+        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, customGoals: S.custom, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, theme: S.theme, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
         // Free models (no account): wire them in on the first run, but only when the person brings no
         // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
         // re-checks both guardrails before writing the route, so a stale client can never force it.
@@ -36660,6 +36694,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.domain = pk.id
         S.goals = pk.goals.slice(0, 2).map((x) => x.id)
         S.kitSel = null
+        // The look of the field that was left is no longer what this run may claim: only a kit added for THIS field sets it again.
+        S.theme = null
         if (!S.modeTouched) S.mode = kbObModeOf(pk)
         if (!S.agentsTouched) S.agents = kbObAgentsOf(pk).preset
       }
@@ -36916,6 +36952,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.kitBusy = null
         S.kitInstalled = null
         S.kitSel = null
+        // The field's look rides on the kit (bound decision D7): applied once, after what was ticked is in, through the seam the theme bundle
+        // publishes. Only `ok` is read, and only when the pack names a style: an absent seam, a refusal or a throw leaves today's look untouched
+        // and sends null — never an error state, never a blocked step. The id kept is the one the pack declares.
+        const themeId = kbObThemeOf(curPack())
+        S.theme = themeId !== null && (await kbObThemeApplied(win, themeId)) ? themeId : null
         if (S.kitOnly) { S.kitDone = true; render(false); kitLoad() } else afterKit()
       }
 
@@ -37414,7 +37455,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             pg.setAttribute('role', 'radiogroup')
             for (const pk of S.packs) {
               pg.appendChild(chip(packName(pk), S.domain === pk.id, () => {
-                if (S.domain !== pk.id) { S.domain = pk.id; S.goals = pk.goals.map((x) => x.id); S.kitSel = null; S.kitDone = false; saveDomain() }
+                if (S.domain !== pk.id) { S.domain = pk.id; S.goals = pk.goals.map((x) => x.id); S.kitSel = null; S.kitDone = false; S.theme = null; saveDomain() }
                 render(false)
               }))
             }
@@ -37502,6 +37543,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.learn === null && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
           s.appendChild(note(T('k.note'), 'info'))
+          }
+          // The look the field brings is announced before the press, one plain line and no control of its own: the primary action applies it,
+          // « Not now » leaves today's look (bound decision D7). Drawn only when the field names a style AND something publishes the seam —
+          // a field without a style, or a machine without the theme bundle, shows today's screen exactly. The frozen wire carries an id, never a
+          // display name, so no preset name is written here; the line reuses the note primitive, so no colour, class or layout is added.
+          if (kbObThemeOf(curPack()) !== null && kbObThemeSeam(win) !== null) {
+            const themeNote = note(T('k.theme.note'), 'info')
+            themeNote.setAttribute('data-kb-ob', 'kit-theme')
+            s.appendChild(themeNote)
           }
           if (S.kitDone) {
             const st = h('div', 'kb-ob-state' + (S.kitFailed > 0 ? ' err' : ' ok'))
