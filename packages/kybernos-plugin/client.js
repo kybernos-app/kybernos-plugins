@@ -25930,9 +25930,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const pendingAutos = kitAutos.filter((it) => want.automations.indexOf(idOf(it)) >= 0 && haveAutos.has(kbThLabel(it.name)) === false)
         // The shell: the click consented the style AND the field, so a field that is already the theme's says the look was applied too.
         const styleThere = want.style === true && domainThere === true && kbThPlain(plan.style)
-        for (const it of kitSkills) if (want.skills.indexOf(nameOf(it)) < 0) report.skipped.push({ kind: 'skill', id: nameOf(it), file: fileOf(it) })
-        for (const it of kitTeams) if (want.teams.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'team', id: idOf(it), file: fileOf(it) })
-        for (const it of kitAutos) if (want.automations.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'automation', id: idOf(it), file: fileOf(it) })
+        // A skipped item carries its own name (W1): a skill is keyed by its name, a team and an automation by their id, and the
+        // label is the text the plan showed. The report draws what the applier names; it never mints a name of its own.
+        for (const it of kitSkills) if (want.skills.indexOf(nameOf(it)) < 0) report.skipped.push({ kind: 'skill', id: nameOf(it), name: nameOf(it), file: fileOf(it) })
+        for (const it of kitTeams) if (want.teams.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'team', id: idOf(it), name: kbThLabel(it.name) || idOf(it), file: fileOf(it) })
+        for (const it of kitAutos) if (want.automations.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'automation', id: idOf(it), name: kbThLabel(it.name) || idOf(it), file: fileOf(it) })
         for (const it of kitSkills) if (want.skills.indexOf(nameOf(it)) >= 0 && haveSkills.has(nameOf(it))) report.present.push({ kind: 'skill', id: nameOf(it), file: fileOf(it) })
         for (const it of kitTeams) if (want.teams.indexOf(idOf(it)) >= 0 && haveTeams.has(idOf(it))) report.present.push({ kind: 'team', id: idOf(it), file: fileOf(it) })
         for (const it of kitAutos) if (want.automations.indexOf(idOf(it)) >= 0 && haveAutos.has(kbThLabel(it.name))) report.present.push({ kind: 'automation', id: idOf(it), file: fileOf(it) })
@@ -30599,6 +30601,53 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       push('failed', ['1 étape en échec', '1 step failed'], ['{n} étapes en échec', '{n} steps failed'], r.failed)
       return { rows }
     }
+    /* ── The sources row (A6:41 + INT5). Configuration, so it lives in Settings: a bounded list of https addresses (A6:289), each
+     * with the key the person pinned, read from A6's own answer and written through A6's own route (`source-add` / `source-remove`,
+     * theme-installer.mjs:684-702) — never a second path, never a file of its own. Everything that comes from an added source is
+     * Community level (plugin-contract.md:470-473), and the key is shown with its warning. ── */
+    const MARKET_SOURCES_MAX = 3
+    const MARKET_KEY_ID_MAX = 64
+    const MARKET_KEY_PEM_MAX = 4000
+    /** The route's bounded source list, read as it came: `{ url, keyId, pinned }` per entry; the route never sends the key back. */
+    const marketSources = (view) => {
+      const list = view !== null && typeof view === 'object' && Array.isArray(view.sources) ? view.sources : []
+      const out = []
+      for (const s of list) {
+        if (s === null || typeof s !== 'object') continue
+        const url = typeof s.url === 'string' ? s.url.trim() : ''
+        if (url === '') continue
+        out.push({ url, keyId: typeof s.keyId === 'string' ? s.keyId : '', pinned: s.pinned === true })
+      }
+      return out
+    }
+    /** The route's own https rule, checked in place so a typo costs no round-trip (the route still decides, and stays the only guard). */
+    const marketSourceUrlOk = (url) => /^https:\/\/[^\s]{1,2000}$/.test(String(url === null || url === undefined ? '' : url).trim())
+    /** The body `source-add` takes, exactly the route's shape; `null` when the address is not one (nothing is sent). */
+    const marketSourceAdd = (url, key) => {
+      const u = String(url === null || url === undefined ? '' : url).trim()
+      if (marketSourceUrlOk(u) !== true) return null
+      const body = { action: 'source-add', url: u }
+      const k = key !== null && typeof key === 'object' ? key : null
+      if (k !== null) {
+        const keyId = typeof k.keyId === 'string' ? k.keyId.trim() : ''
+        const pem = typeof k.pem === 'string' ? k.pem.trim() : ''
+        if (keyId !== '' && keyId.length <= MARKET_KEY_ID_MAX && pem !== '' && pem.length <= MARKET_KEY_PEM_MAX) body.key = { keyId, pem }
+      }
+      return body
+    }
+    /** The body `source-remove` takes; `null` for no address. */
+    const marketSourceRemove = (url) => {
+      const u = String(url === null || url === undefined ? '' : url).trim()
+      return u === '' ? null : { action: 'source-remove', url: u }
+    }
+    /** The route's own refusal of a source write, in the person's words; an unknown code is shown as it came, never hidden. */
+    const marketSourceError = (answer, lang) => {
+      const code = answer !== null && typeof answer === 'object' && typeof answer.error === 'string' ? answer.error : ''
+      if (code === 'an https address is expected') return marketSay(['Une adresse https est attendue.', 'An https address is expected.'], lang)
+      if (code === 'too-many-sources') return marketSay(['Trois sources au maximum.', 'Three sources at most.'], lang)
+      if (code === '') return marketSay(['La source n’a pas été enregistrée.', 'The source was not saved.'], lang)
+      return code
+    }
     // KB-MARKET-PURE-END
 
     // KB-MARKET-UI-BEGIN
@@ -30622,6 +30671,84 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       if (error === 'refused') return marketSay(['Le vérificateur a écarté cette entrée.', 'The verifier refused this entry.'], lang)
       if (error === 'installer-failed') return marketSay(['L’installateur n’a pas répondu.', 'The installer did not answer.'], lang)
       return error
+    }
+    /**
+     * The Settings row of the catalogue sources (A6:41 "a bounded field row in Settings, not on the page", INT5, A6:289): the list,
+     * an add and a remove, data only. Every write is A6's own route (`source-add` / `source-remove` through `kbThApi`, the same door
+     * the page reads) — no second path, no file of its own, and the listing beside it never adds or removes a source. The fields are
+     * bounded (https, at most three sources, capped key fields), and the pinned key is shown with its warning. Mounts make no call.
+     */
+    const KbMarketSources = (props) => {
+      const p = props !== null && props !== undefined && typeof props === 'object' ? props : {}
+      const lang = p.lang === 'fr' ? 'fr' : 'en'
+      const say = (row) => marketSay(row, lang)
+      const sources = marketSources(p.view)
+      const reload = typeof p.reload === 'function' ? p.reload : null
+      const [url, setUrl] = React.useState('')
+      const [keyId, setKeyId] = React.useState('')
+      const [pem, setPem] = React.useState('')
+      const [busy, setBusy] = React.useState(null)
+      const [note, setNote] = React.useState(null)
+      const full = sources.length >= MARKET_SOURCES_MAX
+      const ready = marketSourceUrlOk(url) === true && full === false && busy === null
+      // The route door A6 already publishes for the page: same origin, same signed session, no new fetch of our own.
+      const route = (body) => {
+        try { return typeof kbThApi === 'function' ? kbThApi(body) : Promise.resolve(null) } catch (e) { return Promise.resolve(null) }
+      }
+      const answerOf = (answer, done) => {
+        if (answer !== null && typeof answer === 'object' && answer.ok === true) {
+          setUrl('')
+          setKeyId('')
+          setPem('')
+          setNote({ tone: 'ok', text: done })
+        } else setNote({ tone: 'err', text: marketSourceError(answer, lang) })
+        // The route's answer is the truth: re-read it rather than patching the list from what we just sent.
+        if (reload !== null) reload()
+      }
+      const addSource = async () => {
+        const body = marketSourceAdd(url, { keyId, pem })
+        if (body === null || busy !== null || full) return
+        setBusy('add')
+        const answer = await route(body)
+        setBusy(null)
+        answerOf(answer, say(['Source ajoutée.', 'Source added.']))
+      }
+      const removeSource = async (source) => {
+        const body = marketSourceRemove(source.url)
+        if (body === null || busy !== null) return
+        setBusy('remove')
+        const answer = await route(body)
+        setBusy(null)
+        answerOf(answer, say(['Source retirée : les thèmes déjà installés restent.', 'Source removed: the themes already installed stay.']))
+      }
+      const pin = (s) => s.pinned === true
+        ? say(['Clé épinglée', 'Key pinned']) + (s.keyId !== '' ? ' · ' + s.keyId : '')
+        : say(['Aucune clé épinglée : cette source n’est pas vérifiable.', 'No key pinned: this source cannot be verified.'])
+      return h('section', { className: 'kbtm-src', 'data-kb': 'kb-market-sources' },
+        h('div', { className: 'kbtm-src-head' },
+          h('h3', { className: 'kbtm-src-title' }, say(['Sources du catalogue', 'Catalogue sources'])),
+          h('span', { className: 'kbtm-src-count', 'data-kb': 'kb-market-sources-count' }, say(['{n} sur 3', '{n} of 3']).replace('{n}', String(sources.length)))),
+        h('p', { className: 'kbtm-src-warn', 'data-kb': 'kb-market-sources-warn' }, say([
+          'Un catalogue que tu ajoutes est lu avec sa propre clé, épinglée à la première utilisation et affichée ci-dessous : tout ce qui en vient est de niveau Communauté, et retirer la source retire cette confiance — jamais les thèmes déjà installés.',
+          'A catalogue you add is read with its own key, pinned on first use and shown below: everything that comes from it is Community level, and removing the source drops that trust — never the themes already installed.'])),
+        (sources.length === 0 ? null
+          : h('ul', { className: 'kbtm-src-list', 'data-kb': 'kb-market-sources-list' }, sources.map((s) => h('li', { key: s.url, className: 'kbtm-src-row', 'data-kb': 'kb-market-source' },
+            h('code', { className: 'kbtm-src-url', title: s.url }, s.url),
+            h('span', { className: 'kbtm-src-pin', 'data-pinned': s.pinned === true ? '1' : '0' }, pin(s)),
+            h('button', { type: 'button', className: 'kbtm-src-del', 'data-kb': 'kb-market-source-remove', disabled: busy !== null, onClick: () => removeSource(s) }, say(['Retirer', 'Remove'])))))),
+        h('div', { className: 'kbtm-src-add' },
+          h('label', { className: 'kbtm-src-field' },
+            h('span', null, say(['Adresse https du catalogue', 'Catalogue https address'])),
+            h('input', { type: 'url', className: 'kbtm-src-in', 'data-kb': 'kb-market-source-url', value: url, maxLength: 2000, placeholder: 'https://example.org/catalogue.json', disabled: full, onChange: (e) => setUrl(e.target.value) })),
+          h('label', { className: 'kbtm-src-field' },
+            h('span', null, say(['Identifiant de la clé', 'Key id'])),
+            h('input', { type: 'text', className: 'kbtm-src-in', 'data-kb': 'kb-market-source-keyid', value: keyId, maxLength: MARKET_KEY_ID_MAX, placeholder: 'cat-1', disabled: full, onChange: (e) => setKeyId(e.target.value) })),
+          h('label', { className: 'kbtm-src-field kbtm-src-wide' },
+            h('span', null, say(['Clé publique du catalogue (facultative)', 'Catalogue public key (optional)'])),
+            h('textarea', { className: 'kbtm-src-in kbtm-src-pem', 'data-kb': 'kb-market-source-pem', value: pem, maxLength: MARKET_KEY_PEM_MAX, rows: 2, placeholder: '-----BEGIN PUBLIC KEY-----', disabled: full, onChange: (e) => setPem(e.target.value) })),
+          h('button', { type: 'button', className: 'kbm-btn kbtm-src-submit', 'data-kb': 'kb-market-source-add', disabled: ready !== true, onClick: addSource },
+            full === true ? say(['Trois sources au maximum', 'Three sources at most']) : (busy === 'add' ? say(['Ajout…', 'Adding…']) : say(['Ajouter la source', 'Add the source'])))),
+        (note === null ? null : h('p', { className: note.tone === 'err' ? 'kbtm-src-note kbtm-src-err' : 'kbtm-src-note', role: note.tone === 'err' ? 'alert' : 'status', 'data-kb': 'kb-market-sources-note' }, String(note.text))))
     }
     const KbThemesMarket = () => {
       const lang = kbMarketLang()
@@ -30696,6 +30823,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
         h('div', { className: 'kbtm-head' },
           h('h2', { className: 'kbtm-h1' }, say(['Thèmes', 'Themes'])),
           h('p', { className: 'kbtm-sub' }, say(['Les thèmes sectoriels que publient les catalogues que tu as ajoutés.', 'The sector themes published by the catalogues you added.']))),
+        h(KbMarketSources, { lang, view, reload: relire }),
         (etat.phase === 'loading' ? h('p', { className: 'kbtm-note', 'data-kb': 'kb-market-loading' }, say(['Lecture du catalogue…', 'Reading the catalogue…'])) : null),
         (etat.phase === 'error' ? h('div', { className: 'kbtm-state', 'data-kb': 'kb-market-state', 'data-state': 'unreachable', role: 'status' }, say(['Le catalogue n’a pas répondu.', 'The catalogue did not answer.'])) : null),
         (leftOut !== null ? h('div', { className: 'kbtm-leftout' },
@@ -30728,6 +30856,25 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       '.kbtm-report{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--dsw-alias-border-l1);font-size:12px}',
       '.kbtm-row{display:flex;align-items:center;gap:8px}',
       '.kbtm-swatch{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--dsw-alias-border-l1)}',
+      '.kbtm-src{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
+      '.kbtm-src-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}',
+      '.kbtm-src-title{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+      '.kbtm-src-count{font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-warn{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}',
+      '.kbtm-src-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}',
+      '.kbtm-src-url{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary)}',
+      '.kbtm-src-pin{font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-del{height:26px;padding:0 10px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer}',
+      '.kbtm-src-del:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbtm-src-add{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:end}',
+      '.kbtm-src-field{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-wide{grid-column:1 / -1}',
+      '.kbtm-src-in{height:30px;box-sizing:border-box;min-width:0;padding:0 10px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}',
+      '.kbtm-src-pem{height:auto;padding:6px 10px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}',
+      '.kbtm-src-submit{justify-self:start}',
+      '.kbtm-src-note{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-err{color:var(--dsw-alias-state-error-primary)}',
     ].join('\n')
     ctx.effect(() => {
       try {

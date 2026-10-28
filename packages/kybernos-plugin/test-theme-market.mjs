@@ -7,7 +7,7 @@
 //
 // Usage: node packages/kybernos-plugin/test-theme-market.mjs   (exit 0 = everything passes)
 import { createHash, generateKeyPairSync, sign } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,7 +18,7 @@ const src = readFileSync(here + 'client.js', 'utf8')
 const pure = /\/\/ KB-MARKET-PURE-BEGIN([\s\S]*?)\/\/ KB-MARKET-PURE-END/.exec(src)
 const ui = /\/\/ KB-MARKET-UI-BEGIN([\s\S]*?)\/\/ KB-MARKET-UI-END/.exec(src)
 if (pure === null || ui === null) { console.error('BLOCKS KB-MARKET-PURE / KB-MARKET-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'marketCards, marketSay, marketField, marketLevelLabel, marketLevelHelp, marketLeftOut, marketRefusals, marketNameOf, LEVELS, LEVEL_LABEL, LEVEL_HELP, kitLine, marketState, marketInstallable, marketInstall, marketReport, marketCount'
+const names = 'marketCards, marketSay, marketField, marketLevelLabel, marketLevelHelp, marketLeftOut, marketRefusals, marketNameOf, LEVELS, LEVEL_LABEL, LEVEL_HELP, kitLine, marketState, marketInstallable, marketInstall, marketReport, marketCount, marketSources, marketSourceUrlOk, marketSourceAdd, marketSourceRemove, marketSourceError, MARKET_SOURCES_MAX'
 const mod = await import('data:text/javascript,' + encodeURIComponent(pure[1] + '\nexport { ' + names + ' }'))
 // A6's own applier, cut out of the shipped page the way the probe cuts it: the report is fed the answer the PRODUCT produces.
 const core = /\/\/ KB-TH-CORE-BEGIN([\s\S]*?)\/\/ KB-TH-CORE-END/.exec(src)
@@ -234,6 +234,23 @@ const fakePorts = {
   check('a report with nothing to say says nothing', Array.isArray(nothing.rows) && nothing.rows.length === 0, nothing)
   const french = mod.marketReport({ report: { added: 1 } }, null, 'fr')
   check('the report speaks French in French', french.rows[0].text === '1 élément ajouté', french.rows)
+  // W1 (the adversarial re-review measured this proof had been deleted): the skipped and failed rows are drawn from the product's
+  // OWN answer too — an un-ticked kit item is skipped, refused writes are counted — and the counter shape the seam also takes keeps
+  // its proof (a second case, never a weaker first one). client.js:30593-30599.
+  const postAs = (post) => Object.assign({}, fakePorts, { post })
+  const unTicked = { style: true, goals: ['patients'], skills: [], teams: ['care-team'], automations: [] }
+  const angry = await coreMod.kbThApply(PLAN, unTicked, postAs(async () => ({ ok: false })))
+  const angryRows = mod.marketReport({ ok: true, id: PLAN.id, version: '1.0.0', report: angry, plan: PLAN }, PLAN, 'en').rows
+  check('a real answer whose item was un-ticked draws its skipped row, named by the applier itself',
+    Array.isArray(angry.skipped) && angry.skipped.length === 1 && angryRows.some((r) => r.kind === 'skipped' && r.text === 'patient-notes'), { skipped: angry.skipped, rows: angryRows })
+  check('a real answer whose writes were refused draws the failed line, plural',
+    angry.failed === 3 && angryRows.some((r) => r.kind === 'failed' && r.count === 3 && r.text === '3 steps failed'), { failed: angry.failed, rows: angryRows })
+  const single = await coreMod.kbThApply(PLAN, { style: true, goals: ['patients'], skills: ['patient-notes'], teams: ['care-team'], automations: [] }, postAs(async (path) => (path === '/kybernos/create' ? { ok: false } : { ok: true })))
+  check('one failed step is the singular line', single.failed === 1 && mod.marketReport({ ok: true, report: single, plan: PLAN }, PLAN, 'en').rows.some((r) => r.kind === 'failed' && r.text === '1 step failed'), single)
+  const counters = { ok: true, id: PLAN.id, version: '1.0.0', report: { added: 5, skipped: 2, failed: 1 }, plan: PLAN }
+  eq('the counter answer draws style, kit, added, skipped and failed', mod.marketReport(counters, PLAN, 'en').rows.map((r) => r.kind), ['style', 'kit', 'added', 'skipped', 'failed'])
+  eq('the counters read 5 / 2 / 1 in English', mod.marketReport(counters, PLAN, 'en').rows.slice(2).map((r) => r.text), ['5 items added', '2 items skipped', '1 step failed'])
+  eq('and in French', mod.marketReport(counters, PLAN, 'fr').rows.slice(2).map((r) => r.text), ['5 éléments ajoutés', '2 éléments ignorés', '1 étape en échec'])
 }
 
 /* ── 8. The blocks themselves: pure, guarded, and where they must be ─────────────────────────────────────────────────────────── */
@@ -259,6 +276,104 @@ const fakePorts = {
   check('the Settings menu knows the section: a nav key, an icon and the Interface group\'s word', /'kybernos-themes-market': 'themes'/.test(src) && /'themes': '<path/.test(src) && /id: 'look'[^}]*mots: \['theme', 'themes', 'langue', 'language'\]/.test(src))
   check('the registration is guarded, so a broken listing never stops the bundle from starting', /ctx\.effect\(\(\) => \{\s*try \{/.test(ui[1]) && /catch \(e\) \{ return undefined \}/.test(ui[1]))
   check('the listing uses the host\'s shell classes and its own prefix only', !/(^|[^a-z-])kb[0-9a-z]*-[a-z]+\{/.test(ui[1].replace(/\.kbtm-[^{]*\{/g, '')))
+}
+
+/* ── 10. The Settings row of the sources (A6:41, INT5, A6:289): bounded fields, A6's own route, the pinned key shown ──────────── */
+{
+  const listed = mod.marketSources(VIEW)
+  check('the row lists the route\'s own sources, with the pinned key id',
+    listed.length === 1 && listed[0].url === SOURCE && listed[0].keyId === 'cat-1' && listed[0].pinned === true, listed)
+  check('a source the route lists without a key is shown as not pinned', mod.marketSources({ ok: true, sources: [{ url: SOURCE, keyId: null, pinned: false }] })[0].pinned === false)
+  check('an entry without an address makes no row (a row never invents an address)', mod.marketSources({ ok: true, sources: [{ keyId: 'k' }, null, 'https://x.invalid/c.json', { url: '  ' }] }).length === 0)
+  check('https only, the route\'s own rule, and the address is bounded',
+    mod.marketSourceUrlOk('https://example.invalid/c.json') === true && mod.marketSourceUrlOk('http://example.invalid/c.json') === false &&
+    mod.marketSourceUrlOk('') === false && mod.marketSourceUrlOk('https://' + 'x'.repeat(2001)) === false)
+  eq('the add body is the route\'s own shape, its key optional', mod.marketSourceAdd(' https://example.invalid/c.json ', null), { action: 'source-add', url: 'https://example.invalid/c.json' })
+  eq('with the key the person pinned, its edges trimmed', mod.marketSourceAdd(SOURCE, { keyId: ' cat-1 ', pem: ' ' + MINE.pem + ' ' }), { action: 'source-add', url: SOURCE, key: { keyId: 'cat-1', pem: MINE.pem.trim() } })
+  check('an address that is not https sends nothing', mod.marketSourceAdd('http://x.invalid/c.json', { keyId: 'k', pem: MINE.pem }) === null)
+  check('an oversized key field is not sent (the fields are bounded)', mod.marketSourceAdd(SOURCE, { keyId: 'k', pem: 'x'.repeat(4001) }).key === undefined)
+  eq('the remove body is the route\'s own shape', mod.marketSourceRemove(SOURCE), { action: 'source-remove', url: SOURCE })
+  check('the route\'s own refusals are said in the person\'s words, an unknown code passes through',
+    mod.marketSourceError({ error: 'too-many-sources' }, 'en') === 'Three sources at most.' &&
+    mod.marketSourceError({ error: 'an https address is expected' }, 'fr') === 'Une adresse https est attendue.' &&
+    mod.marketSourceError({ error: 'odd' }, 'en') === 'odd' && mod.marketSourceError(null, 'en') === 'The source was not saved.')
+  // The real route accepts the row's own bodies, and answers back exactly what the row draws: the caller is a caller, not text.
+  const dir = mkdtempSync(join(tmpdir(), 'kb-market-src-'))
+  try {
+    const store = { dir }
+    const ports = { sameOrigin: () => true, session: () => true }
+    const added = handleThemes(store, { method: 'POST', body: mod.marketSourceAdd(SOURCE, { keyId: 'cat-1', pem: MINE.pem }) }, ports)
+    check('A6\'s route accepts the row\'s add body', added.status === 200 && added.body.ok === true, added)
+    const afterAdd = mod.marketSources(handleThemes(store, { method: 'GET' }, ports).body)
+    check('the route answers back what the row draws: the address, its key id, pinned', afterAdd.length === 1 && afterAdd[0].url === SOURCE && afterAdd[0].keyId === 'cat-1' && afterAdd[0].pinned === true, afterAdd)
+    const removed = handleThemes(store, { method: 'POST', body: mod.marketSourceRemove(SOURCE) }, ports)
+    check('A6\'s route accepts the row\'s remove body, and the list reads empty again',
+      removed.status === 200 && removed.body.removed === true && mod.marketSources(handleThemes(store, { method: 'GET' }, ports).body).length === 0, removed)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+  // The caller proof at the block level: the row hands A6's door the two actions and opens no door of its own.
+  check('the row calls source-add and source-remove through A6\'s route door, and adds no second one',
+    /marketSourceAdd\(/.test(ui[1]) && /marketSourceRemove\(/.test(ui[1]) && /kbThApi\(body\)/.test(ui[1]) &&
+    !/fetch\(/.test(ui[1].replace(/fetch\('\/kybernos\/themes'[^)]*\)/, '')))
+  check('the row is a Settings surface: drawn by the section, with its warning and its bound of three',
+    /h\(KbMarketSources, \{ lang, view, reload: relire \}\)/.test(ui[1]) && /'data-kb': 'kb-market-sources'/.test(ui[1]) &&
+    /Community level/.test(ui[1]) && /'\{n\} sur 3'/.test(ui[1]) && /MARKET_SOURCES_MAX/.test(ui[1]))
+
+  // The row really RENDERS, and its clicks reach A6's route: the UI block is evaluated with a three-line React stub (the block's
+  // registration effects are stubbed too), the tree is walked like a person would, and the handler is called.
+  const stub = [
+    'const calls = []',
+    'const hooks = []',
+    'let hookAt = 0',
+    "const React = { useState: (init) => { const i = hookAt++; if (!(i in hooks)) hooks[i] = init; return [hooks[i], (v) => { hooks[i] = typeof v === 'function' ? v(hooks[i]) : v }] }, createElement: (t, p, ...c) => ({ t, p, c }) }",
+    'const h = React.createElement',
+    'const ctx = { effect: () => undefined }',
+    'const slots = { inject: () => undefined, register: () => ({}) }',
+    'const styles = { insert: () => undefined }',
+    "const kbLangResolve = () => 'en'",
+    'const kbThApi = (body) => { calls.push(body); return Promise.resolve({ ok: true }) }',
+  ].join('\n') + '\n'
+  // A real file rather than a data: URL: a bad extraction then fails with a line in the block, not a 15 KB encoded message.
+  const uiDir = mkdtempSync(join(tmpdir(), 'kb-market-ui-'))
+  const uiFile = join(uiDir, 'block.mjs')
+  // The pure block comes with it: the row reads its bodies from there, the way the real factory does. The stub owns the hooks and
+  // the recorded calls (a temp module does not share this file's scope), and exports `renderRow` to render it.
+  writeFileSync(uiFile, pure[1] + '\n' + stub + ui[1] +
+    "\nconst renderRow = (props) => { hookAt = 0; return KbMarketSources(props) }\nexport { KbMarketSources, renderRow, calls }\n")
+  const uiMod = await import('file://' + uiFile)
+  const render = uiMod.renderRow
+  const calls = uiMod.calls
+  const walk = (node, out) => {
+    if (node === null || typeof node !== 'object') return out
+    if (Array.isArray(node)) { for (const n of node) walk(n, out); return out }
+    out.push(node)
+    walk(node.c, out)
+    return out
+  }
+  const by = (tree, kb, tag) => walk(tree, []).filter((n) => n.p !== null && typeof n.p === 'object' && n.p['data-kb'] === kb && (tag === undefined || n.t === tag))[0]
+  const rowTree = render({ lang: 'en', view: { ok: true, sources: [{ url: SOURCE, keyId: 'cat-1', pinned: true }] }, reload: null })
+  check('the row renders the route\'s source, its pinned key and the warning, inside the Settings block',
+    by(rowTree, 'kb-market-source') !== undefined && JSON.stringify(rowTree).indexOf(SOURCE) >= 0 &&
+    JSON.stringify(rowTree).indexOf('Key pinned · cat-1') >= 0 && JSON.stringify(rowTree).indexOf('Community level') >= 0)
+  const removeBtn = by(rowTree, 'kb-market-source-remove', 'button')
+  check('the row offers a Remove per source', removeBtn !== undefined)
+  if (removeBtn !== undefined) {
+    calls.length = 0
+    await removeBtn.p.onClick()
+    check('the Remove click sends A6\'s own remove body to A6\'s own door', JSON.stringify(calls) === JSON.stringify([{ action: 'source-remove', url: SOURCE }]), calls)
+  }
+  const emptyTree = render({ lang: 'en', view: { ok: true, sources: [] }, reload: null })
+  const urlField = by(emptyTree, 'kb-market-source-url', 'input')
+  check('the add fields are bounded and https-only (the button stays disabled until a valid address)', urlField !== undefined && urlField.p.maxLength === 2000 && by(emptyTree, 'kb-market-source-add', 'button').p.disabled === true)
+  if (urlField !== undefined) urlField.p.onChange({ target: { value: 'https://self.invalid/catalogue.json' } })
+  const typed = render({ lang: 'en', view: { ok: true, sources: [] }, reload: null })
+  const addBtn = by(typed, 'kb-market-source-add', 'button')
+  check('a valid https address enables the add, which sends A6\'s own add body', addBtn.p.disabled === false)
+  calls.length = 0
+  await addBtn.p.onClick()
+  check('the Add click sends A6\'s own add body to A6\'s own door', JSON.stringify(calls) === JSON.stringify([{ action: 'source-add', url: 'https://self.invalid/catalogue.json' }]), calls)
+  const frenchRow = render({ lang: 'fr', view: { ok: true, sources: [{ url: SOURCE, keyId: 'cat-1', pinned: true }] }, reload: null })
+  check('the row speaks French in French', JSON.stringify(frenchRow).indexOf('Sources du catalogue') >= 0 && JSON.stringify(frenchRow).indexOf('Clé épinglée · cat-1') >= 0)
+  rmSync(uiDir, { recursive: true, force: true })
 }
 
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')

@@ -234,7 +234,7 @@ ok('A1-14: no bundle introduces a font-size value that is not already in use (th
 // A1-16 (UX audit 2026-10-20): titles, labels, column headers and badges are written in sentence case, so no stylesheet shouts them with
 // text-transform: uppercase. The few that stay are design, not labels: the Beta pill (pinned by test-newchat), the initials of an avatar,
 // the kicker and footer of a slide, the tiny labels drawn inside a dashboard thumbnail. A new one is a label: write it in sentence case.
-const SHOUTING_ALLOWED = { 'kybernos-plugin': 1, 'kybernos-refs': 1, 'kybernos-slides': 2, 'kybernos-dashboards': 2, 'kybernos-log': 1 }
+const SHOUTING_ALLOWED = { 'kybernos-plugin': 1, 'kybernos-refs': 1, 'kybernos-slides': 2, 'kybernos-dashboards': 2 }
 ok('A1-16: no bundle shouts a label with text-transform: uppercase (the Beta pill, avatar initials, slide kicker and dashboard thumbnails are the only ones)', () => {
   const over = []
   for (const b of bundles) {
