@@ -1066,11 +1066,27 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Rien n’a été envoyé : colle-les toi-même dans un message à contact@kybernos.app.', en: 'Copied: {n} entries. Nothing was sent: paste them into a message to contact@kybernos.app yourself.' },
       // « Send » (a signed-in person's way to the team): the sentences of what the relay answered. Each failure says that NOTHING was sent, or what is kept.
       'kbui.fb.send': { kybernos: 'Envoyer à l’équipe Kybernos', en: 'Send to the Kybernos team' },
+      'kbui.fb.send.anon': { kybernos: 'Envoyer à l’équipe (sans compte)', en: 'Send to the team (no account)' },
       'kbui.fb.sending': { kybernos: 'Envoi…', en: 'Sending…' },
       'kbui.fb.sent': { kybernos: 'Envoyé à l’équipe Kybernos. Merci !', en: 'Sent to the Kybernos team. Thank you.' },
+      'kbui.fb.queued': { kybernos: 'Enregistré sur cet ordinateur : il partira dès que le serveur répondra. Tes captures sont gardées avec.', en: 'Saved on this computer: it will leave as soon as the server answers. Your screenshots are kept with it.' },
+      'kbui.fb.sent.attached': { kybernos: 'Envoyé à l’équipe Kybernos avec {n} capture(s). Merci !', en: 'Sent to the Kybernos team with {n} screenshot(s). Thank you.' },
+      // Screenshots: the person attaches them himself (paste, drop, or a file). The page never captures the screen on its own.
+      'kbui.fb.shots': { kybernos: 'Captures d’écran', en: 'Screenshots' },
+      'kbui.fb.shots.optional': { kybernos: 'optionnel', en: 'optional' },
+      'kbui.fb.shots.drop': { kybernos: 'Colle une capture (⌘V) ou dépose-la ici', en: 'Paste a screenshot (⌘V) or drop it here' },
+      'kbui.fb.shots.add': { kybernos: 'Ajouter un fichier', en: 'Add a file' },
+      'kbui.fb.shots.hint': { kybernos: 'Jusqu’à 3 images, 5 Mo chacune. Rien n’est joint sans ton geste : la page ne capture jamais ton écran toute seule.', en: 'Up to 3 images, 5 MB each. Nothing is attached without your gesture: the page never captures your screen on its own.' },
+      'kbui.fb.shots.max': { kybernos: 'Trois captures au maximum : retire une image pour en ajouter une autre.', en: 'Three screenshots at most: remove one to add another.' },
+      'kbui.fb.shots.big': { kybernos: 'Cette image dépasse 5 Mo : réduis-la avant de la joindre.', en: 'This image is over 5 MB: shrink it before attaching it.' },
+      'kbui.fb.shots.bad': { kybernos: 'Seules les images PNG, JPEG ou WebP sont acceptées.', en: 'Only PNG, JPEG or WebP images are accepted.' },
+      'kbui.fb.shots.remove': { kybernos: 'Retirer', en: 'Remove' },
+      'kbui.fb.contact': { kybernos: 'Ton adresse (facultatif)', en: 'Your e-mail (optional)' },
+      'kbui.fb.contact.hint': { kybernos: 'Pour qu’on puisse te répondre. Sans adresse, ton retour reste anonyme.', en: 'So we can answer you. With no address, your report stays anonymous.' },
       'kbui.fb.sent.again': { kybernos: 'Ce retour avait déjà été envoyé : l’équipe l’a reçu.', en: 'This feedback had already been sent: the team has it.' },
       'kbui.fb.err.signedout': { kybernos: 'Rien n’a été envoyé : tu n’es pas connecté à Kybernos.', en: 'Nothing was sent: you are not signed in to Kybernos.' },
       'kbui.fb.err.reconnect': { kybernos: 'Rien n’a été envoyé : ta session Kybernos a pris fin. Reconnecte-toi, puis réessaie.', en: 'Nothing was sent: your Kybernos session ended. Sign in again, then try again.' },
+      'kbui.fb.err.image': { kybernos: 'Rien n’a été envoyé : une capture n’a pas pu être jointe. Réessaie, ou envoie le texte sans image.', en: 'Nothing was sent: a screenshot could not be attached. Try again, or send the text without the image.' },
       'kbui.fb.err.net': { kybernos: 'Rien n’a été envoyé : cet ordinateur n’a pas pu joindre le serveur Kybernos.', en: 'Nothing was sent: this computer could not reach the Kybernos server.' },
       'kbui.fb.err.team': { kybernos: 'Rien n’a été envoyé : le serveur Kybernos n’a pas pu prendre le retour pour l’instant.', en: 'Nothing was sent: the Kybernos server could not take the feedback just now.' },
       'kbui.fb.err.busy': { kybernos: 'Ce retour est déjà en cours d’envoi.', en: 'This feedback is already being sent.' },
@@ -1081,7 +1097,7 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.err.local': { kybernos: 'Rien n’a été envoyé : cette page n’a pas pu joindre le DSH de cet ordinateur.', en: 'Nothing was sent: this page could not reach the DSH on this computer.' },
       'kbui.fb.err.kept': { kybernos: 'Ton texte est gardé sur cet ordinateur et repartira avec ton prochain retour.', en: 'Your text is kept on this computer and goes out again with your next report.' },
       'kbui.fb.hint.signedin': { kybernos: 'Envoyer partage ce message avec l’équipe Kybernos (et les détails techniques, si tu les as cochés). Enregistrer le garde seulement sur cet ordinateur.', en: 'Send shares this message with the Kybernos team (and the technical details, if ticked). Save keeps it on this computer only.' },
-      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : rien ne peut être envoyé d’ici. Enregistrer garde ton texte sur cet ordinateur seulement ; Copier les retours enregistrés les met dans le presse-papiers pour que tu les envoies toi-même à contact@kybernos.app. Connecte-toi pour les envoyer directement.', en: 'You are not signed in to Kybernos, so nothing can be sent from here. Save keeps your text on this computer only; Copy saved feedback puts it on your clipboard so you can send it yourself to contact@kybernos.app. Sign in to send it directly.' },
+      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : ton retour part quand même à l’équipe, sans compte ni inscription. Partent seulement : ton texte, le type, et les détails techniques si tu les coches. Enregistrer le garde en plus sur cet ordinateur.', en: 'You are not signed in to Kybernos: your report still reaches the team, with no account and no sign-up. Only your text, the type, and the technical details you tick leave. Save also keeps it on this computer.' },
       'kbui.fb.empty': { kybernos: 'Aucun retour enregistré pour l’instant.', en: 'No feedback saved yet.' },
       'kbui.fb.copyfail': { kybernos: 'Copie impossible ici : sélectionne le texte ci-dessous.', en: 'Could not copy here: select the text below.' },
       'kbui.fb.fail': { kybernos: 'Enregistrement impossible. Rien n’a été écrit.', en: 'Could not save. Nothing was written.' },
@@ -10650,7 +10666,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
     // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
     // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ.
-    const KB_BUILTIN_API = 'https://api.kybernos.app'
+    const KB_BUILTIN_API = 'https://server.kybernos.app'
     const kbServer = { web: KB_BUILTIN_API }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
@@ -32774,6 +32790,8 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
     }
     const kbFbSendVerdict = (status, out) => {
       const o = out !== null && out !== undefined && typeof out === 'object' && !Array.isArray(out) ? out : null
+      // Kept on this computer: not sent, not lost. The tone is the one of a success because nothing is left for the person to do.
+      if (o !== null && o.queued === true) return { tone: 'ok', keys: ['kbui.fb.queued'], wait: null }
       if (o !== null && o.ok === true) return { tone: 'ok', keys: [o.deduped === true ? 'kbui.fb.sent.again' : 'kbui.fb.sent'], wait: null }
       if (status === 401 || status === 403 || status === 503) return { tone: 'err', keys: ['kbui.fb.signin'], wait: null }
       if (status === 0) return { tone: 'err', keys: ['kbui.fb.err.local'], wait: null }
@@ -32797,6 +32815,10 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
       const [busy, setBusy] = React.useState('')
       const [note, setNote] = React.useState(null)
       const [manual, setManual] = React.useState('')
+      // Screenshots and the optional address: what a person attaches to a report. The page never captures the screen itself — the
+      // image comes from the clipboard, a drop or a file the person picks, so no permission prompt is ever needed.
+      const [shots, setShots] = React.useState([])
+      const [contact, setContact] = React.useState('')
       // Whether this DSH is signed in to a Kybernos account, read at every opening: only then is « Send » offered (the relay needs the account).
       const [signedIn, setSignedIn] = React.useState(false)
       React.useEffect(() => {
@@ -32827,6 +32849,45 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
         if (status === 401 || status === 403 || status === 503) return kbt('kbui.fb.signin')
         return kbt('kbui.fb.fail')
       }
+      // ── Screenshots: the person attaches what he sees. Paste (⌘V), drop, or pick a file; three at most, 5 MB each, images only.
+      // Nothing is captured by the page, so no screen-capture permission prompt is ever asked for.
+      const ajouterImage = (file) => {
+        if (file === null || file === undefined) return
+        if (!/^image\/(png|jpeg|webp)$/.test(String(file.type || ''))) { setNote({ tone: 'err', text: kbt('kbui.fb.shots.bad') }); return }
+        if (Number(file.size) > 5 * 1024 * 1024) { setNote({ tone: 'err', text: kbt('kbui.fb.shots.big') }); return }
+        let depasse = false
+        setShots((prev) => {
+          if (prev.length >= 3) { depasse = true; return prev }
+          return prev.concat([{ file: file, type: String(file.type), url: URL.createObjectURL(file), name: String(file.name || 'capture') }])
+        })
+        setNote(depasse === true ? { tone: 'err', text: kbt('kbui.fb.shots.max') } : null)
+      }
+      const choisirImage = () => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'image/png,image/jpeg,image/webp'
+        input.addEventListener('change', () => { if (input.files !== null && input.files !== undefined && input.files[0] !== undefined) ajouterImage(input.files[0]) })
+        input.click()
+      }
+      const retirerImage = (rang) => setShots((prev) => {
+        const image = prev[rang]
+        if (image !== undefined) { try { URL.revokeObjectURL(image.url) } catch (e) { /* déjà révoquée */ } }
+        return prev.filter((x, k) => k !== rang)
+      })
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        const onPaste = (e) => {
+          try {
+            const items = e.clipboardData !== null && e.clipboardData !== undefined ? Array.from(e.clipboardData.items) : []
+            const image = items.find((i) => i.kind === 'file' && /^image\/(png|jpeg|webp)$/.test(String(i.type)))
+            if (image === undefined) return
+            e.preventDefault()
+            ajouterImage(image.getAsFile())
+          } catch (err) { /* un presse-papiers illisible : il ne se passe rien */ }
+        }
+        window.addEventListener('paste', onPaste)
+        return () => window.removeEventListener('paste', onPaste)
+      }, [open])
       const save = async () => {
         const text = message.trim()
         if (text === '' || busy !== '') return
@@ -32850,18 +32911,38 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
         setBusy('send'); setNote(null); setManual('')
         let out = null
         let status = 0
+        const attaches = []
         try {
+          // The screenshots go first, one by one: the report names them by id, so an image that fails stops the send BEFORE anything
+          // is filed — the person keeps their text and their images, and nothing is half-sent.
+          for (const shot of shots) {
+            const up = await fetch('/kybernos/feedback/attachment', { method: 'POST', headers: { 'content-type': shot.type }, body: shot.file })
+            const made = await up.json().catch(() => null)
+            if (up.status !== 201 || made === null || made.ok !== true) {
+              setBusy(''); setNote({ tone: 'err', text: kbt('kbui.fb.err.image') }); return
+            }
+            // `local: true` = the server does not take screenshots yet: the host has kept the image beside the reports, and the
+            // report goes without an id. Nothing is thrown away, and the person sees a normal success.
+            if (typeof made.id === 'string') attaches.push(made.id)
+          }
           const page = withContext === true
             ? { title: String(document.title || ''), lang: String(document.documentElement.lang || navigator.language || ''), width: window.innerWidth, height: window.innerHeight }
             : undefined
-          const r = await fetch('/kybernos/feedback/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page }) })
+          const r = await fetch('/kybernos/feedback/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page, contact: contact.trim(), attachments: attaches }) })
           status = r.status
           out = await r.json().catch(() => null)
         } catch (e) { out = null; status = 0 }
         setBusy('')
         const verdict = kbFbSendVerdict(status, out)
-        if (verdict.tone === 'ok') setMessage('')
-        setNote({ tone: verdict.tone, text: verdict.keys.map((k) => kbt(k).replace('{t}', verdict.wait === null ? '' : kbFbWaitText(verdict.wait))).join(' ') })
+        if (verdict.tone === 'ok') {
+          setMessage(''); setContact('')
+          for (const image of shots) { try { URL.revokeObjectURL(image.url) } catch (e) { /* déjà révoquée */ } }
+          setShots([])
+        }
+        const texte = verdict.keys.map((k) => kbt(k).replace('{t}', verdict.wait === null ? '' : kbFbWaitText(verdict.wait))).join(' ')
+        setNote({ tone: verdict.tone, text: verdict.tone === 'ok' && attaches.length > 0
+          ? kbt('kbui.fb.sent.attached').replace('{n}', String(attaches.length))
+          : texte })
       }
       const exporter = async () => {
         if (busy !== '') return
@@ -32896,6 +32977,34 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
             KB_FB_TYPES.map((k) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': type === k ? 'true' : 'false', className: 'kbfb-type' + (type === k ? ' on' : ''), 'data-type': k, onClick: () => setType(k) }, kbt('kbui.fb.type.' + k)))),
           h('label', { className: 'kbfb-lab', htmlFor: 'kbfb-msg' }, kbt('kbui.fb.message')),
           h('textarea', { id: 'kbfb-msg', className: 'kbfb-msg', rows: 6, maxLength: 4000, value: message, placeholder: kbt('kbui.fb.placeholder'), autoFocus: true, onChange: (e) => { setMessage(e.target.value); if (note !== null) setNote(null) } }),
+          // Screenshots — optional, and always the person's own gesture (paste, drop, file). Nothing is captured by the page.
+          h('div', { className: 'kbfb-shots', 'data-kb': 'feedback-shots' },
+            h('div', { className: 'kbfb-shots-head' },
+              h('span', { className: 'kbfb-lab' }, kbt('kbui.fb.shots')),
+              h('span', { className: 'kbm-tag', 'data-tone': 'outline' }, kbt('kbui.fb.shots.optional')),
+              h('span', { className: 'kbfb-count' }, String(shots.length) + ' / 3')),
+            h('div', {
+              className: 'kbfb-drop', role: 'button', tabIndex: 0, 'data-kb': 'feedback-drop',
+              onClick: choisirImage,
+              onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirImage() } },
+              onDragOver: (e) => { e.preventDefault(); try { e.currentTarget.classList.add('over') } catch (er) { /* pas grave */ } },
+              onDragLeave: (e) => { try { e.currentTarget.classList.remove('over') } catch (er) { /* pas grave */ } },
+              onDrop: (e) => {
+                e.preventDefault()
+                try { e.currentTarget.classList.remove('over') } catch (er) { /* pas grave */ }
+                const files = e.dataTransfer !== null && e.dataTransfer !== undefined ? Array.from(e.dataTransfer.files || []) : []
+                for (const f of files.slice(0, 3 - shots.length)) ajouterImage(f)
+              },
+            },
+              h('span', null, kbt('kbui.fb.shots.drop')),
+              h('span', { className: 'kbfb-drop-btn' }, kbt('kbui.fb.shots.add'))),
+            shots.length === 0 ? null : h('div', { className: 'kbfb-thumbs' }, shots.map((s, i) => h('div', { key: s.url, className: 'kbfb-thumb' },
+              h('img', { src: s.url, alt: '' }),
+              h('button', { type: 'button', className: 'kbfb-thumb-x', 'data-kb': 'feedback-shot-remove', 'aria-label': kbt('kbui.fb.shots.remove'), title: kbt('kbui.fb.shots.remove'), onClick: () => retirerImage(i) }, '✕')))),
+            h('p', { className: 'kbfb-hint' }, kbt('kbui.fb.shots.hint'))),
+          // The address is optional: with none, the report stays anonymous and the team cannot answer.
+          h('label', { className: 'kbfb-lab', htmlFor: 'kbfb-contact' }, kbt('kbui.fb.contact')),
+          h('input', { id: 'kbfb-contact', className: 'kbfb-contact', type: 'email', maxLength: 200, value: contact, autoComplete: 'email', placeholder: kbt('kbui.fb.contact.hint'), onChange: (e) => setContact(e.target.value) }),
           h('label', { className: 'kbfb-ctx' },
             h('input', { type: 'checkbox', checked: withContext, onChange: (e) => setWithContext(e.target.checked), 'data-kb': 'feedback-context' }),
             h('span', null, h('b', null, kbt('kbui.fb.context')), h('i', null, kbt('kbui.fb.context.hint')))),
@@ -32903,8 +33012,10 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
           manual === '' ? null : h('textarea', { className: 'kbfb-manual', readOnly: true, rows: 6, value: manual, onFocus: (e) => { try { e.target.select() } catch (er) { /* no selection */ } } }),
           h('div', { className: 'kbfb-hint', 'data-kb': 'feedback-hint' }, signedIn === true ? kbt('kbui.fb.hint.signedin') : kbt('kbui.fb.hint.signedout')),
           h('div', { className: 'kbfb-acts' },
-            signedIn === true ? h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-send', disabled: busy !== '' || message.trim() === '', onClick: send }, busy === 'send' ? kbt('kbui.fb.sending') : kbt('kbui.fb.send')) : null,
-            h('button', { type: 'button', className: 'kbfb-btn' + (signedIn === true ? '' : ' kbfb-primary'), 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
+            // Signed out, the send button stays: it takes the PUBLIC door (no account, nothing to connect). It is primary when there is
+            // nothing else to press, so a person who just hit a bug never has to read a paragraph to find out how to tell us.
+            h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-send', disabled: busy !== '' || message.trim() === '', onClick: send }, busy === 'send' ? kbt('kbui.fb.sending') : kbt(signedIn === true ? 'kbui.fb.send' : 'kbui.fb.send.anon')),
+            h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
             h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-export', disabled: busy !== '', onClick: exporter }, busy === 'export' ? kbt('kbui.fb.exporting') : kbt('kbui.fb.export'))),
           h('button', { type: 'button', className: 'kbfb-link', 'data-kb': 'feedback-assistant', onClick: withAssistant }, kbt('kbui.fb.assistant')))))
     }
@@ -32922,6 +33033,21 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
 .kbfb-msg,.kbfb-manual{box-sizing:border-box;width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
 .kbfb-msg:focus,.kbfb-manual:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbfb-manual{font-family:var(--ds-font-family-code,monospace);font-size:12px}
+/* Captures : la zone de dépôt, les vignettes, et l'adresse facultative. */
+.kbfb-shots{display:flex;flex-direction:column;gap:8px}
+.kbfb-shots-head{display:flex;align-items:center;gap:8px}
+.kbfb-count{margin-left:auto;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}
+.kbfb-drop{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;box-sizing:border-box;width:100%;min-height:72px;padding:12px;border:1px dashed var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:13px;line-height:20px}
+.kbfb-drop:hover,.kbfb-drop.over{border-color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-interactive-bg-hover)}
+.kbfb-drop:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbfb-drop-btn{display:inline-flex;align-items:center;height:28px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;color:var(--dsw-alias-label-primary);font-size:12px;white-space:nowrap}
+.kbfb-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.kbfb-thumb{position:relative;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;background:var(--dsw-alias-bg-module-platform)}
+.kbfb-thumb img{display:block;width:100%;height:64px;object-fit:cover}
+.kbfb-thumb-x{position:absolute;top:4px;right:4px;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;border-radius:7px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.kbfb-thumb-x:hover{background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}
+.kbfb-contact{box-sizing:border-box;width:100%;height:36px;padding:0 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
+.kbfb-contact:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbfb-ctx{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .kbfb-ctx input{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}
 .kbfb-ctx span{display:flex;flex-direction:column;gap:2px}
@@ -33674,7 +33800,7 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
         { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['theme', 'langue', 'language'] },
         { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'code sandbox (e2b)', 'phone and channels', 'widget'] },
-        { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
+        { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['journal', 'activity log', 'journal d’activite', 'journal d\'activite', 'kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
       // The open group is remembered under one key of its own (the shared fold store keeps booleans, an accordion needs a name).
       const OUVERT_CLE = 'kybernos.settings.open-group'
