@@ -66,6 +66,7 @@
     "ui.slot:conversation.hero.brand.mark",
     "ui.slot:conversation.input.activity",
     "ui.slot:conversation.input.dock",
+    "ui.slot:conversation.input.model",
     "ui.slot:conversation.input.right",
     "ui.slot:conversation.session.header.actions",
     "ui.slot:conversation.view",

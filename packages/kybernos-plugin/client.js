@@ -39830,6 +39830,292 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '@media (max-width:700px){.kbnm-btn{height:44px}}',
     ].join(String.fromCharCode(10))), 'kybers: styles of the “a model is missing” card')
 
+    // ── Le siège du modèle : Kybernos d'abord (28/10/2026) ───────────────────────────────
+    // Mesuré dans le moteur (`@deepseek-ai/dsh-client-ui-model-selection`, `orderModelProviders`) : le sélecteur
+    // natif ÉPINGLE les groupes DeepSeek en tête (`deepseek-account` 0, `deepseek-official` 1, tous les autres 2),
+    // et rien côté déploiement ne peut passer devant — ni l'ordre du catalogue, ni un `headers` de profil. Pour
+    // mettre le groupe Kybernos Cloud en premier, il faut donc TENIR le siège du sélecteur : le slot
+    // `conversation.input.model` est `single` et le plus petit `priority` rend (le mécanisme déjà utilisé pour le
+    // micro, plus haut ; une seconde inscription à la même priorité est REFUSÉE par le registre). On s'inscrit à
+    // -1 : notre sélecteur remplace le natif, sans CSS de masquage et sans DOM natif résiduel.
+    //
+    // Deux règles de tenue : (1) tant que le service `modelDirectories` n'existe pas (moteur plus ancien), on ne
+    // s'inscrit PAS — le natif garde sa place ; (2) la sélection, le catalogue et ses erreurs restent ceux du
+    // moteur (`directory.select`, `directory.store`), on ne relit rien nous-mêmes. Deux plugins de la maison
+    // repèrent le contrôle par `button[aria-label^="Select model"]` (kybernos-auto, kybernos-sessions) : l'aria
+    // reste donc en anglais et commence par « Select model », avec le modèle courant, comme le natif.
+    //
+    // Le haut de la liste dit ce que Kybernos apporte : le groupe `kybernos` (les modèles Cloud) d'abord ; s'il
+    // n'est pas là, une ligne dit pourquoi — pas de compte sur cette machine (on se connecte) ou une offre qui
+    // n'inclut aucun modèle Kybernos — et ouvre Réglages ▸ Modèles, le seul endroit qui apparie le compte (`kbOpenSettingsPage`, la page « Fournisseurs IA et modèles »).
+    // KB-MODELSEL-PURE-BEGIN
+    // The seat's pure rules: the group order, the search, the Kybernos band and the effort levels. Self-contained
+    // (no ctx, no React, no client helper) so `test-model-seat.mjs` runs this block as written.
+    const KB_SEL_KYBERNOS = 'kybernos'
+    const kbSelSay = (row, lang) => Array.isArray(row) ? (typeof row[lang === 'fr' ? 0 : 1] === 'string' ? row[lang === 'fr' ? 0 : 1] : '') : (typeof row === 'string' ? row : '')
+    /** Le groupe Kybernos d'abord, tous les autres dans l'ordre du catalogue. Pure. */
+    const kbSelOrder = (groups) => {
+      const list = Array.isArray(groups) ? groups.filter((g) => g !== null && typeof g === 'object' && typeof g.id === 'string' && Array.isArray(g.models)) : []
+      const kybernos = list.filter((g) => g.id === KB_SEL_KYBERNOS)
+      return kybernos.concat(list.filter((g) => g.id !== KB_SEL_KYBERNOS))
+    }
+    /** La recherche : nom ou id du modèle, nom ou id du groupe ; requête vide = tout. Pure. */
+    const kbSelFilter = (groups, query) => {
+      const q = String(query === null || query === undefined ? '' : query).trim().toLowerCase()
+      const ordered = kbSelOrder(groups)
+      if (q === '') return ordered
+      const hit = (m) => String(m !== null && typeof m === 'object' ? m.name || '' : '').toLowerCase().indexOf(q) >= 0 ||
+        String(m !== null && typeof m === 'object' ? m.id || '' : '').toLowerCase().indexOf(q) >= 0
+      return ordered.map((g) => Object.assign({}, g, { models: g.models.filter(hit) }))
+        .filter((g) => g.models.length > 0 || String(g.name || g.id).toLowerCase().indexOf(q) >= 0)
+    }
+    /** Ce que le haut de la liste dit de Kybernos Cloud : `none` (le groupe est là), `signin` (pas de compte sur
+     *  cette machine) ou `plan` (un compte, mais son offre ne donne aucun modèle Kybernos). `cloud` est la réponse
+     *  du host à `/kybernos-cloud/status` — null tant qu'elle n'est pas lue. Pure. */
+    const kbSelBand = (groups, cloud) => {
+      if (kbSelOrder(groups).some((g) => g.id === KB_SEL_KYBERNOS)) return { kind: 'none' }
+      if (cloud === null || typeof cloud !== 'object') return { kind: 'signin' }
+      if (cloud.connected !== true) return { kind: 'signin' }
+      const state = cloud.state !== null && typeof cloud.state === 'object' ? cloud.state : {}
+      const user = state.user !== null && typeof state.user === 'object' ? state.user : {}
+      return { kind: 'plan', plan: typeof user.plan === 'string' && user.plan !== '' ? user.plan : null }
+    }
+    /** Les niveaux de raisonnement d'un modèle tels que le catalogue les expose ; [] s'il n'en prend pas. Pure. */
+    const kbSelEfforts = (model) => {
+      const r = model !== null && typeof model === 'object' && model.reasoning !== null && typeof model.reasoning === 'object' ? model.reasoning : null
+      return r !== null && Array.isArray(r.efforts) ? r.efforts.filter((e) => e !== null && typeof e === 'object' && typeof e.id === 'string') : []
+    }
+    /** Le nom d'un groupe tel qu'il se lit (`Kybernos Cloud` pour la route). Pure. */
+    const kbSelGroupName = (group, lang) => group.id === KB_SEL_KYBERNOS ? kbSelSay(['Kybernos Cloud', 'Kybernos Cloud'], lang) : String(group.name || group.id)
+    // KB-MODELSEL-PURE-END
+
+    /** Le sélecteur lui-même. Il ne lit que le catalogue partagé du moteur et ne sélectionne que par lui.
+     *  Les props utiles viennent du `inject` de l'inscription (`store`, `load`, `select`), pas des props du
+     *  propriétaire : le propriétaire du slot d'un contrôle de composer ne passe que `locked` — c'est bien pour
+     *  cela que le moteur expose un `inject(sessionId)` (mesuré sur le sélecteur natif, même signature). */
+    const KbModelSeat = (props) => {
+      const p = props !== null && props !== undefined ? props : {}
+      const lang = kbMarketLang()
+      const say = (row) => marketSay(row, lang)
+      const store = p.store !== null && p.store !== undefined && typeof p.store.getSnapshot === 'function' ? p.store : null
+      const load = typeof p.load === 'function' ? p.load : null
+      const select = typeof p.select === 'function' ? p.select : null
+      const [snap, setSnap] = React.useState(() => { try { return store === null ? null : store.getSnapshot() } catch (e) { return null } })
+      const [open, setOpen] = React.useState(false)
+      const [box, setBox] = React.useState(null)
+      const [query, setQuery] = React.useState('')
+      const [cloud, setCloud] = React.useState(null)
+      const [busy, setBusy] = React.useState(false)
+      const [err, setErr] = React.useState('')
+      const rootRef = React.useRef(null)
+      const searchRef = React.useRef(null)
+      React.useEffect(() => {
+        if (store === null) return undefined
+        const read = () => { try { setSnap(store.getSnapshot()) } catch (e) { /* la dernière lecture reste */ } }
+        read()
+        let off = null
+        try { off = store.subscribe(read) } catch (e) { off = null }
+        return () => { try { if (typeof off === 'function') off() } catch (e) { /* store parti */ } }
+      }, [store])
+      const openMenu = () => {
+        // Le catalogue se rafraîchit à l'ouverture (le moteur partage une lecture en vol : aucune requête de plus).
+        if (load !== null) { try { const p2 = load(); if (p2 !== null && p2 !== undefined && typeof p2.catch === 'function') p2.catch(() => {}) } catch (e) { /* statut porté par le store */ } }
+        let rect = null
+        try { rect = rootRef.current === null ? null : rootRef.current.getBoundingClientRect() } catch (e) { rect = null }
+        // The menu opens UPWARD from the composer. On a short screen (a phone: 390 x 780 measured) the whole list
+        // does not fit above the trigger: the height is capped to the space that exists, and the left edge is
+        // clamped inside the viewport below — a menu that starts at y = -85 must never happen.
+        const room = rect === null ? 360 : Math.max(180, Math.min(380, Math.round(rect.top - 20)))
+        setBox(rect === null ? null : { left: Math.round(rect.left), bottom: Math.round((window.innerHeight || 0) - rect.top + 6), maxH: room })
+        setErr('')
+        setQuery('')
+        setOpen(true)
+      }
+      React.useEffect(() => {
+        if (open !== true || cloud !== null) return undefined
+        let gone = false
+        fetch('/kybernos-cloud/status', { headers: { accept: 'application/json' } })
+          .then((r) => r.json())
+          .then((j) => { if (gone !== true) setCloud(j !== null && typeof j === 'object' ? j : {}) })
+          .catch(() => { if (gone !== true) setCloud({}) })
+        return () => { gone = true }
+      }, [open, cloud])
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        const onDown = (ev) => {
+          const node = rootRef.current
+          if (node !== null && ev.target instanceof Node && node.contains(ev.target) !== true) setOpen(false)
+        }
+        const onKey = (ev) => { if (ev.key === 'Escape') setOpen(false) }
+        document.addEventListener('mousedown', onDown, true)
+        document.addEventListener('keydown', onKey, true)
+        return () => {
+          document.removeEventListener('mousedown', onDown, true)
+          document.removeEventListener('keydown', onKey, true)
+        }
+      }, [open])
+      React.useEffect(() => { if (open === true && searchRef.current !== null) { try { searchRef.current.focus() } catch (e) { /* pas focusable */ } } }, [open])
+      // Le menu est en `position: fixed` : une ancre près du bord droit le poussait hors de la fenêtre (mesuré à
+      // 390 px de large). Une fois la largeur réelle connue, on ramène l'arête gauche dans le viewport.
+      React.useEffect(() => {
+        if (open !== true || box === null) return
+        const node = rootRef.current === null ? null : rootRef.current.querySelector('.kbmsl-menu')
+        if (node === null) return
+        const width = node.getBoundingClientRect().width
+        const vw = window.innerWidth || 0
+        const left = Math.max(8, Math.min(box.left, Math.round(vw - 8 - width)))
+        if (Math.abs(left - box.left) > 1) setBox(Object.assign({}, box, { left }))
+      }, [open, box])
+      const groups = snap !== null && Array.isArray(snap.groups) ? snap.groups : []
+      const current = snap !== null && snap.current !== null && typeof snap.current === 'object' ? snap.current : null
+      const currentModel = current === null ? null : groups.reduce((found, g) => found !== null ? found : (Array.isArray(g.models) ? g.models : []).reduce((hit, m) => hit !== null ? hit : (m.id === current.model ? m : null), null), null)
+      const currentName = currentModel !== null && typeof currentModel.name === 'string' && currentModel.name !== '' ? currentModel.name : (current !== null && typeof current.model === 'string' ? current.model : '')
+      const effortName = snap !== null && typeof snap.retainedEffort === 'string' ? snap.retainedEffort : ''
+      const aria = currentName !== '' ? 'Select model, current ' + currentName + (effortName !== '' ? ', reasoning effort ' + effortName : '') : 'Select model'
+      const pick = async (provider, model, reasoningEffort) => {
+        if (select === null) return
+        setBusy(true)
+        setErr('')
+        try {
+          const selection = { provider, model }
+          if (reasoningEffort !== undefined) selection.reasoningEffort = reasoningEffort
+          const result = await select(selection)
+          if (result !== null && result !== undefined && result.ok !== true) {
+            const code = result.error !== null && result.error !== undefined && typeof result.error.code === 'string' ? result.error.code : ''
+            const message = result.error !== null && result.error !== undefined && typeof result.error.message === 'string' ? result.error.message : say(['refusé', 'refused'])
+            setErr((code !== '' ? code + ' — ' : '') + message)
+          } else setOpen(false)
+        } catch (e) {
+          setErr(String(e && e.message ? e.message : e))
+        } finally { setBusy(false) }
+      }
+      const move = (ev) => {
+        if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return
+        ev.preventDefault()
+        const rows = Array.prototype.slice.call(ev.currentTarget.querySelectorAll('[data-kbmsl-row]'), 0)
+        if (rows.length === 0) return
+        const at = rows.indexOf(document.activeElement)
+        const next = ev.key === 'ArrowDown' ? (at < 0 ? 0 : Math.min(rows.length - 1, at + 1)) : (at < 0 ? rows.length - 1 : Math.max(0, at - 1))
+        try { rows[next].focus() } catch (e) { /* pas focusable */ }
+      }
+      if (store === null) return null
+      const band = open === true ? kbSelBand(groups, cloud) : { kind: 'none' }
+      const shown = open === true ? kbSelFilter(groups, query) : []
+      const seatEfforts = currentModel === null ? [] : kbSelEfforts(currentModel)
+      return h('div', { className: 'kbmsl', ref: rootRef },
+        h('button', {
+          type: 'button', className: 'kbmsl-trigger', 'data-kb': 'model-seat', 'aria-haspopup': 'menu',
+          'aria-expanded': open === true ? 'true' : 'false', 'aria-label': aria, disabled: p.locked === true,
+          onClick: () => { if (open === true) setOpen(false); else openMenu() },
+        },
+        h('span', { className: 'kbmsl-ic', 'aria-hidden': 'true' }, h('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z' }))),
+        h('span', { className: 'kbmsl-label' }, currentName !== '' ? currentName : say(['Choisir un modèle', 'Select model'])),
+        effortName !== '' ? h('span', { className: 'kbmsl-effort' }, effortName) : null,
+        h('span', { className: 'kbmsl-chev', 'aria-hidden': 'true' }, h('svg', { width: '12', height: '12', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M6 9l6 6 6-6' })))),
+        open !== true ? null : h('div', {
+          className: 'kbmsl-menu', role: 'menu', 'aria-label': say(['Modèles', 'Models']), onKeyDown: move,
+          style: box === null ? null : { left: box.left + 'px', bottom: box.bottom + 'px', maxHeight: String(box.maxH) + 'px' },
+        },
+        h('div', { className: 'kbmsl-search' },
+          h('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4' })),
+          h('input', { ref: searchRef, type: 'search', className: 'kbmsl-q', 'data-kb': 'model-seat-search', value: query, placeholder: say(['Rechercher un modèle…', 'Search models…']), 'aria-label': say(['Rechercher un modèle', 'Search models']), onChange: (ev) => setQuery(ev.target.value) })),
+        band.kind === 'none' ? null : h('div', { className: 'kbmsl-band', 'data-kb': 'model-seat-band', 'data-kind': band.kind, role: 'note' },
+          h('div', { className: 'kbmsl-band-t' }, band.kind === 'signin' ? say(['Les modèles Kybernos Cloud, avec ton abonnement', 'Kybernos Cloud models, with your membership']) : say(['Aucun modèle Kybernos sur cette offre', 'No Kybernos model on this plan'])),
+          h('div', { className: 'kbmsl-band-s' }, band.kind === 'signin'
+            ? say(['Connecte-toi pour les utiliser : un abonnement Kybernos Cloud est requis.', 'Sign in to use them: a Kybernos Cloud membership is required.'])
+            : say(['Cette offre n’inclut pas les modèles Kybernos Cloud. Les offres sont sur la page Modèles des Réglages.', 'This plan does not include Kybernos Cloud models. The plans are on the Models page in Settings.']) + (band.plan !== null ? ' (' + band.plan + ')' : '')),
+          h('button', { type: 'button', className: 'kbmsl-band-b', 'data-kb': 'model-seat-signin', onClick: () => { setOpen(false); try { kbOpenSettingsPage(['kybernos-models', 'models']) } catch (e) { /* aucun panneau */ } } }, band.kind === 'signin' ? say(['Se connecter', 'Sign in']) : say(['Voir les offres', 'See plans']))),
+        snap !== null && snap.status === 'loading' ? h('div', { className: 'kbmsl-note' }, say(['Chargement du catalogue…', 'Loading the catalogue…'])) : null,
+        err !== '' ? h('div', { className: 'kbmsl-err', role: 'alert' }, say(['Modèle non appliqué : ', 'Model not applied: ']) + err) : null,
+        shown.length === 0 && snap !== null && snap.status !== 'loading' ? h('div', { className: 'kbmsl-note' }, say(['Aucun modèle', 'No models'])) : null,
+        h('div', { className: 'kbmsl-groups' }, shown.map((group) => h('div', { className: 'kbmsl-group', key: group.id, 'data-group': group.id },
+          h('div', { className: 'kbmsl-g' },
+            h('span', null, kbSelGroupName(group, lang)),
+            group.id === KB_SEL_KYBERNOS ? h('span', { className: 'kbmsl-badge' }, 'Cloud') : null),
+          (Array.isArray(group.models) ? group.models : []).map((model) => {
+            const isCurrent = current !== null && current.provider === group.id && current.model === model.id
+            return h('button', {
+              key: group.id + '/' + model.id, type: 'button', role: 'menuitemradio', 'aria-checked': isCurrent ? 'true' : 'false',
+              className: 'kbmsl-row' + (isCurrent ? ' is-on' : ''), 'data-kbmsl-row': group.id + '/' + model.id, disabled: busy,
+              onClick: () => { pick(group.id, model.id) },
+            },
+            h('span', { className: 'kbmsl-tick', 'aria-hidden': 'true' }, isCurrent ? h('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.4', strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M5 12l5 5L20 7' })) : null),
+            h('span', { className: 'kbmsl-name' }, typeof model.name === 'string' && model.name !== '' ? model.name : model.id))
+          })))),
+        seatEfforts.length === 0 ? null : h('div', { className: 'kbmsl-efforts' },
+          h('span', { className: 'kbmsl-el' }, say(['Effort de raisonnement', 'Reasoning effort'])),
+          seatEfforts.map((level) => {
+            const on = (effortName !== '' && effortName === (typeof level.name === 'string' ? level.name : level.id)) || (effortName === '' && current !== null && current.reasoningEffort === level.id)
+            return h('button', {
+              key: level.id, type: 'button', className: 'kbmsl-chip' + (on ? ' is-on' : ''), 'aria-pressed': on ? 'true' : 'false',
+              'data-kb': 'model-seat-effort', 'data-effort': level.id, disabled: busy,
+              onClick: () => { if (current !== null) pick(current.provider, current.model, level.id) },
+            }, typeof level.name === 'string' && level.name !== '' ? level.name : level.id)
+          })))
+      )
+    }
+    try {
+      // Le moteur s'obtient par `ctx.inject([...])`, jamais par `ctx.get` à la pose : la fabrique du sélecteur natif
+      // fait exactement cela (`ctx.inject(["slots","modelDirectories"], …)`) parce que la résolution d'un répertoire
+      // touche `remote.session` — un accès hors inject échoue (« cannot get property "remote.session" without
+      // inject », mesuré le 28/10 : le siège plantait et le composer perdait son contrôle).
+      ctx.inject(['slots', 'modelDirectories', 'remote.session'], (scope) => {
+        const models = scope.modelDirectories
+        if (models === null || models === undefined || typeof models.directoryFor !== 'function') return
+        scope.effect(() => scope.slots.inject('conversation.input.model', () => scope.slots.register({
+          name: 'conversation.input.model', id: 'kybernos-model-seat', priority: -1,
+          // The engine's own seam for a session-scoped composer control: the owner passes `locked` only, and
+          // the session id reaches the occupant here (measured on the native picker, same signature).
+          inject: (sessionId) => {
+            try {
+              const dir = models.directoryFor(sessionId)
+              return {
+                store: dir !== null && dir !== undefined ? dir.store : null,
+                load: () => (dir !== null && dir !== undefined ? dir.load() : Promise.resolve()),
+                select: (selection) => (dir !== null && dir !== undefined ? dir.select(selection) : Promise.resolve({ ok: true })),
+              }
+            } catch (e) { return { store: null, load: () => Promise.resolve(), select: () => Promise.resolve({ ok: true }) } }
+          },
+        }, KbModelSeat)), 'kybers: the composer’s model seat (Kybernos first)')
+      })
+    } catch (e) { /* moteur sans modelDirectories : le sélecteur natif garde sa place */ }
+    ctx.effect(() => styles.insert([
+      '.kbmsl{position:relative;min-width:0;display:flex}',
+      '.kbmsl-trigger{display:flex;align-items:center;gap:4px;height:28px;max-width:min(360px,45cqw);padding:0 4px 0 8px;border:0;border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;cursor:pointer;min-width:0}',
+      '.kbmsl-trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbmsl-trigger:focus-visible{outline:none;box-shadow:0 0 0 2px var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary))}',
+      '.kbmsl-trigger:disabled{color:var(--dsw-alias-label-dimmed);cursor:default}',
+      '.kbmsl-ic{display:var(--dsh-composer-model-icon-display,none);flex:none}',
+      '.kbmsl-label{display:var(--dsh-composer-model-text-display,block);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}',
+      '.kbmsl-effort{display:var(--dsh-composer-model-text-display,block);color:var(--dsw-alias-label-caption);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.kbmsl-chev{flex:none;color:var(--dsw-alias-label-caption)}',
+      '.kbmsl-menu{box-sizing:border-box;position:fixed;z-index:1100;display:flex;flex-direction:column;width:max-content;min-width:min(300px,100vw - 32px);max-width:min(420px,100vw - 32px);max-height:min(380px,100vh - 96px);padding:6px;border:0;border-radius:14px;background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent),0 0 0 .5px var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);overscroll-behavior:contain}',
+      '.kbmsl-search{display:flex;align-items:center;gap:6px;padding:5px 7px;margin:2px 0 3px;color:var(--dsw-alias-label-caption)}',
+      '.kbmsl-q{flex:1;min-width:0;border:0;outline:none;background:transparent;font-size:12px;color:var(--dsw-alias-label-primary)}',
+      '.kbmsl-q::placeholder{color:var(--dsw-alias-label-caption)}',
+      '.kbmsl-band{margin:2px 4px 6px;padding:8px 10px;border-radius:10px;background:var(--dsw-alias-bg-module-platform);display:flex;flex-direction:column;gap:4px}',
+      '.kbmsl-band-t{font-size:12.5px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+      '.kbmsl-band-s{font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}',
+      '.kbmsl-band-b{align-self:flex-start;margin-top:2px;height:26px;padding:0 10px;border:0;border-radius:13px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font-size:12px;font-weight:600;cursor:pointer}',
+      '.kbmsl-note{padding:8px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
+      '.kbmsl-err{margin:2px 4px 4px;padding:6px 8px;border-radius:8px;background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary);font-size:11.5px;line-height:1.4}',
+      '.kbmsl-groups{min-height:0;overflow-y:auto}',
+      '.kbmsl-group{display:flex;flex-direction:column}',
+      '.kbmsl-g{display:flex;align-items:center;gap:6px;padding:8px 8px 2px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
+      '.kbmsl-badge{padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-module-platform);font-size:9.5px;letter-spacing:.04em}',
+      '.kbmsl-row{display:flex;align-items:center;gap:6px;width:100%;min-height:34px;padding:5px 7px;border:0;border-radius:8px;background:transparent;color:inherit;font-size:13px;line-height:18px;text-align:left;cursor:pointer}',
+      '.kbmsl-row:hover:not(:disabled),.kbmsl-row:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}',
+      '.kbmsl-row.is-on{font-weight:600}',
+      '.kbmsl-row:disabled{color:var(--dsw-alias-label-dimmed);cursor:default}',
+      '.kbmsl-tick{flex:0 0 14px;display:grid;place-items:center;color:var(--dsw-alias-label-primary)}',
+      '.kbmsl-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+            '.kbmsl-efforts{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:4px;padding:6px 8px 2px;border-top:.5px solid var(--dsw-alias-border-l1)}',
+      '.kbmsl-el{flex:0 0 100%;font-size:11px;color:var(--dsw-alias-label-tertiary)}',
+      '.kbmsl-chip{height:24px;padding:0 9px;border:1px solid var(--dsw-alias-border-l3);border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer}',
+      '.kbmsl-chip.is-on{border-color:transparent;background:var(--dsw-alias-button-ghost-active-fill,var(--dsw-alias-bg-layer-3));color:var(--dsw-alias-label-primary)}',
+      '@media (max-width:700px){.kbmsl-row{min-height:44px}.kbmsl-band-b{height:36px}}',
+    ].join(String.fromCharCode(10))), 'kybers: styles of the model seat')
+
   },
 }
   } catch (kbBootError) {
