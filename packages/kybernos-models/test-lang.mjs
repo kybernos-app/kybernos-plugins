@@ -38,6 +38,9 @@ check('a number has a decimal point in English and a comma in French', en.kbNum(
 check('every row has an English text and a French one', Object.values(en.KB_M_T).every((v) => typeof v.en === 'string' && typeof v.kybernos === 'string' && v.en.length > 0 && v.kybernos.length > 0))
 const keys = [...src.matchAll(/\bm\('(kb\.[A-Za-z0-9_.-]+)'/g)].map((x) => x[1]).filter((k) => !k.endsWith('.'))
 check('every m(\'kb.…\') key used by the page exists in the table', keys.length > 50 && keys.every((k) => en.KB_M_T[k] !== undefined), keys.filter((k) => en.KB_M_T[k] === undefined))
+// A key chosen by a ternary is invisible to the scan above: the disable dialog picks its sentence by the provider's kind.
+const conditional = ['kb.prov.off.dlg.body', 'kb.prov.off.dlg.body.ds']
+check('the two disable sentences (settings provider, built-in provider row) exist in both languages', conditional.every((k) => en.KB_M_T[k] !== undefined && typeof en.KB_M_T[k].en === 'string' && en.KB_M_T[k].en.length > 0 && typeof en.KB_M_T[k].kybernos === 'string' && en.KB_M_T[k].kybernos.length > 0), conditional.filter((k) => en.KB_M_T[k] === undefined))
 
 console.log('\n── « tu », not « vous » (A2-25) ──')
 const VOUS = /\b(vous|votre|vos)\b/i

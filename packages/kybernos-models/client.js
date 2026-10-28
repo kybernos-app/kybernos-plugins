@@ -302,6 +302,8 @@ window.__ModuleLoader__.load({
         'kb.prov.off.managed': { kybernos: 'Géré par Kybernos Cloud : déconnecte le compte pour le retirer.', en: 'Managed by Kybernos Cloud: disconnect the account to remove it.' },
         'kb.prov.off.dlg.title': { kybernos: 'Désactiver {slug} ?', en: 'Disable {slug}?' },
         'kb.prov.off.dlg.body': { kybernos: 'Les sessions qui utilisent un modèle de {slug} ne pourront plus l’appeler. Le réactiver rétablit tout à l’identique : clé, modèles et réglages.', en: 'Sessions that use a {slug} model will no longer be able to call it. Enabling it again restores everything as it was: key, models and settings.' },
+        // The built-in adapters are engine plugin rows, not llm-pi-ai providers: switching one off removes the row from DSH itself.
+        'kb.prov.off.dlg.body.ds': { kybernos: 'Les sessions qui utilisent un modèle de {slug} ne pourront plus l’appeler : la ligne du fournisseur est désactivée dans DSH. La réactiver rétablit tout à l’identique, clé et modèles compris.', en: 'Sessions that use a {slug} model will no longer be able to call it: the provider row is switched off inside DSH. Switching it back on restores everything as it was, key and models included.' },
         'kb.prov.off.dlg.ok': { kybernos: 'Désactiver', en: 'Disable' },
         'kb.prov.off.dlg.cancel': { kybernos: 'Annuler', en: 'Cancel' },
         'kb.prov.off.err': { kybernos: 'Impossible de désactiver {slug} : {raison}', en: 'Could not disable {slug}: {raison}' },
@@ -698,9 +700,12 @@ window.__ModuleLoader__.load({
         // while the host half has not been restarted: no switch is shown then.
         parked: [],
         parkHost: false,
+        // The built-in providers' plugin rows, from the host half (`/providers/base`); `baseHost` is false while that
+        // route is not there (an older host half, or no pluginManager): the switches stay disabled, never an error.
+        baseRows: {},
+        baseHost: false,
         keys: {},
         dir: {},
-        hasDeepseek: false,
         ds: {},
         dsDir: [],
         dsKey: { ref: '', configured: null },
@@ -2037,7 +2042,7 @@ window.__ModuleLoader__.load({
           setDr(d); patch({ drawer: { mode: 'edit', id: route }, menu: null, err: null, note: null })
         }
         const openAdd = () => { setDr(pvAddDraft()); patch({ drawer: { mode: 'add' }, menu: null, err: null, note: null }) }
-        const dsCards = kbDsCardsOf(KBM.ds, KBM.dsDir)
+        const dsCards = kbDsCardsOf(KBM.ds, KBM.dsDir, KBM.baseRows)
         // DeepSeek (the two adapters outside llm-pi-ai): the draft holds the catalog rows as full records.
         const openDs = (ns) => {
           const v = KBM.ds[ns]
@@ -2092,6 +2097,13 @@ window.__ModuleLoader__.load({
           const out = await run(() => kbMEnable(slug).then(() => true), 'kb.prov.on.err', slug)
           if (out === true) patch({ busy: false })
         }
+        // A built-in provider is a plugin row of the host, not a settings profile: kbBaseSet switches the row and rereads both halves.
+        const dsNameOf = (provider) => { const c = dsCards.filter((x) => x.provider === provider)[0]; return c !== undefined ? c.name : provider }
+        const doBaseSet = async (provider, enabled) => {
+          patch({ dlg: null })
+          const out = await run(() => kbBaseSet(provider, enabled).then(() => true), enabled === true ? 'kb.prov.on.err' : 'kb.prov.off.err', dsNameOf(provider))
+          if (out === true) patch({ busy: false })
+        }
         const doDelete = async (route) => {
           patch({ dlg: null })
           const out = await run(() => kbPvDelete(route).then(() => true), 'kb.pv.del.err', route)
@@ -2099,11 +2111,17 @@ window.__ModuleLoader__.load({
         }
 
         // ── one card ──
-        const renderSwitch = ({ route, on, locked, why }) => h('button', {
+        // `base` marks a built-in provider: its switch drives the host's plugin row instead of the parked-provider store.
+        const renderSwitch = ({ route, on, locked, why, base, name }) => h('button', {
           type: 'button', role: 'switch', 'aria-checked': on ? 'true' : 'false', className: 'kbpv-sw' + (on ? ' on' : ''), 'data-kbm': 'prov-switch',
           // A switch is named by what it controls, its state is announced by aria-checked; the action (or why it is locked) is the tooltip.
           disabled: locked === true || ui.busy === true, title: why, 'aria-label': m('kb.pv.sw.aria', { slug: route }),
-          onClick: (ev) => { ev.stopPropagation(); if (on) patch({ dlg: { type: 'off', id: route } }); else doEnable(route) },
+          onClick: (ev) => {
+            ev.stopPropagation()
+            if (base === true) { if (on) patch({ dlg: { type: 'off', id: route, base: true, name: name || null } }); else doBaseSet(route, true); return }
+            if (on) patch({ dlg: { type: 'off', id: route } })
+            else doEnable(route)
+          },
         }, h('span', { className: 'kbpv-sw-k' }))
         const renderCard = ({ route, off }) => {
           const label = off === true ? route : pvLabel(route)
@@ -2335,14 +2353,18 @@ window.__ModuleLoader__.load({
           const label = pvLabel(route)
           const close = () => patch({ dlg: null, typed: '' })
           if (ui.dlg.type === 'off') {
+            // A built-in provider is switched off through the host's pluginManager (`ui.dlg.base`): the sentence names the
+            // display name, not the engine's slug, and says what it means for the sessions using its models.
+            const base = ui.dlg.base === true
+            const shown = typeof ui.dlg.name === 'string' && ui.dlg.name !== '' ? ui.dlg.name : route
             return h('div', { className: 'kbm-mdl-root', 'data-kbm': 'prov-off-dialog', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
               h('div', { className: 'kbm-mdl-mask' }),
-              h('div', { className: 'kbm-mdl-dialog kbmp-mdl kbmp-off-dlg', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': m('kb.prov.off.dlg.title', { slug: route }) },
-                h('div', { className: 'kbm-mdl-header' }, h('div', { className: 'kbm-mdl-title' }, m('kb.prov.off.dlg.title', { slug: route }))),
-                h('div', { className: 'kbm-mdl-body kbmp-off-dlg-body' }, h('p', null, m('kb.prov.off.dlg.body', { slug: route })),
+              h('div', { className: 'kbm-mdl-dialog kbmp-mdl kbmp-off-dlg', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': m('kb.prov.off.dlg.title', { slug: shown }) },
+                h('div', { className: 'kbm-mdl-header' }, h('div', { className: 'kbm-mdl-title' }, m('kb.prov.off.dlg.title', { slug: shown }))),
+                h('div', { className: 'kbm-mdl-body kbmp-off-dlg-body' }, h('p', null, m(base ? 'kb.prov.off.dlg.body.ds' : 'kb.prov.off.dlg.body', { slug: shown })),
                   h('div', { className: 'kbmp-off-dlg-act' },
                     h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'prov-off-cancel', onClick: close }, m('kb.prov.off.dlg.cancel')),
-                    h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-off-ok', onClick: () => doDisable(route) }, m('kb.prov.off.dlg.ok'))))))
+                    h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-off-ok', onClick: () => (base ? doBaseSet(route, false) : doDisable(route)) }, m('kb.prov.off.dlg.ok'))))))
           }
           const n = countOf(route)
           const okType = ui.typed.trim() === route
@@ -2360,27 +2382,40 @@ window.__ModuleLoader__.load({
         }
 
         // ── the list ──
-        if (routes.length === 0 && parkedShown.length === 0 && KBM.hasDeepseek !== true && ui.drawer === null) {
+        if (routes.length === 0 && parkedShown.length === 0 && dsCards.length === 0 && ui.drawer === null) {
           return h('div', { className: 'kbmp-empty', 'data-kbm': 'prov-empty' }, m('kb.models.prov.empty'),
             h('div', { className: 'kbmp-prov-addct' }, h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add'))))
         }
         // ── a built-in DeepSeek card ──
         const renderDsCard = (c) => {
-              const official = c.ns === 'llm-deepseek'
-              const count = Array.isArray(KBM.ds[c.ns].value.models) ? KBM.ds[c.ns].value.models.length : 0
-              const ks = official ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
-              return h('div', { key: c.ns, className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': c.provider },
-                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 30 })),
-                h('div', { className: 'kbpv-cbody' },
-                  h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
-                    ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
-                  h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' }, h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')), h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
-                h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' },
-                  h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
-            }
+          const official = c.ns === 'llm-deepseek'
+          const view = KBM.ds[c.ns]
+          // The host's plugin row: `known` = there is something to switch; `off` = the row is disabled in DSH right now.
+          const known = KBM.baseHost === true && kbDsBaseKnown(KBM.baseRows, c.provider)
+          const off = kbDsBaseOff(KBM.baseRows, c.provider)
+          // A switched-off row has no settings namespace left: its model count is unknown. A namespace that exists but declares
+          // no catalog still counts zero, as before.
+          const count = view === undefined ? null : (Array.isArray(view.value.models) ? view.value.models.length : 0)
+          const ks = official && off !== true ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
+          const why = ro ? m('kb.models.readonly') : (known !== true ? m('kb.pv.hostnote') : (off ? m('kb.prov.off.enable', { slug: c.name }) : m('kb.prov.off.disable', { slug: c.name })))
+          return h('div', { key: c.ns, className: 'kbpv-card' + (off ? ' kbpv-off' : ''), 'data-kbm': off ? 'prov-card-off' : 'prov-card', 'data-prov': c.provider },
+            h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 30 })),
+            h('div', { className: 'kbpv-cbody' },
+              h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
+                ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
+              h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' },
+                h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')),
+                h('span', { 'data-kbm': 'prov-ds-count' }, (count === null ? '—' : String(count)) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
+            h('div', { className: 'kbpv-right' },
+              off ? h('span', { className: 'kbpv-rest' }, h('span', { className: 'kbpv-tag', 'data-kbm': 'prov-off-badge' }, m('kb.prov.off.badge'))) : null,
+              h('div', { className: 'kbpv-acts' },
+                renderSwitch({ route: c.provider, on: off !== true, locked: ro || known !== true, why: why, base: true, name: c.name }),
+                // No settings namespace to edit (a switched-off row, or a stale state): only the switch offers a way out.
+                off || view === undefined ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
+        }
         // The cards in the order they have always had, each with whether it waits (no key yet, or switched off).
         const wordsOf = (route) => route + ' ' + pvLabel(route) + ' ' + KBM.models.filter((mo) => mo.route === route).map((mo) => mo.id + ' ' + (mo.name || '')).join(' ')
-        const cards = dsCards.map((c) => ({ node: renderDsCard(c), waiting: c.ns === 'llm-deepseek' && KBM.dsKey.configured === false, hay: c.provider + ' ' + c.name + ' deepseek' }))
+        const cards = dsCards.map((c) => ({ node: renderDsCard(c), waiting: (c.ns === 'llm-deepseek' && KBM.dsKey.configured === false) || kbDsBaseOff(KBM.baseRows, c.provider), hay: c.provider + ' ' + c.name + ' deepseek' }))
           .concat(routes.map((route) => ({ node: renderCard({ route }), waiting: keyOf(route) === 'missing', hay: wordsOf(route), cloud: route === 'kybernos' })))
           .concat(parkedShown.map((p) => ({ node: renderCard({ route: p.slug, off: true }), waiting: true, hay: p.slug + ' ' + p.models.join(' ') })))
         // While a search is typed the answer is the matching providers, all of them (a provider with no key included), with no fold and no Cloud card.
@@ -2704,7 +2739,7 @@ window.__ModuleLoader__.load({
               'aria-selected': UI.tab === 'providers',
               className: 'kbm-pill' + (UI.tab === 'providers' ? ' kbm-pill-active' : ' kbm-pill-interactive'),
               onClick: () => uiSet('tab', 'providers'),
-            }, m('kb.models.tab.providers', { n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir).length })),
+            }, m('kb.models.tab.providers', { n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir, KBM.baseRows).length })),
             h('button', {
               type: 'button', role: 'tab', 'data-kbm': 'tab-models',
               'aria-selected': UI.tab !== 'providers',
@@ -3578,13 +3613,13 @@ window.__ModuleLoader__.load({
             const v = namespaces.filter((n) => n.ns === ns)[0]
             if (v !== undefined) KBM.ds[ns] = { ns, user: kbMOBJ(v.user), base: kbMOBJ(v.base), value: kbMOBJ(v.value), revision: typeof v.revision === 'number' ? v.revision : null }
           }
-          KBM.hasDeepseek = Object.keys(KBM.ds).length > 0
           const view = namespaces.filter((n) => n.ns === KB_NS)[0]
           if (view === undefined) throw new Error('namespace ' + KB_NS + ' absent')
           KBM.revision = typeof view.revision === 'number' ? view.revision : null
           const annotations = await kbMAnnotations()
           KBM.annotations = annotations === null || annotations.models === undefined ? {} : annotations.models
           await kbMLoadParked()
+          await kbMLoadBase()
           const valueProviders = kbMProviders(view.value)
           const userProviders = kbMProviders(view.user)
           const baseProviders = kbMProviders(view.base)
@@ -3763,14 +3798,18 @@ window.__ModuleLoader__.load({
         }
         KBM.keys = keys
       }
-      /** Same-origin call to the host's parked-provider routes. Throws the host's error code. */
+      /** Same-origin call to the host's provider routes. Throws the host's error code (and, when the host sends one, its
+       *  detailed `code`: a refused plugin switch says which refusal, never a bare « failed »). */
       const kbMParkCall = async (path, body) => {
         const res = await fetch('/kybernos-models/providers/' + path, body === undefined
           ? { headers: { accept: 'application/json' } }
           : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
         let out = null
         try { out = await res.json() } catch (e) { out = null }
-        if (out === null || out.ok !== true) throw new Error(String(out !== null && out.error ? out.error : 'HTTP ' + String(res.status)))
+        if (out === null || out.ok !== true) {
+          const code = out !== null && typeof out.code === 'string' && out.code !== '' ? ' (' + out.code + ')' : ''
+          throw new Error(String(out !== null && out.error ? out.error + code : 'HTTP ' + String(res.status)))
+        }
         return out
       }
       const kbMLoadParked = async () => {
@@ -4682,12 +4721,27 @@ window.__ModuleLoader__.load({
       }
       /** The credential reference of the official adapter: the one its profile names, else the derived one. Pure. */
       const kbDsKeyRef = (value) => (kbDsObj(value) && typeof value.apiKeyEnv === 'string' && value.apiKeyEnv !== '' ? value.apiKeyEnv : 'DEEPSEEK_OFFICIAL_API_KEY')
+      /** The host's plugin row of a built-in provider (`{ entryIds, present, enabled }`), or null when the host half does
+       *  not know it — no route yet, no pluginManager, or a profile that never declared the row. Pure. */
+      const kbDsBaseRow = (rows, provider) => (kbDsObj(rows) && kbDsObj(rows[provider]) ? rows[provider] : null)
+      /** Whether the host's Loader lists the built-in provider's row at all (a profile may not declare it): only then is
+       *  there something to switch, and only then does a switched-off provider get a card of its own. Pure. */
+      const kbDsBaseKnown = (rows, provider) => {
+        const row = kbDsBaseRow(rows, provider)
+        return row !== null && row.present === true
+      }
+      /** Whether the built-in provider is switched off: only a row the Loader lists AND reports disabled counts. A row
+       *  absent from the profile is not « disabled » — the card simply has nothing to switch. Pure. */
+      const kbDsBaseOff = (rows, provider) => kbDsBaseKnown(rows, provider) && kbDsBaseRow(rows, provider).enabled !== true
       // KB-DS-PURE-END
       // KB-DS-ACTIONS-BEGIN
-      /** The two DeepSeek cards: [{ ns, provider, name }], from the engine's directory when it has them, else the defaults. */
-      const kbDsCardsOf = (ds, dir) => {
+      /** The two DeepSeek cards: [{ ns, provider, name }], from the engine's directory when it has them, else the defaults.
+       *  `base` is the host's plugin-row state: a provider switched off has no settings namespace left (the row is unmounted),
+       *  so its card is kept from there to be switched back on. Pure. */
+      const kbDsCardsOf = (ds, dir, base) => {
         const defaults = { 'llm-deepseek': { provider: 'deepseek-official', name: 'DeepSeek' }, 'llm-deepseek-account': { provider: 'deepseek-account', name: 'DeepSeek Account' } }
-        return KB_DS_NS.filter((ns) => ds[ns] !== undefined).map((ns) => {
+        const known = (ns) => ds[ns] !== undefined || kbDsBaseKnown(base, defaults[ns].provider)
+        return KB_DS_NS.filter(known).map((ns) => {
           const e = (Array.isArray(dir) ? dir : []).filter((x) => x.ns === ns)[0]
           return { ns, provider: e !== undefined && e.provider !== '' ? e.provider : defaults[ns].provider, name: e !== undefined && e.name !== '' ? e.name : defaults[ns].name }
         })
@@ -4728,6 +4782,22 @@ window.__ModuleLoader__.load({
           const v = r !== null && r !== undefined && r.ok === true && kbDsObj(r.value) ? r.value : {}
           if (kbDsObj(v[KBM.dsKey.ref]) && typeof v[KBM.dsKey.ref].configured === 'boolean') KBM.dsKey.configured = v[KBM.dsKey.ref].configured
         } catch (e) { /* unknown stays unknown */ }
+      }
+      /** The host's plugin-row state of the built-in providers. An older host half answers 404 (the route does not exist yet)
+       *  and a profile without pluginManager answers 501: both mean « this page cannot switch them yet », so the switches stay
+       *  disabled with the host note — never an error the page cannot act on. */
+      const kbMLoadBase = async () => {
+        try {
+          const b = await kbMParkCall('base')
+          KBM.baseRows = b !== null && b !== undefined && kbDsObj(b.rows) ? b.rows : {}
+          KBM.baseHost = true
+        } catch (e) { KBM.baseRows = {}; KBM.baseHost = false }
+      }
+      /** Switch a built-in provider on or off: the host persists `disabled:` in the profile patch and reloads the row live, so
+       *  the page rereads both halves afterwards (a disabled row has no settings namespace left). Throws the host's error code. */
+      const kbBaseSet = async (slug, enabled) => {
+        await kbMParkCall('base', { slug, enabled: enabled === true })
+        await kbMLoad()
       }
       // KB-DS-ACTIONS-END
       /** A `models[i]`/`modelOverrides.<id>` entry → the panel's control keys.

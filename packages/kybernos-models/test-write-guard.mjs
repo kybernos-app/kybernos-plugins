@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The routes of this bundle that WRITE or ACT (save a note, append to the journal, park / take / forget a provider, check a pasted key against
-// its provider, refresh the scores, force a models.dev download) need DSH's signed session as well as the right Origin. DSH serves plugin routes
+// its provider, switch a built-in provider's plugin row off or on, refresh the scores, force a models.dev download) need DSH's signed session as well as the right Origin. DSH serves plugin routes
 // before its own login and an Origin header is forgeable by any local program: before this rule `curl -X POST -H 'Origin: http://127.0.0.1:<port>'
 // http://127.0.0.1:<port>/kybernos-models/providers/park -d '{...}'` parked the person's provider (its profile, with its key variable) and
 // rewrote their notes. The guard is session-guard.mjs (the terminal's rule, an identical copy in every bundle that carries it).
@@ -35,7 +35,12 @@ const check = (name, ok, detail) => {
 
 const routes = {}
 const web = { register: (r) => { routes[r.path] = r.handler } }
-const hostCtx = { get: (n) => (n === 'webServer' ? web : undefined), effect: (fn) => fn() }
+// The built-in providers' route asks the host for `pluginManager`: a stand-in answers like a live profile (nothing else asks for it).
+const pm = {
+  listPlugins: async () => [{ entryId: 'include:llm-deepseek', enabled: true }, { entryId: 'include:llm-deepseek-account', enabled: true }],
+  setPluginEnabled: async (id, enabled) => ({ changed: true, application: 'applied', stage: 'enable', target: id, enabled }),
+}
+const hostCtx = { get: (n) => (n === 'webServer' ? web : (n === 'pluginManager' ? pm : undefined)), effect: (fn) => fn() }
 apply({ inject: (_names, fn) => fn(hostCtx), get: () => undefined, effect: (fn) => fn() })
 
 // A snapshot of the scores written by hand and still fresh, so that even the real pair on /scores/sync starts no download.
@@ -69,6 +74,8 @@ const GUARDED = [
   ['POST', '/kybernos-models/providers/park', { slug: 'acme', profile: PROFILE, models: ['a-1'] }],
   ['POST', '/kybernos-models/providers/take', { slug: 'acme' }],
   ['POST', '/kybernos-models/providers/forget', { slug: 'acme' }],
+  // Switching a built-in provider off is a write of the profile patch (through the host's pluginManager).
+  ['POST', '/kybernos-models/providers/base', { slug: 'deepseek-official', enabled: false }],
   ['POST', '/kybernos-models/scores/list', { models: [] }],
   ['POST', '/kybernos-models/scores/sync', {}],
   ['GET', '/kybernos-models/modelsdev?force=1', undefined],
@@ -102,6 +109,8 @@ for (const path of READS.filter((p) => p !== '/kybernos-models/logo' && p !== '/
 }
 check('GET /kybernos-models/journal with no header is answered', (await hit('/kybernos-models/journal', 'GET', {})).status === 200)
 check('GET /kybernos-models/providers/parked from a foreign Origin is still refused (403)', (await hit('/kybernos-models/providers/parked', 'GET', { origin: 'http://evil.example' })).status === 403)
+check('GET /kybernos-models/providers/base with no header is answered (a page sends no Origin on a same-origin GET)', (await hit('/kybernos-models/providers/base', 'GET', {})).status === 200)
+check('GET /kybernos-models/providers/base from a foreign Origin is still refused (403)', (await hit('/kybernos-models/providers/base', 'GET', { origin: 'http://evil.example' })).status === 403)
 check('GET /kybernos-models/modelsdev with no header (no force) is answered', (await hit('/kybernos-models/modelsdev', 'GET', {})).status === 200)
 
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
