@@ -21,12 +21,13 @@
 // ═════════════════════════════════════════════════════════════════════════════
 
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { LESSONS_NEAR_COUNT, LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { rank } from './relevance.mjs'
 import { writeGuard } from './session-guard.mjs'
-import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
+import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
 import { TEAM_SPACE_REFUSAL, inTeamSpace, touchesPersonalMemory } from './team-space.mjs'
 
 export const name = 'kybernos-memory'
@@ -780,6 +781,211 @@ const tidyUndo = (body) => {
   return { ok: true, restored: back.restored, reverted, notReverted, view: tidyView() }
 }
 
+// ── The janitor seam: bounded, dirty-aware cleaning of the local lessons ─────────────────────────────────────────────
+// kybernos-maintenance owns ONE host-level scheduler (janitor.mjs) and reaches this store through
+// globalThis[Symbol.for('kybernos.janitor.lessons')], a frozen { version: 1, enabled(), revision(), scanAndClean() }.
+// SAME CONTRACT IN kybernos-cloud (account memories). The janitor is the schedule/lock/backup/report layer; this
+// file owns the rules of the lessons and reuses the paths that already exist (dedupe.mjs, pickAuto, applyGroups,
+// the tidy archive + Undo, and lessons.archive.jsonl through deleteLesson).
+//
+//   · enabled(): the lessons switch (readSettings().lessons === true, exactly the rule of the scheduled tidy-up)
+//     and NOT a team space (existing rule: personal lessons stay out of a team conversation). The `context`
+//     switch is about injecting lessons into the prompt, not about recording them, so it does not close the store.
+//   · revision(): a hash of every kyber's lessons (id + kyber + ts + text + tags + uses + lastUsed): SYNCHRONOUS,
+//     read-only, no network. It changes exactly when a lesson the user sees changes.
+//   · SCAN-ONLY (apply !== true) IS INSPECT-ONLY: no Study-model call, and NO write of any kind — not even the
+//     tidy scan side file or an archive. A boot with the janitor mounted leaves the lessons files untouched.
+//   · apply === true is the user's explicit approval. Then: a timestamped JSON backup is written to
+//     options.backupPath BEFORE any change; pass 1 is the store's own rule (findDuplicateGroups + pickAuto: tidy
+//     mode « auto », score >= 80, only within the same kyber); pass 2 (Study model) only when the tidy `brain`
+//     setting is on and candidates exist, bounded to 20 candidates / 4 calls. Only a « same » verdict is merged;
+//     « replaces » (a contradiction) is counted in `conflicts` and both lessons are KEPT. The keeper's falsifiable
+//     wording is kept exactly as written; applyGroups adds the removed lessons' tags (5 at most), uses (summed)
+//     and lastUsed (newest), so merging never makes it the first lesson the 50-lesson cap evicts. Every removal
+//     goes through applyGroups, which writes the tidy archive first (Undo), and deleteLesson archives the row too.
+//   · At most `maxRemovals` items are removed (merges + archives counted together); every number is returned.
+//   · Nothing throws across the boundary: a failure returns { ok: false, error } with the files untouched.
+const JANITOR_LESSONS_BOUNDS = Object.freeze({ maxInspected: 200, maxCandidates: 20, maxModelCalls: 4, maxRemovals: 20 })
+const JANITOR_LESSONS_SEAM = Symbol.for('kybernos.janitor.lessons')
+
+/** The janitor's bounds, never wider than the product defaults, whatever a caller asks. */
+const janitorBounds = (bounds) => {
+  const b = bounds !== null && typeof bounds === 'object' ? bounds : {}
+  const num = (key, fallback) => (Number.isFinite(b[key]) && b[key] >= 0 ? Math.min(Math.floor(b[key]), fallback) : fallback)
+  return {
+    maxInspected: num('maxInspected', JANITOR_LESSONS_BOUNDS.maxInspected),
+    maxCandidates: num('maxCandidates', JANITOR_LESSONS_BOUNDS.maxCandidates),
+    maxModelCalls: num('maxModelCalls', JANITOR_LESSONS_BOUNDS.maxModelCalls),
+    maxRemovals: num('maxRemovals', JANITOR_LESSONS_BOUNDS.maxRemovals),
+  }
+}
+
+/** Every lesson of every kyber, as the dedupe module wants it (bucket = kyber: lessons only meet inside their own kyber). */
+const janitorLessonItems = () => {
+  const items = []
+  for (const [id, { kyber, lesson }] of liveLessons()) items.push({ id, content: lesson.text, createdAt: lesson.ts, pinned: false, bucket: kyber })
+  return items
+}
+
+/** A stable hash of those lessons: SYNCHRONOUS, read-only, no network. */
+const janitorLessonsRevision = () => {
+  try {
+    const rows = []
+    for (const [id, entry] of liveLessons()) {
+      const lesson = entry.lesson
+      rows.push([String(id), String(entry.kyber), String(lesson.ts === undefined ? '' : lesson.ts), String(lesson.text), Array.isArray(lesson.tags) ? lesson.tags.join(',') : '', Number(lesson.uses) || 0, typeof lesson.lastUsed === 'string' ? lesson.lastUsed : ''])
+    }
+    if (rows.length === 0) return null
+    rows.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    return createHash('sha1').update(JSON.stringify(rows)).digest('hex')
+  } catch (e) { return null }
+}
+
+/** enabled(): lessons are recorded, and this is not a team space. Never throws. */
+const janitorLessonsEnabled = () => {
+  try { return readSettings().lessons === true && !inTeamSpace() } catch (e) { return false }
+}
+
+/** The backup file, written atomically, where the janitor asked for it. */
+const writeJanitorBackup = (file, payload) => {
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+  const tmp = file + '.tmp-' + String(process.pid)
+  try {
+    writeFileSync(tmp, JSON.stringify({ at: new Date().toISOString(), ...payload }, null, 2) + '\n', { mode: 0o600 })
+    renameSync(tmp, file)
+  } catch (e) {
+    try { rmSync(tmp, { force: true }) } catch (e2) { /* nothing to clean */ }
+    throw e
+  }
+}
+
+/** The Study model's judgement of at most `maxCandidates` pairs, bounded by `maxModelCalls`. Never in scan-only. */
+const janitorJudgePairs = async (pairs, maxCalls) => {
+  const model = { route: null, calls: 0 }
+  const verdicts = []
+  const route = studyModel()
+  const llm = tidyLlm()
+  if (route === '' || llm === undefined) return { model, verdicts }
+  model.route = route
+  for (let at = 0; at < pairs.length && model.calls < maxCalls; at += BRAIN_BATCH) {
+    const batch = pairs.slice(at, at + BRAIN_BATCH)
+    const res = await askModel(llm, route, brainPrompt(batch, 'lessons'), { timeoutMs: BRAIN_TIMEOUT_MS })
+    if (res.error !== undefined) break
+    model.calls += 1
+    const parsed = parseVerdicts(res.text, batch.length, LESSON_MAX_CHARS)
+    batch.forEach((pair, index) => verdicts.push({ pair, verdict: parsed[index] }))
+  }
+  return { model, verdicts }
+}
+
+/**
+ * The janitor's cleaning pass over every kyber's lessons. Scan-only inspects and counts; apply writes a backup
+ * first, then merges through applyGroups. Returns the numbers the janitor reports, or { ok: false, error }.
+ */
+const janitorLessonsScanAndClean = async (options = {}) => {
+  try {
+    const opts = options !== null && typeof options === 'object' ? options : {}
+    const bounds = janitorBounds(opts.bounds)
+    const apply = opts.apply === true
+    const now = Date.now()
+    if (readSettings().lessons !== true) return { ok: false, unavailable: true, error: 'lecons_desactivees' }
+    if (inTeamSpace()) return { ok: false, unavailable: true, error: 'espace_equipe' }
+    const all = janitorLessonItems()
+    const inspectedItems = all.slice(0, bounds.maxInspected)
+    const before = { items: all.length, chars: all.reduce((n, it) => n + String(it.content).length, 0) }
+    const t = tidyState()
+    // Pass 1 — deterministic and local.
+    const local = findDuplicateGroups(inspectedItems).filter((g) => t.dismissed.indexOf(g.id) < 0)
+    const taken = new Set(local.flatMap((g) => g.items.map((i) => i.id)))
+    // Candidates for pass 2 — collected in every mode, asked only when the user approved an applying run.
+    const unclear = unclearPairs(inspectedItems, { taken, max: bounds.maxCandidates }).filter((p) => t.dismissed.indexOf(p.id) < 0)
+    const model = { route: null, calls: 0 }
+    // A pass-1 « clash » (one text says « not », or the numbers differ) is a contradiction dedupe.mjs has already
+    // refused to call a duplicate: it is COUNTED and both rows are kept, and the model is never asked to override it.
+    const conflictIds = new Set(unclear.filter((p) => p.why === 'negation' || p.why === 'number').map((p) => p.id))
+    const judgeable = unclear.filter((p) => !conflictIds.has(p.id))
+    const semantic = []
+    if (apply === true && t.settings.brain === true && judgeable.length > 0) {
+      const judged = await janitorJudgePairs(judgeable, bounds.maxModelCalls)
+      model.route = judged.model.route
+      model.calls = judged.model.calls
+      for (const judgedPair of judged.verdicts) {
+        const p = judgedPair.pair
+        const v = judgedPair.verdict
+        if (v.verdict === 'replaces') { conflictIds.add(p.id); continue }   // a contradiction: counted, both lessons kept
+        if (v.verdict !== 'same') continue
+        // lessons have no pinned flag: the newer one is the keeper (the model said both state the same thing)
+        const keeper = (Date.parse(p.a.createdAt) || 0) <= (Date.parse(p.b.createdAt) || 0) ? p.b : p.a
+        const other = keeper.id === p.a.id ? p.b : p.a
+        semantic.push({
+          id: p.id, keeperId: keeper.id, type: 'merge', by: 'brain', score: null, saves: 1,
+          items: [
+            { id: keeper.id, content: keeper.content, createdAt: keeper.createdAt, pinned: false, keep: true, like: p.like / 100 },
+            { id: other.id, content: other.content, createdAt: other.createdAt, pinned: false, keep: false, like: p.like / 100 },
+          ],
+        })
+      }
+    }
+    // What may be applied: the store's own « merge without asking » rule decides pass 1 (mode « auto »); pass 2
+    // only adds the model's « same » verdicts, and the janitor's removals budget caps the whole run.
+    const order = apply === true && t.settings.mode === 'auto' ? [...pickAuto(local, t.settings), ...semantic] : []
+    const picked = []
+    let removals = 0
+    for (const group of order) {
+      const r = Math.max(0, group.items.length - 1)
+      if (r === 0) continue
+      if ((picked.length + 1) + (removals + r) > bounds.maxRemovals) continue
+      picked.push(group)
+      removals += r
+    }
+    let merges = 0
+    let archives = 0
+    let backupPath = null
+    const counts = () => ({ ok: false, before, after: before, inspected: inspectedItems.length, candidates: unclear.length, merges, archives, conflicts: conflictIds.size, model: { route: model.calls > 0 ? model.route : null, calls: model.calls }, backupPath })
+    if (apply === true && picked.length > 0) {
+      if (typeof opts.backupPath !== 'string' || opts.backupPath.trim() === '') return { ...counts(), error: 'backup_requis' }
+      const kybers = {}
+      for (const entry of liveLessons().values()) { if (kybers[entry.kyber] === undefined) kybers[entry.kyber] = []; kybers[entry.kyber].push(entry.lesson) }
+      writeJanitorBackup(opts.backupPath, { kind: 'lessons', kybers })
+      backupPath = opts.backupPath
+      // The store's own scan record: applyGroups re-checks every group against the lessons it reads NOW.
+      t.scan = { at: new Date(now).toISOString(), total: all.length, unclear: unclear.length, groups: [...local, ...semantic] }
+      writeTidy(t)
+      const done = applyGroups(picked.map((g) => ({ id: g.id, keep: g.keeperId })), 'janitor', now)
+      if (done.error !== undefined) return { ...counts(), error: done.error }
+      let partial = false
+      for (const r of done.results) {
+        if (r.ok === true) { merges += 1; archives += Number.isFinite(r.removed) ? r.removed : 0 }
+        else partial = true
+      }
+      if (partial) return { ...counts(), error: 'merge_partiel' }
+    }
+    const remaining = janitorLessonItems()
+    const after = { items: remaining.length, chars: remaining.reduce((n, it) => n + String(it.content).length, 0) }
+    return {
+      ok: true, before, after,
+      inspected: inspectedItems.length, candidates: unclear.length,
+      merges, archives, conflicts: conflictIds.size,
+      model: { route: model.calls > 0 ? model.route : null, calls: model.calls },
+      backupPath, changed: merges > 0, protectedViolations: [],
+    }
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) }
+  }
+}
+
+const janitorLessonsSeam = () => Object.freeze({
+  version: 1,
+  enabled: janitorLessonsEnabled,
+  revision: janitorLessonsRevision,
+  scanAndClean: janitorLessonsScanAndClean,
+})
+
+/** Publishes (or republishes) the seam. Last writer wins; a frozen global is not an error. */
+const publishJanitorSeam = (target = globalThis) => {
+  try { target[JANITOR_LESSONS_SEAM] = janitorLessonsSeam() } catch (e) { /* a frozen global: the janitor degrades to "no seam" */ }
+}
+
 const tidyRoute = async () => tidyView()
 const tidyScanRoute = async () => tidyScan()
 const tidyApplyRoute = async (req, body) => tidyApply(body)
@@ -848,10 +1054,87 @@ const mountRoutes = (ctx, webServer) => {
   say('routes /kybernos-memory/* mounted')
 }
 
+// ── Where the chunk lives: a per-agent `section`, not a durable `context` ─────
+// `systemPrompt.context` is a DURABLE runtime-context snapshot: the engine writes it into the history as a
+// user-role message and appends a new copy every time its text changes. Lessons change rarely, but the
+// change is enough to leave several stale copies in a long chat — the duplication workstream A removes.
+// `systemPrompt.section` is part of the system prompt: it is evaluated at every assembly and never retained
+// in the history. Native plugins install one section per agent (dsh-file-reference-local `installPrompt`,
+// dsh-tool-subagent `installScoped`):
+//
+//   const fiber = agent.ctx.inject(['systemPrompt'], (scope) => {
+//     scope.systemPrompt.section({ name: CHUNK_NAME, order: CHUNK_ORDER, text: () => renderLessonsChunk({ agent }) })
+//   })
+//
+// The text provider stays SYNCHRONOUS and never throws, and reads only the lessons files and the settings
+// (no network, no timer): while nothing changes it is byte-identical between steps, so the prompt
+// prefix stays cacheable (no timestamp, no per-step noise).
+//
+// FAIL SAFE: when the agent seam is not readable (no agent registry, no event bus to follow agent creation),
+// the historical `systemPrompt.context` registration is kept — boot never breaks and lessons are never
+// silently lost. `installed` also makes the first successful section registration win: the two paths are
+// never both active, otherwise every agent would read the block twice.
 const mountPrompt = (ctx) => {
-  ctx.inject(['systemPrompt'], (scope) => {
-    scope.systemPrompt.context({ name: CHUNK_NAME, order: CHUNK_ORDER, text: (context) => renderLessonsChunk(context) })
-  })
+  const fibers = new WeakMap()     // agent -> the fiber that owns its section
+  let fallbackFiber = null
+  let installed = 0
+  const installFallback = () => {
+    // Never both: once a section is installed for at least one agent, a later refusal leaves that agent
+    // without the block rather than putting the same text in the global context for everybody.
+    if (fallbackFiber !== null || installed > 0) return
+    fallbackFiber = ctx.inject(['systemPrompt'], (scope) => {
+      scope.systemPrompt.context({ name: CHUNK_NAME, order: CHUNK_ORDER, text: (context) => renderLessonsChunk(context) })
+    })
+  }
+  const install = (agent) => {
+    if (agent === null || typeof agent !== 'object' || fibers.has(agent)) return
+    const agentCtx = agent.ctx
+    if (agentCtx === null || typeof agentCtx !== 'object' || typeof agentCtx.inject !== 'function') { installFallback(); return }
+    try {
+      const fiber = agentCtx.inject(['systemPrompt'], (scope) => {
+        scope.systemPrompt.section({ name: CHUNK_NAME, order: CHUNK_ORDER, text: () => { try { return renderLessonsChunk({ agent }) } catch (e) { return '' } } })
+      })
+      fibers.set(agent, fiber)
+      installed += 1
+    } catch (e) {
+      // The seam answered but refused (an older engine without `section`): the context path is the last resort.
+      if (installed === 0) installFallback()
+      say('prompt section not installed for an agent: ' + String((e && e.message) || e))
+    }
+  }
+  const dispose = (agent) => {
+    const fiber = fibers.get(agent)
+    if (fiber === undefined) return
+    fibers.delete(agent)
+    try {
+      const task = typeof fiber.dispose === 'function' ? fiber.dispose() : undefined
+      if (task !== undefined && typeof task.catch === 'function') task.catch(() => {})
+    } catch (e) { /* the agent is going away anyway */ }
+  }
+  // `get` (and not `ctx.agents`): cordis refuses a direct property read of a service this apply() did not
+  // declare through `inject`, and the access must stay optional — no agent registry means the fallback path.
+  let agents = null
+  try { agents = ctx.get('agents') } catch (e) { agents = null }
+  if (agents === null || typeof agents !== 'object' || typeof agents.list !== 'function' || typeof ctx.on !== 'function') {
+    installFallback()
+    return
+  }
+  let live = null
+  try { live = agents.list() } catch (e) { live = null }
+  if (Array.isArray(live) !== true) { installFallback(); return }
+  for (const agent of live) install(agent)
+  // Every live agent refused the seam: the context path carries the block (nothing was installed, so no duplicate).
+  if (installed === 0 && live.length > 0) installFallback()
+  ctx.on('agent/created', ({ agent }) => { try { install(agent) } catch (e) { /* never break boot */ } })
+  ctx.on('agent/disposed', ({ agent }) => { try { dispose(agent) } catch (e) { /* never break boot */ } })
+  // The fibers live on the agents' own contexts, so a plugin unload does not dispose them: do it here.
+  if (typeof ctx.effect === 'function') {
+    ctx.effect(() => () => {
+      let current = []
+      try { current = agents.list() } catch (e) { current = [] }
+      if (Array.isArray(current)) for (const agent of current) dispose(agent)
+    }, 'kybernos-memory: prompt sections')
+  }
 }
 
 const mountTools = (ctx) => {
@@ -886,8 +1169,9 @@ export function apply(ctx) {
     if (typeof ctx.on === 'function') ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => { try { if (!inTeamSpace()) noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ } })
   } catch (e) { say('turn listener not mounted: ' + String((e && e.message) || e)) }
   hostCtx = ctx
+  try { publishJanitorSeam() } catch (e) { say('janitor seam not published: ' + String((e && e.message) || e)) }
   try { mountTidySchedule(ctx) } catch (e) { say('scheduled tidy-up not mounted: ' + String((e && e.message) || e)) }
 }
 
 // Exported for the host suite (test-memory-host.mjs): nothing else is promised.
-export { lessonWriteTool, lessonSearchTool, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS, tidyRun, tidySettings, studyModel }
+export { lessonWriteTool, lessonSearchTool, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS, tidyRun, tidySettings, studyModel, publishJanitorSeam, JANITOR_LESSONS_SEAM }
