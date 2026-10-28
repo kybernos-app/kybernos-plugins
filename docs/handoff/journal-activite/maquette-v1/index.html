@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kybernos-log — Journal d’activité (plate v1)</title>
+<link rel="stylesheet" href="kblg.css">
+<style>
+  /* The plate itself: DSH tokens, light by default, dark through [data-ds-dark-theme] on a panel.
+     Values measured on the live GUI 127.0.0.1:3080 (2026-10-20) and read from the engine's own dark block. */
+  :root {
+    --dsw-alias-bg-layer-1: #fff; --dsw-alias-bg-layer-2: #f7f7f8; --dsw-alias-bg-layer-3: #fff;
+    --dsw-alias-label-primary: #0f1115; --dsw-alias-label-secondary: #61666b; --dsw-alias-label-tertiary: #81858c;
+    --dsw-alias-border-l1: #0000000a; --dsw-alias-border-l2: #0000001a; --dsw-alias-border-l3: #0000001f; --dsw-alias-border-l4: #00000029;
+    --dsw-alias-brand-primary: #0f1115; --dsw-alias-button-primary-fill: #0f1115; --dsw-alias-label-primary-foreground: #fff;
+    --dsw-alias-interactive-bg-hover: #2631480f; --dsw-alias-state-business-primary: #4176e6;
+    --dsw-alias-state-success-primary: #22c55e; --dsw-alias-state-warn-primary: #f59e0b; --dsw-alias-state-error-primary: #ec1313;
+  }
+  [data-ds-dark-theme] {
+    --dsw-alias-bg-layer-1: #232324; --dsw-alias-bg-layer-2: #2c2c2e; --dsw-alias-bg-layer-3: #353638;
+    --dsw-alias-label-primary: #f9fafb; --dsw-alias-label-secondary: #cfd3d6; --dsw-alias-label-tertiary: #adb2b8;
+    --dsw-alias-border-l1: #ffffff0f; --dsw-alias-border-l2: #ffffff1f; --dsw-alias-border-l3: #ffffff29; --dsw-alias-border-l4: #fff3;
+    --dsw-alias-brand-primary: #f9fafb; --dsw-alias-button-primary-fill: #f9fafb; --dsw-alias-label-primary-foreground: #0f1115;
+    --dsw-alias-interactive-bg-hover: #ffffff14; --dsw-alias-state-business-primary: #7aaaff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 26px; background: #e9eaee; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: #0f1115; }
+  h1 { margin: 0 0 4px; font-size: 19px; line-height: 26px; font-weight: 600; }
+  .sub { margin: 0 0 20px; font-size: 12.5px; line-height: 19px; color: #61666b; }
+  .board { display: grid; grid-template-columns: 720px 720px; gap: 22px; align-items: start; }
+  .panel { border-radius: 18px; padding: 18px 20px 22px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); border: 1px solid var(--dsw-alias-border-l2); }
+  .panel-title { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dsw-alias-label-tertiary); }
+  .anno { margin-top: 12px; font-size: 11.5px; line-height: 17px; font-style: italic; color: var(--dsw-alias-label-tertiary); }
+  .narrow { margin-top: 22px; display: grid; grid-template-columns: 390px; gap: 18px; }
+  .nav { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-2); }
+  .nav-row { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 8px; font-size: 12.5px; color: var(--dsw-alias-label-secondary); }
+  .nav-row.is-group { font-weight: 600; color: var(--dsw-alias-label-primary); }
+  .nav-row.is-active { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+  .nav-row .chev { margin-left: auto; font-size: 11px; line-height: 1; opacity: .65; color: var(--dsw-alias-label-tertiary); }
+</style>
+</head>
+<body>
+<h1>Journal d’activité — plate v1</h1>
+<p class="sub">Réglages › Système › Journal d’activité. CSS réel du bundle (<code>kblg.css</code>), jetons DSH, données simulées.
+Ce que la planche doit permettre de juger : la densité du tableau, la lisibilité des familles, les cartes du haut, et le rendu en 390 px.</p>
+
+<div class="board">
+  <!-- ── Light ── -->
+  <section class="panel">
+    <p class="panel-title">Light · volet Réglages (720 px)</p>
+    <div class="kblg-page">
+      <h2 style="margin:0;font-size:17px;font-weight:650">Journal d’activité</h2>
+      <p class="kblg-lead">Tout ce que cette machine envoie : appels modèle, connecteurs, recherche web, outils — et les appels que personne n’a demandés (titres, compactages, sondes).</p>
+      <p class="kblg-priv">Métadonnées seulement : aucun texte de message ni argument d’outil n’est enregistré.</p>
+      <div class="kblg-cards">
+        <div class="kblg-card"><b>141</b><span>Appels modèle aujourd’hui</span></div>
+        <div class="kblg-card"><b>13,9M</b><span>Tokens aujourd’hui</span></div>
+        <div class="kblg-card is-warn"><b>20</b><span>Appels non demandés</span></div>
+        <div class="kblg-card is-warn"><b>3</b><span>Retries</span></div>
+      </div>
+      <div class="kblg-tools">
+        <div class="kblg-chips" role="group" aria-label="Familles">
+          <button type="button" class="kblg-chip" aria-pressed="true">Modèle</button>
+          <button type="button" class="kblg-chip" aria-pressed="true">Connecteur</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Recherche web</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Outil</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Titre auto</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Compactage</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Sonde</button>
+        </div>
+        <input class="kblg-in" type="search" placeholder="Rechercher (modèle, outil, session, erreur)…" aria-label="Rechercher">
+        <button type="button" class="kblg-btn" aria-pressed="true">En direct — en pause</button>
+        <button type="button" class="kblg-btn">Rafraîchir</button>
+      </div>
+      <table class="kblg-table">
+        <thead><tr><th>Heure</th><th>Famille</th><th>Quoi</th><th>Session</th><th class="kblg-num">Tokens</th><th>Détail</th></tr></thead>
+        <tbody>
+          <tr><td class="kblg-mut">00:31:42</td><td>Modèle</td><td>opencode-go/deepseek-v4.1-flash</td><td class="kblg-mut">ab624db6</td><td class="kblg-num">104,6k</td><td class="kblg-mut"></td></tr>
+          <tr><td class="kblg-mut">00:31:38</td><td>Connecteur</td><td>mcp__playwright__browser_navigate</td><td class="kblg-mut">e069496d</td><td class="kblg-num"></td><td class="kblg-mut"></td></tr>
+          <tr><td class="kblg-mut">00:31:22</td><td>Recherche web</td><td>web_search</td><td class="kblg-mut">16dc0b88</td><td class="kblg-num"></td><td class="kblg-mut"></td></tr>
+          <tr><td class="kblg-mut">00:31:20</td><td class="kblg-warn">Titre auto</td><td>kimi/k3.1-pro</td><td class="kblg-mut">d15456c7</td><td class="kblg-num"></td><td class="kblg-mut">appel non demandé</td></tr>
+          <tr><td class="kblg-mut">00:31:19</td><td>Modèle</td><td>kimi/k3.1-pro</td><td class="kblg-mut">afe9e427</td><td class="kblg-num">1,7M</td><td class="kblg-warn">↻ retry 2/10 · quota exhausted</td></tr>
+          <tr><td class="kblg-mut">00:31:12</td><td>Compactage</td><td></td><td class="kblg-mut">e069496d</td><td class="kblg-num"></td><td class="kblg-mut">appel non demandé</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="anno">Chips à l’état « Modèle + Connecteur » : la famille active prend la bordure brand. Les deux cartes ambre comptent ce que personne n’a demandé (titres, compactages, sondes) et les retries.</p>
+  </section>
+
+  <!-- ── Dark ── -->
+  <section class="panel" data-ds-dark-theme>
+    <p class="panel-title">Dark · volet Réglages (720 px)</p>
+    <div class="kblg-page">
+      <h2 style="margin:0;font-size:17px;font-weight:650">Journal d’activité</h2>
+      <p class="kblg-lead">Tout ce que cette machine envoie : appels modèle, connecteurs, recherche web, outils — et les appels que personne n’a demandés (titres, compactages, sondes).</p>
+      <p class="kblg-priv">Métadonnées seulement : aucun texte de message ni argument d’outil n’est enregistré.</p>
+      <div class="kblg-cards">
+        <div class="kblg-card"><b>141</b><span>Appels modèle aujourd’hui</span></div>
+        <div class="kblg-card"><b>13,9M</b><span>Tokens aujourd’hui</span></div>
+        <div class="kblg-card is-warn"><b>20</b><span>Appels non demandés</span></div>
+        <div class="kblg-card is-warn"><b>3</b><span>Retries</span></div>
+      </div>
+      <div class="kblg-tools">
+        <div class="kblg-chips" role="group" aria-label="Familles">
+          <button type="button" class="kblg-chip" aria-pressed="false">Modèle</button>
+          <button type="button" class="kblg-chip" aria-pressed="true">Connecteur</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Recherche web</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Outil</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Titre auto</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Compactage</button>
+          <button type="button" class="kblg-chip" aria-pressed="false">Sonde</button>
+        </div>
+        <input class="kblg-in" type="search" placeholder="Rechercher (modèle, outil, session, erreur)…" aria-label="Rechercher">
+        <button type="button" class="kblg-btn" aria-pressed="false">En direct</button>
+        <button type="button" class="kblg-btn">Rafraîchir</button>
+      </div>
+      <table class="kblg-table">
+        <thead><tr><th>Heure</th><th>Famille</th><th>Quoi</th><th>Session</th><th class="kblg-num">Tokens</th><th>Détail</th></tr></thead>
+        <tbody>
+          <tr><td class="kblg-mut">00:31:40</td><td>Connecteur</td><td>mcp__github__create_pull_request</td><td class="kblg-mut">d15456c7</td><td class="kblg-num"></td><td class="kblg-mut"></td></tr>
+          <tr><td class="kblg-mut">00:31:33</td><td class="kblg-mut">Outil</td><td>bash</td><td class="kblg-mut">ab624db6</td><td class="kblg-num"></td><td class="kblg-mut"></td></tr>
+          <tr><td class="kblg-mut">00:31:28</td><td>Modèle</td><td>zai-coding-cn/glm-5.3-flash</td><td class="kblg-mut">92dd3add</td><td class="kblg-num">42,1k</td><td class="kblg-mut"></td></tr>
+          <tr><td class="kblg-mut">00:31:26</td><td class="kblg-err">Modèle</td><td>kimi/k3.1-pro</td><td class="kblg-mut">afe9e427</td><td class="kblg-num"></td><td class="kblg-err">AUTH · key revoked</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="anno">En Dark, la carte se sépare du panneau (layer-2 sur layer-1) et la ligne d’erreur passe en rouge — la seule couleur qui alerte.</p>
+  </section>
+</div>
+
+<div class="narrow">
+  <section class="panel">
+    <p class="panel-title">390 px · la colonne Session disparaît</p>
+    <div class="kblg-page kblg-narrow">
+      <h2 style="margin:0;font-size:16px;font-weight:650">Journal d’activité</h2>
+      <div class="kblg-cards">
+        <div class="kblg-card"><b>141</b><span>Appels</span></div>
+        <div class="kblg-card is-warn"><b>3</b><span>Retries</span></div>
+      </div>
+      <div class="kblg-tools">
+        <div class="kblg-chips"><button type="button" class="kblg-chip" aria-pressed="true">Modèle</button><button type="button" class="kblg-chip" aria-pressed="false">Connecteur</button><button type="button" class="kblg-chip" aria-pressed="false">Sonde</button></div>
+        <button type="button" class="kblg-btn">En direct</button>
+      </div>
+      <table class="kblg-table">
+        <thead><tr><th>Heure</th><th>Famille</th><th>Quoi</th><th>Session</th><th class="kblg-num">Tokens</th><th>Détail</th></tr></thead>
+        <tbody>
+          <tr><td class="kblg-mut">00:31:42</td><td>Modèle</td><td>opencode-go/deepseek…</td><td class="kblg-mut">ab624db6</td><td class="kblg-num">104,6k</td><td></td></tr>
+          <tr><td class="kblg-mut">00:31:20</td><td class="kblg-warn">Titre auto</td><td>kimi/k3.1-pro</td><td class="kblg-mut">d15456c7</td><td class="kblg-num"></td><td class="kblg-mut">non demandé</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="board" style="margin-top:22px;grid-template-columns:720px">
+  <section class="panel">
+    <p class="panel-title">Le volet Réglages, avec le fil (groupe Système)</p>
+    <div class="nav">
+      <div class="nav-row">Général</div>
+      <div class="nav-row is-group">Modèles &amp; routage <span class="chev">▾</span></div>
+      <div class="nav-row is-group">Agents <span class="chev">▾</span></div>
+      <div class="nav-row is-group">Compétences &amp; outils <span class="chev">▾</span></div>
+      <div class="nav-row is-group">Mémoire &amp; contexte <span class="chev">▾</span></div>
+      <div class="nav-row is-group">Interface <span class="chev">▾</span></div>
+      <div class="nav-row is-group">Appareils &amp; cloud <span class="chev">▾</span></div>
+      <div class="nav-row is-group">Système <span class="chev">▾</span></div>
+      <div class="nav-row is-active">↳ Journal d’activité</div>
+      <div class="nav-row">↳ À propos</div>
+    </div>
+    <p class="anno">La page tombe DANS le fold Système (mots-clés « journal » / « activity log » ajoutés au groupe), pas à la queue de la liste.</p>
+  </section>
+</div>
+</body>
+</html>
