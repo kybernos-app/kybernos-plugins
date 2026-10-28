@@ -39,7 +39,7 @@
     "fs.read:dsh-home",
     "fs.write:dsh-home",
     "fs.write:home",
-    "net:api.kybernos.app",
+    "net:server.kybernos.app",
     "exec:open",
     "exec:rundll32",
     "exec:xdg-open",
