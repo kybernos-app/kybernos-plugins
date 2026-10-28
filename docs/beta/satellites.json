@@ -430,6 +430,15 @@
         "role": "the Servers page: add a Kybernos server from its address, switch between servers, rename and remove them",
         "poids_ko": 60,
         "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-log",
+        "nom": "@local/kybernos-log",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "activity log: what this machine sent out (model calls, connectors, web search, tools and their results), filterable, with its cost",
+        "poids_ko": 92,
+        "defaut": "actif"
       }
     ]
   },
@@ -480,6 +489,7 @@
       "@local/kybernos-kyber",
       "@local/kybernos-search",
       "@local/kybernos-servers",
+      "@local/kybernos-log",
       "@local/kybernos-session-msg"
     ]
   }
