@@ -253,11 +253,13 @@ then (D1), never silently kept.
    (48 modules)`; `node scripts/garde-depot.mjs` → exit 0, `1923 tracked files — 0 error(s), 0 warning(s)`;
    `node scripts/test-layout.mjs` → **exit 1**, `LAYOUT — 21 checks, 2 failure(s)`, both about the untracked
    `kybernos-log` bundle of the neighbour session; `node scripts/run-all-tests.mjs` → **exit 1, 529 files, 521
-   green, 8 RED** (the porte of 2026-10-28 02:10 recorded 6, D8; the neighbour's diff moved it). The 8, attributed:
-   `test-layout`, `test-readmes` and `test-help-mounts` (`kybernos-log`), `test-plugin-scan` (`kybernos-pulse`
-   declares no `exec` while `helper/gen-icon.mjs:9` spawns), `test-consistency-guards`, `test-help`,
-   `test-no-french-literals` and `packages/kybernos-plugin/test-settings-nav` (the neighbour's uncommitted
-   `kybernos-plugin` diff). **None of the 8 is this batch's, and A4 cannot turn any of them green**: it writes no
+   green, 8 RED** (the porte of 2026-10-28 02:10 recorded 6, D8; the neighbour's diff moved it). The 8, attributed
+   (adopting the measured table of `A2-registry-points-strategy.md`, which the gate verified verbatim):
+   `test-layout`, `test-readmes`, `test-help-mounts`, `test-consistency-guards` and
+   `packages/kybernos-plugin/test-settings-nav` (all five: the untracked neighbour bundle `kybernos-log`),
+   `test-plugin-scan` (`kybernos-pulse` declares no `exec` while `helper/gen-icon.mjs:9` spawns),
+   `test-no-french-literals` (`kybernos-log` **and** the two literals of the uncommitted diff,
+   `client.js:33803`, `index.js:11635`), `test-help` (unattributed, pre-existing docs gap, 11 modules). **None of the 8 is this batch's, and A4 cannot turn any of them green**: it writes no
    `packages/**`. The merge gate still demands 0 red (section 6), so those 8 are ticketed or closed by their owner
    before the A4 merge — A4 never calls them green.
 
