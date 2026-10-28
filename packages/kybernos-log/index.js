@@ -322,15 +322,19 @@ export const mountRoutes = (webServer, journal, { subscribe } = {}) => {
       try { url = new URL('http://x' + (req.url || '/')) } catch (e) { return send(res, 400, { ok: false, error: 'bad-url' }) }
       const p = url.searchParams
       const types = (p.get('types') || '').split(',').map((x) => x.trim()).filter(Boolean)
+      const limit = Math.min(MAX_LIMIT, Math.max(1, Number(p.get('limit')) || 200))
       const events = journal.list({
         types,
         session: p.get('session') || undefined,
         q: p.get('q') || undefined,
         since: p.get('since') ? Number(p.get('since')) : undefined,
         before: p.get('before') ? Number(p.get('before')) : undefined,
-        limit: p.get('limit') || undefined
+        limit
       })
-      return send(res, 200, { ok: true, events, state: journal.size() })
+      // The page pages: a full page means there may be older rows, and the client asks for them with `before` (the seq of
+      // its oldest row). `total` is what the ring holds, so the page can say « 300 of 12 000 » instead of guessing.
+      const state = journal.size()
+      return send(res, 200, { ok: true, events, state, total: state.rows, hasMore: events.length >= limit })
     } })
     register({ kind: 'exact', path: '/kybernos-log/stats', handler: (req, res) => {
       if (!guard(res, req)) return
