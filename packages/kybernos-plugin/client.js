@@ -9683,7 +9683,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
     // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
     // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ.
-    const KB_BUILTIN_API = 'https://api.kybernos.app'
+    const KB_BUILTIN_API = 'https://server.kybernos.app'
     const kbServer = { web: KB_BUILTIN_API }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)

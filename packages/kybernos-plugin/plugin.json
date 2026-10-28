@@ -68,7 +68,7 @@
     "fs.write:workspace",
     "net:*.basemaps.cartocdn.com",
     "net:api.groq.com",
-    "net:api.kybernos.app",
+    "net:server.kybernos.app",
     "net:api.openai.com",
     "net:artificialanalysis.ai",
     "net:cdn.jsdelivr.net",
