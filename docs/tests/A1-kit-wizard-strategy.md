@@ -1,8 +1,13 @@
+> **Naming update (2026-10-28, owner).** The visual layer (earlier "theme": token overlay, presets)
+> is now the **style**; the installable sector unit (earlier "sector pack"/"pack") is now the
+> **theme**. Code paths stay unchanged (`packages/kybernos-theme`, `theme-presets.json`) until the
+> product-rename batch (kybernos-theme → kybernos-style) lands.
+
 # A1-kit-wizard — test strategy (written before any code)
 
 | | |
 |---|---|
-| Batch | `A1-kit-wizard` — *onboarding Kit step applies the pack's theme preset through the seam* |
+| Batch | `A1-kit-wizard` — *onboarding Kit step applies the pack's style preset through the seam* |
 | Campaign | Phase A of `docs/etudes/2026-10-27-sector-packs-strategy.md` (sections 3, 4, 8 → `:44-106`, `:146-168`) |
 | Lane | **B** (no file of this batch touches auth, billing, RLS, migrations or secrets) |
 | Author role | `redacteur-spec` — this file only; no code, no test module, no pack edited here |
@@ -46,7 +51,7 @@ The wizard passes **the pack's `theme` string only**, never a settings bag: a pa
 Read **only** through `kbObThemeSeam(win)` → the function or `null` (absent, not a function, or a throwing getter), inside `try/catch`; applied **only** through `kbObThemeApplied(win, id)` → `true` only when the resolved answer is `{ok:true}`. The helper is `async` and awaits: the frozen wire is a Promise, and awaiting a plain object is a no-op, so a synchronous stub still passes. Every other answer — missing seam, `{ok:false}`, `{ok:false, reason}`, `undefined`, a throw, no window — is `false` (I4). The token `__KB_THEME_APPLY__` therefore appears **exactly once in the 38k-line file**, in the core block (DoD 4). This document adds nothing to the wire: a shape change is made in `A1-theme-seam` and re-read here, never widened locally.
 
 **I3 — what "shows it in the miniature and the tint" means.** (a) the preview model gains `theme` (the preset id or `null`) and the miniature keeps its accent from the pack (`kbObPreviewOf` `:35791-35804`, fed to `buildMini` `:36536`); (b) the wizard re-tints itself from the preset's own tokens.
-**Chosen: (a).** (b) would need a colour the wizard does not have (the seam returns no tokens), would add a hex literal to the blocks, and contradicts "one data hex per sector" (build contract 3): the pack's `accent` **is** the theme's `acc` (the pack/theme accent invariant, `docs/tests/A3-vertical-content-strategy.md` I6; `sante.json:5` = `#1B7F76`), and the tint already reads it (`--ta` `:36474`, `applyTint` `:36515-36521`). The visible proof is that the miniature's swatch equals the theme's `acc`, not a second colour path.
+**Chosen: (a).** (b) would need a colour the wizard does not have (the seam returns no tokens), would add a hex literal to the blocks, and contradicts "one data hex per sector" (build contract 3): the pack's `accent` **is** the theme's `acc` (the pack/style accent invariant, `docs/tests/A3-vertical-content-strategy.md` I6; `sante.json:5` = `#1B7F76`), and the tint already reads it (`--ta` `:36474`, `applyTint` `:36515-36521`). The visible proof is that the miniature's swatch equals the theme's `acc`, not a second colour path.
 
 **I4 — the degradation rule, case by case.** `window.__KB_THEME_APPLY__` absent / not a function / throwing on read / answering `{ok:false}` / answering garbage / the pack carrying no `theme` / no pack at all → **today's screen exactly**: no theme line, no seam call, the accent tint unchanged, the step completes, `theme: null` is sent. Never an exception, never a blocked step, never a new window global from the wizard.
 
@@ -59,7 +64,7 @@ Read **only** through `kbObThemeSeam(win)` → the function or `null` (absent, n
 
 ```
 'k.theme.note': [
-  "This field's look is applied with the kit. Settings › Theme keeps the last word.",
+  "This field's look is applied with the kit. Settings › Style keeps the last word.",
   "L’apparence de ce domaine s’applique avec le kit. Réglages › Thème garde le dernier mot.",
   "La apariencia de este ámbito se aplica con el kit. Ajustes › Tema tiene la última palabra.",
   "يُطبَّق مظهر هذا المجال مع المجموعة. الإعدادات ← السمة لها الكلمة الأخيرة.",
@@ -68,9 +73,9 @@ Read **only** through `kbObThemeSeam(win)` → the function or `null` (absent, n
 
 ## AMBIGUITY — needs a human, not a silent choice
 
-AMBIGUITY: **what the Kit step shows about the theme — the display only, because the seam is no longer negotiable.** `docs/tests/A1-theme-seam-strategy.md:51-52` freezes an id (or a settings bag) in and `{ok, id}` / `{ok:false, reason}` out: the wire carries **no display name**, and this batch may not widen it. Three readings remain, and only the human can pick: (a) one non-interactive line, no preset name (chosen) — "This field's look is applied with the kit. Settings › Theme keeps the last word."; (b) the same line carrying the raw id the pack declares (`cabinet-medical`, cited to `sante.json` and the pack's `theme`, never invented) — honest but reads like a slug to a doctor; (c) nothing displayed, the theme applied silently inside the primary action — the shortest, and the one that strains "a theme is never imposed" (contract 6) because the look would change with no announcement. Arbitrate (a)/(b)/(c). A *pretty* name is off the table this phase: it needs the frozen wire to gain a `name`, which is a change in `A1-theme-seam` and a platform-evolution request, not a silent widening in the wizard.
+AMBIGUITY: **what the Kit step shows about the theme — the display only, because the seam is no longer negotiable.** `docs/tests/A1-theme-seam-strategy.md:51-52` freezes an id (or a settings bag) in and `{ok, id}` / `{ok:false, reason}` out: the wire carries **no display name**, and this batch may not widen it. Three readings remain, and only the human can pick: (a) one non-interactive line, no preset name (chosen) — "This field's look is applied with the kit. Settings › Style keeps the last word."; (b) the same line carrying the raw id the pack declares (`cabinet-medical`, cited to `sante.json` and the pack's `theme`, never invented) — honest but reads like a slug to a doctor; (c) nothing displayed, the theme applied silently inside the primary action — the shortest, and the one that strains "a theme is never imposed" (contract 6) because the look would change with no announcement. Arbitrate (a)/(b)/(c). A *pretty* name is off the table this phase: it needs the frozen wire to gain a `name`, which is a change in `A1-theme-seam` and a platform-evolution request, not a silent widening in the wizard.
 
-AMBIGUITY: **consent model (I5).** Chosen: the theme rides on `kitApply` and "Not now" skips it. The alternative — a tickable kit row, default ticked, counted in the summary line — is a more literal reading of "never imposed" and of the batch's own phrase "plus the theme preset" as kit *content*. It is a product decision, not a technical one: it changes what the person sees and counts. Arbitrate.
+AMBIGUITY: **consent model (I5).** Chosen: the theme rides on `kitApply` and "Not now" skips it. The alternative — a tickable kit row, default ticked, counted in the summary line — is a more literal reading of "never imposed" and of the batch's own phrase "plus the style preset" as kit *content*. It is a product decision, not a technical one: it changes what the person sees and counts. Arbitrate.
 
 AMBIGUITY: **which two verticals ship.** `docs/etudes/2026-10-27-sector-packs-strategy.md:153-154` says "Health and Law"; the campaign brief and the batch's frozen pack/theme ids say `sante` + `recrutement`. Chosen: **the campaign** (`sante` + `recrutement`), because the delegation contract is the later and binding word, and because the strategy doc lists the choice itself as an open question to the owner (`:181`, question 1). Consequence for this batch: none — the wizard reads an id, never a sector list — but A3 ships the pack and the two documents must not disagree in the release note.
 
@@ -317,7 +322,7 @@ node --input-type=module -e 'import{readFileSync}from"node:fs";import{createHash
 - **The `{action:'domain'}` body** (`:36637`) does **not** carry `theme` in this batch: changing the field later from Settings leaves the theme where it was. Recorded follow-up, not a silent gap.
 - **The two packs and the theme sources** (`domains/sante.json` gaining `theme`, `domains/recrutement.json`, `catalog/themes/*`, `gallery.json`): batch **`A3-vertical-content`**.
 - **The registry folder scans and the per-point validators** (`themes/`, `skills/`, `teams/`, `automations/`): batch **`A2-registry-points`**.
-- **The starter template and the "Build a sector pack" page**: batch **`A4-starter-docs`**.
+- **The starter template and the "Build a theme" page**: batch **`A4-starter-docs`**.
 - **`pack.kit`** (A2's ambiguity 2, its `:90-91`): not read by the wizard at all — see the boundary section above. The wizard keeps deriving its kit from the pack's goals; contributed kit rows in the Kit screen are a follow-up against the frozen wire.
 - **`KB_MARKET_TEAMS` (`:23303-23361`) and the `KB-AUTOTPL` block (`:7799-8056`)**: frozen this phase; their extraction into point data is a recorded follow-up.
 - **The phone Kit step**: it does not exist in the live script today; adding one is a separate batch, and this batch must not invent it.

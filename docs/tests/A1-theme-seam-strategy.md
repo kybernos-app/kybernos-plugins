@@ -1,6 +1,11 @@
+> **Naming update (2026-10-28, owner).** The visual layer (earlier "theme": token overlay, presets)
+> is now the **style**; the installable sector unit (earlier "sector pack"/"pack") is now the
+> **theme**. Code paths stay unchanged (`packages/kybernos-theme`, `theme-presets.json`) until the
+> product-rename batch (kybernos-theme → kybernos-style) lands.
+
 # A1-theme-seam — test strategy (written before the code)
 
-**Batch:** `A1-theme-seam` — one public "apply a theme preset" seam, end to end inside `kybernos-theme`, plus the
+**Batch:** `A1-theme-seam` — one public "apply a style preset" seam, end to end inside `kybernos-theme`, plus the
 `kybernos/theme#theme` data point (validator + manifest `provides` + `definePoint`), so a data plugin's `themes/`
 folder is read the way `domains/` already is.
 
@@ -57,7 +62,7 @@ Manifest point (`plugin.json`) — the exact existing shape of `packages/kyberno
 ```json
 "provides": [
   { "name": "theme", "version": "1.0", "kind": "data", "class": "inert", "validator": "builtin",
-    "summary": { "en": "A theme preset: an accent, a font, corners, colours — tokens only, never CSS." } }
+    "summary": { "en": "A style preset: an accent, a font, corners, colours — tokens only, never CSS." } }
 ]
 ```
 
@@ -80,7 +85,7 @@ An import — a gallery id not yet in the library, or a settings bag — goes th
    `libSchedulePush()`, no `{ library }` POST from the seam — and applies the host-sanitized settings.
 
 An id already in the browser library (by `id` or by `gid`, `client.js:2141`) is applied **without a POST**: it is not
-an import. `libSet`/`libAdd` (`client.js:1964-1968`, `:1983-1989`) remain the Settings › « My themes » edit path and
+an import. `libSet`/`libAdd` (`client.js:1964-1968`, `:1983-1989`) remain the Settings › « My styles » edit path and
 are not the seam's import. Host off/unreachable/5xx falls back to a local-only record (A1-3): the apply still
 succeeds, and the disk convergence is left to the existing `libPull` (`client.js:1947-1962`).
 
@@ -189,12 +194,12 @@ None of these changes the intent of the batch; each one changes what a reader wo
 
 AMBIGUITY: A1-1 — a pack theme whose name is already a theme the person made ("Soigne"). Default: never touch the
 `me` record, give the import a free name and a suffixed id, and still apply the look, because a wizard that silently
-fails to apply the sector's look is worse than a second row in « My themes ». The host `applyPreset` implements it
+fails to apply the sector's look is worse than a second row in « My styles ». The host `applyPreset` implements it
 (it is the idempotence rule's exception); refusing with `{ ok: false, reason: 'name taken' }` is defensible too (it
 is visible), and only the owner can choose. The implementation must make one of the two true and test it; the other
 becomes a one-line change.
 
-AMBIGUITY: A1-2 — does a *settings bag* (no id) write a « My themes » entry at all? Default: yes, under a localized
+AMBIGUITY: A1-2 — does a *settings bag* (no id) write a « My styles » entry at all? Default: yes, under a localized
 default name, so that `{ ok: true, id }` is always meaningful and the person can edit or delete what was applied.
 The chosen import path makes this the natural answer (the host entry writes a record). The alternative is a
 transient apply (`{ ok: true, id: null }`), which keeps the library clean but needs a second route mode the freeze

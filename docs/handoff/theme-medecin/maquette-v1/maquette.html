@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kybernos pour un cabinet médical — maquette DSH</title>
+<!-- Le CSS réel de DSH : jetons du thème + contrôles préfixés kbm-*. Extrait par
+     scripts/build-model-catalog-css.mjs — ne pas éditer, ne pas recopier. La page
+     reste autonome : aucune ressource distante, double-clic = ça s'ouvre. -->
+<link rel="stylesheet" href="dsh.css">
+<style>
+/* Coquille de présentation (mk-*) : cadre et légendes — ne partira pas dans le
+   plugin. La scène du thème garde le préfixe vb-* et ne consomme que des jetons
+   --dsw-*, plus UN hex de données : l'accent du thème (donnée, pas un choix
+   d'œil) posé en overlay de jetons — le mécanisme exact d'un preset de thème
+   (preset-store.mjs › SETTINGS_KEYS 'acc'). */
+:root {
+  --dsw-font-markdown-code-font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --dsw-elevation-prominent: 0 1px 2px rgba(0,0,0,.07), 0 10px 28px rgba(0,0,0,.12);
+}
+body {
+  --mk-recess: color-mix(in srgb, var(--dsw-alias-label-primary) 6%, var(--dsw-alias-bg-base));
+  --vb-accent: #1B7F76;
+  --dsw-alias-brand-primary: var(--vb-accent);
+  --dsw-alias-brand-text: var(--vb-accent);
+}
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body {
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 28px 32px 64px;
+}
+[hidden] { display: none !important }
+:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px }
+.mk-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 6px }
+.mk-head h1 { margin: 0; font-size: 18px; font-weight: 600 }
+.mk-note { margin-left: auto; color: var(--dsw-alias-label-tertiary); font-size: 12px }
+.mk-explication { margin: 0 0 22px; color: var(--dsw-alias-label-secondary); font-size: 13px; max-width: 70ch; text-wrap: balance }
+.mk-explication b { color: var(--dsw-alias-label-primary); font-weight: 500 }
+.mk-frame { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px;
+  background: var(--dsw-alias-bg-layer-1); box-shadow: var(--dsw-elevation-prominent);
+  padding: 18px; margin: 0 0 26px }
+.mk-legend { display: block; font-size: 11px; font-weight: 600; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--dsw-alias-label-tertiary); margin: 0 0 14px }
+
+/* ── La scène : la coquille de l'accueil, copiée de source-ecran-reel.png ── */
+.vb-app { display: flex; gap: 0; border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px; overflow: hidden; background: var(--dsw-alias-bg-base); min-height: 640px }
+.vb-rail { width: 248px; flex: none; background: var(--dsw-alias-bg-layer-2);
+  border-right: 1px solid var(--dsw-alias-border-l1); padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 2px }
+.vb-brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 12px; font-weight: 600 }
+.vb-k { width: 22px; height: 22px; border-radius: 6px; background: var(--vb-accent);
+  color: var(--dsw-alias-brand-primary-invert); display: grid; place-items: center;
+  font-size: 12px; font-weight: 700 }
+.vb-newchat { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1); font-weight: 500; font-size: 13px;
+  white-space: nowrap; margin: 0 0 10px }
+.vb-rail-vide { margin: 10px 8px 0; color: var(--dsw-alias-label-tertiary); font-size: 12px }
+.vb-nav-row { display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 8px;
+  border-radius: 9px; color: var(--dsw-alias-label-secondary); font-size: 13px }
+.vb-nav-row.on { background: var(--dsw-alias-interactive-bg-hover-accent);
+  color: var(--dsw-alias-brand-text); font-weight: 500 }
+.vb-compte { margin-top: auto; display: flex; align-items: center; gap: 8px;
+  padding: 8px; border-top: 1px solid var(--dsw-alias-border-l1); font-size: 12px;
+  color: var(--dsw-alias-label-secondary) }
+.vb-avatar { width: 24px; height: 24px; border-radius: 8px; flex: none;
+  background: var(--dsw-alias-bg-layer-3); display: grid; place-items: center; font-size: 11px; font-weight: 600 }
+
+.vb-main { flex: 1; min-width: 0; padding: 26px 26px 20px; display: flex;
+  flex-direction: column; align-items: center; gap: 14px }
+.vb-hero { display: flex; align-items: center; gap: 10px; margin-top: 6px }
+.vb-hero .vb-k { width: 30px; height: 30px; border-radius: 8px; font-size: 15px }
+.vb-hero h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.3px }
+.vb-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center }
+.vb-composer { width: 100%; max-width: 640px; border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 16px; background: var(--dsw-alias-bg-layer-1); padding: 12px 12px 8px }
+.vb-composer .kbm-in-wrap { width: 100% }
+.vb-composer .kbm-in-input { width: 100% }
+.vb-comp-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px }
+.vb-comp-outil { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px;
+  border-radius: 13px; color: var(--dsw-alias-label-secondary); font-size: 12px;
+  background: var(--dsw-alias-bg-layer-2) }
+.vb-spacer { flex: 1 }
+
+/* Les tuiles de création, dans l'ordre du thème (clé home) */
+.vb-tuiles { width: 100%; max-width: 640px; display: flex; gap: 22px; flex-wrap: wrap }
+.vb-groupe { min-width: 0 }
+.vb-groupe-titre { display: flex; gap: 7px; align-items: baseline; font-size: 13px;
+  font-weight: 600; margin: 0 0 8px }
+.vb-groupe-n { color: var(--dsw-alias-label-tertiary); font-size: 12px; font-weight: 400 }
+.vb-groupe-rang { display: flex; gap: 8px; flex-wrap: wrap }
+.vb-tuile { width: 104px; height: 92px; border-radius: 12px; border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-2); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px; font-size: 12px }
+.vb-tuile svg { width: 24px; height: 24px; color: var(--dsw-alias-label-secondary) }
+.vb-tuile.premiere { border-color: color-mix(in srgb, var(--vb-accent) 45%, var(--dsw-alias-border-l2)) }
+
+/* ── « Mon kit » : le panneau du thème, celui qu'on manipule ── */
+.vb-kit { width: 100%; max-width: 640px; margin-top: 6px; border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px; background: var(--dsw-alias-bg-layer-1); padding: 14px 16px }
+.vb-kit-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px }
+.vb-kit-head h3 { margin: 0; font-size: 15px; font-weight: 600 }
+.vb-kitline { margin-left: auto; font-size: 12px; color: var(--dsw-alias-label-secondary) }
+.vb-label { font-size: 11px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--dsw-alias-label-tertiary); margin: 12px 0 7px }
+.vb-goals { display: flex; gap: 7px; flex-wrap: wrap }
+.vb-starters, .vb-autos { display: flex; flex-direction: column; gap: 6px }
+.vb-starter { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left }
+.vb-auto { display: flex; align-items: center; gap: 9px; padding: 7px 10px;
+  border: 1px solid var(--dsw-alias-border-l1); border-radius: 9px; font-size: 13px }
+.vb-auto .kbm-dot { width: 9px; height: 9px; flex: none }
+.vb-auto-quand { margin-left: auto; color: var(--dsw-alias-label-tertiary); font-size: 12px }
+.vb-agents { display: flex; gap: 9px; align-items: baseline; margin-top: 12px;
+  padding-top: 11px; border-top: 1px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-secondary); font-size: 12.5px }
+.vb-vide { color: var(--dsw-alias-label-tertiary); font-size: 13px; padding: 12px;
+  background: var(--mk-recess); border: 1px dashed var(--dsw-alias-border-l3); border-radius: 10px }
+.vb-starter .kbm-tag { margin-left: auto }
+
+/* Deux defaults : fluide (le rail passe au-dessus, tout se replie) et sombre
+   (piloté par [data-ds-dark-theme] sur <body> — les jetons suivent). */
+@media (max-width: 640px) {
+  body { padding: 16px 14px 40px }
+  .mk-head { align-items: flex-start }
+  .mk-note { margin-left: 0 }
+  .mk-frame { padding: 12px }
+  .vb-app { flex-direction: column; min-height: 0 }
+  .vb-rail { width: 100%; border-right: 0; border-bottom: 1px solid var(--dsw-alias-border-l1) }
+  .vb-main { padding: 18px 14px }
+  .vb-hero h2 { font-size: 21px }
+  .vb-tuiles { gap: 12px }
+  .vb-tuile { width: 92px; height: 82px }
+  .vb-kitline { margin-left: 0; flex-basis: 100% }
+}
+</style>
+</head>
+<body>
+<div class="mk-head">
+  <h1>Kybernos pour un cabinet médical</h1>
+  <span class="mk-note">maquette DSH — rien n’est câblé</span>
+  <button class="kbm-btn kbm-btn-sm kbm-btn-outline" id="dark" aria-label="Basculer le thème sombre" title="Basculer le thème sombre">Thème sombre</button>
+</div>
+<p class="mk-explication"><b>Le geste :</b> coche ou retire un objectif dans « Mon kit » — les premières questions,
+les automatisations et la ligne de kit suivent, comme dans l’assistant de premier lancement.
+<b>Refusé :</b> rien n’apparaît pour un objectif non coché, et les automatisations restent éteintes.</p>
+
+<section class="mk-frame" id="scene" data-cadre="la scène">
+  <span class="mk-legend">la scène — l’accueil de Kybernos configuré pour un cabinet médical : mots du menu, accent et kit du thème</span>
+  <div class="vb-app">
+    <aside class="vb-rail">
+      <div class="vb-brand"><span class="vb-k">K</span> Kybernos</div>
+      <div class="vb-newchat"><span class="kbm-btn-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2" width="11" height="12" rx="1.5"/><path d="M5 5.5h6M5 8h6M5 10.5h4"/></svg></span> Nouveau chat · avec Kaby</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c0-2.5 2.2-4 5-4s5 1.5 5 4"/><rect x="2" y="2" width="12" height="12" rx="3"/></svg> Kaby</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> Mon activité</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="5" r="2.2"/><circle cx="11" cy="5.5" r="1.8"/><path d="M2 13c0-2 1.6-3.2 3.5-3.2S9 11 9 13"/><path d="M9.5 12.6c.2-1.5 1-2.4 2.2-2.4 1.3 0 2.3.9 2.3 2.4"/></svg> Équipe du cabinet</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.6h5A1.5 1.5 0 0 1 14 6.1v6.4A1.5 1.5 0 0 1 12.5 14h-9A1.5 1.5 0 0 1 2 12.5z"/></svg> Espaces de travail</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2" width="11" height="12" rx="1.5"/><path d="M5 5.5h6M5 8h6M5 10.5h4"/></svg> Comptes rendus</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5 3.5 9H7l-.8 5.5L12 7H8.4z"/></svg> Rappels et suivis</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 9.7 5.4l3.9.5-2.9 2.7.8 3.9L8 10.6 4.5 12.5l.8-3.9-2.9-2.7 3.9-.5z"/></svg> Compétences</div>
+      <div class="vb-nav-row"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2v3M10 2v3"/><path d="M4.5 5h7v3.5A3.5 3.5 0 0 1 8 12v0"/><path d="M8 12v2.2"/></svg> Connecteurs</div>
+      <p class="vb-rail-vide">Aucune session pour l’instant.</p>
+      <div class="vb-compte"><span class="vb-avatar">PE</span> Personal · Free · privé</div>
+    </aside>
+    <main class="vb-main">
+      <div class="vb-hero"><span class="vb-k">K</span><h2>Par où commencer ?</h2><span class="kbm-tag" data-tone="quiet">BETA</span></div>
+      <div class="vb-chips">
+        <button class="kbm-pill kbm-pill-interactive">kybernos-plugins</button>
+        <button class="kbm-pill kbm-pill-interactive">Mode bureau</button>
+      </div>
+      <div class="vb-composer">
+        <span class="kbm-in-wrap">
+          <input class="kbm-in-input" type="text" placeholder="Décris ce que tu veux construire, /commandes, @fichiers ou sessions" aria-label="Message">
+        </span>
+        <div class="vb-comp-tools">
+          <button class="kbm-btn kbm-btn-sm kbm-btn-ghost kbm-btn-icon" aria-label="Ajouter" title="Ajouter"><span class="kbm-btn-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2" width="11" height="12" rx="1.5"/><path d="M5 5.5h6M5 8h6M5 10.5h4"/></svg></span></button>
+          <button class="kbm-btn kbm-btn-sm kbm-btn-ghost kbm-btn-icon" aria-label="Outils" title="Outils"><span class="kbm-btn-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 9.7 5.4l3.9.5-2.9 2.7.8 3.9L8 10.6 4.5 12.5l.8-3.9-2.9-2.7 3.9-.5z"/></svg></span></button>
+          <span class="vb-comp-outil"><span class="kbm-dot" data-state="idle" style="width:8px;height:8px"></span> Cette machine</span>
+          <span class="vb-comp-outil">Accès complet</span>
+          <span class="vb-spacer"></span>
+          <span class="vb-comp-outil">Mimo-v2.6-pro · Default</span>
+          <button class="kbm-btn kbm-btn-md kbm-btn-primary" id="envoyer" aria-label="Envoyer" title="Envoyer"><span class="kbm-btn-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M4 6.5 8 3l4 3.5"/></svg></span></button>
+        </div>
+      </div>
+      <div class="vb-tuiles">
+        <div class="vb-groupe">
+          <p class="vb-groupe-titre">Documents <span class="vb-groupe-n">5</span></p>
+          <div class="vb-groupe-rang">
+            <div class="vb-tuile premiere"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="1.5" width="10" height="13" rx="1.5"/><path d="M5.5 5h5M5.5 8h5M5.5 11h3"/></svg><span>Document</span></div>
+            <div class="vb-tuile premiere"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5 3.5 9H7l-.8 5.5L12 7H8.4z"/></svg><span>Automatisation</span></div>
+            <div class="vb-tuile premiere"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M6.5 6.5v7M2 9.8h12"/></svg><span>Tableur</span></div>
+            <div class="vb-tuile"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M8 11.5v2M5.5 13.5h5"/></svg><span>Présentation</span></div>
+            <div class="vb-tuile"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="2" width="5.5" height="3.5" rx="1"/><rect x="2" y="8.5" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="6.5" width="5.5" height="7.5" rx="1"/></svg><span>Tableau de bord</span></div>
+          </div>
+        </div>
+        <div class="vb-groupe">
+          <p class="vb-groupe-titre">Médias <span class="vb-groupe-n">2</span></p>
+          <div class="vb-groupe-rang">
+            <div class="vb-tuile"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.3"/><path d="m3 12 3.5-3.5 2.5 2.5 2-2 2.5 3"/></svg><span>Image</span></div>
+            <div class="vb-tuile"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3" width="9.5" height="10" rx="1.5"/><path d="m11 8.5 3.5-2.5v5z"/></svg><span>Vidéo</span></div>
+          </div>
+        </div>
+      </div>
+      <section class="vb-kit" id="kit">
+        <div class="vb-kit-head">
+          <h3>Mon kit</h3>
+          <span class="kbm-tag" data-tone="outline">cabinet médical</span>
+          <span class="vb-kitline" id="kitline"></span>
+        </div>
+        <p class="vb-label">Objectifs</p>
+        <div class="vb-goals" id="goals"></div>
+        <p class="vb-label">Premières questions</p>
+        <div class="vb-starters" id="starters"></div>
+        <p class="mk-vide vb-vide" id="vide" hidden>Aucun objectif coché : le kit est vide.</p>
+        <div id="suite">
+          <p class="vb-label">Automatisations (éteintes)</p>
+          <div class="vb-autos" id="autos"></div>
+          <div class="vb-agents">
+            <span class="kbm-tag" data-tone="info">Agents prudents</span>
+            <span>Données de patients : tu relis tout, rien ne quitte ton ordinateur sans toi.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+<script>
+// Les valeurs du thème, jamais un jeu de démonstration : packages/kybernos-plugin/domains/sante.json
+var SECTEUR = {"goals":[{"id":"notes","nom":"Comptes rendus","skills":3,"teams":0,"autos":[{"nom":"Rédiger les comptes rendus du jour","quand":"chaque jour de semaine à 18 h 30"}],"starter":"Rédige le compte rendu de la consultation de 14 h"},{"id":"appointments","nom":"Rendez-vous","skills":1,"teams":0,"autos":[{"nom":"Rappels des rendez-vous de demain","quand":"chaque jour de semaine à 17 h"}],"starter":"Prépare les rappels de demain"},{"id":"messages","nom":"Messages","skills":1,"teams":0,"autos":[],"starter":"Prépare les réponses aux messages de ce matin"},{"id":"activity","nom":"Activité","skills":1,"teams":0,"autos":[{"nom":"Résumé de la semaine","quand":"chaque vendredi à 17 h"}],"starter":"Résume ma semaine"},{"id":"learning","nom":"Formation","skills":1,"teams":1,"autos":[{"nom":"Digest de littérature hebdomadaire","quand":"chaque lundi à 8 h"}],"starter":"Quoi de neuf sur ce sujet cette semaine ?"}],"mode":"Mode bureau","agents":{"preset":"prudents","why":"Données de patients : tu relis tout, rien ne quitte ton ordinateur sans toi."}}
+function esc (t) { return String(t).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] }) }
+// Objectifs cochés au démarrage : les deux premiers, comme le premier lancement
+// les prend (domain-packs.md : « One tap chooses it, takes its first two goals »).
+var etat = { coches: {} }
+SECTEUR.goals.slice(0, 2).forEach(function (g) { etat.coches[g.id] = true })
+
+function rendre() {
+  var coches = SECTEUR.goals.filter(function (g) { return etat.coches[g.id] })
+  document.getElementById('goals').innerHTML = SECTEUR.goals.map(function (g) {
+    return '<button class="kbm-pill kbm-pill-interactive' + (etat.coches[g.id] ? ' kbm-pill-active' : '') +
+      '" data-goal="' + g.id + '" title="' + esc(g.starter) + '">' + esc(g.nom) + '</button>'
+  }).join('')
+  document.getElementById('starters').innerHTML = coches.map(function (g) {
+    return '<button class="kbm-btn kbm-btn-md kbm-btn-outline vb-starter">' + esc(g.starter) +
+      '<span class="kbm-tag" data-tone="quiet">' + esc(g.nom) + '</span></button>'
+  }).join('')
+  var autos = []
+  coches.forEach(function (g) { g.autos.forEach(function (a) { autos.push(a) }) })
+  document.getElementById('autos').innerHTML = autos.map(function (a) {
+    return '<div class="vb-auto"><span class="kbm-dot" data-state="idle"></span>' + esc(a.nom) +
+      '<span class="vb-auto-quand">' + esc(a.quand) + '</span></div>'
+  }).join('')
+  var skills = 0, teams = 0
+  coches.forEach(function (g) { skills += g.skills; teams += g.teams })
+  document.getElementById('kitline').textContent = SECTEUR.mode + ' · Compétences : ' + skills +
+    ' · Équipes : ' + teams + ' · Automatisations (éteintes) : ' + autos.length
+  document.getElementById('vide').hidden = coches.length > 0
+  document.getElementById('suite').hidden = coches.length === 0
+}
+
+document.addEventListener('click', function (ev) {
+  if (ev.target.closest('#dark')) { document.body.toggleAttribute('data-ds-dark-theme'); return }
+  var p = ev.target.closest('[data-goal]')
+  if (p) {
+    var id = p.getAttribute('data-goal')
+    etat.coches[id] = !etat.coches[id]
+    rendre()
+  }
+})
+
+rendre()
+</script>
+</body>
+</html>

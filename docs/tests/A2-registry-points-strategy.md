@@ -1,3 +1,8 @@
+> **Naming update (2026-10-28, owner).** The visual layer (earlier "theme": token overlay, presets)
+> is now the **style**; the installable sector unit (earlier "sector pack"/"pack") is now the
+> **theme**. Code paths stay unchanged (`packages/kybernos-theme`, `theme-presets.json`) until the
+> product-rename batch (kybernos-theme → kybernos-style) lands.
+
 # A2-registry-points — test strategy (written before any code)
 
 Batch: `A2-registry-points` — "Registry: read `themes/`, `skills/`, `teams/`, `automations/` folders with per-point validators".

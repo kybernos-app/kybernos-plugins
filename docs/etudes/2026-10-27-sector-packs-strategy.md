@@ -1,15 +1,18 @@
-# Sector packs: a theme + plugin strategy for sector setups
+# Themes: a theme + plugin strategy for sector setups
 
 Status: **strategy proposal, 2026-10-27**. It changes neither `docs/dev/plugin-contract.md`
 (draft v0) nor `docs/dev/domain-packs.md`; it reads them as the two halves of one WordPress-like
-system and sequences the missing pieces around a single user-visible concept: the **sector pack** (one installable unit per field of work).
+system and sequences the missing pieces around a single user-visible concept: the **theme** (one installable unit per field of work).
 
-> **Naming (2026-10-27, owner decision).** « plugin » is reserved for DSH plugins (code modules
-> installed in the engine) and « bundle » for DSH's install unit. The sector unit is a **sector
-> pack** (*pack secteur*): one installable unit per field of work, composing a **theme** (token
-> overlay), a **domain pack** (the field JSON) and a **kit** (skills, teams, automations).
-> Technically it travels in the plugin contract's *data-plugin* format — the format's name is not
-> the product's name.
+> **Naming (2026-10-28, owner decision — final).** The unit a person installs per field of work is a
+> **theme** (*un thème*): look + configuration + kit — the generic word everyone knows (WordPress
+> heritage: a theme ships look, structure and starter content). What earlier revisions called
+> "theme" (the token overlay: colours, fonts, corners, wallpaper) is now the **style** layer —
+> `Settings ▸ Style`, the Styles gallery, style presets. « plugin » stays reserved for DSH code
+> modules, « bundle » for DSH's install unit, « kit » for the wizard's install list. A theme
+> composes a **style**, a **configuration** (menu words, home order) and a **kit** (skills, teams,
+> automations). Until the product-rename batch lands, code paths keep their names
+> (`packages/kybernos-theme`, `theme-presets.json`) and older "sector pack" wording means "theme".
 
 ## 1. The question, and the one-line answer
 
@@ -19,7 +22,7 @@ kit). What is missing is (a) a **theme system**: nothing makes a sector arrive a
 
 The answer is not a new subsystem. A sector arrives as a **data plugin that extends the points
 that already exist** (domain pack, theme, skills, team and automation templates, dashboard
-presets), plus two small missing seams (apply a theme preset, bundle skills in a plugin) and one
+presets), plus two small missing seams (apply a style preset, bundle skills in a plugin) and one
 composer in the wizard. WordPress's three objects map cleanly onto ours:
 
 | WordPress | Kybernos today | State |
@@ -35,7 +38,7 @@ So the ecosystem does not need inventing: it needs **one composition unit** (sec
 theme seam wired to the field** (section 4), and **the delivery pipe for other authors**
 (sections 5–6).
 
-## 2. Why the sector pack is the right unit
+## 2. Why the theme is the right unit
 
 Two people in the same sector want the same three things at once: a look, a vocabulary, and the
 features their goals imply. Selling or installing those three separately is the mistake. The
@@ -72,7 +75,7 @@ contribute (the domain-pack point opened 2026-10-21):
 
 What the install does (all existing routes): the pack joins `GET /kybernos/domains` marked
 `from: 'acme/vet-clinic'`, the wizard offers the field, the kit installs only what the person
-ticks, the theme preset is **proposed** at the Kit step. A bundle that adds nothing new to the
+ticks, the style preset is **proposed** at the Kit step. A bundle that adds nothing new to the
 contract is the point: it proves the contract.
 
 ### The build contract (skill `contrat-pack-vertical`)
@@ -92,7 +95,7 @@ discipline (templates and hooks, never core edits) made testable:
 4. **Cited or labelled.** Every displayed datum is cited to the pack file or explicitly marked
    « proposal » — never invented (the rule that kept the recruitment mockup honest).
 
-## 4. The theme layer (the missing « theme system »)
+## 4. The style layer (the missing « theme system »)
 
 Three rules, in order of importance:
 
@@ -102,11 +105,11 @@ Three rules, in order of importance:
    whose key list is empty today (contract 6.2). No arbitrary CSS, no fonts fetched from a URL, no
    layout forks: that is what keeps themes safe, testable and composable.
 2. **Composition: base theme + sector accent (a child theme, minus the fork).** The field's
-   `accent`/`icon` override the preset's accent; the person keeps the last word — Settings › Theme
+   `accent`/`icon` override the preset's accent; the person keeps the last word — Settings › Style
    always wins over the pack (the theme is the person's; the pack proposes). Onboarding applies
    the preset at the Kit step and shows it in the live miniature before confirming.
 3. **One public « apply preset » seam.** This is the single wire the domain-pack doc marks « next »
-   (« theme per field: no public apply-a-preset call was found »). It is the wizard reading a
+   (« style per field: no public apply-a-preset call was found »). It is the wizard reading a
    preset from the pack and calling the same store the Sharing tab uses. Small, and it completes
    the whole onboarding → look story.
 
@@ -157,8 +160,8 @@ says the level, never more.
 2. Multi-point data plugins: let a plugin's `themes/`, `skills/`, `teams/`, `automations/` folders
    be read like `domains/` already is (registry folder scan, per-point validators).
 3. Ship two verticals end to end — **Health and Law** (their packs are the most complete) — as
-   `kybernos/*` bundles: theme preset + pack + kit, on the real wizard.
-4. Publish the starter template and the « Build a sector pack » page.
+   `kybernos/*` bundles: style preset + pack + kit, on the real wizard.
+4. Publish the starter template and the « Build a theme » page.
    *Gate:* a fresh profile that picks Health lands on its theme, its menu words and its kit; a
    broken bundle is a line in a list and never stops DSH (existing fault test).
 

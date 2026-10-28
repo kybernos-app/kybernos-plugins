@@ -1,3 +1,8 @@
+> **Naming update (2026-10-28, owner).** The visual layer (earlier "theme": token overlay, presets)
+> is now the **style**; the installable sector unit (earlier "sector pack"/"pack") is now the
+> **theme**. Code paths stay unchanged (`packages/kybernos-theme`, `theme-presets.json`) until the
+> product-rename batch (kybernos-theme → kybernos-style) lands.
+
 # A4-starter-docs — test strategy, written before the code
 
 Batch: **A4-starter-docs** (Phase A, wave 4 of 4: theme seam, registry multi-point scan, two
@@ -54,7 +59,7 @@ Readings:
 - **(a) the five data points that exist or land in this wave**, i.e. `kybernos/core#domain-pack`,
   `kybernos/theme#theme`, `kybernos/skills#skill`, `kybernos/core#team-template`,
   `kybernos/core#automation-template` — the five rows of the contract table
-  (`docs/dev/plugin-contract.md:265-272`) that a sector pack can actually target, with
+  (`docs/dev/plugin-contract.md:265-272`) that a theme can actually target, with
   `kybernos/dashboards#preset` deliberately **out** because it is still not built;
 - (b) the five-part *bundle anatomy* of the strategy (`plugin.json` + four folders);
 - (c) something the human has in mind that is written down nowhere.
@@ -207,7 +212,7 @@ Measured, not assumed (commands run in this repository on 2026-10-27):
 
 ## 3. AMBIGUITY: what a human must settle, not me
 
-AMBIGUITY A1 — **the five frozen interfaces.** `I1`..`I5` are named nowhere in the repository. I read them as the five data points a sector pack can target (`kybernos/core#domain-pack`, `kybernos/theme#theme`, `kybernos/skills#skill`, `kybernos/core#team-template`, `kybernos/core#automation-template`, with `kybernos/dashboards#preset` excluded because it is not built). Confirm this list, or supply the five and I freeze the page's table on them.
+AMBIGUITY A1 — **the five frozen interfaces.** `I1`..`I5` are named nowhere in the repository. I read them as the five data points a theme can target (`kybernos/core#domain-pack`, `kybernos/theme#theme`, `kybernos/skills#skill`, `kybernos/core#team-template`, `kybernos/core#automation-template`, with `kybernos/dashboards#preset` excluded because it is not built). Confirm this list, or supply the five and I freeze the page's table on them.
 
 AMBIGUITY A2 — **the starter's `package.json`.** Strict reading of the batch's interdiction = no `dsh` key (my choice, validated by `registry.mjs:54-72`), which diverges from the four-file draft shape of `plugin-creator/SKILL.md:47-67` and from the registry's own fixtures (`test-host.mjs:44-45`). Do we accept the divergence (the page explains why a data bundle needs no patch), or does the template copy the skill's shape verbatim?
 
@@ -223,7 +228,7 @@ AMBIGUITY A5 — **who exports the point objects for a static run.** The tool ne
 
 ### A. The page `docs/dev/sector-bundles.md`
 
-- [ ] H1 is "Build a sector pack" (the file name stays the kebab-case topic name `sector-bundles.md`).
+- [ ] H1 is "Build a theme" (the file name stays the kebab-case topic name `sector-bundles.md`).
 - [ ] One opening paragraph says what a bundle is (one folder, one `plugin.json`, several `extends`) and cites the strategy (`docs/etudes/2026-10-27-sector-packs-strategy.md:44-47`) — no invented framing.
 - [ ] A section **Primitives first** (page / dashboard / listing, one view kind per datum / kit) with the "fits none of them → platform-evolution request, never a custom screen in a pack" sentence, cited to the build-contract skill `contrat-pack-vertical` and strategy `:74-84`.
 - [ ] A section **Custom UI lives in Settings** (bounded fields, data only, no journey logic).

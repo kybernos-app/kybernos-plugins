@@ -1,3 +1,8 @@
+> **Naming update (2026-10-28, owner).** The visual layer (earlier "theme": token overlay, presets)
+> is now the **style**; the installable sector unit (earlier "sector pack"/"pack") is now the
+> **theme**. Code paths stay unchanged (`packages/kybernos-theme`, `theme-presets.json`) until the
+> product-rename batch (kybernos-theme → kybernos-style) lands.
+
 # A3-vertical-content — test strategy (written before any code)
 
 | | |
@@ -30,7 +35,7 @@
 **Chosen: (a).** Any new goal, skill name or sentence would be invented (contract 4; no source exists), and `domains/skills/` is *already* fully referenced — `packages/kybernos-plugin/test-domain-pack.mjs:222-225` fails on any skill folder no pack names, so an unused folder is a red suite. Consequence: the batch may leave `packages/kybernos-plugin/domains/skills/` **untouched** and still be complete.
 
 **I2 — where the word "PROPOSAL" physically lives.**
-(a) outside the JSON: in the sortie's citation table, in this spec, and in A4's "Build a sector pack" page;
+(a) outside the JSON: in the sortie's citation table, in this spec, and in A4's "Build a theme" page;
 (b) inside the pack, as a new key.
 **Chosen: (a).** The pack shape is frozen by A2 (`v, id, order, accent, icon, name, tagline, keywords, home, legacyJobs, menu, mode, agents, goals` + `theme`), and today's validator refuses any other key — measured: a `theme` key added to `sante.json` in memory returns `ok=false, errors=["pack: unknown key \"theme\""]` (`packages/kybernos-plugin/domain-pack.mjs:71`). A free-text "status" key would be refused the same way. → `AMBIGUITY:` 2.
 
@@ -40,7 +45,7 @@
 
 **I5 — which tokens the two presets carry.** The accent is pinned by I3/`sante.json:5`; `mode`, `fontText`, `radius`, `ov` are the author's design choice *inside the existing vocabulary only*: keys from `preset-store.mjs:43-52`, `radius` from `{sharp, standard, soft}` (`packages/kybernos-theme/client.js:910`, `:3660`), `fontText` from the 30 ids of the `FONTS` table (`client.js:416-458`, e.g. `dsh, inter, georgia, jetbrains-mono`), `ov` keys `"<light|dark>:<token>"` (`preset-store.mjs:64`). No CSS, no URL, no a11y key.
 
-**I6 — "one theme preset derived from its pack accent" is a *bidirectional* invariant**: the theme's `settings.acc` must equal `pack.accent` (case-insensitive), for both sectors. This is interface I3 of the campaign and it is what DoD 1 measures; it does not pin the recruitment hex itself.
+**I6 — "one style preset derived from its pack accent" is a *bidirectional* invariant**: the theme's `settings.acc` must equal `pack.accent` (case-insensitive), for both sectors. This is interface I3 of the campaign and it is what DoD 1 measures; it does not pin the recruitment hex itself.
 
 ## AMBIGUITY — needs a human, not a silent choice
 
@@ -59,9 +64,9 @@ e2e: the journey the *content* must survive on the real GUI — and which step e
 - [ ] Picking Santé → goals step lists the five cited goals, in pack order (`:77-329`); the kit step recomputes skills/teams/automations/`soon` (`scripts/test-onboarding.mjs:120-126` is the existing proof of that recompute for `sante`).
 - [ ] Agents step shows preset `prudent` **with the reason** (`sante.json:70-76`), never a bare preset name.
 - [ ] Kit step: every automation is created **switched off**, every prompt drafts only (`sante.json:131-134`, `:186-189`, `:268-269`, `:318-319`); a team id in `teams` resolves to one of the three marketplace teams (`test-domain-pack.mjs:304-306`).
-- [ ] Kit step: the sector's theme preset is **proposed and visible in the live miniature before confirming** (strategy `:100-101`). *Owned by A1-kit-wizard*; A3 only guarantees the preset exists under the id the pack names.
-- [ ] After finish: Settings › Theme shows the sector preset applied; changing it is allowed and Settings wins over the pack (strategy `:98-100`). *A1*.
-- [ ] Settings › Theme › **Gallery**: two new cards (name, author, `description.fr` + `.en`), each installable; install copies it to "My themes" with `source: 'gallery'`, `gid`, `v`, `author` (`packages/kybernos-theme/client.js:2060-2065`, shape asserted live at `scripts/check-theme-live.mjs:1627`). *The card is A3's data on an existing surface — this is the one end-to-end path A3 owns.*
+- [ ] Kit step: the sector's style preset is **proposed and visible in the live miniature before confirming** (strategy `:100-101`). *Owned by A1-kit-wizard*; A3 only guarantees the preset exists under the id the pack names.
+- [ ] After finish: Settings › Style shows the sector preset applied; changing it is allowed and Settings wins over the pack (strategy `:98-100`). *A1*.
+- [ ] Settings › Style › **Gallery**: two new cards (name, author, `description.fr` + `.en`), each installable; install copies it to "My styles" with `source: 'gallery'`, `gid`, `v`, `author` (`packages/kybernos-theme/client.js:2060-2065`, shape asserted live at `scripts/check-theme-live.mjs:1627`). *The card is A3's data on an existing surface — this is the one end-to-end path A3 owns.*
 - [ ] Reload the page and the app: the installed theme survives (`theme-presets.json`, `preset-store.mjs:1-8`), the field choice survives (`onboarding.json`, `docs/dev/domain-packs.md:107`).
 - [ ] Negative journey: a bundle that names a theme id no file provides leaves the gallery and the wizard intact — a line in a list, never a boot failure (repo rule 2; strategy `:156-157`). Checked by inspection of the existing guards, not by a new test (A3 writes none).
 
@@ -201,7 +206,7 @@ DoD: deterministic boolean commands of this repo, **all measured red today** (ex
 | A2-pack-format | `theme` added to the pack allowlist + in the cleaned pack object, **and** the two exact-set assertions of `test-domain-pack.mjs` widened (`:257` id list, `:290` preset map) | **missing** — `pack: unknown key "theme"`; the sibling spec `docs/tests/A2-pack-format-strategy.md:83-85` widens `:257` and `:322-327` but leaves `:290` outside its perimeter, so `:290` must be added to it or `dev` stays red after A3 | `domain-pack.mjs:71`, cleaned object `:187`; `test-domain-pack.mjs:257,290` |
 | A1-kit-wizard | the Kit step reads the pack's `theme` and applies the catalogue preset through the preset store | **missing** — the doc still says « no public apply-a-preset call was found » | `docs/dev/domain-packs.md:108` |
 | A2-registry-points | `themes/`, `skills/`, `teams/`, `automations/` folder scans (not needed by *this* batch, which ships repo-folder content) | **missing** | strategy `:150-152` |
-| A4 | the "Build a sector pack" page that carries the PROPOSAL label in public docs | **missing** | strategy `:155` |
+| A4 | the "Build a theme" page that carries the PROPOSAL label in public docs | **missing** | strategy `:155` |
 
 ## Out of scope
 
@@ -238,7 +243,7 @@ DoD: deterministic boolean commands of this repo, **all measured red today** (ex
 | shipped file name must equal its id | `scripts/themes-catalogue.mjs:43` |
 | gallery.json must equal what the sources build | `scripts/test-themes-catalogue.mjs:33-37` |
 | the host reads the shipped gallery | `packages/kybernos-theme/test-themes-gallery.mjs:86-87` |
-| gallery → "My themes" install, a11y stripped page-side | `packages/kybernos-theme/client.js:2060-2065`, `:2098`, `:1847-1855` |
+| gallery → "My styles" install, a11y stripped page-side | `packages/kybernos-theme/client.js:2060-2065`, `:2098`, `:1847-1855` |
 | font ids, radius enum | `packages/kybernos-theme/client.js:416-458`, `:910`, `:3660` |
 | field-from-sentence scoring, cron label shapes, preview caps | `packages/kybernos-plugin/client.js:35753-35762`, `:35772-35782`, `:35791-35801` |
 | sensitive fields are `droit` + `sante` | `packages/kybernos-plugin/client.js:35730` |

@@ -1,0 +1,123 @@
+{
+  "sujet": "theme-medecin",
+  "titre": "Kybernos pour un cabinet médical",
+  "page": "maquette.html",
+  "dshCss": "dsh.css",
+  "source": {
+    "kind": "capture",
+    "ref": "source-ecran-reel.png"
+  },
+  "fidelite": "simple",
+  "lint": {
+    "minTokens": 15,
+    "hexAllowlist": [
+      "#1B7F76"
+    ],
+    "allowRemote": [],
+    "requiresControls": [
+      "kbm-btn",
+      "kbm-in-wrap",
+      "kbm-tag",
+      "kbm-dot",
+      "kbm-pill"
+    ],
+    "explication": {
+      "selector": ".mk-explication",
+      "maxCaracteres": 320
+    }
+  },
+  "render": {
+    "viewport": [
+      1300,
+      1240
+    ],
+    "ready": "document.querySelector('#scene .vb-rail') !== null",
+    "measure": [
+      {
+        "nom": "bouton DSH : capsule r18 h36",
+        "selector": "#envoyer",
+        "prop": "borderRadius",
+        "equals": "18px"
+      },
+      {
+        "nom": "bouton DSH : h36",
+        "selector": "#envoyer",
+        "prop": "height",
+        "equals": "36px"
+      },
+      {
+        "nom": "champ DSH : 14px",
+        "selector": ".kbm-in-input",
+        "prop": "fontSize",
+        "equals": "14px"
+      }
+    ],
+    "steps": [
+      {
+        "nom": "cocher « Messages » : trois premières questions",
+        "click": "[data-goal=\"messages\"]",
+        "expect": "count",
+        "selector": ".vb-starter",
+        "equals": 3
+      },
+      {
+        "nom": "retirer « Comptes rendus » : deux questions, le kit suit",
+        "click": "[data-goal=\"notes\"]",
+        "expect": "count",
+        "selector": ".vb-starter",
+        "equals": 2
+      },
+      {
+        "nom": "remettre « Comptes rendus » : retour à trois",
+        "click": "[data-goal=\"notes\"]",
+        "expect": "count",
+        "selector": ".vb-starter",
+        "equals": 3
+      }
+    ],
+    "captures": [
+      {
+        "fichier": "1-scene.png",
+        "selector": "#scene",
+        "legende": "l’accueil configuré : les deux objectifs du premier lancement sont cochés"
+      },
+      {
+        "fichier": "2-objectif-ajoute.png",
+        "selector": "#kit",
+        "apres": 1,
+        "legende": "après l’ajout de « Messages » : la question et l’automatisation suivent"
+      },
+      {
+        "fichier": "3-kit-reduit.png",
+        "selector": "#kit",
+        "apres": 2,
+        "legende": "après le retrait de « Comptes rendus » : rien ne reste de l’objectif"
+      }
+    ],
+    "sombre": {
+      "bascule": "#dark",
+      "capture": "5-sombre.png",
+      "selector": "#scene",
+      "legende": "le même écran en thème sombre"
+    },
+    "responsive": [
+      {
+        "nom": "480 px",
+        "largeur": 480,
+        "hauteur": 900,
+        "captures": [
+          {
+            "fichier": "6-etroit.png",
+            "selector": "#scene",
+            "legende": "à 480 px : le rail passe au-dessus, rien ne déborde"
+          },
+          {
+            "fichier": "7-etroit-kit.png",
+            "selector": "#kit",
+            "legende": "le kit à 480 px : les puces se replient"
+          }
+        ]
+      }
+    ]
+  }
+}
