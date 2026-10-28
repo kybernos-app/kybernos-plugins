@@ -1006,6 +1006,12 @@ let kbLocaleRead = () => 'en'
       'kbui.preview': { kybernos: 'Aperçu', en: 'Preview' },
       'kbui.projects': { kybernos: 'Workspaces', en: 'Workspaces' },
       'kbui.project.notfound': { kybernos: 'Projet introuvable.', en: 'Project not found.' },
+      'kbui.ws.missing.one': { kybernos: 'dossier introuvable', en: 'missing folder' },
+      'kbui.ws.missing.many': { kybernos: 'dossiers introuvables', en: 'missing folders' },
+      'kbui.ws.missing.hint': { kybernos: 'Un espace enregistré pointe sur un dossier qui n’existe plus : les outils fichier d’une session ouverte là échouent. Relier le dossier déplacé crée un espace à son nouvel emplacement.', en: 'A registered workspace points at a folder that no longer exists: file tools in a session opened there fail. Linking the moved folder creates a workspace at its new place.' },
+      'kbui.ws.relink': { kybernos: 'Relier un dossier…', en: 'Link a folder…' },
+      'kbui.ws.relink.done': { kybernos: 'Espace relié : ', en: 'Workspace linked: ' },
+      'kbui.ws.missing.tag': { kybernos: 'Dossier introuvable', en: 'Folder not found' },
       'kbui.read.aloud': { kybernos: 'Lire les réponses à voix haute à leur arrivée', en: 'Read replies aloud as they arrive' },
       'kbui.read.repo': { kybernos: 'Lire le dépôt', en: 'Read the repository' },
       'kbui.reading.engine': { kybernos: 'Lecture de l’inventaire des moteurs…', en: 'Reading the engine inventory…' },
@@ -8115,6 +8121,34 @@ const kbWsOptions = (items, hint) => {
   return out
 }
 // KB-AUTOWS-END
+// KB-WSHEALTH-BEGIN
+// Which registered workspaces still exist on disk. The browser holds each workspace's path but cannot
+// test it, and a session resumed in a vanished folder fails its file tools with a raw `rg` error
+// (bêta 93953fad, 28/10: the repository had been renamed). The host answers once per read; an unread
+// or failed read stays « unknown », never « missing » — a card must not claim a folder is gone on a guess.
+let kbWsHealthMap = null
+let kbWsHealthInflight = null
+const kbWsHealthReload = () => {
+  if (kbWsHealthInflight !== null) return kbWsHealthInflight
+  kbWsHealthInflight = fetch('/kybernos/workspaces-health', { cache: 'no-store', credentials: 'same-origin' })
+    .then((r) => (r.ok === true ? r.json() : null))
+    .then((j) => {
+      const map = new Map()
+      if (j !== null && j !== undefined && Array.isArray(j.items) === true) {
+        for (const it of j.items) {
+          if (it !== null && typeof it === 'object' && typeof it.workspaceId === 'string' && it.workspaceId !== '') map.set(it.workspaceId, it.exists === true)
+        }
+      }
+      kbWsHealthMap = map
+      kbWsHealthInflight = null
+      return map
+    })
+    .catch(() => { kbWsHealthInflight = null; return kbWsHealthMap })
+  return kbWsHealthInflight
+}
+/** true only when the host SAID the folder is gone; unknown (not read yet, failed read, workspace added since) is false. */
+const kbWsMissing = (workspaceId) => kbWsHealthMap !== null && typeof workspaceId === 'string' && kbWsHealthMap.get(workspaceId) === false
+// KB-WSHEALTH-END
 // KB-NEWCHAT-BEGIN
 // The new-chat page: the slider of what the product makes, the Cloud Computer's state, and the rule that hides DSH's own
 // « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by test-newchat.mjs,
@@ -10231,6 +10265,21 @@ return {
     // automation » sans aucun effet, zéro appel réseau, aucune erreur). On
     // calcule donc la cible ICI comme le shell le fait (workspace portant la
     // session la plus récente, sinon le premier) et on la passe explicitement.
+    // The workspace the person is LOOKING AT: the one holding the session on screen, null when no
+    // session is open (or the shell's stores are not ready yet). Every « new session » path reads it,
+    // so that a session started from another one stays in the same folder (bêta a1e9eec2, 28/10).
+    const kbCurrentWorkspaceId = () => {
+      try {
+        if (uiWorkspaceSvc === null || uiWorkspaceSvc === undefined) return null
+        const wlist = (uiWorkspaceSvc.workspaces !== undefined && uiWorkspaceSvc.workspaces !== null && uiWorkspaceSvc.workspaces.list !== undefined) ? uiWorkspaceSvc.workspaces.list.getSnapshot() : null
+        const slist = (uiWorkspaceSvc.sessions !== undefined && uiWorkspaceSvc.sessions !== null && uiWorkspaceSvc.sessions.list !== undefined) ? uiWorkspaceSvc.sessions.list.getSnapshot() : null
+        const items = (wlist !== null && wlist !== undefined && Array.isArray(wlist.items) === true) ? wlist.items : []
+        const curSid = (slist !== null && slist !== undefined && typeof slist.current === 'string' && slist.current !== '') ? slist.current : null
+        if (curSid === null) return null
+        const holder = items.find((it) => it !== null && typeof it === 'object' && typeof it.workspaceId === 'string' && it.workspaceId !== '' && Array.isArray(it.sessionIds) === true && it.sessionIds.indexOf(curSid) >= 0)
+        return (holder !== undefined && holder !== null && typeof holder.workspaceId === 'string') ? holder.workspaceId : null
+      } catch (e) { return null }
+    }
     const kbShellStartSession = () => {
       if (uiWorkspaceSvc === null || uiWorkspaceSvc === undefined || typeof uiWorkspaceSvc.startSession !== 'function') return false
       let cible = null
@@ -10255,7 +10304,9 @@ return {
           }
           if (top === null || latest > topT) { top = it.workspaceId; topT = latest }
         }
-        cible = top
+        // The session on screen wins (same folder); « most recent » stays the fallback when none is open.
+        cible = kbCurrentWorkspaceId()
+        if (cible === null) cible = top
       } catch (e) { cible = null }
       if (typeof cible === 'string' && cible.length > 0) {
         try { uiWorkspaceSvc.startSession(cible); return true } catch (e) { /* on tente l'appel nu */ }
@@ -10284,15 +10335,18 @@ return {
     // voie hôte « start-chat » (même sessionController que « Lancer
     // maintenant »). Rend l'id de session ou null si les deux voies refusent.
     const kbCreerSessionVierge = async () => {
+      // Same rule as kbShellStartSession: the folder on screen, sent to BOTH ways (the host's
+      // start-chat now honours it too — bêta a1e9eec2, 28/10).
+      const wsId = kbCurrentWorkspaceId()
       try {
         if (sessionsSvc !== null && sessionsSvc !== undefined && typeof sessionsSvc.create === 'function') {
-          const r2 = await sessionsSvc.create({})
+          const r2 = await sessionsSvc.create(wsId === null ? {} : { workspaceId: wsId })
           const v2 = (r2 !== null && typeof r2 === 'object' && r2.ok === true && r2.value !== null && r2.value !== undefined) ? r2.value : r2
           if (v2 !== null && typeof v2 === 'object' && typeof v2.sessionId === 'string' && v2.sessionId.length > 0) return v2.sessionId
         }
       } catch (e) { /* voie shell refusée : on tente l'hôte */ }
       try {
-        const r3 = await host.call('kybers/tasks', { action: 'start-chat' })
+        const r3 = await host.call('kybers/tasks', { action: 'start-chat', workspaceId: wsId })
         if (r3 !== null && r3 !== undefined && r3.ok === true && typeof r3.sessionId === 'string' && r3.sessionId.length > 0) return r3.sessionId
       } catch (e) { /* voie hôte absente */ }
       return null
@@ -15950,6 +16004,52 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const wsFailed = (wsState === 'error')
       const wsUnread = (wsFailed === false && (typeof uw !== 'function' || snapW === null || snapW === undefined || wsPhase !== 'ready'))
       const wsFailMsg = (wsFailed === true && snapW.error !== null && snapW.error !== undefined && typeof snapW.error.message === 'string') ? snapW.error.message : null
+      // Which of those folders still exists on disk — the snapshot cannot know. One host read on mount
+      // and on every workspace change; the cards and the page banner then tell the truth (bêta 93953fad).
+      const wsHp = React.useState(0)
+      const bumpWsHealth = wsHp[1]
+      React.useEffect(() => {
+        let alive = true
+        const refresh = () => { kbWsHealthReload().then(() => { if (alive === true) bumpWsHealth((n) => n + 1) }) }
+        refresh()
+        try { window.addEventListener('kb-domain-change', refresh) } catch (e) { /* no window */ }
+        return () => { alive = false; try { window.removeEventListener('kb-domain-change', refresh) } catch (e) { /* gone */ } }
+      }, [])
+      const wsMissingItems = items.filter((w) => w !== null && typeof w === 'object' && kbWsMissing(w.workspaceId) === true)
+      const wrPair = React.useState(null)
+      const wsRelinkState = wrPair[0]
+      const setWsRelinkState = wrPair[1]
+      const wrErrPair = React.useState(null)
+      const wsRelinkErr = wrErrPair[0]
+      const setWsRelinkErr = wrErrPair[1]
+      const wrDonePair = React.useState(null)
+      const wsRelinkDone = wrDonePair[0]
+      const setWsRelinkDone = wrDonePair[1]
+      // « Link a folder… »: a workspace's path cannot be edited in place (the registry has no move), so
+      // linking picks the folder the project moved to and creates a workspace THERE. The dead one stays
+      // listed until the person removes it — never silently rewritten.
+      const wsRelink = async () => {
+        const picker = (uiWorkspaceSvc !== null && uiWorkspaceSvc !== undefined && typeof uiWorkspaceSvc.pickDirectory === 'function') ? uiWorkspaceSvc : null
+        if (picker === null) { setWsRelinkErr(kbt('kbui.new.project.nopicker')); return }
+        let dir = null
+        try {
+          setWsRelinkErr(null)
+          setWsRelinkState('picking')
+          dir = await picker.pickDirectory()
+        } catch (e) { setWsRelinkState(null); setWsRelinkErr(errText(e)); return }
+        if (dir === null || dir === undefined || String(dir).length === 0) { setWsRelinkState(null); return }
+        try {
+          setWsRelinkState('creating')
+          const wsSvc = ctx.get('workspaces')
+          if (wsSvc === null || wsSvc === undefined || typeof wsSvc.create !== 'function') throw new Error(kbt('kbui.new.project.noworkspaces'))
+          const created = await wsSvc.create({ path: String(dir) })
+          const wid = (created !== null && created !== undefined && typeof created.workspaceId === 'string' && created.workspaceId.length > 0) ? created.workspaceId : null
+          if (wid === null) throw new Error(kbt('kbui.new.project.noid'))
+          setWsRelinkState(null)
+          setWsRelinkDone(typeof created.title === 'string' && created.title.length > 0 ? created.title : String(dir))
+          kbWsHealthReload().then(() => bumpWsHealth((n) => n + 1))
+        } catch (e) { setWsRelinkState(null); setWsRelinkErr(errText(e)) }
+      }
       // Barre unifiee Projects : recherche et tri persistes via useToolbarState.
       const tbProjects = useToolbarState('projects', { sort: 'name', viewMode: 'cards' })
       const pq = tbProjects[0].query
@@ -16096,6 +16196,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           try { URL.revokeObjectURL(url) } catch (e2) { /* fuite bénigne */ }
         } catch (e) { /* le navigateur signale lui-même l'échec du téléchargement */ }
       }
+      // The badge a card or a row wears when the host said its folder is gone (bêta 93953fad, 28/10).
+      const kbWsMissingTag = () => h('span', { className: 'kb8-wsmiss', 'data-kb': 'project-missing', title: kbt('kbui.ws.missing.hint'), style: { display: 'inline-flex', alignItems: 'center', flex: 'none', gap: '4px', fontSize: '11px', lineHeight: '16px', padding: '1px 8px', borderRadius: '999px', background: 'var(--dsw-alias-state-warn-tertiary)', color: 'var(--dsw-alias-state-warn-label)', whiteSpace: 'nowrap' } }, kbt('kbui.ws.missing.tag'))
       const projectCard = (w, i) => {
         const u = wUiOf(w)
         const label = (typeof u.name === 'string' && u.name.length > 0) ? u.name : (w.title || w.workspaceId)
@@ -16111,6 +16213,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           kbCfWatermark(ic),
           h('div', { className: 'kb8-cf-top' }, kbCfIcon(co, ic), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, label), d === '' ? null : h('p', { className: 'kb8-desc' }, d))),
           h('div', { className: 'kb8-cf-foot' },
+            (kbWsMissing(w.workspaceId) === true ? kbWsMissingTag() : null),
             // The foot: two quiet figures, both checkable from the payload (the project's threads and its deliverables; the « docs » and
             // « goals » counters were invented: they live in their own tab, from the host's data). The word shows on hover.
             h('span', { className: 'kb8-cf-stats', 'data-kb': 'project-counts' },
@@ -16137,6 +16240,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const fav = wsFavOf(w) === true
         return h('div', { className: 'kb8-row kb8-rf' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-row', style: kbCfVars(co) === null ? undefined : kbCfVars(co), onClick: () => openProject(w) },
           kbCfIcon(co, ic, undefined, false, 34),
+          (kbWsMissing(w.workspaceId) === true ? kbWsMissingTag() : null),
           h('span', { className: 'kb8-rf-txt' }, h('span', { className: 'kb8-name' }, label), d === '' ? null : h('span', { className: 'kb8-rf-sub' }, d)),
           h('span', { className: 'kb8-rf-figs', 'data-kb': 'project-row-counts' },
             kbCfFig(Icon('messageSquare', 13), String(nThreads), wordT, nThreads + ' ' + wordT, { className: 'kb8-rf-c1' }),
@@ -16239,6 +16343,21 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           : null),
         (projCreateOk !== null
           ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'project-create-ok' }, kbt('kbui.new.project.created') + projCreateOk)
+          : null),
+        // A workspace whose folder is gone: its sessions fail every file tool, so the page says it
+        // and offers the one repair it can do — link the folder the project moved to (bêta 93953fad).
+        (wsMissingItems.length > 0
+          ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'workspaces-missing', style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', color: 'var(--dsw-alias-state-warn-label)' } },
+            h('span', null, wsMissingItems.length + ' ' + kbt(wsMissingItems.length === 1 ? 'kbui.ws.missing.one' : 'kbui.ws.missing.many')),
+            h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, kbt('kbui.ws.missing.hint')),
+            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'workspaces-relink', disabled: wsRelinkState !== null, onClick: () => { wsRelink() } },
+              kbt(wsRelinkState === 'picking' ? 'kbui.new.project.picking' : (wsRelinkState === 'creating' ? 'kbui.new.project.creating' : 'kbui.ws.relink'))))
+          : null),
+        (wsRelinkErr !== null
+          ? h('div', { role: 'alert', className: 'kb8-sub', 'data-kb': 'workspaces-relink-error', style: { color: 'var(--dsw-alias-state-error-primary)' } }, kbt('kbui.error') + wsRelinkErr)
+          : null),
+        (wsRelinkDone !== null
+          ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'workspaces-relink-ok' }, kbt('kbui.ws.relink.done') + wsRelinkDone)
           : null),
         (items.length === 0 && wsFailed === true ? h('div', { className: 'kb9-empty' }, kbt('kbui.workspaces.unavailable') + (wsFailMsg === null ? '.' : ' — ' + wsFailMsg)) : null),
         // Not read yet: bones the size of the real cards or rows (it used to be a line of text that the list then pushed down).

@@ -10,6 +10,7 @@ import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolu
 import { dshHomeSync } from './dsh-home.mjs'
 import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
+import { workspaceHealthRows, requestedWorkspaceId } from './workspace-health.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, memoryUnreadable as autoLoadMemoryUnreadable,guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
@@ -3390,6 +3391,13 @@ function boot(ctx) {
         // en GUI réelle — clic sans effet, zéro appel réseau).
         const sc = ctx.get('sessionController')
         if (sc === undefined || sc === null || typeof sc.create !== 'function') return { ok: false, error: 'sessionController missing' }
+        // A session started from another one keeps that one's workspace (bêta a1e9eec2, 28/10):
+        // the client names the workspace it has on screen. Absent or unknown, the old default —
+        // no workspaceId, the engine's own pick — stays in charge.
+        const targetWorkspaceId = requestedWorkspaceId(body.workspaceId, (id) => {
+          const wreg = ctx.get('workspaceRegistry')
+          return wreg !== undefined && wreg !== null && typeof wreg.get === 'function' && wreg.get(id) !== undefined
+        })
         const unwrap = (res, field) => {
           if (res === null || typeof res !== 'object') return null
           if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : String(res.error || 'refused'))
@@ -3397,7 +3405,7 @@ function boot(ctx) {
           return typeof v[field] === 'string' ? v[field] : null
         }
         try {
-          const created = await sc.create({})
+          const created = await sc.create(targetWorkspaceId === null ? {} : { workspaceId: targetWorkspaceId })
           const sessionId = unwrap(created, 'sessionId')
           if (sessionId === null) return { ok: false, error: 'session.create returned no sessionId' }
           return { ok: true, sessionId }
@@ -10604,6 +10612,21 @@ function boot(ctx) {
         if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await deleteWorkspace(await readJsonBody(req)))
       } }), 'kybernos: route workspace-delete')
+      // ── A registered workspace whose folder has vanished: GET /kybernos/workspaces-health ──
+      // The browser cannot test a path, and a session resumed in a dead folder fails every file
+      // tool with a raw `rg` error (bêta 93953fad, 28/10: the old repository was renamed). Read-only:
+      // one row per registered workspace — { workspaceId, path, exists }.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspaces-health', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        try {
+          const wreg = ctx.get('workspaceRegistry')
+          const list = wreg !== undefined && wreg !== null && typeof wreg.list === 'function' ? wreg.list() : []
+          sendJson(res, 200, { ok: true, items: workspaceHealthRows(list, existsSync) })
+        } catch (e) {
+          try { console.error('[kybers] workspaces-health:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route workspaces-health')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-skills', handler: async (req, res) => {
         if (req.method === 'GET') {
