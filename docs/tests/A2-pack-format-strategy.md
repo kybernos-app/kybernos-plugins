@@ -1,3 +1,8 @@
+> **Naming update (2026-10-28, owner).** The visual layer (earlier "theme": token overlay, presets)
+> is now the **style**; the installable sector unit (earlier "sector pack"/"pack") is now the
+> **theme**. Code paths stay unchanged (`packages/kybernos-theme`, `theme-presets.json`) until the
+> product-rename batch (kybernos-theme → kybernos-style) lands.
+
 # A2-pack-format — test strategy (written before any code)
 
 Batch: `A2-pack-format` — *pack format: theme reference, multi-point merge, host routes, onboarding state*.
@@ -58,7 +63,7 @@ until it is answered, no file of this batch is written, no DoD is claimed, and t
 
 1. **The `theme` key is a reference, not a payload.** A pack carries **one** string id (`/^[a-z0-9][a-z0-9-]{0,40}$/`, the same vocabulary as `TEAM_RE` at
    `domain-pack.mjs:35`), never settings bytes, never CSS. Chosen because build contract 3 makes the theme a token overlay and because §4.2 of the strategy keeps
-   Settings › Theme as the last word; the host must not copy a preset into a pack file.
+   Settings › Style as the last word; the host must not copy a preset into a pack file.
    *Rejected alternative:* carrying the settings inline in the pack (would make the pack a theme store and re-open free CSS).
 2. **The id is checked by shape only; its existence is resolved when it is applied.** A pack must not become invalid because the person deleted a preset — that
    would turn a data plugin into a 5xx or a greyed card. Chosen because `domain-pack.mjs` validates statelessly (`:68`) and has no access to `<DSH home>`.
@@ -75,7 +80,7 @@ until it is answered, no file of this batch is written, no DoD is claimed, and t
    unregistered point contributes `[]` (`registry.mjs:328`), so their absence changes nothing. No cross-bundle import, ever.
 7. **`theme` in `publicView` is public.** It sits with `profil`, `model` and `agents` (`onboarding-state.mjs:109-121`), not with `about` and `customGoals`
    (private because they are typed personal text, `:49-52`, `:66-68`). A preset id is not personal text. See AMBIGUITY 5.
-8. **`theme` is kept when a client sends none, and cleared by no one** in this batch (`agents` semantics, `:142`). Removing a theme is Settings › Theme's job,
+8. **`theme` is kept when a client sends none, and cleared by no one** in this batch (`agents` semantics, `:142`). Removing a theme is Settings › Style's job,
    not the wizard's.
 9. **`chooseDomain` does not touch `theme`.** Choosing a field later changes the field and the goals, nothing else (its comment, `:147`).
 10. **Numeric bounds marked "(proposal)" below are pack-format decisions of this batch**, not product constants: they are labelled as required by build
@@ -96,7 +101,7 @@ AMBIGUITY: **the theme id vocabulary** — the pack regex `/^[a-z0-9][a-z0-9-]{0
 (`/^[a-z0-9][a-z0-9-]{0,63}$/`, `preset-store.mjs:26`), so a preset whose id is 41-63 characters can never be named by a pack. Widen the pack key to 63, or
 accept that such a preset is unreferenceable. This batch implements 40 (the delegation's letter) and states the consequence.
 AMBIGUITY: **`theme` is served by the pre-sign-in GET** — `GET /kybernos/onboarding` is answered before DSH's own sign-in (`onboarding-state.mjs:51-52`).
-Choosing "public" (interpretation 7) means any local page can read which theme preset the person picked. It is a real (small) disclosure decision, not a detail.
+Choosing "public" (interpretation 7) means any local page can read which style preset the person picked. It is a real (small) disclosure decision, not a detail.
 AMBIGUITY: **who fixes `test-domain-pack.mjs:257` and `:290` when A3 adds a pack** — this batch widens both to relative-order/pair assertions (interpretation 11). If the campaign
 prefers the exact-set equality, then A3 needs a one-line exception on a file this batch owns, and the merge order matters.
 
@@ -113,7 +118,7 @@ prefers the exact-set equality, then A3 needs a one-line exception on a file thi
   does not) are not touched here — the DoD only asserts this batch leaves every real pack file loadable and in order.
 - **A new pack key other than `theme`**; a second accent; an `a11y` key; free CSS; a fonts URL. All of them stay refused (`domain-pack.mjs:71`, `:45`).
 - **Raising `ONBOARDING_VERSION`** (`onboarding-state.mjs:6-11`: it would reopen the wizard for everyone).
-- **The starter template and the "Build a sector pack" page** — batch A4-starter-docs.
+- **The starter template and the "Build a theme" page** — batch A4-starter-docs.
 - **i18n of the new strings** beyond the pack's own language objects (`LANGS`, `domain-pack.mjs:18`); no new UI string is introduced here.
 - **Per-goal enforcement of the kit bounds.** Templates are bounded *per file*; a goal is not re-counted against `LIMITS` (`:28`).
 
