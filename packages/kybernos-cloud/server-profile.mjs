@@ -29,12 +29,12 @@
 import { readFileSync } from 'node:fs'
 
 // ── GO-LIVE: THE ONE PLACE THAT NAMES THE BUILT-IN SERVER ───────────────────────────────────────────────────────────────
-// The production server (api.kybernos.app, decided 2026-10-08 and live since 2026-10-11; the DSH default since 2026-10-12).
+// The production server (server.kybernos.app since 2026-10-28, when production moved from Railway to Fly; api.kybernos.app before that, and still a CNAME to the same app).
 // To point the plugins at another server, change this line and nothing else: web, console, the LLM base and the connections
 // endpoint all follow from it, and the literals that cannot import it (the page's fallback in packages/kybernos-plugin/client.js,
 // the feedback fallback in packages/kybernos-plugin/index.js, the E2B template's base URL) are checked against it by
 // scripts/test-no-legacy-hosts.mjs, which says which one to edit.
-export const BUILTIN_API = 'https://api.kybernos.app'
+export const BUILTIN_API = 'https://server.kybernos.app'
 /** The connected apps' endpoint on the server's own origin (ADR 0008 of the server). */
 export const CONNECTIONS_PATH = '/v1/mcp/connections'
 

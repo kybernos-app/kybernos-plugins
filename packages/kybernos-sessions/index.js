@@ -39,6 +39,7 @@ import { execFile } from 'node:child_process'
 import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, rmSync, realpathSync, renameSync, chmodSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
 import { creerSonde } from './brain-health.mjs'
+import { excludedFrom, filterProbeable, readTrafficFile, trafficHealth } from './traffic-health.mjs'
 import { dshHome, CATEGORIES } from './decision.mjs'
 import { selectionnerKyber, selectionnerCategorie } from './decision-llm.mjs'
 import { classerLocalement, estTitreAttente } from './classement-local.mjs'
@@ -1289,6 +1290,9 @@ export function monterRoutes (webServerSvc, opts) {
     concurrence: parseInt(process.env.KB_BRAIN_CONCURRENCE || '4', 10),
     ttlMs: parseInt(process.env.KB_BRAIN_TTL || '18000000', 10)
   })
+  // The banner polls: the traffic verdict is read from the journal at most once per half minute.
+  const TRAFIC_TTL_MS = 30_000
+  let traficCache = null
   // ── the Study model in force ──────────────────────────────────────────────
   // `brain` is the person's choice: a `route/id`, `none` (no Study model) or empty (Automatic: etude-auto.mjs picks the model
   // from what is connected). The automatic choice is cached a minute (ten seconds while nothing was found, so a model that
@@ -1393,16 +1397,33 @@ export function monterRoutes (webServerSvc, opts) {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     // GET: the last reading, without relaunching anything — this is what the banner
     // reads at load, so as not to probe again every time a chat opens.
-    if (req.method === 'GET') { envoyer(res, 200, { ok: true, dernier: sondeSante.dernier() }); return }
+    if (req.method === 'GET') {
+      // The banner also gets what real traffic says: a model that answered is alive, for free. Cached 30 s so a
+      // polling tab does not re-read the journal; the probe's last reading stays as it was.
+      let trafic = traficCache !== null && (Date.now() - traficCache.quand) < TRAFIC_TTL_MS ? traficCache.valeur : null
+      if (trafic === null) {
+        trafic = trafficHealth(readTrafficFile(join(base, 'kybernos', 'log', 'events.jsonl'), { readFile: (f) => readFileSync(f, 'utf8') }))
+        traficCache = { valeur: trafic, quand: Date.now() }
+      }
+      envoyer(res, 200, { ok: true, dernier: sondeSante.dernier(), trafic })
+      return
+    }
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
     const corps = await lireCorps(req)
     try {
       const etude = await etudeEnVigueur()
       // Automatic watches what the person connected; a model they picked as Study model watches every model they listed.
-      const aSonder = etude.mode === 'auto'
+      const brut = etude.mode === 'auto'
         ? garderConnectes(corps.models, await modelesConnectes({ settings: service('settings'), credentials: service('credentials') }))
         : corps.models
-      envoyer(res, 200, await sondeSante.sonder(aSonder, { brain: etude.cle, force: corps.force === true }))
+      // Our own gateway is never pinged: it meters and bills what it receives (measured 2026-10-28). Operators can
+      // add providers with KB_NO_PROBE_PROVIDERS.
+      const { probe: aSonder, skipped } = filterProbeable(brut, excludedFrom(process.env))
+      if (aSonder.length === 0) {
+        envoyer(res, 200, { ok: true, actif: true, brain: etude.cle, total: 0, sains: 0, alertes: [], ecartes: skipped, raison: 'tous-ecartes' })
+        return
+      }
+      envoyer(res, 200, { ...(await sondeSante.sonder(aSonder, { brain: etude.cle, force: corps.force === true })), ecartes: skipped })
     } catch (e) {
       envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
     }
