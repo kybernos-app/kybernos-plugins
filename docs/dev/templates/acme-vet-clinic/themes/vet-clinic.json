@@ -1,0 +1,9 @@
+{
+  "id": "vet-clinic",
+  "name": "Vet clinic",
+  "settings": {
+    "acc": "#7C5CBF",
+    "radius": 10,
+    "mode": "light"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "contract": 1,,
+  "id": "acme/vet-clinic",
+  "kind": "data"
+  "version": "1.0.0",
+  "name": {
+    "en": "Veterinary clinic",
+    "fr": "Clinique vétérinaire"
+  },
+  "description": {
+    "en": "A theme for veterinary clinics: two goals, a style, one skill, one team and one morning reminder. Sample data for the fictional author acme."
+  },
+  "author": {
+    "id": "acme",
+    "name": "Acme Software"
+  },
+  "license": "CC-BY-4.0",
+  "pricing": "free",
+  "requires": {
+    "kybernos": "^0.1",
+    "plugins": {
+      "kybernos/core": "^1.0",
+      "kybernos/theme": "^1.0",
+      "kybernos/skills": "^1.0"
+    }
+  },
+  "extends": [
+    {
+      "point": "kybernos/core#domain-pack",
+      "range": "^1.0",
+      "dir": "domains"
+    },
+    {
+      "point": "kybernos/theme#theme",
+      "range": "^1.0",
+      "dir": "themes"
+    },
+    {
+      "point": "kybernos/skills#skill",
+      "range": "^1.0",
+      "dir": "skills"
+    },
+    {
+      "point": "kybernos/core#team-template",
+      "range": "^1.0",
+      "dir": "teams"
+    },
+    {
+      "point": "kybernos/core#automation-template",
+      "range": "^1.0",
+      "dir": "automations"
+    }
+  ]
+}

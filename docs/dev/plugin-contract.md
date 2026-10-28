@@ -3,6 +3,10 @@
 Status: **specification, 2026-10-21. Phase 1 (the manifest on the 42 modules and its validator) and the foundation of phase 2 (the registry, the seam, the domain-pack point, reading what DSH's own plugin manager installed: section 17) are built, see section 14; the Plugins page is a mockup; everything else is still only written down.** The six decisions of section 16 and the registry bundle of
 section 6.5 were **taken on 2026-10-21: the owner accepted every recommendation**. Section 2 lists where this draft disagrees with the first proposal.
 
+Writing a theme? The developer page is [`sector-bundles.md`](sector-bundles.md) — « Build a theme »: the five
+interfaces a theme can extend, the starter template `docs/dev/templates/acme-vet-clinic/` and the conformance tool of
+section 11, `node scripts/plugin-check.mjs <folder>`.
+
 The idea is WordPress's: a plugin is a folder with a header (who, which version, which platform versions, which licence, where updates come
 from), the platform exposes **extension points** other plugins build on, a repository tells the person what they are installing, and premium
 plugins carry their own commercial terms. WooCommerce is the second half of the idea: it is a plugin that other plugins extend. Here
@@ -257,19 +261,19 @@ The registry key of a contribution is `<plugin id>/<contribution id>`, so two pl
 
 Today every registry above is a constant. The change is the same each time: **the constant becomes the first contribution** (the shipped
 entries are contributed by the owner plugin itself, as `kybernos/*`), and the registry also scans the folder of installed data plugins,
-`<DSH home>/kybernos/plugins/<author>/<name>/`, the way `domain-pack.mjs` already scans `domains/`. A file that fails validation is skipped
+`<DSH home>/profiles/web/package.json` and `node_modules/<name>/plugin.json` (the location section 14 confirms, `host.mjs`), the way `domain-pack.mjs` already scans `domains/`. A file that fails validation is skipped
 and logged, as today.
 
 | Point | Kind, class | Today | What opens |
 |---|---|---|---|
 | `kybernos/core#domain-pack` 1.0 | data, instruction | **opened 2026-10-21**: the shipped `domains/*.json`, plus what enabled plugins contribute through `kybernos-registry`; `domain-pack.mjs` is the built-in validator | done; the others below are not |
-| `kybernos/dashboards#preset` 1.0 | data, inert | `PRESETS` in `presets.mjs` | contributions read from the registry |
+| `kybernos/dashboards#preset` 1.0 | data, inert | `PRESETS` in `presets.mjs`; the point is **not built** as a contribution | contributions read from the registry |
 | `kybernos/dashboards#http-source` 1.0 | data, inert | does not exist ("sources are internal only", `domain-packs.md`) | **new**: declarative sources (6.4) |
 | `kybernos/dashboards#source` 1.0 | code | internal | for code plugins only, later |
-| `kybernos/core#team-template` 1.0 | data, instruction | `KB_MARKET_TEAMS` in the core client | contributions |
-| `kybernos/core#automation-template` 1.0 | data, instruction | a block in the core client (extracted by `test-automation-templates.mjs`) | contributions |
-| `kybernos/skills#skill` 1.0 | data, instruction | install from GitHub, shipped skills, `seed-skills.mjs` | a plugin ships skill folders |
-| `kybernos/theme#theme` 1.0 | data, inert | `gallery.json`, signed catalogue (empty key list) | same document, same code |
+| `kybernos/core#team-template` 1.0 | data, instruction | **opened 2026-10-28**: `KB_MARKET_TEAMS` in the core client, plus `teams/<id>.json` of a theme (`validateTeamTemplate`, `domain-pack.mjs:283`) | contributions |
+| `kybernos/core#automation-template` 1.0 | data, instruction | **opened 2026-10-28**: a block in the core client (extracted by `test-automation-templates.mjs`), plus `automations/<id>.json` of a theme (`validateAutomationTemplate`, `domain-pack.mjs:315`) | contributions |
+| `kybernos/skills#skill` 1.0 | data, instruction | **opened 2026-10-28**: install from GitHub, shipped skills, `seed-skills.mjs`, plus a theme's `skills/` (one folder per contribution, `files: "folder"`, checked by `validateTeamSkill`) | a plugin ships skill folders |
+| `kybernos/theme#theme` 1.0 | data, inert | **opened 2026-10-28**: `gallery.json`, signed catalogue (empty key list), plus a theme's `themes/<id>.json` (`validateTheme` → `sanitizePreset`, `THEME_POINT` told through the registry seam) | same document, same code |
 | `kybernos/language#pack` 1.0 | data, inert | signed index (empty key list) | same |
 | `kybernos/modeles-locaux#model` 1.0 | data, inert | signed catalogue (key minted) | same |
 
@@ -474,7 +478,7 @@ to the person with a warning; everything that comes from it is Community. Removi
 
 **Per-plugin archive.** A tarball with the plugin's files and a `manifest.json` that lists every file's hash (the format the lifecycle robot already checks for the suite),
 its sha256 named in the signed catalogue and signed by the author. A data plugin is installed by an atomic folder swap into
-`<DSH home>/kybernos/plugins/<author>/<name>/` (previous version kept for one step back), with no boot check since nothing runs. A code plugin that is part of
+the profile DSH installed it in (`<DSH home>/profiles/web`, `node_modules/<name>/`, section 14; previous version kept for one step back), with no boot check since nothing runs. A code plugin that is part of
 the suite keeps the robot, its snapshot, its boot check and its rollback: **the unit of update stays the whole suite**, and the plugin's own `requires` is checked when the suite is built.
 Per-plugin install of third-party *code* would need that robot extended to bundles outside `lifecycle-packages.json`; it is not designed here.
 
@@ -483,19 +487,19 @@ one is generated from the same `plugin.json` files (so the Suite panel and the p
 
 ## 11. The conformance tool
 
-`node scripts/plugin-check.mjs <folder | archive>`: one report, the same checks for us and for others, reusing what exists.
+`node scripts/plugin-check.mjs <folder>`: one report, the same checks for us and for others, reusing what exists. Archives are **not built** (phase B), and the tool prints `SKIP archive` saying so; exit 0 = no fault, 1 = a fault, 2 = the command line. It reads and never writes.
 
-| Check | Reuses |
-|---|---|
-| manifest against the schema, plus section 4.4 | **exists**: `scripts/plugin-manifest.mjs` on `scripts/schema-subset.mjs`; `scripts/test-layout.mjs` and `build-catalog.mjs` call it for the suite |
-| ids, versions, dependencies, points, their schemas (6.3) | new |
-| claims (CSS prefix, route prefixes, slot ids) unique and used | `scripts/audit-css-prefixes.mjs`, `scripts/test-consistency-guards.mjs` |
-| permissions against the code (grep-level: `child_process`, `fetch`, writes, routes, slots) | **exists**: `scripts/plugin-scan.mjs`, held by `scripts/test-plugin-scan.mjs` (a manifest may declare more than the scan sees, never less); its limit is stated in section 7 |
-| every write route under the origin rule | the guard tests (`test-session-guard.mjs`, `test-write-guard.mjs`) |
-| no secret, no personal path, no media beyond the bounds | `scripts/garde-depot.mjs` rules, applied to the folder |
-| the help card | `test-help-card.mjs` |
-| compatibility: zone, `tested`, dependency resolution | the compat gate, `comparerVersions` |
-| archive hygiene and hashes | `telechargement.mjs` and the robot's `manifest.json` check |
+| Check (`scripts/plugin-check.mjs`, one check id per line) | Reuses | Built |
+|---|---|---|
+| manifest against the schema, plus section 4.4 (`manifest.present`, `manifest.json`, `manifest.schema`, `manifest.rules`) | **exists**: `scripts/plugin-manifest.mjs` on `scripts/schema-subset.mjs`; `scripts/test-layout.mjs` and `build-catalog.mjs` call it for the suite | **yes** |
+| ids, versions, dependencies, points, their schemas (6.3) (`manifest.points`, `point.<name>`) | the owners' own validators, imported; the point a `plugin.json` declares is the declaration of record | **yes** |
+| claims (CSS prefix, route prefixes, slot ids) unique (`claims.unique`) | the manifests of `packages/*/plugin.json`; `scripts/test-consistency-guards.mjs` keeps the same rule for the suite | **yes** (uniqueness; "used" stays the scan's job) |
+| permissions against the code (grep-level: `child_process`, `fetch`, writes, routes, slots) (`code.scan`) | **exists**: `scripts/plugin-scan.mjs`, held by `scripts/test-plugin-scan.mjs` (a manifest may declare more than the scan sees, never less); its limit is stated in section 7 | **yes** |
+| no secret, no personal path, no media beyond the bounds (`hygiene`) | `scripts/garde-depot.mjs` rules, applied to the folder (a secret-looking **file name** is that module's private rule, so not covered) | **partly** |
+| the help card (`help.card`) | `test-help-card.mjs` for what it says; the checker only asserts the file exists | **partly** |
+| compatibility: zone, `tested`, dependency resolution (`compat.zone`) | the compat gate, `comparerVersions` | **yes** |
+| every write route under the origin rule | the guard tests (`test-session-guard.mjs`, `test-write-guard.mjs`) | **no**: live-only |
+| archive hygiene and hashes (`archive`) | `telechargement.mjs` and the robot's `manifest.json` check | **no**: phase B |
 
 The report is attached to a catalogue entry as information; the publisher runs it again. A green report is **necessary for every level and sufficient for none**.
 

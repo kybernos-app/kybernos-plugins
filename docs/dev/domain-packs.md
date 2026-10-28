@@ -11,6 +11,10 @@ pack JSON (data) ──▶ host validates ──▶ GET /kybernos/domains ──
 
 Design study and mockups: private artifacts of 2026-10-21 (v1 by field, v2 by goals and by team), archived outside git.
 
+Building one? The developer page is [`sector-bundles.md`](sector-bundles.md) — « Build a theme »: the five frozen
+interfaces, the starter template `docs/dev/templates/acme-vet-clinic/` and the conformance tool
+`node scripts/plugin-check.mjs <folder>`.
+
 ## Why goals, not only a field
 
 Two people in the same field want different things (a physio who wants fewer missed appointments, a clinic that wants faster notes). The field
@@ -105,7 +109,7 @@ only** skills, teams and automations (never removed by a switch); **never touche
 | Page titles, Creations tiles | `kbDomainTitle`, `kbObTileSort` (one subscription in `KybersMain`) | **wired** |
 | Skills and Connectors sections | `window.__KB_DOMAIN__` read by `kybernos-skills` and `kybernos-composio` | **wired** |
 | Saved choice | `onboarding.json` | **wired** |
-| Theme per field | theme presets (`theme-presets.json`, plain data). No public « apply a preset » call was found | next |
+| Theme per field | theme presets (`theme-presets.json`, plain data), applied through the public seam `applyPreset` (`packages/kybernos-theme/preset-store.mjs:200`) and its browser door `__KB_THEME_APPLY__`; the wizard step that calls it at the Kit step is not built (the style is applied from Settings › Theme) | **seam built** |
 | « What do you want to see first » | order of the menu and the home | next |
 | Dashboards | `*.miniapp.json` and `presets.mjs`. Sources are internal only; tiles fed by a connected app need a new source kind. Until then a dashboard shows samples marked as such | next |
 | Connectors | suggested in the Connectors page (Discover section, Yours line); each needs the person's authorisation | **wired** (suggest only) |
@@ -155,7 +159,7 @@ a pack and that every skill an automation names exists.
 - Packs by other authors: a pack is a **data plugin** of the point `kybernos/core#domain-pack` ([`plugin-contract.md`](plugin-contract.md), phase 2). Built: a package installed with DSH's own
   plugin manager (an npm name, a GitHub address, a tarball or a local directory) that holds a `plugin.json` and a `domains/` folder, and a patch that is an empty list, is read by
   `kybernos-registry`; each file goes through `validatePack`, and once the person has accepted the plugin (a pack carries prompts) its packs join the shipped ones in
-  `GET /kybernos/domains` (marked `from`, ordered after ours, an id or a legacy job already taken is refused). A plugin pack cannot bundle skills yet.
+  `GET /kybernos/domains` (marked `from`, ordered after ours, an id or a legacy job already taken is refused). A plugin also ships skill folders, through the point `kybernos/skills#skill`: one folder per contribution, read whole by `kybernos-registry` and checked by `validateTeamSkill` (`packages/kybernos-skills/team-skills.mjs:188`).
 - Who writes the content marked soon (teams): us, or the Marketplace community. A signed catalogue (like themes and local models) is the way to
   ship packs without a release; the files stay bundled until then.
 - **Reading the site and the profile** (the « Understood » step: facts tagged Instruction or Memory, removable): not built. A public page reads easily; LinkedIn and Facebook often need a login, so a « paste a summary » fallback is planned. Today what was typed is stored and written into the person's memory as typed.

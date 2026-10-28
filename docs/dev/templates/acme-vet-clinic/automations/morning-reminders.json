@@ -1,0 +1,103 @@
+{
+  "id": "morning-reminders",
+  "cat": "clinic",
+  "icon": "bell",
+  "title": {
+    "en": "Morning reminder drafts",
+    "fr": "Brouillons de rappels du matin"
+  },
+  "cadence": {
+    "en": "Every weekday at 07:00",
+    "fr": "Chaque jour ouvré à 07h00"
+  },
+  "desc": {
+    "en": "Drafts one reminder per owner whose vaccination or check-up is due, from the list the clinic provides. Nothing is sent.",
+    "fr": "Rédige un rappel par propriétaire dont la vaccination ou le contrôle arrive à échéance, à partir de la liste fournie par le cabinet. Rien n'est envoyé."
+  },
+  "cron": "0 7 * * 1-5",
+  "tags": [
+    "recalls",
+    "reminders"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read the appointment and vaccination list the clinic provides. For each owner whose date is within the next seven days, quote the animal, the date and the reason.",
+        "fr": "Lire la liste de rendez-vous et de vaccinations fournie par le cabinet. Pour chaque propriétaire dont la date tombe dans les sept jours, citer l'animal, la date et le motif."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Draft one short reminder per owner: the animal's name, the date, the reason, and the clinic's phone number. Keep the clinic's own wording.",
+        "fr": "Rédiger un rappel court par propriétaire : le nom de l'animal, la date, le motif et le numéro du cabinet. Garder les mots du cabinet."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Put every draft in one list for the desk to read, correct and send itself. Send nothing.",
+        "fr": "Réunir les brouillons dans une liste que l'accueil lit, corrige et envoie lui-même. N'envoyer rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "The appointment and vaccination list (a file, or pasted text)",
+      "fr": "La liste de rendez-vous et de vaccinations (un fichier, ou du texte collé)"
+    },
+    {
+      "en": "The clinic's phone number",
+      "fr": "Le numéro de téléphone du cabinet"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Drafts only: nothing is sent, called or written to a patient record without the person's approval.",
+      "fr": "Brouillons seulement : rien n'est envoyé, appelé ni écrit dans un dossier sans l'accord de la personne."
+    },
+    {
+      "en": "Never invent a date, a dose or an owner: a missing fact is written as missing.",
+      "fr": "Ne jamais inventer une date, une dose ou un propriétaire : un fait manquant est écrit comme manquant."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where is the appointment and vaccination list?",
+        "fr": "Où se trouve la liste de rendez-vous et de vaccinations ?"
+      },
+      "o": [
+        {
+          "en": "In a file I drop in the chat",
+          "fr": "Dans un fichier que je dépose dans le chat"
+        },
+        {
+          "en": "I paste it as text",
+          "fr": "Je la colle comme texte"
+        },
+        {
+          "en": "It is in my calendar",
+          "fr": "Elle est dans mon agenda"
+        }
+      ]
+    },
+    {
+      "q": {
+        "en": "How far ahead should the reminders look?",
+        "fr": "À quelle échéance les rappels doivent-ils regarder ?"
+      },
+      "o": [
+        {
+          "en": "The next seven days",
+          "fr": "Les sept prochains jours"
+        },
+        {
+          "en": "The next month",
+          "fr": "Le mois prochain"
+        }
+      ]
+    }
+  ]
+}
