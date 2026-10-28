@@ -135,6 +135,15 @@ const eq = (label, a, b) => ok(label + ' — ' + JSON.stringify(a) + ' ≠ ' + J
     }
     const ev = call('/kybernos-log/events?types=llm&limit=10')
     ok('events answers 200 with the record', ev.status === 200 && ev.body.includes('k3.1-pro'))
+    // The page pages: a full page announces that older rows may exist, with what the ring holds in all.
+    const three = (() => { for (const m of ['a', 'b', 'c']) journal.append({ at: Date.now(), type: 'llm', kind: 'answer', model: m, input: 1, output: 1 }) })()
+    const page1 = JSON.parse(call('/kybernos-log/events?limit=2').body)
+    ok('a full page says there may be more, and how many rows exist', page1.hasMore === true && page1.total >= 2 && page1.events.length === 2)
+    const oldest = page1.events[page1.events.length - 1].seq
+    const page2 = JSON.parse(call('/kybernos-log/events?limit=2&before=' + oldest).body)
+    ok('the next page is strictly older (keyset by seq, no duplicate)', page2.events.every((e) => e.seq < oldest) && page2.events.length > 0)
+    const lastPage = JSON.parse(call('/kybernos-log/events?limit=500').body)
+    ok('a page that holds everything says there is no more', lastPage.hasMore === false)
     const stats = call('/kybernos-log/stats?days=1')
     ok('stats answers 200', stats.status === 200 && stats.body.includes('"days"'))
     ok('a foreign Host is refused', call('/kybernos-log/events', { headers: { host: 'evil.example' } }).status === 403)

@@ -37,6 +37,9 @@
 .kblg-mut{color:var(--dsw-alias-label-secondary,#9aa1a8)}
 .kblg-err{color:var(--dsw-alias-state-error-primary,#ef4444)}
 .kblg-warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kblg-list{display:flex;flex-direction:column;gap:8px}
+.kblg-more{display:flex;justify-content:center;align-items:center;gap:10px;padding:2px 0 6px}
+.kblg-more span{font-size:12px;font-variant-numeric:tabular-nums}
 .kblg-empty{padding:28px 8px;text-align:center;color:var(--dsw-alias-label-secondary,#9aa1a8);font-size:13px}
 /* The Settings volet is ~720 px wide on a desktop viewport, so a viewport media query alone never fires there:
    the page also takes a kblg-narrow class when its own box is narrow (the plate shows that case). */
