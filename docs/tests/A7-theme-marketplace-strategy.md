@@ -361,7 +361,7 @@ Short names in the table are unique in the tree at the baseline and were resolve
 `test-onboarding.mjs`, one `test-suite-plugins.mjs`, one `sante.json`; `client.js` unqualified is always
 `packages/kybernos-plugin/client.js`, and the hub's is spelled out. **Every anchor of this file resolves at `2ac67fb4`
 except the rows that carry a carve-out — stated in the head note, never implied.** Counted mechanically on this
-revision: **58 claims — 53 exact at `2ac67fb4` (the two page-shell and registration rows re-pinned to the measured baseline values on 2026-10-28), 1 mixed (its `plugin-contract` part exact, its A6 part carved out)
+revision: **58 claims — 53 exact at `2ac67fb4` (M14: the D8 verifier grep excludes `/test-` files — the verifier's own unit test legitimately names verifyCatalogue; M15: the four registration lines (2 search-index rows, 1 NAV, 1 PLACES) are ratified in the perimeter — without them test-settings-search, test-settings-names and test-signposts redden) (the two page-shell and registration rows re-pinned to the measured baseline values on 2026-10-28), 1 mixed (its `plugin-contract` part exact, its A6 part carved out)
 and 4 carve-outs** (A5's label row, the row naming the four campaign files, the A6 wire row, and the M7 adoption row
 — an adoption ruling of 2026-10-28, not a line re-read today). No A6 row carries a line pin, on purpose. The two
 accent hexes are data in the mockups' own CSS, not prose.

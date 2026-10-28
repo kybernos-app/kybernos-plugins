@@ -28,6 +28,7 @@ import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as
 import { mountAutomationTools } from './automation-tools.mjs'
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
+import { handleThemes } from './theme-installer.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -10736,6 +10737,24 @@ function boot(ctx) {
         const r = domainPacks()
         sendJson(res, 200, { ok: true, packs: r.packs, rejected: r.rejected.length })
       } }), 'kybernos: route domains')
+      // The sector themes (A6-theme-installer, docs/tests/A6-theme-installer-strategy.md): ONE route family of the catalogue wire this batch
+      // owns (M1 — A7-theme-marketplace reads it through this route and adds none). GET reads the verified catalogue entries, the bounded
+      // sources and the install records; POST stages a folder (its verdict only, never an install), asks the plan of an installed plugin,
+      // writes or forgets a record, and manages the source list. The package itself enters the profile through DSH's own manager, in the
+      // page — this route never writes the profile (INT1, plugin-contract.md:562). The guards are the existing ones, in their order.
+      const themesStore = () => ({ dir: nodePathJoin(String(dshHomeSync()), 'kybernos') })
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/themes', handler: async (req, res) => {
+        let body = null
+        if (req.method === 'POST') {
+          try { body = await readJsonBody(req, 64 * 1024) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        }
+        const answer = handleThemes(themesStore(), { method: req.method, body }, {
+          sameOrigin: sameOriginStrict,
+          session: (r) => { try { const refused = writeGuard(r); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
+          registry: registrySeam(),
+        })
+        sendJson(res, answer.status, answer.body)
+      } }), 'kybernos: route themes')
       // A skill a domain pack ships (domains/skills/<name>/SKILL.md): written into <DSH home>/skills by the same careful seeding as every skill this
       // plugin ships (never over a skill the person wrote or edited, never back over one they switched off). Only a name some pack lists as
       // bundled is accepted, so the route cannot write anything else.

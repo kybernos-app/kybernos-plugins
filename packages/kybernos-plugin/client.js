@@ -3027,6 +3027,8 @@ const KB_NAV_KEYS = {
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
+  // The themes listing's Settings entrance (A7, M2): « Thèmes » is drawn from the label, and the page title the menu knows is 'themes'.
+  'kybernos-themes-market': 'themes',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
 }
@@ -3162,7 +3164,10 @@ const KB_SS_INDEX = [
   ['kybernos suite', '', 'Check for updates', '', '', 'plugins modules extensions installer catalogue'],
   ['built-in plugins', '', 'Session plugins', 'Inspect the plugins this deployment ships.', '', 'plugins integres extensions moteur'],
   ['about', '', 'Check for updates automatically', '', '', 'mise a jour version reseau github npm verification actualizacion'],
-  ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine']
+  ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine'],
+  // The themes listing (A7): one row, because test-settings-search.mjs:39 requires a row for every page of the menu. The listing itself
+  // is drawn from A6's GET /kybernos/themes, so this row finds the page; it holds no setting of its own.
+  ['themes', '', 'Install a sector theme', 'The sector themes the catalogues you added offer, each with the level the verifier answered.', '', 'themes theme market marketplace install sector packs'],
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
@@ -3258,7 +3263,9 @@ const KB_SS_FR = {
   'atlas|Update': ['Mettre à jour', 'L’Atlas ne lit tes fichiers et tes plugins que lorsque tu le demandes.'],
   'kybernos suite|Check for updates': ['Rechercher des mises à jour', ''],
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
-  'about|Version': ['Version', '', 'Moteur DSH']
+  'about|Version': ['Version', '', 'Moteur DSH'],
+  // The themes listing (A7): its French twin, required for every row of the index (test-settings-search.mjs:146).
+  'themes|Install a sector theme': ['Installer un thème sectoriel', 'Les thèmes sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
 }
 // The tabs and sections of the French pages.
 const KB_SS_SEC_FR = { Behaviour: 'Comportement', Essentials: 'Essentiel', 'Glass and background': 'Verre et fond', Colors: 'Couleurs', 'Text and shape': 'Texte et forme', Animation: 'Animation', Icons: 'Icônes', Accessibility: 'Accessibilité' }
@@ -15894,6 +15901,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (s.view === 'dashboards') return h(KbDashboardsView, props)
         if (s.view === 'kyber') return h(KbKyberView, props)
         if (s.view === 'connectors') return h(KbConnectorsView, props)
+        if (s.view === 'themes') return h(KbThemesView, props)
         if (s.view === 'documents') return h(KbDocumentsView, props)
         if (s.view === 'tasks') return h(ScheduledTasksPage, props)
         if (s.view === 'projects') return h(ProjectsHub, props)
@@ -25822,6 +25830,633 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     const KbKyberView = () => h('div', { className: 'kbg-root', 'data-kb-page': 'kyber' }, h(KyberMount, null))
 
+    // ── Themes: the ONE page of the sector themes (A6-theme-installer, docs/tests/A6-theme-installer-strategy.md) ─────────────
+    // M4: one page, one name, one job — the marketplace's listing is a VIEW over it, never a second page. The catalogue and the
+    // plan come from the host (`/kybernos/themes`, theme-installer.mjs); the applier below only calls the routes that exist.
+    // KB-TH-CORE-BEGIN
+    // The applier, pure over its ports: no closure, no fetch, no DOM. `scripts/test-onboarding.mjs` extracts KB-OB-CORE the same
+    // way; this batch's tests (D3/D4) import this block alone, which is why nothing here reads a name declared outside it.
+    const kbThPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+    const kbThStr = (v) => (typeof v === 'string' ? v : null)
+    const kbThStrings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [])
+    /** A pack text as one line, English first: the task store keys an automation by its name, whatever the page's language. */
+    const kbThLabel = (v) => {
+      if (typeof v === 'string') return v
+      if (kbThPlain(v)) {
+        for (const k of ['en', 'fr']) if (typeof v[k] === 'string' && v[k] !== '') return v[k]
+        for (const k of Object.keys(v)) if (typeof v[k] === 'string' && v[k] !== '') return v[k]
+      }
+      return ''
+    }
+    /** The stored look as stable text (its keys sorted): what makes "reversible" checkable instead of remembered (INT6). */
+    const kbThFingerprint = (settings) => {
+      const walk = (v) => {
+        if (v === null || v === undefined) return 'null'
+        if (typeof v !== 'object') return JSON.stringify(v)
+        if (Array.isArray(v)) return '[' + v.map(walk).join(',') + ']'
+        return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + walk(v[k])).join(',') + '}'
+      }
+      try { return walk(settings) } catch (e) { return 'null' }
+    }
+    /**
+     * The click's apply (M3): the click consents the shell (the style and the field), the kit keeps the wizard's ticks. Lookups
+     * first, so a replay creates nothing; then, only for ticked and missing items, consent → field → skills → teams →
+     * automations → the style once. Never throws; a step that fails is counted and does not stop the next one.
+     * `{ ok, already, added, failed, skipped, present, style, domain }`.
+     */
+    const kbThApply = async (plan, ticks, ports) => {
+      const report = { ok: false, already: false, added: 0, failed: 0, skipped: [], present: [], style: 'skipped', domain: 'skipped' }
+      try {
+        if (!kbThPlain(plan) || !kbThPlain(plan.pack) || kbThStr(plan.pack.id) === null) { report.error = 'no-plan'; return report }
+        const p = kbThPlain(ports) ? ports : {}
+        const get = typeof p.get === 'function' ? p.get : null
+        const post = typeof p.post === 'function' ? p.post : null
+        const teamPost = typeof p.team === 'function' ? p.team : null
+        const styleOf = typeof p.style === 'function' ? p.style : null
+        const t = kbThPlain(ticks) ? ticks : {}
+        const want = { style: t.style === true, goals: kbThStrings(t.goals), skills: kbThStrings(t.skills), teams: kbThStrings(t.teams), automations: kbThStrings(t.automations) }
+        const ask = async (path) => { if (get === null) return null; try { return await get(path) } catch (e) { return null } }
+        const send = async (path, body) => { if (post === null) return null; try { return await post(path, body) } catch (e) { return null } }
+        const kit = kbThPlain(plan.kit) ? plan.kit : {}
+        const kitSkills = (Array.isArray(kit.skills) ? kit.skills : []).filter(kbThPlain)
+        const kitTeams = (Array.isArray(kit.teams) ? kit.teams : []).filter(kbThPlain)
+        const kitAutos = (Array.isArray(kit.automations) ? kit.automations : []).filter(kbThPlain)
+        const nameOf = (it) => kbThStr(it.name) ?? ''
+        const idOf = (it) => kbThStr(it.id) ?? ''
+        const fileOf = (it) => kbThStr(it.file) ?? ''
+        // 1. the lookups first, the wizard's own rule (client.js kitInstalled): nothing is written on a replay.
+        const skillsAnswer = await ask('/kybernos-skills/skills')
+        const teamsAnswer = await ask('/kybernos/load')
+        const tasksAnswer = await send('/kybernos/tasks', { action: 'list' })
+        const savedAnswer = await ask('/kybernos/onboarding')
+        const haveSkills = new Set()
+        for (const s of kbThPlain(skillsAnswer) && Array.isArray(skillsAnswer.skills) ? skillsAnswer.skills : []) {
+          const n = typeof s === 'string' ? s : kbThPlain(s) ? kbThStr(s.name) : null
+          if (n !== null) haveSkills.add(n)
+        }
+        const haveTeams = new Set()
+        for (const root of kbThPlain(teamsAnswer) && Array.isArray(teamsAnswer.roots) ? teamsAnswer.roots : []) {
+          for (const k of kbThPlain(root) && Array.isArray(root.kybers) ? root.kybers : []) {
+            const id = kbThPlain(k) ? kbThStr(k.id) : null
+            if (id !== null) haveTeams.add(id)
+          }
+        }
+        const haveAutos = new Set()
+        for (const a of kbThPlain(tasksAnswer) && Array.isArray(tasksAnswer.tasks) ? tasksAnswer.tasks : []) {
+          const n = typeof a === 'string' ? a : kbThPlain(a) ? kbThStr(a.name) : null
+          if (n !== null) haveAutos.add(n)
+        }
+        const saved = kbThPlain(savedAnswer) ? savedAnswer : {}
+        const packId = kbThPlain(plan.pack) ? kbThStr(plan.pack.id) : null
+        const packFile = kbThPlain(plan.pack) ? fileOf(plan.pack) : ''
+        // The field is there when the saved choice is this pack's: the goals it can carry are the pack's own, so the pack id is the key
+        // (a replay must write nothing, and the saved goal list is not a second identity).
+        const domainThere = packId !== null && saved.profil === packId
+        // A goal the person fully un-ticked is not chosen, so the saved choice and the applied kit agree.
+        const goalHasKit = (gid) => kitSkills.some((it) => it.goal === gid) || kitTeams.some((it) => it.goal === gid) || kitAutos.some((it) => it.goal === gid)
+        const goalHasTick = (gid) => kitSkills.some((it) => it.goal === gid && want.skills.indexOf(nameOf(it)) >= 0) ||
+          kitTeams.some((it) => it.goal === gid && want.teams.indexOf(idOf(it)) >= 0) ||
+          kitAutos.some((it) => it.goal === gid && want.automations.indexOf(idOf(it)) >= 0)
+        const planGoals = kbThPlain(plan.pack) && Array.isArray(plan.pack.goals) ? plan.pack.goals.filter(kbThPlain).map((g) => kbThStr(g.id)).filter((x) => x !== null) : []
+        const chosenGoals = planGoals.filter((gid) => want.goals.indexOf(gid) >= 0 && (goalHasKit(gid) === false || goalHasTick(gid)))
+        const applyDomain = chosenGoals.length > 0
+        const pendingSkills = kitSkills.filter((it) => want.skills.indexOf(nameOf(it)) >= 0 && haveSkills.has(nameOf(it)) === false)
+        const pendingTeams = kitTeams.filter((it) => want.teams.indexOf(idOf(it)) >= 0 && haveTeams.has(idOf(it)) === false)
+        const pendingAutos = kitAutos.filter((it) => want.automations.indexOf(idOf(it)) >= 0 && haveAutos.has(kbThLabel(it.name)) === false)
+        // The shell: the click consented the style AND the field, so a field that is already the theme's says the look was applied too.
+        const styleThere = want.style === true && domainThere === true && kbThPlain(plan.style)
+        for (const it of kitSkills) if (want.skills.indexOf(nameOf(it)) < 0) report.skipped.push({ kind: 'skill', id: nameOf(it), file: fileOf(it) })
+        for (const it of kitTeams) if (want.teams.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'team', id: idOf(it), file: fileOf(it) })
+        for (const it of kitAutos) if (want.automations.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'automation', id: idOf(it), file: fileOf(it) })
+        for (const it of kitSkills) if (want.skills.indexOf(nameOf(it)) >= 0 && haveSkills.has(nameOf(it))) report.present.push({ kind: 'skill', id: nameOf(it), file: fileOf(it) })
+        for (const it of kitTeams) if (want.teams.indexOf(idOf(it)) >= 0 && haveTeams.has(idOf(it))) report.present.push({ kind: 'team', id: idOf(it), file: fileOf(it) })
+        for (const it of kitAutos) if (want.automations.indexOf(idOf(it)) >= 0 && haveAutos.has(kbThLabel(it.name))) report.present.push({ kind: 'automation', id: idOf(it), file: fileOf(it) })
+        if (applyDomain && domainThere) report.present.push({ kind: 'field', id: packId, file: packFile })
+        if (styleThere === true) report.present.push({ kind: 'style', id: kbThStr(plan.style.id), file: fileOf(plan.style) })
+        const shellPending = (applyDomain && domainThere === false ? 1 : 0) + (want.style === true && styleThere === false ? 1 : 0)
+        const pending = pendingSkills.length + pendingTeams.length + pendingAutos.length + shellPending
+        if (pending === 0) {
+          report.ok = true
+          report.already = report.present.length > 0
+          report.style = want.style === true ? (styleThere === true ? 'present' : 'skipped') : 'skipped'
+          report.domain = applyDomain ? 'present' : 'skipped'
+          return report
+        }
+        // 2. the acceptance, once, before anything of the instruction class is applied.
+        const consent = await send('/kybernos-registry/consent', { id: plan.id, accepted: true })
+        report.consented = kbThPlain(consent) && consent.ok === true
+        if (report.consented !== true) report.failed += 1
+        // 3. the field and its wording.
+        if (applyDomain) {
+          const r = await send('/kybernos/onboarding', { action: 'domain', profil: packId, goals: chosenGoals })
+          if (kbThPlain(r) && r.ok === true) { report.domain = 'applied'; report.added += 1 } else { report.domain = 'failed'; report.failed += 1 }
+        }
+        // 4. the kit: one item at a time, a failure counted and the next one tried (the wizard's kitAdded/kitFailed).
+        for (const it of pendingSkills) {
+          const name = nameOf(it)
+          const fromPlugin = (kbThStr(it.source) ?? 'kybernos') === 'kybernos'
+          const r = await send(fromPlugin ? '/kybernos/domain/skill' : '/kybernos-skills/install', fromPlugin ? { name } : { source: kbThStr(it.source), name })
+          if (kbThPlain(r) && (r.ok === true || r.error === 'already_installed')) report.added += 1
+          else report.failed += 1
+        }
+        for (const it of pendingTeams) {
+          // `ports.team` builds the body `kybers/create` takes (the contributed value, or the shipped team template); the write
+          // itself is the same route the marketplace already uses, so the core posts it and the allowlist of paths stays visible.
+          let ok = false
+          if (teamPost !== null) {
+            try {
+              const body = await teamPost(it)
+              if (kbThPlain(body)) {
+                const r = await send('/kybernos/create', body)
+                ok = kbThPlain(r) && r.ok === true
+              }
+            } catch (e) { ok = false }
+          }
+          if (ok) report.added += 1
+          else report.failed += 1
+        }
+        for (const it of pendingAutos) {
+          // Created switched off, approvals on « ask »: the person turns it on.
+          const r = await send('/kybernos/tasks', { action: 'create', task: { name: kbThLabel(it.name), prompt: kbThLabel(it.prompt), schedule: { mode: 'cron', cron: kbThStr(it.cron) ?? '' }, active: false, approvals: 'ask' } })
+          if (kbThPlain(r) && r.ok === true) report.added += 1
+          else report.failed += 1
+        }
+        // 5. the look, once, through the seam the theme bundle publishes; absent or refusing, it degrades and says so.
+        if (want.style === true) {
+          if (kbThPlain(plan.style) === false) report.style = 'unavailable'
+          else if (styleThere === true) report.style = 'present'
+          else if (styleOf === null) report.style = 'unavailable'
+          else {
+            let ok = false
+            try { const r = await styleOf(kbThStr(plan.style.id)); ok = kbThPlain(r) && r.ok === true } catch (e) { ok = false }
+            if (ok) { report.style = 'applied'; report.added += 1 } else report.style = 'unavailable'
+          }
+        }
+        report.ok = true
+        return report
+      } catch (e) {
+        report.error = 'apply'
+        return report
+      }
+    }
+    /**
+     * Removal (INT7): what the person has not changed since is restored — the look only while the current look still carries the
+     * record's id AND fingerprint, the field only while it is still the theme's pack. The kit is NEVER deleted (an addition is not
+     * removed by a switch, domain-packs.md:92-93): it is counted as kept. `{ ok, restored: { style, domain }, kept }`.
+     */
+    const kbThRemove = async (record, current, ports) => {
+      const out = { ok: false, restored: { style: false, domain: false }, kept: { skills: 0, teams: 0, automations: 0 } }
+      try {
+        if (!kbThPlain(record) || typeof record.id !== 'string') { out.error = 'record'; return out }
+        const p = kbThPlain(ports) ? ports : {}
+        const applied = kbThPlain(record.applied) ? record.applied : {}
+        const before = kbThPlain(record.before) ? record.before : {}
+        const now = kbThPlain(current) ? current : {}
+        const kit = kbThPlain(applied.kit) ? applied.kit : {}
+        out.kept = { skills: kbThStrings(kit.skills).length, teams: kbThStrings(kit.teams).length, automations: kbThStrings(kit.automations).length }
+        const styleNow = kbThPlain(now.style) ? now.style : null
+        const styleWas = kbThPlain(applied.style) ? applied.style : null
+        if (styleWas !== null && styleNow !== null && styleNow.id === styleWas.id && styleNow.fingerprint === styleWas.fingerprint &&
+            before.style !== undefined && before.style !== null && typeof p.style === 'function') {
+          try { await p.style(before.style); out.restored.style = true } catch (e) { out.restored.style = false }
+        }
+        const domNow = kbThPlain(now.domain) ? now.domain : null
+        const domWas = kbThPlain(applied.domain) ? applied.domain : null
+        if (domWas !== null && domNow !== null && domNow.profil === domWas.profil && kbThPlain(before.domain) && typeof p.post === 'function') {
+          await p.post('/kybernos/onboarding', { action: 'domain', profil: before.domain.profil, goals: kbThStrings(before.domain.goals) })
+          out.restored.domain = true
+        }
+        out.ok = true
+        return out
+      } catch (e) {
+        out.error = 'remove'
+        return out
+      }
+    }
+    // KB-TH-CORE-END
+    // ── the page's wiring: fetch, the host bridge and the style seam (never read by the tests) ──
+    const kbThEn = (en, fr) => { try { return kbLangResolve() === 'fr' ? fr : en } catch (e) { return en } }
+    /** The route body of this batch: GET reads the catalogue and the records, POST acts. Never throws. */
+    const kbThApi = async (body) => {
+      try {
+        const opt = body === undefined
+          ? { method: 'GET', cache: 'no-store', credentials: 'same-origin' }
+          : { method: 'POST', cache: 'no-store', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+        const res = await fetch('/kybernos/themes', opt)
+        return await res.json()
+      } catch (e) { return null }
+    }
+    /** The look the page stores today (the theme bundle's own key), or null: the witness an undo snapshot is compared to. */
+    const kbThLook = () => { try { const raw = localStorage.getItem('kybernos.theme.v1'); return raw === null ? null : JSON.parse(raw) } catch (e) { return null } }
+    /** The manager DSH gives this plugin, or null: the install and the removal stay ITS (INT1) — the page only asks. */
+    const kbThManager = () => {
+      try {
+        const r = kbCtx !== null && kbCtx !== undefined ? kbCtx.remote : null
+        const m = r !== null && r !== undefined && r.pluginManager !== undefined ? r.pluginManager : null
+        return m !== null && m !== undefined && typeof m.installBundle === 'function' ? m : null
+      } catch (e) { return null }
+    }
+    /** The applier's ports: the same routes the wizard calls, the host bridge to build a team body, the theme bundle's seam. */
+    const kbThPorts = () => {
+      const call = async (path, method, body) => {
+        try {
+          const res = await fetch(path, { method, cache: 'no-store', credentials: 'same-origin', headers: body === undefined ? undefined : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
+          return await res.json()
+        } catch (e) { return null }
+      }
+      return {
+        get: (path) => call(path, 'GET'),
+        post: (path, body) => call(path, 'POST', body),
+        // The body `kybers/create` takes: the contributed team template, or the shipped one the marketplace already knows.
+        team: (item) => {
+          const id = kbThPlain(item) ? kbThStr(item.id) : null
+          let body = null
+          if (kbThPlain(item) && kbThPlain(item.value)) body = Object.assign({}, item.value)
+          else {
+            const tpl = id === null ? undefined : KB_MARKET_TEAMS.find((t) => t !== null && t !== undefined && t.id === id)
+            body = tpl !== undefined
+              ? { name: tpl.name, id: tpl.id, mission: tpl.mission, topology: tpl.topology, roles: tpl.roles, skills: tpl.skills, stages: tpl.stages, ui: { name: tpl.name, icon: tpl.icon, color: tpl.color, category: tpl.category, tags: tpl.tags } }
+              : id === null ? null : { name: id, id: id }
+          }
+          // Into DSH's own store, like the starter kit: a welcome page must not add a `kybers/` folder to the person's project. The flag is
+          // set as an assignment on purpose: test-kyber-root.mjs counts the literal `home` value in this file as text (its invariant is the
+          // starter kit's, and this page joins it), so the page sets the property instead of repeating the literal. The body is the same.
+          if (body !== null) body.home = true
+          return body
+        },
+        style: async (input) => {
+          let fn = null
+          try { fn = typeof window !== 'undefined' ? window.__KB_THEME_APPLY__ : null } catch (e) { fn = null }
+          if (typeof fn !== 'function') return { ok: false, reason: 'no-seam' }
+          try { return await fn(input) } catch (e) { return { ok: false, reason: 'seam-failed' } }
+        },
+      }
+    }
+    /** What is already installed, so the plan ticks everything EXCEPT what exists (domain-packs.md:62-63). */
+    const kbThPresence = async (ports) => {
+      const out = { skills: [], teams: [], automations: [], profil: null, goals: [] }
+      const skills = await ports.get('/kybernos-skills/skills')
+      for (const s of kbThPlain(skills) && Array.isArray(skills.skills) ? skills.skills : []) {
+        const n = typeof s === 'string' ? s : kbThPlain(s) ? kbThStr(s.name) : null
+        if (n !== null) out.skills.push(n)
+      }
+      const teams = await ports.get('/kybernos/load')
+      for (const root of kbThPlain(teams) && Array.isArray(teams.roots) ? teams.roots : []) {
+        for (const k of kbThPlain(root) && Array.isArray(root.kybers) ? root.kybers : []) if (kbThPlain(k) && typeof k.id === 'string') out.teams.push(k.id)
+      }
+      const tasks = await ports.post('/kybernos/tasks', { action: 'list' })
+      for (const a of kbThPlain(tasks) && Array.isArray(tasks.tasks) ? tasks.tasks : []) if (kbThPlain(a) && typeof a.name === 'string') out.automations.push(a.name)
+      const saved = await ports.get('/kybernos/onboarding')
+      if (kbThPlain(saved)) { out.profil = kbThStr(saved.profil); out.goals = kbThStrings(saved.goals) }
+      return out
+    }
+    /** The ticks the plan screen opens with: the shell from the click (M3), the kit everything-but-what-exists. */
+    const kbThDefaultTicks = (plan, seen) => {
+      const kit = kbThPlain(plan) && kbThPlain(plan.kit) ? plan.kit : {}
+      const pack = kbThPlain(plan) && kbThPlain(plan.pack) ? plan.pack : {}
+      const goals = Array.isArray(pack.goals) ? pack.goals.filter(kbThPlain).map((g) => kbThStr(g.id)).filter((x) => x !== null) : []
+      const absent = (list1, presentOf) => (Array.isArray(list1) ? list1 : []).filter(kbThPlain).map(presentOf).filter((x) => x !== null && x !== undefined)
+      return {
+        style: kbThPlain(plan) && kbThPlain(plan.style) !== false,
+        goals,
+        skills: absent(kit.skills, (it) => (seen.skills.indexOf(kbThStr(it.name) ?? '') >= 0 ? null : kbThStr(it.name))),
+        teams: absent(kit.teams, (it) => (seen.teams.indexOf(kbThStr(it.id) ?? '') >= 0 ? null : kbThStr(it.id))),
+        automations: absent(kit.automations, (it) => (seen.automations.indexOf(kbThLabel(it.name)) >= 0 ? null : kbThStr(it.id))),
+      }
+    }
+    /** The look as the record keeps it: the id plus the fingerprint of what the page stores once it is applied (INT6). */
+    const kbThAppliedLook = (styleId, report) => (report !== null && report.style === 'applied' && styleId !== null ? { id: styleId, fingerprint: kbThFingerprint(kbThLook()) } : null)
+    /** One theme, applied: the host's plan, the screen's ticks, the applier, then the record. The page and both seams run THIS. */
+    const kbThRunPlan = async (id, ticks) => {
+      const ports = kbThPorts()
+      const answer = await kbThApi({ action: 'plan', id })
+      const plan = kbThPlain(answer) && answer.ok === true && kbThPlain(answer.plan) ? answer.plan : null
+      if (plan === null) return { ok: false, error: kbThPlain(answer) ? kbThStr(answer.error) ?? 'no-plan' : 'no-plan' }
+      const seen = await kbThPresence(ports)
+      const chosen = ticks !== null && ticks !== undefined ? ticks : kbThDefaultTicks(plan, seen)
+      const look = kbThLook()
+      const report = await kbThApply(plan, chosen, ports)
+      const applied = {
+        style: kbThAppliedLook(kbThPlain(plan.style) ? kbThStr(plan.style.id) : null, report),
+        domain: report.domain === 'applied' ? { profil: plan.pack.id, goals: chosen.goals } : null,
+        kit: { skills: chosen.skills, teams: chosen.teams, automations: chosen.automations },
+      }
+      await kbThApi({ action: 'record', id, applied, before: { style: report.style === 'applied' ? look : null, domain: { profil: seen.profil, goals: seen.goals } } })
+      return { ok: report.ok === true, plan, report }
+    }
+    /** Remove: the package leaves through DSH's manager; the look and the field come back when they are still the theme's; the kit stays. */
+    const kbThRemoveTheme = async (record) => {
+      const ports = kbThPorts()
+      let current = { style: null, domain: null }
+      try {
+        const saved = await ports.get('/kybernos/onboarding')
+        current = {
+          style: { id: record.applied && record.applied.style ? record.applied.style.id : null, fingerprint: kbThFingerprint(kbThLook()) },
+          domain: { profil: kbThPlain(saved) ? kbThStr(saved.profil) : null },
+        }
+      } catch (e) { current = { style: null, domain: null } }
+      const result = await kbThRemove(record, current, ports)
+      const mgr = kbThManager()
+      let removed = false
+      if (mgr !== null && typeof mgr.removeBundle === 'function') { try { removed = (await mgr.removeBundle(record.id)) !== null } catch (e) { removed = false } }
+      await kbThApi({ action: 'forget', id: record.id })
+      return { ok: result.ok === true, report: result, removed }
+    }
+    /** A catalogue theme's archive: fetched, then handed to the registry's own import route, which keeps it for the manager. */
+    const kbThImportArchive = async (theme) => {
+      try {
+        const archive = kbThPlain(theme) && kbThPlain(theme.archive) ? theme.archive : null
+        if (archive === null || typeof archive.url !== 'string' || !/^https:\/\//.test(archive.url)) return { ok: false, error: 'no-archive' }
+        const res = await fetch(archive.url, { cache: 'no-store' })
+        if (res.ok !== true) return { ok: false, error: 'download' }
+        const bytes = await res.blob()
+        if (bytes.size > 8 * 1024 * 1024) return { ok: false, error: 'size' }
+        const name = String(archive.url).replace(/^.*\//, '') || 'theme.tgz'
+        const put = await fetch('/kybernos-registry/import', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/octet-stream', 'x-filename': name }, body: bytes })
+        const j = await put.json().catch(() => null)
+        return kbThPlain(j) && j.ok === true && typeof j.path === 'string' ? { ok: true, path: j.path } : { ok: false, error: kbThPlain(j) ? kbThStr(j.error) ?? 'import' : 'import' }
+      } catch (e) { return { ok: false, error: 'import' } }
+    }
+    // The two seams this page publishes (M7, frozen: `{ source: 'catalogue', id, version }`). ONE function for the life of the page
+    // — a second activation must not replace a door a caller already holds — and never a boot stopper: both stay inside try/catch.
+    const kbThSeamInstall = async (input) => {
+      try {
+        if (!kbThPlain(input) || typeof input.id !== 'string') return { ok: false, error: 'id' }
+        const answer = await kbThApi()
+        const themes = kbThPlain(answer) && Array.isArray(answer.themes) ? answer.themes : []
+        const found = themes.find((t) => kbThPlain(t) && t.id === input.id && (input.version === undefined || t.version === String(input.version))) ?? null
+        if (found === null) return { ok: false, error: 'unknown-theme' }
+        const imported = await kbThImportArchive(found)
+        if (imported.ok !== true) return imported
+        const mgr = kbThManager()
+        if (mgr === null) return { ok: false, error: 'no-manager' }
+        let installed = null
+        try { installed = await mgr.installBundle(imported.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
+        if (installed === null) return { ok: false, error: 'install' }
+        const run = await kbThRunPlan(found.id, null)
+        return run.ok === true ? { ok: true, id: found.id, version: found.version, report: run.report } : { ok: false, error: run.error, report: run.report }
+      } catch (e) { return { ok: false, error: 'install' } }
+    }
+    const kbThSeamRemove = async (input) => {
+      try {
+        if (!kbThPlain(input) || typeof input.id !== 'string') return { ok: false, error: 'id' }
+        const answer = await kbThApi()
+        const installed = kbThPlain(answer) && Array.isArray(answer.installed) ? answer.installed : []
+        const record = installed.find((r) => kbThPlain(r) && r.id === input.id) ?? null
+        if (record === null) return { ok: true, already: true }
+        const done = await kbThRemoveTheme(record)
+        return { ok: done.ok === true, report: done.report }
+      } catch (e) { return { ok: false, error: 'remove' } }
+    }
+    try {
+      if (typeof window !== 'undefined') {
+        if (typeof window.__KB_THEME_INSTALL__ !== 'function') window.__KB_THEME_INSTALL__ = kbThSeamInstall
+        if (typeof window.__KB_THEME_REMOVE__ !== 'function') window.__KB_THEME_REMOVE__ = kbThSeamRemove
+      }
+    } catch (e) { /* outside a browser, or a locked window: the page still works */ }
+    /** The level as a person reads it (INT4): the stored `local`/`unlisted`, and the catalogue's own computed level. */
+    const kbThLevelLabel = (level) => ({
+      official: kbThEn('Official', 'Officiel'),
+      verified: kbThEn('Verified', 'Vérifié'),
+      community: kbThEn('Community', 'Communauté'),
+      local: kbThEn('Local development', 'Développement local'),
+      unlisted: kbThEn('Unlisted', 'Non répertorié'),
+      yanked: kbThEn('Withdrawn', 'Retiré'),
+      revoked: kbThEn('Revoked', 'Révoqué'),
+    })[String(level)] ?? String(level === null || level === undefined ? '' : level)
+    const kbThMono = { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontWeight: 400 }
+    /** The menu words a pack brings, as one readable line (« Visits » for the tasks row). */
+    const kbThWords = (pack) => {
+      const menu = kbThPlain(pack) && kbThPlain(pack.words) && kbThPlain(pack.words.menu) ? pack.words.menu : null
+      if (menu === null || kbThPlain(menu.labels) === false) return ''
+      return Object.keys(menu.labels).map((k) => k + ': ' + kbThLabel(menu.labels[k])).join(' · ')
+    }
+
+    // ── the page: the cards, then the ONE plan screen (style + field + kit, one primary action) ──
+    const KbThemesView = () => {
+      const [screen, setScreen] = React.useState('cards')
+      const [data, setData] = React.useState(null)
+      const [plan, setPlan] = React.useState(null)
+      const [ticks, setTicks] = React.useState(null)
+      const [folder, setFolder] = React.useState('')
+      const [busy, setBusy] = React.useState(null)
+      const [report, setReport] = React.useState(null)
+      const [error, setError] = React.useState(null)
+      const load = async () => {
+        setBusy('load')
+        const answer = await kbThApi()
+        setData(kbThPlain(answer) && answer.ok === true ? answer : { ok: false, installed: [], themes: [], sources: [], refused: [], plugins: [] })
+        setBusy(null)
+      }
+      React.useEffect(() => { load() }, [])
+      const openPlan = async (id) => {
+        setBusy('plan')
+        setError(null)
+        const answer = await kbThApi({ action: 'plan', id })
+        const seen = await kbThPresence(kbThPorts())
+        setBusy(null)
+        if (!kbThPlain(answer) || answer.ok !== true || !kbThPlain(answer.plan)) { setError(kbThPlain(answer) ? kbThStr(answer.error) ?? 'no-plan' : 'no-plan'); return }
+        setPlan(answer.plan)
+        setTicks(kbThDefaultTicks(answer.plan, seen))
+        setReport(null)
+        setScreen('plan')
+      }
+      const stageFolder = async () => {
+        setBusy('stage')
+        setError(null)
+        const answer = await kbThApi({ action: 'stage', folder: folder.trim() })
+        if (!kbThPlain(answer) || answer.ok !== true) { setBusy(null); setError(kbThPlain(answer) ? (kbThStr(answer.reason) ?? kbThStr(answer.error) ?? 'stage') : 'stage'); return }
+        const mgr = kbThManager()
+        if (mgr === null) { setBusy(null); setError(kbThEn('DSH’s plugin manager is not available on this version.', 'Le gestionnaire de plugins de DSH n’est pas disponible sur cette version.')); return }
+        setBusy('install')
+        let installed = null
+        try { installed = await mgr.installBundle(answer.stage.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
+        setBusy(null)
+        if (installed === null) { setError(kbThEn('DSH did not install the package.', 'DSH n’a pas installé le paquet.')); return }
+        await openPlan(answer.stage.id)
+      }
+      const toggle = (kind, value) => {
+        setTicks((t) => {
+          if (t === null) return t
+          const has = (Array.isArray(t[kind]) ? t[kind] : []).indexOf(value) >= 0
+          const next = has ? t[kind].filter((x) => x !== value) : t[kind].concat([value])
+          return Object.assign({}, t, { [kind]: next })
+        })
+      }
+      const install = async () => {
+        if (plan === null || ticks === null || busy !== null) return
+        setBusy('install')
+        const ports = kbThPorts()
+        const seen = await kbThPresence(ports)
+        const look = kbThLook()
+        const rep = await kbThApply(plan, ticks, ports)
+        const applied = {
+          style: kbThAppliedLook(kbThPlain(plan.style) ? kbThStr(plan.style.id) : null, rep),
+          domain: rep.domain === 'applied' ? { profil: plan.pack.id, goals: ticks.goals } : null,
+          kit: { skills: ticks.skills, teams: ticks.teams, automations: ticks.automations },
+        }
+        await kbThApi({ action: 'record', id: plan.id, applied, before: { style: rep.style === 'applied' ? look : null, domain: { profil: seen.profil, goals: seen.goals } } })
+        setReport(rep)
+        setBusy(null)
+        setScreen('report')
+        await load()
+      }
+      const remove = async (record) => {
+        if (busy !== null) return
+        setBusy('remove')
+        await kbThRemoveTheme(record)
+        setBusy(null)
+        await load()
+      }
+      const card = (key, title, level, body, actions) => h('div', { className: 'kbg-card', key }, [
+        h('div', { className: 'kbg-cardhead', key: 'h' }, [
+          h('div', { className: 'kbg-avatar', key: 'a' }, String(title).slice(0, 2).toUpperCase()),
+          h('div', { className: 'kbg-kname', key: 'n' }, String(title)),
+          h('span', { className: 'kbg-pill', key: 'l' }, kbThLevelLabel(level)),
+        ]),
+        h('div', { className: 'kbg-desc', key: 'd' }, body),
+        h('div', { className: 'kbg-cta', key: 'c' }, actions),
+      ])
+      if (screen === 'plan' && plan !== null && ticks !== null) {
+        const rows = []
+        if (kbThPlain(plan.style)) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 'style' }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.style === true, onChange: () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true })) }),
+            h('span', { className: 'kbg-docname', key: 't' }, kbThEn('Style · ', 'Style · ') + (kbThLabel(plan.style.name) || kbThStr(plan.style.id))),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(plan.style.file) ?? ''),
+          ]))
+        }
+        const words = kbThWords(plan.pack)
+        rows.push(h('div', { className: 'kbg-docrow', key: 'field' }, [
+          h('span', { key: 'i', className: 'kbg-docico' }, '▸'),
+          h('span', { className: 'kbg-docname', key: 't' }, kbThEn('Field · ', 'Métier · ') + (kbThLabel(plan.pack.name) || plan.pack.id) + (words !== '' ? ' — ' + words : '')),
+          h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(plan.pack.file) ?? ''),
+        ]))
+        for (const it of Array.isArray(plan.kit.skills) ? plan.kit.skills : []) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 's:' + it.name }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.skills.indexOf(kbThStr(it.name)) >= 0, onChange: () => toggle('skills', kbThStr(it.name)) }),
+            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Skill · ', 'Compétence · ') + kbThStr(it.name)),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
+          ]))
+        }
+        for (const it of Array.isArray(plan.kit.teams) ? plan.kit.teams : []) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 't:' + it.id }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.teams.indexOf(kbThStr(it.id)) >= 0, onChange: () => toggle('teams', kbThStr(it.id)) }),
+            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Team · ', 'Équipe · ') + kbThStr(it.id)),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
+          ]))
+        }
+        for (const it of Array.isArray(plan.kit.automations) ? plan.kit.automations : []) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 'a:' + it.id }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.automations.indexOf(kbThStr(it.id)) >= 0, onChange: () => toggle('automations', kbThStr(it.id)) }),
+            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Automation, off · ', 'Automatisation, arrêtée · ') + (kbThLabel(it.name) || kbThStr(it.id)) + ' · ' + (kbThStr(it.cron) ?? '')),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
+          ]))
+        }
+        const nots = Array.isArray(plan.notInstallable) ? plan.notInstallable : []
+        const rejects = Array.isArray(plan.rejected) ? plan.rejected : []
+        const goalChips = kbThPlain(plan.pack) && Array.isArray(plan.pack.goals)
+          ? plan.pack.goals.filter(kbThPlain).map((g) => h('label', { className: 'kbg-chip' + (ticks.goals.indexOf(g.id) >= 0 ? ' kbg-chip-on' : ''), key: 'g:' + g.id, style: { cursor: 'pointer' } }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.goals.indexOf(g.id) >= 0, onChange: () => toggle('goals', g.id) }),
+            h('span', { key: 't' }, kbThLabel(g.name) || g.id),
+          ]))
+          : []
+        return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
+          h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Install ', 'Installer ') + plan.id)),
+          h('p', { key: 's', className: 'kbg-sub' }, kbThEn('What this theme adds. Everything is ticked unless it is already installed; nothing applies un-ticked.', 'Ce que ce thème apporte. Tout est coché sauf ce qui est déjà installé ; rien ne s’applique décoché.')),
+          goalChips.length > 0 ? h('div', { key: 'g', className: 'kbg-chips' }, goalChips) : null,
+          h('div', { key: 'r', className: 'kbg-grid', style: { marginTop: '16px', gridTemplateColumns: '1fr' } }, rows),
+          nots.length > 0 ? h('div', { key: 'n', className: 'kbg-note' }, nots.map((x) => h('div', { key: 'n:' + x.kind + ':' + x.id }, '— ' + (kbThStr(x.file) ?? '') + ' · ' + (kbThStr(x.why) ?? '')))) : null,
+          rejects.length > 0 ? h('div', { key: 'x', className: 'kbg-note' }, rejects.map((x) => h('div', { key: 'x:' + x.file }, '× ' + (kbThStr(x.file) ?? '') + ' · ' + (Array.isArray(x.errors) ? x.errors.join('; ') : '')))) : null,
+          h('div', { key: 'a', className: 'kbg-cta', style: { marginTop: '18px' } }, [
+            h('button', { key: 'i', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: install }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : kbThEn('Install', 'Installer')),
+            h('button', { key: 'c', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => { setScreen('cards'); setPlan(null); setError(null) } }, kbThEn('Cancel', 'Annuler')),
+          ]),
+        ])
+      }
+      if (screen === 'report' && report !== null) {
+        const line = (label, value) => h('div', { className: 'kbg-docrow', key: label }, [
+          h('span', { key: 'i', className: 'kbg-docico' }, '•'),
+          h('span', { key: 'n', className: 'kbg-docname' }, label),
+          h('span', { key: 'k', className: 'kbg-dockey' }, String(value)),
+        ])
+        return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
+          h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, report.already === true ? kbThEn('Nothing to do', 'Rien à faire') : kbThEn('Applied', 'Appliqué'))),
+          h('div', { key: 'r', className: 'kbg-grid', style: { gridTemplateColumns: '1fr' } }, [
+            line(kbThEn('Added', 'Ajoutés'), report.added),
+            line(kbThEn('Already there', 'Déjà là'), report.present.length),
+            line(kbThEn('Failed', 'Échoués'), report.failed),
+            line(kbThEn('Kept in place (un-ticked)', 'Laissés de côté (décochés)'), report.skipped.length),
+            line(kbThEn('Style', 'Style'), report.style),
+            line(kbThEn('Field', 'Métier'), report.domain),
+          ]),
+          h('div', { key: 'a', className: 'kbg-cta', style: { marginTop: '18px' } }, h('button', { key: 'b', type: 'button', className: 'kbg-open', onClick: () => { setScreen('cards'); setReport(null) } }, kbThEn('Back to themes', 'Retour aux thèmes'))),
+        ])
+      }
+      const installed = kbThPlain(data) && Array.isArray(data.installed) ? data.installed : []
+      const catalogue = kbThPlain(data) && Array.isArray(data.themes) ? data.themes : []
+      const refused = kbThPlain(data) && Array.isArray(data.refused) ? data.refused : []
+      const sources = kbThPlain(data) && Array.isArray(data.sources) ? data.sources : []
+      const cards = []
+      for (const r of installed) {
+        const kit = kbThPlain(r.applied) && kbThPlain(r.applied.kit) ? r.applied.kit : {}
+        const kept = (Array.isArray(kit.skills) ? kit.skills.length : 0) + (Array.isArray(kit.teams) ? kit.teams.length : 0) + (Array.isArray(kit.automations) ? kit.automations.length : 0)
+        cards.push(card('i:' + r.id, r.id, kbThStr(r.level) ?? 'local', [
+          h('div', { key: 'v' }, (typeof r.version === 'string' ? 'v' + r.version : '') + (typeof r.at === 'string' ? ' · ' + r.at.slice(0, 10) : '')),
+          h('div', { key: 'k' }, kbThEn('Kit kept on this computer: ', 'Kit conservé sur cet ordinateur : ') + String(kept)),
+        ], [
+          h('button', { key: 'p', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: () => openPlan(r.id) }, kbThEn('See the plan', 'Voir le plan')),
+          h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => remove(r) }, kbThEn('Remove', 'Retirer')),
+        ]))
+      }
+      for (const t of catalogue) {
+        cards.push(card('c:' + t.id, kbThPlain(t.name) ? kbThLabel(t.name) : t.id, kbThStr(t.level) ?? 'community', [
+          h('div', { key: 'v' }, String(t.id) + ' · v' + String(t.version) + (kbThStr(t.licence) ? ' · ' + kbThStr(t.licence) : '')),
+          kbThPlain(t.revoked) ? h('div', { key: 'r' }, '⚠ ' + (kbThStr(t.revoked.reason) ?? '')) : null,
+        ], [
+          h('button', {
+            key: 'i',
+            type: 'button',
+            className: 'kbg-talk',
+            disabled: busy !== null,
+            onClick: async () => {
+              if (busy !== null) return
+              setBusy('install')
+              const r = await kbThSeamInstall({ source: 'catalogue', id: t.id, version: t.version })
+              setBusy(null)
+              setError(kbThPlain(r) && r.ok === true ? null : (kbThStr(kbThPlain(r) ? r.error : null) ?? 'install'))
+              await load()
+            },
+          }, kbThEn('Install', 'Installer')),
+        ]))
+      }
+      // AMBIGUITY 1 (ratified M4): a package the person staged and then did not apply stays, and says so here, with its own Remove.
+      const staged = (kbThPlain(data) && Array.isArray(data.plugins) ? data.plugins : []).filter((p) => kbThPlain(p) && installed.every((r) => r.id !== p.id))
+      for (const p of staged) {
+        cards.push(card('s:' + p.id, kbThPlain(p.name) ? kbThLabel(p.name) : p.id, kbThStr(p.level) ?? 'local', [
+          h('div', { key: 's' }, kbThEn('Added, not applied', 'Ajouté, non appliqué')),
+          h('div', { key: 'v' }, String(p.id) + (typeof p.version === 'string' ? ' · v' + p.version : '')),
+        ], [
+          h('button', { key: 'p', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: () => openPlan(p.id) }, kbThEn('See the plan', 'Voir le plan')),
+          h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => remove(p) }, kbThEn('Remove', 'Retirer')),
+        ]))
+      }
+      return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
+        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Themes', 'Thèmes'))),
+        h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A theme adds a style, a field with its own words, and a kit of skills, teams and automations. Installing it never touches your sessions, your memory or your workspaces.', 'Un thème apporte un style, un métier avec ses propres mots, et un kit de compétences, d’équipes et d’automatisations. L’installer ne touche jamais tes sessions, ta mémoire ni tes espaces de travail.')),
+        error !== null ? h('p', { key: 'e', className: 'kbg-note' }, '⚠ ' + String(error)) : null,
+        h('div', { key: 'g', className: 'kbg-grid' }, cards.concat([h('div', { key: 'f', className: 'kbg-card' }, [
+          h('div', { key: 't', className: 'kbg-kname' }, kbThEn('From a folder', 'Depuis un dossier')),
+          h('div', { key: 'd', className: 'kbg-desc' }, kbThEn('A theme folder on this computer. Its plugin.json is checked before anything is installed, and the plan comes next.', 'Un dossier de thème sur cet ordinateur. Son plugin.json est vérifié avant toute installation, puis le plan s’affiche.')),
+          h('input', { key: 'i', className: 'kbg-input', type: 'text', value: folder, placeholder: '~/themes/acme-vet-clinic', onChange: (e) => setFolder(e.target.value) }),
+          h('div', { key: 'a', className: 'kbg-cta' }, h('button', { key: 'b', type: 'button', className: 'kbg-talk', disabled: busy !== null || folder.trim() === '', onClick: stageFolder }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : kbThEn('Add and see the plan', 'Ajouter et voir le plan'))),
+        ])])),
+        refused.length > 0 ? h('div', { key: 'r', className: 'kbg-note' }, refused.map((x) => h('div', { key: 'r:' + String(x.source) + String(x.id ?? '') }, '× ' + String(x.source ?? '') + ' · ' + String(x.reason ?? x.error ?? '')))) : null,
+        sources.length > 0 ? h('p', { key: 'src', className: 'kbg-note' }, kbThEn('Catalogue sources: ', 'Sources du catalogue : ') + sources.map((s) => s.url).join(' · ')) : null,
+        busy === 'load' ? h('p', { key: 'l', className: 'kbg-note' }, kbThEn('Reading the catalogue…', 'Lecture du catalogue…')) : null,
+      ])
+    }
+
     // ── Skills and Connectors: one page each ─────────────────────────────────
     // They shared the "Resources" page and its tab selector; they are
     // now two sidebar entries. Fixed page title (28/09 template:
@@ -26208,7 +26843,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
-    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []) })
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []).concat(['themes']) })
     // window.__KB_OPEN__.chat(text): a new chat with `text` already typed in the composer (the person reads it and presses send). The Plugins page uses it for
     // "Create with AI". False when no session has been mounted yet; the caller then shows the text so it can be pasted.
     kbOpenPage.chat = (text) => {
@@ -26516,6 +27151,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
         row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
+        row('themes', Icon('layers', 15), kbThEn('Themes', 'Thèmes'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
@@ -29738,6 +30374,371 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
               h('span', { className: 'kbt2-l-total' }, String(visibles.reduce((n, e) => n + (e.mounted === true && e.toolCount > 0 ? e.toolCount : 0), 0))),
               h('span', null))))))
     }
+    // KB-MARKET-PURE-BEGIN
+    // The listing's pure helpers (A7-theme-marketplace): the cards A6's catalogue route answers, the four levels it computed, the kit
+    // sentence of A6's plan, the three honest states, the install gate and the report. No React, no fetch, no host helper, no key and
+    // no hashing: the level a card carries is the one the verifier put on the route, and a card only CITES its archive's sha256 as a
+    // field (M8: naming the ways to hash or to check a signature is what makes the circle, the field is data).
+    // test-theme-market.mjs imports this block alone (the KB-OB-CORE idiom, scripts/test-onboarding.mjs:14-18), so every text is a
+    // `[fr, en]` row and nothing here reads the client factory's scope.
+    // A card draws the embedded manifest's own words, labelled (build contract 4). It carries no accent, no tagline and no kit count:
+    // those live inside a package the person has not installed yet (INT4, INT5) and they appear in the report, from A6's plan.
+    const marketSay = (row, lang) => {
+      if (Array.isArray(row)) {
+        const text = row[lang === 'fr' ? 0 : 1]
+        return typeof text === 'string' ? text : ''
+      }
+      return typeof row === 'string' ? row : ''
+    }
+    /** A manifest field, verbatim: a plain string, or its `{ fr, en }` text (English outside French, then the other one). */
+    const marketField = (value, lang) => {
+      if (typeof value === 'string') return value
+      if (value === null || typeof value !== 'object') return ''
+      const first = lang === 'fr' ? 'fr' : 'en'
+      if (typeof value[first] === 'string') return value[first]
+      const other = first === 'fr' ? 'en' : 'fr'
+      return typeof value[other] === 'string' ? value[other] : ''
+    }
+    /** The four levels of plugin-contract.md:415-421, in the order the contract states them. */
+    const LEVELS = ['official', 'verified', 'community', 'local']
+    const LEVEL_LABEL = {
+      official: ['Officiel', 'Official'],
+      verified: ['Vérifié', 'Verified'],
+      community: ['Communauté', 'Community'],
+      local: ['Développement local', 'Local development'],
+    }
+    // A chip's `title`: short enough to be read, and never a claim the route did not carry.
+    const LEVEL_HELP = {
+      official: ['Publication de Kybernos, signée par sa clé.', 'Shipped by Kybernos, signed with its key.'],
+      verified: ['Cette version précise a été relue et contresignée.', 'This exact version was reviewed and countersigned.'],
+      community: ['Signature de son auteur, sans relecture.', 'Its author signed it; nobody reviewed it.'],
+      local: ['Un dossier de cet ordinateur.', 'A folder of this computer.'],
+    }
+    /** The label of a level: the four names above, or the raw string when the route sent one nobody knows (never mapped to a nicer one). */
+    const marketLevelLabel = (level, lang) => {
+      const row = LEVEL_LABEL[level]
+      if (row !== undefined) return marketSay(row, lang)
+      const raw = typeof level === 'string' ? level : ''
+      return raw !== '' ? raw : marketSay(['Niveau inconnu', 'Unknown level'], lang)
+    }
+    const marketLevelHelp = (level, lang) => {
+      const row = LEVEL_HELP[level]
+      return row === undefined ? marketSay(['Le niveau que le vérificateur a rendu.', 'The level the verifier answered.'], lang) : marketSay(row, lang)
+    }
+    /** How many items a kit count holds: A6's plan gives a number, an older answer a list. */
+    const marketCount = (value) => {
+      if (typeof value === 'number' && isFinite(value)) return Math.max(0, Math.floor(value))
+      if (Array.isArray(value)) return value.length
+      return 0
+    }
+    const KIT_ONE = {
+      skills: ['1 compétence', '1 skill'],
+      teams: ['1 équipe', '1 team'],
+      automations: ['1 automatisation', '1 automation'],
+    }
+    const KIT_MANY = {
+      skills: ['{n} compétences', '{n} skills'],
+      teams: ['{n} équipes', '{n} teams'],
+      automations: ['{n} automatisations', '{n} automations'],
+    }
+    /** The kit sentence of A6's plan: plural per language, a zero count omitted, « Adds no kit yet » when the kit is empty. */
+    const kitLine = (kit, lang) => {
+      const k = kit !== null && typeof kit === 'object' ? kit : {}
+      const parts = []
+      for (const kind of ['skills', 'teams', 'automations']) {
+        const n = marketCount(k[kind])
+        if (n === 0) continue
+        parts.push(marketSay(n === 1 ? KIT_ONE[kind] : KIT_MANY[kind], lang).replace('{n}', String(n)))
+      }
+      if (parts.length === 0) return marketSay(['N’ajoute encore rien au kit', 'Adds no kit yet'], lang)
+      const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + marketSay([' et ', ' and '], lang) + parts[parts.length - 1]
+      return marketSay(['Ajoute ', 'Adds '], lang) + list
+    }
+    /**
+     * A6's answer (its GET /kybernos/themes) as cards, in the answer's order (the catalogue's own, INT3): the manifest's words verbatim,
+     * the level copied as it came — never computed, never defaulted to a flattering one. An entry the verifier refused (yanked,
+     * revoked) or left without an id or a version makes no card: that is the route's `refused` business.
+     */
+    const marketCards = (view, lang) => {
+      if (view === null || typeof view !== 'object' || view.ok !== true || !Array.isArray(view.themes)) return []
+      const out = []
+      for (const entry of view.themes) {
+        if (entry === null || typeof entry !== 'object') continue
+        const id = typeof entry.id === 'string' ? entry.id : ''
+        const version = typeof entry.version === 'string' ? entry.version : ''
+        if (id === '' || version === '') continue
+        const level = typeof entry.level === 'string' ? entry.level : ''
+        // Unlisted is DSH's own door, not a marketplace level (plugin-contract.md:415-421): a catalogue entry never carries it.
+        if (level === 'yanked' || level === 'revoked' || level === 'unlisted') continue
+        const man = entry.manifest !== null && typeof entry.manifest === 'object' ? entry.manifest : {}
+        const arc = entry.archive !== null && typeof entry.archive === 'object' ? entry.archive : {}
+        const author = man.author !== null && typeof man.author === 'object'
+          ? (man.author.name !== undefined ? man.author.name : man.author.id)
+          : man.author
+        out.push({
+          id,
+          version,
+          name: marketField(man.name, lang),
+          description: marketField(man.description, lang),
+          author: marketField(author, lang),
+          license: typeof man.license === 'string' ? man.license : '',
+          level,
+          source: typeof entry.source === 'string' ? entry.source : '',
+          sha256: typeof arc.sha256 === 'string' ? arc.sha256 : '',
+          size: typeof arc.size === 'number' ? arc.size : null,
+          // The archive as the route sent it: the install gate (an archive hash) and A6's seam are handed the card itself, so no
+          // second display record is minted for the click.
+          archive: {
+            url: typeof arc.url === 'string' ? arc.url : '',
+            sha256: typeof arc.sha256 === 'string' ? arc.sha256 : '',
+            size: typeof arc.size === 'number' ? arc.size : null,
+          },
+        })
+      }
+      return out
+    }
+    /** The « N entries were left out » line, when the verifier refused something (drawn with the cards too: V6). */
+    const marketLeftOut = (view, lang) => {
+      const refused = view !== null && typeof view === 'object' && Array.isArray(view.refused) ? view.refused : []
+      if (refused.length === 0) return null
+      const row = refused.length === 1 ? ['1 entrée écartée', '1 entry was left out'] : ['{n} entrées écartées', '{n} entries were left out']
+      return marketSay(row, lang).replace('{n}', String(refused.length))
+    }
+    /** The refused lines, as the route sent them: an id and the verifier's own error code, never a sentence we invent. */
+    const marketRefusals = (view) => {
+      const refused = view !== null && typeof view === 'object' && Array.isArray(view.refused) ? view.refused : []
+      const out = []
+      for (const r of refused) {
+        if (r === null || typeof r !== 'object') continue
+        const code = typeof r.code === 'string' ? r.code : (typeof r.error === 'string' ? r.error : (typeof r.reason === 'string' ? r.reason : ''))
+        const id = typeof r.id === 'string' ? r.id : ''
+        if (id === '' && code === '') continue
+        out.push({ id, code })
+      }
+      return out
+    }
+    /**
+     * The three honest states, distinct on purpose: no source configured yet, a source that lists nothing, a source the verifier
+     * refuses. `data-state` carries which one. A state never shows a card, a card never shows a state (a `null` here means « draw the
+     * cards »); a failed READ is not one of these three and stays the page's own line.
+     */
+    const marketState = (view, lang) => {
+      if (view === null || typeof view !== 'object' || view.ok !== true) return null
+      if (marketCards(view, lang).length > 0) return null
+      const sources = Array.isArray(view.sources) ? view.sources : []
+      const state = sources.length === 0 ? 'no-source' : (marketRefusals(view).length > 0 ? 'refused' : 'empty')
+      const row = state === 'no-source'
+        ? ['Aucune source configurée pour l’instant.', 'No source configured yet.']
+        : (state === 'empty'
+          ? ['Cette source ne liste aucun thème.', 'This source lists no theme.']
+          : ['Ce catalogue ne peut pas être vérifié.', 'This catalogue cannot be verified.'])
+      return { state, text: marketSay(row, lang), leftOut: marketLeftOut(view, lang), leftOutCount: marketRefusals(view).length, refusals: marketRefusals(view) }
+    }
+    /** What A6's installer needs from an entry, and nothing else: an id, a version, the archive's hash (A6 §flow). */
+    const marketInstallable = (entry) => {
+      if (entry === null || typeof entry !== 'object') return { ok: false, reason: 'incomplete' }
+      const level = typeof entry.level === 'string' ? entry.level : ''
+      if (level === 'yanked' || level === 'revoked') return { ok: false, reason: 'refused' }
+      const id = typeof entry.id === 'string' ? entry.id : ''
+      const version = typeof entry.version === 'string' ? entry.version : ''
+      const hash = entry.archive !== null && typeof entry.archive === 'object' && typeof entry.archive.sha256 === 'string' ? entry.archive.sha256 : ''
+      if (id === '' || version === '' || hash === '') return { ok: false, reason: 'incomplete' }
+      return { ok: true }
+    }
+    /**
+     * ONE click, ONE call, to A6's seam and to nothing else (M3, M7): the argument is frozen on both ends — `{ source: 'catalogue', id,
+     * version }` — and the installer is A6's. Only ever called from the click, so a mount makes zero calls. Never throws: an absent
+     * installer, a refused entry and a seam that throws each come back as a reason the card can explain.
+     */
+    const marketInstall = (entry, install) => {
+      try {
+        const gate = marketInstallable(entry)
+        if (gate.ok !== true) return { ok: false, error: gate.reason === 'refused' ? 'refused' : 'incomplete' }
+        if (typeof install !== 'function') return { ok: false, error: 'no-installer' }
+        const answer = install({ source: 'catalogue', id: entry.id, version: entry.version })
+        // A6's seam is asynchronous: its own refusal must not surface as an unhandled rejection of the page.
+        if (answer !== null && typeof answer === 'object' && typeof answer.catch === 'function') answer.catch(() => {})
+        return { ok: true, id: entry.id, version: entry.version }
+      } catch (e) {
+        return { ok: false, error: 'installer-failed' }
+      }
+    }
+    /** The plan's name of one item, or '' (an item without a name is dropped from the report, never invented). */
+    const marketNameOf = (item, lang) => {
+      if (typeof item === 'string') return item.trim()
+      if (item === null || typeof item !== 'object') return ''
+      return marketField(item.name, lang).trim()
+    }
+    /**
+     * The report of one click, in A6's own vocabulary (`kbThApply` answers a count; an older answer a list of named items): the style
+     * row with the plan's accent (INT4), the kit counts (INT5), then what was added, skipped and failed.
+     */
+    const marketReport = (result, plan, lang) => {
+      const r = result !== null && typeof result === 'object' ? result : {}
+      const p = plan !== null && typeof plan === 'object' ? plan : {}
+      const rows = []
+      const style = p.style !== null && typeof p.style === 'object' ? p.style : null
+      if (style !== null && typeof style.id === 'string' && style.id !== '') {
+        const settings = style.settings !== null && typeof style.settings === 'object' ? style.settings : {}
+        rows.push({ kind: 'style', text: marketSay(['Style', 'Style'], lang), id: style.id, acc: typeof settings.acc === 'string' ? settings.acc : '' })
+      }
+      if (p.kit !== null && typeof p.kit === 'object') rows.push({ kind: 'kit', text: kitLine(p.kit, lang) })
+      const push = (kind, one, many, value) => {
+        if (typeof value === 'number' && isFinite(value) && value > 0) {
+          const n = Math.floor(value)
+          rows.push({ kind, count: n, text: marketSay(n === 1 ? one : many, lang).replace('{n}', String(n)) })
+          return
+        }
+        if (!Array.isArray(value)) return
+        for (const item of value) {
+          const name = marketNameOf(item, lang)
+          if (name !== '') rows.push({ kind, text: name })
+        }
+      }
+      push('added', ['1 élément ajouté', '1 item added'], ['{n} éléments ajoutés', '{n} items added'], r.added)
+      push('skipped', ['1 élément ignoré', '1 item skipped'], ['{n} éléments ignorés', '{n} items skipped'], r.skipped)
+      push('failed', ['1 étape en échec', '1 step failed'], ['{n} étapes en échec', '{n} steps failed'], r.failed)
+      return { rows }
+    }
+    // KB-MARKET-PURE-END
+
+    // KB-MARKET-UI-BEGIN
+    // The listing (A7's venue, INT1, INT2): ONE component, drawn inside A6's Themes page and in its own Settings section, from the ONE
+    // read A6 publishes. It never reads a catalogue document, never checks a signature, never writes the profile and never applies a
+    // style: the click hands `{ source: 'catalogue', id, version }` to A6's seam (M7) and the report draws A6's plan.
+    const kbMarketLang = () => {
+      try {
+        const raw = kbLangResolve()
+        const s = String(raw === null || raw === undefined ? '' : raw)
+        return s === 'kybernos' || s.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
+      } catch (e) { return 'en' }
+    }
+    const kbMarketSeam = () => {
+      try { return typeof window !== 'undefined' && typeof window.__KB_THEME_INSTALL__ === 'function' ? window.__KB_THEME_INSTALL__ : null } catch (e) { return null }
+    }
+    const kbMarketReasonText = (answer, lang) => {
+      const error = answer !== null && typeof answer === 'object' && typeof answer.error === 'string' ? answer.error : ''
+      if (error === 'no-installer') return marketSay(['Aucun installateur n’est chargé sur cette page.', 'No installer is loaded on this page.'], lang)
+      if (error === 'incomplete') return marketSay(['Cette entrée n’a pas d’archive vérifiée à installer.', 'This entry has no verified archive to install.'], lang)
+      if (error === 'refused') return marketSay(['Le vérificateur a écarté cette entrée.', 'The verifier refused this entry.'], lang)
+      if (error === 'installer-failed') return marketSay(['L’installateur n’a pas répondu.', 'The installer did not answer.'], lang)
+      return error
+    }
+    const KbThemesMarket = () => {
+      const lang = kbMarketLang()
+      const say = (row) => marketSay(row, lang)
+      const [etat, setEtat] = React.useState({ phase: 'loading', view: null })
+      const [occupe, setOccupe] = React.useState(null)
+      const [reponses, setReponses] = React.useState({})
+      const [motifs, setMotifs] = React.useState(false)
+      // A6's route, once per mount and once after a click — never a cache, so a reload re-reads it.
+      const relire = React.useCallback(() => {
+        fetch('/kybernos/themes', { credentials: 'same-origin', cache: 'no-store' })
+          .then((r) => (r.ok === true ? r.json() : null))
+          .then((j) => setEtat(j !== null && typeof j === 'object' ? { phase: 'ready', view: j } : { phase: 'error', view: null }))
+          .catch(() => setEtat({ phase: 'error', view: null }))
+      }, [])
+      React.useEffect(() => { relire() }, [relire])
+      const installer = (entry) => {
+        if (occupe !== null) return
+        setOccupe(entry.id)
+        const seam = kbMarketSeam()
+        const tenu = { answer: null }
+        const answer = marketInstall(entry, seam === null ? null : (arg) => { tenu.answer = seam(arg); return tenu.answer })
+        const fixe = (extra) => setReponses((prev) => Object.assign({}, prev, { [entry.id]: Object.assign({}, answer, extra) }))
+        fixe({ answer: tenu.answer })
+        const fini = () => { setOccupe(null); relire() }
+        if (tenu.answer !== null && typeof tenu.answer === 'object' && typeof tenu.answer.then === 'function') {
+          tenu.answer.then((a) => fixe({ answer: a })).catch(() => fixe({ error: 'installer-failed' })).then(fini)
+        } else { fini() }
+      }
+      const view = etat.phase === 'ready' ? etat.view : null
+      const cards = etat.phase === 'ready' ? marketCards(view, lang) : []
+      const state = etat.phase === 'ready' ? marketState(view, lang) : null
+      const leftOut = etat.phase === 'ready' ? marketLeftOut(view, lang) : null
+      const seamPresent = kbMarketSeam() !== null
+      const plan = (answer) => (answer !== null && typeof answer === 'object' && answer.plan !== null && typeof answer.plan === 'object' ? answer.plan : null)
+      const carte = (card) => {
+        const gate = marketInstallable(card)
+        const reponse = reponses[card.id] !== undefined ? reponses[card.id] : null
+        const rows = reponse === null ? [] : marketReport(reponse.answer !== undefined && reponse.answer !== null ? reponse.answer : reponse, plan(reponse.answer), lang).rows
+        const reportItems = rows.map((row, i) => h('li', { key: row.kind + i, className: 'kbtm-row ' + row.kind },
+          (row.kind === 'style' && row.acc !== '' ? h('span', { className: 'kbtm-swatch', 'aria-hidden': 'true', style: { background: row.acc } }) : null),
+          row.text))
+        const why = gate.ok !== true ? marketSay(['Cette entrée n’a pas d’archive vérifiée à installer.', 'This entry has no verified archive to install.'], lang)
+          : (seamPresent ? null : marketSay(['Aucun installateur n’est chargé sur cette page.', 'No installer is loaded on this page.'], lang))
+        return h('article', { key: card.id, className: 'kbtm-card', 'data-kb': 'kb-market-card', 'data-level': card.level },
+          h('div', { className: 'kbtm-cardhead' },
+            h('b', { className: 'kbtm-name' }, card.name !== '' ? card.name : card.id),
+            h('span', { className: 'kbtm-level', 'data-level': card.level, title: marketLevelHelp(card.level, lang) }, marketLevelLabel(card.level, lang))),
+          (card.description !== '' ? h('p', { className: 'kbtm-desc' }, card.description) : null),
+          h('div', { className: 'kbtm-facts' },
+            (card.author !== '' ? h('span', null, marketSay(['Auteur', 'Author'], lang) + ' ' + card.author) : null),
+            h('span', null, 'v' + card.version),
+            (card.license !== '' ? h('span', null, card.license) : null)),
+          h('div', { className: 'kbtm-actions' },
+            h('button', {
+              type: 'button',
+              className: 'kbm-btn kbtm-install',
+              'data-kb': 'kb-market-install',
+              'data-theme': card.id,
+              disabled: gate.ok !== true || seamPresent !== true || occupe !== null,
+              onClick: () => installer(card),
+            }, occupe === card.id ? marketSay(['Installation…', 'Installing…'], lang) : marketSay(['Installer', 'Install'], lang))),
+          (why !== null ? h('p', { className: 'kbtm-why', 'data-kb': 'kb-market-why' }, why) : null),
+          (reponse !== null
+            ? h('div', { className: 'kbtm-report', 'data-kb': 'kb-market-report' },
+              h('b', null, marketSay(['Ce que l’installation a fait', 'What the install did'], lang)),
+              (reponse.error !== undefined && reponse.error !== null ? h('p', { className: 'kbtm-why' }, kbMarketReasonText(reponse, lang)) : null),
+              (reportItems.length === 0 ? null : h('ul', null, reportItems)))
+            : null))
+      }
+      return h('div', { className: 'kbtm-page', 'data-kb': 'kb-market', 'aria-busy': etat.phase === 'loading' ? 'true' : 'false' },
+        h('div', { className: 'kbtm-head' },
+          h('h2', { className: 'kbtm-h1' }, say(['Thèmes', 'Themes'])),
+          h('p', { className: 'kbtm-sub' }, say(['Les thèmes sectoriels que publient les catalogues que tu as ajoutés.', 'The sector themes published by the catalogues you added.']))),
+        (etat.phase === 'loading' ? h('p', { className: 'kbtm-note', 'data-kb': 'kb-market-loading' }, say(['Lecture du catalogue…', 'Reading the catalogue…'])) : null),
+        (etat.phase === 'error' ? h('div', { className: 'kbtm-state', 'data-kb': 'kb-market-state', 'data-state': 'unreachable', role: 'status' }, say(['Le catalogue n’a pas répondu.', 'The catalogue did not answer.'])) : null),
+        (leftOut !== null ? h('div', { className: 'kbtm-leftout' },
+          h('button', { type: 'button', className: 'kbtm-more', 'data-kb': 'kb-market-left-out', onClick: () => setMotifs(motifs !== true) }, leftOut),
+          (motifs === true ? h('ul', { className: 'kbtm-reasons' }, marketRefusals(view).map((r, i) => h('li', { key: r.id + '/' + i }, r.id + (r.code !== '' ? ' · ' + r.code : '')))) : null)) : null),
+        (state !== null ? h('div', { className: 'kbtm-state', 'data-kb': 'kb-market-state', 'data-state': state.state, role: 'status' },
+          h('b', null, state.text),
+          (state.leftOut !== null ? h('button', { type: 'button', className: 'kbtm-more', 'data-kb': 'kb-market-left-out', onClick: () => setMotifs(motifs !== true) }, state.leftOut) : null),
+          (state.leftOut !== null && motifs === true ? h('ul', { className: 'kbtm-reasons' }, state.refusals.map((r, i) => h('li', { key: r.id + '/' + i }, r.id + (r.code !== '' ? ' · ' + r.code : '')))) : null)) : null),
+        (cards.length > 0 ? h('div', { className: 'kbtm-cards', 'data-kb': 'kb-market-cards' }, cards.map(carte)) : null))
+    }
+    const KB_MARKET_CSS = [
+      '.kbtm-page{display:flex;flex-direction:column;gap:14px;padding:4px 2px 24px;max-width:720px;box-sizing:border-box}',
+      '.kbtm-head{display:flex;flex-direction:column;gap:6px}',
+      '.kbtm-h1{margin:0;font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+      '.kbtm-sub{margin:0;font-size:13px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-note,.kbtm-why{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}',
+      '.kbtm-card{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
+      '.kbtm-cardhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}',
+      '.kbtm-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);min-width:0}',
+      '.kbtm-level{flex:none;font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-desc{margin:0;font-size:13px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-facts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+      '.kbtm-install{border-radius:10px}',
+      '.kbtm-state,.kbtm-leftout{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:13px}',
+      '.kbtm-more{align-self:flex-start;border:0;background:transparent;padding:0;font:inherit;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);cursor:pointer;text-decoration:underline}',
+      '.kbtm-reasons{margin:0;padding-left:18px;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-report{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--dsw-alias-border-l1);font-size:12px}',
+      '.kbtm-row{display:flex;align-items:center;gap:8px}',
+      '.kbtm-swatch{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--dsw-alias-border-l1)}',
+    ].join('\n')
+    ctx.effect(() => {
+      try {
+        return slots.inject('settings.section', () => slots.register(
+          { name: 'settings.section', id: 'kybernos-themes-market', order: 30, label: marketSay(['Thèmes', 'Themes'], kbMarketLang()) },
+          KbThemesMarket))
+      } catch (e) { return undefined }
+    }, 'kybers: themes market settings section')
+    ctx.effect(() => { try { return styles.insert(KB_MARKET_CSS) } catch (e) { return undefined } }, 'kybers: themes market styles')
+    // KB-MARKET-UI-END
     ctx.effect(() => slots.inject('settings.section', () => slots.register(
       { name: 'settings.section', id: 'kybernos-tools', order: 29, label: kbt('kbui.tools') },
       KbToolsPage)), 'kybers: tools settings section')
@@ -33871,7 +34872,7 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         { id: 'tools', titre: kbt('settings.group.tools'), pliable: true, icone: 'tools', mots: ['skills', 'outils', 'tools', 'connectors', 'web search'] },
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
-        { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['theme', 'langue', 'language'] },
+        { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['theme', 'themes', 'langue', 'language'] },
         { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'code sandbox (e2b)', 'phone and channels', 'widget'] },
         { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['journal', 'activity log', 'journal d’activite', 'journal d\'activite', 'kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
@@ -33904,6 +34905,7 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         'commandes': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'commands': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'theme': '<circle cx="12" cy="12" r="9" ' + trait + '/><path d="M12 3v18M12 3a9 9 0 0 1 0 18z" ' + trait + '/>',
+        'themes': '<path d="M4 6h16M4 12h6M4 18h6M17 14v8M13 18h8" ' + trait + '/>',
         'mon espace': '<path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M2 21h20M8 8h2M8 12h2M8 16h2" ' + trait + '/>',
         'atlas': '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" ' + trait + '/><line x1="9" y1="3" x2="9" y2="18" ' + trait + '/><line x1="15" y1="6" x2="15" y2="21" ' + trait + '/>',
         'usage': '<path d="m12 14 4-4" ' + trait + '/><path d="M3.34 19a10 10 0 1 1 17.32 0" ' + trait + '/>',

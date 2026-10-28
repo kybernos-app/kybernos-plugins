@@ -32,6 +32,7 @@ const check = (name, ok, detail) => {
 const PLACES = {
   general: ['général'],
   theme: ['thème', 'tema'],
+  themes: ['thèmes', 'temas'],
   language: ['langue', 'idioma'],
   'memory & lessons': ['mémoire & leçons'],
   'learned skills': ['compétences apprises'],
