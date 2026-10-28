@@ -8547,7 +8547,33 @@ const CSS = `
 .kb4-kabyav{width:1.25em;height:1.25em;border-radius:50%;object-fit:cover;display:block}
 .kb4-lab{flex:1;text-align:left}
 .kb4-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-inline-start:6px;background:var(--dsw-alias-brand-primary)}
-.kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+.kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}/* Demande du 28/10 : les compteurs des entrées de menu (13, 500+, 14…) sont masqués pour rendre la place au libellé. Ils RESTENT dans le DOM — un lecteur d'écran et le survol les lisent encore ; les remettre est une seule règle à retirer. */
+.kb4-badge{display:none}
+/* Demande du 28/10 : le libellé « Workspaces » du pied ouvre la page Workspaces (l'écouteur de document plus bas), donc il
+   s'annonce comme un lien. Rien d'autre n'est posé ici : mesuré dans la page, l'hôte masque déjà les actions du pied
+   (« headerActions » et le bouton de recherche à « opacity: 0 ») et ne les révèle qu'au survol — nos règles étaient en double. */
+[class*="_sectionLabel"]{cursor:pointer}
+/* Une icône de dossier juste avant « Workspaces » (demande du 28/10), toujours visible : dessinée en « ::before », donc sans
+   toucher au DOM de l'hôte, et masquée en « currentColor » pour prendre la couleur du libellé dans les deux thèmes. C'est le
+   dossier ouvert du jeu d'icônes du thème (même tracé, même épaisseur). */
+[class*="_sectionLabel"]::before{content:'';display:inline-block;flex:none;width:15px;height:15px;margin-right:7px;vertical-align:-2px;
+  background-color:currentColor;
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+  mask-size:contain;mask-repeat:no-repeat;mask-position:center;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+  -webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center}
+/* Demande du 28/10 : dans le pied, les trois actions (recherche+, filtre, ajout) ET le bouton de recherche ne s'affichent
+   QU'AU SURVOL de la rangée. L'hôte ne le fait pas seul — mesuré : sans ces règles, les trois icônes restent visibles au repos
+   (mon premier essai les masquait, puis je les avais retirées à tort). La recherche reste visible quand elle est ouverte, sinon
+   on ne pourrait plus taper dedans. */
+[class*="_sectionHeader"] [class*="_headerActions"]{transition:opacity .12s var(--ds-ease-in-out)}
+[class*="_sectionHeader"]:not(:hover):not(:focus-within) [class*="_headerActions"]{opacity:0;pointer-events:none}
+[class*="_searchSlot"] button{transition:opacity .12s var(--ds-ease-in-out)}
+[class*="_sectionHeader"]:not(:hover):not(:focus-within) [class*="_searchSlot"]:not([class*="_searchSlotExpanded"]) button{opacity:0;pointer-events:none}
+/* La quatrième, mesurée : « Search everywhere » n'est ni dans « searchSlot » ni dans « headerActions », mais un ENFANT DIRECT de la
+   rangée — d'où la loupe qui restait seule visible au repos. Les enfant directs de la rangée sont exactement ces boutons-là. */
+[class*="_sectionHeader"] > button{transition:opacity .12s var(--ds-ease-in-out)}
+[class*="_sectionHeader"]:not(:hover):not(:focus-within) > button{opacity:0;pointer-events:none}
 @media (pointer:coarse){.kb4-item,.kb4-newchat{min-height:44px}}
 /* The menu is drawn in em of the chat text size (the engine keeps it in --dsh-content-font-size on <body>, 12 to 17 px): one setting, General › Font size,
    sets the chat and the menu, and a smaller size gives a denser menu. The blocks of the shell around it are measured the same way (calc on --kb-u):
@@ -26374,6 +26400,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           window.removeEventListener('scroll', measure, true)
         }
       }, [pickOpen])
+      // Le « Workspaces » du pied natif (demande du 28/10) : il devient un lien vers la page Workspaces du plugin. Le pied est
+      // rendu par l'hôte, le plugin n'y a pas de prise : un écouteur de document (posé plus bas) reconnaît le libellé et
+      // renvoie cet événement. On se réinscrit à chaque rendu, donc `openPage` capturé est toujours le frais.
+      React.useEffect(() => {
+        const ouvrir = () => openPage({ view: 'projects' })
+        window.addEventListener('kybernos:menu:projects', ouvrir)
+        return () => window.removeEventListener('kybernos:menu:projects', ouvrir)
+      })
       // ── Barre de progression des objectifs (sidebar) ────────────────
       const KbProgressBar = () => {
         const [prog, setProg] = React.useState(null)
@@ -26475,7 +26509,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
-        row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, shown === 'projects' || shown === 'project', () => openPage({ view: 'projects' })),
+        // Le « Workspaces » du pied de barre ouvre cette page (demande du 28/10) : la rangée du haut a donc été retirée —
+        // une seule entrée, un seul endroit. Le compteur d'espaces reste dans l'état (`wsCount`) pour les autres vues.
         row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
@@ -33180,6 +33215,44 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
     }
     ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
       { name: 'sidebar.footer.action', id: 'kybernos-utils', order: 20 }, SidebarUtils)), 'kybers: sidebar utility bar')
+    // Le libellé « Workspaces » du pied appartient à l'hôte : on ne le déplace pas, on le rend cliquable. Même approche que le
+    // reste du pied (aucune modification du DOM de l'hôte) : on reconnaît le libellé au clic, on coupe son menu natif, et on
+    // ouvre la page Workspaces du plugin. Borné à la rangée du pied (celle de `.kbu-row`), donc jamais les cartes d'espace.
+    ctx.effect(() => {
+      // Le balisage de l'hôte (mesuré dans dsh-client-ui-workspace) : le pied est une `sectionHeader` qui porte le libellé
+      // (`sectionLabel`, le texte « Workspaces ») et le groupe d'actions (`headerActions` : recherche, filtre, ajout). Les
+      // CSS modules de l'hôte hachuent le préfixe mais gardent le suffixe, d'où les sélecteurs `[class*="_sectionLabel"]`.
+      const cible = (t) => {
+        if (t === null || t === undefined || typeof t.closest !== 'function') return null
+        if (t.closest('.kb4-menu') !== null) return null                       // nos propres entrées
+        let el = null
+        try { el = t.closest('[class*="_sectionLabel"]') } catch (e) { el = null }
+        if (el === null) return null
+        // Le MÊME libellé affiche « Workspaces » ou « Sessions » selon le groupement : seul le premier ouvre notre page.
+        const mots = ['workspaces', 'espaces de travail', '工作区']
+        const txt = String(el.textContent || '').trim().toLowerCase()
+        return mots.indexOf(txt) === -1 ? null : el
+      }
+      const onOver = (e) => {
+        const el = cible(e.target)
+        if (el === null) return
+        try { el.style.cursor = 'pointer' } catch (e2) { /* rien */ }
+        try { el.setAttribute('data-kb-ws-link', '') } catch (e2) { /* rien */ }
+      }
+      const onClick = (e) => {
+        const el = cible(e.target)
+        if (el === null) return
+        try { e.preventDefault(); e.stopPropagation() } catch (e2) { /* rien */ }
+        try { window.dispatchEvent(new Event('kybernos:menu:projects')) } catch (e2) { /* rien */ }
+      }
+      document.addEventListener('pointerover', onOver, true)
+      document.addEventListener('click', onClick, true)
+      return () => {
+        document.removeEventListener('pointerover', onOver, true)
+        document.removeEventListener('click', onClick, true)
+      }
+    }, 'kybers: the footer Workspaces label opens the Workspaces page')
+
     // ── Gestes du MENU UNIFIÉ du pied (refonte 30/09, maquette « Menu ouvert »)
     //    La carte d'espace et son menu vivent dans kybernos-cloud ; les gestes
     //    qui appartiennent au PLUGIN (thème, retour, aide) restent ici et sont

@@ -67,22 +67,25 @@ try {
 
   // 3. A failed report is resent under its own id when the person sends it again: one record, one issue.
   reset()
-  answers = [reply(503, 'github_indisponible')]
+  answers = [reply(503, 'base_indisponible')]
   const f1 = await send(bug)
-  assert.equal(f1.ok, false)
-  assert.equal(f1.error, 'github_indisponible')
+  // Kept, not lost: the answer says « queued », and the person has nothing to fix — the report leaves with the next one that goes.
+  assert.equal(f1.ok, true, JSON.stringify(f1))
+  assert.equal(f1.queued, true)
+  assert.equal(f1.error, 'base_indisponible')
   assert.ok(f1.mailto.startsWith('mailto:?subject='))
   const f2 = await send(bug)
   assert.equal(f2.ok, true, JSON.stringify(f2))
   assert.equal(posts[1].body.uuid, posts[0].body.uuid, 'the retry reuses the report id: the relay deduplicates on it')
   assert.deepEqual(outbox().map((o) => o.status), ['envoye'], 'no failed record is left behind')
-  ok('after a failure, sending the same report again resends the same record and clears it')
+  ok('a report the server could not store is kept, and sending it again resends the same record and clears it')
 
   // 4. The promise « it will be sent again with the next report » is kept: other failed reports leave too.
   reset()
-  answers = [reply(502, 'github_indisponible')]
+  answers = [reply(502, 'base_indisponible')]
   const old = await send({ kind: 'bug', title: 'First, lost', body: 'This one met a relay error.' })
-  assert.equal(old.ok, false)
+  assert.equal(old.ok, true, JSON.stringify(old))
+  assert.equal(old.queued, true, 'kept while the relay is down')
   const fresh = await send({ kind: 'feature', title: 'Second', body: 'A different report, sent later.' })
   assert.equal(fresh.ok, true)
   assert.deepEqual(posts.map((p) => p.body.title), ['First, lost', 'Second', 'First, lost'], 'the older failed report is posted again after a success')
@@ -92,9 +95,9 @@ try {
 
   // 4b. The relay keeps a failed report's id for `retry_after` seconds: asking sooner says so, without a round trip and without a second issue.
   reset()
-  answers = [{ status: 503, json: { error: 'github_indisponible', retry_after: 120 } }]
+  answers = [{ status: 503, json: { error: 'base_indisponible', retry_after: 120 } }]
   const c1 = await send(bug)
-  assert.equal(c1.error, 'github_indisponible')
+  assert.equal(c1.error, 'base_indisponible')
   assert.equal(c1.retry_after, 120)
   const c2 = await send(bug)
   assert.equal(posts.length, 1, 'no new POST while the relay holds the id')
@@ -218,9 +221,10 @@ try {
       'But "token: expired" and the basic setup are only words.',
     ].join('\n')
     reset()
-    answers = [reply(503, 'github_indisponible')]
+    answers = [reply(503, 'base_indisponible')]
     const down = await send({ kind: 'bug', title: 'Leak check token=' + secrets[0], body: dirty })
-    assert.equal(down.ok, false)
+    assert.equal(down.ok, true, JSON.stringify(down).slice(0, 120))
+    assert.equal(down.queued, true, 'the relay is down: the report is kept, and its text to copy is what is checked here')
     const shown = mod.kbFeedbackToolText(down)
     const mailBody = decodeURIComponent(String(down.mailto))
     for (const secret of secrets) {
@@ -262,11 +266,12 @@ try {
       const t0 = Date.now()
       const hung = await Promise.race([send(bug), new Promise((resolve) => setTimeout(() => resolve('STILL WAITING'), 3000))])
       assert.notEqual(hung, 'STILL WAITING', 'the send must end when the relay never answers')
-      assert.equal(hung.ok, false)
+      assert.equal(hung.ok, true, JSON.stringify(hung).slice(0, 120))
+      assert.equal(hung.queued, true)
       assert.equal(hung.error, 'envoi_indisponible')
       assert.ok(Date.now() - t0 < 2500)
       assert.equal(outbox().length, 1, 'the report is kept')
-      assert.equal(outbox()[0].status, 'echec')
+      assert.equal(outbox()[0].status, 'en_attente')
       assert.equal(seenInit.redirect, 'manual', 'a redirect is never followed: it would carry the report and the way to the person\'s account elsewhere')
       ok('a relay that never answers ends the send by itself; the report is kept; redirects are not followed')
 
@@ -274,10 +279,11 @@ try {
       reset()
       globalThis.fetch = async () => ({ status: 307, headers: new Headers({ location: 'http://elsewhere.invalid/v1/feedback' }), text: async () => '' })
       const moved = await send(bug)
-      assert.equal(moved.ok, false)
+      assert.equal(moved.ok, true, JSON.stringify(moved).slice(0, 120))
+      assert.equal(moved.queued, true)
       assert.equal(moved.error, 'envoi_indisponible')
-      assert.equal(outbox()[0].status, 'echec')
-      ok('a redirect answer is a failed send, kept for later')
+      assert.equal(outbox()[0].status, 'en_attente')
+      ok('a redirect answer is not a delivery: the report is kept on this computer')
 
       // 13c. An answer that never ends is cut at a size, not read to the end.
       reset()
@@ -323,6 +329,27 @@ try {
     assert.equal(r.ok, expected, url + ': ' + JSON.stringify(r).slice(0, 140))
   }
   ok('http is accepted for a loopback issue address (test stand-ins) and for no other host')
+
+  // 15. The linked server refuses to relay (the team configured no issue tracker): the report still leaves, through the PUBLIC door, with
+  // its screenshots. A bug that reached a server is worth more than a failure the person must copy by hand.
+  reset()
+  answers = [{ status: 503, json: { error: 'github_indisponible' } }, { status: 201, json: { id: 'public-report-1' } }]
+  const secours = await send({ kind: 'bug', title: 'Relay off, door on', body: 'The team has no issue tracker configured.' })
+  assert.equal(secours.ok, true, JSON.stringify(secours))
+  assert.equal(secours.public, true, 'the verdict says which door took it')
+  assert.equal(secours.issue_url, null)
+  assert.equal(posts.length, 2, 'the relay was tried, then the public door')
+  assert.match(posts[1].url, /\/v1\/feedback\/public$/)
+  assert.equal(posts[1].auth, undefined, 'the public door takes no token')
+  assert.deepEqual(outbox().map((o) => o.status), ['envoye'])
+  ok('a relay that does not relay (no issue tracker) hands the report to the public door, which takes it with no token')
+
+  // 16. That success is a success: the same report sent again is not posted twice, even though no issue address came back.
+  const encore = await send({ kind: 'bug', title: 'Relay off, door on', body: 'The team has no issue tracker configured.' })
+  assert.equal(encore.ok, true)
+  assert.equal(encore.deduped, true, JSON.stringify(encore))
+  assert.equal(posts.length, 2, 'nothing more is posted')
+  ok('a report the public door took is recognised as already sent, with no issue address to prove it')
 
   console.log('\n' + n + ' checks, all green')
 } finally {
