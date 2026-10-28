@@ -1,0 +1,83 @@
+
+── Skills: the animation opens the first time ──
+  ✓ the Skills page opens
+  ✓ an animated help is there, on a browser that never saw the page
+  ✓ three steps, each with its sentence
+  ✓ it speaks the page’s own words (Install, Featured, Yours)
+  ✓ the mock is really animating (12 or more CSS animations running)
+  ✓ the steps light up in turn on the loop’s clock (step 1, then 2, then 3)
+  ✓ one « ? How it works » button on the page
+  ✓ on screen long enough: marked « seen »
+  ✓ the next visit does not open it again
+
+── the card brings it back and links to the article ──
+  ✓ the button opens its card
+  ✓ the card ends with a link to the article, in a new tab, with noopener
+  ✓ and a « Watch the animation » button
+  ✓ pressing it plays the animation again, and closes the card
+  ✓ its ✕ closes it and remembers: « closed »
+  ✓ closed once: still closed after a reload
+
+── Connectors ──
+  ✓ the Connectors page opens
+  ✓ an animated help opens at the first visit
+  ✓ with the real words: Add a connection, Connected, Pending
+  ✓ one « ? How it works » button, the Suite’s, and not the icon-only « ? » it had
+  ✓ its card links to the article on app connections
+
+── one « ? How it works » button, the same on every page ──
+  ✓ Agent Teams — exactly one help button, labelled « How it works »
+  ✓ Automations — exactly one help button, labelled « How it works »
+  ✓ Skills — exactly one help button, labelled « How it works »
+  ✓ Connectors — exactly one help button, labelled « How it works »
+  ✓ Calls — exactly one help button, labelled « How it works »
+  ✓ Usage — exactly one help button, labelled « How it works »
+  ✓ Memory & Lessons — exactly one help button, labelled « How it works »
+  ✓ Phone and channels — exactly one help button, labelled « How it works »
+  ✓ Agent presets — exactly one help button, labelled « How it works »
+  ✓ Language — exactly one help button, labelled « How it works »
+  ✓ Atlas — exactly one help button, labelled « How it works »
+  ✓ Commands — exactly one help button, labelled « How it works »
+  ✓ Workers — exactly one help button, labelled « How it works »
+  ✓ Theme — exactly one help button, labelled « How it works »
+  ✓ Web Search — exactly one help button, labelled « How it works »
+  ✓ Kybernos Suite — exactly one help button, labelled « How it works »
+  ✓ the same size, round ends, border and font on all of them (16 pages)
+
+── Phone and channels ──
+  ✓ an animated help opens at the first visit
+  ✓ with the words of the screen: the QR, the 4-digit code, Allow
+  ✓ its card links to the help article about the phone link
+
+── Agent presets (a page of DSH itself, drawn by no plugin) ──
+  ✓ the Agent presets page opens
+  ✓ the animation opens on it at the first visit
+  ✓ it sits right after the page’s introduction, above the cards
+  ✓ it explains presets with the page’s own words (Standard mode, PTC, Creator, New task default)
+  ✓ it is animating
+  ✓ its card is the page’s own (what a preset is), with « Watch the animation » and no link (there is no article yet)
+  ✓ the page itself still works: its own button « Let the agent help me create a preset » is there
+  ✓ closed once, remembered
+  ✓ Models has the help pill and no animation (a host for the pill only)
+  ✓ the other DSH pages are left alone (General: no host, no animation)
+  ✓ back on Agent presets: still closed, and the page is back as it was
+  ✓ « Watch the animation » brings it back on this page too
+
+── reduced motion ──
+  ✓ nothing moves
+  ✓ the end of the story shows: the last state, the end label, every step readable
+
+── what each page is for ──
+  ✓ Usage says what it covers and how it differs from the console
+  ✓ Tools says what it adds to a profile and points to Workers
+  ✓ Workers names Tools as the other door
+  ✓ Commands: an animated help opens at the first visit, with the page’s words
+  ✓ Commands: one « ? How it works » button
+  ✓ Commands: the slash tab (its tooltip) says what a slash command is
+  ✓ …and the Message actions tab says what an action is
+
+── French ──
+  ✓ the Phone and channels animation speaks French
+  ✓ the card’s link says « Lire l’article » and goes to the French article
+
+63 ✓  0 ✗

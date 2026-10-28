@@ -32,6 +32,10 @@ const STYLE = `<meta charset="utf-8"><title>fixture</title><style>
   .hit{position:relative;width:34px;height:20px;border:0;border-radius:99px;background:#888;padding:0}
   .hit::before{content:"";position:absolute;inset:-2px 0}
   .txt{background:none;border:0;padding:0;font:12px system-ui;text-decoration:underline;cursor:pointer}
+  .stack{display:flex;flex-direction:column;gap:1px;width:16px;margin:8px 0}
+  .stackbtn{border:0;background:#888;padding:0;height:11px;width:16px}
+  .stack.tall .stackbtn{height:12px}
+  .stackbtn.far{margin-top:14px}
 </style>`
 const LOGO = '<span class="logo"></span>'
 const ICON = '<svg width="18" height="18"><path d="M0 0h10v10z"/></svg>'
@@ -50,6 +54,7 @@ const BAD = STYLE + '<main style="width:880px">'
   + '<div style="display:flex;gap:16px;align-items:center;width:880px"><p style="width:300px">Check the skills attached to this project, the selection saves by itself.</p><button class="btn" style="margin-left:200px">Browse the repository</button></div>'
   + '<div class="box">No budget declared by this project\'s agent teams (budget: block of kyber.yml).</div>'
   + '<button style="width:14px;height:14px;padding:0;font-size:8px">x</button> <button style="width:30px;height:30px"><svg width="12" height="12"></svg></button>'
+  + '<div class="stack"><button class="stackbtn" aria-label="Move up"></button><button class="stackbtn far" aria-label="Move down"></button></div>'
   + '<div style="width:80px;overflow:hidden;white-space:nowrap">A very long unbroken label that gets cut</div>'
   + '<img src="data:image/png;base64,AAAA" width="20" height="20">'
   + li(['alpha', 'bravo', 'charlie', 'zulu', 'delta', 'echo', 'foxtrot'])
@@ -65,6 +70,7 @@ const CLEAN = STYLE + '<main style="width:880px">'
   + '<div style="display:flex;width:880px;padding-right:20px;box-sizing:border-box"><p style="width:300px;margin:0">Check the skills attached to this project.</p><button class="btn" style="margin-left:auto">Browse</button></div>'
   + '<div class="box"><svg width="48" height="48"><circle cx="24" cy="24" r="20"/></svg><p>No budget yet.</p><button class="btn">Add a budget</button></div>'
   + '<p><button class="hit" aria-label="Enable"></button> <button class="txt">Manage languages</button></p>'
+  + '<div class="stack tall"><button class="stackbtn" aria-label="Move up"></button><button class="stackbtn" aria-label="Move down"></button></div>'
   + '</main>'
 
 const live = await openLivePage({ width: 1100, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
@@ -87,6 +93,9 @@ try {
   check('both ways of shouting are caught (css and literal)', bad.findings.filter((f) => f.kind === 'caps').map((f) => f.detail).sort().join('|') === 'text-transform: uppercase|written in capitals', bad.findings.filter((f) => f.kind === 'caps'))
   check('the logo-less row is the one named', bad.findings.some((f) => f.kind === 'no-mark' && f.text === 'Echo'), bad.findings.filter((f) => f.kind === 'no-mark'))
   check('every finding says where it is and what level it has', bad.findings.every((f) => ['bug', 'ux', 'check'].includes(f.level) && f.kind.length > 0), bad.findings.slice(0, 3))
+  check('the faulty page still reports a small control that is no part of a pair', bad.findings.some((f) => f.kind === 'tiny-target'), bad.findings.filter((f) => f.kind === 'tiny-target').map((f) => f.text))
+  const stackHits = bad.findings.filter((f) => f.kind === 'tiny-target' && /Move (up|down)/.test(f.text))
+  check('the pair whose halves are apart is still reported', stackHits.length >= 1, stackHits.map((f) => f.text))
 
   // The frame: the same page twice is stable, a resized landmark is reported, a scrollbar gutter that appears is reported.
   const f1 = await val('JSON.stringify(window.__UXH__.frame())')

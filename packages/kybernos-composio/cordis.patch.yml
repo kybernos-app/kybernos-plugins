@@ -12,6 +12,7 @@
     # next start. Raising maxAttempts (an integer, no upper bound in the client) keeps it
     # retrying every 30 s; that is a choice about log noise and load, left to the user.
     - id: composio
+      disabled: true
       name: '@deepseek-ai/dsh-mcp-client'
       config:
         transport: streamable-http

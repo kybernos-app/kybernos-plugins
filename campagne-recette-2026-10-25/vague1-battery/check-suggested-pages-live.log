@@ -1,0 +1,24 @@
+# check-suggested-pages-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=39396
+
+ok   settings opens
+ok   the Memory page opens
+ok   Memory: the dashed block lists the two memories with their proof
+ok   Memory: the block pulses
+FAIL Memory: without an account Add and Edit wait, and the block says why
+ok   Memory: Discard removes the row and resolves it in the ledger
+ok   the Kybernos section opens
+ok   Instructions: the dashed block shows the suggested section with the three actions
+ok   Instructions: Add wrote the section under a heading and the date, through the ordinary Save
+ok   Instructions: the block goes and the ledger is told
+ok   the Dashboards menu row pulses while a suggestion waits
+ok   Dashboards: the suggestion sits in a dashed block, not in My dashboards
+ok   ...and says where it comes from and its proof
+ok   Dashboards: Add moves it into My dashboards and the pulse stops
+ok   Dashboards: Discard removes the suggestion for good (file included)
+FAIL Learn: created once, on, weekly, in a session of its own, asking first
+ok   Learn: asked again, in another language, it is found and not doubled
+ok   Learn: it is a normal row of Automations, switched on
+
+2 check(s) FAILED
+

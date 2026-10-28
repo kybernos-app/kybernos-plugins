@@ -97,6 +97,17 @@ window.__ModuleLoader__.load({
         if (e.ok === false) return 'error'
         return ''
       }
+      // A tool result carries no tool name (the harness records the call and its answer separately). The list holds both and is
+      // newest first, so the call FOLLOWS its answer: the nearest one of the same session below names the row (« bash · ok »).
+      const toolOf = (list, i) => {
+        for (let j = i + 1; j < list.length; j++) {
+          const x = list[j]
+          if (x === undefined || x.session !== list[i].session) continue
+          if (x.type === 'tool' && x.kind === 'call' && typeof x.tool === 'string') return x.tool
+          if (x.type === 'job' && x.kind === 'end' && typeof x.tool === 'string') return x.tool
+        }
+        return ''
+      }
       const resultClass = (r) =>
         r === 'error' || r === 'failed' || r === 'killed' ? 'kblg-err' : (r === 'retry' ? 'kblg-warn' : 'kblg-mut')
       const tokensOf = (e) => (Number(e.input) || 0) + (Number(e.output) || 0) + (Number(e.cache) || 0)
@@ -226,10 +237,12 @@ window.__ModuleLoader__.load({
         // a job's verdict, a tool's ok/error, a retry, or nothing when the harness recorded no outcome.
         const row = (e, i) => {
           const res = result(e)
+          const isResult = e.type === 'tool' && e.kind === 'result'
+          const named = isResult ? [toolOf(events, i), res].filter((x) => x !== '').join(' · ') : ''
           return h('tr', { key: String(e.seq !== undefined ? e.seq : i) },
             h('td', { className: 'kblg-mut kblg-when' }, h('span', null, day(e.at)), ' ', h('span', null, clock(e.at))),
             h('td', null, fam(e.type)),
-            h('td', { className: 'kblg-what' }, h('span', { className: e.kind === 'call' || e.kind === 'answer' ? '' : 'kblg-mut' }, what(e))),
+            h('td', { className: 'kblg-what' }, h('span', { className: e.kind === 'call' || e.kind === 'answer' ? '' : 'kblg-mut' }, named !== '' ? named : what(e))),
             h('td', { className: 'kblg-mut' }, String(e.session || '—').slice(0, 8)),
             h('td', { className: resultClass(res) }, res),
             h('td', { className: 'kblg-num' }, e.input !== undefined || e.output !== undefined ? fmt(tokensOf(e)) : ''),
@@ -277,7 +290,7 @@ window.__ModuleLoader__.load({
       return {
         name: 'kybernos-log',
         inject: ['slots'],
-        __test: { S, L, kt, TYPES, FAM, fam, fmt, tokensOf, clock, day, result, resultClass },
+        __test: { S, L, kt, TYPES, FAM, fam, fmt, tokensOf, clock, day, result, resultClass, toolOf },
         apply (ctx) {
           try {
             const s = document.createElement('style')

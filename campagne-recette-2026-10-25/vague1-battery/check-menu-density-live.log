@@ -1,0 +1,26 @@
+# check-menu-density-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=10568
+
+at the chat size of the day (15px)
+  ✓ the menu text is the chat text size, not a fixed 15px
+  ✓ a row of the menu is about 2.2 text heights, not 34px
+  ✓ the logo row is three text heights or so, not 60px
+  ✓ New chat is one line, not 46px
+  ✓ the first entry of the menu starts within 8 text heights of the top (it was 126px at 13px)
+  ✓ a workspace row and a session row are tighter than the shell's 34 and 32px
+  ✓ more of the workspace list shows without scrolling (11 of 21 rows at 13px, 8 before)
+  ✓ nothing scrolls sideways in the menu
+  ✓ the text of every kind of row is in the middle of its row (the hover pill is not off-centre): pinned, workspace, session, menu entry
+at 12px (the setting changed)
+  ✓ the menu text follows at once: 12px
+  ✓ the rows follow in height (2.2 text heights)
+  ✓ the account card follows
+  ✓ and the text stays in the middle of its rows
+at 17px (the setting changed)
+  ✓ the menu text follows at once: 17px
+  ✓ the rows follow in height (2.2 text heights)
+  ✓ the account card follows
+  ✓ and the text stays in the middle of its rows
+
+ALL GREEN (17 checks)
+

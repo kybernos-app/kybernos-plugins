@@ -1,0 +1,6 @@
+rename? false
+has CHAT text? true
+sessions rows: Session actions for Language creation check | Session actions for Motion check | Session actions for Motion check | Session actions for Motion check | Session actions for Changes check
+show more: Show 4 more sessions
+clickText: true
+rename after click? false

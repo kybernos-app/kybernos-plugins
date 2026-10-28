@@ -1,0 +1,37 @@
+[
+  {
+    "t": "Creations",
+    "c": "clicked",
+    "h": "[]",
+    "b": 161711,
+    "modal": false
+  },
+  {
+    "t": "Automations",
+    "c": "clicked",
+    "h": "[\"Automations\"]",
+    "b": 166008,
+    "modal": false
+  },
+  {
+    "t": "Skills",
+    "c": "clicked",
+    "h": "[\"Skills\"]",
+    "b": 371662,
+    "modal": false
+  },
+  {
+    "t": "Connectors",
+    "c": "clicked",
+    "h": "[\"Connectors\"]",
+    "b": 139777,
+    "modal": false
+  },
+  {
+    "t": "Kaby",
+    "c": "clicked",
+    "h": "[]",
+    "b": 95543,
+    "modal": false
+  }
+]

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kybernos-session-msg — plate v1</title>
+<link rel="stylesheet" href="cards.css">
+<style>
+  /* The plate itself: DSH tokens, light by default, dark through [data-ds-dark-theme] on the panel.
+     Values measured on the live GUI 127.0.0.1:3080 (2026-10-20) and read from the engine's own dark block. */
+  :root {
+    --dsw-alias-bg-layer-1: #fff; --dsw-alias-bg-layer-2: #f7f7f8; --dsw-alias-bg-layer-3: #fff;
+    --dsw-alias-label-primary: #0f1115; --dsw-alias-label-secondary: #61666b; --dsw-alias-label-tertiary: #81858c;
+    --dsw-alias-border-l1: #0000000a; --dsw-alias-border-l2: #0000001a; --dsw-alias-border-l3: #0000001f; --dsw-alias-border-l4: #00000029;
+    --dsw-alias-brand-primary: #0f1115; --dsw-alias-button-primary-fill: #0f1115; --dsw-alias-label-primary-foreground: #fff;
+    --dsw-alias-interactive-bg-hover: #2631480f; --dsw-alias-state-business-primary: #4176e6;
+    --dsw-alias-state-success-primary: #22c55e; --dsw-alias-state-warn-primary: #f59e0b; --dsw-alias-state-error-primary: #ec1313;
+    --dsw-alias-bg-mask-1: #0000003d; --dsw-radius-sm: 8px;
+  }
+  [data-ds-dark-theme] {
+    --dsw-alias-bg-layer-1: #232324; --dsw-alias-bg-layer-2: #2c2c2e; --dsw-alias-bg-layer-3: #353638;
+    --dsw-alias-label-primary: #f9fafb; --dsw-alias-label-secondary: #cfd3d6; --dsw-alias-label-tertiary: #adb2b8;
+    --dsw-alias-border-l1: #ffffff0f; --dsw-alias-border-l2: #ffffff1f; --dsw-alias-border-l3: #ffffff29; --dsw-alias-border-l4: #fff3;
+    --dsw-alias-brand-primary: #f9fafb; --dsw-alias-button-primary-fill: #f9fafb; --dsw-alias-label-primary-foreground: #0f1115;
+    --dsw-alias-interactive-bg-hover: #ffffff14; --dsw-alias-state-business-primary: #7aaaff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px; background: #e9eaee; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: #0f1115; }
+  h1 { margin: 0 0 4px; font-size: 20px; line-height: 28px; font-weight: 600; }
+  .sub { margin: 0 0 22px; font-size: 13px; line-height: 20px; color: #61666b; }
+  .board { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  .panel { border-radius: 18px; padding: 20px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); border: 1px solid var(--dsw-alias-border-l2); }
+  .panel-title { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dsw-alias-label-tertiary); }
+  .chat { display: flex; flex-direction: column; gap: 14px; }
+  .bubble { align-self: flex-end; max-width: 100%; padding: 10px 12px; border-radius: 16px; background: var(--dsw-alias-bg-layer-3); border: 1px solid var(--dsw-alias-border-l1); font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-primary); }
+  .bubble small { display: block; margin-bottom: 4px; font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+  .answer { font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); }
+  .answer p { margin: 0 0 8px; }
+  .anno { font-size: 11.5px; line-height: 18px; font-style: italic; color: var(--dsw-alias-label-tertiary); }
+  .actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+  .icon-btn { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 2px 4px; border-radius: 6px; font: inherit; font-size: 12px; color: var(--dsw-alias-label-tertiary); cursor: pointer; }
+  .icon-btn:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+  .sep { width: 1px; height: 14px; background: var(--dsw-alias-border-l2); }
+  .kbm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px; padding: 0 12px; border: 0; border-radius: 16px; font: inherit; font-size: 13px; color: var(--dsw-alias-label-primary); background: transparent; cursor: pointer; }
+  .kbm-btn-sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: 14px; }
+  .kbm-btn-primary { background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-foreground); }
+  .kbm-btn-outline { border: 0.5px solid var(--dsw-alias-border-l3); }
+  .kbm-btn-ghost:hover { background: var(--dsw-alias-interactive-bg-hover); }
+  .kbm-tag { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; font-size: 11px; line-height: 17px; font-weight: 500; border: 0.5px solid var(--dsw-alias-border-l4); color: var(--dsw-alias-label-tertiary); }
+  .kbm-dot { position: relative; display: inline-block; width: 10px; height: 10px; flex: none; color: var(--dsw-alias-state-success-primary); }
+  .kbm-dot::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: currentColor; opacity: .1; }
+  .kbm-dot::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: currentColor; }
+  .kbm-dot[data-state='idle'] { color: var(--dsw-alias-label-tertiary); }
+  .dialog-wrap { position: relative; margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--dsw-alias-border-l2); }
+  .dialog-card { width: 100%; border-radius: 18px; background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l2); padding: 14px 0 16px; display: flex; flex-direction: column; gap: 12px; }
+  .dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; }
+  .dialog-head h2 { margin: 0; font-size: 15px; line-height: 22px; font-weight: 500; }
+  .dialog-close { border: 0; background: none; font-size: 16px; color: var(--dsw-alias-label-secondary); cursor: pointer; }
+  .kbmsg-dlg-body { padding: 0 18px; }
+  .dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 0 18px; }
+  .note { margin-top: 8px; font-size: 11px; line-height: 16px; color: #61666b; }
+  .narrow { width: 390px; margin-top: 22px; padding: 14px; border-radius: 16px; background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2); }
+</style>
+</head>
+<body>
+  <h1>kybernos-session-msg — the two cards, real CSS</h1>
+  <p class="sub">Received message (head of a user bubble) and the proposal card, light and dark, at real DSH tokens. Bottom right: the same cards at 390 px.</p>
+
+  <div class="board">
+    <!-- ── light ── -->
+    <section class="panel" aria-label="Light">
+      <p class="panel-title">Light</p>
+      <div class="chat">
+        <div class="bubble"><span data-plain="1">Peux-tu vérifier le rendu de la carte d’équipe sur 390 px ?</span></div>
+
+        <div class="bubble">
+          <div class="kbmsg-recv">
+            <button type="button" class="kbmsg-recv-head" aria-expanded="false">
+              <span class="kbmsg-recv-ico">⇄</span>
+              <span class="kbmsg-recv-title">Received message from « Agent Teams — refonte »</span>
+              <span class="kbmsg-recv-tag">collapsed</span>
+              <span class="kbmsg-chev">⌄</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bubble">
+          <div class="kbmsg-recv">
+            <button type="button" class="kbmsg-recv-head" aria-expanded="true">
+              <span class="kbmsg-recv-ico">⇄</span>
+              <span class="kbmsg-recv-title">Received message from « Rangement du dépôt »</span>
+              <span class="kbmsg-recv-tag">expanded</span>
+              <span class="kbmsg-chev">⌄</span>
+            </button>
+            <div class="kbmsg-recv-body">Le worktree `session-creation-message` contient deux commits non fusionnés. Peux-tu les rapatrier ou me dire ce qu’il faut en faire ?</div>
+            <div class="kbmsg-recv-note">The app asked « Rangement du dépôt » to report back.</div>
+            <div class="kbmsg-recv-foot">
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline">Ouvrir la session</button>
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost">Répondre</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="answer">
+          <p class="anno">Annotation — la carte de proposition s’ouvre dans le fil, sous la réponse qui l’a demandée.</p>
+          <div class="kbmsg-prop">
+            <div class="kbmsg-prop-head">
+              <span class="kbmsg-kicker">Task</span>
+              <input class="kbmsg-prop-title" value="Rapatrier les commits du worktree session-creation-message" aria-label="Title">
+            </div>
+            <dl class="kbmsg-env">
+              <dt>Folder</dt><dd><code>~/kybernos-plugins</code></dd>
+              <dt>Worktree</dt><dd><code>main</code> · clean</dd>
+              <dt>Model</dt><dd>deepseek-official/deepseek-v4.1-flash</dd>
+              <dt>Effort</dt><dd>high</dd>
+              <dt>Permissions</dt><dd>Ask before running</dd>
+            </dl>
+            <div class="kbmsg-prop-actions">
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-primary">Do it here</button>
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline">New session</button>
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline">Send to…</button>
+              <button type="button" class="kbmsg-opt">Options</button>
+              <span class="kbmsg-prop-hint">Esc · ⌘↵</span>
+            </div>
+            <button type="button" class="kbmsg-opt">Don’t ask again for this folder</button>
+          </div>
+          <div class="actions">
+            <button class="icon-btn">↺ Retry</button><span class="sep"></span>
+            <button class="icon-btn">⧉ Copy</button><span class="sep"></span>
+            <button class="icon-btn">⇄ Send this task…</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-wrap">
+        <div class="dialog-card">
+          <div class="dialog-head"><h2>Envoyer à une session…</h2><button class="dialog-close" aria-label="Fermer">✕</button></div>
+          <div class="kbmsg-dlg-body">
+            <div class="kbmsg-field">
+              <span class="kbmsg-label">Destination</span>
+              <select class="kbmsg-select">
+                <option>Agent Teams — refonte · ~/kybernos-plugins · il y a 2 min · running</option>
+                <option>Rangement du dépôt · ~/kybernos-plugins · hier · idle</option>
+              </select>
+            </div>
+            <div class="kbmsg-field">
+              <span class="kbmsg-label">Message</span>
+              <textarea class="kbmsg-textarea" rows="3">Peux-tu vérifier le rendu de la carte d’équipe sur 390 px ?</textarea>
+              <span class="kbmsg-count">68 / 8000</span>
+            </div>
+            <div class="kbmsg-warn">Cette session travaille : « Steer » interrompt au prochain pas. « Queue » attend le tour suivant.</div>
+          </div>
+          <div class="dialog-foot"><button class="kbm-btn kbm-btn-sm kbm-btn-ghost">Annuler</button><button class="kbm-btn kbm-btn-sm kbm-btn-primary">Envoyer</button></div>
+        </div>
+        <p class="note">One line of acknowledgement after sending: « Envoyé à Agent Teams — refonte ».</p>
+      </div>
+    </section>
+
+    <!-- ── dark ── -->
+    <section class="panel" data-ds-dark-theme aria-label="Dark">
+      <p class="panel-title">Dark</p>
+      <div class="chat">
+        <div class="bubble"><span data-plain="1">Peux-tu vérifier le rendu de la carte d’équipe sur 390 px ?</span></div>
+
+        <div class="bubble">
+          <div class="kbmsg-recv">
+            <button type="button" class="kbmsg-recv-head" aria-expanded="false">
+              <span class="kbmsg-recv-ico">⇄</span>
+              <span class="kbmsg-recv-title">Received message from « Agent Teams — refonte »</span>
+              <span class="kbmsg-recv-tag">collapsed</span>
+              <span class="kbmsg-chev">⌄</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bubble">
+          <div class="kbmsg-recv">
+            <button type="button" class="kbmsg-recv-head" aria-expanded="true">
+              <span class="kbmsg-recv-ico">⇄</span>
+              <span class="kbmsg-recv-title">Received message from « Rangement du dépôt »</span>
+              <span class="kbmsg-recv-tag">expanded</span>
+              <span class="kbmsg-chev">⌄</span>
+            </button>
+            <div class="kbmsg-recv-body">Le worktree `session-creation-message` contient deux commits non fusionnés. Peux-tu les rapatrier ou me dire ce qu’il faut en faire ?</div>
+            <div class="kbmsg-recv-note">The app asked « Rangement du dépôt » to report back.</div>
+            <div class="kbmsg-recv-foot">
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline">Ouvrir la session</button>
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost">Répondre</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="answer">
+          <p class="anno">Annotation — la carte de proposition s’ouvre dans le fil, sous la réponse qui l’a demandée.</p>
+          <div class="kbmsg-prop">
+            <div class="kbmsg-prop-head">
+              <span class="kbmsg-kicker">Task</span>
+              <input class="kbmsg-prop-title" value="Rapatrier les commits du worktree session-creation-message" aria-label="Title">
+            </div>
+            <dl class="kbmsg-env">
+              <dt>Folder</dt><dd><code>~/kybernos-plugins</code></dd>
+              <dt>Worktree</dt><dd><code>main</code> · clean</dd>
+              <dt>Model</dt><dd>deepseek-official/deepseek-v4.1-flash</dd>
+              <dt>Effort</dt><dd>high</dd>
+              <dt>Permissions</dt><dd>Ask before running</dd>
+            </dl>
+            <div class="kbmsg-prop-actions">
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-primary">Do it here</button>
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline">New session</button>
+              <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline">Send to…</button>
+              <button type="button" class="kbmsg-opt">Options</button>
+              <span class="kbmsg-prop-hint">Esc · ⌘↵</span>
+            </div>
+            <button type="button" class="kbmsg-opt">Don’t ask again for this folder</button>
+          </div>
+          <div class="actions">
+            <button class="icon-btn">↺ Retry</button><span class="sep"></span>
+            <button class="icon-btn">⧉ Copy</button><span class="sep"></span>
+            <button class="icon-btn">⇄ Send this task…</button>
+          </div>
+        </div>
+      </div>
+      <div class="narrow" data-ds-dark-theme>
+        <p class="panel-title" style="margin-bottom:10px">390 px</p>
+        <div class="kbmsg-recv">
+          <button type="button" class="kbmsg-recv-head" aria-expanded="true">
+            <span class="kbmsg-recv-ico">⇄</span>
+            <span class="kbmsg-recv-title">Received message from « Rangement du dépôt »</span>
+            <span class="kbmsg-chev">⌄</span>
+          </button>
+          <div class="kbmsg-recv-body">Le worktree contient deux commits non fusionnés.</div>
+          <div class="kbmsg-recv-foot"><button class="kbm-btn kbm-btn-sm kbm-btn-outline"> Ouvrir la session</button><button class="kbm-btn kbm-btn-sm kbm-btn-ghost">Répondre</button></div>
+        </div>
+        <div class="kbmsg-prop" style="margin-top:10px">
+          <div class="kbmsg-prop-head"><span class="kbmsg-kicker">Task</span><input class="kbmsg-prop-title" value="Rapatrier les commits" aria-label="Title"></div>
+          <dl class="kbmsg-env"><dt>Folder</dt><dd><code>~/kybernos-plugins</code></dd><dt>Permissions</dt><dd>Ask before running</dd></dl>
+          <div class="kbmsg-prop-actions"><button class="kbm-btn kbm-btn-sm kbm-btn-primary">Do it here</button><button class="kbm-btn kbm-btn-sm kbm-btn-outline">Send to…</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

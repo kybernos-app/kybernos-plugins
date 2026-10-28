@@ -1,0 +1,35 @@
+# check-multi-device-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=12434
+
+── 1. the host, through the page ──
+  ✓ status answers on the page's own origin
+  ✓ the root is under the sandbox home, in Documents/Kybernos
+  ✓ a private folder is created
+  ✓ …and it exists on disk
+  ✓ creating it again is refused, not reused
+  ✓ a path-like name is refused and nothing is written
+  ✓ a POST with no Origin (not from the page) is refused
+  ✓ a request carrying a foreign Host is refused (DNS rebinding)
+── 2. Projects › Create ──
+  ✓ the Projects page shows the Create button
+  ✓ Create opens the bundle's dialog
+  ✓ the dialog offers both choices
+  ✓ a name with a slash is refused in the dialog (button disabled, message shown)
+  ✓ cancel closes the dialog
+  ✓ a good name enables the button
+  ✓ the project opens on its Details tab with the folder card
+  ✓ the card says it is a private folder and shows where
+  ✓ the folder exists on disk
+── 3. the Devices tab (the old Advanced block) ──
+  ✓ Details carries no folded Advanced block and no preview card
+  ✓ the Devices tab is listed
+  ✓ it holds the phone card and the two greyed cards
+  ✓ the preview cards are disabled
+  ✓ nothing in the preview is an enabled control
+── 4. the sidebar "add workspace" button ──
+  ✓ the sidebar button opens the same dialog, not the native chooser
+── 5. a narrow window ──
+  ✓ the dialog stays inside a 390 px window
+
+24 ✓  0 ✗
+

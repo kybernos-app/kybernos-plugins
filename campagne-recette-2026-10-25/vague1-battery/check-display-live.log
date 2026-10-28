@@ -1,0 +1,45 @@
+# check-display-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150032
+
+orkspace                       text   11  contrast 0  clipped 0  cut 0  jumps 0
+  page:Agent-Teams                               text   59  contrast 0  clipped 0  cut 0  jumps 0
+  page:Workspaces                                text   66  contrast 2  clipped 0  cut 0  jumps 0
+  page:Creations                                 text  139  contrast 0  clipped 0  cut 0  jumps 0
+  page:Automations                               text  130  contrast 2  clipped 0  cut 0  jumps 0
+  page:Automations.Discover                      text  177  contrast 4  clipped 0  cut 0  jumps 0
+  page:Automations.Team                          text   62  contrast 2  clipped 0  cut 0  jumps 0
+  page:Skills                                    text  396  contrast 4  clipped 0  cut 0  jumps 0
+  page:Skills.Discover                           text  235  contrast 4  clipped 0  cut 0  jumps 0
+  page:Skills.Team                               text   70  contrast 4  clipped 0  cut 0  jumps 0
+  page:Connectors                                text   70  contrast 4  clipped 0  cut 0  jumps 0
+  settings:General                               text  142  contrast 0  clipped 0  cut 0  jumps 0
+  settings:General.help                          text  154  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme                                 text  258  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme.advanced                        text  261  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme.Essentials                      text  261  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme.Glass-and-backgrou              text  202  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme.Colors                          text  214  contrast 0  clipped 4  cut 0  jumps 0
+  settings:Theme.Text-and-shape                  text  184  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme.Animation                       text  190  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme.Icons                           text  545  contrast 1  clipped 0  cut 0  jumps 0
+  settings:Theme.Accessibility                   text  214  contrast 1  clipped 0  cut 0  jumps 0
+  settings:Theme.Sharing                         text  184  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Theme.Gallery                         text  361  contrast 1  clipped 0  cut 0  jumps 0
+  settings:Theme.help                            text  382  contrast 1  clipped 0  cut 0  jumps 0
+  settings:Language                              text  116  contrast 4  clipped 0  cut 0  jumps 0
+  settings:Language.Languages                    text  116  contrast 4  clipped 0  cut 0  jumps 0
+  settings:Language.Settings                     text  110  contrast 4  clipped 0  cut 0  jumps 0
+  settings:Language.help                         text   99  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Memory-Lessons                        text  114  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Memory-Lessons.help                   text  126  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Kybernos                              text  102  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Kybernos.help                         text  112  contrast 0  clipped 0  cut 0  jumps 0
+  settings:About                                 text  112  contrast 0  clipped 0  cut 0  jumps 0
+  settings:About.help                            text  124  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Servers                               text  129  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Servers.help                          text  140  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Auto-Routing                          text  102  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Auto-Routing.help                     text  114  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Web-Search                            text  124  contrast 0  clipped 0  cut 0  jumps 0
+  settings:Web-Search.help                       text  135  contrast 0  clipped 0  cut 0  jumps 0
+

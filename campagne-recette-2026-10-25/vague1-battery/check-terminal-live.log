@@ -1,0 +1,5 @@
+# check-terminal-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=3473
+
+○ inconclusive: the sandbox holds no chat session in the worktree's folder yet (open the app and send a first message from its own chat, or run check-motion-live.mjs once).
+

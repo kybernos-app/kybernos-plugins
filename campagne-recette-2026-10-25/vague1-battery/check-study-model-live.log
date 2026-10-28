@@ -1,0 +1,31 @@
+# check-study-model-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=14937
+
+the row
+  ✓ « Decision Brain » is gone: no row, no select, no word of it on the page
+  ✓ one brain setting, named « Study model »
+  ✓ the first choice is Automatic (the empty value), the last is None
+  ✓ the configured models (grouped by route, searchable) sit between the two
+  ✓ the list has a search field, focused on opening, and typing filters it
+  ✓ a search that matches nothing says so, and shows no item
+  ✓ the host announces the Study model in force (and no list of decision models)
+  ✓ by default the setting is empty: Automatic
+  ✓ the first choice names the model Automatic uses, or says none is connected
+  ✓ the row says what it does, and that a title leaves the machine only when the word rules cannot place it
+  ✓ the closed button shows its selected sentence in full (no ellipsis), inside the row
+  ✓ ...and « Automatic — openrouter/anthropic/claude-sonnet-4.5 », inside the row
+None
+  ✓ None is kept by the host: the setting is « none », nobody watches
+  ✓ the select and the words follow
+  ✓ with None, a title the word rules cannot place is sent to no model
+  ✓ ...and the word rules still pick the icon
+Choose another…
+  ✓ a configured model, picked: kept as the person's choice
+  ✓ the words say it is a pick
+back to Automatic
+  ✓ Automatic again: the setting is empty
+  ✓ ...and the select reads Automatic
+  ✓ the old free typed question is refused, not sent anywhere
+
+21 ✓  0 ✗
+

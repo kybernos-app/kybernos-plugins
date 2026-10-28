@@ -1,0 +1,9 @@
+# check-plugins-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150363
+
+the AI's skill is in the DSH home, and the registry answers the new routes
+  ✓ the plugin-creator skill was seeded under DSH_HOME
+  ✓ the skill is the one the bundle ships
+  ✓ GET /kybernos-registry/drafts answers
+DSH installs a data plugin with its own manager; two drafts wait in the drafts folder
+

@@ -1,0 +1,24 @@
+# check-footer-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150066
+
+Signed out — one button and its menu
+  ✓ the footer is ONE button: « Sign in / Sign up », with the chevron
+  ✓ it announces a menu, closed
+  ✓ DSH's own launcher is not drawn (no size, whatever its classes are called)
+  ✓ a real click on the button opens our menu
+  ✗ the menu: Sign in, Create an account, See plans, Appearance, Settings, Website, Help, Send feedback — in that order  — []
+  ✓ no plan row, team, account, referral, phone and channels or log out
+  ✗ it fits the window and the button says it is open
+  ✓ no native popover (Settings ⌥⌘, / Feedback / Sign in) is on screen
+  ✓ Escape closes it
+  ✓ a click outside closes it
+  ✓ the button toggles it
+  ✗ Signed out: Enter on the focused button opens the menu and the focus enters it, on its first item  — {"at":null,"n":0}
+  ✗ Signed out: ArrowDown moves to the second item  — {"at":null,"n":0}
+  ✗ Signed out: End goes to the last item  — {"at":null,"n":0}
+  ✗ Signed out: ArrowDown on the last item wraps to the first  — {"at":null,"n":0}
+  ✗ Signed out: ArrowUp on the first item wraps to the last  — {"at":null,"n":0}
+  ✗ Signed out: Home goes to the first item  — {"at":null,"n":0}
+  ✗ Signed out: Escape closes the menu and the focus is back on the button  — {"at":null,"n":0}
+  ✗ Signed out: Tab closes the menu too and the focus is back on the button (not left on the page behind)  — {"at":-1,"n":0,"trigger":false,"open":false}
+

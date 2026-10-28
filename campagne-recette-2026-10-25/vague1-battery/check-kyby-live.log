@@ -1,0 +1,20 @@
+# check-kyby-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150027
+
+Kaby — 127.0.0.1:3098 (the sandbox serves this checkout; the account's answers are faked)
+── 1. the row opens a native DSH chat ──
+  ✓ the sidebar has a Kaby row
+  ✓ there is no Cloud Computer row any more
+  ✓ no Kaby chat is remembered yet
+  ✗ the strip appears above the composer of the chat the row opened
+  ✗ the host remembered that chat as Kaby's
+  ✗ it is DSH's own composer, not a box of this page
+  ✗ a folder is already chosen: the person is not asked for one
+  ✗ the chat's workspace is called Kaby, in the list
+  ✗ the new-chat cards (Build, Create, Slides…) are not in Kaby's chat
+  ✗ the page that opened is not the one drawn by the bundle
+── 2. once, and only there ──
+  ✗ a second click opens the same chat, no new one
+── 2a. the sidebar marks the row of what is on screen (V-01) ──
+  ✗ on Kaby's chat the Kaby row is the selected one and no other
+

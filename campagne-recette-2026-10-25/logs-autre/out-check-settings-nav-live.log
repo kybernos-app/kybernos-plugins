@@ -1,0 +1,21 @@
+the groups
+  ✓ General is the first row, then the eight folds in order
+  ✓ nothing is open at first: no group row has a page under it (the page you are on is General)
+  ✓ a header is a div with role="button" (a <button> is taken for « a page was picked » on a phone)
+  ✓ a header is a 40px row at least, like a page
+  ✓ names are 13px, one notch under the shell's 14px
+open, switch, shut
+  ✓ pressing a header opens its group: Theme and Language are under it, and the next row is a header again
+  ✓ the group is remembered as the open one
+  ✓ opening another group shuts the first (one at a time)
+  ✓ System holds the Suite and Built-in plugins, and About closes the list
+  ✓ there is room under the last tab (24px or more)
+  ✓ pressing the open header shuts it: all nine rows again
+the page you are on, and where you land
+  ✓ pressing a page opens it (it is the current row) and its group stays open and drawn stronger
+  ✓ the open page is a soft pill (a fill, weight 600, no bar on the edge) and the open group has no fill, a heavier name and its chevron turned down
+  ✓ shutting the group of the page you are on hides its pages but keeps the header drawn stronger: you still see where you are
+  ✓ landing on a page of a shut group (a deep link, a help pointer: its cell is pressed while hidden) opens that group
+  ✓ the open group survives a reload (the browser remembers it)
+
+ALL GREEN (16 checks)

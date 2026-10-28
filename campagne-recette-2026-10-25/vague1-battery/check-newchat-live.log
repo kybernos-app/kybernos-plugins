@@ -1,0 +1,5 @@
+# check-newchat-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=33952
+
+○ not run: no blank chat with the slider on screen
+

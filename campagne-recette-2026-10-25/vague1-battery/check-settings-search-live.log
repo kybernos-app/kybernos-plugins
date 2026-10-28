@@ -1,0 +1,25 @@
+# check-settings-search-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=87601
+
+what people type
+  ✓ « dark » finds the mode first (« Appearance »), and says it matched a value
+  ✓ the panel says where the setting is shown (Theme › Essentials, also in General; no Appearance page any more)
+  ✓ the menu shows where the matches are: Interface is open with a count, the other groups are shut and quiet
+  ✓ the corner buttons (Open configuration file, Close) stay reachable above the panel
+  ✓ « police » (French) finds Font size first, and the font picker
+  ✓ « clé api » finds every place an API key goes (providers, connectors, the web search engines, the code sandbox)
+  ✓ a typo finds the page and says what it understood
+  ✓ a word nothing matches says so, and offers searches to try
+  ✓ clearing the box hands the menu back: the panel is gone and every group is shut again
+open a result
+  ✓ Enter opens the first result: the General page, the panel and the query are gone
+  ✓ the page scrolled to the row and made it blink
+  ✓ the arrow keys move the selection
+  ✓ pressing a result opens its page, and the group of that page is the open one
+Escape
+  ✓ Escape clears the query first and does not close the Settings
+the index against the pages (every label it promises is on its page)
+  ✗ every row of the index is on its page, word for word, in English (a label the page shows differently must be fixed in KB_SS_INDEX / KB_SS_FR) — ["voice › Read replies aloud as they arrive","voice › Apple say","calls › Calls"]
+
+1 FAILED (15 checks)
+

@@ -1,0 +1,24 @@
+# check-auto-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=12948
+
+the first view
+  ✓ one plain sentence, one switch, the choice of models
+  ✓ « All models » is what is chosen to begin with
+  ✓ no developer wording: no « scope: session », no « Whitelist », no « Classifier » in view
+  ✓ the chat fallback, the classifier and the health are folded
+  ✓ ...and one click away
+the choice of models
+  ✓ « Free models » is written and read back
+  ✓ « My list » shows the typed list and its field
+  ✓ the field offers the models of the profile
+  ✓ A3-24: « model-only » is refused, with a reason under the field
+  ✓ A3-24: « a b/c d » is refused, with a reason under the field
+  ✓ A3-24: « ../../etc/passwd » is refused, with a reason under the field
+  ✓ A3-24: « <script>/x » is refused, with a reason under the field
+  ✓ A3-24: « 🙂/🙂 » is refused, with a reason under the field
+  ✓ ...and nothing was saved
+  ✓ a model of the profile is accepted as a chip
+  ✓ (the scope and the list are put back)
+
+✓ 16 checks, all green
+

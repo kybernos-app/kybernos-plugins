@@ -1,0 +1,324 @@
+check-all-live: 99 checks on KB_HOST=127.0.0.1:3098, 150s each → campagne-recette-2026-10-25/vague1-battery
+  check-accent-live.mjs … pass (28201 ms)
+  check-account-menu-live.mjs … fail (9005 ms)
+      ✓ no text runs outside the menu
+    
+    10 checks passed, 1 failed:
+     - the menu has its rows (spaces, actions, items)
+  check-animations-live.mjs … pass (14197 ms)
+  check-auto-live.mjs … pass (12948 ms)
+  check-automation-load-live.mjs … timeout (150008 ms)
+      ✗ the held ones are still due, with their own due time (late, not lost) — ["2026-10-25T07:00:00.000Z","2026-10-25T07:00:00.000Z","2026-10-25T07:00:00.000Z"]
+    
+    ── lighter runs: the level is forced, the machine is not made busy for real ──
+      ✓ the sandbox restarts with the level forced to very busy
+  check-automations-board-live.mjs … fail (112892 ms)
+      ✗ no console error (the requests this check refused on purpose aside) — ["[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie","[session-controller] control stream failed: RemoteError: typert gateway: session/control: active Service \"sessionController\" is unavailable\n    at RemoteStreamMuxClient.open (http://127.0.0.1:3098/plugins/??@deepseek-ai/dsh-api-gateway/clie"]
+      · refused on purpose, seen as console errors: 0
+    
+    11 FAILED, 67 passed
+  check-automations-discover-live.mjs … fail (84249 ms)
+      ✓ ...and so does Sessions (the runs, their graph and the logs)
+      ✓ no script error from the page
+    
+    64 passed, 11 failed
+  check-automations-list-live.mjs … fail (30608 ms)
+      ✗ every row's cells start where their header does (it was 100 px off) — {"head":null,"rows":[]}
+      ✗ the check stopped: "undefined" is not valid JSON
+    
+    4 FAILED, 0 passed
+  check-automations-team-live.mjs … fail (61906 ms)
+    TypeError: Cannot read properties of undefined (reading 'x')
+        at file:///Users/miled/kybernos-plugins/scripts/check-automations-team-live.mjs:249:80
+    
+    Node.js v26.7.0
+  check-call-brain-live.mjs … inconclusive (63 ms)
+    ○ inconclusive: the sandbox already has a call setup (/Users/miled/.kybernos-sandbox/kybernos-plugins/home/.dsh/kybernos/livekit.env or /Users/miled/.kybernos-sandbox/kybernos-plugins/home/.dsh/kybernos/appel-venv); refusing to overwrite it.
+  check-call-engine-live.mjs … fail (59 ms)
+      }
+    }
+    
+    Node.js v26.7.0
+  check-call-live.mjs … fail (79944 ms)
+    4. French
+      ✗ the panel speaks French when the language is French — null
+    
+    ✗ kybernos-call live: 4 passed, 8 failed
+  check-call-team-live.mjs … fail (54466 ms)
+      ✗ the card asked for a token
+      ✗ Cannot read properties of undefined (reading 'label')
+    
+    ✗ kybernos-call team live: 0 passed, 6 failed
+  check-call-ui-live.mjs … timeout (150022 ms)
+      ✗ and one at the top explains the page
+      ✓ the defaults: listen with Groq, a face when one is set
+      ✗ choosing Spanish is saved
+      ✗ a preset fills the slots at once: no face, an Edge voice
+  check-call-voice-live.mjs … pass (2467 ms)
+  check-cardface-live.mjs … fail (59685 ms)
+      ✓ kybernos.app catalogue cards: category and version on the grey line, the number of agents as a figure
+    
+    32 checks passed, 1 failed:
+     - Workspace page, Details: the preview tile is the same tile at 56 px
+  check-cards-live.mjs … pass (44326 ms)
+  check-changes-live.mjs … timeout (150008 ms)
+      ✓ a conflict — primary none
+      ✗ files from other chats only — state "elsewhere", tone info, chip "Nothing to save here" — {"w":null,"c":null}
+      ✗ files from other chats only — steps done/done/done/done — []
+      ✗ files from other chats only — primary none, also isolate — {"primary":[],"second":[]}
+  check-cloud-menu-live.mjs … pass (9164 ms)
+  check-connections-live.mjs … pass (43191 ms)
+  check-connectors-live.mjs … pass (12629 ms)
+  check-connectors-matrix-live.mjs … timeout (150007 ms)
+    | API | catfact | ok | Cat Fact API · 4 operations (3 reads) · base https://catfact.ninja · 3/3 tools registered · reachable · HTTP 200 |
+    | API | httpbin | ko | read: swagger2_unsupported |
+    | API | github | ko | read: spec_too_large |
+    | API | open-meteo | ko | read: spec_http 404 |
+  check-creations-search-live.mjs … pass (21301 ms)
+  check-creator-draft-live.mjs … fail (21538 ms)
+      ✓ the chat is a Creator-mode chat
+      ✓ nothing was sent: no message in the chat
+    
+    4 ✓  2 ✗
+  check-dashboards-live.mjs … fail (34813 ms)
+    ── 5. leaving things as they were ──
+      ✓ a narrow window does not scroll sideways
+    
+    31 passed, 3 failed
+  check-dead-clicks-live.mjs … timeout (150022 ms)
+    · Creations … 19 pressed in 31 s: 18 ok, 1 to fix; 2 skipped, 0 covered, page reopened 2×
+        DEAD   Documents 124  <button class="kb-type">
+    · Automations … 2 pressed in 3 s: 2 ok, 0 to fix; 2 skipped, 0 covered, page reopened 0×
+    · Skills …
+  check-display-live.mjs … timeout (150032 ms)
+      settings:Auto-Routing                          text  102  contrast 0  clipped 0  cut 0  jumps 0
+      settings:Auto-Routing.help                     text  114  contrast 0  clipped 0  cut 0  jumps 0
+      settings:Web-Search                            text  124  contrast 0  clipped 0  cut 0  jumps 0
+      settings:Web-Search.help                       text  135  contrast 0  clipped 0  cut 0  jumps 0
+  check-flow-dark-live.mjs … fail (75966 ms)
+    FAIL style auto in the real dark theme (the app's own toggle): a dark canvas and card, ink that reads | [false,{"theme":"dark","cv":0.016867632337590244,"card":0.02534093673860733,"ink":0.9547598590513481}]
+    ok   style jy in the real dark theme (the app's own toggle): a dark canvas and card, ink that reads
+    
+    1 check(s) FAILED
+  check-follow-chat-live.mjs … fail (45515 ms)
+        at async say (file:///Users/miled/kybernos-plugins/scripts/check-follow-chat-live.mjs:122:5)
+        at async file:///Users/miled/kybernos-plugins/scripts/check-follow-chat-live.mjs:149:14
+    
+    Node.js v26.7.0
+  check-footer-live.mjs … timeout (150066 ms)
+      ✗ Signed out: ArrowUp on the first item wraps to the last  — {"at":null,"n":0}
+      ✗ Signed out: Home goes to the first item  — {"at":null,"n":0}
+      ✗ Signed out: Escape closes the menu and the focus is back on the button  — {"at":null,"n":0}
+      ✗ Signed out: Tab closes the menu too and the focus is back on the button (not left on the page behind)  — {"at":-1,"n":0,"trigger":false,"open":false}
+  check-free-llms-live.mjs … pass (15341 ms)
+  check-gate-live.mjs … pass (654 ms)
+  check-help-dock-live.mjs … pass (23582 ms)
+  check-help-intro-live.mjs … fail (132841 ms)
+      ✓ the Phone and channels animation speaks French
+      ✓ the card’s link says « Lire l’article » and goes to the French article
+    
+    62 ✓  1 ✗
+  check-help-live.mjs … pass (38072 ms)
+  check-hit-targets-live.mjs … fail (113223 ms)
+      ✗ none of our own controls is under 24 px without an invisible hit area — ["settings Theme div[theme-zone].kbth-stz.kbth-st-title 108x22 px","settings Theme div[theme-zone].kbth-stz.kbth-st-reply1 499x18 px","settings Theme div[theme-zone].kbth-stz.kbth-st-think 125x20 px","settings Theme div[theme-zone].kbth-stz.kbth-st-ph 490x22 px","settings Commands button.kbsl-link.kbsl-jsonbtn 128x15 px","settings Phone and channels button[phone-remote-switch].kbpc-sw 36x20 px"]
+      ✓ nothing of ours is left on the accepted list
+    
+    1 check(s) failed
+  check-icons-live.mjs … pass (17656 ms)
+  check-join-live.mjs … fail (62980 ms)
+      ✓ French: the dialog says its intro and its button in French
+      ✓ none of the invitations' tokens is in the sandbox's log
+    
+    51 checks passed, 2 FAILED
+  check-kaby-customisation-live.mjs … fail (57224 ms)
+      ✓ a body that is not JSON is 400 (the origin guard itself is played by test-host.mjs: a page cannot forge an Origin)
+      ✓ the profile survives a reload (the file is on disk)
+    
+    31 passed, 14 failed
+  check-kyby-live.mjs … timeout (150027 ms)
+    ── 2. once, and only there ──
+      ✗ a second click opens the same chat, no new one
+    ── 2a. the sidebar marks the row of what is on screen (V-01) ──
+      ✗ on Kaby's chat the Kaby row is the selected one and no other
+  check-language-creation-live.mjs … fail (117263 ms)
+      ✓ …and nothing of the other language
+      ✓ the Atlas help dialog speaks the language
+    
+    32 ✓  32 ✗
+  check-language-disk-live.mjs … timeout (155056 ms)
+      ✗ … with a tooltip explaining what this folder is for — null
+      ✓ the browser did query the host (read-only, no write)
+    
+    ── translating writes the file ──
+  check-language-job-live.mjs … inconclusive (16821 ms)
+    ✗ the Language page lists Spanish
+    ○ inconclusive: the page offers no model to translate with (profile without models)
+  check-language-live.mjs … fail (51878 ms)
+      ✗ the test itself stopped: SyntaxError: "undefined" is not valid JSON ⏎     at JSON.parse (<anonymous>) ⏎     at file:///Users/miled/kybernos-plugins/scripts/check-language-live.mjs:105:22
+      ✓ no leftover: the language STORED by DSH is back to "en"
+    
+    3 ✓  12 ✗
+  check-language-run-live.mjs … timeout (152846 ms)
+    ── A. a language whose texts are test marks ──
+  check-memory-live.mjs … fail (101980 ms)
+      ✗ phone, Memories tab: no control sits on another one, every button stays in its pill, no sideways scroll — {"drawn":false,"o":{"missing":true}}
+      ✗ phone, Lessons tab: no control sits on another one, every button stays in its pill, no sideways scroll — {"drawn":false,"o":{"missing":true}}
+    
+    7 FAILED (24 checks)
+  check-menu-density-live.mjs … pass (10568 ms)
+  check-menu-icons-live.mjs … pass (25714 ms)
+  check-miniapps-panels-live.mjs … fail (52821 ms)
+      ✓ a page that only looks like Skills (.kbs-root with a .kbs-head) gets none
+      ✓ no script error was thrown during the run
+    
+    7 checks passed, 8 FAILED
+  check-mobile-live.mjs … inconclusive (4081 ms)
+    ○ inconclusive: the DSH shell is not on the page
+  check-mobile-remote-live.mjs … pass (51565 ms)
+  check-model-scores-live.mjs … pass (13426 ms)
+  check-modeleur-live.mjs … fail (45373 ms)
+      ✗ ...and the text is filed as an annotation — {"before":0,"after":0}
+      ✓ the annotations are cleared again
+    
+    8 FAILED, 2 passed
+  check-models-live.mjs … fail (37870 ms)
+      ✓ A3-32: the card shows « key missing » and says what to do next
+      ✓ (the provider it added is deleted again)
+    
+    ✗ 1 failed, 19 passed
+  check-models-provider-live.mjs … pass (21164 ms)
+  check-motion-live.mjs … inconclusive (67464 ms)
+      ✓ the host answers on /kybernos-motion/state
+      ✓ a scene is saved through the real route, inside the allowed folder
+      ✓ the file on disk is a motion doc with its first revision
+    ○ inconclusive: no chat session is mounted in this instance (the first message made none: this instance has no model to answer it), so there is no right sidebar for the Motion tab. Nothing below was measured.
+  check-multi-device-live.mjs … pass (12434 ms)
+  check-newchat-live.mjs … inconclusive (33952 ms)
+    ○ not run: no blank chat with the slider on screen
+  check-ollama-search-live.mjs … pass (9854 ms)
+  check-onboarding-live.mjs … timeout (152902 ms)
+    FAIL the wizard speaks English
+    FAIL the run was interrupted (SIGTERM)
+    
+    5 check(s) FAILED
+  check-opencode-probe-live.mjs … pass (10436 ms)
+  check-pages-live.mjs … inconclusive (34351 ms)
+    creations
+    ○ inconclusive: the Creations page did not open
+  check-phone-apps-live.mjs … timeout (150038 ms)
+      ✗ Kaby's card opens Kaby's own page — "about:blank"
+      ✗ that page has its own manifest and its own name
+      ✓ the address is clean (no ?install=1 left)
+      ✗ Kaby installs from its own page
+  check-phone-channels-live.mjs … pass (28364 ms)
+  check-phone-width-live.mjs … timeout (150075 ms)
+    Settings pages at 390 px: switches, radios, sideways scroll
+      ○ General did not open
+      ○ About did not open
+  check-plugins-live.mjs … timeout (150363 ms)
+      ✓ the plugin-creator skill was seeded under DSH_HOME
+      ✓ the skill is the one the bundle ships
+      ✓ GET /kybernos-registry/drafts answers
+    DSH installs a data plugin with its own manager; two drafts wait in the drafts folder
+  check-quiz-live.mjs … fail (52578 ms)
+      ✗ the mini-app button is there
+      ✗ the check stopped: "undefined" is not valid JSON
+    
+    4 FAILED, 1 passed
+  check-registry-live.mjs … timeout (150492 ms)
+      ✓ GET /kybernos/domains answers the shipped packs
+      ✓ the point kybernos/core#domain-pack is defined, instruction data
+      ✓ nothing of ours is listed as a plugin yet
+    DSH installs a data plugin with its own manager
+  check-remote-control-live.mjs … pass (28093 ms)
+  check-servers-live.mjs … inconclusive (4133 ms)
+    ○ inconclusive: the sandbox already has servers (kybernos-cloud, live-mobile); empty its servers.json first
+  check-session-msg-live.mjs … inconclusive (161 ms)
+    the session list answered 503
+  check-settings-frame-live.mjs … pass (81098 ms)
+  check-settings-layout-live.mjs … pass (92139 ms)
+  check-settings-nav-i18n-live.mjs … timeout (150044 ms)
+      ✓ nav entry count is stable across a language switch
+      ✓ nav order is identical in the test language (entry by entry): the cells are read by position, not by their translated title
+      ✓ nav order returns to English unchanged
+      ✓ nav labels return to English unchanged (no French, no test language left)
+  check-settings-nav-live.mjs … pass (26653 ms)
+  check-settings-search-live.mjs … fail (87601 ms)
+    the index against the pages (every label it promises is on its page)
+      ✗ every row of the index is on its page, word for word, in English (a label the page shows differently must be fixed in KB_SS_INDEX / KB_SS_FR) — ["voice › Read replies aloud as they arrive","voice › Apple say","calls › Calls"]
+    
+    1 FAILED (15 checks)
+  check-skills-codes-live.mjs … pass (68610 ms)
+  check-skills-detail-live.mjs … fail (66120 ms)
+        at async open (file:///Users/miled/kybernos-plugins/scripts/check-skills-detail-live.mjs:118:5)
+        at async file:///Users/miled/kybernos-plugins/scripts/check-skills-detail-live.mjs:121:3
+    
+    Node.js v26.7.0
+  check-skills-featured-live.mjs … timeout (150086 ms)
+      ✗ on hover the actions show  — "0"
+      ✓ a card that is not installed offers Install
+      ✓ Install opens the confirmation before anything is written
+    Every card and every row, by a real click
+  check-skills-learned-auto-live.mjs … fail (95165 ms)
+      ✓ the journal still verifies after all of it, and says the person stopped it
+      ✓ the page raised no error
+    
+    21 ✓, 5 ✗
+  check-skills-learned-live.mjs … fail (43607 ms)
+      ✓ and the suggestion is back in the list
+      ✓ the page raised no error
+    
+    31 ✓, 1 ✗
+  check-skills-learned-v2-live.mjs … fail (49885 ms)
+        at join (node:path:1339:7)
+        at file:///Users/miled/kybernos-plugins/scripts/check-skills-learned-v2-live.mjs:98:70
+    
+    3 ✓, 3 ✗
+  check-skills-source-keys-live.mjs … pass (16440 ms)
+  check-skills-team-live.mjs … pass (41360 ms)
+  check-slash-live.mjs … fail (46006 ms)
+      ✓ Settings closes with « Back to workspace »
+      ✗ the check stopped: "undefined" is not valid JSON
+    
+    21 ✓  5 ✗
+  check-slides-live.mjs … fail (46028 ms)
+      ✗ ...a second double-click on the same field leaves exactly one editor — 0
+      ✗ the check stopped: "undefined" is not valid JSON
+    
+    8 FAILED, 0 passed
+  check-study-model-live.mjs … pass (14937 ms)
+  check-suggested-live.mjs … fail (24440 ms)
+    ok   « Not now » silences one pulse and keeps the app listed
+    ok   on Discover the same two apps head one flat list, with no section titles
+    
+    2 check(s) FAILED
+  check-suggested-pages-live.mjs … fail (39396 ms)
+    ok   Learn: asked again, in another language, it is found and not doubled
+    ok   Learn: it is a normal row of Automations, switched on
+    
+    2 check(s) FAILED
+  check-summary-live.mjs … fail (92398 ms)
+      ✗ the pane does not scroll sideways
+      ✗ a very long file name is cut, not overflowing
+    
+    SUMMARY LIVE — 22 checks, 21 failure(s)
+  check-team-folder-live.mjs … timeout (150110 ms)
+    
+  check-team-live.mjs … inconclusive (86460 ms)
+    Inconclusive: the GUI did not render — it says: HARNESS
+    Loading plugins…
+  check-terminal-live.mjs … inconclusive (3473 ms)
+    ○ inconclusive: the sandbox holds no chat session in the worktree's folder yet (open the app and send a first message from its own chat, or run check-motion-live.mjs once).
+  check-theme-live.mjs … timeout (155516 ms)
+      ✗ a browser without stored state boots back to the native tokens — ["--dsw-alias-brand-primary"]
+      ✓ no [kybernos-theme] console error or exception during this section
+    
+    ── Accent: dots, hex field, invalid input, reset ──
+  check-theme-studio-live.mjs … inconclusive (62959 ms)
+    ○ not run: Chrome did not start (port 9363)
+  check-usage-live.mjs … fail (64534 ms)
+      ✓ with no counters yet the chip stays absent instead of showing an empty pill
+      ✓ no console error from the plugin
+    
+    21 passed, 1 failed
+  check-websearch-live.mjs … 

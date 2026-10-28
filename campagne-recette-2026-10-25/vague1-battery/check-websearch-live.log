@@ -1,0 +1,38 @@
+# check-websearch-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=44909
+
+host
+  ✓ the provider is registered with the web seam
+  ✓ DSH is pinned to this provider by the profile
+the page
+  ✓ the chain lists the engines in order, keyless first, and is not all switched off
+  ✓ the others are folded under « More engines »
+  ✓ 15 engines once unfolded, the person's own address first among the folded
+  ✓ free engines say No key, keyed ones Key, address ones Address
+  ✓ a keyed engine with no key says so
+  ✓ the encyclopedia is drawn as off exactly when it is off
+  ✓ the page has no horizontal overflow
+the default engine, and an address that cannot be saved (V-35, A3-26)
+  ✓ the page names the default engine under its title, and marks that engine's row
+  ✓ « not a url » cannot be saved, and the page says what an address looks like
+  ✓ « javascript:alert(1) » cannot be saved, and the page says what an address looks like
+  ✓ « ftp://x.example » cannot be saved, and the page says what an address looks like
+  ✓ « 127.0.0.1:8080 » cannot be saved, and the page says what an address looks like
+a switch
+  ✓ the switch writes the setting on the host
+  ✓ and switches back
+a key
+  ✓ opening a keyed engine shows a password field
+  ✓ the key is stored and the engine is configured
+  ✓ the state never contains the key
+  ✓ the page says it is stored and no longer holds what was typed
+  ✓ the key can be removed
+a test, and a search the way an agent does it
+  ✓ Test answers with a count and a time
+  ✓ a search through DSH's web seam comes back with results
+  ✓ the page shows which engine answered last
+sites
+  ✓ the filter is saved, normalised
+
+ALL GREEN — 25 checks
+

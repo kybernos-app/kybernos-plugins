@@ -79,7 +79,10 @@ ok('the date is rendered beside the time', /const day = \(ms\) =>/.test(src) && 
 ok('the result column exists', src.includes("colResult: ['Résultat', 'Result']") && src.includes("L('colResult')"))
 ok('a row never cuts the model name', src.includes('.kblg-table td.kblg-what{white-space:normal;overflow-wrap:anywhere}'))
 ok('the table shows 7 columns', (src.match(/h\('th'/g) || []).length === 7)
-ok('the result is read from the host record, not guessed', /const result = \(e\) => \{[\s\S]{0,400}e\.status[\s\S]{0,200}e\.ok[\s\S]{0,200}retry/.test(src))
+{
+  const body = (src.match(/const result = \(e\) => \{([\s\S]*?)\n      \}/) || [null, ''])[1]
+  ok('the result is read from the host record, not guessed', body.includes('e.status') && body.includes('e.ok') && body.includes('retry'))
+}
 console.log((fails.length === 0 ? '✓ ' : '✗ ') + pass + ' passed' + (fails.length === 0 ? '' : ', ' + fails.length + ' failed'))
 for (const f of fails) console.log('   ✗ ' + f)
 process.exit(fails.length === 0 ? 0 : 1)

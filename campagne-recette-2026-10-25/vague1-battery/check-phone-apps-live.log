@@ -1,0 +1,19 @@
+# check-phone-apps-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150038
+
+Android: the pairing, then the offer
+  ✗ the computer shows a pairing link — {"__err":"timeout evaluate"}
+  ✗ the phone reaches the 4-digit check
+  ✗ the computer shows the same 4 digits
+  ✗ after approval the phone offers the install, it does not run DSH yet — null
+  ✗ two cards: the remote and Kaby, each with the server-drawn icon and an install button — []
+  ✗ the page title says the phone is linked, in the phone's language — null
+  ✗ the install screen is the gate, DSH is hidden behind it
+  ✗ no manifest event yet: the install button shows Chrome's menu instead
+  ✗ with the browser's prompt it is used, and the card says it is installed
+  ✗ the way on is now « continue » — null
+  ✗ Kaby's card opens Kaby's own page — "about:blank"
+  ✗ that page has its own manifest and its own name
+  ✓ the address is clean (no ?install=1 left)
+  ✗ Kaby installs from its own page
+

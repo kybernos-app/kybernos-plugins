@@ -1,0 +1,15 @@
+# check-ollama-search-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=9854
+
+  ✓ Settings open
+  ✓ the page opens
+  ✓ before any search, the page says where its list comes from
+  ✓ the list has the recommended models
+  ✓ the button says what it does
+  ✓ the search ends with an answer about the catalogue
+  ✓ the three real calls are named, in order: installed models, this machine, the catalogue
+  ✓ the answer is honest: no key embedded means « not active yet », never a made-up « up to date »
+  ✓ the list is still there, with its provenance
+
+9 ✓  0 ✗
+

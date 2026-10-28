@@ -1,0 +1,13 @@
+# check-quiz-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=52578
+
+  ✓ Creations opens
+  ✗ the quiz is listed
+  ✗ ...and opens
+
+── A4-28 · the App button and the player ──
+  ✗ the mini-app button is there
+  ✗ the check stopped: "undefined" is not valid JSON
+
+4 FAILED, 1 passed
+

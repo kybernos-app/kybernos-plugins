@@ -1,0 +1,21 @@
+# check-settings-layout-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=92139
+
+R-A3-02 · Ollama local models: the dot of a tile stays beside the first line of its text
+  ✓ the machine tile and the engine tile both carry a dot and a name
+  ✓ « Apple M3 Ultra · 192 GB RAM »: the dot is left of the first line of the text, not above it
+  ✓ « Ollama 0.40.5 »: the dot is left of the first line of the text, not above it
+  ✓ the long chip name does wrap in the tile (the case the audit measured)
+C-06 · General: the open row is not the hovered row, and the switches have a heading
+  ✓ the pointer really is over another row of the nav (« Auto Routing »)
+  ✓ the open row is marked — a bar on its edge, or a clearly stronger fill than the hovered row
+  ✓ a heading « Behaviour » sits above the sentence that introduces the switches, below the Onboarding row
+  ✓ it reads as a heading (a title tag, larger than the 13 px sentences)
+R-A5-04 · Agent presets: no inner sideways scroll and no cut label, at 390 px and at 1400 px
+  ○ Agent presets did not open at 390
+  ✓ 1400 px: the options pane does not scroll sideways
+  ✓ 1400 px: the label of the animated mock shows in full (« Create with the agent » was cut)
+  ✓ 1400 px: the buttons stay inside their row and the progress bar ends before them
+
+11 ✓  0 ✗
+

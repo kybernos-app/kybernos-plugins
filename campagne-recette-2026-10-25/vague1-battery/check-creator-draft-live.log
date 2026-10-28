@@ -1,0 +1,12 @@
+# check-creator-draft-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=21538
+
+  ✓ Settings open
+  ✓ the Agent presets page has the button
+  ✗ Settings close and a chat is open
+  ✗ the composer already holds the brief — ""
+  ✓ the chat is a Creator-mode chat
+  ✓ nothing was sent: no message in the chat
+
+4 ✓  2 ✗
+

@@ -1,0 +1,5 @@
+# check-servers-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=4133
+
+○ inconclusive: the sandbox already has servers (kybernos-cloud, live-mobile); empty its servers.json first
+

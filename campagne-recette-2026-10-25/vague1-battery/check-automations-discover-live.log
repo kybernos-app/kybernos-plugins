@@ -1,0 +1,72 @@
+# check-automations-discover-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=84249
+
+f a card changes nothing by a click on the card itself, and opening a card opens its page
+
+── Workflow ──
+  ✗ the detail has two tabs, Workflow and Sessions: no Webhook tab, no Journal tab
+  ✓ the Workflow opens on the cards: the trigger, the three steps and the record of the run
+  ✓ Flow, Text and Code are three quiet icons in the toolbar of the canvas, Flow first and chosen
+  ✓ the title of every card stays inside it (two lines at most, nothing spills)
+  ✓ a click opens the panel: type, whole instruction, how it runs, the guard mark
+  ✓ Next walks to the following step, Previous back
+  ✓ the panel closes
+
+── Canvas: styles, cards that move, the webhook ──
+  ✓ a button names the style in use, and it follows the app by default
+  ✓ the style menu offers nine styles
+  ✓ picking Ledger restyles the canvas and the choice is remembered
+  ✓ a card follows the mouse when it is dragged, and the drop opens no panel
+  ✓ the arrangement is kept for this automation, in this browser
+  ✓ « Tidy up » appears and puts the cards back, and the kept arrangement goes
+  ✓ a workflow with no webhook offers to add one in the schedule's panel
+  ✓ adding it draws a Webhook card, opens its settings and keeps the address hidden
+  ✓ Reveal shows the address, Hide hides it again
+  ✓ revoking removes the card and the settings
+
+── What the runs used: the model, the skills, the connectors, the Agent Team ──
+  ✓ with no journal read, the strip says what it will show and the cards carry no model
+  ✓ the strip lists, from the runs read, the model, the Agent Team with its models, the skills, the connectors with their logos and the tools
+  ✓ a step card carries the model, and the skill its text names
+  ✓ the panel of a step says what it uses: the model (and whose), the Agent Team, what the step names
+  ✓ in Sessions, Who ran adds the Agent Team, the skills, the connectors and the tools of that run
+  ✓ ...and the graph says what each call stands for: a tool, a connector, a teammate
+
+── Lessons, in Sessions ──
+  ✓ the stable automation says it is stable and offers « Create skill »
+  ✓ the click writes the skill and the card says so
+  ✓ ...the file is in the skills folder, for the person only, with the steps and nothing else of the automation
+  ✓ ...and what was written is recorded once
+  ✓ an automation that failed says how far it is from stable (none in a row)
+  ✓ ...and the Sessions tab says the journals were not read rather than inventing a duration
+
+── Workspace of the runs ──
+  ✓ the detail says where the runs land: the dedicated workspace when nothing is chosen
+  ✓ the form has a Workspace field: the dedicated workspace first, then the person's own
+  ✓ ...with at least one workspace of the person to choose
+  ✓ saving stores the id of the workspace and nothing else of it
+  ✓ the detail names the workspace
+  ✗ « Run now » starts a real session in the chosen workspace (not in the dedicated folder) — {"dir1":null}
+  ✓ choosing the dedicated workspace again clears the choice
+  ✗ with no choice a real run lands in the dedicated « Automations » workspace — {"dir2":null}
+  ✗ ...a folder the host made under the DSH home, which the engine adopted as a workspace
+
+── Settings › Automations ──
+  ✓ Settings opens
+  ✓ the Automations page of the settings has the switch and the four choices
+  ✓ a switch and a choice are saved in the file the host reads
+  ✓ ...and put back
+
+── Phone width ──
+  ✓ the Settings are closed and the Automations page is open again
+  ✓ ...and is still there at 390 px, as wide as the phone
+  ✓ Discover shows its eleven templates at 390 px without scrolling sideways
+  ✓ a template page does not scroll sideways
+  ✓ the Cards do not scroll sideways
+  ✓ an automation opens on its Workflow at 390 px: the canvas is there and the page does not scroll sideways
+  ✓ ...a card opens its panel under the canvas, still without scrolling sideways
+  ✓ ...and so does Sessions (the runs, their graph and the logs)
+  ✓ no script error from the page
+
+64 passed, 11 failed
+

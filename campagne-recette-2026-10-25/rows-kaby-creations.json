@@ -1,0 +1,20 @@
+{
+  "results": [
+    {
+      "t": "Kaby",
+      "c": "clicked",
+      "s": "{\"label\":\"Kaby\",\"heads\":[],\"mainTxt\":\"ybernos | New chat | with Kyber Creator Expert | Kaby | Sales and stock | Shop team | 14 | Workspaces | 12 | Creations | 500+ | Automations | 11 | Skills | 17 | Connectors | Workspaces | Pinned | Audi\",\"datakb\":[]}"
+    },
+    {
+      "t": "Creations",
+      "c": "clicked",
+      "s": "{\"label\":\"Creations\",\"heads\":[],\"mainTxt\":\"ybernos | New chat | with Kyber Creator Expert | Kaby | Sales and stock | Shop team | 14 | Workspaces | 12 | Creations | 500+ | Automations | 11 | Skills | 17 | Connectors | Workspaces | Pinned | Audi\",\"datakb\":[]}"
+    },
+    {
+      "t": "Connectors",
+      "c": "clicked",
+      "s": "{\"label\":\"Connectors\",\"heads\":[\"Connectors\"],\"mainTxt\":\"ybernos | New chat | with Kyber Creator Expert | Kaby | Sales and stock | Shop team | 14 | Workspaces | 12 | Creations | 500+ | Automations | 11 | Skills | 17 | Connectors | Workspaces | Pinned | Audi\",\"datakb\":[]}"
+    }
+  ],
+  "errs": []
+}

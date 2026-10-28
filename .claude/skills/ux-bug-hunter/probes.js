@@ -270,6 +270,28 @@
       }
       return w >= 24 && h >= 24
     }
+    // A stacked pair (a reorder arrow over another) is one target of 24 px together: WCAG 2.5.8
+    // counts the group when its members sit flush against each other and the group reaches 24 px
+    // on the side each one is short of. Each half is then hit in its own share of the group.
+    const stacked = (el, r) => {
+      const p = el.parentElement
+      if (p === null) return false
+      const kids = Array.from(p.children).filter((k) => k.matches && k.matches(INTERACTIVE))
+      if (kids.length < 2 || kids.length > 4) return false
+      const boxes = kids.map((k) => k.getBoundingClientRect()).sort((a, b) => a.top - b.top || a.left - b.left)
+      const first = boxes[0], last = boxes[boxes.length - 1]
+      const w = Math.max(...boxes.map((b) => b.width))
+      const h = last.bottom - first.top
+      // The group must reach 24 px on the side this control is short of, and be flush (no gap a
+      // finger could fall through: 4 px of slack, not a 14 px hole).
+      const flush = boxes.every((b, i) => i === 0 || Math.max(b.top - boxes[i - 1].bottom, b.left - boxes[i - 1].right) <= 4)
+      if (!flush) return false
+      const shortW = r.width < 24, shortH = r.height < 24
+      if (shortW && w < 24 && !(shortH && h >= 24)) return false
+      if (shortH && h < 24 && !(shortW && w >= 24)) return false
+      // Only a compact pair is a pair: a row of buttons in a toolbar is not.
+      return boxes.length <= 2 && w <= 40
+    }
     const inSentence = (el) => {
       const p = el.parentElement
       return p !== null && /^(P|LI|SPAN|DIV|SMALL|LABEL)$/.test(p.tagName) && norm(p.textContent).replace(norm(el.textContent), '').length >= 12 && /^inline/.test(getComputedStyle(el).display)
@@ -283,7 +305,7 @@
       if (getComputedStyle(el).display === 'inline' && el.tagName === 'A') continue
       const name = label(el)
       const boxed = el.matches('input[type="checkbox"],input[type="radio"]') && el.labels && el.labels.length > 0
-      if ((r.width < 24 || r.height < 24) && !boxed && !reachable(el, r) && !textLink(el, r) && !inSentence(el)) add('tiny-target', 'ux', el, name, Math.round(r.width) + 'x' + Math.round(r.height) + ' px (24 is the floor, 32 comfortable)')
+      if ((r.width < 24 || r.height < 24) && !boxed && !reachable(el, r) && !textLink(el, r) && !inSentence(el) && !stacked(el, r)) add('tiny-target', 'ux', el, name, Math.round(r.width) + 'x' + Math.round(r.height) + ' px (24 is the floor, 32 comfortable)')
       if (name === '' && el.matches('button,[role="button"],a[href],[role="tab"],[role="menuitem"]') && el.querySelector('img[alt]:not([alt=""])') === null) add('no-name', 'ux', el, '', 'an icon-only control with no text, aria-label or title')
     }
     for (const el of shown.filter((e) => e.matches(INTERACTIVE)).slice(0, 400)) {

@@ -1,0 +1,20 @@
+# check-gate-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=654
+
+gate -> real dsh on 127.0.0.1:3098
+  ok   control: DSH alone answers 401 without its own cookie  (got 401)
+  ok   without a session the gate redirects to its sign-in page
+  ok   a wrong password is refused
+  ok   the right password is accepted
+  ok   the gate hands over its cookie AND a DSH cookie  (kybernos_gate, dsh-auth-mH7DLb0fXcaaSYiqCYfTU_60mMGQb9qcOlsme-87L7c)
+  ok   the page opens through the gate with NO DSH sign-in page  (status 200)
+  ok   an asset of the page loads through the gate  (/assets/index-CN7NIWNw.js -> 200)
+  ok   DSH's cookie alone does not open the gate
+  ok   control: DSH's /api refuses a call without its cookie  (status 401)
+  ok   through the gate, a call without a session is refused before DSH  (status 401)
+  ok   through the gate, a call with the session reaches DSH's /api and is not an auth refusal  (status 404)
+  ok   the engine answers a signed-in /api call the same way directly and through the gate  (direct 404, gate 404, without cookie 401)
+  ok   logout answers 200
+
+ALL PASS
+

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kybernos / DSH — Démo POC</title>
+<style>
+:root{
+  --bg:#0e1116; --bg2:#151a22; --panel:#1a212c; --panel2:#212a37;
+  --ink:#e8edf4; --ink2:#9aa7b8; --ink3:#5f6b7d;
+  --accent:#5eead4; --accent-ink:#06251f;
+  --violet:#a78bfa; --amber:#fbbf24; --rose:#fb7185;
+  --line:#2a3444; --ok:#34d399; --run:#60a5fa;
+  --radius:12px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  display:flex; overflow:hidden;
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important}
+}
+/* ---------- Layout ---------- */
+.app{display:flex;width:100%;height:100vh}
+.sidebar{
+  width:240px;flex:none;background:var(--bg2);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:14px 10px;gap:2px;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 10px 16px;font-weight:700;letter-spacing:.2px}
+.brand .logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--violet));display:grid;place-items:center;color:var(--accent-ink);font-size:13px;font-weight:800}
+.brand small{display:block;font-weight:400;color:var(--ink3);font-size:11px}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;
+  background:none;border:none;color:var(--ink2);font:inherit;cursor:pointer;text-align:left;width:100%;
+}
+.nav-btn:hover{background:var(--panel);color:var(--ink)}
+.nav-btn[aria-current="page"]{background:var(--panel2);color:var(--ink);font-weight:600}
+.nav-btn .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.nav-btn[disabled]{opacity:.45;cursor:not-allowed}
+.sidebar .foot{margin-top:auto;padding:10px 12px;font-size:12px;color:var(--ink3);border-top:1px solid var(--line)}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{
+  position:sticky;top:0;z-index:5;background:var(--bg);
+  padding:14px 28px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.topbar h1{font-size:17px;font-weight:650}
+.topbar .sub{color:var(--ink2);font-size:13px}
+.content{padding:24px 28px;max-width:980px;width:100%;margin:0 auto;flex:1}
+/* ---------- Stepper ---------- */
+.stepper{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+.step{
+  display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;
+  border:1px solid var(--line);color:var(--ink3);font-size:13px;background:var(--bg2);
+}
+.step .n{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--panel2)}
+.step.on{color:var(--ink);border-color:var(--accent)}
+.step.on .n{background:var(--accent);color:var(--accent-ink)}
+.step.done{color:var(--ink2)}
+.step.done .n{background:var(--ok);color:#052e1c;content:"✓"}
+.step.done .n::after{content:"✓"}
+.step.done .n .num{display:none}
+/* ---------- Cards ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card h2{font-size:15px;margin-bottom:4px}
+.card .hint{color:var(--ink2);font-size:13px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--ink2);margin:12px 0 5px}
+input[type=text],textarea,select{
+  width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:9px;
+  color:var(--ink);font:inherit;padding:9px 12px;
+}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+textarea{min-height:70px;resize:vertical}
+.err{color:var(--rose);font-size:12.5px;margin-top:5px;display:none}
+.err.show{display:block}
+.btn{
+  background:var(--accent);color:var(--accent-ink);border:none;border-radius:9px;
+  padding:10px 18px;font:inherit;font-weight:650;cursor:pointer;
+}
+.btn:hover{filter:brightness(1.08)}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--line);font-weight:500}
+/* ---------- Role pickers ---------- */
+.roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.role{
+  border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg2);
+  cursor:pointer;display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;color:var(--ink);
+}
+.role[aria-pressed="true"]{border-color:var(--accent);background:#12241f}
+.role .ic{font-size:18px}
+.role b{display:block;font-size:13.5px}
+.role span{font-size:12px;color:var(--ink2)}
+/* ---------- Run console ---------- */
+.runbox{font-family:var(--mono);font-size:12.5px;background:#0a0d12;border:1px solid var(--line);border-radius:10px;padding:14px;min-height:200px}
+.log{display:flex;gap:10px;padding:2px 0;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1}}
+.log .t{color:var(--ink3);flex:none}
+.log .who{flex:none;font-weight:700;width:86px}
+.log.lead .who{color:var(--accent)} .log.researcher .who{color:var(--violet)} .log.writer .who{color:var(--amber)} .log.sys .who{color:var(--ink3)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.progress{height:6px;background:var(--bg2);border-radius:99px;overflow:hidden;margin:12px 0}
+.progress > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--violet));width:0;transition:width .5s ease}
+/* ---------- Deliverable ---------- */
+.deliv{border:1px solid var(--line);border-radius:10px;background:var(--bg2);padding:16px}
+.deliv h3{font-size:14px;margin-bottom:8px}
+.deliv ul{margin:6px 0 12px 20px;color:var(--ink2);font-size:13.5px}
+.deliv li{margin:3px 0}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:650}
+.badge.ok{background:#12301f;color:var(--ok)}
+.badge.run{background:#12233a;color:var(--run)}
+.badge.idle{background:var(--panel2);color:var(--ink2)}
+.sr{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+/* ---------- Pages ---------- */
+.page{display:none}
+.page.on{display:block}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{color:var(--ink3);text-align:left;font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);color:var(--ink2)}
+td:first-child{color:var(--ink)}
+/* ---------- Responsive ---------- */
+@media (max-width:760px){
+  .sidebar{width:64px;padding:14px 6px}
+  .sidebar .brand small,.sidebar .nav-btn span,.sidebar .foot{display:none}
+  .nav-btn{justify-content:center}
+  .content{padding:16px}
+  .topbar{padding:12px 16px}
+  .log .t{display:none}
+}
+@media (max-width:520px){
+  .roles{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar" aria-label="Navigation principale">
+    <div class="brand"><div class="logo">K</div><div>Kybernos<small>sur DeepSeek Harness</small></div></div>
+    <button class="nav-btn" data-page="chat" aria-current="page"><span>💬</span><span>Chat</span></button>
+    <button class="nav-btn" data-page="teams"><span>🤖</span><span>Équipes</span></button>
+    <button class="nav-btn" data-page="auto"><span>⏰</span><span>Automations</span></button>
+    <button class="nav-btn" data-page="dash"><span>📊</span><span>Tableau de bord</span></button>
+    <div class="foot">POC — données simulées</div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <h1 id="pgTitle">Chat</h1>
+      <span class="sub" id="pgSub">Crée ton équipe d'agents et lance-la sur une mission</span>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ PAGE CHAT (flux principal) ============ -->
+      <section class="page on" id="page-chat" aria-label="Chat">
+        <div class="stepper" id="stepper">
+          <div class="step on" data-step="1"><span class="n"><span class="num">1</span></span> Mission</div>
+          <div class="step" data-step="2"><span class="n"><span class="num">2</span></span> Équipe</div>
+          <div class="step" data-step="3"><span class="n"><span class="num">3</span></span> Exécution</div>
+          <div class="step" data-step="4"><span class="n"><span class="num">4</span></span> Livrable</div>
+        </div>
+
+        <!-- Étape 1 : mission -->
+        <div class="card" id="step1">
+          <h2>Étape 1 — Décris la mission</h2>
+          <p class="hint">C'est le point d'entrée réel : dans DSH, ce message part dans le chat et le Team Lead organise le reste.</p>
+          <form id="missionForm" novalidate>
+            <label for="mTitle">Titre de la mission</label>
+            <input id="mTitle" type="text" placeholder="Ex : Étude concurrentielle — outils de veille IA" aria-describedby="eTitle">
+            <p class="err" id="eTitle" role="alert">Donne un titre à la mission (2 caractères minimum).</p>
+            <label for="mBrief">Brief</label>
+            <textarea id="mBrief" placeholder="Ce que l'équipe doit produire, pour qui, sous quel format…"></textarea>
+            <p class="err" id="eBrief" role="alert">Le brief ne peut pas être vide.</p>
+            <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn" type="submit">Constituer l'équipe →</button>
+              <button class="btn ghost" type="button" id="fillDemo">Exemple pré-rempli</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Étape 2 : équipe -->
+        <div class="card" id="step2" hidden>
+          <h2>Étape 2 — Choisir les rôles de l'équipe</h2>
+          <p class="hint">Un kyber Kybernos = une équipe de rôles spécialisés, chacun avec son propre prompt et ses outils. Sélectionne 2 à 4 rôles.</p>
+          <div class="roles" id="roles">
+            <button class="role" data-role="researcher" aria-pressed="true"><span class="ic">🔍</span><span><b>Researcher</b><span>Cherche et synthétise les sources</span></span></button>
+            <button class="role" data-role="analyst" aria-pressed="true"><span class="ic">📐</span><span><b>Analyste</b><span>Compare, chiffre, priorise</span></span></button>
+            <button class="role" data-role="writer" aria-pressed="false"><span class="ic">✍️</span><span><b>Rédacteur</b><span>Écrit le livrable final</span></span></button>
+            <button class="role" data-role="reviewer" aria-pressed="false"><span class="ic">🛡️</span><span><b>Relecteur</b><span>Contrôle qualité et cohérence</span></span></button>
+          </div>
+          <p class="err" id="eRoles" role="alert">Sélectionne au moins 2 rôles.</p>
+          <div style="margin-top:18px;display:flex;gap:10px">
+            <button class="btn" id="launchBtn">🚀 Lancer la mission</button>
+            <button class="btn ghost" id="backTo1">← Retour</button>
+          </div>
+        </div>
+
+        <!-- Étape 3 : exécution -->
+        <div class="card" id="step3" hidden>
+          <h2>Étape 3 — L'équipe travaille <span class="badge run" id="runBadge">en cours</span></h2>
+          <p class="hint" id="runMission"></p>
+          <div class="progress" role="progressbar" aria-label="Avancement de la mission" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="pbar"><div></div></div>
+          <div class="runbox" id="console" aria-live="polite"></div>
+        </div>
+
+        <!-- Étape 4 : livrable -->
+        <div class="card" id="step4" hidden>
+          <h2>Étape 4 — Livrable <span class="badge ok">prêt</span></h2>
+          <p class="hint">Le livrable apparaît dans la page Livrables du vrai produit ; ici il est simulé.</p>
+          <div class="deliv">
+            <h3 id="delivTitle"></h3>
+            <p style="color:var(--ink2);font-size:13px" id="delivMeta"></p>
+            <ul id="delivList"></ul>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn" id="againBtn">↺ Nouvelle mission</button>
+              <button class="btn ghost" id="goDash">Voir le tableau de bord</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PAGE ÉQUIPES ============ -->
+      <section class="page" id="page-teams" aria-label="Équipes">
+        <div class="card">
+          <h2>Équipes (kybers)</h2>
+          <p class="hint">Chaque kyber porte mission, rôles, skills et mémoire propre.</p>
+          <table>
+            <thead><tr><th>Équipe</th><th>Rôles</th><th>État</th><th>Dernier run</th></tr></thead>
+            <tbody id="teamsBody">
+              <tr><td>dev-team</td><td>4</td><td><span class="badge idle">inactive</span></td><td>hier 17:42</td></tr>
+              <tr><td>veille-concurrentielle</td><td>3</td><td><span class="badge idle">inactive</span></td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ PAGE AUTOMATIONS ============ -->
+      <section class="page" id="page-auto" aria-label="Automations">
+        <div class="card">
+          <h2>Automations</h2>
+          <p class="hint">Tâches planifiées (cron, webhook, horaire) qui démarrent une session agent toute seule.</p>
+          <table>
+            <thead><tr><th>Automation</th><th>Déclencheur</th><th>État</th><th>Dernier run</th></tr></thead>
+            <tbody>
+              <tr><td>Revue de presse IA</td><td>tous les jours · 08:00</td><td><span class="badge ok">active</span></td><td>auj. 08:00 ✓</td></tr>
+              <tr><td>Étude à la demande</td><td>webhook</td><td><span class="badge ok">active</span></td><td>hier 21:10 ✓</td></tr>
+              <tr><td>Sauvegarde livrables</td><td>chaque dimanche</td><td><span class="badge idle">en pause</span></td><td>dim. 23:00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ PAGE DASHBOARD ============ -->
+      <section class="page" id="page-dash" aria-label="Tableau de bord">
+        <div class="card">
+          <h2>Tableau de bord</h2>
+          <p class="hint">Usage réel du compte : sessions, tokens par modèle, santé des automations.</p>
+          <table>
+            <thead><tr><th>Modèle</th><th>Provider</th><th>Tokens (14 j)</th><th>Part</th></tr></thead>
+            <tbody>
+              <tr><td>deepseek-chat</td><td>deepseek-official</td><td>1 248 300</td><td>52 %</td></tr>
+              <tr><td>glm-5.3-flash</td><td>ollama-cloud</td><td>731 900</td><td>31 %</td></tr>
+              <tr><td>claude-sonnet-5-5</td><td>claude-code</td><td>412 000</td><td>17 %</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ---------- Navigation ---------- */
+const titles = {
+  chat:  ["Chat", "Crée ton équipe d'agents et lance-la sur une mission"],
+  teams: ["Équipes", "Les kybers et leurs rôles"],
+  auto:  ["Automations", "Sessions déclenchées sans personne"],
+  dash:  ["Tableau de bord", "Usage et santé de la plateforme"],
+};
+$$(".nav-btn").forEach(b => b.addEventListener("click", () => {
+  $$(".nav-btn").forEach(x => x.removeAttribute("aria-current"));
+  b.setAttribute("aria-current","page");
+  $$(".page").forEach(p => p.classList.remove("on"));
+  $("#page-"+b.dataset.page).classList.add("on");
+  $("#pgTitle").textContent = titles[b.dataset.page][0];
+  $("#pgSub").textContent   = titles[b.dataset.page][1];
+  b.focus();
+}));
+
+/* ---------- Stepper ---------- */
+function setStep(n){
+  $$("#stepper .step").forEach(s => {
+    const k = +s.dataset.step;
+    s.classList.toggle("on", k===n);
+    s.classList.toggle("done", k<n);
+  });
+  [1,2,3,4].forEach(k => $("#step"+k).hidden = (k!==n));
+}
+
+/* ---------- Étape 1 : mission ---------- */
+$("#fillDemo").addEventListener("click", () => {
+  $("#mTitle").value = "Étude concurrentielle — outils de veille IA";
+  $("#mBrief").value = "Comparer les 5 principaux outils de veille IA (prix, couverture, API) et livrer une note de 2 pages avec une recommandation.";
+});
+$("#missionForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const okT = $("#mTitle").value.trim().length >= 2;
+  const okB = $("#mBrief").value.trim().length > 0;
+  $("#eTitle").classList.toggle("show", !okT);
+  $("#eBrief").classList.toggle("show", !okB);
+  if (!okT) { $("#mTitle").focus(); return; }
+  if (!okB) { $("#mBrief").focus(); return; }
+  setStep(2);
+  $("#step2").querySelector("h2").setAttribute("tabindex","-1");
+  $("#step2").querySelector("h2").focus();
+});
+
+/* ---------- Étape 2 : rôles ---------- */
+$$("#roles .role").forEach(r => r.addEventListener("click", () => {
+  r.setAttribute("aria-pressed", r.getAttribute("aria-pressed") !== "true");
+  $("#eRoles").classList.remove("show");
+}));
+$("#backTo1").addEventListener("click", () => { setStep(1); $("#mTitle").focus(); });
+$("#launchBtn").addEventListener("click", () => {
+  const picked = $$("#roles .role[aria-pressed='true']");
+  if (picked.length < 2) { $("#eRoles").classList.add("show"); return; }
+  $("#eRoles").classList.remove("show");
+  runMission(picked.map(p => p.dataset.role));
+});
+
+/* ---------- Étape 3 : exécution simulée ---------- */
+let running = false;
+function runMission(roles){
+  if (running) return; running = true;
+  setStep(3);
+  $("#runBadge").textContent = "en cours";
+  $("#runBadge").className = "badge run";
+  $("#runMission").textContent = "« " + $("#mTitle").value.trim() + " »";
+  const c = $("#console"); c.innerHTML = "";
+  const bar = $("#pbar"); bar.setAttribute("aria-valuenow","0"); bar.firstElementChild.style.width = "0";
+
+  const roleLabel = { lead:"Lead", researcher:"Researcher", analyst:"Analyste", writer:"Rédacteur", reviewer:"Relecteur" };
+  const script = [
+    ["sys",   "session démarrée — profil « kybernos-standard » (fenêtre 1 M)"],
+    ["lead",  "mission reçue, découpage en sous-tâches…"],
+    ...roles.filter(r=>r!=="lead").map(r => [r, "sous-tâche reçue — je m'y mets (" + roleLabel[r] + ")"]),
+    ["sys",   "mémoire du kyber lue : 3 leçons passées réutilisées"],
+    ...roles.filter(r=>r!=="lead").map(r => [r, "résultat rendu au Lead ✓"]),
+    ["lead",  "assemblage du livrable et contrôle final…"],
+    ["sys",   "livrable écrit — session close"],
+  ];
+  let i = 0;
+  const total = script.length;
+  const tick = () => {
+    if (i < total){
+      const [who, msg] = script[i];
+      const t = new Date().toTimeString().slice(0,8);
+      const div = document.createElement("div");
+      div.className = "log " + who;
+      div.innerHTML = '<span class="t">'+t+'</span><span class="who">'+roleLabel[who]+'</span><span>'+msg+'</span>';
+      c.appendChild(div); c.scrollTop = c.scrollHeight;
+      i++;
+      const pct = Math.round(i/total*100);
+      bar.setAttribute("aria-valuenow", pct);
+      bar.firstElementChild.style.width = pct + "%";
+      setTimeout(tick, 550 + Math.random()*400);
+    } else {
+      running = false;
+      $("#runBadge").textContent = "terminé";
+      $("#runBadge").className = "badge ok";
+      finishMission(roles);
+    }
+  };
+  const boot = document.createElement("div");
+  boot.className = "log sys";
+  boot.innerHTML = '<span class="who">Système</span><span><span class="spin"></span> démarrage…</span>';
+  c.appendChild(boot);
+  setTimeout(() => { boot.remove(); tick(); }, 700);
+}
+
+/* ---------- Étape 4 : livrable ---------- */
+function finishMission(roles){
+  const has = r => roles.includes(r);
+  const items = [];
+  if (has("researcher")) items.push("Panorama de 5 outils sourcés (grille comparative incluse)");
+  if (has("analyst"))    items.push("Analyse prix / couverture / API, avec matrice de score");
+  if (has("writer"))     items.push("Note de synthèse rédigée (2 pages, prête à diffuser)");
+  if (has("reviewer"))   items.push("Relecture qualité : cohérence et sources vérifiées");
+  if (!items.length)     items.push("Rapport de mission");
+  $("#delivTitle").textContent = $("#mTitle").value.trim();
+  $("#delivMeta").textContent  = "Équipe : " + roles.join(" · ") + " — durée simulée : quelques secondes";
+  $("#delivList").innerHTML   = items.map(x => "<li>"+x+"</li>").join("");
+  setStep(4);
+  const teamsRow = document.createElement("tr");
+  teamsRow.innerHTML = "<td>mission-du-jour</td><td>"+roles.length+"</td><td><span class='badge ok'>terminé</span></td><td>à l'instant</td>";
+  $("#teamsBody").prepend(teamsRow);
+  $("#againBtn").focus();
+}
+$("#againBtn").addEventListener("click", () => {
+  setStep(1); $("#mTitle").value = ""; $("#mBrief").value = ""; $("#mTitle").focus();
+});
+$("#goDash").addEventListener("click", () => {
+  $$(".nav-btn").forEach(x => x.removeAttribute("aria-current"));
+  document.querySelector('[data-page="dash"]').setAttribute("aria-current","page");
+  $$(".page").forEach(p => p.classList.remove("on"));
+  $("#page-dash").classList.add("on");
+  $("#pgTitle").textContent = titles.dash[0];
+  $("#pgSub").textContent = titles.dash[1];
+});
+</script>
+</body>
+</html>

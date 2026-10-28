@@ -1,0 +1,22 @@
+# check-call-engine-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=59
+
+the call engine, installed from the host
+  ✗ the sandbox starts without an environment
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[TypeError: fetch failed] {
+  [cause]: Error: connect ECONNREFUSED 127.0.0.1:3098
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2017:16) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 3098
+  }
+}
+
+Node.js v26.7.0
+

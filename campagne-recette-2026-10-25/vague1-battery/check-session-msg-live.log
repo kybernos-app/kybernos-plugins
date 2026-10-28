@@ -1,0 +1,5 @@
+# check-session-msg-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=161
+
+the session list answered 503
+

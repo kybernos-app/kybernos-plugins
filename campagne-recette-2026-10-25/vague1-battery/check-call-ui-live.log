@@ -1,0 +1,46 @@
+# check-call-ui-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150022
+
+1. the call buttons at the top right of a chat
+  ✗ a session is open in the sandbox (a first message was sent; there is no model, so it fails: that is fine)
+  ✗ the chat header holds the voice and video buttons of the bundle
+  ✗ once the chat tools are shown they sit in the top bar of the chat, on the right side of the window, left of the app's own right-hand controls — null
+  ✗ named for screen readers: "Voice call" and the arrow's "Call options" — null
+  ✗ the arrow opens a menu: voice call, video call, call settings — null
+  ✓ Escape closes it
+  ✓ the old pill in the composer is gone
+  ✗ with no face provider in the sandbox the video button is off and says to add a LiveAvatar key
+1c. the video window can be resized
+  ✓ a video call opens a window wide enough to see a face (560 px, not 340)
+  ✓ with a 16:9 picture area (the old one was 180 px high)
+  ✓ and a grip at its top left corner
+  ✓ dragging the grip to the left makes the window wider, the picture following
+  ✓ and the right edge stays where it was
+  ✓ the width is remembered on this browser
+  ✓ the full screen button fills the window
+  ✓ Escape brings it back
+1d. the call panel and the gear lead to Settings › Calls
+  ✗ « Call settings… » in the arrow's menu opens the Calls page of the Settings
+  ✓ Escape closes the Settings again (so the next check starts from the chat)
+  ✗ with nothing set up, the voice button shows the call panel saying calls are not ready (no pop-up) — null
+  ✓ and nothing that acts was sent to the host (the video window above is the only call that got as far as the token)
+  ✗ the panel offers a button to Settings › Calls
+  ✗ it opens the Calls page, and the panel is gone
+  ✗ the Overview says it is not ready and lists what is missing, each with a Set up button — {"ready":null,"fixes":[],"text":""}
+  ✗ a Set up button leads to that provider's page
+2. Settings › Calls › Overview
+  ✗ the Calls page is open
+  ✗ the Suite's pages in the Settings list have their own icon, not the shell's gear — []
+  ✗ Calls is a phone — []
+  ✗ with three tabs: Overview, Providers, Health — "[]"
+  ✗ the Overview shows the five slots of a call — "[]"
+  ✗ and the presets, the one that is not available yet being off — "[]"
+  ✗ with an estimate of the cost per call minute
+  ✓ the audio models of the providers already set up in Models are listed by the app (names and kinds only)
+  ✗ and the Overview says so when there are some (and says nothing when there are none) — {"banner":"","audioModels":{"ok":true,"providers":[{"provider":"qwen-token-plan","models":[{"id":"qwen-audio-3.0-asr-flash","kind":"listen"},{"id":"qwen-audio-3.0-tts-plus","kind":"speak"},{"id":"qwen-audio-3.0-realtime-plus","kind":"realtime"}]},{"provider":"xiaomi-token-plan-ams","models":[{"id":"mimo-v2.5-asr","kind":"listen"},{"id":"mimo-v2.5-tts-voiceclone","kind":"speak"},{"id":"mimo-v2.5-tts-voicedesign","kind":"speak"},{"id":"mimo-v2.5-tts","kind":"speak"}]}]}}
+  ✗ a ? next to a slot explains what it is for
+  ✗ and one at the top explains the page
+  ✓ the defaults: listen with Groq, a face when one is set
+  ✗ choosing Spanish is saved
+  ✗ a preset fills the slots at once: no face, an Edge voice
+

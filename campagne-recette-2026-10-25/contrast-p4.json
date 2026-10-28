@@ -1,0 +1,259 @@
+{
+ "host": "127.0.0.1:3080",
+ "mode": null,
+ "pages": {
+  "General": {
+   "scanned": 45,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Theme": {
+   "scanned": 73,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Language": {
+   "scanned": 38,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Memory & Lessons": {
+   "scanned": 67,
+   "worst": 1.44,
+   "bad": [
+    {
+     "text": "116",
+     "ratio": 1.44,
+     "need": 4.5,
+     "size": 11,
+     "fg": "207,211,214",
+     "bg": "249,250,251",
+     "where": "span.kbmem-cnt"
+    }
+   ]
+  },
+  "Models": {
+   "scanned": 56,
+   "worst": 4.24,
+   "bad": [
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    },
+    {
+     "text": "Delete",
+     "ratio": 4.24,
+     "need": 4.5,
+     "size": 12,
+     "fg": "242,90,90",
+     "bg": "44,44,46",
+     "where": "button.zGbnIq_dangerButton"
+    }
+   ]
+  },
+  "Kybernos": {
+   "scanned": 31,
+   "worst": 7.36,
+   "bad": []
+  },
+  "About": {
+   "scanned": 38,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Servers": {
+   "scanned": 57,
+   "worst": 4.66,
+   "bad": []
+  },
+  "Auto Routing": {
+   "scanned": 33,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Web Search": {
+   "scanned": 49,
+   "worst": 5.31,
+   "bad": []
+  },
+  "Built-in plugins": {
+   "scanned": 50,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Atlas": {
+   "scanned": 29,
+   "worst": 7.58,
+   "bad": []
+  },
+  "AI provider and models": {
+   "scanned": 57,
+   "worst": 4.61,
+   "bad": []
+  },
+  "Agent presets": {
+   "scanned": 47,
+   "worst": 5.67,
+   "bad": []
+  },
+  "Voice": {
+   "scanned": 57,
+   "worst": 5.44,
+   "bad": []
+  },
+  "Skills": {
+   "scanned": 47,
+   "worst": 7.58,
+   "bad": []
+  },
+  "Learned skills": {
+   "scanned": 39,
+   "worst": 6.12,
+   "bad": []
+  },
+  "Commands": {
+   "scanned": 52,
+   "worst": 5.99,
+   "bad": []
+  },
+  "Ollama local models": {
+   "scanned": 83,
+   "worst": 5.38,
+   "bad": []
+  },
+  "Automations": {
+   "scanned": 39,
+   "worst": 7.58,
+   "bad": []
+  },
+  "Free LLMs": {
+   "scanned": 37,
+   "worst": 5.67,
+   "bad": []
+  },
+  "Kybernos Suite": {
+   "scanned": 87,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Tools": {
+   "scanned": 56,
+   "worst": 6.12,
+   "bad": []
+  },
+  "Workers": {
+   "scanned": 58,
+   "worst": 5.67,
+   "bad": []
+  },
+  "Connectors": {
+   "scanned": 47,
+   "worst": 5.25,
+   "bad": []
+  },
+  "Calls": {
+   "scanned": 71,
+   "worst": 6.12,
+   "bad": []
+  },
+  "Kaby": {
+   "scanned": 43,
+   "worst": 7.58,
+   "bad": []
+  },
+  "Usage": {
+   "scanned": 50,
+   "worst": 6.53,
+   "bad": []
+  },
+  "Code sandbox (E2B)": {
+   "scanned": 27,
+   "worst": 6.12,
+   "bad": []
+  },
+  "Phone and channels": {
+   "scanned": 56,
+   "worst": 3.53,
+   "bad": [
+    {
+     "text": "Beta",
+     "ratio": 3.53,
+     "need": 4.5,
+     "size": 12.5,
+     "fg": "221,134,41",
+     "bg": "80,65,40",
+     "where": "span.kbky-chip.kbky-badge"
+    }
+   ]
+  }
+ },
+ "scheme": "rgb(21, 21, 23)"
+}

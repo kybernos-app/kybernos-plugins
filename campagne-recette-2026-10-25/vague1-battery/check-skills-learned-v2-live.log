@@ -1,0 +1,16 @@
+# check-skills-learned-v2-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=49885
+
+the host (what the page must agree with)
+  ✓ the V2 settings are served with their defaults (restart the sandbox after host changes)
+  ✓ the list of answered patterns is empty, and the host knows whether Search everywhere gave it the chat index
+  ✓ Search everywhere indexed the three earlier chats
+a task that comes back, noticed under a finished answer
+  ✗ a real conversation is created by the GUI, with the same kind of ask
+  ✗ the session has an id  — null
+  ✗ TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received null
+    at join (node:path:1339:7)
+    at file:///Users/miled/kybernos-plugins/scripts/check-skills-learned-v2-live.mjs:98:70
+
+3 ✓, 3 ✗
+

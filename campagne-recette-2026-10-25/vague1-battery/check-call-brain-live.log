@@ -1,0 +1,5 @@
+# check-call-brain-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=63
+
+○ inconclusive: the sandbox already has a call setup (/Users/miled/.kybernos-sandbox/kybernos-plugins/home/.dsh/kybernos/livekit.env or /Users/miled/.kybernos-sandbox/kybernos-plugins/home/.dsh/kybernos/appel-venv); refusing to overwrite it.
+

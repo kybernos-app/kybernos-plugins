@@ -1,0 +1,17 @@
+# check-automations-team-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=61906
+
+Team segment: the real GUI of a sandbox, this checkout's client, the Team routes faked
+  ✗ the Automations page opens
+  ✗ the sections are Yours, Discover and Team, with the initial of the team  — ""
+  ✗ Yours: a copy from the team is marked, and what the person proposed says so  — ""
+  ✗ every row of Yours has the « Propose to team… » action
+file:///Users/miled/kybernos-plugins/scripts/check-automations-team-live.mjs:249
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rowSpot.x, y: rowSpot.y })
+                                                                               ^
+
+TypeError: Cannot read properties of undefined (reading 'x')
+    at file:///Users/miled/kybernos-plugins/scripts/check-automations-team-live.mjs:249:80
+
+Node.js v26.7.0
+

@@ -1,0 +1,18 @@
+# check-account-menu-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=9005
+
+  ✗ the menu has its rows (spaces, actions, items)  — 11
+  ✓ every label is 13 px, in the same font
+  ✓ an action or an item is regular-medium (500), only the name of a space is bold (600)
+  ✓ every small line (the plan of a space, the note under a bar) is 11.5 px
+  ✓ the name of the plan is 14 px
+  ✓ the text of every row starts at the same x (the icon column is shared)
+  ✓ an action or an item is 36 px high or less; a space row 46 px or less
+  ✓ no label is cut by an ellipsis (« Join with an invitation link » used to be)
+  ✓ the separators take 10 px, not 17
+  ✓ the whole menu is 600 px or less (it was 704)
+  ✓ no text runs outside the menu
+
+10 checks passed, 1 failed:
+ - the menu has its rows (spaces, actions, items)
+

@@ -1,0 +1,23 @@
+# check-automation-load-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150008
+
+
+── the machine's own reading, guard on, on this machine ──
+  ✓ the route answers on the sandbox
+  ✓ memory is a figure between 1 and 100 (macOS: the system's pressure, not os.freemem())
+  ✓ load per core is a number
+  ✓ the gauge figure is a whole number from 0 to 100, in step with the level
+    (level ok, memory 49 % available, load/core 0.71)
+  ✓ a write is refused
+
+── the cap: maximum 2, a model that never answers ──
+  ✓ the sandbox restarts with the stub model, maximum 2, five due automations
+  ✗ two automations started — []
+  ✗ the two OLDEST started — []
+  ✗ the page is told: 2 going, room for 2, 3 waiting — {"ok":true,"level":"ok","pressure":null,"subagents":{"limit":null,"active":0,"refused":0},"reasons":[],"inFlight":0,"allowed":2,"maxParallel":2,"waiting":0,"memAvailablePct":57,"loadPerCpu":0.53,"held":false,"waitingIds":[],"series":{"total":[32,27,24,26,26,26,27],"cpu":[24,21,20,21,21,18,18],"mem":[51,43,39,42,42,41,43],"runs":[0,0,0,0,0,0,0]},"cpu":{"pressure":18,"loadPerCpu":0.53},"mem":{"pressure":27,"availPct":57,"usedPct":43,"kybernosPct":1,"otherPct":42},"runs":[]}
+  ✗ a tick later the other three are still waiting (the cap holds while the runs go) — []
+  ✗ the held ones are still due, with their own due time (late, not lost) — ["2026-10-25T07:00:00.000Z","2026-10-25T07:00:00.000Z","2026-10-25T07:00:00.000Z"]
+
+── lighter runs: the level is forced, the machine is not made busy for real ──
+  ✓ the sandbox restarts with the level forced to very busy
+
