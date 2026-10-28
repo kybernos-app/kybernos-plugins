@@ -1,0 +1,89 @@
+{
+  "provenance": "Replayed by hand from the frozen shapes of docs/dev/kaby-proactive/cadrage.md, with the values the routes of this batch produce: a static check that fails on approvals:auto + a send step, a supervised trial whose write call was refused, and an initiative whose next action is a draft. NOT captured from a live run in this session (no sandbox and no trial were run): the dates are the batch's own, and the maquette only reads them.",
+  "gate": {
+    "id": "gate:st-gate-ui-awaiting",
+    "automationId": "st-gate-ui-awaiting",
+    "status": "awaiting-approval",
+    "staticChecks": {
+      "ranAt": "2026-10-28T02:41:07.412Z",
+      "verdict": "fail",
+      "findings": [
+        {
+          "code": "prompt.unattended",
+          "severity": "blocker",
+          "field": "prompt",
+          "message": "the prompt names send and approvals is 'auto': the run would act without asking. Write the step as a draft the person sends."
+        },
+        {
+          "code": "prompt.send.word",
+          "severity": "warn",
+          "field": "prompt",
+          "message": "the prompt names send: an automation prepares and asks, it does not send or publish by itself."
+        },
+        {
+          "code": "schedule.tz.machine",
+          "severity": "info",
+          "field": "schedule.tz",
+          "message": "no time zone: the machine's own is used, which is not the same on a laptop and on a cloud computer."
+        }
+      ]
+    },
+    "trial": {
+      "runId": "trial:st-gate-ui-awaiting:20261028T024130",
+      "gateId": "gate:st-gate-ui-awaiting",
+      "startedAt": "2026-10-28T02:41:30.006Z",
+      "endedAt": "2026-10-28T02:41:36.518Z",
+      "supervised": true,
+      "sideEffectFree": true,
+      "toolCalls": [
+        { "toolName": "gmail.list_threads", "access": "read", "outcome": "ok" },
+        { "toolName": "gmail.send_email", "access": "write", "outcome": "refused-as-write" }
+      ],
+      "outcome": { "state": "completed" },
+      "externalEffects": [],
+      "errors": []
+    },
+    "approval": { "state": "asked", "at": "2026-10-28T02:41:36.902Z" },
+    "updatedAt": "2026-10-28T02:41:36.902Z",
+    "rev": 4
+  },
+  "proof": {
+    "runId": "trial:st-gate-ui-awaiting:20261028T024130",
+    "gateId": "gate:st-gate-ui-awaiting",
+    "startedAt": "2026-10-28T02:41:30.006Z",
+    "endedAt": "2026-10-28T02:41:36.518Z",
+    "supervised": true,
+    "sideEffectFree": true,
+    "toolCalls": [
+      { "toolName": "gmail.list_threads", "access": "read", "outcome": "ok" },
+      { "toolName": "gmail.send_email", "access": "write", "outcome": "refused-as-write" }
+    ],
+    "outcome": { "state": "completed" },
+    "externalEffects": [],
+    "errors": []
+  },
+  "dirtyTrial": {
+    "runId": "trial:st-gate-ui-dirty:20261028T024210",
+    "gateId": "gate:st-gate-ui-dirty",
+    "startedAt": "2026-10-28T02:42:10.114Z",
+    "endedAt": "2026-10-28T02:42:18.770Z",
+    "supervised": true,
+    "sideEffectFree": false,
+    "toolCalls": [
+      { "toolName": "slack.chat_postMessage", "access": "write", "outcome": "ok" }
+    ],
+    "outcome": { "state": "completed" },
+    "externalEffects": ["write-succeeded:slack.chat_postMessage"],
+    "errors": []
+  },
+  "initiative": {
+    "id": "i_7c1a9b0e24",
+    "title": "Relance des factures en retard",
+    "evidence": { "n": 14, "span": "60 days", "where": "Gmail › Boîte de réception" },
+    "risk": "low",
+    "reversibility": "trivial",
+    "nextAction": { "kind": "draft", "summary": "Rédiger la relance et me la montrer avant l’envoi." },
+    "status": "proposed",
+    "at": "2026-10-28T02:39:55.007Z"
+  }
+}

@@ -81,7 +81,17 @@ try {
     return { code: res.code, json }
   }
   const base = { name: 'Weekly report', prompt: 'Write the report', schedule: { mode: 'webhook', tz: 'UTC' }, active: false, approvals: 'auto' }
-  const make = async (extra) => (await api({ action: 'create', task: Object.assign({}, base, extra || {}) })).json.task
+  // `create` seeds a draft gate record (finding P2 #3). This file proves where a run lands, not the certification ladder,
+  // so each automation it makes is put back to the legacy shape — no record, no gate — to reach `run-now` as it always
+  // did. A gated automation's run paths are proved in test-automation-gate-routes.mjs.
+  const gatesFile = join(dsh, 'kybernos', 'gates.json')
+  const ungate = (id) => {
+    if (existsSync(gatesFile) !== true) return
+    const all = JSON.parse(readFileSync(gatesFile, 'utf8'))
+    all.records = all.records.filter((r) => r.automationId !== id)
+    writeFileSync(gatesFile, JSON.stringify(all, null, 2))
+  }
+  const make = async (extra) => { const t = (await api({ action: 'create', task: Object.assign({}, base, extra || {}) })).json.task; ungate(t.id); return t }
   const run = async (t) => { const r = await api({ action: 'run-now', id: t.id }); assert.equal(r.json.ok, true, JSON.stringify(r.json)); return book.sessions[book.sessions.length - 1] }
 
   // no choice → the dedicated workspace, made under the DSH home, once

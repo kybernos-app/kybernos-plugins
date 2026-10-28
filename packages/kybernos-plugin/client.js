@@ -475,6 +475,103 @@ let kbLocaleRead = () => 'en'
       'tasks.sug.discard': { kybernos: 'Écarter', en: 'Discard' },
       'tasks.sug.added': { kybernos: 'Ajoutée, éteinte. Tu l’allumes quand tu veux.', en: 'Added, switched off. Switch it on when you want.' },
       'tasks.sug.title': { kybernos: 'Automations suggérées', en: 'Suggested automations' },
+      // ── the certification gate and the initiative queue (the Automations page) ──
+      // Nine statuses: the eight the host stores, plus `unknown`, which is a VIEW value only — it is written when the host
+      // sent nothing usable and never reaches a body or the store.
+      'tasks.gate.st.draft': { kybernos: 'Brouillon', en: 'Draft' },
+      'tasks.gate.st.static-failed': { kybernos: 'Vérifications échouées', en: 'Checks failed' },
+      'tasks.gate.st.static-passed': { kybernos: 'Vérifications passées', en: 'Checks passed' },
+      'tasks.gate.st.trial-done': { kybernos: 'Essai terminé', en: 'Trial done' },
+      'tasks.gate.st.awaiting-approval': { kybernos: 'À approuver', en: 'Awaiting approval' },
+      'tasks.gate.st.approved': { kybernos: 'Approuvée', en: 'Approved' },
+      'tasks.gate.st.refused': { kybernos: 'Refusée', en: 'Refused' },
+      'tasks.gate.st.activated': { kybernos: 'Activée', en: 'Activated' },
+      'tasks.gate.st.unknown': { kybernos: 'Inconnu', en: 'Unknown' },
+      'tasks.gate.hint.static-failed': { kybernos: 'Une vérification bloque : corrige le workflow, puis relance les vérifications.', en: 'A check blocks it: fix the workflow, then run the checks again.' },
+      'tasks.gate.hint.awaiting-approval': { kybernos: 'L’essai est propre. À toi de décider.', en: 'The trial is clean. The decision is yours.' },
+      'tasks.gate.hint.approved': { kybernos: 'Approuvée : tu peux l’allumer quand tu veux.', en: 'Approved: switch it on whenever you want.' },
+      'tasks.gate.hint.refused': { kybernos: 'Refusée : elle reste éteinte et ne lance rien. Relance les vérifications pour repartir.', en: 'Refused: it stays off and runs nothing. Run the checks again to start over.' },
+      'tasks.gate.hint.unknown': { kybernos: 'Cet hôte ne vérifie pas encore les automations.', en: 'This host does not check automations yet.' },
+      'tasks.gate.panel.title': { kybernos: 'Certification', en: 'Certification' },
+      'tasks.gate.panel.intro': { kybernos: 'Aucune automation ne s’allume sans ton accord : les vérifications, puis un essai surveillé, puis ta décision.', en: 'No automation switches on without your word: the checks, then a supervised trial, then your decision.' },
+      'tasks.gate.review': { kybernos: 'Relire', en: 'Review' },
+      'tasks.gate.collapse': { kybernos: 'Replier', en: 'Collapse' },
+      'tasks.gate.check': { kybernos: 'Lancer les vérifications', en: 'Run the checks' },
+      'tasks.gate.checking': { kybernos: 'Vérification…', en: 'Checking…' },
+      'tasks.gate.checked.at': { kybernos: 'Vérifié le {when}', en: 'Checked {when}' },
+      'tasks.gate.checked.never': { kybernos: 'Jamais vérifiée', en: 'Never checked' },
+      'tasks.gate.findings.title': { kybernos: 'Ce que disent les vérifications', en: 'What the checks found' },
+      'tasks.gate.findings.none': { kybernos: 'Aucun constat.', en: 'No finding.' },
+      'tasks.gate.findings.more': { kybernos: '{n} autre(s) constat(s)', en: '{n} more finding(s)' },
+      'tasks.gate.severity.blocker': { kybernos: 'Bloquant', en: 'Blocker' },
+      'tasks.gate.severity.warn': { kybernos: 'À surveiller', en: 'Warning' },
+      'tasks.gate.severity.info': { kybernos: 'Pour information', en: 'Note' },
+      'tasks.gate.trial.title': { kybernos: 'Essai surveillé', en: 'Supervised trial' },
+      'tasks.gate.trial.start': { kybernos: 'Lancer l’essai', en: 'Run the trial' },
+      'tasks.gate.trial.running': { kybernos: 'Essai en cours…', en: 'Trial running…' },
+      'tasks.gate.trial.none': { kybernos: 'Aucun essai pour l’instant.', en: 'No trial yet.' },
+      'tasks.gate.trial.done': { kybernos: 'Relancer l’essai', en: 'Run the trial again' },
+      'tasks.gate.trial.supervised': { kybernos: 'L’essai refuse toute écriture hors de la session : il ne peut rien envoyer, publier, supprimer ni payer.', en: 'The trial refuses every write outside the session: it cannot send, publish, delete or pay anything.' },
+      'tasks.gate.trial.blocked': { kybernos: 'L’essai attend des vérifications sans blocage.', en: 'The trial waits for checks with no blocker.' },
+      'tasks.gate.approve': { kybernos: 'Approuver', en: 'Approve' },
+      'tasks.gate.refuse': { kybernos: 'Refuser', en: 'Refuse' },
+      'tasks.gate.approve.hint': { kybernos: 'Ton accord ne l’allume pas : il autorise l’interrupteur.', en: 'Your approval does not switch it on: it unlocks the switch.' },
+      'tasks.gate.refuse.title': { kybernos: 'Refuser cette automation ?', en: 'Refuse this automation?' },
+      'tasks.gate.refuse.body': { kybernos: 'Elle reste éteinte et ne lance rien.', en: 'It stays off and runs nothing.' },
+      'tasks.gate.approved.toast': { kybernos: 'Approuvée. Tu peux l’allumer.', en: 'Approved. You can switch it on.' },
+      'tasks.gate.refused.toast': { kybernos: 'Refusée. Elle reste éteinte.', en: 'Refused. It stays off.' },
+      'tasks.gate.activate.gated': { kybernos: 'Pas encore approuvée : relis les vérifications et l’essai avant de l’allumer.', en: 'Not approved yet: read the checks and the trial before switching it on.' },
+      'tasks.gate.unavailable': { kybernos: 'Cet hôte ne vérifie pas les automations : rien à certifier ici.', en: 'This host does not check automations: nothing to certify here.' },
+      'tasks.gate.badge.awaiting': { kybernos: 'À approuver', en: 'Awaiting approval' },
+      'tasks.gate.badge.failed': { kybernos: 'Échec des vérifications', en: 'Checks failed' },
+      'tasks.gate.badge.refused': { kybernos: 'Refusée', en: 'Refused' },
+      'tasks.gate.err.unknown-action': { kybernos: 'Cet hôte ne connaît pas encore cette action.', en: 'This host does not know that action yet.' },
+      'tasks.gate.err.approval': { kybernos: 'Il faut ton approbation avant de l’allumer.', en: 'Your approval is needed before switching it on.' },
+      'tasks.gate.err.not-found': { kybernos: 'Automation introuvable : elle a peut-être été supprimée.', en: 'Automation not found: it may have been deleted.' },
+      'tasks.gate.err.signin': { kybernos: 'Session expirée : reconnecte-toi.', en: 'Session expired: sign in again.' },
+      'tasks.gate.err.phone': { kybernos: 'Cette action n’est pas disponible depuis le téléphone.', en: 'That action is not available from the phone.' },
+      'tasks.gate.err.other': { kybernos: 'L’hôte a refusé : rien n’a changé.', en: 'The host refused: nothing changed.' },
+      'tasks.proof.title': { kybernos: 'Preuve de l’essai', en: 'Trial proof' },
+      'tasks.proof.sideeffect.ok': { kybernos: 'Rien n’est sorti de la machine.', en: 'Nothing left the machine.' },
+      'tasks.proof.sideeffect.bad': { kybernos: 'Quelque chose a pu sortir de la machine : l’approbation est fermée.', en: 'Something could have left the machine: approval is closed.' },
+      'tasks.proof.sideeffect.unknown': { kybernos: 'Aucune preuve pour l’instant : rien n’est affirmé.', en: 'No proof yet: nothing is claimed.' },
+      'tasks.proof.tools.title': { kybernos: 'Appels de l’essai', en: 'Calls of the trial' },
+      'tasks.proof.tools.none': { kybernos: 'Aucun appel enregistré.', en: 'No call recorded.' },
+      'tasks.proof.access.read': { kybernos: 'lecture', en: 'read' },
+      'tasks.proof.access.write': { kybernos: 'écriture', en: 'write' },
+      'tasks.proof.outcome.ok': { kybernos: 'ok', en: 'ok' },
+      'tasks.proof.outcome.failed': { kybernos: 'échec', en: 'failed' },
+      'tasks.proof.outcome.open': { kybernos: 'en cours', en: 'running' },
+      'tasks.proof.outcome.refused': { kybernos: 'refusé à l’écriture', en: 'refused as a write' },
+      'tasks.proof.effects.title': { kybernos: 'Effets extérieurs', en: 'External effects' },
+      'tasks.proof.effects.none': { kybernos: 'Aucun.', en: 'None.' },
+      'tasks.proof.effects.more': { kybernos: '{n} autre(s) effet(s)', en: '{n} more effect(s)' },
+      'tasks.proof.errors.title': { kybernos: 'Erreurs', en: 'Errors' },
+      'tasks.proof.errors.more': { kybernos: '{n} autre(s) erreur(s)', en: '{n} more error(s)' },
+      'tasks.proof.refused': { kybernos: '{n} appel(s) refusé(s) à l’écriture', en: '{n} call(s) refused as a write' },
+      'tasks.proof.duration': { kybernos: 'Durée : {d}', en: 'Duration: {d}' },
+      'tasks.init.title': { kybernos: 'Idées de Kaby', en: 'Ideas from Kaby' },
+      'tasks.init.intro': { kybernos: 'Des besoins revenus plusieurs fois, avec leur preuve. Rien ne se crée ni ne s’allume depuis ici : tu en parles dans un chat.', en: 'Needs that came back several times, with their proof. Nothing is created or switched on from here: you talk it through in a chat.' },
+      'tasks.init.empty': { kybernos: 'Aucune idée en attente.', en: 'No idea waiting.' },
+      'tasks.init.unavailable': { kybernos: 'Cet hôte ne tient pas encore de file d’idées.', en: 'This host does not keep an idea queue yet.' },
+      'tasks.init.evidence': { kybernos: 'Vu {n} fois sur {span} · {where}', en: 'Seen {n} times over {span} · {where}' },
+      'tasks.init.ask': { kybernos: 'En parler', en: 'Talk it through' },
+      'tasks.init.drop': { kybernos: 'Écarter', en: 'Discard' },
+      'tasks.init.asked': { kybernos: 'À l’étude', en: 'Being discussed' },
+      'tasks.init.dropped': { kybernos: 'Écartée', en: 'Discarded' },
+      'tasks.init.more': { kybernos: 'Tout voir ({n})', en: 'Show all ({n})' },
+      'tasks.init.showless': { kybernos: 'Replier', en: 'Show less' },
+      'tasks.init.risk.low': { kybernos: 'risque faible', en: 'low risk' },
+      'tasks.init.risk.medium': { kybernos: 'risque moyen', en: 'medium risk' },
+      'tasks.init.risk.high': { kybernos: 'risque élevé', en: 'high risk' },
+      'tasks.init.rev.trivial': { kybernos: 'annulable en un clic', en: 'undone in one click' },
+      'tasks.init.rev.easy': { kybernos: 'facile à annuler', en: 'easy to undo' },
+      'tasks.init.rev.hard': { kybernos: 'difficile à annuler', en: 'hard to undo' },
+      'tasks.init.status.proposed': { kybernos: 'proposée', en: 'proposed' },
+      'tasks.init.status.asked': { kybernos: 'à l’étude', en: 'being discussed' },
+      'tasks.init.status.added': { kybernos: 'créée', en: 'created' },
+      'tasks.init.status.dropped': { kybernos: 'écartée', en: 'discarded' },
+      'tasks.init.notdraft': { kybernos: 'Pas de brouillon : rien à lancer depuis ici.', en: 'No draft: nothing to start from here.' },
       'menu.working': { kybernos: 'En cours', en: 'Working' },
       'menu.review': { kybernos: 'À relire', en: 'To review' },
       'menu.connect': { kybernos: 'À connecter', en: 'To connect' },
@@ -7403,6 +7500,201 @@ const kbBoardReason = (pending, lang) => {
   if (typeof pending.reason === 'string' && pending.reason.length > 0) return pending.reason
   return typeof pending.toolName === 'string' ? pending.toolName : ''
 }
+// ── The certification gate, as the page reads it ─────────────────────────────
+// The host decides the gate: the static checks (automation-gate.mjs), the supervised trial and its proof (automation-trial.mjs), and
+// the routes that store them (index.js). This block only READS what the `list` answer carries in `task.gate` and turns it into what
+// the page draws, so it holds no cron parser, no timezone check and no prompt scan: `status` and `staticChecks.verdict` are copied
+// from the record, never computed. The only local derivations are presentation (order, tone, caps, the next step) and the toggle
+// intent, which is where invariant #1 becomes data: `kbGateToggleIntent` answers `activate` only on a recorded human approval, so
+// there is no argument with which the switch can be talked into switching a gated automation on.
+//
+// `unknown` is a VIEW value: it is produced here when the host sent nothing usable (no `gate`, a malformed one, an older host) and
+// it is absent from KB_GATE_STATUSES, the frozen union the host stores, so no body built by this page can ever carry it.
+const KB_GATE_STATUSES = ['draft', 'static-failed', 'static-passed', 'trial-done', 'awaiting-approval', 'approved', 'refused', 'activated']
+const KB_GATE_APPROVALS = ['none', 'asked', 'granted', 'refused']
+const KB_GATE_SEVERITIES = ['blocker', 'warn', 'info']
+const KB_GATE_FINDINGS_MAX = 20
+const KB_GATE_MSG_MAX = 160
+const KB_GATE_FIELD_MAX = 60
+const KB_INIT_MAX = 8
+const KB_INIT_VISIBLE = 3
+const KB_INIT_RISKS = ['low', 'medium', 'high']
+const KB_INIT_REVS = ['trivial', 'easy', 'hard']
+const KB_INIT_STATUSES = ['proposed', 'asked', 'added', 'dropped']
+
+const kbGatePlain = (v) => v !== null && typeof v === 'object' && Array.isArray(v) === false
+// A host string that reaches the screen: control characters out, one line, and cut with an ellipsis — never a markup builder.
+const kbGateText = (v, max) => {
+  if (typeof v !== 'string') return ''
+  const clean = v.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()
+  return clean.length > max ? clean.slice(0, max - 1) + '…' : clean
+}
+const kbGateEmptyView = () => ({ known: false, status: 'unknown', verdict: null, findings: [], trial: null, approval: { state: 'none', at: null }, rev: null, updatedAt: null })
+// A bounded `gate` record → the view. Never throws: anything the host could send, including nothing, becomes a view.
+const kbGateView = (raw) => {
+  if (kbGatePlain(raw) === false) return kbGateEmptyView()
+  if (typeof raw.status !== 'string' || KB_GATE_STATUSES.indexOf(raw.status) < 0) return kbGateEmptyView()
+  if (raw.approval !== undefined && raw.approval !== null && kbGatePlain(raw.approval) === false) return kbGateEmptyView()
+  if (raw.staticChecks !== undefined && raw.staticChecks !== null && kbGatePlain(raw.staticChecks) === false) return kbGateEmptyView()
+  const approvalRaw = kbGatePlain(raw.approval) === true ? raw.approval : {}
+  const checks = kbGatePlain(raw.staticChecks) === true ? raw.staticChecks : null
+  return {
+    known: true,
+    status: raw.status,
+    verdict: checks !== null && (checks.verdict === 'pass' || checks.verdict === 'fail') ? checks.verdict : null,
+    findings: checks !== null && Array.isArray(checks.findings) === true ? checks.findings : [],
+    trial: kbGatePlain(raw.trial) === true ? raw.trial : null,
+    approval: {
+      state: typeof approvalRaw.state === 'string' && KB_GATE_APPROVALS.indexOf(approvalRaw.state) >= 0 ? approvalRaw.state : 'none',
+      at: typeof approvalRaw.at === 'string' && approvalRaw.at !== '' ? approvalRaw.at : null,
+    },
+    rev: typeof raw.rev === 'number' && Number.isFinite(raw.rev) === true && raw.rev >= 0 ? raw.rev : null,
+    updatedAt: typeof raw.updatedAt === 'string' && raw.updatedAt !== '' ? raw.updatedAt : null,
+  }
+}
+/** A task of the `list` answer → its gate view. `task.gate` is the only input: no gate is ever minted on this side. */
+const kbGateOf = (task) => kbGateView(kbGatePlain(task) === true ? task.gate : null)
+
+/** The tone of a status: one table, so the chip and the CSS cannot drift apart (a finished trial warns, it never celebrates). */
+const kbGateTone = (status) => {
+  if (status === 'activated' || status === 'approved') return 'ok'
+  if (status === 'awaiting-approval' || status === 'trial-done') return 'warn'
+  if (status === 'static-failed' || status === 'refused') return 'bad'
+  return 'idle'
+}
+
+/** The three rungs a record climbs, what is done, and the ONE next step a person is expected to take (null: nothing to ask). */
+const kbGateSteps = (rec) => {
+  const g = kbGatePlain(rec) === true ? rec : {}
+  const known = g.known === true
+  const status = known === true && typeof g.status === 'string' ? g.status : 'unknown'
+  const granted = kbGatePlain(g.approval) === true && g.approval.state === 'granted'
+  let next = null
+  if (known === true && status !== 'activated') {
+    if (status === 'awaiting-approval') next = 'approve'
+    else if (status === 'approved' && granted === true) next = 'activate'
+    // Every other frozen status asks for the checks again — `refused` included: a refusal is terminal on the record, not on the
+    // person, so the ladder goes back through the checks instead of dead-ending. The panel offers no second refusal on it.
+    else next = 'review'
+  }
+  return {
+    steps: [
+      { id: 'review', done: known === true && status !== 'draft', blocked: known !== true },
+      { id: 'approve', done: granted, blocked: granted !== true },
+      { id: 'activate', done: status === 'activated', blocked: granted !== true },
+    ],
+    next: next,
+  }
+}
+
+/** May this record be approved right now? A passing, side-effect-free proof of THIS revision, and no decision already taken. */
+const kbGateCanApprove = (rec) => {
+  const g = kbGatePlain(rec) === true ? rec : {}
+  if (g.known !== true || g.status !== 'awaiting-approval') return false
+  if (kbGatePlain(g.approval) !== true || g.approval.state === 'granted' || g.approval.state === 'refused') return false
+  if (g.rev === null) return false
+  if (kbGatePlain(g.trial) !== true) return false
+  return g.trial.sideEffectFree === true
+}
+
+/** May it be switched on? The same question B3 asks before the flip: a granted approval on an approved record. */
+const kbGateCanActivate = (rec) => {
+  const g = kbGatePlain(rec) === true ? rec : {}
+  return g.known === true && g.status === 'approved' && kbGatePlain(g.approval) === true && g.approval.state === 'granted' && g.rev !== null
+}
+
+/** May it be refused? Any known rung but `activated` and `refused` — a person can always say no, never twice. */
+const kbGateCanRefuse = (rec) => {
+  const g = kbGatePlain(rec) === true ? rec : {}
+  if (g.known !== true || g.status === 'activated' || g.status === 'refused') return false
+  if (kbGatePlain(g.approval) === true && g.approval.state === 'refused') return false
+  return g.rev !== null
+}
+
+/**
+ * What the switch of one automation does. `'deactivate'` whenever it is on (switching off asks nobody), `'activate'` only with a
+ * granted approval on an approved or already-activated record, `'review'` for everything else — an unreadable gate included.
+ */
+const kbGateToggleIntent = (rec, task) => {
+  const g = kbGatePlain(rec) === true ? rec : {}
+  const t = kbGatePlain(task) === true ? task : {}
+  if (t.active !== false) return 'deactivate'
+  const granted = kbGatePlain(g.approval) === true && g.approval.state === 'granted'
+  if (g.known === true && granted === true && (g.status === 'approved' || g.status === 'activated')) return 'activate'
+  return 'review'
+}
+
+/** The findings to draw: blockers first (stable inside a severity), capped, every text bounded; blockers counted over ALL of them. */
+const kbGateFindings = (rec) => {
+  const g = kbGatePlain(rec) === true ? rec : {}
+  const list = Array.isArray(g.findings) === true ? g.findings : []
+  const rank = { blocker: 0, warn: 1, info: 2 }
+  const all = []
+  let blockers = 0
+  for (const f of list) {
+    if (kbGatePlain(f) === false) continue
+    const severity = KB_GATE_SEVERITIES.indexOf(f.severity) >= 0 ? f.severity : 'info'
+    if (severity === 'blocker') blockers += 1
+    // The position is the tie-break: a stable sort is what the frozen severity order requires.
+    all.push({ severity: severity, code: kbGateText(f.code, 80), field: kbGateText(f.field, KB_GATE_FIELD_MAX), message: kbGateText(f.message, KB_GATE_MSG_MAX), at: all.length })
+  }
+  all.sort((a, b) => (rank[a.severity] - rank[b.severity]) || (a.at - b.at))
+  const rows = all.slice(0, KB_GATE_FINDINGS_MAX).map((f) => ({ severity: f.severity, code: f.code, field: f.field, message: f.message }))
+  return { rows: rows, hidden: Math.max(0, all.length - rows.length), blockers: blockers }
+}
+
+/** The badge of a row or a card: the FULL translation key, or `''` when the status asks nothing of a person. Never a suffix. */
+const kbGateBadge = (rec) => {
+  const status = kbGatePlain(rec) === true && rec.known === true ? rec.status : 'unknown'
+  if (status === 'awaiting-approval') return 'tasks.gate.badge.awaiting'
+  if (status === 'static-failed') return 'tasks.gate.badge.failed'
+  if (status === 'refused') return 'tasks.gate.badge.refused'
+  return ''
+}
+
+/** The host's refusal → the family the page translates. An action this host does not know is degradation, not a failure. */
+const kbGateError = (message) => {
+  const m = typeof message === 'string' ? message : ''
+  if (m.indexOf('unknown action') === 0) return 'unknown-action'
+  if (m === 'approval required') return 'approval'
+  if (m === 'task not found') return 'not-found'
+  if (m === 'sign-in required') return 'signin'
+  if (m === 'refused_on_phone') return 'phone'
+  return 'other'
+}
+
+/**
+ * The initiative queue of the page: a bounded list of drafts, each with the proof it came from. Pure over `{ ok, items, cap }` of
+ * `queue list`: entries that are not objects, have no id or repeat one are dropped, `cap` bounds what is drawn, the rest is counted,
+ * and an entry whose next action is not a draft is kept but marked unusable — it is drawn with a warning, never with a button.
+ */
+const kbInitView = (items, cap) => {
+  const list = Array.isArray(items) === true ? items : []
+  const bound = typeof cap === 'number' && Number.isFinite(cap) === true && cap > 0 ? Math.min(Math.floor(cap), KB_INIT_MAX) : KB_INIT_MAX
+  const seen = new Set()
+  const valid = []
+  for (const it of list) {
+    if (kbGatePlain(it) === false) continue
+    const id = typeof it.id === 'string' && it.id !== '' ? it.id : ''
+    if (id === '' || seen.has(id) === true) continue
+    seen.add(id)
+    const ev = kbGatePlain(it.evidence) === true ? it.evidence : {}
+    const next = kbGatePlain(it.nextAction) === true ? it.nextAction : {}
+    const kind = typeof next.kind === 'string' ? next.kind : ''
+    valid.push({
+      id: id,
+      title: kbGateText(it.title, 120),
+      evidence: { n: typeof ev.n === 'number' && Number.isFinite(ev.n) === true ? ev.n : 0, span: kbGateText(ev.span, 40), where: kbGateText(ev.where, 80) },
+      risk: KB_INIT_RISKS.indexOf(it.risk) >= 0 ? it.risk : 'low',
+      reversibility: KB_INIT_REVS.indexOf(it.reversibility) >= 0 ? it.reversibility : 'easy',
+      nextAction: { kind: kind, summary: kbGateText(next.summary, 240) },
+      status: KB_INIT_STATUSES.indexOf(it.status) >= 0 ? it.status : 'proposed',
+      usable: kind === 'draft',
+    })
+  }
+  const drawn = valid.slice(0, bound)
+  return { cap: bound, items: drawn, hidden: Math.max(0, valid.length - drawn.length), skipped: drawn.filter((i) => i.usable !== true).length }
+}
 // KB-AUTOBOARD-END
 
 // KB-AUTORUNS-BEGIN
@@ -7624,6 +7916,64 @@ const kbRunUses = (history, sums, limit) => {
   }
   const top = (map) => [...map.values()].sort((a, b) => b.count - a.count || (a.name < b.name ? -1 : 1)).slice(0, 8)
   return { runs: runs.length, read, models: top(models), latest, skills: top(skills), apps: top(apps), tools: top(tools), agents: [...agents.values()].slice(0, 8), chosen }
+}
+// ── The proof of a supervised trial, as the gate panel reads it ──────────────
+// The proof is B2's ProofReport, stored by B3 and sent whole on `trial-report`. This block only bounds it for the screen: it claims
+// nothing the host did not say, and `sideEffectFree` stays `null` (never `true`) until a proof exists — "nothing left the machine"
+// is a measurement, not a default. The three caps are the ones the panel draws with; what they clip is counted, not lost.
+const KB_GATE_TOOLS_MAX = 8, KB_GATE_EFFECTS_MAX = 5, KB_GATE_ERRORS_MAX = 3
+const KB_GATE_PROOF_TEXT_MAX = 120
+const kbProofText = (v, max) => {
+  const s = typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim() : ''
+  return s.length > max ? s.slice(0, max - 1) + '…' : s
+}
+const kbProofMs = (v) => { const ms = typeof v === 'string' ? Date.parse(v) : NaN; return Number.isFinite(ms) === true ? ms : null }
+/** A gate view (or anything shaped like one) → what the proof block draws, and what it must not claim. */
+const kbProofOf = (rec) => {
+  const g = rec !== null && typeof rec === 'object' && Array.isArray(rec) === false ? rec : {}
+  const trial = g.trial !== null && typeof g.trial === 'object' && Array.isArray(g.trial) === false ? g.trial : null
+  if (trial === null) {
+    return { present: false, sideEffectFree: null, startedAt: null, endedAt: null, durationMs: null, outcome: { state: null, code: '', message: '' }, toolRows: [], toolHidden: 0, refused: 0, effects: [], effectsHidden: 0, errors: [], errorsHidden: 0 }
+  }
+  const calls = Array.isArray(trial.toolCalls) === true ? trial.toolCalls : []
+  const toolRows = []
+  let refused = 0
+  // `refused` counts EVERY call, not only the eight drawn: the figure is a verdict, the rows are a sample.
+  for (const c of calls) {
+    if (c === null || typeof c !== 'object') continue
+    const outcome = c.outcome === 'ok' || c.outcome === 'refused-as-write' ? c.outcome : 'error'
+    if (outcome === 'refused-as-write') refused += 1
+    if (toolRows.length < KB_GATE_TOOLS_MAX) toolRows.push({ toolName: kbProofText(c.toolName, 60) || 'tool', access: c.access === 'read' ? 'read' : 'write', outcome: outcome })
+  }
+  const effectList = Array.isArray(trial.externalEffects) === true ? trial.externalEffects : []
+  const effects = effectList.slice(0, KB_GATE_EFFECTS_MAX).map((e) => kbProofText(e, KB_GATE_PROOF_TEXT_MAX)).filter((e) => e !== '')
+  const errorList = Array.isArray(trial.errors) === true ? trial.errors : []
+  const errors = errorList.slice(0, KB_GATE_ERRORS_MAX).map((e) => {
+    const one = e !== null && typeof e === 'object' ? e : {}
+    return { at: kbProofText(one.at, 40), where: kbProofText(one.where, 60), message: kbProofText(one.message !== undefined ? one.message : e, KB_GATE_PROOF_TEXT_MAX) }
+  })
+  const verdict = trial.outcome !== null && typeof trial.outcome === 'object' ? trial.outcome : {}
+  const startedMs = kbProofMs(trial.startedAt)
+  const endedMs = kbProofMs(trial.endedAt)
+  return {
+    present: true,
+    sideEffectFree: typeof trial.sideEffectFree === 'boolean' ? trial.sideEffectFree : null,
+    startedAt: startedMs !== null ? trial.startedAt : null,
+    endedAt: endedMs !== null ? trial.endedAt : null,
+    durationMs: startedMs !== null && endedMs !== null && endedMs >= startedMs ? endedMs - startedMs : null,
+    outcome: {
+      state: verdict.state === 'completed' || verdict.state === 'open' || verdict.state === 'failed' ? verdict.state : null,
+      code: kbProofText(verdict.code, 60),
+      message: kbProofText(verdict.message, KB_GATE_PROOF_TEXT_MAX),
+    },
+    toolRows: toolRows,
+    toolHidden: Math.max(0, calls.length - toolRows.length),
+    refused: refused,
+    effects: effects,
+    effectsHidden: Math.max(0, effectList.length - effects.length),
+    errors: errors,
+    errorsHidden: Math.max(0, errorList.length - errors.length),
+  }
 }
 // KB-AUTORUNS-END
 
@@ -21164,9 +21514,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               h('span', { className: 'kba-trigger-icon' }, Icon('zap', 14)),
               h('div', { className: 'kbcc-title' }, h('b', null, t.name || t.id), h('span', null, kbScheduleLabel(t, true) + ' · ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')))),
               h('span', { role: 'switch', 'aria-checked': t.active !== false ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), 'data-kb': 'card-toggle', className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0,
-                onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); props.onToggle(t) } },
-                onClick: (e) => { e.stopPropagation(); props.onToggle(t) } }, h('span', { className: 'kba-toggle-knob' }))),
-            (attn || t.active === false ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, t.active === false ? h('span', { className: 'kbcc-badge' }, kbt('tasks.cards.paused')) : null) : null),
+                onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') props.onGateReview(t); else props.onToggle(t) } },
+                onClick: (e) => { e.stopPropagation(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') props.onGateReview(t); else props.onToggle(t) } }, h('span', { className: 'kba-toggle-knob' }))),
+            (attn || t.active === false || kbGateBadge(kbGateOf(t)) !== '' ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, h(KbGateBadge, { gate: kbGateOf(t), hidden: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' }), t.active === false ? h('span', { className: 'kbcc-badge' }, kbt('tasks.cards.paused')) : null) : null),
             weight !== null ? kbLdBlock(weight, kbt('tasks.board.chip.running')) : null,
             h('div', { className: 'kbcc-figs' },
               fig('last', f.lastMs !== null ? (kbRunAgo(f.lastMs, now, locale) || kbWhenOf(f.lastAt)) : kbt('tasks.cards.never')),
@@ -21180,6 +21530,170 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         })),
         h('div', { className: 'kba-hint' }, kbt('tasks.cards.hint')))
     }
+    // <kbgate-ui>
+    // The visible half of the certification gate (pillar A) and of the initiative queue (pillar B), on the Automations page.
+    // Three components, pure over their props: they draw what the host sent in `task.gate` — the checks, the proof of a trial, the
+    // recorded approval — and every gesture is a callback the page passes. Nothing here calls the host, reads storage, opens a
+    // window or sets a timer, and nothing fires on mount: the only way to an approval is the person's click on `gate-approve`,
+    // which the page turns into ONE body carrying the record's own revision. The labels are `kbt` keys, whole: a badge key is
+    // handed over complete by `kbGateBadge` and never assembled from a prefix.
+    const KB_GATE_ST_KEY = {
+      draft: 'tasks.gate.st.draft', 'static-failed': 'tasks.gate.st.static-failed', 'static-passed': 'tasks.gate.st.static-passed',
+      'trial-done': 'tasks.gate.st.trial-done', 'awaiting-approval': 'tasks.gate.st.awaiting-approval', approved: 'tasks.gate.st.approved',
+      refused: 'tasks.gate.st.refused', activated: 'tasks.gate.st.activated', unknown: 'tasks.gate.st.unknown',
+    }
+    const KB_GATE_HINT_KEY = {
+      'static-failed': 'tasks.gate.hint.static-failed', 'awaiting-approval': 'tasks.gate.hint.awaiting-approval',
+      approved: 'tasks.gate.hint.approved', refused: 'tasks.gate.hint.refused', unknown: 'tasks.gate.hint.unknown',
+    }
+    const KB_GATE_STEP_KEY = { review: 'tasks.gate.review', approve: 'tasks.gate.approve', activate: 'tasks.gate.st.activated' }
+    const KB_GATE_SEV_KEY = { blocker: 'tasks.gate.severity.blocker', warn: 'tasks.gate.severity.warn', info: 'tasks.gate.severity.info' }
+    const KB_GATE_ERR_KEY = {
+      'unknown-action': 'tasks.gate.err.unknown-action', approval: 'tasks.gate.err.approval', 'not-found': 'tasks.gate.err.not-found',
+      signin: 'tasks.gate.err.signin', phone: 'tasks.gate.err.phone', other: 'tasks.gate.err.other',
+    }
+    const KB_INIT_RISK_KEY = { low: 'tasks.init.risk.low', medium: 'tasks.init.risk.medium', high: 'tasks.init.risk.high' }
+    const KB_INIT_REV_KEY = { trivial: 'tasks.init.rev.trivial', easy: 'tasks.init.rev.easy', hard: 'tasks.init.rev.hard' }
+    const KB_INIT_STATUS_KEY = { proposed: 'tasks.init.status.proposed', asked: 'tasks.init.status.asked', added: 'tasks.init.status.added', dropped: 'tasks.init.status.dropped' }
+    const KB_PROOF_ACCESS_KEY = { read: 'tasks.proof.access.read', write: 'tasks.proof.access.write' }
+    const KB_PROOF_OUTCOME_KEY = { ok: 'tasks.proof.outcome.ok', error: 'tasks.proof.outcome.failed', 'refused-as-write': 'tasks.proof.outcome.refused' }
+
+    /** The badge of a row or of a card, or nothing: the full key comes from `kbGateBadge`, this draws it and nothing else. */
+    const KbGateBadge = (props) => {
+      const key = kbGateBadge(props.gate)
+      if (key === '' || props.hidden === true) return null
+      const tone = kbGateTone(kbGatePlain(props.gate) === true ? props.gate.status : 'unknown')
+      return h('span', { className: 'kbgate-badge ' + tone, 'data-kb': 'gate-badge', 'data-kb-i18n': key, 'data-tone': tone }, kbt(key))
+    }
+
+    /** The proof of a trial: what was called, what was refused, and whether anything left the machine. Text only, bounded. */
+    const KbProofBlock = (props) => {
+      const p = props.proof
+      const running = props.running === true
+      const state = p.present !== true ? 'none' : (running === true || p.outcome.state === 'open' ? 'running' : 'done')
+      const sideKey = p.sideEffectFree === true ? 'tasks.proof.sideeffect.ok' : (p.sideEffectFree === false ? 'tasks.proof.sideeffect.bad' : 'tasks.proof.sideeffect.unknown')
+      const sideTone = p.sideEffectFree === true ? 'ok' : (p.sideEffectFree === false ? 'bad' : 'idle')
+      const row = (key, value) => h('div', { key: key, className: 'kbgate-prow' }, h('span', { className: 'kbgate-plab' }, value))
+      return h('div', { className: 'kbgate-proof', 'data-kb': 'gate-proof', 'data-state': state, 'data-sideeffect': p.sideEffectFree === true ? 'true' : (p.sideEffectFree === false ? 'false' : 'unknown') },
+        h('div', { className: 'kbgate-proof-h' },
+          h('span', { className: 'kbgate-sub-t', 'data-kb-i18n': 'tasks.proof.title' }, kbt('tasks.proof.title')),
+          (p.durationMs !== null ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.duration').replace('{d}', () => kbRunFmtDur(p.durationMs))) : null)),
+        h('span', { className: 'kbgate-side ' + sideTone, 'data-kb-i18n': sideKey }, kbt(sideKey)),
+        h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.proof.tools.title' }, kbt('tasks.proof.tools.title'))),
+        (p.toolRows.length === 0
+          ? h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.proof.tools.none' }, kbt('tasks.proof.tools.none'))
+          : h('div', { className: 'kbgate-tools' }, p.toolRows.map((r, i) => h('div', { key: i, className: 'kbgate-tool', 'data-kb': 'gate-proof-tool', 'data-access': r.access, 'data-outcome': r.outcome },
+            h('span', { className: 'kbgate-tool-n', title: r.toolName }, r.toolName),
+            h('span', { className: 'kbgate-chip' }, kbt(KB_PROOF_ACCESS_KEY[r.access])),
+            h('span', { className: 'kbgate-chip ' + (r.outcome === 'ok' ? 'ok' : (r.outcome === 'refused-as-write' ? 'warn' : 'bad')) }, kbt(KB_PROOF_OUTCOME_KEY[r.outcome])))))),
+        (p.refused > 0 ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.refused').replace('{n}', () => String(p.refused))) : null),
+        h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.proof.effects.title' }, kbt('tasks.proof.effects.title'))),
+        (p.effects.length === 0
+          ? h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.proof.effects.none' }, kbt('tasks.proof.effects.none'))
+          : h('ul', { className: 'kbgate-list' }, p.effects.map((e, i) => h('li', { key: i }, h('span', null, e), null)))),
+        (p.effectsHidden > 0 ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.effects.more').replace('{n}', () => String(p.effectsHidden))) : null),
+        (p.errors.length === 0 ? null : h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.proof.errors.title' }, kbt('tasks.proof.errors.title')))),
+        (p.errors.length === 0
+          ? null
+          : h('ul', { className: 'kbgate-list' }, p.errors.map((e, i) => h('li', { key: i }, h('span', null, (e.where !== '' ? e.where + ' · ' : '') + e.message), null)))),
+        (p.errorsHidden > 0 ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.errors.more').replace('{n}', () => String(p.errorsHidden))) : null))
+    }
+
+    /** The gate panel of one automation: collapsed strip (status, ladder, next step) and the full evidence on demand. */
+    const KbGatePanel = (props) => {
+      const g = props.gate
+      const open = props.open === true
+      const phase = typeof props.phase === 'string' ? props.phase : null
+      const busy = phase !== null
+      const running = props.running === true
+      const cloud = props.cloud === true
+      const locked = cloud === true || g.known !== true
+      const proof = kbProofOf(g)
+      const steps = kbGateSteps(g)
+      const findings = kbGateFindings(g)
+      const hintKey = KB_GATE_HINT_KEY[g.status] !== undefined ? KB_GATE_HINT_KEY[g.status] : ''
+      // A verdict must not change under an approval nobody re-took: the checks are offered before a decision, never after it.
+      const checkable = g.status === 'draft' || g.status === 'static-failed' || g.status === 'static-passed' || g.status === 'refused'
+      // The phase the page passes is the action being called ('gate-check', 'trial-start', 'approve', 'toggle').
+      const checkLabel = phase === 'gate-check' ? 'tasks.gate.checking' : 'tasks.gate.check'
+      const btn = (kb, label, disabled, onClick, pri) => h('button', { type: 'button', className: 'kba-btn kbgate-btn' + (pri === true ? ' pri' : ''), 'data-kb': kb, disabled: disabled === true, onClick: onClick }, label)
+      return h('div', { className: 'kbgate-header-block kbgate', 'data-kb': 'gate-panel', 'data-open': open === true ? 'true' : 'false', 'data-status': g.status, 'data-known': g.known === true ? 'true' : 'false', role: 'region', 'aria-label': kbt('tasks.gate.panel.title') },
+        h('div', { className: 'kbgate-head' },
+          h('span', { className: 'kbgate-title', 'data-kb-i18n': 'tasks.gate.panel.title' }, kbt('tasks.gate.panel.title')),
+          h('span', { className: 'kbgate-status ' + kbGateTone(g.status), 'data-kb-i18n': KB_GATE_ST_KEY[g.status] }, kbt(KB_GATE_ST_KEY[g.status])),
+          (findings.blockers > 0 ? h('span', { className: 'kbgate-chip bad', title: kbt('tasks.gate.severity.blocker') }, String(findings.blockers)) : null),
+          h('span', { className: 'kbgate-ladder' }, steps.steps.map((s) => h('button', {
+            key: s.id, type: 'button', className: 'kbgate-step' + (s.done === true ? ' done' : '') + (s.blocked === true ? ' blocked' : ''),
+            'data-kb': 'gate-step-' + s.id, 'aria-current': steps.next === s.id ? 'step' : undefined, disabled: locked === true,
+            onClick: () => props.onOpen(true),
+          }, kbt(KB_GATE_STEP_KEY[s.id])))),
+          btn(open === true ? 'gate-collapse' : 'gate-review', kbt(open === true ? 'tasks.gate.collapse' : 'tasks.gate.review'), locked === true, () => props.onOpen(open !== true), false)),
+        (hintKey === '' ? null : h('p', { className: 'kbgate-hint', 'data-kb-i18n': hintKey }, kbt(hintKey))),
+        (locked === true ? h('p', { className: 'kbgate-warn', 'data-kb-i18n': 'tasks.gate.unavailable' }, kbt('tasks.gate.unavailable')) : null),
+        (open !== true || locked === true ? null : h('div', { className: 'kbgate-body' },
+          h('p', { className: 'kbgate-intro', 'data-kb-i18n': 'tasks.gate.panel.intro' }, kbt('tasks.gate.panel.intro')),
+          (g.updatedAt === null
+            ? h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.gate.checked.never' }, kbt('tasks.gate.checked.never'))
+            : h('span', { className: 'kbgate-dim' }, kbt('tasks.gate.checked.at').replace('{when}', () => kbRunFmtDT(g.updatedAt, kbBoardLocale(), false)))),
+          h('div', { className: 'kbgate-acts' },
+            (checkable === true ? btn('gate-check', kbt(checkLabel), busy === true, () => props.onCheck(), false) : null),
+            btn('gate-refuse', kbt('tasks.gate.refuse'), kbGateCanRefuse(g) !== true || busy === true, () => props.onRefuse(), false),
+            btn('gate-approve', kbt('tasks.gate.approve'), kbGateCanApprove(g) !== true || busy === true, () => props.onApprove(), true),
+            h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.gate.approve.hint' }, kbt('tasks.gate.approve.hint'))),
+          h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.gate.findings.title' }, kbt('tasks.gate.findings.title'))),
+          (findings.rows.length === 0
+            ? h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.gate.findings.none' }, kbt('tasks.gate.findings.none'))
+            : h('ul', { className: 'kbgate-findings' }, findings.rows.map((f, i) => h('li', { key: i, className: 'kbgate-finding ' + f.severity, 'data-kb': 'gate-finding', 'data-severity': f.severity },
+              h('span', { className: 'kbgate-sev', 'data-kb-i18n': KB_GATE_SEV_KEY[f.severity] }, kbt(KB_GATE_SEV_KEY[f.severity])),
+              h('span', { className: 'kbgate-fmsg', title: f.message }, f.message),
+              (f.field !== '' ? h('code', { className: 'kbgate-field' }, f.field) : null))))),
+          (findings.hidden > 0 ? h('span', { className: 'kbgate-dim', 'data-kb': 'gate-findings-more' }, kbt('tasks.gate.findings.more').replace('{n}', () => String(findings.hidden))) : null),
+          h('div', { className: 'kbgate-trial' },
+            h('span', { className: 'kbgate-sub-t', 'data-kb-i18n': 'tasks.gate.trial.title' }, kbt('tasks.gate.trial.title')),
+            (g.verdict !== 'pass'
+              ? h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.gate.trial.blocked' }, kbt('tasks.gate.trial.blocked'))
+              : (running === true
+                ? h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.gate.trial.running' }, kbt('tasks.gate.trial.running'))
+                : btn('gate-trial-start', kbt(proof.present === true ? 'tasks.gate.trial.done' : 'tasks.gate.trial.start'), busy === true, () => props.onTrial(), false))),
+            h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.gate.trial.supervised' }, kbt('tasks.gate.trial.supervised'))),
+          h(KbProofBlock, { proof: proof, running: running }))))
+    }
+
+    /** The initiative queue: at most three cards, each a draft with its proof; a card never creates or switches anything on. */
+    const KbInitiativeCards = (props) => {
+      const view = props.view
+      const expanded = props.expanded === true
+      const shown = expanded === true ? view.items : view.items.slice(0, KB_INIT_VISIBLE)
+      const more = view.items.length - shown.length
+      const chip = (tone, key) => h('span', { className: 'kbgate-chip ' + tone, 'data-kb-i18n': key }, kbt(key))
+      return h('div', { className: 'kba-card kba-lcard kbgate-init', 'data-kb': 'initiative-block', role: 'region', 'aria-label': kbt('tasks.init.title') },
+        h('div', { className: 'kbgate-head' }, h('span', { className: 'kbgate-title', 'data-kb-i18n': 'tasks.init.title' }, kbt('tasks.init.title'))),
+        h('p', { className: 'kbgate-intro', 'data-kb-i18n': 'tasks.init.intro' }, kbt('tasks.init.intro')),
+        (props.unavailable === true
+          ? h('span', { className: 'kbgate-dim', 'data-kb': 'initiative-unavailable', 'data-kb-i18n': 'tasks.init.unavailable' }, kbt('tasks.init.unavailable'))
+          : (view.items.length === 0
+            ? h('span', { className: 'kbgate-dim', 'data-kb-i18n': 'tasks.init.empty' }, kbt('tasks.init.empty'))
+            : shown.map((it) => h('div', { key: it.id, className: 'kbgate-initcard', 'data-kb': 'initiative-card', 'data-id': it.id, 'data-usable': it.usable === true ? 'true' : 'false' },
+              h('div', { className: 'kbgate-initmain' },
+                h('span', { className: 'kbgate-inittitle', title: it.title }, it.title),
+                h('span', { className: 'kbgate-dim' }, kbt('tasks.init.evidence').replace('{n}', () => String(it.evidence.n)).replace('{span}', () => it.evidence.span).replace('{where}', () => it.evidence.where)),
+                h('span', { className: 'kbgate-dim kbgate-nextsum' }, it.nextAction.summary),
+                h('span', { className: 'kbgate-chips' },
+                  chip('idle', KB_INIT_RISK_KEY[it.risk]),
+                  chip('idle', KB_INIT_REV_KEY[it.reversibility]),
+                  chip('idle', KB_INIT_STATUS_KEY[it.status]),
+                  (it.usable === true ? null : chip('warn', 'tasks.init.notdraft')))),
+              h('div', { className: 'kbgate-initacts' },
+                (it.usable === true
+                  ? h('button', { type: 'button', className: 'kba-btn kbgate-btn', 'data-kb': 'initiative-ask', 'data-id': it.id, disabled: props.busy === true, onClick: () => props.onAsk(it) },
+                    kbt(it.status === 'asked' ? 'tasks.init.asked' : 'tasks.init.ask'))
+                  : null),
+                h('button', { type: 'button', className: 'kba-btn kbgate-btn', 'data-kb': 'initiative-drop', 'data-id': it.id, disabled: props.busy === true || it.status === 'dropped', onClick: () => props.onDrop(it) },
+                  kbt(it.status === 'dropped' ? 'tasks.init.dropped' : 'tasks.init.drop'))))))),
+        (more > 0 ? h('button', { type: 'button', className: 'kba-btn kbgate-btn', 'data-kb': 'initiative-more', onClick: () => props.onMore(true) }, kbt('tasks.init.more').replace('{n}', () => String(view.items.length))) : null),
+        (expanded === true && view.items.length > KB_INIT_VISIBLE ? h('button', { type: 'button', className: 'kba-btn kbgate-btn', 'data-kb': 'initiative-more', onClick: () => props.onMore(false) }, kbt('tasks.init.showless')) : null))
+    }
+    // </kbgate-ui>
     const kbBoardBones = (rows) => h('div', { className: 'kbbd-cols' }, [0, 1, 2, 3].map((c) => h('div', { key: c, className: 'kbbd-col' },
       h('div', { className: 'kbbd-colhead' }, kbBone('46%', 13)),
       h('div', { className: 'kbbd-cards' }, [0, 1].slice(0, rows === undefined ? 2 : rows).map((i) => h('div', { key: i, className: 'kbbd-card' },
@@ -22776,6 +23290,163 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         kbActInflight[flight] = false
         refresh()
       }
+      // ── The certification gate and the initiative queue, as the page drives them ────────────────────────────────────────────
+      // The gate record rides on the answer this page already polls (`list`, 15 s, `task.gate`), so no seam is subscribed and no
+      // second request is written for it: the panel draws `kbGateOf(task)` and a record written elsewhere shows up at the next poll.
+      // The six actions of the route are called from a click only — nothing here fires on mount but the queue's own read, once.
+      const gateOpenPair = React.useState({})
+      const gateOpen = gateOpenPair[0]
+      const setGateOpen = gateOpenPair[1]
+      const gatePhasePair = React.useState(null)
+      const gatePhase = gatePhasePair[0]
+      const setGatePhase = gatePhasePair[1]
+      // The running flag of a trial is LOCAL state and deliberately not persisted: the proof, the record and the status live on the
+      // host, so a reload mid-trial finds them again with one `trial-report` on the next expansion.
+      const trialPair = React.useState(null)
+      const trialRun = trialPair[0]
+      const setTrialRun = trialPair[1]
+      const trialTimer = React.useRef(null)
+      const trialCalls = React.useRef(0)
+      const initPair = React.useState({ phase: 'idle', items: [], cap: KB_INIT_MAX, at: 0, expanded: false, busy: null })
+      const init = initPair[0]
+      const setInit = initPair[1]
+
+      // The one refusal message a person reads: the host's string mapped to the family this page translates.
+      const gateErr = (message) => {
+        const family = kbGateError(message)
+        // A refusal the page already knows ('task not found', 'runs in the cloud', 'frequent schedule'…) keeps its own message; the
+        // gate families win, because they are the ones this surface exists for.
+        if (family === 'other' && typeof message === 'string' && Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true) { toast(kbTaskError(message, kbt)); return }
+        toast(kbt(KB_GATE_ERR_KEY[family]))
+      }
+      // One host call, one toast on refusal, and the record refreshed from the host afterwards: never an optimistic local state.
+      const gateCall = async (action, id, extra) => {
+        const flight = 'gate:' + action + ':' + String(id)
+        if (kbActInflight[flight] === true) return null
+        kbActInflight[flight] = true
+        if (deadRef.current === false) setGatePhase(action)
+        try {
+          const r = await host.call('kybers/tasks', Object.assign({ action: action, id: id }, extra !== null && extra !== undefined ? extra : {}))
+          if (r !== null && r !== undefined && r.ok === true) return r
+          const message = r !== null && r !== undefined && typeof r.error === 'string' ? r.error : 'HTTP error'
+          gateErr(message)
+          return r !== null && r !== undefined ? r : null
+        } catch (e) {
+          toast(String(e !== null && typeof e === 'object' && e.message !== undefined ? e.message : e))
+          return null
+        } finally {
+          kbActInflight[flight] = false
+          if (deadRef.current === false) setGatePhase(null)
+        }
+      }
+      // The person's own toggle wins for the session; the default is expanded exactly when a person is expected (a blocker, or a
+      // decision to take). Never persisted: a reload comes back to the default.
+      const gateOpenOf = (task) => {
+        if (task === null || typeof task !== 'object') return false
+        const chosen = gateOpen[String(task.id)]
+        if (typeof chosen === 'boolean') return chosen
+        const rec = kbGateOf(task)
+        if (rec.status === 'static-failed' || rec.status === 'awaiting-approval') return true
+        return trialRun !== null && trialRun.id === task.id
+      }
+      const gateSetOpen = (task, value) => {
+        if (task === null || typeof task !== 'object') return
+        setGateOpen((prev) => Object.assign({}, prev, { [String(task.id)]: value === true }))
+      }
+      // The gesture of every switch: an unapproved automation opens the review instead of flipping. No host call is made, so a
+      // permissive fallback has nowhere to hide; the toast says why, in the person's language.
+      const gateReview = (task) => {
+        if (task === null || typeof task !== 'object') return
+        gateSetOpen(task, true)
+        toast(kbt('tasks.gate.activate.gated'))
+      }
+      const gateToggle = async (task) => {
+        if (task === null || typeof task !== 'object') return
+        const r = await gateCall('toggle', task.id, { active: task.active === false })
+        if (r === null || r.ok !== true) {
+          if (kbGateError(r !== null && r !== undefined && typeof r.error === 'string' ? r.error : '') === 'approval') gateReview(task)
+        }
+        refresh()
+      }
+      const gateCheck = async (task) => {
+        await gateCall('gate-check', task.id, null)
+        refresh()
+      }
+      const stopTrialPoll = () => {
+        try { if (trialTimer.current !== null) clearTimeout(trialTimer.current) } catch (e) { /* timer */ }
+        trialTimer.current = null
+      }
+      React.useEffect(() => () => { stopTrialPoll() }, [])
+      // `trial-report` takes the id and nothing else, and answers the proof. It is asked every 2 s, at most 30 times for one trial;
+      // it stops on a proof whose outcome is not `open`, on unmount, and while the tab is hidden (the proof waits on the host).
+      const trialPoll = (id, n) => {
+        stopTrialPoll()
+        trialCalls.current = n
+        if (deadRef.current === true) return
+        if (n > 30) { setTrialRun(null); return }
+        trialTimer.current = setTimeout(async () => {
+          trialTimer.current = null
+          if (deadRef.current === true) return
+          if (typeof document !== 'undefined' && document.hidden === true) { setTrialRun(null); return }
+          let r = null
+          try { r = await host.call('kybers/tasks', { action: 'trial-report', id: id }) } catch (e) { r = null }
+          if (deadRef.current === true) return
+          const report = r !== null && r !== undefined && r.ok === true && r.report !== null && typeof r.report === 'object' ? r.report : null
+          const open = report !== null && report.outcome !== null && typeof report.outcome === 'object' && report.outcome.state === 'open'
+          if (report !== null) setTrialRun({ id: id, report: report })
+          if (open === true) { trialPoll(id, trialCalls.current + 1); return }
+          setTrialRun(null)
+          refresh()
+        }, 2000)
+      }
+      const gateTrial = async (task) => {
+        const r = await gateCall('trial-start', task.id, null)
+        refresh()
+        if (r === null || r.ok !== true) return
+        setTrialRun({ id: task.id, report: null })
+        trialPoll(task.id, 1)
+      }
+      // `approve` carries the three fields B3 requires and this page invents none of them: the person's decision, the record's own
+      // revision (the one on screen), and the automation. The answer carries the gate only; the task comes back with the next list.
+      const gateDecide = async (task, decision) => {
+        if (decision !== 'grant' && decision !== 'refuse') return
+        const rec = kbGateOf(task)
+        if (rec.rev === null) { toast(kbt('tasks.gate.err.other')); return }
+        const r = await gateCall('approve', task.id, { decision: decision, rev: rec.rev })
+        if (r !== null && r.ok === true) toast(kbt(decision === 'grant' ? 'tasks.gate.approved.toast' : 'tasks.gate.refused.toast'))
+        refresh()
+      }
+      const gateAskRefuse = (task) => setConfirm({
+        title: kbt('tasks.gate.refuse.title'),
+        body: kbt('tasks.gate.refuse.body'),
+        confirmLabel: kbt('tasks.gate.refuse'),
+        onConfirm: async () => { await gateDecide(task, 'refuse') },
+      })
+      // The queue: read once on mount and after every human answer, never faster than 30 s. An `unknown action` means this host has
+      // no queue at all (the block is not drawn); any other refusal is drawn as one line, never as an empty frame.
+      const loadInit = async (force) => {
+        if (force !== true && Date.now() - init.at < 30000) return
+        let r = null
+        try { r = await host.call('kybers/tasks', { action: 'queue list' }) } catch (e) { r = null }
+        if (deadRef.current === true) return
+        if (r !== null && r !== undefined && r.ok === true && Array.isArray(r.items) === true) {
+          setInit((prev) => Object.assign({}, prev, { phase: 'ready', items: r.items, cap: Number.isSafeInteger(r.cap) === true ? r.cap : KB_INIT_MAX, at: Date.now(), busy: null }))
+          return
+        }
+        const family = kbGateError(r !== null && r !== undefined && typeof r.error === 'string' ? r.error : '')
+        setInit((prev) => Object.assign({}, prev, { phase: family === 'unknown-action' ? 'unavailable' : 'error', at: Date.now(), busy: null }))
+      }
+      React.useEffect(() => { loadInit(true) }, [])
+      const initAskText = (item) => kbt('tasks.init.title') + ' — ' + String(item.title)
+      const initAct = async (item, status) => {
+        if (init.busy !== null) return
+        setInit((prev) => Object.assign({}, prev, { busy: item.id }))
+        let r = null
+        try { r = await host.call('kybers/tasks', { action: 'queue act', id: item.id, status: status }) } catch (e) { r = null }
+        if (r === null || r === undefined || r.ok !== true) gateErr(r !== null && r !== undefined && typeof r.error === 'string' ? r.error : '')
+        else if (status === 'asked') { try { kbStartChatText(initAskText(item)) } catch (e) { /* no chat to open: the answer is recorded */ } }
+        await loadInit(true)
+      }
       // Cloner (28/09, gabarit) : l'action `create` de l'hôte re-sanitise
       // l'entrée et régénère id/createdAt/updatedAt/history/lastRun/nextRun —
       // on ne transmet donc QUE la définition, sans l'identité ni l'historique
@@ -22896,6 +23567,21 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('button', { type: 'button', className: 'kb-task-btn kba-sugbtn', 'data-kb': 'suggested-discard', onClick: () => act('delete', t.id) }, kbt('tasks.sug.discard'))))
       }
       const sugEl = (section === 'yours' && sug.length > 0) ? h('div', { className: 'kba-card kba-lcard kba-sugcard', 'data-kb': 'suggested-block', role: 'region', 'aria-label': kbt('tasks.sug.title') }, sug.map(sugRow)) : null
+      // The initiative cards of Yours, right under the suggested card: Kaby's bounded queue of drafts, each with the proof it came
+      // from. A host that does not know the queue action draws no block at all (degradation, not failure); a queue that could not be
+      // read draws one line. Nothing here creates or switches anything on: a card opens a chat, which is the whole point.
+      const initView = kbInitView(init.items, init.cap)
+      const initEl = (section !== 'yours' || init.phase === 'idle' || init.phase === 'unavailable')
+        ? null
+        : h(KbInitiativeCards, {
+          view: initView,
+          unavailable: init.phase === 'error',
+          expanded: init.expanded === true,
+          busy: init.busy !== null,
+          onAsk: (it) => initAct(it, 'asked'),
+          onDrop: (it) => initAct(it, 'dropped'),
+          onMore: (v) => setInit((prev) => Object.assign({}, prev, { expanded: v === true })),
+        })
       const activeCount = items.filter((a) => a.active === true).length
       const attentionCount = items.filter((a) => a.failed === true).length
       const auFavOf = (a) => kbFavOn(auFavs, 'automations', a.id) === true
@@ -23108,7 +23794,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                 + ' \u00b7 ' + (() => { const c = kbWsChoice(t.workspaceHint, kbPinsSnapshots().items); return c.kind === 'ws' ? kbt('tasks.ws.meta').replace('{name}', () => c.name) : kbt(c.kind === 'gone' ? 'tasks.ws.meta.gone' : 'tasks.ws.meta.dedicated') })()
                 + ' \u00b7 ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'))
                 + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun)) : ''))),
-            h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
+            h(KbGateBadge, { gate: kbGateOf(t), hidden: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' }),
+            h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') gateReview(t); else gateToggle(t) } }, onClick: () => { if (kbGateToggleIntent(kbGateOf(t), t) === 'review') gateReview(t); else gateToggle(t) } },
               h('span', { className: 'kba-toggle-knob' })),
             h('button', { type: 'button', className: 'kba-btn', onClick: () => act('run-now', t.id) }, Icon('play', 13), ' ', kbt('tasks.runnow')),
             h(KbMoreMenu, { label: kbt('tasks.more'), items: [
@@ -23117,6 +23804,23 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               ...(team.phase !== 'absent' ? [{ kb: 'detail-propose', icon: Icon('users', 14), label: kbt('kbta.propose.menu'), run: () => proposeTask(t.id) }] : []),
               null,
               { kb: 'detail-delete', icon: Icon('trash', 14), label: kbt('tasks.delete'), danger: true, run: () => askDelete(t.id, t.name || t.id) }] })),
+          // The gate of this automation, ABOVE the tabs so it stays readable on all three. Collapsed it is one strip: the status,
+          // the three rungs and the one step a person is expected to take. Expanded it holds the checks, the trial and its proof,
+          // and the two decisions — the only way to an approval is the click on `gate-approve`.
+          h(KbGatePanel, {
+            key: 'gate',
+            gate: kbGateOf(t),
+            task: t,
+            cloud: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object',
+            open: gateOpenOf(t),
+            phase: gatePhase,
+            running: trialRun !== null && trialRun.id === t.id,
+            onOpen: (v) => gateSetOpen(t, v),
+            onCheck: () => gateCheck(t),
+            onTrial: () => gateTrial(t),
+            onApprove: () => gateDecide(t, 'grant'),
+            onRefuse: () => gateAskRefuse(t),
+          }),
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'detail-tabs' },
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'flow' ? 'true' : 'false', className: tab === 'flow' ? 'on' : '', 'data-kb': 'tab-flow', onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'sessions' ? 'true' : 'false', className: tab === 'sessions' ? 'on' : '', 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? kbwRunsFor(cloudRunsPair[0][t.cloud.computerId], t.id).length : kbRunsOf(t.history).length))),
@@ -23161,7 +23865,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
       const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
         boardView === 'cards'
-          ? h(KbAutoCards, { load: machineLoadPair[0], tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
+          ? h(KbAutoCards, { load: machineLoadPair[0], tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }), onGateReview: (t) => gateReview(t) })
           : h(KbAutoBoard, {
           view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr, load: machineLoadPair[0],
           onRetry: () => { setLoadErr(null); refresh() },
@@ -23212,6 +23916,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // barre. Trois vues (Colonnes, Calendrier, Liste) : la Liste est l'écran d'origine, inchangé ; les deux autres
         // sont le tableau (KbAutoBoard) et partagent la recherche, les facettes et les favoris de la barre.
         sugEl,
+        initEl,
         (section === 'team' ? h(KbTeamAutomations, { sum: team, tasks, computers: computersPair[0].list, connected: computersPair[0].connected === true, req: proposeReq, onReq: () => setProposeReq(null), notify: toast, refreshTasks: refresh, link: cloudLink, onOpenYours: () => { setSection('yours') } }) : section === 'discover' ? h(KbDiscover, { onUse: useTemplate }) : kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
           ? (list.length === 0
             ? kbaOnboard(false)
@@ -23222,7 +23927,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name, a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' ? h('span', { className: 'kbwr-mark', 'data-kb': 'row-cloud', title: kbt('kbwr.row.mark'), role: 'img', 'aria-label': kbt('kbwr.row.mark') }, Icon('cloud', 13)) : null), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
-                a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') + (kbtaRowShared(a._t, team) !== null ? ' kbta-wraprow' : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel), kbtaRowShared(a._t, team)),
+                a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') + (kbtaRowShared(a._t, team) !== null ? ' kbta-wraprow' : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel), kbtaRowShared(a._t, team), h(KbGateBadge, { gate: kbGateOf(a._t), hidden: a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' })),
                 h('span', { className: 'kba-succ', 'data-kb': 'row-success' },
                   (a.succ.pct === null ? h('span', { className: 'kba-ell' }, '\u2014') : h('span', { className: 'kba-pct ' + (a.succ.pct >= 95 ? 'g' : (a.succ.pct >= 85 ? 'a' : 'r')) }, String(a.succ.pct) + '%')),
                   h('span', { className: 'kba-bars', 'aria-hidden': 'true' }, a.succ.bars.map((b, i) => h('i', { key: i, className: b === 'bad' ? 'x' : '' })))),
@@ -23236,7 +23941,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                 h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('tasks.row.export').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
                 (team.phase !== 'absent' ? h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-propose', title: kbt('kbta.propose.menu'), 'aria-label': kbt('kbta.propose.row').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); proposeTask(a.id) } }, Icon('users', 13)) : null),
                 h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.row.delete').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
-              h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.row.toggle').replace('{name}', () => a.name), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
+              h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.row.toggle').replace('{name}', () => a.name), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (kbGateToggleIntent(kbGateOf(a._t), a._t) === 'review') gateReview(a._t); else gateToggle(a._t) } }, onClick: () => { if (kbGateToggleIntent(kbGateOf(a._t), a._t) === 'review') gateReview(a._t); else gateToggle(a._t) } },
                 h('span', { className: 'kba-toggle-knob' }))))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
         (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
@@ -31358,6 +32063,65 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-sugacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .kba-sugbtn{height:30px;padding:0 12px;font-size:12.5px;border-radius:9px}
 @media (max-width:640px){.kba-sugrow{grid-template-columns:minmax(0,1fr)}.kba-sugacts{justify-content:flex-start}.kba-sugmeta{white-space:normal}}
+/* The certification gate and the initiative cards: the same geometry as the suggested card above (radius 16, 12px 16px rows, dashed-free
+   solid border), tokens only — no colour is written here, so the dark theme follows the host's aliases. The fold is the sibling's 640 px. */
+.kbgate{display:flex;flex-direction:column;gap:8px;padding:12px 16px;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1)}
+.kbgate-header-block{margin:2px 0 4px}
+.kbgate-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kbgate-title{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);min-width:0}
+.kbgate-status{font-size:11.5px;font-weight:600;padding:1px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}
+.kbgate-status.ok{color:var(--dsw-alias-state-success-primary);border-color:var(--dsw-alias-state-success-primary)}
+.kbgate-status.warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}
+.kbgate-status.bad{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
+.kbgate-badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}
+.kbgate-badge.warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}
+.kbgate-badge.bad{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
+.kbgate-badge.ok{color:var(--dsw-alias-state-success-primary);border-color:var(--dsw-alias-state-success-primary)}
+.kbgate-ladder{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.kbgate-step{font:inherit;font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer}
+.kbgate-step.done{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}
+.kbgate-step[aria-current='step']{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 10%,transparent);color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
+.kbgate-step[disabled]{cursor:default;opacity:.55}
+.kbgate-btn{height:28px;padding:0 11px;font-size:12.5px;border-radius:12px}
+.kbgate-hint{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbgate-warn{margin:0;font-size:12.5px;color:var(--dsw-alias-state-warn-primary);overflow-wrap:anywhere}
+.kbgate-body{display:flex;flex-direction:column;gap:8px;padding-top:4px;border-top:1px dashed var(--dsw-alias-border-l1)}
+.kbgate-intro{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbgate-dim{font-size:11.5px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere}
+.kbgate-sub{margin-top:2px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-secondary)}
+.kbgate-sub-t{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbgate-acts,.kbgate-decide{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kbgate-findings,.kbgate-list{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.kbgate-finding{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
+.kbgate-sev{font-size:11.5px;font-weight:600;white-space:nowrap;color:var(--dsw-alias-label-secondary)}
+.kbgate-finding.blocker .kbgate-sev{color:var(--dsw-alias-state-error-primary)}
+.kbgate-finding.warn .kbgate-sev{color:var(--dsw-alias-state-warn-primary)}
+.kbgate-fmsg{flex:1;min-width:0;font-size:12.5px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbgate-field{font-size:11.5px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}
+.kbgate-trial{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+.kbgate-proof{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-3)}
+.kbgate-proof-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kbgate-proof[data-sideeffect='false']{border-color:var(--dsw-alias-state-error-primary)}
+.kbgate-side{font-size:12.5px;font-weight:600}
+.kbgate-side.ok{color:var(--dsw-alias-state-success-primary)}
+.kbgate-side.bad{color:var(--dsw-alias-state-error-primary)}
+.kbgate-side.idle{color:var(--dsw-alias-label-tertiary)}
+.kbgate-tools{display:flex;flex-direction:column;gap:4px}
+.kbgate-tool{display:flex;align-items:center;gap:8px;min-width:0}
+.kbgate-tool-n{flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary)}
+.kbgate-chip{font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}
+.kbgate-chip.ok{color:var(--dsw-alias-state-success-primary);border-color:var(--dsw-alias-state-success-primary)}
+.kbgate-chip.warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}
+.kbgate-chip.bad{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
+.kbgate-chips{display:flex;gap:4px;flex-wrap:wrap}
+.kbgate-init{display:flex;flex-direction:column;gap:8px;padding:12px 16px}
+.kbgate-init-head{display:flex;align-items:center;gap:8px}
+.kbgate-initcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 16px;border-top:1px dashed var(--dsw-alias-border-l1)}
+.kbgate-initmain{display:flex;flex-direction:column;gap:4px;min-width:0}
+.kbgate-inittitle{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbgate-nextsum{font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbgate-initacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.kbgate,.kbgate-init{padding:10px 12px}.kbgate-initcard{grid-template-columns:minmax(0,1fr)}.kbgate-initacts{justify-content:flex-start}.kbgate-acts .kba-btn,.kbgate-initacts .kba-btn{flex:1 1 auto}.kbgate-inittitle{white-space:normal}}
 .kbbd-emptycol{padding:14px 8px;text-align:center;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#777)}
 .kbbd-note{display:flex;gap:6px;align-items:flex-start;padding:6px 8px;font-size:12px;color:var(--dsw-alias-state-warn-primary,#b54708)}
 .kbbd-note span{color:var(--dsw-alias-label-secondary,#555);min-width:0;overflow-wrap:anywhere}

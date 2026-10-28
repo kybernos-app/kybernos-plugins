@@ -60,10 +60,12 @@ export function createPulse ({ read, write, now = () => Date.now() }) {
 }
 
 /**
- * The watcher. `readTasks()` gives tasks.json's list, `readRunOf(sessionId)` the readRun() verdict of one session (null when unreadable).
- * A pass never throws: a failure is logged and the next pass tries again.
+ * The watcher. `readTasks()` gives tasks.json's list, `readRunOf(sessionId)` the readRun() verdict of one session (null when unreadable),
+ * `readProactive()` the two feeds the gate and the queue own (`{ gates, entries }`, both optional). A pass never throws: a failure is
+ * logged and the next pass tries again. The feeds are read in their own try/catch, so a broken gate store or ledger still lets the
+ * session half of the pass run: a run must be announced even when an unrelated file is unreadable.
  */
-export function createWatcher ({ pulse, readTasks, readRunOf, now = () => Date.now(), log = () => {} }) {
+export function createWatcher ({ pulse, readTasks, readRunOf, now = () => Date.now(), log = () => {}, readProactive = null }) {
   let busy = false
   return {
     async tick () {
@@ -72,7 +74,20 @@ export function createWatcher ({ pulse, readTasks, readRunOf, now = () => Date.n
       try {
         const { state } = pulse.snapshot()
         const tasks = await readTasks()
-        const result = await watchStep({ tasks, state, readRunOf, now: now() })
+        let gates = []
+        let entries = []
+        if (typeof readProactive === 'function') {
+          try {
+            const feeds = await readProactive()
+            if (feeds !== null && typeof feeds === 'object') {
+              if (Array.isArray(feeds.gates)) gates = feeds.gates
+              if (Array.isArray(feeds.entries)) entries = feeds.entries
+            }
+          } catch (e) {
+            try { log('the gate and the queue were not read: ' + String(e && e.message ? e.message : e)) } catch (e2) { /* logging is a courtesy */ }
+          }
+        }
+        const result = await watchStep({ tasks, state, readRunOf, now: now(), gates, entries })
         pulse.absorb(result)
         return true
       } catch (e) {

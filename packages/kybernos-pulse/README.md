@@ -20,11 +20,12 @@ with one click. A module of the Kybernos Suite: **off by default**, switched on 
 
 ## What it follows
 
-Only what the Automations scheduler started. Its own record (`tasks.json`, the `history` of each automation) says which runs exist; the
-engine's session journal says how each stands (the same events the Automations page reads): `turn/start`, `turn/end` with an error reason when the
-turn failed, `approval/asked` and `approval/decided`, `tool/call`. A run that was already over when the module was switched on makes no item
-(no flood on the first pass); a run still waiting for an approval does appear. When an approval is answered its card goes away by itself.
-Nothing is guessed from the text of an answer.
+What the Automations scheduler started, and, when the gate and the initiative queue are switched on, their events: static checks failed, trial
+failed, trial passed (with its verdict), approval due, approved and still to switch on, proposal ready as a draft. Its own record (`tasks.json`, the
+`history` of each automation) says which runs exist; the engine's session journal says how each stands (the same events the Automations page reads):
+`turn/start`, `turn/end` with an error reason when the turn failed, `approval/asked` and `approval/decided`, `tool/call`. A run that was already over
+when the module was switched on makes no item (no flood on the first pass); a run still waiting for an approval does appear. When an approval is
+answered its card goes away by itself. Nothing is guessed from the text of an answer.
 
 Not in this version: the model going silent, the computer being busy, skill proposals, the day timeline, the plan and key gauges, the message
 and call to Kaby, the orb and the pill. They are in the mockup, not in the code.
@@ -79,12 +80,15 @@ Under `/kybernos-pulse/`, served before DSH's own authentication, so each one fe
 | `POST inbox` | `{ action: read \| read-all \| dismiss \| banner-shown, id?, ids? }` |
 
 The two writes need a strict same-origin request **and** DSH's signed session cookie (`docs/dev/route-origin-rule.md`): `session-guard.mjs` is the
-terminal's code, word for word.
+terminal's code, word for word. The gate and the queue add no route: the inbox is the only surface this module serves.
 
 ## Files
 
-`<DSH home>/kybernos/pulse/pulse.json` (`0600`): the settings, the inbox (100 items at most) and what the watcher has already seen. Names and
-counts of runs only, never the text of an answer. `helper.token` sits next to it. It reads `<DSH home>/kybernos/tasks.json` and the engine's session journals; it writes nothing else.
+`<DSH home>/kybernos/pulse/pulse.json` (`0600`): the settings, the inbox (100 items at most) and what the watcher has already seen. Names, codes and
+bounded one-liners of runs, of gate events and of queued proposals only, never the text of an answer. `helper.token` sits next to it. It reads
+`<DSH home>/kybernos/tasks.json` and the engine's session journals. It also reads the gate store `<DSH home>/kybernos/gates.json` and
+`<DSH home>/kybernos/initiatives.json` when they exist, both beside `tasks.json`. It never reads the `gate` field of `tasks.json` (that projection is
+the Automations page's) and writes nothing but `pulse.json` and `helper.token`.
 
 ## Code
 
