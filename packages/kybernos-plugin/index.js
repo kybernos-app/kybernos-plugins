@@ -10760,14 +10760,17 @@ function boot(ctx) {
         }
         const dir = themesStore().dir
         const ports = {
-          sameOrigin: sameOriginStrict,
-          session: (r) => { try { const refused = writeGuard(r); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
+          // The ports answer for the REAL request: handleThemes calls them with its own stripped
+          // { method, body } (no headers, no socket), which every guard must refuse — measured
+          // 2026-10-28: every POST was 'origin refused' while the wizard's routes passed.
+          sameOrigin: () => (req.method === 'POST' ? sameOriginStrict(req) : sameOriginLax(req)),
+          session: () => { try { const refused = writeGuard(req); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
           registry: registrySeam(),
         }
         const action = body !== null && typeof body.action === 'string' ? body.action : ''
         // No outbound request for a caller the route will refuse anyway: the origin is checked first, and a write needs the signed
         // session. handleThemes runs the same guards in their frozen order; this only keeps a refused caller from spending the fetch.
-        const mayRead = sameOriginStrict(req) === true && (req.method !== 'POST' || writeGuard(req) === null)
+        const mayRead = (req.method === 'POST' ? sameOriginStrict(req) : sameOriginLax(req)) === true && (req.method !== 'POST' || writeGuard(req) === null)
         if (mayRead && (req.method === 'GET' || action === 'refresh' || action === 'install')) ports.catalogues = await themesCatalogues(dir)
         if (mayRead && req.method === 'POST' && action === 'install') {
           const target = themeTarget(dir, ports.catalogues, typeof body.id === 'string' ? body.id : '', body.version)
