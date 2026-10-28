@@ -159,7 +159,8 @@ says the level, never more.
    preset store (the « apply a preset » call of domain-packs.md).
 2. Multi-point data plugins: let a plugin's `themes/`, `skills/`, `teams/`, `automations/` folders
    be read like `domains/` already is (registry folder scan, per-point validators).
-3. Ship two verticals end to end — **Health and Law** (their packs are the most complete) — as
+3. Ship two verticals end to end — **medical practice (`sante`) and IT recruitment** (owner's pick
+   2026-10-27; then rental and e-commerce) — as
    `kybernos/*` bundles: style preset + pack + kit, on the real wizard.
 4. Publish the starter template and the « Build a theme » page.
    *Gate:* a fresh profile that picks Health lands on its theme, its menu words and its kit; a
@@ -187,7 +188,8 @@ through us), marketplace (seller of record) only with counsel.
 
 ## 10. Open questions for the owner
 
-1. Which two verticals ship first (Health + Law is the proposal; the nine packs exist)?
+1. ~~Which two verticals ship first~~ — **answered by the owner 2026-10-27**: medical practice
+   (`sante`) + IT recruitment first, then rental and e-commerce (the nine packs exist).
 2. How far the theme vocabulary goes: accent and typography today; covers, icon sets, chat bubble
    styling already sit in `SETTINGS_KEYS` — do we advertise all of it to pack authors?
 3. One field per profile or several (already open in domain-packs.md).
