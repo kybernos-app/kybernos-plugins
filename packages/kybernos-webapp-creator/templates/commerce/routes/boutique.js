@@ -7,6 +7,18 @@
 // OPEN in local POC mode: POST /api/produits (admin) and POST /api/webhooks/stripe (the Stripe
 // signature check arrives with the Stripe batch). Do not publish this template as-is.
 const db = require('../db.js')
+const fs = require('node:fs')
+const path = require('node:path')
+
+/** The shop configuration (shop.json at the template root): words and palette, never layout. */
+const shop = () => {
+  try {
+    const brut = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'shop.json'), 'utf8'))
+    return { ok: true, nom: brut.nom, slogan: brut.slogan, annonce: brut.annonce, sections: brut.sections, palette: brut.palette }
+  } catch (e) {
+    return { ok: false, error: 'shop.json unreadable' }
+  }
+}
 
 const texte = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 const RESERVATION_MIN = 30
@@ -133,6 +145,7 @@ const listerCommandes = () => {
 }
 
 exports.routes = {
+  'GET /api/shop': () => shop(),
   'GET /api/produits': () => produits(),
   'POST /api/produits': (req) => creerProduit(req.body),
   'GET /api/commandes': () => listerCommandes(),

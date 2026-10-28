@@ -118,6 +118,12 @@ try {
   await fetch('http://127.0.0.1:' + dc.port + '/api/produits')
   const prods6 = await (await fetch('http://127.0.0.1:' + dc.port + '/api/produits')).json()
   check('an expired reservation releases its hold', prods6.produits[2].dispo === 1 && prods6.produits[2].stock === 1, prods6.produits)
+  // the themed storefront: shop.json drives the palette and the words, the kit sections carry the layout
+  const magasin = await (await fetch('http://127.0.0.1:' + dc.port + '/api/shop')).json()
+  check('the shop config answers', magasin.ok === true && magasin.nom === 'Atelier Café' && typeof magasin.palette.accent === 'string', magasin)
+  const vitrine = await (await fetch('http://127.0.0.1:' + dc.port + '/')).text()
+  check('the storefront carries the kit sections', ['sec-announcement', 'sec-header', 'sec-hero', 'sec-products', 'sec-cart', 'sec-footer'].every((s) => vitrine.includes(s)), vitrine.length)
+  check('the storefront reads the shop config and the product API', vitrine.includes('/api/shop') && vitrine.includes('/api/produits'))
   await stopApp(join(racine, 'boutique'))
 
   console.log('brief + template, the way /create does it')
