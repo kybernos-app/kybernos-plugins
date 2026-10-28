@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Une page qui montre tout ce que cette machine envoie : appels modèle (avec leurs tokens), connecteurs, recherche web, outils — et les appels que personne n’a demandés (titres automatiques, compactages, sondes).",
+    "en": "A page that shows everything this machine sends out: model calls (with their tokens), connectors, web search, tools — and the calls nobody asked for (automatic titles, compactions, probes)."
+  },
+  "steps": [
+    {
+      "fr": "Ouvre Réglages › Journal d’activité (groupe Système).",
+      "en": "Open Settings › Activity log (System group)."
+    },
+    {
+      "fr": "Coche les familles qui t’intéressent : Modèle, Connecteur, Recherche web, Outil, Titre auto, Compactage.",
+      "en": "Tick the families you care about: Model, Connector, Web search, Tool, Auto title, Compaction."
+    },
+    {
+      "fr": "Active « En direct » pour voir les appels arriver, ou cherche un modèle, un outil, une erreur.",
+      "en": "Switch on “Live” to watch calls arrive, or search a model, a tool, an error."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Journal d’activité (groupe Système)",
+    "en": "Settings › Activity log (System group)",
+    "page": true
+  },
+  "good": {
+    "fr": "Métadonnées seulement : aucun texte de message ni argument d’outil n’est enregistré, et rien ne quitte cet ordinateur.",
+    "en": "Metadata only: no message text and no tool argument is recorded, and nothing leaves this computer."
+  }
+}
