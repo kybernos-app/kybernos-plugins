@@ -92,9 +92,10 @@ console.log('the connected apps of a server')
 console.log('the built-in server is the NEW one')
 {
   // `kybernos.app` alone was the old web app; `api.kybernos.app` is the new server itself (the built-in address since 2026-10-12).
-  const OLD = /(^|[./])dev2?\.kybernos\.app|api\.dev2?\.kybernos|kybernos-proxy|(?<!api\.)\bkybernos\.app\b/
+  // `api.` was the server's address until 2026-10-28, `server.` since; both are the SERVER, never the old web app at kybernos.app.
+  const OLD = /(^|[./])dev2?\.kybernos\.app|api\.dev2?\.kybernos|kybernos-proxy|(?<!(api|server)\.)\bkybernos\.app\b/
   check('one place names it: BUILTIN_API is an https address', /^https:\/\/[a-z0-9.-]+$/.test(BUILTIN_API) && DEFAULT_PROFILE.api === BUILTIN_API, BUILTIN_API)
-  check('nothing of the old stack is left in the built-in profile (hosts of dev.kybernos.app, api.dev, api.dev2, the proxy)', OLD.test(JSON.stringify(DEFAULT_PROFILE)) === false, JSON.stringify(DEFAULT_PROFILE))
+  check('nothing of the old stack is left in the built-in profile (hosts of dev.kybernos.app, api.dev, api.dev2, the proxy, the old web app)', OLD.test(JSON.stringify(DEFAULT_PROFILE)) === false, JSON.stringify(DEFAULT_PROFILE))
   check('its web and its console are its OWN host (the server serves its pages and its console)', DEFAULT_PROFILE.web === BUILTIN_API && DEFAULT_PROFILE.console === BUILTIN_API + '/workspace-console')
   check('it has no gateway (the relay replaced it) and no separate LLM service (same host)', DEFAULT_PROFILE.services.gateway === null && DEFAULT_PROFILE.services.llm === null && publicProfile(DEFAULT_PROFILE).gateway === null && publicProfile(DEFAULT_PROFILE).llm === 'api')
   check('the built-in profile is frozen', Object.isFrozen(DEFAULT_PROFILE) && Object.isFrozen(DEFAULT_PROFILE.services))
