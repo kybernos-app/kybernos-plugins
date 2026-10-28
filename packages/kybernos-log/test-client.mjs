@@ -83,6 +83,11 @@ ok('the table shows 7 columns', (src.match(/h\('th'/g) || []).length === 7)
   const body = (src.match(/const result = \(e\) => \{([\s\S]*?)\n      \}/) || [null, ''])[1]
   ok('the result is read from the host record, not guessed', body.includes('e.status') && body.includes('e.ok') && body.includes('retry'))
 }
+// ── the log pages (2026-10-28) ─────────────────────────────────────────────────────────────────────────────────
+ok('a « load more » button exists and calls the paging helper', src.includes("onClick: more") && /const more = async \(\) =>/.test(src))
+ok('the next page is asked with the oldest row seq (keyset, not an offset)', src.includes("before: String(oldest.seq)"))
+ok('the page says how many it shows out of the ring', src.includes("moreOf: ['{n} sur {total}', '{n} of {total}']"))
+ok('the button is outside the table element', /kblg-list[\s\S]{0,600}kblg-more/.test(src))
 console.log((fails.length === 0 ? '✓ ' : '✗ ') + pass + ' passed' + (fails.length === 0 ? '' : ', ' + fails.length + ' failed'))
 for (const f of fails) console.log('   ✗ ' + f)
 process.exit(fails.length === 0 ? 0 : 1)

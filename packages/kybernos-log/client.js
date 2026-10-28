@@ -55,6 +55,8 @@ window.__ModuleLoader__.load({
         colTokens: ['Tokens', 'Tokens'],
         colDetail: ['Détail', 'Detail'],
         colResult: ['Résultat', 'Result'],
+        more: ['Charger les 300 suivantes', 'Load the next 300'],
+        moreOf: ['{n} sur {total}', '{n} of {total}'],
         famLlm: ['Modèle', 'Model'],
         famConnector: ['Connecteur', 'Connector'],
         famWebsearch: ['Recherche web', 'Web search'],
@@ -149,6 +151,9 @@ window.__ModuleLoader__.load({
 .kblg-mut{color:var(--dsw-alias-label-secondary,#9aa1a8)}
 .kblg-err{color:var(--dsw-alias-state-error-primary,#ef4444)}
 .kblg-warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kblg-list{display:flex;flex-direction:column;gap:8px}
+.kblg-more{display:flex;justify-content:center;align-items:center;gap:10px;padding:2px 0 6px}
+.kblg-more span{font-size:12px;font-variant-numeric:tabular-nums}
 .kblg-empty{padding:28px 8px;text-align:center;color:var(--dsw-alias-label-secondary,#9aa1a8);font-size:13px}
 /* The Settings volet is ~720 px wide on a desktop viewport, so a viewport media query alone never fires there:
    the page also takes a kblg-narrow class when its own box is narrow (the plate shows that case). */
@@ -173,6 +178,9 @@ window.__ModuleLoader__.load({
         const [state, setState] = React.useState(null)
         const [err, setErr] = React.useState(false)
         const [copied, setCopied] = React.useState(false)
+        const [hasMore, setHasMore] = React.useState(false)
+        const [total, setTotal] = React.useState(0)
+        const [busy, setBusy] = React.useState(false)
 
         const load = React.useCallback(async () => {
           try {
@@ -182,7 +190,13 @@ window.__ModuleLoader__.load({
             if (session !== '') p.set('session', session)
             const r = await fetch('/kybernos-log/events?' + p.toString())
             const j = await r.json()
-            if (j !== null && j.ok === true) { setEvents(Array.isArray(j.events) ? j.events : []); setState(j.state || null); setErr(false) } else setErr(true)
+            if (j !== null && j.ok === true) {
+              setEvents(Array.isArray(j.events) ? j.events : [])
+              setState(j.state || null)
+              setHasMore(j.hasMore === true)
+              setTotal(Number(j.total) || 0)
+              setErr(false)
+            } else setErr(true)
           } catch (e) { setErr(true) }
           try {
             const r = await fetch('/kybernos-log/stats?days=1')
@@ -223,6 +237,29 @@ window.__ModuleLoader__.load({
         const unasked = (today.types.title && today.types.title.calls ? today.types.title.calls : 0) + (today.types.compaction && today.types.compaction.calls ? today.types.compaction.calls : 0) + (today.types.probe && today.types.probe.calls ? today.types.probe.calls : 0)
         const retries = events.filter((e) => e.kind === 'retry').length
 
+        // Older rows: the ring is newest first, so the next page is everything with a smaller seq than the oldest row shown.
+        // Filters stay applied — a page never mixes two questions.
+        const more = async () => {
+          if (busy || events.length === 0) return
+          const oldest = events[events.length - 1]
+          if (oldest === undefined || typeof oldest.seq !== 'number') return
+          setBusy(true)
+          try {
+            const p = new URLSearchParams({ limit: '300', before: String(oldest.seq) })
+            if (types.length > 0) p.set('types', types.join(','))
+            if (q.trim() !== '') p.set('q', q.trim())
+            if (session !== '') p.set('session', session)
+            const r = await fetch('/kybernos-log/events?' + p.toString())
+            const j = await r.json()
+            if (j !== null && j.ok === true) {
+              const next = Array.isArray(j.events) ? j.events : []
+              setEvents((prev) => prev.concat(next))
+              setHasMore(j.hasMore === true)
+              setTotal(Number(j.total) || 0)
+            }
+          } catch (e) { /* the list keeps what it has */ }
+          setBusy(false)
+        }
         const toggle = (t) => setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : prev.concat([t])))
         const detail = (e) => {
           const bits = []
@@ -278,12 +315,18 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kblg-btn', onClick: copy }, copied ? L('copied') : L('export'))),
           events.length === 0
             ? h('div', { className: 'kblg-empty' }, L('empty'))
-            : h('table', { className: 'kblg-table' },
+            : h('div', { className: 'kblg-list' },
+              h('table', { className: 'kblg-table' },
               h('thead', null, h('tr', null,
                 h('th', null, L('colTime')), h('th', null, L('colFamily')), h('th', null, L('colWhat')),
                 h('th', null, L('colSession')), h('th', null, L('colResult')), h('th', { className: 'kblg-num' }, L('colTokens')),
                 h('th', null, L('colDetail')))),
-              h('tbody', null, rows))
+              h('tbody', null, rows)),
+              hasMore
+                ? h('div', { className: 'kblg-more' },
+                  h('button', { type: 'button', className: 'kblg-btn', disabled: busy, onClick: more }, busy ? '…' : L('more')),
+                  h('span', { className: 'kblg-mut' }, fill(kt(S.moreOf[0], S.moreOf[1]), { n: events.length, total })))
+                : null)
         )
       }
 
