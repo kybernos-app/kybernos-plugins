@@ -43,10 +43,10 @@ const hit = async (path, method, headers, body) => {
 }
 
 const WRITES = mod.ROUTES.filter((r) => r.method === 'POST')
-assert.equal(WRITES.length, 9, 'the nine writes of this bundle are all under the rule')
+assert.equal(WRITES.length, 13, 'the thirteen writes of this bundle are all under the rule')
 assert.ok(WRITES.every((r) => r.session === true), 'every POST route is marked session: true')
 assert.ok(mod.ROUTES.filter((r) => r.method === 'GET').every((r) => r.session !== true), 'the reads are not')
-ok('ROUTES: the nine POST routes need the session, the GET routes do not')
+ok('ROUTES: the thirteen POST routes need the session, the GET routes do not')
 
 const bodies = { '/kybernos-memory/lessons/add': { text: 'a new lesson', kyber: 'default' }, '/kybernos-memory/lessons/update': { id: 'les-1', text: 'changed' }, '/kybernos-memory/lessons/delete': { id: 'les-1' }, '/kybernos-memory/tidy/apply': { confirm: true, groups: [] } }
 for (const w of WRITES) {
