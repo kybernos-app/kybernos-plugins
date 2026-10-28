@@ -792,6 +792,25 @@ window.__ModuleLoader__.load({
 .kbmem-mmt{display:flex;gap:10px;align-items:center;font-size:11.5px;color:var(--m-cap)}.kbmem-mmt .kbmem-ico{width:12px;height:12px}
 .kbmem-empty .kbmem-acts{flex-wrap:wrap;justify-content:center}
 @media (max-width:720px){.kbmem-foot .kbmem-grow{flex-basis:100%}.kbmem-run{flex-wrap:wrap}.kbmem-run .when{width:auto}.kbmem-it{flex-wrap:wrap}}
+/* « Import Claude memories »: a fold above the lessons list — the counts, the two host calls, then one compact row per entry
+   (a title line, a text line, and its status + buttons: never more than three). */
+.kbmem-imp{margin:0 0 14px;border:1px solid var(--m-line2);border-radius:14px;background:var(--m-surf);overflow:hidden}
+.kbmem-imp-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;min-height:44px}
+.kbmem-imp-toggle{display:inline-flex;gap:6px;align-items:center;font-size:13px;font-weight:600;color:var(--m-ink)}
+.kbmem-imp-toggle .kbmem-ico{color:var(--m-ink2)}
+.kbmem-imp-sum{font-size:12px;color:var(--m-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-variant-numeric:tabular-nums}
+.kbmem-imp-b{padding:0 14px 12px;border-top:1px solid var(--m-line)}
+.kbmem-imp-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--m-line)}
+.kbmem-imp-row:first-of-type{border-top:0}
+.kbmem-imp-main{flex:1 1 240px;min-width:0}
+.kbmem-imp-ttl{font-weight:600;color:var(--m-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbmem-imp-tx{font-size:12.5px;line-height:18px;color:var(--m-ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbmem-imp-side{flex:none;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.kbmem-imp-note{display:flex;gap:8px;align-items:flex-start;padding:6px 0 0;font-size:12.5px;line-height:18px;color:var(--m-muted)}
+.kbmem-imp-note.err{color:var(--m-danger)}
+.kbmem-imp-note .kbmem-ico{margin-top:3px}
+.kbmem-imp-more{padding:8px 0 0;font-size:12px;color:var(--m-cap)}
+@media (max-width:720px){.kbmem-imp-side{justify-content:flex-start}.kbmem-imp-h{gap:6px}}
 `
 
       // ═══════════════════════════════════════════════════════════════
@@ -812,6 +831,7 @@ window.__ModuleLoader__.load({
         zin: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4M8 11h6"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
         undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
         bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/>',
+        down: '<path d="m6 9 6 6 6-6"/>', up: '<path d="m6 15 6-6 6 6"/>',
       }
       // The paths are this file's own constants (never user text): setting them as markup is safe.
       const Ico = (name, extra) => h('svg', { className: 'kbmem-ico' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: ICONS[name] || '' } })
@@ -1045,6 +1065,175 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kbmem-btn sm', 'data-sug': 'add', disabled: busy !== '' || connected !== true, onClick: () => { void add(it) } }, kt('Ajouter', 'Add')),
               h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-sug': 'edit', disabled: connected !== true, onClick: () => onEdit(it, () => { void resolve(it.id).then(() => drop(it.id)) }) }, kt('Modifier', 'Edit')),
               h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-sug': 'discard', onClick: () => { void discard(it) } }, kt('Écarter', 'Discard'))))))
+      }
+
+      // ── Import Claude memories: the pure words (exposed for test-client) ───────────────────────────
+      /** How many staged entries the preview lists: the rest is one « … and N more » line. */
+      const IMPORT_SHOWN = 12
+      /** Status counts of a staging list, in the four statuses the host knows (anything else is ignored). */
+      const importCounts = (entries) => {
+        const c = { staging: 0, active: 0, pinned: 0, locked: 0 }
+        for (const e of Array.isArray(entries) ? entries : []) if (e !== null && e !== undefined && c[e.status] !== undefined) c[e.status] += 1
+        return c
+      }
+      /** One status in the page's words (French first). */
+      const importWords = (status) => {
+        if (status === 'staging') return kt('en attente', 'staging')
+        if (status === 'active') return kt('actif', 'active')
+        if (status === 'pinned') return kt('épinglé', 'pinned')
+        if (status === 'locked') return kt('verrouillé', 'locked')
+        return status === undefined || status === null ? '' : String(status)
+      }
+      /** « N staging · N active · N pinned · N locked », in the reader's language. */
+      const importCountWords = (c) => kt(
+        c.staging + ' en attente · ' + c.active + ' actif' + sfx(c.active) + ' · ' + c.pinned + ' épinglé' + sfx(c.pinned) + ' · ' + c.locked + ' verrouillé' + sfx(c.locked),
+        c.staging + ' staging · ' + c.active + ' active · ' + c.pinned + ' pinned · ' + c.locked + ' locked')
+      /** The host's own refusals of this module (claude-import.mjs), in sentences; anything else falls back. */
+      const importError = (code) => {
+        const c = String(code === undefined || code === null ? '' : code)
+        if (c === 'entry not found') return kt('Cette entrée n’existe plus : analyse à nouveau.', 'That entry is gone: scan again.')
+        if (c === 'locked entries cannot be changed') return kt('Une entrée verrouillée ne change plus.', 'A locked entry does not change.')
+        if (c.indexOf('unknown status') === 0) return kt('Le serveur n’accepte pas ce statut.', 'The server does not accept that status.')
+        if (/required$/.test(c)) return kt('La requête était incomplète.', 'The request was incomplete.')
+        return friendlyError(c)
+      }
+
+      /**
+       * « Import Claude memories »: the Claude Code memory files of this machine, brought into Kybernos
+       * memory through a staging list the person promotes one entry at a time, or in bulk. The Claude files
+       * are only ever READ (claude-import.mjs never writes them back). The fold sits on the Lessons tab,
+       * above the list, and only appears when such files exist — or when an earlier import left entries to
+       * decide on. A scan runs once when the page opens: its route only walks the Claude tree and writes
+       * nothing, and it is the only way to know whether there is anything to offer.
+       */
+      const ClaudeImport = ({ refreshKey }) => {
+        const [seen, setSeen] = useState(false)
+        const [show, setShow] = useState(false)
+        const [entries, setEntries] = useState([])
+        const [open, setOpen] = useState(false)
+        const [busy, setBusy] = useState('')
+        const [note, setNote] = useState(null)
+        const [scan, setScan] = useState(null)
+        const [ran, setRan] = useState(null)
+        useEffect(() => {
+          let live = true
+          Promise.all([api('/kybernos-memory/claude-import'), api('/kybernos-memory/claude-import/scan', {})]).then(([list, sc]) => {
+            if (!live) return
+            const items = list.ok === true && Array.isArray(list.entries) ? list.entries : []
+            const files = sc.ok === true && typeof sc.total === 'number' ? sc.total : null
+            const here = list.ok === true || sc.ok === true
+            setEntries(items)
+            setSeen(true)
+            // Files found, or entries already staged: this machine has some. A scan that could not run leaves no
+            // answer, and staying visible beats a dead end; a host that knows neither route offers nothing.
+            setShow(here && ((files !== null && files > 0) || items.length > 0 || files === null))
+            if (files !== null) setScan({ total: files })
+          })
+          return () => { live = false }
+        }, [refreshKey])
+
+        if (seen !== true || show !== true) return null
+
+        const counts = importCounts(entries)
+        const movable = entries.filter((e) => e.status !== 'locked').map((e) => e.id)
+        const wait = busy === 'scan' ? kt('Analyse…', 'Scanning…') : busy === 'import' ? kt('Importation…', 'Importing…') : null
+
+        const runScan = async () => {
+          if (busy !== '') return
+          setBusy('scan')
+          const r = await api('/kybernos-memory/claude-import/scan', {})
+          setBusy('')
+          // A refusal is read too: the fold opens so the message is not hidden behind a closed header.
+          if (r.ok !== true) { setOpen(true); return setNote({ tone: 'err', text: importError(r.error) }) }
+          setScan({ total: typeof r.total === 'number' ? r.total : 0 })
+          setShow(true)
+          setOpen(true)
+          setNote(null)
+        }
+
+        const runApply = async () => {
+          if (busy !== '') return
+          setBusy('import')
+          const r = await api('/kybernos-memory/claude-import/apply', {})
+          if (r.ok !== true) { setBusy(''); setOpen(true); return setNote({ tone: 'err', text: importError(r.error) }) }
+          setRan({ imported: typeof r.imported === 'number' ? r.imported : 0, duplicates: typeof r.duplicates === 'number' ? r.duplicates : 0, skipped: typeof r.skipped === 'number' ? r.skipped : 0 })
+          const l = await api('/kybernos-memory/claude-import')
+          setBusy('')
+          setOpen(true)
+          if (l.ok === true && Array.isArray(l.entries)) setEntries(l.entries)
+          setNote(null)
+        }
+
+        const setStatus = async (id, status) => {
+          if (busy !== '') return
+          setBusy('status')
+          const r = await api('/kybernos-memory/claude-import/status', { id, status })
+          setBusy('')
+          if (r.ok !== true) return setNote({ tone: 'err', text: importError(r.error) })
+          const next = r.entry !== null && r.entry !== undefined && typeof r.entry === 'object' ? r.entry : null
+          setEntries((cur) => cur.map((x) => (x.id !== id ? x : (next !== null ? Object.assign({}, x, next) : Object.assign({}, x, { status })))))
+          setNote(null)
+        }
+
+        const bulk = async (status) => {
+          if (busy !== '' || movable.length === 0) return
+          setBusy('bulk')
+          const r = await api('/kybernos-memory/claude-import/status-bulk', { ids: movable, status })
+          const l = await api('/kybernos-memory/claude-import')
+          setBusy('')
+          if (r.ok !== true) return setNote({ tone: 'err', text: importError(r.error) })
+          if (l.ok === true && Array.isArray(l.entries)) setEntries(l.entries)
+          const n = typeof r.changed === 'number' ? r.changed : 0
+          setNote({ tone: 'ok', text: kt(n + ' entrée' + sfx(n) + (n === 1 ? ' mise à jour' : ' mises à jour'), n + (n === 1 ? ' entry' : ' entries') + ' updated') })
+        }
+
+        const scanWords = scan === null ? null : kt(scan.total + ' fichier' + sfx(scan.total) + ' de mémoire Claude trouvé' + sfx(scan.total), scan.total + ' Claude memory file' + sfx(scan.total) + ' found')
+        const ranWords = ran === null ? null : kt(ran.imported + ' importé' + sfx(ran.imported) + ' · ' + ran.duplicates + ' doublon' + sfx(ran.duplicates) + ' · ' + ran.skipped + ' ignoré' + sfx(ran.skipped),
+          ran.imported + ' imported · ' + ran.duplicates + ' duplicate' + sfx(ran.duplicates) + ' · ' + ran.skipped + ' skipped')
+
+        // One entry, three lines at most: its title, its text, then the status and the buttons on one line.
+        const rowOf = (e) => {
+          const st = typeof e.status === 'string' ? e.status : 'staging'
+          const chip = st === 'active' ? ' ok' : st === 'staging' ? ' warn' : st === 'pinned' ? ' acc' : ''
+          const ttl = String(e.title === undefined || e.title === null || e.title === '' ? e.id : e.title)
+          const tx = String(e.content === undefined || e.content === null ? '' : e.content)
+          const act = (status, label) => h('button', { key: status, type: 'button', className: 'kbmem-btn sm ghost', 'data-act': 'imp-' + status, disabled: busy !== '', onClick: () => { void setStatus(e.id, status) } }, label)
+          return h('div', { key: e.id, className: 'kbmem-imp-row', 'data-imp-row': st },
+            // The two lines are cut, so the whole text stays reachable as the tooltip.
+            h('div', { className: 'kbmem-imp-main' },
+              h('div', { className: 'kbmem-imp-ttl', title: ttl }, ttl),
+              h('div', { className: 'kbmem-imp-tx', title: tx }, tx)),
+            h('div', { className: 'kbmem-imp-side' },
+              h('span', { className: 'kbmem-chip' + chip }, importWords(st)),
+              e.project === undefined || e.project === null || e.project === '' ? null : h('span', { className: 'kbmem-tiny' }, String(e.project)),
+              st === 'locked' ? h('span', { className: 'kbmem-tiny', title: kt('Verrouillée : son statut ne change plus', 'Locked: its status no longer changes') }, Ico('lock'))
+                : [st === 'active' ? null : act('active', kt('Activer', 'Activate')), st === 'pinned' ? null : act('pinned', kt('Épingler', 'Pin')), act('locked', kt('Verrouiller', 'Lock'))]))
+        }
+
+        const shown = entries.slice(0, IMPORT_SHOWN)
+        return h('div', { className: 'kbmem-imp', 'data-imp': 'block' },
+          h('div', { className: 'kbmem-imp-h' },
+            h('button', { type: 'button', className: 'kbmem-imp-toggle', 'aria-expanded': open, 'aria-controls': 'kbmem-imp-body', 'data-act': 'imp-toggle', onClick: () => setOpen(!open) },
+              Ico(open ? 'up' : 'down'), h('b', null, kt('Importer des souvenirs Claude', 'Import Claude memories'))),
+            h('span', { className: 'kbmem-imp-sum', 'data-imp': 'counts' }, importCountWords(counts)),
+            h('span', { className: 'kbmem-grow' }),
+            wait === null ? null : h('span', { className: 'kbmem-tiny', 'aria-live': 'polite', 'data-imp': 'wait' }, wait),
+            h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-act': 'imp-scan', disabled: busy !== '', onClick: () => { void runScan() } }, kt('Analyser', 'Scan')),
+            h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'imp-apply', disabled: busy !== '', onClick: () => { void runApply() } }, kt('Importer', 'Import'))),
+          open !== true ? null : h('div', { className: 'kbmem-imp-b', id: 'kbmem-imp-body', 'data-imp': 'body' },
+            h('div', { className: 'kbmem-tiny', style: { padding: '10px 0 2px' } },
+              scanWords === null ? kt('Rien d’analysé pour l’instant.', 'Nothing scanned yet.') : scanWords,
+              ranWords === null ? null : ' · ' + ranWords),
+            note === null ? null : h('div', { className: 'kbmem-imp-note' + (note.tone === 'err' ? ' err' : ''), 'data-imp': 'note', role: note.tone === 'err' ? 'alert' : undefined },
+              Ico(note.tone === 'err' ? 'alert' : 'check'), h('span', null, note.text)),
+            entries.length === 0 ? h('div', { className: 'kbmem-tiny', style: { padding: '10px 0' } },
+              kt('Rien d’importé pour l’instant : « Importer » lit les fichiers mémoire de Claude Code et les place en attente ici, sans jamais les modifier.', 'Nothing imported yet: “Import” reads Claude Code’s memory files and stages them here, never changing them.')) : null,
+            entries.length === 0 ? null : h('div', { className: 'kbmem-row2', style: { marginTop: 10, marginBottom: 2 } },
+              h('span', { className: 'kbmem-tiny' }, kt('Tout : ', 'All: ')),
+              h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-act': 'imp-all-active', disabled: busy !== '' || movable.length === 0, onClick: () => { void bulk('active') } }, kt('Tout activer', 'Activate all')),
+              h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-act': 'imp-all-pinned', disabled: busy !== '' || movable.length === 0, onClick: () => { void bulk('pinned') } }, kt('Tout épingler', 'Pin all'))),
+            entries.length === 0 ? null : h('div', null, shown.map(rowOf)),
+            entries.length <= shown.length ? null : h('div', { className: 'kbmem-imp-more' }, kt('… et ' + (entries.length - shown.length) + ' autre' + sfx(entries.length - shown.length), '… and ' + (entries.length - shown.length) + ' more'))))
       }
 
       /** The side sheet: edit or add a memory, edit a lesson. Closes on Cancel; the page reloads after a save. */
@@ -1592,7 +1781,7 @@ window.__ModuleLoader__.load({
             self.tone === 'wait' ? null : h('span', null, h('i'), self.text),
             self.skills > 0 ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'open-skills', onClick: openSkills }, kt('Voir dans Skills', 'See in Skills')) : null,
             self.connect ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'connect', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account')) : null),
-          tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode || !mems ? null : h(MemSuggest, { connected: !noAccount && connected === true, refreshKey, onChanged: bump, notify, onEdit: (it, done) => setSheet({ kind: 'mem', isNew: true, item: { content: it.text, kind: 'fact', pinned: false }, onSaved: done }) }), teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
+          tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode || !mems ? null : h(MemSuggest, { connected: !noAccount && connected === true, refreshKey, onChanged: bump, notify, onEdit: (it, done) => setSheet({ kind: 'mem', isNew: true, item: { content: it.text, kind: 'fact', pinned: false }, onSaved: done }) }), teamMode || mems ? null : h(ClaudeImport, { refreshKey }), teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
           sheet !== null && sheet.kind !== 'propose' ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify,
             onPropose: teamAvail && team.settings.share === true ? (lesson) => setSheet({ kind: 'propose', initial: { text: lesson.text, kyber: lesson.kyber === 'default' ? null : lesson.kyber, tags: lesson.tags } }) : undefined }) : null,
           sheet !== null && sheet.kind === 'propose' ? h(ProposeSheet, { key: 'propose', initial: sheet.initial, kybers, admin: isTeamAdmin(teamInfo === null ? null : teamInfo.role), onClose: () => setSheet(null), onDone: (m) => { setSheet(null); bump(); notify(m) }, notify }) : null)
@@ -2067,7 +2256,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { lessonCluster, suggestSkill, sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { lessonCluster, suggestSkill, importCounts, importWords, importCountWords, importError, IMPORT_SHOWN, sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
