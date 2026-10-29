@@ -105,15 +105,15 @@ ok('map: two different number fields place an item; with a map the default views
   refused(bad((v) => { located(v); v.map = { lat: 'lat', lng: 'lng', zoom: 3 } }), /map: unknown key "zoom"/)
   refused(bad((v) => { v.map = 'here' }), /map: an object/)
 })
-ok('card.image names a text field, card.chips up to four fields: anything else is refused', () => {
+ok('card.image names a text field, card.chips up to six fields: anything else is refused', () => {
   const r = bad((v) => { v.fields.push({ key: 'photo', type: 'text' }); v.card.image = 'photo'; v.card.chips = ['size', 'stock'] })
   assert.equal(r.ok, true, JSON.stringify(r))
   assert.equal(r.value.card.image, 'photo')
   assert.deepEqual(r.value.card.chips, ['size', 'stock'])
   refused(bad((v) => { v.card.image = 'stock' }), /card\.image: the key of a text field/)
   refused(bad((v) => { v.card.image = 'nope' }), /card\.image: the key of a text field/)
-  refused(bad((v) => { v.card.chips = [] }), /card\.chips: a list of 1 to 4/)
-  refused(bad((v) => { v.card.chips = ['sku', 'stock', 'price', 'size', 'sku'] }), /card\.chips: a list of 1 to 4/)
+  refused(bad((v) => { v.card.chips = [] }), /card\.chips: a list of 1 to 6/)
+  refused(bad((v) => { v.card.chips = ['sku', 'stock', 'price', 'size', 'sku', 'sku', 'sku'] }), /card\.chips: a list of 1 to 6/)
   refused(bad((v) => { v.card.chips = ['nope'] }), /card\.chips\[0\]: the key of one of the fields/)
   refused(bad((v) => { v.card.chips = ['size', 'size'] }), /card\.chips: "size" appears twice/)
 })

@@ -93,7 +93,7 @@ window.__ModuleLoader__.load({
       /** The views the page offers: those of the type in view, or of every type, in the order cards, list. */
       const viewsOf = (types, typeKey) => {
         const chosen = typeKey === '' ? types : types.filter((t) => t.id === typeKey)
-        const all = ['cards', 'list'].filter((v) => chosen.some((t) => t.views.indexOf(v) >= 0))
+        const all = ['cards', 'list', 'map'].filter((v) => chosen.some((t) => t.views.indexOf(v) >= 0))
         return all.length > 0 ? all : ['cards', 'list']
       }
       /** The status chips: the statuses of the type in view (the union by key when every type is in view), with the counts of the same search. */
@@ -102,6 +102,92 @@ window.__ModuleLoader__.load({
         const out = []
         for (const t of chosen) for (const s of t.statuses) if (out.every((c) => c.key !== s.key)) out.push({ key: s.key, label: pick(s.label, humanize(s.key)), tone: s.tone, count: partial === true ? null : (counts && typeof counts[s.key] === 'number' ? counts[s.key] : 0) })
         return out
+      }
+      // ── pictures, chips, the shortlist and the map: pure helpers ──────────────────────────────────────────────────────────
+      const ART_OF_ICON = { home: 'house', package: 'box', briefcase: 'desk', tag: 'bag', wrench: 'shop', book: 'desk' }
+      const PHOTO_RE = /^photo:([a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59})$/
+      const kitOf = () => { try { return typeof window !== 'undefined' && window.__KB_BIZ_KIT__ ? window.__KB_BIZ_KIT__ : null } catch (e) { return null } }
+      /** The picture reference an item carries (the field the type names in `card.image`), or ''. */
+      const pictureRef = (type, row) => {
+        const key = type !== null && type.card !== undefined ? type.card.image : undefined
+        const v = key === undefined || row.fields === null || row.fields === undefined ? '' : row.fields[key]
+        return typeof v === 'string' ? v : ''
+      }
+      /** The drawn picture an item falls back to: the kind that goes with its type's icon, seeded by the item. */
+      const fallbackArt = (type, row) => 'art:' + (ART_OF_ICON[type === null ? 'package' : type.icon] || 'box') + '/' + String(row.id)
+      /** The hue of an energy-class chip (a choice of the letters A to G runs from green to red); undefined for any other field. */
+      const energyHue = (def, value) => {
+        if (def === null || def.type !== 'choice' || !Array.isArray(def.options) || def.options.length === 0 || !def.options.every((o) => /^[A-G]$/.test(o))) return undefined
+        const at = 'ABCDEFG'.indexOf(String(value))
+        return at < 0 ? undefined : [146, 118, 90, 56, 36, 20, 4][at]
+      }
+      const STAT_ICON = { surface: 'ruler', rooms: 'bed', stock: 'layers', price: 'tag' }
+      /** A number field as a short stat: « 68 m² » (the unit is the one in the field's label) or « 3 rooms ». */
+      const statText = (def, value) => {
+        if (def.type === 'money') return moneyText(value, def.currency)
+        const label = pick(def.label, humanize(def.key))
+        const unit = /\(([^)]{1,8})\)\s*$/.exec(label)
+        return numberText(value) + ' ' + (unit !== null ? unit[1] : label.toLowerCase())
+      }
+      /** What a card shows under its picture, from `card.chips`: coloured tags for choices and text, plain stats for numbers. */
+      const cardChips = (type, row) => {
+        const keys = type === null || type.card === undefined || !Array.isArray(type.card.chips) ? [] : type.card.chips
+        const out = []
+        for (const key of keys) {
+          const def = fieldDef(type, key)
+          const v = row.fields === null || row.fields === undefined ? undefined : row.fields[key]
+          if (def === null || v === undefined || v === null || v === '') continue
+          if (def.type === 'number' || def.type === 'money') { if (typeof v === 'number') out.push({ key, stat: true, text: statText(def, v), icon: STAT_ICON[key] }) } else out.push({ key, stat: false, text: valueText(def, v), hue: energyHue(def, v) })
+        }
+        return out
+      }
+      /** The price on a map pin: « €385k », « €1.45M », « €780 ». */
+      const pinPrice = (row) => {
+        const n = typeof row.price_num === 'number' ? row.price_num : null
+        const sym = (/[€$£]/.exec(String(row.price_text === undefined ? '' : row.price_text)) || [''])[0]
+        if (n === null) return row.price_text === undefined || row.price_text === '' ? '…' : String(row.price_text).split(' ')[0]
+        if (n >= 1000000) return sym + String(Math.round(n / 10000) / 100).replace(/\.?0+$/, '') + 'M'
+        if (n >= 10000) return sym + Math.round(n / 1000) + 'k'
+        return sym + numberText(n)
+      }
+      /** The items that have a place (the two number fields a type names in `map`), as { row, type, lat, lng }. */
+      const placedRows = (rows, types) => {
+        const out = []
+        for (const row of rows) {
+          const type = typeOf(types, row)
+          if (type === null || type.map === undefined || row.fields === null || row.fields === undefined) continue
+          const lat = row.fields[type.map.lat]
+          const lng = row.fields[type.map.lng]
+          if (typeof lat === 'number' && typeof lng === 'number' && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) out.push({ row, type, lat, lng })
+        }
+        return out
+      }
+      const MAP_W = 1000
+      const MAP_H = 720
+      /** The screen place of every pin on the 1000 x 720 map: the box around them (a little padded) fills it, north up, east right. */
+      const projectPins = (placed, width, height) => {
+        const W = width === undefined ? MAP_W : width
+        const H = height === undefined ? MAP_H : height
+        if (placed.length === 0) return []
+        const lats = placed.map((p) => p.lat)
+        const lngs = placed.map((p) => p.lng)
+        const lat0 = (Math.min(...lats) + Math.max(...lats)) / 2
+        const lng0 = (Math.min(...lngs) + Math.max(...lngs)) / 2
+        const kx = Math.cos(lat0 * Math.PI / 180)
+        const dx = Math.max(...lngs.map((v) => Math.abs(v - lng0) * kx), 0.002)
+        const dy = Math.max(...lats.map((v) => Math.abs(v - lat0)), 0.002)
+        const scale = Math.min((W / 2 - 110) / dx, (H / 2 - 90) / dy)
+        return placed.map((p) => Object.assign({}, p, { x: Math.round((W / 2 + (p.lng - lng0) * kx * scale) * 10) / 10, y: Math.round((H / 2 - (p.lat - lat0) * scale) * 10) / 10 }))
+      }
+      const SHORT_KEY = 'kybernos.catalog.shortlist.v1'
+      const readShortlist = () => { try { const v = JSON.parse(window.localStorage.getItem(SHORT_KEY)); return Array.isArray(v) ? v.filter((x) => Number.isInteger(x)).slice(0, 500) : [] } catch (e) { return [] } }
+      const saveShortlist = (list) => { try { window.localStorage.setItem(SHORT_KEY, JSON.stringify(list.slice(0, 500))) } catch (e) { /* no storage: the shortlist lasts for this page */ } }
+      const priceOf = (row) => (typeof row.price_num === 'number' ? row.price_num : Number.POSITIVE_INFINITY)
+      /** The order the person asked for, on the rows loaded: the host's own order (latest change first) is `modified`. */
+      const sortRows = (rows, sort, dir) => {
+        if (sort === 'modified' || (sort !== 'price' && sort !== 'name')) return dir === 'asc' ? rows.slice().reverse() : rows
+        const out = rows.slice().sort((a, b) => (sort === 'price' ? (priceOf(a) === priceOf(b) ? 0 : priceOf(a) < priceOf(b) ? -1 : 1) : String(a.title).localeCompare(String(b.title), lang() || undefined, { sensitivity: 'base' })))
+        return dir === 'desc' ? out.reverse() : out
       }
       const sumCounts = (counts) => Object.keys(counts || {}).reduce((n, k) => n + counts[k], 0)
       const pageTitle = (types, source) => (source === 'theme' && types.length === 1 ? pick(types[0].plural, kt('Catalogue', 'Catalog')) : kt('Catalogue', 'Catalog'))
@@ -148,7 +234,7 @@ window.__ModuleLoader__.load({
         body.fields = fields
         return { ok: true, body }
       }
-      const readView = () => { try { const v = window.localStorage.getItem(VIEW_KEY); return v === 'list' || v === 'cards' ? v : '' } catch (e) { return '' } }
+      const readView = () => { try { const v = window.localStorage.getItem(VIEW_KEY); return v === 'list' || v === 'cards' || v === 'map' ? v : '' } catch (e) { return '' } }
       const saveView = (v) => { try { window.localStorage.setItem(VIEW_KEY, v) } catch (e) { /* no storage: the view is the default next time */ } }
 
       // ── the host ─────────────────────────────────────────────────────────────────────────────────────────
@@ -182,13 +268,18 @@ window.__ModuleLoader__.load({
         refresh: 'M21 12a9 9 0 0 0-15-6.7L3 8M3 3v5h5M3 12a9 9 0 0 0 15 6.7L21 16M21 21v-5h-5',
         grid: 'M4 3h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM4 13h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zM14 13h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z',
         list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+        heart: 'M12 20.5S3.5 15.4 3.5 9.4A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 8.5 1.8c0 6-8.5 11.1-8.5 11.1z',
+        plus2: 'M12 5v14M5 12h14',
+        minus: 'M5 12h14',
+        fit: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+        map: 'M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5zM9 4v13.5M15 6.5V20',
       }
       const Ic = (name, size) => h('svg', { width: size || 16, height: size || 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' }, h('path', { d: PATHS[name] === undefined ? PATHS.package : PATHS[name] }))
 
       // ── the styles: tokens only ──────────────────────────────────────────────────────────────────────────
       const CSS = `
       .kbcg{--kbcg-l1:var(--dsw-alias-bg-layer-1);--kbcg-l2:var(--dsw-alias-bg-layer-2);--kbcg-l3:var(--dsw-alias-bg-layer-3);--kbcg-b1:var(--dsw-alias-border-l1);--kbcg-b2:var(--dsw-alias-border-l2);--kbcg-b3:var(--dsw-alias-border-l3);
-        --kbcg-t1:var(--dsw-alias-label-primary);--kbcg-t2:var(--dsw-alias-label-secondary);--kbcg-t3:var(--dsw-alias-label-tertiary);--kbcg-fg:var(--dsw-alias-label-primary-foreground);--kbcg-brand:var(--dsw-alias-brand-primary);--kbcg-accent:var(--dsw-alias-brand-primary-new-color);
+        --kbcg-t1:var(--dsw-alias-label-primary);--kbcg-t2:var(--dsw-alias-label-secondary);--kbcg-t3:var(--dsw-alias-label-tertiary);--kbcg-fg:var(--dsw-alias-label-primary-foreground);--kbcg-brand:var(--dsw-alias-brand-primary);--kbcg-accent:var(--dsw-alias-brand-primary-new-color,var(--dsw-alias-state-business-primary));--kbcg-blue:var(--dsw-alias-state-business-primary);
         --kbcg-hover:var(--dsw-alias-interactive-bg-hover);--kbcg-ok:var(--dsw-alias-state-success-primary);--kbcg-warn:var(--dsw-alias-state-warn-primary);--kbcg-bad:var(--dsw-alias-state-error-primary);--kbcg-bone:var(--dsw-alias-bg-skeleton);
         display:flex;flex-direction:column;gap:14px;min-width:0;padding-bottom:48px;color:var(--kbcg-t1);font-size:13px;line-height:1.5;box-sizing:border-box}
       .kbcg *,.kbcg *::before,.kbcg *::after{box-sizing:border-box}
@@ -234,7 +325,7 @@ window.__ModuleLoader__.load({
       .kbcg-tile svg{width:34px;height:34px;stroke-width:1.5}
       .kbcg-tile .kbcg-tag{position:absolute;inset-inline-start:8px;top:8px}
       .kbcg-tile .kbcg-tag:not(.ok):not(.warn):not(.bad){background:var(--kbcg-l1);box-shadow:inset 0 0 0 1px var(--kbcg-b2)}
-      .kbcg-tile .kbcg-tag.demo{inset-inline-start:auto;inset-inline-end:8px;background:var(--kbcg-l1)}
+      .kbcg-tile .kbcg-tag.demo{inset-inline-start:8px;inset-inline-end:auto;top:auto;bottom:8px;background:var(--kbcg-l1)}
       .kbcg-body{display:flex;flex-direction:column;gap:3px;padding:10px 12px 12px;min-width:0}
       .kbcg-body b{font-weight:650;font-size:14px;line-height:1.3;overflow-wrap:anywhere}
       .kbcg-body small{color:var(--kbcg-t3);font-size:12px;overflow-wrap:anywhere}
@@ -279,13 +370,75 @@ window.__ModuleLoader__.load({
       .kbcg-fe{color:var(--kbcg-bad);font-size:12px}
       .kbcg-dlg .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
       .kbcg-toast{position:fixed;inset-inline:0;bottom:24px;margin-inline:auto;width:max-content;max-width:calc(100vw - 32px);z-index:1100;display:flex;align-items:center;gap:12px;padding:9px 14px;border:1px solid var(--kbcg-b2);border-radius:12px;background:var(--kbcg-l1);box-shadow:0 10px 30px color-mix(in srgb,var(--kbcg-t1) 18%,transparent)}
+      .kbcg-open{display:flex;flex:1;flex-direction:column;align-items:stretch;gap:0;width:100%;padding:0;margin:0;border:0;background:transparent;text-align:start;color:inherit;min-width:0;border-radius:inherit}
+      .kbcg-card{position:relative;display:flex;flex-direction:column}
+      .kbcg-card:focus-within{box-shadow:0 0 0 2px var(--kbcg-accent)}
+      .kbcg-card.hot{box-shadow:0 0 0 2px var(--kbcg-t1),0 10px 26px -12px color-mix(in srgb,var(--kbcg-t1) 40%,transparent)}
+      .kbcg-tile{aspect-ratio:4/3}
+      .kbcg-tile .kbcg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+      .kbcg-tile.kz-img>svg{position:absolute;inset:0}
+      .kbcg-tile .kbcg-tag{z-index:1}
+      .kbcg-heart{position:absolute;inset-inline-end:10px;top:10px;z-index:2;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;border:0;background:color-mix(in srgb,var(--kbcg-l1) 78%,transparent);color:var(--kbcg-t2);backdrop-filter:blur(6px);transition:background-color .15s,transform .14s,color .15s}
+      .kbcg-heart:hover{background:var(--kbcg-l1);color:var(--kbcg-t1);transform:scale(1.08)}
+      .kbcg-heart:active{transform:scale(.92)}
+      .kbcg-heart.on{color:var(--kbcg-bad)}
+      .kbcg-heart.on svg{fill:currentColor}
+      .kbcg-chips{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;margin-top:6px}
+      .kbcg-stat{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--kbcg-t2);white-space:nowrap}
+      .kbcg-stat svg{color:var(--kbcg-t3)}
+      .kbcg-body{flex:1}
+      .kbcg-price{font-size:15px;display:block;margin-top:auto;padding-top:8px}
+      .kbcg-stats{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:6px}
+      .kbcg-price small{font-weight:500}
+      .kbcg-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,44%);gap:16px;align-items:start}
+      .kbcg-split .kbcg-cards{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+      .kbcg-mapbox{position:sticky;top:8px;height:min(740px,calc(100vh - 190px));min-height:360px;border:1px solid var(--kbcg-b2);border-radius:16px;overflow:hidden;background:var(--kbcg-map-land)}
+      .kbcg-map{--kbcg-map-land:color-mix(in srgb,var(--kbcg-l2) 86%,var(--kbcg-warn));--kbcg-map-block:color-mix(in srgb,var(--kbcg-l1) 90%,var(--kbcg-l3));--kbcg-map-street:var(--kbcg-l1);display:block;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none}
+      .kbcg-map.drag{cursor:grabbing}
+      .kbcg-map .land{fill:var(--kbcg-map-land)}
+      .kbcg-map .block{fill:var(--kbcg-map-block)}
+      .kbcg-map .street{stroke:var(--kbcg-map-street);fill:none;stroke-linecap:round}
+      .kbcg-map .park{fill:color-mix(in srgb,var(--kbcg-ok) 34%,var(--kbcg-l2))}
+      .kbcg-map .water{fill:color-mix(in srgb,var(--kbcg-blue) 34%,var(--kbcg-l2))}
+      .kbcg-map .river{fill:none;stroke:color-mix(in srgb,var(--kbcg-blue) 34%,var(--kbcg-l2));stroke-linecap:round}
+      .kbcg-pin{cursor:pointer;outline:none}
+      .kbcg-pin .body{transform-origin:0 0;transition:transform .16s cubic-bezier(.2,.8,.2,1)}
+      .kbcg-pin .bubble{fill:var(--kbcg-l1);stroke:var(--kbcg-b3);stroke-width:1.2;filter:drop-shadow(0 3px 5px color-mix(in srgb,var(--kbcg-t1) 28%,transparent))}
+      .kbcg-pin .tail{fill:var(--kbcg-l1);stroke:var(--kbcg-b3);stroke-width:1.2}
+      .kbcg-pin text{fill:var(--kbcg-t1);font-size:13px;font-weight:700;text-anchor:middle;pointer-events:none;font-variant-numeric:tabular-nums}
+      .kbcg-pin:hover .body,.kbcg-pin.on .body,.kbcg-pin:focus-visible .body{transform:scale(1.16)}
+      .kbcg-pin.on .bubble,.kbcg-pin.on .tail,.kbcg-pin:hover .bubble,.kbcg-pin:hover .tail{fill:var(--kbcg-t1);stroke:var(--kbcg-t1)}
+      .kbcg-pin.on text,.kbcg-pin:hover text{fill:var(--kbcg-l1)}
+      .kbcg-pin:focus-visible .bubble{stroke:var(--kbcg-accent);stroke-width:2.4}
+      .kbcg-pin.sold .bubble,.kbcg-pin.sold .tail{fill:var(--kbcg-l3)}
+      .kbcg-pin.sold text{fill:var(--kbcg-t3)}
+      .kbcg-mapctl{position:absolute;inset-inline-end:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:2}
+      .kbcg-mapctl button{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--kbcg-b2);background:color-mix(in srgb,var(--kbcg-l1) 92%,transparent);color:var(--kbcg-t1);transition:background-color .15s,transform .14s}
+      .kbcg-mapctl button:hover{background:var(--kbcg-l1);transform:translateY(-1px)}
+      .kbcg-mapctl button:active{transform:scale(.94)}
+      .kbcg-mapnote{position:absolute;inset-inline-start:10px;bottom:10px;z-index:2;display:flex;gap:8px;align-items:center;max-width:calc(100% - 20px);padding:5px 10px;border-radius:999px;font-size:12px;color:var(--kbcg-t2);background:color-mix(in srgb,var(--kbcg-l1) 90%,transparent);border:1px solid var(--kbcg-b2)}
+      .kbcg-thumb{display:block;position:relative;width:64px;height:44px;border-radius:9px;overflow:hidden;background:var(--kbcg-l3);flex:none}
+      .kbcg-thumb .kbcg-tile{position:absolute;inset:0;aspect-ratio:auto;border-radius:0;box-shadow:none}
+      .kbcg-tbl .who{display:flex;align-items:center;gap:12px}
+      .kbcg-tbl .who>div{min-width:0}
+      .kbcg-tbl tr.r{transition:background-color .15s}
+      .kbcg-tbl .kbcg-chips{margin-top:3px}
+      .kbcg-panel.inline{position:relative;top:auto;max-height:none;overflow:visible;margin-bottom:16px;animation:kz-in .28s cubic-bezier(.2,.8,.2,1) both}
+      .kbcg-panel.inline .kbcg-tile.wide{aspect-ratio:21/9}
+      .kbcg-pin.ghost{pointer-events:none}
+      .kbcg-panel .kbcg-tile.wide{aspect-ratio:16/10;margin:-16px -18px 0;width:calc(100% + 36px);border-radius:14px 14px 0 0}
+      .kbcg-sortnote{color:var(--kbcg-t3);font-size:12px}
+      @media (max-width:900px){
+        .kbcg-split{grid-template-columns:minmax(0,1fr)}
+        .kbcg-mapbox{position:relative;top:0;height:300px;min-height:0;order:-1}
+      }
       @media (max-width:1100px){
         .kbcg-main.withpanel{grid-template-columns:minmax(0,1fr)}
         .kbcg-panel{position:fixed;inset-inline:12px;bottom:12px;top:auto;max-height:70vh;z-index:900}
         .kbcg-panel .kbcg-tile{aspect-ratio:auto;height:84px}
       }
       @media (max-width:640px){.kbcg-grid2{grid-template-columns:1fr}}
-      @media (prefers-reduced-motion:reduce){.kbcg-bone{animation:none}.kbcg-card,.kbcg-chip,.kbcg-btn{transition:none}}
+      @media (prefers-reduced-motion:reduce){.kbcg-bone{animation:none}.kbcg-card,.kbcg-chip,.kbcg-btn,.kbcg-heart,.kbcg-pin .body,.kbcg-mapctl button,.kbcg-tbl tr.r{transition:none}.kbcg-panel.inline{animation:none}.kbcg-heart:hover,.kbcg-pin:hover .body,.kbcg-pin.on .body{transform:none}}
       `
 
       // ── small parts ──────────────────────────────────────────────────────────────────────────────────────
@@ -296,9 +449,110 @@ window.__ModuleLoader__.load({
         return h(Tag, { tone: s.tone, kb: 'catalog-status' }, pick(s.label, humanize(s.key)))
       }
       const DemoTag = () => h(Tag, { cls: 'demo', kb: 'catalog-demo-badge' }, kt('démo', 'demo'))
-      /** The neutral picture of an item that has no photo yet: a tile of the page's own tones, with the type's icon. */
-      const Picture = (props) => h('span', { className: 'kbcg-tile' + (props.wide ? ' wide' : ''), style: { '--tone': [8, 13, 18, 23][props.index % 4] }, 'data-kb': 'catalog-picture', 'aria-hidden': 'true' },
-        Ic(props.type === null ? 'package' : props.type.icon, 34), props.children)
+      /**
+       * The picture of an item: the photograph its template ships (`photo:<theme>/<name>`, served by the core), else a drawn one (the `art:` of its field, or the kind
+       * that goes with its type), else the neutral tile of the page's own tones with the type's icon. A photograph that does not load turns into the drawn one.
+       */
+      const Picture = (props) => {
+        const { type, row } = props
+        const ref = row === undefined ? '' : pictureRef(type, row)
+        const m = PHOTO_RE.exec(ref)
+        const [bad, setBad] = useState(false)
+        const K = kitOf()
+        const spec = K !== null && K.artOk(ref) ? ref : (row === undefined ? '' : fallbackArt(type, row))
+        let inner
+        let kind = 'none'
+        if (m !== null && !bad) { kind = 'photo'; inner = h('img', { className: 'kbcg-img', src: '/kybernos/themes/photo?id=' + encodeURIComponent(m[1]), alt: '', loading: 'lazy', decoding: 'async', draggable: false, onError: () => setBad(true) }) } else if (K !== null && K.artOk(spec)) { kind = 'art'; inner = K.Art({ spec }) } else inner = Ic(type === null ? 'package' : type.icon, 34)
+        return h('span', { className: 'kbcg-tile kz-img' + (props.wide ? ' wide' : ''), style: { '--tone': [8, 13, 18, 23][props.index % 4] }, 'data-kb': 'catalog-picture', 'data-picture': kind, 'aria-hidden': 'true' }, inner, props.children)
+      }
+      const Heart = (props) => h('button', { type: 'button', className: 'kbcg-heart kz-press' + (props.on ? ' on kz-pop' : ''), 'data-kb': 'catalog-heart', 'aria-pressed': props.on ? 'true' : 'false', 'aria-label': props.on ? kt('Retirer de ta sélection', 'Remove from your shortlist') : kt('Ajouter à ta sélection', 'Add to your shortlist'), title: props.on ? kt('Retirer de ta sélection', 'Remove from your shortlist') : kt('Ajouter à ta sélection', 'Add to your shortlist'), onClick: (e) => { e.stopPropagation(); props.onToggle() } }, Ic('heart', 17))
+      /** The coloured chips and the plain stats under a card's title (`card.chips`); the colour of a tag follows its text, an energy class runs from green to red. */
+      const ChipRow = (props) => {
+        const chips = cardChips(props.type, props.row)
+        if (chips.length === 0) return null
+        const K = kitOf()
+        const tags = chips.filter((c) => !c.stat)
+        const stats = chips.filter((c) => c.stat)
+        return h(React.Fragment, null,
+          tags.length > 0 ? h('span', { className: 'kbcg-chips', 'data-kb': 'catalog-chips' }, tags.map((c) => (K !== null ? h(K.Tag, { key: c.key, text: c.text, hue: c.hue, dot: true }) : h('span', { key: c.key, className: 'kbcg-tag' }, c.text)))) : null,
+          stats.length > 0 ? h('span', { className: 'kbcg-stats', 'data-kb': 'catalog-stats' }, stats.map((c) => h('span', { key: c.key, className: 'kbcg-stat', 'data-kb': 'catalog-stat' }, c.icon !== undefined && K !== null ? K.Icon(c.icon, 13) : null, c.text))) : null)
+      }
+      const mulberry = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
+      const seedOf = (text) => { let n = 7; for (const c of String(text)) n = (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0; return n }
+      /** The streets, blocks and parks behind the pins: the same for the same seed, drawn wider than the map so any shape of box shows more of the same town. */
+      const townBlocks = (seed) => {
+        const rand = mulberry(seed)
+        const out = []
+        for (let gy = -5; gy < 26; gy += 1) for (let gx = -7; gx < 20; gx += 1) out.push({ x: Math.round(gx * 76 + 10 + rand() * 6), y: Math.round(gy * 66 + 8 + rand() * 6), w: Math.round(52 + rand() * 14), h: Math.round(44 + rand() * 12), park: rand() < 0.06 })
+        return out
+      }
+      /**
+       * A schematic map: the town is drawn from a seed (blocks, two avenues, a lake and a river), never fetched, and the pins sit where the items' two number fields
+       * say. It is a drawing, not a survey: the caption says so. Drag to move it, the buttons (or the wheel) to zoom; a pin is a button and takes the keyboard.
+       */
+      const MapView = (props) => {
+        const [cam, setCam] = useState({ k: 1, tx: 0, ty: 0 })
+        const [drag, setDrag] = useState(false)
+        const [size, setSize] = useState({ w: 0, h: 0 })
+        const box = useRef(null)
+        const grab = useRef(null)
+        const blocks = React.useMemo(() => townBlocks(props.seed), [props.seed])
+        // the canvas has the shape of its box (1000 units wide), so the pins fill it and a pin keeps the size of a finger whatever the box is
+        const H = size.w > 0 && size.h > 0 ? Math.max(480, Math.min(1500, Math.round(MAP_W * size.h / size.w))) : MAP_H
+        const px = size.w > 0 ? MAP_W / size.w : 1
+        const dims = useRef({ H })
+        dims.current = { H }
+        useEffect(() => {
+          const el = box.current
+          if (el === null) return undefined
+          const measure = () => { const r = el.getBoundingClientRect(); setSize((s) => (Math.abs(s.w - r.width) < 1 && Math.abs(s.h - r.height) < 1 ? s : { w: r.width, h: r.height })) }
+          measure()
+          let watcher = null
+          try { watcher = new ResizeObserver(measure); watcher.observe(el) } catch (e) { window.addEventListener('resize', measure) }
+          return () => { if (watcher !== null) watcher.disconnect(); else window.removeEventListener('resize', measure) }
+        }, [])
+        const zoom = (f) => setCam((c) => { const k = Math.min(4, Math.max(0.8, c.k * f)); return { k, tx: MAP_W / 2 - (MAP_W / 2 - c.tx) * (k / c.k), ty: dims.current.H / 2 - (dims.current.H / 2 - c.ty) * (k / c.k) } })
+        useEffect(() => {
+          const el = box.current
+          if (el === null) return undefined
+          const wheel = (e) => { e.preventDefault(); zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15) }
+          el.addEventListener('wheel', wheel, { passive: false })
+          return () => el.removeEventListener('wheel', wheel)
+        }, [])
+        const unit = () => px
+        const down = (e) => { if (e.target.closest !== undefined && e.target.closest('.kbcg-pin') !== null) return; grab.current = { x: e.clientX, y: e.clientY, tx: cam.tx, ty: cam.ty }; setDrag(true); try { e.currentTarget.setPointerCapture(e.pointerId) } catch (err) { /* no capture: the drag stops at the edge */ } }
+        const move = (e) => { const g = grab.current; if (g === null) return; const u = unit(); setCam((c) => Object.assign({}, c, { tx: g.tx + (e.clientX - g.x) * u, ty: g.ty + (e.clientY - g.y) * u })) }
+        const up = () => { grab.current = null; setDrag(false) }
+        const pins = projectPins(props.placed, MAP_W, H)
+        const lit = (pin) => pin.row.id === props.hot || pin.row.id === props.selected
+        const pinOf = (pin, ghost) => {
+          const row = pin.row
+          const label = pinPrice(row)
+          const w = Math.max(46, Math.round(label.length * 8.4 + 22))
+          const on = lit(pin)
+          const x = Math.round((pin.x * cam.k + cam.tx) * 10) / 10
+          const y = Math.round((pin.y * cam.k + cam.ty) * 10) / 10
+          const pick = () => props.onPick(row)
+          if (ghost === true) return h('g', { key: 'g' + row.id, className: 'kbcg-pin on ghost', transform: 'translate(' + x + ' ' + y + ') scale(' + px + ')', 'aria-hidden': 'true', style: { pointerEvents: 'none' } }, h('g', { className: 'body' }, h('path', { className: 'tail', d: 'M-6 -4 L0 7 L6 -4 Z' }), h('rect', { className: 'bubble', x: -w / 2, y: -28, width: w, height: 25, rx: 12.5 }), h('text', { y: -10 }, label)))
+          return h('g', { key: row.id, className: 'kbcg-pin' + (on ? ' on' : '') + (row.status === 'sold' ? ' sold' : ''), transform: 'translate(' + x + ' ' + y + ') scale(' + px + ')', tabIndex: 0, role: 'button', 'data-kb': 'catalog-pin', 'data-id': row.id, 'aria-label': row.title + ', ' + (row.price_text === undefined || row.price_text === '' ? label : row.price_text), 'aria-pressed': row.id === props.selected ? 'true' : 'false', onClick: pick, onKeyDown: onActivate(pick), onMouseEnter: () => props.onHover(row.id), onMouseLeave: () => props.onHover(null), onFocus: () => props.onHover(row.id), onBlur: () => props.onHover(null) },
+            h('g', { className: 'body' }, h('path', { className: 'tail', d: 'M-6 -4 L0 7 L6 -4 Z' }), h('rect', { className: 'bubble', x: -w / 2, y: -28, width: w, height: 25, rx: 12.5 }), h('text', { y: -10 }, label)))
+        }
+        return h('div', { className: 'kbcg-mapbox', 'data-kb': 'catalog-map-box' },
+          h('svg', { ref: box, className: 'kbcg-map' + (drag ? ' drag' : ''), viewBox: '0 0 ' + MAP_W + ' ' + H, preserveAspectRatio: 'xMidYMid meet', role: 'group', 'aria-label': kt('Carte schématique des biens', 'Schematic map of the items'), 'data-kb': 'catalog-map', onPointerDown: down, onPointerMove: move, onPointerUp: up, onPointerCancel: up },
+            h('g', { transform: 'translate(' + cam.tx + ' ' + cam.ty + ') scale(' + cam.k + ')' },
+              h('rect', { className: 'land', x: -2000, y: -1500, width: 5000, height: 4000 }),
+              blocks.map((b, i) => h('rect', { key: i, className: b.park ? 'park' : 'block', x: b.x, y: b.y, width: b.w, height: b.h, rx: b.park ? 22 : 7 })),
+              h('path', { className: 'street', d: 'M-600 ' + Math.round(H * 0.17) + ' L1700 ' + Math.round(H * 0.72), strokeWidth: 15 }), h('path', { className: 'street', d: 'M330 -400 L610 ' + (H + 400), strokeWidth: 15 }),
+              h('path', { className: 'water', d: 'M-900 ' + (H - 30) + ' C -300 ' + (H - 70) + ' 200 ' + (H - 14) + ' 480 ' + (H - 44) + ' S 1000 ' + (H - 12) + ' 1900 ' + (H - 52) + ' L1900 ' + (H + 1200) + ' L-900 ' + (H + 1200) + ' Z' }),
+              h('path', { className: 'river', d: 'M1200 -420 C 1000 ' + Math.round(H * 0.03) + ' 900 ' + Math.round(H * 0.24) + ' 790 ' + Math.round(H * 0.42) + ' S 610 ' + Math.round(H * 0.74) + ' 520 ' + (H - 34), strokeWidth: 24 })),
+            pins.map((pin) => pinOf(pin, false)), pins.filter(lit).map((pin) => pinOf(pin, true))),
+          h('div', { className: 'kbcg-mapctl' },
+            h('button', { type: 'button', 'data-kb': 'catalog-map-zoom-in', 'aria-label': kt('Zoom avant', 'Zoom in'), title: kt('Zoom avant', 'Zoom in'), onClick: () => zoom(1.4) }, Ic('plus2', 16)),
+            h('button', { type: 'button', 'data-kb': 'catalog-map-zoom-out', 'aria-label': kt('Zoom arrière', 'Zoom out'), title: kt('Zoom arrière', 'Zoom out'), onClick: () => zoom(1 / 1.4) }, Ic('minus', 16)),
+            h('button', { type: 'button', 'data-kb': 'catalog-map-fit', 'aria-label': kt('Tout voir', 'Show everything'), title: kt('Tout voir', 'Show everything'), onClick: () => setCam({ k: 1, tx: 0, ty: 0 }) }, Ic('fit', 16))),
+          h('div', { className: 'kbcg-mapnote', 'data-kb': 'catalog-map-note' }, Ic('map', 14), h('span', null, kt('Carte schématique', 'Schematic map'), ' · ', props.placed.length + (props.placed.length === 1 ? kt(' lieu', ' place') : kt(' lieux', ' places'))), props.unplaced > 0 ? h('span', { 'data-kb': 'catalog-map-unplaced' }, ' · ' + props.unplaced + kt(' sans emplacement', ' without a place')) : null))
+      }
+      /** The shape of the page's two columns in the map view: the cards on the left, the map that follows the page on the right. */
       const Bones = () => h('div', { className: 'kbcg-cards', 'aria-busy': 'true' }, [0, 1, 2, 3, 4, 5].map((i) => h('div', { key: i, className: 'kbcg-card', style: { cursor: 'default' } },
         h('div', { className: 'kbcg-bone', style: { aspectRatio: '4/3', borderRadius: 0 } }), h('div', { className: 'kbcg-body' }, h('div', { className: 'kbcg-bone', style: { height: 14, width: '70%' } }), h('div', { className: 'kbcg-bone', style: { height: 11, width: '45%' } })))))
       const onActivate = (fn) => (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); fn() } }
@@ -419,7 +673,9 @@ window.__ModuleLoader__.load({
           return () => document.removeEventListener('keydown', onKey)
         }, [])
         const stored = row.fields === null || row.fields === undefined ? {} : row.fields
-        const known = type === null ? [] : type.fields.filter((d) => stored[d.key] !== undefined && stored[d.key] !== null && stored[d.key] !== '').map((d) => ({ key: d.key, label: pick(d.label, humanize(d.key)), def: d, value: stored[d.key] }))
+        // the picture reference and the place are drawn (the photograph, the map), not listed
+        const drawn = type === null ? [] : [type.card === undefined ? undefined : type.card.image, type.map === undefined ? undefined : type.map.lat, type.map === undefined ? undefined : type.map.lng].filter((k) => k !== undefined)
+        const known = type === null ? [] : type.fields.filter((d) => drawn.indexOf(d.key) < 0 && stored[d.key] !== undefined && stored[d.key] !== null && stored[d.key] !== '').map((d) => ({ key: d.key, label: pick(d.label, humanize(d.key)), def: d, value: stored[d.key] }))
         const loose = Object.keys(stored).filter((k) => type === null || type.fields.every((d) => d.key !== k)).filter((k) => stored[k] !== null && stored[k] !== '').map((k) => ({ key: k, label: humanize(k), def: null, value: stored[k] }))
         const shown = known.concat(loose)
         const value = (f) => {
@@ -429,12 +685,13 @@ window.__ModuleLoader__.load({
           return text
         }
         const archived = archivedRow(row)
-        return h('aside', { className: 'kbcg-panel', role: 'complementary', 'aria-label': kt('Détails', 'Details'), 'data-kb': 'catalog-panel', 'data-id': row.id },
+        return h('aside', { className: 'kbcg-panel' + (props.inline ? ' inline' : ''), role: 'complementary', 'aria-label': kt('Détails', 'Details'), 'data-kb': 'catalog-panel', 'data-id': row.id },
           h('button', { type: 'button', className: 'x', ref: closeRef, 'aria-label': kt('Fermer', 'Close'), 'data-kb': 'catalog-close', onClick: props.onClose }, Ic('x', 16)),
-          h(Picture, { type, index, wide: true }, h(StatusTag, { type, row })),
+          h(Picture, { type, row, index, wide: true }, h(StatusTag, { type, row })),
           h('h3', null, card.title),
           card.subtitle !== '' && card.subtitle !== card.title ? h('p', { className: 'sub' }, card.subtitle) : null,
           card.price !== '' || card.flag !== null ? h('p', { className: 'sub' }, card.price, card.price !== '' && card.flag !== null ? ' · ' : '', card.flag !== null ? h('span', { className: 'kbcg-flag', 'data-kb': 'catalog-flag' }, card.flag) : null) : null,
+          h(ChipRow, { type, row }),
           row.demo === true || archived ? h('div', { className: 'badges' }, row.demo === true ? h(DemoTag) : null, archived ? h(Tag, { kb: 'catalog-archived-badge' }, kt('Archivé', 'Archived')) : null) : null,
           shown.length > 0 ? h('dl', { className: 'kbcg-dl' }, shown.map((f) => h(React.Fragment, { key: f.key }, h('dt', null, f.label), h('dd', null, value(f))))) : null,
           h('div', { className: 'kbcg-acts' },
@@ -449,13 +706,17 @@ window.__ModuleLoader__.load({
       const Cards = (props) => h('div', { className: 'kbcg-cards', 'data-kb': 'catalog-cards' }, props.rows.map((row, i) => {
         const type = typeOf(props.types, row)
         const card = cardOf(type, row)
-        return h('button', { key: row.id, type: 'button', className: 'kbcg-card', 'data-kb': 'catalog-card', 'data-id': row.id, 'data-known': type === null ? 'no' : 'yes', 'aria-current': props.selected === row.id ? 'true' : undefined, onClick: () => props.onOpen(row, i) },
-          h(Picture, { type, index: i }, h(StatusTag, { type, row }), row.demo === true ? h(DemoTag) : null),
-          h('span', { className: 'kbcg-body' },
-            h('b', null, card.title),
-            card.price !== '' ? h('span', { className: 'kbcg-price', 'data-kb': 'catalog-price' }, card.price) : null,
-            card.subtitle !== '' ? h('small', null, card.subtitle) : null,
-            card.flag !== null ? h('small', { className: 'kbcg-flag', 'data-kb': 'catalog-flag' }, card.flag) : null))
+        const on = props.short.indexOf(row.id) >= 0
+        return h('article', { key: row.id, className: 'kbcg-card kz-lift kz-in' + (props.hot === row.id ? ' hot' : ''), style: { '--kz-i': Math.min(i, 14) }, 'data-kb': 'catalog-card', 'data-id': row.id, 'data-known': type === null ? 'no' : 'yes', 'aria-current': props.selected === row.id ? 'true' : undefined, onMouseEnter: () => props.onHover(row.id), onMouseLeave: () => props.onHover(null) },
+          h('button', { type: 'button', className: 'kbcg-open', 'data-kb': 'catalog-card-open', onClick: () => props.onOpen(row, i) },
+            h(Picture, { type, row, index: i }, h(StatusTag, { type, row }), row.demo === true ? h(DemoTag) : null),
+            h('span', { className: 'kbcg-body' },
+              h('b', null, card.title),
+              card.subtitle !== '' ? h('small', null, card.subtitle) : null,
+              h(ChipRow, { type, row }),
+              card.price !== '' ? h('span', { className: 'kbcg-price', 'data-kb': 'catalog-price' }, card.price) : null,
+              card.flag !== null ? h('small', { className: 'kbcg-flag', 'data-kb': 'catalog-flag' }, card.flag) : null)),
+          h(Heart, { on, onToggle: () => props.onShort(row.id) }))
       }))
       const Table = (props) => {
         const notes = props.rows.some((row) => cardOf(typeOf(props.types, row), row).flag !== null)
@@ -465,10 +726,10 @@ window.__ModuleLoader__.load({
           const type = typeOf(props.types, row)
           const card = cardOf(type, row)
           const open = () => props.onOpen(row, i)
-          return h('tr', { key: row.id, className: 'r', tabIndex: 0, 'data-kb': 'catalog-row', 'data-id': row.id, 'data-known': type === null ? 'no' : 'yes', 'aria-current': props.selected === row.id ? 'true' : undefined, onClick: open, onKeyDown: onActivate(open) },
-            h('td', null, h('div', { className: 'who' }, h('b', null, card.title, row.demo === true ? ' ' : null, row.demo === true ? h(DemoTag) : null), card.subtitle !== '' ? h('small', null, card.subtitle) : null)),
+          return h('tr', { key: row.id, className: 'r kz-in' + (props.hot === row.id ? ' hot' : ''), style: { '--kz-i': Math.min(i, 14) }, tabIndex: 0, 'data-kb': 'catalog-row', 'data-id': row.id, 'data-known': type === null ? 'no' : 'yes', 'aria-current': props.selected === row.id ? 'true' : undefined, onClick: open, onKeyDown: onActivate(open), onMouseEnter: () => props.onHover(row.id), onMouseLeave: () => props.onHover(null) },
+            h('td', null, h('div', { className: 'who' }, h('span', { className: 'kbcg-thumb' }, h(Picture, { type, row, index: i })), h('div', null, h('b', null, card.title, row.demo === true ? ' ' : null, row.demo === true ? h(DemoTag) : null), card.subtitle !== '' ? h('small', null, card.subtitle) : null, h(ChipRow, { type, row })))),
             h('td', null, h(StatusTag, { type, row })),
-            h('td', null, card.price),
+            h('td', null, h('b', null, card.price)),
             notes ? h('td', { className: 'muted' }, card.flag !== null ? h('span', { className: 'kbcg-flag', 'data-kb': 'catalog-flag' }, card.flag) : '') : null)
         })))
       }
@@ -493,10 +754,17 @@ window.__ModuleLoader__.load({
                 h('input', { ref: input, type: 'search', 'data-kb': 'catalog-search', value: props.query, placeholder: word, 'aria-label': word, onChange: (e) => props.onQuery(e.target.value), onKeyDown: (e) => { if (e.key === 'Escape') { e.stopPropagation(); clear() } } }),
                 shown ? h('button', { type: 'button', className: 'kb6-tb-clear', 'data-kb': 'catalog-search-clear', 'aria-label': props.query.length > 0 ? kt('Effacer la recherche', 'Clear the search') : word, onClick: clear }, Ic('x', 13)) : null),
               props.views.length > 1 ? h('div', { className: 'kb6-tb-viewgrp', role: 'group', 'aria-label': kt('Affichage', 'View') }, props.views.map((v) => {
-                const label = v === 'cards' ? kt('Cartes', 'Cards') : kt('Liste', 'List')
-                return h('button', { key: v, type: 'button', className: 'kb6-tb-vbtn' + (props.view === v ? ' on' : ''), 'data-kb': 'catalog-view', 'data-view': v, 'aria-label': label, title: label, 'aria-pressed': props.view === v ? 'true' : 'false', onClick: () => props.onView(v) }, Ic(v === 'cards' ? 'grid' : 'list', 16))
+                const label = v === 'cards' ? kt('Cartes', 'Cards') : (v === 'map' ? kt('Carte', 'Map') : kt('Liste', 'List'))
+                return h('button', { key: v, type: 'button', className: 'kb6-tb-vbtn' + (props.view === v ? ' on' : ''), 'data-kb': 'catalog-view', 'data-view': v, 'aria-label': label, title: label, 'aria-pressed': props.view === v ? 'true' : 'false', onClick: () => props.onView(v) }, Ic(v === 'cards' ? 'grid' : (v === 'map' ? 'map' : 'list'), 16))
               })) : null),
             h('div', { className: 'kb6-tb-trailing' }, props.trailing)))
+      }
+
+      /** The state of the bar when the product's own hook is not there: the same shape, kept in the page. */
+      const useLocalBar = (pageId, defaults) => {
+        const [st, setSt] = useState(() => Object.assign({ query: '', sort: 'modified', dir: 'desc', types: [], period: 'all', fav: false, viewMode: 'cards' }, defaults))
+        const update = (patch) => setSt((prev) => Object.assign({}, prev, patch))
+        return [st, update]
       }
 
       // ── the page ─────────────────────────────────────────────────────────────────────────────────────────
@@ -505,12 +773,18 @@ window.__ModuleLoader__.load({
         const KbBar = toolbar !== null && typeof toolbar.KbToolbar === 'function' ? toolbar.KbToolbar : null
         const [types, setTypes] = useState(null)
         const [source, setSource] = useState('default')
-        const [q, setQ] = useState('')
-        const [dq, setDq] = useState('')
+        // the bar's state is the product's own (kept per page, search and view included) when it is handed over, else this page's
+        const useBar = toolbar !== null && typeof toolbar.useToolbarState === 'function' ? toolbar.useToolbarState : useLocalBar
+        const [bar, updateBar] = useBar('catalog', { viewMode: readView() === '' ? 'cards' : readView() })
+        const q = typeof bar.query === 'string' ? bar.query : ''
+        const setQ = (v) => updateBar({ query: v })
+        const [dq, setDq] = useState(q)
+        const [short, setShort] = useState(readShortlist)
+        const [hot, setHot] = useState(null)
         const [typeKey, setTypeKey] = useState('')
         const [status, setStatus] = useState('')
         const [archived, setArchived] = useState(false)
-        const [view, setView] = useState(readView())
+        const view = bar.viewMode
         const [data, setData] = useState(null)
         const [err, setErr] = useState(null)
         const [tick, setTick] = useState(0)
@@ -573,11 +847,15 @@ window.__ModuleLoader__.load({
         const list = types === null ? [] : types
         const views = viewsOf(list, typeKey)
         const shownView = views.indexOf(view) >= 0 ? view : views[0]
-        const changeView = (v) => { setView(v); saveView(v) }
-        const rows = data === null ? [] : data.rows
+        const changeView = (v) => { updateBar({ viewMode: v }); saveView(v) }
+        const loaded = data === null ? [] : data.rows
+        const favOnly = bar.fav === true
+        // the shortlist is kept in this browser; « favourites only » and the sort work on the rows that are loaded
+        const rows = sortRows(favOnly ? loaded.filter((r) => short.indexOf(r.id) >= 0) : loaded, bar.sort, bar.dir)
+        const toggleShort = (id) => { const next = short.indexOf(id) >= 0 ? short.filter((x) => x !== id) : short.concat([id]); setShort(next); saveShortlist(next) }
         const selected = sel === null ? null : (rows.find((r) => r.id === sel.id) || sel)
-        const filtering = dq.trim() !== '' || typeKey !== '' || status !== ''
-        const clearFilters = () => { setQ(''); setDq(''); setTypeKey(''); setStatus('') }
+        const filtering = dq.trim() !== '' || typeKey !== '' || status !== '' || favOnly
+        const clearFilters = () => { setQ(''); setDq(''); setTypeKey(''); setStatus(''); updateBar({ fav: false }) }
         // closing the panel gives the keyboard back to the card or row that opened it
         const returnTo = useRef(null)
         const open = (row) => setSel(row)
@@ -587,7 +865,7 @@ window.__ModuleLoader__.load({
           const id = returnTo.current
           returnTo.current = null
           try {
-            const el = document.querySelector('[data-kb="catalog-card"][data-id="' + id + '"], [data-kb="catalog-row"][data-id="' + id + '"]')
+            const el = document.querySelector('[data-kb="catalog-card"][data-id="' + id + '"] .kbcg-open, [data-kb="catalog-row"][data-id="' + id + '"]')
             if (el !== null && el !== undefined && typeof el.focus === 'function') el.focus()
           } catch (e) { /* the row is gone (archived): nothing to focus */ }
         }, [sel])
@@ -625,15 +903,15 @@ window.__ModuleLoader__.load({
 
         const title = pageTitle(list, source)
         const addButton = h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'catalog-new', disabled: types === null || list.length === 0 || (err !== null && data === null), onClick: () => setDlg({ row: null }) }, Ic('plus', 14), ' ', newLabel(list))
-        const barState = { query: q, sort: 'modified', dir: 'desc', types: [], period: 'all', fav: false, viewMode: shownView }
-        const onBar = (patch) => { if (patch && typeof patch.query === 'string') setQ(patch.query); if (patch && (patch.viewMode === 'cards' || patch.viewMode === 'list')) changeView(patch.viewMode) }
+        const onBar = (patch) => { updateBar(patch); if (patch !== null && typeof patch === 'object' && (patch.viewMode === 'cards' || patch.viewMode === 'list' || patch.viewMode === 'map')) saveView(patch.viewMode) }
+        const sortOptions = [{ id: 'modified', label: kt('Dernière modification', 'Latest change') }, { id: 'price', label: kt('Prix', 'Price') }, { id: 'name', label: kt('Nom', 'Name') }]
         const help = typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-catalog' }) : null
         const header = h('div', { className: 'kb6-headrow kbcg-head' },
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title', 'data-kb': 'catalog-title' }, title), help),
-            h('p', { className: 'kb8-sub' }, kt('Ce que tu vends, loues ou recrutes, en cartes ou en liste.', 'What you sell, rent or recruit for, as cards or a list.'))),
+            h('p', { className: 'kb8-sub' }, kt('Ce que tu vends, loues ou recrutes, en cartes, en liste ou sur une carte.', 'What you sell, rent or recruit for, as cards, a list or on a map.'))),
           KbBar !== null
-            ? h(KbBar, { state: barState, onUpdate: onBar, views, viewLabels: false, hideSort: true, showFav: false, searchPlaceholder: kt('Rechercher', 'Search'), trailing: addButton })
+            ? h(KbBar, { state: bar, onUpdate: onBar, views, viewLabels: true, sortOptions, showFav: true, searchPlaceholder: kt('Rechercher', 'Search'), trailing: addButton })
             : h(PlainBar, { query: q, onQuery: setQ, views, view: shownView, onView: changeView, trailing: addButton }))
 
         // states
@@ -648,17 +926,22 @@ window.__ModuleLoader__.load({
           const allCount = data.countsPartial === true ? null : sumCounts(data.counts)
           const none = rows.length === 0
           const trulyEmpty = data.total === 0 && !filtering && !archived
+          const results0 = { rows, types: list, selected: selected === null ? null : selected.id, onOpen: open, short, onShort: toggleShort, hot, onHover: setHot }
+          // a pin opens the item and brings its card into view in the list beside the map
+          const pickOnMap = (row) => { open(row); setTimeout(() => { try { const el = document.querySelector('[data-kb="catalog-panel"]'); if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) } catch (e) { /* the list stays where it is */ } }, 60) }
           const results = none
             ? (archived
               ? h('div', { className: 'kbcg-empty', 'data-kb': 'catalog-empty', 'data-why': 'archived' }, h('b', null, kt('Rien dans les archives', 'Nothing archived')), h('span', null, kt('Les éléments archivés apparaissent ici, et tu peux les restaurer.', 'Archived items appear here, and you can restore them.')))
               : filtering
                 ? h('div', { className: 'kbcg-empty', 'data-kb': 'catalog-empty', 'data-why': 'filter' }, h('b', null, kt('Aucun résultat', 'No match')), h('span', null, kt('Aucun élément ne correspond à cette recherche ou à ce filtre.', 'No item matches this search or filter.')), h('button', { type: 'button', className: 'kbcg-btn sm', 'data-kb': 'catalog-clear-filters', onClick: clearFilters }, kt('Effacer la recherche et les filtres', 'Clear search and filters')))
                 : h('div', { className: 'kbcg-empty', 'data-kb': 'catalog-empty', 'data-why': 'empty' }, h('b', null, kt('Rien ici pour l’instant', 'Nothing here yet')), h('span', null, kt('Ajoute ton premier élément, ou demande à ton agent de le faire.', 'Add your first item, or ask your agent to do it.')), h('button', { type: 'button', className: 'kbcg-btn sm primary', 'data-kb': 'catalog-empty-new', onClick: () => setDlg({ row: null }) }, Ic('plus', 14), newLabel(list))))
-            : (shownView === 'list' ? h(Table, { rows, types: list, selected: selected === null ? null : selected.id, onOpen: open }) : h(Cards, { rows, types: list, selected: selected === null ? null : selected.id, onOpen: open }))
+            : (shownView === 'list' ? h(Table, results0) : (shownView === 'map'
+              ? h('div', { className: 'kbcg-split', 'data-kb': 'catalog-split' }, h('div', { style: { minWidth: 0 } }, [selected !== null ? h(Panel, { key: 'panel', row: selected, types: list, index: Math.max(0, rows.findIndex((r) => r.id === selected.id)), inline: true, onClose: closePanel, onEdit: () => setDlg({ row: selected }), onArchive: () => archive(selected), onRestore: () => restore(selected) }) : null, h(Cards, Object.assign({ key: 'cards' }, results0))]), h(MapView, { placed: placedRows(rows, list), unplaced: rows.length - placedRows(rows, list).length, seed: seedOf(typeKey !== '' ? typeKey : (list.length > 0 ? list[0].id : 'town')), selected: selected === null ? null : selected.id, hot, onHover: setHot, onPick: pickOnMap }))
+              : h(Cards, results0)))
           const loadMore = async () => {
             setMore(true)
             const mine = seq.current
-            const r = await api('GET', query(rows.length))
+            const r = await api('GET', query(loaded.length))
             setMore(false)
             if (!alive.current || seq.current !== mine) return
             if (failed(r)) { say(errorText(codeOf(r), r.status)); return }
@@ -678,10 +961,10 @@ window.__ModuleLoader__.load({
                 null),
               h('button', { type: 'button', className: 'kbcg-chip' + (trulyEmpty || archived ? '' : ' kbcg-toggle'), 'data-kb': 'catalog-archived', 'aria-pressed': archived ? 'true' : 'false', onClick: () => { setArchived(!archived); setSel(null) } }, Ic('archive', 13), ' ', kt('Voir les archives', 'Show archived'))),
             err !== null ? h('div', { className: 'kbcg-banner err', role: 'alert', 'data-kb': 'catalog-error', 'data-code': err.code }, Ic('alert', 18), h('span', { className: 'sp' }, errorText(err.code, err.status)), h('button', { type: 'button', className: 'kbcg-btn sm', 'data-kb': 'catalog-retry', onClick: reload }, Ic('refresh', 14), kt('Réessayer', 'Try again'))) : null,
-            h('div', { className: 'kbcg-main' + (selected !== null ? ' withpanel' : '') },
+            h('div', { className: 'kbcg-main' + (selected !== null && shownView !== 'map' ? ' withpanel' : '') },
               h('div', { style: { minWidth: 0 } }, results,
-                data.total > rows.length ? h('div', { className: 'kbcg-more', 'data-kb': 'catalog-more' }, h('span', null, rows.length + ' / ' + data.total), h('button', { type: 'button', className: 'kbcg-btn sm', 'data-kb': 'catalog-more-btn', disabled: more, onClick: loadMore }, more ? kt('Chargement…', 'Loading…') : kt('Afficher la suite', 'Show more'))) : null),
-              selected !== null ? h(Panel, { row: selected, types: list, index: Math.max(0, rows.findIndex((r) => r.id === selected.id)), onClose: closePanel, onEdit: () => setDlg({ row: selected }), onArchive: () => archive(selected), onRestore: () => restore(selected) }) : null))
+                data.total > loaded.length ? h('div', { className: 'kbcg-more', 'data-kb': 'catalog-more' }, h('span', null, loaded.length + ' / ' + data.total), h('button', { type: 'button', className: 'kbcg-btn sm', 'data-kb': 'catalog-more-btn', disabled: more, onClick: loadMore }, more ? kt('Chargement…', 'Loading…') : kt('Afficher la suite', 'Show more'))) : null),
+              selected !== null && shownView !== 'map' ? h(Panel, { row: selected, types: list, index: Math.max(0, rows.findIndex((r) => r.id === selected.id)), onClose: closePanel, onEdit: () => setDlg({ row: selected }), onArchive: () => archive(selected), onRestore: () => restore(selected) }) : null))
         }
 
         return h('div', { className: 'kbcg', 'data-kb': 'catalog-page' },
@@ -745,7 +1028,7 @@ window.__ModuleLoader__.load({
         apply (ctx) {
           try { apply(ctx) } catch (e) { console.warn('[kybernos-catalog] page not mounted:', e) }
         },
-        __test: { pick, humanize, valueText, cardOf, flagText, viewsOf, chipsOf, sumCounts, pageTitle, newLabel, errorText, formOf, payloadOf, typeOf, statusOf, CatalogPage, FormDialog, Panel, CSS },
+        __test: { pick, humanize, valueText, cardOf, flagText, viewsOf, chipsOf, sumCounts, pageTitle, newLabel, errorText, formOf, payloadOf, typeOf, statusOf, CatalogPage, FormDialog, Panel, CSS, pictureRef, fallbackArt, energyHue, statText, cardChips, pinPrice, placedRows, projectPins, sortRows, townBlocks, MapView, Picture, Cards, Table },
       }
     } catch (e) {
       console.warn('[kybernos-catalog] disabled:', e)

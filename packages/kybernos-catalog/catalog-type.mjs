@@ -10,7 +10,7 @@
 //     "map":      { "lat": "lat", "lng": "lng" },
 //     "views":    ["cards", "list", "map"] }
 // `card.image` names a text field that holds a picture reference (`art:<kind>/<seed>`, drawn by the page, or `photo:<template>/<name>`, a picture the template
-// ships); `card.chips` names up to four fields drawn as coloured chips; `map` names the two number fields that place an item (latitude, longitude) and is what
+// ships); `card.chips` names up to six fields drawn as coloured chips (the choices and texts) and stats (the numbers); `map` names the two number fields that place an item (latitude, longitude) and is what
 // the « map » view needs.
 // The card and the flag point at fields by key: a key that is not one of the type's fields is refused here, not drawn wrong later. The check is
 // pure and bounded: known keys only, every text and list has a limit, no code and no URL. A row of the base keeps only the key of its type and
@@ -103,7 +103,7 @@ const cardOf = (v, fields, errors) => {
     else out.image = v.image
   }
   if (v.chips !== undefined) {
-    const chips = listOf(v.chips, 'card.chips', 1, 4, errors)
+    const chips = listOf(v.chips, 'card.chips', 1, 6, errors)
     const known = fields.map((f) => f.key)
     const kept = chips.filter((k, i) => (typeof k === 'string' && known.indexOf(k) >= 0 ? true : (errors.push('card.chips[' + i + ']: the key of one of the fields'), false)))
     noDuplicate(kept, 'card.chips', errors)

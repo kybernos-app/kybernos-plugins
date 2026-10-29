@@ -51,6 +51,7 @@ let kbLocaleRead = () => 'en'
       'tb.view.list': { kybernos: 'Liste', en: 'List' },
       'tb.view.calendar': { kybernos: 'Calendrier', en: 'Calendar' },
       'tb.view.columns': { kybernos: 'Colonnes', en: 'Columns' },
+      'tb.view.map': { kybernos: 'Carte', en: 'Map' },
       'tb.search.toggle': { kybernos: 'Recherche', en: 'Search' },
       'tb.summary.date.new': { kybernos: 'Plus récents', en: 'Most recent' },
       'tb.summary.date.old': { kybernos: 'Plus anciens', en: 'Oldest first' },
@@ -4818,6 +4819,7 @@ const LUCIDE = {
   hardDrive: ['M22 12H2', 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z', 'M6 16h.01', 'M10 16h.01'],
   // The Automations board (Columns view, calendar controls, status signs, banner).
   columns: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M9 3v18', 'M15 3v18'],
+  map: ['M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z', 'M15 5.764v15', 'M9 3.236v15'],
   chevronLeft: ['m15 18-6-6 6-6'],
   pause: ['M15 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M7 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'],
   triangleAlert: ['m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3', 'M12 9v4', 'M12 17h.01'],
@@ -11797,7 +11799,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (raw.period === '7' || raw.period === '30' || raw.period === 'all') out.period = raw.period
       if (typeof raw.fav === 'boolean') out.fav = raw.fav
       else if (typeof raw.favoritesOnly === 'boolean') out.fav = raw.favoritesOnly
-      if (raw.viewMode === 'list' || raw.viewMode === 'cards' || raw.viewMode === 'columns' || raw.viewMode === 'calendar') out.viewMode = raw.viewMode
+      if (raw.viewMode === 'list' || raw.viewMode === 'cards' || raw.viewMode === 'columns' || raw.viewMode === 'calendar' || raw.viewMode === 'map') out.viewMode = raw.viewMode
       // Vue du filtre personnalisée (Livrables, 29/09) : liste d'ids de tuiles
       // affichées. Absente → la page retombe sur sa vue par défaut.
       if (Array.isArray(raw.vis) === true) out.vis = raw.vis.filter((x) => typeof x === 'string').slice(0, 80)
@@ -11808,7 +11810,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const base = {
         query: '', sort: (defaults && typeof defaults.sort === 'string' && defaults.sort !== 'date') ? defaults.sort : 'modified',
         dir: 'desc', types: [], period: 'all', fav: false,
-        viewMode: (defaults && (defaults.viewMode === 'list' || defaults.viewMode === 'columns' || defaults.viewMode === 'calendar')) ? defaults.viewMode : 'cards',
+        viewMode: (defaults && (defaults.viewMode === 'list' || defaults.viewMode === 'columns' || defaults.viewMode === 'calendar' || defaults.viewMode === 'map')) ? defaults.viewMode : 'cards',
       }
       const saved = React.useMemo(() => {
         try {
@@ -11847,7 +11849,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // Props :
     //   state {query,sort,dir,types,period,fav,viewMode}, onUpdate(patch), onReset(),
     //   searchPlaceholder, sortOptions[{id,label}], facets{type:{options:[{id,label,count}]}, period:true},
-    //   views:['cards','list','calendar','columns'], viewLabels:true (names beside the icons), hideSort:true (a view that is not an ordered
+    //   views:['cards','list','calendar','columns','map'], viewLabels:true (names beside the icons), hideSort:true (a view that is not an ordered
     //   list), total, shown, showFav:false, hideView:true, onAdd, addLabel, trailing
     const KbToolbar = (props) => {
       const st = (props.state !== null && typeof props.state === 'object') ? props.state : {}
@@ -11864,7 +11866,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // page (Connecteurs) — le viewMode persisté y reste sans effet.
       const showFav = props.showFav !== false
       const hideView = props.hideView === true
-      const viewMode = (st.viewMode === 'list' || st.viewMode === 'columns' || st.viewMode === 'calendar') ? st.viewMode : 'cards'
+      const viewMode = (st.viewMode === 'list' || st.viewMode === 'columns' || st.viewMode === 'calendar' || st.viewMode === 'map') ? st.viewMode : 'cards'
       // `hideSort`: a page whose views are not an ordered list (the Automations board) has no sort to offer.
       // `viewLabels`: the switch shows the name of each view beside its icon (a three-way choice is not guessed from icons).
       const hideSort = props.hideSort === true
@@ -11917,9 +11919,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const filterCount = types.length + (period !== 'all' ? 1 : 0)
       const filterActive = filterCount > 0
       const hasMenu = showFilters === true || (hideSort !== true && sortOptions.length > 0)
-      const viewIds = (Array.isArray(props.views) === true && props.views.length > 0) ? props.views.filter((v) => v === 'cards' || v === 'list' || v === 'calendar' || v === 'columns') : ['cards', 'list']
-      const viewIcon = (id) => (id === 'cards' ? Icon('grid', 16) : (id === 'calendar' ? Icon('calendar', 16) : (id === 'columns' ? Icon('columns', 16) : Icon('list', 16))))
-      const viewLabel = (id) => (id === 'cards' ? kbt('tb.view.cards') : (id === 'calendar' ? kbt('tb.view.calendar') : (id === 'columns' ? kbt('tb.view.columns') : kbt('tb.view.list'))))
+      const viewIds = (Array.isArray(props.views) === true && props.views.length > 0) ? props.views.filter((v) => v === 'cards' || v === 'list' || v === 'calendar' || v === 'columns' || v === 'map') : ['cards', 'list']
+      const viewIcon = (id) => (id === 'cards' ? Icon('grid', 16) : (id === 'calendar' ? Icon('calendar', 16) : (id === 'columns' ? Icon('columns', 16) : (id === 'map' ? Icon('map', 16) : Icon('list', 16)))))
+      const viewLabel = (id) => (id === 'cards' ? kbt('tb.view.cards') : (id === 'calendar' ? kbt('tb.view.calendar') : (id === 'columns' ? kbt('tb.view.columns') : (id === 'map' ? kbt('tb.view.map') : kbt('tb.view.list')))))
       const popItem = (key, label, on, onClick, extra) => h('button', { type: 'button', key: key, className: 'kb6-tb-popitem' + (on === true ? ' on' : ''), onClick: onClick, 'aria-pressed': on === true ? 'true' : 'false' },
         h('span', { className: 'kb6-tb-popcheck' }, on === true ? Icon('check', 13) : null),
         h('span', { className: 'kb6-tb-poplab' }, label),

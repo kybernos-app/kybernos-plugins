@@ -407,7 +407,7 @@
         "district": "Old Town",
         "outdoor": "Balcony",
         "lat": 46.2062,
-        "lng": 6.1455,
+        "lng": 6.1405,
         "image": "photo:real-estate/willow-lane"
       }
     },
@@ -430,8 +430,8 @@
         "kind": "House",
         "district": "Hillside",
         "outdoor": "Garden",
-        "lat": 46.2121,
-        "lng": 6.1349,
+        "lat": 46.2125,
+        "lng": 6.135,
         "image": "photo:real-estate/elm-court"
       }
     },
@@ -452,8 +452,8 @@
         "owner": "Marta Kowalski",
         "kind": "Studio",
         "district": "Station",
-        "lat": 46.2036,
-        "lng": 6.1428,
+        "lat": 46.203,
+        "lng": 6.1432,
         "image": "photo:real-estate/quay-street"
       }
     },
@@ -475,8 +475,8 @@
         "owner": "Victor Alvarez",
         "kind": "Loft",
         "district": "Riverside",
-        "lat": 46.2087,
-        "lng": 6.1561,
+        "lat": 46.2092,
+        "lng": 6.1625,
         "image": "photo:real-estate/old-mill"
       }
     },
@@ -498,8 +498,8 @@
         "kind": "Apartment",
         "district": "Lakeside",
         "outdoor": "Balcony",
-        "lat": 46.1998,
-        "lng": 6.1496,
+        "lat": 46.1993,
+        "lng": 6.153,
         "image": "photo:real-estate/lakeview-ave"
       }
     },
@@ -520,8 +520,8 @@
         "kind": "Townhouse",
         "district": "Old Town",
         "outdoor": "Garden",
-        "lat": 46.2105,
-        "lng": 6.1442,
+        "lat": 46.2108,
+        "lng": 6.1432,
         "image": "photo:real-estate/maple-row"
       }
     },
@@ -541,8 +541,8 @@
         "price": 295000,
         "kind": "Apartment",
         "district": "Old Town",
-        "lat": 46.2071,
-        "lng": 6.1472,
+        "lat": 46.2074,
+        "lng": 6.1468,
         "image": "photo:real-estate/church-square"
       }
     },
@@ -563,8 +563,8 @@
         "owner": "Pine Street Property",
         "kind": "Commercial",
         "district": "Market",
-        "lat": 46.2054,
-        "lng": 6.1511,
+        "lat": 46.2049,
+        "lng": 6.1521,
         "image": "photo:real-estate/market-street"
       }
     },
@@ -584,8 +584,8 @@
         "price": 1450000,
         "kind": "Villa",
         "district": "Lakeside",
-        "lat": 46.1962,
-        "lng": 6.1534,
+        "lat": 46.1958,
+        "lng": 6.1565,
         "image": "photo:real-estate/lake-villa",
         "outdoor": "Pool",
         "owner": "Victor Alvarez",
@@ -608,7 +608,7 @@
         "price": 740000,
         "kind": "Farmhouse",
         "district": "Countryside",
-        "lat": 46.2203,
+        "lat": 46.221,
         "lng": 6.1288,
         "image": "photo:real-estate/lavender-farm",
         "outdoor": "Garden",
@@ -632,8 +632,8 @@
         "price": 340000,
         "kind": "Apartment",
         "district": "Hillside",
-        "lat": 46.2094,
-        "lng": 6.1385,
+        "lat": 46.2098,
+        "lng": 6.138,
         "image": "photo:real-estate/garden-flat",
         "outdoor": "Garden",
         "owner": "Daniel Okoye",
@@ -657,8 +657,8 @@
         "price": 1120000,
         "kind": "Penthouse",
         "district": "Lakeside",
-        "lat": 46.1983,
-        "lng": 6.1587,
+        "lat": 46.1975,
+        "lng": 6.1612,
         "image": "photo:real-estate/harbour-penthouse",
         "outdoor": "Terrace",
         "mandate_until": "2027-02-10"
@@ -680,7 +680,7 @@
         "price": 455000,
         "kind": "Bungalow",
         "district": "Hillside",
-        "lat": 46.2166,
+        "lat": 46.217,
         "lng": 6.1415,
         "image": "photo:real-estate/cedar-bungalow",
         "outdoor": "Garden",
@@ -704,8 +704,8 @@
         "price": 1680,
         "kind": "Apartment",
         "district": "Station",
-        "lat": 46.2018,
-        "lng": 6.1472,
+        "lat": 46.2012,
+        "lng": 6.1485,
         "image": "photo:real-estate/oak-duplex",
         "outdoor": "Balcony",
         "owner": "Pine Street Property"
@@ -727,8 +727,8 @@
         "price": 2150,
         "kind": "Townhouse",
         "district": "Riverside",
-        "lat": 46.2079,
-        "lng": 6.1534,
+        "lat": 46.2081,
+        "lng": 6.1578,
         "image": "photo:real-estate/canal-house",
         "owner": "Pine Street Property"
       }
@@ -749,8 +749,8 @@
         "price": 520000,
         "kind": "Cottage",
         "district": "Lakeside",
-        "lat": 46.1946,
-        "lng": 6.1442,
+        "lat": 46.1944,
+        "lng": 6.147,
         "image": "photo:real-estate/lakeside-cottage",
         "outdoor": "Jetty",
         "owner": "Marta Kowalski",
