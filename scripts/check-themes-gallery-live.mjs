@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The Themes page against the REAL GUI of the SANDBOX: the gallery of cards (a drawn cover, a chip, a name, a line, counts), a theme page (the plugins it
+// The Templates page against the REAL GUI of the SANDBOX: the gallery of cards (a drawn cover, a chip, a name, a line, counts), a theme page (the plugins it
 // needs, what else it adds), the plan as a dialog (needs, kit, one consent, one primary action), the install, the report, the installed card, the removal.
 // Everything with a real mouse and keyboard, every rectangle measured.
 //
@@ -72,9 +72,9 @@ try {
   check('each card draws a cover (16:9), a chip, a name and a line, and is announced by its name', Array.isArray(cards) && cards.every((c) => c.cover !== null && c.cover[0] > 150 && Math.abs(c.cover[0] / c.cover[1] - 16 / 9) < 0.1 && c.chip && c.name && c.line && c.aria && c.aria.indexOf(c.name) === 0), cards)
   check('the cards of a row are the same height', Array.isArray(cards) && (() => { const rows = {}; for (const c of cards) (rows[Math.round(c.y)] = rows[Math.round(c.y)] || []).push(c.h); return Object.values(rows).every((hs) => Math.max(...hs) - Math.min(...hs) <= 1) })(), cards && cards.map((c) => [Math.round(c.y), c.h]))
   check('no card is wider than the page and nothing scrolls sideways', (await ev(`(() => { const p = document.querySelector('${PAGE}'); return p.scrollWidth <= p.clientWidth + 1 && document.documentElement.scrollWidth <= window.innerWidth + 1 })()`)) === true)
-  check('the title and the one-line promise are drawn', /Themes|Thèmes/.test((await text(PAGE + ' .kb6-title')) || '') && /plugins/.test((await text(PAGE + ' .kbg-sub')) || ''))
+  check('the title and the one-line promise are drawn', /Templates|Modèles/.test((await text(PAGE + ' .kb6-title')) || '') && /plugins/.test((await text(PAGE + ' .kbg-sub')) || ''))
   const addRow = await rect(PAGE + ' .kbgal-add')
-  check('« Add a theme from a folder » sits below the gallery, small', addRow !== null && addRow.shown === true && addRow.y > (cards && cards.length ? Math.max(...cards.map((c) => c.y + c.h)) : 0), addRow)
+  check('« Add a template from a folder » sits below the gallery, small', addRow !== null && addRow.shown === true && addRow.y > (cards && cards.length ? Math.max(...cards.map((c) => c.y + c.h)) : 0), addRow)
   check('its button is disabled until a path is typed', (await ev(`document.querySelector('[data-kb="theme-folder-add"]').disabled`)) === true)
   await shot('1-gallery')
 
@@ -82,14 +82,14 @@ try {
   check('the card is clicked with the mouse', await click(`${PAGE} [data-theme="${theme.id}"]`))
   const there = await waitFor(page, `!!document.querySelector('${PAGE} .kbgal-thead')`, 8000)
   check('its page opens', there !== null)
-  check('the breadcrumb says Themes › name', /›/.test((await text(PAGE + ' .kbgal-crumb')) || '') && ((await text(PAGE + ' .kbgal-crumb')) || '').indexOf(word(theme)) > 0, await text(PAGE + ' .kbgal-crumb'))
+  check('the breadcrumb says Templates › name', /›/.test((await text(PAGE + ' .kbgal-crumb')) || '') && ((await text(PAGE + ' .kbgal-crumb')) || '').indexOf(word(theme)) > 0, await text(PAGE + ' .kbgal-crumb'))
   const head = await ev(`(() => { const g = (s) => { const e = document.querySelector('${PAGE} ' + s); if (e === null) return null; const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] }; return { cover: g('.kbgal-cover-lg'), title: g('.kbgal-h2'), cta: g('.kbgal-cta'), counts: (document.querySelector('${PAGE} .kbgal-counts') || {}).innerText } })()`)
   check('the head: a big cover, the title, the call to action on the right', head && head.cover && head.title && head.cta && head.cover[0] < head.title[0] && head.title[0] < head.cta[0], head)
   check('the counts line says plugins, skills, teams and automations created off', head && /plugin/.test(head.counts || '') && /skill/.test(head.counts) && /team/.test(head.counts) && /automation/.test(head.counts) && /off/.test(head.counts), head && head.counts)
   const needs = Array.isArray(theme.needs) ? theme.needs.length : 0
   check('one row per plugin the theme needs (' + needs + '), each with its status', (await ev(`document.querySelectorAll('${PAGE} .kbgal-pl').length`)) === needs && (await ev(`[...document.querySelectorAll('${PAGE} .kbgal-pl [data-kb="theme-plugin-state"]')].every((e) => e.innerText.trim() !== '')`)) === true)
   check('four cards say what else it adds (skills, agent teams, automations, connectors)', (await ev(`document.querySelectorAll('${PAGE} .kbgal-kcard').length`)) === 4)
-  check('the call to action is « Install theme » (« See the plan » when the theme is already in the profile)', /Install theme|Installer le thème|See the plan|Voir le plan/.test((await text(PAGE + ' [data-kb="theme-install"]')) || ''))
+  check('the call to action is « Install template » (« See the plan » when the template is already in the profile)', /Install template|Installer le modèle|See the plan|Voir le plan/.test((await text(PAGE + ' [data-kb="theme-install"]')) || ''))
   await shot('2-theme-page')
   check('the breadcrumb leads back to the gallery', (await click(PAGE + ' [data-kb="theme-back"]')) && (await waitFor(page, `!!document.querySelector('${PAGE} [data-kb="theme-grid"]')`, 6000)) !== null)
   check('and the card is still there', (await rect(`${PAGE} [data-theme="${theme.id}"]`)) !== null)
@@ -97,7 +97,7 @@ try {
   console.log('The plan, as a dialog')
   await click(`${PAGE} [data-theme="${theme.id}"]`)
   await waitFor(page, `!!document.querySelector('${PAGE} [data-kb="theme-install"]')`, 6000)
-  check('« Install theme » is pressed with the mouse', await click(PAGE + ' [data-kb="theme-install"]'))
+  check('« Install template » is pressed with the mouse', await click(PAGE + ' [data-kb="theme-install"]'))
   // DSH's manager links the folder first: several seconds, longer than any click handler
   const planned = await waitFor(page, `!!document.querySelector('[data-kb="theme-plan"] [role="dialog"]')`, 150000)
   check('DSH takes the theme in and the plan opens as a dialog over the theme page', planned !== null, await text(PAGE))
@@ -148,7 +148,7 @@ try {
       try { const { DatabaseSync } = await import('node:sqlite'); const db = new DatabaseSync(file, { readOnly: true }); n = { contacts: db.prepare('SELECT COUNT(*) AS c FROM contact WHERE demo = 1').get().c, cards: db.prepare('SELECT COUNT(*) AS c FROM flow_card WHERE demo = 1').get().c, items: db.prepare('SELECT COUNT(*) AS c FROM item WHERE demo = 1').get().c }; db.close() } catch (e) { n = String(e && e.message) }
       check('the business base holds the sample rows, every one marked demo (' + theme.sample.contacts + ' contacts, ' + theme.sample.items + ' items, ' + theme.sample.cards + ' cards)', existsSync(file) && n !== null && typeof n === 'object' && n.contacts === theme.sample.contacts && n.items === theme.sample.items && n.cards === theme.sample.cards, n)
     }
-    check('« Back to themes » is pressed', await click('[data-kb="theme-back-to-themes"]'))
+    check('« Back to templates » is pressed', await click('[data-kb="theme-back-to-themes"]'))
     const marked = await waitFor(page, `(() => { const c = document.querySelector('${PAGE} [data-theme="${theme.id}"]'); return c !== null && /Installed|Installé/.test(c.innerText) })()`, 20000)
     check('the card now wears « Installed »', marked !== null, await text(PAGE))
     await shot('6-gallery-installed')

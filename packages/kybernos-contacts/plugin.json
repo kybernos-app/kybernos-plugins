@@ -8,8 +8,8 @@
     "fr": "Contacts"
   },
   "description": {
-    "en": "The people and companies of your work in one place, with the kinds and fields your theme speaks of. Its page arrives in a later release.",
-    "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton thème. Sa page arrive dans une prochaine version."
+    "en": "The people and companies of your work in one place, with the kinds and fields your template speaks of. Its page arrives in a later release.",
+    "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton modèle. Sa page arrive dans une prochaine version."
   },
   "icon": "contacts",
   "family": "data",
@@ -43,7 +43,7 @@
       "kind": "data",
       "class": "inert",
       "summary": {
-        "en": "A contact: a person or a company, with the types and fields a theme defines."
+        "en": "A contact: a person or a company, with the types and fields a template defines."
       },
       "validator": "builtin"
     }

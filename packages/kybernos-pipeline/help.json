@@ -5,12 +5,12 @@
   },
   "steps": [
     {
-      "fr": "Active Pipeline ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-      "en": "Switch Pipeline on here, or install a theme that needs it: the theme installs it with it."
+      "fr": "Active Pipeline ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+      "en": "Switch Pipeline on here, or install a template that needs it: the template installs it with it."
     },
     {
-      "fr": "Un thème décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
-      "en": "A theme describes its boards: stages, value, links; Kybernos checks that description when you install it."
+      "fr": "Un modèle décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
+      "en": "A template describes its boards: stages, value, links; Kybernos checks that description when you install it."
     },
     {
       "fr": "La page Pipeline elle-même, avec le tableau, le glisser-déposer et les flèches au clavier, arrive dans une prochaine version.",

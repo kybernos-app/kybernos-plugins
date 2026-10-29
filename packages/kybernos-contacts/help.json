@@ -1,16 +1,16 @@
 {
   "what": {
-    "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton thème choisit les mots : Clients, Candidats, Contacts.",
-    "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your theme chooses the words: Customers, Candidates, Contacts."
+    "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton modèle choisit les mots : Clients, Candidats, Contacts.",
+    "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your template chooses the words: Customers, Candidates, Contacts."
   },
   "steps": [
     {
-      "fr": "Active Contacts ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-      "en": "Switch Contacts on here, or install a theme that needs it: the theme installs it with it."
+      "fr": "Active Contacts ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+      "en": "Switch Contacts on here, or install a template that needs it: the template installs it with it."
     },
     {
-      "fr": "Un thème décrit ses sortes de contacts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
-      "en": "A theme describes its kinds of contacts and its fields; Kybernos checks that description when you install it."
+      "fr": "Un modèle décrit ses sortes de contacts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
+      "en": "A template describes its kinds of contacts and its fields; Kybernos checks that description when you install it."
     },
     {
       "fr": "La page Contacts elle-même, avec la liste, les notes et la recherche, arrive dans une prochaine version.",

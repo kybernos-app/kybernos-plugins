@@ -1,6 +1,11 @@
-# The Themes page
+# The Templates page
 
-The page of `kybernos-plugin` that lists, shows and installs themes (`KbThemesView` in `packages/kybernos-plugin/client.js`, host half
+**Words.** The interface says **Templates** (« Modèles » in French) for these sector kits, and keeps **Theme** for the look: the colours
+and style of Kybernos (Settings › Theme, `packages/kybernos-theme`). The code keeps its older internal names (`KbThemesView`, `theme-installer.mjs`,
+`/kybernos/themes`, the `data-kb="theme-*"` hooks, `themes/<dir>/` folders, `kybernos-themes/<dir>` ids): they are not user-visible, and renaming
+them would break the installed records. Any new text the user reads says template, never theme, unless it is about the look.
+
+The page of `kybernos-plugin` that lists, shows and installs templates (`KbThemesView` in `packages/kybernos-plugin/client.js`, host half
 `theme-installer.mjs`). Three screens, the plan and the report as dialogs over them. It follows the validated « Business Plugins » mockup.
 
 ## What it lists
@@ -23,12 +28,12 @@ the name, one line, the colour and style, and what it brings (plugins, skills).
 
 ## The screens
 
-1. **Gallery**: the grid, then « Add a theme from a folder » (the old folder card, small).
+1. **Gallery**: the grid, then « Add a template from a folder » (the old folder card, small).
 2. **Theme page**: breadcrumb, head (cover, name, line, counts, call to action), the plugins it needs with their status and the words it gives their
    menu rows, what else it adds (skills, agent teams, automations created off, connectors it suggests).
 3. **Plan dialog** over the theme page: the plugins, then the kit (each item ticked unless it is already there), the starter goals, one consent, one
    primary action that stays disabled until the consent is ticked. Escape or a click outside closes it.
-4. **Report dialog**: added, already there, failed, kept in place, style, field; then « Back to themes » (and « Open <first Business row> » when a
+4. **Report dialog**: added, already there, failed, kept in place, style, field; then « Back to templates » (and « Open <first Business row> » when a
    plugin has declared one).
 
 Hooks for tests: `data-kb` = `theme-grid`, `theme-card` (+ `data-theme`), `theme-back`, `theme-install`, `theme-open`, `theme-remove`, `theme-plan`,

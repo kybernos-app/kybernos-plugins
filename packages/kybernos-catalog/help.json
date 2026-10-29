@@ -1,16 +1,16 @@
 {
   "what": {
-    "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres d’emploi — en cartes et en listes, avec les statuts et les champs de ton thème.",
-    "en": "What you sell, rent or recruit for — products, properties, jobs — as cards and lists, with the statuses and fields of your theme."
+    "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres d’emploi — en cartes et en listes, avec les statuts et les champs de ton modèle.",
+    "en": "What you sell, rent or recruit for — products, properties, jobs — as cards and lists, with the statuses and fields of your template."
   },
   "steps": [
     {
-      "fr": "Active Catalog ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-      "en": "Switch Catalog on here, or install a theme that needs it: the theme installs it with it."
+      "fr": "Active Catalog ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+      "en": "Switch Catalog on here, or install a template that needs it: the template installs it with it."
     },
     {
-      "fr": "Un thème décrit ce qu’il liste, ses statuts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
-      "en": "A theme describes what it lists, its statuses and its fields; Kybernos checks that description when you install it."
+      "fr": "Un modèle décrit ce qu’il liste, ses statuts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
+      "en": "A template describes what it lists, its statuses and its fields; Kybernos checks that description when you install it."
     },
     {
       "fr": "La page Catalog elle-même, avec les cartes, le filtre par statut et la fiche de chaque élément, arrive dans une prochaine version.",

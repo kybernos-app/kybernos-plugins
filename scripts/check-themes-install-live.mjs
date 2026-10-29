@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The Themes page, « From a folder », end to end on a SANDBOX dsh web: the button is visible and clicked with a real mouse, a folder DSH would
+// The Templates page, « From a folder », end to end on a SANDBOX dsh web: the button is visible and clicked with a real mouse, a folder DSH would
 // roll back is refused with a reason, the starter theme gets its plan, installs, and is removed again.
 //
 //   source scripts/sandbox/env.sh && node scripts/check-themes-install-live.mjs [--shots <dir>]
@@ -75,15 +75,15 @@ const typeFolder = async (folder) => {
 const FOLDER_BUTTON = '[data-kb="theme-folder-add"]'
 
 try {
-  console.log('The Themes page and its folder card')
+  console.log('The Templates page and its folder card')
   await sleep(2000)
   // the sandbox starts on a legacy field name that no pack answers to; give it a real one so the removal has a field to put back
   await ev(`fetch('/kybernos/onboarding', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'domain', profil: 'general', goals: [] }) }).then((r) => r.status)`, 10000)
-  await clickText(page, 'Themes')
+  await clickText(page, 'Templates')
   const there = await waitFor(page, `!!document.querySelector('[data-kb="theme-folder"]')`, 12000)
-  check('the Themes page draws its folder card', there !== null)
+  check('the Templates page draws its folder card', there !== null)
   const btn = await rect(FOLDER_BUTTON)
-  check('« Add and see the plan » is visible (the team list\'s rule used to hide every action of a Themes card)', btn !== null && btn.w > 40 && btn.h > 20, btn)
+  check('« Add and see the plan » is visible (the team list\'s rule used to hide every action of a Templates card)', btn !== null && btn.w > 40 && btn.h > 20, btn)
   const desc = await rect('.kbgal-add p')
   check('the folder card\'s description is visible too', desc !== null && desc.h > 8, desc)
   await shot('1-folder-card')
@@ -122,7 +122,7 @@ try {
   await shot('4-report')
   const saved = await ev(`fetch('/kybernos/onboarding', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.profil)`, 10000)
   check('its field is the saved one', saved === 'vet-clinic', saved)
-  check('« Back to themes » can be pressed', await click('[data-kb="theme-back-to-themes"]'))
+  check('« Back to templates » can be pressed', await click('[data-kb="theme-back-to-themes"]'))
   const done = await waitFor(page, `(() => { const c = document.querySelector('[data-kb-page="themes"] [data-theme="acme/vet-clinic"]'); return c !== null && /Installed/.test(c.innerText) })()`, 30000)
   check('the theme is listed as installed', done !== null, await pageText())
   await shot('5-installed')

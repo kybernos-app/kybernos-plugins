@@ -38,7 +38,7 @@ three seams and the three business plugins.
 
 `demo/` is not declared by `extends`: `plugin-check` names it in one `SKIP` line, as it does for any folder that is not a contribution.
 
-## What the Themes page reads
+## What the Templates page reads
 
 For a card, `readShipped` (`packages/kybernos-plugin/themes-shipped.mjs`) keeps: the first manifest keyword, capitalised, as the chip over the card
 (`commerce`, `property`, `people`), the manifest `name` (80 characters) and `description` (300),

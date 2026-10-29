@@ -272,7 +272,7 @@ const fakePorts = {
   const registrations = (src.match(/name: 'settings\.section', id: 'kybernos-themes-market'/g) || []).length
   const defs = (src.match(/const KbThemesMarket = /g) || []).length
   const pageBranch = /\bview: 'themes'|\bview === 'themes'|kbOpenPage/.test(ui[1])
-  check('the listing is one component registered as a Settings section, never a second page', registrations === 1 && defs === 1 && pageBranch === false && /order: 30/.test(ui[1]) && /label: marketSay\(\['Thèmes', 'Themes'\]/.test(ui[1]) && /marketCards\(view, lang\)/.test(ui[1]) && /marketState\(view, lang\)/.test(ui[1]), { registrations, defs, pageBranch })
+  check('the listing is one component registered as a Settings section, never a second page', registrations === 1 && defs === 1 && pageBranch === false && /order: 30/.test(ui[1]) && /label: marketSay\(\['Modèles', 'Templates'\]/.test(ui[1]) && /marketCards\(view, lang\)/.test(ui[1]) && /marketState\(view, lang\)/.test(ui[1]), { registrations, defs, pageBranch })
   check('the Settings menu knows the section: a nav key, an icon and the Interface group\'s word', /'kybernos-themes-market': 'themes'/.test(src) && /'themes': '<path/.test(src) && /id: 'look'[^}]*mots: \['theme', 'themes', 'langue', 'language'\]/.test(src))
   check('the registration is guarded, so a broken listing never stops the bundle from starting', /ctx\.effect\(\(\) => \{\s*try \{/.test(ui[1]) && /catch \(e\) \{ return undefined \}/.test(ui[1]))
   check('the listing uses the host\'s shell classes and its own prefix only', !/(^|[^a-z-])kb[0-9a-z]*-[a-z]+\{/.test(ui[1].replace(/\.kbtm-[^{]*\{/g, '')))

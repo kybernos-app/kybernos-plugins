@@ -3132,7 +3132,7 @@ const KB_NAV_KEYS = {
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-log': 'activity log', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
-  // The themes listing's Settings entrance (A7, M2): « Thèmes » is drawn from the label, and the page title the menu knows is 'themes'.
+  // The themes listing's Settings entrance (A7, M2): « Modèles » / « Templates » is drawn from the label; the title the menu knows stays 'themes' (an internal key: the icon and the group read it).
   'kybernos-themes-market': 'themes',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
@@ -3274,7 +3274,7 @@ const KB_SS_INDEX = [
   ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine'],
   // The themes listing (A7): one row, because test-settings-search.mjs:39 requires a row for every page of the menu. The listing itself
   // is drawn from A6's GET /kybernos/themes, so this row finds the page; it holds no setting of its own.
-  ['themes', '', 'Install a sector theme', 'The sector themes the catalogues you added offer, each with the level the verifier answered.', '', 'themes theme market marketplace install sector packs'],
+  ['themes', '', 'Install a sector template', 'The sector templates the catalogues you added offer, each with the level the verifier answered.', '', 'templates template market marketplace install sector packs'],
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
@@ -3375,7 +3375,7 @@ const KB_SS_FR = {
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
   'about|Version': ['Version', '', 'Moteur DSH'],
   // The themes listing (A7): its French twin, required for every row of the index (test-settings-search.mjs:146).
-  'themes|Install a sector theme': ['Installer un thème sectoriel', 'Les thèmes sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
+  'themes|Install a sector template': ['Installer un modèle sectoriel', 'Les modèles sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
 }
 // The tabs and sections of the French pages.
 const KB_SS_SEC_FR = { Behaviour: 'Comportement', Essentials: 'Essentiel', 'Glass and background': 'Verre et fond', Colors: 'Couleurs', 'Text and shape': 'Texte et forme', Animation: 'Animation', Icons: 'Icônes', Accessibility: 'Accessibilité' }
@@ -27782,7 +27782,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         setError(null)
         const gone = await kbThRemoveTheme(record)
         setBusy(null)
-        if (gone.removed !== true) setError(kbThEn('DSH did not remove the package. Your look and field were put back; the theme stays listed.', 'DSH n’a pas retiré le paquet. Ton style et ton domaine ont été remis ; le thème reste listé.'))
+        if (gone.removed !== true) setError(kbThEn('DSH did not remove the package. Your look and field were put back; the template stays listed.', 'DSH n’a pas retiré le paquet. Ton style et ton domaine ont été remis ; le modèle reste listé.'))
         await load()
       }
       // ── what the page shows: the gallery, a theme page, and the plan or the report as a dialog over it ──────────────────
@@ -27875,7 +27875,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           ])
         })
         return [
-          h('div', { key: 'cr', className: 'kbgal-crumb' }, [h('button', { key: 'b', type: 'button', className: 'kbgal-crl', 'data-kb': 'theme-back', onClick: back }, kbThEn('Themes', 'Thèmes')), ' › ', e.name]),
+          h('div', { key: 'cr', className: 'kbgal-crumb' }, [h('button', { key: 'b', type: 'button', className: 'kbgal-crl', 'data-kb': 'theme-back', onClick: back }, kbThEn('Templates', 'Modèles')), ' › ', e.name]),
           h('div', { key: 'hd', className: 'kbgal-thead' }, [
             h('div', { key: 'c', className: 'kbgal-cover kbgal-cover-lg' }, h(KbThCoverArt, { id: e.id, accent: accentOf(e), src: kbThCoverSrc(e) })),
             h('div', { key: 't', className: 'kbgal-ttext' }, [
@@ -27889,13 +27889,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                 h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: working, 'data-kb': 'theme-remove', onClick: () => remove(e.record ?? { id: e.id, level: e.level }) }, kbThEn('Remove', 'Retirer')),
               ]
               : [
-                h('button', { key: 'i', type: 'button', className: 'kbg-talk', disabled: working, 'data-kb': 'theme-install', onClick: () => begin(e) }, busy === 'stage' || busy === 'install' || busy === 'plan' ? kbThEn('Working…', 'En cours…') : (e.state === 'added' ? kbThEn('See the plan', 'Voir le plan') : kbThEn('Install theme', 'Installer le thème'))),
+                h('button', { key: 'i', type: 'button', className: 'kbg-talk', disabled: working, 'data-kb': 'theme-install', onClick: () => begin(e) }, busy === 'stage' || busy === 'install' || busy === 'plan' ? kbThEn('Working…', 'En cours…') : (e.state === 'added' ? kbThEn('See the plan', 'Voir le plan') : kbThEn('Install template', 'Installer le modèle'))),
                 e.state === 'added' ? h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: working, 'data-kb': 'theme-remove', onClick: () => remove(e.record ?? { id: e.id, level: e.level }) }, kbThEn('Remove', 'Retirer')) : null,
               ]),
           ]),
           error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
-          current !== null && current.id !== e.id && !installedHere ? h('div', { key: 'rp', className: 'kbgal-banner' }, kbThEn('Installing this theme also replaces the style and the field of your current one, ', 'Installer ce thème remplace aussi le style et le métier du thème actuel, ') + current.name + '.') : null,
-          needs.length > 0 ? h('div', { key: 'ph', className: 'kbgal-sech' }, [kbThEn('Plugins this theme needs', 'Plugins dont ce thème a besoin'), h('span', { key: 'n', className: 'kbgal-tag' }, String(needs.length))]) : null,
+          current !== null && current.id !== e.id && !installedHere ? h('div', { key: 'rp', className: 'kbgal-banner' }, kbThEn('Installing this template also replaces the style and the field of your current one, ', 'Installer ce modèle remplace aussi le style et le métier du modèle actuel, ') + current.name + '.') : null,
+          needs.length > 0 ? h('div', { key: 'ph', className: 'kbgal-sech' }, [kbThEn('Plugins this template needs', 'Plugins dont ce modèle a besoin'), h('span', { key: 'n', className: 'kbgal-tag' }, String(needs.length))]) : null,
           needs.length > 0 ? h('div', { key: 'pl', className: 'kbgal-plist' }, plist) : null,
           s !== null ? h('div', { key: 'kh', className: 'kbgal-sech' }, kbThEn('What else it adds', 'Ce qu’il ajoute aussi')) : null,
           s !== null ? h('div', { key: 'kit', className: 'kbgal-kit' }, [
@@ -27907,12 +27907,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         ]
       }
       const galleryPage = () => [
-        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Themes', 'Thèmes'))),
-        h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A theme gives Kybernos the words, the look and the plugins of your trade. Installing one never touches your chats, memory or workspaces.', 'Un thème donne à Kybernos les mots, le style et les plugins de ton métier. L’installer ne touche jamais à tes conversations, à ta mémoire ni à tes espaces.')),
+        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Templates', 'Modèles'))),
+        h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A template gives Kybernos the words, the look and the plugins of your trade. Installing one never touches your chats, memory or workspaces.', 'Un modèle donne à Kybernos les mots, le style et les plugins de ton métier. L’installer ne touche jamais à tes conversations, à ta mémoire ni à tes espaces.')),
         error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
         entries.length > 0
           ? h('ul', { key: 'g', className: 'kbgal-grid', 'data-kb': 'theme-grid' }, entries.map(tcard))
-          : h('p', { key: 'g', className: 'kbgal-muted', style: { marginTop: '22px' } }, busy === 'load' ? kbThEn('Reading the catalogue…', 'Lecture du catalogue…') : kbThEn('No theme yet. Add one from a folder below.', 'Aucun thème pour l’instant. Ajoutes-en un depuis un dossier, ci-dessous.')),
+          : h('p', { key: 'g', className: 'kbgal-muted', style: { marginTop: '22px' } }, busy === 'load' ? kbThEn('Reading the catalogue…', 'Lecture du catalogue…') : kbThEn('No template yet. Add one from a folder below.', 'Aucun modèle pour l’instant. Ajoutes-en un depuis un dossier, ci-dessous.')),
         nextTrades.length > 0 ? h('div', { key: 'nx', className: 'kbgal-next', 'data-kb': 'theme-next' }, [
           h('div', { key: 'h', className: 'kbgal-sech' }, kbThEn('Next trades', 'Prochains métiers')),
           h('ul', { key: 'u', className: 'kbgal-ngrid' }, nextTrades.map((n) => h('li', { key: n.id, className: 'kbgal-nli' }, [
@@ -27921,10 +27921,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           ]))),
         ]) : null,
         h('div', { key: 'f', className: 'kbgal-add' }, [
-          h('div', { key: 't', className: 'kbgal-sech' }, kbThEn('Add a theme from a folder', 'Ajouter un thème depuis un dossier')),
+          h('div', { key: 't', className: 'kbgal-sech' }, kbThEn('Add a template from a folder', 'Ajouter un modèle depuis un dossier')),
           h('p', { key: 'd', className: 'kbgal-muted' }, kbThEn('A theme folder on this computer. Its plugin.json is checked before anything is installed, and the plan comes next.', 'Un dossier de thème sur cet ordinateur. Son plugin.json est vérifié avant toute installation, puis le plan s’affiche.')),
           h('div', { key: 'r', className: 'kbgal-addrow' }, [
-            h('input', { key: 'i', className: 'kbg-input kbgal-input', 'data-kb': 'theme-folder', type: 'text', value: folder, placeholder: '~/themes/acme-vet-clinic', 'aria-label': kbThEn('Theme folder', 'Dossier du thème'), onChange: (ev) => setFolder(ev.target.value) }),
+            h('input', { key: 'i', className: 'kbg-input kbgal-input', 'data-kb': 'theme-folder', type: 'text', value: folder, placeholder: '~/themes/acme-vet-clinic', 'aria-label': kbThEn('Template folder', 'Dossier du modèle'), onChange: (ev) => setFolder(ev.target.value) }),
             h('button', { key: 'b', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-folder-add', disabled: working || folder.trim() === '', onClick: stageFolder }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : (busy === 'stage' ? kbThEn('Checking…', 'Vérification…') : kbThEn('Add and see the plan', 'Ajouter et voir le plan'))),
           ]),
         ]),
@@ -27998,8 +27998,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           ])),
         ]))
         const primary = ids.length > 0 && miss.length > 0
-          ? kbThEn('Install theme and ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'), 'Installer le thème et ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'))
-          : kbThEn('Install theme', 'Installer le thème')
+          ? kbThEn('Install template and ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'), 'Installer le modèle et ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'))
+          : kbThEn('Install template', 'Installer le modèle')
         return h('div', { key: 'veil', className: 'kbgal-veil', 'data-kb': 'theme-plan', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) closeDialog() } },
           h('div', { className: 'kbgal-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbgal-dt', tabIndex: -1, ref: (el) => { if (el !== null && !el.contains(document.activeElement)) el.focus() } }, [
             h('div', { key: 'hd', className: 'kbgal-dhead' }, [
@@ -28040,8 +28040,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               rejects.length > 0 ? h('div', { key: 'x', className: 'kbg-note' }, rejects.map((x) => h('div', { key: 'x:' + x.file }, '× ' + (kbThStr(x.file) ?? '') + ' · ' + (Array.isArray(x.errors) ? x.errors.join('; ') : '')))) : null,
             ]) : null,
             h('div', { key: 'co', className: 'kbgal-consent' }, [
-              swh('theme-consent', kbThEn('I have read what this theme adds', 'J’ai lu ce que ce thème ajoute'), consent, false, false, () => setConsent(!consent)),
-              h('span', { key: 't' }, kbThEn('I have read what this theme adds. Skills, agent teams and automations are instructions the agents follow.', 'J’ai lu ce que ce thème ajoute. Les compétences, les équipes d’agents et les automatisations sont des instructions que les agents suivent.')),
+              swh('theme-consent', kbThEn('I have read what this template adds', 'J’ai lu ce que ce modèle ajoute'), consent, false, false, () => setConsent(!consent)),
+              h('span', { key: 't' }, kbThEn('I have read what this template adds. Skills, agent teams and automations are instructions the agents follow.', 'J’ai lu ce que ce modèle ajoute. Les compétences, les équipes d’agents et les automatisations sont des instructions que les agents suivent.')),
             ]),
             h('div', { key: 'a', className: 'kbgal-acts' }, [
               h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-cancel', disabled: busy === 'install', onClick: closeDialog }, kbThEn('Cancel', 'Annuler')),
@@ -28067,7 +28067,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               report.demo !== undefined && report.demo !== 'skipped' ? line(kbThEn('Sample rows', 'Lignes d’exemple'), report.demo) : null,
             ]),
             h('div', { key: 'a', className: 'kbgal-acts' }, [
-              h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-back-to-themes', onClick: back }, kbThEn('Back to themes', 'Retour aux thèmes')),
+              h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-back-to-themes', onClick: back }, kbThEn('Back to templates', 'Retour aux modèles')),
               firstRow() !== null ? h('button', { key: 'o', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-open', onClick: () => { closeDialog(); openFirst() } }, kbThEn('Open ', 'Ouvrir ') + (kbDomainLabel(firstRow()) ?? '')) : null,
             ]),
           ]))
@@ -28926,7 +28926,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
         row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
-        row('themes', Icon('layers', 15), kbThEn('Themes', 'Thèmes'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
+        row('themes', Icon('layers', 15), kbThEn('Templates', 'Modèles'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // The « Business » group: drawn only while a plugin has declared a row (window.__KB_MENU__, <kb-business-menu>).
@@ -32308,7 +32308,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       const row = state === 'no-source'
         ? ['Aucune source configurée pour l’instant.', 'No source configured yet.']
         : (state === 'empty'
-          ? ['Cette source ne liste aucun thème.', 'This source lists no theme.']
+          ? ['Cette source ne liste aucun modèle.', 'This source lists no template.']
           : ['Ce catalogue ne peut pas être vérifié.', 'This catalogue cannot be verified.'])
       return { state, text: marketSay(row, lang), leftOut: marketLeftOut(view, lang), leftOutCount: marketRefusals(view).length, refusals: marketRefusals(view) }
     }
@@ -32499,7 +32499,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
         setBusy('remove')
         const answer = await route(body)
         setBusy(null)
-        answerOf(answer, say(['Source retirée : les thèmes déjà installés restent.', 'Source removed: the themes already installed stay.']))
+        answerOf(answer, say(['Source retirée : les modèles déjà installés restent.', 'Source removed: the templates already installed stay.']))
       }
       const pin = (s) => s.pinned === true
         ? say(['Clé épinglée', 'Key pinned']) + (s.keyId !== '' ? ' · ' + s.keyId : '')
@@ -32509,8 +32509,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
           h('h3', { className: 'kbtm-src-title' }, say(['Sources du catalogue', 'Catalogue sources'])),
           h('span', { className: 'kbtm-src-count', 'data-kb': 'kb-market-sources-count' }, say(['{n} sur 3', '{n} of 3']).replace('{n}', String(sources.length)))),
         h('p', { className: 'kbtm-src-warn', 'data-kb': 'kb-market-sources-warn' }, say([
-          'Un catalogue que tu ajoutes est lu avec sa propre clé, épinglée à la première utilisation et affichée ci-dessous : tout ce qui en vient est de niveau Communauté, et retirer la source retire cette confiance — jamais les thèmes déjà installés.',
-          'A catalogue you add is read with its own key, pinned on first use and shown below: everything that comes from it is Community level, and removing the source drops that trust — never the themes already installed.'])),
+          'Un catalogue que tu ajoutes est lu avec sa propre clé, épinglée à la première utilisation et affichée ci-dessous : tout ce qui en vient est de niveau Communauté, et retirer la source retire cette confiance — jamais les modèles déjà installés.',
+          'A catalogue you add is read with its own key, pinned on first use and shown below: everything that comes from it is Community level, and removing the source drops that trust — never the templates already installed.'])),
         (sources.length === 0 ? null
           : h('ul', { className: 'kbtm-src-list', 'data-kb': 'kb-market-sources-list' }, sources.map((s) => h('li', { key: s.url, className: 'kbtm-src-row', 'data-kb': 'kb-market-source' },
             h('code', { className: 'kbtm-src-url', title: s.url }, s.url),
@@ -32601,8 +32601,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       }
       return h('div', { className: 'kbtm-page', 'data-kb': 'kb-market', 'aria-busy': etat.phase === 'loading' ? 'true' : 'false' },
         h('div', { className: 'kbtm-head' },
-          h('h2', { className: 'kbtm-h1' }, say(['Thèmes', 'Themes'])),
-          h('p', { className: 'kbtm-sub' }, say(['Les thèmes sectoriels que publient les catalogues que tu as ajoutés.', 'The sector themes published by the catalogues you added.']))),
+          h('h2', { className: 'kbtm-h1' }, say(['Modèles', 'Templates'])),
+          h('p', { className: 'kbtm-sub' }, say(['Les modèles sectoriels que publient les catalogues que tu as ajoutés.', 'The sector templates published by the catalogues you added.']))),
         h(KbMarketSources, { lang, view, reload: relire }),
         (etat.phase === 'loading' ? h('p', { className: 'kbtm-note', 'data-kb': 'kb-market-loading' }, say(['Lecture du catalogue…', 'Reading the catalogue…'])) : null),
         (etat.phase === 'error' ? h('div', { className: 'kbtm-state', 'data-kb': 'kb-market-state', 'data-state': 'unreachable', role: 'status' }, say(['Le catalogue n’a pas répondu.', 'The catalogue did not answer.'])) : null),
@@ -32659,7 +32659,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
     ctx.effect(() => {
       try {
         return slots.inject('settings.section', () => slots.register(
-          { name: 'settings.section', id: 'kybernos-themes-market', order: 30, label: marketSay(['Thèmes', 'Themes'], kbMarketLang()) },
+          { name: 'settings.section', id: 'kybernos-themes-market', order: 30, label: marketSay(['Modèles', 'Templates'], kbMarketLang()) },
           KbThemesMarket))
       } catch (e) { return undefined }
     }, 'kybers: themes market settings section')

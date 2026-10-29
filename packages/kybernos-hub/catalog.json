@@ -2973,22 +2973,22 @@
       "defaut": null,
       "poids_ko": 15,
       "promesse": {
-        "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton thème. Sa page arrive dans une prochaine version.",
-        "en": "The people and companies of your work in one place, with the kinds and fields your theme speaks of. Its page arrives in a later release."
+        "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton modèle. Sa page arrive dans une prochaine version.",
+        "en": "The people and companies of your work in one place, with the kinds and fields your template speaks of. Its page arrives in a later release."
       },
       "aide": {
         "what": {
-          "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton thème choisit les mots : Clients, Candidats, Contacts.",
-          "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your theme chooses the words: Customers, Candidates, Contacts."
+          "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton modèle choisit les mots : Clients, Candidats, Contacts.",
+          "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your template chooses the words: Customers, Candidates, Contacts."
         },
         "steps": [
           {
-            "fr": "Active Contacts ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-            "en": "Switch Contacts on here, or install a theme that needs it: the theme installs it with it."
+            "fr": "Active Contacts ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+            "en": "Switch Contacts on here, or install a template that needs it: the template installs it with it."
           },
           {
-            "fr": "Un thème décrit ses sortes de contacts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
-            "en": "A theme describes its kinds of contacts and its fields; Kybernos checks that description when you install it."
+            "fr": "Un modèle décrit ses sortes de contacts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
+            "en": "A template describes its kinds of contacts and its fields; Kybernos checks that description when you install it."
           },
           {
             "fr": "La page Contacts elle-même, avec la liste, les notes et la recherche, arrive dans une prochaine version.",
@@ -3018,22 +3018,22 @@
       "defaut": null,
       "poids_ko": 17,
       "promesse": {
-        "fr": "Ce que tu vends, loues ou recrutes, en cartes et en listes, avec les champs et les statuts que définit ton thème. Sa page arrive dans une prochaine version.",
-        "en": "What you sell, rent or recruit for, as cards and lists with the fields and statuses your theme defines. Its page arrives in a later release."
+        "fr": "Ce que tu vends, loues ou recrutes, en cartes et en listes, avec les champs et les statuts que définit ton modèle. Sa page arrive dans une prochaine version.",
+        "en": "What you sell, rent or recruit for, as cards and lists with the fields and statuses your template defines. Its page arrives in a later release."
       },
       "aide": {
         "what": {
-          "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres d’emploi — en cartes et en listes, avec les statuts et les champs de ton thème.",
-          "en": "What you sell, rent or recruit for — products, properties, jobs — as cards and lists, with the statuses and fields of your theme."
+          "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres d’emploi — en cartes et en listes, avec les statuts et les champs de ton modèle.",
+          "en": "What you sell, rent or recruit for — products, properties, jobs — as cards and lists, with the statuses and fields of your template."
         },
         "steps": [
           {
-            "fr": "Active Catalog ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-            "en": "Switch Catalog on here, or install a theme that needs it: the theme installs it with it."
+            "fr": "Active Catalog ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+            "en": "Switch Catalog on here, or install a template that needs it: the template installs it with it."
           },
           {
-            "fr": "Un thème décrit ce qu’il liste, ses statuts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
-            "en": "A theme describes what it lists, its statuses and its fields; Kybernos checks that description when you install it."
+            "fr": "Un modèle décrit ce qu’il liste, ses statuts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
+            "en": "A template describes what it lists, its statuses and its fields; Kybernos checks that description when you install it."
           },
           {
             "fr": "La page Catalog elle-même, avec les cartes, le filtre par statut et la fiche de chaque élément, arrive dans une prochaine version.",
@@ -3063,8 +3063,8 @@
       "defaut": null,
       "poids_ko": 12,
       "promesse": {
-        "fr": "Commandes, dossiers ou candidatures en cartes sur un tableau qui avance d’étape en étape, avec les étapes que définit ton thème. Sa page arrive dans une prochaine version.",
-        "en": "Orders, deals or candidates as cards on a board that moves from stage to stage, with the stages your theme defines. Its page arrives in a later release."
+        "fr": "Commandes, dossiers ou candidatures en cartes sur un tableau qui avance d’étape en étape, avec les étapes que définit ton modèle. Sa page arrive dans une prochaine version.",
+        "en": "Orders, deals or candidates as cards on a board that moves from stage to stage, with the stages your template defines. Its page arrives in a later release."
       },
       "aide": {
         "what": {
@@ -3073,12 +3073,12 @@
         },
         "steps": [
           {
-            "fr": "Active Pipeline ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-            "en": "Switch Pipeline on here, or install a theme that needs it: the theme installs it with it."
+            "fr": "Active Pipeline ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+            "en": "Switch Pipeline on here, or install a template that needs it: the template installs it with it."
           },
           {
-            "fr": "Un thème décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
-            "en": "A theme describes its boards: stages, value, links; Kybernos checks that description when you install it."
+            "fr": "Un modèle décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
+            "en": "A template describes its boards: stages, value, links; Kybernos checks that description when you install it."
           },
           {
             "fr": "La page Pipeline elle-même, avec le tableau, le glisser-déposer et les flèches au clavier, arrive dans une prochaine version.",

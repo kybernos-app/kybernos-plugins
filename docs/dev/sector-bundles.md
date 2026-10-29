@@ -243,7 +243,7 @@ There is no `provides`: a theme contributes, it does not open a point. Its `pack
 (`"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }`, the file holding `[]`) and nothing else under `dsh`: DSH's
 manager installs a package only as a bundle, and a data theme is a bundle that loads nothing. `dataPackageProblems`
 (`packages/kybernos-registry/registry.mjs:57-75`) accepts a package with no `dsh` key too, and the registry reads it, but the
-manager answers `not-bundle` and puts the profile back as it was, so the Themes page refuses such a folder at the
+manager answers `not-bundle` and puts the profile back as it was, so the Templates page refuses such a folder at the
 first step (`bundleProblem`, `packages/kybernos-plugin/theme-installer.mjs`) and says why. This is also the shape the
 plugin-creator skill writes for a data plugin.
 
