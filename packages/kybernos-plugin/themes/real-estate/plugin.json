@@ -11,6 +11,11 @@
     "en": "A real estate agency: Contacts, Properties and Sales and lettings with sample data, a warm light style, an agency desk team, two skills and three automations that start switched off.",
     "fr": "Une agence immobilière : Contacts, Biens et Ventes et locations avec des données d’exemple, un style clair et chaleureux, une équipe d’agence, deux compétences et trois automatisations créées désactivées."
   },
+  "keywords": [
+    "property",
+    "real estate",
+    "agency"
+  ],
   "author": {
     "id": "kybernos-themes",
     "name": "Kybernos"

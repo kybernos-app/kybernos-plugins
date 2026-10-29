@@ -11,6 +11,11 @@
     "en": "An online shop: Customers, Products and Orders with sample data, a warm light style, a shop desk team, two skills and two automations that start switched off.",
     "fr": "Une boutique en ligne : Clients, Produits et Commandes avec des données d’exemple, un style clair et chaleureux, une équipe d’accueil, deux compétences et deux automatisations créées désactivées."
   },
+  "keywords": [
+    "commerce",
+    "e-commerce",
+    "online shop"
+  ],
   "author": {
     "id": "kybernos-themes",
     "name": "Kybernos"

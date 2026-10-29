@@ -1,0 +1,14 @@
+{
+  "kybernos/contacts": {
+    "en": "Candidates, client companies and their contacts.",
+    "fr": "Candidats, entreprises clientes et leurs contacts."
+  },
+  "kybernos/catalog": {
+    "en": "Your open jobs and their status.",
+    "fr": "Vos offres ouvertes et leur statut."
+  },
+  "kybernos/pipeline": {
+    "en": "Candidates by job, and your client missions.",
+    "fr": "Les candidats par offre, et vos missions clients."
+  }
+}

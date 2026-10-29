@@ -34,7 +34,8 @@ const ok = (label, fn) => { fn(); count++; console.log('ok  ', label) }
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'))
 const names = (dir, ext) => readdirSync(dir).filter((f) => f.endsWith(ext)).sort()
 const walk = (base) => readdirSync(base, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(base, e.name)) : [join(base, e.name)]))
-const dirs = readdirSync(ROOT, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort()
+// a folder that starts with `_` or `.` is not a theme (the gallery's own fixtures live in `_next/`)
+const dirs = readdirSync(ROOT, { withFileTypes: true }).filter((e) => e.isDirectory() && !/^[._]/.test(e.name)).map((e) => e.name).sort()
 const loadTheme = (dir) => {
   const root = join(ROOT, dir)
   const one = (sub) => readJson(join(root, sub, names(join(root, sub), '.json')[0]))
@@ -51,12 +52,13 @@ const loadTheme = (dir) => {
     catalog: names(join(root, 'catalog'), '.json').map((f) => validateCatalogType(readJson(join(root, 'catalog', f)), f.replace(/\.json$/, ''))),
     pipeline: names(join(root, 'pipeline'), '.json').map((f) => validatePipelineFlow(readJson(join(root, 'pipeline', f)), f.replace(/\.json$/, ''))),
     sample: readJson(join(root, 'demo', 'sample.json')),
+    why: readJson(join(root, 'why.json')),
   }
 }
 
 ok('the three themes are there, and nothing else is in the folder', () => {
   assert.deepEqual(dirs, Object.keys(EXPECT).sort())
-  for (const f of readdirSync(ROOT)) assert.ok(statSync(join(ROOT, f)).isDirectory(), f + ' is a theme folder')
+  for (const f of readdirSync(ROOT).filter((x) => !/^[._]/.test(x))) assert.ok(statSync(join(ROOT, f)).isDirectory(), f + ' is a theme folder')
 })
 
 for (const dir of dirs) {
@@ -123,6 +125,20 @@ for (const dir of dirs) {
     assert.equal(t.style.settings.acc.toLowerCase(), t.pack.accent.toLowerCase(), 'the style and the pack share one accent')
     assert.ok(typeof t.style.name === 'string' && t.style.name.length >= 3 && t.style.name.length <= 40)
     assert.ok(t.skills.length >= 1 && t.teams.length >= 1 && t.automations.length >= 1)
+  })
+
+  ok(dir + ': the gallery has its chip and one line per business plugin, in this theme\'s words (en and fr, 160 characters)', () => {
+    const kw = t.manifest.keywords
+    assert.ok(Array.isArray(kw) && kw.length >= 1 && kw.length <= 8, 'keywords')
+    for (const k of kw) assert.match(k, /^[a-z0-9][a-z0-9 -]{1,23}$/, 'keyword ' + k)
+    assert.equal(new Set(kw).size, kw.length)
+    assert.deepEqual(Object.keys(t.why).sort(), [...BUSINESS].sort(), 'why.json: one line per business plugin, nothing else')
+    for (const id of BUSINESS) {
+      const w = t.why[id]
+      assert.deepEqual(Object.keys(w).sort(), ['en', 'fr'], id)
+      for (const l of ['en', 'fr']) assert.ok(typeof w[l] === 'string' && w[l].trim() !== '' && w[l].length <= 160 && !/[<>]/.test(w[l]), id + '.' + l)
+    }
+    assert.equal(new Set(BUSINESS.map((id) => t.why[id].en)).size, 3, 'three different lines')
   })
 
   ok(dir + ': the kit hangs together (the automations and the team named by the goals, the skills the team names, nothing copied from another pack)', () => {
@@ -301,6 +317,8 @@ ok('the three themes can be installed together: no id is shared, and none is tak
     const ids = all.flatMap(of)
     assert.equal(new Set(ids).size, ids.length, 'two themes share a ' + kind + ': ' + ids.join(', '))
   }
+  const chips = all.map((t) => t.manifest.keywords[0])
+  assert.equal(new Set(chips).size, chips.length, 'two themes carry the same chip: ' + chips.join(', '))
   for (const t of all) assert.ok(!core.includes(t.pack.id), t.pack.id + ' is a pack of the core')
   const orders = all.map((t) => t.pack.order)
   assert.equal(new Set(orders).size, orders.length, 'two packs ask for the same place')
@@ -322,6 +340,9 @@ if (existsSync(reader)) {
       assert.deepEqual(Object.keys(x.words).sort(), [...WORDS].sort())
       for (const row of WORDS) assert.deepEqual(x.words[row], t.pack.menu.labels[row])
       assert.deepEqual(x.needs, BUSINESS, 'needs = the three business plugins, in the order of the Business group')
+      assert.equal(x.tag, t.manifest.keywords[0][0].toUpperCase() + t.manifest.keywords[0].slice(1), 'the chip is the first keyword, capitalised')
+      assert.deepEqual(x.why, t.why, 'the lines of why.json, one per plugin')
+      assert.equal(x.cover, false, 'no picture is shipped')
       assert.equal(x.style.name.en, t.style.name)
       assert.deepEqual(x.lists.skills, t.skills)
       assert.deepEqual(x.lists.teams, t.teams.map((y) => y.id))

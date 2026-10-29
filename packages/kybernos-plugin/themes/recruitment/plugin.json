@@ -11,6 +11,11 @@
     "en": "A recruitment firm: Candidates and clients, Jobs and Placements with sample data, a dark indigo style, a recruiting desk team, two skills and four automations that start switched off.",
     "fr": "Un cabinet de recrutement : Candidats et clients, Offres et Placements avec des données d’exemple, un style sombre indigo, un bureau de recrutement, deux compétences et quatre automatisations créées désactivées."
   },
+  "keywords": [
+    "people",
+    "recruitment",
+    "hiring"
+  ],
   "author": {
     "id": "kybernos-themes",
     "name": "Kybernos"

@@ -19,7 +19,9 @@ three seams and the three business plugins.
 ```
 <dir>/
   plugin.json            id kybernos-themes/<dir>, author kybernos-themes, Apache-2.0, name and description in en and fr,
-                         requires.plugins (core, theme, skills, contacts, catalog, pipeline: ^1.0), extends the eight points
+                         keywords (the first one is the chip of the card), requires.plugins (core, theme, skills, contacts,
+                         catalog, pipeline: ^1.0), extends the eight points
+  why.json               one line per business plugin, in this theme's words (not a data point: the gallery reads it, plugin-check ignores it)
   package.json           "dsh": { "bundle": { "patch": "./cordis.patch.yml" } } and nothing else under dsh
   cordis.patch.yml       the empty patch: []
   domains/<id>.json      the field pack: words, accent, icon, tagline, menu.labels (the three business rows included), goals
@@ -38,10 +40,13 @@ three seams and the three business plugins.
 
 ## What the Themes page reads
 
-For a card, `readShipped` (`packages/kybernos-plugin/themes-shipped.mjs`) keeps: the manifest `name` (80 characters) and `description` (300),
+For a card, `readShipped` (`packages/kybernos-plugin/themes-shipped.mjs`) keeps: the first manifest keyword, capitalised, as the chip over the card
+(`commerce`, `property`, `people`), the manifest `name` (80 characters) and `description` (300),
 the pack's `name`, `tagline` (200), `accent`, `icon` and the three words of `menu.labels.contacts|catalog|pipeline` (40 each), the style's
 `name`, `needs` (the plugins named in `requires.plugins` beyond the core's seams: the three business plugins) and the **names** of what is under
 `skills/`, `teams/` and `automations/`. So a file is named for the person who reads the card: `order-replies`, `shop-desk`, `daily-stock`.
+`why.json` gives each plugin the theme needs one line (`{ "kybernos/contacts": { "en": …, "fr": … }, … }`, 160 characters at most) that says what it does
+for this trade: « Orders from new to delivered. » The gallery draws a cover itself: **no picture is shipped**, a `cover.jpg` is refused by `garde-depot`.
 
 ## The sample rows
 
