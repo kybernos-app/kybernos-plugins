@@ -5,25 +5,25 @@
   },
   "steps": [
     {
-      "fr": "Active Pipeline ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-      "en": "Switch Pipeline on here, or install a theme that needs it: the theme installs it with it."
+      "fr": "Ouvre Pipeline dans le groupe Business de la barre latérale. Sans thème : un tableau simple. Un thème apporte ses étapes.",
+      "en": "Open Pipeline in the sidebar's Business group. Without a theme: a simple board. A theme brings its own stages."
     },
     {
-      "fr": "Un thème décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
-      "en": "A theme describes its boards: stages, value, links; Kybernos checks that description when you install it."
+      "fr": "Ajoute une carte avec le bouton en haut à droite, puis glisse-la vers une autre colonne. Au clavier : flèches gauche et droite.",
+      "en": "Add a card with the top-right button, then drag it to another column. With the keyboard: left and right arrows on a card."
     },
     {
-      "fr": "La page Pipeline elle-même, avec le tableau, le glisser-déposer et les flèches au clavier, arrive dans une prochaine version.",
-      "en": "The Pipeline page itself, with the board, drag and drop and the keyboard arrows, arrives in a later release."
+      "fr": "Clique une carte pour la modifier, la lier à un contact ou à un élément du catalogue, ou l’archiver. Les lignes « démo » s’effacent.",
+      "en": "Click a card to edit it, link it to a contact or a catalog item, or archive it. The “demo” rows clear in one click."
     }
   ],
   "where": {
-    "fr": "Dans la Suite, une fois activé",
-    "en": "In the Suite, once switched on",
-    "page": false
+    "fr": "Dans le groupe Business de la barre latérale",
+    "en": "In the Business group of the sidebar",
+    "page": true
   },
   "good": {
-    "fr": "Ton assistant pourra lire et déplacer les cartes ; chaque déplacement laissera une ligne dans le journal, et il te demandera avant d’écrire.",
-    "en": "Your assistant will be able to read and move the cards; every move will leave a line in the log, and it will ask before it writes."
+    "fr": "Ton assistant peut lire le tableau et déplacer une carte ; il te demande ton accord avant chaque déplacement, et chaque déplacement laisse une ligne dans le journal. Tout reste sur cet ordinateur.",
+    "en": "Your assistant can read the board and move a card; it asks you before each move, and each move leaves a line in the log. Everything stays on this computer."
   }
 }
