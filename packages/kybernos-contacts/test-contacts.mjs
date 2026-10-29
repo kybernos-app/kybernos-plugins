@@ -146,17 +146,18 @@ ok('a registry that throws, a registry of another version, a frozen global: noth
 })
 
 // ── the browser half ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-ok('the browser half hands the loader a plugin that never throws, and draws nothing', () => {
+ok('the browser half hands the loader a plugin that never throws, and mounts nothing when the slots service is not there', () => {
   const loaded = []
   const warns = []
   const sandbox = { window: { __ModuleLoader__: { load: (entry) => loaded.push(entry) } }, console: { warn: (...a) => warns.push(a), log () {} } }
   vm.runInNewContext(readFileSync(here + 'client.js', 'utf8'), sandbox)
   assert.equal(loaded.length, 1)
   assert.equal(loaded[0].id, '@local/kybernos-contacts')
-  const plugin = loaded[0].factory((m) => assert.fail('it requires nothing: ' + m))
+  const plugin = loaded[0].factory((m) => (m === 'react' ? {} : assert.fail('it requires nothing but react: ' + m)))
   assert.equal(typeof plugin, 'object')
   assert.equal(typeof plugin.apply, 'function')
-  assert.equal(plugin.apply({ effect: () => assert.fail('nothing is registered yet') }), undefined)
+  assert.equal(JSON.stringify(plugin.inject), '["slots"]') // an array made in the loader's realm
+  assert.equal(plugin.apply({ effect: () => assert.fail('no slots service: nothing is registered') }), undefined)
   assert.deepEqual(warns, [])
   const src = readFileSync(here + 'client.js', 'utf8')
   assert.doesNotMatch(src, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, 'no colour of its own')
