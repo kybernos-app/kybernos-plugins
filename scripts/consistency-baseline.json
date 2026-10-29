@@ -12,6 +12,7 @@
       "kybernos-catalog",
       "kybernos-composio",
       "kybernos-contacts",
+      "kybernos-pipeline",
       "kybernos-plugin"
     ],
     "kb7": [
@@ -89,6 +90,10 @@
     ],
     "kml": [
       "kybernos-modeles-locaux",
+      "kybernos-plugin"
+    ],
+    "kz": [
+      "kybernos-pipeline",
       "kybernos-plugin"
     ]
   },
