@@ -11,7 +11,7 @@
 
 window.__ModuleLoader__.load({
   id: '@local/kybernos-webapp-creator/client',
-  factory () {
+  factory (require) {
     const React = require('react')
     const h = React.createElement
 
@@ -121,7 +121,7 @@ window.__ModuleLoader__.load({
     }
 
     // ── the Settings tab ────────────────────────────────────────────────────
-    const Pills = (value, options, onPick) => h('div', { className: 'kbwc-pills' },
+    const pills = (value, options, onPick) => h('div', { className: 'kbwc-pills' },
       options.map((o) => h('button', {
         key: o.v, className: 'kbwc-pill', 'data-on': value === o.v ? 'true' : 'false',
         onClick: () => onPick(o.v),
