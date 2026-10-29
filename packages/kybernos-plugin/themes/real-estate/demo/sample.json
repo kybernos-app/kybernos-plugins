@@ -37,7 +37,8 @@
       "name": "Daniel Okoye",
       "email": "daniel.okoye@example.com",
       "tags": [
-        "mandate"
+        "mandate",
+        "urgent"
       ],
       "fields": {
         "city": "Lakeview"
@@ -94,7 +95,8 @@
       "name": "Ibrahim Haddad",
       "email": "ibrahim.haddad@example.com",
       "tags": [
-        "family"
+        "family",
+        "new"
       ],
       "fields": {
         "city": "Lakeview"
@@ -108,7 +110,8 @@
       "email": "pierre.garnier@example.com",
       "company_ref": "garnier-notary-office",
       "tags": [
-        "partner"
+        "partner",
+        "vip"
       ],
       "fields": {
         "city": "Lakeview"
@@ -121,7 +124,8 @@
       "name": "Alvarez Holdings",
       "email": "hello@alvarezholdings.example.com",
       "tags": [
-        "investor"
+        "investor",
+        "mandate"
       ],
       "fields": {
         "city": "Old Mill",
@@ -135,7 +139,8 @@
       "name": "Pine Street Property",
       "email": "hello@pinestreetproperty.example.com",
       "tags": [
-        "landlord"
+        "landlord",
+        "investor"
       ],
       "fields": {
         "city": "Lakeview",
@@ -149,7 +154,8 @@
       "name": "Garnier Notary Office",
       "email": "hello@garniernotaryoffice.example.com",
       "tags": [
-        "partner"
+        "partner",
+        "new"
       ],
       "fields": {
         "city": "Lakeview",
@@ -163,7 +169,8 @@
       "name": "Brightside Mortgage",
       "email": "hello@brightsidemortgage.example.com",
       "tags": [
-        "partner"
+        "partner",
+        "pre-approved"
       ],
       "fields": {
         "city": "Lakeview",
@@ -222,7 +229,8 @@
       "name": "Anton Roy",
       "email": "anton.roy@example.com",
       "tags": [
-        "pre-approved"
+        "pre-approved",
+        "cash-buyer"
       ],
       "fields": {
         "city": "Lakeview",
@@ -296,7 +304,8 @@
       "name": "Omar Said",
       "email": "omar.said@example.com",
       "tags": [
-        "new"
+        "new",
+        "first-time"
       ],
       "fields": {
         "city": "Lakeview"
@@ -309,7 +318,8 @@
       "name": "Eva Brandt",
       "email": "eva.brandt@example.com",
       "tags": [
-        "family"
+        "family",
+        "landlord"
       ],
       "fields": {
         "city": "Station"
@@ -378,7 +388,8 @@
       "name": "Clara Nguyen",
       "email": "clara.nguyen@example.com",
       "tags": [
-        "partner"
+        "partner",
+        "relocating"
       ],
       "fields": {
         "city": "Lakeview"
@@ -770,7 +781,11 @@
       "fields": {
         "source": "Website",
         "priority": "high",
-        "due": "2026-11-03"
+        "due": "2026-11-03",
+        "tags": [
+          "loft",
+          "investor"
+        ]
       }
     },
     {
@@ -784,7 +799,10 @@
       "fields": {
         "source": "Phone",
         "priority": "normal",
-        "due": "2026-11-05"
+        "due": "2026-11-05",
+        "tags": [
+          "first-time"
+        ]
       }
     },
     {
@@ -798,7 +816,10 @@
       "fields": {
         "source": "Walk-in",
         "priority": "normal",
-        "due": "2026-11-07"
+        "due": "2026-11-07",
+        "tags": [
+          "investor"
+        ]
       }
     },
     {
@@ -812,7 +833,11 @@
       "fields": {
         "source": "Referral",
         "priority": "low",
-        "due": "2026-11-09"
+        "due": "2026-11-09",
+        "tags": [
+          "family",
+          "offer"
+        ]
       }
     },
     {
@@ -826,7 +851,10 @@
       "fields": {
         "source": "Portal",
         "priority": "high",
-        "due": "2026-11-11"
+        "due": "2026-11-11",
+        "tags": [
+          "first-time"
+        ]
       }
     },
     {
@@ -840,7 +868,10 @@
       "fields": {
         "source": "Website",
         "priority": "normal",
-        "due": "2026-11-13"
+        "due": "2026-11-13",
+        "tags": [
+          "sold"
+        ]
       }
     },
     {
@@ -854,7 +885,10 @@
       "fields": {
         "source": "Phone",
         "priority": "normal",
-        "due": "2026-11-15"
+        "due": "2026-11-15",
+        "tags": [
+          "new"
+        ]
       }
     },
     {
@@ -867,8 +901,13 @@
       "fields": {
         "source": "Walk-in",
         "priority": "low",
-        "due": "2026-11-17"
-      }
+        "due": "2026-11-17",
+        "tags": [
+          "business",
+          "new"
+        ]
+      },
+      "contact_ref": "amelia-park"
     },
     {
       "flow": "lettings",
@@ -881,7 +920,10 @@
       "fields": {
         "source": "Referral",
         "priority": "high",
-        "due": "2026-11-19"
+        "due": "2026-11-19",
+        "tags": [
+          "new"
+        ]
       }
     },
     {
@@ -895,7 +937,10 @@
       "fields": {
         "source": "Portal",
         "priority": "normal",
-        "due": "2026-11-21"
+        "due": "2026-11-21",
+        "tags": [
+          "family"
+        ]
       }
     },
     {
@@ -909,7 +954,10 @@
       "fields": {
         "source": "Website",
         "priority": "normal",
-        "due": "2026-11-23"
+        "due": "2026-11-23",
+        "tags": [
+          "move-in"
+        ]
       }
     },
     {
@@ -994,7 +1042,8 @@
           "cash"
         ]
       },
-      "item_ref": "lake-villa"
+      "item_ref": "lake-villa",
+      "contact_ref": "yusuf-demir"
     },
     {
       "flow": "lettings",
@@ -1039,7 +1088,10 @@
       "fields": {
         "source": "Phone",
         "priority": "low",
-        "due": "2026-11-18"
+        "due": "2026-11-18",
+        "tags": [
+          "landlord"
+        ]
       },
       "item_ref": "oak-duplex",
       "contact_ref": "amelia-park"

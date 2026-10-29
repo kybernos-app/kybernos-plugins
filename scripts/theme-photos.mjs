@@ -7,6 +7,8 @@
 // plan.json:  { "name": "real-estate-1", "cols": 3, "rows": 3, "style": "professional real-estate photography, natural light",
 //               "cells": [ { "name": "willow-lane", "prompt": "a two-storey family house with a garden, sunny afternoon" }, … ],
 //               "cut": { "width": 640, "height": 400, "quality": 70, "maxKb": 70 } }
+// A cell may carry "box": [x, y, width, height], the photograph's own rectangle in the palette's pixels. FLUX does not always draw the grid it is asked for (a 3 by 3
+// grid of landscape photographs came back as 3 columns by 4 rows, with uneven gutters), so a palette that is not an even grid is cut by the rectangles measured on it.
 // Out: <out>/<plan name>-palette.png (the whole palette, kept so the cut can be redone with --reuse), then <out>/<cell name>.jpg (the cut pictures).
 //
 // The key: DEEPINFRA_API_KEY in the environment, else the one DSH keeps in <DSH home>/.credentials.yaml. It is read here and sent as a bearer header, and never
@@ -28,7 +30,7 @@ const size = Number(flag('--size', '1920'))
 const seed = flag('--seed', undefined)
 const cols = plan.cols || 3
 const rows = plan.rows || 3
-const cut = Object.assign({ width: 600, height: 375, quality: 72, maxKb: 70, inset: 0.07 }, plan.cut || {})
+const cut = Object.assign({ width: 600, height: 375, quality: 72, maxKb: 70, inset: 0.07, boxInset: 0.015 }, plan.cut || {})
 if (!Array.isArray(plan.cells) || plan.cells.length < 1 || plan.cells.length > cols * rows) { console.error('the plan needs 1 to ' + cols * rows + ' cells'); process.exit(2) }
 mkdirSync(out, { recursive: true })
 
@@ -79,12 +81,14 @@ const wantRatio = cut.width / cut.height
 plan.cells.forEach((c, i) => {
   const col = i % cols
   const row = Math.floor(i / cols)
-  const ix = Math.round(cw * cut.inset)
-  const iy = Math.round(ch * cut.inset)
-  let w = Math.round(cw - 2 * ix)
-  let h = Math.round(ch - 2 * iy)
-  let x = Math.round(col * cw + ix)
-  let y = Math.round(row * ch + iy)
+  const box = Array.isArray(c.box) && c.box.length === 4 && c.box.every((n) => Number.isFinite(n) && n >= 0) ? c.box : null
+  // the grid cell, or the measured rectangle; either way a small inset drops the gutter's anti-aliased edge
+  const ix = Math.round((box === null ? cw : box[2]) * (box === null ? cut.inset : cut.boxInset))
+  const iy = Math.round((box === null ? ch : box[3]) * (box === null ? cut.inset : cut.boxInset))
+  let w = Math.round((box === null ? cw : box[2]) - 2 * ix)
+  let h = Math.round((box === null ? ch : box[3]) - 2 * iy)
+  let x = Math.round((box === null ? col * cw : box[0]) + ix)
+  let y = Math.round((box === null ? row * ch : box[1]) + iy)
   if (w / h > wantRatio) { const nw = Math.round(h * wantRatio); x += Math.round((w - nw) / 2); w = nw } else { const nh = Math.round(w / wantRatio); y += Math.round((h - nh) / 2); h = nh }
   const tmp = join(out, c.name + '.cut.png')
   const dest = join(out, c.name + '.jpg')

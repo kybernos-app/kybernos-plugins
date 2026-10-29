@@ -24,11 +24,13 @@ const BUSINESS = ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline']
 const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline']
 // What each shipped theme must hold: the folder, and the number of sample rows its demo/sample.json seeds (a sample stays modest and readable).
 const EXPECT = {
-  ecommerce: { contacts: 12, items: 10, cards: 11, notes: 4, flows: 1 },
+  ecommerce: { contacts: 22, items: 16, cards: 18, notes: 8, flows: 1 },
   'real-estate': { contacts: 27, items: 16, cards: 19, notes: 11, flows: 2 },
-  recruitment: { contacts: 12, items: 8, cards: 13, notes: 4, flows: 2 },
+  recruitment: { contacts: 22, items: 14, cards: 19, notes: 8, flows: 2 },
 }
 const WORDS = ['contacts', 'catalog', 'pipeline']
+// The themes whose sample is rich (22 contacts, a photograph per item, cards that follow the board convention); a theme joins the list when its sample does.
+const RICH = ['ecommerce', 'real-estate', 'recruitment']
 let count = 0
 const ok = (label, fn) => { fn(); count++; console.log('ok  ', label) }
 
@@ -175,18 +177,25 @@ for (const dir of dirs) {
     }
   })
 
-  ok(dir + ': no media but its cover, no personal path, no code, no address outside example.com', () => {
+  ok(dir + ': no media but its cover and its sample photographs, no personal path, no code, no address outside example.com', () => {
+    let photos = 0
     for (const f of walk(t.root)) {
       const rel = f.slice(t.root.length + 1)
-      if (rel === 'cover.jpg') continue // the one picture a theme carries (AGENTS.md rule 4); its size and bytes are checked below
-      if (/^demo\/photos\/[a-z0-9][a-z0-9-]*\.jpg$/.test(rel)) continue // the sample photographs (the second exception); checked in their own test below
+      if (rel === 'cover.jpg') continue // the cover picture of a theme (AGENTS.md rule 4); its size and bytes are checked below
+      if (/^demo\/photos\/[a-z0-9][a-z0-9-]{1,59}\.jpg$/.test(rel)) { // the sample photographs (AGENTS.md rule 4, second exception): a JPEG of at most 80 KB, 16 a theme
+        const bytes = readFileSync(f)
+        assert.ok(bytes.length <= 80 * 1024 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, rel + ' is a JPEG of at most 80 KB')
+        photos++
+        continue
+      }
       assert.match(f, /\.(json|md|yml)$/, rel + ' is text')
       const body = readFileSync(f, 'utf8')
       assert.doesNotMatch(body, /\/Users\//, rel)
       assert.doesNotMatch(body, /data:[a-z]+\/[a-z0-9.+-]+;base64/i, rel + ' embeds media')
       for (const m of body.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []) assert.match(m, /@([a-z0-9-]+\.)*example\.com$/, rel + ': ' + m)
     }
-    assert.ok(walk(t.root).filter((f) => !/\/demo\/photos\/[^/]+\.jpg$/.test(f)).length <= 24, 'a theme stays small (its sample photographs aside)')
+    assert.ok(photos <= 16, 'at most 16 sample photographs')
+    assert.ok(walk(t.root).length - photos <= 24, 'a theme stays small')
   })
 
   ok(dir + ': the sample photographs are plain small JPEGs, at most 16, and every `photo:` a row names is one of them', () => {
@@ -217,6 +226,7 @@ for (const dir of dirs) {
     assert.equal(sample.cards.length, want.cards)
     assert.equal(sample.notes.length, want.notes)
     assert.ok(sample.contacts.filter((c) => c.kind === 'person').length >= 8 && sample.contacts.filter((c) => c.kind === 'company').length >= 4, 'about 8 people and 4 companies')
+    if (RICH.includes(dir)) assert.ok(sample.contacts.length >= 16 && sample.contacts.length <= 27 && sample.notes.length >= 5 && sample.notes.length <= 11, 'a sample the pages can show: 16 to 27 contacts, 5 to 11 notes')
     assert.ok(sample.items.length >= 8 && sample.items.length <= 20 && sample.cards.length >= 10 && sample.cards.length <= 24)
     const schema = t.contacts[0].value
     const types = new Map(t.catalog.map((r) => [r.value.id, r.value]))
@@ -281,6 +291,43 @@ for (const dir of dirs) {
     }
     for (const flow of flows.values()) for (const s of flow.stages) assert.ok(perStage.get(flow.id + '/' + s.key) >= 1, 'the stage ' + s.key + ' of ' + flow.id + ' has no sample card')
     for (const n of sample.notes) { only(n, ['contact_ref', 'body'], 'note'); assert.ok(contacts.has(n.contact_ref) && n.body.length <= 4000, 'a note points at no contact') }
+  })
+
+  if (RICH.includes(dir)) ok(dir + ': the sample is rich: tags that recur, a picture for every item, cards that follow the board convention', () => {
+    const schema = t.contacts[0].value
+    const types = new Map(t.catalog.map((r) => [r.value.id, r.value]))
+    // 2 to 3 tags a contact, and every tag the theme proposes is worn by at least two contacts (a filter with a count worth showing)
+    const worn = new Map()
+    for (const c of sample.contacts) {
+      assert.ok(c.tags.length >= 2 && c.tags.length <= 3, c.ref + ': 2 to 3 tags')
+      for (const x of c.tags) worn.set(x, (worn.get(x) || 0) + 1)
+    }
+    for (const tag of schema.tags) assert.ok((worn.get(tag) || 0) >= 2, 'the tag ' + tag + ' is worn by fewer than two contacts')
+    // the cards of the catalog show a picture and 1 to 4 coloured chips, and the picture is a photograph the theme ships, used once
+    const photoDir = join(t.root, 'demo', 'photos')
+    const files = existsSync(photoDir) ? readdirSync(photoDir).map((f) => f.replace(/\.jpg$/, '')).sort() : []
+    const named = []
+    for (const type of types.values()) assert.ok(type.card.image && type.card.chips && type.card.chips.length >= 1 && type.card.chips.length <= 6, type.id + ': the card shows a picture and chips')
+    for (const i of sample.items) {
+      const card = types.get(i.type).card
+      const m = /^photo:([a-z][a-z0-9-]+)\/([a-z0-9][a-z0-9-]+)$/.exec(i.fields[card.image])
+      assert.ok(m !== null && m[1] === dir, 'item ' + i.ref + ' has no photograph of this theme')
+      named.push(m[2])
+      assert.ok(card.chips.filter((k) => i.fields[k] !== undefined).length >= 2, 'item ' + i.ref + ' shows fewer than two chips')
+    }
+    assert.deepEqual([...named].sort(), files, 'every item has its photograph and every photograph is used once')
+    // a card of a board: where it comes from, how urgent, when, a few words, and the person and the product or job it is about
+    for (const c of sample.cards) {
+      const what = 'card "' + c.title + '"'
+      assert.deepEqual(Object.keys(c.fields).sort(), ['due', 'priority', 'source', 'tags'], what + ': source, priority, due, tags')
+      assert.ok(typeof c.fields.source === 'string' && c.fields.source.length >= 3 && c.fields.source.length <= 30, what + ' source')
+      assert.ok(['high', 'normal', 'low'].includes(c.fields.priority), what + ' priority')
+      assert.ok(/^2026-(11-(0[1-9]|[12]\d|30)|12-(0[1-9]|1\d|20))$/.test(c.fields.due), what + ' is due between 2026-11-01 and 2026-12-20')
+      assert.ok(Array.isArray(c.fields.tags) && c.fields.tags.length >= 1 && c.fields.tags.length <= 3 && c.fields.tags.every((x) => typeof x === 'string' && x.length >= 2 && x.length <= 20), what + ' tags')
+      assert.ok(c.contact_ref !== undefined && c.item_ref !== undefined, what + ' links a person and a product or job')
+    }
+    // the Catalog page shows the mix: every status of a type is worn, and the board is not empty in any stage (checked above); at least three of each money or number the page sorts on
+    assert.ok(new Set(sample.items.map((i) => i.status)).size >= 3, 'a catalog with at least three different statuses')
   })
 
   ok(dir + ': the sample seeds a temporary base, every row is marked demo, a second seed is skipped, and clearing leaves nothing', () => {

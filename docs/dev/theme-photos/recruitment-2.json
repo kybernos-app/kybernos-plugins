@@ -1,0 +1,135 @@
+{
+  "name": "recruitment-2",
+  "cols": 3,
+  "rows": 4,
+  "style": "bright modern workplace editorial photography, natural daylight, shallow depth of field, warm neutral palette with touches of colour, people only seen from behind or at a distance, no recognisable faces, no brand, no logo, no readable text on screens",
+  "cells": [
+    {
+      "name": "operations-coordinator",
+      "prompt": "a bright logistics office with a tablet and a clipboard on a desk and shelves of cardboard boxes in the background",
+      "box": [
+        120,
+        161,
+        518,
+        404
+      ]
+    },
+    {
+      "name": "hr-business-partner",
+      "prompt": "two people having a relaxed conversation on a sofa in a bright lounge area, seen from the side at a distance",
+      "box": [
+        661,
+        171,
+        539,
+        394
+      ]
+    },
+    {
+      "name": "sales-development-rep",
+      "prompt": "a row of desks with headsets and laptops in a bright open office, empty chairs, morning light",
+      "box": [
+        1223,
+        161,
+        543,
+        404
+      ]
+    },
+    {
+      "name": "platform-engineer",
+      "prompt": "a clean data-centre corridor with rows of server racks lit with soft blue light, nobody in the picture",
+      "box": [
+        121,
+        588,
+        517,
+        395
+      ]
+    },
+    {
+      "name": "reception-desk",
+      "prompt": "the reception desk of a modern office with a plant, a bench and large windows, nobody at the desk",
+      "box": [
+        661,
+        588,
+        539,
+        394
+      ]
+    },
+    {
+      "name": "handshake",
+      "prompt": "a handshake across a wooden table in a meeting room, only the two hands and sleeves visible",
+      "box": [
+        1223,
+        589,
+        543,
+        393
+      ]
+    },
+    {
+      "name": "quiet-room",
+      "prompt": "a small phone-booth style room with a chair, a desk lamp and a laptop, warm light",
+      "box": [
+        119,
+        1005,
+        520,
+        378
+      ]
+    },
+    {
+      "name": "kitchen-corner",
+      "prompt": "an office kitchen corner with a shared table, mugs and a bowl of fruit, morning light",
+      "box": [
+        661,
+        1006,
+        540,
+        377
+      ]
+    },
+    {
+      "name": "site-meeting",
+      "prompt": "two people in hard hats and high-visibility vests reviewing a printed plan on a table at a building site, seen from behind",
+      "box": [
+        1223,
+        1007,
+        543,
+        375
+      ]
+    },
+    {
+      "name": "lab-bench",
+      "prompt": "a bright laboratory bench with glassware and a microscope, a person in a white coat seen from behind at a distance",
+      "box": [
+        121,
+        1406,
+        517,
+        361
+      ]
+    },
+    {
+      "name": "lab-technician",
+      "prompt": "a person in a white coat seen from behind at a laboratory bench with a microscope and a monitor",
+      "box": [
+        661,
+        1406,
+        539,
+        361
+      ]
+    },
+    {
+      "name": "site-plan",
+      "prompt": "two people in hard hats and high-visibility vests unrolling a printed building plan at a building site",
+      "box": [
+        1223,
+        1405,
+        544,
+        362
+      ]
+    }
+  ],
+  "cut": {
+    "width": 520,
+    "height": 390,
+    "quality": 72,
+    "maxKb": 70
+  },
+  "note": "FLUX drew 3 columns by 4 rows with uneven gutters, so every cell carries the measured box. The sample uses the first four cells; the others are spare."
+}

@@ -1,6 +1,6 @@
 # E-commerce shop
 
-A Kybernos theme for an online shop. Data only: JSON and Markdown, no code, no media.
+A Kybernos theme for an online shop. Data only: JSON and Markdown, no code; the only pictures are the cover and the sample photographs (`demo/photos/`, invented, made by `scripts/theme-photos.mjs` from the plans in `docs/dev/theme-photos/`).
 
 | What | Words and content |
 |---|---|
@@ -11,6 +11,6 @@ A Kybernos theme for an online shop. Data only: JSON and Markdown, no code, no m
 | Kit | 2 skills, 1 team, 2 automations (created switched off), 4 goals taken from the `com` pack |
 | Style | the warm light "e-commerce" preset |
 
-`demo/sample.json` holds the sample rows of an invented shop ("Fern & Cove"): 8 contacts and 4 companies, 10 products, 11 orders, 4 notes. Every name, address and message is made up; e-mail addresses are on `example.com`.
+`demo/sample.json` holds the sample rows of an invented shop ("Fern & Cove"): 16 people and 6 companies (tagged, with their city, total spent and last order), 16 products each with its photograph, category, material, badge and rating, 18 orders with a source, a priority, a due date and tags, 8 notes. Every name, address and message is made up; e-mail addresses are on `example.com`.
 
 See `docs/dev/shipped-themes.md` for the folder shape and how to add another theme.

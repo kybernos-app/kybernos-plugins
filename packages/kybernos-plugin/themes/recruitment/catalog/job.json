@@ -91,12 +91,58 @@
         "en": "Opened on",
         "fr": "Ouverte le"
       }
+    },
+    {
+      "key": "department",
+      "type": "choice",
+      "options": [
+        "Data",
+        "Engineering",
+        "Design",
+        "Sales",
+        "Finance",
+        "People",
+        "Operations"
+      ],
+      "label": {
+        "en": "Department",
+        "fr": "Département"
+      }
+    },
+    {
+      "key": "seniority",
+      "type": "choice",
+      "options": [
+        "Junior",
+        "Mid",
+        "Senior",
+        "Lead"
+      ],
+      "label": {
+        "en": "Seniority",
+        "fr": "Séniorité"
+      }
+    },
+    {
+      "key": "image",
+      "type": "text",
+      "label": {
+        "en": "Picture",
+        "fr": "Image"
+      }
     }
   ],
   "card": {
     "title": "title",
     "subtitle": "client",
     "price": "salary",
+    "image": "image",
+    "chips": [
+      "department",
+      "seniority",
+      "location",
+      "contract"
+    ],
     "flag": {
       "field": "candidates",
       "gte": 1,
