@@ -45,7 +45,7 @@ const EXEMPT = new Map([
   // The three business plugins ship their frame first (the data point a theme extends, docs/dev/business-base.md); their pages arrive with the next
   // lots. Until then client.js draws nothing at all, so there is no header to hang a pill on, and the Suite shows the help on the module's page.
   // The check asserts exactly that: the day one of them mounts a slot or draws anything, the exemption fails and it owes the pill.
-  ...['kybernos-contacts', 'kybernos-catalog', 'kybernos-pipeline'].map((n) => [n, {
+  ...['kybernos-contacts', 'kybernos-pipeline'].map((n) => [n, {
     reason: 'frame only: client.js draws nothing yet (the page, and its pill, arrive with the next lots)',
     check: (source) => !/\bslots\b|createElement|\brequire\(|\bh\(/.test(source),
   }]),
