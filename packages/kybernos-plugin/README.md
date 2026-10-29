@@ -484,6 +484,40 @@ lists (threads, documents, creations) are not part of it.
 
 `node scripts/check-cardface-live.mjs` measures all of it on the real page (the plugin client swapped in a throw-away Chrome, nothing written).
 
+## The Roles tab of an Agent Team (models, faces, members)
+
+The tab (`TeamTabMaquette`, `.kbm-root`) is the Team members & models screen wired to the host. Three parts, top to bottom:
+
+- **Team faces.** The scene, the generation mode and ONE line for the image model (the model field below), the estimate beside Generate. The field
+  always draws its own details card: this part has no side panel.
+- **Model management.** MODE and PRIORITY side by side, then one line of facts counted from the roles' resolved models (« 10 of 11 roles on your
+  plans », « 1 on Kybernos »...). When a role cannot reach its model, a banner offers **Review replacements** (see below).
+- **Team members.** A bar (VIEW list / cards / carousel, PER PAGE 4 / 6 / 9 / All, the pager; the choice is kept per team in `localStorage`, key
+  `kbm.team.<root>.<team>`), then the roles of the page. A role opens into five sections, each a header line with its summary:
+  Identity, Voice, System prompt, Requirements (open by default), Models (open by default).
+
+**The model field** (`KbmCombo`, one line): it shows the current model with its provider and short price; typing filters (id, provider, type,
+modalities, capabilities); ↑ ↓ ⏎ pick, Esc closes, a click outside closes. The list is grouped **Your plans, Kybernos, Your own keys, Local**, in that order, and it
+shows only the models that match the role's requirements (« 116 of 166 match this role »; « Show all models », and when nothing matches the
+requirements or their data is not loaded yet, every model is shown and the footer says so). The details (price, modalities, capabilities,
+Artificial Analysis) open in a card beside the highlighted row when the page is set to « Tooltip », or in the side panel when it is set to « Side panel ».
+The fallback field starts with « No fallback », and the primary is greyed in it. Picking a model of another type through the search switches the
+role's type and clears its requirements, as the old search box did. Auto modes lock both fields (« Kybernos picks »).
+
+**Plans are read from the provider's name** (`kbmRouteKind`: `*-token-plan*`, `*-coding-plan*`, `opencode-go`, `zai-coding*` are plans; a name starting
+with `kybernos` is Kybernos; `ollama-*`, `lmstudio`, `local` are local; everything else is an own key). It is a convention of this profile, not a
+measurement: a plan that does not follow it lands under « Your own keys ».
+
+**Review replacements** lists the roles whose model is not in the catalogue, not declared, or whose probe failed. Each gets a proposal: on the best
+route that has one (plan, then Kybernos, then own key, then local), the same model if the route has it, else the best match for the role's tier and the
+chosen PRIORITY. Every row can be changed (a model field) or left out. Nothing is written before « Apply »; Apply does what picking by hand does
+(provider, model, no fallback) in ONE `kybers/save` for all the roles. A local role (« Add a role », kept in `localStorage`) is updated locally only.
+
+Limits: the routing modes (All auto, Per role, PRIORITY) still only declare; the host does not route by them yet. « Budget » is still « coming soon ».
+The fallback field lists the role's own type only. The cards and carousel views keep the same collapsed header as the list; an open role takes the full row.
+
+`node scripts/check-roles-live.mjs` checks all of it on the real page (see `docs/dev/live-testing.md`).
+
 ## Workspace instructions
 
 An **Instructions** tab on the workspace page (Projects): a text sent with the prompt of that workspace's sessions, next to the account
