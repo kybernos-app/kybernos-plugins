@@ -9,6 +9,7 @@
       "kybernos-theme"
     ],
     "kb6": [
+      "kybernos-catalog",
       "kybernos-composio",
       "kybernos-contacts",
       "kybernos-plugin"
@@ -18,6 +19,7 @@
       "kybernos-plugin"
     ],
     "kb8": [
+      "kybernos-catalog",
       "kybernos-contacts",
       "kybernos-dashboards",
       "kybernos-mobile",
@@ -65,10 +67,6 @@
     "kbq": [
       "kybernos-mobile",
       "kybernos-plugin"
-    ],
-    "kbr": [
-      "kybernos-plugin",
-      "kybernos-sessions"
     ],
     "kbs": [
       "kybernos-mobile",

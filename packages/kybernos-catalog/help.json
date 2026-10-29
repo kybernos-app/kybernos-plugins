@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Menu › Business › Catalogue",
-    "en": "Menu › Business › Catalog",
+    "fr": "Dans le groupe Business de la barre latérale",
+    "en": "In the Business group of the sidebar",
     "page": true
   },
   "good": {

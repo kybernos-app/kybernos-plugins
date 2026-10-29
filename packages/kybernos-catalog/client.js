@@ -25,8 +25,13 @@ window.__ModuleLoader__.load({
       const MENU_EVERY = 150
 
       // ── words ────────────────────────────────────────────────────────────────────────────────────────────
-      const lang = () => { try { return String((window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()) || '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-      const kt = (fr, en) => (lang() === 'en' ? en : fr)
+      const lang = () => {
+        try {
+          const s = String((typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : document.documentElement.lang) || 'en').toLowerCase()
+          return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
+        } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => lang() === 'fr' ? fr : en
       /** A `{ en, fr, … }` label in the person's language, else English. */
       const pick = (label, fallback) => {
         if (label === null || typeof label !== 'object') return fallback === undefined ? '' : fallback
@@ -236,7 +241,7 @@ window.__ModuleLoader__.load({
       .kbcg-price{font-weight:650}
       .kbcg-flag{font-size:11.5px;font-weight:600;color:var(--kbcg-warn)}
       .kbcg-tbl{width:100%;border-collapse:collapse}
-      .kbcg-tbl th{font-size:11.5px;color:var(--kbcg-t3);text-transform:uppercase;letter-spacing:.05em;font-weight:650;text-align:start;padding:8px 10px;border-bottom:1px solid var(--kbcg-b2)}
+      .kbcg-tbl th{font-size:12px;color:var(--kbcg-t3);font-weight:650;text-align:start;padding:8px 10px;border-bottom:1px solid var(--kbcg-b2)}
       .kbcg-tbl td{padding:9px 10px;border-bottom:1px solid var(--kbcg-b1);vertical-align:middle}
       .kbcg-tbl tr.r{cursor:pointer}
       .kbcg-tbl tr.r:hover td{background:var(--kbcg-hover)}
