@@ -115,6 +115,21 @@ console.log('U6 the checked folder is byte-identical after a run')
   ok('every file of the starter hashes to the same sha256', JSON.stringify(before) === JSON.stringify(after) && before.length === 25, before.length)
 }
 
+console.log('U6b a theme may carry its cover picture, and nothing else of the kind')
+{
+  const tmp2 = mkdtempSync(join(tmpdir(), 'plugin-check-cover-'))
+  try {
+    const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(100, 1)])
+    const mk = (name, extra) => { const d = join(tmp2, name); cpSync(STARTER, d, { recursive: true }); rmSync(join(d, 'broken'), { recursive: true, force: true }); extra(d); return d }
+    const hygiene = (d) => checkFolder(d).lines.find((l) => l.id === 'hygiene')
+    const withCover = mk('cover', (d) => writeFileSync(join(d, 'cover.jpg'), JPEG))
+    ok('a small JPEG cover.jpg at the root passes, and the report says so', hygiene(withCover).status === 'PASS' && /but its cover picture/.test(hygiene(withCover).message), hygiene(withCover))
+    ok('a cover.jpg that is not a JPEG fails', hygiene(mk('gif', (d) => writeFileSync(join(d, 'cover.jpg'), Buffer.from('GIF89a' + 'x'.repeat(50))))).status === 'FAIL')
+    ok('a cover over the cap fails', hygiene(mk('big', (d) => writeFileSync(join(d, 'cover.jpg'), Buffer.concat([JPEG, Buffer.alloc(170 * 1024, 1)])))).status === 'FAIL')
+    ok('another picture fails, whatever its name', hygiene(mk('other', (d) => writeFileSync(join(d, 'photo.jpg'), JPEG))).status === 'FAIL' && hygiene(mk('png', (d) => writeFileSync(join(d, 'cover.png'), JPEG))).status === 'FAIL')
+  } finally { rmSync(tmp2, { recursive: true, force: true }) }
+}
+
 console.log('U7 the tool reads, and never runs or fetches')
 {
   const text = readFileSync(TOOL, 'utf8')

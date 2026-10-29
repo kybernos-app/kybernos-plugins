@@ -40,6 +40,7 @@ const kbQueueFn = (name) => (kbQueueMod !== null && kbQueueMod !== undefined && 
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
 import { fetchArchiveBytes, fetchCatalogueSources, handleThemes, readThemes, themeTarget, verifyArchive } from './theme-installer.mjs'
+import { coverFile, readNext, readShipped } from './themes-shipped.mjs'
 import { ensureBusiness } from './business-base.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -11767,6 +11768,17 @@ function boot(ctx) {
           sameOrigin: () => (req.method === 'POST' ? sameOriginStrict(req) : sameOriginLax(req)),
           session: () => { try { const refused = writeGuard(req); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
           registry: registrySeam(),
+          shipped: readShipped(pluginDir + '/themes').themes,
+          next: readNext(pluginDir + '/themes'),
+          business: (() => { try { return globalThis[Symbol.for('kybernos.business')] } catch (e) { return null } })(),
+          skill: (folder, name) => {
+            try {
+              if (!existsSync(nodePathJoin(folder, 'skills', name, 'SKILL.md'))) return { ok: false }
+              const r = seedSkills({ home: String(dshHomeSync()), sourceDir: nodePathJoin(folder, 'skills'), names: [name] })[0]
+              const action = r !== undefined ? r.action : 'error'
+              return { ok: action === 'created' || action === 'current' || action === 'updated' || action === 'kept' || action === 'disabled', action }
+            } catch (e) { return { ok: false } }
+          },
         }
         const action = body !== null && typeof body.action === 'string' ? body.action : ''
         // No outbound request for a caller the route will refuse anyway: the origin is checked first, and a write needs the signed
@@ -11786,6 +11798,20 @@ function boot(ctx) {
         const answer = handleThemes({ dir }, { method: req.method, body }, ports)
         sendJson(res, answer.status, answer.body)
       } }), 'kybernos: route themes')
+      // The cover picture of a shipped theme, or of a « next trade »: the page names an id, the host owns the path (themes-shipped.mjs, coverFile), and
+      // only a plain JPEG of a sane size leaves. Read-only, same origin; a picture is not a secret, so no session is asked.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/themes/cover', handler: (req, res) => {
+        try {
+          if (req.method !== 'GET') { res.writeHead(405); res.end(''); return }
+          if (sameOriginLax(req) !== true) { res.writeHead(403); res.end(''); return }
+          const q = new URL(req.url || '/', 'http://localhost').searchParams
+          const file = coverFile(pluginDir + '/themes', { id: q.get('id') ?? undefined, next: q.get('next') ?? undefined })
+          if (file === null) { res.writeHead(404); res.end(''); return }
+          const bytes = readFileSync(file)
+          res.writeHead(200, { 'content-type': 'image/jpeg', 'content-length': String(bytes.length), 'cache-control': 'private, max-age=600', 'x-content-type-options': 'nosniff' })
+          res.end(bytes)
+        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* the socket is gone */ } }
+      } }), 'kybernos: route theme covers')
       // A skill a domain pack ships (domains/skills/<name>/SKILL.md): written into <DSH home>/skills by the same careful seeding as every skill this
       // plugin ships (never over a skill the person wrote or edited, never back over one they switched off). Only a name some pack lists as
       // bundled is accepted, so the route cannot write anything else.

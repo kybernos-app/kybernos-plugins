@@ -1,7 +1,7 @@
 {
   "name": "@local/kybernos-contacts",
   "version": "1.0.0",
-  "description": "The people and companies of your work, with the kinds and fields a theme defines (the page arrives in a later release).",
+  "description": "The people and companies of your work, with notes and the kinds and fields a theme defines: a page, host routes and two agent tools.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",

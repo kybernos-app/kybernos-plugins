@@ -11,6 +11,7 @@
     "kb6": [
       "kybernos-catalog",
       "kybernos-composio",
+      "kybernos-contacts",
       "kybernos-plugin"
     ],
     "kb7": [
@@ -19,6 +20,7 @@
     ],
     "kb8": [
       "kybernos-catalog",
+      "kybernos-contacts",
       "kybernos-dashboards",
       "kybernos-mobile",
       "kybernos-plugin",
@@ -65,10 +67,6 @@
     "kbq": [
       "kybernos-mobile",
       "kybernos-plugin"
-    ],
-    "kbr": [
-      "kybernos-plugin",
-      "kybernos-sessions"
     ],
     "kbs": [
       "kybernos-mobile",

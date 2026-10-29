@@ -2973,36 +2973,40 @@
       "defaut": null,
       "poids_ko": 15,
       "promesse": {
-        "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton thème. Sa page arrive dans une prochaine version.",
-        "en": "The people and companies of your work in one place, with the kinds and fields your theme speaks of. Its page arrives in a later release."
+        "fr": "Les personnes et les entreprises de ton travail dans une liste, avec notes, recherche et les mots de ton modèle. Les agents cherchent un contact ; en ajouter ou en modifier un demande ton accord.",
+        "en": "The people and companies of your work in one list, with notes, search and the words of your template. Agents can look contacts up; adding or changing one needs your approval."
       },
       "aide": {
         "what": {
-          "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton thème choisit les mots : Clients, Candidats, Contacts.",
-          "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your theme chooses the words: Customers, Candidates, Contacts."
+          "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton modèle choisit les mots : Clients, Candidats, Contacts.",
+          "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your template chooses the words: Customers, Candidates, Contacts."
         },
         "steps": [
           {
-            "fr": "Active Contacts ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-            "en": "Switch Contacts on here, or install a theme that needs it: the theme installs it with it."
+            "fr": "Active Contacts ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+            "en": "Switch Contacts on here, or install a template that needs it: the template installs it with it."
           },
           {
-            "fr": "Un thème décrit ses sortes de contacts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
-            "en": "A theme describes its kinds of contacts and its fields; Kybernos checks that description when you install it."
+            "fr": "Ouvre Contacts dans le groupe Business du menu : cherche, passe de Personnes à Entreprises, clique une ligne pour voir sa fiche.",
+            "en": "Open Contacts in the Business group of the menu: search, switch between People and Companies, click a row to see its card."
           },
           {
-            "fr": "La page Contacts elle-même, avec la liste, les notes et la recherche, arrive dans une prochaine version.",
-            "en": "The Contacts page itself, with the list, the notes and the search, arrives in a later release."
+            "fr": "Ajoute un contact avec le bouton en haut. Une note s’ajoute et ne se modifie pas : elle garde l’historique.",
+            "en": "Add a contact with the button at the top. A note is added and never edited: it keeps the history."
+          },
+          {
+            "fr": "Un agent peut chercher un contact. Pour en ajouter ou en modifier un, il te demande ton accord, à chaque fois.",
+            "en": "An agent can look a contact up. To add or change one, it asks for your approval, every time."
           }
         ],
         "where": {
-          "fr": "Dans la Suite, une fois activé",
-          "en": "In the Suite, once switched on",
+          "fr": "Dans le menu, sous Business : Contacts, une fois activé",
+          "en": "In the menu, under Business: Contacts, once switched on",
           "page": false
         },
         "good": {
-          "fr": "Rien ne quitte ton ordinateur : les contacts vivront dans un seul fichier sur cette machine, que tu pourras exporter ou effacer en entier.",
-          "en": "Nothing leaves your computer: the contacts will live in one file on this machine, which you will be able to export or delete in full."
+          "fr": "Rien ne quitte ton ordinateur : les contacts vivent dans un seul fichier sur cette machine. Les lignes « demo » sont des exemples, effaçables d’un geste.",
+          "en": "Nothing leaves your computer: the contacts live in one file on this machine. Rows marked “demo” are examples, and you can clear them in one go."
         }
       }
     },
@@ -3018,18 +3022,18 @@
       "defaut": null,
       "poids_ko": 17,
       "promesse": {
-        "fr": "Ce que tu vends, loues ou recrutes, en cartes ou en liste, avec les champs et les statuts que définit ton thème. Ajoute, modifie et archive à la main, ou laisse ton agent le faire.",
-        "en": "What you sell, rent or recruit for, as cards or a list with the fields and statuses your theme defines. Add, edit and archive by hand, or let your agent do it."
+        "fr": "Ce que tu vends, loues ou recrutes, en cartes ou en liste, avec les champs et les statuts que définit ton modèle. Ajoute, modifie et archive à la main, ou laisse ton agent le faire.",
+        "en": "What you sell, rent or recruit for, as cards or a list with the fields and statuses your template defines. Add, edit and archive by hand, or let your agent do it."
       },
       "aide": {
         "what": {
-          "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres — en cartes ou en liste, avec les statuts et les champs de ton thème.",
-          "en": "What you sell, rent or recruit for — products, properties, jobs — as cards or a list, with the statuses and fields of your theme."
+          "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres — en cartes ou en liste, avec les statuts et les champs de ton modèle.",
+          "en": "What you sell, rent or recruit for — products, properties, jobs — as cards or a list, with the statuses and fields of your template."
         },
         "steps": [
           {
-            "fr": "Ouvre la ligne « Catalogue » du groupe Business, dans le menu. Un thème lui donne ses mots, ses statuts et ses champs.",
-            "en": "Open the “Catalog” row of the Business group in the menu. A theme gives it its own words, statuses and fields."
+            "fr": "Ouvre « Catalogue » dans le groupe Business du menu. Un modèle lui donne ses mots, ses statuts et ses champs.",
+            "en": "Open “Catalog” in the Business group of the menu. A template gives it its own words, statuses and fields."
           },
           {
             "fr": "Cherche, filtre par statut, passe des cartes à la liste. Clique un élément pour le voir, le modifier ou l’archiver.",
@@ -3045,8 +3049,8 @@
           }
         ],
         "where": {
-          "fr": "Dans le menu, groupe Business, ligne Catalogue",
-          "en": "In the menu, Business group, Catalog row",
+          "fr": "Dans le groupe Business de la barre latérale",
+          "en": "In the Business group of the sidebar",
           "page": true
         },
         "good": {
@@ -3067,8 +3071,8 @@
       "defaut": null,
       "poids_ko": 12,
       "promesse": {
-        "fr": "Commandes, dossiers ou candidatures en cartes sur un tableau qui avance d’étape en étape, avec les étapes que définit ton thème. Sa page arrive dans une prochaine version.",
-        "en": "Orders, deals or candidates as cards on a board that moves from stage to stage, with the stages your theme defines. Its page arrives in a later release."
+        "fr": "Commandes, dossiers ou candidatures en cartes sur un tableau qui avance d’étape en étape, avec les étapes que définit ton modèle. Glisse une carte, ou déplace-la avec les flèches.",
+        "en": "Orders, deals or candidates as cards on a board that moves from stage to stage, with the stages your template defines. Drag a card, or move it with the arrow keys."
       },
       "aide": {
         "what": {
@@ -3077,26 +3081,26 @@
         },
         "steps": [
           {
-            "fr": "Active Pipeline ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-            "en": "Switch Pipeline on here, or install a theme that needs it: the theme installs it with it."
+            "fr": "Ouvre Pipeline dans le groupe Business de la barre latérale. Sans modèle : un tableau simple. Un modèle apporte ses étapes.",
+            "en": "Open Pipeline in the sidebar's Business group. Without a template: a simple board. A template brings its own stages."
           },
           {
-            "fr": "Un thème décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
-            "en": "A theme describes its boards: stages, value, links; Kybernos checks that description when you install it."
+            "fr": "Ajoute une carte avec le bouton en haut à droite, puis glisse-la vers une autre colonne. Au clavier : flèches gauche et droite.",
+            "en": "Add a card with the top-right button, then drag it to another column. With the keyboard: left and right arrows on a card."
           },
           {
-            "fr": "La page Pipeline elle-même, avec le tableau, le glisser-déposer et les flèches au clavier, arrive dans une prochaine version.",
-            "en": "The Pipeline page itself, with the board, drag and drop and the keyboard arrows, arrives in a later release."
+            "fr": "Clique une carte pour la modifier, la lier à un contact ou à un élément du catalogue, ou l’archiver. Les lignes « démo » s’effacent.",
+            "en": "Click a card to edit it, link it to a contact or a catalog item, or archive it. The “demo” rows clear in one click."
           }
         ],
         "where": {
-          "fr": "Dans la Suite, une fois activé",
-          "en": "In the Suite, once switched on",
-          "page": false
+          "fr": "Dans le groupe Business de la barre latérale",
+          "en": "In the Business group of the sidebar",
+          "page": true
         },
         "good": {
-          "fr": "Ton assistant pourra lire et déplacer les cartes ; chaque déplacement laissera une ligne dans le journal, et il te demandera avant d’écrire.",
-          "en": "Your assistant will be able to read and move the cards; every move will leave a line in the log, and it will ask before it writes."
+          "fr": "Ton assistant peut lire le tableau et déplacer une carte ; il te demande ton accord avant chaque déplacement, et chaque déplacement laisse une ligne dans le journal. Tout reste sur cet ordinateur.",
+          "en": "Your assistant can read the board and move a card; it asks you before each move, and each move leaves a line in the log. Everything stays on this computer."
         }
       }
     }

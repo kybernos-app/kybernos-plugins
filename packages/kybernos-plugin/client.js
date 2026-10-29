@@ -3132,7 +3132,7 @@ const KB_NAV_KEYS = {
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-log': 'activity log', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
-  // The themes listing's Settings entrance (A7, M2): « Thèmes » is drawn from the label, and the page title the menu knows is 'themes'.
+  // The themes listing's Settings entrance (A7, M2): « Modèles » / « Templates » is drawn from the label; the title the menu knows stays 'themes' (an internal key: the icon and the group read it).
   'kybernos-themes-market': 'themes',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
@@ -3274,7 +3274,7 @@ const KB_SS_INDEX = [
   ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine'],
   // The themes listing (A7): one row, because test-settings-search.mjs:39 requires a row for every page of the menu. The listing itself
   // is drawn from A6's GET /kybernos/themes, so this row finds the page; it holds no setting of its own.
-  ['themes', '', 'Install a sector theme', 'The sector themes the catalogues you added offer, each with the level the verifier answered.', '', 'themes theme market marketplace install sector packs'],
+  ['themes', '', 'Install a sector template', 'The sector templates the catalogues you added offer, each with the level the verifier answered.', '', 'templates template market marketplace install sector packs'],
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
@@ -3375,7 +3375,7 @@ const KB_SS_FR = {
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
   'about|Version': ['Version', '', 'Moteur DSH'],
   // The themes listing (A7): its French twin, required for every row of the index (test-settings-search.mjs:146).
-  'themes|Install a sector theme': ['Installer un thème sectoriel', 'Les thèmes sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
+  'themes|Install a sector template': ['Installer un modèle sectoriel', 'Les modèles sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
 }
 // The tabs and sections of the French pages.
 const KB_SS_SEC_FR = { Behaviour: 'Comportement', Essentials: 'Essentiel', 'Glass and background': 'Verre et fond', Colors: 'Couleurs', 'Text and shape': 'Texte et forme', Animation: 'Animation', Icons: 'Icônes', Accessibility: 'Accessibilité' }
@@ -9062,8 +9062,6 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-grid{display:flex;flex-direction:column;gap:8px}
 .kbg-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px}
 .kbg-card .kbg-desc,.kbg-card .kbg-cta{display:none}
-[data-kb-page="themes"] .kbg-card .kbg-desc{display:block}
-[data-kb-page="themes"] .kbg-card .kbg-cta{display:flex}
 .kbg-card .kbg-cardhead{flex:1;min-width:0}
 .kbg-card .kbg-stats{margin-left:auto;gap:8px;flex:none}
 .kbg-card .kbg-roles{flex-basis:100%}
@@ -9083,6 +9081,104 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-chip:hover{border-color:var(--dsw-alias-border-l2)}
 .kbg-chip-on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}
 .kbg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:24px}
+/* The Themes page (kb-themes-gallery): cards with a drawn cover, a theme page, the plan as a dialog. DSH tokens only; the cover is art on the theme's own colour. */
+.kbgal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin:22px 0 0;padding:0;list-style:none}
+.kbgal-li{display:flex;min-width:0}
+.kbgal-card{display:flex;flex-direction:column;width:100%;padding:0;text-align:left;font:inherit;color:inherit;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:14px;overflow:hidden;cursor:pointer}
+.kbgal-card:hover{border-color:var(--dsw-alias-border-l2)}
+.kbgal-card:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbgal-cover{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}
+.kbgal-art{display:block;width:100%;height:100%}
+.kbgal-img{object-fit:cover}
+.kbgal-next{margin-top:30px}
+.kbgal-ngrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:0;padding:0;list-style:none}
+.kbgal-nli{display:flex;flex-direction:column;min-width:0;border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
+.kbgal-ncover{display:block;aspect-ratio:16/10;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}
+.kbgal-nname{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;font-size:12.5px;color:var(--dsw-alias-label-primary)}
+.kbgal-ctag{position:absolute;left:10px;top:10px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(255,255,255,.9);color:#1d1d1f}
+.kbgal-cok{position:absolute;right:10px;bottom:10px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:#1d1d1f;color:#fff}
+.kbgal-cadd{background:rgba(255,255,255,.9);color:#1d1d1f}
+.kbgal-body{display:flex;flex-direction:column;gap:5px;padding:12px 14px 14px;min-width:0}
+.kbgal-name{font-size:15px;font-weight:650;color:var(--dsw-alias-label-primary)}
+.kbgal-line{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.9em}
+.kbgal-foot{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbgal-sw{display:inline-flex;align-items:center;gap:6px}
+.kbgal-sw i{display:inline-block;width:10px;height:10px;border-radius:50%}
+.kbgal-muted{color:var(--dsw-alias-label-secondary);font-size:13.5px;line-height:1.5}
+.kbgal-add{margin-top:34px;padding-top:6px;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbgal-addrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.kbgal-input{flex:1 1 280px;min-width:0;max-width:520px}
+.kbgal-crumb{margin:2px 0 14px;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kbgal-crl{background:none;border:none;padding:0;font:inherit;color:var(--dsw-alias-label-secondary);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.kbgal-crl:hover{color:var(--dsw-alias-label-primary)}
+.kbgal-thead{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) auto;gap:20px;align-items:start}
+.kbgal-cover-lg{border-radius:14px}
+.kbgal-ttext{min-width:0}
+.kbgal-h2{margin:0 0 4px;font-size:22px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbgal-counts{margin:10px 0 0;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kbgal-cta{display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:150px}
+.kbgal-banner{margin-top:16px;padding:10px 14px;border-radius:12px;font-size:13px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary)}
+.kbgal-sech{display:flex;align-items:center;gap:8px;margin:26px 0 10px;font-size:14px;font-weight:650;color:var(--dsw-alias-label-primary)}
+.kbgal-tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
+.kbgal-tagok{margin-left:auto;padding:1px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.kbgal-ok{color:var(--dsw-alias-state-success-primary);border:1px solid var(--dsw-alias-state-success-primary)}
+.kbgal-warn{color:var(--dsw-alias-state-warn-primary);border:1px solid var(--dsw-alias-state-warn-primary)}
+.kbgal-plist{display:flex;flex-direction:column;gap:8px}
+.kbgal-pl{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
+.kbgal-pico{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);flex:none}
+.kbgal-pbody{min-width:0;display:flex;flex-direction:column;gap:2px;font-size:14px;color:var(--dsw-alias-label-primary)}
+.kbgal-pbody small{font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbgal-kit{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.kbgal-kcard{padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);min-width:0}
+.kbgal-kcard h4{margin:0 0 8px;font-size:12.5px;font-weight:650;color:var(--dsw-alias-label-secondary)}
+.kbgal-tags{display:flex;flex-wrap:wrap;gap:6px}
+.kbgal-veil{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.45)}
+.kbgal-dlg{width:min(720px,100%);max-height:calc(100vh - 40px);overflow:auto;box-sizing:border-box;padding:22px 24px;border-radius:18px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);outline:none;box-shadow:0 24px 60px rgba(0,0,0,.28)}
+.kbgal-dlg h3{margin:0 0 8px;font-size:17px;font-weight:700}
+.kbgal-dlg p{margin:0 0 12px;font-size:13.5px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
+.kbgal-gh{margin:10px 0 4px;font-size:11.5px;font-weight:650;letter-spacing:.04em;text-transform:none;color:var(--dsw-alias-label-secondary)}
+.kbgal-dhead{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.kbgal-dhead h3{margin:0 0 4px}
+.kbgal-dhead p{margin:0}
+.kbgal-dthumb{display:block;width:56px;height:56px;border-radius:14px;overflow:hidden;flex:none;background:var(--dsw-alias-bg-layer-2)}
+.kbgal-dsec{margin:14px 0 0}
+.kbgal-pills{display:flex;flex-wrap:wrap;gap:8px}
+.kbgal-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbgal-pill-warn{border-color:var(--dsw-alias-state-warn-primary)}
+.kbgal-pill-s{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-state-success-primary)}
+.kbgal-pill-warn .kbgal-pill-s{color:var(--dsw-alias-state-warn-primary)}
+.kbgal-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kbgal-tile{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);min-width:0}
+.kbgal-tico{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);flex:none}
+.kbgal-tbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.kbgal-tbody small{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbgal-always{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;color:var(--dsw-alias-label-secondary);flex:none}
+.kbgal-switch{position:relative;flex:none;width:40px;height:24px;padding:0;border:none;border-radius:999px;background:var(--dsw-alias-border-l2);cursor:pointer;transition:background .15s}
+.kbgal-switch.on,.kbgal-switch.part{background:var(--dsw-alias-brand-primary)}
+.kbgal-switch.part{opacity:.6}
+.kbgal-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.kbgal-switch.on .kbgal-knob,.kbgal-switch.part .kbgal-knob{transform:translateX(16px)}
+.kbgal-switch:disabled{opacity:.4;cursor:not-allowed}
+.kbgal-switch:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbgal-custom-btn{display:inline-flex;align-items:center;gap:6px;margin:14px 0 0;padding:4px 2px;border:none;background:none;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbgal-custom-btn:hover{color:var(--dsw-alias-label-primary)}
+.kbgal-chev{display:inline-flex;transition:transform .15s}
+.kbgal-chev.open{transform:rotate(180deg)}
+.kbgal-custom{margin:8px 0 0;padding:6px 4px 0;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbgal-dgroup{display:flex;flex-direction:column;gap:2px;margin:8px 0}
+.kbgal-crow{display:flex;align-items:center;gap:10px;padding:5px 2px;font-size:13px;min-width:0}
+.kbgal-cname{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbgal-cfile{margin-left:auto;font-size:11.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere;text-align:right}
+.kbgal-consent{display:flex;align-items:center;gap:12px;margin:16px 0 0;padding:12px 14px;border-radius:14px;background:var(--dsw-alias-bg-layer-2);font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary)}
+.kbgal-okbadge{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--dsw-alias-state-success-primary);color:var(--dsw-alias-bg-layer-1);flex:none}
+.kbgal-okbadge-warn{background:var(--dsw-alias-state-warn-primary)}
+@media (max-width:640px){.kbgal-tiles{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.kbgal-switch,.kbgal-knob,.kbgal-chev{transition:none}}
+.kbgal-acts{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap}
+.kbgal-rlines{display:flex;flex-direction:column;gap:2px;margin:10px 0}
+.kbgal-rline{display:flex;justify-content:space-between;gap:12px;padding:6px 10px;border-radius:8px;font-size:13.5px}
+.kbgal-rline:nth-child(odd){background:var(--dsw-alias-bg-layer-2)}
+@media (max-width:760px){.kbgal-thead{grid-template-columns:minmax(0,1fr)}.kbgal-cta{flex-direction:row;flex-wrap:wrap}.kbgal-cover-lg{max-width:320px}}
 .kbg-card{display:flex;flex-direction:column;gap:10px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:20px}
 .kbg-cardhead{display:flex;align-items:center;gap:12px}
 .kbg-avatar{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-weight:700;font-size:15px;flex:none}
@@ -25262,7 +25358,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           : null),
         h('div', { className: 'kbm-cb-foot2' }, (m.foot !== '' ? m.foot : (m.info !== '' ? m.info : 'No benchmark or price data on file for this model.'))))
     }
-    // props: cid, label, pool, searchPool, value, onPick, noneLabel/onNone (a "no value" row), matchFn, disabledOf(m) → reason,
+    // props: cid, label, pool, searchPool, value (+ valueProvider: the route, when two providers serve the same id), onPick, noneLabel/onNone (a "no value" row), matchFn, disabledOf(m) → reason,
     //        disabled, disabledText, panelMode, onInspect(m), typeOf (role type: a row of another type shows its type)
     const KbmCombo = (props) => {
       const p = props
@@ -25301,9 +25397,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         for (const m of take) rows.push({ m: m })
       }
       const options = rows.filter((x) => x.head === undefined)
-      const selRow = pool.find((m) => m.id === p.value) || searchPool.find((m) => m.id === p.value) || null
+      const sameRoute = (m) => (m.id === p.value && (p.valueProvider === undefined || p.valueProvider === '' || m.provider === p.valueProvider))
+      const selRow = pool.find(sameRoute) || searchPool.find(sameRoute) || pool.find((m) => m.id === p.value) || searchPool.find((m) => m.id === p.value) || null
       // act < 0: nothing moved yet, the highlight sits on the current value (or the first row).
-      const selIdx = (selRow === null) ? -1 : options.findIndex((o) => o.m !== undefined && o.m.id === selRow.id)
+      const selIdx = (selRow === null) ? -1 : options.findIndex((o) => o.m !== undefined && o.m === selRow)
       const actIdx = Math.max(0, Math.min(options.length - 1, st.act >= 0 ? st.act : (selIdx >= 0 ? selIdx : 0)))
       const hl = (options.length > 0 && options[actIdx].m !== undefined) ? options[actIdx].m : null
       const optId = (i) => p.cid + '-o' + i
@@ -25372,7 +25469,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         }
         const m = x.m
         const why = disabledOf(m)
-        const isSel = (selRow !== null && selRow.id === m.id)
+        const isSel = (selRow !== null && selRow === m)
         optionNodes.push(h('div', { key: m.provider + '|' + m.id, id: optId(i), 'data-i': String(i), role: 'option', 'aria-selected': String(isSel), 'aria-disabled': String(why !== ''), className: 'kbm-cb-opt' + (i === actIdx ? ' act' : '') + (isSel ? ' sel' : '') + (why !== '' ? ' dis' : ''), title: why, onMouseMove: () => { if (i !== actIdx) { setSt((old) => Object.assign({}, old, { act: i })); inspect(m) } }, onMouseDown: (ev) => ev.preventDefault(), onClick: () => choose(x) },
           h('span', { className: 'kbm-cb-dot ' + m.health }),
           h('span', { className: 'kbm-mono kbm-cb-id' }, m.id),
@@ -25406,7 +25503,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     const kbmRoleFields = (f) => h('div', { className: 'kbm-mf' },
       h('div', { className: 'kbm-mf-row' },
         h('span', { className: 'kbm-mono kbm-mf-lab' }, 'Primary'),
-        h(KbmCombo, { cid: f.cid + '-p', label: 'Primary model', pool: f.pool, searchPool: f.searchPool, value: f.primaryId, matchFn: f.matchFn, typeOf: f.type, disabled: f.isAuto, disabledText: 'Kybernos picks', panelMode: f.panelMode, onInspect: f.inspect, onPick: f.pickPrimary, noneText: 'No model' }),
+        h(KbmCombo, { cid: f.cid + '-p', label: 'Primary model', pool: f.pool, searchPool: f.searchPool, value: f.primaryId, valueProvider: f.primaryProvider, matchFn: f.matchFn, typeOf: f.type, disabled: f.isAuto, disabledText: 'Kybernos picks', panelMode: f.panelMode, onInspect: f.inspect, onPick: f.pickPrimary, noneText: 'No model' }),
         h('button', { type: 'button', className: 'kbm-pill kbm-mf-probe', onClick: f.runCheck, title: 'Run a real health probe on the models of this role' },
           kbmSvg(KBM_I.pulse, '#16A34A', 12), ' Probe all')),
       h('div', { className: 'kbm-mf-row' },
@@ -26038,7 +26135,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const ranked = kbmRank(list, rs.type, needIdx, prefsPriority)
         const autoPrimary = ranked.sorted.length > 0 ? ranked.sorted[0] : null
         const autoFallback = ranked.sorted.length > 1 ? ranked.sorted[1] : null
-        const selected = all.find((m) => m.id === rs.model) || null
+        // The declared route first: the same id can be served by several providers, and the first one in the list is not the role's.
+        const selected = all.find((m) => m.id === rs.model && m.provider === rs.provider) || all.find((m) => m.id === rs.model) || null
         const manualFb = all.find((m) => m.id === rs.fallback) || null
         const primary = isAuto ? autoPrimary : selected
         const fallback = isAuto ? autoFallback : manualFb
@@ -26106,6 +26204,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           matchFn: (m) => kbmMatches(m, rs.req),
           isAuto: isAuto,
           primaryId: (primary !== null) ? primary.id : rs.model,
+          primaryProvider: (primary !== null) ? primary.provider : rs.provider,
           fallbackId: (fallback !== null) ? fallback.id : rs.fallback,
           panelMode: panelVariant,
           inspect: (m) => setUi((old) => Object.assign({}, old, { panelSel: id + ':' + m.id })),
@@ -27183,6 +27282,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // 4. the kit: one item at a time, a failure counted and the next one tried (the wizard's kitAdded/kitFailed).
         for (const it of pendingSkills) {
           const name = nameOf(it)
+          // a skill the theme carries in its own folder is copied by the host from there (a shipped theme); any other falls through to the routes below
+          const own = await send('/kybernos/themes', { action: 'skill', id: plan.id, name })
+          if (kbThPlain(own) && own.ok === true) { report.added += 1; continue }
           const fromPlugin = (kbThStr(it.source) ?? 'kybernos') === 'kybernos'
           const r = await send(fromPlugin ? '/kybernos/domain/skill' : '/kybernos-skills/install', fromPlugin ? { name } : { source: kbThStr(it.source), name })
           if (kbThPlain(r) && (r.ok === true || r.error === 'already_installed')) report.added += 1
@@ -27283,6 +27385,16 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // KB-TH-CORE-END
     // ── the page's wiring: fetch, the host bridge and the style seam (never read by the tests) ──
     const kbThEn = (en, fr) => { try { return kbLangResolve() === 'fr' ? fr : en } catch (e) { return en } }
+    /** A text the data files give in two languages ({ en, fr }) becomes the one in use, anywhere in a body; any other value is left alone. `kybers/create` wants plain strings. */
+    const kbThFlat = (v) => {
+      if (Array.isArray(v)) return v.map(kbThFlat)
+      if (!kbThPlain(v)) return v
+      const keys = Object.keys(v)
+      if (typeof v.en === 'string' && keys.every((k) => /^[a-z]{2}(-[A-Za-z]{2})?$/.test(k) && typeof v[k] === 'string')) return kbThEn(v.en, typeof v.fr === 'string' ? v.fr : v.en)
+      const out = {}
+      for (const k of keys) out[k] = kbThFlat(v[k])
+      return out
+    }
     /** The sentence for a refusal of DSH's manager (see kbThManagerIssue); every code gets words, none is shown raw. */
     const kbThManagerWords = (issue) => {
       if (issue === 'not-bundle') return kbThEn('DSH installs a package only as a bundle. This theme’s package.json needs an empty patch: "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, and a cordis.patch.yml that holds []. The starter has both.', 'DSH n’installe un paquet que comme bundle. Le package.json de ce thème a besoin d’un patch vide : "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, et un cordis.patch.yml qui contient []. Le modèle de départ a les deux.')
@@ -27337,6 +27449,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           // Into DSH's own store, like the starter kit: a welcome page must not add a `kybers/` folder to the person's project. The flag is
           // set as an assignment on purpose: test-kyber-root.mjs counts the literal `home` value in this file as text (its invariant is the
           // starter kit's, and this page joins it), so the page sets the property instead of repeating the literal. The body is the same.
+          if (body !== null) body = kbThFlat(body)
           if (body !== null) body.home = true
           return body
         },
@@ -27434,6 +27547,29 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     /** The registry reuses a scan for two seconds; after a change DSH made, ask for a fresh one so the next answer is never the scan from before. */
     const kbThFreshRegistry = async () => { try { await fetch('/kybernos-registry/state?fresh=1', { cache: 'no-store', credentials: 'same-origin' }) } catch (e) { /* the next read still works, up to two seconds late */ } }
+    /** A POST to one of the Suite's routes: the answer, or { ok: false, error } (never throws). */
+    const kbThPost = async (url, body) => {
+      try {
+        const res = await fetch(url, { method: 'POST', cache: 'no-store', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        const answer = await res.json()
+        return kbThPlain(answer) ? answer : { ok: false, error: 'bad-answer' }
+      } catch (e) { return { ok: false, error: 'network' } }
+    }
+    /** The Suite's own words for « these plugins, on »: the choice of each is written, then the robot links them once (the last call), like its Install button.
+     *  Nothing is live before DSH restarts; a refusal puts the choices already written back. */
+    const kbThSwitchOn = async (needs) => {
+      const ids = needs.map((n) => String(n).replace(/^kybernos\//, 'kybernos-'))
+      const written = []
+      for (let i = 0; i < ids.length; i += 1) {
+        const answer = await kbThPost('/kybernos-hub/module', { id: ids[i], action: i === ids.length - 1 ? 'installer' : 'activer' })
+        if (answer.ok !== true) {
+          for (const id of written) await kbThPost('/kybernos-hub/module', { id, action: 'desactiver' })
+          return { ok: false, error: kbThStr(answer.error) ?? 'refused', switched: [] }
+        }
+        written.push(ids[i])
+      }
+      return { ok: true, switched: ids }
+    }
     /** The package DSH's manager knows an installed theme by, from the registry, or null. */
     const kbThPackageOf = async (id) => {
       try {
@@ -27491,6 +27627,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       verified: kbThEn('Verified', 'Vérifié'),
       community: kbThEn('Community', 'Communauté'),
       local: kbThEn('Local development', 'Développement local'),
+      included: kbThEn('Included', 'Inclus'),
       unlisted: kbThEn('Unlisted', 'Non répertorié'),
       yanked: kbThEn('Withdrawn', 'Retiré'),
       revoked: kbThEn('Revoked', 'Révoqué'),
@@ -27503,9 +27640,81 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return Object.keys(menu.labels).map((k) => k + ': ' + kbThLabel(menu.labels[k])).join(' · ')
     }
 
+    // ── the gallery (the validated « Business Plugins » mockup): cards with a drawn cover, a theme page, the plan as a dialog ──────────
+    // <kb-themes-gallery>
+    // Pure helpers of the page: what the gallery lists, what a plugin is called, what a cover looks like. No fetch, no state.
+    const kbThHash = (s) => { let x = 2166136261; const t = String(s); for (let i = 0; i < t.length; i++) { x ^= t.charCodeAt(i); x = Math.imul(x, 16777619) } return x >>> 0 }
+    const kbThAccent = (v) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : '#6b7280')
+    /** The cover of a theme: DRAWN from its id and its colour, never a picture file (AGENTS rule 4: no media in git). */
+    const kbThCover = (id, accent) => {
+      const n = kbThHash(id)
+      const a = typeof accent === 'string' && accent !== '' ? accent : 'hsl(' + (n % 360) + ' 42% 42%)'
+      const f = (k, lo, hi) => lo + (((n >>> k) & 255) / 255) * (hi - lo)
+      const gid = 'kbgalg' + n
+      return h('svg', { className: 'kbgal-art', viewBox: '0 0 320 180', preserveAspectRatio: 'xMidYMid slice', 'aria-hidden': 'true', focusable: 'false' }, [
+        h('defs', { key: 'd' }, h('linearGradient', { id: gid, x1: '0', y1: '0', x2: '1', y2: '1' }, [h('stop', { key: 'a', offset: '0', stopColor: a }), h('stop', { key: 'b', offset: '1', stopColor: a, stopOpacity: '.62' })])),
+        h('rect', { key: 'bg', width: 320, height: 180, fill: 'url(#' + gid + ')' }),
+        h('circle', { key: 'c1', cx: f(0, 200, 300), cy: f(8, 20, 90), r: f(16, 60, 110), fill: '#fff', opacity: '.14' }),
+        h('circle', { key: 'c2', cx: f(24, 20, 140), cy: f(4, 110, 190), r: f(12, 40, 90), fill: '#fff', opacity: '.1' }),
+        h('rect', { key: 'r1', x: f(20, 120, 220), y: f(10, 40, 100), width: f(2, 60, 110), height: f(6, 40, 70), rx: 14, fill: '#000', opacity: '.1', transform: 'rotate(' + Math.round(f(14, -18, 18)) + ' 200 100)' }),
+        h('path', { key: 'p', d: 'M0 ' + Math.round(f(18, 130, 160)) + ' C 90 ' + Math.round(f(22, 100, 150)) + ', 200 ' + Math.round(f(26, 150, 185)) + ', 320 ' + Math.round(f(30, 110, 160)) + ' V180 H0 Z', fill: '#fff', opacity: '.16' }),
+      ])
+    }
+    /** A cover: the theme's own picture when it ships one and it loads, else the drawn art above. */
+    const KbThCoverArt = (props) => {
+      const failed = React.useState(false)
+      if (typeof props.src === 'string' && failed[0] !== true) return h('img', { className: 'kbgal-art kbgal-img', src: props.src, alt: '', loading: 'lazy', draggable: false, onError: () => failed[1](true) })
+      return kbThCover(props.id, props.accent)
+    }
+    /** A switch (role=switch): on, off, or `mixed` when only some of a group is ticked. */
+    const KbThSwitch = (props) => h('button', { type: 'button', role: 'switch', 'aria-checked': props.part === true ? 'mixed' : (props.on === true ? 'true' : 'false'), 'aria-label': props.label, disabled: props.disabled === true, className: 'kbgal-switch' + (props.on === true ? ' on' : '') + (props.part === true ? ' part' : ''), 'data-kb': props.hook, onClick: props.onClick }, h('span', { className: 'kbgal-knob' }))
+    /** The three plugins of the Business group: how a theme page names them (the words of the menu row come from the theme's pack). */
+    const KB_TH_PLUGINS = {
+      'kybernos/contacts': { row: 'contacts', icon: 'users', name: 'Contacts', blurb: ['People and companies, with notes and history.', 'Des personnes et des entreprises, avec notes et historique.'] },
+      'kybernos/catalog': { row: 'catalog', icon: 'package', name: 'Catalog', blurb: ['Items with typed fields and a status.', 'Des éléments avec des champs typés et un statut.'] },
+      'kybernos/pipeline': { row: 'pipeline', icon: 'columns', name: 'Pipeline', blurb: ['Cards that move through stages on a board.', 'Des cartes qui avancent d’étape en étape sur un tableau.'] },
+    }
+    /**
+     * What the gallery lists, one entry per theme id: the shipped themes first, then the catalogue's, then what is only added or installed.
+     * `state`: 'installed' (a record), 'added' (in the profile, not applied), 'available'. `shipped` and `catalogue` carry the source's own data.
+     */
+    const kbThEntries = (data) => {
+      const d = kbThPlain(data) ? data : {}
+      const out = []
+      const by = {}
+      const put = (id, patch) => {
+        if (by[id] === undefined) { by[id] = { id, state: 'available', level: null, shipped: null, catalogue: null, record: null, name: id, version: null }; out.push(by[id]) }
+        return Object.assign(by[id], patch)
+      }
+      for (const t of (Array.isArray(d.shipped) ? d.shipped : []).filter(kbThPlain)) if (typeof t.id === 'string') put(t.id, { shipped: t, name: kbThLabel(t.name) || t.id, level: 'included', version: kbThStr(t.version) })
+      for (const t of (Array.isArray(d.themes) ? d.themes : []).filter(kbThPlain)) if (typeof t.id === 'string') put(t.id, { catalogue: t, name: kbThLabel(t.name) || t.id, level: kbThStr(t.level) ?? 'community', version: kbThStr(t.version) })
+      for (const p of (Array.isArray(d.plugins) ? d.plugins : []).filter(kbThPlain)) {
+        if (typeof p.id !== 'string') continue
+        const had = by[p.id] !== undefined
+        put(p.id, had ? { state: 'added' } : { state: 'added', name: kbThLabel(p.name) || p.id, level: kbThStr(p.level) ?? 'local', version: kbThStr(p.version) })
+      }
+      for (const r of (Array.isArray(d.installed) ? d.installed : []).filter(kbThPlain)) {
+        if (typeof r.id !== 'string') continue
+        const had = by[r.id] !== undefined
+        put(r.id, had ? { state: 'installed', record: r } : { state: 'installed', record: r, name: r.id, level: kbThStr(r.level) ?? 'local', version: kbThStr(r.version) })
+      }
+      return out
+    }
+    /** A line for a card or a page head: the pack's tagline, else the theme's description, else nothing. */
+    /** The address of a shipped theme's picture, or `null` when it ships none. */
+    const kbThCoverSrc = (e) => (e.shipped !== null && e.shipped.cover === true ? '/kybernos/themes/cover?id=' + encodeURIComponent(e.id) : null)
+    const kbThLine = (e) => (e.shipped !== null ? (kbThLabel(e.shipped.tagline) || kbThLabel(e.shipped.description)) : '')
+    /** The label of the chip over a cover: the field it speaks for, else the level the verifier answered. */
+    const kbThChip = (e) => (e.shipped !== null && typeof e.shipped.tag === 'string' && e.shipped.tag !== '' ? e.shipped.tag : (e.shipped !== null && kbThLabel(e.shipped.field) !== '' ? kbThLabel(e.shipped.field) : kbThLevelLabel(e.level)))
+    /** The ids of the plugins a theme names that this profile does not have: `owners` is the set of owners that told their points to the registry. */
+    const kbThMissing = (e, owners) => (e.shipped !== null && Array.isArray(e.shipped.needs) ? e.shipped.needs.filter((id) => !owners.has(id)) : [])
+    // </kb-themes-gallery>
+    /** The owners that have told their points to the registry (`kybernos/contacts`…): a plugin a theme needs is installed when it is among them. */
+    const kbThOwners = async () => { try { const r = await fetch('/kybernos-registry/state', { cache: 'no-store', credentials: 'same-origin' }).then((x) => x.json()); const out = new Set(); for (const p of kbThPlain(r) && Array.isArray(r.points) ? r.points : []) if (kbThPlain(p) && typeof p.id === 'string') out.add(p.id.split('#')[0]); return out } catch (e) { return new Set() } }
+
     // ── the page: the cards, then the ONE plan screen (style + field + kit, one primary action) ──
     const KbThemesView = () => {
-      const [screen, setScreen] = React.useState('cards')
+      const [screen, setScreen] = React.useState('gallery')
       const [data, setData] = React.useState(null)
       const [plan, setPlan] = React.useState(null)
       const [ticks, setTicks] = React.useState(null)
@@ -27513,13 +27722,42 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const [busy, setBusy] = React.useState(null)
       const [report, setReport] = React.useState(null)
       const [error, setError] = React.useState(null)
+      const [pick, setPick] = React.useState(null)
+      const [owners, setOwners] = React.useState(() => new Set())
+      const [restart, setRestart] = React.useState(null)
+      // DSH restarts, comes back, and the page reloads onto the new plugins (the Suite's own wait)
+      const relaunch = async () => {
+        setRestart('running')
+        const answer = await kbThPost('/kybernos-hub/relaunch', { confirm: true })
+        if (answer.ok !== true) { setRestart(answer.error === 'busy' ? 'busy' : 'error'); return }
+        const began = Date.now()
+        const wait = async () => {
+          let up = false
+          try { const r = await fetch('/kybernos-hub/state', { cache: 'no-store', credentials: 'same-origin' }); up = r.ok } catch (e) { up = false }
+          if (up && Date.now() - began > 4000) { window.location.reload(); return }
+          if (Date.now() - began > 120000) { setRestart('error'); return }
+          setTimeout(wait, 2000)
+        }
+        setTimeout(wait, 3000)
+      }
+      const [consent, setConsent] = React.useState(false)
+      const [seen, setSeen] = React.useState(null)
+      const [customise, setCustomise] = React.useState(false)
       const load = async () => {
         setBusy('load')
         const answer = await kbThApi()
-        setData(kbThPlain(answer) && answer.ok === true ? answer : { ok: false, installed: [], themes: [], sources: [], refused: [], plugins: [] })
+        setData(kbThPlain(answer) && answer.ok === true ? answer : { ok: false, installed: [], themes: [], shipped: [], sources: [], refused: [], plugins: [] })
+        setOwners(await kbThOwners())
         setBusy(null)
       }
       React.useEffect(() => { load() }, [])
+      // Escape closes the dialog over a theme page (the plan, or the report)
+      React.useEffect(() => {
+        if (screen !== 'plan' && screen !== 'report') return undefined
+        const onKey = (ev) => { if (ev.key === 'Escape' && busy !== 'install') { setPlan(null); setReport(null); setScreen(pick !== null ? 'theme' : 'gallery') } }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+      }, [screen, pick, busy])
       const openPlan = async (id) => {
         setBusy('plan')
         setError(null)
@@ -27528,14 +27766,20 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         setBusy(null)
         if (!kbThPlain(answer) || answer.ok !== true || !kbThPlain(answer.plan)) { setError(kbThPlain(answer) ? kbThStr(answer.error) ?? 'no-plan' : 'no-plan'); return }
         setPlan(answer.plan)
-        setTicks(kbThDefaultTicks(answer.plan, seen))
+        const withSample = (Array.isArray(data?.shipped) ? data.shipped : []).find((t) => kbThPlain(t) && t.id === id)
+        setTicks(Object.assign(kbThDefaultTicks(answer.plan, seen), { demo: kbThPlain(withSample) && kbThPlain(withSample.sample) }))
         setReport(null)
+        setPick(id)
+        setConsent(false)
+        setSeen(seen)
+        setCustomise(false)
         setScreen('plan')
       }
-      const stageFolder = async () => {
+      // A theme comes in through DSH's own manager, then its plan opens: from a folder the person typed, or a shipped theme by its id.
+      const stageWith = async (body) => {
         setBusy('stage')
         setError(null)
-        const answer = await kbThApi({ action: 'stage', folder: folder.trim() })
+        const answer = await kbThApi(body)
         if (!kbThPlain(answer) || answer.ok !== true) { setBusy(null); setError(kbThPlain(answer) ? (kbThStr(answer.reason) ?? kbThStr(answer.error) ?? 'stage') : 'stage'); return }
         const mgr = kbThManager()
         if (mgr === null) { setBusy(null); setError(kbThEn('DSH’s plugin manager is not available on this version.', 'Le gestionnaire de plugins de DSH n’est pas disponible sur cette version.')); return }
@@ -27546,8 +27790,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const issue = kbThManagerIssue(installed)
         if (!kbThInstalledOk(issue)) { setError(kbThManagerWords(issue)); return }
         await kbThFreshRegistry()
+        await load()
         await openPlan(answer.stage.id)
       }
+      const stageFolder = () => stageWith({ action: 'stage', folder: folder.trim() })
       const toggle = (kind, value) => {
         setTicks((t) => {
           if (t === null) return t
@@ -27563,6 +27809,17 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const seen = await kbThPresence(ports)
         const look = kbThLook()
         const rep = await kbThApply(plan, ticks, ports)
+        // the plugins the template needs are switched on the way the Suite's Install button does it; their pages show once DSH has restarted
+        const needs = sel !== null ? kbThMissing(sel, owners) : []
+        rep.plugins = needs.length > 0 ? await kbThSwitchOn(needs) : null
+        if (rep.plugins !== null && rep.plugins.ok !== true) rep.failed += needs.length
+        setRestart(null)
+        // the sample rows (marked demo) go into the business base through the host, which knows the theme's folder
+        rep.demo = 'skipped'
+        if (ticks.demo === true) {
+          const sown = await kbThApi({ action: 'seed', id: plan.id })
+          rep.demo = kbThPlain(sown) && sown.ok === true ? (sown.skipped === true ? 'already there' : 'added') : 'failed'
+        }
         const applied = {
           style: kbThAppliedLook(kbThPlain(plan.style) ? kbThStr(plan.style.id) : null, rep),
           domain: rep.domain === 'applied' ? { profil: plan.pack.id, goals: ticks.goals } : null,
@@ -27580,156 +27837,308 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         setError(null)
         const gone = await kbThRemoveTheme(record)
         setBusy(null)
-        if (gone.removed !== true) setError(kbThEn('DSH did not remove the package. Your look and field were put back; the theme stays listed.', 'DSH n’a pas retiré le paquet. Ton style et ton domaine ont été remis ; le thème reste listé.'))
+        if (gone.removed !== true) setError(kbThEn('DSH did not remove the package. Your look and field were put back; the template stays listed.', 'DSH n’a pas retiré le paquet. Ton style et ton domaine ont été remis ; le modèle reste listé.'))
         await load()
       }
-      const card = (key, title, level, body, actions) => h('div', { className: 'kbg-card', key }, [
-        h('div', { className: 'kbg-cardhead', key: 'h' }, [
-          h('div', { className: 'kbg-avatar', key: 'a' }, String(title).slice(0, 2).toUpperCase()),
-          h('div', { className: 'kbg-kname', key: 'n' }, String(title)),
-          h('span', { className: 'kbg-pill', key: 'l' }, kbThLevelLabel(level)),
-        ]),
-        h('div', { className: 'kbg-desc', key: 'd' }, body),
-        h('div', { className: 'kbg-cta', key: 'c' }, actions),
-      ])
-      if (screen === 'plan' && plan !== null && ticks !== null) {
-        const rows = []
-        if (kbThPlain(plan.style)) {
-          rows.push(h('label', { className: 'kbg-docrow', key: 'style' }, [
-            h('input', { type: 'checkbox', key: 'c', checked: ticks.style === true, onChange: () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true })) }),
-            h('span', { className: 'kbg-docname', key: 't' }, kbThEn('Style · ', 'Style · ') + (kbThLabel(plan.style.name) || kbThStr(plan.style.id))),
-            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(plan.style.file) ?? ''),
-          ]))
-        }
-        const words = kbThWords(plan.pack)
-        rows.push(h('div', { className: 'kbg-docrow', key: 'field' }, [
-          h('span', { key: 'i', className: 'kbg-docico' }, '▸'),
-          h('span', { className: 'kbg-docname', key: 't' }, kbThEn('Field · ', 'Métier · ') + (kbThLabel(plan.pack.name) || plan.pack.id) + (words !== '' ? ' — ' + words : '')),
-          h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(plan.pack.file) ?? ''),
-        ]))
-        for (const it of Array.isArray(plan.kit.skills) ? plan.kit.skills : []) {
-          rows.push(h('label', { className: 'kbg-docrow', key: 's:' + it.name }, [
-            h('input', { type: 'checkbox', key: 'c', checked: ticks.skills.indexOf(kbThStr(it.name)) >= 0, onChange: () => toggle('skills', kbThStr(it.name)) }),
-            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Skill · ', 'Compétence · ') + kbThStr(it.name)),
-            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
-          ]))
-        }
-        for (const it of Array.isArray(plan.kit.teams) ? plan.kit.teams : []) {
-          rows.push(h('label', { className: 'kbg-docrow', key: 't:' + it.id }, [
-            h('input', { type: 'checkbox', key: 'c', checked: ticks.teams.indexOf(kbThStr(it.id)) >= 0, onChange: () => toggle('teams', kbThStr(it.id)) }),
-            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Team · ', 'Équipe · ') + kbThStr(it.id)),
-            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
-          ]))
-        }
-        for (const it of Array.isArray(plan.kit.automations) ? plan.kit.automations : []) {
-          rows.push(h('label', { className: 'kbg-docrow', key: 'a:' + it.id }, [
-            h('input', { type: 'checkbox', key: 'c', checked: ticks.automations.indexOf(kbThStr(it.id)) >= 0, onChange: () => toggle('automations', kbThStr(it.id)) }),
-            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Automation, off · ', 'Automatisation, arrêtée · ') + (kbThLabel(it.name) || kbThStr(it.id)) + ' · ' + (kbThStr(it.cron) ?? '')),
-            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
-          ]))
-        }
-        const nots = Array.isArray(plan.notInstallable) ? plan.notInstallable : []
-        const rejects = Array.isArray(plan.rejected) ? plan.rejected : []
-        const goalChips = kbThPlain(plan.pack) && Array.isArray(plan.pack.goals)
-          ? plan.pack.goals.filter(kbThPlain).map((g) => h('label', { className: 'kbg-chip' + (ticks.goals.indexOf(g.id) >= 0 ? ' kbg-chip-on' : ''), key: 'g:' + g.id, style: { cursor: 'pointer' } }, [
-            h('input', { type: 'checkbox', key: 'c', checked: ticks.goals.indexOf(g.id) >= 0, onChange: () => toggle('goals', g.id) }),
-            h('span', { key: 't' }, kbThLabel(g.name) || g.id),
-          ]))
-          : []
-        return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
-          h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Install ', 'Installer ') + plan.id)),
-          h('p', { key: 's', className: 'kbg-sub' }, kbThEn('What this theme adds. Everything is ticked unless it is already installed; nothing applies un-ticked.', 'Ce que ce thème apporte. Tout est coché sauf ce qui est déjà installé ; rien ne s’applique décoché.')),
-          goalChips.length > 0 ? h('div', { key: 'g', className: 'kbg-chips' }, goalChips) : null,
-          h('div', { key: 'r', className: 'kbg-grid', style: { marginTop: '16px', gridTemplateColumns: '1fr' } }, rows),
-          nots.length > 0 ? h('div', { key: 'n', className: 'kbg-note' }, nots.map((x) => h('div', { key: 'n:' + x.kind + ':' + x.id }, '— ' + (kbThStr(x.file) ?? '') + ' · ' + (kbThStr(x.why) ?? '')))) : null,
-          rejects.length > 0 ? h('div', { key: 'x', className: 'kbg-note' }, rejects.map((x) => h('div', { key: 'x:' + x.file }, '× ' + (kbThStr(x.file) ?? '') + ' · ' + (Array.isArray(x.errors) ? x.errors.join('; ') : '')))) : null,
-          h('div', { key: 'a', className: 'kbg-cta', style: { marginTop: '18px' } }, [
-            h('button', { key: 'i', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: install }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : kbThEn('Install', 'Installer')),
-            h('button', { key: 'c', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => { setScreen('cards'); setPlan(null); setError(null) } }, kbThEn('Cancel', 'Annuler')),
-          ]),
-        ])
-      }
-      if (screen === 'report' && report !== null) {
-        const line = (label, value) => h('div', { className: 'kbg-docrow', key: label }, [
-          h('span', { key: 'i', className: 'kbg-docico' }, '•'),
-          h('span', { key: 'n', className: 'kbg-docname' }, label),
-          h('span', { key: 'k', className: 'kbg-dockey' }, String(value)),
-        ])
-        return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
-          h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, report.already === true ? kbThEn('Nothing to do', 'Rien à faire') : kbThEn('Applied', 'Appliqué'))),
-          h('div', { key: 'r', className: 'kbg-grid', style: { gridTemplateColumns: '1fr' } }, [
-            line(kbThEn('Added', 'Ajoutés'), report.added),
-            line(kbThEn('Already there', 'Déjà là'), report.present.length),
-            line(kbThEn('Failed', 'Échoués'), report.failed),
-            line(kbThEn('Kept in place (un-ticked)', 'Laissés de côté (décochés)'), report.skipped.length),
-            line(kbThEn('Style', 'Style'), report.style),
-            line(kbThEn('Field', 'Métier'), report.domain),
-          ]),
-          h('div', { key: 'a', className: 'kbg-cta', style: { marginTop: '18px' } }, h('button', { key: 'b', type: 'button', className: 'kbg-open', onClick: () => { setScreen('cards'); setReport(null) } }, kbThEn('Back to themes', 'Retour aux thèmes'))),
-        ])
-      }
-      const installed = kbThPlain(data) && Array.isArray(data.installed) ? data.installed : []
-      const catalogue = kbThPlain(data) && Array.isArray(data.themes) ? data.themes : []
+      // ── what the page shows: the gallery, a theme page, and the plan or the report as a dialog over it ──────────────────
+      const entries = kbThEntries(data)
       const refused = kbThPlain(data) && Array.isArray(data.refused) ? data.refused : []
       const sources = kbThPlain(data) && Array.isArray(data.sources) ? data.sources : []
-      const cards = []
-      for (const r of installed) {
-        const kit = kbThPlain(r.applied) && kbThPlain(r.applied.kit) ? r.applied.kit : {}
-        const kept = (Array.isArray(kit.skills) ? kit.skills.length : 0) + (Array.isArray(kit.teams) ? kit.teams.length : 0) + (Array.isArray(kit.automations) ? kit.automations.length : 0)
-        cards.push(card('i:' + r.id, r.id, kbThStr(r.level) ?? 'local', [
-          h('div', { key: 'v' }, (typeof r.version === 'string' ? 'v' + r.version : '') + (typeof r.at === 'string' ? ' · ' + r.at.slice(0, 10) : '')),
-          h('div', { key: 'k' }, kbThEn('Kit kept on this computer: ', 'Kit conservé sur cet ordinateur : ') + String(kept)),
-        ], [
-          h('button', { key: 'p', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: () => openPlan(r.id) }, kbThEn('See the plan', 'Voir le plan')),
-          h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => remove(r) }, kbThEn('Remove', 'Retirer')),
+      const nextTrades = kbThPlain(data) && Array.isArray(data.next) ? data.next.filter((n) => kbThPlain(n) && typeof n.id === 'string') : []
+      const sel = pick === null ? null : (entries.find((x) => x.id === pick) ?? null)
+      const current = entries.find((x) => x.state === 'installed') ?? null
+      const lang = () => { try { return kbLangResolve() === 'fr' ? 'fr' : 'en' } catch (e) { return 'en' } }
+      const pairText = (v) => { if (kbThPlain(v)) { const t = v[lang()]; return typeof t === 'string' && t !== '' ? t : kbThLabel(v) } return typeof v === 'string' ? v : '' }
+      const accentOf = (e) => (e.shipped !== null && typeof e.shipped.accent === 'string' ? e.shipped.accent : null)
+      const plugInfo = (id) => KB_TH_PLUGINS[id] ?? { row: null, icon: null, name: id, blurb: ['', ''] }
+      const wordOf = (e, row) => (e.shipped !== null && kbThPlain(e.shipped.words) && kbThPlain(e.shipped.words[row]) ? pairText(e.shipped.words[row]) : '')
+      const firstRow = () => { try { return ['contacts', 'catalog', 'pipeline'].find((r) => window.__KB_MENU__ !== undefined && window.__KB_MENU__.has(r)) ?? null } catch (e) { return null } }
+      const openFirst = () => { const r = firstRow(); if (r !== null) { try { window.__KB_OPEN__({ view: r }) } catch (e) { /* the page is not there */ } } }
+      const back = () => { setScreen('gallery'); setPick(null); setPlan(null); setReport(null); setError(null) }
+      const closeDialog = () => { setPlan(null); setReport(null); setScreen(sel !== null ? 'theme' : 'gallery') }
+      const begin = async (e) => {
+        if (busy !== null && busy !== 'load') return
+        setPick(e.id)
+        if (e.state === 'available' && e.shipped !== null) { await stageWith({ action: 'stage', shipped: e.id }); return }
+        if (e.state === 'available' && e.catalogue !== null) {
+          setBusy('install')
+          const r = await kbThSeamInstall({ source: 'catalogue', id: e.id, version: e.version })
+          setBusy(null)
+          setError(kbThPlain(r) && r.ok === true ? null : (kbThStr(kbThPlain(r) ? r.error : null) ?? 'install'))
+          await load()
+          return
+        }
+        await openPlan(e.id)
+      }
+      const chipOf = (e) => kbThChip(e)
+      const working = busy !== null && busy !== 'load'
+      const counts = (e) => {
+        const s = e.shipped
+        if (s === null) return null
+        const a = kbThPlain(s.adds) ? s.adds : {}
+        return { plugins: Array.isArray(s.needs) ? s.needs.length : 0, skills: a.skills ?? 0, teams: a.teams ?? 0, automations: a.automations ?? 0, connectors: a.connectors ?? 0 }
+      }
+      const plural = (n, one, many) => String(n) + ' ' + (n === 1 ? one : many)
+      const tcard = (e) => {
+        const c = counts(e)
+        const st = e.shipped !== null && kbThPlain(e.shipped.style) ? e.shipped.style : null
+        return h('li', { key: e.id, className: 'kbgal-li' }, h('button', {
+          type: 'button',
+          className: 'kbgal-card',
+          'data-kb': 'theme-card',
+          'data-theme': e.id,
+          'aria-label': e.name + (e.state === 'installed' ? kbThEn(', installed', ', installé') : ''),
+          onClick: () => { setPick(e.id); setScreen('theme'); setError(null) },
+        }, [
+          h('span', { key: 'c', className: 'kbgal-cover' }, [
+            h(KbThCoverArt, { key: 'a', id: e.id, accent: accentOf(e), src: kbThCoverSrc(e) }),
+            h('span', { key: 't', className: 'kbgal-ctag' }, chipOf(e)),
+            e.state === 'installed' ? h('span', { key: 'o', className: 'kbgal-cok' }, '✓ ' + kbThEn('Installed', 'Installé')) : (e.state === 'added' ? h('span', { key: 'o', className: 'kbgal-cok kbgal-cadd' }, kbThEn('Added', 'Ajouté')) : null),
+          ]),
+          h('span', { key: 'b', className: 'kbgal-body' }, [
+            h('b', { key: 'n', className: 'kbgal-name' }, e.name),
+            h('span', { key: 'l', className: 'kbgal-line' }, kbThLine(e) || e.id),
+            h('span', { key: 'f', className: 'kbgal-foot' }, [
+              accentOf(e) !== null ? h('span', { key: 's', className: 'kbgal-sw' }, [h('i', { key: 'i', style: { background: accentOf(e) } }), st !== null ? pairText(st.name) : '']) : null,
+              c !== null && c.plugins > 0 ? h('span', { key: 'p' }, plural(c.plugins, kbThEn('plugin', 'plugin'), kbThEn('plugins', 'plugins'))) : null,
+              c !== null && c.skills > 0 ? h('span', { key: 'k' }, plural(c.skills, kbThEn('skill', 'skill'), kbThEn('skills', 'skills'))) : null,
+              c === null && e.version !== null ? h('span', { key: 'v' }, 'v' + e.version) : null,
+            ]),
+          ]),
         ]))
       }
-      for (const t of catalogue) {
-        cards.push(card('c:' + t.id, kbThPlain(t.name) ? kbThLabel(t.name) : t.id, kbThStr(t.level) ?? 'community', [
-          h('div', { key: 'v' }, String(t.id) + ' · v' + String(t.version) + (kbThStr(t.licence) ? ' · ' + kbThStr(t.licence) : '')),
-          kbThPlain(t.revoked) ? h('div', { key: 'r' }, '⚠ ' + (kbThStr(t.revoked.reason) ?? '')) : null,
-        ], [
-          h('button', {
-            key: 'i',
-            type: 'button',
-            className: 'kbg-talk',
-            disabled: busy !== null,
-            onClick: async () => {
-              if (busy !== null) return
-              setBusy('install')
-              const r = await kbThSeamInstall({ source: 'catalogue', id: t.id, version: t.version })
-              setBusy(null)
-              setError(kbThPlain(r) && r.ok === true ? null : (kbThStr(kbThPlain(r) ? r.error : null) ?? 'install'))
-              await load()
-            },
-          }, kbThEn('Install', 'Installer')),
-        ]))
+      const tags = (list1) => h('div', { className: 'kbgal-tags' }, list1.length > 0 ? list1.map((x) => h('span', { key: x, className: 'kbgal-tag' }, x)) : h('span', { className: 'kbgal-muted' }, '—'))
+      const themePage = (e) => {
+        const s = e.shipped
+        const c = counts(e)
+        const needs = s !== null && Array.isArray(s.needs) ? s.needs : []
+        const lists = s !== null && kbThPlain(s.lists) ? s.lists : {}
+        const asList = (k) => (Array.isArray(lists[k]) ? lists[k].filter((x) => typeof x === 'string') : [])
+        const installedHere = e.state === 'installed'
+        const word = firstRow() === null ? '' : (kbDomainLabel(firstRow()) ?? wordOf(e, firstRow()) ?? '')
+        const plist = needs.map((id) => {
+          const info = plugInfo(id)
+          const have = owners.has(id)
+          const w = info.row !== null ? wordOf(e, info.row) : ''
+          return h('div', { key: id, className: 'kbgal-pl' }, [
+            h('span', { key: 'i', className: 'kbgal-pico' }, info.icon !== null ? Icon(info.icon, 16) : null),
+            h('div', { key: 'b', className: 'kbgal-pbody' }, [
+              h('div', { key: 'n' }, [h('b', { key: 'n' }, info.name), w !== '' ? h('span', { key: 'w', className: 'kbgal-muted' }, ' · ' + kbThEn('in your menu: “', 'dans ton menu : « ') + w + kbThEn('”', ' »')) : null]),
+              h('small', { key: 's' }, kbThPlain(s.why) && kbThPlain(s.why[id]) ? pairText(s.why[id]) : kbThEn(info.blurb[0], info.blurb[1])),
+            ]),
+            h('span', { key: 't', className: 'kbgal-tagok' + (have ? ' kbgal-ok' : ' kbgal-warn'), 'data-kb': 'theme-plugin-state' }, have ? kbThEn('Installed', 'Installé') : kbThEn('Not installed', 'Non installé')),
+          ])
+        })
+        return [
+          h('div', { key: 'cr', className: 'kbgal-crumb' }, [h('button', { key: 'b', type: 'button', className: 'kbgal-crl', 'data-kb': 'theme-back', onClick: back }, kbThEn('Templates', 'Modèles')), ' › ', e.name]),
+          h('div', { key: 'hd', className: 'kbgal-thead' }, [
+            h('div', { key: 'c', className: 'kbgal-cover kbgal-cover-lg' }, h(KbThCoverArt, { id: e.id, accent: accentOf(e), src: kbThCoverSrc(e) })),
+            h('div', { key: 't', className: 'kbgal-ttext' }, [
+              h('h2', { key: 'h', className: 'kbgal-h2' }, e.name),
+              h('p', { key: 'l', className: 'kbgal-muted' }, kbThLine(e) || e.id),
+              c !== null ? h('p', { key: 'n', className: 'kbgal-counts' }, [c.plugins > 0 ? plural(c.plugins, kbThEn('plugin', 'plugin'), kbThEn('plugins', 'plugins')) : null, plural(c.skills, kbThEn('skill', 'skill'), kbThEn('skills', 'skills')), plural(c.teams, kbThEn('agent team', 'équipe d’agents'), kbThEn('agent teams', 'équipes d’agents')), plural(c.automations, kbThEn('automation, created off', 'automatisation, créée arrêtée'), kbThEn('automations, created off', 'automatisations, créées arrêtées'))].filter((x) => x !== null).join(' · ')) : h('p', { key: 'n', className: 'kbgal-counts' }, kbThEn('Added from a folder or a catalogue: see the plan to know what it adds.', 'Ajouté depuis un dossier ou un catalogue : voir le plan pour savoir ce qu’il apporte.')),
+            ]),
+            h('div', { key: 'a', className: 'kbgal-cta' }, installedHere
+              ? [
+                firstRow() !== null ? h('button', { key: 'o', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-open', onClick: openFirst }, kbThEn('Open ', 'Ouvrir ') + word) : h('button', { key: 'o', type: 'button', className: 'kbg-talk', disabled: working, 'data-kb': 'theme-plan', onClick: () => openPlan(e.id) }, kbThEn('See the plan', 'Voir le plan')),
+                h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: working, 'data-kb': 'theme-remove', onClick: () => remove(e.record ?? { id: e.id, level: e.level }) }, kbThEn('Remove', 'Retirer')),
+              ]
+              : [
+                h('button', { key: 'i', type: 'button', className: 'kbg-talk', disabled: working, 'data-kb': 'theme-install', onClick: () => begin(e) }, busy === 'stage' || busy === 'install' || busy === 'plan' ? kbThEn('Working…', 'En cours…') : (e.state === 'added' ? kbThEn('See the plan', 'Voir le plan') : kbThEn('Install template', 'Installer le modèle'))),
+                e.state === 'added' ? h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: working, 'data-kb': 'theme-remove', onClick: () => remove(e.record ?? { id: e.id, level: e.level }) }, kbThEn('Remove', 'Retirer')) : null,
+              ]),
+          ]),
+          error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
+          current !== null && current.id !== e.id && !installedHere ? h('div', { key: 'rp', className: 'kbgal-banner' }, kbThEn('Installing this template also replaces the style and the field of your current one, ', 'Installer ce modèle remplace aussi le style et le métier du modèle actuel, ') + current.name + '.') : null,
+          needs.length > 0 ? h('div', { key: 'ph', className: 'kbgal-sech' }, [kbThEn('Plugins this template needs', 'Plugins dont ce modèle a besoin'), h('span', { key: 'n', className: 'kbgal-tag' }, String(needs.length))]) : null,
+          needs.length > 0 ? h('div', { key: 'pl', className: 'kbgal-plist' }, plist) : null,
+          s !== null ? h('div', { key: 'kh', className: 'kbgal-sech' }, kbThEn('What else it adds', 'Ce qu’il ajoute aussi')) : null,
+          s !== null ? h('div', { key: 'kit', className: 'kbgal-kit' }, [
+            h('div', { key: 'a', className: 'kbgal-kcard' }, [h('h4', { key: 'h' }, kbThEn('Skills', 'Compétences')), tags(asList('skills'))]),
+            h('div', { key: 'b', className: 'kbgal-kcard' }, [h('h4', { key: 'h' }, kbThEn('Agent teams', 'Équipes d’agents')), tags(asList('teams'))]),
+            h('div', { key: 'c', className: 'kbgal-kcard' }, [h('h4', { key: 'h' }, kbThEn('Automations · created off', 'Automatisations · créées arrêtées')), tags(asList('automations'))]),
+            h('div', { key: 'd', className: 'kbgal-kcard' }, [h('h4', { key: 'h' }, kbThEn('Connectors it suggests', 'Connecteurs suggérés')), tags(asList('connectors'))]),
+          ]) : null,
+        ]
       }
-      // AMBIGUITY 1 (ratified M4): a package the person staged and then did not apply stays, and says so here, with its own Remove.
-      const staged = (kbThPlain(data) && Array.isArray(data.plugins) ? data.plugins : []).filter((p) => kbThPlain(p) && installed.every((r) => r.id !== p.id))
-      for (const p of staged) {
-        cards.push(card('s:' + p.id, kbThPlain(p.name) ? kbThLabel(p.name) : p.id, kbThStr(p.level) ?? 'local', [
-          h('div', { key: 's' }, kbThEn('Added, not applied', 'Ajouté, non appliqué')),
-          h('div', { key: 'v' }, String(p.id) + (typeof p.version === 'string' ? ' · v' + p.version : '')),
-        ], [
-          h('button', { key: 'p', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: () => openPlan(p.id) }, kbThEn('See the plan', 'Voir le plan')),
-          h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => remove(p) }, kbThEn('Remove', 'Retirer')),
-        ]))
-      }
-      return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
-        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Themes', 'Thèmes'))),
-        h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A theme adds a style, a field with its own words, and a kit of skills, teams and automations. Installing it never touches your sessions, your memory or your workspaces.', 'Un thème apporte un style, un métier avec ses propres mots, et un kit de compétences, d’équipes et d’automatisations. L’installer ne touche jamais tes sessions, ta mémoire ni tes espaces de travail.')),
-        error !== null ? h('p', { key: 'e', className: 'kbg-note' }, '⚠ ' + String(error)) : null,
-        h('div', { key: 'g', className: 'kbg-grid' }, cards.concat([h('div', { key: 'f', className: 'kbg-card' }, [
-          h('div', { key: 't', className: 'kbg-kname' }, kbThEn('From a folder', 'Depuis un dossier')),
-          h('div', { key: 'd', className: 'kbg-desc' }, kbThEn('A theme folder on this computer. Its plugin.json is checked before anything is installed, and the plan comes next.', 'Un dossier de thème sur cet ordinateur. Son plugin.json est vérifié avant toute installation, puis le plan s’affiche.')),
-          h('input', { key: 'i', className: 'kbg-input', type: 'text', value: folder, placeholder: '~/themes/acme-vet-clinic', onChange: (e) => setFolder(e.target.value) }),
-          h('div', { key: 'a', className: 'kbg-cta' }, h('button', { key: 'b', type: 'button', className: 'kbg-talk', disabled: busy !== null || folder.trim() === '', onClick: stageFolder }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : kbThEn('Add and see the plan', 'Ajouter et voir le plan'))),
-        ])])),
+      const galleryPage = () => [
+        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Templates', 'Modèles'))),
+        h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A template gives Kybernos the words, the look and the plugins of your trade. Installing one never touches your chats, memory or workspaces.', 'Un modèle donne à Kybernos les mots, le style et les plugins de ton métier. L’installer ne touche jamais à tes conversations, à ta mémoire ni à tes espaces.')),
+        error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
+        entries.length > 0
+          ? h('ul', { key: 'g', className: 'kbgal-grid', 'data-kb': 'theme-grid' }, entries.map(tcard))
+          : h('p', { key: 'g', className: 'kbgal-muted', style: { marginTop: '22px' } }, busy === 'load' ? kbThEn('Reading the catalogue…', 'Lecture du catalogue…') : kbThEn('No template yet. Add one from a folder below.', 'Aucun modèle pour l’instant. Ajoutes-en un depuis un dossier, ci-dessous.')),
+        nextTrades.length > 0 ? h('div', { key: 'nx', className: 'kbgal-next', 'data-kb': 'theme-next' }, [
+          h('div', { key: 'h', className: 'kbgal-sech' }, kbThEn('Next trades', 'Prochains métiers')),
+          h('ul', { key: 'u', className: 'kbgal-ngrid' }, nextTrades.map((n) => h('li', { key: n.id, className: 'kbgal-nli' }, [
+            h('span', { key: 'c', className: 'kbgal-ncover' }, n.cover === true ? h(KbThCoverArt, { id: 'next:' + n.id, accent: null, src: '/kybernos/themes/cover?next=' + encodeURIComponent(n.id) }) : kbThCover('next:' + n.id, null)),
+            h('span', { key: 'n', className: 'kbgal-nname' }, [h('span', { key: 'a' }, pairText(n.name)), h('span', { key: 'b', className: 'kbgal-muted' }, kbThEn('soon', 'bientôt'))]),
+          ]))),
+        ]) : null,
+        h('div', { key: 'f', className: 'kbgal-add' }, [
+          h('div', { key: 't', className: 'kbgal-sech' }, kbThEn('Add a template from a folder', 'Ajouter un modèle depuis un dossier')),
+          h('p', { key: 'd', className: 'kbgal-muted' }, kbThEn('A theme folder on this computer. Its plugin.json is checked before anything is installed, and the plan comes next.', 'Un dossier de thème sur cet ordinateur. Son plugin.json est vérifié avant toute installation, puis le plan s’affiche.')),
+          h('div', { key: 'r', className: 'kbgal-addrow' }, [
+            h('input', { key: 'i', className: 'kbg-input kbgal-input', 'data-kb': 'theme-folder', type: 'text', value: folder, placeholder: '~/themes/acme-vet-clinic', 'aria-label': kbThEn('Template folder', 'Dossier du modèle'), onChange: (ev) => setFolder(ev.target.value) }),
+            h('button', { key: 'b', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-folder-add', disabled: working || folder.trim() === '', onClick: stageFolder }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : (busy === 'stage' ? kbThEn('Checking…', 'Vérification…') : kbThEn('Add and see the plan', 'Ajouter et voir le plan'))),
+          ]),
+        ]),
         refused.length > 0 ? h('div', { key: 'r', className: 'kbg-note' }, refused.map((x) => h('div', { key: 'r:' + String(x.source) + String(x.id ?? '') }, '× ' + String(x.source ?? '') + ' · ' + String(x.reason ?? x.error ?? '')))) : null,
-        sources.length > 0 ? h('p', { key: 'src', className: 'kbg-note' }, kbThEn('Catalogue sources: ', 'Sources du catalogue : ') + sources.map((s) => s.url).join(' · ')) : null,
-        busy === 'load' ? h('p', { key: 'l', className: 'kbg-note' }, kbThEn('Reading the catalogue…', 'Lecture du catalogue…')) : null,
-      ])
+        sources.length > 0 ? h('p', { key: 'src', className: 'kbg-note' }, kbThEn('Catalogue sources: ', 'Sources du catalogue : ') + sources.map((x) => x.url).join(' · ')) : null,
+      ]
+      // the plan, as a dialog: the plugins it needs, what it adds in six tiles each with a switch, one consent, one primary action. No scrollbar in the
+      // usual case: the per-item list (every name, every file) opens under « Customise ».
+      const planDialog = () => {
+        const e = sel
+        const ids = e !== null && e.shipped !== null && Array.isArray(e.shipped.needs) ? e.shipped.needs : []
+        const miss = e !== null ? kbThMissing(e, owners) : []
+        const merge = (list1) => { const by = {}; const out = []; for (const it of list1) { if (it.key === null) continue; if (by[it.key] === undefined) { by[it.key] = it; out.push(it) } else if (it.file !== '' && by[it.key].file.indexOf(it.file) < 0) by[it.key].file += (by[it.key].file === '' ? '' : ' · ') + it.file } return out }
+        const kit = kbThPlain(plan.kit) ? plan.kit : {}
+        const items = {
+          skills: merge((Array.isArray(kit.skills) ? kit.skills : []).filter(kbThPlain).map((it) => ({ key: kbThStr(it.name), label: kbThStr(it.name), file: kbThStr(it.file) ?? '' }))),
+          teams: merge((Array.isArray(kit.teams) ? kit.teams : []).filter(kbThPlain).map((it) => ({ key: kbThStr(it.id), label: kbThStr(it.id), file: kbThStr(it.file) ?? '' }))),
+          automations: merge((Array.isArray(kit.automations) ? kit.automations : []).filter(kbThPlain).map((it) => ({ key: kbThStr(it.id), label: kbThLabel(it.name) || kbThStr(it.id), file: kbThStr(it.file) ?? '' }))),
+          goals: merge((kbThPlain(plan.pack) && Array.isArray(plan.pack.goals) ? plan.pack.goals : []).filter(kbThPlain).map((g) => ({ key: kbThStr(g.id), label: kbThLabel(g.name) || kbThStr(g.id), file: '' }))),
+        }
+        const isThere = (kind, it) => seen !== null && kind !== 'goals' && Array.isArray(seen[kind]) && seen[kind].indexOf(kind === 'automations' ? it.label : it.key) >= 0
+        const absent = (kind) => items[kind].filter((it) => !isThere(kind, it))
+        const chosen = (kind) => absent(kind).filter((it) => ticks[kind].indexOf(it.key) >= 0)
+        const on = (kind) => absent(kind).length > 0 && chosen(kind).length === absent(kind).length
+        const part = (kind) => chosen(kind).length > 0 && chosen(kind).length < absent(kind).length
+        const flip = (kind) => {
+          const keys = absent(kind).map((it) => it.key)
+          setTicks(Object.assign({}, ticks, { [kind]: on(kind) ? ticks[kind].filter((k) => keys.indexOf(k) < 0) : Array.from(new Set(ticks[kind].concat(keys))) }))
+        }
+        const names = (list1) => (list1.length === 0 ? '' : list1.slice(0, 3).map((it) => it.label).join(', ') + (list1.length > 3 ? ' +' + String(list1.length - 3) : ''))
+        const swh = (hook, label, checked, partial, disabled, onClick) => h(KbThSwitch, { hook, label, on: checked, part: partial, disabled, onClick })
+        const tile = (key, icon, title, sub, control) => h('div', { key, className: 'kbgal-tile', 'data-kb': 'theme-tile', 'data-tile': key }, [
+          h('span', { key: 'i', className: 'kbgal-tico' }, Icon(icon, 18)),
+          h('div', { key: 'b', className: 'kbgal-tbody' }, [h('b', { key: 't' }, title), h('small', { key: 's' }, sub)]),
+          control,
+        ])
+        const groupTile = (kind, icon, title, one, many, subExtra) => {
+          const all = items[kind]
+          if (all.length === 0) return null
+          const free = absent(kind)
+          const sub = free.length === 0 ? kbThEn('Already there', 'Déjà là') : names(free) + (subExtra ? ' · ' + subExtra : '')
+          return tile(kind, icon, String(all.length) + ' ' + (all.length === 1 ? one : many), sub, swh('theme-switch-' + kind, title, on(kind), part(kind), free.length === 0, () => flip(kind)))
+        }
+        const shippedHere = e !== null ? e.shipped : null
+        const sampleHere = shippedHere !== null && kbThPlain(shippedHere.sample) ? shippedHere.sample : null
+        const sampleTile = sampleHere === null ? null : tile('sample', 'list', kbThEn('Sample rows, marked “demo”', 'Lignes d’exemple, marquées « demo »'),
+          [plural(sampleHere.contacts, kbThEn('contact', 'contact'), kbThEn('contacts', 'contacts')), plural(sampleHere.items, kbThEn('item', 'élément'), kbThEn('items', 'éléments')), plural(sampleHere.cards, kbThEn('card', 'carte'), kbThEn('cards', 'cartes'))].join(' · '),
+          swh('theme-switch-sample', kbThEn('Sample rows', 'Lignes d’exemple'), ticks.demo === true, false, false, () => setTicks(Object.assign({}, ticks, { demo: ticks.demo !== true }))))
+        const styleName = kbThPlain(plan.style) ? (kbThLabel(plan.style.name) || kbThStr(plan.style.id) || '') : ''
+        const fieldName = kbThLabel(plan.pack.name) || plan.pack.id
+        const words = kbThWords(plan.pack)
+        const tiles = [
+          kbThPlain(plan.style) ? tile('style', 'palette', kbThEn('Style', 'Style'), styleName, swh('theme-switch-style', kbThEn('Style', 'Style'), ticks.style === true, false, false, () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true })))) : null,
+          tile('field', 'briefcase', kbThEn('Field and words', 'Métier et mots'), fieldName + (words !== '' ? ' · ' + words : ''), h('span', { key: 'a', className: 'kbgal-always', title: kbThEn('Always applied', 'Toujours appliqué') }, Icon('lock', 14))),
+          groupTile('skills', 'sparkles', kbThEn('Skills', 'Compétences'), kbThEn('skill', 'compétence'), kbThEn('skills', 'compétences'), ''),
+          groupTile('teams', 'bot', kbThEn('Agent teams', 'Équipes d’agents'), kbThEn('agent team', 'équipe d’agents'), kbThEn('agent teams', 'équipes d’agents'), ''),
+          groupTile('automations', 'zap', kbThEn('Automations', 'Automatisations'), kbThEn('automation, switched off', 'automatisation, arrêtée'), kbThEn('automations, switched off', 'automatisations, arrêtées'), kbThEn('they ask before acting', 'elles demandent avant d’agir')),
+          sampleTile,
+          groupTile('goals', 'target', kbThEn('Starter goals', 'Objectifs de départ'), kbThEn('starter goal', 'objectif de départ'), kbThEn('starter goals', 'objectifs de départ'), ''),
+        ].filter((x) => x !== null)
+        const nots = Array.isArray(plan.notInstallable) ? plan.notInstallable : []
+        const rejects = Array.isArray(plan.rejected) ? plan.rejected : []
+        // the per-item list: every name with its file, one switch each
+        const detail = (kind, title) => (items[kind].length === 0 ? null : h('div', { key: kind, className: 'kbgal-dgroup' }, [
+          h('span', { key: 'h', className: 'kbgal-gh' }, title),
+          ...items[kind].map((it) => h('div', { key: it.key, className: 'kbgal-crow' }, [
+            swh('theme-item', it.label, ticks[kind].indexOf(it.key) >= 0, false, isThere(kind, it), () => toggle(kind, it.key)),
+            h('span', { key: 'n', className: 'kbgal-cname' }, it.label),
+            isThere(kind, it) ? h('span', { key: 't', className: 'kbgal-tag' }, kbThEn('Already there', 'Déjà là')) : null,
+            it.file !== '' ? h('code', { key: 'f', className: 'kbgal-cfile' }, it.file) : null,
+          ])),
+        ]))
+        const primary = ids.length > 0 && miss.length > 0
+          ? kbThEn('Install template and ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'), 'Installer le modèle et ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'))
+          : kbThEn('Install template', 'Installer le modèle')
+        return h('div', { key: 'veil', className: 'kbgal-veil', 'data-kb': 'theme-plan', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) closeDialog() } },
+          h('div', { className: 'kbgal-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbgal-dt', tabIndex: -1, ref: (el) => { if (el !== null && !el.contains(document.activeElement)) el.focus() } }, [
+            h('div', { key: 'hd', className: 'kbgal-dhead' }, [
+              e !== null ? h('span', { key: 'th', className: 'kbgal-dthumb' }, h(KbThCoverArt, { id: e.id, accent: accentOf(e), src: kbThCoverSrc(e) })) : null,
+              h('div', { key: 'tx' }, [
+                h('h3', { key: 'h', id: 'kbgal-dt' }, kbThEn('Install ', 'Installer ') + (e !== null ? e.name : plan.id)),
+                h('p', { key: 'p' }, (miss.length > 0
+                  ? kbThEn(String(miss.length) + (miss.length === 1 ? ' plugin is' : ' plugins are') + ' missing and will be installed with it. ', String(miss.length) + (miss.length === 1 ? ' plugin manque' : ' plugins manquent') + ' et sera' + (miss.length === 1 ? '' : 'ont') + ' installé' + (miss.length === 1 ? '' : 's') + ' avec lui. ')
+                  : '') + kbThEn('Nothing is applied until you press Install. Your chats, memory and workspaces are not touched.', 'Rien n’est appliqué avant d’appuyer sur Installer. Tes conversations, ta mémoire et tes espaces ne sont pas touchés.')),
+              ]),
+            ]),
+            error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
+            ids.length > 0 ? h('div', { key: 'pl', className: 'kbgal-dsec' }, [
+              h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('Plugins', 'Plugins')),
+              h('div', { key: 'p', className: 'kbgal-pills' }, ids.map((id) => {
+                const info = plugInfo(id)
+                const have = owners.has(id)
+                return h('span', { key: id, className: 'kbgal-pill' + (have ? '' : ' kbgal-pill-warn'), 'data-kb': 'theme-pill' }, [
+                  info.icon !== null ? Icon(info.icon, 15) : null,
+                  h('span', { key: 'n' }, info.name),
+                  h('span', { key: 's', className: 'kbgal-pill-s' }, have ? [Icon('check', 12), kbThEn('Installed', 'Installé')] : kbThEn('Required', 'Requis')),
+                ])
+              })),
+            ]) : null,
+            h('div', { key: 'kt', className: 'kbgal-dsec' }, [
+              h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('What it adds', 'Ce qu’il ajoute')),
+              h('div', { key: 't', className: 'kbgal-tiles' }, tiles),
+            ]),
+            h('button', { key: 'cu', type: 'button', className: 'kbgal-custom-btn', 'aria-expanded': customise ? 'true' : 'false', 'data-kb': 'theme-customise', onClick: () => setCustomise(!customise) }, [h('span', { key: 'c', className: 'kbgal-chev' + (customise ? ' open' : '') }, Icon('chevronDown', 14)), kbThEn('Customise, item by item', 'Personnaliser, élément par élément')]),
+            customise ? h('div', { key: 'cd', className: 'kbgal-custom', 'data-kb': 'theme-detail' }, [
+              kbThPlain(plan.style) ? h('div', { key: 'st', className: 'kbgal-dgroup' }, [h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('Style', 'Style')), h('div', { key: 'r', className: 'kbgal-crow' }, [swh('theme-item', styleName, ticks.style === true, false, false, () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true }))), h('span', { key: 'n', className: 'kbgal-cname' }, styleName), h('code', { key: 'f', className: 'kbgal-cfile' }, kbThStr(plan.style.file) ?? '')])]) : null,
+              h('div', { key: 'fd', className: 'kbgal-dgroup' }, [h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('Field', 'Métier')), h('div', { key: 'r', className: 'kbgal-crow' }, [h('span', { key: 'a', className: 'kbgal-always' }, Icon('lock', 14)), h('span', { key: 'n', className: 'kbgal-cname' }, fieldName), h('code', { key: 'f', className: 'kbgal-cfile' }, kbThStr(plan.pack.file) ?? '')])]),
+              detail('skills', kbThEn('Skills', 'Compétences')),
+              detail('teams', kbThEn('Agent teams', 'Équipes d’agents')),
+              detail('automations', kbThEn('Automations, switched off', 'Automatisations, arrêtées')),
+              detail('goals', kbThEn('Starter goals', 'Objectifs de départ')),
+              nots.length > 0 ? h('div', { key: 'n', className: 'kbg-note' }, nots.map((x) => h('div', { key: 'n:' + x.kind + ':' + x.id }, '— ' + (kbThStr(x.file) ?? '') + ' · ' + (kbThStr(x.why) ?? '')))) : null,
+              rejects.length > 0 ? h('div', { key: 'x', className: 'kbg-note' }, rejects.map((x) => h('div', { key: 'x:' + x.file }, '× ' + (kbThStr(x.file) ?? '') + ' · ' + (Array.isArray(x.errors) ? x.errors.join('; ') : '')))) : null,
+            ]) : null,
+            h('div', { key: 'co', className: 'kbgal-consent' }, [
+              swh('theme-consent', kbThEn('I have read what this template adds', 'J’ai lu ce que ce modèle ajoute'), consent, false, false, () => setConsent(!consent)),
+              h('span', { key: 't' }, kbThEn('I have read what this template adds. Skills, agent teams and automations are instructions the agents follow.', 'J’ai lu ce que ce modèle ajoute. Les compétences, les équipes d’agents et les automatisations sont des instructions que les agents suivent.')),
+            ]),
+            h('div', { key: 'a', className: 'kbgal-acts' }, [
+              h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-cancel', disabled: busy === 'install', onClick: closeDialog }, kbThEn('Cancel', 'Annuler')),
+              h('button', { key: 'i', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-go', disabled: working || !consent, onClick: install }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : primary),
+            ]),
+          ]))
+      }
+      const reportDialog = () => {
+        const e = sel
+        const line = (label, value) => h('div', { className: 'kbgal-rline', key: label }, [h('span', { key: 'n' }, label), h('b', { key: 'k' }, String(value))])
+        const done = report.already !== true && report.failed === 0
+        return h('div', { key: 'veil', className: 'kbgal-veil', 'data-kb': 'theme-report', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) closeDialog() } },
+          h('div', { className: 'kbgal-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbgal-dt', tabIndex: -1, ref: (el) => { if (el !== null && !el.contains(document.activeElement)) el.focus() } }, [
+            h('div', { key: 'hd', className: 'kbgal-dhead' }, [h('span', { key: 'm', className: 'kbgal-okbadge' + (done ? '' : ' kbgal-okbadge-warn') }, Icon(done ? 'check' : 'triangleAlert', 20)), h('h3', { key: 'h', id: 'kbgal-dt' }, report.already === true ? kbThEn('Nothing to do', 'Rien à faire') : (done ? kbThEn('Installed', 'Installé') : kbThEn('Applied, with problems', 'Appliqué, avec des problèmes')))]),
+            h('div', { key: 'b', className: 'kbgal-banner' }, e !== null ? e.name : (plan !== null ? plan.id : '')),
+            h('div', { key: 'r', className: 'kbgal-rlines' }, [
+              line(kbThEn('Added', 'Ajoutés'), report.added),
+              line(kbThEn('Already there', 'Déjà là'), report.present.length),
+              line(kbThEn('Failed', 'Échoués'), report.failed),
+              line(kbThEn('Kept in place (un-ticked)', 'Laissés de côté (décochés)'), report.skipped.length),
+              line(kbThEn('Style', 'Style'), report.style),
+              line(kbThEn('Field', 'Métier'), report.domain),
+              report.demo !== undefined && report.demo !== 'skipped' ? line(kbThEn('Sample rows', 'Lignes d’exemple'), report.demo) : null,
+              report.plugins !== undefined && report.plugins !== null ? line(kbThEn('Plugins switched on', 'Plugins activés'), report.plugins.switched.length) : null,
+            ]),
+            report.plugins !== undefined && report.plugins !== null && report.plugins.ok === true ? h('div', { key: 'rs', className: 'kbgal-banner', 'data-kb': 'theme-restart-note' }, [
+              h('div', { key: 't' }, kbThEn('The Business pages appear once DSH has restarted. Chats that are running stop for a moment.', 'Les pages Business apparaissent quand DSH a redémarré. Les conversations en cours s’arrêtent un instant.')),
+              restart === 'running' ? h('div', { key: 'w' }, kbThEn('Restarting… this page reloads by itself.', 'Redémarrage… cette page se recharge toute seule.'))
+                : h('button', { key: 'b', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-restart', onClick: relaunch }, kbThEn('Restart DSH now', 'Redémarrer DSH maintenant')),
+              restart === 'busy' ? h('div', { key: 'y' }, kbThEn('An installation is still running: try again in a minute.', 'Une installation est en cours : réessaie dans une minute.')) : null,
+              restart === 'error' ? h('div', { key: 'e' }, kbThEn('DSH could not restart from here. Restart it by hand; the plugins are already switched on.', 'DSH n’a pas pu redémarrer d’ici. Redémarre-le à la main ; les plugins sont déjà activés.')) : null,
+            ]) : null,
+            report.plugins !== undefined && report.plugins !== null && report.plugins.ok !== true ? h('div', { key: 'rf', className: 'kbgal-banner', 'data-kb': 'theme-plugins-failed' }, kbThEn('The plugins could not be switched on (' + String(report.plugins.error) + '). The rest of the template is in place; switch them on in Settings › Kybernos Suite.', 'Les plugins n’ont pas pu être activés (' + String(report.plugins.error) + '). Le reste du modèle est en place ; active-les dans Réglages › Kybernos Suite.')) : null,
+            h('div', { key: 'a', className: 'kbgal-acts' }, [
+              h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-back-to-themes', onClick: back }, kbThEn('Back to templates', 'Retour aux modèles')),
+              firstRow() !== null ? h('button', { key: 'o', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-open', onClick: () => { closeDialog(); openFirst() } }, kbThEn('Open ', 'Ouvrir ') + (kbDomainLabel(firstRow()) ?? '')) : null,
+            ]),
+          ]))
+      }
+      const page = sel !== null && screen !== 'gallery' ? themePage(sel) : galleryPage()
+      const dialog = screen === 'plan' && plan !== null && ticks !== null ? planDialog() : (screen === 'report' && report !== null ? reportDialog() : null)
+      return h('div', { className: 'kbg-root kbgal-root', 'data-kb-page': 'themes' }, [...page, dialog])
     }
 
     // ── Skills and Connectors: one page each ─────────────────────────────────
@@ -28581,7 +28990,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
         row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
-        row('themes', Icon('layers', 15), kbThEn('Themes', 'Thèmes'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
+        row('themes', Icon('layers', 15), kbThEn('Templates', 'Modèles'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // The « Business » group: drawn only while a plugin has declared a row (window.__KB_MENU__, <kb-business-menu>).
@@ -31963,7 +32372,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       const row = state === 'no-source'
         ? ['Aucune source configurée pour l’instant.', 'No source configured yet.']
         : (state === 'empty'
-          ? ['Cette source ne liste aucun thème.', 'This source lists no theme.']
+          ? ['Cette source ne liste aucun modèle.', 'This source lists no template.']
           : ['Ce catalogue ne peut pas être vérifié.', 'This catalogue cannot be verified.'])
       return { state, text: marketSay(row, lang), leftOut: marketLeftOut(view, lang), leftOutCount: marketRefusals(view).length, refusals: marketRefusals(view) }
     }
@@ -32154,7 +32563,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
         setBusy('remove')
         const answer = await route(body)
         setBusy(null)
-        answerOf(answer, say(['Source retirée : les thèmes déjà installés restent.', 'Source removed: the themes already installed stay.']))
+        answerOf(answer, say(['Source retirée : les modèles déjà installés restent.', 'Source removed: the templates already installed stay.']))
       }
       const pin = (s) => s.pinned === true
         ? say(['Clé épinglée', 'Key pinned']) + (s.keyId !== '' ? ' · ' + s.keyId : '')
@@ -32164,8 +32573,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
           h('h3', { className: 'kbtm-src-title' }, say(['Sources du catalogue', 'Catalogue sources'])),
           h('span', { className: 'kbtm-src-count', 'data-kb': 'kb-market-sources-count' }, say(['{n} sur 3', '{n} of 3']).replace('{n}', String(sources.length)))),
         h('p', { className: 'kbtm-src-warn', 'data-kb': 'kb-market-sources-warn' }, say([
-          'Un catalogue que tu ajoutes est lu avec sa propre clé, épinglée à la première utilisation et affichée ci-dessous : tout ce qui en vient est de niveau Communauté, et retirer la source retire cette confiance — jamais les thèmes déjà installés.',
-          'A catalogue you add is read with its own key, pinned on first use and shown below: everything that comes from it is Community level, and removing the source drops that trust — never the themes already installed.'])),
+          'Un catalogue que tu ajoutes est lu avec sa propre clé, épinglée à la première utilisation et affichée ci-dessous : tout ce qui en vient est de niveau Communauté, et retirer la source retire cette confiance — jamais les modèles déjà installés.',
+          'A catalogue you add is read with its own key, pinned on first use and shown below: everything that comes from it is Community level, and removing the source drops that trust — never the templates already installed.'])),
         (sources.length === 0 ? null
           : h('ul', { className: 'kbtm-src-list', 'data-kb': 'kb-market-sources-list' }, sources.map((s) => h('li', { key: s.url, className: 'kbtm-src-row', 'data-kb': 'kb-market-source' },
             h('code', { className: 'kbtm-src-url', title: s.url }, s.url),
@@ -32256,8 +32665,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
       }
       return h('div', { className: 'kbtm-page', 'data-kb': 'kb-market', 'aria-busy': etat.phase === 'loading' ? 'true' : 'false' },
         h('div', { className: 'kbtm-head' },
-          h('h2', { className: 'kbtm-h1' }, say(['Thèmes', 'Themes'])),
-          h('p', { className: 'kbtm-sub' }, say(['Les thèmes sectoriels que publient les catalogues que tu as ajoutés.', 'The sector themes published by the catalogues you added.']))),
+          h('h2', { className: 'kbtm-h1' }, say(['Modèles', 'Templates'])),
+          h('p', { className: 'kbtm-sub' }, say(['Les modèles sectoriels que publient les catalogues que tu as ajoutés.', 'The sector templates published by the catalogues you added.']))),
         h(KbMarketSources, { lang, view, reload: relire }),
         (etat.phase === 'loading' ? h('p', { className: 'kbtm-note', 'data-kb': 'kb-market-loading' }, say(['Lecture du catalogue…', 'Reading the catalogue…'])) : null),
         (etat.phase === 'error' ? h('div', { className: 'kbtm-state', 'data-kb': 'kb-market-state', 'data-state': 'unreachable', role: 'status' }, say(['Le catalogue n’a pas répondu.', 'The catalogue did not answer.'])) : null),
@@ -32314,7 +32723,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
     ctx.effect(() => {
       try {
         return slots.inject('settings.section', () => slots.register(
-          { name: 'settings.section', id: 'kybernos-themes-market', order: 30, label: marketSay(['Thèmes', 'Themes'], kbMarketLang()) },
+          { name: 'settings.section', id: 'kybernos-themes-market', order: 30, label: marketSay(['Modèles', 'Templates'], kbMarketLang()) },
           KbThemesMarket))
       } catch (e) { return undefined }
     }, 'kybers: themes market settings section')

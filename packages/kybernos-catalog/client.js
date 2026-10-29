@@ -25,43 +25,34 @@ window.__ModuleLoader__.load({
       const MENU_EVERY = 150
 
       // ── words ────────────────────────────────────────────────────────────────────────────────────────────
-      // language: French is the source, English the pair; a translated language is looked up by its French text (the policy of every bundle, scripts/test-no-french-literals.mjs)
       const lang = () => {
-        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
-      }
-      const kt = (fr, en) => {
-        const l = lang()
-        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
-        if (l === 'en') return en
         try {
-          const a = window.__KB_I18N_ACTIVE__
-          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
-        } catch (e) { /* no dictionary: English */ }
-        return en
+          const s = String((typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : document.documentElement.lang) || 'en').toLowerCase()
+          return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
+        } catch (e) { return 'en' }
       }
-      /** The two-letter code of the language, for a label `{ en, fr, es, ar }` and for number formats. */
-      const code = () => { const l = lang(); return l === 'kybernos' ? 'fr' : l.slice(0, 2) }
+      const kt = (fr, en) => lang() === 'fr' ? fr : en
       /** A `{ en, fr, … }` label in the person's language, else English. */
       const pick = (label, fallback) => {
         if (label === null || typeof label !== 'object') return fallback === undefined ? '' : fallback
-        const l = code()
+        const l = lang() === '' ? 'fr' : lang()
         if (typeof label[l] === 'string') return label[l]
         return typeof label.en === 'string' ? label.en : (fallback === undefined ? '' : fallback)
       }
       const humanize = (key) => String(key === null || key === undefined ? '' : key).replace(/[_-]+/g, ' ').trim().replace(/^./, (c) => c.toUpperCase())
 
       // ── pure helpers (exposed as __test) ──────────────────────────────────────────────────────────────────
-      const numberText = (n) => { try { return new Intl.NumberFormat(code() || undefined).format(n) } catch (e) { return String(n) } }
+      const numberText = (n) => { try { return new Intl.NumberFormat(lang() || undefined).format(n) } catch (e) { return String(n) } }
       const moneyText = (n, currency) => {
         try {
           if (typeof currency !== 'string') return numberText(n)
-          return new Intl.NumberFormat(code() || undefined, { style: 'currency', currency, maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n)
+          return new Intl.NumberFormat(lang() || undefined, { style: 'currency', currency, maximumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n)
         } catch (e) { return String(n) + (currency ? ' ' + currency : '') }
       }
       const dateText = (v) => {
         const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v))
         if (m === null) return String(v)
-        try { return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString(code() || undefined, { year: 'numeric', month: 'short', day: 'numeric' }) } catch (e) { return String(v) }
+        try { return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString(lang() || undefined, { year: 'numeric', month: 'short', day: 'numeric' }) } catch (e) { return String(v) }
       }
       /** A stored value as the person reads it, by the kind of its field (a field the type no longer defines is shown as it was written). */
       const valueText = (def, value) => {

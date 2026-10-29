@@ -1,0 +1,80 @@
+{
+  "id": "rent-run",
+  "cat": "agency",
+  "icon": "bell",
+  "title": {
+    "en": "Monthly rent reminders",
+    "fr": "Relances de loyers du mois"
+  },
+  "cadence": {
+    "en": "On the 5th of each month at 09:00",
+    "fr": "Le 5 de chaque mois à 09h00"
+  },
+  "desc": {
+    "en": "Finds the unpaid rents and drafts a reminder per tenant, polite first and firmer after. Nothing is sent.",
+    "fr": "Trouve les loyers impayés et rédige une relance par locataire, courtoise d’abord puis plus ferme. Rien n’est envoyé."
+  },
+  "cron": "0 9 5 * *",
+  "tags": [
+    "real estate",
+    "rents"
+  ],
+  "apps": [
+    "gmail",
+    "docusign",
+    "quickbooks"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Open the rent tracking file the agent provides and find the rents that are unpaid.",
+        "fr": "Ouvre le fichier de suivi des loyers fourni par l’agent et repère les loyers impayés."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Draft a reminder for each tenant at the right step with the rent-reminders skill.",
+        "fr": "Rédige une relance pour chaque locataire au bon niveau avec la compétence rent-reminders."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Give a summary table first, then the drafts, in one place for the agent to read. Send nothing.",
+        "fr": "Donne d’abord un tableau récapitulatif, puis les brouillons, au même endroit pour que l’agent les relise. N’envoie rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "The rent tracking file (a spreadsheet, or pasted text)",
+      "fr": "Le fichier de suivi des loyers (un tableur, ou du texte collé)"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Drafts only: nothing is sent. Never invent an amount or a due date.",
+      "fr": "Brouillons seulement : rien n’est envoyé. N’invente jamais un montant ou une échéance."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where is the rent file?",
+        "fr": "Où est le fichier des loyers ?"
+      },
+      "o": [
+        {
+          "en": "In a file I drop in the chat",
+          "fr": "Dans un fichier que je dépose dans le chat"
+        },
+        {
+          "en": "I paste it as text",
+          "fr": "Je le colle comme texte"
+        }
+      ]
+    }
+  ]
+}

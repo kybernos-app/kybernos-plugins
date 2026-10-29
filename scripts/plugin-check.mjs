@@ -35,7 +35,7 @@ import { PIPELINE_POINT } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
 import { LIMITS, dataPackageProblems, readBounded } from '../packages/kybernos-registry/registry.mjs'
 import { compareVersions, satisfies } from '../packages/kybernos-registry/version.mjs'
 import { scanText, uncovered } from './plugin-scan.mjs'
-import { isScanned, warningsOf } from './garde-depot.mjs'
+import { isScanned, isThemeCover, looksLikeJpeg, warningsOf } from './garde-depot.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..')
 const PACKAGES = resolve(REPO, 'packages')
@@ -387,15 +387,24 @@ function readText (folder, f) {
 /** `hygiene`: what the repository guard refuses or warns about, refused here for a bundle a stranger installs. */
 function hygieneLine (folder, tree) {
   const problems = []
+  let cover = false
   for (const f of tree) {
     if (f.link === true) { problems.push(f.rel + ' is a symbolic link'); continue }
-    if (!isScanned(f.rel, f.size)) { problems.push('a file the repository guard does not read (media, a lock file, vendored code or over 4 MB): ' + f.rel); continue }
+    if (isThemeCover(f.rel, f.size)) {
+      // the one picture a theme may carry: its cover, a small JPEG
+      let head = Buffer.alloc(0)
+      try { head = readFileSync(join(folder, f.rel)).subarray(0, 3) } catch (e) { head = Buffer.alloc(0) }
+      if (!looksLikeJpeg(head)) problems.push('cover.jpg is not a JPEG')
+      else cover = true
+      continue
+    }
+    if (!isScanned(f.rel, f.size)) { problems.push('a file the repository guard does not read (media but a small cover.jpg, a lock file, vendored code or over 4 MB): ' + f.rel); continue }
     const text = readText(folder, f)
     if (text === null) { problems.push(f.rel + ' cannot be read'); continue }
     for (const w of warningsOf(f.rel, text)) problems.push(w)
   }
   if (problems.length > 0) return line('hygiene', 'FAIL', problems.slice(0, MAX_ERRORS).join(' | '))
-  return line('hygiene', 'PASS', tree.length + ' files, no media, no personal path')
+  return line('hygiene', 'PASS', tree.length + ' files, no media' + (cover ? ' but its cover picture' : '') + ', no personal path')
 }
 
 function headerOf (raw) {

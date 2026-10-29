@@ -1,0 +1,79 @@
+{
+  "id": "visit-confirmations",
+  "cat": "agency",
+  "icon": "bell",
+  "title": {
+    "en": "Confirm tomorrow’s viewings",
+    "fr": "Confirmer les visites de demain"
+  },
+  "cadence": {
+    "en": "Every weekday at 17:00",
+    "fr": "Chaque jour ouvré à 17h00"
+  },
+  "desc": {
+    "en": "Drafts a short confirmation for each visitor of tomorrow, with the address and the time. Nothing is sent.",
+    "fr": "Rédige une courte confirmation pour chaque visiteur de demain, avec l’adresse et l’heure. Rien n’est envoyé."
+  },
+  "cron": "0 17 * * 1-5",
+  "tags": [
+    "real estate",
+    "viewings"
+  ],
+  "apps": [
+    "googlecalendar",
+    "calendly"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read tomorrow’s viewings from the calendar that is connected, or from the viewing list the agent provides.",
+        "fr": "Lis les visites de demain dans l’agenda connecté, ou dans la liste de visites fournie par l’agent."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "For each visitor, draft a short confirmation: the address, the time and how to reach the agent.",
+        "fr": "Pour chaque visiteur, rédige une courte confirmation : l’adresse, l’heure et comment joindre l’agent."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Put every confirmation in one list for the agent to read and send. Send nothing.",
+        "fr": "Dépose toutes les confirmations dans une liste pour que l’agent les relise et les envoie. N’envoie rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "A calendar that is connected, or the viewing list (a file, or pasted text)",
+      "fr": "Un agenda connecté, ou la liste des visites (un fichier, ou du texte collé)"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Drafts only: nothing is sent. Never invent an address, a time or a phone number.",
+      "fr": "Brouillons seulement : rien n’est envoyé. N’invente jamais une adresse, une heure ou un numéro de téléphone."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where are the viewings?",
+        "fr": "Où sont les visites ?"
+      },
+      "o": [
+        {
+          "en": "In my calendar",
+          "fr": "Dans mon agenda"
+        },
+        {
+          "en": "In a file I drop in the chat",
+          "fr": "Dans un fichier que je dépose dans le chat"
+        }
+      ]
+    }
+  ]
+}

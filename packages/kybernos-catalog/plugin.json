@@ -8,8 +8,8 @@
     "fr": "Catalogue"
   },
   "description": {
-    "en": "What you sell, rent or recruit for, as cards or a list with the fields and statuses your theme defines. Add, edit and archive by hand, or let your agent do it.",
-    "fr": "Ce que tu vends, loues ou recrutes, en cartes ou en liste, avec les champs et les statuts que définit ton thème. Ajoute, modifie et archive à la main, ou laisse ton agent le faire."
+    "en": "What you sell, rent or recruit for, as cards or a list with the fields and statuses your template defines. Add, edit and archive by hand, or let your agent do it.",
+    "fr": "Ce que tu vends, loues ou recrutes, en cartes ou en liste, avec les champs et les statuts que définit ton modèle. Ajoute, modifie et archive à la main, ou laisse ton agent le faire."
   },
   "icon": "catalog",
   "family": "data",

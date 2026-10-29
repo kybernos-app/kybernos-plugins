@@ -5,7 +5,7 @@
 //   node scripts/test-garde-depot.mjs
 //
 // The fixtures are assembled from pieces, so this file does not carry a home folder or an address itself (the guard reads the tests too).
-import { isScanned, personalMails, personalPath, warningsOf } from './garde-depot.mjs'
+import { COVER_MAX, isAllowedCover, isScanned, isThemeCover, looksLikeJpeg, personalMails, personalPath, warningsOf } from './garde-depot.mjs'
 
 let pass = 0
 let fail = 0
@@ -29,6 +29,15 @@ const allowed = [mail('noreply', 'kybernos.app'), mail('support', 'kybernos.app'
 check('not a role, a placeholder, an example domain or a git remote', personalMails(allowed.join(' ')).length === 0, personalMails(allowed.join(' ')))
 check('one warning per file and kind, with the count', warningsOf('a/README.md', ['a', home('bob', '/x'), home('bob', '/y'), mail('bob', 'home.org')].join('\n')).join('|') === 'hard-coded personal path (2x): a/README.md|mail address (1x): a/README.md')
 check('a clean text earns none', warningsOf('a.md', 'nothing here, see ~/ and <your checkout>').length === 0)
+
+console.log('the one picture it accepts: the cover of a shipped theme')
+const T = 'packages/kybernos-plugin/themes/'
+check('a theme\'s cover and a next trade\'s, small', isAllowedCover(T + 'ecommerce/cover.jpg', 25000) && isAllowedCover(T + 'real-estate/cover.jpg', COVER_MAX) && isAllowedCover(T + '_next/law-firm.jpg', 30000))
+check('not one byte over the cap', !isAllowedCover(T + 'ecommerce/cover.jpg', COVER_MAX + 1))
+check('not another name, another format or another folder', !isAllowedCover(T + 'ecommerce/photo.jpg', 100) && !isAllowedCover(T + 'ecommerce/cover.png', 100) && !isAllowedCover(T + 'ecommerce/cover.jpeg', 100) && !isAllowedCover('packages/kybernos-plugin/cover.jpg', 100) && !isAllowedCover('docs/themes/ecommerce/cover.jpg', 100) && !isAllowedCover('demo/ref-video/images/a.jpg', 100))
+check('not deeper, not up a level, not a hidden or odd name', !isAllowedCover(T + 'ecommerce/skills/cover.jpg', 100) && !isAllowedCover(T + '../cover.jpg', 100) && !isAllowedCover(T + 'Ecommerce/cover.jpg', 100) && !isAllowedCover(T + '_next/a/b.jpg', 100) && !isAllowedCover(T + '_next/.jpg', 100))
+check('inside a theme folder a stranger installs: only a root cover.jpg, small', isThemeCover('cover.jpg', 1000) && !isThemeCover('cover.jpg', COVER_MAX + 1) && !isThemeCover('img/cover.jpg', 1000) && !isThemeCover('cover.png', 1000))
+check('a JPEG is told by its first bytes, never by its name', looksLikeJpeg(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0])) && !looksLikeJpeg(Buffer.from('GIF89a')) && !looksLikeJpeg(Buffer.alloc(0)) && !looksLikeJpeg(Buffer.from([0xff, 0xd8])))
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

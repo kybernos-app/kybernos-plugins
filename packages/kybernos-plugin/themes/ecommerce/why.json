@@ -1,0 +1,14 @@
+{
+  "kybernos/contacts": {
+    "en": "Your customers and suppliers, with their orders and messages.",
+    "fr": "Vos clients et fournisseurs, avec leurs commandes et leurs messages."
+  },
+  "kybernos/catalog": {
+    "en": "Your products, stock levels and prices.",
+    "fr": "Vos produits, leurs niveaux de stock et leurs prix."
+  },
+  "kybernos/pipeline": {
+    "en": "Orders from new to delivered.",
+    "fr": "Les commandes, de la nouvelle à la livrée."
+  }
+}

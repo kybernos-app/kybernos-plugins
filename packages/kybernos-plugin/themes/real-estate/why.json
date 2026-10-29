@@ -1,0 +1,14 @@
+{
+  "kybernos/contacts": {
+    "en": "Buyers, sellers, landlords and tenants.",
+    "fr": "Acheteurs, vendeurs, bailleurs et locataires."
+  },
+  "kybernos/catalog": {
+    "en": "Your properties, with mandate dates and the offers received.",
+    "fr": "Vos biens, avec les dates de mandat et les offres reçues."
+  },
+  "kybernos/pipeline": {
+    "en": "Sales and lettings, from first enquiry to closing.",
+    "fr": "Ventes et locations, de la première demande à la conclusion."
+  }
+}

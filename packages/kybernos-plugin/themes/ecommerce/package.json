@@ -1,0 +1,11 @@
+{
+  "name": "@kybernos-themes/ecommerce",
+  "version": "1.0.0",
+  "description": "Kybernos theme data: E-commerce shop. Nothing to load: an empty patch, no script.",
+  "license": "Apache-2.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
