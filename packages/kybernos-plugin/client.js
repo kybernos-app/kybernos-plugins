@@ -25187,6 +25187,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
 .kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open)>div:first-child{align-items:flex-start}
 .kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open) .kbm-mono{flex-wrap:wrap}
 .kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open) h3{overflow-wrap:break-word}
+.kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open) div:has(>h3){flex-wrap:wrap}
 .kbm-root .kbm-rsec{border:1px solid var(--kbm-border-2);border-radius:10px;background:var(--kbm-bg);min-width:0}
 .kbm-root .kbm-rsec-h{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;border-radius:10px}
 .kbm-root .kbm-rsec-chev{display:flex;color:var(--kbm-text-5);flex:0 0 auto}
