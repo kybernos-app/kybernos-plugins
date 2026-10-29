@@ -1365,3 +1365,16 @@ groups with plans first, ↓ and Esc, a search with no hit, the fallback's « No
 « Add a role », propose, Apply), a 380 px column with nothing leaving it sideways, and that no save, portrait call or voice upload was sent. Exit 0 / 1 / 3 (3: no Chrome, no GUI, no such team, or the
 shared tree has uncommitted edits of that client so the swap cannot find its text).
 
+## A role that cannot run: `scripts/check-role-replace-live.mjs` (sandbox only)
+
+```bash
+bash scripts/sandbox/setup.sh && bash scripts/sandbox/start.sh                 # prints the port (3099, or the next free one)
+source scripts/sandbox/env.sh && KB_HOST=127.0.0.1:<port> node scripts/check-role-replace-live.mjs [--team dev-team] [--shots <dir>]
+```
+
+This one **writes** the team's roles file, so it refuses your own `:3080` and any `DSH_HOME` that is not the sandbox's (`source scripts/sandbox/env.sh` sets it and
+gives the sign-in secret). It puts a failing `.probe.json` for the model four roles of the team share into the sandbox's `~/.dsh/kybers/` (and puts the file and the roles file
+back when it ends), then plays the alert: one banner, the cards marked « Failed », the gear's switch off by default and nothing written, the review (and Cancel writes
+nothing), the switch on (the roles are changed by themselves, the file shows it, the gear lists each change), Undo (old model and fallback back, not replaced again for that
+failure), Dismiss, and the figure on the team's card in the Agent Teams list. Exit 0 / 1 / 3. Not played: a team in the project folder, a refused key (both are in
+`packages/kybernos-plugin/test-role-replace.mjs`), the light scheme (the app's theme is its own setting, not `prefers-color-scheme`).

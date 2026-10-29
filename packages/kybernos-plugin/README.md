@@ -524,6 +524,35 @@ The fallback field lists the role's own type only.
 
 `node scripts/check-roles-live.mjs` checks all of it on the real page (see `docs/dev/live-testing.md`).
 
+### A role that cannot run: the alert and the optional automatic replacement
+
+No new probe. A role is **failed** when the role status the tab already has says so (`.probe.json`: its provider|model pair failed its check); a role with no model, or
+a model the catalogue does not know, is not « failed » (it only appears in the review, as before), and a role on Automatic is never failed (it picks a working model
+each run). What the tab does with it (mockup « A role fails: alert, and an optional automatic replacement », 2026-10-29):
+
+- **One banner for the team**, above the members: « N roles cannot run », the model and route, and « Runs that need … will fail until … ». Buttons: *Review replacements*
+  (the review dialog), *Replace automatically from now on* (turns the switch on), *Dismiss* (hidden until the set of failures changes; the dot on the gear and the
+  « Failed » mark on the cards stay). The card of a failed role says « Failed » in red, its hover card adds *Status* (and the number of tries); the Agent Teams list card
+  and row carry the same figure (a red triangle and the count).
+- **The switch** « Replace failed models with equivalent ones » sits in the gear (Model management), **off by default**, a preference of the team (`localStorage`
+  `kbm.team.<root>.<team>`: `autoReplace`, `replaceLog`, `replaceHold`, `replaceDismissed`, `replaceMovedAfter`). On: every failed role that may be changed
+  without asking is switched at once, in one `kybers/save`, the banner turns neutral (« N roles moved to an equivalent model », *Undo*, for a day), and the gear lists
+  each change (*Recent changes*, *Undo* on each). It is disabled for « All auto » (not needed) and for a team in the project folder (root `workspace`: a
+  proposal, never a change by itself, because the roles file sits in the project and a silent change would show in its history).
+- **Who is chosen**: `kbReplaceBest` (the `KB-REPLACE` block of `client.js`, pure, tested by `test-role-replace.mjs`). Routes in order: your plans, Kybernos, your own
+  keys, local; on a route the same model when it is there, else the best ranked for the role's tier and the priority. On a priced route the replacement may cost up to a
+  quarter more per million tokens (input + output) than the model it replaces; a plan model always qualifies, and an unknown price is no reason to refuse. Above the
+  band it is still **proposed** (the review shows it with a note) but never applied by itself. The review dialog and the automatic change use the same function, so what
+  you would have been shown is what happens.
+- **When it does not act by itself** (`kbReplaceDecide`, the banner says which): a probe note that reads like a refused key (the same key would fail the same way: the key
+  comes first), a team in the project folder, a replacement above the price band, nothing reachable, a role you undid for that very failure (*Undo* writes the old model and
+  its old fallback back and the role is not replaced again for it), and a role already replaced by itself in the last six hours (no loop).
+- **Limits of this phase**: it runs in the page, so it acts when the team's Roles tab is open, has its role statuses and the model prices (it waits for them); nothing
+  changes while nobody looks. The probe is not re-run by the tab. There is no « the old model answers again » banner yet: once a role runs on its replacement, no role
+  uses the old pair and the tab no longer sees its probe (*Undo* is the way back). The cause of a failure is read from the probe note's wording (a convention).
+
+`node scripts/check-role-replace-live.mjs` plays all of it on the **sandbox** (it writes the roles file; see `docs/dev/live-testing.md`).
+
 ## Workspace instructions
 
 An **Instructions** tab on the workspace page (Projects): a text sent with the prompt of that workspace's sessions, next to the account
