@@ -1214,3 +1214,17 @@ and not when accepting (so « a full team » is built by lowering the seats afte
 (and a row at the bottom of the list sits under the account card unless it is scrolled into view); DSH re-reads the account's teams every five minutes, so a team added on the server is
 shown at once only after `POST /kybernos-cloud/refresh`; the footer meter re-reads the quota every two minutes (measured: 120 s after a turn), so a headless page, which never gets the
 « window comes back into view » signal, is nudged with the page's own `kybernos-cloud:quota-read` event; chat titles are the stand-in's reply, so each run sets a unique reply text to find its chat in the sidebar.
+
+## The Roles tab of an Agent Team: `scripts/check-roles-live.mjs`
+
+```bash
+node scripts/check-roles-live.mjs [--team <name>] [--shots <dir>]
+```
+
+Read-only on your own DSH (`:3080`): this checkout's `kybernos-plugin` client replaces the served one in a throw-away Chrome, and the team you name (default
+`Dev-Team`; it needs more than six roles for the pager) is opened on its Roles tab. It checks the model field (one line, opens on the current value, groups with
+plans first, ↓ and Esc, a search with no hit, the fallback's « No fallback » and « is the primary »), the five sections of a role, the member bar (per page, pager, list /
+cards / carousel without a sideways scroll), the review of unreachable roles (run on a LOCAL role the tab keeps in the throw-away browser: « Add a role », propose, Apply),
+a 380 px column with nothing leaving it sideways, and that no save, portrait call or voice upload was sent. Exit 0 / 1 / 3 (3: no Chrome, no GUI, no such team, or the
+shared tree has uncommitted edits of that client so the swap cannot find its text).
+
