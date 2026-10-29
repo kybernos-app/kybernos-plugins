@@ -504,6 +504,15 @@
         "role": "orders, deals or candidates as cards on a board, with the stages a theme defines; owns the point kybernos/pipeline#flow (the page arrives in a later release)",
         "poids_ko": 12,
         "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-log",
+        "nom": "@local/kybernos-log",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "activity log: what this machine sent out (model calls, connectors, web search, tools and their results), filterable, with its cost",
+        "poids_ko": 92,
+        "defaut": "actif"
       }
     ]
   },

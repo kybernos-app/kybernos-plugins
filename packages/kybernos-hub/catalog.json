@@ -2881,7 +2881,7 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 80,
+      "poids_ko": 92,
       "promesse": {
         "fr": "Ce que cette machine envoie : appels modèle, connecteurs, recherche web, outils — et les appels que personne n’a demandés, avec filtres par famille et suivi en direct.",
         "en": "What this machine sends out: model calls, connectors, web search, tools — and the calls nobody asked for, with family filters and a live tail."
