@@ -7,11 +7,14 @@
       "name": "Amelia Hart",
       "email": "amelia.hart@example.com",
       "tags": [
+        "vip",
         "repeat",
         "newsletter"
       ],
       "fields": {
-        "city": "Lyon"
+        "city": "Lyon",
+        "spent": 1240,
+        "last_order": "2026-10-27"
       }
     },
     {
@@ -21,10 +24,13 @@
       "name": "Mateo Silva",
       "email": "mateo.silva@example.com",
       "tags": [
+        "repeat",
         "newsletter"
       ],
       "fields": {
-        "city": "Nantes"
+        "city": "Nantes",
+        "spent": 486,
+        "last_order": "2026-10-22"
       }
     },
     {
@@ -34,10 +40,14 @@
       "name": "Priya Raman",
       "email": "priya.raman@example.com",
       "tags": [
-        "repeat"
+        "vip",
+        "repeat",
+        "gift buyer"
       ],
       "fields": {
-        "city": "Paris"
+        "city": "Paris",
+        "spent": 912,
+        "last_order": "2026-10-24"
       }
     },
     {
@@ -46,9 +56,14 @@
       "type": "customer",
       "name": "Jonas Weber",
       "email": "jonas.weber@example.com",
-      "tags": [],
+      "tags": [
+        "first order",
+        "newsletter"
+      ],
       "fields": {
-        "city": "Strasbourg"
+        "city": "Strasbourg",
+        "spent": 63,
+        "last_order": "2026-10-28"
       }
     },
     {
@@ -59,10 +74,13 @@
       "email": "lea.moreau@example.com",
       "company_ref": "cafe-bleu",
       "tags": [
-        "wholesale"
+        "wholesale",
+        "repeat"
       ],
       "fields": {
-        "city": "Bordeaux"
+        "city": "Bordeaux",
+        "spent": 1860,
+        "last_order": "2026-10-12"
       }
     },
     {
@@ -72,10 +90,128 @@
       "name": "Chen Wei",
       "email": "chen.wei@example.com",
       "tags": [
+        "newsletter",
+        "first order"
+      ],
+      "fields": {
+        "city": "Lille",
+        "spent": 28,
+        "last_order": "2026-10-27"
+      }
+    },
+    {
+      "ref": "hannah-keller",
+      "kind": "person",
+      "type": "customer",
+      "name": "Hannah Keller",
+      "email": "hannah.keller@example.com",
+      "tags": [
+        "abroad",
+        "gift buyer"
+      ],
+      "fields": {
+        "city": "Brussels",
+        "spent": 214,
+        "last_order": "2026-09-30"
+      }
+    },
+    {
+      "ref": "yusuf-demir",
+      "kind": "person",
+      "type": "customer",
+      "name": "Yusuf Demir",
+      "email": "yusuf.demir@example.com",
+      "tags": [
+        "repeat",
         "newsletter"
       ],
       "fields": {
-        "city": "Lille"
+        "city": "Marseille",
+        "spent": 337,
+        "last_order": "2026-10-28"
+      }
+    },
+    {
+      "ref": "sofia-rossi",
+      "kind": "person",
+      "type": "customer",
+      "name": "Sofia Rossi",
+      "email": "sofia.rossi@example.com",
+      "tags": [
+        "abroad",
+        "repeat",
+        "newsletter"
+      ],
+      "fields": {
+        "city": "Turin",
+        "spent": 560,
+        "last_order": "2026-10-26"
+      }
+    },
+    {
+      "ref": "ines-carvalho",
+      "kind": "person",
+      "type": "customer",
+      "name": "Ines Carvalho",
+      "email": "ines.carvalho@example.com",
+      "tags": [
+        "abroad",
+        "gift buyer"
+      ],
+      "fields": {
+        "city": "Lisbon",
+        "spent": 298,
+        "last_order": "2026-10-21"
+      }
+    },
+    {
+      "ref": "noah-bernard",
+      "kind": "person",
+      "type": "customer",
+      "name": "Noah Bernard",
+      "email": "noah.bernard@example.com",
+      "tags": [
+        "first order",
+        "newsletter"
+      ],
+      "fields": {
+        "city": "Toulouse",
+        "spent": 71,
+        "last_order": "2026-10-29"
+      }
+    },
+    {
+      "ref": "camille-laurent",
+      "kind": "person",
+      "type": "customer",
+      "name": "Camille Laurent",
+      "email": "camille.laurent@example.com",
+      "company_ref": "pinecone-gift-shop",
+      "tags": [
+        "wholesale",
+        "vip"
+      ],
+      "fields": {
+        "city": "Annecy",
+        "spent": 3910,
+        "last_order": "2026-10-23"
+      }
+    },
+    {
+      "ref": "etienne-garnier",
+      "kind": "person",
+      "type": "customer",
+      "name": "Etienne Garnier",
+      "email": "etienne.garnier@example.com",
+      "company_ref": "maison-tilleul",
+      "tags": [
+        "wholesale",
+        "first order"
+      ],
+      "fields": {
+        "city": "Biarritz",
+        "spent": 790,
+        "last_order": "2026-10-26"
       }
     },
     {
@@ -85,7 +221,10 @@
       "name": "Tom Okafor",
       "email": "tom.okafor@example.com",
       "company_ref": "okafor-ceramics",
-      "tags": [],
+      "tags": [
+        "handmade",
+        "repeat"
+      ],
       "fields": {
         "city": "Vallauris",
         "lead_time": "3 weeks"
@@ -98,10 +237,29 @@
       "name": "Sara Lindqvist",
       "email": "sara.lindqvist@example.com",
       "company_ref": "nordlinen-mills",
-      "tags": [],
+      "tags": [
+        "abroad",
+        "repeat"
+      ],
       "fields": {
         "city": "Malmo",
         "lead_time": "5 weeks"
+      }
+    },
+    {
+      "ref": "claire-dubois",
+      "kind": "person",
+      "type": "supplier-contact",
+      "name": "Claire Dubois",
+      "email": "claire.dubois@example.com",
+      "company_ref": "hivelight-apiary",
+      "tags": [
+        "handmade",
+        "repeat"
+      ],
+      "fields": {
+        "city": "Forcalquier",
+        "lead_time": "10 days"
       }
     },
     {
@@ -109,11 +267,16 @@
       "kind": "company",
       "type": "trade-customer",
       "name": "Cafe Bleu",
-      "email": "hello@cafebleu.example.com",
-      "tags": [],
+      "email": "hello@cafebleu@example.com",
+      "tags": [
+        "wholesale",
+        "repeat"
+      ],
       "fields": {
         "city": "Bordeaux",
-        "sector": "Cafe"
+        "sector": "Cafe",
+        "spent": 3420,
+        "last_order": "2026-10-20"
       }
     },
     {
@@ -121,11 +284,33 @@
       "kind": "company",
       "type": "trade-customer",
       "name": "Pinecone Gift Shop",
-      "email": "hello@pineconegiftshop.example.com",
-      "tags": [],
+      "email": "hello@pineconegiftshop@example.com",
+      "tags": [
+        "wholesale",
+        "vip"
+      ],
       "fields": {
         "city": "Annecy",
-        "sector": "Retail"
+        "sector": "Retail",
+        "spent": 8730,
+        "last_order": "2026-10-23"
+      }
+    },
+    {
+      "ref": "maison-tilleul",
+      "kind": "company",
+      "type": "trade-customer",
+      "name": "Maison Tilleul",
+      "email": "hello@maisontilleul@example.com",
+      "tags": [
+        "wholesale",
+        "first order"
+      ],
+      "fields": {
+        "city": "Biarritz",
+        "sector": "Hotel",
+        "spent": 790,
+        "last_order": "2026-10-26"
       }
     },
     {
@@ -133,8 +318,11 @@
       "kind": "company",
       "type": "supplier",
       "name": "Okafor Ceramics",
-      "email": "hello@okaforceramics.example.com",
-      "tags": [],
+      "email": "hello@okaforceramics@example.com",
+      "tags": [
+        "handmade",
+        "repeat"
+      ],
       "fields": {
         "city": "Vallauris",
         "sector": "Workshop"
@@ -145,11 +333,29 @@
       "kind": "company",
       "type": "supplier",
       "name": "Nordlinen Mills",
-      "email": "hello@nordlinenmills.example.com",
-      "tags": [],
+      "email": "hello@nordlinenmills@example.com",
+      "tags": [
+        "abroad",
+        "repeat"
+      ],
       "fields": {
         "city": "Malmo",
         "sector": "Textile"
+      }
+    },
+    {
+      "ref": "hivelight-apiary",
+      "kind": "company",
+      "type": "supplier",
+      "name": "Hivelight Apiary",
+      "email": "hello@hivelightapiary@example.com",
+      "tags": [
+        "handmade",
+        "repeat"
+      ],
+      "fields": {
+        "city": "Forcalquier",
+        "sector": "Apiary"
       }
     }
   ],
@@ -167,7 +373,12 @@
         "price": 28,
         "stock": 42,
         "reorder_at": 10,
-        "supplier": "Okafor Ceramics"
+        "supplier": "Okafor Ceramics",
+        "category": "Kitchen",
+        "material": "Stoneware",
+        "badge": "Bestseller",
+        "rating": "4.8 · 126 reviews",
+        "image": "photo:ecommerce/stoneware-mug"
       }
     },
     {
@@ -183,7 +394,11 @@
         "price": 34,
         "stock": 6,
         "reorder_at": 10,
-        "supplier": "Nordlinen Mills"
+        "supplier": "Nordlinen Mills",
+        "category": "Table",
+        "material": "Linen",
+        "rating": "4.7 · 58 reviews",
+        "image": "photo:ecommerce/linen-napkins"
       }
     },
     {
@@ -199,7 +414,11 @@
         "price": 19,
         "stock": 0,
         "reorder_at": 12,
-        "supplier": "Nordlinen Mills"
+        "supplier": "Hivelight Apiary",
+        "category": "Candles",
+        "material": "Beeswax",
+        "rating": "4.9 · 83 reviews",
+        "image": "photo:ecommerce/taper-candles"
       }
     },
     {
@@ -214,7 +433,12 @@
         "sku": "FC-BRD-01",
         "price": 46,
         "stock": 15,
-        "reorder_at": 6
+        "reorder_at": 6,
+        "category": "Kitchen",
+        "material": "Olive wood",
+        "badge": "New",
+        "rating": "4.6 · 31 reviews",
+        "image": "photo:ecommerce/olive-board"
       }
     },
     {
@@ -229,7 +453,12 @@
         "sku": "FC-CND-03",
         "price": 24,
         "stock": 58,
-        "reorder_at": 20
+        "reorder_at": 20,
+        "category": "Candles",
+        "material": "Soy wax",
+        "badge": "Bestseller",
+        "rating": "4.8 · 204 reviews",
+        "image": "photo:ecommerce/soy-candle-plain"
       }
     },
     {
@@ -245,7 +474,11 @@
         "price": 39,
         "stock": 12,
         "reorder_at": 5,
-        "supplier": "Okafor Ceramics"
+        "supplier": "Okafor Ceramics",
+        "category": "Table",
+        "material": "Glazed ceramic",
+        "rating": "4.5 · 22 reviews",
+        "image": "photo:ecommerce/ceramic-carafe"
       }
     },
     {
@@ -261,20 +494,29 @@
         "price": 16,
         "stock": 3,
         "reorder_at": 10,
-        "supplier": "Nordlinen Mills"
+        "supplier": "Nordlinen Mills",
+        "category": "Textiles",
+        "material": "Cotton",
+        "badge": "Sale",
+        "rating": "4.7 · 97 reviews",
+        "image": "photo:ecommerce/tea-towel"
       }
     },
     {
       "ref": "gift-box",
       "type": "product",
-      "title": "Spring gift box",
+      "title": "Winter gift box",
       "subtitle": "FC-GFT-01",
       "status": "draft",
       "price_text": "€72",
       "price_num": 72,
       "fields": {
         "sku": "FC-GFT-01",
-        "price": 72
+        "price": 72,
+        "category": "Gifts",
+        "material": "Mixed",
+        "badge": "Limited",
+        "image": "photo:ecommerce/gift-box"
       }
     },
     {
@@ -289,7 +531,11 @@
         "sku": "FC-THR-01",
         "price": 89,
         "stock": 22,
-        "reorder_at": 8
+        "reorder_at": 8,
+        "category": "Home",
+        "material": "Wool",
+        "rating": "4.9 · 44 reviews",
+        "image": "photo:ecommerce/wool-throw"
       }
     },
     {
@@ -304,7 +550,126 @@
         "sku": "FC-TOT-01",
         "price": 14,
         "stock": 140,
-        "reorder_at": 40
+        "reorder_at": 40,
+        "category": "Textiles",
+        "material": "Cotton",
+        "rating": "4.4 · 312 reviews",
+        "image": "photo:ecommerce/tote-bag"
+      }
+    },
+    {
+      "ref": "glass-tumblers",
+      "type": "product",
+      "title": "Hand-blown tumblers, set of 4",
+      "subtitle": "FC-GLS-04",
+      "status": "out",
+      "price_text": "€42",
+      "price_num": 42,
+      "fields": {
+        "sku": "FC-GLS-04",
+        "price": 42,
+        "stock": 0,
+        "reorder_at": 8,
+        "category": "Table",
+        "material": "Glass",
+        "badge": "Limited",
+        "rating": "4.8 · 37 reviews",
+        "image": "photo:ecommerce/glass-tumblers"
+      }
+    },
+    {
+      "ref": "linen-apron",
+      "type": "product",
+      "title": "Linen apron, sage",
+      "subtitle": "FC-APR-01",
+      "status": "live",
+      "price_text": "€38",
+      "price_num": 38,
+      "fields": {
+        "sku": "FC-APR-01",
+        "price": 38,
+        "stock": 18,
+        "reorder_at": 6,
+        "supplier": "Nordlinen Mills",
+        "category": "Textiles",
+        "material": "Linen",
+        "rating": "4.6 · 12 reviews",
+        "image": "photo:ecommerce/linen-apron"
+      }
+    },
+    {
+      "ref": "serving-bowl",
+      "type": "product",
+      "title": "Stoneware serving bowl",
+      "subtitle": "FC-BWL-01",
+      "status": "live",
+      "price_text": "€36",
+      "price_num": 36,
+      "fields": {
+        "sku": "FC-BWL-01",
+        "price": 36,
+        "stock": 9,
+        "reorder_at": 6,
+        "supplier": "Okafor Ceramics",
+        "category": "Table",
+        "material": "Stoneware",
+        "rating": "4.7 · 19 reviews",
+        "image": "photo:ecommerce/serving-bowl"
+      }
+    },
+    {
+      "ref": "seagrass-basket",
+      "type": "product",
+      "title": "Seagrass storage basket",
+      "subtitle": "FC-BSK-02",
+      "status": "draft",
+      "price_text": "€45",
+      "price_num": 45,
+      "fields": {
+        "sku": "FC-BSK-02",
+        "price": 45,
+        "category": "Home",
+        "material": "Seagrass",
+        "image": "photo:ecommerce/seagrass-basket"
+      }
+    },
+    {
+      "ref": "brass-candle-holder",
+      "type": "product",
+      "title": "Brass candle holder",
+      "subtitle": "FC-HLD-01",
+      "status": "live",
+      "price_text": "€32",
+      "price_num": 32,
+      "fields": {
+        "sku": "FC-HLD-01",
+        "price": 32,
+        "stock": 27,
+        "reorder_at": 10,
+        "category": "Candles",
+        "material": "Brass",
+        "badge": "New",
+        "rating": "4.6 · 15 reviews",
+        "image": "photo:ecommerce/brass-candle-holder"
+      }
+    },
+    {
+      "ref": "soap-trio",
+      "type": "product",
+      "title": "Olive oil soap, trio",
+      "subtitle": "FC-SOP-03",
+      "status": "live",
+      "price_text": "€18",
+      "price_num": 18,
+      "fields": {
+        "sku": "FC-SOP-03",
+        "price": 18,
+        "stock": 64,
+        "reorder_at": 20,
+        "category": "Home",
+        "material": "Olive oil soap",
+        "rating": "4.8 · 71 reviews",
+        "image": "photo:ecommerce/soap-trio"
       }
     }
   ],
@@ -312,56 +677,213 @@
     {
       "flow": "orders",
       "stage": "new",
-      "title": "#1046 · Jonas Weber",
-      "subtitle": "2 items",
-      "value_num": 63,
-      "contact_ref": "jonas-weber",
-      "item_ref": "olive-board"
+      "title": "#1053 · Amelia Hart",
+      "subtitle": "1 item · gift wrap",
+      "value_num": 89,
+      "contact_ref": "amelia-hart",
+      "item_ref": "wool-throw",
+      "fields": {
+        "source": "Website",
+        "priority": "high",
+        "due": "2026-11-02",
+        "tags": [
+          "vip",
+          "gift wrap"
+        ]
+      }
     },
     {
       "flow": "orders",
       "stage": "new",
-      "title": "#1045 · Chen Wei",
+      "title": "#1052 · Noah Bernard",
+      "subtitle": "3 items",
+      "value_num": 71,
+      "contact_ref": "noah-bernard",
+      "item_ref": "tote-bag",
+      "fields": {
+        "source": "Marketplace",
+        "priority": "low",
+        "due": "2026-11-05",
+        "tags": [
+          "first order"
+        ]
+      }
+    },
+    {
+      "flow": "orders",
+      "stage": "new",
+      "title": "#1051 · Yusuf Demir",
+      "subtitle": "1 item",
+      "value_num": 43,
+      "contact_ref": "yusuf-demir",
+      "item_ref": "linen-apron",
+      "fields": {
+        "source": "Newsletter",
+        "priority": "normal",
+        "due": "2026-11-04",
+        "tags": [
+          "repeat"
+        ]
+      }
+    },
+    {
+      "flow": "orders",
+      "stage": "new",
+      "title": "#1050 · Chen Wei",
       "subtitle": "1 item",
       "value_num": 28,
       "contact_ref": "chen-wei",
-      "item_ref": "stoneware-mug"
+      "item_ref": "stoneware-mug",
+      "fields": {
+        "source": "Instagram",
+        "priority": "low",
+        "due": "2026-11-04",
+        "tags": [
+          "first order"
+        ]
+      }
     },
     {
       "flow": "orders",
       "stage": "new",
-      "title": "#1047 · Amelia Hart",
-      "subtitle": "1 item",
-      "value_num": 89,
-      "contact_ref": "amelia-hart",
-      "item_ref": "wool-throw"
+      "title": "#1049 · Jonas Weber",
+      "subtitle": "2 items",
+      "value_num": 63,
+      "contact_ref": "jonas-weber",
+      "item_ref": "olive-board",
+      "fields": {
+        "source": "Website",
+        "priority": "normal",
+        "due": "2026-11-03",
+        "tags": [
+          "first order",
+          "welcome code"
+        ]
+      }
     },
     {
       "flow": "orders",
       "stage": "paid",
-      "title": "#1044 · Priya Raman",
+      "title": "#1048 · Sofia Rossi",
+      "subtitle": "2 items · Turin",
+      "value_num": 122,
+      "contact_ref": "sofia-rossi",
+      "item_ref": "wool-throw",
+      "fields": {
+        "source": "Website",
+        "priority": "normal",
+        "due": "2026-11-06",
+        "tags": [
+          "abroad"
+        ]
+      }
+    },
+    {
+      "flow": "orders",
+      "stage": "paid",
+      "title": "#1047 · Maison Tilleul",
+      "subtitle": "30 items · breakfast room",
+      "value_num": 790,
+      "contact_ref": "maison-tilleul",
+      "item_ref": "linen-napkins",
+      "fields": {
+        "source": "Wholesale form",
+        "priority": "high",
+        "due": "2026-11-18",
+        "tags": [
+          "wholesale",
+          "hotel"
+        ]
+      }
+    },
+    {
+      "flow": "orders",
+      "stage": "paid",
+      "title": "#1046 · Priya Raman",
       "subtitle": "4 items",
       "value_num": 118,
       "contact_ref": "priya-raman",
-      "item_ref": "linen-napkins"
+      "item_ref": "linen-napkins",
+      "fields": {
+        "source": "Newsletter",
+        "priority": "normal",
+        "due": "2026-11-05",
+        "tags": [
+          "gift",
+          "repeat"
+        ]
+      }
     },
     {
       "flow": "orders",
       "stage": "paid",
       "title": "#1039 · Pinecone Gift Shop",
-      "subtitle": "24 items",
+      "subtitle": "24 items · 12 on backorder",
       "value_num": 612,
       "contact_ref": "pinecone-gift-shop",
-      "item_ref": "stoneware-mug"
+      "item_ref": "taper-candles",
+      "fields": {
+        "source": "Wholesale form",
+        "priority": "high",
+        "due": "2026-11-12",
+        "tags": [
+          "wholesale",
+          "backorder"
+        ]
+      }
     },
     {
       "flow": "orders",
       "stage": "packed",
-      "title": "#1043 · Amelia Hart",
+      "title": "#1045 · Camille Laurent",
+      "subtitle": "36 candles · Christmas market",
+      "value_num": 774,
+      "contact_ref": "camille-laurent",
+      "item_ref": "soy-candle",
+      "fields": {
+        "source": "Phone",
+        "priority": "high",
+        "due": "2026-11-10",
+        "tags": [
+          "wholesale",
+          "market"
+        ]
+      }
+    },
+    {
+      "flow": "orders",
+      "stage": "packed",
+      "title": "#1044 · Amelia Hart",
       "subtitle": "3 items",
       "value_num": 96,
       "contact_ref": "amelia-hart",
-      "item_ref": "soy-candle"
+      "item_ref": "soy-candle",
+      "fields": {
+        "source": "Website",
+        "priority": "normal",
+        "due": "2026-11-02",
+        "tags": [
+          "vip"
+        ]
+      }
+    },
+    {
+      "flow": "orders",
+      "stage": "shipped",
+      "title": "#1043 · Ines Carvalho",
+      "subtitle": "3 items · Lisbon",
+      "value_num": 109,
+      "contact_ref": "ines-carvalho",
+      "item_ref": "ceramic-carafe",
+      "fields": {
+        "source": "Instagram",
+        "priority": "normal",
+        "due": "2026-11-09",
+        "tags": [
+          "abroad",
+          "gift"
+        ]
+      }
     },
     {
       "flow": "orders",
@@ -370,7 +892,15 @@
       "subtitle": "2 items",
       "value_num": 74,
       "contact_ref": "mateo-silva",
-      "item_ref": "ceramic-carafe"
+      "item_ref": "ceramic-carafe",
+      "fields": {
+        "source": "Website",
+        "priority": "normal",
+        "due": "2026-11-03",
+        "tags": [
+          "repeat"
+        ]
+      }
     },
     {
       "flow": "orders",
@@ -379,7 +909,16 @@
       "subtitle": "12 items",
       "value_num": 342,
       "contact_ref": "cafe-bleu",
-      "item_ref": "tea-towel"
+      "item_ref": "tea-towel",
+      "fields": {
+        "source": "Wholesale form",
+        "priority": "normal",
+        "due": "2026-11-06",
+        "tags": [
+          "wholesale",
+          "tracked"
+        ]
+      }
     },
     {
       "flow": "orders",
@@ -388,7 +927,16 @@
       "subtitle": "6 items",
       "value_num": 188,
       "contact_ref": "lea-moreau",
-      "item_ref": "soy-candle"
+      "item_ref": "soy-candle",
+      "fields": {
+        "source": "Wholesale form",
+        "priority": "low",
+        "due": "2026-11-05",
+        "tags": [
+          "wholesale",
+          "ask review"
+        ]
+      }
     },
     {
       "flow": "orders",
@@ -397,7 +945,16 @@
       "subtitle": "1 item",
       "value_num": 39,
       "contact_ref": "mateo-silva",
-      "item_ref": "ceramic-carafe"
+      "item_ref": "ceramic-carafe",
+      "fields": {
+        "source": "Website",
+        "priority": "low",
+        "due": "2026-11-04",
+        "tags": [
+          "repeat",
+          "ask review"
+        ]
+      }
     },
     {
       "flow": "orders",
@@ -406,25 +963,68 @@
       "subtitle": "2 items",
       "value_num": 52,
       "contact_ref": "priya-raman",
-      "item_ref": "tea-towel"
+      "item_ref": "tea-towel",
+      "fields": {
+        "source": "Newsletter",
+        "priority": "low",
+        "due": "2026-11-02",
+        "tags": [
+          "repeat"
+        ]
+      }
+    },
+    {
+      "flow": "orders",
+      "stage": "delivered",
+      "title": "#1036 · Hannah Keller",
+      "subtitle": "2 sets · Brussels",
+      "value_num": 92,
+      "contact_ref": "hannah-keller",
+      "item_ref": "glass-tumblers",
+      "fields": {
+        "source": "Website",
+        "priority": "low",
+        "due": "2026-11-03",
+        "tags": [
+          "abroad",
+          "gift",
+          "ask review"
+        ]
+      }
     }
   ],
   "notes": [
     {
       "contact_ref": "amelia-hart",
-      "body": "Asked for gift wrapping on her next order."
+      "body": "Third order this year. Asked for gift wrapping on the next one: linen ribbon, not the plastic kind. I now pre-fold her throws in tissue."
     },
     {
       "contact_ref": "priya-raman",
-      "body": "Prefers linen over cotton. Always buys candles in pairs."
+      "body": "Prefers linen over cotton. Always buys candles in pairs, one for her sister. Mentioned she may want a bigger set of napkins for a dinner in December."
     },
     {
       "contact_ref": "tom-okafor",
-      "body": "Next batch of 120 mugs ships on the 14th."
+      "body": "Next batch of 120 mugs ships on the 14th. He can add 30 serving bowls to it if we confirm by Friday."
     },
     {
       "contact_ref": "lea-moreau",
-      "body": "Asked for wholesale prices. Trade price list sent."
+      "body": "Asked for wholesale prices for Cafe Bleu. Trade price list sent on Tuesday; she will come back after talking to the owner."
+    },
+    {
+      "contact_ref": "hannah-keller",
+      "body": "Wrote to ask if the tumblers go in the dishwasher (top rack, yes). Brussels delivery took six days and she was fine with it. Wants an email when they are back."
+    },
+    {
+      "contact_ref": "camille-laurent",
+      "body": "Pinecone wants 36 soy candles before the Christmas market. Net 30 agreed by phone; the invoice goes to their accounts address, not to Camille."
+    },
+    {
+      "contact_ref": "sara-lindqvist",
+      "body": "Linen lead time slipped to five weeks because of the mill holiday. I moved our napkin and apron reorder forward to be safe."
+    },
+    {
+      "contact_ref": "jonas-weber",
+      "body": "First order, welcome code used. He asked how to look after the olive board: hand wash, dry at once, a little food-safe oil once a month. Sent the care card."
     }
   ]
 }

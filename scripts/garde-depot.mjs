@@ -13,6 +13,15 @@ const MEDIA = /\.(png|jpe?g|gif|webp|mp4|mov|wav|mp3|ttf|otf|pdf)$/i
 // is still an error.
 export const COVER_MAX = 160 * 1024
 const COVER_PATH = /^packages\/kybernos-plugin\/themes\/(_next\/[a-z][a-z0-9-]{1,39}|[a-z][a-z0-9-]{1,39}\/cover)\.jpg$/
+// The second, decided 2026-10-29 with the sample data: the invented photographs a shipped theme's sample rows show (a property, a product, a job), small JPEGs cut
+// from one FLUX 2 palette by scripts/theme-photos.mjs, at `themes/<dir>/demo/photos/<name>.jpg`, at most PHOTO_MAX each and PHOTOS_PER_THEME per theme.
+export const PHOTO_MAX = 80 * 1024
+export const PHOTOS_PER_THEME = 16
+const PHOTO_PATH = /^packages\/kybernos-plugin\/themes\/([a-z][a-z0-9-]{1,39})\/demo\/photos\/[a-z0-9][a-z0-9-]{1,59}\.jpg$/
+/** A tracked sample photograph of a shipped theme, at most PHOTO_MAX. */
+export const isAllowedPhoto = (file, size) => PHOTO_PATH.test(file) && size <= PHOTO_MAX
+/** The theme folder a tracked sample photograph belongs to, or null. */
+export const photoThemeOf = (file) => { const m = PHOTO_PATH.exec(file); return m === null ? null : m[1] }
 /** A tracked file that may be a picture: a shipped theme's cover (`themes/<dir>/cover.jpg`) or a next trade's (`themes/_next/<id>.jpg`), at most COVER_MAX. */
 export const isAllowedCover = (file, size) => COVER_PATH.test(file) && size <= COVER_MAX
 /** The cover of a theme folder a stranger installs (its own `cover.jpg`, at its root), at most COVER_MAX: the same exception, seen from inside the folder. */
@@ -56,16 +65,19 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const files = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean)
   const errors = []
   const warnings = []
+  const photos = new Map()
   for (const f of files) {
     const size = statSync(f).size
     if (MEDIA.test(f)) {
-      if (!isAllowedCover(f, size)) errors.push(`media file tracked: ${f}`)
-      else if (!looksLikeJpeg(readFileSync(f))) errors.push(`a cover that is not a JPEG: ${f}`)
+      if (!isAllowedCover(f, size) && !isAllowedPhoto(f, size)) errors.push(`media file tracked: ${f}`)
+      else if (!looksLikeJpeg(readFileSync(f))) errors.push(`a cover or a sample photograph that is not a JPEG: ${f}`)
+      else if (photoThemeOf(f) !== null) photos.set(photoThemeOf(f), (photos.get(photoThemeOf(f)) ?? 0) + 1)
     }
     if (SECRET.test(f)) errors.push(`secret-looking file tracked: ${f}`)
     if (size > MAX_BYTES) errors.push(`over ${MAX_BYTES / 1048576} MB: ${f} (${(size / 1048576).toFixed(1)} MB)`)
     if (isScanned(f, size)) warnings.push(...warningsOf(f, readFileSync(f, 'utf8')))
   }
+  for (const [theme, n] of photos) if (n > PHOTOS_PER_THEME) errors.push(`${n} sample photographs in the theme ${theme} (at most ${PHOTOS_PER_THEME})`)
   for (const w of warnings) console.log('⚠ ' + w)
   for (const e of errors) console.error('✗ ' + e)
   console.log(`${files.length} tracked files — ${errors.length} error(s), ${warnings.length} warning(s)`)

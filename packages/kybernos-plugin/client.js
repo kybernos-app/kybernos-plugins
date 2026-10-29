@@ -51,6 +51,7 @@ let kbLocaleRead = () => 'en'
       'tb.view.list': { kybernos: 'Liste', en: 'List' },
       'tb.view.calendar': { kybernos: 'Calendrier', en: 'Calendar' },
       'tb.view.columns': { kybernos: 'Colonnes', en: 'Columns' },
+      'tb.view.map': { kybernos: 'Carte', en: 'Map' },
       'tb.search.toggle': { kybernos: 'Recherche', en: 'Search' },
       'tb.summary.date.new': { kybernos: 'Plus récents', en: 'Most recent' },
       'tb.summary.date.old': { kybernos: 'Plus anciens', en: 'Oldest first' },
@@ -4818,6 +4819,7 @@ const LUCIDE = {
   hardDrive: ['M22 12H2', 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z', 'M6 16h.01', 'M10 16h.01'],
   // The Automations board (Columns view, calendar controls, status signs, banner).
   columns: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M9 3v18', 'M15 3v18'],
+  map: ['M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z', 'M15 5.764v15', 'M9 3.236v15'],
   chevronLeft: ['m15 18-6-6 6-6'],
   pause: ['M15 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M7 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'],
   triangleAlert: ['m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3', 'M12 9v4', 'M12 17h.01'],
@@ -11808,7 +11810,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (raw.period === '7' || raw.period === '30' || raw.period === 'all') out.period = raw.period
       if (typeof raw.fav === 'boolean') out.fav = raw.fav
       else if (typeof raw.favoritesOnly === 'boolean') out.fav = raw.favoritesOnly
-      if (raw.viewMode === 'list' || raw.viewMode === 'cards' || raw.viewMode === 'columns' || raw.viewMode === 'calendar') out.viewMode = raw.viewMode
+      if (raw.viewMode === 'list' || raw.viewMode === 'cards' || raw.viewMode === 'columns' || raw.viewMode === 'calendar' || raw.viewMode === 'map') out.viewMode = raw.viewMode
       // Vue du filtre personnalisée (Livrables, 29/09) : liste d'ids de tuiles
       // affichées. Absente → la page retombe sur sa vue par défaut.
       if (Array.isArray(raw.vis) === true) out.vis = raw.vis.filter((x) => typeof x === 'string').slice(0, 80)
@@ -11819,7 +11821,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const base = {
         query: '', sort: (defaults && typeof defaults.sort === 'string' && defaults.sort !== 'date') ? defaults.sort : 'modified',
         dir: 'desc', types: [], period: 'all', fav: false,
-        viewMode: (defaults && (defaults.viewMode === 'list' || defaults.viewMode === 'columns' || defaults.viewMode === 'calendar')) ? defaults.viewMode : 'cards',
+        viewMode: (defaults && (defaults.viewMode === 'list' || defaults.viewMode === 'columns' || defaults.viewMode === 'calendar' || defaults.viewMode === 'map')) ? defaults.viewMode : 'cards',
       }
       const saved = React.useMemo(() => {
         try {
@@ -11858,7 +11860,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // Props :
     //   state {query,sort,dir,types,period,fav,viewMode}, onUpdate(patch), onReset(),
     //   searchPlaceholder, sortOptions[{id,label}], facets{type:{options:[{id,label,count}]}, period:true},
-    //   views:['cards','list','calendar','columns'], viewLabels:true (names beside the icons), hideSort:true (a view that is not an ordered
+    //   views:['cards','list','calendar','columns','map'], facets.type.label (the heading of the first facet, « Type » by default), viewLabels:true (names beside the icons), hideSort:true (a view that is not an ordered
     //   list), total, shown, showFav:false, hideView:true, onAdd, addLabel, trailing
     const KbToolbar = (props) => {
       const st = (props.state !== null && typeof props.state === 'object') ? props.state : {}
@@ -11875,7 +11877,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // page (Connecteurs) — le viewMode persisté y reste sans effet.
       const showFav = props.showFav !== false
       const hideView = props.hideView === true
-      const viewMode = (st.viewMode === 'list' || st.viewMode === 'columns' || st.viewMode === 'calendar') ? st.viewMode : 'cards'
+      const viewMode = (st.viewMode === 'list' || st.viewMode === 'columns' || st.viewMode === 'calendar' || st.viewMode === 'map') ? st.viewMode : 'cards'
       // `hideSort`: a page whose views are not an ordered list (the Automations board) has no sort to offer.
       // `viewLabels`: the switch shows the name of each view beside its icon (a three-way choice is not guessed from icons).
       const hideSort = props.hideSort === true
@@ -11928,9 +11930,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const filterCount = types.length + (period !== 'all' ? 1 : 0)
       const filterActive = filterCount > 0
       const hasMenu = showFilters === true || (hideSort !== true && sortOptions.length > 0)
-      const viewIds = (Array.isArray(props.views) === true && props.views.length > 0) ? props.views.filter((v) => v === 'cards' || v === 'list' || v === 'calendar' || v === 'columns') : ['cards', 'list']
-      const viewIcon = (id) => (id === 'cards' ? Icon('grid', 16) : (id === 'calendar' ? Icon('calendar', 16) : (id === 'columns' ? Icon('columns', 16) : Icon('list', 16))))
-      const viewLabel = (id) => (id === 'cards' ? kbt('tb.view.cards') : (id === 'calendar' ? kbt('tb.view.calendar') : (id === 'columns' ? kbt('tb.view.columns') : kbt('tb.view.list'))))
+      const viewIds = (Array.isArray(props.views) === true && props.views.length > 0) ? props.views.filter((v) => v === 'cards' || v === 'list' || v === 'calendar' || v === 'columns' || v === 'map') : ['cards', 'list']
+      const viewIcon = (id) => (id === 'cards' ? Icon('grid', 16) : (id === 'calendar' ? Icon('calendar', 16) : (id === 'columns' ? Icon('columns', 16) : (id === 'map' ? Icon('map', 16) : Icon('list', 16)))))
+      const viewLabel = (id) => (id === 'cards' ? kbt('tb.view.cards') : (id === 'calendar' ? kbt('tb.view.calendar') : (id === 'columns' ? kbt('tb.view.columns') : (id === 'map' ? kbt('tb.view.map') : kbt('tb.view.list')))))
       const popItem = (key, label, on, onClick, extra) => h('button', { type: 'button', key: key, className: 'kb6-tb-popitem' + (on === true ? ' on' : ''), onClick: onClick, 'aria-pressed': on === true ? 'true' : 'false' },
         h('span', { className: 'kb6-tb-popcheck' }, on === true ? Icon('check', 13) : null),
         h('span', { className: 'kb6-tb-poplab' }, label),
@@ -11942,7 +11944,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', null, kbt('tb.filters')),
           (filterCount > 0 ? h('button', { type: 'button', className: 'kb6-tb-reset', onClick: () => upd({ types: [], period: 'all' }) }, Icon('rotate-ccw', 11), kbt('tb.reset')) : null)))
         if (hasTypeFacet === true) {
-          menuKids.push(h('div', { key: 'ftl', className: 'kb6-tb-facetlabel' }, kbt('tb.type')))
+          menuKids.push(h('div', { key: 'ftl', className: 'kb6-tb-facetlabel' }, typeof facets.type.label === 'string' && facets.type.label !== '' ? facets.type.label : kbt('tb.type')))
           for (const o of facets.type.options) menuKids.push(popItem(o.id, o.label, types.indexOf(o.id) >= 0, () => toggleType(o.id), o.count))
         }
         if (showPeriod === true) {
@@ -29001,6 +29003,243 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return { count: Math.min(count, 99), running }
     }
     // </kb-business-menu>
+    // <kb-business-kit>
+    // The small visual kit the Business pages share (Contacts, Catalog, Pipeline), published as window.__KB_BIZ_KIT__ so three plugins draw the same tags, avatars,
+    // pictures and motion without a copy each. A page reads it when it renders (never at load: the core applies after the plugins) and falls back to plain
+    // chips when it is not there. Everything is drawn locally: no picture is fetched, a picture is an `art:` spec drawn as an SVG.
+    //   tint(text)                 → a hue (0-359) that is always the same for the same text, from a short list of soft hues
+    //   Tag({ text, hue, dot, icon, on, onClick, title })   a coloured chip (the colour follows the text unless `hue` is given)
+    //   Avatar({ name, size, kind })  initials on a gradient (kind 'company': a rounded square with a building)
+    //   Art({ spec, ratio, title })   an illustration: spec « art:<kind>[/<seed>][@<hue>] », kinds in KB_BIZ_ART_KINDS; anything else draws nothing
+    //   Icon(name, size)           the business icons (pin, bed, bath, ruler…) then the core's own
+    //   artKinds, artOk(spec), css  for tests and for pages that want the class names (kz-lift, kz-in, kz-press, kz-pop, kz-img)
+    const KB_BIZ_HUES = [8, 24, 38, 84, 146, 170, 192, 212, 236, 262, 292, 328]
+    const KB_BIZ_ART_KINDS = ['house', 'apartment', 'villa', 'loft', 'shop', 'box', 'bottle', 'bag', 'desk']
+    const KB_BIZ_ART_RE = /^art:([a-z-]{2,16})(?:\/([A-Za-z0-9._-]{0,40}))?(?:@(\d{1,3}))?$/
+    const kbBizSeed = (text) => { let n = 7; for (const c of String(text === null || text === undefined ? '' : text)) n = (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0; return n }
+    const kbBizTint = (text) => KB_BIZ_HUES[kbBizSeed(String(text).toLowerCase()) % KB_BIZ_HUES.length]
+    const kbBizHsl = (hue, s, l, a) => 'hsl(' + (((hue % 360) + 360) % 360) + ' ' + s + '% ' + l + '%' + (a === undefined ? '' : ' / ' + a) + ')'
+    const KB_BIZ_ICONS = {
+      pin: ['M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z', 'M12 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z'],
+      bed: ['M2 18v-9', 'M2 14h20v4', 'M22 18v-5a3 3 0 0 0-3-3h-7v4', 'M6.5 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z'],
+      bath: ['M4 12h16a1 1 0 0 1 1 1v2a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-2a1 1 0 0 1 1-1z', 'M6 12V5a2 2 0 0 1 3.4-1.4', 'M7 19l-1 2', 'M17 19l1 2'],
+      ruler: ['M3 17.5 17.5 3l3.5 3.5L6.5 21z', 'M7.5 13l2 2', 'M10.5 10l2 2', 'M13.5 7l2 2'],
+      tag: ['M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z', 'M7.5 7.5h.01'],
+      euro: ['M18 6.5A7 7 0 1 0 18 17.5', 'M4 10h9', 'M4 14h9'],
+      building: ['M4 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17', 'M14 9h5a1 1 0 0 1 1 1v11', 'M2 21h20', 'M8 7h2', 'M8 11h2', 'M8 15h2', 'M17 13h.01', 'M17 17h.01'],
+      leaf: ['M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z', 'M2 21c0-3 1.9-5.3 5-6.3'],
+      sparkle: ['M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', 'M19 17l.7 1.8L21.5 19.5l-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z'],
+      cart: ['M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6', 'M9.5 20.5h.01', 'M17.5 20.5h.01'],
+      truck: ['M2 6h12v10H2z', 'M14 9h4l3 3v4h-7', 'M6.5 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z', 'M17.5 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z'],
+      cap: ['M2 9l10-5 10 5-10 5z', 'M6 11.2V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.8'],
+      clock: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3 2'],
+      key: ['M15.5 9.5a4.5 4.5 0 1 1-4.4 3.5L3 21v-3l2-2h2v-2l2.5-2.5', 'M16 7.5h.01'],
+      heart: ['M12 20.5S3.5 15.4 3.5 9.4A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 8.5 1.8c0 6-8.5 11.1-8.5 11.1z'],
+      star: ['M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z'],
+      layers: ['M12 3l9 5-9 5-9-5z', 'M3 12.5l9 5 9-5', 'M3 17l9 5 9-5'],
+      map: ['M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z', 'M9 4v13.5', 'M15 6.5V20'],
+      grid: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
+      list: ['M8 6h13', 'M8 12h13', 'M8 18h13', 'M3.5 6h.01', 'M3.5 12h.01', 'M3.5 18h.01'],
+    }
+    const kbBizIcon = (name, size) => {
+      const d = KB_BIZ_ICONS[name]
+      if (d === undefined) return Icon(name, size)
+      const px = size === undefined ? 16 : size
+      return h('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' }, d.map((p, i) => h('path', { d: p, key: i })))
+    }
+    const KB_BIZ_CSS = [
+      '.kz-tag{--kz-h:212;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border:0;border-radius:11px;font:inherit;font-size:12px;font-weight:500;line-height:1;white-space:nowrap;max-width:100%;',
+      'background:color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 6%,transparent);color:var(--dsw-alias-label-secondary,inherit);',
+      'box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 8%,transparent);transition:transform .16s cubic-bezier(.2,.8,.2,1),background .16s,box-shadow .16s}',
+      '.kz-tag i{display:inline-block;width:6px;height:6px;border-radius:50%;background:hsl(var(--kz-h) 55% 52%);flex:none}',
+      '.kz-tag svg{flex:none}',
+      'button.kz-tag{cursor:pointer}',
+      'button.kz-tag:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 11%,transparent);color:var(--dsw-alias-label-primary,inherit)}',
+      'button.kz-tag:active{transform:scale(.95)}',
+      '.kz-tag.on,button.kz-tag.on:hover{background:var(--dsw-alias-label-primary,currentColor);color:var(--dsw-alias-label-primary-inverted,#fff);box-shadow:none}',
+      '.kz-tag.on i{background:var(--dsw-alias-label-primary-inverted,#fff)}',
+      '.kz-av{--kz-h:212;display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;color:#fff;font-weight:700;letter-spacing:.02em;user-select:none;',
+      'background:linear-gradient(135deg,hsl(var(--kz-h) 46% 47%),hsl(calc(var(--kz-h) + 24) 42% 38%));box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}',
+      '.kz-av.co{border-radius:28%}',
+      '.kz-art{display:block;width:100%;height:100%;border-radius:inherit}',
+      '.kz-img{position:relative;overflow:hidden;background:var(--dsw-alias-bg-layer-2,transparent)}',
+      '.kz-img>svg{transition:transform .6s cubic-bezier(.2,.8,.2,1)}',
+      '.kz-lift{transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s,border-color .18s}',
+      '.kz-lift:hover{transform:translateY(-2px);box-shadow:0 10px 26px -12px rgba(0,0,0,.4)}',
+      '.kz-lift:hover .kz-img>svg{transform:scale(1.05)}',
+      '.kz-lift:active{transform:translateY(0) scale(.995)}',
+      '.kz-press{transition:transform .14s cubic-bezier(.2,.8,.2,1),background .14s}',
+      '.kz-press:active{transform:scale(.96)}',
+      '.kz-in{animation:kz-in .4s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--kz-i,0) * 30ms)}',
+      '.kz-pop{animation:kz-pop .38s cubic-bezier(.3,1.6,.5,1)}',
+      '@keyframes kz-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}',
+      '@keyframes kz-pop{0%{transform:scale(1)}40%{transform:scale(1.3)}100%{transform:scale(1)}}',
+      '@media (prefers-reduced-motion:reduce){.kz-in,.kz-pop{animation:none}.kz-lift,.kz-press,.kz-tag,.kz-img>svg{transition:none}.kz-lift:hover,.kz-lift:hover .kz-img>svg,button.kz-tag:hover{transform:none}}',
+    ].join('')
+    const kbBizEnsureCss = () => {
+      try {
+        if (typeof document === 'undefined' || document.head === null || document.querySelector('style[data-kb="biz-kit"]') !== null) return
+        const el = document.createElement('style')
+        el.setAttribute('data-kb', 'biz-kit')
+        el.textContent = KB_BIZ_CSS
+        document.head.appendChild(el)
+      } catch (e) { /* the pages still read, only plainer */ }
+    }
+    const kbBizTag = (props) => {
+      kbBizEnsureCss()
+      const p = props !== null && props !== undefined ? props : {}
+      const text = p.text === undefined || p.text === null ? '' : String(p.text)
+      const hue = Number.isFinite(p.hue) ? p.hue : kbBizTint(text)
+      const kids = [(p.dot !== false ? h('i', { key: 'd', 'aria-hidden': 'true' }) : null), (typeof p.icon === 'string' ? kbBizIcon(p.icon, 12) : null), h('span', { key: 't', style: { overflow: 'hidden', textOverflow: 'ellipsis' } }, text)]
+      const common = { className: 'kz-tag' + (p.on === true ? ' on' : ''), style: { '--kz-h': hue }, title: p.title === undefined ? undefined : p.title }
+      return typeof p.onClick === 'function'
+        ? h('button', Object.assign({ type: 'button', onClick: p.onClick, 'aria-pressed': p.on === true ? 'true' : 'false' }, common), kids)
+        : h('span', common, kids)
+    }
+    const kbBizAvatar = (props) => {
+      kbBizEnsureCss()
+      const p = props !== null && props !== undefined ? props : {}
+      const name = p.name === undefined || p.name === null ? '' : String(p.name).trim()
+      const size = Number.isFinite(p.size) ? p.size : 36
+      const company = p.kind === 'company'
+      const words = name.split(/[\s,.·|/-]+/).filter((w) => w !== '')
+      const letters = (words.length > 1 ? words[0].charAt(0) + words[words.length - 1].charAt(0) : (words[0] || '?').slice(0, 2)).toUpperCase()
+      return h('span', { className: 'kz-av' + (company ? ' co' : ''), style: { '--kz-h': kbBizTint(name), width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.38)) }, role: 'img', 'aria-label': name },
+        company ? kbBizIcon('building', Math.round(size * 0.5)) : letters)
+    }
+    let kbBizArtCount = 0
+    const kbBizArtOk = (spec) => { const m = typeof spec === 'string' ? KB_BIZ_ART_RE.exec(spec) : null; return m !== null && KB_BIZ_ART_KINDS.indexOf(m[1]) >= 0 }
+    // Flat illustrations on a 320x200 canvas, coloured from one hue. Each kind is a handful of shapes: enough to look like a place or a thing, never a photo.
+    const kbBizArtShapes = (kind, n, hue, uid) => {
+      const H = hue
+      const sky = (top, bottom) => [h('defs', { key: 'df' }, h('linearGradient', { id: 'kzg' + uid, x1: 0, y1: 0, x2: 0, y2: 1 }, h('stop', { offset: '0', stopColor: top }), h('stop', { offset: '1', stopColor: bottom }))), h('rect', { key: 'sk', width: 320, height: 200, fill: 'url(#kzg' + uid + ')' })]
+      const sun = (x, y) => h('circle', { key: 'sun', cx: x, cy: y, r: 16, fill: kbBizHsl(H + 150, 90, 78), opacity: 0.9 })
+      const cloud = (x, y, k) => h('g', { key: 'c' + k, fill: '#fff', opacity: 0.85 }, h('ellipse', { cx: x, cy: y, rx: 24, ry: 8 }), h('ellipse', { cx: x + 14, cy: y - 6, rx: 16, ry: 8 }), h('ellipse', { cx: x - 12, cy: y - 3, rx: 12, ry: 6 }))
+      const win = (x, y, w, hh, k, lit) => h('rect', { key: 'w' + k, x, y, width: w, height: hh, rx: 2, fill: lit ? kbBizHsl(H + 160, 90, 82) : kbBizHsl(H, 40, 92), stroke: kbBizHsl(H, 30, 40, 0.5), strokeWidth: 1 })
+      const tree = (x, y, s, k) => h('g', { key: 'tr' + k }, h('rect', { x: x - 2, y: y - 8 * s, width: 4, height: 10 * s, fill: kbBizHsl(30, 40, 32) }), h('circle', { cx: x, cy: y - 14 * s, r: 11 * s, fill: kbBizHsl(138, 45, 40) }), h('circle', { cx: x + 6 * s, cy: y - 10 * s, r: 8 * s, fill: kbBizHsl(142, 48, 46) }))
+      if (kind === 'house') {
+        const wall = kbBizHsl(H, 55, 90 - (n % 3) * 3); const roof = kbBizHsl(H + 190, 50, 42)
+        return sky(kbBizHsl(H, 80, 86), kbBizHsl(H, 70, 96)).concat([sun(262, 40), cloud(70, 44, 1), cloud(190, 30, 2),
+          h('rect', { key: 'gr', y: 160, width: 320, height: 40, fill: kbBizHsl(138, 40, 62) }),
+          h('rect', { key: 'bd', x: 86, y: 90, width: 148, height: 74, fill: wall }),
+          h('polygon', { key: 'rf', points: '72,92 160,38 248,92', fill: roof }),
+          h('rect', { key: 'ch', x: 198, y: 48, width: 14, height: 30, fill: kbBizHsl(H + 190, 40, 36) }),
+          h('rect', { key: 'dr', x: 148, y: 120, width: 26, height: 44, rx: 3, fill: kbBizHsl(H + 190, 45, 34) }),
+          win(104, 108, 28, 26, 1, n % 2 === 0), win(190, 108, 28, 26, 2, true),
+          h('path', { key: 'pt', d: 'M161 164 L150 200 L184 200 L174 164 Z', fill: kbBizHsl(40, 30, 82) }),
+          tree(48, 164, 1.1, 1), tree(278, 166, 1, 2)])
+      }
+      if (kind === 'apartment') {
+        const wall = kbBizHsl(H + 10, 38, 84); const out = []
+        for (let r = 0; r < 5; r += 1) for (let c = 0; c < 4; c += 1) out.push(win(116 + c * 22, 36 + r * 24, 14, 16, 'a' + r + c, (r * 4 + c + n) % 3 === 0))
+        return sky(kbBizHsl(H, 70, 88), kbBizHsl(H + 20, 60, 96)).concat([cloud(64, 40, 1), cloud(250, 62, 2),
+          h('rect', { key: 'b2', x: 44, y: 98, width: 56, height: 66, fill: kbBizHsl(H - 20, 32, 74) }),
+          h('rect', { key: 'b3', x: 224, y: 84, width: 52, height: 80, fill: kbBizHsl(H + 30, 30, 76) }),
+          h('rect', { key: 'bd', x: 104, y: 24, width: 112, height: 140, rx: 3, fill: wall }),
+          h('rect', { key: 'rt', x: 104, y: 24, width: 112, height: 8, fill: kbBizHsl(H, 35, 46) })].concat(out, [
+          h('rect', { key: 'dr', x: 148, y: 138, width: 24, height: 26, rx: 2, fill: kbBizHsl(H, 40, 30) }),
+          h('rect', { key: 'gr', y: 164, width: 320, height: 36, fill: kbBizHsl(220, 12, 58) }),
+          h('rect', { key: 'rd', y: 178, width: 320, height: 4, fill: kbBizHsl(48, 80, 70) }), tree(30, 166, 0.9, 1), tree(296, 166, 0.9, 2)]))
+      }
+      if (kind === 'villa') {
+        return sky(kbBizHsl(H + 20, 85, 84), kbBizHsl(H + 40, 80, 95)).concat([sun(60, 46),
+          h('rect', { key: 'gr', y: 150, width: 320, height: 50, fill: kbBizHsl(138, 38, 60) }),
+          h('rect', { key: 'p', x: 196, y: 160, width: 100, height: 26, rx: 5, fill: kbBizHsl(192, 85, 60) }),
+          h('path', { key: 'pw', d: 'M204 168q8-5 16 0t16 0 16 0 16 0 16 0', stroke: '#fff', strokeWidth: 2, fill: 'none', opacity: 0.8 }),
+          h('rect', { key: 'l1', x: 40, y: 100, width: 150, height: 56, fill: kbBizHsl(H, 25, 94) }),
+          h('rect', { key: 'l2', x: 70, y: 66, width: 112, height: 38, fill: kbBizHsl(H, 30, 86) }),
+          h('rect', { key: 'rf', x: 60, y: 60, width: 132, height: 8, fill: kbBizHsl(H, 20, 32) }),
+          h('rect', { key: 'gl', x: 86, y: 112, width: 90, height: 38, fill: kbBizHsl(H + 150, 70, 76), opacity: 0.9 }),
+          h('rect', { key: 'gl2', x: 92, y: 74, width: 70, height: 24, fill: kbBizHsl(H + 150, 70, 78), opacity: 0.9 }),
+          h('path', { key: 'gs', d: 'M86 150 L110 112 L124 112 L100 150 Z', fill: '#fff', opacity: 0.25 }),
+          tree(22, 156, 1.2, 1), tree(306, 152, 1, 2)])
+      }
+      if (kind === 'loft') {
+        return [h('rect', { key: 'wl', width: 320, height: 200, fill: kbBizHsl(H, 40, 93) }),
+          h('rect', { key: 'fl', y: 150, width: 320, height: 50, fill: kbBizHsl(32, 40, 66) }),
+          h('rect', { key: 'wn', x: 96, y: 26, width: 128, height: 116, rx: 64, fill: kbBizHsl(H + 150, 70, 84), stroke: kbBizHsl(H, 20, 30), strokeWidth: 5 }),
+          h('path', { key: 'sk', d: 'M104 142 V110 h14 V84 h16 V112 h12 V96 h22 V120 h16 V102 h18 V142 Z', fill: kbBizHsl(H, 35, 62), opacity: 0.7 }),
+          h('rect', { key: 'bar', x: 158, y: 26, width: 4, height: 116, fill: kbBizHsl(H, 20, 30) }),
+          h('rect', { key: 'sf', x: 30, y: 118, width: 118, height: 40, rx: 12, fill: kbBizHsl(H + 190, 45, 48) }),
+          h('rect', { key: 'sb', x: 30, y: 96, width: 118, height: 30, rx: 12, fill: kbBizHsl(H + 190, 45, 56) }),
+          h('rect', { key: 'lp', x: 250, y: 70, width: 3, height: 84, fill: kbBizHsl(H, 20, 30) }),
+          h('path', { key: 'ls', d: 'M236 72 h32 l-6 -18 h-20 z', fill: kbBizHsl(46, 90, 66) }),
+          h('rect', { key: 'pt', x: 270, y: 132, width: 16, height: 22, rx: 3, fill: kbBizHsl(20, 55, 50) }),
+          h('path', { key: 'pl', d: 'M278 132 q-16 -22 -6 -34 q6 14 6 34 q4 -22 18 -26 q-4 18 -18 26', fill: kbBizHsl(142, 48, 40) })]
+      }
+      if (kind === 'shop') {
+        const out = []
+        for (let i = 0; i < 8; i += 1) out.push(h('rect', { key: 'aw' + i, x: 46 + i * 28, y: 56, width: 28, height: 26, fill: i % 2 === 0 ? kbBizHsl(H, 70, 54) : '#fff' }))
+        return sky(kbBizHsl(H + 10, 60, 90), kbBizHsl(H + 10, 50, 97)).concat([
+          h('rect', { key: 'bd', x: 40, y: 36, width: 240, height: 128, rx: 4, fill: kbBizHsl(H + 15, 28, 90) }),
+          h('rect', { key: 'sg', x: 100, y: 38, width: 120, height: 16, rx: 3, fill: kbBizHsl(H, 40, 30) })].concat(out, [
+          h('rect', { key: 'wn', x: 58, y: 94, width: 130, height: 60, rx: 3, fill: kbBizHsl(H + 150, 60, 85) }),
+          h('rect', { key: 'dr', x: 208, y: 94, width: 50, height: 70, rx: 3, fill: kbBizHsl(H, 35, 36) }),
+          h('circle', { key: 'dk', cx: 218, cy: 130, r: 2.5, fill: '#fff' }),
+          h('rect', { key: 'p1', x: 70, y: 132, width: 18, height: 22, rx: 3, fill: kbBizHsl(H + 60, 65, 62) }),
+          h('rect', { key: 'p2', x: 96, y: 124, width: 16, height: 30, rx: 3, fill: kbBizHsl(H + 120, 60, 60) }),
+          h('rect', { key: 'p3', x: 120, y: 136, width: 22, height: 18, rx: 3, fill: kbBizHsl(H + 200, 55, 62) }),
+          h('rect', { key: 'gr', y: 164, width: 320, height: 36, fill: kbBizHsl(220, 12, 62) })]))
+      }
+      if (kind === 'box') {
+        return [h('rect', { key: 'bg', width: 320, height: 200, fill: kbBizHsl(H, 55, 94) }),
+          h('ellipse', { key: 'sh', cx: 160, cy: 168, rx: 84, ry: 12, fill: kbBizHsl(H, 30, 60), opacity: 0.3 }),
+          h('polygon', { key: 'l', points: '160,170 78,128 78,64 160,104', fill: kbBizHsl(H, 50, 58) }),
+          h('polygon', { key: 'r', points: '160,170 242,128 242,64 160,104', fill: kbBizHsl(H, 55, 46) }),
+          h('polygon', { key: 't', points: '160,104 78,64 160,26 242,64', fill: kbBizHsl(H, 60, 72) }),
+          h('polygon', { key: 'rb', points: '142,36 178,36 242,64 206,64', fill: kbBizHsl(H + 40, 85, 82), opacity: 0.9 }),
+          h('polygon', { key: 'rb2', points: '160,104 160,170 178,160 178,95', fill: kbBizHsl(H + 40, 85, 72), opacity: 0.55 }),
+          h('circle', { key: 'sp', cx: 262, cy: 44, r: 5, fill: kbBizHsl(H + 150, 90, 78) }), h('circle', { key: 'sp2', cx: 54, cy: 40, r: 3, fill: kbBizHsl(H + 150, 90, 78) })]
+      }
+      if (kind === 'bottle') {
+        return [h('rect', { key: 'bg', width: 320, height: 200, fill: kbBizHsl(H, 50, 93) }),
+          h('ellipse', { key: 'sh', cx: 160, cy: 176, rx: 56, ry: 8, fill: kbBizHsl(H, 30, 56), opacity: 0.28 }),
+          h('rect', { key: 'nk', x: 148, y: 22, width: 24, height: 38, rx: 4, fill: kbBizHsl(H, 25, 36) }),
+          h('rect', { key: 'cp', x: 144, y: 14, width: 32, height: 14, rx: 4, fill: kbBizHsl(H + 40, 80, 56) }),
+          h('path', { key: 'bd', d: 'M148 58 C148 76 118 82 118 112 V166 a10 10 0 0 0 10 10 H192 a10 10 0 0 0 10-10 V112 C202 82 172 76 172 58 Z', fill: kbBizHsl(H + 150, 55, 74), opacity: 0.95 }),
+          h('rect', { key: 'lb', x: 126, y: 108, width: 68, height: 44, rx: 5, fill: '#fff' }),
+          h('rect', { key: 'l1', x: 136, y: 118, width: 48, height: 6, rx: 3, fill: kbBizHsl(H, 60, 52) }),
+          h('rect', { key: 'l2', x: 142, y: 130, width: 36, height: 4, rx: 2, fill: kbBizHsl(H, 25, 72) }),
+          h('path', { key: 'hl', d: 'M130 98 V150', stroke: '#fff', strokeWidth: 4, strokeLinecap: 'round', opacity: 0.45 })]
+      }
+      if (kind === 'bag') {
+        return [h('rect', { key: 'bg', width: 320, height: 200, fill: kbBizHsl(H, 50, 94) }),
+          h('ellipse', { key: 'sh', cx: 160, cy: 176, rx: 76, ry: 9, fill: kbBizHsl(H, 30, 56), opacity: 0.28 }),
+          h('path', { key: 'hd', d: 'M122 70 C122 18 198 18 198 70', stroke: kbBizHsl(H, 40, 34), strokeWidth: 7, fill: 'none', strokeLinecap: 'round' }),
+          h('path', { key: 'bd', d: 'M96 64 H224 L236 170 a8 8 0 0 1 -8 9 H92 a8 8 0 0 1 -8 -9 Z', fill: kbBizHsl(H + 20, 55, 62) }),
+          h('path', { key: 'sd', d: 'M96 64 H224 L226 82 H94 Z', fill: kbBizHsl(H + 20, 50, 52) }),
+          h('circle', { key: 'lg', cx: 160, cy: 124, r: 22, fill: '#fff', opacity: 0.9 }),
+          h('path', { key: 'lg2', d: 'M150 124 l7 7 l14 -16', stroke: kbBizHsl(H + 20, 60, 46), strokeWidth: 4, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' })]
+      }
+      // desk (also the fallback of a job or an office)
+      return [h('rect', { key: 'bg', width: 320, height: 200, fill: kbBizHsl(H, 45, 93) }),
+        h('rect', { key: 'tb', x: 0, y: 140, width: 320, height: 60, fill: kbBizHsl(32, 45, 62) }),
+        h('rect', { key: 'sc', x: 92, y: 52, width: 136, height: 84, rx: 7, fill: kbBizHsl(H, 25, 28) }),
+        h('rect', { key: 'sn', x: 100, y: 60, width: 120, height: 68, rx: 3, fill: kbBizHsl(H + 150, 70, 80) }),
+        h('rect', { key: 'c1', x: 110, y: 72, width: 52, height: 6, rx: 3, fill: kbBizHsl(H, 60, 52) }),
+        h('rect', { key: 'c2', x: 110, y: 86, width: 80, height: 5, rx: 2, fill: '#fff', opacity: 0.8 }),
+        h('rect', { key: 'c3', x: 110, y: 98, width: 66, height: 5, rx: 2, fill: '#fff', opacity: 0.8 }),
+        h('rect', { key: 'st', x: 150, y: 136, width: 20, height: 8, fill: kbBizHsl(H, 20, 34) }),
+        h('rect', { key: 'bs', x: 128, y: 142, width: 64, height: 6, rx: 3, fill: kbBizHsl(H, 20, 38) }),
+        h('rect', { key: 'mg', x: 250, y: 118, width: 22, height: 24, rx: 4, fill: kbBizHsl(H + 40, 75, 60) }),
+        h('path', { key: 'mh', d: 'M272 124 h6 a6 6 0 0 1 0 12 h-6', stroke: kbBizHsl(H + 40, 75, 60), strokeWidth: 4, fill: 'none' }),
+        h('rect', { key: 'pt', x: 40, y: 112, width: 24, height: 28, rx: 4, fill: kbBizHsl(20, 55, 50) }),
+        h('path', { key: 'pl', d: 'M52 112 q-22 -26 -8 -44 q10 20 8 44 q6 -30 24 -34 q-6 24 -24 34', fill: kbBizHsl(142, 48, 40) })]
+    }
+    const kbBizArt = (props) => {
+      kbBizEnsureCss()
+      const p = props !== null && props !== undefined ? props : {}
+      const m = typeof p.spec === 'string' ? KB_BIZ_ART_RE.exec(p.spec) : null
+      if (m === null || KB_BIZ_ART_KINDS.indexOf(m[1]) < 0) return null
+      const seed = kbBizSeed(m[2] === undefined || m[2] === '' ? m[1] : m[2])
+      const hue = m[3] !== undefined ? Number(m[3]) : KB_BIZ_HUES[seed % KB_BIZ_HUES.length]
+      kbBizArtCount += 1
+      return h('svg', { className: 'kz-art', viewBox: '0 0 320 200', preserveAspectRatio: 'xMidYMid slice', role: p.title === undefined ? 'presentation' : 'img', 'aria-label': p.title === undefined ? undefined : String(p.title), focusable: 'false' }, kbBizArtShapes(m[1], seed % 7, hue, kbBizArtCount))
+    }
+    try {
+      if (typeof window !== 'undefined') window.__KB_BIZ_KIT__ = { v: 1, tint: kbBizTint, Tag: kbBizTag, Avatar: kbBizAvatar, Art: kbBizArt, Icon: kbBizIcon, artKinds: KB_BIZ_ART_KINDS.slice(), artOk: kbBizArtOk, css: KB_BIZ_CSS, ensureCss: kbBizEnsureCss }
+    } catch (e) { /* outside a browser */ }
+    // </kb-business-kit>
     // <kb-business-ui>
     // The header and the rows of the group, and the page of a row: the page is the plugin's, mounted on the keyed child slot (subscription only,
     // no assumption on load order; an empty slot says so).
@@ -29053,7 +29292,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (mine !== undefined && mine.component !== null && mine.component !== undefined) return h(mine.component, { sessionId: typeof props.sessionId === 'string' ? props.sessionId : null, toolbar: props.toolbar === undefined ? null : props.toolbar })
       return h('p', { className: 'kbg-empty' }, kbt('kbui.business.off'))
     }
-    const KbBusinessView = (props) => h('div', { className: 'kbg-root', 'data-kb-page': props.id }, h(KbBusinessMount, props))
+    // The product's own search/filter bar and its state hook go to every business page: it draws the bar in the header row (search, favourites, the view switch,
+    // filters and sort, the primary action) instead of each plugin drawing a lookalike. A page without them (a test, an older core) draws a plain bar of its own.
+    const kbBizToolbar = () => (typeof KbToolbar === 'function' && typeof useToolbarState === 'function' ? { KbToolbar: KbToolbar, useToolbarState: useToolbarState } : null)
+    const KbBusinessView = (props) => h('div', { className: 'kbg-root', 'data-kb-page': props.id }, h(KbBusinessMount, Object.assign({}, props, { toolbar: props.toolbar === undefined || props.toolbar === null ? kbBizToolbar() : props.toolbar })))
     // </kb-business-ui>
     const kbOpenPage = (patch) => {
       try {
@@ -34608,7 +34850,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-tb-ctrlbtn{display:inline-flex;align-items:center;gap:7px;height:var(--kb6-tb-h);padding:0 13px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
 .kb6-tb-ctrlbtn:hover,.kb6-tb-ctrlbtn.open{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}
 .kb6-tb-ctrllab{max-width:150px;overflow:hidden;text-overflow:ellipsis}
-.kb6-tb-pop{position:absolute;left:0;top:calc(100% + 6px);z-index:60;min-width:230px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:13px;padding:8px;display:flex;flex-direction:column;gap:2px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.kb6-tb-pop{position:absolute;right:0;left:auto;max-width:calc(100vw - 24px);top:calc(100% + 6px);z-index:60;min-width:230px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:13px;padding:8px;display:flex;flex-direction:column;gap:2px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .kb6-tb-pop.wide{min-width:300px}
 .kb6-tb-pophead{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);padding:6px 10px 4px}
 .kb6-tb-pophead.row{display:flex;align-items:center;justify-content:space-between;padding-right:2px}

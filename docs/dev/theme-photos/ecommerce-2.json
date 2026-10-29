@@ -1,0 +1,105 @@
+{
+  "name": "ecommerce-2",
+  "cols": 3,
+  "rows": 3,
+  "style": "clean e-commerce product photography, a single object centred on a soft coloured seamless paper backdrop with generous empty margin around it, soft diffused studio light, gentle natural shadow, warm natural tones, sharp focus, no brand, no logo",
+  "cells": [
+    {
+      "name": "tote-bag",
+      "prompt": "a plain natural canvas cotton tote bag with no print, standing upright on a mustard yellow backdrop",
+      "box": [
+        44,
+        56,
+        593,
+        578
+      ]
+    },
+    {
+      "name": "glass-tumblers",
+      "prompt": "four hand-blown clear glass tumblers with a slight green tint, arranged in a loose group on a soft light blue backdrop",
+      "box": [
+        667,
+        57,
+        591,
+        576
+      ]
+    },
+    {
+      "name": "linen-apron",
+      "prompt": "a sage green linen apron with two pockets, folded neatly with the neck strap showing, on a warm white backdrop",
+      "box": [
+        1296,
+        58,
+        582,
+        574
+      ]
+    },
+    {
+      "name": "serving-bowl",
+      "prompt": "a wide stoneware serving bowl with a speckled white glaze and a darker rim on a clay brown backdrop",
+      "box": [
+        45,
+        665,
+        593,
+        574
+      ]
+    },
+    {
+      "name": "seagrass-basket",
+      "prompt": "a woven seagrass storage basket with two handles on a pale cream backdrop",
+      "box": [
+        666,
+        666,
+        592,
+        573
+      ]
+    },
+    {
+      "name": "brass-candle-holder",
+      "prompt": "a small brushed brass candle holder with a single white taper candle on a muted lilac backdrop",
+      "box": [
+        1288,
+        667,
+        590,
+        571
+      ]
+    },
+    {
+      "name": "soap-trio",
+      "prompt": "three rectangular olive oil soap bars in plain paper wraps tied with string, on a soft mint backdrop",
+      "box": [
+        47,
+        1272,
+        590,
+        584
+      ]
+    },
+    {
+      "name": "soy-candle-plain",
+      "prompt": "a hand-poured soy candle in a plain frosted glass jar with a wooden wick, the jar completely plain with no label and no print, on a dusty pink backdrop",
+      "box": [
+        667,
+        1272,
+        590,
+        584
+      ]
+    },
+    {
+      "name": "linen-cushion",
+      "prompt": "a square natural linen cushion with a subtle frayed edge on a dusty rose backdrop",
+      "box": [
+        1287,
+        1272,
+        591,
+        584
+      ]
+    }
+  ],
+  "cut": {
+    "width": 520,
+    "height": 390,
+    "quality": 72,
+    "maxKb": 70
+  },
+  "note": "The sample uses every cell but linen-cushion (sixteen pictures at most per theme)."
+}

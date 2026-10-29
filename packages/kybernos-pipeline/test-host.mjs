@@ -343,5 +343,24 @@ await ok('apply mounts the routes, the tools and the gate; it unmounts the route
   assert.equal(handlerOf({ path: '/x', method: 'GET', run: () => ({}) }, {}) instanceof Function, true)
 })
 
+// ── what a card carries beyond its lines: its extras and the picture of the item it is about ──────────────────────────────────────────────────
+await ok('a board card sends the few extras it carries (source, priority, due, up to three tags), checked, and the picture reference of its item', () => {
+  const { base, host } = world([orders()])
+  const item = base.create('item', { type: 'product', title: 'Linen apron', status: 'live', fields: { image: 'photo:ecommerce/linen-apron', sku: 'A-1' } }, { actor: 'person' }).row
+  const plain = base.create('item', { type: 'product', title: 'Odd one', status: 'live', fields: { image: 'https://example.org/x.png' } }, { actor: 'person' }).row
+  let place = 0
+  const made = (title, item_id, fields) => base.create('flow_card', { flow: 'orders', stage: 'new', title, item_id, fields, position: (place += 1) }, { actor: 'person' })
+  made('With everything', item.id, { source: 'Website', priority: 'high', due: '2026-11-12', tags: ['vip', 'gift', 'new', 'dropped'], secret: 'never sent' })
+  made('With junk', plain.id, { source: 7, priority: 'urgent', due: 'soon', tags: 'vip' })
+  const cards = host.board({ flow: 'orders' }).columns.flatMap((c) => c.cards)
+  const a = cards.find((c) => c.title === 'With everything')
+  assert.deepEqual(a.fields, { source: 'Website', priority: 'high', due: '2026-11-12', tags: ['vip', 'gift', 'new'] })
+  assert.equal(a.item.image, 'photo:ecommerce/linen-apron')
+  assert.equal(a.item.type, 'product')
+  const b = cards.find((c) => c.title === 'With junk')
+  assert.deepEqual(b.fields, {}, 'what is not of the right shape is not sent')
+  assert.equal(b.item.image, null, 'an address is never a picture')
+})
+
 rmSync(dir, { recursive: true, force: true })
 console.log('\n' + count + ' checks passed')

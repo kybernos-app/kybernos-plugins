@@ -126,6 +126,83 @@
         "en": "Owner or landlord",
         "fr": "Propriétaire ou bailleur"
       }
+    },
+    {
+      "key": "kind",
+      "type": "choice",
+      "options": [
+        "Apartment",
+        "House",
+        "Villa",
+        "Loft",
+        "Studio",
+        "Townhouse",
+        "Farmhouse",
+        "Bungalow",
+        "Penthouse",
+        "Commercial",
+        "Cottage"
+      ],
+      "label": {
+        "en": "Kind",
+        "fr": "Type de bien"
+      }
+    },
+    {
+      "key": "district",
+      "type": "choice",
+      "options": [
+        "Old Town",
+        "Lakeside",
+        "Hillside",
+        "Riverside",
+        "Station",
+        "Market",
+        "Countryside"
+      ],
+      "label": {
+        "en": "District",
+        "fr": "Quartier"
+      }
+    },
+    {
+      "key": "outdoor",
+      "type": "choice",
+      "options": [
+        "Garden",
+        "Balcony",
+        "Terrace",
+        "Pool",
+        "Jetty"
+      ],
+      "label": {
+        "en": "Outdoor space",
+        "fr": "Extérieur"
+      }
+    },
+    {
+      "key": "image",
+      "type": "text",
+      "label": {
+        "en": "Picture",
+        "fr": "Photo"
+      }
+    },
+    {
+      "key": "lat",
+      "type": "number",
+      "label": {
+        "en": "Latitude",
+        "fr": "Latitude"
+      }
+    },
+    {
+      "key": "lng",
+      "type": "number",
+      "label": {
+        "en": "Longitude",
+        "fr": "Longitude"
+      }
     }
   ],
   "card": {
@@ -139,10 +216,24 @@
         "en": "Offer received: {n}",
         "fr": "Offre reçue : {n}"
       }
-    }
+    },
+    "image": "image",
+    "chips": [
+      "kind",
+      "district",
+      "outdoor",
+      "energy",
+      "surface",
+      "rooms"
+    ]
   },
   "views": [
     "cards",
-    "list"
-  ]
+    "list",
+    "map"
+  ],
+  "map": {
+    "lat": "lat",
+    "lng": "lng"
+  }
 }

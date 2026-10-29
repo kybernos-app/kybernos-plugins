@@ -207,7 +207,7 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   ok('the sample rows carry the « demo » badge and the banner offers to clear them', by(root, 'catalog-demo-badge').length === 2 && by(root, 'catalog-demo-banner').length === 1)
   ok('the status tags carry the theme\'s tones', by(root, 'catalog-status').map((n) => n.props.className).join('|').includes('warn') && by(root, 'catalog-status').some((n) => n.props.className.includes('bad')) && by(root, 'catalog-status').some((n) => n.props.className.includes('ok')))
   ok('status chips: All and the three statuses with their counts', by(root, 'catalog-chip').length === 4 && lite.textOf(by(root, 'catalog-chip')[0]).includes('3') && lite.textOf(by(root, 'catalog-chip', (n) => n.props['data-status'] === 'low')[0]).includes('1'))
-  ok('the product\'s own toolbar is used: views, no sort, the add button as its trailing action', bars.length > 0 && bars[bars.length - 1].hideSort === true && bars[bars.length - 1].views.join() === 'cards,list' && by(root, 'catalog-new').length === 1 && by(root, 'catalog-own-bar').length === 0)
+  ok('the product\'s own toolbar is used: the views with their names, a sort, the star, the add button as its trailing action', bars.length > 0 && bars[bars.length - 1].viewLabels === true && bars[bars.length - 1].showFav === true && bars[bars.length - 1].sortOptions.map((o) => o.id).join() === 'modified,price,name' && bars[bars.length - 1].views.join() === 'cards,list' && by(root, 'catalog-new').length === 1 && by(root, 'catalog-own-bar').length === 0)
   const lastBar = () => bars[bars.length - 1]
   ok('the price of a card is the formatted price field', lite.textOf(by(root, 'catalog-price')[0]).includes('39'))
 
@@ -244,7 +244,7 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   await root.settle()
 
   // panel
-  await click(root, by(root, 'catalog-card')[0])
+  await click(root, by(root, 'catalog-card-open')[0])
   const panel = by(root, 'catalog-panel')[0]
   ok('a card opens the details panel: close, edit, archive; the fields the type defines', panel !== undefined && by(root, 'catalog-close').length === 1 && by(root, 'catalog-edit').length === 1 && by(root, 'catalog-archive').length === 1 && lite.textOf(panel).includes('SKU'))
   ok('the panel is a labelled landmark and its card is marked current', panel.props['aria-label'].length > 0 && by(root, 'catalog-card')[0].props['aria-current'] === 'true')
@@ -252,7 +252,7 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   ok('close puts the panel away', by(root, 'catalog-panel').length === 0)
 
   // edit
-  await click(root, by(root, 'catalog-card')[0])
+  await click(root, by(root, 'catalog-card-open')[0])
   await click(root, by(root, 'catalog-edit')[0])
   ok('a type whose card reads its price and its subtitle from fields does not ask for the item\'s own price and subtitle (two prices would be two answers)', (await click(root, by(root, 'catalog-edit')[0]), true) && by(root, 'catalog-field-price_text').length === 0 && by(root, 'catalog-field-subtitle').length === 0 && by(root, 'catalog-field-price').length === 1)
   await click(root, by(root, 'catalog-cancel')[0])
@@ -269,11 +269,11 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   ok('archive sends the id, closes the panel and offers Undo', calls.some((c) => /\/archive$/.test(c.url) && c.body.id === 1) && by(root, 'catalog-panel').length === 0 && by(root, 'catalog-undo').length === 1)
   await click(root, by(root, 'catalog-undo')[0])
   ok('Undo restores it', calls.some((c) => /\/restore$/.test(c.url) && c.body.id === 1) && server.rows.find((r) => r.id === 1).archived_at === null)
-  await click(root, by(root, 'catalog-card')[2])
+  await click(root, by(root, 'catalog-card-open')[2])
   await click(root, by(root, 'catalog-archive')[0])
   await click(root, by(root, 'catalog-archived')[0])
   ok('the archived view lists archived rows (archived=only) and offers Restore', calls.some((c) => /archived=only/.test(c.url)) && by(root, 'catalog-card').length === 1 && by(root, 'catalog-chip').length === 0)
-  await click(root, by(root, 'catalog-card')[0])
+  await click(root, by(root, 'catalog-card-open')[0])
   ok('an archived item cannot be edited, only restored', by(root, 'catalog-edit').length === 0 && by(root, 'catalog-restore').length === 1)
   await click(root, by(root, 'catalog-restore')[0])
   ok('restore from the panel sends the id', calls.filter((c) => /\/restore$/.test(c.url)).length === 2)
@@ -358,7 +358,7 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   server.reset([PRODUCT], 'theme', [row(1, { type: 'old-kind', status: 'retired', title: 'Orphan', price_text: '€5', fields: { legacy: 'kept', sku: 'z' } }), row(2, { title: 'Known', fields: { sku: 'K' } })])
   root = await mountPage()
   ok('a row of an unknown type is a generic card, flagged data-known=no, with its raw status as a neutral tag', by(root, 'catalog-card').length === 2 && by(root, 'catalog-card')[0].props['data-known'] === 'no' && lite.textOf(by(root, 'catalog-status')[0]) === 'Retired')
-  await click(root, by(root, 'catalog-card')[0])
+  await click(root, by(root, 'catalog-card-open')[0])
   ok('its panel lists what is stored, as written', lite.textOf(by(root, 'catalog-panel')[0]).includes('Legacy') && lite.textOf(by(root, 'catalog-panel')[0]).includes('kept'))
   await click(root, by(root, 'catalog-edit')[0])
   ok('editing it offers only its own lines, and says why', by(root, 'catalog-field-status').length === 0 && by(root, 'catalog-field-stock').length === 0 && by(root, 'catalog-generic-note').length === 1)
@@ -401,6 +401,80 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   ok('in French the page speaks French (button, chips, banner)', lite.textOf(by(root, 'catalog-new')[0]).includes('Ajouter') && lite.textOf(by(root, 'catalog-chip')[0]).includes('Tous') && lite.textOf(by(root, 'catalog-demo-banner')[0]).includes('exemple') && lite.textOf(by(root, 'catalog-title')[0]) === 'Produits' && lite.textOf(by(root, 'catalog-archived')[0]).includes('archives'))
   root.unmount()
   language = 'en'
+}
+
+// ── pictures, chips, the shortlist, the sort and the map ────────────────────────────────────────────────────
+const HOME = {
+  id: 'property', label: L('Property'), plural: L('Properties'), icon: 'home',
+  statuses: [{ key: 'for-sale', tone: 'ok', label: L('For sale') }, { key: 'sold', tone: 'neutral', label: L('Sold') }],
+  fields: [{ key: 'surface', type: 'number', label: L('Surface (m²)') }, { key: 'rooms', type: 'number', label: L('Rooms') }, { key: 'energy', type: 'choice', options: ['A', 'B', 'C', 'D', 'E', 'F', 'G'], label: L('Energy') }, { key: 'kind', type: 'choice', options: ['House', 'Loft'], label: L('Kind') },
+    { key: 'price', type: 'money', currency: 'EUR', label: L('Price') }, { key: 'image', type: 'text', label: L('Picture') }, { key: 'lat', type: 'number', label: L('Latitude') }, { key: 'lng', type: 'number', label: L('Longitude') }],
+  card: { title: 'title', subtitle: 'subtitle', price: 'price', image: 'image', chips: ['kind', 'surface', 'rooms', 'energy'] }, map: { lat: 'lat', lng: 'lng' }, views: ['cards', 'list', 'map'],
+}
+const homeRow = (id, over) => row(id, Object.assign({ type: 'property', status: 'for-sale', price_num: 300000 + id * 1000, price_text: '€' + (300000 + id * 1000), fields: { surface: 60 + id, rooms: 3, energy: 'C', kind: 'House', price: 300000 + id * 1000, image: 'photo:real-estate/willow-lane', lat: 46.2 + id / 1000, lng: 6.14 + id / 800 } }, over))
+{
+  language = 'en'
+  ok('a photograph reference is read, a drawn one too; anything else is no picture', T.pictureRef(HOME, homeRow(1)) === 'photo:real-estate/willow-lane' && T.pictureRef(PRODUCT, row(1)) === '' && T.pictureRef(null, row(1)) === '')
+  ok('an item with no picture of its own falls back to the drawing that goes with its type', T.fallbackArt(HOME, homeRow(7)) === 'art:house/7' && T.fallbackArt(PRODUCT, row(8)) === 'art:box/8' && T.fallbackArt(null, row(9)) === 'art:box/9')
+  ok('an energy class runs from green to red, and only a choice of the letters A to G does', T.energyHue(HOME.fields[2], 'A') === 146 && T.energyHue(HOME.fields[2], 'G') === 4 && T.energyHue(HOME.fields[3], 'House') === undefined && T.energyHue(null, 'A') === undefined && T.energyHue(HOME.fields[2], 'Z') === undefined)
+  ok('a number is a stat with the unit of its label (« 68 m² ») or the label (« 3 rooms »); money is money', T.statText(HOME.fields[0], 68) === '68 m²' && T.statText(HOME.fields[1], 3) === '3 rooms' && T.statText(HOME.fields[4], 385000).includes('385,000'))
+  const chips = T.cardChips(HOME, homeRow(2))
+  ok('the chips follow the type: tags for choices (energy coloured), stats for numbers, in the order the type gives', chips.map((c) => c.key).join() === 'kind,surface,rooms,energy' && chips[0].stat === false && chips[1].stat === true && chips[1].icon === 'ruler' && chips[3].hue === 90 && T.cardChips(PRODUCT, row(1)).length === 0)
+  ok('a chip with no value is left out, and a field the type lost too', T.cardChips(HOME, homeRow(3, { fields: { kind: 'Loft' } })).map((c) => c.key).join() === 'kind' && T.cardChips({ ...HOME, card: { chips: ['gone'] } }, homeRow(3)).length === 0)
+  ok('a pin says the price short: €385k, €1.45M, €780', T.pinPrice({ price_num: 385000, price_text: '€385,000' }) === '€385k' && T.pinPrice({ price_num: 1450000, price_text: '€1,450,000' }) === '€1.45M' && T.pinPrice({ price_num: 780, price_text: '€780 / month' }) === '€780' && T.pinPrice({ price_num: null, price_text: 'On request' }) === 'On' && T.pinPrice({ price_num: null, price_text: '' }) === '…')
+  const rows3 = [homeRow(1), homeRow(2), homeRow(3, { fields: { kind: 'Loft' } }), row(4)]
+  const placed = T.placedRows(rows3, [HOME, PRODUCT])
+  ok('only the items that say where they are are on the map (two numbers, in range); the others are counted apart', placed.length === 2 && T.placedRows([homeRow(1, { fields: { lat: 'x', lng: 1 } }), homeRow(2, { fields: { lat: 95, lng: 1 } })], [HOME]).length === 0)
+  const pins = T.projectPins(T.placedRows([homeRow(1), homeRow(40), homeRow(80)], [HOME]), 1000, 720)
+  ok('the pins fill the map inside its margins, north up and east right', pins.length === 3 && pins.every((q) => q.x > 60 && q.x < 940 && q.y > 50 && q.y < 670) && pins[2].x > pins[0].x && pins[2].y < pins[0].y && T.projectPins([]).length === 0 && T.projectPins(T.placedRows([homeRow(1)], [HOME]))[0].x === 500)
+  ok('the sort is on the loaded rows: the host\'s order is « modified », price and name are asked for, ascending or descending', T.sortRows([homeRow(3), homeRow(1), homeRow(2)], 'price', 'asc').map((r) => r.id).join() === '1,2,3' && T.sortRows([homeRow(3), homeRow(1), homeRow(2)], 'price', 'desc').map((r) => r.id).join() === '3,2,1' && T.sortRows([homeRow(3, { title: 'b' }), homeRow(1, { title: 'a' })], 'name', 'asc')[0].id === 1 && T.sortRows([homeRow(3), homeRow(1)], 'modified', 'desc').map((r) => r.id).join() === '3,1')
+  ok('the map is one of the views only for a type that has it', T.viewsOf([HOME], '').join() === 'cards,list,map' && T.viewsOf([HOME, PRODUCT], 'product').join() === 'cards,list' && T.viewsOf([HOME, PRODUCT], '').join() === 'cards,list,map')
+  ok('the town behind the pins is drawn from its seed: the same each time, parks among the blocks', T.townBlocks(5).length > 300 && JSON.stringify(T.townBlocks(5)) === JSON.stringify(T.townBlocks(5)) && JSON.stringify(T.townBlocks(5)) !== JSON.stringify(T.townBlocks(6)) && T.townBlocks(5).some((b) => b.park))
+}
+{
+  server.reset([HOME], 'theme', [homeRow(1), homeRow(2, { title: 'Cheap one', price_num: 100000, fields: { price: 100000, image: 'art:villa/two', kind: 'Loft', lat: 46.19, lng: 6.13 } }), homeRow(3, { title: 'Zebra loft', status: 'sold' })])
+  store.clear()
+  windowObject.__KB_BIZ_KIT__ = { v: 1, artOk: (x) => /^art:/.test(x), Art: (props) => h('svg', { 'data-art': props.spec }), Tag: (props) => h('span', { 'data-kb': 'kit-tag', 'data-text': props.text }), Icon: (name) => h('svg', { 'data-icon': name }), tint: () => 0 }
+  const bars = []
+  const root = lite.mount(h(Page, { toolbar: bar(bars) }))
+  await root.settle()
+  const pics = by(root, 'catalog-picture').map((n) => n.props['data-picture'])
+  ok('a photograph is an image served by the core, a drawn picture is drawn, and each card says which it is', pics.join() === 'photo,art,photo' && by(root, 'catalog-picture')[0].children.some((c) => c.tag === 'img' && c.props.src === '/kybernos/themes/photo?id=real-estate%2Fwillow-lane' && c.props.loading === 'lazy'))
+  ok('every card has its chips (the tags through the kit, the stats as plain text) and a price at the bottom', by(root, 'catalog-chips').length === 3 && by(root, 'kit-tag').length === 5 && by(root, 'catalog-stat').length === 4 && by(root, 'catalog-stats').length === 2 && by(root, 'catalog-price').length === 3)
+  ok('a card is an article with its own open button and a heart beside it (a button inside a button is not a thing)', by(root, 'catalog-card')[0].tag === 'article' && by(root, 'catalog-card-open')[0].tag === 'button' && by(root, 'catalog-heart')[0].tag === 'button' && by(root, 'catalog-card-open')[0].children.every((c) => c.props === undefined || c.props['data-kb'] !== 'catalog-heart'))
+  await click(root, by(root, 'catalog-heart')[1])
+  ok('the heart shortlists the item, says so (pressed), keeps it in this browser, and does not open the card', by(root, 'catalog-heart')[1].props['aria-pressed'] === 'true' && by(root, 'catalog-panel').length === 0 && store.get('kybernos.catalog.shortlist.v1') === '[2]')
+  bars[bars.length - 1].onUpdate({ fav: true })
+  await root.settle()
+  ok('the star shows the shortlist only, and says so when it is empty of matches', by(root, 'catalog-card').length === 1 && by(root, 'catalog-card')[0].props['data-id'] === 2)
+  bars[bars.length - 1].onUpdate({ fav: false, sort: 'price', dir: 'asc' })
+  await root.settle()
+  ok('the sort puts the cheapest first', by(root, 'catalog-card').map((n) => n.props['data-id']).join() === '2,1,3')
+  bars[bars.length - 1].onUpdate({ viewMode: 'map' })
+  await root.settle()
+  ok('the map view: the cards beside a map, one pin per item that has a place, with its price, as a keyboard-reachable button', by(root, 'catalog-split').length === 1 && by(root, 'catalog-map').length === 1 && by(root, 'catalog-pin').length === 3 && by(root, 'catalog-pin')[0].props.tabIndex === 0 && by(root, 'catalog-pin')[0].props.role === 'button' && /€/.test(lite.textOf(by(root, 'catalog-pin')[0])) && by(root, 'catalog-map-note').length === 1 && store.get('kybernos.catalog.view.v1') === 'map')
+  by(root, 'catalog-pin')[0].props.onMouseEnter()
+  await root.settle()
+  ok('a pin lit by the pointer lights its card too, and goes out with it', by(root, 'catalog-card').some((n) => /hot/.test(n.props.className)) && by(root, 'catalog-pin').some((n) => /\bon\b/.test(n.props.className)))
+  by(root, 'catalog-pin')[0].props.onMouseLeave()
+  await root.settle()
+  const firstPin = by(root, 'catalog-pin').find((n) => true)
+  firstPin.props.onKeyDown({ key: 'Enter', preventDefault () {}, target: 'x', currentTarget: 'x' })
+  await root.settle()
+  ok('Enter on a pin opens the item, as a panel above the cards, never over the map', by(root, 'catalog-panel').length === 1 && /inline/.test(by(root, 'catalog-panel')[0].props.className) && by(root, 'catalog-split').length === 1)
+  await click(root, by(root, 'catalog-map-zoom-in')[0])
+  await click(root, by(root, 'catalog-map-fit')[0])
+  ok('the zoom buttons and « show everything » are there and do not break the map', by(root, 'catalog-map').length === 1 && by(root, 'catalog-map-zoom-out').length === 1)
+  language = 'fr'
+  await root.settle()
+  root.unmount()
+  language = 'en'
+  delete windowObject.__KB_BIZ_KIT__
+  const bare = lite.mount(h(Page, { toolbar: null }))
+  await bare.settle()
+  ok('without the shared kit the page still draws: a neutral tile for a picture, plain chips', by(bare, 'catalog-card').length === 3 && by(bare, 'catalog-picture').every((n) => n.props['data-picture'] !== 'art') && by(bare, 'catalog-chips').length === 3)
+  bare.unmount()
+  store.clear()
 }
 
 if (failed > 0) { console.log('test-client: ' + failed + ' failure(s)'); process.exit(1) }

@@ -138,8 +138,23 @@ export function createPipelineHost (ports = {}) {
     const items = new Map()
     return {
       contact: (id) => link(base, 'contact', id, contacts, (r) => ({ id: r.id, name: r.name, kind: r.kind, archived: r.archived_at !== null })),
-      item: (id) => link(base, 'item', id, items, (r) => ({ id: r.id, title: r.title, subtitle: r.subtitle, archived: r.archived_at !== null })),
+      item: (id) => link(base, 'item', id, items, (r) => ({ id: r.id, title: r.title, subtitle: r.subtitle, type: typeof r.type === 'string' ? r.type : '', image: pictureOf(r.fields), archived: r.archived_at !== null })),
     }
+  }
+  /** The few words a card may carry in its `fields` (where it comes from, how urgent, when, a few tags), checked: anything else stays in the base. */
+  const extrasOf = (fields) => {
+    const f = fields !== null && typeof fields === 'object' && !Array.isArray(fields) ? fields : {}
+    const out = {}
+    if (typeof f.source === 'string' && f.source.trim() !== '' && f.source.length <= 40) out.source = f.source.trim()
+    if (f.priority === 'high' || f.priority === 'normal' || f.priority === 'low') out.priority = f.priority
+    if (typeof f.due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.due) && !Number.isNaN(Date.parse(f.due))) out.due = f.due
+    if (Array.isArray(f.tags)) { const tags = f.tags.filter((t) => typeof t === 'string' && t.trim() !== '' && t.length <= 24).map((t) => t.trim()).slice(0, 3); if (tags.length > 0) out.tags = tags }
+    return out
+  }
+  /** The picture an item carries in its `image` field (a drawn spec or a shipped photograph), or null: a reference only, never an address. */
+  const pictureOf = (fields) => {
+    const v = fields !== null && typeof fields === 'object' ? fields.image : undefined
+    return typeof v === 'string' && /^(?:art:[a-z-]{2,16}(?:\/[A-Za-z0-9._-]{0,40})?(?:@\d{1,3})?|photo:[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59})$/.test(v) ? v : null
   }
   const shapeCard = (row, links) => ({
     id: row.id,
@@ -154,6 +169,7 @@ export function createPipelineHost (ports = {}) {
     archived: row.archived_at !== null,
     contact_id: row.contact_id,
     item_id: row.item_id,
+    fields: extrasOf(row.fields),
     contact: links.contact(row.contact_id),
     item: links.item(row.item_id),
   })

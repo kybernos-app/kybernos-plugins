@@ -4,7 +4,7 @@
 //
 // Pure over node:fs, bounded (every file is small, every list has a limit) and never throwing: a folder that cannot be read is left out, with its
 // reason, and the other themes are still listed. The reading is the same data the installer's plan reads later; here it is only a summary.
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { lstatSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 
 /** How many themes are listed, and how large one file may be. */
@@ -196,6 +196,25 @@ export function readNext (root) {
  * The picture file for a cover request, or `null`: `{ id }` is a shipped theme's plugin id, `{ next }` an id of `_next/next.json`. The page names an id,
  * never a path; a file that is not a plain JPEG of a sane size is not served.
  */
+/** The most a sample photograph may weigh and still be served (the guard keeps the tracked ones under 80 KB). */
+export const PHOTO_MAX = 100 * 1024
+/**
+ * The file of a sample photograph, `<theme dir>/<name>` as a row of the sample writes it (`photo:real-estate/willow-lane`), or `null`. Only a plain JPEG of a
+ * shipped theme, at `<dir>/demo/photos/<name>.jpg`: the page never names a path, a link or a folder above.
+ */
+export function photoFile (root, ref) {
+  try {
+    const m = typeof ref === 'string' ? /^([a-z][a-z0-9-]{1,39})\/([a-z0-9][a-z0-9-]{1,59})$/.exec(ref) : null
+    if (m === null) return null
+    if (!statSync(join(root, m[1], 'plugin.json')).isFile()) return null
+    const file = join(root, m[1], 'demo', 'photos', m[2] + '.jpg')
+    const st = lstatSync(file)
+    if (!st.isFile() || st.isSymbolicLink() || st.size < 1 || st.size > PHOTO_MAX) return null
+    const head = readFileSync(file).subarray(0, 3)
+    return head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff ? file : null
+  } catch (e) { return null }
+}
+
 export function coverFile (root, query) {
   try {
     const q = plain(query) ? query : {}
