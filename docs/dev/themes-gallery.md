@@ -13,7 +13,11 @@ the name, one line, the colour and style, and what it brings (plugins, skills).
   reads them (`readShipped`: name, tagline, accent, the words of the three Business rows, the style, `needs` = the plugins a theme requires beyond the
   core's seams, counts and names of skills, teams, automations, connectors). `GET /kybernos/themes` answers them as `shipped`, never with the folder.
   `POST /kybernos/themes { action: 'stage', shipped: '<plugin id>' }` stages one: the host knows the path, the page sends none, the level is `included`.
-- **Covers are drawn** (`kbThCover`, an SVG from the id and the colour). No picture file travels: AGENTS rule 4.
+- **Covers.** A shipped theme carries its picture as `cover.jpg` at the root of its folder, and the « next trades » as `themes/_next/<id>.jpg` listed in
+  `themes/_next/next.json` (`[{ "id", "name": { "en", "fr" } }]`, at most 12). This is the one exception to AGENTS rule 4: a JPEG of at most 160 KB,
+  invented scenes only (`garde-depot` and `plugin-check` accept exactly that name and size, and check the first bytes). The host serves a picture by id
+  (`GET /kybernos/themes/cover?id=<plugin id>` or `?next=<id>`, `themes-shipped.mjs` `coverFile`): the page never names a path. A theme without a
+  picture, or a picture that does not load, gets a cover drawn from its id and its colour (`kbThCover`, an SVG).
 - **A plugin a theme needs is « Installed »** when its owner has told its points to the registry (`/kybernos-registry/state`): the registry's own test for
   `missing-dependency`.
 

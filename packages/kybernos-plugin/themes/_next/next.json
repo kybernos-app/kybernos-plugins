@@ -1,0 +1,51 @@
+[
+  {
+    "id": "consulting",
+    "name": {
+      "en": "Consulting",
+      "fr": "Conseil"
+    }
+  },
+  {
+    "id": "it-services",
+    "name": {
+      "en": "IT services",
+      "fr": "Informatique"
+    }
+  },
+  {
+    "id": "accounting",
+    "name": {
+      "en": "Accounting",
+      "fr": "Comptabilité"
+    }
+  },
+  {
+    "id": "law-firm",
+    "name": {
+      "en": "Law firm",
+      "fr": "Cabinet d’avocats"
+    }
+  },
+  {
+    "id": "woodworking",
+    "name": {
+      "en": "Woodworking",
+      "fr": "Menuiserie"
+    }
+  },
+  {
+    "id": "restaurant",
+    "name": {
+      "en": "Restaurant",
+      "fr": "Restaurant"
+    }
+  },
+  {
+    "id": "architecture",
+    "name": {
+      "en": "Architecture",
+      "fr": "Architecture"
+    }
+  }
+]

@@ -174,9 +174,10 @@ for (const dir of dirs) {
     }
   })
 
-  ok(dir + ': no media, no personal path, no code, no address outside example.com', () => {
+  ok(dir + ': no media but its cover, no personal path, no code, no address outside example.com', () => {
     for (const f of walk(t.root)) {
       const rel = f.slice(t.root.length + 1)
+      if (rel === 'cover.jpg') continue // the one picture a theme carries (AGENTS.md rule 4); its size and bytes are checked below
       assert.match(f, /\.(json|md|yml)$/, rel + ' is text')
       const body = readFileSync(f, 'utf8')
       assert.doesNotMatch(body, /\/Users\//, rel)
@@ -327,7 +328,7 @@ ok('the three themes can be installed together: no id is shared, and none is tak
 // The reader of the Themes page lives in the core's `themes-shipped.mjs`; it is checked here the day it is in the tree (it is written by the Themes page's own batch).
 const reader = join(REPO, 'packages', 'kybernos-plugin', 'themes-shipped.mjs')
 if (existsSync(reader)) {
-  const { readShipped } = await import(pathToFileURL(reader).href)
+  const { COVER_MAX, coverFile, readNext, readShipped } = await import(pathToFileURL(reader).href)
   ok('readShipped lists the three themes, each with a name, an accent, the three words and the three business plugins it needs', () => {
     const { themes, skipped } = readShipped(ROOT)
     assert.deepEqual(skipped, [], 'nothing is left out: ' + JSON.stringify(skipped))
@@ -342,7 +343,7 @@ if (existsSync(reader)) {
       assert.deepEqual(x.needs, BUSINESS, 'needs = the three business plugins, in the order of the Business group')
       assert.equal(x.tag, t.manifest.keywords[0][0].toUpperCase() + t.manifest.keywords[0].slice(1), 'the chip is the first keyword, capitalised')
       assert.deepEqual(x.why, t.why, 'the lines of why.json, one per plugin')
-      assert.equal(x.cover, false, 'no picture is shipped')
+      assert.equal(x.cover, true, 'each theme ships its cover picture (the one media exception of AGENTS.md rule 4)')
       assert.equal(x.style.name.en, t.style.name)
       assert.deepEqual(x.lists.skills, t.skills)
       assert.deepEqual(x.lists.teams, t.teams.map((y) => y.id))
@@ -351,6 +352,19 @@ if (existsSync(reader)) {
       assert.deepEqual(x.points, { contacts: 1, catalog: t.catalog.length, pipeline: t.pipeline.length })
       assert.ok(x.adds.connectors >= 1, 'a card names the apps it suggests')
     }
+  })
+  ok('the covers are real JPEGs under the cap, served by id, and the next trades have theirs', () => {
+    for (const d of dirs) {
+      const f = coverFile(ROOT, { id: 'kybernos-themes/' + d })
+      assert.equal(f, join(ROOT, d, 'cover.jpg'))
+      const bytes = readFileSync(f)
+      assert.ok(bytes.length <= COVER_MAX && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, d)
+    }
+    const next = readNext(ROOT)
+    assert.deepEqual(next.map((n) => n.id), ['consulting', 'it-services', 'accounting', 'law-firm', 'woodworking', 'restaurant', 'architecture'])
+    for (const n of next) { assert.ok(n.name.en && n.name.fr, n.id); assert.equal(n.cover, true, n.id); assert.ok(coverFile(ROOT, { next: n.id }) !== null, n.id) }
+    const folders = readdirSync(join(ROOT, '_next')).filter((f) => f.endsWith('.jpg')).map((f) => f.replace(/\.jpg$/, '')).sort()
+    assert.deepEqual(folders, next.map((n) => n.id).sort(), 'no picture without an entry, no entry without a picture')
   })
 } else console.log('SKIPPED: readShipped is not played, packages/kybernos-plugin/themes-shipped.mjs is not in this tree yet (the Themes page batch adds it)')
 

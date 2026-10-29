@@ -9,6 +9,16 @@ import { fileURLToPath } from 'node:url'
 
 const MAX_BYTES = 4 * 1024 * 1024
 const MEDIA = /\.(png|jpe?g|gif|webp|mp4|mov|wav|mp3|ttf|otf|pdf)$/i
+// The ONE media exception (AGENTS.md rule 4): the cover picture of a shipped theme, a small JPEG (themes-shipped.mjs serves it). Anywhere else a picture
+// is still an error.
+export const COVER_MAX = 160 * 1024
+const COVER_PATH = /^packages\/kybernos-plugin\/themes\/(_next\/[a-z][a-z0-9-]{1,39}|[a-z][a-z0-9-]{1,39}\/cover)\.jpg$/
+/** A tracked file that may be a picture: a shipped theme's cover (`themes/<dir>/cover.jpg`) or a next trade's (`themes/_next/<id>.jpg`), at most COVER_MAX. */
+export const isAllowedCover = (file, size) => COVER_PATH.test(file) && size <= COVER_MAX
+/** The cover of a theme folder a stranger installs (its own `cover.jpg`, at its root), at most COVER_MAX: the same exception, seen from inside the folder. */
+export const isThemeCover = (rel, size) => rel === 'cover.jpg' && size <= COVER_MAX
+/** Whether the first bytes are a JPEG's (a renamed GIF is not a cover). */
+export const looksLikeJpeg = (bytes) => bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
 const SECRET = /(^|\/)(\.env(\..*)?|.*\.env|cles\.env|codes\.json|id_rsa.*)$/i
 // Every text file a person or a maintainer reads: the code, its tests and live checks, the data, the READMEs and docs, the workflows.
 // (Until 2026-10-16 only .m?js/.json/.sh were read, the test-/check- files were skipped and a file over 2 MB was not opened: the READMEs,
@@ -47,9 +57,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const errors = []
   const warnings = []
   for (const f of files) {
-    if (MEDIA.test(f)) errors.push(`media file tracked: ${f}`)
-    if (SECRET.test(f)) errors.push(`secret-looking file tracked: ${f}`)
     const size = statSync(f).size
+    if (MEDIA.test(f)) {
+      if (!isAllowedCover(f, size)) errors.push(`media file tracked: ${f}`)
+      else if (!looksLikeJpeg(readFileSync(f))) errors.push(`a cover that is not a JPEG: ${f}`)
+    }
+    if (SECRET.test(f)) errors.push(`secret-looking file tracked: ${f}`)
     if (size > MAX_BYTES) errors.push(`over ${MAX_BYTES / 1048576} MB: ${f} (${(size / 1048576).toFixed(1)} MB)`)
     if (isScanned(f, size)) warnings.push(...warningsOf(f, readFileSync(f, 'utf8')))
   }
