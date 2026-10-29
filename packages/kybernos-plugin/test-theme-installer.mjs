@@ -721,9 +721,12 @@ ok('kbThManagerIssue reads DSH\'s refusals as refusals: an object that says not-
 })
 ok('the page reads the manager\'s answer instead of "not null", and the Themes cards keep their actions visible', () => {
   const stage = src.slice(src.indexOf('const stageWith = async'), src.indexOf('const toggle = (kind, value)'))
-  assert.match(stage, /kbThManagerIssue\(installed\)/)
-  assert.doesNotMatch(stage, /installed === null/)
-  assert.match(stage, /kbThFreshRegistry\(\)[\s\S]*openPlan/) // the registry scan is reused for two seconds: ask for a fresh one before reading the plan
+  // the bring-in is shared by the gallery and Settings › Templates: it reads the manager's answer, then asks the registry for a fresh scan before anyone reads the plan
+  const bring = src.slice(src.indexOf('const kbThBringIn = async'), src.indexOf('/** What the host said about a folder'))
+  assert.match(bring, /kbThManagerIssue\(installed\)/)
+  assert.doesNotMatch(bring, /installed === null/)
+  assert.match(bring, /kbThFreshRegistry\(\)/) // the registry scan is reused for two seconds: ask for a fresh one before reading the plan
+  assert.match(stage, /kbThBringIn\(body[\s\S]*openPlan/)
   const seam = src.slice(src.indexOf('const kbThSeamInstall = async'), src.indexOf('const kbThSeamRemove = async'))
   assert.match(seam, /kbThManagerIssue\(installed\)/)
   assert.doesNotMatch(seam, /installed === null/)

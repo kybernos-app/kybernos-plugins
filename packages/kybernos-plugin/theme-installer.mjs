@@ -33,6 +33,7 @@
 //   kybernos-plugin-review-v1\n<id>\n<version>\n<sha256>\nverified
 import { createHash, verify as verifySignature } from 'node:crypto'
 import { chmodSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { readSample } from './themes-shipped.mjs'
 
@@ -641,6 +642,8 @@ export function handleThemes (store, request, ports) {
         folder = hit.folder
         level = 'included'
       }
+      // « ~/templates/acme »: the page does not know the home folder, so the host reads the tilde (a path that merely starts with it, nothing else)
+      if (body.shipped === undefined && folder.startsWith('~/') && folder.split(/[\\/]+/).indexOf('..') < 0) folder = join(homedir(), folder.slice(2))
       const bad = folderProblem(folder)
       if (bad !== null) return answer(400, { ok: false, error: 'path', reason: bad })
       let manifest = null
@@ -655,7 +658,10 @@ export function handleThemes (store, request, ports) {
       if (notBundle !== null) return answer(400, { ok: false, error: 'package', reason: notBundle, problems: [notBundle] })
       const id = typeof manifest.id === 'string' && OWNER.test(manifest.id) ? manifest.id : null
       if (id === null) return answer(400, { ok: false, error: 'not-a-theme', reason: 'plugin.json holds no author/name id' })
-      return answer(200, { ok: true, stage: { id, version: text(manifest.version), name: plain(manifest.name) ? manifest.name : null, level, path: folder } })
+      // What the folder holds, so the page can show it before anything is installed (`null` when it is not shaped like one of ours)
+      let preview = null
+      try { preview = typeof p.preview === 'function' ? p.preview(folder) : null } catch (e) { preview = null }
+      return answer(200, { ok: true, stage: { id, version: text(manifest.version), name: plain(manifest.name) ? manifest.name : null, level, path: folder }, preview: plain(preview) ? preview : null })
     }
     if (action === 'plan') {
       const id = text(body.id) ?? ''

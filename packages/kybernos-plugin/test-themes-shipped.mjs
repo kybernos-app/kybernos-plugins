@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleThemes } from './theme-installer.mjs'
-import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, SAMPLE_MAX, SHIPPED_MAX, coverFile, publicView, readNext, readSample, readShipped, readTheme } from './themes-shipped.mjs'
+import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, SAMPLE_MAX, SHIPPED_MAX, coverFile, previewFolder, publicView, readNext, readSample, readShipped, readTheme } from './themes-shipped.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 let count = 0
@@ -242,6 +242,41 @@ try {
     const r = handleThemes(store, { method: 'POST', body: { action: 'stage', shipped: 'acme/vet-clinic' } }, { sameOrigin: () => true, session: () => true, shipped: [Object.assign({}, shipped[1], { folder: link })] })
     assert.equal(r.status, 400)
     assert.match(r.body.reason, /symbolic link/)
+  })
+
+  // a folder the person points at: any name, read for a preview before anything is installed
+  ok('previewFolder reads a folder whatever it is called, and answers null for what is not a theme', () => {
+    const odd = join(root, 'My Odd Folder')
+    cpSync(starter, odd, { recursive: true })
+    const v = previewFolder(odd)
+    assert.equal(v.id, 'acme/vet-clinic')
+    assert.equal(v.folder, undefined, 'the preview never names the folder')
+    assert.ok(v.name.en && v.adds && Array.isArray(v.needs))
+    assert.equal(previewFolder(join(root, 'nothing-here')), null)
+    assert.equal(previewFolder(''), null)
+    assert.equal(previewFolder(42), null)
+  })
+  ok('stage answers the preview of the folder through its port, and null without one', () => {
+    const withPort = post({ action: 'stage', folder: starter }, { preview: previewFolder })
+    assert.equal(withPort.status, 200, JSON.stringify(withPort.body))
+    assert.equal(withPort.body.preview.id, 'acme/vet-clinic')
+    assert.equal(withPort.body.preview.folder, undefined)
+    assert.equal(post({ action: 'stage', folder: starter }).body.preview, null)
+    assert.equal(post({ action: 'stage', folder: starter }, { preview: () => { throw new Error('boom') } }).body.preview, null)
+  })
+  ok('stage reads « ~/… » as the home folder, and refuses a tilde path that climbs', () => {
+    const home = mkdtempSync(join(tmpdir(), 'kb-home-'))
+    const was = process.env.HOME
+    try {
+      process.env.HOME = home
+      cpSync(starter, join(home, 'templates', 'vet'), { recursive: true })
+      const r = post({ action: 'stage', folder: '~/templates/vet' })
+      assert.equal(r.status, 200, JSON.stringify(r.body))
+      assert.equal(r.body.stage.path, join(home, 'templates', 'vet'))
+      assert.equal(post({ action: 'stage', folder: '~/../vet' }).status, 400)
+      assert.equal(post({ action: 'stage', folder: '~' }).status, 400)
+      assert.equal(post({ action: 'stage', folder: '~other/x' }).status, 400)
+    } finally { process.env.HOME = was; rmSync(home, { recursive: true, force: true }) }
   })
 } finally { rmSync(root, { recursive: true, force: true }) }
 

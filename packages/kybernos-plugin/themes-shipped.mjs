@@ -5,7 +5,7 @@
 // Pure over node:fs, bounded (every file is small, every list has a limit) and never throwing: a folder that cannot be read is left out, with its
 // reason, and the other themes are still listed. The reading is the same data the installer's plan reads later; here it is only a summary.
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 /** How many themes are listed, and how large one file may be. */
 export const SHIPPED_MAX = 12
@@ -71,7 +71,11 @@ const jsonNames = (dir) => names(dir, (f) => f.endsWith('.json'))
  */
 export function readTheme (root, dir) {
   if (typeof dir !== 'string' || !DIR.test(dir)) return { ok: false, dir: String(dir), reason: 'the folder name is not an id' }
-  const folder = join(root, dir)
+  return readThemeAt(join(root, dir), dir)
+}
+
+/** The same reading for a folder wherever it is, whatever it is called (a template the person points at, not one the product ships). */
+function readThemeAt (folder, dir) {
   const manifest = readJson(join(folder, 'plugin.json'))
   if (manifest === null) return { ok: false, dir, reason: 'no readable plugin.json' }
   if (typeof manifest.id !== 'string' || !ID.test(manifest.id)) return { ok: false, dir, reason: 'plugin.json holds no author/name id' }
@@ -137,6 +141,16 @@ export function readTheme (root, dir) {
       },
     },
   }
+}
+
+/**
+ * What a folder holds, for the page to show before anything is installed: the theme as `publicView` gives it, or `null` when the folder is not
+ * shaped like a data theme. Reads files only; the caller has already checked the path.
+ */
+export function previewFolder (folder) {
+  if (typeof folder !== 'string' || folder === '') return null
+  const r = readThemeAt(folder, basename(folder))
+  return r.ok === true ? publicView([Object.assign({}, r.theme, { folder })])[0] : null
 }
 
 /**

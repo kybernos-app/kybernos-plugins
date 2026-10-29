@@ -40,7 +40,7 @@ const kbQueueFn = (name) => (kbQueueMod !== null && kbQueueMod !== undefined && 
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
 import { fetchArchiveBytes, fetchCatalogueSources, handleThemes, readThemes, themeTarget, verifyArchive } from './theme-installer.mjs'
-import { coverFile, readNext, readShipped } from './themes-shipped.mjs'
+import { coverFile, previewFolder, readNext, readShipped } from './themes-shipped.mjs'
 import { ensureBusiness } from './business-base.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -11770,6 +11770,7 @@ function boot(ctx) {
           registry: registrySeam(),
           shipped: readShipped(pluginDir + '/themes').themes,
           next: readNext(pluginDir + '/themes'),
+          preview: (folder) => { try { return previewFolder(folder) } catch (e) { return null } },
           business: (() => { try { return globalThis[Symbol.for('kybernos.business')] } catch (e) { return null } })(),
           skill: (folder, name) => {
             try {
