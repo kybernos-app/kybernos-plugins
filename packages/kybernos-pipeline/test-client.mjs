@@ -494,6 +494,21 @@ await ok('filters: the strip says how many cards are shown, one button brings th
   assert.equal(byKb(quiet, 'pipeline-nomatch').length, 0)
 })
 
+await ok('the avatar of a card\'s contact carries the contact\'s portrait when the host sent one, and nothing otherwise (initials, or the company\'s mark)', async () => {
+  const { kit, calls } = FAKE_KIT()
+  const { plugin } = boot(React, { window: { __KB_BIZ_KIT__: kit } })
+  const board = RICH()
+  const cardsOf = board.columns.flatMap((c) => c.cards)
+  cardsOf[0].contact = Object.assign({}, cardsOf[0].contact, { image: 'photo:ecommerce/portrait-07', kind: 'person' })
+  pageOf(plugin, fakeToolbar(TB()).toolbar, { 0: FLOWS, 1: 'orders', 2: board })
+  assert.ok(calls.Avatar.some((c) => c.name === 'Jonas Weber' && c.kind === 'person' && c.image === 'photo:ecommerce/portrait-07'), 'the portrait goes to the kit')
+  assert.ok(calls.Avatar.every((c) => c.image === undefined || /^photo:/.test(c.image)))
+  calls.Avatar.length = 0
+  cardsOf[0].contact = Object.assign({}, cardsOf[0].contact, { image: null, kind: 'company', name: 'Cafe Bleu' })
+  pageOf(plugin, fakeToolbar(TB()).toolbar, { 0: FLOWS, 1: 'orders', 2: board })
+  assert.ok(calls.Avatar.some((c) => c.name === 'Cafe Bleu' && c.kind === 'company' && c.image === undefined), 'a company: the kit draws its mark from the name')
+})
+
 await ok('the cards, with the kit: avatar of the contact, the item\'s drawing, coloured chips, a priority dot, a due chip that turns warm, age, progress; none of it when the data is not there', async () => {
   const { kit, calls } = FAKE_KIT()
   const { plugin } = boot(React, { window: { __KB_BIZ_KIT__: kit } })

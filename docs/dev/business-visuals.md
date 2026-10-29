@@ -13,23 +13,36 @@ Published by the core (block `<kb-business-kit>`, test `packages/kybernos-plugin
 | | |
 |---|---|
 | `Tag({ text, hue, dot, icon, on, onClick })` | A coloured chip; the colour follows the text (`tint(text)`), so « pre-approved » is always the same colour. A button only when it is clicked. |
-| `Avatar({ name, size, kind })` | Initials on a gradient; `kind: 'company'` draws a rounded square with a building. |
+| `Avatar({ name, size, kind, image })` | A person: initials on a gradient, with the picture `image` (`photo:<template dir>/<name>`) laid over them; the initials show while it loads, and stay when it is missing or does not load. `kind: 'company'` is a `Logo`. |
+| `Logo({ name, size, seed, image })` | A company mark drawn in code, never a file (see « Company marks »). |
+| `photoUrl(ref)` | The address (`/kybernos/themes/photo?id=…`, same origin) of a `photo:` reference, or `null`. |
 | `Art({ spec })` | An illustration drawn from a spec `art:<kind>[/<seed>][@<hue>]`. Kinds: house, apartment, villa, loft, shop, box, bottle, bag, desk. Anything else draws nothing. |
-| `Icon(name, size)` | The business icons (pin, bed, bath, ruler, tag, euro, building, leaf, sparkle, cart, truck, cap, clock, key, heart, star, layers, map, grid, list), then the core's own. |
+| `Icon(name, size)` | The business icons (pin, bed, bath, ruler, tag, euro, leaf, sparkle, cart, truck, cap, clock, key, heart, star, layers, map, grid, list), then the core's own. |
 | CSS classes | `kz-lift` (hover lift), `kz-in` with `--kz-i` (staggered entry), `kz-press`, `kz-pop`, `kz-img` (a picture that zooms a little on hover). All stop under `prefers-reduced-motion`. |
+
+## Company marks
+
+`Logo` draws a fictitious brand: the company's name (or `seed`) picks, always the same way, one of twelve geometric glyphs (orbit, stack, peak, quarters, ring, bars, leaf, hex, spark, wave, arch, chevrons) or a monogram (the capitals of the first two words), two quiet hues from the kit's list (`tint` hues, a second one 22 to 42 degrees away) and the avatar's gradient. White shapes with one accent on a 64 by 64 canvas, so it is sharp at any size and reads on a light and a dark page; under 26 px it is always a glyph. Contacts (the company's face in the list, the cards and the panel, and the small mark beside a person's company), Pipeline cards whose contact is a company and a Catalog type that names its company (`card.company`, below) use it. A company row may carry an `image` too (a `photo:` reference): it lies over the mark as a portrait lies over initials; the sample companies use the drawn marks only.
 
 ## Pictures
 
 A catalogue type names a text field in `card.image`. Its value is one of:
 
-- `photo:<template dir>/<name>`: a sample photograph the template ships at `themes/<dir>/demo/photos/<name>.jpg`, served by the core at `GET /kybernos/themes/photo?id=<dir>/<name>` (same origin, a plain JPEG found by id, never by path: `photoFile` in `themes-shipped.mjs`);
+- `photo:<template dir>/<name>`: a sample picture the template ships at `themes/<dir>/demo/photos/<name>.jpg`, served by the core at `GET /kybernos/themes/photo?id=<dir>/<name>` (same origin, a plain JPEG found by id, never by path: `photoFile` in `themes-shipped.mjs`);
 - `art:<kind>/<seed>`: a drawn picture (above).
 
-A photograph that does not load turns into the drawn picture that goes with the type's icon. The photographs are made by `scripts/theme-photos.mjs`: ONE FLUX 2 image on DeepInfra, a palette (a grid of separate photographs), cut into pictures with `sips`. A plan (`docs/dev/theme-photos/<name>.json`) is the recipe; the palette itself is not kept. A palette costs about 6 cents. The key is read from `DEEPINFRA_API_KEY` or from the DSH credentials file and is never printed. Per AGENTS rule 4 a theme may carry 16 such JPEGs of at most 80 KB each, nothing else.
+A photograph that does not load turns into the drawn picture that goes with the type's icon.
+
+**Photographs and portraits.** A theme's sample pictures are its item photographs (1280 px wide, never enlarged from less) and the portraits of its sample people (640 px square, from a 1024 px image). Each is made on its own by `scripts/theme-photos.mjs`: one FLUX 2 call on DeepInfra per picture (the model takes 1920 px at most on a side; about one cent a picture), asked at least as big as the JPEG that is kept, so nothing is ever enlarged. A plan per theme and kind (`docs/dev/theme-photos/<theme dir>-photos.json`, `-portraits.json`) is the recipe: the style, the size asked, the weight kept and, per picture, its prompt and seed (bump the seed to redo one). The model's own JPEG is kept as it is when it fits the weight; otherwise it is re-encoded. The raw answers stay in `~/kybernos-archive/theme-photos/<plan>/`, out of git. The key is read from `DEEPINFRA_API_KEY` or from the DSH credentials file and is never printed. Per AGENTS rule 4 a theme carries 24 such JPEGs at most (photographs and portraits together), each at most 1280 px wide and 220 KB; the guard (`scripts/garde-depot.mjs`) reads the width from the JPEG itself.
+
+So that people and properties fit in 24, a portrait serves two people at most (a pair that never sit together: another type, the far end of the list) and a photograph serves two related items at most (a flat to let and a flat for sale, two townhouses) and never two that sit on the same board; `scripts/test-shipped-themes.mjs` holds both limits.
+
+**People.** A contact names its portrait in a text field `image` that the theme's contacts file declares (`{ "key": "image", "type": "text" }`): the same `photo:<theme dir>/<name>` scheme, served by the same route. The Contacts page draws it as the face (list, cards, panel, edit dialog), the Pipeline host sends it with the card's contact (`contact.image`, a `photo:` reference only, `null` otherwise) and the kit's `Avatar` shows it over the initials. The page never lists that field as a text field and never sends it back: saving a contact keeps its picture. A theme without that field has initials only.
 
 ## The catalogue type, what was added (`catalog-type.mjs`)
 
 - `card.image`: the key of a text field holding the picture reference.
+- `card.company`: the key of a text field that holds the name of a company (a job's client). When it is the same field as the card's subtitle, the line is led by the company's drawn mark (`Logo`).
 - `card.chips`: up to six field keys. Choices and texts are drawn as coloured tags (a choice of the letters A to G, an energy class, runs from green to red); numbers are drawn as stats (« 68 m² » from the unit in the label, else « 3 rooms »).
 - `map: { lat, lng }`: two different number fields that place an item. A type with a `map` gets the `map` view (and says so in `views`); `views` may not list `map` without it.
 

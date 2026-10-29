@@ -205,7 +205,7 @@ try {
 
   console.log('3. a theme with two boards')
   base.deleteAll({ confirm: true, actor: 'person' })
-  const contacts = [{ ref: 'jonas', name: 'Jonas Weber', email: 'jonas@example.com' }, { ref: 'chen', name: 'Chen Wei', email: 'chen@example.com' }, { ref: 'cafe', name: 'Cafe Bleu', kind: 'company' }]
+  const contacts = [{ ref: 'jonas', name: 'Jonas Weber', email: 'jonas@example.com', fields: { image: 'photo:ecommerce/portrait-06' } }, { ref: 'chen', name: 'Chen Wei', email: 'chen@example.com', fields: { image: 'photo:ecommerce/not-there' } }, { ref: 'cafe', name: 'Cafe Bleu', kind: 'company' }]
   const seeded = base.seed({ contacts, items: [{ ref: 'mug', title: 'Ceramic mug', subtitle: 'FC-MUG-01' }], cards: ORDERS.map((c) => ({ flow: 'orders', ...c })) }, { theme: 'acme/check-pipeline-shop' })
   check('the sample rows are seeded through the seam (all demo)', seeded.ok === true, seeded)
   const own = base.create('flow_card', { flow: 'orders', stage: 'new', title: '#1050 · my own order', value_num: 40 }, { actor: 'person' }).row
@@ -238,6 +238,11 @@ try {
   check('every card sits inside its column and is wide enough to read', inside === true)
   check('the sample cards carry the « demo » badge, the one the person made does not', (await ev(`document.querySelectorAll('[data-kb="pipeline-demo"]').length`)) === 6 && (await rect(CARD(own.id) + ' [data-kb="pipeline-demo"]')) === null)
   check('linked names show: the contact\'s initials and the item as a chip', (await ev(`document.querySelectorAll('[data-kb="pipeline-card-contact"]').length`)) === 2 && (await ev(`(document.querySelector('[data-kb="pipeline-card-item"]') || {}).textContent`)) === 'Ceramic mug')
+  const leads = await ev(`[...document.querySelectorAll('[data-kb="pipeline-card-contact"]')].map((l) => { const img = l.querySelector('img.kz-face'); return { name: l.getAttribute('title'), img: img !== null, loaded: img !== null && img.complete && img.naturalWidth >= 512, shown: img !== null && getComputedStyle(img).display !== 'none', initials: (l.querySelector('.kz-av') || {}).firstChild ? l.querySelector('.kz-av').firstChild.textContent : null } })`)
+  const jonasLead = leads.find((l) => l.name === 'Jonas Weber')
+  const chenLead = leads.find((l) => l.name === 'Chen Wei')
+  check('a card\'s contact wears the portrait the contact carries (a sample portrait of the core, at least 512 px)', jonasLead !== undefined && jonasLead.img && jonasLead.loaded && jonasLead.shown, jonasLead)
+  check('a portrait that does not load leaves the initials', chenLead !== undefined && chenLead.img && chenLead.shown === false && chenLead.initials === 'CW', chenLead)
   check('« Clear sample data » is offered', (await rect('[data-act="clear-demo"]')) !== null)
   await shot('03-loaded')
 

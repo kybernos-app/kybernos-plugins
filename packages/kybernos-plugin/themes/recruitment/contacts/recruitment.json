@@ -87,6 +87,14 @@
         "en": "Available in",
         "fr": "Disponibilité"
       }
+    },
+    {
+      "key": "image",
+      "type": "text",
+      "label": {
+        "en": "Picture",
+        "fr": "Photo"
+      }
     }
   ],
   "tags": [

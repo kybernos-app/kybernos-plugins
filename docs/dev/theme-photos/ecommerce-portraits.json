@@ -1,0 +1,61 @@
+{
+  "name": "ecommerce-portraits",
+  "style": "natural-light head-and-shoulders portrait photograph of a fictitious adult, soft neutral warm-grey studio backdrop, the person centred and looking at the camera with a relaxed friendly expression, 85mm lens, shallow depth of field, photorealistic skin texture, sharp focus on the eyes, plain clothing, no text, no logo, no watermark",
+  "ask": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 28
+  },
+  "keep": {
+    "width": 640,
+    "quality": 80,
+    "maxKb": 220
+  },
+  "cells": [
+    {
+      "name": "portrait-01",
+      "prompt": "a woman in her early thirties with light-brown hair in a loose bun and fair skin, wearing a white linen shirt",
+      "seed": 100
+    },
+    {
+      "name": "portrait-02",
+      "prompt": "a woman in her mid forties with shoulder-length auburn hair and fair skin, wearing a soft green cardigan",
+      "seed": 101
+    },
+    {
+      "name": "portrait-03",
+      "prompt": "a woman in her early thirties with long black hair and brown South Asian skin, wearing a mustard scarf and a charcoal top",
+      "seed": 102
+    },
+    {
+      "name": "portrait-04",
+      "prompt": "a woman in her late twenties with dark curly hair and warm olive skin, wearing a white shirt",
+      "seed": 103
+    },
+    {
+      "name": "portrait-05",
+      "prompt": "a woman in her late thirties with light-brown straight hair with a fringe and fair skin, wearing a navy striped Breton top",
+      "seed": 104
+    },
+    {
+      "name": "portrait-06",
+      "prompt": "a man in his mid thirties with dark wavy hair, a short beard and tan skin, wearing a denim jacket",
+      "seed": 105
+    },
+    {
+      "name": "portrait-07",
+      "prompt": "a man in his early forties with short fair-brown hair, light stubble and fair skin, wearing a grey sweater",
+      "seed": 106
+    },
+    {
+      "name": "portrait-08",
+      "prompt": "a man in his early thirties with short black hair, East Asian features and round glasses, wearing a charcoal sweater",
+      "seed": 107
+    },
+    {
+      "name": "portrait-09",
+      "prompt": "a Black man of African descent in his late thirties with short black hair, a short beard and deep dark brown skin, wearing a rust-orange shirt",
+      "seed": 158
+    }
+  ]
+}

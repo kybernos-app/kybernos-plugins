@@ -1,6 +1,6 @@
 # Recruitment firm
 
-A Kybernos theme for a recruitment firm. Data only: JSON and Markdown, no code; the only pictures are the cover and the sample photographs (`demo/photos/`, invented, made by `scripts/theme-photos.mjs` from the plans in `docs/dev/theme-photos/`).
+A Kybernos theme for a recruitment firm. Data only: JSON and Markdown, no code; the only pictures are the cover and the sample pictures (`demo/photos/`: photographs of the items and portraits of the people, invented, made by `scripts/theme-photos.mjs` from the plans in `docs/dev/theme-photos/`).
 
 | What | Words and content |
 |---|---|

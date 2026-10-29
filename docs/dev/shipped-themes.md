@@ -74,9 +74,11 @@ Rules (all checked by `scripts/test-shipped-themes.mjs`):
   The order of the cards in the file is the order inside a column. A card of a board carries `fields: { source, priority: high|normal|low, due: YYYY-MM-DD, tags: [≤ 3] }`
   and links the person (`contact_ref`) and the product or job (`item_ref`) it is about. The test of a rich theme is the `RICH` list of `scripts/test-shipped-themes.mjs`.
 - **Invented.** Every name, address and message is made up, e-mail addresses are on `example.com`, a company's is `hello@<name>.example.com`.
-  No path, no real person. The only pictures are the sample photographs (rule 4): an item names its own in a text field (`card.image`, `photo:<theme dir>/<name>`),
-  at `demo/photos/<name>.jpg`, one per item, 16 a theme at most. They are invented scenes: `scripts/theme-photos.mjs` asks FLUX 2 for one palette of nine to twelve
-  photographs and cuts it; the plan that made each palette is `docs/dev/theme-photos/<theme dir>-<n>.json` (the palettes themselves stay out of git).
+  No path, no real person. The only pictures are the sample pictures (rule 4): an item names its photograph in a text field (`card.image`, `photo:<theme dir>/<name>`),
+  a person its portrait in the contacts field `image` (same scheme), at `demo/photos/<name>.jpg`, 24 a theme at most, each 1280 px wide and 220 KB at most. A photograph
+  serves two related items at most and a portrait two people at most, so a theme fits in 24. A company has no file: its mark is drawn in code. They are invented
+  scenes and fictitious people: `scripts/theme-photos.mjs` asks FLUX 2 for one picture at a time; the plans are `docs/dev/theme-photos/<theme dir>-photos.json` and
+  `-portraits.json` (the raw answers stay out of git, see `docs/dev/business-visuals.md`).
 - **One price.** An item carries `price_text` (what a card prints, `€780 / month`) and, when its type has a `price` money field, the same
   number in `price_num` and in `fields.price`.
 

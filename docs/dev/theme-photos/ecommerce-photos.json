@@ -1,0 +1,91 @@
+{
+  "name": "ecommerce-photos",
+  "style": "clean e-commerce product photography, a single product or one small set centred on a soft coloured seamless paper backdrop with generous empty margin around it, soft diffused studio light, gentle natural shadow, warm natural tones, sharp focus, fine material detail, no brand, no logo, no label, no text",
+  "ask": {
+    "width": 1280,
+    "height": 960,
+    "steps": 28
+  },
+  "keep": {
+    "width": 1280,
+    "quality": 82,
+    "maxKb": 220
+  },
+  "cells": [
+    {
+      "name": "stoneware-mug",
+      "prompt": "a pair of handmade speckled cream stoneware mugs side by side on a warm terracotta backdrop",
+      "seed": 100
+    },
+    {
+      "name": "linen-napkins",
+      "prompt": "a neat stack of four folded oatmeal linen napkins tied with a thin cotton ribbon on a pale sage green backdrop",
+      "seed": 101
+    },
+    {
+      "name": "taper-candles",
+      "prompt": "two natural honey-coloured beeswax taper candles standing in a small brushed brass candle holder on a muted lilac backdrop",
+      "seed": 102
+    },
+    {
+      "name": "olive-board",
+      "prompt": "a rounded olive wood cutting board with a visible warm grain and a leather loop, standing slightly tilted on a pale blue-grey backdrop",
+      "seed": 103
+    },
+    {
+      "name": "soy-candle-plain",
+      "prompt": "a hand-poured soy candle in a plain frosted glass jar with a wooden wick, the jar completely plain with no label and no print, on a dusty pink backdrop",
+      "seed": 104
+    },
+    {
+      "name": "ceramic-carafe",
+      "prompt": "a glazed ceramic water carafe in soft celadon green on a warm cream backdrop",
+      "seed": 105
+    },
+    {
+      "name": "tea-towel",
+      "prompt": "a folded indigo blue striped cotton tea towel on a light grey backdrop",
+      "seed": 106
+    },
+    {
+      "name": "gift-box",
+      "prompt": "an open kraft cardboard gift box with tissue paper, a small candle and a wooden spoon inside, on a deep forest green backdrop",
+      "seed": 107
+    },
+    {
+      "name": "wool-throw",
+      "prompt": "a folded oatmeal wool throw blanket with a fringed edge on a pale beige backdrop",
+      "seed": 108
+    },
+    {
+      "name": "tote-bag",
+      "prompt": "a plain natural canvas cotton tote bag with no print, standing upright on a mustard yellow backdrop",
+      "seed": 109
+    },
+    {
+      "name": "glass-tumblers",
+      "prompt": "four hand-blown clear glass tumblers with a slight green tint, arranged in a loose group on a soft light blue backdrop",
+      "seed": 110
+    },
+    {
+      "name": "linen-apron",
+      "prompt": "a sage green linen apron with two pockets, folded neatly with the neck strap showing, on a warm white backdrop",
+      "seed": 111
+    },
+    {
+      "name": "serving-bowl",
+      "prompt": "a wide stoneware serving bowl with a speckled white glaze and a darker rim on a clay brown backdrop",
+      "seed": 112
+    },
+    {
+      "name": "seagrass-basket",
+      "prompt": "a woven seagrass storage basket with two handles on a pale cream backdrop",
+      "seed": 113
+    },
+    {
+      "name": "soap-trio",
+      "prompt": "three rectangular olive oil soap bars in plain paper wraps tied with string, on a soft mint backdrop",
+      "seed": 114
+    }
+  ]
+}

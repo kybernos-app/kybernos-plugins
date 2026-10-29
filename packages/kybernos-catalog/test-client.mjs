@@ -476,6 +476,26 @@ const homeRow = (id, over) => row(id, Object.assign({ type: 'property', status: 
   bare.unmount()
   store.clear()
 }
+{
+  // a type whose card names its company (`card.company`): the line that holds the company's name is led by the kit's drawn mark
+  const HIRE = { id: 'hire', label: L('Job'), plural: L('Jobs'), icon: 'briefcase', statuses: [{ key: 'open', tone: 'ok', label: L('Open') }], fields: [{ key: 'client', type: 'text', label: L('Client') }], card: { title: 'title', subtitle: 'client', company: 'client' }, views: ['cards', 'list'] }
+  server.reset([HIRE], 'theme', [row(1, { type: 'hire', title: 'Data engineer', status: 'open', fields: { client: 'Brightwell Analytics' } }), row(2, { type: 'hire', title: 'Designer', status: 'open', fields: { client: '' } })])
+  store.clear()
+  windowObject.__KB_BIZ_KIT__ = { v: 1, artOk: () => false, Art: () => null, Tag: (props) => h('span', { 'data-kb': 'kit-tag', 'data-text': props.text }), Icon: (name) => h('svg', { 'data-icon': name }), tint: () => 0, Logo: (props) => h('span', { 'data-kb': 'kit-logo', 'data-name': props.name, 'data-size': String(props.size) }) }
+  const root = lite.mount(h(Page, { toolbar: null }))
+  await root.settle()
+  ok('a card whose type names its company leads the company line with the drawn mark, and a card with no company line draws none', by(root, 'catalog-company').length === 1 && by(root, 'kit-logo').length === 1 && by(root, 'kit-logo')[0].props['data-name'] === 'Brightwell Analytics' && by(root, 'catalog-company')[0].children.some((c) => c.props !== undefined && c.props['aria-hidden'] === 'true'))
+  await click(root, by(root, 'catalog-card-open')[0])
+  ok('and so does the panel of the item', by(root, 'catalog-panel').length === 1 && lite.find(by(root, 'catalog-panel')[0], (n) => n.props['data-kb'] === 'kit-logo').length === 1)
+  root.unmount()
+  delete windowObject.__KB_BIZ_KIT__.Logo
+  const older = lite.mount(h(Page, { toolbar: null }))
+  await older.settle()
+  ok('a kit with no Logo (an older core) leaves the plain line', by(older, 'catalog-company').length === 0 && by(older, 'catalog-card').length === 2 && by(older, 'catalog-card')[0].children.length > 0)
+  older.unmount()
+  delete windowObject.__KB_BIZ_KIT__
+  store.clear()
+}
 
 if (failed > 0) { console.log('test-client: ' + failed + ' failure(s)'); process.exit(1) }
 console.log('test-client: all green')

@@ -1,0 +1,76 @@
+{
+  "name": "real-estate-portraits",
+  "style": "natural-light head-and-shoulders portrait photograph of a fictitious adult, soft neutral warm-grey studio backdrop, the person centred and looking at the camera with a relaxed friendly expression, 85mm lens, shallow depth of field, photorealistic skin texture, sharp focus on the eyes, plain clothing, no text, no logo, no watermark",
+  "ask": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 28
+  },
+  "keep": {
+    "width": 640,
+    "quality": 80,
+    "maxKb": 220
+  },
+  "cells": [
+    {
+      "name": "portrait-01",
+      "prompt": "a woman in her early thirties with shoulder-length wavy chestnut-brown hair and light olive skin, wearing a cream knit sweater",
+      "seed": 100
+    },
+    {
+      "name": "portrait-02",
+      "prompt": "a woman in her late forties with a short dark-brown bob, rectangular glasses and fair skin, wearing a navy blazer",
+      "seed": 101
+    },
+    {
+      "name": "portrait-03",
+      "prompt": "a woman in her late twenties with straight blond hair and fair skin, wearing a light grey T-shirt",
+      "seed": 102
+    },
+    {
+      "name": "portrait-04",
+      "prompt": "a woman in her early forties with light-brown hair tied back, a few freckles and fair skin, wearing a denim shirt",
+      "seed": 103
+    },
+    {
+      "name": "portrait-05",
+      "prompt": "a woman in her mid thirties with a short dark-brown pixie cut and warm medium-brown skin, wearing a mustard top",
+      "seed": 104
+    },
+    {
+      "name": "portrait-06",
+      "prompt": "a woman in her early thirties with long straight black hair and East Asian features, wearing a white blouse",
+      "seed": 105
+    },
+    {
+      "name": "portrait-07",
+      "prompt": "a Black man of African descent in his early fifties with short grey-flecked hair, a trimmed beard and deep dark brown skin, wearing a charcoal jacket over an open-collar shirt",
+      "seed": 156
+    },
+    {
+      "name": "portrait-08",
+      "prompt": "a man in his late thirties with short dark hair, light stubble and tan skin, wearing a navy polo shirt",
+      "seed": 107
+    },
+    {
+      "name": "portrait-09",
+      "prompt": "a man in his mid thirties with short black hair, a neatly trimmed beard and olive skin, wearing a light blue shirt",
+      "seed": 108
+    },
+    {
+      "name": "portrait-10",
+      "prompt": "a man in his mid forties with short dark hair greying at the temples, a short beard and medium olive skin, wearing a dark green jumper",
+      "seed": 109
+    },
+    {
+      "name": "portrait-11",
+      "prompt": "a man in his late fifties with white-grey hair, clean-shaven, fair skin and a kind face, wearing a dark suit and a tie",
+      "seed": 110
+    },
+    {
+      "name": "portrait-12",
+      "prompt": "a man in his late twenties with short light-brown hair, light stubble and fair skin, wearing a grey crewneck sweater",
+      "seed": 111
+    }
+  ]
+}

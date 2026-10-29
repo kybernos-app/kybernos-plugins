@@ -16,7 +16,8 @@
         "seniority": "Senior",
         "salary_target": 80000,
         "role": "Data engineer",
-        "availability": "1 month"
+        "availability": "1 month",
+        "image": "photo:recruitment/portrait-01"
       }
     },
     {
@@ -35,7 +36,8 @@
         "seniority": "Senior",
         "salary_target": 78000,
         "role": "Analytics engineer",
-        "availability": "2 months"
+        "availability": "2 months",
+        "image": "photo:recruitment/portrait-04"
       }
     },
     {
@@ -54,7 +56,8 @@
         "seniority": "Junior",
         "salary_target": 42000,
         "role": "Data analyst",
-        "availability": "Immediately"
+        "availability": "Immediately",
+        "image": "photo:recruitment/portrait-02"
       }
     },
     {
@@ -72,7 +75,8 @@
         "seniority": "Mid",
         "salary_target": 62000,
         "role": "Product designer",
-        "availability": "2 months"
+        "availability": "2 months",
+        "image": "photo:recruitment/portrait-08"
       }
     },
     {
@@ -91,7 +95,8 @@
         "seniority": "Junior",
         "salary_target": 38000,
         "role": "UI designer",
-        "availability": "Immediately"
+        "availability": "Immediately",
+        "image": "photo:recruitment/portrait-06"
       }
     },
     {
@@ -110,7 +115,8 @@
         "seniority": "Senior",
         "salary_target": 70000,
         "role": "UX researcher",
-        "availability": "3 months"
+        "availability": "3 months",
+        "image": "photo:recruitment/portrait-03"
       }
     },
     {
@@ -128,7 +134,8 @@
         "seniority": "Senior",
         "salary_target": 55000,
         "role": "Sales manager",
-        "availability": "1 month"
+        "availability": "1 month",
+        "image": "photo:recruitment/portrait-05"
       }
     },
     {
@@ -147,7 +154,8 @@
         "seniority": "Junior",
         "salary_target": 36000,
         "role": "Sales development rep",
-        "availability": "Immediately"
+        "availability": "Immediately",
+        "image": "photo:recruitment/portrait-08"
       }
     },
     {
@@ -166,7 +174,8 @@
         "seniority": "Senior",
         "salary_target": 72000,
         "role": "DevOps engineer",
-        "availability": "1 month"
+        "availability": "1 month",
+        "image": "photo:recruitment/portrait-07"
       }
     },
     {
@@ -184,7 +193,8 @@
         "seniority": "Mid",
         "salary_target": 58000,
         "role": "Frontend engineer",
-        "availability": "2 months"
+        "availability": "2 months",
+        "image": "photo:recruitment/portrait-06"
       }
     },
     {
@@ -202,7 +212,8 @@
         "seniority": "Mid",
         "salary_target": 46000,
         "role": "Financial analyst",
-        "availability": "1 month"
+        "availability": "1 month",
+        "image": "photo:recruitment/portrait-09"
       }
     },
     {
@@ -219,7 +230,8 @@
         "city": "Lyon",
         "seniority": "Mid",
         "salary_target": 48000,
-        "role": "Finance analyst"
+        "role": "Finance analyst",
+        "image": "photo:recruitment/portrait-10"
       }
     },
     {
@@ -235,7 +247,8 @@
       ],
       "fields": {
         "city": "London",
-        "role": "Head of Data"
+        "role": "Head of Data",
+        "image": "photo:recruitment/portrait-03"
       }
     },
     {
@@ -252,7 +265,8 @@
       ],
       "fields": {
         "city": "Lyon",
-        "role": "Operations Director"
+        "role": "Operations Director",
+        "image": "photo:recruitment/portrait-07"
       }
     },
     {
@@ -268,7 +282,8 @@
       ],
       "fields": {
         "city": "Paris",
-        "role": "HR Director"
+        "role": "HR Director",
+        "image": "photo:recruitment/portrait-05"
       }
     },
     {
@@ -284,7 +299,8 @@
       ],
       "fields": {
         "city": "Berlin",
-        "role": "Head of Product"
+        "role": "Head of Product",
+        "image": "photo:recruitment/portrait-04"
       }
     },
     {
@@ -300,7 +316,8 @@
       ],
       "fields": {
         "city": "Amsterdam",
-        "role": "Studio Director"
+        "role": "Studio Director",
+        "image": "photo:recruitment/portrait-09"
       }
     },
     {

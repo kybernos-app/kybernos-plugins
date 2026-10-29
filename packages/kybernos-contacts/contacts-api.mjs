@@ -17,6 +17,8 @@ const TYPE_KEY = /^[a-z0-9][a-z0-9_-]{0,39}$/
 const fail = (error, detail) => (detail === undefined ? { ok: false, error } : { ok: false, error, detail })
 const wholeNumber = (v) => (typeof v === 'number' && Number.isInteger(v) ? v : (typeof v === 'string' && /^\d{1,9}$/.test(v) ? Number(v) : undefined))
 const truthy = (v) => v === true || v === 1 || v === '1' || v === 'true'
+/** The sample portrait a contact carries in its `image` field (`photo:<theme>/<name>`), or null: a reference only, never an address. */
+const pictureOf = (fields) => { const v = fields !== null && typeof fields === 'object' ? fields.image : undefined; return typeof v === 'string' && /^photo:[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59}$/.test(v) ? v : null }
 
 export function createApi ({ base, schema }) {
   const run = (fn) => {
@@ -103,7 +105,7 @@ export function createApi ({ base, schema }) {
     if (row.company_id !== null) { const c = b.get('contact', row.company_id); if (c.ok) out.company = { id: c.row.id, name: c.row.name, type: c.row.type, archived: c.row.archived_at !== null } }
     if (row.kind === 'company') {
       const p = b.list('contact', { company_id: row.id, limit: 100 })
-      if (p.ok) out.people = p.rows.map((x) => ({ id: x.id, name: x.name, type: x.type, email: x.email }))
+      if (p.ok) out.people = p.rows.map((x) => ({ id: x.id, name: x.name, type: x.type, email: x.email, image: pictureOf(x.fields) }))
     }
     return out
   })

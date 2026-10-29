@@ -1,6 +1,6 @@
 # Real estate agency
 
-A Kybernos theme for an estate agency. Data only: JSON and Markdown, no code, no media.
+A Kybernos theme for an estate agency. Data only: JSON and Markdown, no code; the only pictures are the cover and the sample pictures (`demo/photos/`: photographs of the properties and portraits of the people, invented, made by `scripts/theme-photos.mjs` from the plans in `docs/dev/theme-photos/`).
 
 | What | Words and content |
 |---|---|

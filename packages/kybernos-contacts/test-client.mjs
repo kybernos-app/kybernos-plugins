@@ -640,6 +640,52 @@ ok('with the kit: the type is a chip in the hue of its key, the tags are chips, 
   assert.equal(byKb(co, 'contacts-row').length, 1)
   delete window.__KB_BIZ_KIT__
 })
+ok('a person\'s portrait (`fields.image`, a `photo:` reference) is handed to the kit\'s avatar in the list, the cards and the panel, and anything else is not', () => {
+  installKit()
+  const faces = (t) => kitCalls.avatar.filter((p) => p.kind === 'person')
+  page(loaded([row({ fields: { city: 'Lyon', image: 'photo:shop/portrait-02' } })]))
+  assert.ok(faces().some((p) => p.image === 'photo:shop/portrait-02'), 'the list')
+  kitCalls.avatar.length = 0
+  page(st({ filters: FILTERS, prefs: { sort: 'modified', dir: 'desc', viewMode: 'cards' }, list: LIST([row({ fields: { image: 'photo:shop/portrait-02' } })]) }))
+  assert.ok(faces().some((p) => p.image === 'photo:shop/portrait-02'), 'the cards')
+  kitCalls.avatar.length = 0
+  page(withPanel([row({})], 1, detail({ contact: row({ fields: { city: 'Lyon', image: 'photo:shop/portrait-02' } }) })))
+  assert.ok(kitCalls.avatar.some((p) => p.size === 60 && p.image === 'photo:shop/portrait-02'), 'the panel head')
+  kitCalls.avatar.length = 0
+  for (const bad of ['https://example.org/a.jpg', 'photo:../x/y', 'art:house/x', '', 7, null]) page(loaded([row({ fields: { image: bad } })]))
+  assert.ok(kitCalls.avatar.length > 0 && kitCalls.avatar.every((p) => p.image === undefined), 'an address, a path, a drawing or a non-text is never handed on')
+  delete window.__KB_BIZ_KIT__
+})
+ok('the picture field is never a field of the page: not in the schema the page keeps, not a row of the panel, not an input of the dialog; saving a contact does not touch it', () => {
+  const themed = { themed: true, themes: ['shop'], types: schema.types, tags: [], fields: [{ key: 'city', type: 'text', label: { en: 'City' } }, { key: 'image', type: 'text', label: { en: 'Picture' } }] }
+  assert.deepEqual(T.withoutPicture(themed).fields.map((f) => f.key), ['city'])
+  assert.equal(T.withoutPicture(schema), schema, 'a schema with no picture field is the same object')
+  const d = detail({ contact: row({ fields: { city: 'Lyon', image: 'photo:shop/portrait-02' } }) })
+  const panel = page(withPanel([row({})], 1, d))
+  assert.doesNotMatch(text(byKb(panel, 'contacts-panel')[0]), /photo:shop|Picture/, 'the reference is not printed in the panel')
+  const had = row({ fields: { city: 'Lyon', image: 'photo:shop/portrait-02' } })
+  const form = T.emptyForm('person', T.withoutPicture(themed), had)
+  assert.deepEqual(Object.keys(form.fields), ['city'])
+  assert.equal(T.formBody(Object.assign({}, form, { fields: { city: 'Paris' } }), T.withoutPicture(themed), false, had).fields.image, undefined, 'the patch never carries the picture, so the host keeps it')
+})
+ok('a company\'s name in a row, a card and the panel is led by its drawn mark when the kit has one, by the plain building when it has not', () => {
+  installKit()
+  const logos = []
+  window.__KB_BIZ_KIT__.Logo = function Logo (p) { logos.push(p); return el('span', { className: 'kz-logo' }, p.name) }
+  const withCo = row({ company: { id: 9, name: 'Acme Farm' }, company_id: 9 })
+  page(loaded([withCo]))
+  assert.ok(logos.some((p) => p.name === 'Acme Farm' && p.size > 0), 'the list')
+  logos.length = 0
+  page(st({ filters: FILTERS, prefs: { sort: 'modified', dir: 'desc', viewMode: 'cards' }, list: LIST([withCo]) }))
+  assert.ok(logos.some((p) => p.name === 'Acme Farm'), 'the cards')
+  logos.length = 0
+  page(withPanel([row({})], 1, detail()))
+  assert.ok(logos.some((p) => p.name === 'Acme Farm'), 'the panel')
+  delete window.__KB_BIZ_KIT__.Logo
+  const plain = page(loaded([withCo]))
+  assert.ok(find(plain, (n) => n.props['data-icon'] === 'building' || n.type === 'svg').length > 0, 'the building stands in')
+  delete window.__KB_BIZ_KIT__
+})
 ok('with the kit, an empty kind shows the drawn picture; without it, no picture and no error', () => {
   installKit()
   page(loaded([])); assert.equal(kitCalls.art.length, 1); assert.match(kitCalls.art[0].spec, /^art:desk\//)

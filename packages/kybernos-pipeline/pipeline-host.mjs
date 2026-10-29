@@ -137,7 +137,7 @@ export function createPipelineHost (ports = {}) {
     const contacts = new Map()
     const items = new Map()
     return {
-      contact: (id) => link(base, 'contact', id, contacts, (r) => ({ id: r.id, name: r.name, kind: r.kind, archived: r.archived_at !== null })),
+      contact: (id) => link(base, 'contact', id, contacts, (r) => ({ id: r.id, name: r.name, kind: r.kind, image: portraitOf(r.fields), archived: r.archived_at !== null })),
       item: (id) => link(base, 'item', id, items, (r) => ({ id: r.id, title: r.title, subtitle: r.subtitle, type: typeof r.type === 'string' ? r.type : '', image: pictureOf(r.fields), archived: r.archived_at !== null })),
     }
   }
@@ -155,6 +155,11 @@ export function createPipelineHost (ports = {}) {
   const pictureOf = (fields) => {
     const v = fields !== null && typeof fields === 'object' ? fields.image : undefined
     return typeof v === 'string' && /^(?:art:[a-z-]{2,16}(?:\/[A-Za-z0-9._-]{0,40})?(?:@\d{1,3})?|photo:[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59})$/.test(v) ? v : null
+  }
+  /** The sample portrait a contact carries in its `image` field (`photo:<theme>/<name>`), or null: a reference only, never an address. */
+  const portraitOf = (fields) => {
+    const v = fields !== null && typeof fields === 'object' ? fields.image : undefined
+    return typeof v === 'string' && /^photo:[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59}$/.test(v) ? v : null
   }
   const shapeCard = (row, links) => ({
     id: row.id,

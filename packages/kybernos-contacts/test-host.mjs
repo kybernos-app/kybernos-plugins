@@ -215,6 +215,20 @@ await ok('get: the contact with its notes, its company, and the people of a comp
   assert.equal((await get('get', { id: 'abc' })).code, 400)
   assert.equal((await get('get')).code, 400)
 })
+await ok('get: the people of a company carry their sample portrait (a `photo:` reference only), and null when there is none or it is not one', async () => {
+  const own = createBusinessBase({ file: join(home, 'portraits', 'donnees.sqlite') }) // a base of its own: the shared one keeps the counts the other checks read
+  const api = createApi({ base: () => own, schema: () => themed })
+  const co = own.create('contact', { kind: 'company', name: 'Faces Ltd' }, { actor: 'person' }).row
+  const mk = (name, image) => own.create('contact', { kind: 'person', name, company_id: co.id, fields: image === undefined ? {} : { image } }, { actor: 'person' }).row
+  mk('Pia Face', 'photo:shop/portrait-03'); mk('Ann Link', 'https://example.org/a.jpg'); mk('Bo Path', 'photo:../x/y'); mk('Cy Plain')
+  const people = api.get(co.id).people
+  const by = (n) => people.find((p) => p.name === n)
+  assert.equal(by('Pia Face').image, 'photo:shop/portrait-03')
+  assert.equal(by('Ann Link').image, null, 'an address is never passed on')
+  assert.equal(by('Bo Path').image, null, 'nor a path')
+  assert.equal(by('Cy Plain').image, null)
+  own.close()
+})
 await ok('update: a patch changes what it names; fields merge, null clears; the kind cannot change', async () => {
   let r = await post('update', { id: lea.id, email: 'lea.martin@example.com', fields: { city: 'Paris', tier: null } })
   assert.equal(r.code, 200, r.body)

@@ -29006,10 +29006,15 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // <kb-business-kit>
     // The small visual kit the Business pages share (Contacts, Catalog, Pipeline), published as window.__KB_BIZ_KIT__ so three plugins draw the same tags, avatars,
     // pictures and motion without a copy each. A page reads it when it renders (never at load: the core applies after the plugins) and falls back to plain
-    // chips when it is not there. Everything is drawn locally: no picture is fetched, a picture is an `art:` spec drawn as an SVG.
+    // chips when it is not there. Everything is drawn locally: a picture is an `art:` spec drawn as an SVG, a company mark is drawn from its name; the only picture
+    // that is fetched is a sample portrait or logo (`photo:<theme>/<name>`), a plain JPEG served by the core on the same origin.
     //   tint(text)                 → a hue (0-359) that is always the same for the same text, from a short list of soft hues
     //   Tag({ text, hue, dot, icon, on, onClick, title })   a coloured chip (the colour follows the text unless `hue` is given)
-    //   Avatar({ name, size, kind })  initials on a gradient (kind 'company': a rounded square with a building)
+    //   Avatar({ name, size, kind, image })  a person: the picture `image` (`photo:…`) over initials on a gradient, so initials show when there is none or it does not
+    //                              load; kind 'company' is a Logo
+    //   Logo({ name, size, seed, image })  a company mark drawn in code (never a file): a geometric glyph or a monogram, two quiet hues from the name (or `seed`),
+    //                              always the same for the same name; sharp at any size; `image` is an optional picture over it, as for an Avatar
+    //   photoUrl(ref)              the address of a `photo:<theme>/<name>` reference (same origin), or null
     //   Art({ spec, ratio, title })   an illustration: spec « art:<kind>[/<seed>][@<hue>] », kinds in KB_BIZ_ART_KINDS; anything else draws nothing
     //   Icon(name, size)           the business icons (pin, bed, bath, ruler…) then the core's own
     //   artKinds, artOk(spec), css  for tests and for pages that want the class names (kz-lift, kz-in, kz-press, kz-pop, kz-img)
@@ -29026,7 +29031,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       ruler: ['M3 17.5 17.5 3l3.5 3.5L6.5 21z', 'M7.5 13l2 2', 'M10.5 10l2 2', 'M13.5 7l2 2'],
       tag: ['M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z', 'M7.5 7.5h.01'],
       euro: ['M18 6.5A7 7 0 1 0 18 17.5', 'M4 10h9', 'M4 14h9'],
-      building: ['M4 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17', 'M14 9h5a1 1 0 0 1 1 1v11', 'M2 21h20', 'M8 7h2', 'M8 11h2', 'M8 15h2', 'M17 13h.01', 'M17 17h.01'],
       leaf: ['M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z', 'M2 21c0-3 1.9-5.3 5-6.3'],
       sparkle: ['M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', 'M19 17l.7 1.8L21.5 19.5l-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z'],
       cart: ['M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6', 'M9.5 20.5h.01', 'M17.5 20.5h.01'],
@@ -29060,7 +29064,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       '.kz-tag.on i{background:var(--dsw-alias-label-primary-inverted,#fff)}',
       '.kz-av{--kz-h:212;display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;color:#fff;font-weight:700;letter-spacing:.02em;user-select:none;',
       'background:linear-gradient(135deg,hsl(var(--kz-h) 46% 47%),hsl(calc(var(--kz-h) + 24) 42% 38%));box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}',
-      '.kz-av.co{border-radius:28%}',
+      '.kz-av,.kz-logo{position:relative;overflow:hidden}',
+      '.kz-logo{--kz-h:212;--kz-h2:236;display:inline-flex;flex:none;align-items:center;justify-content:center;border-radius:28%;color:#fff;user-select:none;',
+      'background:linear-gradient(135deg,hsl(var(--kz-h) 46% 47%),hsl(var(--kz-h2) 42% 38%));box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}',
+      '.kz-logo>svg{display:block;width:100%;height:100%}',
+      '.kz-face{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}',
       '.kz-art{display:block;width:100%;height:100%;border-radius:inherit}',
       '.kz-img{position:relative;overflow:hidden;background:var(--dsw-alias-bg-layer-2,transparent)}',
       '.kz-img>svg{transition:transform .6s cubic-bezier(.2,.8,.2,1)}',
@@ -29096,16 +29104,70 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         ? h('button', Object.assign({ type: 'button', onClick: p.onClick, 'aria-pressed': p.on === true ? 'true' : 'false' }, common), kids)
         : h('span', common, kids)
     }
+    const KB_BIZ_PHOTO_RE = /^photo:([a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59})$/
+    /** The address of a sample picture a row names (`photo:<theme>/<name>`), served by the core on the same origin; null for anything else (never an address from outside). */
+    const kbBizPhotoUrl = (ref) => { const m = typeof ref === 'string' ? KB_BIZ_PHOTO_RE.exec(ref) : null; return m === null ? null : '/kybernos/themes/photo?id=' + encodeURIComponent(m[1]) }
+    /** The picture laid over initials or a mark: when it does not load it hides itself and what is under it shows. Null without a picture. */
+    const kbBizFace = (ref) => {
+      const src = kbBizPhotoUrl(ref)
+      return src === null ? null : h('img', { key: 'face', className: 'kz-face', src, alt: '', loading: 'lazy', decoding: 'async', draggable: false, onError: (e) => { try { e.currentTarget.style.display = 'none' } catch (x) { /* what is under it shows */ } } })
+    }
     const kbBizAvatar = (props) => {
+      kbBizEnsureCss()
+      const p = props !== null && props !== undefined ? props : {}
+      if (p.kind === 'company') return kbBizLogo(p)
+      const name = p.name === undefined || p.name === null ? '' : String(p.name).trim()
+      const size = Number.isFinite(p.size) ? p.size : 36
+      const words = name.split(/[\s,.·|/-]+/).filter((w) => w !== '')
+      const letters = (words.length > 1 ? words[0].charAt(0) + words[words.length - 1].charAt(0) : (words[0] || '?').slice(0, 2)).toUpperCase()
+      return h('span', { className: 'kz-av', style: { '--kz-h': kbBizTint(name), width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.38)) }, role: 'img', 'aria-label': name }, letters, kbBizFace(p.image))
+    }
+    // A company mark: a fictitious brand drawn in code, never a file. The name (or `seed`) picks a glyph, a hue, a second hue and a treatment, and picks the same
+    // ones every time; the glyphs are white shapes on a 64 x 64 canvas with one accent in the second hue, over the same quiet gradient as an avatar.
+    const KB_BIZ_GLYPHS = ['orbit', 'stack', 'peak', 'quarters', 'ring', 'bars', 'leaf', 'hex', 'spark', 'wave', 'arch', 'chevrons']
+    const kbBizMix = (n) => { let x = n >>> 0; x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); return (x ^ (x >>> 16)) >>> 0 }
+    /** What a name draws: `{ glyph, hue, hue2, mono }`. */
+    const kbBizLogoParts = (name, seed) => {
+      const n = kbBizMix(kbBizSeed(String(seed === undefined || seed === null || seed === '' ? name : seed).toLowerCase()))
+      const hue = KB_BIZ_HUES[(n >>> 8) % KB_BIZ_HUES.length]
+      return { glyph: KB_BIZ_GLYPHS[n % KB_BIZ_GLYPHS.length], hue, hue2: (hue + 22 + ((n >>> 14) % 3) * 10) % 360, mono: ((n >>> 17) % 5) >= 3 }
+    }
+    const KB_BIZ_SMALL_WORDS = /^(the|and|of|de|du|la|le|les|des|&)$/i
+    /** The one or two capitals a company is known by: « Cafe Bleu » → CB, « Madonna » → M. */
+    const kbBizMonogram = (name) => {
+      const words = String(name === undefined || name === null ? '' : name).split(/[\s,.·|/&+-]+/).filter((w) => /[\p{L}\p{N}]/u.test(w) && !KB_BIZ_SMALL_WORDS.test(w))
+      return words.slice(0, 2).map((w) => Array.from(w)[0].toUpperCase()).join('')
+    }
+    const kbBizGlyph = (kind, acc) => {
+      const W = '#fff'
+      switch (kind) {
+        case 'orbit': return [h('circle', { cx: 24, cy: 32, r: 12, fill: W, opacity: 0.95 }), h('circle', { cx: 40, cy: 32, r: 12, fill: acc, opacity: 0.85 })]
+        case 'stack': return [h('rect', { x: 16, y: 17, width: 32, height: 8, rx: 4, fill: W }), h('rect', { x: 16, y: 28, width: 24, height: 8, rx: 4, fill: acc }), h('rect', { x: 16, y: 39, width: 16, height: 8, rx: 4, fill: W, opacity: 0.8 })]
+        case 'peak': return [h('path', { d: 'M12 47 L30 17 L48 47 Z', fill: W }), h('path', { d: 'M33 47 L44 29 L55 47 Z', fill: acc, opacity: 0.9 })]
+        case 'quarters': return [h('rect', { x: 16, y: 16, width: 15, height: 15, rx: 3, fill: W }), h('circle', { cx: 40.5, cy: 23.5, r: 7.5, fill: acc }), h('rect', { x: 16, y: 33, width: 15, height: 15, rx: 3, fill: acc, opacity: 0.85 }), h('rect', { x: 33, y: 33, width: 15, height: 15, rx: 3, fill: W, opacity: 0.8 })]
+        case 'ring': return [h('circle', { cx: 32, cy: 32, r: 14, fill: 'none', stroke: W, strokeWidth: 5 }), h('circle', { cx: 32, cy: 32, r: 5, fill: acc })]
+        case 'bars': return [h('rect', { x: 17, y: 33, width: 8, height: 14, rx: 2.5, fill: W, opacity: 0.8 }), h('rect', { x: 28, y: 25, width: 8, height: 22, rx: 2.5, fill: W }), h('rect', { x: 39, y: 16, width: 8, height: 31, rx: 2.5, fill: acc })]
+        case 'leaf': return [h('path', { d: 'M32 15 C46 21 48 36 32 49 C16 36 18 21 32 15 Z', fill: W }), h('path', { d: 'M32 24 V46', stroke: acc, strokeWidth: 3, strokeLinecap: 'round', fill: 'none' })]
+        case 'hex': return [h('path', { d: 'M32 15 L46.7 23.5 V40.5 L32 49 L17.3 40.5 V23.5 Z', fill: 'none', stroke: W, strokeWidth: 4.5, strokeLinejoin: 'round' }), h('circle', { cx: 32, cy: 32, r: 5, fill: acc })]
+        case 'spark': return [h('path', { d: 'M32 14 L37.5 26.5 L50 32 L37.5 37.5 L32 50 L26.5 37.5 L14 32 L26.5 26.5 Z', fill: W }), h('circle', { cx: 47, cy: 17, r: 4, fill: acc })]
+        case 'wave': return [h('path', { d: 'M14 27 q9 -10 18 0 t18 0', fill: 'none', stroke: W, strokeWidth: 4.5, strokeLinecap: 'round' }), h('path', { d: 'M14 39 q9 -10 18 0 t18 0', fill: 'none', stroke: acc, strokeWidth: 4.5, strokeLinecap: 'round' })]
+        case 'arch': return [h('path', { d: 'M18 48 V32 a14 14 0 0 1 28 0 V48 Z', fill: W }), h('path', { d: 'M26 48 V34 a6 6 0 0 1 12 0 V48 Z', fill: acc })]
+        default: return [h('path', { d: 'M17 21 L32 33 L47 21', fill: 'none', stroke: W, strokeWidth: 5, strokeLinecap: 'round', strokeLinejoin: 'round' }), h('path', { d: 'M17 34 L32 46 L47 34', fill: 'none', stroke: acc, strokeWidth: 5, strokeLinecap: 'round', strokeLinejoin: 'round' })]
+      }
+    }
+    const kbBizLogo = (props) => {
       kbBizEnsureCss()
       const p = props !== null && props !== undefined ? props : {}
       const name = p.name === undefined || p.name === null ? '' : String(p.name).trim()
       const size = Number.isFinite(p.size) ? p.size : 36
-      const company = p.kind === 'company'
-      const words = name.split(/[\s,.·|/-]+/).filter((w) => w !== '')
-      const letters = (words.length > 1 ? words[0].charAt(0) + words[words.length - 1].charAt(0) : (words[0] || '?').slice(0, 2)).toUpperCase()
-      return h('span', { className: 'kz-av' + (company ? ' co' : ''), style: { '--kz-h': kbBizTint(name), width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.38)) }, role: 'img', 'aria-label': name },
-        company ? kbBizIcon('building', Math.round(size * 0.5)) : letters)
+      const t = kbBizLogoParts(name, p.seed)
+      const acc = kbBizHsl(t.hue2, 85, 86)
+      const letters = t.mono && size >= 26 ? kbBizMonogram(name) : ''
+      const shapes = letters === ''
+        ? kbBizGlyph(t.glyph, acc)
+        : [h('text', { x: 32, y: 33, textAnchor: 'middle', dominantBaseline: 'central', fontSize: letters.length > 1 ? 25 : 30, fontWeight: 700, fill: '#fff', style: { fontFamily: 'inherit', letterSpacing: '-0.02em' } }, letters), h('circle', { cx: 50, cy: 14, r: 3, fill: acc })]
+      return h('span', { className: 'kz-logo', style: { '--kz-h': t.hue, '--kz-h2': t.hue2, width: size, height: size }, role: 'img', 'aria-label': name, 'data-mark': letters === '' ? t.glyph : 'monogram', 'data-letters': letters === '' ? undefined : letters },
+        h('svg', { viewBox: '0 0 64 64', focusable: 'false', 'aria-hidden': 'true' }, h('circle', { cx: 52, cy: 12, r: 22, fill: '#fff', opacity: 0.08 }), ...shapes), kbBizFace(p.image))
     }
     let kbBizArtCount = 0
     const kbBizArtOk = (spec) => { const m = typeof spec === 'string' ? KB_BIZ_ART_RE.exec(spec) : null; return m !== null && KB_BIZ_ART_KINDS.indexOf(m[1]) >= 0 }
@@ -29237,7 +29299,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return h('svg', { className: 'kz-art', viewBox: '0 0 320 200', preserveAspectRatio: 'xMidYMid slice', role: p.title === undefined ? 'presentation' : 'img', 'aria-label': p.title === undefined ? undefined : String(p.title), focusable: 'false' }, kbBizArtShapes(m[1], seed % 7, hue, kbBizArtCount))
     }
     try {
-      if (typeof window !== 'undefined') window.__KB_BIZ_KIT__ = { v: 1, tint: kbBizTint, Tag: kbBizTag, Avatar: kbBizAvatar, Art: kbBizArt, Icon: kbBizIcon, artKinds: KB_BIZ_ART_KINDS.slice(), artOk: kbBizArtOk, css: KB_BIZ_CSS, ensureCss: kbBizEnsureCss }
+      if (typeof window !== 'undefined') window.__KB_BIZ_KIT__ = { v: 1, tint: kbBizTint, Tag: kbBizTag, Avatar: kbBizAvatar, Logo: kbBizLogo, photoUrl: kbBizPhotoUrl, Art: kbBizArt, Icon: kbBizIcon, artKinds: KB_BIZ_ART_KINDS.slice(), artOk: kbBizArtOk, css: KB_BIZ_CSS, ensureCss: kbBizEnsureCss }
     } catch (e) { /* outside a browser */ }
     // </kb-business-kit>
     // <kb-business-ui>

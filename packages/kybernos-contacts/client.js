@@ -99,6 +99,10 @@ window.__ModuleLoader__.load({
       }
       const typesOf = (schema, kind) => schema.types.filter((t) => t.kind === kind)
       const fieldLabel = (f) => tx(f.label, String(f.key).replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()))
+      /** The field a theme uses for the picture of a contact (`photo:<theme>/<name>`, a sample portrait): it is drawn as the face, so it is never listed as a field nor asked in the form. */
+      const PICTURE_KEY = 'image'
+      const pictureOf = (row) => { const v = row !== null && row !== undefined && row.fields !== null && typeof row.fields === 'object' ? row.fields[PICTURE_KEY] : undefined; return typeof v === 'string' && /^photo:[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59}$/.test(v) ? v : undefined }
+      const withoutPicture = (schema) => (schema.fields.some((f) => f.key === PICTURE_KEY) ? Object.assign({}, schema, { fields: schema.fields.filter((f) => f.key !== PICTURE_KEY) }) : schema)
 
       /** How a custom field's value reads in the panel. */
       const fieldDisplay = (f, v) => {
@@ -362,6 +366,8 @@ window.__ModuleLoader__.load({
         .kbcts-av.co{border-radius:9px}
         .kbcts-co{display:flex;align-items:center;gap:7px;min-width:0;color:var(--dsw-alias-label-secondary)}
         .kbcts-co svg{flex:none;color:var(--dsw-alias-label-tertiary)}
+        .kbcts-comark{display:inline-flex;flex:none;line-height:0}
+        .kbcts-co .kbcts-comark svg{color:inherit}
         .kbcts-co span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .kbcts-ra{display:inline-flex;gap:2px;justify-content:flex-end;opacity:0;transform:translateX(6px);transition:opacity .16s,transform .18s cubic-bezier(.2,.8,.2,1)}
         .kbcts-tbl .kbcts-ra{position:absolute;inset-inline-end:8px;top:50%;margin-top:-15px}
@@ -518,8 +524,13 @@ window.__ModuleLoader__.load({
         const Face = (o) => {
           const k = kitOf()
           const size = o.size || 36
-          if (k !== null) return h('span', { className: 'kbcts-face' + (o.className ? ' ' + o.className : ''), 'aria-hidden': 'true' }, h(k.Avatar, { name: o.name, size, kind: o.kind }))
+          if (k !== null) return h('span', { className: 'kbcts-face' + (o.className ? ' ' + o.className : ''), 'aria-hidden': 'true' }, h(k.Avatar, { name: o.name, size, kind: o.kind, image: o.image }))
           return h('span', { className: 'kbcts-face kbcts-av' + (o.kind === 'company' ? ' co' : '') + (o.className ? ' ' + o.className : ''), style: { width: size, height: size, fontSize: fontOf(size) }, 'aria-hidden': 'true' }, o.kind === 'company' ? Ic('building', Math.round(size * 0.5)) : initials(o.name))
+        }
+        /** The small mark of a company beside its name: the kit's drawn logo, else the plain building. */
+        const CoMark = (o) => {
+          const k = kitOf()
+          return k !== null && typeof k.Logo === 'function' ? h('span', { className: 'kbcts-comark', 'aria-hidden': 'true' }, h(k.Logo, { name: o.name, size: o.size })) : Ic('building', o.size)
         }
         const fontOf = (size) => (size >= 48 ? 16 : 11) // the initials of a big face are 16 px, the others 11 px: both are on the scale
         const mailable = (email) => typeof email === 'string' && /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(email)
@@ -586,7 +597,7 @@ window.__ModuleLoader__.load({
           const title = editing ? kt('Modifier le contact', 'Edit contact') : (form.kind === 'company' ? kt('Nouvelle entreprise', 'New company') : kt('Nouveau contact', 'New contact'))
           return h('div', { className: 'kbcts-scrim', onMouseDown: (e) => { if (e.target === e.currentTarget) props.onClose() } },
             h('div', { className: 'kbcts-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbcts-dlg-title', 'data-kb': 'contacts-dialog', ref: boxRef, onKeyDown: onKey },
-              h('div', { className: 'kbcts-dhead' }, h(Face, { name: form.name, size: 44, kind: form.kind }), h('h2', { id: 'kbcts-dlg-title' }, title)),
+              h('div', { className: 'kbcts-dhead' }, h(Face, { name: form.name, size: 44, kind: form.kind, image: editing ? pictureOf(props.contact) : undefined }), h('h2', { id: 'kbcts-dlg-title' }, title)),
               problem[0] !== null ? h('div', { className: 'kbcts-alert', role: 'alert', 'data-kb': 'contacts-form-error' }, problem[0]) : null,
               !editing ? h('div', { className: 'kbcts-field' }, h('span', { className: 'lbl', id: 'kbcts-kind-lbl' }, kt('Genre', 'Kind')),
                 h('div', { className: 'kbcts-seg', role: 'group', 'aria-labelledby': 'kbcts-kind-lbl', style: { alignSelf: 'flex-start' } },
@@ -693,17 +704,17 @@ window.__ModuleLoader__.load({
           const rows = []
           if (c.email !== '') rows.push([kt('E-mail', 'Email'), c.email])
           for (const f of schema.fields) { const v = fieldDisplay(f, c.fields[f.key]); if (v !== '') rows.push([fieldLabel(f), v]) }
-          for (const k of Object.keys(c.fields)) if (!schema.fields.some((f) => f.key === k) && c.fields[k] !== null && c.fields[k] !== '') rows.push([fieldLabel({ key: k }), String(c.fields[k])])
+          for (const k of Object.keys(c.fields)) if (k !== PICTURE_KEY && !schema.fields.some((f) => f.key === k) && c.fields[k] !== null && c.fields[k] !== '') rows.push([fieldLabel({ key: k }), String(c.fields[k])])
           rows.push([kt('Modifié', 'Updated'), relTime(c.updated_at)])
           const linked = []
           if (detail.company !== null) linked.push(h('li', { key: 'co' }, h('button', { type: 'button', 'data-kb': 'contacts-linked', 'data-id': detail.company.id, onClick: () => props.onOpen(detail.company.id, 'company') }, h(Face, { name: detail.company.name, size: 28, kind: 'company' }), h('span', null, detail.company.name), detail.company.archived ? h('span', { className: 'kbcts-tag' }, kt('archivé', 'archived')) : null)))
-          for (const p of detail.people) linked.push(h('li', { key: 'p' + p.id }, h('button', { type: 'button', 'data-kb': 'contacts-linked', 'data-id': p.id, onClick: () => props.onOpen(p.id, 'person') }, h(Face, { name: p.name, size: 28, kind: 'person' }), h('span', null, p.name))))
+          for (const p of detail.people) linked.push(h('li', { key: 'p' + p.id }, h('button', { type: 'button', 'data-kb': 'contacts-linked', 'data-id': p.id, onClick: () => props.onOpen(p.id, 'person') }, h(Face, { name: p.name, size: 28, kind: 'person', image: p.image === null ? undefined : p.image }), h('span', null, p.name))))
           const cards = Array.isArray(detail.cards) ? detail.cards : []
           return shell(h(React.Fragment, null,
             h('div', { className: 'kbcts-hero', style: { '--kbcts-h': hue } },
-              h('div', { className: 'head' }, h(Face, { name: c.name, size: 60, kind: c.kind }),
+              h('div', { className: 'head' }, h(Face, { name: c.name, size: 60, kind: c.kind, image: pictureOf(c) }),
                 h('div', null, h('h3', null, c.name),
-                  h('div', { className: 'meta' }, h(Chip, { text: typeLabel(schema, c), hue, dot: true }), detail.company !== null ? h('span', { className: 'kbcts-co' }, Ic('building', 13), h('span', null, detail.company.name)) : null))),
+                  h('div', { className: 'meta' }, h(Chip, { text: typeLabel(schema, c), hue, dot: true }), detail.company !== null ? h('span', { className: 'kbcts-co' }, h(CoMark, { name: detail.company.name, size: 16 }), h('span', null, detail.company.name)) : null))),
               c.demo || c.archived_at !== null ? h('div', { className: 'kbcts-tags' }, c.demo ? h('span', { className: 'kbcts-tag demo', 'data-kb': 'contacts-demo-badge' }, 'demo') : null, c.archived_at !== null ? h('span', { className: 'kbcts-tag', 'data-kb': 'contacts-archived-badge' }, kt('Archivé', 'Archived')) : null) : null,
               h('div', { className: 'acts' },
                 mailable(c.email) ? h('a', { className: 'kbcts-btn sm', href: 'mailto:' + c.email, 'data-kb': 'contacts-mail' }, Ic('mail', 14), kt('Écrire', 'Email')) : null,
@@ -764,10 +775,10 @@ window.__ModuleLoader__.load({
               h('th', { scope: 'col', className: 'col-tags' }, kt('Étiquettes', 'Tags')),
               h('th', { scope: 'col', className: 'col-upd' }, kt('Modifié', 'Updated')))),
             h('tbody', null, props.rows.map((r, i) => h('tr', { key: r.id, className: 'r kz-in' + (r.archived_at !== null ? ' arch' : ''), style: { '--kz-i': Math.min(i, STAGGER_MAX), '--kbcts-h': hueFor(r) }, tabIndex: 0, 'data-kb': 'contacts-row', 'data-id': r.id, 'data-demo': r.demo ? '1' : '0', 'aria-current': props.openId === r.id ? 'true' : undefined, onClick: () => props.onOpen(r.id), onKeyDown: (e) => props.onKey(e, r.id) },
-              h('td', null, h('div', { className: 'kbcts-who' }, h(Face, { name: r.name, size: 38, kind: r.kind }),
+              h('td', null, h('div', { className: 'kbcts-who' }, h(Face, { name: r.name, size: 38, kind: r.kind, image: pictureOf(r) }),
                 h('div', null, h('b', null, h('span', { className: 'n' }, r.name), r.demo ? h('span', { className: 'kbcts-tag demo', 'data-kb': 'contacts-demo-badge' }, 'demo') : null, r.archived_at !== null ? h('span', { className: 'kbcts-tag' }, kt('archivé', 'archived')) : null), h('small', null, r.email !== '' ? r.email : (r.company !== null ? r.company.name : ''))))),
               h('td', { className: 'col-type' }, h(Chip, { text: typeLabel(props.schema, r), hue: hueFor(r), dot: true })),
-              people ? h('td', { className: 'col-co' }, r.company !== null ? h('div', { className: 'kbcts-co' }, Ic('building', 14), h('span', null, r.company.name)) : h('span', { className: 'kbcts-muted' }, '—')) : null,
+              people ? h('td', { className: 'col-co' }, r.company !== null ? h('div', { className: 'kbcts-co' }, h(CoMark, { name: r.company.name, size: 18 }), h('span', null, r.company.name)) : h('span', { className: 'kbcts-muted' }, '—')) : null,
               h('td', { className: 'col-tags' }, h('div', { className: 'kbcts-tags' }, h(RowTags, { row: r, max: 2, active: props.activeTags, onTag: props.onTag }))),
               h('td', { className: 'col-upd' }, h('span', { className: 'when kbcts-muted' }, relTime(r.updated_at)), h(RowActions, { row: r, onEdit: props.onEdit })))))))
         }
@@ -778,12 +789,12 @@ window.__ModuleLoader__.load({
             h('div', { className: 'band' }),
             h('div', { className: 'top' }, r.demo ? h('span', { className: 'kbcts-tag demo', 'data-kb': 'contacts-demo-badge' }, 'demo') : h('span', null), h(RowActions, { row: r, onEdit: props.onEdit })),
             h('div', { className: 'inner' },
-              h(Face, { name: r.name, size: 56, kind: r.kind, className: 'face' + (r.kind === 'company' ? ' co' : '') }),
+              h(Face, { name: r.name, size: 56, kind: r.kind, image: pictureOf(r), className: 'face' + (r.kind === 'company' ? ' co' : '') }),
               h('h3', { title: r.name }, h('span', { className: 'n' }, r.name)),
               r.email !== '' ? h('div', { className: 'mail' }, r.email) : null,
               h('div', { className: 'tags' }, h(Chip, { text: typeLabel(props.schema, r), hue, dot: true }), r.archived_at !== null ? h('span', { className: 'kbcts-tag' }, kt('archivé', 'archived')) : null, h(RowTags, { row: r, max: 3, active: props.activeTags, onTag: props.onTag })),
               h('div', { className: 'foot' },
-                r.company !== null ? h('div', { className: 'kbcts-co' }, Ic('building', 14), h('span', null, r.company.name)) : h('span', null),
+                r.company !== null ? h('div', { className: 'kbcts-co' }, h(CoMark, { name: r.company.name, size: 18 }), h('span', null, r.company.name)) : h('span', null),
                 h('time', { dateTime: r.updated_at }, relTime(r.updated_at))))))
         }))
 
@@ -874,7 +885,7 @@ window.__ModuleLoader__.load({
             try { events.forEach((ev) => window.addEventListener(ev, again)) } catch (e) { /* no events */ }
             return () => { try { events.forEach((ev) => window.removeEventListener(ev, again)) } catch (e) { /* gone */ } try { if (toastTimer.current !== null) clearTimeout(toastTimer.current); if (closeTimer.current !== null) clearTimeout(closeTimer.current) } catch (e) { /* gone */ } }
           }, [])
-          useEffect(() => { let alive = true; call('GET', '/schema').then((r) => { if (alive && r.ok) setSchema(r.schema) }); return () => { alive = false } }, [reload])
+          useEffect(() => { let alive = true; call('GET', '/schema').then((r) => { if (alive && r.ok) setSchema(withoutPicture(r.schema)) }); return () => { alive = false } }, [reload])
           // A search waits for the typing to pause; the host searches the names and the emails, the rest is done here.
           useEffect(() => { const t = setTimeout(() => { setQ(find.query.trim()); setFilters((f) => (f.offset === 0 ? f : Object.assign({}, f, { offset: 0 }))) }, 220); return () => clearTimeout(t) }, [find.query])
           useEffect(() => {
@@ -1106,7 +1117,7 @@ window.__ModuleLoader__.load({
         name: NAME,
         inject: ['slots'],
         apply: start,
-        __test: { kt, tx, lang, initials, relTime, kindLabel, typeLabel, typesOf, fieldLabel, fieldDisplay, errorText, checkForm, formBody, emptyForm, tagChoices, domainLabel, query, build, CSS, ICONS, ROW_ID, SLOT, filterRows, sortRows, facetOptions, typeId, tagId, toggleId, sortChoice, hueFor, SORTS, PAGE_SIZE }
+        __test: { PICTURE_KEY, pictureOf, withoutPicture, kt, tx, lang, initials, relTime, kindLabel, typeLabel, typesOf, fieldLabel, fieldDisplay, errorText, checkForm, formBody, emptyForm, tagChoices, domainLabel, query, build, CSS, ICONS, ROW_ID, SLOT, filterRows, sortRows, facetOptions, typeId, tagId, toggleId, sortChoice, hueFor, SORTS, PAGE_SIZE }
       }
     } catch (e) {
       console.warn('[kybernos-contacts] disabled:', e)

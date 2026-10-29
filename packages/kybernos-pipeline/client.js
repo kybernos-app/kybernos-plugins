@@ -625,14 +625,14 @@ body[data-ds-dark-theme] .kbpi-root,body[data-ds-dark-theme] .kbpi-ghost{--kbpi-
       }
 
       // ── one card ──────────────────────────────────────────────────────────────────────────────
-      /** The picture on the left of a card: the contact's avatar, else a tile (the item's drawing, or a plain mark). */
+      /** The picture on the left of a card: the contact's avatar (a person's portrait over initials, a company's drawn mark), else a tile (the item's drawing, or a plain mark). */
       function Lead (props) {
         const { card, cover } = props
         const k = kit()
         const size = props.size || 32
         if (card.contact !== null && card.contact !== undefined) {
           return h('span', { className: 'kbpi-lead', 'data-kb': 'pipeline-card-contact', title: card.contact.name, 'aria-hidden': 'true' },
-            k !== null ? h(k.Avatar, { name: card.contact.name, size, kind: card.contact.kind === 'company' ? 'company' : 'person' }) : h('span', { className: 'kbpi-av', style: { width: size, height: size } }, initials(card.contact.name)))
+            k !== null ? h(k.Avatar, { name: card.contact.name, size, kind: card.contact.kind === 'company' ? 'company' : 'person', image: typeof card.contact.image === 'string' ? card.contact.image : undefined }) : h('span', { className: 'kbpi-av', style: { width: size, height: size } }, initials(card.contact.name)))
         }
         const kind = !cover && card.item !== null && card.item !== undefined ? artKindOf(card.item.title + ' ' + (card.item.subtitle || '')) : ''
         const pic = !cover && card.item !== null && card.item !== undefined ? itemPicture(card.item, k, kind) : null

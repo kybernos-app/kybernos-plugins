@@ -1,0 +1,66 @@
+{
+  "name": "recruitment-portraits",
+  "style": "natural-light head-and-shoulders portrait photograph of a fictitious adult, soft neutral warm-grey studio backdrop, the person centred and looking at the camera with a relaxed friendly expression, 85mm lens, shallow depth of field, photorealistic skin texture, sharp focus on the eyes, plain clothing, no text, no logo, no watermark",
+  "ask": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 28
+  },
+  "keep": {
+    "width": 640,
+    "quality": 80,
+    "maxKb": 220
+  },
+  "cells": [
+    {
+      "name": "portrait-01",
+      "prompt": "a woman in her early thirties with long dark brown hair and light olive-brown skin, wearing a burgundy blouse",
+      "seed": 100
+    },
+    {
+      "name": "portrait-02",
+      "prompt": "a woman in her late twenties with short natural black curly hair and dark brown skin, wearing a bright yellow top",
+      "seed": 101
+    },
+    {
+      "name": "portrait-03",
+      "prompt": "a woman in her early thirties with a black bob and East Asian features, wearing a white shirt",
+      "seed": 102
+    },
+    {
+      "name": "portrait-04",
+      "prompt": "a woman in her mid thirties with brown hair in a low ponytail and fair olive skin, wearing a forest-green blazer",
+      "seed": 103
+    },
+    {
+      "name": "portrait-05",
+      "prompt": "a woman in her late thirties with blond shoulder-length hair and fair skin, wearing a light blue shirt",
+      "seed": 104
+    },
+    {
+      "name": "portrait-06",
+      "prompt": "a man in his early forties with short dark-brown hair, light stubble and fair olive skin, wearing a dark navy sweater",
+      "seed": 105
+    },
+    {
+      "name": "portrait-07",
+      "prompt": "a Black man of African descent in his late thirties with short black hair, a trimmed beard and deep dark brown skin, wearing a charcoal blazer",
+      "seed": 156
+    },
+    {
+      "name": "portrait-08",
+      "prompt": "a man in his early thirties with dark wavy hair, clean-shaven, olive Mediterranean skin, wearing a light grey shirt",
+      "seed": 107
+    },
+    {
+      "name": "portrait-09",
+      "prompt": "a man in his mid thirties with short black hair, a neat short beard and tan brown skin, wearing a teal polo shirt",
+      "seed": 108
+    },
+    {
+      "name": "portrait-10",
+      "prompt": "a man in his late twenties with close-cropped black hair and dark brown skin, wearing a white T-shirt under a denim jacket",
+      "seed": 109
+    }
+  ]
+}

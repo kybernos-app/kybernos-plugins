@@ -362,5 +362,20 @@ await ok('a board card sends the few extras it carries (source, priority, due, u
   assert.equal(b.item.image, null, 'an address is never a picture')
 })
 
+await ok('a board card names its contact with the sample portrait the contact carries (a `photo:` reference only, null otherwise), a company included', () => {
+  const { base, host } = world([orders()])
+  const pic = base.create('contact', { name: 'Jonas Weber', kind: 'person', fields: { image: 'photo:ecommerce/portrait-07' } }, { actor: 'person' }).row
+  const addr = base.create('contact', { name: 'Odd One', kind: 'person', fields: { image: 'https://example.org/x.jpg' } }, { actor: 'person' }).row
+  const co = base.create('contact', { name: 'Cafe Bleu', kind: 'company' }, { actor: 'person' }).row
+  let place = 0
+  for (const [title, contact_id] of [['With a portrait', pic.id], ['With an address', addr.id], ['With a company', co.id]]) base.create('flow_card', { flow: 'orders', stage: 'new', title, contact_id, position: (place += 1) }, { actor: 'person' })
+  const cards = host.board({ flow: 'orders' }).columns.flatMap((c) => c.cards)
+  const by = (t) => cards.find((c) => c.title === t).contact
+  assert.equal(by('With a portrait').image, 'photo:ecommerce/portrait-07')
+  assert.equal(by('With an address').image, null, 'an address is never a picture')
+  assert.equal(by('With a company').image, null)
+  assert.equal(by('With a company').kind, 'company')
+})
+
 rmSync(dir, { recursive: true, force: true })
 console.log('\n' + count + ' checks passed')

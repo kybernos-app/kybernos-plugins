@@ -196,10 +196,10 @@ export function readNext (root) {
  * The picture file for a cover request, or `null`: `{ id }` is a shipped theme's plugin id, `{ next }` an id of `_next/next.json`. The page names an id,
  * never a path; a file that is not a plain JPEG of a sane size is not served.
  */
-/** The most a sample photograph may weigh and still be served (the guard keeps the tracked ones under 80 KB). */
-export const PHOTO_MAX = 100 * 1024
+/** The most a sample picture (a photograph or a portrait) may weigh and still be served (the guard keeps the tracked ones under 220 KB, at most 1280 px wide). */
+export const PHOTO_MAX = 240 * 1024
 /**
- * The file of a sample photograph, `<theme dir>/<name>` as a row of the sample writes it (`photo:real-estate/willow-lane`), or `null`. Only a plain JPEG of a
+ * The file of a sample picture, `<theme dir>/<name>` as a row of the sample writes it (`photo:real-estate/willow-lane`, `photo:real-estate/portrait-01`), or `null`. Only a plain JPEG of a
  * shipped theme, at `<dir>/demo/photos/<name>.jpg`: the page never names a path, a link or a folder above.
  */
 export function photoFile (root, ref) {
