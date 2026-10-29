@@ -65,6 +65,16 @@ ok('a tag is a chip coloured from its text, a button only when it is clicked, an
   assert.ok(walk(btn).some((n) => n.t === 'i'), 'the dot')
   assert.ok(walk(btn).some((n) => n.t === 'svg'), 'the icon')
 })
+ok('a tag is quiet: a grey pill that takes its text from the page, with one small coloured dot (on unless dot: false), and a chosen tag is the page\'s own ink, not a colour', () => {
+  assert.ok(walk(kit.Tag({ text: 'vip' })).some((n) => n.t === 'i'), 'the dot is on by default')
+  assert.ok(!walk(kit.Tag({ text: 'vip', dot: false })).some((n) => n.t === 'i'), 'and can be left out')
+  const rule = /\.kz-tag\{[^}]*\}/.exec(kit.css)[0]
+  assert.match(rule, /background:color-mix\(in srgb,var\(--dsw-alias-label-primary,currentColor\) 6%,transparent\)/)
+  assert.match(rule, /color:var\(--dsw-alias-label-secondary,inherit\)/)
+  assert.doesNotMatch(rule, /hsl\(/, 'no colour in the pill itself')
+  assert.match(kit.css, /\.kz-tag i\{[^}]*background:hsl\(var\(--kz-h\) 55% 52%\)/, 'the dot keeps the hue, softly')
+  assert.match(kit.css, /\.kz-tag\.on,button\.kz-tag\.on:hover\{background:var\(--dsw-alias-label-primary,currentColor\)/)
+})
 ok('an avatar shows the initials (two words: first and last), a square with a building for a company, and is named for a screen reader', () => {
   const a = kit.Avatar({ name: 'Sophie Laurent', size: 40 })
   assert.deepEqual(a.c, ['SL'])

@@ -28689,17 +28689,18 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return h('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' }, d.map((p, i) => h('path', { d: p, key: i })))
     }
     const KB_BIZ_CSS = [
-      '.kz-tag{--kz-h:212;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border:0;border-radius:11px;font:inherit;font-size:12px;font-weight:600;line-height:1;white-space:nowrap;max-width:100%;',
-      'background:color-mix(in srgb,hsl(var(--kz-h) 80% 55%) 15%,transparent);color:color-mix(in oklch,var(--dsw-alias-label-primary,currentColor) 62%,hsl(var(--kz-h) 85% 50%));',
-      'box-shadow:inset 0 0 0 1px color-mix(in srgb,hsl(var(--kz-h) 70% 50%) 22%,transparent);transition:transform .16s cubic-bezier(.2,.8,.2,1),background .16s,box-shadow .16s}',
-      '.kz-tag i{display:inline-block;width:6px;height:6px;border-radius:50%;background:hsl(var(--kz-h) 75% 52%);flex:none}',
+      '.kz-tag{--kz-h:212;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border:0;border-radius:11px;font:inherit;font-size:12px;font-weight:500;line-height:1;white-space:nowrap;max-width:100%;',
+      'background:color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 6%,transparent);color:var(--dsw-alias-label-secondary,inherit);',
+      'box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 8%,transparent);transition:transform .16s cubic-bezier(.2,.8,.2,1),background .16s,box-shadow .16s}',
+      '.kz-tag i{display:inline-block;width:6px;height:6px;border-radius:50%;background:hsl(var(--kz-h) 55% 52%);flex:none}',
       '.kz-tag svg{flex:none}',
       'button.kz-tag{cursor:pointer}',
-      'button.kz-tag:hover{transform:translateY(-1px);background:color-mix(in srgb,hsl(var(--kz-h) 80% 55%) 26%,transparent)}',
+      'button.kz-tag:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--dsw-alias-label-primary,currentColor) 11%,transparent);color:var(--dsw-alias-label-primary,inherit)}',
       'button.kz-tag:active{transform:scale(.95)}',
-      '.kz-tag.on,button.kz-tag.on:hover{background:hsl(var(--kz-h) 70% 40%);color:#fff;box-shadow:none}',
+      '.kz-tag.on,button.kz-tag.on:hover{background:var(--dsw-alias-label-primary,currentColor);color:var(--dsw-alias-label-primary-inverted,#fff);box-shadow:none}',
+      '.kz-tag.on i{background:var(--dsw-alias-label-primary-inverted,#fff)}',
       '.kz-av{--kz-h:212;display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;color:#fff;font-weight:700;letter-spacing:.02em;user-select:none;',
-      'background:linear-gradient(135deg,hsl(var(--kz-h) 70% 50%),hsl(calc(var(--kz-h) + 32) 62% 40%));box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}',
+      'background:linear-gradient(135deg,hsl(var(--kz-h) 46% 47%),hsl(calc(var(--kz-h) + 24) 42% 38%));box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}',
       '.kz-av.co{border-radius:28%}',
       '.kz-art{display:block;width:100%;height:100%;border-radius:inherit}',
       '.kz-img{position:relative;overflow:hidden;background:var(--dsw-alias-bg-layer-2,transparent)}',
@@ -28730,7 +28731,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const p = props !== null && props !== undefined ? props : {}
       const text = p.text === undefined || p.text === null ? '' : String(p.text)
       const hue = Number.isFinite(p.hue) ? p.hue : kbBizTint(text)
-      const kids = [(p.dot === true ? h('i', { key: 'd', 'aria-hidden': 'true' }) : null), (typeof p.icon === 'string' ? kbBizIcon(p.icon, 12) : null), h('span', { key: 't', style: { overflow: 'hidden', textOverflow: 'ellipsis' } }, text)]
+      const kids = [(p.dot !== false ? h('i', { key: 'd', 'aria-hidden': 'true' }) : null), (typeof p.icon === 'string' ? kbBizIcon(p.icon, 12) : null), h('span', { key: 't', style: { overflow: 'hidden', textOverflow: 'ellipsis' } }, text)]
       const common = { className: 'kz-tag' + (p.on === true ? ' on' : ''), style: { '--kz-h': hue }, title: p.title === undefined ? undefined : p.title }
       return typeof p.onClick === 'function'
         ? h('button', Object.assign({ type: 'button', onClick: p.onClick, 'aria-pressed': p.on === true ? 'true' : 'false' }, common), kids)
