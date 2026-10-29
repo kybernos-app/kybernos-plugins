@@ -29451,6 +29451,17 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         word: (row) => kbBizScopeWord(st, row, kbDomainLang()),
       }
       try { if (typeof window !== 'undefined') window.__KB_BIZ_SCOPE__ = api } catch (e) { /* outside a browser */ }
+      // The choice is the host's, and another window may have changed it: read it again when this one comes back (at most every two seconds), so the words and the selector never
+      // say another template than the rows the host now sends.
+      let lastBack = 0
+      const comesBack = () => {
+        try {
+          if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+          const now = Date.now()
+          if (st.loaded === true && st.busy !== true && now - lastBack > 2000) { lastBack = now; reload() }
+        } catch (e) { /* nothing to refresh */ }
+      }
+      try { if (typeof window !== 'undefined') { window.addEventListener('focus', comesBack); window.addEventListener('visibilitychange', comesBack); window.addEventListener('pageshow', comesBack) } } catch (e) { /* no events */ }
       return api
     })()
     /** The little tile of a template: its field's icon on a tint of its accent. */

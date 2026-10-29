@@ -255,6 +255,16 @@ try {
   await sleep(1200)
   check('the rows are the shop\'s again', JSON.stringify(await rowLabels()) === JSON.stringify(WORDS[SHOP].rows), await rowLabels())
 
+  console.log('another window changes the choice')
+  check('another window switches the template at the host (the same route, the same cookie)', (await raw('POST', Object.assign({ origin: authority }, withCookie), { action: 'set', id: HOUSE })) === 200)
+  check('this window still shows the E-commerce template until it comes back', (await activeId()) === SHOP)
+  await ev(`window.dispatchEvent(new Event('focus'))`)
+  await waitFor(page, `window.__KB_BIZ_SCOPE__.active() === ${JSON.stringify(HOUSE)}`, 8000).catch(() => {})
+  await sleep(600)
+  check('coming back to this window re-reads the choice: the words and the selector say the agency', (await activeId()) === HOUSE && JSON.stringify(await rowLabels()) === JSON.stringify(WORDS[HOUSE].rows) && (await ev(`document.querySelector('[data-kb="business-scope-name"]').textContent`)) === WORDS[HOUSE].name)
+  check('and the back to the shop with the mouse, as before', (await click(BTN)) && (await click(ITEM(SHOP))) && (await waitFor(page, `window.__KB_BIZ_SCOPE__.active() === ${JSON.stringify(SHOP)}`, 8000).then(() => true, () => false)))
+  await sleep(900)
+
   // ── the keyboard ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   console.log('the keyboard')
   await ev(`document.querySelector('${BTN}').focus()`)

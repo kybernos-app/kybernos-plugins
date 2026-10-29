@@ -37,7 +37,8 @@ const fresh = (lang = 'en') => {
     post: null, // when set, answers a POST instead
     fail: false,
   }
-  const win = { dispatchEvent: (e) => { events.push(e.type) } }
+  const winListeners = new Map()
+  const win = { dispatchEvent: (e) => { events.push(e.type) }, addEventListener: (t, f) => { winListeners.set(t, f) } }
   const fetch = async (url, opt) => {
     calls.push({ url, method: opt.method, body: opt.body === undefined ? undefined : JSON.parse(opt.body), credentials: opt.credentials, cache: opt.cache, ct: opt.headers && opt.headers['content-type'] })
     if (world.fail) throw new Error('network down')
@@ -55,7 +56,7 @@ const fresh = (lang = 'en') => {
   const made = new Function('window', 'CustomEvent', 'fetch', 'document', 'setTimeout', 'React', 'h', 'Icon', 'kbe', 'kbfSep', 'kbDomainLang',
     BLOCK + '\nreturn { KB_BIZ_SCOPE_URL, KB_BIZ_PACK_ICONS, kbBizScopeNormalize, kbBizScopeShown, kbBizScopeOwns, kbBizScopeWord, kbBizScopeText, kbBizScope, KbBizScopePicker }')(
     win, class { constructor (type) { this.type = type } }, fetch, doc, (f, ms) => { timers.push({ f, ms }); return timers.length }, lite.React, h, Icon, kbe, () => ': ', () => world.lang)
-  return Object.assign(made, { lite, win, events, calls, timers, world, docListeners, doc })
+  return Object.assign(made, { lite, win, events, calls, timers, world, docListeners, doc, winListeners })
 }
 const click = (node) => node.props.onClick({ preventDefault () {}, stopPropagation () {} })
 const byKb = (m, kb) => m.lite.find(m.root.tree, (n) => n.props['data-kb'] === kb)
@@ -131,6 +132,29 @@ try {
     stop()
     await m.kbBizScope.reload()
     assert.equal(told, 1, 'a listener that left is not called')
+  })
+
+  await ok('when the window comes back (focus, visible again, a page restored) the choice is read again, at most every two seconds: another window may have changed it', async () => {
+    const m = fresh()
+    assert.deepEqual([...m.winListeners.keys()].sort(), ['focus', 'pageshow', 'visibilitychange'])
+    m.winListeners.get('focus')()
+    assert.equal(m.calls.length, 0, 'nothing is read before the first answer: the first read is the group\'s')
+    await m.kbBizScope.reload()
+    assert.equal(m.calls.length, 1)
+    const was = Date.now
+    try {
+      let t = 1_000_000
+      Date.now = () => t
+      m.winListeners.get('focus')(); await m.kbBizScope.reload()
+      assert.equal(m.calls.length, 2, 'a read right away (the one this test awaits is the same)')
+      m.winListeners.get('visibilitychange')(); m.winListeners.get('pageshow')()
+      assert.equal(m.calls.length, 2, 'three events in a row: one read')
+      t += 2500
+      m.world.answer = { status: 200, json: view(HOUSE, [shop, house]) }
+      m.winListeners.get('pageshow')()
+      await m.kbBizScope.reload()
+      assert.equal(m.kbBizScope.active(), HOUSE, 'the other window\'s choice is now this one\'s')
+    } finally { Date.now = was }
   })
 
   await ok('a host that fails, answers garbage or is not there leaves the pages as they are: no selector, no word, nothing thrown', async () => {
