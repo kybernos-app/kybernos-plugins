@@ -26114,7 +26114,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           else if (styleOf === null) report.style = 'unavailable'
           else {
             let ok = false
-            try { const r = await styleOf(kbThStr(plan.style.id)); ok = kbThPlain(r) && r.ok === true } catch (e) { ok = false }
+            try { const r = await styleOf(kbThStr(plan.style.id), kbThPlain(plan.style.settings) ? plan.style.settings : null); ok = kbThPlain(r) && r.ok === true } catch (e) { ok = false }
             if (ok) { report.style = 'applied'; report.added += 1 } else report.style = 'unavailable'
           }
         }
@@ -26159,9 +26159,36 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         return out
       }
     }
+    /**
+     * What DSH's manager answered to an install or a removal, as a code the page turns into a sentence: 'ok', 'restart' (done, it applies after a
+     * restart), 'already' (the package is there), 'not-bundle', 'cancelled', 'failed', 'refused', 'no-answer'. A RemoteResult (`{ ok, value }`) and the bare
+     * result are both read. The manager refuses with an OBJECT (a code like `not-bundle`, or `application: 'failed'`), never with null: reading only null
+     * as a refusal let the page ask for a plan of a package DSH had just rolled back, and the person met `unknown-plugin`.
+     */
+    const kbThManagerIssue = (r) => {
+      const v = kbThPlain(r) && r.ok === true && r.value !== undefined ? r.value : r
+      if (!kbThPlain(v)) return 'no-answer'
+      if (v.ok === false) return 'refused'
+      const code = kbThPlain(v.error) ? kbThStr(v.error.code) : null
+      if (code === 'not-bundle') return 'not-bundle'
+      if (code === 'already-installed') return 'already'
+      if (code !== null) return 'refused'
+      if (v.application === 'failed') return 'failed'
+      if (v.application === 'cancelled') return 'cancelled'
+      return v.application === 'restart-required' ? 'restart' : 'ok'
+    }
     // KB-TH-CORE-END
     // ── the page's wiring: fetch, the host bridge and the style seam (never read by the tests) ──
     const kbThEn = (en, fr) => { try { return kbLangResolve() === 'fr' ? fr : en } catch (e) { return en } }
+    /** The sentence for a refusal of DSH's manager (see kbThManagerIssue); every code gets words, none is shown raw. */
+    const kbThManagerWords = (issue) => {
+      if (issue === 'not-bundle') return kbThEn('DSH installs a package only as a bundle. This theme’s package.json needs an empty patch: "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, and a cordis.patch.yml that holds []. The starter has both.', 'DSH n’installe un paquet que comme bundle. Le package.json de ce thème a besoin d’un patch vide : "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, et un cordis.patch.yml qui contient []. Le modèle de départ a les deux.')
+      if (issue === 'cancelled') return kbThEn('The install was cancelled. Nothing was changed.', 'L’installation a été annulée. Rien n’a été changé.')
+      if (issue === 'no-answer') return kbThEn('DSH did not answer.', 'DSH n’a pas répondu.')
+      return kbThEn('DSH did not install the package. Nothing was changed.', 'DSH n’a pas installé le paquet. Rien n’a été changé.')
+    }
+    /** True when the manager's answer leaves the package installed (done, done after a restart, or already there). */
+    const kbThInstalledOk = (issue) => issue === 'ok' || issue === 'restart' || issue === 'already'
     /** The route body of this batch: GET reads the catalogue and the records, POST acts. Never throws. */
     const kbThApi = async (body) => {
       try {
@@ -26210,13 +26237,21 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           if (body !== null) body.home = true
           return body
         },
-        style: async (input) => {
+        // `input` is a preset id; `bag` is the style's own settings when the theme brought them. The seam knows the shipped gallery and the person's
+        // library by id, not a style an installed THEME contributes: for that one the id answers « unknown preset », and the settings bag (data, checked
+        // by the seam: known keys only, no accessibility key) is what gets applied.
+        style: async (input, bag) => {
           // The ONE publisher of the seam is the wizard's `kbObThemeSeam` (KB-OB-CORE): every consumer — this installer page and the
           // wizard — reads it through that helper, never through a second raw window read (A1-kit-wizard DoD 4, narrowed
           // 2026-10-28 by the adversarial review). No alias, no second door.
           const fn = typeof window !== 'undefined' ? kbObThemeSeam(window) : null
           if (typeof fn !== 'function') return { ok: false, reason: 'no-seam' }
-          try { return await fn(input) } catch (e) { return { ok: false, reason: 'seam-failed' } }
+          try {
+            const byId = await fn(input)
+            if (kbThPlain(byId) && byId.ok === true) return byId
+            if (kbThPlain(bag)) return await fn(bag)
+            return byId
+          } catch (e) { return { ok: false, reason: 'seam-failed' } }
         },
       }
     }
@@ -26286,9 +26321,24 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const result = await kbThRemove(record, current, ports)
       const mgr = kbThManager()
       let removed = false
-      if (mgr !== null && typeof mgr.removeBundle === 'function') { try { removed = (await mgr.removeBundle(record.id)) !== null } catch (e) { removed = false } }
-      await kbThApi({ action: 'forget', id: record.id })
+      // DSH's manager removes by PACKAGE (`@owner/name`); the page knows the theme by its plugin id (`owner/name`): the registry tells one from the other.
+      const pkg = await kbThPackageOf(record.id)
+      if (mgr !== null && typeof mgr.removeBundle === 'function') { try { removed = kbThInstalledOk(kbThManagerIssue(await mgr.removeBundle(pkg !== null ? pkg : record.id))) } catch (e) { removed = false } }
+      await kbThFreshRegistry()
+      // The record goes only with the package: a package DSH kept stays listed, with its own Remove, instead of vanishing from the page.
+      if (removed) await kbThApi({ action: 'forget', id: record.id })
       return { ok: result.ok === true, report: result, removed }
+    }
+    /** The registry reuses a scan for two seconds; after a change DSH made, ask for a fresh one so the next answer is never the scan from before. */
+    const kbThFreshRegistry = async () => { try { await fetch('/kybernos-registry/state?fresh=1', { cache: 'no-store', credentials: 'same-origin' }) } catch (e) { /* the next read still works, up to two seconds late */ } }
+    /** The package DSH's manager knows an installed theme by, from the registry, or null. */
+    const kbThPackageOf = async (id) => {
+      try {
+        const res = await fetch('/kybernos-registry/state?fresh=1', { cache: 'no-store', credentials: 'same-origin' })
+        const j = await res.json()
+        const hit = kbThPlain(j) && Array.isArray(j.plugins) ? j.plugins.find((x) => kbThPlain(x) && x.id === id) : null
+        return kbThPlain(hit) && typeof hit.package === 'string' ? hit.package : null
+      } catch (e) { return null }
     }
     // A catalogue theme's archive is NOT fetched here: `install` asks A6's route for the verified archive (the host downloads it
     // from the address the signed entry carries, hashes it and checks the signatures with `verifyArchive`), and the path it
@@ -26308,7 +26358,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (mgr === null) return { ok: false, error: 'no-manager' }
         let installed = null
         try { installed = await mgr.installBundle(staged.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
-        if (installed === null) return { ok: false, error: 'install' }
+        const issue = kbThManagerIssue(installed)
+        if (!kbThInstalledOk(issue)) return { ok: false, error: issue === 'not-bundle' ? 'not-bundle' : 'install' }
+        await kbThFreshRegistry()
         const run = await kbThRunPlan(found.id, null)
         return run.ok === true ? { ok: true, id: found.id, version: found.version, report: run.report } : { ok: false, error: run.error, report: run.report }
       } catch (e) { return { ok: false, error: 'install' } }
@@ -26388,7 +26440,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         let installed = null
         try { installed = await mgr.installBundle(answer.stage.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
         setBusy(null)
-        if (installed === null) { setError(kbThEn('DSH did not install the package.', 'DSH n’a pas installé le paquet.')); return }
+        const issue = kbThManagerIssue(installed)
+        if (!kbThInstalledOk(issue)) { setError(kbThManagerWords(issue)); return }
+        await kbThFreshRegistry()
         await openPlan(answer.stage.id)
       }
       const toggle = (kind, value) => {
@@ -26420,8 +26474,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const remove = async (record) => {
         if (busy !== null) return
         setBusy('remove')
-        await kbThRemoveTheme(record)
+        setError(null)
+        const gone = await kbThRemoveTheme(record)
         setBusy(null)
+        if (gone.removed !== true) setError(kbThEn('DSH did not remove the package. Your look and field were put back; the theme stays listed.', 'DSH n’a pas retiré le paquet. Ton style et ton domaine ont été remis ; le thème reste listé.'))
         await load()
       }
       const card = (key, title, level, body, actions) => h('div', { className: 'kbg-card', key }, [

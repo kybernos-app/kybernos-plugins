@@ -55,7 +55,7 @@ const readJsonBounded = (file, max) => {
 
 // ── the point table: what the repository declares, joined with the validator its owner exports ────────────────
 /**
- * The four owners that export a point object, and the skills owner, which exports its RULES but not its point
+ * The owners that export a point object (the core, the theme styles and the three business plugins), and the skills owner, which exports its RULES but not its point
  * object (SKILL_POINT stays module-private in packages/kybernos-skills/index.js). The four-line adapter below is
  * the shape wrapper that file applies, never a second copy of the rules.
  */
@@ -204,7 +204,7 @@ function packageDataLine (folder, raw) {
   if (!plain(pj.value)) return line('package.data', 'FAIL', 'package.json is not an object')
   const problems = dataPackageProblems(pj.value, folder)
   if (problems.length > 0) return line('package.data', 'FAIL', problems.slice(0, MAX_ERRORS).map((x) => tidy(x)).join(' | '))
-  return line('package.data', 'PASS', 'no dsh key, no install script, no bin')
+  return line('package.data', 'PASS', 'no code to load, no install script, no bin')
 }
 
 /** `manifest.points`: every extended point is opened by an owner, at a version the declared range accepts. */

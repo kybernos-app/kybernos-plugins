@@ -227,7 +227,7 @@ const WHY_NOT_AUTOMATION = 'an automation template carries steps, not the prompt
  * notInstallable, rejected }`, or `{ ok: false, error }` (`no-pack`, `ambiguous`, `style`, `schema`). Every item carries the
  * file it comes from; deterministic (same preview, same JSON); never invents a datum.
  */
-export function planTheme (preview) {
+export function planTheme (preview, pluginId = null) {
   try {
     if (Array.isArray(preview) === false) return { ok: false, error: 'schema' }
     const packs = []
@@ -296,7 +296,9 @@ export function planTheme (preview) {
     for (const a of autoTemplates) notInstallable.push({ kind: 'automation', id: typeof a.value.id === 'string' ? a.value.id : a.file.replace(/^.*\//, ''), file: a.file, why: WHY_NOT_AUTOMATION })
     return {
       ok: true,
-      id: pack.id,
+      // The PLUGIN's id (`acme/vet-clinic`): the page consents, records and removes by it. The field's own id is `pack.id`; without a plugin id (a bare
+      // preview) the plan can only name the field.
+      id: typeof pluginId === 'string' && pluginId !== '' ? pluginId : pack.id,
       style,
       pack: {
         id: pack.id,
@@ -350,6 +352,17 @@ export function dataPluginProblems (pkg, packageDir) {
     if (d.bin !== undefined) out.push('package.json bin would put a command on the path')
   } catch (e) { /* an unreadable package is refused by the caller's own read */ }
   return out
+}
+
+/**
+ * Why DSH's manager would refuse this package, or null. The manager installs a package ONLY as a bundle (`dsh.bundle.patch`); a package without one is rolled back
+ * (`not-bundle`) after pnpm ran, and the page used to go on to ask for a plan of a package that was never there (`unknown-plugin`). A data theme is a bundle whose patch
+ * is empty, so the rule costs it one file. `dataPluginProblems` already checks that the patch, when there is one, is empty and inside the package.
+ */
+export function bundleProblem (pkg) {
+  const dsh = plain(pkg) && plain(pkg.dsh) ? pkg.dsh : {}
+  if (plain(dsh.bundle) && typeof dsh.bundle.patch === 'string') return null
+  return 'DSH installs a package only as a bundle: package.json needs "dsh": { "bundle": { "patch": "./cordis.patch.yml" } } and a cordis.patch.yml that holds []'
 }
 
 // ── the install record ──────────────────────────────────────────────────────
@@ -626,6 +639,8 @@ export function handleThemes (store, request, ports) {
       try { pkg = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8')) } catch (e) { pkg = null }
       const problems = dataPluginProblems(pkg, folder)
       if (problems.length > 0) return answer(400, { ok: false, error: 'package', reason: problems[0], problems })
+      const notBundle = bundleProblem(pkg)
+      if (notBundle !== null) return answer(400, { ok: false, error: 'package', reason: notBundle, problems: [notBundle] })
       const id = typeof manifest.id === 'string' && OWNER.test(manifest.id) ? manifest.id : null
       if (id === null) return answer(400, { ok: false, error: 'not-a-theme', reason: 'plugin.json holds no author/name id' })
       return answer(200, { ok: true, stage: { id, version: text(manifest.version), name: plain(manifest.name) ? manifest.name : null, level: 'local', path: folder } })
@@ -638,7 +653,7 @@ export function handleThemes (store, request, ports) {
       let preview = null
       try { preview = reg.preview(id) } catch (e) { preview = null }
       if (preview === null) return answer(200, { ok: false, error: 'unknown-plugin' })
-      const plan = planTheme(preview)
+      const plan = planTheme(preview, id)
       return answer(200, plan.ok === true ? { ok: true, plan } : { ok: false, error: plan.error })
     }
     // The archive half of the click: the caller (index.js) fetched the bytes AND ran `verifyArchive` on them before handing

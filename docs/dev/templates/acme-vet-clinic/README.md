@@ -16,8 +16,9 @@ contributes to are the five frozen interfaces of `docs/dev/sector-bundles.md` ("
 | `teams/` | `kybernos/core#team-template` | one Agent Team the kit can create |
 | `automations/` | `kybernos/core#automation-template` | one automation, created switched off |
 
-`package.json` carries no `dsh` key on purpose: a data theme has nothing for DSH to load, so it
-needs no patch file. Copy this folder, rename it, run the checker, then read the report:
+`package.json` names an **empty patch** (`cordis.patch.yml`, which holds `[]`): DSH installs a package only as a
+bundle, and a data theme is a bundle that loads nothing. Without the patch the Themes page refuses the folder
+before anything is installed. Copy this folder, rename it, run the checker, then read the report:
 
 ```bash
 node scripts/plugin-check.mjs docs/dev/templates/acme-vet-clinic
