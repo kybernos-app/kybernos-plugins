@@ -1,5 +1,5 @@
-// kybernos-pipeline, the frame: the point `kybernos/pipeline#flow` (its check, bounded and pure), the host half that tells the registry about it
-// without ever throwing, and the browser half that draws nothing yet but must still return a plugin.
+// kybernos-pipeline, the point: `kybernos/pipeline#flow` (its check, bounded and pure), the host half that tells the registry about it without ever
+// throwing, and the browser half that must still return a plugin. The routes and tools are in test-host.mjs, the guard in test-write-guard.mjs.
 //
 //   node packages/kybernos-pipeline/test-pipeline.mjs
 import assert from 'node:assert/strict'
@@ -128,17 +128,15 @@ ok('a registry that throws, of another version or without definePoint: nothing s
   try { withSeam(undefined, () => apply({}, { schedule: () => { throw new Error('no timers here') } })) } finally { console.log = log }
   assert.deepEqual(logs, ['[kybernos-pipeline] disabled: no timers here'], 'only a broken clock is worth a line')
 })
-ok('the browser half hands the loader a plugin that never throws, and draws nothing', () => {
+ok('the browser half hands the loader a plugin even when it cannot start (the page itself is checked by test-client.mjs)', () => {
   const loaded = []
   const sandbox = { window: { __ModuleLoader__: { load: (entry) => loaded.push(entry) } }, console: { warn () {}, log () {} } }
-  const src = readFileSync(here + 'client.js', 'utf8')
-  vm.runInNewContext(src, sandbox)
+  vm.runInNewContext(readFileSync(here + 'client.js', 'utf8'), sandbox)
   assert.equal(loaded.length, 1)
   assert.equal(loaded[0].id, '@local/kybernos-pipeline')
-  const plugin = loaded[0].factory((m) => assert.fail('it requires nothing: ' + m))
+  const plugin = loaded[0].factory(() => { throw new Error('no react here') })
   assert.equal(typeof plugin.apply, 'function')
-  assert.equal(plugin.apply({ effect: () => assert.fail('nothing is registered yet') }), undefined)
-  assert.doesNotMatch(src, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, 'no colour of its own')
+  assert.equal(plugin.apply({ effect: () => assert.fail('a plugin that could not start registers nothing') }), undefined)
 })
 
 console.log('\n' + count + ' checks passed')
