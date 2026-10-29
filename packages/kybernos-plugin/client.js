@@ -28067,11 +28067,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     /** A switch (role=switch): on, off, or `mixed` when only some of a group is ticked. */
     const KbThSwitch = (props) => h('button', { type: 'button', role: 'switch', 'aria-checked': props.part === true ? 'mixed' : (props.on === true ? 'true' : 'false'), 'aria-label': props.label, disabled: props.disabled === true, className: 'kbgal-switch' + (props.on === true ? ' on' : '') + (props.part === true ? ' part' : ''), 'data-kb': props.hook, onClick: props.onClick }, h('span', { className: 'kbgal-knob' }))
-    /** The three plugins of the Business group: how a theme page names them (the words of the menu row come from the theme's pack). */
+    /** The plugins a theme page names: the three of the Business group (the words of the menu row come from the theme's pack), and the Dashboards. */
     const KB_TH_PLUGINS = {
       'kybernos/contacts': { row: 'contacts', icon: 'users', name: 'Contacts', blurb: ['People and companies, with notes and history.', 'Des personnes et des entreprises, avec notes et historique.'] },
       'kybernos/catalog': { row: 'catalog', icon: 'package', name: 'Catalog', blurb: ['Items with typed fields and a status.', 'Des éléments avec des champs typés et un statut.'] },
       'kybernos/pipeline': { row: 'pipeline', icon: 'columns', name: 'Pipeline', blurb: ['Cards that move through stages on a board.', 'Des cartes qui avancent d’étape en étape sur un tableau.'] },
+      // not a row of the Business group: the dashboard a theme ships opens from the Dashboards page (and its own « Overview » row)
+      'kybernos/dashboards': { row: null, icon: 'layoutDashboard', name: 'Dashboards', blurb: ['A dashboard of the numbers that matter in this trade.', 'Un tableau de bord des chiffres qui comptent dans ce métier.'] },
     }
     /**
      * What the gallery lists, one entry per theme id: the shipped themes first, then the catalogue's, then what is only added or installed.

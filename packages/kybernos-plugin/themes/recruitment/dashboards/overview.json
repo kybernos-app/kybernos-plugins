@@ -1,0 +1,254 @@
+{
+  "id": "overview",
+  "name": "Desk overview",
+  "desc": "Open jobs, candidates by stage, client missions and the placements made, with what needs a move this week.",
+  "menu": {
+    "en": "Overview",
+    "fr": "Vue d’ensemble"
+  },
+  "overview": true,
+  "widgets": [
+    {
+      "type": "card",
+      "title": "Open jobs",
+      "source": {
+        "provider": "catalog.items"
+      },
+      "metric": {
+        "agg": "count",
+        "where": [
+          {
+            "field": "status_key",
+            "op": "=",
+            "value": "open"
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "sub": {
+        "template": "{v} on hold",
+        "metric": {
+          "agg": "count",
+          "where": [
+            {
+              "field": "status_key",
+              "op": "=",
+              "value": "on-hold"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "card",
+      "title": "Candidates in play",
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "candidates"
+        }
+      },
+      "metric": {
+        "agg": "count",
+        "where": [
+          {
+            "field": "stage_key",
+            "op": "not_in",
+            "value": [
+              "placed"
+            ]
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "sub": {
+        "template": "{v} at interview",
+        "metric": {
+          "agg": "count",
+          "where": [
+            {
+              "field": "stage_key",
+              "op": "=",
+              "value": "interview"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "card",
+      "title": "Placements",
+      "source": {
+        "provider": "pipeline.cards"
+      },
+      "metric": {
+        "agg": "count",
+        "where": [
+          {
+            "field": "stage_key",
+            "op": "=",
+            "value": "placed"
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "sub": {
+        "template": "worth {v} €",
+        "metric": {
+          "agg": "sum",
+          "field": "value",
+          "where": [
+            {
+              "field": "stage_key",
+              "op": "=",
+              "value": "placed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "card",
+      "title": "Oldest open job",
+      "source": {
+        "provider": "catalog.items"
+      },
+      "metric": {
+        "agg": "max",
+        "field": "opened_ago",
+        "where": [
+          {
+            "field": "status_key",
+            "op": "=",
+            "value": "open"
+          },
+          {
+            "field": "opened",
+            "op": "not_empty"
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "unit": "days",
+      "sub": {
+        "template": "{v} jobs open in all",
+        "metric": {
+          "agg": "count",
+          "where": [
+            {
+              "field": "status_key",
+              "op": "=",
+              "value": "open"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "chart",
+      "title": "Candidates by stage",
+      "kind": "columns",
+      "x": "stage",
+      "agg": "count",
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "candidates"
+        }
+      },
+      "w": 6,
+      "h": 4
+    },
+    {
+      "type": "chart",
+      "title": "Client missions by stage",
+      "kind": "columns",
+      "x": "stage",
+      "agg": "count",
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "missions"
+        }
+      },
+      "w": 6,
+      "h": 4
+    },
+    {
+      "type": "chart",
+      "title": "Where candidates come from",
+      "kind": "bars",
+      "x": "source",
+      "agg": "count",
+      "limit": 6,
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "candidates"
+        }
+      },
+      "w": 4,
+      "h": 5
+    },
+    {
+      "type": "list",
+      "title": "Interviews and proposals",
+      "label": "title",
+      "sub": "subtitle",
+      "when": "due",
+      "where": [
+        {
+          "field": "stage_key",
+          "op": "in",
+          "value": [
+            "interview",
+            "proposed"
+          ]
+        },
+        {
+          "field": "due",
+          "op": "not_empty"
+        }
+      ],
+      "sort": "due",
+      "limit": 6,
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "candidates"
+        }
+      },
+      "w": 4,
+      "h": 5
+    },
+    {
+      "type": "list",
+      "title": "Open the longest",
+      "label": "title",
+      "sub": "client",
+      "when": "opened",
+      "where": [
+        {
+          "field": "status_key",
+          "op": "=",
+          "value": "open"
+        },
+        {
+          "field": "opened",
+          "op": "not_empty"
+        }
+      ],
+      "sort": "opened",
+      "limit": 6,
+      "source": {
+        "provider": "catalog.items"
+      },
+      "w": 4,
+      "h": 5
+    }
+  ]
+}

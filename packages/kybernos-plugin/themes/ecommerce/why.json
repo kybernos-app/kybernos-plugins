@@ -10,5 +10,9 @@
   "kybernos/pipeline": {
     "en": "Orders from new to delivered.",
     "fr": "Les commandes, de la nouvelle à la livrée."
+  },
+  "kybernos/dashboards": {
+    "en": "Revenue, orders to ship and low stock at a glance.",
+    "fr": "Chiffre d’affaires, commandes à expédier et stock bas d’un coup d’œil."
   }
 }

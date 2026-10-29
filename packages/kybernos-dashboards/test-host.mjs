@@ -6,6 +6,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { createHost, applyOps, runTool, toolOptions, makeDoc, dashboardOfDoc, TOOL, KEEP } from './dashboard-host.mjs'
+import * as M from './model.mjs'
+import { PRESETS } from './presets.mjs'
+const PRESETS_N = PRESETS.length
 // index.js reads DSH_HOME when it is imported and seeds skills when it is applied: point it at a temp folder FIRST, so the
 // test never writes into the real ~/.dsh.
 const SANDBOX_HOME = mkdtempSync(join(tmpdir(), 'kb-dash-home-'))
@@ -197,7 +200,7 @@ const webServer = { register: (r) => { routes.set(r.path, r) } }
     return out
   }
   const page = { origin: 'http://127.0.0.1:3080' }
-  const expected = ['state', 'list', 'presets', 'dashboard', 'revisions', 'save', 'preset', 'clone', 'flags', 'discard', 'open', 'restore']
+  const expected = ['state', 'list', 'presets', 'overview', 'overview-copy', 'dashboard', 'revisions', 'save', 'preset', 'clone', 'flags', 'discard', 'open', 'restore']
   ok('routes: every route is mounted exactly under /kybernos-dashboards/', expected.every((e) => routes.has('/kybernos-dashboards/' + e)) && routes.size === expected.length, [...routes.keys()])
 
   ok('GET list: empty at first', same((await call('GET', 'list')).body.dashboards, []))
@@ -270,6 +273,43 @@ const webServer = { register: (r) => { routes.set(r.path, r) } }
   ok('apply: a skill the user edited is never overwritten', (() => { const f = join(SANDBOX_HOME, 'skills', 'dashboard-builder', 'SKILL.md'); const mine = readFileSync(f, 'utf8') + '\nMy own rule.\n'; writeFileSync(f, mine); Index.apply({ get: () => undefined, inject: () => {} }); return readFileSync(f, 'utf8') === mine })())
   ok('index: preset summary is validated data', Index.presetSummary().length >= 4)
   ok('index: the guard helpers', Index.hostOk({ headers: { host: 'localhost:3080' }, socket: { localPort: 3080 } }) === true && Index.hostOk({ headers: { host: 'localhost:1' }, socket: { localPort: 3080 } }) === false && Index.originOk({ headers: {}, socket: { localPort: 1 } }, false) === true && Index.originOk({ headers: {}, socket: { localPort: 1 } }, true) === false)
+}
+
+// ── the routes of the templates' presets and of the Overview row ──────────────
+{
+  const home = tmp()
+  const routes2 = new Map()
+  let installed = []
+  const tpl = (id, over) => Object.assign({ id, name: 'Shop overview', desc: 'What sells, what ships and what runs low, at a glance.', menu: { en: 'Overview', fr: 'Vue d’ensemble' }, overview: true, template: { id: 'acme/shop', name: 'Acme online shop' },
+    widgets: M.validateDashboard({ widgets: [CARD('A'), CARD('B'), CARD('C'), CARD('D')] }).dashboard.widgets }, over || {})
+  const host = createHost({ fs: fsp, home, now: () => (clock += 1000), log: () => {}, presets: (taken) => installed.filter((p) => taken.indexOf(p.id) < 0) })
+  Index.mountRoutes({ register: (r) => { routes2.set(r.path, r) } }, host)
+  const call = async (method, path, body) => {
+    const r = routes2.get('/kybernos-dashboards/' + path)
+    const text = body === undefined ? '' : JSON.stringify(body)
+    const req = Readable.from(text === '' ? [] : [Buffer.from(text)])
+    req.method = method
+    req.url = '/kybernos-dashboards/' + path
+    req.headers = Object.assign({ host: '127.0.0.1:3080' }, body !== undefined ? { 'content-type': 'application/json', origin: 'http://127.0.0.1:3080' } : {})
+    req.socket = { localPort: 3080 }
+    const out = { status: 0, body: null }
+    await r.handler(req, { headersSent: false, writeHead: (st) => { out.status = st }, end: (t) => { try { out.body = JSON.parse(t) } catch { out.body = t } } })
+    return out
+  }
+  ok('GET overview: nothing when no template ships one', same((await call('GET', 'overview')).body, { ok: true, overview: null }))
+  ok('POST overview-copy: a refusal that says why, not a crash', (await call('POST', 'overview-copy', {})).status === 404 && (await call('POST', 'overview-copy', {})).body.code === 'no-overview')
+  installed = [tpl('shop-overview')]
+  const presets = (await call('GET', 'presets')).body.presets
+  ok('GET presets: the template\'s first, with its template, then the built-in ones', presets[0].id === 'shop-overview' && presets[0].template.name === 'Acme online shop' && presets[0].widgets === 4 && presets.length === PRESETS_N + 1 && presets.slice(1).every((p) => p.template === undefined))
+  const o = (await call('GET', 'overview')).body.overview
+  ok('GET overview: the dashboard it opens, the words of the row, the template, no copy yet', o.preset === 'shop-overview' && o.dashboardId === null && o.label.en === 'Overview' && o.label.fr === 'Vue d’ensemble' && o.template.id === 'acme/shop', o)
+  const made = await call('POST', 'overview-copy', {})
+  ok('POST overview-copy: makes the copy the first time', made.status === 200 && made.body.ok === true && made.body.created === true && made.body.id === 'shop-overview', made)
+  const again = await call('POST', 'overview-copy', {})
+  ok('POST overview-copy: opens the same copy afterwards', again.body.created === false && again.body.id === 'shop-overview')
+  ok('GET overview: knows the copy now; GET list carries where it came from', (await call('GET', 'overview')).body.overview.dashboardId === 'shop-overview' && (await call('GET', 'list')).body.dashboards.find((d) => d.id === 'shop-overview').preset === 'shop-overview')
+  ok('POST preset: a template\'s preset by its id, under its own name', (await call('POST', 'preset', { preset: 'shop-overview', name: 'Mine' })).body.id === 'mine')
+  ok('the overview routes are guarded like the others', (await call('POST', 'overview-copy')).status === 403 || (await call('POST', 'overview-copy')).status === 415)
 }
 
 console.log(fail === 0 ? 'host: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))

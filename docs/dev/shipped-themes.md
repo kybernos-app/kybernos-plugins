@@ -2,17 +2,17 @@
 
 The product ships three themes, as folders of data in the core: `packages/kybernos-plugin/themes/<dir>/`. They are the same unit as any
 theme ([`sector-bundles.md`](sector-bundles.md): one folder, one `plugin.json`, several `extends`), plus the three business points
-(Contacts, Catalog, Pipeline, [`business-base.md`](business-base.md)) and a folder of sample rows. Nothing in them is code, media or a path.
+(Contacts, Catalog, Pipeline, [`business-base.md`](business-base.md)), a dashboard (`kybernos/dashboards#preset`) and a folder of sample rows. Nothing in them is code, media or a path.
 
-| Folder | Id | Business rows | Boards | Kit |
-|---|---|---|---|---|
-| `ecommerce/` | `kybernos-themes/ecommerce` | Customers · Products · Orders | Orders | 2 skills, 1 team, 2 automations, 4 goals (from the `com` pack) |
-| `real-estate/` | `kybernos-themes/real-estate` | Contacts · Properties · Sales and lettings | Sales, Lettings | 2 skills, 1 team, 3 automations, 4 goals (from `immo`) |
-| `recruitment/` | `kybernos-themes/recruitment` | Candidates and clients · Jobs · Placements | Candidates, Client missions | 2 skills, 1 team, 4 automations, 4 goals (from the former `recrutement`) |
+| Folder | Id | Business rows | Boards | Dashboard | Kit |
+|---|---|---|---|---|---|
+| `ecommerce/` | `kybernos-themes/ecommerce` | Customers · Products · Orders | Orders | Shop overview | 2 skills, 1 team, 2 automations, 4 goals (from the `com` pack) |
+| `real-estate/` | `kybernos-themes/real-estate` | Contacts · Properties · Sales and lettings | Sales, Lettings | Agency overview | 2 skills, 1 team, 3 automations, 4 goals (from `immo`) |
+| `recruitment/` | `kybernos-themes/recruitment` | Candidates and clients · Jobs · Placements | Candidates, Client missions | Desk overview | 2 skills, 1 team, 4 automations, 4 goals (from the former `recrutement`) |
 
 Each is installable alone, from its folder or by id (the installer treats both the same): it brings its field pack, its style and an empty
-bundle patch, and it passes `plugin-check`. What it needs from the product is only the six plugins it names in `requires.plugins`: the core's
-three seams and the three business plugins.
+bundle patch, and it passes `plugin-check`. What it needs from the product is only the seven plugins it names in `requires.plugins`: the core's
+three seams, the three business plugins and the Dashboards.
 
 ## The folder
 
@@ -20,7 +20,7 @@ three seams and the three business plugins.
 <dir>/
   plugin.json            id kybernos-themes/<dir>, author kybernos-themes, Apache-2.0, name and description in en and fr,
                          keywords (the first one is the chip of the card), requires.plugins (core, theme, skills, contacts,
-                         catalog, pipeline: ^1.0), extends the eight points
+                         catalog, pipeline, dashboards: ^1.0), extends the nine points
   why.json               one line per business plugin, in this theme's words (not a data point: the gallery reads it, plugin-check ignores it)
   package.json           "dsh": { "bundle": { "patch": "./cordis.patch.yml" } } and nothing else under dsh
   cordis.patch.yml       the empty patch: []
@@ -32,6 +32,7 @@ three seams and the three business plugins.
   contacts/<id>.json     kinds of contact (person or company), fields, tags
   catalog/<id>.json      one file per kind of item: statuses, fields, what the card shows
   pipeline/<id>.json     one file per board: stages (2 to 8), how a value is counted, what a card may link to
+  dashboards/<id>.json   a dashboard of the trade (kybernos/dashboards#preset): widgets over the three business sources, the word of its menu row
   demo/sample.json       the sample rows (below)
   README.md              what is inside, in English
 ```
@@ -43,9 +44,9 @@ three seams and the three business plugins.
 For a card, `readShipped` (`packages/kybernos-plugin/themes-shipped.mjs`) keeps: the first manifest keyword, capitalised, as the chip over the card
 (`commerce`, `property`, `people`), the manifest `name` (80 characters) and `description` (300),
 the pack's `name`, `tagline` (200), `accent`, `icon` and the three words of `menu.labels.contacts|catalog|pipeline` (40 each), the style's
-`name`, `needs` (the plugins named in `requires.plugins` beyond the core's seams: the three business plugins) and the **names** of what is under
+`name`, `needs` (the plugins named in `requires.plugins` beyond the core's seams: the three business plugins, then the Dashboards) and the **names** of what is under
 `skills/`, `teams/` and `automations/`. So a file is named for the person who reads the card: `order-replies`, `shop-desk`, `daily-stock`.
-`why.json` gives each plugin the theme needs one line (`{ "kybernos/contacts": { "en": …, "fr": … }, … }`, 160 characters at most) that says what it does
+`why.json` gives each plugin the theme needs (the Dashboards too) one line (`{ "kybernos/contacts": { "en": …, "fr": … }, … }`, 160 characters at most) that says what it does
 for this trade: « Orders from new to delivered. » The gallery draws a cover itself: **no picture is shipped**, a `cover.jpg` is refused by `garde-depot`.
 
 ## The sample rows

@@ -1,0 +1,313 @@
+{
+  "id": "overview",
+  "name": "Shop overview",
+  "desc": "Revenue from paid orders, what is waiting to ship, the products running low and where your orders come from.",
+  "menu": {
+    "en": "Overview",
+    "fr": "Vue d’ensemble"
+  },
+  "overview": true,
+  "widgets": [
+    {
+      "type": "card",
+      "title": "Revenue, paid orders",
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "orders"
+        }
+      },
+      "metric": {
+        "agg": "sum",
+        "field": "value",
+        "where": [
+          {
+            "field": "stage_key",
+            "op": "in",
+            "value": [
+              "paid",
+              "packed",
+              "shipped",
+              "delivered"
+            ]
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "unit": "€",
+      "sub": {
+        "template": "{v} orders paid",
+        "metric": {
+          "agg": "count",
+          "where": [
+            {
+              "field": "stage_key",
+              "op": "in",
+              "value": [
+                "paid",
+                "packed",
+                "shipped",
+                "delivered"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "card",
+      "title": "Orders to ship",
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "orders"
+        }
+      },
+      "metric": {
+        "agg": "count",
+        "where": [
+          {
+            "field": "stage_key",
+            "op": "in",
+            "value": [
+              "paid",
+              "packed"
+            ]
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "sub": {
+        "template": "{v} not paid yet",
+        "metric": {
+          "agg": "count",
+          "where": [
+            {
+              "field": "stage_key",
+              "op": "=",
+              "value": "new"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "card",
+      "title": "Low stock",
+      "source": {
+        "provider": "catalog.items"
+      },
+      "metric": {
+        "agg": "count",
+        "where": [
+          {
+            "field": "stock_gap",
+            "op": "not_empty"
+          },
+          {
+            "field": "stock_gap",
+            "op": "<=",
+            "value": 0
+          },
+          {
+            "field": "status_key",
+            "op": "not_in",
+            "value": [
+              "draft"
+            ]
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "sub": {
+        "template": "{v} out of stock",
+        "metric": {
+          "agg": "count",
+          "where": [
+            {
+              "field": "status_key",
+              "op": "=",
+              "value": "out"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "card",
+      "title": "Customers",
+      "source": {
+        "provider": "contacts.people"
+      },
+      "metric": {
+        "agg": "count",
+        "where": [
+          {
+            "field": "type_key",
+            "op": "=",
+            "value": "customer"
+          }
+        ]
+      },
+      "w": 3,
+      "h": 2,
+      "sub": {
+        "template": "{v} repeat buyers",
+        "metric": {
+          "agg": "count",
+          "where": [
+            {
+              "field": "type_key",
+              "op": "=",
+              "value": "customer"
+            },
+            {
+              "field": "tags",
+              "op": "contains",
+              "value": "repeat"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "chart",
+      "title": "Orders by status",
+      "kind": "columns",
+      "x": "stage",
+      "agg": "count",
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "orders"
+        }
+      },
+      "w": 8,
+      "h": 4
+    },
+    {
+      "type": "chart",
+      "title": "Products by category",
+      "kind": "donut",
+      "x": "category",
+      "agg": "count",
+      "limit": 6,
+      "source": {
+        "provider": "catalog.items"
+      },
+      "w": 4,
+      "h": 4
+    },
+    {
+      "type": "list",
+      "title": "Next orders to ship",
+      "label": "title",
+      "sub": "subtitle",
+      "when": "due",
+      "where": [
+        {
+          "field": "stage_key",
+          "op": "in",
+          "value": [
+            "paid",
+            "packed"
+          ]
+        }
+      ],
+      "sort": "due",
+      "limit": 6,
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "orders"
+        }
+      },
+      "w": 6,
+      "h": 5
+    },
+    {
+      "type": "table",
+      "title": "Stock to reorder",
+      "columns": [
+        {
+          "field": "title",
+          "label": "Product"
+        },
+        {
+          "field": "stock",
+          "label": "In stock",
+          "format": "number"
+        },
+        {
+          "field": "reorder_at",
+          "label": "Reorder at",
+          "format": "number"
+        },
+        {
+          "field": "supplier",
+          "label": "Supplier"
+        }
+      ],
+      "where": [
+        {
+          "field": "stock_gap",
+          "op": "not_empty"
+        },
+        {
+          "field": "stock_gap",
+          "op": "<=",
+          "value": 0
+        },
+        {
+          "field": "status_key",
+          "op": "not_in",
+          "value": [
+            "draft"
+          ]
+        }
+      ],
+      "sort": "stock_gap",
+      "limit": 6,
+      "source": {
+        "provider": "catalog.items"
+      },
+      "w": 6,
+      "h": 5
+    },
+    {
+      "type": "chart",
+      "title": "Top products by orders",
+      "kind": "bars",
+      "x": "item",
+      "agg": "count",
+      "limit": 7,
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "orders"
+        }
+      },
+      "w": 6,
+      "h": 4
+    },
+    {
+      "type": "chart",
+      "title": "Orders by source",
+      "kind": "bars",
+      "x": "source",
+      "agg": "count",
+      "limit": 6,
+      "source": {
+        "provider": "pipeline.cards",
+        "params": {
+          "flow": "orders"
+        }
+      },
+      "w": 6,
+      "h": 4
+    }
+  ]
+}

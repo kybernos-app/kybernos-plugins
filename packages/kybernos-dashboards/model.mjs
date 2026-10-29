@@ -14,7 +14,7 @@
 
 export const KIND = 'dashboard'
 export const VERSION = 1
-export const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3, tableCols: 6 }
+export const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3, tableCols: 6, followUp: 12 }
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const arr = (v) => (Array.isArray(v) ? v : [])
@@ -44,6 +44,10 @@ const toMs = (v) => {
   return null
 }
 const lastDays = (n, nowMs) => { const out = []; for (let i = n - 1; i >= 0; i--) out.push(dayKey(nowMs - i * DAY)); return out }
+/** A local calendar day as a whole number (days since 1970): two of them subtract into a number of days, whatever the time zone or the hour. */
+const localDayNo = (ms) => { const d = new Date(ms); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY) }
+/** The same number for a `YYYY-MM-DD` text, or null when the text is not a date. */
+const dateDayNo = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str(s)); return m === null ? null : Math.round(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / DAY) }
 
 // ── 2. the provider catalogue ────────────────────────────────────────────────
 //
@@ -70,6 +74,67 @@ function scheduleText (s) {
   if (str(o.cron) !== '') return 'cron ' + o.cron
   if (str(o.at) !== '') return 'once ' + o.at
   return str(o.mode)
+}
+
+// ── helpers of the Business providers (Contacts, Catalog, Pipeline answer 500 rows at most per call) ──────────────────────────────────────
+const BIZ_PAGE = 500
+const BIZ_PAGES = 4
+const BIZ_BOARDS = 6
+const bizSlug = (v) => { const s = str(v); return /^[a-z0-9][a-z0-9_-]{0,39}$/.test(s) ? s : '' }
+const typeQuery = (p) => (bizSlug(p.type) === '' ? '' : '&type=' + bizSlug(p.type))
+/** The English word of a `{ en, fr }` label, else `fallback`. A provider speaks English like every other source: the page translates around it. */
+const bizWord = (label, fallback) => { const w = cut(obj(label).en, 60); return w !== '' ? w : cut(fallback, 60) }
+const bizDay = (v) => { const at = toMs(v); return at === null ? '' : dayKey(at) }
+/** The requests for the pages after the first one, from the total the first page answered (at most BIZ_PAGES pages). */
+const bizPages = (parts, path, suffix) => {
+  const total = num(obj(parts.page0).total)
+  const out = []
+  for (let i = 1; i < BIZ_PAGES && i * BIZ_PAGE < total; i++) out.push({ key: 'page' + i, method: 'GET', path: path + (i * BIZ_PAGE) + suffix, optional: true })
+  return out
+}
+/** The rows of every page read, in order; an archived row is never one of them. */
+const bizRows = (parts, prefix) => {
+  const out = []
+  for (let i = 0; i < BIZ_PAGES; i++) {
+    const pg = parts[prefix + i]
+    if (isObj(pg)) for (const r of arr(pg.rows)) if (isObj(r) && (r.archived_at === null || r.archived_at === undefined)) out.push(r)
+  }
+  return out
+}
+/** What the table says when it does not hold everything the base has. */
+const bizNote = (parts, prefix, read) => {
+  const total = num(obj(parts[prefix + '0']).total)
+  return total > read ? 'The first ' + formatNumber(read, 'number') + ' of ' + formatNumber(total, 'number') + ' rows are read.' : ''
+}
+const PICTURE_REF = /^(?:art|photo):/
+const FIELD_KEY = /^[a-z][a-z0-9_]{0,31}$/
+/**
+ * The scalar fields of a row, flattened into `row` under their own key (never over a column that is already there). A field that holds a day also gives
+ * `<key>_in` (days until it, negative once past) and `<key>_ago` (days since it). A picture reference is not data and is left out.
+ */
+function bizFields (fields, row, now) {
+  const f = obj(fields)
+  const today = localDayNo(now)
+  let n = 0
+  for (const k of Object.keys(f)) {
+    if (n >= 40) break
+    if (!FIELD_KEY.test(k) || own(row, k)) continue
+    const v = f[k]
+    if (typeof v === 'number' && Number.isFinite(v)) row[k] = v
+    else if (typeof v === 'string') {
+      if (PICTURE_REF.test(v)) continue
+      row[k] = cut(v, 120)
+      const day = dateDayNo(v)
+      if (day !== null) { row[k + '_in'] = day - today; row[k + '_ago'] = today - day }
+    } else if (typeof v === 'boolean') row[k] = v ? 'yes' : 'no'
+    else continue
+    n++
+  }
+}
+/** Every declared column in every row ('' where the row has nothing), so a missing value is empty, never "undefined". */
+const bizComplete = (rows, columns) => {
+  for (const r of rows) for (const c of columns) if (!own(r, c.id)) r[c.id] = ''
+  return rows
 }
 
 export const PROVIDERS = {
@@ -321,6 +386,137 @@ export const PROVIDERS = {
       return table(PROVIDERS['deliverables.list'].columns, rows.slice(0, limit))
     },
   },
+  // ── the Business providers: the read routes of Contacts, Catalog and Pipeline, flattened into tables ───────────────────────────────────
+  // The three plugins answer at most 500 rows a call, so a table is read page by page (`next`: the pages after the first, and one board per flow).
+  // Every declared column is present in every row ('' when the row has no value), so a chart never draws "undefined" and `empty` / `not_empty` mean what they say.
+  // Dates come twice: as a day (`due`) and as a number of days (`due_in`, days until it, negative once past; `due_ago`, days since it), computed at the moment the
+  // page reads, because the where-filter compares numbers only.
+  'catalog.items': {
+    label: 'Catalog items',
+    about: 'The items of the Catalog page (properties, products, jobs…), one row per item: its type, status, title, price and its own fields under their key. A date field also gives <key>_in (days until it, negative once past) and <key>_ago (days since it). Archived items are left out; sample rows have demo = yes.',
+    params: { type: 'text, a type key (property, product, job…): only the items of that type' },
+    period: false,
+    sparse: true,
+    open: true,
+    columns: [
+      col('title', 'Title', 'string'), col('subtitle', 'Subtitle', 'string'), col('type', 'Type', 'string'), col('type_key', 'Type key', 'string'), col('status', 'Status', 'string'), col('status_key', 'Status key', 'string'),
+      col('price', 'Price', 'number'), col('price_text', 'Price as written', 'string'), col('created', 'Added', 'date'), col('updated', 'Changed', 'date'), col('demo', 'Sample row', 'string'),
+      col('address', 'Address', 'string'), col('surface', 'Surface (m²)', 'number'), col('rooms', 'Rooms', 'number'), col('energy', 'Energy class', 'string'), col('kind', 'Kind', 'string'), col('district', 'District', 'string'), col('outdoor', 'Outdoor space', 'string'),
+      col('offer', 'Offer received', 'number'), col('owner', 'Owner', 'string'), col('mandate_until', 'Mandate until', 'date'), col('mandate_until_in', 'Mandate ends in (days)', 'number'),
+      col('sku', 'SKU', 'string'), col('stock', 'Stock', 'number'), col('reorder_at', 'Reorder at', 'number'), col('stock_gap', 'Stock above the reorder level', 'number'), col('supplier', 'Supplier', 'string'), col('category', 'Category', 'string'), col('material', 'Material', 'string'), col('badge', 'Badge', 'string'), col('rating', 'Rating', 'string'),
+      col('client', 'Client', 'string'), col('location', 'Location', 'string'), col('salary', 'Salary', 'string'), col('contract', 'Contract', 'string'), col('department', 'Department', 'string'), col('seniority', 'Seniority', 'string'), col('candidates', 'Candidates', 'number'), col('opened', 'Opened', 'date'), col('opened_ago', 'Open for (days)', 'number'),
+    ],
+    routes: (p) => [
+      { key: 'types', method: 'GET', path: '/kybernos-catalog/types', optional: true },
+      { key: 'page0', method: 'GET', path: '/kybernos-catalog/list?limit=' + BIZ_PAGE + '&offset=0' + typeQuery(p) },
+    ],
+    next: (parts, p) => bizPages(parts, '/kybernos-catalog/list?limit=' + BIZ_PAGE + '&offset=', typeQuery(p)),
+    build: (parts, p, now) => {
+      const types = new Map()
+      for (const t of arr(obj(parts.types).types)) if (isObj(t) && typeof t.id === 'string') types.set(t.id, t)
+      const rows = []
+      for (const r of bizRows(parts, 'page')) {
+        const t = types.get(r.type)
+        const st = t === undefined ? undefined : arr(t.statuses).find((s) => isObj(s) && s.key === r.status)
+        const f = obj(r.fields)
+        const row = {
+          title: cut(r.title, 120), subtitle: cut(r.subtitle, 120), type: t === undefined ? cut(r.type, 40) : bizWord(t.label, r.type), type_key: cut(r.type, 40),
+          status: st === undefined ? cut(r.status, 40) : bizWord(st.label, r.status), status_key: cut(r.status, 40),
+          price: typeof r.price_num === 'number' && Number.isFinite(r.price_num) ? r.price_num : (typeof f.price === 'number' && Number.isFinite(f.price) ? f.price : ''),
+          price_text: cut(r.price_text, 60), created: bizDay(r.created_at), updated: bizDay(r.updated_at), demo: r.demo === true ? 'yes' : 'no',
+        }
+        bizFields(f, row, now)
+        if (typeof row.stock === 'number' && typeof row.reorder_at === 'number') row.stock_gap = row.stock - row.reorder_at
+        rows.push(row)
+      }
+      return table(PROVIDERS['catalog.items'].columns, bizComplete(rows, PROVIDERS['catalog.items'].columns), { note: bizNote(parts, 'page', rows.length) })
+    },
+  },
+  'contacts.people': {
+    label: 'Contacts',
+    about: 'The people and companies of the Contacts page, one row per contact: its kind, type, e-mail, company, tags and its own fields under their key. A date field also gives <key>_in and <key>_ago (days until it / since it). Archived contacts are left out; sample rows have demo = yes.',
+    params: {},
+    period: false,
+    sparse: true,
+    open: true,
+    columns: [
+      col('name', 'Name', 'string'), col('kind', 'Person or company', 'string'), col('type', 'Type', 'string'), col('type_key', 'Type key', 'string'), col('email', 'E-mail', 'string'), col('company', 'Company', 'string'),
+      col('tags', 'Tags', 'string'), col('tag_count', 'Number of tags', 'number'), col('created', 'Added', 'date'), col('updated', 'Changed', 'date'), col('demo', 'Sample row', 'string'),
+      col('city', 'City', 'string'), col('sector', 'Sector', 'string'), col('budget', 'Budget', 'number'), col('spent', 'Spent', 'number'), col('last_order', 'Last order', 'date'), col('last_order_ago', 'Last order (days ago)', 'number'),
+      col('lead_time', 'Lead time', 'string'), col('seniority', 'Seniority', 'string'), col('salary_target', 'Salary target', 'number'), col('role', 'Role', 'string'), col('availability', 'Availability', 'string'),
+    ],
+    routes: () => [
+      { key: 'schema', method: 'GET', path: '/kybernos-contacts/schema', optional: true },
+      { key: 'page0', method: 'GET', path: '/kybernos-contacts/list?limit=' + BIZ_PAGE + '&offset=0' },
+    ],
+    next: (parts) => bizPages(parts, '/kybernos-contacts/list?limit=' + BIZ_PAGE + '&offset=', ''),
+    build: (parts, p, now) => {
+      const types = new Map()
+      for (const t of arr(obj(obj(parts.schema).schema).types)) if (isObj(t) && typeof t.key === 'string') types.set(t.key, t)
+      const rows = []
+      for (const r of bizRows(parts, 'page')) {
+        const t = types.get(r.type)
+        const tags = arr(r.tags).filter((x) => typeof x === 'string' && x !== '')
+        const row = {
+          name: cut(r.name, 120), kind: r.kind === 'company' ? 'company' : 'person', type: t === undefined ? cut(r.type, 40) : bizWord(t.label, r.type), type_key: cut(r.type, 40), email: cut(r.email, 120),
+          company: isObj(r.company) ? cut(r.company.name, 120) : '', tags: tags.join(', '), tag_count: tags.length, created: bizDay(r.created_at), updated: bizDay(r.updated_at), demo: r.demo === true ? 'yes' : 'no',
+        }
+        bizFields(r.fields, row, now)
+        rows.push(row)
+      }
+      return table(PROVIDERS['contacts.people'].columns, bizComplete(rows, PROVIDERS['contacts.people'].columns), { note: bizNote(parts, 'page', rows.length) })
+    },
+  },
+  'pipeline.cards': {
+    label: 'Pipeline cards',
+    about: 'The cards of the Pipeline boards, one row per card: its board, stage (in the board\'s own words, stage_no is its place in the board), value, the person and item it is about, where it came from, its priority and due date, and how long it has been in its stage. Without flow it reads every board; with flow, one board, and a chart of its stages keeps the board\'s order. Archived cards are left out; sample cards have demo = yes.',
+    params: { flow: 'text, a board key (sales, orders, candidates…): only the cards of that board' },
+    period: false,
+    sparse: true,
+    columns: [
+      col('title', 'Card', 'string'), col('subtitle', 'Line under the title', 'string'), col('flow', 'Board', 'string'), col('flow_key', 'Board key', 'string'), col('stage', 'Stage', 'string'), col('stage_key', 'Stage key', 'string'), col('stage_no', 'Place of the stage', 'number'),
+      col('value', 'Value', 'number'), col('since', 'In this stage since', 'date'), col('days_in_stage', 'Days in this stage', 'number'), col('source', 'Source', 'string'), col('priority', 'Priority', 'string'),
+      col('due', 'Due', 'date'), col('due_in', 'Due in (days)', 'number'), col('tags', 'Tags', 'string'), col('contact', 'Contact', 'string'), col('item', 'Item', 'string'), col('demo', 'Sample card', 'string'),
+    ],
+    routes: (p) => (bizSlug(p.flow) === ''
+      ? [{ key: 'flows', method: 'GET', path: '/kybernos-pipeline/flows' }]
+      : [{ key: 'board:' + bizSlug(p.flow), method: 'GET', path: '/kybernos-pipeline/board?flow=' + bizSlug(p.flow) }]),
+    next: (parts, p) => {
+      if (bizSlug(p.flow) !== '') return []
+      return arr(obj(parts.flows).flows).filter((f) => isObj(f) && /^[a-z0-9][a-z0-9_-]{0,39}$/.test(str(f.id)) && num(f.cards) > 0).slice(0, BIZ_BOARDS)
+        .map((f) => ({ key: 'board:' + f.id, method: 'GET', path: '/kybernos-pipeline/board?flow=' + f.id, optional: true }))
+    },
+    build: (parts, p, now) => {
+      const rows = []
+      const order = []
+      let more = false
+      for (const key of Object.keys(parts).filter((k) => k.startsWith('board:')).sort()) {
+        const b = obj(parts[key])
+        if (b.truncated === true) more = true
+        const flow = obj(b.flow)
+        const stages = arr(b.columns).filter(isObj)
+        stages.forEach((c, i) => {
+          const label = bizWord(c.label, c.stage)
+          if (!order.includes(label)) order.push(label)
+          for (const k of arr(c.cards)) {
+            if (!isObj(k)) continue
+            const x = obj(k.fields)
+            const since = toMs(k.since)
+            const due = str(x.due)
+            const dueNo = dateDayNo(due)
+            rows.push({
+              title: cut(k.title, 120), subtitle: cut(k.subtitle, 120), flow: bizWord(flow.label, flow.id), flow_key: cut(flow.id, 40), stage: label, stage_key: cut(c.stage, 40), stage_no: i + 1,
+              value: typeof k.value === 'number' && Number.isFinite(k.value) ? k.value : '', since: since === null ? '' : dayKey(since), days_in_stage: since === null ? '' : Math.max(0, localDayNo(now) - localDayNo(since)),
+              source: cut(x.source, 40), priority: cut(x.priority, 12), due: dueNo === null ? '' : due, due_in: dueNo === null ? '' : dueNo - localDayNo(now),
+              tags: arr(x.tags).filter((t) => typeof t === 'string').join(', '), contact: isObj(k.contact) ? cut(k.contact.name, 120) : '', item: isObj(k.item) ? cut(k.item.title, 120) : '', demo: k.demo === true ? 'yes' : 'no',
+            })
+          }
+        })
+      }
+      const single = bizSlug(p.flow) !== ''
+      return table(PROVIDERS['pipeline.cards'].columns, bizComplete(rows, PROVIDERS['pipeline.cards'].columns), { xDomain: single && order.length > 0 ? { field: 'stage', values: order } : null, note: more ? 'A board longer than 2,000 cards is cut short.' : '' })
+    },
+  },
 }
 export const PROVIDER_IDS = Object.keys(PROVIDERS)
 
@@ -329,6 +525,15 @@ export const planFor = (source, now) => {
   const p = PROVIDERS[source && source.provider]
   if (p === undefined) return []
   return p.routes(obj(source.params), now)
+}
+/**
+ * The requests of a second round, for the providers whose first answers say what to ask next (the pages after the first, one board per flow):
+ * `parts` are the answers of `planFor`, keyed like the plan. [] for a provider with nothing more to ask, and for any failure.
+ */
+export const planNext = (source, parts, now) => {
+  const p = PROVIDERS[source && source.provider]
+  if (p === undefined || typeof p.next !== 'function') return []
+  try { return arr(p.next(obj(parts), obj(source.params), now)).slice(0, LIMITS.followUp) } catch (e) { return [] }
 }
 /** The table for a source, from the answers keyed like the plan. Never throws: a provider that cannot read its answer returns an empty table. */
 export const buildTable = (source, parts, now) => {
@@ -566,6 +771,8 @@ export function inspectDashboard (d) {
   const need = (w, cols, field, label, numeric) => {
     if (field === undefined || field === '' || cols === null) return
     const c = cols.find((x) => x.id === field)
+    // an open source (Catalog, Contacts) also carries the fields of the item's own type, which no catalogue can list: a plausible field key is not an error there
+    if (c === undefined && PROVIDERS[w.source.provider].open === true && FIELD_KEY.test(field)) return
     if (c === undefined) { out.push('widget "' + w.id + '": ' + label + ' "' + field + '" is not a column of ' + w.source.provider + ' (columns: ' + cols.map((x) => x.id).join(', ') + ')'); return }
     if (numeric === true && c.type !== 'number') out.push('widget "' + w.id + '": ' + label + ' "' + field + '" is ' + c.type + ', not a number (use agg "count", or a numeric column)')
   }
@@ -652,6 +859,8 @@ export function describeCatalogue () {
     const p = PROVIDERS[id]
     return '- ' + id + ': ' + p.about + (Object.keys(p.params).length ? ' Params: ' + Object.keys(p.params).map((k) => k + ' (' + p.params[k] + ')').join('; ') + '.' : '')
       + ' Columns: ' + p.columns.map((c) => c.id + ':' + c.type).join(', ') + '.' + (p.period ? '' : ' No period filter: it shows the current state.')
+      + (p.open === true ? ' The fields of the item\'s own type are columns too, under their key.' : '')
+      + (p.sparse === true ? ' A column can be empty: add not_empty to where before an average, a minimum or a maximum.' : '')
   }).join('\n')
   const wid = WIDGET_TYPES.map((t) => '- ' + t + ' (default ' + WIDGETS[t].w + 'x' + WIDGETS[t].h + '): ' + WIDGETS[t].about).join('\n')
   return { providers: prov, widgets: wid }

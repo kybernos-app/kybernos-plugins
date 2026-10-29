@@ -86,6 +86,43 @@ export function fixturesAt (now) {
     ] }
   }
 
+  /** The Business routes (Catalog, Contacts, Pipeline), shaped like the answers of the real ones: a small online shop, dates relative to `now`. */
+  function business () {
+    const day = (n) => dayKey(now + n * DAY)
+    const at = (n) => iso(now + n * DAY)
+    const item = (id, title, status, price, fields, extra) => ({ id, type: 'product', title, subtitle: fields.sku, status, price_text: '€' + price, price_num: price, fields: Object.assign({ price }, fields), demo: true, created_at: at(-9), updated_at: at(-2), archived_at: null, ...extra })
+    const items = [
+      item(1, 'Stoneware mug, set of 2', 'live', 28, { sku: 'FC-MUG-02', stock: 42, reorder_at: 10, supplier: 'Okafor Ceramics', category: 'Kitchen', badge: 'Bestseller', image: 'photo:ecommerce/stoneware-mug' }),
+      item(2, 'Linen napkins, 4-pack', 'live', 34, { sku: 'FC-NAP-04', stock: 6, reorder_at: 10, supplier: 'Nordlinen Mills', category: 'Table', image: 'photo:ecommerce/linen-napkins' }),
+      item(3, 'Beeswax taper candles', 'out', 19, { sku: 'FC-CND-12', stock: 0, reorder_at: 12, supplier: 'Hivelight Apiary', category: 'Candles' }),
+      item(4, 'Wool throw', 'draft', 89, { sku: 'FC-THR-01', category: 'Living' }),
+    ]
+    const types = { ok: true, source: 'theme', types: [{ id: 'product', label: { en: 'Product', fr: 'Produit' }, plural: { en: 'Products', fr: 'Produits' }, statuses: [{ key: 'live', tone: 'ok', label: { en: 'Live', fr: 'En ligne' } }, { key: 'out', tone: 'bad', label: { en: 'Out of stock', fr: 'En rupture' } }, { key: 'draft', tone: 'neutral', label: { en: 'Draft', fr: 'Brouillon' } }] }] }
+    const person = (id, name, type, tags, fields, company) => ({ id, kind: 'person', type, name, email: name.toLowerCase().replace(/ /g, '.') + '@example.com', company_id: company ? 9 : null, company: company ? { id: 9, name: company } : null, tags, fields, demo: true, created_at: at(-9), updated_at: at(-1), archived_at: null })
+    const people = [
+      person(11, 'Amelia Hart', 'customer', ['vip', 'repeat'], { city: 'Lyon', spent: 1240, last_order: day(-3) }),
+      person(12, 'Mateo Silva', 'customer', ['repeat'], { city: 'Nantes', spent: 486, last_order: day(-8) }),
+      person(13, 'Noah Bernard', 'customer', [], { city: 'Paris' }),
+      person(14, 'Okafor Ceramics', 'supplier', ['handmade'], { city: 'Lisbon', lead_time: '3 weeks' }),
+    ]
+    const schema = { ok: true, schema: { themed: true, themes: ['shop'], types: [{ key: 'customer', kind: 'person', label: { en: 'Customer', fr: 'Client' } }, { key: 'supplier', kind: 'company', label: { en: 'Supplier', fr: 'Fournisseur' } }], fields: [], tags: [] } }
+    const card = (id, title, stage, value, fields, links) => ({ id, flow: 'orders', stage, title, subtitle: '2 items', value, position: id, since: at(-id), demo: true, archived: false, contact_id: 11, item_id: 1, fields, contact: links ? { id: 11, name: links[0], kind: 'person', archived: false } : null, item: links ? { id: 1, title: links[1], subtitle: '', type: 'product', image: null, archived: false } : null })
+    const stages = [['new', 'New'], ['paid', 'Paid'], ['packed', 'Packed'], ['shipped', 'Shipped'], ['delivered', 'Delivered']]
+    const flow = { id: 'orders', label: { en: 'Orders', fr: 'Commandes' }, newLabel: { en: 'New order', fr: 'Nouvelle commande' }, stages: stages.map(([key, en]) => ({ key, label: { en, fr: en } })), value: { format: 'money', currency: 'EUR' }, links: { contact: true, item: true }, source: 'theme', theme: 'kybernos-themes/ecommerce' }
+    const cards = [
+      card(1, '#1053 · Amelia Hart', 'new', 89, { source: 'Website', priority: 'high', due: day(2), tags: ['vip'] }, ['Amelia Hart', 'Wool throw']),
+      card(2, '#1052 · Noah Bernard', 'paid', 71, { source: 'Marketplace', priority: 'low', due: day(5) }, ['Noah Bernard', 'Tote bag']),
+      card(3, '#1051 · Yusuf Demir', 'shipped', 43, { source: 'Newsletter', priority: 'normal', due: day(-1) }, ['Yusuf Demir', 'Linen apron']),
+      card(4, '#1050 · Mateo Silva', 'delivered', 120, { source: 'Website', priority: 'normal' }, ['Mateo Silva', 'Wool throw']),
+    ]
+    const columns = stages.map(([key, en]) => ({ stage: key, label: { en, fr: en }, unknown: false, count: 0, total: 0, cards: cards.filter((c) => c.stage === key) }))
+    const board = { ok: true, flow, columns, count: cards.length, total: 323, demoCards: cards.length, truncated: false }
+    const flows = { ok: true, flows: [Object.assign({}, flow, { cards: cards.length })], theme: true, demo: cards.length }
+    const page = (rows) => ({ ok: true, rows, total: rows.length, limit: 500, offset: 0, counts: {}, countsPartial: false, demo: { items: rows.length, all: rows.length } })
+    return { types, items: page(items), schema, people: Object.assign(page(people), { truncated: false, demo: people.length }), flows, board }
+  }
+  const biz = business()
+
   /** The answers of every route a provider asks for, keyed like the provider's plan. */
   const PARTS = {
     'usage.daily': { summary: usageSummary(14) },
@@ -100,9 +137,12 @@ export function fixturesAt (now) {
     'skills.list': { skills: skills() },
     'sessions.runs': { index: runsIndex() },
     'deliverables.list': { load: load() },
+    'catalog.items': { types: biz.types, page0: biz.items },
+    'contacts.people': { schema: biz.schema, page0: biz.people },
+    'pipeline.cards': { flows: biz.flows, 'board:orders': biz.board },
   }
-  return { usageSummary, tasksList, occurrences, load, sessionsState, skills, runsIndex, PARTS }
+  return { usageSummary, tasksList, occurrences, load, sessionsState, skills, runsIndex, business, PARTS }
 }
 
 const F = fixturesAt(NOW)
-export const { usageSummary, tasksList, occurrences, load, sessionsState, skills, runsIndex, PARTS } = F
+export const { PARTS } = F // the only part of F anything imports (the visual check calls fixturesAt itself)

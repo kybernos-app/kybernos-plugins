@@ -92,6 +92,57 @@ const T = plugin.__test
   ok('the player registers on the door when it is there', reg !== null && reg[0] === 'dashboard')
 }
 
+// ── the « Overview » row of the Business group ───────────────────────────────
+{
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+  const realFetch = globalThis.fetch
+  let answer = { ok: true, overview: { preset: 'shop-overview', name: 'Shop overview', label: { en: 'Overview', fr: 'Vue d’ensemble' }, template: { id: 'acme/shop', name: 'Acme online shop' }, dashboardId: null } }
+  let asked = 0
+  globalThis.fetch = async (url, init) => { if (String(url).includes('/kybernos-dashboards/overview')) { asked++; return { ok: true, status: 200, json: async () => answer } } return realFetch(url, init) }
+  const registered = []
+  const taken = []
+  const injected = {}
+  const cleanups = []
+  const ctx = {
+    get: (k) => (k === 'sidebarRightTabs' ? { register: () => () => {} } : undefined),
+    effect: (fn, label) => { const c = fn(); cleanups.push({ label, c }); return c },
+    slots: { inject: (name, make) => { injected[name] = make(); return () => {} }, register: (spec, comp) => ({ spec, comp }) },
+  }
+  delete win.__KB_MENU__ // the core builds its menu after this plugin: nothing can be declared yet
+  plugin.apply(ctx)
+  await sleep(60)
+  const page = injected['main.kybernos-business']
+  ok('the Overview page is injected on the business pages\' own keyed slot', page !== undefined && page.spec.name === 'main.kybernos-business' && page.spec.key === 'overview' && typeof page.comp === 'function')
+  ok('the host is asked, and with no menu to declare on, nothing is declared and nothing throws', asked >= 1 && registered.length === 0)
+  win.__KB_MENU__ = { register: (row) => { registered.push(row); return () => { taken.push(row.id) } } }
+  await sleep(1700)
+  ok('the menu has come: the row is declared once, in the Business group, first, with the template\'s words', registered.length === 1 && registered[0].id === 'overview' && registered[0].group === 'business' && registered[0].order < 10 && registered[0].label.en === 'Overview' && registered[0].label.fr === 'Vue d’ensemble' && typeof registered[0].icon === 'string', registered)
+  await sleep(1700)
+  ok('asking again changes nothing while the host says the same', registered.length === 1 && taken.length === 0)
+  answer = { ok: true, overview: { preset: 'farm-overview', name: 'Stand overview', label: { en: 'Stand', fr: 'Stand' }, template: { id: 'acme/farm', name: 'Acme farm stand' }, dashboardId: 'farm-overview' } }
+  await sleep(1700)
+  ok('another template\'s word replaces the row', registered.length === 2 && registered[1].label.en === 'Stand' && taken.length === 1)
+  answer = { ok: true, overview: null }
+  await sleep(1700)
+  ok('the template removed, the row is taken back', taken.length === 2 && registered.length === 2)
+  answer = { ok: true, overview: { preset: 'shop-overview', name: 'Shop overview', label: { en: 'Overview', fr: 'Vue d’ensemble' }, template: { id: 'acme/shop', name: 'x' }, dashboardId: null } }
+  await sleep(1700)
+  ok('and back again when a template is installed', registered.length === 3 && taken.length === 2)
+  for (const e of cleanups) if (typeof e.c === 'function') e.c()
+  ok('taking the plugin away takes the row back and stops asking', taken.length === 3)
+  const n = asked
+  await sleep(1700)
+  ok('nothing is asked after the plugin has gone', asked === n)
+  ok('every effect of the Overview is labelled', cleanups.filter((e) => /overview/.test(e.label)).length === 2 && cleanups.every((e) => e.label.startsWith('kybernos-dashboards:')))
+  // the page of the row is the Dashboards page in Overview mode
+  const el = T.OverviewPage()
+  ok('the row\'s page is the Dashboards page opened as the Overview', el.t === T.DashboardsPage && el.p.overview === true)
+  ok('the Overview word is « Overview » until the host says another', T.overviewWord() === 'Overview' || T.overviewWord() === 'Stand' || T.overviewWord() === 'Vue d’ensemble')
+  ok('a gallery card names its template', src.includes("'data-kb': 'preset-template'") && src.includes('.kbdb-pill.tpl{'))
+  globalThis.fetch = realFetch
+  delete win.__KB_MENU__
+}
+
 // ── painters: geometry to markup ─────────────────────────────────────────────
 const { model, chart } = T
 const table = (cols, rows, meta) => ({ columns: cols, rows, meta: Object.assign({ note: '', xDomain: null }, meta || {}) })

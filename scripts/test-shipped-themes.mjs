@@ -21,7 +21,9 @@ import { OWNER_VALIDATORS, checkFolder } from './plugin-check.mjs'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ROOT = join(REPO, 'packages', 'kybernos-plugin', 'themes')
 const BUSINESS = ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline']
-const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline']
+// what the Templates page lists a theme as needing: the three business pages, then the Dashboards (the theme ships a dashboard, kybernos/dashboards#preset)
+const NEEDS = [...BUSINESS, 'kybernos/dashboards']
+const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline', 'dashboards']
 // What each shipped theme must hold: the folder, and the number of sample rows its demo/sample.json seeds (a sample stays modest and readable).
 const EXPECT = {
   ecommerce: { contacts: 22, items: 16, cards: 18, notes: 8, flows: 1 },
@@ -73,7 +75,7 @@ for (const dir of dirs) {
     const r = checkFolder(join(ROOT, dir))
     assert.equal(r.exitCode, 0, r.lines.filter((l) => l.status === 'FAIL').map((l) => l.id + ' ' + l.message).join('; '))
     const points = r.lines.filter((l) => l.id.startsWith('point.'))
-    assert.equal(points.length, 8, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
+    assert.equal(points.length, 9, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
     for (const l of points) assert.equal(l.status, 'PASS', l.id + ': ' + l.message)
   })
 
@@ -84,7 +86,7 @@ for (const dir of dirs) {
     assert.deepEqual(t.manifest.author, { id: 'kybernos-themes', name: 'Kybernos' })
     assert.equal(t.manifest.kind, 'data')
     assert.equal(t.manifest.license, 'Apache-2.0')
-    assert.deepEqual(Object.keys(t.manifest.requires.plugins).sort(), ['kybernos/catalog', 'kybernos/contacts', 'kybernos/core', 'kybernos/pipeline', 'kybernos/skills', 'kybernos/theme'])
+    assert.deepEqual(Object.keys(t.manifest.requires.plugins).sort(), ['kybernos/catalog', 'kybernos/contacts', 'kybernos/core', 'kybernos/dashboards', 'kybernos/pipeline', 'kybernos/skills', 'kybernos/theme'])
     for (const range of Object.values(t.manifest.requires.plugins)) assert.equal(range, '^1.0')
     assert.deepEqual(t.manifest.extends.map((e) => e.dir), POINTS)
     assert.equal(readFileSync(join(t.root, 'cordis.patch.yml'), 'utf8').replace(/#[^\n]*/g, '').trim(), '[]')
@@ -135,13 +137,13 @@ for (const dir of dirs) {
     assert.ok(Array.isArray(kw) && kw.length >= 1 && kw.length <= 8, 'keywords')
     for (const k of kw) assert.match(k, /^[a-z0-9][a-z0-9 -]{1,23}$/, 'keyword ' + k)
     assert.equal(new Set(kw).size, kw.length)
-    assert.deepEqual(Object.keys(t.why).sort(), [...BUSINESS].sort(), 'why.json: one line per business plugin, nothing else')
-    for (const id of BUSINESS) {
+    assert.deepEqual(Object.keys(t.why).sort(), [...NEEDS].sort(), 'why.json: one line per needed plugin (the three business plugins and the dashboards), nothing else')
+    for (const id of NEEDS) {
       const w = t.why[id]
       assert.deepEqual(Object.keys(w).sort(), ['en', 'fr'], id)
       for (const l of ['en', 'fr']) assert.ok(typeof w[l] === 'string' && w[l].trim() !== '' && w[l].length <= 160 && !/[<>]/.test(w[l]), id + '.' + l)
     }
-    assert.equal(new Set(BUSINESS.map((id) => t.why[id].en)).size, 3, 'three different lines')
+    assert.equal(new Set(NEEDS.map((id) => t.why[id].en)).size, 4, 'four different lines')
   })
 
   ok(dir + ': the kit hangs together (the automations and the team named by the goals, the skills the team names, nothing copied from another pack)', () => {
@@ -403,7 +405,7 @@ if (existsSync(reader)) {
       assert.match(x.accent, /^#[0-9a-fA-F]{6}$/)
       assert.deepEqual(Object.keys(x.words).sort(), [...WORDS].sort())
       for (const row of WORDS) assert.deepEqual(x.words[row], t.pack.menu.labels[row])
-      assert.deepEqual(x.needs, BUSINESS, 'needs = the three business plugins, in the order of the Business group')
+      assert.deepEqual(x.needs, NEEDS, 'needs = the three business plugins in the order of the Business group, then the dashboards')
       assert.equal(x.tag, t.manifest.keywords[0][0].toUpperCase() + t.manifest.keywords[0].slice(1), 'the chip is the first keyword, capitalised')
       assert.deepEqual(x.why, t.why, 'the lines of why.json, one per plugin')
       assert.equal(x.cover, true, 'each theme ships its cover picture (the one media exception of AGENTS.md rule 4)')

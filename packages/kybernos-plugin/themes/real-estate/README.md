@@ -8,6 +8,7 @@ A Kybernos theme for an estate agency. Data only: JSON and Markdown, no code, no
 | Contacts | buyers, sellers, landlords, tenants and partners, owner companies and partner firms |
 | Catalog | one kind of item, the property, with for sale, to let, under offer, sold and mandate draft |
 | Pipeline | two boards: Sales (enquiry to closed) and Lettings (application to moved in) |
+| Dashboards | one overview dashboard: active listings, open sales value, viewings to run, mandates ending soon, properties by status, the sales pipeline by stage, leads by source |
 | Kit | 2 skills, 1 team, 3 automations (created switched off), 4 goals taken from the `immo` pack |
 | Style | the warm light "immobilier-locatif" preset |
 

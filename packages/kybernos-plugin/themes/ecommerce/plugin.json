@@ -30,7 +30,8 @@
       "kybernos/skills": "^1.0",
       "kybernos/contacts": "^1.0",
       "kybernos/catalog": "^1.0",
-      "kybernos/pipeline": "^1.0"
+      "kybernos/pipeline": "^1.0",
+      "kybernos/dashboards": "^1.0"
     }
   },
   "extends": [
@@ -73,6 +74,11 @@
       "point": "kybernos/pipeline#flow",
       "range": "^1.0",
       "dir": "pipeline"
+    },
+    {
+      "point": "kybernos/dashboards#preset",
+      "range": "^1.0",
+      "dir": "dashboards"
     }
   ]
 }
