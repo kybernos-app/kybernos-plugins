@@ -1103,12 +1103,12 @@ let kbLocaleRead = () => 'en'
       'kbui.preview': { kybernos: 'Aperçu', en: 'Preview' },
       'kbui.projects': { kybernos: 'Workspaces', en: 'Workspaces' },
       'kbui.project.notfound': { kybernos: 'Projet introuvable.', en: 'Project not found.' },
-      'kbui.ws.missing.one': { kybernos: 'dossier introuvable', en: 'missing folder' },
-      'kbui.ws.missing.many': { kybernos: 'dossiers introuvables', en: 'missing folders' },
-      'kbui.ws.missing.hint': { kybernos: 'Un espace enregistré pointe sur un dossier qui n’existe plus : les outils fichier d’une session ouverte là échouent. Relier le dossier déplacé crée un espace à son nouvel emplacement.', en: 'A registered workspace points at a folder that no longer exists: file tools in a session opened there fail. Linking the moved folder creates a workspace at its new place.' },
-      'kbui.ws.relink': { kybernos: 'Relier un dossier…', en: 'Link a folder…' },
-      'kbui.ws.relink.done': { kybernos: 'Espace relié : ', en: 'Workspace linked: ' },
-      'kbui.ws.missing.tag': { kybernos: 'Dossier introuvable', en: 'Folder not found' },
+      'kbui.wspace.missing.one': { kybernos: 'dossier introuvable', en: 'missing folder' },
+      'kbui.wspace.missing.many': { kybernos: 'dossiers introuvables', en: 'missing folders' },
+      'kbui.wspace.missing.hint': { kybernos: 'Un espace enregistré pointe sur un dossier qui n’existe plus : les outils fichier d’une session ouverte là échouent. Relier le dossier déplacé crée un espace à son nouvel emplacement.', en: 'A registered workspace points at a folder that no longer exists: file tools in a session opened there fail. Linking the moved folder creates a workspace at its new place.' },
+      'kbui.wspace.relink': { kybernos: 'Relier un dossier…', en: 'Link a folder…' },
+      'kbui.wspace.relink.done': { kybernos: 'Espace relié : ', en: 'Workspace linked: ' },
+      'kbui.wspace.missing.tag': { kybernos: 'Dossier introuvable', en: 'Folder not found' },
       'kbui.read.aloud': { kybernos: 'Lire les réponses à voix haute à leur arrivée', en: 'Read replies aloud as they arrive' },
       'kbui.read.repo': { kybernos: 'Lire le dépôt', en: 'Read the repository' },
       'kbui.reading.engine': { kybernos: 'Lecture de l’inventaire des moteurs…', en: 'Reading the engine inventory…' },
@@ -16569,7 +16569,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         } catch (e) { /* le navigateur signale lui-même l'échec du téléchargement */ }
       }
       // The badge a card or a row wears when the host said its folder is gone (bêta 93953fad, 28/10).
-      const kbWsMissingTag = () => h('span', { className: 'kb8-wsmiss', 'data-kb': 'project-missing', title: kbt('kbui.ws.missing.hint'), style: { display: 'inline-flex', alignItems: 'center', flex: 'none', gap: '4px', fontSize: '11px', lineHeight: '16px', padding: '1px 8px', borderRadius: '999px', background: 'var(--dsw-alias-state-warn-tertiary)', color: 'var(--dsw-alias-state-warn-label)', whiteSpace: 'nowrap' } }, kbt('kbui.ws.missing.tag'))
+      const kbWsMissingTag = () => h('span', { className: 'kb8-wsmiss', 'data-kb': 'project-missing', title: kbt('kbui.wspace.missing.hint'), style: { display: 'inline-flex', alignItems: 'center', flex: 'none', gap: '4px', fontSize: '11px', lineHeight: '16px', padding: '1px 8px', borderRadius: '999px', background: 'var(--dsw-alias-state-warn-tertiary)', color: 'var(--dsw-alias-state-warn-label)', whiteSpace: 'nowrap' } }, kbt('kbui.wspace.missing.tag'))
       const projectCard = (w, i) => {
         const u = wUiOf(w)
         const label = (typeof u.name === 'string' && u.name.length > 0) ? u.name : (w.title || w.workspaceId)
@@ -16720,16 +16720,16 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         // and offers the one repair it can do — link the folder the project moved to (bêta 93953fad).
         (wsMissingItems.length > 0
           ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'workspaces-missing', style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', color: 'var(--dsw-alias-state-warn-label)' } },
-            h('span', null, wsMissingItems.length + ' ' + kbt(wsMissingItems.length === 1 ? 'kbui.ws.missing.one' : 'kbui.ws.missing.many')),
-            h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, kbt('kbui.ws.missing.hint')),
+            h('span', null, wsMissingItems.length + ' ' + kbt(wsMissingItems.length === 1 ? 'kbui.wspace.missing.one' : 'kbui.wspace.missing.many')),
+            h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, kbt('kbui.wspace.missing.hint')),
             h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'workspaces-relink', disabled: wsRelinkState !== null, onClick: () => { wsRelink() } },
-              kbt(wsRelinkState === 'picking' ? 'kbui.new.project.picking' : (wsRelinkState === 'creating' ? 'kbui.new.project.creating' : 'kbui.ws.relink'))))
+              kbt(wsRelinkState === 'picking' ? 'kbui.new.project.picking' : (wsRelinkState === 'creating' ? 'kbui.new.project.creating' : 'kbui.wspace.relink'))))
           : null),
         (wsRelinkErr !== null
           ? h('div', { role: 'alert', className: 'kb8-sub', 'data-kb': 'workspaces-relink-error', style: { color: 'var(--dsw-alias-state-error-primary)' } }, kbt('kbui.error') + wsRelinkErr)
           : null),
         (wsRelinkDone !== null
-          ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'workspaces-relink-ok' }, kbt('kbui.ws.relink.done') + wsRelinkDone)
+          ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'workspaces-relink-ok' }, kbt('kbui.wspace.relink.done') + wsRelinkDone)
           : null),
         (items.length === 0 && wsFailed === true ? h('div', { className: 'kb9-empty' }, kbt('kbui.workspaces.unavailable') + (wsFailMsg === null ? '.' : ' — ' + wsFailMsg)) : null),
         // Not read yet: bones the size of the real cards or rows (it used to be a line of text that the list then pushed down).

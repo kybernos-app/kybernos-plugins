@@ -6,6 +6,7 @@
     { "file": "client.js", "categories": ["dom"], "why": "The only MutationObserver watches the map's own container to recolour its own nodes; it never reads or changes an element Atlas does not own." }
   ],
   "kybernos-pulse": [
-    { "file": "panel-page.mjs", "categories": ["net"], "why": "The `fetch(` calls are text inside the page script the host serves to the Mac app's web view; they run in that page, against its own host (connect-src 'self'). The host code makes no request." }
+    { "file": "panel-page.mjs", "categories": ["net"], "why": "The `fetch(` calls are text inside the page script the host serves to the Mac app's web view; they run in that page, against its own host (connect-src 'self'). The host code makes no request." },
+    { "file": "helper/gen-icon.mjs", "categories": ["exec"], "why": "A build-time script of the Mac menu-bar app: it paints the app icon and turns it into an .icns when the app is built. It is not an export of the bundle and never runs inside DSH." }
   ]
 }
