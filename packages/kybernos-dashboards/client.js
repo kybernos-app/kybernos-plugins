@@ -2053,7 +2053,10 @@ window.__ModuleLoader__.load({
           const L = chart.columnsLayout({ series: data.series.map((s) => s.values), labelCount: n, W, H, mode: data.kind === 'stacked' ? 'stack' : 'group' })
           let g = ''
           for (const t of L.ticks) g += '<line class="gl" x1="' + L.plot.l + '" x2="' + (L.plot.l + L.plot.w) + '" y1="' + t.y + '" y2="' + t.y + '"/><text x="' + (L.plot.l - 6) + '" y="' + (t.y + 4) + '" text-anchor="end">' + esc(num(t.v, 'compact')) + '</text>'
-          for (const lb of L.labels) g += '<text x="' + lb.x + '" y="' + (H - 5) + '" text-anchor="middle">' + esc(fmtLabel(data.labels[lb.i].label, opts.lang)) + '</text>'
+          // two names that would touch are cut to the room they have (« Shortlist sent » next to « Searching » ran together on a phone); the tooltip has them whole
+          const gap = L.labels.length > 1 ? L.labels[1].x - L.labels[0].x : L.plot.w
+          const room = Math.max(3, Math.floor(gap / 6.4))
+          for (const lb of L.labels) g += '<text x="' + lb.x + '" y="' + (H - 5) + '" text-anchor="middle">' + esc(cutText(fmtLabel(data.labels[lb.i].label, opts.lang), room)) + '</text>'
           // one <g> per column, so hovering anywhere in the band lifts its bars
           for (const hit of L.hits) {
             const bars = L.bars.filter((b) => b.i === hit.i)
@@ -2077,14 +2080,18 @@ window.__ModuleLoader__.load({
         function paintBars (data, W, H, o) {
           const opts = o || {}
           const values = data.series[0].values
-          const L = chart.hbarsLayout({ values, W, H })
+          // The words of the rows get the room they need, up to two fifths of the chart: « Hand-poured soy candle » is read whole, not as « Hand-poured s… » (the tooltip had it, the page did not).
+          const longest = Math.max(1, ...data.labels.map((l) => String(l.label).length))
+          const chars = Math.max(14, Math.min(longest, Math.floor((W * 0.4) / 6.2)))
+          const labelW = Math.max(96, Math.round(chars * 6.2 + 14))
+          const L = chart.hbarsLayout({ values, W, H, labelW })
           let g = ''
           for (const t of L.ticks) g += '<line class="gl" x1="' + t.x + '" x2="' + t.x + '" y1="' + L.plot.t + '" y2="' + (L.plot.t + L.plot.h) + '"/><text x="' + t.x + '" y="' + (H - 3) + '" text-anchor="middle">' + esc(num(t.v, 'compact')) + '</text>'
           L.bars.forEach((b, i) => {
             const lab = data.labels[i]
             const tip = '<b>' + esc(lab.label) + '</b><span>' + esc(num(b.v)) + (data.unit ? ' ' + esc(data.unit) : '') + '</span>'
             g += '<g class="kbdb-row" data-tip="' + esc(tip) + '"><rect class="hit" x="0" y="' + r(b.y - (L.rowH - b.h) / 2) + '" width="' + W + '" height="' + L.rowH + '"/>'
-              + '<text x="' + (L.plot.l - 8) + '" y="' + (b.y + b.h - 3) + '" text-anchor="end" style="fill:var(--kbdb-t1)">' + esc(cutText(lab.label, 14)) + '</text>'
+              + '<text x="' + (L.plot.l - 8) + '" y="' + (b.y + b.h - 3) + '" text-anchor="end" style="fill:var(--kbdb-t1)">' + esc(cutText(lab.label, chars)) + '</text>'
               + (b.w > 0 ? '<path class="kbdb-hbar ' + (lab.tone !== undefined ? fillClass(i, lab.tone) : 'kbdb-s' + (lab.other ? 6 : 1)) + '" style="--i:' + stagger(i, L.bars.length) + '" d="' + chart.roundedRightPath(b.x, b.y, b.w, b.h, 4) + '"/>' : '')
               + '<text class="kbdb-val" style="--i:' + stagger(i, L.bars.length) + ';fill:var(--kbdb-t1)" x="' + r(b.x + b.w + 6) + '" y="' + (b.y + b.h - 3) + '">' + esc(num(b.v, 'compact')) + '</text></g>'
           })
@@ -3068,7 +3075,8 @@ window.__ModuleLoader__.load({
             body = h(React.Fragment, null,
               conflict ? h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Ce dashboard a changé ailleurs (l’IA, un autre onglet). Tes dernières retouches ne sont pas enregistrées.', 'This dashboard changed elsewhere (the AI, another tab). Your last edits were not saved.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: async () => { await load(dash.id); setTick((x) => x + 1) } }, kt('Recharger', 'Reload'))) : null,
               D.widgets.length === 0 ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Ce dashboard est vide', 'This dashboard is empty')), h('span', null, kt('Dis à l’IA ce que tu veux y voir.', 'Tell the AI what you want to see here.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askImprove }, Ic('spark', 14), kt('Améliorer avec l’IA', 'Improve with AI')))
-                : h(DashboardView, { dash: D, tick, edit, flashIds: flash, onChange: change, onAsk: (kind) => { if (kind === 'add') askAdd() }, onRetry: refresh }))
+                // keyed by the dashboard: widgets of two dashboards share ids (chart-5, card-1…), and a widget that keeps its place between them keeps what it measured (a size from another chart, an unfinished entrance)
+                : h(DashboardView, { key: dash.id, dash: D, tick, edit, flashIds: flash, onChange: change, onAsk: (kind) => { if (kind === 'add') askAdd() }, onRetry: refresh }))
           } else body = null
 
           const menuItem = (key, icon, label, fn) => h('button', { key, type: 'button', className: 'o', onClick: async () => { setMenu(null); await fn() } }, Ic(icon, 14), label)
@@ -3126,7 +3134,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbdb-pane-h' }, h('span', { className: 'kbdb-dot live' }), h('span', { className: 'nm' }, dash.dashboard.name), h('span', { className: 'sp' }),
               h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Actualiser', 'Refresh'), onClick: () => { clearRoutes(); setTick((x) => x + 1) } }, Ic('refresh', 14)),
               h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Ouvrir en pleine page', 'Open full page'), title: kt('Ouvrir en pleine page', 'Open full page'), onClick: full }, Ic('ext', 14))),
-            h('div', { className: 'kbdb-pane-b' }, h(DashboardView, { dash: dash.dashboard, tick, edit: false, flashIds: flash, onChange: () => {}, onRetry: () => { clearRoutes(); setTick((x) => x + 1) } })))
+            h('div', { className: 'kbdb-pane-b' }, h(DashboardView, { key: dash.id, dash: dash.dashboard, tick, edit: false, flashIds: flash, onChange: () => {}, onRetry: () => { clearRoutes(); setTick((x) => x + 1) } })))
         }
 
         /* ── the player of the MiniApp door (Creations page, chat card, popup) ── */

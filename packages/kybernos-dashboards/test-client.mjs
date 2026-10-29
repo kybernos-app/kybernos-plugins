@@ -137,6 +137,7 @@ const T = plugin.__test
   // the page of the row is the Dashboards page in Overview mode
   const el = T.OverviewPage()
   ok('the row\'s page is the Dashboards page opened as the Overview', el.t === T.DashboardsPage && el.p.overview === true)
+  ok('the dashboard view is keyed by the dashboard, on the page and in the pane (widgets of two dashboards share ids: a reused one kept its size)', (src.match(/h\(DashboardView, \{ key: dash\.id, /g) || []).length === 2)
   ok('the Overview word is « Overview » until the host says another', T.overviewWord() === 'Overview' || T.overviewWord() === 'Stand' || T.overviewWord() === 'Vue d’ensemble')
   ok('a gallery card names its template', src.includes("'data-kb': 'preset-template'") && src.includes('.kbdb-pill.tpl{'))
   globalThis.fetch = realFetch
@@ -164,7 +165,24 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const legend = T.legendHtml(d.series)
   ok('legend: two series get one, one series none', legend.includes('kbdb-legend') && T.legendHtml([d.series[0]]) === '')
   const b = T.paintBars(model.chartData(t1, W({ type: 'chart', kind: 'bars', x: 'model', y: 'tokens', source: { provider: 'usage.daily' } })), 380, 160, {})
+  {
+    const stages = table([{ id: 'stage', type: 'string' }], ['Brief', 'Searching', 'Shortlist sent', 'Offer', 'Placed'].map((stage) => ({ stage })))
+    const spec = W({ type: 'chart', kind: 'columns', x: 'stage', source: { provider: 'pipeline.cards' } })
+    const phone = T.paintColumns(model.chartData(stages, spec), 230, 200, {})
+    const desk = T.paintColumns(model.chartData(stages, spec), 520, 200, {})
+    ok('columns: names that would touch are cut to their room (a phone), whole when there is room', !phone.includes('>Shortlist sent<') && /Shor[^<]*…</.test(phone) && desk.includes('>Shortlist sent<') && desk.includes('>Searching<') && finite(phone))
+  }
   ok('bars: growing bars, values fading in after them', b.includes('kbdb-hbar') && b.includes('kbdb-val') && finite(b))
+  {
+    // the words of the rows get the room they need (a long product name is read whole), up to two fifths of the chart, then cut with an ellipsis
+    const names = ['Hand-poured soy candle', 'Ceramic carafe', 'Wool throw, oatmeal', 'A name that is far too long to ever fit in a chart of this size, however wide']
+    const tl = table([{ id: 'name', type: 'string' }], names.flatMap((n, i) => Array.from({ length: 4 - i }, () => ({ name: n }))))
+    const wide = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'catalog.items' } })), 520, 200, {})
+    ok('bars: a long label is written whole, not cut at 14 characters', wide.includes('>Hand-poured soy candle<') && wide.includes('>Wool throw, oatmeal<') && finite(wide))
+    ok('bars: a label past two fifths of the chart is cut with an ellipsis, the tooltip has it whole', /A name that is far too long[^<]*…</.test(wide) && wide.includes('far too long to ever fit in a chart of this size, however wide'))
+    const narrow = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'catalog.items' } })), 300, 200, {})
+    ok('bars: in a narrow chart the label area stays bounded and the bars keep their room', /<text x="(\d+(\.\d+)?)" y="[^"]*" text-anchor="end"/.test(narrow) && Number(/<text x="(\d+(\.\d+)?)" y="[^"]*" text-anchor="end"/.exec(narrow)[1]) <= 300 * 0.4 + 14 + 8)
+  }
   const l = T.paintLine(model.chartData(t1, W({ type: 'chart', kind: 'area', x: 'day', y: 'tokens', source: { provider: 'usage.daily' } })), 400, 200, true, {})
   ok('line: draws itself (length variable), area fades, the end dot pops and pings, a crosshair follows', /kbdb-line[^>]*--len:\d+/.test(l) && l.includes('kbdb-area') && l.includes('kbdb-end') && l.includes('kbdb-ping') && l.includes('kbdb-cross') && l.includes('data-cx=') && finite(l))
   const dn = T.paintDonut(model.chartData(t1, W({ type: 'chart', kind: 'donut', x: 'model', y: 'tokens', source: { provider: 'usage.daily' } })), 160, { caption: 'tokens' })

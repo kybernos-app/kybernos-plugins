@@ -12,7 +12,10 @@
       "type": "card",
       "title": "Open jobs",
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "job"
+        }
       },
       "metric": {
         "agg": "count",
@@ -87,6 +90,14 @@
         "agg": "count",
         "where": [
           {
+            "field": "flow_key",
+            "op": "in",
+            "value": [
+              "candidates",
+              "missions"
+            ]
+          },
+          {
             "field": "stage_key",
             "op": "=",
             "value": "placed"
@@ -102,6 +113,14 @@
           "field": "value",
           "where": [
             {
+              "field": "flow_key",
+              "op": "in",
+              "value": [
+                "candidates",
+                "missions"
+              ]
+            },
+            {
               "field": "stage_key",
               "op": "=",
               "value": "placed"
@@ -114,7 +133,10 @@
       "type": "card",
       "title": "Oldest open job",
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "job"
+        }
       },
       "metric": {
         "agg": "max",
@@ -245,7 +267,10 @@
       "sort": "opened",
       "limit": 6,
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "job"
+        }
       },
       "w": 4,
       "h": 5

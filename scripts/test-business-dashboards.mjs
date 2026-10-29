@@ -193,6 +193,21 @@ for (const dir of dirs) {
     } finally { rmSync(home, { recursive: true, force: true }) }
   })
 
+  ok(dir + ': with the other two templates installed too (their rows in the same base) every widget shows the very same thing', () => {
+    const crowded = openWorld({ themeDir, also: dirs.filter((d) => d !== dir).map((d) => join(ROOT, d)), now: NOW })
+    try {
+      assert.equal(crowded.plugin().status, 'ok')
+      assert.equal(templatePresets(crowded.registry).length, 3, 'the gallery has the three dashboards')
+      const total = crowded.base.counts()
+      assert.ok(total.tables.item > world.base.counts().tables.item * 2, 'the base really holds the other templates\' rows')
+      for (const w of dash.widgets) {
+        const alone = JSON.stringify(draw(w, tableOf(w)))
+        const together = JSON.stringify(draw(w, readTable(M, crowded, w.source, NOW)))
+        assert.equal(together, alone, w.title + ' changes when the other templates\' rows are there')
+      }
+    } finally { crowded.close() }
+  })
+
   ok(dir + ': without its sample rows (the person cleared them) every widget says it is empty instead of showing a number', () => {
     world.base.clearDemo({ actor: 'person' })
     const cards = dash.widgets.filter((w) => w.type === 'card')

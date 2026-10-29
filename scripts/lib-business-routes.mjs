@@ -26,23 +26,28 @@ import { OWNER_VALIDATORS } from './plugin-check.mjs'
 const SKILL_POINT = { owner: 'kybernos/skills', ownerVersion: '1.0.0', name: 'skill', version: '1.0', kind: 'data', class: 'instruction', files: 'folder', max: 32, validate: OWNER_VALIDATORS['kybernos/skills#skill'] }
 export const ALL_POINTS = [DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT, THEME_POINT, SKILL_POINT, CONTACTS_POINT, CATALOG_POINT, PIPELINE_POINT, PRESET_POINT]
 
-export function openWorld ({ themeDir, now, points = ALL_POINTS }) {
+/** `also`: the folders of other templates installed in the same profile, their sample rows seeded in the same base (the owner's DSH holds several at once). */
+export function openWorld ({ themeDir, now, also = [], points = ALL_POINTS }) {
   const dir = mkdtempSync(join(tmpdir(), 'kb-bizdash-'))
   const base = createBusinessBase({ file: join(dir, 'donnees.sqlite'), now: () => now })
   const sample = JSON.parse(readFileSync(join(themeDir, 'demo', 'sample.json'), 'utf8'))
-  const seeded = base.seed(sample, { theme: 'kybernos-themes/' + basename(themeDir) })
-  if (seeded.ok !== true) throw new Error('the sample did not seed: ' + JSON.stringify(seeded))
   // the theme installed in a profile the real registry reads (the photographs stay behind: no media is needed to read a dashboard)
   const profileDir = join(dir, 'profile')
-  const pkgName = '@kybernos-themes/' + basename(themeDir)
-  const folder = join(profileDir, 'node_modules', ...pkgName.split('/'))
-  mkdirSync(folder, { recursive: true })
-  cpSync(themeDir, folder, { recursive: true, filter: (src) => !/[\\/]photos([\\/]|$)/.test(src) && !src.endsWith('cover.jpg') })
-  writeFileSync(join(profileDir, 'package.json'), JSON.stringify({ dependencies: { [pkgName]: '1.0.0' }, dsh: { profile: { bundles: [pkgName] } } }))
+  const names = []
+  for (const folderOf of [themeDir, ...also]) {
+    const seeded = base.seed(JSON.parse(readFileSync(join(folderOf, 'demo', 'sample.json'), 'utf8')), { theme: 'kybernos-themes/' + basename(folderOf) })
+    if (seeded.ok !== true) throw new Error('the sample did not seed: ' + JSON.stringify(seeded))
+    const name = '@kybernos-themes/' + basename(folderOf)
+    const folder = join(profileDir, 'node_modules', ...name.split('/'))
+    mkdirSync(folder, { recursive: true })
+    cpSync(folderOf, folder, { recursive: true, filter: (src) => !/[\\/]photos([\\/]|$)/.test(src) && !src.endsWith('cover.jpg') })
+    names.push(name)
+  }
+  const pkgName = names[0]
+  writeFileSync(join(profileDir, 'package.json'), JSON.stringify({ dependencies: Object.fromEntries(names.map((n) => [n, '1.0.0'])), dsh: { profile: { bundles: names } } }))
   const registry = createRegistry({ profileDir, stateFile: join(dir, 'state.json'), kybernosVersion: '0.1.1', ttlMs: 0 })
   for (const p of points) registry.definePoint(p)
-  const plugin = registry.plugins().find((p) => p.package === pkgName)
-  if (plugin !== undefined && plugin.status === 'needs-consent') registry.setConsent(plugin.id, true)
+  for (const p of registry.plugins()) if (p.status === 'needs-consent') registry.setConsent(p.id, true)
 
   const catalog = createCatalog({ base: () => base, registry: () => registry })
   const contacts = createApi({ base: () => base, schema: () => schemaFrom(registry) })

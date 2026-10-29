@@ -12,7 +12,10 @@
       "type": "card",
       "title": "Active listings",
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "property"
+        }
       },
       "metric": {
         "agg": "count",
@@ -96,6 +99,14 @@
         "agg": "count",
         "where": [
           {
+            "field": "flow_key",
+            "op": "in",
+            "value": [
+              "sales",
+              "lettings"
+            ]
+          },
+          {
             "field": "stage_key",
             "op": "=",
             "value": "viewing"
@@ -109,6 +120,14 @@
         "metric": {
           "agg": "count",
           "where": [
+            {
+              "field": "flow_key",
+              "op": "in",
+              "value": [
+                "sales",
+                "lettings"
+              ]
+            },
             {
               "field": "stage_key",
               "op": "=",
@@ -136,7 +155,10 @@
       "type": "card",
       "title": "Mandates ending soon",
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "property"
+        }
       },
       "metric": {
         "agg": "count",
@@ -188,7 +210,10 @@
       "x": "status",
       "agg": "count",
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "property"
+        }
       },
       "w": 4,
       "h": 4
@@ -221,7 +246,17 @@
         "provider": "pipeline.cards"
       },
       "w": 4,
-      "h": 5
+      "h": 5,
+      "where": [
+        {
+          "field": "flow_key",
+          "op": "in",
+          "value": [
+            "sales",
+            "lettings"
+          ]
+        }
+      ]
     },
     {
       "type": "list",
@@ -250,7 +285,10 @@
       "sort": "mandate_until",
       "limit": 6,
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "property"
+        }
       },
       "w": 4,
       "h": 5
@@ -262,6 +300,14 @@
       "sub": "subtitle",
       "when": "due",
       "where": [
+        {
+          "field": "flow_key",
+          "op": "in",
+          "value": [
+            "sales",
+            "lettings"
+          ]
+        },
         {
           "field": "stage_key",
           "op": "in",

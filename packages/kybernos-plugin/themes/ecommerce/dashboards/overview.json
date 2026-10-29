@@ -97,7 +97,10 @@
       "type": "card",
       "title": "Low stock",
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "product"
+        }
       },
       "metric": {
         "agg": "count",
@@ -196,7 +199,10 @@
       "agg": "count",
       "limit": 6,
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "product"
+        }
       },
       "w": 4,
       "h": 4
@@ -272,7 +278,10 @@
       "sort": "stock_gap",
       "limit": 6,
       "source": {
-        "provider": "catalog.items"
+        "provider": "catalog.items",
+        "params": {
+          "type": "product"
+        }
       },
       "w": 6,
       "h": 5
