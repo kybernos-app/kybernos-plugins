@@ -28,13 +28,6 @@
     }
   },
   {
-    "id": "woodworking",
-    "name": {
-      "en": "Woodworking",
-      "fr": "Menuiserie"
-    }
-  },
-  {
     "id": "restaurant",
     "name": {
       "en": "Restaurant",
@@ -46,6 +39,27 @@
     "name": {
       "en": "Architecture",
       "fr": "Architecture"
+    }
+  },
+  {
+    "id": "construction",
+    "name": {
+      "en": "Construction",
+      "fr": "BTP"
+    }
+  },
+  {
+    "id": "medical-cabinet",
+    "name": {
+      "en": "Medical cabinet",
+      "fr": "Cabinet médical"
+    }
+  },
+  {
+    "id": "student",
+    "name": {
+      "en": "Student",
+      "fr": "Étudiant"
     }
   }
 ]

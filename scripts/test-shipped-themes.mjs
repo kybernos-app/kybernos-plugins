@@ -377,7 +377,7 @@ if (existsSync(reader)) {
       assert.ok(bytes.length <= COVER_MAX && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, d)
     }
     const next = readNext(ROOT)
-    assert.deepEqual(next.map((n) => n.id), ['consulting', 'it-services', 'accounting', 'law-firm', 'woodworking', 'restaurant', 'architecture'])
+    assert.deepEqual(next.map((n) => n.id), ['consulting', 'it-services', 'accounting', 'law-firm', 'restaurant', 'architecture', 'construction', 'medical-cabinet', 'student'])
     for (const n of next) { assert.ok(n.name.en && n.name.fr, n.id); assert.equal(n.cover, true, n.id); assert.ok(coverFile(ROOT, { next: n.id }) !== null, n.id) }
     const folders = readdirSync(join(ROOT, '_next')).filter((f) => f.endsWith('.jpg')).map((f) => f.replace(/\.jpg$/, '')).sort()
     assert.deepEqual(folders, next.map((n) => n.id).sort(), 'no picture without an entry, no entry without a picture')
