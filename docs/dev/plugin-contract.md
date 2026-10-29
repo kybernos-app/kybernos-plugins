@@ -285,11 +285,14 @@ and logged, as today.
 A data plugin (a template of a trade) names the point and ships one JSON file per dashboard, with the same philosophy as `kybernos/contacts#schema`,
 `kybernos/catalog#type` and `kybernos/pipeline#flow`: data only, checked by a pure and bounded function the owner exports.
 
+In the template's `plugin.json` (the rest of the manifest is the one of any theme, see `sector-bundles.md`):
+
 ```json
-{ "contract": 1, "id": "kybernos-themes/real-estate", "kind": "data",
-  "requires": { "plugins": { "kybernos/dashboards": "^1.0" } },
+{ "requires": { "plugins": { "kybernos/dashboards": "^1.0" } },
   "extends": [ { "point": "kybernos/dashboards#preset", "range": "^1.0", "dir": "dashboards" } ] }
 ```
+
+and `dashboards/overview.json`:
 
 ```json
 { "id": "overview", "name": "Agency overview", "desc": "The listings on the books, the sales in progress…",
