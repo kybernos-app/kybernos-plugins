@@ -1349,3 +1349,17 @@ asking for the check, a code that ran out, a phone connected, a plan without the
 available on this server, WeChat and iMessage soon), light, dark and a 390 px phone (the account menu is in the drawer there; the window opens itself in a root of its own on `<body>`, also with the drawer closed, which is how Kaby's strip opens it), Escape / the
 dim / the cross, the code withdrawn when the window closes, and the Settings page. Traps met writing it: the window theme must be set explicitly (the sandbox starts dark), a window
 drawn inside the drawer would sit 354 px off-screen (it draws itself in a root of its own on `<body>`), and the sandbox's « Get started » dialog covers the page after every load (Escape).
+
+## The Roles tab of an Agent Team: `scripts/check-roles-live.mjs`
+
+```bash
+node scripts/check-roles-live.mjs [--team <name>] [--shots <dir>]
+```
+
+Read-only on your own DSH (`:3080`): this checkout's `kybernos-plugin` client replaces the served one in a throw-away Chrome, and the team you name (default
+`Dev-Team`; it needs more than six roles for the pager) is opened on its Roles tab. It checks the model field (one line, opens on the current value, groups with
+plans first, ↓ and Esc, a search with no hit, the fallback's « No fallback » and « is the primary »), the five sections of a role, the member bar (per page, pager, list /
+cards / carousel without a sideways scroll), the review of unreachable roles (run on a LOCAL role the tab keeps in the throw-away browser: « Add a role », propose, Apply),
+a 380 px column with nothing leaving it sideways, and that no save, portrait call or voice upload was sent. Exit 0 / 1 / 3 (3: no Chrome, no GUI, no such team, or the
+shared tree has uncommitted edits of that client so the swap cannot find its text).
+
