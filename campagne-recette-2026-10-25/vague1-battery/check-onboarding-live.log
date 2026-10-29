@@ -1,0 +1,12 @@
+# check-onboarding-live.mjs
+# host=127.0.0.1:3098 status=timeout code=130 ms=152902
+
+FAIL the wizard opens on a fresh install
+FAIL it is a modal dialog with the Kybernos mark
+     theme: light
+FAIL DSH's own « Sign in to your DeepSeek account » dialog is not over the wizard
+FAIL the wizard speaks English
+FAIL the run was interrupted (SIGTERM)
+
+5 check(s) FAILED
+

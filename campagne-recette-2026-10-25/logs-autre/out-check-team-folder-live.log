@@ -1,0 +1,26 @@
+  ✓ the sandbox restarts, pointed at the fake Kybernos and connected (a throw-away state file; Documents is the sandbox's own)
+  ✓ the sandbox opens on its own workspace « Kaby »; Personal is the active space and has no folder
+  ✓ nothing was made on the disk yet
+  ✓ and no folder was asked of the host (Personal has none)
+  ✓ switching to Acme: the host made <Documents>/Kybernos/Acme and recorded it as the team's folder
+  ✓ DSH registered it as a workspace (once) and opened a NEW chat in it: the new chat's workspace is « Acme », it holds that chat, and the first workspace is still there
+  ✓ the composer's folder pill appears by itself, with the path as its title
+  ✓ control: DSH's own « New chat », pressed in the team's chat, stays in the team's folder (inheritance: the very thing a switch back to Personal must avoid)
+  ✓ back to Personal: no folder pill, the host names no folder, and the NEW chat is in the first workspace « Kaby », not in Acme's
+  ✓ the team's workspace is still in DSH, with its one chat, untouched by the switch back (a chat already started keeps its folder)
+  ✓ Studio B has a folder of its own and a chat in it, apart from Acme's
+  ✓ Studio B to Acme: the chat opens in Acme's folder again (the workspace is found, not made twice)
+  ✓ (the person removes Acme's folder from the disk)
+  ✓ back in Acme: the host makes the folder again at the same path and the chat opens
+  ✓ a team called « ../../etc/passwd » gets ONE safe folder under the root (« etc passwd »), nothing outside the root
+  ✓ and DSH opened its chat there (a workspace titled « etc passwd »)
+  ✓ a second team called « Acme » is not given the first one's folder: its name carries the team's id
+  ✓ a team created without a plan: its folder is made, the person stays in Personal and no chat opens (the team cannot answer yet)
+  ✓ a team created with a plan takes over: its folder is made, DSH has the workspace, and its chat opens after the route wait
+  ✓ a team joined with an invitation link: its folder is made, it is switched to, and its chat opens in it
+  ✓ an active team with no recorded folder gets one at the next page load (the page asks the host, once), and no chat is opened by it
+  ✓ a disk that refuses the folder: the team is created and active, the host names no folder, no pill, no error
+  ✓ the disk allows it again: the next page load makes the team's folder
+  ✓ the root holds only the teams' folders (8), each team its own
+
+24 checks passed

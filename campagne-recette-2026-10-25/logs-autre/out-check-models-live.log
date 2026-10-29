@@ -1,0 +1,27 @@
+the first view, Kybernos Cloud not connected
+  ✓ Connect and « Add your API key » are offered
+  ✓ the providers with no key fold under one line that counts them
+  ✓ what is in view is short (the ones that work), not every provider
+  ✓ the fold opens on the others
+Kybernos Cloud connected
+  ✓ one line says it: connected, N models included
+  ✓ no key button, no « or », no « Recommended » pill once connected
+  ✓ no « Connect » or « Manage » button once connected (the account menu is where the account is managed)
+  ✓ the Cloud card is the first cell of the provider grid, and the plain « kybernos » card is not drawn beside it
+  ✓ on a Free account the key button is still offered
+the models that do not answer (the Study model's bus, faked in the page)
+  ✓ the failing models are folded away from the list (shown = all - 5)
+  ✓ « Show unavailable (5) » brings them back
+  ✓ each shows its reason on its row, in words (not a bare « key »)
+  ✓ the popover words each failing model too
+  ✓ its button names the count and its fix button says what it does
+the model sheet
+  ✓ A3-10: a refused count is said under its field, inside the sheet, in view
+  ✓ A3-11: typing 256K reads 256K with the exact count behind it (256K read 250K)
+  ✓ (the model is put back as it was)
+a provider added without its key, and the keyboard
+  ✓ A3-40: Tab and Shift+Tab stay inside the Add provider panel
+  ✓ A3-32: the card shows « key missing » and says what to do next
+  ✓ (the provider it added is deleted again)
+
+✓ 20 checks, all green

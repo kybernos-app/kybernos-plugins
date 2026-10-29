@@ -1,0 +1,98 @@
+Automations — Discover, Cards, Flow, Journal lessons, settings (live GUI, sandbox)
+  ✓ the Automations page opens
+
+── List ──
+  ✓ every row has a success cell: a percentage and the last ten runs as bars
+  ✓ ...a stable automation reads 100 % with six ok bars, the one that failed reads 50 % with a bad bar, from the history alone
+
+── Discover ──
+  ✓ the page has the sections Yours and Discover, then Team, and Yours is the one open
+  ✓ Discover lists eleven templates
+  ✓ ...in four families (3 + 3 + 4 + 1) that the chips filter
+  ✓ ...and the search finds a word in the title, the text, the tags or the apps
+  ✓ a card is compact: no image, no cover, an « Import » button
+  ✓ the apps of a card show the real logos of the connectors catalogue, and the initial of the one it does not know
+  ✓ ...on a white tile, whatever the theme
+  ✓ a card opens the page of its template: a cover drawn in code, an Integrations list and four sections, no image file
+  ✓ ...the Integrations list names each app with its logo (Instagram, TikTok, Google Drive)
+  ✓ ...whose steps are the model steps and the tool steps, the first being the memory check
+  ✓ « Use this template » opens a NEW chat whose draft starts with « Follow this conversation in my language: <the page's language> »
+  ✓ ...then the skill and the template
+  ✓ ...carrying the steps, the questions with their options, what to connect and the rules
+  ✓ ...and asking for an automation that stays OFF (nothing is created by the click)
+  ✓ the Automations page comes back
+
+── Cards ──
+  ✓ the toolbar offers four views: Columns, Calendar, Cards, List
+  ✓ Cards draws one card per automation
+  ✓ the card whose last run failed is outlined and says « To review »; the others are not
+  ✓ the figures come from the history: success 100 % / 67 %, runs 6 / 2
+  ✓ a journal that was not read claims nothing: no duration and no tool
+  ✓ the switch of a card changes nothing by a click on the card itself, and opening a card opens its page
+
+── Workflow ──
+  ✓ the detail has three tabs, Workflow, Sessions and Where it runs: no Webhook tab, no Journal tab
+  ✓ the Workflow opens on the cards: the trigger, the three steps and the record of the run
+  ✓ Flow, Text and Code are three quiet icons in the toolbar of the canvas, Flow first and chosen
+  ✓ the title of every card stays inside it (two lines at most, nothing spills)
+  ✓ a click opens the panel: type, whole instruction, how it runs, the guard mark
+  ✓ Next walks to the following step, Previous back
+  ✓ the panel closes
+
+── Canvas: styles, cards that move, the webhook ──
+  ✓ a button names the style in use, and it follows the app by default
+  ✓ the style menu offers nine styles
+  ✓ picking Ledger restyles the canvas and the choice is remembered
+  ✓ a card follows the mouse when it is dragged, and the drop opens no panel
+  ✓ the arrangement is kept for this automation, in this browser
+  ✓ « Tidy up » appears and puts the cards back, and the kept arrangement goes
+  ✓ a workflow with no webhook offers to add one in the schedule's panel
+  ✓ adding it draws a Webhook card, opens its settings and keeps the address hidden
+  ✓ Reveal shows the address, Hide hides it again
+  ✓ revoking removes the card and the settings
+
+── What the runs used: the model, the skills, the connectors, the Agent Team ──
+  ✓ with no journal read, the strip says what it will show and the cards carry no model
+  ✓ the strip lists, from the runs read, the model, the Agent Team with its models, the skills, the connectors with their logos and the tools
+  ✓ a step card carries the model, and the skill its text names
+  ✓ the panel of a step says what it uses: the model (and whose), the Agent Team, what the step names
+  ✓ in Sessions, Who ran adds the Agent Team, the skills, the connectors and the tools of that run
+  ✓ ...and the graph says what each call stands for: a tool, a connector, a teammate
+
+── Lessons, in Sessions ──
+  ✓ the stable automation says it is stable and offers « Create skill »
+  ✓ the click writes the skill and the card says so
+  ✓ ...the file is in the skills folder, for the person only, with the steps and nothing else of the automation
+  ✓ ...and what was written is recorded once
+  ✓ an automation that failed says how far it is from stable (none in a row)
+  ✓ ...and the Sessions tab says the journals were not read rather than inventing a duration
+
+── Workspace of the runs ──
+  ✓ the detail says where the runs land: the dedicated workspace when nothing is chosen
+  ✓ the form has a Workspace field: the dedicated workspace first, then the person's own
+  ✓ ...with at least one workspace of the person to choose
+  ✓ saving stores the id of the workspace and nothing else of it
+  ✓ the detail names the workspace
+  ✓ « Run now » starts a real session in the chosen workspace (not in the dedicated folder)
+  ✓ choosing the dedicated workspace again clears the choice
+  ✓ with no choice a real run lands in the dedicated « Automations » workspace
+  ✓ ...a folder the host made under the DSH home, which the engine adopted as a workspace
+
+── Settings › Automations ──
+  ✓ Settings opens
+  ✓ the Automations page of the settings has the switch and the four choices
+  ✓ a switch and a choice are saved in the file the host reads
+  ✓ ...and put back
+
+── Phone width ──
+  ✓ the Settings are closed and the Automations page is open again
+  ✓ ...and is still there at 390 px, as wide as the phone
+  ✓ Discover shows its eleven templates at 390 px without scrolling sideways
+  ✓ a template page does not scroll sideways
+  ✓ the Cards do not scroll sideways
+  ✓ an automation opens on its Workflow at 390 px: the canvas is there and the page does not scroll sideways
+  ✓ ...a card opens its panel under the canvas, still without scrolling sideways
+  ✓ ...and so does Sessions (the runs, their graph and the logs)
+  ✓ no script error from the page
+
+75 passed, 0 failed

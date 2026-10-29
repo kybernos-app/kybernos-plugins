@@ -1,0 +1,37 @@
+# check-slash-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=46006
+
+the page
+  ✗ the sandbox starts without commands (the list says what a slash command is and offers « New command ») — 1
+  ✓ the toolbar holds the tabs, the search, « Create with AI » and « New command »
+create
+  ✓ the editor opens with its preview closed and a Save that waits for a name
+  ✓ the command word follows the name
+  ✓ three blanks without a question are flagged
+  ✓ a click on a flagged blank adds its question
+  ✓ a question can be shown only for one choice (its row says so)
+  ✓ the arrow moves a question up
+  ✓ a drag and drop puts a question first
+  ✓ the preview opens from the header button and the window widens
+  ✓ Ctrl/Cmd + S saves and closes the editor
+  ✓ the host kept the command: word, delivery « send », three questions in the order of the screen
+  ✓ …the question shown for one choice carries its condition
+  ✓ the list shows it with its question count
+edit, duplicate, delete
+  ✓ the preview stays open the next time (the choice is kept)
+  ✓ an edit is announced as unsaved changes
+  ✓ the host kept the new name
+  ✗ duplicate makes a second command with its own word
+  ✓ a delete asks in the row
+  ✗ the command is gone and a toast offers Undo
+  ✗ Undo brings it back
+  ✓ the original is deleted for good
+message actions
+  ✓ a new action has no command word and asks where its button goes
+  ✓ the host kept an action whose prompt carries {message}
+run the command from the / menu
+  ✓ Settings closes with « Back to workspace »
+  ✗ the check stopped: "undefined" is not valid JSON
+
+21 ✓  5 ✗
+

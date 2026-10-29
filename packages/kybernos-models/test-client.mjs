@@ -484,13 +484,58 @@ console.log('\n── DeepSeek: the two adapters outside llm-pi-ai, edited here 
   await fn2.kbMLoadDsKey(api2)
   ok('the key state is read through credentials.describe, under the profile’s reference', kw.KBM.dsKey.ref === 'MY_DS_KEY' && kw.KBM.dsKey.configured === true, kw.KBM.dsKey)
 
+  console.log('  — the built-in providers: host row state and switch')
+  {
+    const mkBase = (KBMx, fetchx) => new Function('KBM', 'fetch', 'kbMLoad', 'm', bl('KB-PARK-ACTIONS') + '\n' + bl('KB-DS-PURE') + '\n' + bl('KB-DS-ACTIONS') + '\nreturn { kbMLoadBase, kbBaseSet, kbDsCardsOf, kbDsBaseKnown, kbDsBaseOff }')(KBMx, fetchx, async () => {}, (k) => k)
+    const env = mkBase({ ds: {}, baseRows: {}, baseHost: false }, async () => ({ status: 404, json: async () => { throw new Error('not json') } }))
+    ok('a row the host does not list cannot be switched and is not « disabled »', env.kbDsBaseKnown({}, 'deepseek-official') === false && env.kbDsBaseOff({}, 'deepseek-official') === false)
+    ok('garbage never throws', env.kbDsBaseOff(null, 'x') === false && env.kbDsBaseKnown(undefined, 'x') === false)
+    const rows = { 'deepseek-official': { entryIds: ['include:llm-deepseek'], present: true, enabled: false }, 'deepseek-account': { entryIds: ['include:llm-deepseek-account'], present: true, enabled: true } }
+    ok('a row the Loader reports disabled reads as off; an enabled one does not', env.kbDsBaseOff(rows, 'deepseek-official') === true && env.kbDsBaseOff(rows, 'deepseek-account') === false && env.kbDsBaseKnown(rows, 'deepseek-official') === true)
+    ok('a row absent from the profile is not off, it is simply not there', env.kbDsBaseOff({ 'deepseek-official': { entryIds: [], present: false, enabled: false } }, 'deepseek-official') === false)
+    ok('a switched-off DeepSeek keeps its card (its settings namespace is gone)', env.kbDsCardsOf({}, [], rows).length === 2 && env.kbDsCardsOf({}, [], rows)[0].provider === 'deepseek-official')
+    ok('a row the profile never declared draws no card', env.kbDsCardsOf({}, [], { 'deepseek-official': { entryIds: [], present: false, enabled: false } }).length === 0)
+
+    // A host half without the route (404) or without pluginManager (501): degrade, never throw, and never keep a stale state.
+    const old = { baseRows: {}, baseHost: false }
+    await mkBase(old, async () => ({ status: 404, json: async () => { throw new Error('not json') } })).kbMLoadBase()
+    ok('an older host half (404) leaves the switch disabled, without throwing', old.baseHost === false && Object.keys(old.baseRows).length === 0, old)
+    const noSvc = { baseRows: { stale: { enabled: true } }, baseHost: true }
+    await mkBase(noSvc, async () => ({ status: 501, json: async () => ({ ok: false, error: 'no-plugin-manager' }) })).kbMLoadBase()
+    ok('a host without pluginManager (501) disables the switch and clears a stale state', noSvc.baseHost === false && Object.keys(noSvc.baseRows).length === 0, noSvc)
+
+    // The real answer is kept, a switch POSTs { slug, enabled } to the same route and rereads.
+    const live = { baseRows: {}, baseHost: false }
+    const seen = []
+    const liveRows = { 'deepseek-official': { entryIds: ['include:llm-deepseek'], present: true, enabled: true } }
+    const host = mkBase(live, async (url, init) => {
+      const body = init !== undefined && init.body !== undefined ? JSON.parse(init.body) : null
+      seen.push([String(url), init !== undefined && init.method !== undefined ? init.method : 'GET', body])
+      return { status: 200, json: async () => (body === null ? { ok: true, rows: liveRows } : { ok: true, slug: body.slug, enabled: body.enabled }) }
+    })
+    await host.kbMLoadBase()
+    ok('the host state is read from /kybernos-models/providers/base', live.baseHost === true && live.baseRows['deepseek-official'].enabled === true && seen[0][0] === '/kybernos-models/providers/base' && seen[0][1] === 'GET', seen)
+    await host.kbBaseSet('deepseek-official', false)
+    ok('switching POSTs { slug, enabled } to that route, then rereads the page', seen.length === 2 && seen[1][1] === 'POST' && seen[1][2].slug === 'deepseek-official' && seen[1][2].enabled === false, seen)
+
+    // A refused switch raises the host's code: the page shows an error, never an off badge.
+    const refused = { baseRows: {}, baseHost: false }
+    let err2 = null
+    try { await mkBase(refused, async () => ({ status: 502, json: async () => ({ ok: false, error: 'switch-failed', code: 'host-module' }) })).kbBaseSet('deepseek-official', false) } catch (e) { err2 = String(e && e.message ? e.message : e) }
+    ok('a refused switch raises the host code instead of a silent success', /switch-failed \(host-module\)/.test(String(err2)), err2)
+  }
+
   console.log('  — wiring')
   const w2 = (frag) => src.includes(frag)
   ok('each namespace has its own revision in the mutate helper', w2('ns === KB_NS ? KBM.revision : (KBM.ds[ns] !== undefined ? KBM.ds[ns].revision : null)'))
   ok('the DeepSeek namespaces are read in kbMLoad, and the key state after the directory', w2('for (const ns of KB_DS_NS)') && w2('await kbMLoadDsKey(api)'))
   ok('both cards edit in a panel: key (official only) folded under Customized settings with the URL and the catalog; the account shows its catalog directly', w2("'data-prov': c.provider") && w2("official ? h('button', { type: 'button', className: 'kbpv-adv'") && w2("'data-kbm': 'ds-account-note'"))
   ok('the catalog editor: id, name, context window, max tokens, image input, add, delete, restore; Apply is disabled while a row is invalid', w2("'data-kbm': 'ds-ctx'") && w2("'data-kbm': 'ds-max'") && w2("'data-kbm': 'ds-img'") && w2("'data-kbm': 'ds-model-add'") && w2("'data-kbm': 'ds-restore'") && w2('disabled: ui.busy === true || urlBad || rowsBad || ro'))
-  ok('the Providers count includes both DeepSeek cards', w2('kbDsCardsOf(KBM.ds, KBM.dsDir).length'))
+  ok('the Providers count includes both DeepSeek cards', w2('kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir, KBM.baseRows).length'))
+  ok('the base state is read with the parked one, and a switch rereads the page', w2('await kbMLoadParked()') && w2('await kbMLoadBase()') && w2("await kbMParkCall('base', { slug, enabled: enabled === true })") && w2('await kbMLoad()'))
+  ok('a built-in provider has a switch and a confirmation dialog, while enable stays immediate', w2("'data-kbm': off ? 'prov-card-off' : 'prov-card'") && w2("patch({ dlg: { type: 'off', id: route, base: true, name: name || null } })") && w2('doBaseSet(route, true)') && w2('base ? doBaseSet(route, false) : doDisable(route)'))
+  ok('the dialog sentence depends on the kind: settings provider or built-in row, in both languages', w2("m(base ? 'kb.prov.off.dlg.body.ds' : 'kb.prov.off.dlg.body', { slug: shown })"))
+  ok('the built-in card says the model count is unknown when its row is off, and shows no edit button without a settings namespace', w2("(count === null ? '—' : String(count))") && w2("off || view === undefined ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit'"))
   ok('no colour hard-coded in the DeepSeek styles', !/\.kbpv-ds[a-z-]*\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
 }
 
@@ -733,7 +778,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   ok('Add provider from the catalogue still adopts the engine\'s answer (a live list of hundreds is not adopted unasked)', w('const found = await kbFetchRun(api, kbFetchProbe(slug, d))'))
   ok('the picker tags the models outside the engine\'s catalog and says what happens to them', w("kbFetchTagUndescribed(out.models, out.described)") && w("'data-kbm': 'fetch-undescribed'") && w("m('kb.fetch.undescribed')"))
   ok('Apply saves through the smart save: a refused model becomes a custom model of the provider, and the page says how many (and when the protocol was a guess)', w("kbPvSaveSmart(route, { ...dr, models: dr.touched === true ? dr.models : undefined })") && w("m('kb.pv.saved.custom', { n: out.customN, slug: route })") && w("m('kb.pv.saved.custom.guess')"))
-  ok('the companion routes are not drawn as providers, their models count with the provider, and the Models tab lists them under it (name, logo, filter) with a « custom » tag', w("const routes = kbProvRoutes()") && w("const kbProvRoutes = () =>") && w("n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir).length") && w("kbProvOf(mo.route) === route") && w("if (UI.prov !== 'all' && kbProvOf(mo.route) !== UI.prov) return false") && w("pvLabel(kbProvOf(mo.route))") && w("'data-kbm': 'row-custom'"))
+  ok('the companion routes are not drawn as providers, their models count with the provider, and the Models tab lists them under it (name, logo, filter) with a « custom » tag', w("const routes = kbProvRoutes()") && w("const kbProvRoutes = () =>") && w("n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir, KBM.baseRows).length") && w("kbProvOf(mo.route) === route") && w("if (UI.prov !== 'all' && kbProvOf(mo.route) !== UI.prov) return false") && w("pvLabel(kbProvOf(mo.route))") && w("'data-kbm': 'row-custom'"))
   ok('the Edit panel lists the custom models with a remove each, and a provider\'s companions follow it when it is deleted, switched off or on', w("'data-kbm': 'pv-custom'") && w("'data-kbm': 'pv-custom-del'") && w("kbCompanionRemove(route, x.id)") && w("const gone = [slug].concat(kbCompanionsOf(slug, KBM.routes))") && w("for (const c of kbCompanionsOf(route, KBM.routes)) { try { await kbMDisable(c) }") && w("for (const pk of KBM.parked.filter((x) => kbCompanionOf(x.slug, [slug]) !== null))"))
   ok('no select of the provider\'s protocol, no lock: the engine\'s one-api-per-route rule is met by a route of its own, not by binding every model', !w('pv-apisel') && !w('apiSel') && !w('needsApi') && !w('kb.pv.proto.auto'))
   ok('the picker is the native one: search, Select all / Deselect all, Add selected, Cancel', w("'data-kbm': 'fetch-search'") && w("'data-kbm': 'fetch-all'") && w("'data-kbm': 'fetch-adopt'") && w("'data-kbm': 'fetch-cancel'"))

@@ -1,0 +1,22 @@
+{
+  "name": "@local/kybernos-catalog",
+  "version": "1.0.0",
+  "description": "What you sell, rent or recruit for, with the fields and statuses a theme defines (the page arrives in a later release).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

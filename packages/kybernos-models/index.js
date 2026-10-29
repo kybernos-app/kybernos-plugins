@@ -404,6 +404,91 @@ export const kbPkMount = (register, file = PARKED_FILE) => {
   } })
 }
 
+// ── Built-in ("base") providers: switching a plugin row, not a settings profile ───────────────────
+// The two DeepSeek adapters are engine plugin rows (`include:llm-deepseek`, `include:llm-deepseek-account`),
+// not `llm-pi-ai` providers: there is no `providers.<slug>` profile to unset, so the parked-provider trick
+// above cannot disable them. The sanctioned switch is the host's `pluginManager` service: it persists
+// `disabled:` into the profile patch and reloads the row live, with no engine patch. The map below is the
+// only place a row id is spelled, and the three helpers are pure enough to be unit-tested without a host.
+export const KB_BASE_ROWS = {
+  'deepseek-official': { entryIds: ['include:llm-deepseek'] },
+  'deepseek-account': { entryIds: ['include:llm-deepseek-account'] },
+}
+
+/** The Loader entry id of a `listPlugins()` row: the manager addresses an entry by `entryId`, and a row that
+ *  names none is addressed as `include:<patchId>`. Either way the page gets one id to switch. */
+const kbBaseEntryOf = (row) => {
+  if (!isPlainObject(row)) return null
+  if (typeof row.entryId === 'string' && row.entryId !== '') return row.entryId
+  if (typeof row.patchId === 'string' && row.patchId !== '') return 'include:' + row.patchId
+  return null
+}
+
+/** The switchable rows, read off `pluginManager.listPlugins()`: `{ slug: { entryIds, present, enabled } }`.
+ *  `present` is false when the Loader lists none of the row's ids (a profile without that row): the page then
+ *  has no phantom card to draw, and `enabled` only says whether every listed row runs. Pure. */
+export const kbBaseRead = (plugins) => {
+  const list = Array.isArray(plugins) ? plugins : []
+  const out = {}
+  for (const slug of Object.keys(KB_BASE_ROWS)) {
+    const wanted = KB_BASE_ROWS[slug].entryIds
+    const found = list.filter((row) => wanted.indexOf(kbBaseEntryOf(row)) >= 0)
+    out[slug] = { entryIds: wanted.slice(), present: found.length > 0, enabled: found.length > 0 && found.every((row) => row.enabled === true) }
+  }
+  return out
+}
+
+/** Switch every row of one base provider. Answers `{ ok: true, slug, enabled }` only when the manager APPLIED the
+ *  change: a refused, overridden or restart-required answer comes back as `{ ok: false, error: 'switch-failed',
+ *  code, application }` so the page shows the code instead of a silent success. One row per provider today, so a
+ *  failure leaves nothing half-switched. Pure of any host state: the manager is a parameter. */
+export const kbBaseSwitch = async (manager, slug, enabled) => {
+  if (typeof slug !== 'string' || Object.prototype.hasOwnProperty.call(KB_BASE_ROWS, slug) !== true) return { ok: false, error: 'bad-slug' }
+  if (manager === null || manager === undefined || typeof manager.setPluginEnabled !== 'function') return { ok: false, error: 'no-plugin-manager' }
+  const on = enabled === true
+  for (const entryId of KB_BASE_ROWS[slug].entryIds) {
+    let out = null
+    try { out = await manager.setPluginEnabled(entryId, on) } catch (e) { return { ok: false, error: 'switch-failed', code: 'threw', detail: String(e && e.message ? e.message : e) } }
+    if (isPlainObject(out) && typeof out.application === 'string' && out.application !== 'applied') {
+      const code = isPlainObject(out.error) && typeof out.error.code === 'string' ? out.error.code : out.application
+      return { ok: false, error: 'switch-failed', code, application: out.application, restartReason: out.restartReason }
+    }
+  }
+  return { ok: true, slug, enabled: on }
+}
+
+/** Mount the base-provider routes on a webServer-like `{ register }`. `services()` gives the host's
+ *  `pluginManager` at the time of the request: a profile without it answers 501, and an older host half has no
+ *  route at all (404), so the page degrades to a disabled switch instead of throwing. Nothing is stored here. */
+export const kbBaseMount = (register, services = () => ({})) => {
+  const manager = () => {
+    let svc = {}
+    try { svc = services() || {} } catch (e) { svc = {} }
+    return svc.pluginManager === undefined ? null : svc.pluginManager
+  }
+  register({ kind: 'exact', path: '/kybernos-models/providers/base', handler: async (req, res) => {
+    if (req.method === 'GET') {
+      // Reads the Loader's rows and stores nothing: a foreign Origin is refused (DNS rebinding), no Origin passes.
+      if (origineOK(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin refused' }); return }
+      const pm = manager()
+      if (pm === null || typeof pm.listPlugins !== 'function') { sendJson(res, 501, { ok: false, error: 'no-plugin-manager' }); return }
+      let list = null
+      try { list = await pm.listPlugins() } catch (e) { sendJson(res, 502, { ok: false, error: 'plugin-manager-failed', detail: String(e && e.message ? e.message : e) }); return }
+      sendJson(res, 200, { ok: true, rows: kbBaseRead(list) })
+      return
+    }
+    if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+    if (kbRefused(req, res)) return
+    const body = await readBody(req)
+    if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
+    // `enabled` is mandatory: a missing field must never be read as « disable ».
+    if (typeof body.enabled !== 'boolean') { sendJson(res, 400, { ok: false, error: 'bad-enabled' }); return }
+    const out = await kbBaseSwitch(manager(), typeof body.slug === 'string' ? body.slug : '', body.enabled)
+    if (out.ok !== true) { sendJson(res, out.error === 'bad-slug' ? 400 : (out.error === 'no-plugin-manager' ? 501 : 502), out); return }
+    sendJson(res, 200, out)
+  } })
+}
+
 // ── models.dev index: one fetch for everyone, 6 h disk cache ──────────────────
 /** The disk cache lives in the form `{ at, data }`; files written by
   *  an earlier version carried the index at the root. Both are read. */
@@ -984,6 +1069,9 @@ export function apply(ctx) {
 
       // Parked ("disabled") providers: list, park, take, forget.
       kbPkMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
+      // Built-in providers (the DeepSeek plugin rows): their state and their switch come from the host's pluginManager,
+      // read at each request; a host half without it answers 501 and the page keeps the switch disabled.
+      kbBaseMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path), () => ({ pluginManager: hostCtx.get('pluginManager') }))
       // The first-run wizard asks the provider whether a pasted key is accepted, before saving it.
       kbKeyMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
       // « Fetch available models »: the provider's own list, live, with the key its profile names (no engine patch, no engine web.fetch).

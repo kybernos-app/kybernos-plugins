@@ -32,6 +32,7 @@ const check = (name, ok, detail) => {
 const PLACES = {
   general: ['général'],
   theme: ['thème', 'tema'],
+  themes: ['thèmes', 'temas'],
   language: ['langue', 'idioma'],
   'memory & lessons': ['mémoire & leçons'],
   'learned skills': ['compétences apprises'],
@@ -60,6 +61,7 @@ const PLACES = {
   kaby: [],
   usage: [],
   widget: [],
+  'activity log': ['journal d’activité'],
   'phone and channels': ['téléphone et canaux'],
 }
 // A page that lives INSIDE another one under the same name as a page of the menu (a tab or a row, not a second entry): the Voice

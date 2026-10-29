@@ -1,0 +1,326 @@
+/* kybernos-session-msg — the two cards, real CSS (shared with client.js).
+ *
+ * Tokens are DSH's own (--dsw-alias-*), never a hard-coded palette: in the GUI the values come from the theme;
+ * in the mockup (docs/handoff/session-msg/maquette-v1) the fallbacks are the values measured on the live GUI
+ * (light) and read from the engine's own dark block (dark), so the plate shows what DSH shows.
+ *
+ * Classes are prefixed `kbmsg-` and never style a DSH class from the outside.
+ */
+
+/* ── Received message card (head of a user bubble) ─────────────────────────────────────────────── */
+.kbmsg-recv {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 2px;
+  border: 1px solid var(--dsw-alias-border-l2, #0000001a);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-2, #fff);
+  overflow: hidden;
+}
+
+.kbmsg-recv-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--dsw-alias-label-primary, #0f1115);
+  text-align: left;
+  cursor: pointer;
+}
+
+.kbmsg-recv-head:hover {
+  background: var(--dsw-alias-interactive-bg-hover, #2631480f);
+}
+
+.kbmsg-recv-ico {
+  flex: none;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-state-business-primary, #4176e6);
+}
+
+.kbmsg-recv-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.kbmsg-recv-tag {
+  flex: none;
+  font-size: 11px;
+  line-height: 17px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  border: 0.5px solid var(--dsw-alias-border-l3, #0000001f);
+}
+
+.kbmsg-chev {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kbmsg-recv-head[aria-expanded='true'] .kbmsg-chev { transform: rotate(180deg); }
+
+.kbmsg-recv-body {
+  padding: 0 12px 10px 36px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary, #61666b);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.kbmsg-recv-note {
+  margin: 0 12px 8px 36px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-business-primary, #4176e6);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary, #4176e6) 9%, transparent);
+}
+
+.kbmsg-recv-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 12px 10px 36px;
+}
+
+.kbmsg-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary, #61666b);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.kbmsg-link:hover { color: var(--dsw-alias-label-primary, #0f1115); }
+
+/* ── Proposal card (in the flow, under the answer that asked for it) ───────────────────────────── */
+.kbmsg-prop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--dsw-alias-border-l2, #0000001a);
+  border-radius: 14px;
+  background: var(--dsw-alias-bg-layer-2, #fff);
+  box-sizing: border-box;
+}
+
+.kbmsg-prop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kbmsg-kicker {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+}
+
+.kbmsg-prop-title {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  margin-left: -4px;
+  border: 0.5px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary, #0f1115);
+}
+
+.kbmsg-prop-title:hover { border-color: var(--dsw-alias-border-l3, #0000001f); }
+
+.kbmsg-prop-title:focus {
+  outline: none;
+  border-color: var(--dsw-alias-brand-primary, #0f1115);
+}
+
+.kbmsg-env {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 12px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dsw-alias-label-primary, #0f1115) 5%, transparent);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.kbmsg-env dt {
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  white-space: nowrap;
+}
+
+.kbmsg-env dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary, #61666b);
+}
+
+.kbmsg-env code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+}
+
+.kbmsg-prop-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.kbmsg-prop-hint {
+  margin-left: auto;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+}
+
+.kbmsg-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  cursor: pointer;
+}
+
+.kbmsg-opt:hover { color: var(--dsw-alias-label-primary, #0f1115); }
+
+/* ── The send dialog (fixed overlay; kbm-mdl-* is the dialog grammar) ──────────────────────────── */
+.kbmsg-dlg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 24px;
+}
+
+.kbmsg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kbmsg-label {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary, #61666b);
+}
+
+.kbmsg-select,
+.kbmsg-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 0.5px solid var(--dsw-alias-border-l4, #00000029);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary, #0f1115);
+  resize: vertical;
+}
+
+.kbmsg-select:focus,
+.kbmsg-textarea:focus {
+  outline: none;
+  border-color: var(--dsw-alias-brand-primary, #0f1115);
+}
+
+.kbmsg-count {
+  align-self: flex-end;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  font-variant-numeric: tabular-nums;
+}
+
+.kbmsg-count[data-over='1'] { color: var(--dsw-alias-state-error-primary, #ec1313); }
+
+.kbmsg-warn {
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-warn-primary, #f59e0b);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #f59e0b) 12%, transparent);
+}
+
+.kbmsg-ack {
+  padding: 0 24px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-success-primary, #22c55e);
+}
+
+.kbmsg-err {
+  padding: 0 24px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary, #ec1313);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kbmsg-chev { transition: none; }
+}
+
+/* 390 px: the cards keep their padding, only the environment column folds. */
+@media (max-width: 480px) {
+  .kbmsg-env { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .kbmsg-env dt { font-size: 11px; }
+  .kbmsg-prop { padding: 10px 12px; }
+  .kbmsg-recv-body,
+  .kbmsg-recv-foot,
+  .kbmsg-recv-note { padding-left: 12px; margin-left: 12px; }
+  .kbmsg-recv-head { gap: 6px; }
+  .kbmsg-recv-title { font-size: 12.5px; }
+  .kbmsg-recv-tag { display: none; }
+  .kbmsg-chev { margin-left: 4px; }
+}

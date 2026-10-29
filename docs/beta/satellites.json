@@ -130,6 +130,16 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-log",
+        "nom": "@local/kybernos-log",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "the activity log: what this machine sends out — model calls with their tokens, connectors, web search, tools and the calls nobody asked for — with family filters and a live tail, on its own Settings page \"Activity log\"",
+        "poids_ko": 80,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-maintenance",
         "nom": "@local/kybernos-maintenance",
         "tier": 2,
@@ -467,6 +477,33 @@
         "role": "Webapp Creator POC: create web apps with a mini SQLite base and run them locally; publishing on a dedicated domain follows",
         "poids_ko": 24,
         "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-contacts",
+        "nom": "@local/kybernos-contacts",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "people and companies, with the kinds and fields a theme defines; owns the point kybernos/contacts#schema (the page arrives in a later release)",
+        "poids_ko": 15,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-catalog",
+        "nom": "@local/kybernos-catalog",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "what you sell, rent or recruit for, with the statuses and fields a theme defines; owns the point kybernos/catalog#type (the page arrives in a later release)",
+        "poids_ko": 17,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-pipeline",
+        "nom": "@local/kybernos-pipeline",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "orders, deals or candidates as cards on a board, with the stages a theme defines; owns the point kybernos/pipeline#flow (the page arrives in a later release)",
+        "poids_ko": 12,
+        "lib_vendor": null
       }
     ]
   },
@@ -521,7 +558,11 @@
       "@local/kybernos-servers",
       "@local/kybernos-session-msg",
       "@local/kybernos-pulse",
-      "@local/kybernos-webapp-creator"
+      "@local/kybernos-log",
+      "@local/kybernos-webapp-creator",
+      "@local/kybernos-contacts",
+      "@local/kybernos-catalog",
+      "@local/kybernos-pipeline"
     ]
   }
 }

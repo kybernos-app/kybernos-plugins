@@ -43,7 +43,9 @@
     "kybernos-composio": [
       "CONNECTEURS PERSONNALISÉS"
     ],
+    "kybernos-catalog": [],
     "kybernos-computers": [],
+    "kybernos-contacts": [],
     "kybernos-dashboards": [],
     "kybernos-flow": [],
     "kybernos-free-llms": [],
@@ -51,6 +53,7 @@
     "kybernos-hub": [],
     "kybernos-kyber": [],
     "kybernos-language": [],
+    "kybernos-log": "pending",
     "kybernos-maintenance": [],
     "kybernos-memory": [],
     "kybernos-miniapps": [],
@@ -61,12 +64,15 @@
     "kybernos-motion": [],
     "kybernos-multi-device": [],
     "kybernos-no-process": [],
+    "kybernos-pipeline": [],
     "kybernos-plugin": [
       "Hola. Soy la voz de Kybernos, tu asistente.",
       "fermé",
       "[^a-zà-ÿ]",
       "modeles fournisseurs cle api openai provider providers key keys llm gpt claude anthropic openrouter",
       "carte graphe",
+      "journal d’activite",
+      "journal d'activite",
       "  - id: equipe",
       "?category=equipes&after=",
       "cordis.patch.yml.bak-outils-"

@@ -1,0 +1,13 @@
+{
+  "name": "@local/kybernos-log",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Activity log: what this machine sends out — model calls, connectors, web search, tools and the calls nobody asked for — with family filters and a live tail.",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.js", "./client": "./client.js", "./package.json": "./package.json" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "immediately": true }
+  }
+}

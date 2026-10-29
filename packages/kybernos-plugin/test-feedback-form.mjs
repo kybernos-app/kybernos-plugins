@@ -69,12 +69,12 @@ console.log('what Save and Export say they do, and where the text goes')
   check('the old « it is sent only when you export it » is gone (an export sends nothing)', !/sent only when/i.test(dict('kbui.fb.saved').en) && !/n.est envoy/.test(dict('kbui.fb.saved').fr))
   check('Export says it sent nothing, and that the person passes the text on', /nothing was sent/i.test(dict('kbui.fb.copied.one').en) && /nothing was sent/i.test(dict('kbui.fb.copied.many').en) && /\{n\}/.test(dict('kbui.fb.copied.many').en))
   const out = dict('kbui.fb.hint.signedout').en
-  check('signed out, the form says nothing can be sent from here, what Save and Export do, and where to send it (the contact address the owner gave on 2026-10-18)', /not signed in/i.test(out) && /nothing can be sent/i.test(out) && /Save/.test(out) && /Copy saved feedback/.test(out) && /clipboard/.test(out) && /contact@kybernos\.app/.test(out), out)
+  check('signed out, the form says the report still reaches the team with no account, and what leaves', /not signed in/i.test(out) && /still reaches the team/i.test(out) && /no account/i.test(out) && /text/i.test(out) && /technical details/i.test(out) && /Save/.test(out), out)
   check('signed in, the form says what Send shares and what Save keeps', /Send/.test(dict('kbui.fb.hint.signedin').en) && /Kybernos team/.test(dict('kbui.fb.hint.signedin').en) && /Save/.test(dict('kbui.fb.hint.signedin').en), dict('kbui.fb.hint.signedin'))
   // the only address in the form is the one the owner gave (contact@kybernos.app): none is invented, and the export messages name it too
   const addresses = (text) => [...String(text).matchAll(/[a-z0-9._-]+@[a-z0-9-]+\.[a-z]{2,}/gi)].map((m) => m[0].toLowerCase())
   const all = ['kbui.fb.hint.signedout', 'kbui.fb.hint.signedin', 'kbui.fb.copied.one', 'kbui.fb.copied.many'].flatMap((k) => [dict(k).en, dict(k).fr || dict(k).kybernos])
-  check('the only address in the form is contact@kybernos.app', all.flatMap(addresses).every((a) => a === 'contact@kybernos.app') && addresses(dict('kbui.fb.hint.signedout').en).length === 1 && addresses(dict('kbui.fb.copied.one').en).length === 1, all.flatMap(addresses))
+  check('the only address the form names is contact@kybernos.app (none invented), and the signed-out hint names none: the Send button is the way out', all.flatMap(addresses).every((a) => a === 'contact@kybernos.app') && addresses(dict('kbui.fb.hint.signedout').en).length === 0 && addresses(dict('kbui.fb.copied.one').en).length === 1, all.flatMap(addresses))
 }
 
 console.log('the form')
@@ -82,7 +82,7 @@ console.log('the form')
   const form = SRC.slice(SRC.indexOf('const KbFeedbackForm = () => {'), SRC.indexOf('ctx.effect(() => styles.insert(`\n.kbfb-overlay'))
   check('the form is found', form.length > 2000)
   check('Send posts to the host route, not to the box', form.includes("fetch('/kybernos/feedback/send', { method: 'POST'"))
-  check('Send is offered only to a signed-in person (the account status says so)', /signedIn === true \? h\('button'[^]*?'data-kb': 'feedback-send'/.test(form) && form.includes("fetch('/kybernos-cloud/status'"))
+  check('Send is offered to everyone; signed out it takes the public door and its label says « no account »', form.includes("'data-kb': 'feedback-send'") && form.includes("signedIn === true ? 'kbui.fb.send' : 'kbui.fb.send.anon'") && form.includes("fetch('/kybernos-cloud/status'"))
   check('the hint under the text is the signed-in or the signed-out one', form.includes("signedIn === true ? kbt('kbui.fb.hint.signedin') : kbt('kbui.fb.hint.signedout')"))
   check('the verdict decides the note (a success clears the text, a failure keeps it)', /kbFbSendVerdict\(status, out\)/.test(form) && /verdict\.tone === 'ok'/.test(form))
   check('Send is disabled while something is running or the text is empty', /'data-kb': 'feedback-send', disabled: busy !== '' \|\| message\.trim\(\) === ''/.test(form))

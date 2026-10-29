@@ -1,0 +1,9 @@
+# check-hit-targets-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=113223
+
+  9 controls under 24 px found: 3 the engine's, 0 accepted, 6 ours
+  ✗ none of our own controls is under 24 px without an invisible hit area — ["settings Theme div[theme-zone].kbth-stz.kbth-st-title 108x22 px","settings Theme div[theme-zone].kbth-stz.kbth-st-reply1 499x18 px","settings Theme div[theme-zone].kbth-stz.kbth-st-think 125x20 px","settings Theme div[theme-zone].kbth-stz.kbth-st-ph 490x22 px","settings Commands button.kbsl-link.kbsl-jsonbtn 128x15 px","settings Phone and channels button[phone-remote-switch].kbpc-sw 36x20 px"]
+  ✓ nothing of ours is left on the accepted list
+
+1 check(s) failed
+

@@ -27,6 +27,18 @@
   "requires": {
     "kybernos": ">=0.1.0"
   },
+  "provides": [
+    {
+      "name": "theme",
+      "version": "1.0",
+      "kind": "data",
+      "class": "inert",
+      "validator": "builtin",
+      "summary": {
+        "en": "A style preset: an accent, a font, corners, colours — tokens only, never CSS."
+      }
+    }
+  ],
   "permissions": [
     "ui.slot:settings.section",
     "ui.dom",

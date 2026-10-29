@@ -152,7 +152,7 @@ console.log('the built-in server written down again under another id (the hand-w
   writeFileSync(prodFile, JSON.stringify({ token: 'tok-prod-copy', user: { id: 'u-prod' } }))
   writeFileSync(builtinFile, JSON.stringify({ token: 'tok-builtin', user: { id: 'u-builtin' } }))
   const before = { prod: readFileSync(prodFile, 'utf8'), builtin: readFileSync(builtinFile, 'utf8') }
-  writeFileSync(registryFile, JSON.stringify({ active: 'kybernos-prod', servers: [{ id: 'kybernos-prod', name: 'Kybernos (production)', api: 'https://api.kybernos.app' }, { id: 'a', name: 'Server A', api: A.url }] }))
+  writeFileSync(registryFile, JSON.stringify({ active: 'kybernos-prod', servers: [{ id: 'kybernos-prod', name: 'Kybernos (production)', api: 'https://server.kybernos.app' }, { id: 'a', name: 'Server A', api: A.url }] }))
   const s = await route('/kybernos-cloud/server').run({})
   check('the active server is the built-in one, from the default, with no error', s.server.id === 'kybernos-cloud' && s.source === 'default' && s.error === undefined && mod.stateFile() === builtinFile, JSON.stringify([s.server.id, s.source, s.error]))
   check('the copy is not in the list, and is reported as a duplicate of the built-in server', s.servers.map((x) => x.id).join() === 'kybernos-cloud,a' && s.rejected.some((x) => x.id === 'kybernos-prod' && x.error === 'duplicate_builtin'), JSON.stringify([s.servers.map((x) => x.id), s.rejected]))

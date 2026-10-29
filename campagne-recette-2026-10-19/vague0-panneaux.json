@@ -1,0 +1,87 @@
+{
+  "dashboards": {
+    "ok": true,
+    "headings": [
+      "Workspaces"
+    ],
+    "buttons": [],
+    "tabs": [],
+    "inputs": [
+      "Search session names"
+    ],
+    "rows": 18
+  },
+  "agent-teams": {
+    "ok": true,
+    "headings": [
+      "Workspaces"
+    ],
+    "buttons": [],
+    "tabs": [],
+    "inputs": [
+      "Search session names"
+    ],
+    "rows": 18
+  },
+  "workspaces": {
+    "ok": true,
+    "headings": [
+      "Workspaces"
+    ],
+    "buttons": [],
+    "tabs": [],
+    "inputs": [
+      "Search session names"
+    ],
+    "rows": 18
+  },
+  "creations": {
+    "ok": true,
+    "headings": [
+      "Workspaces"
+    ],
+    "buttons": [],
+    "tabs": [],
+    "inputs": [
+      "Search session names"
+    ],
+    "rows": 18
+  },
+  "automations": {
+    "ok": true,
+    "headings": [
+      "Workspaces"
+    ],
+    "buttons": [],
+    "tabs": [],
+    "inputs": [
+      "Search session names"
+    ],
+    "rows": 18
+  },
+  "skills": {
+    "ok": true,
+    "headings": [
+      "Workspaces"
+    ],
+    "buttons": [],
+    "tabs": [],
+    "inputs": [
+      "Search session names"
+    ],
+    "rows": 18
+  },
+  "connectors": {
+    "ok": true,
+    "headings": [
+      "Workspaces"
+    ],
+    "buttons": [],
+    "tabs": [],
+    "inputs": [
+      "Search session names"
+    ],
+    "rows": 18
+  },
+  "_consoleErrors": []
+}

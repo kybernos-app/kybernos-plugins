@@ -1,5 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-maintenance — host. Measures; its only write is the one switch above.
+// kybernos-maintenance — host. Measures; its one switch is the automatic update
+// check. It also mounts the host-level memory/lesson janitor (janitor.mjs), which
+// is SCAN-ONLY until the user approves a real cleaning run.
 //
 // Routes exposed (webServer):
 //   GET  /kybernos-maintenance/state
@@ -24,6 +26,7 @@ import { fileURLToPath } from 'node:url'
 import { auditerSurfaces } from './surfaces.mjs'
 import { lireVersion } from './version.mjs'
 import { manifesteDuCatalogue, manquants, nomsVoulus } from './voulus.mjs'
+import { createJanitor } from './janitor.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -403,6 +406,30 @@ async function mesurerEtat () {
   }
 }
 
+// ── the memory and lesson janitor (janitor.mjs) ─────────────────────────────
+// ONE host-level scheduler for the whole machine, mounted here so that no chat
+// owns a timer. It is SCAN-ONLY until the user approves a real cleaning run
+// (KYBERNOS_JANITOR=apply or {"apply":true} in <DSH home>/kybernos/janitor/state.json);
+// KYBERNOS_JANITOR=off does not even mount it. The mount never throws: a janitor
+// that cannot start is a log line, never a DSH that does not start.
+let kbJanitorArret = null
+const monterJanitor = () => {
+  try {
+    const flag = String(process.env.KYBERNOS_JANITOR || '').trim().toLowerCase()
+    if (flag === 'off') return () => {}
+    const janitor = createJanitor({})
+    const arret = janitor.start()
+    kbJanitorArret = arret
+    return () => {
+      try { arret() } catch (e) { /* already stopped */ }
+      if (kbJanitorArret === arret) kbJanitorArret = null
+    }
+  } catch (e) {
+    console.error('[kybernos-maintenance] janitor: ' + String((e && e.message) || e))
+    return () => {}
+  }
+}
+
 const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(obj))
@@ -423,6 +450,10 @@ const origineOK = (req) => {
 
 export function apply (ctx) {
   if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-maintenance: routes')
+  // The janitor is host-level: its own effect, so unloading the bundle stops its timers.
+  try {
+    if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => monterJanitor(), 'kybernos-maintenance: memory and lesson janitor')
+  } catch (e) { console.error('[kybernos-maintenance] janitor mount: ' + String((e && e.message) || e)) }
   const demarrer = (hostCtx) => {
     // `get`, not `hostCtx.webServer`: with the plugin's own context a property read of a service it did not inject throws.
     const webServer = kbFenced(hostCtx.get('webServer'))

@@ -1,0 +1,50 @@
+# check-mobile-remote-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=51565
+
+the account menu's Phone and channels window
+  ✓ the profile menu has the « Phone and channels » entry (the account card is there: the stand-in server signed this DSH in)
+  ✓ the window opens with « Add a phone » and has asked for no code by itself
+  ✓ it carries the messaging column too (Kaby's, or the line that says it is not there)
+  ✓ « Add a phone » shows a real QR code
+  ✓ Chrome decodes the QR code into the pairing link
+  ✓ the server was asked for exactly one pairing
+Settings › Phone and channels
+  ✓ the cross closes the window
+  ✓ Settings › Phone and channels opens
+  ✓ the page has both columns and asks for no code by itself
+  ✓ « Add a phone » on the page shows a QR code
+  ✓ and it is a pairing link of its own, which Chrome decodes
+  ✓ the server was asked for a second pairing, not more
+the phone
+  ✓ the phone page reaches the 4-digit check
+  ✓ the address bar no longer carries the secrets
+  ✓ the computer shows the same 4 digits
+  ✓ nothing is served to the phone before approval
+  ✓ after approval the phone runs the computer's page
+  ✓ it is DSH, at phone width, with the phone layout
+  ✓ its composer is there
+  ✓ requests and the streaming socket went through the tunnel
+  ✓ the relay saw only ciphertext after the handshake
+the phone is locked, then woken
+  ✓ the relay cut the phone's connection
+  ✓ the phone resumes by itself (no new code, no approval) and the veil goes
+  ✓ DSH's own streaming socket opens again by itself
+  ✓ a request goes through the resumed tunnel
+  ✓ and so does a new streaming socket
+the phone comes back
+  ✓ reloading the phone page resumes with no new code and no approval
+  ✓ DSH is there again
+  ✓ the hashed files came from the phone's cache (the second load is much lighter)
+  ✓ the computer still lists one phone, and it is the same
+the paired phone
+  ✓ the computer lists the paired phone
+  ✓ it shows as connected
+  ✓ revoking cuts the phone off
+  ✓ the server forgot the device
+  ✓ the list is empty again
+a plan without the phone link
+  ✓ the page says « Not included in your plan »
+  ✓ and no QR code is offered
+
+37 passed, 0 failed
+

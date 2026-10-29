@@ -14,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors, kbObSections'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors, kbObSections, kbObThemeOf, kbObThemeSeam, kbObThemeApplied'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -172,6 +172,49 @@ eq('no goal ticked: an example made of the first two goals, flagged', [mod.kbObP
 eq('a language the pack does not write keeps the menu\'s own words, and no pack means no miniature', [mod.kbObPreviewOf(pack('sante'), ['notes'], 'es', rowsIn).menu.find((r) => r.id === 'dashboards').label, mod.kbObPreviewOf(null, [], 'en', rowsIn), mod.kbObPreviewOf(pack('dev'), ['review'], 'en', rowsIn).menu.length], ['DASHBOARDS', null, 9])
 eq('the miniature suggests at most one team, three questions, seven skills and three automations', packs.every((p) => { const m = mod.kbObPreviewOf(p, p.goals.map((g) => g.id), 'en', rowsIn); return m.teams.length <= 1 && m.starters.length <= 3 && m.skills.length <= 7 && m.autos.length <= 3 }), true)
 eq('the rows of the miniature are the rows of the menu', mod.KB_OB_ROWS.map((r) => r[0]), ['kyber', 'dashboards', 'aiteams', 'projects', 'deliverables', 'tasks', 'skills', 'connectors', 'documents'])
+
+/* ── 5b''. The field's style: its preset id, the seam, and the one line (A1-kit-wizard) ── */
+// A pack may name a style preset (`theme`, one id); the wizard applies it through the theme bundle's own seam when the kit is added, announces it
+// with one plain line, and sends the id (or null) in the complete answer. The seam is READ here, never minted: a shape change belongs to its batch.
+const themeOf = mod.kbObThemeOf
+eq('kit theme: the pack theme id is read, an absent or invalid one answers null',
+  [themeOf({ theme: 'cabinet-medical' }), themeOf({ theme: 'recrutement-ssii' }), themeOf({ theme: ' ' }), themeOf({}), themeOf({ theme: 42 }), themeOf(null), themeOf('sante')],
+  ['cabinet-medical', 'recrutement-ssii', null, null, null, null, null])
+const seamOf = mod.kbObThemeSeam
+const appliedWith = mod.kbObThemeApplied
+const accepting = () => ({ ok: true })
+const throwingRead = Object.defineProperty({}, '__KB_THEME_APPLY__', { get() { throw new Error('boom') } })
+eq('kit theme: the seam is read in try/catch and applied only when it accepts',
+  {
+    absent: seamOf({}), notAFunction: seamOf({ __KB_THEME_APPLY__: 'nope' }), getterThrows: seamOf(throwingRead), noWindow: seamOf(null), found: seamOf({ __KB_THEME_APPLY__: accepting }) === accepting,
+    ok: await appliedWith({ __KB_THEME_APPLY__: accepting }, 'x'),
+    refused: await appliedWith({ __KB_THEME_APPLY__: () => ({ ok: false, reason: 'no' }) }, 'x'),
+    throws: await appliedWith({ __KB_THEME_APPLY__: () => { throw new Error('no') } }, 'x'),
+    undefinedAnswer: await appliedWith({ __KB_THEME_APPLY__: () => undefined }, 'x'),
+    garbage: await appliedWith({ __KB_THEME_APPLY__: () => 'ok' }, 'x'),
+    missing: await appliedWith({}, 'x'),
+    appliedNoWindow: await appliedWith(null, 'x'),
+    promised: await appliedWith({ __KB_THEME_APPLY__: () => Promise.resolve({ ok: true }) }, 'x'),
+    idIsTheArgument: await appliedWith({ __KB_THEME_APPLY__: (id) => (id === 'cabinet-medical' ? { ok: true } : { ok: false }) }, 'recrutement-ssii'),
+  },
+  { absent: null, notAFunction: null, getterThrows: null, noWindow: null, found: true, ok: true, refused: false, throws: false, undefinedAnswer: false, garbage: false, missing: false, appliedNoWindow: false, promised: true, idIsTheArgument: false })
+// The miniature keeps everything it drew before, plus the id: the style changes nothing else in it. The comparison pack is `sante` with its own `theme`
+// removed — the shipped pack names one today, so the null case is built by deleting the key, never assumed from the file.
+const stylelessPack = { ...pack('sante') }
+delete stylelessPack.theme
+const styled = mod.kbObPreviewOf({ ...pack('sante'), theme: 'cabinet-medical' }, ['notes'], 'en', rowsIn)
+const styleless = mod.kbObPreviewOf(stylelessPack, ['notes'], 'en', rowsIn)
+eq('kit theme: the miniature carries the id and keeps the pack accent and menu',
+  [styled.theme, styleless.theme, styled.accent, styled.accent === styleless.accent, JSON.stringify(styled.menu) === JSON.stringify(styleless.menu), JSON.stringify(styled.skills) === JSON.stringify(styleless.skills), JSON.stringify(styled.starters) === JSON.stringify(styleless.starters)],
+  ['cabinet-medical', null, '#1B7F76', true, true, true, true])
+const themeRow = mod.KB_OB_T['k.theme.note']
+eq('kit theme: one note, four languages, and it cites Settings',
+  [Array.isArray(themeRow), themeRow.length, themeRow.every((t) => typeof t === 'string' && t.trim() !== ''),
+    themeRow.slice(1).every((t) => t !== themeRow[0]), themeRow.some((t) => /<\/?[a-z]|javascript:|on[a-z]+=/i.test(t)),
+    /^This field.s look is applied with the kit\./.test(themeRow[0]), /Settings . (Theme|Style)/.test(themeRow[0]),
+    /const themeNote = note\(T\('k\.theme\.note'\), 'info'\)/.test(ui[1]), /themeNote\.setAttribute\('data-kb-ob', 'kit-theme'\)/.test(ui[1]),
+    /h\('button'[^\n]*kit-theme|h\('input'[^\n]*kit-theme/.test(ui[1])],
+  [true, 4, true, true, false, true, true, true, true, false])
 
 /* ── 5c. The menu wording a pack gives ───────────────────────────────────── */
 const health = pack('sante')
@@ -430,6 +473,25 @@ eq('and does not claim a control « any time in Settings »', ag.some((s) => /an
   eq('the tiles grid exists', tiles !== null, true)
   eq('two columns that may shrink (minmax(0,1fr)), never a bare 1fr', tiles !== null && /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/.test(tiles[1]) && !/grid-template-columns:1fr 1fr/.test(tiles[1]), true)
   eq('and one column of the same kind under 430 px', /@media \(max-width:430px\)\{\.kb-ob-tiles\{grid-template-columns:minmax\(0,1fr\)\}\}/.test(src), true)
+}
+
+/* ── The one published seam, read consumer-aware (adversarial review F-39/F-40, narrowed 2026-10-28) ── */
+// The file-wide counts A1-kit-wizard froze could not survive a second legitimate consumer (A7's marketplace). The invariant is
+// now the one the spec meant: ONE raw reader, in KB-OB-CORE, every other consumer through kbObThemeSeam, and no pack.kit family
+// token inside the wizard's own blocks.
+{
+  const reads = (t) => t.split('__KB_THEME_APPLY__').length - 1
+  const coreAt = src.indexOf('// KB-OB-CORE-BEGIN')
+  const coreEnd = src.indexOf('// KB-OB-CORE-END')
+  const first = src.indexOf('__KB_THEME_APPLY__')
+  const ports = src.slice(src.indexOf('const kbThPorts = () => {'), src.indexOf('const kbThPresence ='))
+  eq('exactly one raw read of the seam in the file', reads(src), 1)
+  eq('...and it sits inside KB-OB-CORE, the block that publishes it', first > coreAt && first < coreEnd, true)
+  eq('the wizard UI reads it through kbObThemeSeam, never raw', [reads(ui[1]), /kbObThemeSeam\s*\(/.test(ui[1])], [0, true])
+  eq('the installer page\'s style port reads through the helper too', [ports.length > 0, reads(ports)], [true, 0])
+  const family = ['pack.kit', '.kit.teams', '.kit.automations', 'kit.themes'].map((t) => (core[1] + ui[1]).split(t).length - 1)
+  eq('the wizard\'s own blocks consume no pack.kit family token', family, [0, 0, 0, 0])
+  eq('the wizard still derives its kit from the pack\'s goals (kbObKitOf)', /const kbObKitOf = \(pack, goalIds/.test(core[1]), true)
 }
 
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')

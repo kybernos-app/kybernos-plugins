@@ -1,0 +1,38 @@
+# check-summary-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=92398
+
+── 1. the probe ──
+  ✓ the plugin exposes its diagnostics hook
+  ✗ the probe filed the chat on screen — null
+    nodes read: null
+  ✗ the chat's nodes carry the person's message as kind `user` — null
+
+── 2. the tab ──
+  ✗ open() reaches the sidebar
+  ✗ the Summary tab opens in the right sidebar
+  ✗ with nothing filed it says so instead of showing empty boxes
+
+── 3. with the chat's work in place ──
+  ✗ a chat's data can be filed
+  ✗ four sections, in the order of the reference — []
+  ✗ with their counts — []
+  ✗ the agent is listed by its label
+  ✗ done tasks are struck through, the one in progress is not — []
+  ✗ the skill of this turn is listed, not the old one
+  ✗ MCP servers first, then native tools by use — []
+  ✗ the files of this turn, by name — []
+
+── 4. the scope ──
+  ✗ the scope button says what it shows
+  ✗ the whole chat lists both skills and all three files
+  ✗ progress and agents do not change with the scope
+  ✗ back to the latest turn only
+
+── 5. fold, theme, narrow ──
+  ✗ a section folds on a click
+  ✗ the card uses the theme (a real background)
+  ✗ the pane does not scroll sideways
+  ✗ a very long file name is cut, not overflowing
+
+SUMMARY LIVE — 22 checks, 21 failure(s)
+

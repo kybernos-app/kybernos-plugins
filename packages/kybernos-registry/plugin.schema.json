@@ -225,7 +225,8 @@
         "class": { "enum": ["inert", "instruction"], "description": "data points only: 'instruction' means an agent will follow the text (skills, prompts), see the contract, section 'Two kinds of plugin'." },
         "summary": { "$ref": "#/$defs/text160" },
         "schema": { "$ref": "#/$defs/relPath" },
-        "validator": { "const": "builtin", "description": "the owner registers the check in code (the registry's definePoint); exactly one of schema and validator for a data point" }
+        "validator": { "const": "builtin", "description": "the owner registers the check in code (the registry's definePoint); exactly one of schema and validator for a data point" },
+        "files": { "enum": ["json", "folder"], "description": "The shape of one contribution: 'json' (default) one flat .json file per contribution, 'folder' one folder per contribution whose files are read whole. A data point whose contributions are folders has a validator, never a schema." }
       }
     },
     "extension": {

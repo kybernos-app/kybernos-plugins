@@ -190,8 +190,24 @@
       "nom": "@local/kybernos-pulse"
     },
     {
+      "dir": "kybernos-log",
+      "nom": "@local/kybernos-log"
+    },
+    {
       "dir": "kybernos-webapp-creator",
       "nom": "@local/kybernos-webapp-creator"
+    },
+    {
+      "dir": "kybernos-contacts",
+      "nom": "@local/kybernos-contacts"
+    },
+    {
+      "dir": "kybernos-catalog",
+      "nom": "@local/kybernos-catalog"
+    },
+    {
+      "dir": "kybernos-pipeline",
+      "nom": "@local/kybernos-pipeline"
     }
   ]
 }

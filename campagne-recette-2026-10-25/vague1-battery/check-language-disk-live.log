@@ -1,0 +1,11 @@
+# check-language-disk-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=155056
+
+
+── empty disk ──
+  ✗ the page says where the translations are kept (disk), with the folder — null
+  ✗ … with a tooltip explaining what this folder is for — null
+  ✓ the browser did query the host (read-only, no write)
+
+── translating writes the file ──
+

@@ -168,7 +168,7 @@ console.error = realErr; console.log = realLog
 
 const AUTHORITY = '127.0.0.1:3080'
 const call = async (method, path, body, headers) => {
-  const req = Readable.from(body === undefined ? [] : [Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))])
+  const req = Readable.from(body === undefined ? [] : [Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))])
   req.method = method; req.url = path
   req.headers = Object.assign({ host: AUTHORITY, origin: 'http://' + AUTHORITY, cookie: sessionCookie(AUTHORITY) }, headers || {})
   req.socket = { localPort: 3080 }
@@ -247,7 +247,11 @@ const linesOnDisk = () => (existsSync(file) ? readFileSync(file, 'utf8').split('
   let answers = []
   const realFetch = globalThis.fetch
   globalThis.fetch = async (url, init) => {
-    posts.push({ url: String(url), auth: init.headers.authorization, body: JSON.parse(init.body) })
+    const brut = init.body
+    const texte = typeof brut === 'string'
+    let corps = null
+    try { corps = texte === true ? JSON.parse(brut) : null } catch (e) { corps = null }
+    posts.push({ url: String(url), auth: init.headers.authorization, body: corps, type: init.headers['content-type'], raw: texte === true ? null : brut })
     const next = answers.length > 0 ? answers.shift() : { status: 201, json: { ok: true, issue: { number: posts.length, url: 'https://example.invalid/issues/' + posts.length } } }
     if (next.throws === true) throw new TypeError('fetch failed')
     return { status: next.status, text: async () => JSON.stringify(next.json) }
@@ -295,21 +299,22 @@ const linesOnDisk = () => (existsSync(file) ? readFileSync(file, 'utf8').split('
   ok('a question keeps its label and a key pasted into it is masked before it leaves')
 
   // A relay that is down: an honest failure, the text kept, a retry later sends the same report.
-  answers = [{ status: 503, json: { error: 'github_indisponible', retry_after: 30 } }]
+  answers = [{ status: 503, json: { error: 'base_indisponible', retry_after: 30 } }]
   const n0 = posts.length
   const down = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Relay down case' })
   assert.equal(down.status, 200)
-  assert.equal(down.json.ok, false)
-  assert.equal(down.json.error, 'github_indisponible')
-  assert.equal(down.json.retryable, true)
-  assert.equal(down.json.retry_after, 30)
+  // Kept, not lost: nothing for the person to fix, and the record waits in the outbox for the next report that goes through.
+  assert.equal(down.json.ok, true, JSON.stringify(down.json))
+  assert.equal(down.json.queued, true)
+  assert.equal(down.json.error, 'base_indisponible')
   assert.equal(posts.length, n0 + 1)
-  ok('a relay that does not answer is an honest failure (ok false, its code, retryable, when to come back), never a success')
+  ok('a relay that does not answer KEEPS the report on this computer and says so, instead of a failure the person cannot act on')
   answers = [{ throws: true }]
   const dead = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Network down case' })
-  assert.equal(dead.json.ok, false)
+  assert.equal(dead.json.ok, true)
+  assert.equal(dead.json.queued, true)
   assert.equal(dead.json.error, 'envoi_indisponible')
-  ok('no network at all is a failure too, with a code the form can word')
+  ok('no network at all keeps it too, with the code the form can word')
   answers = [{ status: 400, json: { error: 'invalid_title' } }]
   const refused = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Refused case' })
   assert.equal(refused.json.ok, false)
@@ -317,15 +322,80 @@ const linesOnDisk = () => (existsSync(file) ? readFileSync(file, 'utf8').split('
   assert.equal(refused.json.retryable, false)
   ok('a refusal of the content is not retryable')
 
-  // Signed out: no token, nothing is posted, the answer says so.
+  // The relay refuses to relay (no issue tracker configured): the report still leaves, through the public door.
+  answers = [{ status: 503, json: { error: 'github_indisponible' } }, { status: 201, json: { id: 'public-fallback' } }]
+  const nFallback = posts.length
+  const fallback = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Relay off case' })
+  assert.equal(fallback.status, 200)
+  assert.equal(fallback.json.ok, true, JSON.stringify(fallback.json))
+  const urls = posts.slice(nFallback).map((p) => p.url)
+  assert.ok(urls.some((u) => /\/v1\/feedback\/public$/.test(u)), 'the relay was tried, then the public door: ' + JSON.stringify(urls))
+  ok('a relay with no issue tracker hands the report to the public door, which takes it')
+
+  // Signed out: no token, so the report takes the PUBLIC door (stored by the team, no issue, no account). The answer says it went.
   rmSync(stateFile, { force: true })
   const n1 = posts.length
+  answers = [{ status: 201, json: { id: 'public-1' } }]
   const out = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Signed out case' })
   assert.equal(out.status, 200)
-  assert.equal(out.json.ok, false)
-  assert.equal(out.json.error, 'non_connecte')
-  assert.equal(posts.length, n1, 'nothing is posted without an account')
-  ok('signed out: nothing is posted and the answer says « not connected », it never claims a delivery')
+  assert.equal(out.json.ok, true, JSON.stringify(out.json))
+  assert.equal(posts.length, n1 + 1, 'the report is posted to the public door')
+  assert.equal(posts[n1].url, 'https://api.kybernos.app/v1/feedback/public')
+  assert.equal(posts[n1].auth, undefined, 'no token leaves with an anonymous report')
+  assert.equal(posts[n1].body.kind, 'bug')
+  assert.equal(posts[n1].body.title, 'Signed out case')
+  ok('signed out: the report takes the PUBLIC door, with no token, and the answer claims a delivery only because it happened')
+
+  // Screenshots: one image per request, raw bytes and the image's own type, no account — then the report names their ids.
+  const SHOT_ID = '11111111-1111-4111-8111-111111111111'
+  const n3 = posts.length
+  answers = [{ status: 201, json: { ok: true, id: SHOT_ID, mime: 'image/png', size: 11 } }]
+  const png = Buffer.from('fake png!!!')
+  const envoi = await call('POST', '/kybernos/feedback/attachment', png, { 'content-type': 'image/png' })
+  assert.equal(envoi.status, 201, JSON.stringify(envoi.json))
+  assert.equal(envoi.json.ok, true)
+  assert.equal(envoi.json.id, SHOT_ID)
+  assert.equal(posts.length, n3 + 1)
+  assert.equal(posts[n3].url, 'https://api.kybernos.app/v1/feedback/attachment')
+  assert.equal(posts[n3].auth, undefined, 'no token leaves with a screenshot')
+  assert.equal(posts[n3].type, 'image/png')
+  assert.equal(Buffer.compare(posts[n3].raw, png), 0, 'the bytes are forwarded untouched')
+  ok('a screenshot goes to the public door as raw bytes, with its own content type and no token')
+
+  // The server does not take screenshots (not deployed, or unreachable): the image is KEPT on this computer, and the answer is a
+  // success so the report still goes. Nothing the person attached is thrown away.
+  const nKeep = posts.length
+  answers = [{ status: 404, json: { error: 'not_found' } }]
+  const image = Buffer.from('image gardée ici')
+  const garde = await call('POST', '/kybernos/feedback/attachment', image, { 'content-type': 'image/png' })
+  assert.equal(garde.status, 201, JSON.stringify(garde.json))
+  assert.equal(garde.json.ok, true)
+  assert.equal(garde.json.local, true, 'the answer says it is local, not uploaded')
+  assert.ok(typeof garde.json.fichier === 'string' && garde.json.fichier.includes('attente'), garde.json.fichier)
+  assert.ok(existsSync(garde.json.fichier), 'the bytes are on this computer')
+  assert.equal(readFileSync(garde.json.fichier).length, image.length)
+  assert.equal(posts.length, nKeep + 1, 'the server was asked, then the image was kept')
+  ok('when the server does not take screenshots, the image is kept on this computer and the report still goes')
+
+  const n4 = posts.length
+  const refus = await call('POST', '/kybernos/feedback/attachment', Buffer.from('%PDF-1.4'), { 'content-type': 'application/pdf' })
+  assert.equal(refus.status, 415)
+  assert.equal(posts.length, n4, 'nothing is posted for a file that is not an image')
+  const vide = await call('POST', '/kybernos/feedback/attachment', Buffer.alloc(0), { 'content-type': 'image/png' })
+  assert.equal(vide.status, 400)
+  ok('an image type is required (415) and an empty body is refused (400), before any network call')
+
+  // The report names the screenshots and carries the optional address; the public door gets both.
+  answers = [{ status: 201, json: { id: 'public-2' } }]
+  const n5 = posts.length
+  const avec = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Bug avec capture', contact: '  test@example.com ', attachments: [SHOT_ID] })
+  assert.equal(avec.status, 200)
+  assert.equal(avec.json.ok, true, JSON.stringify(avec.json))
+  assert.equal(posts.length, n5 + 1)
+  assert.deepEqual(posts[n5].body.attachments, [SHOT_ID])
+  assert.equal(posts[n5].body.contact, 'test@example.com')
+  assert.equal(posts[n5].auth, undefined)
+  ok('the report names its screenshots and the optional address, and both reach the public door')
   connect()
 
   // The same strict guard as the other write routes, and nothing leaves on a refusal.

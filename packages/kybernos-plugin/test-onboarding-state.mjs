@@ -146,6 +146,24 @@ ok('what the person said about themselves is bounded, cleaned, kept across a rep
   assert.deepEqual([aboutView(defaultState(NOW)), aboutView(null), aboutView({ about: 'x' })], [null, null, null])
 })
 
+ok('the style preset is null on a fresh install and on a file the older wizard wrote', () => {
+  assert.equal(ONBOARDING_VERSION, 1, 'new fields go in new keys: the wizard is not reopened')
+  assert.equal(defaultState(NOW).theme, null)
+  assert.equal(publicView(defaultState(NOW)).theme, null)
+  assert.equal(publicView({ version: 1, completed: true, profil: 'produit' }).theme, null, 'the real file of an existing install')
+})
+ok('the style preset survives a replay, a client that sends none and a later domain choice; anything else is null', () => {
+  const first = complete(defaultState(NOW), { profil: 'sante', theme: 'sante-teal' }, NOW)
+  assert.equal(first.theme, 'sante-teal')
+  assert.equal(publicView(first).theme, 'sante-teal', 'the wizard reads it back on the next load')
+  assert.equal(complete(first, { profil: 'sante' }, NOW).theme, 'sante-teal', 'a client that sends none keeps the saved one')
+  assert.equal(complete(first, { theme: 'droit-ink' }, NOW).theme, 'droit-ink')
+  assert.equal(replay(first).theme, 'sante-teal')
+  assert.equal(chooseDomain(first, { profil: 'droit', goals: [] }).theme, 'sante-teal', 'choosing a field later moves two answers, not this one')
+  assert.equal(complete(defaultState(NOW), { theme: 'x'.repeat(40) }, NOW).theme, 'x'.repeat(40), '40 characters fit')
+  for (const bad of ['', 'Sante Teal', 'x'.repeat(41), 7, {}, ['a'], null]) assert.equal(complete(defaultState(NOW), { theme: bad }, NOW).theme, null, JSON.stringify(bad))
+})
+
 ok('the goals the person wrote themselves are a few short lines, cleaned, kept across a replay, never in the public view', () => {
   const first = complete(defaultState(NOW), { profil: 'edu', goals: ['exams'], customGoals: ['Prepare my thesis defence', '  prepare   my THESIS defence ', 'Teach  a  class', '', 3, null, 'a\u0000b'] }, NOW)
   assert.deepEqual(first.customGoals, ['Prepare my thesis defence', 'Teach a class', 'ab'], 'trimmed, one space, no control character, no duplicate in another case, only strings')

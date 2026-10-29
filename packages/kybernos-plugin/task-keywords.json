@@ -1,0 +1,16 @@
+{
+  "office": [
+    "facture",
+    "contrat",
+    "reunion",
+    "rendez-vous",
+    "compte rendu",
+    "lettre"
+  ],
+  "automation": [
+    "collecte",
+    "nuit",
+    "nocturne",
+    "prospection"
+  ]
+}

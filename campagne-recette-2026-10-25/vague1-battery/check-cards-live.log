@@ -1,0 +1,24 @@
+# check-cards-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=44326
+
+Workspaces (1400 px)
+  ✓ a Workspaces card is 140 px or less (it was 231)
+  ✓ four columns fit the page at 1400 px (they were three)
+  ✓ the counters are two small figures in the card's foot, not a pill row (the « Top-level project » line is gone; the face itself is measured by check-cardface-live.mjs)
+  ✓ its actions are hidden at rest and not clickable
+  ✓ they show on hover, inside the card
+Agent Teams › Marketplace (1400 px)
+  ○ no Agent Team installed in this instance: its card is not measured
+  ✓ a Marketplace card is 150 px or less (it was 214)
+  ✓ Install and Preview are no longer 43 px buttons: 30 px or less
+  ✓ at rest they are invisible and not clickable (the Agent Teams cards' behaviour)
+  ✓ on hover they show, inside the card
+  ✓ on keyboard focus (Tab to Preview) they show
+  ○ no template is installed in this instance: the « Installed » state is not measured
+No hover device (touch emulation, 800 px) and 390 px
+  ✓ touch, 800 px: Install and Preview are visible, in the flow and inside the card
+  ✓ 390 px: Install and Preview are visible, in the flow and inside the card
+  ✓ 390 px: the page does not scroll sideways
+
+13 passed, 0 failed
+

@@ -13,8 +13,8 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  FILE_NAME, LIB_VERSION, LIMITS, MAX_BODY_BYTES, SETTINGS_KEYS,
-  createPresetStore, handlePresetStore, sanitizeLibrary, sanitizePreset, servePresetStore,
+  A11Y_KEYS, FILE_NAME, LIB_VERSION, LIMITS, MAX_BODY_BYTES, SETTINGS_KEYS,
+  applyPreset, createPresetStore, handlePresetStore, sanitizeLibrary, sanitizePreset, servePresetStore,
 } from './preset-store.mjs'
 
 let pass = 0
@@ -118,6 +118,124 @@ section('the request handler')
   check('POST without a library is a 400', handlePresetStore(store, { method: 'POST', body: {} }).status === 400 && handlePresetStore(store, { method: 'POST', body: null }).status === 400)
   check('POST with a library that is not one is a 400', handlePresetStore(store, { method: 'POST', body: { library: { presets: 5 } } }).status === 400)
   check('DELETE is a 405', handlePresetStore(store, { method: 'DELETE' }).status === 405)
+  rmSync(dir, { recursive: true, force: true })
+}
+
+section('an import through the host entry (applyPreset)')
+{
+  const dir = tmp()
+  const now = () => 5000
+  const store = createPresetStore({ dir, now })
+  const one = applyPreset(store, { name: 'Soigne', settings: { acc: '#4d7c0f', evil: 1 } })
+  check('a good import answers { ok, id, preset } and drops what it does not know',
+    one.ok === true && one.id === 'soigne' && one.preset.settings.evil === undefined && one.preset.settings.acc === '#4d7c0f', one)
+  check('...and writes ONE record on the disk', store.read().library.presets.length === 1 && store.read().library.presets[0].id === 'soigne')
+
+  const before = JSON.stringify(store.read().library)
+  for (const k of A11Y_KEYS) {
+    const r = applyPreset(store, { name: 'A11y ' + k, settings: { acc: '#112233', [k]: k === 'contrastMode' ? 'max' : true } })
+    check('accessibility key « ' + k + ' » is refused, and names it', r.ok === false && r.error === 'accessibility setting: ' + k, r)
+  }
+  check('...and a refused import writes nothing at all', JSON.stringify(store.read().library) === before)
+
+  const again = applyPreset(store, { name: 'Soigne', settings: { acc: '#4d7c0f' } })
+  const ids = store.read().library.presets.map((p) => p.id)
+  check('the same import twice: same id, exactly one record, no duplicate', again.ok === true && again.id === one.id && ids.filter((i) => i === one.id).length === 1 && ids.length === 1, ids)
+
+  const named = applyPreset(store, { id: 'encre', name: 'Whatever', settings: { mode: 'light' }, source: 'gallery', gid: 'encre-papier', v: 2, author: 'Kybernos' })
+  check('an id the caller names is the identity (a gallery import keeps its catalogue link)', named.ok === true && named.id === 'encre' && named.preset.gid === 'encre-papier' && named.preset.source === 'gallery' && named.preset.v === 2 && named.preset.author === 'Kybernos', named)
+  const badId = applyPreset(store, { id: '../x', name: 'Été clair', settings: { mode: 'dark' } })
+  check('an unusable id falls back to the slug of the name', badId.ok === true && badId.id === 'ete-clair', badId)
+
+  // The person's own theme is never replaced: a name collision gives a free name and a suffixed id (A1-1).
+  const mine = sanitizePreset(good({ id: 'u-mine', name: 'Soigné', source: 'me' })).preset
+  store.write({ presets: [mine], updatedAt: 100 })
+  const frozen = JSON.stringify(store.read().library.presets.find((p) => p.id === 'u-mine'))
+  const collided = applyPreset(store, { name: 'Soigné', settings: { acc: '#abcdef' } })
+  const afterCollision = store.read().library.presets
+  check('a name already taken by another record still applies, under a free name and a suffixed id',
+    collided.ok === true && collided.id === 'soigne-2' && collided.preset.name === 'Soigné (2)' && collided.preset.settings.acc === '#abcdef', collided)
+  check('...the person\'s own record is untouched, byte for byte', JSON.stringify(afterCollision.find((p) => p.id === 'u-mine')) === frozen)
+  const collidedAgain = applyPreset(store, { name: 'Soigné', settings: { acc: '#abcdef' } })
+  check('...and the same collision imported twice stays one record (the suffix is not a second idempotence rule)',
+    collidedAgain.ok === true && collidedAgain.id === collided.id && store.read().library.presets.filter((p) => p.name.indexOf('Soigné') === 0).length === 2, store.read().library.presets.map((p) => p.id + ':' + p.name))
+  check('no two records share an id', new Set(store.read().library.presets.map((p) => p.id)).size === store.read().library.presets.length)
+
+  // A1-1's literal rule, over every id shape: « the `me` record is never touched (byte for byte) », and an import
+  // only ever names a record it created. The old test narrowed this to « a different id », which is how F-41 shipped.
+  {
+    const cases = []
+    for (const id of ['soigne', 'u-mine', 'x-1', 'a']) {
+      cases.push({ id, input: { name: 'Soigne', settings: { acc: '#abcdef' } } })
+      cases.push({ id, input: { id, name: 'Soigne', settings: { acc: '#abcdef' } } })
+      cases.push({ id, input: { id, name: 'Autre', settings: { acc: '#abcdef' } } })
+    }
+    let untouched = 0
+    let isolated = 0
+    for (const c of cases) {
+      const caseDir = tmp()
+      const caseStore = createPresetStore({ dir: caseDir, now: () => 5000 })
+      caseStore.write({ presets: [good({ id: c.id, name: 'Soigne', source: 'me', settings: { acc: '#000001' } })], updatedAt: 100 })
+      const record = () => JSON.stringify(caseStore.read().library.presets.find((p) => p.id === c.id))
+      const frozen = record()
+      const answer = applyPreset(caseStore, c.input)
+      const after = caseStore.read().library.presets
+      if (record() === frozen) untouched += 1
+      if (answer.ok !== true || (answer.id !== c.id && after.length === 2)) isolated += 1
+      rmSync(caseDir, { recursive: true, force: true })
+    }
+    check('a me record is untouched, byte for byte, whatever id an import names (' + cases.length + ' cases)', untouched === cases.length, { untouched, cases: cases.length })
+    check('...and the import lands on a record of its own (or refuses), never on the person\'s', isolated === cases.length, { isolated, cases: cases.length })
+  }
+  // F-42: the suffixed-id walk may only find a record the import itself created — never a stranger at that id.
+  {
+    const strangerDir = tmp()
+    const strangerStore = createPresetStore({ dir: strangerDir, now: () => 5000 })
+    strangerStore.write({
+      presets: [
+        good({ id: 'u-mine', name: 'Soigne', source: 'me', settings: { acc: '#000001' } }),
+        good({ id: 'soigne-2', name: 'Cabinet', source: 'gallery', gid: 'cab', v: 3, settings: { acc: '#123456' } }),
+      ],
+      updatedAt: 100,
+    })
+    const before = JSON.stringify(strangerStore.read().library.presets.find((p) => p.id === 'soigne-2'))
+    const answer = applyPreset(strangerStore, { name: 'Soigne', settings: { acc: '#abcdef' } })
+    const cabinet = strangerStore.read().library.presets.find((p) => p.id === 'soigne-2')
+    check('a suffixed-id collision never rewrites a record of another name (its gid and v survive)',
+      JSON.stringify(cabinet) === before && cabinet.gid === 'cab' && cabinet.v === 3, cabinet)
+    check('...the import answers its own name, and lands a record of its own',
+      answer.ok === true && answer.preset.name.indexOf('Soigne') === 0 && answer.preset.name !== 'Cabinet' && answer.id !== 'soigne-2', answer)
+    rmSync(strangerDir, { recursive: true, force: true })
+  }
+
+  const routed = handlePresetStore(store, { method: 'POST', body: { import: { name: 'Route', settings: { acc: '#112233' } } } })
+  check('POST { import } is the same entry, answered 200 { ok, preset }', routed.status === 200 && routed.body.ok === true && routed.body.preset.settings.acc === '#112233', routed)
+  const refused = handlePresetStore(store, { method: 'POST', body: { import: { name: 'Route', settings: { cbSafe: true } } } })
+  check('...and an accessibility key through the route is a 400', refused.status === 400 && refused.body.ok === false, refused)
+
+  // A real clock: the store clamps a future updatedAt, so a stubbed one cannot show the move.
+  const liveDir = tmp()
+  const live = createPresetStore({ dir: liveDir })
+  applyPreset(live, { name: 'Un', settings: { mode: 'dark' } })
+  const c1 = live.read().library.updatedAt
+  applyPreset(live, { name: 'Deux', settings: { mode: 'light' } })
+  const c2 = live.read().library.updatedAt
+  check('updatedAt moves forward on every import (two imports in the same millisecond included)', c2 > c1 && c1 > 0, [c1, c2])
+  rmSync(liveDir, { recursive: true, force: true })
+
+  store.write({ presets: Array.from({ length: LIMITS.presets }, (_, i) => good({ id: 'u-' + i, name: 'n' + i })), updatedAt: 1 })
+  const full = applyPreset(store, { name: 'One too many', settings: { acc: '#112233' } })
+  check('a full library refuses the import ("library full") and evicts nothing', full.ok === false && full.error === 'library full' && store.read().library.presets.length === LIMITS.presets, full)
+
+  check('an import that is not an object is refused, not thrown on', applyPreset(store, null).ok === false && applyPreset(store, 'x').ok === false && applyPreset(store, { name: 'No settings' }).ok === false && applyPreset(store, { name: ' ', settings: { mode: 'dark' } }).ok === false)
+  const boom = { read() { throw new Error('boom') }, write() { throw new Error('boom') } }
+  const crashed = applyPreset(boom, { name: 'X', settings: { acc: '#112233' } })
+  check('a throwing store becomes { ok:false, error } (the seam never throws)', crashed.ok === false && typeof crashed.error === 'string', crashed)
+
+  const both = handlePresetStore(store, { method: 'POST', body: { import: { name: 'x', settings: { acc: '#112233' } }, library: { presets: [] } } })
+  const neither = handlePresetStore(store, { method: 'POST', body: { hello: 1 } })
+  check('one body, one intention: import + library (or neither) is a 400 « invalid body »', both.status === 400 && both.body.error === 'invalid body' && neither.status === 400 && neither.body.error === 'invalid body', [both, neither])
+  check('the whole-document write still replaces the library', handlePresetStore(store, { method: 'POST', body: { library: { presets: [good({ id: 'u-only' })], updatedAt: 3 } } }).status === 200 && store.read().library.presets.length === 1)
   rmSync(dir, { recursive: true, force: true })
 }
 

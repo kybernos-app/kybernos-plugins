@@ -2,6 +2,7 @@
   "v": 1,
   "id": "sante",
   "order": 20,
+  "theme": "cabinet-medical",
   "accent": "#1B7F76",
   "icon": "heart",
   "name": {

@@ -1,0 +1,43 @@
+Workspaces
+  ✓ the toolbar (search, sort) is still there, untouched
+  ✓ Workspaces: every card has the new face (tile, watermark, foot with two figures)
+  ✓ Workspaces: a card is 140 px or less (it was 231 / 214)
+  ✓ Workspaces: no empty-description line (nothing is written when there is nothing to say)
+  ✓ Workspaces: the tile has no outline and no border
+  ○ no coloured Workspaces here: the glyph colour is not measured
+  ✓ Workspaces: a project without colour keeps a neutral grey tile, not a black one
+  ✓ Workspaces: at rest the watermark and the actions are invisible
+  ✓ Workspaces: on hover the watermark appears
+  ✓ Workspaces: and it does not move (same transform 350 ms later)
+  ✓ Workspaces: the actions show on hover, inside the foot, on the right
+  ✓ Workspaces: hovering a figure says its word
+  ✓ Workspaces: every figure carries its word as a tooltip and an accessible name
+  ✓ the Workspaces counters are two plain numbers (the words wait for a hover), not a mono caps sentence
+Agent Teams
+  ○ no Agent Teams card on screen: skipped
+Agent Teams rows
+  ○ no Agent Teams row on screen: skipped
+Workspaces rows
+  ✓ Workspaces rows: the flat face (tile 34, figures, actions), nothing else
+  ✓ Workspaces rows: no pill, no solid tile, no outline, no placeholder line
+  ✓ Workspaces rows: 59 px or less
+  ✓ Workspaces rows: the figure columns start at the same x on every row
+  ✓ Workspaces rows: the actions show on hover
+  ✓ Workspaces rows at 400 px: every row, card, tile and button stays inside the window
+  ✓ Workspace page: the header tile is the pale tile at 56 px (no solid 52 px block)
+  ✓ Workspace page, Details: the tile at 56 px is the header's alone, the tab draws no second one
+Marketplace
+  ✓ Marketplace cards: every card has the face (tile 42, foot, figures)
+  ✓ Marketplace cards: no pill, no solid tile, no outline, no category in capitals
+  ✓ Marketplace cards: the agents figure keeps its hook; an installed card shows its word at rest
+  ✓ Marketplace cards: Install and Preview are hidden at rest
+  ✓ Marketplace cards: Preview and Install show on hover, Preview first
+  ✓ Marketplace cards at 400 px: every row, card, tile and button stays inside the window
+  ✓ Preview dialog: the header tile is the pale tile at 46 px, no category in capitals
+  ✓ Marketplace rows: the flat face, Preview (and Install when not installed) in a fixed column
+  ✓ Marketplace rows at 400 px: every row, card, tile and button stays inside the window
+  ✓ kybernos.app catalogue cards: the same face, the glyph in the tile, Install in the foot
+  ✓ kybernos.app catalogue cards: a colour gives the pale coloured tile, none gives the neutral one; an empty glyph falls back to the name
+  ✓ kybernos.app catalogue cards: category and version on the grey line, the number of agents as a figure
+
+33 checks passed

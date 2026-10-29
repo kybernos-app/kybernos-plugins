@@ -11,3 +11,13 @@
   disabled: true
   config:
     enabled: false
+
+# Compact skill catalog. The native skill tool (row `tool-skill` of the dsh-base bundle) publishes a durable session
+# catalog: every available skill with its description, capped by `catalogDescriptionMaxLength` (500 characters by
+# default — the bulk of the measured ~6,700-token catalog snapshot). 180 characters keep it a COMPACT DISCOVERY INDEX,
+# enough to recognise when a skill applies, while the full instructions still load unchanged through the existing
+# `skill` tool when the model calls it. This is a public composition seam only: no engine file is edited, and the
+# change is reversible by deleting this entry (the row falls back to its default 500).
+- id: tool-skill
+  config:
+    catalogDescriptionMaxLength: 180

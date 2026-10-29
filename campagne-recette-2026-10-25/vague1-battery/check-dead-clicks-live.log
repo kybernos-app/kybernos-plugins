@@ -1,0 +1,12 @@
+# check-dead-clicks-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150022
+
+sidebar rows: Kaby, Dashboards, Agent Teams, Workspaces, Creations, Automations, Skills, Connectors
+· Kaby … 10 pressed in 12 s: 10 ok, 0 to fix; 0 skipped, 0 covered, page reopened 0×
+· Dashboards … 11 pressed in 30 s: 11 ok, 0 to fix; 1 skipped, 0 covered, page reopened 3×
+· Agent Teams … 2 pressed in 3 s: 2 ok, 0 to fix; 2 skipped, 0 covered, page reopened 0×
+· Workspaces … 7 pressed in 14 s: 7 ok, 0 to fix; 1 skipped, 0 covered, page reopened 1×
+· Creations … 19 pressed in 31 s: 18 ok, 1 to fix; 2 skipped, 0 covered, page reopened 2×
+    DEAD   Documents 124  <button class="kb-type">
+· Automations … 2 pressed in 3 s: 2 ok, 0 to fix; 2 skipped, 0 covered, page reopened 0×
+· Skills … 

@@ -1,0 +1,19 @@
+# check-help-dock-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=23582
+
+  ✓ Settings open
+  ✓ the Usage page carries the button
+  ✓ the card opens
+  ✓ at 1400 px the card is docked
+  ✓ ...28 px beyond the page column, 340 px wide, level with the button, flat
+  ✓ ...nothing is covered: the page controls are reachable at their place, and no horizontal scrollbar appeared
+  ✓ a click on the page leaves a docked card open
+  ✓ narrowing the window to 1280 px hangs the card from its button again
+  ✓ ...and a click on the page closes a hanging card, as it always did
+  ✓ at 1500 px it is docked again
+  ✓ Escape closes the card and leaves Settings open
+  ✓ the ✕ closes it
+  ✓ the button closes it
+
+13 ✓  0 ✗
+

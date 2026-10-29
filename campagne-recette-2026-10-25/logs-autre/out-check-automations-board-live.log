@@ -1,0 +1,111 @@
+  ✓ the check can see a console error (so "none" below means none)
+
+── seeding seven automations; the scheduler adopts them (it computes their next run) ──
+  ✓ the scheduler gave a next run to the five scheduled automations (about 30 s)
+  ✓ the webhook-only and the paused ones have none
+  ✓ the Automations page opens
+
+── the List is the screen of today, and still the default ──
+  ✓ the four views are offered, in the order Columns, Calendar, Cards, List
+  ✓ ...with their names, not only icons
+  ✓ the List is the one pressed
+  ✓ one row per automation (seven), no board
+  ✓ the sort menu is there for the List
+
+── Columns ──
+  ✓ Columns opens
+  ✓ four columns: Upcoming, Running, To approve, Done
+  ✓ the titles are the page's words
+  ✓ Upcoming: the next run of each active scheduled automation, and only those (five)
+  ✓ ...soonest first, by the stored next run
+  ✓ ...no paused automation, no webhook-only one
+  ✓ Upcoming cards offer Run now
+  ✓ Running: empty, and says so (nothing is running)
+  ✓ To approve: the failed run of the failing automation, and only it
+  ✓ ...with its real reason and Retry / See journal
+  ✓ Done: the runs of the last 7 days (nine), one card per RUN, not per automation
+  ✓ ...a run whose session this page cannot see is "started", never "ended" (no outcome is invented)
+  ✓ ...so no Finished-looking claim and no dead "See session" button
+  ✓ ...and one automation has several cards there (its runs)
+  ✓ "On event" chips hold the webhook-only automation, with its last run
+  ✓ the footnote counts the paused automation, not drawn
+  ✓ no cost is shown anywhere on the board (a separate plugin owns it)
+  ✓ the columns are states, not a ranking: nothing is draggable
+  ✓ the toolbar menu keeps its filters and drops the sort a board does not have
+
+── the choice is kept, and an old one is read ──
+  ✓ the toolbar stored the view
+  ✓ after a reload the page opens on Columns
+  ✓ a stored `cards` is a view of the page: it opens the Cards, not the List
+  ✓ ...and is kept as it is
+  ✓ a stored view the page does not know opens the List
+  ✓ a search narrows the columns to the automations that match
+
+── Calendar ──
+  ✓ Calendar opens on the week of today
+  ✓ ...with today marked
+  ✓ ...Monday first
+  ✓ yesterday is reachable with Previous
+  ✓ three runs of one automation in one day are ONE entry, "×3"
+  ✓ past runs are drawn from the history, with the state the page can tell (started)
+  ✓ today holds the failed run of the failing automation (a failed sign)
+  ✓ the next week has planned runs only, all dashed (the scheduler's own matcher planned them)
+  ✓ ...and a week title that moved
+  ✓ a click on a planned run opens its detail: name, time, status, Run now
+  ✓ a click on the failed run: its reason, Retry and See journal
+  ✓ ...the same click again closes it
+  ✓ the webhook-only automation is listed above, without a time
+  ✓ a legend explains the signs
+  ✓ the planned runs of a dense schedule are not claimed complete beyond what the host listed (no note for a week)
+  ✓ Month: a grid of whole weeks, with a dot per automation and state
+  ✓ ...past days carry the neutral dot of a run whose outcome is not known, future days the hollow one
+  ✓ ...today is marked and a failed run has its dot
+  ✓ Next moves a month
+  ✓ a day of the month opens its week
+
+── a phone ──
+  ✓ Columns: nothing is wider than the screen (375 px)
+  ✓ ...the four columns are stacked
+  ✓ Week: nothing is wider than the screen
+  ✓ ...the seven days are stacked
+  ✓ Month: nothing is wider than the screen
+  ✓ ...the month stays a grid: seven days on a row
+
+── the host stops answering: a banner, and a retry ──
+  ✓ the banner says the scheduler is not answering, and when the page last heard from it
+  ✓ ...what was loaded stays on screen
+  ✓ Retry takes it away
+
+── loading ──
+  ✓ a loading skeleton in the shape of the board, announced once
+  ✓ ...then the board
+
+── French ──
+  ✓ Columns in French
+  ✓ ...the views, the actions, the footnote
+  ✓ the calendar in French (days, title)
+
+── « Run now »: a real session, and what the board may say about it ──
+  ✓ back on English
+  ✓ Run now is clicked on the Competitive watch card
+  ✓ the host started a REAL session and recorded it on the run
+  · states of the new run, as the board showed them: done:ended → approve:failed
+  ✓ the board only said what the engine said: running, ended, failed, in that order
+  ✓ a turn that failed (no credential) is not filed under Done: it is Failed, in the attention column
+  ✓ the engine's own sidebar says the same: that session is "Completed"
+  ✓ ...with the engine's reason, Retry and See journal like a run that could not start
+
+── an automation that can never fire is said ──
+  ✓ a note under Upcoming: it will not start, and why
+
+── nothing at all ──
+  ✓ with no automation the page explains what one is and that the automation-creator interview makes it, in every view
+
+  (without --stub-model: a run that is running and one that waits for an approval are not exercised live)
+
+── errors ──
+  ✓ no exception in the page
+  ✓ no console error (the requests this check refused on purpose aside)
+  · refused on purpose, seen as console errors: 0
+
+ALL 79 CHECKS PASS

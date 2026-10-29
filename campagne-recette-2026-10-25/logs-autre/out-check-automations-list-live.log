@@ -1,0 +1,87 @@
+
+── seeding eight automations ──
+  ✓ the Automations page opens on the List
+
+── V-18: one grid, one card, one border ──
+  ✓ the header has its five columns (name, trigger, last session, success, sessions)
+  ✓ every row's cells start where their header does (it was 100 px off)
+  ✓ the list card has no padding of its own and no card inside it (it had a second border)
+  ✓ ...the header has no top border and each row exactly one
+  ✓ under each name a second line says how the automation runs (an automation has no Agent Team of its own to name)
+  ✓ the header names the first column for what it holds
+  ✓ the row's actions are at the right, after the columns and before the switch, and AFTER the name in the tab order
+  ✓ ...hidden at rest
+  ✓ ...six of them: Edit in chat, favorite, clone, export, propose to the team, delete
+  ✓ the page leaves the pointer out of the list at rest
+  ✓ hovering a row shows them
+  ✓ ...and one hover band covers the whole row, the switch included (it stopped before the ON column)
+  ✓ keyboard focus on a row shows its actions too
+  ✓ a starred row keeps its star visible at rest
+  ✓ the switch is small (34 x 20, it was 44 x 26)
+  ✓ both switches of the page keep their keyboard behaviour (a role, a tab stop)
+
+── A5-09: readable schedules ──
+  ✓ every 2 hours reads « Every 2 hours »
+  ✓ the 1st of the month reads as a sentence
+  ✓ the 31st stays the expression (not every month has one)
+  ✓ a weekday set and a one-time date read as before
+  ✓ the tooltip of a schedule is its expression, so the words hide nothing
+
+── A5-10: one date style ──
+  ✓ no dd/mm date on the List (« 15/10 08:00 »)
+  ✓ the last session reads « Yesterday · 08:00 · ok », the board's own words (the day word worked out from the page's clock)
+  ✓ one automation has no session and one is paused, in words
+
+── Columns: the chip and the date line of a card agree ──
+  ✓ the scheduler gave a next run to the scheduled automations (about 30 s)
+  ✓ Columns opens
+  · the board had its cards after 7 ms
+  ✓ the one-time card: « One time · Sat, Oct 17 · 10:00 » over « Tomorrow · 10:00 » (the day word worked out from the page's clock), never « 17/10 10:00 »
+  ✓ every 2 hours is a sentence on its card too, its tooltip the expression
+
+── A5-25: another zone is named ──
+  ✓ « Every day, 08:00 (Kolkata) » on the card, in this person's own clock below it
+  ✓ ...and an automation in the person's own zone says no zone
+  ✓ ...the List names it too
+
+── A5-31: the Schedule form has a time field ──
+  ✓ the page of an automation opens from its row
+  ✓ ...and « Schedule » opens the form, which is still there for manual edits
+  ✓ a time field shows the time of the schedule (09:15)
+  ✓ the sentence under the presets says the same
+  ✓ pressing « Every day » keeps the 09:15 (it became 08:00)
+  ✓ typing 07:30 in the field says « Every day, 07:30 »
+  ✓ ...and « Every Friday » keeps it (the preset used to set 16:00)
+  ✓ Save writes the schedule: weekdays at 07:30
+  ✓ ...and the form closes
+  ✓ the validation messages say « automation », not « task »
+
+── V-19: Edit in chat ──
+  ✓ the page of an automation has « Edit in chat » in its more menu, next to Run now
+  ✓ the button of a row is named for its row (« Edit Weekdays 9:15 in chat »)
+  ✓ a click on the row action opens a NEW chat
+  ✓ ...with a draft in its composer that names the automation-creator skill and says this is an edit
+  ✓ ...and carries the automation as it stands: id, name, when it runs (words, cron, zone), approvals, steps
+  ✓ ...never the webhook secret or an id of a webhook
+  ✓ ...it is a draft: nothing was sent
+  ✓ the Automations page comes back, and its detail opens the same chat from « Edit in chat »
+  ✓ ...from the page of a webhook-only automation
+
+── A5-24: a schedule that runs more often than every 5 minutes needs a confirmation ──
+  ✓ back on the Automations page
+  ✓ « every minute » is refused with the number of minutes, and nothing is saved
+  ✓ « every 4 minutes » too, « every 5 » is saved
+  ✓ confirmed (confirmFrequent: true): saved, and the flag is not stored
+  ✓ renaming an automation that already ran every 2 minutes is not asked again
+  ✓ ...but turning a monthly one into an every-minute one is
+
+── a phone (390 px) ──
+  ✓ the List again
+  ✓ nothing is wider than the screen
+  ✓ the header is gone and each row is one block: name, trigger, last session; the switch at its right, the actions under it
+
+── errors ──
+  ✓ no exception in the page
+  ✓ no console error
+
+ALL 62 CHECKS PASS

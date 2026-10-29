@@ -1,0 +1,34 @@
+# check-language-creation-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=117263
+
+s","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Slides » row opens — ["ybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « 3D modeller » row opens — ["ybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Summary » row opens — ["ybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Motion » row opens — ["ybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Dashboard » row opens — ["ybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✓ the Atlas page opens
+  ✓ the Atlas page speaks the language (A2-19)
+  ✓ …and nothing of the other language
+  ✓ the Atlas help dialog speaks the language
+
+── language « ar » ──
+  ✓ the page resolves the language we set
+  ✓ the sidebar search row is named in the language
+  ✓ the menu button of the phone layout is named in the language of the page (A1-23)
+  ✗ the composer's « where it runs » menu is in the language (A2-18) — " | "
+  ✗ the right-sidebar start list names the creation panels in the language (A2-31) — ["Kybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✓ …and no French name in another language, no English name in French
+  ✗ the « Bricks » row opens — ["Kybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Slides » row opens — ["Kybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « 3D modeller » row opens — ["Kybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Summary » row opens — ["Kybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Motion » row opens — ["Kybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✗ the « Dashboard » row opens — ["Kybernos","New Session⌥⌘N","Plugins","New chat","New chat","Kaby","Dashboards","Agent Teams","Workspaces","Creations","Automations","Skills","Connectors","Automation tasks","Pinned","TE","More","Choose workspace","Standard mode"]
+  ✓ the Atlas page opens
+  ✓ the Atlas page speaks the language (A2-19)
+  ✓ …and nothing of the other language
+  ✓ the Atlas help dialog speaks the language
+
+32 ✓  32 ✗
+

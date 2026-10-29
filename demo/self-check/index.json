@@ -1,0 +1,98 @@
+{
+  "source": "/Users/miled/kybernos-plugins/demo/demo-kybernos-tour.mp4",
+  "sondage": {
+    "duree": 79.4,
+    "largeur": 1600,
+    "hauteur": 1000,
+    "fps": 25.0,
+    "audio": false
+  },
+  "plan": {
+    "duree": 79.4,
+    "echantillons_activite": 158,
+    "activite_moyenne": 2.61,
+    "activite_p50": 0.01,
+    "activite_p90": 0.72,
+    "activite_p99": 100.7,
+    "coupures": 0,
+    "coupures_par_minute": 0.0,
+    "facteur_mouvement": 0.66,
+    "cadence_base_s": 12.3,
+    "cadence_s": 6.62,
+    "images_par_minute": 9.1
+  },
+  "images": [
+    {
+      "fichier": "f_0001.jpg",
+      "t": 0.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0002.jpg",
+      "t": 4.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0003.jpg",
+      "t": 13.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0004.jpg",
+      "t": 18.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0005.jpg",
+      "t": 22.331,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0006.jpg",
+      "t": 27.294,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0007.jpg",
+      "t": 35.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0008.jpg",
+      "t": 40.527,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0009.jpg",
+      "t": 61.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0010.jpg",
+      "t": 67.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0011.jpg",
+      "t": 72.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0012.jpg",
+      "t": 78.5,
+      "raison": "pic"
+    }
+  ],
+  "planches": [
+    {
+      "planche": "planche_01.jpg",
+      "images": "1-12",
+      "de": "00:00:00",
+      "a": "00:01:18",
+      "colonnes": 4,
+      "lignes": 3
+    }
+  ],
+  "journal": [],
+  "avertissement": null
+}

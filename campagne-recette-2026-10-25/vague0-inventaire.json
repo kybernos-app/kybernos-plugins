@@ -1,0 +1,284 @@
+[
+  {
+    "surface": "accueil",
+    "rows": "[{\"lab\":\"Kaby\",\"aria\":\"Kaby\",\"h\":34},{\"lab\":\"Sales and stock\",\"aria\":\"Sales and stock\",\"h\":34},{\"lab\":\"Shop team\",\"aria\":\"Shop team\",\"h\":34},{\"lab\":\"Workspaces\",\"aria\":\"Workspaces\",\"h\":34},{\"lab\":\"Creations\",\"aria\":\"Creations\",\"h\":34},{\"lab\":\"Automations\",\"aria\":\"Automations\",\"h\":34},{\"lab\":\"Skills\",\"aria\":\"Skills\",\"h\":34},{\"lab\":\"Connectors\",\"aria\":\"Connectors\",\"h\":34}]",
+    "dom": "{\"composer\":false,\"pinned\":1,\"counters\":[\"12\\n\",\"11\\n\",\"1\\n\"]}",
+    "shot": 66205
+  },
+  {
+    "surface": "page:Kaby",
+    "clicked": "clicked",
+    "after": "{\"heads\":[],\"datakb\":[],\"same\":true}",
+    "shot": 94915
+  },
+  {
+    "surface": "page:Workspaces",
+    "clicked": "clicked",
+    "after": "{\"heads\":[\"Workspaces\"],\"datakb\":[],\"same\":false}",
+    "shot": 107468
+  },
+  {
+    "surface": "page:Creations",
+    "clicked": "clicked",
+    "after": "{\"heads\":[],\"datakb\":[],\"same\":false}",
+    "shot": 178597
+  },
+  {
+    "surface": "page:Automations",
+    "clicked": "clicked",
+    "after": "{\"heads\":[\"Automations\"],\"datakb\":[],\"same\":false}",
+    "shot": 165841
+  },
+  {
+    "surface": "page:Skills",
+    "clicked": "clicked",
+    "after": "{\"heads\":[\"Skills\"],\"datakb\":[],\"same\":false}",
+    "shot": 371839
+  },
+  {
+    "surface": "page:Connectors",
+    "clicked": "clicked",
+    "after": "{\"heads\":[\"Connectors\"],\"datakb\":[],\"same\":false}",
+    "shot": 139688
+  },
+  {
+    "surface": "page:Dashboards",
+    "result": "row absent de la barre latérale",
+    "shot": 0
+  },
+  {
+    "surface": "page:Agent Teams",
+    "result": "row absent de la barre latérale",
+    "shot": 0
+  },
+  {
+    "surface": "menu-compte",
+    "opened": true,
+    "menu": "{\"spaces\":[],\"items\":[\"Team settings\",\"Account\",\"Referral\",\"Appearance\",\"Phone and channels\",\"Settings\",\"Website\",\"Help\",\"Send feedback\",\"Sign out\"],\"w\":254,\"h\":480}",
+    "shot": 127170
+  },
+  {
+    "surface": "settings-open",
+    "ok": true,
+    "shot": 117059
+  },
+  {
+    "surface": "settings:General",
+    "nav": true,
+    "head": "",
+    "bytes": 117065,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Theme",
+    "nav": true,
+    "head": "",
+    "bytes": 118727,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Language",
+    "nav": true,
+    "head": "",
+    "bytes": 103052,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Memory & Lessons",
+    "nav": true,
+    "head": "",
+    "bytes": 161944,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Models",
+    "nav": true,
+    "head": "",
+    "bytes": 82265,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Kybernos",
+    "nav": true,
+    "head": "",
+    "bytes": 79090,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:About",
+    "nav": true,
+    "head": "",
+    "bytes": 99139,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Servers",
+    "nav": true,
+    "head": "",
+    "bytes": 120475,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Auto Routing",
+    "nav": true,
+    "head": "",
+    "bytes": 87742,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Web Search",
+    "nav": true,
+    "head": "",
+    "bytes": 106950,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Built-in plugins",
+    "nav": true,
+    "head": "",
+    "bytes": 129566,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Atlas",
+    "nav": true,
+    "head": "",
+    "bytes": 70196,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:AI provider and models",
+    "nav": true,
+    "head": "",
+    "bytes": 106274,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Agent presets",
+    "nav": true,
+    "head": "",
+    "bytes": 151205,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Voice",
+    "nav": true,
+    "head": "",
+    "bytes": 109762,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Skills",
+    "nav": true,
+    "head": "",
+    "bytes": 90203,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Learned skills",
+    "nav": true,
+    "head": "",
+    "bytes": 116344,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Commands",
+    "nav": true,
+    "head": "",
+    "bytes": 145429,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Ollama local models",
+    "nav": true,
+    "head": "",
+    "bytes": 152674,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Automations",
+    "nav": true,
+    "head": "",
+    "bytes": 112979,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Free LLMs",
+    "nav": true,
+    "head": "",
+    "bytes": 89299,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Kybernos Suite",
+    "nav": true,
+    "head": "",
+    "bytes": 179173,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Tools",
+    "nav": true,
+    "head": "",
+    "bytes": 139316,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Workers",
+    "nav": true,
+    "head": "",
+    "bytes": 141198,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Connectors",
+    "nav": true,
+    "head": "",
+    "bytes": 123203,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Calls",
+    "nav": true,
+    "head": "",
+    "bytes": 140826,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Kaby",
+    "nav": true,
+    "head": "",
+    "bytes": 98871,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Usage",
+    "nav": true,
+    "head": "",
+    "bytes": 114034,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Code sandbox (E2B)",
+    "nav": true,
+    "head": "",
+    "bytes": 70031,
+    "dupCapture": false
+  },
+  {
+    "surface": "settings:Phone and channels",
+    "nav": true,
+    "head": "",
+    "bytes": 150428,
+    "dupCapture": false
+  },
+  {
+    "surface": "volet-droit",
+    "tabs": "[\"Yours\",\"Discover\\n100\",\"MCP servers\\n2\"]",
+    "shot": 135083
+  },
+  {
+    "surface": "console",
+    "errors": []
+  }
+]

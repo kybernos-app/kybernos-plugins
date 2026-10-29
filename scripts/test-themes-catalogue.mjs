@@ -14,7 +14,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { evaluate } from '../packages/kybernos-theme/themes-catalogue.mjs'
+import { A11Y_KEYS, THEME_POINT, evaluate } from '../packages/kybernos-theme/themes-catalogue.mjs'
 import { KEYS_FILE, OUT_DIR, REPO, SHIPPED, buildDocument, readKeys, readSources } from './themes-catalogue.mjs'
 
 let pass = 0
@@ -79,6 +79,39 @@ section('the command line')
     check('sign with a key the embedded one does not match says so instead of calling it good', cli('sign', '--key', join(dir, 'themes.key'), '--out', join(dir, 'out2')).status === 1)
     check('an unknown command is a usage error', cli('nope').status === 2)
   } finally { rmSync(dir, { recursive: true, force: true }) }
+}
+
+section('the point a pack\'s theme file is read through (kybernos/theme#theme)')
+{
+  // ONE table, asserted in BOTH copies of this suite (here and packages/kybernos-theme/test-themes-catalogue.mjs):
+  // the point's refusals ARE the settings vocabulary's, so a rule added to sanitizePreset or A11Y_KEYS is
+  // inherited by construction, never re-typed. [what, raw, fileId]
+  const POINT_CASES = [
+    ['a bad id', { id: 'Bad Id', name: 'T', settings: { mode: 'light' } }, 'Bad Id'],
+    ['an empty name', { id: 'soigne', name: ' ', settings: { mode: 'light' } }, 'soigne'],
+    ['a bad value (acc: "blue")', { id: 'soigne', name: 'T', settings: { acc: 'blue' } }, 'soigne'],
+    ['no known setting at all', { id: 'soigne', name: 'T', settings: { evil: 1 } }, 'soigne'],
+    ['settings missing', { id: 'soigne', name: 'T' }, 'soigne'],
+    ['a name that is not the file name', { id: 'soigne', name: 'T', settings: { mode: 'light' } }, 'autre'],
+  ]
+  check('THEME_POINT is the shape the registry defines (owner, ownerVersion, data, inert, validate)', THEME_POINT.owner === 'kybernos/theme' && THEME_POINT.ownerVersion === '1.0.0' && THEME_POINT.name === 'theme' && THEME_POINT.version === '1.0' && THEME_POINT.kind === 'data' && THEME_POINT.class === 'inert' && typeof THEME_POINT.validate === 'function')
+  const light = { id: 'soigne', name: 'Soigne', settings: { mode: 'light', acc: '#4d7c0f', evil: 1 } }
+  const v = THEME_POINT.validate(light, 'soigne')
+  check('a light { id, name, settings } file (the starter shape) passes, with the unknown key dropped', v.ok === true && v.value.id === 'soigne' && v.value.settings.evil === undefined && v.value.settings.acc === '#4d7c0f', v)
+  const full = { id: 'soigne', v: 2, name: 'Soigne', author: 'Acme', description: { fr: 'Sobre.', en: 'Plain.' }, settings: { mode: 'light', acc: '#4d7c0f' } }
+  const f = THEME_POINT.validate(full, 'soigne')
+  check('a full catalogue entry is accepted as a superset', f.ok === true && f.value.author === 'Acme' && f.value.v === 2 && f.value.description === undefined, f)
+  for (const [what, raw, fileId] of POINT_CASES) {
+    const r = THEME_POINT.validate(raw, fileId)
+    check('refused: ' + what, r.ok === false && Array.isArray(r.errors) && r.errors.length > 0 && r.value === undefined, r)
+  }
+  for (const k of A11Y_KEYS) {
+    const r = THEME_POINT.validate({ id: 'a11y', name: 'A11y', settings: { mode: 'light', [k]: k === 'contrastMode' ? 'max' : true } }, 'a11y')
+    check('refused: accessibility key « ' + k + ' » (named in the error)', r.ok === false && r.errors.some((e) => e.indexOf(k) >= 0), r)
+  }
+  // The shipped gallery and every source have to stay readable by the point too: one vocabulary, no second rule.
+  const shipped = JSON.parse(readFileSync(SHIPPED, 'utf8'))
+  check('every shipped theme passes the point as a full catalogue entry', shipped.themes.every((t) => THEME_POINT.validate(t, t.id).ok === true), shipped.themes.map((t) => t.id).filter((id) => THEME_POINT.validate(shipped.themes.find((t) => t.id === id), id).ok !== true))
 }
 
 console.log('\n' + (fail === 0 ? 'OK' : 'FAILED') + ' — themes catalogue publishing (' + (pass + fail) + ' checks)')

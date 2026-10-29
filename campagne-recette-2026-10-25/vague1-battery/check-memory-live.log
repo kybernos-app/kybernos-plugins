@@ -1,0 +1,42 @@
+# check-memory-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=101980
+
+host routes (what the page must agree with)
+  ✓ the lessons routes answer (is kybernos-memory loaded? restart dsh web after linking it)
+settings → Memory & Lessons
+  ✓ the nav entry exists and opens the page
+  ✓ title
+  ✓ the section is first under « Memory & context » in the nav, before Kybernos, Atlas (as drawn, not in DOM order)
+  – SKIP list rows: this instance has no memory to list (not connected to Kybernos Cloud)
+  ✗ data first: nothing to list, so the first screen is an empty state that says why, and no switches
+  ✗ the status line says what is on, and is not « Off » while the lessons work — {"statusLine":"","lessonsOn":true}
+  ✗ the account is the one visible step: a Connect button exactly when there is no account — {"connectedNow":false}
+  ✓ the knobs are folded: one Customize button, no Options button
+  – SKIP memory numbers: the cloud memory route does not answer (not connected?)
+  ✓ the Lessons count is the host's total
+  ✗ no account: the memories tab shows the account explanation, not a dead toolbar
+  – SKIP the Map view and the search by relevance of the memories: no account on this instance
+lessons tab, filter menu
+  ✓ lessons list renders
+  – SKIP lessons search: the first lesson has fewer than two words of 5+ letters
+  ✓ the Scope control offers Mine and Team
+  ✓ Team is either available, or locked with the reason
+  ✓ filter menu offers Status and Added (plus Agent Team when agent teams exist)
+options page (read-only)
+  ✓ Customize is a page: crumb + rows, no side sheet
+  ✓ the plan note is there
+  ✓ both switch groups are present, the three lesson switches among them (lessons, context, relevant)
+  ✓ Back returns to the list
+tidy up (it only LOOKS: this check never merges, keeps, undoes or accepts anything)
+  ✓ Customize has the Tidy up and the Recent tidy-ups sections
+  ✓ Customize offers the three settings, and shows what the host has stored
+  – SKIP the scan: the mode is not « Ask me first » (or this DSH predates the settings), so a scan could change your data, and this check never does
+theme tokens
+  ✓ the page reads real theme tokens (not empty, not the hard fallbacks only)
+at a phone width (390 px): the toolbars do not sit on each other
+  ✗ phone: the page opens in a 390 px phone
+  ✗ phone, Memories tab: no control sits on another one, every button stays in its pill, no sideways scroll — {"drawn":false,"o":{"missing":true}}
+  ✗ phone, Lessons tab: no control sits on another one, every button stays in its pill, no sideways scroll — {"drawn":false,"o":{"missing":true}}
+
+7 FAILED (24 checks)
+

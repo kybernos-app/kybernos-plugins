@@ -2,6 +2,7 @@
   "v": 1,
   "id": "droit",
   "order": 40,
+  "theme": "cabinet-avocats",
   "accent": "#7A2236",
   "icon": "scales",
   "name": {

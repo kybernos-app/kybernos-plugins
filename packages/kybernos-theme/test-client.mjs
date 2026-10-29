@@ -1371,6 +1371,156 @@ section('theme gallery: install, update and the host (fake host)')
   check('a full library refuses an install', T.galInstall(t1) === null)
   fresh()
 }
+// ═══ The seam: window.__KB_THEME_APPLY__ (A1-theme-seam) ════════════════════
+section('the seam: window.__KB_THEME_APPLY__')
+{
+  const posts = []
+  const asked = []
+  const serve = { answer: 'ok', themes: [] }
+  const calcaire = { id: 'calcaire', v: 1, name: 'Calcaire', author: 'Kybernos', description: { fr: 'Sobre.', en: 'Plain.' }, settings: { mode: 'light', acc: '#4d7c0f', ov: { 'light:base': '#f6f7f8' } } }
+  // A host that behaves like the real one: the gallery route, the preset-store entry ({ import } answered with the record
+  // it wrote), the boot sheet. A GET of the library echoes what the browser has, a step ahead, so the deferred libPull
+  // neither replaces nor pushes: the only writes this section can see are the seam's own.
+  globalThis.fetch = async (url, init) => {
+    const u = String(url)
+    const body = init && init.method === 'POST' ? JSON.parse(init.body) : null
+    if (u.indexOf('/gallery') >= 0) { asked.push('gallery'); return { status: 200, json: async () => ({ ok: true, source: 'shipped', publishedAt: '2026-10-01T00:00:00.000Z', seq: 1, themes: serve.themes, online: { state: 'never', reason: null } }) } }
+    if (u.indexOf('/preset-store') >= 0) {
+      if (body === null) return { status: 200, json: async () => ({ ok: true, library: { v: 1, updatedAt: T.lib.updatedAt + 1000, presets: T.lib.presets } }) }
+      posts.push(body)
+      if (serve.answer === 'refuse') return { status: 400, json: async () => ({ ok: false, error: 'library full' }) }
+      if (serve.answer === 'fault') return { status: 500, json: async () => ({ ok: false, error: 'preset store failed' }) }
+      if (serve.answer === 'throw') throw new Error('offline')
+      if (serve.answer === 'garbage') return { status: 200, json: async () => ({ ok: true, preset: { id: 'BAD ID', name: 'x', settings: { mode: 'light' } } }) }
+      const imp = body.import
+      const id = imp.gid === undefined ? 'u-imported' : 'g-' + imp.gid
+      return { status: 200, json: async () => ({ ok: true, preset: { id, name: imp.name, source: imp.source, settings: imp.settings, gid: imp.gid, v: imp.v, author: imp.author } }) }
+    }
+    return { status: 200, json: async () => ({ ok: true }) }
+  }
+  const fresh = () => {
+    reset(); resetDom(); posts.length = 0; asked.length = 0; serve.answer = 'ok'; serve.themes = [calcaire]
+    T.lib.presets = []; T.lib.updatedAt = 0; T.lib.hostState = 'unknown'; T.lib.pulled = false
+    T.gal.data = null; T.gal.state = 'idle'; T.gal.refreshing = false; T.gal.refreshed = false
+  }
+  /** A fresh look at the window: the seam always reads the CURRENT context, so apply() rebinds the services. */
+  const bind = (opts) => { const m = mkCtx(opts); modele.apply(m.ctx); return m }
+  const imports = () => posts.filter((b) => b.import !== undefined)
+  const libraries = () => posts.filter((b) => b.library !== undefined)
+  const pause = () => new Promise((r) => setTimeout(r, 800))
+
+  fresh()
+  bind()
+  const seam = loaderWindow.__KB_THEME_APPLY__
+  check('apply(ctx) publishes window.__KB_THEME_APPLY__, a function', typeof seam === 'function')
+  modele.apply(mkCtx().ctx)
+  check('...and a second activation keeps the same function (a wizard holding it is never orphaned)', loaderWindow.__KB_THEME_APPLY__ === seam)
+  const provided = []
+  loaderWindow.__KB__ = { version: 1, provide: (id, version, impl) => provided.push({ id, version, impl }) }
+  const listeners = {}
+  loaderWindow.addEventListener = (ev, fn) => { (listeners[ev] = listeners[ev] || []).push(fn) }
+  loaderWindow.removeEventListener = () => {}
+  bind()
+  check('the versioned alias is offered too: kybernos/theme 1.0.0 { apply }, and again when the registry announces itself',
+    provided.length === 1 && provided[0].id === 'kybernos/theme' && provided[0].version === '1.0.0' && provided[0].impl.apply === loaderWindow.__KB_THEME_APPLY__ && (listeners['kybernos:registry'] || []).length === 1)
+  delete loaderWindow.__KB__
+
+  // A shipped id: one POST { import } through the host entry, the answer adopted, the look applied.
+  fresh()
+  let m = bind()
+  let r = await seam('calcaire')
+  check('a shipped id is imported through exactly one POST { import } (gallery, its gid, version and author)', r.ok === true && r.id === 'g-calcaire' && imports().length === 1 && imports()[0].import.source === 'gallery' && imports()[0].import.gid === 'calcaire' && imports()[0].import.v === 1 && imports()[0].import.author === 'Kybernos' && imports()[0].import.name === 'Calcaire', { r, posts })
+  check('...the shipped gallery comes from the bundle\'s own route (no internet), asked once', asked.filter((a) => a === 'gallery').length === 1)
+  check('...the host\'s record is adopted into My styles, with its catalogue link', T.lib.presets.length === 1 && T.lib.presets[0].id === 'g-calcaire' && T.lib.presets[0].gid === 'calcaire')
+  check('...and the look is stored (merged over the current one) and drawn', stored() !== null && stored().acc === '#4d7c0f' && m.calls.overrideTokens.length >= 1)
+  check('...a preset that carries a mode DOES write the page\'s light/dark preference', m.calls.setTheme.join() === 'light', m.calls.setTheme)
+  r = await seam('calcaire')
+  check('the same id again: the installed theme is reused, no second POST', r.ok === true && r.id === 'g-calcaire' && imports().length === 1, posts)
+
+  // A library id is applied as it is, never POSTed.
+  fresh()
+  m = bind()
+  T.lib.presets = [T.presetRecord({ id: 'u-mine', name: 'À moi', source: 'me', settings: { mode: 'dark', acc: '#0ea5e9' } })]
+  T.lib.updatedAt = 500
+  r = await seam('u-mine')
+  check('a theme of the library by id: applied as it is, one look, no POST at all', r.ok === true && r.id === 'u-mine' && posts.length === 0 && stored().acc === '#0ea5e9' && m.calls.setTheme.join() === 'dark', { r, posts })
+  const keptName = T.lib.presets[0].name
+  r = await seam('u-mine')
+  check('...twice: same row, no duplicate', r.ok === true && T.lib.presets.length === 1 && T.lib.presets[0].name === keptName)
+
+  // An unknown id: an answer, never a throw, and no unbounded wait.
+  r = await seam('pas-dans-la-galerie')
+  check('an unknown id is { ok:false, reason }, with no throw', r !== null && typeof r === 'object' && r.ok === false && typeof r.reason === 'string', r)
+  r = await seam(42)
+  check('neither an id nor a bag is refused the same way', r.ok === false && typeof r.reason === 'string')
+
+  // A settings bag (A1-2): a « My styles » row under a localized default name, the tokens applied, nothing else touched.
+  fresh()
+  m = bind()
+  T.writeState({ ...T.DEF, skin: 'aurore', radius: 'soft', wp: 'nuit' })
+  r = await seam({ acc: '#112233', mode: 'light' })
+  check('a settings bag is imported as a row of My styles (source "file", localized default name)', r.ok === true && r.id === 'u-imported' && imports().length === 1 && imports()[0].import.source === 'file' && imports()[0].import.name === 'Mon style' && T.lib.presets[0].id === 'u-imported', { r, posts })
+  check('...the merged look keeps what the bag does not carry (skin, corners, wallpaper)', stored().acc === '#112233' && stored().skin === 'aurore' && stored().radius === 'soft' && stored().wp === 'nuit', stored())
+  check('...and no whole-library POST is sent by the seam (the host entry wrote the disk copy)', libraries().length === 0)
+
+  fresh()
+  m = bind()
+  const beforeBag = JSON.stringify(stored())
+  posts.length = 0
+  r = await seam({ cbSafe: true, acc: '#112233' })
+  check('a bag with an accessibility key is refused, naming it, and nothing is written (no POST)', r.ok === false && r.reason === 'accessibility setting: cbSafe' && posts.length === 0 && JSON.stringify(stored()) === beforeBag, { r, posts })
+  r = await seam({ evil: 1 })
+  check('a bag with no known setting is refused', r.ok === false && T.lib.presets.length === 0)
+  r = await seam({ acc: '#112233' })
+  check('a preset without a mode never writes the page\'s light/dark preference', r.ok === true && m.calls.setTheme.length === 0, m.calls.setTheme)
+  r = await seam({ acc: '#445566' })
+  check('a second bag: the host row is replaced by id, never appended twice', r.ok === true && T.lib.presets.filter((p) => p.id === 'u-imported').length === 1, T.lib.presets.map((p) => p.id))
+  // A clean window: the activation's deferred pull has landed, so a whole-library push here could only come from the seam.
+  T.lib.pulled = false
+  bind()
+  await pause()
+  posts.length = 0
+  r = await seam({ acc: '#667788' })
+  await pause()
+  check('800 ms after the seam\'s call, still no { library } POST (a deferred push would have landed: the host entry writes)', r.ok === true && libraries().length === 0, posts)
+
+  // A1-3: a refusal is authoritative; a fault or an unreachable host is not a failure of applying.
+  fresh()
+  m = bind()
+  serve.answer = 'refuse'
+  const beforeRefusal = JSON.stringify(T.lib.presets)
+  r = await seam({ acc: '#112233' })
+  check('a 400 refusal is authoritative: { ok:false, reason }, nothing adopted, nothing applied', r.ok === false && r.reason === 'library full' && JSON.stringify(T.lib.presets) === beforeRefusal && stored() === null, r)
+  serve.answer = 'fault'
+  r = await seam({ acc: '#112233' })
+  check('a host fault (5xx): the apply still succeeds, on a local-only row (source "file", no disk copy)', r.ok === true && T.lib.presets.length === 1 && T.lib.presets[0].source === 'file' && stored().acc === '#112233', r)
+  serve.answer = 'throw'
+  r = await seam({ acc: '#223344' })
+  check('an unreachable host: the same local success, and nothing throws', r.ok === true && stored().acc === '#223344')
+  serve.answer = 'ok'
+  serve.themes = [calcaire]
+  const r5 = await seam('calcaire')
+  serve.answer = 'garbage'
+  r = await seam('kawaii')
+  check('a host answer whose preset is not a record is a refusal', r.ok === false && typeof r.reason === 'string' && r5.ok === true)
+
+  // A broken local library: the answer says so, and the page keeps the look it had.
+  fresh()
+  m = bind()
+  T.writeState({ ...T.DEF, acc: '#abcdef' })
+  posts.length = 0
+  quotaFull = true
+  let threw = null
+  try { r = await seam({ acc: '#112233' }) } catch (e) { threw = e }
+  quotaFull = false
+  check('a full quota is { ok:false, reason }, no throw, and the stored look is the one before', threw === null && r.ok === false && typeof r.reason === 'string' && JSON.parse(store.get(T.STORE_KEY)).acc === '#abcdef', { r, threw })
+  check('...and no row was adopted for a look the page could not keep', T.lib.presets.length === 0)
+
+  delete globalThis.fetch
+  delete loaderWindow.addEventListener
+  delete loaderWindow.removeEventListener
+  fresh()
+}
 // ═══ anti-flash v2: the boot sheet ══════════════════════════════════════════
 section('boot sheet (anti-flash v2)')
 {

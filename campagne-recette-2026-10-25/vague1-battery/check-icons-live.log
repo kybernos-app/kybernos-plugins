@@ -1,0 +1,20 @@
+# check-icons-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=17656
+
+  ✓ the catalogue has modules
+  ✓ every module declares a glyph
+  ✓ no two modules share a glyph
+  ✓ every catalogue glyph name exists in the client palette
+  ✓ the client palette is non-trivial
+  ✓ Settings opened
+  ✓ the Suite entry is in the Settings menu
+  ✓ the Suite panel draws its cards
+  ✓ the Suite panel draws glyph SVGs
+  ✓ every drawn glyph has content
+  ✓ every drawn glyph is at least 20px
+  ✓ every tile is a gradient with a 64-grid drawing and its own colours
+  ✓ the panel is wider than the 720px every other Settings page keeps to
+  ✓ the Settings link of a module leaves the Suite for that module's page
+
+14 ok, 0 failed
+

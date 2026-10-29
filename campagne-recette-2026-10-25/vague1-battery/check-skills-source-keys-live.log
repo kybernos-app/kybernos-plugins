@@ -1,0 +1,12 @@
+# check-skills-source-keys-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=16440
+
+  ✓ Settings open
+  ✓ Settings › Skills opens
+  ✓ the Index source window opens
+  ✓ Tab stays inside the window and reaches the field, Cancel, Save and the close cross
+  ✓ Shift+Tab walks the other way and stays inside
+  ✓ Escape closes the window and leaves Settings open
+
+6 passed, 0 failed
+

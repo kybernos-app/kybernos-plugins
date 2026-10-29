@@ -1,0 +1,53 @@
+/* kblg.css — THE SAME rules as the bundle ships (packages/kybernos-log/client.js, const CSS).
+   A change here is a change in the product: keep the two identical (test-client.mjs checks it). */
+
+.kblg-page{display:flex;flex-direction:column;gap:14px;max-width:100%}
+.kblg-lead{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary,#9aa1a8)}
+.kblg-priv{margin:0;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kblg-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kblg-card{border:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.08));border-radius:12px;background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.03));padding:12px 14px}
+.kblg-card b{display:block;font-size:20px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary,#e8eaec)}
+.kblg-card span{font-size:12px;color:var(--dsw-alias-label-secondary,#9aa1a8)}
+.kblg-card.is-warn b{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kblg-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.kblg-chips{display:flex;flex-wrap:wrap;gap:6px}
+.kblg-chip{height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.12));background:transparent;color:var(--dsw-alias-label-secondary,#9aa1a8);font:inherit;font-size:12px;cursor:pointer}
+.kblg-chip[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary,#4176e6);color:var(--dsw-alias-label-primary,#e8eaec)}
+.kblg-chip:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4176e6);outline-offset:1px}
+.kblg-in{flex:1;min-width:180px;height:30px;box-sizing:border-box;border-radius:10px;border:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.08));background:var(--dsw-alias-bg-layer-2,rgba(255,255,255,.03));color:var(--dsw-alias-label-primary,#e8eaec);font:inherit;font-size:12.5px;padding:0 10px}
+.kblg-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary,#4176e6)}
+.kblg-btn{height:30px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.12));background:transparent;color:var(--dsw-alias-label-primary,#e8eaec);font:inherit;font-size:12.5px;cursor:pointer}
+.kblg-btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
+.kblg-btn[aria-pressed="true"]{border-color:var(--dsw-alias-state-success-primary,#22c55e);color:var(--dsw-alias-state-success-primary,#22c55e)}
+.kblg-table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+.kblg-table th:nth-child(1),.kblg-table td:nth-child(1){width:88px}
+.kblg-table th:nth-child(2),.kblg-table td:nth-child(2){width:92px}
+.kblg-table th:nth-child(4),.kblg-table td:nth-child(4){width:78px}
+.kblg-table th:nth-child(5),.kblg-table td:nth-child(5){width:76px}
+.kblg-table th:nth-child(6),.kblg-table td:nth-child(6){width:66px}
+.kblg-table th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.02em;color:var(--dsw-alias-label-tertiary,#8a9096);padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.08))}
+.kblg-table td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.05));color:var(--dsw-alias-label-primary,#e8eaec);vertical-align:top;white-space:nowrap}
+.kblg-table td:nth-child(7){overflow:hidden;text-overflow:ellipsis}
+/* The provider/model is never cut: it wraps instead, so « opencode-go/deepseek-v4.1-flash » is readable in full (and the
+   number of tokens sits beside it). */
+.kblg-table td.kblg-what{white-space:normal;overflow-wrap:anywhere}
+.kblg-table td.kblg-when{font-variant-numeric:tabular-nums;white-space:nowrap}
+.kblg-table tr:hover td{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.04))}
+.kblg-num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.kblg-mut{color:var(--dsw-alias-label-secondary,#9aa1a8)}
+.kblg-err{color:var(--dsw-alias-state-error-primary,#ef4444)}
+.kblg-warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kblg-list{display:flex;flex-direction:column;gap:8px}
+.kblg-more{display:flex;justify-content:center;align-items:center;gap:10px;padding:2px 0 6px}
+.kblg-more span{font-size:12px;font-variant-numeric:tabular-nums}
+.kblg-empty{padding:28px 8px;text-align:center;color:var(--dsw-alias-label-secondary,#9aa1a8);font-size:13px}
+/* The Settings volet is ~720 px wide on a desktop viewport, so a viewport media query alone never fires there:
+   the page also takes a kblg-narrow class when its own box is narrow (the plate shows that case). */
+.kblg-page.kblg-narrow .kblg-table th:nth-child(4),.kblg-page.kblg-narrow .kblg-table td:nth-child(4),
+.kblg-page.kblg-narrow .kblg-table th:nth-child(7),.kblg-page.kblg-narrow .kblg-table td:nth-child(7){display:none}
+.kblg-page.kblg-narrow .kblg-table th:nth-child(1),.kblg-page.kblg-narrow .kblg-table td:nth-child(1){width:82px}
+.kblg-page.kblg-narrow .kblg-table th:nth-child(6),.kblg-page.kblg-narrow .kblg-table td:nth-child(6){width:60px}
+@media (max-width:520px){
+  .kblg-table th:nth-child(4),.kblg-table td:nth-child(4),
+  .kblg-table th:nth-child(7),.kblg-table td:nth-child(7){display:none}
+}

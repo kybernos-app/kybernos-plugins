@@ -1,0 +1,89 @@
+  ✓ the sandbox answers and has one session to open
+  ✓ the sessions client publishes its seam (version 1)
+
+── 1. the real state of this chat’s folder ──
+DBG read: {"git":false,"pourquoi":"dossier"}
+DBG wrap: none
+DBG url: / | body has composer: true | chips: status-pill,kybernos-usage-pill
+  ✗ the chip shows, with words (not an icon) — null
+  ✗ it is in one of the known states — null
+  ✓ the four git pills stepped aside; Memory & Lessons stays
+  ✓ the pills were told (flag and event)
+  ✗ the card opens and says where the work stands — ""
+  · the folder has no dirty file right now: the file list is covered by the scenarios
+  ✗ the developer view shows the branch, the gap and the folder — ""
+  ✓ no action was posted by just looking
+
+── 2. every state, through the seam ──
+  ✗ everything saved — state "ok", tone ok, chip "Everything is saved" — {"w":null,"c":null}
+  ✗ everything saved — steps done/done/done/done — []
+  ✓ everything saved — primary none
+  ✓ a clean isolated copy — state "ok", tone ok, chip "Everything is saved"
+  ✗ a clean isolated copy — steps done/done/done/done — []
+  ✗ a clean isolated copy — primary closeCopy — {"primary":[],"second":[]}
+  ✓ unsaved work — state "unsaved", tone warn, chip "2 files to save"
+  ✓ unsaved work — steps now/todo/todo/todo
+  ✓ unsaved work — primary save, also saveLocal
+  ✓ unsaved — the files are listed, with their kind and the one that is another chat’s
+  ✓ unsaved — the card says the folder is shared, and what will be saved
+  ✓ unsaved — the main button uses no git word in Simple
+  ✓ ahead of GitHub — state "toSend", tone info, chip "Saved · not online"
+  ✓ ahead of GitHub — steps done/now/todo/todo
+  ✓ ahead of GitHub — primary push
+  ✓ ahead and behind — state "sync", tone warn, chip "Needs syncing"
+  ✓ ahead and behind — steps done/now/todo/todo
+  ✓ ahead and behind — primary sync
+  ✓ a copy not in the project — state "notInProject", tone info, chip "Saved · not in the project"
+  ✓ a copy not in the project — steps done/now/todo/todo
+  ✓ a copy not in the project — primary addToProject, also askReview
+  ✓ ready for a review — state "readyReview", tone info, chip "Ready for review"
+  ✓ ready for a review — steps done/done/now/todo
+  ✓ ready for a review — primary askReview
+  ✓ checks running — state "prChecks", tone info, chip "GitHub is checking your work"
+  ✓ checks running — steps done/done/wait/todo
+  ✓ checks running — primary none
+  ✓ waiting for a teammate — state "prWaiting", tone info, chip "Waiting for review"
+  ✓ waiting for a teammate — steps done/done/wait/todo
+  ✓ waiting for a teammate — primary none
+  ✓ changes asked — state "prChanges", tone warn, chip "Changes were asked"
+  ✓ changes asked — steps done/done/bad/todo
+  ✓ changes asked — primary none
+  ✓ a check failed — state "prFail", tone err, chip "A check failed"
+  ✓ a check failed — steps done/done/bad/todo
+  ✓ a check failed — primary none
+  ✓ approved, ready to merge — state "prReady", tone ok, chip "Approved"
+  ✓ approved, ready to merge — steps done/done/now/todo
+  ✓ approved, ready to merge — primary merge
+  ✓ the request on GitHub is a link that opens outside (new tab, no opener)
+  ✓ merged — state "prMerged", tone ok, chip "In the project"
+  ✓ merged — steps done/done/done/done
+  ✓ merged — primary fetch
+  ✓ GitHub has news — state "toFetch", tone info, chip "GitHub has news"
+  ✓ GitHub has news — steps done/done/done/done
+  ✓ GitHub has news — primary fetch
+  ✓ a conflict — state "conflict", tone err, chip "A conflict blocks"
+  ✓ a conflict — steps done/bad/todo/todo
+  ✓ a conflict — primary none
+  ✓ files from other chats only — state "elsewhere", tone info, chip "Nothing to save here"
+  ✓ files from other chats only — steps done/done/done/done
+  ✓ files from other chats only — primary none, also isolate
+  ✓ a folder that is not a git project: no chip at all
+  ✓ … and the four pills stay silent (the chip took them over, it did not leave a hole)
+
+── 3. an action: the dry run first, then the confirm ──
+  ✓ the dry run was asked first (exec:false), nothing else
+  ✓ Simple: the confirm says what will happen in plain words, with a message field, and shows no command
+  ✓ the confirm ran the action (exec:true) with the user’s message, on the same route and body
+  ✓ the result is shown
+  ✓ Developer: the exact commands of the plan are shown, and the button says it runs them
+  ✓ Back cancels: nothing was run (only the dry run was posted)
+  ✓ a refusal shows its reason and offers no confirm
+  ✓ the mode choice is remembered
+
+── 4. French, narrow, and without the seam ──
+  ✓ in French the chip and the card are French
+  ✓ at 560 px the card stays inside the window
+  ✓ without the seam the chip says tracking is unavailable and cannot be pressed, and the pills are still there
+  ✓ … and nobody was told to step aside
+
+67 ✓  8 ✗

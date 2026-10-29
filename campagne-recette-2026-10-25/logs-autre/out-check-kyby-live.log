@@ -1,0 +1,147 @@
+Kaby — 127.0.0.1:3092 (the sandbox serves this checkout; the account's answers are faked)
+── 1. the row opens a native DSH chat ──
+  ✓ the sidebar has a Kaby row
+  ✓ there is no Cloud Computer row any more
+  ✓ no Kaby chat is remembered yet
+  ✓ the strip appears above the composer of the chat the row opened
+  ✓ the host remembered that chat as Kaby's
+  ✓ it is DSH's own composer, not a box of this page
+  ✓ a folder is already chosen: the person is not asked for one
+  ✓ the chat's workspace is called Kaby, in the list
+  ✓ the new-chat cards (Build, Create, Slides…) are not in Kaby's chat
+  ✓ the page that opened is not the one drawn by the bundle
+── 2. once, and only there ──
+  ✓ a second click opens the same chat, no new one
+── 2a. the sidebar marks the row of what is on screen (V-01) ──
+  ✓ on Kaby's chat the Kaby row is the selected one and no other
+  ✓ on the Dashboards page Dashboards is selected and Kaby is not
+  ✓ back on Kaby, Dashboards is back to the normal style and Kaby is marked
+  ✓ on another page (Skills) only that row is selected
+── 2b. a reload with Kaby's chat on screen: nothing to build, lined up with the composer ──
+  ✓ reload 1: the new-chat cards and the templates row never show in Kaby's chat
+  ✓ reload 2: the new-chat cards and the templates row never show in Kaby's chat
+  ✓ the strip starts and ends where the composer's card does
+  ✓ and has its radius
+── 3. not connected, Free plan: ONE line above the composer ──
+  ✓ the strip is ONE line headed with the assistant's name: no fold button, no tiles, and nothing open by itself
+  ✓ three chips say how things stand: the remote control, Telegram (not connected), the computer (asleep)
+  ✓ on a wide chat it is ONE line high (under 56 px)
+  ✓ on a wide chat the strip starts and ends where the composer's card does (same width, same centre)
+── 3a. the help pill, the button, the list the chips open ──
+  ✓ the strip carries the Suite's « ? How it works » pill, on its line and not inside a chip
+  ✓ the card opens on the side that has room, wholly on screen and clear of the pill, and is Kaby's
+  ✓ the line has exactly the buttons « Set up… » and the name (which opens Settings › Kaby)
+  ✓ a chip opens a small list of the same three: remote control, Telegram, the computer
+  ✓ Telegram is ONE row in it that says where it stands (not connected): no switch, no code, no WhatsApp or WeChat row
+  ✓ opening the list asked for no code: no pairing, no QR
+  ✓ Escape closes the list
+  ✓ there is no « Other channels » group, no radio, no settings, no « where it runs »
+── 3b. the button opens the Phone and channels window; Telegram is turned on there: the code ──
+  ✓ the strip's button opens the window (kybernos-mobile draws it, in a root of its own)
+  ✓ the window holds Kaby's column: Telegram with its switch, off, then WhatsApp, WeChat, iMessage
+  ✓ opening the window asked for no code either
+  ✓ the window's « Kaby's computer »: its name, asleep, the Free plan says it cannot be woken by hand, an upgrade button and no wake button
+  ✓ and one short line under its title, not the long explanation
+  ✓ the switch asked for exactly one pairing
+  ✓ a QR code is drawn from the pairing
+  ✓ the switch is on and the row says there is a code to scan
+  ✓ the panel sits under Telegram's row and above WhatsApp, inside the window
+  ✓ the strip and its list draw none of the code
+  ✓ « Open Telegram » goes to the bot's link, in a new tab
+  ✓ the three steps are listed, with the time left
+  ✓ « write a code instead » opens, in DSH, the command to write to the bot with the token of this code
+  ✓ and it did not send the person to the console
+  ✓ the same switch cancels: the host is told and the panel goes
+  ✓ and the switch is off again
+  ✓ turned on again: a new code
+── 3c. nothing arrives: the page says what to do, and the code renews by itself ──
+  ✓ the second step says Start, or Restart for a bot already used
+  ✓ the app link opens Telegram itself on this computer (tg://), beside the web link
+  ✓ a fresh code has no help yet and keeps the message to send folded
+  ✓ after 20 s with no Start the help appears: Start or Restart in the chat, or send the message
+  ✓ and the message to send is already shown, with its copy button, without a click
+  ✓ cancelled by the switch
+  ✓ turned on: one code, then the page renews it by itself when it runs out (the old one cancelled)
+  ✓ after three renewals it stops: the code is shown as expired with the button for a new one
+  ✓ exactly three renewals were made, no more
+  ✓ the button makes a fresh code that lasts
+── 4. the pairing goes by itself ──
+  ✓ after the scan the panel names who Telegram says it is
+  ✓ and the QR is gone, the row waits for the person's OK
+  ✓ on the tap the status becomes connected by itself
+  ✓ the Telegram chip is green once connected
+  ✓ in the window, Telegram's row names the chat, the switch is on, the bot has its link, and no panel is left
+── 5. the computer linked to Kaby ──
+  ✓ with one cloud computer the select offers this computer and that one
+  ✓ with several, the field is a real select
+  ✓ the choice is sent to the host
+  ✓ and read again: the computer block shows the new computer and its state
+── 5b. this computer, next to the cloud one (V-04) ──
+  ✓ choosing this computer: the block names it, ready, with what it means
+  ✓ no server was asked: the choice needs none
+  ✓ no wake, sleep or open for this computer, and no Free-plan note
+  ✓ it is remembered by this browser
+  ✓ back to the cloud computer: the host is asked and the block shows its state again
+   with no account and no server
+  ✓ signed out: the note, and the computer block with this computer only, which needs no sign-in
+── 6. a paid plan: the computer can be driven ──
+  ✓ the wake button appears and the Free note goes
+  ✓ a wake is asked of the host
+  ✓ the block then offers to put it to sleep and to open it
+── 6b. a computer being set up turns into a computer by itself ──
+  ✓ the chip says it is being set up, with the sentence for a machine dedicated to the person
+  ✓ with no refresh from the check, it reads again and becomes « Asleep »
+── 7. the list the chips open, once Telegram is connected ──
+  ✓ a chip opens the list: the three lines in words (remote control ready, Telegram connected, the computer)
+  ✓ each line has one button to the Phone and channels screen
+  ✓ a line's button opens the window
+── 8. disconnecting asks first ──
+  ✓ turning the switch off does not disconnect: a question appears and nothing is sent
+  ✓ « Cancel » closes the question, still connected
+  ✓ confirmed: it is sent once and the row goes back to « not connected », the switch off
+  ✓ and no new code is asked for by itself
+── 8b. the three states of the Telegram door, said in the window: a bot, no bot on this server, a server too old (the active server is a stand-in that answers each) ──
+  ✓ the chip says Telegram is unavailable
+  ✓ no bot, a server to go to: the strip stays folded (the way out is one button away, in the window)
+  ✓ the window's row says in one sentence why and what to do
+  ✓ the switch stays greyed, and « Switch server » is offered
+  ✓ pressing the greyed switch asks for no code
+  ✓ « Switch server » opens Settings on the Servers page, and the window gets out of the way
+  ✓ no bot and no other server: the strip stays folded
+  ✓ opened by hand: the list's Telegram row says there is no bot here
+  ✓ the window: the sentence is there, no button, the switch greyed
+  ✓ a server too old: the row says it does not support linking Telegram yet
+  ✓ ...with the switch greyed and the way out offered
+  ✓ the chip says unavailable here too
+  ✓ 390 px: the button is inside the card and nothing scrolls sideways
+  ✓ a bot there: the switch is on offer, with no sentence and no server button in the way
+── 9. a phone ──
+  ✓ no sideways scroll
+  ✓ Kaby's sub-blocks (messaging apps, computer) are one under the other
+  ✓ the window's cards are one under the other
+  ✓ the QR is hidden (nobody scans their own screen), the Telegram button stays
+── 10. the strip is above no other chat ──
+  ✓ only the remembered chat is Kaby's: any other session id is not
+── 11. the page ──
+  ✓ the page opens (the new-chat card and the right tab use it)
+  ✓ it says what Kaby is and offers the way into the chat
+── 12. the choice of the computer survives a page load ──
+  ✓ after a reload this computer is still the one chosen
+── 13. WhatsApp: a beta row that turns on like Telegram, on its own routes ──
+  ✓ the window opens
+  ✓ no server has the door: the row says it is not available, the switch is greyed, nothing is asked
+  ✓ a door whose bridge is not open: the number is said to be unreachable, the switch stays greyed
+  ✓ with a bridge open the switch is on offer and nothing was asked yet
+  ✓ the switch asked for exactly one WhatsApp pairing, and none for Telegram
+  ✓ a QR code is drawn, the switch is on and the row says there is a code to scan
+  ✓ the panel sits under WhatsApp's row and above WeChat, and Telegram shows no panel
+  ✓ « Open WhatsApp » goes to the number's own link, in a new tab
+  ✓ three steps in WhatsApp's words (send the typed message, answer 1), and the time left
+  ✓ « write a code instead » shows the number and the message of THIS pairing, in DSH
+  ✓ after the first message the panel names who WhatsApp says it is and asks for the answer
+  ✓ on the answer the row becomes connected by itself: who, and the 24-hour rule; no panel is left
+  ✓ turning it off asks first, and nothing is sent
+  ✓ confirming disconnects on WhatsApp's route, and the row is « not connected » again
+  ✓ 390 px with the code shown: no sideways scroll, and the panel is inside the screen
+
+122 passed, 0 failed

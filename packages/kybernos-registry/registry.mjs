@@ -5,7 +5,8 @@
 // READS what it left, never installs, never runs, never imports:
 //   <profile>/package.json                    `dependencies` (what is installed, and from where) and `dsh.profile.bundles` (what is selected)
 //   <profile>/node_modules/<name>/plugin.json the manifest of a Kybernos plugin (a package without one is not ours and is left alone)
-//   <package>/<extends[].dir>/*.json          the contributions of a DATA plugin, one file each, checked by the point's own validator
+//   <package>/<extends[].dir>/*.json          the contributions of a DATA plugin whose point takes JSON: one file each, checked by the point's own validator
+//   <package>/<extends[].dir>/<folder>/**     a DATA plugin whose point takes folders: one folder each, its files read whole and checked by the point's validator
 //   <stateFile>                                { consented: { "<id>": true } }: the person has read and accepted the instructions a plugin brings
 //
 // A data plugin is a DSH bundle whose patch is EMPTY (no entry names a module, so DSH loads no JavaScript), or a plain dependency. Anything that could make
@@ -17,7 +18,7 @@ import { dirname, join, sep } from 'node:path'
 import { manifestErrors } from './manifest.mjs'
 import { compareVersions, satisfies } from './version.mjs'
 
-export const LIMITS = { manifest: 64 * 1024, file: 256 * 1024, files: 32, plugins: 64, perPlugin: 64, profile: 1024 * 1024, patch: 16 * 1024 }
+export const LIMITS = { manifest: 64 * 1024, file: 256 * 1024, files: 32, plugins: 64, perPlugin: 64, profile: 1024 * 1024, patch: 16 * 1024, folderFiles: 50, folderBytes: 1024 * 1024, folderDepth: 4 }
 /** What a plugin can be, in the order the card says it: only one is `ok`. */
 export const STATUSES = ['ok', 'disabled', 'needs-consent', 'needs-dsh', 'needs-kybernos', 'missing-dependency', 'incompatible-point', 'revoked', 'invalid']
 
@@ -25,6 +26,8 @@ const NPM_NAME = /^(@[a-z0-9][a-z0-9._-]{0,63}\/)?[a-z0-9][a-z0-9._-]{0,63}$/
 const OWNER = /^[a-z][a-z0-9-]{1,31}\/[a-z][a-z0-9-]{1,39}$/
 const POINT = /^[a-z][a-z0-9-]{1,31}$/
 const POINT_VERSION = /^\d+\.\d+$/
+/** The name of one folder contribution: the family of the JSON filter below, without its extension. */
+const FOLDER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/
 
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const byName = (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
@@ -196,12 +199,13 @@ export function createRegistry ({ profileDir, stateFile, draftsDir = null, kyber
   }
   const emit = () => { for (const fn of [...listeners]) { try { fn() } catch (e) { /* a listener cannot break the registry */ } } }
 
-  /** The owner's point: `{ owner, ownerVersion, name, version "1.0", kind "data", class, validate(raw, fileId) → { ok, value } | { ok:false, errors }, max? }`. Idempotent. */
+  /** The owner's point: `{ owner, ownerVersion, name, version "1.0", kind "data", class, files? "json"|"folder" (default "json"), validate(raw, fileId) → { ok, value } | { ok:false, errors }, max? }`. Idempotent. */
   function definePoint (def) {
+    const files = plain(def) && def.files !== undefined ? def.files : 'json'
     if (!plain(def) || !OWNER.test(String(def.owner)) || !POINT.test(String(def.name)) || !POINT_VERSION.test(String(def.version)) || def.kind !== 'data' ||
-        !['inert', 'instruction'].includes(def.class) || typeof def.validate !== 'function') throw new Error('registry: a point needs owner, name, version "x.y", kind "data", class and validate()')
+        !['inert', 'instruction'].includes(def.class) || typeof def.validate !== 'function' || !['json', 'folder'].includes(files)) throw new Error('registry: a point needs owner, name, version "x.y", kind "data", class, files "json" or "folder", and validate()')
     const ownerVersion = /^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$/.test(String(def.ownerVersion)) ? String(def.ownerVersion) : '0.0.0'
-    const next = { owner: def.owner, ownerVersion, name: def.name, version: def.version, kind: 'data', class: def.class, validate: def.validate, max: Number.isInteger(def.max) && def.max > 0 && def.max <= LIMITS.perPlugin ? def.max : LIMITS.files }
+    const next = { owner: def.owner, ownerVersion, name: def.name, version: def.version, kind: 'data', class: def.class, files, validate: def.validate, max: Number.isInteger(def.max) && def.max > 0 && def.max <= LIMITS.perPlugin ? def.max : LIMITS.files }
     const prev = points.get(pointRef(def))
     // Owners may call this at every request (their own bundle may mount before or after this one): the same definition changes nothing and keeps the scan.
     if (prev !== undefined && Object.keys(next).every((k) => prev[k] === next[k])) return
@@ -229,15 +233,22 @@ export function createRegistry ({ profileDir, stateFile, draftsDir = null, kyber
     return null
   }
 
-  /** The contributions of one extension: the files of its folder, each through the point's validator. */
+  /** The contributions of one extension: each JSON file of its folder, or each sub-folder of it, through the point's validator. */
   function readExtension (rec, ext, point) {
     const out = { contributions: [], rejected: [] }
     if (ext.dir === undefined) return out
     const dir = join(rec.folder, ext.dir)
     const st = lstat(dir)
     if (st === null || st.isSymbolicLink() || !st.isDirectory()) { out.rejected.push({ file: ext.dir, errors: ['is not a folder of this plugin'] }); return out }
+    if (point.files === 'folder') readFolders(rec, ext, dir, point, out)
+    else readFiles(rec, ext, dir, point, out)
+    return out
+  }
+
+  /** A JSON point: one flat `*.json` file per contribution, over the cap in files. */
+  function readFiles (rec, ext, dir, point, out) {
     let files = []
-    try { files = readdirSync(dir).filter((f) => /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.json$/.test(f)).sort() } catch (e) { out.rejected.push({ file: ext.dir, errors: ['cannot be listed'] }); return out }
+    try { files = readdirSync(dir).filter((f) => /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.json$/.test(f)).sort() } catch (e) { out.rejected.push({ file: ext.dir, errors: ['cannot be listed'] }); return }
     if (files.length > point.max) { out.rejected.push({ file: ext.dir, errors: ['holds more than ' + point.max + ' files: only the first ' + point.max + ' are read'] }); files = files.slice(0, point.max) }
     for (const f of files) {
       const r = readBounded(join(dir, f), LIMITS.file)
@@ -249,7 +260,75 @@ export function createRegistry ({ profileDir, stateFile, draftsDir = null, kyber
       if (v !== null && typeof v === 'object' && v.ok === true) out.contributions.push({ plugin: rec.id, level: rec.level, class: point.class, file: ext.dir + '/' + f, value: v.value })
       else out.rejected.push({ file: f, errors: Array.isArray(v?.errors) ? v.errors.slice(0, 6).map((x) => tidy(String(x), 200)) : ['was refused'] })
     }
-    return out
+  }
+
+  /**
+   * A folder point: one immediate sub-folder per contribution, read whole under the bounds of LIMITS. A link, an entry that is not a folder and a folder
+   * whose name cannot be shown are named in `rejected` rather than dropped unseen; the cap counts folders, not files.
+   */
+  function readFolders (rec, ext, dir, point, out) {
+    let entries = []
+    try { entries = readdirSync(dir).sort() } catch (e) { out.rejected.push({ file: ext.dir, errors: ['cannot be listed'] }); return }
+    const folders = []
+    for (const entry of entries) {
+      const file = ext.dir + '/' + tidy(entry, 80)
+      const st = lstat(join(dir, entry))
+      if (st === null) continue
+      if (st.isSymbolicLink()) { out.rejected.push({ file, errors: ['is a symbolic link'] }); continue }
+      if (!st.isDirectory()) { out.rejected.push({ file, errors: ['is not a folder'] }); continue }
+      if (!FOLDER_NAME.test(entry)) { out.rejected.push({ file, errors: ['is not a valid folder name'] }); continue }
+      folders.push(entry)
+    }
+    if (folders.length > point.max) { out.rejected.push({ file: ext.dir, errors: ['holds more than ' + point.max + ' folders: only the first ' + point.max + ' are read'] }); folders.length = point.max }
+    for (const name of folders) {
+      const contribution = readContribution(dir, ext, name, out)
+      if (contribution === null) continue
+      let v
+      try { v = point.validate(contribution, name) } catch (e) { v = { ok: false, errors: ['the check itself failed'] } }
+      const file = ext.dir + '/' + name
+      if (v !== null && typeof v === 'object' && v.ok === true) out.contributions.push({ plugin: rec.id, level: rec.level, class: point.class, file, value: v.value })
+      else out.rejected.push({ file, errors: Array.isArray(v?.errors) ? v.errors.slice(0, 6).map((x) => tidy(String(x), 200)) : ['was refused'] })
+    }
+  }
+
+  /**
+   * The files of one folder contribution, read whole: `{ name, files: [{ path, content }] }`. A contribution is kept whole or refused whole: a link, a file over a
+   * bound or a folder too deep inside it refuses the contribution, with what was wrong inside it, and returns null.
+   */
+  function readContribution (dir, ext, name, out) {
+    const files = []
+    const errors = []
+    let bytes = 0
+    let stop = false
+    const walk = (base, prefix, depth) => {
+      let entries = []
+      try { entries = readdirSync(base).sort() } catch (e) { errors.push(prefix + 'cannot be listed'); stop = true; return }
+      for (const entry of entries) {
+        if (stop) return
+        if (errors.length >= 6) { stop = true; return }
+        const rel = prefix + entry
+        const path = join(base, entry)
+        const st = lstat(path)
+        if (st === null) continue
+        if (st.isSymbolicLink()) { errors.push(rel + ' is a symbolic link'); continue }
+        if (st.isDirectory()) {
+          if (depth >= LIMITS.folderDepth) { errors.push(rel + ' is deeper than ' + LIMITS.folderDepth + ' folders'); continue }
+          walk(path, rel + '/', depth + 1)
+          continue
+        }
+        if (!st.isFile()) { errors.push(rel + ' is not a file'); continue }
+        if (files.length >= LIMITS.folderFiles) { errors.push('holds more than ' + LIMITS.folderFiles + ' files'); stop = true; return }
+        const r = readBounded(path, LIMITS.file)
+        if (r.error !== undefined) { errors.push(rel + ' ' + r.error); continue }
+        bytes += Buffer.byteLength(r.text, 'utf8')
+        if (bytes > LIMITS.folderBytes) { errors.push('holds more than ' + Math.round(LIMITS.folderBytes / 1024) + ' KiB of files'); stop = true; return }
+        files.push({ path: rel, content: r.text })
+      }
+    }
+    walk(join(dir, name), '', 1)
+    if (errors.length > 0) { out.rejected.push({ file: ext.dir + '/' + name, errors: errors.slice(0, 6) }); return null }
+    files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+    return { name, files }
   }
 
   function load () {
@@ -298,7 +377,7 @@ export function createRegistry ({ profileDir, stateFile, draftsDir = null, kyber
     version: 1,
     definePoint,
     /** The points owners have defined, without their functions. */
-    points: () => [...points.values()].map((p) => ({ id: pointRef(p), owner: p.owner, name: p.name, version: p.version, kind: p.kind, class: p.class, contributions: (load().contributions.get(pointRef(p)) ?? []).length })),
+    points: () => [...points.values()].map((p) => ({ id: pointRef(p), owner: p.owner, name: p.name, version: p.version, kind: p.kind, class: p.class, files: p.files, contributions: (load().contributions.get(pointRef(p)) ?? []).length })),
     /**
      * What an installed plugin brings, for the person to read BEFORE they accept it: every file of every extension through the point's check, whatever the plugin's
      * status. `[{ point, class, files: [{ file, value }], rejected }]`, or null for a plugin that is not installed or whose manifest is not valid. Never contributes anything.

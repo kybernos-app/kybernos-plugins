@@ -1,0 +1,7 @@
+# check-phone-width-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150075
+
+Settings pages at 390 px: switches, radios, sideways scroll
+  ○ General did not open
+  ○ About did not open
+

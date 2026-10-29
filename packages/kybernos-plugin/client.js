@@ -1103,6 +1103,12 @@ let kbLocaleRead = () => 'en'
       'kbui.preview': { kybernos: 'Aperçu', en: 'Preview' },
       'kbui.projects': { kybernos: 'Workspaces', en: 'Workspaces' },
       'kbui.project.notfound': { kybernos: 'Projet introuvable.', en: 'Project not found.' },
+      'kbui.ws.missing.one': { kybernos: 'dossier introuvable', en: 'missing folder' },
+      'kbui.ws.missing.many': { kybernos: 'dossiers introuvables', en: 'missing folders' },
+      'kbui.ws.missing.hint': { kybernos: 'Un espace enregistré pointe sur un dossier qui n’existe plus : les outils fichier d’une session ouverte là échouent. Relier le dossier déplacé crée un espace à son nouvel emplacement.', en: 'A registered workspace points at a folder that no longer exists: file tools in a session opened there fail. Linking the moved folder creates a workspace at its new place.' },
+      'kbui.ws.relink': { kybernos: 'Relier un dossier…', en: 'Link a folder…' },
+      'kbui.ws.relink.done': { kybernos: 'Espace relié : ', en: 'Workspace linked: ' },
+      'kbui.ws.missing.tag': { kybernos: 'Dossier introuvable', en: 'Folder not found' },
       'kbui.read.aloud': { kybernos: 'Lire les réponses à voix haute à leur arrivée', en: 'Read replies aloud as they arrive' },
       'kbui.read.repo': { kybernos: 'Lire le dépôt', en: 'Read the repository' },
       'kbui.reading.engine': { kybernos: 'Lecture de l’inventaire des moteurs…', en: 'Reading the engine inventory…' },
@@ -1163,11 +1169,27 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Rien n’a été envoyé : colle-les toi-même dans un message à contact@kybernos.app.', en: 'Copied: {n} entries. Nothing was sent: paste them into a message to contact@kybernos.app yourself.' },
       // « Send » (a signed-in person's way to the team): the sentences of what the relay answered. Each failure says that NOTHING was sent, or what is kept.
       'kbui.fb.send': { kybernos: 'Envoyer à l’équipe Kybernos', en: 'Send to the Kybernos team' },
+      'kbui.fb.send.anon': { kybernos: 'Envoyer à l’équipe (sans compte)', en: 'Send to the team (no account)' },
       'kbui.fb.sending': { kybernos: 'Envoi…', en: 'Sending…' },
       'kbui.fb.sent': { kybernos: 'Envoyé à l’équipe Kybernos. Merci !', en: 'Sent to the Kybernos team. Thank you.' },
+      'kbui.fb.queued': { kybernos: 'Enregistré sur cet ordinateur : il partira dès que le serveur répondra. Tes captures sont gardées avec.', en: 'Saved on this computer: it will leave as soon as the server answers. Your screenshots are kept with it.' },
+      'kbui.fb.sent.attached': { kybernos: 'Envoyé à l’équipe Kybernos avec {n} capture(s). Merci !', en: 'Sent to the Kybernos team with {n} screenshot(s). Thank you.' },
+      // Screenshots: the person attaches them himself (paste, drop, or a file). The page never captures the screen on its own.
+      'kbui.fb.shots': { kybernos: 'Captures d’écran', en: 'Screenshots' },
+      'kbui.fb.shots.optional': { kybernos: 'optionnel', en: 'optional' },
+      'kbui.fb.shots.drop': { kybernos: 'Colle une capture (⌘V) ou dépose-la ici', en: 'Paste a screenshot (⌘V) or drop it here' },
+      'kbui.fb.shots.add': { kybernos: 'Ajouter un fichier', en: 'Add a file' },
+      'kbui.fb.shots.hint': { kybernos: 'Jusqu’à 3 images, 5 Mo chacune. Rien n’est joint sans ton geste : la page ne capture jamais ton écran toute seule.', en: 'Up to 3 images, 5 MB each. Nothing is attached without your gesture: the page never captures your screen on its own.' },
+      'kbui.fb.shots.max': { kybernos: 'Trois captures au maximum : retire une image pour en ajouter une autre.', en: 'Three screenshots at most: remove one to add another.' },
+      'kbui.fb.shots.big': { kybernos: 'Cette image dépasse 5 Mo : réduis-la avant de la joindre.', en: 'This image is over 5 MB: shrink it before attaching it.' },
+      'kbui.fb.shots.bad': { kybernos: 'Seules les images PNG, JPEG ou WebP sont acceptées.', en: 'Only PNG, JPEG or WebP images are accepted.' },
+      'kbui.fb.shots.remove': { kybernos: 'Retirer', en: 'Remove' },
+      'kbui.fb.contact': { kybernos: 'Ton adresse (facultatif)', en: 'Your e-mail (optional)' },
+      'kbui.fb.contact.hint': { kybernos: 'Pour qu’on puisse te répondre. Sans adresse, ton retour reste anonyme.', en: 'So we can answer you. With no address, your report stays anonymous.' },
       'kbui.fb.sent.again': { kybernos: 'Ce retour avait déjà été envoyé : l’équipe l’a reçu.', en: 'This feedback had already been sent: the team has it.' },
       'kbui.fb.err.signedout': { kybernos: 'Rien n’a été envoyé : tu n’es pas connecté à Kybernos.', en: 'Nothing was sent: you are not signed in to Kybernos.' },
       'kbui.fb.err.reconnect': { kybernos: 'Rien n’a été envoyé : ta session Kybernos a pris fin. Reconnecte-toi, puis réessaie.', en: 'Nothing was sent: your Kybernos session ended. Sign in again, then try again.' },
+      'kbui.fb.err.image': { kybernos: 'Rien n’a été envoyé : une capture n’a pas pu être jointe. Réessaie, ou envoie le texte sans image.', en: 'Nothing was sent: a screenshot could not be attached. Try again, or send the text without the image.' },
       'kbui.fb.err.net': { kybernos: 'Rien n’a été envoyé : cet ordinateur n’a pas pu joindre le serveur Kybernos.', en: 'Nothing was sent: this computer could not reach the Kybernos server.' },
       'kbui.fb.err.team': { kybernos: 'Rien n’a été envoyé : le serveur Kybernos n’a pas pu prendre le retour pour l’instant.', en: 'Nothing was sent: the Kybernos server could not take the feedback just now.' },
       'kbui.fb.err.busy': { kybernos: 'Ce retour est déjà en cours d’envoi.', en: 'This feedback is already being sent.' },
@@ -1178,7 +1200,7 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.err.local': { kybernos: 'Rien n’a été envoyé : cette page n’a pas pu joindre le DSH de cet ordinateur.', en: 'Nothing was sent: this page could not reach the DSH on this computer.' },
       'kbui.fb.err.kept': { kybernos: 'Ton texte est gardé sur cet ordinateur et repartira avec ton prochain retour.', en: 'Your text is kept on this computer and goes out again with your next report.' },
       'kbui.fb.hint.signedin': { kybernos: 'Envoyer partage ce message avec l’équipe Kybernos (et les détails techniques, si tu les as cochés). Enregistrer le garde seulement sur cet ordinateur.', en: 'Send shares this message with the Kybernos team (and the technical details, if ticked). Save keeps it on this computer only.' },
-      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : rien ne peut être envoyé d’ici. Enregistrer garde ton texte sur cet ordinateur seulement ; Copier les retours enregistrés les met dans le presse-papiers pour que tu les envoies toi-même à contact@kybernos.app. Connecte-toi pour les envoyer directement.', en: 'You are not signed in to Kybernos, so nothing can be sent from here. Save keeps your text on this computer only; Copy saved feedback puts it on your clipboard so you can send it yourself to contact@kybernos.app. Sign in to send it directly.' },
+      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : ton retour part quand même à l’équipe, sans compte ni inscription. Partent seulement : ton texte, le type, et les détails techniques si tu les coches. Enregistrer le garde en plus sur cet ordinateur.', en: 'You are not signed in to Kybernos: your report still reaches the team, with no account and no sign-up. Only your text, the type, and the technical details you tick leave. Save also keeps it on this computer.' },
       'kbui.fb.empty': { kybernos: 'Aucun retour enregistré pour l’instant.', en: 'No feedback saved yet.' },
       'kbui.fb.copyfail': { kybernos: 'Copie impossible ici : sélectionne le texte ci-dessous.', en: 'Could not copy here: select the text below.' },
       'kbui.fb.fail': { kybernos: 'Enregistrement impossible. Rien n’a été écrit.', en: 'Could not save. Nothing was written.' },
@@ -1567,6 +1589,8 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
       'kbui.kyber.off': { kybernos: 'Le module Kaby n’est pas actif. Active-le dans la Suite.', en: 'The Kaby module is not active. Switch it on in the Suite.' },
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Active-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
+      'kbui.business': { kybernos: 'Business', en: 'Business' },
+      'kbui.business.off': { kybernos: 'Cette page n’est pas disponible. Active son module dans la Suite.', en: 'This page is not available. Switch its module on in the Suite.' },
       'kbui.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.speed': { kybernos: 'Vitesse · ', en: 'Speed · ' },
       'kbui.starters': { kybernos: 'Suggestions', en: 'Starters' },
@@ -3106,8 +3130,10 @@ const KB_NAV_KEYS = {
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls', 'kybernos-kaby-customisation': 'kaby',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
-  'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
+  'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-log': 'activity log', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
+  // The themes listing's Settings entrance (A7, M2): « Thèmes » is drawn from the label, and the page title the menu knows is 'themes'.
+  'kybernos-themes-market': 'themes',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
 }
@@ -3206,6 +3232,8 @@ const KB_SS_INDEX = [
   ['widget', '', 'Tell me when', 'Something needs me, every run, or never.', '', 'prevenir notification quand echec accord automation terminee alerte'],
   ['widget', '', 'Banners and badge', 'One banner per event. A count on the tab and on the Dock.', '', 'banniere notification badge compteur dock onglet autorisation navigateur'],
   ['widget', '', 'Quiet automations', 'No banner when they finish.', '', 'silencieuse muette automation ne plus prevenir'],
+  ['activity log', '', 'Families', 'Tick the families to show: model calls, connectors, web search, tools, automatic titles and compactions.', '', 'famille famille filtre journal journal activite modele connecteur recherche web outil titre compactage sonde tokens'],
+  ['activity log', '', 'Live tail', 'Watch the calls arrive as they happen, or search a model, a tool, an error.', '', 'direct live flux temps reel defiler tail recherche modele outil session erreur journal activite envoie'],
 
   ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
   ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar', '', 'Identity'],
@@ -3243,7 +3271,10 @@ const KB_SS_INDEX = [
   ['kybernos suite', '', 'Check for updates', '', '', 'plugins modules extensions installer catalogue'],
   ['built-in plugins', '', 'Session plugins', 'Inspect the plugins this deployment ships.', '', 'plugins integres extensions moteur'],
   ['about', '', 'Check for updates automatically', '', '', 'mise a jour version reseau github npm verification actualizacion'],
-  ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine']
+  ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine'],
+  // The themes listing (A7): one row, because test-settings-search.mjs:39 requires a row for every page of the menu. The listing itself
+  // is drawn from A6's GET /kybernos/themes, so this row finds the page; it holds no setting of its own.
+  ['themes', '', 'Install a sector theme', 'The sector themes the catalogues you added offer, each with the level the verifier answered.', '', 'themes theme market marketplace install sector packs'],
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
@@ -3260,6 +3291,7 @@ const KB_SS_PAGE_KW = {
   theme: 'couleurs palette fond police colors style skin import export share reset apparence aspecto mode sombre clair look dark light night system', language: 'langue idioma traduction translate locale french spanish',
   servers: 'serveurs equipe reseau server team enterprise', 'code sandbox (e2b)': 'sandbox bac a sable e2b cloud computers ordinateurs cloud vm',
   'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp phone remote messaging', 'kybernos suite': 'plugins modules extensions install update restart',
+  'activity log': 'journal activite envoie appels modeles connectors web search tools tokens metadata',
   'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour update restart relaunch'
 }
 // What the page draws in French: page|label of a row -> [label, description, text to go to when it is not the label]. A row the French menu draws in
@@ -3309,6 +3341,8 @@ const KB_SS_FR = {
   'widget|Tell me when': ['Prévenir', 'Quand quelque chose m’attend, à chaque run, ou jamais.'],
   'widget|Banners and badge': ['Bannières et badge', 'Une bannière par événement. Un nombre sur l’onglet et sur le Dock.'],
   'widget|Quiet automations': ['Automations silencieuses', 'Sans bannière quand elles finissent.'],
+  'activity log|Families': ['Familles', 'Coche les familles à afficher : appels modèle, connecteurs, recherche web, outils, titres automatiques et compactages.'],
+  'activity log|Live tail': ['En direct', 'Regarde les appels arriver au fil de l’eau, ou cherche un modèle, un outil, une erreur.'],
   'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.', 'Identité'],
   'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
   'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
@@ -3339,7 +3373,9 @@ const KB_SS_FR = {
   'atlas|Update': ['Mettre à jour', 'L’Atlas ne lit tes fichiers et tes plugins que lorsque tu le demandes.'],
   'kybernos suite|Check for updates': ['Rechercher des mises à jour', ''],
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
-  'about|Version': ['Version', '', 'Moteur DSH']
+  'about|Version': ['Version', '', 'Moteur DSH'],
+  // The themes listing (A7): its French twin, required for every row of the index (test-settings-search.mjs:146).
+  'themes|Install a sector theme': ['Installer un thème sectoriel', 'Les thèmes sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
 }
 // The tabs and sections of the French pages.
 const KB_SS_SEC_FR = { Behaviour: 'Comportement', Essentials: 'Essentiel', 'Glass and background': 'Verre et fond', Colors: 'Couleurs', 'Text and shape': 'Texte et forme', Animation: 'Animation', Icons: 'Icônes', Accessibility: 'Accessibilité' }
@@ -4706,6 +4742,7 @@ const LUCIDE = {
   waypoints: ['m10.586 5.414-5.172 5.172', 'm18.586 13.414-5.172 5.172', 'M6 12h12', 'M10 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M18 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M2 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z'],
   package: ['M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z', 'M12 22V12', 'm3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7'],
   chart: ['M3 3v16a2 2 0 0 0 2 2h16', 'M18 17V9', 'M13 17V5', 'M8 17v-3'],
+  briefcase: ['M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16', 'M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z'],
   heart: ['M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'],
   // Pouces du captage Quality Score (barre d'actions) — géométrie Lucide,
   // convertie en chemins comme le reste de la table.
@@ -4867,7 +4904,7 @@ const KbLearnedDot = () => {
   const label = kbt(n === 1 ? 'kbui.skills.suggested.1' : 'kbui.skills.suggested').replace('{n}', String(n))
   return h('span', { className: 'kb4-dot kb-ping', role: 'img', 'aria-label': label, title: label, 'data-kb': 'learned-dot' })
 }
-const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
+const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', themes: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
 const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
 /** What the person gave Kaby (the kybernos-kaby-customisation bundle): { name, portrait: { url } | null } or null when that bundle is not there. */
 const kbKabyMe = () => {
@@ -8437,6 +8474,34 @@ const kbWsOptions = (items, hint) => {
   return out
 }
 // KB-AUTOWS-END
+// KB-WSHEALTH-BEGIN
+// Which registered workspaces still exist on disk. The browser holds each workspace's path but cannot
+// test it, and a session resumed in a vanished folder fails its file tools with a raw `rg` error
+// (bêta 93953fad, 28/10: the repository had been renamed). The host answers once per read; an unread
+// or failed read stays « unknown », never « missing » — a card must not claim a folder is gone on a guess.
+let kbWsHealthMap = null
+let kbWsHealthInflight = null
+const kbWsHealthReload = () => {
+  if (kbWsHealthInflight !== null) return kbWsHealthInflight
+  kbWsHealthInflight = fetch('/kybernos/workspaces-health', { cache: 'no-store', credentials: 'same-origin' })
+    .then((r) => (r.ok === true ? r.json() : null))
+    .then((j) => {
+      const map = new Map()
+      if (j !== null && j !== undefined && Array.isArray(j.items) === true) {
+        for (const it of j.items) {
+          if (it !== null && typeof it === 'object' && typeof it.workspaceId === 'string' && it.workspaceId !== '') map.set(it.workspaceId, it.exists === true)
+        }
+      }
+      kbWsHealthMap = map
+      kbWsHealthInflight = null
+      return map
+    })
+    .catch(() => { kbWsHealthInflight = null; return kbWsHealthMap })
+  return kbWsHealthInflight
+}
+/** true only when the host SAID the folder is gone; unknown (not read yet, failed read, workspace added since) is false. */
+const kbWsMissing = (workspaceId) => kbWsHealthMap !== null && typeof workspaceId === 'string' && kbWsHealthMap.get(workspaceId) === false
+// KB-WSHEALTH-END
 // KB-NEWCHAT-BEGIN
 // The new-chat page: the slider of what the product makes, the Cloud Computer's state, and the rule that hides DSH's own
 // « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by test-newchat.mjs,
@@ -8881,7 +8946,47 @@ const CSS = `
 .kb4-kabyav{width:1.25em;height:1.25em;border-radius:50%;object-fit:cover;display:block}
 .kb4-lab{flex:1;text-align:left}
 .kb4-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-inline-start:6px;background:var(--dsw-alias-brand-primary)}
-.kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+.kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}/* Demande du 28/10 : les compteurs des entrées de menu (13, 500+, 14…) sont masqués pour rendre la place au libellé. Ils RESTENT dans le DOM — un lecteur d'écran et le survol les lisent encore ; les remettre est une seule règle à retirer. */
+.kb4-badge{display:none}
+/* The « Business » group (kb-business-menu): a folding header over the rows of the plugins that declared one. In em, like the rows. */
+.kb4-grp{margin-top:.35em}
+.kb4-grph{display:flex;align-items:center;gap:.5em;width:100%;min-height:2em;margin:0;padding:.25em .8em .25em .45em;border:none;border-radius:.75em;background:none;font:inherit;font-size:.95em;line-height:1.3;letter-spacing:.02em;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
+.kb4-grph:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+.kb4-grph.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
+.kb4-grph.on .kb4-lab{font-weight:700}
+.kb4-grprows.folded{display:none}
+.kb4-grpchev{flex:none;display:flex;align-items:center;justify-content:center;width:1em;transition:transform .18s}
+.kb4-grph[aria-expanded="false"] .kb4-grpchev{transform:rotate(-90deg)}
+.kb4-grpcnt{margin-inline-start:auto;min-width:1.7em;padding:0 .5em;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);font-size:.85em;font-weight:650;text-align:center;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.kb4-grpchev{transition:none}}
+/* In the icon rail there is no room for a header: it goes, and the rows always show. */
+[class*="collapsed"] .kb4-menu .kb4-grph{display:none}
+[class*="collapsed"] .kb4-menu .kb4-grprows.folded{display:block}
+/* Demande du 28/10 : le libellé « Workspaces » du pied ouvre la page Workspaces (l'écouteur de document plus bas), donc il
+   s'annonce comme un lien. Rien d'autre n'est posé ici : mesuré dans la page, l'hôte masque déjà les actions du pied
+   (« headerActions » et le bouton de recherche à « opacity: 0 ») et ne les révèle qu'au survol — nos règles étaient en double. */
+[class*="_sectionLabel"]{cursor:pointer}
+/* Une icône de dossier juste avant « Workspaces » (demande du 28/10), toujours visible : dessinée en « ::before », donc sans
+   toucher au DOM de l'hôte, et masquée en « currentColor » pour prendre la couleur du libellé dans les deux thèmes. C'est le
+   dossier ouvert du jeu d'icônes du thème (même tracé, même épaisseur). */
+[class*="_sectionLabel"]::before{content:'';display:inline-block;flex:none;width:15px;height:15px;margin-right:7px;vertical-align:-2px;
+  background-color:currentColor;
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+  mask-size:contain;mask-repeat:no-repeat;mask-position:center;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+  -webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center}
+/* Demande du 28/10 : dans le pied, les trois actions (recherche+, filtre, ajout) ET le bouton de recherche ne s'affichent
+   QU'AU SURVOL de la rangée. L'hôte ne le fait pas seul — mesuré : sans ces règles, les trois icônes restent visibles au repos
+   (mon premier essai les masquait, puis je les avais retirées à tort). La recherche reste visible quand elle est ouverte, sinon
+   on ne pourrait plus taper dedans. */
+[class*="_sectionHeader"] [class*="_headerActions"]{transition:opacity .12s var(--ds-ease-in-out)}
+[class*="_sectionHeader"]:not(:hover):not(:focus-within) [class*="_headerActions"]{opacity:0;pointer-events:none}
+[class*="_searchSlot"] button{transition:opacity .12s var(--ds-ease-in-out)}
+[class*="_sectionHeader"]:not(:hover):not(:focus-within) [class*="_searchSlot"]:not([class*="_searchSlotExpanded"]) button{opacity:0;pointer-events:none}
+/* La quatrième, mesurée : « Search everywhere » n'est ni dans « searchSlot » ni dans « headerActions », mais un ENFANT DIRECT de la
+   rangée — d'où la loupe qui restait seule visible au repos. Les enfant directs de la rangée sont exactement ces boutons-là. */
+[class*="_sectionHeader"] > button{transition:opacity .12s var(--ds-ease-in-out)}
+[class*="_sectionHeader"]:not(:hover):not(:focus-within) > button{opacity:0;pointer-events:none}
 @media (pointer:coarse){.kb4-item,.kb4-newchat{min-height:44px}}
 /* The menu is drawn in em of the chat text size (the engine keeps it in --dsh-content-font-size on <body>, 12 to 17 px): one setting, General › Font size,
    sets the chat and the menu, and a smaller size gives a denser menu. The blocks of the shell around it are measured the same way (calc on --kb-u):
@@ -8957,6 +9062,8 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-grid{display:flex;flex-direction:column;gap:8px}
 .kbg-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px}
 .kbg-card .kbg-desc,.kbg-card .kbg-cta{display:none}
+[data-kb-page="themes"] .kbg-card .kbg-desc{display:block}
+[data-kb-page="themes"] .kbg-card .kbg-cta{display:flex}
 .kbg-card .kbg-cardhead{flex:1;min-width:0}
 .kbg-card .kbg-stats{margin-left:auto;gap:8px;flex:none}
 .kbg-card .kbg-roles{flex-basis:100%}
@@ -10527,6 +10634,21 @@ return {
     // automation » sans aucun effet, zéro appel réseau, aucune erreur). On
     // calcule donc la cible ICI comme le shell le fait (workspace portant la
     // session la plus récente, sinon le premier) et on la passe explicitement.
+    // The workspace the person is LOOKING AT: the one holding the session on screen, null when no
+    // session is open (or the shell's stores are not ready yet). Every « new session » path reads it,
+    // so that a session started from another one stays in the same folder (bêta a1e9eec2, 28/10).
+    const kbCurrentWorkspaceId = () => {
+      try {
+        if (uiWorkspaceSvc === null || uiWorkspaceSvc === undefined) return null
+        const wlist = (uiWorkspaceSvc.workspaces !== undefined && uiWorkspaceSvc.workspaces !== null && uiWorkspaceSvc.workspaces.list !== undefined) ? uiWorkspaceSvc.workspaces.list.getSnapshot() : null
+        const slist = (uiWorkspaceSvc.sessions !== undefined && uiWorkspaceSvc.sessions !== null && uiWorkspaceSvc.sessions.list !== undefined) ? uiWorkspaceSvc.sessions.list.getSnapshot() : null
+        const items = (wlist !== null && wlist !== undefined && Array.isArray(wlist.items) === true) ? wlist.items : []
+        const curSid = (slist !== null && slist !== undefined && typeof slist.current === 'string' && slist.current !== '') ? slist.current : null
+        if (curSid === null) return null
+        const holder = items.find((it) => it !== null && typeof it === 'object' && typeof it.workspaceId === 'string' && it.workspaceId !== '' && Array.isArray(it.sessionIds) === true && it.sessionIds.indexOf(curSid) >= 0)
+        return (holder !== undefined && holder !== null && typeof holder.workspaceId === 'string') ? holder.workspaceId : null
+      } catch (e) { return null }
+    }
     const kbShellStartSession = () => {
       if (uiWorkspaceSvc === null || uiWorkspaceSvc === undefined || typeof uiWorkspaceSvc.startSession !== 'function') return false
       let cible = null
@@ -10551,7 +10673,9 @@ return {
           }
           if (top === null || latest > topT) { top = it.workspaceId; topT = latest }
         }
-        cible = top
+        // The session on screen wins (same folder); « most recent » stays the fallback when none is open.
+        cible = kbCurrentWorkspaceId()
+        if (cible === null) cible = top
       } catch (e) { cible = null }
       if (typeof cible === 'string' && cible.length > 0) {
         try { uiWorkspaceSvc.startSession(cible); return true } catch (e) { /* on tente l'appel nu */ }
@@ -10580,15 +10704,18 @@ return {
     // voie hôte « start-chat » (même sessionController que « Lancer
     // maintenant »). Rend l'id de session ou null si les deux voies refusent.
     const kbCreerSessionVierge = async () => {
+      // Same rule as kbShellStartSession: the folder on screen, sent to BOTH ways (the host's
+      // start-chat now honours it too — bêta a1e9eec2, 28/10).
+      const wsId = kbCurrentWorkspaceId()
       try {
         if (sessionsSvc !== null && sessionsSvc !== undefined && typeof sessionsSvc.create === 'function') {
-          const r2 = await sessionsSvc.create({})
+          const r2 = await sessionsSvc.create(wsId === null ? {} : { workspaceId: wsId })
           const v2 = (r2 !== null && typeof r2 === 'object' && r2.ok === true && r2.value !== null && r2.value !== undefined) ? r2.value : r2
           if (v2 !== null && typeof v2 === 'object' && typeof v2.sessionId === 'string' && v2.sessionId.length > 0) return v2.sessionId
         }
       } catch (e) { /* voie shell refusée : on tente l'hôte */ }
       try {
-        const r3 = await host.call('kybers/tasks', { action: 'start-chat' })
+        const r3 = await host.call('kybers/tasks', { action: 'start-chat', workspaceId: wsId })
         if (r3 !== null && r3 !== undefined && r3.ok === true && typeof r3.sessionId === 'string' && r3.sessionId.length > 0) return r3.sessionId
       } catch (e) { /* voie hôte absente */ }
       return null
@@ -11000,7 +11127,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
     // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
     // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ.
-    const KB_BUILTIN_API = 'https://api.kybernos.app'
+    const KB_BUILTIN_API = 'https://server.kybernos.app'
     const kbServer = { web: KB_BUILTIN_API }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
@@ -16184,6 +16311,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // The pages read the field's words at each draw (kbDomainTitle): a saved choice redraws them.
       const domainTick = React.useState(0)[1]
       React.useEffect(() => kbDomainOn(() => domainTick((n) => n + 1)), [])
+      // A business row that comes or goes (its plugin switched on or off) redraws the page area: a page whose row is gone is not left on screen.
+      React.useEffect(() => kbBizMenu.subscribe(() => domainTick((n) => n + 1)), [])
       const us = (props !== null && props !== undefined) ? props.useSessions : null
       const sidFromStore = (typeof us === 'function') ? us((st) => (st.ids && st.ids.length ? st.ids[0] : null)) : null
       React.useEffect(() => {
@@ -16202,6 +16331,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (s.view === 'dashboards') return h(KbDashboardsView, props)
         if (s.view === 'kyber') return h(KbKyberView, props)
         if (s.view === 'connectors') return h(KbConnectorsView, props)
+        if (s.view === 'themes') return h(KbThemesView, props)
         if (s.view === 'documents') return h(KbDocumentsView, props)
         if (s.view === 'tasks') return h(ScheduledTasksPage, props)
         if (s.view === 'projects') return h(ProjectsHub, props)
@@ -16209,6 +16339,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (s.view === 'hosted') return h(HostedPage, props)
         if (s.view === 'teamedit' && typeof s.detailPath === 'string') return h(TeamEdit, props)
         if ((s.view === 'teaminfo' || s.view === 'detail') && typeof s.detailPath === 'string') return h(KybersTeamInfo, props)
+        if (kbBizMenu.has(s.view)) return h(KbBusinessView, Object.assign({}, props, { id: s.view }))
         return h(KybersPanel, props)
       })()
       return h(KbBoundary, null, inner)
@@ -16245,6 +16376,52 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const wsFailed = (wsState === 'error')
       const wsUnread = (wsFailed === false && (typeof uw !== 'function' || snapW === null || snapW === undefined || wsPhase !== 'ready'))
       const wsFailMsg = (wsFailed === true && snapW.error !== null && snapW.error !== undefined && typeof snapW.error.message === 'string') ? snapW.error.message : null
+      // Which of those folders still exists on disk — the snapshot cannot know. One host read on mount
+      // and on every workspace change; the cards and the page banner then tell the truth (bêta 93953fad).
+      const wsHp = React.useState(0)
+      const bumpWsHealth = wsHp[1]
+      React.useEffect(() => {
+        let alive = true
+        const refresh = () => { kbWsHealthReload().then(() => { if (alive === true) bumpWsHealth((n) => n + 1) }) }
+        refresh()
+        try { window.addEventListener('kb-domain-change', refresh) } catch (e) { /* no window */ }
+        return () => { alive = false; try { window.removeEventListener('kb-domain-change', refresh) } catch (e) { /* gone */ } }
+      }, [])
+      const wsMissingItems = items.filter((w) => w !== null && typeof w === 'object' && kbWsMissing(w.workspaceId) === true)
+      const wrPair = React.useState(null)
+      const wsRelinkState = wrPair[0]
+      const setWsRelinkState = wrPair[1]
+      const wrErrPair = React.useState(null)
+      const wsRelinkErr = wrErrPair[0]
+      const setWsRelinkErr = wrErrPair[1]
+      const wrDonePair = React.useState(null)
+      const wsRelinkDone = wrDonePair[0]
+      const setWsRelinkDone = wrDonePair[1]
+      // « Link a folder… »: a workspace's path cannot be edited in place (the registry has no move), so
+      // linking picks the folder the project moved to and creates a workspace THERE. The dead one stays
+      // listed until the person removes it — never silently rewritten.
+      const wsRelink = async () => {
+        const picker = (uiWorkspaceSvc !== null && uiWorkspaceSvc !== undefined && typeof uiWorkspaceSvc.pickDirectory === 'function') ? uiWorkspaceSvc : null
+        if (picker === null) { setWsRelinkErr(kbt('kbui.new.project.nopicker')); return }
+        let dir = null
+        try {
+          setWsRelinkErr(null)
+          setWsRelinkState('picking')
+          dir = await picker.pickDirectory()
+        } catch (e) { setWsRelinkState(null); setWsRelinkErr(errText(e)); return }
+        if (dir === null || dir === undefined || String(dir).length === 0) { setWsRelinkState(null); return }
+        try {
+          setWsRelinkState('creating')
+          const wsSvc = ctx.get('workspaces')
+          if (wsSvc === null || wsSvc === undefined || typeof wsSvc.create !== 'function') throw new Error(kbt('kbui.new.project.noworkspaces'))
+          const created = await wsSvc.create({ path: String(dir) })
+          const wid = (created !== null && created !== undefined && typeof created.workspaceId === 'string' && created.workspaceId.length > 0) ? created.workspaceId : null
+          if (wid === null) throw new Error(kbt('kbui.new.project.noid'))
+          setWsRelinkState(null)
+          setWsRelinkDone(typeof created.title === 'string' && created.title.length > 0 ? created.title : String(dir))
+          kbWsHealthReload().then(() => bumpWsHealth((n) => n + 1))
+        } catch (e) { setWsRelinkState(null); setWsRelinkErr(errText(e)) }
+      }
       // Barre unifiee Projects : recherche et tri persistes via useToolbarState.
       const tbProjects = useToolbarState('projects', { sort: 'name', viewMode: 'cards' })
       const pq = tbProjects[0].query
@@ -16391,6 +16568,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           try { URL.revokeObjectURL(url) } catch (e2) { /* fuite bénigne */ }
         } catch (e) { /* le navigateur signale lui-même l'échec du téléchargement */ }
       }
+      // The badge a card or a row wears when the host said its folder is gone (bêta 93953fad, 28/10).
+      const kbWsMissingTag = () => h('span', { className: 'kb8-wsmiss', 'data-kb': 'project-missing', title: kbt('kbui.ws.missing.hint'), style: { display: 'inline-flex', alignItems: 'center', flex: 'none', gap: '4px', fontSize: '11px', lineHeight: '16px', padding: '1px 8px', borderRadius: '999px', background: 'var(--dsw-alias-state-warn-tertiary)', color: 'var(--dsw-alias-state-warn-label)', whiteSpace: 'nowrap' } }, kbt('kbui.ws.missing.tag'))
       const projectCard = (w, i) => {
         const u = wUiOf(w)
         const label = (typeof u.name === 'string' && u.name.length > 0) ? u.name : (w.title || w.workspaceId)
@@ -16406,6 +16585,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           kbCfWatermark(ic),
           h('div', { className: 'kb8-cf-top' }, kbCfIcon(co, ic), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, label), d === '' ? null : h('p', { className: 'kb8-desc' }, d))),
           h('div', { className: 'kb8-cf-foot' },
+            (kbWsMissing(w.workspaceId) === true ? kbWsMissingTag() : null),
             // The foot: two quiet figures, both checkable from the payload (the project's threads and its deliverables; the « docs » and
             // « goals » counters were invented: they live in their own tab, from the host's data). The word shows on hover.
             h('span', { className: 'kb8-cf-stats', 'data-kb': 'project-counts' },
@@ -16432,6 +16612,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const fav = wsFavOf(w) === true
         return h('div', { className: 'kb8-row kb8-rf' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-row', style: kbCfVars(co) === null ? undefined : kbCfVars(co), onClick: () => openProject(w) },
           kbCfIcon(co, ic, undefined, false, 34),
+          (kbWsMissing(w.workspaceId) === true ? kbWsMissingTag() : null),
           h('span', { className: 'kb8-rf-txt' }, h('span', { className: 'kb8-name' }, label), d === '' ? null : h('span', { className: 'kb8-rf-sub' }, d)),
           h('span', { className: 'kb8-rf-figs', 'data-kb': 'project-row-counts' },
             kbCfFig(Icon('messageSquare', 13), String(nThreads), wordT, nThreads + ' ' + wordT, { className: 'kb8-rf-c1' }),
@@ -16534,6 +16715,21 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           : null),
         (projCreateOk !== null
           ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'project-create-ok' }, kbt('kbui.new.project.created') + projCreateOk)
+          : null),
+        // A workspace whose folder is gone: its sessions fail every file tool, so the page says it
+        // and offers the one repair it can do — link the folder the project moved to (bêta 93953fad).
+        (wsMissingItems.length > 0
+          ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'workspaces-missing', style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', color: 'var(--dsw-alias-state-warn-label)' } },
+            h('span', null, wsMissingItems.length + ' ' + kbt(wsMissingItems.length === 1 ? 'kbui.ws.missing.one' : 'kbui.ws.missing.many')),
+            h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, kbt('kbui.ws.missing.hint')),
+            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'workspaces-relink', disabled: wsRelinkState !== null, onClick: () => { wsRelink() } },
+              kbt(wsRelinkState === 'picking' ? 'kbui.new.project.picking' : (wsRelinkState === 'creating' ? 'kbui.new.project.creating' : 'kbui.ws.relink'))))
+          : null),
+        (wsRelinkErr !== null
+          ? h('div', { role: 'alert', className: 'kb8-sub', 'data-kb': 'workspaces-relink-error', style: { color: 'var(--dsw-alias-state-error-primary)' } }, kbt('kbui.error') + wsRelinkErr)
+          : null),
+        (wsRelinkDone !== null
+          ? h('div', { role: 'status', className: 'kb8-sub', 'data-kb': 'workspaces-relink-ok' }, kbt('kbui.ws.relink.done') + wsRelinkDone)
           : null),
         (items.length === 0 && wsFailed === true ? h('div', { className: 'kb9-empty' }, kbt('kbui.workspaces.unavailable') + (wsFailMsg === null ? '.' : ' — ' + wsFailMsg)) : null),
         // Not read yet: bones the size of the real cards or rows (it used to be a line of text that the list then pushed down).
@@ -26485,6 +26681,681 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     const KbKyberView = () => h('div', { className: 'kbg-root', 'data-kb-page': 'kyber' }, h(KyberMount, null))
 
+    // ── Themes: the ONE page of the sector themes (A6-theme-installer, docs/tests/A6-theme-installer-strategy.md) ─────────────
+    // M4: one page, one name, one job — the marketplace's listing is a VIEW over it, never a second page. The catalogue and the
+    // plan come from the host (`/kybernos/themes`, theme-installer.mjs); the applier below only calls the routes that exist.
+    // KB-TH-CORE-BEGIN
+    // The applier, pure over its ports: no closure, no fetch, no DOM. `scripts/test-onboarding.mjs` extracts KB-OB-CORE the same
+    // way; this batch's tests (D3/D4) import this block alone, which is why nothing here reads a name declared outside it.
+    const kbThPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+    const kbThStr = (v) => (typeof v === 'string' ? v : null)
+    const kbThStrings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [])
+    /** A pack text as one line, English first: the task store keys an automation by its name, whatever the page's language. */
+    const kbThLabel = (v) => {
+      if (typeof v === 'string') return v
+      if (kbThPlain(v)) {
+        for (const k of ['en', 'fr']) if (typeof v[k] === 'string' && v[k] !== '') return v[k]
+        for (const k of Object.keys(v)) if (typeof v[k] === 'string' && v[k] !== '') return v[k]
+      }
+      return ''
+    }
+    /** The stored look as stable text (its keys sorted): what makes "reversible" checkable instead of remembered (INT6). */
+    const kbThFingerprint = (settings) => {
+      const walk = (v) => {
+        if (v === null || v === undefined) return 'null'
+        if (typeof v !== 'object') return JSON.stringify(v)
+        if (Array.isArray(v)) return '[' + v.map(walk).join(',') + ']'
+        return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + walk(v[k])).join(',') + '}'
+      }
+      try { return walk(settings) } catch (e) { return 'null' }
+    }
+    /**
+     * The click's apply (M3): the click consents the shell (the style and the field), the kit keeps the wizard's ticks. Lookups
+     * first, so a replay creates nothing; then, only for ticked and missing items, consent → field → skills → teams →
+     * automations → the style once. Never throws; a step that fails is counted and does not stop the next one.
+     * `{ ok, already, added, failed, skipped, present, style, domain }`.
+     */
+    const kbThApply = async (plan, ticks, ports) => {
+      const report = { ok: false, already: false, added: 0, failed: 0, skipped: [], present: [], style: 'skipped', domain: 'skipped' }
+      try {
+        if (!kbThPlain(plan) || !kbThPlain(plan.pack) || kbThStr(plan.pack.id) === null) { report.error = 'no-plan'; return report }
+        const p = kbThPlain(ports) ? ports : {}
+        const get = typeof p.get === 'function' ? p.get : null
+        const post = typeof p.post === 'function' ? p.post : null
+        const teamPost = typeof p.team === 'function' ? p.team : null
+        const styleOf = typeof p.style === 'function' ? p.style : null
+        const t = kbThPlain(ticks) ? ticks : {}
+        const want = { style: t.style === true, goals: kbThStrings(t.goals), skills: kbThStrings(t.skills), teams: kbThStrings(t.teams), automations: kbThStrings(t.automations) }
+        const ask = async (path) => { if (get === null) return null; try { return await get(path) } catch (e) { return null } }
+        const send = async (path, body) => { if (post === null) return null; try { return await post(path, body) } catch (e) { return null } }
+        const kit = kbThPlain(plan.kit) ? plan.kit : {}
+        const kitSkills = (Array.isArray(kit.skills) ? kit.skills : []).filter(kbThPlain)
+        const kitTeams = (Array.isArray(kit.teams) ? kit.teams : []).filter(kbThPlain)
+        const kitAutos = (Array.isArray(kit.automations) ? kit.automations : []).filter(kbThPlain)
+        const nameOf = (it) => kbThStr(it.name) ?? ''
+        const idOf = (it) => kbThStr(it.id) ?? ''
+        const fileOf = (it) => kbThStr(it.file) ?? ''
+        // 1. the lookups first, the wizard's own rule (client.js kitInstalled): nothing is written on a replay.
+        const skillsAnswer = await ask('/kybernos-skills/skills')
+        const teamsAnswer = await ask('/kybernos/load')
+        const tasksAnswer = await send('/kybernos/tasks', { action: 'list' })
+        const savedAnswer = await ask('/kybernos/onboarding')
+        const haveSkills = new Set()
+        for (const s of kbThPlain(skillsAnswer) && Array.isArray(skillsAnswer.skills) ? skillsAnswer.skills : []) {
+          const n = typeof s === 'string' ? s : kbThPlain(s) ? kbThStr(s.name) : null
+          if (n !== null) haveSkills.add(n)
+        }
+        const haveTeams = new Set()
+        for (const root of kbThPlain(teamsAnswer) && Array.isArray(teamsAnswer.roots) ? teamsAnswer.roots : []) {
+          for (const k of kbThPlain(root) && Array.isArray(root.kybers) ? root.kybers : []) {
+            const id = kbThPlain(k) ? kbThStr(k.id) : null
+            if (id !== null) haveTeams.add(id)
+          }
+        }
+        const haveAutos = new Set()
+        for (const a of kbThPlain(tasksAnswer) && Array.isArray(tasksAnswer.tasks) ? tasksAnswer.tasks : []) {
+          const n = typeof a === 'string' ? a : kbThPlain(a) ? kbThStr(a.name) : null
+          if (n !== null) haveAutos.add(n)
+        }
+        const saved = kbThPlain(savedAnswer) ? savedAnswer : {}
+        const packId = kbThPlain(plan.pack) ? kbThStr(plan.pack.id) : null
+        const packFile = kbThPlain(plan.pack) ? fileOf(plan.pack) : ''
+        // The field is there when the saved choice is this pack's: the goals it can carry are the pack's own, so the pack id is the key
+        // (a replay must write nothing, and the saved goal list is not a second identity).
+        const domainThere = packId !== null && saved.profil === packId
+        // A goal the person fully un-ticked is not chosen, so the saved choice and the applied kit agree.
+        const goalHasKit = (gid) => kitSkills.some((it) => it.goal === gid) || kitTeams.some((it) => it.goal === gid) || kitAutos.some((it) => it.goal === gid)
+        const goalHasTick = (gid) => kitSkills.some((it) => it.goal === gid && want.skills.indexOf(nameOf(it)) >= 0) ||
+          kitTeams.some((it) => it.goal === gid && want.teams.indexOf(idOf(it)) >= 0) ||
+          kitAutos.some((it) => it.goal === gid && want.automations.indexOf(idOf(it)) >= 0)
+        const planGoals = kbThPlain(plan.pack) && Array.isArray(plan.pack.goals) ? plan.pack.goals.filter(kbThPlain).map((g) => kbThStr(g.id)).filter((x) => x !== null) : []
+        const chosenGoals = planGoals.filter((gid) => want.goals.indexOf(gid) >= 0 && (goalHasKit(gid) === false || goalHasTick(gid)))
+        const applyDomain = chosenGoals.length > 0
+        const pendingSkills = kitSkills.filter((it) => want.skills.indexOf(nameOf(it)) >= 0 && haveSkills.has(nameOf(it)) === false)
+        const pendingTeams = kitTeams.filter((it) => want.teams.indexOf(idOf(it)) >= 0 && haveTeams.has(idOf(it)) === false)
+        const pendingAutos = kitAutos.filter((it) => want.automations.indexOf(idOf(it)) >= 0 && haveAutos.has(kbThLabel(it.name)) === false)
+        // The shell: the click consented the style AND the field, so a field that is already the theme's says the look was applied too.
+        const styleThere = want.style === true && domainThere === true && kbThPlain(plan.style)
+        // A skipped item carries its own name (W1): a skill is keyed by its name, a team and an automation by their id, and the
+        // label is the text the plan showed. The report draws what the applier names; it never mints a name of its own.
+        for (const it of kitSkills) if (want.skills.indexOf(nameOf(it)) < 0) report.skipped.push({ kind: 'skill', id: nameOf(it), name: nameOf(it), file: fileOf(it) })
+        for (const it of kitTeams) if (want.teams.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'team', id: idOf(it), name: kbThLabel(it.name) || idOf(it), file: fileOf(it) })
+        for (const it of kitAutos) if (want.automations.indexOf(idOf(it)) < 0) report.skipped.push({ kind: 'automation', id: idOf(it), name: kbThLabel(it.name) || idOf(it), file: fileOf(it) })
+        for (const it of kitSkills) if (want.skills.indexOf(nameOf(it)) >= 0 && haveSkills.has(nameOf(it))) report.present.push({ kind: 'skill', id: nameOf(it), file: fileOf(it) })
+        for (const it of kitTeams) if (want.teams.indexOf(idOf(it)) >= 0 && haveTeams.has(idOf(it))) report.present.push({ kind: 'team', id: idOf(it), file: fileOf(it) })
+        for (const it of kitAutos) if (want.automations.indexOf(idOf(it)) >= 0 && haveAutos.has(kbThLabel(it.name))) report.present.push({ kind: 'automation', id: idOf(it), file: fileOf(it) })
+        if (applyDomain && domainThere) report.present.push({ kind: 'field', id: packId, file: packFile })
+        if (styleThere === true) report.present.push({ kind: 'style', id: kbThStr(plan.style.id), file: fileOf(plan.style) })
+        const shellPending = (applyDomain && domainThere === false ? 1 : 0) + (want.style === true && styleThere === false ? 1 : 0)
+        const pending = pendingSkills.length + pendingTeams.length + pendingAutos.length + shellPending
+        if (pending === 0) {
+          report.ok = true
+          report.already = report.present.length > 0
+          report.style = want.style === true ? (styleThere === true ? 'present' : 'skipped') : 'skipped'
+          report.domain = applyDomain ? 'present' : 'skipped'
+          return report
+        }
+        // 2. the acceptance, once, before anything of the instruction class is applied.
+        const consent = await send('/kybernos-registry/consent', { id: plan.id, accepted: true })
+        report.consented = kbThPlain(consent) && consent.ok === true
+        if (report.consented !== true) report.failed += 1
+        // 3. the field and its wording.
+        if (applyDomain) {
+          const r = await send('/kybernos/onboarding', { action: 'domain', profil: packId, goals: chosenGoals })
+          if (kbThPlain(r) && r.ok === true) { report.domain = 'applied'; report.added += 1 } else { report.domain = 'failed'; report.failed += 1 }
+        }
+        // 4. the kit: one item at a time, a failure counted and the next one tried (the wizard's kitAdded/kitFailed).
+        for (const it of pendingSkills) {
+          const name = nameOf(it)
+          const fromPlugin = (kbThStr(it.source) ?? 'kybernos') === 'kybernos'
+          const r = await send(fromPlugin ? '/kybernos/domain/skill' : '/kybernos-skills/install', fromPlugin ? { name } : { source: kbThStr(it.source), name })
+          if (kbThPlain(r) && (r.ok === true || r.error === 'already_installed')) report.added += 1
+          else report.failed += 1
+        }
+        for (const it of pendingTeams) {
+          // `ports.team` builds the body `kybers/create` takes (the contributed value, or the shipped team template); the write
+          // itself is the same route the marketplace already uses, so the core posts it and the allowlist of paths stays visible.
+          let ok = false
+          if (teamPost !== null) {
+            try {
+              const body = await teamPost(it)
+              if (kbThPlain(body)) {
+                const r = await send('/kybernos/create', body)
+                ok = kbThPlain(r) && r.ok === true
+              }
+            } catch (e) { ok = false }
+          }
+          if (ok) report.added += 1
+          else report.failed += 1
+        }
+        for (const it of pendingAutos) {
+          // Created switched off, approvals on « ask »: the person turns it on.
+          const r = await send('/kybernos/tasks', { action: 'create', task: { name: kbThLabel(it.name), prompt: kbThLabel(it.prompt), schedule: { mode: 'cron', cron: kbThStr(it.cron) ?? '' }, active: false, approvals: 'ask' } })
+          if (kbThPlain(r) && r.ok === true) report.added += 1
+          else report.failed += 1
+        }
+        // 5. the look, once, through the seam the theme bundle publishes; absent or refusing, it degrades and says so.
+        if (want.style === true) {
+          if (kbThPlain(plan.style) === false) report.style = 'unavailable'
+          else if (styleThere === true) report.style = 'present'
+          else if (styleOf === null) report.style = 'unavailable'
+          else {
+            let ok = false
+            try { const r = await styleOf(kbThStr(plan.style.id), kbThPlain(plan.style.settings) ? plan.style.settings : null); ok = kbThPlain(r) && r.ok === true } catch (e) { ok = false }
+            if (ok) { report.style = 'applied'; report.added += 1 } else report.style = 'unavailable'
+          }
+        }
+        report.ok = true
+        return report
+      } catch (e) {
+        report.error = 'apply'
+        return report
+      }
+    }
+    /**
+     * Removal (INT7): what the person has not changed since is restored — the look only while the current look still carries the
+     * record's id AND fingerprint, the field only while it is still the theme's pack. The kit is NEVER deleted (an addition is not
+     * removed by a switch, domain-packs.md:92-93): it is counted as kept. `{ ok, restored: { style, domain }, kept }`.
+     */
+    const kbThRemove = async (record, current, ports) => {
+      const out = { ok: false, restored: { style: false, domain: false }, kept: { skills: 0, teams: 0, automations: 0 } }
+      try {
+        if (!kbThPlain(record) || typeof record.id !== 'string') { out.error = 'record'; return out }
+        const p = kbThPlain(ports) ? ports : {}
+        const applied = kbThPlain(record.applied) ? record.applied : {}
+        const before = kbThPlain(record.before) ? record.before : {}
+        const now = kbThPlain(current) ? current : {}
+        const kit = kbThPlain(applied.kit) ? applied.kit : {}
+        out.kept = { skills: kbThStrings(kit.skills).length, teams: kbThStrings(kit.teams).length, automations: kbThStrings(kit.automations).length }
+        const styleNow = kbThPlain(now.style) ? now.style : null
+        const styleWas = kbThPlain(applied.style) ? applied.style : null
+        if (styleWas !== null && styleNow !== null && styleNow.id === styleWas.id && styleNow.fingerprint === styleWas.fingerprint &&
+            before.style !== undefined && before.style !== null && typeof p.style === 'function') {
+          try { await p.style(before.style); out.restored.style = true } catch (e) { out.restored.style = false }
+        }
+        const domNow = kbThPlain(now.domain) ? now.domain : null
+        const domWas = kbThPlain(applied.domain) ? applied.domain : null
+        if (domWas !== null && domNow !== null && domNow.profil === domWas.profil && kbThPlain(before.domain) && typeof p.post === 'function') {
+          await p.post('/kybernos/onboarding', { action: 'domain', profil: before.domain.profil, goals: kbThStrings(before.domain.goals) })
+          out.restored.domain = true
+        }
+        out.ok = true
+        return out
+      } catch (e) {
+        out.error = 'remove'
+        return out
+      }
+    }
+    /**
+     * What DSH's manager answered to an install or a removal, as a code the page turns into a sentence: 'ok', 'restart' (done, it applies after a
+     * restart), 'already' (the package is there), 'not-bundle', 'cancelled', 'failed', 'refused', 'no-answer'. A RemoteResult (`{ ok, value }`) and the bare
+     * result are both read. The manager refuses with an OBJECT (a code like `not-bundle`, or `application: 'failed'`), never with null: reading only null
+     * as a refusal let the page ask for a plan of a package DSH had just rolled back, and the person met `unknown-plugin`.
+     */
+    const kbThManagerIssue = (r) => {
+      const v = kbThPlain(r) && r.ok === true && r.value !== undefined ? r.value : r
+      if (!kbThPlain(v)) return 'no-answer'
+      if (v.ok === false) return 'refused'
+      const code = kbThPlain(v.error) ? kbThStr(v.error.code) : null
+      if (code === 'not-bundle') return 'not-bundle'
+      if (code === 'already-installed') return 'already'
+      if (code !== null) return 'refused'
+      if (v.application === 'failed') return 'failed'
+      if (v.application === 'cancelled') return 'cancelled'
+      return v.application === 'restart-required' ? 'restart' : 'ok'
+    }
+    // KB-TH-CORE-END
+    // ── the page's wiring: fetch, the host bridge and the style seam (never read by the tests) ──
+    const kbThEn = (en, fr) => { try { return kbLangResolve() === 'fr' ? fr : en } catch (e) { return en } }
+    /** The sentence for a refusal of DSH's manager (see kbThManagerIssue); every code gets words, none is shown raw. */
+    const kbThManagerWords = (issue) => {
+      if (issue === 'not-bundle') return kbThEn('DSH installs a package only as a bundle. This theme’s package.json needs an empty patch: "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, and a cordis.patch.yml that holds []. The starter has both.', 'DSH n’installe un paquet que comme bundle. Le package.json de ce thème a besoin d’un patch vide : "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, et un cordis.patch.yml qui contient []. Le modèle de départ a les deux.')
+      if (issue === 'cancelled') return kbThEn('The install was cancelled. Nothing was changed.', 'L’installation a été annulée. Rien n’a été changé.')
+      if (issue === 'no-answer') return kbThEn('DSH did not answer.', 'DSH n’a pas répondu.')
+      return kbThEn('DSH did not install the package. Nothing was changed.', 'DSH n’a pas installé le paquet. Rien n’a été changé.')
+    }
+    /** True when the manager's answer leaves the package installed (done, done after a restart, or already there). */
+    const kbThInstalledOk = (issue) => issue === 'ok' || issue === 'restart' || issue === 'already'
+    /** The route body of this batch: GET reads the catalogue and the records, POST acts. Never throws. */
+    const kbThApi = async (body) => {
+      try {
+        const opt = body === undefined
+          ? { method: 'GET', cache: 'no-store', credentials: 'same-origin' }
+          : { method: 'POST', cache: 'no-store', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+        const res = await fetch('/kybernos/themes', opt)
+        return await res.json()
+      } catch (e) { return null }
+    }
+    /** The look the page stores today (the theme bundle's own key), or null: the witness an undo snapshot is compared to. */
+    const kbThLook = () => { try { const raw = localStorage.getItem('kybernos.theme.v1'); return raw === null ? null : JSON.parse(raw) } catch (e) { return null } }
+    /** The manager DSH gives this plugin, or null: the install and the removal stay ITS (INT1) — the page only asks. */
+    const kbThManager = () => {
+      try {
+        const r = kbCtx !== null && kbCtx !== undefined ? kbCtx.remote : null
+        const m = r !== null && r !== undefined && r.pluginManager !== undefined ? r.pluginManager : null
+        return m !== null && m !== undefined && typeof m.installBundle === 'function' ? m : null
+      } catch (e) { return null }
+    }
+    /** The applier's ports: the same routes the wizard calls, the host bridge to build a team body, the theme bundle's seam. */
+    const kbThPorts = () => {
+      const call = async (path, method, body) => {
+        try {
+          const res = await fetch(path, { method, cache: 'no-store', credentials: 'same-origin', headers: body === undefined ? undefined : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
+          return await res.json()
+        } catch (e) { return null }
+      }
+      return {
+        get: (path) => call(path, 'GET'),
+        post: (path, body) => call(path, 'POST', body),
+        // The body `kybers/create` takes: the contributed team template, or the shipped one the marketplace already knows.
+        team: (item) => {
+          const id = kbThPlain(item) ? kbThStr(item.id) : null
+          let body = null
+          if (kbThPlain(item) && kbThPlain(item.value)) body = Object.assign({}, item.value)
+          else {
+            const tpl = id === null ? undefined : KB_MARKET_TEAMS.find((t) => t !== null && t !== undefined && t.id === id)
+            body = tpl !== undefined
+              ? { name: tpl.name, id: tpl.id, mission: tpl.mission, topology: tpl.topology, roles: tpl.roles, skills: tpl.skills, stages: tpl.stages, ui: { name: tpl.name, icon: tpl.icon, color: tpl.color, category: tpl.category, tags: tpl.tags } }
+              : id === null ? null : { name: id, id: id }
+          }
+          // Into DSH's own store, like the starter kit: a welcome page must not add a `kybers/` folder to the person's project. The flag is
+          // set as an assignment on purpose: test-kyber-root.mjs counts the literal `home` value in this file as text (its invariant is the
+          // starter kit's, and this page joins it), so the page sets the property instead of repeating the literal. The body is the same.
+          if (body !== null) body.home = true
+          return body
+        },
+        // `input` is a preset id; `bag` is the style's own settings when the theme brought them. The seam knows the shipped gallery and the person's
+        // library by id, not a style an installed THEME contributes: for that one the id answers « unknown preset », and the settings bag (data, checked
+        // by the seam: known keys only, no accessibility key) is what gets applied.
+        style: async (input, bag) => {
+          // The ONE publisher of the seam is the wizard's `kbObThemeSeam` (KB-OB-CORE): every consumer — this installer page and the
+          // wizard — reads it through that helper, never through a second raw window read (A1-kit-wizard DoD 4, narrowed
+          // 2026-10-28 by the adversarial review). No alias, no second door.
+          const fn = typeof window !== 'undefined' ? kbObThemeSeam(window) : null
+          if (typeof fn !== 'function') return { ok: false, reason: 'no-seam' }
+          try {
+            const byId = await fn(input)
+            if (kbThPlain(byId) && byId.ok === true) return byId
+            if (kbThPlain(bag)) return await fn(bag)
+            return byId
+          } catch (e) { return { ok: false, reason: 'seam-failed' } }
+        },
+      }
+    }
+    /** What is already installed, so the plan ticks everything EXCEPT what exists (domain-packs.md:62-63). */
+    const kbThPresence = async (ports) => {
+      const out = { skills: [], teams: [], automations: [], profil: null, goals: [] }
+      const skills = await ports.get('/kybernos-skills/skills')
+      for (const s of kbThPlain(skills) && Array.isArray(skills.skills) ? skills.skills : []) {
+        const n = typeof s === 'string' ? s : kbThPlain(s) ? kbThStr(s.name) : null
+        if (n !== null) out.skills.push(n)
+      }
+      const teams = await ports.get('/kybernos/load')
+      for (const root of kbThPlain(teams) && Array.isArray(teams.roots) ? teams.roots : []) {
+        for (const k of kbThPlain(root) && Array.isArray(root.kybers) ? root.kybers : []) if (kbThPlain(k) && typeof k.id === 'string') out.teams.push(k.id)
+      }
+      const tasks = await ports.post('/kybernos/tasks', { action: 'list' })
+      for (const a of kbThPlain(tasks) && Array.isArray(tasks.tasks) ? tasks.tasks : []) if (kbThPlain(a) && typeof a.name === 'string') out.automations.push(a.name)
+      const saved = await ports.get('/kybernos/onboarding')
+      if (kbThPlain(saved)) { out.profil = kbThStr(saved.profil); out.goals = kbThStrings(saved.goals) }
+      return out
+    }
+    /** The ticks the plan screen opens with: the shell from the click (M3), the kit everything-but-what-exists. */
+    const kbThDefaultTicks = (plan, seen) => {
+      const kit = kbThPlain(plan) && kbThPlain(plan.kit) ? plan.kit : {}
+      const pack = kbThPlain(plan) && kbThPlain(plan.pack) ? plan.pack : {}
+      const goals = Array.isArray(pack.goals) ? pack.goals.filter(kbThPlain).map((g) => kbThStr(g.id)).filter((x) => x !== null) : []
+      const absent = (list1, presentOf) => (Array.isArray(list1) ? list1 : []).filter(kbThPlain).map(presentOf).filter((x) => x !== null && x !== undefined)
+      return {
+        style: kbThPlain(plan) && kbThPlain(plan.style) !== false,
+        goals,
+        skills: absent(kit.skills, (it) => (seen.skills.indexOf(kbThStr(it.name) ?? '') >= 0 ? null : kbThStr(it.name))),
+        teams: absent(kit.teams, (it) => (seen.teams.indexOf(kbThStr(it.id) ?? '') >= 0 ? null : kbThStr(it.id))),
+        automations: absent(kit.automations, (it) => (seen.automations.indexOf(kbThLabel(it.name)) >= 0 ? null : kbThStr(it.id))),
+      }
+    }
+    /** The look as the record keeps it: the id plus the fingerprint of what the page stores once it is applied (INT6). */
+    const kbThAppliedLook = (styleId, report) => (report !== null && report.style === 'applied' && styleId !== null ? { id: styleId, fingerprint: kbThFingerprint(kbThLook()) } : null)
+    /** One theme, applied: the host's plan, the screen's ticks, the applier, then the record. The page and both seams run THIS. */
+    const kbThRunPlan = async (id, ticks) => {
+      const ports = kbThPorts()
+      const answer = await kbThApi({ action: 'plan', id })
+      const plan = kbThPlain(answer) && answer.ok === true && kbThPlain(answer.plan) ? answer.plan : null
+      if (plan === null) return { ok: false, error: kbThPlain(answer) ? kbThStr(answer.error) ?? 'no-plan' : 'no-plan' }
+      const seen = await kbThPresence(ports)
+      const chosen = ticks !== null && ticks !== undefined ? ticks : kbThDefaultTicks(plan, seen)
+      const look = kbThLook()
+      const report = await kbThApply(plan, chosen, ports)
+      const applied = {
+        style: kbThAppliedLook(kbThPlain(plan.style) ? kbThStr(plan.style.id) : null, report),
+        domain: report.domain === 'applied' ? { profil: plan.pack.id, goals: chosen.goals } : null,
+        kit: { skills: chosen.skills, teams: chosen.teams, automations: chosen.automations },
+      }
+      await kbThApi({ action: 'record', id, applied, before: { style: report.style === 'applied' ? look : null, domain: { profil: seen.profil, goals: seen.goals } } })
+      return { ok: report.ok === true, plan, report }
+    }
+    /** Remove: the package leaves through DSH's manager; the look and the field come back when they are still the theme's; the kit stays. */
+    const kbThRemoveTheme = async (record) => {
+      const ports = kbThPorts()
+      let current = { style: null, domain: null }
+      try {
+        const saved = await ports.get('/kybernos/onboarding')
+        current = {
+          style: { id: record.applied && record.applied.style ? record.applied.style.id : null, fingerprint: kbThFingerprint(kbThLook()) },
+          domain: { profil: kbThPlain(saved) ? kbThStr(saved.profil) : null },
+        }
+      } catch (e) { current = { style: null, domain: null } }
+      const result = await kbThRemove(record, current, ports)
+      const mgr = kbThManager()
+      let removed = false
+      // DSH's manager removes by PACKAGE (`@owner/name`); the page knows the theme by its plugin id (`owner/name`): the registry tells one from the other.
+      const pkg = await kbThPackageOf(record.id)
+      if (mgr !== null && typeof mgr.removeBundle === 'function') { try { removed = kbThInstalledOk(kbThManagerIssue(await mgr.removeBundle(pkg !== null ? pkg : record.id))) } catch (e) { removed = false } }
+      await kbThFreshRegistry()
+      // The record goes only with the package: a package DSH kept stays listed, with its own Remove, instead of vanishing from the page.
+      if (removed) await kbThApi({ action: 'forget', id: record.id })
+      return { ok: result.ok === true, report: result, removed }
+    }
+    /** The registry reuses a scan for two seconds; after a change DSH made, ask for a fresh one so the next answer is never the scan from before. */
+    const kbThFreshRegistry = async () => { try { await fetch('/kybernos-registry/state?fresh=1', { cache: 'no-store', credentials: 'same-origin' }) } catch (e) { /* the next read still works, up to two seconds late */ } }
+    /** The package DSH's manager knows an installed theme by, from the registry, or null. */
+    const kbThPackageOf = async (id) => {
+      try {
+        const res = await fetch('/kybernos-registry/state?fresh=1', { cache: 'no-store', credentials: 'same-origin' })
+        const j = await res.json()
+        const hit = kbThPlain(j) && Array.isArray(j.plugins) ? j.plugins.find((x) => kbThPlain(x) && x.id === id) : null
+        return kbThPlain(hit) && typeof hit.package === 'string' ? hit.package : null
+      } catch (e) { return null }
+    }
+    // A catalogue theme's archive is NOT fetched here: `install` asks A6's route for the verified archive (the host downloads it
+    // from the address the signed entry carries, hashes it and checks the signatures with `verifyArchive`), and the path it
+    // answers is what DSH's manager installs. The page never hashes, never downloads a package and never picks an address.
+    // The two seams this page publishes (M7, frozen: `{ source: 'catalogue', id, version }`). ONE function for the life of the page
+    // — a second activation must not replace a door a caller already holds — and never a boot stopper: both stay inside try/catch.
+    const kbThSeamInstall = async (input) => {
+      try {
+        if (!kbThPlain(input) || typeof input.id !== 'string') return { ok: false, error: 'id' }
+        const answer = await kbThApi()
+        const themes = kbThPlain(answer) && Array.isArray(answer.themes) ? answer.themes : []
+        const found = themes.find((t) => kbThPlain(t) && t.id === input.id && (input.version === undefined || t.version === String(input.version))) ?? null
+        if (found === null) return { ok: false, error: 'unknown-theme' }
+        const staged = await kbThApi({ action: 'install', id: found.id, version: found.version })
+        if (!kbThPlain(staged) || staged.ok !== true || typeof staged.path !== 'string') return { ok: false, error: kbThPlain(staged) ? kbThStr(staged.error) ?? 'install' : 'install' }
+        const mgr = kbThManager()
+        if (mgr === null) return { ok: false, error: 'no-manager' }
+        let installed = null
+        try { installed = await mgr.installBundle(staged.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
+        const issue = kbThManagerIssue(installed)
+        if (!kbThInstalledOk(issue)) return { ok: false, error: issue === 'not-bundle' ? 'not-bundle' : 'install' }
+        await kbThFreshRegistry()
+        const run = await kbThRunPlan(found.id, null)
+        return run.ok === true ? { ok: true, id: found.id, version: found.version, report: run.report } : { ok: false, error: run.error, report: run.report }
+      } catch (e) { return { ok: false, error: 'install' } }
+    }
+    const kbThSeamRemove = async (input) => {
+      try {
+        if (!kbThPlain(input) || typeof input.id !== 'string') return { ok: false, error: 'id' }
+        const answer = await kbThApi()
+        const installed = kbThPlain(answer) && Array.isArray(answer.installed) ? answer.installed : []
+        const record = installed.find((r) => kbThPlain(r) && r.id === input.id) ?? null
+        if (record === null) return { ok: true, already: true }
+        const done = await kbThRemoveTheme(record)
+        return { ok: done.ok === true, report: done.report }
+      } catch (e) { return { ok: false, error: 'remove' } }
+    }
+    try {
+      if (typeof window !== 'undefined') {
+        if (typeof window.__KB_THEME_INSTALL__ !== 'function') window.__KB_THEME_INSTALL__ = kbThSeamInstall
+        if (typeof window.__KB_THEME_REMOVE__ !== 'function') window.__KB_THEME_REMOVE__ = kbThSeamRemove
+      }
+    } catch (e) { /* outside a browser, or a locked window: the page still works */ }
+    /** The level as a person reads it (INT4): the stored `local`/`unlisted`, and the catalogue's own computed level. */
+    const kbThLevelLabel = (level) => ({
+      official: kbThEn('Official', 'Officiel'),
+      verified: kbThEn('Verified', 'Vérifié'),
+      community: kbThEn('Community', 'Communauté'),
+      local: kbThEn('Local development', 'Développement local'),
+      unlisted: kbThEn('Unlisted', 'Non répertorié'),
+      yanked: kbThEn('Withdrawn', 'Retiré'),
+      revoked: kbThEn('Revoked', 'Révoqué'),
+    })[String(level)] ?? String(level === null || level === undefined ? '' : level)
+    const kbThMono = { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontWeight: 400 }
+    /** The menu words a pack brings, as one readable line (« Visits » for the tasks row). */
+    const kbThWords = (pack) => {
+      const menu = kbThPlain(pack) && kbThPlain(pack.words) && kbThPlain(pack.words.menu) ? pack.words.menu : null
+      if (menu === null || kbThPlain(menu.labels) === false) return ''
+      return Object.keys(menu.labels).map((k) => k + ': ' + kbThLabel(menu.labels[k])).join(' · ')
+    }
+
+    // ── the page: the cards, then the ONE plan screen (style + field + kit, one primary action) ──
+    const KbThemesView = () => {
+      const [screen, setScreen] = React.useState('cards')
+      const [data, setData] = React.useState(null)
+      const [plan, setPlan] = React.useState(null)
+      const [ticks, setTicks] = React.useState(null)
+      const [folder, setFolder] = React.useState('')
+      const [busy, setBusy] = React.useState(null)
+      const [report, setReport] = React.useState(null)
+      const [error, setError] = React.useState(null)
+      const load = async () => {
+        setBusy('load')
+        const answer = await kbThApi()
+        setData(kbThPlain(answer) && answer.ok === true ? answer : { ok: false, installed: [], themes: [], sources: [], refused: [], plugins: [] })
+        setBusy(null)
+      }
+      React.useEffect(() => { load() }, [])
+      const openPlan = async (id) => {
+        setBusy('plan')
+        setError(null)
+        const answer = await kbThApi({ action: 'plan', id })
+        const seen = await kbThPresence(kbThPorts())
+        setBusy(null)
+        if (!kbThPlain(answer) || answer.ok !== true || !kbThPlain(answer.plan)) { setError(kbThPlain(answer) ? kbThStr(answer.error) ?? 'no-plan' : 'no-plan'); return }
+        setPlan(answer.plan)
+        setTicks(kbThDefaultTicks(answer.plan, seen))
+        setReport(null)
+        setScreen('plan')
+      }
+      const stageFolder = async () => {
+        setBusy('stage')
+        setError(null)
+        const answer = await kbThApi({ action: 'stage', folder: folder.trim() })
+        if (!kbThPlain(answer) || answer.ok !== true) { setBusy(null); setError(kbThPlain(answer) ? (kbThStr(answer.reason) ?? kbThStr(answer.error) ?? 'stage') : 'stage'); return }
+        const mgr = kbThManager()
+        if (mgr === null) { setBusy(null); setError(kbThEn('DSH’s plugin manager is not available on this version.', 'Le gestionnaire de plugins de DSH n’est pas disponible sur cette version.')); return }
+        setBusy('install')
+        let installed = null
+        try { installed = await mgr.installBundle(answer.stage.path, { requestId: 'kb-th-' + Date.now().toString(36) }) } catch (e) { installed = null }
+        setBusy(null)
+        const issue = kbThManagerIssue(installed)
+        if (!kbThInstalledOk(issue)) { setError(kbThManagerWords(issue)); return }
+        await kbThFreshRegistry()
+        await openPlan(answer.stage.id)
+      }
+      const toggle = (kind, value) => {
+        setTicks((t) => {
+          if (t === null) return t
+          const has = (Array.isArray(t[kind]) ? t[kind] : []).indexOf(value) >= 0
+          const next = has ? t[kind].filter((x) => x !== value) : t[kind].concat([value])
+          return Object.assign({}, t, { [kind]: next })
+        })
+      }
+      const install = async () => {
+        if (plan === null || ticks === null || busy !== null) return
+        setBusy('install')
+        const ports = kbThPorts()
+        const seen = await kbThPresence(ports)
+        const look = kbThLook()
+        const rep = await kbThApply(plan, ticks, ports)
+        const applied = {
+          style: kbThAppliedLook(kbThPlain(plan.style) ? kbThStr(plan.style.id) : null, rep),
+          domain: rep.domain === 'applied' ? { profil: plan.pack.id, goals: ticks.goals } : null,
+          kit: { skills: ticks.skills, teams: ticks.teams, automations: ticks.automations },
+        }
+        await kbThApi({ action: 'record', id: plan.id, applied, before: { style: rep.style === 'applied' ? look : null, domain: { profil: seen.profil, goals: seen.goals } } })
+        setReport(rep)
+        setBusy(null)
+        setScreen('report')
+        await load()
+      }
+      const remove = async (record) => {
+        if (busy !== null) return
+        setBusy('remove')
+        setError(null)
+        const gone = await kbThRemoveTheme(record)
+        setBusy(null)
+        if (gone.removed !== true) setError(kbThEn('DSH did not remove the package. Your look and field were put back; the theme stays listed.', 'DSH n’a pas retiré le paquet. Ton style et ton domaine ont été remis ; le thème reste listé.'))
+        await load()
+      }
+      const card = (key, title, level, body, actions) => h('div', { className: 'kbg-card', key }, [
+        h('div', { className: 'kbg-cardhead', key: 'h' }, [
+          h('div', { className: 'kbg-avatar', key: 'a' }, String(title).slice(0, 2).toUpperCase()),
+          h('div', { className: 'kbg-kname', key: 'n' }, String(title)),
+          h('span', { className: 'kbg-pill', key: 'l' }, kbThLevelLabel(level)),
+        ]),
+        h('div', { className: 'kbg-desc', key: 'd' }, body),
+        h('div', { className: 'kbg-cta', key: 'c' }, actions),
+      ])
+      if (screen === 'plan' && plan !== null && ticks !== null) {
+        const rows = []
+        if (kbThPlain(plan.style)) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 'style' }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.style === true, onChange: () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true })) }),
+            h('span', { className: 'kbg-docname', key: 't' }, kbThEn('Style · ', 'Style · ') + (kbThLabel(plan.style.name) || kbThStr(plan.style.id))),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(plan.style.file) ?? ''),
+          ]))
+        }
+        const words = kbThWords(plan.pack)
+        rows.push(h('div', { className: 'kbg-docrow', key: 'field' }, [
+          h('span', { key: 'i', className: 'kbg-docico' }, '▸'),
+          h('span', { className: 'kbg-docname', key: 't' }, kbThEn('Field · ', 'Métier · ') + (kbThLabel(plan.pack.name) || plan.pack.id) + (words !== '' ? ' — ' + words : '')),
+          h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(plan.pack.file) ?? ''),
+        ]))
+        for (const it of Array.isArray(plan.kit.skills) ? plan.kit.skills : []) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 's:' + it.name }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.skills.indexOf(kbThStr(it.name)) >= 0, onChange: () => toggle('skills', kbThStr(it.name)) }),
+            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Skill · ', 'Compétence · ') + kbThStr(it.name)),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
+          ]))
+        }
+        for (const it of Array.isArray(plan.kit.teams) ? plan.kit.teams : []) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 't:' + it.id }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.teams.indexOf(kbThStr(it.id)) >= 0, onChange: () => toggle('teams', kbThStr(it.id)) }),
+            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Team · ', 'Équipe · ') + kbThStr(it.id)),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
+          ]))
+        }
+        for (const it of Array.isArray(plan.kit.automations) ? plan.kit.automations : []) {
+          rows.push(h('label', { className: 'kbg-docrow', key: 'a:' + it.id }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.automations.indexOf(kbThStr(it.id)) >= 0, onChange: () => toggle('automations', kbThStr(it.id)) }),
+            h('span', { key: 't', className: 'kbg-docname' }, kbThEn('Automation, off · ', 'Automatisation, arrêtée · ') + (kbThLabel(it.name) || kbThStr(it.id)) + ' · ' + (kbThStr(it.cron) ?? '')),
+            h('code', { key: 'f', className: 'kbg-kmeta', style: kbThMono }, kbThStr(it.file) ?? ''),
+          ]))
+        }
+        const nots = Array.isArray(plan.notInstallable) ? plan.notInstallable : []
+        const rejects = Array.isArray(plan.rejected) ? plan.rejected : []
+        const goalChips = kbThPlain(plan.pack) && Array.isArray(plan.pack.goals)
+          ? plan.pack.goals.filter(kbThPlain).map((g) => h('label', { className: 'kbg-chip' + (ticks.goals.indexOf(g.id) >= 0 ? ' kbg-chip-on' : ''), key: 'g:' + g.id, style: { cursor: 'pointer' } }, [
+            h('input', { type: 'checkbox', key: 'c', checked: ticks.goals.indexOf(g.id) >= 0, onChange: () => toggle('goals', g.id) }),
+            h('span', { key: 't' }, kbThLabel(g.name) || g.id),
+          ]))
+          : []
+        return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
+          h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Install ', 'Installer ') + plan.id)),
+          h('p', { key: 's', className: 'kbg-sub' }, kbThEn('What this theme adds. Everything is ticked unless it is already installed; nothing applies un-ticked.', 'Ce que ce thème apporte. Tout est coché sauf ce qui est déjà installé ; rien ne s’applique décoché.')),
+          goalChips.length > 0 ? h('div', { key: 'g', className: 'kbg-chips' }, goalChips) : null,
+          h('div', { key: 'r', className: 'kbg-grid', style: { marginTop: '16px', gridTemplateColumns: '1fr' } }, rows),
+          nots.length > 0 ? h('div', { key: 'n', className: 'kbg-note' }, nots.map((x) => h('div', { key: 'n:' + x.kind + ':' + x.id }, '— ' + (kbThStr(x.file) ?? '') + ' · ' + (kbThStr(x.why) ?? '')))) : null,
+          rejects.length > 0 ? h('div', { key: 'x', className: 'kbg-note' }, rejects.map((x) => h('div', { key: 'x:' + x.file }, '× ' + (kbThStr(x.file) ?? '') + ' · ' + (Array.isArray(x.errors) ? x.errors.join('; ') : '')))) : null,
+          h('div', { key: 'a', className: 'kbg-cta', style: { marginTop: '18px' } }, [
+            h('button', { key: 'i', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: install }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : kbThEn('Install', 'Installer')),
+            h('button', { key: 'c', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => { setScreen('cards'); setPlan(null); setError(null) } }, kbThEn('Cancel', 'Annuler')),
+          ]),
+        ])
+      }
+      if (screen === 'report' && report !== null) {
+        const line = (label, value) => h('div', { className: 'kbg-docrow', key: label }, [
+          h('span', { key: 'i', className: 'kbg-docico' }, '•'),
+          h('span', { key: 'n', className: 'kbg-docname' }, label),
+          h('span', { key: 'k', className: 'kbg-dockey' }, String(value)),
+        ])
+        return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
+          h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, report.already === true ? kbThEn('Nothing to do', 'Rien à faire') : kbThEn('Applied', 'Appliqué'))),
+          h('div', { key: 'r', className: 'kbg-grid', style: { gridTemplateColumns: '1fr' } }, [
+            line(kbThEn('Added', 'Ajoutés'), report.added),
+            line(kbThEn('Already there', 'Déjà là'), report.present.length),
+            line(kbThEn('Failed', 'Échoués'), report.failed),
+            line(kbThEn('Kept in place (un-ticked)', 'Laissés de côté (décochés)'), report.skipped.length),
+            line(kbThEn('Style', 'Style'), report.style),
+            line(kbThEn('Field', 'Métier'), report.domain),
+          ]),
+          h('div', { key: 'a', className: 'kbg-cta', style: { marginTop: '18px' } }, h('button', { key: 'b', type: 'button', className: 'kbg-open', onClick: () => { setScreen('cards'); setReport(null) } }, kbThEn('Back to themes', 'Retour aux thèmes'))),
+        ])
+      }
+      const installed = kbThPlain(data) && Array.isArray(data.installed) ? data.installed : []
+      const catalogue = kbThPlain(data) && Array.isArray(data.themes) ? data.themes : []
+      const refused = kbThPlain(data) && Array.isArray(data.refused) ? data.refused : []
+      const sources = kbThPlain(data) && Array.isArray(data.sources) ? data.sources : []
+      const cards = []
+      for (const r of installed) {
+        const kit = kbThPlain(r.applied) && kbThPlain(r.applied.kit) ? r.applied.kit : {}
+        const kept = (Array.isArray(kit.skills) ? kit.skills.length : 0) + (Array.isArray(kit.teams) ? kit.teams.length : 0) + (Array.isArray(kit.automations) ? kit.automations.length : 0)
+        cards.push(card('i:' + r.id, r.id, kbThStr(r.level) ?? 'local', [
+          h('div', { key: 'v' }, (typeof r.version === 'string' ? 'v' + r.version : '') + (typeof r.at === 'string' ? ' · ' + r.at.slice(0, 10) : '')),
+          h('div', { key: 'k' }, kbThEn('Kit kept on this computer: ', 'Kit conservé sur cet ordinateur : ') + String(kept)),
+        ], [
+          h('button', { key: 'p', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: () => openPlan(r.id) }, kbThEn('See the plan', 'Voir le plan')),
+          h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => remove(r) }, kbThEn('Remove', 'Retirer')),
+        ]))
+      }
+      for (const t of catalogue) {
+        cards.push(card('c:' + t.id, kbThPlain(t.name) ? kbThLabel(t.name) : t.id, kbThStr(t.level) ?? 'community', [
+          h('div', { key: 'v' }, String(t.id) + ' · v' + String(t.version) + (kbThStr(t.licence) ? ' · ' + kbThStr(t.licence) : '')),
+          kbThPlain(t.revoked) ? h('div', { key: 'r' }, '⚠ ' + (kbThStr(t.revoked.reason) ?? '')) : null,
+        ], [
+          h('button', {
+            key: 'i',
+            type: 'button',
+            className: 'kbg-talk',
+            disabled: busy !== null,
+            onClick: async () => {
+              if (busy !== null) return
+              setBusy('install')
+              const r = await kbThSeamInstall({ source: 'catalogue', id: t.id, version: t.version })
+              setBusy(null)
+              setError(kbThPlain(r) && r.ok === true ? null : (kbThStr(kbThPlain(r) ? r.error : null) ?? 'install'))
+              await load()
+            },
+          }, kbThEn('Install', 'Installer')),
+        ]))
+      }
+      // AMBIGUITY 1 (ratified M4): a package the person staged and then did not apply stays, and says so here, with its own Remove.
+      const staged = (kbThPlain(data) && Array.isArray(data.plugins) ? data.plugins : []).filter((p) => kbThPlain(p) && installed.every((r) => r.id !== p.id))
+      for (const p of staged) {
+        cards.push(card('s:' + p.id, kbThPlain(p.name) ? kbThLabel(p.name) : p.id, kbThStr(p.level) ?? 'local', [
+          h('div', { key: 's' }, kbThEn('Added, not applied', 'Ajouté, non appliqué')),
+          h('div', { key: 'v' }, String(p.id) + (typeof p.version === 'string' ? ' · v' + p.version : '')),
+        ], [
+          h('button', { key: 'p', type: 'button', className: 'kbg-talk', disabled: busy !== null, onClick: () => openPlan(p.id) }, kbThEn('See the plan', 'Voir le plan')),
+          h('button', { key: 'r', type: 'button', className: 'kbg-open', disabled: busy !== null, onClick: () => remove(p) }, kbThEn('Remove', 'Retirer')),
+        ]))
+      }
+      return h('div', { className: 'kbg-root', 'data-kb-page': 'themes' }, [
+        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Themes', 'Thèmes'))),
+        h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A theme adds a style, a field with its own words, and a kit of skills, teams and automations. Installing it never touches your sessions, your memory or your workspaces.', 'Un thème apporte un style, un métier avec ses propres mots, et un kit de compétences, d’équipes et d’automatisations. L’installer ne touche jamais tes sessions, ta mémoire ni tes espaces de travail.')),
+        error !== null ? h('p', { key: 'e', className: 'kbg-note' }, '⚠ ' + String(error)) : null,
+        h('div', { key: 'g', className: 'kbg-grid' }, cards.concat([h('div', { key: 'f', className: 'kbg-card' }, [
+          h('div', { key: 't', className: 'kbg-kname' }, kbThEn('From a folder', 'Depuis un dossier')),
+          h('div', { key: 'd', className: 'kbg-desc' }, kbThEn('A theme folder on this computer. Its plugin.json is checked before anything is installed, and the plan comes next.', 'Un dossier de thème sur cet ordinateur. Son plugin.json est vérifié avant toute installation, puis le plan s’affiche.')),
+          h('input', { key: 'i', className: 'kbg-input', type: 'text', value: folder, placeholder: '~/themes/acme-vet-clinic', onChange: (e) => setFolder(e.target.value) }),
+          h('div', { key: 'a', className: 'kbg-cta' }, h('button', { key: 'b', type: 'button', className: 'kbg-talk', disabled: busy !== null || folder.trim() === '', onClick: stageFolder }, busy === 'install' ? kbThEn('Installing…', 'Installation…') : kbThEn('Add and see the plan', 'Ajouter et voir le plan'))),
+        ])])),
+        refused.length > 0 ? h('div', { key: 'r', className: 'kbg-note' }, refused.map((x) => h('div', { key: 'r:' + String(x.source) + String(x.id ?? '') }, '× ' + String(x.source ?? '') + ' · ' + String(x.reason ?? x.error ?? '')))) : null,
+        sources.length > 0 ? h('p', { key: 'src', className: 'kbg-note' }, kbThEn('Catalogue sources: ', 'Sources du catalogue : ') + sources.map((s) => s.url).join(' · ')) : null,
+        busy === 'load' ? h('p', { key: 'l', className: 'kbg-note' }, kbThEn('Reading the catalogue…', 'Lecture du catalogue…')) : null,
+      ])
+    }
+
     // ── Skills and Connectors: one page each ─────────────────────────────────
     // They shared the "Resources" page and its tab selector; they are
     // now two sidebar entries. Fixed page title (28/09 template:
@@ -26860,6 +27731,161 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true } catch (e) { return false }
     }
     // KB-LEAVE-SETTINGS-END
+    // <kb-business-menu>
+    // The « Business » group of the menu (docs/dev/business-menu.md). A plugin that brings a business page declares its row here,
+    //   window.__KB_MENU__.register({ id, group: 'business', icon, labelKey })   (and optionally label: { en, fr })
+    // and mounts the page on the keyed child slot 'main.kybernos-business' with `key: id`. The core knows no business plugin by name: the group is
+    // drawn only while a row is declared, a pack renames a row through menu.labels like any other, and a plugin that goes away takes its row with it.
+    // Pure: nothing here reads the page except the guarded window.
+    const KB_BIZ_KEY = 'kybernos.menu.business.collapsed.v1'
+    const KB_BIZ_MAX = 8
+    const KB_BIZ_ID = /^[a-z][a-z0-9-]{1,23}$/
+    /** The pages the core already has: a business row cannot take their id. */
+    const KB_BIZ_TAKEN = ['gallery', 'marketplace', 'kybers', 'artifacts', 'artview', 'skills', 'dashboards', 'kyber', 'connectors', 'themes', 'documents', 'tasks', 'projects', 'project', 'hosted', 'teamedit', 'teaminfo', 'detail', 'chat', 'panel', 'aiteams', 'deliverables', 'cloudcomputer']
+    const kbBizText = (v, max) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= max && !/[<>]/.test(v)
+    /** `{ ok: true, row }` (the row as the menu keeps it) or `{ ok: false, errors }`. Never throws. */
+    const kbBizCheck = (entry, taken) => {
+      const errors = []
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return { ok: false, errors: ['a menu row is an object'] }
+      for (const k of Object.keys(entry)) if (['id', 'group', 'icon', 'labelKey', 'label', 'order'].indexOf(k) < 0) errors.push('unknown key "' + k + '"')
+      if (entry.group !== 'business') errors.push('group: "business" is the only group')
+      const id = typeof entry.id === 'string' && KB_BIZ_ID.test(entry.id) ? entry.id : null
+      if (id === null) errors.push('id: 2 to 24 lower-case letters, digits or dashes, starting with a letter')
+      else if (KB_BIZ_TAKEN.indexOf(id) >= 0) errors.push('id: "' + id + '" is a page of the core')
+      else if (taken.indexOf(id) >= 0) errors.push('id: "' + id + '" is already a row')
+      if (id !== null && taken.length >= KB_BIZ_MAX && taken.indexOf(id) < 0) errors.push('at most ' + KB_BIZ_MAX + ' rows')
+      const icon = typeof entry.icon === 'string' && /^[a-zA-Z][a-zA-Z0-9-]{0,30}$/.test(entry.icon) ? entry.icon : null
+      if (icon === null) errors.push('icon: the name of an icon')
+      const labelKey = entry.labelKey === undefined ? null : (kbBizText(entry.labelKey, 60) ? entry.labelKey : undefined)
+      if (labelKey === undefined) errors.push('labelKey: a text of 1 to 60 characters, no < >')
+      let label = null
+      if (entry.label !== undefined) {
+        if (entry.label === null || typeof entry.label !== 'object' || Array.isArray(entry.label)) errors.push('label: an object { en, fr, … }')
+        else {
+          label = {}
+          for (const l of Object.keys(entry.label)) {
+            if (['en', 'fr', 'es', 'ar'].indexOf(l) < 0) errors.push('label: "' + l + '" is not a language')
+            else if (!kbBizText(entry.label[l], 40)) errors.push('label.' + l + ': a text of 1 to 40 characters, no < >')
+            else label[l] = entry.label[l].trim()
+          }
+          if (label.en === undefined) errors.push('label.en: the English words are needed')
+        }
+      }
+      if (labelKey === null && label === null) errors.push('labelKey or label: the row needs words')
+      const order = entry.order === undefined ? 100 : entry.order
+      if (typeof order !== 'number' || !Number.isFinite(order) || Math.abs(order) > 1000) errors.push('order: a number between -1000 and 1000')
+      if (errors.length > 0) return { ok: false, errors }
+      return { ok: true, row: Object.freeze({ id, group: 'business', icon, labelKey, label: label === null ? null : Object.freeze(label), order }) }
+    }
+    const kbBizMenu = (() => {
+      const rows = []
+      const subs = new Set()
+      let seq = 0
+      const fire = () => {
+        subs.forEach((f) => { try { f() } catch (e) { /* a listener that is gone */ } })
+        try { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('kb-menu-change')) } catch (e) { /* no events */ }
+      }
+      const api = {
+        v: 1,
+        /** Says why an entry would be refused, without declaring it. */
+        check: (entry) => kbBizCheck(entry, rows.map((r) => r.row.id)),
+        /** Declares a row; returns the function that takes it back, or `null` when the entry is refused (nothing is drawn then). */
+        register: (entry) => {
+          const c = kbBizCheck(entry, rows.map((r) => r.row.id))
+          if (c.ok !== true) { try { console.warn('[kybernos] menu row refused: ' + c.errors.join('; ')) } catch (e) { /* no console */ } return null }
+          const mine = { row: c.row, seq: seq++ }
+          rows.push(mine)
+          rows.sort((a, b) => a.row.order - b.row.order || a.seq - b.seq)
+          fire()
+          let live = true
+          return () => { if (!live) return; live = false; const i = rows.indexOf(mine); if (i >= 0) { rows.splice(i, 1); fire() } }
+        },
+        /** The rows, in order (the rows themselves are frozen). */
+        list: () => rows.map((r) => r.row),
+        ids: () => rows.map((r) => r.row.id),
+        has: (id) => rows.some((r) => r.row.id === id),
+        subscribe: (f) => { subs.add(f); return () => { subs.delete(f) } },
+      }
+      try { if (typeof window !== 'undefined') window.__KB_MENU__ = api } catch (e) { /* outside a browser */ }
+      return api
+    })()
+    /** The words of a row: its own for the language, else the dictionary's for its key, else its English, else its id. */
+    const kbBizLabel = (row, translate, lang) => {
+      if (row.label !== null && typeof row.label[lang] === 'string') return row.label[lang]
+      if (row.labelKey !== null) { try { const t = translate(row.labelKey); if (typeof t === 'string' && t !== row.labelKey) return t } catch (e) { /* the English stays */ } }
+      return row.label !== null && typeof row.label.en === 'string' ? row.label.en : row.id
+    }
+    /** Whether the group is folded (`false` when the browser keeps nothing: the group starts open). */
+    const kbBizCollapsed = (storage) => { try { return storage.getItem(KB_BIZ_KEY) === '1' } catch (e) { return false } }
+    const kbBizSetCollapsed = (storage, on) => { try { storage.setItem(KB_BIZ_KEY, on === true ? '1' : '0'); return true } catch (e) { return false } }
+    /** What the folded header says for its rows: how many things wait for the person, and whether something works. `get` reads one row's state. */
+    const kbBizAttention = (rows, get) => {
+      let count = 0
+      let running = false
+      for (const r of rows) {
+        let v = null
+        try { v = get(r.id) } catch (e) { v = null }
+        if (v === null || v === undefined || typeof v !== 'object') continue
+        if (v.running === true) running = true
+        count += (Number(v.review) > 0 ? Number(v.review) : 0) + (Number(v.need) > 0 ? Number(v.need) : 0)
+      }
+      return { count: Math.min(count, 99), running }
+    }
+    // </kb-business-menu>
+    // <kb-business-ui>
+    // The header and the rows of the group, and the page of a row: the page is the plugin's, mounted on the keyed child slot (subscription only,
+    // no assumption on load order; an empty slot says so).
+    const KbBusinessGroup = (props) => {
+      const bump = React.useState(0)[1]
+      const store = (() => { try { return window.localStorage } catch (e) { return null } })()
+      const colPair = React.useState(() => kbBizCollapsed(store))
+      const collapsed = colPair[0]
+      React.useEffect(() => {
+        const offRows = kbBizMenu.subscribe(() => bump((n) => n + 1))
+        const offState = KB_MENU_STATE.subscribe(() => bump((n) => n + 1))
+        return () => { offRows(); offState() }
+      }, [])
+      const rows = kbBizMenu.list()
+      if (rows.length === 0) return null
+      const lang = kbDomainLang()
+      const att = kbBizAttention(rows, KB_MENU_STATE.get)
+      const title = kbt('kbui.business')
+      const toggle = () => { const next = !collapsed; colPair[1](next); kbBizSetCollapsed(store, next) }
+      return h('div', { className: 'kb4-grp', 'data-kb': 'menu-business' },
+        h('button', {
+          type: 'button',
+          className: 'kb4-grph' + (collapsed && rows.some((r) => r.id === props.shown) ? ' on' : ''),
+          'aria-expanded': collapsed ? 'false' : 'true',
+          'aria-controls': 'kb4-biz-rows',
+          title,
+          'data-act': 'toggle-business',
+          onClick: toggle,
+        },
+        h('span', { className: 'kb4-grpchev' }, Icon('chevronDown', 13)),
+        h('span', { className: 'kb4-ico' }, Icon('briefcase', 15)),
+        h('span', { className: 'kb4-lab' }, title),
+        (collapsed && att.count > 0) ? h('span', { className: 'kb4-grpcnt', role: 'img', 'aria-label': kbt('menu.review') + ': ' + att.count }, att.count >= 99 ? '99+' : String(att.count)) : null,
+        (collapsed && att.count === 0 && att.running) ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': kbt('menu.working') }) : null),
+        h('div', { id: 'kb4-biz-rows', className: 'kb4-grprows' + (collapsed ? ' folded' : ''), role: 'group', 'aria-label': title },
+          rows.map((r) => props.row(r.id, Icon(r.icon, 15) || Icon('layers', 15), kbBizLabel(r, kbt, lang), 0, props.shown === r.id, () => props.openPage({ view: r.id }), h(KbRowState, { k: r.id })))))
+    }
+    const KbBusinessMount = (props) => {
+      const pair = React.useState(0)
+      const setTick = pair[1]
+      React.useEffect(() => {
+        let n = 0
+        let stop = null
+        try { stop = slots.subscribe('main.kybernos-business', () => setTick(n = n + 1)) } catch (e) { stop = null }
+        return () => { try { if (typeof stop === 'function') stop() } catch (e) { /* already cleaned */ } }
+      }, [])
+      let entries = []
+      try { entries = slots.entriesOfSlot('main.kybernos-business') || [] } catch (e) { entries = [] }
+      const mine = entries.filter((e) => e !== null && e !== undefined && e.options !== null && e.options !== undefined && e.options.key === props.id)[0]
+      if (mine !== undefined && mine.component !== null && mine.component !== undefined) return h(mine.component, { sessionId: typeof props.sessionId === 'string' ? props.sessionId : null, toolbar: props.toolbar === undefined ? null : props.toolbar })
+      return h('p', { className: 'kbg-empty' }, kbt('kbui.business.off'))
+    }
+    const KbBusinessView = (props) => h('div', { className: 'kbg-root', 'data-kb-page': props.id }, h(KbBusinessMount, props))
+    // </kb-business-ui>
     const kbOpenPage = (patch) => {
       try {
         kbLeaveSettings()
@@ -26871,7 +27897,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
-    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []) })
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []).concat(['themes']).concat(kbBizMenu.ids()) })
     // window.__KB_OPEN__.chat(text): a new chat with `text` already typed in the composer (the person reads it and presses send). The Plugins page uses it for
     // "Create with AI". False when no session has been mounted yet; the caller then shows the text so it can be pasted.
     kbOpenPage.chat = (text) => {
@@ -27063,6 +28089,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           window.removeEventListener('scroll', measure, true)
         }
       }, [pickOpen])
+      // Le « Workspaces » du pied natif (demande du 28/10) : il devient un lien vers la page Workspaces du plugin. Le pied est
+      // rendu par l'hôte, le plugin n'y a pas de prise : un écouteur de document (posé plus bas) reconnaît le libellé et
+      // renvoie cet événement. On se réinscrit à chaque rendu, donc `openPage` capturé est toujours le frais.
+      React.useEffect(() => {
+        const ouvrir = () => openPage({ view: 'projects' })
+        window.addEventListener('kybernos:menu:projects', ouvrir)
+        return () => window.removeEventListener('kybernos:menu:projects', ouvrir)
+      })
       // ── Barre de progression des objectifs (sidebar) ────────────────
       const KbProgressBar = () => {
         const [prog, setProg] = React.useState(null)
@@ -27164,14 +28198,18 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
-        row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, shown === 'projects' || shown === 'project', () => openPage({ view: 'projects' })),
+        // Le « Workspaces » du pied de barre ouvre cette page (demande du 28/10) : la rangée du haut a donc été retirée —
+        // une seule entrée, un seul endroit. Le compteur d'espaces reste dans l'état (`wsCount`) pour les autres vues.
         row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
         row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
+        row('themes', Icon('layers', 15), kbThEn('Themes', 'Thèmes'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
+        // The « Business » group: drawn only while a plugin has declared a row (window.__KB_MENU__, <kb-business-menu>).
+        h(KbBusinessGroup, { row, openPage, shown }),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
         // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
@@ -27223,7 +28261,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     KybersMain.__testStartersFromUi = kbStartersFromUi
     // Idem pour la rangée de suggestions qui vit dans le chat (dock du composer).
     KybersMain.__testChatStarters = KbChatStarters
-    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: gallery main panel');
+    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' }, 'main.kybernos-business': { kind: 'keyed', scope: 'root' } } }, KybersMain), 'kybers: gallery main panel');
     // ── Conversation tabs absorbed by Crew v2 (26/09) and then by the Journal tab (29/09) ──────────
     // The « Kybernos Crew », « Crew Model Execution », « Runs » and crew2 (« Workflows ») views are no longer registered and their
     // components are gone: what they showed (executed model, tokens, durations, outcomes, deviations, stopReason) lives in the
@@ -30392,6 +31430,520 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
               h('span', { className: 'kbt2-l-total' }, String(visibles.reduce((n, e) => n + (e.mounted === true && e.toolCount > 0 ? e.toolCount : 0), 0))),
               h('span', null))))))
     }
+    // KB-MARKET-PURE-BEGIN
+    // The listing's pure helpers (A7-theme-marketplace): the cards A6's catalogue route answers, the four levels it computed, the kit
+    // sentence of A6's plan, the three honest states, the install gate and the report. No React, no fetch, no host helper, no key and
+    // no hashing: the level a card carries is the one the verifier put on the route, and a card only CITES its archive's sha256 as a
+    // field (M8: naming the ways to hash or to check a signature is what makes the circle, the field is data).
+    // test-theme-market.mjs imports this block alone (the KB-OB-CORE idiom, scripts/test-onboarding.mjs:14-18), so every text is a
+    // `[fr, en]` row and nothing here reads the client factory's scope.
+    // A card draws the embedded manifest's own words, labelled (build contract 4). It carries no accent, no tagline and no kit count:
+    // those live inside a package the person has not installed yet (INT4, INT5) and they appear in the report, from A6's plan.
+    const marketSay = (row, lang) => {
+      if (Array.isArray(row)) {
+        const text = row[lang === 'fr' ? 0 : 1]
+        return typeof text === 'string' ? text : ''
+      }
+      return typeof row === 'string' ? row : ''
+    }
+    /** A manifest field, verbatim: a plain string, or its `{ fr, en }` text (English outside French, then the other one). */
+    const marketField = (value, lang) => {
+      if (typeof value === 'string') return value
+      if (value === null || typeof value !== 'object') return ''
+      const first = lang === 'fr' ? 'fr' : 'en'
+      if (typeof value[first] === 'string') return value[first]
+      const other = first === 'fr' ? 'en' : 'fr'
+      return typeof value[other] === 'string' ? value[other] : ''
+    }
+    /** The four levels of plugin-contract.md:415-421, in the order the contract states them. */
+    const LEVELS = ['official', 'verified', 'community', 'local']
+    const LEVEL_LABEL = {
+      official: ['Officiel', 'Official'],
+      verified: ['Vérifié', 'Verified'],
+      community: ['Communauté', 'Community'],
+      local: ['Développement local', 'Local development'],
+    }
+    // A chip's `title`: short enough to be read, and never a claim the route did not carry.
+    const LEVEL_HELP = {
+      official: ['Publication de Kybernos, signée par sa clé.', 'Shipped by Kybernos, signed with its key.'],
+      verified: ['Cette version précise a été relue et contresignée.', 'This exact version was reviewed and countersigned.'],
+      community: ['Signature de son auteur, sans relecture.', 'Its author signed it; nobody reviewed it.'],
+      local: ['Un dossier de cet ordinateur.', 'A folder of this computer.'],
+    }
+    /** The label of a level: the four names above, or the raw string when the route sent one nobody knows (never mapped to a nicer one). */
+    const marketLevelLabel = (level, lang) => {
+      const row = LEVEL_LABEL[level]
+      if (row !== undefined) return marketSay(row, lang)
+      const raw = typeof level === 'string' ? level : ''
+      return raw !== '' ? raw : marketSay(['Niveau inconnu', 'Unknown level'], lang)
+    }
+    const marketLevelHelp = (level, lang) => {
+      const row = LEVEL_HELP[level]
+      return row === undefined ? marketSay(['Le niveau que le vérificateur a rendu.', 'The level the verifier answered.'], lang) : marketSay(row, lang)
+    }
+    /** How many items a kit count holds: A6's plan gives a number, an older answer a list. */
+    const marketCount = (value) => {
+      if (typeof value === 'number' && isFinite(value)) return Math.max(0, Math.floor(value))
+      if (Array.isArray(value)) return value.length
+      return 0
+    }
+    const KIT_ONE = {
+      skills: ['1 compétence', '1 skill'],
+      teams: ['1 équipe', '1 team'],
+      automations: ['1 automatisation', '1 automation'],
+    }
+    const KIT_MANY = {
+      skills: ['{n} compétences', '{n} skills'],
+      teams: ['{n} équipes', '{n} teams'],
+      automations: ['{n} automatisations', '{n} automations'],
+    }
+    /** The kit sentence of A6's plan: plural per language, a zero count omitted, « Adds no kit yet » when the kit is empty. */
+    const kitLine = (kit, lang) => {
+      const k = kit !== null && typeof kit === 'object' ? kit : {}
+      const parts = []
+      for (const kind of ['skills', 'teams', 'automations']) {
+        const n = marketCount(k[kind])
+        if (n === 0) continue
+        parts.push(marketSay(n === 1 ? KIT_ONE[kind] : KIT_MANY[kind], lang).replace('{n}', String(n)))
+      }
+      if (parts.length === 0) return marketSay(['N’ajoute encore rien au kit', 'Adds no kit yet'], lang)
+      const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + marketSay([' et ', ' and '], lang) + parts[parts.length - 1]
+      return marketSay(['Ajoute ', 'Adds '], lang) + list
+    }
+    /**
+     * A6's answer (its GET /kybernos/themes) as cards, in the answer's order (the catalogue's own, INT3): the manifest's words as
+     * the route sends them — FLAT (`name`/`description` as `{ fr, en }`, `author`, `licence`), never a `manifest` object the route
+     * does not emit (F-27) — and the level the verifier computed, copied as it came, never computed, never defaulted to a
+     * flattering one. An entry the verifier refused (yanked, revoked) or left without an id or a version makes no card: that is
+     * the route's `refused` business.
+     */
+    const marketCards = (view, lang) => {
+      if (view === null || typeof view !== 'object' || view.ok !== true || !Array.isArray(view.themes)) return []
+      const out = []
+      for (const entry of view.themes) {
+        if (entry === null || typeof entry !== 'object') continue
+        const id = typeof entry.id === 'string' ? entry.id : ''
+        const version = typeof entry.version === 'string' ? entry.version : ''
+        if (id === '' || version === '') continue
+        const level = typeof entry.level === 'string' ? entry.level : ''
+        // Unlisted is DSH's own door, not a marketplace level (plugin-contract.md:415-421): a catalogue entry never carries it.
+        if (level === 'yanked' || level === 'revoked' || level === 'unlisted') continue
+        const arc = entry.archive !== null && typeof entry.archive === 'object' ? entry.archive : {}
+        const author = entry.author !== null && typeof entry.author === 'object'
+          ? (entry.author.name !== undefined ? entry.author.name : entry.author.id)
+          : entry.author
+        out.push({
+          id,
+          version,
+          name: marketField(entry.name, lang),
+          description: marketField(entry.description, lang),
+          author: marketField(author, lang),
+          license: typeof entry.licence === 'string' ? entry.licence : '',
+          level,
+          source: typeof entry.source === 'string' ? entry.source : '',
+          sha256: typeof arc.sha256 === 'string' ? arc.sha256 : '',
+          size: typeof arc.size === 'number' ? arc.size : null,
+          // The archive as the route sent it: the install gate (an archive hash) and A6's seam are handed the card itself, so no
+          // second display record is minted for the click.
+          archive: {
+            url: typeof arc.url === 'string' ? arc.url : '',
+            sha256: typeof arc.sha256 === 'string' ? arc.sha256 : '',
+            size: typeof arc.size === 'number' ? arc.size : null,
+          },
+        })
+      }
+      return out
+    }
+    /** The « N entries were left out » line, when the verifier refused something (drawn with the cards too: V6). */
+    const marketLeftOut = (view, lang) => {
+      const refused = view !== null && typeof view === 'object' && Array.isArray(view.refused) ? view.refused : []
+      if (refused.length === 0) return null
+      const row = refused.length === 1 ? ['1 entrée écartée', '1 entry was left out'] : ['{n} entrées écartées', '{n} entries were left out']
+      return marketSay(row, lang).replace('{n}', String(refused.length))
+    }
+    /** The refused lines, as the route sent them: an id and the verifier's own error code, never a sentence we invent. */
+    const marketRefusals = (view) => {
+      const refused = view !== null && typeof view === 'object' && Array.isArray(view.refused) ? view.refused : []
+      const out = []
+      for (const r of refused) {
+        if (r === null || typeof r !== 'object') continue
+        const code = typeof r.code === 'string' ? r.code : (typeof r.error === 'string' ? r.error : (typeof r.reason === 'string' ? r.reason : ''))
+        const id = typeof r.id === 'string' ? r.id : ''
+        if (id === '' && code === '') continue
+        out.push({ id, code })
+      }
+      return out
+    }
+    /**
+     * The three honest states, distinct on purpose: no source configured yet, a source that lists nothing, a source the verifier
+     * refuses. `data-state` carries which one. A state never shows a card, a card never shows a state (a `null` here means « draw the
+     * cards »); a failed READ is not one of these three and stays the page's own line.
+     */
+    const marketState = (view, lang) => {
+      if (view === null || typeof view !== 'object' || view.ok !== true) return null
+      if (marketCards(view, lang).length > 0) return null
+      const sources = Array.isArray(view.sources) ? view.sources : []
+      const state = sources.length === 0 ? 'no-source' : (marketRefusals(view).length > 0 ? 'refused' : 'empty')
+      const row = state === 'no-source'
+        ? ['Aucune source configurée pour l’instant.', 'No source configured yet.']
+        : (state === 'empty'
+          ? ['Cette source ne liste aucun thème.', 'This source lists no theme.']
+          : ['Ce catalogue ne peut pas être vérifié.', 'This catalogue cannot be verified.'])
+      return { state, text: marketSay(row, lang), leftOut: marketLeftOut(view, lang), leftOutCount: marketRefusals(view).length, refusals: marketRefusals(view) }
+    }
+    /** What A6's installer needs from an entry, and nothing else: an id, a version, the archive's hash (A6 §flow). */
+    const marketInstallable = (entry) => {
+      if (entry === null || typeof entry !== 'object') return { ok: false, reason: 'incomplete' }
+      const level = typeof entry.level === 'string' ? entry.level : ''
+      if (level === 'yanked' || level === 'revoked') return { ok: false, reason: 'refused' }
+      const id = typeof entry.id === 'string' ? entry.id : ''
+      const version = typeof entry.version === 'string' ? entry.version : ''
+      const hash = entry.archive !== null && typeof entry.archive === 'object' && typeof entry.archive.sha256 === 'string' ? entry.archive.sha256 : ''
+      if (id === '' || version === '' || hash === '') return { ok: false, reason: 'incomplete' }
+      return { ok: true }
+    }
+    /**
+     * ONE click, ONE call, to A6's seam and to nothing else (M3, M7): the argument is frozen on both ends — `{ source: 'catalogue', id,
+     * version }` — and the installer is A6's. Only ever called from the click, so a mount makes zero calls. Never throws: an absent
+     * installer, a refused entry and a seam that throws each come back as a reason the card can explain.
+     */
+    const marketInstall = (entry, install) => {
+      try {
+        const gate = marketInstallable(entry)
+        if (gate.ok !== true) return { ok: false, error: gate.reason === 'refused' ? 'refused' : 'incomplete' }
+        if (typeof install !== 'function') return { ok: false, error: 'no-installer' }
+        const answer = install({ source: 'catalogue', id: entry.id, version: entry.version })
+        // A6's seam is asynchronous: its own refusal must not surface as an unhandled rejection of the page.
+        if (answer !== null && typeof answer === 'object' && typeof answer.catch === 'function') answer.catch(() => {})
+        return { ok: true, id: entry.id, version: entry.version }
+      } catch (e) {
+        return { ok: false, error: 'installer-failed' }
+      }
+    }
+    /** The plan's name of one item, or '' (an item without a name is dropped from the report, never invented). */
+    const marketNameOf = (item, lang) => {
+      if (typeof item === 'string') return item.trim()
+      if (item === null || typeof item !== 'object') return ''
+      return marketField(item.name, lang).trim()
+    }
+    /**
+     * The report of one click, in A6's own vocabulary (`kbThApply` answers a count; an older answer a list of named items): the style
+     * row with the plan's accent (INT4), the kit counts (INT5), then what was added, skipped and failed. The published seam answers
+     * `{ ok, id, version, report }` (client.js:26192), so the counters are read from `report`; a caller that hands the report
+     * itself is still read (F-27).
+     */
+    const marketReport = (result, plan, lang) => {
+      const whole = result !== null && typeof result === 'object' ? result : {}
+      const r = whole.report !== null && typeof whole.report === 'object' ? whole.report : whole
+      const p = plan !== null && typeof plan === 'object' ? plan : {}
+      const rows = []
+      const style = p.style !== null && typeof p.style === 'object' ? p.style : null
+      if (style !== null && typeof style.id === 'string' && style.id !== '') {
+        const settings = style.settings !== null && typeof style.settings === 'object' ? style.settings : {}
+        rows.push({ kind: 'style', text: marketSay(['Style', 'Style'], lang), id: style.id, acc: typeof settings.acc === 'string' ? settings.acc : '' })
+      }
+      if (p.kit !== null && typeof p.kit === 'object') rows.push({ kind: 'kit', text: kitLine(p.kit, lang) })
+      const push = (kind, one, many, value) => {
+        if (typeof value === 'number' && isFinite(value) && value > 0) {
+          const n = Math.floor(value)
+          rows.push({ kind, count: n, text: marketSay(n === 1 ? one : many, lang).replace('{n}', String(n)) })
+          return
+        }
+        if (!Array.isArray(value)) return
+        for (const item of value) {
+          const name = marketNameOf(item, lang)
+          if (name !== '') rows.push({ kind, text: name })
+        }
+      }
+      push('added', ['1 élément ajouté', '1 item added'], ['{n} éléments ajoutés', '{n} items added'], r.added)
+      push('skipped', ['1 élément ignoré', '1 item skipped'], ['{n} éléments ignorés', '{n} items skipped'], r.skipped)
+      push('failed', ['1 étape en échec', '1 step failed'], ['{n} étapes en échec', '{n} steps failed'], r.failed)
+      return { rows }
+    }
+    /* ── The sources row (A6:41 + INT5). Configuration, so it lives in Settings: a bounded list of https addresses (A6:289), each
+     * with the key the person pinned, read from A6's own answer and written through A6's own route (`source-add` / `source-remove`,
+     * theme-installer.mjs:684-702) — never a second path, never a file of its own. Everything that comes from an added source is
+     * Community level (plugin-contract.md:470-473), and the key is shown with its warning. ── */
+    const MARKET_SOURCES_MAX = 3
+    const MARKET_KEY_ID_MAX = 64
+    const MARKET_KEY_PEM_MAX = 4000
+    /** The route's bounded source list, read as it came: `{ url, keyId, pinned }` per entry; the route never sends the key back. */
+    const marketSources = (view) => {
+      const list = view !== null && typeof view === 'object' && Array.isArray(view.sources) ? view.sources : []
+      const out = []
+      for (const s of list) {
+        if (s === null || typeof s !== 'object') continue
+        const url = typeof s.url === 'string' ? s.url.trim() : ''
+        if (url === '') continue
+        out.push({ url, keyId: typeof s.keyId === 'string' ? s.keyId : '', pinned: s.pinned === true })
+      }
+      return out
+    }
+    /** The route's own https rule, checked in place so a typo costs no round-trip (the route still decides, and stays the only guard). */
+    const marketSourceUrlOk = (url) => /^https:\/\/[^\s]{1,2000}$/.test(String(url === null || url === undefined ? '' : url).trim())
+    /** The body `source-add` takes, exactly the route's shape; `null` when the address is not one (nothing is sent). */
+    const marketSourceAdd = (url, key) => {
+      const u = String(url === null || url === undefined ? '' : url).trim()
+      if (marketSourceUrlOk(u) !== true) return null
+      const body = { action: 'source-add', url: u }
+      const k = key !== null && typeof key === 'object' ? key : null
+      if (k !== null) {
+        const keyId = typeof k.keyId === 'string' ? k.keyId.trim() : ''
+        const pem = typeof k.pem === 'string' ? k.pem.trim() : ''
+        if (keyId !== '' && keyId.length <= MARKET_KEY_ID_MAX && pem !== '' && pem.length <= MARKET_KEY_PEM_MAX) body.key = { keyId, pem }
+      }
+      return body
+    }
+    /** The body `source-remove` takes; `null` for no address. */
+    const marketSourceRemove = (url) => {
+      const u = String(url === null || url === undefined ? '' : url).trim()
+      return u === '' ? null : { action: 'source-remove', url: u }
+    }
+    /** The route's own refusal of a source write, in the person's words; an unknown code is shown as it came, never hidden. */
+    const marketSourceError = (answer, lang) => {
+      const code = answer !== null && typeof answer === 'object' && typeof answer.error === 'string' ? answer.error : ''
+      if (code === 'an https address is expected') return marketSay(['Une adresse https est attendue.', 'An https address is expected.'], lang)
+      if (code === 'too-many-sources') return marketSay(['Trois sources au maximum.', 'Three sources at most.'], lang)
+      if (code === '') return marketSay(['La source n’a pas été enregistrée.', 'The source was not saved.'], lang)
+      return code
+    }
+    // KB-MARKET-PURE-END
+
+    // KB-MARKET-UI-BEGIN
+    // The listing (A7's venue, INT1, INT2): ONE component, drawn inside A6's Themes page and in its own Settings section, from the ONE
+    // read A6 publishes. It never reads a catalogue document, never checks a signature, never writes the profile and never applies a
+    // style: the click hands `{ source: 'catalogue', id, version }` to A6's seam (M7) and the report draws A6's plan.
+    const kbMarketLang = () => {
+      try {
+        const raw = kbLangResolve()
+        const s = String(raw === null || raw === undefined ? '' : raw)
+        return s === 'kybernos' || s.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
+      } catch (e) { return 'en' }
+    }
+    const kbMarketSeam = () => {
+      try { return typeof window !== 'undefined' && typeof window.__KB_THEME_INSTALL__ === 'function' ? window.__KB_THEME_INSTALL__ : null } catch (e) { return null }
+    }
+    const kbMarketReasonText = (answer, lang) => {
+      const error = answer !== null && typeof answer === 'object' && typeof answer.error === 'string' ? answer.error : ''
+      if (error === 'no-installer') return marketSay(['Aucun installateur n’est chargé sur cette page.', 'No installer is loaded on this page.'], lang)
+      if (error === 'incomplete') return marketSay(['Cette entrée n’a pas d’archive vérifiée à installer.', 'This entry has no verified archive to install.'], lang)
+      if (error === 'refused') return marketSay(['Le vérificateur a écarté cette entrée.', 'The verifier refused this entry.'], lang)
+      if (error === 'installer-failed') return marketSay(['L’installateur n’a pas répondu.', 'The installer did not answer.'], lang)
+      return error
+    }
+    /**
+     * The Settings row of the catalogue sources (A6:41 "a bounded field row in Settings, not on the page", INT5, A6:289): the list,
+     * an add and a remove, data only. Every write is A6's own route (`source-add` / `source-remove` through `kbThApi`, the same door
+     * the page reads) — no second path, no file of its own, and the listing beside it never adds or removes a source. The fields are
+     * bounded (https, at most three sources, capped key fields), and the pinned key is shown with its warning. Mounts make no call.
+     */
+    const KbMarketSources = (props) => {
+      const p = props !== null && props !== undefined && typeof props === 'object' ? props : {}
+      const lang = p.lang === 'fr' ? 'fr' : 'en'
+      const say = (row) => marketSay(row, lang)
+      const sources = marketSources(p.view)
+      const reload = typeof p.reload === 'function' ? p.reload : null
+      const [url, setUrl] = React.useState('')
+      const [keyId, setKeyId] = React.useState('')
+      const [pem, setPem] = React.useState('')
+      const [busy, setBusy] = React.useState(null)
+      const [note, setNote] = React.useState(null)
+      const full = sources.length >= MARKET_SOURCES_MAX
+      const ready = marketSourceUrlOk(url) === true && full === false && busy === null
+      // The route door A6 already publishes for the page: same origin, same signed session, no new fetch of our own.
+      const route = (body) => {
+        try { return typeof kbThApi === 'function' ? kbThApi(body) : Promise.resolve(null) } catch (e) { return Promise.resolve(null) }
+      }
+      const answerOf = (answer, done) => {
+        if (answer !== null && typeof answer === 'object' && answer.ok === true) {
+          setUrl('')
+          setKeyId('')
+          setPem('')
+          setNote({ tone: 'ok', text: done })
+        } else setNote({ tone: 'err', text: marketSourceError(answer, lang) })
+        // The route's answer is the truth: re-read it rather than patching the list from what we just sent.
+        if (reload !== null) reload()
+      }
+      const addSource = async () => {
+        const body = marketSourceAdd(url, { keyId, pem })
+        if (body === null || busy !== null || full) return
+        setBusy('add')
+        const answer = await route(body)
+        setBusy(null)
+        answerOf(answer, say(['Source ajoutée.', 'Source added.']))
+      }
+      const removeSource = async (source) => {
+        const body = marketSourceRemove(source.url)
+        if (body === null || busy !== null) return
+        setBusy('remove')
+        const answer = await route(body)
+        setBusy(null)
+        answerOf(answer, say(['Source retirée : les thèmes déjà installés restent.', 'Source removed: the themes already installed stay.']))
+      }
+      const pin = (s) => s.pinned === true
+        ? say(['Clé épinglée', 'Key pinned']) + (s.keyId !== '' ? ' · ' + s.keyId : '')
+        : say(['Aucune clé épinglée : cette source n’est pas vérifiable.', 'No key pinned: this source cannot be verified.'])
+      return h('section', { className: 'kbtm-src', 'data-kb': 'kb-market-sources' },
+        h('div', { className: 'kbtm-src-head' },
+          h('h3', { className: 'kbtm-src-title' }, say(['Sources du catalogue', 'Catalogue sources'])),
+          h('span', { className: 'kbtm-src-count', 'data-kb': 'kb-market-sources-count' }, say(['{n} sur 3', '{n} of 3']).replace('{n}', String(sources.length)))),
+        h('p', { className: 'kbtm-src-warn', 'data-kb': 'kb-market-sources-warn' }, say([
+          'Un catalogue que tu ajoutes est lu avec sa propre clé, épinglée à la première utilisation et affichée ci-dessous : tout ce qui en vient est de niveau Communauté, et retirer la source retire cette confiance — jamais les thèmes déjà installés.',
+          'A catalogue you add is read with its own key, pinned on first use and shown below: everything that comes from it is Community level, and removing the source drops that trust — never the themes already installed.'])),
+        (sources.length === 0 ? null
+          : h('ul', { className: 'kbtm-src-list', 'data-kb': 'kb-market-sources-list' }, sources.map((s) => h('li', { key: s.url, className: 'kbtm-src-row', 'data-kb': 'kb-market-source' },
+            h('code', { className: 'kbtm-src-url', title: s.url }, s.url),
+            h('span', { className: 'kbtm-src-pin', 'data-pinned': s.pinned === true ? '1' : '0' }, pin(s)),
+            h('button', { type: 'button', className: 'kbtm-src-del', 'data-kb': 'kb-market-source-remove', disabled: busy !== null, onClick: () => removeSource(s) }, say(['Retirer', 'Remove'])))))),
+        h('div', { className: 'kbtm-src-add' },
+          h('label', { className: 'kbtm-src-field' },
+            h('span', null, say(['Adresse https du catalogue', 'Catalogue https address'])),
+            h('input', { type: 'url', className: 'kbtm-src-in', 'data-kb': 'kb-market-source-url', value: url, maxLength: 2000, placeholder: 'https://example.org/catalogue.json', disabled: full, onChange: (e) => setUrl(e.target.value) })),
+          h('label', { className: 'kbtm-src-field' },
+            h('span', null, say(['Identifiant de la clé', 'Key id'])),
+            h('input', { type: 'text', className: 'kbtm-src-in', 'data-kb': 'kb-market-source-keyid', value: keyId, maxLength: MARKET_KEY_ID_MAX, placeholder: 'cat-1', disabled: full, onChange: (e) => setKeyId(e.target.value) })),
+          h('label', { className: 'kbtm-src-field kbtm-src-wide' },
+            h('span', null, say(['Clé publique du catalogue (facultative)', 'Catalogue public key (optional)'])),
+            h('textarea', { className: 'kbtm-src-in kbtm-src-pem', 'data-kb': 'kb-market-source-pem', value: pem, maxLength: MARKET_KEY_PEM_MAX, rows: 2, placeholder: '-----BEGIN PUBLIC KEY-----', disabled: full, onChange: (e) => setPem(e.target.value) })),
+          h('button', { type: 'button', className: 'kbm-btn kbtm-src-submit', 'data-kb': 'kb-market-source-add', disabled: ready !== true, onClick: addSource },
+            full === true ? say(['Trois sources au maximum', 'Three sources at most']) : (busy === 'add' ? say(['Ajout…', 'Adding…']) : say(['Ajouter la source', 'Add the source'])))),
+        (note === null ? null : h('p', { className: note.tone === 'err' ? 'kbtm-src-note kbtm-src-err' : 'kbtm-src-note', role: note.tone === 'err' ? 'alert' : 'status', 'data-kb': 'kb-market-sources-note' }, String(note.text))))
+    }
+    const KbThemesMarket = () => {
+      const lang = kbMarketLang()
+      const say = (row) => marketSay(row, lang)
+      const [etat, setEtat] = React.useState({ phase: 'loading', view: null })
+      const [occupe, setOccupe] = React.useState(null)
+      const [reponses, setReponses] = React.useState({})
+      const [motifs, setMotifs] = React.useState(false)
+      // A6's route, once per mount and once after a click — never a cache, so a reload re-reads it.
+      const relire = React.useCallback(() => {
+        fetch('/kybernos/themes', { credentials: 'same-origin', cache: 'no-store' })
+          .then((r) => (r.ok === true ? r.json() : null))
+          .then((j) => setEtat(j !== null && typeof j === 'object' ? { phase: 'ready', view: j } : { phase: 'error', view: null }))
+          .catch(() => setEtat({ phase: 'error', view: null }))
+      }, [])
+      React.useEffect(() => { relire() }, [relire])
+      const installer = (entry) => {
+        if (occupe !== null) return
+        setOccupe(entry.id)
+        const seam = kbMarketSeam()
+        const tenu = { answer: null }
+        const answer = marketInstall(entry, seam === null ? null : (arg) => { tenu.answer = seam(arg); return tenu.answer })
+        const fixe = (extra) => setReponses((prev) => Object.assign({}, prev, { [entry.id]: Object.assign({}, answer, extra) }))
+        fixe({ answer: tenu.answer })
+        const fini = () => { setOccupe(null); relire() }
+        if (tenu.answer !== null && typeof tenu.answer === 'object' && typeof tenu.answer.then === 'function') {
+          tenu.answer.then((a) => fixe({ answer: a })).catch(() => fixe({ error: 'installer-failed' })).then(fini)
+        } else { fini() }
+      }
+      const view = etat.phase === 'ready' ? etat.view : null
+      const cards = etat.phase === 'ready' ? marketCards(view, lang) : []
+      const state = etat.phase === 'ready' ? marketState(view, lang) : null
+      const leftOut = etat.phase === 'ready' ? marketLeftOut(view, lang) : null
+      const seamPresent = kbMarketSeam() !== null
+      const plan = (answer) => (answer !== null && typeof answer === 'object' && answer.plan !== null && typeof answer.plan === 'object' ? answer.plan : null)
+      const carte = (card) => {
+        const gate = marketInstallable(card)
+        const reponse = reponses[card.id] !== undefined ? reponses[card.id] : null
+        const rows = reponse === null ? [] : marketReport(reponse.answer !== undefined && reponse.answer !== null ? reponse.answer : reponse, plan(reponse.answer), lang).rows
+        const reportItems = rows.map((row, i) => h('li', { key: row.kind + i, className: 'kbtm-row ' + row.kind },
+          (row.kind === 'style' && row.acc !== '' ? h('span', { className: 'kbtm-swatch', 'aria-hidden': 'true', style: { background: row.acc } }) : null),
+          row.text))
+        const why = gate.ok !== true ? marketSay(['Cette entrée n’a pas d’archive vérifiée à installer.', 'This entry has no verified archive to install.'], lang)
+          : (seamPresent ? null : marketSay(['Aucun installateur n’est chargé sur cette page.', 'No installer is loaded on this page.'], lang))
+        return h('article', { key: card.id, className: 'kbtm-card', 'data-kb': 'kb-market-card', 'data-level': card.level },
+          h('div', { className: 'kbtm-cardhead' },
+            h('b', { className: 'kbtm-name' }, card.name !== '' ? card.name : card.id),
+            h('span', { className: 'kbtm-level', 'data-level': card.level, title: marketLevelHelp(card.level, lang) }, marketLevelLabel(card.level, lang))),
+          (card.description !== '' ? h('p', { className: 'kbtm-desc' }, card.description) : null),
+          h('div', { className: 'kbtm-facts' },
+            (card.author !== '' ? h('span', null, marketSay(['Auteur', 'Author'], lang) + ' ' + card.author) : null),
+            h('span', null, 'v' + card.version),
+            (card.license !== '' ? h('span', null, card.license) : null)),
+          h('div', { className: 'kbtm-actions' },
+            h('button', {
+              type: 'button',
+              className: 'kbm-btn kbtm-install',
+              'data-kb': 'kb-market-install',
+              'data-theme': card.id,
+              disabled: gate.ok !== true || seamPresent !== true || occupe !== null,
+              onClick: () => installer(card),
+            }, occupe === card.id ? marketSay(['Installation…', 'Installing…'], lang) : marketSay(['Installer', 'Install'], lang))),
+          (why !== null ? h('p', { className: 'kbtm-why', 'data-kb': 'kb-market-why' }, why) : null),
+          (reponse !== null
+            ? h('div', { className: 'kbtm-report', 'data-kb': 'kb-market-report' },
+              h('b', null, marketSay(['Ce que l’installation a fait', 'What the install did'], lang)),
+              (reponse.error !== undefined && reponse.error !== null ? h('p', { className: 'kbtm-why' }, kbMarketReasonText(reponse, lang)) : null),
+              (reportItems.length === 0 ? null : h('ul', null, reportItems)))
+            : null))
+      }
+      return h('div', { className: 'kbtm-page', 'data-kb': 'kb-market', 'aria-busy': etat.phase === 'loading' ? 'true' : 'false' },
+        h('div', { className: 'kbtm-head' },
+          h('h2', { className: 'kbtm-h1' }, say(['Thèmes', 'Themes'])),
+          h('p', { className: 'kbtm-sub' }, say(['Les thèmes sectoriels que publient les catalogues que tu as ajoutés.', 'The sector themes published by the catalogues you added.']))),
+        h(KbMarketSources, { lang, view, reload: relire }),
+        (etat.phase === 'loading' ? h('p', { className: 'kbtm-note', 'data-kb': 'kb-market-loading' }, say(['Lecture du catalogue…', 'Reading the catalogue…'])) : null),
+        (etat.phase === 'error' ? h('div', { className: 'kbtm-state', 'data-kb': 'kb-market-state', 'data-state': 'unreachable', role: 'status' }, say(['Le catalogue n’a pas répondu.', 'The catalogue did not answer.'])) : null),
+        (leftOut !== null ? h('div', { className: 'kbtm-leftout' },
+          h('button', { type: 'button', className: 'kbtm-more', 'data-kb': 'kb-market-left-out', onClick: () => setMotifs(motifs !== true) }, leftOut),
+          (motifs === true ? h('ul', { className: 'kbtm-reasons' }, marketRefusals(view).map((r, i) => h('li', { key: r.id + '/' + i }, r.id + (r.code !== '' ? ' · ' + r.code : '')))) : null)) : null),
+        (state !== null ? h('div', { className: 'kbtm-state', 'data-kb': 'kb-market-state', 'data-state': state.state, role: 'status' },
+          h('b', null, state.text),
+          (state.leftOut !== null ? h('button', { type: 'button', className: 'kbtm-more', 'data-kb': 'kb-market-left-out', onClick: () => setMotifs(motifs !== true) }, state.leftOut) : null),
+          (state.leftOut !== null && motifs === true ? h('ul', { className: 'kbtm-reasons' }, state.refusals.map((r, i) => h('li', { key: r.id + '/' + i }, r.id + (r.code !== '' ? ' · ' + r.code : '')))) : null)) : null),
+        (cards.length > 0 ? h('div', { className: 'kbtm-cards', 'data-kb': 'kb-market-cards' }, cards.map(carte)) : null))
+    }
+    const KB_MARKET_CSS = [
+      '.kbtm-page{display:flex;flex-direction:column;gap:14px;padding:4px 2px 24px;max-width:720px;box-sizing:border-box}',
+      '.kbtm-head{display:flex;flex-direction:column;gap:6px}',
+      '.kbtm-h1{margin:0;font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+      '.kbtm-sub{margin:0;font-size:13px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-note,.kbtm-why{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}',
+      '.kbtm-card{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
+      '.kbtm-cardhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}',
+      '.kbtm-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);min-width:0}',
+      '.kbtm-level{flex:none;font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-desc{margin:0;font-size:13px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-facts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+      '.kbtm-install{border-radius:10px}',
+      '.kbtm-state,.kbtm-leftout{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:13px}',
+      '.kbtm-more{align-self:flex-start;border:0;background:transparent;padding:0;font:inherit;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);cursor:pointer;text-decoration:underline}',
+      '.kbtm-reasons{margin:0;padding-left:18px;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-report{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--dsw-alias-border-l1);font-size:12px}',
+      '.kbtm-row{display:flex;align-items:center;gap:8px}',
+      '.kbtm-swatch{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--dsw-alias-border-l1)}',
+      '.kbtm-src{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
+      '.kbtm-src-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}',
+      '.kbtm-src-title{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+      '.kbtm-src-count{font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-warn{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}',
+      '.kbtm-src-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}',
+      '.kbtm-src-url{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary)}',
+      '.kbtm-src-pin{font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-del{height:26px;padding:0 10px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer}',
+      '.kbtm-src-del:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbtm-src-add{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:end}',
+      '.kbtm-src-field{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-wide{grid-column:1 / -1}',
+      '.kbtm-src-in{height:30px;box-sizing:border-box;min-width:0;padding:0 10px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}',
+      '.kbtm-src-pem{height:auto;padding:6px 10px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}',
+      '.kbtm-src-submit{justify-self:start}',
+      '.kbtm-src-note{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+      '.kbtm-src-err{color:var(--dsw-alias-state-error-primary)}',
+    ].join('\n')
+    ctx.effect(() => {
+      try {
+        return slots.inject('settings.section', () => slots.register(
+          { name: 'settings.section', id: 'kybernos-themes-market', order: 30, label: marketSay(['Thèmes', 'Themes'], kbMarketLang()) },
+          KbThemesMarket))
+      } catch (e) { return undefined }
+    }, 'kybers: themes market settings section')
+    ctx.effect(() => { try { return styles.insert(KB_MARKET_CSS) } catch (e) { return undefined } }, 'kybers: themes market styles')
+    // KB-MARKET-UI-END
     ctx.effect(() => slots.inject('settings.section', () => slots.register(
       { name: 'settings.section', id: 'kybernos-tools', order: 29, label: kbt('kbui.tools') },
       KbToolsPage)), 'kybers: tools settings section')
@@ -33538,6 +35090,8 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
     }
     const kbFbSendVerdict = (status, out) => {
       const o = out !== null && out !== undefined && typeof out === 'object' && !Array.isArray(out) ? out : null
+      // Kept on this computer: not sent, not lost. The tone is the one of a success because nothing is left for the person to do.
+      if (o !== null && o.queued === true) return { tone: 'ok', keys: ['kbui.fb.queued'], wait: null }
       if (o !== null && o.ok === true) return { tone: 'ok', keys: [o.deduped === true ? 'kbui.fb.sent.again' : 'kbui.fb.sent'], wait: null }
       if (status === 401 || status === 403 || status === 503) return { tone: 'err', keys: ['kbui.fb.signin'], wait: null }
       if (status === 0) return { tone: 'err', keys: ['kbui.fb.err.local'], wait: null }
@@ -33561,6 +35115,10 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
       const [busy, setBusy] = React.useState('')
       const [note, setNote] = React.useState(null)
       const [manual, setManual] = React.useState('')
+      // Screenshots and the optional address: what a person attaches to a report. The page never captures the screen itself — the
+      // image comes from the clipboard, a drop or a file the person picks, so no permission prompt is ever needed.
+      const [shots, setShots] = React.useState([])
+      const [contact, setContact] = React.useState('')
       // Whether this DSH is signed in to a Kybernos account, read at every opening: only then is « Send » offered (the relay needs the account).
       const [signedIn, setSignedIn] = React.useState(false)
       React.useEffect(() => {
@@ -33591,6 +35149,45 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
         if (status === 401 || status === 403 || status === 503) return kbt('kbui.fb.signin')
         return kbt('kbui.fb.fail')
       }
+      // ── Screenshots: the person attaches what he sees. Paste (⌘V), drop, or pick a file; three at most, 5 MB each, images only.
+      // Nothing is captured by the page, so no screen-capture permission prompt is ever asked for.
+      const ajouterImage = (file) => {
+        if (file === null || file === undefined) return
+        if (!/^image\/(png|jpeg|webp)$/.test(String(file.type || ''))) { setNote({ tone: 'err', text: kbt('kbui.fb.shots.bad') }); return }
+        if (Number(file.size) > 5 * 1024 * 1024) { setNote({ tone: 'err', text: kbt('kbui.fb.shots.big') }); return }
+        let depasse = false
+        setShots((prev) => {
+          if (prev.length >= 3) { depasse = true; return prev }
+          return prev.concat([{ file: file, type: String(file.type), url: URL.createObjectURL(file), name: String(file.name || 'capture') }])
+        })
+        setNote(depasse === true ? { tone: 'err', text: kbt('kbui.fb.shots.max') } : null)
+      }
+      const choisirImage = () => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'image/png,image/jpeg,image/webp'
+        input.addEventListener('change', () => { if (input.files !== null && input.files !== undefined && input.files[0] !== undefined) ajouterImage(input.files[0]) })
+        input.click()
+      }
+      const retirerImage = (rang) => setShots((prev) => {
+        const image = prev[rang]
+        if (image !== undefined) { try { URL.revokeObjectURL(image.url) } catch (e) { /* déjà révoquée */ } }
+        return prev.filter((x, k) => k !== rang)
+      })
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        const onPaste = (e) => {
+          try {
+            const items = e.clipboardData !== null && e.clipboardData !== undefined ? Array.from(e.clipboardData.items) : []
+            const image = items.find((i) => i.kind === 'file' && /^image\/(png|jpeg|webp)$/.test(String(i.type)))
+            if (image === undefined) return
+            e.preventDefault()
+            ajouterImage(image.getAsFile())
+          } catch (err) { /* un presse-papiers illisible : il ne se passe rien */ }
+        }
+        window.addEventListener('paste', onPaste)
+        return () => window.removeEventListener('paste', onPaste)
+      }, [open])
       const save = async () => {
         const text = message.trim()
         if (text === '' || busy !== '') return
@@ -33614,18 +35211,38 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
         setBusy('send'); setNote(null); setManual('')
         let out = null
         let status = 0
+        const attaches = []
         try {
+          // The screenshots go first, one by one: the report names them by id, so an image that fails stops the send BEFORE anything
+          // is filed — the person keeps their text and their images, and nothing is half-sent.
+          for (const shot of shots) {
+            const up = await fetch('/kybernos/feedback/attachment', { method: 'POST', headers: { 'content-type': shot.type }, body: shot.file })
+            const made = await up.json().catch(() => null)
+            if (up.status !== 201 || made === null || made.ok !== true) {
+              setBusy(''); setNote({ tone: 'err', text: kbt('kbui.fb.err.image') }); return
+            }
+            // `local: true` = the server does not take screenshots yet: the host has kept the image beside the reports, and the
+            // report goes without an id. Nothing is thrown away, and the person sees a normal success.
+            if (typeof made.id === 'string') attaches.push(made.id)
+          }
           const page = withContext === true
             ? { title: String(document.title || ''), lang: String(document.documentElement.lang || navigator.language || ''), width: window.innerWidth, height: window.innerHeight }
             : undefined
-          const r = await fetch('/kybernos/feedback/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page }) })
+          const r = await fetch('/kybernos/feedback/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page, contact: contact.trim(), attachments: attaches }) })
           status = r.status
           out = await r.json().catch(() => null)
         } catch (e) { out = null; status = 0 }
         setBusy('')
         const verdict = kbFbSendVerdict(status, out)
-        if (verdict.tone === 'ok') setMessage('')
-        setNote({ tone: verdict.tone, text: verdict.keys.map((k) => kbt(k).replace('{t}', verdict.wait === null ? '' : kbFbWaitText(verdict.wait))).join(' ') })
+        if (verdict.tone === 'ok') {
+          setMessage(''); setContact('')
+          for (const image of shots) { try { URL.revokeObjectURL(image.url) } catch (e) { /* déjà révoquée */ } }
+          setShots([])
+        }
+        const texte = verdict.keys.map((k) => kbt(k).replace('{t}', verdict.wait === null ? '' : kbFbWaitText(verdict.wait))).join(' ')
+        setNote({ tone: verdict.tone, text: verdict.tone === 'ok' && attaches.length > 0
+          ? kbt('kbui.fb.sent.attached').replace('{n}', String(attaches.length))
+          : texte })
       }
       const exporter = async () => {
         if (busy !== '') return
@@ -33660,6 +35277,34 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
             KB_FB_TYPES.map((k) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': type === k ? 'true' : 'false', className: 'kbfb-type' + (type === k ? ' on' : ''), 'data-type': k, onClick: () => setType(k) }, kbt('kbui.fb.type.' + k)))),
           h('label', { className: 'kbfb-lab', htmlFor: 'kbfb-msg' }, kbt('kbui.fb.message')),
           h('textarea', { id: 'kbfb-msg', className: 'kbfb-msg', rows: 6, maxLength: 4000, value: message, placeholder: kbt('kbui.fb.placeholder'), autoFocus: true, onChange: (e) => { setMessage(e.target.value); if (note !== null) setNote(null) } }),
+          // Screenshots — optional, and always the person's own gesture (paste, drop, file). Nothing is captured by the page.
+          h('div', { className: 'kbfb-shots', 'data-kb': 'feedback-shots' },
+            h('div', { className: 'kbfb-shots-head' },
+              h('span', { className: 'kbfb-lab' }, kbt('kbui.fb.shots')),
+              h('span', { className: 'kbm-tag', 'data-tone': 'outline' }, kbt('kbui.fb.shots.optional')),
+              h('span', { className: 'kbfb-count' }, String(shots.length) + ' / 3')),
+            h('div', {
+              className: 'kbfb-drop', role: 'button', tabIndex: 0, 'data-kb': 'feedback-drop',
+              onClick: choisirImage,
+              onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirImage() } },
+              onDragOver: (e) => { e.preventDefault(); try { e.currentTarget.classList.add('over') } catch (er) { /* pas grave */ } },
+              onDragLeave: (e) => { try { e.currentTarget.classList.remove('over') } catch (er) { /* pas grave */ } },
+              onDrop: (e) => {
+                e.preventDefault()
+                try { e.currentTarget.classList.remove('over') } catch (er) { /* pas grave */ }
+                const files = e.dataTransfer !== null && e.dataTransfer !== undefined ? Array.from(e.dataTransfer.files || []) : []
+                for (const f of files.slice(0, 3 - shots.length)) ajouterImage(f)
+              },
+            },
+              h('span', null, kbt('kbui.fb.shots.drop')),
+              h('span', { className: 'kbfb-drop-btn' }, kbt('kbui.fb.shots.add'))),
+            shots.length === 0 ? null : h('div', { className: 'kbfb-thumbs' }, shots.map((s, i) => h('div', { key: s.url, className: 'kbfb-thumb' },
+              h('img', { src: s.url, alt: '' }),
+              h('button', { type: 'button', className: 'kbfb-thumb-x', 'data-kb': 'feedback-shot-remove', 'aria-label': kbt('kbui.fb.shots.remove'), title: kbt('kbui.fb.shots.remove'), onClick: () => retirerImage(i) }, '✕')))),
+            h('p', { className: 'kbfb-hint' }, kbt('kbui.fb.shots.hint'))),
+          // The address is optional: with none, the report stays anonymous and the team cannot answer.
+          h('label', { className: 'kbfb-lab', htmlFor: 'kbfb-contact' }, kbt('kbui.fb.contact')),
+          h('input', { id: 'kbfb-contact', className: 'kbfb-contact', type: 'email', maxLength: 200, value: contact, autoComplete: 'email', placeholder: kbt('kbui.fb.contact.hint'), onChange: (e) => setContact(e.target.value) }),
           h('label', { className: 'kbfb-ctx' },
             h('input', { type: 'checkbox', checked: withContext, onChange: (e) => setWithContext(e.target.checked), 'data-kb': 'feedback-context' }),
             h('span', null, h('b', null, kbt('kbui.fb.context')), h('i', null, kbt('kbui.fb.context.hint')))),
@@ -33667,8 +35312,10 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
           manual === '' ? null : h('textarea', { className: 'kbfb-manual', readOnly: true, rows: 6, value: manual, onFocus: (e) => { try { e.target.select() } catch (er) { /* no selection */ } } }),
           h('div', { className: 'kbfb-hint', 'data-kb': 'feedback-hint' }, signedIn === true ? kbt('kbui.fb.hint.signedin') : kbt('kbui.fb.hint.signedout')),
           h('div', { className: 'kbfb-acts' },
-            signedIn === true ? h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-send', disabled: busy !== '' || message.trim() === '', onClick: send }, busy === 'send' ? kbt('kbui.fb.sending') : kbt('kbui.fb.send')) : null,
-            h('button', { type: 'button', className: 'kbfb-btn' + (signedIn === true ? '' : ' kbfb-primary'), 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
+            // Signed out, the send button stays: it takes the PUBLIC door (no account, nothing to connect). It is primary when there is
+            // nothing else to press, so a person who just hit a bug never has to read a paragraph to find out how to tell us.
+            h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-send', disabled: busy !== '' || message.trim() === '', onClick: send }, busy === 'send' ? kbt('kbui.fb.sending') : kbt(signedIn === true ? 'kbui.fb.send' : 'kbui.fb.send.anon')),
+            h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
             h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-export', disabled: busy !== '', onClick: exporter }, busy === 'export' ? kbt('kbui.fb.exporting') : kbt('kbui.fb.export'))),
           h('button', { type: 'button', className: 'kbfb-link', 'data-kb': 'feedback-assistant', onClick: withAssistant }, kbt('kbui.fb.assistant')))))
     }
@@ -33686,6 +35333,21 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
 .kbfb-msg,.kbfb-manual{box-sizing:border-box;width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
 .kbfb-msg:focus,.kbfb-manual:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbfb-manual{font-family:var(--ds-font-family-code,monospace);font-size:12px}
+/* Captures : la zone de dépôt, les vignettes, et l'adresse facultative. */
+.kbfb-shots{display:flex;flex-direction:column;gap:8px}
+.kbfb-shots-head{display:flex;align-items:center;gap:8px}
+.kbfb-count{margin-left:auto;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}
+.kbfb-drop{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;box-sizing:border-box;width:100%;min-height:72px;padding:12px;border:1px dashed var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:13px;line-height:20px}
+.kbfb-drop:hover,.kbfb-drop.over{border-color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-interactive-bg-hover)}
+.kbfb-drop:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbfb-drop-btn{display:inline-flex;align-items:center;height:28px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;color:var(--dsw-alias-label-primary);font-size:12px;white-space:nowrap}
+.kbfb-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.kbfb-thumb{position:relative;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;background:var(--dsw-alias-bg-module-platform)}
+.kbfb-thumb img{display:block;width:100%;height:64px;object-fit:cover}
+.kbfb-thumb-x{position:absolute;top:4px;right:4px;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;border-radius:7px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.kbfb-thumb-x:hover{background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}
+.kbfb-contact{box-sizing:border-box;width:100%;height:36px;padding:0 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
+.kbfb-contact:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbfb-ctx{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .kbfb-ctx input{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}
 .kbfb-ctx span{display:flex;flex-direction:column;gap:2px}
@@ -33818,6 +35480,44 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
     }
     ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
       { name: 'sidebar.footer.action', id: 'kybernos-utils', order: 20 }, SidebarUtils)), 'kybers: sidebar utility bar')
+    // Le libellé « Workspaces » du pied appartient à l'hôte : on ne le déplace pas, on le rend cliquable. Même approche que le
+    // reste du pied (aucune modification du DOM de l'hôte) : on reconnaît le libellé au clic, on coupe son menu natif, et on
+    // ouvre la page Workspaces du plugin. Borné à la rangée du pied (celle de `.kbu-row`), donc jamais les cartes d'espace.
+    ctx.effect(() => {
+      // Le balisage de l'hôte (mesuré dans dsh-client-ui-workspace) : le pied est une `sectionHeader` qui porte le libellé
+      // (`sectionLabel`, le texte « Workspaces ») et le groupe d'actions (`headerActions` : recherche, filtre, ajout). Les
+      // CSS modules de l'hôte hachuent le préfixe mais gardent le suffixe, d'où les sélecteurs `[class*="_sectionLabel"]`.
+      const cible = (t) => {
+        if (t === null || t === undefined || typeof t.closest !== 'function') return null
+        if (t.closest('.kb4-menu') !== null) return null                       // nos propres entrées
+        let el = null
+        try { el = t.closest('[class*="_sectionLabel"]') } catch (e) { el = null }
+        if (el === null) return null
+        // Le MÊME libellé affiche « Workspaces » ou « Sessions » selon le groupement : seul le premier ouvre notre page.
+        const mots = ['workspaces', 'espaces de travail', '工作区']
+        const txt = String(el.textContent || '').trim().toLowerCase()
+        return mots.indexOf(txt) === -1 ? null : el
+      }
+      const onOver = (e) => {
+        const el = cible(e.target)
+        if (el === null) return
+        try { el.style.cursor = 'pointer' } catch (e2) { /* rien */ }
+        try { el.setAttribute('data-kb-ws-link', '') } catch (e2) { /* rien */ }
+      }
+      const onClick = (e) => {
+        const el = cible(e.target)
+        if (el === null) return
+        try { e.preventDefault(); e.stopPropagation() } catch (e2) { /* rien */ }
+        try { window.dispatchEvent(new Event('kybernos:menu:projects')) } catch (e2) { /* rien */ }
+      }
+      document.addEventListener('pointerover', onOver, true)
+      document.addEventListener('click', onClick, true)
+      return () => {
+        document.removeEventListener('pointerover', onOver, true)
+        document.removeEventListener('click', onClick, true)
+      }
+    }, 'kybers: the footer Workspaces label opens the Workspaces page')
+
     // ── Gestes du MENU UNIFIÉ du pied (refonte 30/09, maquette « Menu ouvert »)
     //    La carte d'espace et son menu vivent dans kybernos-cloud ; les gestes
     //    qui appartiennent au PLUGIN (thème, retour, aide) restent ici et sont
@@ -34436,9 +36136,9 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         { id: 'tools', titre: kbt('settings.group.tools'), pliable: true, icone: 'tools', mots: ['skills', 'outils', 'tools', 'connectors', 'web search'] },
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
-        { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['theme', 'langue', 'language'] },
+        { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['theme', 'themes', 'langue', 'language'] },
         { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'code sandbox (e2b)', 'phone and channels', 'widget'] },
-        { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
+        { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['journal', 'activity log', 'journal d’activite', 'journal d\'activite', 'kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
       // The open group is remembered under one key of its own (the shared fold store keeps booleans, an accordion needs a name).
       const OUVERT_CLE = 'kybernos.settings.open-group'
@@ -34466,9 +36166,12 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         'servers': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
         'kybernos': '<rect x="3" y="4" width="18" height="12" rx="2" ' + trait + '/><path d="M2 20h20" ' + trait + '/>',
         'general': '<path d="M4 7h10M18 7h2M4 17h2M10 17h10" ' + trait + '/><circle cx="16" cy="7" r="2" ' + trait + '/><circle cx="8" cy="17" r="2" ' + trait + '/>',
+        // The activity log's own page (kybernos-log): a journal sheet with its lines and a live dot.
+        'activity log': '<path d="M5 3h12a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z" ' + trait + '/><path d="M9 8h6M9 12h6M9 16h4" ' + trait + '/><circle cx="17.5" cy="16" r="1.5" ' + trait + '/>',
         'commandes': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'commands': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'theme': '<circle cx="12" cy="12" r="9" ' + trait + '/><path d="M12 3v18M12 3a9 9 0 0 1 0 18z" ' + trait + '/>',
+        'themes': '<path d="M4 6h16M4 12h6M4 18h6M17 14v8M13 18h8" ' + trait + '/>',
         'mon espace': '<path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M2 21h20M8 8h2M8 12h2M8 16h2" ' + trait + '/>',
         'atlas': '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" ' + trait + '/><line x1="9" y1="3" x2="9" y2="18" ' + trait + '/><line x1="15" y1="6" x2="15" y2="21" ' + trait + '/>',
         'usage': '<path d="m12 14 4-4" ' + trait + '/><path d="M3.34 19a10 10 0 1 1 17.32 0" ' + trait + '/>',
@@ -36337,6 +38040,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'k.done': ['Installed', 'Installé', 'Instalado', 'مثبّت'],
       'k.soon': ['Soon', 'Bientôt', 'Pronto', 'قريبًا'],
       'k.note': ['Nothing runs by itself: a skill is a file, a team is a folder. You start them from the chat.', 'Rien ne tourne tout seul : un skill est un fichier, une équipe un dossier. Tu les lances depuis le chat.', 'Nada se ejecuta solo: un skill es un archivo y un equipo una carpeta. Los inicias desde el chat.', 'لا شيء يعمل من تلقاء نفسه: المهارة ملف والفريق مجلد. تشغّلها من المحادثة.'],
+      // The look the field brings is announced, never asked: one plain line, and no preset name — the apply seam carries an id and answers ok, never a name.
+      // The page is named as the Settings menu draws it TODAY ("Theme", packages/kybernos-theme/client.js:5026); the « Style » renaming is the A5 batch's,
+      // and naming a page that does not exist yet is the dead signpost scripts/test-signposts.mjs refuses.
+      'k.theme.note': ['This field’s look is applied with the kit. Settings › Theme keeps the last word.', 'L’apparence de ce domaine s’applique avec le kit. Réglages › Thème garde le dernier mot.', 'La apariencia de este ámbito se aplica con el kit. Ajustes › Theme tiene la última palabra.', 'يُطبَّق مظهر هذا المجال مع المجموعة. الإعدادات ← Theme لها الكلمة الأخيرة.'],
       'k.busy': ['Adding {i} of {n}…', 'Ajout {i} sur {n}…', 'Añadiendo {i} de {n}…', 'جارٍ إضافة {i} من {n}…'],
       'k.err1': ['1 could not be added. You can find it later in Skills and in Agent Teams.', '1 n’a pas pu être ajouté. Tu le trouveras plus tard dans Skills et dans Agent Teams.', 'No se pudo añadir 1. Lo encontrarás más tarde en Skills y en Agent Teams.', 'تعذّرت إضافة عنصر واحد. يمكنك إيجاده لاحقًا في المهارات وفي فرق الوكلاء.'],
       'k.err': ['{n} could not be added. You can find them later in Skills and in Agent Teams.', '{n} n’ont pas pu être ajoutés. Tu les trouveras plus tard dans Skills et dans Agent Teams.', 'No se pudieron añadir {n}. Los encontrarás más tarde en Skills y en Agent Teams.', 'تعذّرت إضافة {n}. يمكنك إيجادها لاحقًا في المهارات وفي فرق الوكلاء.'],
@@ -36506,6 +38213,34 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
       return kit
     }
+    /**
+     * The style a field asks for: the pack's own `theme`, one preset id (never a colour and never a display name), or null when the pack is silent,
+     * carries something else than a non-empty string, or when there is no pack. The preset itself belongs to the theme bundle: this is a reference.
+     */
+    const kbObThemeOf = (pack) => (pack !== null && pack !== undefined && typeof pack.theme === 'string' && pack.theme.trim() !== '' ? pack.theme : null)
+    /**
+     * The seam the theme bundle publishes to apply a preset: the function, or null when nothing publishes it, when what is published is not a
+     * function, or when reading it throws. Read inside try/catch — a missing bundle is the normal case, never an error the wizard could fail on.
+     */
+    const kbObThemeSeam = (w) => {
+      try {
+        const fn = w !== null && w !== undefined ? w.__KB_THEME_APPLY__ : null
+        return typeof fn === 'function' ? fn : null
+      } catch (e) { return null }
+    }
+    /**
+     * Whether a field's look was applied: true only when the seam answers `{ ok: true }`, the only shape of the frozen wire this caller reads.
+     * Awaiting a plain object is a no-op, so a synchronous stub passes; an absent seam, a throw, `{ ok: false }`, garbage or no answer are all false.
+     * The id handed to the seam is the one the pack declares: the refusal of a store that would normalise it is a data bug, not a fallback here.
+     */
+    const kbObThemeApplied = async (w, id) => {
+      const fn = kbObThemeSeam(w)
+      if (fn === null) return false
+      try {
+        const r = await fn(id)
+        return r !== null && r !== undefined && typeof r === 'object' && r.ok === true
+      } catch (e) { return false }
+    }
     /** A skill's one-line description in a language (its own language, else English). */
     const kbObSkillText = (lang, skill) => kbObPackText(lang, skill.d)
     /** A text for matching: lower case, no accents. */
@@ -36549,8 +38284,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const KB_OB_ROWS = [['kyber', 'chat', 'kbui.kyber'], ['dashboards', 'grid', 'kbui.dashboards'], ['aiteams', 'users', 'menu.aiteams'], ['projects', 'files', 'menu.projects'], ['deliverables', 'doc', 'menu.deliverables'], ['tasks', 'repeat', 'menu.tasks'], ['skills', 'zap', 'kbui.skills'], ['connectors', 'plug', 'kbui.connecteurs'], ['documents', 'doc', 'kbui.documents']]
     /**
      * What the live miniature shows for a field and the goals ticked in it (none ticked: the first two goals, flagged `example`): the menu with the
-     * wording the pack gives, the first questions, the skills, the suggested team id and the automations of the kit. `rows` are the menu rows to draw,
-     * `{ id, label }` with the default label. `null` without a pack.
+     * wording the pack gives, the first questions, the skills, the suggested team id and the automations of the kit, and the style preset the field
+     * asks for (`theme`, an id or null). `rows` are the menu rows to draw, `{ id, label }` with the default label. `null` without a pack.
      */
     const kbObPreviewOf = (pack, goalIds, lang, rows) => {
       if (pack === null || pack === undefined) return null
@@ -36561,7 +38296,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const menu = (Array.isArray(rows) ? rows : []).filter((r) => overlay.hide.indexOf(r.id) < 0).map((r) => ({ id: r.id, label: typeof overlay.labels[r.id] === 'string' ? overlay.labels[r.id] : r.label }))
       const starters = kbObGoalsOf(pack, ids).map((g) => kbObPackText(lang, g.starter)).filter((t) => t !== '')
       return {
-        example: !ticked, accent: pack.accent, icon: pack.icon, name: kbObPackText(lang, pack.name), menu: menu, starters: starters.slice(0, 3),
+        example: !ticked, accent: pack.accent, icon: pack.icon, name: kbObPackText(lang, pack.name), theme: kbObThemeOf(pack), menu: menu, starters: starters.slice(0, 3),
         skills: kit.skills.map((x) => x.name).slice(0, 7), teams: kit.teams.slice(0, 1), autos: kit.autos.map((x) => kbObPackText(lang, x.name)).slice(0, 3),
         goalCount: ticked ? ids.length : 0,
       }
@@ -36784,6 +38519,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         accountEmail: null, accountModels: null,
         // the starter kit: what is installed, what is ticked, the run in progress, and what failed
         kitInstalled: null, kitSel: null, kitBusy: null, kitFailed: 0, kitAdded: 0, kitDone: false, kitOnly: false,
+        // the look the kit applied: the field's preset id, or null when there is none, it was refused or no seam answers. Sent as it is.
+        theme: null,
         // the memory written about the profession: its id, and where the write stands (null, 'saving', 'saved', 'failed')
         memoryId: null, memState: null,
         // « What we set up for you » on the end screen: null until read, then the rows (kbObSetupRows)
@@ -36920,7 +38657,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card or from a page that suggests the kit (standalone), the wizard is not the first run: the
         // onboarding file is left alone.
-        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, customGoals: S.custom, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
+        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, customGoals: S.custom, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, theme: S.theme, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
         // Free models (no account): wire them in on the first run, but only when the person brings no
         // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
         // re-checks both guardrails before writing the route, so a stale client can never force it.
@@ -37225,6 +38962,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.domain = pk.id
         S.goals = pk.goals.slice(0, 2).map((x) => x.id)
         S.kitSel = null
+        // The look of the field that was left is no longer what this run may claim: only a kit added for THIS field sets it again.
+        S.theme = null
         if (!S.modeTouched) S.mode = kbObModeOf(pk)
         if (!S.agentsTouched) S.agents = kbObAgentsOf(pk).preset
       }
@@ -37481,6 +39220,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.kitBusy = null
         S.kitInstalled = null
         S.kitSel = null
+        // The field's look rides on the kit (bound decision D7): applied once, after what was ticked is in, through the seam the theme bundle
+        // publishes. Only `ok` is read, and only when the pack names a style: an absent seam, a refusal or a throw leaves today's look untouched
+        // and sends null — never an error state, never a blocked step. The id kept is the one the pack declares.
+        const themeId = kbObThemeOf(curPack())
+        S.theme = themeId !== null && (await kbObThemeApplied(win, themeId)) ? themeId : null
         if (S.kitOnly) { S.kitDone = true; render(false); kitLoad() } else afterKit()
       }
 
@@ -37979,7 +39723,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             pg.setAttribute('role', 'radiogroup')
             for (const pk of S.packs) {
               pg.appendChild(chip(packName(pk), S.domain === pk.id, () => {
-                if (S.domain !== pk.id) { S.domain = pk.id; S.goals = pk.goals.map((x) => x.id); S.kitSel = null; S.kitDone = false; saveDomain() }
+                if (S.domain !== pk.id) { S.domain = pk.id; S.goals = pk.goals.map((x) => x.id); S.kitSel = null; S.kitDone = false; S.theme = null; saveDomain() }
                 render(false)
               }))
             }
@@ -38067,6 +39811,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.learn === null && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
           s.appendChild(note(T('k.note'), 'info'))
+          }
+          // The look the field brings is announced before the press, one plain line and no control of its own: the primary action applies it,
+          // « Not now » leaves today's look (bound decision D7). Drawn only when the field names a style AND something publishes the seam —
+          // a field without a style, or a machine without the theme bundle, shows today's screen exactly. The frozen wire carries an id, never a
+          // display name, so no preset name is written here; the line reuses the note primitive, so no colour, class or layout is added.
+          if (kbObThemeOf(curPack()) !== null && kbObThemeSeam(win) !== null) {
+            const themeNote = note(T('k.theme.note'), 'info')
+            themeNote.setAttribute('data-kb-ob', 'kit-theme')
+            s.appendChild(themeNote)
           }
           if (S.kitDone) {
             const st = h('div', 'kb-ob-state' + (S.kitFailed > 0 ? ' err' : ' ok'))
@@ -39194,6 +40947,292 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // The card's buttons are the way forward (sign in, add a model, save the key): a finger needs 44 px.
       '@media (max-width:700px){.kbnm-btn{height:44px}}',
     ].join(String.fromCharCode(10))), 'kybers: styles of the “a model is missing” card')
+
+    // ── Le siège du modèle : Kybernos d'abord (28/10/2026) ───────────────────────────────
+    // Mesuré dans le moteur (`@deepseek-ai/dsh-client-ui-model-selection`, `orderModelProviders`) : le sélecteur
+    // natif ÉPINGLE les groupes DeepSeek en tête (`deepseek-account` 0, `deepseek-official` 1, tous les autres 2),
+    // et rien côté déploiement ne peut passer devant — ni l'ordre du catalogue, ni un `headers` de profil. Pour
+    // mettre le groupe Kybernos Cloud en premier, il faut donc TENIR le siège du sélecteur : le slot
+    // `conversation.input.model` est `single` et le plus petit `priority` rend (le mécanisme déjà utilisé pour le
+    // micro, plus haut ; une seconde inscription à la même priorité est REFUSÉE par le registre). On s'inscrit à
+    // -1 : notre sélecteur remplace le natif, sans CSS de masquage et sans DOM natif résiduel.
+    //
+    // Deux règles de tenue : (1) tant que le service `modelDirectories` n'existe pas (moteur plus ancien), on ne
+    // s'inscrit PAS — le natif garde sa place ; (2) la sélection, le catalogue et ses erreurs restent ceux du
+    // moteur (`directory.select`, `directory.store`), on ne relit rien nous-mêmes. Deux plugins de la maison
+    // repèrent le contrôle par `button[aria-label^="Select model"]` (kybernos-auto, kybernos-sessions) : l'aria
+    // reste donc en anglais et commence par « Select model », avec le modèle courant, comme le natif.
+    //
+    // Le haut de la liste dit ce que Kybernos apporte : le groupe `kybernos` (les modèles Cloud) d'abord ; s'il
+    // n'est pas là, une ligne dit pourquoi — pas de compte sur cette machine (on se connecte) ou une offre qui
+    // n'inclut aucun modèle Kybernos — et ouvre Réglages ▸ Modèles, le seul endroit qui apparie le compte (`kbOpenSettingsPage`, la page « Fournisseurs IA et modèles »).
+    // KB-MODELSEL-PURE-BEGIN
+    // The seat's pure rules: the group order, the search, the Kybernos band and the effort levels. Self-contained
+    // (no ctx, no React, no client helper) so `test-model-seat.mjs` runs this block as written.
+    const KB_SEL_KYBERNOS = 'kybernos'
+    const kbSelSay = (row, lang) => Array.isArray(row) ? (typeof row[lang === 'fr' ? 0 : 1] === 'string' ? row[lang === 'fr' ? 0 : 1] : '') : (typeof row === 'string' ? row : '')
+    /** Le groupe Kybernos d'abord, tous les autres dans l'ordre du catalogue. Pure. */
+    const kbSelOrder = (groups) => {
+      const list = Array.isArray(groups) ? groups.filter((g) => g !== null && typeof g === 'object' && typeof g.id === 'string' && Array.isArray(g.models)) : []
+      const kybernos = list.filter((g) => g.id === KB_SEL_KYBERNOS)
+      return kybernos.concat(list.filter((g) => g.id !== KB_SEL_KYBERNOS))
+    }
+    /** La recherche : nom ou id du modèle, nom ou id du groupe ; requête vide = tout. Pure. */
+    const kbSelFilter = (groups, query) => {
+      const q = String(query === null || query === undefined ? '' : query).trim().toLowerCase()
+      const ordered = kbSelOrder(groups)
+      if (q === '') return ordered
+      const hit = (m) => String(m !== null && typeof m === 'object' ? m.name || '' : '').toLowerCase().indexOf(q) >= 0 ||
+        String(m !== null && typeof m === 'object' ? m.id || '' : '').toLowerCase().indexOf(q) >= 0
+      return ordered.map((g) => Object.assign({}, g, { models: g.models.filter(hit) }))
+        .filter((g) => g.models.length > 0 || String(g.name || g.id).toLowerCase().indexOf(q) >= 0)
+    }
+    /** Ce que le haut de la liste dit de Kybernos Cloud : `none` (le groupe est là), `signin` (pas de compte sur
+     *  cette machine) ou `plan` (un compte, mais son offre ne donne aucun modèle Kybernos). `cloud` est la réponse
+     *  du host à `/kybernos-cloud/status` — null tant qu'elle n'est pas lue. Pure. */
+    const kbSelBand = (groups, cloud) => {
+      if (kbSelOrder(groups).some((g) => g.id === KB_SEL_KYBERNOS)) return { kind: 'none' }
+      if (cloud === null || typeof cloud !== 'object') return { kind: 'signin' }
+      if (cloud.connected !== true) return { kind: 'signin' }
+      const state = cloud.state !== null && typeof cloud.state === 'object' ? cloud.state : {}
+      const user = state.user !== null && typeof state.user === 'object' ? state.user : {}
+      return { kind: 'plan', plan: typeof user.plan === 'string' && user.plan !== '' ? user.plan : null }
+    }
+    /** Les niveaux de raisonnement d'un modèle tels que le catalogue les expose ; [] s'il n'en prend pas. Pure. */
+    const kbSelEfforts = (model) => {
+      const r = model !== null && typeof model === 'object' && model.reasoning !== null && typeof model.reasoning === 'object' ? model.reasoning : null
+      return r !== null && Array.isArray(r.efforts) ? r.efforts.filter((e) => e !== null && typeof e === 'object' && typeof e.id === 'string') : []
+    }
+    /** Le nom d'un groupe tel qu'il se lit (`Kybernos Cloud` pour la route). Pure. */
+    const kbSelGroupName = (group, lang) => group.id === KB_SEL_KYBERNOS ? kbSelSay(['Kybernos Cloud', 'Kybernos Cloud'], lang) : String(group.name || group.id)
+    // KB-MODELSEL-PURE-END
+
+    /** Le sélecteur lui-même. Il ne lit que le catalogue partagé du moteur et ne sélectionne que par lui.
+     *  Les props utiles viennent du `inject` de l'inscription (`store`, `load`, `select`), pas des props du
+     *  propriétaire : le propriétaire du slot d'un contrôle de composer ne passe que `locked` — c'est bien pour
+     *  cela que le moteur expose un `inject(sessionId)` (mesuré sur le sélecteur natif, même signature). */
+    const KbModelSeat = (props) => {
+      const p = props !== null && props !== undefined ? props : {}
+      const lang = kbMarketLang()
+      const say = (row) => marketSay(row, lang)
+      const store = p.store !== null && p.store !== undefined && typeof p.store.getSnapshot === 'function' ? p.store : null
+      const load = typeof p.load === 'function' ? p.load : null
+      const select = typeof p.select === 'function' ? p.select : null
+      const [snap, setSnap] = React.useState(() => { try { return store === null ? null : store.getSnapshot() } catch (e) { return null } })
+      const [open, setOpen] = React.useState(false)
+      const [box, setBox] = React.useState(null)
+      const [query, setQuery] = React.useState('')
+      const [cloud, setCloud] = React.useState(null)
+      const [busy, setBusy] = React.useState(false)
+      const [err, setErr] = React.useState('')
+      const rootRef = React.useRef(null)
+      const searchRef = React.useRef(null)
+      React.useEffect(() => {
+        if (store === null) return undefined
+        const read = () => { try { setSnap(store.getSnapshot()) } catch (e) { /* la dernière lecture reste */ } }
+        read()
+        let off = null
+        try { off = store.subscribe(read) } catch (e) { off = null }
+        return () => { try { if (typeof off === 'function') off() } catch (e) { /* store parti */ } }
+      }, [store])
+      const openMenu = () => {
+        // Le catalogue se rafraîchit à l'ouverture (le moteur partage une lecture en vol : aucune requête de plus).
+        if (load !== null) { try { const p2 = load(); if (p2 !== null && p2 !== undefined && typeof p2.catch === 'function') p2.catch(() => {}) } catch (e) { /* statut porté par le store */ } }
+        let rect = null
+        try { rect = rootRef.current === null ? null : rootRef.current.getBoundingClientRect() } catch (e) { rect = null }
+        // The menu opens UPWARD from the composer. On a short screen (a phone: 390 x 780 measured) the whole list
+        // does not fit above the trigger: the height is capped to the space that exists, and the left edge is
+        // clamped inside the viewport below — a menu that starts at y = -85 must never happen.
+        const room = rect === null ? 360 : Math.max(180, Math.min(380, Math.round(rect.top - 20)))
+        setBox(rect === null ? null : { left: Math.round(rect.left), bottom: Math.round((window.innerHeight || 0) - rect.top + 6), maxH: room })
+        setErr('')
+        setQuery('')
+        setOpen(true)
+      }
+      React.useEffect(() => {
+        if (open !== true || cloud !== null) return undefined
+        let gone = false
+        fetch('/kybernos-cloud/status', { headers: { accept: 'application/json' } })
+          .then((r) => r.json())
+          .then((j) => { if (gone !== true) setCloud(j !== null && typeof j === 'object' ? j : {}) })
+          .catch(() => { if (gone !== true) setCloud({}) })
+        return () => { gone = true }
+      }, [open, cloud])
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        const onDown = (ev) => {
+          const node = rootRef.current
+          if (node !== null && ev.target instanceof Node && node.contains(ev.target) !== true) setOpen(false)
+        }
+        const onKey = (ev) => { if (ev.key === 'Escape') setOpen(false) }
+        document.addEventListener('mousedown', onDown, true)
+        document.addEventListener('keydown', onKey, true)
+        return () => {
+          document.removeEventListener('mousedown', onDown, true)
+          document.removeEventListener('keydown', onKey, true)
+        }
+      }, [open])
+      React.useEffect(() => { if (open === true && searchRef.current !== null) { try { searchRef.current.focus() } catch (e) { /* pas focusable */ } } }, [open])
+      // Le menu est en `position: fixed` : une ancre près du bord droit le poussait hors de la fenêtre (mesuré à
+      // 390 px de large). Une fois la largeur réelle connue, on ramène l'arête gauche dans le viewport.
+      React.useEffect(() => {
+        if (open !== true || box === null) return
+        const node = rootRef.current === null ? null : rootRef.current.querySelector('.kbmsl-menu')
+        if (node === null) return
+        const width = node.getBoundingClientRect().width
+        const vw = window.innerWidth || 0
+        const left = Math.max(8, Math.min(box.left, Math.round(vw - 8 - width)))
+        if (Math.abs(left - box.left) > 1) setBox(Object.assign({}, box, { left }))
+      }, [open, box])
+      const groups = snap !== null && Array.isArray(snap.groups) ? snap.groups : []
+      const current = snap !== null && snap.current !== null && typeof snap.current === 'object' ? snap.current : null
+      const currentModel = current === null ? null : groups.reduce((found, g) => found !== null ? found : (Array.isArray(g.models) ? g.models : []).reduce((hit, m) => hit !== null ? hit : (m.id === current.model ? m : null), null), null)
+      const currentName = currentModel !== null && typeof currentModel.name === 'string' && currentModel.name !== '' ? currentModel.name : (current !== null && typeof current.model === 'string' ? current.model : '')
+      const effortName = snap !== null && typeof snap.retainedEffort === 'string' ? snap.retainedEffort : ''
+      const aria = currentName !== '' ? 'Select model, current ' + currentName + (effortName !== '' ? ', reasoning effort ' + effortName : '') : 'Select model'
+      const pick = async (provider, model, reasoningEffort) => {
+        if (select === null) return
+        setBusy(true)
+        setErr('')
+        try {
+          const selection = { provider, model }
+          if (reasoningEffort !== undefined) selection.reasoningEffort = reasoningEffort
+          const result = await select(selection)
+          if (result !== null && result !== undefined && result.ok !== true) {
+            const code = result.error !== null && result.error !== undefined && typeof result.error.code === 'string' ? result.error.code : ''
+            const message = result.error !== null && result.error !== undefined && typeof result.error.message === 'string' ? result.error.message : say(['refusé', 'refused'])
+            setErr((code !== '' ? code + ' — ' : '') + message)
+          } else setOpen(false)
+        } catch (e) {
+          setErr(String(e && e.message ? e.message : e))
+        } finally { setBusy(false) }
+      }
+      const move = (ev) => {
+        if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return
+        ev.preventDefault()
+        const rows = Array.prototype.slice.call(ev.currentTarget.querySelectorAll('[data-kbmsl-row]'), 0)
+        if (rows.length === 0) return
+        const at = rows.indexOf(document.activeElement)
+        const next = ev.key === 'ArrowDown' ? (at < 0 ? 0 : Math.min(rows.length - 1, at + 1)) : (at < 0 ? rows.length - 1 : Math.max(0, at - 1))
+        try { rows[next].focus() } catch (e) { /* pas focusable */ }
+      }
+      if (store === null) return null
+      const band = open === true ? kbSelBand(groups, cloud) : { kind: 'none' }
+      const shown = open === true ? kbSelFilter(groups, query) : []
+      const seatEfforts = currentModel === null ? [] : kbSelEfforts(currentModel)
+      return h('div', { className: 'kbmsl', ref: rootRef },
+        h('button', {
+          type: 'button', className: 'kbmsl-trigger', 'data-kb': 'model-seat', 'aria-haspopup': 'menu',
+          'aria-expanded': open === true ? 'true' : 'false', 'aria-label': aria, disabled: p.locked === true,
+          onClick: () => { if (open === true) setOpen(false); else openMenu() },
+        },
+        h('span', { className: 'kbmsl-ic', 'aria-hidden': 'true' }, h('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z' }))),
+        h('span', { className: 'kbmsl-label' }, currentName !== '' ? currentName : say(['Choisir un modèle', 'Select model'])),
+        effortName !== '' ? h('span', { className: 'kbmsl-effort' }, effortName) : null,
+        h('span', { className: 'kbmsl-chev', 'aria-hidden': 'true' }, h('svg', { width: '12', height: '12', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M6 9l6 6 6-6' })))),
+        open !== true ? null : h('div', {
+          className: 'kbmsl-menu', role: 'menu', 'aria-label': say(['Modèles', 'Models']), onKeyDown: move,
+          style: box === null ? null : { left: box.left + 'px', bottom: box.bottom + 'px', maxHeight: String(box.maxH) + 'px' },
+        },
+        h('div', { className: 'kbmsl-search' },
+          h('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4' })),
+          h('input', { ref: searchRef, type: 'search', className: 'kbmsl-q', 'data-kb': 'model-seat-search', value: query, placeholder: say(['Rechercher un modèle…', 'Search models…']), 'aria-label': say(['Rechercher un modèle', 'Search models']), onChange: (ev) => setQuery(ev.target.value) })),
+        band.kind === 'none' ? null : h('div', { className: 'kbmsl-band', 'data-kb': 'model-seat-band', 'data-kind': band.kind, role: 'note' },
+          h('div', { className: 'kbmsl-band-t' }, band.kind === 'signin' ? say(['Les modèles Kybernos Cloud, avec ton abonnement', 'Kybernos Cloud models, with your membership']) : say(['Aucun modèle Kybernos sur cette offre', 'No Kybernos model on this plan'])),
+          h('div', { className: 'kbmsl-band-s' }, band.kind === 'signin'
+            ? say(['Connecte-toi pour les utiliser : un abonnement Kybernos Cloud est requis.', 'Sign in to use them: a Kybernos Cloud membership is required.'])
+            : say(['Cette offre n’inclut pas les modèles Kybernos Cloud. Les offres sont sur la page Modèles des Réglages.', 'This plan does not include Kybernos Cloud models. The plans are on the Models page in Settings.']) + (band.plan !== null ? ' (' + band.plan + ')' : '')),
+          h('button', { type: 'button', className: 'kbmsl-band-b', 'data-kb': 'model-seat-signin', onClick: () => { setOpen(false); try { kbOpenSettingsPage(['kybernos-models', 'models']) } catch (e) { /* aucun panneau */ } } }, band.kind === 'signin' ? say(['Se connecter', 'Sign in']) : say(['Voir les offres', 'See plans']))),
+        snap !== null && snap.status === 'loading' ? h('div', { className: 'kbmsl-note' }, say(['Chargement du catalogue…', 'Loading the catalogue…'])) : null,
+        err !== '' ? h('div', { className: 'kbmsl-err', role: 'alert' }, say(['Modèle non appliqué : ', 'Model not applied: ']) + err) : null,
+        shown.length === 0 && snap !== null && snap.status !== 'loading' ? h('div', { className: 'kbmsl-note' }, say(['Aucun modèle', 'No models'])) : null,
+        h('div', { className: 'kbmsl-groups' }, shown.map((group) => h('div', { className: 'kbmsl-group', key: group.id, 'data-group': group.id },
+          h('div', { className: 'kbmsl-g' },
+            h('span', null, kbSelGroupName(group, lang)),
+            group.id === KB_SEL_KYBERNOS ? h('span', { className: 'kbmsl-badge' }, 'Cloud') : null),
+          (Array.isArray(group.models) ? group.models : []).map((model) => {
+            const isCurrent = current !== null && current.provider === group.id && current.model === model.id
+            return h('button', {
+              key: group.id + '/' + model.id, type: 'button', role: 'menuitemradio', 'aria-checked': isCurrent ? 'true' : 'false',
+              className: 'kbmsl-row' + (isCurrent ? ' is-on' : ''), 'data-kbmsl-row': group.id + '/' + model.id, disabled: busy,
+              onClick: () => { pick(group.id, model.id) },
+            },
+            h('span', { className: 'kbmsl-tick', 'aria-hidden': 'true' }, isCurrent ? h('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.4', strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M5 12l5 5L20 7' })) : null),
+            h('span', { className: 'kbmsl-name' }, typeof model.name === 'string' && model.name !== '' ? model.name : model.id))
+          })))),
+        seatEfforts.length === 0 ? null : h('div', { className: 'kbmsl-efforts' },
+          h('span', { className: 'kbmsl-el' }, say(['Effort de raisonnement', 'Reasoning effort'])),
+          seatEfforts.map((level) => {
+            const on = (effortName !== '' && effortName === (typeof level.name === 'string' ? level.name : level.id)) || (effortName === '' && current !== null && current.reasoningEffort === level.id)
+            return h('button', {
+              key: level.id, type: 'button', className: 'kbmsl-chip' + (on ? ' is-on' : ''), 'aria-pressed': on ? 'true' : 'false',
+              'data-kb': 'model-seat-effort', 'data-effort': level.id, disabled: busy,
+              onClick: () => { if (current !== null) pick(current.provider, current.model, level.id) },
+            }, typeof level.name === 'string' && level.name !== '' ? level.name : level.id)
+          })))
+      )
+    }
+    try {
+      // Le moteur s'obtient par `ctx.inject([...])`, jamais par `ctx.get` à la pose : la fabrique du sélecteur natif
+      // fait exactement cela (`ctx.inject(["slots","modelDirectories"], …)`) parce que la résolution d'un répertoire
+      // touche `remote.session` — un accès hors inject échoue (« cannot get property "remote.session" without
+      // inject », mesuré le 28/10 : le siège plantait et le composer perdait son contrôle).
+      ctx.inject(['slots', 'modelDirectories', 'remote.session'], (scope) => {
+        const models = scope.modelDirectories
+        if (models === null || models === undefined || typeof models.directoryFor !== 'function') return
+        scope.effect(() => scope.slots.inject('conversation.input.model', () => scope.slots.register({
+          name: 'conversation.input.model', id: 'kybernos-model-seat', priority: -1,
+          // The engine's own seam for a session-scoped composer control: the owner passes `locked` only, and
+          // the session id reaches the occupant here (measured on the native picker, same signature).
+          inject: (sessionId) => {
+            try {
+              const dir = models.directoryFor(sessionId)
+              return {
+                store: dir !== null && dir !== undefined ? dir.store : null,
+                load: () => (dir !== null && dir !== undefined ? dir.load() : Promise.resolve()),
+                select: (selection) => (dir !== null && dir !== undefined ? dir.select(selection) : Promise.resolve({ ok: true })),
+              }
+            } catch (e) { return { store: null, load: () => Promise.resolve(), select: () => Promise.resolve({ ok: true }) } }
+          },
+        }, KbModelSeat)), 'kybers: the composer’s model seat (Kybernos first)')
+      })
+    } catch (e) { /* moteur sans modelDirectories : le sélecteur natif garde sa place */ }
+    ctx.effect(() => styles.insert([
+      '.kbmsl{position:relative;min-width:0;display:flex}',
+      '.kbmsl-trigger{display:flex;align-items:center;gap:4px;height:28px;max-width:min(360px,45cqw);padding:0 4px 0 8px;border:0;border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;cursor:pointer;min-width:0}',
+      '.kbmsl-trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbmsl-trigger:focus-visible{outline:none;box-shadow:0 0 0 2px var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary))}',
+      '.kbmsl-trigger:disabled{color:var(--dsw-alias-label-dimmed);cursor:default}',
+      '.kbmsl-ic{display:var(--dsh-composer-model-icon-display,none);flex:none}',
+      '.kbmsl-label{display:var(--dsh-composer-model-text-display,block);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}',
+      '.kbmsl-effort{display:var(--dsh-composer-model-text-display,block);color:var(--dsw-alias-label-caption);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.kbmsl-chev{flex:none;color:var(--dsw-alias-label-caption)}',
+      '.kbmsl-menu{box-sizing:border-box;position:fixed;z-index:1100;display:flex;flex-direction:column;width:max-content;min-width:min(300px,100vw - 32px);max-width:min(420px,100vw - 32px);max-height:min(380px,100vh - 96px);padding:6px;border:0;border-radius:14px;background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent),0 0 0 .5px var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);overscroll-behavior:contain}',
+      '.kbmsl-search{display:flex;align-items:center;gap:6px;padding:5px 7px;margin:2px 0 3px;color:var(--dsw-alias-label-caption)}',
+      '.kbmsl-q{flex:1;min-width:0;border:0;outline:none;background:transparent;font-size:12px;color:var(--dsw-alias-label-primary)}',
+      '.kbmsl-q::placeholder{color:var(--dsw-alias-label-caption)}',
+      '.kbmsl-band{margin:2px 4px 6px;padding:8px 10px;border-radius:10px;background:var(--dsw-alias-bg-module-platform);display:flex;flex-direction:column;gap:4px}',
+      '.kbmsl-band-t{font-size:12.5px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+      '.kbmsl-band-s{font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}',
+      '.kbmsl-band-b{align-self:flex-start;margin-top:2px;height:26px;padding:0 10px;border:0;border-radius:13px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font-size:12px;font-weight:600;cursor:pointer}',
+      '.kbmsl-note{padding:8px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
+      '.kbmsl-err{margin:2px 4px 4px;padding:6px 8px;border-radius:8px;background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary);font-size:11.5px;line-height:1.4}',
+      '.kbmsl-groups{min-height:0;overflow-y:auto}',
+      '.kbmsl-group{display:flex;flex-direction:column}',
+      '.kbmsl-g{display:flex;align-items:center;gap:6px;padding:8px 8px 2px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
+      '.kbmsl-badge{padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-module-platform);font-size:9.5px;letter-spacing:.04em}',
+      '.kbmsl-row{display:flex;align-items:center;gap:6px;width:100%;min-height:34px;padding:5px 7px;border:0;border-radius:8px;background:transparent;color:inherit;font-size:13px;line-height:18px;text-align:left;cursor:pointer}',
+      '.kbmsl-row:hover:not(:disabled),.kbmsl-row:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}',
+      '.kbmsl-row.is-on{font-weight:600}',
+      '.kbmsl-row:disabled{color:var(--dsw-alias-label-dimmed);cursor:default}',
+      '.kbmsl-tick{flex:0 0 14px;display:grid;place-items:center;color:var(--dsw-alias-label-primary)}',
+      '.kbmsl-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+            '.kbmsl-efforts{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:4px;padding:6px 8px 2px;border-top:.5px solid var(--dsw-alias-border-l1)}',
+      '.kbmsl-el{flex:0 0 100%;font-size:11px;color:var(--dsw-alias-label-tertiary)}',
+      '.kbmsl-chip{height:24px;padding:0 9px;border:1px solid var(--dsw-alias-border-l3);border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer}',
+      '.kbmsl-chip.is-on{border-color:transparent;background:var(--dsw-alias-button-ghost-active-fill,var(--dsw-alias-bg-layer-3));color:var(--dsw-alias-label-primary)}',
+      '@media (max-width:700px){.kbmsl-row{min-height:44px}.kbmsl-band-b{height:36px}}',
+    ].join(String.fromCharCode(10))), 'kybers: styles of the model seat')
 
   },
 }

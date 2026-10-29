@@ -1,0 +1,14 @@
+# check-animations-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=14197
+
+  ✓ the theme client was found in the served bundle and swapped
+Animation picker — this checkout in the real GUI
+  ✓ Settings open
+  ✓ the Animation tab opens
+  ✓ the « Add an animation » button is there
+  ✓ the picker lists the 34 examples
+  ✓ the cards are small (at most 120 px wide, 140 px tall)
+  ✓ every drawing is running an animation
+
+✓ 7 checks passed
+

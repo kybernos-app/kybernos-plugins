@@ -1,0 +1,72 @@
+# check-accent-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=28201
+
+  ✓ Settings open
+— dark (DSH default, Dark)
+  ✓ the Theme page opens (its Advanced editor is opened: the shipped themes and the mode cards sit there)
+  ✓ the look is picked
+  ✓ the Suite page opens on its Featured tab
+  ✓ a module detail opens (its tab bar)
+  ✓ the Workers page opens
+  ✓ the scheme is the expected one (dark), no brand attribute
+  ✓ the accent is the orange #ff7a1a (measured #ff7a1a)
+  ✓ the on-accent ink is #0f1115
+  ✓ a module switch that is ON is the accent, 3:1 on its card
+  ✓ the kicker line of a featured card is drawn, in the accent family, 4.5:1 on its card
+  ✓ the selected tab underline of a module is the accent, 3:1 on its bar
+  ✓ Workers shows at least one accent control, and each of them is the accent
+  ✓ the Workers switch is the accent, 3:1
+  ✓ the Workers accent button is the accent with 4.5:1 ink
+  ✓ the current step disc is the accent with 4.5:1 ink
+— light (DSH default, Light)
+  ✓ the Theme page opens (its Advanced editor is opened: the shipped themes and the mode cards sit there)
+  ✓ the look is picked
+  ✓ the Suite page opens on its Featured tab
+  ✓ a module detail opens (its tab bar)
+  ✓ the Workers page opens
+  ✓ the scheme is the expected one (light), no brand attribute
+  ✓ the accent is the light orange #db6916 (3:1 on white) (measured #db6916)
+  ✓ the on-accent ink is #0f1115
+  ✓ a module switch that is ON is the accent, 3:1 on its card
+  ✓ the kicker line of a featured card is drawn, in the accent family, 4.5:1 on its card
+  ✓ the selected tab underline of a module is the accent, 3:1 on its bar
+  ✓ Workers shows at least one accent control, and each of them is the accent
+  ✓ the Workers switch is the accent, 3:1
+  ✓ the Workers accent button is the accent with 4.5:1 ink
+  ✓ the current step disc is the accent with 4.5:1 ink
+— neutre (Neutral violet)
+  ✓ the Theme page opens (its Advanced editor is opened: the shipped themes and the mode cards sit there)
+  ✓ the look is picked
+  ✓ the Suite page opens on its Featured tab
+  ✓ a module detail opens (its tab bar)
+  ✓ the Workers page opens
+  ✓ the scheme is the expected one (light), data-kbth-brand="light dark"
+  ✓ the accent is the look's brand token (measured #6114d4, brand token #6114d4), and not the orange
+  ✓ the on-accent ink is the look's own label pair
+  ✓ a module switch that is ON is the accent, 3:1 on its card
+  ✓ the kicker line of a featured card is drawn, in the accent family, 4.5:1 on its card
+  ✓ the selected tab underline of a module is the accent, 3:1 on its bar
+  ✓ Workers shows at least one accent control, and each of them is the accent
+  ✓ the Workers switch is the accent, 3:1
+  ✓ the Workers accent button is the accent with 4.5:1 ink
+  ✓ the current step disc is the accent with 4.5:1 ink
+— neutre-dark (Neutral violet, Dark)
+  ✓ the Theme page opens (its Advanced editor is opened: the shipped themes and the mode cards sit there)
+  ✓ the look is picked
+  ✓ the Suite page opens on its Featured tab
+  ✓ a module detail opens (its tab bar)
+  ✓ the Workers page opens
+  ✓ the scheme is the expected one (dark), data-kbth-brand="light dark"
+  ✓ the accent is the look's brand token lifted 10 % toward white (measured #9a68e3, brand token #8f57e0), and not the orange
+  ✓ the on-accent ink is the look's own label pair
+  ✓ a module switch that is ON is the accent, 3:1 on its card
+  ✓ the kicker line of a featured card is drawn, in the accent family, 4.5:1 on its card
+  ✓ the selected tab underline of a module is the accent, 3:1 on its bar
+  ✓ Workers shows at least one accent control, and each of them is the accent
+  ✓ the Workers switch is the accent, 3:1
+  ✓ the Workers accent button is the accent with 4.5:1 ink
+  ✓ the current step disc is the accent with 4.5:1 ink
+
+accent measured: dark #ff7a1a · light #db6916 · neutre #6114d4 · neutre-dark #9a68e3
+61 passed, 0 failed
+

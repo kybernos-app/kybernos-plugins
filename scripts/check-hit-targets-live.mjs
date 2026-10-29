@@ -6,7 +6,7 @@
 //   node scripts/check-hit-targets-live.mjs [--worktree]
 //
 // The engine's own controls (DSH class names with a hash: _switch_1ik0f_5, eGxaPq_mark...) are out of reach without patching it: they are
-// listed, not failed. The reorder arrows of Web Search (a stacked pair 15 px wide, 17 px high each) are the one accepted exception of ours.
+// listed, not failed. A stacked pair that reaches 24 px together (WCAG 2.5.8) is one target, so nothing of ours is accepted.
 // --worktree: serve this checkout's clients in the throw-away browser (scripts/lib-bundle-swap.mjs). READ-ONLY. Exit code 0 / 1 / 3.
 import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -25,7 +25,7 @@ const check = (name, ok, detail) => {
 }
 const BUNDLES = ['kybernos-models', 'kybernos-hub', 'kybernos-websearch', 'kybernos-auto', 'kybernos-plugin', 'kybernos-maintenance', 'kybernos-theme', 'kybernos-composio', 'kybernos-modeles-locaux', 'kybernos-skills']
 const ENGINE = /(?:^|\.)[A-Za-z0-9]{5,7}_[A-Za-z0-9]+|_[a-z0-9]{4,6}_\d|\.locked|\.on\b/   // a DSH class: hash + name
-const ACCEPTED = /kwse-move/
+const ACCEPTED = /(?!)/ // nothing of ours: every control reaches 24 px, alone or as a stacked pair
 
 const live = await openLivePage({ width: 1400, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
@@ -67,6 +67,6 @@ const accepted = ours.filter((f) => ACCEPTED.test(f.where))
 const bad = ours.filter((f) => !ACCEPTED.test(f.where))
 console.log('  ' + seen.length + ' controls under 24 px found: ' + engine.length + ' the engine\'s, ' + accepted.length + ' accepted, ' + bad.length + ' ours')
 check('none of our own controls is under 24 px without an invisible hit area', bad.length === 0, bad.map((f) => f.view + ' ' + lastClass(f.where) + ' ' + f.detail.split(' (')[0]))
-check('the only exception of ours is the stacked reorder arrows of Web Search', accepted.every((f) => /kwse-move/.test(f.where)))
+check('nothing of ours is left on the accepted list', accepted.length === 0, accepted.map((f) => f.where))
 console.log(fail === 0 ? '\nOK' : '\n' + fail + ' check(s) failed')
 process.exit(fail === 0 ? 0 : 1)

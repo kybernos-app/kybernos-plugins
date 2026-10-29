@@ -1,0 +1,16 @@
+{
+  "titre": "Kybernos desktop — first run and recovery",
+  "fidelite": "interactive",
+  "fichier": "index.html",
+  "largeur": 1100,
+  "hauteur": 700,
+  "captures": ["welcome-light.png", "installing-light.png", "ready-dark.png", "error-light.png"],
+  "classes_requises": ["kbd-shell", "kbd-rail", "kbd-state", "kbd-steps", "kbd-primary", "kbd-diagnostic"],
+  "etapes": [
+    {"nom": "welcome", "action": "state welcome", "attendu": "Installer Kybernos is the only primary action"},
+    {"nom": "installing", "action": "click Installer Kybernos", "attendu": "the action is disabled and the readiness rail advances"},
+    {"nom": "ready", "action": "wait for completion", "attendu": "Ouvrir Kybernos replaces the install action"},
+    {"nom": "dark", "action": "toggle theme", "attendu": "dark aliases apply without a light panel"},
+    {"nom": "error", "action": "force error", "attendu": "repair and diagnostic actions are available"}
+  ]
+}

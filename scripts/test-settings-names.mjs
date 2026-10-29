@@ -28,9 +28,11 @@ const NAV = {
   'kybernos-maintenance': 'About', 'kybernos-servers': 'Servers', 'kybernos-auto-page': 'Auto Routing', 'kybernos-websearch-page': 'Web Search',
   plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI provider and models', 'agent-presets': 'Agent presets', voice: 'Voice',
   'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama local models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
-  'kybernos-workers': 'Workers', 'kybernos-call': 'Calls', 'kybernos-kaby-customisation': 'Kaby', 'kybernos-usage': 'Usage', 'kybernos-pulse': 'Widget', 'kybernos-automations': 'Automations', 'kybernos-skills': 'Skills', 'kybernos-skills-learned': 'Learned skills',
+  'kybernos-workers': 'Workers', 'kybernos-call': 'Calls', 'kybernos-kaby-customisation': 'Kaby', 'kybernos-usage': 'Usage', 'kybernos-pulse': 'Widget', 'kybernos-log': 'Activity log', 'kybernos-automations': 'Automations', 'kybernos-skills': 'Skills', 'kybernos-skills-learned': 'Learned skills',
   'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-mobile': 'Phone and channels', 'kybernos-computers': 'Code sandbox (E2B)',
   'kybernos-local': 'Kybernos',
+  // The themes listing's Settings section (A7-theme-marketplace): its label is « Thèmes » / « Themes », the menu's title is 'themes'.
+  'kybernos-themes-market': 'Themes',
 }
 
 console.log('the nav')

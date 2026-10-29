@@ -47,6 +47,13 @@ export const AGENT_PRESETS = ['prudent', 'balanced', 'auto']
 const agentPreset = (value) => (typeof value === 'string' && AGENT_PRESETS.indexOf(value) >= 0 ? value : null)
 
 /**
+ * The style preset the wizard starts from: the id of one preset of the style layer, never its settings (Settings › Style has the last word), or null.
+ * The existence of the id is the style layer's business: a preset the person deleted must not make this file unreadable.
+ */
+const THEME_RE = /^[a-z0-9][a-z0-9-]{0,39}$/
+const themeId = (value) => (typeof value === 'string' && THEME_RE.test(value) ? value : null)
+
+/**
  * What the person typed about themselves (the « about you » step): a website, a social profile and a free word, each optional and bounded.
  * It stays in this local file and is never part of what GET answers (that route is served before DSH's own sign-in).
  */
@@ -102,6 +109,7 @@ export const defaultState = (now = new Date()) => ({
   goals: [],
   customGoals: [],
   agents: null,
+  theme: null,
   about: null,
 })
 
@@ -118,6 +126,7 @@ export const publicView = (state) => ({
   memoryId: memoryId(state.memoryId),
   goals: goalList(state.goals),
   agents: agentPreset(state.agents),
+  theme: themeId(state.theme),
 })
 
 /** The person went through (or left) the wizard: record the choices, stamp the date. */
@@ -140,6 +149,8 @@ export const complete = (state, body, now = new Date()) => {
     customGoals: Array.isArray(input.customGoals) ? ownGoalList(input.customGoals) : ownGoalList(state.customGoals),
     // The autonomy the person picked for the agents, and what they said about themselves; a client that sends neither keeps what is saved.
     agents: agentPreset(input.agents) || agentPreset(state.agents),
+    // The style preset the wizard started from: a client that sends no theme keeps the saved one, and removing it is Settings › Style's business.
+    theme: themeId(input.theme) || themeId(state.theme),
     about: input.about !== undefined ? aboutOf(input.about) : aboutOf(state.about),
   }
 }

@@ -15,7 +15,9 @@ const check = (name, ok, detail) => {
 
 const SRC = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
 const start = SRC.indexOf("const GROUPES = [")
-const block = SRC.slice(start, start + 24000)
+// To the end of the organiser effect, not a fixed 24000 chars: adding one drawing to ICONES pushed the observer
+// past the window and failed a check that had nothing to do with it (measured 2026-10-28, kybernos-log).
+const block = SRC.slice(start, SRC.indexOf("'kybers: settings menu groups')", start))
 
 console.log('About closes the list')
 const fin = /const FIN_DE_LISTE = \[([^\]]*)\]/.exec(block)

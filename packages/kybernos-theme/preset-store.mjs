@@ -36,6 +36,13 @@ export const LIMITS = {
 }
 export const MAX_BODY_BYTES = 640 * 1024
 /**
+ * The settings a PRESENTED document (an import, a pack theme file) may NOT carry: contrast, the colour-blind
+ * palette, motion, the focus ring, target sizes and underlined links are the person's own business, not a
+ * style someone else publishes. Defined once here — the settings vocabulary lives in this module — and
+ * re-exported by themes-catalogue.mjs (one frozen list, never a copy).
+ */
+export const A11Y_KEYS = Object.freeze(['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks'])
+/**
  * The settings a preset may carry. Mirrors PRESET_GROUPS in client.js (test-preset-store.mjs
  * fails when the two lists drift): colours always, then font, corners and shadows, menu icons, the chat (your
  * bubble, the frame of the agent's replies), glass and wallpaper, accessibility.
@@ -174,11 +181,97 @@ export function createPresetStore(opts) {
   return { read, write, file }
 }
 
-/** Pure request handler: GET gives the library, POST { library } replaces it. */
+/** The id of a theme named by a document that carries none: the lower-case, dash-separated name, cut to the id length. */
+const presetSlug = (name) => String(name).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'theme'
+
+/** `name (n)`, cut so that the whole stays within LIMITS.name. */
+const presetSuffixed = (name, n) => {
+  const tail = ' (' + n + ')'
+  return name.slice(0, LIMITS.name - tail.length).trim() + tail
+}
+
+/**
+ * An IMPORT (one theme file, a gallery theme, a settings bag) through the host: the only writer of the disk
+ * library from an import. The browser POSTs `{ import }` and adopts what comes back.
+ * input = { name, settings, source?, id?, gid?, v?, author? }
+ * @returns {{ ok: true, id: string, preset: object } | { ok: false, error: string }} — never throws
+ */
+export function applyPreset(store, input) {
+  try {
+    if (!plain(input)) return fail('invalid input')
+    if (typeof input.name !== 'string' || clean(input.name) === '') return fail('invalid name')
+    if (!plain(input.settings)) return fail('settings missing')
+    // The person's accessibility is not something a document may set: refused here as well as in the point,
+    // because this entry is reachable without the registry.
+    for (const k of A11Y_KEYS) if (Object.prototype.hasOwnProperty.call(input.settings, k)) return fail('accessibility setting: ' + k)
+    const read = store.read()
+    if (!plain(read) || read.ok !== true) return fail(plain(read) && typeof read.error === 'string' ? read.error : 'unreadable library')
+    const library = plain(read.library) ? read.library : { presets: [], updatedAt: 0 }
+    const presets = Array.isArray(library.presets) ? library.presets : []
+    const name = clean(input.name)
+    const lower = (s) => clean(s).toLowerCase()
+    const sameName = (p, n) => typeof p.name === 'string' && lower(p.name) === lower(n)
+    // A record belongs to THIS import — never to the person, never to another document — only when it is not one the
+    // person made (`source:'me'`) AND it carries the name this import gives (plain or suffixed). A1-1 freezes both
+    // rules: « the `me` record is never touched (byte for byte) » and « the import never evicts a theme the person
+    // kept ». So a candidate id held by any other record is SKIPPED, never overwritten, and a `me` record is never a
+    // candidate at all — whatever id the document names, and whatever suffix the walk reaches.
+    const ours = (p, n) => p !== undefined && p !== null && p.source !== 'me' && sameName(p, n)
+    const base = typeof input.id === 'string' && ID_RE.test(input.id) ? input.id : presetSlug(name)
+    const named = (n) => presets.find((p) => sameName(p, n))
+    const at = (id) => presets.find((p) => p.id === id)
+    // The identity of an import: the id it is given, else the slug of its name. A name ALREADY carried by another
+    // record yields a free name and the next suffixed id (a second row in « My styles » rather than a silent
+    // failure to apply); walking the suffixes again is how an identical second import finds its record back, so
+    // the collision case stays idempotent too.
+    let id = base
+    let free = null
+    let existing = ours(at(base), name) ? at(base) : null
+    if (existing === null && (at(base) !== undefined || (named(name) !== undefined && named(name).id !== base))) {
+      let found = false
+      for (let i = 2; i <= 999 && found === false; i += 1) {
+        const cand = base + '-' + i
+        const candName = presetSuffixed(name, i)
+        const held = at(cand)
+        if (held !== undefined) { if (ours(held, candName)) { id = cand; existing = held; found = true } } // this very import, applied before
+        else if (named(candName) === undefined) { id = cand; free = named(name) === undefined ? name : candName; found = true }
+      }
+      if (found === false) return fail('no free id')
+    }
+    // The import never evicts a theme the person kept: a full library refuses it, unless it is a record already there.
+    if (existing === null && presets.length >= LIMITS.presets) return fail('library full')
+    const v = sanitizePreset({
+      id,
+      name: existing !== null ? existing.name : (free !== null ? free : name),
+      source: input.source, settings: input.settings, gid: input.gid, v: input.v, author: input.author,
+      at: existing !== null ? existing.at : undefined,
+    })
+    if (v.ok !== true) return fail(v.error)
+    const preset = v.preset
+    const next = presets.filter((p) => p.id !== id).concat([preset])
+    // `updatedAt` moves forward on every import, so the newer-wins rule with the browser copy still converges.
+    const w = store.write({ presets: next, updatedAt: Math.max(Date.now(), (isNum(library.updatedAt) ? library.updatedAt : 0) + 1) })
+    if (!plain(w) || w.ok !== true) return fail(plain(w) && typeof w.error === 'string' ? w.error : 'could not write')
+    return { ok: true, id, preset }
+  } catch (e) { return fail('import failed: ' + errText(e)) }
+}
+
+/**
+ * Pure request handler: GET gives the library; POST writes ONE preset (`{ import }`) or the whole document
+ * (`{ library }`). Both keys, or neither, is a 400: one body means one intention.
+ */
 export function handlePresetStore(store, req) {
   if (req.method === 'GET') return { status: 200, body: store.read() }
   if (req.method === 'POST') {
-    if (!plain(req.body) || !plain(req.body.library)) return { status: 400, body: fail('invalid body') }
+    const hasImport = plain(req.body) && req.body.import !== undefined
+    const hasLibrary = plain(req.body) && req.body.library !== undefined
+    if (hasImport === hasLibrary) return { status: 400, body: fail('invalid body') }
+    if (hasImport) {
+      const out = applyPreset(store, req.body.import)
+      return { status: out.ok === true ? 200 : 400, body: out }
+    }
+    if (!plain(req.body.library)) return { status: 400, body: fail('invalid body') }
     const out = store.write(req.body.library)
     return { status: out.ok === true ? 200 : 400, body: out }
   }

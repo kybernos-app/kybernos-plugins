@@ -1,0 +1,201 @@
+{
+  "source": "/Users/miled/kybernos-plugins/demo/ref-video/source.mp4",
+  "sondage": {
+    "duree": 318.67,
+    "largeur": 640,
+    "hauteur": 360,
+    "fps": 30.0,
+    "audio": true
+  },
+  "plan": {
+    "duree": 318.67,
+    "echantillons_activite": 636,
+    "activite_moyenne": 2.7,
+    "activite_p50": 0.1,
+    "activite_p90": 6.08,
+    "activite_p99": 48.27,
+    "coupures": 5,
+    "coupures_par_minute": 0.9,
+    "facteur_mouvement": 1.15,
+    "cadence_base_s": 13.1,
+    "cadence_s": 11.38,
+    "images_par_minute": 5.3
+  },
+  "images": [
+    {
+      "fichier": "f_0001.jpg",
+      "t": 4.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0002.jpg",
+      "t": 11.766667,
+      "raison": "coupure"
+    },
+    {
+      "fichier": "f_0003.jpg",
+      "t": 21.34,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0004.jpg",
+      "t": 28.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0005.jpg",
+      "t": 35.566,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0006.jpg",
+      "t": 43.5,
+      "raison": "coupure"
+    },
+    {
+      "fichier": "f_0007.jpg",
+      "t": 53.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0008.jpg",
+      "t": 61.173,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0009.jpg",
+      "t": 68.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0010.jpg",
+      "t": 75.4,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0011.jpg",
+      "t": 83.935,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0012.jpg",
+      "t": 97.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0013.jpg",
+      "t": 106.698,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0014.jpg",
+      "t": 115.233,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0015.jpg",
+      "t": 124.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0016.jpg",
+      "t": 133.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0017.jpg",
+      "t": 146.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0018.jpg",
+      "t": 159.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0019.jpg",
+      "t": 166.448,
+      "raison": "complement"
+    },
+    {
+      "fichier": "f_0020.jpg",
+      "t": 174.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0021.jpg",
+      "t": 181.5,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0022.jpg",
+      "t": 213.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0023.jpg",
+      "t": 237.466667,
+      "raison": "coupure"
+    },
+    {
+      "fichier": "f_0024.jpg",
+      "t": 247.9,
+      "raison": "coupure"
+    },
+    {
+      "fichier": "f_0025.jpg",
+      "t": 262.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0026.jpg",
+      "t": 277.0,
+      "raison": "pic"
+    },
+    {
+      "fichier": "f_0027.jpg",
+      "t": 297.566667,
+      "raison": "coupure"
+    },
+    {
+      "fichier": "f_0028.jpg",
+      "t": 312.5,
+      "raison": "pic"
+    }
+  ],
+  "planches": [
+    {
+      "planche": "planche_01.jpg",
+      "images": "1-12",
+      "de": "00:00:04",
+      "a": "00:01:37",
+      "colonnes": 4,
+      "lignes": 3
+    },
+    {
+      "planche": "planche_02.jpg",
+      "images": "13-24",
+      "de": "00:01:46",
+      "a": "00:04:07",
+      "colonnes": 4,
+      "lignes": 3
+    },
+    {
+      "planche": "planche_03.jpg",
+      "images": "25-28",
+      "de": "00:04:22",
+      "a": "00:05:12",
+      "colonnes": 4,
+      "lignes": 3
+    }
+  ],
+  "journal": [
+    "transcription depuis subs.en-orig.vtt",
+    "sous-titres web+chrome .*-orig : ERROR: could not find chrome cookies database in \"/Users/miled/Library/Application Support/Google/Chrome\"",
+    "sous-titres web+chrome fr.* : ERROR: could not find chrome cookies database in \"/Users/miled/Library/Application Support/Google/Chrome\"",
+    "sous-titres web+chrome en.* : ERROR: could not find chrome cookies database in \"/Users/miled/Library/Application Support/Google/Chrome\"",
+    "sous-titres via android (1 fichiers, .*-orig)",
+    "video via android (6.8 Mo)"
+  ],
+  "avertissement": null
+}

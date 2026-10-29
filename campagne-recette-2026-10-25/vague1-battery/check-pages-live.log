@@ -1,0 +1,6 @@
+# check-pages-live.mjs
+# host=127.0.0.1:3098 status=inconclusive code=3 ms=34351
+
+creations
+○ inconclusive: the Creations page did not open
+

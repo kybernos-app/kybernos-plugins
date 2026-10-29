@@ -1,0 +1,22 @@
+{
+  "name": "@local/kybernos-contacts",
+  "version": "1.0.0",
+  "description": "The people and companies of your work, with the kinds and fields a theme defines (the page arrives in a later release).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

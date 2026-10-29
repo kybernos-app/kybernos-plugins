@@ -1694,6 +1694,20 @@ const scoutScan = ({ dsh, installed, by, force, gapHours }) => runScout({
   dsh, deps: scoutDeps, installed, goals: goalsOf(dsh), by, force, limits: gapHours === undefined ? SCOUT_LIMITS : { ...SCOUT_LIMITS, gapHours }
 })
 
+// ── the point of the plugin contract (docs/dev/plugin-contract.md): a pack ships its skills as one folder each ──
+/** Checks one contributed skill folder for the registry: the Team skill rules (`validateTeamSkill`), in the registry's `{ ok, value }` shape. */
+const validateSkillContribution = (raw, folder) => {
+  const r = validateTeamSkill(raw)
+  if (r.ok === true) return { ok: true, value: { name: raw.name, version: r.version, files: raw.files.map((f) => f.path), description: r.description } }
+  return { ok: false, errors: [r.reason + (r.file === undefined ? '' : ': ' + r.file)] }
+}
+/** What the registry is told about this point (the owner calls `definePoint` with it). Instruction data: a skill is text an agent will follow. */
+const SKILL_POINT = { owner: 'kybernos/skills', ownerVersion: '1.0.0', name: 'skill', version: '1.0', kind: 'data', class: 'instruction', files: 'folder', max: 32, validate: validateSkillContribution }
+// The plugin registry (kybernos-registry) is reached through a global, never imported: without it the skills are the installed ones, as before.
+// This bundle owns the point `kybernos/skills#skill`; it tells the registry at boot and again at each catalogue question (the registry may mount after this bundle).
+const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+const tellSkillPoint = () => { try { const registry = registrySeam(); if (registry !== null) registry.definePoint(SKILL_POINT) } catch (e) { /* the point is told again at the next question */ } }
+
 // ── mounting the routes (mirror of :2728-2729 and :2873-2874, base daed42e) ──────────────────────────────────────
 const mountWebRoutes = (ctx, webServerSvc) => {
   webServerSvc = kbFenced(webServerSvc)
@@ -1717,6 +1731,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   } }), label)
 
   GET('/kybernos-skills/skills', 'kybernos-skills: route skills', async (req) => {
+    tellSkillPoint()
     // `sessionId` designates the DISPLAYED session: it is what fixes the project (hence the project skills
     // visible). Without it we fall back to the original behavior.
     const catalogue = await catalogueOf(ctx, configOf(), queryParam(req, 'sessionId'))
@@ -1989,6 +2004,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 export { ensureCover, dshHome, catalogueOf, toggleSkill, createSkill, installSkill, readSkill, revealSkill, duplicateSkill, deleteSkill, previewSkill, openLocal, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
 
 export function apply(ctx) {
+  tellSkillPoint()
   // The agent's two tools, their prompt chunk and the watchers of the tool calls (learned-tools.mjs). Guarded part by part: a missing seam drops that part only.
   try {
     mountLearned(ctx, {

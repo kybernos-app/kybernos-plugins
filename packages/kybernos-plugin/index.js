@@ -10,6 +10,7 @@ import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolu
 import { dshHomeSync } from './dsh-home.mjs'
 import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
+import { workspaceHealthRows, requestedWorkspaceId } from './workspace-health.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, memoryUnreadable as autoLoadMemoryUnreadable,guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
@@ -37,7 +38,9 @@ const kbGateFn = (name) => (kbGateMod !== null && kbGateMod !== undefined && kbG
 const kbTrialFn = (name) => (kbTrialMod !== null && kbTrialMod !== undefined && kbTrialMod[name] !== undefined ? kbTrialMod[name] : null)
 const kbQueueFn = (name) => (kbQueueMod !== null && kbQueueMod !== undefined && kbQueueMod[name] !== undefined ? kbQueueMod[name] : null)
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
-import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
+import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
+import { fetchArchiveBytes, fetchCatalogueSources, handleThemes, readThemes, themeTarget, verifyArchive } from './theme-installer.mjs'
+import { ensureBusiness } from './business-base.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -47,6 +50,8 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 // résumé ÉPINGLÉ. (Sans config, `resolveConfig` laisse « » et l'engine tombe sur
 // le modèle de session — c'est là que le compactage meurt.)
 import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './preset-legacy.mjs'
+import { poserEconomieContexte } from './economie-contexte.mjs'
+import { mountToolProfiles } from './tool-profiles.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
 import { createI18nStore, serveI18nStore } from './i18n-store.mjs'
@@ -60,6 +65,16 @@ import { loadKeys as loadLanguagePackKeys, servePacks } from './i18n-packs.mjs'
 // a aucune violation (aucune écriture, patch de profil intact). Détails dans
 // retry-policy.mjs.
 import { appliquerPlafondRetries } from './retry-policy.mjs'
+// ── The product's name on outbound calls (28/10/2026) ──────────────────────
+// Provider requests left with the ENGINE's attribution (`deepseek-harness/<version> (+github url)`),
+// which showed up in the providers' request logs: the brand of the engine, not of the product the
+// person runs. The engine offers no seam to change it — attributionHeaders() reads a hard-coded
+// APP_IDENTITY, and a pi-ai profile `headers` entry cannot win (the adapter drops attribution
+// collisions) — so the bundle rewrites the header on the transport at boot, without touching a single
+// engine file (AGENTS.md rule 1). Narrow: only a `deepseek-harness/…` value is rewritten, so an
+// upstream contract (`opencode/<version>`) or an OAuth (`claude-cli/…`) value passes through. Proof
+// log: `~/.dsh/logs/app-identity.log`. Switches and measurements: app-identity.mjs.
+import { installAppIdentity } from './app-identity.mjs'
 // Brique gateway : watcher long-poll + file locale vers kybernos.app. Module
 // AUTONOME (kybernos-plugin/gateway-watcher.mjs) : sans token d'appairage dans
 // ~/.dsh/kybernos/settings.json (clé `pairingToken`), il reste inactif et rien
@@ -2881,6 +2896,16 @@ function boot(ctx) {
           const repli = await replierSurStandard({ agentPresets: service, settings: reglages })
           if (repli.ecrit === true) console.log('[kybers] default preset put back on ' + repli.id + ' (' + repli.ns + ')')
           else console.log('[kybers] default preset left as it is — ' + repli.raison)
+          // Compaction economy (27/10/2026): the native trigger is 80 % of the window, so a 262K route grows to ~188K
+          // before it condenses. Lower it in every preset, in memory, at boot — no file, survives upgrades, and the
+          // summary keeps the session model (no pin, so the provider's warm prefix cache is kept). Rollback: delete
+          // this call (or set RATIO_ECONOMIE to 0.8).
+          try {
+            const economie = await poserEconomieContexte({ agentPresets: service })
+            if (economie.rows > 0) console.log('[kybers] compaction economy: ratio ' + economie.ratio + ' on ' + economie.rows + ' row(s) (' + economie.presets.join(', ') + ')')
+            else if (economie.raison !== undefined) console.log('[kybers] compaction economy — ' + economie.raison)
+            else console.log('[kybers] compaction economy already in place')
+          } catch (e) { console.log('[kybers] compaction economy: failed — ' + errText(e)) }
         })
         .catch((e) => console.log('[kybers] legacy preset: failed — ' + errText(e)))
     }
@@ -4044,6 +4069,13 @@ function boot(ctx) {
         // en GUI réelle — clic sans effet, zéro appel réseau).
         const sc = ctx.get('sessionController')
         if (sc === undefined || sc === null || typeof sc.create !== 'function') return { ok: false, error: 'sessionController missing' }
+        // A session started from another one keeps that one's workspace (bêta a1e9eec2, 28/10):
+        // the client names the workspace it has on screen. Absent or unknown, the old default —
+        // no workspaceId, the engine's own pick — stays in charge.
+        const targetWorkspaceId = requestedWorkspaceId(body.workspaceId, (id) => {
+          const wreg = ctx.get('workspaceRegistry')
+          return wreg !== undefined && wreg !== null && typeof wreg.get === 'function' && wreg.get(id) !== undefined
+        })
         const unwrap = (res, field) => {
           if (res === null || typeof res !== 'object') return null
           if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : String(res.error || 'refused'))
@@ -4051,7 +4083,7 @@ function boot(ctx) {
           return typeof v[field] === 'string' ? v[field] : null
         }
         try {
-          const created = await sc.create({})
+          const created = await sc.create(targetWorkspaceId === null ? {} : { workspaceId: targetWorkspaceId })
           const sessionId = unwrap(created, 'sessionId')
           if (sessionId === null) return { ok: false, error: 'session.create returned no sessionId' }
           return { ok: true, sessionId }
@@ -10590,6 +10622,18 @@ function boot(ctx) {
       const text = Buffer.concat(chunks).toString('utf8')
       try { return JSON.parse(text) } catch (e) { return {} }
     }
+    /** The raw bytes of a body (a screenshot), capped: never parsed, never logged. */
+    const readRawBody = async (req, maxBytes) => {
+      const cap = typeof maxBytes === 'number' ? maxBytes : 5 * 1024 * 1024
+      let size = 0
+      const chunks = []
+      for await (const chunk of req) {
+        size += chunk.length
+        if (size > cap) throw new Error('request body too large')
+        chunks.push(chunk)
+      }
+      return Buffer.concat(chunks)
+    }
     const queryOf = (req) => {
       try { return new URL(req.url || '/', 'http://localhost').searchParams } catch (e) { return new URLSearchParams() }
     }
@@ -11536,6 +11580,21 @@ function boot(ctx) {
         if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await deleteWorkspace(await readJsonBody(req)))
       } }), 'kybernos: route workspace-delete')
+      // ── A registered workspace whose folder has vanished: GET /kybernos/workspaces-health ──
+      // The browser cannot test a path, and a session resumed in a dead folder fails every file
+      // tool with a raw `rg` error (bêta 93953fad, 28/10: the old repository was renamed). Read-only:
+      // one row per registered workspace — { workspaceId, path, exists }.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspaces-health', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        try {
+          const wreg = ctx.get('workspaceRegistry')
+          const list = wreg !== undefined && wreg !== null && typeof wreg.list === 'function' ? wreg.list() : []
+          sendJson(res, 200, { ok: true, items: workspaceHealthRows(list, existsSync) })
+        } catch (e) {
+          try { console.error('[kybers] workspaces-health:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route workspaces-health')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-skills', handler: async (req, res) => {
         if (req.method === 'GET') {
@@ -11669,23 +11728,64 @@ function boot(ctx) {
         return packsLoaded
       }
       // The plugin registry (kybernos-registry, docs/dev/plugin-contract.md) is reached through a global, never imported: without it the packs are the shipped ones, as before.
-      // This plugin owns the point `kybernos/core#domain-pack`; it tells the registry at boot and again at each question (the registry may mount after this plugin).
+      // This plugin owns three points (`kybernos/core#domain-pack`, `#team-template`, `#automation-template`); it tells the registry at boot and again at each question
+      // (the registry may mount after this plugin), then asks what the plugins contribute to them.
       const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
-      const domainPacks = () => {
-        const shipped = shippedPacks()
-        const registry = registrySeam()
-        if (registry === null) return shipped
-        try {
-          registry.definePoint(DOMAIN_POINT)
-          return mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))
-        } catch (e) { return shipped }
-      }
-      try { const registry = registrySeam(); if (registry !== null) registry.definePoint(DOMAIN_POINT) } catch (e) { /* the point is told again at the first question */ }
+      const domainPacks = () => packsOf(shippedPacks(), registrySeam())
+      try { const registry = registrySeam(); if (registry !== null) for (const point of CORE_POINTS) registry.definePoint(point.def) } catch (e) { /* the points are told again at the first question */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domains', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const r = domainPacks()
         sendJson(res, 200, { ok: true, packs: r.packs, rejected: r.rejected.length })
       } }), 'kybernos: route domains')
+      // The sector themes (A6-theme-installer, docs/tests/A6-theme-installer-strategy.md): ONE route family of the catalogue wire this batch
+      // owns (M1 — A7-theme-marketplace reads it through this route and adds none). GET reads the verified catalogue entries, the bounded
+      // sources and the install records; POST stages a folder (its verdict only, never an install), asks the plan of an installed plugin,
+      // writes or forgets a record, and manages the source list. The package itself enters the profile through DSH's own manager, in the
+      // page — this route never writes the profile (INT1, plugin-contract.md:562). The guards are the existing ones, in their order.
+      const themesStore = () => ({ dir: nodePathJoin(String(dshHomeSync()), 'kybernos') })
+      // The TRANSPORT of the declared sources (M16): the person's bounded https list is read from the record file and its bytes
+      // fetched through A6:43's bounded rules before the route body runs. A dead address is a `refused` line on the page, never a
+      // 5xx and never a boot dependency; no source costs no request. The archive half of `install` is fetched from the address the
+      // VERIFIED entry carries (never one the page sent) and goes through `verifyArchive` before handleThemes stages it.
+      const themesCatalogues = async (dir) => {
+        try {
+          const sources = readThemes(dir).sources
+          return sources.length === 0 ? [] : await fetchCatalogueSources(sources)
+        } catch (e) { return [] }
+      }
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/themes', handler: async (req, res) => {
+        let body = null
+        if (req.method === 'POST') {
+          try { body = await readJsonBody(req, 64 * 1024) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        }
+        const dir = themesStore().dir
+        const ports = {
+          // The ports answer for the REAL request: handleThemes calls them with its own stripped
+          // { method, body } (no headers, no socket), which every guard must refuse — measured
+          // 2026-10-28: every POST was 'origin refused' while the wizard's routes passed.
+          sameOrigin: () => (req.method === 'POST' ? sameOriginStrict(req) : sameOriginLax(req)),
+          session: () => { try { const refused = writeGuard(req); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
+          registry: registrySeam(),
+        }
+        const action = body !== null && typeof body.action === 'string' ? body.action : ''
+        // No outbound request for a caller the route will refuse anyway: the origin is checked first, and a write needs the signed
+        // session. handleThemes runs the same guards in their frozen order; this only keeps a refused caller from spending the fetch.
+        const mayRead = (req.method === 'POST' ? sameOriginStrict(req) : sameOriginLax(req)) === true && (req.method !== 'POST' || writeGuard(req) === null)
+        if (mayRead && (req.method === 'GET' || action === 'refresh' || action === 'install')) ports.catalogues = await themesCatalogues(dir)
+        if (mayRead && req.method === 'POST' && action === 'install') {
+          const target = themeTarget(dir, ports.catalogues, typeof body.id === 'string' ? body.id : '', body.version)
+          if (target.ok === true) {
+            const got = await fetchArchiveBytes(target.archive.url)
+            if (got.ok === true) {
+              const verified = verifyArchive({ bytes: got.bytes, id: target.id, version: target.version, entry: target.entry, catalogueKey: target.catalogueKey, keys: target.keys, reviewerKeys: target.reviewerKeys, officialKeys: target.officialKeys })
+              ports.archive = { id: target.id, version: target.version, bytes: got.bytes, verified }
+            }
+          }
+        }
+        const answer = handleThemes({ dir }, { method: req.method, body }, ports)
+        sendJson(res, answer.status, answer.body)
+      } }), 'kybernos: route themes')
       // A skill a domain pack ships (domains/skills/<name>/SKILL.md): written into <DSH home>/skills by the same careful seeding as every skill this
       // plugin ships (never over a skill the person wrote or edited, never back over one they switched off). Only a name some pack lists as
       // bundled is accepted, so the route cannot write anything else.
@@ -11740,7 +11840,7 @@ function boot(ctx) {
         const next = onboardingComplete(state, body)
         const written = await onboardingWrite(next)
         sendJson(res, 200, written === true
-          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, goals: next.goals, agents: next.agents }
+          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, theme: next.theme, goals: next.goals, agents: next.agents }
           : { ok: false, error: 'write failed' })
       } }), 'kybernos: onboarding route')
       // After a way to a model is connected (the first-run wizard, the chat's card): make that model the one the next
@@ -12550,17 +12650,43 @@ function boot(ctx) {
         try { body = await readJsonBody(req, 20000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         const made = relayReportOf(body, kbFeedbackBoxEnv())
         if (made.ok !== true) return sendJson(res, 400, made)
+        const veut = body !== null && typeof body === 'object' ? body : {}
+        const contact = typeof veut.contact === 'string' ? veut.contact.trim().slice(0, 200) : ''
+        const attaches = Array.isArray(veut.attachments) ? veut.attachments.slice(0, 3) : []
+        const input = contact === '' ? made.input : Object.assign({}, made.input, { reporter: contact })
         let out = null
-        try { out = await kbFeedbackExecute(made.input, { client: made.client }) } catch (e) { out = { ok: false, error: 'envoi_indisponible' } }
-        const code = out.ok === true ? null : String(out.error === undefined || out.error === null ? 'envoi_indisponible' : out.error)
+        try { out = await kbFeedbackExecute(input, { client: made.client, attachments: attaches }) } catch (e) { out = { ok: false, error: 'envoi_indisponible' } }
+        const code = out.error === undefined || out.error === null ? null : String(out.error)
         sendJson(res, 200, {
           ok: out.ok === true,
+          queued: out.queued === true,
           error: code,
           retryable: code !== null && kbFeedbackRetryable(code),
           retry_after: typeof out.retry_after === 'number' ? out.retry_after : null,
           deduped: out.deduped === true,
         })
       } }), 'kybernos: route feedback send')
+      // ── Screenshots of the same form: one image per request, the raw bytes and the image's own content type, no account needed. Only the
+      // host talks to the server (the page never holds the address), with the same strict write guard as the routes above — a local program
+      // must not post in the person's name. 5 MB an image, three images a report (the server enforces the count when the report names them).
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/feedback/attachment', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        const entete = req.headers['content-type'] === undefined ? '' : String(req.headers['content-type'])
+        const type = entete.split(';')[0].trim().toLowerCase()
+        if (KB_FEEDBACK_IMAGE_TYPES.indexOf(type) < 0) return sendJson(res, 415, { ok: false, error: 'an image is expected (png, jpeg or webp)' })
+        let bytes = null
+        try { bytes = await readRawBody(req, KB_FEEDBACK_IMAGE_MAX + 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: 'image too large' }) }
+        if (bytes === null || bytes.length === 0) return sendJson(res, 400, { ok: false, error: 'empty image' })
+        if (bytes.length > KB_FEEDBACK_IMAGE_MAX) return sendJson(res, 413, { ok: false, error: 'image too large' })
+        const up = await kbFeedbackUploadAttachment(type, bytes)
+        if (up.ok === true) return sendJson(res, 201, up)
+        // The server does not take screenshots (not deployed yet, or unreachable): the image is KEPT on this computer, with the
+        // reports that could not leave. The person's gesture is never thrown away, and the report itself still goes.
+        const garde = kbFeedbackKeepAttachment(type, bytes)
+        sendJson(res, garde.ok === true ? 201 : 502, garde.ok === true ? { ok: true, local: true, fichier: garde.fichier } : up)
+      } }), 'kybernos: route feedback attachment')
       // ── When the scheduled automations will run: GET /kybernos/tasks/occurrences?from=&to= ──────────────
       // Read-only, for the Automations calendar. It answers with the scheduler's OWN matcher (kbComputeNextRun
       // and kbNeverRuns of the tested core block), not a second cron engine, and with the same guard as the
@@ -13199,6 +13325,9 @@ export function applyPinOrder(pins, change) {
 const KB_FEEDBACK_KINDS = ['bug', 'feature']
 const KB_FEEDBACK_TITLE_MAX = 160
 const KB_FEEDBACK_BODY_MAX = 8000
+// Screenshots taken by the public door: three at most, 5 MB each, the three image types a clipboard produces.
+const KB_FEEDBACK_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
+const KB_FEEDBACK_IMAGE_MAX = 5 * 1024 * 1024
 const KB_FEEDBACK_ERRORS_MAX = 20
 const KB_FEEDBACK_MAILTO_MAX = 1200
 // GO-LIVE: the built-in server's address, used only when the cloud plugin's state file records none. This block is cut out and run by
@@ -13493,6 +13622,107 @@ const kbFeedbackSend = async (api, token, report) => {
   }
 }
 
+/** The body the PUBLIC door takes (POST /v1/feedback/public): the same report, no token, no account field. `feature` (an idea or a
+ *  question) is the door's `idea`; the technical sheet goes only when the report already carries it. Pure. */
+/** Where a screenshot goes when the server does not take it yet: next to the reports that could not leave, so nothing the person
+ *  attached is lost. One file per screenshot, private, named by the moment (a person finds it again without a lookup tool). */
+const KB_FEEDBACK_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+const kbFeedbackKeepAttachment = (type, bytes) => {
+  try {
+    const dir = joinPath(joinPath(dshHomeSync(), 'beta-reports'), 'attente')
+    mkdirSync(dir, { recursive: true, mode: 0o700 })
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const file = joinPath(dir, stamp + '-' + String(randomUUID()).slice(0, 8) + '.' + (KB_FEEDBACK_EXT[type] === undefined ? 'png' : KB_FEEDBACK_EXT[type]))
+    writeFileSync(file, bytes, { mode: 0o600 })
+    try { chmodSync(file, 0o600) } catch (e) { /* exotic filesystem */ }
+    return { ok: true, fichier: file }
+  } catch (e) {
+    return { ok: false }
+  }
+}
+
+const kbFeedbackPublicBody = (report, attachments) => {
+  const r = report !== null && report !== undefined && typeof report === 'object' ? report : {}
+  const client = r.client !== null && typeof r.client === 'object' ? r.client : {}
+  const context = r.context !== null && typeof r.context === 'object' ? r.context : {}
+  const shots = Array.isArray(attachments) === true ? attachments.filter((x) => typeof x === 'string' && x !== '').slice(0, 3) : []
+  // ABSENT, never null: the contract says « a string when present », so a null field is a 400 and the whole report is refused
+  // (measured against the deployed door, 2026-10-28). Only what the report really carries is sent.
+  const out = {
+    kind: r.kind === 'bug' ? 'bug' : 'idea',
+    title: kbFeedbackClip(String(r.title === undefined || r.title === null ? '' : r.title), KB_FEEDBACK_TITLE_MAX),
+    body: kbFeedbackClip(String(r.body === undefined || r.body === null ? '' : r.body), 8000),
+  }
+  if (shots.length > 0) out.attachments = shots
+  const contact = r.reporter === undefined || r.reporter === null ? '' : String(r.reporter).trim()
+  if (contact !== '') out.contact = kbFeedbackClip(contact, 200)
+  const sheet = {}
+  if (typeof client.os === 'string' && client.os !== '') sheet.os = kbFeedbackClip(client.os, 120)
+  if (typeof client.dsh === 'string' && client.dsh !== '') sheet.dsh = kbFeedbackClip(client.dsh, 120)
+  if (typeof client.revision === 'string' && client.revision !== '') sheet.revision = kbFeedbackClip(client.revision, 120)
+  if (Object.keys(sheet).length > 0) out.client = sheet
+  if (context.session_id !== undefined && context.session_id !== null && context.session_id !== '') out.context = { session_id: kbFeedbackClip(String(context.session_id), 120) }
+  return out
+}
+
+/** One POST to the PUBLIC door, with no token: a person who is not signed in still gets their report to the team. It is STORED, not
+ *  turned into an issue, so there is no address back; `public: true` says which door took it. A verdict, never an exception. */
+const kbFeedbackSendPublic = async (api, report, attachments) => {
+  const base = api === undefined || api === null || api === '' ? KB_FEEDBACK_API_DEFAULT : api
+  const url = String(base).replace(/\/+$/, '') + '/v1/feedback/public'
+  const no = (error, retry) => ({ net: false, ok: false, public: true, issue_url: null, error: error, deduped: false, retry_after: retry === undefined ? null : retry })
+  if (typeof fetch !== 'function') return Object.assign(no('envoi_indisponible'), { net: true })
+  try {
+    const wait = Number(process.env.KYBERNOS_FEEDBACK_TIMEOUT_MS)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(kbFeedbackPublicBody(report, attachments)),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(Number.isFinite(wait) && wait > 0 ? wait : KB_FEEDBACK_TIMEOUT_MS),
+    })
+    if (res === null || res === undefined) throw new Error('empty response')
+    if (res.status >= 300 && res.status < 400) throw new Error('redirect refused')
+    let answer = null
+    try { answer = JSON.parse(String(await kbFeedbackAnswerText(res))) } catch (e) { answer = null }
+    const code = answer !== null && typeof answer === 'object' && typeof answer.error === 'string' ? answer.error : null
+    const retry = answer !== null && typeof answer === 'object' && typeof answer.retry_after === 'number' ? answer.retry_after : null
+    if (res.status === 201 || res.status === 200) return { net: false, ok: true, public: true, issue_url: null, error: null, deduped: false, retry_after: null }
+    if (res.status === 429) return no(code === null ? 'trop_de_demandes' : code, retry)
+    return no(code === null ? 'envoi_indisponible' : code, retry)
+  } catch (e) {
+    return Object.assign(no('envoi_indisponible'), { net: true })
+  }
+}
+
+/** One POST of a screenshot to the public door, with no token: the raw bytes and the image's own content type. A verdict, never an
+ *  exception. The person's account is not involved, and the image is stored by the team's server until its report is swept. */
+const kbFeedbackUploadAttachment = async (type, bytes) => {
+  const state = kbFeedbackCloudState(dshHomeSync())
+  const base = state !== null && typeof state.api === 'string' && state.api !== '' ? state.api : KB_FEEDBACK_API_DEFAULT
+  try {
+    const wait = Number(process.env.KYBERNOS_FEEDBACK_TIMEOUT_MS)
+    const res = await fetch(String(base).replace(/\/+$/, '') + '/v1/feedback/attachment', {
+      method: 'POST',
+      headers: { 'content-type': type },
+      body: bytes,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(Number.isFinite(wait) && wait > 0 ? wait : KB_FEEDBACK_TIMEOUT_MS),
+    })
+    if (res === null || res === undefined) throw new Error('empty response')
+    if (res.status >= 300 && res.status < 400) throw new Error('redirect refused')
+    let answer = null
+    try { answer = JSON.parse(String(await kbFeedbackAnswerText(res))) } catch (e) { answer = null }
+    if (res.status === 201 && answer !== null && typeof answer === 'object' && typeof answer.id === 'string') {
+      return { ok: true, id: answer.id, mime: typeof answer.mime === 'string' ? answer.mime : type,
+        size: Number.isFinite(answer.size) === true ? answer.size : bytes.length }
+    }
+    return { ok: false, error: res.status === 429 ? 'trop_de_demandes' : 'envoi_indisponible' }
+  } catch (e) {
+    return { ok: false, error: 'envoi_indisponible' }
+  }
+}
+
 /** The outbox holds the RAW text of what a person wrote (it may contain a secret they pasted): only they read it. */
 const kbFeedbackWriteRecord = (file, record) => {
   try { writeFileSync(file, JSON.stringify(record, null, 2) + '\n', { mode: 0o600 }) } catch (e) { return }
@@ -13520,7 +13750,7 @@ const kbFeedbackAge = (record) => {
 /** After a success: failed reports of the last two weeks leave again under their own id (the relay deduplicates on it). Best effort. */
 const kbFeedbackFlush = async (dir, api, token, exceptUuid) => {
   const pending = kbFeedbackReadOutbox(dir)
-    .filter((x) => x.record.status === 'echec' && kbFeedbackRetryable(x.record.error) && x.record.report.uuid !== exceptUuid
+    .filter((x) => (x.record.status === 'echec' || x.record.status === 'en_attente') && kbFeedbackRetryable(x.record.error) && x.record.report.uuid !== exceptUuid
       && kbFeedbackAge(x.record) < KB_FEEDBACK_RETRY_MS && !(Number(x.record.retry_at) > Date.now()))
     .sort((x, y) => String(x.record.created_at).localeCompare(String(y.record.created_at)))
     .slice(0, KB_FEEDBACK_FLUSH_MAX)
@@ -13563,6 +13793,11 @@ const kbFeedbackExecute = async (args, opts) => {
     session_id: null,
   })
   const asked = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+  // The screenshots are ids the host's own upload route made: bounded to three, and only real uuids (never a URL the report carries).
+  const attaches = (() => {
+    const raw = opts !== null && opts !== undefined && typeof opts === 'object' && Array.isArray(opts.attachments) ? opts.attachments : []
+    return raw.filter((x) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x)).slice(0, 3)
+  })()
   const truncated = String(asked.body === undefined || asked.body === null ? '' : asked.body).trim().length > KB_FEEDBACK_BODY_MAX
   const mailto = kbFeedbackMailto(report)
   const fail = (code) => ({ ok: false, error: code, issue_url: null, deduped: false, truncated: truncated,
@@ -13580,8 +13815,11 @@ const kbFeedbackExecute = async (args, opts) => {
     && x.record.report.body === report.body && kbFeedbackAge(x.record) < KB_FEEDBACK_SAME_MS
     && (x.record.status === 'envoye' || kbFeedbackRetryable(x.record.error) || x.record.status === 'en_attente'))
     .sort((x, y) => String(y.record.created_at).localeCompare(String(x.record.created_at)))[0]
-  if (same !== undefined && same.record.status === 'envoye' && typeof same.record.issue_url === 'string') {
-    return { ok: true, error: null, issue_url: same.record.issue_url, deduped: true, truncated: truncated,
+  if (same !== undefined && same.record.status === 'envoye') {
+    // A sent report is not sent twice, whichever door took it: the issue link is only what a relay gives back, and the public door
+    // answers with none — the record's own status is the proof.
+    return { ok: true, error: null, issue_url: typeof same.record.issue_url === 'string' ? same.record.issue_url : null,
+      public: same.record.public === true, deduped: true, truncated: truncated,
       mailto: mailto, report: same.record.report, outbox_file: same.file }
   }
   if (same !== undefined && Number(same.record.retry_at) > Date.now()) {
@@ -13596,20 +13834,49 @@ const kbFeedbackExecute = async (args, opts) => {
 
   const state = kbFeedbackCloudState(dsh)
   const token = state !== null && typeof state.token === 'string' ? state.token : ''
+  const api = state !== null && typeof state.api === 'string' && state.api !== '' ? state.api : KB_FEEDBACK_API_DEFAULT
   if (token === '') {
-    record.status = 'echec'; record.error = 'non_connecte'; kbFeedbackWriteRecord(file, record)
-    return { ok: false, error: 'non_connecte', issue_url: null, deduped: false, truncated: truncated,
+    // Not signed in: the PUBLIC door takes the report with no account and no token. It is stored by the team's server, not turned
+    // into an issue, so there is no address back — and the outbox keeps the same record, so the report is never lost either.
+    const verdict = await kbFeedbackSendPublic(api, report, attaches)
+    record.status = verdict.ok ? 'envoye' : 'echec'
+    record.issue_url = null
+    record.error = verdict.error
+    record.public = true
+    record.retry_at = verdict.retry_after === null || verdict.retry_after === undefined ? null : Date.now() + verdict.retry_after * 1000
+    kbFeedbackWriteRecord(file, record)
+    return { ok: verdict.ok, error: verdict.error, issue_url: null, public: true,
+      deduped: verdict.deduped === true, truncated: truncated, retry_after: verdict.retry_after === undefined ? null : verdict.retry_after,
       mailto: mailto, report: report, outbox_file: file }
   }
-  const api = state !== null && typeof state.api === 'string' && state.api !== '' ? state.api : KB_FEEDBACK_API_DEFAULT
-  const verdict = await kbFeedbackSend(api, token, report)
+  let verdict = await kbFeedbackSend(api, token, report)
+  // The linked server refuses to relay (the team configured no issue tracker): the PUBLIC door still takes the report, with its
+  // screenshots — a bug that reached a server is worth more than a failure the person has to copy by hand. Any other refusal keeps
+  // the outbox's retry, because it is about the content or the session, not about the door.
+  if (verdict.ok !== true && verdict.error === 'github_indisponible') {
+    const secours = await kbFeedbackSendPublic(api, report, attaches)
+    if (secours.ok === true) {
+      verdict = { ok: true, error: null, issue_url: null, public: true, deduped: false, retry_after: null }
+    }
+  }
+  // Nothing answered, or nothing that can take it yet: the report is KEPT, not lost. It says « queued », which is the truth — the
+  // form then tells the person it will leave on its own, and the collector still lists it for the triage.
+  const KB_FEEDBACK_QUEUE = ['envoi_indisponible', 'reseau_indisponible', 'github_indisponible', 'non_connecte', 'base_indisponible', 'refus_404']
+  if (verdict.ok !== true && (verdict.net === true || KB_FEEDBACK_QUEUE.indexOf(String(verdict.error)) >= 0)) {
+    record.status = 'en_attente'
+    record.error = verdict.error
+    record.retry_at = verdict.retry_after === null || verdict.retry_after === undefined ? null : Date.now() + verdict.retry_after * 1000
+    kbFeedbackWriteRecord(file, record)
+    return { ok: true, queued: true, error: verdict.error, issue_url: null, public: false, deduped: false, truncated: truncated,
+      retry_after: verdict.retry_after === undefined ? null : verdict.retry_after, mailto: mailto, report: report, outbox_file: file }
+  }
   record.status = verdict.ok ? 'envoye' : 'echec'
   record.issue_url = verdict.issue_url
   record.error = verdict.error
   record.retry_at = verdict.retry_after === null || verdict.retry_after === undefined ? null : Date.now() + verdict.retry_after * 1000
   kbFeedbackWriteRecord(file, record)
   if (verdict.ok) { try { await kbFeedbackFlush(dir, api, token, report.uuid) } catch (e) { /* the report itself is already out */ } }
-  return { ok: verdict.ok, error: verdict.error, issue_url: verdict.issue_url,
+  return { ok: verdict.ok, error: verdict.error, issue_url: verdict.issue_url, public: verdict.public === true,
     deduped: verdict.deduped === true, truncated: truncated, retry_after: verdict.retry_after === undefined ? null : verdict.retry_after,
     mailto: mailto, report: report, outbox_file: file }
 }
@@ -13631,6 +13898,18 @@ const KB_FEEDBACK_REASONS = {
 const kbFeedbackToolText = (value) => {
   const v = value !== null && value !== undefined && typeof value === 'object' ? value : {}
   const cutNote = v.truncated === true ? '\nThe report was longer than ' + String(KB_FEEDBACK_BODY_MAX) + ' characters: its end was cut, say so to the user.' : ''
+  if (v.ok === true && v.queued === true) {
+    const out = ['Report KEPT on this computer (the Kybernos server could not be reached): it will leave by itself with the next report that goes through.',
+      'Tell the user in one sentence that nothing is lost, and that it leaves on its own; do not say it was sent.']
+    out.push('', kbFeedbackPlainText(v.report))
+    if (v.mailto) out.push('', 'Mail link: ' + String(v.mailto))
+    if (v.outbox_file) out.push('', 'Local copy: ' + String(v.outbox_file))
+    return out.join('\n') + cutNote
+  }
+  if (v.ok === true && v.public === true) {
+    return 'Report sent to the Kybernos team through the public door (it is stored for the team; there is no ticket number to open).'
+      + '\nTell the user in one sentence: it reached the team. Do not promise a reply.' + cutNote
+  }
   if (v.ok === true) {
     return 'Report sent' + (v.deduped === true ? ' (it had already been sent: same report, no second one)' : '') + ': ' + String(v.issue_url)
       + '\nTell the user in one sentence, with this link, then offer to add a screenshot or a detail on the issue.' + cutNote
@@ -13756,6 +14035,25 @@ const kbFeedbackInstallTool = (ctx) => {
 }
 
 export function apply(ctx) {
+    // The product's name on every outbound call (28/10/2026) — app-identity.mjs.
+    // Installed FIRST and outside any service: the LLM adapters send their first request as soon as a
+    // session exists, so the wrapper has to be on `globalThis.fetch` before anything else happens.
+    // Its own try/catch keeps AGENTS.md rule 2: a branding failure never stops DSH from starting.
+    try {
+        const identite = installAppIdentity()
+        if (identite.installed === true) {
+            console.log('[kybers] app identity: outbound user-agent ' + identite.ua + (identite.reused === true ? ' (already installed)' : ''))
+        } else {
+            console.log('[kybers] app identity — ' + identite.reason)
+        }
+    } catch (e) {
+        try { console.log('[kybers] app identity: failed — ' + errText(e)) } catch (e2) { /* console indisponible */ }
+    }
+    // The shared business base (Contacts, Catalog, Pipeline): the seam is published now, the file is created by the first question that needs it.
+    // Outside any service and under its own try/catch, so a base that cannot open never stops DSH from starting (AGENTS.md rule 2).
+    try {
+        ensureBusiness()
+    } catch (e) { /* the plugins that need the base answer base_missing */ }
     // Meme filet que cote client : une erreur au demarrage ne doit pas faire
     // echouer l'entree du plugin (ce qui coupe la GUI) mais seulement laisser
     // tomber les routes /kybernos/*, avec l'erreur tracee pour correction.
@@ -13850,6 +14148,21 @@ export function apply(ctx) {
             console.error('[kybers] shipped skills not installed', kbShippedError)
         } catch (e5) { /* console unavailable */ }
     }
+    // ── Tool profiles (2026-10-28) ───────────────────────────────────────────
+    // A task-appropriate tool set chosen ONCE at session start, through the native
+    // per-agent `tools.restrict` seam: no bundle is switched off, and plugin pages,
+    // routes and scheduled jobs keep working. `full` is the safe fallback; a session
+    // whose profile cannot be applied keeps every tool. Rollback: delete this call
+    // (or set KYBERNOS_TOOL_PROFILES=full) — nothing else depends on it.
+    try {
+        const profils = mountToolProfiles(ctx)
+        if (profils.mode === 'auto') console.log('[kybers] tool profiles: on (auto, full fallback)')
+        else if (profils.mode === 'off') console.log('[kybers] tool profiles: off (KYBERNOS_TOOL_PROFILES)')
+    } catch (kbProfilsError) {
+        try {
+            console.error('[kybers] tool profiles unavailable', kbProfilsError)
+        } catch (e6) { /* console unavailable */ }
+    }
 }
 
 // Nœud pur de l'outil de retour, exposé à `scripts/test-kybernos-host.mjs` :
@@ -13865,6 +14178,9 @@ export {
     kbFeedbackReadHttp,
     kbFeedbackOutboxDir,
     kbFeedbackExecute,
+    kbFeedbackSendPublic,
+    kbFeedbackPublicBody,
+    kbFeedbackUploadAttachment,
     kbFeedbackEnsureSkill,
     kbFeedbackRetireLegacySkill,
     kbFeedbackSuiteVersion,

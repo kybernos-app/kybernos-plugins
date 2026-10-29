@@ -1,0 +1,22 @@
+# check-creations-search-live.mjs
+# host=127.0.0.1:3098 status=pass code=0 ms=21301
+
+
+── 1400 px ──
+  ✓ the Creations page shows its toolbar
+  ✓ pressing the magnifier focuses the field
+  ✓ what is typed next is in the field
+  ✓ the header does not grow when the field opens (nothing below it moves)
+  ✓ the toolbar stays on one line
+  ✓ nothing runs out of the window
+
+── 700 px ──
+  ✓ the Creations page shows its toolbar
+  ✓ pressing the magnifier focuses the field
+  ✓ what is typed next is in the field
+  ✓ the header does not grow when the field opens (nothing below it moves)
+  ✓ the toolbar stays on one line
+  ✓ nothing runs out of the window
+
+ALL PASS, 12 passed
+

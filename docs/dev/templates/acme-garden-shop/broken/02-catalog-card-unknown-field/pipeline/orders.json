@@ -1,0 +1,49 @@
+{
+  "id": "orders",
+  "label": {
+    "en": "Orders",
+    "fr": "Commandes"
+  },
+  "newLabel": {
+    "en": "New order",
+    "fr": "Nouvelle commande"
+  },
+  "stages": [
+    {
+      "key": "new",
+      "label": {
+        "en": "New",
+        "fr": "Nouvelle"
+      }
+    },
+    {
+      "key": "paid",
+      "label": {
+        "en": "Paid",
+        "fr": "Payée"
+      }
+    },
+    {
+      "key": "packed",
+      "label": {
+        "en": "Packed",
+        "fr": "Préparée"
+      }
+    },
+    {
+      "key": "shipped",
+      "label": {
+        "en": "Shipped",
+        "fr": "Expédiée"
+      }
+    }
+  ],
+  "value": {
+    "format": "money",
+    "currency": "EUR"
+  },
+  "links": {
+    "contact": true,
+    "item": true
+  }
+}

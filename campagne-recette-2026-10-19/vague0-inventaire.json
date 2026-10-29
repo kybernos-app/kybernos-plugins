@@ -1,0 +1,293 @@
+{
+  "Plugins": {
+    "clicked": false,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "kybernos-plugins",
+      "New Session",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX",
+      "Créer un document PDF avec graphes",
+      "Samples Teting",
+      "dsh-kybernos",
+      "temp",
+      "Testing"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Kybernos": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "kybernos-plugins",
+      "New Session",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX",
+      "Créer un document PDF avec graphes",
+      "Samples Teting",
+      "dsh-kybernos",
+      "temp",
+      "Testing"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Kaby": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Dashboards": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Agent Teams": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Workspaces": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Creations": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Automations": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": []
+  },
+  "Skills": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "Close",
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": [
+      "Featured\n24",
+      "Yours\n46",
+      "Discover",
+      "Team"
+    ]
+  },
+  "Connectors": {
+    "clicked": true,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "Close",
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": [
+      "Yours",
+      "Discover\n100",
+      "MCP servers\n2"
+    ]
+  },
+  "Automation tasks": {
+    "clicked": false,
+    "shot": "ECHEC: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined",
+    "headings": [
+      "Kaby",
+      "New Session",
+      "Étude à la demande via webhook",
+      "Automation d'étude à la demande via webhook",
+      "Résumé de page locale piégée",
+      "Automatisation « Étude à la demande » face à une injection",
+      "Automation « Étude à la demande » via webhook",
+      "kybernos-plugins",
+      "Campagne de tests globale avant mise en production",
+      "Correction du clic sur Menu-Account et Team settings",
+      "Démo et POC de la plateforme",
+      "Tests multi-agents des plugins et rapport de bugs UX"
+    ],
+    "buttons": [
+      "Close",
+      "New tab",
+      "Split",
+      "Fullscreen",
+      "Collapse right sidebar"
+    ],
+    "tabs": [
+      "Yours\n5",
+      "Discover\n100",
+      "MCP servers\n2"
+    ]
+  }
+}

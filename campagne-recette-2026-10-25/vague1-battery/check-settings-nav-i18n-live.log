@@ -1,0 +1,10 @@
+# check-settings-nav-i18n-live.mjs
+# host=127.0.0.1:3098 status=timeout code=null ms=150044
+
+  ✓ English nav read (more than 8 entries)
+  ✓ the test language is really on (<html lang> and at least 3 nav labels changed)
+  ✓ nav entry count is stable across a language switch
+  ✓ nav order is identical in the test language (entry by entry): the cells are read by position, not by their translated title
+  ✓ nav order returns to English unchanged
+  ✓ nav labels return to English unchanged (no French, no test language left)
+

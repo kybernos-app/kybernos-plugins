@@ -1,0 +1,15 @@
+# check-call-team-live.mjs
+# host=127.0.0.1:3098 status=fail code=1 ms=54466
+
+1. the members of a team
+  ✗ the sandbox shows the team and its Roles tab (the member cards)
+  ✗ each of the 2 members has a Call and a Video button — []
+  ✗ and all of them are visible (the bundle is loaded, so the seam exists) — []
+2. a click on a member says calls are not ready when nothing is set up (real host: no keys in the sandbox)
+  ✗ the call panel says calls are not ready, with a way to Settings › Calls (no pop-up) — null
+3. what the card asks for (a host that says the keys are set)
+  ✗ the card asked for a token
+  ✗ Cannot read properties of undefined (reading 'label')
+
+✗ kybernos-call team live: 0 passed, 6 failed
+
