@@ -9082,13 +9082,19 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-chip-on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}
 .kbg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:24px}
 /* The Themes page (kb-themes-gallery): cards with a drawn cover, a theme page, the plan as a dialog. DSH tokens only; the cover is art on the theme's own colour. */
-.kbgal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin:22px 0 0;padding:0;list-style:none}
+.kbgal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin:22px 0 0;padding:0;list-style:none}
 .kbgal-li{display:flex;min-width:0}
 .kbgal-card{display:flex;flex-direction:column;width:100%;padding:0;text-align:left;font:inherit;color:inherit;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:14px;overflow:hidden;cursor:pointer}
 .kbgal-card:hover{border-color:var(--dsw-alias-border-l2)}
 .kbgal-card:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbgal-cover{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}
 .kbgal-art{display:block;width:100%;height:100%}
+.kbgal-img{object-fit:cover}
+.kbgal-next{margin-top:30px}
+.kbgal-ngrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:0;padding:0;list-style:none}
+.kbgal-nli{display:flex;flex-direction:column;min-width:0;border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
+.kbgal-ncover{display:block;aspect-ratio:16/10;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}
+.kbgal-nname{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;font-size:12.5px;color:var(--dsw-alias-label-primary)}
 .kbgal-ctag{position:absolute;left:10px;top:10px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(255,255,255,.9);color:#1d1d1f}
 .kbgal-cok{position:absolute;right:10px;bottom:10px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:#1d1d1f;color:#fff}
 .kbgal-cadd{background:rgba(255,255,255,.9);color:#1d1d1f}
@@ -27584,6 +27590,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         h('path', { key: 'p', d: 'M0 ' + Math.round(f(18, 130, 160)) + ' C 90 ' + Math.round(f(22, 100, 150)) + ', 200 ' + Math.round(f(26, 150, 185)) + ', 320 ' + Math.round(f(30, 110, 160)) + ' V180 H0 Z', fill: '#fff', opacity: '.16' }),
       ])
     }
+    /** A cover: the theme's own picture when it ships one and it loads, else the drawn art above. */
+    const KbThCoverArt = (props) => {
+      const failed = React.useState(false)
+      if (typeof props.src === 'string' && failed[0] !== true) return h('img', { className: 'kbgal-art kbgal-img', src: props.src, alt: '', loading: 'lazy', draggable: false, onError: () => failed[1](true) })
+      return kbThCover(props.id, props.accent)
+    }
     /** The three plugins of the Business group: how a theme page names them (the words of the menu row come from the theme's pack). */
     const KB_TH_PLUGINS = {
       'kybernos/contacts': { row: 'contacts', icon: 'users', name: 'Contacts', blurb: ['People and companies, with notes and history.', 'Des personnes et des entreprises, avec notes et historique.'] },
@@ -27617,9 +27629,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return out
     }
     /** A line for a card or a page head: the pack's tagline, else the theme's description, else nothing. */
+    /** The address of a shipped theme's picture, or `null` when it ships none. */
+    const kbThCoverSrc = (e) => (e.shipped !== null && e.shipped.cover === true ? '/kybernos/themes/cover?id=' + encodeURIComponent(e.id) : null)
     const kbThLine = (e) => (e.shipped !== null ? (kbThLabel(e.shipped.tagline) || kbThLabel(e.shipped.description)) : '')
     /** The label of the chip over a cover: the field it speaks for, else the level the verifier answered. */
-    const kbThChip = (e) => (e.shipped !== null && kbThLabel(e.shipped.field) !== '' ? kbThLabel(e.shipped.field) : kbThLevelLabel(e.level))
+    const kbThChip = (e) => (e.shipped !== null && typeof e.shipped.tag === 'string' && e.shipped.tag !== '' ? e.shipped.tag : (e.shipped !== null && kbThLabel(e.shipped.field) !== '' ? kbThLabel(e.shipped.field) : kbThLevelLabel(e.level)))
     /** The ids of the plugins a theme names that this profile does not have: `owners` is the set of owners that told their points to the registry. */
     const kbThMissing = (e, owners) => (e.shipped !== null && Array.isArray(e.shipped.needs) ? e.shipped.needs.filter((id) => !owners.has(id)) : [])
     // </kb-themes-gallery>
@@ -27728,6 +27742,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const entries = kbThEntries(data)
       const refused = kbThPlain(data) && Array.isArray(data.refused) ? data.refused : []
       const sources = kbThPlain(data) && Array.isArray(data.sources) ? data.sources : []
+      const nextTrades = kbThPlain(data) && Array.isArray(data.next) ? data.next.filter((n) => kbThPlain(n) && typeof n.id === 'string') : []
       const sel = pick === null ? null : (entries.find((x) => x.id === pick) ?? null)
       const current = entries.find((x) => x.state === 'installed') ?? null
       const lang = () => { try { return kbLangResolve() === 'fr' ? 'fr' : 'en' } catch (e) { return 'en' } }
@@ -27774,7 +27789,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           onClick: () => { setPick(e.id); setScreen('theme'); setError(null) },
         }, [
           h('span', { key: 'c', className: 'kbgal-cover' }, [
-            kbThCover(e.id, accentOf(e)),
+            h(KbThCoverArt, { key: 'a', id: e.id, accent: accentOf(e), src: kbThCoverSrc(e) }),
             h('span', { key: 't', className: 'kbgal-ctag' }, chipOf(e)),
             e.state === 'installed' ? h('span', { key: 'o', className: 'kbgal-cok' }, '✓ ' + kbThEn('Installed', 'Installé')) : (e.state === 'added' ? h('span', { key: 'o', className: 'kbgal-cok kbgal-cadd' }, kbThEn('Added', 'Ajouté')) : null),
           ]),
@@ -27807,7 +27822,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('span', { key: 'i', className: 'kbgal-pico' }, info.icon !== null ? Icon(info.icon, 16) : null),
             h('div', { key: 'b', className: 'kbgal-pbody' }, [
               h('div', { key: 'n' }, [h('b', { key: 'n' }, info.name), w !== '' ? h('span', { key: 'w', className: 'kbgal-muted' }, ' · ' + kbThEn('in your menu: “', 'dans ton menu : « ') + w + kbThEn('”', ' »')) : null]),
-              h('small', { key: 's' }, kbThEn(info.blurb[0], info.blurb[1])),
+              h('small', { key: 's' }, kbThPlain(s.why) && kbThPlain(s.why[id]) ? pairText(s.why[id]) : kbThEn(info.blurb[0], info.blurb[1])),
             ]),
             h('span', { key: 't', className: 'kbgal-tagok' + (have ? ' kbgal-ok' : ' kbgal-warn'), 'data-kb': 'theme-plugin-state' }, have ? kbThEn('Installed', 'Installé') : kbThEn('Not installed', 'Non installé')),
           ])
@@ -27815,7 +27830,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         return [
           h('div', { key: 'cr', className: 'kbgal-crumb' }, [h('button', { key: 'b', type: 'button', className: 'kbgal-crl', 'data-kb': 'theme-back', onClick: back }, kbThEn('Themes', 'Thèmes')), ' › ', e.name]),
           h('div', { key: 'hd', className: 'kbgal-thead' }, [
-            h('div', { key: 'c', className: 'kbgal-cover kbgal-cover-lg' }, kbThCover(e.id, accentOf(e))),
+            h('div', { key: 'c', className: 'kbgal-cover kbgal-cover-lg' }, h(KbThCoverArt, { id: e.id, accent: accentOf(e), src: kbThCoverSrc(e) })),
             h('div', { key: 't', className: 'kbgal-ttext' }, [
               h('h2', { key: 'h', className: 'kbgal-h2' }, e.name),
               h('p', { key: 'l', className: 'kbgal-muted' }, kbThLine(e) || e.id),
@@ -27851,6 +27866,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         entries.length > 0
           ? h('ul', { key: 'g', className: 'kbgal-grid', 'data-kb': 'theme-grid' }, entries.map(tcard))
           : h('p', { key: 'g', className: 'kbgal-muted', style: { marginTop: '22px' } }, busy === 'load' ? kbThEn('Reading the catalogue…', 'Lecture du catalogue…') : kbThEn('No theme yet. Add one from a folder below.', 'Aucun thème pour l’instant. Ajoutes-en un depuis un dossier, ci-dessous.')),
+        nextTrades.length > 0 ? h('div', { key: 'nx', className: 'kbgal-next', 'data-kb': 'theme-next' }, [
+          h('div', { key: 'h', className: 'kbgal-sech' }, kbThEn('Next trades', 'Prochains métiers')),
+          h('ul', { key: 'u', className: 'kbgal-ngrid' }, nextTrades.map((n) => h('li', { key: n.id, className: 'kbgal-nli' }, [
+            h('span', { key: 'c', className: 'kbgal-ncover' }, n.cover === true ? h(KbThCoverArt, { id: 'next:' + n.id, accent: null, src: '/kybernos/themes/cover?next=' + encodeURIComponent(n.id) }) : kbThCover('next:' + n.id, null)),
+            h('span', { key: 'n', className: 'kbgal-nname' }, [h('span', { key: 'a' }, pairText(n.name)), h('span', { key: 'b', className: 'kbgal-muted' }, kbThEn('soon', 'bientôt'))]),
+          ]))),
+        ]) : null,
         h('div', { key: 'f', className: 'kbgal-add' }, [
           h('div', { key: 't', className: 'kbgal-sech' }, kbThEn('Add a theme from a folder', 'Ajouter un thème depuis un dossier')),
           h('p', { key: 'd', className: 'kbgal-muted' }, kbThEn('A theme folder on this computer. Its plugin.json is checked before anything is installed, and the plan comes next.', 'Un dossier de thème sur cet ordinateur. Son plugin.json est vérifié avant toute installation, puis le plan s’affiche.')),

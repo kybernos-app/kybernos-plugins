@@ -594,6 +594,7 @@ const readAll = (dir, ports) => {
     themes: view.themes,
     // The themes the product ships (themes-shipped.mjs): what a card shows, never the folder on this computer
     shipped: list(ports.shipped).filter(plain).map((t) => { const { folder, ...rest } = t; return rest }),
+    next: list(ports.next).filter(plain).map((n) => ({ id: n.id, name: n.name, cover: n.cover === true })),
     plugins,
     refused: view.refused,
     dropped: store.dropped,

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleThemes } from './theme-installer.mjs'
-import { BUSINESS_PLUGINS, FILE_MAX, SHIPPED_MAX, publicView, readShipped, readTheme } from './themes-shipped.mjs'
+import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, SHIPPED_MAX, coverFile, publicView, readNext, readShipped, readTheme } from './themes-shipped.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 let count = 0
@@ -19,6 +19,7 @@ try {
   const shop = join(root, 'shop')
   json(join(shop, 'plugin.json'), {
     contract: 1, id: 'kybernos-themes/shop', kind: 'data', version: '1.0.0', name: { en: 'E-commerce shop', fr: 'Boutique en ligne' }, description: { en: 'Answer customers faster.', fr: 'Réponds plus vite.' },
+    keywords: ['commerce', 'shop'],
     requires: { kybernos: '^0.1', plugins: { 'kybernos/core': '^1.0', 'kybernos/pipeline': '^1.0', 'kybernos/contacts': '^1.0', 'kybernos/catalog': '^1.0', 'kybernos/skills': '^1.0', 'acme/inbox': '^1.0' } },
   })
   json(join(shop, 'domains', 'shop.json'), {
@@ -31,6 +32,12 @@ try {
   json(join(shop, 'automations', 'a.json'), { id: 'a' }); json(join(shop, 'automations', 'b.json'), { id: 'b' })
   json(join(shop, 'skills', 'order-replies', 'skill.json'), {}); json(join(shop, 'skills', 'stock-check', 'skill.json'), {})
   json(join(shop, 'contacts', 'shop.json'), {}); json(join(shop, 'pipeline', 'orders.json'), {}); json(join(shop, 'pipeline', 'returns.json'), {})
+  // a cover picture (the three bytes of a JPEG, then padding), one line per needed plugin, and the « next trades »
+  const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(60, 1)])
+  writeFileSync(join(shop, 'cover.jpg'), JPEG)
+  json(join(shop, 'why.json'), { 'kybernos/contacts': { en: 'Your customers.', fr: 'Tes clients.' }, 'kybernos/pipeline': 'Orders, new to delivered.', 'kybernos/skills': { en: 'not a business plugin' }, 'acme/inbox': { fr: 'no English: left out' } })
+  json(join(root, '_next', 'next.json'), [{ id: 'consulting', name: { en: 'Consulting', fr: 'Conseil' } }, { id: 'law-firm', name: 'Law firm' }, { id: 'Bad Id', name: 'x' }, { id: 'nameless' }, { id: 'consulting', name: 'twice' }, 'junk'])
+  writeFileSync(join(root, '_next', 'consulting.jpg'), JPEG)
   // folders that must be skipped, each for its own reason
   mkdirSync(join(root, 'empty'))
   json(join(root, 'code', 'plugin.json'), { id: 'acme/code', kind: 'code', name: 'Code' })
@@ -92,6 +99,40 @@ try {
     } finally { rmSync(many, { recursive: true, force: true }) }
   })
 
+  ok('the chip, the cover and the lines per plugin come with the theme; a folder that starts with an underscore is not a theme', () => {
+    const t = readTheme(root, 'shop').theme
+    assert.equal(t.tag, 'Commerce', 'the first keyword, with a capital')
+    assert.equal(t.cover, true)
+    assert.deepEqual(t.why, { 'kybernos/contacts': { en: 'Your customers.', fr: 'Tes clients.' }, 'kybernos/pipeline': { en: 'Orders, new to delivered.', fr: 'Orders, new to delivered.' } }, 'only plugins the theme needs, only with English; a text stands for both languages')
+    assert.ok(readShipped(root).themes.every((x) => x.dir !== '_next'))
+    assert.ok(readShipped(root).skipped.every((x) => x.dir !== '_next'))
+  })
+
+  ok('the next trades: a list with a name each, a flag when a picture is there, bad entries and doubles left out, at most NEXT_MAX', () => {
+    assert.deepEqual(readNext(root), [{ id: 'consulting', name: { en: 'Consulting', fr: 'Conseil' }, cover: true }, { id: 'law-firm', name: { en: 'Law firm', fr: 'Law firm' }, cover: false }])
+    assert.deepEqual(readNext(join(root, 'nowhere')), [])
+    const many = mkdtempSync(join(tmpdir(), 'kb-next-'))
+    try {
+      json(join(many, '_next', 'next.json'), Array.from({ length: NEXT_MAX + 4 }, (_, i) => ({ id: 't' + String.fromCharCode(97 + i) + 'x', name: 'T' + i })))
+      assert.equal(readNext(many).length, NEXT_MAX)
+      writeFileSync(join(many, '_next', 'next.json'), '{ broken')
+      assert.deepEqual(readNext(many), [])
+    } finally { rmSync(many, { recursive: true, force: true }) }
+  })
+
+  ok('a cover is served by id: a theme\'s own picture or a next trade\'s, only a real JPEG of a sane size, never a path', () => {
+    assert.equal(coverFile(root, { id: 'kybernos-themes/shop' }), join(root, 'shop', 'cover.jpg'))
+    assert.equal(coverFile(root, { next: 'consulting' }), join(root, '_next', 'consulting.jpg'))
+    assert.equal(coverFile(root, { next: 'law-firm' }), null, 'no picture for that one')
+    assert.equal(coverFile(root, { id: 'acme/vet-clinic' }), null, 'a theme without a cover')
+    for (const bad of [{}, null, 'x', { id: '../shop' }, { next: '../shop/cover' }, { next: 'Bad Id' }, { id: 42 }, { next: 'nothing' }]) assert.equal(coverFile(root, bad), null, JSON.stringify(bad))
+    writeFileSync(join(root, 'shop', 'cover.jpg'), Buffer.from('GIF89a' + 'x'.repeat(40)))
+    assert.equal(coverFile(root, { id: 'kybernos-themes/shop' }), null, 'a GIF named .jpg is not served')
+    writeFileSync(join(root, 'shop', 'cover.jpg'), Buffer.concat([JPEG, Buffer.alloc(COVER_MAX, 1)]))
+    assert.equal(coverFile(root, { id: 'kybernos-themes/shop' }), null, 'too big')
+    writeFileSync(join(root, 'shop', 'cover.jpg'), JPEG)
+  })
+
   ok('BUSINESS_PLUGINS are the three plugins of the Business group, in the menu\'s order', () => {
     assert.deepEqual(BUSINESS_PLUGINS, ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline'])
   })
@@ -109,6 +150,8 @@ try {
     const r = handleThemes(store, { method: 'GET' }, ports)
     assert.equal(r.status, 200)
     assert.deepEqual(r.body.shipped.map((t) => t.id), ['kybernos-themes/shop', 'acme/vet-clinic'])
+    assert.deepEqual(r.body.shipped.map((t) => t.cover), [true, false], 'the page is told whether a picture is there')
+    assert.deepEqual(handleThemes(store, { method: 'GET' }, Object.assign({}, ports, { next: readNext(root) })).body.next, [{ id: 'consulting', name: { en: 'Consulting', fr: 'Conseil' }, cover: true }, { id: 'law-firm', name: { en: 'Law firm', fr: 'Law firm' }, cover: false }])
     assert.ok(r.body.shipped.every((t) => t.folder === undefined), JSON.stringify(r.body.shipped).includes(root) ? 'the folder leaked' : '')
     assert.equal(JSON.stringify(r.body).includes(root), false)
     assert.deepEqual(handleThemes(store, { method: 'GET' }, { sameOrigin: () => true }).body.shipped, [], 'no shipped list: an empty one, nothing breaks')

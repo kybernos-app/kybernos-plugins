@@ -12,6 +12,10 @@ export const SHIPPED_MAX = 12
 export const FILE_MAX = 128 * 1024
 /** How many names of a kind the page lists as tags. */
 export const LIST_MAX = 12
+/** A cover picture: `cover.jpg` in the theme's folder, at most this big (a card's picture, not a gallery). */
+export const COVER_MAX = 160 * 1024
+/** The « next trades » shown as « soon » cards: `_next/next.json` and one `_next/<id>.jpg` each. */
+export const NEXT_MAX = 12
 /** The plugin ids a business theme names in `requires.plugins`, in the order a page shows them. */
 export const BUSINESS_PLUGINS = Object.freeze(['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline'])
 
@@ -38,6 +42,8 @@ const readJson = (file) => {
     return plain(v) ? v : null
   } catch (e) { return null }
 }
+/** Whether a cover picture is there, a plain file of a sane size (the route re-checks when it serves it). */
+const hasCover = (file) => { try { const st = statSync(file); return st.isFile() && st.size > 0 && st.size <= COVER_MAX } catch (e) { return false } }
 const names = (dir, test) => { try { return readdirSync(dir).filter((f) => test(f) && !f.startsWith('.')).sort() } catch (e) { return [] } }
 const jsonNames = (dir) => names(dir, (f) => f.endsWith('.json'))
 
@@ -47,6 +53,8 @@ const jsonNames = (dir) => names(dir, (f) => f.endsWith('.json'))
  *   words  { contacts, catalog, pipeline }: the pack's `menu.labels` for the rows of the Business group, `{ en, fr }` each (or absent)
  *   style  { id, name, accent } of the first `themes/*.json`
  *   needs  the ids of `requires.plugins` that are not the core's own seams, in the order of `BUSINESS_PLUGINS` first
+ *   tag    the first of the manifest's `keywords` (they are lower case), with a capital: the chip over the cover; `cover` whether `cover.jpg` is there
+ *   why    { <plugin id>: { en, fr } } from `why.json`: one line per needed plugin, in this theme's words
  *   adds   { skills, teams, automations, connectors } counts; `lists` their names (at most LIST_MAX each); `points` the business points the theme extends, with how many files each has
  */
 export function readTheme (root, dir) {
@@ -72,6 +80,11 @@ export function readTheme (root, dir) {
   const stem = (f) => f.replace(/\.json$/, '')
   const teamIds = jsonNames(join(folder, 'teams')).map(stem)
   const autoIds = jsonNames(join(folder, 'automations')).map(stem)
+  const kw = Array.isArray(manifest.keywords) ? manifest.keywords.find((k) => text(k, 24) !== null) ?? null : null
+  const tag = kw === null ? null : kw.charAt(0).toUpperCase() + kw.slice(1)
+  const whyFile = readJson(join(folder, 'why.json'))
+  const why = {}
+  if (whyFile !== null) for (const id of needs) { const w = pair(whyFile[id], 160); if (w !== null) why[id] = w }
   const points = {}
   for (const [key, sub] of [['contacts', 'contacts'], ['catalog', 'catalog'], ['pipeline', 'pipeline']]) { const n = jsonNames(join(folder, sub)).length; if (n > 0) points[key] = n }
   return {
@@ -84,6 +97,9 @@ export function readTheme (root, dir) {
       name,
       description: pair(manifest.description, 300),
       accent,
+      tag,
+      cover: hasCover(join(folder, 'cover.jpg')),
+      why,
       icon: pack !== null && typeof pack.icon === 'string' ? pack.icon : null,
       field: pack !== null ? pair(pack.name, 80) : null,
       tagline: pack !== null ? pair(pack.tagline, 200) : null,
@@ -116,7 +132,7 @@ export function readShipped (root) {
   const themes = []
   const skipped = []
   let dirs = []
-  try { dirs = readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith('.')).map((e) => e.name).sort() } catch (e) { dirs = [] }
+  try { dirs = readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith('.') && !e.name.startsWith('_')).map((e) => e.name).sort() } catch (e) { dirs = [] }
   for (const dir of dirs.slice(0, SHIPPED_MAX)) {
     const r = readTheme(root, dir)
     if (r.ok === true) themes.push(Object.assign({}, r.theme, { folder: r.folder }))
@@ -127,3 +143,42 @@ export function readShipped (root) {
 
 /** What the page receives: the same themes, without the folder on this computer. */
 export const publicView = (themes) => (Array.isArray(themes) ? themes : []).map((t) => { const { folder, ...rest } = t; return rest })
+
+/**
+ * The « next trades » of the gallery: `_next/next.json` = `[{ id, name: { en, fr } }]`, each with an optional `_next/<id>.jpg`. Never throws.
+ * `[{ id, name, cover }]`, at most NEXT_MAX; an entry with a bad id or no name is left out.
+ */
+export function readNext (root) {
+  const out = []
+  let list = null
+  try { list = JSON.parse(readFileSync(join(root, '_next', 'next.json'), 'utf8')) } catch (e) { list = null }
+  if (!Array.isArray(list)) return out
+  for (const x of list) {
+    if (!plain(x) || typeof x.id !== 'string' || !DIR.test(x.id)) continue
+    const name = pair(x.name, 60)
+    if (name === null || out.some((o) => o.id === x.id)) continue
+    out.push({ id: x.id, name, cover: hasCover(join(root, '_next', x.id + '.jpg')) })
+    if (out.length >= NEXT_MAX) break
+  }
+  return out
+}
+
+/**
+ * The picture file for a cover request, or `null`: `{ id }` is a shipped theme's plugin id, `{ next }` an id of `_next/next.json`. The page names an id,
+ * never a path; a file that is not a plain JPEG of a sane size is not served.
+ */
+export function coverFile (root, query) {
+  try {
+    const q = plain(query) ? query : {}
+    let file = null
+    if (typeof q.next === 'string' && DIR.test(q.next)) {
+      if (readNext(root).some((n) => n.id === q.next && n.cover === true)) file = join(root, '_next', q.next + '.jpg')
+    } else if (typeof q.id === 'string' && ID.test(q.id)) {
+      const t = readShipped(root).themes.find((x) => x.id === q.id && x.cover === true)
+      if (t !== undefined) file = join(t.folder, 'cover.jpg')
+    }
+    if (file === null || !hasCover(file)) return null
+    const head = readFileSync(file).subarray(0, 3)
+    return head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff ? file : null
+  } catch (e) { return null }
+}
