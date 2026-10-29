@@ -1,0 +1,50 @@
+{
+  "name": "real-estate-2",
+  "cols": 3,
+  "rows": 3,
+  "style": "professional real-estate listing photography, soft natural daylight, warm tones, wide-angle lens, clean and bright, photorealistic",
+  "cells": [
+    {
+      "name": "lakeview-ave",
+      "prompt": "bright modern two-room apartment interior with a small open kitchen and a large window with a view of a lake"
+    },
+    {
+      "name": "garden-flat",
+      "prompt": "ground-floor garden flat living room with French doors opening onto a terrace and a lawn with flowers"
+    },
+    {
+      "name": "harbour-penthouse",
+      "prompt": "penthouse roof terrace with outdoor lounge furniture overlooking a harbour at sunset"
+    },
+    {
+      "name": "cedar-bungalow",
+      "prompt": "single-storey bungalow with a wooden porch, a neat lawn and a flowering garden under a blue sky"
+    },
+    {
+      "name": "oak-duplex",
+      "prompt": "contemporary duplex interior with a wooden staircase, a mezzanine and big windows"
+    },
+    {
+      "name": "canal-house",
+      "prompt": "narrow colourful canal-side townhouses with their reflections in the water, morning light"
+    },
+    {
+      "name": "lakeside-cottage",
+      "prompt": "whitewashed lakeside cottage with blue shutters and a wooden jetty, calm water"
+    },
+    {
+      "name": "spare-kitchen",
+      "prompt": "open family kitchen with a large island, pendant lights and a bowl of fruit"
+    },
+    {
+      "name": "spare-bedroom",
+      "prompt": "calm main bedroom with linen bedding, a reading chair and morning light through curtains"
+    }
+  ],
+  "cut": {
+    "width": 600,
+    "height": 375,
+    "quality": 72,
+    "maxKb": 70
+  }
+}

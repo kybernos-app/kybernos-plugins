@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
 import { BUSINESS_ROW_IDS } from '../packages/kybernos-plugin/domain-pack.mjs'
 import { bundleProblem, dataPluginProblems, planTheme } from '../packages/kybernos-plugin/theme-installer.mjs'
+import { photoFile } from '../packages/kybernos-plugin/themes-shipped.mjs'
 import { validateContactsSchema } from '../packages/kybernos-contacts/contacts-schema.mjs'
 import { validateCatalogType } from '../packages/kybernos-catalog/catalog-type.mjs'
 import { validatePipelineFlow } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
@@ -24,7 +25,7 @@ const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts
 // What each shipped theme must hold: the folder, and the number of sample rows its demo/sample.json seeds (a sample stays modest and readable).
 const EXPECT = {
   ecommerce: { contacts: 12, items: 10, cards: 11, notes: 4, flows: 1 },
-  'real-estate': { contacts: 12, items: 8, cards: 11, notes: 5, flows: 2 },
+  'real-estate': { contacts: 27, items: 16, cards: 19, notes: 11, flows: 2 },
   recruitment: { contacts: 12, items: 8, cards: 13, notes: 4, flows: 2 },
 }
 const WORDS = ['contacts', 'catalog', 'pipeline']
@@ -178,13 +179,28 @@ for (const dir of dirs) {
     for (const f of walk(t.root)) {
       const rel = f.slice(t.root.length + 1)
       if (rel === 'cover.jpg') continue // the one picture a theme carries (AGENTS.md rule 4); its size and bytes are checked below
+      if (/^demo\/photos\/[a-z0-9][a-z0-9-]*\.jpg$/.test(rel)) continue // the sample photographs (the second exception); checked in their own test below
       assert.match(f, /\.(json|md|yml)$/, rel + ' is text')
       const body = readFileSync(f, 'utf8')
       assert.doesNotMatch(body, /\/Users\//, rel)
       assert.doesNotMatch(body, /data:[a-z]+\/[a-z0-9.+-]+;base64/i, rel + ' embeds media')
       for (const m of body.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []) assert.match(m, /@([a-z0-9-]+\.)*example\.com$/, rel + ': ' + m)
     }
-    assert.ok(walk(t.root).length <= 24, 'a theme stays small')
+    assert.ok(walk(t.root).filter((f) => !/\/demo\/photos\/[^/]+\.jpg$/.test(f)).length <= 24, 'a theme stays small (its sample photographs aside)')
+  })
+
+  ok(dir + ': the sample photographs are plain small JPEGs, at most 16, and every `photo:` a row names is one of them', () => {
+    const folder = join(t.root, 'demo', 'photos')
+    const files = existsSync(folder) ? readdirSync(folder) : []
+    assert.ok(files.length <= 16, files.length + ' photographs')
+    for (const f of files) {
+      assert.match(f, /^[a-z0-9][a-z0-9-]{1,59}\.jpg$/, f)
+      const bytes = readFileSync(join(folder, f))
+      assert.ok(bytes.length <= 80 * 1024 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, dir + '/' + f)
+    }
+    const named = new Set()
+    for (const it of sample.items) { const v = it.fields !== undefined ? it.fields.image : undefined; if (typeof v === 'string' && v.startsWith('photo:')) named.add(v.slice(6)) }
+    for (const ref of named) { assert.ok(ref.startsWith(dir + '/'), ref + ' belongs to another theme'); assert.ok(photoFile(ROOT, ref) !== null, ref + ' is not a photograph of this theme') }
   })
 
   ok(dir + ': the three business points read back as valid data', () => {
@@ -201,7 +217,7 @@ for (const dir of dirs) {
     assert.equal(sample.cards.length, want.cards)
     assert.equal(sample.notes.length, want.notes)
     assert.ok(sample.contacts.filter((c) => c.kind === 'person').length >= 8 && sample.contacts.filter((c) => c.kind === 'company').length >= 4, 'about 8 people and 4 companies')
-    assert.ok(sample.items.length >= 8 && sample.items.length <= 12 && sample.cards.length >= 10 && sample.cards.length <= 14)
+    assert.ok(sample.items.length >= 8 && sample.items.length <= 20 && sample.cards.length >= 10 && sample.cards.length <= 24)
     const schema = t.contacts[0].value
     const types = new Map(t.catalog.map((r) => [r.value.id, r.value]))
     const flows = new Map(t.pipeline.map((r) => [r.value.id, r.value]))
