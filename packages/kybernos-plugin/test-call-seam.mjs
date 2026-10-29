@@ -70,7 +70,9 @@ const run = (windowObj, extra = {}) => {
 
 console.log('the buttons')
 assert.equal((client.match(/hasCall: kbCallSeam\(\) !== null/g) ?? []).length, 1)
-assert.equal((client.match(/style: \{ display: r\.hasCall === true \? "" : "none" \} \}, \[h\('button', \{ type: "button", className: "kbm-ico-btn", "aria-label": r\.(voice|video)CallLabel/g) ?? []).length, 2)
+// The two buttons live in the card's hover actions (kbmRoleItem): drawn only when the seam exists, a click calls it with the mode and never opens the card.
+assert.equal((client.match(/const calls = \(r\.hasCall === true\) \? h\('div', \{ className: 'kb8-cardacts' \}/g) ?? []).length, 1)
+assert.equal((client.match(/'aria-label': r\.(voice|video)CallLabel, onClick: \(ev\) => \{ ev\.stopPropagation\(\); r\.call(Voice|Video)\(\) \}/g) ?? []).length, 2)
 assert.ok(client.includes('callVoice: () => kbOpenCall(id, rs.name, \'voice\', activeVoice)'))
 assert.ok(client.includes('callVideo: () => kbOpenCall(id, rs.name, \'video\', activeVoice)'))
 ok('both buttons are hidden unless the seam exists, and both call it with their mode')

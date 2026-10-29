@@ -8,8 +8,10 @@
 // written: the checks only open, search, fold and page; the one write path they exercise (the review of unreachable roles) is run on a LOCAL role the
 // tab keeps in the throw-away browser, and every non-GET request of the page is recorded and checked to hold no save, no portrait call.
 //
-// What it checks: the model field (opens on the current value, groups with plans first, keyboard, search, fallback rules), the five sections of a role,
-// the member bar (pager, per page, list / cards / carousel) without a sideways scroll, a narrow column (no overflow), and the review of unreachable roles.
+// What it checks: Team faces on three lines (mode on the title line, Re-crop under the scene), Model management behind a gear (no section in the middle of
+// the page), the members drawn with the app's own toolbar, cards, rows and pager (a card opens its role, details on hover), the four sections of a role (Voice
+// is hidden, the Requirements icons are there), the model field (opens on the current value, groups with plans first, keyboard, search, fallback rules), a
+// narrow column (no overflow), and the review of unreachable roles.
 // Never named test-*.mjs: CI has no `dsh web` (see docs/dev/live-testing.md). Exit 0 all good, 1 a check failed, 3 not run.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -31,7 +33,7 @@ const inconclusive = (why) => { console.log('\nInconclusive: ' + why); process.e
 let live = null
 try { live = await openLivePage() } catch (e) { inconclusive(String(e && e.message ? e.message : e)) }
 const { page } = live
-const ev = async (expr) => { const r = await page.evalJs(expr); if (r.err !== undefined) throw new Error('page: ' + r.err); return r.val }
+const ev = async (expr) => { const r = await page.evalJs(expr); if (r.err !== undefined) throw new Error('page: ' + r.err + ' in ' + String(expr).slice(0, 140)); return r.val }
 const shot = async (name) => { if (shotsDir !== null) { try { await page.shot(join(shotsDir, name + '.png')) } catch (e) { /* a missing screenshot never fails a check */ } } }
 const code = { ArrowDown: 40, ArrowUp: 38, Escape: 27, Enter: 13 }
 const key = async (k) => {
@@ -96,45 +98,62 @@ try {
   await shot('roles-faces-open')
   await key('Escape'); await sleep(250)
   check('Esc closes it', (await ev('!document.querySelector(".kbm-cb-pop")')) === true)
+  check('the mode sits on the title line and carries no call count', (await ev(js(() => { const m = document.querySelector('.kbm-facehead .kbm-mode'); return m !== null && !/call/i.test(m.innerText) && m.querySelectorAll('button').length === 2 }))) === true)
+  const facesText = await ev('document.querySelector(".kbm-faces").innerText')
+  check('the number of image calls reads beside Generate', /\d+ image calls?/.test(facesText), facesText.slice(0, 80))
+  const haveFaces = Number((/(\d+)\/\d+ faces/.exec(facesText) || [0, 0])[1]) > 0
+  check('Re-crop is a link under the scene, and only when faces exist', (await ev('!!document.querySelector(".kbm-faces .kbm-lnk")')) === haveFaces)
 
   console.log('Model management')
-  check('Mode is labelled, like Priority', (await ev('Array.from(document.querySelectorAll(".kbm-mm .kbm-mono")).map((e) => e.innerText).join(" ")')).toLowerCase().includes('mode'))
-  check('the route counts come from the roles', (await ev('(document.querySelector(".kbm-mm-stats") || { innerText: "" }).innerText')).length > 0)
+  check('no Model management section in the middle of the page', (await ev('!document.querySelector(".kbm-mm")')) === true)
+  check('a gear in the toolbar is the way in', (await ev('!!document.querySelector(".kbm-mhead [data-kb=model-management]")')) === true)
+  await ev('document.querySelector("[data-kb=model-management]").click()'); await sleep(400)
+  const mmText = await ev('(document.querySelector(".kbm-gear-pop") || { innerText: "" }).innerText')
+  check('it opens mode and priority, the route counts, no « coming soon » placeholder', /Mode/.test(mmText) && /Priority/.test(mmText) && /on your|on Kybernos|local|own keys/.test(mmText) && !/coming soon/i.test(mmText), mmText.slice(0, 120))
+  await shot('roles-gear')
+  await key('Escape'); await sleep(250)
+  check('Esc closes it', (await ev('!document.querySelector(".kbm-gear-pop")')) === true)
 
   console.log('Team members')
-  const total = Number(await ev('document.querySelectorAll(".kbm-art").length')) // page 1
-  const count = await ev('document.querySelector(".kbm-bar-count").innerText')
-  const roles = Number((/of (\d+)/.exec(count) || [0, 0])[1])
-  check('a bar shows view, per page and the count', (await ev('document.querySelectorAll(".kbm-bar .kbm-rseg").length')) === 2 && roles > 0, count)
-  if (roles > 6) {
-    check('six roles on page 1, the pager is there', total === 6 && (await ev('document.querySelectorAll(".kbm-pg button").length')) >= 4, 'articles ' + total)
-    await ev('document.querySelector(".kbm-pg button[aria-label=\\"Page 2\\"]").click()'); await sleep(500)
-    check('page 2 holds the others', Number(await ev('document.querySelectorAll(".kbm-art").length')) === roles - 6)
-    await ev('document.querySelector(".kbm-pg button[aria-label=\\"Page 1\\"]").click()'); await sleep(400)
-  } else pass('six roles or fewer: no pager needed (' + String(roles) + ')')
-  for (const view of ['Cards', 'Carousel', 'List']) {
-    await ev(js((v) => { Array.from(document.querySelectorAll('.kbm-rseg button')).find((b) => b.innerText === v).click() }, view)); await sleep(500)
-    const cls = await ev('document.querySelector(".kbm-members").className')
-    check(view + ' view is drawn', cls.includes('kbm-v-' + view.toLowerCase()), cls)
-    if (view !== 'Carousel') check(view + ' has no sideways scroll', (await ev('(() => { const m = document.querySelector(".kbm-members"); return m.scrollWidth <= m.clientWidth + 1 })()')) === true)
+  check('the toolbar is the app\'s own: search, cards and list, filters, Add a role', (await ev(js(() => { const t = document.querySelector('.kbm-mhead .kb6-toolbar'); return t !== null && t.querySelectorAll('.kb6-tb-vbtn').length === 2 && /Add a role/.test(t.innerText) && t.querySelector('[data-kb=toggle-search]') !== null }))) === true)
+  const cards = Number(await ev('document.querySelectorAll(".kbm-cwrap").length'))
+  const pager = await ev('(document.querySelector(".kb6-pager .kb6-pglabel") || { innerText: "" }).innerText')
+  const pages = Number((/\/(\d+)/.exec(pager) || [0, 1])[1])
+  if (pages > 1) {
+    check('six cards on page 1 and the app\'s pager', cards === 6 && /Page 1\/\d+/.test(pager), cards + ' ' + pager)
+    await ev('document.querySelectorAll(".kb6-pager .kb6-pgbtn")[1].click()'); await sleep(500)
+    check('page 2 holds the others', /Page 2\//.test(await ev('document.querySelector(".kb6-pager .kb6-pglabel").innerText')) && Number(await ev('document.querySelectorAll(".kbm-cwrap").length')) > 0)
+    await ev('document.querySelectorAll(".kb6-pager .kb6-pgbtn")[0].click()'); await sleep(400)
+  } else pass('one page of roles: no pager (' + String(cards) + ' cards)')
+  check('no custom bar, no carousel: the old controls are gone', (await ev('!document.querySelector(".kbm-bar") && !document.querySelector(".kbm-pg")')) === true)
+  for (const view of ['list', 'cards']) {
+    await ev('document.querySelector("[data-kb=view-' + view + ']").click()'); await sleep(500)
+    check(view + ' view is drawn', (await ev('document.querySelectorAll(".' + (view === 'list' ? 'kbm-lwrap' : 'kbm-cwrap') + '").length')) > 0)
+    check(view + ' has no sideways scroll', (await ev('(() => { const m = document.querySelector(".kbm-members"); return m.scrollWidth <= m.clientWidth + 1 })()')) === true)
   }
+  await ev('document.querySelector(".kbm-mhead").scrollIntoView({ block: "start" })'); await sleep(300)
+  const c0 = JSON.parse(await ev('JSON.stringify((() => { const r = document.querySelector(".kbm-cwrap .kb8-card").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })())'))
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: c0.x, y: c0.y }); await sleep(500)
+  check('hovering a card shows its details (primary, fallback, needs)', (await ev(js(() => { const t = document.querySelector('.kbm-cwrap .kbm-rtip'); return t !== null && getComputedStyle(t).display !== 'none' && /Primary/.test(t.innerText) && /Fallback/.test(t.innerText) && /Needs/.test(t.innerText) }))) === true)
   await shot('roles-members')
 
   console.log('A role')
-  await ev('document.querySelector(".kbm-art button[aria-expanded]").click()'); await sleep(1000)
-  const heads = await ev('Array.from(document.querySelectorAll(".kbm-art.open .kbm-rsec-h")).map((h) => h.querySelector(".kbm-rsec-t").innerText).join(",")')
-  check('the editor has five sections', heads.toLowerCase() === 'identity,voice,system prompt,requirements,models', heads)
-  check('Requirements and Models are open, the others folded', (await ev('Array.from(document.querySelectorAll(".kbm-art.open .kbm-rsec")).map((s) => s.classList.contains("open") ? 1 : 0).join("")')) === '00011')
-  await ev(js(() => { Array.from(document.querySelectorAll('.kbm-art.open .kbm-rsec-h')).find((h) => /MODELS/i.test(h.innerText)).click() })); await sleep(300)
-  check('a section folds', (await ev('!document.querySelector(".kbm-art.open .kbm-mf")')) === true)
-  await ev(js(() => { Array.from(document.querySelectorAll('.kbm-art.open .kbm-rsec-h')).find((h) => /MODELS/i.test(h.innerText)).click() })); await sleep(300)
+  await ev('document.querySelector(".kbm-cwrap .kb8-card").click()'); await sleep(1000)
+  check('a click anywhere on the card opens the role', (await ev('!!document.querySelector(".kbm-cwrap.open")')) === true)
+  const heads = await ev('Array.from(document.querySelectorAll(".kbm-cwrap.open .kbm-rsec-h")).map((h) => h.querySelector(".kbm-rsec-t").innerText).join(",")')
+  check('the editor has four sections, Voice is hidden', heads.toLowerCase() === 'identity,system prompt,requirements,models', heads)
+  check('Requirements and Models are open, the others folded', (await ev('Array.from(document.querySelectorAll(".kbm-cwrap.open .kbm-rsec")).map((s) => s.classList.contains("open") ? 1 : 0).join("")')) === '0011')
+  check('Requirements keeps its icons (type, tier, requires)', (await ev('document.querySelectorAll(".kbm-cwrap.open [aria-label=\\"Model type\\"] button").length')) >= 5 && (await ev('document.querySelectorAll(".kbm-cwrap.open [aria-label=\\"Tier\\"] button").length')) >= 2)
+  await ev(js(() => { Array.from(document.querySelectorAll('.kbm-cwrap.open .kbm-rsec-h')).find((h) => /models/i.test(h.innerText)).click() })); await sleep(300)
+  check('a section folds', (await ev('!document.querySelector(".kbm-cwrap.open .kbm-mf")')) === true)
+  await ev(js(() => { Array.from(document.querySelectorAll('.kbm-cwrap.open .kbm-rsec-h')).find((h) => /models/i.test(h.innerText)).click() })); await sleep(300)
 
   console.log('Model field')
   await ev('document.querySelector(".kbm-mf").scrollIntoView({ block: "center" })')
   const current = await ev('(document.querySelector(".kbm-mf .kbm-cb-cur .kbm-cb-id") || { innerText: "" }).innerText')
   await ev('document.querySelector(".kbm-mf .kbm-cb-input").focus()'); await sleep(500)
   const groups = await ev('Array.from(document.querySelectorAll(".kbm-cb-grp")).map((g) => g.innerText.split("\\n")[0]).join("|")')
-  check('the list is grouped by route, plans first when there are plans', groups.length > 0 && (!groups.includes('YOUR PLANS') || groups.startsWith('YOUR PLANS')), groups)
+  check('the list is grouped by route, plans first when there are plans', groups.length > 0 && (!/your plans/i.test(groups) || /^your plans/i.test(groups)), groups)
   if (current !== '') check('it opens on the current value', (await optionText()).startsWith(current), current + ' vs ' + (await optionText()))
   // two providers can serve the same model id: only the role's own route is marked, never both
   if (current !== '') check('exactly one row is marked as the current model', Number(await ev('document.querySelectorAll(".kbm-cb-opt.sel").length')) === 1)
@@ -154,17 +173,18 @@ try {
   await shot('roles-role')
 
   console.log('Review of unreachable roles')
-  await ev(js(() => { Array.from(document.querySelectorAll('button')).find((b) => b.innerText.trim() === '+ Add a role').click() })); await sleep(900)
-  check('a role without a model raises the banner', (await ev('!!document.querySelector(".kbm-upd-t")')) === true)
-  if (Number(await ev('document.querySelectorAll(".kbm-upd-row").length')) === 0) await ev('document.querySelector(".kbm-upd-go").click()')
-  await sleep(500)
-  const rows = Number(await ev('document.querySelectorAll(".kbm-upd-row").length'))
-  check('the review lists it with a replacement', rows > 0 && (await ev('(() => { const r = document.querySelectorAll(".kbm-upd-row"); return r[r.length - 1].querySelector(".kbm-cb-cur .kbm-cb-id") !== null })()')) === true)
+  await ev(js(() => { Array.from(document.querySelectorAll('button')).find((b) => b.innerText.trim() === 'Add a role').click() })); await sleep(900)
+  check('a role without a model puts a dot on the gear', (await ev('!!document.querySelector("[data-kb=model-management] .kbm-gear-dot")')) === true)
+  await ev('document.querySelector("[data-kb=model-management]").click()'); await sleep(400)
+  check('the gear says how many roles cannot reach their model', /cannot reach/.test(await ev('(document.querySelector(".kbm-gear-pop") || { innerText: "" }).innerText')))
+  await ev(js(() => { Array.from(document.querySelectorAll('.kbm-gear-pop button')).find((b) => /Review replacements/.test(b.innerText)).click() })); await sleep(600)
+  const rows = Number(await ev('document.querySelectorAll(".kbm-dlg .kbm-upd-row").length'))
+  check('the review opens as a dialog and lists it with a replacement', rows > 0 && (await ev('(() => { const r = document.querySelectorAll(".kbm-dlg .kbm-upd-row"); return r[r.length - 1].querySelector(".kbm-cb-cur .kbm-cb-id") !== null })()')) === true)
   // only the local role is applied: the real roles of the team are left out
-  await ev(js(() => { for (const r of document.querySelectorAll('.kbm-upd-row')) { const c = r.querySelector('input[type=checkbox]'); if (!/New role/.test(r.innerText) && c.checked) c.click() } })); await sleep(400)
+  await ev(js(() => { for (const r of document.querySelectorAll('.kbm-dlg .kbm-upd-row')) { const c = r.querySelector('input[type=checkbox]'); if (!/New role/.test(r.innerText) && c.checked) c.click() } })); await sleep(400)
   await shot('roles-review')
-  await ev('document.querySelector(".kbm-upd-apply").click()'); await sleep(800)
-  check('applying it takes it off the list', Number(await ev('document.querySelectorAll(".kbm-upd-row").length')) < rows || rows === 1)
+  await ev('document.querySelector(".kbm-dlg .kbm-upd-apply").click()'); await sleep(800)
+  check('applying it closes the dialog and takes it off the list', (await ev('!document.querySelector(".kbm-dlg")')) === true)
 
   console.log('Narrow column')
   await ev('(() => { const st = document.createElement("style"); st.id = "kbm-narrow"; st.textContent = ".kbm-root{max-width:380px !important}"; document.head.appendChild(st) })()'); await sleep(500)
