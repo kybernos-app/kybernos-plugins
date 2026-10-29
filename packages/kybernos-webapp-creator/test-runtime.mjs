@@ -1,4 +1,5 @@
 // test-runtime.mjs — a real app process: start, serve, stop, and every refusal on the way.
+import { spawn } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -39,6 +40,28 @@ try {
   check('starting twice is refused', bis.ok === false && bis.error === 'already running', bis)
   const s = await stopApp(dir)
   check('stop works', s.ok === true && statusApp(dir).running === false)
+
+  console.log('starts at the same instant, from different processes')
+  // Each start picks the first free port, then spawns: processes that start together pick the same one, and the losers die on EADDRINUSE. They must take
+  // another port, never report the winner's. (The flake of 2026-10-29: test-templates.mjs starts apps in this port range while this file runs. Inside one
+  // process the probes take turns, so the race needs real processes. The helper exits as soon as it has the answer: its app keeps running, like the plugin's.)
+  const runtimeUrl = new URL('./lib/runtime.mjs', import.meta.url).href
+  const lancer = (x) => new Promise((resolve) => {
+    const c = spawn(process.execPath, ['--input-type=module', '-e', 'import { startApp } from ' + JSON.stringify(runtimeUrl) + '; console.log(JSON.stringify(await startApp(' + JSON.stringify(x) + '))); process.exit(0)'], { stdio: ['ignore', 'pipe', 'inherit'] })
+    let out = ''
+    c.stdout.on('data', (d) => { out += d })
+    c.on('close', () => { try { resolve(JSON.parse(out.trim().split('\n').pop())) } catch (e) { resolve({ ok: false, error: 'no answer: ' + out }) } })
+  })
+  const quatre = [0, 1, 2, 3].map(() => { const x = mkdtempSync(join(tmpdir(), 'kb-app-par-')); writeFileSync(join(x, 'server.js'), SERVEUR_CJS); return x })
+  try {
+    const res = await Promise.all(quatre.map(lancer))
+    check('four processes starting together all succeed', res.every((x) => x.ok === true), res)
+    check('each gets its own port', new Set(res.map((x) => x.port)).size === 4, res.map((x) => x.port))
+    const servis = await Promise.all(res.map((x) => fetch('http://127.0.0.1:' + x.port + '/').then((r) => r.status, () => 0)))
+    check('and each port answers', servis.every((c) => c === 200), servis)
+  } finally {
+    for (const x of quatre) { try { await stopApp(x) } catch (e) { /* stopped */ } rmSync(x, { recursive: true, force: true }) }
+  }
 
   console.log('refusals')
   const sc = await startApp(crash)
