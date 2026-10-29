@@ -11,7 +11,7 @@ import { CATALOG_POINT_REF, LIMITS, validateCatalogType } from './catalog-type.m
 
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
-/** The type used while no theme brings one. English words are required by the point, French is for the page. */
+/** The type used while no template brings one. English words are required by the point, French is for the page. */
 export const DEFAULT_TYPE = Object.freeze({
   id: 'item',
   label: Object.freeze({ en: 'Item', fr: 'Élément' }),
@@ -81,7 +81,7 @@ export function checkFields (type, input) {
   return { ok: true, fields: out }
 }
 
-/** The stored fields with a patch laid over them; a null drops the key. Keys the type no longer defines are kept: removing a theme loses nothing. */
+/** The stored fields with a patch laid over them; a null drops the key. Keys the type no longer defines are kept: removing a template loses nothing. */
 const mergeFields = (current, patch) => {
   const out = Object.assign({}, plain(current) ? current : {})
   for (const [k, v] of Object.entries(patch)) { if (v === null) delete out[k]; else out[k] = v }
@@ -101,7 +101,7 @@ export function createCatalog (ports = {}) {
   const baseOf = () => { try { const b = typeof ports.base === 'function' ? ports.base() : null; return b !== null && b !== undefined && b.version === 1 && typeof b.list === 'function' ? b : null } catch (e) { return null } }
   const registryOf = () => { try { const r = typeof ports.registry === 'function' ? ports.registry() : null; return r !== null && r !== undefined && r.version === 1 && typeof r.contributions === 'function' ? r : null } catch (e) { return null } }
 
-  /** The types the active themes bring (the first of an id wins), or the one default type. Never throws. */
+  /** The types the active templates bring (the first of an id wins), or the one default type. Never throws. */
   const types = () => {
     const out = []
     try {
@@ -194,12 +194,12 @@ export function createCatalog (ports = {}) {
     }
     const type = typeByKey(list, typeKey)
     if (input.status !== undefined) {
-      if (type === null) return refuse('unknown_type', 'status: the type of this item is not defined by any active theme, set a type first')
+      if (type === null) return refuse('unknown_type', 'status: the type of this item is not defined by any active template, set a type first')
       if (typeof input.status !== 'string' || type.statuses.every((s) => s.key !== input.status)) return refuse('unknown_status', 'status: one of ' + type.statuses.map((s) => s.key).join(', '))
       values.status = input.status
     } else if (current === null && type !== null) values.status = type.statuses[0].key
     if (input.fields !== undefined) {
-      if (type === null) return refuse('unknown_type', 'fields: the type of this item is not defined by any active theme, set a type first')
+      if (type === null) return refuse('unknown_type', 'fields: the type of this item is not defined by any active template, set a type first')
       const checked = checkFields(type, input.fields)
       if (checked.ok !== true) return checked
       values.fields = mergeFields(current === null ? {} : current.fields, checked.fields)

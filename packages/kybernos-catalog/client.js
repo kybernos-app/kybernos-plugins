@@ -118,7 +118,7 @@ window.__ModuleLoader__.load({
           case 'base_missing': return kt('Le fichier de données partagé n’est pas disponible dans cette version de Kybernos.', 'The shared data file is not available in this version of Kybernos.')
           case 'sqlite_unavailable': return kt('Cette version de Node ne sait pas ouvrir le fichier de données.', 'This version of Node cannot open the data file.')
           case 'busy': return kt('Le fichier de données est occupé. Réessaie dans un instant.', 'The data file is busy. Try again in a moment.')
-          case 'unknown_type': return kt('Ce type n’existe pas dans ton thème.', 'This type does not exist in your theme.')
+          case 'unknown_type': return kt('Ce type n’existe pas dans ton modèle.', 'This type does not exist in your template.')
           case 'unknown_status': return kt('Ce statut n’existe pas pour ce type.', 'This status does not exist for this type.')
           case 'unknown_field': case 'bad_field': return kt('Une valeur n’est pas valide. Vérifie les champs et réessaie.', 'A value is not valid. Check the fields and try again.')
           case 'missing_field': return kt('Il manque un titre.', 'A title is missing.')
@@ -386,7 +386,7 @@ window.__ModuleLoader__.load({
               type !== null ? h('div', { className: 'kbcg-field' }, h('label', { htmlFor: 'kbcg-f-status' }, kt('Statut', 'Status')),
                 h('select', { id: 'kbcg-f-status', className: 'kbcg-in', 'data-kb': 'catalog-field-status', value: form.status, onChange: (e) => set({ status: e.target.value }) }, type.statuses.map((s) => h('option', { key: s.key, value: s.key }, pick(s.label, humanize(s.key)))))) : null),
             type !== null && type.fields.length > 0 ? h('div', { className: 'kbcg-grid2' }, type.fields.map(input)) : null,
-            editing && type === null ? h('p', { className: 'kbcg-fe', style: { color: 'inherit' }, 'data-kb': 'catalog-generic-note' }, kt('Ton thème ne définit plus le type de cet élément : seuls son titre, son sous-titre et son prix se modifient.', 'Your theme no longer defines this item’s type: only its title, subtitle and price can be edited.')) : null,
+            editing && type === null ? h('p', { className: 'kbcg-fe', style: { color: 'inherit' }, 'data-kb': 'catalog-generic-note' }, kt('Ton modèle ne définit plus le type de cet élément : seuls son titre, son sous-titre et son prix se modifient.', 'Your template no longer defines this item’s type: only its title, subtitle and price can be edited.')) : null,
             problem.indexOf('server:') === 0 ? h('div', { className: 'kbcg-banner err', role: 'alert', 'data-kb': 'catalog-form-error' }, Ic('alert', 16), h('span', { className: 'sp' }, problem.slice(7))) : null,
             h('div', { className: 'acts' },
               h('button', { type: 'button', className: 'kbcg-btn', 'data-kb': 'catalog-cancel', onClick: onClose, disabled: busy }, kt('Annuler', 'Cancel')),

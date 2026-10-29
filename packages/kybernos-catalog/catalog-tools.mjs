@@ -42,7 +42,7 @@ export const findTool = (catalog) => ({
 
 export const upsertTool = (catalog) => ({
   name: 'catalog_upsert',
-  description: 'Adds an item to the Catalog, or changes one when id is given. The person is asked to approve each call. A new item needs a title; its type and status must be keys the active theme defines (the default type is "item" with statuses draft, live, archived). fields is merged into the stored fields (a null value clears one). Nothing is sent anywhere.',
+  description: 'Adds an item to the Catalog, or changes one when id is given. The person is asked to approve each call. A new item needs a title; its type and status must be keys the active template defines (the default type is "item" with statuses draft, live, archived). fields is merged into the stored fields (a null value clears one). Nothing is sent anywhere.',
   parameters: {
     type: 'object',
     additionalProperties: false,
@@ -50,7 +50,7 @@ export const upsertTool = (catalog) => ({
       id: { type: 'integer', description: 'The id of an existing item to change. Leave out to add a new one.' },
       title: { type: 'string', description: 'The name of the item (1 to 200 characters). Required for a new item.' },
       subtitle: { type: 'string', description: 'A short second line (at most 200 characters).' },
-      type: { type: 'string', description: 'The key of the type. Default for a new item: the first type of the theme.' },
+      type: { type: 'string', description: 'The key of the type. Default for a new item: the first type of the template.' },
       status: { type: 'string', description: 'The key of a status of the type. Default for a new item: the first status.' },
       price_text: { type: 'string', description: 'The price as it is shown, like "€96" or "€2,450/mo" (at most 60 characters).' },
       price_num: { type: 'number', description: 'The same price as a number, or null.' },

@@ -1,19 +1,19 @@
 # kybernos-catalog
 
-What you sell, rent or recruit for — products, properties, jobs — as cards or a list, with the fields and statuses the active theme defines.
+What you sell, rent or recruit for — products, properties, jobs — as cards or a list, with the fields and statuses the active template defines.
 One of the three business plugins (Contacts, Catalog, Pipeline) built on the shared business base (`docs/dev/business-base.md`).
 
 ## Where and how
 
-The **Business** group of the sidebar › **Catalog** (the row appears once the plugin is switched on; a theme can rename it).
+The **Business** group of the sidebar › **Catalog** (the row appears once the plugin is switched on; a template can rename it).
 
-1. Search, filter by status (chips with counts), switch between **cards** and **list** (the views the theme's type allows).
+1. Search, filter by status (chips with counts), switch between **cards** and **list** (the views the template's type allows).
 2. Click an item for its sheet: the fields of its type, the card flag (« Only 3 left »), **Edit**, **Archive**. Archived items live under **Archived** and can be restored.
 3. **New** adds an item. The form follows the type: title, subtitle, price, status and the type's own fields (text, number, money, date, choice, email, url).
-4. Rows marked **demo** are a theme's sample data; **Clear sample data** removes them (the base clears the sample rows of Contacts and Pipeline too — the dialog says so). What the person added stays.
+4. Rows marked **demo** are a template's sample data; **Clear sample data** removes them (the base clears the sample rows of Contacts and Pipeline too — the dialog says so). What the person added stays.
 
-Without a theme the page uses one plain type, **Item**, with the statuses Draft, Live and Archived. With a theme, the page speaks its words.
-A row keeps only the **key** of its type and status; when a theme goes away its rows stay and are drawn as generic rows.
+Without a template the page uses one plain type, **Item**, with the statuses Draft, Live and Archived. With a template, the page speaks its words.
+A row keeps only the **key** of its type and status; when a template goes away its rows stay and are drawn as generic rows.
 Photos never go in git: a neutral tile stands in until the person adds theirs (not built yet).
 
 ## For an agent
