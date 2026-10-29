@@ -33,7 +33,7 @@ and logged, it never stops the host).
 | `keywords` | lower-case words (no accents) that point a sentence to this field (« kiné en libéral à Lyon » finds health): matched at the start of a word |
 | `home` | ids of the new-chat templates this field wants first (`doc sheet slides automation website plugin…`) |
 | `legacyJobs` | ids the old 12-profession step stored (`soft`, `etudes`…): a saved `profil` of that id reads as this field |
-| `menu.labels`, `menu.hide` | rename our menu rows (`kyber dashboards aiteams projects deliverables tasks skills connectors documents`); hide only `documents` |
+| `menu.labels`, `menu.hide` | rename our menu rows (`kyber dashboards aiteams projects deliverables tasks skills connectors documents`, and the three rows of the « Business » group, `contacts catalog pipeline`: `docs/dev/business-menu.md`); hide only `documents` |
 | `mode`, `agents` | the display mode the field starts from (`bureau`, or `code` for Development) and how much its agents may do alone by default: `{ preset: prudent / balanced / auto, why: text }` (the reason is shown under the choice) |
 | `goals[]` | `id`, `search`, `name`, `title`, `desc`, `skills`, `teams`, `connectors`, `automations`, `soon`, `starter` |
 | `goals[].search` | one or two **search phrases** for the skill scout (`docs/dev/learned-skills.md`): lowercase English words, 2 to 32 characters (`support ticket triage`, `inventory management`), none twice inside a pack. The public index matches words, not sentences, so a title such as « Sort customer requests » finds nothing useful: write what a skill would be called. Checked in `test-domain-pack.mjs`; measured against the real index on 2026-10-23 (some fields have little above 1,000 installs) |

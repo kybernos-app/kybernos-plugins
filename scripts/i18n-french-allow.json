@@ -43,7 +43,9 @@
     "kybernos-composio": [
       "CONNECTEURS PERSONNALISÉS"
     ],
+    "kybernos-catalog": [],
     "kybernos-computers": [],
+    "kybernos-contacts": [],
     "kybernos-dashboards": [],
     "kybernos-flow": [],
     "kybernos-free-llms": [],
@@ -62,6 +64,7 @@
     "kybernos-motion": [],
     "kybernos-multi-device": [],
     "kybernos-no-process": [],
+    "kybernos-pipeline": [],
     "kybernos-plugin": [
       "Hola. Soy la voz de Kybernos, tu asistente.",
       "fermé",

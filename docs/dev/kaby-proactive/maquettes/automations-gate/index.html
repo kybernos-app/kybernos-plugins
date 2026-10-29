@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gate — Automations (maquette)</title>
+<!-- The whole visual intent of batch B5, at DSH's real class names and real tokens. Text only: no image, no font, no network.
+     Controls are borrowed from client.js (see README.md for the exact rule each one copies); colours come from tokens.css only. -->
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* The page frame: a plain column, the width of the host's content column. */
+  /* The `hidden` attribute must win over the display of a chip or of the panel body (a UA rule loses to a class). */
+  [hidden] { display: none !important }
+  body { margin: 0; padding: 24px; background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); font: 13px -apple-system, "Segoe UI", Roboto, sans-serif }
+  .kbm-wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px }
+  .kbm-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+  .kbm-title { font-size: 18px; font-weight: 600; margin: 0 }
+  .kbm-sub { margin: 0; font-size: 13px; color: var(--dsw-alias-label-secondary) }
+  .kbm-spacer { flex: 1 }
+  .kbm-pills { display: flex; gap: 4px; flex-wrap: wrap }
+  .kbm-pill { font: inherit; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer }
+  .kbm-pill[aria-pressed='true'] { border-color: var(--dsw-alias-brand-primary); color: var(--dsw-alias-label-primary) }
+
+  /* Borrowed: .kba-lcard + .kba-rowline (the List of the page). */
+  .kba-card { border-radius: 16px; border: 1px solid var(--dsw-alias-border-l1); background: var(--dsw-alias-bg-layer-1); overflow: hidden }
+  .kba-rowline { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--dsw-alias-border-l1) }
+  .kba-rowline:first-child { border-top: 0 }
+  .kba-rowbtn { display: flex; align-items: center; gap: 10px; min-width: 0; border: 0; background: transparent; font: inherit; color: inherit; text-align: start; cursor: pointer }
+  .kba-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .kba-last { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--dsw-alias-label-secondary) }
+
+  /* Borrowed: .kba-btn / .kba-btn.pri. */
+  .kba-btn { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px; border-radius: 9px; border: 1px solid var(--dsw-alias-border-l1); background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap }
+  .kba-btn.pri { background: var(--dsw-alias-label-primary); color: var(--dsw-alias-bg-layer-1); border-color: transparent }
+  .kba-btn[disabled] { opacity: .45; cursor: default }
+
+  /* Borrowed: .kba-toggle / .kba-toggle-knob. */
+  .kba-toggle { position: relative; width: 34px; height: 20px; border-radius: 10px; border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-3); cursor: pointer; justify-self: center }
+  .kba-toggle:hover { background: var(--dsw-alias-interactive-bg-hover) }
+  .kba-toggle.on { background: var(--dsw-alias-state-success-primary); border-color: transparent }
+  .kba-toggle-knob { position: absolute; top: 2px; inset-inline-start: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--dsw-alias-bg-layer-1) }
+  .kba-toggle.on .kba-toggle-knob { inset-inline-start: auto; inset-inline-end: 2px }
+
+  /* Borrowed: .kbcc-badge (a chip of the Cards view) and the gate's own kbgate-* block of client.js. */
+  .kbcc-badge { font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary) }
+  .kbgate-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); white-space: nowrap }
+  .kbgate-badge.warn, .kbgate-chip.warn { color: var(--dsw-alias-state-warn-primary); border-color: var(--dsw-alias-state-warn-primary) }
+  .kbgate-badge.bad, .kbgate-chip.bad { color: var(--dsw-alias-state-error-primary); border-color: var(--dsw-alias-state-error-primary) }
+  .kbgate-badge.ok, .kbgate-chip.ok { color: var(--dsw-alias-state-success-primary); border-color: var(--dsw-alias-state-success-primary) }
+  .kbgate { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 16px; background: var(--dsw-alias-bg-layer-1) }
+  .kbgate-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+  .kbgate-title { font-size: 13px; font-weight: 600 }
+  .kbgate-status { font-size: 11.5px; font-weight: 600; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); white-space: nowrap }
+  .kbgate-status.ok { color: var(--dsw-alias-state-success-primary); border-color: var(--dsw-alias-state-success-primary) }
+  .kbgate-status.warn { color: var(--dsw-alias-state-warn-primary); border-color: var(--dsw-alias-state-warn-primary) }
+  .kbgate-status.bad { color: var(--dsw-alias-state-error-primary); border-color: var(--dsw-alias-state-error-primary) }
+  .kbgate-ladder { display: inline-flex; gap: 4px; flex-wrap: wrap }
+  .kbgate-step { font: inherit; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-tertiary); cursor: pointer }
+  .kbgate-step.done { color: var(--dsw-alias-label-primary); border-color: var(--dsw-alias-brand-primary) }
+  .kbgate-step[aria-current='step'] { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-brand-primary); border-color: var(--dsw-alias-brand-primary) }
+  .kbgate-btn { height: 28px; padding: 0 11px; font-size: 12.5px; border-radius: 12px }
+  .kbgate-hint, .kbgate-intro { margin: 0; font-size: 12.5px; color: var(--dsw-alias-label-secondary) }
+  .kbgate-warn { margin: 0; font-size: 12.5px; color: var(--dsw-alias-state-warn-primary) }
+  .kbgate-body { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--dsw-alias-border-l1) }
+  .kbgate-dim { font-size: 11.5px; color: var(--dsw-alias-label-tertiary) }
+  .kbgate-sub { font-size: 11.5px; font-weight: 600; color: var(--dsw-alias-label-secondary) }
+  .kbgate-sub-t { font-size: 13px; font-weight: 600 }
+  .kbgate-acts, .kbgate-decide { display: flex; align-items: center; gap: 6px; flex-wrap: wrap }
+  .kbgate-findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px }
+  .kbgate-finding { display: flex; align-items: flex-start; gap: 8px; padding: 6px 10px; border-radius: 12px; border: 1px solid var(--dsw-alias-border-l1); background: var(--dsw-alias-bg-layer-2) }
+  .kbgate-sev { font-size: 11.5px; font-weight: 600; color: var(--dsw-alias-label-secondary) }
+  .kbgate-finding.blocker .kbgate-sev { color: var(--dsw-alias-state-error-primary) }
+  .kbgate-finding.warn .kbgate-sev { color: var(--dsw-alias-state-warn-primary) }
+  .kbgate-fmsg { flex: 1; min-width: 0; font-size: 12.5px; overflow-wrap: anywhere }
+  .kbgate-trial { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-2) }
+  .kbgate-proof { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--dsw-alias-border-l1); background: var(--dsw-alias-bg-layer-3) }
+  .kbgate-proof[data-sideeffect='false'] { border-color: var(--dsw-alias-state-error-primary) }
+  .kbgate-side { font-size: 12.5px; font-weight: 600 }
+  .kbgate-side.ok { color: var(--dsw-alias-state-success-primary) }
+  .kbgate-side.bad { color: var(--dsw-alias-state-error-primary) }
+  .kbgate-side.idle { color: var(--dsw-alias-label-tertiary) }
+  .kbgate-tools { display: flex; flex-direction: column; gap: 4px }
+  .kbgate-tool { display: flex; align-items: center; gap: 8px }
+  .kbgate-tool-n { flex: 1; min-width: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .kbgate-chip { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); white-space: nowrap }
+  .kbgate-chips { display: flex; gap: 4px; flex-wrap: wrap }
+  .kbgate-init { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px }
+  .kbgate-initcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 12px 16px; border-top: 1px dashed var(--dsw-alias-border-l1) }
+  .kbgate-initmain { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+  .kbgate-inittitle { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .kbgate-initacts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end }
+  .kbm-toast { font-size: 12.5px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-3); color: var(--dsw-alias-label-primary) }
+  .kbm-note { font-size: 11.5px; color: var(--dsw-alias-label-tertiary); margin: 0 }
+
+  /* The same fold as the sibling card of the page (640 px), and nothing overflows at 480. */
+  @media (max-width: 640px) {
+    body { padding: 12px }
+    .kbgate, .kbgate-init { padding: 10px 12px }
+    .kbgate-initcard { grid-template-columns: minmax(0, 1fr) }
+    .kbgate-initacts { justify-content: flex-start }
+    .kbgate-acts .kba-btn, .kbgate-initacts .kba-btn { flex: 1 1 auto }
+    .kbgate-inittitle { white-space: normal }
+  }
+</style>
+</head>
+<body>
+<div class="kbm-wrap">
+  <div class="kbm-bar">
+    <h1 class="kbm-title" data-fr="Certifier une automation" data-en="Certifying an automation">Certifier une automation</h1>
+    <span class="kbm-spacer"></span>
+    <button type="button" class="kbm-pill" data-kb="maquette-lang" aria-pressed="false" data-fr="English" data-en="Français">English</button>
+    <button type="button" class="kbm-pill" data-kb="maquette-dark" aria-pressed="false" data-fr="Thème sombre" data-en="Dark theme">Thème sombre</button>
+  </div>
+  <p class="kbm-sub" data-fr="Aucune automation ne s’allume sans ton accord : les vérifications, puis un essai surveillé, puis ta décision."
+     data-en="No automation switches on without your word: the checks, then a supervised trial, then your decision.">Aucune automation ne s’allume sans ton accord.</p>
+
+  <!-- The status picker of the demo: the seven states a person can meet, plus the dirty-trial variant. -->
+  <div class="kbm-pills" data-kb="maquette-pills">
+    <button type="button" class="kbm-pill" data-set="draft" aria-pressed="true">draft</button>
+    <button type="button" class="kbm-pill" data-set="static-failed" aria-pressed="false">static-failed</button>
+    <button type="button" class="kbm-pill" data-set="awaiting-approval" aria-pressed="false">awaiting-approval</button>
+    <button type="button" class="kbm-pill" data-set="approved" aria-pressed="false">approved</button>
+    <button type="button" class="kbm-pill" data-set="activated" aria-pressed="false">activated</button>
+    <button type="button" class="kbm-pill" data-set="refused" aria-pressed="false">refused</button>
+    <button type="button" class="kbm-pill" data-set="unknown" aria-pressed="false">unknown</button>
+    <button type="button" class="kbm-pill" data-set="dirty" aria-pressed="false">trial-touched-outside</button>
+  </div>
+
+  <!-- The List row behind the panel: its badge and its switch are the two gestures the batch adds. -->
+  <div class="kba-card" data-kb="maquette-row">
+    <div class="kba-rowline">
+      <button type="button" class="kba-rowbtn" data-kb="maquette-open">
+        <span class="kba-name" data-fr="Relance des factures" data-en="Invoice chaser">Relance des factures</span>
+        <span class="kba-last"><span data-fr="chaque lundi · 08:00" data-en="every Monday · 08:00">chaque lundi · 08:00</span></span>
+        <span class="kbgate-badge warn" data-kb="gate-badge" data-kb-i18n="tasks.gate.badge.awaiting" data-tone="warn" data-fr="À approuver" data-en="Awaiting approval">À approuver</span>
+      </button>
+      <span role="switch" class="kba-toggle" data-kb="maquette-switch" aria-checked="false" tabindex="0"><span class="kba-toggle-knob"></span></span>
+    </div>
+  </div>
+
+  <!-- The panel: the same markup the client renders, driven by kbmStep() below. -->
+  <div class="kbgate" data-kb="gate-panel" data-open="true" data-status="draft" data-known="true">
+    <div class="kbgate-head">
+      <span class="kbgate-title" data-kb-i18n="tasks.gate.panel.title" data-fr="Certification" data-en="Certification">Certification</span>
+      <span class="kbgate-status" data-kb="maquette-status" data-fr="Brouillon" data-en="Draft">Brouillon</span>
+      <span class="kbgate-ladder">
+        <button type="button" class="kbgate-step" data-kb="gate-step-review" data-fr="Relire" data-en="Review">Relire</button>
+        <button type="button" class="kbgate-step blocked" data-kb="gate-step-approve" data-fr="Approuver" data-en="Approve">Approuver</button>
+        <button type="button" class="kbgate-step blocked" data-kb="gate-step-activate" data-fr="Activée" data-en="Activated">Activée</button>
+      </span>
+      <span class="kbm-spacer"></span>
+      <button type="button" class="kba-btn kbgate-btn" data-kb="gate-collapse" data-fr="Replier" data-en="Collapse">Replier</button>
+    </div>
+    <p class="kbgate-hint" data-kb="maquette-hint" data-fr="Une vérification bloque : corrige le workflow, puis relance les vérifications."
+       data-en="A check blocks it: fix the workflow, then run the checks again.">Une vérification bloque.</p>
+    <div class="kbgate-body">
+      <p class="kbgate-intro" data-fr="Aucune automation ne s’allume sans ton accord : les vérifications, puis un essai surveillé, puis ta décision."
+         data-en="No automation switches on without your word: the checks, then a supervised trial, then your decision.">Les vérifications, puis un essai, puis ta décision.</p>
+      <span class="kbgate-dim" data-kb="maquette-when" data-fr="Jamais vérifiée" data-en="Never checked">Jamais vérifiée</span>
+      <div class="kbgate-acts">
+        <button type="button" class="kba-btn kbgate-btn" data-kb="gate-check" data-fr="Lancer les vérifications" data-en="Run the checks">Lancer les vérifications</button>
+        <button type="button" class="kba-btn kbgate-btn" data-kb="gate-refuse" data-fr="Refuser" data-en="Refuse">Refuser</button>
+        <button type="button" class="kba-btn pri kbgate-btn" data-kb="gate-approve" disabled data-fr="Approuver" data-en="Approve">Approuver</button>
+        <span class="kbgate-dim" data-fr="Ton accord ne l’allume pas : il autorise l’interrupteur." data-en="Your approval does not switch it on: it unlocks the switch.">Ton accord autorise l’interrupteur.</span>
+      </div>
+      <span class="kbgate-sub" data-fr="Ce que disent les vérifications" data-en="What the checks found">Ce que disent les vérifications</span>
+      <ul class="kbgate-findings" data-kb="maquette-findings"></ul>
+      <div class="kbgate-trial">
+        <span class="kbgate-sub-t" data-fr="Essai surveillé" data-en="Supervised trial">Essai surveillé</span>
+        <button type="button" class="kba-btn kbgate-btn" data-kb="gate-trial-start" data-fr="Lancer l’essai" data-en="Run the trial">Lancer l’essai</button>
+        <span class="kbgate-dim" data-fr="L’essai refuse toute écriture hors de la session : il ne peut rien envoyer, publier, supprimer ni payer."
+           data-en="The trial refuses every write outside the session: it cannot send, publish, delete or pay anything.">L’essai refuse toute écriture hors de la session.</span>
+      </div>
+      <div class="kbgate-proof" data-kb="gate-proof" data-state="none" data-sideeffect="unknown">
+        <div class="kbgate-head">
+          <span class="kbgate-sub-t" data-fr="Preuve de l’essai" data-en="Trial proof">Preuve de l’essai</span>
+          <span class="kbgate-dim" data-kb="maquette-duration" data-fr="Durée : —" data-en="Duration: —">Durée : —</span>
+        </div>
+        <span class="kbgate-side idle" data-kb="maquette-side" data-fr="Aucune preuve pour l’instant : rien n’est affirmé." data-en="No proof yet: nothing is claimed.">Aucune preuve pour l’instant.</span>
+        <span class="kbgate-sub" data-fr="Appels de l’essai" data-en="Calls of the trial">Appels de l’essai</span>
+        <div class="kbgate-tools" data-kb="maquette-tools"><span class="kbgate-dim" data-fr="Aucun appel enregistré." data-en="No call recorded.">Aucun appel enregistré.</span></div>
+        <span class="kbgate-sub" data-fr="Effets extérieurs" data-en="External effects">Effets extérieurs</span>
+        <span class="kbgate-dim" data-fr="Aucun." data-en="None.">Aucun.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="kbm-toast" data-kb="maquette-toast" hidden></div>
+
+  <!-- The initiative cards: drafts with their proof, at most three then "show all". -->
+  <div class="kba-card kbgate-init" data-kb="initiative-block">
+    <div class="kbgate-head"><span class="kbgate-title" data-fr="Idées de Kaby" data-en="Ideas from Kaby">Idées de Kaby</span></div>
+    <p class="kbgate-intro" data-fr="Des besoins revenus plusieurs fois, avec leur preuve. Rien ne se crée ni ne s’allume depuis ici : tu en parles dans un chat."
+       data-en="Needs that came back several times, with their proof. Nothing is created or switched on from here: you talk it through in a chat.">Des besoins revenus plusieurs fois, avec leur preuve.</p>
+    <div class="kbgate-initcard" data-kb="initiative-card" data-id="i_1" data-usable="true">
+      <div class="kbgate-initmain">
+        <span class="kbgate-inittitle" data-fr="Relance des factures en retard" data-en="Chase overdue invoices">Relance des factures en retard</span>
+        <span class="kbgate-dim" data-fr="Vu 14 fois sur 60 jours · Gmail › Boîte de réception" data-en="Seen 14 times over 60 days · Gmail › Inbox">Vu 14 fois · Gmail</span>
+        <span class="kbgate-dim" data-fr="Rédiger la relance et me la montrer avant l’envoi." data-en="Draft the reminder and show it to me before it is sent.">Rédiger la relance et me la montrer.</span>
+        <span class="kbgate-chips"><span class="kbgate-chip" data-fr="risque faible" data-en="low risk">risque faible</span><span class="kbgate-chip" data-fr="annulable en un clic" data-en="undone in one click">annulable en un clic</span></span>
+      </div>
+      <div class="kbgate-initacts">
+        <button type="button" class="kba-btn kbgate-btn" data-kb="initiative-ask" data-fr="En parler" data-en="Talk it through">En parler</button>
+        <button type="button" class="kba-btn kbgate-btn" data-kb="initiative-drop" data-fr="Écarter" data-en="Discard">Écarter</button>
+      </div>
+    </div>
+    <div class="kbgate-initcard" data-kb="initiative-card" data-id="i_2" data-usable="false">
+      <div class="kbgate-initmain">
+        <span class="kbgate-inittitle" data-fr="Publier le récapitulatif" data-en="Publish the digest">Publier le récapitulatif</span>
+        <span class="kbgate-dim" data-fr="Vu 6 fois sur 30 jours · Slack" data-en="Seen 6 times over 30 days · Slack">Vu 6 fois · Slack</span>
+        <span class="kbgate-chips"><span class="kbgate-chip" data-fr="risque élevé" data-en="high risk">risque élevé</span><span class="kbgate-chip warn" data-fr="Pas de brouillon : rien à lancer depuis ici." data-en="No draft: nothing to start from here.">Pas de brouillon</span></span>
+      </div>
+      <div class="kbgate-initacts"><button type="button" class="kba-btn kbgate-btn" data-kb="initiative-drop" data-fr="Écarter" data-en="Discard">Écarter</button></div>
+    </div>
+    <button type="button" class="kba-btn kbgate-btn" data-kb="initiative-more" data-fr="Tout voir (4)" data-en="Show all (4)">Tout voir (4)</button>
+  </div>
+
+  <p class="kbm-note" data-fr="Maquette : aucun appel réseau, aucun stockage, aucune automatisation réelle."
+     data-en="Maquette: no network call, no storage, no real automation.">Maquette : aucun appel réseau.</p>
+</div>
+
+<script id="kbm-model">
+/* The state machine the page plays, pure so the verifier can run it: one action in, one state out.
+   It is the client's own rule, restated — `switch` activates only on a recorded approval. Copied from client.js's
+   kbGateToggleIntent / kbGateCanApprove / kbGateCanRefuse, nothing added. */
+const KBM_ACTIVATABLE = (s) => s.approval === 'granted' && (s.status === 'approved' || s.status === 'activated')
+const KBM_CAN_APPROVE = (s) => s.status === 'awaiting-approval' && s.approval !== 'granted' && s.approval !== 'refused' && s.trial !== null && s.trial.sideEffectFree === true && Number.isFinite(s.rev)
+const KBM_CAN_REFUSE = (s) => s.known !== false && s.status !== 'activated' && s.status !== 'refused' && Number.isFinite(s.rev)
+const KBM_TONE = (status) => (status === 'activated' || status === 'approved' ? 'ok' : (status === 'awaiting-approval' || status === 'trial-done' ? 'warn' : (status === 'static-failed' || status === 'refused' ? 'bad' : 'idle')))
+const KBM_LABEL = {
+  draft: ['Brouillon', 'Draft'], 'static-failed': ['Échec des vérifications', 'Checks failed'], 'static-passed': ['Vérifications passées', 'Checks passed'],
+  'trial-done': ['Essai terminé', 'Trial done'], 'awaiting-approval': ['À approuver', 'Awaiting approval'], approved: ['Approuvée', 'Approved'],
+  refused: ['Refusée', 'Refused'], activated: ['Activée', 'Activated'], unknown: ['Inconnu', 'Unknown'],
+}
+const KBM_HINT = {
+  'static-failed': ['Une vérification bloque : corrige le workflow, puis relance les vérifications.', 'A check blocks it: fix the workflow, then run the checks again.'],
+  'awaiting-approval': ['L’essai est propre. À toi de décider.', 'The trial is clean. The decision is yours.'],
+  approved: ['Approuvée : tu peux l’allumer quand tu veux.', 'Approved: switch it on whenever you want.'],
+  refused: ['Refusée : elle reste éteinte et ne lance rien.', 'Refused: it stays off and runs nothing.'],
+  unknown: ['Cet hôte ne vérifie pas encore les automations.', 'This host does not check automations yet.'],
+}
+const kbmStart = () => ({ known: true, status: 'draft', approval: 'none', trial: null, active: false, rev: 1 })
+/** One gesture → the next state; `gated` is what the demo must say when the switch was refused. */
+const kbmStep = (state, action) => {
+  const s = Object.assign({}, state)
+  if (s.known === false && action !== 'reset') return { state: s, gated: false }
+  const bump = () => { s.rev = (Number.isFinite(s.rev) ? s.rev : 0) + 1 }
+  if (action === 'check-ok') { s.status = 'static-passed'; s.approval = 'none'; s.trial = null; bump() }
+  else if (action === 'check-fail') { s.status = 'static-failed'; s.approval = 'none'; s.trial = null; bump() }
+  else if (action === 'trial-clean') { if (s.status === 'static-passed' || s.status === 'trial-done') { s.status = 'awaiting-approval'; s.trial = { sideEffectFree: true }; s.approval = 'asked'; bump() } }
+  else if (action === 'trial-dirty') { if (s.status === 'static-passed' || s.status === 'trial-done') { s.status = 'trial-done'; s.trial = { sideEffectFree: false }; bump() } }
+  else if (action === 'approve') { if (KBM_CAN_APPROVE(s) === true) { s.status = 'approved'; s.approval = 'granted'; bump() } }
+  else if (action === 'refuse') { if (KBM_CAN_REFUSE(s) === true) { s.status = 'refused'; s.approval = 'refused'; bump() } }
+  else if (action === 'switch') {
+    if (s.active === true) { s.active = false; if (s.status === 'activated') s.status = 'approved'; return { state: s, gated: false } }
+    if (KBM_ACTIVATABLE(s) === true) { s.status = 'activated'; s.active = true; bump(); return { state: s, gated: false } }
+    return { state: s, gated: true }
+  }
+  return { state: s, gated: false }
+}
+</script>
+
+<script>
+/* The scene: it only paints what kbmStep returns. No fetch, no storage, no timer. */
+const $ = (sel) => document.querySelector(sel)
+const $$ = (sel) => Array.prototype.slice.call(document.querySelectorAll(sel))
+let kbmState = kbmStart()
+let kbmLang = 0
+let kbmOpen = true
+let kbmToastTimer = null
+
+const say = (fr, en) => (kbmLang === 0 ? fr : en)
+const paintLang = () => {
+  $$('[data-fr]').forEach((e) => { e.textContent = kbmLang === 0 ? e.getAttribute('data-fr') : e.getAttribute('data-en') })
+  $('[data-kb="maquette-lang"]').setAttribute('aria-pressed', kbmLang === 0 ? 'false' : 'true')
+  document.documentElement.lang = kbmLang === 0 ? 'fr' : 'en'
+}
+const toast = (text) => {
+  const t = $('[data-kb="maquette-toast"]')
+  t.hidden = false
+  t.textContent = text
+  if (kbmToastTimer !== null) clearTimeout(kbmToastTimer)
+  kbmToastTimer = setTimeout(() => { t.hidden = true }, 3200)
+}
+const paint = () => {
+  const s = kbmState
+  const panel = $('[data-kb="gate-panel"]')
+  panel.dataset.status = s.status
+  panel.dataset.known = s.known === false ? 'false' : 'true'
+  panel.dataset.open = kbmOpen ? 'true' : 'false'
+  const label = KBM_LABEL[s.known === false ? 'unknown' : s.status] || KBM_LABEL.unknown
+  const status = $('[data-kb="maquette-status"]')
+  status.textContent = say(label[0], label[1])
+  status.className = 'kbgate-status ' + KBM_TONE(s.status)
+  const hint = KBM_HINT[s.status]
+  const hintEl = $('[data-kb="maquette-hint"]')
+  hintEl.hidden = hint === undefined
+  if (hint !== undefined) hintEl.textContent = say(hint[0], hint[1])
+  $$('.kbgate-step').forEach((b) => {
+    const id = b.getAttribute('data-kb').replace('gate-step-', '')
+    b.classList.toggle('done', id === 'approve' ? s.approval === 'granted' : (id === 'activate' ? s.status === 'activated' : s.status !== 'draft'))
+    b.classList.toggle('blocked', s.approval !== 'granted' && id !== 'review')
+    const next = s.status === 'awaiting-approval' ? 'approve' : (s.status === 'approved' && s.approval === 'granted' ? 'activate' : (s.status === 'activated' || s.known === false ? null : 'review'))
+    if (next === id) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current')
+  })
+  $('[data-kb="gate-collapse"]').textContent = kbmOpen ? say('Replier', 'Collapse') : say('Relire', 'Review')
+  $('.kbgate-body').hidden = kbmOpen !== true || s.known === false
+  $('[data-kb="gate-approve"]').disabled = KBM_CAN_APPROVE(s) !== true
+  $('[data-kb="gate-refuse"]').disabled = KBM_CAN_REFUSE(s) !== true
+  $('[data-kb="gate-check"]').hidden = !(s.status === 'draft' || s.status === 'static-failed' || s.status === 'static-passed' || s.status === 'refused')
+  $('[data-kb="gate-trial-start"]').hidden = s.status !== 'static-passed' && s.status !== 'trial-done'
+  const proof = $('[data-kb="gate-proof"]')
+  proof.dataset.state = s.trial === null ? 'none' : 'done'
+  proof.dataset.sideeffect = s.trial === null ? 'unknown' : (s.trial.sideEffectFree === true ? 'true' : 'false')
+  const side = $('[data-kb="maquette-side"]')
+  side.className = 'kbgate-side ' + (s.trial === null ? 'idle' : (s.trial.sideEffectFree === true ? 'ok' : 'bad'))
+  side.textContent = s.trial === null ? say('Aucune preuve pour l’instant : rien n’est affirmé.', 'No proof yet: nothing is claimed.')
+    : (s.trial.sideEffectFree === true ? say('Rien n’est sorti de la machine.', 'Nothing left the machine.') : say('Quelque chose a pu sortir de la machine : l’approbation est fermée.', 'Something could have left the machine: approval is closed.'))
+  const tools = $('[data-kb="maquette-tools"]')
+  tools.innerHTML = ''
+  if (s.trial === null) {
+    const d = document.createElement('span')
+    d.className = 'kbgate-dim'
+    d.textContent = say('Aucun appel enregistré.', 'No call recorded.')
+    tools.appendChild(d)
+  } else {
+    const rows = [[say('gmail.list_threads', 'gmail.list_threads'), say('lecture', 'read'), 'ok'], [say('gmail.send_email', 'gmail.send_email'), say('écriture', 'write'), 'refused-as-write']]
+    rows.forEach((r) => {
+      const row = document.createElement('div')
+      row.className = 'kbgate-tool'
+      row.setAttribute('data-kb', 'gate-proof-tool')
+      row.setAttribute('data-access', r[1] === 'lecture' || r[1] === 'read' ? 'read' : 'write')
+      row.setAttribute('data-outcome', r[2])
+      const n = document.createElement('span')
+      n.className = 'kbgate-tool-n'
+      n.textContent = r[0]
+      const a = document.createElement('span')
+      a.className = 'kbgate-chip'
+      a.textContent = r[1]
+      const o = document.createElement('span')
+      o.className = 'kbgate-chip ' + (r[2] === 'ok' ? 'ok' : 'warn')
+      o.textContent = r[2] === 'ok' ? 'ok' : say('refusé à l’écriture', 'refused as a write')
+      row.appendChild(n); row.appendChild(a); row.appendChild(o)
+      tools.appendChild(row)
+    })
+  }
+  const badge = $('[data-kb="gate-badge"]')
+  const badgeKey = s.status === 'awaiting-approval' ? 'tasks.gate.badge.awaiting' : (s.status === 'static-failed' ? 'tasks.gate.badge.failed' : (s.status === 'refused' ? 'tasks.gate.badge.refused' : ''))
+  badge.hidden = badgeKey === ''
+  if (badgeKey !== '') {
+    badge.setAttribute('data-kb-i18n', badgeKey)
+    badge.setAttribute('data-tone', KBM_TONE(s.status))
+    badge.className = 'kbgate-badge ' + KBM_TONE(s.status)
+    badge.textContent = badgeKey === 'tasks.gate.badge.failed' ? say('Échec des vérifications', 'Checks failed') : (badgeKey === 'tasks.gate.badge.refused' ? say('Refusée', 'Refused') : say('À approuver', 'Awaiting approval'))
+  }
+  const sw = $('[data-kb="maquette-switch"]')
+  sw.classList.toggle('on', s.active === true)
+  sw.setAttribute('aria-checked', s.active === true ? 'true' : 'false')
+  const ul = $('[data-kb="maquette-findings"]')
+  ul.innerHTML = ''
+  if (s.status === 'static-failed') {
+    [['blocker', say('Bloquant', 'Blocker'), 'prompt.unattended'], ['warn', say('À surveiller', 'Warning'), 'prompt.send.word']].forEach((f) => {
+      const li = document.createElement('li')
+      li.className = 'kbgate-finding ' + f[0]
+      li.setAttribute('data-kb', 'gate-finding')
+      li.setAttribute('data-severity', f[0])
+      const sev = document.createElement('span')
+      sev.className = 'kbgate-sev'
+      sev.textContent = f[1]
+      const msg = document.createElement('span')
+      msg.className = 'kbgate-fmsg'
+      msg.textContent = f[0] === 'blocker' ? say('le prompt nomme send et approvals est auto : le run agirait sans demander.', 'the prompt names send and approvals is auto: the run would act without asking.') : say('le prompt nomme send : une automation prépare et demande.', 'the prompt names send: an automation prepares and asks.')
+      li.appendChild(sev); li.appendChild(msg)
+      ul.appendChild(li)
+    })
+  } else {
+    const d = document.createElement('li')
+    d.className = 'kbgate-dim'
+    d.textContent = say('Aucun constat.', 'No finding.')
+    ul.appendChild(d)
+  }
+  $('[data-kb="maquette-when"]').textContent = s.rev > 1 ? say('Vérifié le 28 oct., 04:12', 'Checked Oct 28, 04:12') : say('Jamais vérifiée', 'Never checked')
+  $('[data-kb="maquette-duration"]').textContent = s.trial === null ? say('Durée : —', 'Duration: —') : say('Durée : 6.5 s', 'Duration: 6.5 s')
+}
+const act = (action) => {
+  const out = kbmStep(kbmState, action)
+  kbmState = out.state
+  if (out.gated === true) {
+    kbmOpen = true
+    toast(say('Pas encore approuvée : relis les vérifications et l’essai avant de l’allumer.', 'Not approved yet: read the checks and the trial before switching it on.'))
+  }
+  paint()
+}
+$$('[data-set]').forEach((p) => {
+  p.addEventListener('click', () => {
+    $$('[data-set]').forEach((x) => x.setAttribute('aria-pressed', x === p ? 'true' : 'false'))
+    const set = p.getAttribute('data-set')
+    if (set === 'unknown') kbmState = { known: false, status: 'unknown', approval: 'none', trial: null, active: false, rev: 1 }
+    else if (set === 'dirty') kbmState = { known: true, status: 'trial-done', approval: 'asked', trial: { sideEffectFree: false }, active: false, rev: 4 }
+    else if (set === 'awaiting-approval') kbmState = { known: true, status: 'awaiting-approval', approval: 'asked', trial: { sideEffectFree: true }, active: false, rev: 4 }
+    else if (set === 'approved') kbmState = { known: true, status: 'approved', approval: 'granted', trial: { sideEffectFree: true }, active: false, rev: 5 }
+    else if (set === 'activated') kbmState = { known: true, status: 'activated', approval: 'granted', trial: { sideEffectFree: true }, active: true, rev: 6 }
+    else if (set === 'refused') kbmState = { known: true, status: 'refused', approval: 'refused', trial: { sideEffectFree: true }, active: false, rev: 5 }
+    else if (set === 'static-failed') kbmState = { known: true, status: 'static-failed', approval: 'none', trial: null, active: false, rev: 2 }
+    else kbmState = kbmStart()
+    kbmOpen = set === 'static-failed' || set === 'awaiting-approval' || set === 'dirty'
+    paint()
+  })
+})
+$('[data-kb="maquette-switch"]').addEventListener('click', () => act('switch'))
+$('[data-kb="maquette-open"]').addEventListener('click', () => { kbmOpen = true; paint() })
+$('[data-kb="gate-collapse"]').addEventListener('click', () => { kbmOpen = !kbmOpen; paint() })
+;['gate-step-review', 'gate-step-approve', 'gate-step-activate'].forEach((k) => { $('[data-kb="' + k + '"]').addEventListener('click', () => { kbmOpen = true; paint() }) })
+$('[data-kb="gate-check"]').addEventListener('click', () => act(kbmState.status === 'static-failed' ? 'check-ok' : 'check-ok'))
+$('[data-kb="gate-trial-start"]').addEventListener('click', () => act('trial-clean'))
+$('[data-kb="gate-approve"]').addEventListener('click', () => act('approve'))
+$('[data-kb="gate-refuse"]').addEventListener('click', () => act('refuse'))
+$('[data-kb="initiative-ask"]').addEventListener('click', () => toast(say('Un chat s’ouvrirait, prérempli avec cette idée.', 'A chat would open, prefilled with this idea.')))
+$('[data-kb="initiative-drop"]').addEventListener('click', () => toast(say('Écartée.', 'Discarded.')))
+$('[data-kb="maquette-lang"]').addEventListener('click', () => { kbmLang = kbmLang === 0 ? 1 : 0; paintLang(); paint() })
+$('[data-kb="maquette-dark"]').addEventListener('click', () => {
+  const on = document.body.getAttribute('data-ds-dark-theme') === null
+  if (on) document.body.setAttribute('data-ds-dark-theme', 'true'); else document.body.removeAttribute('data-ds-dark-theme')
+  $('[data-kb="maquette-dark"]').setAttribute('aria-pressed', on ? 'true' : 'false')
+})
+paintLang()
+paint()
+</script>
+</body>
+</html>

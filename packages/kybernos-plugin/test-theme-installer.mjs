@@ -169,7 +169,9 @@ const PREVIEW = [
 ok('the plan cites every item with its file, and shows the two folders it cannot install yet', () => {
   const p = T.planTheme(PREVIEW)
   assert.equal(p.ok, true)
-  assert.equal(p.id, 'clinic')
+  assert.equal(p.id, 'clinic') // no plugin id given: only the field can be named
+  assert.equal(T.planTheme(PREVIEW, 'acme/vet').id, 'acme/vet')
+  assert.equal(T.planTheme(PREVIEW, '').id, 'clinic')
   assert.deepEqual([p.style.id, p.style.file], ['clinic-style', 'themes/clinic.json'])
   assert.deepEqual([p.pack.id, p.pack.file], ['clinic', 'domains/clinic.json'])
   assert.deepEqual(p.pack.words.menu.labels.tasks, { en: 'Visits' })
@@ -321,6 +323,32 @@ ok('stage refuses a folder that is not a theme, a code plugin, a path going up, 
     assert.deepEqual([accepted.body.stage.id, accepted.body.stage.level], ['acme/good', 'local'])
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
+ok('stage refuses a package with no bundle patch, before DSH is asked: its manager would roll it back as not-bundle', () => {
+  const dir = fresh('a6-rt-')
+  try {
+    const store = { dir }
+    const plain = join(dir, 'plain')
+    mkdirSync(plain)
+    writeFileSync(join(plain, 'plugin.json'), JSON.stringify({ contract: 1, id: 'acme/plain', kind: 'data', version: '1.0.0' }))
+    writeFileSync(join(plain, 'package.json'), JSON.stringify({ name: '@acme/plain', version: '1.0.0' }))
+    const r = T.handleThemes(store, { method: 'POST', body: { action: 'stage', folder: plain } }, portsOK())
+    assert.equal(r.status, 400)
+    assert.equal(r.body.error, 'package')
+    assert.match(r.body.reason, /only as a bundle/)
+    assert.match(r.body.reason, /cordis\.patch\.yml/)
+    // the helper alone: a patch path passes, anything else is named
+    assert.equal(T.bundleProblem({ name: 'x', dsh: { bundle: { patch: './cordis.patch.yml' } } }), null)
+    for (const bad of [{ name: 'x' }, { dsh: {} }, { dsh: { bundle: {} } }, { dsh: { bundle: { patch: 3 } } }, null, 'text']) assert.equal(typeof T.bundleProblem(bad), 'string', JSON.stringify(bad))
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+ok('the starter theme is installable: no problem for the registry, the pre-check, or DSH\'s bundle rule', () => {
+  const starter = join(here, '..', '..', 'docs', 'dev', 'templates', 'acme-vet-clinic')
+  const pkg = JSON.parse(readFileSync(join(starter, 'package.json'), 'utf8'))
+  assert.deepEqual(T.dataPluginProblems(pkg, starter), [])
+  assert.deepEqual(dataPackageProblems(pkg, starter), [])
+  assert.equal(T.bundleProblem(pkg), null)
+  assert.equal(readFileSync(join(starter, pkg.dsh.bundle.patch), 'utf8').replace(/#[^\n]*/g, '').replace(/\s+/g, ''), '[]')
+})
 ok('a record is written, read back, and forgetting it twice is a no-op', () => {
   const dir = fresh('a6-rt-')
   try {
@@ -457,7 +485,9 @@ ok('plan answers from the registry seam, and says so when there is none', () => 
     const ports = Object.assign(portsOK(), { registry })
     const planned = T.handleThemes(store, { method: 'POST', body: { action: 'plan', id: 'acme/vet' } }, ports)
     assert.equal(planned.status, 200)
-    assert.equal(planned.body.plan.id, 'clinic')
+    // the plan is named by the PLUGIN (`acme/vet`): the page consents, records and removes by that id, never by the field's own id
+    assert.equal(planned.body.plan.id, 'acme/vet')
+    assert.equal(planned.body.plan.pack.id, 'clinic')
     assert.equal(T.handleThemes(store, { method: 'POST', body: { action: 'plan', id: 'acme/none' } }, ports).body.error, 'unknown-plugin')
     assert.equal(T.handleThemes(store, { method: 'POST', body: { action: 'plan', id: 'nope' } }, ports).status, 400)
   } finally { rmSync(dir, { recursive: true, force: true }) }
@@ -485,7 +515,7 @@ ok('the page block is marked in client.js, so the tests run the browser\'s own c
   assert.notEqual(core, null)
   assert.equal(page, true)
 })
-const coreMod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { kbThApply, kbThRemove, kbThFingerprint, kbThLabel }'))
+const coreMod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { kbThApply, kbThRemove, kbThFingerprint, kbThLabel, kbThManagerIssue }'))
 const PLAN = T.planTheme(PREVIEW)
 /** A fake profile: the lookups answer what `seen` says, the writes are recorded, nothing leaves the process. */
 const fake = (seen) => {
@@ -501,6 +531,8 @@ const fake = (seen) => {
     post: async (path, body) => {
       calls.push({ m: 'POST', path, body })
       if (path.indexOf('/kybernos/tasks') === 0 && body !== null && body.action === 'list') return { ok: true, tasks: (seen.tasks || []).map((n) => ({ name: n })) }
+      // a theme that does not carry the skill in its own folder (the host answers no-skill): the skill goes the usual way
+      if (path === '/kybernos/themes' && body !== null && body.action === 'skill') return seen.ownSkills === true ? { ok: true, action: 'created' } : { ok: false, error: 'no-skill' }
       return { ok: true }
     },
     team: (item) => ({ name: item.id, id: item.id, home: true }),
@@ -509,6 +541,16 @@ const fake = (seen) => {
   return { calls, ports }
 }
 const TICKS = { style: true, goals: ['recall'], skills: ['patient-reminders'], teams: ['clinic-assist', 'assist'], automations: ['daily-recall'] }
+await okA('a skill the theme carries in its own folder is installed by the host from there, and the usual route is not asked', async () => {
+  const f = fake({ ownSkills: true })
+  const r = await coreMod.kbThApply(PLAN, TICKS, f.ports)
+  const posts = f.calls.filter((c) => c.m === 'POST')
+  assert.equal(r.ok, true)
+  assert.equal(r.added, 6, JSON.stringify(r))
+  assert.equal(r.failed, 0)
+  assert.deepEqual(posts.filter((c) => c.path === '/kybernos/themes').map((c) => c.body), [{ action: 'skill', id: PLAN.id, name: 'patient-reminders' }])
+  assert.equal(posts.filter((c) => c.path.indexOf('/kybernos/domain/skill') === 0).length, 0)
+})
 await okA('the applier writes the field, the kit and the look once, in the routes\' order, and counts 6', async () => {
   const f = fake({})
   const r = await coreMod.kbThApply(PLAN, TICKS, f.ports)
@@ -538,7 +580,7 @@ await okA('the applier writes nothing outside the routes of this batch: no sessi
   const f = fake({})
   await coreMod.kbThApply(PLAN, TICKS, f.ports)
   assert.deepEqual(f.calls.filter((c) => /sessions|memory|workspaces/.test(c.path)), [])
-  const allowed = ['/kybernos-registry/consent', '/kybernos/onboarding', '/kybernos/domain/skill', '/kybernos-skills/install', '/kybernos/create', '/kybernos/tasks']
+  const allowed = ['/kybernos-registry/consent', '/kybernos/onboarding', '/kybernos/themes', '/kybernos/domain/skill', '/kybernos-skills/install', '/kybernos/create', '/kybernos/tasks'] // /kybernos/themes: a skill the shipped theme carries
   for (const c of f.calls.filter((c) => c.m === 'POST')) assert.ok(allowed.some((p) => c.path.indexOf(p) === 0), 'an unexpected path: ' + c.path)
 })
 await okA('a replay is a no-op: already true, not one write', async () => {
@@ -577,7 +619,7 @@ await okA('a failing step is counted and does not stop the next one', async () =
     post: async (path, body) => {
       calls.push(path)
       if (path.indexOf('/kybernos-registry/consent') === 0) return { ok: false }
-      if (path.indexOf('/kybernos/domain/skill') === 0) return { ok: false }
+      if (path.indexOf('/kybernos/domain/skill') === 0 || path === '/kybernos/themes') return { ok: false }
       return { ok: true }
     },
     team: (item) => ({ name: item.id, id: item.id }),
@@ -644,6 +686,53 @@ await okA('kbThFingerprint sorts keys and is stable; kbThLabel reads a pack text
   assert.equal(coreMod.kbThLabel({ fr: 'Visites', en: 'Visits' }), 'Visits')
   assert.equal(coreMod.kbThLabel('plain'), 'plain')
   assert.equal(coreMod.kbThLabel(null), '')
+})
+await okA('the applier hands the style port the settings bag too: a theme\'s own style is not a gallery id', async () => {
+  const seen = []
+  const f = fake({})
+  f.ports.style = async (input, bag) => { seen.push({ input, bag }); return { ok: true, id: input } }
+  const plan = Object.assign({}, PLAN, { style: Object.assign({}, PLAN.style, { settings: { acc: '#1B7F76' } }) })
+  const r = await coreMod.kbThApply(plan, TICKS, f.ports)
+  assert.equal(r.style, 'applied')
+  assert.deepEqual(seen, [{ input: plan.style.id, bag: { acc: '#1B7F76' } }])
+  const bare = Object.assign({}, PLAN, { style: Object.assign({}, PLAN.style, { settings: null }) })
+  const f2 = fake({}); const seen2 = []
+  f2.ports.style = async (input, bag) => { seen2.push(bag); return { ok: true } }
+  await coreMod.kbThApply(bare, TICKS, f2.ports)
+  assert.deepEqual(seen2, [null])
+})
+ok('kbThManagerIssue reads DSH\'s refusals as refusals: an object that says not-bundle is not an install (it used to pass as "not null")', () => {
+  const issue = coreMod.kbThManagerIssue
+  assert.equal(issue({ application: 'applied' }), 'ok')
+  assert.equal(issue({}), 'ok')
+  assert.equal(issue({ ok: true, value: { application: 'applied' } }), 'ok')
+  assert.equal(issue({ ok: true, value: { application: 'restart-required', restartReason: 'no-hmr' } }), 'restart')
+  // what the manager really returns for a package without a bundle patch: the failure folded into the result
+  assert.equal(issue({ ok: true, value: { error: { code: 'not-bundle' }, application: 'failed' } }), 'not-bundle')
+  assert.equal(issue({ error: { code: 'not-bundle' } }), 'not-bundle')
+  assert.equal(issue({ error: { code: 'already-installed' } }), 'already')
+  assert.equal(issue({ error: { code: 'invalid-spec' } }), 'refused')
+  assert.equal(issue({ error: { code: 'incompatible-version' }, application: 'failed' }), 'refused')
+  assert.equal(issue({ ok: false, error: 'x' }), 'refused')
+  assert.equal(issue({ ok: true, value: { ok: false } }), 'refused')
+  assert.equal(issue({ application: 'failed' }), 'failed')
+  assert.equal(issue({ application: 'cancelled' }), 'cancelled')
+  for (const none of [null, undefined, 'applied', 3, [], [{ application: 'applied' }]]) assert.equal(issue(none), 'no-answer', JSON.stringify(none))
+})
+ok('the page reads the manager\'s answer instead of "not null", and the Themes cards keep their actions visible', () => {
+  const stage = src.slice(src.indexOf('const stageWith = async'), src.indexOf('const toggle = (kind, value)'))
+  assert.match(stage, /kbThManagerIssue\(installed\)/)
+  assert.doesNotMatch(stage, /installed === null/)
+  assert.match(stage, /kbThFreshRegistry\(\)[\s\S]*openPlan/) // the registry scan is reused for two seconds: ask for a fresh one before reading the plan
+  const seam = src.slice(src.indexOf('const kbThSeamInstall = async'), src.indexOf('const kbThSeamRemove = async'))
+  assert.match(seam, /kbThManagerIssue\(installed\)/)
+  assert.doesNotMatch(seam, /installed === null/)
+  assert.doesNotMatch(src.slice(src.indexOf('const kbThRemoveTheme = async'), src.indexOf('// A catalogue theme\'s archive is NOT fetched here')), /removeBundle\(record\.id\)\)\s*!==\s*null/)
+  // the team list hides a `.kbg-card`'s description and actions: the Themes gallery uses cards of its own, so no rule of the team list reaches them
+  const view = src.slice(src.indexOf('const KbThemesView = () =>'), src.indexOf('// ── Skills and Connectors: one page each'))
+  assert.doesNotMatch(view, /kbg-card/)
+  assert.match(view, /className: 'kbgal-card'/)
+  assert.doesNotMatch(src, /\[data-kb-page="themes"\] \.kbg-card/, 'the old overrides are gone with the cards they served')
 })
 
 console.log('\n' + count + ' checks passed')

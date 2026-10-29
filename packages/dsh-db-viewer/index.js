@@ -2,7 +2,8 @@
 // dsh-db-viewer — host half.
 //
 // Serves the right sidebar panel a read of the small SQLite databases of the kybers
-// (`~/.dsh/kybers/<id>/donnees.sqlite`, checked by `crm.cjs`). FOUR read-ONLY routes —
+// (`~/.dsh/kybers/<id>/donnees.sqlite`, checked by `crm.cjs`) and of the Kybernos plugins
+// (`<DSH home>/kybernos/<dir>/donnees.sqlite`, listed as `kybernos-<dir>`: the business base is `kybernos-business`). FOUR read-ONLY routes —
 // no write exists here, by design: the database is filled by the kyber (crm.cjs exec),
 // not by the page.
 //
@@ -57,6 +58,18 @@ export const name = 'dsh-db-viewer'
 
 const ID_VALIDE = /^[a-z0-9][a-z0-9-]*$/
 const TABLE_VALIDE = /^[A-Za-z_][A-Za-z0-9_]*$/
+const FICHIER = 'donnees.sqlite'
+/** The id a database of `<DSH home>/kybernos/<dir>/` is listed under: a kyber of the same id keeps it. */
+export const PREFIXE_KYBERNOS = 'kybernos-'
+/** How long a read waits for a writer that holds the file (the plugins write in WAL; measured: one `database is locked` in 680 reads without it). */
+export const ATTENTE_MS = 3000
+
+/** The one door to a database: read-only, and patient with a writer. */
+export function ouvrirLecture (dbPath) {
+  const db = new DatabaseSync(dbPath, { readOnly: true })
+  try { db.exec('PRAGMA busy_timeout = ' + ATTENTE_MS) } catch (e) { /* a Node that refuses the pragma reads without waiting */ }
+  return db
+}
 
 // What this host refuses is said in English, with a code: the page maps the code to the language of the person (an error of the SQL
 // engine itself carries no code and is shown as the engine worded it).
@@ -66,23 +79,33 @@ class Refus extends Error {
 
 // ── pure functions ──────────────────────────────────────────────────────────
 
-/** The databases found: one kyber = one folder = at most one `donnees.sqlite`. */
-export function listerBases (kybersHome) {
-  if (!existsSync(kybersHome)) return []
+/** The databases of one root: one folder = at most one `donnees.sqlite`; `prefixe` is put in front of the folder's name to make the id. */
+function basesDe (racine, prefixe) {
   const bases = []
-  for (const entree of readdirSync(kybersHome, { withFileTypes: true })) {
+  if (typeof racine !== 'string' || !existsSync(racine)) return bases
+  for (const entree of readdirSync(racine, { withFileTypes: true })) {
     if (!entree.isDirectory() || !ID_VALIDE.test(entree.name)) continue
-    const fichier = join(kybersHome, entree.name, 'donnees.sqlite')
+    const fichier = join(racine, entree.name, FICHIER)
     if (!existsSync(fichier) || !statSync(fichier).isFile()) continue
     let tables = []
     try { tables = listerTables(fichier) } catch (e) { tables = [] }
-    bases.push({ id: entree.name, tables })
+    bases.push({ id: prefixe + entree.name, tables })
   }
+  return bases
+}
+
+/**
+ * The databases found: one kyber = one folder = at most one `donnees.sqlite`, then (when `kybernosHome` is given) the databases of the
+ * plugins, `<kybernosHome>/<dir>/donnees.sqlite`, listed as `kybernos-<dir>`. A kyber that already has that id keeps it.
+ */
+export function listerBases (kybersHome, kybernosHome = null) {
+  const bases = basesDe(kybersHome, '')
+  for (const b of basesDe(kybernosHome, PREFIXE_KYBERNOS)) if (!bases.some((x) => x.id === b.id)) bases.push(b)
   return bases.sort((a, b) => (a.id < b.id ? -1 : 1))
 }
 
 export function listerTables (dbPath) {
-  const db = new DatabaseSync(dbPath, { readOnly: true })
+  const db = ouvrirLecture(dbPath)
   try {
     const noms = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
@@ -109,7 +132,7 @@ const corpsCreate = (sql) => {
 
 /** Live schema: the real columns + the relations read from the REFERENCES. */
 export function lireSchema (dbPath) {
-  const db = new DatabaseSync(dbPath, { readOnly: true })
+  const db = ouvrirLecture(dbPath)
   try {
     const tables = []
     const relations = []
@@ -141,7 +164,7 @@ export function lireSchema (dbPath) {
 export function lireLignes (dbPath, table, limite) {
   if (!TABLE_VALIDE.test(table)) throw new Refus('bad-table', 'Invalid table name')
   const max = Math.min(Math.max(parseInt(limite, 10) || 50, 1), 500)
-  const db = new DatabaseSync(dbPath, { readOnly: true })
+  const db = ouvrirLecture(dbPath)
   try {
     const info = db.prepare(`PRAGMA table_info("${table}")`).all()
     if (info.length === 0) throw new Refus('unknown-table', 'Unknown table: ' + table)
@@ -169,7 +192,7 @@ export function executerSelect (dbPath, sql, limite) {
   }
   if (/;\s*\S/.test(texte)) throw new Refus('one-statement', 'One statement at a time')
   const max = Math.min(Math.max(parseInt(limite, 10) || LIMITE_REQUETE, 1), LIMITE_REQUETE_MAX)
-  const db = new DatabaseSync(dbPath, { readOnly: true })
+  const db = ouvrirLecture(dbPath)
   try {
     const stmt = db.prepare(texte)
     const lignes = []
@@ -220,15 +243,25 @@ const origineOK = (req) => {
 }
 
 /** base=<id> → a controlled path, or null. A path typed by the page is never used. */
-function resoudreBase (kybersHome, id) {
+function resoudreBase (kybersHome, id, kybernosHome = null) {
   if (typeof id !== 'string' || !ID_VALIDE.test(id)) return null
-  const fichier = join(kybersHome, id, 'donnees.sqlite')
-  return existsSync(fichier) && statSync(fichier).isFile() ? fichier : null
+  const fichier = join(kybersHome, id, FICHIER)
+  if (existsSync(fichier) && statSync(fichier).isFile()) return fichier
+  if (typeof kybernosHome === 'string' && id.startsWith(PREFIXE_KYBERNOS)) {
+    const dossier = id.slice(PREFIXE_KYBERNOS.length)
+    if (!ID_VALIDE.test(dossier)) return null
+    const f = join(kybernosHome, dossier, FICHIER)
+    return existsSync(f) && statSync(f).isFile() ? f : null
+  }
+  return null
 }
 
 export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc = kbFenced(webServerSvc)
-  const kybersHome = opts.kybersHome || join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybers')
+  const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh')
+  const kybersHome = opts.kybersHome || join(dshHome, 'kybers')
+  // The second root is the plugins' own folder. A caller that names only `kybersHome` (a test) gets no second root: it never reads a real home.
+  const kybernosHome = opts.kybernosHome !== undefined ? opts.kybernosHome : (opts.kybersHome === undefined ? join(dshHome, 'kybernos') : null)
 
   const lecture = (path, traiter) => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
     if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
@@ -241,22 +274,22 @@ export function monterRoutes (webServerSvc, opts = {}) {
     }
   } })
 
-  lecture('/dsh-db-viewer/bases', () => ({ bases: listerBases(kybersHome) }))
+  lecture('/dsh-db-viewer/bases', () => ({ bases: listerBases(kybersHome, kybernosHome) }))
 
   lecture('/dsh-db-viewer/schema', (p) => {
-    const fichier = resoudreBase(kybersHome, p.get('base'))
+    const fichier = resoudreBase(kybersHome, p.get('base'), kybernosHome)
     if (fichier === null) throw new Refus('unknown-base', 'Unknown database')
     return lireSchema(fichier)
   })
 
   lecture('/dsh-db-viewer/rows', (p) => {
-    const fichier = resoudreBase(kybersHome, p.get('base'))
+    const fichier = resoudreBase(kybersHome, p.get('base'), kybernosHome)
     if (fichier === null) throw new Refus('unknown-base', 'Unknown database')
     return lireLignes(fichier, p.get('table') || '', p.get('limit'))
   })
 
   lecture('/dsh-db-viewer/query', (p) => {
-    const fichier = resoudreBase(kybersHome, p.get('base'))
+    const fichier = resoudreBase(kybersHome, p.get('base'), kybernosHome)
     if (fichier === null) throw new Refus('unknown-base', 'Unknown database')
     return executerSelect(fichier, p.get('sql') || '', p.get('limit'))
   })
@@ -264,16 +297,18 @@ export function monterRoutes (webServerSvc, opts = {}) {
   if (opts.silencieux !== true) {
     console.log('[dsh-db-viewer] webServer routes /dsh-db-viewer/* registered (bases, schema, rows, query)')
   }
-  return { kybersHome }
+  return { kybersHome, kybernosHome }
 }
 
 export function apply (ctx) {
   if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'dsh-db-viewer: routes')
-  const kybersHome = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybers')
+  const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh')
+  const kybersHome = join(dshHome, 'kybers')
+  const kybernosHome = join(dshHome, 'kybernos')
   const demarrer = (hostCtx) => {
     try {
       // `get`, not `hostCtx.webServer`: called with the plugin's own context when the service is already there, where a property read throws.
-      monterRoutes(hostCtx.get('webServer'), { ctx: hostCtx, kybersHome })
+      monterRoutes(hostCtx.get('webServer'), { ctx: hostCtx, kybersHome, kybernosHome })
     } catch (e) {
       console.error('[dsh-db-viewer] cannot mount the routes', e)
     }

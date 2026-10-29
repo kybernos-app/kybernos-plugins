@@ -29,6 +29,7 @@ import { rank } from './relevance.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
 import { TEAM_SPACE_REFUSAL, inTeamSpace, touchesPersonalMemory } from './team-space.mjs'
+import { importClaudeMemories, readStaging, writeStaging, setEntryStatus, statusCounts, scanClaudeMemory } from './claude-import.mjs'
 
 export const name = 'kybernos-memory'
 
@@ -1015,6 +1016,55 @@ const settingsSetRoute = async (req, body) => {
 // `session: true` is a route that WRITES: besides the same-origin rule it needs DSH's signed browser-session cookie (session-guard.mjs, the terminal's
 // rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local program, so before this a `curl -X POST` with
 // no header at all deleted a lesson. Every caller is the Memory page (a browser): the agent's tools call the store in-process, not these routes.
+
+// ── Claude memory import ──────────────────────────────────────────────────────
+
+const claudeImportListRoute = async () => {
+  const staging = readStaging()
+  return { ok: true, ...staging, counts: statusCounts(staging.entries) }
+}
+
+const claudeImportScanRoute = async () => {
+  const files = scanClaudeMemory()
+  return { ok: true, total: files.length, files: files.slice(0, 20) }
+}
+
+const claudeImportApplyRoute = async (req, body) => {
+  const existingLessons = readLessons(activeKyber())
+  const result = importClaudeMemories({ existingLessons, now: new Date().toISOString() })
+  return { ok: true, ...result }
+}
+
+const claudeImportStatusRoute = async (req, body) => {
+  if (!body || typeof body.id !== 'string' || typeof body.status !== 'string') {
+    return { ok: false, error: 'id and status required' }
+  }
+  const staging = readStaging()
+  const entry = staging.entries.find((e) => e.id === body.id)
+  if (!entry) return { ok: false, error: 'entry not found' }
+  const result = setEntryStatus(entry, body.status)
+  if (!result.ok) return result
+  entry.status = result.entry.status
+  writeStaging(staging)
+  return { ok: true, entry }
+}
+
+const claudeImportStatusBulkRoute = async (req, body) => {
+  if (!body || !Array.isArray(body.ids) || typeof body.status !== 'string') {
+    return { ok: false, error: 'ids array and status required' }
+  }
+  const staging = readStaging()
+  let changed = 0
+  for (const id of body.ids) {
+    const entry = staging.entries.find((e) => e.id === id)
+    if (!entry) continue
+    const result = setEntryStatus(entry, body.status)
+    if (result.ok) { entry.status = result.entry.status; changed++ }
+  }
+  writeStaging(staging)
+  return { ok: true, changed }
+}
+
 export const ROUTES = [
   { path: '/kybernos-memory/lessons', method: 'GET', guarded: true, run: lessonsListRoute },
   { path: '/kybernos-memory/kybers', method: 'GET', guarded: true, run: lessonsKybersRoute },
@@ -1029,6 +1079,11 @@ export const ROUTES = [
   { path: '/kybernos-memory/tidy/settings', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: tidySettingsRoute },
   { path: '/kybernos-memory/settings', method: 'GET', guarded: true, run: settingsRoute },
   { path: '/kybernos-memory/settings/set', method: 'POST', guarded: true, session: true, body: true, run: settingsSetRoute },
+  { path: '/kybernos-memory/claude-import', method: 'GET', guarded: true, run: claudeImportListRoute },
+  { path: '/kybernos-memory/claude-import/scan', method: 'POST', guarded: true, session: true, run: claudeImportScanRoute },
+  { path: '/kybernos-memory/claude-import/apply', method: 'POST', guarded: true, session: true, run: claudeImportApplyRoute },
+  { path: '/kybernos-memory/claude-import/status', method: 'POST', guarded: true, session: true, body: true, run: claudeImportStatusRoute },
+  { path: '/kybernos-memory/claude-import/status-bulk', method: 'POST', guarded: true, session: true, body: true, cap: 65536, run: claudeImportStatusBulkRoute },
 ]
 
 const mountRoutes = (ctx, webServer) => {

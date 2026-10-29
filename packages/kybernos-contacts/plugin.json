@@ -1,0 +1,55 @@
+{
+  "contract": 1,
+  "id": "kybernos/contacts",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "Contacts",
+    "fr": "Contacts"
+  },
+  "description": {
+    "en": "The people and companies of your work in one place, with the kinds and fields your theme speaks of. Its page arrives in a later release.",
+    "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton thème. Sa page arrive dans une prochaine version."
+  },
+  "icon": "contacts",
+  "family": "data",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-contacts",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0",
+    "plugins": {
+      "kybernos/core": "^1.0"
+    }
+  },
+  "permissions": [],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-contacts"
+    ]
+  },
+  "provides": [
+    {
+      "name": "schema",
+      "version": "1.0",
+      "kind": "data",
+      "class": "inert",
+      "summary": {
+        "en": "A contact: a person or a company, with the types and fields a theme defines."
+      },
+      "validator": "builtin"
+    }
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

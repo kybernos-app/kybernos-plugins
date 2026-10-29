@@ -1,7 +1,7 @@
 // Test of the `cloud-link` action of POST /kybernos/tasks: the link between an automation and the cloud computer it was published to. While it lives there the copy on
 // this computer is paused and cannot be switched on, an edit keeps it paused, and bringing it back restores what it was. End to end on the REAL
 // packages/kybernos-plugin/index.js with a fake context in a temporary DSH_HOME. Usage: node scripts/test-tasks-cloud-link.mjs   (exit 0 = everything passes)
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -52,9 +52,20 @@ const HOME = '3f2a1c10-0000-4000-8000-000000000001'
 const PROS = '3f2a1c10-0000-4000-8000-000000000002'
 const task = (o) => ({ name: 'Collecteur', prompt: 'Collect the prices', schedule: { mode: 'cron', cron: '0 3 * * *', tz: 'Europe/Paris' }, active: true, approvals: 'auto', ...(o || {}) })
 const list = async () => (await api({ action: 'list' })).tasks
+// `create` now seeds a draft gate record (finding P2 #3). This test is about the cloud link, not the certification
+// ladder, so the record is removed right after each creation: that models the automations which predate the gate, and
+// "no record is no gate" — which cloud-link keeps for them. A GATED automation's publish and return paths are covered by
+// packages/kybernos-plugin/test-automation-gate-routes.mjs.
+const gatesFile = join(dshHome, 'kybernos', 'gates.json')
+const ungate = (id) => {
+  const file = JSON.parse(readFileSync(gatesFile, 'utf8'))
+  file.records = file.records.filter((r) => r.automationId !== id)
+  writeFileSync(gatesFile, JSON.stringify(file, null, 2), { mode: 0o600 })
+}
 
 /* ── linking: paused, and kept paused ────────────────────────────────────── */
 const made = (await api({ action: 'create', task: task() })).task
+ungate(made.id)
 eq('the task starts active, with a next run', JSON.stringify([made.active, typeof made.nextRun]), JSON.stringify([true, 'string']))
 const linked = (await api({ action: 'cloud-link', id: made.id, cloud: { computerId: HOME, name: 'Home' } })).task
 eq('linking pauses the copy on this computer', JSON.stringify([linked.active, linked.nextRun]), JSON.stringify([false, null]))
@@ -80,15 +91,16 @@ eq('bringing back what is not linked changes nothing', (await api({ action: 'clo
 eq('it can be switched on and off here again', (await api({ action: 'toggle', id: made.id, active: false })).ok, true)
 
 const off = (await api({ action: 'create', task: task({ name: 'Paused one', active: false }) })).task
+ungate(off.id)
 await api({ action: 'cloud-link', id: off.id, cloud: { computerId: HOME, name: 'Home' } })
 const offBack = (await api({ action: 'cloud-link', id: off.id, cloud: null })).task
 eq('an automation that was paused comes back paused', JSON.stringify([offBack.active, offBack.nextRun]), JSON.stringify([false, null]))
 
 const once = (await api({ action: 'create', task: task({ name: 'One time', schedule: { mode: 'once', at: '2099-01-01T08:00', tz: 'UTC' } }) })).task
+ungate(once.id)
 await api({ action: 'cloud-link', id: once.id, cloud: { computerId: HOME, name: 'Home' } })
 // the date passes while it lives in the cloud
 const tasksFile = join(dshHome, 'kybernos', 'tasks.json')
-const { readFileSync } = await import('node:fs')
 const stored = JSON.parse(readFileSync(tasksFile, 'utf8'))
 stored.find((t) => t.id === once.id).schedule.at = '2020-01-01T08:00'
 writeFileSync(tasksFile, JSON.stringify(stored), { mode: 0o600 })

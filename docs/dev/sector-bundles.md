@@ -24,8 +24,8 @@ node scripts/plugin-check.mjs <folder>
 
 ## Copy the starter, then read the report
 
-The starter is `docs/dev/templates/acme-vet-clinic/`: eight files — five contributions and the three files that
-carry them (manifest, package, README) — plus a `broken/` folder of deliberate faults (one per check id) to learn
+The starter is `docs/dev/templates/acme-vet-clinic/`: nine files — five contributions and the four files that
+carry them (manifest, package, patch, README) — plus a `broken/` folder of deliberate faults (one per check id) to learn
 from. Copy it, rename the manifest, run the
 checker:
 
@@ -47,14 +47,14 @@ plugin: acme/vet-clinic 1.0.0 (data, 5 points, free)
   PASS  manifest.schema     plugin.schema.json, subset interpreter: no fault
   PASS  manifest.rules      ids, reserved namespaces, version, claims: no fault
   PASS  manifest.points     extends 5 points, every one opened, ranges satisfied, requires.plugins covers their owners
-  PASS  package.data        no dsh key, no install script, no bin
+  PASS  package.data        no code to load, no install script, no bin
   PASS  point.domain-pack   domains/vet-clinic.json
   PASS  point.theme         themes/vet-clinic.json
   PASS  point.skill         skills/consult-notes
   PASS  point.team-template teams/clinic-desk.json
   PASS  point.automation-template automations/morning-reminders.json
   PASS  code.scan           no .js in the folder: nothing to declare
-  PASS  hygiene             8 files, no media, no personal path
+  PASS  hygiene             9 files, no media, no personal path
   SKIP  claims.unique       not applicable: a data theme declares no CSS prefix, route or slot
   SKIP  help.card           not a module of the Suite (no help key)
   SKIP  compat.zone         no requires.dsh in a data theme
@@ -182,6 +182,33 @@ The six other points of the contract's table are not a theme's business: `kybern
 built, the two dashboards source points are for later, and `kybernos/language#pack`,
 `kybernos/modeles-locaux#model` belong to their own catalogues.
 
+## The three business points
+
+A theme for a trade that keeps people, things and a board (a shop, an agency, a recruitment firm) can also tell the three business plugins
+(Contacts, Catalog, Pipeline, `docs/dev/business-base.md`) its words. They are three more points, owned by those plugins and extended the same
+way, from folders of JSON:
+
+| Folder | Point | One file = | At most |
+|---|---|---|---|
+| `contacts/` | `kybernos/contacts#schema` | the kinds of contact (a person or a company), the fields and the tags | 4 files |
+| `catalog/` | `kybernos/catalog#type` | one kind of item: statuses, fields, what its card shows, its views | 12 files |
+| `pipeline/` | `kybernos/pipeline#flow` | one board: its stages (2 to 8), how its value is counted, what a card may link to | 4 files |
+
+The file's name is the `id` inside it. Texts are `{ "en": …, "fr": … }` (English required; `es` and `ar` allowed), 1 to 60 characters, no control
+character and no angle bracket. A field is `{ key, type, label?, options?, currency? }` with a type among `text`, `number`, `money`, `date`,
+`choice`, `email`, `url`. A catalog card and its flag name fields by key; a key the type does not define is refused when the folder is checked.
+Each point is inert (nothing in it is an instruction an agent follows), and each check is pure and bounded.
+
+A theme that extends them must name their owners in `requires.plugins` (`kybernos/contacts`, `kybernos/catalog`, `kybernos/pipeline`, `^1.0`):
+until those plugins are installed and have told their points to the registry, the theme is listed `missing-dependency`. The starter is
+`docs/dev/templates/acme-garden-shop/`, with one broken variant per point:
+
+```bash
+node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
+```
+
+Sample rows for the pages (so a new install is not empty) are not part of these three points: a later lot adds them.
+
 ## One complete `plugin.json`
 
 Five `extends`, one `dir` each, and `requires.plugins` naming **every** owner it extends — the rule a schema
@@ -211,18 +238,21 @@ accepted by the repository's own validator with an outsider's context, and a uni
 }
 ```
 
-There is no `provides`: a theme contributes, it does not open a point. There is no `dsh` key in its
-`package.json` either, and that is the point: a data theme has nothing for DSH to load, so it needs no patch
-file, and `dataPackageProblems` accepts a `package.json` with no `dsh` key at all
-(`packages/kybernos-registry/registry.mjs:57-75`). The four-file shape the plugin-creator skill shows for a
-data plugin carries an **empty** patch instead; both are valid, and the starter shows the smallest true thing.
+There is no `provides`: a theme contributes, it does not open a point. Its `package.json` names an **empty** patch
+(`"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }`, the file holding `[]`) and nothing else under `dsh`: DSH's
+manager installs a package only as a bundle, and a data theme is a bundle that loads nothing. `dataPackageProblems`
+(`packages/kybernos-registry/registry.mjs:57-75`) accepts a package with no `dsh` key too, and the registry reads it, but the
+manager answers `not-bundle` and puts the profile back as it was, so the Themes page refuses such a folder at the
+first step (`bundleProblem`, `packages/kybernos-plugin/theme-installer.mjs`) and says why. This is also the shape the
+plugin-creator skill writes for a data plugin.
 
 ## The starter, file by file
 
 | File | Why it is there |
 |---|---|
 | `plugin.json` | the manifest above |
-| `package.json` | `name`, `version`, `description`, `license` — no `dsh`, no `scripts`, no `bin` |
+| `package.json` | `name`, `version`, `description`, `license`, and `dsh.bundle.patch` — no other `dsh` key, no `scripts`, no `bin` |
+| `cordis.patch.yml` | the empty patch: a comment and `[]`, so DSH has a bundle to install and nothing to load |
 | `domains/vet-clinic.json` | two goals, their kit, the menu words, the agents preset |
 | `themes/vet-clinic.json` | the style layer: one accent, a radius, a mode |
 | `skills/consult-notes/SKILL.md` | one skill that drafts and never sends, and quotes the file it was given |

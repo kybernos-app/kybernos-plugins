@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Des commandes, des dossiers ou des candidatures en cartes sur un tableau : tu les fais avancer d’une étape à l’autre, et le total de chaque colonne se met à jour.",
+    "en": "Orders, deals or candidates as cards on a board: you move them from one stage to the next, and the total of each column follows."
+  },
+  "steps": [
+    {
+      "fr": "Active Pipeline ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
+      "en": "Switch Pipeline on here, or install a theme that needs it: the theme installs it with it."
+    },
+    {
+      "fr": "Un thème décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
+      "en": "A theme describes its boards: stages, value, links; Kybernos checks that description when you install it."
+    },
+    {
+      "fr": "La page Pipeline elle-même, avec le tableau, le glisser-déposer et les flèches au clavier, arrive dans une prochaine version.",
+      "en": "The Pipeline page itself, with the board, drag and drop and the keyboard arrows, arrives in a later release."
+    }
+  ],
+  "where": {
+    "fr": "Dans la Suite, une fois activé",
+    "en": "In the Suite, once switched on",
+    "page": false
+  },
+  "good": {
+    "fr": "Ton assistant pourra lire et déplacer les cartes ; chaque déplacement laissera une ligne dans le journal, et il te demandera avant d’écrire.",
+    "en": "Your assistant will be able to read and move the cards; every move will leave a line in the log, and it will ask before it writes."
+  }
+}

@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { sessionSource } from './session-guard.mjs'
 import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+import { BUILTIN_API } from '../kybernos-cloud/server-profile.mjs' // a test may reach across bundles; the code never does
 
 // The POST routes need the signed session as well as the Origin (L3-16): the Servers page's own request carries both.
 sessionSource.secret = () => SESSION_SECRET
@@ -54,7 +55,7 @@ const PLAIN_1 = await fake(profile())            // answers « Kybernos », as e
 const PLAIN_2 = await fake(profile())            // another one that answers « Kybernos »
 const WITH_CONN = await fake((url) => profile({ name: 'Connected Co', services: { llm: false, connections: url + '/v1/mcp/connections' } })(url))
 const EVIL_CONN = await fake(profile({ name: 'Evil Co', services: { connections: 'https://evil.example/v1/mcp/connections' } }))
-const AS_BUILTIN = await fake(profile({ name: 'Mirror', api: 'https://api.kybernos.app' }))
+const AS_BUILTIN = await fake(profile({ name: 'Mirror', api: BUILTIN_API }))
 const OLD_DSH = await fake(profile({ name: 'Future Co', dsh_min: '9.9.9' }))
 const REDIRECTING = await fake(profile(), { status: 301 })
 const SPARE = await fake(profile({ name: 'Spare' }))

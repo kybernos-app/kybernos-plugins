@@ -1,0 +1,28 @@
+{
+  "id": "orders",
+  "label": {
+    "en": "Orders",
+    "fr": "Commandes"
+  },
+  "newLabel": {
+    "en": "New order",
+    "fr": "Nouvelle commande"
+  },
+  "stages": [
+    {
+      "key": "new",
+      "label": {
+        "en": "New",
+        "fr": "Nouvelle"
+      }
+    }
+  ],
+  "value": {
+    "format": "money",
+    "currency": "EUR"
+  },
+  "links": {
+    "contact": true,
+    "item": true
+  }
+}

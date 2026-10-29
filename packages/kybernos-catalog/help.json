@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres d’emploi — en cartes et en listes, avec les statuts et les champs de ton thème.",
+    "en": "What you sell, rent or recruit for — products, properties, jobs — as cards and lists, with the statuses and fields of your theme."
+  },
+  "steps": [
+    {
+      "fr": "Active Catalog ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
+      "en": "Switch Catalog on here, or install a theme that needs it: the theme installs it with it."
+    },
+    {
+      "fr": "Un thème décrit ce qu’il liste, ses statuts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
+      "en": "A theme describes what it lists, its statuses and its fields; Kybernos checks that description when you install it."
+    },
+    {
+      "fr": "La page Catalog elle-même, avec les cartes, le filtre par statut et la fiche de chaque élément, arrive dans une prochaine version.",
+      "en": "The Catalog page itself, with the cards, the filter by status and a sheet for each item, arrives in a later release."
+    }
+  ],
+  "where": {
+    "fr": "Dans la Suite, une fois activé",
+    "en": "In the Suite, once switched on",
+    "page": false
+  },
+  "good": {
+    "fr": "Les photos ne sont jamais dans le dépôt : un visuel neutre tient la place tant que tu n’en as pas ajouté. Tout reste dans un seul fichier sur cette machine.",
+    "en": "Photos are never kept in the repository: a neutral picture stands in until you add yours. Everything stays in one file on this machine."
+  }
+}

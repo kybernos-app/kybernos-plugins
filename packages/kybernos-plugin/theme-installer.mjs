@@ -34,6 +34,7 @@
 import { createHash, verify as verifySignature } from 'node:crypto'
 import { chmodSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { readSample } from './themes-shipped.mjs'
 
 export const CATALOGUE_KIND = 'kybernos-plugin-catalogue'
 export const CATALOGUE_SCHEMA = 1
@@ -227,7 +228,7 @@ const WHY_NOT_AUTOMATION = 'an automation template carries steps, not the prompt
  * notInstallable, rejected }`, or `{ ok: false, error }` (`no-pack`, `ambiguous`, `style`, `schema`). Every item carries the
  * file it comes from; deterministic (same preview, same JSON); never invents a datum.
  */
-export function planTheme (preview) {
+export function planTheme (preview, pluginId = null) {
   try {
     if (Array.isArray(preview) === false) return { ok: false, error: 'schema' }
     const packs = []
@@ -296,7 +297,9 @@ export function planTheme (preview) {
     for (const a of autoTemplates) notInstallable.push({ kind: 'automation', id: typeof a.value.id === 'string' ? a.value.id : a.file.replace(/^.*\//, ''), file: a.file, why: WHY_NOT_AUTOMATION })
     return {
       ok: true,
-      id: pack.id,
+      // The PLUGIN's id (`acme/vet-clinic`): the page consents, records and removes by it. The field's own id is `pack.id`; without a plugin id (a bare
+      // preview) the plan can only name the field.
+      id: typeof pluginId === 'string' && pluginId !== '' ? pluginId : pack.id,
       style,
       pack: {
         id: pack.id,
@@ -350,6 +353,17 @@ export function dataPluginProblems (pkg, packageDir) {
     if (d.bin !== undefined) out.push('package.json bin would put a command on the path')
   } catch (e) { /* an unreadable package is refused by the caller's own read */ }
   return out
+}
+
+/**
+ * Why DSH's manager would refuse this package, or null. The manager installs a package ONLY as a bundle (`dsh.bundle.patch`); a package without one is rolled back
+ * (`not-bundle`) after pnpm ran, and the page used to go on to ask for a plan of a package that was never there (`unknown-plugin`). A data theme is a bundle whose patch
+ * is empty, so the rule costs it one file. `dataPluginProblems` already checks that the patch, when there is one, is empty and inside the package.
+ */
+export function bundleProblem (pkg) {
+  const dsh = plain(pkg) && plain(pkg.dsh) ? pkg.dsh : {}
+  if (plain(dsh.bundle) && typeof dsh.bundle.patch === 'string') return null
+  return 'DSH installs a package only as a bundle: package.json needs "dsh": { "bundle": { "patch": "./cordis.patch.yml" } } and a cordis.patch.yml that holds []'
 }
 
 // ── the install record ──────────────────────────────────────────────────────
@@ -579,6 +593,9 @@ const readAll = (dir, ports) => {
     sources: store.sources.map((s) => ({ url: s.url, keyId: typeof s.keyId === 'string' ? s.keyId : null, pinned: typeof s.pem === 'string' && s.pem !== '', seq: Number.isInteger(s.seq) ? s.seq : null })),
     installed: store.records,
     themes: view.themes,
+    // The themes the product ships (themes-shipped.mjs): what a card shows, never the folder on this computer
+    shipped: list(ports.shipped).filter(plain).map((t) => { const { folder, ...rest } = t; return rest }),
+    next: list(ports.next).filter(plain).map((n) => ({ id: n.id, name: n.name, cover: n.cover === true })),
     plugins,
     refused: view.refused,
     dropped: store.dropped,
@@ -615,7 +632,15 @@ export function handleThemes (store, request, ports) {
     if (Buffer.byteLength(JSON.stringify(body), 'utf8') > BODY_MAX) return answer(413, { ok: false, error: 'request body too large' })
     const action = text(body.action) ?? ''
     if (action === 'stage') {
-      const folder = text(body.folder) ?? ''
+      let folder = text(body.folder) ?? ''
+      let level = 'local'
+      if (body.shipped !== undefined) {
+        // A shipped theme: the page names it, the host owns the path (ports.shipped, themes-shipped.mjs), so no path comes from the page
+        const hit = list(p.shipped).find((t) => plain(t) && typeof t.folder === 'string' && t.id === body.shipped)
+        if (hit === undefined) return answer(400, { ok: false, error: 'not-shipped', reason: 'no shipped theme has this id' })
+        folder = hit.folder
+        level = 'included'
+      }
       const bad = folderProblem(folder)
       if (bad !== null) return answer(400, { ok: false, error: 'path', reason: bad })
       let manifest = null
@@ -626,9 +651,11 @@ export function handleThemes (store, request, ports) {
       try { pkg = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8')) } catch (e) { pkg = null }
       const problems = dataPluginProblems(pkg, folder)
       if (problems.length > 0) return answer(400, { ok: false, error: 'package', reason: problems[0], problems })
+      const notBundle = bundleProblem(pkg)
+      if (notBundle !== null) return answer(400, { ok: false, error: 'package', reason: notBundle, problems: [notBundle] })
       const id = typeof manifest.id === 'string' && OWNER.test(manifest.id) ? manifest.id : null
       if (id === null) return answer(400, { ok: false, error: 'not-a-theme', reason: 'plugin.json holds no author/name id' })
-      return answer(200, { ok: true, stage: { id, version: text(manifest.version), name: plain(manifest.name) ? manifest.name : null, level: 'local', path: folder } })
+      return answer(200, { ok: true, stage: { id, version: text(manifest.version), name: plain(manifest.name) ? manifest.name : null, level, path: folder } })
     }
     if (action === 'plan') {
       const id = text(body.id) ?? ''
@@ -638,7 +665,7 @@ export function handleThemes (store, request, ports) {
       let preview = null
       try { preview = reg.preview(id) } catch (e) { preview = null }
       if (preview === null) return answer(200, { ok: false, error: 'unknown-plugin' })
-      const plan = planTheme(preview)
+      const plan = planTheme(preview, id)
       return answer(200, plan.ok === true ? { ok: true, plan } : { ok: false, error: plan.error })
     }
     // The archive half of the click: the caller (index.js) fetched the bytes AND ran `verifyArchive` on them before handing
@@ -658,6 +685,33 @@ export function handleThemes (store, request, ports) {
       const staged = writeArchive(dir, id, String(got.version), bytes)
       if (staged.ok !== true) return answer(500, { ok: false, error: staged.error })
       return answer(200, { ok: true, id, version: String(got.version), sha256: verdict.sha256, level: verdict.level, path: staged.path })
+    }
+    // The sample rows of a SHIPPED theme go into the business base through its seam (`ports.business`): the host knows the folder, the page names the
+    // theme. The base checks every row and seeds one theme once (`skipped` the second time); a theme from elsewhere has no route here.
+    if (action === 'seed') {
+      const id = text(body.id) ?? ''
+      if (OWNER.test(id) === false) return answer(400, { ok: false, error: 'id' })
+      const hit = list(p.shipped).find((x) => plain(x) && typeof x.folder === 'string' && x.id === id)
+      const data = hit === undefined ? null : readSample(hit.folder)
+      if (data === null) return answer(200, { ok: false, error: 'no-sample' })
+      const base = plain(p.business) && typeof p.business.seed === 'function' ? p.business : null
+      if (base === null) return answer(200, { ok: false, error: 'base_missing' })
+      let r = null
+      try { r = base.seed(data, { theme: id, actor: 'theme' }) } catch (e) { r = null }
+      if (!plain(r)) return answer(200, { ok: false, error: 'failed' })
+      return answer(200, r.ok === true ? { ok: true, skipped: r.skipped === true, counts: plain(r.counts) ? r.counts : null } : { ok: false, error: text(r.error) ?? 'failed', detail: tidy(r.detail, 200) })
+    }
+    // A skill the SHIPPED theme carries in its own folder (`skills/<name>/SKILL.md`): the host copies it into the person's skills with the careful
+    // seeding every shipped skill goes through (`ports.skill`, injected by index.js); the page names the theme and the skill, never a path.
+    if (action === 'skill') {
+      const id = text(body.id) ?? ''
+      const name = text(body.name) ?? ''
+      if (OWNER.test(id) === false || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) === false || name.length > 64) return answer(400, { ok: false, error: 'id' })
+      const hit = list(p.shipped).find((x) => plain(x) && typeof x.folder === 'string' && x.id === id)
+      if (hit === undefined || typeof p.skill !== 'function') return answer(200, { ok: false, error: 'no-skill' })
+      let r = null
+      try { r = p.skill(hit.folder, name) } catch (e) { r = null }
+      return answer(200, plain(r) && r.ok === true ? { ok: true, action: text(r.action) ?? 'created' } : { ok: false, error: 'no-skill' })
     }
     if (action === 'record') {
       const id = text(body.id) ?? ''

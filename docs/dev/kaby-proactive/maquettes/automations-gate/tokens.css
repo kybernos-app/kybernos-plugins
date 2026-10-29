@@ -1,0 +1,42 @@
+/* The design tokens of the gate panel, one per product alias the surface uses (11 + hover).
+ *
+ * Where they come from: the product's own token table, `packages/kybernos-sessions/dsh-css.js`
+ * (DSH_TOKENS_CSS: `body{…}` for the light theme, `body[data-ds-dark-theme]{…}` for the dark one), read on 2026-10-28 in the
+ * checkout of this batch (DSH 0.2.1-rc.2). Each alias below is resolved through the `--dsw-static-*` value it points at there.
+ * They are NOT retyped from memory, and they are NOT sampled from a running GUI: no `dsh web` of this worktree could be opened
+ * in the session that wrote the maquette, so `verifier.mjs --tokens` reads them from that table and `--tokens --check` compares
+ * this file with the LIVE GUI (exit 3 when no GUI answers, exit 1 on the first drift).
+ *
+ * A maquette rule may use these variables and nothing else: no hex, no rgb(), no hsl() outside this file.
+ */
+:root {
+  --dsw-alias-bg-layer-1: #ffffff;
+  --dsw-alias-bg-layer-2: #ffffff;
+  --dsw-alias-bg-layer-3: #ffffff;
+  --dsw-alias-border-l1: #0000000a;
+  --dsw-alias-border-l2: #0000001a;
+  --dsw-alias-label-primary: #0f1115;
+  --dsw-alias-label-secondary: #61666b;
+  --dsw-alias-label-tertiary: #81858c;
+  --dsw-alias-brand-primary: #0f1115;
+  --dsw-alias-state-success-primary: #22c55e;
+  --dsw-alias-state-warn-primary: #f59e0b;
+  --dsw-alias-state-error-primary: #ec1313;
+  --dsw-alias-interactive-bg-hover: #2631480f;
+}
+
+body[data-ds-dark-theme] {
+  --dsw-alias-bg-layer-1: #232324;
+  --dsw-alias-bg-layer-2: #2c2c2e;
+  --dsw-alias-bg-layer-3: #353638;
+  --dsw-alias-border-l1: #ffffff0f;
+  --dsw-alias-border-l2: #ffffff1f;
+  --dsw-alias-label-primary: #f9fafb;
+  --dsw-alias-label-secondary: #cfd3d6;
+  --dsw-alias-label-tertiary: #adb2b8;
+  --dsw-alias-brand-primary: #f9fafb;
+  --dsw-alias-state-success-primary: #22c55e;
+  --dsw-alias-state-warn-primary: #f59e0b;
+  --dsw-alias-state-error-primary: #f25a5a;
+  --dsw-alias-interactive-bg-hover: #ffffff14;
+}

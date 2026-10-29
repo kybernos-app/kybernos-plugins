@@ -274,6 +274,9 @@ and logged, as today.
 | `kybernos/core#automation-template` 1.0 | data, instruction | **opened 2026-10-28**: a block in the core client (extracted by `test-automation-templates.mjs`), plus `automations/<id>.json` of a theme (`validateAutomationTemplate`, `domain-pack.mjs:315`) | contributions |
 | `kybernos/skills#skill` 1.0 | data, instruction | **opened 2026-10-28**: install from GitHub, shipped skills, `seed-skills.mjs`, plus a theme's `skills/` (one folder per contribution, `files: "folder"`, checked by `validateTeamSkill`) | a plugin ships skill folders |
 | `kybernos/theme#theme` 1.0 | data, inert | **opened 2026-10-28**: `gallery.json`, signed catalogue (empty key list), plus a theme's `themes/<id>.json` (`validateTheme` → `sanitizePreset`, `THEME_POINT` told through the registry seam) | same document, same code |
+| `kybernos/contacts#schema` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/contacts` (`contacts-schema.mjs`): the kinds of contact, the fields and the tags a theme speaks of; at most 4 files per plugin | contributions |
+| `kybernos/catalog#type` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/catalog` (`catalog-type.mjs`): one kind of item, its statuses, fields, card and views; at most 12 files | contributions |
+| `kybernos/pipeline#flow` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/pipeline` (`pipeline-flow.mjs`): one board, its stages, value and links; at most 4 files | contributions |
 | `kybernos/language#pack` 1.0 | data, inert | signed index (empty key list) | same |
 | `kybernos/modeles-locaux#model` 1.0 | data, inert | signed catalogue (key minted) | same |
 

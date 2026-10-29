@@ -112,7 +112,7 @@ console.log('U6 the checked folder is byte-identical after a run')
   checkFolder(STARTER)
   run('docs/dev/templates/acme-vet-clinic')
   const after = hashTree(STARTER)
-  ok('every file of the starter hashes to the same sha256', JSON.stringify(before) === JSON.stringify(after) && before.length === 24, before.length)
+  ok('every file of the starter hashes to the same sha256', JSON.stringify(before) === JSON.stringify(after) && before.length === 25, before.length)
 }
 
 console.log('U7 the tool reads, and never runs or fetches')

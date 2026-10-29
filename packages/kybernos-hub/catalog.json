@@ -2960,6 +2960,141 @@
           "en": "POC: creation and local runs only. Publishing on *.kaby.app, versions and the pane come next."
         }
       }
+    },
+    {
+      "id": "kybernos-contacts",
+      "nom": "@local/kybernos-contacts",
+      "titre": "Contacts",
+      "glyphe": "contacts",
+      "famille": "data",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 15,
+      "promesse": {
+        "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton thème. Sa page arrive dans une prochaine version.",
+        "en": "The people and companies of your work in one place, with the kinds and fields your theme speaks of. Its page arrives in a later release."
+      },
+      "aide": {
+        "what": {
+          "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton thème choisit les mots : Clients, Candidats, Contacts.",
+          "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your theme chooses the words: Customers, Candidates, Contacts."
+        },
+        "steps": [
+          {
+            "fr": "Active Contacts ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
+            "en": "Switch Contacts on here, or install a theme that needs it: the theme installs it with it."
+          },
+          {
+            "fr": "Un thème décrit ses sortes de contacts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
+            "en": "A theme describes its kinds of contacts and its fields; Kybernos checks that description when you install it."
+          },
+          {
+            "fr": "La page Contacts elle-même, avec la liste, les notes et la recherche, arrive dans une prochaine version.",
+            "en": "The Contacts page itself, with the list, the notes and the search, arrives in a later release."
+          }
+        ],
+        "where": {
+          "fr": "Dans la Suite, une fois activé",
+          "en": "In the Suite, once switched on",
+          "page": false
+        },
+        "good": {
+          "fr": "Rien ne quitte ton ordinateur : les contacts vivront dans un seul fichier sur cette machine, que tu pourras exporter ou effacer en entier.",
+          "en": "Nothing leaves your computer: the contacts will live in one file on this machine, which you will be able to export or delete in full."
+        }
+      }
+    },
+    {
+      "id": "kybernos-catalog",
+      "nom": "@local/kybernos-catalog",
+      "titre": "Catalog",
+      "glyphe": "catalog",
+      "famille": "data",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 17,
+      "promesse": {
+        "fr": "Ce que tu vends, loues ou recrutes, en cartes et en listes, avec les champs et les statuts que définit ton thème. Sa page arrive dans une prochaine version.",
+        "en": "What you sell, rent or recruit for, as cards and lists with the fields and statuses your theme defines. Its page arrives in a later release."
+      },
+      "aide": {
+        "what": {
+          "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres d’emploi — en cartes et en listes, avec les statuts et les champs de ton thème.",
+          "en": "What you sell, rent or recruit for — products, properties, jobs — as cards and lists, with the statuses and fields of your theme."
+        },
+        "steps": [
+          {
+            "fr": "Active Catalog ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
+            "en": "Switch Catalog on here, or install a theme that needs it: the theme installs it with it."
+          },
+          {
+            "fr": "Un thème décrit ce qu’il liste, ses statuts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
+            "en": "A theme describes what it lists, its statuses and its fields; Kybernos checks that description when you install it."
+          },
+          {
+            "fr": "La page Catalog elle-même, avec les cartes, le filtre par statut et la fiche de chaque élément, arrive dans une prochaine version.",
+            "en": "The Catalog page itself, with the cards, the filter by status and a sheet for each item, arrives in a later release."
+          }
+        ],
+        "where": {
+          "fr": "Dans la Suite, une fois activé",
+          "en": "In the Suite, once switched on",
+          "page": false
+        },
+        "good": {
+          "fr": "Les photos ne sont jamais dans le dépôt : un visuel neutre tient la place tant que tu n’en as pas ajouté. Tout reste dans un seul fichier sur cette machine.",
+          "en": "Photos are never kept in the repository: a neutral picture stands in until you add yours. Everything stays in one file on this machine."
+        }
+      }
+    },
+    {
+      "id": "kybernos-pipeline",
+      "nom": "@local/kybernos-pipeline",
+      "titre": "Pipeline",
+      "glyphe": "pipeline",
+      "famille": "data",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 12,
+      "promesse": {
+        "fr": "Commandes, dossiers ou candidatures en cartes sur un tableau qui avance d’étape en étape, avec les étapes que définit ton thème. Sa page arrive dans une prochaine version.",
+        "en": "Orders, deals or candidates as cards on a board that moves from stage to stage, with the stages your theme defines. Its page arrives in a later release."
+      },
+      "aide": {
+        "what": {
+          "fr": "Des commandes, des dossiers ou des candidatures en cartes sur un tableau : tu les fais avancer d’une étape à l’autre, et le total de chaque colonne se met à jour.",
+          "en": "Orders, deals or candidates as cards on a board: you move them from one stage to the next, and the total of each column follows."
+        },
+        "steps": [
+          {
+            "fr": "Active Pipeline ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
+            "en": "Switch Pipeline on here, or install a theme that needs it: the theme installs it with it."
+          },
+          {
+            "fr": "Un thème décrit ses tableaux : étapes, valeur, liens ; Kybernos vérifie cette description quand tu l’installes.",
+            "en": "A theme describes its boards: stages, value, links; Kybernos checks that description when you install it."
+          },
+          {
+            "fr": "La page Pipeline elle-même, avec le tableau, le glisser-déposer et les flèches au clavier, arrive dans une prochaine version.",
+            "en": "The Pipeline page itself, with the board, drag and drop and the keyboard arrows, arrives in a later release."
+          }
+        ],
+        "where": {
+          "fr": "Dans la Suite, une fois activé",
+          "en": "In the Suite, once switched on",
+          "page": false
+        },
+        "good": {
+          "fr": "Ton assistant pourra lire et déplacer les cartes ; chaque déplacement laissera une ligne dans le journal, et il te demandera avant d’écrire.",
+          "en": "Your assistant will be able to read and move the cards; every move will leave a line in the log, and it will ask before it writes."
+        }
+      }
     }
   ]
 }

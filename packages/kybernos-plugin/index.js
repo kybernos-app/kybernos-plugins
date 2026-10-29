@@ -27,9 +27,21 @@ import { defaultState as onboardingDefault, publicView as onboardingView, comple
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
+// Three modules of other batches (the static gate, the trial and its proof, the initiative queue). NAMESPACE imports and
+// guarded accessors on purpose: a named import of an export an installed copy of one of them does not carry is a
+// link-time error that takes the whole bundle down, while a namespace read is just `undefined` — the action then answers
+// `gate unavailable` / `trial module unavailable` / `queue unavailable` and the rest of DSH starts as usual.
+import * as kbGateMod from './automation-gate.mjs'
+import * as kbTrialMod from './automation-trial.mjs'
+import * as kbQueueMod from './initiative-queue.mjs'
+const kbGateFn = (name) => (kbGateMod !== null && kbGateMod !== undefined && kbGateMod[name] !== undefined ? kbGateMod[name] : null)
+const kbTrialFn = (name) => (kbTrialMod !== null && kbTrialMod !== undefined && kbTrialMod[name] !== undefined ? kbTrialMod[name] : null)
+const kbQueueFn = (name) => (kbQueueMod !== null && kbQueueMod !== undefined && kbQueueMod[name] !== undefined ? kbQueueMod[name] : null)
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
 import { fetchArchiveBytes, fetchCatalogueSources, handleThemes, readThemes, themeTarget, verifyArchive } from './theme-installer.mjs'
+import { coverFile, readNext, readShipped } from './themes-shipped.mjs'
+import { ensureBusiness } from './business-base.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -625,6 +637,12 @@ const kbMakeTrigger = (deps) => {
           const once = current.schedule !== null && typeof current.schedule === 'object' && current.schedule.mode === 'once'
           if (once === false && current.active !== true) continue
           const res = await withTimeout(Promise.resolve().then(() => fire(Object.assign({}, current))))
+          // A fire the gate refused is skipped, never failed: nothing ran, the claim already moved the slot, and the next
+          // slot is its next chance. Neither `fired` nor `failed` moves.
+          if (res !== null && typeof res === 'object' && typeof res.refused === 'string') {
+            results.push({ id: claim.id, ok: false, skipped: res.refused })
+            continue
+          }
           results.push({ id: claim.id, ok: true, res })
           fired += 1
         } catch (e) {
@@ -641,11 +659,17 @@ const kbMakeTrigger = (deps) => {
               if (t === undefined) continue // deleted while it was firing: respected
               const at = new Date(now()).toISOString()
               const sid = r.ok === true && r.res !== null && typeof r.res === 'object' && typeof r.res.sessionId === 'string' ? r.res.sessionId : null
+              // A skipped run is its own kind of line: not an 'error' (which would paint a red row the person cannot act
+              // on and break the stable streak for a decision of the gate) and never given a session id.
+              const skipped = r.ok !== true && typeof r.skipped === 'string'
               const entry = r.ok === true
                 ? { at, sessionId: sid, status: r.res !== null && typeof r.res === 'object' && r.res.queued === true ? 'queued' : 'fired' }
-                : { at, sessionId: null, status: 'error', error: r.err }
+                : skipped
+                  ? { at, sessionId: null, status: 'skipped', error: r.skipped }
+                  : { at, sessionId: null, status: 'error', error: r.err }
               t.history = (Array.isArray(t.history) === true ? t.history : []).concat([entry]).slice(-20)
-              t.lastRun = at
+              // Nothing ran: `lastRun` stays the last real run; writing the line is what moves `updatedAt`.
+              if (skipped !== true) t.lastRun = at
               t.updatedAt = at
             }
           })
@@ -837,6 +861,342 @@ const kbMcpGate = (toolName, args) => {
   } catch (e) { return { what: String(toolName) } }
 }
 // KB-TASKS-CORE-END
+
+// ── The certification gate: its store's pure core ───────────────────────────
+// A gate record is the host's own memory of what an automation has proven: a static check passed, a supervised trial
+// left no outside effect, a person granted it. Nothing here starts a run, opens a file or reads a clock — every function
+// is a function of its arguments, so this block is imported through a `data:` URL by its test (KB-GATE-STORE, like
+// KB-TASKS-CORE). The status vocabulary is the static gate's (automation-gate.mjs), INJECTED: no copy lives here.
+// KB-GATE-STORE-BEGIN
+const KB_GATE_MAX = 200
+const KB_GATE_FINDINGS_MAX = 40
+const KB_GATE_TOOL_CALLS_MAX = 200
+const KB_GATE_EFFECTS_MAX = 20
+const KB_GATE_ERRORS_MAX = 20
+const KB_GATE_TRIAL_MSG_MAX = 300
+
+const kbGatePlain = (v) => v !== null && typeof v === 'object' && Array.isArray(v) === false
+// An ISO 8601 instant, ranges included: `2026-13-45T99:99:99Z` is not one.
+const kbGateIso = (v) => {
+  if (typeof v !== 'string') return false
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.exec(v)
+  if (m === null) return false
+  const mo = Number(m[2])
+  const d = Number(m[3])
+  const h = Number(m[4])
+  const mi = Number(m[5])
+  const s = Number(m[6])
+  return mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && h <= 23 && mi <= 59 && s <= 60
+}
+// A text in code points, so a multi-byte character is never cut in half; a non-string reads as empty.
+const kbGateText = (v, max) => (typeof v === 'string' ? Array.from(v).slice(0, max).join('') : '')
+
+// HUMAN_ONLY: the actions whose human requirement does not depend on the body.
+const HUMAN_ONLY = ['trial-start', 'approve', 'queue act', 'toggle']
+// The activation transition is human-only too, but only in its `active: true` direction: pausing is never a risk, and an
+// automation with no gate record keeps today's behaviour (a model may pause and resume it).
+const kbHumanOnly = (action, body, human) => {
+  if (HUMAN_ONLY.indexOf(action) < 0) return null
+  if (action === 'toggle' && (body === null || typeof body !== 'object' || body.active !== true)) return null
+  return human === true ? null : 'not a human request'
+}
+
+const kbGateIdOf = (automationId) => 'gate:' + (typeof automationId === 'string' ? automationId : '')
+
+const kbGateValidRecord = (raw, statuses) => {
+  try {
+    if (kbGatePlain(raw) === false) return false
+    if (typeof raw.automationId !== 'string' || raw.automationId.length === 0) return false
+    if (raw.id !== kbGateIdOf(raw.automationId)) return false
+    if (Array.isArray(statuses) !== true || statuses.indexOf(raw.status) < 0) return false
+    if (kbGateIso(raw.updatedAt) === false) return false
+    if (Number.isSafeInteger(raw.rev) !== true || raw.rev < 1) return false
+    if (kbGatePlain(raw.approval) === false || typeof raw.approval.state !== 'string') return false
+    if (raw.staticChecks !== null && (kbGatePlain(raw.staticChecks) === false || (raw.staticChecks.verdict !== 'pass' && raw.staticChecks.verdict !== 'fail'))) return false
+    if (raw.trial !== null && kbGatePlain(raw.trial) === false) return false
+    return true
+  } catch (e) { return false }
+}
+
+const kbGateEmptyRecord = (automationId, at) => ({
+  id: kbGateIdOf(automationId),
+  automationId: typeof automationId === 'string' ? automationId : '',
+  status: 'draft',
+  staticChecks: null,
+  trial: null,
+  approval: { state: 'none', at: null },
+  updatedAt: kbGateIso(at) === true ? at : null,
+  rev: 1,
+})
+
+const kbGateSame = (a, b) => JSON.stringify([a.id, a.automationId, a.status, a.staticChecks, a.trial, a.approval, a.updatedAt]) === JSON.stringify([b.id, b.automationId, b.status, b.staticChecks, b.trial, b.approval, b.updatedAt])
+
+// One transition of a record: `rev` rises by exactly 1 when something changed, and the same record comes back otherwise
+// (so the store can skip the write). A status the injected vocabulary does not carry is refused, never invented.
+const kbGateNext = (record, change, statuses) => {
+  try {
+    if (kbGatePlain(record) === false) return null
+    const c = kbGatePlain(change) === true ? change : {}
+    const base = {
+      id: record.id,
+      automationId: record.automationId,
+      status: record.status,
+      staticChecks: record.staticChecks === undefined ? null : record.staticChecks,
+      trial: record.trial === undefined ? null : record.trial,
+      approval: record.approval === undefined ? { state: 'none', at: null } : record.approval,
+      updatedAt: record.updatedAt,
+      rev: Number.isSafeInteger(record.rev) === true && record.rev >= 1 ? record.rev : 1,
+    }
+    if (c.status !== undefined && (Array.isArray(statuses) !== true || statuses.indexOf(c.status) < 0)) return null
+    const next = {
+      id: base.id,
+      automationId: base.automationId,
+      status: c.status === undefined ? base.status : c.status,
+      staticChecks: c.staticChecks === undefined ? base.staticChecks : c.staticChecks,
+      trial: c.trial === undefined ? base.trial : c.trial,
+      approval: c.approval === undefined ? base.approval : c.approval,
+      updatedAt: kbGateIso(c.at) === true ? c.at : base.updatedAt,
+      rev: base.rev,
+    }
+    if (kbGateSame(base, next) === true) return base
+    next.rev = base.rev + 1
+    return next
+  } catch (e) { return null }
+}
+
+// Invariant #1, as one predicate: may this record be granted? The only inputs are the record's own evidence and the
+// revision the person was shown, and each refusal carries its own reason for the page.
+const kbGateCanApprove = (record, change) => {
+  try {
+    if (kbGatePlain(record) === false) return { ok: false, error: 'approval not possible: no gate record' }
+    const c = kbGatePlain(change) === true ? change : {}
+    const approval = kbGatePlain(record.approval) === true ? record.approval : { state: 'none', at: null }
+    if (approval.state === 'granted' || record.status === 'approved' || record.status === 'activated') return { ok: false, error: 'approval not possible: already granted' }
+    if (approval.state === 'refused' || record.status === 'refused') return { ok: false, error: 'approval not possible: already refused' }
+    const proof = kbGatePlain(record.trial) === true ? record.trial : null
+    if (proof === null) return { ok: false, error: 'approval not possible: no proof report' }
+    if (proof.sideEffectFree !== true || (Array.isArray(proof.externalEffects) === true && proof.externalEffects.length > 0)) return { ok: false, error: 'approval not possible: the trial had outside effects' }
+    const outcome = kbGatePlain(proof.outcome) === true ? proof.outcome : {}
+    if (outcome.state !== 'completed' || proof.endedAt === null || proof.endedAt === undefined) return { ok: false, error: 'approval not possible: the trial did not complete' }
+    if (record.status !== 'awaiting-approval') return { ok: false, error: 'approval not possible: no proof report' }
+    if (Number.isSafeInteger(c.rev) !== true || c.rev !== record.rev) return { ok: false, code: 'stale', error: 'stale' }
+    return { ok: true }
+  } catch (e) { return { ok: false, error: 'approval not possible: unreadable record' } }
+}
+
+// The one-line adapter over B2's `mayActivate`: no record means no gate (today's behaviour, exactly), and a missing
+// predicate fails CLOSED for every record instead of un-gating the store. The ladder lives in automation-trial.mjs.
+const kbGateActivationRefusal = (record, mayActivate) => {
+  if (record === null || record === undefined) return null
+  return typeof mayActivate === 'function' && mayActivate(record) === true ? null : 'approval required'
+}
+
+// B2's refusal codes → the strings the page branches on. An unknown code answers a readable string, never `undefined`,
+// and B2's internal spelling never reaches the wire.
+const kbGateTrialRefusal = (code) => {
+  if (code === 'not-supervised') return 'not a human request'
+  if (code === 'gate-not-ready') return 'static checks failed'
+  if (code === 'already-open') return 'a trial is already running'
+  if (code === 'machine-busy') return 'machine busy'
+  if (code === 'no-timestamp') return 'no timestamp'
+  return 'trial unavailable'
+}
+
+// The bounded projection: what leaves the host about a record. Bounded arrays, bounded strings, no invented null inside a
+// missing optional field, and total — an unreadable record projects to a minimal valid shape instead of throwing.
+const kbGateBoundedFinding = (raw) => {
+  if (kbGatePlain(raw) === false) return null
+  const out = {
+    code: kbGateText(raw.code, 60),
+    severity: raw.severity === 'blocker' || raw.severity === 'warn' || raw.severity === 'info' ? raw.severity : 'info',
+    message: kbGateText(raw.message, KB_GATE_TRIAL_MSG_MAX),
+  }
+  const field = kbGateText(raw.field, 80)
+  if (field !== '') out.field = field
+  return out
+}
+const kbGateBoundedTrial = (raw) => {
+  if (kbGatePlain(raw) === false) return null
+  const toolCalls = []
+  const calls = Array.isArray(raw.toolCalls) === true ? raw.toolCalls.slice(0, KB_GATE_TOOL_CALLS_MAX) : []
+  for (const c of calls) {
+    if (kbGatePlain(c) === false) continue
+    toolCalls.push({
+      toolName: kbGateText(c.toolName, 60),
+      access: c.access === 'read' ? 'read' : 'write',
+      outcome: c.outcome === 'ok' || c.outcome === 'refused-as-write' ? c.outcome : 'error',
+    })
+  }
+  const externalEffects = []
+  const effects = Array.isArray(raw.externalEffects) === true ? raw.externalEffects.slice(0, KB_GATE_EFFECTS_MAX) : []
+  for (const e of effects) {
+    const text = kbGateText(e, KB_GATE_TRIAL_MSG_MAX)
+    if (text !== '') externalEffects.push(text)
+  }
+  const errors = []
+  const list = Array.isArray(raw.errors) === true ? raw.errors.slice(0, KB_GATE_ERRORS_MAX) : []
+  for (const e of list) {
+    if (typeof e === 'string') {
+      const text = kbGateText(e, KB_GATE_TRIAL_MSG_MAX)
+      if (text !== '') errors.push({ at: '', where: 'tool', message: text })
+      continue
+    }
+    if (kbGatePlain(e) === false) continue
+    errors.push({ at: kbGateText(e.at, 40), where: kbGateText(e.where, 60) || 'tool', message: kbGateText(e.message, KB_GATE_TRIAL_MSG_MAX) })
+  }
+  const rawOutcome = kbGatePlain(raw.outcome) === true ? raw.outcome : {}
+  const outcome = { state: rawOutcome.state === 'completed' || rawOutcome.state === 'open' ? rawOutcome.state : 'failed' }
+  const code = kbGateText(rawOutcome.code, 60)
+  if (code !== '') outcome.code = code
+  const message = kbGateText(rawOutcome.message, KB_GATE_TRIAL_MSG_MAX)
+  if (message !== '') outcome.message = message
+  return {
+    runId: kbGateText(raw.runId, 120),
+    gateId: kbGateText(raw.gateId, 120),
+    startedAt: kbGateIso(raw.startedAt) === true ? raw.startedAt : '',
+    endedAt: kbGateIso(raw.endedAt) === true ? raw.endedAt : null,
+    supervised: true,
+    sideEffectFree: raw.sideEffectFree === true,
+    toolCalls,
+    outcome,
+    externalEffects,
+    errors,
+  }
+}
+const kbGateBoundedRecord = (record) => {
+  try {
+    const r = kbGatePlain(record) === true ? record : {}
+    const automationId = kbGateText(r.automationId, 120)
+    const checks = kbGatePlain(r.staticChecks) === true ? r.staticChecks : null
+    const findings = []
+    if (checks !== null && Array.isArray(checks.findings) === true) {
+      for (const f of checks.findings.slice(0, KB_GATE_FINDINGS_MAX)) {
+        const one = kbGateBoundedFinding(f)
+        if (one !== null) findings.push(one)
+      }
+    }
+    const approvalRaw = kbGatePlain(r.approval) === true ? r.approval : {}
+    return {
+      id: kbGateText(r.id, 120) !== '' ? kbGateText(r.id, 120) : kbGateIdOf(automationId),
+      automationId,
+      status: typeof r.status === 'string' && r.status !== '' ? kbGateText(r.status, 40) : 'draft',
+      staticChecks: checks === null ? null : { ranAt: kbGateIso(checks.ranAt) === true ? checks.ranAt : null, verdict: checks.verdict === 'pass' ? 'pass' : 'fail', findings },
+      trial: kbGateBoundedTrial(r.trial),
+      approval: { state: typeof approvalRaw.state === 'string' && approvalRaw.state !== '' ? kbGateText(approvalRaw.state, 20) : 'none', at: kbGateIso(approvalRaw.at) === true ? approvalRaw.at : null },
+      updatedAt: kbGateIso(r.updatedAt) === true ? r.updatedAt : null,
+      rev: Number.isSafeInteger(r.rev) === true && r.rev >= 1 ? r.rev : 1,
+    }
+  } catch (e) {
+    return { id: 'gate:', automationId: '', status: 'draft', staticChecks: null, trial: null, approval: { state: 'none', at: null }, updatedAt: null, rev: 1 }
+  }
+}
+
+// The `list` projection B5's page reads: every task carries `gate`, present and null when it never went through the gate,
+// so a consumer branches once. A corrupt read yields null everywhere plus `gateStore: 'unreadable'` — the page of a person
+// whose gate file was damaged keeps working. The input array is not mutated.
+const kbGateAttach = (tasks, records, unreadable) => {
+  const list = Array.isArray(tasks) === true ? tasks : []
+  const byId = new Map()
+  if (unreadable !== true && Array.isArray(records) === true) {
+    for (const r of records) if (kbGatePlain(r) === true && typeof r.automationId === 'string') byId.set(r.automationId, r)
+  }
+  const out = list.map((t) => {
+    if (kbGatePlain(t) === false) return t
+    const record = typeof t.id === 'string' && byId.has(t.id) === true ? byId.get(t.id) : null
+    return Object.assign({}, t, { gate: record === null ? null : kbGateBoundedRecord(record) })
+  })
+  return unreadable === true ? { tasks: out, gateStore: 'unreadable' } : { tasks: out }
+}
+
+// An edit voids the certification: the record goes back to `draft`, its checks and its proof cleared, its revision raised.
+const kbGateDemoteAfterEdit = (record, at) => {
+  if (kbGatePlain(record) === false) return null
+  return {
+    id: record.id,
+    automationId: record.automationId,
+    status: 'draft',
+    staticChecks: null,
+    trial: null,
+    approval: { state: 'none', at: null },
+    updatedAt: kbGateIso(at) === true ? at : record.updatedAt,
+    rev: (Number.isSafeInteger(record.rev) === true && record.rev >= 1 ? record.rev : 1) + 1,
+  }
+}
+
+const kbGateProtected = (record) => kbGatePlain(record) === true && (record.status === 'approved' || record.status === 'activated')
+// One record per automation, capped. Beyond the cap the oldest UNPROTECTED record leaves; when every record is protected
+// the write is refused rather than dropping an approval, which would silently un-gate an automation.
+const kbGateInsert = (records, record, cap) => {
+  const list = Array.isArray(records) === true ? records : []
+  if (kbGatePlain(record) === false || typeof record.automationId !== 'string') return { ok: false, error: 'gate store full', records: list }
+  const kept = list.filter((r) => kbGatePlain(r) === false || r.automationId !== record.automationId)
+  const bound = Number.isSafeInteger(cap) === true && cap > 0 ? cap : KB_GATE_MAX
+  kept.push(record)
+  if (kept.length <= bound) return { ok: true, records: kept }
+  const candidates = kept.filter((r) => r !== record && kbGateProtected(r) === false)
+  if (candidates.length === 0) return { ok: false, error: 'gate store full', records: list }
+  let oldest = candidates[0]
+  for (const c of candidates) if (String(c.updatedAt) < String(oldest.updatedAt)) oldest = c
+  return { ok: true, records: kept.filter((r) => r !== oldest) }
+}
+const kbGateRemoveOf = (records, automationId) => {
+  const list = Array.isArray(records) === true ? records : []
+  return list.filter((r) => kbGatePlain(r) === false || r.automationId !== automationId)
+}
+
+// The file's own envelope. An absent file is the normal state of the product (no record, no gate); a present but
+// unparsable one is `corrupt`, and its text is handed back untouched so the store can keep a private copy of it.
+const kbGateParse = (text) => {
+  if (text === null || text === undefined || text === '') return { records: [], corrupt: false }
+  let data = null
+  try { data = JSON.parse(String(text)) } catch (e) { return { records: [], corrupt: true, text } }
+  if (kbGatePlain(data) === false) return { records: [], corrupt: true, text }
+  if (Array.isArray(data.records) !== true) return { records: [], corrupt: true, text }
+  return { records: data.records, corrupt: false }
+}
+
+// io: { read() -> string | null (null = no file yet, a throw = unreadable),
+//       write(text) (atomic, mode 0600), keepCopy(text) (best effort copy of a corrupt file),
+//       normalize(raw) (optional: stored bytes -> a record B2 trusts, or null) }
+const kbMakeGateStore = (io) => {
+  let chain = Promise.resolve()
+  const load = async () => {
+    let text = null
+    try { text = await io.read() } catch (e) { return { ok: false, code: 'gate-unreadable', error: 'gate store unreadable', text: null } }
+    const parsed = kbGateParse(text)
+    if (parsed.corrupt === true) return { ok: false, code: 'gate-corrupt', error: 'gate store unreadable', text }
+    const records = []
+    for (const raw of parsed.records) {
+      if (kbGatePlain(raw) === false) continue
+      const record = typeof io.normalize === 'function' ? io.normalize(raw) : raw
+      if (kbGatePlain(record) === true) records.push(record)
+    }
+    return { ok: true, records }
+  }
+  // Serialized like tasks.json, so two mutations never start from the same snapshot, and silent when nothing changed.
+  return {
+    read: () => chain.then(load, load),
+    mutate: (fn) => {
+      const run = async () => {
+        const state = await load()
+        if (state.ok !== true) {
+          if (state.code === 'gate-corrupt' && typeof io.keepCopy === 'function' && typeof state.text === 'string') {
+            try { await io.keepCopy(state.text) } catch (e) { /* a copy is a courtesy */ }
+          }
+          return { ok: false, code: state.code, error: state.error }
+        }
+        const before = JSON.stringify(state.records)
+        const result = await fn(state.records)
+        if (JSON.stringify(state.records) !== before) await io.write(JSON.stringify({ version: 1, records: state.records }, null, 2) + '\n')
+        return { ok: true, result }
+      }
+      const next = chain.then(run, run)
+      chain = next.then(() => null, () => null)
+      return next
+    },
+  }
+}
+// KB-GATE-STORE-END
 
 // ── minimal YAML readers (only the fields this view needs) ──────────────────
 // KB-KYBER-YAML-BEGIN (the readers below are tested from this marker to KB-KYBER-YAML-END: kybernos-cloud/test-marketplace-kyber.mjs)
@@ -2699,6 +3059,201 @@ function boot(ctx) {
     const kbTasksRead = () => kbTasksStore.read()
     const kbTasksMutate = (fn) => kbTasksStore.mutate(fn)
     const kbTaskId = () => 'st-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
+    // ── The certification gate's own store: gates.json, beside tasks.json ────
+    // One record per automation that went through the gate, written atomically with mode 0600 and serialized like
+    // tasks.json. The path is derived from tasks.json's own directory, so a DSH home moved, sandboxed or temporary
+    // carries its gate with its automations and no literal path is written anywhere.
+    const kbTrialGuards = new Map()
+    const kbGateFileOf = async () => joinPath(dirname(await kbTasksFileOf()), 'gates.json')
+    const kbGateStore = kbMakeGateStore({
+      read: async () => {
+        const p = await kbGateFileOf()
+        try { return readFileSync(p, 'utf8') } catch (e) {
+          if (e !== null && typeof e === 'object' && e.code === 'ENOENT') return null
+          throw e
+        }
+      },
+      write: async (text) => {
+        const p = await kbGateFileOf()
+        try { mkdirSync(dirname(p), { recursive: true }) } catch (e) { /* already there */ }
+        const temp = p + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+        try {
+          writeFileSync(temp, text, { encoding: 'utf8', mode: 0o600 })
+          try { chmodSync(temp, 0o600) } catch (e) { /* best effort */ }
+          renameSync(temp, p)
+        } catch (e) {
+          try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+          throw e
+        }
+      },
+      // `gates.json.corrupt-<hash>`: the same content is kept once, at most five copies, and the file is never touched.
+      keepCopy: async (text) => {
+        const p = await kbGateFileOf()
+        try {
+          const dir = dirname(p)
+          const prefix = 'gates.json.corrupt-'
+          if (readdirSync(dir).filter((n) => n.startsWith(prefix)).length >= 5) return
+          let h = 0x811c9dc5
+          for (let i = 0; i < text.length; i += 1) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 }
+          const target = p + '.corrupt-' + h.toString(16)
+          if (existsSync(target) === true) return
+          writeFileSync(target, text, { encoding: 'utf8', mode: 0o600 })
+        } catch (e) { /* a copy is a courtesy */ }
+      },
+      // Stored bytes → the record B2 trusts: its own caps and its own ladder, so a hand-edited file cannot claim a rung.
+      normalize: (raw) => {
+        const normalizeGateRecord = kbTrialFn('normalizeGateRecord')
+        return typeof normalizeGateRecord === 'function' ? normalizeGateRecord(raw, { at: new Date().toISOString() }) : null
+      },
+    })
+    const kbGateRead = () => kbGateStore.read()
+    const kbGateMutate = async (fn) => {
+      try { return await kbGateStore.mutate(fn) } catch (e) { return { ok: false, code: 'gate-unreadable', error: 'gate store unreadable' } }
+    }
+    // The record of one automation, or null; `state` says why when the file cannot be trusted.
+    const kbGateRecordOf = async (id) => {
+      const state = await kbGateRead()
+      if (state.ok !== true) return { state, record: null }
+      const record = state.records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
+      return { state, record }
+    }
+    // The one tooth of the run paths and of the activation flips: null when there is nothing to refuse, `gate store
+    // unreadable` when the file cannot be trusted, `approval required` unless B2's mayActivate accepts the record. The
+    // ladder lives in automation-trial.mjs, and a missing export fails closed instead of un-gating the store.
+    const kbGateRunRefusalTask = async (task) => {
+      const id = task !== null && typeof task === 'object' && typeof task.id === 'string' ? task.id : ''
+      if (id === '') return null
+      const state = await kbGateRead()
+      if (state.ok !== true) return 'gate store unreadable'
+      const record = state.records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
+      return kbGateActivationRefusal(record, kbTrialFn('mayActivate'))
+    }
+    // The draft B1 certifies: the five definition fields of a stored automation, never its running state.
+    const kbGateDraftOf = (task) => ({
+      name: typeof task.name === 'string' ? task.name : '',
+      prompt: typeof task.prompt === 'string' ? task.prompt : '',
+      schedule: task.schedule === undefined ? null : task.schedule,
+      needs: task.needs === undefined ? null : task.needs,
+      approvals: task.approvals === 'auto' ? 'auto' : 'ask',
+    })
+    const applyTrialOf = (record, proof, at) => {
+      const applyTrial = kbTrialFn('applyTrial')
+      return typeof applyTrial === 'function' ? applyTrial(record, { proof, at }) : null
+    }
+    // B2's writer shape: exactly the frozen keys, capped at what the evidence allows. A record it cannot read is written as
+    // it is rather than lost (no action here builds a record its own validation refuses).
+    const kbGateStored = (record) => {
+      const toStoredGate = kbTrialFn('toStoredGate')
+      const stored = typeof toStoredGate === 'function' ? toStoredGate(record) : null
+      if (stored === null || typeof stored !== 'object') return record
+      // A record the host could not read back is never written in that shape: the record as it stands is kept instead,
+      // so a decision is never lost to a projection (the injected vocabulary is what judges the shape).
+      return kbGateValidRecord(stored, kbGateFn('GATE_STATUSES')) === true ? stored : record
+    }
+    // The proof a running trial leaves in its record: open, supervised, and no outside effect *so far*. B2's normalizeProof
+    // owns its final shape, so this is only the start of it.
+    const kbGateOpenProof = (trial, runId) => ({
+      runId: runId !== null && typeof runId === 'string' && runId !== '' ? runId : trial.id,
+      gateId: trial.gateId,
+      startedAt: trial.requestedAt,
+      endedAt: null,
+      supervised: true,
+      sideEffectFree: false,
+      toolCalls: [],
+      outcome: { state: 'open' },
+      externalEffects: [],
+      errors: [],
+    })
+    // The in-flight trial a stored record describes, rebuilt for B2's proof builder: the journal is read with the run's
+    // own session id, so no second identifier is invented.
+    const kbTrialRunOf = (record) => {
+      const proof = record !== null && typeof record === 'object' && record.trial !== null && typeof record.trial === 'object' ? record.trial : null
+      if (proof === null) return null
+      const automationId = typeof record.automationId === 'string' ? record.automationId : ''
+      const startedAt = typeof proof.startedAt === 'string' ? proof.startedAt : ''
+      return {
+        id: ('trial:' + automationId + ':' + startedAt.replace(/[^0-9]/g, '')).slice(0, 120),
+        gateId: typeof proof.gateId === 'string' && proof.gateId !== '' ? proof.gateId : kbGateIdOf(automationId),
+        automationId,
+        state: 'running',
+        requestedAt: startedAt,
+        startedAt: startedAt === '' ? null : startedAt,
+        endedAt: null,
+        sessionId: typeof proof.runId === 'string' && proof.runId !== '' ? proof.runId : null,
+        supervised: true,
+        approvals: 'ask',
+        mask: 'deny-writes',
+        refusal: null,
+      }
+    }
+    // The write-capable calls a write WORD cannot catch, because their name carries none: they run code, start an agent,
+    // reach the machine or rewrite this plugin's own settings. The proof classifier of a trial (automation-trial.mjs)
+    // reads the same category — its `spawn, teammate, subagent, shell` words, and "no known word is not a read" — so the
+    // runtime mask and the verdict never disagree on what a write is.
+    const KB_TRIAL_WRITE_WORDS = new Set(['spawn', 'teammate', 'subagent', 'shell'])
+    const KB_TRIAL_WRITE_TOOLS = new Set(['bash', 'bash_local', 'workflow', 'terminal_open', 'terminal_send', 'terminal_signal',
+      'terminal_close', 'plugin_manager', 'relancer_dsh', 'enregistrer_entree'])
+    const kbTrialWriteName = (name) => {
+      for (const word of kbNameWords(name)) {
+        if (KB_MCP_WRITE_WORDS.has(word) === true || KB_TRIAL_WRITE_WORDS.has(word) === true) return true
+      }
+      return KB_TRIAL_WRITE_TOOLS.has(String(name).trim()) === true
+    }
+    // A session spawned BY the trial (a subagent, a fork, anything under it) is the trial's descendant: the mask has to
+    // follow the declared lineage, because such a session has an id of its own. Bounded, read-only, and a lineage that
+    // cannot be walked is not the trial's (a child of a running trial names a live session).
+    const kbTrialDescendsFrom = (runId, session) => {
+      let current = session
+      for (let hop = 0; hop < 32; hop += 1) {
+        const header = current !== null && typeof current === 'object' && current.header !== null && typeof current.header === 'object' ? current.header : null
+        const parentId = header !== null && typeof header.parentSession === 'string' && header.parentSession !== '' ? header.parentSession : null
+        if (parentId === null) return false
+        if (parentId === runId) return true
+        let parent = null
+        try {
+          const sessions = ctx.get('sessions')
+          if (sessions !== undefined && sessions !== null && typeof sessions.get === 'function') parent = sessions.get(parentId)
+        } catch (e) { parent = null }
+        if (parent === null || parent === undefined) return false
+        current = parent
+      }
+      return true
+    }
+    // A trial is read-only at runtime: the guard returns a denial for a write-category call of the trial's OWN session
+    // and of every session under it, and nothing for any other session, because the comparison is on identity, not on time.
+    const kbTrialWriteGuard = (runId) => (exec) => {
+      try {
+        if (exec === null || typeof exec !== 'object') return undefined
+        const agent = exec.agent !== null && typeof exec.agent === 'object' ? exec.agent : null
+        const session = agent !== null && agent.session !== null && typeof agent.session === 'object' ? agent.session : null
+        if (session === null || typeof session.id !== 'string') return undefined
+        if (session.id !== runId && kbTrialDescendsFrom(runId, session) === false) return undefined
+        if (kbTrialWriteName(exec.name) === true) return kbTrialFn('TRIAL_DENY_REASON') || 'This is a supervised trial: this call may change something outside this session, so it was refused.'
+        return undefined
+      } catch (e) { return undefined }
+    }
+    // The accepted fallback seam when the tools service has no `guard`: the engine's own `tools/pre-execute` denial, with
+    // the same reason string, so the proof reads the same refusal either way.
+    const kbTrialPreExecute = (runId) => async (exec, next) => {
+      const denial = kbTrialWriteGuard(runId)(exec)
+      if (typeof denial !== 'string') return next()
+      return { kind: 'deny', reason: denial }
+    }
+    const kbTrialGuardSeam = () => {
+      try {
+        const tools = ctx.get('tools')
+        if (tools !== undefined && tools !== null && typeof tools.guard === 'function') return 'guard'
+      } catch (e) { /* no tools service mounted */ }
+      return typeof ctx.on === 'function' ? 'pre-execute' : null
+    }
+    const kbDisposeTrialGuard = (automationId) => {
+      const key = String(automationId)
+      const dispose = kbTrialGuards.get(key)
+      if (dispose === undefined) return false
+      kbTrialGuards.delete(key)
+      try { dispose() } catch (e) { /* a disposer that throws still freed its seam */ }
+      return true
+    }
     // Le tir : session neuve + prompt via le service sessionController quand il
     // est monté (create + prompt sideaux). Repli honnête : pendingFire consommé
     // par le client (startSession + prefill draft) à son prochain poll.
@@ -2999,7 +3554,16 @@ function boot(ctx) {
         runs: Array.from(byTask.values()),
       })
     }
-    const kbFireTask = async (task) => {
+    const kbFireTask = async (task, fire) => {
+      const fireOpts = fire !== null && typeof fire === 'object' ? fire : {}
+      // The single masked run of the lot, and it is set by `trial-start` only — never read from a wire body.
+      const trialRun = fireOpts.trial === true
+      // The gate's tooth: a gated automation whose approval is not granted never opens a session, whichever path reached
+      // here — the scheduler's own tick, run-now, consume-fire or a webhook.
+      if (trialRun !== true) {
+        const no = await kbGateRunRefusalTask(task)
+        if (no !== null) return { refused: no }
+      }
       const sc = ctx.get('sessionController')
       if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') {
         // The page starts the session later, so what it must send is kept: a webhook's prompt
@@ -3045,6 +3609,22 @@ function boot(ctx) {
       }
       kbLoadInflight.start(sessionId)
       kbRememberRunSession(sessionId, typeof task.id === 'string' ? task.id : null)
+      // A trial is read-only at RUNTIME, not only in its proof: the guard is installed as soon as the run's session id is
+      // known and BEFORE the first prompt. It compares the calling session with that id, so every other session of the
+      // machine is untouched. Without one seam that can deny, the run does not start at all.
+      if (trialRun === true) {
+        const tools = ctx.get('tools')
+        let dispose = null
+        if (tools !== undefined && tools !== null && typeof tools.guard === 'function') {
+          try { dispose = tools.guard(kbTrialWriteGuard(sessionId)) } catch (e) { dispose = null }
+        } else if (typeof ctx.on === 'function') {
+          const off = ctx.on('tools/pre-execute', kbTrialPreExecute(sessionId))
+          dispose = typeof off === 'function' ? off : null
+        }
+        if (typeof dispose !== 'function') throw new Error('write guard unavailable')
+        kbDisposeTrialGuard(task.id)
+        kbTrialGuards.set(String(task.id), dispose)
+      }
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
       // attendu « provider/model » (ex. kybernos/free). Échec best-effort :
@@ -3202,11 +3782,16 @@ function boot(ctx) {
       return r
     }
     // CRUD exposé au client (route unique /kybernos/tasks, action dans le corps).
-    const kbTasksHandle = async (body) => {
+    const kbTasksHandle = async (body, opts) => {
       const action = str(body.action)
+      // The request's own nature, decided by the ROUTE from the authenticated request — never read from the body.
+      const human = opts !== null && typeof opts === 'object' && opts.human === true
       if (action === 'list') {
         const tasks = await kbTasksRead()
-        return { ok: true, tasks }
+        // One read of the gate store per list, never one per task. The projection is the same bounded one the gate
+        // actions answer, and a damaged file never fails the list: every `gate` is null and `gateStore` says why.
+        const gate = await kbGateRead()
+        return Object.assign({ ok: true }, kbGateAttach(tasks, gate.ok === true ? gate.records : [], gate.ok !== true))
       }
       if (action === 'create') {
         const clean = kbSanitizeTaskInput(body.task)
@@ -3219,6 +3804,22 @@ function boot(ctx) {
         const nx = kbComputeNextRun(task, Date.now())
         if (kbNeverRuns(task, nx) === true) return { ok: false, error: kbNoNextRunError(task) }
         task.nextRun = nx === null ? null : new Date(nx).toISOString()
+        // Every NEW automation enters the certification gate (finding P2 #3): its record is written here, at `draft`, so
+        // the rules that guard a certified automation — the person's toggle, the run paths, cloud-link — apply to it from
+        // its first second. An automation that predates the gate keeps no record and keeps today's behaviour: no record
+        // is no gate. The seed goes first and fail-closed: an unreadable or full gate store refuses the creation rather
+        // than leaving an automation nobody will ever certify.
+        const seeded = await kbGateMutate(async (records) => {
+          const record = kbGateStored(kbGateEmptyRecord(id, now))
+          const inserted = kbGateInsert(records, record, KB_GATE_MAX)
+          if (inserted.ok !== true) return inserted
+          records.splice(0, records.length, ...inserted.records)
+          return inserted
+        })
+        if (seeded.ok !== true) return { ok: false, code: seeded.code, error: seeded.error }
+        if (seeded.result === null || typeof seeded.result !== 'object' || seeded.result.ok !== true) {
+          return { ok: false, error: seeded.result !== null && typeof seeded.result === 'object' && typeof seeded.result.error === 'string' ? seeded.result.error : 'gate unavailable' }
+        }
         await kbTasksMutate(async (tasks) => { tasks.push(task) })
         return { ok: true, task }
       }
@@ -3287,6 +3888,11 @@ function boot(ctx) {
         if (id === null) return { ok: false, error: 'id required' }
         const clean = kbSanitizeTaskInput(body.task)
         if (clean.ok !== true) return { ok: false, error: clean.error }
+        // The sanitizer defaults `active: true`, so an edit body that omits `active` switches an automation on: that is
+        // the same activation transition as `toggle`, judged by the same predicate, and refusal writes nothing.
+        const gateState = await kbGateRead()
+        let gateRecord = null
+        if (gateState.ok === true) gateRecord = gateState.records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
         let updated = null
         let refusal = null
         let frequentUpdate = null
@@ -3300,6 +3906,10 @@ function boot(ctx) {
               if (t.suggested === true) merged.active = false
               // While it lives on a cloud computer the copy here stays paused, whatever the form says.
               if (t.cloud !== null && typeof t.cloud === 'object') { merged.active = false; merged.nextRun = null }
+              if (t.active !== true && merged.active === true) {
+                const no = gateState.ok === true ? kbGateActivationRefusal(gateRecord, kbTrialFn('mayActivate')) : 'gate store unreadable'
+                if (no !== null) { refusal = no; break }
+              }
               const nx = kbComputeNextRun(merged, Date.now())
               if (kbNeverRuns(merged, nx) === true) { refusal = kbNoNextRunError(merged); break }
               merged.nextRun = nx === null ? null : new Date(nx).toISOString()
@@ -3311,6 +3921,20 @@ function boot(ctx) {
         })
         if (frequentUpdate !== null) return frequentUpdate
         if (refusal !== null) return { ok: false, error: refusal }
+        // An edit voids the certification: the record goes back to `draft`, its checks and its proof cleared, its
+        // revision raised, so an approved draft cannot be edited into a different one under the same approval.
+        if (updated !== null && gateRecord !== null) {
+          await kbGateMutate(async (records) => {
+            const at = new Date().toISOString()
+            for (let i = 0; i < records.length; i += 1) {
+              if (records[i] !== null && typeof records[i] === 'object' && records[i].automationId === id) {
+                const next = kbGateDemoteAfterEdit(records[i], at)
+                if (next !== null) records[i] = kbGateStored(next)
+                break
+              }
+            }
+          })
+        }
         return updated === null ? { ok: false, error: 'task not found' } : { ok: true, task: updated }
       }
       // The person published this automation to a cloud computer, or brought it back: the copy on this computer is paused while the automation lives there (two
@@ -3321,7 +3945,17 @@ function boot(ctx) {
         if (id === null) return { ok: false, error: 'id required' }
         const link = body.cloud
         if (link !== null && (typeof link !== 'object' || Array.isArray(link) === true || typeof link.computerId !== 'string' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(link.computerId) !== true || typeof link.name !== 'string' || link.name.trim().length === 0)) return { ok: false, error: 'invalid cloud link' }
+        // Both directions consult the gate record (finding P2 #4). Bringing an automation back restores what it was doing
+        // there, and publishing hands it to a computer that runs it: on a gated record both are activation transitions,
+        // refused unless the record's own evidence allows them, and nothing is written (the link stays as it is). An
+        // automation with no record keeps today's behaviour, exactly as for the toggle.
+        const gateState = await kbGateRead()
+        const recordOf = (automationId) => gateState.ok === true
+          ? (gateState.records.find((r) => r !== null && typeof r === 'object' && r.automationId === automationId) || null)
+          : null
+        const gateNo = (automationId) => (gateState.ok === true ? kbGateActivationRefusal(recordOf(automationId), kbTrialFn('mayActivate')) : 'gate store unreadable')
         let found = null
+        let refusal = null
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
@@ -3329,13 +3963,18 @@ function boot(ctx) {
               const had = t.cloud !== null && typeof t.cloud === 'object' ? t.cloud : null
               // Bringing back what is not linked is nothing to do.
               if (link === null && had === null) { found = t; break }
+              const cloudNo = gateNo(id)
               if (link === null) {
                 const back = had !== null && had.wasActive === true
+                if (back === true && cloudNo !== null) { refusal = cloudNo; break }
                 delete t.cloud
                 const nx = back === true ? kbComputeNextRun(Object.assign({}, t, { active: true }), Date.now()) : null
                 t.active = back === true && kbNeverRuns(Object.assign({}, t, { active: true }), nx) !== true
                 t.nextRun = t.active === true && nx !== null ? new Date(nx).toISOString() : null
               } else {
+                // A static-failed draft must not become runnable somewhere else: a record that may not activate here
+                // may not be published either.
+                if (cloudNo !== null) { refusal = cloudNo; break }
                 t.cloud = { computerId: link.computerId, name: kbClip(link.name.trim(), 60), at: now, wasActive: had !== null ? had.wasActive === true : t.active !== false }
                 t.active = false
                 t.nextRun = null
@@ -3346,12 +3985,28 @@ function boot(ctx) {
             }
           }
         })
+        if (refusal !== null) return { ok: false, error: refusal }
         return found === null ? { ok: false, error: 'task not found' } : { ok: true, task: found }
       }
       if (action === 'toggle') {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
         if (typeof body.active !== 'boolean') return { ok: false, error: 'active must be true or false' }
+        // Switching ON is an activation transition: for an automation that carries a gate record it is the person's
+        // gesture only, and it needs the record's own evidence (B2's `mayActivate`, through the one-line adapter).
+        // Pausing is never judged, and an automation with no record keeps today's behaviour.
+        let gateRecord = null
+        if (body.active === true) {
+          const gate = await kbGateRecordOf(id)
+          if (gate.state.ok !== true) return { ok: false, error: 'gate store unreadable' }
+          gateRecord = gate.record
+          if (gateRecord !== null) {
+            const humanNo = kbHumanOnly(action, body, human)
+            if (humanNo !== null) return { ok: false, error: humanNo }
+            const no = kbGateActivationRefusal(gateRecord, kbTrialFn('mayActivate'))
+            if (no !== null) return { ok: false, error: no }
+          }
+        }
         let found = null
         let refusal = null
         await kbTasksMutate(async (tasks) => {
@@ -3370,7 +4025,22 @@ function boot(ctx) {
           }
         })
         if (refusal !== null) return { ok: false, error: refusal }
-        return found === null ? { ok: false, error: 'task not found' } : { ok: true, task: found }
+        if (found === null) return { ok: false, error: 'task not found' }
+        // Activation: the task write landed first (the truth is tasks.json), then the gate is marked `activated`. If that
+        // second write fails the record stays `approved` — still activatable, still honest — and the next toggle repairs it.
+        if (body.active === true && gateRecord !== null && gateRecord.status === 'approved') {
+          await kbGateMutate(async (records) => {
+            const at = new Date().toISOString()
+            for (let i = 0; i < records.length; i += 1) {
+              if (records[i] !== null && typeof records[i] === 'object' && records[i].automationId === id) {
+                const next = kbGateNext(records[i], { status: 'activated', at }, kbGateFn('GATE_STATUSES'))
+                if (next !== null) records[i] = kbGateStored(next)
+                break
+              }
+            }
+          })
+        }
+        return { ok: true, task: found }
       }
       if (action === 'delete') {
         const id = str(body.id)
@@ -3382,6 +4052,15 @@ function boot(ctx) {
             if (t !== null && typeof t === 'object' && t.id === id) { tasks.splice(i, 1); removed = true; break }
           }
         })
+        if (removed === true) {
+          // The gate record goes with its automation (the store stays bounded by the number of automations), and a trial
+          // guard still held for it is released: there is nothing left to report that trial to.
+          await kbGateMutate(async (records) => {
+            const kept = kbGateRemoveOf(records, id)
+            if (kept.length !== records.length) records.splice(0, records.length, ...kept)
+          })
+          kbDisposeTrialGuard(id)
+        }
         return removed === true ? { ok: true } : { ok: false, error: 'task not found' }
       }
       if (action === 'start-chat') {
@@ -3420,6 +4099,9 @@ function boot(ctx) {
         const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
         if (t === undefined) return { ok: false, error: 'task not found' }
         if (autoIsSuggested(t) === true) return { ok: false, error: 'suggested: add it first' }
+        // The gate's tooth, before anything is created: a gated automation whose approval is not granted does not run.
+        const gateNo = await kbGateRunRefusalTask(t)
+        if (gateNo !== null) return { ok: false, error: gateNo }
         try {
           const res = await kbFireTask(t)
           await kbTasksMutate(async (fresh) => {
@@ -3488,6 +4170,11 @@ function boot(ctx) {
       if (action === 'consume-fire') {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
+        // The task is read before the mutation: a queued fire of an automation the gate refuses must not be handed to a
+        // session that must not start, and the event stays where the page can show it.
+        const before = (await kbTasksRead()).find((x) => x !== null && typeof x === 'object' && x.id === id)
+        const no = await kbGateRunRefusalTask(before)
+        if (no !== null) return { ok: false, error: no }
         let out = null
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
@@ -3503,6 +4190,271 @@ function boot(ctx) {
           }
         })
         return out === null ? { ok: false, error: 'nothing to consume' } : { ok: true, task: out }
+      }
+      // ── The certification gate and the initiative queue ─────────────────────
+      // Six actions on this same route, so no new route, no new origin decision and no new phone decision. Every state
+      // they record comes from a pure module of its own batch: the static checks (automation-gate.mjs), the trial and its
+      // proof (automation-trial.mjs), the queue (initiative-queue.mjs). `approve` is the ONLY path to `approved`, it takes
+      // a human request and the record's own `rev`, and it grants nothing else: activation stays the person's toggle.
+      if (action === 'gate-check') {
+        const id = str(body.id)
+        if (id === null || id === '') return { ok: false, error: 'id required' }
+        const checkDraft = kbGateFn('checkDraft')
+        if (typeof checkDraft !== 'function') return { ok: false, error: 'gate unavailable' }
+        const tasks = await kbTasksRead()
+        const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
+        if (t === undefined) return { ok: false, error: 'task not found' }
+        if (t.cloud !== null && typeof t.cloud === 'object') return { ok: false, error: 'runs in the cloud' }
+        const at = new Date().toISOString()
+        // The two checks that cannot run without context: `schedule.at.past` needs a clock and `gate.unapproved-activation`
+        // needs the record as it stands, so the route hands both over — otherwise neither can ever fire through here. The
+        // read goes through the store's own queue: it writes nothing when the record is unchanged, and on a corrupt file it
+        // answers the same code while keeping the private copy a mutation keeps.
+        let currentGate = null
+        const loaded = await kbGateMutate(async (records) => {
+          currentGate = records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
+        })
+        if (loaded.ok !== true) return { ok: false, code: loaded.code, error: loaded.error }
+        let verdict = null
+        try { verdict = checkDraft(kbGateDraftOf(t), { nowMs: Date.now(), gate: currentGate }) } catch (e) { verdict = null }
+        if (verdict === null || typeof verdict !== 'object' || (verdict.verdict !== 'pass' && verdict.verdict !== 'fail')) return { ok: false, error: 'gate unavailable' }
+        const pass = verdict.verdict === 'pass'
+        const findings = Array.isArray(verdict.findings) === true ? verdict.findings : []
+        let answer = null
+        const written = await kbGateMutate(async (records) => {
+          const current = records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
+          const base = current !== null ? current : kbGateEmptyRecord(id, at)
+          // A failed check voids the trial it may have followed: only a proof of THIS definition can be approved.
+          let next = kbGateNext(base, Object.assign({
+            status: pass === true ? 'static-passed' : 'static-failed',
+            staticChecks: { ranAt: at, verdict: verdict.verdict, findings },
+            at,
+          }, pass === true ? {} : { trial: null }), kbGateFn('GATE_STATUSES'))
+          if (next === null) return
+          // The first write of a record is revision 1: the empty record is a shape, not a write.
+          if (current === null) next.rev = 1
+          next = kbGateStored(next)
+          const inserted = kbGateInsert(records, next, KB_GATE_MAX)
+          if (inserted.ok !== true) { answer = { ok: false, error: inserted.error }; return }
+          records.splice(0, records.length, ...inserted.records)
+          answer = { ok: true, gate: kbGateBoundedRecord(next) }
+        })
+        if (answer !== null) return answer
+        return written.ok === true ? { ok: false, error: 'gate unavailable' } : { ok: false, code: written.code, error: written.error }
+      }
+      if (action === 'trial-start') {
+        const humanNo = kbHumanOnly(action, body, human)
+        if (humanNo !== null) return { ok: false, error: humanNo }
+        const id = str(body.id)
+        if (id === null || id === '') return { ok: false, error: 'id required' }
+        const startTrial = kbTrialFn('startTrial')
+        const trialApprovals = kbTrialFn('TRIAL_APPROVALS')
+        if (typeof startTrial !== 'function' || typeof trialApprovals !== 'string') return { ok: false, error: 'trial module unavailable' }
+        const tasks = await kbTasksRead()
+        const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
+        if (t === undefined) return { ok: false, error: 'task not found' }
+        if (autoIsSuggested(t) === true) return { ok: false, error: 'suggested: add it first' }
+        if (t.cloud !== null && typeof t.cloud === 'object') return { ok: false, error: 'runs in the cloud' }
+        const gate = await kbGateRecordOf(id)
+        if (gate.state.ok !== true) return { ok: false, code: gate.state.code, error: gate.state.error }
+        const record = gate.record
+        // A trial follows the static gate: no record, or one whose static check failed, has nothing to try.
+        if (record === null || (record.status !== 'static-passed' && record.status !== 'trial-done')) return { ok: false, error: 'static checks failed' }
+        // A trial that cannot be kept read-only is not a trial: one seam must be able to deny, and it is checked before
+        // any session is created.
+        if (kbTrialGuardSeam() === null) return { ok: false, error: 'write guard unavailable' }
+        const sc = ctx.get('sessionController')
+        if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') return { ok: false, error: 'trial needs a live session' }
+        const at = new Date().toISOString()
+        // The machine's own reading, the one the scheduler's tick uses: a loaded computer refuses the trial instead of
+        // stacking a session. B2 owns the rule; this only measures and passes it.
+        const capacity = await kbLoadCapacity()
+        const started = startTrial({ gate: record, by: 'person', at, sessionId: null, capacity })
+        if (started === null || typeof started !== 'object' || started.ok !== true || started.trial === null || typeof started.trial !== 'object') {
+          return { ok: false, error: kbGateTrialRefusal(started !== null && typeof started === 'object' ? started.code : undefined) }
+        }
+        // The mask is forced on a COPY, never taken from the body: this run asks before anything leaves, and it is not the
+        // stored automation that changes.
+        const masked = Object.assign({}, t, { approvals: trialApprovals, active: false })
+        // A trial is its own run, never the person's conversation: a `sessionMode: 'home'` copy is stripped of its home so
+        // the trial always opens a fresh session. Reusing the live chat would make the proof read that session's FIRST turn —
+        // the person's earliest conversation — and a clean old turn would certify unrelated work.
+        delete masked.sessionMode
+        delete masked.homeSessionId
+        let fired = null
+        try {
+          fired = await kbFireTask(masked, { trial: true })
+        } catch (e) {
+          // A trial that never started leaves no guard behind and no gate record: the next attempt installs a fresh one.
+          kbDisposeTrialGuard(t.id)
+          const message = errText(e)
+          if (message.indexOf('write guard unavailable') >= 0) return { ok: false, error: 'write guard unavailable' }
+          if (message.indexOf('approvals "ask"') >= 0) return { ok: false, error: 'mask unavailable' }
+          return { ok: false, error: 'trial unavailable' }
+        }
+        const runId = fired !== null && typeof fired === 'object' && typeof fired.sessionId === 'string' ? fired.sessionId : null
+        if (runId === null) { kbDisposeTrialGuard(t.id); return { ok: false, error: 'trial unavailable' } }
+        let next = null
+        const written = await kbGateMutate(async (records) => {
+          const current = records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
+          if (current === null) return
+          next = applyTrialOf(current, kbGateOpenProof(started.trial, runId), at)
+          if (next === null) return
+          next = kbGateStored(next)
+          const inserted = kbGateInsert(records, next, KB_GATE_MAX)
+          if (inserted.ok !== true) { next = null; return }
+          records.splice(0, records.length, ...inserted.records)
+        })
+        if (written.ok !== true) { kbDisposeTrialGuard(t.id); return { ok: false, code: written.code, error: written.error } }
+        if (next === null) { kbDisposeTrialGuard(t.id); return { ok: false, error: 'gate unavailable' } }
+        // The marker B2's preconditions read: a trial is its own kind of run, neither a success nor a failure.
+        await kbTasksMutate(async (fresh) => {
+          for (const x of fresh) {
+            if (x !== null && typeof x === 'object' && x.id === id) {
+              x.history = (Array.isArray(x.history) === true ? x.history : []).concat([{ at, status: 'trial', gateId: next.id, sessionId: null }]).slice(-20)
+              x.updatedAt = at
+              break
+            }
+          }
+        }).catch(() => null)
+        return { ok: true, gate: kbGateBoundedRecord(next), runId }
+      }
+      if (action === 'trial-report') {
+        const id = str(body.id)
+        if (id === null || id === '') return { ok: false, error: 'id required' }
+        const trialFromEvents = kbTrialFn('trialFromEvents')
+        if (typeof trialFromEvents !== 'function') return { ok: false, error: 'trial module unavailable' }
+        const tasks = await kbTasksRead()
+        const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
+        if (t === undefined) return { ok: false, error: 'task not found' }
+        const gate = await kbGateRecordOf(id)
+        if (gate.state.ok !== true) return { ok: false, code: gate.state.code, error: gate.state.error }
+        const record = gate.record
+        if (record === null || record.trial === null || typeof record.trial !== 'object') return { ok: false, error: 'no trial to report' }
+        const runId = typeof record.trial.runId === 'string' && record.trial.runId !== '' ? record.trial.runId : ''
+        if (runId === '') return { ok: false, error: 'no trial to report' }
+        const journal = ctx.get('sessionPersistence')
+        if (journal === undefined || journal === null || typeof journal.open !== 'function') return { ok: false, error: 'run journal unavailable' }
+        let events = null
+        let handle = null
+        try {
+          handle = await journal.open(runId, 'read')
+          const read = await handle.read()
+          events = read !== null && read !== undefined && Array.isArray(read.events) === true ? read.events : null
+        } catch (e) { events = null } finally {
+          try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
+        }
+        // A trial that keeps its open state on an unreadable journal: the person can retry, nothing is claimed.
+        if (events === null) return { ok: false, error: 'run unreadable' }
+        const at = new Date().toISOString()
+        const run = kbTrialRunOf(record)
+        if (run === null) return { ok: false, error: 'no trial to report' }
+        let built = null
+        try { built = trialFromEvents({ trial: run, events, at }) } catch (e) { built = null }
+        const proof = built !== null && typeof built === 'object' && built.proof !== null && typeof built.proof === 'object' ? built.proof : null
+        if (proof === null) return { ok: false, error: 'run unreadable' }
+        let next = null
+        const written = await kbGateMutate(async (records) => {
+          const current = records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
+          if (current === null) return
+          let candidate = applyTrialOf(current, proof, at)
+          if (candidate === null) return
+          // A passing proof puts the decision in front of the person; B2's own rule decides whether asking is possible,
+          // so a dirty trial stays trial-done and a refusal stays terminal.
+          const askApproval = kbTrialFn('askApproval')
+          if (typeof askApproval === 'function') {
+            const asked = askApproval(candidate, { at })
+            if (asked !== null && typeof asked === 'object' && asked.ok === true && asked.gate !== null && typeof asked.gate === 'object') candidate = asked.gate
+          }
+          candidate = kbGateStored(candidate)
+          const inserted = kbGateInsert(records, candidate, KB_GATE_MAX)
+          if (inserted.ok !== true) { next = null; return }
+          records.splice(0, records.length, ...inserted.records)
+          next = candidate
+        })
+        if (written.ok !== true) return { ok: false, code: written.code, error: written.error }
+        if (next === null) return { ok: false, error: 'no trial to report' }
+        // The trial's runtime seam is released the moment its proof is terminal, before anything else can start.
+        if (proof.outcome.state !== 'open') kbDisposeTrialGuard(id)
+        return { ok: true, gate: kbGateBoundedRecord(next), report: proof }
+      }
+      if (action === 'approve') {
+        const humanNo = kbHumanOnly(action, body, human)
+        if (humanNo !== null) return { ok: false, error: humanNo }
+        const id = str(body.id)
+        if (id === null || id === '') return { ok: false, error: 'id required' }
+        const decision = str(body.decision)
+        if (decision !== 'grant' && decision !== 'refuse') return { ok: false, error: 'decision must be grant or refuse' }
+        if (Number.isSafeInteger(body.rev) !== true) return { ok: false, error: 'rev required' }
+        const gate = await kbGateRecordOf(id)
+        if (gate.state.ok !== true) return { ok: false, code: gate.state.code, error: gate.state.error }
+        const record = gate.record
+        if (record === null) return { ok: false, error: 'gate not found' }
+        // A refusal is recorded at any rung; a grant has to pass the record's own evidence (status, proof, effects,
+        // completion, rev) — the ladder is the pure block's, and this action only reads its answer.
+        if (decision === 'refuse' && typeof kbTrialFn('refuseApproval') !== 'function') return { ok: false, error: 'trial module unavailable' }
+        if (decision === 'grant' && Array.isArray(kbGateFn('GATE_STATUSES')) !== true) return { ok: false, error: 'gate unavailable' }
+        const check = decision === 'refuse' ? { ok: true } : kbGateCanApprove(record, { rev: body.rev })
+        if (check.ok !== true) {
+          if (check.code === 'stale') return { ok: false, code: 'stale', error: 'stale', gate: kbGateBoundedRecord(record) }
+          return { ok: false, error: check.error }
+        }
+        // A grant needs a proof B2 sealed: one that reads clean but carries no fingerprint of its own content is a claim,
+        // and granting it would promise an approval the next read demotes to draft.
+        if (decision === 'grant') {
+          const trialPassed = kbTrialFn('trialPassed')
+          if (typeof trialPassed !== 'function' || trialPassed(record.trial) !== true) return { ok: false, error: 'approval not possible: the proof is unverified' }
+        }
+        const at = new Date().toISOString()
+        let next = null
+        const written = await kbGateMutate(async (records) => {
+          const current = records.find((r) => r !== null && typeof r === 'object' && r.automationId === id) || null
+          if (current === null) return
+          if (decision === 'refuse') {
+            const refuseApproval = kbTrialFn('refuseApproval')
+            if (typeof refuseApproval !== 'function') return
+            next = refuseApproval(current, { at })
+          } else {
+            // Re-checked under the store's serialization: a `gate-check` that landed in between moves the revision.
+            if (current.rev !== record.rev) { next = null; return }
+            next = kbGateNext(current, { status: 'approved', approval: { state: 'granted', at }, at }, kbGateFn('GATE_STATUSES'))
+          }
+          if (next === null) return
+          next = kbGateStored(next)
+          const inserted = kbGateInsert(records, next, KB_GATE_MAX)
+          if (inserted.ok !== true) { next = null; return }
+          records.splice(0, records.length, ...inserted.records)
+        })
+        if (written.ok !== true) return { ok: false, code: written.code, error: written.error }
+        if (next === null) return { ok: false, code: 'stale', error: 'stale', gate: kbGateBoundedRecord(record) }
+        return { ok: true, gate: kbGateBoundedRecord(next) }
+      }
+      if (action === 'queue list') {
+        let queue = null
+        try { queue = await kbInitiatives() } catch (e) { return { ok: false, error: 'queue unavailable' } }
+        let items = null
+        try { items = await queue.list() } catch (e) { return { ok: false, error: 'queue unreadable' } }
+        return { ok: true, items: Array.isArray(items) === true ? items : [], cap: Number.isSafeInteger(queue.cap) === true ? queue.cap : null }
+      }
+      if (action === 'queue act') {
+        const humanNo = kbHumanOnly(action, body, human)
+        if (humanNo !== null) return { ok: false, error: humanNo }
+        const resolveStatuses = kbQueueFn('RESOLVE_STATUSES')
+        if (Array.isArray(resolveStatuses) !== true) return { ok: false, error: 'queue unavailable' }
+        const id = str(body.id)
+        if (id === null || id === '') return { ok: false, error: 'id required' }
+        const status = str(body.status)
+        // Only the three answers a person can give: `proposed` is the creation state, and an unknown string never
+        // reaches the ledger.
+        if (status === null || resolveStatuses.indexOf(status) < 0) return { ok: false, error: 'unknown status' }
+        let queue = null
+        try { queue = await kbInitiatives() } catch (e) { return { ok: false, error: 'queue unavailable' } }
+        let resolved = null
+        try { resolved = await queue.resolve(id, status) } catch (e) { resolved = { ok: false, error: 'queue unavailable' } }
+        if (resolved === null || typeof resolved !== 'object' || resolved.ok !== true) {
+          return { ok: false, error: resolved !== null && typeof resolved === 'object' && typeof resolved.error === 'string' ? resolved.error : 'queue unavailable' }
+        }
+        return { ok: true, item: resolved.item }
       }
       return { ok: false, error: 'unknown action: ' + String(action) }
     }
@@ -3625,7 +4577,24 @@ function boot(ctx) {
       if (kbSuggLedger === null) kbSuggLedger = makeSuggestionLedger({ file: joinPath(dirname(await kbTasksFileOf()), 'suggestions.json') })
       return kbSuggLedger
     }
-    try { mountAutomationTools(ctx, { tasks: kbTasksHandle, ledger: { add: async (kind, raw) => (await kbSugg()).add(kind, raw) } }, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
+    // The initiative queue (B4's module): a ledger of its own, next to tasks.json, made on first use like the suggestions
+    // ledger. `queue unavailable` rather than a local reimplementation when its module is not there.
+    let kbInitLedger = null
+    const kbInitiatives = async () => {
+      if (kbInitLedger === null) {
+        const make = kbQueueFn('makeInitiativeQueue')
+        if (typeof make !== 'function') throw new Error('queue unavailable')
+        kbInitLedger = make({ file: joinPath(dirname(await kbTasksFileOf()), 'initiatives.json') })
+      }
+      return kbInitLedger
+    }
+    // The two initiative tools are mounted only when the queue module carries its maker: a missing module drops the tools
+    // instead of registering two tools that would throw on every call.
+    const kbQueueCap = kbQueueFn('INITIATIVE_MAX')
+    const kbInitiativeDeps = typeof kbQueueFn('makeInitiativeQueue') === 'function'
+      ? { initiative: Object.assign({ add: async (raw) => (await kbInitiatives()).add(raw), list: async (status) => (await kbInitiatives()).list(status) }, typeof kbQueueCap === 'number' ? { cap: kbQueueCap } : {}) }
+      : {}
+    try { mountAutomationTools(ctx, Object.assign({ tasks: kbTasksHandle, ledger: { add: async (kind, raw) => (await kbSugg()).add(kind, raw) } }, kbInitiativeDeps), (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.
@@ -10799,6 +11768,17 @@ function boot(ctx) {
           sameOrigin: () => (req.method === 'POST' ? sameOriginStrict(req) : sameOriginLax(req)),
           session: () => { try { const refused = writeGuard(req); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
           registry: registrySeam(),
+          shipped: readShipped(pluginDir + '/themes').themes,
+          next: readNext(pluginDir + '/themes'),
+          business: (() => { try { return globalThis[Symbol.for('kybernos.business')] } catch (e) { return null } })(),
+          skill: (folder, name) => {
+            try {
+              if (!existsSync(nodePathJoin(folder, 'skills', name, 'SKILL.md'))) return { ok: false }
+              const r = seedSkills({ home: String(dshHomeSync()), sourceDir: nodePathJoin(folder, 'skills'), names: [name] })[0]
+              const action = r !== undefined ? r.action : 'error'
+              return { ok: action === 'created' || action === 'current' || action === 'updated' || action === 'kept' || action === 'disabled', action }
+            } catch (e) { return { ok: false } }
+          },
         }
         const action = body !== null && typeof body.action === 'string' ? body.action : ''
         // No outbound request for a caller the route will refuse anyway: the origin is checked first, and a write needs the signed
@@ -10818,6 +11798,20 @@ function boot(ctx) {
         const answer = handleThemes({ dir }, { method: req.method, body }, ports)
         sendJson(res, answer.status, answer.body)
       } }), 'kybernos: route themes')
+      // The cover picture of a shipped theme, or of a « next trade »: the page names an id, the host owns the path (themes-shipped.mjs, coverFile), and
+      // only a plain JPEG of a sane size leaves. Read-only, same origin; a picture is not a secret, so no session is asked.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/themes/cover', handler: (req, res) => {
+        try {
+          if (req.method !== 'GET') { res.writeHead(405); res.end(''); return }
+          if (sameOriginLax(req) !== true) { res.writeHead(403); res.end(''); return }
+          const q = new URL(req.url || '/', 'http://localhost').searchParams
+          const file = coverFile(pluginDir + '/themes', { id: q.get('id') ?? undefined, next: q.get('next') ?? undefined })
+          if (file === null) { res.writeHead(404); res.end(''); return }
+          const bytes = readFileSync(file)
+          res.writeHead(200, { 'content-type': 'image/jpeg', 'content-length': String(bytes.length), 'cache-control': 'private, max-age=600', 'x-content-type-options': 'nosniff' })
+          res.end(bytes)
+        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* the socket is gone */ } }
+      } }), 'kybernos: route theme covers')
       // A skill a domain pack ships (domains/skills/<name>/SKILL.md): written into <DSH home>/skills by the same careful seeding as every skill this
       // plugin ships (never over a skill the person wrote or edited, never back over one they switched off). Only a name some pack lists as
       // bundled is accepted, so the route cannot write anything else.
@@ -11499,7 +12493,10 @@ function boot(ctx) {
         const phone = kbTunnelledWrite(req)
         if (phone && body.action !== 'list') return sendJson(res, 403, { ok: false, error: 'refused_on_phone' })
         try {
-          const answer = await kbTasksHandle(body)
+          // `opts` is the request's own nature, decided HERE from the authenticated request (origin + signed cookie +
+          // phone fence are already passed): a wire body that says `{"human":true}` is inert, and an in-process caller
+          // (an agent tool) reaches the dispatcher with a single argument, so it can never approve or start a trial.
+          const answer = await kbTasksHandle(body, { human: true, via: 'http' })
           sendJson(res, 200, phone && answer !== null && typeof answer === 'object' && Array.isArray(answer.tasks) ? Object.assign({}, answer, { tasks: answer.tasks.map(kbWithoutHookSecret) }) : answer)
         } catch (e) {
           // A store that cannot be trusted is a normal answer the page can show (the client only
@@ -12163,6 +13160,10 @@ function boot(ctx) {
           // A secret that is missing or too short (hand-edited file) never matches anything.
           if (expected.length < 8 || timingSafe(given, expected) !== true) return sendJsonPublic(res, 401, { ok: false, error: 'invalid secret' })
           if (task.active !== true || task.suggested === true) return sendJsonPublic(res, 409, { ok: false, error: 'automation paused' })
+          // The gate's tooth, before the body is even read: a gated automation whose approval is not granted answers 403
+          // and records nothing, so an outside service cannot start what the person has not approved.
+          const gateNo = await kbGateRunRefusalTask(task)
+          if (gateNo !== null) return sendJsonPublic(res, 403, { ok: false, error: gateNo })
           const body = await kbHookReadBody(req, 262144)
           // An event that is too large is refused, not delivered as an empty one.
           if (body.tooLarge === true) return sendJsonPublic(res, 413, { ok: false, error: 'body too large (256 KB maximum)' }, { connection: 'close' })
@@ -12357,7 +13358,7 @@ const KB_FEEDBACK_ERRORS_MAX = 20
 const KB_FEEDBACK_MAILTO_MAX = 1200
 // GO-LIVE: the built-in server's address, used only when the cloud plugin's state file records none. This block is cut out and run by
 // tests, so it cannot import server-profile.mjs; scripts/test-no-legacy-hosts.mjs fails when it differs from BUILTIN_API there.
-const KB_FEEDBACK_API_DEFAULT = 'https://api.kybernos.app'
+const KB_FEEDBACK_API_DEFAULT = 'https://server.kybernos.app'
 
 const kbFeedbackClip = (value, limit) => (typeof value === 'string' ? value.slice(0, limit) : '')
 
@@ -13074,6 +14075,11 @@ export function apply(ctx) {
     } catch (e) {
         try { console.log('[kybers] app identity: failed — ' + errText(e)) } catch (e2) { /* console indisponible */ }
     }
+    // The shared business base (Contacts, Catalog, Pipeline): the seam is published now, the file is created by the first question that needs it.
+    // Outside any service and under its own try/catch, so a base that cannot open never stops DSH from starting (AGENTS.md rule 2).
+    try {
+        ensureBusiness()
+    } catch (e) { /* the plugins that need the base answer base_missing */ }
     // Meme filet que cote client : une erreur au demarrage ne doit pas faire
     // echouer l'entree du plugin (ce qui coupe la GUI) mais seulement laisser
     // tomber les routes /kybernos/*, avec l'erreur tracee pour correction.
