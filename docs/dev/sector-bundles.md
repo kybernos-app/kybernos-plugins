@@ -182,6 +182,33 @@ The six other points of the contract's table are not a theme's business: `kybern
 built, the two dashboards source points are for later, and `kybernos/language#pack`,
 `kybernos/modeles-locaux#model` belong to their own catalogues.
 
+## The three business points
+
+A theme for a trade that keeps people, things and a board (a shop, an agency, a recruitment firm) can also tell the three business plugins
+(Contacts, Catalog, Pipeline, `docs/dev/business-base.md`) its words. They are three more points, owned by those plugins and extended the same
+way, from folders of JSON:
+
+| Folder | Point | One file = | At most |
+|---|---|---|---|
+| `contacts/` | `kybernos/contacts#schema` | the kinds of contact (a person or a company), the fields and the tags | 4 files |
+| `catalog/` | `kybernos/catalog#type` | one kind of item: statuses, fields, what its card shows, its views | 12 files |
+| `pipeline/` | `kybernos/pipeline#flow` | one board: its stages (2 to 8), how its value is counted, what a card may link to | 4 files |
+
+The file's name is the `id` inside it. Texts are `{ "en": …, "fr": … }` (English required; `es` and `ar` allowed), 1 to 60 characters, no control
+character and no angle bracket. A field is `{ key, type, label?, options?, currency? }` with a type among `text`, `number`, `money`, `date`,
+`choice`, `email`, `url`. A catalog card and its flag name fields by key; a key the type does not define is refused when the folder is checked.
+Each point is inert (nothing in it is an instruction an agent follows), and each check is pure and bounded.
+
+A theme that extends them must name their owners in `requires.plugins` (`kybernos/contacts`, `kybernos/catalog`, `kybernos/pipeline`, `^1.0`):
+until those plugins are installed and have told their points to the registry, the theme is listed `missing-dependency`. The starter is
+`docs/dev/templates/acme-garden-shop/`, with one broken variant per point:
+
+```bash
+node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
+```
+
+Sample rows for the pages (so a new install is not empty) are not part of these three points: a later lot adds them.
+
 ## One complete `plugin.json`
 
 Five `extends`, one `dir` each, and `requires.plugins` naming **every** owner it extends — the rule a schema

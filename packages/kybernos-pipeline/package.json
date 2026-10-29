@@ -1,0 +1,22 @@
+{
+  "name": "@local/kybernos-pipeline",
+  "version": "1.0.0",
+  "description": "Orders, deals or candidates as cards that move from stage to stage, with the stages a theme defines (the page arrives in a later release).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

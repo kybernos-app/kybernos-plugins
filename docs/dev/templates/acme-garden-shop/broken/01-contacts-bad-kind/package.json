@@ -1,0 +1,11 @@
+{
+  "name": "@acme/kybernos-garden-shop",
+  "version": "1.0.0",
+  "description": "Sample Kybernos theme data for a fictional plant shop (author acme). Nothing to load: an empty patch, no script.",
+  "license": "CC-BY-4.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

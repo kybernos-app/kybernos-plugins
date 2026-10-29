@@ -1,0 +1,44 @@
+{
+  "contract": 1,
+  "id": "acme/garden-shop",
+  "kind": "data",
+  "version": "1.0.0",
+  "name": {
+    "en": "Garden shop",
+    "fr": "Jardinerie"
+  },
+  "description": {
+    "en": "A theme for a small plant shop that tells the three business plugins its words: customers and growers, plants with a stock flag, an order board. Sample data for the fictional author acme."
+  },
+  "author": {
+    "id": "acme",
+    "name": "Acme Software"
+  },
+  "license": "CC-BY-4.0",
+  "pricing": "free",
+  "requires": {
+    "kybernos": "^0.1",
+    "plugins": {
+      "kybernos/contacts": "^1.0",
+      "kybernos/catalog": "^1.0",
+      "kybernos/pipeline": "^1.0"
+    }
+  },
+  "extends": [
+    {
+      "point": "kybernos/contacts#schema",
+      "range": "^1.0",
+      "dir": "contacts"
+    },
+    {
+      "point": "kybernos/catalog#type",
+      "range": "^1.0",
+      "dir": "catalog"
+    },
+    {
+      "point": "kybernos/pipeline#flow",
+      "range": "^1.0",
+      "dir": "pipeline"
+    }
+  ]
+}

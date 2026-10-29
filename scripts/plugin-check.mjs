@@ -29,6 +29,9 @@ import { SCHEMA_FILE, manifestErrors } from './plugin-manifest.mjs'
 import { DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT } from '../packages/kybernos-plugin/domain-pack.mjs'
 import { THEME_POINT } from '../packages/kybernos-theme/themes-catalogue.mjs'
 import { validateTeamSkill } from '../packages/kybernos-skills/team-skills.mjs'
+import { CONTACTS_POINT } from '../packages/kybernos-contacts/contacts-schema.mjs'
+import { CATALOG_POINT } from '../packages/kybernos-catalog/catalog-type.mjs'
+import { PIPELINE_POINT } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
 import { LIMITS, dataPackageProblems, readBounded } from '../packages/kybernos-registry/registry.mjs'
 import { compareVersions, satisfies } from '../packages/kybernos-registry/version.mjs'
 import { scanText, uncovered } from './plugin-scan.mjs'
@@ -70,6 +73,9 @@ export const OWNER_VALIDATORS = {
   'kybernos/core#team-template': TEAM_POINT.validate,
   'kybernos/core#automation-template': AUTOMATION_POINT.validate,
   'kybernos/skills#skill': validateSkillContribution,
+  'kybernos/contacts#schema': CONTACTS_POINT.validate,
+  'kybernos/catalog#type': CATALOG_POINT.validate,
+  'kybernos/pipeline#flow': PIPELINE_POINT.validate,
 }
 
 /**
