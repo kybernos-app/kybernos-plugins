@@ -1,29 +1,33 @@
 {
   "what": {
-    "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton modèle choisit les mots : Clients, Candidats, Contacts.",
-    "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your template chooses the words: Customers, Candidates, Contacts."
+    "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton thème choisit les mots : Clients, Candidats, Contacts.",
+    "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your theme chooses the words: Customers, Candidates, Contacts."
   },
   "steps": [
     {
-      "fr": "Active Contacts ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
-      "en": "Switch Contacts on here, or install a template that needs it: the template installs it with it."
+      "fr": "Active Contacts ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
+      "en": "Switch Contacts on here, or install a theme that needs it: the theme installs it with it."
     },
     {
-      "fr": "Un modèle décrit ses sortes de contacts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
-      "en": "A template describes its kinds of contacts and its fields; Kybernos checks that description when you install it."
+      "fr": "Ouvre Contacts dans le groupe Business du menu : cherche, passe de Personnes à Entreprises, clique une ligne pour voir sa fiche.",
+      "en": "Open Contacts in the Business group of the menu: search, switch between People and Companies, click a row to see its card."
     },
     {
-      "fr": "La page Contacts elle-même, avec la liste, les notes et la recherche, arrive dans une prochaine version.",
-      "en": "The Contacts page itself, with the list, the notes and the search, arrives in a later release."
+      "fr": "Ajoute un contact avec le bouton en haut. Une note s’ajoute et ne se modifie pas : elle garde l’historique.",
+      "en": "Add a contact with the button at the top. A note is added and never edited: it keeps the history."
+    },
+    {
+      "fr": "Un agent peut chercher un contact. Pour en ajouter ou en modifier un, il te demande ton accord, à chaque fois.",
+      "en": "An agent can look a contact up. To add or change one, it asks for your approval, every time."
     }
   ],
   "where": {
-    "fr": "Dans la Suite, une fois activé",
-    "en": "In the Suite, once switched on",
+    "fr": "Dans le menu, sous Business : Contacts, une fois activé",
+    "en": "In the menu, under Business: Contacts, once switched on",
     "page": false
   },
   "good": {
-    "fr": "Rien ne quitte ton ordinateur : les contacts vivront dans un seul fichier sur cette machine, que tu pourras exporter ou effacer en entier.",
-    "en": "Nothing leaves your computer: the contacts will live in one file on this machine, which you will be able to export or delete in full."
+    "fr": "Rien ne quitte ton ordinateur : les contacts vivent dans un seul fichier sur cette machine. Les lignes « demo » sont des exemples, effaçables d’un geste.",
+    "en": "Nothing leaves your computer: the contacts live in one file on this machine. Rows marked “demo” are examples, and you can clear them in one go."
   }
 }
