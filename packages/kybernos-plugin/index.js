@@ -40,6 +40,7 @@ const kbQueueFn = (name) => (kbQueueMod !== null && kbQueueMod !== undefined && 
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
 import { fetchArchiveBytes, fetchCatalogueSources, handleThemes, readThemes, themeTarget, verifyArchive } from './theme-installer.mjs'
+import { readShipped } from './themes-shipped.mjs'
 import { ensureBusiness } from './business-base.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -11767,6 +11768,7 @@ function boot(ctx) {
           sameOrigin: () => (req.method === 'POST' ? sameOriginStrict(req) : sameOriginLax(req)),
           session: () => { try { const refused = writeGuard(req); return refused === null ? true : refused } catch (e) { return { status: 403, error: 'origin refused' } } },
           registry: registrySeam(),
+          shipped: readShipped(pluginDir + '/themes').themes,
         }
         const action = body !== null && typeof body.action === 'string' ? body.action : ''
         // No outbound request for a caller the route will refuse anyway: the origin is checked first, and a write needs the signed

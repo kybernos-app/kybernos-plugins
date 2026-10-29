@@ -708,7 +708,7 @@ ok('kbThManagerIssue reads DSH\'s refusals as refusals: an object that says not-
   for (const none of [null, undefined, 'applied', 3, [], [{ application: 'applied' }]]) assert.equal(issue(none), 'no-answer', JSON.stringify(none))
 })
 ok('the page reads the manager\'s answer instead of "not null", and the Themes cards keep their actions visible', () => {
-  const stage = src.slice(src.indexOf('const stageFolder = async'), src.indexOf('const toggle = (kind, value)'))
+  const stage = src.slice(src.indexOf('const stageWith = async'), src.indexOf('const toggle = (kind, value)'))
   assert.match(stage, /kbThManagerIssue\(installed\)/)
   assert.doesNotMatch(stage, /installed === null/)
   assert.match(stage, /kbThFreshRegistry\(\)[\s\S]*openPlan/) // the registry scan is reused for two seconds: ask for a fresh one before reading the plan
@@ -716,11 +716,11 @@ ok('the page reads the manager\'s answer instead of "not null", and the Themes c
   assert.match(seam, /kbThManagerIssue\(installed\)/)
   assert.doesNotMatch(seam, /installed === null/)
   assert.doesNotMatch(src.slice(src.indexOf('const kbThRemoveTheme = async'), src.indexOf('// A catalogue theme\'s archive is NOT fetched here')), /removeBundle\(record\.id\)\)\s*!==\s*null/)
-  // the team list hides a card's description and actions; the Themes cards are `.kbg-card` too and their buttons live in `.kbg-cta`
-  const hide = src.indexOf('.kbg-card .kbg-desc,.kbg-card .kbg-cta{display:none}')
-  const showCta = src.indexOf('[data-kb-page="themes"] .kbg-card .kbg-cta{display:flex}')
-  const showDesc = src.indexOf('[data-kb-page="themes"] .kbg-card .kbg-desc{display:block}')
-  assert.ok(hide > 0 && showCta > hide && showDesc > hide, 'the Themes override must come after the rule it overrides: ' + [hide, showCta, showDesc])
+  // the team list hides a `.kbg-card`'s description and actions: the Themes gallery uses cards of its own, so no rule of the team list reaches them
+  const view = src.slice(src.indexOf('const KbThemesView = () =>'), src.indexOf('// ── Skills and Connectors: one page each'))
+  assert.doesNotMatch(view, /kbg-card/)
+  assert.match(view, /className: 'kbgal-card'/)
+  assert.doesNotMatch(src, /\[data-kb-page="themes"\] \.kbg-card/, 'the old overrides are gone with the cards they served')
 })
 
 console.log('\n' + count + ' checks passed')

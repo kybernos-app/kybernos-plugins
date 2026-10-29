@@ -57,6 +57,8 @@ const rect = async (selector) => ev(`(() => { const e = document.querySelector($
 const mouse = async (type, x, y) => page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 })
 /** A real mouse press at the middle of an element; false when it has no size (hidden by CSS), which is what this check is about. */
 const click = async (selector) => {
+  // the gallery is taller than the window: a person scrolls to the control first
+  await ev(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (e) e.scrollIntoView({ block: 'center' }); return 1 })()`)
   const c = await rect(selector)
   if (c === null || c.w < 4 || c.h < 4) return false
   for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await mouse(type, c.x, c.y)
@@ -64,13 +66,13 @@ const click = async (selector) => {
 }
 const pageText = async () => (await ev(`(() => { const p = document.querySelector('[data-kb-page="themes"]'); return p ? p.innerText.replace(/\\n+/g, ' | ') : '' })()`)) || ''
 const typeFolder = async (folder) => {
-  await click('.kbg-input')
+  await click('[data-kb="theme-folder"]')
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', modifiers: 4, windowsVirtualKeyCode: 65, commands: ['selectAll'] })
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', modifiers: 4, windowsVirtualKeyCode: 65 })
   await page.send('Input.insertText', { text: folder })
   await sleep(300)
 }
-const FOLDER_BUTTON = '.kbg-card:last-child .kbg-talk'
+const FOLDER_BUTTON = '[data-kb="theme-folder-add"]'
 
 try {
   console.log('The Themes page and its folder card')
@@ -78,12 +80,12 @@ try {
   // the sandbox starts on a legacy field name that no pack answers to; give it a real one so the removal has a field to put back
   await ev(`fetch('/kybernos/onboarding', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'domain', profil: 'general', goals: [] }) }).then((r) => r.status)`, 10000)
   await clickText(page, 'Themes')
-  const there = await waitFor(page, `!!document.querySelector('[data-kb-page="themes"] .kbg-input')`, 12000)
+  const there = await waitFor(page, `!!document.querySelector('[data-kb="theme-folder"]')`, 12000)
   check('the Themes page draws its folder card', there !== null)
   const btn = await rect(FOLDER_BUTTON)
   check('« Add and see the plan » is visible (the team list\'s rule used to hide every action of a Themes card)', btn !== null && btn.w > 40 && btn.h > 20, btn)
-  const desc = await rect('.kbg-card:last-child .kbg-desc')
-  check('the card\'s description is visible too', desc !== null && desc.h > 8, desc)
+  const desc = await rect('.kbgal-add p')
+  check('the folder card\'s description is visible too', desc !== null && desc.h > 8, desc)
   await shot('1-folder-card')
 
   console.log('A folder DSH would roll back')
@@ -91,7 +93,7 @@ try {
   check('the button can be pressed with the mouse', await click(FOLDER_BUTTON))
   const refused = await waitFor(page, `/only as a bundle/.test(document.querySelector('[data-kb-page="themes"]').innerText)`, 10000)
   check('it is refused with a reason that names the patch, before DSH is asked', refused !== null, await pageText())
-  check('no plan screen opens for it', !/^Install /.test(await pageText()))
+  check('no plan dialog opens for it', (await rect('[data-kb="theme-plan"]')) === null)
   check('the profile is untouched', !profileDeps().some((d) => /plain-clinic/.test(d)), profileDeps().filter((d) => /acme/.test(d)))
   await shot('2-refused')
 
@@ -99,7 +101,7 @@ try {
   await typeFolder(good)
   check('the button can be pressed with the mouse', await click(FOLDER_BUTTON))
   // pnpm links the package, then DSH's manager applies it: it takes several seconds, longer than any click handler
-  const planned = await waitFor(page, `/^Install /.test(document.querySelector('[data-kb-page="themes"]').innerText)`, 90000)
+  const planned = await waitFor(page, `!!document.querySelector('[data-kb="theme-plan"] [role="dialog"]')`, 90000)
   check('DSH installs the package and the plan opens (no unknown-plugin)', planned !== null, await pageText())
   check('the profile now lists the package', profileDeps().includes('@acme/kybernos-vet-clinic'), profileDeps().filter((d) => /acme/.test(d)))
   const planText = await pageText()
@@ -107,8 +109,8 @@ try {
   await shot('3-plan')
 
   console.log('Install, then remove')
-  check('the Install button can be pressed with the mouse', await click('[data-kb-page="themes"] .kbg-cta .kbg-talk'))
-  const reported = await waitFor(page, `/^Applied/.test(document.querySelector('[data-kb-page="themes"]').innerText)`, 60000)
+  check('the consent is ticked, then the primary action is pressed with the mouse', (await click('[data-kb="theme-consent"]')) && (await click('[data-kb="theme-go"]')))
+  const reported = await waitFor(page, `!!document.querySelector('[data-kb="theme-report"] [role="dialog"]')`, 60000)
   const report = await pageText()
   check('the report opens', reported !== null, report)
   check('the field and the look are applied (the look is the theme\'s own style, not a gallery id)', /Field \| applied/.test(report) && /Style \| applied/.test(report), report)
@@ -117,14 +119,15 @@ try {
   await shot('4-report')
   const saved = await ev(`fetch('/kybernos/onboarding', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.profil)`, 10000)
   check('its field is the saved one', saved === 'vet-clinic', saved)
-  check('« Back to themes » can be pressed', await click('[data-kb-page="themes"] .kbg-cta .kbg-open'))
-  const done = await waitFor(page, `[...document.querySelectorAll('[data-kb-page="themes"] .kbg-card')].some((c) => /acme\\/vet-clinic/.test(c.innerText))`, 30000)
+  check('« Back to themes » can be pressed', await click('[data-kb="theme-back-to-themes"]'))
+  const done = await waitFor(page, `(() => { const c = document.querySelector('[data-kb-page="themes"] [data-theme="acme/vet-clinic"]'); return c !== null && /Installed/.test(c.innerText) })()`, 30000)
   check('the theme is listed as installed', done !== null, await pageText())
   await shot('5-installed')
-  check('the Remove button is visible and pressed', await click('[data-kb-page="themes"] .kbg-card .kbg-open'))
-  const gone = await waitFor(page, `![...document.querySelectorAll('[data-kb-page="themes"] .kbg-card')].some((c) => /acme\\/vet-clinic/.test(c.innerText))`, 60000)
+  check('the card is opened, its Remove button is visible and pressed', (await click('[data-kb-page="themes"] [data-theme="acme/vet-clinic"]')) && (await click('[data-kb="theme-remove"]')))
+  const gone = await waitFor(page, `document.querySelector('[data-kb-page="themes"] [data-theme="acme/vet-clinic"]') === null`, 60000)
   check('the card goes away', gone !== null, await pageText())
-  await sleep(1500)
+  // DSH's manager unlinks the package after the page has already stopped listing it: wait for the profile, up to a minute
+  for (let i = 0; i < 30 && profileDeps().includes('@acme/kybernos-vet-clinic'); i += 1) await sleep(2000)
   check('the package is unlinked from the profile (DSH\'s removal)', !profileDeps().includes('@acme/kybernos-vet-clinic'), profileDeps().filter((d) => /acme/.test(d)))
   const back = await ev(`fetch('/kybernos/onboarding', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.profil)`, 10000)
   check('the field is the one from before', back === 'general', back)
