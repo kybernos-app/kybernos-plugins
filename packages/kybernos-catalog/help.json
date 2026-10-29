@@ -1,12 +1,12 @@
 {
   "what": {
-    "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres — en cartes ou en liste, avec les statuts et les champs de ton thème.",
-    "en": "What you sell, rent or recruit for — products, properties, jobs — as cards or a list, with the statuses and fields of your theme."
+    "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres — en cartes ou en liste, avec les statuts et les champs de ton modèle.",
+    "en": "What you sell, rent or recruit for — products, properties, jobs — as cards or a list, with the statuses and fields of your template."
   },
   "steps": [
     {
-      "fr": "Ouvre « Catalogue » dans le groupe Business du menu. Un thème lui donne ses mots, ses statuts et ses champs.",
-      "en": "Open “Catalog” in the Business group of the menu. A theme gives it its own words, statuses and fields."
+      "fr": "Ouvre « Catalogue » dans le groupe Business du menu. Un modèle lui donne ses mots, ses statuts et ses champs.",
+      "en": "Open “Catalog” in the Business group of the menu. A template gives it its own words, statuses and fields."
     },
     {
       "fr": "Cherche, filtre par statut, passe des cartes à la liste. Clique un élément pour le voir, le modifier ou l’archiver.",

@@ -1,12 +1,12 @@
 {
   "what": {
-    "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton thème choisit les mots : Clients, Candidats, Contacts.",
-    "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your theme chooses the words: Customers, Candidates, Contacts."
+    "fr": "Tes clients, candidats, acheteurs ou locataires, et leurs entreprises, dans une seule liste qui garde les notes et l’historique. Ton modèle choisit les mots : Clients, Candidats, Contacts.",
+    "en": "Your customers, candidates, buyers or tenants, and their companies, in one list that keeps notes and history. Your template chooses the words: Customers, Candidates, Contacts."
   },
   "steps": [
     {
-      "fr": "Active Contacts ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-      "en": "Switch Contacts on here, or install a theme that needs it: the theme installs it with it."
+      "fr": "Active Contacts ici, ou installe un modèle qui en a besoin : le modèle l’installe avec lui.",
+      "en": "Switch Contacts on here, or install a template that needs it: the template installs it with it."
     },
     {
       "fr": "Ouvre Contacts dans le groupe Business du menu : cherche, passe de Personnes à Entreprises, clique une ligne pour voir sa fiche.",
