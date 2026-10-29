@@ -30,6 +30,7 @@ import { mountAutomationTools } from './automation-tools.mjs'
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, packsOf, CORE_POINTS } from './domain-pack.mjs'
 import { fetchArchiveBytes, fetchCatalogueSources, handleThemes, readThemes, themeTarget, verifyArchive } from './theme-installer.mjs'
+import { ensureBusiness } from './business-base.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -13074,6 +13075,11 @@ export function apply(ctx) {
     } catch (e) {
         try { console.log('[kybers] app identity: failed — ' + errText(e)) } catch (e2) { /* console indisponible */ }
     }
+    // The shared business base (Contacts, Catalog, Pipeline): the seam is published now, the file is created by the first question that needs it.
+    // Outside any service and under its own try/catch, so a base that cannot open never stops DSH from starting (AGENTS.md rule 2).
+    try {
+        ensureBusiness()
+    } catch (e) { /* the plugins that need the base answer base_missing */ }
     // Meme filet que cote client : une erreur au demarrage ne doit pas faire
     // echouer l'entree du plugin (ce qui coupe la GUI) mais seulement laisser
     // tomber les routes /kybernos/*, avec l'erreur tracee pour correction.

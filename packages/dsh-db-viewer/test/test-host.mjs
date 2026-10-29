@@ -6,11 +6,11 @@
 //
 // Usage: node test/test-host.mjs
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { listerBases, lireSchema, lireLignes, executerSelect, monterRoutes } from '../index.js'
+import { listerBases, lireSchema, lireLignes, executerSelect, monterRoutes, ouvrirLecture, ATTENTE_MS } from '../index.js'
 
 const kybersHome = mkdtempSync(join(tmpdir(), 'dbv-host-'))
 const dbPoc = join(kybersHome, 'mini-crm', 'donnees.sqlite')
@@ -119,5 +119,75 @@ try {
   db.close()
   assert.ok(total > 0, 'database intact')
   console.log('[test] database intact —', total, 'rows in total')
+
+  // ── the plugins' own root: <DSH home>/kybernos/<dir>/donnees.sqlite, listed as kybernos-<dir> ──────────────────────────────────
+  const kybernosHome = mkdtempSync(join(tmpdir(), 'dbv-kybernos-'))
+  try {
+    // The REAL business base (kybernos-plugin/business-base.mjs), made on a temp tree: the viewer must list it and read it.
+    const { createBusinessBase } = await import('../../kybernos-plugin/business-base.mjs')
+    const business = createBusinessBase({ file: join(kybernosHome, 'business', 'donnees.sqlite') })
+    assert.equal(business.seed({ contacts: [{ ref: 'a', name: 'Ada' }, { name: 'Bob', company_ref: undefined }], items: [{ title: 'Mug' }], cards: [{ flow: 'orders', stage: 'new', title: '#1' }] }, { theme: 'ecommerce' }).ok, true)
+    business.close()
+    mkdirSync(join(kybernosHome, 'moteur'))                                  // a folder with no database: ignored
+    mkdirSync(join(kybernosHome, 'Not A Valid Id'))                          // an id the viewer would refuse: ignored
+    writeFileSync(join(kybernosHome, 'loose-file.txt'), 'x')
+    const both = listerBases(kybersHome, kybernosHome)
+    const bus = both.find((b) => b.id === 'kybernos-business')
+    assert.ok(bus, 'the business base is listed as kybernos-business')
+    assert.deepEqual(bus.tables.map((t) => t.nom), ['changes', 'contact', 'flow_card', 'item', 'meta', 'note', 'pack'])
+    assert.equal(bus.tables.find((t) => t.nom === 'contact').compte, 2)
+    assert.ok(both.some((b) => b.id === 'mini-crm'), 'the kybers are still listed')
+    assert.deepEqual(both.map((b) => b.id), [...both.map((b) => b.id)].sort(), 'sorted')
+    assert.ok(!listerBases(kybersHome).some((b) => b.id === 'kybernos-business'), 'with no second root, nothing changes')
+    assert.deepEqual(listerBases(kybersHome, join(kybernosHome, 'absent')).map((b) => b.id), listerBases(kybersHome).map((b) => b.id), 'a missing root is no error')
+    console.log('[test] second root OK — kybernos-business listed with', bus.tables.length, 'tables')
+
+    // A kyber that already has that id keeps it.
+    mkdirSync(join(kybersHome, 'kybernos-business'))
+    const clash = new DatabaseSync(join(kybersHome, 'kybernos-business', 'donnees.sqlite'))
+    clash.exec('CREATE TABLE only_in_the_kyber (id INTEGER PRIMARY KEY)')
+    clash.close()
+    const clashed = listerBases(kybersHome, kybernosHome).filter((b) => b.id === 'kybernos-business')
+    assert.equal(clashed.length, 1, 'listed once')
+    assert.deepEqual(clashed[0].tables.map((t) => t.nom), ['only_in_the_kyber'], 'the kyber wins')
+    rmSync(join(kybersHome, 'kybernos-business'), { recursive: true, force: true })
+
+    // ── through the routes ───────────────────────────────────────────────────────────────────────────────────────────────────────
+    const routes2 = {}
+    const mounted = monterRoutes({ register: (r) => { routes2[r.path] = r.handler } }, { kybersHome, kybernosHome, silencieux: true })
+    assert.equal(mounted.kybernosHome, kybernosHome)
+    const call = async (path, params) => {
+      let code = 0
+      let body = null
+      await routes2[path]({ method: 'GET', url: path + (params ? '?' + new URLSearchParams(params) : ''), headers: {}, socket: { localPort: 3080 } }, { writeHead: (c) => { code = c }, end: (t) => { body = t } })
+      return { code, json: JSON.parse(body) }
+    }
+    assert.ok((await call('/dsh-db-viewer/bases')).json.bases.some((b) => b.id === 'kybernos-business'))
+    const sch = await call('/dsh-db-viewer/schema', { base: 'kybernos-business' })
+    assert.equal(sch.code, 200)
+    assert.ok(sch.json.relations.some((r) => r.parent === 'contact' && r.enfant === 'note'), 'the relations of the base are drawn')
+    assert.equal((await call('/dsh-db-viewer/rows', { base: 'kybernos-business', table: 'contact', limit: 5 })).json.lignes.length, 2)
+    assert.equal((await call('/dsh-db-viewer/query', { base: 'kybernos-business', sql: "SELECT json_extract(contenu, '$.entites[0].table') AS t FROM pack" })).json.lignes[0].t, 'contact', 'the pack row is readable')
+    assert.equal((await call('/dsh-db-viewer/query', { base: 'kybernos-business', sql: 'DELETE FROM contact' })).code, 400, 'still read-only')
+    for (const bad of ['kybernos-', 'kybernos-..', 'kybernos-../mini-crm', 'kybernos-moteur', 'kybernos-Not A Valid Id', 'kybernos-absent']) {
+      assert.equal((await call('/dsh-db-viewer/schema', { base: bad })).code, 400, bad + ' refused')
+    }
+    // a routes mount that names only the kybers root never reaches a second one
+    const routes3 = {}
+    assert.equal(monterRoutes({ register: (r) => { routes3[r.path] = r.handler } }, { kybersHome, silencieux: true }).kybernosHome, null)
+    console.log('[test] second root through the routes OK — schema, rows, query, pack; hostile ids refused; still read-only')
+
+    // ── the door: read-only, and patient with a writer ───────────────────────────────────────────────────────────────────────────
+    const door = ouvrirLecture(join(kybernosHome, 'business', 'donnees.sqlite'))
+    try {
+      assert.equal(door.prepare('PRAGMA busy_timeout').get().timeout, ATTENTE_MS, 'a read waits for a writer')
+      assert.ok(ATTENTE_MS >= 1000)
+      assert.throws(() => door.exec('DELETE FROM contact'), /readonly|read-only/i, 'and it cannot write')
+    } finally { door.close() }
+    const nobody = ouvrirLecture(dbPoc)
+    assert.equal(nobody.prepare('PRAGMA busy_timeout').get().timeout, ATTENTE_MS, 'the kybers get the same door')
+    nobody.close()
+    console.log('[test] read door OK — read-only, busy_timeout', ATTENTE_MS)
+  } finally { rmSync(kybernosHome, { recursive: true, force: true }) }
   console.log('OK')
 } finally { rmSync(kybersHome, { recursive: true, force: true }) }
