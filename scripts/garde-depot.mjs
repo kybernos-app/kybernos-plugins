@@ -13,7 +13,7 @@ const MEDIA = /\.(png|jpe?g|gif|webp|mp4|mov|wav|mp3|ttf|otf|pdf)$/i
 // is still an error.
 export const COVER_MAX = 160 * 1024
 const COVER_PATH = /^packages\/kybernos-plugin\/themes\/(_next\/[a-z][a-z0-9-]{1,39}|[a-z][a-z0-9-]{1,39}\/cover)\.jpg$/
-// The second, decided 2026-10-30 with the sample data: the invented photographs a shipped theme's sample rows show (a property, a product, a job), small JPEGs cut
+// The second, decided 2026-10-29 with the sample data: the invented photographs a shipped theme's sample rows show (a property, a product, a job), small JPEGs cut
 // from one FLUX 2 palette by scripts/theme-photos.mjs, at `themes/<dir>/demo/photos/<name>.jpg`, at most PHOTO_MAX each and PHOTOS_PER_THEME per theme.
 export const PHOTO_MAX = 80 * 1024
 export const PHOTOS_PER_THEME = 16
