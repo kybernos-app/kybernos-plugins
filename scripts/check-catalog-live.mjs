@@ -13,6 +13,8 @@
 //    native popup a headless browser cannot drive: its value is set and a `change` event sent.
 //  - The theme of the second half is the repository's starter (`docs/dev/templates/acme-garden-shop`), copied into the SANDBOX profile where the registry reads
 //    installed plugins, and taken out again at the end (the Themes page does not take a business-only theme yet: its installer is a later lot).
+//  - The sandbox is a clone of the owner's own profile, which carries the sector templates (`@kybernos-themes/*`). The first half is about the DEFAULT type and the
+//    second about one theme of its own, so the templates are taken out of the sandbox profile for the run and put back at the end (the registry notices within seconds).
 //  - --shots <dir>: one PNG per state, kept outside git (media never go in the repository).
 // Exit code: 0 all green, 1 a check failed, 3 not run (no sandbox, no GUI).
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -59,8 +61,24 @@ const putTheme = () => {
 const takeThemeOut = () => {
   try { if (profileBefore !== null) { writeFileSync(profilePackage + '.tmp', profileBefore); renameSync(profilePackage + '.tmp', profilePackage); profileBefore = null } } catch (e) { /* the sandbox is throw-away */ }
   try { rmSync(join(profileDir, 'node_modules', '@acme'), { recursive: true, force: true }) } catch (e) { /* gone */ }
+  try { if (profileOriginal !== null) { writeFileSync(profilePackage + '.tmp', profileOriginal); renameSync(profilePackage + '.tmp', profilePackage); profileOriginal = null } } catch (e) { /* the sandbox is throw-away */ }
 }
 process.on('exit', takeThemeOut)
+// The sector templates the clone carries (data-only packages): out for the run, back at the end. Resolves how many were taken out.
+let profileOriginal = null
+const isTemplate = (name) => name.startsWith('@kybernos-themes/')
+const takeTemplatesOut = () => {
+  const text = readFileSync(profilePackage, 'utf8')
+  const pkg = JSON.parse(text)
+  const had = Object.keys(pkg.dependencies || {}).filter(isTemplate).concat(pkg.dsh.profile.bundles.filter(isTemplate))
+  if (had.length === 0) return 0
+  profileOriginal = text
+  for (const name of Object.keys(pkg.dependencies || {})) if (isTemplate(name)) delete pkg.dependencies[name]
+  pkg.dsh.profile.bundles = pkg.dsh.profile.bundles.filter((b) => !isTemplate(b))
+  writeFileSync(profilePackage + '.tmp', JSON.stringify(pkg, null, 2) + '\n')
+  renameSync(profilePackage + '.tmp', profilePackage)
+  return had.length
+}
 
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
 const { page } = live
@@ -155,6 +173,9 @@ try {
   console.log('Start: an empty base, no theme')
   const wiped = base.deleteAll({ confirm: true, actor: 'person' })
   check('the sandbox base is emptied (and only the sandbox\'s: ' + baseFile.replace(process.env.HOME || '~', '~') + ')', wiped.ok === true, wiped)
+  const templatesOut = takeTemplatesOut()
+  const onDefault = `fetch('/kybernos-catalog/types', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.source === 'default')`
+  check('the catalogue is on its default type (' + templatesOut + ' sector template(s) of the cloned profile are out for this run)', (await waitFor(page, onDefault, 20000)) === true)
   await waitFor(page, `document.readyState === 'complete' && document.querySelector('.kb4-item') !== null`, 25000)
   await waitFor(page, `window.__KB_MENU__ && window.__KB_MENU__.ids().indexOf('catalog') >= 0`, 25000)
   check('the plugin declares its row once the core\'s registry exists (the row waits for it)', (await ev(`window.__KB_MENU__.ids().filter((i) => i === 'catalog').length`)) === 1)
@@ -208,7 +229,7 @@ try {
   check('the keyboard is given back to the sheet\'s button that opened the form (or the sheet stays open)', (await count(SEL('catalog-panel'))) === 1)
   check('Edit again, type, Save with Enter: the sheet and the card change', (await click(SEL('catalog-edit'))) && (await typeInto(SEL('catalog-field-title'), 'Linen apron, large')) && (await (async () => { await ENTER(); await settle(900); return true })()) && (await text(SEL('catalog-panel'))).includes('Linen apron, large') && (await text(SEL('catalog-card'))).includes('large'))
   check('the base holds the change, journalled as an update by a person', (await base.list('item', {})).rows[0].title === 'Linen apron, large' && base.exportAll({ actor: 'person' }).tables.changes.some((c) => c.tbl === 'item' && c.action === 'update' && c.actor === 'person'))
-  check('Escape on the sheet closes it and the card has the focus back', await (async () => { await ESCAPE(); await settle(400); return (await count(SEL('catalog-panel'))) === 0 && (await ev(`document.activeElement && document.activeElement.getAttribute('data-kb')`)) === 'catalog-card' })())
+  check('Escape on the sheet closes it and the card has the focus back', await (async () => { await ESCAPE(); await settle(400); return (await count(SEL('catalog-panel'))) === 0 && (await ev(`document.activeElement && document.activeElement.getAttribute('data-kb')`)) === 'catalog-card-open' })())
 
   console.log('Sample rows, filters and search')
   const seeded = base.seed({ items: demoRows(4) }, { theme: 'check/live' })
@@ -226,20 +247,20 @@ try {
   check('the counts of the other statuses stay (the chips do not shrink to the filter)', (await text(SEL('catalog-chip', '[data-status="live"]'))).replace(/\s+/g, '') === 'Live3')
   await shot('05-filtered')
   check('the chip pressed again lifts the filter', (await click(SEL('catalog-chip', '[data-status="draft"]'))) && (await waitCount(SEL('catalog-card'), 5)))
-  check('the magnifier opens the search field with a real click, and it takes the focus', (await click(SEL('catalog-search-toggle'))) && (await ev(`document.activeElement && document.activeElement.getAttribute('data-kb')`)) === 'catalog-search')
+  check('the magnifier of the product\'s bar opens the search field with a real click, and it takes the focus', (await click(SEL('toggle-search'))) && (await ev(`!!document.activeElement && document.activeElement.matches('.kb6-tb-search input')`)) === true)
   await page.send('Input.insertText', { text: 'apron' })
   check('typing « apron » narrows to the one item', (await waitCount(SEL('catalog-card'), 1)) && (await text(SEL('catalog-card'))).includes('apron'))
   // the browser's own clear glyph of a type=search input lives in a shadow tree a script cannot read: it is hidden by the page's CSS and checked on the screenshot (06-search)
   check('the search pill has our one clear button', (await count('.kb6-search-inline .kb6-tb-clear')) === 1)
   await shot('06-search')
-  await typeInto(SEL('catalog-search'), 'nothing like this')
+  await typeInto('.kb6-tb-search input', 'nothing like this')
   await waitCount(SEL('catalog-card'), 0)
   check('a search that finds nothing says « No match », offers to clear, and does not say the catalog is empty', (await attr(SEL('catalog-empty'), 'data-why')) === 'filter' && (await count(SEL('catalog-clear-filters'))) === 1 && !/yet/.test((await text(SEL('catalog-empty'))) || ''))
   await shot('07-no-match')
   check('Clear brings everything back', (await click(SEL('catalog-clear-filters'))) && (await waitCount(SEL('catalog-card'), 5)))
 
   console.log('Cards and list')
-  check('the list button (a real click) shows a table with a row per item', (await click(SEL('catalog-view', '[data-view="list"]'))) && (await count(SEL('catalog-row'))) === 5 && (await count(SEL('catalog-card'))) === 0)
+  check('the list button (a real click) shows a table with a row per item', (await click(SEL('view-list'))) && (await count(SEL('catalog-row'))) === 5 && (await count(SEL('catalog-card'))) === 0)
   check('the list has no Note column while no row has a note', (await count('[data-kb="catalog-list"] th')) === 3)
   const rows = await allRects(SEL('catalog-row'))
   check('the rows are stacked, none over another, as wide as the table', rows.length === 5 && rows.every((a, i) => rows.every((b, j) => i === j || !overlaps(a, b))) && rows.every((r) => r.w > 400), rows)
@@ -251,7 +272,7 @@ try {
   check('the sheet sits beside the list, not over it (1500 px)', sheet !== null && table !== null && sheet.left >= table.right - 1, { sheet, table })
   await shot('09-list-sheet')
   await ESCAPE(); await settle(400)
-  check('back to cards', await click(SEL('catalog-view', '[data-view="cards"]')) && (await count(SEL('catalog-card'))) === 5)
+  check('back to cards', await click(SEL('view-cards')) && (await count(SEL('catalog-card'))) === 5)
 
   console.log('Archive, undo, restore')
   check('a click on a card opens its sheet', (await click(SEL('catalog-card'), 1)) && (await count(SEL('catalog-panel'))) === 1)
@@ -310,15 +331,24 @@ try {
   for (const [w, h, name] of [[900, 800, 'tablet'], [600, 800, 'narrow'], [420, 800, 'phone']]) {
     await page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false })
     await sleep(900)
+    // a window that is narrow when the page opens starts with the shell's sidebar folded; one that is resized under an open page keeps it as a drawer over the page
+    if (w <= 600) {
+      await reloadPage()
+      // the sidebar is folded behind the menu button, so the row is not on screen: the page is opened by the shell's own way in
+      if ((await count(SEL('catalog-page'))) === 0) await ev(`window.__KB_OPEN__({ view: 'catalog' })`)
+      await waitFor(page, `!!document.querySelector('[data-kb="catalog-page"]')`, 8000)
+      await sleep(600)
+    }
     const over = await overflowX()
     const hd = await rect(SEL('catalog-new'))
     const grid = await allRects(SEL('catalog-card'))
     check(name + ' (' + w + ' px): no horizontal scroll, the primary action and the cards inside the window', over <= 0 && hd !== null && hd.right <= w + 1 && grid.length > 0 && grid.every((c) => c.right <= w + 1 && c.left >= -1), { over, hd, first: grid[0] })
     if (w <= 600) {
-      await click(SEL('catalog-card'), 0)
+      const opened = await click(SEL('catalog-card'), 0)
+      const under = opened ? null : await ev(`(() => { const e = document.querySelector('[data-kb="catalog-card"]'); if (!e) return 'no card'; const r = e.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { rect: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], at: t ? t.tagName + '.' + String(t.className).slice(0, 50) + ' ' + String(t.getAttribute('data-kb')) : null } })()`)
       await sleep(500)
       const p = await rect(SEL('catalog-panel'))
-      check(name + ': the sheet is a sheet at the foot of the window, fully inside it, with its buttons reachable', p !== null && p.left >= 0 && p.right <= w + 1 && p.bottom <= h + 1 && p.top >= 0 && (await rect(SEL('catalog-archive'))).shown === true, p)
+      check(name + ': the sheet is a sheet at the foot of the window, fully inside it, with its buttons reachable', p !== null && p.left >= 0 && p.right <= w + 1 && p.bottom <= h + 1 && p.top >= 0 && (await rect(SEL('catalog-archive'))).shown === true, { p, opened, under })
       await shot('14-' + name + '-sheet')
       await ESCAPE(); await sleep(300)
     }
@@ -357,9 +387,9 @@ try {
   check('tones: Low stock warns, Sold out is bad, In stock is ok', kinds.some((k) => /^Low stock:\s*warn/.test(k)) && kinds.some((k) => /^Sold out:\s*bad/.test(k)) && kinds.some((k) => /^In stock:\s*ok/.test(k)), kinds)
   check('the pictures and the tags are readable: a tag is a pill with its own background on the picture', (await ev(`(() => { const t = document.querySelector('[data-kb="catalog-card"] [data-kb="catalog-status"]'); const c = getComputedStyle(t).backgroundColor; return !/rgba\\(.*, 0\\)$|transparent/.test(c) })()`)) === true)
   await shot('15-theme-cards')
-  check('the list of a theme with flags has a Note column with the flags in it', (await click(SEL('catalog-view', '[data-view="list"]'))) && (await count('[data-kb="catalog-list"] th')) === 4 && (await count(SEL('catalog-row') + ' ' + SEL('catalog-flag'))) === 3)
+  check('the list of a theme with flags has a Note column with the flags in it', (await click(SEL('view-list'))) && (await count('[data-kb="catalog-list"] th')) === 4 && (await count(SEL('catalog-row') + ' ' + SEL('catalog-flag'))) === 3)
   await shot('15b-theme-list')
-  await click(SEL('catalog-view', '[data-view="cards"]'))
+  await click(SEL('view-cards'))
   check('a click on a plant opens its sheet', (await click(SEL('catalog-card', '[data-known="yes"]'))) && (await count(SEL('catalog-panel'))) === 1)
   const sheetText = (await text(SEL('catalog-panel'))) || ''
   check('the sheet lists its fields with the theme\'s labels (Reference, Stock, Price) and their values, the price as money', ['Reference', 'Stock', 'Price'].every((l) => sheetText.includes(l)) && /PL-00\d/.test(sheetText) && /€\s?\d/.test(sheetText), sheetText)
