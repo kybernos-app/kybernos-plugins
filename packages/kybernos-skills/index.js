@@ -1706,7 +1706,27 @@ const SKILL_POINT = { owner: 'kybernos/skills', ownerVersion: '1.0.0', name: 'sk
 // The plugin registry (kybernos-registry) is reached through a global, never imported: without it the skills are the installed ones, as before.
 // This bundle owns the point `kybernos/skills#skill`; it tells the registry at boot and again at each catalogue question (the registry may mount after this bundle).
 const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
-const tellSkillPoint = () => { try { const registry = registrySeam(); if (registry !== null) registry.definePoint(SKILL_POINT) } catch (e) { /* the point is told again at the next question */ } }
+/** `true` when the registry was there to hear the point (telling it twice changes nothing). */
+const tellSkillPoint = () => { try { const registry = registrySeam(); if (registry === null) return false; registry.definePoint(SKILL_POINT); return true } catch (e) { /* the point is told again at the next question */ return false } }
+/**
+ * Tells the point now, and again after each delay until the registry has heard it. Until it is told, every template that extends `kybernos/skills#skill` is
+ * `missing-dependency` and the Business pages fall back to their default type (no photograph, no map): measured on the real DSH, where nothing asked a catalogue
+ * question for minutes after a restart. The registry mounts when DSH decides, maybe after this bundle. Never throws; the timers never hold DSH open.
+ * `options.schedule` and `options.delays` are for the test.
+ */
+export function tellSkillPointWhenReady (options = {}) {
+  const schedule = options.schedule || setTimeout
+  const delays = Array.isArray(options.delays) ? options.delays : [500, 1500, 4000, 10000, 30000, 60000]
+  let told = tellSkillPoint()
+  let tries = 0
+  const next = () => {
+    if (told || tries >= delays.length) return
+    const timer = schedule(() => { told = tellSkillPoint(); next() }, delays[tries++])
+    if (timer !== undefined && timer !== null && typeof timer.unref === 'function') timer.unref()
+  }
+  next()
+  return () => told
+}
 
 // ── mounting the routes (mirror of :2728-2729 and :2873-2874, base daed42e) ──────────────────────────────────────
 const mountWebRoutes = (ctx, webServerSvc) => {
@@ -2004,7 +2024,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 export { ensureCover, dshHome, catalogueOf, toggleSkill, createSkill, installSkill, readSkill, revealSkill, duplicateSkill, deleteSkill, previewSkill, openLocal, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
 
 export function apply(ctx) {
-  tellSkillPoint()
+  tellSkillPointWhenReady()
   // The agent's two tools, their prompt chunk and the watchers of the tool calls (learned-tools.mjs). Guarded part by part: a missing seam drops that part only.
   try {
     mountLearned(ctx, {
