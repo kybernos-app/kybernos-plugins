@@ -13,11 +13,16 @@
 //   1. no theme: the plain board (New, In progress, Done), empty, then the first card added through the dialog
 //   2. the routes over real HTTP: no session -> refused, the session -> answered
 //   3. a theme with two boards: columns, totals in the theme's format, the switcher, the « demo » badges
-//   4. a REAL drag (mouse down, twelve moves, up): measured mid-drag and after, and read back from the base (one `move` line, actor person)
+//   4. a REAL drag (mouse down, twelve moves, up): the ghost lifts and tilts, the target column lights up with a slot, the ghost flies to the card's new place, the counts pop and
+//      the total counts up, the card settles; measured mid-drag and after, and read back from the base (one `move` line, actor person)
 //   5. the keyboard: focus a card, arrows move it and keep the focus, the screen-reader line says where it went, the ends refuse, Enter edits, Escape closes
 //   6. new card with a linked contact, edit, archive, restore; the agent moves a card from outside and the page follows
-//   7. empty board, loading, failure (host down, session gone, base missing) and the way back; a narrow screen
-//   8. « Clear sample data » keeps what the person made
+//   7. loading (the skeleton on the first load; a board switch keeps the old board, dimmed), empty board, failure (host down, session gone, base missing) and the way back; a narrow screen
+//   8. the product's own bar (search, star, the view switch with its names, filters and sort, the primary action) in the header row and on the screen; the filters and the
+//      sort do what they say; the list view (a stage chosen in a row, the arrow keys on a row); the extras a card may carry (source, tags, priority, due date), given to the
+//      page by a wrapper on fetch because the host's board route does not return `fields` yet; the calendar that then appears
+//   9. motion, focus and eyes: the hover lift, the staggered entry, the focus rings, the contrast of every chip in light and dark, reduced motion (nothing flies), French
+//  10. « Clear sample data » keeps what the person made
 import { request as httpRequest } from 'node:http'
 import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -37,6 +42,7 @@ if (!dshHome.includes('/.kybernos-sandbox/')) { console.error('○ inconclusive:
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
+let earlierErrors = [] // errors the page raised before it was reloaded
 const check = (name, ok, detail) => {
   if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
 }
@@ -254,14 +260,21 @@ try {
   check('mid-drag: a ghost of the card follows the pointer, the original is dimmed', mid.ghost !== null && Math.abs(mid.ghost.x + 10 - x1) < a.w && Math.abs(mid.ghost.y - y1) < 200 && mid.src === true, mid)
   check('mid-drag: the column under the pointer lights up, and only that one', JSON.stringify(mid.over) === JSON.stringify(['paid']), mid.over)
   check('mid-drag: no text got selected on the way', mid.selection === '', mid.selection)
+  const lift = await ev(`(() => { const g = document.querySelector('.kbpi-ghost'); const slot = getComputedStyle(document.querySelector(${JSON.stringify(COL('paid') + ' .kbpi-cards')}), '::after'); const m = new DOMMatrix(getComputedStyle(g).transform); return { scale: Math.hypot(m.a, m.b), angle: Math.atan2(m.b, m.a) * 180 / Math.PI, shadow: getComputedStyle(g).boxShadow !== 'none', cursor: document.body.style.cursor, slot: slot.height, dragging: document.querySelector('[data-kb="pipeline-board"]').classList.contains('dragging'), others: getComputedStyle(document.querySelector('[data-kb="pipeline-card"]:not(.drag)')).pointerEvents } })()`)
+  check('mid-drag: the ghost is lifted (bigger, with a shadow) and tilts with the hand; the pointer is a closed hand; the target column shows a slot where the card will go; the other cards ignore the pointer', lift.scale > 1.01 && lift.scale <= 1.06 && Math.abs(lift.angle) > 0.3 && Math.abs(lift.angle) <= 5.5 && lift.shadow === true && lift.cursor === 'grabbing' && lift.slot === '46px' && lift.dragging === true && lift.others === 'none', lift)
   await shot('04-mid-drag')
   await mouse('mouseReleased', x1, y1)
+  await sleep(60)
+  const flying = await ev(`(() => { const g = document.querySelector('.kbpi-ghost'); const c = document.querySelector(${JSON.stringify(CARD(dragged.id))}); const cnt = document.querySelector(${JSON.stringify(COL('paid') + ' [data-kb="pipeline-col-count"]')}); const cntNew = document.querySelector(${JSON.stringify(COL('new') + ' [data-kb="pipeline-col-count"]')}); return { ghost: g !== null, hold: c !== null && c.classList.contains('hold'), pop: cnt !== null && cnt.classList.contains('kz-pop') && cntNew !== null && cntNew.classList.contains('kz-pop'), total: (document.querySelector(${JSON.stringify(COL('paid') + ' [data-kb="pipeline-col-total"]')}) || {}).textContent } })()`)
+  check('right after the drop: the ghost is flying to the card\'s new place while the card waits there, hidden; both counts popped', flying.ghost === true && flying.hold === true && flying.pop === true, flying)
+  await shot('04b-landing')
   await waitFor(page, `document.querySelector(${JSON.stringify(COL('paid') + ' ' + CARD(dragged.id))}) !== null`, 6000)
   await settle(1200)
   const afterNew = await colInfo('new')
   const afterPaid = await colInfo('paid')
   const nowCard = await rect(CARD(dragged.id))
-  check('after the drop the ghost is gone and no column is lit', (await rect('.kbpi-ghost')) === null && (await ev(`document.querySelectorAll('.kbpi-col.over').length`)) === 0)
+  check('after the drop the ghost is gone, no column is lit, the card is shown again and no motion class is left on it', (await rect('.kbpi-ghost')) === null && (await ev(`document.querySelectorAll('.kbpi-col.over').length`)) === 0 && (await ev(`document.querySelector(${JSON.stringify(CARD(dragged.id))}).className`)) === 'kbpi-card kz-lift')
+  check('the total of Paid counted up to its new value (read on its way: between the old and the new)', (() => { const a = Number(shownDigits(flying.total)); return a >= Number(digits(beforePaid.total)) && a <= Number(digits(afterPaid.total)) })(), { onTheWay: flying.total, from: beforePaid.total, to: afterPaid.total })
   check('the card is now inside the Paid column, at its end', afterPaid.ids[afterPaid.ids.length - 1] === dragged.id && nowCard.x >= afterPaid.x - 0.5 && nowCard.r <= afterPaid.r + 0.5 && afterPaid.tops[afterPaid.tops.length - 1] > afterPaid.tops[0], { ids: afterPaid.ids, tops: afterPaid.tops })
   check('it moved on the screen (measured: it was in New, left of Paid)', a.x < target.x && nowCard.x > a.x + 50, { before: a.x, after: nowCard.x })
   check('New lost one card and 63; Paid gained one card and 63', afterNew.count === beforeNew.count - 1 && afterNew.total === Math.round((beforeNew.total - 63) * 100) / 100 && afterPaid.count === beforePaid.count + 1 && afterPaid.total === Math.round((beforePaid.total + 63) * 100) / 100, { beforeNew, afterNew, beforePaid, afterPaid })
@@ -356,7 +369,20 @@ try {
   check('the page follows without a reload when it comes back to the front', (await colInfo('shipped')).ids.includes(agentCard.id) && (await colInfo('packed')).count === (await colInfo('packed')).ids.length)
   await shot('05-after-edits')
 
-  console.log('7. empty, loading, failure, narrow')
+  console.log('7. loading, empty, failure, narrow')
+  // the first load: the answer is held back (a script that runs at the start of the next page, taken away again at once), the skeleton is what the person sees
+  earlierErrors = earlierErrors.concat(await ev(`window.__chk.errs`))
+  const delayed = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const real = window.fetch; window.__origFetch = real; window.fetch = function (u, i) { return String(u).indexOf('/kybernos-pipeline/board') >= 0 ? new Promise((r) => setTimeout(() => r(real.call(window, u, i)), 2500)) : real.call(window, u, i) } })()` })
+  await page.send('Page.reload', { ignoreCache: true })
+  check('the page is opened again from the menu (the board slow to come)', (await openPipeline()) === true)
+  await sleep(300)
+  check('loading: a labelled skeleton of columns while the board comes', (await rect('[data-kb="pipeline-loading"]')) !== null && (await ev(`document.querySelectorAll('[data-kb="pipeline-loading"] .kbpi-bone').length`)) >= 4 && (await ev(`(document.querySelector('[data-kb="pipeline-loading"] [role="status"]') || {}).textContent`)) !== '' && (await ev(`document.querySelector('[data-kb="pipeline-loading"]').getAttribute('aria-busy')`)) === 'true')
+  await shot('07-loading')
+  await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: delayed.identifier })
+  await boardReady()
+  await ev(`(() => { window.fetch = window.__origFetch; return 1 })()`) // this page still carries the slow fetch
+  await ev(`(() => { window.__chk = { errs: [] }; window.addEventListener('error', (e) => window.__chk.errs.push(String(e.message))); window.addEventListener('unhandledrejection', (e) => window.__chk.errs.push(String(e.reason))); return 1 })()`)
+  await settle(900)
   await click('[data-kb="pipeline-tab"][data-flow="quotes"]')
   await boardReady()
   await settle(500)
@@ -366,13 +392,15 @@ try {
   await shot('06-empty-quotes')
   await click('[data-kb="pipeline-tab"][data-flow="orders"]')
   await boardReady()
-  // loading: the answer is held back for a second
+  // switching boards while the answer is held back: the board on screen stays (dimmed, inert, busy), the title and the tab already say where it is going, then the new one replaces it
   await ev(`(() => { window.__realFetch = window.fetch; window.fetch = (u, i) => (String(u).indexOf('/kybernos-pipeline/board') >= 0 ? new Promise((r) => setTimeout(() => r(window.__realFetch(u, i)), 1800)) : window.__realFetch(u, i)); return 1 })()`)
   await click('[data-kb="pipeline-tab"][data-flow="quotes"]')
   await sleep(500)
-  check('loading: a labelled skeleton of columns while the board comes', (await rect('[data-kb="pipeline-loading"]')) !== null && (await ev(`document.querySelectorAll('[data-kb="pipeline-loading"] .kbpi-bone').length`)) >= 4 && (await ev(`(document.querySelector('[data-kb="pipeline-loading"] [role="status"]') || {}).textContent`)) !== '')
-  await shot('07-loading')
-  await boardReady()
+  const switching = await ev(`(() => { const b = document.querySelector('.kbpi-board.stale'); return b === null ? null : { busy: b.getAttribute('aria-busy'), op: Number(getComputedStyle(b).opacity), events: getComputedStyle(b).pointerEvents, stages: [...document.querySelectorAll('[data-kb="pipeline-col"]')].map((c) => c.dataset.stage), title: document.querySelector('[data-kb="pipeline-title"]').textContent, tab: document.querySelector('[data-kb="pipeline-tab"][data-flow="quotes"]').getAttribute('aria-selected'), add: document.querySelector('[data-act="new-card"]').disabled } })()`)
+  check('switching boards: the old board stays on screen, dimmed and inert (busy), while the title and the tab already say where it goes', switching !== null && switching.busy === 'true' && switching.op < 0.7 && switching.events === 'none' && /Quotes|Devis/.test(switching.title) && switching.tab === 'true' && switching.stages.includes('paid') && switching.add === true, switching)
+  await shot('07-switching')
+  await waitFor(page, `document.querySelector('.kbpi-board.stale') === null && document.querySelector('[data-kb="pipeline-col"][data-stage="lead"]') !== null`, 8000)
+  check('then the new board replaces it, bright again', JSON.stringify(await stages()) === JSON.stringify(['lead', 'won']) && (await ev(`Number(getComputedStyle(document.querySelector('[data-kb="pipeline-board"]')).opacity)`)) === 1)
   // failure: the host does not answer, then the session is gone, then the base is missing; each time the way back is the Try again button
   const failWith = (body) => ev(`(() => { window.fetch = (u, i) => (String(u).indexOf('/kybernos-pipeline/') >= 0 ? ${body} : window.__realFetch(u, i)); return 1 })()`)
   await failWith(`Promise.reject(new TypeError('Failed to fetch'))`)
@@ -417,7 +445,229 @@ try {
   await page.send('Emulation.clearDeviceMetricsOverride', {})
   await sleep(500)
 
-  console.log('8. « Clear sample data »')
+  console.log('8. the product\'s own bar, the filters and the views')
+  await click('[data-kb="pipeline-tab"][data-flow="orders"]')
+  await waitFor(page, `document.querySelector('.kbpi-board.stale') === null && document.querySelector('[data-kb="pipeline-col"][data-stage="packed"]') !== null`, 8000)
+  await settle(700)
+  const bar = await ev(`(() => {
+    const head = document.querySelector('header.kb6-headrow'); const bar = document.querySelector('[data-kb="toolbar"]'); const title = document.querySelector('[data-kb="pipeline-title"]').getBoundingClientRect()
+    const at = (sel) => { const e = bar === null ? null : bar.querySelector(sel); return e === null ? null : Math.round(e.getBoundingClientRect().left) }
+    return { own: document.querySelector('[data-kb="pipeline-own-bar"]') !== null, inHead: head !== null && bar !== null && head.contains(bar), rightOfTitle: bar !== null && bar.getBoundingClientRect().left >= title.right - 1, order: [at('[data-kb="toggle-search"]'), at('[data-kb="toggle-favorites"]'), at('.kb6-tb-viewgrp'), at('[data-kb="order-control"]'), at('[data-act="new-card"]')], views: bar === null ? [] : [...bar.querySelectorAll('.kb6-tb-vbtn')].map((b) => b.textContent.trim()), primaryInTrailing: bar !== null && bar.querySelector('.kb6-tb-trailing [data-act="new-card"]') !== null, oneRow: bar === null ? false : bar.getBoundingClientRect().height < 60 }
+  })()`)
+  check('the bar is the product\'s own (not a lookalike), in the header row, right of the title', bar.own === false && bar.inHead === true && bar.rightOfTitle === true, bar)
+  check('left to right: search, favourites star, the view switch, the filter and sort button, the primary action (inside the bar)', bar.order.every((x) => x !== null) && bar.order.every((x, i) => i === 0 || x > bar.order[i - 1]) && bar.primaryInTrailing === true, bar.order)
+  check('the view switch carries its names, and offers no calendar while no card has a due date', JSON.stringify(bar.views) === JSON.stringify(['Columns', 'List']), bar.views)
+  await shot('13-bar')
+  // search: the ghost magnifier opens a pill that takes the focus; it finds by the contact's name too
+  const inOrders = () => rows('flow_card').filter((c) => c.flow === 'orders' && c.archived_at === null)
+  const contactName = (c) => (c.contact_id === null ? '' : base.get('contact', c.contact_id).row.name)
+  const jonas = inOrders().filter((c) => (c.title + ' ' + c.subtitle + ' ' + contactName(c)).toLowerCase().includes('jonas'))
+  await click('[data-kb="toggle-search"]')
+  check('the magnifier opens the search pill and the field has the focus', (await ev(`document.activeElement && document.activeElement.type`)) === 'search')
+  await page.send('Input.insertText', { text: 'JONAS' })
+  await settle(500)
+  const found = await ev(`[...document.querySelectorAll('[data-kb="pipeline-card"]')].map((e) => Number(e.dataset.id))`)
+  check('typing filters the cards (any case; the contact\'s name counts): only Jonas\'s order stays', jonas.length >= 1 && JSON.stringify(found.slice().sort()) === JSON.stringify(jonas.map((c) => c.id).sort()), { found, jonas: jonas.map((c) => c.id) })
+  check('a strip says how many of how many are shown, and the columns stay (a card can still be dropped on them)', new RegExp('Showing\\s*' + jonas.length + '\\s*/\\s*' + inOrders().length).test(await ev(`(document.querySelector('[data-kb="pipeline-filter-strip"]') || {}).textContent || ''`)) && (await stages()).length === 4)
+  await shot('14-search')
+  await click('[data-act="clear-filters"]')
+  await settle(300)
+  check('« Clear filters » brings every card back and the strip goes', (await ev(`document.querySelectorAll('[data-kb="pipeline-card"]').length`)) === inOrders().length && (await rect('[data-kb="pipeline-filter-strip"]')) === null)
+  await click('.kb6-tb-clear')
+  await settle(200)
+  // favourites: a star on the card, and the bar's star keeps only the starred ones
+  const starred = inOrders()[0]
+  await click(CARD(starred.id) + ' [data-act="toggle-fav"]')
+  check('the star on a card turns on without opening the card, and is remembered in this browser', (await ev(`document.querySelector(${JSON.stringify(CARD(starred.id) + ' [data-act="toggle-fav"]')}).getAttribute('aria-pressed')`)) === 'true' && (await rect('[data-kb="pipeline-dialog"]')) === null && (await ev(`localStorage.getItem('kybernos.pipeline.fav.v1')`)) === JSON.stringify([starred.id]))
+  await click('[data-kb="toggle-favorites"]')
+  await settle(300)
+  check('the bar\'s star keeps the starred card only', JSON.stringify(await ev(`[...document.querySelectorAll('[data-kb="pipeline-card"]')].map((e) => Number(e.dataset.id))`)) === JSON.stringify([starred.id]))
+  await click('[data-kb="toggle-favorites"]')
+  await settle(300)
+  await click(CARD(starred.id) + ' [data-act="toggle-fav"]')
+  // the filter and sort menu: it stays on the screen, lists the stages with the number of cards, filters, sorts
+  await click('[data-kb="order-control"] button')
+  await settle(250)
+  const menu = await ev(`(() => { const p = document.querySelector('.kb6-tb-pop'); if (p === null) return null; const r = p.getBoundingClientRect(); const items = [...p.querySelectorAll('.kb6-tb-popitem')].map((e) => [e.querySelector('.kb6-tb-poplab').textContent, Number((e.querySelector('.kb6-tb-popcount') || {}).textContent)]); const lab = p.querySelector('.kb6-tb-pophead.row + .kb6-tb-facetlabel'); return { left: r.left, right: r.right, vw: innerWidth, items, title: lab === null ? null : getComputedStyle(lab, '::after').content, sorts: [...p.querySelectorAll('.kb6-tb-pophead')].length } })()`)
+  check('the menu opens inside the window (it opens to the left next to the primary action)', menu !== null && menu.left >= 0 && menu.right <= menu.vw, menu)
+  const stageCounts = ['new', 'paid', 'packed', 'shipped'].map((s) => inOrders().filter((c) => c.stage === s).length)
+  check('its list is the stages with the number of cards each holds, as the base counts them', menu !== null && JSON.stringify(menu.items.slice(0, 4).map((x) => x[1])) === JSON.stringify(stageCounts) && menu.items.slice(0, 4).map((x) => x[0]).join('|') === 'New|Paid|Packed|Shipped', { items: menu === null ? null : menu.items, stageCounts })
+  check('and the list has this page\'s own title, not the core\'s « File type »', menu !== null && /Stage, priority/.test(menu.title || ''), menu === null ? null : menu.title)
+  await shot('15-menu')
+  await ev(`[...document.querySelectorAll('.kb6-tb-pop .kb6-tb-popitem')].find((e) => /^Paid/.test(e.textContent)).click()`)
+  await settle(400)
+  check('a stage chosen in the menu keeps that column only, with its cards and the strip', JSON.stringify(await stages()) === JSON.stringify(['paid']) && (await ev(`document.querySelectorAll('[data-kb="pipeline-card"]').length`)) === stageCounts[1] && (await rect('[data-kb="pipeline-filter-strip"]')) !== null)
+  check('the filter button wears a dot while a facet is on', (await rect('.kb6-tb-dot')) !== null)
+  await click('[data-act="clear-filters"]')
+  await settle(300)
+  check('« Clear filters » brings the other columns back', JSON.stringify(await stages()) === JSON.stringify(['new', 'paid', 'packed', 'shipped']))
+  await click('[data-kb="order-control"] button')
+  await settle(200)
+  await ev(`[...document.querySelectorAll('.kb6-tb-pop .kb6-tb-popitem')].find((e) => /^Value/.test(e.textContent)).click()`)
+  await settle(400)
+  const newValues = await ev(`[...document.querySelectorAll(${JSON.stringify(COL('new') + ' [data-kb="pipeline-value"]')})].map((e) => parseFloat(e.textContent.replace(/[^0-9.]/g, '')))`)
+  check('sorted by value, the biggest first (the New column)', newValues.length >= 2 && newValues.every((v, i) => i === 0 || v <= newValues[i - 1]), newValues)
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+  await settle(250)
+  check('Escape closes the menu', (await rect('.kb6-tb-pop')) === null)
+
+  // the list view
+  await click('[data-kb="view-list"]')
+  await settle(900)
+  const listed = await ev(`({ rows: [...document.querySelectorAll('[data-kb="pipeline-row"]')].map((e) => Number(e.dataset.id)), board: document.querySelector('[data-kb="pipeline-board"]') !== null, pill: [...document.querySelectorAll('[data-kb="pipeline-row"] .kbpi-stagepill span')].map((e) => e.textContent), value: document.querySelectorAll('[data-kb="pipeline-row"] [data-kb="pipeline-value"]').length, head: [...document.querySelectorAll('.kbpi-tbl th')].map((e) => e.textContent.trim()) })`)
+  check('the list is a table of cards: one row each, the stage as a chip, the value, the age', listed.board === false && listed.rows.length === inOrders().length && listed.pill.every((p) => /New|Paid|Packed|Shipped/.test(p)) && listed.value >= 1 && /Stage/.test(listed.head.join('|')), listed)
+  const firstRow = listed.rows[0]
+  const wasStage = cardRow(firstRow).stage
+  const m2 = moves().length
+  await ev(`(() => { const s = document.querySelector('[data-kb="pipeline-row"][data-id="${firstRow}"] select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, ${JSON.stringify(wasStage === 'shipped' ? 'new' : 'shipped')}); s.dispatchEvent(new Event('change', { bubbles: true })); return 1 })()`)
+  await settle(1000)
+  check('a stage chosen in a row moves the card (one move line, by the person)', cardRow(firstRow).stage === (wasStage === 'shipped' ? 'new' : 'shipped') && moves().length === m2 + 1 && moves().pop().actor === 'person', cardRow(firstRow).stage)
+  await ev(`document.querySelector('[data-kb="pipeline-row"][data-id="${firstRow}"]').focus()`)
+  await press(wasStage === 'shipped' ? 'right' : 'left')
+  await settle(900)
+  check('the arrow keys move a row as they move a card, and the row keeps the focus', cardRow(firstRow).stage !== (wasStage === 'shipped' ? 'new' : 'shipped') && (await ev(`document.activeElement && Number(document.activeElement.dataset.id)`)) === firstRow, { stage: cardRow(firstRow).stage, focus: await ev(`document.activeElement && document.activeElement.dataset.id`) })
+  await ev(`document.querySelector('[data-kb="pipeline-row"][data-id="${firstRow}"]').focus()`)
+  await press('enter')
+  check('Enter on a row edits the card', (await rect('[data-kb="pipeline-dialog"]')) !== null && (await ev(`document.querySelector('[data-field="title"]').value`)) === cardRow(firstRow).title)
+  await press('escape')
+  await settle(300)
+  await shot('16-list')
+
+  // the extras a card may carry: the board route does not return `fields` yet, so the page is given them here, the way the host will (a wrapper on fetch, in the page only)
+  const dueOffset = (id) => [-2, 0, 1, 3, 6, 12, 20, null, 2][id % 9]
+  const isoOf = (off) => { const d = new Date(Date.now() + off * 86400000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+  await ev(`(() => {
+    const real = window.__fieldsFetch || window.fetch; window.__fieldsFetch = real
+    const SRC = ['Referral', 'Website', 'Walk-in', 'Agency', 'LinkedIn']; const PR = ['high', 'normal', 'low', 'normal', 'high']; const TAGS = [['garden', 'parking'], ['pre-approved'], ['family', 'schools', 'quiet'], [], ['urgent', 'cash buyer', 'viewing', 'follow-up', 'vip']]; const OFF = [-2, 0, 1, 3, 6, 12, 20, null, 2]
+    window.fetch = (u, i) => real.call(window, u, i).then((r) => String(u).indexOf('/kybernos-pipeline/board') < 0 ? r : r.clone().json().then((j) => { for (const c of j.columns || []) for (const card of c.cards) { const n = card.id; const off = OFF[n % 9]; card.fields = { source: SRC[n % 5], priority: PR[n % 5], tags: TAGS[n % 5] }; if (off !== null) { const d = new Date(Date.now() + off * 86400000); card.fields.due = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') } } return new Response(JSON.stringify(j), { status: r.status, headers: { 'content-type': 'application/json' } }) }))
+    document.dispatchEvent(new Event('visibilitychange')); return 1 })()`)
+  await waitFor(page, `document.querySelector('[data-view="calendar"], [data-kb="view-calendar"]') !== null`, 8000)
+  check('once cards carry due dates the view switch offers the Calendar', (await ev(`[...document.querySelectorAll('.kb6-tb-vbtn')].map((b) => b.textContent.trim())`)).join('|') === 'Columns|List|Calendar')
+  await click('[data-kb="view-columns"]')
+  await settle(900)
+  const extras = await ev(`(() => { const byId = (id) => document.querySelector('[data-kb="pipeline-card"][data-id="' + id + '"]'); const out = {}; for (const c of document.querySelectorAll('[data-kb="pipeline-card"]')) { const id = Number(c.dataset.id); out[id] = { tags: [...c.querySelectorAll('.kz-tag')].map((t) => [t.textContent, t.style.getPropertyValue('--kz-h')]), dot: (c.querySelector('[data-kb="pipeline-priority"]') || {}).dataset ? c.querySelector('[data-kb="pipeline-priority"]').dataset.priority : null } } return out })()`)
+  const ids = Object.keys(extras).map(Number)
+  const withDue = ids.filter((id) => dueOffset(id) !== null)
+  check('every card shows its source as a coloured chip, its tags (three at most, then a counter) and its priority dot', ids.every((id) => extras[id].tags.some((t) => ['Referral', 'Website', 'Walk-in', 'Agency', 'LinkedIn'].includes(t[0])) && extras[id].dot === ['high', 'normal', 'low', 'normal', 'high'][id % 5]), extras)
+  check('the same source has the same colour on every card (the colour follows the text)', (() => { const by = {}; let same = true; for (const id of ids) for (const t of extras[id].tags) { if (by[t[0]] !== undefined && by[t[0]] !== t[1]) same = false; by[t[0]] = t[1] } return same })())
+  const warm = await ev(`[...document.querySelectorAll('[data-kb="pipeline-card"]')].map((c) => [Number(c.dataset.id), [...c.querySelectorAll('.kz-tag')].filter((t) => t.querySelector('svg') && /today|tomorrow|yesterday|in \\dd|[A-Z][a-z]{2} \\d/.test(t.textContent)).map((t) => [t.textContent, t.style.getPropertyValue('--kz-h')])[0] || null])`)
+  const soonest = warm.find(([id]) => dueOffset(id) === 1 || dueOffset(id) === 0 || dueOffset(id) === 2 || dueOffset(id) === 3)
+  const overdue = warm.find(([id]) => dueOffset(id) === -2)
+  const later = warm.find(([id]) => dueOffset(id) >= 6 && dueOffset(id) !== null)
+  check('a due date within three days is warm (orange), a past one is hot (red), a later one calm (blue)', (soonest === undefined || soonest[1][1] === '24') && (overdue === undefined || overdue[1][1] === '8') && (later === undefined || later[1][1] === '212') && warm.filter(([, d]) => d !== null).length === withDue.length, warm)
+  await shot('17-extras')
+  // facets now list priority, source and tags with their counts
+  await click('[data-kb="order-control"] button')
+  await settle(250)
+  const facets = await ev(`[...document.querySelectorAll('.kb6-tb-pop .kb6-tb-popitem')].map((e) => e.querySelector('.kb6-tb-poplab').textContent)`)
+  check('the filter list now has the priorities, the sources and the tags the cards carry', ['Priority: High', 'Source: Referral', 'Tag: family'].every((x) => facets.includes(x)), facets)
+  await ev(`[...document.querySelectorAll('.kb6-tb-pop .kb6-tb-popitem')].find((e) => /^Source: Website/.test(e.textContent)).click()`)
+  await settle(400)
+  const websiteIds = ids.filter((id) => id % 5 === 1)
+  check('a source chosen in the menu keeps the cards of that source', JSON.stringify((await ev(`[...document.querySelectorAll('[data-kb="pipeline-card"]')].map((e) => Number(e.dataset.id))`)).sort()) === JSON.stringify(websiteIds.sort()), websiteIds)
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+  await click('[data-act="clear-filters"]')
+  await settle(300)
+  // the calendar
+  await click('[data-kb="view-calendar"]')
+  await settle(900)
+  const cal = await ev(`(() => ({ title: document.querySelector('.kbpi-calnav h2').textContent, chips: [...document.querySelectorAll('[data-kb="pipeline-cal-card"]')].map((c) => [Number(c.dataset.id), c.closest('[data-kb="pipeline-day"]').dataset.day]), days: document.querySelectorAll('[data-kb="pipeline-day"]').length, today: (document.querySelector('.kbpi-day.today') || {}).dataset ? document.querySelector('.kbpi-day.today').dataset.day : null, undated: (document.querySelector('[data-kb="pipeline-undated"]') || {}).textContent || '' }))()`)
+  check('the calendar is a month with a chip on the day each card is due', cal.days >= 28 && cal.days % 7 === 0 && cal.chips.length >= 1 && cal.chips.every(([id, day]) => day === isoOf(dueOffset(id))) && cal.today === isoOf(0), cal)
+  check('the cards with no date are counted under it, not lost', /no due date/.test(cal.undated) && Number(cal.undated.match(/^\d+/)[0]) === ids.filter((id) => dueOffset(id) === null).length, cal.undated)
+  await click('[data-act="cal-next"]')
+  await settle(300)
+  const nextTitle = await ev(`document.querySelector('.kbpi-calnav h2').textContent`)
+  check('the next month button changes the month', nextTitle !== cal.title, { was: cal.title, now: nextTitle })
+  await click('[data-act="cal-today"]')
+  await settle(300)
+  await click('[data-kb="pipeline-cal-card"]')
+  check('a chip opens its card', (await rect('[data-kb="pipeline-dialog"]')) !== null)
+  await press('escape')
+  await shot('18-calendar')
+  await click('[data-kb="view-columns"]')
+  await settle(700)
+  await ev(`(() => { window.fetch = window.__fieldsFetch; return 1 })()`)
+
+  console.log('9. motion, focus, contrast, French')
+  // hover: the card lifts (the kit's rule on the card, the entry animation on its list item, so neither hides the other)
+  const hov = await rect(CARD(inOrders()[1].id))
+  await mouse('mouseMoved', hov.x + hov.w / 2, hov.y + hov.h / 2)
+  await sleep(450)
+  const hoverLift = await ev(`getComputedStyle(document.querySelector(${JSON.stringify(CARD(inOrders()[1].id))})).transform`)
+  check('hovering a card lifts it (translateY, measured)', /matrix\(1, 0, 0, 1, 0, -[0-9.]+\)/.test(hoverLift), hoverLift)
+  await mouse('mouseMoved', 5, 5)
+  // entry: the cards come in one after the other
+  await click('[data-kb="view-list"]')
+  await click('[data-kb="view-columns"]')
+  const stagger = await ev(`(() => [...document.querySelectorAll('.kbpi-cardli')].slice(0, 6).map((li) => [getComputedStyle(li).animationName, parseFloat(getComputedStyle(li).animationDelay)]))()`)
+  check('after a change of view the cards fade in one after the other (a longer delay each)', stagger.length >= 3 && stagger.every((s) => s[0] === 'kz-in') && stagger[stagger.length - 1][1] > stagger[0][1], stagger)
+  await settle(900)
+  // focus ring
+  await key('Tab', 'Tab', 9)
+  await ev(`document.querySelector('[data-kb="pipeline-card"]').focus()`)
+  const ring = await ev(`(() => { const cs = getComputedStyle(document.activeElement); return [cs.outlineStyle, cs.outlineWidth] })()`)
+  check('a focused card has a visible 2px ring', ring[0] === 'solid' && ring[1] === '2px', ring)
+  await ev(`document.querySelector('[data-kb="pipeline-tab"]').focus()`)
+  const tabOutline = await ev(`getComputedStyle(document.activeElement).outlineStyle`)
+  await ev(`document.querySelector('[data-kb="pipeline-card"] [data-act="toggle-fav"]').focus()`)
+  await sleep(350)
+  const tabRing = [tabOutline, ...(await ev(`(() => { const ss = getComputedStyle(document.activeElement); return [ss.outlineStyle, ss.opacity] })()`))]
+  check('a focused board tab has a ring, and the star of a card shows itself when it takes the focus', tabRing[0] === 'solid' && tabRing[1] === 'solid' && tabRing[2] === '1', tabRing)
+  // contrast, light and dark
+  const MEASURE = `(() => {
+    const parse = (c) => { let m = /^rgba?\\(([^)]+)\\)$/.exec(c); if (m) { const p = m[1].split(/[ ,\\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p[3] === undefined ? 1 : p[3]] }
+      m = /^color\\(srgb ([^)]+)\\)$/.exec(c); if (m) { const p = m[1].split(/[ \\/]+/).filter(Boolean).map(Number); return [p[0] * 255, p[1] * 255, p[2] * 255, p[3] === undefined ? 1 : p[3]] } return null }
+    const over = (fg, bg) => [0, 1, 2].map((i) => fg[i] * fg[3] + bg[i] * (1 - fg[3])).concat([1])
+    const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]) }
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) }
+    const solid = (el) => { let e = el; while (e) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c[3] > 0.95) return c; e = e.parentElement } return [255, 255, 255, 1] }
+    let worst = 99; let which = ''
+    for (const s of ['[data-kb="pipeline-value"]', '[data-kb="pipeline-col-count"]', '.kz-tag', '.kbpi-item', '[data-kb="pipeline-age"]', '.kbpi-sub', '.kbpi-demo']) for (const el of [...document.querySelectorAll(s)].slice(0, 20)) { const under = solid(el.parentElement); const bg = over(parse(getComputedStyle(el).backgroundColor) || [0, 0, 0, 0], under); const fg = parse(getComputedStyle(el).color); if (fg) { const r = ratio(over(fg, bg), bg); if (r < worst) { worst = r; which = s } } }
+    return [Math.round(worst * 10) / 10, which]
+  })()`
+  const light = await ev(MEASURE)
+  await ev(`document.body.setAttribute('data-ds-dark-theme', '')`)
+  await settle(500)
+  const dark = await ev(MEASURE)
+  await shot('19-dark')
+  await ev(`document.body.removeAttribute('data-ds-dark-theme')`)
+  check('the chips, pills and small texts read in light (4.5:1 or more)', light[0] >= 4.5, light)
+  check('and in dark', dark[0] >= 4.5, dark)
+  // reduced motion: nothing moves, nothing flies
+  await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+  await click('[data-kb="view-list"]')
+  await click('[data-kb="view-columns"]')
+  await sleep(150)
+  const still = await ev(`(() => ({ li: getComputedStyle(document.querySelector('.kbpi-cardli')).animationName, col: getComputedStyle(document.querySelector('.kbpi-col')).animationName, card: getComputedStyle(document.querySelector('[data-kb="pipeline-card"]')).transitionDuration }))()`)
+  check('reduced motion: the cards and columns do not animate in, the card has no transition', still.li === 'none' && still.col === 'none' && /^0s/.test(still.card), still)
+  const rm = inOrders().find((c) => c.stage === 'new')
+  const ra = await rect(CARD(rm.id)); const rt = await rect(COL('paid'))
+  const rx0 = ra.x + ra.w / 2; const ry0 = ra.y + 40; const rx1 = rt.x + rt.w / 2; const ry1 = rt.y + 160
+  await mouse('mouseMoved', rx0, ry0); await mouse('mousePressed', rx0, ry0)
+  for (let i = 1; i <= 8; i += 1) { await mouse('mouseMoved', rx0 + ((rx1 - rx0) * i) / 8, ry0 + ((ry1 - ry0) * i) / 8); await sleep(25) }
+  await mouse('mouseReleased', rx1, ry1)
+  await sleep(120)
+  check('reduced motion: the dropped card does not fly (the ghost is gone at once) and still lands in the column', (await rect('.kbpi-ghost')) === null && (await ev(`document.querySelector(${JSON.stringify(COL('paid') + ' ' + CARD(rm.id))}) !== null`)) === true)
+  await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] })
+  await settle(900)
+  // French: the page's own words (the bar's are the core's)
+  await ev(`window.__KB_LANG_RESOLVE__ = () => 'kybernos'`)
+  await click('[data-kb="view-list"]')
+  await settle(700)
+  const fr = await ev(`document.querySelector('[data-kb="pipeline-page"]').innerText`)
+  check('French: the table and the links speak French (« tu »), no English word left of the page\'s own', /Dans l’étape/.test(fr) && /Archivées/.test(fr) && /Étape/.test(fr) && !/\bArchived\b|\bIn stage\b|\bClear sample data\b/.test(fr), fr.slice(0, 300))
+  await click('[data-kb="view-columns"]')
+  await settle(900)
+  const frCol = await ev(`({ add: [...document.querySelectorAll('[data-act="add-in-stage"]')].map((b) => b.getAttribute('aria-label'))[0], go: (document.querySelector('[data-act="next-stage"]:not([hidden])') || {}).title, label: document.querySelector('[data-kb="pipeline-card"]').getAttribute('aria-label') })`)
+  check('French: the add button, the arrow and the card\'s spoken label', /dans «/.test(frCol.add) && /Déplacer vers/.test(await ev(`document.querySelector('[data-act="next-stage"]:not([hidden])').getAttribute('aria-label')`)) && /étape \d sur \d/.test(frCol.label), frCol)
+  await shot('20-french')
+  await ev(`window.__KB_LANG_RESOLVE__ = () => 'en'`)
+  await click('[data-kb="view-list"]')
+  await click('[data-kb="view-columns"]')
+  await settle(500)
+
+  console.log('10. « Clear sample data »')
   await click('[data-act="clear-demo"]')
   check('a confirmation says what goes (Contacts, Catalog, Pipeline) before anything is deleted', (await rect('[data-kb="pipeline-dialog"]')) !== null && rows('flow_card').some((c) => c.demo === true) && /Catalog|Catalogue/.test(await ev(`document.querySelector('[data-kb="pipeline-dialog"]').textContent`)))
   await shot('11-confirm-clear')
@@ -428,7 +678,8 @@ try {
   await shot('12-after-clear')
 
   console.log('the whole run')
-  check('the page raised no error', (await ev(`window.__chk.errs`)).length === 0, await ev(`window.__chk.errs`))
+  const lateErrors = earlierErrors.concat(await ev(`window.__chk.errs`))
+  check('the page raised no error', lateErrors.length === 0, lateErrors)
   const log = existsSync(join(dshHome, '..', '..', 'sandbox.log')) ? readFileSync(join(dshHome, '..', '..', 'sandbox.log'), 'utf8').split('\n').filter((l) => l.includes('[kybernos-pipeline]')) : []
   check('the host logged its routes and its two tools, and nothing was disabled', log.some((l) => /routes mounted/.test(l)) && log.some((l) => /tools pipeline_list, pipeline_move registered/.test(l)) && !log.some((l) => /disabled|not mounted|failed/.test(l)), log.slice(0, 6))
 } catch (e) {
