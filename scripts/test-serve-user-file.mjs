@@ -88,6 +88,9 @@ const CLASSIFIED = new Map([
   ['kybernos-skills/index.js :: COVER_TYPES[ext] ?? \'application/octet-stream\'', 'skill covers: pictures the plugin itself generates into the DSH home (not a project file)'],
   ['kybernos-motion/index.js :: a.type', 'motion asset: the type is looked up from the extension in a fixed table (pictures, sounds, a glTF model, a Lottie JSON; no SVG, no HTML), nosniff, and the path is confined to a project (strict)'],
   ['kybernos-call/call-routes.mjs :: mime', 'serveVendor: livekit-client.js of the plugin\'s own vendor folder, a constant type'],
+  ['kybernos-webapp-creator/templates/commerce/routes/medias.js :: m.mime', 'a template of a generated shop, served from the shop\'s OWN server on its own port, never from DSH\'s origin: the type was stored at upload after the first bytes matched one of three raster types (png, jpeg, webp), nothing else is accepted'],
+  ['kybernos-webapp-creator/templates/statique/server.js :: TYPES[path.extname(file)] || \'application/octet-stream\'', 'a template of a generated landing page, served from its OWN server on its own port, never from DSH\'s origin: files of its own ./public folder, the type from a fixed table by extension'],
+  ['kybernos-webapp-creator/templates/web/server.js :: TYPES[path.extname(file)] || \'application/octet-stream\'', 'a template of a generated web app, served from its OWN server on its own port, never from DSH\'s origin: files of its own ./public folder, the type from a fixed table by extension'],
   ['kybernos-mobile/remote-fake-relay.mjs :: hit[1]', 'the fake relay of the tests: serves the plugin\'s own files with the type of a fixed table'],
 ])
 const files = []

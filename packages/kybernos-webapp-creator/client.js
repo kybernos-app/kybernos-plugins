@@ -36,8 +36,8 @@ window.__ModuleLoader__.load({
 .kbwc-row .kbwc-name { font-weight: 600; }
 .kbwc-row .kbwc-sub { opacity: .7; font-size: 12px; }
 .kbwc-dot { width: 10px; height: 10px; border-radius: 50%; background: #9ca3af; flex: none; }
-.kbwc-dot[data-on="running"] { background: #16a34a; }
-.kbwc-dot[data-on="error"] { background: #dc2626; }
+.kbwc-dot[data-on="running"] { background: var(--dsw-alias-state-success-primary); }
+.kbwc-dot[data-on="error"] { background: var(--dsw-alias-state-error-primary); }
 .kbwc-spacer { flex: 1 1 auto; }
 .kbwc-btn { padding: 5px 12px; border-radius: 8px; border: 1px solid var(--dsw-alias-border-l3, rgba(127,127,127,.35)); background: none; color: inherit; font: inherit; cursor: pointer; }
 .kbwc-btn:hover { border-color: var(--dsw-alias-state-primary, #2563eb); }
@@ -49,8 +49,8 @@ window.__ModuleLoader__.load({
 .kbwc-label { font-weight: 600; margin-top: 4px; }
 .kbwc-note { opacity: .7; font-size: 12px; }
 .kbwc-num { width: 90px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--dsw-alias-border-l3, rgba(127,127,127,.35)); background: none; color: inherit; font: inherit; }
-.kbwc-ok { color: var(--dsw-alias-state-success, #16a34a); }
-.kbwc-err { color: var(--dsw-alias-state-danger, #dc2626); }
+.kbwc-ok { color: var(--dsw-alias-state-success-primary); }
+.kbwc-err { color: var(--dsw-alias-state-error-primary); }
 .kbwc-empty { opacity: .6; padding: 18px 4px; }
 `
 
@@ -183,9 +183,13 @@ window.__ModuleLoader__.load({
     const WebappPage = () => {
       const [onglet, setOnglet] = React.useState('projects')
       return h('div', { className: 'kbwc' },
-        h('div', { className: 'kbwc-tabs' },
-          h('button', { className: 'kbwc-tab', 'data-on': onglet === 'projects' ? 'true' : 'false', onClick: () => setOnglet('projects') }, kt('Projets', 'Projects')),
-          h('button', { className: 'kbwc-tab', 'data-on': onglet === 'settings' ? 'true' : 'false', onClick: () => setOnglet('settings') }, kt('Réglages', 'Settings')),
+        h('div', { className: 'kbwc-row' },
+          h('div', { className: 'kbwc-tabs' },
+            h('button', { className: 'kbwc-tab', 'data-on': onglet === 'projects' ? 'true' : 'false', onClick: () => setOnglet('projects') }, kt('Projets', 'Projects')),
+            h('button', { className: 'kbwc-tab', 'data-on': onglet === 'settings' ? 'true' : 'false', onClick: () => setOnglet('settings') }, kt('Réglages', 'Settings')),
+          ),
+          h('span', { className: 'kbwc-spacer' }),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-webapp-creator' }) : null),
         ),
         onglet === 'projects' ? h(ProjectsView) : h(SettingsView),
       )

@@ -23,9 +23,22 @@ const serveStatic = (req, res) => {
 http.createServer((req, res) => {
   const url = String(req.url || '/')
   if (url === '/api' || url.startsWith('/api/')) {
+    // A form or a JSON call, not an upload: 1 MiB is plenty, and a longer body is refused instead of buffered.
+    const MAX_BODY = 1024 * 1024
     const morceaux = []
-    req.on('data', (d) => morceaux.push(d))
+    let taille = 0
+    let refuse = false
+    req.on('data', (d) => {
+      taille += d.length
+      if (taille > MAX_BODY) {
+        if (refuse === false) { refuse = true; res.writeHead(413, { 'content-type': 'application/json', connection: 'close' }); res.end('{"ok":false,"error":"body too large"}') }
+        req.destroy()
+        return
+      }
+      morceaux.push(d)
+    })
     req.on('end', () => {
+      if (refuse === true) return
       try {
         const brut = Buffer.concat(morceaux).toString('utf8')
         req.body = brut === '' ? {} : JSON.parse(brut)
