@@ -132,6 +132,8 @@ try {
   const groups = await ev('Array.from(document.querySelectorAll(".kbm-cb-grp")).map((g) => g.innerText.split("\\n")[0]).join("|")')
   check('the list is grouped by route, plans first when there are plans', groups.length > 0 && (!groups.includes('YOUR PLANS') || groups.startsWith('YOUR PLANS')), groups)
   if (current !== '') check('it opens on the current value', (await optionText()).startsWith(current), current + ' vs ' + (await optionText()))
+  // two providers can serve the same model id: only the role's own route is marked, never both
+  if (current !== '') check('exactly one row is marked as the current model', Number(await ev('document.querySelectorAll(".kbm-cb-opt.sel").length')) === 1)
   const before = await optionText()
   await key('ArrowDown'); await sleep(250)
   check('ArrowDown moves the highlight', (await optionText()) !== before)

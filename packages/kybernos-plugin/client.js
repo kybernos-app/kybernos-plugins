@@ -24535,7 +24535,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           : null),
         h('div', { className: 'kbm-cb-foot2' }, (m.foot !== '' ? m.foot : (m.info !== '' ? m.info : 'No benchmark or price data on file for this model.'))))
     }
-    // props: cid, label, pool, searchPool, value, onPick, noneLabel/onNone (a "no value" row), matchFn, disabledOf(m) → reason,
+    // props: cid, label, pool, searchPool, value (+ valueProvider: the route, when two providers serve the same id), onPick, noneLabel/onNone (a "no value" row), matchFn, disabledOf(m) → reason,
     //        disabled, disabledText, panelMode, onInspect(m), typeOf (role type: a row of another type shows its type)
     const KbmCombo = (props) => {
       const p = props
@@ -24574,9 +24574,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         for (const m of take) rows.push({ m: m })
       }
       const options = rows.filter((x) => x.head === undefined)
-      const selRow = pool.find((m) => m.id === p.value) || searchPool.find((m) => m.id === p.value) || null
+      const sameRoute = (m) => (m.id === p.value && (p.valueProvider === undefined || p.valueProvider === '' || m.provider === p.valueProvider))
+      const selRow = pool.find(sameRoute) || searchPool.find(sameRoute) || pool.find((m) => m.id === p.value) || searchPool.find((m) => m.id === p.value) || null
       // act < 0: nothing moved yet, the highlight sits on the current value (or the first row).
-      const selIdx = (selRow === null) ? -1 : options.findIndex((o) => o.m !== undefined && o.m.id === selRow.id)
+      const selIdx = (selRow === null) ? -1 : options.findIndex((o) => o.m !== undefined && o.m === selRow)
       const actIdx = Math.max(0, Math.min(options.length - 1, st.act >= 0 ? st.act : (selIdx >= 0 ? selIdx : 0)))
       const hl = (options.length > 0 && options[actIdx].m !== undefined) ? options[actIdx].m : null
       const optId = (i) => p.cid + '-o' + i
@@ -24645,7 +24646,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         }
         const m = x.m
         const why = disabledOf(m)
-        const isSel = (selRow !== null && selRow.id === m.id)
+        const isSel = (selRow !== null && selRow === m)
         optionNodes.push(h('div', { key: m.provider + '|' + m.id, id: optId(i), 'data-i': String(i), role: 'option', 'aria-selected': String(isSel), 'aria-disabled': String(why !== ''), className: 'kbm-cb-opt' + (i === actIdx ? ' act' : '') + (isSel ? ' sel' : '') + (why !== '' ? ' dis' : ''), title: why, onMouseMove: () => { if (i !== actIdx) { setSt((old) => Object.assign({}, old, { act: i })); inspect(m) } }, onMouseDown: (ev) => ev.preventDefault(), onClick: () => choose(x) },
           h('span', { className: 'kbm-cb-dot ' + m.health }),
           h('span', { className: 'kbm-mono kbm-cb-id' }, m.id),
@@ -24679,7 +24680,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     const kbmRoleFields = (f) => h('div', { className: 'kbm-mf' },
       h('div', { className: 'kbm-mf-row' },
         h('span', { className: 'kbm-mono kbm-mf-lab' }, 'Primary'),
-        h(KbmCombo, { cid: f.cid + '-p', label: 'Primary model', pool: f.pool, searchPool: f.searchPool, value: f.primaryId, matchFn: f.matchFn, typeOf: f.type, disabled: f.isAuto, disabledText: 'Kybernos picks', panelMode: f.panelMode, onInspect: f.inspect, onPick: f.pickPrimary, noneText: 'No model' }),
+        h(KbmCombo, { cid: f.cid + '-p', label: 'Primary model', pool: f.pool, searchPool: f.searchPool, value: f.primaryId, valueProvider: f.primaryProvider, matchFn: f.matchFn, typeOf: f.type, disabled: f.isAuto, disabledText: 'Kybernos picks', panelMode: f.panelMode, onInspect: f.inspect, onPick: f.pickPrimary, noneText: 'No model' }),
         h('button', { type: 'button', className: 'kbm-pill kbm-mf-probe', onClick: f.runCheck, title: 'Run a real health probe on the models of this role' },
           kbmSvg(KBM_I.pulse, '#16A34A', 12), ' Probe all')),
       h('div', { className: 'kbm-mf-row' },
@@ -25311,7 +25312,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const ranked = kbmRank(list, rs.type, needIdx, prefsPriority)
         const autoPrimary = ranked.sorted.length > 0 ? ranked.sorted[0] : null
         const autoFallback = ranked.sorted.length > 1 ? ranked.sorted[1] : null
-        const selected = all.find((m) => m.id === rs.model) || null
+        // The declared route first: the same id can be served by several providers, and the first one in the list is not the role's.
+        const selected = all.find((m) => m.id === rs.model && m.provider === rs.provider) || all.find((m) => m.id === rs.model) || null
         const manualFb = all.find((m) => m.id === rs.fallback) || null
         const primary = isAuto ? autoPrimary : selected
         const fallback = isAuto ? autoFallback : manualFb
@@ -25379,6 +25381,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           matchFn: (m) => kbmMatches(m, rs.req),
           isAuto: isAuto,
           primaryId: (primary !== null) ? primary.id : rs.model,
+          primaryProvider: (primary !== null) ? primary.provider : rs.provider,
           fallbackId: (fallback !== null) ? fallback.id : rs.fallback,
           panelMode: panelVariant,
           inspect: (m) => setUi((old) => Object.assign({}, old, { panelSel: id + ':' + m.id })),
