@@ -160,7 +160,7 @@ ok('the browser half hands the loader a plugin that never throws, and mounts not
   assert.equal(plugin.apply({ effect: () => assert.fail('no slots service: nothing is registered') }), undefined)
   assert.deepEqual(warns, [])
   const src = readFileSync(here + 'client.js', 'utf8')
-  assert.doesNotMatch(src, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, 'no colour of its own')
+  assert.doesNotMatch(src, /#(?!fff\b)[0-9a-fA-F]{3,6}\b|rgba?\(/, 'no colour of its own (white on a solid chip aside)')
 })
 
 console.log('\n' + count + ' checks passed')

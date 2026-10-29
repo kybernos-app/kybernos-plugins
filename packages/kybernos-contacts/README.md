@@ -10,8 +10,10 @@ It is one of the three business plugins (Contacts, Catalog, Pipeline) built on t
 | | |
 |---|---|
 | Where | In the menu, under Business: Contacts (the theme may rename the row: « Clients », « Candidates »…) |
-| The page | search (name, email), People / Companies, the theme's types as chips, a tag filter, « Show archived », a paged list (100 a page), a side panel, a dialog to add or change |
-| A panel | fields in the theme's words, the company (or the people of a company), the cards of a board that point at the contact, the notes, Edit, Archive / Restore |
+| The page | the product's own bar in the header row (search by name or email, the view switch Cards / List, filters and sort, « New contact »), People / Companies with their counts, the theme's types as coloured chips, the tags and the period as filters in the bar's menu, « Show archived », a rich list or a grid of cards (a page is the 500 rows the host gives), a side panel that slides in, a dialog to add or change |
+| A panel | a tinted header (avatar, type, company, Email, Edit), fields in the theme's words, coloured tags, the company (or the people of a company), the cards of a board that point at the contact, the notes as a timeline, Archive / Restore |
+| Motion | rows and cards come in one after the other, a card lifts on hover, a row shows its actions (write, edit) on hover or focus, a chosen tag pops, the panel slides in and out; all of it stops under `prefers-reduced-motion` |
+| What is kept | the view, the sort and its direction stay in this browser (the core's own toolbar hook); the search, the filters and the period are not kept. Nothing new is written on the server. A contact has no favourite, so the bar has no star |
 | Notes | added, never edited or deleted: they are the history of the contact |
 | Archive | hides a contact without deleting it; « Show archived » brings it back, Restore undoes it |
 | Sample rows | a theme brings a few rows marked « demo »; « Clear sample data » removes them in one go (the base holds one set for the three plugins, so it clears Catalog and Pipeline samples too; what you added stays) |
@@ -37,7 +39,7 @@ are drawn as a plain person or company, nothing is lost.
 | `contacts-tools.mjs` | `contacts_find`, `contacts_upsert`, the approval gate |
 | `contacts-schema.mjs` | the point `kybernos/contacts#schema` (bounded, pure) |
 | `session-guard.mjs`, `lib-session-test.mjs` | copies of the shared guard (`node scripts/test-session-guard.mjs` keeps them equal) |
-| `client.js` | the page, the menu row (declared inside `apply`, waited for if the core has not published its registry yet, taken back by the cleanup), the slot `main.kybernos-business` with the key `contacts` |
+| `client.js` | the page, the menu row (declared inside `apply`, waited for if the core has not published its registry yet, taken back by the cleanup), the slot `main.kybernos-business` with the key `contacts`. The page draws the core's `KbToolbar` when the core hands it over (`props.toolbar`), a plain bar of its own otherwise; its coloured tags, avatars and motion classes come from the shared kit `window.__KB_BIZ_KIT__`, read when it renders (plain chips and initials without it). The facets, the period and the sort are done on the rows the host gave |
 
 ### Routes (all under `/kybernos-contacts`)
 
