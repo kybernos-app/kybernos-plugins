@@ -5,7 +5,7 @@ One of the three business plugins (Contacts, Catalog, Pipeline) built on the sha
 
 ## Where and how
 
-Menu › **Business** › **Catalog** (the row appears once the plugin is switched on; a theme can rename it).
+In the menu: the **Business** group, row **Catalog** (it appears once the plugin is switched on; a theme can rename it).
 
 1. Search, filter by status (chips with counts), switch between **cards** and **list** (the views the theme's type allows).
 2. Click an item for its sheet: the fields of its type, the card flag (« Only 3 left »), **Edit**, **Archive**. Archived items live under **Archived** and can be restored.

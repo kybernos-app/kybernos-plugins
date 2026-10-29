@@ -9,6 +9,7 @@
       "kybernos-theme"
     ],
     "kb6": [
+      "kybernos-catalog",
       "kybernos-composio",
       "kybernos-plugin"
     ],
@@ -17,6 +18,7 @@
       "kybernos-plugin"
     ],
     "kb8": [
+      "kybernos-catalog",
       "kybernos-dashboards",
       "kybernos-mobile",
       "kybernos-plugin",
