@@ -27385,6 +27385,16 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // KB-TH-CORE-END
     // ── the page's wiring: fetch, the host bridge and the style seam (never read by the tests) ──
     const kbThEn = (en, fr) => { try { return kbLangResolve() === 'fr' ? fr : en } catch (e) { return en } }
+    /** A text the data files give in two languages ({ en, fr }) becomes the one in use, anywhere in a body; any other value is left alone. `kybers/create` wants plain strings. */
+    const kbThFlat = (v) => {
+      if (Array.isArray(v)) return v.map(kbThFlat)
+      if (!kbThPlain(v)) return v
+      const keys = Object.keys(v)
+      if (typeof v.en === 'string' && keys.every((k) => /^[a-z]{2}(-[A-Za-z]{2})?$/.test(k) && typeof v[k] === 'string')) return kbThEn(v.en, typeof v.fr === 'string' ? v.fr : v.en)
+      const out = {}
+      for (const k of keys) out[k] = kbThFlat(v[k])
+      return out
+    }
     /** The sentence for a refusal of DSH's manager (see kbThManagerIssue); every code gets words, none is shown raw. */
     const kbThManagerWords = (issue) => {
       if (issue === 'not-bundle') return kbThEn('DSH installs a package only as a bundle. This theme’s package.json needs an empty patch: "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, and a cordis.patch.yml that holds []. The starter has both.', 'DSH n’installe un paquet que comme bundle. Le package.json de ce thème a besoin d’un patch vide : "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }, et un cordis.patch.yml qui contient []. Le modèle de départ a les deux.')
@@ -27439,6 +27449,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           // Into DSH's own store, like the starter kit: a welcome page must not add a `kybers/` folder to the person's project. The flag is
           // set as an assignment on purpose: test-kyber-root.mjs counts the literal `home` value in this file as text (its invariant is the
           // starter kit's, and this page joins it), so the page sets the property instead of repeating the literal. The body is the same.
+          if (body !== null) body = kbThFlat(body)
           if (body !== null) body.home = true
           return body
         },
@@ -27536,6 +27547,29 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     /** The registry reuses a scan for two seconds; after a change DSH made, ask for a fresh one so the next answer is never the scan from before. */
     const kbThFreshRegistry = async () => { try { await fetch('/kybernos-registry/state?fresh=1', { cache: 'no-store', credentials: 'same-origin' }) } catch (e) { /* the next read still works, up to two seconds late */ } }
+    /** A POST to one of the Suite's routes: the answer, or { ok: false, error } (never throws). */
+    const kbThPost = async (url, body) => {
+      try {
+        const res = await fetch(url, { method: 'POST', cache: 'no-store', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        const answer = await res.json()
+        return kbThPlain(answer) ? answer : { ok: false, error: 'bad-answer' }
+      } catch (e) { return { ok: false, error: 'network' } }
+    }
+    /** The Suite's own words for « these plugins, on »: the choice of each is written, then the robot links them once (the last call), like its Install button.
+     *  Nothing is live before DSH restarts; a refusal puts the choices already written back. */
+    const kbThSwitchOn = async (needs) => {
+      const ids = needs.map((n) => String(n).replace(/^kybernos\//, 'kybernos-'))
+      const written = []
+      for (let i = 0; i < ids.length; i += 1) {
+        const answer = await kbThPost('/kybernos-hub/module', { id: ids[i], action: i === ids.length - 1 ? 'installer' : 'activer' })
+        if (answer.ok !== true) {
+          for (const id of written) await kbThPost('/kybernos-hub/module', { id, action: 'desactiver' })
+          return { ok: false, error: kbThStr(answer.error) ?? 'refused', switched: [] }
+        }
+        written.push(ids[i])
+      }
+      return { ok: true, switched: ids }
+    }
     /** The package DSH's manager knows an installed theme by, from the registry, or null. */
     const kbThPackageOf = async (id) => {
       try {
@@ -27690,6 +27724,22 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const [error, setError] = React.useState(null)
       const [pick, setPick] = React.useState(null)
       const [owners, setOwners] = React.useState(() => new Set())
+      const [restart, setRestart] = React.useState(null)
+      // DSH restarts, comes back, and the page reloads onto the new plugins (the Suite's own wait)
+      const relaunch = async () => {
+        setRestart('running')
+        const answer = await kbThPost('/kybernos-hub/relaunch', { confirm: true })
+        if (answer.ok !== true) { setRestart(answer.error === 'busy' ? 'busy' : 'error'); return }
+        const began = Date.now()
+        const wait = async () => {
+          let up = false
+          try { const r = await fetch('/kybernos-hub/state', { cache: 'no-store', credentials: 'same-origin' }); up = r.ok } catch (e) { up = false }
+          if (up && Date.now() - began > 4000) { window.location.reload(); return }
+          if (Date.now() - began > 120000) { setRestart('error'); return }
+          setTimeout(wait, 2000)
+        }
+        setTimeout(wait, 3000)
+      }
       const [consent, setConsent] = React.useState(false)
       const [seen, setSeen] = React.useState(null)
       const [customise, setCustomise] = React.useState(false)
@@ -27759,6 +27809,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const seen = await kbThPresence(ports)
         const look = kbThLook()
         const rep = await kbThApply(plan, ticks, ports)
+        // the plugins the template needs are switched on the way the Suite's Install button does it; their pages show once DSH has restarted
+        const needs = sel !== null ? kbThMissing(sel, owners) : []
+        rep.plugins = needs.length > 0 ? await kbThSwitchOn(needs) : null
+        if (rep.plugins !== null && rep.plugins.ok !== true) rep.failed += needs.length
+        setRestart(null)
         // the sample rows (marked demo) go into the business base through the host, which knows the theme's folder
         rep.demo = 'skipped'
         if (ticks.demo === true) {
@@ -28065,7 +28120,16 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               line(kbThEn('Style', 'Style'), report.style),
               line(kbThEn('Field', 'Métier'), report.domain),
               report.demo !== undefined && report.demo !== 'skipped' ? line(kbThEn('Sample rows', 'Lignes d’exemple'), report.demo) : null,
+              report.plugins !== undefined && report.plugins !== null ? line(kbThEn('Plugins switched on', 'Plugins activés'), report.plugins.switched.length) : null,
             ]),
+            report.plugins !== undefined && report.plugins !== null && report.plugins.ok === true ? h('div', { key: 'rs', className: 'kbgal-banner', 'data-kb': 'theme-restart-note' }, [
+              h('div', { key: 't' }, kbThEn('The Business pages appear once DSH has restarted. Chats that are running stop for a moment.', 'Les pages Business apparaissent quand DSH a redémarré. Les conversations en cours s’arrêtent un instant.')),
+              restart === 'running' ? h('div', { key: 'w' }, kbThEn('Restarting… this page reloads by itself.', 'Redémarrage… cette page se recharge toute seule.'))
+                : h('button', { key: 'b', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-restart', onClick: relaunch }, kbThEn('Restart DSH now', 'Redémarrer DSH maintenant')),
+              restart === 'busy' ? h('div', { key: 'y' }, kbThEn('An installation is still running: try again in a minute.', 'Une installation est en cours : réessaie dans une minute.')) : null,
+              restart === 'error' ? h('div', { key: 'e' }, kbThEn('DSH could not restart from here. Restart it by hand; the plugins are already switched on.', 'DSH n’a pas pu redémarrer d’ici. Redémarre-le à la main ; les plugins sont déjà activés.')) : null,
+            ]) : null,
+            report.plugins !== undefined && report.plugins !== null && report.plugins.ok !== true ? h('div', { key: 'rf', className: 'kbgal-banner', 'data-kb': 'theme-plugins-failed' }, kbThEn('The plugins could not be switched on (' + String(report.plugins.error) + '). The rest of the template is in place; switch them on in Settings › Kybernos Suite.', 'Les plugins n’ont pas pu être activés (' + String(report.plugins.error) + '). Le reste du modèle est en place ; active-les dans Réglages › Kybernos Suite.')) : null,
             h('div', { key: 'a', className: 'kbgal-acts' }, [
               h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-back-to-themes', onClick: back }, kbThEn('Back to templates', 'Retour aux modèles')),
               firstRow() !== null ? h('button', { key: 'o', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-open', onClick: () => { closeDialog(); openFirst() } }, kbThEn('Open ', 'Ouvrir ') + (kbDomainLabel(firstRow()) ?? '')) : null,

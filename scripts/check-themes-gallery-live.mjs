@@ -58,6 +58,26 @@ const openThemes = async () => {
 
 try {
   const errs = []
+  // Three answers are held back here. The sandbox is a copy of a profile where the three Business plugins ARE on, so the registry would say « nothing missing »: it is told they are not, to play the switch-on.
+  // The Suite's routes are answered, never called (the robot and the restart touch the owner's profile). Every request the page makes that is refused is kept, to say what failed.
+  await ev(`(() => {
+    const real = window.fetch.bind(window); window.__kbHub = []; window.__kbRefused = []
+    const json = (o) => new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } })
+    window.fetch = async (u, o) => {
+      const url = String(u)
+      if (url.indexOf('/kybernos-hub/module') >= 0 || url.indexOf('/kybernos-hub/relaunch') >= 0) { window.__kbHub.push({ url: url, body: o && o.body ? JSON.parse(o.body) : null }); return json({ ok: true }) }
+      const r = await real(u, o)
+      if (url.indexOf('/kybernos-registry/state') >= 0 && url.indexOf('fresh') < 0) {
+        const j = await r.clone().json().catch(() => null)
+        if (j && Array.isArray(j.points)) return json(Object.assign({}, j, { points: j.points.filter((p) => !new RegExp('^kybernos/(contacts|catalog|pipeline)#').test(String(p.id))) }))
+      }
+      if (url.indexOf('/kybernos/') >= 0 || url.indexOf('/kybernos-') >= 0) {
+        if (!r.ok) window.__kbRefused.push({ url: url, status: r.status })
+        else { const j = await r.clone().json().catch(() => null); if (j && j.ok === false) window.__kbRefused.push({ url: url, error: j.error, reason: j.reason }) }
+      }
+      return r
+    }
+  })()`)
   await openThemes()
   await ev(`(() => { window.__chk = []; window.addEventListener('error', (e) => window.__chk.push(String(e.message))); return 1 })()`)
   const api = await ev(`fetch('/kybernos/themes', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => ({ shipped: (j.shipped || []).map((t) => ({ id: t.id, name: t.name, needs: t.needs, adds: t.adds, sample: t.sample })), installed: (j.installed || []).length }))`, 10000)
@@ -97,6 +117,8 @@ try {
   console.log('The plan, as a dialog')
   await click(`${PAGE} [data-theme="${theme.id}"]`)
   await waitFor(page, `!!document.querySelector('${PAGE} [data-kb="theme-install"]')`, 6000)
+  // « Install template and N plugins »: N is what the page says is missing; the install switches exactly those on (the Suite's routes are answered here, never really called: the robot and the restart touch the owner's profile)
+  const missingPlugins = Array.isArray(theme.needs) ? theme.needs.length : 0
   check('« Install template » is pressed with the mouse', await click(PAGE + ' [data-kb="theme-install"]'))
   // DSH's manager links the folder first: several seconds, longer than any click handler
   const planned = await waitFor(page, `!!document.querySelector('[data-kb="theme-plan"] [role="dialog"]')`, 150000)
@@ -139,8 +161,14 @@ try {
     check('the report dialog opens', reported !== null, await text(PAGE))
     const rep = await text('[data-kb="theme-report"]')
     check('it says what was added, what was already there, what failed', /Added|Ajoutés/.test(rep || '') && /Already there|Déjà là/.test(rep) && /Failed|Échoués/.test(rep), rep)
+    const hub = (await ev(`window.__kbHub`)) || []
+    const modules = hub.filter((c) => /kybernos-hub\/module/.test(c.url))
+    check('the plugins the template needs are switched on through the Suite: one choice each, the robot on the last (' + missingPlugins + ')', modules.length === missingPlugins && modules.every((c, i) => /^kybernos-[a-z]+$/.test(c.body.id) && c.body.action === (i === modules.length - 1 ? 'installer' : 'activer')), modules)
+    if (missingPlugins > 0) {
+      check('the report counts them, and says the pages appear after a restart, with a button that is NOT pressed here', new RegExp('(Plugins switched on|Plugins activés)\\s*\\n?\\s*' + missingPlugins).test(rep || '') && (await rect('[data-kb="theme-restart-note"]')) !== null && (await rect('[data-kb="theme-restart"]')) !== null && hub.filter((c) => /relaunch/.test(c.url)).length === 0, rep)
+    } else check('nothing was missing: no restart is asked', (await rect('[data-kb="theme-restart"]')) === null && modules.length === 0)
     await shot('5-report')
-    check('nothing failed: the skills the theme carries are installed from its folder, so the report says « Installed »', /^\s*Installed|^\s*Installé/.test(await text('[data-kb="theme-report"] h3') || '') && /Failed\s*\n?\s*0/.test(rep || ''), rep)
+    check('nothing failed: the skills the theme carries are installed from its folder, so the report says « Installed »', /^\s*Installed|^\s*Installé/.test(await text('[data-kb="theme-report"] h3') || '') && /Failed\s*\n?\s*0/.test(rep || ''), { refused: (await ev(`window.__kbRefused`) || []).filter((x) => !/artifacts|cloud/.test(x.url)), report: String(rep).replace(/\n+/g, ' ') })
     if (theme.sample) {
       check('the report says the sample rows were added', /Sample rows\s*\|?\s*(added|already there)/i.test((rep || '').replace(/\n+/g, ' | ')) || /Sample rows[\s\S]*(added|already there)/i.test(rep || ''), rep)
       const file = join(process.env.DSH_HOME, 'kybernos', 'business', 'donnees.sqlite')
