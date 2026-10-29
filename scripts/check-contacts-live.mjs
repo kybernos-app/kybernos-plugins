@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // Checks the Contacts page against the REAL GUI of the SANDBOX: it opens from the « Business » menu row, shows its empty, error, loaded, filtered and paged
-// states, and a real mouse and keyboard search, filter, open a panel, add a note, create, edit, archive, restore and clear the sample data, while the rows are read back
-// from the base to prove what was written (and by whom). Rectangles are measured (page chrome against the Skills page, overflow at a narrow width), the keyboard
-// order is walked, nothing is taken on trust. With a theme installed in the sandbox the page is checked in the theme's words too (types, fields, tags).
+// states, and a real mouse and keyboard search (the product's own bar), switch the view (list, cards), filter and sort (the bar's menu), open a panel, add a note,
+// create, edit, archive, restore and clear the sample data, while the rows are read back from the base to prove what was written (and by whom). Rectangles are
+// measured (page chrome against the Skills page, the bar in the header row, overflow at a narrow width), the keyboard order is walked, the motion is sampled (the
+// stagger, the panel sliding in and out, the pop of a chosen tag, nothing at all under reduced motion), nothing is taken on trust. With a theme installed in the
+// sandbox the page is checked in the theme's words too (types, fields, tags).
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh
 //   node scripts/check-contacts-live.mjs [--shots <dir>]
@@ -60,6 +62,17 @@ const click = async (sel) => {
   await sleep(350)
   return true
 }
+/** A real mouse move over the centre of the first element that matches (no click): hover states and the things that appear on it. */
+const hover = async (sel) => {
+  await ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (e !== null) e.scrollIntoView({ block: 'center', behavior: 'instant' }); return 1 })()`)
+  await sleep(200)
+  const r = await rect(sel)
+  if (r === null || r.err || r.shown !== true) return false
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x + r.w / 2 - 3, y: r.y + r.h / 2 })
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x + r.w / 2, y: r.y + r.h / 2 })
+  await sleep(350)
+  return true
+}
 const VK = { Enter: 13, Escape: 27, Tab: 9, ArrowDown: 40, ArrowUp: 38 }
 /** A real key press (down, up). */
 const press = async (key, mods = 0) => {
@@ -74,6 +87,33 @@ const focus = (sel) => ev(`(() => { const e = document.querySelector(${JSON.stri
 const active = () => ev(`(() => { const a = document.activeElement; return a === null ? null : (a.getAttribute('data-kb') || a.tagName.toLowerCase()) })()`)
 /** Sets a <select> through the DOM: the change event React listens to. */
 const pick = (sel, value) => ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (e === null) return false; e.value = ${JSON.stringify(value)}; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === ${JSON.stringify(value)} })()`)
+/** The search of the product's bar: a magnifier until it is pressed, then a field that takes the focus (the page keeps no field of its own when the core hands its bar over). */
+const SEARCH = '[data-kb="toolbar"] .kb6-tb-search input'
+const openSearch = async () => {
+  if ((await ev(`(() => { const e = document.querySelector(${JSON.stringify(SEARCH)}); return e !== null && e.offsetParent !== null })()`)) !== true) await click(kb('toggle-search'))
+  return focus(SEARCH)
+}
+const searchValue = () => ev(`(() => { const e = document.querySelector(${JSON.stringify(SEARCH)}); return e === null ? null : e.value })()`)
+/** The filter and sort menu of the bar. */
+const MENU_BTN = '[data-kb="order-control"] > button'
+const openMenu = async () => { if (!(await exists('.kb6-tb-pop'))) await click(MENU_BTN); await sleep(250); return exists('.kb6-tb-pop') }
+const closeMenu = async () => { if (await exists('.kb6-tb-pop')) { await press('Escape'); await sleep(250) } }
+/** Clicks the option of the menu that reads `word` (its first line): `{ ok, text }`. The menu stays open after a choice. */
+const menuPick = async (word) => {
+  const i = await ev(`[...document.querySelectorAll('.kb6-tb-pop > button')].findIndex((b) => b.innerText.split('\\n')[0].trim() === ${JSON.stringify(word)})`)
+  if (typeof i !== 'number' || i < 0) return { ok: false, text: await text('.kb6-tb-pop') }
+  return { ok: await click('.kb6-tb-pop > button:nth-of-type(' + (i + 1) + ')') }
+}
+/** A segment of the menu (Ascending, 7 days…) by its words. */
+const segPick = async (word) => {
+  await ev(`(() => { document.querySelectorAll('[data-chk-seg]').forEach((e) => e.removeAttribute('data-chk-seg')); const b = [...document.querySelectorAll('.kb6-tb-pop .kb6-tb-seg')].find((x) => x.innerText.trim() === ${JSON.stringify(word)}); if (b !== undefined) b.setAttribute('data-chk-seg', '1'); return 1 })()`)
+  return click('[data-chk-seg]')
+}
+const menuCount = (word) => ev(`(() => { const b = [...document.querySelectorAll('.kb6-tb-pop > button')].find((x) => x.innerText.split('\\n')[0].trim() === ${JSON.stringify(word)}); return b === undefined ? null : Number(b.querySelector('.kb6-tb-popcount').textContent) })()`)
+const byName = (a) => a.slice().sort((x, y) => x.localeCompare(y, undefined, { sensitivity: 'base', numeric: true }))
+const hueOf = (sel) => ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (e === null) return null; const cs = getComputedStyle(e); return (cs.getPropertyValue('--kz-h') || cs.getPropertyValue('--kbcts-h')).trim() })()`)
+/** What a property of an element is right now, as the browser computes it. */
+const css = (sel, prop) => ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e === null ? null : getComputedStyle(e)[${JSON.stringify(prop)}] })()`)
 const names = () => ev(`[...document.querySelectorAll('[data-kb="contacts-row"]')].map((r) => r.querySelector('.n').textContent)`)
 const ids = () => ev(`[...document.querySelectorAll('[data-kb="contacts-row"]')].map((r) => Number(r.getAttribute('data-id')))`)
 const waitRows = (n) => waitFor(page, `document.querySelectorAll('[data-kb="contacts-row"]').length === ${n}`, 6000)
@@ -174,7 +214,7 @@ try {
   // ── error ───────────────────────────────────────────────────────────────────────────────────────────────────
   console.log('error')
   await ev(`window.__failList = true`)
-  check('a kind switch is clicked while the host answers 503', await click(kb('contacts-kind', '[data-kind="company"]')))
+  check('Show archived is clicked while the host answers 503 (the list is asked again)', await click(kb('contacts-archived')))
   await waitFor(page, `document.querySelector('[data-kb="contacts-error"]') !== null`, 6000)
   check('the error state says what failed and why, with a retry', (await exists(kb('contacts-error'))) && /cannot be read right now/.test(await text(kb('contacts-error'))) && /not available in this DSH/.test(await text(kb('contacts-error'))) && (await exists(kb('contacts-retry'))))
   check('it is an alert and the New button is off while nothing can be written', (await ev(`document.querySelector('[data-kb="contacts-error"]').getAttribute('role')`)) === 'alert' && (await ev(`document.querySelector('[data-kb="contacts-new"]').disabled`)) === true)
@@ -182,8 +222,9 @@ try {
   await ev(`window.__failList = false`)
   check('Retry is clicked and the page recovers', await click(kb('contacts-retry')))
   await settled()
-  check('back to a normal state (the companies tab, empty)', !(await exists(kb('contacts-error'))) && (await exists(kb('contacts-empty'))) && /No companies yet/.test(await text(kb('contacts-empty'))))
-  check('the New button is on again and now says company', (await ev(`document.querySelector('[data-kb="contacts-new"]').disabled`)) === false && /company/i.test(await text(kb('contacts-new'))))
+  check('back to a normal state (nothing matches: archived is on, the base is empty)', !(await exists(kb('contacts-error'))) && (await exists(kb('contacts-empty'))) && /No contact matches/.test(await text(kb('contacts-empty'))))
+  check('Show archived is clicked again: the empty base invites a first contact', (await click(kb('contacts-archived'))) && (await waitFor(page, `document.querySelector('[data-kb="contacts-empty"]') !== null && document.querySelector('[data-kb="contacts-empty"]').getAttribute('data-why') === 'none'`, 4000)) !== null)
+  check('the Companies tab is clicked: no companies yet, the New button is on and now says company', (await click(kb('contacts-kind', '[data-kind="company"]'))) && /No companies yet/.test(await text(kb('contacts-empty'))) && (await ev(`document.querySelector('[data-kb="contacts-new"]').disabled`)) === false && /company/i.test(await text(kb('contacts-new'))))
   await click(kb('contacts-kind', '[data-kind="person"]'))
   await settled()
 
@@ -209,12 +250,27 @@ try {
   check('the page is opened again over the seeded base', (await reload()) === true)
   await settled()
   check('seven people (four sample, three of the person) are listed', (await waitRows(7)) !== null, await names())
+  const sortedNow = await names()
+  const lastUpdatedFirst = A(base.list('contact', { kind: 'person', limit: 500 })).rows.sort((a, b) => (Date.parse(b.updated_at) - Date.parse(a.updated_at)) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })).map((r) => r.name)
+  check('by default the rows are the last updated first, a tie broken by the name (the order never jumps)', JSON.stringify(sortedNow) === JSON.stringify(lastUpdatedFirst), { page: sortedNow, base: lastUpdatedFirst })
+  check('the bar\'s menu is opened with a real click and offers Sort by: Last updated, Name, Date added, Type', (await openMenu()) && /Last updated/.test(await text('.kb6-tb-pop')) && /Date added/.test(await text('.kb6-tb-pop')) && /Sort by/.test(await text('.kb6-tb-pop')))
+  const pickedName = await menuPick('Name')
+  await sleep(300)
+  const asc = await names()
+  check('Name is picked: the rows are A to Z (upper and lower case alike, accents ignored)', pickedName.ok === true && JSON.stringify(asc) === JSON.stringify(byName(asc)), asc)
+  check('the sort the menu shows as chosen is the one used, and the direction follows the name (ascending)', (await ev(`[...document.querySelectorAll('.kb6-tb-pop > button.on')].map((b) => b.innerText.split('\\n')[0].trim())`)).includes('Name'))
+  check('Descending is clicked: the rows are Z to A', (await segPick('Descending')) === true && JSON.stringify(await names()) === JSON.stringify(byName(asc).reverse()), await names())
+  await segPick('Ascending')
+  check('Ascending is clicked again: A to Z', JSON.stringify(await names()) === JSON.stringify(byName(asc)))
+  await closeMenu()
+  check('Escape closes the menu', !(await exists('.kb6-tb-pop')))
   const rowsNow = await names()
-  check('the rows come in the order the base gives (by name, upper and lower case alike)', Array.isArray(rowsNow) && rowsNow[0] === 'Bob Stone' && rowsNow.indexOf('Bob Stone') < rowsNow.indexOf('Chloé Dubois') && rowsNow.indexOf('Chloé Dubois') < rowsNow.indexOf('Léa Martin'), rowsNow)
+  check('the sort is kept in this browser (the core\'s own hook): after a reload the rows are still A to Z', (await reload()) === true && (await settled()) !== null && (await waitRows(7)) !== null && JSON.stringify(await names()) === JSON.stringify(rowsNow), await names())
+  check('the rows come A to Z (Bob, Chloé, Léa: upper and lower case alike)', rowsNow[0] === 'Bob Stone' && rowsNow.indexOf('Bob Stone') < rowsNow.indexOf('Chloé Dubois') && rowsNow.indexOf('Chloé Dubois') < rowsNow.indexOf('Léa Martin'), rowsNow)
   check('exactly the sample rows carry the « demo » badge', (await count(kb('contacts-row', '[data-demo="1"]'))) === 4 && (await count(kb('contacts-row') + ' ' + kb('contacts-demo-badge'))) === 4)
   check('the count says seven people', /^7 people/.test(await text(kb('contacts-count'))), await text(kb('contacts-count')))
   check('the sample banner explains it and offers to clear it', (await exists(kb('contacts-demo-banner'))) && (await exists(kb('contacts-clear-demo'))))
-  check('a person of a company shows the company under the name, one without shows the email', (await ev(`(() => { const r = [...document.querySelectorAll('[data-kb="contacts-row"]')]; const by = (n) => r.find((x) => x.querySelector('.n').textContent === n); return by('Léa Martin').querySelector('small').textContent === 'Acme Farm' && by('Zoe Kim').querySelector('small').textContent === 'zoe@example.com' })()`)) === true)
+  check('a row shows the email under the name, and a person of a company shows it in its own column', (await ev(`(() => { const r = [...document.querySelectorAll('[data-kb="contacts-row"]')]; const by = (n) => r.find((x) => x.querySelector('.n').textContent === n); return by('Léa Martin').querySelector('small').textContent === 'lea@acme.example' && by('Léa Martin').querySelector('.col-co').innerText.trim() === 'Acme Farm' && by('Zoe Kim').querySelector('small').textContent === 'zoe@example.com' && by('Zoe Kim').querySelector('.col-co').innerText.trim() === '—' })()`)) === true)
   const tableBox = await rect(kb('contacts-table'))
   const wrapBox = await rect('.kbcts-tw')
   check('the table stays inside its box (a very long name and a very long email do not push it out)', tableBox !== null && wrapBox !== null && tableBox.r <= wrapBox.r + 1, { tableBox, wrapBox })
@@ -222,7 +278,7 @@ try {
   const rowHeights = await ev(`[...document.querySelectorAll('[data-kb="contacts-row"]')].map((r) => Math.round(r.getBoundingClientRect().height))`)
   check('every row has the same height', Array.isArray(rowHeights) && Math.max(...rowHeights) - Math.min(...rowHeights) <= 1, rowHeights)
   check('the page has no horizontal scroll', (await overflowX()).doc <= 0)
-  check('the tag pills on a row are at most three, the rest counted', (await ev(`(() => { const r = [...document.querySelectorAll('[data-kb="contacts-row"]')].find((x) => x.querySelector('.n').textContent.startsWith('Ünal')); return r.querySelectorAll('[data-kb="contacts-row-tag"]').length === 3 && /\\+2/.test(r.innerText) })()`)) === true)
+  check('the tags on a row are at most two coloured chips, the rest counted', (await ev(`(() => { const r = [...document.querySelectorAll('[data-kb="contacts-row"]')].find((x) => x.querySelector('.n').textContent.startsWith('Ünal')); return r.querySelectorAll('[data-kb="contacts-row-tag"]').length === 2 && /\\+3/.test(r.innerText) && r.querySelectorAll('.kz-tag').length >= 3 })()`)) === true)
   if (themed) {
     check('the theme\'s types are chips (All + its types) when a kind has several, and no chip row when it has one', (await count(kb('contacts-type'))) === (kindTypes('person').length > 1 ? 1 + kindTypes('person').length : 0), kindTypes('person').length)
     check('a row says its type in the theme\'s word', /Customer|Client/i.test(await text(kb('contacts-row', '[data-id="' + own[0].id + '"]'))))
@@ -230,43 +286,65 @@ try {
     check('with one type per kind there is no chip row', (await count(kb('contacts-type'))) === 0)
     check('a row of no particular type says Person', /Person/.test(await text(kb('contacts-row', '[data-id="' + own[0].id + '"]'))))
   }
-  check('the tag filter lists the tags of the rows', (await ev(`[...document.querySelectorAll('[data-kb="contacts-tag"] option')].map((o) => o.value)`)).includes('vip'))
+  check('the bar\'s filter menu lists the tags of the rows, with how many rows carry each', (await openMenu()) && (await menuCount('vip')) === 2 && (await menuCount('repeat')) === 2 && (await menuCount('wholesale')) === 1, await text('.kb6-tb-pop'))
+  check('the menu says what its list is (the page names the group: the core\'s own word is « File type »)', (await ev(`getComputedStyle(document.querySelector('.kb6-tb-pop > .kb6-tb-pophead.row + .kb6-tb-facetlabel'), '::before').content`)) === '"Type and tags"')
+  await closeMenu()
   await shot('03-loaded')
+
+  // ── the product's bar, in the header row ────────────────────────────────────────────────────────────────────────
+  console.log('the product\'s own bar (KbToolbar), in the header row')
+  const hb = await ev(`(() => { const row = document.querySelector('[data-kb="contacts-page"] .kb6-headrow'); const tb = row === null ? null : row.querySelector('[data-kb="toolbar"]'); if (tb === null) return null; const col = row.querySelector('.kb6-headcol').getBoundingClientRect(); const t = tb.getBoundingClientRect(); const add = row.querySelector('[data-kb="contacts-new"]').getBoundingClientRect(); const wrap = document.querySelector('.kbcts-tw').getBoundingClientRect(); return { colRight: Math.round(col.right), toolbarLeft: Math.round(t.left), toolbarTop: Math.round(t.top), colTop: Math.round(col.top), addRight: Math.round(add.right), contentRight: Math.round(wrap.right), views: [...tb.querySelectorAll('[data-kb^="view-"]')].map((b) => [b.getAttribute('data-kb'), b.innerText.trim(), b.getAttribute('aria-pressed')]), search: tb.querySelector('[data-kb="toggle-search"]') !== null, star: tb.querySelector('[data-kb="toggle-favorites"]') !== null, menu: tb.querySelector('[data-kb="order-control"]') !== null, own: document.querySelector('[data-kb="contacts-own-bar"]') !== null } })()`)
+  check('the core\'s bar is drawn in the header row (and the page\'s own plain bar is not)', hb !== null && hb.own === false, hb)
+  if (hb !== null) {
+    check('it sits to the right of the title block, on the same row', hb.toolbarLeft >= hb.colRight - 1 && Math.abs(hb.toolbarTop - hb.colTop) <= 12, hb)
+    check('it has the search (a magnifier), the view switch with its words, the filter and sort button, and the primary action; no star, a contact has no favourite', hb.search && hb.menu && hb.star === false && JSON.stringify(hb.views.map((v) => v[1])) === JSON.stringify(['Cards', 'List']), hb)
+    check('the list is the view that is on, and the primary action ends where the content ends', JSON.stringify(hb.views.map((v) => v[2])) === JSON.stringify(['false', 'true']) && Math.abs(hb.addRight - hb.contentRight) <= 1, hb)
+  }
+  await shot('03b-header-bar')
 
   // ── search, kind, tag ───────────────────────────────────────────────────────────────────────────────────────
   console.log('search, kind and tag, with a real keyboard and mouse')
-  check('the search field is focused with a click', await click(kb('contacts-search')))
+  check('the magnifier is clicked: the field opens and takes the focus', (await openSearch()) === true && (await ev(`document.activeElement === document.querySelector(${JSON.stringify(SEARCH)})`)) === true)
   await type('Martin')
   await waitRows(1)
   check('typing « Martin » leaves one row', JSON.stringify(await names()) === JSON.stringify(['Léa Martin']), await names())
-  check('the count follows and the filters can be cleared', /^1 person/.test(await text(kb('contacts-count'))) && (await exists(kb('contacts-clear-filters'))))
-  await ev(`(() => { const e = document.querySelector('[data-kb="contacts-search"]'); e.select(); return 1 })()`)
+  check('the count follows and the filters can be cleared', /^1 person/.test(await text(kb('contacts-count'))) && (await exists(kb('contacts-clear-filters'))), await text(kb('contacts-count')))
+  check('the Companies tab says what the search finds there (nothing named Martin)', (await text(kb('contacts-kind', '[data-kind="company"]'))).replace(/\s+/g, ' ').trim() === 'Companies 0', await text(kb('contacts-kind', '[data-kind="company"]')))
+  await ev(`(() => { const e = document.querySelector(${JSON.stringify(SEARCH)}); e.select(); return 1 })()`)
   await type('zzz-nobody')
   await waitFor(page, `document.querySelector('[data-kb="contacts-empty"]') !== null`, 4000)
   check('a search that finds nothing says « No contact matches » and never « No contacts yet »', (await ev(`document.querySelector('[data-kb="contacts-empty"]').getAttribute('data-why')`)) === 'filtered' && /No contact matches/.test(await text(kb('contacts-empty'))) && !/No contacts yet/.test(await text(kb('contacts-empty'))))
   await shot('04-no-match')
   check('Clear filters is clicked', await click(kb('contacts-clear-filters')))
   await waitRows(7)
-  check('the full list is back and the field is empty', (await ev(`document.querySelector('[data-kb="contacts-search"]').value`)) === '' && (await names()).length === 7)
-  await click(kb('contacts-search'))
+  check('the full list is back and the field is empty', (await searchValue()) === '' && (await names()).length === 7)
+  await openSearch()
   await type('zoe@')
   await waitRows(1)
   check('the search covers the email', JSON.stringify(await names()) === JSON.stringify(['Zoe Kim']), await names())
+  check('the search field has its own clear button, and it empties the field', (await click('[data-kb="toolbar"] .kb6-tb-clear')) && (await waitRows(7)) !== null && (await searchValue()) === '')
   await click(kb('contacts-clear-filters'))
   await waitRows(7)
   check('the Companies tab is clicked and lists the two companies, with no people', (await click(kb('contacts-kind', '[data-kind="company"]'))) && (await waitRows(2)) !== null && JSON.stringify(await names()) === JSON.stringify(['Acme Farm', 'Blue Barn Co-op']), await names())
   check('the add button now says company, and the count says companies', /company/i.test(await text(kb('contacts-new'))) && /2 compan/.test(await text(kb('contacts-count'))))
+  check('a company row has no Company column, and is drawn with a building', (await count('.kbcts-tbl th.col-co')) === 0 && (await ev(`document.querySelector('[data-kb="contacts-row"] .kz-av svg') !== null`)) === true)
   await shot('05-companies')
   await click(kb('contacts-kind', '[data-kind="person"]'))
   await waitRows(7)
-  check('a tag pill on a row is clicked and filters by that tag', (await click(kb('contacts-row-tag', ''))) === true)
-  await settled()
-  const tagValue = await ev(`document.querySelector('[data-kb="contacts-tag"]').value`)
+  check('a tag on a row is clicked and filters by that tag: it becomes a chip of the strip', (await click(kb('contacts-row-tag', ''))) === true)
+  await sleep(300)
   const tagRows = await names()
-  check('the tag filter takes the value, and every remaining row carries it', tagValue !== '' && tagRows.length >= 1 && tagRows.length < 7, { tagValue, tagRows })
-  await click(kb('contacts-clear-filters'))
-  await waitRows(7)
-  check('the tag filter is set on « vip »: Léa and Zoe', (await pick(kb('contacts-tag'), 'vip')) === true && (await waitRows(2)) !== null && JSON.stringify((await names()).sort()) === JSON.stringify(['Léa Martin', 'Zoe Kim']), await names())
+  const chosenTag = await text(kb('contacts-active-tag'))
+  check('the chosen tag is shown as a removable chip, and every remaining row carries it', chosenTag !== null && chosenTag.trim() !== '' && tagRows.length >= 1 && tagRows.length < 7 && (await ev(`[...document.querySelectorAll('[data-kb="contacts-row"]')].every((r) => [...r.querySelectorAll('.kz-tag')].some((t) => t.textContent.trim() === ${JSON.stringify((chosenTag || '').trim())}) || /\\+\\d/.test(r.innerText))`)) === true, { chosenTag, tagRows })
+  check('the filter button of the bar says a filter is on (a dot)', (await exists('.kb6-tb-dot')) === true)
+  check('the chip is clicked: the tag is off and the seven rows are back', (await click(kb('contacts-active-tag') + ' button')) && (await waitRows(7)) !== null && !(await exists(kb('contacts-active-tag'))))
+  check('the filter menu is opened and « vip » picked: Léa and Zoe', (await openMenu()) && (await menuPick('vip')).ok === true && (await waitRows(2)) !== null && JSON.stringify((await names()).sort()) === JSON.stringify(['Léa Martin', 'Zoe Kim']), await names())
+  check('the menu shows it chosen, with a Reset, and the strip shows the chip', (await ev(`[...document.querySelectorAll('.kb6-tb-pop > button.on')].some((b) => b.innerText.split('\\n')[0].trim() === 'vip')`)) === true && (await exists('.kb6-tb-reset')) && (await exists(kb('contacts-active-tag'))))
+  check('a second tag is picked (« wholesale »): either tag keeps a row (Léa, Zoe and Bob)', (await menuPick('wholesale')).ok === true && (await waitRows(3)) !== null && JSON.stringify((await names()).sort()) === JSON.stringify(['Bob Stone', 'Léa Martin', 'Zoe Kim']), await names())
+  check('Reset is clicked: the filters are off and the seven rows are back', (await click('.kb6-tb-reset')) && (await waitRows(7)) !== null)
+  check('the period is set to 7 days (everything was changed a moment ago, so all seven stay), and the bar offers it', (await segPick('7 days')) === true && (await waitRows(7)) !== null && (await exists(kb('contacts-clear-filters'))))
+  await segPick('All')
+  await closeMenu()
   await click(kb('contacts-clear-filters'))
   await waitRows(7)
   if (themed) {
@@ -278,13 +356,53 @@ try {
     }
   }
 
+  // ── the views ───────────────────────────────────────────────────────────────────────────────────────────────
+  console.log('the views: list and cards')
+  check('Cards is clicked: a grid of contact cards, one per person, the table is gone', (await click(kb('view-cards'))) && (await waitFor(page, `document.querySelectorAll('[data-kb="contacts-cards"] [data-kb="contacts-row"]').length === 7`, 4000)) !== null && !(await exists(kb('contacts-table'))))
+  await sleep(900)
+  const cardBox = await rect(kb('contacts-row'))
+  const gridBox = await rect(kb('contacts-cards'))
+  check('the cards are laid out in a grid inside the page (no overflow, several to a row)', cardBox !== null && gridBox !== null && cardBox.r <= gridBox.r + 1 && (await ev(`new Set([...document.querySelectorAll('[data-kb="contacts-row"]')].map((c) => Math.round(c.getBoundingClientRect().top))).size`)) < 7 && (await overflowX()).doc <= 0, { cardBox, gridBox })
+  check('a card has a big avatar, the type as a coloured chip, and the tags as coloured chips', (await ev(`(() => { const c = [...document.querySelectorAll('[data-kb="contacts-row"]')].find((x) => x.querySelector('.n').textContent === 'Léa Martin'); return c.querySelector('.kz-av') !== null && c.querySelector('.kz-av').getBoundingClientRect().width >= 52 && c.querySelectorAll('.kz-tag').length >= 3 && c.querySelector('.kz-tag i') !== null })()`)) === true)
+  check('the view is kept in this browser: after a reload the cards are still there', (await reload()) === true && (await settled()) !== null && (await waitFor(page, `document.querySelector('[data-kb="contacts-cards"]') !== null`, 5000)) !== null)
+  await shot('05b-cards')
+  await sleep(1200)
+  const lifted = await ev(`(() => { const c = document.querySelector('[data-kb="contacts-row"]'); return { before: getComputedStyle(c).transform, acts: getComputedStyle(c.querySelector('.kbcts-ra')).opacity } })()`)
+  await hover(kb('contacts-row'))
+  await sleep(350)
+  const lifted2 = await ev(`(() => { const c = document.querySelector('[data-kb="contacts-row"]'); return { after: getComputedStyle(c).transform, acts: getComputedStyle(c.querySelector('.kbcts-ra')).opacity } })()`)
+  check('hovering a card lifts it (a translate up) and shows its actions, which were hidden', lifted.before === 'none' && /matrix\(1, 0, 0, 1, 0, -\d/.test(lifted2.after) && lifted.acts === '0' && lifted2.acts === '1', { lifted, lifted2 })
+  await shot('05c-cards-hover')
+  check('Enter on a focused card opens its panel (the cards use the keyboard of the rows)', (await focus(kb('contacts-row'))) && (await press('Enter'), (await waitFor(page, `document.querySelector('[data-kb="contacts-panel"]') !== null`, 4000)) !== null))
+  check('the selected card is marked, and the grid makes room for the panel', (await ev(`document.querySelector('[data-kb="contacts-row"][aria-current="true"]') !== null`)) === true && (await exists('.kbcts-body.has-panel')))
+  await shot('05d-cards-panel')
+  await press('Escape')
+  await sleep(450)
+  check('Escape closes it and the card has the focus back', !(await exists(kb('contacts-panel'))) && (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'contacts-row')
+  check('List is clicked: the table is back', (await click(kb('view-list'))) && (await waitRows(7)) !== null && (await exists(kb('contacts-table'))) && !(await exists(kb('contacts-cards'))))
+  const rowBefore = await ev(`getComputedStyle(document.querySelector('[data-kb="contacts-row"] .kbcts-ra')).opacity`)
+  await hover(kb('contacts-row'))
+  check('hovering a row shows its actions (write, edit) in place of the date', rowBefore === '0' && (await ev(`(() => { const r = document.querySelector('[data-kb="contacts-row"]'); return getComputedStyle(r.querySelector('.kbcts-ra')).opacity === '1' && getComputedStyle(r.querySelector('.when')).opacity === '0' })()`)) === true)
+  check('a row action does not open the panel: Edit opens the dialog filled with that contact, and Escape closes it', (await click(kb('contacts-row') + ' ' + kb('contacts-row-edit'))) && (await waitFor(page, `document.querySelector('[data-kb="contacts-dialog"]') !== null`, 3000)) !== null && !(await exists(kb('contacts-panel'))) && (await ev(`document.querySelector('[data-kb="contacts-form-name"]').value`)) !== '')
+  await press('Escape')
+  await sleep(250)
+  check('the mail action is a real link to the person\'s address', (await ev(`(() => { const a = document.querySelector('[data-kb="contacts-row-mail"]'); return a !== null && a.tagName === 'A' && /^mailto:[^\\s@]+@[^\\s@]+$/.test(a.getAttribute('href')) })()`)) === true)
+
   // ── keyboard order ──────────────────────────────────────────────────────────────────────────────────────────
   console.log('the keyboard reaches everything')
+  await focus('.kb6-titlerow button')
+  const barOrder = []
+  for (let i = 0; i < 8; i += 1) { await press('Tab'); barOrder.push(await active()) }
+  check('from the help button, Tab reaches the bar: search, both views, the filter button, then the primary action', ['toggle-search', 'view-cards', 'view-list', 'contacts-new'].every((k) => barOrder.includes(k)) && barOrder.indexOf('toggle-search') < barOrder.indexOf('view-cards') && barOrder.indexOf('view-list') < barOrder.indexOf('contacts-new'), barOrder)
   await focus(kb('contacts-new'))
   const order = []
   for (let i = 0; i < 14; i += 1) { await press('Tab'); order.push(await active()) }
-  check('from the New button, Tab reaches the search, both kinds, the archived toggle and then the rows', ['contacts-search', 'contacts-kind', 'contacts-archived', 'contacts-row'].every((k) => order.includes(k)), order)
-  check('the order follows the page (search before the kinds before the rows)', order.indexOf('contacts-search') < order.indexOf('contacts-kind') && order.indexOf('contacts-kind') < order.indexOf('contacts-row'), order)
+  check('from the New button, Tab reaches both kinds, the archived toggle and then the rows', ['contacts-kind', 'contacts-archived', 'contacts-row'].every((k) => order.includes(k)), order)
+  check('the order follows the page (the kinds before the archived toggle before the rows)', order.indexOf('contacts-kind') < order.indexOf('contacts-archived') && order.indexOf('contacts-archived') < order.indexOf('contacts-row'), order)
+  await focus(kb('contacts-archived'))
+  await press('Tab')
+  check('a row reached with Tab has a visible ring (2 px outline)', (await ev(`(() => { const a = document.activeElement; const cs = getComputedStyle(a); return a.getAttribute('data-kb') === 'contacts-row' && parseFloat(cs.outlineWidth) >= 2 && cs.outlineStyle !== 'none' })()`)) === true)
+  check('and its actions are shown for the keyboard, as they are for the mouse', (await ev(`getComputedStyle(document.activeElement.querySelector('.kbcts-ra')).opacity`)) === '1')
   await focus(kb('contacts-row'))
   const first = await ids()
   await press('ArrowDown')
@@ -295,7 +413,7 @@ try {
   await waitFor(page, `document.querySelector('[data-kb="contacts-panel"]') !== null`, 4000)
   check('Enter on a row opens its panel, and the focus goes into it', (await exists(kb('contacts-panel'))) && (await ev(`document.querySelector('[data-kb="contacts-panel"]').contains(document.activeElement)`)) === true)
   await press('Escape')
-  await sleep(200)
+  await sleep(450)
   check('Escape closes the panel and gives the focus back to the row', !(await exists(kb('contacts-panel'))) && (await ev(`document.activeElement.getAttribute('data-id')`)) === String(first[0]))
 
   // ── the panel, a note ───────────────────────────────────────────────────────────────────────────────────────
@@ -314,6 +432,9 @@ try {
   check('the list stays visible next to it, and the selected row is marked', (await exists(kb('contacts-table'))) && (await ev(`document.querySelector('[data-kb="contacts-row"][data-id="${leaId}"]').getAttribute('aria-current')`)) === 'true')
   check('a note has no edit and no delete (they are added, never edited)', (await count(kb('contacts-note') + ' button')) === 0 && (await count(kb('contacts-note') + ' textarea')) === 0)
   check('the add-note button is off while the note is empty', (await ev(`document.querySelector('[data-kb="contacts-note-add"]').disabled`)) === true)
+  check('the panel opens on a tinted header: a big avatar, the name, the type as a coloured chip, the company beside it, and Email and Edit up there', (await ev(`(() => { const p = document.querySelector('[data-kb="contacts-panel"]'); const hero = p.querySelector('.kbcts-hero'); return hero !== null && getComputedStyle(hero).backgroundImage.includes('gradient') && hero.querySelector('.kz-av').getBoundingClientRect().width >= 56 && hero.querySelector('.kz-tag') !== null && /Acme Farm/.test(hero.innerText) && hero.querySelector('[data-kb="contacts-mail"]') !== null && hero.querySelector('[data-kb="contacts-edit"]') !== null })()`)) === true)
+  check('the tags of the panel are the same coloured chips as the row (same tag, same hue)', (await ev(`(() => { const hue = (e) => getComputedStyle(e).getPropertyValue('--kz-h').trim(); const row = [...document.querySelectorAll('[data-kb="contacts-row"][data-id="${leaId}"] .kz-tag')].find((t) => t.textContent.trim() === 'vip'); const pan = [...document.querySelectorAll('[data-kb="contacts-panel"] .kz-tag')].find((t) => t.textContent.trim() === 'vip'); return row !== undefined && pan !== undefined && hue(row) !== '' && hue(row) === hue(pan) })()`)) === true)
+  check('the notes are a timeline: a round icon per note, then the day the contact was added, the last point', (await count(kb('contacts-timeline') + ' > li')) === 2 && (await count(kb('contacts-timeline') + ' .dot svg')) === 2 && (await ev(`document.querySelector('[data-kb="contacts-timeline"] > li:last-child').getAttribute('data-kb')`)) === 'contacts-created')
   await shot('06-panel')
   check('the note field is clicked and a note typed with the keyboard', await click(kb('contacts-note-input')))
   await type('Called back: wants delivery on Friday.')
@@ -336,6 +457,68 @@ try {
   await waitFor(page, `document.querySelectorAll('[data-kb="contacts-note"]').length === 2`, 5000)
   check('after a reload the note is still there', (await count(kb('contacts-note'))) === 2)
   await click(kb('contacts-panel-close'))
+
+  // ── motion ──────────────────────────────────────────────────────────────────────────────────────────────────
+  // The clicks that start an animation are made from the page (a real click and a sleep would miss the first frames); what is asserted is what the browser computes while it plays.
+  console.log('motion: the stagger, the panel in and out, the pop, the press, and none of it under reduced motion')
+  await sleep(500)
+  const sample = (js, ms, every) => ev(`new Promise((res) => { const out = []; const t0 = performance.now(); const tick = () => { out.push([Math.round(performance.now() - t0), (${js})]); if (performance.now() - t0 < ${ms}) setTimeout(tick, ${every || 40}); else res(out) }; tick() })`)
+  await ev(`(() => { document.querySelector('[data-kb="view-cards"]').click(); return 1 })()`)
+  // the entry belongs to the cell of a card (the card keeps its own transform for the hover lift) and to the row of a table
+  const entry = await sample(`(() => { const c = [...document.querySelectorAll('[data-kb="contacts-row"]')].map((x) => x.closest('.kz-in')); return c.length < 7 ? null : [0, 3, 6].map((i) => Number(getComputedStyle(c[i]).opacity)) })()`, 1100, 50)
+  const entered = entry.filter((e) => e[1] !== null)
+  check('the cards come in one after the other: the first is up while the seventh has not begun, and all are whole at the end', entered.some((e) => e[1][0] > 0.5 && e[1][2] < 0.2) && entered[entered.length - 1][1].every((o) => o === 1), entered.map((e) => e[0] + ':' + e[1].map((o) => o.toFixed(2)).join('/')).join(' '))
+  check('the delay grows with the position (30 ms a step) and the animation is the kit\'s kz-in', (await ev(`(() => { const c = [...document.querySelectorAll('[data-kb="contacts-row"]')].map((x) => x.closest('.kz-in')); const d = (i) => parseFloat(getComputedStyle(c[i]).animationDelay); return getComputedStyle(c[0]).animationName === 'kz-in' && d(0) === 0 && Math.abs(d(6) - 0.18) < 0.001 && d(3) < d(6) })()`)) === true)
+  await ev(`(() => { document.querySelector('[data-kb="view-list"]').click(); return 1 })()`)
+  await waitRows(7)
+  await sleep(900)
+  const leaSel = kb('contacts-row', '[data-id="' + leaId + '"]')
+  await ev(`(() => { document.querySelector('${leaSel}').click(); return 1 })()`)
+  const slide = await sample(`(() => { const p = document.querySelector('[data-kb="contacts-panel"]'); return p === null ? null : [Number(getComputedStyle(p).opacity), getComputedStyle(p).animationName, new DOMMatrix(getComputedStyle(p).transform).m41] })()`, 450, 30)
+  const slid = slide.filter((e) => e[1] !== null)
+  check('the panel slides in: it starts transparent and shifted to the right, and ends whole and in place', slid.length > 3 && slid[0][1][1] === 'kbcts-slide' && slid.some((e) => e[1][0] < 0.9 && e[1][2] > 0.5) && slid[slid.length - 1][1][0] === 1 && slid[slid.length - 1][1][2] === 0, slid.slice(0, 6).map((e) => e[0] + ':' + e[1][0].toFixed(2) + '/' + e[1][2].toFixed(1)).join(' '))
+  await ev(`(() => { document.querySelector('[data-kb="contacts-panel-close"]').click(); return 1 })()`)
+  const out = await sample(`(() => { const p = document.querySelector('[data-kb="contacts-panel"]'); return p === null ? 'gone' : [Number(getComputedStyle(p).opacity), p.className] })()`, 450, 30)
+  const outFirst = out.find((e) => e[1] !== 'gone' && /\bout\b/.test(e[1][1]))
+  check('the panel slides out before it goes: its class says so and it fades, then it is gone within a fifth of a second or so', outFirst !== undefined && out.some((e) => e[1] !== 'gone' && e[1][0] < 0.9) && out.find((e) => e[1] === 'gone')[0] <= 400, out.map((e) => e[0] + ':' + (e[1] === 'gone' ? 'gone' : e[1][0].toFixed(2))).join(' '))
+  await sleep(300)
+  check('the row has the focus back when the panel is gone', (await ev(`document.activeElement.getAttribute('data-id')`)) === String(leaId))
+  // the pop of a tag that is chosen
+  await ev(`(() => { document.querySelector('[data-kb="contacts-row-tag"] button').click(); return 1 })()`)
+  const pop = await sample(`(() => { const t = document.querySelector('[data-kb="contacts-active-tag"]'); return t === null ? null : [getComputedStyle(t).animationName, new DOMMatrix(getComputedStyle(t).transform).a] })()`, 400, 30)
+  const popped = pop.filter((e) => e[1] !== null)
+  check('a chosen tag appears with a pop: the kit\'s kz-pop, the chip swells above its size and settles back', popped.length > 2 && popped[0][1][0] === 'kz-pop' && popped.some((e) => e[1][1] > 1.05) && Math.abs(popped[popped.length - 1][1][1] - 1) < 0.01, popped.map((e) => e[0] + ':' + e[1][1].toFixed(2)).join(' '))
+  await click(kb('contacts-clear-filters'))
+  await waitRows(7)
+  // a press
+  const kindBtn = kb('contacts-kind', '[data-kind="company"]')
+  const kr = await rect(kindBtn)
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: kr.x + kr.w / 2, y: kr.y + kr.h / 2 })
+  await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: kr.x + kr.w / 2, y: kr.y + kr.h / 2, button: 'left', clickCount: 1 })
+  await sleep(250)
+  const pressed = await css(kindBtn, 'transform')
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: kr.x + kr.w / 2, y: kr.y + kr.h / 2, button: 'left', clickCount: 1 })
+  await sleep(300)
+  check('a button gives way under the finger: pressed, it is scaled down (0.96), and it comes back', /matrix\(0\.9[0-9]+, 0, 0, 0\.9[0-9]+/.test(pressed) && (await css(kindBtn, 'transform')) === 'none', pressed)
+  await click(kb('contacts-kind', '[data-kind="person"]'))
+  await waitRows(7)
+  // reduced motion: nothing moves, and the panel goes at once
+  await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+  await sleep(300)
+  await ev(`(() => { document.querySelector('[data-kb="view-cards"]').click(); return 1 })()`)
+  await sleep(100)
+  const calm = await ev(`(() => { const c = document.querySelector('[data-kb="contacts-row"]'); const k = document.querySelector('.kbcts-seg button'); const cell = c.closest('.kz-in'); return { anim: getComputedStyle(cell).animationName, opacity: getComputedStyle(cell).opacity, cardTrans: getComputedStyle(c).transitionDuration, btnTrans: getComputedStyle(k).transitionDuration, acts: getComputedStyle(c.querySelector('.kbcts-ra')).transform } })()`)
+  check('under reduced motion the cards do not animate in, nor transition, and nothing is hidden for the sake of an animation', calm.anim === 'none' && calm.opacity === '1' && calm.cardTrans === '0s' && calm.btnTrans === '0s', calm)
+  await ev(`(() => { document.querySelector('[data-kb="contacts-row"]').click(); return 1 })()`)
+  await sleep(150)
+  check('and its panel is there without a slide', (await css(kb('contacts-panel'), 'animationName')) === 'none' && (await css(kb('contacts-panel'), 'opacity')) === '1')
+  await ev(`(() => { document.querySelector('[data-kb="contacts-panel-close"]').click(); return 1 })()`)
+  await sleep(30)
+  check('the panel closes at once (no slide-out to wait for)', !(await exists(kb('contacts-panel'))))
+  await ev(`(() => { document.querySelector('[data-kb="view-list"]').click(); return 1 })()`)
+  await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] })
+  await sleep(300)
+  await waitRows(7)
 
   // ── new ─────────────────────────────────────────────────────────────────────────────────────────────────────
   console.log('a new contact')
@@ -433,24 +616,26 @@ try {
   await shot('11-after-clear')
 
   // ── a long list ─────────────────────────────────────────────────────────────────────────────────────────────
-  console.log('a long list is paged')
-  for (let i = 0; i < 130; i += 1) A(base.create('contact', { kind: 'person', type: T.person, name: 'Bulk ' + String(i).padStart(3, '0'), email: 'bulk' + i + '@example.com' }, { actor: 'person' }))
+  console.log('a long list is paged (the host gives 500 rows a page: the facets, the sort and the period work on the page read)')
+  for (let i = 0; i < 520; i += 1) A(base.create('contact', { kind: 'person', type: T.person, name: 'Bulk ' + String(i).padStart(3, '0'), email: 'bulk' + i + '@example.com' }, { actor: 'person' }))
+  const t0 = Date.now()
   await reload()
   await settled()
-  check('the first page has 100 rows and the pager says where it is', (await waitRows(100)) !== null && /1–100 \/ 134/.test(await text(kb('contacts-pager'))), await text(kb('contacts-pager')))
-  check('Previous is off on the first page, and the count says 134', (await ev(`document.querySelector('[data-kb="contacts-pager-prev"]').disabled`)) === true && /^134 people/.test(await text(kb('contacts-count'))))
+  check('the first page has 500 rows and the pager says where it is', (await waitRows(500)) !== null && /1–500 \/ 524/.test(await text(kb('contacts-pager'))), await text(kb('contacts-pager')))
+  console.log('  (500 rich rows drawn and settled in ' + (Date.now() - t0) + ' ms, reload included)')
+  check('Previous is off on the first page, and the count says 500, with a plus (there are more)', (await ev(`document.querySelector('[data-kb="contacts-pager-prev"]').disabled`)) === true && /^500 people \+/.test(await text(kb('contacts-count'))), await text(kb('contacts-count')))
   const clickedNext = await click(kb('contacts-pager-next'))
-  const got34 = await waitRows(34)
-  check('Next is clicked and the second page has the other 34', clickedNext && got34 !== null && /101–134 \/ 134/.test(await text(kb('contacts-pager'))), { clickedNext, rows: await count(kb('contacts-row')), pager: await text(kb('contacts-pager')), err: await ev(`window.__chk.errs`) })
+  const got24 = await waitRows(24)
+  check('Next is clicked and the second page has the other 24', clickedNext && got24 !== null && /501–524 \/ 524/.test(await text(kb('contacts-pager'))), { clickedNext, rows: await count(kb('contacts-row')), pager: await text(kb('contacts-pager')), err: await ev(`window.__chk.errs`) })
   const nextOff = await ev(`document.querySelector('[data-kb="contacts-pager-next"]').disabled`)
   const clickedPrev = await click(kb('contacts-pager-prev'))
-  const got100 = await waitRows(100)
-  check('Next is off on the last page, Previous brings the first back', nextOff === true && clickedPrev && got100 !== null, { nextOff, clickedPrev, rows: await count(kb('contacts-row')) })
+  const got500 = await waitRows(500)
+  check('Next is off on the last page, Previous brings the first back', nextOff === true && clickedPrev && got500 !== null, { nextOff, clickedPrev, rows: await count(kb('contacts-row')) })
   await ev(`(() => { const e = document.querySelector('[data-kb="contacts-pager"]'); if (e !== null) e.scrollIntoView({ block: 'end', behavior: 'instant' }); return 1 })()`)
   await sleep(300)
   await shot('12-paged')
-  check('Next is clicked again, to be on the second page', (await click(kb('contacts-pager-next'))) && (await waitRows(34)) !== null)
-  check('the search field is clicked and « Bulk 12 » typed', (await click(kb('contacts-search'))) === true)
+  check('Next is clicked again, to be on the second page', (await click(kb('contacts-pager-next'))) && (await waitRows(24)) !== null)
+  check('the magnifier is clicked and « Bulk 12 » typed', (await openSearch()) === true)
   await type('Bulk 12')
   await waitFor(page, `document.querySelectorAll('[data-kb="contacts-row"]').length === 10`, 5000)
   const bulk = await names()
@@ -504,8 +689,8 @@ try {
   await settled()
   await page.send('Emulation.setDeviceMetricsOverride', { width: 470, height: 900, deviceScaleFactor: 1, mobile: false })
   await sleep(700)
-  const narrow = await ev(`(() => { const hid = (c) => { const e = document.querySelector('.kbcts-tbl ' + c); return e === null ? null : getComputedStyle(e).display === 'none' }; return { tags: hid('.col-tags'), upd: hid('.col-upd'), doc: document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth } })()`)
-  check('at 470 px the tags and the date columns give way, and nothing overflows', narrow.tags === true && narrow.upd === true && narrow.doc <= 0, narrow)
+  const narrow = await ev(`(() => { const hid = (c) => { const e = document.querySelector('.kbcts-tbl ' + c); return e === null ? null : getComputedStyle(e).display === 'none' }; return { tags: hid('.col-tags'), upd: hid('.col-upd'), co: hid('.col-co'), doc: document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth } })()`)
+  check('at 470 px the company, tags and date columns give way (the name and the type stay), and nothing overflows', narrow.tags === true && narrow.upd === true && narrow.co === true && narrow.doc <= 0, narrow)
   await click(kb('contacts-row'))
   await waitFor(page, `document.querySelector('[data-kb="contacts-panel"] h3') !== null`, 4000)
   const pb = await rect(kb('contacts-panel'))
@@ -519,8 +704,41 @@ try {
   await sleep(500)
   const fr = await text(kb('contacts-page'))
   check('in French the page speaks French (title row, button, columns)', /Nouveau contact/.test(fr) && /modifié/i.test(fr) && /Personnes/.test(fr), fr.slice(0, 160))
+  check('and the name the page gives the facet group of the menu is French too', (await ev(`getComputedStyle(document.querySelector('[data-kb="contacts-page"]')).getPropertyValue('--kbcts-facet').trim()`)) === '"Type et étiquettes"')
   await shot('15-french')
   await ev(`(() => { window.__KB_LANG_RESOLVE__ = () => 'en'; window.dispatchEvent(new Event('kb-domain-change')); return 1 })()`)
+
+  // ── colour: the same word is the same hue, and every chip can be read, in light and in dark ──────────────────────
+  console.log('colour: the same word, the same hue; every chip readable in light and in dark')
+  base.deleteAll({ confirm: true, actor: 'person' })
+  const manyTags = ['vip', 'repeat', 'wholesale', 'prospect', 'urgent', 'family', 'investor', 'cash', 'mandate', 'new', 'lender', 'notary', 'referral', 'portfolio', 'relocation', 'first-time']
+  A(base.create('contact', { kind: 'person', type: T.person, name: 'Hue Check', email: 'hue@example.com', tags: manyTags }, { actor: 'person' }))
+  A(base.create('contact', { kind: 'person', type: T.person, name: 'Hue Twin', email: 'twin@example.com', tags: ['vip', 'cash'] }, { actor: 'person' }))
+  await reload()
+  await settled()
+  await waitRows(2)
+  await click(kb('view-cards'))
+  await sleep(900)
+  check('the same tag has the same hue on two cards, and the chip of the panel', (await click(kb('contacts-row') + ' h3')) && (await ev(`(() => { const hue = (e) => getComputedStyle(e).getPropertyValue('--kz-h').trim(); const all = [...document.querySelectorAll('[data-kb="contacts-row"] .kz-tag, [data-kb="contacts-panel"] .kz-tag')].filter((t) => t.textContent.trim() === 'vip'); return all.length >= 3 && new Set(all.map(hue)).size === 1 && hue(all[0]) !== '' })()`)) === true)
+  check('the hues of the sixteen tags are not all the same (the colour follows the word)', (await ev(`new Set([...document.querySelectorAll('[data-kb="contacts-panel"] .kz-tag')].map((t) => getComputedStyle(t).getPropertyValue('--kz-h').trim())).size`)) >= 6)
+  const CONTRAST = `(() => {
+    const parse = (c) => { let m = c.match(/^color\\(srgb ([^)]+)\\)/); if (m) { const [rgb, a] = m[1].split('/'); const p = rgb.trim().split(/\\s+/).map(Number); return { r: p[0] * 255, g: p[1] * 255, b: p[2] * 255, a: a === undefined ? 1 : Number(a) } } m = c.match(/^rgba?\\(([^)]+)\\)/); if (m) { const p = m[1].split(/[ ,\\/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p[3] === undefined ? 1 : p[3] } } return null }
+    const over = (top, bottom) => { const a = top.a + bottom.a * (1 - top.a); return { r: (top.r * top.a + bottom.r * bottom.a * (1 - top.a)) / a, g: (top.g * top.a + bottom.g * bottom.a * (1 - top.a)) / a, b: (top.b * top.a + bottom.b * bottom.a * (1 - top.a)) / a, a } }
+    const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b) }
+    const ratio = (a, b) => { const l1 = lum(a); const l2 = lum(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05) }
+    const bgOf = (e) => { const stack = []; let n = e; while (n && n.nodeType === 1) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { stack.push(c); if (c.a >= 1) break } n = n.parentElement } let base = { r: 255, g: 255, b: 255, a: 1 }; for (let i = stack.length - 1; i >= 0; i -= 1) base = over(stack[i], base); return base }
+    return [...document.querySelectorAll('[data-kb="contacts-panel"] .kz-tag, [data-kb="contacts-row"] .kz-tag')].map((t) => { const bg = bgOf(t); return [t.textContent.trim(), Number(ratio(over(parse(getComputedStyle(t).color), bg), bg).toFixed(2))] })
+  })()`
+  const setScheme = async (want) => { for (let i = 0; i < 3; i += 1) { if ((await ev(`document.body.hasAttribute('data-ds-dark-theme')`)) === (want === 'dark')) return true; await ev(`[...document.querySelectorAll('button')].filter((b) => /^(Dark|Light) theme$/.test(b.getAttribute('aria-label') || '')).forEach((b) => b.click())`); await sleep(900) } return false }
+  for (const scheme of ['light', 'dark']) {
+    check('the ' + scheme + ' scheme is on', (await setScheme(scheme)) === true)
+    const chips = await ev(CONTRAST)
+    const worst = chips.slice().sort((a, b) => a[1] - b[1])[0]
+    check('in ' + scheme + ', every tag and type chip reads at 4.5 : 1 or better on its own tint (the weakest is « ' + worst[0] + ' » at ' + worst[1] + ')', chips.length >= 16 && worst[1] >= 4.5, chips.filter((c) => c[1] < 4.5))
+    await shot('16-colour-' + scheme)
+  }
+  await setScheme('light')
+  await click(kb('contacts-panel-close'))
 
   // ── the end: nothing broke on the way ───────────────────────────────────────────────────────────────────────
   console.log('nothing broke on the way')
