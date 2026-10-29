@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "nom": "Atelier Café",
+  "slogan": "Le café, honnête et vivant.",
+  "annonce": "Livraison offerte dès 45 € · Torréfié à la commande, expédié sous 48 h",
+  "sections": ["announcement", "header", "hero", "chips", "products", "best", "faq", "footer"],
+  "palette": {
+    "paper": "#f7f2e9",
+    "paper-2": "#efe6d3",
+    "surface": "#fffdf7",
+    "ink": "#241a12",
+    "ink-soft": "#4e3d2e",
+    "muted": "#7a6550",
+    "line": "#e0d2ba",
+    "accent": "#b4551f",
+    "accent-ink": "#fff8ef",
+    "accent-soft": "#f4e2cf",
+    "sale": "#a32c1c",
+    "new": "#4a6b2f"
+  }
+}

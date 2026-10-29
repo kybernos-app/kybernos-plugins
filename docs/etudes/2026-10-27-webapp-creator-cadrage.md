@@ -143,12 +143,27 @@ domains for exactly these three reasons.
 B as the internal beta fallback if the registration waits; Phase 1 (local build) needs no domain at
 all.
 
-**Where the app runs (decision 2).** The ask is « hosted on the Kybernos Computer ». Measured reality:
-a computer **suspends** and can refuse with `run_hours_exhausted` (`packages/kybernos-cloud/index.js`,
-`COMPUTER_REFUSALS`) — a public site on it goes down with it. Options: (a) keep the computer awake
-while an app is published (run-hours cost), (b) a small always-on runner (a VPS/container, the
-`hosted-instances.md` pattern), (c) publish only static snapshots + tiny API. This is the one
-product decision that shapes the SLA we can honestly advertise.
+**Where the apps run — ✅ decided 2026-10-27 (second round).** One **cloud computer per user**:
+the person's own Kybernos Computer when they have one, else a machine created on **fly.io** (Fly
+Machines, Firecracker micro-VMs). What the industry does, measured the same day: **Manus 1.5** runs
+every generated app on its own serverless **TiDB X** cluster (tenants → apps → clusters, one schema
+per app, copy-on-write **branching** — git for data — and RU cost metering;
+[PingCAP case study](https://www.pingcap.com/blog/how-manus-1-5-uses-tidb-x-to-let-agents-ship-full-stack-apps-at-scale/));
+**Lovable** defaults to Supabase, **v0** to Neon, **Bolt** to Supabase/Firebase
+([comparison](https://swyftstack.com/blog/best-database-for-ai-generated-apps)). Our stack, keeping
+the mini base as the differentiator (the data stays the person's, visible in DSH):
+
+| Layer | Choice | Why |
+|---|---|---|
+| Edge | one Fly router machine + Vercel DNS (`*.kaby.app`, wildcard TLS via `caddy-dns/vercel`) | the domain is on Vercel; one cert, one route table |
+| Compute | **the person chooses at publish time** — their own computer exposed to the internet (tunnel), or a Fly Machine (several allowed, autostart on HTTP); their Kybernos Computer when they have one | two publishers behind ONE app contract; the slug registry records the target |
+| App | `server.js` per app (Node 22, `node:sqlite`), ports as today | the runtime of batch 2 works unchanged on both targets |
+| Client | **a stack catalog, chosen per need in the brief** — `statique` (landing: HTML nu, first form → upgrade), `web` (React/Vite + Capacitor for stores), `mobile` (Expo, when native modules matter: push, camera, store-native) | the app contract stays invariant; the adversarial review of 2026-10-27 killed a single default (RNW bundle/SEO/Apple 4.3 vs Expo-native); each template is validated by the same regeneration test |
+| Data | **mini base SQLite on a Fly volume** (published copy) | zero new concepts; the contract stays |
+| Promotion | when real users arrive: `DATABASE_URL` → Postgres (Neon / Supabase / plain) | AI-generated schemas change fast; plain Postgres is what models prompt best, and it is the industry's graduation path |
+
+Kept from the measurements: a suspended Kybernos Computer still takes its apps down — which is why
+Fly carries the public links and the Computer stays the local-first story.
 
 ## 7. What exists vs what must be built
 
@@ -184,8 +199,9 @@ product decision that shapes the SLA we can honestly advertise.
    for user content, §6). At publish time: one `*.kaby.app` record to the app proxy, the apex to
    `kybernos.app`, wildcard TLS via ACME DNS-01 (`caddy-dns/vercel`), and the domain must NOT be
    attached to a Vercel project.
-2. **Where apps run**: keep the Kybernos Computer awake while published (a), always-on runner (b),
-   or static+API only (c)? This sets the honest availability promise.
+2. **Where apps run** — ✅ **decided 2026-10-27**: one cloud computer per user (their Kybernos
+   Computer, or a Fly Machine created for them); SQLite on a volume, `DATABASE_URL` promotion to
+   Postgres when an app graduates (§6 table).
 3. **Access**: link key by default (proposal) — agreed?
 4. **Skills delivery**: seed into `<DSH home>/skills` today (the `plugin-creator` precedent) or build
    the `kybernos/skills#skill` point first (contract work, benefits every vertical bundle)?
@@ -218,3 +234,28 @@ logs page, static-site fast path.
 | Zero DSH boot failures caused by the bundle | the existing bundle-faults gate |
 | Every delivered page passes the five-point UI pass with screenshots read | the build log + `regard.md` |
 | Published apps refuse an anonymous visitor when the key is on | the live smoke test |
+
+## 12. Decisions frozen (2026-10-27, after two adversarial reviews)
+
+Owner answers to the four open questions, with the "evolutif + entreprise ready" criterion:
+
+1. **Scope** — foundation first (visitor auth, uploads, versioned migrations, audit log), commerce
+   right after: enterprises audit before they buy, and the foundation *is* the evolutivity.
+2. **Payments** — **Stripe direct on the person's own account** (money sovereignty mirrors data
+   sovereignty); MoR (Paddle / Lemon Squeezy) only as a later option. Signed idempotent webhooks +
+   reconciliation are part of the deal.
+3. **Multi-tenancy** — **one database per app** (strongest isolation, no forgotten `WHERE`), plus a
+   future « dedicated instance » tier for enterprises.
+4. **Backups** — **RPO ≤ 5 min, RTO ≤ 30 min**, with an **automatic weekly restore drill** whose
+   report is visible (a restore that is not timed is a prayer).
+
+OSS verdict (challenge of 2026-10-27, A→B→C): the master rule is **« sovereign contracts and data;
+every dependency isolated and proven replaceable by an executed test »** — engines allowed if their
+removal takes no data. Refine is out of the core (generated admin = TanStack + React Hook Form +
+Zod); Medusa is a conceptual reference plus invariant tests, never copied tables; the server shell
+becomes **Hono** (with Better-Auth, strict uploads) in the foundation batch — the POC templates ship
+a labelled `node:http` shell until then; **PocketBase is conditional** on four cumulative conditions
+(exportable SQLite, no `pb_hooks` requirement, executed exit/restore test, same conformance suite),
+else auto-rejected; security is a **disqualifying** criterion in the template gate, never averaged.
+Enterprise kit: visitor auth (SSO SAML/OIDC later), RBAC, audit log of chat edits, GDPR pack with EU
+region (Paris/Amsterdam), staging/prod environments, custom domains per app.

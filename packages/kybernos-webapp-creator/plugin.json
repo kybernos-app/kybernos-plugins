@@ -21,12 +21,15 @@
   "pricing": "free",
   "package": "@local/kybernos-webapp-creator",
   "entry": {
-    "host": "index.js"
+    "host": "index.js",
+    "client": "client.js"
   },
   "requires": {
     "kybernos": ">=0.1.0"
   },
   "permissions": [
+    "ui.slot:main.kybernos-webapp-creator",
+    "ui.slot:sidebar.right.pane.tab",
     "host.routes:/kybernos-webapp-creator:write",
     "fs.read:dsh-home",
     "fs.write:dsh-home",

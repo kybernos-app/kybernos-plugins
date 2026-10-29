@@ -24,6 +24,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeGuard } from './session-guard.mjs'
 import { appsRoot, discoverApps, findApp, scaffoldApp } from './lib/apps.mjs'
+import { scaffoldFromTemplate } from './lib/templates.mjs'
 import { readLogs, startApp, statusApp, stopApp } from './lib/runtime.mjs'
 
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle
@@ -146,6 +147,61 @@ export function seedSkills () {
   return ensemences
 }
 
+// ── settings: one namespaced block in the shared settings.json, keys filtered here ──
+const REGLAGES_FICHIER = join(homedir(), '.dsh', 'kybernos', 'settings.json')
+export const REGLAGES_DEFAUT = {
+  deployTarget: 'computer', // computer | fly | cloud-computer
+  linkPolicy: 'cle', // cle | public
+  sector: 'maison', // the theme kit's fields
+  currency: 'eur',
+  stripeMode: 'test', // test | live
+  quotaMediaKo: 500,
+  quotaProduits: 50,
+}
+const VALIDER = {
+  deployTarget: (v) => ['computer', 'fly', 'cloud-computer'].indexOf(v) >= 0,
+  linkPolicy: (v) => ['cle', 'public'].indexOf(v) >= 0,
+  sector: (v) => ['mode', 'alimentation', 'artisanat', 'beaute', 'sante', 'tech', 'maison', 'sport', 'services', 'papeterie'].indexOf(v) >= 0,
+  currency: (v) => v === 'eur',
+  stripeMode: (v) => ['test', 'live'].indexOf(v) >= 0,
+  quotaMediaKo: (v) => Number.isInteger(v) === true && v >= 1 && v <= 5000,
+  quotaProduits: (v) => Number.isInteger(v) === true && v >= 1 && v <= 5000,
+}
+
+export function lireReglages (fichier = REGLAGES_FICHIER) {
+  let brut = {}
+  try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch (e) { /* absent or broken: defaults */ }
+  const bloc = brut !== null && typeof brut === 'object' && brut.webappCreator !== null && typeof brut.webappCreator === 'object' ? brut.webappCreator : {}
+  const sortie = {}
+  for (const cle of Object.keys(REGLAGES_DEFAUT)) {
+    sortie[cle] = Object.prototype.hasOwnProperty.call(VALIDER, cle) === true && VALIDER[cle](bloc[cle]) === true ? bloc[cle] : REGLAGES_DEFAUT[cle]
+  }
+  return sortie
+}
+
+/** Strict write: an invalid value refuses the whole patch; unknown keys are dropped (the filter). */
+export function ecrireReglages (fichier, patch) {
+  const bloc = patch !== null && patch !== undefined && typeof patch.webappCreator === 'object' && patch.webappCreator !== null ? patch.webappCreator : patch
+  const propres = {}
+  for (const cle of Object.keys(REGLAGES_DEFAUT)) {
+    if (bloc === null || bloc === undefined || Object.prototype.hasOwnProperty.call(bloc, cle) !== true) continue
+    if (VALIDER[cle](bloc[cle]) !== true) return { ok: false, error: 'invalid value for ' + cle }
+    propres[cle] = bloc[cle]
+  }
+  if (Object.keys(propres).length === 0) return { ok: false, error: 'nothing to write' }
+  try {
+    let brut = {}
+    try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch (e) { /* new file */ }
+    if (brut === null || typeof brut !== 'object') brut = {}
+    brut.webappCreator = Object.assign({}, lireReglages(fichier), propres)
+    mkdirSync(dirname(fichier), { recursive: true })
+    writeFileSync(fichier, JSON.stringify(brut, null, 2) + '\n')
+    return { ok: true, reglages: lireReglages(fichier) }
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e).slice(0, 120) }
+  }
+}
+
 // ── route handlers ──────────────────────────────────────────────────────────
 const etatDesApps = async () => {
   const racine = appsRoot()
@@ -154,10 +210,12 @@ const etatDesApps = async () => {
 }
 
 const creerApp = async (corps) => {
-  const r = scaffoldApp(appsRoot(), { nom: corps && corps.nom, slug: corps && corps.slug })
+  const r = scaffoldApp(appsRoot(), { nom: corps && corps.nom, slug: corps && corps.slug, stack: corps && corps.stack })
   if (r.ok !== true) return { ok: false, error: r.error }
-  dire('app scaffolded: ' + r.app.slug)
-  return { ok: true, app: r.app }
+  const t = scaffoldFromTemplate(r.dir, r.app.stack)
+  if (t.ok !== true) return { ok: false, error: t.error, app: r.app }
+  dire('app scaffolded: ' + r.app.slug + ' (stack ' + t.stack + ')')
+  return { ok: true, app: r.app, stack: t.stack }
 }
 
 const avecApp = (corps, action) => {
@@ -200,7 +258,16 @@ export function apply (ctx) {
       webServerSvc.register({ kind: 'exact', path: '/kybernos-webapp-creator/start', handler: ecriture(demarrer) })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-webapp-creator/stop', handler: ecriture(arreter) })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-webapp-creator/logs', handler: async (req, res) => { await repondreJson(res, async () => lireJournaux(req)) } })
-      dire('routes state / create / start / stop / logs mounted')
+      webServerSvc.register({ kind: 'exact', path: '/kybernos-webapp-creator/settings', handler: async (req, res) => {
+        if ((req.method || 'GET') === 'GET') { await repondreJson(res, async () => ({ ok: true, reglages: lireReglages() })); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { refuser(res, refus); return }
+        if (jsonSeulement(req) !== true) { res.writeHead(415, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'application/json content-type expected' })); return }
+        const corps = await lireCorps(req, res, CORPS_MAX)
+        if (corps === null) return
+        await repondreJson(res, async () => ecrireReglages(REGLAGES_FICHIER, corps))
+      } })
+      dire('routes state / create / start / stop / logs / settings mounted')
     } catch (e) {
       dire('routes not mounted: ' + String((e && e.message) || e))
     }

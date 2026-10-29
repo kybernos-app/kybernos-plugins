@@ -35,6 +35,7 @@ const corps = {
   '/kybernos-webapp-creator/create': { nom: 'guard test', slug: 'Bad Slug!' },
   '/kybernos-webapp-creator/start': { slug: 'nope-not-here' },
   '/kybernos-webapp-creator/stop': { slug: 'nope-not-here' },
+  '/kybernos-webapp-creator/settings': { webappCreator: { deployTarget: 'to the moon' } },
 }
 for (const [path, body] of Object.entries(corps)) {
   ok(path + ' is mounted', typeof routes[path] === 'function')
