@@ -9133,17 +9133,47 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbgal-kcard h4{margin:0 0 8px;font-size:12.5px;font-weight:650;color:var(--dsw-alias-label-secondary)}
 .kbgal-tags{display:flex;flex-wrap:wrap;gap:6px}
 .kbgal-veil{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.45)}
-.kbgal-dlg{width:min(640px,100%);max-height:calc(100vh - 40px);overflow:auto;box-sizing:border-box;padding:20px 22px;border-radius:16px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);outline:none}
+.kbgal-dlg{width:min(720px,100%);max-height:calc(100vh - 40px);overflow:auto;box-sizing:border-box;padding:22px 24px;border-radius:18px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);outline:none;box-shadow:0 24px 60px rgba(0,0,0,.28)}
 .kbgal-dlg h3{margin:0 0 8px;font-size:17px;font-weight:700}
 .kbgal-dlg p{margin:0 0 12px;font-size:13.5px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
-.kbgal-list{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px}
 .kbgal-gh{margin:10px 0 4px;font-size:11.5px;font-weight:650;letter-spacing:.04em;text-transform:none;color:var(--dsw-alias-label-secondary)}
-.kbgal-chk{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;cursor:pointer}
-.kbgal-chk:hover{background:var(--dsw-alias-bg-layer-2)}
-.kbgal-chk > div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-size:13.5px}
-.kbgal-chk small{font-size:12px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
-.kbgal-consent{display:flex;align-items:flex-start;gap:9px;margin:12px 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);cursor:pointer}
-.kbgal-consent input{margin-top:3px}
+.kbgal-dhead{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.kbgal-dhead h3{margin:0 0 4px}
+.kbgal-dhead p{margin:0}
+.kbgal-dthumb{display:block;width:56px;height:56px;border-radius:14px;overflow:hidden;flex:none;background:var(--dsw-alias-bg-layer-2)}
+.kbgal-dsec{margin:14px 0 0}
+.kbgal-pills{display:flex;flex-wrap:wrap;gap:8px}
+.kbgal-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbgal-pill-warn{border-color:var(--dsw-alias-state-warn-primary)}
+.kbgal-pill-s{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-state-success-primary)}
+.kbgal-pill-warn .kbgal-pill-s{color:var(--dsw-alias-state-warn-primary)}
+.kbgal-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kbgal-tile{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);min-width:0}
+.kbgal-tico{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);flex:none}
+.kbgal-tbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.kbgal-tbody small{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbgal-always{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;color:var(--dsw-alias-label-secondary);flex:none}
+.kbgal-switch{position:relative;flex:none;width:40px;height:24px;padding:0;border:none;border-radius:999px;background:var(--dsw-alias-border-l2);cursor:pointer;transition:background .15s}
+.kbgal-switch.on,.kbgal-switch.part{background:var(--dsw-alias-brand-primary)}
+.kbgal-switch.part{opacity:.6}
+.kbgal-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.kbgal-switch.on .kbgal-knob,.kbgal-switch.part .kbgal-knob{transform:translateX(16px)}
+.kbgal-switch:disabled{opacity:.4;cursor:not-allowed}
+.kbgal-switch:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbgal-custom-btn{display:inline-flex;align-items:center;gap:6px;margin:14px 0 0;padding:4px 2px;border:none;background:none;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbgal-custom-btn:hover{color:var(--dsw-alias-label-primary)}
+.kbgal-chev{display:inline-flex;transition:transform .15s}
+.kbgal-chev.open{transform:rotate(180deg)}
+.kbgal-custom{margin:8px 0 0;padding:6px 4px 0;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbgal-dgroup{display:flex;flex-direction:column;gap:2px;margin:8px 0}
+.kbgal-crow{display:flex;align-items:center;gap:10px;padding:5px 2px;font-size:13px;min-width:0}
+.kbgal-cname{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbgal-cfile{margin-left:auto;font-size:11.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere;text-align:right}
+.kbgal-consent{display:flex;align-items:center;gap:12px;margin:16px 0 0;padding:12px 14px;border-radius:14px;background:var(--dsw-alias-bg-layer-2);font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary)}
+.kbgal-okbadge{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--dsw-alias-state-success-primary);color:var(--dsw-alias-bg-layer-1);flex:none}
+.kbgal-okbadge-warn{background:var(--dsw-alias-state-warn-primary)}
+@media (max-width:640px){.kbgal-tiles{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.kbgal-switch,.kbgal-knob,.kbgal-chev{transition:none}}
 .kbgal-acts{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap}
 .kbgal-rlines{display:flex;flex-direction:column;gap:2px;margin:10px 0}
 .kbgal-rline{display:flex;justify-content:space-between;gap:12px;padding:6px 10px;border-radius:8px;font-size:13.5px}
@@ -27249,6 +27279,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // 4. the kit: one item at a time, a failure counted and the next one tried (the wizard's kitAdded/kitFailed).
         for (const it of pendingSkills) {
           const name = nameOf(it)
+          // a skill the theme carries in its own folder is copied by the host from there (a shipped theme); any other falls through to the routes below
+          const own = await send('/kybernos/themes', { action: 'skill', id: plan.id, name })
+          if (kbThPlain(own) && own.ok === true) { report.added += 1; continue }
           const fromPlugin = (kbThStr(it.source) ?? 'kybernos') === 'kybernos'
           const r = await send(fromPlugin ? '/kybernos/domain/skill' : '/kybernos-skills/install', fromPlugin ? { name } : { source: kbThStr(it.source), name })
           if (kbThPlain(r) && (r.ok === true || r.error === 'already_installed')) report.added += 1
@@ -27596,6 +27629,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (typeof props.src === 'string' && failed[0] !== true) return h('img', { className: 'kbgal-art kbgal-img', src: props.src, alt: '', loading: 'lazy', draggable: false, onError: () => failed[1](true) })
       return kbThCover(props.id, props.accent)
     }
+    /** A switch (role=switch): on, off, or `mixed` when only some of a group is ticked. */
+    const KbThSwitch = (props) => h('button', { type: 'button', role: 'switch', 'aria-checked': props.part === true ? 'mixed' : (props.on === true ? 'true' : 'false'), 'aria-label': props.label, disabled: props.disabled === true, className: 'kbgal-switch' + (props.on === true ? ' on' : '') + (props.part === true ? ' part' : ''), 'data-kb': props.hook, onClick: props.onClick }, h('span', { className: 'kbgal-knob' }))
     /** The three plugins of the Business group: how a theme page names them (the words of the menu row come from the theme's pack). */
     const KB_TH_PLUGINS = {
       'kybernos/contacts': { row: 'contacts', icon: 'users', name: 'Contacts', blurb: ['People and companies, with notes and history.', 'Des personnes et des entreprises, avec notes et historique.'] },
@@ -27654,6 +27689,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const [owners, setOwners] = React.useState(() => new Set())
       const [consent, setConsent] = React.useState(false)
       const [seen, setSeen] = React.useState(null)
+      const [customise, setCustomise] = React.useState(false)
       const load = async () => {
         setBusy('load')
         const answer = await kbThApi()
@@ -27677,11 +27713,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         setBusy(null)
         if (!kbThPlain(answer) || answer.ok !== true || !kbThPlain(answer.plan)) { setError(kbThPlain(answer) ? kbThStr(answer.error) ?? 'no-plan' : 'no-plan'); return }
         setPlan(answer.plan)
-        setTicks(kbThDefaultTicks(answer.plan, seen))
+        const withSample = (Array.isArray(data?.shipped) ? data.shipped : []).find((t) => kbThPlain(t) && t.id === id)
+        setTicks(Object.assign(kbThDefaultTicks(answer.plan, seen), { demo: kbThPlain(withSample) && kbThPlain(withSample.sample) }))
         setReport(null)
         setPick(id)
         setConsent(false)
         setSeen(seen)
+        setCustomise(false)
         setScreen('plan')
       }
       // A theme comes in through DSH's own manager, then its plan opens: from a folder the person typed, or a shipped theme by its id.
@@ -27718,6 +27756,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const seen = await kbThPresence(ports)
         const look = kbThLook()
         const rep = await kbThApply(plan, ticks, ports)
+        // the sample rows (marked demo) go into the business base through the host, which knows the theme's folder
+        rep.demo = 'skipped'
+        if (ticks.demo === true) {
+          const sown = await kbThApi({ action: 'seed', id: plan.id })
+          rep.demo = kbThPlain(sown) && sown.ok === true ? (sown.skipped === true ? 'already there' : 'added') : 'failed'
+        }
         const applied = {
           style: kbThAppliedLook(kbThPlain(plan.style) ? kbThStr(plan.style.id) : null, rep),
           domain: rep.domain === 'applied' ? { profil: plan.pack.id, goals: ticks.goals } : null,
@@ -27884,54 +27928,116 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         refused.length > 0 ? h('div', { key: 'r', className: 'kbg-note' }, refused.map((x) => h('div', { key: 'r:' + String(x.source) + String(x.id ?? '') }, '× ' + String(x.source ?? '') + ' · ' + String(x.reason ?? x.error ?? '')))) : null,
         sources.length > 0 ? h('p', { key: 'src', className: 'kbg-note' }, kbThEn('Catalogue sources: ', 'Sources du catalogue : ') + sources.map((x) => x.url).join(' · ')) : null,
       ]
-      // the plan, as a dialog: what the theme needs, what it adds (ticked unless it is already there), one consent, one primary action
+      // the plan, as a dialog: the plugins it needs, what it adds in six tiles each with a switch, one consent, one primary action. No scrollbar in the
+      // usual case: the per-item list (every name, every file) opens under « Customise ».
       const planDialog = () => {
         const e = sel
         const ids = e !== null && e.shipped !== null && Array.isArray(e.shipped.needs) ? e.shipped.needs : []
         const miss = e !== null ? kbThMissing(e, owners) : []
-        const row = (key, checked, onChange, title, sub, tag) => h('label', { key, className: 'kbgal-chk' }, [
-          h('input', { key: 'c', type: 'checkbox', checked, disabled: onChange === null, onChange: onChange === null ? undefined : onChange }),
-          h('div', { key: 'd' }, [h('b', { key: 'b' }, title), sub ? h('small', { key: 's' }, sub) : null]),
-          tag ? h('span', { key: 't', className: 'kbgal-tag' }, tag) : h('span', { key: 't' }),
+        const merge = (list1) => { const by = {}; const out = []; for (const it of list1) { if (it.key === null) continue; if (by[it.key] === undefined) { by[it.key] = it; out.push(it) } else if (it.file !== '' && by[it.key].file.indexOf(it.file) < 0) by[it.key].file += (by[it.key].file === '' ? '' : ' · ') + it.file } return out }
+        const kit = kbThPlain(plan.kit) ? plan.kit : {}
+        const items = {
+          skills: merge((Array.isArray(kit.skills) ? kit.skills : []).filter(kbThPlain).map((it) => ({ key: kbThStr(it.name), label: kbThStr(it.name), file: kbThStr(it.file) ?? '' }))),
+          teams: merge((Array.isArray(kit.teams) ? kit.teams : []).filter(kbThPlain).map((it) => ({ key: kbThStr(it.id), label: kbThStr(it.id), file: kbThStr(it.file) ?? '' }))),
+          automations: merge((Array.isArray(kit.automations) ? kit.automations : []).filter(kbThPlain).map((it) => ({ key: kbThStr(it.id), label: kbThLabel(it.name) || kbThStr(it.id), file: kbThStr(it.file) ?? '' }))),
+          goals: merge((kbThPlain(plan.pack) && Array.isArray(plan.pack.goals) ? plan.pack.goals : []).filter(kbThPlain).map((g) => ({ key: kbThStr(g.id), label: kbThLabel(g.name) || kbThStr(g.id), file: '' }))),
+        }
+        const isThere = (kind, it) => seen !== null && kind !== 'goals' && Array.isArray(seen[kind]) && seen[kind].indexOf(kind === 'automations' ? it.label : it.key) >= 0
+        const absent = (kind) => items[kind].filter((it) => !isThere(kind, it))
+        const chosen = (kind) => absent(kind).filter((it) => ticks[kind].indexOf(it.key) >= 0)
+        const on = (kind) => absent(kind).length > 0 && chosen(kind).length === absent(kind).length
+        const part = (kind) => chosen(kind).length > 0 && chosen(kind).length < absent(kind).length
+        const flip = (kind) => {
+          const keys = absent(kind).map((it) => it.key)
+          setTicks(Object.assign({}, ticks, { [kind]: on(kind) ? ticks[kind].filter((k) => keys.indexOf(k) < 0) : Array.from(new Set(ticks[kind].concat(keys))) }))
+        }
+        const names = (list1) => (list1.length === 0 ? '' : list1.slice(0, 3).map((it) => it.label).join(', ') + (list1.length > 3 ? ' +' + String(list1.length - 3) : ''))
+        const swh = (hook, label, checked, partial, disabled, onClick) => h(KbThSwitch, { hook, label, on: checked, part: partial, disabled, onClick })
+        const tile = (key, icon, title, sub, control) => h('div', { key, className: 'kbgal-tile', 'data-kb': 'theme-tile', 'data-tile': key }, [
+          h('span', { key: 'i', className: 'kbgal-tico' }, Icon(icon, 18)),
+          h('div', { key: 'b', className: 'kbgal-tbody' }, [h('b', { key: 't' }, title), h('small', { key: 's' }, sub)]),
+          control,
         ])
-        const plugRows = ids.map((id) => row('p:' + id, true, null, plugInfo(id).name, kbThEn(plugInfo(id).blurb[0], plugInfo(id).blurb[1]), owners.has(id) ? kbThEn('Installed', 'Installé') : kbThEn('Required', 'Requis')))
-        const there = (sn, kind, name) => (sn !== null && Array.isArray(sn[kind]) && sn[kind].indexOf(name) >= 0 ? kbThEn('Already there', 'Déjà là') : null)
-        const kitRows = []
-        if (kbThPlain(plan.style)) kitRows.push(row('style', ticks.style === true, () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true })), kbThEn('Style', 'Style'), (kbThLabel(plan.style.name) || kbThStr(plan.style.id)) + ' · ' + (kbThStr(plan.style.file) ?? ''), null))
+        const groupTile = (kind, icon, title, one, many, subExtra) => {
+          const all = items[kind]
+          if (all.length === 0) return null
+          const free = absent(kind)
+          const sub = free.length === 0 ? kbThEn('Already there', 'Déjà là') : names(free) + (subExtra ? ' · ' + subExtra : '')
+          return tile(kind, icon, String(all.length) + ' ' + (all.length === 1 ? one : many), sub, swh('theme-switch-' + kind, title, on(kind), part(kind), free.length === 0, () => flip(kind)))
+        }
+        const shippedHere = e !== null ? e.shipped : null
+        const sampleHere = shippedHere !== null && kbThPlain(shippedHere.sample) ? shippedHere.sample : null
+        const sampleTile = sampleHere === null ? null : tile('sample', 'list', kbThEn('Sample rows, marked “demo”', 'Lignes d’exemple, marquées « demo »'),
+          [plural(sampleHere.contacts, kbThEn('contact', 'contact'), kbThEn('contacts', 'contacts')), plural(sampleHere.items, kbThEn('item', 'élément'), kbThEn('items', 'éléments')), plural(sampleHere.cards, kbThEn('card', 'carte'), kbThEn('cards', 'cartes'))].join(' · '),
+          swh('theme-switch-sample', kbThEn('Sample rows', 'Lignes d’exemple'), ticks.demo === true, false, false, () => setTicks(Object.assign({}, ticks, { demo: ticks.demo !== true }))))
+        const styleName = kbThPlain(plan.style) ? (kbThLabel(plan.style.name) || kbThStr(plan.style.id) || '') : ''
+        const fieldName = kbThLabel(plan.pack.name) || plan.pack.id
         const words = kbThWords(plan.pack)
-        kitRows.push(row('field', true, null, kbThEn('Field', 'Métier') + ' · ' + (kbThLabel(plan.pack.name) || plan.pack.id), (words !== '' ? words + ' · ' : '') + (kbThStr(plan.pack.file) ?? ''), null))
-        for (const it of Array.isArray(plan.kit.skills) ? plan.kit.skills : []) kitRows.push(row('s:' + it.name, ticks.skills.indexOf(kbThStr(it.name)) >= 0, () => toggle('skills', kbThStr(it.name)), kbThEn('Skill · ', 'Compétence · ') + kbThStr(it.name), kbThStr(it.file) ?? '', there(seen, 'skills', kbThStr(it.name))))
-        for (const it of Array.isArray(plan.kit.teams) ? plan.kit.teams : []) kitRows.push(row('t:' + it.id, ticks.teams.indexOf(kbThStr(it.id)) >= 0, () => toggle('teams', kbThStr(it.id)), kbThEn('Agent team · ', 'Équipe d’agents · ') + kbThStr(it.id), kbThStr(it.file) ?? '', there(seen, 'teams', kbThStr(it.id))))
-        for (const it of Array.isArray(plan.kit.automations) ? plan.kit.automations : []) kitRows.push(row('a:' + it.id, ticks.automations.indexOf(kbThStr(it.id)) >= 0, () => toggle('automations', kbThStr(it.id)), kbThEn('Automation, switched off · ', 'Automatisation, arrêtée · ') + (kbThLabel(it.name) || kbThStr(it.id)), (kbThStr(it.cron) ?? '') + ' · ' + kbThEn('it asks before acting', 'elle demande avant d’agir'), there(seen, 'automations', kbThLabel(it.name))))
+        const tiles = [
+          kbThPlain(plan.style) ? tile('style', 'palette', kbThEn('Style', 'Style'), styleName, swh('theme-switch-style', kbThEn('Style', 'Style'), ticks.style === true, false, false, () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true })))) : null,
+          tile('field', 'briefcase', kbThEn('Field and words', 'Métier et mots'), fieldName + (words !== '' ? ' · ' + words : ''), h('span', { key: 'a', className: 'kbgal-always', title: kbThEn('Always applied', 'Toujours appliqué') }, Icon('lock', 14))),
+          groupTile('skills', 'sparkles', kbThEn('Skills', 'Compétences'), kbThEn('skill', 'compétence'), kbThEn('skills', 'compétences'), ''),
+          groupTile('teams', 'bot', kbThEn('Agent teams', 'Équipes d’agents'), kbThEn('agent team', 'équipe d’agents'), kbThEn('agent teams', 'équipes d’agents'), ''),
+          groupTile('automations', 'zap', kbThEn('Automations', 'Automatisations'), kbThEn('automation, switched off', 'automatisation, arrêtée'), kbThEn('automations, switched off', 'automatisations, arrêtées'), kbThEn('they ask before acting', 'elles demandent avant d’agir')),
+          sampleTile,
+          groupTile('goals', 'target', kbThEn('Starter goals', 'Objectifs de départ'), kbThEn('starter goal', 'objectif de départ'), kbThEn('starter goals', 'objectifs de départ'), ''),
+        ].filter((x) => x !== null)
         const nots = Array.isArray(plan.notInstallable) ? plan.notInstallable : []
         const rejects = Array.isArray(plan.rejected) ? plan.rejected : []
-        const goalChips = kbThPlain(plan.pack) && Array.isArray(plan.pack.goals)
-          ? plan.pack.goals.filter(kbThPlain).map((g) => h('label', { className: 'kbg-chip' + (ticks.goals.indexOf(g.id) >= 0 ? ' kbg-chip-on' : ''), key: 'g:' + g.id, style: { cursor: 'pointer' } }, [
-            h('input', { key: 'c', type: 'checkbox', checked: ticks.goals.indexOf(g.id) >= 0, onChange: () => toggle('goals', g.id) }),
-            h('span', { key: 't' }, kbThLabel(g.name) || g.id),
-          ]))
-          : []
+        // the per-item list: every name with its file, one switch each
+        const detail = (kind, title) => (items[kind].length === 0 ? null : h('div', { key: kind, className: 'kbgal-dgroup' }, [
+          h('span', { key: 'h', className: 'kbgal-gh' }, title),
+          ...items[kind].map((it) => h('div', { key: it.key, className: 'kbgal-crow' }, [
+            swh('theme-item', it.label, ticks[kind].indexOf(it.key) >= 0, false, isThere(kind, it), () => toggle(kind, it.key)),
+            h('span', { key: 'n', className: 'kbgal-cname' }, it.label),
+            isThere(kind, it) ? h('span', { key: 't', className: 'kbgal-tag' }, kbThEn('Already there', 'Déjà là')) : null,
+            it.file !== '' ? h('code', { key: 'f', className: 'kbgal-cfile' }, it.file) : null,
+          ])),
+        ]))
         const primary = ids.length > 0 && miss.length > 0
           ? kbThEn('Install theme and ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'), 'Installer le thème et ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins'))
           : kbThEn('Install theme', 'Installer le thème')
         return h('div', { key: 'veil', className: 'kbgal-veil', 'data-kb': 'theme-plan', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) closeDialog() } },
           h('div', { className: 'kbgal-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbgal-dt', tabIndex: -1, ref: (el) => { if (el !== null && !el.contains(document.activeElement)) el.focus() } }, [
-            h('h3', { key: 'h', id: 'kbgal-dt' }, kbThEn('Install ', 'Installer ') + (e !== null ? e.name : plan.id)),
-            h('p', { key: 'p' }, (miss.length > 0
-              ? kbThEn('This theme needs ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins') + ' that ' + (miss.length === 1 ? 'is' : 'are') + ' not installed yet. ', 'Ce thème a besoin de ' + String(miss.length) + (miss.length === 1 ? ' plugin' : ' plugins') + ' pas encore installé' + (miss.length === 1 ? '' : 's') + '. ')
-              : '') + kbThEn('Nothing is applied until you press Install. Your chats, memory and workspaces are not touched. Everything is ticked unless it is already there.', 'Rien n’est appliqué avant d’appuyer sur Installer. Tes conversations, ta mémoire et tes espaces ne sont pas touchés. Tout est coché sauf ce qui existe déjà.')),
-            error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
-            h('div', { key: 'l', className: 'kbgal-list' }, [
-              plugRows.length > 0 ? h('span', { key: 'gp', className: 'kbgal-gh' }, kbThEn('Plugins', 'Plugins')) : null,
-              ...plugRows,
-              h('span', { key: 'gk', className: 'kbgal-gh' }, kbThEn('Kit', 'Kit')),
-              ...kitRows,
+            h('div', { key: 'hd', className: 'kbgal-dhead' }, [
+              e !== null ? h('span', { key: 'th', className: 'kbgal-dthumb' }, h(KbThCoverArt, { id: e.id, accent: accentOf(e), src: kbThCoverSrc(e) })) : null,
+              h('div', { key: 'tx' }, [
+                h('h3', { key: 'h', id: 'kbgal-dt' }, kbThEn('Install ', 'Installer ') + (e !== null ? e.name : plan.id)),
+                h('p', { key: 'p' }, (miss.length > 0
+                  ? kbThEn(String(miss.length) + (miss.length === 1 ? ' plugin is' : ' plugins are') + ' missing and will be installed with it. ', String(miss.length) + (miss.length === 1 ? ' plugin manque' : ' plugins manquent') + ' et sera' + (miss.length === 1 ? '' : 'ont') + ' installé' + (miss.length === 1 ? '' : 's') + ' avec lui. ')
+                  : '') + kbThEn('Nothing is applied until you press Install. Your chats, memory and workspaces are not touched.', 'Rien n’est appliqué avant d’appuyer sur Installer. Tes conversations, ta mémoire et tes espaces ne sont pas touchés.')),
+              ]),
             ]),
-            goalChips.length > 0 ? h('div', { key: 'g' }, [h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('Starter goals', 'Objectifs de départ')), h('div', { key: 'c', className: 'kbg-chips' }, goalChips)]) : null,
-            nots.length > 0 ? h('div', { key: 'n', className: 'kbg-note' }, nots.map((x) => h('div', { key: 'n:' + x.kind + ':' + x.id }, '— ' + (kbThStr(x.file) ?? '') + ' · ' + (kbThStr(x.why) ?? '')))) : null,
-            rejects.length > 0 ? h('div', { key: 'x', className: 'kbg-note' }, rejects.map((x) => h('div', { key: 'x:' + x.file }, '× ' + (kbThStr(x.file) ?? '') + ' · ' + (Array.isArray(x.errors) ? x.errors.join('; ') : '')))) : null,
-            h('label', { key: 'co', className: 'kbgal-consent' }, [
-              h('input', { key: 'i', type: 'checkbox', 'data-kb': 'theme-consent', checked: consent, onChange: (ev) => setConsent(ev.target.checked) }),
+            error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
+            ids.length > 0 ? h('div', { key: 'pl', className: 'kbgal-dsec' }, [
+              h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('Plugins', 'Plugins')),
+              h('div', { key: 'p', className: 'kbgal-pills' }, ids.map((id) => {
+                const info = plugInfo(id)
+                const have = owners.has(id)
+                return h('span', { key: id, className: 'kbgal-pill' + (have ? '' : ' kbgal-pill-warn'), 'data-kb': 'theme-pill' }, [
+                  info.icon !== null ? Icon(info.icon, 15) : null,
+                  h('span', { key: 'n' }, info.name),
+                  h('span', { key: 's', className: 'kbgal-pill-s' }, have ? [Icon('check', 12), kbThEn('Installed', 'Installé')] : kbThEn('Required', 'Requis')),
+                ])
+              })),
+            ]) : null,
+            h('div', { key: 'kt', className: 'kbgal-dsec' }, [
+              h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('What it adds', 'Ce qu’il ajoute')),
+              h('div', { key: 't', className: 'kbgal-tiles' }, tiles),
+            ]),
+            h('button', { key: 'cu', type: 'button', className: 'kbgal-custom-btn', 'aria-expanded': customise ? 'true' : 'false', 'data-kb': 'theme-customise', onClick: () => setCustomise(!customise) }, [h('span', { key: 'c', className: 'kbgal-chev' + (customise ? ' open' : '') }, Icon('chevronDown', 14)), kbThEn('Customise, item by item', 'Personnaliser, élément par élément')]),
+            customise ? h('div', { key: 'cd', className: 'kbgal-custom', 'data-kb': 'theme-detail' }, [
+              kbThPlain(plan.style) ? h('div', { key: 'st', className: 'kbgal-dgroup' }, [h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('Style', 'Style')), h('div', { key: 'r', className: 'kbgal-crow' }, [swh('theme-item', styleName, ticks.style === true, false, false, () => setTicks(Object.assign({}, ticks, { style: ticks.style !== true }))), h('span', { key: 'n', className: 'kbgal-cname' }, styleName), h('code', { key: 'f', className: 'kbgal-cfile' }, kbThStr(plan.style.file) ?? '')])]) : null,
+              h('div', { key: 'fd', className: 'kbgal-dgroup' }, [h('span', { key: 'h', className: 'kbgal-gh' }, kbThEn('Field', 'Métier')), h('div', { key: 'r', className: 'kbgal-crow' }, [h('span', { key: 'a', className: 'kbgal-always' }, Icon('lock', 14)), h('span', { key: 'n', className: 'kbgal-cname' }, fieldName), h('code', { key: 'f', className: 'kbgal-cfile' }, kbThStr(plan.pack.file) ?? '')])]),
+              detail('skills', kbThEn('Skills', 'Compétences')),
+              detail('teams', kbThEn('Agent teams', 'Équipes d’agents')),
+              detail('automations', kbThEn('Automations, switched off', 'Automatisations, arrêtées')),
+              detail('goals', kbThEn('Starter goals', 'Objectifs de départ')),
+              nots.length > 0 ? h('div', { key: 'n', className: 'kbg-note' }, nots.map((x) => h('div', { key: 'n:' + x.kind + ':' + x.id }, '— ' + (kbThStr(x.file) ?? '') + ' · ' + (kbThStr(x.why) ?? '')))) : null,
+              rejects.length > 0 ? h('div', { key: 'x', className: 'kbg-note' }, rejects.map((x) => h('div', { key: 'x:' + x.file }, '× ' + (kbThStr(x.file) ?? '') + ' · ' + (Array.isArray(x.errors) ? x.errors.join('; ') : '')))) : null,
+            ]) : null,
+            h('div', { key: 'co', className: 'kbgal-consent' }, [
+              swh('theme-consent', kbThEn('I have read what this theme adds', 'J’ai lu ce que ce thème ajoute'), consent, false, false, () => setConsent(!consent)),
               h('span', { key: 't' }, kbThEn('I have read what this theme adds. Skills, agent teams and automations are instructions the agents follow.', 'J’ai lu ce que ce thème ajoute. Les compétences, les équipes d’agents et les automatisations sont des instructions que les agents suivent.')),
             ]),
             h('div', { key: 'a', className: 'kbgal-acts' }, [
@@ -27946,7 +28052,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const done = report.already !== true && report.failed === 0
         return h('div', { key: 'veil', className: 'kbgal-veil', 'data-kb': 'theme-report', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) closeDialog() } },
           h('div', { className: 'kbgal-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbgal-dt', tabIndex: -1, ref: (el) => { if (el !== null && !el.contains(document.activeElement)) el.focus() } }, [
-            h('h3', { key: 'h', id: 'kbgal-dt' }, report.already === true ? kbThEn('Nothing to do', 'Rien à faire') : (done ? kbThEn('Installed', 'Installé') : kbThEn('Applied, with problems', 'Appliqué, avec des problèmes'))),
+            h('div', { key: 'hd', className: 'kbgal-dhead' }, [h('span', { key: 'm', className: 'kbgal-okbadge' + (done ? '' : ' kbgal-okbadge-warn') }, Icon(done ? 'check' : 'triangleAlert', 20)), h('h3', { key: 'h', id: 'kbgal-dt' }, report.already === true ? kbThEn('Nothing to do', 'Rien à faire') : (done ? kbThEn('Installed', 'Installé') : kbThEn('Applied, with problems', 'Appliqué, avec des problèmes')))]),
             h('div', { key: 'b', className: 'kbgal-banner' }, e !== null ? e.name : (plan !== null ? plan.id : '')),
             h('div', { key: 'r', className: 'kbgal-rlines' }, [
               line(kbThEn('Added', 'Ajoutés'), report.added),
@@ -27955,6 +28061,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               line(kbThEn('Kept in place (un-ticked)', 'Laissés de côté (décochés)'), report.skipped.length),
               line(kbThEn('Style', 'Style'), report.style),
               line(kbThEn('Field', 'Métier'), report.domain),
+              report.demo !== undefined && report.demo !== 'skipped' ? line(kbThEn('Sample rows', 'Lignes d’exemple'), report.demo) : null,
             ]),
             h('div', { key: 'a', className: 'kbgal-acts' }, [
               h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-back-to-themes', onClick: back }, kbThEn('Back to themes', 'Retour aux thèmes')),

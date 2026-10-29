@@ -14,6 +14,8 @@ export const FILE_MAX = 128 * 1024
 export const LIST_MAX = 12
 /** A cover picture: `cover.jpg` in the theme's folder, at most this big (a card's picture, not a gallery). */
 export const COVER_MAX = 160 * 1024
+/** The sample rows of a theme (`demo/sample.json`, the argument of the base's `seed`) are read whole and never larger than this. */
+export const SAMPLE_MAX = 512 * 1024
 /** The « next trades » shown as « soon » cards: `_next/next.json` and one `_next/<id>.jpg` each. */
 export const NEXT_MAX = 12
 /** The plugin ids a business theme names in `requires.plugins`, in the order a page shows them. */
@@ -44,6 +46,15 @@ const readJson = (file) => {
 }
 /** Whether a cover picture is there, a plain file of a sane size (the route re-checks when it serves it). */
 const hasCover = (file) => { try { const st = statSync(file); return st.isFile() && st.size > 0 && st.size <= COVER_MAX } catch (e) { return false } }
+/** The sample rows a theme carries: the parsed `demo/sample.json` (a plain object), or `null` (none, too large, unreadable). The base checks every row. */
+export const readSample = (folder) => {
+  try {
+    const file = join(folder, 'demo', 'sample.json')
+    if (statSync(file).size > SAMPLE_MAX) return null
+    const v = JSON.parse(readFileSync(file, 'utf8'))
+    return plain(v) ? v : null
+  } catch (e) { return null }
+}
 const names = (dir, test) => { try { return readdirSync(dir).filter((f) => test(f) && !f.startsWith('.')).sort() } catch (e) { return [] } }
 const jsonNames = (dir) => names(dir, (f) => f.endsWith('.json'))
 
@@ -53,6 +64,7 @@ const jsonNames = (dir) => names(dir, (f) => f.endsWith('.json'))
  *   words  { contacts, catalog, pipeline }: the pack's `menu.labels` for the rows of the Business group, `{ en, fr }` each (or absent)
  *   style  { id, name, accent } of the first `themes/*.json`
  *   needs  the ids of `requires.plugins` that are not the core's own seams, in the order of `BUSINESS_PLUGINS` first
+ *   sample { contacts, items, cards, notes }: how many sample rows `demo/sample.json` holds, or `null` when the theme carries none
  *   tag    the first of the manifest's `keywords` (they are lower case), with a capital: the chip over the cover; `cover` whether `cover.jpg` is there
  *   why    { <plugin id>: { en, fr } } from `why.json`: one line per needed plugin, in this theme's words
  *   adds   { skills, teams, automations, connectors } counts; `lists` their names (at most LIST_MAX each); `points` the business points the theme extends, with how many files each has
@@ -85,6 +97,8 @@ export function readTheme (root, dir) {
   const whyFile = readJson(join(folder, 'why.json'))
   const why = {}
   if (whyFile !== null) for (const id of needs) { const w = pair(whyFile[id], 160); if (w !== null) why[id] = w }
+  const smp = readSample(folder)
+  const many = (k) => (smp !== null && Array.isArray(smp[k]) ? smp[k].length : 0)
   const points = {}
   for (const [key, sub] of [['contacts', 'contacts'], ['catalog', 'catalog'], ['pipeline', 'pipeline']]) { const n = jsonNames(join(folder, sub)).length; if (n > 0) points[key] = n }
   return {
@@ -97,6 +111,7 @@ export function readTheme (root, dir) {
       name,
       description: pair(manifest.description, 300),
       accent,
+      sample: smp === null ? null : { contacts: many('contacts'), items: many('items'), cards: many('cards'), notes: many('notes') },
       tag,
       cover: hasCover(join(folder, 'cover.jpg')),
       why,

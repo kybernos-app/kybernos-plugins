@@ -531,6 +531,8 @@ const fake = (seen) => {
     post: async (path, body) => {
       calls.push({ m: 'POST', path, body })
       if (path.indexOf('/kybernos/tasks') === 0 && body !== null && body.action === 'list') return { ok: true, tasks: (seen.tasks || []).map((n) => ({ name: n })) }
+      // a theme that does not carry the skill in its own folder (the host answers no-skill): the skill goes the usual way
+      if (path === '/kybernos/themes' && body !== null && body.action === 'skill') return seen.ownSkills === true ? { ok: true, action: 'created' } : { ok: false, error: 'no-skill' }
       return { ok: true }
     },
     team: (item) => ({ name: item.id, id: item.id, home: true }),
@@ -539,6 +541,16 @@ const fake = (seen) => {
   return { calls, ports }
 }
 const TICKS = { style: true, goals: ['recall'], skills: ['patient-reminders'], teams: ['clinic-assist', 'assist'], automations: ['daily-recall'] }
+await okA('a skill the theme carries in its own folder is installed by the host from there, and the usual route is not asked', async () => {
+  const f = fake({ ownSkills: true })
+  const r = await coreMod.kbThApply(PLAN, TICKS, f.ports)
+  const posts = f.calls.filter((c) => c.m === 'POST')
+  assert.equal(r.ok, true)
+  assert.equal(r.added, 6, JSON.stringify(r))
+  assert.equal(r.failed, 0)
+  assert.deepEqual(posts.filter((c) => c.path === '/kybernos/themes').map((c) => c.body), [{ action: 'skill', id: PLAN.id, name: 'patient-reminders' }])
+  assert.equal(posts.filter((c) => c.path.indexOf('/kybernos/domain/skill') === 0).length, 0)
+})
 await okA('the applier writes the field, the kit and the look once, in the routes\' order, and counts 6', async () => {
   const f = fake({})
   const r = await coreMod.kbThApply(PLAN, TICKS, f.ports)
@@ -568,7 +580,7 @@ await okA('the applier writes nothing outside the routes of this batch: no sessi
   const f = fake({})
   await coreMod.kbThApply(PLAN, TICKS, f.ports)
   assert.deepEqual(f.calls.filter((c) => /sessions|memory|workspaces/.test(c.path)), [])
-  const allowed = ['/kybernos-registry/consent', '/kybernos/onboarding', '/kybernos/domain/skill', '/kybernos-skills/install', '/kybernos/create', '/kybernos/tasks']
+  const allowed = ['/kybernos-registry/consent', '/kybernos/onboarding', '/kybernos/themes', '/kybernos/domain/skill', '/kybernos-skills/install', '/kybernos/create', '/kybernos/tasks'] // /kybernos/themes: a skill the shipped theme carries
   for (const c of f.calls.filter((c) => c.m === 'POST')) assert.ok(allowed.some((p) => c.path.indexOf(p) === 0), 'an unexpected path: ' + c.path)
 })
 await okA('a replay is a no-op: already true, not one write', async () => {
@@ -607,7 +619,7 @@ await okA('a failing step is counted and does not stop the next one', async () =
     post: async (path, body) => {
       calls.push(path)
       if (path.indexOf('/kybernos-registry/consent') === 0) return { ok: false }
-      if (path.indexOf('/kybernos/domain/skill') === 0) return { ok: false }
+      if (path.indexOf('/kybernos/domain/skill') === 0 || path === '/kybernos/themes') return { ok: false }
       return { ok: true }
     },
     team: (item) => ({ name: item.id, id: item.id }),

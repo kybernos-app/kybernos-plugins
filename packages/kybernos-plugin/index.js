@@ -11770,6 +11770,15 @@ function boot(ctx) {
           registry: registrySeam(),
           shipped: readShipped(pluginDir + '/themes').themes,
           next: readNext(pluginDir + '/themes'),
+          business: (() => { try { return globalThis[Symbol.for('kybernos.business')] } catch (e) { return null } })(),
+          skill: (folder, name) => {
+            try {
+              if (!existsSync(nodePathJoin(folder, 'skills', name, 'SKILL.md'))) return { ok: false }
+              const r = seedSkills({ home: String(dshHomeSync()), sourceDir: nodePathJoin(folder, 'skills'), names: [name] })[0]
+              const action = r !== undefined ? r.action : 'error'
+              return { ok: action === 'created' || action === 'current' || action === 'updated' || action === 'kept' || action === 'disabled', action }
+            } catch (e) { return { ok: false } }
+          },
         }
         const action = body !== null && typeof body.action === 'string' ? body.action : ''
         // No outbound request for a caller the route will refuse anyway: the origin is checked first, and a write needs the signed

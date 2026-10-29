@@ -104,6 +104,9 @@ try {
   const planned = await waitFor(page, `!!document.querySelector('[data-kb="theme-plan"] [role="dialog"]')`, 90000)
   check('DSH installs the package and the plan opens (no unknown-plugin)', planned !== null, await pageText())
   check('the profile now lists the package', profileDeps().includes('@acme/kybernos-vet-clinic'), profileDeps().filter((d) => /acme/.test(d)))
+  // the item list (every name with its file) is behind « Customise »
+  await click('[data-kb="theme-customise"]')
+  await sleep(300)
   const planText = await pageText()
   check('the plan names the style, the field and the kit, each with its file', /Style/.test(planText) && /Field/.test(planText) && /themes\/vet-clinic\.json/.test(planText) && /domains\/vet-clinic\.json/.test(planText), planText.slice(0, 300))
   await shot('3-plan')

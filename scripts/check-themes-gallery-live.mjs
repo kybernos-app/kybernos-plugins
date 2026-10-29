@@ -12,6 +12,7 @@
 // Exit code: 0 all green, 1 a check failed, 3 not run.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const args = process.argv.slice(2)
@@ -59,7 +60,7 @@ try {
   const errs = []
   await openThemes()
   await ev(`(() => { window.__chk = []; window.addEventListener('error', (e) => window.__chk.push(String(e.message))); return 1 })()`)
-  const api = await ev(`fetch('/kybernos/themes', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => ({ shipped: (j.shipped || []).map((t) => ({ id: t.id, name: t.name, needs: t.needs, adds: t.adds })), installed: (j.installed || []).length }))`, 10000)
+  const api = await ev(`fetch('/kybernos/themes', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => ({ shipped: (j.shipped || []).map((t) => ({ id: t.id, name: t.name, needs: t.needs, adds: t.adds, sample: t.sample })), installed: (j.installed || []).length }))`, 10000)
   if (!api || !Array.isArray(api.shipped) || api.shipped.length === 0) { console.error('○ not run: no shipped theme is listed (packages/kybernos-plugin/themes/*/)'); await live.close(); process.exit(3) }
   const theme = wanted !== null ? api.shipped.find((t) => t.id === wanted) : (api.shipped.find((t) => Array.isArray(t.needs) && t.needs.length > 0) || api.shipped[0])
   if (!theme) { console.error('○ not run: no such shipped theme'); await live.close(); process.exit(3) }
@@ -103,8 +104,17 @@ try {
   const dlg = await rect('[data-kb="theme-plan"] .kbgal-dlg')
   check('the dialog is centred, inside the window, and scrolls inside itself when it is tall', dlg !== null && dlg.x >= 0 && dlg.r <= 1400 && dlg.y >= 0 && dlg.b <= 900 && Math.abs((dlg.x + dlg.r) / 2 - 700) < 6, dlg)
   check('it names the theme, lists the plugins and the kit, and the theme page is still behind it', /Install /.test((await text('[data-kb="theme-plan"] h3')) || '') && ((await text('[data-kb="theme-plan"] h3')) || '').indexOf(word(theme)) > 0 && (await rect(PAGE + ' .kbgal-thead')) !== null)
-  if (needs > 0) check('the required plugins are ticked and cannot be unticked', (await ev(`(() => { const rows = [...document.querySelectorAll('[data-kb="theme-plan"] .kbgal-chk')].slice(0, ${needs}); return rows.length === ${needs} && rows.every((r) => r.querySelector('input').checked && r.querySelector('input').disabled) })()`)) === true)
-  check('the kit rows are ticked, except what the row says is « Already there »', (await ev(`[...document.querySelectorAll('[data-kb="theme-plan"] .kbgal-chk')].filter((r) => !r.querySelector('input').disabled).every((r) => r.querySelector('input').checked === !/Already there|Déjà là/.test(r.innerText))`)) === true)
+  check('the dialog needs no scrollbar (everything fits, the item list is closed)', (await ev(`(() => { const d = document.querySelector('[data-kb="theme-plan"] .kbgal-dlg'); return d.scrollHeight <= d.clientHeight + 1 })()`)) === true, await rect('[data-kb="theme-plan"] .kbgal-dlg'))
+  if (needs > 0) check('one pill per plugin the theme needs, with its icon and its status', (await ev(`[...document.querySelectorAll('[data-kb="theme-pill"]')].filter((p) => p.querySelector('svg') && p.innerText.trim().split('\\n').length >= 2).length`)) === needs)
+  check('what it adds is in tiles, each with an icon and a switch', (await ev(`(() => { const t = [...document.querySelectorAll('[data-kb="theme-tile"]')]; return t.length >= 4 && t.every((x) => x.querySelector('svg') && (x.querySelector('[role="switch"]') || x.querySelector('.kbgal-always'))) })()`)) === true)
+  check('every switch is on, except what the tile says is « Already there » (which is off and cannot be turned on)', (await ev(`[...document.querySelectorAll('[data-kb="theme-tile"] [role="switch"]')].every((s) => { const there = /Already there|Déjà là/.test(s.closest('[data-kb="theme-tile"]').innerText); return there ? (s.disabled && s.getAttribute('aria-checked') === 'false') : s.getAttribute('aria-checked') === 'true' })`)) === true)
+  if (theme.sample) check('a tile offers the sample rows (marked demo), switched on, with their counts', (await ev(`(() => { const t = document.querySelector('[data-tile="sample"]'); const s = t && t.querySelector('[role="switch"]'); return t !== null && s !== null && s.getAttribute('aria-checked') === 'true' && /\\d+ contacts?/.test(t.innerText) })()`)) === true)
+  const sk = await rect('[data-kb="theme-switch-skills"]')
+  if (sk !== null && sk.shown) {
+    const was = await ev(`document.querySelector('[data-kb="theme-switch-skills"]').getAttribute('aria-checked')`)
+    check('a switch is turned with the mouse, and back', (await click('[data-kb="theme-switch-skills"]')) && (await ev(`document.querySelector('[data-kb="theme-switch-skills"]').getAttribute('aria-checked')`)) !== was && (await click('[data-kb="theme-switch-skills"]')) && (await ev(`document.querySelector('[data-kb="theme-switch-skills"]').getAttribute('aria-checked')`)) === was)
+  }
+  check('« Customise » opens the item list (every name with its file), and closes it', (await click('[data-kb="theme-customise"]')) && (await rect('[data-kb="theme-detail"]')) !== null && (await ev(`document.querySelectorAll('[data-kb="theme-detail"] .kbgal-crow').length`)) >= 2 && (await click('[data-kb="theme-customise"]')) && (await rect('[data-kb="theme-detail"]')) === null)
   check('the primary action is disabled until the consent is ticked', (await ev(`document.querySelector('[data-kb="theme-go"]').disabled`)) === true)
   await shot('3-plan')
   check('the consent is ticked with the mouse', await click('[data-kb="theme-consent"]'))
@@ -130,6 +140,14 @@ try {
     const rep = await text('[data-kb="theme-report"]')
     check('it says what was added, what was already there, what failed', /Added|Ajoutés/.test(rep || '') && /Already there|Déjà là/.test(rep) && /Failed|Échoués/.test(rep), rep)
     await shot('5-report')
+    check('nothing failed: the skills the theme carries are installed from its folder, so the report says « Installed »', /^\s*Installed|^\s*Installé/.test(await text('[data-kb="theme-report"] h3') || '') && /Failed\s*\n?\s*0/.test(rep || ''), rep)
+    if (theme.sample) {
+      check('the report says the sample rows were added', /Sample rows\s*\|?\s*(added|already there)/i.test((rep || '').replace(/\n+/g, ' | ')) || /Sample rows[\s\S]*(added|already there)/i.test(rep || ''), rep)
+      const file = join(process.env.DSH_HOME, 'kybernos', 'business', 'donnees.sqlite')
+      let n = null
+      try { const { DatabaseSync } = await import('node:sqlite'); const db = new DatabaseSync(file, { readOnly: true }); n = { contacts: db.prepare('SELECT COUNT(*) AS c FROM contact WHERE demo = 1').get().c, cards: db.prepare('SELECT COUNT(*) AS c FROM flow_card WHERE demo = 1').get().c, items: db.prepare('SELECT COUNT(*) AS c FROM item WHERE demo = 1').get().c }; db.close() } catch (e) { n = String(e && e.message) }
+      check('the business base holds the sample rows, every one marked demo (' + theme.sample.contacts + ' contacts, ' + theme.sample.items + ' items, ' + theme.sample.cards + ' cards)', existsSync(file) && n !== null && typeof n === 'object' && n.contacts === theme.sample.contacts && n.items === theme.sample.items && n.cards === theme.sample.cards, n)
+    }
     check('« Back to themes » is pressed', await click('[data-kb="theme-back-to-themes"]'))
     const marked = await waitFor(page, `(() => { const c = document.querySelector('${PAGE} [data-theme="${theme.id}"]'); return c !== null && /Installed|Installé/.test(c.innerText) })()`, 20000)
     check('the card now wears « Installed »', marked !== null, await text(PAGE))

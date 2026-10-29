@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleThemes } from './theme-installer.mjs'
-import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, SHIPPED_MAX, coverFile, publicView, readNext, readShipped, readTheme } from './themes-shipped.mjs'
+import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, SAMPLE_MAX, SHIPPED_MAX, coverFile, publicView, readNext, readSample, readShipped, readTheme } from './themes-shipped.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 let count = 0
@@ -38,6 +38,7 @@ try {
   json(join(shop, 'why.json'), { 'kybernos/contacts': { en: 'Your customers.', fr: 'Tes clients.' }, 'kybernos/pipeline': 'Orders, new to delivered.', 'kybernos/skills': { en: 'not a business plugin' }, 'acme/inbox': { fr: 'no English: left out' } })
   json(join(root, '_next', 'next.json'), [{ id: 'consulting', name: { en: 'Consulting', fr: 'Conseil' } }, { id: 'law-firm', name: 'Law firm' }, { id: 'Bad Id', name: 'x' }, { id: 'nameless' }, { id: 'consulting', name: 'twice' }, 'junk'])
   writeFileSync(join(root, '_next', 'consulting.jpg'), JPEG)
+  json(join(shop, 'demo', 'sample.json'), { contacts: [{ ref: 'a', kind: 'person', type: 'customer', name: 'Ann' }, { ref: 'b', kind: 'company', type: 'customer', name: 'Bco' }], items: [{ ref: 'i', type: 'product', title: 'Mug', status: 'live' }], cards: [] })
   // folders that must be skipped, each for its own reason
   mkdirSync(join(root, 'empty'))
   json(join(root, 'code', 'plugin.json'), { id: 'acme/code', kind: 'code', name: 'Code' })
@@ -133,6 +134,21 @@ try {
     writeFileSync(join(root, 'shop', 'cover.jpg'), JPEG)
   })
 
+  ok('the sample rows a theme carries are counted for its card and read whole for the seed; a broken or oversized file is no sample', () => {
+    assert.deepEqual(readTheme(root, 'shop').theme.sample, { contacts: 2, items: 1, cards: 0, notes: 0 })
+    assert.equal(readSample(join(root, 'shop')).contacts.length, 2)
+    assert.equal(readSample(join(root, 'nowhere')), null)
+    writeFileSync(join(root, 'shop', 'demo', 'sample.json'), '[1,2]')
+    assert.equal(readSample(join(root, 'shop')), null, 'a list is not a sample')
+    assert.equal(readTheme(root, 'shop').theme.sample, null)
+    writeFileSync(join(root, 'shop', 'demo', 'sample.json'), '{ broken')
+    assert.equal(readSample(join(root, 'shop')), null)
+    writeFileSync(join(root, 'shop', 'demo', 'sample.json'), JSON.stringify({ contacts: [], pad: 'x'.repeat(SAMPLE_MAX) }))
+    assert.equal(readSample(join(root, 'shop')), null, 'too big')
+    json(join(shop, 'demo', 'sample.json'), { contacts: [{ ref: 'a', kind: 'person', type: 'customer', name: 'Ann' }, { ref: 'b', kind: 'company', type: 'customer', name: 'Bco' }], items: [{ ref: 'i', type: 'product', title: 'Mug', status: 'live' }], cards: [] })
+    assert.equal(readTheme(root, 'shop').theme.sample.contacts, 2)
+  })
+
   ok('BUSINESS_PLUGINS are the three plugins of the Business group, in the menu\'s order', () => {
     assert.deepEqual(BUSINESS_PLUGINS, ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline'])
   })
@@ -177,6 +193,47 @@ try {
   ok('stage by id keeps the guards in front: origin, then the signed session', () => {
     assert.equal(post({ action: 'stage', shipped: 'acme/vet-clinic' }, { sameOrigin: () => false }).status, 403)
     assert.equal(post({ action: 'stage', shipped: 'acme/vet-clinic' }, { session: () => ({ status: 401, error: 'sign-in required' }) }).status, 401)
+  })
+
+  ok('seed: the sample rows go into the business base through its seam, with the theme id; the second time the base says skipped', () => {
+    const calls = []
+    let skip = false
+    const business = { seed: (data, opts) => { calls.push([data, opts]); return skip ? { ok: true, skipped: true, theme: opts.theme } : { ok: true, theme: opts.theme, counts: { contacts: data.contacts.length, items: data.items.length, cards: 0, notes: 0 } } } }
+    const r = post({ action: 'seed', id: 'kybernos-themes/shop' }, { business })
+    assert.deepEqual([r.status, r.body.ok, r.body.skipped, r.body.counts], [200, true, false, { contacts: 2, items: 1, cards: 0, notes: 0 }])
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0][1].theme, 'kybernos-themes/shop')
+    assert.equal(calls[0][1].actor, 'theme')
+    assert.equal(calls[0][0].contacts[0].name, 'Ann', 'the rows are the theme\'s own file, not the page\'s')
+    skip = true
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business }).body, { ok: true, skipped: true, counts: null })
+  })
+
+  ok('seed: no seam, a seam that throws or refuses, a theme with no sample, an unknown theme, a bad id and the guards all answer plainly', () => {
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }).body, { ok: false, error: 'base_missing' })
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business: { seed: () => { throw new Error('boom') } } }).body, { ok: false, error: 'failed' })
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business: { seed: () => ({ ok: false, error: 'bad_ref', detail: 'company_ref: no such row' }) } }).body, { ok: false, error: 'bad_ref', detail: 'company_ref: no such row' })
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business: { seed: () => 'nonsense' } }).body, { ok: false, error: 'failed' })
+    assert.equal(post({ action: 'seed', id: 'acme/vet-clinic' }, { business: { seed: () => assert.fail('no sample: the base is not asked') } }).body.error, 'no-sample')
+    assert.equal(post({ action: 'seed', id: 'acme/other' }, { business: { seed: () => assert.fail('unknown theme') } }).body.error, 'no-sample')
+    assert.equal(post({ action: 'seed', id: '../etc' }).status, 400)
+    assert.equal(post({ action: 'seed', id: 'kybernos-themes/shop' }, { sameOrigin: () => false }).status, 403)
+    assert.equal(post({ action: 'seed', id: 'kybernos-themes/shop' }, { session: () => ({ status: 401, error: 'sign-in required' }) }).status, 401)
+  })
+
+  ok('skill: the host copies a skill the shipped theme carries, by name, through its own port; nothing else is asked of it', () => {
+    const calls = []
+    const skill = (folder, name) => { calls.push([folder, name]); return { ok: name === 'order-replies', action: 'created' } }
+    const r = post({ action: 'skill', id: 'kybernos-themes/shop', name: 'order-replies' }, { skill })
+    assert.deepEqual([r.status, r.body], [200, { ok: true, action: 'created' }])
+    assert.deepEqual(calls, [[join(root, 'shop'), 'order-replies']], 'the folder is the host\'s, never the page\'s')
+    assert.deepEqual(post({ action: 'skill', id: 'kybernos-themes/shop', name: 'other' }, { skill }).body, { ok: false, error: 'no-skill' })
+    assert.deepEqual(post({ action: 'skill', id: 'kybernos-themes/shop', name: 'order-replies' }).body, { ok: false, error: 'no-skill' }, 'no port: no skill')
+    assert.deepEqual(post({ action: 'skill', id: 'acme/other', name: 'order-replies' }, { skill }).body, { ok: false, error: 'no-skill' })
+    assert.deepEqual(post({ action: 'skill', id: 'kybernos-themes/shop', name: 'order-replies' }, { skill: () => { throw new Error('boom') } }).body, { ok: false, error: 'no-skill' })
+    for (const name of ['../x', 'A b', '', 'x'.repeat(70), 'a/b']) assert.equal(post({ action: 'skill', id: 'kybernos-themes/shop', name }, { skill }).status, 400, name)
+    assert.equal(post({ action: 'skill', id: 'kybernos-themes/shop', name: 'order-replies' }, { skill, sameOrigin: () => false }).status, 403)
+    assert.equal(calls.length, 2, 'only the two requests that named a shipped theme and a good name reached the port')
   })
 
   ok('a shipped folder that is a symbolic link is refused like any other', () => {
