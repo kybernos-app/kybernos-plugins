@@ -28,6 +28,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, rmSync, s
 import { join } from 'node:path'
 import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
 import { cookieDeSession } from './cdp-lib.mjs'
+import { takeTemplatesOut } from './lib-sandbox-templates.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const args = process.argv.slice(2)
@@ -48,7 +49,8 @@ const check = (name, ok, detail) => {
 }
 
 // ── the base, and the fixtures ──────────────────────────────────────────────────────────────────────────────────────────────────
-const base = createBusinessBase({ file: join(dshHome, 'kybernos', 'business', 'donnees.sqlite') })
+// This process is not DSH: it writes the way the page does while no template is active (rows of no template), and its own questions are about every row.
+const base = createBusinessBase({ file: join(dshHome, 'kybernos', 'business', 'donnees.sqlite'), scope: () => null })
 const opened = base.open()
 if (opened.ok !== true) { console.error('○ inconclusive: cannot open the sandbox base (' + opened.error + ')'); process.exit(3) }
 base.deleteAll({ confirm: true, actor: 'person' })
@@ -106,6 +108,10 @@ const unlinkTheme = () => {
 }
 // A previous run that was killed leaves the theme behind: start from none.
 unlinkTheme()
+// The sandbox is a clone of a profile that carries sector templates; with one active the three pages speak ITS words and show ITS rows (docs/dev/business-visuals.md). This
+// check is about the plain board, then about a theme of its own: the templates are out for the run and back at the end (scripts/lib-sandbox-templates.mjs).
+const templatesOut = takeTemplatesOut(join(dshHome, 'profiles', 'web'))
+if (templatesOut.count > 0) await sleep(3200)
 
 // ── the page ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })

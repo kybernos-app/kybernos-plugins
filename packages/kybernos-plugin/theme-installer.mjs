@@ -452,9 +452,6 @@ export function writeThemes (dir, value) {
   }
 }
 
-/** The record of one theme id, or null. */
-export const recordOf = (store, id) => readThemes(plain(store) ? store.dir : '').records.find((r) => r.id === id) ?? null
-
 // ── the route body ──────────────────────────────────────────────────────────
 
 /** A folder the person points at, checked without leaving the folder: `null` or the reason it cannot be read. */
@@ -729,7 +726,12 @@ export function handleThemes (store, request, ports) {
       const records = store1.records.filter((r) => r.id !== id)
       records.push(rec)
       const written = writeThemes(dir, { active: body.active !== undefined ? body.active : id, records, sources: store1.sources })
-      return written.ok === true ? answer(200, { ok: true, record: rec, records: records.length }) : answer(500, { ok: false, error: written.error })
+      // The Business pages show one template at a time: the one just installed is the one they follow. A template that brings none of their points is left alone.
+      let active = null
+      if (written.ok === true && typeof p.activate === 'function') {
+        try { const r = p.activate(id); active = plain(r) && r.ok === true ? id : null } catch (e) { active = null }
+      }
+      return written.ok === true ? answer(200, { ok: true, record: rec, records: records.length, businessActive: active }) : answer(500, { ok: false, error: written.error })
     }
     if (action === 'forget') {
       const id = text(body.id) ?? ''

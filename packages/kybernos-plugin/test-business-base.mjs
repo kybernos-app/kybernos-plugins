@@ -60,7 +60,7 @@ try {
   })
 
   // ── the first question creates the file ────────────────────────────────────────────────────────────────────────────────────────
-  await ok('the first question creates the file, in WAL, at schema 1, with the seven tables, a pack row and the markers', () => {
+  await ok('the first question creates the file, in WAL, at the current schema, with the seven tables, a pack row and the markers', () => {
     const { file, base } = fresh()
     const r = base.open()
     assert.equal(r.ok, true)
@@ -74,7 +74,7 @@ try {
       assert.equal(pack.length, 1, 'exactly one manifest row')
       assert.deepEqual(JSON.parse(pack[0].contenu).entites.map((e) => e.table), ['contact', 'item', 'flow_card'])
       const meta = Object.fromEntries(db.prepare('SELECT key, value FROM meta').all().map((m) => [m.key, m.value]))
-      assert.equal(meta.schema_version, '1')
+      assert.equal(meta.schema_version, String(SCHEMA_VERSION))
       assert.equal(meta.seeded, '[]')
       assert.match(meta.created_at, /^\d{4}-\d\d-\d\dT/)
     })
@@ -109,7 +109,7 @@ try {
     assert.equal(peek(file, (db) => db.prepare('PRAGMA user_version').get().user_version), 99)
   })
 
-  await ok('an empty file that is not at schema 1 yet (a crash before the first migration) migrates in place', () => {
+  await ok('an empty file that is not at the current schema yet (a crash before the first migration) migrates in place', () => {
     const { dir, file } = fresh()
     mkdirSync(join(dir, 'business'), { recursive: true })
     new DatabaseSync(file).close()
@@ -311,7 +311,7 @@ try {
     const mine = base.create('contact', { name: 'My own client' }).row
     base.create('note', { contact_id: mine.id, body: 'real note' })
     const r = base.clearDemo()
-    assert.deepEqual(r, { ok: true, removed: { note: 1, flow_card: 2, item: 1, contact: 2 } })
+    assert.deepEqual(r, { ok: true, removed: { note: 1, flow_card: 2, item: 1, contact: 2 }, scope: null }, 'no template is active: every sample goes')
     assert.deepEqual(base.counts().tables, { contact: 1, note: 1, item: 0, flow_card: 0 })
     assert.equal(base.seed(DEMO(), { theme: 'ecommerce' }).skipped, false)
     base.close()
@@ -323,7 +323,7 @@ try {
     base.seed(DEMO(), { theme: 'ecommerce' })
     base.create('contact', { name: 'Ada', tags: ['a'] })
     const e = base.exportAll({ actor: 'person' })
-    assert.deepEqual([e.ok, e.format, e.schema_version], [true, 1, 1])
+    assert.deepEqual([e.ok, e.format, e.schema_version], [true, 1, SCHEMA_VERSION])
     assert.deepEqual(Object.keys(e.tables).sort(), ['changes', 'contact', 'flow_card', 'item', 'meta', 'note'])
     assert.equal(e.tables.contact.length, 3)
     assert.deepEqual(e.tables.contact.find((c) => c.name === 'Ada').tags, ['a'], 'JSON columns come out as data')
@@ -347,7 +347,7 @@ try {
     base.close()
     assert.deepEqual(names(file), ['changes', 'contact', 'flow_card', 'item', 'meta', 'note', 'pack'])
     peek(file, (db) => {
-      assert.equal(db.prepare('PRAGMA user_version').get().user_version, 1)
+      assert.equal(db.prepare('PRAGMA user_version').get().user_version, SCHEMA_VERSION)
       assert.equal(db.prepare('SELECT COUNT(*) n FROM pack').get().n, 1)
       assert.equal(db.prepare("SELECT value FROM meta WHERE key = 'seeded'").get().value, '[]')
     })
@@ -476,7 +476,7 @@ try {
   // ── what DSH loads ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   await ok('the core mounts the seam inside its own try/catch, and no module of the core imports node:sqlite at load time', () => {
     const index = readFileSync(join(here, 'index.js'), 'utf8')
-    assert.match(index, /import \{ ensureBusiness \} from '\.\/business-base\.mjs'/)
+    assert.match(index, /import \{[^}]*\bensureBusiness\b[^}]*\} from '\.\/business-base\.mjs'/)
     assert.match(index, /try \{\s*ensureBusiness\(\)\s*\} catch \(e\) \{/, 'published inside a try/catch')
     const mod = readFileSync(MODULE, 'utf8')
     assert.doesNotMatch(mod, /from 'node:sqlite'/, 'loaded lazily: a Node without it must not stop the core from loading')

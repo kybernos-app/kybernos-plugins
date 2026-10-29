@@ -153,7 +153,7 @@ export function createApi ({ base, schema }) {
     return r.ok ? { ok: true, note: r.row } : r
   })
 
-  /** Removes the sample rows of every business plugin (the base keeps one set of them); what the person made stays. */
+  /** Removes the sample rows of the active template, all three business tables at once (the base keeps one set of them per template); what the person made stays. */
   const clearDemo = (opts) => run((b) => {
     const actor = opts !== undefined && opts !== null && opts.actor !== undefined ? opts.actor : 'person'
     return b.clearDemo({ actor })

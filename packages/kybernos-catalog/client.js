@@ -911,7 +911,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title', 'data-kb': 'catalog-title' }, title), help),
             h('p', { className: 'kb8-sub' }, kt('Ce que tu vends, loues ou recrutes, en cartes, en liste ou sur une carte.', 'What you sell, rent or recruit for, as cards, a list or on a map.'))),
           KbBar !== null
-            ? h(KbBar, { state: bar, onUpdate: onBar, views, viewLabels: true, sortOptions, showFav: true, searchPlaceholder: kt('Rechercher', 'Search'), trailing: addButton })
+            ? h(KbBar, { state: shownView === bar.viewMode ? bar : Object.assign({}, bar, { viewMode: shownView }), onUpdate: onBar, views, viewLabels: true, sortOptions, showFav: true, searchPlaceholder: kt('Rechercher', 'Search'), trailing: addButton })
             : h(PlainBar, { query: q, onQuery: setQ, views, view: shownView, onView: changeView, trailing: addButton }))
 
         // states

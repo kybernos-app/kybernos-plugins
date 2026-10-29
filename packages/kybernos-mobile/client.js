@@ -35,6 +35,9 @@ window.__ModuleLoader__.load({
       // What a tap on closes the drawer: a session, one of our own sidebar entries, DSH's page list (Plugins, ...) and its
       // global panels (Automation tasks: the buttons of a nav in the sidebar).
       const PICKS = '[data-row-key^="session:"], .kb4-item, .kb4-newchat, [data-slot^="sidebar.panellist"] button, [data-slot="sidebar"] nav > button'
+      // A control of the drawer that is not a destination (the template selector of the Business group, the fold of that group) marks itself with this attribute: tapping it
+      // must not close the drawer, or the person could never reach what it opens.
+      const KEEP_OPEN = '[data-kb-keep-open]'
 
       // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
       // French text, and every other language (and a language not known yet) reads English ──
@@ -106,7 +109,7 @@ window.__ModuleLoader__.load({
         if (open !== true || target === null || target === undefined) return 'none'
         if (frameEl !== null && frameEl !== undefined && target === frameEl) return 'close' // the mask is the frame's own ::before
         try {
-          if (typeof target.closest === 'function' && target.closest('[data-slot="sidebar"]') !== null && target.closest(PICKS) !== null) return 'close-after'
+          if (typeof target.closest === 'function' && target.closest('[data-slot="sidebar"]') !== null && target.closest(KEEP_OPEN) === null && target.closest(PICKS) !== null) return 'close-after'
         } catch (e) { /* not an element */ }
         return 'none'
       }
@@ -1361,7 +1364,7 @@ html.kb-app :is(${STORE_HIDDEN.map((k) => '[data-kb="' + k + '"]').join(',')}){d
             }
           } catch (e) { try { console.warn('[kybernos-mobile] phone link disabled:', e) } catch (e2) { /* no console */ } }
         },
-        __test: { REPORT_REASONS, REPORT_CONTACT, reportMessage, textBefore, submitReport, reportMailto, parseAppHost, decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR, collapseButton, leadTarget, LEAD_ATTR }
+        __test: { REPORT_REASONS, REPORT_CONTACT, reportMessage, textBefore, submitReport, reportMailto, parseAppHost, decide, drawerOpen, narrow, toggle, PICKS, KEEP_OPEN, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR, collapseButton, leadTarget, LEAD_ATTR }
       }
     } catch (e) {
       try { console.warn('[kybernos-mobile] disabled:', e) } catch (e2) { /* no console */ }

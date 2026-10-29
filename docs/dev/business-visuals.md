@@ -1,6 +1,47 @@
-# Business pages: the visual kit, pictures, the map
+# Business pages: one template at a time, the visual kit, pictures, the map
 
-What Contacts, Catalog and Pipeline share so they look alike and feel alive, and how a template brings pictures and places. Everything is drawn or served locally: no page here fetches anything from the internet.
+What Contacts, Catalog and Pipeline share so they look alike and feel alive, which sector template they show (one at a time), and how a template brings pictures and places. Everything is drawn or served locally: no page here fetches anything from the internet.
+
+## One active template
+
+Several sector templates can be installed side by side (E-commerce, Real estate, Recruitment…). The three Business pages show **one** of them at a time: before this rule,
+Catalog drew Products and Properties together, Contacts mixed customers and buyers, Pipeline mixed boards. The other installed templates stay installed and wait until they are picked.
+
+**The scope.** Every row of the shared base (`contact`, `note`, `item`, `flow_card`, schema 2) carries a `scope`: the plugin id of the template it belongs to (`kybernos-themes/ecommerce`),
+or `''` when no template was active when it was made. A question to the base is about the **active** template's rows unless it names a scope (`scope: '<id>'`, `'*'` for every one, `''` for the rows
+of none); a new row takes the active scope (a note takes its contact's); sample rows take the scope of the theme that seeded them; the scope is not a column anyone can write through a route or a tool.
+Nothing is deleted when a template is switched off: its rows stay in the base, dormant, and come back when it is picked again.
+*With no active template the pages behave as they always did*: no filter, the default types.
+
+**Unscoped rows.** What the person made while no template was active has no scope. The first template that becomes active **adopts** it (one journal line, at the next question), so typing
+three contacts before installing a template does not lose them. A base written before schema 2 is migrated in place (forward only, idempotent, safe while two processes open it): its sample
+rows go back to the theme that seeded them, read from the journal of the seeds (`<theme>: N contacts, N items…` after the last `clear-demo`, counted in id order per table; a table that does
+not add up to the journal is left unscoped and adopted), and its other rows are adopted by the template active at the next question.
+
+**Which one is active.** One small file beside the base, `<DSH home>/kybernos/business/active-template.json` (`{ v: 1, active, at }`, written whole and renamed, `0600`, one per profile). The stored
+choice stands while that template is installed; if it is not (removed, or never chosen), the template installed last (`themes.json`) that is still there, then the first by id; none when none.
+**Recording an install makes the new template the active one** (the host does it in the `record` action of `/kybernos/themes`; the page only reads the answer again). A template the registry does
+not read yet (waiting for consent or a restart) is stored and takes effect when it is listed.
+
+**What a template feeds.** Nothing new in a template: the selector and the rows read its field-of-work pack (`domains/<id>.json`): `name`, `icon`, `accent` and `menu.labels.contacts|catalog|pipeline`
+(`docs/dev/plugin-contract.md`, point `kybernos/core#domain-pack`). The types, boards and schema the pages offer are the **active** template's contributions to `kybernos/catalog#type`,
+`kybernos/contacts#schema` and `kybernos/pipeline#flow` (the registry says which plugin each contribution comes from). A template with no word for a row leaves the row its plain word; it never
+borrows another template's.
+
+**The route.** `GET /kybernos/business/scope` → `{ ok, ready, active, stored, templates: [{ id, name, icon, accent, words }] }`; `POST { action: 'set', id }` switches (and answers the same view).
+Plugin routes are served before DSH's own sign-in, so: a read needs the signed session cookie (and refuses a foreign Origin; a read with no Origin, a direct navigation, is allowed), a switch needs
+the cookie and the strict same origin. `ready: false` means the registry has not yet heard the three Business points (the first seconds after DSH starts): the page asks again after 1.2, 3, 7 and
+15 s, and the host answers with the stored choice meanwhile instead of « nothing installed ». Code: `business-scope.mjs` (pure), `business-base.mjs` (the scope of every question), the three hosts
+(`types`, `schema`, `flows` filtered by the plugin that contributed them).
+
+**The selector.** In the « Business » group, under its header and above its rows, drawn only when **two or more** templates touch the pages (with one, that one is simply the active one; with none,
+nothing). A button with the template's icon on a tint of its accent and its name; opened (inline, not over the page) a menu of radio items and one line saying the others stay installed. A real button
+(`aria-haspopup`, `aria-expanded`, `aria-checked`), the arrows, Home, End, Enter, Escape (the focus goes back to the button), Tab closes; a switch that the host refuses leaves the menu open with a
+line in `role="alert"` and changes nothing; no selector in the icon rail. Switching needs no reload: the three rows take the new template's words, and the page that is open is mounted again under a
+new key (`<row>|<template>`), so it loads its own rows, types and boards. On a phone the drawer stays open while the selector is used (`data-kb-keep-open`, read by `kybernos-mobile`).
+
+Checked by `scripts/check-one-template-live.mjs` (sandbox: both templates installed with their samples; every row, chip and board counted against what the base holds; a real mouse, the keyboard,
+the refusals, light, dark and 420 px) and by the node tests `test-business-scope.mjs`, `test-business-scope-base.mjs`, `test-business-scope-client.mjs` and the host tests of the three plugins.
 
 ## The product's bar
 

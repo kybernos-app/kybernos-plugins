@@ -207,6 +207,11 @@ until those plugins are installed and have told their points to the registry, th
 node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
 ```
 
+**One template at a time.** Several themes can be installed side by side, but the three pages show one: the **active** theme (the last one installed until the person picks another with the
+selector of the Business group, `docs/dev/business-visuals.md`). Only the active theme's contributions to the three points are offered, only its rows are shown, and the rows (and the pack words)
+of the others wait, installed. The selector and the three rows read the theme's field-of-work pack (`domains/<id>.json`): its `name`, `icon`, `accent` and `menu.labels.contacts|catalog|pipeline`
+(a theme with no label for a row leaves the row its plain word). Nothing else to add to a theme: no key, no file.
+
 Sample rows for the pages (so a new install is not empty) are not part of these three points: a theme keeps them in `demo/sample.json`, the argument of the base's `seed()`.
 The three themes the product ships, with their sample rows, are described in [`shipped-themes.md`](shipped-themes.md).
 

@@ -277,6 +277,8 @@ and logged, as today.
 | `kybernos/contacts#schema` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/contacts` (`contacts-schema.mjs`): the kinds of contact, the fields and the tags a theme speaks of; at most 4 files per plugin | contributions |
 | `kybernos/catalog#type` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/catalog` (`catalog-type.mjs`): one kind of item, its statuses, fields, card and views; at most 12 files | contributions |
 | `kybernos/pipeline#flow` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/pipeline` (`pipeline-flow.mjs`): one board, its stages, value and links; at most 4 files | contributions |
+
+One template at a time (`docs/dev/business-visuals.md`): when several templates contribute to the three Business points above, the pages offer the contributions of the **active** one only (the registry says which plugin each comes from), and the selector of the « Business » group reads that template's `kybernos/core#domain-pack` for its name, icon, accent and `menu.labels.contacts|catalog|pipeline`. No new key and no new point: a template that names those three labels already speaks for the rows.
 | `kybernos/language#pack` 1.0 | data, inert | signed index (empty key list) | same |
 | `kybernos/modeles-locaux#model` 1.0 | data, inert | signed catalogue (key minted) | same |
 
