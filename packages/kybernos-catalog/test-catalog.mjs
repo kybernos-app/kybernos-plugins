@@ -150,16 +150,16 @@ ok('a registry that throws, of another version or without definePoint: nothing s
   try { withSeam(undefined, () => apply({}, { schedule: () => { throw new Error('no timers here') } })) } finally { console.log = log }
   assert.deepEqual(logs, ['[kybernos-catalog] disabled: no timers here'], 'only a broken clock is worth a line')
 })
-ok('the browser half hands the loader a plugin that never throws, and draws nothing', () => {
+ok('the browser half hands the loader a plugin that never throws, even when its React is missing', () => {
   const loaded = []
   const sandbox = { window: { __ModuleLoader__: { load: (entry) => loaded.push(entry) } }, console: { warn () {}, log () {} } }
   const src = readFileSync(here + 'client.js', 'utf8')
   vm.runInNewContext(src, sandbox)
   assert.equal(loaded.length, 1)
   assert.equal(loaded[0].id, '@local/kybernos-catalog')
-  const plugin = loaded[0].factory((m) => assert.fail('it requires nothing: ' + m))
+  const plugin = loaded[0].factory(() => { throw new Error('no react here') })
   assert.equal(typeof plugin.apply, 'function')
-  assert.equal(plugin.apply({ effect: () => assert.fail('nothing is registered yet') }), undefined)
+  assert.equal(plugin.apply({ effect: () => assert.fail('a disabled plugin registers nothing') }), undefined)
   assert.doesNotMatch(src, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, 'no colour of its own')
 })
 
