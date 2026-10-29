@@ -486,15 +486,21 @@ lists (threads, documents, creations) are not part of it.
 
 ## The Roles tab of an Agent Team (models, faces, members)
 
-The tab (`TeamTabMaquette`, `.kbm-root`) is the Team members & models screen wired to the host. Three parts, top to bottom:
+The tab (`TeamTabMaquette`, `.kbm-root`) is the Team members & models screen wired to the host. Two parts, top to bottom:
 
-- **Team faces.** The scene, the generation mode and ONE line for the image model (the model field below), the estimate beside Generate. The field
-  always draws its own details card: this part has no side panel.
-- **Model management.** MODE and PRIORITY side by side, then one line of facts counted from the roles' resolved models (« 10 of 11 roles on your
-  plans », « 1 on Kybernos »...). When a role cannot reach its model, a banner offers **Review replacements** (see below).
-- **Team members.** A bar (VIEW list / cards / carousel, PER PAGE 4 / 6 / 9 / All, the pager; the choice is kept per team in `localStorage`, key
-  `kbm.team.<root>.<team>`), then the roles of the page. A role opens into five sections, each a header line with its summary:
-  Identity, Voice, System prompt, Requirements (open by default), Models (open by default).
+- **Team faces**, three lines. The title with the mode (Group + crop / Per portrait) on its right; the image model (the model field below, with « Model »
+  inside it); Generate, with the estimate inside the button when the model has a price, and the number of image calls beside it. « Re-crop · free » is a link
+  under the scene it acts on, and only once faces exist. The field always draws its own details card: this part has no side panel.
+- **Team members**, drawn with the app's own pieces (`KbToolbar`, the card face `kb8-cf`, the row `kb8-rf`, `KbPager`, as on the Agent Teams page): search,
+  cards or list (kept per team in `localStorage`, key `kbm.team.<root>.<team>`), a filter by kind of model or « Without a model », a sort (team order, name,
+  model), « Add a role », and a **gear** that holds **Model management** (below). Six cards or eight rows a page. A whole card opens its role (it takes the
+  full row); hovering shows the details (primary, fallback, needs, persona). A card carries no figures; only a role with no model shows « No model ».
+  A role opens into four sections, each a header line with its summary: Identity, System prompt, Requirements (open by default; the Type, Tier and
+  Requires icon controls are unchanged), Models (open by default). **Voice** is built but hidden (`KBM_HIDDEN_SECTIONS`): no engine speaks a role's voice yet.
+
+**Model management** is the gear's popover: Mode (Manual / All auto / Per role) with its one-line summary, Priority (Cost / Balanced / Quality), the route
+counts read from the roles' resolved models (« 10 of 11 roles on your plans »), a « How Kybernos picks a model » fold, and, when a role cannot reach its
+model, an alert with **Review replacements**. A red dot on the gear says the same without opening it.
 
 **The model field** (`KbmCombo`, one line): it shows the current model with its provider and short price; typing filters (id, provider, type,
 modalities, capabilities); ↑ ↓ ⏎ pick, Esc closes, a click outside closes. The list is grouped **Your plans, Kybernos, Your own keys, Local**, in that order, and it
@@ -508,13 +514,13 @@ role's type and clears its requirements, as the old search box did. Auto modes l
 with `kybernos` is Kybernos; `ollama-*`, `lmstudio`, `local` are local; everything else is an own key). It is a convention of this profile, not a
 measurement: a plan that does not follow it lands under « Your own keys ».
 
-**Review replacements** lists the roles whose model is not in the catalogue, not declared, or whose probe failed. Each gets a proposal: on the best
+**Review replacements** (a dialog) lists the roles whose model is not in the catalogue, not declared, or whose probe failed. Each gets a proposal: on the best
 route that has one (plan, then Kybernos, then own key, then local), the same model if the route has it, else the best match for the role's tier and the
 chosen PRIORITY. Every row can be changed (a model field) or left out. Nothing is written before « Apply »; Apply does what picking by hand does
 (provider, model, no fallback) in ONE `kybers/save` for all the roles. A local role (« Add a role », kept in `localStorage`) is updated locally only.
 
-Limits: the routing modes (All auto, Per role, PRIORITY) still only declare; the host does not route by them yet. « Budget » is still « coming soon ».
-The fallback field lists the role's own type only. The cards and carousel views keep the same collapsed header as the list; an open role takes the full row.
+Limits: the routing modes (All auto, Per role, PRIORITY) still only declare; the host does not route by them yet. Budget is not drawn until it exists.
+The fallback field lists the role's own type only.
 
 `node scripts/check-roles-live.mjs` checks all of it on the real page (see `docs/dev/live-testing.md`).
 
