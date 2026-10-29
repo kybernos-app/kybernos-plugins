@@ -375,7 +375,8 @@ window.__ModuleLoader__.load({
           if (!r.ok) { setFail(r.error); return null }
           setFlows(r.data)
           const wanted = flowRef.current
-          const pick = r.data.flows.some((f) => f.id === wanted) ? wanted : r.data.flows[0].id
+          // nothing remembered: open the first board that holds cards (a template's own boards come after the empty default one)
+          const pick = r.data.flows.some((f) => f.id === wanted) ? wanted : (r.data.flows.find((f) => f.cards > 0) || r.data.flows[0]).id
           if (pick !== wanted) { flowRef.current = pick; setFlowId(pick) }
           return loadBoard(pick, archivedRef.current)
         }), [])

@@ -349,4 +349,8 @@ await ok('the contract of the source: hooks for the tests, words in two language
   assert.deepEqual(bare, [], 'a visible word outside kt()')
 })
 
+await ok('with no board remembered, the page opens on the first board that holds cards (a template\'s boards come after the empty default one)', () => {
+  assert.match(SRC, /find\(\(f\) => f\.cards > 0\) \|\| r\.data\.flows\[0\]/)
+})
+
 console.log('\n' + count + ' checks passed')
