@@ -5,7 +5,7 @@
 //   node scripts/test-garde-depot.mjs
 //
 // The fixtures are assembled from pieces, so this file does not carry a home folder or an address itself (the guard reads the tests too).
-import { COVER_MAX, isAllowedCover, isScanned, isThemeCover, looksLikeJpeg, personalMails, personalPath, warningsOf } from './garde-depot.mjs'
+import { COVER_MAX, PHOTO_MAX, PHOTOS_PER_THEME, isAllowedCover, isAllowedPhoto, isScanned, isThemeCover, looksLikeJpeg, personalMails, personalPath, warningsOf } from './garde-depot.mjs'
 
 let pass = 0
 let fail = 0
@@ -38,6 +38,12 @@ check('not another name, another format or another folder', !isAllowedCover(T + 
 check('not deeper, not up a level, not a hidden or odd name', !isAllowedCover(T + 'ecommerce/skills/cover.jpg', 100) && !isAllowedCover(T + '../cover.jpg', 100) && !isAllowedCover(T + 'Ecommerce/cover.jpg', 100) && !isAllowedCover(T + '_next/a/b.jpg', 100) && !isAllowedCover(T + '_next/.jpg', 100))
 check('inside a theme folder a stranger installs: only a root cover.jpg, small', isThemeCover('cover.jpg', 1000) && !isThemeCover('cover.jpg', COVER_MAX + 1) && !isThemeCover('img/cover.jpg', 1000) && !isThemeCover('cover.png', 1000))
 check('a JPEG is told by its first bytes, never by its name', looksLikeJpeg(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0])) && !looksLikeJpeg(Buffer.from('GIF89a')) && !looksLikeJpeg(Buffer.alloc(0)) && !looksLikeJpeg(Buffer.from([0xff, 0xd8])))
+
+console.log('the second picture it accepts: a sample photograph of a shipped theme')
+check('a sample photograph, small, at demo/photos/<name>.jpg', isAllowedPhoto(T + 'real-estate/demo/photos/willow-lane.jpg', 41000) && isAllowedPhoto(T + 'ecommerce/demo/photos/mug-2.jpg', PHOTO_MAX))
+check('not one byte over the cap, and at most 16 a theme', !isAllowedPhoto(T + 'real-estate/demo/photos/willow-lane.jpg', PHOTO_MAX + 1) && PHOTOS_PER_THEME === 16)
+check('not another folder, name, format or depth', !isAllowedPhoto(T + 'real-estate/photos/a.jpg', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/a.png', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/sub/a.jpg', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/A.jpg', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/.a.jpg', 100) && !isAllowedPhoto(T + '_next/demo/photos/a.jpg', 100) && !isAllowedPhoto('docs/demo/photos/a.jpg', 100))
+check('a photograph is not a cover and a cover is not a photograph', !isAllowedCover(T + 'real-estate/demo/photos/a.jpg', 100) && !isAllowedPhoto(T + 'real-estate/cover.jpg', 100))
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

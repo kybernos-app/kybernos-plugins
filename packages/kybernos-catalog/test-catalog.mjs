@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
-import { CATALOG_POINT, CATALOG_POINT_REF, ICONS, LIMITS, RESERVED, TONES, VIEWS, validateCatalogType as check } from './catalog-type.mjs'
+import { CATALOG_POINT, CATALOG_POINT_REF, ICONS, LIMITS, PICTURE, RESERVED, TONES, VIEWS, validateCatalogType as check } from './catalog-type.mjs'
 import { apply, name, tellPoint, tellWhenReady } from './index.js'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
@@ -82,12 +82,44 @@ ok('the flag points at a number or money field, with a threshold and a label', (
   // a flag on a field the type then lost is refused, not drawn wrong
   refused(bad((v) => { v.fields = v.fields.filter((f) => f.key !== 'stock') }), /flag\.field/)
 })
-ok('views: one or two of cards and list, no duplicate', () => {
-  assert.deepEqual([...VIEWS], ['cards', 'list'])
+ok('views: one to three of cards, list and map, no duplicate; the map only for a type that says where its items are', () => {
+  assert.deepEqual([...VIEWS], ['cards', 'list', 'map'])
   assert.deepEqual(bad((v) => { v.views = ['list'] }).value.views, ['list'])
-  refused(bad((v) => { v.views = [] }), /views: a list of 1 to 2/)
-  refused(bad((v) => { v.views = ['map'] }), /views\[0\]: one of cards, list/)
+  refused(bad((v) => { v.views = [] }), /views: a list of 1 to 3/)
+  refused(bad((v) => { v.views = ['grid'] }), /views\[0\]: one of cards, list, map/)
   refused(bad((v) => { v.views = ['list', 'list'] }), /views: "list" appears twice/)
+  refused(bad((v) => { v.views = ['cards', 'map'] }), /views: "map" needs a map/)
+})
+const located = (v) => { v.fields.push({ key: 'lat', type: 'number' }, { key: 'lng', type: 'number' }); v.map = { lat: 'lat', lng: 'lng' } }
+ok('map: two different number fields place an item; with a map the default views gain « map »', () => {
+  const r = bad((v) => { located(v); delete v.views })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.deepEqual(r.value.map, { lat: 'lat', lng: 'lng' })
+  assert.deepEqual(r.value.views, ['cards', 'list', 'map'])
+  assert.deepEqual(bad((v) => { located(v); v.views = ['map'] }).value.views, ['map'])
+  assert.equal('map' in bad((v) => { delete v.views }).value, false, 'no map declared, no map in the value')
+  assert.deepEqual(bad((v) => { delete v.views }).value.views, ['cards', 'list'])
+  refused(bad((v) => { located(v); v.map = { lat: 'lat', lng: 'lat' } }), /map: lat and lng are two different fields/)
+  refused(bad((v) => { located(v); v.map = { lat: 'lat', lng: 'sku' } }), /map\.lng: the key of a number field/)
+  refused(bad((v) => { located(v); v.map = { lat: 'lat' } }), /map\.lng/)
+  refused(bad((v) => { located(v); v.map = { lat: 'lat', lng: 'lng', zoom: 3 } }), /map: unknown key "zoom"/)
+  refused(bad((v) => { v.map = 'here' }), /map: an object/)
+})
+ok('card.image names a text field, card.chips up to four fields: anything else is refused', () => {
+  const r = bad((v) => { v.fields.push({ key: 'photo', type: 'text' }); v.card.image = 'photo'; v.card.chips = ['size', 'stock'] })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.value.card.image, 'photo')
+  assert.deepEqual(r.value.card.chips, ['size', 'stock'])
+  refused(bad((v) => { v.card.image = 'stock' }), /card\.image: the key of a text field/)
+  refused(bad((v) => { v.card.image = 'nope' }), /card\.image: the key of a text field/)
+  refused(bad((v) => { v.card.chips = [] }), /card\.chips: a list of 1 to 4/)
+  refused(bad((v) => { v.card.chips = ['sku', 'stock', 'price', 'size', 'sku'] }), /card\.chips: a list of 1 to 4/)
+  refused(bad((v) => { v.card.chips = ['nope'] }), /card\.chips\[0\]: the key of one of the fields/)
+  refused(bad((v) => { v.card.chips = ['size', 'size'] }), /card\.chips: "size" appears twice/)
+})
+ok('PICTURE accepts a drawn picture or a shipped one, nothing that could be fetched', () => {
+  for (const good of ['art:house/willow', 'art:box', 'art:villa/lake@210', 'photo:real-estate/willow-lane']) assert.match(good, PICTURE, good)
+  for (const bad of ['https://example.org/a.jpg', 'data:image/svg+xml;base64,AAAA', 'photo:../x/y', 'photo:real-estate', 'photo:a/b/c', 'art:HOUSE', 'file:///etc/passwd', '']) assert.doesNotMatch(bad, PICTURE, bad)
 })
 ok('anything that is not an object, and any other junk, is refused and never thrown', () => {
   for (const junk of [null, undefined, 7, 'text', true, [], [{}]]) refused(check(junk, 'x'), /JSON object/)

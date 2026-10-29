@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleThemes } from './theme-installer.mjs'
-import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, SAMPLE_MAX, SHIPPED_MAX, coverFile, previewFolder, publicView, readNext, readSample, readShipped, readTheme } from './themes-shipped.mjs'
+import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, PHOTO_MAX, SAMPLE_MAX, SHIPPED_MAX, coverFile, photoFile, previewFolder, publicView, readNext, readSample, readShipped, readTheme } from './themes-shipped.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 let count = 0
@@ -244,6 +244,16 @@ try {
     assert.match(r.body.reason, /symbolic link/)
   })
 
+  ok('photoFile serves a plain JPEG of a shipped theme by its id, never a path, a link, a lookalike or a file that is not a JPEG', () => {
+    const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 1)])
+    mkdirSync(join(root, 'shop', 'demo', 'photos'), { recursive: true })
+    writeFileSync(join(root, 'shop', 'demo', 'photos', 'mug-1.jpg'), jpeg)
+    writeFileSync(join(root, 'shop', 'demo', 'photos', 'not-a-jpeg.jpg'), Buffer.from('GIF89a......'))
+    writeFileSync(join(root, 'shop', 'demo', 'photos', 'huge.jpg'), Buffer.concat([jpeg, Buffer.alloc(PHOTO_MAX)]))
+    symlinkSync(join(root, 'shop', 'demo', 'photos', 'mug-1.jpg'), join(root, 'shop', 'demo', 'photos', 'linked.jpg'))
+    assert.equal(photoFile(root, 'shop/mug-1'), join(root, 'shop', 'demo', 'photos', 'mug-1.jpg'))
+    for (const bad of ['shop/not-a-jpeg', 'shop/huge', 'shop/linked', 'shop/missing', 'nowhere/mug-1', '../shop/mug-1', 'shop/../mug-1', 'shop/mug-1.jpg', 'shop/Mug-1', 'shop', '', undefined, null, 7, { id: 'shop/mug-1' }, '_next/consulting']) assert.equal(photoFile(root, bad), null, String(bad))
+  })
   // a folder the person points at: any name, read for a preview before anything is installed
   ok('previewFolder reads a folder whatever it is called, and answers null for what is not a theme', () => {
     const odd = join(root, 'My Odd Folder')
