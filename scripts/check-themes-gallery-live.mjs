@@ -94,8 +94,9 @@ try {
   check('no card is wider than the page and nothing scrolls sideways', (await ev(`(() => { const p = document.querySelector('${PAGE}'); return p.scrollWidth <= p.clientWidth + 1 && document.documentElement.scrollWidth <= window.innerWidth + 1 })()`)) === true)
   check('the title and the one-line promise are drawn', /Templates|Modèles/.test((await text(PAGE + ' .kb6-title')) || '') && /plugins/.test((await text(PAGE + ' .kbg-sub')) || ''))
   const addRow = await rect(PAGE + ' .kbgal-add')
-  check('« Add a template from a folder » sits below the gallery, small', addRow !== null && addRow.shown === true && addRow.y > (cards && cards.length ? Math.max(...cards.map((c) => c.y + c.h)) : 0), addRow)
-  check('its button is disabled until a path is typed', (await ev(`document.querySelector('[data-kb="theme-folder-add"]').disabled`)) === true)
+  check('a line below the gallery leads to Settings › Templates, small, and the folder card is gone from the gallery', addRow !== null && addRow.shown === true && addRow.y > (cards && cards.length ? Math.max(...cards.map((c) => c.y + c.h)) : 0) && (await rect('[data-kb="theme-folder"]')) === null, addRow)
+  check('the link is pressed with the mouse and Settings opens on the Templates page', (await click(PAGE + ' [data-kb="theme-add-link"]')) && (await waitFor(page, `!!document.querySelector('[data-kb="kb-market"]')`, 12000)) !== null)
+  check('that page leads back: « Open Templates » closes Settings and shows the gallery', (await click('[data-kb="kb-tpl-open-gallery"]')) && (await waitFor(page, `!!document.querySelector('${PAGE} [data-kb="theme-grid"]') && !document.querySelector('[data-kb="kb-market"]')`, 12000)) !== null)
   await shot('1-gallery')
 
   console.log('A theme page')

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// The Templates page, « From a folder », end to end on a SANDBOX dsh web: the button is visible and clicked with a real mouse, a folder DSH would
-// roll back is refused with a reason, the starter theme gets its plan, installs, and is removed again.
+// Settings › Templates, « From a folder », end to end on a SANDBOX dsh web: the path is checked as it is typed (a folder DSH would roll back is refused with a
+// reason, a good one shows what it holds), the button is clicked with a real mouse, the gallery opens on the plan, the starter template installs and is removed again.
 //
 //   source scripts/sandbox/env.sh && node scripts/check-themes-install-live.mjs [--shots <dir>]
 //
@@ -13,7 +13,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage, clickText, waitFor } from './live-page.mjs'
+import { openLivePage, openSettings, goToSettingsPage, waitFor } from './live-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const shotsDir = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
@@ -65,51 +65,58 @@ const click = async (selector) => {
   return true
 }
 const pageText = async () => (await ev(`(() => { const p = document.querySelector('[data-kb-page="themes"]'); return p ? p.innerText.replace(/\\n+/g, ' | ') : '' })()`)) || ''
+const settingsText = async () => (await ev(`(() => { const p = document.querySelector('[data-kb="kb-market"]'); return p ? p.innerText.replace(/\\n+/g, ' | ') : '' })()`)) || ''
 const typeFolder = async (folder) => {
-  await click('[data-kb="theme-folder"]')
+  await click('[data-kb="kb-tpl-folder-path"]')
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', modifiers: 4, windowsVirtualKeyCode: 65, commands: ['selectAll'] })
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', modifiers: 4, windowsVirtualKeyCode: 65 })
   await page.send('Input.insertText', { text: folder })
   await sleep(300)
 }
-const FOLDER_BUTTON = '[data-kb="theme-folder-add"]'
+const FOLDER_BUTTON = '[data-kb="kb-tpl-add"]'
 
 try {
-  console.log('The Templates page and its folder card')
+  console.log('Settings › Templates, from a folder')
   await sleep(2000)
   // the sandbox starts on a legacy field name that no pack answers to; give it a real one so the removal has a field to put back
   await ev(`fetch('/kybernos/onboarding', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'domain', profil: 'general', goals: [] }) }).then((r) => r.status)`, 10000)
-  await clickText(page, 'Templates')
-  const there = await waitFor(page, `!!document.querySelector('[data-kb="theme-folder"]')`, 12000)
-  check('the Templates page draws its folder card', there !== null)
+  check('Settings opens', await openSettings(page))
+  check('the Templates page is in the Interface group', await goToSettingsPage(page, /^(Templates|Modèles)$/, { marker: `!!document.querySelector('[data-kb="kb-market"]')` }))
+  const there = await waitFor(page, `!!document.querySelector('[data-kb="kb-tpl-folder-path"]')`, 12000)
+  check('it opens on « From a folder »: one path field, and the button is off until the folder is good', there !== null && (await ev(`document.querySelector('${FOLDER_BUTTON}').disabled`)) === true)
+  check('the two ways are tabs: a folder, a catalogue', (await ev(`[...document.querySelectorAll('[role="tab"]')].map((t) => t.getAttribute('data-kb') + ':' + t.getAttribute('aria-selected')).join(',')`)) === 'kb-tpl-tab-folder:true,kb-tpl-tab-catalogue:false')
   const btn = await rect(FOLDER_BUTTON)
-  check('« Add and see the plan » is visible (the team list\'s rule used to hide every action of a Templates card)', btn !== null && btn.w > 40 && btn.h > 20, btn)
-  const desc = await rect('.kbgal-add p')
-  check('the folder card\'s description is visible too', desc !== null && desc.h > 8, desc)
-  await shot('1-folder-card')
+  check('« Add and see the plan » is visible', btn !== null && btn.w > 40 && btn.h > 20, btn)
+  await shot('1-settings-templates')
 
-  console.log('A folder DSH would roll back')
+  console.log('A folder that cannot be read, a file, a folder DSH would roll back')
+  await typeFolder(join(tmp, 'nothing-here'))
+  check('a path that is not there is refused as you type, in plain words, and the button stays off', (await waitFor(page, `/cannot be read/.test(document.querySelector('[data-kb="kb-tpl-refused"]') ? document.querySelector('[data-kb="kb-tpl-refused"]').innerText : '')`, 8000)) !== null && (await ev(`document.querySelector('${FOLDER_BUTTON}').disabled`)) === true, await settingsText())
+  await typeFolder(join(good, 'plugin.json'))
+  check('a file is not a folder', (await waitFor(page, `/file, not a folder/.test(document.querySelector('[data-kb="kb-tpl-refused"]') ? document.querySelector('[data-kb="kb-tpl-refused"]').innerText : '')`, 8000)) !== null, await settingsText())
   await typeFolder(plain)
-  check('the button can be pressed with the mouse', await click(FOLDER_BUTTON))
-  const refused = await waitFor(page, `/only as a bundle/.test(document.querySelector('[data-kb-page="themes"]').innerText)`, 10000)
-  check('it is refused with a reason that names the patch, before DSH is asked', refused !== null, await pageText())
-  check('no plan dialog opens for it', (await rect('[data-kb="theme-plan"]')) === null)
-  check('the profile is untouched', !profileDeps().some((d) => /plain-clinic/.test(d)), profileDeps().filter((d) => /acme/.test(d)))
+  check('a folder DSH would roll back is refused before DSH is asked, with a reason that names what is wrong', (await waitFor(page, `/not a data template/.test(document.querySelector('[data-kb="kb-tpl-refused"]') ? document.querySelector('[data-kb="kb-tpl-refused"]').innerText : '')`, 8000)) !== null, await settingsText())
+  check('the button is still off and the profile is untouched', (await ev(`document.querySelector('${FOLDER_BUTTON}').disabled`)) === true && !profileDeps().some((d) => /plain-clinic/.test(d)), profileDeps().filter((d) => /acme/.test(d)))
   await shot('2-refused')
 
-  console.log('The starter theme: stage, plan')
+  console.log('The starter template: preview, add, plan')
   await typeFolder(good)
+  const shown = await waitFor(page, `!!document.querySelector('[data-kb="kb-tpl-preview"]')`, 8000)
+  const preview = (await ev(`(() => { const p = document.querySelector('[data-kb="kb-tpl-preview"]'); return p ? p.innerText.replace(/\\n+/g, ' | ') : '' })()`)) || ''
+  check('a good folder shows what it holds before anything is installed: its name, its id, its level, what it adds', shown !== null && /acme\/vet-clinic/.test(preview) && /Local/.test(preview) && /It adds/.test(preview), preview)
+  check('the button is on, and nothing is installed yet', (await ev(`document.querySelector('${FOLDER_BUTTON}').disabled`)) === false && !profileDeps().includes('@acme/kybernos-vet-clinic'))
+  await shot('3-preview')
   check('the button can be pressed with the mouse', await click(FOLDER_BUTTON))
   // pnpm links the package, then DSH's manager applies it: it takes several seconds, longer than any click handler
   const planned = await waitFor(page, `!!document.querySelector('[data-kb="theme-plan"] [role="dialog"]')`, 90000)
-  check('DSH installs the package and the plan opens (no unknown-plugin)', planned !== null, await pageText())
+  check('DSH installs the package, Settings closes, the gallery opens on its plan (no unknown-plugin)', planned !== null && (await rect('[data-kb="kb-market"]')) === null, await pageText())
   check('the profile now lists the package', profileDeps().includes('@acme/kybernos-vet-clinic'), profileDeps().filter((d) => /acme/.test(d)))
   // the item list (every name with its file) is behind « Customise »
   await click('[data-kb="theme-customise"]')
   await sleep(300)
   const planText = await pageText()
   check('the plan names the style, the field and the kit, each with its file', /Style/.test(planText) && /Field/.test(planText) && /themes\/vet-clinic\.json/.test(planText) && /domains\/vet-clinic\.json/.test(planText), planText.slice(0, 300))
-  await shot('3-plan')
+  await shot('4-plan')
 
   console.log('Install, then remove')
   check('the consent is ticked, then the primary action is pressed with the mouse', (await click('[data-kb="theme-consent"]')) && (await click('[data-kb="theme-go"]')))
@@ -119,13 +126,13 @@ try {
   check('the field and the look are applied (the look is the theme\'s own style, not a gallery id)', /Field \| applied/.test(report) && /Style \| applied/.test(report), report)
   // the starter\'s goal names a skill (consult-notes) that no shipped skill matches: « a contributed skill folder has no install route yet »
   check('the team and the automation are added; the one thing that cannot be (a contributed skill) is the only failure', /Added \| [3-9]/.test(report) && /Failed \| [01]\b/.test(report), report)
-  await shot('4-report')
+  await shot('5-report')
   const saved = await ev(`fetch('/kybernos/onboarding', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.profil)`, 10000)
   check('its field is the saved one', saved === 'vet-clinic', saved)
   check('« Back to templates » can be pressed', await click('[data-kb="theme-back-to-themes"]'))
   const done = await waitFor(page, `(() => { const c = document.querySelector('[data-kb-page="themes"] [data-theme="acme/vet-clinic"]'); return c !== null && /Installed/.test(c.innerText) })()`, 30000)
   check('the theme is listed as installed', done !== null, await pageText())
-  await shot('5-installed')
+  await shot('6-installed')
   check('the card is opened, its Remove button is visible and pressed', (await click('[data-kb-page="themes"] [data-theme="acme/vet-clinic"]')) && (await click('[data-kb="theme-remove"]')))
   const gone = await waitFor(page, `document.querySelector('[data-kb-page="themes"] [data-theme="acme/vet-clinic"]') === null`, 60000)
   check('the card goes away', gone !== null, await pageText())
@@ -134,7 +141,7 @@ try {
   check('the package is unlinked from the profile (DSH\'s removal)', !profileDeps().includes('@acme/kybernos-vet-clinic'), profileDeps().filter((d) => /acme/.test(d)))
   const back = await ev(`fetch('/kybernos/onboarding', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.profil)`, 10000)
   check('the field is the one from before', back === 'general', back)
-  await shot('6-removed')
+  await shot('7-removed')
 } catch (e) {
   failures.push('the check itself: ' + e.message)
   console.log('  ✗ the check stopped: ' + e.message)

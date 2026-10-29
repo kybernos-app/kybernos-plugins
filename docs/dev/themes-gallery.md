@@ -28,7 +28,7 @@ the name, one line, the colour and style, and what it brings (plugins, skills).
 
 ## The screens
 
-1. **Gallery**: the grid, then « Add a template from a folder » (the old folder card, small).
+1. **Gallery**: the grid, the next trades, then one line that leads to Settings › Templates (« A template of your own, or from a catalogue? »). The gallery chooses; it no longer adds.
 2. **Theme page**: breadcrumb, head (cover, name, line, counts, call to action), the plugins it needs with their status and the words it gives their
    menu rows, what else it adds (skills, agent teams, automations created off, connectors it suggests).
 3. **Plan dialog** over the theme page: the plugins, then the kit (each item ticked unless it is already there), the starter goals, one consent, one
@@ -49,3 +49,18 @@ and seeding the sample rows (`demo/sample.json`) through the business base.
 `node packages/kybernos-plugin/test-themes-shipped.mjs` (the reading of the folders, the list, `stage` by id) and, against the sandbox,
 `source scripts/sandbox/env.sh && node scripts/check-themes-gallery-live.mjs [--shots <dir>] [--theme <id>] [--no-install]` (gallery, theme page, plan,
 install, report, installed card, removal; real mouse, measured).
+
+## Adding a template: Settings › Templates
+
+Adding is a rare, technical gesture, so it lives in Settings (`KbThemesMarket` and `KbTplFolder` in `client.js`, section id `kybernos-themes-market`, the nav title is `templates`).
+Two tabs, **From a folder** (the first) and **From a catalogue**, and a button that leads back to the gallery.
+
+- **From a folder.** One path field (`~/…` is read by the host). The path is checked as it is typed: the host's read-only `stage` answers what the folder holds
+  (`preview`: name, line, level, the plugins it needs, what it adds) or why it is refused, in plain words (`kbThReasonWords`); nothing is installed before the
+  click. The button « Add and see the plan » brings the folder in through DSH's manager (`kbThBringIn`, shared with the gallery), then opens the gallery on the
+  template's plan (`kbThPending`). The last three folders are kept as chips (this browser only).
+- **From a catalogue.** The catalogue sources (an https address; the key id and public key are folded under « Pin a key (advanced) »), what the catalogues
+  offer, and their Install buttons. Unchanged otherwise.
+
+Hooks for tests: `kb-tpl-tab-folder`, `kb-tpl-tab-catalogue`, `kb-tpl-folder-path`, `kb-tpl-preview`, `kb-tpl-refused`, `kb-tpl-add`, `kb-tpl-open-gallery`,
+and `theme-add-link` in the gallery. Checks: `scripts/check-themes-install-live.mjs` (the whole flow, sandbox only) and `scripts/check-themes-gallery-live.mjs`.
