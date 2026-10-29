@@ -1,0 +1,98 @@
+{
+  "id": "product",
+  "label": {
+    "en": "Product",
+    "fr": "Produit"
+  },
+  "plural": {
+    "en": "Products",
+    "fr": "Produits"
+  },
+  "icon": "package",
+  "statuses": [
+    {
+      "key": "live",
+      "tone": "ok",
+      "label": {
+        "en": "Live",
+        "fr": "En ligne"
+      }
+    },
+    {
+      "key": "draft",
+      "tone": "neutral",
+      "label": {
+        "en": "Draft",
+        "fr": "Brouillon"
+      }
+    },
+    {
+      "key": "out",
+      "tone": "bad",
+      "label": {
+        "en": "Out of stock",
+        "fr": "En rupture"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "key": "sku",
+      "type": "text",
+      "label": {
+        "en": "Reference",
+        "fr": "Référence"
+      }
+    },
+    {
+      "key": "price",
+      "type": "money",
+      "currency": "EUR",
+      "label": {
+        "en": "Price",
+        "fr": "Prix"
+      }
+    },
+    {
+      "key": "stock",
+      "type": "number",
+      "label": {
+        "en": "Stock",
+        "fr": "Stock"
+      }
+    },
+    {
+      "key": "reorder_at",
+      "type": "number",
+      "label": {
+        "en": "Reorder at",
+        "fr": "Seuil de réassort"
+      }
+    },
+    {
+      "key": "supplier",
+      "type": "text",
+      "label": {
+        "en": "Supplier",
+        "fr": "Fournisseur"
+      }
+    }
+  ],
+  "card": {
+    "title": "title",
+    "subtitle": "sku",
+    "price": "price",
+    "flag": {
+      "field": "stock",
+      "lte": 10,
+      "label": {
+        "en": "Low stock: {n} left",
+        "fr": "Stock bas : {n} restants"
+      }
+    }
+  },
+  "views": [
+    "cards",
+    "list"
+  ]
+}

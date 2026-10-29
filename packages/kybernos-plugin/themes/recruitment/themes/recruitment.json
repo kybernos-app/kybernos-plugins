@@ -1,0 +1,17 @@
+{
+  "id": "recruitment",
+  "name": "Recruitment firm",
+  "settings": {
+    "mode": "dark",
+    "acc": "#4f5bd5",
+    "ov": {
+      "dark:base": "#0d1024",
+      "dark:l1": "#141833",
+      "dark:l2": "#1c2142",
+      "dark:side": "#10142b",
+      "dark:input": "#1c2142"
+    },
+    "fontText": "inter",
+    "radius": "soft"
+  }
+}

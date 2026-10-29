@@ -1,0 +1,56 @@
+{
+  "id": "sales",
+  "label": {
+    "en": "Sales",
+    "fr": "Ventes"
+  },
+  "newLabel": {
+    "en": "New sale",
+    "fr": "Nouvelle vente"
+  },
+  "stages": [
+    {
+      "key": "enquiry",
+      "label": {
+        "en": "Enquiry",
+        "fr": "Demande"
+      }
+    },
+    {
+      "key": "viewing",
+      "label": {
+        "en": "Viewing",
+        "fr": "Visite"
+      }
+    },
+    {
+      "key": "offer",
+      "label": {
+        "en": "Offer",
+        "fr": "Offre"
+      }
+    },
+    {
+      "key": "agreement",
+      "label": {
+        "en": "Agreement",
+        "fr": "Compromis"
+      }
+    },
+    {
+      "key": "closed",
+      "label": {
+        "en": "Closed",
+        "fr": "Conclue"
+      }
+    }
+  ],
+  "value": {
+    "format": "money",
+    "currency": "EUR"
+  },
+  "links": {
+    "contact": true,
+    "item": true
+  }
+}

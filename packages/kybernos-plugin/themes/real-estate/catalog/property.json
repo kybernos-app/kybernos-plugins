@@ -1,0 +1,148 @@
+{
+  "id": "property",
+  "label": {
+    "en": "Property",
+    "fr": "Bien"
+  },
+  "plural": {
+    "en": "Properties",
+    "fr": "Biens"
+  },
+  "icon": "home",
+  "statuses": [
+    {
+      "key": "for-sale",
+      "tone": "ok",
+      "label": {
+        "en": "For sale",
+        "fr": "À vendre"
+      }
+    },
+    {
+      "key": "to-let",
+      "tone": "ok",
+      "label": {
+        "en": "To let",
+        "fr": "À louer"
+      }
+    },
+    {
+      "key": "under-offer",
+      "tone": "warn",
+      "label": {
+        "en": "Under offer",
+        "fr": "Sous offre"
+      }
+    },
+    {
+      "key": "sold",
+      "tone": "neutral",
+      "label": {
+        "en": "Sold",
+        "fr": "Vendu"
+      }
+    },
+    {
+      "key": "mandate-draft",
+      "tone": "neutral",
+      "label": {
+        "en": "Mandate draft",
+        "fr": "Mandat à signer"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "key": "address",
+      "type": "text",
+      "label": {
+        "en": "Address",
+        "fr": "Adresse"
+      }
+    },
+    {
+      "key": "surface",
+      "type": "number",
+      "label": {
+        "en": "Surface (m²)",
+        "fr": "Surface (m²)"
+      }
+    },
+    {
+      "key": "rooms",
+      "type": "number",
+      "label": {
+        "en": "Rooms",
+        "fr": "Pièces"
+      }
+    },
+    {
+      "key": "energy",
+      "type": "choice",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+      ],
+      "label": {
+        "en": "Energy class",
+        "fr": "Classe énergie"
+      }
+    },
+    {
+      "key": "price",
+      "type": "money",
+      "currency": "EUR",
+      "label": {
+        "en": "Price or rent",
+        "fr": "Prix ou loyer"
+      }
+    },
+    {
+      "key": "offer",
+      "type": "money",
+      "currency": "EUR",
+      "label": {
+        "en": "Offer received",
+        "fr": "Offre reçue"
+      }
+    },
+    {
+      "key": "mandate_until",
+      "type": "date",
+      "label": {
+        "en": "Mandate until",
+        "fr": "Mandat jusqu’au"
+      }
+    },
+    {
+      "key": "owner",
+      "type": "text",
+      "label": {
+        "en": "Owner or landlord",
+        "fr": "Propriétaire ou bailleur"
+      }
+    }
+  ],
+  "card": {
+    "title": "title",
+    "subtitle": "address",
+    "price": "price",
+    "flag": {
+      "field": "offer",
+      "gte": 1,
+      "label": {
+        "en": "Offer received: {n}",
+        "fr": "Offre reçue : {n}"
+      }
+    }
+  },
+  "views": [
+    "cards",
+    "list"
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "v": 1,
+  "id": "recruitment",
+  "order": 65,
+  "theme": "recruitment",
+  "accent": "#4f5bd5",
+  "icon": "trend",
+  "name": {
+    "en": "Recruitment firm",
+    "fr": "Cabinet de recrutement"
+  },
+  "tagline": {
+    "en": "Candidate briefs in minutes and a pipeline that never goes quiet.",
+    "fr": "Des fiches candidats en minutes et un vivier qui ne s’endort jamais."
+  },
+  "keywords": [
+    "recruitment",
+    "recruiter",
+    "staffing"
+  ],
+  "home": [
+    "doc",
+    "sheet",
+    "automation"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "My results",
+        "fr": "Mes résultats"
+      },
+      "aiteams": {
+        "en": "Recruitment team",
+        "fr": "Équipe recrutement"
+      },
+      "deliverables": {
+        "en": "Proposals and reports",
+        "fr": "Propositions et comptes rendus"
+      },
+      "tasks": {
+        "en": "Follow-ups",
+        "fr": "Relances"
+      },
+      "contacts": {
+        "en": "Candidates and clients",
+        "fr": "Candidats et clients"
+      },
+      "catalog": {
+        "en": "Jobs",
+        "fr": "Offres"
+      },
+      "pipeline": {
+        "en": "Placements",
+        "fr": "Placements"
+      }
+    }
+  },
+  "mode": "bureau",
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "Candidate exchanges go through you before anything is sent.",
+      "fr": "Les échanges candidats passent par toi avant d’être envoyés."
+    }
+  },
+  "goals": [
+    {
+      "id": "sourcing",
+      "search": [
+        "cv screening",
+        "candidate sourcing"
+      ],
+      "name": {
+        "en": "Sourcing",
+        "fr": "Sourcing"
+      },
+      "title": {
+        "en": "Sort the CVs that come in",
+        "fr": "Trier les CV reçus"
+      },
+      "desc": {
+        "en": "Read a CV, keep the profiles that fit the role",
+        "fr": "Lire un CV, garder les profils qui collent au poste"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pdf",
+          "d": {
+            "en": "Read CVs and profiles sent as PDF",
+            "fr": "Lit les CV et profils reçus en PDF"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "draft-outreach",
+          "d": {
+            "en": "Draft the first message to a candidate",
+            "fr": "Rédige le premier message à un candidat"
+          }
+        }
+      ],
+      "connectors": [
+        "gmail",
+        "googledrive"
+      ],
+      "automations": [
+        {
+          "id": "cv-digest",
+          "name": {
+            "en": "Daily CV digest",
+            "fr": "Digest des CV reçus"
+          },
+          "prompt": {
+            "en": "Every weekday at 18:00: read the CVs received today for the open roles, compare each one with its role sheet, and write one shortlist per role in this workspace, the best fit first, with the reason for every line. Never send anything and keep candidate data in this workspace.",
+            "fr": "Chaque jour de semaine à 18 h : lis les CV reçus aujourd’hui pour les postes ouverts, compare chacun à sa fiche de poste et écris une sélection par poste dans ce workspace, le meilleur profil en premier, avec la raison de chaque ligne. N’envoie rien et garde les données candidats dans ce workspace."
+          },
+          "cron": "0 18 * * 1-5"
+        }
+      ],
+      "starter": {
+        "en": "Sort today’s CVs for the DevOps role",
+        "fr": "Trie les CV reçus pour la fiche DevOps"
+      },
+      "teams": [
+        "recruiting-desk"
+      ]
+    },
+    {
+      "id": "offres",
+      "search": [
+        "proposal writing",
+        "rate grid"
+      ],
+      "name": {
+        "en": "Proposals",
+        "fr": "Offres"
+      },
+      "title": {
+        "en": "Proposals without the last-minute rush",
+        "fr": "Des propositions sans course contre la montre"
+      },
+      "desc": {
+        "en": "The proposal and its rate grid, ready to check",
+        "fr": "La proposition et sa grille de tarifs, prêtes à relire"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write the proposal and the offer letter in your format",
+            "fr": "Rédige la proposition et la promesse d’embauche dans ton format"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "A rate and margin grid next to each proposal",
+            "fr": "Une grille de tarifs et de marge à côté de chaque proposition"
+          }
+        }
+      ],
+      "connectors": [
+        "googledocs",
+        "googlesheets"
+      ],
+      "automations": [
+        {
+          "id": "proposal-followups",
+          "name": {
+            "en": "Proposal follow-ups",
+            "fr": "Relances des propositions"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: list the proposals sent last week that got no answer, and draft one follow-up per proposal with the draft-outreach skill, in the client’s tone and language. Put the drafts in this workspace for me to check. Never send them.",
+            "fr": "Chaque lundi à 9 h : liste les propositions envoyées la semaine dernière restées sans réponse et rédige une relance par proposition avec le skill draft-outreach, dans le ton et la langue du client. Dépose les brouillons dans ce workspace pour que je les relise. Ne les envoie jamais."
+          },
+          "cron": "0 9 * * 1"
+        }
+      ],
+      "starter": {
+        "en": "Draft the proposal for the DevOps profile",
+        "fr": "Rédige la proposition pour le profil DevOps"
+      }
+    },
+    {
+      "id": "entretiens",
+      "search": [
+        "interview guide",
+        "interview plan"
+      ],
+      "name": {
+        "en": "Interviews",
+        "fr": "Entretiens"
+      },
+      "title": {
+        "en": "Walk into the interview with the questions ready",
+        "fr": "Arriver à l’entretien avec les questions prêtes"
+      },
+      "desc": {
+        "en": "One plan per interview: the questions, and what to listen for",
+        "fr": "Un plan par entretien : les questions et ce qu’il faut écouter"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "user-research",
+          "d": {
+            "en": "Turn a role into a structured interview guide",
+            "fr": "Transforme un poste en guide d’entretien structuré"
+          }
+        }
+      ],
+      "connectors": [
+        "googlecalendar",
+        "notion"
+      ],
+      "automations": [
+        {
+          "id": "interview-plans",
+          "name": {
+            "en": "Tomorrow’s interview plans",
+            "fr": "Plans d’entretien de demain"
+          },
+          "prompt": {
+            "en": "Every weekday at 17:00: read tomorrow’s interviews from my calendar if it is connected, and write one interview plan per interview with the user-research skill: the questions, the points to probe and the signals to note. List the plans for me to check; never send a plan to a candidate.",
+            "fr": "Chaque jour de semaine à 17 h : lis les entretiens de demain dans mon agenda s’il est connecté et rédige un plan d’entretien par entretien avec le skill user-research : les questions, les points à creuser et les signaux à noter. Liste les plans pour que je les relise ; n’envoie jamais un plan à un candidat."
+          },
+          "cron": "0 17 * * 1-5"
+        }
+      ],
+      "starter": {
+        "en": "Prepare tomorrow’s interview plan",
+        "fr": "Prépare le plan d’entretien de demain"
+      }
+    },
+    {
+      "id": "clients",
+      "search": [
+        "client brief",
+        "staffing need"
+      ],
+      "name": {
+        "en": "Client needs",
+        "fr": "Besoins clients"
+      },
+      "title": {
+        "en": "Turn a call into a written brief",
+        "fr": "Transformer un appel en brief écrit"
+      },
+      "desc": {
+        "en": "The need, the profile, the start date, in one page",
+        "fr": "Le besoin, le profil, la date de démarrage, en une page"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "write-spec",
+          "d": {
+            "en": "Turn a client need into a short written brief",
+            "fr": "Transforme un besoin client en brief écrit"
+          }
+        }
+      ],
+      "connectors": [
+        "gmail",
+        "notion"
+      ],
+      "automations": [
+        {
+          "id": "client-needs-review",
+          "name": {
+            "en": "Weekly client needs review",
+            "fr": "Point hebdomadaire besoins clients"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: read the client notes of the week in this workspace and write a one-page review of every open need: the role, the skills, the start date, the rate line when it is there, and what is still missing. Ask me for what is missing instead of inventing it. Never send it.",
+            "fr": "Chaque lundi à 9 h : lis les notes clients de la semaine dans ce workspace et écris une page de revue de chaque besoin ouvert : le poste, les compétences, la date de démarrage, la ligne de tarif quand elle existe et ce qui manque encore. Demande-moi ce qui manque au lieu de l’inventer. Ne l’envoie jamais."
+          },
+          "cron": "0 9 * * 1"
+        }
+      ],
+      "starter": {
+        "en": "Summarise the open client needs",
+        "fr": "Résume les besoins clients ouverts"
+      }
+    }
+  ]
+}

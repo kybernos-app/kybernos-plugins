@@ -1,0 +1,11 @@
+{
+  "name": "@kybernos-themes/recruitment",
+  "version": "1.0.0",
+  "description": "Kybernos theme data: Recruitment firm. Nothing to load: an empty patch, no script.",
+  "license": "Apache-2.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

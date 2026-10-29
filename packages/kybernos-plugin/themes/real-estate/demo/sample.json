@@ -1,0 +1,409 @@
+{
+  "contacts": [
+    {
+      "ref": "sophie-laurent",
+      "kind": "person",
+      "type": "buyer",
+      "name": "Sophie Laurent",
+      "email": "sophie.laurent@example.com",
+      "tags": [
+        "pre-approved"
+      ],
+      "fields": {
+        "city": "Lakeview",
+        "budget": 420000
+      }
+    },
+    {
+      "ref": "chloe-bernard",
+      "kind": "person",
+      "type": "buyer",
+      "name": "Chloe Bernard",
+      "email": "chloe.bernard@example.com",
+      "tags": [
+        "family"
+      ],
+      "fields": {
+        "city": "Lakeview",
+        "budget": 600000
+      }
+    },
+    {
+      "ref": "daniel-okoye",
+      "kind": "person",
+      "type": "seller",
+      "name": "Daniel Okoye",
+      "email": "daniel.okoye@example.com",
+      "tags": [
+        "mandate"
+      ],
+      "fields": {
+        "city": "Lakeview"
+      }
+    },
+    {
+      "ref": "victor-alvarez",
+      "kind": "person",
+      "type": "seller",
+      "name": "Victor Alvarez",
+      "email": "victor.alvarez@example.com",
+      "company_ref": "alvarez-holdings",
+      "tags": [
+        "mandate"
+      ],
+      "fields": {
+        "city": "Old Mill"
+      }
+    },
+    {
+      "ref": "marta-kowalski",
+      "kind": "person",
+      "type": "landlord",
+      "name": "Marta Kowalski",
+      "email": "marta.kowalski@example.com",
+      "company_ref": "pine-street-property",
+      "tags": [],
+      "fields": {
+        "city": "Lakeview"
+      }
+    },
+    {
+      "ref": "hannah-cole",
+      "kind": "person",
+      "type": "tenant",
+      "name": "Hannah Cole",
+      "email": "hannah.cole@example.com",
+      "tags": [
+        "new"
+      ],
+      "fields": {
+        "city": "Lakeview"
+      }
+    },
+    {
+      "ref": "ibrahim-haddad",
+      "kind": "person",
+      "type": "tenant",
+      "name": "Ibrahim Haddad",
+      "email": "ibrahim.haddad@example.com",
+      "tags": [],
+      "fields": {
+        "city": "Lakeview"
+      }
+    },
+    {
+      "ref": "pierre-garnier",
+      "kind": "person",
+      "type": "partner",
+      "name": "Pierre Garnier",
+      "email": "pierre.garnier@example.com",
+      "company_ref": "garnier-notary-office",
+      "tags": [],
+      "fields": {
+        "city": "Lakeview"
+      }
+    },
+    {
+      "ref": "alvarez-holdings",
+      "kind": "company",
+      "type": "owner-company",
+      "name": "Alvarez Holdings",
+      "email": "hello@alvarezholdings.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Old Mill",
+        "sector": "Owner"
+      }
+    },
+    {
+      "ref": "pine-street-property",
+      "kind": "company",
+      "type": "owner-company",
+      "name": "Pine Street Property",
+      "email": "hello@pinestreetproperty.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Lakeview",
+        "sector": "Landlord"
+      }
+    },
+    {
+      "ref": "garnier-notary-office",
+      "kind": "company",
+      "type": "partner-firm",
+      "name": "Garnier Notary Office",
+      "email": "hello@garniernotaryoffice.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Lakeview",
+        "sector": "Notary"
+      }
+    },
+    {
+      "ref": "brightside-mortgage",
+      "kind": "company",
+      "type": "partner-firm",
+      "name": "Brightside Mortgage",
+      "email": "hello@brightsidemortgage.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Lakeview",
+        "sector": "Broker"
+      }
+    }
+  ],
+  "items": [
+    {
+      "ref": "willow-lane",
+      "type": "property",
+      "title": "3-room apartment, Willow Lane",
+      "subtitle": "12 Willow Lane",
+      "status": "for-sale",
+      "price_text": "€385,000",
+      "price_num": 385000,
+      "fields": {
+        "address": "12 Willow Lane",
+        "surface": 68,
+        "rooms": 3,
+        "energy": "C",
+        "price": 385000,
+        "mandate_until": "2027-01-30",
+        "owner": "Daniel Okoye"
+      }
+    },
+    {
+      "ref": "elm-court",
+      "type": "property",
+      "title": "Family house with garden, Elm Court",
+      "subtitle": "4 Elm Court",
+      "status": "under-offer",
+      "price_text": "€612,000",
+      "price_num": 612000,
+      "fields": {
+        "address": "4 Elm Court",
+        "surface": 142,
+        "rooms": 6,
+        "energy": "B",
+        "price": 612000,
+        "offer": 598000,
+        "mandate_until": "2026-12-15"
+      }
+    },
+    {
+      "ref": "quay-street",
+      "type": "property",
+      "title": "Studio near the station, Quay Street",
+      "subtitle": "9 Quay Street",
+      "status": "to-let",
+      "price_text": "€780 / month",
+      "price_num": 780,
+      "fields": {
+        "address": "9 Quay Street",
+        "surface": 24,
+        "rooms": 1,
+        "energy": "D",
+        "price": 780,
+        "owner": "Marta Kowalski"
+      }
+    },
+    {
+      "ref": "old-mill",
+      "type": "property",
+      "title": "Loft, Old Mill",
+      "subtitle": "2 Old Mill Yard",
+      "status": "for-sale",
+      "price_text": "€498,000",
+      "price_num": 498000,
+      "fields": {
+        "address": "2 Old Mill Yard",
+        "surface": 95,
+        "rooms": 3,
+        "energy": "C",
+        "price": 498000,
+        "mandate_until": "2027-02-28",
+        "owner": "Victor Alvarez"
+      }
+    },
+    {
+      "ref": "lakeview-ave",
+      "type": "property",
+      "title": "2-room apartment, Lakeview Avenue",
+      "subtitle": "31 Lakeview Ave",
+      "status": "to-let",
+      "price_text": "€1,150 / month",
+      "price_num": 1150,
+      "fields": {
+        "address": "31 Lakeview Ave",
+        "surface": 46,
+        "rooms": 2,
+        "energy": "B",
+        "price": 1150,
+        "owner": "Marta Kowalski"
+      }
+    },
+    {
+      "ref": "maple-row",
+      "type": "property",
+      "title": "Townhouse, Maple Row",
+      "subtitle": "7 Maple Row",
+      "status": "sold",
+      "price_text": "€545,000",
+      "price_num": 545000,
+      "fields": {
+        "address": "7 Maple Row",
+        "surface": 118,
+        "rooms": 5,
+        "energy": "C",
+        "price": 545000
+      }
+    },
+    {
+      "ref": "church-square",
+      "type": "property",
+      "title": "Attic flat, Church Square",
+      "subtitle": "3 Church Square",
+      "status": "mandate-draft",
+      "price_text": "€295,000",
+      "price_num": 295000,
+      "fields": {
+        "address": "3 Church Square",
+        "surface": 52,
+        "rooms": 2,
+        "energy": "E",
+        "price": 295000
+      }
+    },
+    {
+      "ref": "market-street",
+      "type": "property",
+      "title": "Commercial unit, Market Street",
+      "subtitle": "18 Market Street",
+      "status": "to-let",
+      "price_text": "€2,400 / month",
+      "price_num": 2400,
+      "fields": {
+        "address": "18 Market Street",
+        "surface": 80,
+        "rooms": 2,
+        "energy": "D",
+        "price": 2400,
+        "owner": "Pine Street Property"
+      }
+    }
+  ],
+  "cards": [
+    {
+      "flow": "sales",
+      "stage": "enquiry",
+      "title": "Old Mill · Marie and Paul Dufour",
+      "subtitle": "Web enquiry",
+      "value_num": 498000,
+      "item_ref": "old-mill"
+    },
+    {
+      "flow": "sales",
+      "stage": "viewing",
+      "title": "Willow Lane · Sophie Laurent",
+      "subtitle": "Viewing Monday",
+      "value_num": 385000,
+      "contact_ref": "sophie-laurent",
+      "item_ref": "willow-lane"
+    },
+    {
+      "flow": "sales",
+      "stage": "viewing",
+      "title": "Church Square · Peter Lund",
+      "subtitle": "Second viewing",
+      "value_num": 295000,
+      "item_ref": "church-square"
+    },
+    {
+      "flow": "sales",
+      "stage": "offer",
+      "title": "Elm Court · Chloe Bernard",
+      "subtitle": "Offer €598,000",
+      "value_num": 598000,
+      "contact_ref": "chloe-bernard",
+      "item_ref": "elm-court"
+    },
+    {
+      "flow": "sales",
+      "stage": "agreement",
+      "title": "Garden flat · Nora Ek",
+      "subtitle": "Draft with the notary",
+      "value_num": 340000
+    },
+    {
+      "flow": "sales",
+      "stage": "closed",
+      "title": "Maple Row · Anton Roy",
+      "subtitle": "Keys handed over",
+      "value_num": 545000,
+      "item_ref": "maple-row"
+    },
+    {
+      "flow": "lettings",
+      "stage": "application",
+      "title": "Quay Street · Hannah Cole",
+      "subtitle": "Documents received",
+      "value_num": 780,
+      "contact_ref": "hannah-cole",
+      "item_ref": "quay-street"
+    },
+    {
+      "flow": "lettings",
+      "stage": "application",
+      "title": "Market Street · Bluebird Cafe",
+      "subtitle": "Business plan sent",
+      "value_num": 2400,
+      "item_ref": "market-street"
+    },
+    {
+      "flow": "lettings",
+      "stage": "viewing",
+      "title": "Lakeview Ave · Omar Said",
+      "subtitle": "Viewing Saturday",
+      "value_num": 1150,
+      "item_ref": "lakeview-ave"
+    },
+    {
+      "flow": "lettings",
+      "stage": "lease",
+      "title": "Quay Street · Eva Brandt",
+      "subtitle": "Lease out for signature",
+      "value_num": 760,
+      "item_ref": "quay-street"
+    },
+    {
+      "flow": "lettings",
+      "stage": "moved-in",
+      "title": "Lakeview Ave · Ibrahim Haddad",
+      "subtitle": "Inventory done",
+      "value_num": 1100,
+      "contact_ref": "ibrahim-haddad",
+      "item_ref": "lakeview-ave"
+    }
+  ],
+  "notes": [
+    {
+      "contact_ref": "sophie-laurent",
+      "body": "Wants a balcony and a quiet street. Works from home on Fridays."
+    },
+    {
+      "contact_ref": "chloe-bernard",
+      "body": "Offer sent at €598,000, financing letter attached."
+    },
+    {
+      "contact_ref": "daniel-okoye",
+      "body": "Valuation visit booked for Friday."
+    },
+    {
+      "contact_ref": "victor-alvarez",
+      "body": "Considering a 3% reduction after two quiet weeks."
+    },
+    {
+      "contact_ref": "ibrahim-haddad",
+      "body": "Reported a heating fault. The landlord has been told."
+    }
+  ]
+}

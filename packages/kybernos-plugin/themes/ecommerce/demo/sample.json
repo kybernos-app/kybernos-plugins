@@ -1,0 +1,430 @@
+{
+  "contacts": [
+    {
+      "ref": "amelia-hart",
+      "kind": "person",
+      "type": "customer",
+      "name": "Amelia Hart",
+      "email": "amelia.hart@example.com",
+      "tags": [
+        "repeat",
+        "newsletter"
+      ],
+      "fields": {
+        "city": "Lyon"
+      }
+    },
+    {
+      "ref": "mateo-silva",
+      "kind": "person",
+      "type": "customer",
+      "name": "Mateo Silva",
+      "email": "mateo.silva@example.com",
+      "tags": [
+        "newsletter"
+      ],
+      "fields": {
+        "city": "Nantes"
+      }
+    },
+    {
+      "ref": "priya-raman",
+      "kind": "person",
+      "type": "customer",
+      "name": "Priya Raman",
+      "email": "priya.raman@example.com",
+      "tags": [
+        "repeat"
+      ],
+      "fields": {
+        "city": "Paris"
+      }
+    },
+    {
+      "ref": "jonas-weber",
+      "kind": "person",
+      "type": "customer",
+      "name": "Jonas Weber",
+      "email": "jonas.weber@example.com",
+      "tags": [],
+      "fields": {
+        "city": "Strasbourg"
+      }
+    },
+    {
+      "ref": "lea-moreau",
+      "kind": "person",
+      "type": "customer",
+      "name": "Lea Moreau",
+      "email": "lea.moreau@example.com",
+      "company_ref": "cafe-bleu",
+      "tags": [
+        "wholesale"
+      ],
+      "fields": {
+        "city": "Bordeaux"
+      }
+    },
+    {
+      "ref": "chen-wei",
+      "kind": "person",
+      "type": "customer",
+      "name": "Chen Wei",
+      "email": "chen.wei@example.com",
+      "tags": [
+        "newsletter"
+      ],
+      "fields": {
+        "city": "Lille"
+      }
+    },
+    {
+      "ref": "tom-okafor",
+      "kind": "person",
+      "type": "supplier-contact",
+      "name": "Tom Okafor",
+      "email": "tom.okafor@example.com",
+      "company_ref": "okafor-ceramics",
+      "tags": [],
+      "fields": {
+        "city": "Vallauris",
+        "lead_time": "3 weeks"
+      }
+    },
+    {
+      "ref": "sara-lindqvist",
+      "kind": "person",
+      "type": "supplier-contact",
+      "name": "Sara Lindqvist",
+      "email": "sara.lindqvist@example.com",
+      "company_ref": "nordlinen-mills",
+      "tags": [],
+      "fields": {
+        "city": "Malmo",
+        "lead_time": "5 weeks"
+      }
+    },
+    {
+      "ref": "cafe-bleu",
+      "kind": "company",
+      "type": "trade-customer",
+      "name": "Cafe Bleu",
+      "email": "hello@cafebleu.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Bordeaux",
+        "sector": "Cafe"
+      }
+    },
+    {
+      "ref": "pinecone-gift-shop",
+      "kind": "company",
+      "type": "trade-customer",
+      "name": "Pinecone Gift Shop",
+      "email": "hello@pineconegiftshop.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Annecy",
+        "sector": "Retail"
+      }
+    },
+    {
+      "ref": "okafor-ceramics",
+      "kind": "company",
+      "type": "supplier",
+      "name": "Okafor Ceramics",
+      "email": "hello@okaforceramics.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Vallauris",
+        "sector": "Workshop"
+      }
+    },
+    {
+      "ref": "nordlinen-mills",
+      "kind": "company",
+      "type": "supplier",
+      "name": "Nordlinen Mills",
+      "email": "hello@nordlinenmills.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Malmo",
+        "sector": "Textile"
+      }
+    }
+  ],
+  "items": [
+    {
+      "ref": "stoneware-mug",
+      "type": "product",
+      "title": "Stoneware mug, set of 2",
+      "subtitle": "FC-MUG-02",
+      "status": "live",
+      "price_text": "€28",
+      "price_num": 28,
+      "fields": {
+        "sku": "FC-MUG-02",
+        "price": 28,
+        "stock": 42,
+        "reorder_at": 10,
+        "supplier": "Okafor Ceramics"
+      }
+    },
+    {
+      "ref": "linen-napkins",
+      "type": "product",
+      "title": "Linen napkins, 4-pack",
+      "subtitle": "FC-NAP-04",
+      "status": "live",
+      "price_text": "€34",
+      "price_num": 34,
+      "fields": {
+        "sku": "FC-NAP-04",
+        "price": 34,
+        "stock": 6,
+        "reorder_at": 10,
+        "supplier": "Nordlinen Mills"
+      }
+    },
+    {
+      "ref": "taper-candles",
+      "type": "product",
+      "title": "Beeswax taper candles",
+      "subtitle": "FC-CND-12",
+      "status": "out",
+      "price_text": "€19",
+      "price_num": 19,
+      "fields": {
+        "sku": "FC-CND-12",
+        "price": 19,
+        "stock": 0,
+        "reorder_at": 12,
+        "supplier": "Nordlinen Mills"
+      }
+    },
+    {
+      "ref": "olive-board",
+      "type": "product",
+      "title": "Olive wood board",
+      "subtitle": "FC-BRD-01",
+      "status": "live",
+      "price_text": "€46",
+      "price_num": 46,
+      "fields": {
+        "sku": "FC-BRD-01",
+        "price": 46,
+        "stock": 15,
+        "reorder_at": 6
+      }
+    },
+    {
+      "ref": "soy-candle",
+      "type": "product",
+      "title": "Hand-poured soy candle",
+      "subtitle": "FC-CND-03",
+      "status": "live",
+      "price_text": "€24",
+      "price_num": 24,
+      "fields": {
+        "sku": "FC-CND-03",
+        "price": 24,
+        "stock": 58,
+        "reorder_at": 20
+      }
+    },
+    {
+      "ref": "ceramic-carafe",
+      "type": "product",
+      "title": "Ceramic carafe",
+      "subtitle": "FC-CRF-01",
+      "status": "live",
+      "price_text": "€39",
+      "price_num": 39,
+      "fields": {
+        "sku": "FC-CRF-01",
+        "price": 39,
+        "stock": 12,
+        "reorder_at": 5,
+        "supplier": "Okafor Ceramics"
+      }
+    },
+    {
+      "ref": "tea-towel",
+      "type": "product",
+      "title": "Tea towel, indigo",
+      "subtitle": "FC-TWL-02",
+      "status": "live",
+      "price_text": "€16",
+      "price_num": 16,
+      "fields": {
+        "sku": "FC-TWL-02",
+        "price": 16,
+        "stock": 3,
+        "reorder_at": 10,
+        "supplier": "Nordlinen Mills"
+      }
+    },
+    {
+      "ref": "gift-box",
+      "type": "product",
+      "title": "Spring gift box",
+      "subtitle": "FC-GFT-01",
+      "status": "draft",
+      "price_text": "€72",
+      "price_num": 72,
+      "fields": {
+        "sku": "FC-GFT-01",
+        "price": 72
+      }
+    },
+    {
+      "ref": "wool-throw",
+      "type": "product",
+      "title": "Wool throw, oatmeal",
+      "subtitle": "FC-THR-01",
+      "status": "live",
+      "price_text": "€89",
+      "price_num": 89,
+      "fields": {
+        "sku": "FC-THR-01",
+        "price": 89,
+        "stock": 22,
+        "reorder_at": 8
+      }
+    },
+    {
+      "ref": "tote-bag",
+      "type": "product",
+      "title": "Cotton tote bag",
+      "subtitle": "FC-TOT-01",
+      "status": "live",
+      "price_text": "€14",
+      "price_num": 14,
+      "fields": {
+        "sku": "FC-TOT-01",
+        "price": 14,
+        "stock": 140,
+        "reorder_at": 40
+      }
+    }
+  ],
+  "cards": [
+    {
+      "flow": "orders",
+      "stage": "new",
+      "title": "#1046 · Jonas Weber",
+      "subtitle": "2 items",
+      "value_num": 63,
+      "contact_ref": "jonas-weber",
+      "item_ref": "olive-board"
+    },
+    {
+      "flow": "orders",
+      "stage": "new",
+      "title": "#1045 · Chen Wei",
+      "subtitle": "1 item",
+      "value_num": 28,
+      "contact_ref": "chen-wei",
+      "item_ref": "stoneware-mug"
+    },
+    {
+      "flow": "orders",
+      "stage": "new",
+      "title": "#1047 · Amelia Hart",
+      "subtitle": "1 item",
+      "value_num": 89,
+      "contact_ref": "amelia-hart",
+      "item_ref": "wool-throw"
+    },
+    {
+      "flow": "orders",
+      "stage": "paid",
+      "title": "#1044 · Priya Raman",
+      "subtitle": "4 items",
+      "value_num": 118,
+      "contact_ref": "priya-raman",
+      "item_ref": "linen-napkins"
+    },
+    {
+      "flow": "orders",
+      "stage": "paid",
+      "title": "#1039 · Pinecone Gift Shop",
+      "subtitle": "24 items",
+      "value_num": 612,
+      "contact_ref": "pinecone-gift-shop",
+      "item_ref": "stoneware-mug"
+    },
+    {
+      "flow": "orders",
+      "stage": "packed",
+      "title": "#1043 · Amelia Hart",
+      "subtitle": "3 items",
+      "value_num": 96,
+      "contact_ref": "amelia-hart",
+      "item_ref": "soy-candle"
+    },
+    {
+      "flow": "orders",
+      "stage": "shipped",
+      "title": "#1042 · Mateo Silva",
+      "subtitle": "2 items",
+      "value_num": 74,
+      "contact_ref": "mateo-silva",
+      "item_ref": "ceramic-carafe"
+    },
+    {
+      "flow": "orders",
+      "stage": "shipped",
+      "title": "#1041 · Cafe Bleu",
+      "subtitle": "12 items",
+      "value_num": 342,
+      "contact_ref": "cafe-bleu",
+      "item_ref": "tea-towel"
+    },
+    {
+      "flow": "orders",
+      "stage": "delivered",
+      "title": "#1040 · Lea Moreau",
+      "subtitle": "6 items",
+      "value_num": 188,
+      "contact_ref": "lea-moreau",
+      "item_ref": "soy-candle"
+    },
+    {
+      "flow": "orders",
+      "stage": "delivered",
+      "title": "#1038 · Mateo Silva",
+      "subtitle": "1 item",
+      "value_num": 39,
+      "contact_ref": "mateo-silva",
+      "item_ref": "ceramic-carafe"
+    },
+    {
+      "flow": "orders",
+      "stage": "delivered",
+      "title": "#1037 · Priya Raman",
+      "subtitle": "2 items",
+      "value_num": 52,
+      "contact_ref": "priya-raman",
+      "item_ref": "tea-towel"
+    }
+  ],
+  "notes": [
+    {
+      "contact_ref": "amelia-hart",
+      "body": "Asked for gift wrapping on her next order."
+    },
+    {
+      "contact_ref": "priya-raman",
+      "body": "Prefers linen over cotton. Always buys candles in pairs."
+    },
+    {
+      "contact_ref": "tom-okafor",
+      "body": "Next batch of 120 mugs ships on the 14th."
+    },
+    {
+      "contact_ref": "lea-moreau",
+      "body": "Asked for wholesale prices. Trade price list sent."
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "id": "interview-plans",
+  "cat": "hr",
+  "icon": "bell",
+  "title": {
+    "en": "Tomorrow’s interview plans",
+    "fr": "Plans d’entretien de demain"
+  },
+  "cadence": {
+    "en": "Every weekday at 17:00",
+    "fr": "Chaque jour ouvré à 17h00"
+  },
+  "desc": {
+    "en": "Writes one plan per interview of tomorrow: the questions, the points to probe, the signals to note. Nothing is sent.",
+    "fr": "Écrit un plan par entretien de demain : les questions, les points à creuser, les signaux à noter. Rien n’est envoyé."
+  },
+  "cron": "0 17 * * 1-5",
+  "tags": [
+    "recruitment",
+    "interviews"
+  ],
+  "apps": [
+    "googlecalendar",
+    "notion"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read tomorrow’s interviews from the calendar that is connected, or from the list the recruiter provides.",
+        "fr": "Lis les entretiens de demain dans l’agenda connecté, ou dans la liste fournie par le recruteur."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Write one plan per interview with the interview-plan skill: the questions, the points to probe and the signals to note.",
+        "fr": "Écris un plan par entretien avec la compétence interview-plan : les questions, les points à creuser et les signaux à noter."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "List the plans in one place for the recruiter to check. Never send a plan to a candidate.",
+        "fr": "Liste les plans au même endroit pour que le recruteur les relise. N’envoie jamais un plan à un candidat."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "A calendar that is connected, or the interview list (a file, or pasted text)",
+      "fr": "Un agenda connecté, ou la liste des entretiens (un fichier, ou du texte collé)"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Drafts only: never send a plan to a candidate. Never invent a fact about a candidate.",
+      "fr": "Brouillons seulement : n’envoie jamais un plan à un candidat. N’invente jamais un fait sur un candidat."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where are the interviews?",
+        "fr": "Où sont les entretiens ?"
+      },
+      "o": [
+        {
+          "en": "In my calendar",
+          "fr": "Dans mon agenda"
+        },
+        {
+          "en": "In a file I drop in the chat",
+          "fr": "Dans un fichier que je dépose dans le chat"
+        }
+      ]
+    }
+  ]
+}
