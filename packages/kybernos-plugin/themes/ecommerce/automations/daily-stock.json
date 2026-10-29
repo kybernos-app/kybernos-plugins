@@ -1,0 +1,84 @@
+{
+  "id": "daily-stock",
+  "cat": "shop",
+  "icon": "bell",
+  "title": {
+    "en": "Daily stock check",
+    "fr": "Contrôle de stock quotidien"
+  },
+  "cadence": {
+    "en": "Every day at 08:00",
+    "fr": "Chaque jour à 08h00"
+  },
+  "desc": {
+    "en": "Lists what is out, low or about to run out in the stock file, with a reorder proposal. Nothing is ordered.",
+    "fr": "Liste ce qui manque ou va manquer dans le fichier de stock, avec une proposition de réassort. Rien n’est commandé."
+  },
+  "cron": "0 8 * * *",
+  "tags": [
+    "online shop",
+    "stock"
+  ],
+  "apps": [
+    "shopify",
+    "googlesheets",
+    "airtable"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read the stock file or the shop the owner provides. For each product, quote the quantity and the weekly sales when they are there.",
+        "fr": "Lis le fichier de stock ou la boutique fournis par le gérant. Pour chaque produit, cite la quantité et les ventes hebdomadaires quand elles existent."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Sort the products into out, low and about to run out with the stock-check skill, and propose a reorder quantity for each.",
+        "fr": "Classe les produits en rupture, bas et sur le point de manquer avec la compétence stock-check, et propose une quantité à réassortir pour chacun."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Put the list in one place for the owner to read and decide. Order nothing.",
+        "fr": "Dépose la liste au même endroit pour que le gérant la lise et décide. Ne commande rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "The stock file (a spreadsheet, or pasted text)",
+      "fr": "Le fichier de stock (un tableur, ou du texte collé)"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Never place an order and never change a price: a missing figure is written as missing.",
+      "fr": "Ne passe jamais de commande et ne change jamais un prix : un chiffre manquant est écrit comme manquant."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where is the stock list?",
+        "fr": "Où se trouve la liste de stock ?"
+      },
+      "o": [
+        {
+          "en": "In a file I drop in the chat",
+          "fr": "Dans un fichier que je dépose dans le chat"
+        },
+        {
+          "en": "I paste it as text",
+          "fr": "Je la colle comme texte"
+        },
+        {
+          "en": "In my shop or my sheet",
+          "fr": "Dans ma boutique ou mon tableur"
+        }
+      ]
+    }
+  ]
+}

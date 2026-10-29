@@ -1,0 +1,73 @@
+{
+  "contract": 1,
+  "id": "kybernos-themes/real-estate",
+  "kind": "data",
+  "version": "1.0.0",
+  "name": {
+    "en": "Real estate agency",
+    "fr": "Agence immobilière"
+  },
+  "description": {
+    "en": "A real estate agency: Contacts, Properties and Sales and lettings with sample data, a warm light style, an agency desk team, two skills and three automations that start switched off.",
+    "fr": "Une agence immobilière : Contacts, Biens et Ventes et locations avec des données d’exemple, un style clair et chaleureux, une équipe d’agence, deux compétences et trois automatisations créées désactivées."
+  },
+  "author": {
+    "id": "kybernos-themes",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "requires": {
+    "kybernos": "^0.1",
+    "plugins": {
+      "kybernos/core": "^1.0",
+      "kybernos/theme": "^1.0",
+      "kybernos/skills": "^1.0",
+      "kybernos/contacts": "^1.0",
+      "kybernos/catalog": "^1.0",
+      "kybernos/pipeline": "^1.0"
+    }
+  },
+  "extends": [
+    {
+      "point": "kybernos/core#domain-pack",
+      "range": "^1.0",
+      "dir": "domains"
+    },
+    {
+      "point": "kybernos/theme#theme",
+      "range": "^1.0",
+      "dir": "themes"
+    },
+    {
+      "point": "kybernos/skills#skill",
+      "range": "^1.0",
+      "dir": "skills"
+    },
+    {
+      "point": "kybernos/core#team-template",
+      "range": "^1.0",
+      "dir": "teams"
+    },
+    {
+      "point": "kybernos/core#automation-template",
+      "range": "^1.0",
+      "dir": "automations"
+    },
+    {
+      "point": "kybernos/contacts#schema",
+      "range": "^1.0",
+      "dir": "contacts"
+    },
+    {
+      "point": "kybernos/catalog#type",
+      "range": "^1.0",
+      "dir": "catalog"
+    },
+    {
+      "point": "kybernos/pipeline#flow",
+      "range": "^1.0",
+      "dir": "pipeline"
+    }
+  ]
+}

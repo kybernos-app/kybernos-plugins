@@ -1,0 +1,69 @@
+{
+  "id": "ecommerce",
+  "types": [
+    {
+      "key": "customer",
+      "kind": "person",
+      "label": {
+        "en": "Customer",
+        "fr": "Client"
+      }
+    },
+    {
+      "key": "trade-customer",
+      "kind": "company",
+      "label": {
+        "en": "Trade customer",
+        "fr": "Client professionnel"
+      }
+    },
+    {
+      "key": "supplier",
+      "kind": "company",
+      "label": {
+        "en": "Supplier",
+        "fr": "Fournisseur"
+      }
+    },
+    {
+      "key": "supplier-contact",
+      "kind": "person",
+      "label": {
+        "en": "Supplier contact",
+        "fr": "Contact fournisseur"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "key": "city",
+      "type": "text",
+      "label": {
+        "en": "City",
+        "fr": "Ville"
+      }
+    },
+    {
+      "key": "sector",
+      "type": "text",
+      "label": {
+        "en": "Sector",
+        "fr": "Secteur"
+      }
+    },
+    {
+      "key": "lead_time",
+      "type": "text",
+      "label": {
+        "en": "Lead time",
+        "fr": "Délai de livraison"
+      }
+    }
+  ],
+  "tags": [
+    "repeat",
+    "newsletter",
+    "wholesale",
+    "vip"
+  ]
+}

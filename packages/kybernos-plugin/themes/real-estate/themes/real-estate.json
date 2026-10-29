@@ -1,0 +1,17 @@
+{
+  "id": "real-estate",
+  "name": "Real estate agency",
+  "settings": {
+    "mode": "light",
+    "acc": "#b4532a",
+    "ov": {
+      "light:base": "#faf6f3",
+      "light:l1": "#ffffff",
+      "light:l2": "#f4ece7",
+      "light:side": "#f7f1ec",
+      "light:input": "#ffffff"
+    },
+    "fontText": "inter",
+    "radius": "standard"
+  }
+}

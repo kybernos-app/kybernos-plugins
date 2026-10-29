@@ -1,0 +1,436 @@
+{
+  "contacts": [
+    {
+      "ref": "nadia-rahman",
+      "kind": "person",
+      "type": "candidate",
+      "name": "Nadia Rahman",
+      "email": "nadia.rahman@example.com",
+      "tags": [
+        "data",
+        "senior"
+      ],
+      "fields": {
+        "city": "Remote (EU)",
+        "seniority": "Senior",
+        "salary_target": 80000
+      }
+    },
+    {
+      "ref": "luca-ferrari",
+      "kind": "person",
+      "type": "candidate",
+      "name": "Luca Ferrari",
+      "email": "luca.ferrari@example.com",
+      "tags": [
+        "design"
+      ],
+      "fields": {
+        "city": "Berlin",
+        "seniority": "Mid",
+        "salary_target": 62000
+      }
+    },
+    {
+      "ref": "emma-johansson",
+      "kind": "person",
+      "type": "candidate",
+      "name": "Emma Johansson",
+      "email": "emma.johansson@example.com",
+      "tags": [
+        "sales"
+      ],
+      "fields": {
+        "city": "Lyon",
+        "seniority": "Senior",
+        "salary_target": 55000
+      }
+    },
+    {
+      "ref": "kwame-mensah",
+      "kind": "person",
+      "type": "candidate",
+      "name": "Kwame Mensah",
+      "email": "kwame.mensah@example.com",
+      "tags": [
+        "devops",
+        "remote"
+      ],
+      "fields": {
+        "city": "Remote (EU)",
+        "seniority": "Senior",
+        "salary_target": 72000
+      }
+    },
+    {
+      "ref": "tariq-aziz",
+      "kind": "person",
+      "type": "candidate",
+      "name": "Tariq Aziz",
+      "email": "tariq.aziz@example.com",
+      "tags": [
+        "finance"
+      ],
+      "fields": {
+        "city": "Lyon",
+        "seniority": "Mid",
+        "salary_target": 46000
+      }
+    },
+    {
+      "ref": "olivia-chen",
+      "kind": "person",
+      "type": "client-contact",
+      "name": "Olivia Chen",
+      "email": "olivia.chen@example.com",
+      "company_ref": "brightwell-analytics",
+      "tags": [
+        "data"
+      ],
+      "fields": {
+        "city": "London"
+      }
+    },
+    {
+      "ref": "marcus-reid",
+      "kind": "person",
+      "type": "client-contact",
+      "name": "Marcus Reid",
+      "email": "marcus.reid@example.com",
+      "company_ref": "kestrel-logistics",
+      "tags": [
+        "operations"
+      ],
+      "fields": {
+        "city": "Lyon"
+      }
+    },
+    {
+      "ref": "sofia-petrova",
+      "kind": "person",
+      "type": "client-contact",
+      "name": "Sofia Petrova",
+      "email": "sofia.petrova@example.com",
+      "company_ref": "lumen-health",
+      "tags": [
+        "hr"
+      ],
+      "fields": {
+        "city": "Paris"
+      }
+    },
+    {
+      "ref": "brightwell-analytics",
+      "kind": "company",
+      "type": "client",
+      "name": "Brightwell Analytics",
+      "email": "hello@brightwellanalytics.example.com",
+      "tags": [],
+      "fields": {
+        "city": "London",
+        "sector": "Data"
+      }
+    },
+    {
+      "ref": "kestrel-logistics",
+      "kind": "company",
+      "type": "client",
+      "name": "Kestrel Logistics",
+      "email": "hello@kestrellogistics.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Lyon",
+        "sector": "Logistics"
+      }
+    },
+    {
+      "ref": "lumen-health",
+      "kind": "company",
+      "type": "client",
+      "name": "Lumen Health",
+      "email": "hello@lumenhealth.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Paris",
+        "sector": "Health"
+      }
+    },
+    {
+      "ref": "orchard-software",
+      "kind": "company",
+      "type": "client",
+      "name": "Orchard Software",
+      "email": "hello@orchardsoftware.example.com",
+      "tags": [],
+      "fields": {
+        "city": "Berlin",
+        "sector": "Software"
+      }
+    }
+  ],
+  "items": [
+    {
+      "ref": "senior-data-engineer",
+      "type": "job",
+      "title": "Senior Data Engineer",
+      "subtitle": "Brightwell Analytics",
+      "status": "open",
+      "price_text": "€70–85k",
+      "price_num": null,
+      "fields": {
+        "client": "Brightwell Analytics",
+        "location": "Remote (EU)",
+        "salary": "€70–85k",
+        "contract": "Permanent",
+        "candidates": 14,
+        "opened": "2026-10-08"
+      }
+    },
+    {
+      "ref": "product-designer",
+      "type": "job",
+      "title": "Product Designer",
+      "subtitle": "Orchard Software",
+      "status": "open",
+      "price_text": "€55–68k",
+      "price_num": null,
+      "fields": {
+        "client": "Orchard Software",
+        "location": "Berlin",
+        "salary": "€55–68k",
+        "contract": "Permanent",
+        "candidates": 9,
+        "opened": "2026-10-15"
+      }
+    },
+    {
+      "ref": "account-executive",
+      "type": "job",
+      "title": "Account Executive",
+      "subtitle": "Lumen Health",
+      "status": "open",
+      "price_text": "€48–60k + bonus",
+      "price_num": null,
+      "fields": {
+        "client": "Lumen Health",
+        "location": "Lyon",
+        "salary": "€48–60k + bonus",
+        "contract": "Permanent",
+        "candidates": 11,
+        "opened": "2026-09-24"
+      }
+    },
+    {
+      "ref": "devops-engineer",
+      "type": "job",
+      "title": "DevOps Engineer",
+      "subtitle": "Kestrel Logistics",
+      "status": "on-hold",
+      "price_text": "€65–78k",
+      "price_num": null,
+      "fields": {
+        "client": "Kestrel Logistics",
+        "location": "Remote (EU)",
+        "salary": "€65–78k",
+        "contract": "Permanent",
+        "candidates": 6
+      }
+    },
+    {
+      "ref": "finance-analyst",
+      "type": "job",
+      "title": "Finance Analyst",
+      "subtitle": "Kestrel Logistics",
+      "status": "filled",
+      "price_text": "€42–50k",
+      "price_num": null,
+      "fields": {
+        "client": "Kestrel Logistics",
+        "location": "Lyon",
+        "salary": "€42–50k",
+        "contract": "Permanent"
+      }
+    },
+    {
+      "ref": "head-of-people",
+      "type": "job",
+      "title": "Head of People",
+      "subtitle": "Lumen Health",
+      "status": "draft",
+      "price_text": "€85–100k",
+      "price_num": null,
+      "fields": {
+        "client": "Lumen Health",
+        "location": "Paris",
+        "salary": "€85–100k",
+        "contract": "Permanent"
+      }
+    },
+    {
+      "ref": "customer-success-manager",
+      "type": "job",
+      "title": "Customer Success Manager",
+      "subtitle": "Orchard Software",
+      "status": "open",
+      "price_text": "€45–55k",
+      "price_num": null,
+      "fields": {
+        "client": "Orchard Software",
+        "location": "Berlin",
+        "salary": "€45–55k",
+        "contract": "Permanent",
+        "candidates": 5,
+        "opened": "2026-10-22"
+      }
+    },
+    {
+      "ref": "data-analyst",
+      "type": "job",
+      "title": "Data Analyst",
+      "subtitle": "Brightwell Analytics",
+      "status": "open",
+      "price_text": "€45–55k",
+      "price_num": null,
+      "fields": {
+        "client": "Brightwell Analytics",
+        "location": "London",
+        "salary": "€45–55k",
+        "contract": "Permanent",
+        "candidates": 3,
+        "opened": "2026-10-26"
+      }
+    }
+  ],
+  "cards": [
+    {
+      "flow": "candidates",
+      "stage": "sourced",
+      "title": "Nadia Rahman",
+      "subtitle": "Senior Data Engineer · Brightwell",
+      "value_num": 17000,
+      "contact_ref": "nadia-rahman",
+      "item_ref": "senior-data-engineer"
+    },
+    {
+      "flow": "candidates",
+      "stage": "sourced",
+      "title": "Marco Bellini",
+      "subtitle": "Product Designer · Orchard",
+      "value_num": 12000,
+      "item_ref": "product-designer"
+    },
+    {
+      "flow": "candidates",
+      "stage": "screened",
+      "title": "Kwame Mensah",
+      "subtitle": "DevOps Engineer · Kestrel",
+      "value_num": 15000,
+      "contact_ref": "kwame-mensah",
+      "item_ref": "devops-engineer"
+    },
+    {
+      "flow": "candidates",
+      "stage": "interview",
+      "title": "Luca Ferrari",
+      "subtitle": "Product Designer · Orchard",
+      "value_num": 12000,
+      "contact_ref": "luca-ferrari",
+      "item_ref": "product-designer"
+    },
+    {
+      "flow": "candidates",
+      "stage": "interview",
+      "title": "Ines Duarte",
+      "subtitle": "Senior Data Engineer · Brightwell",
+      "value_num": 17000,
+      "item_ref": "senior-data-engineer"
+    },
+    {
+      "flow": "candidates",
+      "stage": "proposed",
+      "title": "Emma Johansson",
+      "subtitle": "Account Executive · Lumen Health",
+      "value_num": 11000,
+      "contact_ref": "emma-johansson",
+      "item_ref": "account-executive"
+    },
+    {
+      "flow": "candidates",
+      "stage": "placed",
+      "title": "Samuel Okon",
+      "subtitle": "Finance Analyst · Kestrel",
+      "value_num": 9000,
+      "item_ref": "finance-analyst"
+    },
+    {
+      "flow": "missions",
+      "stage": "brief",
+      "title": "Head of People · Lumen Health",
+      "subtitle": "Brief received today",
+      "value_num": 21000,
+      "contact_ref": "sofia-petrova",
+      "item_ref": "head-of-people"
+    },
+    {
+      "flow": "missions",
+      "stage": "searching",
+      "title": "Customer Success Manager · Orchard",
+      "subtitle": "5 candidates",
+      "value_num": 11000,
+      "item_ref": "customer-success-manager"
+    },
+    {
+      "flow": "missions",
+      "stage": "searching",
+      "title": "Senior Data Engineer · Brightwell",
+      "subtitle": "14 candidates",
+      "value_num": 17000,
+      "contact_ref": "olivia-chen",
+      "item_ref": "senior-data-engineer"
+    },
+    {
+      "flow": "missions",
+      "stage": "shortlist",
+      "title": "Product Designer · Orchard",
+      "subtitle": "3 profiles sent",
+      "value_num": 12000,
+      "item_ref": "product-designer"
+    },
+    {
+      "flow": "missions",
+      "stage": "offer",
+      "title": "Account Executive · Lumen Health",
+      "subtitle": "Offer out",
+      "value_num": 11000,
+      "contact_ref": "sofia-petrova",
+      "item_ref": "account-executive"
+    },
+    {
+      "flow": "missions",
+      "stage": "placed",
+      "title": "Finance Analyst · Kestrel",
+      "subtitle": "Invoice sent",
+      "value_num": 9000,
+      "contact_ref": "marcus-reid",
+      "item_ref": "finance-analyst"
+    }
+  ],
+  "notes": [
+    {
+      "contact_ref": "nadia-rahman",
+      "body": "CV received by email. Seven years in data engineering, strong in Python and cloud pipelines."
+    },
+    {
+      "contact_ref": "emma-johansson",
+      "body": "Strong second interview. Wants a start date after the 15th."
+    },
+    {
+      "contact_ref": "olivia-chen",
+      "body": "Wants two profiles by Friday, one with Spark experience."
+    },
+    {
+      "contact_ref": "kwame-mensah",
+      "body": "Screening call booked for Thursday."
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "id": "real-estate",
+  "types": [
+    {
+      "key": "buyer",
+      "kind": "person",
+      "label": {
+        "en": "Buyer",
+        "fr": "Acheteur"
+      }
+    },
+    {
+      "key": "seller",
+      "kind": "person",
+      "label": {
+        "en": "Seller",
+        "fr": "Vendeur"
+      }
+    },
+    {
+      "key": "landlord",
+      "kind": "person",
+      "label": {
+        "en": "Landlord",
+        "fr": "Bailleur"
+      }
+    },
+    {
+      "key": "tenant",
+      "kind": "person",
+      "label": {
+        "en": "Tenant",
+        "fr": "Locataire"
+      }
+    },
+    {
+      "key": "partner",
+      "kind": "person",
+      "label": {
+        "en": "Partner",
+        "fr": "Partenaire"
+      }
+    },
+    {
+      "key": "owner-company",
+      "kind": "company",
+      "label": {
+        "en": "Owner company",
+        "fr": "Société propriétaire"
+      }
+    },
+    {
+      "key": "partner-firm",
+      "kind": "company",
+      "label": {
+        "en": "Partner firm",
+        "fr": "Cabinet partenaire"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "key": "city",
+      "type": "text",
+      "label": {
+        "en": "City",
+        "fr": "Ville"
+      }
+    },
+    {
+      "key": "budget",
+      "type": "money",
+      "currency": "EUR",
+      "label": {
+        "en": "Budget",
+        "fr": "Budget"
+      }
+    },
+    {
+      "key": "sector",
+      "type": "text",
+      "label": {
+        "en": "Sector",
+        "fr": "Secteur"
+      }
+    }
+  ],
+  "tags": [
+    "pre-approved",
+    "family",
+    "mandate",
+    "new",
+    "investor"
+  ]
+}

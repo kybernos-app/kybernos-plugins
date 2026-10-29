@@ -207,7 +207,8 @@ until those plugins are installed and have told their points to the registry, th
 node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
 ```
 
-Sample rows for the pages (so a new install is not empty) are not part of these three points: a later lot adds them.
+Sample rows for the pages (so a new install is not empty) are not part of these three points: a theme keeps them in `demo/sample.json`, the argument of the base's `seed()`.
+The three themes the product ships, with their sample rows, are described in [`shipped-themes.md`](shipped-themes.md).
 
 ## One complete `plugin.json`
 

@@ -1,0 +1,79 @@
+{
+  "id": "cv-digest",
+  "cat": "hr",
+  "icon": "bell",
+  "title": {
+    "en": "Daily CV digest",
+    "fr": "Digest des CV reçus"
+  },
+  "cadence": {
+    "en": "Every weekday at 18:00",
+    "fr": "Chaque jour ouvré à 18h00"
+  },
+  "desc": {
+    "en": "Compares the CVs of the day with the open roles and writes one shortlist per role. Nothing is sent.",
+    "fr": "Compare les CV du jour aux postes ouverts et écrit une sélection par poste. Rien n’est envoyé."
+  },
+  "cron": "0 18 * * 1-5",
+  "tags": [
+    "recruitment",
+    "cv"
+  ],
+  "apps": [
+    "gmail",
+    "googledrive"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read the CVs received today and the sheet of each open role.",
+        "fr": "Lis les CV reçus aujourd’hui et la fiche de chaque poste ouvert."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Compare each CV with its role and rank the profiles, the best fit first, with the reason for every line.",
+        "fr": "Compare chaque CV à son poste et classe les profils, le meilleur d’abord, avec la raison de chaque ligne."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Write one shortlist per role in this workspace for the recruiter to read. Send nothing.",
+        "fr": "Écris une sélection par poste dans ce workspace pour que le recruteur la lise. N’envoie rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "The CVs of the day (files, or pasted text) and the role sheets",
+      "fr": "Les CV du jour (fichiers, ou texte collé) et les fiches de poste"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Never send anything and keep the candidates’ data in this workspace. A skill not in the CV is not claimed.",
+      "fr": "N’envoie rien et garde les données des candidats dans ce workspace. Une compétence absente du CV n’est pas affirmée."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where are the CVs?",
+        "fr": "Où sont les CV ?"
+      },
+      "o": [
+        {
+          "en": "In my mailbox or my drive",
+          "fr": "Dans ma messagerie ou mon drive"
+        },
+        {
+          "en": "I drop them in the chat",
+          "fr": "Je les dépose dans le chat"
+        }
+      ]
+    }
+  ]
+}
