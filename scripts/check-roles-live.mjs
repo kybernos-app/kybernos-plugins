@@ -90,6 +90,10 @@ try {
   await ev('document.querySelector(".kbm-faces .kbm-cb-input").focus()')
   // the image models are fetched once the tab is up: give them a moment
   check('it opens a listbox with the image models', (await waitFor(page, 'document.querySelectorAll(".kbm-faces .kbm-cb-opt").length > 0', 8000)) !== null)
+  // no data, nothing said: no « no price data », « price unknown », « Probe none » (the owner's rule, 2026-10-29)
+  const noData = await ev(js(() => Array.from(document.querySelectorAll('.kbm-root *')).filter((e) => e.children.length === 0 && /no price data|price unknown|probe none|no probe|no benchmark/i.test(e.textContent)).map((e) => e.textContent.trim()).join(' | ')))
+  check('a model with no data says nothing about it (no « no price data », « Probe none »)', noData === '', noData)
+  await shot('roles-faces-open')
   await key('Escape'); await sleep(250)
   check('Esc closes it', (await ev('!document.querySelector(".kbm-cb-pop")')) === true)
 
