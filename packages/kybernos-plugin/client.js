@@ -25033,7 +25033,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const hKey = prov.toLowerCase() + '|' + id.toLowerCase()
       return {
         id: id, provider: prov, type: type,
-        in: inKeys, out: outKeys, caps: capsKeys,
+        in: inKeys, out: outKeys, caps: capsKeys, capsKnown: (pr !== null && pr.caps !== null && pr.caps !== undefined),
         price: priceTier, priceLabel: (hasPrice ? (priceTier === 0 ? 'free / local' : null) : ''),
         short: [(aa !== null && typeof aa.aa === 'number') ? 'AA ' + String(aa.aa) : '', priceStr].filter((x) => x !== '').join(' · '),
         latency: latency, intel: intel,
@@ -25058,7 +25058,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const probe = (m !== null && m !== undefined && typeof m.probe === 'string') ? m.probe : null
       return {
         id: String(m.id), provider: String((m !== null && m !== undefined && m.provider !== null && m.provider !== undefined) ? m.provider : '—'), type: 'Image',
-        in: ['text', 'vision'], out: ['image'], caps: [],
+        in: ['text', 'vision'], out: ['image'], caps: [], capsKnown: false,
         price: null, priceLabel: (price !== null ? ('$' + price.toFixed(2) + ' / image') : ''),
         short: (price !== null ? ('≈ $' + price.toFixed(2) + ' / image') : ''),
         latency: null, intel: 1,
@@ -25186,7 +25186,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
 .kbm-root .kbm-members.kbm-v-carousel>.kbm-art.open{flex-basis:100%}
 .kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open)>div:first-child{align-items:flex-start}
 .kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open) .kbm-mono{flex-wrap:wrap}
-.kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open) h3{overflow-wrap:anywhere}
+.kbm-root .kbm-members:not(.kbm-v-list)>.kbm-art:not(.open) h3{overflow-wrap:break-word}
 .kbm-root .kbm-rsec{border:1px solid var(--kbm-border-2);border-radius:10px;background:var(--kbm-bg);min-width:0}
 .kbm-root .kbm-rsec-h{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;border-radius:10px}
 .kbm-root .kbm-rsec-chev{display:flex;color:var(--kbm-text-5);flex:0 0 auto}
@@ -25248,13 +25248,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return h('div', { className: 'kbm-cb-cardin' },
         h('div', { className: 'kbm-cb-ct' },
           h('span', { className: 'kbm-mono kbm-cb-cid' }, m.id),
-          h('span', { className: 'kbm-cb-h h-' + m.health }, hh.hLabel)),
+          (m.health !== 'none' ? h('span', { className: 'kbm-cb-h h-' + m.health }, hh.hLabel) : null)),
         h('div', { className: 'kbm-cb-csub' }, m.provider + (d.priceLabel !== '' ? ' · ' + d.priceLabel : '')),
         h('div', { className: 'kbm-cb-mods' }, mods(d.inIcons), h('span', { className: 'kbm-cb-arrow' }, '→'), mods(d.outIcons)),
-        h('div', { className: 'kbm-cb-caps' }, KBM_DEF_CAPS.map((c) => {
+        (m.capsKnown === false ? null : h('div', { className: 'kbm-cb-caps' }, KBM_DEF_CAPS.map((c) => {
           const has = m.caps.indexOf(c.k) >= 0
           return h('span', { key: c.k, className: 'kbm-cb-cap' + (has ? '' : ' off') }, kbmSvg(c.d, has ? c.c : 'currentColor', 12), c.label)
-        })),
+        }))),
         (m.aa !== null && m.aa !== undefined
           ? h('div', { className: 'kbm-cb-bench' },
             h('div', { className: 'kbm-cb-bh' }, h('b', null, 'Artificial Analysis'), h('span', { className: 'kbm-mono' }, m.aa.score + ' intelligence')),
