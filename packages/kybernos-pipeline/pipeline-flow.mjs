@@ -33,7 +33,7 @@ const labelOf = (v, where, errors, max = 60) => {
 
 export const OWNER = 'kybernos/pipeline'
 export const OWNER_VERSION = '1.0.0'
-export const LIMITS = Object.freeze({ stages: 8, files: 4 })
+export const LIMITS = Object.freeze({ stages: 8, files: 12 })
 export const FORMATS = Object.freeze(['money', 'number'])
 
 /** `{ ok: true, value }` (the flow, defaults filled) or `{ ok: false, errors }`. Never throws. */

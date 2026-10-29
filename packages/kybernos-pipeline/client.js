@@ -171,6 +171,16 @@ window.__ModuleLoader__.load({
       const COVER_KINDS = ['house', 'apartment', 'villa', 'loft', 'shop']
       /** The kit's spec for a drawing: its seed takes letters, digits, dot, dash and underscore only, so a title is folded into that. */
       const artSpec = (kind, text) => 'art:' + kind + '/' + String(text).replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 40)
+      const PHOTO_RE = /^photo:([a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59})$/
+      /** The picture of a linked item: its own (the host sends `item.image`, a shipped photograph or a drawn spec), else the drawing its words suggest, else null. */
+      const itemPicture = (item, k, guessed) => {
+        if (item === null || item === undefined) return null
+        const ref = typeof item.image === 'string' ? item.image : ''
+        const m = PHOTO_RE.exec(ref)
+        if (m !== null) return h('img', { className: 'kbpi-photo', src: '/kybernos/themes/photo?id=' + encodeURIComponent(m[1]), alt: '', loading: 'lazy', decoding: 'async', draggable: false })
+        if (k !== null && typeof k.Art === 'function' && typeof k.artOk === 'function' && k.artOk(ref)) return h(k.Art, { spec: ref })
+        return guessed !== '' && k !== null && typeof k.Art === 'function' ? h(k.Art, { spec: artSpec(guessed, item.title) }) : null
+      }
 
       // ── what is shown: search, facets, period, favourites, sort ──────────────────────────────────
       const SORTS = ['position', 'since', 'value', 'name']
@@ -325,6 +335,7 @@ body[data-ds-dark-theme] .kbpi-root,body[data-ds-dark-theme] .kbpi-ghost{--kbpi-
 .kbpi-item{--kz-h:212;display:inline-flex;align-items:center;gap:6px;max-width:100%;height:22px;padding:0 9px 0 3px;border-radius:11px;font-size:12px;font-weight:600;line-height:1;white-space:nowrap;color:color-mix(in srgb,hsl(var(--kz-h) var(--kbpi-fg-s,75%) var(--kbpi-fg-l,31%)) 78%,var(--dsw-alias-label-primary,currentColor));background:color-mix(in srgb,hsl(var(--kz-h) 80% 55%) 15%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,hsl(var(--kz-h) 70% 50%) 22%,transparent)}
 .kbpi-item .pic{width:24px;height:16px;border-radius:8px;overflow:hidden;flex:none;display:inline-grid;place-items:center}
 .kbpi-item .pic svg.kz-art{border-radius:0}
+.kbpi-photo{display:block;width:100%;height:100%;object-fit:cover}
 .kbpi-item span.t{overflow:hidden;text-overflow:ellipsis}
 .kbpi-foot{display:flex;align-items:center;gap:6px;min-width:0}
 .kbpi-foot .sp{flex:1 1 auto}
@@ -624,8 +635,9 @@ body[data-ds-dark-theme] .kbpi-root,body[data-ds-dark-theme] .kbpi-ghost{--kbpi-
             k !== null ? h(k.Avatar, { name: card.contact.name, size, kind: card.contact.kind === 'company' ? 'company' : 'person' }) : h('span', { className: 'kbpi-av', style: { width: size, height: size } }, initials(card.contact.name)))
         }
         const kind = !cover && card.item !== null && card.item !== undefined ? artKindOf(card.item.title + ' ' + (card.item.subtitle || '')) : ''
+        const pic = !cover && card.item !== null && card.item !== undefined ? itemPicture(card.item, k, kind) : null
         return h('span', { className: 'kbpi-lead sq', style: { width: size, height: size }, 'aria-hidden': 'true' },
-          kind !== '' && k !== null && typeof k.Art === 'function' ? h(k.Art, { spec: artSpec(kind, card.item.title) }) : (KIcon('layers', Math.round(size * 0.5)) || initials(card.title)))
+          pic !== null ? pic : (KIcon('layers', Math.round(size * 0.5)) || initials(card.title)))
       }
       /** The linked item as a chip with a small drawing of it (when its words say what it is). */
       function ItemChip (props) {
@@ -633,7 +645,7 @@ body[data-ds-dark-theme] .kbpi-root,body[data-ds-dark-theme] .kbpi-ghost{--kbpi-
         const item = props.item
         const kind = artKindOf(item.title + ' ' + (item.subtitle || ''))
         return h('span', { className: 'kbpi-item', 'data-kb': 'pipeline-card-item', title: item.title, style: { '--kz-h': k !== null && typeof k.tint === 'function' ? k.tint(item.title) : 212 } },
-          h('span', { className: 'pic', 'aria-hidden': 'true' }, kind !== '' && k !== null && typeof k.Art === 'function' ? h(k.Art, { spec: artSpec(kind, item.title) }) : KIcon('tag', 12)),
+          h('span', { className: 'pic', 'aria-hidden': 'true' }, itemPicture(item, k, kind) || KIcon('tag', 12)),
           h('span', { className: 't' }, item.title))
       }
       /** How a card's age reads: calm, warm after a week, hot after two, unless it is in the last stage (done is not stuck). */
@@ -651,6 +663,8 @@ body[data-ds-dark-theme] .kbpi-root,body[data-ds-dark-theme] .kbpi-ghost{--kbpi-
         const hasValue = flow.value !== null && typeof card.value === 'number'
         const kind = props.cover === true && card.item !== null && card.item !== undefined ? artKindOf(card.item.title + ' ' + (card.item.subtitle || '')) : ''
         const art = COVER_KINDS.indexOf(kind) >= 0 ? kind : ''
+        // a linked item with a picture of its own (a photograph the template ships, or a drawn spec) gets the cover whatever its words say
+        const own = props.cover === true && card.item !== null && card.item !== undefined && typeof card.item.image === 'string' && card.item.image !== ''
         const k = kit()
         const stageName = pickLabel(columns.find((c) => c.stage === card.stage).label) || card.stage
         const label = card.title + (card.subtitle ? ', ' + card.subtitle : '') + (hasValue ? ', ' + fmtValue(card.value, flow.value) : '') + (card.demo ? ', ' + kt('exemple', 'sample') : '')
@@ -671,9 +685,9 @@ body[data-ds-dark-theme] .kbpi-root,body[data-ds-dark-theme] .kbpi-ghost{--kbpi-
             onClick: () => props.onOpen(card),
             onKeyDown: (e) => props.onKeyDown(e, card),
           },
-          art !== '' && k !== null && typeof k.Art === 'function' ? h('div', { className: 'kbpi-cover kz-img', 'data-kb': 'pipeline-cover', 'aria-hidden': 'true' }, h(k.Art, { spec: artSpec(art, card.item.title) })) : null,
+          (art !== '' || own) && itemPicture(card.item, k, art) !== null ? h('div', { className: 'kbpi-cover kz-img', 'data-kb': 'pipeline-cover', 'aria-hidden': 'true' }, itemPicture(card.item, k, art)) : null,
           h('div', { className: 'kbpi-ctop' },
-            h('span', { className: 'kbpi-leadwrap' }, h(Lead, { card, cover: art !== '' }),
+            h('span', { className: 'kbpi-leadwrap' }, h(Lead, { card, cover: art !== '' || own }),
               x.priority !== '' ? h('span', { className: 'kbpi-prio', 'data-kb': 'pipeline-priority', 'data-priority': x.priority, style: { '--kz-h': PRIORITY_HUE[x.priority] }, title: kt('Priorité ', 'Priority ') + x.priority, 'aria-hidden': 'true' }) : null),
             h('div', { className: 'kbpi-ctext' }, h('b', null, card.title), card.subtitle ? h('span', { className: 'kbpi-sub' }, card.subtitle) : null),
             h('button', { type: 'button', className: 'kbpi-star' + (props.fav ? ' on' : ''), 'data-act': 'toggle-fav', 'aria-pressed': props.fav ? 'true' : 'false', 'aria-label': props.fav ? kt('Retirer des favoris', 'Remove from favourites') : kt('Mettre en favori', 'Add to favourites'), title: props.fav ? kt('Retirer des favoris', 'Remove from favourites') : kt('Mettre en favori', 'Add to favourites'),

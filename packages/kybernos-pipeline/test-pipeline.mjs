@@ -72,9 +72,9 @@ ok('anything that is not an object, and any other junk, is refused and never thr
   for (const junk of [{ stages: 'x' }, { stages: [null, null] }, { id: 'a', label: 7, stages: [[], []], value: [], links: 'x' }]) assert.equal(check(junk, 'a').ok, false)
   assert.ok(check({ id: 'a', label: 7, stages: [[], []], value: [], links: 'x' }, 'a').errors.length <= 20)
 })
-ok('the point is what the registry expects: data, inert, version 1.0, at most four files', () => {
+ok('the point is what the registry expects: data, inert, version 1.0, at most twelve files (the boards of every active theme)', () => {
   assert.equal(PIPELINE_POINT_REF, 'kybernos/pipeline#flow')
-  assert.deepEqual([PIPELINE_POINT.owner, PIPELINE_POINT.name, PIPELINE_POINT.version, PIPELINE_POINT.kind, PIPELINE_POINT.class, PIPELINE_POINT.max], ['kybernos/pipeline', 'flow', '1.0', 'data', 'inert', 4])
+  assert.deepEqual([PIPELINE_POINT.owner, PIPELINE_POINT.name, PIPELINE_POINT.version, PIPELINE_POINT.kind, PIPELINE_POINT.class, PIPELINE_POINT.max], ['kybernos/pipeline', 'flow', '1.0', 'data', 'inert', 12])
   assert.equal(PIPELINE_POINT.validate, check)
   assert.equal(Object.isFrozen(PIPELINE_POINT), true)
   const pj = JSON.parse(readFileSync(here + 'plugin.json', 'utf8'))
