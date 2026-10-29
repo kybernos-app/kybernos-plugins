@@ -65,6 +65,28 @@
         "en": "Sector",
         "fr": "Secteur"
       }
+    },
+    {
+      "key": "role",
+      "type": "text",
+      "label": {
+        "en": "Current role",
+        "fr": "Poste actuel"
+      }
+    },
+    {
+      "key": "availability",
+      "type": "choice",
+      "options": [
+        "Immediately",
+        "1 month",
+        "2 months",
+        "3 months"
+      ],
+      "label": {
+        "en": "Available in",
+        "fr": "Disponibilité"
+      }
     }
   ],
   "tags": [
@@ -72,10 +94,16 @@
     "design",
     "sales",
     "devops",
+    "engineering",
     "finance",
     "hr",
     "operations",
     "senior",
-    "remote"
+    "junior",
+    "remote",
+    "available now",
+    "referral",
+    "key account",
+    "new client"
   ]
 }

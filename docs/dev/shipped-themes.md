@@ -69,10 +69,14 @@ Rules (all checked by `scripts/test-shipped-themes.mjs`):
   theme's tags; its `fields` are fields of the schema, each value as its type says (a `choice` is one of its options, a `date` is `YYYY-MM-DD`).
   An item's `type` is a catalog file, its `status` a status of that type, its `fields` fields of that type. A card's `flow` is a board, its `stage` a
   stage of that board, and it links a contact or an item only if the board's `links` allows it. Every `*_ref` points at a row of the same file.
-- **Modest and readable.** About 8 people and 4 companies, 8 to 12 items, 10 to 14 cards, every stage of every board used at least once, a few notes.
-  The order of the cards in the file is the order inside a column.
+- **Modest and readable.** The pages must look lived in: 16 to 22 contacts of every type, 2 to 3 tags each (every tag the theme proposes is worn by at least two
+  contacts, so a filter has a count), 12 to 16 items with a mix of statuses, 14 to 20 cards, every stage of every board used at least once, 5 to 8 notes.
+  The order of the cards in the file is the order inside a column. A card of a board carries `fields: { source, priority: high|normal|low, due: YYYY-MM-DD, tags: [≤ 3] }`
+  and links the person (`contact_ref`) and the product or job (`item_ref`) it is about. The test of a rich theme is the `RICH` list of `scripts/test-shipped-themes.mjs`.
 - **Invented.** Every name, address and message is made up, e-mail addresses are on `example.com`, a company's is `hello@<name>.example.com`.
-  No picture (rule 4), no path, no real person.
+  No path, no real person. The only pictures are the sample photographs (rule 4): an item names its own in a text field (`card.image`, `photo:<theme dir>/<name>`),
+  at `demo/photos/<name>.jpg`, one per item, 16 a theme at most. They are invented scenes: `scripts/theme-photos.mjs` asks FLUX 2 for one palette of nine to twelve
+  photographs and cuts it; the plan that made each palette is `docs/dev/theme-photos/<theme dir>-<n>.json` (the palettes themselves stay out of git).
 - **One price.** An item carries `price_text` (what a card prints, `€780 / month`) and, when its type has a `price` money field, the same
   number in `price_num` and in `fields.price`.
 

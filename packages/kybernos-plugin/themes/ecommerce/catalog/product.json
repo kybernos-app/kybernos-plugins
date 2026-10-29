@@ -76,12 +76,72 @@
         "en": "Supplier",
         "fr": "Fournisseur"
       }
+    },
+    {
+      "key": "category",
+      "type": "choice",
+      "options": [
+        "Kitchen",
+        "Table",
+        "Home",
+        "Candles",
+        "Textiles",
+        "Gifts"
+      ],
+      "label": {
+        "en": "Category",
+        "fr": "Catégorie"
+      }
+    },
+    {
+      "key": "material",
+      "type": "text",
+      "label": {
+        "en": "Material",
+        "fr": "Matière"
+      }
+    },
+    {
+      "key": "badge",
+      "type": "choice",
+      "options": [
+        "Bestseller",
+        "New",
+        "Limited",
+        "Sale"
+      ],
+      "label": {
+        "en": "Badge",
+        "fr": "Mention"
+      }
+    },
+    {
+      "key": "rating",
+      "type": "text",
+      "label": {
+        "en": "Customer rating",
+        "fr": "Note des clients"
+      }
+    },
+    {
+      "key": "image",
+      "type": "text",
+      "label": {
+        "en": "Picture",
+        "fr": "Image"
+      }
     }
   ],
   "card": {
     "title": "title",
     "subtitle": "sku",
     "price": "price",
+    "image": "image",
+    "chips": [
+      "category",
+      "material",
+      "badge"
+    ],
     "flag": {
       "field": "stock",
       "lte": 10,

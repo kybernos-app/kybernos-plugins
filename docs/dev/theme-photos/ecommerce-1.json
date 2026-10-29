@@ -1,0 +1,105 @@
+{
+  "name": "ecommerce-1",
+  "cols": 3,
+  "rows": 3,
+  "style": "clean e-commerce product photography, a single object centred on a soft coloured seamless paper backdrop with generous empty margin around it, soft diffused studio light, gentle natural shadow, warm natural tones, sharp focus, no brand, no logo",
+  "cells": [
+    {
+      "name": "stoneware-mug",
+      "prompt": "a pair of handmade speckled cream stoneware mugs side by side on a warm terracotta backdrop",
+      "box": [
+        34,
+        33,
+        604,
+        581
+      ]
+    },
+    {
+      "name": "linen-napkins",
+      "prompt": "a neat stack of four folded oatmeal linen napkins tied with a thin cotton ribbon on a pale sage green backdrop",
+      "box": [
+        660,
+        34,
+        599,
+        579
+      ]
+    },
+    {
+      "name": "taper-candles",
+      "prompt": "a bundle of six natural honey-coloured beeswax taper candles lying on a soft peach backdrop",
+      "box": [
+        1283,
+        33,
+        602,
+        580
+      ]
+    },
+    {
+      "name": "olive-board",
+      "prompt": "a rounded olive wood cutting board with a visible warm grain and a leather loop, standing slightly tilted on a pale blue-grey backdrop",
+      "box": [
+        37,
+        639,
+        600,
+        594
+      ]
+    },
+    {
+      "name": "soy-candle",
+      "prompt": "a hand-poured soy candle in a plain frosted glass jar with a wooden wick on a dusty pink backdrop",
+      "box": [
+        659,
+        638,
+        600,
+        595
+      ]
+    },
+    {
+      "name": "ceramic-carafe",
+      "prompt": "a glazed ceramic water carafe in soft celadon green on a warm cream backdrop",
+      "box": [
+        1283,
+        639,
+        601,
+        594
+      ]
+    },
+    {
+      "name": "tea-towel",
+      "prompt": "a folded indigo blue striped cotton tea towel on a light grey backdrop",
+      "box": [
+        37,
+        1260,
+        600,
+        601
+      ]
+    },
+    {
+      "name": "gift-box",
+      "prompt": "an open kraft cardboard gift box with tissue paper, a small candle and a wooden spoon inside, on a deep forest green backdrop",
+      "box": [
+        659,
+        1259,
+        600,
+        602
+      ]
+    },
+    {
+      "name": "wool-throw",
+      "prompt": "a folded oatmeal wool throw blanket with a fringed edge on a pale beige backdrop",
+      "box": [
+        1283,
+        1259,
+        601,
+        602
+      ]
+    }
+  ],
+  "cut": {
+    "width": 520,
+    "height": 390,
+    "quality": 72,
+    "maxKb": 70
+  },
+  "note": "The sample does not use the soy-candle cell (its jar label came out as gibberish text); ecommerce-2 holds a label-free candle."
+}
