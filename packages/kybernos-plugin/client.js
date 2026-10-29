@@ -1492,6 +1492,8 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
       'kbui.kyber.off': { kybernos: 'Le module Kaby n’est pas actif. Active-le dans la Suite.', en: 'The Kaby module is not active. Switch it on in the Suite.' },
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Active-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
+      'kbui.business': { kybernos: 'Business', en: 'Business' },
+      'kbui.business.off': { kybernos: 'Cette page n’est pas disponible. Active son module dans la Suite.', en: 'This page is not available. Switch its module on in the Suite.' },
       'kbui.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.speed': { kybernos: 'Vitesse · ', en: 'Speed · ' },
       'kbui.starters': { kybernos: 'Suggestions', en: 'Starters' },
@@ -4643,6 +4645,7 @@ const LUCIDE = {
   waypoints: ['m10.586 5.414-5.172 5.172', 'm18.586 13.414-5.172 5.172', 'M6 12h12', 'M10 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M18 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M2 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z'],
   package: ['M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z', 'M12 22V12', 'm3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7'],
   chart: ['M3 3v16a2 2 0 0 0 2 2h16', 'M18 17V9', 'M13 17V5', 'M8 17v-3'],
+  briefcase: ['M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16', 'M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z'],
   heart: ['M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'],
   // Pouces du captage Quality Score (barre d'actions) — géométrie Lucide,
   // convertie en chemins comme le reste de la table.
@@ -8595,6 +8598,20 @@ const CSS = `
 .kb4-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-inline-start:6px;background:var(--dsw-alias-brand-primary)}
 .kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}/* Demande du 28/10 : les compteurs des entrées de menu (13, 500+, 14…) sont masqués pour rendre la place au libellé. Ils RESTENT dans le DOM — un lecteur d'écran et le survol les lisent encore ; les remettre est une seule règle à retirer. */
 .kb4-badge{display:none}
+/* The « Business » group (kb-business-menu): a folding header over the rows of the plugins that declared one. In em, like the rows. */
+.kb4-grp{margin-top:.35em}
+.kb4-grph{display:flex;align-items:center;gap:.5em;width:100%;min-height:2em;margin:0;padding:.25em .8em .25em .45em;border:none;border-radius:.75em;background:none;font:inherit;font-size:.95em;line-height:1.3;letter-spacing:.02em;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
+.kb4-grph:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+.kb4-grph.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
+.kb4-grph.on .kb4-lab{font-weight:700}
+.kb4-grprows.folded{display:none}
+.kb4-grpchev{flex:none;display:flex;align-items:center;justify-content:center;width:1em;transition:transform .18s}
+.kb4-grph[aria-expanded="false"] .kb4-grpchev{transform:rotate(-90deg)}
+.kb4-grpcnt{margin-inline-start:auto;min-width:1.7em;padding:0 .5em;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);font-size:.85em;font-weight:650;text-align:center;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.kb4-grpchev{transition:none}}
+/* In the icon rail there is no room for a header: it goes, and the rows always show. */
+[class*="collapsed"] .kb4-menu .kb4-grph{display:none}
+[class*="collapsed"] .kb4-menu .kb4-grprows.folded{display:block}
 /* Demande du 28/10 : le libellé « Workspaces » du pied ouvre la page Workspaces (l'écouteur de document plus bas), donc il
    s'annonce comme un lien. Rien d'autre n'est posé ici : mesuré dans la page, l'hôte masque déjà les actions du pied
    (« headerActions » et le bouton de recherche à « opacity: 0 ») et ne les révèle qu'au survol — nos règles étaient en double. */
@@ -8695,6 +8712,8 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-grid{display:flex;flex-direction:column;gap:8px}
 .kbg-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px}
 .kbg-card .kbg-desc,.kbg-card .kbg-cta{display:none}
+[data-kb-page="themes"] .kbg-card .kbg-desc{display:block}
+[data-kb-page="themes"] .kbg-card .kbg-cta{display:flex}
 .kbg-card .kbg-cardhead{flex:1;min-width:0}
 .kbg-card .kbg-stats{margin-left:auto;gap:8px;flex:none}
 .kbg-card .kbg-roles{flex-basis:100%}
@@ -15942,6 +15961,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // The pages read the field's words at each draw (kbDomainTitle): a saved choice redraws them.
       const domainTick = React.useState(0)[1]
       React.useEffect(() => kbDomainOn(() => domainTick((n) => n + 1)), [])
+      // A business row that comes or goes (its plugin switched on or off) redraws the page area: a page whose row is gone is not left on screen.
+      React.useEffect(() => kbBizMenu.subscribe(() => domainTick((n) => n + 1)), [])
       const us = (props !== null && props !== undefined) ? props.useSessions : null
       const sidFromStore = (typeof us === 'function') ? us((st) => (st.ids && st.ids.length ? st.ids[0] : null)) : null
       React.useEffect(() => {
@@ -15968,6 +15989,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (s.view === 'hosted') return h(HostedPage, props)
         if (s.view === 'teamedit' && typeof s.detailPath === 'string') return h(TeamEdit, props)
         if ((s.view === 'teaminfo' || s.view === 'detail') && typeof s.detailPath === 'string') return h(KybersTeamInfo, props)
+        if (kbBizMenu.has(s.view)) return h(KbBusinessView, Object.assign({}, props, { id: s.view }))
         return h(KybersPanel, props)
       })()
       return h(KbBoundary, null, inner)
@@ -27004,6 +27026,161 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true } catch (e) { return false }
     }
     // KB-LEAVE-SETTINGS-END
+    // <kb-business-menu>
+    // The « Business » group of the menu (docs/dev/business-menu.md). A plugin that brings a business page declares its row here,
+    //   window.__KB_MENU__.register({ id, group: 'business', icon, labelKey })   (and optionally label: { en, fr })
+    // and mounts the page on the keyed child slot 'main.kybernos-business' with `key: id`. The core knows no business plugin by name: the group is
+    // drawn only while a row is declared, a pack renames a row through menu.labels like any other, and a plugin that goes away takes its row with it.
+    // Pure: nothing here reads the page except the guarded window.
+    const KB_BIZ_KEY = 'kybernos.menu.business.collapsed.v1'
+    const KB_BIZ_MAX = 8
+    const KB_BIZ_ID = /^[a-z][a-z0-9-]{1,23}$/
+    /** The pages the core already has: a business row cannot take their id. */
+    const KB_BIZ_TAKEN = ['gallery', 'marketplace', 'kybers', 'artifacts', 'artview', 'skills', 'dashboards', 'kyber', 'connectors', 'themes', 'documents', 'tasks', 'projects', 'project', 'hosted', 'teamedit', 'teaminfo', 'detail', 'chat', 'panel', 'aiteams', 'deliverables', 'cloudcomputer']
+    const kbBizText = (v, max) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= max && !/[<>]/.test(v)
+    /** `{ ok: true, row }` (the row as the menu keeps it) or `{ ok: false, errors }`. Never throws. */
+    const kbBizCheck = (entry, taken) => {
+      const errors = []
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return { ok: false, errors: ['a menu row is an object'] }
+      for (const k of Object.keys(entry)) if (['id', 'group', 'icon', 'labelKey', 'label', 'order'].indexOf(k) < 0) errors.push('unknown key "' + k + '"')
+      if (entry.group !== 'business') errors.push('group: "business" is the only group')
+      const id = typeof entry.id === 'string' && KB_BIZ_ID.test(entry.id) ? entry.id : null
+      if (id === null) errors.push('id: 2 to 24 lower-case letters, digits or dashes, starting with a letter')
+      else if (KB_BIZ_TAKEN.indexOf(id) >= 0) errors.push('id: "' + id + '" is a page of the core')
+      else if (taken.indexOf(id) >= 0) errors.push('id: "' + id + '" is already a row')
+      if (id !== null && taken.length >= KB_BIZ_MAX && taken.indexOf(id) < 0) errors.push('at most ' + KB_BIZ_MAX + ' rows')
+      const icon = typeof entry.icon === 'string' && /^[a-zA-Z][a-zA-Z0-9-]{0,30}$/.test(entry.icon) ? entry.icon : null
+      if (icon === null) errors.push('icon: the name of an icon')
+      const labelKey = entry.labelKey === undefined ? null : (kbBizText(entry.labelKey, 60) ? entry.labelKey : undefined)
+      if (labelKey === undefined) errors.push('labelKey: a text of 1 to 60 characters, no < >')
+      let label = null
+      if (entry.label !== undefined) {
+        if (entry.label === null || typeof entry.label !== 'object' || Array.isArray(entry.label)) errors.push('label: an object { en, fr, … }')
+        else {
+          label = {}
+          for (const l of Object.keys(entry.label)) {
+            if (['en', 'fr', 'es', 'ar'].indexOf(l) < 0) errors.push('label: "' + l + '" is not a language')
+            else if (!kbBizText(entry.label[l], 40)) errors.push('label.' + l + ': a text of 1 to 40 characters, no < >')
+            else label[l] = entry.label[l].trim()
+          }
+          if (label.en === undefined) errors.push('label.en: the English words are needed')
+        }
+      }
+      if (labelKey === null && label === null) errors.push('labelKey or label: the row needs words')
+      const order = entry.order === undefined ? 100 : entry.order
+      if (typeof order !== 'number' || !Number.isFinite(order) || Math.abs(order) > 1000) errors.push('order: a number between -1000 and 1000')
+      if (errors.length > 0) return { ok: false, errors }
+      return { ok: true, row: Object.freeze({ id, group: 'business', icon, labelKey, label: label === null ? null : Object.freeze(label), order }) }
+    }
+    const kbBizMenu = (() => {
+      const rows = []
+      const subs = new Set()
+      let seq = 0
+      const fire = () => {
+        subs.forEach((f) => { try { f() } catch (e) { /* a listener that is gone */ } })
+        try { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('kb-menu-change')) } catch (e) { /* no events */ }
+      }
+      const api = {
+        v: 1,
+        /** Says why an entry would be refused, without declaring it. */
+        check: (entry) => kbBizCheck(entry, rows.map((r) => r.row.id)),
+        /** Declares a row; returns the function that takes it back, or `null` when the entry is refused (nothing is drawn then). */
+        register: (entry) => {
+          const c = kbBizCheck(entry, rows.map((r) => r.row.id))
+          if (c.ok !== true) { try { console.warn('[kybernos] menu row refused: ' + c.errors.join('; ')) } catch (e) { /* no console */ } return null }
+          const mine = { row: c.row, seq: seq++ }
+          rows.push(mine)
+          rows.sort((a, b) => a.row.order - b.row.order || a.seq - b.seq)
+          fire()
+          let live = true
+          return () => { if (!live) return; live = false; const i = rows.indexOf(mine); if (i >= 0) { rows.splice(i, 1); fire() } }
+        },
+        /** The rows, in order (the rows themselves are frozen). */
+        list: () => rows.map((r) => r.row),
+        ids: () => rows.map((r) => r.row.id),
+        has: (id) => rows.some((r) => r.row.id === id),
+        subscribe: (f) => { subs.add(f); return () => { subs.delete(f) } },
+      }
+      try { if (typeof window !== 'undefined') window.__KB_MENU__ = api } catch (e) { /* outside a browser */ }
+      return api
+    })()
+    /** The words of a row: its own for the language, else the dictionary's for its key, else its English, else its id. */
+    const kbBizLabel = (row, translate, lang) => {
+      if (row.label !== null && typeof row.label[lang] === 'string') return row.label[lang]
+      if (row.labelKey !== null) { try { const t = translate(row.labelKey); if (typeof t === 'string' && t !== row.labelKey) return t } catch (e) { /* the English stays */ } }
+      return row.label !== null && typeof row.label.en === 'string' ? row.label.en : row.id
+    }
+    /** Whether the group is folded (`false` when the browser keeps nothing: the group starts open). */
+    const kbBizCollapsed = (storage) => { try { return storage.getItem(KB_BIZ_KEY) === '1' } catch (e) { return false } }
+    const kbBizSetCollapsed = (storage, on) => { try { storage.setItem(KB_BIZ_KEY, on === true ? '1' : '0'); return true } catch (e) { return false } }
+    /** What the folded header says for its rows: how many things wait for the person, and whether something works. `get` reads one row's state. */
+    const kbBizAttention = (rows, get) => {
+      let count = 0
+      let running = false
+      for (const r of rows) {
+        let v = null
+        try { v = get(r.id) } catch (e) { v = null }
+        if (v === null || v === undefined || typeof v !== 'object') continue
+        if (v.running === true) running = true
+        count += (Number(v.review) > 0 ? Number(v.review) : 0) + (Number(v.need) > 0 ? Number(v.need) : 0)
+      }
+      return { count: Math.min(count, 99), running }
+    }
+    // </kb-business-menu>
+    // <kb-business-ui>
+    // The header and the rows of the group, and the page of a row: the page is the plugin's, mounted on the keyed child slot (subscription only,
+    // no assumption on load order; an empty slot says so).
+    const KbBusinessGroup = (props) => {
+      const bump = React.useState(0)[1]
+      const store = (() => { try { return window.localStorage } catch (e) { return null } })()
+      const colPair = React.useState(() => kbBizCollapsed(store))
+      const collapsed = colPair[0]
+      React.useEffect(() => {
+        const offRows = kbBizMenu.subscribe(() => bump((n) => n + 1))
+        const offState = KB_MENU_STATE.subscribe(() => bump((n) => n + 1))
+        return () => { offRows(); offState() }
+      }, [])
+      const rows = kbBizMenu.list()
+      if (rows.length === 0) return null
+      const lang = kbDomainLang()
+      const att = kbBizAttention(rows, KB_MENU_STATE.get)
+      const title = kbt('kbui.business')
+      const toggle = () => { const next = !collapsed; colPair[1](next); kbBizSetCollapsed(store, next) }
+      return h('div', { className: 'kb4-grp', 'data-kb': 'menu-business' },
+        h('button', {
+          type: 'button',
+          className: 'kb4-grph' + (collapsed && rows.some((r) => r.id === props.shown) ? ' on' : ''),
+          'aria-expanded': collapsed ? 'false' : 'true',
+          'aria-controls': 'kb4-biz-rows',
+          title,
+          'data-act': 'toggle-business',
+          onClick: toggle,
+        },
+        h('span', { className: 'kb4-grpchev' }, Icon('chevronDown', 13)),
+        h('span', { className: 'kb4-ico' }, Icon('briefcase', 15)),
+        h('span', { className: 'kb4-lab' }, title),
+        (collapsed && att.count > 0) ? h('span', { className: 'kb4-grpcnt', role: 'img', 'aria-label': kbt('menu.review') + ': ' + att.count }, att.count >= 99 ? '99+' : String(att.count)) : null,
+        (collapsed && att.count === 0 && att.running) ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': kbt('menu.working') }) : null),
+        h('div', { id: 'kb4-biz-rows', className: 'kb4-grprows' + (collapsed ? ' folded' : ''), role: 'group', 'aria-label': title },
+          rows.map((r) => props.row(r.id, Icon(r.icon, 15) || Icon('layers', 15), kbBizLabel(r, kbt, lang), 0, props.shown === r.id, () => props.openPage({ view: r.id }), h(KbRowState, { k: r.id })))))
+    }
+    const KbBusinessMount = (props) => {
+      const pair = React.useState(0)
+      const setTick = pair[1]
+      React.useEffect(() => {
+        let n = 0
+        let stop = null
+        try { stop = slots.subscribe('main.kybernos-business', () => setTick(n = n + 1)) } catch (e) { stop = null }
+        return () => { try { if (typeof stop === 'function') stop() } catch (e) { /* already cleaned */ } }
+      }, [])
+      let entries = []
+      try { entries = slots.entriesOfSlot('main.kybernos-business') || [] } catch (e) { entries = [] }
+      const mine = entries.filter((e) => e !== null && e !== undefined && e.options !== null && e.options !== undefined && e.options.key === props.id)[0]
+      if (mine !== undefined && mine.component !== null && mine.component !== undefined) return h(mine.component, { sessionId: typeof props.sessionId === 'string' ? props.sessionId : null, toolbar: props.toolbar === undefined ? null : props.toolbar })
+      return h('p', { className: 'kbg-empty' }, kbt('kbui.business.off'))
+    }
+    const KbBusinessView = (props) => h('div', { className: 'kbg-root', 'data-kb-page': props.id }, h(KbBusinessMount, props))
+    // </kb-business-ui>
     const kbOpenPage = (patch) => {
       try {
         kbLeaveSettings()
@@ -27015,7 +27192,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
-    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []).concat(['themes']) })
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []).concat(['themes']).concat(kbBizMenu.ids()) })
     // window.__KB_OPEN__.chat(text): a new chat with `text` already typed in the composer (the person reads it and presses send). The Plugins page uses it for
     // "Create with AI". False when no session has been mounted yet; the caller then shows the text so it can be pasted.
     kbOpenPage.chat = (text) => {
@@ -27326,6 +27503,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         row('themes', Icon('layers', 15), kbThEn('Themes', 'Thèmes'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
+        // The « Business » group: drawn only while a plugin has declared a row (window.__KB_MENU__, <kb-business-menu>).
+        h(KbBusinessGroup, { row, openPage, shown }),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
         // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
@@ -27377,7 +27556,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     KybersMain.__testStartersFromUi = kbStartersFromUi
     // Idem pour la rangée de suggestions qui vit dans le chat (dock du composer).
     KybersMain.__testChatStarters = KbChatStarters
-    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: gallery main panel');
+    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' }, 'main.kybernos-business': { kind: 'keyed', scope: 'root' } } }, KybersMain), 'kybers: gallery main panel');
     // ── Conversation tabs absorbed by Crew v2 (26/09) and then by the Journal tab (29/09) ──────────
     // The « Kybernos Crew », « Crew Model Execution », « Runs » and crew2 (« Workflows ») views are no longer registered and their
     // components are gone: what they showed (executed model, tokens, durations, outcomes, deviations, stopReason) lives in the
