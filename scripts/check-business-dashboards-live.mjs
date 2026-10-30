@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 // The dashboards the sector templates ship (kybernos/dashboards#preset), on the REAL GUI of a SANDBOX: the three templates (E-commerce, Real estate, Recruitment) installed from
 // THIS checkout with their sample rows, the Presets gallery that lists their dashboards with the template's name on each card, the dashboards drawn from the real routes of
-// Catalog, Contacts and Pipeline, and the « Overview » row of the Business group. Everything is measured; nothing is taken on trust.
+// Tables (the database each template makes), and the « Overview » row of the Business group. Everything is measured; nothing is taken on trust.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-business-dashboards-live.mjs [--shots <dir>]
 //
 // What it checks, in a real page:
-//   1. the three templates are `ok` in the registry once the Dashboards plugin has told its point, and their sample rows are in the base;
+//   1. the three templates are `ok` in the registry once the Dashboards plugin has told its point, and their databases (Tables) hold the sample rows;
 //   2. the Presets gallery lists the three template dashboards first, each with its template's name, and using one makes the person's own copy;
 //   3. the Overview row: first in the Business group, opens the dashboard on a copy made once, with no way back to a gallery it does not belong to;
 //   4. each dashboard: every widget drawn (none empty, none on its error state), no horizontal overflow, no clipped number or title, no console error,
-//      the numbers on nine cards equal to a direct count of the sandbox's own base;
+//      the numbers on nine cards equal to a direct count of the rows of the template's own database (Tables);
 //   5. light and dark, 1500 px and 420 px: one screenshot of each (--shots), the page height fitted to the dashboard.
 //
 // SANDBOX ONLY (exit 3 against :3080, and without a sandbox DSH_HOME): it links the templates into the sandbox profile, accepts their consent and seeds their sample rows.
@@ -19,7 +19,6 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
 import * as M from '../packages/kybernos-dashboards/model.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 
@@ -124,22 +123,32 @@ try {
   const registry = await poll(async () => { const r = await api('/kybernos-registry/state?fresh=1'); const mine = r.body && r.body.plugins ? r.body.plugins.filter((p) => p.id.startsWith('kybernos-themes/')) : []; return mine.length === 3 && mine.every((p) => p.status === 'ok') ? mine : null }, 30000)
   check('the three templates are ok in the registry (the Dashboards plugin told its point)', registry !== null && registry.every((p) => p.extends.some((e) => e.point === 'kybernos/dashboards#preset' && e.contributions === 1 && e.rejected.length === 0)), registry)
 
-  const base = createBusinessBase({ file: join(dshHome, 'kybernos', 'business', 'donnees.sqlite') })
-  const rows = (table, filter) => { const out = []; for (let offset = 0; ; offset += 500) { const r = base.list(table, Object.assign({ limit: 500, offset }, filter || {})); if (r.ok !== true) throw new Error(table + ': ' + r.error); out.push(...r.rows); if (r.rows.length < 500 || out.length >= r.total) break } return out }
-  const items = rows('item')
-  const cards = rows('flow_card')
-  check('the sample rows of the three templates are in the sandbox base', items.length === 46 && cards.length === 56 && rows('contact').length === 71, [items.length, cards.length, rows('contact').length])
+  // the rows of each template's database, read from the Tables routes the dashboards read
+  const state = (await api('/kybernos-db/state')).body
+  const dbOf = (template) => (state.dbs || []).find((d) => d.template === template)
+  const rows = async (template, object) => { const d = dbOf(template); const r = d === undefined ? null : (await api('/kybernos-db/records?db=' + encodeURIComponent(d.id) + '&object=' + object)).body; return r !== null && r.ok === true ? r.records.map((x) => x.values) : [] }
+  const DB = {}
+  for (const [template, objects] of Object.entries({ ecommerce: ['contact', 'product', 'orders'], 'real-estate': ['contact', 'property', 'lettings', 'sales'], recruitment: ['contact', 'job', 'candidates', 'missions'] })) for (const o of objects) DB[template + '/' + o] = await rows(template, o)
+  const total = (objectKeys) => Object.entries(DB).filter(([k]) => objectKeys.includes(k.split('/')[1])).reduce((n, [, v]) => n + v.length, 0)
+  check('the sample rows of the three templates are in their databases', total(['product', 'property', 'job']) === 46 && total(['orders', 'lettings', 'sales', 'candidates', 'missions']) === 56 && total(['contact']) === 71, [total(['product', 'property', 'job']), total(['orders', 'lettings', 'sales', 'candidates', 'missions']), total(['contact'])])
 
-  const presets = (await api('/kybernos-dashboards/presets')).body.presets
-  check('the gallery lists the three template dashboards first, each with its template\'s name', presets.slice(0, 3).map((p) => p.id).join() === 'ecommerce-overview,real-estate-overview,recruitment-overview' && presets.slice(0, 3).map((p) => p.template.name).join() === 'E-commerce shop,Real estate agency,Recruitment firm' && presets.slice(3).every((p) => p.template === undefined), presets.map((p) => [p.id, p.template && p.template.name]))
+  // The Business pages follow ONE active template (/kybernos/business/scope): the gallery offers that template's dashboard first, so each one is activated in turn.
+  const activate = (dir) => api('/kybernos/business/scope', { action: 'set', id: 'kybernos-themes/' + dir })
+  const NAMES = { ecommerce: 'E-commerce shop', 'real-estate': 'Real estate agency', recruitment: 'Recruitment firm' }
+  for (const dir of THEMES) {
+    const done = await activate(dir)
+    const presets = (await api('/kybernos-dashboards/presets')).body.presets
+    check('with ' + dir + ' active, the gallery lists its dashboard first, with the template\'s name, and no other template\'s', done.status === 200 && presets[0].id === dir + '-overview' && presets[0].template.name === NAMES[dir] && presets.slice(1).every((p) => p.template === undefined), presets.map((p) => [p.id, p.template && p.template.name]))
+  }
+  await activate('ecommerce')
   const ov0 = (await api('/kybernos-dashboards/overview')).body.overview
-  check('the Overview names the first template\'s dashboard and has no copy yet', ov0 !== null && ov0.preset === 'ecommerce-overview' && ov0.dashboardId === null && ov0.label.en === 'Overview', ov0)
+  check('the Overview names the active template\'s dashboard and has no copy yet', ov0 !== null && ov0.preset === 'ecommerce-overview' && ov0.dashboardId === null && ov0.label.en === 'Overview', ov0)
 
   console.log('\n── 2. the Presets gallery ──')
   check('the Dashboards page opens from the menu', await openDashboards())
   await poll(() => val(`document.querySelectorAll('[data-kb="dashboards-preset"]').length >= 3`), 15000)
-  const gallery = await val(`(() => { const cards = Array.from(document.querySelectorAll('[data-kb="dashboards-preset"]')); return { n: cards.length, first: cards.slice(0, 3).map((c) => ({ id: c.getAttribute('data-id'), tpl: (c.querySelector('[data-kb="preset-template"]') || {}).textContent || null, name: (c.querySelector('h3') || {}).textContent, btn: !!c.querySelector('[data-act="use-preset"]'), clipped: Array.from(c.querySelectorAll('h3, p, .kbdb-pill')).filter((e) => e.scrollWidth > e.clientWidth + 1).length })), others: cards.slice(3).filter((c) => c.querySelector('[data-kb="preset-template"]')).length } })()`)
-  check('the gallery shows the template dashboards first, each card with a pill naming its template and a button', gallery.n >= 9 && gallery.first.map((c) => c.tpl).join() === 'E-commerce shop,Real estate agency,Recruitment firm' && gallery.first.every((c) => c.btn) && gallery.others === 0, gallery)
+  const gallery = await val(`(() => { const cards = Array.from(document.querySelectorAll('[data-kb="dashboards-preset"]')); return { n: cards.length, first: cards.slice(0, 3).map((c) => ({ id: c.getAttribute('data-id'), tpl: (c.querySelector('[data-kb="preset-template"]') || {}).textContent || null, name: (c.querySelector('h3') || {}).textContent, btn: !!c.querySelector('[data-act="use-preset"]'), clipped: Array.from(c.querySelectorAll('h3, p, .kbdb-pill')).filter((e) => e.scrollWidth > e.clientWidth + 1).length })), others: cards.filter((c) => c.querySelector('[data-kb="preset-template"]')).length } })()`)
+  check('the gallery shows the active template\'s dashboard first, its card with a pill naming the template and a button', gallery.n >= 7 && gallery.first[0].tpl === 'E-commerce shop' && gallery.first[0].btn && gallery.others === 1, gallery)
   check('and nothing on those cards is clipped', gallery.first.every((c) => c.clipped === 0), gallery.first)
   await val(`window.scrollTo(0, 0)`)
   for (const dark of [false, true]) {
@@ -150,16 +159,15 @@ try {
   }
   await theme(false)
 
-  // use two of them from the gallery with a real mouse; the third comes through the Overview row below
-  for (const id of ['real-estate-overview', 'recruitment-overview']) {
+  // the other two templates' dashboards: each is made active in turn and copied through the host (the Overview row below makes the first one's copy with a real click)
+  for (const [dir, id] of [['real-estate', 'real-estate-overview'], ['recruitment', 'recruitment-overview']]) {
+    await activate(dir)
     const before = (await api('/kybernos-dashboards/list')).body.dashboards.length
-    check('"Use this preset" on ' + id + ' is a real click', await press('[data-kb="dashboards-preset"][data-id="' + id + '"] [data-act="use-preset"]'))
-    const opened = await poll(() => val(`(() => { const t = document.querySelector('[data-kb="dashboards-page"][data-screen="dash"] .kbdb-title'); return t ? t.textContent : null })()`), 15000)
+    const made = await api('/kybernos-dashboards/preset', { preset: id })
     const after = (await api('/kybernos-dashboards/list')).body.dashboards
-    check('it made the person\'s own copy and opened it, remembering where it came from', typeof opened === 'string' && after.length === before + 1 && after.some((d) => d.id === id && d.preset === id), [opened, after.map((d) => [d.id, d.preset])])
-    await val(`(() => { const b = document.querySelector('[data-kb="crumb-gallery"]'); if (b) b.click() })()`)
-    await poll(() => val(`!!document.querySelector('[data-kb="dashboards-page"][data-screen="gallery"]')`), 8000)
+    check('using ' + id + ' makes the person\'s own copy, remembering where it came from', made.status === 200 && after.length === before + 1 && after.some((d) => d.id === id && d.preset === id), [made, after.map((d) => [d.id, d.preset])])
   }
+  await activate('ecommerce')
 
   console.log('\n── 3. the Overview row of the Business group ──')
   const rowInfo = await poll(() => val(`(() => { const g = document.querySelector('[data-kb="menu-business"]'); if (!g) return null; const rows = Array.from(g.querySelectorAll('.kb4-item')).map((b) => (b.querySelector('.kb4-lab') || {}).textContent); return JSON.stringify(rows) })()`), 25000)
@@ -182,18 +190,18 @@ try {
     { id: 'real-estate-overview', name: 'Agency overview', widgets: 9 },
     { id: 'recruitment-overview', name: 'Desk overview', widgets: 9 },
   ]
-  // the numbers, counted straight from the sandbox base
+  // the numbers, counted straight from the rows of each template's database
   const sum = (xs) => xs.reduce((a, b) => a + b, 0)
   const num = (v, fmt, unit) => M.formatNumber(v, fmt) + (unit ? ' ' + unit : '')
-  const of = (type) => items.filter((i) => i.type === type)
-  const board = (flow) => cards.filter((c) => c.flow === flow)
-  const paid = board('orders').filter((c) => ['paid', 'packed', 'shipped', 'delivered'].includes(c.stage))
-  const lowStock = of('product').filter((i) => typeof i.fields.stock === 'number' && typeof i.fields.reorder_at === 'number' && i.fields.stock <= i.fields.reorder_at && i.status !== 'draft')
-  const sales = board('sales').filter((c) => c.stage !== 'closed')
+  const T = (key) => DB[key]
+  const isIn = (v, list) => list.includes(v)
+  const paid = T('ecommerce/orders').filter((r) => isIn(r.stage, ['paid', 'packed', 'shipped', 'delivered']))
+  const lowStock = T('ecommerce/product').filter((r) => typeof r.stock === 'number' && typeof r.reorder_at === 'number' && r.stock <= r.reorder_at && r.status !== 'draft')
+  const sales = T('real-estate/sales').filter((r) => r.stage !== 'closed')
   const EXPECT = {
-    'ecommerce-overview': { 'Revenue, paid orders': num(sum(paid.map((c) => c.value_num)), 'number', '€'), 'Orders to ship': num(board('orders').filter((c) => ['paid', 'packed'].includes(c.stage)).length), 'Low stock': num(lowStock.length) },
-    'real-estate-overview': { 'Active listings': num(of('property').filter((i) => ['for-sale', 'to-let', 'under-offer'].includes(i.status)).length), 'Open sales value': num(sum(sales.map((c) => c.value_num)), 'compact', '€'), 'Viewings to run': num(cards.filter((c) => ['sales', 'lettings'].includes(c.flow) && c.stage === 'viewing').length) },
-    'recruitment-overview': { 'Open jobs': num(of('job').filter((i) => i.status === 'open').length), 'Candidates in play': num(board('candidates').filter((c) => c.stage !== 'placed').length), 'Placements': num(cards.filter((c) => ['candidates', 'missions'].includes(c.flow) && c.stage === 'placed').length) },
+    'ecommerce-overview': { 'Revenue, paid orders': num(sum(paid.map((r) => r.value || 0)), 'number', '€'), 'Orders to ship': num(T('ecommerce/orders').filter((r) => isIn(r.stage, ['paid', 'packed'])).length), 'Low stock': num(lowStock.length) },
+    'real-estate-overview': { 'Active listings': num(T('real-estate/property').filter((r) => isIn(r.status, ['for-sale', 'to-let', 'under-offer'])).length), 'Open sales value': num(sum(sales.map((r) => r.value || 0)), 'compact', '€'), 'Sales viewings to run': num(T('real-estate/sales').filter((r) => r.stage === 'viewing').length) },
+    'recruitment-overview': { 'Open jobs': num(T('recruitment/job').filter((r) => r.status === 'open').length), 'Candidates in play': num(T('recruitment/candidates').filter((r) => r.stage !== 'placed').length), 'Candidates placed': num(T('recruitment/candidates').filter((r) => r.stage === 'placed').length) },
   }
   const open = async (id) => {
     await val(`window.__KB_DASHBOARDS__.open(${JSON.stringify(id)})`)
@@ -228,7 +236,7 @@ try {
     check(d.id + ': ' + d.widgets + ' widgets drawn, none empty, none still loading, no error banner', m.n === d.widgets && m.empty.length === 0 && m.loading === 0 && m.banners === 0, m)
     check(d.id + ': every list has rows and every chart has its drawing, marks and all', m.lists.every((n) => n > 0) && m.svgs.every((x) => x) && m.marks.every((n) => n > 0), m)
     check(d.id + ': no clipped number, title, list line or table cell, no chart label cut with an ellipsis, no horizontal overflow', m.kpiClipped === 0 && m.titleClipped === 0 && m.rowClipped === 0 && m.ellipsed.length === 0 && m.overflow <= 0, m)
-    for (const [title, text] of Object.entries(EXPECT[d.id])) check(d.id + ': "' + title + '" reads ' + text + ', as the base counts it', m.values[title] === text, m.values[title])
+    for (const [title, text] of Object.entries(EXPECT[d.id])) check(d.id + ': "' + title + '" reads ' + text + ', as the database counts it', m.values[title] === text, m.values[title])
     check(d.id + ': no console error', page.errs.length === 0, page.errs.slice(0, 3))
     for (const dark of [false, true]) {
       await theme(dark)

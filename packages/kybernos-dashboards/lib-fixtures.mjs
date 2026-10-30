@@ -123,6 +123,32 @@ export function fixturesAt (now) {
   }
   const biz = business()
 
+  /** What the Tables routes answer for a small agency database: `state`, the rows of its `deal` table and of the `contact` table the deals link to. */
+  const tables = () => {
+    const choice = (key, label, options) => ({ key, type: 'choice', label, protection: 'normal', options: options.map(([k, l]) => ({ key: k, label: l })) })
+    const deal = { key: 'deal', label: 'Deals', title: 'title', fields: [
+      { key: 'title', type: 'text', label: 'Title', protection: 'normal' }, choice('stage', 'Stage', [['lead', 'Lead'], ['offer', 'Offer'], ['won', 'Won']]),
+      { key: 'value', type: 'money', label: 'Value', currency: 'EUR', precision: 2, protection: 'normal' }, { key: 'reorder', type: 'number', label: 'Reorder at', protection: 'normal' }, { key: 'stock', type: 'number', label: 'Stock', protection: 'normal' },
+      { key: 'contact', type: 'relation', label: 'Contact', to: 'contact', many: false, protection: 'normal' }, { key: 'due', type: 'date', label: 'Due', protection: 'normal' },
+      { key: 'tags', type: 'multichoice', label: 'Tags', protection: 'normal', options: [{ key: 'vip', label: 'VIP' }, { key: 'repeat', label: 'Repeat buyer' }] },
+      { key: 'done', type: 'checkbox', label: 'Done', protection: 'normal' }, { key: 'iban', type: 'text', label: 'IBAN', protection: 'secret' }, { key: 'file', type: 'attachment', label: 'File', protection: 'normal', maxBytes: 1000 },
+    ] }
+    const contact = { key: 'contact', label: 'Contacts', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', protection: 'normal' }] }
+    const stamp = (n) => ({ by: 'noor', at: now + n * DAY })
+    const rec = (id, values, n) => ({ id, values, rev: 1, created: stamp(n), modified: stamp(n), deleted: null })
+    const deals = [
+      rec('D1', { title: 'Loft viewing', stage: 'lead', value: 1200, reorder: 10, stock: 3, contact: 'C1', due: dayKey(now + 2 * DAY), tags: ['vip'], done: false, iban: 'FR76 0000' }, -9),
+      rec('D2', { title: 'Offer on Elm St', stage: 'offer', value: 340000, reorder: 5, stock: 12, contact: 'C2', due: dayKey(now - 3 * DAY), tags: ['vip', 'repeat'], done: true }, -5),
+      rec('D3', { title: 'Closed sale', stage: 'won', value: 98000, contact: null, tags: null }, -1),
+      Object.assign(rec('D4', { title: 'Removed' }, -1), { deleted: stamp(0) }),
+    ]
+    return {
+      state: { ok: true, today: dayKey(now), unreadable: [], dbs: [{ id: 'DB1', name: 'Agency', template: 'real-estate', version: 1, fingerprint: 'f', objects: [deal, contact] }] },
+      rows: { ok: true, object: 'deal', total: deals.length, truncated: false, records: deals },
+      'to:contact': { ok: true, object: 'contact', total: 2, truncated: false, records: [rec('C1', { name: 'Noor Hadid' }, -30), rec('C2', { name: 'Mika Sato' }, -20)] },
+    }
+  }
+
   /** The answers of every route a provider asks for, keyed like the provider's plan. */
   const PARTS = {
     'usage.daily': { summary: usageSummary(14) },
@@ -140,6 +166,7 @@ export function fixturesAt (now) {
     'catalog.items': { types: biz.types, page0: biz.items },
     'contacts.people': { schema: biz.schema, page0: biz.people },
     'pipeline.cards': { flows: biz.flows, 'board:orders': biz.board },
+    'db.rows': tables(),
   }
   return { usageSummary, tasksList, occurrences, load, sessionsState, skills, runsIndex, business, PARTS }
 }

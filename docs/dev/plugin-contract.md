@@ -300,7 +300,7 @@ and `dashboards/overview.json`:
 ```json
 { "id": "overview", "name": "Agency overview", "desc": "The listings on the books, the sales in progress…",
   "menu": { "en": "Overview", "fr": "Vue d’ensemble" }, "overview": true,
-  "widgets": [ { "type": "card", "title": "Active listings", "source": { "provider": "catalog.items" },
+  "widgets": [ { "type": "card", "title": "Active listings", "source": { "provider": "db.rows", "params": { "db": "real-estate", "object": "property" } },
                  "metric": { "agg": "count", "where": [ { "field": "status_key", "op": "in", "value": ["for-sale", "to-let"] } ] } } ] }
 ```
 

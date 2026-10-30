@@ -59,6 +59,15 @@ await ok('state lists the dbs with their tables, fields and views, a fingerprint
   assert.deepEqual(s.unreadable, [])
 })
 
+await ok('state names the template a database came from (null for one the person made), and survives markers that cannot be read', () => {
+  const { svc, id } = seeded()
+  const other = svc.create({ name: 'Mine', by: 'agent' }).db.info().id
+  const named = makeApi({ service: svc, ports: { markers: () => ({ 'real-estate': id, junk: 7 }) } }).state()
+  assert.deepEqual(named.dbs.map((d) => [d.id, d.template]).sort(), [[id, 'real-estate'], [other, null]].sort())
+  assert.equal(makeApi({ service: svc }).state().dbs.every((d) => d.template === null), true, 'no markers port: no template names')
+  assert.equal(makeApi({ service: svc, ports: { markers: () => { throw new Error('unreadable') } } }).state().ok, true)
+})
+
 await ok('state of an empty folder is no database, not an error', () => {
   const api = makeApi({ service: service() })
   assert.deepEqual(api.state().dbs, [])

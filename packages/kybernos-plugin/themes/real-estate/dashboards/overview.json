@@ -12,9 +12,10 @@
       "type": "card",
       "title": "Active listings",
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "property"
+          "db": "real-estate",
+          "object": "property"
         }
       },
       "metric": {
@@ -51,9 +52,10 @@
       "type": "card",
       "title": "Open sales value",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "sales"
+          "db": "real-estate",
+          "object": "sales"
         }
       },
       "metric": {
@@ -91,21 +93,17 @@
     },
     {
       "type": "card",
-      "title": "Viewings to run",
+      "title": "Sales viewings to run",
       "source": {
-        "provider": "pipeline.cards"
+        "provider": "db.rows",
+        "params": {
+          "db": "real-estate",
+          "object": "sales"
+        }
       },
       "metric": {
         "agg": "count",
         "where": [
-          {
-            "field": "flow_key",
-            "op": "in",
-            "value": [
-              "sales",
-              "lettings"
-            ]
-          },
           {
             "field": "stage_key",
             "op": "=",
@@ -120,14 +118,6 @@
         "metric": {
           "agg": "count",
           "where": [
-            {
-              "field": "flow_key",
-              "op": "in",
-              "value": [
-                "sales",
-                "lettings"
-              ]
-            },
             {
               "field": "stage_key",
               "op": "=",
@@ -155,9 +145,10 @@
       "type": "card",
       "title": "Mandates ending soon",
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "property"
+          "db": "real-estate",
+          "object": "property"
         }
       },
       "metric": {
@@ -210,9 +201,10 @@
       "x": "status",
       "agg": "count",
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "property"
+          "db": "real-estate",
+          "object": "property"
         }
       },
       "w": 4,
@@ -227,9 +219,11 @@
       "agg": "sum",
       "unit": "€",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "sales"
+          "db": "real-estate",
+          "object": "sales",
+          "order": "stage"
         }
       },
       "w": 8,
@@ -237,26 +231,21 @@
     },
     {
       "type": "chart",
-      "title": "Leads by source",
+      "title": "Sales leads by source",
       "kind": "bars",
       "x": "source",
       "agg": "count",
       "limit": 6,
       "source": {
-        "provider": "pipeline.cards"
+        "provider": "db.rows",
+        "params": {
+          "db": "real-estate",
+          "object": "sales"
+        }
       },
       "w": 4,
       "h": 5,
-      "where": [
-        {
-          "field": "flow_key",
-          "op": "in",
-          "value": [
-            "sales",
-            "lettings"
-          ]
-        }
-      ]
+      "where": []
     },
     {
       "type": "list",
@@ -285,9 +274,10 @@
       "sort": "mandate_until",
       "limit": 6,
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "property"
+          "db": "real-estate",
+          "object": "property"
         }
       },
       "w": 4,
@@ -295,19 +285,11 @@
     },
     {
       "type": "list",
-      "title": "Next viewings and follow-ups",
+      "title": "Next sales viewings and follow-ups",
       "label": "title",
-      "sub": "subtitle",
+      "sub": "summary",
       "when": "due",
       "where": [
-        {
-          "field": "flow_key",
-          "op": "in",
-          "value": [
-            "sales",
-            "lettings"
-          ]
-        },
         {
           "field": "stage_key",
           "op": "in",
@@ -324,7 +306,11 @@
       "sort": "due",
       "limit": 6,
       "source": {
-        "provider": "pipeline.cards"
+        "provider": "db.rows",
+        "params": {
+          "db": "real-estate",
+          "object": "sales"
+        }
       },
       "w": 4,
       "h": 5

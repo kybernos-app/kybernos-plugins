@@ -65,7 +65,8 @@ await ok('a template is made into a database: objects, views, rows, links (also 
   const db = service.byId(r.db).db
   assert.deepEqual(db.objects().map((o) => o.key + '=' + o.label), ['contact=Contacts', 'order=Orders'])
   assert.deepEqual(db.listViews('order').map((v) => v.id + ':' + v.kind + ':' + v.by), ['order-board:board:stage'])
-  assert.deepEqual(db.listViews('contact').map((v) => v.id + ':' + v.kind + ':' + v.cover), ['contact-gallery:cards:true', 'contact-list:table:undefined'], 'a gallery keeps its cover')
+  // views come in creation order, and two made in the same millisecond fall back to their ids: the order is not part of the check
+  assert.deepEqual(db.listViews('contact').map((v) => v.id + ':' + v.kind + ':' + v.cover).sort(), ['contact-gallery:cards:true', 'contact-list:table:undefined'], 'a gallery keeps its cover')
   const contacts = db.list('contact')
   const bo = contacts.find((c) => c.values.name === 'Bo')
   const ana = contacts.find((c) => c.values.name === 'Ana')

@@ -34,7 +34,7 @@
       "kind": "data",
       "class": "inert",
       "summary": {
-        "en": "A dashboard a template ships: widgets over the Catalog, Contacts and Pipeline sources, offered as a preset while the template is installed."
+        "en": "A dashboard a template ships: widgets over the Tables source (the database the template makes), offered as a preset while the template is installed."
       },
       "validator": "builtin"
     }

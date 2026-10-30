@@ -24,9 +24,15 @@ const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + St
 /** A record the way the page reads it. */
 const shape = (rec) => ({ id: rec.id, values: rec.values, rev: rec.rev, created: rec.created, modified: rec.modified, deleted: rec.deleted })
 
-/** `service` is agent/service.mjs; `ports.today()` gives « today » as YYYY-MM-DD. */
+/** `service` is agent/service.mjs; `ports.today()` gives « today » as YYYY-MM-DD, `ports.markers()` `{ <template id>: <db id> }` (which template made which database). */
 export function makeApi ({ service, ports = {} }) {
   const today = typeof ports.today === 'function' ? ports.today : localDay
+  /** `Map<db id, template id>`; empty when the markers cannot be read. */
+  const templates = () => {
+    const out = new Map()
+    try { const m = typeof ports.markers === 'function' ? ports.markers() : {}; if (plain(m)) for (const [t, id] of Object.entries(m)) if (typeof id === 'string') out.set(id, t) } catch (e) { /* no markers: no template names */ }
+    return out
+  }
 
   /** The db and object a request means, or `{ err }`. */
   const aim = (q) => {
@@ -42,12 +48,13 @@ export function makeApi ({ service, ports = {} }) {
     state () {
       const dbs = []
       const unreadable = []
+      const made = templates()
       for (const d of service.list()) {
         const r = service.byId(d.id)
         if (!r.ok) { unreadable.push({ id: d.id, name: d.name, error: r.code, message: r.message }); continue }
         let fingerprint = ''
         try { fingerprint = r.db.fingerprint() } catch (e) { unreadable.push({ id: d.id, name: d.name, error: 'failed', message: 'the database could not be read' }); continue }
-        dbs.push({ id: d.id, name: d.name, version: r.db.info().version, fingerprint, objects: r.db.objects().map((o) => ({ ...o, views: r.db.listViews(o.key), stamps: r.db.viewStamps(o.key) })) })
+        dbs.push({ id: d.id, name: d.name, template: made.has(d.id) ? made.get(d.id) : null, version: r.db.info().version, fingerprint, objects: r.db.objects().map((o) => ({ ...o, views: r.db.listViews(o.key), stamps: r.db.viewStamps(o.key) })) })
       }
       return { ok: true, dbs, unreadable, today: today() }
     },

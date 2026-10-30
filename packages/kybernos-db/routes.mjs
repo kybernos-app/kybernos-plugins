@@ -1,6 +1,6 @@
 // kybernos-db — the routes of the Tables page.
 //
-//   GET  /kybernos-db/state                         the dbs, their tables, fields and views, and a fingerprint per db to poll
+//   GET  /kybernos-db/state                         the dbs, their tables, fields and views, the template each came from (or null), and a fingerprint per db to poll
 //   GET  /kybernos-db/records?db=&object=&deleted=  the records of one table
 //   GET  /kybernos-db/links?db=&object=&id=         what points at a record, from the other tables (the first 50 of each link field, and how many there are)
 //   POST /kybernos-db/write                         { db, object, op: create | update | delete | restore, id?, values? }

@@ -1,24 +1,24 @@
-// The read routes of the three Business plugins, answered by their real logic over a real shared base seeded with a shipped theme's sample rows: what the Dashboards
-// page would read from a DSH where that theme is installed, with no server and no browser. For tests and the live check's cross-checks; hermetic (a temp folder only).
+// What the Dashboards page would read from a DSH where a shipped template is installed, with no server and no browser: the template's database is made in a temp
+// Tables service (kybernos-db) with its sample rows, answered by the bundle's own api, and the theme is installed in a temp profile the real registry reads.
+// For tests and the live checks' cross-checks; hermetic (a temp folder only).
 //
-//   const world = openWorld({ themeDir, now })       // seeds a base, installs the theme in a temp profile, tells every point to the real registry
+//   const world = openWorld({ themeDir, now })       // makes the database, installs the theme in a temp profile, tells every point to the real registry
 //   world.fetch({ method, path, body? })             // the JSON a route answers (a round trip through JSON, like a fetch)
 //   const table = readTable(model, world, source, now)   // what the page does for one widget: the plan, the second round, the table
 //   world.close()
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
+import { makeService } from '../packages/kybernos-db/agent/service.mjs'
+import { makeApi } from '../packages/kybernos-db/api.mjs'
+import { MARKER_FILE, installTemplate, readMarkers } from '../packages/kybernos-db/instantiate.mjs'
+import { dayKey } from '../packages/kybernos-dashboards/model.mjs'
 import { DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT } from '../packages/kybernos-plugin/domain-pack.mjs'
 import { THEME_POINT } from '../packages/kybernos-theme/themes-catalogue.mjs'
 import { CONTACTS_POINT } from '../packages/kybernos-contacts/contacts-schema.mjs'
 import { CATALOG_POINT } from '../packages/kybernos-catalog/catalog-type.mjs'
 import { PIPELINE_POINT } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
 import { PRESET_POINT } from '../packages/kybernos-dashboards/preset-point.mjs'
-import { createCatalog } from '../packages/kybernos-catalog/catalog-core.mjs'
-import { createApi } from '../packages/kybernos-contacts/contacts-api.mjs'
-import { schemaFrom } from '../packages/kybernos-contacts/contacts-words.mjs'
-import { createPipelineHost } from '../packages/kybernos-pipeline/pipeline-host.mjs'
 import { createRegistry } from '../packages/kybernos-registry/registry.mjs'
 import { OWNER_VALIDATORS } from './plugin-check.mjs'
 
@@ -26,18 +26,23 @@ import { OWNER_VALIDATORS } from './plugin-check.mjs'
 const SKILL_POINT = { owner: 'kybernos/skills', ownerVersion: '1.0.0', name: 'skill', version: '1.0', kind: 'data', class: 'instruction', files: 'folder', max: 32, validate: OWNER_VALIDATORS['kybernos/skills#skill'] }
 export const ALL_POINTS = [DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT, THEME_POINT, SKILL_POINT, CONTACTS_POINT, CATALOG_POINT, PIPELINE_POINT, PRESET_POINT]
 
-/** `also`: the folders of other templates installed in the same profile, their sample rows seeded in the same base (the owner's DSH holds several at once). */
-export function openWorld ({ themeDir, now, also = [], points = ALL_POINTS }) {
+/**
+ * `also`: the folders of other templates installed in the same profile, their databases in the same service (the owner's DSH holds several at once).
+ * `sample: false`: the databases are made without their sample rows (the person cleared them).
+ */
+export function openWorld ({ themeDir, now, also = [], points = ALL_POINTS, sample = true }) {
   const dir = mkdtempSync(join(tmpdir(), 'kb-bizdash-'))
-  const base = createBusinessBase({ file: join(dir, 'donnees.sqlite'), now: () => now })
-  const sample = JSON.parse(readFileSync(join(themeDir, 'demo', 'sample.json'), 'utf8'))
+  const service = makeService({ dir: join(dir, 'tables', 'dbs') })
+  const api = makeApi({ service, ports: { today: () => dayKey(now), markers: () => readMarkers(join(dir, 'tables', MARKER_FILE)) } })
   // the theme installed in a profile the real registry reads (the photographs stay behind: no media is needed to read a dashboard)
   const profileDir = join(dir, 'profile')
   const names = []
   for (const folderOf of [themeDir, ...also]) {
-    const seeded = base.seed(JSON.parse(readFileSync(join(folderOf, 'demo', 'sample.json'), 'utf8')), { theme: 'kybernos-themes/' + basename(folderOf) })
-    if (seeded.ok !== true) throw new Error('the sample did not seed: ' + JSON.stringify(seeded))
-    const name = '@kybernos-themes/' + basename(folderOf)
+    const id = basename(folderOf)
+    const rows = sample ? JSON.parse(readFileSync(join(folderOf, 'demo', 'db-sample.json'), 'utf8')) : undefined
+    const made = installTemplate({ service, template: JSON.parse(readFileSync(join(folderOf, 'db', id + '.json'), 'utf8')), sample: rows, lang: 'en', markerFile: join(dir, 'tables', MARKER_FILE) })
+    if (made.ok !== true) throw new Error('the template did not install: ' + JSON.stringify(made))
+    const name = '@kybernos-themes/' + id
     const folder = join(profileDir, 'node_modules', ...name.split('/'))
     mkdirSync(folder, { recursive: true })
     cpSync(folderOf, folder, { recursive: true, filter: (src) => !/[\\/]photos([\\/]|$)/.test(src) && !src.endsWith('cover.jpg') })
@@ -49,26 +54,18 @@ export function openWorld ({ themeDir, now, also = [], points = ALL_POINTS }) {
   for (const p of points) registry.definePoint(p)
   for (const p of registry.plugins()) if (p.status === 'needs-consent') registry.setConsent(p.id, true)
 
-  const catalog = createCatalog({ base: () => base, registry: () => registry })
-  const contacts = createApi({ base: () => base, schema: () => schemaFrom(registry) })
-  const pipeline = createPipelineHost({ business: () => base, registry: () => registry })
   const route = (req) => {
     const u = new URL(req.path, 'http://127.0.0.1')
-    const q = u.searchParams
     switch (u.pathname) {
-      case '/kybernos-catalog/types': return catalog.types()
-      case '/kybernos-catalog/list': return catalog.list({ q: '', type: q.get('type') || '', status: '', archived: '', limit: q.get('limit'), offset: q.get('offset') })
-      case '/kybernos-contacts/schema': return contacts.schema()
-      case '/kybernos-contacts/list': return contacts.list({ limit: q.get('limit') || undefined, offset: q.get('offset') || undefined })
-      case '/kybernos-pipeline/flows': return pipeline.flows()
-      case '/kybernos-pipeline/board': return pipeline.board({ flow: q.get('flow') || '' })
+      case '/kybernos-db/state': return api.state()
+      case '/kybernos-db/records': return api.records(Object.fromEntries(u.searchParams))
       default: return { ok: false, error: 'no such route in this world: ' + u.pathname }
     }
   }
   return {
-    registry, base, sample, dir, plugin: () => registry.plugins().find((p) => p.package === pkgName) || null,
+    registry, service, dir, plugin: () => registry.plugins().find((p) => p.package === pkgName) || null,
     fetch: (req) => JSON.parse(JSON.stringify(route(req))),
-    close: () => { try { base.close() } catch (e) { /* closed */ } rmSync(dir, { recursive: true, force: true }) },
+    close: () => { try { service.close() } catch (e) { /* closed */ } rmSync(dir, { recursive: true, force: true }) },
   }
 }
 

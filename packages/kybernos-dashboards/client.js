@@ -113,7 +113,7 @@ window.__ModuleLoader__.load({
         return total > read ? 'The first ' + formatNumber(read, 'number') + ' of ' + formatNumber(total, 'number') + ' rows are read.' : ''
       }
       const PICTURE_REF = /^(?:art|photo):/
-      const FIELD_KEY = /^[a-z][a-z0-9_]{0,31}$/
+      const FIELD_KEY = /^[a-z][a-z0-9_]{0,39}$/
       /**
        * The scalar fields of a row, flattened into `row` under their own key (never over a column that is already there). A field that holds a day also gives
        * `<key>_in` (days until it, negative once past) and `<key>_ago` (days since it). A picture reference is not data and is left out.
@@ -142,6 +142,33 @@ window.__ModuleLoader__.load({
         for (const r of rows) for (const c of columns) if (!own(r, c.id)) r[c.id] = ''
         return rows
       }
+
+      // ── helpers of the Tables provider (db.rows: the rows of one table of a database made on the Tables page) ────────────────────────────────
+      const DB_RELATED = 4
+      const DB_LEFT_OUT = ['sensitive', 'secret']
+      const encode = encodeURIComponent
+      /** The database a source means: the one whose id or whose template id is `want`, else the first one. */
+      const dbPick = (state, want) => {
+        const dbs = arr(obj(state).dbs).filter((d) => isObj(d) && typeof d.id === 'string')
+        return want === '' ? dbs[0] : dbs.find((d) => d.id === want || d.template === want)
+      }
+      const dbObject = (db, key) => (db === undefined ? undefined : arr(db.objects).find((o) => isObj(o) && (key === '' || o.key === key)))
+      /** The fields of a table that a dashboard may show: files and the fields kept back (sensitive, secret) are not data for a chart. */
+      const dbFields = (o) => arr(o.fields).filter((f) => isObj(f) && FIELD_KEY.test(str(f.key)) && f.type !== 'attachment' && !DB_LEFT_OUT.includes(f.protection))
+      const dbColumnType = (f) => (f.type === 'number' || f.type === 'money' ? 'number' : (f.type === 'date' ? 'date' : 'string'))
+      const dbOption = (f, key) => { const o = arr(f.options).find((x) => isObj(x) && x.key === key); return o === undefined ? cut(key, 60) : cut(o.label, 60) }
+      /** `{ id, label, a, b }` for a `diff` param "a,b" naming two number fields of the table, else null. */
+      const dbDiff = (fields, text) => {
+        const [a, b] = text.split(',').map((k) => k.trim())
+        const num2 = (k) => fields.find((f) => f.key === k && (f.type === 'number' || f.type === 'money'))
+        const fa = num2(a)
+        const fb = num2(b)
+        return fa === undefined || fb === undefined || a === b ? null : { id: a + '_minus_' + b, label: (cut(fa.label, 40) || a) + ' minus ' + (cut(fb.label, 40) || b), a, b }
+      }
+      /** The day of a record's `{ by, at }` stamp, '' when it has none. */
+      const dbDay = (stamp) => { const ms = toMs(obj(stamp).at); return ms === null ? '' : dayKey(ms) }
+      /** The one title a row has, for the rows that link to it. */
+      const dbTitleOf = (rec, o) => (isObj(rec) && isObj(rec.values) ? cut(rec.values[o.title], 120) : '')
 
       const PROVIDERS = {
         'usage.daily': {
@@ -521,6 +548,81 @@ window.__ModuleLoader__.load({
             }
             const single = bizSlug(p.flow) !== ''
             return table(PROVIDERS['pipeline.cards'].columns, bizComplete(rows, PROVIDERS['pipeline.cards'].columns), { xDomain: single && order.length > 0 ? { field: 'stage', values: order } : null, note: more ? 'A board longer than 2,000 cards is cut short.' : '' })
+          },
+        },
+        // ── the Tables provider: the rows of one table of a database the person (or Kaby) designed on the Tables page ───────────────────────────────
+        // Round one reads `state` (the databases, their tables and fields); round two reads the rows of the table and of the tables its relations point to, so that a link
+        // is a title, not an id. A database is named by its id or by the id of the template it came from (a shipped dashboard cannot know a generated id).
+        'db.rows': {
+          label: 'Table rows',
+          about: 'The rows of one table of a database made on the Tables page (contacts, properties, deals, anything the table was designed for), one row per record: its title, the days it was added and changed, and every field of the table under its key. A choice or a multi-choice gives its label (and <key>_key, its key), a checkbox yes or no, a relation the titles of the rows it links to, a date also <key>_in (days until it, negative once past) and <key>_ago (days since it). Files and the fields kept back (sensitive, secret) are left out.',
+          params: { object: 'text, the key of the table (default: the first table)', db: 'text, a database id or the id of the template it came from (default: the first database)', order: 'text, the key of a choice field: its options give the order of the bars on x, empty ones included', diff: 'text, two number field keys "a,b": adds the column a_minus_b, a minus b (stock against its reorder level)' },
+          period: false,
+          sparse: true,
+          open: true,
+          columns: [col('title', 'Title', 'string'), col('created', 'Added', 'date'), col('updated', 'Changed', 'date')],
+          routes: () => [{ key: 'state', method: 'GET', path: '/kybernos-db/state' }],
+          next: (parts, p) => {
+            const db = dbPick(parts.state, str(p.db))
+            const o = dbObject(db, str(p.object))
+            if (o === undefined) return []
+            const q = '/kybernos-db/records?db=' + encode(db.id) + '&object='
+            const out = [{ key: 'rows', method: 'GET', path: q + encode(o.key) }]
+            const seen = new Set([o.key])
+            for (const f of dbFields(o)) {
+              if (f.type !== 'relation' || typeof f.to !== 'string' || seen.has(f.to) || dbObject(db, f.to) === undefined || seen.size > DB_RELATED) continue
+              seen.add(f.to)
+              out.push({ key: 'to:' + f.to, method: 'GET', path: q + encode(f.to), optional: true })
+            }
+            return out
+          },
+          build: (parts, p, now) => {
+            const base = PROVIDERS['db.rows'].columns
+            const db = dbPick(parts.state, str(p.db))
+            const o = dbObject(db, str(p.object))
+            if (o === undefined) return table(base, [], { note: db === undefined ? 'No database found.' : 'No such table in this database.' })
+            const fields = dbFields(o)
+            const columns = base.slice()
+            const has = new Set(columns.map((c) => c.id))
+            const add = (id, label, type) => { if (!has.has(id)) { has.add(id); columns.push(col(id, label, type)) } }
+            for (const f of fields) {
+              const label = cut(f.label, 60) || f.key
+              add(f.key, label, dbColumnType(f))
+              if (f.type === 'date') { add(f.key + '_in', label + ' in (days)', 'number'); add(f.key + '_ago', label + ' ago (days)', 'number') }
+              if (f.type === 'choice' || f.type === 'multichoice') add(f.key + '_key', label + ' key', 'string')
+            }
+            const diff = dbDiff(fields, str(p.diff))
+            if (diff !== null) add(diff.id, diff.label, 'number')
+            const titles = new Map()
+            for (const f of fields) {
+              const target = f.type === 'relation' ? dbObject(db, f.to) : undefined
+              if (target === undefined || titles.has(f.to)) continue
+              const m = new Map()
+              for (const r of arr(obj(parts['to:' + f.to]).records)) if (isObj(r) && typeof r.id === 'string') m.set(r.id, dbTitleOf(r, target))
+              titles.set(f.to, m)
+            }
+            const today = localDayNo(now)
+            const rows = []
+            for (const rec of arr(obj(parts.rows).records)) {
+              if (!isObj(rec) || isObj(rec.deleted) || !isObj(rec.values)) continue
+              const row = { title: dbTitleOf(rec, o), created: dbDay(rec.created), updated: dbDay(rec.modified) }
+              for (const f of fields) {
+                const v = rec.values[f.key]
+                if (v === null || v === undefined) continue
+                if (f.type === 'number' || f.type === 'money') { if (typeof v === 'number' && Number.isFinite(v)) row[f.key] = v } else if (f.type === 'checkbox') row[f.key] = v === true ? 'yes' : 'no'
+                else if (f.type === 'choice') { row[f.key] = dbOption(f, v); row[f.key + '_key'] = cut(v, 40) } else if (f.type === 'multichoice') { row[f.key] = arr(v).map((k) => dbOption(f, k)).join(', '); row[f.key + '_key'] = arr(v).filter((k) => typeof k === 'string').join(', ') }
+                else if (f.type === 'relation') { const m = titles.get(f.to); row[f.key] = m === undefined ? '' : arr(Array.isArray(v) ? v : [v]).map((id) => (m.has(id) ? m.get(id) : '')).filter((t) => t !== '').join(', ') } else if (typeof v === 'string') {
+                  row[f.key] = cut(v, 120)
+                  const day = f.type === 'date' ? dateDayNo(v) : null
+                  if (day !== null) { row[f.key + '_in'] = day - today; row[f.key + '_ago'] = today - day }
+                }
+              }
+              if (diff !== null && typeof row[diff.a] === 'number' && typeof row[diff.b] === 'number') row[diff.id] = Math.round((row[diff.a] - row[diff.b]) * 1e6) / 1e6
+              rows.push(row)
+            }
+            const order = fields.find((f) => f.key === str(p.order) && f.type === 'choice')
+            const note = obj(parts.rows).truncated === true ? 'Only the first ' + formatNumber(rows.length, 'number') + ' rows are read.' : ''
+            return table(columns, bizComplete(rows, columns), { xDomain: order === undefined ? null : { field: order.key, values: arr(order.options).filter(isObj).map((x) => cut(x.label, 60)) }, note })
           },
         },
       }

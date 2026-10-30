@@ -12,9 +12,10 @@
       "type": "card",
       "title": "Revenue, paid orders",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "orders"
+          "db": "ecommerce",
+          "object": "orders"
         }
       },
       "metric": {
@@ -59,9 +60,10 @@
       "type": "card",
       "title": "Orders to ship",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "orders"
+          "db": "ecommerce",
+          "object": "orders"
         }
       },
       "metric": {
@@ -97,20 +99,22 @@
       "type": "card",
       "title": "Low stock",
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "product"
+          "db": "ecommerce",
+          "object": "product",
+          "diff": "stock,reorder_at"
         }
       },
       "metric": {
         "agg": "count",
         "where": [
           {
-            "field": "stock_gap",
+            "field": "stock_minus_reorder_at",
             "op": "not_empty"
           },
           {
-            "field": "stock_gap",
+            "field": "stock_minus_reorder_at",
             "op": "<=",
             "value": 0
           },
@@ -143,7 +147,11 @@
       "type": "card",
       "title": "Customers",
       "source": {
-        "provider": "contacts.people"
+        "provider": "db.rows",
+        "params": {
+          "db": "ecommerce",
+          "object": "contact"
+        }
       },
       "metric": {
         "agg": "count",
@@ -168,7 +176,7 @@
               "value": "customer"
             },
             {
-              "field": "tags",
+              "field": "tags_key",
               "op": "contains",
               "value": "repeat"
             }
@@ -183,9 +191,11 @@
       "x": "stage",
       "agg": "count",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "orders"
+          "db": "ecommerce",
+          "object": "orders",
+          "order": "stage"
         }
       },
       "w": 8,
@@ -199,9 +209,10 @@
       "agg": "count",
       "limit": 6,
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "product"
+          "db": "ecommerce",
+          "object": "product"
         }
       },
       "w": 4,
@@ -211,7 +222,7 @@
       "type": "list",
       "title": "Next orders to ship",
       "label": "title",
-      "sub": "subtitle",
+      "sub": "summary",
       "when": "due",
       "where": [
         {
@@ -226,9 +237,10 @@
       "sort": "due",
       "limit": 6,
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "orders"
+          "db": "ecommerce",
+          "object": "orders"
         }
       },
       "w": 6,
@@ -259,11 +271,11 @@
       ],
       "where": [
         {
-          "field": "stock_gap",
+          "field": "stock_minus_reorder_at",
           "op": "not_empty"
         },
         {
-          "field": "stock_gap",
+          "field": "stock_minus_reorder_at",
           "op": "<=",
           "value": 0
         },
@@ -275,12 +287,14 @@
           ]
         }
       ],
-      "sort": "stock_gap",
+      "sort": "stock_minus_reorder_at",
       "limit": 6,
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "product"
+          "db": "ecommerce",
+          "object": "product",
+          "diff": "stock,reorder_at"
         }
       },
       "w": 6,
@@ -290,13 +304,14 @@
       "type": "chart",
       "title": "Top products by orders",
       "kind": "bars",
-      "x": "item",
+      "x": "product",
       "agg": "count",
       "limit": 7,
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "orders"
+          "db": "ecommerce",
+          "object": "orders"
         }
       },
       "w": 6,
@@ -310,9 +325,10 @@
       "agg": "count",
       "limit": 6,
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "orders"
+          "db": "ecommerce",
+          "object": "orders"
         }
       },
       "w": 6,

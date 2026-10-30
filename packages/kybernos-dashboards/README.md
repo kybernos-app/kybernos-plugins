@@ -39,6 +39,9 @@ computer, read when the page opens or you refresh. Nothing leaves the machine.
 | `catalog.items` | `GET /kybernos-catalog/list` (pages of 500) and `GET /kybernos-catalog/types` | no |
 | `contacts.people` | `GET /kybernos-contacts/list` (pages of 500) and `GET /kybernos-contacts/schema` | no |
 | `pipeline.cards` | `GET /kybernos-pipeline/flows`, then `GET /kybernos-pipeline/board?flow=` per board (or the one named by `flow`) | no |
+| `db.rows` | `GET /kybernos-db/state`, then `GET /kybernos-db/records?db=&object=` of the table and of the tables its relations point to (up to four) | no |
+
+`db.rows` reads one table of a database made on the Tables page: its fields are the columns under their key (a choice also gives `<key>_key`, a relation the titles it links to, a date `<key>_in` / `<key>_ago`; files and the fields kept back, `sensitive` and `secret`, are never columns). `db` is a database id or the id of the template it came from, so that a shipped dashboard can name its data; `order` and `diff` are described in the catalogue. It is the source the three sector templates' overviews use; the three Business sources below stay until the old Contacts, Catalog and Pipeline pages are removed.
 
 The three **Business sources** read the pages of Contacts, Catalog and Pipeline (the person's own items, people and cards, sample rows
 included: `demo` is `yes` on those). They are read page by page, so the model has a second round: `planNext(source, answers)` returns the

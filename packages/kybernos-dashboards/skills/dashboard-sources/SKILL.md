@@ -29,6 +29,7 @@ on this computer and read what DSH already holds. Get the exact list and columns
 | What the business lists, sells or recruits for (properties, products, jobs) | `catalog.items` | no period; the Catalog page's items, with the fields of their type as columns; `type` limits it to one kind |
 | People and companies | `contacts.people` | no period; the Contacts page, with the fields of their type as columns |
 | Cards on the Pipeline boards (sales, orders, candidates) | `pipeline.cards` | no period; `flow` limits it to one board, and a chart of that board keeps its stages in order |
+| The rows of any table made on the Tables page (contacts, properties, deals, products, anything) | `db.rows` | no period; `object` is the table's key, `db` the database (its id, or the id of the template it came from; the first one if left out); the table's own fields are columns under their key: a choice also gives `<key>_key` and a label, a relation the titles it links to, a date `<key>_in` / `<key>_ago`; `order` (a choice field) keeps its options in order on a chart, `diff` (`"stock,reorder_at"`) adds the column `stock_minus_reorder_at` |
 
 ## Honest limits
 
