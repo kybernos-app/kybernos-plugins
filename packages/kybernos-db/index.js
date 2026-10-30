@@ -18,7 +18,7 @@ import { makeApi } from './api.mjs'
 import { SECTION_NAME, SECTION_ORDER, renderBlock } from './agent/context.mjs'
 import { makeService } from './agent/service.mjs'
 import { approvalGate, tools as dbTools } from './agent/tools.mjs'
-import { installTemplate } from './instantiate.mjs'
+import { MARKER_FILE, installTemplate, readMarkers } from './instantiate.mjs'
 import { mountRoutes } from './routes.mjs'
 import { seedSkills } from './seed-skills.mjs'
 import { DB_TEMPLATE_POINT } from './template.mjs'
@@ -165,7 +165,7 @@ export function apply (ctx, options = {}) {
     }
 
     // The routes of the Tables page (routes.mjs): every data route needs DSH's signed session.
-    const api = makeApi({ service, ports: options.toolPorts })
+    const api = makeApi({ service, ports: { markers: () => readMarkers(join(dirname(dbsDir(home)), MARKER_FILE)), ...options.toolPorts } })
     const mountWeb = (c) => {
       try {
         const webServer = c.get('webServer')

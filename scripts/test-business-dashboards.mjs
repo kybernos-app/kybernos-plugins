@@ -1,9 +1,9 @@
 // The dashboards the three shipped templates bring (kybernos/dashboards#preset), against the REAL data path: each template is installed in a temp profile read by the real
-// registry, its sample rows are seeded into a real shared base, and the routes of Catalog, Contacts and Pipeline answer with their real logic. Every widget of every
+// registry, its database is made with its sample rows in a real Tables service, and the routes of Tables answer with their real logic. Every widget of every
 // dashboard is then drawn by the model and must show something, and every number on a card is checked against a direct count of the sample file: a dashboard shows
 // what the data holds, not what looked good in a mockup.
 //
-// Hermetic: temp folders only (a base file, a profile), nothing started, nothing fetched.
+// Hermetic: temp folders only (a database file, a profile), nothing started, nothing fetched.
 //
 //   node scripts/test-business-dashboards.mjs
 import assert from 'node:assert/strict'
@@ -17,7 +17,7 @@ import * as M from '../packages/kybernos-dashboards/model.mjs'
 import { createHost } from '../packages/kybernos-dashboards/dashboard-host.mjs'
 import { POINT_REF, validateDashboardPreset } from '../packages/kybernos-dashboards/preset-point.mjs'
 import { templatePresets } from '../packages/kybernos-dashboards/template-presets.mjs'
-import { openWorld, readTable } from './lib-business-routes.mjs'
+import { openWorld, readTable } from './lib-template-world.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ROOT = join(REPO, 'packages', 'kybernos-plugin', 'themes')
@@ -53,7 +53,8 @@ for (const dir of dirs) {
   const themeDir = join(ROOT, dir)
   const file = join(themeDir, 'dashboards', 'overview.json')
   const manifest = readJson(join(themeDir, 'plugin.json'))
-  const sample = readJson(join(themeDir, 'demo', 'sample.json'))
+  const sample = readJson(join(themeDir, 'demo', 'db-sample.json'))
+  const rowsOf = (object) => sample.rows[object].map((r) => r.values)
   const raw = readJson(file)
   const world = openWorld({ themeDir, now: NOW })
 
@@ -104,66 +105,69 @@ for (const dir of dirs) {
   })
 
   ok(dir + ': no number is made up: every card is a count or a sum of rows the sample holds', () => {
-    const items = sample.items
-    const cards = sample.cards
     if (dir === 'real-estate') {
+      const items = rowsOf('property')
+      const sales = rowsOf('sales')
       const active = items.filter((i) => ['for-sale', 'to-let', 'under-offer'].includes(i.status))
       assert.equal(card('Active listings').value, active.length)
       assert.equal(card('Active listings').subValue, items.filter((i) => i.status === 'under-offer').length)
-      const sales = cards.filter((c) => c.flow === 'sales' && c.stage !== 'closed')
-      assert.equal(card('Open sales value').value, sum(sales.map((c) => c.value_num)))
-      assert.equal(card('Open sales value').subValue, sales.length)
-      const viewings = cards.filter((c) => c.stage === 'viewing')
-      assert.equal(card('Viewings to run').value, viewings.length)
-      assert.equal(card('Viewings to run').subValue, viewings.filter((c) => daysUntil(c.fields.due) >= 0 && daysUntil(c.fields.due) <= 7).length)
-      const onFile = items.filter((i) => i.fields.mandate_until !== undefined && i.status !== 'sold')
-      assert.equal(card('Mandates ending soon').value, onFile.filter((i) => daysUntil(i.fields.mandate_until) <= 120).length)
+      const open = sales.filter((c) => c.stage !== 'closed')
+      assert.equal(card('Open sales value').value, sum(open.map((c) => c.value)))
+      assert.equal(card('Open sales value').subValue, open.length)
+      const viewings = sales.filter((c) => c.stage === 'viewing')
+      assert.equal(card('Sales viewings to run').value, viewings.length)
+      assert.equal(card('Sales viewings to run').subValue, viewings.filter((c) => daysUntil(c.due) >= 0 && daysUntil(c.due) <= 7).length)
+      const onFile = items.filter((i) => i.mandate_until !== undefined && i.status !== 'sold')
+      assert.equal(card('Mandates ending soon').value, onFile.filter((i) => daysUntil(i.mandate_until) <= 120).length)
       assert.equal(card('Mandates ending soon').subValue, onFile.length)
       // the lists and charts agree with the cards
       assert.equal(sum(chart('Properties by status').totals), items.length)
-      assert.equal(sum(chart('Sales pipeline by stage').totals), sum(cards.filter((c) => c.flow === 'sales').map((c) => c.value_num)))
+      assert.equal(sum(chart('Sales pipeline by stage').totals), sum(sales.map((c) => c.value)))
       assert.deepEqual(chart('Sales pipeline by stage').labels.map((l) => l.label), ['Enquiry', 'Viewing', 'Offer', 'Agreement', 'Closed'], 'the board\'s order, not the alphabet\'s')
-      assert.equal(sum(chart('Leads by source').totals), cards.length)
+      assert.equal(sum(chart('Sales leads by source').totals), sales.length)
       const ending = draw(byTitle('Mandates ending soon, by date'), tableOf(byTitle('Mandates ending soon, by date')))
       assert.equal(ending.length, Math.min(6, card('Mandates ending soon').value))
       assert.deepEqual(ending.map((r) => r.when), ending.map((r) => r.when).slice().sort(), 'soonest first')
     } else if (dir === 'ecommerce') {
-      const paid = cards.filter((c) => ['paid', 'packed', 'shipped', 'delivered'].includes(c.stage))
-      assert.equal(card('Revenue, paid orders').value, sum(paid.map((c) => c.value_num)))
+      const orders = rowsOf('orders')
+      const products = rowsOf('product')
+      const paid = orders.filter((c) => ['paid', 'packed', 'shipped', 'delivered'].includes(c.stage))
+      assert.equal(card('Revenue, paid orders').value, sum(paid.map((c) => c.value)))
       assert.equal(card('Revenue, paid orders').subValue, paid.length)
-      assert.equal(card('Orders to ship').value, cards.filter((c) => ['paid', 'packed'].includes(c.stage)).length)
-      assert.equal(card('Orders to ship').subValue, cards.filter((c) => c.stage === 'new').length)
-      const low = items.filter((i) => typeof i.fields.stock === 'number' && typeof i.fields.reorder_at === 'number' && i.fields.stock <= i.fields.reorder_at && i.status !== 'draft')
+      assert.equal(card('Orders to ship').value, orders.filter((c) => ['paid', 'packed'].includes(c.stage)).length)
+      assert.equal(card('Orders to ship').subValue, orders.filter((c) => c.stage === 'new').length)
+      const low = products.filter((i) => typeof i.stock === 'number' && typeof i.reorder_at === 'number' && i.stock <= i.reorder_at && i.status !== 'draft')
       assert.equal(card('Low stock').value, low.length)
-      assert.equal(card('Low stock').subValue, items.filter((i) => i.status === 'out').length)
-      const customers = sample.contacts.filter((c) => c.type === 'customer')
+      assert.equal(card('Low stock').subValue, products.filter((i) => i.status === 'out').length)
+      const customers = rowsOf('contact').filter((c) => c.type === 'customer')
       assert.equal(card('Customers').value, customers.length)
-      assert.equal(card('Customers').subValue, customers.filter((c) => c.tags.includes('repeat')).length)
+      assert.equal(card('Customers').subValue, customers.filter((c) => (c.tags || []).includes('repeat')).length)
       assert.deepEqual(chart('Orders by status').labels.map((l) => l.label), ['New', 'Paid', 'Packed', 'Shipped', 'Delivered'])
-      assert.equal(sum(chart('Orders by status').totals), cards.length)
-      assert.equal(sum(chart('Products by category').totals), items.length)
+      assert.equal(sum(chart('Orders by status').totals), orders.length)
+      assert.equal(sum(chart('Products by category').totals), products.length)
       const reorder = draw(byTitle('Stock to reorder'), tableOf(byTitle('Stock to reorder')))
       assert.equal(reorder.total, low.length)
       assert.ok(reorder.rows.every((r) => r[1].v <= r[2].v), 'every product listed is at or under its reorder level')
       assert.equal(draw(byTitle('Next orders to ship'), tableOf(byTitle('Next orders to ship'))).length, Math.min(6, card('Orders to ship').value))
-      assert.equal(sum(chart('Top products by orders').totals), cards.length)
+      assert.equal(sum(chart('Top products by orders').totals), orders.filter((c) => c.product !== undefined).length)
     } else {
-      const open = items.filter((i) => i.status === 'open')
+      const jobs = rowsOf('job')
+      const candidates = rowsOf('candidates')
+      const open = jobs.filter((i) => i.status === 'open')
       assert.equal(card('Open jobs').value, open.length)
-      assert.equal(card('Open jobs').subValue, items.filter((i) => i.status === 'on-hold').length)
-      const candidates = cards.filter((c) => c.flow === 'candidates')
+      assert.equal(card('Open jobs').subValue, jobs.filter((i) => i.status === 'on-hold').length)
       assert.equal(card('Candidates in play').value, candidates.filter((c) => c.stage !== 'placed').length)
       assert.equal(card('Candidates in play').subValue, candidates.filter((c) => c.stage === 'interview').length)
-      const placed = cards.filter((c) => c.stage === 'placed')
-      assert.equal(card('Placements').value, placed.length)
-      assert.equal(card('Placements').subValue, sum(placed.map((c) => c.value_num)))
-      const ages = open.filter((i) => i.fields.opened !== undefined).map((i) => -daysUntil(i.fields.opened))
+      const placed = candidates.filter((c) => c.stage === 'placed')
+      assert.equal(card('Candidates placed').value, placed.length)
+      assert.equal(card('Candidates placed').subValue, sum(placed.map((c) => c.value)))
+      const ages = open.filter((i) => i.opened !== undefined).map((i) => -daysUntil(i.opened))
       assert.equal(card('Oldest open job').value, Math.max(...ages))
       assert.equal(card('Oldest open job').subValue, open.length)
       assert.deepEqual(chart('Candidates by stage').labels.map((l) => l.label), ['Sourced', 'Screened', 'Interview', 'Proposed', 'Placed'])
       assert.equal(sum(chart('Candidates by stage').totals), candidates.length)
       assert.deepEqual(chart('Client missions by stage').labels.map((l) => l.label), ['Brief', 'Searching', 'Shortlist sent', 'Offer', 'Placed'])
-      assert.equal(sum(chart('Client missions by stage').totals), cards.filter((c) => c.flow === 'missions').length)
+      assert.equal(sum(chart('Client missions by stage').totals), rowsOf('missions').length)
       assert.equal(sum(chart('Where candidates come from').totals), candidates.length)
       const longest = draw(byTitle('Open the longest'), tableOf(byTitle('Open the longest')))
       assert.deepEqual(longest.map((r) => r.when), longest.map((r) => r.when).slice().sort(), 'the oldest first')
@@ -193,13 +197,12 @@ for (const dir of dirs) {
     } finally { rmSync(home, { recursive: true, force: true }) }
   })
 
-  ok(dir + ': with the other two templates installed too (their rows in the same base) every widget shows the very same thing', () => {
+  ok(dir + ': with the other two templates installed too (their databases in the same service) every widget shows the very same thing', () => {
     const crowded = openWorld({ themeDir, also: dirs.filter((d) => d !== dir).map((d) => join(ROOT, d)), now: NOW })
     try {
       assert.equal(crowded.plugin().status, 'ok')
       assert.equal(templatePresets(crowded.registry).length, 3, 'the gallery has the three dashboards')
-      const total = crowded.base.counts()
-      assert.ok(total.tables.item > world.base.counts().tables.item * 2, 'the base really holds the other templates\' rows')
+      assert.equal(crowded.service.list().length, 3, 'the service really holds the other templates\' databases')
       for (const w of dash.widgets) {
         const alone = JSON.stringify(draw(w, tableOf(w)))
         const together = JSON.stringify(draw(w, readTable(M, crowded, w.source, NOW)))
@@ -209,13 +212,13 @@ for (const dir of dirs) {
   })
 
   ok(dir + ': without its sample rows (the person cleared them) every widget says it is empty instead of showing a number', () => {
-    world.base.clearDemo({ actor: 'person' })
-    const cards = dash.widgets.filter((w) => w.type === 'card')
-    for (const w of cards) {
-      const t = readTable(M, world, w.source, NOW)
-      const c = M.cardData(t, w)
-      assert.equal(c.empty, true, w.title + ' still shows ' + c.text)
-    }
+    const bare = openWorld({ themeDir, now: NOW, sample: false })
+    try {
+      for (const w of dash.widgets.filter((x) => x.type === 'card')) {
+        const c = M.cardData(readTable(M, bare, w.source, NOW), w)
+        assert.equal(c.empty, true, w.title + ' still shows ' + c.text)
+      }
+    } finally { bare.close() }
   })
 
   world.close()

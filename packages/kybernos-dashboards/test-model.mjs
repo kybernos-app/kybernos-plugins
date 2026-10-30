@@ -395,5 +395,40 @@ ok('describeCatalogue names every provider and widget type', M.PROVIDER_IDS.ever
   ok('a second round is bounded', M.LIMITS.followUp >= 6 && M.LIMITS.followUp <= 24)
 }
 
+// ── db.rows: the rows of one table of a Tables database ──────────────────────────────────────────────────────────────────────────────────────
+{
+  const P = PARTS['db.rows']
+  const src = (params) => ({ provider: 'db.rows', params: params || {} })
+  const rows = (params, parts) => M.buildTable(src(params), parts || P, NOW)
+  const deal = (t, title) => t.rows.find((r) => r.title === title)
+  ok('db.rows: the first round is the state, nothing else', same(M.planFor(src({}), NOW), [{ key: 'state', method: 'GET', path: '/kybernos-db/state' }]))
+  ok('db.rows: the second round is the rows of the table and of the table its relation points to (optional)', same(M.planNext(src({ db: 'real-estate', object: 'deal' }), { state: P.state }, NOW), [
+    { key: 'rows', method: 'GET', path: '/kybernos-db/records?db=DB1&object=deal' }, { key: 'to:contact', method: 'GET', path: '/kybernos-db/records?db=DB1&object=contact', optional: true }]))
+  ok('db.rows: a database is its id or the id of its template; none named is the first; the table defaults to the first', M.planNext(src({ db: 'DB1' }), { state: P.state }, NOW)[0].path.endsWith('db=DB1&object=deal') && M.planNext(src({}), { state: P.state }, NOW)[0].path.endsWith('db=DB1&object=deal'))
+  ok('db.rows: no such database or table, nothing more to ask', M.planNext(src({ db: 'nope' }), { state: P.state }, NOW).length === 0 && M.planNext(src({ object: 'ghost' }), { state: P.state }, NOW).length === 0 && M.planNext(src({}), {}, NOW).length === 0)
+  ok('db.rows: a table key is encoded, never joined as it comes', (() => { const st = JSON.parse(JSON.stringify(P.state)); st.dbs[0].objects[0].key = 'a&b'; return M.planNext(src({ object: 'a&b' }), { state: st }, NOW)[0].path.includes('object=a%26b') })())
+  const t = rows({ db: 'real-estate', object: 'deal' })
+  ok('db.rows: one row per live record (a deleted one is left out), with its title and its days', t.rows.length === 3 && deal(t, 'Loft viewing').created === M.dayKey(NOW - 9 * 86400000) && deal(t, 'Loft viewing').updated === M.dayKey(NOW - 9 * 86400000))
+  ok('db.rows: a choice gives its label and its key, a checkbox yes or no, a number a number', deal(t, 'Loft viewing').stage === 'Lead' && deal(t, 'Loft viewing').stage_key === 'lead' && deal(t, 'Loft viewing').done === 'no' && deal(t, 'Offer on Elm St').done === 'yes' && deal(t, 'Loft viewing').value === 1200)
+  ok('db.rows: a multi-choice gives its labels and its keys', deal(t, 'Offer on Elm St').tags === 'VIP, Repeat buyer' && deal(t, 'Offer on Elm St').tags_key === 'vip, repeat')
+  ok('db.rows: a relation is the title of the row it links to, nothing when there is none or the table could not be read', deal(t, 'Loft viewing').contact === 'Noor Hadid' && deal(t, 'Closed sale').contact === '' && deal(rows({ object: 'deal' }, { state: P.state, rows: P.rows }), 'Loft viewing').contact === '')
+  ok('db.rows: a date gives the days until it and since it', deal(t, 'Loft viewing').due_in === 2 && deal(t, 'Loft viewing').due_ago === -2 && deal(t, 'Offer on Elm St').due_in === -3)
+  ok('db.rows: a field kept back (secret) and files are no column', !t.columns.some((c) => c.id === 'iban' || c.id === 'file') && t.rows.every((r) => !('iban' in r) && !('file' in r)))
+  ok('db.rows: every column is on every row, an empty one is \'\'', t.rows.every((r) => t.columns.every((c) => c.id in r)) && deal(t, 'Closed sale').due === '' && deal(t, 'Closed sale').stock === '')
+  ok('db.rows: the columns are typed from the fields (money and number are numbers, a date is a date)', ['value', 'stock', 'due_in'].every((k) => t.columns.find((c) => c.id === k).type === 'number') && t.columns.find((c) => c.id === 'due').type === 'date' && t.columns.find((c) => c.id === 'stage').type === 'string')
+  ok('db.rows: order puts the options of a choice on the axis, empty ones too', same(rows({ object: 'deal', order: 'stage' }).meta.xDomain, { field: 'stage', values: ['Lead', 'Offer', 'Won'] }) && rows({ object: 'deal', order: 'title' }).meta.xDomain === null && t.meta.xDomain === null)
+  ok('db.rows: diff adds a minus b where both are numbers, and only then', (() => { const d = rows({ object: 'deal', diff: 'stock,reorder' }); return d.columns.some((c) => c.id === 'stock_minus_reorder') && deal(d, 'Loft viewing').stock_minus_reorder === -7 && deal(d, 'Closed sale').stock_minus_reorder === '' && rows({ object: 'deal', diff: 'stock,title' }).columns.every((c) => !c.id.includes('_minus_')) })())
+  ok('db.rows: a day text that is no date gives no days', (() => { const st = JSON.parse(JSON.stringify(P.rows)); st.records[0].values.due = 'soon'; return deal(rows({ object: 'deal' }, { state: P.state, rows: st }), 'Loft viewing').due_in === '' })())
+  ok('db.rows: a table of 5,000 rows says so', rows({ object: 'deal' }, { state: P.state, rows: Object.assign({}, P.rows, { truncated: true }) }).meta.note.includes('first'))
+  ok('db.rows: no database, no table: an empty table that says which', rows({}, {}).meta.note === 'No database found.' && rows({ object: 'ghost' }, { state: P.state }).meta.note === 'No such table in this database.')
+  ok('db.rows: the shipped dashboards can chart it (a count by stage, the sum of a value)', (() => {
+    const d = M.validateDashboard({ widgets: [{ type: 'chart', title: 't', kind: 'columns', x: 'stage', y: 'value', agg: 'sum', source: src({ object: 'deal', order: 'stage' }) }] }).dashboard
+    const cd = M.chartData(t, d.widgets[0])
+    return cd.labels.length === 3 && M.inspectDashboard(d).length === 0
+  })())
+  ok('inspect: db.rows is open (a field of the table is no error), a declared column is still checked', M.inspectDashboard(M.validateDashboard({ widgets: [{ type: 'chart', title: 'a', kind: 'bars', x: 'stage_key', source: src({ object: 'deal' }) }] }).dashboard).length === 0 && M.inspectDashboard(M.validateDashboard({ widgets: [{ type: 'card', title: 'a', metric: { agg: 'sum', field: 'title' }, source: src({ object: 'deal' }) }] }).dashboard).length === 1)
+  ok('the catalogue text names db.rows with its params', (() => { const d = M.describeCatalogue().providers; return d.includes('db.rows') && d.includes('order (') && d.includes('diff (') })())
+}
+
 console.log(fail === 0 ? 'model: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
 process.exit(fail ? 1 : 0)

@@ -207,8 +207,8 @@ until those plugins are installed and have told their points to the registry, th
 node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
 ```
 
-A fourth folder, `dashboards/`, extends `kybernos/dashboards#preset` (owned by the Dashboards plugin, at most 4 files): a dashboard of the trade built from the three
-business sources (`catalog.items`, `contacts.people`, `pipeline.cards`) and the widgets the Dashboards plugin already has. It is data too and inert (no note, no free text);
+A fourth folder, `dashboards/`, extends `kybernos/dashboards#preset` (owned by the Dashboards plugin, at most 4 files): a dashboard of the trade built from the Tables source
+(`db.rows`, with `"db": "<the template id>"` and the table's `object`: the database the theme's own `db/` template makes) and the widgets the Dashboards plugin already has. It is data too and inert (no note, no free text);
 its rules and an example are in [`plugin-contract.md`](plugin-contract.md) section 6.2b. A theme that ships one extends the point as an **optional** extension (`"optional": true`) and does NOT name `kybernos/dashboards` in `requires.plugins`:
 with the Dashboards plugin off the theme stays whole and only its dashboard is missing. The Templates page still lists the Dashboards among what the theme brings.
 

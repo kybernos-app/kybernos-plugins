@@ -12,9 +12,10 @@
       "type": "card",
       "title": "Open jobs",
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "job"
+          "db": "recruitment",
+          "object": "job"
         }
       },
       "metric": {
@@ -47,9 +48,10 @@
       "type": "card",
       "title": "Candidates in play",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "candidates"
+          "db": "recruitment",
+          "object": "candidates"
         }
       },
       "metric": {
@@ -82,21 +84,17 @@
     },
     {
       "type": "card",
-      "title": "Placements",
+      "title": "Candidates placed",
       "source": {
-        "provider": "pipeline.cards"
+        "provider": "db.rows",
+        "params": {
+          "db": "recruitment",
+          "object": "candidates"
+        }
       },
       "metric": {
         "agg": "count",
         "where": [
-          {
-            "field": "flow_key",
-            "op": "in",
-            "value": [
-              "candidates",
-              "missions"
-            ]
-          },
           {
             "field": "stage_key",
             "op": "=",
@@ -113,14 +111,6 @@
           "field": "value",
           "where": [
             {
-              "field": "flow_key",
-              "op": "in",
-              "value": [
-                "candidates",
-                "missions"
-              ]
-            },
-            {
               "field": "stage_key",
               "op": "=",
               "value": "placed"
@@ -133,9 +123,10 @@
       "type": "card",
       "title": "Oldest open job",
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "job"
+          "db": "recruitment",
+          "object": "job"
         }
       },
       "metric": {
@@ -177,9 +168,11 @@
       "x": "stage",
       "agg": "count",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "candidates"
+          "db": "recruitment",
+          "object": "candidates",
+          "order": "stage"
         }
       },
       "w": 6,
@@ -192,9 +185,11 @@
       "x": "stage",
       "agg": "count",
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "missions"
+          "db": "recruitment",
+          "object": "missions",
+          "order": "stage"
         }
       },
       "w": 6,
@@ -208,9 +203,10 @@
       "agg": "count",
       "limit": 6,
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "candidates"
+          "db": "recruitment",
+          "object": "candidates"
         }
       },
       "w": 4,
@@ -220,7 +216,7 @@
       "type": "list",
       "title": "Interviews and proposals",
       "label": "title",
-      "sub": "subtitle",
+      "sub": "summary",
       "when": "due",
       "where": [
         {
@@ -239,9 +235,10 @@
       "sort": "due",
       "limit": 6,
       "source": {
-        "provider": "pipeline.cards",
+        "provider": "db.rows",
         "params": {
-          "flow": "candidates"
+          "db": "recruitment",
+          "object": "candidates"
         }
       },
       "w": 4,
@@ -267,9 +264,10 @@
       "sort": "opened",
       "limit": 6,
       "source": {
-        "provider": "catalog.items",
+        "provider": "db.rows",
         "params": {
-          "type": "job"
+          "db": "recruitment",
+          "object": "job"
         }
       },
       "w": 4,

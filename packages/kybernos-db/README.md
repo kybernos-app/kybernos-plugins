@@ -34,7 +34,7 @@ drawer where each field saves when it is left; a secret field is a password inpu
   has no edit waiting is announced with a toast and an Undo, which puts the view back as it was (the host then records the person's hand).
 - **« Modify view » and « Ask Kaby… »** hand a sentence to the chat through `window.__KB_ASK__` (the core's `kbStartChatText`: the draft is written, the person sends it);
   without the seam the sentence is offered to copy. Kaby's tool for it is `view_save`: a view is what you see, never the data or the structure.
-- **The host's door.** `GET state`, `GET records`, `POST write` (create, update, delete, restore) and `POST view` (save, remove), all behind DSH's signed session cookie
+- **The host's door.** `GET state` (each db also says the template it came from, `template`, so that a shipped dashboard can name its data by that id), `GET records`, `POST write` (create, update, delete, restore) and `POST view` (save, remove), all behind DSH's signed session cookie
   and the host fence (`session-guard.mjs`, a copy of the shared shape), a 64 KB body cap, and the core served at `/kybernos-db/core/<file>.mjs` so the page applies
   the very rules the host does (the shared vector cases keep the two in step).
 - **Links between tables (lot 5).** A link field points at rows of another table, one or many. In the drawer its rows are chips (each opens its row, an × takes the link off) and

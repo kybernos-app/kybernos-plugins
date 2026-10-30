@@ -3,7 +3,7 @@
 // A template (a data plugin, `kybernos-themes/real-estate`) names the point in its plugin.json and ships `dashboards/<id>.json`, one file per dashboard:
 //   { "id": "overview", "name": "Agency overview", "desc": "What the agency has on, at a glance.",
 //     "menu": { "en": "Overview", "fr": "Vue d’ensemble" }, "overview": true,
-//     "widgets": [ { "type": "card", "title": "Active listings", "source": { "provider": "catalog.items" }, "metric": { "agg": "count" } } ] }
+//     "widgets": [ { "type": "card", "title": "Active listings", "source": { "provider": "db.rows", "params": { "db": "real-estate", "object": "property" } }, "metric": { "agg": "count" } } ] }
 // The Dashboards plugin lists it in its Presets gallery with the template's name, only while the template is installed; using it gives the person their own copy,
 // exactly like a built-in preset. `menu` is the word of the « Overview » row of the Business group (English required); `overview: true` marks the dashboard that
 // row opens (at most one per file).
