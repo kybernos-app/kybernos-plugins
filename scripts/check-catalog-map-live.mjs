@@ -4,18 +4,18 @@
 // motion, and the ways it must fail well (the tile host blocked, the tiles alone blocked, offline, no WebGL) without ever leaving a blank or broken box.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh
-//   node scripts/check-catalog-map-live.mjs [--shots <dir>] [--offline-tiles]
+//   node scripts/check-catalog-map-live.mjs [--shots <dir>]
 //
 // It needs the INTERNET (OpenFreeMap): without it the run says so and exits 3 (the fallbacks are then all that could be measured). Apart from that, SANDBOX ONLY: it refuses the DSH
 // on :3080 or a shell without a sandbox DSH_HOME, because it writes the sandbox's business base (the sample rows, seeded the way a template install does, then removed), accepts the
 // real-estate template in the sandbox's registry, and presses DSH's Light and Dark cards of the sandbox profile (the mode it found is put back).
-//  - The sandbox is a clone of the owner's profile, which carries the sector templates as RELATIVE links that do not resolve once the home is the sandbox's: the real-estate link is
-//    pointed at THIS checkout's folder (an absolute link, in the sandbox profile only), so the sample that is measured is this checkout's.
+//  - The sandbox is a clone of the owner's profile with the E-commerce and Real estate templates installed, their links re-pointed at THIS checkout by scripts/sandbox/setup.sh, so the
+//    sample that is measured is this checkout's. Both are installed here (consent, sample rows, record) with real estate last, which makes it the one active template.
 //  - --shots <dir>: one PNG per state, kept outside git (media never go in the repository).
 //  - What the page asks of the network is recorded from the browser (Network domain): no request to OpenFreeMap or for the library before the Map view is opened; after it, only the
 //    sandbox and tiles.openfreemap.org; and no cookie and no referrer on what goes to OpenFreeMap.
 // Exit code: 0 all green, 1 a check failed, 3 not run (no sandbox, no GUI, no internet).
-import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
@@ -41,21 +41,16 @@ const check = (name, ok, detail) => {
 const online = await fetch('https://tiles.openfreemap.org/styles/positron', { signal: AbortSignal.timeout(8000) }).then((r) => r.ok).catch(() => false)
 if (!online) { console.error('○ not run: tiles.openfreemap.org does not answer (the map needs the internet)'); process.exit(3) }
 const THEME_ID = 'kybernos-themes/real-estate'
+const SHOP_ID = 'kybernos-themes/ecommerce'
 const themeLink = join(dshHome, 'profiles', 'web', 'node_modules', '@kybernos-themes', 'real-estate')
 const themeDir = join(repo, 'packages', 'kybernos-plugin', 'themes', 'real-estate')
 const linkedHere = () => { try { return realpathSync(themeLink) === realpathSync(themeDir) } catch (e) { return false } }
 if (!existsSync(join(dshHome, 'profiles', 'web', 'package.json')) || !readFileSync(join(dshHome, 'profiles', 'web', 'package.json'), 'utf8').includes('@kybernos-themes/real-estate')) {
   console.error('○ not run: the sandbox profile does not have the real-estate template (install it from Settings › Templates in the sandbox first)'); process.exit(3)
 }
-if (!linkedHere()) {
-  try { if (lstatSync(themeLink)) rmSync(themeLink, { force: true, recursive: true }) } catch (e) { /* no link yet */ }
-  symlinkSync(themeDir, themeLink)
-  console.log('  (the sandbox\'s real-estate link now points at this checkout: ' + readlinkSync(themeLink).replace(process.env.KB_REAL_HOME || '~', '~') + ')')
-}
+if (!linkedHere()) { console.error('○ not run: the sandbox\'s real-estate template is not linked to this checkout (run scripts/sandbox/setup.sh from it)'); process.exit(3) }
 const baseFile = join(dshHome, 'kybernos', 'business', 'donnees.sqlite')
 const base = createBusinessBase({ file: baseFile })
-const sample = JSON.parse(readFileSync(join(themeDir, 'demo', 'sample.json'), 'utf8'))
-const properties = sample.items.filter((i) => i.type === 'property')
 
 // ── the browser ──────────────────────────────────────────────────────────────────────────────────────────
 const live = await openLivePage({ width: 1400, height: 900 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
@@ -177,6 +172,16 @@ const openMap = async () => {
   await pressView(/map|carte/i)
   return waitFor(page, `!!document.querySelector('[data-kb="catalog-map-box"]')`, 8000)
 }
+/** The pins and clusters that are cut by the map's edge or lie under its caption, its credit or its buttons (none, when the first view is well framed). */
+const pinsHidden = () => ev(`(() => {
+  const box = document.querySelector('[data-kb="catalog-map-box"]').getBoundingClientRect()
+  const chrome = ['[data-kb="catalog-map-note"]', '[data-kb="catalog-map-attribution"]', '.kbcg-mapctl'].map((q) => document.querySelector(q).getBoundingClientRect())
+  const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+  return [...document.querySelectorAll('.kbcg-rp')].map((e) => [e.getAttribute('data-id') || e.getAttribute('data-kb'), e.getBoundingClientRect()]).filter(([, r]) => r.left < box.left || r.right > box.right || r.top < box.top || r.bottom > box.bottom || chrome.some((c) => hit(r, c))).map(([id, r]) => [id, Math.round(r.left - box.left), Math.round(r.top - box.top), Math.round(r.width), Math.round(r.height)])
+})()`)
+/** The map is mounted again (Cards, then Map): a fresh fit of the whole set, as when a person opens the view. */
+const reopenMap = async () => { await pressView(/cards|cartes/i); await sleep(500); return openMap() }
+const realAgain = () => waitFor(page, `document.querySelector('[data-kb="catalog-map-box"]') && document.querySelector('[data-kb="catalog-map-box"]').getAttribute('data-map') === 'real'`, 14000)
 const darkNow = () => ev(`document.body.hasAttribute('data-ds-dark-theme')`)
 /** DSH's own mode (Settings › Theme, the Light and Dark cards); the sandbox profile keeps the choice. */
 const setScheme = async (to) => {
@@ -195,11 +200,20 @@ try {
   // ── the template and its sample ───────────────────────────────────────────────────────────────────────
   console.log('The real-estate template and its sample, placed on real streets')
   base.deleteAll({ confirm: true, actor: 'person' })
-  const consent = await ev(`fetch('/kybernos-registry/consent', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: ${JSON.stringify(THEME_ID)}, accepted: true }) }).then((r) => r.status)`)
-  check('the sandbox accepts the real-estate template (its instruction data)', consent === 200, consent)
+  // What the Templates page does for an install (consent, sample rows, the record), for both templates the sandbox carries: the E-commerce one first, so that the Catalog has products
+  // to leave out, then the real-estate one, which the record makes the active template (one active template at a time, docs/dev/business-visuals.md).
+  const post = (path, body) => ev(`fetch(${JSON.stringify(path)}, { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(${JSON.stringify(body)}) }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
+  check('the host has heard the three Business points (it answers a switch only then; a few seconds after DSH starts)', await waitFor(page, `fetch('/kybernos/business/scope', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.ready === true)`, 60000).then(() => true, () => false))
+  for (const id of [SHOP_ID, THEME_ID]) {
+    const consent = await post('/kybernos-registry/consent', { id, accepted: true })
+    const seed = await post('/kybernos/themes', { action: 'seed', id })
+    const record = await post('/kybernos/themes', { action: 'record', id })
+    check(id + ': consent, sample rows and the install record are accepted by the host', consent.status === 200 && seed.status === 200 && seed.json.ok === true && record.status === 200 && record.json.ok === true, { consent: consent.status, seed: seed.json, record: record.json })
+  }
+  check('the install recorded last, the real-estate one, becomes the active template (the host lists it within seconds: the registry rescans every two)', await waitFor(page, `fetch('/kybernos/business/scope', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.active === ${JSON.stringify(THEME_ID)})`, 30000).then(() => true, () => false))
+  await ev(`window.__KB_BIZ_SCOPE__.reload().then(() => 1)`)
+  check('the page has read the choice', await waitFor(page, `window.__KB_BIZ_SCOPE__.active() === ${JSON.stringify(THEME_ID)} && window.__KB_BIZ_SCOPE__.templates().length === 2`, 10000).then(() => true, () => false))
   check('the catalogue then speaks the theme\'s « property » type', (await waitFor(page, `fetch('/kybernos-catalog/types', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.source === 'theme' && j.types.some((t) => t.id === 'property' && t.map && t.views.includes('map')))`, 25000)) === true)
-  const seeded = base.seed({ items: properties }, { theme: THEME_ID })
-  check('the sixteen sample properties are seeded the way a template install does', seeded.ok === true && seeded.counts.items === 16, seeded)
   const rows = await ev(`fetch('/kybernos-catalog/list?limit=100', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => JSON.stringify(j.rows.map((r) => [r.fields.lat, r.fields.lng])))`)
   const places = JSON.parse(rows)
   check('every one stands in Paris, on its own spot (not the made-up coordinates of an invented town)', places.length === 16 && places.every(([lat, lng]) => lat > 48.8 && lat < 48.92 && lng > 2.2 && lng < 2.5) && new Set(places.map((p) => p.join())).size === 16, places)
@@ -238,6 +252,7 @@ try {
   const count0 = await pinsOf()
   check('all sixteen properties are on it, as pins and clusters (the counts add up to 16)', count0.total === 16 && count0.pins + count0.clusters > 1, count0)
   check('at the start the whole set is in view, at a city zoom', z0 > 9 && z0 < 14, z0)
+  check('every pill and bubble of the first view is whole: none cut by the map\'s edge, none under the caption, the credit or the buttons', (await pinsHidden()).length === 0, await pinsHidden())
   check('pins and clusters are buttons the keyboard reaches, each named for a screen reader', (await ev(`[...document.querySelectorAll('.kbcg-rp')].every((e) => e.tagName === 'BUTTON' && e.tabIndex >= 0 && (e.getAttribute('aria-label') || '').length > 3)`)) === true)
   const box = await rect(SEL('catalog-map-box'))
   const cards = await rect(SEL('catalog-cards'))
@@ -395,6 +410,9 @@ try {
   console.log('A phone')
   await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 880, deviceScaleFactor: 2, mobile: true })
   await sleep(1500)
+  await reopenMap()
+  check('opened at 420 px the real map comes up', (await realAgain()) === true, await mapState())
+  await sleep(2000)
   await ev(`window.scrollTo(0, 0)`)
   const phoneBox = await rect(SEL('catalog-map-box'))
   const phoneCards = await rect(SEL('catalog-cards'))
@@ -404,6 +422,7 @@ try {
   const pc = await rect('.kbcg-mapctl')
   check('on the phone the whole attribution is on the map: its text is not cut (it wraps instead), and it names the three credits', pa !== null && (await ev(`(() => { const a = document.querySelector('[data-kb="catalog-map-attribution"]'); return a.scrollWidth <= a.clientWidth + 1 && a.getBoundingClientRect().height < 60 && /OpenFreeMap/.test(a.innerText) && /OpenStreetMap contributors/.test(a.innerText) })()`)) === true, pa)
   check('on the phone the caption, the attribution and the buttons are inside the map and do not overlap one another', pn !== null && pa !== null && pc !== null && !overlaps(pn, pa) && !overlaps(pc, pa) && !overlaps(pc, pn) && pa.left >= phoneBox.left && pa.right <= phoneBox.right && pa.bottom <= phoneBox.bottom && pn.bottom <= phoneBox.bottom, { pn, pa, pc, phoneBox })
+  check('on the phone too, the first view is whole: no pill cut by the edge or under the caption, the credit or the buttons', (await pinsHidden()).length === 0, await pinsHidden())
   check('the pins are there and the pills are big enough for a finger (at least 32 px high)', (await pinsOf()).total === 16 && (await ev(`[...document.querySelectorAll('.kbcg-rp')].every((e) => e.getBoundingClientRect().height >= 32)`)) === true)
   await shotOf('12-phone-map', SEL('catalog-map-box'), 2)
   await shot('12-phone-page')
@@ -437,10 +456,8 @@ try {
     const note = await ev(`document.querySelector('[data-kb="catalog-map-note"]').innerText.replace(/\\s+/g, ' ')`)
     return state === true && b !== null && b.w > 300 && b.h > 300 && svg !== null && svg.w > 300 && (await count('svg[data-kb="catalog-map"] .block')) > 50 && (await count(SEL('catalog-pin'))) === 16 && /Schematic map/.test(note) && (why === undefined || why.test(note))
   }
-  const reopenMap = async () => { await pressView(/cards|cartes/i); await sleep(500); return openMap() }
   const freshPage = async () => { await page.send('Page.reload', {}); workers.arm(); await front(); await sleep(3000); return openCatalog() } // a new page: the style and the library are not remembered
   const whyNot = async () => (await mapState()) + ' [' + (await attr(SEL('catalog-map-why'), 'data-why')) + '] | ' + (await ev(`(document.querySelector('[data-kb="catalog-map-note"]') || { innerText: '' }).innerText.replace(/\\s+/g, ' ')`)) + ' | page: ' + (await ev(`document.visibilityState`)) + ' | page errors: ' + JSON.stringify(errors.slice(-2)) + ' | last OpenFreeMap requests: ' + JSON.stringify(requests.filter((r) => hostOf(r.url) === MAPHOST).slice(-3).map((r) => r.url.slice(-30) + ' ' + (r.failed || 'ok?')))
-  const realAgain = () => waitFor(page, `document.querySelector('[data-kb="catalog-map-box"]') && document.querySelector('[data-kb="catalog-map-box"]').getAttribute('data-map') === 'real'`, 14000)
   // 1. the tile host blocked (the style cannot be had)
   await page.send('Network.setBlockedURLs', { urls: ['https://tiles.openfreemap.org/*'] })
   await freshPage()

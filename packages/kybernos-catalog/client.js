@@ -196,7 +196,9 @@ window.__ModuleLoader__.load({
       const MAP_BUDGET_MS = 8000 // library + style + first tiles must be on screen by then, else the drawn map takes over
       const MAP_RETRY_MS = 60000 // after a failure the drawn map shows at once for this long (the button asks again)
       const MAP_MAX_ZOOM = 18
-      const MAP_FIT = { padding: { top: 64, bottom: 64, left: 64, right: 72 }, maxZoom: 15.5 }
+      // The room kept round the places when the whole set is brought into view, so that no pill is cut by the edge or lies under what the map carries: the three buttons on
+      // the right (10 px from the edge, 34 wide, and a pill is up to 80 px wide, centred on its place), the caption (top left on a phone), the credit at the bottom.
+      const MAP_FIT = { padding: { top: 80, bottom: 64, left: 56, right: 92 }, maxZoom: 15.5 }
       const PIN_BOX = { w: 66, h: 30 } // the room a price pill takes on screen, in px: pills closer than this make a cluster
       const ATTRIBUTION = [
         { text: 'OpenFreeMap', href: 'https://openfreemap.org' },
@@ -687,6 +689,7 @@ window.__ModuleLoader__.load({
       .kbcg-rp.sel .p{background:var(--kbcg-pick);border-color:var(--kbcg-pick);color:var(--kbcg-fg)}
       .kbcg-rp.sel .t{background:var(--kbcg-pick);border-color:var(--kbcg-pick)}
       .kbcg-rp:focus-visible .p{outline:2px solid var(--kbcg-accent);outline-offset:2px}
+      @media (pointer:coarse){.kbcg-rp::after{content:'';position:absolute;inset:-8px -6px}}
       .kbcg-gl[data-scheme="dark"] .kbcg-rp .p{background:var(--kbcg-l3);box-shadow:0 3px 10px color-mix(in srgb,var(--kbcg-l1) 70%,transparent)}
       .kbcg-gl[data-scheme="dark"] .kbcg-rp .t{background:var(--kbcg-l3)}
       .kbcg-gl[data-scheme="dark"] .kbcg-rp:hover .p,.kbcg-gl[data-scheme="dark"] .kbcg-rp.hot .p{background:var(--kbcg-t1)}
@@ -694,7 +697,7 @@ window.__ModuleLoader__.load({
       .kbcg-gl[data-scheme="dark"] .kbcg-rp.sel .p,.kbcg-gl[data-scheme="dark"] .kbcg-rp.sel .t{background:var(--kbcg-pick)}
       .kbcg-rp.sold .p{background:var(--kbcg-l3);color:var(--kbcg-t3);box-shadow:none}
       .kbcg-rp.sold .t{background:var(--kbcg-l3)}
-      .kbcg-rp.cluster .p{min-width:34px;height:34px;padding:0 6px;border-radius:17px;line-height:32px;text-align:center}
+      .kbcg-rp.cluster .p{min-width:34px;height:34px;padding:0 6px;border-radius:17px;corner-shape:round;line-height:32px;text-align:center}
       .kbcg-rp.cluster .t{display:none}
       @media (max-width:900px){
         .kbcg-split{grid-template-columns:minmax(0,1fr)}
