@@ -63,9 +63,9 @@ each card. Using one gives the person their own copy, like any preset; the copy 
 While a template ships a dashboard marked `overview: true`, the *Business* group of the menu has a first row, **Overview** (the template's own `menu` word if it
 gives one), which opens the Dashboards page on the person's copy of that dashboard, made the first time, with a *All dashboards* button to the Dashboards page.
 The row is declared through `window.__KB_MENU__` and its page on the keyed slot `main.kybernos-business`: no core change. The contract is in
-`docs/dev/plugin-contract.md` (6.2b); `template-presets.mjs` holds `isOffered`, the one function that says whose presets are offered (an installed template
-today, the active one when "one template at a time" lands). Until the Dashboards plugin has told its point, a template that extends it is
-`missing-dependency` as a whole.
+`docs/dev/plugin-contract.md` (6.2b); `template-presets.mjs` holds `isOffered`, the one function that says whose presets are offered (the ACTIVE template's: the
+Business pages show one template at a time, and the row follows a switch at once). A template extends the point as an optional extension, so until the
+Dashboards plugin is on and has told its point the template stays whole and only its dashboard is missing.
 
 ## A dashboard is a file, never code
 
