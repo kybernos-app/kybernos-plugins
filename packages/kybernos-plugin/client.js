@@ -2206,7 +2206,6 @@ let kbLocaleRead = () => 'en'
       'kbta.cta.signin': { kybernos: 'Se connecter', en: 'Sign in' },
       'kbta.cta.create': { kybernos: 'Créer une équipe', en: 'Create a team' },
       'kbta.cta.join': { kybernos: 'Rejoindre avec un lien', en: 'Join with a link' },
-      'kbta.cta.servers': { kybernos: 'Ouvrir la page Serveurs', en: 'Open the Servers page' },
       'kbta.sheet.close': { kybernos: 'Fermer', en: 'Close' },
       'kbta.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'kbta.p.title': { kybernos: 'Proposer à {team}', en: 'Propose to {team}' },

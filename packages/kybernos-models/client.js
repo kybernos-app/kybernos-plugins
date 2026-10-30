@@ -59,7 +59,6 @@ window.__ModuleLoader__.load({
         'kb.models.page.prev': { kybernos: 'Page précédente', en: 'Previous page' },
         'kb.models.page.next': { kybernos: 'Page suivante', en: 'Next page' },
         'kb.models.restore': { kybernos: 'Rétablir les défauts', en: 'Restore defaults' },
-        'kb.prov.voir': { kybernos: 'Voir les modèles', en: 'View models' },
         'kb.prov.add': { kybernos: 'Ajouter un fournisseur', en: 'Add provider' },
         'kb.prov.add.slug': { kybernos: 'Identifiant', en: 'Identifier' },
         'kb.prov.add.fait': { kybernos: '{slug} est ajouté.', en: '{slug} was added.' },
@@ -332,11 +331,41 @@ window.__ModuleLoader__.load({
         'kb.pv.key.ok': { kybernos: 'Clé API configurée', en: 'API key configured' },
         'kb.pv.key.missing': { kybernos: 'Clé API absente', en: 'API key missing' },
         'kb.pv.key.unknown': { kybernos: 'État de la clé inconnu', en: 'Key state unknown' },
+        'kb.pv.ico.key1': { kybernos: '{n} clé API', en: '{n} API key' },
+        'kb.pv.ico.keyN': { kybernos: '{n} clés API', en: '{n} API keys' },
+        // The provider sheet: key check, models, custom models.
+        'kb.sh.ck.checking': { kybernos: 'Vérification de la clé…', en: 'Checking the key…' },
+        'kb.sh.ck.ok': { kybernos: 'Connecté, la clé fonctionne. {n} modèles trouvés.', en: 'Connected, the key works. {n} models found.' },
+        'kb.sh.ck.ok1': { kybernos: 'Connecté, la clé fonctionne. 1 modèle trouvé.', en: 'Connected, the key works. 1 model found.' },
+        'kb.sh.ck.listed': { kybernos: 'Ce fournisseur liste ses modèles sans clé : la tienne sera vérifiée à la première requête. {n} modèles trouvés.', en: 'This provider lists its models without a key, so yours is checked on the first request. {n} models found.' },
+        'kb.sh.ck.keyless': { kybernos: '{n} modèles trouvés.', en: '{n} models found.' },
+        'kb.sh.ck.refused': { kybernos: 'Le fournisseur refuse cette clé (HTTP {status}). Tu peux l’enregistrer quand même.', en: 'The provider refused this key (HTTP {status}). You can still save it.' },
+        'kb.sh.ck.unreachable': { kybernos: 'Le fournisseur est injoignable. Tu peux enregistrer : la clé sera vérifiée plus tard.', en: 'The provider cannot be reached. You can save now; the key is checked later.' },
+        'kb.sh.ck.unknown': { kybernos: 'La clé n’a pas pu être vérifiée. Tu peux l’enregistrer quand même.', en: 'The key could not be verified. You can still save it.' },
+        'kb.sh.ck.again': { kybernos: 'Vérifier à nouveau', en: 'Check again' },
+        'kb.sh.m.sel': { kybernos: '{a} sur {b} sélectionnés', en: '{a} of {b} selected' },
+        'kb.sh.m.all': { kybernos: 'Tous', en: 'All' },
+        'kb.sh.m.none': { kybernos: 'Aucun', en: 'None' },
+        'kb.sh.m.load': { kybernos: 'Chargement des modèles…', en: 'Loading the models…' },
+        'kb.sh.m.nokey': { kybernos: 'Colle la clé ci-dessus : les modèles sont listés dès qu’elle fonctionne.', en: 'Paste the key above: the models are listed as soon as it works.' },
+        'kb.sh.m.own': { kybernos: 'Tes modèles', en: 'Your models' },
+        'kb.sh.m.own.del': { kybernos: 'Retirer {id}', en: 'Remove {id}' },
+        'kb.sh.c.title': { kybernos: 'Ajouter un modèle personnalisé', en: 'Add a custom model' },
+        'kb.sh.c.add': { kybernos: 'Ajouter', en: 'Add' },
+        'kb.sh.c.dup': { kybernos: 'Ce modèle est déjà dans la liste.', en: 'This model is already in the list.' },
+        'kb.sh.c.hint': { kybernos: 'Il est vérifié en arrière-plan. Tu peux enregistrer sans attendre.', en: 'It is checked in the background. You can save without waiting.' },
+        'kb.sh.st.checking': { kybernos: 'Vérification…', en: 'Checking…' },
+        'kb.sh.st.ok': { kybernos: 'Le modèle répond.', en: 'The model answers.' },
+        'kb.sh.st.busy': { kybernos: 'Le modèle existe mais le fournisseur limite les appels pour l’instant.', en: 'The model exists, but the provider is rate-limiting calls right now.' },
+        'kb.sh.st.fail': { kybernos: 'Le fournisseur ne connaît pas ce modèle, ou il ne répond pas.', en: 'The provider does not know this model, or it does not answer.' },
+        'kb.sh.st.unknown': { kybernos: 'Impossible de vérifier ce modèle pour l’instant.', en: 'This model could not be checked right now.' },
+        'kb.sh.st.later': { kybernos: 'Sera vérifié une fois la clé enregistrée.', en: 'Will be checked once the key is saved.' },
+        'kb.sh.apply.anyway': { kybernos: 'Appliquer quand même', en: 'Apply anyway' },
         'kb.pv.wait.n': { kybernos: 'Fournisseurs sans clé ou désactivés ({n})', en: 'Providers with no key or switched off ({n})' },
         'kb.pv.wait.hint': { kybernos: 'Ils ne répondent à rien tant que leur clé n’est pas posée : ajoute-la, ou active-les.', en: 'They answer nothing until their key is set: add it, or switch them on.' },
         'kb.pv.empty.nokey': { kybernos: 'Pas encore de clé : ajoute-la, puis récupère les modèles.', en: 'No key yet: add it, then fetch the models.' },
         'kb.pv.empty.fetch': { kybernos: 'Aucun modèle pour l’instant : récupère-les chez le fournisseur.', en: 'No model yet: fetch them from the provider.' },
-        'kb.pv.key.ph.set': { kybernos: 'Configurée — saisis une nouvelle valeur pour la remplacer', en: 'Configured — enter a new value to replace' },
+        'kb.pv.key.ph.set': { kybernos: 'Enregistrée · colle une clé pour la remplacer', en: 'Stored · paste a key to replace it' },
         'kb.pv.key.ph.blank': { kybernos: 'Saisis une clé, ou laisse vide pour l’authentification par environnement', en: 'Enter an API key, or leave blank to use environment authentication' },
         'kb.pv.customized': { kybernos: 'Réglages personnalisés', en: 'Customized settings' },
         'kb.pv.name': { kybernos: 'Nom affiché', en: 'Display name' },
@@ -547,6 +576,7 @@ window.__ModuleLoader__.load({
         arrowright: ['M5 12h14', 'M12 5l7 7-7 7'],
         key: ['M15.5 7.5l3 3L22 7l-3-3-3.5 3.5z', 'M12 3a5 5 0 0 0-4.9 6L2.6 13.5a2 2 0 0 0-.6 1.4V19a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a2 2 0 0 0 1.4-.6l.5-.5A5 5 0 0 0 12 3z'],
         cloud: ['M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.2 3.9 3.9 0 0 0 7 18Z'],
+        cube: ['M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z', 'M3.3 7 12 12l8.7-5', 'M12 22V12'],
       }
       const Ic = (name, size) => {
         const d = ICONS[name]
@@ -1772,6 +1802,9 @@ window.__ModuleLoader__.load({
           String(route).charAt(0).toUpperCase())
       }
 
+      /** A count on a provider card as an icon and a number; what it counts is the tooltip (`data-tip`, drawn by CSS on hover and keyboard focus) and the accessible name. */
+      const CardIcon = ({ icon, n, tip, kbm }) => h('span', { className: 'kbpv-ico', tabIndex: 0, role: 'img', 'data-tip': tip, 'aria-label': tip, 'data-kbm': kbm }, Ic(icon, 14), h('span', null, String(n)))
+
       // ═══ Providers tab ═══════════════════════════════════════════════════════════════
       // Cards read at rest (logo, name, count, key dot, free-models link); the actions
       // (switch, edit, more) appear on hover and focus, and stay visible on touch screens.
@@ -1796,8 +1829,10 @@ window.__ModuleLoader__.load({
       const pvEditDraft = (route) => {
         const prof = kbPvIsObj(kbMOBJ(KBM.userProviders)[route]) ? KBM.userProviders[route] : {}
         const rows = Array.isArray(prof.models) ? prof.models.filter((x) => kbPvIsObj(x)).map((x) => ({ id: String(x.id || ''), name: typeof x.name === 'string' ? x.name : '' })) : []
+        // `ck`, `cands`, `src`, `loadErr`, `pick`, `q`, `mst`: what the sheet learned (key check, the provider's list, the ticks, the custom models' checks); see PvSheetBody.
         return { key: '', voir: false, adv: false, name: typeof prof.displayName === 'string' ? prof.displayName : '', url: typeof prof.baseURL === 'string' ? prof.baseURL : '',
-          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, hadModels: Array.isArray(prof.models), touched: false, custom: pvIsCustom(route) }
+          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, hadModels: Array.isArray(prof.models), touched: false, custom: pvIsCustom(route),
+          ck: 'idle', ckStatus: 0, cands: null, src: null, loadErr: null, pick: null, q: '', mst: {}, newId: '', newDup: false, focusAdd: false }
       }
       const pvAddDraft = () => ({ tab: 'catalog', prov: null, id: '', name: '', url: '', proto: 'openai-completions', key: '', voir: false, models: [], adv: false, liste: true, q: '', act: 0 })
 
@@ -1898,6 +1933,155 @@ window.__ModuleLoader__.load({
           open ? renderPicker() : null)
       }
 
+      /** The key and the models of one provider, in the sheet itself (no popup). Opening it asks the provider with the stored key; pasting a key asks again
+       *  once the typing stops. The answer says whether the key works and lists every model the provider serves, ticked as the route serves them today.
+       *  A custom model is checked in the background. Nothing here blocks Apply: the draft (`d`) carries the answers (`ck`, `cands`, `mst`) and the
+       *  footer only changes its words. Plain calls from the panel would remount on every keystroke, so this is a component with its own effects. */
+      const PvSheetBody = ({ d, set, route, keyState, custom, ro, served }) => {
+        const dRef = React.useRef(d)
+        dRef.current = d
+        const seq = React.useRef(0)
+        const lastTyped = React.useRef('')
+        const stored = keyState === 'ok'
+        const keyless = keyState === 'none'
+        const typed = String(d.key || '').trim()
+        const fallback = KBM.models.filter((mo) => mo.route === route).map((mo) => ({ id: mo.id, name: typeof mo.name === 'string' && mo.name !== mo.id ? mo.name : undefined }))
+        const check = async (typedKey) => {
+          const mine = ++seq.current
+          set({ ck: 'checking', loadErr: null })
+          const probe = kbFetchProbe(route, { ...dRef.current, key: typedKey })
+          const res = await kbSheetCheck(kbMApi(), probe, { keyed: typedKey !== '' || stored })
+          if (mine !== seq.current) return
+          set({ ck: res.ck, ckStatus: res.status, cands: res.cands, src: res.src, loadErr: res.err })
+        }
+        const checkRef = React.useRef(check)
+        checkRef.current = check
+        // Opening: the stored key (or none, for a route that names no key) is checked and the list fetched; a missing key waits for the paste.
+        React.useEffect(() => {
+          if (keyState !== 'missing') checkRef.current('')
+          return () => { seq.current += 1 }
+        }, [route])
+        // Pasting: checked once the typing stops. Emptying the field goes back to the stored key.
+        React.useEffect(() => {
+          const prev = lastTyped.current
+          lastTyped.current = typed
+          if (typed.length >= 8) {
+            seq.current += 1
+            set({ ck: 'checking', loadErr: null })
+            const t = setTimeout(() => checkRef.current(typed), 650)
+            return () => clearTimeout(t)
+          }
+          if (typed === '' && prev !== '') {
+            seq.current += 1
+            if (keyState !== 'missing') checkRef.current('')
+            else set({ ck: 'idle', cands: null, src: null, loadErr: null })
+          }
+          return undefined
+        }, [typed])
+
+        const list = Array.isArray(d.cands) ? d.cands : fallback
+        const pickNow = kbSheetPick(d, served, list)
+        const shown = kbFetchFilter(list, d.q || '')
+        const ids = new Set(list.map((c) => c.id))
+        const own = (Array.isArray(d.models) ? d.models : []).filter((r) => String(r.id).trim() !== '' && !ids.has(String(r.id).trim()))
+        const mst = d.mst || {}
+        const nOn = list.filter((c) => pickNow[c.id] === true).length + own.length
+        const tick = (many, on) => set((cur) => {
+          const next = { ...kbSheetPick(cur, served, list) }
+          for (const id of many) { if (on) next[id] = true; else delete next[id] }
+          return { pick: next, cands: Array.isArray(cur.cands) ? cur.cands : list, restoreModels: false }
+        })
+        const probeOwn = async (id) => {
+          const usable = stored && typed === '' && d.ck !== 'refused'
+          const st = usable ? await kbSheetProbe(route, id) : 'later'
+          set((cur) => (cur.mst !== undefined && cur.mst[id] !== undefined ? { mst: { ...cur.mst, [id]: st } } : {}))
+        }
+        const addOwn = () => {
+          const id = String(d.newId || '').trim()
+          if (id === '') return
+          if (ids.has(id)) { tick([id], true); set({ newId: '', newDup: false }); return }
+          if (own.some((r) => String(r.id).trim() === id)) { set({ newDup: true }); return }
+          set((cur) => ({ models: (Array.isArray(cur.models) ? cur.models : []).concat([{ id, name: '' }]), touched: true, newId: '', newDup: false, restoreModels: false, mst: { ...(cur.mst || {}), [id]: 'checking' } }))
+          probeOwn(id)
+        }
+        const dropOwn = (id) => set((cur) => {
+          const next = { ...(cur.mst || {}) }
+          delete next[id]
+          return { models: (Array.isArray(cur.models) ? cur.models : []).filter((r) => String(r.id).trim() !== id), touched: true, mst: next }
+        })
+
+        // ── the key and what the provider said about it ──
+        const found = Array.isArray(d.cands) ? d.cands.length : 0
+        const ckText = d.ck === 'checking' ? m('kb.sh.ck.checking')
+          : d.ck === 'ok' ? (keyless ? m('kb.sh.ck.keyless', { n: found }) : m(found === 1 ? 'kb.sh.ck.ok1' : 'kb.sh.ck.ok', { n: found }))
+            : d.ck === 'listed' ? m('kb.sh.ck.listed', { n: found })
+              : d.ck === 'refused' ? m('kb.sh.ck.refused', { status: d.ckStatus || '' })
+                : d.ck === 'unreachable' ? m('kb.sh.ck.unreachable')
+                  : d.ck === 'unknown' ? m('kb.sh.ck.unknown') : null
+        const ckIcon = d.ck === 'checking' ? h('span', { className: 'kbpv-spin', 'aria-hidden': 'true' })
+          : (d.ck === 'ok' ? Ic('check', 14) : (d.ck === 'listed' ? Ic('info', 14) : Ic('alert', 14)))
+        const keyBlock = h(PvField, { id: 'pv-key', label: m('kb.prov.add.cle.label'), hint: m('kb.prov.add.cle.note') },
+          h('span', { className: 'kbpv-keyrow' },
+            h('input', { id: 'pv-key', className: 'kbm-in-input kbpv-in', type: d.voir === true ? 'text' : 'password', autoComplete: 'off', spellCheck: false, 'data-kbm': 'pv-key',
+              placeholder: m(stored ? 'kb.pv.key.ph.set' : 'kb.pv.key.ph.blank'), value: d.key, onChange: (ev) => set({ key: ev.target.value }) }),
+            h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', tabIndex: -1, onClick: () => set({ voir: d.voir !== true }) }, m(d.voir === true ? 'kb.prov.add.cle.cacher' : 'kb.prov.add.cle.voir'))),
+          ckText === null ? null : h('span', { className: 'kbpv-ck kbpv-ck-' + d.ck, role: 'status', 'data-kbm': 'pv-ck', 'data-kbm-state': d.ck },
+            ckIcon, h('span', null, ckText),
+            d.ck !== 'checking' && (stored || typed !== '') ? h('button', { type: 'button', className: 'kbpv-lnk', 'data-kbm': 'pv-recheck', onClick: () => checkRef.current(typed) }, m('kb.sh.ck.again')) : null))
+
+        // ── the models ──
+        const canRestore = custom !== true && d.restoreModels !== true && d.hadModels === true
+        const loading = d.ck === 'checking' && list.length === 0
+        const listBlock = loading ? h('p', { className: 'kbpv-hint', role: 'status', 'data-kbm': 'pv-loading' }, m('kb.sh.m.load'))
+          : (list.length === 0
+            ? h('p', { className: d.loadErr ? 'kbpv-err' : 'kbpv-hint', role: d.loadErr ? 'alert' : undefined, 'data-kbm': d.loadErr ? 'fetch-err' : 'pv-nolist' },
+              d.loadErr ? m(d.loadErr.key, d.loadErr.vars) : m(keyState === 'missing' && typed === '' ? 'kb.sh.m.nokey' : (custom === true ? 'kb.pv.models.none' : 'kb.pv.models.catalog')))
+            : [h('div', { key: 'bar', className: 'kbpv-fetch-bar' },
+              h('input', { type: 'search', className: 'kbm-in-input kbpv-in', 'data-kbm': 'pv-search', placeholder: m('kb.fetch.search'), 'aria-label': m('kb.fetch.search'), value: d.q || '', onChange: (ev) => set({ q: ev.target.value }) }),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', 'data-kbm': 'pv-sel-all', disabled: shown.length === 0, onClick: () => tick(shown.map((c) => c.id), true) }, m('kb.sh.m.all')),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', 'data-kbm': 'pv-sel-none', disabled: shown.length === 0, onClick: () => tick(shown.map((c) => c.id), false) }, m('kb.sh.m.none'))),
+            shown.length === 0
+              ? h('p', { key: 'none', className: 'kbpv-hint', role: 'status', 'data-kbm': 'fetch-nomatch' }, m('kb.fetch.nomatch'))
+              : h('ul', { key: 'list', className: 'kbpv-sm-list', 'data-kbm': 'pv-list' }, shown.map((c) => {
+                const meta = c.undescribed === true ? m('kb.fetch.undescribed') : [c.contextWindow !== undefined ? kbFetchSize(c.contextWindow) : null, c.input !== undefined && !(c.input.length === 1 && c.input[0] === 'text') ? c.input.join(' · ') : null].filter(Boolean).join(' · ')
+                return h('li', { key: c.id, 'data-kbm': 'pv-row', 'data-kbm-id': c.id },
+                  h('label', { className: 'kbpv-sm' },
+                    h('input', { type: 'checkbox', className: 'kbpv-cbx', checked: pickNow[c.id] === true, disabled: ro, onChange: () => tick([c.id], pickNow[c.id] !== true) }),
+                    h('span', { className: 'kbpv-sm-id', title: c.name !== undefined ? c.name : c.id }, c.id),
+                    c.name !== undefined && c.name !== c.id ? h('span', { className: 'kbpv-sm-nm' }, c.name) : null,
+                    meta !== '' ? h('span', { className: 'kbpv-sm-meta' }, meta) : null))
+              }))])
+        const srcNote = d.src !== null && d.src !== undefined && d.src.live === false && ['refused', 'unreachable'].indexOf(d.ck) < 0 && list.length > 0
+          ? h('p', { className: 'kbpv-fetch-note', role: 'status', 'data-kbm': 'fetch-source', 'data-kbm-live': '0' }, m('kb.fetch.src.catalog', { raison: m(d.src.why.key, d.src.why.vars) })) : null
+        const ownBlock = own.length === 0 ? null : h('div', { className: 'kbpv-fld', 'data-kbm': 'pv-own' },
+          h('span', { className: 'kbpv-fl' }, m('kb.sh.m.own')),
+          h('ul', { className: 'kbpv-sm-list' }, own.map((r) => {
+            const id = String(r.id).trim()
+            const st = mst[id]
+            return h('li', { key: id, className: 'kbpv-own', 'data-kbm': 'pv-own-row', 'data-kbm-id': id },
+              st === undefined ? h('i', { className: 'kbpv-md kbpv-md-none', 'aria-hidden': 'true' }) : h('i', { className: 'kbpv-md kbpv-md-' + st, role: 'img', title: m('kb.sh.st.' + st), 'aria-label': m('kb.sh.st.' + st), 'data-kbm': 'pv-own-state', 'data-kbm-state': st }),
+              h('span', { className: 'kbpv-sm-id', title: r.name ? r.name : id }, id),
+              h('button', { type: 'button', className: 'kbpv-ib kbpv-ib-danger', 'data-kbm': 'pv-own-del', 'aria-label': m('kb.sh.m.own.del', { id }), title: m('kb.sh.m.own.del', { id }), onClick: () => dropOwn(id) }, Ic('trash', 15)))
+          })))
+        const modelsBlock = h('div', { className: 'kbpv-fld', 'data-kbm': 'pv-models' },
+          h('div', { className: 'kbpv-mhead' }, h('span', { className: 'kbpv-fl' }, m('kb.pv.models')),
+            h('span', { className: 'kbpv-mact' },
+              canRestore ? h('button', { type: 'button', className: 'kbpv-lnk', 'data-kbm': 'fetch-restore', onClick: () => set({ models: [], touched: true, pick: null, restoreModels: true, mst: {} }) }, m('kb.fetch.restore')) : null,
+              list.length + own.length > 0 ? h('span', { className: 'kbpv-hint', 'data-kbm': 'pv-sel-count' }, m('kb.sh.m.sel', { a: nOn, b: list.length + own.length })) : null)),
+          d.restoreModels === true ? h('p', { className: 'kbpv-hint', 'data-kbm': 'fetch-restored' }, m('kb.fetch.restored')) : null,
+          d.src !== null && d.src !== undefined && d.src.live === true ? h('p', { className: 'kbpv-hint', role: 'status', 'data-kbm': 'fetch-source', 'data-kbm-live': '1' }, m('kb.fetch.src.live', { host: kbFetchHost(d.src.url) })) : null,
+          srcNote,
+          listBlock)
+        const addBlock = h('div', { className: 'kbpv-fld', 'data-kbm': 'pv-custom-add' },
+          h('span', { className: 'kbpv-fl' }, m('kb.sh.c.title')),
+          h('div', { className: 'kbpv-addrow' },
+            h('input', { className: 'kbm-in-input kbpv-in kbpv-mono', 'data-kbm': 'pv-new-id', placeholder: m('kb.pv.model.id'), 'aria-label': m('kb.sh.c.title'), autoComplete: 'off', spellCheck: false, autoFocus: d.focusAdd === true,
+              value: d.newId || '', onChange: (ev) => set({ newId: ev.target.value, newDup: false }), onKeyDown: (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); addOwn() } } }),
+            h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'pv-new-add', disabled: String(d.newId || '').trim() === '' || ro, onClick: addOwn }, Ic('plus', 13), m('kb.sh.c.add'))),
+          d.newDup === true ? h('span', { className: 'kbpv-err', role: 'alert', 'data-kbm': 'pv-new-dup' }, m('kb.sh.c.dup')) : h('p', { className: 'kbpv-hint' }, m('kb.sh.c.hint')))
+        return h(React.Fragment, null, keyBlock, modelsBlock, ownBlock, addBlock)
+      }
+
       /** The catalog of a DeepSeek adapter: id, display name, context window, max output tokens, image input, delete. The rows are
        *  the full records, so what this page does not show (description, system-prompt and tool update modes) travels with them. */
       const DsModels = ({ d, set, inherited, defaults }) => {
@@ -1981,7 +2165,7 @@ window.__ModuleLoader__.load({
         const [ui, setUi] = React.useState({ drawer: null, dlg: null, menu: null, busy: false, err: null, note: null, typed: '', waitOpen: false })
         const [dr, setDr] = React.useState(null)
         const patch = (o) => setUi((u) => ({ ...u, ...o }))
-        const setD = (o) => setDr((d) => ({ ...d, ...o }))
+        const setD = (o) => setDr((d) => ({ ...d, ...(typeof o === 'function' ? o(d) : o) }))
         // Escape closes the confirmation (disable / delete) and nothing else, so the drawer behind it stays: window capture runs
         // before the drawer's own document capture.
         const confirming = ui.dlg !== null
@@ -2035,10 +2219,10 @@ window.__ModuleLoader__.load({
           return kbPvKeyState(kbMOBJ(KBM.userProviders)[route], entry !== null ? entry.env : null, KBM.keys)
         }
         const closeAll = () => { setDr(null); setUi((u) => ({ ...u, drawer: null, dlg: null, menu: null, busy: false, err: null, typed: '' })) }
-        const openEdit = (route, addModel, showModels) => {
+        // `addModel` puts the cursor in the custom-model field of the sheet.
+        const openEdit = (route, addModel) => {
           const d = pvEditDraft(route)
-          if (showModels === true) d.adv = true // the folded block holds the "Fetch available models" panel
-          if (addModel === true) { d.adv = true; d.models = d.models.concat([{ id: '', name: '' }]); d.touched = true }
+          if (addModel === true) d.focusAdd = true
           setDr(d); patch({ drawer: { mode: 'edit', id: route }, menu: null, err: null, note: null })
         }
         const openAdd = () => { setDr(pvAddDraft()); patch({ drawer: { mode: 'add' }, menu: null, err: null, note: null }) }
@@ -2075,7 +2259,7 @@ window.__ModuleLoader__.load({
           }
         }
         const doSave = async (route) => {
-          const out = await run(() => kbPvSaveSmart(route, { ...dr, models: dr.touched === true ? dr.models : undefined }), 'kb.pv.save.err', route)
+          const out = await run(() => kbPvSaveSmart(route, { ...dr, models: kbSheetModels(dr) }), 'kb.pv.save.err', route)
           if (out === undefined) return
           const said = out.custom !== null && out.custom !== undefined ? m('kb.pv.saved.custom', { n: out.customN, slug: route }) + (out.custom.guessed > 0 ? m('kb.pv.saved.custom.guess') : '') : m(out.keyOk === false ? 'kb.pv.saved.key.ko' : 'kb.pv.saved')
           setDr(null); patch({ drawer: null, busy: false, note: said })
@@ -2130,6 +2314,7 @@ window.__ModuleLoader__.load({
           const custom = pvIsCustom(route)
           const bloc = off === true ? null : kbMParkBlock(route, KBM.userProviders, KBM.baseProviders)
           const ks = off === true ? 'none' : keyOf(route)
+          const editable = off !== true && ro !== true && bloc !== 'managed'
           const free = FREE_LINKS[route] !== undefined && off !== true
           const hostOff = KBM.parkHost !== true
           const swWhy = off === true ? m('kb.prov.off.enable', { slug: route }) : (bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })))
@@ -2137,25 +2322,25 @@ window.__ModuleLoader__.load({
             h('span', { className: 'kbpv-logo' }, h(LogoProv, { route, taille: 30 })),
             h('div', { className: 'kbpv-cbody' },
               h('span', { className: 'kbpv-nm' },
-                h('button', { type: 'button', className: 'kbpv-link', 'data-kbm': 'prov-voir', 'aria-label': m('kb.prov.voir') + ' · ' + label, onClick: () => { uiSet('prov', route); uiSet('tab', 'models') } }, label),
+                // A click opens the provider's sheet (key, models). A provider that cannot be edited here (switched off, managed, read-only page) shows its models instead.
+                h('button', { type: 'button', className: 'kbpv-link', 'data-kbm': 'prov-voir', 'aria-label': m('kb.pv.edit', { slug: label }), onClick: () => { if (editable) openEdit(route, false); else { uiSet('prov', route); uiSet('tab', 'models') } } }, label),
                 ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
               h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' },
                 custom ? h('span', { className: 'kbpv-tag' }, m('kb.pv.custom')) : null,
                 off !== true && kbPvIsObj(KBM.dir[route]) && KBM.dir[route].error !== '' ? h('span', { className: 'kbpv-tag kbpv-tag-warn', title: KBM.dir[route].error, 'data-kbm': 'prov-diag' }, m('kb.pv.diag')) : null,
-                h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN'))),
+                h(CardIcon, { icon: 'cube', n: count, tip: String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN'), kbm: 'prov-count' }),
+                ks === 'none' ? null : h(CardIcon, { icon: 'key', n: 1, tip: m('kb.pv.ico.key1', { n: 1 }), kbm: 'prov-keys' })),
               // A route with no model serves nothing: say what to do next instead of leaving a silent card (A3-32).
               count === 0 && off !== true && bloc === null && ro !== true
-                ? h('button', { type: 'button', className: 'kbpv-next', 'data-kbm': 'prov-next', onClick: () => openEdit(route, false, true) }, m(ks === 'missing' ? 'kb.pv.empty.nokey' : 'kb.pv.empty.fetch'))
+                ? h('button', { type: 'button', className: 'kbpv-next', 'data-kbm': 'prov-next', onClick: () => openEdit(route, false) }, m(ks === 'missing' ? 'kb.pv.empty.nokey' : 'kb.pv.empty.fetch'))
                 : null,
               free ? h(BadgeFree, { slug: route, petit: true }) : null),
             h('div', { className: 'kbpv-right' },
               off === true ? h('span', { className: 'kbpv-rest' }, h('span', { className: 'kbpv-tag', 'data-kbm': 'prov-off-badge' }, m('kb.prov.off.badge'))) : null,
               h('div', { className: 'kbpv-acts' },
                 renderSwitch({ route, on: off !== true, locked: ro || hostOff || (off !== true && bloc !== null), why: ro ? m('kb.models.readonly') : (hostOff ? m('kb.pv.hostnote') : swWhy) }),
-                off === true ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro || bloc === 'managed', title: m('kb.pv.edit', { slug: route }), 'aria-label': m('kb.pv.edit', { slug: route }), onClick: (ev) => { ev.stopPropagation(); openEdit(route, false) } }, Ic('pencil', 15)),
                 off === true ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-more', 'aria-haspopup': 'menu', 'aria-expanded': ui.menu === route ? 'true' : 'false', title: m('kb.pv.more', { slug: route }), 'aria-label': m('kb.pv.more', { slug: route }), onClick: (ev) => { ev.stopPropagation(); patch({ menu: ui.menu === route ? null : route }) } }, Ic('more', 15)))),
             ui.menu === route ? h('div', { className: 'kbpv-menu', role: 'menu', 'data-kbm': 'prov-menu', onClick: (ev) => ev.stopPropagation() },
-              h('button', { type: 'button', role: 'menuitem', onClick: () => { uiSet('prov', route); uiSet('tab', 'models') } }, Ic('chevron', 14), m('kb.prov.voir')),
               h('button', { type: 'button', role: 'menuitem', disabled: ro || bloc !== null, 'data-kbm': 'prov-add-model', onClick: () => openEdit(route, true) }, Ic('plus', 14), m('kb.pv.menu.add')),
               h('hr', null),
               h('button', { type: 'button', role: 'menuitem', className: 'kbpv-danger', disabled: ro || bloc !== null, 'data-kbm': 'prov-delete', onClick: () => patch({ dlg: { type: 'del', id: route }, menu: null, typed: '' }) }, Ic('trash', 14), m('kb.pv.menu.delete'))) : null)
@@ -2187,25 +2372,22 @@ window.__ModuleLoader__.load({
           const bloc = kbMParkBlock(route, KBM.userProviders, KBM.baseProviders)
           const ks = keyOf(route)
           const urlBad = dr.url.trim() !== '' && !kbPvUrlOk(dr.url)
+          const served = new Set(KBM.models.filter((mo) => mo.route === route).map((mo) => mo.id))
           return h(PvDrawer, {
             label: m('kb.pv.edit', { slug: route }), onClose: closeAll,
             head: h('span', { className: 'kbpv-dh' }, h('span', { className: 'kbpv-logo' }, h(LogoProv, { route, taille: 20 })), h('span', { className: 'kbpv-dt' }, label)),
             footer: [h('button', { key: 'c', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'pv-cancel', onClick: closeAll }, m('kb.pv.cancel')),
-              h('button', { key: 'a', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'pv-apply', disabled: ui.busy === true || urlBad || ro, onClick: () => doSave(route) }, m('kb.pv.apply'))],
+              h('button', { key: 'a', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'pv-apply', disabled: ui.busy === true || urlBad || ro, onClick: () => doSave(route) }, m(kbSheetAnyway(dr) ? 'kb.sh.apply.anyway' : 'kb.pv.apply'))],
           },
           ui.err ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'pv-fail' }, ui.err) : null,
-          h(PvField, { id: 'pv-key', label: m('kb.prov.add.cle.label'), hint: m('kb.prov.add.cle.note') },
-            h('span', { className: 'kbpv-keyrow' },
-              h('input', { id: 'pv-key', className: 'kbm-in-input kbpv-in', type: dr.voir === true ? 'text' : 'password', autoComplete: 'off', spellCheck: false, 'data-kbm': 'pv-key',
-                placeholder: m(ks === 'ok' ? 'kb.pv.key.ph.set' : 'kb.pv.key.ph.blank'), value: dr.key, onChange: (ev) => setD({ key: ev.target.value }) }),
-              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', tabIndex: -1, onClick: () => setD({ voir: dr.voir !== true }) }, m(dr.voir === true ? 'kb.prov.add.cle.cacher' : 'kb.prov.add.cle.voir')))),
+          // The key, what the provider says about it, the models (all of them, ticked as the route serves them) and the custom models.
+          h(PvSheetBody, { d: dr, set: setD, route, keyState: ks, custom: dr.custom === true, ro, served }),
+          dr.custom === true ? null : renderCustomModels(route),
           h('button', { type: 'button', className: 'kbpv-adv', 'data-kbm': 'pv-adv', 'aria-expanded': dr.adv === true ? 'true' : 'false', onClick: () => setD({ adv: dr.adv !== true }) }, Ic('chevron', 14), m('kb.pv.customized')),
           dr.adv === true ? h('div', { className: 'kbpv-advbox', 'data-kbm': 'pv-advbox' },
             dr.custom === true ? h(PvField, { id: 'pv-name', label: m('kb.pv.name') }, h('input', { id: 'pv-name', className: 'kbm-in-input kbpv-in', placeholder: route, value: dr.name, onChange: (ev) => setD({ name: ev.target.value }) })) : null,
             h(PvField, { id: 'pv-url', label: m('kb.pv.url'), err: urlBad ? m('kb.pv.err.url') : null }, h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.url.default'), value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
-            dr.custom === true ? h(PvField, { id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))) : null,
-            h(PvModels, { d: dr, set: setD, custom: dr.custom === true, probe: kbFetchProbe(route, dr), blocked: urlBad ? m('kb.pv.err.url') : null, slug: route }),
-            dr.custom === true ? null : renderCustomModels(route)) : null,
+            dr.custom === true ? h(PvField, { id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))) : null) : null,
           h('div', { className: 'kbpv-zone' },
             h('div', { className: 'kbpv-z' }, h('div', null, h('b', null, m('kb.pv.zone.off')), h('span', null, m('kb.pv.zone.off.d'))),
               renderSwitch({ route, on: true, locked: ro || KBM.parkHost !== true || bloc !== null, why: KBM.parkHost !== true ? m('kb.pv.hostnote') : bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })) })),
@@ -2401,17 +2583,18 @@ window.__ModuleLoader__.load({
           return h('div', { key: c.ns, className: 'kbpv-card' + (off ? ' kbpv-off' : ''), 'data-kbm': off ? 'prov-card-off' : 'prov-card', 'data-prov': c.provider },
             h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 30 })),
             h('div', { className: 'kbpv-cbody' },
-              h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
+              h('span', { className: 'kbpv-nm' },
+                off || view === undefined || ro ? h('span', { className: 'kbpv-link kbpv-static' }, c.name)
+                  : h('button', { type: 'button', className: 'kbpv-link', 'data-kbm': 'prov-voir', 'aria-label': m('kb.pv.edit', { slug: c.name }), onClick: () => openDs(c.ns) }, c.name),
                 ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
               h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' },
                 h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')),
-                h('span', { 'data-kbm': 'prov-ds-count' }, (count === null ? '—' : String(count)) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
+                h(CardIcon, { icon: 'cube', n: count === null ? '—' : count, tip: count === null ? m('kb.pv.builtin') : String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN'), kbm: 'prov-ds-count' }),
+                ks === 'none' ? null : h(CardIcon, { icon: 'key', n: 1, tip: m('kb.pv.ico.key1', { n: 1 }), kbm: 'prov-keys' }))),
             h('div', { className: 'kbpv-right' },
               off ? h('span', { className: 'kbpv-rest' }, h('span', { className: 'kbpv-tag', 'data-kbm': 'prov-off-badge' }, m('kb.prov.off.badge'))) : null,
               h('div', { className: 'kbpv-acts' },
-                renderSwitch({ route: c.provider, on: off !== true, locked: ro || known !== true, why: why, base: true, name: c.name }),
-                // No settings namespace to edit (a switched-off row, or a stale state): only the switch offers a way out.
-                off || view === undefined ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
+                renderSwitch({ route: c.provider, on: off !== true, locked: ro || known !== true, why: why, base: true, name: c.name }))))
         }
         // The cards in the order they have always had, each with whether it waits (no key yet, or switched off).
         const wordsOf = (route) => route + ' ' + pvLabel(route) + ' ' + KBM.models.filter((mo) => mo.route === route).map((mo) => mo.id + ' ' + (mo.name || '')).join(' ')
@@ -2447,7 +2630,8 @@ window.__ModuleLoader__.load({
             // The Kybernos Cloud card is the first cell of the grid, full width, before the first provider: above the tabs it pushed them down
             // on this tab only, so they jumped 85 px between Providers and Models. A component, not a call: KybernosHero owns hooks.
             searching ? null : h(KybernosHero, { key: 'kb-hero' }),
-            (searching ? hits : (fold.fold && !ui.waitOpen ? ready : listed)).map((x) => x.node)),
+            // With the fold open the waiting cards are drawn once, under it: the grid above keeps only the ones that work.
+            (searching ? hits : (fold.fold ? ready : listed)).map((x) => x.node)),
           searching && hits.length === 0 ? h('p', { className: 'kbpv-hint', role: 'status', 'data-kbm': 'prov-nomatch' }, m('kb.pv.search.none')) : null,
           fold.fold && !searching ? h('button', { type: 'button', className: 'kbpv-fold', 'data-kbm': 'prov-wait-toggle', 'aria-expanded': ui.waitOpen ? 'true' : 'false', onClick: () => patch({ waitOpen: !ui.waitOpen }) },
             h('span', { className: 'kbpv-fold-chev' + (ui.waitOpen ? ' open' : ''), 'aria-hidden': 'true' }, Ic('chevron', 13)), m('kb.pv.wait.n', { n: fold.waiting })) : null,
@@ -2898,6 +3082,9 @@ window.__ModuleLoader__.load({
         '.kbpv-fold-chev{display:inline-flex;transition:transform .12s}.kbpv-fold-chev.open{transform:rotate(90deg)}',
         '.kbpv-fold-hint{margin:2px 0 10px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
         '.kbpv-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-ico{position:relative;display:inline-flex;align-items:center;gap:4px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;cursor:default;border-radius:6px}',
+        '.kbpv-ico:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
+        '.kbpv-ico:hover::after,.kbpv-ico:focus-visible::after{content:attr(data-tip);position:absolute;z-index:30;left:0;bottom:calc(100% + 6px);white-space:nowrap;padding:4px 8px;border-radius:8px;font-size:12px;line-height:16px;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3);border:.5px solid var(--dsw-alias-border-l4);box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}',
         '.kbpv-tag{font-size:11px;line-height:16px;padding:0 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}',
         '.kbpv-tag-warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}',
         '.kbpv-kd{flex:none;width:7px;height:7px;border-radius:50%;margin-left:8px;background:var(--dsw-alias-state-success-primary)}',
@@ -2980,6 +3167,39 @@ window.__ModuleLoader__.load({
         '.kbpv-fetch-known{opacity:.55;cursor:default}',
         '.kbpv-fetch-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
         '.kbpv-fetch-act{display:inline-flex;gap:8px}',
+        // The provider sheet: key status, model list with its own checkbox, custom models and their check dots.
+        '.kbpv-ck{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}',
+        '.kbpv-ck>svg{flex:none}',
+        '.kbpv-ck-ok{color:var(--dsw-alias-state-success-primary)}',
+        '.kbpv-ck-refused{color:var(--dsw-alias-state-error-primary)}',
+        '.kbpv-ck-unreachable,.kbpv-ck-unknown{color:var(--dsw-alias-state-warn-primary)}',
+        '.kbpv-spin{flex:none;width:12px;height:12px;border-radius:50%;border:2px solid var(--dsw-alias-border-l4);border-top-color:var(--dsw-alias-label-secondary);animation:kbpvSpin .8s linear infinite}',
+        '@keyframes kbpvSpin{to{transform:rotate(360deg)}}',
+        '@media (prefers-reduced-motion:reduce){.kbpv-spin{animation:none}}',
+        '.kbpv-sm-list{list-style:none;margin:0;padding:0;max-height:min(360px,50vh);overflow:auto;border:.5px solid var(--dsw-alias-border-l2);border-radius:12px}',
+        '.kbpv-sm-list li+li{border-top:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-sm{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 12px;cursor:pointer}',
+        '.kbpv-sm:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbpv-sm .kbpv-cbx{grid-row:1 / span 2}',
+        '.kbpv-sm-id{grid-column:2;font-family:ui-monospace,monospace;font-size:12px;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-sm-nm{grid-column:2;grid-row:2;font-size:11.5px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-sm-meta{grid-column:3;grid-row:1 / span 2;font-size:11.5px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}',
+        '.kbpv-cbx{appearance:none;-webkit-appearance:none;flex:none;display:inline-grid;place-content:center;width:16px;height:16px;margin:0;border-radius:5px;border:1px solid var(--dsw-alias-border-l4);background:transparent;cursor:pointer}',
+        '.kbpv-cbx:checked{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary)}',
+        '.kbpv-cbx:checked::after{content:"";width:8px;height:4px;margin-top:-1px;border-left:2px solid var(--dsw-alias-bg-base);border-bottom:2px solid var(--dsw-alias-bg-base);transform:rotate(-45deg)}',
+        '.kbpv-cbx:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
+        '.kbpv-cbx:disabled{opacity:.45;cursor:not-allowed}',
+        '.kbpv-own{display:grid;grid-template-columns:8px minmax(0,1fr) 30px;gap:10px;align-items:center;padding:4px 6px 4px 14px}',
+        '.kbpv-md{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-border-l4)}',
+        '.kbpv-md-ok{background:var(--dsw-alias-state-success-primary)}',
+        '.kbpv-md-fail{background:var(--dsw-alias-state-error-primary)}',
+        '.kbpv-md-busy{background:var(--dsw-alias-state-warn-primary)}',
+        '.kbpv-md-none{background:transparent}',
+        '.kbpv-md-checking{background:var(--dsw-alias-label-tertiary);animation:kbpvPulse 1s ease-in-out infinite}',
+        '@keyframes kbpvPulse{50%{opacity:.35}}',
+        '@media (prefers-reduced-motion:reduce){.kbpv-md-checking{animation:none}}',
+        '.kbpv-addrow{display:flex;gap:6px}',
+        '.kbpv-addrow .kbpv-in{flex:1;min-width:0}',
         '.kbpv-mrows{display:flex;flex-direction:column;gap:8px}',
         '.kbpv-mrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;align-items:center}',
         '.kbpv-zone{margin-top:4px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px}',
@@ -4646,9 +4866,85 @@ window.__ModuleLoader__.load({
           return { kind: 'found', models, live: true, url: live.url, described }
         }
         const eng = await kbFetchEngine(api, probe)
-        return eng.kind === 'found' ? { ...eng, live: false, why: kbFetchWhy(live) } : eng
+        return eng.kind === 'found' ? { ...eng, live: false, why: kbFetchWhy(live) } : { ...eng, why: kbFetchWhy(live) }
       }
       // KB-FETCH-ACTIONS-END
+      // KB-SHEET-PURE-BEGIN
+      // ── The provider sheet: does the key work, which models are on, is a custom model real ──
+      // Everything here decides from data already read; nothing writes. The sheet asks the provider by itself when it opens and
+      // when a key is pasted, and no answer ever blocks "Apply": a refused key or an unknown model only changes the button's words.
+      /** A key that cannot be real: sent beside a stored key's route to learn whether the provider lists its models to anyone. */
+      const KB_SHEET_JUNK = 'kybernos-key-check-0000'
+      /** The state of the key from the fetch answer: 'ok' | 'refused' | 'unreachable' | 'unknown', with the HTTP status of a refusal. Pure. */
+      const kbSheetKeyOf = (out) => {
+        if (out !== null && typeof out === 'object' && out.kind === 'found' && out.live !== false) return { st: 'ok', status: 0 }
+        const why = out !== null && typeof out === 'object' && out.why !== null && typeof out.why === 'object' ? out.why : null
+        if (why !== null && why.key === 'kb.fetch.why.key') return { st: 'refused', status: why.vars !== undefined && Number.isInteger(why.vars.status) ? why.vars.status : 0 }
+        if (why !== null && why.key === 'kb.fetch.why.unreachable') return { st: 'unreachable', status: 0 }
+        return { st: 'unknown', status: 0 }
+      }
+      /** The message for a failed fetch: { key, vars }. Pure. */
+      const kbSheetErrOf = (out) => (out.unavailable === true ? { key: 'kb.fetch.unavailable' } : (out.timeout === true ? { key: 'kb.fetch.timeout' } : { key: 'kb.fetch.err', vars: { raison: typeof out.message === 'string' && out.message !== '' ? out.message : '—' } }))
+      /** The ids ticked now: the user's choice once made, else what the route serves today (`served`, a Set); after « restore », the models the catalog describes. Pure. */
+      const kbSheetPick = (d, served, list) => {
+        if (d.restoreModels === true) { const o = {}; for (const c of list) if (c.undescribed !== true) o[c.id] = true; return o }
+        if (d.pick !== null && d.pick !== undefined) return d.pick
+        const o = {}
+        for (const c of list) if (served.has(c.id)) o[c.id] = true
+        return o
+      }
+      /** The `models` to write for the draft, or undefined when nothing about the models changed. A ticked candidate becomes a row (an existing row keeps what
+       *  it carried); a row that is not a candidate (a custom model the user typed) stays whatever is ticked. `restore` removes the override. Pure. */
+      const kbSheetModels = (d) => {
+        if (d.restoreModels === true) return []
+        const rows = Array.isArray(d.models) ? d.models : []
+        if (d.pick === null || d.pick === undefined || !Array.isArray(d.cands)) return d.touched === true ? rows : undefined
+        const have = new Map(rows.map((r) => [String(r.id).trim(), r]))
+        const known = new Set(d.cands.map((c) => c.id))
+        const out = []
+        for (const c of d.cands) if (d.pick[c.id] === true) out.push(have.has(c.id) ? have.get(c.id) : kbFetchAdopt(c))
+        for (const r of rows) if (!known.has(String(r.id).trim()) && String(r.id).trim() !== '') out.push(r)
+        return out
+      }
+      /** The verdict of one custom model from the host's probe answer: 'ok' | 'busy' | 'fail' | 'unknown'. Pure. */
+      const kbSheetProbeState = (out) => {
+        if (out !== null && typeof out === 'object') {
+          if (out.ok === true) return 'ok'
+          if (out.error === 'rate-limited') return 'busy'
+          if (out.error === 'unknown-protocol') return 'fail'
+        }
+        return 'unknown'
+      }
+      /** Whether Apply should say « anyway »: the key was refused or could not be checked, or a custom model does not answer. Pure. */
+      const kbSheetAnyway = (d) => ['refused', 'unreachable', 'unknown'].indexOf(d.ck) >= 0 || Object.values(d.mst || {}).some((v) => v === 'fail')
+      // KB-SHEET-PURE-END
+      // KB-SHEET-ACTIONS-BEGIN
+      /** Ask the provider for its models with the key typed (else the stored one) and read the key's state off the answer. When the list came back
+       *  with a key, a second call with a key that cannot be real tells a provider that lists its models to anyone ('listed': the key is not proven
+       *  by the list). Never throws. `o`: { keyed }. A hand-declared route is asked through the host too (its saved address and protocol): that is the
+       *  answer that carries the provider's HTTP status, which the key's verdict needs. */
+      const kbSheetCheck = async (api, probe, o) => {
+        const out = await kbFetchRun(api, probe, { live: true })
+        const key = kbSheetKeyOf(out)
+        let ck = key.st
+        if (ck === 'ok' && out.live === true && o.keyed === true) {
+          const pub = await kbFetchLive({ ...probe, apiKey: KB_SHEET_JUNK })
+          if (pub.kind === 'found') ck = 'listed'
+        }
+        if (out.kind !== 'found') return { ck, status: key.status, cands: null, src: null, err: kbSheetErrOf(out) }
+        const live = out.live === true
+        return { ck, status: key.status, cands: live ? kbFetchTagUndescribed(out.models, out.described) : out.models, src: live ? { live: true, url: out.url } : (out.live === false ? { live: false, why: out.why } : null), err: out.models.length === 0 ? { key: 'kb.fetch.empty' } : null }
+      }
+      /** Is this model real at the provider? One tiny call through the host, with the route's STORED key. Never throws. */
+      const kbSheetProbe = async (route, id) => {
+        try {
+          const res = await kbMTimeout(fetch('/kybernos-models/models/probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ route, model: id }) }), 45000)
+          let out = null
+          if (res !== null && res !== undefined && typeof res.json === 'function') { try { out = await res.json() } catch (e) { out = null } }
+          return kbSheetProbeState(out)
+        } catch (e) { return 'unknown' }
+      }
+      // KB-SHEET-ACTIONS-END
       // KB-DS-PURE-BEGIN
       // ── DeepSeek: the two adapters that live outside llm-pi-ai ──
       // Measured on DSH 0.2.0-rc.2 (dsh-client-ui-settings-models): `deepseek-official` is the namespace `llm-deepseek` (an API
