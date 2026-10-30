@@ -1328,6 +1328,18 @@
       "by": "status"
     },
     {
+      "object": "property",
+      "id": "property-4-map",
+      "name": {
+        "en": "Map",
+        "fr": "Carte"
+      },
+      "kind": "map",
+      "lat": "lat",
+      "lng": "lng",
+      "fav": true
+    },
+    {
       "object": "lettings",
       "id": "lettings-1-pipeline",
       "name": {

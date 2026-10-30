@@ -8,6 +8,7 @@
 //   POST /kybernos-db/upload?db=&object=&field=&name=&type=   the bytes of one file (application/octet-stream, 25 MB at most): { ok, file } to write into the field
 //   GET  /kybernos-db/file?db=&object=&id=&field=&hash=   a file a row holds: a picture is shown, anything else is handed over as a download (type from the bytes, closed CSP)
 //   GET  /kybernos-db/core/<file>.mjs               the pure rules of core/, so the browser runs the very code the agent runs
+//   GET  /kybernos-db/vendor/maplibre-gl.js|.css    the map library the Map view loads, and only when the person opens that view (vendor/NOTICES.md)
 //
 // EVERY data route, reads included, needs DSH's signed session (session-guard.mjs): the records are personal data and plugin routes are served before DSH's own
 // sign-in. The actor of a write is `person`, never read from the request. The core files are public (they are this repository's own open code and hold no data),
@@ -25,6 +26,7 @@ export const CORE_ROUTE = ROUTE + 'core/'
 export const BODY_MAX = 64 * 1024
 export const UPLOAD_MAX = MAX_ATTACHMENT_BYTES
 const CORE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'core')
+const VENDOR_DIR = join(dirname(fileURLToPath(import.meta.url)), 'vendor')
 const CORE_FILE = /^[a-z]+\.mjs$/
 
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host (published by the core bundle); absent or failing, loopback only.
@@ -186,6 +188,31 @@ export const coreHandler = (dir = CORE_DIR) => async (req, res) => {
   }
 }
 
+/** The map library and its stylesheet: the files of vendor/ the page asks for, by route name. Nothing else of that folder is served. */
+export const VENDOR_ROUTES = {
+  'vendor/maplibre-gl.js': ['maplibre-gl.js', 'text/javascript; charset=utf-8'],
+  'vendor/maplibre-gl.css': ['maplibre-gl.css', 'text/css; charset=utf-8'],
+}
+/**
+ * Serves one file of vendor/ (GET and HEAD). It carries the same guards as the data routes (this listener's Host, DSH's signed session: the page's own <script> and <link> send
+ * the cookie), so that no route of this bundle answers without the person. The files are public code that never change between releases (the page names the version in the
+ * query), so the browser may keep them for a day.
+ */
+export const vendorHandler = (file, type, dir = VENDOR_DIR) => async (req, res) => {
+  try {
+    if (hostOk(req) !== true) return refuse(res, 403, 'origin refused')
+    const method = String(req.method || 'GET').toUpperCase()
+    if (method !== 'GET' && method !== 'HEAD') { res.setHeader && res.setHeader('allow', 'GET, HEAD'); return refuse(res, 405, 'method not allowed') }
+    const denied = writeGuard(req)
+    if (denied !== null) return refuse(res, denied.status, denied.error)
+    const bytes = readFileSync(join(dir, file))
+    res.writeHead(200, { 'content-type': type, 'cache-control': 'private, max-age=86400', 'content-length': String(bytes.length), 'x-content-type-options': 'nosniff' })
+    return res.end(method === 'HEAD' ? undefined : bytes)
+  } catch (e) {
+    return refuse(res, 404, 'not found')
+  }
+}
+
 /** Mounts the routes on the web server service; answers what `register` gave back so the caller can take them off again. */
 export function mountRoutes (webServer, api) {
   const off = []
@@ -199,5 +226,9 @@ export function mountRoutes (webServer, api) {
   }
   const retrait = webServer.register({ kind: 'prefix', path: CORE_ROUTE.slice(0, -1), handler: coreHandler() })
   if (typeof retrait === 'function') off.push(retrait)
+  for (const [name, [file, type]] of Object.entries(VENDOR_ROUTES)) {
+    const gone = webServer.register({ kind: 'exact', path: ROUTE + name, handler: vendorHandler(file, type) })
+    if (typeof gone === 'function') off.push(gone)
+  }
   return off
 }

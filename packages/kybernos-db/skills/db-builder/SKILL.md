@@ -46,7 +46,7 @@ When in doubt about a field holding something about a person, make it `personal`
 1. `object_define` with the table and all its fields at once (one card for the person to read, not ten).
 2. `field_add` when the table already exists and one more column is wanted (one card; the existing rows stay empty on it).
 3. `relation_add` for each link between tables, after both tables exist: a task has one project (`many` false); an order has many products (`many` true). A link is written on the table that holds the pointer.
-4. `view_save` for the views they will use first: a board by status for tasks, a calendar on the due date, a table sorted the way they read it. A view is free to create; the person can change it.
+4. `view_save` for the views they will use first: a board by status for tasks, a calendar on the due date, a map when records have a place (two number fields, latitude and longitude), a table sorted the way they read it. A view is free to create; the person can change it.
 5. Tell them in one or two lines what now exists. Do not paste the structure back: the card already showed it.
 
 If the person asks for something the engine refuses (a retype, a delete), say so plainly and offer the nearest thing: add a new field, hide the old one in the views, relabel it.

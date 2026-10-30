@@ -129,12 +129,17 @@ ok('folding and ordering text does not depend on a locale', () => {
   assert.ok(core.compareText('eclair', 'Eclair') !== 0)
 })
 
-ok('a board needs a choice field and a calendar a date field', () => {
+ok('a board needs a choice field, a calendar a date field and a map two number fields', () => {
   const fields = fx.objects.task.fields
   const noteFields = fx.objects.note.fields
-  for (const kind of core.VIEW_KINDS) assert.ok(core.kindAvailable(fields, kind), kind)
+  const placeFields = fx.objects.place.fields
+  for (const kind of core.VIEW_KINDS) assert.ok(core.kindAvailable(kind === 'map' ? placeFields.concat(fields) : fields, kind), kind)
   assert.ok(core.kindAvailable(noteFields, 'table') && core.kindAvailable(noteFields, 'cards'))
-  assert.ok(!core.kindAvailable(noteFields, 'board') && !core.kindAvailable(noteFields, 'calendar'))
+  assert.ok(!core.kindAvailable(noteFields, 'board') && !core.kindAvailable(noteFields, 'calendar') && !core.kindAvailable(noteFields, 'map'))
+  assert.ok(!core.kindAvailable(fields, 'map'), 'the task has one number field')
+  assert.deepEqual(core.mapFields(placeFields), { lat: 'latitude', lng: 'longitude' }, 'named like a latitude and a longitude')
+  assert.deepEqual(core.mapFields([{ key: 'x', type: 'number' }, { key: 'y', type: 'number' }]), { lat: 'x', lng: 'y' }, 'else the first two')
+  assert.deepEqual(core.mapFields(noteFields), { lat: undefined, lng: undefined })
 })
 
 ok('the order of the result does not depend on the order the records arrive in', () => {
