@@ -13,8 +13,18 @@ How much your work uses, in two separate columns because the data comes from two
 
 - **A chip in the composer dock** (slot `conversation.composer.dock`, id `kybernos-usage-chip`): the busiest plan window in
   percent while the chat runs on a Kybernos model; the session's cost in dollars on a key of one's own; "free" on a local or free
-  offer; "price unknown" when the model has no price in the catalogue. Amber from 80 %, red at 100 %, amber when the month's
+  offer; "price unknown" when the model has no price in the catalogue. On a Kybernos model the chip carries a ring that fills
+  with the busiest window: amber from 75 %, red once calls are turned away. On a key of one's own it is amber when the month's
   budget is exceeded. It shows nothing when it has nothing to say.
+- **A limit strip under the pills** (same slot, id `kybernos-usage-limit`, last in the row, a line of its own while it shows).
+  Only on a Kybernos model, and only when the plan's busiest window is close or used up. From 75 %: one line ("75 % of your 5 h
+  window is used. Plus gives you 20 times more.") with a "See the plans" button and a cross; the cross hides it until that window
+  has gone back under 75 % (kept in this browser). Used up: a panel that says which window and when it opens again, the next
+  level with its price per month and how many times more it allows (read from the plans the account page sells, never written
+  here), a way to a key of one's own or a free model (Settings › AI provider and models), and the four windows with their return
+  time. A member of a team gets the same facts and is told to ask an admin. At the end of a turn it asks the footer's meter to
+  read again (`kybernos-cloud:quota-read`), so neither lags behind the call. No credits wording: whether top-ups lift the short
+  windows is the owner's decision (SRV-B1), the strip does not say.
 - **Its card** (click): context window (the `contextPressure` projection, the same one as the engine's own ring), the plan's
   limits, and for an own key the session's cost split into new input, cache read and output.
 - **Settings › Usage** (slot `settings.section`, id `kybernos-usage`): the plan card, then your own keys by period (today, 7 or
@@ -30,6 +40,8 @@ How much your work uses, in two separate columns because the data comes from two
 - Prices are the models.dev ones. A model without a price counts its tokens but not money, and says so; the user's own price
   overrides in Models are not read yet.
 - Windows are rolling: the server gives a time to free up only once a window is used up, so there is no permanent countdown.
+- The strip cannot change the composer's placeholder (no seam): the "used up" text lives in the panel under the pills.
+- "Use my own key or a free model" lands on one page for both: DSH has no seam that picks a model from another bundle.
 - The page cannot open itself from the chip yet (no seam to open a Settings section), so the card says where to find it.
 
 ## Host routes

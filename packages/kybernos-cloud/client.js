@@ -1168,6 +1168,58 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         return r.plans
       }).catch(() => null)
     }
+    // <plan-pitch>
+    // What someone who is not on the top plan can be offered: the next level of the catalogue (the plans the Upgrade dialog sells), its price per month, how many times more it allows
+    // (the ratio of the two usage multiples, only when both are known), what it gives in credits a month and whether it adds always-on computers. The limit strip under the composer
+    // and the last screen of the first-run wizard both read it through `window.__KB_UPGRADE__.pitch()`, so they say what the dialog says. Pure: the catalogue, the account's plan for
+    // the active space (`key`, `level`, `label`) and the person's language and region in, plain numbers out (the callers word them). Null on the top plan or without an individual level.
+    const PITCH_EURO_REGIONS = ['AT', 'BE', 'CY', 'DE', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PT', 'SI', 'SK']
+    const planPitch = (plans, spacePlan, opts) => {
+      if (!Array.isArray(plans)) return null
+      const obj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+      const num = (v) => { const n = typeof v === 'number' ? v : parseFloat(v); return Number.isFinite(n) ? n : null }
+      const multiple = (c) => { const m = obj(c) && obj(c.display) ? num(c.display.usage_multiple) : null; return m !== null && m > 0 ? m : null }
+      const monthCredits = (c) => {
+        const a = (obj(c) && Array.isArray(c.allowances) ? c.allowances : []).filter((x) => obj(x) && num(x.member_credits) !== null)
+        const month = a.filter((x) => x.window_seconds === 2592000)[0] || a[a.length - 1]
+        return month === undefined ? null : num(month.member_credits)
+      }
+      const features = (c) => (obj(c) && Array.isArray(c.features) ? c.features.filter((f) => typeof f === 'string') : [])
+      const every = []
+      for (const p of plans) { if (obj(p) && Array.isArray(p.components)) for (const c of p.components) if (obj(c)) every.push(c) }
+      const sp = obj(spacePlan) ? spacePlan : {}
+      const spKeys = [sp.key, sp.level].filter((k) => typeof k === 'string' && k !== '')
+      const spLabel = typeof sp.label === 'string' ? sp.label.toLowerCase() : ''
+      const here = every.filter((c) => spKeys.indexOf(c.key) >= 0 || (spLabel !== '' && String(c.name === undefined ? '' : c.name).toLowerCase() === spLabel))[0]
+      const main = plans.filter((p) => obj(p) && p.kind === 'individual' && Array.isArray(p.components))[0]
+      if (main === undefined) return null
+      const levels = main.components.filter((c) => obj(c) && typeof c.key === 'string' && typeof c.name === 'string')
+        .sort((a, b) => (multiple(a) === null ? 1e9 : multiple(a)) - (multiple(b) === null ? 1e9 : multiple(b)))
+      const mine = here === undefined ? null : multiple(here)
+      const next = levels.filter((c) => here === undefined || (c !== here && (mine === null || (multiple(c) !== null && multiple(c) > mine))))[0]
+      if (next === undefined) return null
+      const o = obj(opts) ? opts : {}
+      const currencies = Array.isArray(main.currencies) ? main.currencies.filter((c) => typeof c === 'string') : []
+      const currency = (PITCH_EURO_REGIONS.indexOf(o.region) >= 0 || o.fr === true) && currencies.indexOf('EUR') >= 0 ? 'EUR' : (currencies.indexOf('USD') >= 0 ? 'USD' : (currencies[0] || null))
+      const prices = (Array.isArray(next.prices) ? next.prices : []).filter((x) => obj(x) && x.currency === currency && num(x.amount) !== null)
+      const yearly = prices.filter((x) => x.interval === 'year')[0]
+      const monthly = prices.filter((x) => x.interval === 'month')[0]
+      const best = yearly || monthly
+      const ratio = mine !== null && multiple(next) !== null ? Math.round(multiple(next) / mine * 10) / 10 : null
+      return {
+        name: next.name,
+        key: next.key,
+        currency,
+        amount: best === undefined ? null : num(best.amount),
+        yearly: yearly !== undefined,
+        monthAmount: yearly !== undefined && monthly !== undefined ? num(monthly.amount) : null,
+        times: ratio !== null && ratio > 1 ? ratio : null,
+        credits: monthCredits(next),
+        fromCredits: here === undefined ? null : monthCredits(here),
+        alwaysOn: features(next).indexOf('computers.always_on') >= 0 && (here === undefined || features(here).indexOf('computers.always_on') < 0),
+      }
+    }
+    // </plan-pitch>
     // <server-down:begin> a server that does not answer is NAMED (the host says which one: its label and host), and the way to another one is offered when there is one
     /** The notice for a host route that failed because the server did not answer: `{ text, canSwitch }`, or null when the answer names no server (the caller keeps its own sentence). */
     const serverDownNote = (r, t, key) => {
@@ -1255,7 +1307,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       return Number.isFinite(at) ? Object.assign({}, facts, { skew_ms: at - Date.now() }) : facts
     }
     const quotaSkew = (info) => (info !== null && info !== undefined && typeof info === 'object' && Number.isFinite(info.skew_ms) ? Math.max(-2592000000, Math.min(2592000000, info.skew_ms)) : 0)
-    const quotaNoticeText = (info, t, now = Date.now() + quotaSkew(info)) => {
+    const quotaNoticeText = (info, t, now = Date.now() + quotaSkew(info), withMore = true) => {
       if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
       const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
@@ -1276,7 +1328,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const moreKey = shared
         ? (admin ? (short ? 'quotaMoreAdminWait' : 'quotaMoreAdmin') : (short ? 'quotaMoreMemberWait' : 'quotaMoreMember'))
         : (short ? 'quotaMoreSoloWait' : 'quotaMoreSolo')
-      const more = out === null ? '' : quotaFill(t(moreKey), { name })
+      const more = out === null || withMore !== true ? '' : quotaFill(t(moreKey), { name })
       return { text: quotaWindowSentence(w, name, t, now) + more, action: !shared || admin }
     }
     // The small meter on the card of the active team: the percent of the window that counts, and the sentence behind it (its title). An owner or admin of a team sees the
@@ -2564,7 +2616,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         /** A plan feature in words: its label, else its key read as words with a capital (« sso_saml » reads « Sso saml »), never the raw code. */
         const upFeatureText = (k) => { if (UP_FEATURES[k] !== undefined) return t(UP_FEATURES[k]); const w = String(k).replace(/[._]/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
         // <up-feat:end>
-        const UP_EURO_REGIONS = ['AT', 'BE', 'CY', 'DE', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PT', 'SI', 'SK']
         const upLocale = () => { const l = lang(); return l === 'en' ? 'en-US' : l === 'fr' ? 'fr-FR' : l }
         const upMoney = (amount, currency) => {
           const n = Number(amount)
@@ -2573,12 +2624,29 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             return new Intl.NumberFormat(upLocale(), { style: 'currency', currency: currency, minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }).format(n)
           } catch (e) { return n.toFixed(2) + ' ' + currency }
         }
+        // The amounts of `pitch()` carry the narrow symbol (« 19 $ », not « 19 $US »): they sit in a sentence, not in a price table.
+        const pitchMoney = (amount, currency) => {
+          try { return new Intl.NumberFormat(upLocale(), { style: 'currency', currency: currency, currencyDisplay: 'narrowSymbol', minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 }).format(amount) } catch (e) { return amount + ' ' + currency }
+        }
+        /** The next level of the plan for the space whose plan is `spacePlan`, its amounts worded in the person's language; null when there is nothing to offer or the catalogue is out of reach. */
+        const planPitchNow = (spacePlan) => readPlans().then((plans) => {
+          if (plans === null) return null
+          let region = ''
+          try { const m = /[-_]([A-Za-z]{2})\b/.exec(String(navigator.language || '')); region = m !== null ? m[1].toUpperCase() : '' } catch (e) { region = '' }
+          const raw = planPitch(plans, spacePlan, { fr: lang() === 'fr', region: region })
+          if (raw === null) return null
+          return Object.assign({}, raw, {
+            price: raw.amount !== null && raw.currency !== null ? pitchMoney(raw.amount, raw.currency) : null,
+            monthPrice: raw.monthAmount !== null && raw.currency !== null ? pitchMoney(raw.monthAmount, raw.currency) : null,
+            zero: raw.currency !== null ? pitchMoney(0, raw.currency) : null,
+          })
+        }).catch(() => null)
         /** The currency to start on: the euro for a French-speaking or euro-zone person when it is sold, else the dollar, else the first. */
         const upDefaultCurrency = (currencies) => {
           if (currencies.length === 0) return null
           let region = ''
           try { const m = /[-_]([A-Za-z]{2})\b/.exec(String(navigator.language || '')); region = m !== null ? m[1].toUpperCase() : '' } catch (e) { region = '' }
-          if ((UP_EURO_REGIONS.indexOf(region) >= 0 || lang() === 'fr') && currencies.indexOf('EUR') >= 0) return 'EUR'
+          if ((PITCH_EURO_REGIONS.indexOf(region) >= 0 || lang() === 'fr') && currencies.indexOf('EUR') >= 0) return 'EUR'
           if (currencies.indexOf('USD') >= 0) return 'USD'
           return currencies[0]
         }
@@ -3173,9 +3241,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const gearRef = React.useRef(null)
           const cardRef = React.useRef(null)
           const [upgradeOpen, setUpgradeOpen] = React.useState(false)
+          // The plan of the active space as the account state last said it, for `pitch()` below (read at the call, never captured stale).
+          const spacePlanRef = React.useRef(null)
           // The same dialog, for a page that has to say « this needs a paid plan » (the Kaby page): it asks, it does not own the dialog.
           React.useEffect(() => {
-            try { window.__KB_UPGRADE__ = { open: () => setUpgradeOpen(true) } } catch (e) { /* no window */ }
+            // `settings`: DSH's Settings on the page of the AI provider and models, for the limit strip's « use my own key » (true when it was asked for).
+            // `pitch`: the next level of the plan for the active space, with its prices worded in the person's language (null when there is nothing to offer or the catalogue is out of reach).
+            try { window.__KB_UPGRADE__ = { open: () => setUpgradeOpen(true), settings: () => { ouvrirReglagesCompte('AI provider and models', 'kybernos-models'); return true }, pitch: () => planPitchNow(spacePlanRef.current) } } catch (e) { /* no window */ }
             return () => { try { delete window.__KB_UPGRADE__ } catch (e) { /* gone */ } }
           }, [])
           // A one-line notice above the footer (a page that could not be opened): it goes by itself.
@@ -3222,6 +3294,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const [autoStart, setAutoStart] = React.useState(false)
           const [phase, setPhase] = React.useState('loading')
           const [state, setState] = React.useState({})
+          spacePlanRef.current = state !== null && state !== undefined && state.space_plan !== undefined ? state.space_plan : null
           // A switch of team in progress: `{ id, name }` from the moment the person chooses until DSH has applied the new model route (see pickSpace). Nothing else is chosen meanwhile.
           const [switching, setSwitching] = React.useState(null)
           const switchingRef = React.useRef(null)
@@ -3921,6 +3994,16 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             } else if (quotaRefused === true && facts !== null && facts !== undefined && facts.ok === true && facts.no_plan === true) {
               const verdict = quotaNoticeText(facts, t)
               if (verdict !== null) say = { text: verdict.text, label: verdict.action === true ? t(verdict.label) : null, run: () => { try { window.dispatchEvent(new CustomEvent('kybernos-cloud:plan', { detail: { workspace_id: facts.workspace.id } })) } catch (e) { /* CustomEvent absent */ } } }
+            } else if (quotaRefused === true && facts !== null && facts !== undefined && facts.ok === true && facts.no_plan !== true && facts.payment_blocked !== true) {
+              // A window used up: the row keeps saying which one and when it comes back after the toast has gone (the toast's own « or add credits » is not repeated here), with the way
+              // to a higher level beside it: the Upgrade dialog when it is mounted, else the plan page.
+              const verdict = quotaNoticeText(facts, t, undefined, false)
+              if (verdict !== null) {
+                say = { text: verdict.text, label: verdict.action === true ? t('planChoose') : null, run: () => {
+                  try { const u = window.__KB_UPGRADE__; if (u !== undefined && u !== null && typeof u.open === 'function') { u.open(); return } } catch (e) { /* the dialog is not mounted */ }
+                  try { window.dispatchEvent(new CustomEvent('kybernos-cloud:plan', { detail: { workspace_id: facts.workspace.id } })) } catch (e) { /* CustomEvent absent */ }
+                } }
+              }
             }
             if (say === null) return h(Shipped, props)
             // The shipped row, with the sentence in place of the engine's words (no code: it would show the engine's code next to ours).

@@ -13,6 +13,10 @@
       "en": "Click it: the card shows the context window, your plan's limits and your credits."
     },
     {
+      "fr": "Quand une limite approche (75 %), une ligne le dit sous la zone de saisie ; une fois atteinte, elle donne l'heure de retour.",
+      "en": "When a limit gets close (75%), a line under the message box says so; once reached, it gives the time it comes back."
+    },
+    {
       "fr": "Ouvre Réglages › Usage pour le détail par jour, par modèle et par session, et pour fixer un budget.",
       "en": "Open Settings › Usage for the detail by day, model and session, and to set a budget."
     }

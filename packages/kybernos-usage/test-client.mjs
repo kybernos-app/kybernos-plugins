@@ -34,6 +34,9 @@ const T = plugin.__test
   ok('a chip in the composer dock', dock !== undefined && dock.meta.id === 'kybernos-usage-chip')
   ok('the dock id does not collide with the core usage probe', dock.meta.id !== 'kybernos-usage')
   ok('a Settings page', sec !== undefined && sec.meta.id === 'kybernos-usage' && sec.meta.label === 'Usage')
+  const strip = regs.find((r) => r.meta.id === 'kybernos-usage-limit')
+  ok('a limit strip in the composer dock, after the chip and the other bundles\' pills', strip !== undefined && strip.meta.name === 'conversation.composer.dock' && strip.meta.order > dock.meta.order && strip.meta.order >= 99)
+  ok('the strip component never throws on odd props', (() => { try { strip.comp(null); strip.comp({}); return true } catch (e) { return false } })())
   ok('the dock component never throws on odd props', (() => { try { dock.comp(null); dock.comp({}); return true } catch (e) { return false } })())
 }
 
@@ -57,7 +60,7 @@ const T = plugin.__test
   ok('the prefix is private', /\.kbus-/.test(T.CSS) && !/\.(kb|kbm|kbs)-/.test(T.CSS))
   ok('motion respects reduced-motion', /prefers-reduced-motion/.test(T.CSS))
 }
-ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'kybernos-usage-page', 'kybernos-usage-plan', 'kybernos-usage-budget'].every((k) => src.includes("'" + k + "'")))
+ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'kybernos-usage-page', 'kybernos-usage-plan', 'kybernos-usage-budget', 'limit-strip', 'limit-plans', 'limit-hide', 'limit-upgrade', 'limit-own', 'limit-ask'].every((k) => src.includes("'" + k + "'")))
 
 // ── helpers ─────────────────────────────────────────────────────────────────────────────────────────────────────
 {
@@ -121,7 +124,7 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('window: team pool is named', T.windowView({ kind: 'pool', window_seconds: 2592000, used_percent: 47 }, null).label.startsWith('Équipe'))
   ok('window: junk is dropped', T.windowView(null, null) === null && T.windowView({ window_seconds: 'x' }, null) === null)
   ok('window: percent is clamped', T.windowView({ kind: 'member', window_seconds: 3600, used_percent: 180 }, null).pct === 100)
-  ok('tone', T.tone(10) === 'ok' && T.tone(80) === 'warn' && T.tone(100) === 'err')
+  ok('tone: amber from 75 %, red at 100 %', T.tone(10) === 'ok' && T.tone(74) === 'ok' && T.tone(75) === 'warn' && T.tone(80) === 'warn' && T.tone(100) === 'err' && T.LIMIT_NEAR === 75)
 }
 { // reporting: identical counters are posted once; a change inside the throttle is deferred
   posts.length = 0
@@ -231,5 +234,132 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   const help = JSON.parse(readFileSync(join(here, 'help.json'), 'utf8'))
   const frs = [help.what.fr, ...help.steps.map((x) => x.fr), help.good && help.good.fr].filter(Boolean)
   ok('…nor in the French help', frs.length >= 4 && !frs.some((t) => /(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(t) || /(?<![A-Za-zÀ-ÿ])(?!chez|assez)[a-zà-ÿ]{3,}ez(?![A-Za-zÀ-ÿ])/i.test(t)))
+}
+
+// ── the limit strip (mockup 1): thresholds, the window that counts, the next level, the cross, the drawing ───────────────────────────
+{
+  const prevLang = globalThis.window.__KB_LANG_RESOLVE__
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr'
+  const prevStorage = globalThis.window.localStorage
+  const find = (node, test, out = []) => {
+    if (node === null || typeof node !== 'object') return out
+    if (test(node)) out.push(node)
+    const kids = node.kids || []
+    for (const c of Array.isArray(kids) ? kids.flat() : [kids]) find(c, test, out)
+    return out
+  }
+  const text = (n) => (n === null || n === undefined || n === false ? '' : typeof n !== 'object' ? String(n) : (n.kids || []).flat().map(text).join(' '))
+  const hook = (el, kb) => find(el, (n) => n.props && n.props['data-kb'] === kb)
+  const NOW = Date.parse('2026-10-22T10:00:00.000Z')
+  const server = new Date(NOW).toISOString()
+  const view = (secs, pct, extra = {}) => T.windowView({ kind: 'member', window_seconds: secs, used_percent: pct, exhausted: false, resets_at: null, ...extra }, server)
+  const usedUp = (secs, hours) => view(secs, 100, { exhausted: true, resets_at: new Date(NOW + hours * 3600000).toISOString() })
+
+  // the windows as the strip reads them
+  ok('window: short names for a sentence', view(18000, 10).short === '5 h' && view(86400, 10).short === '24 h' && view(604800, 10).short === '7 jours' && view(2592000, 10).short === '30 jours', [18000, 86400, 604800, 2592000].map((x) => view(x, 1).short).join('|'))
+  ok('window: a used-up one carries its time of return on this computer\'s clock, the others none', (() => { const u = usedUp(18000, 3); return u.exhausted === true && Math.abs(u.backAt - (Date.now() + 3 * 3600000)) < 2000 && view(18000, 80).backAt === null })())
+
+  // the window that counts
+  const mixed = [view(18000, 40), view(86400, 90), view(604800, 90)]
+  ok('binding: with none used up, the busiest, the longer one on a tie', T.bindingWindow(mixed).seconds === 604800 && T.bindingWindow([view(18000, 10)]).seconds === 18000)
+  ok('binding: used-up windows beat a busier one, and the one that opens LAST counts', T.bindingWindow([view(18000, 99), usedUp(18000, 2), usedUp(86400, 9)]).seconds === 86400)
+  ok('binding: nothing to read', T.bindingWindow([]) === null && T.bindingWindow(null) === null)
+
+  // the three states
+  const planOf = (windows, extra = {}) => ({ connected: true, name: 'Free', credits: null, blocked: false, noPlan: false, personal: true, role: 'owner', workspaceId: 'w1', spacePlan: { key: 'free', label: 'Free' }, windows, ...extra })
+  ok('state: under 75 % there is nothing to say', T.limitState(planOf([view(18000, 74)])) === 'ok')
+  ok('state: 75 % is near, 99 % too', T.limitState(planOf([view(18000, 75)])) === 'near' && T.limitState(planOf([view(18000, 99)])) === 'near')
+  ok('state: out only when the server says the window is used up (100 % that a top-up still lets through is near)', T.limitState(planOf([usedUp(18000, 3)])) === 'out' && T.limitState(planOf([view(18000, 100)])) === 'near')
+  ok('state: signed out, no plan, a blocked payment, no figure, junk: null (the footer and the notice speak for those)',
+    T.limitState({ connected: false, windows: [] }) === null && T.limitState(planOf([view(18000, 90)], { noPlan: true })) === null && T.limitState(planOf([view(18000, 90)], { blocked: true })) === null
+    && T.limitState(planOf([])) === null && T.limitState(null) === null && T.limitState(undefined) === null)
+
+  // the time of return, in words
+  {
+    const at = (y, m, d, h, mi) => new Date(y, m, d, h, mi).getTime()
+    const now = at(2026, 9, 22, 22, 0)
+    globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr'
+    ok('clock, French: « 00 h 50 », today / tomorrow / another day', T.clockAt(at(2026, 9, 22, 23, 5), now).at === '23 h 05' && T.clockAt(at(2026, 9, 22, 23, 5), now).day === null
+      && T.clockAt(at(2026, 9, 23, 0, 50), now).at === '00 h 50' && T.clockAt(at(2026, 9, 23, 0, 50), now).day === 'tomorrow'
+      && T.clockAt(at(2026, 9, 26, 14, 0), now).day === new Date(2026, 9, 26).toLocaleDateString('fr-FR', { weekday: 'long' }))
+    ok('sentence, French: today, tomorrow, another day, and nothing without a time', T.backSentence({ backAt: at(2026, 9, 22, 23, 5) }, now) === 'Retour à 23 h 05.'
+      && T.backSentence({ backAt: at(2026, 9, 23, 0, 50) }, now) === 'Retour demain à 00 h 50.'
+      && T.backSentence({ backAt: at(2026, 9, 26, 14, 0) }, now) === 'Retour ' + new Date(2026, 9, 26).toLocaleDateString('fr-FR', { weekday: 'long' }) + ' à 14 h 00.'
+      && T.backSentence({ backAt: null }, now) === null && T.backSentence(null, now) === null)
+    globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+    ok('sentence, English: a 12-hour clock', /^Back at 11:05\s?PM\.$/.test(T.backSentence({ backAt: at(2026, 9, 22, 23, 5) }, now)) && /^Back tomorrow at 12:50\s?AM\.$/.test(T.backSentence({ backAt: at(2026, 9, 23, 0, 50) }, now)), T.backSentence({ backAt: at(2026, 9, 23, 0, 50) }, now))
+    globalThis.window.__KB_LANG_RESOLVE__ = prevLang
+  }
+
+  // the next level of the plan comes from the cloud bundle (`window.__KB_UPGRADE__.pitch()`, tested there); the strip only words it
+  const plus = { name: 'Plus', key: 'solo', price: '19 $', monthPrice: '24 $', yearly: true, times: 20, credits: 20000, fromCredits: 1000, alwaysOn: true, amount: 19, monthAmount: 24, currency: 'USD' }
+  {
+    delete globalThis.window.__KB_UPGRADE__
+    T.pitchStore.value = undefined
+    ok('no cloud bundle: no offer, nothing throws', (() => { try { T.LimitStrip({ useProjection: () => undefined }); return true } catch (e) { return false } })())
+  }
+
+  // the cross: hidden until the window has room again
+  {
+    const store = {}
+    globalThis.window.localStorage = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v) } }
+    ok('cross: not hidden to start with', T.isHidden(18000) === false)
+    T.hide(18000)
+    ok('cross: hidden for that window only, and kept in this browser', T.isHidden(18000) === true && T.isHidden(86400) === false && /18000/.test(store['kybernos-usage:limit-hidden'] || ''))
+    T.forgetHidden([view(18000, 80), view(86400, 10)])
+    ok('cross: a window still near keeps it', T.isHidden(18000) === true)
+    T.forgetHidden([view(18000, 60)])
+    ok('cross: the window gone back under 75 % earns its line back', T.isHidden(18000) === false && !/18000/.test(store['kybernos-usage:limit-hidden'] || ''))
+    globalThis.window.localStorage = { getItem () { throw new Error('refused') }, setItem () { throw new Error('refused') } }
+    T.hide(604800)
+    ok('cross: storage refused, the memory copy still hides it', T.isHidden(604800) === true)
+    T.forgetHidden([view(604800, 10)])
+    ok('cross: …and forgets it', T.isHidden(604800) === false)
+    globalThis.window.localStorage = prevStorage
+  }
+
+  // the drawing
+  {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr'
+    const onPlan = { useProjection: (k) => (k === 'modelSelection' ? { lastUsed: { provider: 'kybernos', model: 'glm' } } : undefined) }
+    const ownKey = { useProjection: (k) => (k === 'modelSelection' ? { lastUsed: { provider: 'deepseek', model: 'pro' } } : undefined) }
+    const draw = (props, plan, offer) => { T.planStore.value = plan; T.pitchStore.value = offer; return T.LimitStrip(props) }
+    ok('strip: nothing before the plan is read, nothing under 75 %, nothing on a key of one\'s own', draw(onPlan, undefined, plus) === null && draw(onPlan, planOf([view(18000, 50)]), plus) === null && draw(ownKey, planOf([usedUp(18000, 3)]), plus) === null)
+
+    const near = draw(onPlan, planOf([view(18000, 78), view(86400, 20)]), plus)
+    const nearText = text(near).replace(/ /g, ' ')
+    ok('strip, 75 % and over: one line that names the window and what the next level gives', near !== null && near.props['data-state'] === 'near' && nearText.includes('78 % de ta fenêtre de 5 h est utilisée.') && nearText.includes('Plus donne 20 fois plus.'), nearText)
+    ok('strip, near: « See the plans » and a named cross', hook(near, 'limit-plans').length === 1 && hook(near, 'limit-plans')[0].kids.join('') === 'Voir les plans' && hook(near, 'limit-hide').length === 1 && /Masquer/.test(hook(near, 'limit-hide')[0].props['aria-label']))
+    ok('strip, near: it is a polite status, not an alert', near.props.role === 'status')
+    ok('strip, near, no offer yet: the line alone, no button that leads nowhere', hook(draw(onPlan, planOf([view(18000, 78)]), undefined), 'limit-plans').length === 0)
+    ok('strip, near, top plan (the cloud bundle offers nothing): the line alone', hook(draw(onPlan, planOf([view(18000, 78)], { spacePlan: { key: 'studio', label: 'Pro' } }), null), 'limit-plans').length === 0)
+    ok('strip, near, a member of a team: the line, nothing to buy', (() => { const e = draw(onPlan, planOf([view(18000, 78)], { personal: false, role: 'member' }), plus); return e !== null && hook(e, 'limit-plans').length === 0 && !/donne/.test(text(e)) })())
+    T.hide(18000)
+    ok('strip, near, after the cross: gone', draw(onPlan, planOf([view(18000, 78)]), plus) === null)
+    T.forgetHidden([view(18000, 10)])
+
+    const out = draw(onPlan, planOf([usedUp(18000, 3), view(86400, 60), view(604800, 20), view(2592000, 7)]), plus)
+    const outText = text(out).replace(/ /g, ' ')
+    ok('strip, used up: says which window and when it opens again', out !== null && out.props['data-state'] === 'out' && outText.includes('Ta fenêtre de 5 h est épuisée.') && /Retour (demain )?(\w+ )?à \d\d h \d\d\./.test(outText), outText)
+    ok('strip, used up: the next level with its price and the multiple, and a key of one\'s own', hook(out, 'limit-upgrade').length === 1 && /Passer à Plus/.test(text(hook(out, 'limit-upgrade')[0]))
+      && /19 \$ par mois, facturé à l’année · 20 fois plus/.test(text(hook(out, 'limit-upgrade')[0])) && hook(out, 'limit-own').length === 1, text(hook(out, 'limit-upgrade')[0] || {}))
+    ok('strip, used up: the four windows are handed to the list, the used-up one with its time of return', (() => { const rows = find(out, (n) => n.props && Array.isArray(n.props.windows))[0]; return rows !== undefined && rows.props.windows.length === 4 && rows.props.windows.filter((w) => w.back !== null).length === 1 && rows.props.windows.map((w) => w.label).join('|') === '5 h|24 h|7 jours|30 jours' })())
+    ok('strip, used up: the primary path comes first', (() => { const paths = find(out, (n) => n.props && n.props.className === 'kbus-paths')[0]; return paths !== undefined && paths.kids.flat().filter(Boolean)[0].props['data-kb'] === 'limit-upgrade' })())
+    const asked = draw(onPlan, planOf([usedUp(18000, 3)], { personal: false, role: 'member' }), plus)
+    ok('strip, used up, a member of a team: who to ask, no buy button, still the way to a key of one\'s own', hook(asked, 'limit-upgrade').length === 0 && hook(asked, 'limit-ask').length === 1 && hook(asked, 'limit-own').length === 1)
+    const noCat = draw(onPlan, planOf([usedUp(18000, 3)]), undefined)
+    ok('strip, used up, no offer: the way on that needs no price is still there', hook(noCat, 'limit-upgrade').length === 0 && hook(noCat, 'limit-own').length === 1)
+    globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+    const enOut = draw(onPlan, planOf([usedUp(18000, 3)]), { ...plus, price: '$19' }) // the cloud bundle words the price in the UI language
+    ok('strip, English', /Your 5 h window is used up\./.test(text(enOut)) && /Switch to Plus/.test(text(enOut)) && /Use my own key or a free model/.test(text(enOut)) && /\$19 a month, billed yearly · 20 times more/.test(text(enOut)), text(enOut))
+    T.planStore.value = undefined; T.pitchStore.value = undefined
+  }
+  globalThis.window.__KB_LANG_RESOLVE__ = prevLang
+
+  // the end of a turn and the buttons, read from the source (effects do not run in this stub)
+  ok('the end of a turn asks the footer\'s meter to read again, after the counters have stopped moving', /dispatchEvent\(new Event\('kybernos-cloud:quota-read'\)\)/.test(src) && T.TURN_SETTLE_MS >= 1000 && T.TURN_SETTLE_MS <= 5000)
+  ok('the plan is read again when the footer or a refused call says so', /addEventListener\('kybernos-cloud:quota-read'/.test(src))
+  ok('the buttons reach the Upgrade dialog and Settings through the seams the cloud bundle owns, with a fallback', /__KB_UPGRADE__/.test(src) && /u\.settings\(\)/.test(src) && /__kbOpenDshSettings/.test(src))
+  ok('the strip takes a line of its own in the dock', /\[data-composer-dock\]:has\(\.kbus-strip\)\{flex-wrap:wrap\}/.test(T.CSS))
 }
 process.exit(fail ? 1 : 0)

@@ -1013,10 +1013,25 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.ok(seen[seen.length - 1].node.data.message.includes('Ask an owner or admin of Alpha crew to choose one.') && !m.html.includes('turn-error-action'), 'a member: who to ask, no button')
     m.root.unmount()
   }
-  // 4. QUOTA for any other reason (a window used up, a failed payment, facts that did not come): the engine's own words, untouched.
+  // 4. QUOTA because a window is used up: the sentence stays in the row (which window, when it comes back) with « Choose a plan » beside it for someone who can buy; it does not
+  //    repeat the toast's « add credits », and a plain member of a team is told the same without a button.
+  {
+    const used = (role, personal) => ({ ok: true, no_plan: false, payment_blocked: false, usage: [{ kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: null }], workspace: { id: 'w', name: 'Acme', role, personal } })
+    const props = { node: node({ code: 'QUOTA', message: 'Request quota exhausted.' }), t: T }
+    const owner = await draw(props, used('owner', true))
+    const said = seen[seen.length - 1].node.data
+    assert.ok(said.message.startsWith('100% of your 5 hours allowance is used') && !/credits/i.test(said.message), 'the window and the time, without the toast\'s credits line: ' + said.message)
+    assert.equal(said.code, undefined, 'no engine code next to our sentence')
+    assert.ok(owner.html.includes('data-kb="turn-error-action"') && owner.html.includes('>Choose a plan<'), 'a person who can buy gets the way to the plans')
+    owner.root.unmount()
+    const member = await draw(props, used('member', false))
+    assert.ok(seen[seen.length - 1].node.data.message.startsWith('100% of your 5 hours allowance is used') && !member.html.includes('turn-error-action'), 'a member of a team: the sentence, no button')
+    member.root.unmount()
+  }
+  // 4b. QUOTA for any other reason (a failed payment, facts that did not come): the engine's own words, untouched.
   {
     const props = { node: node({ code: 'QUOTA', message: 'Request quota exhausted.' }), t: T }
-    for (const facts of [{ ok: true, no_plan: false, payment_blocked: false, usage: [{ kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: null }], workspace: { id: 'w', name: 'Acme', role: 'owner', personal: false } }, { ok: false, error: 'indisponible' }, { ok: false, status: 'revoked' }]) {
+    for (const facts of [{ ok: true, no_plan: false, payment_blocked: true, usage: [], workspace: { id: 'w', name: 'Acme', role: 'owner', personal: false } }, { ok: false, error: 'indisponible' }, { ok: false, status: 'revoked' }]) {
       const d = await draw(props, facts)
       assert.ok(seen[seen.length - 1].node === props.node && seen[seen.length - 1].t === T, 'untouched for ' + JSON.stringify(facts).slice(0, 60))
       assert.ok(!d.html.includes('turn-error-action'))
@@ -1071,7 +1086,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   // The footer owns the console link: the row's « Choose a plan » reaches it through a window event, and there is still no third call site.
   assert.ok(/addEventListener\('kybernos-cloud:plan'/.test(source) && /openAccountPage\('plan', id\)/.test(source), 'the footer opens the plan page on the row\'s request')
   assert.equal((source.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'still two call sites of the console link')
-  ok('failure row of a turn: « no adapter registered » and a plan-less team get a sentence and an action in the shipped row; every other failure is the shipped row untouched; withdrawn with the plugin')
+  ok('failure row of a turn: « no adapter registered », a plan-less team and a used-up window get a sentence and an action in the shipped row; every other failure is the shipped row untouched; withdrawn with the plugin')
 }
 
 // ── The retry row of a turn: while the account server is down a chat showed only the engine's « Retrying model request (5/5) » ─────────────────────────────────
