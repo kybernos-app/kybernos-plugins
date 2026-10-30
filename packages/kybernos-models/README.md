@@ -92,7 +92,7 @@ still served and the answer carries `stale: true`.
 
 ## Fetch available models: live, then the engine
 
-The picker of the provider panel (`Fetch available models`) asks, in this order:
+The provider sheet (on opening and on a pasted key) and the picker of Add ▸ Custom API (`Fetch available models`) ask, in this order:
 
 1. **The provider's own endpoint, through the host** (`POST /kybernos-models/models/live`), for a catalog route. This is the only
    answer that sees a model the provider added yesterday: the engine's `llm.discoverModels` answers from its embedded catalog, with
