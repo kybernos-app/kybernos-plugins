@@ -3138,14 +3138,18 @@
             "en": "Kaby shows you a card before creating or changing a table: the fields, their type, what is protected. You accept or refuse."
           },
           {
-            "fr": "Demande ensuite d’ajouter, de modifier ou de retrouver des lignes : « ajoute ces cinq tâches », « quelles commandes sont en retard ? ».",
-            "en": "Then ask to add, change or find rows: “add these five tasks”, “which orders are late?”."
+            "fr": "Ouvre Business › Tables : tableau, cartes ou calendrier, filtre, tri, champs. Tout s’enregistre seul ; « Modifier la vue » demande à Kaby.",
+            "en": "Open Business › Tables: table, board, cards or calendar, filter, sort, fields. All saves itself; “Modify view” asks Kaby."
+          },
+          {
+            "fr": "Demande aussi à Kaby d’ajouter ou de retrouver des lignes : « quelles commandes sont en retard ? ».",
+            "en": "You can also ask Kaby to add or find rows: “which orders are late?”."
           }
         ],
         "where": {
-          "fr": "Dans la conversation avec Kaby, une fois activé",
-          "en": "In the conversation with Kaby, once switched on",
-          "page": false
+          "fr": "Business › Tables",
+          "en": "Business › Tables",
+          "page": true
         },
         "good": {
           "fr": "Les noms, e-mails et téléphones sont protégés : Kaby n’en voit qu’une version masquée et te demande avant de les lire ou de les écrire. Un champ secret ne lui est jamais montré.",

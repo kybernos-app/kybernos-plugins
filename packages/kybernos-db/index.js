@@ -1,9 +1,9 @@
 // kybernos-db — host half.
 //
-// It gives the agents the person's own databases: thirteen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
+// It gives the agents and the person their own databases: thirteen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
 // records_list, records_get, records_create, records_update, records_delete, records_restore), the short block of their system prompt that names the
-// databases, and the `db-builder` skill that says how to design one. The data is a SQLite file per database under `<DSH home>/kybernos/kybernos-db/dbs`
-// (store/), the rules are the pure ones of core/. Nothing here opens a port or reaches the network.
+// databases, the `db-builder` skill that says how to design one, and the routes the Tables page reads and writes through. The data is a SQLite file per database under `<DSH home>/kybernos/kybernos-db/dbs`
+// (store/), the rules are the pure ones of core/. Nothing here reaches the network.
 //
 // The approval is the engine's own (`tools/pre-execute`): a change of structure, a write to a protected field and the reading of one in clear are put to the
 // person on a card before they run; a session that never asks refuses them. A database that does not open (a newer Kybernos wrote it, `node:sqlite` is
@@ -11,9 +11,11 @@
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { makeApi } from './api.mjs'
 import { SECTION_NAME, SECTION_ORDER, renderBlock } from './agent/context.mjs'
 import { makeService } from './agent/service.mjs'
 import { approvalGate, tools as dbTools } from './agent/tools.mjs'
+import { mountRoutes } from './routes.mjs'
 import { seedSkills } from './seed-skills.mjs'
 
 export const name = 'kybernos-db'
@@ -109,6 +111,17 @@ export function apply (ctx, options = {}) {
         try { service.close() } catch (e) { /* never opened, or already closed */ }
       }, 'kybernos-db: tools, prompt block and approvals')
     }
+
+    // The routes of the Tables page (routes.mjs): every data route needs DSH's signed session.
+    const api = makeApi({ service, ports: options.toolPorts })
+    const mountWeb = (c) => {
+      try {
+        const webServer = c.get('webServer')
+        if (webServer !== undefined) retraits.push(...mountRoutes(webServer, api))
+      } catch (e) { say('routes not mounted: ' + why(e)) }
+    }
+    if (ctx.get('webServer') !== undefined) mountWeb(ctx)
+    else ctx.inject(['webServer'], mountWeb)
 
     const mountTools = (c) => {
       try {

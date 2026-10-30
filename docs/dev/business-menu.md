@@ -52,6 +52,12 @@ a second registration of the same key at the same priority throws. The core pick
   try/catch). Nothing depends on it: without storage the group starts open.
 - In the collapsed icon rail the header goes away and the rows always show.
 
+## Handing a sentence to Kaby: `window.__KB_ASK__`
+
+A page of the group that wants the person to ask Kaby something (« Modify view » and « Ask Kaby… » on the Tables page) calls `window.__KB_ASK__(text)`: the core's
+`kbStartChatText`, which opens a chat with `text` already written in the composer so the person reads it and sends it. It answers `false` when no chat can be
+opened; the page then offers the sentence to copy. The call is guarded (the seam is absent without the core) and nothing is sent by the page itself.
+
 ## Tests
 
 `node packages/kybernos-plugin/test-business-menu.mjs` (the registry cut out of `client.js`, plus where the core reads it and the CSS promises) and,

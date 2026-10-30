@@ -11005,6 +11005,9 @@ return {
     // Exposé pour le bouton « Envoyer un retour » (barre d'outils de la
     // sidebar, autre composant, autre portée).
     kbOpenFeedbackChat = kbStartChatText
+    // A page that wants Kaby to do something for the person (the Tables page: « Modify view ») opens a chat with the first message written, never sent: the
+    // person reads it and sends it. One door, the same one the feedback button uses; a page checks that it is a function before calling it.
+    try { if (typeof window !== 'undefined') window.__KB_ASK__ = kbStartChatText } catch (e) { /* outside a browser */ }
     // « Let the agent help me create a preset » (Settings › Agent presets) opens a Creator-mode chat and nothing else: DSH
     // calls `uiWorkspace.startSession(undefined, { clearPreviousDraft: false, agentPreset: 'cordis' })` with no `prompt`,
     // although `startSession` takes one, so the person lands on an empty composer with no hint of what to say. That exact
