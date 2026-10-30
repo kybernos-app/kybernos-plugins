@@ -321,6 +321,35 @@ export function alignerPins ({ fs, profilDir, cible, disponibles = {} }) {
   return { pkg, alignes, retires, bundlesRetires }
 }
 
+// A hand-edited cordis.patch.yml carried `- id: tools` with a single `config.mode` key (a hand edit of 2026-09-17 that switched the
+// code-running mode on). DSH 0.2.2 split the native and PTC executors into their own plugins and `tools` takes no `mode`: the server
+// stops at boot with « 2 required plugins did not activate ($.mode expected nullable but got native) » (measured 2026-10-30 on
+// 0.2.2-alpha.2). On 0.2.1 the row is harmless, so it is dropped only for a target at or above the first measured version. The photo
+// taken before the upgrade holds the file, so a rollback puts the row back. A `tools` row that carries anything else is left alone.
+const PREMIERE_SANS_MODE = '0.2.2-alpha.2'
+export function migrerProfil ({ fs, profilDir, cible }) {
+  const rapport = { retires: [], gardes: [] }
+  if (typeof cible !== 'string' || cible === '' || comparerVersions(cible, PREMIERE_SANS_MODE) < 0) return rapport
+  const chemin = join(profilDir, 'cordis.patch.yml')
+  if (!fs.existe(chemin)) return rapport
+  const lignes = fs.lire(chemin).split('\n')
+  const sortie = []
+  for (let i = 0; i < lignes.length; i += 1) {
+    if (!/^- id: tools\s*$/.test(lignes[i])) { sortie.push(lignes[i]); continue }
+    // the row = this line and every following line indented under it
+    let fin = i + 1
+    while (fin < lignes.length && /^( {2,}|\t)\S/.test(lignes[fin])) fin += 1
+    const corps = lignes.slice(i + 1, fin).filter((l) => l.trim() !== '')
+    const soloMode = corps.length === 2 && /^ {2}config:\s*$/.test(corps[0]) && /^ {4}mode:/.test(corps[1])
+    if (!soloMode) { rapport.gardes.push('tools'); sortie.push(...lignes.slice(i, fin)); i = fin - 1; continue }
+    sortie.push('# (removed by dsh-lifecycle: `tools` takes no `mode` since DSH 0.2.2)')
+    rapport.retires.push('tools')
+    i = fin - 1
+  }
+  if (rapport.retires.length > 0) fs.ecrire(chemin, sortie.join('\n'))
+  return rapport
+}
+
 /**
  * Pure. Is this existing `link:` worth re-pointing at the folder being installed? Two cases, both measured on 2026-10-08:
  *   · the link points at a folder that no longer exists (an update that ran from a temp folder and cleaned it up): nothing
