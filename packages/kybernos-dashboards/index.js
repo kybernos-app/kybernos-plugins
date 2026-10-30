@@ -54,8 +54,17 @@ export function tellWhenReady (options = {}) {
 }
 // ── end of the telling ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-/** The presets the installed templates ship, read from the registry now (never at boot). */
-export const livePresets = (taken) => templatePresets(registrySeam(), taken)
+/** The template the Business pages follow now (the core's business seam), or null when none is chosen or the core is older. Never throws. */
+const activeTemplate = () => {
+  try {
+    const business = globalThis[Symbol.for('kybernos.business')]
+    const r = business !== null && business !== undefined && typeof business.scope === 'function' ? business.scope() : null
+    return r !== null && typeof r === 'object' && r.ok === true && typeof r.scope === 'string' && r.scope !== '' ? r.scope : null
+  } catch (e) { return null }
+}
+
+/** The presets of the ACTIVE template (every installed one when none is chosen), read from the registry now (never at boot). */
+export const livePresets = (taken) => templatePresets(registrySeam(), taken, activeTemplate())
 
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host (published by the core bundle).
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }

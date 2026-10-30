@@ -17,6 +17,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
+import { takeTemplatesOut } from './lib-sandbox-templates.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const args = process.argv.slice(2)
@@ -35,10 +36,15 @@ const check = (name, ok, detail) => {
 }
 
 // The sandbox's own base, opened by this process (never the real one: DSH_HOME is the sandbox's, checked above).
-const base = createBusinessBase()
+// This process is not DSH: it writes the way the page does while no template is active (rows of no template), and its own questions are about every row.
+const base = createBusinessBase({ scope: () => null })
 if (!base.file().startsWith(sandboxHome)) { console.error('○ inconclusive: the base file is not under the sandbox home: ' + base.file()); process.exit(3) }
 const A = (r) => { if (r.ok !== true) throw new Error('base: ' + JSON.stringify(r)); return r }
 
+// The sandbox is a clone of a profile that carries sector templates; with one active the three pages speak ITS words and show ITS rows (docs/dev/business-visuals.md).
+// This check is about the plain page, so the templates are out for the run and back at the end (scripts/lib-sandbox-templates.mjs).
+const templatesOut = takeTemplatesOut(join(process.env.DSH_HOME, 'profiles', 'web'))
+if (templatesOut.count > 0) await sleep(3200)
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
 const ev = async (js) => { const r = await page.evalJs(js, 10000); return r.err ? { err: r.err } : r.val }

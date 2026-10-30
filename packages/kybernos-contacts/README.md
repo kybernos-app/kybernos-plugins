@@ -26,7 +26,8 @@ A theme tells Contacts its words through the point `kybernos/contacts#schema` (`
 (`person` or `company`, each type with a label), custom fields (`text`, `number`, `money`, `date`, `choice`, `email`, `url`), and the usual tags. The registry hands back what the
 **active** themes gave; the host merges it (the first theme to name a key keeps it; a kind with no type of its own gets the plain `person` / `company`) and serves it at
 `/kybernos-contacts/schema`. With no theme installed the words are plain English: Person, Company, no field, no tag. A row keeps the key of its type: remove the theme and its rows
-are drawn as a plain person or company, nothing is lost.
+are drawn as a plain person or company, nothing is lost. With several themes installed only the **active** one speaks (`docs/dev/business-visuals.md`): the schema, the list, the counts and the sample data
+are that template's; the others wait, installed.
 
 ## For the code
 

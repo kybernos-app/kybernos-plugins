@@ -24,12 +24,15 @@ install it. It is the first lot of the business plugins: Contacts, Catalog and P
 - **Journalled.** Every write adds one line to `changes` in the same transaction: who (`person`, `agent`, `theme`, `seed`), which table and row,
   what (`create`, `update`, `move`, `archive`, `restore`, `seed`, `clear-demo`, `export`, `purge`).
 
-## Tables (schema 1)
+## Tables (schema 2)
 
 `contact` (person or company, `company_id`, `tags`, `fields`), `note` (on a contact, never edited), `item` (a product, a property, a job:
 `type`, `status`, `price_text`, `price_num`, `fields`), `flow_card` (one card of a board: `flow`, `stage`, `position`, `value_num`, links to a
 contact and an item, `entered_stage_at`), `changes` (the journal), `pack` (the manifest the DB viewer reads), `meta` (`schema_version`,
 `created_at`, `seeded`). `demo = 1` marks the sample rows of a theme; `archived_at` hides a row without deleting it.
+**Schema 2** adds `scope` to `contact`, `note`, `item` and `flow_card` (the plugin id of the sector template the row belongs to, `''` for none, indexed): the three Business pages show one template at a
+time (`docs/dev/business-visuals.md`). The step is idempotent (a column already there is not added again), forward only, and attributes the sample rows of an older base to the theme that seeded
+them by reading the journal of the seeds.
 
 ## The seam
 
@@ -39,14 +42,15 @@ Every method answers `{ ok: true, … }` or `{ ok: false, error, detail }`.
 |---|---|
 | `status()` | where the file would be, whether it exists, whether `node:sqlite` is available. Opens nothing. |
 | `open()` | creates and migrates the file if needed; `{ ok, path, version }` |
-| `list(table, { q, includeArchived, demo, limit, offset, …filters })` | at most 500 rows; filters: contact `kind`, `type`, `company_id`; item `type`, `status`; flow_card `flow`, `stage`, `contact_id`, `item_id`; note `contact_id` |
-| `get(table, id)`, `create(table, row, { actor })`, `update(table, id, patch, { actor })` | rows are checked (unknown keys refused, bounded text, JSON at most 16 KB); a card whose `stage` changes is a `move` and goes to the end of its new column |
+| `list(table, { q, includeArchived, demo, scope, limit, offset, …filters })` | at most 500 rows of the **active template** (`scope`: a template id, `''` for the rows of none, `'*'` for every one); filters: contact `kind`, `type`, `company_id`; item `type`, `status`; flow_card `flow`, `stage`, `contact_id`, `item_id`; note `contact_id` |
+| `get(table, id)`, `create(table, row, { actor, scope })`, `update(table, id, patch, { actor })` | rows are checked (unknown keys refused, `scope` is not a field, bounded text, JSON at most 16 KB); a new row takes the active scope (a note, its contact's); `get` reads any scope; a card whose `stage` changes is a `move` and goes to the end of its new column |
 | `archive(table, id, { actor })`, `restore(…)` | not for notes |
-| `seed(data, { theme, actor })` | the sample rows of a theme, all `demo = 1`, in one transaction; the same theme seeds once (`skipped`); rows point at one another with `ref`, `company_ref`, `contact_ref`, `item_ref` |
-| `clearDemo({ actor })` | removes the sample rows and what hangs on them; what the person made stays; themes can seed again |
-| `exportAll({ actor })` | everything as plain data, journal included |
+| `seed(data, { theme, actor })` | the sample rows of a theme, all `demo = 1` and with `scope = theme`, in one transaction; the same theme seeds once (`skipped`); rows point at one another with `ref`, `company_ref`, `contact_ref`, `item_ref` |
+| `clearDemo({ actor, scope })` | removes the sample rows of the **active template** (every sample while none is active; `scope: '*'` all, an id that one's) and what hangs on them; what the person made stays; that theme can seed again |
+| `exportAll({ actor, scope })` | everything as plain data, journal included, each row with its scope; `{ scope }` limits it to one template |
 | `deleteAll({ confirm: true, actor })` | empties every table, keeps the schema, truncates the WAL and vacuums so nothing remains in the file; leaves one `purge` line |
-| `counts()`, `close()`, `file()` | |
+| `counts({ scope })`, `close()`, `file()` | `counts` is the active template's rows (the answer names the `scope`; `null` = every row) |
+| `scope()` | `{ ok, scope }`: the template the pages follow now (its plugin id) or `null`; opens nothing. The hosts of the three plugins read it to offer the active template's types, schema and boards only. Which template is active is `business-scope.mjs`'s: the stored choice, read through the registry |
 
 Error codes: `sqlite_unavailable`, `cannot_open`, `not_a_database`, `schema_newer`, `read_only`, `busy`, `bad_ref`, `constraint`,
 `bad_field`, `unknown_field`, `missing_field`, `bad_id`, `bad_actor`, `unknown_table`, `not_found`, `not_allowed`, `confirm_required`, `failed`.

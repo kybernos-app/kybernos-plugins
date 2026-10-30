@@ -416,6 +416,45 @@ await ok('the engine\'s waterfall: the gate answers for the write, and hands eve
   assert.equal((await gate({ name: 'contacts_upsert', arguments: { name: 'x' } }, next)).kind, 'ask')
 })
 
+console.log('── one template at a time ──')
+await ok('the schema, the list and the writes follow the active template; with none active every theme speaks, as before', async () => {
+  const keptBase = globalThis[BASE_SEAM]
+  const keptRegistry = globalThis[REGISTRY_SEAM]
+  try {
+    let scope = null
+    const one = createBusinessBase({ file: join(home, 'business', 'one-template.sqlite'), scope: () => scope })
+    one.seed({ contacts: [{ name: 'Amelia the customer', type: 'customer' }, { name: 'Mateo the customer', type: 'customer' }] }, { theme: 'acme/shop' })
+    one.seed({ contacts: [{ name: 'Gina the grower', type: 'grower', kind: 'company' }] }, { theme: 'acme/other' })
+    globalThis[BASE_SEAM] = one
+    globalThis[REGISTRY_SEAM] = { version: 1, contributions: () => [shop, second], definePoint () {} }
+    const api = makeApi()
+    assert.deepEqual(api.schema().schema.themes, ['shop', 'other'], 'none active: both themes')
+    assert.equal(api.list({}).total, 3)
+    scope = 'acme/shop'
+    assert.deepEqual(api.schema().schema.themes, ['shop'])
+    assert.deepEqual(api.schema().schema.types.map((t) => t.key), ['customer', 'supplier', 'company'], 'the shop\'s types, and the plain company the shop gives none for')
+    assert.equal(api.list({}).total, 2)
+    assert.equal(api.list({}).demo, 2, 'the sample count is the active template\'s')
+    assert.equal(api.list({ q: 'Gina' }).total, 0)
+    refused(api.create({ name: 'Gina 2', type: 'grower', kind: 'company' }), 'bad_field')
+    const made = api.create({ name: 'Made in the shop', type: 'customer' })
+    assert.equal(made.ok, true, JSON.stringify(made))
+    assert.equal(made.contact.scope, 'acme/shop')
+    scope = 'acme/other'
+    assert.deepEqual(api.schema().schema.themes, ['other'])
+    assert.deepEqual(api.list({}).rows.map((r) => r.name), ['Gina the grower'])
+    assert.equal(api.vocabulary().types.some((t) => t.key === 'supplier'), false, 'an agent is not offered the shop\'s words either')
+    assert.equal(api.clearDemo().ok, true)
+    assert.equal(one.list('contact', { scope: 'acme/shop' }).total, 3, 'the other template\'s samples and the new customer are untouched')
+    scope = 'acme/none'
+    assert.equal(api.schema().schema.themed, false, 'an active template that speaks of no contact: the plain words')
+    assert.deepEqual(schemaFrom({ contributions: () => [shop, second] }, 'acme/shop').themes, ['shop'])
+    assert.deepEqual(schemaFrom({ contributions: () => [shop, second] }, null).themes, ['shop', 'other'])
+    assert.deepEqual(schemaFrom({ contributions: () => [shop, second] }, '').themes, ['shop', 'other'])
+    one.close()
+  } finally { globalThis[BASE_SEAM] = keptBase; globalThis[REGISTRY_SEAM] = keptRegistry }
+})
+
 rmSync(home, { recursive: true, force: true })
 if (failed > 0) { console.log('test-host: ' + failed + ' failure(s)'); process.exit(1) }
 console.log('test-host: all green')

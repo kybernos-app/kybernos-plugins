@@ -364,6 +364,15 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   ok('editing it offers only its own lines, and says why', by(root, 'catalog-field-status').length === 0 && by(root, 'catalog-field-stock').length === 0 && by(root, 'catalog-generic-note').length === 1)
   root.unmount()
 
+  // the view the person left on the other template (the map of the agency) is not one of this type's: the bar says which one is shown
+  server.reset([PRODUCT], 'theme', DEMO.map((r) => ({ ...r })))
+  const saved = []
+  const mapBar = { KbToolbar: (props) => { saved.push(props); return h('div', { 'data-kb': 'toolbar' }, props.trailing) }, useToolbarState: () => [{ query: '', sort: 'modified', dir: 'desc', types: [], period: 'all', fav: false, viewMode: 'map' }, () => {}] }
+  const stale = lite.mount(h(Page, { toolbar: mapBar }))
+  await stale.settle()
+  ok('a saved map view that this type does not offer: the cards are shown and the bar says « cards », not a view that no button is on', by(stale, 'catalog-card').length === 3 && saved.length > 0 && saved.every((p) => p.state.viewMode === 'cards') && saved[saved.length - 1].views.join() === 'cards,list')
+  stale.unmount()
+
   // several types
   server.reset([PRODUCT, JOB], 'theme', [row(1, { title: 'Chair' }), row(2, { type: 'job', status: 'open', title: 'Carpenter' })])
   const bars = []

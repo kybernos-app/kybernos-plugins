@@ -209,8 +209,13 @@ node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
 
 A fourth folder, `dashboards/`, extends `kybernos/dashboards#preset` (owned by the Dashboards plugin, at most 4 files): a dashboard of the trade built from the three
 business sources (`catalog.items`, `contacts.people`, `pipeline.cards`) and the widgets the Dashboards plugin already has. It is data too and inert (no note, no free text);
-its rules and an example are in [`plugin-contract.md`](plugin-contract.md) section 6.2b. A theme that ships one names `kybernos/dashboards` (`^1.0`) in `requires.plugins`
-like the three owners above, and the Templates page lists the Dashboards among what the theme needs.
+its rules and an example are in [`plugin-contract.md`](plugin-contract.md) section 6.2b. A theme that ships one extends the point as an **optional** extension (`"optional": true`) and does NOT name `kybernos/dashboards` in `requires.plugins`:
+with the Dashboards plugin off the theme stays whole and only its dashboard is missing. The Templates page still lists the Dashboards among what the theme brings.
+
+**One template at a time.** Several themes can be installed side by side, but the three pages show one: the **active** theme (the last one installed until the person picks another with the
+selector of the Business group, `docs/dev/business-visuals.md`). Only the active theme's contributions to the three points are offered, only its rows are shown, and the rows (and the pack words)
+of the others wait, installed. The selector and the three rows read the theme's field-of-work pack (`domains/<id>.json`): its `name`, `icon`, `accent` and `menu.labels.contacts|catalog|pipeline`
+(a theme with no label for a row leaves the row its plain word). Nothing else to add to a theme: no key, no file.
 
 Sample rows for the pages (so a new install is not empty) are not part of these points: a theme keeps them in `demo/sample.json`, the argument of the base's `seed()`.
 The three themes the product ships, with their sample rows, are described in [`shipped-themes.md`](shipped-themes.md).

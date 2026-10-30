@@ -78,15 +78,28 @@ export function createPipelineHost (ports = {}) {
   }
 
   // ── the boards ────────────────────────────────────────────────────────────────────────────────
-  /** The boards of the active themes (each checked again: the registry may be another version), or `[]`. */
+  /**
+   * The template the pages follow (the base's `scope()`: its plugin id), or null when none is active or the base cannot say. One template at a time
+   * (docs/dev/business-visuals.md): the boards of the others stay installed, dormant.
+   */
+  const scopeOf = () => {
+    try {
+      const base = seam('business')
+      const r = base !== null && typeof base.scope === 'function' ? base.scope() : null
+      return plain(r) && r.ok === true && typeof r.scope === 'string' && r.scope !== '' ? r.scope : null
+    } catch (e) { return null }
+  }
+  /** The boards of the ACTIVE template (of every active theme while none is), each checked again (the registry may be another version), or `[]`. */
   const themeFlows = () => {
     const registry = seam('registry')
     if (registry === null || typeof registry.contributions !== 'function') return []
     let list = []
     try { list = registry.contributions(FLOW_POINT) } catch (e) { return [] }
+    const scope = scopeOf()
     const seen = new Set()
     const out = []
     for (const c of Array.isArray(list) ? list : []) {
+      if (scope !== null && !(plain(c) && c.plugin === scope)) continue
       const value = plain(c) ? c.value : null
       if (!plain(value)) continue
       const checked = validatePipelineFlow(value, value.id)

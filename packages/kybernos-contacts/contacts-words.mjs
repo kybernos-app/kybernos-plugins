@@ -40,11 +40,15 @@ export function mergeSchema (contributions) {
   return { themed: true, themes, types, fields, tags }
 }
 
-/** The schema as the registry gives it now. `registry` is the seam (`Symbol.for('kybernos.registry')`), or null: the plain defaults. */
-export function schemaFrom (registry) {
+/**
+ * The schema as the registry gives it now. `registry` is the seam (`Symbol.for('kybernos.registry')`), or null: the plain defaults. `scope` is the plugin id
+ * of the template the pages follow (one at a time, docs/dev/business-visuals.md): only its contribution is merged; null keeps every active theme's.
+ */
+export function schemaFrom (registry, scope = null) {
   try {
     if (registry === null || registry === undefined || typeof registry.contributions !== 'function') return defaultSchema()
-    return mergeSchema(registry.contributions(POINT_REF))
+    const all = registry.contributions(POINT_REF)
+    return mergeSchema(typeof scope === 'string' && scope !== '' && Array.isArray(all) ? all.filter((c) => plain(c) && c.plugin === scope) : all)
   } catch (e) { return defaultSchema() }
 }
 

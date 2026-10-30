@@ -4,7 +4,7 @@
 //
 //   node scripts/test-sandbox-rewrite.mjs
 import { spawnSync } from 'node:child_process'
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -28,6 +28,8 @@ try {
   pkg('kybernos-changes', '@local/kybernos-changes', { dsh: {} })
   pkg('kybernos-relance', '@local/kybernos-relance', { dsh: {} })
   pkg('messaging', 'messaging-daemon', {})
+  // two sector templates in the worktree (data folders under kybernos-plugin/themes/), a third the worktree does not have
+  for (const t of ['ecommerce', 'real-estate']) { mkdirSync(join(work, 'packages', 'kybernos-plugin', 'themes', t), { recursive: true }); writeFileSync(join(work, 'packages', 'kybernos-plugin', 'themes', t, 'plugin.json'), '{}') }
   // the cloned profile: links to the shared tree (and one to a package that is not in the worktree), relance in the bundles, an mcp path under the real home
   mkdirSync(join(profile, 'node_modules', '@local'), { recursive: true })
   mkdirSync(join(real, '.dsh', 'mcp'), { recursive: true })
@@ -37,6 +39,9 @@ try {
     dependencies: { '@local/kybernos': 'link:' + SHARED + '/kybernos-plugin', '@local/kybernos-sessions': 'link:' + SHARED + '/kybernos-sessions', '@local/kybernos-private-example': 'link:/private/elsewhere/packages/kybernos-private-example' },
     dsh: { profile: { bundles: ['@local/kybernos', '@local/kybernos-relance', '@local/kybernos-sessions'] } }
   }, null, 2))
+  // the clone keeps pnpm's RELATIVE links to the templates, which climb out of the sandbox's home and dangle there
+  mkdirSync(join(profile, 'node_modules', '@kybernos-themes'), { recursive: true })
+  for (const t of ['ecommerce', 'real-estate', 'elsewhere']) symlinkSync('../../../../../kybernos-plugins/packages/kybernos-plugin/themes/' + t, join(profile, 'node_modules', '@kybernos-themes', t))
   writeFileSync(join(profile, 'pnpm-lock.yaml'), "  '@local/kybernos':\n    specifier: link:" + SHARED + '/kybernos-plugin\n    version: link:../../../../real/kybernos-plugins/packages/kybernos-plugin\n')
   writeFileSync(join(profile, 'cordis.patch.yml'), 'mcp:\n  - ' + join(real, '.dsh', 'mcp') + '/lsp.mjs\n')
   const run = (a) => spawnSync(process.execPath, [REWRITE, ...(a || [profile, work, dshHome, real])], { encoding: 'utf8' })
@@ -51,6 +56,9 @@ try {
   check('the relaunch tool is dropped from the bundles and never added (it targets port 3080)', !p1.dsh.profile.bundles.includes('@local/kybernos-relance') && p1.dependencies['@local/kybernos-relance'] === undefined)
   check('a package that is not a DSH bundle (the standalone daemon) is not added', Object.keys(p1.dependencies).every((k) => !/messaging/.test(k)))
   check('the symlinks of node_modules/@local land in the worktree, new bundle included', ['kybernos', 'kybernos-sessions', 'kybernos-changes'].every((n) => { const l = join(profile, 'node_modules', '@local', n); return existsSync(l) && lstatSync(l).isSymbolicLink() && resolve(dirname(l), readlinkSync(l)).startsWith(work) }))
+  const tl = (t) => join(profile, 'node_modules', '@kybernos-themes', t)
+  check('the sector templates\' links land on the worktree\'s copy and no longer dangle', ['ecommerce', 'real-estate'].every((t) => lstatSync(tl(t)).isSymbolicLink() && readlinkSync(tl(t)) === join(work, 'packages', 'kybernos-plugin', 'themes', t) && existsSync(join(tl(t), 'plugin.json'))) && /"themesLinked":2/.test(r1.stdout), r1.stdout)
+  check('a template the worktree does not have is left as it was', readlinkSync(tl('elsewhere')) === '../../../../../kybernos-plugins/packages/kybernos-plugin/themes/elsewhere')
   check('the lock file follows', !readFileSync(join(profile, 'pnpm-lock.yaml'), 'utf8').includes(SHARED) && readFileSync(join(profile, 'pnpm-lock.yaml'), 'utf8').includes(join(work, 'packages', 'kybernos-plugin')))
   check('the mcp paths leave the real home', !readFileSync(join(profile, 'cordis.patch.yml'), 'utf8').includes(join(real, '.dsh', 'mcp')))
   const ws = JSON.parse(readFileSync(join(dshHome, 'storages', 'workspace.json'), 'utf8'))

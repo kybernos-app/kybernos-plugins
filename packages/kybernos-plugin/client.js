@@ -8975,6 +8975,26 @@ const CSS = `
 /* In the icon rail there is no room for a header: it goes, and the rows always show. */
 [class*="collapsed"] .kb4-menu .kb4-grph{display:none}
 [class*="collapsed"] .kb4-menu .kb4-grprows.folded{display:block}
+/* The template selector of the group (kb-business-scope): the active template, and opened, the ones to pick from. Inline, in em like the rows around it. */
+.kb4-scope{margin:.15em 0 .3em}
+.kb4-scopebtn,.kb4-scopeitem{display:flex;align-items:center;gap:.55em;width:100%;min-height:2.15em;margin:0;padding:.25em .7em .25em .45em;border:1px solid var(--dsw-alias-border-l1);border-radius:.75em;background:var(--dsw-alias-bg-layer-1);font:inherit;font-size:.95em;line-height:1.3;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:left}
+.kb4-scopebtn:hover,.kb4-scopeitem:hover{background:var(--dsw-alias-bg-layer-2)}
+.kb4-scopebtn:focus-visible,.kb4-scopeitem:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kb4-scopebtn:disabled,.kb4-scopeitem:disabled{cursor:progress;opacity:.7}
+.kb4-scopebtn .kb4-lab,.kb4-scopeitem .kb4-lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.kb4-scopetile{display:flex;align-items:center;justify-content:center;flex:none;width:1.65em;height:1.65em;border-radius:.5em;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
+.kb4-scopechev{flex:none;display:flex;color:var(--dsw-alias-label-secondary);transition:transform .16s ease}
+.kb4-scopebtn.open .kb4-scopechev{transform:rotate(180deg)}
+.kb4-scopelist{display:flex;flex-direction:column;gap:.2em;margin:.25em 0 0;padding:.3em;border:1px solid var(--dsw-alias-border-l1);border-radius:.85em;background:var(--dsw-alias-bg-base)}
+.kb4-scopeitem{border-color:transparent;background:transparent}
+.kb4-scopeitem.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
+.kb4-scopeck{flex:none;display:flex;margin-inline-start:auto;color:var(--dsw-alias-brand-primary)}
+.kb4-scopenote{margin:.2em .4em .1em;font-size:.9em;line-height:1.35;color:var(--dsw-alias-label-secondary)}
+.kb4-scopeerr{margin:.1em .4em .2em;font-size:.9em;line-height:1.35;color:var(--dsw-alias-state-error-primary)}
+@media (prefers-reduced-motion:reduce){.kb4-scopechev{transition:none}}
+@media (pointer:coarse){.kb4-scopebtn,.kb4-scopeitem{min-height:44px}}
+/* In the icon rail the selector has no room: the pages follow the choice made in the wide menu. */
+[class*="collapsed"] .kb4-menu .kb4-scope{display:none}
 /* Demande du 28/10 : le libellé « Workspaces » du pied ouvre la page Workspaces (l'écouteur de document plus bas), donc il
    s'annonce comme un lien. Rien d'autre n'est posé ici : mesuré dans la page, l'hôte masque déjà les actions du pied
    (« headerActions » et le bouton de recherche à « opacity: 0 ») et ne les révèle qu'au survol — nos règles étaient en double. */
@@ -27883,6 +27903,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         kit: { skills: chosen.skills, teams: chosen.teams, automations: chosen.automations },
       }
       await kbThApi({ action: 'record', id, applied, before: { style: report.style === 'applied' ? look : null, domain: { profil: seen.profil, goals: seen.goals } } })
+      kbBizScope.settle() // the host made this template the one the Business pages follow
       return { ok: report.ok === true, plan, report }
     }
     /** Remove: the package leaves through DSH's manager; the look and the field come back when they are still the theme's; the kit stays. */
@@ -28218,6 +28239,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           kit: { skills: ticks.skills, teams: ticks.teams, automations: ticks.automations },
         }
         await kbThApi({ action: 'record', id: plan.id, applied, before: { style: rep.style === 'applied' ? look : null, domain: { profil: seen.profil, goals: seen.goals } } })
+        kbBizScope.settle() // the host made this template the one the Business pages follow
         setReport(rep)
         setBusy(null)
         setScreen('report')
@@ -28230,6 +28252,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const gone = await kbThRemoveTheme(record)
         setBusy(null)
         if (gone.removed !== true) setError(kbThEn('DSH did not remove the package. Your look and field were put back; the template stays listed.', 'DSH n’a pas retiré le paquet. Ton style et ton domaine ont été remis ; le modèle reste listé.'))
+        kbBizScope.settle() // a template that left is no longer one the pages can follow
         await load()
       }
       // ── what the page shows: the gallery, a theme page, and the plan or the report as a dialog over it ──────────────────
@@ -29315,9 +29338,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       React.useEffect(() => {
         const offRows = kbBizMenu.subscribe(() => bump((n) => n + 1))
         const offState = KB_MENU_STATE.subscribe(() => bump((n) => n + 1))
-        return () => { offRows(); offState() }
+        const offScope = kbBizScope.subscribe(() => bump((n) => n + 1))
+        return () => { offRows(); offState(); offScope() }
       }, [])
       const rows = kbBizMenu.list()
+      // The choice of template is read once a page of the group exists, and again after an install or a removal (kbBizScope.reload()).
+      React.useEffect(() => { if (rows.length > 0 && kbBizScope.state().loaded !== true && kbBizScope.state().failed !== true) kbBizScope.reload() }, [rows.length])
       if (rows.length === 0) return null
       const lang = kbDomainLang()
       const att = kbBizAttention(rows, KB_MENU_STATE.get)
@@ -29331,6 +29357,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           'aria-controls': 'kb4-biz-rows',
           title,
           'data-act': 'toggle-business',
+          'data-kb-keep-open': 'true', // folding the group is not a destination: the phone's drawer stays open (kybernos-mobile: KEEP_OPEN)
           onClick: toggle,
         },
         h('span', { className: 'kb4-grpchev' }, Icon('chevronDown', 13)),
@@ -29339,6 +29366,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         (collapsed && att.count > 0) ? h('span', { className: 'kb4-grpcnt', role: 'img', 'aria-label': kbt('menu.review') + ': ' + att.count }, att.count >= 99 ? '99+' : String(att.count)) : null,
         (collapsed && att.count === 0 && att.running) ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': kbt('menu.working') }) : null),
         h('div', { id: 'kb4-biz-rows', className: 'kb4-grprows' + (collapsed ? ' folded' : ''), role: 'group', 'aria-label': title },
+          h(KbBizScopePicker, null),
           rows.map((r) => props.row(r.id, Icon(r.icon, 15) || Icon('layers', 15), kbBizLabel(r, kbt, lang), 0, props.shown === r.id, () => props.openPage({ view: r.id }), h(KbRowState, { k: r.id })))))
     }
     const KbBusinessMount = (props) => {
@@ -29350,10 +29378,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         try { stop = slots.subscribe('main.kybernos-business', () => setTick(n = n + 1)) } catch (e) { stop = null }
         return () => { try { if (typeof stop === 'function') stop() } catch (e) { /* already cleaned */ } }
       }, [])
+      // The page is mounted under a key that holds the active template: a switch starts it afresh (it loads its own rows, types and boards again), which no plugin has to code.
+      React.useEffect(() => kbBizScope.subscribe(() => setTick((n) => n + 1)), [])
       let entries = []
       try { entries = slots.entriesOfSlot('main.kybernos-business') || [] } catch (e) { entries = [] }
       const mine = entries.filter((e) => e !== null && e !== undefined && e.options !== null && e.options !== undefined && e.options.key === props.id)[0]
-      if (mine !== undefined && mine.component !== null && mine.component !== undefined) return h(mine.component, { sessionId: typeof props.sessionId === 'string' ? props.sessionId : null, toolbar: props.toolbar === undefined ? null : props.toolbar })
+      if (mine !== undefined && mine.component !== null && mine.component !== undefined) return h(mine.component, { key: props.id + '|' + String(kbBizScope.active()), sessionId: typeof props.sessionId === 'string' ? props.sessionId : null, toolbar: props.toolbar === undefined ? null : props.toolbar })
       return h('p', { className: 'kbg-empty' }, kbt('kbui.business.off'))
     }
     // The product's own search/filter bar and its state hook go to every business page: it draws the bar in the header row (search, favourites, the view switch,
@@ -29361,6 +29391,234 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     const kbBizToolbar = () => (typeof KbToolbar === 'function' && typeof useToolbarState === 'function' ? { KbToolbar: KbToolbar, useToolbarState: useToolbarState } : null)
     const KbBusinessView = (props) => h('div', { className: 'kbg-root', 'data-kb-page': props.id }, h(KbBusinessMount, Object.assign({}, props, { toolbar: props.toolbar === undefined || props.toolbar === null ? kbBizToolbar() : props.toolbar })))
     // </kb-business-ui>
+    // <kb-business-scope>
+    // ONE TEMPLATE AT A TIME (docs/dev/business-visuals.md, « One active template »). Contacts, Catalog and Pipeline follow the sector template the person chose; the
+    // others stay installed and wait. The host owns the choice (GET/POST /kybernos/business/scope, business-scope.mjs): this block reads it, draws the selector in the
+    // « Business » group (hidden while fewer than two templates touch the pages), lends the active template's words to the three rows and their pages, and tells the
+    // page area to start afresh when the choice changes (the page is mounted under a key that holds the template).
+    //   window.__KB_BIZ_SCOPE__ = { v, state(), active(), templates(), set(id), reload(), subscribe(fn), word(row) }
+    // Pure helpers first (cut out and run alone by test-business-scope-client.mjs), then the store, then the selector.
+    const KB_BIZ_SCOPE_URL = '/kybernos/business/scope'
+    const KB_BIZ_SCOPE_ROWS = ['contacts', 'catalog', 'pipeline']
+    const KB_BIZ_SCOPE_ID = /^[a-z0-9][a-z0-9/_-]{0,60}$/
+    /** The icons a template's field-of-work pack can name, as the paths they are drawn with (the same shapes as the wizard's). */
+    const KB_BIZ_PACK_ICONS = {
+      cap: ['M2 9l10-5 10 5-10 5z', 'M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5', 'M22 9v6'],
+      heart: ['M20.8 5.6a5 5 0 00-7.1 0L12 7.3l-1.7-1.7a5 5 0 00-7.1 7.1L12 21l8.8-8.3a5 5 0 000-7.1z'],
+      house: ['M3 11l9-8 9 8', 'M5 10v10h14V10', 'M10 20v-6h4v6'],
+      scales: ['M12 3v18M5 21h14M5 7h14', 'M5 7l-3 7a3.5 3.5 0 006 0z', 'M19 7l-3 7a3.5 3.5 0 006 0z'],
+      trend: ['M3 17l6-6 4 4 8-8', 'M15 7h6v6'],
+      bag: ['M5 8h14l-1 12H6z', 'M9 8a3 3 0 016 0'],
+      mega: ['M3 11v2a1 1 0 001 1h3l8 4V6L7 10H4a1 1 0 00-1 1z', 'M19 9a4 4 0 010 6'],
+      code: ['M8 8l-5 4 5 4', 'M16 8l5 4-5 4', 'M14 5l-4 14'],
+      wand: ['M12 3v4M12 17v4M3 12h4M17 12h4', 'M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2'],
+    }
+    const kbBizScopePlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+    /** A `{ en, fr… }` text in a language, else English, else null. */
+    const kbBizScopeText = (pair, lang) => {
+      if (!kbBizScopePlain(pair)) return null
+      const t = typeof pair[lang] === 'string' && pair[lang] !== '' ? pair[lang] : pair.en
+      return typeof t === 'string' && t !== '' ? t : null
+    }
+    /** The host's answer as the store keeps it (`{ active, templates }`), or null when it is not what the route promises: nothing of it is trusted blindly. */
+    const kbBizScopeNormalize = (j) => {
+      if (!kbBizScopePlain(j) || j.ok !== true || !Array.isArray(j.templates)) return null
+      const templates = []
+      for (const t of j.templates.slice(0, 24)) {
+        if (!kbBizScopePlain(t) || typeof t.id !== 'string' || !KB_BIZ_SCOPE_ID.test(t.id) || templates.some((x) => x.id === t.id)) continue
+        const words = {}
+        if (kbBizScopePlain(t.words)) for (const r of KB_BIZ_SCOPE_ROWS) if (kbBizScopePlain(t.words[r]) && typeof t.words[r].en === 'string') words[r] = t.words[r]
+        templates.push({
+          id: t.id,
+          name: kbBizScopePlain(t.name) && typeof t.name.en === 'string' ? t.name : { en: t.id.split('/').pop() },
+          icon: typeof t.icon === 'string' && KB_BIZ_PACK_ICONS[t.icon] !== undefined ? t.icon : null,
+          accent: typeof t.accent === 'string' && /^#[0-9a-fA-F]{6}$/.test(t.accent) ? t.accent : null,
+          words,
+        })
+      }
+      const active = typeof j.active === 'string' && templates.some((t) => t.id === j.active) ? j.active : null
+      // `ready: false` = the host's registry has not heard the Business points yet (the first seconds after DSH starts): an empty list then means « not known yet ».
+      return { active, templates, ready: j.ready !== false }
+    }
+    /** The selector shows when at least two templates touch the pages; with one, that one is simply the active one. */
+    const kbBizScopeShown = (state) => state !== null && state.loaded === true && state.templates.length >= 2
+    /** Whether the active template speaks for the row: while one is active, the three rows use ITS words and never the person's field's. */
+    const kbBizScopeOwns = (state, row) => state.loaded === true && state.active !== null && KB_BIZ_SCOPE_ROWS.indexOf(row) >= 0
+    /** The active template's word for a row (« Properties »), or null when it has none for it. */
+    const kbBizScopeWord = (state, row, lang) => {
+      if (!kbBizScopeOwns(state, row)) return null
+      const t = state.templates.find((x) => x.id === state.active)
+      return t === undefined ? null : kbBizScopeText(t.words[row], lang)
+    }
+    /** When the host says it is not ready, the page asks again after these delays (ms), then leaves it: the pages are scoped by the host whatever the selector knows. */
+    const KB_BIZ_SCOPE_RETRY = [1200, 3000, 7000, 15000]
+    const kbBizScope = (() => {
+      let st = { loaded: false, failed: false, busy: false, error: null, active: null, templates: [], ready: true }
+      let inflight = null
+      let retried = 0
+      const subs = new Set()
+      const fire = () => {
+        subs.forEach((f) => { try { f() } catch (e) { /* a listener that is gone */ } })
+        try { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('kb-business-scope-change')) } catch (e) { /* no events */ }
+      }
+      const ask = async (body) => {
+        const res = await fetch(KB_BIZ_SCOPE_URL, body === undefined
+          ? { method: 'GET', cache: 'no-store', credentials: 'same-origin', headers: { accept: 'application/json' } }
+          : { method: 'POST', cache: 'no-store', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        let json = null
+        try { json = await res.json() } catch (e) { json = null }
+        return { status: res.status, json }
+      }
+      /** Reads the choice again (at start, after an install or a removal). Never throws; a host that does not answer leaves the pages as they are. */
+      const reload = () => {
+        if (inflight !== null) return inflight
+        inflight = (async () => {
+          try {
+            const r = await ask()
+            const v = r.status === 200 ? kbBizScopeNormalize(r.json) : null
+            st = v !== null ? Object.assign({}, st, v, { loaded: true, failed: false }) : Object.assign({}, st, { failed: st.loaded !== true })
+          } catch (e) { st = Object.assign({}, st, { failed: st.loaded !== true }) }
+          inflight = null
+          if (st.loaded === true && st.ready === false && retried < KB_BIZ_SCOPE_RETRY.length) {
+            try { setTimeout(() => { reload() }, KB_BIZ_SCOPE_RETRY[retried]) } catch (e) { /* no timers */ }
+            retried += 1
+          } else if (st.ready !== false) retried = 0
+          fire()
+        })()
+        return inflight
+      }
+      /** Switches the template. Resolves true when the host stored it; on a refusal the pages stay as they were and the selector says so. */
+      const set = async (id) => {
+        if (st.busy === true) return false
+        st = Object.assign({}, st, { busy: true, error: null }); fire()
+        let ok = false
+        try {
+          const r = await ask({ action: 'set', id })
+          const v = r.status === 200 ? kbBizScopeNormalize(r.json) : null
+          if (v !== null) { st = Object.assign({}, st, v, { loaded: true, failed: false }); ok = true }
+        } catch (e) { ok = false }
+        st = Object.assign({}, st, { busy: false, error: ok ? null : 'switch' }); fire()
+        return ok
+      }
+      const api = {
+        v: 1,
+        state: () => st,
+        active: () => st.active,
+        templates: () => st.templates.slice(),
+        reload,
+        set,
+        /** After an install or a removal: reads now, and again once the registry (which rescans every two seconds) has seen the change. */
+        settle: () => { reload(); try { setTimeout(() => { reload() }, 2600) } catch (e) { /* no timers */ } },
+        /** Forgets the last refusal (the selector opens or closes). */
+        dismiss: () => { if (st.error !== null) { st = Object.assign({}, st, { error: null }); fire() } },
+        subscribe: (f) => { subs.add(f); return () => { subs.delete(f) } },
+        word: (row) => kbBizScopeWord(st, row, kbDomainLang()),
+      }
+      try { if (typeof window !== 'undefined') window.__KB_BIZ_SCOPE__ = api } catch (e) { /* outside a browser */ }
+      // The choice is the host's, and another window may have changed it: read it again when this one comes back (at most every two seconds), so the words and the selector never
+      // say another template than the rows the host now sends.
+      let lastBack = 0
+      const comesBack = () => {
+        try {
+          if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+          const now = Date.now()
+          if (st.loaded === true && st.busy !== true && now - lastBack > 2000) { lastBack = now; reload() }
+        } catch (e) { /* nothing to refresh */ }
+      }
+      try { if (typeof window !== 'undefined') { window.addEventListener('focus', comesBack); window.addEventListener('visibilitychange', comesBack); window.addEventListener('pageshow', comesBack) } } catch (e) { /* no events */ }
+      return api
+    })()
+    /** The little tile of a template: its field's icon on a tint of its accent. */
+    const kbBizScopeTile = (t, size) => {
+      const paths = t.icon !== null ? KB_BIZ_PACK_ICONS[t.icon] : null
+      const style = t.accent !== null ? { color: t.accent, background: 'color-mix(in srgb, ' + t.accent + ' 16%, transparent)' } : undefined
+      return h('span', { className: 'kb4-scopetile', style, 'aria-hidden': 'true' },
+        paths === null ? Icon('briefcase', size) : h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', focusable: 'false' }, paths.map((d, i) => h('path', { d, key: i }))))
+    }
+    /**
+     * The selector, in the « Business » group above its rows: the active template (its icon and its name) and, opened, the templates to pick from. Opened inline, not over
+     * the page: it needs no room beside the sidebar. A real button, a menu of radio items, arrows to move, Enter to pick, Escape to close and give the focus back.
+     */
+    const KbBizScopePicker = () => {
+      const bump = React.useState(0)[1]
+      const openPair = React.useState(false)
+      const open = openPair[0]
+      const setOpen = openPair[1]
+      const listRef = React.useRef(null)
+      const btnRef = React.useRef(null)
+      React.useEffect(() => kbBizScope.subscribe(() => bump((n) => n + 1)), [])
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        const onDown = (e) => { try { const t = e.target; if (t !== null && t !== undefined && typeof t.closest === 'function' && t.closest('[data-kb="business-scope"]') !== null) return } catch (e2) { /* a target without closest */ } setOpen(false) }
+        document.addEventListener('mousedown', onDown, true)
+        return () => document.removeEventListener('mousedown', onDown, true)
+      }, [open])
+      const st = kbBizScope.state()
+      if (kbBizScopeShown(st) !== true) return null
+      const lang = kbDomainLang()
+      const current = st.templates.find((t) => t.id === st.active)
+      const nameOf = (t) => kbBizScopeText(t.name, lang) || t.id
+      const focusBtn = () => { try { if (btnRef.current !== null) btnRef.current.focus() } catch (e) { /* no focus */ } }
+      const items = () => { try { return listRef.current === null ? [] : Array.prototype.slice.call(listRef.current.querySelectorAll('[role="menuitemradio"]')) } catch (e) { return [] } }
+      const focusItem = (i) => { const list = items(); if (list.length === 0) return; try { list[(i + list.length) % list.length].focus() } catch (e) { /* no focus */ } }
+      const pick = async (id) => {
+        const ok = id === st.active ? true : await kbBizScope.set(id)
+        if (ok !== true) return // the menu stays open and says why
+        setOpen(false)
+        focusBtn()
+      }
+      const toggle = () => { kbBizScope.dismiss(); setOpen(open !== true) }
+      const onBtnKey = (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault()
+          setOpen(true)
+          setTimeout(() => { const list = items(); const on = list.findIndex((x) => x.getAttribute('aria-checked') === 'true'); focusItem(e.key === 'ArrowUp' ? list.length - 1 : (on < 0 ? 0 : on)) }, 0)
+        } else if (e.key === 'Escape' && open === true) { e.preventDefault(); e.stopPropagation(); setOpen(false) }
+      }
+      const onListKey = (e) => {
+        const list = items()
+        const at = list.indexOf(document.activeElement)
+        if (e.key === 'ArrowDown') { e.preventDefault(); focusItem(at + 1) }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); focusItem(at - 1) }
+        else if (e.key === 'Home') { e.preventDefault(); focusItem(0) }
+        else if (e.key === 'End') { e.preventDefault(); focusItem(list.length - 1) }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setOpen(false); focusBtn() }
+        else if (e.key === 'Tab') setOpen(false)
+      }
+      const label = kbe('Template of the Business pages', 'Modèle des pages Business')
+      return h('div', { className: 'kb4-scope', 'data-kb': 'business-scope', 'data-kb-keep-open': 'true' }, // the phone's drawer stays open while the person picks (kybernos-mobile: KEEP_OPEN)
+        h('button', {
+          type: 'button',
+          ref: btnRef,
+          className: 'kb4-scopebtn' + (open === true ? ' open' : ''),
+          'aria-haspopup': 'menu',
+          'aria-expanded': open === true ? 'true' : 'false',
+          'aria-controls': 'kb4-scope-list',
+          'aria-label': label + kbfSep() + (current === undefined ? '' : nameOf(current)),
+          title: label,
+          'data-act': 'business-scope',
+          'aria-busy': st.busy === true ? 'true' : undefined, // never `disabled`: a disabled button cannot take the focus back once the switch is done
+          onClick: toggle,
+          onKeyDown: onBtnKey,
+        },
+        current === undefined ? null : kbBizScopeTile(current, 15),
+        h('span', { className: 'kb4-lab', 'data-kb': 'business-scope-name' }, current === undefined ? label : nameOf(current)),
+        h('span', { className: 'kb4-scopechev' }, Icon('chevronDown', 13))),
+        open === true ? h('div', { id: 'kb4-scope-list', ref: listRef, className: 'kb4-scopelist', role: 'menu', 'aria-label': label, onKeyDown: onListKey },
+          st.templates.map((t) => h('button', {
+            key: t.id,
+            type: 'button',
+            role: 'menuitemradio',
+            'aria-checked': t.id === st.active ? 'true' : 'false',
+            className: 'kb4-scopeitem' + (t.id === st.active ? ' on' : ''),
+            'data-scope-id': t.id,
+            disabled: st.busy === true,
+            onClick: () => pick(t.id),
+          }, kbBizScopeTile(t, 14), h('span', { className: 'kb4-lab' }, nameOf(t)), t.id === st.active ? h('span', { className: 'kb4-scopeck' }, Icon('check', 14)) : null)),
+          h('p', { className: 'kb4-scopenote' }, kbe('The other templates stay installed. Their rows come back when you pick them.', 'Les autres modèles restent installés. Leurs lignes reviennent quand tu les choisis.')),
+          st.error !== null ? h('p', { className: 'kb4-scopeerr', role: 'alert', 'data-kb': 'business-scope-error' }, kbe('Could not switch the template. Nothing changed.', 'Impossible de changer de modèle. Rien n’a changé.')) : null) : null)
+    }
+    // </kb-business-scope>
     const kbOpenPage = (patch) => {
       try {
         kbLeaveSettings()
@@ -29402,7 +29660,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     let kbDomainPack = null
     let kbDomainGoals = []
     const kbDomainLang = () => { const b = String(kbLangResolve()).split(/[-_]/)[0]; return b === 'kybernos' ? 'fr' : b }
-    const kbDomainLabel = (id) => { const t = kbObMenuOverlay(kbDomainPack, kbDomainLang()).labels[id]; return typeof t === 'string' ? t : null }
+    // The three Business rows speak the ACTIVE template's words (Customers, Properties, Candidates…) while one is active, and never the field's: two templates installed
+    // side by side must not lend each other their vocabulary. With none active they follow the field, as they always did.
+    const kbDomainLabel = (id) => {
+      if (kbBizScopeOwns(kbBizScope.state(), id)) return kbBizScopeWord(kbBizScope.state(), id, kbDomainLang())
+      const t = kbObMenuOverlay(kbDomainPack, kbDomainLang()).labels[id]
+      return typeof t === 'string' ? t : null
+    }
     const kbDomainHome = () => (kbDomainPack !== null && Array.isArray(kbDomainPack.home) ? kbDomainPack.home : [])
     const kbDomainHides = (id) => kbObMenuOverlay(kbDomainPack, kbDomainLang()).hide.indexOf(id) >= 0
     /** The title of a page: the word the menu gives its row in this field, else the page's own title. */

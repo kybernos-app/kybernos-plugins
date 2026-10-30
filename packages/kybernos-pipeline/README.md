@@ -5,6 +5,9 @@ Orders, deals or candidates as cards on a board that moves from stage to stage, 
 
 **Where.** The Business group of the sidebar, row Pipeline (the row and the page come from this plugin; the group is the core's, `docs/dev/business-menu.md`).
 
+**One template at a time.** With several templates installed, the page offers the boards of the **active** one only, and the cards, the counts and the pickers (contacts, items) are its own
+(`docs/dev/business-visuals.md`); the selector is in the Business group of the sidebar.
+
 **Use.**
 1. Without a theme the page shows one plain board: New, In progress, Done. A theme that extends `kybernos/pipeline#flow` brings its own boards (one file = one board: stages, how the
    value is counted, whether a card may link to a contact and an item); with several, a switcher appears above the board.

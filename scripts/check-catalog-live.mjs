@@ -21,6 +21,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeF
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
+import { takeTemplatesOut as takeTemplatesOutOf } from './lib-sandbox-templates.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -40,7 +41,9 @@ const check = (name, ok, detail) => {
 
 // ── the sandbox's data and its profile ────────────────────────────────────────────────────────────────────
 const baseFile = join(dshHome, 'kybernos', 'business', 'donnees.sqlite')
-const base = createBusinessBase({ file: baseFile })
+// This process is not DSH: it writes the way the page does while no template is active, rows of NO template (scope ''), which the host's active template adopts at its
+// next question (docs/dev/business-visuals.md), and its own questions are about every row. Left to itself it would take the scope the sandbox last chose.
+const base = createBusinessBase({ file: baseFile, scope: () => null })
 const profileDir = join(dshHome, 'profiles', 'web')
 const profilePackage = join(profileDir, 'package.json')
 const THEME = '@acme/kybernos-garden-shop'
@@ -61,24 +64,10 @@ const putTheme = () => {
 const takeThemeOut = () => {
   try { if (profileBefore !== null) { writeFileSync(profilePackage + '.tmp', profileBefore); renameSync(profilePackage + '.tmp', profilePackage); profileBefore = null } } catch (e) { /* the sandbox is throw-away */ }
   try { rmSync(join(profileDir, 'node_modules', '@acme'), { recursive: true, force: true }) } catch (e) { /* gone */ }
-  try { if (profileOriginal !== null) { writeFileSync(profilePackage + '.tmp', profileOriginal); renameSync(profilePackage + '.tmp', profilePackage); profileOriginal = null } } catch (e) { /* the sandbox is throw-away */ }
 }
 process.on('exit', takeThemeOut)
-// The sector templates the clone carries (data-only packages): out for the run, back at the end. Resolves how many were taken out.
-let profileOriginal = null
-const isTemplate = (name) => name.startsWith('@kybernos-themes/')
-const takeTemplatesOut = () => {
-  const text = readFileSync(profilePackage, 'utf8')
-  const pkg = JSON.parse(text)
-  const had = Object.keys(pkg.dependencies || {}).filter(isTemplate).concat(pkg.dsh.profile.bundles.filter(isTemplate))
-  if (had.length === 0) return 0
-  profileOriginal = text
-  for (const name of Object.keys(pkg.dependencies || {})) if (isTemplate(name)) delete pkg.dependencies[name]
-  pkg.dsh.profile.bundles = pkg.dsh.profile.bundles.filter((b) => !isTemplate(b))
-  writeFileSync(profilePackage + '.tmp', JSON.stringify(pkg, null, 2) + '\n')
-  renameSync(profilePackage + '.tmp', profilePackage)
-  return had.length
-}
+// The sector templates the clone carries (data-only packages) are out for the run and back at the end (scripts/lib-sandbox-templates.mjs).
+const takeTemplatesOut = () => takeTemplatesOutOf(profileDir).count
 
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
 const { page } = live
@@ -176,6 +165,8 @@ try {
   const templatesOut = takeTemplatesOut()
   const onDefault = `fetch('/kybernos-catalog/types', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.source === 'default')`
   check('the catalogue is on its default type (' + templatesOut + ' sector template(s) of the cloned profile are out for this run)', (await waitFor(page, onDefault, 20000)) === true)
+  // what the Templates page does once a template has gone: the page reads the choice again, and the rows go back to their plain words
+  await ev(`window.__KB_BIZ_SCOPE__ ? window.__KB_BIZ_SCOPE__.reload().then(() => 1) : 1`)
   await waitFor(page, `document.readyState === 'complete' && document.querySelector('.kb4-item') !== null`, 25000)
   await waitFor(page, `window.__KB_MENU__ && window.__KB_MENU__.ids().indexOf('catalog') >= 0`, 25000)
   check('the plugin declares its row once the core\'s registry exists (the row waits for it)', (await ev(`window.__KB_MENU__.ids().filter((i) => i === 'catalog').length`)) === 1)
@@ -374,11 +365,14 @@ try {
   const sampleSeed = base.seed({ items: plants.slice(0, 2) }, { theme: 'acme/garden-shop' })
   for (const p of plants.slice(2)) base.create('item', p, { actor: 'person' })
   check('plants are written (two as the theme\'s sample rows, two by hand) next to the five rows of the default type', sampleSeed.ok === true && (await base.list('item', {})).total === 9)
+  check('the four samples of the default type belong to a theme that is not installed, the fifth row was typed by hand', (await base.list('item', { scope: 'check/live' })).total === 4 && (await base.list('item', { scope: '*' })).total === 9)
   await reloadPage()
   check('the page is called « Plants » and the button names the type', (await text(SEL('catalog-title'))) === 'Plants' && /New plant/i.test((await text(SEL('catalog-new'))) || ''), await text(SEL('catalog-new')))
   const sev = await ev(`[...document.querySelectorAll('[data-kb="catalog-chip"]')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim())`)
   check('the chips are the theme\'s statuses: In stock, Low stock, Sold out', ['In stock', 'Low stock', 'Sold out'].every((s) => sev.some((c) => c.startsWith(s))), sev)
-  check('nine cards: four plants and the five rows of the old type', (await count(SEL('catalog-card'))) === 9 && (await count(SEL('catalog-card', '[data-known="no"]'))) === 5 && (await count(SEL('catalog-card', '[data-known="yes"]'))) === 4)
+  // One template at a time: the garden shop adopts what the person typed before any template was there (drawn as a generic card), and the four sample rows of a theme that is
+  // not installed stay in the base, dormant, until that theme is back (they are not on the page: nothing of another template is).
+  check('five cards: four plants and the one row of the old type the garden shop adopted; the four samples of the uninstalled theme are dormant', (await count(SEL('catalog-card'))) === 5 && (await count(SEL('catalog-card', '[data-known="no"]'))) === 1 && (await count(SEL('catalog-card', '[data-known="yes"]'))) === 4 && (await base.list('item', { scope: '*' })).total === 9 && (await base.list('item', { scope: 'check/live' })).total === 4)
   const flags = await ev(`[...document.querySelectorAll('[data-kb="catalog-flag"]')].map((e) => e.innerText)`)
   check('the card flag follows the type: « Only 3 left » and « Only 0 left » (stock at 5 or under)', flags.includes('Only 3 left') && flags.includes('Only 0 left') && !flags.some((f) => /14/.test(f)), flags)
   const prices = await ev(`[...document.querySelectorAll('[data-kb="catalog-price"]')].map((e) => e.innerText)`)
