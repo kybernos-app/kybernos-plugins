@@ -1,6 +1,6 @@
 # Recruitment firm
 
-A Kybernos theme for a recruitment firm. Data only: JSON and Markdown, no code; the only pictures are the cover and the sample photographs (`demo/photos/`, invented, made by `scripts/theme-photos.mjs` from the plans in `docs/dev/theme-photos/`).
+A Kybernos theme for a recruitment firm. Data only: JSON and Markdown, no code; the only pictures are the cover and the sample pictures (`demo/photos/`: photographs of the items and portraits of the people, invented, made by `scripts/theme-photos.mjs` from the plans in `docs/dev/theme-photos/`).
 
 | What | Words and content |
 |---|---|
@@ -8,6 +8,7 @@ A Kybernos theme for a recruitment firm. Data only: JSON and Markdown, no code; 
 | Contacts | candidates, client contacts and client companies |
 | Catalog | one kind of item, the job, with open, on hold, filled and draft |
 | Pipeline | two boards: Candidates (sourced to placed) and Client missions (brief to placed) |
+| Dashboards | one overview dashboard: open jobs, candidates in play, placements, the oldest open job, candidates and client missions by stage, where candidates come from |
 | Kit | 2 skills, 1 team, 4 automations (created switched off), 4 goals taken from the former `recrutement` pack |
 | Style | the dark indigo "recrutement-ssii" preset |
 

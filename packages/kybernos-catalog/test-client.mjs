@@ -365,6 +365,15 @@ const DEMO = [row(1, { title: 'Linen apron', status: 'low', demo: true, fields: 
   ok('editing it offers only its own lines, and says why', by(root, 'catalog-field-status').length === 0 && by(root, 'catalog-field-stock').length === 0 && by(root, 'catalog-generic-note').length === 1)
   root.unmount()
 
+  // the view the person left on the other template (the map of the agency) is not one of this type's: the bar says which one is shown
+  server.reset([PRODUCT], 'theme', DEMO.map((r) => ({ ...r })))
+  const saved = []
+  const mapBar = { KbToolbar: (props) => { saved.push(props); return h('div', { 'data-kb': 'toolbar' }, props.trailing) }, useToolbarState: () => [{ query: '', sort: 'modified', dir: 'desc', types: [], period: 'all', fav: false, viewMode: 'map' }, () => {}] }
+  const stale = lite.mount(h(Page, { toolbar: mapBar }))
+  await stale.settle()
+  ok('a saved map view that this type does not offer: the cards are shown and the bar says « cards », not a view that no button is on', by(stale, 'catalog-card').length === 3 && saved.length > 0 && saved.every((p) => p.state.viewMode === 'cards') && saved[saved.length - 1].views.join() === 'cards,list')
+  stale.unmount()
+
   // several types
   server.reset([PRODUCT, JOB], 'theme', [row(1, { title: 'Chair' }), row(2, { type: 'job', status: 'open', title: 'Carpenter' })])
   const bars = []
@@ -475,6 +484,26 @@ const homeRow = (id, over) => row(id, Object.assign({ type: 'property', status: 
   await bare.settle()
   ok('without the shared kit the page still draws: a neutral tile for a picture, plain chips', by(bare, 'catalog-card').length === 3 && by(bare, 'catalog-picture').every((n) => n.props['data-picture'] !== 'art') && by(bare, 'catalog-chips').length === 3)
   bare.unmount()
+  store.clear()
+}
+{
+  // a type whose card names its company (`card.company`): the line that holds the company's name is led by the kit's drawn mark
+  const HIRE = { id: 'hire', label: L('Job'), plural: L('Jobs'), icon: 'briefcase', statuses: [{ key: 'open', tone: 'ok', label: L('Open') }], fields: [{ key: 'client', type: 'text', label: L('Client') }], card: { title: 'title', subtitle: 'client', company: 'client' }, views: ['cards', 'list'] }
+  server.reset([HIRE], 'theme', [row(1, { type: 'hire', title: 'Data engineer', status: 'open', fields: { client: 'Brightwell Analytics' } }), row(2, { type: 'hire', title: 'Designer', status: 'open', fields: { client: '' } })])
+  store.clear()
+  windowObject.__KB_BIZ_KIT__ = { v: 1, artOk: () => false, Art: () => null, Tag: (props) => h('span', { 'data-kb': 'kit-tag', 'data-text': props.text }), Icon: (name) => h('svg', { 'data-icon': name }), tint: () => 0, Logo: (props) => h('span', { 'data-kb': 'kit-logo', 'data-name': props.name, 'data-size': String(props.size) }) }
+  const root = lite.mount(h(Page, { toolbar: null }))
+  await root.settle()
+  ok('a card whose type names its company leads the company line with the drawn mark, and a card with no company line draws none', by(root, 'catalog-company').length === 1 && by(root, 'kit-logo').length === 1 && by(root, 'kit-logo')[0].props['data-name'] === 'Brightwell Analytics' && by(root, 'catalog-company')[0].children.some((c) => c.props !== undefined && c.props['aria-hidden'] === 'true'))
+  await click(root, by(root, 'catalog-card-open')[0])
+  ok('and so does the panel of the item', by(root, 'catalog-panel').length === 1 && lite.find(by(root, 'catalog-panel')[0], (n) => n.props['data-kb'] === 'kit-logo').length === 1)
+  root.unmount()
+  delete windowObject.__KB_BIZ_KIT__.Logo
+  const older = lite.mount(h(Page, { toolbar: null }))
+  await older.settle()
+  ok('a kit with no Logo (an older core) leaves the plain line', by(older, 'catalog-company').length === 0 && by(older, 'catalog-card').length === 2 && by(older, 'catalog-card')[0].children.length > 0)
+  older.unmount()
+  delete windowObject.__KB_BIZ_KIT__
   store.clear()
 }
 

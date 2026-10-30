@@ -2,17 +2,17 @@
 
 The product ships three themes, as folders of data in the core: `packages/kybernos-plugin/themes/<dir>/`. They are the same unit as any
 theme ([`sector-bundles.md`](sector-bundles.md): one folder, one `plugin.json`, several `extends`), plus the three business points
-(Contacts, Catalog, Pipeline, [`business-base.md`](business-base.md)) and a folder of sample rows. Nothing in them is code, media or a path.
+(Contacts, Catalog, Pipeline, [`business-base.md`](business-base.md)), a dashboard (`kybernos/dashboards#preset`) and a folder of sample rows. Nothing in them is code, media or a path.
 
-| Folder | Id | Business rows | Boards | Kit |
-|---|---|---|---|---|
-| `ecommerce/` | `kybernos-themes/ecommerce` | Customers · Products · Orders | Orders | 2 skills, 1 team, 2 automations, 4 goals (from the `com` pack) |
-| `real-estate/` | `kybernos-themes/real-estate` | Contacts · Properties · Sales and lettings | Sales, Lettings | 2 skills, 1 team, 3 automations, 4 goals (from `immo`) |
-| `recruitment/` | `kybernos-themes/recruitment` | Candidates and clients · Jobs · Placements | Candidates, Client missions | 2 skills, 1 team, 4 automations, 4 goals (from the former `recrutement`) |
+| Folder | Id | Business rows | Boards | Dashboard | Kit |
+|---|---|---|---|---|---|
+| `ecommerce/` | `kybernos-themes/ecommerce` | Customers · Products · Orders | Orders | Shop overview | 2 skills, 1 team, 2 automations, 4 goals (from the `com` pack) |
+| `real-estate/` | `kybernos-themes/real-estate` | Contacts · Properties · Sales and lettings | Sales, Lettings | Agency overview | 2 skills, 1 team, 3 automations, 4 goals (from `immo`) |
+| `recruitment/` | `kybernos-themes/recruitment` | Candidates and clients · Jobs · Placements | Candidates, Client missions | Desk overview | 2 skills, 1 team, 4 automations, 4 goals (from the former `recrutement`) |
 
 Each is installable alone, from its folder or by id (the installer treats both the same): it brings its field pack, its style and an empty
-bundle patch, and it passes `plugin-check`. What it needs from the product is only the six plugins it names in `requires.plugins`: the core's
-three seams and the three business plugins.
+bundle patch, and it passes `plugin-check`. What it needs from the product is only the seven plugins it names in `requires.plugins`: the core's
+three seams, the three business plugins and the Dashboards.
 
 ## The folder
 
@@ -20,7 +20,7 @@ three seams and the three business plugins.
 <dir>/
   plugin.json            id kybernos-themes/<dir>, author kybernos-themes, Apache-2.0, name and description in en and fr,
                          keywords (the first one is the chip of the card), requires.plugins (core, theme, skills, contacts,
-                         catalog, pipeline: ^1.0), extends the eight points
+                         catalog, pipeline, dashboards: ^1.0), extends the nine points
   why.json               one line per business plugin, in this theme's words (not a data point: the gallery reads it, plugin-check ignores it)
   package.json           "dsh": { "bundle": { "patch": "./cordis.patch.yml" } } and nothing else under dsh
   cordis.patch.yml       the empty patch: []
@@ -32,6 +32,7 @@ three seams and the three business plugins.
   contacts/<id>.json     kinds of contact (person or company), fields, tags
   catalog/<id>.json      one file per kind of item: statuses, fields, what the card shows
   pipeline/<id>.json     one file per board: stages (2 to 8), how a value is counted, what a card may link to
+  dashboards/<id>.json   a dashboard of the trade (kybernos/dashboards#preset): widgets over the three business sources, the word of its menu row
   demo/sample.json       the sample rows (below)
   README.md              what is inside, in English
 ```
@@ -43,9 +44,9 @@ three seams and the three business plugins.
 For a card, `readShipped` (`packages/kybernos-plugin/themes-shipped.mjs`) keeps: the first manifest keyword, capitalised, as the chip over the card
 (`commerce`, `property`, `people`), the manifest `name` (80 characters) and `description` (300),
 the pack's `name`, `tagline` (200), `accent`, `icon` and the three words of `menu.labels.contacts|catalog|pipeline` (40 each), the style's
-`name`, `needs` (the plugins named in `requires.plugins` beyond the core's seams: the three business plugins) and the **names** of what is under
+`name`, `needs` (the plugins named in `requires.plugins` beyond the core's seams: the three business plugins, then the Dashboards) and the **names** of what is under
 `skills/`, `teams/` and `automations/`. So a file is named for the person who reads the card: `order-replies`, `shop-desk`, `daily-stock`.
-`why.json` gives each plugin the theme needs one line (`{ "kybernos/contacts": { "en": …, "fr": … }, … }`, 160 characters at most) that says what it does
+`why.json` gives each plugin the theme needs (the Dashboards too) one line (`{ "kybernos/contacts": { "en": …, "fr": … }, … }`, 160 characters at most) that says what it does
 for this trade: « Orders from new to delivered. » The gallery draws a cover itself: **no picture is shipped**, a `cover.jpg` is refused by `garde-depot`.
 
 ## The sample rows
@@ -75,9 +76,11 @@ Rules (all checked by `scripts/test-shipped-themes.mjs`):
   and links the person (`contact_ref`) and the product or job (`item_ref`) it is about. The test of a rich theme is the `RICH` list of `scripts/test-shipped-themes.mjs`.
 - **Placed for real.** A type with a `map` (the real-estate properties) puts each sample item at a REAL latitude and longitude, a point on a real street of ONE city (Paris for `real-estate`: each property in the neighbourhood its `district` says, 4 decimals, read from OpenStreetMap), because the Catalog's Map view is a real map; the names, addresses and prices stay invented. `scripts/test-shipped-themes.mjs` holds every item of a type with a `map` inside that city, each on its own spot.
 - **Invented.** Every name, address and message is made up, e-mail addresses are on `example.com`, a company's is `hello@<name>.example.com`.
-  No path, no real person. The only pictures are the sample photographs (rule 4): an item names its own in a text field (`card.image`, `photo:<theme dir>/<name>`),
-  at `demo/photos/<name>.jpg`, one per item, 16 a theme at most. They are invented scenes: `scripts/theme-photos.mjs` asks FLUX 2 for one palette of nine to twelve
-  photographs and cuts it; the plan that made each palette is `docs/dev/theme-photos/<theme dir>-<n>.json` (the palettes themselves stay out of git).
+  No path, no real person. The only pictures are the sample pictures (rule 4): an item names its photograph in a text field (`card.image`, `photo:<theme dir>/<name>`),
+  a person its portrait in the contacts field `image` (same scheme), at `demo/photos/<name>.jpg`, 24 a theme at most, each 1280 px wide and 220 KB at most. A photograph
+  serves two related items at most and a portrait two people at most, so a theme fits in 24. A company has no file: its mark is drawn in code. They are invented
+  scenes and fictitious people: `scripts/theme-photos.mjs` asks FLUX 2 for one picture at a time; the plans are `docs/dev/theme-photos/<theme dir>-photos.json` and
+  `-portraits.json` (the raw answers stay out of git, see `docs/dev/business-visuals.md`).
 - **One price.** An item carries `price_text` (what a card prints, `€780 / month`) and, when its type has a `price` money field, the same
   number in `price_num` and in `fields.price`.
 

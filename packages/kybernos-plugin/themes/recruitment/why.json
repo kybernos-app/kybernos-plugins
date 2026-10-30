@@ -10,5 +10,9 @@
   "kybernos/pipeline": {
     "en": "Candidates by job, and your client missions.",
     "fr": "Les candidats par offre, et vos missions clients."
+  },
+  "kybernos/dashboards": {
+    "en": "Open jobs, candidates by stage and placements at a glance.",
+    "fr": "Offres ouvertes, candidats par étape et placements d’un coup d’œil."
   }
 }

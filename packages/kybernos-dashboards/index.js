@@ -9,6 +9,8 @@ import { createHost, toolOptions, TOOL } from './dashboard-host.mjs'
 import { PRESETS } from './presets.mjs'
 import { shapeOf, sourcesOf, validateDashboard } from './model.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { PRESET_POINT } from './preset-point.mjs'
+import { templatePresets } from './template-presets.mjs'
 
 export const name = 'kybernos-dashboards'
 
@@ -18,6 +20,51 @@ const ROUTE = '/kybernos-dashboards/'
 export const SKILLS_DIR = join(here, 'skills')
 export const SEEDED_SKILLS = ['dashboard-builder', 'dashboard-sources']
 const dire = (msg) => console.log(`[kybernos-dashboards] ${msg}`)
+
+// ── telling the registry (the same shape in the business plugins: packages/kybernos-catalog/index.js; test-point.mjs proves this one) ───────────────────────────
+const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+
+/** Tells the registry the point this plugin owns. `true` when the registry was there to hear it (telling it twice changes nothing). */
+export const tellPoint = () => {
+  try {
+    const registry = registrySeam()
+    if (registry === null) return false
+    registry.definePoint(PRESET_POINT)
+    return true
+  } catch (e) { return false }
+}
+
+/**
+ * Tells the point now, and again after each delay until the registry has heard it: the registry mounts when DSH decides, maybe after this plugin. Until it is told, every
+ * template that extends `kybernos/dashboards#preset` is `missing-dependency` (the whole template, not only its dashboards). Never throws; the timers never hold DSH open.
+ * `options.schedule` and `options.delays` are for the test.
+ */
+export function tellWhenReady (options = {}) {
+  const schedule = options.schedule || setTimeout
+  const delays = Array.isArray(options.delays) ? options.delays : [500, 1500, 4000, 10000, 30000, 60000]
+  let told = tellPoint()
+  let tries = 0
+  const next = () => {
+    if (told || tries >= delays.length) return
+    const timer = schedule(() => { told = tellPoint(); next() }, delays[tries++])
+    if (timer !== undefined && timer !== null && typeof timer.unref === 'function') timer.unref()
+  }
+  next()
+  return () => told
+}
+// ── end of the telling ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** The template the Business pages follow now (the core's business seam), or null when none is chosen or the core is older. Never throws. */
+const activeTemplate = () => {
+  try {
+    const business = globalThis[Symbol.for('kybernos.business')]
+    const r = business !== null && business !== undefined && typeof business.scope === 'function' ? business.scope() : null
+    return r !== null && typeof r === 'object' && r.ok === true && typeof r.scope === 'string' && r.scope !== '' ? r.scope : null
+  } catch (e) { return null }
+}
+
+/** The presets of the ACTIVE template (every installed one when none is chosen), read from the registry now (never at boot). */
+export const livePresets = (taken) => templatePresets(registrySeam(), taken, activeTemplate())
 
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host (published by the core bundle).
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -99,10 +146,12 @@ const isJson = (req) => String((req.headers && req.headers['content-type']) || '
 const q = (req) => new URL(req.url, 'http://127.0.0.1').searchParams
 const str = (v) => (typeof v === 'string' && v !== '' ? v : null)
 
-/** What the page needs to list the presets: their shape, never the whole definition. */
-export const presetSummary = () => PRESETS.map((p) => {
+/** What the page needs to list the presets: their shape, never the whole definition. A template's carries `template: { id, name }`. */
+export const presetSummary = (list = PRESETS) => list.map((p) => {
   const v = validateDashboard({ name: p.name, desc: p.desc, widgets: p.widgets })
-  return { id: p.id, name: p.name, desc: p.desc, widgets: v.dashboard.widgets.length, sources: sourcesOf(v.dashboard).map((s) => s.provider), shape: v.dashboard.widgets.map((w) => shapeOf(w)) }
+  const out = { id: p.id, name: p.name, desc: p.desc, widgets: v.dashboard.widgets.length, sources: sourcesOf(v.dashboard).map((s) => s.provider), shape: v.dashboard.widgets.map((w) => shapeOf(w)) }
+  if (p.template !== undefined) out.template = p.template
+  return out
 })
 
 export function mountRoutes (webServer, host) {
@@ -135,7 +184,10 @@ export function mountRoutes (webServer, host) {
     send(res, 200, { ok: true, current: cur ? { id: cur.id, name: cur.name, at: cur.at } : null, now: Date.now(), suggested })
   })
   get('list', async (req, res) => { send(res, 200, { ok: true, ...(await host.list()) }) })
-  get('presets', (req, res) => { send(res, 200, { ok: true, presets: presetSummary() }) })
+  // the installed templates' presets first (they are what the person came for), then the built-in ones
+  get('presets', (req, res) => { send(res, 200, { ok: true, presets: presetSummary(host.allPresets().filter((p) => p.template !== undefined)).concat(presetSummary()) }) })
+  // the « Overview » row of the Business group: which dashboard it opens (null: no installed template ships one), read-only
+  get('overview', async (req, res) => { send(res, 200, { ok: true, overview: await host.overviewInfo() }) })
   get('dashboard', async (req, res) => {
     const r = await host.readDoc(str(q(req).get('id')))
     if (!r.ok) return send(res, 404, r)
@@ -153,6 +205,11 @@ export function mountRoutes (webServer, host) {
   post('preset', 4000, async (b, req, res) => {
     const r = await host.fromPreset(str(b.preset), str(b.name) || undefined)
     return send(res, r.ok ? 200 : 400, r.ok ? { ok: true, id: r.id, rev: r.rev } : r)
+  })
+  // the Overview's copy: the person's own copy of the template's overview, made the first time (its own path: the web server takes one handler per path, read or write)
+  post('overview-copy', 4000, async (b, req, res) => {
+    const r = await host.ensureOverview()
+    return send(res, r.ok ? 200 : (r.code === 'no-overview' ? 404 : 400), r.ok ? { ok: true, id: r.id, created: r.created, preset: r.preset } : r)
   })
   post('clone', 4000, async (b, req, res) => {
     const r = await host.clone(str(b.id))
@@ -193,10 +250,11 @@ const kbSuivi = (service) => (service === null || service === undefined || typeo
   ? service
   : new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(route); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) }))
 
-export function apply (ctx) {
+export function apply (ctx, options) {
+  try { tellWhenReady(options) } catch (e) { dire(`preset point not told: ${e?.message ?? e}`) }
   if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-dashboards: routes')
   try {
-    const host = createHost({ fs: fsp, home: DSH_HOME, log: dire })
+    const host = createHost({ fs: fsp, home: DSH_HOME, log: dire, presets: livePresets })
     try {
       for (const r of seedSkills({ home: DSH_HOME, sourceDir: SKILLS_DIR, names: SEEDED_SKILLS })) {
         if (r.error) dire(`skill ${r.name}: ${r.error}`)

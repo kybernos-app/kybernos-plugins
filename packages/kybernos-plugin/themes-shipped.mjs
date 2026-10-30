@@ -88,7 +88,10 @@ function readThemeAt (folder, dir) {
   const labels = pack !== null && plain(pack.menu) && plain(pack.menu.labels) ? pack.menu.labels : {}
   const words = {}
   for (const row of ['contacts', 'catalog', 'pipeline']) { const w = pair(labels[row], 40); if (w !== null) words[row] = w }
-  const requires = plain(manifest.requires) && plain(manifest.requires.plugins) ? Object.keys(manifest.requires.plugins) : []
+  const hard = plain(manifest.requires) && plain(manifest.requires.plugins) ? Object.keys(manifest.requires.plugins) : []
+  // the owner of an OPTIONAL extension is not required, but the page still names it: it is what the dashboard of the theme needs
+  const optional = (Array.isArray(manifest.extends) ? manifest.extends : []).filter((e) => plain(e) && e.optional === true && typeof e.point === 'string').map((e) => e.point.split('#')[0]).filter((id) => hard.indexOf(id) < 0)
+  const requires = hard.concat(optional.filter((id, i) => optional.indexOf(id) === i))
   const needs = BUSINESS_PLUGINS.filter((id) => requires.indexOf(id) >= 0).concat(requires.filter((id) => BUSINESS_PLUGINS.indexOf(id) < 0 && !/^kybernos\/(core|theme|skills)$/.test(id)).sort())
   const connectors = new Set()
   if (pack !== null && Array.isArray(pack.goals)) for (const g of pack.goals) if (plain(g) && Array.isArray(g.connectors)) for (const c of g.connectors) if (typeof c === 'string') connectors.add(c)
@@ -196,10 +199,10 @@ export function readNext (root) {
  * The picture file for a cover request, or `null`: `{ id }` is a shipped theme's plugin id, `{ next }` an id of `_next/next.json`. The page names an id,
  * never a path; a file that is not a plain JPEG of a sane size is not served.
  */
-/** The most a sample photograph may weigh and still be served (the guard keeps the tracked ones under 80 KB). */
-export const PHOTO_MAX = 100 * 1024
+/** The most a sample picture (a photograph or a portrait) may weigh and still be served (the guard keeps the tracked ones under 220 KB, at most 1280 px wide). */
+export const PHOTO_MAX = 240 * 1024
 /**
- * The file of a sample photograph, `<theme dir>/<name>` as a row of the sample writes it (`photo:real-estate/willow-lane`), or `null`. Only a plain JPEG of a
+ * The file of a sample picture, `<theme dir>/<name>` as a row of the sample writes it (`photo:real-estate/willow-lane`, `photo:real-estate/portrait-01`), or `null`. Only a plain JPEG of a
  * shipped theme, at `<dir>/demo/photos/<name>.jpg`: the page never names a path, a link or a folder above.
  */
 export function photoFile (root, ref) {

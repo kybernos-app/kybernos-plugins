@@ -5,7 +5,7 @@
 //   node scripts/test-garde-depot.mjs
 //
 // The fixtures are assembled from pieces, so this file does not carry a home folder or an address itself (the guard reads the tests too).
-import { COVER_MAX, PHOTO_MAX, PHOTOS_PER_THEME, isAllowedCover, isAllowedPhoto, isScanned, isThemeCover, looksLikeJpeg, personalMails, personalPath, warningsOf } from './garde-depot.mjs'
+import { COVER_MAX, PHOTO_MAX, PHOTO_WIDTH_MAX, PHOTOS_PER_THEME, isAllowedCover, isAllowedPhoto, isScanned, isThemeCover, jpegSize, looksLikeJpeg, personalMails, personalPath, warningsOf } from './garde-depot.mjs'
 
 let pass = 0
 let fail = 0
@@ -39,11 +39,15 @@ check('not deeper, not up a level, not a hidden or odd name', !isAllowedCover(T 
 check('inside a theme folder a stranger installs: only a root cover.jpg, small', isThemeCover('cover.jpg', 1000) && !isThemeCover('cover.jpg', COVER_MAX + 1) && !isThemeCover('img/cover.jpg', 1000) && !isThemeCover('cover.png', 1000))
 check('a JPEG is told by its first bytes, never by its name', looksLikeJpeg(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0])) && !looksLikeJpeg(Buffer.from('GIF89a')) && !looksLikeJpeg(Buffer.alloc(0)) && !looksLikeJpeg(Buffer.from([0xff, 0xd8])))
 
-console.log('the second picture it accepts: a sample photograph of a shipped theme')
-check('a sample photograph, small, at demo/photos/<name>.jpg', isAllowedPhoto(T + 'real-estate/demo/photos/willow-lane.jpg', 41000) && isAllowedPhoto(T + 'ecommerce/demo/photos/mug-2.jpg', PHOTO_MAX))
-check('not one byte over the cap, and at most 16 a theme', !isAllowedPhoto(T + 'real-estate/demo/photos/willow-lane.jpg', PHOTO_MAX + 1) && PHOTOS_PER_THEME === 16)
+console.log('the second picture it accepts: a sample picture of a shipped theme (a photograph or a portrait)')
+check('a sample picture, at demo/photos/<name>.jpg, up to 220 KB', isAllowedPhoto(T + 'real-estate/demo/photos/willow-lane.jpg', 41000) && isAllowedPhoto(T + 'ecommerce/demo/photos/mug-2.jpg', PHOTO_MAX) && PHOTO_MAX === 220 * 1024)
+check('not one byte over the cap, at most 24 a theme, at most 1280 px wide', !isAllowedPhoto(T + 'real-estate/demo/photos/willow-lane.jpg', PHOTO_MAX + 1) && PHOTOS_PER_THEME === 24 && PHOTO_WIDTH_MAX === 1280)
 check('not another folder, name, format or depth', !isAllowedPhoto(T + 'real-estate/photos/a.jpg', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/a.png', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/sub/a.jpg', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/A.jpg', 100) && !isAllowedPhoto(T + 'real-estate/demo/photos/.a.jpg', 100) && !isAllowedPhoto(T + '_next/demo/photos/a.jpg', 100) && !isAllowedPhoto('docs/demo/photos/a.jpg', 100))
 check('a photograph is not a cover and a cover is not a photograph', !isAllowedCover(T + 'real-estate/demo/photos/a.jpg', 100) && !isAllowedPhoto(T + 'real-estate/cover.jpg', 100))
+// a JPEG header: SOI, an APP0 segment of 16 bytes, then a start-of-frame segment that says height 800 and width 1280
+const jpegOf = (width, height, sof = 0xc0) => Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, sof, 0, 17, 8, height >> 8, height & 255, width >> 8, width & 255, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1])
+check('the size of a JPEG is read from its first start-of-frame marker (baseline or progressive)', JSON.stringify(jpegSize(jpegOf(1280, 800))) === '{"height":800,"width":1280}' && JSON.stringify(jpegSize(jpegOf(640, 640, 0xc2))) === '{"height":640,"width":640}')
+check('not from a table, a PNG, a cut header or nothing', jpegSize(Buffer.from([0xff, 0xd8, 0xff, 0xc4, 0, 4, 0, 0, 0, 0, 0, 0])) === null && jpegSize(Buffer.from('\x89PNG\r\n\x1a\n0000000000')) === null && jpegSize(Buffer.from([0xff, 0xd8, 0xff, 0xe0])) === null && jpegSize(Buffer.alloc(0)) === null)
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

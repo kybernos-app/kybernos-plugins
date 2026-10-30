@@ -14,7 +14,8 @@
       "fields": {
         "city": "Lyon",
         "spent": 1240,
-        "last_order": "2026-10-27"
+        "last_order": "2026-10-27",
+        "image": "photo:ecommerce/portrait-04"
       }
     },
     {
@@ -30,7 +31,8 @@
       "fields": {
         "city": "Nantes",
         "spent": 486,
-        "last_order": "2026-10-22"
+        "last_order": "2026-10-22",
+        "image": "photo:ecommerce/portrait-06"
       }
     },
     {
@@ -47,7 +49,8 @@
       "fields": {
         "city": "Paris",
         "spent": 912,
-        "last_order": "2026-10-24"
+        "last_order": "2026-10-24",
+        "image": "photo:ecommerce/portrait-03"
       }
     },
     {
@@ -63,7 +66,8 @@
       "fields": {
         "city": "Strasbourg",
         "spent": 63,
-        "last_order": "2026-10-28"
+        "last_order": "2026-10-28",
+        "image": "photo:ecommerce/portrait-07"
       }
     },
     {
@@ -80,7 +84,8 @@
       "fields": {
         "city": "Bordeaux",
         "spent": 1860,
-        "last_order": "2026-10-12"
+        "last_order": "2026-10-12",
+        "image": "photo:ecommerce/portrait-01"
       }
     },
     {
@@ -96,7 +101,8 @@
       "fields": {
         "city": "Lille",
         "spent": 28,
-        "last_order": "2026-10-27"
+        "last_order": "2026-10-27",
+        "image": "photo:ecommerce/portrait-08"
       }
     },
     {
@@ -112,7 +118,8 @@
       "fields": {
         "city": "Brussels",
         "spent": 214,
-        "last_order": "2026-09-30"
+        "last_order": "2026-09-30",
+        "image": "photo:ecommerce/portrait-05"
       }
     },
     {
@@ -128,7 +135,8 @@
       "fields": {
         "city": "Marseille",
         "spent": 337,
-        "last_order": "2026-10-28"
+        "last_order": "2026-10-28",
+        "image": "photo:ecommerce/portrait-06"
       }
     },
     {
@@ -145,7 +153,8 @@
       "fields": {
         "city": "Turin",
         "spent": 560,
-        "last_order": "2026-10-26"
+        "last_order": "2026-10-26",
+        "image": "photo:ecommerce/portrait-02"
       }
     },
     {
@@ -161,7 +170,8 @@
       "fields": {
         "city": "Lisbon",
         "spent": 298,
-        "last_order": "2026-10-21"
+        "last_order": "2026-10-21",
+        "image": "photo:ecommerce/portrait-04"
       }
     },
     {
@@ -177,7 +187,8 @@
       "fields": {
         "city": "Toulouse",
         "spent": 71,
-        "last_order": "2026-10-29"
+        "last_order": "2026-10-29",
+        "image": "photo:ecommerce/portrait-09"
       }
     },
     {
@@ -194,7 +205,8 @@
       "fields": {
         "city": "Annecy",
         "spent": 3910,
-        "last_order": "2026-10-23"
+        "last_order": "2026-10-23",
+        "image": "photo:ecommerce/portrait-01"
       }
     },
     {
@@ -211,7 +223,8 @@
       "fields": {
         "city": "Biarritz",
         "spent": 790,
-        "last_order": "2026-10-26"
+        "last_order": "2026-10-26",
+        "image": "photo:ecommerce/portrait-07"
       }
     },
     {
@@ -227,7 +240,8 @@
       ],
       "fields": {
         "city": "Vallauris",
-        "lead_time": "3 weeks"
+        "lead_time": "3 weeks",
+        "image": "photo:ecommerce/portrait-09"
       }
     },
     {
@@ -243,7 +257,8 @@
       ],
       "fields": {
         "city": "Malmo",
-        "lead_time": "5 weeks"
+        "lead_time": "5 weeks",
+        "image": "photo:ecommerce/portrait-05"
       }
     },
     {
@@ -259,7 +274,8 @@
       ],
       "fields": {
         "city": "Forcalquier",
-        "lead_time": "10 days"
+        "lead_time": "10 days",
+        "image": "photo:ecommerce/portrait-02"
       }
     },
     {
@@ -650,7 +666,7 @@
         "material": "Brass",
         "badge": "New",
         "rating": "4.6 · 15 reviews",
-        "image": "photo:ecommerce/brass-candle-holder"
+        "image": "photo:ecommerce/taper-candles"
       }
     },
     {

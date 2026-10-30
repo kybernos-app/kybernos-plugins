@@ -92,6 +92,58 @@ const T = plugin.__test
   ok('the player registers on the door when it is there', reg !== null && reg[0] === 'dashboard')
 }
 
+// ── the « Overview » row of the Business group ───────────────────────────────
+{
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+  const realFetch = globalThis.fetch
+  let answer = { ok: true, overview: { preset: 'shop-overview', name: 'Shop overview', label: { en: 'Overview', fr: 'Vue d’ensemble' }, template: { id: 'acme/shop', name: 'Acme online shop' }, dashboardId: null } }
+  let asked = 0
+  globalThis.fetch = async (url, init) => { if (String(url).includes('/kybernos-dashboards/overview')) { asked++; return { ok: true, status: 200, json: async () => answer } } return realFetch(url, init) }
+  const registered = []
+  const taken = []
+  const injected = {}
+  const cleanups = []
+  const ctx = {
+    get: (k) => (k === 'sidebarRightTabs' ? { register: () => () => {} } : undefined),
+    effect: (fn, label) => { const c = fn(); cleanups.push({ label, c }); return c },
+    slots: { inject: (name, make) => { injected[name] = make(); return () => {} }, register: (spec, comp) => ({ spec, comp }) },
+  }
+  delete win.__KB_MENU__ // the core builds its menu after this plugin: nothing can be declared yet
+  plugin.apply(ctx)
+  await sleep(60)
+  const page = injected['main.kybernos-business']
+  ok('the Overview page is injected on the business pages\' own keyed slot', page !== undefined && page.spec.name === 'main.kybernos-business' && page.spec.key === 'overview' && typeof page.comp === 'function')
+  ok('the host is asked, and with no menu to declare on, nothing is declared and nothing throws', asked >= 1 && registered.length === 0)
+  win.__KB_MENU__ = { register: (row) => { registered.push(row); return () => { taken.push(row.id) } } }
+  await sleep(1700)
+  ok('the menu has come: the row is declared once, in the Business group, first, with the template\'s words', registered.length === 1 && registered[0].id === 'overview' && registered[0].group === 'business' && registered[0].order < 10 && registered[0].label.en === 'Overview' && registered[0].label.fr === 'Vue d’ensemble' && typeof registered[0].icon === 'string', registered)
+  await sleep(1700)
+  ok('asking again changes nothing while the host says the same', registered.length === 1 && taken.length === 0)
+  answer = { ok: true, overview: { preset: 'farm-overview', name: 'Stand overview', label: { en: 'Stand', fr: 'Stand' }, template: { id: 'acme/farm', name: 'Acme farm stand' }, dashboardId: 'farm-overview' } }
+  await sleep(1700)
+  ok('another template\'s word replaces the row', registered.length === 2 && registered[1].label.en === 'Stand' && taken.length === 1)
+  answer = { ok: true, overview: null }
+  await sleep(1700)
+  ok('the template removed, the row is taken back', taken.length === 2 && registered.length === 2)
+  answer = { ok: true, overview: { preset: 'shop-overview', name: 'Shop overview', label: { en: 'Overview', fr: 'Vue d’ensemble' }, template: { id: 'acme/shop', name: 'x' }, dashboardId: null } }
+  await sleep(1700)
+  ok('and back again when a template is installed', registered.length === 3 && taken.length === 2)
+  for (const e of cleanups) if (typeof e.c === 'function') e.c()
+  ok('taking the plugin away takes the row back and stops asking', taken.length === 3)
+  const n = asked
+  await sleep(1700)
+  ok('nothing is asked after the plugin has gone', asked === n)
+  ok('every effect of the Overview is labelled', cleanups.filter((e) => /overview/.test(e.label)).length === 2 && cleanups.every((e) => e.label.startsWith('kybernos-dashboards:')))
+  // the page of the row is the Dashboards page in Overview mode
+  const el = T.OverviewPage()
+  ok('the row\'s page is the Dashboards page opened as the Overview', el.t === T.DashboardsPage && el.p.overview === true)
+  ok('the dashboard view is keyed by the dashboard, on the page and in the pane (widgets of two dashboards share ids: a reused one kept its size)', (src.match(/h\(DashboardView, \{ key: dash\.id, /g) || []).length === 2)
+  ok('the Overview word is « Overview » until the host says another', T.overviewWord() === 'Overview' || T.overviewWord() === 'Stand' || T.overviewWord() === 'Vue d’ensemble')
+  ok('a gallery card names its template', src.includes("'data-kb': 'preset-template'") && src.includes('.kbdb-pill.tpl{'))
+  globalThis.fetch = realFetch
+  delete win.__KB_MENU__
+}
+
 // ── painters: geometry to markup ─────────────────────────────────────────────
 const { model, chart } = T
 const table = (cols, rows, meta) => ({ columns: cols, rows, meta: Object.assign({ note: '', xDomain: null }, meta || {}) })
@@ -113,7 +165,24 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const legend = T.legendHtml(d.series)
   ok('legend: two series get one, one series none', legend.includes('kbdb-legend') && T.legendHtml([d.series[0]]) === '')
   const b = T.paintBars(model.chartData(t1, W({ type: 'chart', kind: 'bars', x: 'model', y: 'tokens', source: { provider: 'usage.daily' } })), 380, 160, {})
+  {
+    const stages = table([{ id: 'stage', type: 'string' }], ['Brief', 'Searching', 'Shortlist sent', 'Offer', 'Placed'].map((stage) => ({ stage })))
+    const spec = W({ type: 'chart', kind: 'columns', x: 'stage', source: { provider: 'pipeline.cards' } })
+    const phone = T.paintColumns(model.chartData(stages, spec), 230, 200, {})
+    const desk = T.paintColumns(model.chartData(stages, spec), 520, 200, {})
+    ok('columns: names that would touch are cut to their room (a phone), whole when there is room', !phone.includes('>Shortlist sent<') && /Shor[^<]*…</.test(phone) && desk.includes('>Shortlist sent<') && desk.includes('>Searching<') && finite(phone))
+  }
   ok('bars: growing bars, values fading in after them', b.includes('kbdb-hbar') && b.includes('kbdb-val') && finite(b))
+  {
+    // the words of the rows get the room they need (a long product name is read whole), up to two fifths of the chart, then cut with an ellipsis
+    const names = ['Hand-poured soy candle', 'Ceramic carafe', 'Wool throw, oatmeal', 'A name that is far too long to ever fit in a chart of this size, however wide']
+    const tl = table([{ id: 'name', type: 'string' }], names.flatMap((n, i) => Array.from({ length: 4 - i }, () => ({ name: n }))))
+    const wide = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'catalog.items' } })), 520, 200, {})
+    ok('bars: a long label is written whole, not cut at 14 characters', wide.includes('>Hand-poured soy candle<') && wide.includes('>Wool throw, oatmeal<') && finite(wide))
+    ok('bars: a label past two fifths of the chart is cut with an ellipsis, the tooltip has it whole', /A name that is far too long[^<]*…</.test(wide) && wide.includes('far too long to ever fit in a chart of this size, however wide'))
+    const narrow = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'catalog.items' } })), 300, 200, {})
+    ok('bars: in a narrow chart the label area stays bounded and the bars keep their room', /<text x="(\d+(\.\d+)?)" y="[^"]*" text-anchor="end"/.test(narrow) && Number(/<text x="(\d+(\.\d+)?)" y="[^"]*" text-anchor="end"/.exec(narrow)[1]) <= 300 * 0.4 + 14 + 8)
+  }
   const l = T.paintLine(model.chartData(t1, W({ type: 'chart', kind: 'area', x: 'day', y: 'tokens', source: { provider: 'usage.daily' } })), 400, 200, true, {})
   ok('line: draws itself (length variable), area fades, the end dot pops and pings, a crosshair follows', /kbdb-line[^>]*--len:\d+/.test(l) && l.includes('kbdb-area') && l.includes('kbdb-end') && l.includes('kbdb-ping') && l.includes('kbdb-cross') && l.includes('data-cx=') && finite(l))
   const dn = T.paintDonut(model.chartData(t1, W({ type: 'chart', kind: 'donut', x: 'model', y: 'tokens', source: { provider: 'usage.daily' } })), 160, { caption: 'tokens' })

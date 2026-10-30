@@ -199,7 +199,7 @@ still accepted by an older panel. Packages without a `dsh` block (`messaging`, `
 1. `author.id` is the namespace of `id`. `kybernos` only with the official key; `local` only for a folder placed on the machine.
 2. A code plugin's `version` and `package` equal its `package.json`'s `version` and `name`; a first-party `id` follows the table above.
 3. `provides[].name` unique; a data point has a `schema` (the subset in section 6.3) or names a built-in validator; its `class` is set. A code point has no `class`.
-4. An `extends` names a point whose owner is listed in `requires.plugins`: you cannot extend what you do not depend on. No cycle; depth at most 4.
+4. An `extends` names a point whose owner is listed in `requires.plugins`: you cannot extend what you do not depend on. No cycle; depth at most 4. The exception is an **optional** extension (`"optional": true`): its owner must NOT be in `requires.plugins`, and when the owner is not installed, not on, or at another major, the extension is skipped (the plugin stays `ok`, the registry notes `skipped` on that extension and reads nothing from it). Use it for an enhancement that must not take the whole plugin down, for example the dashboard a template ships.
 5. `claims` are unique across the installed set (a route prefix has one or two segments); every `host.routes:/prefix` permission is inside `claims.routePrefixes`.
 6. `commerce.key.hosts` are all in the `net:` permissions, and a code plugin that stores a key declares `secrets.own`; `commerce.key.format` is a regex checked for linear time (no nested quantifiers: the lesson of the Team skills checks).
 7. `worksWithout` is non-empty and different from `unlocks`; a reviewer checks it is true.
@@ -267,7 +267,7 @@ and logged, as today.
 | Point | Kind, class | Today | What opens |
 |---|---|---|---|
 | `kybernos/core#domain-pack` 1.0 | data, instruction | **opened 2026-10-21**: the shipped `domains/*.json`, plus what enabled plugins contribute through `kybernos-registry`; `domain-pack.mjs` is the built-in validator | done; the others below are not |
-| `kybernos/dashboards#preset` 1.0 | data, inert | `PRESETS` in `presets.mjs`; the point is **not built** as a contribution | contributions read from the registry |
+| `kybernos/dashboards#preset` 1.0 | data, inert | **opened 2026-10-30** by `kybernos/dashboards` (`preset-point.mjs`): a dashboard a template ships, `dashboards/<id>.json`, offered in the Presets gallery while the template is installed and as the « Overview » row of the Business group; at most 4 files per plugin. The built-in `PRESETS` of `presets.mjs` stay the plugin's own (section 6.2b) | contributions |
 | `kybernos/dashboards#http-source` 1.0 | data, inert | does not exist ("sources are internal only", `domain-packs.md`) | **new**: declarative sources (6.4) |
 | `kybernos/dashboards#source` 1.0 | code | internal | for code plugins only, later |
 | `kybernos/core#team-template` 1.0 | data, instruction | **opened 2026-10-28**: `KB_MARKET_TEAMS` in the core client, plus `teams/<id>.json` of a theme (`validateTeamTemplate`, `domain-pack.mjs:283`) | contributions |
@@ -277,8 +277,41 @@ and logged, as today.
 | `kybernos/contacts#schema` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/contacts` (`contacts-schema.mjs`): the kinds of contact, the fields and the tags a theme speaks of; at most 4 files per plugin | contributions |
 | `kybernos/catalog#type` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/catalog` (`catalog-type.mjs`): one kind of item, its statuses, fields, card and views; at most 12 files | contributions |
 | `kybernos/pipeline#flow` 1.0 | data, inert | **opened 2026-10-29** by `kybernos/pipeline` (`pipeline-flow.mjs`): one board, its stages, value and links; at most 4 files | contributions |
+
+One template at a time (`docs/dev/business-visuals.md`): when several templates contribute to the three Business points above, the pages offer the contributions of the **active** one only (the registry says which plugin each comes from), and the selector of the « Business » group reads that template's `kybernos/core#domain-pack` for its name, icon, accent and `menu.labels.contacts|catalog|pipeline`. No new key and no new point: a template that names those three labels already speaks for the rows.
 | `kybernos/language#pack` 1.0 | data, inert | signed index (empty key list) | same |
 | `kybernos/modeles-locaux#model` 1.0 | data, inert | signed catalogue (key minted) | same |
+
+### 6.2b `kybernos/dashboards#preset`: a dashboard a template ships
+
+A data plugin (a template of a trade) names the point and ships one JSON file per dashboard, with the same philosophy as `kybernos/contacts#schema`,
+`kybernos/catalog#type` and `kybernos/pipeline#flow`: data only, checked by a pure and bounded function the owner exports.
+
+In the template's `plugin.json` (the rest of the manifest is the one of any theme, see `sector-bundles.md`):
+
+```json
+{ "requires": { "plugins": { "kybernos/dashboards": "^1.0" } },
+  "extends": [ { "point": "kybernos/dashboards#preset", "range": "^1.0", "dir": "dashboards" } ] }
+```
+
+and `dashboards/overview.json`:
+
+```json
+{ "id": "overview", "name": "Agency overview", "desc": "The listings on the books, the sales in progress…",
+  "menu": { "en": "Overview", "fr": "Vue d’ensemble" }, "overview": true,
+  "widgets": [ { "type": "card", "title": "Active listings", "source": { "provider": "catalog.items" },
+                 "metric": { "agg": "count", "where": [ { "field": "status_key", "op": "in", "value": ["for-sale", "to-let"] } ] } } ] }
+```
+
+Rules (all in `packages/kybernos-dashboards/preset-point.mjs`, proved by `test-point.mjs` and, for the shipped templates, by `scripts/test-business-dashboards.mjs`):
+
+- Known keys only: `id` (the name of its file, lower case, English), `name` (3 to 40), `desc` (10 to 240), `menu` (optional, the word of the Business row, `en` required, 24 characters), `overview` (optional, at most one per file: the dashboard that row opens), `widgets` (4 to 16).
+- Every widget goes through the dashboards' own model, and **nothing may be dropped, clamped or warned about** (`validateDashboard` then `inspectDashboard`): a column the source does not have, a number asked of a text column, a widget too narrow to read, two widgets of one type with one title are refusals here, not surprises on the page.
+- Only widgets that draw a source: `card`, `chart`, `table`, `list`, `calendar`, `kanban` (bound), `carousel`, `sankey`. A `note` (free text an agent would read) and a `flow` stay the person's. The point is therefore **inert**.
+- No remote: a source is a provider of the dashboards' catalogue, which reads routes of this computer; any string holding `://` or `www.` is refused.
+- The Presets gallery lists a template's dashboards **while that template is installed** (the registry only hands back the contributions of a plugin that is enabled and valid), with the template's name on each card, ahead of the built-in presets. Using one gives the person their own copy, exactly like a built-in preset, named after the template's file (`<template>-<file>`, e.g. `real-estate-overview`). One small function, `isOffered` in `template-presets.mjs`, decides whose presets are offered: today an installed template, tomorrow the active one.
+- The owner tells the point to the registry at boot and again until it is heard (`tellWhenReady`, the same retry as Catalog and Skills): until then a template that extends it as a REQUIRED point would be `missing-dependency`, the whole template and not only its dashboards. The templates therefore extend it as an **optional** point (rule 4 of section 4.4): with Dashboards off or not yet told, they stay fully usable and only their dashboard is missing.
+- The « Overview » row: while a template ships a dashboard marked `overview`, the Business group of the menu has a first row (`window.__KB_MENU__.register`, id `overview`, the template's own `menu` word) whose page is the Dashboards page opened on the person's copy of that dashboard (made the first time). With several templates installed the row, and the template presets of the gallery, follow the ACTIVE template (the Business pages show one at a time, `business-visuals.md`; the row changes the moment the person picks another one); with none chosen, every installed template's.
 
 Themes, languages and local models already *are* data plugins with their own catalogue; the contract folds them into one catalogue format
 (section 10) rather than leaving four copies of the signature code.

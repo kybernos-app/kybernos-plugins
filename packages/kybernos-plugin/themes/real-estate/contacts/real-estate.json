@@ -83,6 +83,14 @@
         "en": "Sector",
         "fr": "Secteur"
       }
+    },
+    {
+      "key": "image",
+      "type": "text",
+      "label": {
+        "en": "Picture",
+        "fr": "Photo"
+      }
     }
   ],
   "tags": [

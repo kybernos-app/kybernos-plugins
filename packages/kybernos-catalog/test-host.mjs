@@ -248,5 +248,36 @@ const hit = async (server, path, method, { headers = browserHeaders(), body, raw
   }
 }
 
+// ── one template at a time (docs/dev/business-visuals.md) ───────────────────────────────────────────────────────────────
+{
+  const PROPERTY = { id: 'property', label: L('Property', 'Bien'), plural: L('Properties', 'Biens'), icon: 'home', statuses: [{ key: 'listed', tone: 'ok', label: L('Listed') }, { key: 'sold', tone: 'neutral', label: L('Sold') }], fields: [{ key: 'rooms', type: 'number' }], card: {}, views: ['list'] }
+  const reg = { version: 1, contributions: (ref) => (ref === CATALOG_POINT_REF ? [{ plugin: 'k/shop', value: PRODUCT }, { plugin: 'k/house', value: PROPERTY }, { plugin: 'k/house', value: SERVICE }] : []) }
+  let scope = null
+  const base = createBusinessBase({ file: join(dir, 'one-template.sqlite'), scope: () => scope })
+  base.seed({ items: [{ title: 'Mug', type: 'product', status: 'live' }, { title: 'Tote', type: 'product', status: 'live' }] }, { theme: 'k/shop' })
+  base.seed({ items: [{ title: 'Canal house', type: 'property', status: 'listed' }] }, { theme: 'k/house' })
+  const cat = catalogOver(base, reg)
+  ok('no template active: the types of every active theme, as before', cat.types().types.map((t) => t.id).join() === 'product,property,service' && cat.list({}).total === 3)
+  scope = 'k/shop'
+  const shop = cat.types()
+  ok('the shop is active: only its types are offered, and the answer says they are a theme\'s', shop.source === 'theme' && shop.types.map((t) => t.id).join() === 'product')
+  const shopList = cat.list({})
+  ok('...and only its rows are listed and counted, the sample counts follow, the type chips would too', shopList.total === 2 && shopList.rows.every((r) => r.type === 'product') && shopList.demo.items === 2 && shopList.counts.live === 2, JSON.stringify(shopList.counts))
+  ok('a new item can only be one of the active template\'s types', cat.create({ title: 'Villa', type: 'property' }).error === 'unknown_type' && cat.create({ title: 'Candle', type: 'product' }).ok === true)
+  ok('the new item belongs to the shop', cat.create({ title: 'Candle 2' }).row.scope === 'k/shop' && base.list('item', { scope: 'k/house' }).total === 1)
+  scope = 'k/house'
+  ok('the agency is active: its two types, its one sample, the shop\'s rows are not in sight', cat.types().types.map((t) => t.id).join() === 'property,service' && cat.list({}).total === 1 && cat.find({}).count === 1 && cat.list({ type: 'product' }).total === 0)
+  ok('an agent\'s upsert follows the same scope', cat.upsert({ title: 'Flat', type: 'property', status: 'listed' }).created === true && base.list('item', { scope: 'k/house' }).total === 2 && cat.upsert({ title: 'Bag', type: 'product' }).error === 'unknown_type')
+  ok('clearing the samples removes the agency\'s and keeps the shop\'s', cat.clearDemo().ok === true && base.list('item', { scope: 'k/house', demo: true }).total === 0 && base.list('item', { scope: 'k/shop', demo: true }).total === 2)
+  scope = 'k/nothing'
+  const empty = cat.types()
+  ok('an active template that brings no catalogue type gets the one plain default type, not the others\'', empty.source === 'default' && empty.types[0].id === 'item')
+  const old = createCatalog({ base: () => ({ version: 1, list: () => ({ ok: true, rows: [], total: 0 }), counts: () => ({ ok: true, demo: { item: 0, contact: 0, flow_card: 0 } }) }), registry: () => reg })
+  ok('a base that cannot say which template is active (an older core) leaves every type on offer', old.types().types.length === 3)
+  const mute = createCatalog({ base: () => ({ version: 1, list: () => ({ ok: true, rows: [], total: 0 }), scope: () => { throw new Error('boom') } }), registry: () => reg })
+  ok('a base whose scope() throws does the same, and nothing escapes', mute.types().types.length === 3)
+  base.close()
+}
+
 if (failed > 0) { console.log('test-host: ' + failed + ' failure(s)'); process.exit(1) }
 console.log('test-host: all green')

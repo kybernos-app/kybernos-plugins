@@ -117,6 +117,15 @@ ok('card.image names a text field, card.chips up to six fields: anything else is
   refused(bad((v) => { v.card.chips = ['nope'] }), /card\.chips\[0\]: the key of one of the fields/)
   refused(bad((v) => { v.card.chips = ['size', 'size'] }), /card\.chips: "size" appears twice/)
 })
+ok('card.company names a text field that holds the name of a company: anything else is refused', () => {
+  const r = bad((v) => { v.fields.push({ key: 'client', type: 'text' }); v.card.company = 'client'; v.card.subtitle = 'client' })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.value.card.company, 'client')
+  assert.equal('company' in bad((v) => { delete v.card.company }).value.card, false, 'no company, no key')
+  refused(bad((v) => { v.card.company = 'stock' }), /card\.company: the key of a text field/)
+  refused(bad((v) => { v.card.company = 'nope' }), /card\.company: the key of a text field/)
+  refused(bad((v) => { v.card.company = 7 }), /card\.company: the key of a text field/)
+})
 ok('PICTURE accepts a drawn picture or a shipped one, nothing that could be fetched', () => {
   for (const good of ['art:house/willow', 'art:box', 'art:villa/lake@210', 'photo:real-estate/willow-lane']) assert.match(good, PICTURE, good)
   for (const bad of ['https://example.org/a.jpg', 'data:image/svg+xml;base64,AAAA', 'photo:../x/y', 'photo:real-estate', 'photo:a/b/c', 'art:HOUSE', 'file:///etc/passwd', '']) assert.doesNotMatch(bad, PICTURE, bad)

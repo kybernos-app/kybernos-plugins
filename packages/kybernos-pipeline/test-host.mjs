@@ -362,5 +362,54 @@ await ok('a board card sends the few extras it carries (source, priority, due, u
   assert.equal(b.item.image, null, 'an address is never a picture')
 })
 
+await ok('a board card names its contact with the sample portrait the contact carries (a `photo:` reference only, null otherwise), a company included', () => {
+  const { base, host } = world([orders()])
+  const pic = base.create('contact', { name: 'Jonas Weber', kind: 'person', fields: { image: 'photo:ecommerce/portrait-07' } }, { actor: 'person' }).row
+  const addr = base.create('contact', { name: 'Odd One', kind: 'person', fields: { image: 'https://example.org/x.jpg' } }, { actor: 'person' }).row
+  const co = base.create('contact', { name: 'Cafe Bleu', kind: 'company' }, { actor: 'person' }).row
+  let place = 0
+  for (const [title, contact_id] of [['With a portrait', pic.id], ['With an address', addr.id], ['With a company', co.id]]) base.create('flow_card', { flow: 'orders', stage: 'new', title, contact_id, position: (place += 1) }, { actor: 'person' })
+  const cards = host.board({ flow: 'orders' }).columns.flatMap((c) => c.cards)
+  const by = (t) => cards.find((c) => c.title === t).contact
+  assert.equal(by('With a portrait').image, 'photo:ecommerce/portrait-07')
+  assert.equal(by('With an address').image, null, 'an address is never a picture')
+  assert.equal(by('With a company').image, null)
+  assert.equal(by('With a company').kind, 'company')
+})
+
+await ok('one template at a time: the boards, the cards, the counts and the lookups are the active template\'s; none active means every theme\'s board, as before', async () => {
+  const lettings = { id: 'lettings', label: L('Lettings'), stages: [{ key: 'enquiry', label: L('Enquiry') }, { key: 'let', label: L('Let') }], value: { format: 'number' }, links: { contact: true, item: true } }
+  let scope = null
+  const base = createBusinessBase({ file: join(dir, 'one-template.sqlite'), scope: () => scope })
+  const registry = { version: 1, contributions: (point) => (point === FLOW_POINT ? [{ plugin: 'k/shop', value: orders() }, { plugin: 'k/house', value: lettings }, { plugin: 'k/house', value: deals() }] : []) }
+  const host = createPipelineHost({ business: () => base, registry: () => registry })
+  base.seed({ contacts: [{ ref: 'a', name: 'Amelia' }], items: [{ ref: 'm', title: 'Mug' }], cards: [{ flow: 'orders', stage: 'new', title: 'Order 1', contact_ref: 'a', item_ref: 'm' }, { flow: 'orders', stage: 'paid', title: 'Order 2' }] }, { theme: 'k/shop' })
+  base.seed({ contacts: [{ ref: 'b', name: 'Bernard' }], items: [{ ref: 'h', title: 'Canal house' }], cards: [{ flow: 'lettings', stage: 'enquiry', title: 'Let the canal house', contact_ref: 'b', item_ref: 'h' }] }, { theme: 'k/house' })
+  assert.deepEqual(host.flows().flows.map((x) => [x.id, x.cards]), [['orders', 2], ['lettings', 1], ['deals', 0]], 'no template active: every theme\'s boards')
+  scope = 'k/shop'
+  let f = host.flows()
+  assert.deepEqual(f.flows.map((x) => [x.id, x.cards]), [['orders', 2]], 'the shop: its board only, and no generic board for the agency\'s cards, which are out of sight')
+  assert.equal(f.demo, 4, 'the sample count is the shop\'s (a contact, an item, two cards)')
+  assert.equal(host.board({}).flow.id, 'orders')
+  assert.equal(host.board({ flow: 'lettings' }).error, 'unknown_flow', 'a board of another template is not there')
+  assert.deepEqual(host.links({ kind: 'contact', q: '' }).rows.map((r) => r.label), ['Amelia'], 'the pickers offer the shop\'s contacts and items only')
+  assert.deepEqual(host.links({ kind: 'item', q: '' }).rows.map((r) => r.label), ['Mug'])
+  const made = host.create({ flow: 'orders', title: 'Order 3' }, 'person')
+  assert.equal(made.ok, true, JSON.stringify(made))
+  assert.equal(base.get('flow_card', made.card.id).row.scope, 'k/shop')
+  scope = 'k/house'
+  f = host.flows()
+  assert.deepEqual(f.flows.map((x) => [x.id, x.cards]), [['lettings', 1], ['deals', 0]])
+  assert.equal(host.board({}).flow.id, 'lettings', 'the first board of the active template is the one shown')
+  assert.deepEqual(host.board({ flow: 'lettings' }).columns.flatMap((c) => c.cards).map((c) => c.title), ['Let the canal house'])
+  assert.equal(host.clearDemo('person').ok, true)
+  assert.equal(base.list('flow_card', { scope: 'k/shop' }).total, 3, 'the shop\'s cards, its sample ones and the new one, are untouched')
+  scope = 'k/nothing'
+  assert.deepEqual(host.flows().flows.map((x) => x.id), ['default'], 'an active template with no board: the one plain board')
+  const older = createPipelineHost({ business: () => ({ version: 1, list: () => ({ ok: true, rows: [], total: 0 }), counts: () => ({ ok: true, demo: {} }) }), registry: () => registry })
+  assert.deepEqual(older.flows().flows.map((x) => x.id), ['orders', 'lettings', 'deals'], 'an older core cannot say which template is active: every board, as before')
+  base.close()
+})
+
 rmSync(dir, { recursive: true, force: true })
 console.log('\n' + count + ' checks passed')

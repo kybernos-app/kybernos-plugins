@@ -17,6 +17,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
+import { takeTemplatesOut } from './lib-sandbox-templates.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const args = process.argv.slice(2)
@@ -35,10 +36,15 @@ const check = (name, ok, detail) => {
 }
 
 // The sandbox's own base, opened by this process (never the real one: DSH_HOME is the sandbox's, checked above).
-const base = createBusinessBase()
+// This process is not DSH: it writes the way the page does while no template is active (rows of no template), and its own questions are about every row.
+const base = createBusinessBase({ scope: () => null })
 if (!base.file().startsWith(sandboxHome)) { console.error('○ inconclusive: the base file is not under the sandbox home: ' + base.file()); process.exit(3) }
 const A = (r) => { if (r.ok !== true) throw new Error('base: ' + JSON.stringify(r)); return r }
 
+// The sandbox is a clone of a profile that carries sector templates; with one active the three pages speak ITS words and show ITS rows (docs/dev/business-visuals.md).
+// This check is about the plain page, so the templates are out for the run and back at the end (scripts/lib-sandbox-templates.mjs).
+const templatesOut = takeTemplatesOut(join(process.env.DSH_HOME, 'profiles', 'web'))
+if (templatesOut.count > 0) await sleep(3200)
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
 const ev = async (js) => { const r = await page.evalJs(js, 10000); return r.err ? { err: r.err } : r.val }
@@ -327,7 +333,7 @@ try {
   await waitRows(7)
   check('the Companies tab is clicked and lists the two companies, with no people', (await click(kb('contacts-kind', '[data-kind="company"]'))) && (await waitRows(2)) !== null && JSON.stringify(await names()) === JSON.stringify(['Acme Farm', 'Blue Barn Co-op']), await names())
   check('the add button now says company, and the count says companies', /company/i.test(await text(kb('contacts-new'))) && /2 compan/.test(await text(kb('contacts-count'))))
-  check('a company row has no Company column, and is drawn with a building', (await count('.kbcts-tbl th.col-co')) === 0 && (await ev(`document.querySelector('[data-kb="contacts-row"] .kz-av svg') !== null`)) === true)
+  check('a company row has no Company column, and is drawn with its own mark (an svg in a rounded tile, named for a screen reader, no picture file)', (await count('.kbcts-tbl th.col-co')) === 0 && (await ev(`(() => { const m = [...document.querySelectorAll('[data-kb="contacts-row"] .kz-logo')]; return m.length === 2 && m.every((e) => e.querySelector('svg') !== null && e.querySelector('img') === null && /^(Acme Farm|Blue Barn Co-op)$/.test(e.getAttribute('aria-label') || '')) && new Set(m.map((e) => e.getAttribute('data-mark') + (e.getAttribute('data-letters') || '') + e.style.getPropertyValue('--kz-h') + e.style.getPropertyValue('--kz-h2'))).size === 2 })()`)) === true)
   await shot('05-companies')
   await click(kb('contacts-kind', '[data-kind="person"]'))
   await waitRows(7)
@@ -643,6 +649,28 @@ try {
   base.deleteAll({ confirm: true, actor: 'person' })
 
   // ── narrow, French, at the end ──────────────────────────────────────────────────────────────────────────────
+  // ── pictures: a person's portrait lies over the initials; one that does not load leaves them; the field is never shown as a field ────────────────
+  console.log('portraits')
+  const withPic = A(base.create('contact', { kind: 'person', type: T.person, name: 'Portrait Check', email: 'portrait@example.com', fields: { image: 'photo:real-estate/portrait-01' } }, { actor: 'person' }))
+  const withBad = A(base.create('contact', { kind: 'person', type: T.person, name: 'Broken Portrait', email: 'broken@example.com', fields: { image: 'photo:real-estate/not-there' } }, { actor: 'person' }))
+  await reload()
+  await settled()
+  await waitRows(2)
+  await sleep(1200)
+  const faceOf = (name) => ev(`(() => { const r = [...document.querySelectorAll('[data-kb="contacts-row"]')].find((x) => x.querySelector('.n').textContent === ${JSON.stringify(name)}); if (!r) return null; const img = r.querySelector('img.kz-face'); const av = r.querySelector('.kz-av'); return { img: img !== null, loaded: img !== null && img.complete && img.naturalWidth > 0, natural: img === null ? 0 : img.naturalWidth, shown: img !== null && getComputedStyle(img).display !== 'none', initials: av === null ? null : av.firstChild.textContent, covers: img !== null && Math.abs(img.getBoundingClientRect().width - av.getBoundingClientRect().width) < 1 } })()`)
+  const good = await faceOf('Portrait Check')
+  check('a person with a sample portrait shows it over the initials, loaded from the core, at the size of the avatar', good !== null && good.img && good.loaded && good.shown && good.covers && good.natural >= 512 && good.initials === 'PC', good)
+  const bad = await faceOf('Broken Portrait')
+  check('a portrait that does not load hides itself and the initials show', bad !== null && bad.img && bad.loaded === false && bad.shown === false && bad.initials === 'BP', bad)
+  check('the picture is a plain image of the same origin, asked by id (no path, no address from outside)', (await ev(`[...document.querySelectorAll('[data-kb="contacts-row"] img.kz-face')].every((i) => i.getAttribute('src').startsWith('/kybernos/themes/photo?id='))`)) === true)
+  await click(kb('contacts-row', '[data-id="' + withPic.row.id + '"]'))
+  await waitFor(page, `document.querySelector('[data-kb="contacts-panel"]') !== null && document.querySelector('[data-kb="contacts-panel-loading"]') === null`, 6000)
+  check('the panel wears the portrait, and does not print the reference as a field', (await ev(`(() => { const p = document.querySelector('[data-kb="contacts-panel"]'); return p !== null && p.querySelector('img.kz-face') !== null && !/photo:|image/i.test(p.innerText) })()`)) === true)
+  await shot('14-portrait')
+  await click(kb('contacts-panel-close'))
+  base.archive('contact', withPic.row.id, { actor: 'person' })
+  base.archive('contact', withBad.row.id, { actor: 'person' })
+
   console.log('narrow, then French')
   A(base.create('contact', { kind: 'person', type: T.person, name: 'Narrow Check', email: 'narrow@example.com', tags: ['vip'] }, { actor: 'person' }))
   A(base.create('contact', { kind: 'person', type: T.person, name: 'Ünal Çelik-Papadopoulos the Third of Constantinople', email: 'a.very.long.address.that.will.not.break.the.table@a-very-long-company-domain-name.example.org' }, { actor: 'person' }))

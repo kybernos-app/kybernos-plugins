@@ -215,6 +215,20 @@ await ok('get: the contact with its notes, its company, and the people of a comp
   assert.equal((await get('get', { id: 'abc' })).code, 400)
   assert.equal((await get('get')).code, 400)
 })
+await ok('get: the people of a company carry their sample portrait (a `photo:` reference only), and null when there is none or it is not one', async () => {
+  const own = createBusinessBase({ file: join(home, 'portraits', 'donnees.sqlite') }) // a base of its own: the shared one keeps the counts the other checks read
+  const api = createApi({ base: () => own, schema: () => themed })
+  const co = own.create('contact', { kind: 'company', name: 'Faces Ltd' }, { actor: 'person' }).row
+  const mk = (name, image) => own.create('contact', { kind: 'person', name, company_id: co.id, fields: image === undefined ? {} : { image } }, { actor: 'person' }).row
+  mk('Pia Face', 'photo:shop/portrait-03'); mk('Ann Link', 'https://example.org/a.jpg'); mk('Bo Path', 'photo:../x/y'); mk('Cy Plain')
+  const people = api.get(co.id).people
+  const by = (n) => people.find((p) => p.name === n)
+  assert.equal(by('Pia Face').image, 'photo:shop/portrait-03')
+  assert.equal(by('Ann Link').image, null, 'an address is never passed on')
+  assert.equal(by('Bo Path').image, null, 'nor a path')
+  assert.equal(by('Cy Plain').image, null)
+  own.close()
+})
 await ok('update: a patch changes what it names; fields merge, null clears; the kind cannot change', async () => {
   let r = await post('update', { id: lea.id, email: 'lea.martin@example.com', fields: { city: 'Paris', tier: null } })
   assert.equal(r.code, 200, r.body)
@@ -400,6 +414,45 @@ await ok('the engine\'s waterfall: the gate answers for the write, and hands eve
   const next = async () => ({ kind: 'allow' })
   assert.deepEqual(await gate({ name: 'contacts_find', arguments: {} }, next), { kind: 'allow' })
   assert.equal((await gate({ name: 'contacts_upsert', arguments: { name: 'x' } }, next)).kind, 'ask')
+})
+
+console.log('── one template at a time ──')
+await ok('the schema, the list and the writes follow the active template; with none active every theme speaks, as before', async () => {
+  const keptBase = globalThis[BASE_SEAM]
+  const keptRegistry = globalThis[REGISTRY_SEAM]
+  try {
+    let scope = null
+    const one = createBusinessBase({ file: join(home, 'business', 'one-template.sqlite'), scope: () => scope })
+    one.seed({ contacts: [{ name: 'Amelia the customer', type: 'customer' }, { name: 'Mateo the customer', type: 'customer' }] }, { theme: 'acme/shop' })
+    one.seed({ contacts: [{ name: 'Gina the grower', type: 'grower', kind: 'company' }] }, { theme: 'acme/other' })
+    globalThis[BASE_SEAM] = one
+    globalThis[REGISTRY_SEAM] = { version: 1, contributions: () => [shop, second], definePoint () {} }
+    const api = makeApi()
+    assert.deepEqual(api.schema().schema.themes, ['shop', 'other'], 'none active: both themes')
+    assert.equal(api.list({}).total, 3)
+    scope = 'acme/shop'
+    assert.deepEqual(api.schema().schema.themes, ['shop'])
+    assert.deepEqual(api.schema().schema.types.map((t) => t.key), ['customer', 'supplier', 'company'], 'the shop\'s types, and the plain company the shop gives none for')
+    assert.equal(api.list({}).total, 2)
+    assert.equal(api.list({}).demo, 2, 'the sample count is the active template\'s')
+    assert.equal(api.list({ q: 'Gina' }).total, 0)
+    refused(api.create({ name: 'Gina 2', type: 'grower', kind: 'company' }), 'bad_field')
+    const made = api.create({ name: 'Made in the shop', type: 'customer' })
+    assert.equal(made.ok, true, JSON.stringify(made))
+    assert.equal(made.contact.scope, 'acme/shop')
+    scope = 'acme/other'
+    assert.deepEqual(api.schema().schema.themes, ['other'])
+    assert.deepEqual(api.list({}).rows.map((r) => r.name), ['Gina the grower'])
+    assert.equal(api.vocabulary().types.some((t) => t.key === 'supplier'), false, 'an agent is not offered the shop\'s words either')
+    assert.equal(api.clearDemo().ok, true)
+    assert.equal(one.list('contact', { scope: 'acme/shop' }).total, 3, 'the other template\'s samples and the new customer are untouched')
+    scope = 'acme/none'
+    assert.equal(api.schema().schema.themed, false, 'an active template that speaks of no contact: the plain words')
+    assert.deepEqual(schemaFrom({ contributions: () => [shop, second] }, 'acme/shop').themes, ['shop'])
+    assert.deepEqual(schemaFrom({ contributions: () => [shop, second] }, null).themes, ['shop', 'other'])
+    assert.deepEqual(schemaFrom({ contributions: () => [shop, second] }, '').themes, ['shop', 'other'])
+    one.close()
+  } finally { globalThis[BASE_SEAM] = keptBase; globalThis[REGISTRY_SEAM] = keptRegistry }
 })
 
 rmSync(home, { recursive: true, force: true })

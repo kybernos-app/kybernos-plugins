@@ -65,3 +65,7 @@ and the skills, teams and connectors it lists equal to the pack check and to wha
 `node test-version.mjs && node test-registry.mjs && node test-host.mjs && node test-write-guard.mjs && node test-skill.mjs && node test-client.mjs`: the grammar, the scan and the
 statuses, a data package that tries to make DSH load code (a patch with entries, a client entry, install scripts, a bin), a hostile package (symbolic links, oversized files, a `__proto__` key, a script next to the manifest), the routes and the Host fence, the write guard (acceptance and import), the skill (its examples are made into a draft the registry accepts, its lists are the real ones, it is seeded and never overwrites),
 and the seam in the page. The page itself is tested in `packages/kybernos-hub/test-suite-plugins.mjs` and on a real `dsh web` by `scripts/check-plugins-live.mjs`. `test-registry.mjs` also keeps `docs/dev/schemas/plugin.schema.json` identical to the bundle's copy.
+
+## Optional extensions
+
+An `extends` entry may carry `"optional": true`. Its owner must then NOT be in `requires.plugins`. When the owner of the point is not installed, not on, or at another major, the extension is skipped: the plugin stays `ok`, `plugins()[i].extends[j].skipped` says why, and nothing is read from that folder. When the owner shows up (it tells its point at boot and again until heard), the next scan reads it. A template uses this for its dashboard, so that it never goes down with the Dashboards plugin.

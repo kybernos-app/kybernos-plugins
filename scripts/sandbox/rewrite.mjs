@@ -11,6 +11,7 @@
 //      of dsh.profile.bundles (it restarts DSH on port 3080 by default).
 //   2. pnpm-lock.yaml and node_modules/.pnpm/lock.yaml: the `specifier:`/`version:` link pairs.
 //   3. node_modules/@local/*: symlinks recreated (absolute) from the resulting package.json.
+//   3b. node_modules/@kybernos-themes/*: the sector templates' symlinks, re-pointed at the worktree's copy of each template.
 //   4. node_modules/.pnpm-workspace-state-v1.json: the project key (the profile's absolute path).
 //   5. cordis.patch.yml: ~/.dsh/mcp/*.mjs paths -> <dshHome>/mcp/, the lsp `cwd` -> the worktree.
 //   6. A bundle the worktree has and the profile does not list yet (a NEW plugin) is added, as a link and as a
@@ -107,6 +108,21 @@ for (const [dep, target] of Object.entries(links)) {
   linked += 1
 }
 
+// 3b. node_modules/@kybernos-themes symlinks (the sector templates the profile carries): the clone keeps pnpm's RELATIVE links, which climb to the real home's checkout
+//     and dangle from the sandbox's home, so the registry would read no template at all. Each one is re-pointed (absolute) at the worktree's copy of the same template.
+const themesLinkDir = join(profileDir, 'node_modules', '@kybernos-themes')
+let themesLinked = 0
+if (existsSync(themesLinkDir)) {
+  for (const entry of readdirSync(themesLinkDir)) {
+    const p = join(themesLinkDir, entry)
+    const mine = join(pkgsDir, 'kybernos-plugin', 'themes', entry)
+    if (!lstatSync(p).isSymbolicLink() || !existsSync(join(mine, 'plugin.json'))) continue
+    rmSync(p)
+    symlinkSync(mine, p)
+    themesLinked += 1
+  }
+}
+
 // 4. pnpm workspace state: the project key is the profile's absolute path
 const statePath = join(profileDir, 'node_modules', '.pnpm-workspace-state-v1.json')
 if (existsSync(statePath)) {
@@ -145,4 +161,4 @@ if (!existsSync(wsFile)) {
   workspaceSeeded = true
 }
 
-console.log(JSON.stringify({ links: Object.keys(links).length, linkedLocal: linked, lockPairs, relanceDropped, mcpPathsRepointed: mcpHits, bundlesAdded, workspaceSeeded }))
+console.log(JSON.stringify({ links: Object.keys(links).length, linkedLocal: linked, themesLinked, lockPairs, relanceDropped, mcpPathsRepointed: mcpHits, bundlesAdded, workspaceSeeded }))

@@ -14,6 +14,7 @@ import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { KIND, LIMITS, VERSION, describeCatalogue, inspectDashboard, shapeOf, slug, sourcesOf, validateDashboard } from './model.mjs'
 import { PRESETS } from './presets.mjs'
+import { overviewOf, rowLabel } from './template-presets.mjs'
 
 export const EXT = '.miniapp.json'
 export const TOOL = 'kybernos_dashboard'
@@ -82,7 +83,11 @@ export function applyOps (current, ops) {
   return { dashboard: d, errors }
 }
 
-export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }) {
+/**
+ * `presets(taken)` answers the presets the installed templates ship (see template-presets.mjs), asked at each use: a template can be installed while DSH runs. `taken`
+ * are the ids of the built-in presets. A host with no such port has the built-in ones only.
+ */
+export function createHost ({ fs, home, now = () => Date.now(), log = () => {}, presets = () => [] }) {
   const root = join(home, 'kybernos', 'dashboards')
   const filesDir = join(root, 'files')
   const historyDir = (id) => join(root, 'history', hashOf(id))
@@ -98,7 +103,13 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
 
   // ── the index: default, hidden, archived, suggested ────────────────────────
   // `suggested`: Kaby made it and it waits for the person's Add (it is not in « My dashboards », never the default, and the pane does not open on it).
-  const flagsOf = (f) => (isObj(f) ? Object.assign({ hidden: f.hidden === true, archived: f.archived === true }, f.suggested === true ? { suggested: true, proof: typeof f.proof === 'string' ? f.proof.slice(0, 160) : '' } : {}) : { hidden: false, archived: false })
+  const flagsOf = (f) => {
+    if (!isObj(f)) return { hidden: false, archived: false }
+    const out = { hidden: f.hidden === true, archived: f.archived === true }
+    if (f.suggested === true) { out.suggested = true; out.proof = typeof f.proof === 'string' ? f.proof.slice(0, 160) : '' }
+    if (typeof f.preset === 'string' && ID_RE.test(f.preset)) out.preset = f.preset // the preset this dashboard was made from: the « Overview » row finds its copy by it
+    return out
+  }
   async function readIndex () {
     try {
       const j = JSON.parse(await fs.readFile(indexFile, 'utf8'))
@@ -151,7 +162,7 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
       out.push({
         id, name: r.dashboard.name, desc: r.dashboard.desc, widgets: r.dashboard.widgets.length,
         sources: sourcesOf(r.dashboard).map((s) => s.provider), rev: r.rev, by: last ? last.by : 'user', updatedAt: mtimeMs,
-        hidden: f.hidden, archived: f.archived, isDefault: idx.default === id, suggested: f.suggested === true, proof: f.suggested === true ? f.proof : '',
+        hidden: f.hidden, archived: f.archived, isDefault: idx.default === id, suggested: f.suggested === true, proof: f.suggested === true ? f.proof : '', preset: f.preset === undefined ? null : f.preset,
         shape: r.dashboard.widgets.map((w) => shapeOf(w)),
       })
     }
@@ -220,11 +231,59 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     const id = await freshId(idBase !== undefined ? idBase : shown)
     return save({ id, raw: Object.assign({}, raw, { name: shown }), by, what: what || 'Created' })
   }
+  /** The built-in presets, then the installed templates' (each template preset carries `template: { id, name }`). */
+  const allPresets = () => {
+    let extra = []
+    try { extra = presets(PRESETS.map((p) => p.id)) } catch (e) { extra = [] }
+    return PRESETS.concat(Array.isArray(extra) ? extra : [])
+  }
+  const templateOnes = () => allPresets().filter((p) => p.template !== undefined)
+  /** Remembers which preset a dashboard was made from (the small index, next to its flags). */
+  async function rememberPreset (id, presetId) {
+    try {
+      const idx = await readIndex()
+      const f = idx.flags[id] || { hidden: false, archived: false }
+      f.preset = presetId
+      idx.flags[id] = f
+      await writeIndex(idx)
+    } catch (e) { log(`preset origin not kept: ${e && e.message}`) }
+  }
   async function fromPreset (presetId, name) {
-    const p = PRESETS.find((x) => x.id === presetId)
+    const p = allPresets().find((x) => x.id === presetId)
     if (p === undefined) return { ok: false, message: 'Unknown preset.' }
     const own = typeof name === 'string' && name.trim() !== ''
-    return create({ name: own ? name.trim() : p.name, idBase: own ? undefined : p.id, raw: { name: p.name, desc: p.desc, widgets: JSON.parse(JSON.stringify(p.widgets)) }, by: 'preset', what: 'From the preset "' + p.name + '"' })
+    const made = await create({ name: own ? name.trim() : p.name, idBase: own ? undefined : p.id, raw: { name: p.name, desc: p.desc, widgets: JSON.parse(JSON.stringify(p.widgets)) }, by: 'preset', what: 'From the preset "' + p.name + '"' })
+    if (made.ok) await rememberPreset(made.id, p.id)
+    return made
+  }
+  /** The person's live copy of a preset (not archived, its file still there): the id, or null. */
+  async function copyOf (presetId) {
+    const idx = await readIndex()
+    for (const id of Object.keys(idx.flags).sort()) {
+      const f = idx.flags[id]
+      if (f.preset === presetId && f.archived !== true && f.suggested !== true && await exists(fileOf(id))) return id
+    }
+    return null
+  }
+  /** The « Overview » row, read-only: which dashboard it opens, in which words, and whether the person already has the copy. `null` when no installed template ships one. */
+  async function overviewInfo () {
+    const p = overviewOf(templateOnes())
+    if (p === null) return null
+    return { preset: p.id, name: p.name, label: rowLabel(p), template: p.template, dashboardId: await copyOf(p.id) }
+  }
+  let overviewPending = null
+  /** The copy the « Overview » row opens, made the first time (and again if the person archived theirs). One at a time: two tabs asking together make one copy. */
+  function ensureOverview () {
+    if (overviewPending !== null) return overviewPending
+    overviewPending = (async () => {
+      const p = overviewOf(templateOnes())
+      if (p === null) return { ok: false, code: 'no-overview', message: 'No installed template ships an overview dashboard.' }
+      const have = await copyOf(p.id)
+      if (have !== null) return { ok: true, id: have, created: false, preset: p.id }
+      const made = await fromPreset(p.id)
+      return made.ok ? { ok: true, id: made.id, created: true, preset: p.id } : made
+    })().finally(() => { overviewPending = null })
+    return overviewPending
   }
   async function clone (id) {
     const r = await readDoc(id)
@@ -311,7 +370,7 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     return lastSession !== null ? current.get(lastSession) || null : null
   }
 
-  return { root, filesDir, readDoc, list, save, create, fromPreset, clone, setFlags, suggestedCount, markSuggested, discardSuggested, readIndex, revisions, restore, userEditsSince, setCurrent, getCurrent }
+  return { root, filesDir, readDoc, list, save, create, fromPreset, allPresets, overviewInfo, ensureOverview, clone, setFlags, suggestedCount, markSuggested, discardSuggested, readIndex, revisions, restore, userEditsSince, setCurrent, getCurrent }
 }
 
 // ── the agent's tool ───────────────────────────────────────────────────────────
@@ -359,7 +418,7 @@ const brief = (r) => ({ id: r.id, name: r.dashboard.name, rev: r.rev, widgets: r
 export async function runTool (host, sessionId, a) {
   if (a.catalogue === true) {
     const c = describeCatalogue()
-    return { ok: true, providers: c.providers, widgets: c.widgets, presets: PRESETS.map((p) => ({ id: p.id, name: p.name, desc: p.desc })) }
+    return { ok: true, providers: c.providers, widgets: c.widgets, presets: host.allPresets().map((p) => ({ id: p.id, name: p.name, desc: p.desc })) }
   }
   const wantsSuggestion = a.suggested === true && !(typeof a.id === 'string' && a.id.trim() !== '')
   if (wantsSuggestion && await host.suggestedCount() >= SUGGESTED_MAX) return { ok: false, message: 'Eight suggestions already wait: the person has to answer some first.' }

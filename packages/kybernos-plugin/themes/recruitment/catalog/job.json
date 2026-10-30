@@ -137,6 +137,7 @@
     "subtitle": "client",
     "price": "salary",
     "image": "image",
+    "company": "client",
     "chips": [
       "department",
       "seniority",

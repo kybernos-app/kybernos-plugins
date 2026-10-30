@@ -10,7 +10,9 @@ The **Business** group of the sidebar › **Catalog** (the row appears once the 
 1. Search, filter by status (chips with counts), switch between **cards**, **list** and **map** (the views the theme's type allows). The **map** is a real one (MapLibre GL, OpenFreeMap tiles) for a type that places its items with two number fields; the drawn map takes over when the real one cannot be had.
 2. Click an item for its sheet: the fields of its type, the card flag (« Only 3 left »), **Edit**, **Archive**. Archived items live under **Archived** and can be restored.
 3. **New** adds an item. The form follows the type: title, subtitle, price, status and the type's own fields (text, number, money, date, choice, email, url).
-4. Rows marked **demo** are a theme's sample data; **Clear sample data** removes them (the base clears the sample rows of Contacts and Pipeline too — the dialog says so). What the person added stays.
+4. Rows marked **demo** are a theme's sample data; **Clear sample data** removes the **active template's** (the base clears the sample rows of Contacts and Pipeline of that template too — the dialog says so). What the person added stays, and so do the other templates' samples.
+
+**One template at a time.** With several templates installed, the page offers the types of the **active** one only and lists its rows only (`docs/dev/business-visuals.md`): the type chips, the « New » type choice and the status counts follow the selector of the Business group. No code in this plugin picks the template: the host reads `scope()` of the base and filters the registry's contributions by the plugin that made them.
 
 Without a theme the page uses one plain type, **Item**, with the statuses Draft, Live and Archived. With a theme, the page speaks its words.
 A row keeps only the **key** of its type and status; when a theme goes away its rows stay and are drawn as generic rows.

@@ -78,15 +78,28 @@ export function createPipelineHost (ports = {}) {
   }
 
   // ── the boards ────────────────────────────────────────────────────────────────────────────────
-  /** The boards of the active themes (each checked again: the registry may be another version), or `[]`. */
+  /**
+   * The template the pages follow (the base's `scope()`: its plugin id), or null when none is active or the base cannot say. One template at a time
+   * (docs/dev/business-visuals.md): the boards of the others stay installed, dormant.
+   */
+  const scopeOf = () => {
+    try {
+      const base = seam('business')
+      const r = base !== null && typeof base.scope === 'function' ? base.scope() : null
+      return plain(r) && r.ok === true && typeof r.scope === 'string' && r.scope !== '' ? r.scope : null
+    } catch (e) { return null }
+  }
+  /** The boards of the ACTIVE template (of every active theme while none is), each checked again (the registry may be another version), or `[]`. */
   const themeFlows = () => {
     const registry = seam('registry')
     if (registry === null || typeof registry.contributions !== 'function') return []
     let list = []
     try { list = registry.contributions(FLOW_POINT) } catch (e) { return [] }
+    const scope = scopeOf()
     const seen = new Set()
     const out = []
     for (const c of Array.isArray(list) ? list : []) {
+      if (scope !== null && !(plain(c) && c.plugin === scope)) continue
       const value = plain(c) ? c.value : null
       if (!plain(value)) continue
       const checked = validatePipelineFlow(value, value.id)
@@ -137,7 +150,7 @@ export function createPipelineHost (ports = {}) {
     const contacts = new Map()
     const items = new Map()
     return {
-      contact: (id) => link(base, 'contact', id, contacts, (r) => ({ id: r.id, name: r.name, kind: r.kind, archived: r.archived_at !== null })),
+      contact: (id) => link(base, 'contact', id, contacts, (r) => ({ id: r.id, name: r.name, kind: r.kind, image: portraitOf(r.fields), archived: r.archived_at !== null })),
       item: (id) => link(base, 'item', id, items, (r) => ({ id: r.id, title: r.title, subtitle: r.subtitle, type: typeof r.type === 'string' ? r.type : '', image: pictureOf(r.fields), archived: r.archived_at !== null })),
     }
   }
@@ -155,6 +168,11 @@ export function createPipelineHost (ports = {}) {
   const pictureOf = (fields) => {
     const v = fields !== null && typeof fields === 'object' ? fields.image : undefined
     return typeof v === 'string' && /^(?:art:[a-z-]{2,16}(?:\/[A-Za-z0-9._-]{0,40})?(?:@\d{1,3})?|photo:[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59})$/.test(v) ? v : null
+  }
+  /** The sample portrait a contact carries in its `image` field (`photo:<theme>/<name>`), or null: a reference only, never an address. */
+  const portraitOf = (fields) => {
+    const v = fields !== null && typeof fields === 'object' ? fields.image : undefined
+    return typeof v === 'string' && /^photo:[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,59}$/.test(v) ? v : null
   }
   const shapeCard = (row, links) => ({
     id: row.id,

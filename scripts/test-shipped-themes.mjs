@@ -13,6 +13,7 @@ import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mj
 import { BUSINESS_ROW_IDS } from '../packages/kybernos-plugin/domain-pack.mjs'
 import { bundleProblem, dataPluginProblems, planTheme } from '../packages/kybernos-plugin/theme-installer.mjs'
 import { photoFile } from '../packages/kybernos-plugin/themes-shipped.mjs'
+import { PHOTO_MAX, PHOTO_WIDTH_MAX, PHOTOS_PER_THEME, jpegSize } from './garde-depot.mjs'
 import { validateContactsSchema } from '../packages/kybernos-contacts/contacts-schema.mjs'
 import { validateCatalogType } from '../packages/kybernos-catalog/catalog-type.mjs'
 import { validatePipelineFlow } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
@@ -21,7 +22,9 @@ import { OWNER_VALIDATORS, checkFolder } from './plugin-check.mjs'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ROOT = join(REPO, 'packages', 'kybernos-plugin', 'themes')
 const BUSINESS = ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline']
-const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline']
+// what the Templates page lists a theme as needing: the three business pages, then the Dashboards (the theme ships a dashboard, kybernos/dashboards#preset)
+const NEEDS = [...BUSINESS, 'kybernos/dashboards']
+const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline', 'dashboards']
 // What each shipped theme must hold: the folder, and the number of sample rows its demo/sample.json seeds (a sample stays modest and readable).
 const EXPECT = {
   ecommerce: { contacts: 22, items: 16, cards: 18, notes: 8, flows: 1 },
@@ -73,7 +76,7 @@ for (const dir of dirs) {
     const r = checkFolder(join(ROOT, dir))
     assert.equal(r.exitCode, 0, r.lines.filter((l) => l.status === 'FAIL').map((l) => l.id + ' ' + l.message).join('; '))
     const points = r.lines.filter((l) => l.id.startsWith('point.'))
-    assert.equal(points.length, 8, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
+    assert.equal(points.length, 9, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
     for (const l of points) assert.equal(l.status, 'PASS', l.id + ': ' + l.message)
   })
 
@@ -84,7 +87,9 @@ for (const dir of dirs) {
     assert.deepEqual(t.manifest.author, { id: 'kybernos-themes', name: 'Kybernos' })
     assert.equal(t.manifest.kind, 'data')
     assert.equal(t.manifest.license, 'Apache-2.0')
+    // the Dashboards are NOT required: a template whose dashboard cannot be read must stay a working template (the extension is optional)
     assert.deepEqual(Object.keys(t.manifest.requires.plugins).sort(), ['kybernos/catalog', 'kybernos/contacts', 'kybernos/core', 'kybernos/pipeline', 'kybernos/skills', 'kybernos/theme'])
+    assert.equal(t.manifest.extends.find((e) => e.point === 'kybernos/dashboards#preset').optional, true)
     for (const range of Object.values(t.manifest.requires.plugins)) assert.equal(range, '^1.0')
     assert.deepEqual(t.manifest.extends.map((e) => e.dir), POINTS)
     assert.equal(readFileSync(join(t.root, 'cordis.patch.yml'), 'utf8').replace(/#[^\n]*/g, '').trim(), '[]')
@@ -135,13 +140,13 @@ for (const dir of dirs) {
     assert.ok(Array.isArray(kw) && kw.length >= 1 && kw.length <= 8, 'keywords')
     for (const k of kw) assert.match(k, /^[a-z0-9][a-z0-9 -]{1,23}$/, 'keyword ' + k)
     assert.equal(new Set(kw).size, kw.length)
-    assert.deepEqual(Object.keys(t.why).sort(), [...BUSINESS].sort(), 'why.json: one line per business plugin, nothing else')
-    for (const id of BUSINESS) {
+    assert.deepEqual(Object.keys(t.why).sort(), [...NEEDS].sort(), 'why.json: one line per needed plugin (the three business plugins and the dashboards), nothing else')
+    for (const id of NEEDS) {
       const w = t.why[id]
       assert.deepEqual(Object.keys(w).sort(), ['en', 'fr'], id)
       for (const l of ['en', 'fr']) assert.ok(typeof w[l] === 'string' && w[l].trim() !== '' && w[l].length <= 160 && !/[<>]/.test(w[l]), id + '.' + l)
     }
-    assert.equal(new Set(BUSINESS.map((id) => t.why[id].en)).size, 3, 'three different lines')
+    assert.equal(new Set(NEEDS.map((id) => t.why[id].en)).size, 4, 'four different lines')
   })
 
   ok(dir + ': the kit hangs together (the automations and the team named by the goals, the skills the team names, nothing copied from another pack)', () => {
@@ -182,9 +187,9 @@ for (const dir of dirs) {
     for (const f of walk(t.root)) {
       const rel = f.slice(t.root.length + 1)
       if (rel === 'cover.jpg') continue // the cover picture of a theme (AGENTS.md rule 4); its size and bytes are checked below
-      if (/^demo\/photos\/[a-z0-9][a-z0-9-]{1,59}\.jpg$/.test(rel)) { // the sample photographs (AGENTS.md rule 4, second exception): a JPEG of at most 80 KB, 16 a theme
+      if (/^demo\/photos\/[a-z0-9][a-z0-9-]{1,59}\.jpg$/.test(rel)) { // the sample pictures (AGENTS.md rule 4, second exception): a JPEG of at most 220 KB and 1280 px wide, 24 a theme
         const bytes = readFileSync(f)
-        assert.ok(bytes.length <= 80 * 1024 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, rel + ' is a JPEG of at most 80 KB')
+        assert.ok(bytes.length <= PHOTO_MAX && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, rel + ' is a JPEG of at most ' + PHOTO_MAX / 1024 + ' KB')
         photos++
         continue
       }
@@ -194,22 +199,37 @@ for (const dir of dirs) {
       assert.doesNotMatch(body, /data:[a-z]+\/[a-z0-9.+-]+;base64/i, rel + ' embeds media')
       for (const m of body.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []) assert.match(m, /@([a-z0-9-]+\.)*example\.com$/, rel + ': ' + m)
     }
-    assert.ok(photos <= 16, 'at most 16 sample photographs')
+    assert.ok(photos <= PHOTOS_PER_THEME, 'at most ' + PHOTOS_PER_THEME + ' sample pictures')
     assert.ok(walk(t.root).length - photos <= 24, 'a theme stays small')
   })
 
-  ok(dir + ': the sample photographs are plain small JPEGs, at most 16, and every `photo:` a row names is one of them', () => {
+  ok(dir + ': the sample pictures are plain JPEGs (a photograph per item at 1280 px, a portrait per person), at most 24, and every `photo:` a row names is one of them', () => {
     const folder = join(t.root, 'demo', 'photos')
     const files = existsSync(folder) ? readdirSync(folder) : []
-    assert.ok(files.length <= 16, files.length + ' photographs')
+    assert.ok(files.length <= PHOTOS_PER_THEME, files.length + ' pictures')
+    const refsOf = (rows) => rows.map((r) => (r.fields !== undefined ? r.fields.image : undefined)).filter((v) => typeof v === 'string' && v.startsWith('photo:')).map((v) => v.slice(6))
+    const people = sample.contacts.filter((c) => c.kind === 'person')
+    const itemRefs = refsOf(sample.items)
+    const personRefs = refsOf(people)
+    for (const ref of itemRefs.concat(personRefs)) { assert.ok(ref.startsWith(dir + '/'), ref + ' belongs to another theme'); assert.ok(photoFile(ROOT, ref) !== null, ref + ' is not a picture of this theme') }
     for (const f of files) {
       assert.match(f, /^[a-z0-9][a-z0-9-]{1,59}\.jpg$/, f)
       const bytes = readFileSync(join(folder, f))
-      assert.ok(bytes.length <= 80 * 1024 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, dir + '/' + f)
+      assert.ok(bytes.length <= PHOTO_MAX && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff, dir + '/' + f)
+      const px = jpegSize(bytes)
+      assert.ok(px !== null && px.width <= PHOTO_WIDTH_MAX, f + ' is at most ' + PHOTO_WIDTH_MAX + ' px wide')
+      const name = dir + '/' + f.replace(/\.jpg$/, '')
+      // a picture an item names is a photograph at the full width, never a small one; one a person names is a portrait, near square and at least 512 px
+      if (itemRefs.includes(name)) assert.equal(px.width, PHOTO_WIDTH_MAX, f + ' is a card photograph: ' + PHOTO_WIDTH_MAX + ' px wide, not enlarged from less')
+      else if (personRefs.includes(name)) assert.ok(px.width >= 512 && px.height >= 512 && px.width / px.height > 0.8 && px.width / px.height < 1.25, f + ' is a portrait: near square and at least 512 px')
+      else assert.fail(f + ' is named by no item and no person: a dead picture')
     }
-    const named = new Set()
-    for (const it of sample.items) { const v = it.fields !== undefined ? it.fields.image : undefined; if (typeof v === 'string' && v.startsWith('photo:')) named.add(v.slice(6)) }
-    for (const ref of named) { assert.ok(ref.startsWith(dir + '/'), ref + ' belongs to another theme'); assert.ok(photoFile(ROOT, ref) !== null, ref + ' is not a photograph of this theme') }
+    // every person of a rich sample has a portrait (a portrait serves two people at most, so a face is not seen three times) and no company is given a file: its logo is drawn
+    if (RICH.includes(dir)) {
+      assert.equal(personRefs.length, people.length, 'every sample person names a portrait')
+      for (const ref of new Set(personRefs)) assert.ok(personRefs.filter((r) => r === ref).length <= 2, ref + ' serves more than two people')
+      for (const c of sample.contacts.filter((x) => x.kind === 'company')) assert.equal(c.fields.image, undefined, c.name + ': a company\'s logo is drawn, never a file')
+    }
   })
 
   ok(dir + ': the three business points read back as valid data', () => {
@@ -311,7 +331,7 @@ for (const dir of dirs) {
     for (const n of sample.notes) { only(n, ['contact_ref', 'body'], 'note'); assert.ok(contacts.has(n.contact_ref) && n.body.length <= 4000, 'a note points at no contact') }
   })
 
-  if (RICH.includes(dir)) ok(dir + ': the sample is rich: tags that recur, a picture for every item, cards that follow the board convention', () => {
+  if (RICH.includes(dir)) ok(dir + ': the sample is rich: tags that recur, a picture for every item (two items at most share one), cards that follow the board convention', () => {
     const schema = t.contacts[0].value
     const types = new Map(t.catalog.map((r) => [r.value.id, r.value]))
     // 2 to 3 tags a contact, and every tag the theme proposes is worn by at least two contacts (a filter with a count worth showing)
@@ -333,7 +353,15 @@ for (const dir of dirs) {
       named.push(m[2])
       assert.ok(card.chips.filter((k) => i.fields[k] !== undefined).length >= 2, 'item ' + i.ref + ' shows fewer than two chips')
     }
-    assert.deepEqual([...named].sort(), files, 'every item has its photograph and every photograph is used once')
+    // the photographs are the pictures that are not portraits; a photograph serves two items at most (the 24-picture budget of a theme is shared with its portraits: two related items may show the same one)
+    assert.deepEqual([...new Set(named)].sort(), files.filter((f) => !/^portrait-\d\d$/.test(f)), 'every item has its photograph and every photograph is used')
+    for (const f of new Set(named)) assert.ok(named.filter((n) => n === f).length <= 2, f + ' serves more than two items')
+    // two items that show one photograph never sit on the same board (a column of twins would be the first thing seen): their cards are on different boards
+    const boardsOf = (ref) => new Set(sample.cards.filter((c) => c.item_ref === ref).map((c) => c.flow))
+    for (const f of new Set(named)) {
+      const twins = sample.items.filter((i) => i.fields.image === 'photo:' + dir + '/' + f).map((i) => i.ref)
+      if (twins.length === 2) assert.ok([...boardsOf(twins[0])].every((b) => !boardsOf(twins[1]).has(b)), twins.join(' and ') + ' share ' + f + ' and appear on the same board')
+    }
     // a card of a board: where it comes from, how urgent, when, a few words, and the person and the product or job it is about
     for (const c of sample.cards) {
       const what = 'card "' + c.title + '"'
@@ -421,7 +449,7 @@ if (existsSync(reader)) {
       assert.match(x.accent, /^#[0-9a-fA-F]{6}$/)
       assert.deepEqual(Object.keys(x.words).sort(), [...WORDS].sort())
       for (const row of WORDS) assert.deepEqual(x.words[row], t.pack.menu.labels[row])
-      assert.deepEqual(x.needs, BUSINESS, 'needs = the three business plugins, in the order of the Business group')
+      assert.deepEqual(x.needs, NEEDS, 'needs = the three business plugins in the order of the Business group, then the dashboards')
       assert.equal(x.tag, t.manifest.keywords[0][0].toUpperCase() + t.manifest.keywords[0].slice(1), 'the chip is the first keyword, capitalised')
       assert.deepEqual(x.why, t.why, 'the lines of why.json, one per plugin')
       assert.equal(x.cover, true, 'each theme ships its cover picture (the one media exception of AGENTS.md rule 4)')

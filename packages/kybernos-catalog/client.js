@@ -87,7 +87,15 @@ window.__ModuleLoader__.load({
         const title = card.title !== undefined ? slotText(type, row, card.title) : row.title
         const subtitle = card.subtitle !== undefined ? slotText(type, row, card.subtitle) : row.subtitle
         const priced = card.price !== undefined ? slotText(type, row, card.price) : ''
-        return { title: title !== '' ? title : row.title, subtitle, price: priced !== '' ? priced : row.price_text, flag: flagText(type, row) }
+        const company = card.company !== undefined ? slotText(type, row, card.company) : ''
+        return { title: title !== '' ? title : row.title, subtitle, company, price: priced !== '' ? priced : row.price_text, flag: flagText(type, row) }
+      }
+      /** The subtitle line of a card, a row or the panel; led by the company's drawn mark when the type says that line is a company (`card.company`). */
+      const SubLine = (props) => {
+        const { card, tag } = props
+        const K = kitOf()
+        if (card.company === '' || card.company !== card.subtitle || K === null || typeof K.Logo !== 'function') return h(tag, props.className === undefined ? null : { className: props.className }, card.subtitle)
+        return h(tag, { className: (props.className === undefined ? '' : props.className + ' ') + 'kbcg-co', 'data-kb': 'catalog-company' }, h('span', { className: 'kbcg-comark', 'aria-hidden': 'true' }, h(K.Logo, { name: card.company, size: 18 })), h('span', null, card.subtitle))
       }
       const archivedRow = (row) => row.archived_at !== null && row.archived_at !== undefined
       /** The views the page offers: those of the type in view, or of every type, in the order cards, list. */
@@ -551,6 +559,8 @@ window.__ModuleLoader__.load({
       .kbcg-body{display:flex;flex-direction:column;gap:3px;padding:10px 12px 12px;min-width:0}
       .kbcg-body b{font-weight:650;font-size:14px;line-height:1.3;overflow-wrap:anywhere}
       .kbcg-body small{color:var(--kbcg-t3);font-size:12px;overflow-wrap:anywhere}
+      .kbcg-co{display:flex;align-items:center;gap:7px;min-width:0}
+      .kbcg-comark{display:inline-flex;flex:none;line-height:0}
       .kbcg-price{font-weight:650}
       .kbcg-flag{font-size:11.5px;font-weight:600;color:var(--kbcg-warn)}
       .kbcg-tbl{width:100%;border-collapse:collapse}
@@ -1287,7 +1297,7 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: 'x', ref: closeRef, 'aria-label': kt('Fermer', 'Close'), 'data-kb': 'catalog-close', onClick: props.onClose }, Ic('x', 16)),
           h(Picture, { type, row, index, wide: true }, h(StatusTag, { type, row })),
           h('h3', null, card.title),
-          card.subtitle !== '' && card.subtitle !== card.title ? h('p', { className: 'sub' }, card.subtitle) : null,
+          card.subtitle !== '' && card.subtitle !== card.title ? h(SubLine, { card, tag: 'p', className: 'sub' }) : null,
           card.price !== '' || card.flag !== null ? h('p', { className: 'sub' }, card.price, card.price !== '' && card.flag !== null ? ' · ' : '', card.flag !== null ? h('span', { className: 'kbcg-flag', 'data-kb': 'catalog-flag' }, card.flag) : null) : null,
           h(ChipRow, { type, row }),
           row.demo === true || archived ? h('div', { className: 'badges' }, row.demo === true ? h(DemoTag) : null, archived ? h(Tag, { kb: 'catalog-archived-badge' }, kt('Archivé', 'Archived')) : null) : null,
@@ -1310,7 +1320,7 @@ window.__ModuleLoader__.load({
             h(Picture, { type, row, index: i }, h(StatusTag, { type, row }), row.demo === true ? h(DemoTag) : null),
             h('span', { className: 'kbcg-body' },
               h('b', null, card.title),
-              card.subtitle !== '' ? h('small', null, card.subtitle) : null,
+              card.subtitle !== '' ? h(SubLine, { card, tag: 'small' }) : null,
               h(ChipRow, { type, row }),
               card.price !== '' ? h('span', { className: 'kbcg-price', 'data-kb': 'catalog-price' }, card.price) : null,
               card.flag !== null ? h('small', { className: 'kbcg-flag', 'data-kb': 'catalog-flag' }, card.flag) : null)),
@@ -1325,7 +1335,7 @@ window.__ModuleLoader__.load({
           const card = cardOf(type, row)
           const open = () => props.onOpen(row, i)
           return h('tr', { key: row.id, className: 'r kz-in' + (props.hot === row.id ? ' hot' : ''), style: { '--kz-i': Math.min(i, 14) }, tabIndex: 0, 'data-kb': 'catalog-row', 'data-id': row.id, 'data-known': type === null ? 'no' : 'yes', 'aria-current': props.selected === row.id ? 'true' : undefined, onClick: open, onKeyDown: onActivate(open), onMouseEnter: () => props.onHover(row.id), onMouseLeave: () => props.onHover(null) },
-            h('td', null, h('div', { className: 'who' }, h('span', { className: 'kbcg-thumb' }, h(Picture, { type, row, index: i })), h('div', null, h('b', null, card.title, row.demo === true ? ' ' : null, row.demo === true ? h(DemoTag) : null), card.subtitle !== '' ? h('small', null, card.subtitle) : null, h(ChipRow, { type, row })))),
+            h('td', null, h('div', { className: 'who' }, h('span', { className: 'kbcg-thumb' }, h(Picture, { type, row, index: i })), h('div', null, h('b', null, card.title, row.demo === true ? ' ' : null, row.demo === true ? h(DemoTag) : null), card.subtitle !== '' ? h(SubLine, { card, tag: 'small' }) : null, h(ChipRow, { type, row })))),
             h('td', null, h(StatusTag, { type, row })),
             h('td', null, h('b', null, card.price)),
             notes ? h('td', { className: 'muted' }, card.flag !== null ? h('span', { className: 'kbcg-flag', 'data-kb': 'catalog-flag' }, card.flag) : '') : null)
@@ -1509,7 +1519,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title', 'data-kb': 'catalog-title' }, title), help),
             h('p', { className: 'kb8-sub' }, kt('Ce que tu vends, loues ou recrutes, en cartes, en liste ou sur une carte.', 'What you sell, rent or recruit for, as cards, a list or on a map.'))),
           KbBar !== null
-            ? h(KbBar, { state: bar, onUpdate: onBar, views, viewLabels: true, sortOptions, showFav: true, searchPlaceholder: kt('Rechercher', 'Search'), trailing: addButton })
+            ? h(KbBar, { state: shownView === bar.viewMode ? bar : Object.assign({}, bar, { viewMode: shownView }), onUpdate: onBar, views, viewLabels: true, sortOptions, showFav: true, searchPlaceholder: kt('Rechercher', 'Search'), trailing: addButton })
             : h(PlainBar, { query: q, onQuery: setQ, views, view: shownView, onView: changeView, trailing: addButton }))
 
         // states

@@ -45,6 +45,9 @@ a second registration of the same key at the same priority throws. The core pick
 - `menu.labels` of a domain pack accepts `contacts`, `catalog` and `pipeline` (`BUSINESS_ROW_IDS` in `domain-pack.mjs`). The registry lives in the
   browser and the host validates packs, so the host cannot read it: the three ids the plugins may take are listed there.
 - `window.__KB_OPEN__.views` lists the declared rows next to the core's pages.
+- **The template selector.** When two or more sector templates touch the pages, the group draws a selector above its rows (`kb-business-scope` in `client.js`, `docs/dev/business-visuals.md`,
+  « One active template »): the three rows then take the **active template's** words (`menu.labels` of its pack, before the person's field), and a page is mounted again, under a key that holds the
+  template, when the choice changes. A control of the group that must not close the phone's drawer carries `data-kb-keep-open` (`kybernos-mobile`).
 - The group is folded or open as the person left it, in `localStorage` (`kybernos.menu.business.collapsed.v1`, per browser, read and written inside
   try/catch). Nothing depends on it: without storage the group starts open.
 - In the collapsed icon rail the header goes away and the rows always show.

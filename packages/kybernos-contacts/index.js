@@ -54,8 +54,10 @@ export function tellWhenReady (options = {}) {
 
 // ── the business base, looked up when a question comes ───────────────────────────────────────────────────────────────────────────────────────
 const businessSeam = () => { try { const b = globalThis[Symbol.for('kybernos.business')]; return b !== undefined && b !== null && b.version === 1 ? b : null } catch (e) { return null } }
+/** The template the pages follow, asked of the base each time (its plugin id), or null: none is active, or an older core cannot say. */
+const scopeNow = () => { try { const b = businessSeam(); const r = b !== null && typeof b.scope === 'function' ? b.scope() : null; return r !== null && r.ok === true && typeof r.scope === 'string' && r.scope !== '' ? r.scope : null } catch (e) { return null } }
 /** The api over the live seams. Every question looks them up again: the base and the registry may appear after this plugin. */
-export const makeApi = () => createApi({ base: businessSeam, schema: () => schemaFrom(registrySeam()) })
+export const makeApi = () => createApi({ base: businessSeam, schema: () => schemaFrom(registrySeam(), scopeNow()) })
 
 // ── the routes ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const BODY_MAX = 32 * 1024

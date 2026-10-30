@@ -73,6 +73,12 @@
       "point": "kybernos/pipeline#flow",
       "range": "^1.0",
       "dir": "pipeline"
+    },
+    {
+      "point": "kybernos/dashboards#preset",
+      "range": "^1.0",
+      "dir": "dashboards",
+      "optional": true
     }
   ]
 }

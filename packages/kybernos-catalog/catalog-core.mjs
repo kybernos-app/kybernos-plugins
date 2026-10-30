@@ -101,14 +101,29 @@ export function createCatalog (ports = {}) {
   const baseOf = () => { try { const b = typeof ports.base === 'function' ? ports.base() : null; return b !== null && b !== undefined && b.version === 1 && typeof b.list === 'function' ? b : null } catch (e) { return null } }
   const registryOf = () => { try { const r = typeof ports.registry === 'function' ? ports.registry() : null; return r !== null && r !== undefined && r.version === 1 && typeof r.contributions === 'function' ? r : null } catch (e) { return null } }
 
-  /** The types the active themes bring (the first of an id wins), or the one default type. Never throws. */
+  /**
+   * The template the pages follow (the base's `scope()`: its plugin id), or null when none is active or the base cannot say: the types of every active
+   * theme are then offered, as before templates were separated. One template at a time (docs/dev/business-visuals.md).
+   */
+  const scopeOf = () => {
+    try {
+      const b = baseOf()
+      if (b === null || typeof b.scope !== 'function') return null
+      const r = b.scope()
+      return r !== null && r !== undefined && r.ok === true && typeof r.scope === 'string' && r.scope !== '' ? r.scope : null
+    } catch (e) { return null }
+  }
+
+  /** The types the ACTIVE template brings (the first of an id wins; every active theme's while no template is active), or the one default type. Never throws. */
   const types = () => {
     const out = []
     try {
       const registry = registryOf()
       if (registry !== null) {
         const seen = new Set()
+        const scope = scopeOf()
         for (const c of registry.contributions(CATALOG_POINT_REF)) {
+          if (scope !== null && (c === null || typeof c !== 'object' || c.plugin !== scope)) continue
           const checked = c !== null && typeof c === 'object' ? validateCatalogType(c.value) : { ok: false }
           if (checked.ok !== true || seen.has(checked.value.id)) continue
           seen.add(checked.value.id)

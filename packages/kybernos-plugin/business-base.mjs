@@ -13,15 +13,20 @@
 //   - What a type, a field or a stage MEANS is not stored here: the plugins read the definitions from the registry (the contributions of the
 //     active theme). A row only keeps the key of its type; an unknown key is shown as a generic row.
 //   - Every write leaves one line in `changes` (who: person, agent, theme or seed), in the same transaction as the write.
+//   - ONE TEMPLATE AT A TIME (schema 2): every row of contact, note, item and flow_card carries a `scope`, the id of the sector template it belongs to
+//     (`kybernos-themes/ecommerce`; '' = no template yet). The seam answers for the ACTIVE template's rows unless a question names another scope
+//     (`options.scope`, '*' for all), and a new row takes the active scope. Which template is active is business-scope.mjs's business; the base only
+//     asks, at each question, through a port. See docs/dev/business-visuals.md.
 //
 // Pure over its ports (`file`, `sqlite`, `now`, `fs`): `test-business-base.mjs` drives it on a temp folder and with a Node that has no sqlite.
 import { createRequire } from 'node:module'
 import { chmodSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { SCOPE_RE, activeFileFor, liveScope, recentTemplates } from './business-scope.mjs'
 
 export const SEAM = Symbol.for('kybernos.business')
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 export const TABLES = Object.freeze(['contact', 'note', 'item', 'flow_card'])
 export const ACTORS = Object.freeze(['person', 'agent', 'theme', 'seed'])
 const LIST_MAX = 500
@@ -116,6 +121,35 @@ CREATE INDEX IF NOT EXISTS flow_card_contact ON flow_card(contact_id);
 CREATE INDEX IF NOT EXISTS flow_card_item ON flow_card(item_id);
 CREATE INDEX IF NOT EXISTS changes_ts ON changes(ts);
 `
+/** The tables whose rows belong to a template (the journal and the viewer's manifest do not). */
+const SCOPED = Object.freeze(['contact', 'note', 'item', 'flow_card'])
+
+/**
+ * Schema 2, step two: the sample rows of a base written before `scope` existed belong to the theme that seeded them. Nothing on a row says which, but
+ * each seed left one line in the journal (`<theme>: N contacts, N items, N cards, N notes`) and a seed inserts its rows in one transaction, so the
+ * demo rows of a table, in id order, are the first seed's, then the second's… counted from the last `clear-demo` or `purge` (which emptied them all
+ * at that time). A table whose demo rows do not add up to the journal's counts is left alone: its rows stay unscoped and the active template adopts them.
+ * Returns how many rows each table moved.
+ */
+function attributeSeeds (db) {
+  let seeds = []
+  for (const l of db.prepare("SELECT action, summary FROM changes WHERE action IN ('seed', 'clear-demo', 'purge') ORDER BY id").all()) {
+    if (l.action !== 'seed') { seeds = []; continue }
+    const m = /^([a-z0-9][a-z0-9/_-]{0,60}): (\d+) contacts, (\d+) items, (\d+) cards, (\d+) notes$/.exec(String(l.summary))
+    if (m !== null) seeds.push({ theme: m[1], contact: Number(m[2]), item: Number(m[3]), flow_card: Number(m[4]), note: Number(m[5]) })
+  }
+  const moved = {}
+  for (const t of SCOPED) {
+    const rows = db.prepare('SELECT id FROM ' + t + ' WHERE demo = 1 ORDER BY id').all()
+    if (rows.length === 0 || rows.length !== seeds.reduce((a, s) => a + s[t], 0)) continue
+    const set = db.prepare('UPDATE ' + t + ' SET scope = ? WHERE id = ?')
+    let at = 0
+    for (const s of seeds) for (let i = 0; i < s[t]; i += 1) set.run(s.theme, rows[at++].id)
+    moved[t] = rows.length
+  }
+  return moved
+}
+
 /** version → how to reach it from the one before. A new version appends here and bumps SCHEMA_VERSION: nothing is ever dropped. */
 const MIGRATIONS = {
   1: (db, nowIso) => {
@@ -123,6 +157,23 @@ const MIGRATIONS = {
     db.prepare('INSERT INTO pack (contenu) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM pack)').run(JSON.stringify(PACK))
     db.prepare("INSERT OR IGNORE INTO meta (key, value) VALUES ('created_at', ?)").run(nowIso)
     db.prepare("INSERT OR IGNORE INTO meta (key, value) VALUES ('seeded', '[]')").run()
+  },
+  // One template at a time: a `scope` on every row (the id of its template, '' = none). Idempotent (a column that is there is not added again),
+  // forward only (an older Kybernos refuses the base: `schema_newer`), and it runs inside the migration's own transaction.
+  2: (db, nowIso) => {
+    for (const t of SCOPED) {
+      if (!db.prepare('PRAGMA table_info(' + t + ')').all().some((c) => c.name === 'scope')) {
+        db.exec('ALTER TABLE ' + t + " ADD COLUMN scope TEXT NOT NULL DEFAULT '' CHECK (length(scope) <= 61)")
+      }
+      db.exec('CREATE INDEX IF NOT EXISTS ' + t + '_scope ON ' + t + '(scope)')
+    }
+    const moved = attributeSeeds(db)
+    const total = Object.values(moved).reduce((a, n) => a + n, 0)
+    if (total > 0) {
+      db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('scope_migration', ?)").run(JSON.stringify({ at: nowIso, attributed: moved }))
+      db.prepare('INSERT INTO changes (ts, actor, tbl, row_id, action, summary) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(nowIso, 'theme', 'meta', null, 'update', 'scope: ' + total + ' sample rows given to the theme that seeded them')
+    }
   },
 }
 
@@ -289,6 +340,15 @@ export function createBusinessBase (ports = {}) {
   const nowIso = () => new Date(typeof ports.now === 'function' ? ports.now() : Date.now()).toISOString()
   const mkdir = ports.mkdirSync || mkdirSync
   const exists = ports.existsSync || existsSync
+  // The active template, asked at each question (never cached: the person may switch it from another window): a port, or the stored choice next to the
+  // base read through the registry seam (business-scope.mjs). Anything but a template id means « none », and the pages behave as they always did.
+  const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+  const scopePort = typeof ports.scope === 'function' ? ports.scope : () => liveScope({
+    file: () => activeFileFor(fileOf()),
+    registry: registrySeam,
+    recent: () => recentTemplates(join(dirname(dirname(fileOf())), 'themes.json')),
+  })
+  const activeScope = () => { let v = null; try { v = scopePort() } catch (e) { v = null } return typeof v === 'string' && SCOPE_RE.test(v) ? v : null }
 
   let db = null
   let dbFile = null
@@ -363,6 +423,36 @@ export function createBusinessBase (ports = {}) {
   const read = (fn) => fn(open())
   const safe = (fn) => { try { return fn() } catch (e) { return failure(e) } }
 
+  /**
+   * The active scope, after the rows that belong to no template yet (made before any template was active) have joined it: a template that is active owns
+   * what the person made in the meantime. One cheap look at an indexed column; the write happens only when a row is found. A base that cannot be
+   * written (read-only, busy) leaves the rows for the next question, and the question itself still answers.
+   */
+  const settle = () => {
+    const scope = activeScope()
+    if (scope === null) return null
+    try {
+      const handle = open()
+      const any = handle.prepare(SCOPED.map((t) => "SELECT 1 AS x FROM " + t + " WHERE scope = ''").join(' UNION ALL ') + ' LIMIT 1').get()
+      if (any !== undefined) {
+        write((h) => {
+          const moved = []
+          for (const t of SCOPED) { const n = Number(h.prepare('UPDATE ' + t + " SET scope = ? WHERE scope = ''").run(scope).changes); if (n > 0) moved.push(n + ' ' + t) }
+          if (moved.length > 0) journal(h, 'theme', 'meta', undefined, 'update', 'scope: ' + moved.join(', ') + ' adopted by ' + scope)
+        })
+      }
+    } catch (e) { /* the next question that can write adopts them */ }
+    return scope
+  }
+  /** The scope a question is about: `options.scope` (a template id, '' for the rows of no template, '*' for every scope) or, without it, the active one. `null` = no filter. */
+  const scopeOption = (options) => {
+    const o = options !== null && typeof options === 'object' ? options.scope : undefined
+    if (o === undefined) return settle()
+    if (o === '*') return null
+    if (typeof o !== 'string' || (o !== '' && !SCOPE_RE.test(o))) bad('bad_field', 'scope: a template id, "" or "*"')
+    return o
+  }
+
   const journal = (handle, actor, tbl, rowId, action, summary) => {
     handle.prepare('INSERT INTO changes (ts, actor, tbl, row_id, action, summary) VALUES (?, ?, ?, ?, ?, ?)')
       .run(nowIso(), actor, tbl, rowId === undefined ? null : rowId, action, String(summary).slice(0, 300))
@@ -413,6 +503,7 @@ export function createBusinessBase (ports = {}) {
     const actor = actorOf(opts)
     const s = spec(table)
     const values = checked(table, input, true)
+    const mine = opts !== null && typeof opts === 'object' && opts.scope !== undefined ? scopeOption({ scope: opts.scope }) : settle()
     return write((handle) => {
       checkLinks(handle, table, values)
       const now = nowIso()
@@ -420,8 +511,13 @@ export function createBusinessBase (ports = {}) {
         values.position = Number(handle.prepare('SELECT COALESCE(MAX(position) + 1, 0) AS p FROM flow_card WHERE flow = ? AND stage = ?').get(values.flow, values.stage).p)
       }
       const cols = encode(table, values)
+      cols.scope = mine === null ? '' : mine
       if (s.stamps) { cols.created_at = now; cols.updated_at = now }
-      if (table === 'note') { cols.actor = actor; cols.created_at = now }
+      if (table === 'note') {
+        cols.actor = actor; cols.created_at = now
+        const owner = handle.prepare('SELECT scope FROM contact WHERE id = ?').get(values.contact_id) // a note belongs to the template of its contact
+        if (owner !== undefined) cols.scope = owner.scope
+      }
       if (table === 'flow_card') cols.entered_stage_at = now
       const names = Object.keys(cols)
       const info = handle.prepare('INSERT INTO ' + table + ' (' + names.join(', ') + ') VALUES (' + names.map(() => '?').join(', ') + ')').run(...names.map((n) => cols[n]))
@@ -495,6 +591,8 @@ export function createBusinessBase (ports = {}) {
       where.push(col + ' = ?'); args.push(options[name])
     }
     if (options.demo === true || options.demo === false) { where.push('demo = ?'); args.push(options.demo ? 1 : 0) }
+    const scope = scopeOption(options)
+    if (scope !== null) { where.push('scope = ?'); args.push(scope) }
     if (typeof options.q === 'string' && options.q.trim() !== '') {
       where.push('(' + s.search.map((c) => c + " LIKE ? ESCAPE '\\'").join(' OR ') + ')')
       for (let i = 0; i < s.search.length; i += 1) args.push(like(options.q.trim()))
@@ -513,8 +611,8 @@ export function createBusinessBase (ports = {}) {
   const seeded = (handle) => { try { const a = JSON.parse(handle.prepare("SELECT value FROM meta WHERE key = 'seeded'").get().value); return Array.isArray(a) ? a : [] } catch (e) { return [] } }
 
   /**
-   * Sample rows, every one marked `demo`. `data` = `{ contacts, items, cards, notes }`; rows may carry a `ref` and point at one another with
-   * `company_ref`, `contact_ref`, `item_ref`. The same theme seeds once: a second call answers `skipped`.
+   * Sample rows, every one marked `demo` and given to the theme's scope. `data` = `{ contacts, items, cards, notes }`; rows may carry a `ref` and point at
+   * one another with `company_ref`, `contact_ref`, `item_ref`. The same theme seeds once: a second call answers `skipped`.
    */
   const seed = (data, opts) => safe(() => {
     const actor = actorOf(Object.assign({ actor: 'seed' }, opts))
@@ -545,7 +643,7 @@ export function createBusinessBase (ports = {}) {
       const now = nowIso()
       const ids = { contact: new Map(), item: new Map() }
       const insert = (table, values, extra) => {
-        const cols = { ...encode(table, values), ...extra, demo: 1 }
+        const cols = { ...encode(table, values), ...extra, demo: 1, scope: theme }
         const names = Object.keys(cols)
         return Number(handle.prepare('INSERT INTO ' + table + ' (' + names.join(', ') + ') VALUES (' + names.map(() => '?').join(', ') + ')').run(...names.map((n) => cols[n])).lastInsertRowid)
       }
@@ -574,24 +672,31 @@ export function createBusinessBase (ports = {}) {
     })
   })
 
-  /** Removes every sample row (and what hangs on it), and lets the themes seed again. Rows the person made stay. */
+  /**
+   * Removes the sample rows (and what hangs on them), and lets the theme seed again. Rows the person made stay. Without `options.scope` it is the ACTIVE
+   * template's samples that go (every sample while no template is active); `scope: '*'` removes them all, a template id removes that template's.
+   */
   const clearDemo = (opts) => safe(() => {
     const actor = actorOf(opts)
+    const scope = scopeOption(opts)
     return write((handle) => {
       const removed = {}
-      for (const t of ['note', 'flow_card', 'item', 'contact']) removed[t] = Number(handle.prepare('DELETE FROM ' + t + ' WHERE demo = 1').run().changes)
-      handle.prepare("UPDATE meta SET value = '[]' WHERE key = 'seeded'").run()
-      journal(handle, actor, 'meta', undefined, 'clear-demo', Object.entries(removed).map(([t, n]) => n + ' ' + t).join(', '))
-      return { ok: true, removed }
+      const tail = scope === null ? '' : ' AND scope = ?'
+      const args = scope === null ? [] : [scope]
+      for (const t of ['note', 'flow_card', 'item', 'contact']) removed[t] = Number(handle.prepare('DELETE FROM ' + t + ' WHERE demo = 1' + tail).run(...args).changes)
+      handle.prepare("UPDATE meta SET value = ? WHERE key = 'seeded'").run(JSON.stringify(scope === null ? [] : seeded(handle).filter((x) => x !== scope)))
+      journal(handle, actor, 'meta', undefined, 'clear-demo', Object.entries(removed).map(([t, n]) => n + ' ' + t).join(', ') + (scope === null ? '' : ' (' + scope + ')'))
+      return { ok: true, removed, scope }
     })
   })
 
-  /** Everything, as plain data the person can keep (the journal and the markers included). */
+  /** Everything, as plain data the person can keep (the journal and the markers included; each row says its `scope`). `{ scope }` limits it to one template ('' = the rows of none). */
   const exportAll = (opts) => safe(() => {
     const actor = actorOf(opts)
+    const scope = opts !== null && typeof opts === 'object' && opts.scope !== undefined ? scopeOption(opts) : null
     return write((handle) => {
       const tables = {}
-      for (const t of TABLES) tables[t] = handle.prepare('SELECT * FROM ' + t + ' ORDER BY id').all().map((r) => decode(t, r))
+      for (const t of TABLES) tables[t] = handle.prepare('SELECT * FROM ' + t + (scope === null ? '' : ' WHERE scope = ?') + ' ORDER BY id').all(...(scope === null ? [] : [scope])).map((r) => decode(t, r))
       tables.changes = handle.prepare('SELECT * FROM changes ORDER BY id').all()
       tables.meta = handle.prepare('SELECT * FROM meta ORDER BY key').all()
       const out = { ok: true, format: 1, schema_version: versionOf(handle), exported_at: nowIso(), tables }
@@ -616,15 +721,24 @@ export function createBusinessBase (ports = {}) {
     return { ok: true, removed }
   })
 
-  const counts = () => safe(() => read((handle) => {
-    const out = { ok: true, tables: {}, demo: {} }
-    for (const t of TABLES) {
-      out.tables[t] = Number(handle.prepare('SELECT COUNT(*) AS n FROM ' + t).get().n)
-      out.demo[t] = Number(handle.prepare('SELECT COUNT(*) AS n FROM ' + t + ' WHERE demo = 1').get().n)
-    }
-    out.changes = Number(handle.prepare('SELECT COUNT(*) AS n FROM changes').get().n)
-    return out
-  }))
+  /** How many rows there are, and how many of them are samples: of the active template (`scope` says which, null = every row), or of `options.scope`. */
+  const counts = (options) => safe(() => {
+    const scope = scopeOption(options)
+    return read((handle) => {
+      const out = { ok: true, scope, tables: {}, demo: {} }
+      const tail = scope === null ? '' : ' scope = ?'
+      const args = scope === null ? [] : [scope]
+      for (const t of TABLES) {
+        out.tables[t] = Number(handle.prepare('SELECT COUNT(*) AS n FROM ' + t + (scope === null ? '' : ' WHERE' + tail)).get(...args).n)
+        out.demo[t] = Number(handle.prepare('SELECT COUNT(*) AS n FROM ' + t + ' WHERE demo = 1' + (scope === null ? '' : ' AND' + tail)).get(...args).n)
+      }
+      out.changes = Number(handle.prepare('SELECT COUNT(*) AS n FROM changes').get().n)
+      return out
+    })
+  })
+
+  /** The template the pages follow now (`scope` is its id, or null: none is active). Opens nothing: the file is not created by this question. */
+  const scopeNow = () => safe(() => ({ ok: true, scope: activeScope() }))
 
   /** Where the base lives and whether it exists: opens nothing, creates nothing. */
   const status = () => safe(() => {
@@ -644,6 +758,7 @@ export function createBusinessBase (ports = {}) {
     archive: (table, id, opts) => archiveOrRestore(table, id, opts, false),
     restore: (table, id, opts) => archiveOrRestore(table, id, opts, true),
     seed, clearDemo, exportAll, deleteAll, counts,
+    scope: scopeNow,
   })
 }
 
