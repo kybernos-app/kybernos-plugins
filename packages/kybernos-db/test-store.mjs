@@ -2,7 +2,7 @@
 //
 //   node packages/kybernos-db/test-store.mjs
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -701,6 +701,55 @@ ok('an attachment is refused when it is not bytes, too big or badly described', 
   assert.equal(db.attach(Buffer.alloc(25 * 1024 * 1024 + 1), { name: 'big.bin', type: 'application/octet-stream' }).code, 'too-big')
   assert.equal(db.attach(Buffer.alloc(25 * 1024 * 1024), { name: 'edge.bin', type: 'application/octet-stream' }).ok, true)
   assert.equal(existsSync(join(dir, 'blobs', hashOf(Buffer.alloc(25 * 1024 * 1024 + 1)))), false)
+})
+
+ok('a field own cap is applied before the file is stored, and never raised above the 25 MB one', () => {
+  const { dir, db } = make()
+  const small = db.attach(Buffer.from('12345'), { name: 'a.txt', type: 'text/plain' }, 4)
+  assert.equal(small.code, 'too-big'); assert.equal(existsSync(join(dir, 'blobs', hashOf(Buffer.from('12345')))), false)
+  assert.equal(db.attach(Buffer.from('1234'), { name: 'a.txt', type: 'text/plain' }, 4).ok, true, 'the cap itself is allowed')
+  assert.equal(db.attach(Buffer.alloc(25 * 1024 * 1024 + 1), { name: 'big.bin', type: 'application/octet-stream' }, 1e12).code, 'too-big', 'a cap above the default is the default')
+})
+
+ok('the garbage collector takes a file nothing holds once it is old enough, and keeps what a row holds, even a deleted row', () => {
+  const { dir, db } = make()
+  const DAY = 24 * 60 * 60 * 1000
+  const put = (text) => db.attach(Buffer.from(text), { name: text + '.txt', type: 'text/plain' }).file
+  const held = put('held'); const gone = put('gone'); const young = put('young'); const inDeleted = put('in-deleted')
+  assert.ok(db.create('task', { title: 'Holds', files: [held] }, 'noor').ok)
+  const del = db.create('task', { title: 'Deleted', files: [inDeleted] }, 'noor').record
+  assert.ok(db.remove('task', del.id, 'noor').ok)
+  const age = (file, days) => { const t = new Date(Date.now() - days * DAY); utimesSync(join(dir, 'blobs', file.hash), t, t) }
+  age(held, 30); age(gone, 30); age(inDeleted, 30); age(young, 1)
+  const r = db.gc()
+  assert.deepEqual([r.removed, r.kept, r.bytes], [1, 3, Buffer.byteLength('gone')])
+  assert.deepEqual(db.blobs.list().sort(), [held.hash, inDeleted.hash, young.hash].sort())
+  assert.deepEqual(db.gc(), { removed: 0, kept: 3, bytes: 0 }, 'a second run finds nothing more')
+  assert.equal(db.gc({ graceMs: 0 }).removed, 1, 'with no grace the young one goes too')
+  assert.equal(db.blobs.has(held.hash), true)
+  assert.equal(db.blobs.has(inDeleted.hash), true, 'a restore must find its files')
+  assert.ok(db.restore('task', del.id, 'noor').ok)
+})
+
+ok('taking a file off a row frees it for the collector, putting the same bytes in again renews its age, and a young file is not taken', () => {
+  const { dir, db } = make()
+  const DAY = 24 * 60 * 60 * 1000
+  const f = db.attach(Buffer.from('once'), { name: 'once.txt', type: 'text/plain' }).file
+  const row = db.create('task', { title: 'T', files: [f] }, 'noor').record
+  assert.ok(db.update('task', row.id, { files: null }, 'noor').ok)
+  const old = new Date(Date.now() - 30 * DAY)
+  utimesSync(join(dir, 'blobs', f.hash), old, old)
+  db.attach(Buffer.from('once'), { name: 'again.txt', type: 'text/plain' })
+  assert.equal(db.gc().removed, 0, 'the same bytes stored again are young again: an upload waiting for its write is safe')
+  utimesSync(join(dir, 'blobs', f.hash), old, old)
+  assert.equal(db.gc().removed, 1)
+  assert.equal(db.blobs.has(f.hash), false)
+  // a file that a raw-SQL write put on a row is held too
+  const g = db.attach(Buffer.from('by-hand'), { name: 'h.txt', type: 'text/plain' }).file
+  const h = raw(join(dir, 'db.sqlite'))
+  h.exec(`UPDATE r_task SET files = '${JSON.stringify([g])}' WHERE id = '${row.id}'`); h.close()
+  utimesSync(join(dir, 'blobs', g.hash), old, old)
+  assert.equal(db.gc().removed, 0)
 })
 
 ok('a blob that was changed on disk is not served, and a name that is not a hash reads nothing', () => {

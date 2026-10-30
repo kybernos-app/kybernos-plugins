@@ -7,6 +7,8 @@
 //   records({ db, object, deleted? })    the records of one object (5,000 at most)
 //   links({ db, object, id })            what points at a record, from the other tables: one group per link field, with the first records of each
 //   write({ db, object, op, id?, values? })   op: create | update | delete | restore
+//   upload({ db, object, field, name, type, bytes })   stores a file for an attachment field and gives the value to write (the file waits, unheld, until a row holds it)
+//   file({ db, object, id, field, hash })     one file a row holds, with its bytes
 //   view({ db, object, op, view?, id? })      op: save | remove
 
 import { findObject } from './store/catalog.mjs'
@@ -70,6 +72,29 @@ export function makeApi ({ service, ports = {} }) {
         return { object: g.object, objectLabel: from.label, field: g.field, fieldLabel: field.label, inverse: field.inverse === undefined ? null : field.inverse, many: field.many === true, count: g.count, records: titled }
       })
       return { ok: true, object: t.obj.key, id, groups }
+    },
+
+    upload (q) {
+      const t = aim(q)
+      if (t.err) return t.err
+      const field = t.obj.fields.find((f) => f.key === t.a.field)
+      if (!field || field.type !== 'attachment') return fail('invalid', 'there is no attachment field of that name in this table')
+      if (!(t.a.bytes instanceof Uint8Array)) return fail('invalid', 'a file is bytes')
+      const r = t.db.attach(t.a.bytes, { name: t.a.name, type: t.a.type }, field.maxBytes)
+      return r.ok ? { ok: true, file: r.file } : fromStore(r)
+    },
+
+    file (q) {
+      const t = aim(q)
+      if (t.err) return t.err
+      const rec = typeof t.a.id === 'string' ? t.db.get(t.obj.key, t.a.id) : null
+      if (rec === null) return fail('missing', 'no such row')
+      const held = rec.values[t.a.field]
+      const file = Array.isArray(held) && typeof t.a.hash === 'string' ? held.find((f) => f.hash === t.a.hash) : undefined
+      if (file === undefined) return fail('missing', 'that row holds no such file')
+      const bytes = t.db.blobs.get(file.hash)
+      if (bytes === null) return fail('missing', 'the file is not on this computer any more')
+      return { ok: true, file, bytes }
     },
 
     write (body) {

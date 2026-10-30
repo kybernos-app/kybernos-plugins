@@ -1,5 +1,6 @@
 // The database the live check of the Tables page opens on: a small « Home » db (tasks with every kind of field a page has to draw, and their projects), written through the
 // service the host itself uses, into the SANDBOX's home (the caller has already refused any other). Pure of the check: a second run finds the db it made and leaves it.
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { makeService } from '../packages/kybernos-db/agent/service.mjs'
 
@@ -72,3 +73,29 @@ export function seedShop ({ dshHome, by = 'agent' }) {
   add('order', { ref: 'A-1001' }); add('order', { ref: 'A-1002' })
   return { id: db.info().id, made: true, db }
 }
+
+/** A db of documents: a name and a field of files with a small cap (20,000 bytes) so a refusal can be tried with a small file. */
+export const DOC = { key: 'doc', label: 'Docs', title: 'name', fields: [f('name', 'text', 'Name', { required: true }), f('files', 'attachment', 'Files', { maxBytes: 20000 })] }
+export function seedPapers ({ dshHome, by = 'agent' }) {
+  const service = makeService({ dir: join(dshHome, 'kybernos', 'kybernos-db', 'dbs') })
+  const found = service.list().find((d) => d.name === 'Papers')
+  if (found !== undefined) { service.close(); return { id: found.id, made: false } }
+  const made = service.create({ name: 'Papers', by })
+  if (made.ok !== true) throw new Error('seed: ' + JSON.stringify(made))
+  const db = made.db
+  const o = db.addObject(DOC, by)
+  if (o.ok !== true) throw new Error('seed object: ' + JSON.stringify(o))
+  for (const name of ['Contract', 'Receipts']) { const r = db.create('doc', { name }, by); if (r.ok !== true) throw new Error('seed doc: ' + JSON.stringify(r)) }
+  return { id: db.info().id, made: true, db }
+}
+
+/** Small files for the checks of the files field, as base64 (a page builds real File objects from them): a 12 x 8 image, a PDF, a text file and one over the Docs cap. */
+const PDF_TEXT = '%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 100]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'
+export const FILE_FIXTURES = {
+  png: { name: 'logo.png', type: 'image/png', b64: 'iVBORw0KGgoAAAANSUhEUgAAAAwAAAAICAIAAABChommAAAAEUlEQVR4nGM4YWNDEDGMKgIAmbN4AU3jx3MAAAAASUVORK5CYII=' },
+  pdf: { name: 'contract.pdf', type: 'application/pdf', b64: Buffer.from(PDF_TEXT).toString('base64') },
+  txt: { name: 'notes.txt', type: 'text/plain', b64: Buffer.from('plain notes\n').toString('base64') },
+  big: { name: 'big.bin', type: 'application/octet-stream', b64: Buffer.alloc(25000, 120).toString('base64') },
+}
+export const bytesOf = (f) => Buffer.from(f.b64, 'base64')
+export const shaOf = (f) => createHash('sha256').update(bytesOf(f)).digest('hex')

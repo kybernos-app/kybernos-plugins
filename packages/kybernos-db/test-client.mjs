@@ -90,6 +90,7 @@ const pageApi = (extra) => {
     setMenu: spy('setMenu'), setFlt: spy('setFlt'), editView: spy('editView'), sortBy: spy('sortBy'), filterBy: spy('filterBy'), clearAll: spy('clearAll'), selectView: spy('selectView'),
     createView: spy('createView'), dupView: spy('dupView'), removeView: spy('removeView'), renameView: spy('renameView'), favView: spy('favView'), ask: () => true, say: spy('say'),
     openRecord: spy('openRecord'), newRecord: spy('newRecord'), closeDrawer: spy('closeDrawer'), createRecord: async (v) => { calls.push(['createRecord', v]); return { ok: true, record: rec('n1', v) } }, updateField: spy('updateField'), deleteRecord: spy('deleteRecord'), moveRecord: spy('moveRecord'), setMonth: spy('setMonth'),
+    sending: {}, dropFiles: spy('dropFiles'), removeFile: spy('removeFile'), attach: async () => ({ added: [], failed: [] }),
   }, extra || {})
 }
 /** The view a function handed to `editView` would produce from the current one. */
@@ -734,6 +735,155 @@ ok('every piece draws in French too, with no English left in the words it speaks
     const linked = text(tree(React.createElement(P.LinkedGroups, { p: {}, groups: [{ object: 'order', objectLabel: 'Orders', field: 'customer', fieldLabel: 'Customer', inverse: null, many: false, count: 0, records: [] }] })))
     assert.ok(linked.includes('Lié depuis') && linked.includes('Aucune pour l’instant.'))
   } finally { resolved = 'en' }
+})
+
+console.log('── files ──')
+const okAsync = async (label, fn) => { try { await fn(); console.log('  ok   ' + label) } catch (e) { failed += 1; console.log('  FAIL ' + label + ' — ' + (e && e.message)) } }
+const FILES = TASK.fields.find((f) => f.key === 'files')
+const HASH = (c) => c.repeat(64)
+const PNG = { name: 'logo.png', size: 2048, type: 'image/png', hash: HASH('a') }
+const PDF = { name: 'contract.pdf', size: 300000, type: 'application/pdf', hash: HASH('b') }
+const TXT = { name: 'notes.txt', size: 12, type: 'text/plain', hash: HASH('c') }
+const SVG = { name: 'mark.svg', size: 90, type: 'image/svg+xml', hash: HASH('d') }
+const dropEvent = (types, files) => { const log = { prevented: 0 }; return { log, e: { dataTransfer: { types, files }, preventDefault () { log.prevented += 1 }, stopPropagation () {}, currentTarget: { contains: () => false }, relatedTarget: null } } }
+ok('what can be sent: each file within the field\'s cap, and no more in all than a field holds; the others come back with their reason', () => {
+  assert.equal(T.capOf(FILES), 1000)
+  assert.equal(T.capOf({ key: 'f', type: 'attachment' }), 25 * 1024 * 1024, 'no cap on the field: the core\'s')
+  assert.equal(T.capOf({ key: 'f', type: 'attachment', maxBytes: 0 }), 25 * 1024 * 1024)
+  const small = { name: 'a.txt', size: 500 }
+  const big = { name: 'big.bin', size: 1001 }
+  const plan = T.planFiles(FILES, [], [small, big])
+  assert.deepEqual(plan.ok, [small]); assert.deepEqual(plan.failed, [{ name: 'big.bin', why: 'too-big', cap: 1000 }])
+  assert.equal(T.planFiles(FILES, [], [{ name: 'edge', size: 1000 }]).ok.length, 1, 'exactly the cap goes')
+  const held = Array.from({ length: T.MAX_FILES - 1 }, (_, i) => ({ name: 'f' + i, size: 1, type: 'text/plain', hash: String(i).padStart(64, '0') }))
+  const room = T.planFiles(FILES, held, [small, { name: 'b.txt', size: 1 }, { name: 'c.txt', size: 1 }])
+  assert.equal(room.ok.length, 1); assert.deepEqual(room.failed.map((x) => x.why), ['too-many', 'too-many'])
+  assert.deepEqual(T.planFiles(FILES, null, []), { ok: [], failed: [] })
+})
+ok('the sentences about files are said in both languages, with the name and the size in them', () => {
+  const say = (code) => { resolved = code; return [T.failText({ name: 'big.bin', why: 'too-big', cap: 1000 }), T.failText({ name: 'x', why: 'too-many' }), T.failText({ name: 'x', why: 'same' }), T.failText({ name: 'x', why: 'host', message: 'nope' }), T.filesSummary(2, []), T.filesSummary(1, [{ name: 'big.bin', why: 'too-big', cap: 1000 }]), T.filesSummary(0, [{ name: 'a', why: 'same' }, { name: 'b', why: 'same' }, { name: 'c', why: 'same' }])] }
+  try {
+    const en = say('en')
+    assert.equal(en[0], '“big.bin” is over 1000 B.'); assert.ok(en[1].includes('20 files')); assert.ok(en[2].includes('already there')); assert.equal(en[3], '“x”: nope')
+    assert.equal(en[4], '2 files added.'); assert.equal(en[5], '1 file added. “big.bin” is over 1000 B.'); assert.ok(en[6].endsWith('(+2 more)'))
+    const fr = say('fr')
+    assert.equal(fr[0], '« big.bin » dépasse 1000 B.'); assert.ok(fr[1].includes('20 fichiers')); assert.ok(fr[2].includes('déjà là')); assert.equal(fr[3], '« x » : nope')
+    assert.equal(fr[4], '2 fichiers ajoutés.'); assert.equal(fr[5], '1 fichier ajouté. « big.bin » dépasse 1000 B.'); assert.ok(fr[6].endsWith('(+2 autres)'))
+    assert.equal(T.filesSummary(0, []), '', 'nothing to say when nothing happened')
+  } finally { resolved = 'en' }
+  for (const code of ['too-big', 'too-many']) assert.ok(T.errorText({ error: code }).length > 10, code)
+})
+ok('a file is read from the host by the row that holds it; a picture is drawn and opens in a tab, the rest (a PDF, an SVG, a text) is a download', () => {
+  assert.equal(T.fileUrl('db1', 'task', 'r1', FILES, PNG), '/kybernos-db/file?db=db1&object=task&id=r1&field=files&hash=' + HASH('a'))
+  assert.equal(T.isImage(PNG), true); assert.equal(T.isImage(PDF), false); assert.equal(T.isImage(SVG), false, 'an SVG can hold a script: it is never drawn')
+  assert.equal(T.isImage({ type: 'IMAGE/PNG' }), true, 'a type is compared without its case'); assert.equal(T.isImage({ type: 'text/html' }), false)
+})
+await okAsync('a file goes to the host as its own bytes, anything else as JSON, and a refusal is an answer', async () => {
+  const sent = []
+  const real = globalThis.fetch
+  globalThis.fetch = async (url, init) => { sent.push([url, init]); return { status: 413, json: async () => ({ ok: false, error: 'too-big' }) } }
+  try {
+    const blob = new Blob(['hello'], { type: 'text/plain' })
+    const r = await T.call('POST', '/upload?db=db1', blob)
+    assert.deepEqual(r, { ok: false, error: 'too-big' })
+    assert.equal(sent[0][1].headers['content-type'], 'application/octet-stream'); assert.equal(sent[0][1].body, blob, 'the bytes, not a JSON copy of them')
+    await T.call('POST', '/write', { op: 'create' })
+    assert.equal(sent[1][1].headers['content-type'], 'application/json'); assert.equal(sent[1][1].body, '{"op":"create"}')
+    await T.call('GET', '/state')
+    assert.deepEqual(sent[2][1].headers, {}); assert.equal(sent[2][1].body, undefined)
+  } finally { globalThis.fetch = real }
+})
+ok('the cells of a field of files: a thumbnail for a picture, a name for the rest, each opening its file, and an × to take one off', () => {
+  const row = rec('r1', { name: 'x', files: [PNG, PDF, TXT, SVG] })
+  const taken = []
+  const ctx = Object.assign({}, CTX, { fileUrl: (f, r, file) => T.fileUrl('db1', 'task', r.id, f, file), removeFile: (r, f, file) => taken.push([r.id, f.key, file.hash]) })
+  const t = tree(React.createElement(P.Cell, { field: FILES, rec: row, ctx }))
+  const chips = kb(t, 'tables-file')
+  assert.equal(chips.length, 3, 'three at most, the rest is counted'); assert.equal(text(t).includes('+1'), true)
+  const imgs = all(t, (n) => n.type === 'img')
+  assert.equal(imgs.length, 1); assert.ok(imgs[0].props.src.startsWith('/kybernos-db/file?db=db1&object=task&id=r1&field=files&hash=' + HASH('a'))); assert.equal(imgs[0].props.alt, '')
+  const links = all(t, (n) => n.type === 'a')
+  assert.equal(links[0].props.target, '_blank'); assert.ok(links[0].props.rel.includes('noopener'), 'a picture opens in a tab that cannot reach the page')
+  assert.equal(links[1].props.download, 'contract.pdf'); assert.equal(links[1].props.target, undefined, 'a PDF is a download, never a document of DSH\'s own origin')
+  assert.equal(links[2].props.download, 'notes.txt'); assert.equal(links[2].props.target, undefined, 'a text file is only ever downloaded')
+  assert.ok(links[2].props['aria-label'].includes('notes.txt'))
+  let stopped = 0
+  links[0].props.onClick({ stopPropagation () { stopped += 1 } }); assert.equal(stopped, 1, 'opening a file does not open the row')
+  const x = kb(t, 'tables-file-remove')
+  assert.equal(x.length, 3); assert.ok(x[1].props['aria-label'].includes('contract.pdf'))
+  click(x[1], { stopPropagation () { stopped += 1 } })
+  assert.deepEqual(taken, [['r1', 'files', HASH('b')]]); assert.equal(stopped, 2)
+  const bare = tree(React.createElement(P.Cell, { field: FILES, rec: row, ctx: CTX }))
+  assert.equal(kb(bare, 'tables-file').length, 0, 'a caller with no way to read files still gets the count'); assert.equal(text(bare).includes('4 files'), true)
+  assert.equal(kb(tree(React.createElement(P.Cell, { field: FILES, rec: rec('r2', { name: 'y' }), ctx })), 'tables-file').length, 0, 'a row with no file draws nothing')
+})
+ok('a thumbnail that cannot be read falls back to the file\'s icon instead of a broken picture', () => {
+  const t = tree(React.createElement(P.Thumb, { src: '/x', cls: 'kbtb-thumb' }))
+  assert.equal(all(t, (n) => n.type === 'img').length, 1); assert.equal(typeof all(t, (n) => n.type === 'img')[0].props.onError, 'function')
+})
+ok('files dropped on a cell go to the page with the row and the field; a drag that carries no file is left alone', () => {
+  const row = rec('r1', { name: 'x', files: [PNG] })
+  const ctx = Object.assign({}, CTX, { fileUrl: () => '/f' })
+  const p = pageApi({ ctx })
+  const td = kb(tree(React.createElement(P.FileTd, { field: FILES, rec: row, p })), 'tables-cell-files')[0]
+  assert.equal(td.type, 'td'); assert.equal(td.props['data-field'], 'files')
+  const file = { name: 'a.txt', size: 3, type: 'text/plain' }
+  const yes = dropEvent(['Files'], [file]); td.props.onDragOver(yes.e); assert.equal(yes.log.prevented, 1, 'a file may be dropped here')
+  td.props.onDrop(yes.e)
+  assert.deepEqual(calls.filter((c) => c[0] === 'dropFiles').map((c) => [c[1].id, c[2].key, c[3]]), [['r1', 'files', [file]]])
+  const no = dropEvent(['text/plain'], []); td.props.onDragOver(no.e); td.props.onDrop(no.e); assert.equal(no.log.prevented, 0)
+  assert.equal(calls.filter((c) => c[0] === 'dropFiles').length, 1)
+  const busy = tree(React.createElement(P.FileTd, { field: FILES, rec: row, p: pageApi({ ctx, sending: { 'r1/files': 2 } }) }))
+  assert.equal(all(busy, (n) => n.props.role === 'status').length, 1, 'a row being sent says so')
+  const pdfRow = rec('r9', { name: 'z', files: [PDF] })
+  const grid = tree(React.createElement(P.TableView, { p: pageApi({ ctx, rows: [pdfRow], all: [pdfRow] }) }))
+  assert.equal(kb(grid, 'tables-cell-files').length, 1, 'the table draws a field of files through the cell that takes drops'); assert.equal(text(grid).includes('contract.pdf'), true)
+})
+await okAsync('in the drawer a saved row shows its files with a picture or an icon, a link, a size and an ×; the box takes files by choice or by drop', async () => {
+  const held = [PNG, PDF, TXT]
+  const edit = (extra) => pageApi({ drawer: { mode: 'edit', id: 'r1' }, ...(extra || {}) })
+  const commits = []
+  const mk = (p, value) => tree(React.createElement(P.AttachEditor, { field: FILES, value, onCommit: async (v) => { commits.push(v) }, p }))
+  let t = mk(edit(), held)
+  const items = kb(t, 'tables-file')
+  assert.equal(items.length, 3)
+  assert.equal(all(items[0], (n) => n.type === 'img').length, 1, 'a picture is drawn'); assert.equal(all(items[1], (n) => n.type === 'img').length, 0)
+  assert.equal(all(items[0], (n) => n.props['data-kb'] === 'tables-file-open')[0].props.href.includes('id=r1&field=files'), true)
+  assert.equal(text(items[1]).includes('293 KB'), true); assert.equal(text(items[2]).includes('12 B'), true)
+  click(all(items[1], (n) => n.props['data-kb'] === 'tables-file-remove')[0])
+  assert.deepEqual(calls.filter((c) => c[0] === 'removeFile').map((c) => [c[1].id, c[2].key, c[3].hash]), [['r1', 'files', HASH('b')]], 'a saved row is changed by the page, which keeps the Undo')
+  const input = kb(t, 'tables-file-input')[0]
+  assert.equal(input.props.type, 'file'); assert.equal(input.props.multiple, true); assert.equal(input.props.hidden, true)
+  assert.equal(kb(t, 'tables-file-add')[0].props.disabled, false)
+  assert.equal(text(kb(t, 'tables-drop')[0]).includes('1000 B'), true, 'the cap is said before a file is tried')
+  // a choice: sent through the page, then added to what the row holds
+  const sentFiles = []
+  const added = { name: 'new.txt', size: 3, type: 'text/plain', hash: HASH('e') }
+  t = mk(edit({ attach: async (f, files, h) => { sentFiles.push([f.key, files.map((x) => x.name), h.length]); return { added: [added], failed: [] } } }), held)
+  await kb(t, 'tables-file-input')[0].props.onChange({ target: { files: [{ name: 'new.txt', size: 3 }], value: 'C:\\fakepath\\new.txt' } })
+  assert.deepEqual(sentFiles, [['files', ['new.txt'], 3]]); assert.deepEqual(commits[commits.length - 1], held.concat([added]))
+  // a drop does the same; nothing is written when nothing was kept
+  const before = commits.length
+  t = mk(edit({ attach: async () => ({ added: [], failed: [{ name: 'big', why: 'too-big', cap: 1000 }] }) }), held)
+  const dz = kb(t, 'tables-drop')[0]
+  const ev = dropEvent(['Files'], [{ name: 'big', size: 5000 }]); dz.props.onDragOver(ev.e); assert.equal(ev.log.prevented, 1)
+  await dz.props.onDrop(ev.e)
+  assert.equal(commits.length, before, 'a refused file writes nothing to the row')
+})
+await okAsync('a new row has not been saved: its files are listed by name only, and taking one off changes the form, not the page', async () => {
+  const commits = []
+  const t = tree(React.createElement(P.AttachEditor, { field: FILES, value: [PNG, PDF], onCommit: async (v) => { commits.push(v) }, p: pageApi({ drawer: { mode: 'new', prefill: {} } }) }))
+  const items = kb(t, 'tables-file')
+  assert.equal(items.length, 2); assert.equal(all(t, (n) => n.type === 'img').length, 0); assert.equal(all(t, (n) => n.type === 'a').length, 0, 'the host serves a file only to the row that holds it')
+  click(all(items[0], (n) => n.props['data-kb'] === 'tables-file-remove')[0])
+  assert.deepEqual(commits, [[PDF]]); assert.equal(calls.filter((c) => c[0] === 'removeFile').length > 0, true)
+  click(all(tree(React.createElement(P.AttachEditor, { field: FILES, value: [PNG], onCommit: async (v) => { commits.push(v) }, p: pageApi({ drawer: { mode: 'new', prefill: {} } }) })), (n) => n.props['data-kb'] === 'tables-file-remove')[0])
+  assert.equal(commits[commits.length - 1], null, 'the last file off leaves the field empty')
+})
+ok('a field that holds the most files it can says so and offers no more', () => {
+  const full = Array.from({ length: T.MAX_FILES }, (_, i) => ({ name: 'f' + i, size: 1, type: 'text/plain', hash: String(i + 1).padStart(64, '0') }))
+  const t = tree(React.createElement(P.AttachEditor, { field: FILES, value: full, onCommit: async () => {}, p: pageApi({ drawer: { mode: 'edit', id: 'r1' } }) }))
+  assert.equal(kb(t, 'tables-file-add')[0].props.disabled, true); assert.equal(text(kb(t, 'tables-drop')[0]).includes('20 files'), true)
 })
 
 console.log('── errors and the host ──')
