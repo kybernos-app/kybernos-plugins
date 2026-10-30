@@ -36,7 +36,7 @@ So a DSH chat cannot be sent to the Cloud Computer today, and the composer says 
    by reading the thread, bounded.
 3. **DSH page**: the option becomes selectable when the computer is awake or asleep (a wake is part of the turn). The turn is sent from the
    composer and its answer is shown as the answer of another machine; it does not make a local session.
-4. **Decisions that are the owner's**: whether such a turn counts against the run hours or the credits (ADR 0052 § 23); whether it is
+4. **Decisions that are the owner's**: whether such a turn counts against the run hours or the budget (ADR 0052 § 23); whether it is
    offered on every plan; what an approval looks like when the person is in DSH rather than in Telegram; and the owner's switch itself.
 
 Rejected: a webhook automation seeded on the image to run « whatever the event says » — it turns the event into instructions, which is

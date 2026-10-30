@@ -2,8 +2,7 @@
 
 How much your work uses, in two separate columns because the data comes from two separate places:
 
-- **Your Kybernos plan.** The server counts it, as a percentage of rolling windows (for example 5 hours and 30 days) plus a
-  credit balance, and never shows money. This plugin only displays what `/kybernos-cloud/quota` and `/kybernos-cloud/status`
+- **Your Kybernos plan.** The server counts it, as a percentage of rolling windows (for example 5 hours and 30 days), and never shows money. This plugin only displays what `/kybernos-cloud/quota` and `/kybernos-cloud/status`
   already return. It recomputes nothing. The per-model, per-day and per-member detail of the plan stays in the console
   (`/v1/workspaces/:id/llm/usage`), it is not redone here.
 - **Your own keys and local models.** They never pass through the server, so only this computer can count them. Tokens come
@@ -17,7 +16,7 @@ How much your work uses, in two separate columns because the data comes from two
   offer; "price unknown" when the model has no price in the catalogue. Amber from 80 %, red at 100 %, amber when the month's
   budget is exceeded. It shows nothing when it has nothing to say.
 - **Its card** (click): context window (the `contextPressure` projection, the same one as the engine's own ring), the plan's
-  limits and credits, and for an own key the session's cost split into new input, cache read and output.
+  limits, and for an own key the session's cost split into new input, cache read and output.
 - **Settings › Usage** (slot `settings.section`, id `kybernos-usage`): the plan card, then your own keys by period (today, 7 or
   30 days): cost, tokens, cache share and what the cache saved, cost per day, and where it goes by model or by session. A monthly
   budget (folded, off by default) turns the chip amber and shows a banner; it warns, it never blocks.
