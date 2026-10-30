@@ -1,0 +1,35 @@
+{
+  "suite": "rights",
+  "doc": "can(actor, action, resource): { effect: allow | ask | deny, reason?, mask? }. Phase A: the owner may do everything; the owner's agent asks before it touches a protected field or the structure and can only raise a protection; anyone else is refused.",
+  "cases": [
+    { "name": "the owner edits a record", "actor": { "kind": "person", "role": "owner" }, "action": "record.update", "expect": { "effect": "allow" } },
+    { "name": "the owner reads a normal field", "actor": { "kind": "person", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "normal" } }, "expect": { "effect": "allow" } },
+    { "name": "the owner reads a personal field, masked until revealed", "actor": { "kind": "person", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "personal" } }, "expect": { "effect": "allow", "mask": true } },
+    { "name": "the owner reads a secret field, masked", "actor": { "kind": "person", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "secret" } }, "expect": { "effect": "allow", "mask": true } },
+    { "name": "the owner writes a secret field without being asked", "actor": { "kind": "person", "role": "owner" }, "action": "field.write", "resource": { "field": { "protection": "secret" } }, "expect": { "effect": "allow" } },
+    { "name": "the owner changes the structure", "actor": { "kind": "person", "role": "owner" }, "action": "schema.change", "expect": { "effect": "allow" } },
+    { "name": "the owner lowers a protection", "actor": { "kind": "person", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "secret" }, "to": "normal" }, "expect": { "effect": "allow" } },
+
+    { "name": "the agent reads records", "actor": { "kind": "agent", "role": "owner" }, "action": "record.read", "expect": { "effect": "allow" } },
+    { "name": "the agent creates, updates and deletes records", "actor": { "kind": "agent", "role": "owner" }, "action": "record.delete", "expect": { "effect": "allow" } },
+    { "name": "the agent edits a view", "actor": { "kind": "agent", "role": "owner" }, "action": "view.edit", "expect": { "effect": "allow" } },
+    { "name": "the agent changes the structure only with the person's OK", "actor": { "kind": "agent", "role": "owner" }, "action": "schema.change", "expect": { "effect": "ask", "reason": "schema-change" } },
+    { "name": "the agent reads a normal field", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "normal" } }, "expect": { "effect": "allow" } },
+    { "name": "the agent reads a field with no protection stated", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "resource": { "field": {} }, "expect": { "effect": "allow" } },
+    { "name": "the agent reads with no resource", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "expect": { "effect": "allow" } },
+    { "name": "the agent asks before reading a personal field", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "personal" } }, "expect": { "effect": "ask", "reason": "protected-field" } },
+    { "name": "the agent asks before reading a secret field", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "secret" } }, "expect": { "effect": "ask", "reason": "protected-field" } },
+    { "name": "the agent asks before writing a sensitive field", "actor": { "kind": "agent", "role": "owner" }, "action": "field.write", "resource": { "field": { "protection": "sensitive" } }, "expect": { "effect": "ask", "reason": "protected-field" } },
+    { "name": "the agent raises a protection", "actor": { "kind": "agent", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "normal" }, "to": "personal" }, "expect": { "effect": "allow" } },
+    { "name": "the agent keeps a protection as it is", "actor": { "kind": "agent", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "personal" }, "to": "personal" }, "expect": { "effect": "allow" } },
+    { "name": "the agent never lowers a protection", "actor": { "kind": "agent", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "personal" }, "to": "normal" }, "expect": { "effect": "deny", "reason": "agent-cannot-lower" } },
+    { "name": "the agent never lowers a secret to sensitive", "actor": { "kind": "agent", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "secret" }, "to": "sensitive" }, "expect": { "effect": "deny", "reason": "agent-cannot-lower" } },
+    { "name": "the agent asks for no level: refused", "actor": { "kind": "agent", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "normal" } }, "expect": { "effect": "deny", "reason": "agent-cannot-lower" } },
+    { "name": "the agent asks for a level that does not exist: refused", "actor": { "kind": "agent", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "normal" }, "to": "top" }, "expect": { "effect": "deny", "reason": "agent-cannot-lower" } },
+
+    { "name": "a team member is refused until profiles exist", "actor": { "kind": "person", "role": "member" }, "action": "record.read", "expect": { "effect": "deny", "reason": "not-owner" } },
+    { "name": "no actor", "actor": null, "action": "record.read", "expect": { "effect": "deny", "reason": "not-owner" } },
+    { "name": "an action that does not exist", "actor": { "kind": "person", "role": "owner" }, "action": "db.drop", "expect": { "effect": "deny", "reason": "unknown-action" } },
+    { "name": "an actor of an unknown kind", "actor": { "kind": "bot", "role": "owner" }, "action": "record.read", "expect": { "effect": "deny", "reason": "unknown-actor" } }
+  ]
+}

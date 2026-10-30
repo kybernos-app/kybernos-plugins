@@ -1,0 +1,32 @@
+{
+  "suite": "fields",
+  "doc": "normalizeField(def): a field definition in its canonical form with the defaults filled, or the list of « path:code » problems.",
+  "cases": [
+    { "name": "a minimal text field", "def": { "key": "title", "type": "text", "label": "Title" }, "expect": { "ok": true, "field": { "key": "title", "type": "text", "label": "Title", "required": false, "protection": "normal" } } },
+    { "name": "the label is trimmed", "def": { "key": "title", "type": "text", "label": "  Title  " }, "expect": { "ok": true, "field": { "key": "title", "type": "text", "label": "Title", "required": false, "protection": "normal" } } },
+    { "name": "a protected field", "def": { "key": "contact", "type": "email", "label": "Contact", "protection": "personal", "required": true }, "expect": { "ok": true, "field": { "key": "contact", "type": "email", "label": "Contact", "required": true, "protection": "personal" } } },
+    { "name": "a choice with colours", "def": { "key": "status", "type": "choice", "label": "Status", "options": [{ "key": "todo", "label": " To do ", "color": "gray" }, { "key": "done", "label": "Done" }] }, "expect": { "ok": true, "field": { "key": "status", "type": "choice", "label": "Status", "required": false, "protection": "normal", "options": [{ "key": "todo", "label": "To do", "color": "gray" }, { "key": "done", "label": "Done" }] } } },
+    { "name": "a choice needs options", "def": { "key": "status", "type": "choice", "label": "Status" }, "expect": { "ok": false, "errors": ["options:options"] } },
+    { "name": "two options with one key", "def": { "key": "status", "type": "choice", "label": "Status", "options": [{ "key": "a", "label": "A" }, { "key": "a", "label": "B" }] }, "expect": { "ok": false, "errors": ["options.1.key:duplicate"] } },
+    { "name": "an unknown colour", "def": { "key": "status", "type": "choice", "label": "Status", "options": [{ "key": "a", "label": "A", "color": "mauve" }] }, "expect": { "ok": false, "errors": ["options.0.color:color"] } },
+    { "name": "an option with a stray key", "def": { "key": "status", "type": "choice", "label": "Status", "options": [{ "key": "a", "label": "A", "icon": "x" }] }, "expect": { "ok": false, "errors": ["options.0:shape"] } },
+    { "name": "money names its currency and defaults to 2 decimals", "def": { "key": "price", "type": "money", "label": "Price", "currency": "USD" }, "expect": { "ok": true, "field": { "key": "price", "type": "money", "label": "Price", "required": false, "protection": "normal", "currency": "USD", "precision": 2 } } },
+    { "name": "money without a currency", "def": { "key": "price", "type": "money", "label": "Price" }, "expect": { "ok": false, "errors": ["currency:currency"] } },
+    { "name": "money with a lower-case currency", "def": { "key": "price", "type": "money", "label": "Price", "currency": "eur" }, "expect": { "ok": false, "errors": ["currency:currency"] } },
+    { "name": "money with 5 decimals", "def": { "key": "price", "type": "money", "label": "Price", "currency": "EUR", "precision": 5 }, "expect": { "ok": false, "errors": ["precision:precision"] } },
+    { "name": "a relation points to an object and is to-one by default", "def": { "key": "project", "type": "relation", "label": "Project", "to": "project" }, "expect": { "ok": true, "field": { "key": "project", "type": "relation", "label": "Project", "required": false, "protection": "normal", "to": "project", "many": false } } },
+    { "name": "a relation without a target", "def": { "key": "project", "type": "relation", "label": "Project" }, "expect": { "ok": false, "errors": ["to:to"] } },
+    { "name": "many must be true or false", "def": { "key": "project", "type": "relation", "label": "Project", "to": "project", "many": "yes" }, "expect": { "ok": false, "errors": ["many:type"] } },
+    { "name": "an attachment gets the default cap", "def": { "key": "files", "type": "attachment", "label": "Files" }, "expect": { "ok": true, "field": { "key": "files", "type": "attachment", "label": "Files", "required": false, "protection": "normal", "maxBytes": 26214400 } } },
+    { "name": "an attachment cap above 25 MB", "def": { "key": "files", "type": "attachment", "label": "Files", "maxBytes": 26214401 }, "expect": { "ok": false, "errors": ["maxBytes:maxBytes"] } },
+    { "name": "a reserved key", "def": { "key": "id", "type": "text", "label": "Id" }, "expect": { "ok": false, "errors": ["key:reserved"] } },
+    { "name": "a key in capitals", "def": { "key": "Title", "type": "text", "label": "Title" }, "expect": { "ok": false, "errors": ["key:key"] } },
+    { "name": "a key that starts with a digit and an empty label", "def": { "key": "1x", "type": "text", "label": "" }, "expect": { "ok": false, "errors": ["key:key", "label:label"] } },
+    { "name": "an unknown property", "def": { "key": "title", "type": "text", "label": "Title", "color": "red" }, "expect": { "ok": false, "errors": ["color:unknown-key"] } },
+    { "name": "a property of another type", "def": { "key": "title", "type": "text", "label": "Title", "currency": "EUR" }, "expect": { "ok": false, "errors": ["currency:not-for-type"] } },
+    { "name": "an unknown type", "def": { "key": "title", "type": "rollup", "label": "Title" }, "expect": { "ok": false, "errors": ["type:type"] } },
+    { "name": "an unknown protection level", "def": { "key": "title", "type": "text", "label": "Title", "protection": "top" }, "expect": { "ok": false, "errors": ["protection:protection"] } },
+    { "name": "required must be true or false", "def": { "key": "title", "type": "text", "label": "Title", "required": "yes" }, "expect": { "ok": false, "errors": ["required:type"] } },
+    { "name": "a field is an object", "def": "title", "expect": { "ok": false, "errors": [":shape"] } }
+  ]
+}
