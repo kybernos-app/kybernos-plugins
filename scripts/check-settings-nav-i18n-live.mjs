@@ -1,9 +1,10 @@
 // Test case TC-03 — the Settings nav keeps its layout, and follows the language, when the language changes.
 //
-//   node scripts/check-settings-nav-i18n-live.mjs [--shots <dir>] [--json out.json] [--lang es]
+//   node scripts/check-settings-nav-i18n-live.mjs [--shots <dir>] [--json out.json] [--lang it]
 //
 // Reads the Settings nav (the `navCell`s) in English, switches DSH to a translated language
-// (`es` by default) from Settings › Language, reads it again, goes back to English and reads it
+// (`it` by default: a language DSH 0.2.2 does not ship, since DSH shows its own es/fr/de/ja/ru/pt-BR texts natively and
+// the stubbed pseudo-translation then has nothing to do on them) from Settings › Language, reads it again, goes back to English and reads it
 // a third time. Then it does the same trip back through DSH's OWN language selector
 // (Settings › General › Language), which is the other way a user changes language.
 //
@@ -35,7 +36,7 @@ const args = process.argv.slice(2)
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : d }
 const SHOTS = argOf('--shots', null)
 const JSON_OUT = argOf('--json', null)
-const TEST_LANG = argOf('--lang', 'es')
+const TEST_LANG = argOf('--lang', 'it')
 if (SHOTS !== null) mkdirSync(SHOTS, { recursive: true })
 
 let pass = 0

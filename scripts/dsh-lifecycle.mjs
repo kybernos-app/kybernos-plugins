@@ -32,7 +32,7 @@ import { depsReelles as depsOuverture, ouvrir as ouvrirKybernos } from './kybern
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
-  planUpgrade, inspecterFraicheur, motifDeRetrait
+  planUpgrade, inspecterFraicheur, motifDeRetrait, migrerProfil
 } from './lifecycle-engine.mjs'
 // Checking a received archive: the package manifest is the only
 // authority on what was delivered (see scripts/paquet.mjs).
@@ -1426,6 +1426,9 @@ if (ordre === 'upgrade') {
       console.log(`     ⚠ ${r.nom} is not published in ${cible} (latest: ${r.derniere ?? 'unknown'}) — removed from the profile`)
     }
     for (const b of alignement.bundlesRetires) console.log(`       ↳ bundle removed: ${b}`)
+    const migration = migrerProfil({ fs: fsReel, profilDir: PROFIL_DIR, cible })
+    for (const r of migration.retires) console.log(`     ↳ profile row \`${r}\` removed from cordis.patch.yml (it takes no \`mode\` on DSH ${cible}; the photo keeps the old file)`)
+    for (const r of migration.gardes) console.log(`     ⚠ profile row \`${r}\` in cordis.patch.yml carries more than \`mode\`: left as it is — if DSH stops at boot on it, remove its \`mode\` by hand`)
     alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
     direLiensReprise()
     console.log('  🧶 re-applying the engine patches…')
