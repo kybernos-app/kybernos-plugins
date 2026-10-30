@@ -35,9 +35,9 @@ if (seededState === null || seededState.ok !== true) { console.error('○ not ru
 
 // What each template must make, with the words of the French database: the name, the tabs, the pipeline's stages and the row counts of the old sample.
 const WANT = {
-  'real-estate': { name: 'Agence immobilière', tabs: ['Contacts', 'Biens', 'Locations', 'Ventes', 'Notes'], rows: { contact: 27, property: 16, lettings: 8, sales: 11, note: 11 }, board: { object: 'sales', stages: ['Demande', 'Visite', 'Offre', 'Compromis', 'Conclue'] } },
-  ecommerce: { name: 'Boutique en ligne', tabs: ['Contacts', 'Produits', 'Commandes', 'Notes'], rows: { contact: 22, product: 16, orders: 18, note: 8 }, board: { object: 'orders', stages: null } },
-  recruitment: { name: 'Cabinet de recrutement', tabs: ['Contacts', 'Offres', 'Candidats', 'Missions clients', 'Notes'], rows: { contact: 22, job: 14, candidates: 10, missions: 9, note: 8 }, board: { object: 'candidates', stages: null } },
+  'real-estate': { name: 'Agence immobilière', tabs: ['Contacts', 'Biens', 'Locations', 'Ventes', 'Notes'], rows: { contact: 27, property: 16, lettings: 8, sales: 11, note: 11 }, item: 'property', board: { object: 'sales', stages: ['Demande', 'Visite', 'Offre', 'Compromis', 'Conclue'] } },
+  ecommerce: { name: 'Boutique en ligne', tabs: ['Contacts', 'Produits', 'Commandes', 'Notes'], rows: { contact: 22, product: 16, orders: 18, note: 8 }, item: 'product', board: { object: 'orders', stages: null } },
+  recruitment: { name: 'Cabinet de recrutement', tabs: ['Contacts', 'Offres', 'Candidats', 'Missions clients', 'Notes'], rows: { contact: 22, job: 14, candidates: 10, missions: 9, note: 8 }, item: 'job', board: { object: 'candidates', stages: null } },
 }
 
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
@@ -123,7 +123,17 @@ try {
       const cols = await ev(`[...document.querySelectorAll('[data-kb="tables-board"] [data-col]')].filter((e) => e.getAttribute('data-col') !== '').length`)
       const stages = want.board.stages
       check(dir + ': the columns are the stages of the old pipeline', stages === null ? cols >= 4 : cols === stages.length, { cols })
+      check(dir + ': each column with an amount adds it up in its header', (await until(() => count(kb('tables-col-total')).then((n) => n >= 2))) === true, await texts(kb('tables-col-total')))
       await shot(dir + '-pipeline')
+    }
+    // the gallery of the items: a picture on top of every card
+    const itemTab = await ev(`(() => { const t = [...document.querySelectorAll('[data-kb="tables-tab"]')].find((e) => e.getAttribute('data-object') === ${JSON.stringify(want.item)}); if (t) t.setAttribute('data-chk', 'item-tab'); return t !== undefined })()`)
+    if (itemTab === true) {
+      await click('[data-chk="item-tab"]')
+      check(dir + ': the items open on their gallery, a cover picture on every card', (await until(() => ev(`document.querySelectorAll('[data-kb="tables-cover"]').length >= 10`))) === true, await count(kb('tables-cover')))
+      const pics = await until(() => ev(`(() => { const im = [...document.querySelectorAll('[data-kb="tables-cover"] img')]; return im.length >= 10 && im.every((i) => i.complete && i.naturalWidth > 0) ? im.length : 0 })()`), 12000)
+      check(dir + ': the pictures are the ones of the template, loaded', pics >= 10, pics)
+      await shot(dir + '-gallery')
     }
   }
 } catch (e) {

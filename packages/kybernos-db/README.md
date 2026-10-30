@@ -22,6 +22,9 @@ the menus **Fields** (which to show), **Filter** (a tree of conditions, « and �
 the person's to change and **every change saves itself** (450 ms after the last one, to `POST /kybernos-db/view`); a table always keeps at least one view. A row opens in a
 drawer where each field saves when it is left; a secret field is a password input and is never in the page text.
 
+- **Cards with a cover, board totals.** A cards view with `cover: true` puts the first picture of a row (the first attachment field that holds an image) on top of its card, a gallery
+  of properties or products; without it the picture is the card's small avatar, and a row with none keeps its initial. Each column of a board adds up the first money field that is shown and
+  not protected (a column of unpriced rows says nothing). The person does not toggle the cover yet: a template or Kaby (`view_save`, `cover`) sets it.
 - **Kaby changes a view.** The page asks `/kybernos-db/state` every 3 s (not while the tab is hidden); a view whose stamp (`rev`, `by`) moved by the agent while the person
   has no edit waiting is announced with a toast and an Undo, which puts the view back as it was (the host then records the person's hand).
 - **« Modify view » and « Ask Kaby… »** hand a sentence to the chat through `window.__KB_ASK__` (the core's `kbStartChatText`: the draft is written, the person sends it);

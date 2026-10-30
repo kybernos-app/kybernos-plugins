@@ -36,6 +36,7 @@ const TEMPLATE = {
   views: [
     { object: 'order', id: 'order-board', name: L('Pipeline'), kind: 'board', by: 'stage', fav: true },
     { object: 'contact', id: 'contact-list', name: L('All'), kind: 'table' },
+    { object: 'contact', id: 'contact-gallery', name: L('Gallery', 'Galerie'), kind: 'cards', cover: true },
   ],
 }
 const SAMPLE = {
@@ -58,12 +59,13 @@ await ok('a template is made into a database: objects, views, rows, links (also 
   const { service } = freshService()
   const r = installTemplate({ service, template: TEMPLATE, sample: SAMPLE, lang: 'en', photo })
   assert.equal(r.ok, true, JSON.stringify(r))
-  assert.deepEqual(r.counts, { objects: 2, views: 2, rows: 4, photos: 2 })
+  assert.deepEqual(r.counts, { objects: 2, views: 3, rows: 4, photos: 2 })
   assert.equal(r.name, 'Garden shop')
   assert.equal(r.lang, 'en')
   const db = service.byId(r.db).db
   assert.deepEqual(db.objects().map((o) => o.key + '=' + o.label), ['contact=Contacts', 'order=Orders'])
   assert.deepEqual(db.listViews('order').map((v) => v.id + ':' + v.kind + ':' + v.by), ['order-board:board:stage'])
+  assert.deepEqual(db.listViews('contact').map((v) => v.id + ':' + v.kind + ':' + v.cover), ['contact-gallery:cards:true', 'contact-list:table:undefined'], 'a gallery keeps its cover')
   const contacts = db.list('contact')
   const bo = contacts.find((c) => c.values.name === 'Bo')
   const ana = contacts.find((c) => c.values.name === 'Ana')
@@ -89,7 +91,7 @@ await ok('the person’s language is used, English when the template does not sp
   assert.equal(es.lang, 'en')
   const none = installTemplate({ ...freshService(), template: TEMPLATE })
   assert.equal(none.lang, 'en')
-  assert.deepEqual(none.counts, { objects: 2, views: 2, rows: 0, photos: 0 }, 'a template without a sample makes empty tables')
+  assert.deepEqual(none.counts, { objects: 2, views: 3, rows: 0, photos: 0 }, 'a template without a sample makes empty tables')
 })
 
 await ok('a template is installed once: the second time changes nothing, and survives a new service', () => {

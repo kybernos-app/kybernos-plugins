@@ -405,6 +405,23 @@ window.__ModuleLoader__.load({
         if (none.length > 0) cols.push({ key: '', label: kt('Sans ' + field.label.toLowerCase(), 'No ' + field.label.toLowerCase()), color: undefined, rows: none })
         return cols
       }
+      /** The first picture a record holds, looking at its attachment fields in order (a hidden or secret one is skipped): `{ field, file }`, or null. */
+      const pictureOf = (obj, rec, hidden) => {
+        for (const f of obj.fields) {
+          if (f.type !== 'attachment' || f.protection === 'secret' || hidden.includes(f.key)) continue
+          const list = rec.values[f.key]
+          const file = Array.isArray(list) ? list.find(isImage) : undefined
+          if (file !== undefined) return { field: f, file }
+        }
+        return null
+      }
+      /** The money field a board adds up in each column: the first one that is shown and not protected (a protected value reaches the page masked). */
+      const totalField = (obj, hidden) => obj.fields.find((f) => f.type === 'money' && f.protection === 'normal' && !hidden.includes(f.key))
+      /** The sum of a money field over the rows of a column; null when none of them has an amount (a column of unpriced rows says nothing instead of 0). */
+      const columnTotal = (field, rows) => {
+        const amounts = rows.map((r) => r.values[field.key]).filter((v) => typeof v === 'number')
+        return amounts.length === 0 ? null : amounts.reduce((a, b) => a + b, 0)
+      }
       const monthOf = (iso) => String(iso).slice(0, 7)
       const shiftMonth = (ym, d) => {
         const parts = ym.split('-').map(Number)
@@ -780,6 +797,7 @@ window.__ModuleLoader__.load({
         .kbtb-colh{display:flex;align-items:center;gap:8px;padding:2px 2px 2px 6px;font-weight:650}
         .kbtb-colt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .kbtb-colc{color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+        .kbtb-colv{flex:none;color:var(--dsw-alias-label-secondary);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
         .kbtb-bcard{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);cursor:grab;transition:border-color .14s,transform .14s,opacity .14s}
         .kbtb-bcard:hover{border-color:var(--dsw-alias-border-l2)}
         .kbtb-bcard.drag{opacity:.45}
@@ -792,6 +810,14 @@ window.__ModuleLoader__.load({
         .kbtb-tile:active{transform:scale(.985)}
         .kbtb-im{display:inline-grid;place-items:center;width:38px;height:38px;flex:none;border-radius:12px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary);font-weight:700}
         .kbtb-im.hue{background:hsl(var(--kbtb-h) 70% 50% / .18);color:hsl(var(--kbtb-h) 55% 38%)}
+        .kbtb-im.pic{object-fit:cover;display:block;padding:0}
+        .kbtb-im.none{display:inline-grid}
+        .kbtb-tile.cov{flex-direction:column;align-items:stretch;gap:0;padding:0;overflow:hidden}
+        .kbtb-tile.cov .kbtb-tb{padding:10px 12px 12px}
+        .kbtb-cv{display:block;aspect-ratio:16/10;background:var(--dsw-alias-bg-layer-3);overflow:hidden}
+        .kbtb-cimg{display:block;width:100%;height:100%;object-fit:cover}
+        .kbtb-cimg.ph,.kbtb-cimg.none{display:grid;place-items:center;color:var(--dsw-alias-label-tertiary);font-size:30px;font-weight:700}
+        .kbtb-cimg.ph.hue{background:hsl(var(--kbtb-h) 70% 50% / .18);color:hsl(var(--kbtb-h) 55% 38%)}
         .kbtb-tb{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
         .kbtb-tt{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .kbtb-tl2{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--dsw-alias-label-secondary);min-width:0}
@@ -1295,13 +1321,16 @@ window.__ModuleLoader__.load({
           if (!by) return null
           const cols = boardColumns(by, p.rows)
           const meta = metaFields(p, [by.key], 3)
+          const sum = totalField(p.obj, p.view.state.hidden)
           return h('div', { className: 'kbtb-board', 'data-kb': 'tables-board' }, cols.map((col) => {
             const hue = hueOfColor(col.color)
+            const total = sum === undefined ? null : columnTotal(sum, col.rows)
             return h('div', { key: col.key === '' ? '__none' : col.key, className: 'kbtb-col' + (over === col.key ? ' over' : ''), 'data-col': col.key,
               onDragOver: (e) => { if (drag !== null) { e.preventDefault(); if (over !== col.key) setOver(col.key) } },
               onDragLeave: () => { if (over === col.key) setOver(null) },
               onDrop: (e) => { e.preventDefault(); if (drag !== null) p.moveRecord(drag, by.key, col.key); setDrag(null); setOver(null) } },
             h('div', { className: 'kbtb-colh' }, h('i', { className: 'kbtb-dot' + (hue === null ? '' : ' hue'), style: hue === null ? undefined : { '--kbtb-h': hue }, 'aria-hidden': 'true' }), h('span', { className: 'kbtb-colt' }, col.label), h('span', { className: 'kbtb-colc' }, String(col.rows.length)),
+              total === null ? null : h('span', { className: 'kbtb-colv', 'data-kb': 'tables-col-total', title: kt('Total : ', 'Total: ') + sum.label }, fmtMoney(sum, total)),
               h('button', { type: 'button', className: 'kbtb-ib sm', 'data-kb': 'tables-col-add', 'aria-label': kt('Ajouter une ligne dans ' + col.label, 'Add a row to ' + col.label), onClick: () => p.newRecord({ [by.key]: col.key === '' ? null : col.key }) }, svg('plus', 14))),
             col.rows.map((r) => h('div', { key: r.id, className: 'kbtb-bcard' + (drag === r.id ? ' drag' : ''), role: 'button', tabIndex: 0, draggable: true, 'data-kb': 'tables-card', 'data-id': r.id,
               onDragStart: (e) => { setDrag(r.id); try { e.dataTransfer.setData('text/plain', r.id); e.dataTransfer.effectAllowed = 'move' } catch (x) { /* a drag without data transfer */ } },
@@ -1324,8 +1353,18 @@ window.__ModuleLoader__.load({
               const o = tone ? optionOf(tone, r.values[tone.key]) : undefined
               const hue = o ? hueOfColor(o.color) : null
               const name = titleOf(p.obj, r)
-              return h('button', { key: r.id, type: 'button', className: 'kbtb-tile', 'data-kb': 'tables-card', 'data-id': r.id, onClick: () => p.openRecord(r.id) },
-                h('span', { className: 'kbtb-im' + (hue === null ? '' : ' hue'), style: hue === null ? undefined : { '--kbtb-h': hue }, 'aria-hidden': 'true' }, Array.from(name)[0].toUpperCase()),
+              const pic = typeof p.ctx.fileUrl === 'function' ? pictureOf(p.obj, r, p.view.state.hidden) : null
+              const src = pic === null ? null : p.ctx.fileUrl(pic.field, r, pic.file)
+              const letter = Array.from(name)[0].toUpperCase()
+              const hueCls = hue === null ? '' : ' hue'
+              const tint = hue === null ? undefined : { '--kbtb-h': hue }
+              const lead = p.view.cover === true
+                ? h('span', { className: 'kbtb-cv', 'data-kb': 'tables-cover' }, src !== null ? h(Thumb, { src, cls: 'kbtb-cimg' }) : h('span', { className: 'kbtb-cimg ph' + hueCls, style: tint, 'aria-hidden': 'true' }, letter))
+                : src !== null
+                  ? h(Thumb, { src, cls: 'kbtb-im pic' })
+                  : h('span', { className: 'kbtb-im' + hueCls, style: tint, 'aria-hidden': 'true' }, letter)
+              return h('button', { key: r.id, type: 'button', className: 'kbtb-tile' + (p.view.cover === true ? ' cov' : ''), 'data-kb': 'tables-card', 'data-id': r.id, onClick: () => p.openRecord(r.id) },
+                lead,
                 h('span', { className: 'kbtb-tb' }, h('span', { className: 'kbtb-tt' }, name),
                   tone && !empty(r.values[tone.key]) ? h('span', null, h(Cell, { field: tone, rec: r, ctx: noOpen(p.ctx) })) : null,
                   lines.map((f) => (empty(r.values[f.key]) && f.type !== 'checkbox' ? null : h('span', { key: f.key, className: 'kbtb-tl2' }, h('span', { className: 'kbtb-k' }, f.label), h(Cell, { field: f, rec: r, ctx: noOpen(p.ctx) }))))))
@@ -2187,7 +2226,7 @@ window.__ModuleLoader__.load({
         name: NAME,
         inject: ['slots'],
         apply: start,
-        __test: { useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, planFiles, failText, filesSummary, capOf, isImage, fileUrl, MAX_FILE_BYTES, MAX_FILES, relationFields, seenAs, linkOptions, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, freshName, savable, barViews, viewIndex, agentViewEvents, boardColumns, monthOf, shiftMonth, monthGrid, monthLabel, askText, buildText, modifyExamples, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
+        __test: { useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, planFiles, failText, filesSummary, capOf, isImage, fileUrl, MAX_FILE_BYTES, MAX_FILES, relationFields, seenAs, linkOptions, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, freshName, savable, barViews, viewIndex, agentViewEvents, boardColumns, pictureOf, totalField, columnTotal, monthOf, shiftMonth, monthGrid, monthLabel, askText, buildText, modifyExamples, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
       }
     } catch (e) {
       console.warn('[kybernos-db] disabled:', e)
