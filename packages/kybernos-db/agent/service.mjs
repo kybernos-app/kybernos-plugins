@@ -20,6 +20,8 @@ export function makeService ({ dir, ports = {} }) {
     const r = registry.open(id)
     if (!r.ok) return fail(r.code === 'missing' ? 'unknown_db' : r.code, r.code === 'missing' ? 'no such database' : r.message)
     open.set(id, r.db)
+    // files nothing holds any more are taken once per process and db, when it is first opened (never inside a write)
+    try { r.db.gc() } catch (e) { /* a collector that fails leaves the files where they are */ }
     return r
   }
   const ids = () => { try { return readdirSync(dir).filter(isUlid).sort() } catch (e) { return [] } }

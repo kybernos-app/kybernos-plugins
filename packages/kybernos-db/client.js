@@ -455,10 +455,11 @@ window.__ModuleLoader__.load({
       }
 
       // ── the host ────────────────────────────────────────────────────────────────────────────────────────────────────────
-      /** `{ ok, … }` always: a network failure, an unreadable answer or a refusal is an answer too. The session cookie travels with the request. */
+      /** `{ ok, … }` always: a network failure, an unreadable answer or a refusal is an answer too. The session cookie travels with the request. A file (a Blob) goes as its raw bytes, anything else as JSON. */
       const call = async (method, path, body) => {
         try {
-          const res = await fetch(BASE + path, { method, cache: 'no-store', credentials: 'same-origin', headers: body === undefined ? {} : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
+          const raw = typeof Blob !== 'undefined' && body instanceof Blob
+          const res = await fetch(BASE + path, { method, cache: 'no-store', credentials: 'same-origin', headers: body === undefined ? {} : { 'content-type': raw ? 'application/octet-stream' : 'application/json' }, body: body === undefined ? undefined : (raw ? body : JSON.stringify(body)) })
           let data = null
           try { data = await res.json() } catch (e) { data = null }
           if (data !== null && typeof data === 'object' && typeof data.ok === 'boolean') return data
@@ -479,9 +480,47 @@ window.__ModuleLoader__.load({
           unknown_object: kt('Cette table n’existe plus.', 'This table no longer exists.'),
           missing: kt('Cet enregistrement n’existe plus.', 'This record no longer exists.'),
           deleted: kt('Cet enregistrement a été supprimé.', 'This record was deleted.'),
+          'too-big': kt('Ce fichier est trop gros pour ce champ.', 'This file is too big for this field.'),
+          'too-many': kt('Il y a déjà le maximum de fichiers dans ce champ.', 'This field already holds the most files it can.'),
         }
         if (known[code] !== undefined) return known[code]
         return typeof (r && r.message) === 'string' && r.message !== '' ? r.message : kt('Cette valeur n’est pas acceptée.', 'This value is not accepted.')
+      }
+
+      // ── files ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      const MAX_FILE_BYTES = 25 * 1024 * 1024 // the core's cap (types.mjs); a field may ask for less, and its `maxBytes` says so
+      const MAX_FILES = 20
+      const SHOWN_IN_PLACE = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] // what the page draws as a picture; the host decides from the bytes and hands over anything else (a PDF, an SVG) as a download
+      const isImage = (f) => SHOWN_IN_PLACE.indexOf(String(f.type).toLowerCase()) >= 0
+      const capOf = (field) => (Number.isInteger(field.maxBytes) && field.maxBytes > 0 ? field.maxBytes : MAX_FILE_BYTES)
+      /** Where a file a row holds is read from (the host serves it only to a row that holds it). */
+      const fileUrl = (dbId, objKey, id, field, f) => BASE + '/file' + qs({ db: dbId, object: objKey, id, field: field.key, hash: f.hash })
+      /** Which of the files chosen are sent: each within the field's cap, and no more in all than a field holds. Nothing is sent for the others; they come back with the reason. Pure. */
+      const planFiles = (field, held, files) => {
+        const cap = capOf(field)
+        const room = MAX_FILES - (Array.isArray(held) ? held.length : 0)
+        const ok = []
+        const failed = []
+        for (const f of files) {
+          if (f.size > cap) failed.push({ name: f.name, why: 'too-big', cap })
+          else if (ok.length >= room) failed.push({ name: f.name, why: 'too-many' })
+          else ok.push(f)
+        }
+        return { ok, failed }
+      }
+      const failText = (x) => {
+        const n = '« ' + x.name + ' »'
+        if (x.why === 'too-big') return kt(n + ' dépasse ' + fmtBytes(x.cap) + '.', '“' + x.name + '” is over ' + fmtBytes(x.cap) + '.')
+        if (x.why === 'too-many') return kt(n + ' : ' + MAX_FILES + ' fichiers au plus dans un champ.', '“' + x.name + '”: a field holds ' + MAX_FILES + ' files at most.')
+        if (x.why === 'same') return kt(n + ' est déjà là.', '“' + x.name + '” is already there.')
+        return kt(n + ' : ', '“' + x.name + '”: ') + x.message
+      }
+      /** What the drop of files into a field left behind, as one sentence for a toast or a note. */
+      const filesSummary = (added, failed) => {
+        const parts = []
+        if (added > 0) parts.push(added === 1 ? kt('1 fichier ajouté.', '1 file added.') : kt(added + ' fichiers ajoutés.', added + ' files added.'))
+        if (failed.length > 0) parts.push(failText(failed[0]) + (failed.length > 1 ? kt(' (+' + (failed.length - 1) + ' autres)', ' (+' + (failed.length - 1) + ' more)') : ''))
+        return parts.join(' ')
       }
 
 
@@ -568,7 +607,7 @@ window.__ModuleLoader__.load({
         .kbtb-cadd{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:8px 0 2px}
         .kbtb-lnkadd{display:inline-flex;align-items:center;gap:6px;border:none;background:transparent;color:var(--dsw-alias-brand-primary);font-size:12px;font-weight:600;cursor:pointer;padding:4px 2px;border-radius:6px}
         .kbtb-lnkadd:hover{text-decoration:underline}
-        .kbtb-pill{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font-size:12px;cursor:pointer}
+        .kbtb-pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font-size:12px;cursor:pointer}
         .kbtb-pill:hover{background:var(--dsw-alias-bg-layer-2)}
 
         .kbtb-vlist{display:flex;flex-direction:column;gap:2px}
@@ -794,9 +833,34 @@ window.__ModuleLoader__.load({
         .kbtb-pick{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer}
         .kbtb-pick.on{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 14%,transparent);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}
         .kbtb-filelist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
-        .kbtb-filelist li{display:flex;align-items:center;gap:7px;color:var(--dsw-alias-label-secondary)}
-        .kbtb-fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+        .kbtb-filesed{display:flex;flex-direction:column;gap:8px;min-width:0}
+        .kbtb-filelist li{display:flex;align-items:center;gap:10px;min-width:0;color:var(--dsw-alias-label-secondary)}
+        .kbtb-fmeta{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+        .kbtb-fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
         .kbtb-fs{color:var(--dsw-alias-label-tertiary);font-size:11px;flex:none}
+        .kbtb-thumb,.kbtb-fico{width:40px;height:40px;flex:none;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-3)}
+        .kbtb-thumb{object-fit:cover;display:block}
+        .kbtb-fico,.kbtb-thumb.none,.kbtb-fthumb.none{display:grid;place-items:center;color:var(--dsw-alias-label-tertiary)}
+        .kbtb-drop{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:9px 11px;border:1px dashed var(--dsw-alias-border-l2);border-radius:10px;transition:border-color .14s,background .14s}
+        .kbtb-drop.over{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 8%,transparent)}
+        .kbtb-drop .kbtb-pill[disabled]{opacity:.45;cursor:not-allowed}
+        .kbtb-tbl td.files{position:relative}
+        .kbtb-tbl td.files.drop{outline:2px dashed var(--dsw-alias-brand-primary);outline-offset:-3px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 7%,transparent)}
+        .kbtb-hint,.kbtb-sending{color:var(--dsw-alias-label-tertiary);font-size:11.5px;margin-inline-start:6px}
+        .kbtb-sending{animation:kbtb-pulse 1.1s ease-in-out infinite}
+        .kbtb-fchips{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%;vertical-align:middle}
+        .kbtb-fchip{position:relative;display:inline-flex;align-items:center;min-width:0;height:24px;border-radius:7px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font-size:12px}
+        .kbtb-fchip .kbtb-fa{display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:150px;height:100%;padding:0 8px;color:inherit;text-decoration:none;border-radius:inherit}
+        .kbtb-fchip .kbtb-fa:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}
+        .kbtb-fchip.pic{border:none}
+        .kbtb-fchip.pic .kbtb-fa{padding:0}
+        .kbtb-fcn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+        .kbtb-fthumb{width:28px;height:28px;display:block;object-fit:cover;border-radius:7px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-3)}
+        .kbtb-fchip.pic{height:28px}
+        .kbtb-fx{position:absolute;top:-7px;inset-inline-end:-7px;display:inline-grid;place-items:center;width:16px;height:16px;padding:0;border-radius:50%;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);cursor:pointer;opacity:0;transition:opacity .12s}
+        .kbtb-fx:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}
+        .kbtb-fchip:hover .kbtb-fx,.kbtb-fchip:focus-within .kbtb-fx{opacity:1}
+        @media (hover:none){.kbtb-fx{display:none}}
         .kbtb-dfoot{display:flex;gap:8px;justify-content:flex-end;padding-top:4px}
         .kbtb-dfoot.split{justify-content:space-between;align-items:center;padding:12px 18px 16px;border-top:1px solid var(--dsw-alias-border-l1)}
         .kbtb-stamp{color:var(--dsw-alias-label-tertiary);font-size:11.5px}
@@ -812,6 +876,7 @@ window.__ModuleLoader__.load({
 
         @keyframes kbtb-pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
         @keyframes kbtb-slide{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+        @keyframes kbtb-pulse{0%,100%{opacity:.5}50%{opacity:1}}
         @keyframes kbtb-rise{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
         @container kbtb-page (max-width:760px){
           .kbtb-body.has-drawer{grid-template-columns:minmax(0,1fr)}
@@ -867,6 +932,17 @@ window.__ModuleLoader__.load({
         const { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } = React
         const svg = (name, size) => h('svg', { width: size || 15, height: size || 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' }, (ICONS[name] || []).map((d, i) => h('path', { key: i, d })))
         const stop = (e) => { try { e.stopPropagation() } catch (x) { /* a synthetic event without it */ } }
+        /** Whether a drag carries files from outside the page (a board card being moved carries none). */
+        const hasFiles = (e) => { try { return Array.from(e.dataTransfer.types || []).indexOf('Files') >= 0 } catch (x) { return false } }
+        /** The drag and drop of a field that takes files: the events to put on its box, and whether a drag is over it. */
+        const useDropFiles = (send) => {
+          const [over, setOver] = useState(false)
+          return [over, {
+            onDragOver: (e) => { if (!hasFiles(e)) return; e.preventDefault(); try { e.dataTransfer.dropEffect = 'copy' } catch (x) { /* no effect to set */ } setOver(true) },
+            onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOver(false) },
+            onDrop: (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.stopPropagation(); setOver(false); send(Array.from(e.dataTransfer.files)) },
+          }]
+        }
 
         // ── cells ───────────────────────────────────────────────────────────────────────────────────────────────────────────
         /** A choice option as a chip: its colour is a hue the theme's tones are built from, grey having none. */
@@ -890,6 +966,26 @@ window.__ModuleLoader__.load({
             }),
             ids.length > max ? h('span', { className: 'kbtb-more' }, '+' + (ids.length - max)) : null)
         }
+        /** A picture of a file the row holds; the file's icon in its place when the host cannot give the picture (the file is gone). */
+        const Thumb = ({ src, cls }) => {
+          const [bad, setBad] = useState(false)
+          return bad ? h('span', { className: cls + ' none' }, svg('clip', 14)) : h('img', { className: cls, src, alt: '', loading: 'lazy', onError: () => setBad(true) })
+        }
+        /** The files of a cell: a thumbnail for a picture, a name for the rest, each opening its file; an × on hover or focus takes one off. */
+        const FileChips = ({ field, rec, ctx }) => {
+          const list = rec.values[field.key]
+          const max = 3
+          return h('span', { className: 'kbtb-fchips', 'data-kb': 'tables-files' },
+            list.slice(0, max).map((f) => {
+              const url = ctx.fileUrl(field, rec, f)
+              const pic = isImage(f)
+              const attrs = Object.assign({ className: 'kbtb-fa', title: f.name + ' · ' + fmtBytes(f.size), 'aria-label': f.name + ' (' + fmtBytes(f.size) + ')', href: url, onClick: stop }, isImage(f) ? { target: '_blank', rel: 'noopener noreferrer' } : { download: f.name })
+              return h('span', { key: f.hash, className: 'kbtb-fchip' + (pic ? ' pic' : ''), 'data-kb': 'tables-file', 'data-hash': f.hash },
+                h('a', attrs, pic ? h(Thumb, { src: url, cls: 'kbtb-fthumb' }) : [svg('clip', 12), h('span', { key: 'n', className: 'kbtb-fcn' }, f.name)]),
+                typeof ctx.removeFile === 'function' ? h('button', { type: 'button', className: 'kbtb-fx', 'data-kb': 'tables-file-remove', 'aria-label': kt('Retirer ', 'Remove ') + f.name, onClick: (e) => { stop(e); ctx.removeFile(rec, field, f) } }, svg('x', 10)) : null)
+            }),
+            list.length > max ? h('span', { className: 'kbtb-more' }, '+' + (list.length - max)) : null)
+        }
         /** What a record holds in a field, drawn for a table cell, a card or a board card. */
         const Cell = ({ field, rec, ctx }) => {
           const v = rec.values[field.key]
@@ -903,7 +999,7 @@ window.__ModuleLoader__.load({
             case 'url': return h('a', { className: 'kbtb-a', href: v, target: '_blank', rel: 'noopener noreferrer', onClick: stop }, v)
             case 'email': return h('a', { className: 'kbtb-a', href: 'mailto:' + v, onClick: stop }, v)
             case 'phone': return h('a', { className: 'kbtb-a', href: 'tel:' + v.replace(/[^+\d]/g, ''), onClick: stop }, v)
-            case 'attachment': return h('span', { className: 'kbtb-files' }, svg('clip', 12), cellText(field, v, ctx))
+            case 'attachment': return typeof ctx.fileUrl === 'function' ? h(FileChips, { field, rec, ctx }) : h('span', { className: 'kbtb-files' }, svg('clip', 12), cellText(field, v, ctx))
             case 'number': case 'money': return h('span', { className: 'kbtb-num' }, cellText(field, v, ctx))
             default: return h('span', { className: 'kbtb-t' }, cellText(field, v, ctx))
           }
@@ -1147,6 +1243,15 @@ window.__ModuleLoader__.load({
         const MoreRows = ({ shown, total, onMore }) => (shown >= total ? null : h('div', { className: 'kbtb-pager' }, h('span', null, shown + ' / ' + total),
           h('button', { type: 'button', className: 'kbtb-btn sm', 'data-kb': 'tables-more', onClick: onMore }, kt('Afficher la suite', 'Show more'))))
 
+        /** The cell of a field of files: it shows them, and takes files dropped on it. */
+        const FileTd = ({ field, rec, p }) => {
+          const [over, events] = useDropFiles((files) => p.dropFiles(rec, field, files))
+          const sending = p.sending[rec.id + '/' + field.key] || 0
+          return h('td', Object.assign({ className: 'files' + (over ? ' drop' : ''), 'data-kb': 'tables-cell-files', 'data-field': field.key }, events),
+            h(Cell, { field, rec, ctx: p.ctx }),
+            over ? h('span', { className: 'kbtb-hint' }, kt('Déposer ici', 'Drop here')) : null,
+            sending > 0 ? h('span', { className: 'kbtb-sending', role: 'status' }, kt('Envoi…', 'Sending…')) : null)
+        }
         const TableView = ({ p }) => {
           const [limit, setLimit] = useState(PAGE_STEP)
           useEffect(() => { setLimit(PAGE_STEP) }, [p.view.id, p.obj.key, p.query])
@@ -1175,7 +1280,9 @@ window.__ModuleLoader__.load({
               h('tbody', null, shown.map((r) => h('tr', { key: r.id, className: p.drawer && p.drawer.id === r.id ? 'sel' : '', 'data-kb': 'tables-row', 'data-id': r.id, onClick: () => p.openRecord(r.id) },
                 cols.map((f) => (f.key === p.obj.title
                   ? h('td', { key: f.key, className: 'ti' }, h('button', { type: 'button', 'data-kb': 'tables-open', title: titleOf(p.obj, r), onClick: (e) => { stop(e); p.openRecord(r.id) } }, titleOf(p.obj, r)))
-                  : h('td', { key: f.key, className: f.type === 'number' || f.type === 'money' ? 'num' : '' }, h(Cell, { field: f, rec: r, ctx: p.ctx }))))))))),
+                  : f.type === 'attachment'
+                    ? h(FileTd, { key: f.key, field: f, rec: r, p })
+                    : h('td', { key: f.key, className: f.type === 'number' || f.type === 'money' ? 'num' : '' }, h(Cell, { field: f, rec: r, ctx: p.ctx }))))))))),
             h(MoreRows, { shown: shown.length, total: p.rows.length, onMore: () => setLimit((n) => n + PAGE_STEP) }))
         }
 
@@ -1374,6 +1481,53 @@ window.__ModuleLoader__.load({
                     found.items.map((o) => h('button', { key: o.id, type: 'button', role: 'option', 'aria-selected': 'false', className: 'kbtb-lpo', 'data-kb': 'tables-link-option', 'data-id': o.id, onClick: () => pick(o.id) }, o.title))),
               found.total > PICK_MAX ? h('p', { className: 'kbtb-note faint' }, kt(PICK_MAX + ' sur ' + found.total + ' : tape pour affiner.', PICK_MAX + ' of ' + found.total + ': type to narrow it down.')) : null) : null)
         }
+        /** A field of files: what the row holds (a picture for an image, name and size for the rest, each opening its file), an × to take one off, and a box to drop files in or choose them. */
+        const AttachEditor = ({ field, value, onCommit, p }) => {
+          const [sending, setSending] = useState(0)
+          const [notes, setNotes] = useState([])
+          const input = useRef(null)
+          const held = useRef([])
+          const list = Array.isArray(value) ? value : []
+          held.current = list
+          const saved = p.drawer !== null && p.drawer.mode === 'edit'
+          const id = saved ? p.drawer.id : ''
+          const full = list.length >= MAX_FILES
+          // the row may have moved while the files were on their way: what is added goes onto what the row holds when they have arrived
+          const send = async (files) => {
+            if (files.length === 0 || sending > 0) return
+            setNotes([])
+            setSending(files.length)
+            const out = await p.attach(field, files, held.current)
+            if (out.added.length > 0) await onCommit(held.current.concat(out.added))
+            setSending(0)
+            setNotes(out.failed)
+          }
+          const [over, events] = useDropFiles(send)
+          const remove = (f) => {
+            if (saved) { p.removeFile({ id }, field, f); return }
+            const next = held.current.filter((x) => x.hash !== f.hash)
+            onCommit(next.length === 0 ? null : next)
+          }
+          return h('div', { className: 'kbtb-filesed', 'data-kb': 'tables-field-' + field.key },
+            list.length > 0 ? h('ul', { className: 'kbtb-filelist', 'data-kb': 'tables-filelist' }, list.map((f) => {
+              const url = saved ? fileUrl(p.db.id, p.obj.key, id, field, f) : null
+              const name = url === null
+                ? h('span', { className: 'kbtb-fn' }, f.name)
+                : h('a', Object.assign({ className: 'kbtb-fn kbtb-a', href: url, 'data-kb': 'tables-file-open' }, isImage(f) ? { target: '_blank', rel: 'noopener noreferrer' } : { download: f.name }), f.name)
+              return h('li', { key: f.hash, 'data-kb': 'tables-file', 'data-hash': f.hash },
+                url !== null && isImage(f) ? h(Thumb, { src: url, cls: 'kbtb-thumb' }) : h('span', { className: 'kbtb-fico' }, svg('clip', 15)),
+                h('span', { className: 'kbtb-fmeta' }, name, h('span', { className: 'kbtb-fs' }, fmtBytes(f.size))),
+                h('button', { type: 'button', className: 'kbtb-ib sm', 'data-kb': 'tables-file-remove', 'aria-label': kt('Retirer ', 'Remove ') + f.name, onClick: () => remove(f) }, svg('x', 13)))
+            })) : null,
+            h('div', Object.assign({ className: 'kbtb-drop' + (over ? ' over' : ''), 'data-kb': 'tables-drop' }, events),
+              h('input', { type: 'file', multiple: true, hidden: true, ref: input, tabIndex: -1, 'data-kb': 'tables-file-input', 'aria-label': field.label, onChange: (e) => { const picked = Array.from(e.target.files || []); e.target.value = ''; send(picked) } }),
+              h('button', { type: 'button', className: 'kbtb-pill', 'data-kb': 'tables-file-add', disabled: sending > 0 || full, onClick: () => { try { input.current.click() } catch (e) { /* no input */ } } }, svg('plus', 12), kt('Choisir des fichiers…', 'Choose files…')),
+              h('span', { className: 'kbtb-note faint', role: sending > 0 ? 'status' : undefined },
+                sending > 0 ? kt('Envoi de ' + sending + ' ' + plural(sending, 'fichier', 'fichiers', 'file', 'files') + '…', 'Sending ' + sending + ' ' + plural(sending, 'file', 'files', 'file', 'files') + '…')
+                  : full ? kt(MAX_FILES + ' fichiers au plus dans un champ.', 'A field holds ' + MAX_FILES + ' files at most.')
+                    : kt('ou dépose-les ici (' + fmtBytes(capOf(field)) + ' au plus chacun)', 'or drop them here (' + fmtBytes(capOf(field)) + ' at most each)'))),
+            notes.map((x, i) => h('span', { key: i, className: 'kbtb-ferr', role: 'alert', 'data-kb': 'tables-file-error' }, failText(x))))
+        }
         const Editor = ({ field, value, onCommit, p }) => {
           if (field.protection === 'secret' && (field.type === 'text' || field.type === 'longtext' || field.type === 'url' || field.type === 'email' || field.type === 'phone')) return h(SecretEditor, { field, value, onCommit })
           switch (field.type) {
@@ -1390,7 +1544,7 @@ window.__ModuleLoader__.load({
               }))
             }
             case 'relation': return h(RelationEditor, { field, value, onCommit, p })
-            case 'attachment': return empty(value) ? h('span', { className: 'kbtb-nil' }, '—') : h('ul', { className: 'kbtb-filelist' }, value.map((f) => h('li', { key: f.hash }, svg('clip', 12), h('span', { className: 'kbtb-fn' }, f.name), h('span', { className: 'kbtb-fs' }, fmtBytes(f.size)))))
+            case 'attachment': return h(AttachEditor, { field, value, onCommit, p })
             default: return null
           }
         }
@@ -1400,7 +1554,7 @@ window.__ModuleLoader__.load({
           const onCommit = async (v) => { setErr(''); const r = await commit(field.key, v); if (r && r.ok === false) setErr(errorText(r)) }
           return h('div', { className: 'kbtb-df' + (field.key === p.obj.title ? ' title' : '') },
             h('label', { className: 'kbtb-dl' }, field.label, field.required ? h('span', { className: 'kbtb-req', 'aria-hidden': 'true' }, ' *') : null, field.protection !== 'normal' ? h('span', { className: 'kbtb-prot', title: kt('Protégé : ', 'Protected: ') + field.protection }, svg('lock', 11)) : null),
-            h(Editor, { key: field.type === 'relation' ? 'link' : JSON.stringify(value === undefined ? null : value), field, value, onCommit, p }),
+            h(Editor, { key: field.type === 'relation' || field.type === 'attachment' ? 'stay' : JSON.stringify(value === undefined ? null : value), field, value, onCommit, p }),
             err !== '' || error ? h('span', { className: 'kbtb-ferr', role: 'alert' }, err || error) : null)
         }
         /** « Linked from »: the rows of other tables that point at this one, one group per link field, read from the host (the links are kept on their own side, this side is computed). */
@@ -1587,6 +1741,7 @@ window.__ModuleLoader__.load({
           const [drawer, setDrawer] = useState(null)
           const [built, setBuilt] = useState(null)
           const [toast, setToast] = useState(null)
+          const [sending, setSending] = useState({}) // files on their way into a cell of the table, by row and field
           const [months, setMonths] = useState({})
           const live = useRef({})
           const alive = useRef(true)
@@ -1613,11 +1768,13 @@ window.__ModuleLoader__.load({
             if (!ready) return null
             const c = makeCtx(data.today, db.objects, related)
             c.open = (field, id) => live.current.openLinked(field.to, id)
+            c.fileUrl = (field, r, f) => fileUrl(live.current.db.id, live.current.obj.key, r.id, field, f)
+            c.removeFile = (r, field, f) => live.current.removeFile(r, field, f)
             return c
           }, [ready, data.today, db, related])
           const mine = rec.key === (ready ? db.id + '/' + obj.key : '') ? rec : { rows: [], status: 'loading', truncated: false }
           const rows = useMemo(() => (ready && mine.status === 'ok' ? K.queryRecords(mine.rows, { fields: obj.fields, q: query, flt, sorts: view.state.sorts }, ctx) : []), [ready, mine, obj, query, flt, view, ctx])
-          live.current = { db, obj, view, views, ready, sel: sel.views, all: mine.rows, openLinked: () => {} }
+          live.current = { db, obj, view, views, ready, sel: sel.views, all: mine.rows, openLinked: () => {}, removeFile: () => {} }
 
           // ── small helpers ──
           const say = useCallback((text, action) => {
@@ -1755,6 +1912,58 @@ window.__ModuleLoader__.load({
             if (r.ok && alive.current) { patchRows((rs) => rs.map((x) => (x.id === id ? r.record : x))); refresh() }
             return r
           }
+          // ── files ──
+          const rowFiles = (id, key) => { const r = live.current.all.find((x) => x.id === id); return r !== undefined && Array.isArray(r.values[key]) ? r.values[key] : [] }
+          /** Sends the files chosen, one by one; what the host kept comes back as `added` (to go onto the row), the others as `failed` with the reason. Nothing is written to the row here. */
+          const attach = async (field, files, held) => {
+            const L = live.current
+            const plan = planFiles(field, held, files)
+            const added = []
+            const failed = plan.failed.slice()
+            const have = new Set((Array.isArray(held) ? held : []).map((x) => x.hash))
+            for (const file of plan.ok) {
+              if (!alive.current) break
+              const r = await call('POST', '/upload' + qs({ db: L.db.id, object: L.obj.key, field: field.key, name: file.name, type: file.type }), file)
+              if (!r.ok) { failed.push({ name: file.name, why: 'host', message: errorText(r) }); continue }
+              if (have.has(r.file.hash)) { failed.push({ name: file.name, why: 'same' }); continue }
+              have.add(r.file.hash)
+              added.push(r.file)
+            }
+            return { added, failed }
+          }
+          /** Files dropped on a cell of the table: sent, then added to what the row holds there. */
+          const dropFiles = async (r, field, files) => {
+            if (files.length === 0) return
+            const k = r.id + '/' + field.key
+            setSending((s) => Object.assign({}, s, { [k]: files.length }))
+            let text = ''
+            try {
+              const out = await attach(field, files, rowFiles(r.id, field.key))
+              let added = out.added.length
+              if (added > 0) {
+                const res = await updateField(r.id, field.key, rowFiles(r.id, field.key).concat(out.added))
+                if (res.ok === false) { added = 0; text = errorText(res) }
+              }
+              if (text === '') text = filesSummary(added, out.failed)
+            } finally {
+              if (alive.current) setSending((s) => { const n = Object.assign({}, s); delete n[k]; return n })
+            }
+            if (alive.current && text !== '') say(text)
+          }
+          /** Takes one file off a row; the Undo puts the list back as it was (the file stays on this computer for a week, until nothing holds it). */
+          const removeFile = async (r, field, f) => {
+            const L = live.current
+            const before = rowFiles(r.id, field.key)
+            const next = before.filter((x) => x.hash !== f.hash)
+            const res = await updateField(r.id, field.key, next.length === 0 ? null : next)
+            if (!alive.current) return
+            if (res.ok === false) { say(errorText(res)); return }
+            say(kt('Fichier retiré.', 'File removed.'), { label: kt('Annuler', 'Undo'), run: async () => {
+              const back = await call('POST', '/write', { db: L.db.id, object: L.obj.key, op: 'update', id: r.id, values: { [field.key]: before } })
+              if (!back.ok) say(errorText(back))
+              refresh()
+            } })
+          }
           const restoreRecord = async (id) => {
             const r = await writeCall('restore', { id })
             if (!alive.current) return
@@ -1804,6 +2013,7 @@ window.__ModuleLoader__.load({
           }
           const openTable = (key) => { setQuery(''); setDrawer(null); setMenu(null); choose({ object: key }) }
           live.current.openLinked = openLinked
+          live.current.removeFile = removeFile
           const ask = (text) => { try { if (typeof window.__KB_ASK__ === 'function') { window.__KB_ASK__(text); return true } } catch (e) { /* the chat could not open */ } return false }
 
           // ── effects ──
@@ -1876,7 +2086,7 @@ window.__ModuleLoader__.load({
             setMenu, setFlt, editView, sortBy, filterBy, clearAll, selectView, createView: (k) => createView(k, null), dupView: (id) => createView(null, views.find((v) => v.id === id)), removeView, ask, say,
             renameView: (id, name) => updateView(id, (v) => { v.name = name; return v }, true),
             favView: (id) => updateView(id, (v) => { v.fav = !v.fav; return v }, true),
-            openRecord, newRecord, openLinked, goBack, openTable, built, setBuilt, closeDrawer: () => setDrawer(null), createRecord, updateField, deleteRecord, moveRecord,
+            openRecord, newRecord, openLinked, goBack, openTable, built, setBuilt, closeDrawer: () => setDrawer(null), createRecord, updateField, deleteRecord, moveRecord, attach, dropFiles, removeFile, sending,
             setMonth: (id, ym) => setMonths((m) => Object.assign({}, m, { [id]: ym })),
           } : null
 
@@ -1935,7 +2145,7 @@ window.__ModuleLoader__.load({
             toast !== null ? h('div', { className: 'kbtb-toast', role: 'status', 'data-kb': 'tables-toast', key: toast.id }, svg('check', 15), h('span', null, toast.text), toast.action ? h('button', { type: 'button', className: 'kbtb-tact', 'data-kb': 'tables-toast-action', onClick: () => { const run = toast.action.run; setToast(null); run() } }, toast.action.label) : null) : null)
         }
         // the pieces, handed out for the tests (they render each one in a state the page takes a while to reach)
-        Page.parts = { Bar, MenuButton, ViewsPop, FieldsPop, FilterPop, SortPop, ModifyPop, ValueCell, TableView, BoardView, CardsView, CalendarView, Chips, Drawer, Empty, NoTables, Cell, Opt, LinkChips, RelationEditor, LinkedFrom, LinkedGroups, BuiltPanel, LinkMap }
+        Page.parts = { Bar, MenuButton, ViewsPop, FieldsPop, FilterPop, SortPop, ModifyPop, ValueCell, TableView, BoardView, CardsView, CalendarView, Chips, Drawer, Empty, NoTables, Cell, Opt, LinkChips, RelationEditor, LinkedFrom, LinkedGroups, BuiltPanel, LinkMap, Thumb, FileChips, FileTd, AttachEditor }
         return Page
       }
 
@@ -1977,7 +2187,7 @@ window.__ModuleLoader__.load({
         name: NAME,
         inject: ['slots'],
         apply: start,
-        __test: { useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, relationFields, seenAs, linkOptions, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, freshName, savable, barViews, viewIndex, agentViewEvents, boardColumns, monthOf, shiftMonth, monthGrid, monthLabel, askText, buildText, modifyExamples, errorText, qs, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
+        __test: { useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, planFiles, failText, filesSummary, capOf, isImage, fileUrl, MAX_FILE_BYTES, MAX_FILES, relationFields, seenAs, linkOptions, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, freshName, savable, barViews, viewIndex, agentViewEvents, boardColumns, monthOf, shiftMonth, monthGrid, monthLabel, askText, buildText, modifyExamples, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
       }
     } catch (e) {
       console.warn('[kybernos-db] disabled:', e)

@@ -323,6 +323,41 @@ await ok('a protected field comes back masked and a secret one not at all; the a
   assert.deepEqual(reveal.masked, [])
 })
 
+await ok('a protected attachment field is protected for the agent like any other: masked, not searchable, asked before it is written; a secret one is not even a key', async () => {
+  const svc = service()
+  const T = toolbox(svc)
+  assert.equal((await T.db_create.execute({ name: 'Papers' })).ok, true)
+  const def = await T.object_define.execute({ key: 'doc', label: 'Documents', title: 'name', fields: [
+    { key: 'name', type: 'text', label: 'Name', required: true },
+    { key: 'files', type: 'attachment', label: 'Files' },
+    { key: 'scan', type: 'attachment', label: 'ID scan', protection: 'sensitive' },
+    { key: 'vault', type: 'attachment', label: 'Vault', protection: 'secret' },
+  ] })
+  assert.equal(def.ok, true, JSON.stringify(def))
+  const db = svc.resolve().db
+  const put = (name, text) => db.attach(Buffer.from(text), { name, type: 'application/pdf' }).file
+  const made = db.create('doc', { name: 'Pack', files: [put('brief.pdf', 'a')], scan: [put('passport-scan.pdf', 'b')], vault: [put('seed-phrase.pdf', 'c')] }, 'person')
+  assert.equal(made.ok, true, JSON.stringify(made))
+  const list = await T.records_list.execute({ object: 'doc' })
+  const row = list.records[0]
+  assert.equal(row.values.files[0].name, 'brief.pdf', 'a normal attachment field is read as it is')
+  assert.equal(row.values.scan, '••••', 'a protected one is masked: neither the names nor the sizes leave')
+  assert.ok(!('vault' in row.values), 'a secret one is not even a key')
+  assert.deepEqual([list.masked, list.hidden], [['scan'], ['vault']])
+  const said = JSON.stringify(list)
+  assert.ok(!said.includes('passport-scan') && !said.includes('seed-phrase'), 'no name of a protected file is said')
+  assert.equal((await T.records_list.execute({ object: 'doc', q: 'brief' })).total, 1)
+  assert.equal((await T.records_list.execute({ object: 'doc', q: 'passport' })).total, 0, 'the name of a protected file is not searchable')
+  assert.equal((await T.records_list.execute({ object: 'doc', q: 'seed-phrase' })).total, 0)
+  const got = await T.records_get.execute({ object: 'doc', id: row.id, reveal: ['scan', 'vault'] })
+  assert.equal(got.record.values.scan[0].name, 'passport-scan.pdf', 'what the person allowed is read in clear')
+  assert.ok(!('vault' in got.record.values))
+  const gate = (name, args) => approvalGate(svc, { name, arguments: args })
+  assert.match(gate('records_update', { object: 'doc', updates: [{ id: row.id, values: { scan: null } }] }).reason, /write protected fields/, 'writing a protected attachment field asks the person')
+  assert.equal(gate('records_update', { object: 'doc', updates: [{ id: row.id, values: { files: null } }] }), null, 'a normal one does not')
+  assert.match(gate('records_get', { object: 'doc', id: row.id, reveal: ['scan'] }).reason, /read protected fields/)
+})
+
 await ok('records_list filters, searches, sorts and pages on the fields the agent can read', async () => {
   const { T } = await seeded()
   const open = await T.records_list.execute({ object: 'task', filter: { conj: 'and', items: [{ k: 'status', op: 'isnot', v: 'done' }] }, sorts: [{ k: 'due', dir: 'desc' }] })

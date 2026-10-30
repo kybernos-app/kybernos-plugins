@@ -5,6 +5,8 @@
 //   GET  /kybernos-db/links?db=&object=&id=         what points at a record, from the other tables (the first 50 of each link field, and how many there are)
 //   POST /kybernos-db/write                         { db, object, op: create | update | delete | restore, id?, values? }
 //   POST /kybernos-db/view                          { db, object, op: save | remove, view?, id? }
+//   POST /kybernos-db/upload?db=&object=&field=&name=&type=   the bytes of one file (application/octet-stream, 25 MB at most): { ok, file } to write into the field
+//   GET  /kybernos-db/file?db=&object=&id=&field=&hash=   a file a row holds: a picture is shown, anything else is handed over as a download (type from the bytes, closed CSP)
 //   GET  /kybernos-db/core/<file>.mjs               the pure rules of core/, so the browser runs the very code the agent runs
 //
 // EVERY data route, reads included, needs DSH's signed session (session-guard.mjs): the records are personal data and plugin routes are served before DSH's own
@@ -14,11 +16,14 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { MAX_ATTACHMENT_BYTES } from './core/index.mjs'
+import { sendUserFile } from './serve-user-file.mjs'
 import { writeGuard } from './session-guard.mjs'
 
 export const ROUTE = '/kybernos-db/'
 export const CORE_ROUTE = ROUTE + 'core/'
 export const BODY_MAX = 64 * 1024
+export const UPLOAD_MAX = MAX_ATTACHMENT_BYTES
 const CORE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'core')
 const CORE_FILE = /^[a-z]+\.mjs$/
 
@@ -36,7 +41,7 @@ export const hostOk = (req) => {
   } catch (e) { return false }
 }
 
-const STATUS = { unknown_db: 404, unknown_object: 404, no_db: 404, which_db: 400, missing: 404, deleted: 409, exists: 409, sqlite_unavailable: 503, db_newer: 503, not_a_db: 503, failed: 500 }
+const STATUS = { 'too-big': 413, unknown_db: 404, unknown_object: 404, no_db: 404, which_db: 400, missing: 404, deleted: 409, exists: 409, sqlite_unavailable: 503, db_newer: 503, not_a_db: 503, failed: 500 }
 const statusOf = (answer) => (answer.ok === true ? 200 : (STATUS[answer.error] || 400))
 
 const sendJson = (res, status, payload) => {
@@ -72,6 +77,22 @@ const readBody = (req, res) => new Promise((resolve) => {
   req.on('error', () => finish(null))
 })
 const jsonContent = (req) => { const t = req.headers !== null && req.headers !== undefined && typeof req.headers['content-type'] === 'string' ? req.headers['content-type'].toLowerCase() : ''; return t.indexOf('application/json') === 0 }
+/** The raw bytes of an upload, or null once the answer (413, 400) has been sent. Past the cap the rest of the body is read and dropped, so the answer reaches the page. */
+const readBytes = (req, res, max) => new Promise((resolve) => {
+  const chunks = []
+  let size = 0
+  let done = false
+  const finish = (v) => { if (done) return; done = true; chunks.length = 0; resolve(v) }
+  req.on('data', (d) => {
+    if (done) return
+    const part = typeof d === 'string' ? Buffer.from(d) : d
+    size += part.length
+    if (size > max) { refuse(res, 413, 'too-big'); finish(null); return }
+    chunks.push(part)
+  })
+  req.on('end', () => { if (!done) finish(Buffer.concat(chunks)) })
+  req.on('error', () => finish(null))
+})
 const queryOf = (req) => { try { return Object.fromEntries(new URL(req.url, 'http://127.0.0.1').searchParams) } catch (e) { return {} } }
 
 /** One row per route: the method, and what it does with the parsed query (GET) or body (POST). */
@@ -103,6 +124,48 @@ const handlerFor = (route) => async (req, res) => {
   }
 }
 
+/** `POST /kybernos-db/upload`: one file, as raw bytes, behind the same guards as a write. */
+export const uploadHandler = (api) => async (req, res) => {
+  try {
+    if (hostOk(req) !== true) return refuse(res, 403, 'origin refused')
+    if (String(req.method || 'GET').toUpperCase() !== 'POST') { res.setHeader && res.setHeader('allow', 'POST'); return refuse(res, 405, 'method not allowed') }
+    const denied = writeGuard(req)
+    if (denied !== null) return refuse(res, denied.status, denied.error)
+    const kind = req.headers !== null && req.headers !== undefined && typeof req.headers['content-type'] === 'string' ? req.headers['content-type'].toLowerCase().split(';')[0].trim() : ''
+    if (kind !== 'application/octet-stream') return refuse(res, 415, 'application/octet-stream content-type expected')
+    const length = Number(req.headers['content-length'])
+    if (Number.isFinite(length) && length > UPLOAD_MAX) return refuse(res, 413, 'too-big')
+    const bytes = await readBytes(req, res, UPLOAD_MAX)
+    if (bytes === null) return undefined
+    const q = queryOf(req)
+    const answer = api.upload({ db: q.db, object: q.object, field: q.field, name: q.name, type: q.type === undefined || q.type === '' ? 'application/octet-stream' : q.type, bytes })
+    return sendJson(res, statusOf(answer), answer)
+  } catch (e) {
+    console.log('[kybernos-db] upload failed: ' + String((e && e.message) || e).slice(0, 200))
+    return refuse(res, 500, 'failed')
+  }
+}
+
+/**
+ * `GET /kybernos-db/file`: a file a row holds, if the row says so (a hash alone opens nothing). A person's file is never shown as a document in DSH's origin
+ * (DL-04, serve-user-file.mjs): its type comes from its first bytes and never from what was said at upload, a picture is shown in place and everything else (a PDF, an SVG,
+ * a page) is a download, always with `nosniff` and a closed content-security-policy. The name a download is saved under is the page's (the link's `download`).
+ */
+export const fileHandler = (api) => async (req, res) => {
+  try {
+    if (hostOk(req) !== true) return refuse(res, 403, 'origin refused')
+    if (String(req.method || 'GET').toUpperCase() !== 'GET') { res.setHeader && res.setHeader('allow', 'GET'); return refuse(res, 405, 'method not allowed') }
+    const denied = writeGuard(req)
+    if (denied !== null) return refuse(res, denied.status, denied.error)
+    const answer = api.file(queryOf(req))
+    if (answer.ok !== true) return sendJson(res, statusOf(answer), answer)
+    return sendUserFile(res, Buffer.from(answer.bytes))
+  } catch (e) {
+    console.log('[kybernos-db] file failed: ' + String((e && e.message) || e).slice(0, 200))
+    return refuse(res, 500, 'failed')
+  }
+}
+
 /** The core files the browser may import: the `.mjs` files that sit in core/, read when asked (so an edit shows at once in a test). */
 export const coreFiles = (dir = CORE_DIR) => { try { return readdirSync(dir).filter((f) => CORE_FILE.test(f)).sort() } catch (e) { return [] } }
 
@@ -128,6 +191,10 @@ export function mountRoutes (webServer, api) {
   const off = []
   for (const [name, route] of Object.entries(routeTable(api))) {
     const retrait = webServer.register({ kind: 'exact', path: ROUTE + name, handler: handlerFor(route) })
+    if (typeof retrait === 'function') off.push(retrait)
+  }
+  for (const [name, handler] of [['upload', uploadHandler(api)], ['file', fileHandler(api)]]) {
+    const retrait = webServer.register({ kind: 'exact', path: ROUTE + name, handler })
     if (typeof retrait === 'function') off.push(retrait)
   }
   const retrait = webServer.register({ kind: 'prefix', path: CORE_ROUTE.slice(0, -1), handler: coreHandler() })

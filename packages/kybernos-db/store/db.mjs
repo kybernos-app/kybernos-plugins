@@ -7,18 +7,23 @@
 // Failures a caller can cause come back as `{ ok: false, code, message, errors? }` (the core's shape); only a broken environment throws.
 // A link written through `create` or `update` must point at a record that exists and is not deleted (`invalid`, code `link`); an operation replayed with `apply` is not
 // judged, because another device's operations can arrive before the record they point at. A deleted record keeps the links that point at it (a restore brings them back).
+// An attachment is stored with `attach(bytes, { name, type }, cap)` (the cap of the field, at most the core's) and the record then holds `{ name, size, type, hash }`; `gc()` removes
+// the files no record holds (deleted records still hold theirs) once they are older than `GC_GRACE_MS`, and storing the same bytes again renews a file's age.
 // Not here yet: removing or renaming objects and fields, changing a field's type, rights (core/rights.mjs is asked by the caller), the sync with the server.
 
 import { chmodSync, closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { applyOp, buildCreate, buildUpdate, checkView, isPlain, isUlid, normalizeField, normalizeValue, normalizeView, sameJson } from '../core/index.mjs'
+import { MAX_ATTACHMENT_BYTES, applyOp, buildCreate, buildUpdate, checkView, isPlain, isUlid, normalizeField, normalizeValue, normalizeView, sameJson } from '../core/index.mjs'
 import { MAX_FIELDS, MAX_OBJECTS, changeField, changeObject, findObject, normalizeObject } from './catalog.mjs'
 import { fromColumn, toColumn } from './columns.mjs'
 import { hashOf, openBlobs } from './blobs.mjs'
 import { APPLICATION_ID, BASE_DDL, FORMAT, addColumnSql, createTableSql, dropTriggersSql, q, tableName, triggersSql } from './schema.mjs'
 import { BUSY_MS, enterWal, sqliteOf } from './sqlite.mjs'
 import { makeUlid } from './ulid.mjs'
+
+/** How long a file that no record holds is kept before the garbage collector may take it. */
+export const GC_GRACE_MS = 7 * 24 * 60 * 60 * 1000
 
 const CONTROL = /[\u0000-\u001f\u007f]/
 const refuse = (code, message, extra) => ({ ok: false, code, message, ...extra })
@@ -414,15 +419,55 @@ function makeDb (handle, file, ports) {
     return [catalog().version, Number(ops), Number(views.n), Number(views.r)].join('.')
   }
 
-  /** Stores a file next to the db and gives the value to put in an attachment field: `{ ok: true, file: { name, size, type, hash } }`. */
-  const attach = (bytes, meta) => {
+  /** Stores a file next to the db and gives the value to put in an attachment field: `{ ok: true, file: { name, size, type, hash } }`. `maxBytes` is the field's own cap. */
+  const attach = (bytes, meta, maxBytes) => {
     live()
     if (!(bytes instanceof Uint8Array)) return refuse('type', 'a file is bytes (a Buffer or a Uint8Array)')
     const given = isPlain(meta) ? meta : {}
-    const r = normalizeValue({ type: 'attachment' }, [{ name: given.name, size: bytes.length, type: given.type, hash: hashOf(bytes) }])
+    const cap = Number.isInteger(maxBytes) && maxBytes >= 1 && maxBytes <= MAX_ATTACHMENT_BYTES ? maxBytes : MAX_ATTACHMENT_BYTES
+    if (bytes.length > cap) return refuse('too-big', 'a file is at most ' + cap + ' bytes')
+    const r = normalizeValue({ type: 'attachment', maxBytes: cap }, [{ name: given.name, size: bytes.length, type: given.type, hash: hashOf(bytes) }])
     if (!r.ok) return refuse(r.code, r.message)
-    const put = blobs.put(bytes)
+    const put = blobs.put(bytes, cap)
     return put.ok ? { ok: true, file: r.value[0] } : put
+  }
+
+  /** The hash of every file a record still holds, deleted records included (a deleted row can be restored, and its files with it). */
+  const referenced = () => {
+    live()
+    const hashes = new Set()
+    for (const obj of catalog().objects) {
+      for (const f of obj.fields) {
+        if (f.type !== 'attachment') continue
+        for (const row of prepare(`SELECT ${q(f.key)} AS v FROM ${q(tableName(obj.key))} WHERE ${q(f.key)} IS NOT NULL`).all()) {
+          let list = []
+          try { list = JSON.parse(row.v) } catch (e) { list = [] }
+          for (const file of Array.isArray(list) ? list : []) if (isPlain(file) && typeof file.hash === 'string') hashes.add(file.hash)
+        }
+      }
+    }
+    return hashes
+  }
+
+  /**
+   * Takes the files no record holds any more: `{ removed, kept, bytes }`. A file younger than `graceMs` (a week by default) is kept even when nothing holds it: it may be
+   * waiting for the write that attaches it, or be the one an Undo is about to put back. Never runs inside a write.
+   */
+  const gc = (opts) => {
+    live()
+    const o = isPlain(opts) ? opts : {}
+    const grace = Number.isFinite(o.graceMs) && o.graceMs >= 0 ? o.graceMs : GC_GRACE_MS
+    const now = Number.isFinite(o.now) ? o.now : Date.now()
+    const held = referenced()
+    let removed = 0
+    let kept = 0
+    let bytes = 0
+    for (const hash of blobs.list()) {
+      const st = blobs.stat(hash)
+      if (held.has(hash) || st === null || now - st.mtimeMs < grace) { kept += 1; continue }
+      if (blobs.remove(hash)) { removed += 1; bytes += st.size } else kept += 1
+    }
+    return { removed, kept, bytes }
   }
 
   return {
@@ -453,6 +498,7 @@ function makeDb (handle, file, ports) {
     seal,
     verify,
     attach,
+    gc,
     close () { if (!closed) { closed = true; handle.close() } },
   }
 }

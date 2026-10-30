@@ -3,19 +3,20 @@
 // the bar does what it says and is SAVED by the host (each change is read back from /kybernos-db/state, with who made it): filter by conditions, sort, visible fields, the
 // views (table, board, cards, calendar), the row drawer (edit, secret never shown, create with a required field), and a view that Kaby changes behind the page's back (the
 // toast, Undo, the sparkle), the links between tables (an order linked to a customer and products from the drawer, opened both ways, the picker, Back, a deleted
-// row, « How it's built »). Failure states (the host answering badly), the narrow layout (no overflow, popovers as a sheet) and the console are measured too.
+// row, « How it's built »), files (dropped on a cell, chosen in the drawer, taken off with an Undo, refused over the cap; served back byte for byte), and the failure states (the host answering badly), the narrow layout (no overflow, popovers as a sheet) and the console are measured too.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-tables-live.mjs [--shots <dir>]
+//   then, after scripts/sandbox/stop.sh and start.sh: node scripts/check-tables-files-after-restart.mjs (the files attached here are found again)
 //
 // SANDBOX ONLY (exit 3 against :3080 and without a sandbox DSH_HOME): it writes a « Home » db into the sandbox's own home, through the service the host uses. A real mouse
 // and keyboard are used where a person would use them; the <select> pickers are set through the DOM (headless Chrome has no popup). Nothing is sent to a model: « Modify view »
 // is answered by a stand-in for the chat seam inside the page. --shots <dir>: one PNG per state (kept outside git: media never go in the repository).
 // Exit code: 0 all green, 1 a check failed, 3 not run.
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeService } from '../packages/kybernos-db/agent/service.mjs'
 import { cookieDeSession } from './cdp-lib.mjs'
-import { dayFrom, seedHome, seedShop } from './lib-tables-seed.mjs'
+import { FILE_FIXTURES as F, bytesOf, dayFrom, seedHome, seedPapers, seedShop, shaOf as sha } from './lib-tables-seed.mjs'
 import { clickText, openLivePage } from './live-page.mjs'
 
 const args = process.argv.slice(2)
@@ -55,6 +56,9 @@ const dbId = made.id
 const shopMade = seedShop({ dshHome })
 if (shopMade.db) shopMade.db.close()
 const shopId = shopMade.id
+const papersMade = seedPapers({ dshHome })
+if (papersMade.db) papersMade.db.close()
+const papersId = papersMade.id
 
 // Kaby, as the service: another process writing the db file while the host has it open (WAL lets two processes write).
 const asKaby = (fn) => { const svc = makeService({ dir: join(dshHome, 'kybernos', 'kybernos-db', 'dbs') }); try { const r = svc.byId(dbId); if (r.ok !== true) throw new Error('kaby: ' + JSON.stringify(r)); return fn(r.db) } finally { svc.close() } }
@@ -442,6 +446,133 @@ try {
     await click(kb('tables-tab', '[data-object="task"]'))
     await sleep(400)
   }
+
+
+  console.log('── files ──')
+  const inPapers = (fn) => asKaby2(papersId, fn)
+  // a previous run leaves files on the rows: start from rows that hold none
+  inPapers((db) => { for (const r of db.list('doc')) db.update('doc', r.id, { files: null }, 'person') })
+  const docRows = async () => (await get('/kybernos-db/records?db=' + papersId + '&object=doc')).records
+  const docId = async (name) => (await docRows()).find((r) => r.values.name === name).id
+  const filesOf = async (name) => (await docRows()).find((r) => r.values.name === name).values.files || []
+  const raw = (path, withCookie = true) => fetch('http://' + host + path, { headers: withCookie ? { cookie: cookie.nom + '=' + cookie.valeur } : {} })
+  const blobDir = join(dshHome, 'kybernos', 'kybernos-db', 'dbs', papersId, 'blobs')
+  const blobCount = () => { try { return readdirSync(blobDir).length } catch (e) { return 0 } }
+  const fileUrl = (id, f) => '/kybernos-db/file?db=' + papersId + '&object=doc&id=' + id + '&field=files&hash=' + sha(f)
+  // a drop and a choice the way a browser makes them: real File objects in a real DataTransfer
+  const MAKE = `const mk = (f) => new File([Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0))], f.name, { type: f.type }); const dt = (list) => { const d = new DataTransfer(); for (const f of list) d.items.add(mk(f)); return d }`
+  const dropOn = (sel, list) => ev(`(() => { ${MAKE}; const e = document.querySelector(${JSON.stringify(sel)}); if (e === null) return false; const data = dt(${JSON.stringify(list)}); for (const t of ['dragenter', 'dragover', 'drop']) e.dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: data })); return true })()`)
+  const chooseIn = (sel, list) => ev(`(() => { ${MAKE}; const e = document.querySelector(${JSON.stringify(sel)}); if (e === null) return false; e.files = dt(${JSON.stringify(list)}).files; e.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
+  const decoded = (sel, width) => ev(`(() => { const i = document.querySelector(${JSON.stringify(sel)}); return i !== null && i.complete && i.naturalWidth === ${width} })()`)
+
+  const picked = await until(() => pick(kb('tables-db'), papersId), 9000) // the page learns of a db the host made a moment ago at its next poll
+  const docsTab = await until(async () => (await texts(kb('tables-tab'))).join('|') === 'Docs', 9000)
+  check('choosing Papers shows its one table, Docs, with a Files column', picked === true && docsTab === true && (await heads()).join('|') === 'Name|Files', { picked, docsTab, tabs: await texts(kb('tables-tab')), heads: await heads() })
+  const contract = await docId('Contract')
+  const receipts = await docId('Receipts')
+  const cell = kb('tables-row', `[data-id="${contract}"]`) + ' ' + kb('tables-cell-files')
+  const chip = (f) => cell + ' ' + kb('tables-file', `[data-hash="${sha(f)}"]`)
+  check('a row with no file has an empty Files cell', (await exists(cell)) && (await count(cell + ' ' + kb('tables-file'))) === 0)
+  // ── dropped on a cell ──
+  const blobsBefore = blobCount()
+  await dropOn(cell, [F.png, F.pdf])
+  const two = await until(async () => { const l = await filesOf('Contract'); return l.length === 2 ? l : null }, 9000)
+  check('dropping an image and a PDF on the cell attaches both: the host holds their names, types, sizes and sha256', !!two && two[0].name === 'logo.png' && two[0].type === 'image/png' && two[0].size === bytesOf(F.png).length && two[0].hash === sha(F.png) && two[1].name === 'contract.pdf' && two[1].type === 'application/pdf' && two[1].hash === sha(F.pdf), two)
+  check('and the host keeps the bytes next to the db, once each', blobCount() >= 2 && blobCount() - blobsBefore <= 2, { before: blobsBefore, after: blobCount() })
+  check('the toast says two files were added', /2 files added/.test(String(await text(kb('tables-toast')))), await text(kb('tables-toast')))
+  check('the cell draws the picture as a thumbnail that decoded, and the PDF by its name', (await until(() => decoded(chip(F.png) + ' img', 12), 6000)) === true && /contract\.pdf/.test(String(await text(chip(F.pdf)))), await text(cell))
+  await shot('22-files-cell')
+  const rPng = await raw(fileUrl(contract, F.png))
+  const bPng = Buffer.from(await rPng.arrayBuffer())
+  check('the host serves the image back byte for byte, in place, with nothing for the browser to sniff and a closed content-security-policy', rPng.status === 200 && rPng.headers.get('content-type') === 'image/png' && rPng.headers.get('content-disposition') === null && rPng.headers.get('x-content-type-options') === 'nosniff' && rPng.headers.get('content-security-policy') === "default-src 'none'; sandbox" && bPng.equals(bytesOf(F.png)), { status: rPng.status, type: rPng.headers.get('content-type') })
+  const rPdf = await raw(fileUrl(contract, F.pdf))
+  check('the PDF is handed over as a download, never as a document of DSH\'s own origin, and it is the very bytes', rPdf.status === 200 && rPdf.headers.get('content-type') === 'application/octet-stream' && rPdf.headers.get('content-disposition') === 'attachment' && Buffer.from(await rPdf.arrayBuffer()).equals(bytesOf(F.pdf)), rPdf.headers.get('content-type'))
+  check('a file the row does not hold is not served, and nothing is served without the session', (await raw(fileUrl(contract, F.txt))).status === 404 && (await raw(fileUrl(contract, F.png), false)).status === 401)
+  check('the chip of an image opens it in a new tab that cannot reach the page, and the chip of a PDF downloads it under its own name', await ev(`(() => { const a = document.querySelector(${JSON.stringify(chip(F.png) + ' a')}); const b = document.querySelector(${JSON.stringify(chip(F.pdf) + ' a')}); return a !== null && a.target === '_blank' && a.rel.includes('noopener') && a.getAttribute('href').startsWith('/kybernos-db/file?') && b !== null && b.getAttribute('download') === 'contract.pdf' && b.target !== '_blank' })()`))
+  // ── a drag that carries no file is left alone; a file twice is said ──
+  const noFileDrag = await ev(`(() => { const e = document.querySelector(${JSON.stringify(cell)}); const d = new DataTransfer(); d.setData('text/plain', 'hello'); const o = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: d }); e.dispatchEvent(o); const x = new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: d }); e.dispatchEvent(x); return [o.defaultPrevented, x.defaultPrevented] })()`)
+  await sleep(500)
+  check('dragging text over the cell is not a drop of files: the page does not take it', JSON.stringify(noFileDrag) === '[false,false]' && (await filesOf('Contract')).length === 2, noFileDrag)
+  await until(async () => !(await exists(kb('tables-toast'))), 12000)
+  await dropOn(cell, [F.png])
+  const same = await until(async () => { const t = await text(kb('tables-toast')); return t !== null && /already there/.test(t) ? t : null }, 6000)
+  check('the same file dropped again is said to be already there, and the row is unchanged', !!same && (await filesOf('Contract')).length === 2, same)
+  // ── over the cap: refused before a byte is sent ──
+  await until(async () => !(await exists(kb('tables-toast'))), 12000)
+  const sentBefore = blobCount()
+  await dropOn(cell, [F.big])
+  const refused = await until(async () => { const t = await text(kb('tables-toast')); return t !== null && /over/.test(t) ? t : null }, 6000)
+  check('a file over the field\'s cap is refused with its name and the cap', !!refused && /big\.bin/.test(refused) && /20 KB/.test(refused), refused)
+  check('and nothing was sent or written for it', blobCount() === sentBefore && (await filesOf('Contract')).length === 2, { blobs: blobCount(), was: sentBefore })
+  // ── the drawer ──
+  await until(async () => !(await exists(kb('tables-toast'))), 12000)
+  await click(kb('tables-row', `[data-id="${contract}"]`) + ' ' + kb('tables-open'))
+  check('the drawer lists the two files with a picture for the image, the name and the size', (await count(FIELD('files') + ' ' + kb('tables-file'))) === 2 && (await decoded(FIELD('files') + ' img.kbtb-thumb', 12)) === true && /contract\.pdf/.test(String(await text(FIELD('files')))) && /KB|B\b/.test(String(await text(FIELD('files')))), await text(FIELD('files')))
+  check('it says the cap before anything is tried', /20 KB/.test(String(await text(FIELD('files') + ' ' + kb('tables-drop')))), await text(FIELD('files') + ' ' + kb('tables-drop')))
+  await shot('23-files-drawer')
+  await chooseIn(FIELD('files') + ' ' + kb('tables-file-input'), [F.txt])
+  const three = await until(async () => { const l = await filesOf('Contract'); return l.length === 3 ? l : null }, 9000)
+  check('choosing a text file in the drawer adds it after the others', !!three && three[2].name === 'notes.txt' && three[2].hash === sha(F.txt), three)
+  check('a text file has an icon, not a picture, and a link that downloads', (await count(FIELD('files') + ' img.kbtb-thumb')) === 1 && await ev(`(() => { const a = document.querySelector(${JSON.stringify(FIELD('files') + ' ' + kb('tables-file', `[data-hash="${sha(F.txt)}"]`) + ' a')}); return a !== null && a.hasAttribute('download') && a.target !== '_blank' })()`))
+  const rTxt = await raw(fileUrl(contract, F.txt))
+  check('and the host hands it over as a download, never as a page of its own', rTxt.headers.get('content-type') === 'application/octet-stream' && /^attachment/.test(rTxt.headers.get('content-disposition') || '') && (rTxt.headers.get('content-security-policy') || '').includes('sandbox'), rTxt.headers.get('content-disposition'))
+  const blobsKept = blobCount()
+  await chooseIn(FIELD('files') + ' ' + kb('tables-file-input'), [F.big])
+  const note = await until(async () => { const t = await text(kb('tables-file-error')); return t })
+  check('a file over the cap chosen in the drawer is said on the spot, and the row keeps its three files', /big\.bin/.test(String(note)) && /20 KB/.test(String(note)) && (await filesOf('Contract')).length === 3 && blobCount() === blobsKept, note)
+  // ── take one off, Undo ──
+  await click(FIELD('files') + ' ' + kb('tables-file', `[data-hash="${sha(F.txt)}"]`) + ' ' + kb('tables-file-remove'))
+  const removed = await until(async () => { const l = await filesOf('Contract'); return l.length === 2 ? l : null })
+  check('the × in the drawer takes that file off and keeps the others', !!removed && removed.every((f) => f.hash !== sha(F.txt)), removed)
+  check('the toast says so and offers Undo', /File removed/.test(String(await text(kb('tables-toast')))) && (await exists(kb('tables-toast-action'))))
+  await click(kb('tables-toast-action'))
+  const back3 = await until(async () => { const l = await filesOf('Contract'); return l.length === 3 ? l : null })
+  check('Undo puts the file back where it was, and the file is served again', !!back3 && back3.map((f) => f.hash).join() === [F.png, F.pdf, F.txt].map(sha).join() && (await raw(fileUrl(contract, F.txt))).status === 200, back3)
+  await click(kb('tables-drawer-close'))
+  // ── take one off from the cell ──
+  await until(async () => !(await exists(kb('tables-toast'))), 12000)
+  check('the cell shows three files, or two and a count', (await count(cell + ' ' + kb('tables-file'))) === 3)
+  const over = await rect(chip(F.png))
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: over.x + over.w / 2, y: over.y + over.h / 2 })
+  await sleep(300)
+  check('hovering a chip shows its ×, whole and inside the table', await ev(`(() => { const b = document.querySelector(${JSON.stringify(chip(F.png) + ' ' + kb('tables-file-remove'))}); const w = document.querySelector('.kbtb-tblwrap').getBoundingClientRect(); const r = b.getBoundingClientRect(); return getComputedStyle(b).opacity === '1' && r.left >= w.left && r.right <= w.right && r.top >= w.top && r.bottom <= w.bottom })()`))
+  await shot('25-files-hover')
+  await click(chip(F.png) + ' ' + kb('tables-file-remove'))
+  const cellOff = await until(async () => { const l = await filesOf('Contract'); return l.length === 2 ? l : null })
+  check('the × on a chip of the cell takes that file off, without opening the row', !!cellOff && cellOff.every((f) => f.hash !== sha(F.png)) && !(await exists(kb('tables-drawer'))), cellOff)
+  await click(kb('tables-toast-action'))
+  check('and Undo from there puts it back too', !!(await until(async () => (await filesOf('Contract')).length === 3)))
+  // ── a new row with files, and a failed send ──
+  await until(async () => !(await exists(kb('tables-toast'))), 12000)
+  await click(kb('tables-row', `[data-id="${receipts}"]`) + ' ' + kb('tables-open'))
+  await ev(`(() => { window.__realFetch2 = window.fetch; window.fetch = (u, o) => (String(u).includes('/kybernos-db/upload') ? Promise.reject(new TypeError('failed')) : window.__realFetch2(u, o)); return 1 })()`)
+  await chooseIn(FIELD('files') + ' ' + kb('tables-file-input'), [F.txt])
+  const failNote = await until(async () => text(kb('tables-file-error')))
+  check('when the host cannot be reached the file is said not to have been added, and the row is untouched', /notes\.txt/.test(String(failNote)) && /does not answer/.test(String(failNote)) && (await filesOf('Receipts')).length === 0, failNote)
+  await ev(`window.fetch = window.__realFetch2; true`)
+  await click(kb('tables-drawer-close'))
+  await click(kb('tables-new'))
+  await typeInto(FIELD('name'), 'Taxes')
+  await chooseIn(FIELD('files') + ' ' + kb('tables-file-input'), [F.txt, F.png])
+  check('in a new row the files are listed by name only (the host serves a file to the row that holds it)', (await until(async () => (await count(FIELD('files') + ' ' + kb('tables-file'))) === 2)) === true && (await count(FIELD('files') + ' img')) === 0 && (await count(FIELD('files') + ' a')) === 0)
+  await click(kb('tables-create'))
+  const taxes = await until(async () => { const r = (await docRows()).find((x) => x.values.name === 'Taxes'); return r && Array.isArray(r.values.files) && r.values.files.length === 2 ? r : null }, 9000)
+  check('Add writes the new row with both files, and they are served', !!taxes && (await raw(fileUrl(taxes.id, F.png))).status === 200, taxes && taxes.values)
+  inPapers((db) => { const r = db.list('doc').find((x) => x.values.name === 'Taxes'); if (r) db.remove('doc', r.id, 'person') })
+  // ── narrow ──
+  await until(async () => !(await exists(kb('tables-toast'))), 12000)
+  await click(kb('tables-row', `[data-id="${contract}"]`) + ' ' + kb('tables-open'))
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 900, deviceScaleFactor: 1, mobile: false })
+  await sleep(600)
+  check('at 420 px the drawer with its files and the box does not overflow the page sideways', (await overflow()) <= 1 && (await exists(FIELD('files') + ' ' + kb('tables-drop'))), await overflow())
+  await shot('24-files-narrow')
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 1500, height: 950, deviceScaleFactor: 1, mobile: false })
+  await sleep(400)
+  await click(kb('tables-drawer-close'))
+  await pick(kb('tables-db'), dbId)
+  await sleep(500)
+  await click(kb('tables-tab', '[data-object="task"]'))
+  await sleep(400)
 
   console.log('── failure states ──')
   await ev(`(() => { window.__realFetch = window.fetch; window.fetch = (u, o) => (String(u).includes('/kybernos-db/state') ? Promise.reject(new TypeError('failed')) : window.__realFetch(u, o)); return 1 })()`)

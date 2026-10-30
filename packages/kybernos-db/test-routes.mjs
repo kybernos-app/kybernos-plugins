@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { makeService } from './agent/service.mjs'
 import { RECORDS_MAX, makeApi } from './api.mjs'
 import { apply } from './index.js'
-import { CORE_ROUTE, ROUTE, coreFiles } from './routes.mjs'
+import { CORE_ROUTE, ROUTE, UPLOAD_MAX, coreFiles, uploadHandler } from './routes.mjs'
 import { sessionSource } from './session-guard.mjs'
 import { OTHER_SECRET, SESSION_SECRET, browserHeaders, sessionCookie } from './lib-session-test.mjs'
 
@@ -229,9 +229,146 @@ await ok('links refuses what it cannot answer, and a write that links to nothing
   assert.equal(api.write({ object: 'order', op: 'create', values: { name: 'O-1', customer: ada } }).ok, true)
 })
 
-await ok('apply mounts the five data routes and the core files', () => {
+// ---------------------------------------------------------------- files
+const DOCS = { key: 'doc', label: 'Documents', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }, { key: 'files', type: 'attachment', label: 'Files' }, { key: 'tiny', type: 'attachment', label: 'Tiny', maxBytes: 10 }, { key: 'id_card', type: 'attachment', label: 'ID card', protection: 'sensitive' }] }
+const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex')
+const withDocs = () => {
+  const svc = service()
+  const db = svc.create({ name: 'Papers', by: 'agent' }).db
+  assert.equal(db.addObject(DOCS, 'agent').ok, true)
+  return { svc, db, api: makeApi({ service: svc, ports: { today: () => '2026-10-30' } }) }
+}
+/** One http call with raw bytes in, raw bytes out. */
+async function hitRaw (routes, path, method, headers, bytes, query = '') {
+  const req = {
+    method, url: path + query,
+    headers: { host: '127.0.0.1:3080', ...(method === 'POST' ? { 'content-type': 'application/octet-stream' } : {}), ...headers },
+    socket: { localPort: 3080 },
+    on (ev, fn) { if (ev === 'data' && bytes !== undefined) for (let i = 0; i < Math.max(bytes.length, 1); i += 1024 * 1024) fn(bytes.subarray(i, i + 1024 * 1024)); if (ev === 'end') fn() },
+  }
+  const out = { code: 200, body: Buffer.alloc(0), headers: {} }
+  await routes[path.split('?')[0]].handler(req, { setHeader () {}, writeHead (c, h) { out.code = c; out.headers = h || {} }, end (b) { out.body = b === undefined ? Buffer.alloc(0) : Buffer.from(b) } })
+  return out
+}
+const q = (o) => '?' + new URLSearchParams(o).toString()
+
+await ok('upload stores a file for an attachment field and hands back the value to write; the field\'s own cap and the kind of field are enforced', () => {
+  const { api, db } = withDocs()
+  const up = api.upload({ object: 'doc', field: 'files', name: 'logo.png', type: 'image/png', bytes: PNG })
+  assert.equal(up.ok, true, JSON.stringify(up))
+  assert.deepEqual(Object.keys(up.file).sort(), ['hash', 'name', 'size', 'type'])
+  assert.equal(up.file.size, PNG.length)
+  assert.equal(db.blobs.has(up.file.hash), true)
+  assert.equal(api.upload({ object: 'doc', field: 'tiny', name: 'a.txt', type: 'text/plain', bytes: Buffer.alloc(11) }).error, 'too-big', 'the field\'s cap')
+  assert.equal(api.upload({ object: 'doc', field: 'tiny', name: 'a.txt', type: 'text/plain', bytes: Buffer.alloc(10) }).ok, true)
+  assert.equal(api.upload({ object: 'doc', field: 'name', name: 'a.txt', type: 'text/plain', bytes: PNG }).error, 'invalid', 'a text field takes no file')
+  assert.equal(api.upload({ object: 'doc', field: 'nope', name: 'a.txt', type: 'text/plain', bytes: PNG }).error, 'invalid')
+  assert.equal(api.upload({ object: 'nope', field: 'files', name: 'a.txt', type: 'text/plain', bytes: PNG }).error, 'unknown_object')
+  assert.equal(api.upload({ object: 'doc', field: 'files', name: 'a/b.txt', type: 'text/plain', bytes: PNG }).ok, false, 'a name with a slash')
+  assert.equal(api.upload({ object: 'doc', field: 'files', name: 'a.txt', type: 'text/plain', bytes: 'text' }).error, 'invalid')
+  const w = api.write({ object: 'doc', op: 'create', values: { name: 'Brand', files: [up.file] } })
+  assert.equal(w.ok, true, JSON.stringify(w))
+  assert.deepEqual(api.records({ object: 'doc' }).records[0].values.files, [up.file])
+})
+
+await ok('file gives the bytes of a file a row holds, and nothing for a hash the row does not hold, a missing row or a file gone from the disk', () => {
+  const { api, db } = withDocs()
+  const up = api.upload({ object: 'doc', field: 'files', name: 'logo.png', type: 'image/png', bytes: PNG }).file
+  const other = api.upload({ object: 'doc', field: 'files', name: 'other.png', type: 'image/png', bytes: Buffer.from('other') }).file
+  const row = api.write({ object: 'doc', op: 'create', values: { name: 'Brand', files: [up] } }).record
+  const f = api.file({ object: 'doc', id: row.id, field: 'files', hash: up.hash })
+  assert.equal(f.ok, true); assert.deepEqual(Buffer.from(f.bytes), PNG); assert.deepEqual(f.file, up)
+  assert.equal(api.file({ object: 'doc', id: row.id, field: 'files', hash: other.hash }).error, 'missing', 'a blob is not served because its hash is known')
+  assert.equal(api.file({ object: 'doc', id: row.id, field: 'tiny', hash: up.hash }).error, 'missing', 'nor from another field of the row')
+  assert.equal(api.file({ object: 'doc', id: '01ARYZ6S410000000000000009', field: 'files', hash: up.hash }).error, 'missing')
+  assert.equal(api.file({ object: 'doc', field: 'files', hash: up.hash }).error, 'missing')
+  assert.equal(api.file({ object: 'doc', id: row.id, field: 'files', hash: 'x' }).error, 'missing')
+  db.blobs.remove(up.hash)
+  assert.equal(api.file({ object: 'doc', id: row.id, field: 'files', hash: up.hash }).error, 'missing', 'a file that left the disk')
+})
+
+await ok('upload and file are behind the signed session, like every data route', async () => {
   const { routes } = door()
-  for (const name of ['state', 'records', 'links', 'write', 'view']) assert.equal(typeof routes[ROUTE + name].handler, 'function', name)
+  for (const [name, method] of [['upload', 'POST'], ['file', 'GET']]) {
+    const path = ROUTE + name
+    const query = q({ object: 'doc', field: 'files', name: 'a.png', type: 'image/png', id: '01ARYZ6S410000000000000001', hash: '0'.repeat(64) })
+    const read = method === 'GET'
+    assert.equal((await hitRaw(routes, path, method, {}, PNG, query)).code, read ? 401 : 403, path + ' no Origin, no cookie')
+    assert.equal((await hitRaw(routes, path, method, { ...browserHeaders(), origin: 'http://evil.example' }, PNG, query)).code, 403, path + ' foreign Origin with the real cookie')
+    assert.equal((await hitRaw(routes, path, method, { origin: 'http://127.0.0.1:3080' }, PNG, query)).code, 401, path + ' right Origin, no cookie')
+    assert.equal((await hitRaw(routes, path, method, { origin: 'http://127.0.0.1:3080', cookie: sessionCookie(undefined, { secret: OTHER_SECRET }) }, PNG, query)).code, 401, path + ' forged cookie')
+    assert.equal((await hitRaw(routes, path, method, { origin: 'http://127.0.0.1:3080', cookie: sessionCookie(undefined, { expiresAt: Date.now() - 1000 }) }, PNG, query)).code, 401, path + ' expired cookie')
+    assert.equal((await hitRaw(routes, path, method, { ...browserHeaders(), host: 'attacker.example:3080' }, PNG, query)).code, 403, path + ' a Host that is not ours')
+  }
+})
+
+await ok('through the page: upload files, write them on a row, read them back; the type comes from the bytes, a picture is shown in place and anything else is a download', async () => {
+  const { routes, home } = door()
+  const svc = makeService({ dir: join(home, 'kybernos', 'kybernos-db', 'dbs'), ports: ports() })
+  const made = svc.create({ name: 'Papers', by: 'agent' })
+  made.db.addObject(DOCS, 'agent')
+  const H = browserHeaders()
+  const up = async (name, type, bytes) => JSON.parse((await hitRaw(routes, ROUTE + 'upload', 'POST', H, bytes, q({ object: 'doc', field: 'files', name, type }))).body)
+  const PDF = Buffer.from('%PDF-1.4 x')
+  const png = await up('logo.png', 'image/png', PNG)
+  const pdf = await up('brief "final" é.pdf', 'application/pdf', PDF)
+  const html = await up('page.html', 'text/html', Buffer.from('<script>alert(1)</script>'))
+  const svg = await up('icon.svg', 'image/svg+xml', Buffer.from('<svg onload="alert(1)"/>'))
+  const liar = await up('photo.png', 'image/png', Buffer.from('<script>alert(1)</script>'))
+  const modest = await up('notes.txt', 'text/plain', PNG)
+  for (const r of [png, pdf, html, svg, liar, modest]) assert.equal(r.ok, true, JSON.stringify(r))
+  const row = JSON.parse((await hit(routes, ROUTE + 'write', 'POST', H, { object: 'doc', op: 'create', values: { name: 'Pack', files: [png.file, pdf.file, html.file, svg.file, liar.file, modest.file] } })).body).record
+  const get = (file, method = 'GET') => hitRaw(routes, ROUTE + 'file', method, H, undefined, q({ object: 'doc', id: row.id, field: 'files', hash: file.hash }))
+  const closed = "default-src 'none'; sandbox"
+  const img = await get(png.file)
+  assert.equal(img.code, 200); assert.deepEqual(img.body, PNG)
+  assert.equal(img.headers['content-type'], 'image/png'); assert.equal(img.headers['content-disposition'], undefined, 'a picture is shown in place')
+  assert.equal(img.headers['x-content-type-options'], 'nosniff'); assert.equal(img.headers['content-security-policy'], closed); assert.equal(img.headers['cache-control'], 'no-store')
+  assert.equal(img.headers['content-length'], String(PNG.length))
+  const asPicture = await get(modest.file)
+  assert.equal(asPicture.headers['content-type'], 'image/png', 'a PNG that was uploaded as text/plain is still a picture: the bytes decide')
+  for (const [label, f, type] of [['a PDF', pdf, 'application/octet-stream'], ['a page', html, 'application/octet-stream'], ['an SVG', svg, 'image/svg+xml'], ['a page that said it was a PNG', liar, 'application/octet-stream']]) {
+    const r = await get(f.file)
+    assert.equal(r.code, 200, label)
+    assert.equal(r.headers['content-type'], type, label + ' is never shown as a document'); assert.equal(r.headers['content-disposition'], 'attachment', label)
+    assert.equal(r.headers['content-security-policy'], closed, label); assert.equal(r.headers['x-content-type-options'], 'nosniff', label)
+  }
+  assert.deepEqual((await get(pdf.file)).body, PDF, 'a download is the very bytes that were sent')
+  assert.equal((await get({ hash: '0'.repeat(64) })).code, 404)
+  for (const method of ['POST', 'HEAD']) assert.equal((await hitRaw(routes, ROUTE + 'file', method, H, undefined, '')).code, 405, method)
+  svc.close()
+})
+
+await ok('an upload refuses what is not octet-stream, what is over the cap (by its length and by what is really sent), and a field with its own cap', async () => {
+  const { routes, home } = door()
+  const svc = makeService({ dir: join(home, 'kybernos', 'kybernos-db', 'dbs'), ports: ports() })
+  svc.create({ name: 'Papers', by: 'agent' }).db.addObject(DOCS, 'agent')
+  const H = browserHeaders()
+  const query = q({ object: 'doc', field: 'files', name: 'a.bin', type: 'application/octet-stream' })
+  assert.equal((await hitRaw(routes, ROUTE + 'upload', 'POST', { ...H, 'content-type': 'application/json' }, PNG, query)).code, 415)
+  assert.equal((await hitRaw(routes, ROUTE + 'upload', 'POST', { ...H, 'content-type': 'multipart/form-data; boundary=x' }, PNG, query)).code, 415)
+  assert.equal((await hitRaw(routes, ROUTE + 'upload', 'GET', H, undefined, query)).code, 405)
+  assert.equal((await hitRaw(routes, ROUTE + 'upload', 'POST', { ...H, 'content-length': String(UPLOAD_MAX + 1) }, PNG, query)).code, 413, 'by its announced length: nothing is read')
+  const over = await hitRaw(routes, ROUTE + 'upload', 'POST', H, Buffer.alloc(UPLOAD_MAX + 1), query)
+  assert.equal(over.code, 413); assert.equal(JSON.parse(over.body).error, 'too-big')
+  assert.equal((await hitRaw(routes, ROUTE + 'upload', 'POST', H, Buffer.alloc(UPLOAD_MAX), query)).code, 200, 'the cap itself')
+  // what is sent past the cap never reaches the api: the page is told 413 while the bytes are dropped as they arrive
+  let reached = 0
+  const spy = { routes: { [ROUTE + 'upload']: { handler: uploadHandler({ upload: () => { reached += 1; return { ok: true, file: {} } } }) } } }
+  assert.equal((await hitRaw(spy.routes, ROUTE + 'upload', 'POST', H, Buffer.alloc(UPLOAD_MAX + 1), query)).code, 413)
+  assert.equal(reached, 0)
+  assert.equal((await hitRaw(spy.routes, ROUTE + 'upload', 'POST', H, Buffer.alloc(1024), query)).code, 200)
+  assert.equal(reached, 1)
+  const tiny = await hitRaw(routes, ROUTE + 'upload', 'POST', H, Buffer.alloc(11), q({ object: 'doc', field: 'tiny', name: 'a.bin', type: 'application/octet-stream' }))
+  assert.equal(tiny.code, 413); assert.equal(JSON.parse(tiny.body).error, 'too-big')
+  assert.equal((await hitRaw(routes, ROUTE + 'upload', 'POST', H, PNG, q({ object: 'doc', field: 'name', name: 'a.bin', type: 'application/octet-stream' }))).code, 400)
+  assert.equal((await hitRaw(routes, ROUTE + 'upload', 'POST', H, PNG, q({ object: 'doc', field: 'files', name: 'a.bin' }))).code, 200, 'no type: octet-stream')
+  svc.close()
+})
+
+await ok('apply mounts the data routes, the file door and the core files', () => {
+  const { routes } = door()
+  for (const name of ['state', 'records', 'links', 'write', 'view', 'upload', 'file']) assert.equal(typeof routes[ROUTE + name].handler, 'function', name)
   assert.equal(routes[CORE_ROUTE.slice(0, -1)].kind, 'prefix')
 })
 
