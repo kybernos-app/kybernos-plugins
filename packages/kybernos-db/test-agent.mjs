@@ -254,6 +254,19 @@ await ok('view_save creates a view for Kaby, then changes it keeping what is not
   assert.equal(unchanged.applied, false)
 })
 
+await ok('view_save makes a gallery of cards with a cover picture, and refuses a cover on another kind', async () => {
+  const { T } = await seeded()
+  const gallery = await T.view_save.execute({ object: 'task', view: { name: 'Gallery', kind: 'cards', cover: true } })
+  assert.equal(gallery.ok, true, JSON.stringify(gallery))
+  assert.equal(gallery.view.cover, true)
+  const plain = await T.view_save.execute({ object: 'task', view: { name: 'Cards', kind: 'cards', cover: false } })
+  assert.equal(plain.ok, true, JSON.stringify(plain))
+  assert.equal(plain.view.cover, undefined, 'only a cover that is on is stored')
+  const bad = await T.view_save.execute({ object: 'task', view: { name: 'Table', kind: 'table', cover: true } })
+  assert.equal(bad.ok, false)
+  assert.ok(JSON.stringify(bad).includes('cover'), JSON.stringify(bad))
+})
+
 await ok('a view the person made keeps its owner when Kaby changes it', async () => {
   const { T, svc } = await seeded()
   const db = svc.resolve().db

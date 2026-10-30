@@ -1,8 +1,9 @@
 // A view: a saved way of looking at an object. Pure.
 //
 //   { id, name, kind: 'table' | 'board' | 'cards' | 'calendar', owner: 'kaby' | 'me', fav,
-//     by?   (board: the choice field that makes the columns),
-//     date? (calendar: the date field that places a record),
+//     by?    (board: the choice field that makes the columns),
+//     date?  (calendar: the date field that places a record),
+//     cover? (cards: true draws the first picture of a row as a banner over the card; absent or false, as a small avatar),
 //     state: { flt, sorts, hidden } }     flt is the JSON filter, sorts up to three, hidden the field keys left out of the view
 //
 // Every view belongs to the person to change, and a change is saved on the spot. `owner` only says who made it first (Kaby or the person):
@@ -27,7 +28,7 @@ export const kindAvailable = (fields, kind) => kind === 'table' || kind === 'car
 export function checkView (view, obj) {
   const errors = []
   if (!isPlain(view)) return [err('', 'shape', 'a view is an object')]
-  for (const k of Object.keys(view)) if (!['id', 'name', 'kind', 'owner', 'fav', 'by', 'date', 'state'].includes(k)) errors.push(err(k, 'unknown-key', 'not a view property'))
+  for (const k of Object.keys(view)) if (!['id', 'name', 'kind', 'owner', 'fav', 'by', 'date', 'cover', 'state'].includes(k)) errors.push(err(k, 'unknown-key', 'not a view property'))
   if (typeof view.id !== 'string' || !VIEW_ID.test(view.id)) errors.push(err('id', 'id', 'an id is letters, digits, - and _, 64 at most'))
   if (typeof view.name !== 'string' || view.name.trim().length < 1 || view.name.trim().length > 60) errors.push(err('name', 'name', 'a name is 1 to 60 characters'))
   if (!VIEW_KINDS.includes(view.kind)) errors.push(err('kind', 'kind', 'one of ' + VIEW_KINDS.join(', ')))
@@ -40,6 +41,9 @@ export function checkView (view, obj) {
   if (view.kind === 'calendar') {
     if (!field(view.date) || field(view.date).type !== 'date') errors.push(err('date', 'date', 'a calendar places records by a date field'))
   } else if (view.date !== undefined) errors.push(err('date', 'not-for-kind', 'only a calendar has a date field'))
+  if (view.kind === 'cards') {
+    if (view.cover !== undefined && typeof view.cover !== 'boolean') errors.push(err('cover', 'type', 'true or false'))
+  } else if (view.cover !== undefined) errors.push(err('cover', 'not-for-kind', 'only a cards view has a cover'))
   if (!isPlain(view.state)) errors.push(err('state', 'shape', 'state is { flt, sorts, hidden }'))
   else {
     for (const e of checkFilter(view.state.flt, obj.fields)) errors.push({ ...e, path: 'state.flt' + (e.path === '' ? '' : '.' + e.path) })
@@ -74,6 +78,9 @@ export function normalizeView (view, obj) {
   else if (view.by !== undefined) out.by = view.by
   if (view.kind === 'calendar') out.date = view.date === undefined ? (obj.fields.find((f) => f.type === 'date') || {}).key : view.date
   else if (view.date !== undefined) out.date = view.date
+  // only `true` is stored: a cards view saved before the cover existed stays exactly as it was
+  if (view.kind === 'cards' && view.cover === true) out.cover = true
+  else if (view.kind !== 'cards' && view.cover !== undefined) out.cover = view.cover
   out.state = { flt: state.flt === undefined ? blankFilter() : state.flt, sorts: state.sorts === undefined ? [] : state.sorts, hidden: state.hidden === undefined ? [] : state.hidden }
   if (isPlain(view.state)) for (const k of Object.keys(view.state)) if (!(k in out.state)) out.state[k] = view.state[k]
   const errors = checkView(out, obj)
@@ -104,6 +111,7 @@ export function repairView (view, fields, title) {
     if (by) out.by = by.key
     else out.kind = 'table'
   }
+  if (view.kind === 'cards' && view.cover === true) out.cover = true
   if (view.kind === 'calendar') {
     const date = fields.find((f) => f.key === view.date && f.type === 'date') || fields.find((f) => f.type === 'date')
     if (date) out.date = date.key

@@ -1304,7 +1304,8 @@
         "fr": "Galerie"
       },
       "kind": "cards",
-      "fav": true
+      "fav": true,
+      "cover": true
     },
     {
       "object": "property",

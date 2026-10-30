@@ -268,6 +268,7 @@ export function tools (service, ports = {}) {
             kind: { type: 'string', enum: ['table', 'board', 'cards', 'calendar'] },
             by: { type: 'string', description: 'A board: the key of the choice field that makes its columns (default: the first one).' },
             date: { type: 'string', description: 'A calendar: the key of the date field that places a record (default: the first one).' },
+            cover: { type: 'boolean', description: 'Cards: true puts the first picture of each record on top of its card (a gallery of properties, products); leave it out for a small round-cornered avatar.' },
             fav: { type: 'boolean' },
             state: { type: 'object', description: '{ "flt": <filter>, "sorts": [...], "hidden": [field keys] }; leave out what you do not change.' },
           },
