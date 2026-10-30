@@ -72,6 +72,7 @@ const h = React.createElement
 const windowObject = {
   __ModuleLoader__: { load: (entry) => { loaded = entry } },
   __KB_LANG_RESOLVE__: () => language,
+  addEventListener () {}, removeEventListener () {},
   localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => { store.set(k, String(v)) } },
   __KB_MENU__: { register: (entry) => { menuRows.push(entry); registered.push(entry); return () => { menuRows = menuRows.filter((x) => x !== entry) } } },
   __KB_HELP__: { Help: (props) => h('span', { 'data-kb': 'help-pill', 'data-help-id': props.id }) },
@@ -411,7 +412,7 @@ const HOME = {
     { key: 'price', type: 'money', currency: 'EUR', label: L('Price') }, { key: 'image', type: 'text', label: L('Picture') }, { key: 'lat', type: 'number', label: L('Latitude') }, { key: 'lng', type: 'number', label: L('Longitude') }],
   card: { title: 'title', subtitle: 'subtitle', price: 'price', image: 'image', chips: ['kind', 'surface', 'rooms', 'energy'] }, map: { lat: 'lat', lng: 'lng' }, views: ['cards', 'list', 'map'],
 }
-const homeRow = (id, over) => row(id, Object.assign({ type: 'property', status: 'for-sale', price_num: 300000 + id * 1000, price_text: '€' + (300000 + id * 1000), fields: { surface: 60 + id, rooms: 3, energy: 'C', kind: 'House', price: 300000 + id * 1000, image: 'photo:real-estate/willow-lane', lat: 46.2 + id / 1000, lng: 6.14 + id / 800 } }, over))
+const homeRow = (id, over) => row(id, Object.assign({ type: 'property', status: 'for-sale', price_num: 300000 + id * 1000, price_text: '€' + (300000 + id * 1000), fields: { surface: 60 + id, rooms: 3, energy: 'C', kind: 'House', price: 300000 + id * 1000, image: 'photo:real-estate/willow-lane', lat: 48.85 + id / 1000, lng: 2.34 + id / 800 } }, over))
 {
   language = 'en'
   ok('a photograph reference is read, a drawn one too; anything else is no picture', T.pictureRef(HOME, homeRow(1)) === 'photo:real-estate/willow-lane' && T.pictureRef(PRODUCT, row(1)) === '' && T.pictureRef(null, row(1)) === '')
@@ -432,7 +433,7 @@ const homeRow = (id, over) => row(id, Object.assign({ type: 'property', status: 
   ok('the town behind the pins is drawn from its seed: the same each time, parks among the blocks', T.townBlocks(5).length > 300 && JSON.stringify(T.townBlocks(5)) === JSON.stringify(T.townBlocks(5)) && JSON.stringify(T.townBlocks(5)) !== JSON.stringify(T.townBlocks(6)) && T.townBlocks(5).some((b) => b.park))
 }
 {
-  server.reset([HOME], 'theme', [homeRow(1), homeRow(2, { title: 'Cheap one', price_num: 100000, fields: { price: 100000, image: 'art:villa/two', kind: 'Loft', lat: 46.19, lng: 6.13 } }), homeRow(3, { title: 'Zebra loft', status: 'sold' })])
+  server.reset([HOME], 'theme', [homeRow(1), homeRow(2, { title: 'Cheap one', price_num: 100000, fields: { price: 100000, image: 'art:villa/two', kind: 'Loft', lat: 48.84, lng: 2.33 } }), homeRow(3, { title: 'Zebra loft', status: 'sold' })])
   store.clear()
   windowObject.__KB_BIZ_KIT__ = { v: 1, artOk: (x) => /^art:/.test(x), Art: (props) => h('svg', { 'data-art': props.spec }), Tag: (props) => h('span', { 'data-kb': 'kit-tag', 'data-text': props.text }), Icon: (name) => h('svg', { 'data-icon': name }), tint: () => 0 }
   const bars = []

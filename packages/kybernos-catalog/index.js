@@ -10,11 +10,15 @@
 //   POST /kybernos-catalog/update   { id, patch }
 //   POST /kybernos-catalog/archive  { id }   ·   POST /kybernos-catalog/restore { id }
 //   POST /kybernos-catalog/clear-demo { confirm: true }  removes the sample rows (of the three business tables: the seam clears them together)
+//   GET  /kybernos-catalog/vendor/maplibre-gl.js|.css   the map library the Map view loads, and only when the person opens that view (vendor/NOTICES.md)
 //
 // EVERY route, reads included, needs DSH's signed session cookie (session-guard.mjs, the shared byte-identical copy): the items are the person's
 // customers' goods and DSH serves plugin routes before its own login. A write also needs the strict same origin.
 // The base is read lazily, at request time, through the seam `Symbol.for('kybernos.business')`; absent, a route answers `{ ok: false, error: 'base_missing' }`.
 // Nothing here throws into DSH or stops it from starting (AGENTS rule 2).
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { writeGuard } from './session-guard.mjs'
 import { CATALOG_POINT } from './catalog-type.mjs'
 import { createCatalog } from './catalog-core.mjs'
@@ -175,6 +179,41 @@ export function mountRoutes (server, catalog = liveCatalog()) {
   }
 }
 
+/** The map library and its stylesheet: the files of vendor/ the page asks for, by route. Nothing else of that folder is served. */
+export const VENDOR_ROUTES = {
+  '/kybernos-catalog/vendor/maplibre-gl.js': ['maplibre-gl.js', 'text/javascript; charset=utf-8'],
+  '/kybernos-catalog/vendor/maplibre-gl.css': ['maplibre-gl.css', 'text/css; charset=utf-8'],
+}
+const VENDOR_DIR = join(dirname(fileURLToPath(import.meta.url)), 'vendor')
+
+/**
+ * Mounts the two vendor routes (GET and HEAD only). They carry the same session guard as the data routes, so that no route of this bundle answers without
+ * the person's cookie; the page's own <script> and <link> send it. The files are public code and never change between releases (the page names the
+ * version in the query), so the browser may keep them for a day.
+ */
+export function mountVendor (server, dir = VENDOR_DIR) {
+  for (const [path, [file, type]] of Object.entries(VENDOR_ROUTES)) {
+    server.register({
+      kind: 'exact',
+      path,
+      handler: (req, res) => {
+        try {
+          const method = String(req.method || 'GET').toUpperCase()
+          if (method !== 'GET' && method !== 'HEAD') { send(res, 405, { ok: false, error: 'GET expected' }); return }
+          const refusal = writeGuard(req)
+          if (refusal !== null) { refuse(res, refusal); return }
+          const bytes = readFileSync(join(dir, file))
+          res.writeHead(200, { 'content-type': type, 'cache-control': 'private, max-age=86400', 'content-length': String(bytes.length), 'x-content-type-options': 'nosniff' })
+          res.end(method === 'HEAD' ? '' : bytes)
+        } catch (e) {
+          say('vendor file not served: ' + String(e && e.message ? e.message : e).slice(0, 200))
+          send(res, 404, { ok: false, error: 'not_found' })
+        }
+      },
+    })
+  }
+}
+
 /** Registers the two agent tools on the `tools` service. */
 export function mountTools (tools, catalog = liveCatalog()) {
   for (const tool of catalogTools(catalog)) tools.register(tool)
@@ -193,6 +232,7 @@ export function apply (ctx, options) {
         const server = kbFenced(c.get('webServer'))
         if (server === undefined) return
         mountRoutes(server)
+        mountVendor(server)
         say('routes mounted')
       } catch (e) { say('routes not mounted: ' + String(e && e.message ? e.message : e)) }
     }

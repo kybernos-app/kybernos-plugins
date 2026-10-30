@@ -87,6 +87,7 @@ const CLASSIFIED = new Map([
   ['kybernos-plugin/index.js :: mime', 'doc-raw (a chat attachment: the type is read from the first bytes, nosniff, a download unless it is a raster picture) and serveVendor (a vendored library of the plugin, a constant type)'],
   ['kybernos-skills/index.js :: COVER_TYPES[ext] ?? \'application/octet-stream\'', 'skill covers: pictures the plugin itself generates into the DSH home (not a project file)'],
   ['kybernos-motion/index.js :: a.type', 'motion asset: the type is looked up from the extension in a fixed table (pictures, sounds, a glTF model, a Lottie JSON; no SVG, no HTML), nosniff, and the path is confined to a project (strict)'],
+  ['kybernos-catalog/index.js :: type', 'mountVendor: the two files of the plugin\'s own vendor folder (the map library and its stylesheet), the type is in the fixed VENDOR_ROUTES table next to them, nosniff; nothing in the request names a file'],
   ['kybernos-call/call-routes.mjs :: mime', 'serveVendor: livekit-client.js of the plugin\'s own vendor folder, a constant type'],
   ['kybernos-mobile/remote-fake-relay.mjs :: hit[1]', 'the fake relay of the tests: serves the plugin\'s own files with the type of a fixed table'],
 ])

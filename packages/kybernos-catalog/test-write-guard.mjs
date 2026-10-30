@@ -34,7 +34,9 @@ const hit = async (path, method, headers, body, query = '') => {
 }
 const ORIGIN = 'http://127.0.0.1:3080'
 // `types` needs no base (it answers the default type); every other route is answered base_missing once it is past the guard
-const passed = (r, path) => r.code === 200 && (path === '/kybernos-catalog/types' ? JSON.parse(r.body).ok === true : JSON.parse(r.body).error === 'base_missing')
+const VENDOR = ['/kybernos-catalog/vendor/maplibre-gl.js', '/kybernos-catalog/vendor/maplibre-gl.css']
+// a vendor route answers the library itself (a read of public code, behind the same guard), not JSON
+const passed = (r, path) => r.code === 200 && (VENDOR.includes(path) ? r.body.length > 1000 : (path === '/kybernos-catalog/types' ? JSON.parse(r.body).ok === true : JSON.parse(r.body).error === 'base_missing'))
 
 const table = {
   '/kybernos-catalog/types': ['GET'],
@@ -45,8 +47,10 @@ const table = {
   '/kybernos-catalog/archive': ['POST', { id: 1 }],
   '/kybernos-catalog/restore': ['POST', { id: 1 }],
   '/kybernos-catalog/clear-demo': ['POST', { confirm: true }],
+  '/kybernos-catalog/vendor/maplibre-gl.js': ['GET'],
+  '/kybernos-catalog/vendor/maplibre-gl.css': ['GET'],
 }
-ok('the eight routes are mounted and nothing else', Object.keys(routes).sort().join() === Object.keys(table).sort().join())
+ok('the ten routes (eight of data, two of the map library) are mounted and nothing else', Object.keys(routes).sort().join() === Object.keys(table).sort().join())
 
 for (const [path, [method, body, query]] of Object.entries(table)) {
   const write = method === 'POST'
@@ -56,7 +60,7 @@ for (const [path, [method, body, query]] of Object.entries(table)) {
   ok(path + ': the right Origin and a forged cookie -> 401', (await hit(path, method, { origin: ORIGIN, cookie: sessionCookie(undefined, { secret: OTHER_SECRET }) }, body, query)).code === 401)
   ok(path + ': an expired cookie -> 401', (await hit(path, method, { origin: ORIGIN, cookie: sessionCookie(undefined, { expiresAt: Date.now() - 1000 }) }, body, query)).code === 401)
   ok(path + ': a cookie for another authority -> 401', (await hit(path, method, { origin: ORIGIN, cookie: sessionCookie('127.0.0.1:9999') }, body, query)).code === 401)
-  ok(path + ': the real pair passes the guard (and is answered base_missing: nothing touched)', passed(await hit(path, method, browserHeaders(), body, query), path))
+  ok(path + ': the real pair passes the guard' + (VENDOR.includes(path) ? ' (and gets the file)' : ' (and is answered base_missing: nothing touched)'), passed(await hit(path, method, browserHeaders(), body, query), path))
   ok(path + ': a rebound page (foreign Host) -> 403 whatever it sends', (await hit(path, method, { ...browserHeaders(), host: 'attacker.example:3080' }, body, query)).code === 403)
   const phone = await hit(path, method, { ...browserHeaders(), 'x-kybernos-tunnel': '1' }, body, query)
   ok(path + ': through the phone link a ' + (write ? 'write -> 403 refused_on_phone' : 'read still passes'), write ? phone.code === 403 && JSON.parse(phone.body).error === 'refused_on_phone' : passed(phone, path))

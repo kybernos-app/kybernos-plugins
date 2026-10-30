@@ -7,7 +7,7 @@ One of the three business plugins (Contacts, Catalog, Pipeline) built on the sha
 
 The **Business** group of the sidebar › **Catalog** (the row appears once the plugin is switched on; a theme can rename it).
 
-1. Search, filter by status (chips with counts), switch between **cards** and **list** (the views the theme's type allows).
+1. Search, filter by status (chips with counts), switch between **cards**, **list** and **map** (the views the theme's type allows). The **map** is a real one (MapLibre GL, OpenFreeMap tiles) for a type that places its items with two number fields; the drawn map takes over when the real one cannot be had.
 2. Click an item for its sheet: the fields of its type, the card flag (« Only 3 left »), **Edit**, **Archive**. Archived items live under **Archived** and can be restored.
 3. **New** adds an item. The form follows the type: title, subtitle, price, status and the type's own fields (text, number, money, date, choice, email, url).
 4. Rows marked **demo** are a theme's sample data; **Clear sample data** removes them (the base clears the sample rows of Contacts and Pipeline too — the dialog says so). What the person added stays.
@@ -25,6 +25,10 @@ Photos never go in git: a neutral tile stands in until the person adds theirs (n
 
 Neither tool sends anything or reaches the network.
 
+## The map, and what it asks of the network
+
+The Map view loads its library (`vendor/maplibre-gl.js` and `.css`, served by this plugin's own routes) and then the style, fonts and tiles from **OpenFreeMap** (`tiles.openfreemap.org`, no key, no account, declared as `net:tiles.openfreemap.org`) **only when the person opens that view**. Nothing else of the plugin touches the network. OpenFreeMap sees the tiles asked for (the area looked at) and the IP address, never an item; requests carry no cookie and no referrer. Its attribution stays on the map. If the library, the style or the tiles cannot be had in 8 s, or WebGL is missing, or the browser is offline, the page shows the drawn map with the reason and a button to try again. See `docs/dev/business-visuals.md`.
+
 ## What it is made of
 
 | File | |
@@ -34,15 +38,17 @@ Neither tool sends anything or reaches the network.
 | `catalog-tools.mjs` | the two agent tools |
 | `catalog-type.mjs` | the point `kybernos/catalog#type` (statuses, fields, card, views) and its check |
 | `session-guard.mjs`, `lib-session-test.mjs` | the shared copy of the session guard |
-| `client.js` | the page, the menu row and the styles (DSH tokens only) |
+| `client.js` | the page, the menu row and the styles (DSH tokens only), the real map (`RealMap`) and the drawn one (`MapView`) with the switch between them |
+| `vendor/` | MapLibre GL JS 5.24.0 (BSD-3) as published, its licence and `NOTICES.md` (source, version, sha256) |
 
-Routes, all under `/kybernos-catalog`, **every one needing DSH's signed session cookie, reads included**: `GET types`, `GET list` (`q`, `type`, `status`, `archived=only`,
+Routes, all under `/kybernos-catalog`, **every one needing DSH's signed session cookie, reads included**: `GET vendor/maplibre-gl.js` and `GET vendor/maplibre-gl.css` (the map library, read-only), `GET types`, `GET list` (`q`, `type`, `status`, `archived=only`,
 `limit` ≤ 500, `offset`), `GET get`, `POST create`, `update`, `archive`, `restore`, `clear-demo` (`{ confirm: true }`). A write also needs the strict same origin and
 is refused through the phone link. Data: `<DSH home>/kybernos/business/donnees.sqlite`, table `item`.
 
 ## Tests
 
 ```bash
-cd packages/kybernos-catalog && for t in test-*.mjs; do node "$t" || break; done      # host, write guard, client, the point
+cd packages/kybernos-catalog && for t in test-*.mjs; do node "$t" || break; done      # host, write guard, client, the map, the point
 source scripts/sandbox/env.sh && node scripts/check-catalog-live.mjs                  # the real page in the sandbox (never :3080)
+source scripts/sandbox/env.sh && node scripts/check-catalog-map-live.mjs              # the real map in a real browser: tiles, both schemes, a phone width, the fallbacks
 ```

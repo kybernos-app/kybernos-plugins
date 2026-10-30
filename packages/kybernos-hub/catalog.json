@@ -3020,7 +3020,7 @@
       "version": "1.0.0",
       "socle": false,
       "defaut": null,
-      "poids_ko": 17,
+      "poids_ko": 1304,
       "promesse": {
         "fr": "Ce que tu vends, loues ou recrutes, en cartes ou en liste, avec les champs et les statuts que définit ton modèle. Ajoute, modifie et archive à la main, ou laisse ton agent le faire.",
         "en": "What you sell, rent or recruit for, as cards or a list with the fields and statuses your template defines. Add, edit and archive by hand, or let your agent do it."
@@ -3036,8 +3036,8 @@
             "en": "Open “Catalog” in the Business group of the menu. A template gives it its own words, statuses and fields."
           },
           {
-            "fr": "Cherche, filtre par statut, passe des cartes à la liste. Clique un élément pour le voir, le modifier ou l’archiver.",
-            "en": "Search, filter by status, switch between cards and list. Click an item to see it, edit it or archive it."
+            "fr": "Cherche, filtre par statut, passe des cartes à la liste ou à la carte. Clique un élément pour le voir, le modifier ou l’archiver.",
+            "en": "Search, filter by status, switch between cards, list and map. Click an item to see it, edit it or archive it."
           },
           {
             "fr": "Les lignes « démo » montrent la page : « Supprimer les données d’exemple » les retire, ce que tu as ajouté reste.",
@@ -3054,8 +3054,8 @@
           "page": true
         },
         "good": {
-          "fr": "Pas de photo dans le dépôt : un visuel neutre tient la place. Tout reste dans un fichier sur cet ordinateur, rien n’est envoyé.",
-          "en": "No photo is kept in the repository: a neutral picture stands in. Everything stays in one file on this computer, nothing is sent."
+          "fr": "Tout reste dans un fichier sur cet ordinateur. Seule la vue Carte appelle un serveur (OpenFreeMap) pour dessiner la zone regardée : il voit la zone et ton adresse IP, jamais tes éléments.",
+          "en": "Everything stays in one file on this computer. Only the Map view calls a server (OpenFreeMap) to draw the area you look at: it sees the area and your IP address, never your items."
         }
       }
     },

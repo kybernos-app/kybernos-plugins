@@ -492,9 +492,11 @@
         "nom": "@local/kybernos-catalog",
         "tier": 2,
         "obligatoire": false,
-        "role": "what you sell, rent or recruit for, with the statuses and fields a theme defines; owns the point kybernos/catalog#type (the page arrives in a later release)",
-        "poids_ko": 17,
-        "lib_vendor": null
+        "role": "what you sell, rent or recruit for, as cards, a list or a real map, with the statuses and fields a theme defines; owns the point kybernos/catalog#type",
+        "poids_ko": 1304,
+        "lib_vendor": "maplibre-gl 5.24.0",
+        "lib_poids_ko": 1090,
+        "chargement": "paresseux"
       },
       {
         "dir": "kybernos-pipeline",

@@ -30,6 +30,14 @@ Third-party components (see THIRD_PARTY_LICENSES for details):
   (c) 2013 Baidu Inc. — BSD 3-Clause License, and tslib helpers
   (c) Microsoft Corporation — 0BSD; their banners are kept in the file.
 
+- MapLibre GL JS 5.24.0 (c) 2023 MapLibre contributors — BSD 3-Clause License
+  kybernos-catalog ships the official UMD build and stylesheet as published
+  (`packages/kybernos-catalog/vendor/`, with its `MAPLIBRE-LICENSE` and
+  `NOTICES.md`) and loads them only when the Map view of the Catalog page is
+  opened. The map tiles it draws come from OpenFreeMap (OpenMapTiles schema,
+  data (c) OpenStreetMap contributors, ODbL); the page shows that attribution
+  on the map.
+
 - TipTap 2.27.3 (c) 2025 Tiptap GmbH — MIT License
   kybernos-slides bundles @tiptap/core, @tiptap/starter-kit and
   @tiptap/extension-underline with ProseMirror (prosemirror-*, orderedmap,

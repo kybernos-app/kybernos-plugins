@@ -33,6 +33,7 @@
   "permissions": [
     "ui.slot:main.kybernos-business",
     "host.routes:/kybernos-catalog:write",
+    "net:tiles.openfreemap.org",
     "agent.tools"
   ],
   "claims": {

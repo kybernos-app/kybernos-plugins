@@ -275,6 +275,24 @@ for (const dir of dirs) {
       if (price !== undefined && i.price_num !== null) assert.equal(i.fields.price, i.price_num, what + ': price_num and the price field disagree')
       assert.ok(i.price_text === '' || i.price_text.length <= 60)
     }
+    // A type with a map puts each sample item at a REAL place: the same city for the whole sample (Paris for the real-estate theme), each item on its own spot, never the
+    // made-up coordinates of an invented town (the Catalog's Map view is a real map: docs/dev/business-visuals.md).
+    const CITY = { 'real-estate': { name: 'Paris', lat: [48.81, 48.91], lng: [2.22, 2.48] } }
+    for (const type of types.values()) {
+      if (type.map === undefined) continue
+      const mapped = sample.items.filter((i) => i.type === type.id)
+      const spots = new Set()
+      for (const i of mapped) {
+        const lat = i.fields[type.map.lat]
+        const lng = i.fields[type.map.lng]
+        assert.ok(typeof lat === 'number' && typeof lng === 'number', 'item ' + i.ref + ' has no place on the map')
+        const city = CITY[dir]
+        assert.ok(city !== undefined, 'the theme ' + dir + ' has a map but the test names no city for it')
+        assert.ok(lat >= city.lat[0] && lat <= city.lat[1] && lng >= city.lng[0] && lng <= city.lng[1], 'item ' + i.ref + ' is not in ' + city.name + ' (' + lat + ', ' + lng + ')')
+        spots.add(lat + ',' + lng)
+      }
+      assert.equal(spots.size, mapped.length, 'two sample items of ' + type.id + ' stand on the same spot')
+    }
     for (const type of types.values()) for (const s of type.statuses) assert.ok(sample.items.some((i) => i.type === type.id && i.status === s.key), 'no sample item is ' + s.key + ' in ' + type.id)
 
     const perStage = new Map()

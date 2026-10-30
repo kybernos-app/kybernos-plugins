@@ -73,6 +73,7 @@ Rules (all checked by `scripts/test-shipped-themes.mjs`):
   contacts, so a filter has a count), 12 to 16 items with a mix of statuses, 14 to 20 cards, every stage of every board used at least once, 5 to 8 notes.
   The order of the cards in the file is the order inside a column. A card of a board carries `fields: { source, priority: high|normal|low, due: YYYY-MM-DD, tags: [≤ 3] }`
   and links the person (`contact_ref`) and the product or job (`item_ref`) it is about. The test of a rich theme is the `RICH` list of `scripts/test-shipped-themes.mjs`.
+- **Placed for real.** A type with a `map` (the real-estate properties) puts each sample item at a REAL latitude and longitude, a point on a real street of ONE city (Paris for `real-estate`: each property in the neighbourhood its `district` says, 4 decimals, read from OpenStreetMap), because the Catalog's Map view is a real map; the names, addresses and prices stay invented. `scripts/test-shipped-themes.mjs` holds every item of a type with a `map` inside that city, each on its own spot.
 - **Invented.** Every name, address and message is made up, e-mail addresses are on `example.com`, a company's is `hello@<name>.example.com`.
   No path, no real person. The only pictures are the sample photographs (rule 4): an item names its own in a text field (`card.image`, `photo:<theme dir>/<name>`),
   at `demo/photos/<name>.jpg`, one per item, 16 a theme at most. They are invented scenes: `scripts/theme-photos.mjs` asks FLUX 2 for one palette of nine to twelve

@@ -2,13 +2,14 @@
 // file: a test may reach across bundles, the plugin's own code never does. The registry and the web server are small fakes.
 //
 //   node packages/kybernos-catalog/test-host.mjs
+import { createHash } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createBusinessBase } from '../kybernos-plugin/business-base.mjs'
 import { CATALOG_POINT_REF } from './catalog-type.mjs'
 import { DEFAULT_TYPE, checkFields, createCatalog } from './catalog-core.mjs'
-import { apply, mountRoutes, mountTools, routeTable } from './index.js'
+import { VENDOR_ROUTES, apply, mountRoutes, mountTools, mountVendor, routeTable } from './index.js'
 import { sessionSource } from './session-guard.mjs'
 import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
 
@@ -166,8 +167,8 @@ const fakeServer = () => { const routes = {}; return { routes, register: (r) => 
 const hit = async (server, path, method, { headers = browserHeaders(), body, raw, query = '' } = {}) => {
   const data = raw !== undefined ? raw : (body === undefined ? '' : JSON.stringify(body))
   const req = { method, url: path + query, headers: { host: '127.0.0.1:3080', ...(method === 'POST' ? { 'content-type': 'application/json' } : {}), ...headers }, socket: { localPort: 3080 }, on: (ev, fn) => { if (ev === 'data' && data !== '') fn(data); if (ev === 'end') setTimeout(() => fn(), 0) } }
-  const out = { code: 200, body: '', json: null }
-  await server.routes[path](req, { setHeader () {}, writeHead (c) { out.code = c }, end (b) { out.body = String(b === undefined ? '' : b) } })
+  const out = { code: 200, body: '', json: null, headers: {}, raw: null }
+  await server.routes[path](req, { setHeader () {}, writeHead (c, hd) { out.code = c; out.headers = hd || {} }, end (b) { out.raw = b === undefined ? null : b; out.body = String(b === undefined ? '' : b) } })
   try { out.json = JSON.parse(out.body) } catch (e) { out.json = null }
   return out
 }
@@ -198,6 +199,28 @@ const hit = async (server, path, method, { headers = browserHeaders(), body, raw
   ok('the page cannot see another route name: unknown path is not mounted', server.routes['/kybernos-catalog/delete'] === undefined && server.routes['/kybernos-catalog/export'] === undefined)
 }
 
+// ── the map library, served to the Map view and to nothing else ────────────────────────────────────────────
+{
+  const server = fakeServer()
+  mountVendor(server)
+  const paths = Object.keys(server.routes).sort()
+  ok('two vendor routes, the map library and its stylesheet, and nothing else of vendor/ is reachable', paths.join() === '/kybernos-catalog/vendor/maplibre-gl.css,/kybernos-catalog/vendor/maplibre-gl.js' && Object.keys(VENDOR_ROUTES).length === 2)
+  for (const [path, [file, type]] of Object.entries(VENDOR_ROUTES)) {
+    const want = readFileSync(new URL('./vendor/' + file, import.meta.url))
+    const got = await hit(server, path, 'GET')
+    ok(path + ': served as published, byte for byte, as ' + type.split(';')[0] + ', for the browser to keep for a day, never sniffed', got.code === 200 && createHash('sha256').update(got.raw).digest('hex') === createHash('sha256').update(want).digest('hex') && got.headers['content-type'] === type && got.headers['content-length'] === String(want.length) && /max-age=86400/.test(got.headers['cache-control']) && /private/.test(got.headers['cache-control']) && got.headers['x-content-type-options'] === 'nosniff')
+    const head = await hit(server, path, 'HEAD')
+    ok(path + ': HEAD says the size and sends no body', head.code === 200 && head.body === '' && head.headers['content-length'] === String(want.length))
+    ok(path + ': a POST is 405', (await hit(server, path, 'POST', { body: {} })).code === 405)
+    ok(path + ': with no session cookie it is refused like every other route (401), even though the file is public code', (await hit(server, path, 'GET', { headers: {} })).code === 401 && (await hit(server, path, 'GET', { headers: { ...browserHeaders(), origin: 'http://evil.example' } })).code === 403)
+  }
+  const lost = fakeServer()
+  mountVendor(lost, join(dir, 'nowhere'))
+  const none = await hit(lost, '/kybernos-catalog/vendor/maplibre-gl.js', 'GET')
+  ok('a file that is not there is a JSON 404 and does not throw into DSH', none.code === 404 && none.json.ok === false)
+  ok('the host half names no file but the two it serves (no path comes from the request)', !/req\.url|searchParams|queryOf/.test(readFileSync(new URL('./index.js', import.meta.url), 'utf8').split('export function mountVendor')[1].split('/** Registers the two agent tools')[0]))
+}
+
 // ── apply: lazy, guarded, never stops DSH ───────────────────────────────────────────────────────────────
 {
   const quiet = { schedule: () => undefined }
@@ -213,7 +236,7 @@ const hit = async (server, path, method, { headers = browserHeaders(), body, raw
     const ctx = { get: (k) => (k === 'webServer' ? server : undefined), inject: (names, fn) => { if (names[0] === 'tools') fn({ tools: { register: (t) => tools.push(t) } }) }, effect: (fn, label) => effects.push([fn, label]) }
     let threw = false
     try { quietly(() => apply(ctx, quiet)) } catch (e) { threw = true }
-    ok('apply mounts the routes and the tools and does not read the base at boot', !threw && Object.keys(server.routes).length === 8 && tools.length === 2 && read === 0, 'reads: ' + read)
+    ok('apply mounts the eight routes, the two vendor routes and the tools, and does not read the base at boot', !threw && Object.keys(server.routes).length === 10 && tools.length === 2 && read === 0, 'reads: ' + read)
     const answered = await hit(server, '/kybernos-catalog/list', 'GET')
     ok('a question reads the seam at request time and says base_missing when it is absent', read > 0 && answered.json.ok === false && answered.json.error === 'base_missing', answered.body)
     ok('an effect gives the routes back on unload', effects.length === 1 && effects[0][1].includes('routes') && (() => { effects[0][0]()(); return true })() && Object.keys(server.routes).length === 0)
