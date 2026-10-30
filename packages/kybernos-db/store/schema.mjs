@@ -5,6 +5,7 @@
 //   ctl       one switch, `quiet`: the engine sets it to 1 inside its own transaction so that its writes are not journaled twice
 //   catalog   one row per version of the structure (objects and fields), never rewritten
 //   ops       the journal: every change to a record, one row per operation, in the order they were made
+//   views     the saved ways of looking at an object (core/view.mjs), one row per view, edited in place (a revision counts the saves)
 //   r_<key>   one table per object, one column per field, plus the record's envelope (id, rev, created/modified/deleted by and at)
 //
 // Raw SQL is welcome: the triggers below journal what it does (source 'sql') and keep `rev` and the stamps true, whichever connection wrote.
@@ -46,6 +47,17 @@ export const BASE_DDL = [
   source TEXT NOT NULL CHECK (source IN ('engine', 'sql'))
 )`,
   'CREATE INDEX ops_record ON ops (object, record)',
+  `CREATE TABLE views (
+  id TEXT PRIMARY KEY NOT NULL CHECK (length(id) BETWEEN 1 AND 64),
+  object TEXT NOT NULL,
+  json TEXT NOT NULL CHECK (json_valid(json)),
+  rev INTEGER NOT NULL DEFAULT 1,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  modified_by TEXT NOT NULL,
+  modified_at TEXT NOT NULL
+)`,
+  'CREATE INDEX views_object ON views (object)',
 ]
 
 /** The definition of one field's column, with the checks that keep raw SQL from storing a shape the engine could not read back. */

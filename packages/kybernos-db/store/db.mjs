@@ -11,8 +11,8 @@
 import { chmodSync, closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { applyOp, buildCreate, buildUpdate, isPlain, isUlid, normalizeField, normalizeValue, sameJson } from '../core/index.mjs'
-import { MAX_FIELDS, MAX_OBJECTS, findObject, normalizeObject } from './catalog.mjs'
+import { applyOp, buildCreate, buildUpdate, checkView, isPlain, isUlid, normalizeField, normalizeValue, normalizeView, sameJson } from '../core/index.mjs'
+import { MAX_FIELDS, MAX_OBJECTS, changeField, changeObject, findObject, normalizeObject } from './catalog.mjs'
 import { fromColumn, toColumn } from './columns.mjs'
 import { hashOf, openBlobs } from './blobs.mjs'
 import { APPLICATION_ID, BASE_DDL, FORMAT, addColumnSql, createTableSql, dropTriggersSql, q, tableName, triggersSql } from './schema.mjs'
@@ -205,6 +205,12 @@ function makeDb (handle, file, ports) {
         }
       }
     }
+    for (const row of prepare('SELECT id, object, json FROM views ORDER BY id').all()) {
+      const obj = findObject(objects, row.object)
+      if (!obj) { add('view', 'the view belongs to an object that does not exist', { object: row.object, view: row.id }); continue }
+      const errors = checkView(JSON.parse(row.json), obj)
+      if (errors.length) add('view', (errors[0].path ? errors[0].path + ': ' : '') + errors[0].message, { object: row.object, view: row.id })
+    }
     const replayed = new Map()
     const broken = new Set()
     for (const row of prepare('SELECT * FROM ops ORDER BY seq').iterate()) {
@@ -272,6 +278,69 @@ function makeDb (handle, file, ports) {
     })
   }
 
+  const updateObject = (objectKey, changes, by) => {
+    live()
+    if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
+    return write(() => {
+      const { objects } = catalog()
+      const obj = findObject(objects, objectKey)
+      if (!obj) return refuse('unknown-object', 'no such object')
+      const n = changeObject(obj, changes)
+      if (!n.ok) return invalid(n.errors)
+      if (sameJson(n.object, obj)) return { ok: true, applied: false, object: structuredClone(obj) }
+      return { ok: true, applied: true, version: commitCatalog('update-object:' + obj.key, by, objects.map((o) => (o === obj ? n.object : o))), object: structuredClone(n.object) }
+    })
+  }
+
+  const updateField = (objectKey, fieldKey, changes, by) => {
+    live()
+    if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
+    return write(() => {
+      const { objects } = catalog()
+      const obj = findObject(objects, objectKey)
+      if (!obj) return refuse('unknown-object', 'no such object')
+      const field = obj.fields.find((f) => f.key === fieldKey)
+      if (!field) return refuse('unknown-field', 'no such field')
+      const n = changeField(field, changes)
+      if (!n.ok) return invalid(n.errors)
+      if (sameJson(n.field, field)) return { ok: true, applied: false, field: structuredClone(field) }
+      const next = { ...obj, fields: obj.fields.map((f) => (f === field ? n.field : f)) }
+      return { ok: true, applied: true, version: commitCatalog('update-field:' + obj.key + '.' + field.key, by, objects.map((o) => (o === obj ? next : o))), field: structuredClone(n.field) }
+    })
+  }
+
+  // Views: edited in place, a save that changes nothing writes nothing (the toolbar saves on every click).
+  const viewsOf = (obj) => prepare('SELECT id, json FROM views WHERE object = ? ORDER BY created_at, id').all(obj.key).map((r) => JSON.parse(r.json))
+  const saveView = (objectKey, view, by) => write(() => {
+    const obj = objOf(objectKey)
+    if (!obj) return refuse('unknown-object', 'no such object')
+    if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
+    const { t, at } = stamp()
+    const given = isPlain(view) ? view : {}
+    const n = normalizeView({ ...given, id: given.id === undefined ? nextId(t) : given.id }, obj)
+    if (!n.ok) return invalid(n.errors)
+    const row = prepare('SELECT object, json FROM views WHERE id = ?').get(n.view.id)
+    if (row === undefined) {
+      prepare('INSERT INTO views (id, object, json, rev, created_by, created_at, modified_by, modified_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?)').run(n.view.id, obj.key, JSON.stringify(n.view), by, at, by, at)
+      return { ok: true, view: n.view, applied: true, created: true }
+    }
+    if (row.object !== obj.key) return refuse('exists', 'a view with this id belongs to another object')
+    if (sameJson(JSON.parse(row.json), n.view)) return { ok: true, view: n.view, applied: false, created: false }
+    prepare('UPDATE views SET json = ?, rev = rev + 1, modified_by = ?, modified_at = ? WHERE id = ?').run(JSON.stringify(n.view), by, at, n.view.id)
+    return { ok: true, view: n.view, applied: true, created: false }
+  })
+  const listViews = (objectKey) => { live(); return viewsOf(need(objectKey)) }
+  const getView = (objectKey, id) => {
+    live()
+    const row = prepare('SELECT json FROM views WHERE object = ? AND id = ?').get(need(objectKey).key, String(id))
+    return row === undefined ? null : JSON.parse(row.json)
+  }
+  const removeView = (objectKey, id) => write(() => {
+    const obj = objOf(objectKey)
+    if (!obj) return refuse('unknown-object', 'no such object')
+    return { ok: true, removed: Number(prepare('DELETE FROM views WHERE object = ? AND id = ?').run(obj.key, String(id)).changes) > 0 }
+  })
+
   const info = () => {
     live()
     const meta = Object.fromEntries(prepare('SELECT k, v FROM meta').all().map((r) => [r.k, r.v]))
@@ -296,6 +365,12 @@ function makeDb (handle, file, ports) {
     objects: () => { live(); return structuredClone(catalog().objects) },
     addObject,
     addField,
+    updateObject,
+    updateField,
+    saveView,
+    listViews,
+    getView,
+    removeView,
     create,
     update,
     remove: mark('delete'),

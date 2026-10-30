@@ -3,17 +3,23 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "User- and agent-defined databases: the rules (core/, pure, shared with the server) and the SQLite file with its journal and attachments (store/). Not a DSH bundle yet.",
+  "description": "User- and agent-defined databases: the rules (core/, pure, shared with the server), the SQLite file with its journal and attachments (store/), and the agent's tools, prompt block and skill (agent/, index.js).",
   "license": "Apache-2.0",
   "exports": {
+    ".": "./index.js",
     "./core": "./core/index.mjs",
     "./store": "./store/index.mjs",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "test": "node test-core.mjs && node test-store.mjs"
+    "test": "node test-core.mjs && node test-store.mjs && node test-agent.mjs && node test-host.mjs"
   },
   "engines": {
     "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }

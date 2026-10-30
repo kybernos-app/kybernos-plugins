@@ -48,3 +48,31 @@ export function normalizeObject (def) {
   }
   return { ok: false, errors }
 }
+
+const CHANGEABLE_FIELD = ['label', 'protection', 'options']
+
+/**
+ * A field after a change: `{ ok: true, field }` or `{ ok: false, errors }`. Only the label, the protection and the options of a choice can change: a field
+ * never changes type or key, and an option is never removed (a record may use it), so a structure under sync only ever grows.
+ */
+export function changeField (field, changes) {
+  if (!isPlain(changes) || Object.keys(changes).length === 0) return { ok: false, errors: [{ path: '', code: 'empty', message: 'say what changes' }] }
+  const errors = Object.keys(changes).filter((k) => !CHANGEABLE_FIELD.includes(k)).map((k) => ({ path: k, code: 'not-changeable', message: k + ' cannot change once the field exists' }))
+  if (errors.length) return { ok: false, errors }
+  const n = normalizeField({ ...field, ...changes })
+  if (!n.ok) return n
+  if (changes.options !== undefined) {
+    const kept = new Set(n.field.options.map((o) => o.key))
+    const lost = field.options.find((o) => !kept.has(o.key))
+    if (lost) return { ok: false, errors: [{ path: 'options', code: 'option-removed', message: 'the option "' + lost.key + '" cannot be removed: keep it and change its label' }] }
+  }
+  return { ok: true, field: n.field }
+}
+
+/** An object after a change of its label or its title field: `{ ok: true, object }` or `{ ok: false, errors }`. */
+export function changeObject (obj, changes) {
+  if (!isPlain(changes) || Object.keys(changes).length === 0) return { ok: false, errors: [{ path: '', code: 'empty', message: 'say what changes' }] }
+  const errors = Object.keys(changes).filter((k) => !['label', 'title'].includes(k)).map((k) => ({ path: k, code: 'not-changeable', message: k + ' cannot change once the object exists' }))
+  if (errors.length) return { ok: false, errors }
+  return normalizeObject({ ...obj, ...changes })
+}

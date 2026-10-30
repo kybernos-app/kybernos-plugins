@@ -455,6 +455,121 @@ ok('structure changes are refused with a reason, and leave the file as it was', 
   assert.equal(db.create('note', { name: 'x' }, 'noor').code, 'invalid')
 })
 
+ok('a field can be relabelled, protected and given more options; nothing else changes and nothing is removed', () => {
+  const { dir, db, file } = make()
+  const v = db.info().version
+  const r = db.updateField('task', 'status', { label: 'State', protection: 'personal', options: [...TASK.fields.find((f) => f.key === 'status').options, { key: 'blocked', label: 'Blocked', color: 'red' }] }, 'noor')
+  assert.ok(r.ok && r.applied, r.message)
+  assert.equal(r.version, v + 1)
+  const f = db.objects().find((o) => o.key === 'task').fields.find((x) => x.key === 'status')
+  assert.deepEqual([f.label, f.protection, f.options.map((o) => o.key)], ['State', 'personal', ['todo', 'doing', 'done', 'blocked']])
+  assert.equal(db.create('task', { title: 'x', status: 'blocked' }, 'noor').ok, true)
+  assert.equal(db.updateField('task', 'status', { label: 'State' }, 'noor').applied, false, 'the same change twice writes nothing')
+  assert.equal(db.info().version, v + 1)
+  for (const [changes, code] of [[{ type: 'text' }, 'not-changeable'], [{ key: 'other' }, 'not-changeable'], [{ required: true }, 'not-changeable'], [{}, 'empty'], [{ protection: 'secrect' }, 'protection'],
+    [{ options: [{ key: 'todo', label: 'To do' }] }, 'option-removed'], [{ label: '' }, 'label']]) {
+    const bad = db.updateField('task', 'status', changes, 'noor')
+    assert.equal(bad.code, 'invalid', JSON.stringify(changes))
+    assert.ok(bad.errors.some((e) => e.code === code), JSON.stringify([changes, bad.errors]))
+  }
+  assert.equal(db.updateField('task', 'title', { options: [{ key: 'a', label: 'A' }] }, 'noor').code, 'invalid')
+  assert.equal(db.updateField('task', 'ghost', { label: 'x' }, 'noor').code, 'unknown-field')
+  assert.equal(db.updateField('ghost', 'title', { label: 'x' }, 'noor').code, 'unknown-object')
+  assert.equal(db.updateField('task', 'title', { label: 'x' }, '').code, 'invalid')
+  assert.equal(db.info().version, v + 1)
+  db.close()
+  const h = raw(file)
+  assert.equal(h.prepare("SELECT change FROM catalog WHERE version = ?").get(v + 1).change, 'update-field:task.status')
+  h.close()
+  assert.equal(open(dir).objects()[0].fields.find((x) => x.key === 'status').label, 'State')
+})
+
+ok('an object can be relabelled and can change its title field, nothing else', () => {
+  const { db } = make()
+  const r = db.updateObject('note', { label: 'Memos' }, 'noor')
+  assert.ok(r.ok && r.applied)
+  assert.equal(db.objects().find((o) => o.key === 'note').label, 'Memos')
+  db.addField('note', { key: 'subject', type: 'text', label: 'Subject' }, 'noor')
+  assert.equal(db.updateObject('note', { title: 'subject' }, 'noor').ok, true)
+  assert.equal(db.objects().find((o) => o.key === 'note').title, 'subject')
+  assert.equal(db.updateObject('note', { title: 'body' }, 'noor').code, 'invalid', 'a long text cannot be a title')
+  assert.equal(db.updateObject('note', { title: 'ghost' }, 'noor').code, 'invalid')
+  assert.equal(db.updateObject('note', { key: 'memo' }, 'noor').code, 'invalid')
+  assert.equal(db.updateObject('note', { label: 'Memos' }, 'noor').applied, false)
+  assert.equal(db.updateObject('ghost', { label: 'x' }, 'noor').code, 'unknown-object')
+})
+
+ok('a view is saved in place, listed in order, and a save that changes nothing writes nothing', () => {
+  const { dir, db } = make()
+  const flt = { conj: 'and', items: [{ k: 'status', op: 'is', v: 'doing' }] }
+  const a = db.saveView('task', { name: 'Doing', kind: 'table', state: { flt, sorts: [{ k: 'due', dir: 'asc' }], hidden: ['notes'] } }, 'noor')
+  assert.ok(a.ok && a.created && a.applied, a.message)
+  assert.ok(a.view.id.length === 26 && a.view.owner === 'me' && a.view.fav === false)
+  const board = db.saveView('task', { name: 'Board', kind: 'board', owner: 'kaby' }, 'agent')
+  assert.equal(board.view.by, 'status', 'a board takes the first choice field')
+  const cal = db.saveView('task', { id: 'by-date', name: 'Calendar', kind: 'calendar', fav: true }, 'noor')
+  assert.equal(cal.view.date, 'due')
+  assert.deepEqual(db.listViews('task').map((v) => v.name), ['Doing', 'Board', 'Calendar'])
+  assert.deepEqual(db.listViews('note'), [])
+  assert.deepEqual(db.getView('task', a.view.id), a.view)
+  assert.equal(db.getView('task', 'nope'), null)
+
+  const again = db.saveView('task', a.view, 'noor')
+  assert.deepEqual([again.ok, again.applied, again.created], [true, false, false])
+  const renamed = db.saveView('task', { ...a.view, name: 'In progress' }, 'ines')
+  assert.deepEqual([renamed.applied, renamed.created], [true, false])
+  assert.equal(db.listViews('task')[0].name, 'In progress')
+  assert.equal(db.listViews('task').length, 3, 'saving an existing id edits it')
+  db.close()
+
+  const h = raw(dir + '/db.sqlite')
+  const row = h.prepare('SELECT rev, created_by, modified_by FROM views WHERE id = ?').get(a.view.id)
+  assert.deepEqual({ ...row }, { rev: 2, created_by: 'noor', modified_by: 'ines' })
+  h.close()
+  const back = open(dir)
+  assert.equal(back.listViews('task').length, 3)
+  assert.equal(back.verify().ok, true, JSON.stringify(back.verify()))
+  back.close()
+})
+
+ok('a view is refused when it does not fit the object, and another object\'s view id is not taken over', () => {
+  const { db } = make()
+  const cases = [
+    [{ name: 'x', kind: 'board', by: 'title' }, 'by'], [{ name: 'x', kind: 'calendar', date: 'estimate' }, 'date'], [{ name: '', kind: 'table' }, 'name'], [{ name: 'x', kind: 'map' }, 'kind'],
+    [{ name: 'x', kind: 'table', state: { flt: { conj: 'and', items: [{ k: 'ghost', op: 'is', v: 1 }] } } }, 'unknown-field'], [{ name: 'x', kind: 'table', state: { hidden: ['title'] } }, 'title'],
+    [{ id: 'bad id', name: 'x', kind: 'table' }, 'id'],
+  ]
+  for (const [view, code] of cases) {
+    const r = db.saveView('task', view, 'noor')
+    assert.equal(r.code, 'invalid', JSON.stringify(view))
+    assert.ok(r.errors.some((e) => e.code === code), JSON.stringify([view, r.errors]))
+  }
+  assert.equal(db.saveView('note', { name: 'x', kind: 'board' }, 'noor').code, 'invalid', 'a note has no choice field for columns')
+  assert.equal('extra' in db.saveView('task', { name: 'Tidy', kind: 'table', extra: 1 }, 'noor').view, false, 'a property a view does not have is not stored')
+  assert.equal(db.saveView('task', { name: 'x', kind: 'table' }, '').code, 'invalid')
+  assert.equal(db.saveView('ghost', { name: 'x', kind: 'table' }, 'noor').code, 'unknown-object')
+  const mine = db.saveView('task', { id: 'shared-id', name: 'Mine', kind: 'table' }, 'noor')
+  assert.ok(mine.ok)
+  assert.equal(db.saveView('note', { id: 'shared-id', name: 'Theirs', kind: 'table' }, 'noor').code, 'exists')
+  assert.deepEqual(db.listViews('task').map((v) => v.name), ['Tidy', 'Mine'])
+  assert.deepEqual(db.removeView('note', 'shared-id'), { ok: true, removed: false })
+  assert.deepEqual(db.removeView('task', 'shared-id'), { ok: true, removed: true })
+  assert.deepEqual(db.listViews('task').map((v) => v.name), ['Tidy'])
+  assert.equal(db.removeView('ghost', 'x').code, 'unknown-object')
+})
+
+ok('verify() reports a view that no longer fits its object', () => {
+  const { db, file } = make()
+  db.saveView('task', { id: 'v1', name: 'Doing', kind: 'table', state: { flt: { conj: 'and', items: [{ k: 'status', op: 'is', v: 'doing' }] } } }, 'noor')
+  assert.equal(db.verify().ok, true)
+  const h = raw(file)
+  h.exec(`UPDATE views SET json = replace(json, '"status"', '"ghost"') WHERE id = 'v1'`)
+  h.exec(`INSERT INTO views (id, object, json, created_by, created_at, modified_by, modified_at) VALUES ('v2', 'ghost', '{}', 'x', 'x', 'x', 'x')`)
+  const v = db.verify()
+  assert.deepEqual(v.problems.map((p) => [p.code, p.view]).sort(), [['view', 'v1'], ['view', 'v2']])
+  h.close()
+})
+
 ok('two connections to one db see each other\'s structure', () => {
   const { dir, db: a } = make()
   const b = open(dir)
