@@ -83,6 +83,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-contacts`](packages/kybernos-contacts/README.md) | Contacts: people and companies with the kinds and fields a theme defines (the frame: the data point `kybernos/contacts#schema`; the page comes later) |
 | [`kybernos-catalog`](packages/kybernos-catalog/README.md) | Catalog: what you sell, rent or recruit for, with the statuses and fields a theme defines (the frame: the data point `kybernos/catalog#type`; the page comes later) |
 | [`kybernos-pipeline`](packages/kybernos-pipeline/README.md) | Pipeline: orders, deals or candidates as cards on a board, with the stages a theme defines (the frame: the data point `kybernos/pipeline#flow`; the page comes later) |
+| [`kybernos-db`](packages/kybernos-db/README.md) | Tables: your own tables (tasks, customers, orders…) that Kaby builds, fills and queries from a sentence; the page comes later |
 | [`kybernos-kaby-customisation`](packages/kybernos-kaby-customisation/README.md) | The Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys (face providers listed as soon) |
 | [`kybernos-kyber`](packages/kybernos-kyber/README.md) | Kaby: your assistant as a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on |
 | [`kybernos-multi-device`](packages/kybernos-multi-device/README.md) | Workspaces with or without a folder: Create offers a private folder in Documents/Kybernos, and Details shows where a workspace works, with a greyed preview of execution and devices |
@@ -122,7 +123,7 @@ node scripts/smoke-gui.mjs --token <token>                                      
 
 None of these is a DSH bundle. The first two are separate processes, with their own tests (`node --test test/*.test.mjs` in their folder); the third is a library for now.
 
-- [`packages/kybernos-db`](packages/kybernos-db): user- and agent-defined databases: the rules (field types, filter, sort, views, rights, operations; pure, shared with the server) and the SQLite file with its journal and attachments. Test them with `node packages/kybernos-db/test-core.mjs` and `node packages/kybernos-db/test-store.mjs`.
+- [`packages/kybernos-db`](packages/kybernos-db): user- and agent-defined databases: the rules (field types, filter, sort, views, rights, operations; pure, shared with the server), the SQLite file with its journal and attachments, and the agent's tools, prompt block and `db-builder` skill. Test them with `node packages/kybernos-db/test-core.mjs`, `test-store.mjs`, `test-agent.mjs` and `test-host.mjs`.
 - [`packages/messaging`](packages/messaging): a daemon bridging DSH and messaging apps (Telegram first). Run it with `npm run daemon` in that folder.
 - [`packages/kybernos-gate`](packages/kybernos-gate): the sign-in gate for a hosted DSH (see [Install on a server or with Docker](#install-on-a-server-or-with-docker)). Run it with `node bin/kybernos-gate.mjs`; it refuses to start without a password.
 

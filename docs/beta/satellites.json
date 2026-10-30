@@ -508,6 +508,15 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-db",
+        "nom": "@local/kybernos-db",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "your own tables (tasks, customers, orders…) that Kaby builds, fills and queries from a sentence; a SQLite file per database, personal fields protected (the page arrives in a later release)",
+        "poids_ko": 330,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-log",
         "nom": "@local/kybernos-log",
         "tier": 2,
@@ -573,7 +582,8 @@
       "@local/kybernos-webapp-creator",
       "@local/kybernos-contacts",
       "@local/kybernos-catalog",
-      "@local/kybernos-pipeline"
+      "@local/kybernos-pipeline",
+      "@local/kybernos-db"
     ]
   }
 }

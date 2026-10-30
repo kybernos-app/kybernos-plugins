@@ -3,9 +3,9 @@
 The engine for user- and agent-defined databases: objects (Tasks, Orders, Contacts…), typed fields, relations and views. It replaces the three fixed
 engines (Contacts, Catalog, Pipeline) in phase A; "task management" is one more object, not a plugin.
 
-This folder holds **lots 1 and 2: `core/`, the rules (no disk, no network, no clock), and `store/`, the SQLite file with its journal and attachments.** The agent
-tools (lot 3), the toolbar and views (lot 4), relations (lot 5), the attachment fields in the UI (lot 6) and the replacement of the old engines (lot 7) come next
-and import these two.
+This folder holds **lots 1 to 3: `core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
+attachments, and `agent/` with `index.js`, the DSH bundle that gives the agents thirteen tools, a block of their system prompt and the `db-builder` skill.** The
+toolbar and views (lot 4), relations (lot 5), the attachment fields in the UI (lot 6) and the replacement of the old engines (lot 7) come next and import these.
 
 ## What the core knows
 
@@ -79,8 +79,43 @@ node packages/kybernos-db/test-store.mjs
 The store tests are hermetic (temp folders). Their strength was checked by 19 mutations of `store/` (journaling twice, no idempotence, a newer db opened, a
 blob served unchecked, a delete that is silently ignored, a clock set back…): every one makes a check fail.
 
+## The agent
+
+`index.js` is off by default (Suite › Tables). Switched on, it registers thirteen tools and nothing else: no route, no page, no network.
+
+| Tool | Does | Asks the person |
+|---|---|---|
+| `db_list` | databases, objects, fields, views | no |
+| `db_create` | a new empty database (a file under `<DSH home>/kybernos/kybernos-db/dbs`) | a card |
+| `object_define`, `field_add`, `relation_add` | the structure | a card, before and after |
+| `field_update` | label, new choices, a **higher** protection (never lower, never remove) | a card |
+| `view_save` | create or change a saved view; what the call does not name is kept, and so is who made it | no |
+| `records_list`, `records_get` | read; a protected field comes back masked, a secret one not at all; `reveal` names the protected fields to read in clear | only to reveal |
+| `records_create`, `records_update` | write, up to 50 at a time, each refusal reported with its reason | only for a protected field |
+| `records_delete`, `records_restore` | mark deleted / bring back (the journal keeps everything) | no |
+
+- **One door.** Every tool goes through `can()` (`core/rights.mjs`) and the store's own functions; the agent never writes SQL and never touches the file. Its
+  writes are journalled as `agent`.
+- **The approval is the engine's** (`tools/pre-execute`, answered by `approvalGate`): the card is built from the call's own arguments, in English and French, and
+  a call the engine would refuse anyway (lowering a protection, a duplicate field, an unknown table) is never put to the person.
+- **`records_list`** takes the views' own JSON filter and sorts (`core/filter.mjs`, `core/sort.mjs`) or a saved view's id. It can only filter, sort and search on
+  fields it may read in clear, so it cannot be used to guess a protected value.
+- **The prompt block** (`agent/context.mjs`) names the databases, tables and fields (never a value) in a section of each agent's system prompt, the same text from
+  one step to the next, empty until there is a database, cut at 3,000 characters with a pointer to `db_list`.
+- **The skill** `skills/db-builder/SKILL.md` is seeded into `<DSH home>/skills` at start (never over a copy the person edited) and teaches the design rules:
+  one row is one thing, choices over free text, protection chosen when the field is created, links after both tables exist.
+- A database that does not open (a newer Kybernos wrote it, `node:sqlite` is missing) is reported with its code (`db_newer`, `sqlite_unavailable`…) and never
+  stops DSH from starting.
+
+```bash
+node packages/kybernos-db/test-agent.mjs && node packages/kybernos-db/test-host.mjs
+```
+
+The agent tests were checked by 35 mutations (a secret field shown, a mask that leaks, a protected value that can be searched, a lowering allowed, a view that
+loses its owner, an approval that is never registered, a database left open when the bundle goes…): every one makes a check fail.
+
 ## What is not here yet
 
-Removing or renaming an object or a field and changing a field's type (only adding is possible), views as stored data, the check that a relation points at a
-real record, the agent tools and the `db-builder` skill, the toolbar and the page, sync with the server, the garbage collection of blobs, and team rights
+Removing or renaming an object or a field and changing a field's type (only adding is possible), the check that a relation points at a
+real record, the toolbar and the page, sync with the server, the garbage collection of blobs, and team rights
 (`can()` refuses everyone but the owner, and the store does not call it: the door that calls the store does).
