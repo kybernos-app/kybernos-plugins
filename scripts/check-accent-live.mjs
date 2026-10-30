@@ -16,7 +16,7 @@
 // it is pointed at, so it refuses :3080. Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, openSettings, waitFor, openThemeAdvanced } from './live-page.mjs'
+import { openLivePage, openSettings, waitFor, openThemeAdvanced, dismissUpdateToast } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -35,7 +35,8 @@ const shot = async (name) => { if (shotDir !== null) { try { mkdirSync(shotDir, 
 const click = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 }) }
 /** Real click on the first visible element matching `css` whose text starts with `text`. */
 const press = async (css, text) => {
-  const at = await val(`(() => { const e = Array.from(document.querySelectorAll(${JSON.stringify(css)})).find((x) => x.getBoundingClientRect().width > 4 && (x.innerText || '').trim().toLowerCase().startsWith(${JSON.stringify(text.toLowerCase())})); if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
+  await dismissUpdateToast(page)
+  const at = await val(`(() => { const e = Array.from(document.querySelectorAll(${JSON.stringify(css)})).find((x) => x.getBoundingClientRect().width > 4 && (x.innerText || '').trim().toLowerCase().startsWith(${JSON.stringify(text.toLowerCase())})); if (!e) return null; e.scrollIntoView({ block: 'center' }); try { e.focus({ preventScroll: true }) } catch (err) { /* not focusable */ } const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
   if (!at) return false
   await click(at.x, at.y)
   return true

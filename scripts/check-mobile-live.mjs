@@ -107,7 +107,7 @@ try {
     await sleep(1200)
     // a phone shows the list of pages first (a column of rows, not a strip), and the page once one is picked
     const list = JSON.parse(await ev(`(() => {
-      const p = document.querySelector('[data-shortcut-modal="settings"]'); const n = p.querySelector('nav'); const c = n.nextElementSibling
+      const p = document.querySelector('[data-shortcut-modal="settings"]'); const n = p.querySelector('nav'); const c = p.children[0].tagName === 'NAV' ? n.nextElementSibling : p.querySelector(':scope > [class$="_options"]')
       const rows = Array.from(n.querySelectorAll('nav > div:last-child > button')).filter((b) => b.getBoundingClientRect().width > 0)
       const a = n.getBoundingClientRect(); const b = c.getBoundingClientRect()
       const tops = rows.slice(0, 12).map((r) => Math.round(r.getBoundingClientRect().top)).sort((x, y) => x - y)
@@ -122,15 +122,16 @@ try {
     check('a page can be picked from the list', pick === true)
     await sleep(900)
     const page1 = JSON.parse(await ev(`(() => {
-      const p = document.querySelector('[data-shortcut-modal="settings"]'); const c = p.children[1]
+      const p = document.querySelector('[data-shortcut-modal="settings"]'); const flat = p.children[0].tagName !== 'NAV'
+      const h = flat ? p.children[0] : p.children[1]; const c = flat ? p.querySelector(':scope > [class$="_options"]') : p.children[1]
       const b = c.getBoundingClientRect()
-      return JSON.stringify({ picked: p.hasAttribute('data-kbmob-page'), back: c.getAttribute('data-kbmob-back'), pageW: Math.round(b.width), pageH: Math.round(b.height), navShown: p.querySelector('nav').getBoundingClientRect().width > 0 && getComputedStyle(p.querySelector('nav')).display !== 'none', scrollW: document.documentElement.scrollWidth, vw: innerWidth })
+      return JSON.stringify({ picked: p.hasAttribute('data-kbmob-page'), back: h.getAttribute('data-kbmob-back'), pageW: Math.round(b.width), pageH: Math.round(b.height), navShown: p.querySelector('nav').getBoundingClientRect().width > 0 && getComputedStyle(p.querySelector('nav')).display !== 'none', scrollW: document.documentElement.scrollWidth, vw: innerWidth })
     })()`))
     if (shotsDir !== null) await page.shot(shotsDir + '/phone-settings-page.png')
     check('the picked page has the whole width, under a back bar, and the list is out of the way', page1.picked === true && page1.pageW >= 340 && typeof page1.back === 'string' && page1.back.length > 0 && page1.navShown === false, page1)
     check('the page does not scroll the dialog sideways', page1.scrollW === page1.vw, page1)
-    // the back bar is the top 56 px of the page
-    const bar = await ev(`(() => { const c = document.querySelector('[data-shortcut-modal="settings"]').children[1]; const r = c.getBoundingClientRect(); return [r.left + 40, r.top + 28] })()`)
+    // the back bar is the top 56 px of the page (0.2.1) or the title strip (0.2.2, where the panel is drawn flat: strip, nav, header, page)
+    const bar = await ev(`(() => { const p = document.querySelector('[data-shortcut-modal="settings"]'); const c = p.children[0].tagName === 'NAV' ? p.children[1] : p.children[0]; const r = c.getBoundingClientRect(); return [r.left + 40, r.top + 28] })()`)
     await tap(bar[0], bar[1]); await sleep(700)
     const back = await ev(`!document.querySelector('[data-shortcut-modal="settings"]').hasAttribute('data-kbmob-page')`)
     check('a tap on the back bar returns to the list', back === true)

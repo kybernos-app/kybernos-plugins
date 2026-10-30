@@ -492,13 +492,13 @@
   [data-shortcut-modal="settings"][data-kbmob-page] > nav {
     display: none !important;
   }
-  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div {
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div:last-child {
     flex: 1 1 0 !important;
     min-width: 0 !important;
     min-height: 0;
     width: 100% !important;
   }
-  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div::before {
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div:last-child::before {
     content: "\2039\00a0\00a0" attr(data-kbmob-back);
     flex: none;
     display: flex;
@@ -508,6 +508,42 @@
     font-size: 17px;
     font-weight: 600;
     cursor: pointer;
+  }
+  /* 7a. DSH 0.2.2 draws the panel flat: the title strip, the nav, the header (page actions, close cross) and the page are four boxes of one grid, where 0.2.1
+   *     had a nav (title + list) and a content div (header + page: the last child, which is how the `nav + div` rules above stay on 0.2.1's page). The list
+   *     rules above fit the nav as they are (the `nav + div` they hide in the list is the header there: right too). The "back" bar is the title strip
+   *     (client.js puts data-kbmob-back on it), the header stays at its right, and the page box leaves the list the whole height. A <div> before the nav
+   *     is how this layout is told apart: on 0.2.1 the nav comes first, so nothing of this reaches it. */
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav + div + div {
+    display: none !important;
+  }
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]):has(> div:first-child + nav) {
+    grid-template-rows: auto minmax(0, 1fr) 0;
+  }
+  /* the engine's phone layout clips the strip to one line (nowrap, hidden overflow): the "Back to workspace" button lost its label to an ellipsis and the
+   * search field under it was cut off */
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > div:first-child {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    padding: 16px 16px 8px 8px !important;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > div:first-child {
+    display: flex;
+    align-items: flex-start;
+    padding: 20px 0 0 8px !important;
+    cursor: pointer;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > div:first-child > * {
+    display: none !important;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > div:first-child::before {
+    content: "\2039\00a0\00a0" attr(data-kbmob-back);
+    display: flex;
+    align-items: center;
+    height: 40px;
+    font-size: 17px;
+    font-weight: 600;
   }
 
   /* 7b. The engine's « This turn failed » row keeps its desktop grid (dot, text, error code in a column of its own): at 390 px the text

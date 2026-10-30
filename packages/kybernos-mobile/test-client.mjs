@@ -707,4 +707,25 @@ console.log('Settings on a phone: a list of pages, then a page under a back bar'
   disposer()
 }
 
+console.log('Settings on a phone, DSH 0.2.2 (the panel is drawn flat: title strip, nav, header, page): the back bar is the title strip')
+{
+  const dom = makeDom({ collapsed: true })
+  const plugin = load(dom, { lang: 'en' }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const modalAttrs = {}
+  const stripAttrs = {}
+  const strip = { tagName: 'DIV', setAttribute: (k, v) => { stripAttrs[k] = v }, getBoundingClientRect: () => ({ top: 0 }) }
+  const modal = { children: [strip, { tagName: 'NAV' }, { tagName: 'DIV' }, { tagName: 'DIV' }], hasAttribute: (k) => k in modalAttrs, setAttribute: (k, v) => { modalAttrs[k] = v }, removeAttribute: (k) => { delete modalAttrs[k] } }
+  const fire = (target, clientY) => dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target, clientY, preventDefault () {}, stopPropagation () {} }))
+  const inModal = (extra) => ({ closest: (sel) => (sel === '[data-shortcut-modal="settings"]' ? modal : (extra && extra[sel]) || null) })
+  fire(inModal({ 'nav > div:last-child > button': {} }), 100)
+  await new Promise((r) => setTimeout(r, 20))
+  check('picking a page shows the page', modalAttrs['data-kbmob-page'] === '1', modalAttrs)
+  check('the back bar label sits on the title strip, not on the nav', stripAttrs['data-kbmob-back'] === 'Settings', stripAttrs)
+  fire(Object.assign(strip, { closest: (sel) => (sel === '[data-shortcut-modal="settings"]' ? modal : null) }), 60)
+  check('a tap on the title strip goes back to the list', !('data-kbmob-page' in modalAttrs), modalAttrs)
+  disposer()
+}
+
 process.exit(failed === 0 ? 0 : 1)

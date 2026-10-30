@@ -124,11 +124,29 @@ export async function waitFor(page, expression, ms = 15000) {
   return null
 }
 
+/** DSH 0.2.2 raises an « Update available » toast over the lower left corner some time after it starts (it compares itself with npm's `latest` tag, which sits on a
+ *  lower line than the alpha): it covers the Settings nav and takes the click meant for a cell. Press its « Later » (a script click: nothing real is under it). */
+export async function dismissUpdateToast(page) {
+  try {
+    await page.evalJs(`(() => {
+      for (const b of document.querySelectorAll('button')) {
+        if ((b.innerText || '').trim() !== 'Later') continue
+        let up = b.parentElement
+        for (let i = 0; i < 4 && up !== null; i += 1, up = up.parentElement) {
+          if (/Update available/.test(up.innerText || '')) { b.click(); return true }
+        }
+      }
+      return false
+    })()`, 3000)
+  } catch (e) { /* no page yet: nothing covers anything */ }
+}
+
 /** Click the first visible element whose own text matches (exact, trimmed, case-insensitive),
  *  with a real mouse event at its centre. Resolves `true` when something was clicked. */
 export async function clickText(page, text, opts = {}) {
   const wanted = JSON.stringify(String(text).trim().toLowerCase())
   const scope = opts.within ? JSON.stringify(opts.within) : 'null'
+  await dismissUpdateToast(page)
   const r = await page.evalJs(`(() => {
     const root = ${scope} ? document.querySelector(${scope}) : document
     if (!root) return null
@@ -144,6 +162,10 @@ export async function clickText(page, text, opts = {}) {
     })
     if (!hit) return null
     hit.scrollIntoView({ block: 'center' })
+    // A real press on a control that has no focus lets the engine's own focus handling run first: DSH 0.2.2 gives the focus back to the active Settings cell,
+    // whose onFocus scrolls the list back to it, and the target is gone from under the pointer before the button goes down. Focus it first, without scrolling.
+    const f = hit.closest('button, a[href], [role="button"], [tabindex]')
+    if (f !== null) { try { f.focus({ preventScroll: true }) } catch (e) { /* not focusable */ } }
     const r = hit.getBoundingClientRect()
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
   })()`, 6000)

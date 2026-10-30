@@ -32097,6 +32097,11 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
    libellé reprend toute la place restante de sa cellule. */
 [role="dialog"]:has(nav [class$="_navCell"]) nav{width:248px;flex:none}
 [role="dialog"]:has(nav [class$="_navCell"]) nav [class$="_navLabel"]{flex:1 1 auto}
+/* (30/10, DSH 0.2.2) The Settings panel is a grid there (a title strip, the nav, the options) whose first column is 188 px by itself: the 248 px nav
+   above spilled 60 px over the page. The column follows the nav; on a phone the engine's own narrow layout (nav = a full-width row) takes over again.
+   The strip of the title (_navTitle) tells this panel from the 0.2.1 one, a flex row that ignores both rules. */
+@media (min-width:768px){[role="dialog"]:has(> [class$="_navTitle"]):has(nav [class$="_navCell"]){grid-template-columns:248px minmax(0,1fr)}}
+@media (max-width:767px){[role="dialog"]:has(> [class$="_navTitle"]):has(nav [class$="_navCell"]) nav{width:auto}}
 /* V-39: the close cross of the Settings dialog is DSH's own icon button, 28 px with a 14 px icon (the owner asked for a bigger
    one): a 40 px target with an 18 px icon, anchored on the class suffix like the rules above. */
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"]{min-width:40px;min-height:40px}
