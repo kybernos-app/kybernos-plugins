@@ -179,6 +179,77 @@ const pinsHidden = () => ev(`(() => {
   const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
   return [...document.querySelectorAll('.kbcg-rp')].map((e) => [e.getAttribute('data-id') || e.getAttribute('data-kb'), e.getBoundingClientRect()]).filter(([, r]) => r.left < box.left || r.right > box.right || r.top < box.top || r.bottom > box.bottom || chrome.some((c) => hit(r, c))).map(([id, r]) => [id, Math.round(r.left - box.left), Math.round(r.top - box.top), Math.round(r.width), Math.round(r.height)])
 })()`)
+/** What the credit measures on screen: its font and line, its box, its gaps to the corner, and whether it is folded into the « i » button. */
+const attrMeasure = () => ev(`(() => {
+  const a = document.querySelector('[data-kb="catalog-map-attribution"]')
+  const box = document.querySelector('[data-kb="catalog-map-box"]').getBoundingClientRect()
+  const t = document.querySelector('[data-kb="catalog-map-attribution-text"]')
+  const i = document.querySelector('[data-kb="catalog-map-attribution-i"]')
+  const r = a.getBoundingClientRect()
+  const tr = t === null ? null : t.getBoundingClientRect()
+  const cs = t === null ? null : getComputedStyle(t)
+  return { fold: a.getAttribute('data-fold'), font: cs === null ? null : cs.fontSize, lineHeight: cs === null ? null : parseFloat(cs.lineHeight), w: Math.round(r.width), h: Math.round(r.height), textH: tr === null ? 0 : Math.round(tr.height), textW: tr === null ? 0 : Math.round(tr.width), boxW: Math.round(box.width), gapRight: Math.round(box.right - r.right), gapBottom: Math.round(box.bottom - r.bottom), button: i === null ? null : { w: Math.round(i.getBoundingClientRect().width), h: Math.round(i.getBoundingClientRect().height), expanded: i.getAttribute('aria-expanded') }, text: t === null ? '' : t.innerText.replace(/\\s+/g, ' ') }
+})()`)
+const THEMES = ['auto', 'light', 'dark', 'streets', 'bright']
+/** The mean relative luminance (0 black, 1 white) of the map itself: a screenshot of its box with the pins, the buttons, the caption and the credit hidden, read back in the page. */
+const mapLuma = async () => {
+  await ev(`(() => { const s = document.createElement('style'); s.id = 'kb-probe-hide'; s.textContent = '.kbcg-rp,.kbcg-mapctl,.kbcg-mapnote,.kbcg-attr{visibility:hidden !important}'; document.head.appendChild(s) })()`)
+  await sleep(200)
+  const r = await rect(SEL('catalog-map-box'))
+  const res = await page.send('Page.captureScreenshot', { format: 'png', clip: { x: r.left, y: r.top, width: r.w, height: r.h, scale: 0.5 } })
+  await ev(`document.getElementById('kb-probe-hide').remove()`)
+  if (!(res.result && res.result.data)) return null
+  const l = await ev(`(async () => { const img = new Image(); img.src = 'data:image/png;base64,${res.result.data}'; await img.decode(); const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }; let sum = 0; let n = 0; for (let i = 0; i < d.length; i += 16) { sum += 0.2126 * f(d[i]) + 0.7152 * f(d[i + 1]) + 0.0722 * f(d[i + 2]); n += 1 } return sum / n })()`, 20000)
+  return typeof l === 'number' ? l : null
+}
+const themeNow = () => attr('.kbcg-gl', 'data-style')
+const storedTheme = () => ev(`(() => { try { return localStorage.getItem('kybernos.catalog.mapstyle.v1') } catch (e) { return 'throws' } })()`)
+const openThemes = async () => {
+  await onMap(SEL('catalog-map-theme'))
+  return waitFor(page, `!!document.querySelector('[data-kb="catalog-map-themes"]')`, 3000).then(() => true, () => false)
+}
+/** A theme picked the way a person does: the button, then the item, each a real click; resolves once the map says it wears it and its tiles have had time to come. */
+const pickTheme = async (id) => {
+  if (!(await openThemes())) return false
+  const landed = await click(SEL('catalog-map-theme-' + id))
+  await waitFor(page, `document.querySelector('.kbcg-gl').getAttribute('data-style') === ${JSON.stringify(id)}`, 20000).catch(() => {})
+  await sleep(3000)
+  return landed
+}
+/** The style requests the page has made, by OpenFreeMap style name. */
+const styleAsks = (name, from = 0) => requests.slice(from).filter((r) => new RegExp('/styles/' + name + '$').test(r.url.split('?')[0]) && hostOf(r.url) === MAPHOST).length
+/**
+ * The five themes, each picked with real clicks on a page of the given mode: the map must wear it (its mean luminance says so), keep its camera, its sixteen places and its chosen
+ * item, remember it, and leave the pills and the clusters readable (4.5:1) on it. One screenshot of the map per theme, for a look.
+ */
+const themeLoop = async (tag) => {
+  await scrollTo(SEL('catalog-map-box'))
+  await click(SEL('catalog-pin'), 0)
+  await waitFor(page, `!!document.querySelector('[data-kb="catalog-panel"]')`, 4000).catch(() => {})
+  await sleep(2200)
+  const z = await zoom()
+  const centre = await attr(SEL('catalog-map-box'), 'data-center')
+  const chosen = await attr('.kbcg-rp.sel', 'data-id')
+  const dark = tag === 'dark'
+  for (const id of ['light', 'dark', 'streets', 'bright', 'auto']) {
+    check('[' + tag + ' page] the theme « ' + id + ' » is picked with the button and the item (two real clicks)', (await pickTheme(id)) === true && (await themeNow()) === id)
+    check('…it is remembered in this browser (kybernos.catalog.mapstyle.v1)', (await storedTheme()) === id, await storedTheme())
+    const l = await mapLuma()
+    const want = { light: [0.5, 1], dark: [0, 0.15], streets: [0.5, 1], bright: [0.5, 1], auto: dark ? [0, 0.15] : [0.5, 1] }[id]
+    check('…the map wears it: its mean luminance is ' + (l === null ? '?' : l.toFixed(3)) + ' (expected between ' + want.join(' and ') + ')', l !== null && l >= want[0] && l <= want[1], l)
+    check('…the camera, the sixteen places and the chosen item are where they were (zoom ' + z + ', centre ' + centre + ')', Math.abs((await zoom()) - z) < 0.06 && (await attr(SEL('catalog-map-box'), 'data-center')) === centre && (await pinsOf()).total === 16 && (await count('.kbcg-rp.sel')) === 1 && (await attr('.kbcg-rp.sel', 'data-id')) === chosen && (await count(SEL('catalog-panel'))) === 1, { zoom: await zoom(), centre: await attr(SEL('catalog-map-box'), 'data-center'), pins: await pinsOf() })
+    const pillC = await contrastOf('.kbcg-rp[data-kb="catalog-pin"]:not(.sel) .p')
+    const clusterC = await contrastOf('.kbcg-rp[data-kb="catalog-cluster"] .p')
+    const selC = await contrastOf('.kbcg-rp.sel .p')
+    check('…prices on the pills, the counts on the clusters and the chosen price stay readable on it (4.5:1: ' + [pillC, clusterC, selC].map((c) => (c === null ? '-' : c.ratio.toFixed(1))).join(' / ') + ')', pillC !== null && pillC.ratio >= 4.5 && clusterC !== null && clusterC.ratio >= 4.5 && selC !== null && selC.ratio >= 4.5, [pillC, clusterC, selC])
+    await shotOf('theme-' + id + '-' + tag, SEL('catalog-map-box'))
+  }
+  check('[' + tag + ' page] each style OpenFreeMap serves was asked for at most once: the page keeps what it has', styleAsks('positron') === 1 && styleAsks('liberty') <= 1 && styleAsks('bright') <= 1, [styleAsks('positron'), styleAsks('liberty'), styleAsks('bright')])
+  await click(SEL('catalog-close'))
+  await sleep(500)
+}
+/** A new page (the style, the library and the tokens are not remembered) back on the Catalog. */
+const freshPage = async () => { await page.send('Page.reload', {}); workers.arm(); await front(); await sleep(3000); return openCatalog() }
 /** The map is mounted again (Cards, then Map): a fresh fit of the whole set, as when a person opens the view. */
 const reopenMap = async () => { await pressView(/cards|cartes/i); await sleep(500); return openMap() }
 const realAgain = () => waitFor(page, `document.querySelector('[data-kb="catalog-map-box"]') && document.querySelector('[data-kb="catalog-map-box"]').getAttribute('data-map') === 'real'`, 14000)
@@ -258,16 +329,22 @@ try {
   const cards = await rect(SEL('catalog-cards'))
   check('the map sits beside the cards, never over them', box !== null && cards !== null && !overlaps(box, cards) && box.left > cards.left)
   const attrib = await rect(SEL('catalog-map-attribution'))
-  check('the attribution is on the map, bottom-right, and inside the screen', attrib !== null && attrib.right <= box.right + 1 && attrib.bottom <= box.bottom + 1 && attrib.left > box.left + box.w / 3 && attrib.top > box.top + box.h * 0.6 && attrib.bottom < 900, { attrib, box })
+  check('the attribution is on the map, bottom-right, and inside the screen', attrib !== null && attrib.right <= box.right + 1 && attrib.bottom <= box.bottom + 1 && attrib.left > box.left + box.w / 5 && attrib.top > box.top + box.h * 0.6 && attrib.bottom < 900, { attrib, box })
   const credit = await ev(`document.querySelector('[data-kb="catalog-map-attribution"]').innerText.replace(/\\s+/g, ' ')`)
   check('it names OpenFreeMap, OpenMapTiles and the OpenStreetMap contributors, each a link that opens apart', /OpenFreeMap/.test(credit) && /OpenMapTiles/.test(credit) && /OpenStreetMap contributors/.test(credit) && (await ev(`[...document.querySelectorAll('[data-kb="catalog-map-attribution"] a')].map((a) => a.target + a.rel + new URL(a.href).host).join()`)) === '_blanknoopener noreferreropenfreemap.org,_blanknoopener noreferrerwww.openmaptiles.org,_blanknoopener noreferrerwww.openstreetmap.org', credit)
   const noteBox = await rect(SEL('catalog-map-note'))
   check('the caption (« 16 places ») and the attribution do not overlap', noteBox !== null && !overlaps(noteBox, attrib) && /16 places/.test(await ev(`document.querySelector('[data-kb="catalog-map-note"]').innerText`)) && !/chematic/.test(await ev(`document.querySelector('[data-kb="catalog-map-note"]').innerText`)))
   const ctl = await rect('.kbcg-mapctl')
-  check('the three buttons are inside the map, top-right, and do not touch the caption', ctl !== null && ctl.right <= box.right && ctl.top >= box.top && !overlaps(ctl, noteBox) && (await count(SEL('catalog-map-zoom-in'))) === 1 && (await count(SEL('catalog-map-zoom-out'))) === 1 && (await count(SEL('catalog-map-fit'))) === 1)
+  check('the four buttons (zoom in, zoom out, show everything, map theme) are one column inside the map, top-right, the theme button last, and do not touch the caption', ctl !== null && ctl.right <= box.right && ctl.top >= box.top && !overlaps(ctl, noteBox) && (await count(SEL('catalog-map-zoom-in'))) === 1 && (await count(SEL('catalog-map-zoom-out'))) === 1 && (await count(SEL('catalog-map-fit'))) === 1 && (await count(SEL('catalog-map-theme'))) === 1 && (await rect(SEL('catalog-map-theme'))).top > (await rect(SEL('catalog-map-fit'))).bottom - 1 && (await rect(SEL('catalog-map-theme'))).h === 34)
   const pill = await contrastOf('.kbcg-rp[data-kb="catalog-pin"] .p')
   const credits = await contrastOf(SEL('catalog-map-attribution'))
   check('a price is readable on its pill (4.5:1), and so is the attribution (4.5:1)', pill !== null && pill.ratio >= 4.5 && credits !== null && credits.ratio >= 4.5, [pill, credits])
+  const am = await attrMeasure()
+  check('the credit is very small: ONE line of 9 px text, its box (16 px at most) no bigger than the text, in the bottom-right corner (8 px at most from each edge)', am.fold === 'false' && am.font === '9px' && am.textH <= am.lineHeight + 1 && am.h <= 16 && am.gapRight <= 8 && am.gapBottom <= 8 && am.w <= am.textW + 12, am)
+  check('…it still names OpenFreeMap, © OpenMapTiles and Data © OpenStreetMap contributors in full', am.text === 'OpenFreeMap · © OpenMapTiles · Data © OpenStreetMap contributors', am.text)
+  const ctlNow = await rect('.kbcg-mapctl')
+  const attrNow = await rect(SEL('catalog-map-attribution'))
+  check('…and keeps clear of the caption and of the buttons', !overlaps(attrNow, await rect(SEL('catalog-map-note'))) && !overlaps(attrNow, ctlNow), { attrNow, ctlNow })
   check('no script error so far', errors.length === 0, errors)
   await shot('01-map-page')
   await shotOf('02-map-' + startScheme, SEL('catalog-map-box'))
@@ -380,6 +457,43 @@ try {
   await sleep(1500)
   check('« All » brings the sixteen back', (await pinsOf()).total === 16)
 
+  // ── the themes of the map ────────────────────────────────────────────────────────────────
+  console.log('The map themes')
+  await scrollTo(SEL('catalog-map-box'))
+  const tb = await rect(SEL('catalog-map-theme'))
+  check('the theme button is a real button with a name, a menu popup and a 34 px square, and it is ready once the map is', tb !== null && tb.w === 34 && tb.h === 34 && (await attr(SEL('catalog-map-theme'), 'aria-haspopup')) === 'menu' && (await attr(SEL('catalog-map-theme'), 'aria-expanded')) === 'false' && /theme/i.test(await attr(SEL('catalog-map-theme'), 'aria-label')) && (await ev(`!document.querySelector('[data-kb="catalog-map-theme"]').disabled`)) === true)
+  check('a real click opens a small menu beside the buttons, inside the map: five radio items, Auto first and ticked', (await openThemes()) === true && (await ev(`[...document.querySelectorAll('[data-kb="catalog-map-themes"] [role="menuitemradio"]')].map((e) => e.getAttribute('data-kb').replace('catalog-map-theme-', '') + ':' + e.getAttribute('aria-checked')).join()`)) === 'auto:true,light:false,dark:false,streets:false,bright:false')
+  const menuBox = await rect(SEL('catalog-map-themes'))
+  const mapBox = await rect(SEL('catalog-map-box'))
+  check('the menu is inside the map, left of the buttons (it covers none of them) and has a menu role with a name', menuBox !== null && menuBox.left >= mapBox.left && menuBox.right <= (await rect('.kbcg-mapctl')).left + 1 && menuBox.top >= mapBox.top && menuBox.bottom <= mapBox.bottom && (await attr(SEL('catalog-map-themes'), 'role')) === 'menu' && /theme/i.test(await attr(SEL('catalog-map-themes'), 'aria-label')), { menuBox, mapBox })
+  check('the words are the product\'s (« Auto, Light, Dark, Streets, Bright » on an English page)', (await ev(`[...document.querySelectorAll('[data-kb="catalog-map-themes"] [role="menuitemradio"]')].map((e) => e.innerText.trim()).join()`)) === 'Auto,Light,Dark,Streets,Bright')
+  await shotOf('theme-menu', SEL('catalog-map-box'))
+  check('the focus is on the ticked item and only that one is in the tab order (roving)', (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-theme-auto' && (await ev(`[...document.querySelectorAll('[data-kb="catalog-map-themes"] [role="menuitemradio"]')].filter((e) => e.tabIndex === 0).length`)) === 1)
+  await key('ArrowDown', 'ArrowDown', 40)
+  check('ArrowDown goes to the next item', (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-theme-light')
+  await key('End', 'End', 35)
+  check('End goes to the last', (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-theme-bright')
+  await key('ArrowDown', 'ArrowDown', 40)
+  check('ArrowDown on the last wraps to the first', (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-theme-auto')
+  await key('ArrowUp', 'ArrowUp', 38)
+  await key('Home', 'Home', 36)
+  check('ArrowUp wraps to the last and Home goes back to the first', (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-theme-auto')
+  await key('Escape', 'Escape', 27)
+  check('Escape closes the menu, changes nothing and gives the focus back to the button', (await count(SEL('catalog-map-themes'))) === 0 && (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-theme' && (await themeNow()) === 'auto' && (await count(SEL('catalog-panel'))) === 0)
+  await key('Enter', 'Enter', 13, { text: '\r' })
+  await waitFor(page, `!!document.querySelector('[data-kb="catalog-map-themes"]')`, 2000).catch(() => {})
+  await key('ArrowDown', 'ArrowDown', 40)
+  await key('Enter', 'Enter', 13, { text: '\r' })
+  await waitFor(page, `document.querySelector('.kbcg-gl').getAttribute('data-style') === 'light'`, 15000).catch(() => {})
+  check('from the keyboard alone: Enter on the button opens the menu, ArrowDown and Enter pick « Light », the menu closes and the focus is back on the button', (await themeNow()) === 'light' && (await count(SEL('catalog-map-themes'))) === 0 && (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-theme')
+  await sleep(1500)
+  await openThemes()
+  const away = await rect(SEL('catalog-map-box'))
+  await mouse('mouseMoved', away.left + away.w * 0.5, away.bottom - 20); await mouse('mousePressed', away.left + away.w * 0.5, away.bottom - 20); await mouse('mouseReleased', away.left + away.w * 0.5, away.bottom - 20)
+  await sleep(400)
+  check('a click elsewhere on the map closes the menu', (await count(SEL('catalog-map-themes'))) === 0)
+  await themeLoop(startScheme)
+
   // ── the schemes ───────────────────────────────────────────────────────────────────────────────────────
   console.log('Light and dark')
   const other = startScheme === 'dark' ? 'light' : 'dark'
@@ -395,6 +509,7 @@ try {
   const credits2 = await contrastOf(SEL('catalog-map-attribution'))
   check('prices and the attribution are readable in the ' + other + ' page too (4.5:1)', pill2 !== null && pill2.ratio >= 4.5 && credits2 !== null && credits2.ratio >= 4.5, [pill2, credits2])
   check('and the pins are still all there', (await pinsOf()).total === 16)
+  await themeLoop(other)
   await shotOf('09-map-' + other, SEL('catalog-map-box'))
   await shot('09-page-' + other)
   await hover(SEL('catalog-pin'), 0)
@@ -420,12 +535,43 @@ try {
   const pn = await rect(SEL('catalog-map-note'))
   const pa = await rect(SEL('catalog-map-attribution'))
   const pc = await rect('.kbcg-mapctl')
-  check('on the phone the whole attribution is on the map: its text is not cut (it wraps instead), and it names the three credits', pa !== null && (await ev(`(() => { const a = document.querySelector('[data-kb="catalog-map-attribution"]'); return a.scrollWidth <= a.clientWidth + 1 && a.getBoundingClientRect().height < 60 && /OpenFreeMap/.test(a.innerText) && /OpenStreetMap contributors/.test(a.innerText) })()`)) === true, pa)
+  const pam = await attrMeasure()
+  check('on the phone (420 px, a map ' + pam.boxW + ' px wide) the credit is ' + (pam.fold === 'true' ? 'folded into the « i » button' : 'one line of 9 px text') + ' and sits in the bottom-right corner, whole', pa !== null && pam.gapRight <= 8 && pam.gapBottom <= 8 && (pam.fold === 'true' ? pam.button !== null && pam.button.w >= 18 && pam.button.expanded === 'false' : (pam.font === '9px' && pam.textH <= pam.lineHeight + 1 && pam.text === 'OpenFreeMap · © OpenMapTiles · Data © OpenStreetMap contributors' && pa.right <= phoneBox.right && pa.left >= phoneBox.left)), pam)
   check('on the phone the caption, the attribution and the buttons are inside the map and do not overlap one another', pn !== null && pa !== null && pc !== null && !overlaps(pn, pa) && !overlaps(pc, pa) && !overlaps(pc, pn) && pa.left >= phoneBox.left && pa.right <= phoneBox.right && pa.bottom <= phoneBox.bottom && pn.bottom <= phoneBox.bottom, { pn, pa, pc, phoneBox })
   check('on the phone too, the first view is whole: no pill cut by the edge or under the caption, the credit or the buttons', (await pinsHidden()).length === 0, await pinsHidden())
   check('the pins are there and the pills are big enough for a finger (at least 32 px high)', (await pinsOf()).total === 16 && (await ev(`[...document.querySelectorAll('.kbcg-rp')].every((e) => e.getBoundingClientRect().height >= 32)`)) === true)
   await shotOf('12-phone-map', SEL('catalog-map-box'), 2)
   await shot('12-phone-page')
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 700, deviceScaleFactor: 2, mobile: true })
+  await sleep(1200)
+  await reopenMap()
+  await realAgain()
+  await sleep(2000)
+  await ev(`window.scrollTo(0, 0)`)
+  const nm = await attrMeasure()
+  check('at 320 px (a map ' + nm.boxW + ' px wide) one line does not fit: the credit is folded into a small « i » button in the corner, still named', nm.fold === 'true' && nm.button !== null && nm.button.w >= 18 && nm.button.w <= 40 && nm.gapRight <= 8 && nm.gapBottom <= 8 && nm.textW === 0 && (await ev(`/credit/i.test(document.querySelector('[data-kb="catalog-map-attribution-i"]').getAttribute('aria-label'))`)) === true, nm)
+  check('…the pins are whole and clear of it', (await pinsHidden()).length === 0, await pinsHidden())
+  await shotOf('12b-phone-320-folded', SEL('catalog-map-box'), 2)
+  await onMap(SEL('catalog-map-attribution-i'))
+  const open320 = await attrMeasure()
+  const boxNow = await rect(SEL('catalog-map-box'))
+  const textNow = await rect(SEL('catalog-map-attribution-text'))
+  check('a tap on it opens the same words, whole, inside the map; the button says it is expanded', open320.button.expanded === 'true' && open320.text === 'OpenFreeMap · © OpenMapTiles · Data © OpenStreetMap contributors' && textNow !== null && textNow.left >= boxNow.left && textNow.right <= boxNow.right && textNow.bottom <= boxNow.bottom, { open320, textNow, boxNow })
+  await shotOf('12c-phone-320-open', SEL('catalog-map-box'), 2)
+  await key('Escape', 'Escape', 27)
+  check('Escape closes it and the focus is on the button', (await attrMeasure()).button.expanded === 'false' && (await count(SEL('catalog-map-attribution-text'))) === 0 && (await ev(`document.activeElement.getAttribute('data-kb')`)) === 'catalog-map-attribution-i')
+  await key('Enter', 'Enter', 13, { text: '\r' })
+  const afterEnter = (await attrMeasure()).button.expanded
+  await ev(`document.querySelector('[data-kb="catalog-map-box"]').scrollIntoView({ block: 'center' })`)
+  await sleep(300)
+  const b320 = await rect(SEL('catalog-map-box'))
+  const tapAt = [b320.left + b320.w * 0.4, b320.top + b320.h * 0.3]
+  const tapOn = await ev(`(() => { const e = document.elementFromPoint(${tapAt[0]}, ${tapAt[1]}); return e ? e.tagName + '.' + String(e.className).slice(0, 40) : null })()`)
+  await mouse('mousePressed', tapAt[0], tapAt[1])
+  await mouse('mouseReleased', tapAt[0], tapAt[1])
+  await sleep(400)
+  const afterTap = (await attrMeasure()).button.expanded
+  check('Enter on the focused button opens it again, and a tap elsewhere on the map closes it', afterEnter === 'true' && afterTap === 'false', { afterEnter, afterTap, focus: await ev(`document.activeElement.getAttribute('data-kb')`), at: tapAt, tapOn })
   await page.send('Emulation.clearDeviceMetricsOverride', {})
   await sleep(1200)
 
@@ -446,6 +592,56 @@ try {
   await click(SEL('catalog-close'))
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] })
 
+  // ── the remembered theme, and the themes that cannot be had ─────────────────────────────────────
+  console.log('The remembered theme')
+  await pickTheme('streets')
+  const m1 = requests.length
+  await freshPage()
+  await openMap()
+  check('after a reload the map opens in the theme this browser remembers (Streets): that style is asked for, the quiet one is not', (await realAgain()) === true && (await themeNow()) === 'streets' && styleAsks('liberty', m1) === 1 && styleAsks('positron', m1) === 0, { theme: await themeNow(), liberty: styleAsks('liberty', m1), positron: styleAsks('positron', m1) })
+  await sleep(2500)
+  const lumaStreets = await mapLuma()
+  check('…and wears it (a light map: luminance ' + (lumaStreets === null ? '?' : lumaStreets.toFixed(2)) + ')', lumaStreets !== null && lumaStreets > 0.5 && (await storedTheme()) === 'streets')
+  await shotOf('theme-reloaded-streets', SEL('catalog-map-box'))
+  await ev(`localStorage.setItem('kybernos.catalog.mapstyle.v1', 'nonsense')`)
+  await freshPage()
+  await openMap()
+  check('a stored value that is not one of ours falls back to Auto (and the map is real)', (await realAgain()) === true && (await themeNow()) === 'auto', await themeNow())
+  const broken = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const g = Storage.prototype.getItem; const st = Storage.prototype.setItem; Storage.prototype.getItem = function (k) { if (/mapstyle/.test(String(k))) throw new Error('storage blocked'); return g.apply(this, arguments) }; Storage.prototype.setItem = function (k, v) { if (/mapstyle/.test(String(k))) throw new Error('storage blocked'); return st.apply(this, arguments) } })()` })
+  await freshPage()
+  await openMap()
+  check('with the storage throwing on that key the map still comes up, in Auto', (await realAgain()) === true && (await themeNow()) === 'auto' && (await storedTheme()) === 'throws', { theme: await themeNow(), stored: await storedTheme() })
+  check('…and a theme can still be picked: it lasts for this page', (await pickTheme('bright')) === true && (await themeNow()) === 'bright' && (await count('.kbcg-rp')) > 0)
+  const brokenId = broken && broken.result && broken.result.identifier ? broken.result.identifier : (broken && broken.identifier)
+  if (brokenId) await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: brokenId })
+  await ev(`localStorage.removeItem('kybernos.catalog.mapstyle.v1')`)
+  await freshPage()
+  await openMap()
+  await realAgain()
+  await sleep(2000)
+  await page.send('Network.setBlockedURLs', { urls: ['https://tiles.openfreemap.org/styles/bright*'] })
+  await openThemes()
+  await click(SEL('catalog-map-theme-bright'))
+  const failedShown = await waitFor(page, `!!document.querySelector('[data-kb="catalog-map-theme-failed"]')`, 8000).then(() => true, () => false)
+  check('a theme that cannot be had (its style blocked): the map stays as it was, real and in Auto, the menu opens again and says so (an alert), with Auto still ticked', failedShown && (await mapState()) === 'real' && (await themeNow()) === 'auto' && (await attr(SEL('catalog-map-theme-failed'), 'role')) === 'alert' && (await attr(SEL('catalog-map-theme-auto'), 'aria-checked')) === 'true' && (await storedTheme()) === null, { failedShown, state: await mapState(), theme: await themeNow(), role: await attr(SEL('catalog-map-theme-failed'), 'role'), auto: await attr(SEL('catalog-map-theme-auto'), 'aria-checked'), stored: await storedTheme() })
+  await shotOf('theme-failed', SEL('catalog-map-box'))
+  await page.send('Network.setBlockedURLs', { urls: [] })
+  await key('Escape', 'Escape', 27)
+  check('…it is picked again once the network is back, and then it works', (await pickTheme('bright')) === true && (await themeNow()) === 'bright' && (await count(SEL('catalog-map-theme-failed'))) === 0)
+  await ev(`localStorage.setItem('kybernos.catalog.mapstyle.v1', 'streets')`)
+  await page.send('Network.setBlockedURLs', { urls: ['https://tiles.openfreemap.org/styles/liberty*'] })
+  await freshPage()
+  await openMap()
+  check('a remembered theme whose style is gone (Streets, blocked): the quiet map comes instead, never the drawing', (await realAgain()) === true && (await themeNow()) === 'auto', { state: await mapState(), theme: await themeNow() })
+  await ev(`localStorage.setItem('kybernos.catalog.mapstyle.v1', 'streets')`)
+  await page.send('Network.setBlockedURLs', { urls: ['https://tiles.openfreemap.org/*'] })
+  await freshPage()
+  await openMap()
+  await waitFor(page, `document.querySelector('[data-kb="catalog-map-box"]').getAttribute('data-map') === 'drawn'`, 14000).catch(() => {})
+  check('with the whole host blocked the drawn map takes over and ignores the theme: no theme button, no OpenStreetMap credit, the caption says it is a drawing', (await mapState()) === 'drawn' && (await count(SEL('catalog-map-theme'))) === 0 && (await count(SEL('catalog-map-attribution'))) === 0 && /chematic/.test(await ev(`document.querySelector('[data-kb="catalog-map-note"]').innerText`)))
+  await page.send('Network.setBlockedURLs', { urls: [] })
+  await ev(`localStorage.removeItem('kybernos.catalog.mapstyle.v1')`)
+
   // ── when the real map cannot be had ───────────────────────────────────────────────────────────────────
   console.log('When the real map cannot be had: never a blank or broken box')
   await page.send('Network.setCacheDisabled', { cacheDisabled: true })
@@ -456,7 +652,6 @@ try {
     const note = await ev(`document.querySelector('[data-kb="catalog-map-note"]').innerText.replace(/\\s+/g, ' ')`)
     return state === true && b !== null && b.w > 300 && b.h > 300 && svg !== null && svg.w > 300 && (await count('svg[data-kb="catalog-map"] .block')) > 50 && (await count(SEL('catalog-pin'))) === 16 && /Schematic map/.test(note) && (why === undefined || why.test(note))
   }
-  const freshPage = async () => { await page.send('Page.reload', {}); workers.arm(); await front(); await sleep(3000); return openCatalog() } // a new page: the style and the library are not remembered
   const whyNot = async () => (await mapState()) + ' [' + (await attr(SEL('catalog-map-why'), 'data-why')) + '] | ' + (await ev(`(document.querySelector('[data-kb="catalog-map-note"]') || { innerText: '' }).innerText.replace(/\\s+/g, ' ')`)) + ' | page: ' + (await ev(`document.visibilityState`)) + ' | page errors: ' + JSON.stringify(errors.slice(-2)) + ' | last OpenFreeMap requests: ' + JSON.stringify(requests.filter((r) => hostOf(r.url) === MAPHOST).slice(-3).map((r) => r.url.slice(-30) + ' ' + (r.failed || 'ok?')))
   // 1. the tile host blocked (the style cannot be had)
   await page.send('Network.setBlockedURLs', { urls: ['https://tiles.openfreemap.org/*'] })

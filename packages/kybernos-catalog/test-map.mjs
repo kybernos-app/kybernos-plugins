@@ -32,7 +32,7 @@ class El {
   fire (t, ev = {}) { for (const fn of this.listeners.get(t) || []) fn(ev) }
   focus () { doc.activeElement = this; this.fire('focus') }
 }
-const env = { webgl: true, tokens: null }
+const env = { webgl: true, tokens: null, storageThrows: false }
 let pixel = [0, 0, 0]
 const parseForPixel = (text) => {
   if (text === 'black') return [0, 0, 0]
@@ -71,7 +71,7 @@ const listeners = new Map()
 const windowObject = {
   __ModuleLoader__: { load: (entry) => { loaded = entry } },
   __KB_LANG_RESOLVE__: () => language,
-  localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => { store.set(k, String(v)) } },
+  localStorage: { getItem: (k) => { if (env.storageThrows) throw new Error('storage blocked'); return store.has(k) ? store.get(k) : null }, setItem: (k, v) => { if (env.storageThrows) throw new Error('storage blocked'); store.set(k, String(v)) } },
   matchMedia: (q) => ({ matches: /reduced-motion/.test(q) ? reduced : (/max-width: 900px/.test(q) ? narrow : false) }),
   addEventListener (t, fn) { if (!listeners.has(t)) listeners.set(t, new Set()); listeners.get(t).add(fn) },
   removeEventListener (t, fn) { if (listeners.has(t)) listeners.get(t).delete(fn) },
@@ -102,14 +102,23 @@ const STYLE = {
     { id: 'label_town', type: 'symbol', source: 'openmaptiles', 'source-layer': 'place', minzoom: 6, layout: { 'icon-image': ['step', ['zoom'], 'circle_11_black', 10, ''], 'icon-size': 0.2, 'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']] }, paint: { 'text-color': '#000', 'text-halo-color': '#fff', 'text-halo-width': 1 } },
   ],
 }
-const net = { style: 'ok', fetches: [] }
+const net = { style: 'ok', fetches: [], down: new Set() }
+/** What OpenFreeMap answers for a style: « positron » is the fixture above; the two detailed ones have their own warm background and a place-of-interest layer. */
+const styleOf = (name) => {
+  const out = JSON.parse(JSON.stringify(STYLE))
+  if (name === 'positron') return out
+  out.layers[0].paint['background-color'] = name === 'liberty' ? 'rgb(250, 240, 228)' : 'rgb(246, 244, 240)'
+  out.layers.push({ id: 'poi_r20', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', layout: { 'icon-image': 'shop', 'text-field': ['get', 'name'] } })
+  return out
+}
 globalThis.fetch = async (url, init = {}) => {
   net.fetches.push({ url: String(url), init })
-  if (String(url) !== T.MAP_STYLE_URL) return { ok: false, status: 404, json: async () => ({}) }
+  if (!['positron', 'liberty', 'bright'].some((n) => String(url) === 'https://tiles.openfreemap.org/styles/' + n)) return { ok: false, status: 404, json: async () => ({}) }
+  if (net.down.has(String(url).split('/').pop())) return { ok: false, status: 503, json: async () => ({}) }
   if (net.style === 'throw') throw new TypeError('Failed to fetch')
   if (net.style === 'status') return { ok: false, status: 503, json: async () => ({}) }
   if (net.style === 'shape') return { ok: true, status: 200, json: async () => ({ nope: true }) }
-  return { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(STYLE)) }
+  return { ok: true, status: 200, json: async () => styleOf(String(url).split('/').pop()) }
 }
 // timers: a long one (the budget of the start, the theme watcher) is kept so the test can fire it; short ones run for real (the harness settles on them)
 const realSetTimeout = globalThis.setTimeout
@@ -144,6 +153,7 @@ const makeLib = (log) => {
     on (ev, fn) { (this.handlers[ev] = this.handlers[ev] || []).push(fn) }
     fire (ev, payload) { for (const fn of this.handlers[ev] || []) fn(payload) }
     getZoom () { return this.zoom }
+    getCenter () { return { lat: 48.86, lng: 2.35 } }
     getCanvasContainer () { return this.container }
     getBounds () { return { contains: ([lng, lat]) => lng >= this.box[0][0] && lng <= this.box[1][0] && lat >= this.box[0][1] && lat <= this.box[1][1] } }
     fitBounds (b, o) { this.calls.push(['fitBounds', b, o]) }
@@ -290,6 +300,9 @@ const reset = () => {
   windowObject.maplibregl = makeLib(log)
   net.fetches.length = 0
   net.style = 'ok'
+  net.down.clear()
+  store.clear()
+  env.storageThrows = false
   env.webgl = true
   navigator.onLine = true
   T.resetMapState()
@@ -486,8 +499,198 @@ globalThis.getComputedStyle = () => ({ getPropertyValue: (k) => (env.tokens === 
   env.tokens = null
 }
 
+
+// ── the themes of the map ─────────────────────────────────────────────────────────────────────────────
+{
+  const hosts = new Set(T.MAP_STYLES.map((m) => new URL(T.mapStyleUrl(m.id)).host))
+  ok('the menu offers Auto, Light, Dark, Streets and Bright, in that order, each with a word in both languages', T.MAP_STYLES.map((m) => m.id).join() === 'auto,light,dark,streets,bright' && T.MAP_STYLES.every((m) => m.label.length === 2 && m.label.every((w) => typeof w === 'string' && w.length > 0)) && T.MAP_STYLES[0].label[1] === 'Auto' && T.MAP_STYLES[3].label[1] === 'Streets')
+  ok('every theme starts from a style OpenFreeMap serves (positron, liberty or bright) on the one host the manifest names, so the permission and the privacy sentence hold for all five', hosts.size === 1 && hosts.has('tiles.openfreemap.org') && T.MAP_STYLES.every((m) => ['positron', 'liberty', 'bright'].includes(m.style)) && T.mapStyleUrl('streets') === 'https://tiles.openfreemap.org/styles/liberty' && T.mapStyleUrl('bright') === 'https://tiles.openfreemap.org/styles/bright' && ['auto', 'light', 'dark'].every((id) => T.mapStyleUrl(id) === T.MAP_STYLE_URL))
+  ok('the manifest declares that one host and no other', JSON.parse(readFileSync(new URL('./plugin.json', import.meta.url), 'utf8')).permissions.filter((x) => /^net:/.test(x)).join() === 'net:tiles.openfreemap.org')
+  ok('an id that is not one of ours is Auto: nothing, a number, another word, a name of the prototype, another case', ['nope', '', null, undefined, 3, 'toString', '__proto__', 'LIGHT'].every((v) => T.mapStyleOf(v).id === 'auto') && T.mapStyleOf('dark').id === 'dark')
+  ok('the choice is kept under kybernos.catalog.mapstyle.v1', T.MAP_STYLE_KEY === 'kybernos.catalog.mapstyle.v1')
+  reset()
+  ok('nothing stored: Auto', T.readMapStyle() === 'auto')
+  T.saveMapStyle('bright')
+  ok('a theme saved is the theme read back', store.get(T.MAP_STYLE_KEY) === 'bright' && T.readMapStyle() === 'bright')
+  ok('…each of the five survives the round trip', T.MAP_STYLES.every((m) => { T.saveMapStyle(m.id); return T.readMapStyle() === m.id }))
+  store.set(T.MAP_STYLE_KEY, 'sepia')
+  ok('a stored value that is not a theme (an old build, a hand edit) falls back to Auto', T.readMapStyle() === 'auto')
+  T.saveMapStyle('sepia')
+  ok('and one that is not a theme is never written as such', store.get(T.MAP_STYLE_KEY) === 'auto')
+  env.storageThrows = true
+  let threw = false
+  try { T.saveMapStyle('dark') } catch (e) { threw = true }
+  ok('a storage that throws (private window, blocked site data): reading says Auto, saving does not throw', T.readMapStyle() === 'auto' && threw === false)
+  env.storageThrows = false
+
+  // the colours of a theme
+  const lightTok = { l1: [255, 255, 255], l2: [255, 255, 255], l3: [255, 255, 255], t1: [15, 17, 21], t2: [97, 102, 107], t3: [129, 133, 140], blue: [65, 118, 230], ok: [34, 197, 94] }
+  const darkTok = { l1: [35, 35, 36], l2: [44, 44, 46], l3: [53, 54, 56], t1: [249, 250, 251], t2: [207, 211, 214], t3: [173, 178, 184], blue: [122, 170, 255], ok: [34, 197, 94] }
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4 }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]) }
+  const ratio = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05)
+  const flipped = T.flipTokens(darkTok)
+  ok('the other mode\'s tokens: surface and ink swapped, the softer inks as far along the way as they were, the accents kept', flipped.l1.join() === darkTok.t1.join() && flipped.t1.join() === darkTok.l1.join() && lum(flipped.t2) < 0.45 && lum(flipped.t2) > lum(flipped.t1) && ratio(flipped.t2, flipped.l1) > 4.5 && flipped.blue === darkTok.blue && darkTok.l1.join() === '35,35,36')
+  for (const [name, tok, pageDark] of [['light', lightTok, false], ['dark', darkTok, true]]) {
+    ok('on a ' + name + ' page: Auto is the page\'s own map, Light is a light one and Dark is a dark one, whatever the page', T.mapPalette(tok, 'auto').dark === pageDark && T.mapPalette(tok, 'light').dark === false && T.mapPalette(tok, 'dark').dark === true)
+    ok('…the map of the other mode is as legible as the page\'s own: names on the land at 4.5:1, the land far from the opposite extreme', ['light', 'dark'].every((id) => { const p = T.mapPalette(tok, id); return ratio(p.label, p.land) >= 4.5 && (id === 'light' ? lum(p.land) > 0.8 : lum(p.land) < 0.1) }))
+  }
+  ok('the recipe is unchanged for the theme that is the page\'s own mode (the same colours as before there were themes)', JSON.stringify(T.mapPalette(lightTok, 'auto')) === JSON.stringify(T.paletteFrom(lightTok)) && JSON.stringify(T.mapPalette(darkTok, 'dark')) === JSON.stringify(T.paletteFrom(darkTok)) && JSON.stringify(T.mapPalette(lightTok, 'light')) === JSON.stringify(T.paletteFrom(lightTok)))
+  ok('Streets and Bright keep their own colours: no palette', T.mapPalette(lightTok, 'streets') === null && T.mapPalette(darkTok, 'bright') === null)
+  ok('the tokens it was given are not touched', darkTok.l1.join() === '35,35,36' && lightTok.t1.join() === '15,17,21')
+
+  // what the detailed styles lose, and how their colours are calmed
+  const DETAIL = {
+    version: 8,
+    sprite: 'https://tiles.openfreemap.org/sprites/x/ofm',
+    glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+    sources: { openmaptiles: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' }, natural_earth: { type: 'raster', tiles: ['https://tiles.openfreemap.org/natural_earth/{z}/{x}/{y}.png'] } },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': 'rgb(248,244,240)' } },
+      { id: 'natural_earth', type: 'raster', source: 'natural_earth', paint: { 'raster-opacity': 0.5 } },
+      { id: 'landcover_wetland', type: 'fill', source: 'openmaptiles', 'source-layer': 'landcover', paint: { 'fill-pattern': 'wetland_bg_11' } },
+      { id: 'road_area_pattern', type: 'fill', source: 'openmaptiles', 'source-layer': 'transportation', paint: { 'fill-pattern': 'pedestrian_polygon' } },
+      { id: 'road_minor', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', paint: { 'line-color': 'rgb(255,200,60)', 'line-width': 2 } },
+      { id: 'building-3d', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', paint: { 'fill-extrusion-color': 'rgb(200,200,200)' } },
+      { id: 'tunnel-minor', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', paint: { 'line-color': 'rgb(200,200,200)' } },
+      { id: 'poi_r20', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', layout: { 'icon-image': 'shop', 'text-field': ['get', 'name'] } },
+      { id: 'road_one_way_arrow', type: 'symbol', source: 'openmaptiles', 'source-layer': 'transportation', layout: { 'icon-image': 'arrow' } },
+      { id: 'label_city', type: 'symbol', source: 'openmaptiles', 'source-layer': 'place', layout: { 'icon-image': 'dot', 'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']] }, paint: { 'text-color': 'rgb(40,40,40)', 'text-halo-color': 'rgb(255,255,255)' } },
+    ],
+  }
+  const detail = T.tweakStyle(DETAIL, null, { lang: 'en', calm: 0.4 })
+  ok('the detailed styles lose their places of interest, one-way arrows, 3D buildings, tunnels and every layer that paints with a picture of the sprite (no sprite, so no image to miss on the console)', detail.layers.map((l) => l.id).join() === 'background,natural_earth,road_minor,label_city' && detail.sprite === undefined && JSON.stringify(detail).indexOf('pattern') < 0 && Object.keys(detail.layers[3].layout).join() === 'text-field')
+  const sat = (c) => { const mx = Math.max(c[0], c[1], c[2]); const mn = Math.min(c[0], c[1], c[2]); return mx === 0 ? 0 : (mx - mn) / mx }
+  const roadBefore = T.parseColor('rgb(255,200,60)')
+  const roadAfter = T.parseColor(detail.layers.find((l) => l.id === 'road_minor').paint['line-color'])
+  ok('their colours are calmed (a share of the saturation goes, the hue stays) and nothing else is: widths, text colours and halos are as the style had them', roadAfter !== null && sat(roadAfter) < sat(roadBefore) * 0.8 && sat(roadAfter) > 0 && roadAfter[0] > roadAfter[2] && detail.layers.find((l) => l.id === 'road_minor').paint['line-width'] === 2 && detail.layers.find((l) => l.id === 'label_city').paint['text-color'] === 'rgb(40,40,40)' && detail.layers.find((l) => l.id === 'label_city').paint['text-halo-color'] === 'rgb(255,255,255)')
+  ok('with no « calm » the style keeps its colours as they were', T.tweakStyle(DETAIL, null, { lang: 'en' }).layers.find((l) => l.id === 'road_minor').paint['line-color'] === 'rgb(255,200,60)')
+  ok('only Streets and Bright are calmed, and they are the two that keep the style\'s own colours', T.MAP_STYLES.filter((m) => m.calm > 0).map((m) => m.id).join() === 'streets,bright' && T.MAP_STYLES.filter((m) => m.scheme === null).map((m) => m.id).join() === 'streets,bright')
+}
+
 // ── when the real map cannot be had ────────────────────────────────────────────────────────────────────
 const drawn = (root) => by(root, 'catalog-map-box')[0].props['data-map'] === 'drawn' && by(root, 'catalog-map')[0].props['data-map'] === 'drawn' && by(root, 'catalog-pin').length === PARIS.length
+
+// ── a theme picked, remembered, or that cannot be had ───────────────────────────────────────────────────
+{
+  const lightTokens = { l1: '#ffffff', l2: '#ffffff', l3: '#ffffff', t1: '#0f1115', t2: '#61666b', t3: '#81858c', blue: '#4176e6', ok: '#22c55e' }
+  const darkTokens = { l1: '#232324', l2: '#2c2c2e', l3: '#353638', t1: '#f9fafb', t2: '#cfd3d6', t3: '#adb2b8', blue: '#7aaaff', ok: '#22c55e' }
+  const bg = (style) => style.layers.find((l) => l.id === 'background').paint['background-color']
+  const lumOf = (hex) => { const c = T.parseColor(hex); return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 }
+  const themeBtn = (root) => by(root, 'catalog-map-theme')[0]
+  const items = (root) => lite.find(root.tree, (n) => n.props.role === 'menuitemradio')
+  const tick = (root) => items(root).map((n) => n.props['data-kb'].replace('catalog-map-theme-', '') + ':' + n.props['aria-checked']).join()
+  const openMenu = async (root) => { themeBtn(root).props.onClick(); await root.settle() }
+  const pickItem = async (root, id) => { await openMenu(root); by(root, 'catalog-map-theme-' + id)[0].props.onClick(); await root.settle() }
+  const sets = (map) => map.calls.filter((c) => c[0] === 'setStyle')
+
+  reset()
+  env.tokens = lightTokens
+  let root = await mount(baseProps())
+  ok('the map opens in Auto (nothing stored): the quiet style, the page\'s own colours, and the box says which theme it wears', net.fetches.length === 1 && net.fetches[0].url === T.MAP_STYLE_URL && gl.getAttribute('data-style') === 'auto' && lumOf(bg(log.maps[0].options.style)) > 0.8)
+  let map = log.maps[0]
+  ok('the theme button is there from the start but not offered while the map loads (a theme cannot be worn before there is a map)', themeBtn(root) !== undefined && themeBtn(root).props.disabled === true)
+  await draw(root, map)
+  ok('once the map is up the button is under the three others, named, and opens a menu (aria-haspopup)', by(root, 'catalog-map-theme').length === 1 && themeBtn(root).props['aria-haspopup'] === 'menu' && themeBtn(root).props['aria-expanded'] === 'false' && /theme|thème/i.test(themeBtn(root).props['aria-label']) && !themeBtn(root).props.disabled && lite.find(lite.find(root.tree, (n) => n.props.className === 'kbcg-mapctl')[0], (n) => n.tag === 'button').map((n) => n.props['data-kb']).join() === 'catalog-map-zoom-in,catalog-map-zoom-out,catalog-map-fit,catalog-map-theme')
+  await openMenu(root)
+  ok('opened, the menu is five radio items, Auto ticked and alone in the tab order, with the words of an English page', by(root, 'catalog-map-themes')[0].props.role === 'menu' && tick(root) === 'auto:true,light:false,dark:false,streets:false,bright:false' && items(root).map((n) => lite.textOf(n)).join() === 'Auto,Light,Dark,Streets,Bright' && items(root).filter((n) => n.props.tabIndex === 0).length === 1 && items(root)[0].props.tabIndex === 0 && themeBtn(root).props['aria-expanded'] === 'true')
+  root.unmount()
+
+  // in French
+  reset()
+  env.tokens = lightTokens
+  language = 'fr'
+  root = await mount(baseProps())
+  await draw(root, log.maps[0])
+  await openMenu(root)
+  ok('on a French page the words are French (Auto, Clair, Sombre, Rues, Vif) and the button is named in French', items(root).map((n) => lite.textOf(n)).join() === 'Auto,Clair,Sombre,Rues,Vif' && /thème/i.test(themeBtn(root).props['aria-label']))
+  root.unmount()
+  language = 'en'
+
+  // Streets, then Dark, Light, a page that goes dark, Auto
+  reset()
+  env.tokens = lightTokens
+  root = await mount(baseProps())
+  map = log.maps[0]
+  await draw(root, map)
+  const markersBefore = log.markers.length
+  const callsBefore = map.calls.length
+  await pickItem(root, 'streets')
+  const liberty = net.fetches.filter((f) => f.url.endsWith('/liberty'))
+  ok('Streets: its style (liberty) is asked for, once, with no cookie and no referrer, and the map is restyled as a difference, at once', liberty.length === 1 && liberty[0].init.credentials === 'omit' && liberty[0].init.referrerPolicy === 'no-referrer' && sets(map).length === 1 && sets(map)[0][2].diff === true && gl.getAttribute('data-style') === 'streets')
+  const streets = sets(map)[0][1]
+  ok('…it keeps its own warm colours (the page\'s are not poured over it) and loses what the quiet map loses: no place of interest, no sprite', lumOf(bg(streets)) > 0.9 && bg(streets) !== bg(log.maps[0].options.style) && T.parseColor(bg(streets))[0] > T.parseColor(bg(streets))[2] && streets.layers.every((l) => l.id !== 'poi_r20') && streets.sprite === undefined)
+  ok('the pins, the clusters, the selection and the camera are not touched: no marker made or removed, no fit, no flight', log.markers.length === markersBefore && log.markers.every((m) => !m.removed) && map.calls.slice(callsBefore).every((c) => c[0] === 'setStyle'))
+  ok('the choice is remembered once the map wears it, the menu has closed, and Streets is the ticked one next time', store.get(T.MAP_STYLE_KEY) === 'streets' && by(root, 'catalog-map-themes').length === 0 && themeBtn(root).props['aria-expanded'] === 'false')
+  await openMenu(root)
+  ok('…(opened again: Streets ticked, the others not)', tick(root) === 'auto:false,light:false,dark:false,streets:true,bright:false')
+  themeBtn(root).props.onClick()
+  await root.settle()
+  await pickItem(root, 'dark')
+  ok('Dark on a light page: the quiet style again (already had, not asked for twice) in the dark recipe, and the pills still follow the page', sets(map).length === 2 && net.fetches.filter((f) => f.url === T.MAP_STYLE_URL).length === 1 && lumOf(bg(sets(map)[1][1])) < 0.2 && gl.getAttribute('data-style') === 'dark' && gl.getAttribute('data-scheme') === 'light' && store.get(T.MAP_STYLE_KEY) === 'dark')
+  await pickItem(root, 'light')
+  ok('Light: the light recipe', sets(map).length === 3 && lumOf(bg(sets(map)[2][1])) > 0.8 && store.get(T.MAP_STYLE_KEY) === 'light')
+  env.tokens = darkTokens
+  live().find((t) => t.interval === true).fn()
+  ok('the page goes dark while Light is worn: Light stays light, and the pills follow the page (data-scheme says dark)', sets(map).length === 4 && lumOf(bg(sets(map)[3][1])) > 0.8 && gl.getAttribute('data-scheme') === 'dark' && gl.getAttribute('data-style') === 'light')
+  await pickItem(root, 'auto')
+  ok('Auto on that dark page is the dark recipe, the page\'s own', sets(map).length === 5 && lumOf(bg(sets(map)[4][1])) < 0.2 && gl.getAttribute('data-style') === 'auto' && store.get(T.MAP_STYLE_KEY) === 'auto')
+  root.unmount()
+
+  // a remembered theme
+  reset()
+  env.tokens = lightTokens
+  store.set(T.MAP_STYLE_KEY, 'bright')
+  root = await mount(baseProps())
+  ok('a remembered theme is the one the map opens with: its style is the one asked for, and the quiet one is not', net.fetches.length === 1 && net.fetches[0].url.endsWith('/bright') && gl.getAttribute('data-style') === 'bright' && log.maps[0].options.style.layers.every((l) => !/^poi_/.test(l.id)))
+  root.unmount()
+  reset()
+  env.tokens = lightTokens
+  store.set(T.MAP_STYLE_KEY, 'neon')
+  root = await mount(baseProps())
+  ok('a remembered value that is not a theme opens Auto', net.fetches.length === 1 && net.fetches[0].url === T.MAP_STYLE_URL && gl.getAttribute('data-style') === 'auto')
+  root.unmount()
+  reset()
+  env.tokens = lightTokens
+  env.storageThrows = true
+  root = await mount(baseProps())
+  map = log.maps[0]
+  await draw(root, map)
+  await pickItem(root, 'streets')
+  ok('with a storage that throws the map opens in Auto, a theme can still be picked, and nothing escapes', gl.getAttribute('data-style') === 'streets' && sets(map).length === 1 && by(root, 'catalog-map-box')[0].props['data-map'] === 'real')
+  root.unmount()
+
+  // a theme that cannot be had
+  reset()
+  env.tokens = lightTokens
+  store.set(T.MAP_STYLE_KEY, 'streets')
+  net.down.add('liberty')
+  root = await mount(baseProps())
+  ok('a remembered theme whose style is gone (Streets, 503): the quiet map comes instead, never the drawing', net.fetches.map((f) => f.url.split('/').pop()).join() === 'liberty,positron' && gl.getAttribute('data-style') === 'auto' && by(root, 'catalog-map-box')[0].props['data-map'] !== 'drawn')
+  root.unmount()
+  reset()
+  env.tokens = lightTokens
+  root = await mount(baseProps())
+  map = log.maps[0]
+  await draw(root, map)
+  net.down.add('bright')
+  await pickItem(root, 'bright')
+  ok('a theme picked that cannot be had: the map keeps what it has, nothing is stored, and the menu opens again with an alert, Auto still ticked', sets(map).length === 0 && gl.getAttribute('data-style') === 'auto' && store.get(T.MAP_STYLE_KEY) === undefined && by(root, 'catalog-map-theme-failed').length === 1 && by(root, 'catalog-map-theme-failed')[0].props.role === 'alert' && tick(root) === 'auto:true,light:false,dark:false,streets:false,bright:false' && by(root, 'catalog-map-box')[0].props['data-map'] === 'real')
+  net.down.clear()
+  by(root, 'catalog-map-theme-bright')[0].props.onClick()
+  await root.settle()
+  ok('asked again once the network is back, it works, and the alert is gone', sets(map).length === 1 && gl.getAttribute('data-style') === 'bright' && by(root, 'catalog-map-theme-failed').length === 0 && store.get(T.MAP_STYLE_KEY) === 'bright')
+  root.unmount()
+
+  // the drawn map ignores all of it
+  reset()
+  env.tokens = lightTokens
+  store.set(T.MAP_STYLE_KEY, 'streets')
+  navigator.onLine = false
+  root = await mount(baseProps())
+  ok('the drawn map ignores the theme: no theme button, nothing asked of anyone', drawn(root) && by(root, 'catalog-map-theme').length === 0 && net.fetches.length === 0)
+  root.unmount()
+  env.tokens = null
+}
 {
   reset()
   env.webgl = false

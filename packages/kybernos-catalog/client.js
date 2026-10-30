@@ -192,7 +192,27 @@ window.__ModuleLoader__.load({
       // the view: not the library, not the style, not a tile (docs/dev/business-visuals.md says what is asked of whom). Everything below is pure so it can be tested.
       const MAP_LIB_VERSION = '5.24.0'
       const MAP_LIB = { js: '/kybernos-catalog/vendor/maplibre-gl.js?v=' + MAP_LIB_VERSION, css: '/kybernos-catalog/vendor/maplibre-gl.css?v=' + MAP_LIB_VERSION }
-      const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
+      const MAP_STYLE_HOST = 'https://tiles.openfreemap.org/styles/' // every theme of the map comes from this one host, the one the manifest names (net:tiles.openfreemap.org)
+      const MAP_STYLE_URL = MAP_STYLE_HOST + 'positron'
+      const MAP_STYLE_KEY = 'kybernos.catalog.mapstyle.v1'
+      /**
+       * The map themes on offer, in the order of the menu. `style` is the OpenFreeMap style the theme starts from (the three exist: the live check asks each one); `scheme` is
+       * how it is coloured: 'page' follows the page's light or dark, 'light' and 'dark' are the quiet map in that mode whatever the page is, null keeps the style's own colours
+       * (more detail and colour: Streets and Bright, whose colours are only calmed by `calm`, a share of their saturation taken away so that the price pills stay the loudest thing).
+       */
+      const MAP_STYLES = [
+        { id: 'auto', style: 'positron', scheme: 'page', label: ['Auto', 'Auto'] },
+        { id: 'light', style: 'positron', scheme: 'light', label: ['Clair', 'Light'] },
+        { id: 'dark', style: 'positron', scheme: 'dark', label: ['Sombre', 'Dark'] },
+        { id: 'streets', style: 'liberty', scheme: null, calm: 0.4, label: ['Rues', 'Streets'] },
+        { id: 'bright', style: 'bright', scheme: null, calm: 0.5, label: ['Vif', 'Bright'] },
+      ]
+      /** The theme of an id; Auto for anything else (an old or hand-edited value never breaks the map). */
+      const mapStyleOf = (id) => MAP_STYLES.find((m) => m.id === id) || MAP_STYLES[0]
+      const mapStyleUrl = (id) => MAP_STYLE_HOST + mapStyleOf(id).style
+      /** The theme this browser remembers: Auto when nothing is stored, the value is not one of ours, or the storage cannot be read. */
+      const readMapStyle = () => { try { return mapStyleOf(window.localStorage.getItem(MAP_STYLE_KEY)).id } catch (e) { return 'auto' } }
+      const saveMapStyle = (id) => { try { window.localStorage.setItem(MAP_STYLE_KEY, mapStyleOf(id).id) } catch (e) { /* no storage: the choice lasts for this page */ } }
       const MAP_BUDGET_MS = 8000 // library + style + first tiles must be on screen by then, else the drawn map takes over
       const MAP_RETRY_MS = 60000 // after a failure the drawn map shows at once for this long (the button asks again)
       const MAP_MAX_ZOOM = 18
@@ -319,6 +339,10 @@ window.__ModuleLoader__.load({
       }
       const mixColor = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
       const lumaOf = (c) => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255
+      /** A colour with `k` of its saturation taken away and a little of the lightness given back: the detailed styles keep their hues but stop shouting over the price pills. */
+      const calmColor = (c, k) => { const [h, s, l] = rgbToHsl(c); return hslToRgb(h, s * (1 - k), l + (1 - l) * k * 0.3).concat(c.length > 3 ? [c[3]] : []) }
+      /** The paint properties whose colour is a surface (not a text): the ones `calm` works on. */
+      const CALM_PAINT = /^(fill|line|background)(-outline)?-color$/
       /** A colour of the light style as the dark page wants it: the lightness turned over, the colour kept (for the layers no role knows). */
       const flipColor = (c) => {
         const [h, s, l] = rgbToHsl(c)
@@ -355,8 +379,25 @@ window.__ModuleLoader__.load({
           halo: land,
         }
       }
-      /** What the style loses, whatever the page: shields, airports, the dashed lines of districts, tunnels, piers, ice, bridges of motorways, state names. */
-      const STYLE_HIDE = /^(highway-shield|road_shield|airport|aeroway|boundary_3|boundary_disputed|railway_(transit|service)|label_state|tunnel_|road_(area_)?pier|landcover_(ice|glacier)|highway_motorway_bridge)/
+      /** How far along the way from the surface to the ink a text colour sits (0: the surface, 1: the ink), by luminance. */
+      const alongInk = (tok, c) => { const d = lumaOf(tok.t1) - lumaOf(tok.l1); return Math.abs(d) < 1e-6 ? 0.5 : Math.min(1, Math.max(0, (lumaOf(c) - lumaOf(tok.l1)) / d)) }
+      /** The page's tokens as the OTHER mode would have them: surface and ink swapped, the two softer inks as far along the way as they were (a light map in a dark page, and the reverse). */
+      const flipTokens = (tok) => Object.assign({}, tok, { l1: tok.t1, t1: tok.l1, t2: mixColor(tok.t1, tok.l1, alongInk(tok, tok.t2)), t3: mixColor(tok.t1, tok.l1, alongInk(tok, tok.t3)) })
+      /**
+       * The palette of a theme for this page: `null` for a theme that keeps its style's own colours (Streets, Bright); for the others the page's own recipe, or the same recipe on the
+       * flipped tokens when the theme is the other mode than the page (Light in a dark page, Dark in a light one).
+       */
+      const mapPalette = (tok, id) => {
+        const scheme = mapStyleOf(id).scheme
+        if (scheme === null) return null
+        const own = paletteFrom(tok)
+        if (scheme === 'page' || (scheme === 'dark') === own.dark) return own
+        return paletteFrom(flipTokens(tok))
+      }
+      /** What the style loses, whatever the page: shields, airports, the dashed lines of districts, tunnels, piers, ice, bridges of motorways, state names; and of the detailed styles (Streets, Bright) the places of interest, the arrows of one-way streets, the 3D buildings, ferries and cable cars. */
+      const STYLE_HIDE = /^(highway-shield|road_shield|airport|aeroway|boundary_3|boundary_disputed|railway_(transit|service)|label_state|tunnel[_-]|road_(area_)?pier|landcover[_-](ice|glacier)|highway_motorway_bridge|poi_|road_one_?way|building-3d|ferry|cablecar)/
+      /** A layer that paints with a picture of the sprite: with no sprite (it is never asked for) it could only be an error on the console. */
+      const needsSprite = (layer) => layer.paint !== undefined && (layer.paint['fill-pattern'] !== undefined || layer.paint['line-pattern'] !== undefined || layer.paint['background-pattern'] !== undefined)
       /** Fewer street names and district names at a given zoom: the pills are the loudest thing on the map, the names only help to find a place. */
       const STYLE_MINZOOM = { 'highway-name-minor': 16, 'highway-name-path': 17, 'highway-name-major': 13.5, label_other: 13, label_village: 12.5, label_town: 11.5 }
       /** The paint property of a layer id → the palette colour it takes. The first matching line wins. */
@@ -385,14 +426,15 @@ window.__ModuleLoader__.load({
         ? (value.length === 2 && value[0] === 'get' && value[1] === 'name_en' ? ['get', 'name:' + lang] : value.map((v) => renamed(v, lang)))
         : value)
       /**
-       * The basemap style (OpenFreeMap's « positron », as fetched) made quiet and ours: the layers a price map does not need are dropped, street and district names are fewer,
-       * the colours come from the palette (a layer no role knows keeps its colour in a light page and has its lightness turned over in a dark one), the dot icons and the
-       * sprite are gone (so the sprite is never asked for), and names follow the person's language. Pure: the style it was given is not touched.
+       * A basemap style (OpenFreeMap's « positron », « liberty » or « bright », as fetched) made quiet and ours: the layers a price map does not need are dropped, street and district
+       * names are fewer, the colours come from the palette (a layer no role knows keeps its colour in a light page and has its lightness turned over in a dark one; with no palette
+       * the style keeps its own, calmed by `options.calm`), the dot icons and the sprite are gone (so the sprite is never asked for), and names follow the person's language.
+       * Pure: the style it was given is not touched.
        */
       const tweakStyle = (style, palette, options) => {
         const opts = options === undefined ? {} : options
         const out = JSON.parse(JSON.stringify(style))
-        out.layers = out.layers.filter((layer) => !STYLE_HIDE.test(layer.id))
+        out.layers = out.layers.filter((layer) => !STYLE_HIDE.test(layer.id) && !needsSprite(layer))
         delete out.sprite
         for (const layer of out.layers) {
           if (STYLE_MINZOOM[layer.id] !== undefined) layer.minzoom = STYLE_MINZOOM[layer.id]
@@ -400,7 +442,11 @@ window.__ModuleLoader__.load({
             for (const k of Object.keys(layer.layout)) if (k.indexOf('icon-') === 0) delete layer.layout[k]
             if (opts.lang === 'fr' && layer.layout['text-field'] !== undefined) layer.layout['text-field'] = renamed(layer.layout['text-field'], 'fr')
           }
-          if (palette === null || palette === undefined || layer.paint === undefined) continue
+          if (layer.paint === undefined) continue
+          if (palette === null || palette === undefined) {
+            if (typeof opts.calm === 'number' && opts.calm > 0) for (const k of Object.keys(layer.paint)) if (CALM_PAINT.test(k)) layer.paint[k] = recolor(layer.paint[k], (c) => colorHex(calmColor(c, opts.calm)))
+            continue
+          }
           const role = STYLE_ROLES.find((r) => r[0].test(layer.id))
           for (const k of Object.keys(layer.paint)) {
             if (!/color$/.test(k)) continue
@@ -505,6 +551,9 @@ window.__ModuleLoader__.load({
         minus: 'M5 12h14',
         fit: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
         map: 'M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5zM9 4v13.5M15 6.5V20',
+        layers: 'm12 3 9 4.5-9 4.5-9-4.5zM3 12l9 4.5 9-4.5M3 16.5l9 4.5 9-4.5',
+        check: 'M20 6 9 17l-5-5',
+        info: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 16v-4M12 8h.01',
       }
       const Ic = (name, size) => h('svg', { width: size || 16, height: size || 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' }, h('path', { d: PATHS[name] === undefined ? PATHS.package : PATHS[name] }))
 
@@ -647,9 +696,16 @@ window.__ModuleLoader__.load({
       .kbcg-pin.sold .bubble,.kbcg-pin.sold .tail{fill:var(--kbcg-l3)}
       .kbcg-pin.sold text{fill:var(--kbcg-t3)}
       .kbcg-mapctl{position:absolute;inset-inline-end:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:2}
-      .kbcg-mapctl button{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--kbcg-b2);background:color-mix(in srgb,var(--kbcg-l1) 92%,transparent);color:var(--kbcg-t1);transition:background-color .15s,transform .14s}
-      .kbcg-mapctl button:hover{background:var(--kbcg-l1);transform:translateY(-1px)}
-      .kbcg-mapctl button:active{transform:scale(.94)}
+      .kbcg-mapctl>button{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--kbcg-b2);background:color-mix(in srgb,var(--kbcg-l1) 92%,transparent);color:var(--kbcg-t1);transition:background-color .15s,transform .14s}
+      .kbcg-mapctl>button:hover:not(:disabled){background:var(--kbcg-l1);transform:translateY(-1px)}
+      .kbcg-mapctl>button:active:not(:disabled){transform:scale(.94)}
+      .kbcg-mapctl>button:disabled{opacity:.5;cursor:default}
+      .kbcg-mapctl>button[aria-expanded="true"]{background:var(--kbcg-l1);border-color:var(--kbcg-b3)}
+      .kbcg-mapthemes{position:absolute;inset-inline-end:42px;top:0;z-index:3;min-width:128px;display:flex;flex-direction:column;gap:1px;padding:4px;border-radius:12px;border:1px solid var(--kbcg-b2);background:color-mix(in srgb,var(--kbcg-l1) 97%,transparent);box-shadow:0 8px 24px color-mix(in srgb,var(--kbcg-t1) 18%,transparent);animation:kz-in .16s cubic-bezier(.2,.8,.2,1) both}
+      .kbcg-mapthemes [role="menuitemradio"]{display:flex;align-items:center;justify-content:space-between;gap:12px;height:30px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--kbcg-t1);font:inherit;font-size:13px;text-align:start;cursor:pointer;transition:background-color .12s}
+      .kbcg-mapthemes [role="menuitemradio"]:hover{background:var(--kbcg-hover)}
+      .kbcg-mapthemes [role="menuitemradio"][aria-checked="true"]{font-weight:650;color:var(--kbcg-accent)}
+      .kbcg-mapthemes-note{margin:2px 6px 4px;max-width:150px;font-size:11.5px;line-height:15px;color:var(--kbcg-bad)}
       .kbcg-mapnote{position:absolute;inset-inline-start:10px;bottom:10px;z-index:2;display:flex;gap:8px;align-items:center;max-width:calc(100% - 20px);padding:5px 10px;border-radius:999px;font-size:12px;color:var(--kbcg-t2);background:color-mix(in srgb,var(--kbcg-l1) 90%,transparent);border:1px solid var(--kbcg-b2)}
       .kbcg-thumb{display:block;position:relative;width:64px;height:44px;border-radius:9px;overflow:hidden;background:var(--kbcg-l3);flex:none}
       .kbcg-thumb .kbcg-tile{position:absolute;inset:0;aspect-ratio:auto;border-radius:0;box-shadow:none}
@@ -670,9 +726,15 @@ window.__ModuleLoader__.load({
       .kbcg-maploading{position:absolute;inset:0;z-index:1;display:grid;place-items:center}
       .kbcg-maploading .kbcg-bone{position:absolute;inset:0;border-radius:0;opacity:.55}
       .kbcg-maploading-text{position:relative;padding:6px 14px;border-radius:999px;border:1px solid var(--kbcg-b2);background:color-mix(in srgb,var(--kbcg-l1) 92%,transparent);color:var(--kbcg-t2);font-size:12.5px}
-      .kbcg-attr{position:absolute;inset-inline-end:8px;bottom:8px;z-index:2;max-width:56%;padding:3px 9px;border-radius:12px;font-size:10.5px;line-height:1.4;text-align:end;color:var(--kbcg-t2);background:color-mix(in srgb,var(--kbcg-l1) 86%,transparent);backdrop-filter:blur(6px)}
+      .kbcg-attr{position:absolute;inset-inline-end:6px;bottom:5px;z-index:2;max-width:calc(100% - 12px);display:flex;align-items:center;justify-content:flex-end;gap:4px;padding:1px 5px;border-radius:5px;font-size:9px;line-height:12px;white-space:nowrap;color:var(--kbcg-t2);background:color-mix(in srgb,var(--kbcg-l1) 84%,transparent)}
       .kbcg-attr a{color:inherit;text-decoration:none}
       .kbcg-attr a:hover{color:var(--kbcg-t1);text-decoration:underline}
+      .kbcg-attr-gauge{position:absolute;visibility:hidden;pointer-events:none;white-space:nowrap}
+      .kbcg-attr.fold{padding:0;background:transparent;align-items:flex-end}
+      .kbcg-attr-i{position:relative;flex:none;width:18px;height:18px;padding:0;display:grid;place-items:center;border-radius:50%;border:1px solid var(--kbcg-b2);background:color-mix(in srgb,var(--kbcg-l1) 90%,transparent);color:var(--kbcg-t2);cursor:pointer}
+      .kbcg-attr-i::after{content:'';position:absolute;inset:-8px}
+      .kbcg-attr-i:hover{color:var(--kbcg-t1);background:var(--kbcg-l1)}
+      .kbcg-attr.open .kbcg-attr-text{order:-1;white-space:normal;max-width:calc(100vw - 80px);padding:5px 9px;border-radius:9px;border:1px solid var(--kbcg-b2);background:color-mix(in srgb,var(--kbcg-l1) 96%,transparent);font-size:10.5px;line-height:15px;text-align:end}
       .kbcg-maplink{display:inline-flex;align-items:center;gap:4px;margin-inline-start:4px;padding:1px 8px;border-radius:999px;border:1px solid var(--kbcg-b2);background:transparent;font-size:11.5px;color:var(--kbcg-t1);transition:background-color .15s}
       .kbcg-maplink:hover{background:var(--kbcg-hover)}
       .kbcg-rp{z-index:1;display:block;padding:0;margin:0;border:0;background:transparent;font:inherit;color:var(--kbcg-t1);cursor:pointer;outline:none}
@@ -708,8 +770,8 @@ window.__ModuleLoader__.load({
         .kbcg-panel{position:fixed;inset-inline:12px;bottom:12px;top:auto;max-height:70vh;z-index:900}
         .kbcg-panel .kbcg-tile{aspect-ratio:auto;height:84px}
       }
-      @media (max-width:640px){.kbcg-grid2{grid-template-columns:1fr}.kbcg-attr{inset-inline:8px;max-width:none;padding:2px 8px;font-size:10px;text-align:center}.kbcg-mapbox[data-map="real"] .kbcg-mapnote,.kbcg-mapbox[data-map="loading"] .kbcg-mapnote{top:10px;bottom:auto;max-width:calc(100% - 64px)}}
-      @media (prefers-reduced-motion:reduce){.kbcg-rp .b,.kbcg-rp .p,.kbcg-rp .t,.kbcg-maplink{transition:none}.kbcg-rp:hover .b,.kbcg-rp.hot .b,.kbcg-rp.sel .b,.kbcg-rp:focus-visible .b{transform:none}.kbcg-bone{animation:none}.kbcg-card,.kbcg-chip,.kbcg-btn,.kbcg-heart,.kbcg-pin .body,.kbcg-mapctl button,.kbcg-tbl tr.r{transition:none}.kbcg-panel.inline{animation:none}.kbcg-heart:hover,.kbcg-pin:hover .body,.kbcg-pin.on .body{transform:none}}
+      @media (max-width:640px){.kbcg-grid2{grid-template-columns:1fr}.kbcg-mapbox[data-map="real"] .kbcg-mapnote,.kbcg-mapbox[data-map="loading"] .kbcg-mapnote{top:10px;bottom:auto;max-width:calc(100% - 64px)}}
+      @media (prefers-reduced-motion:reduce){.kbcg-rp .b,.kbcg-rp .p,.kbcg-rp .t,.kbcg-maplink{transition:none}.kbcg-rp:hover .b,.kbcg-rp.hot .b,.kbcg-rp.sel .b,.kbcg-rp:focus-visible .b{transform:none}.kbcg-bone{animation:none}.kbcg-card,.kbcg-chip,.kbcg-btn,.kbcg-heart,.kbcg-pin .body,.kbcg-mapctl button,.kbcg-tbl tr.r{transition:none}.kbcg-panel.inline,.kbcg-mapthemes{animation:none}.kbcg-mapthemes [role="menuitemradio"]{transition:none}.kbcg-heart:hover,.kbcg-pin:hover .body,.kbcg-pin.on .body{transform:none}}
       `
 
       // ── small parts ──────────────────────────────────────────────────────────────────────────────────────
@@ -844,16 +906,22 @@ window.__ModuleLoader__.load({
         mapLibPromise.catch(() => { mapLibPromise = null; for (const node of made) { try { node.remove() } catch (e) { /* already gone */ } } })
         return mapLibPromise
       }
-      let mapStyleCache = null
-      /** The basemap style, asked once per page load; no cookie and no referrer go with the request. */
-      const loadMapStyle = async (signal) => {
-        if (mapStyleCache !== null) return mapStyleCache
-        const res = await fetch(MAP_STYLE_URL, { credentials: 'omit', referrerPolicy: 'no-referrer', signal })
-        if (!res.ok) throw new Error('map style ' + res.status)
-        const json = await res.json()
-        if (json === null || typeof json !== 'object' || !Array.isArray(json.layers)) throw new Error('map style shape')
-        mapStyleCache = json
-        return json
+      let mapStyleCache = {}
+      /** The style of a theme as OpenFreeMap serves it (a promise), asked once per page load and per style; no cookie and no referrer go with the request. */
+      const loadMapStyle = (id, signal) => {
+        const url = mapStyleUrl(id)
+        if (mapStyleCache[url] === undefined) {
+          const asked = (async () => {
+            const res = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer', signal })
+            if (!res.ok) throw new Error('map style ' + res.status)
+            const json = await res.json()
+            if (json === null || typeof json !== 'object' || !Array.isArray(json.layers)) throw new Error('map style shape')
+            return json
+          })()
+          mapStyleCache[url] = asked
+          asked.catch(() => { if (mapStyleCache[url] === asked) delete mapStyleCache[url] })
+        }
+        return mapStyleCache[url]
       }
       let webglKnown = null
       const hasWebGL = () => {
@@ -917,16 +985,99 @@ window.__ModuleLoader__.load({
         if (!one) pin.root.removeAttribute('aria-pressed')
       }
 
-      /** The zoom and fit buttons, the same for the real map and the drawn one. */
+      /**
+       * The theme menu of the real map: a button under the others that opens a small menu of radio items (the arrows, Home and End move, Enter or a click picks, Escape closes and the
+       * focus goes back to the button, Tab leaves). `props.choice` is the theme in use, `props.failed` says the last pick could not be had.
+       */
+      const MapThemes = (props) => {
+        const [open, setOpen] = useState(false)
+        const btn = useRef(null)
+        const menu = useRef(null)
+        const items = () => (menu.current === null ? [] : Array.prototype.slice.call(menu.current.querySelectorAll('[role="menuitemradio"]')))
+        const close = (back) => { setOpen(false); if (back) { try { btn.current.focus() } catch (e) { /* no button to focus */ } } }
+        useEffect(() => {
+          if (!open) return undefined
+          const list = items()
+          const here = list.find((e) => e.getAttribute('aria-checked') === 'true') || list[0]
+          try { if (here !== undefined) here.focus() } catch (e) { /* the person clicks */ }
+          const away = (e) => { if (menu.current !== null && !menu.current.contains(e.target) && btn.current !== null && !btn.current.contains(e.target)) setOpen(false) }
+          document.addEventListener('pointerdown', away, true)
+          return () => document.removeEventListener('pointerdown', away, true)
+        }, [open])
+        useEffect(() => { if (props.failed) setOpen(true) }, [props.failed]) // a theme that could not be had says so where the person is looking
+        const onKey = (e) => {
+          const list = items()
+          const at = list.indexOf(document.activeElement)
+          const go = (i) => { e.preventDefault(); try { list[(i + list.length) % list.length].focus() } catch (err) { /* no item */ } }
+          if (e.key === 'ArrowDown' || e.key === 'ArrowRight') go(at + 1)
+          else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') go(at - 1)
+          else if (e.key === 'Home') go(0)
+          else if (e.key === 'End') go(list.length - 1)
+          else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true) } else if (e.key === 'Tab') close(false)
+        }
+        const name = kt('Thème de la carte', 'Map theme')
+        return h(React.Fragment, null,
+          h('button', { type: 'button', ref: btn, 'data-kb': 'catalog-map-theme', 'aria-label': name, title: name, 'aria-haspopup': 'menu', 'aria-expanded': open ? 'true' : 'false', disabled: props.disabled === true, onClick: () => setOpen(!open) }, Ic('layers', 16)),
+          open ? h('div', { ref: menu, className: 'kbcg-mapthemes', role: 'menu', 'aria-label': name, 'data-kb': 'catalog-map-themes', onKeyDown: onKey },
+            MAP_STYLES.map((m) => h('button', { key: m.id, type: 'button', role: 'menuitemradio', 'aria-checked': m.id === props.choice ? 'true' : 'false', tabIndex: m.id === props.choice ? 0 : -1, 'data-kb': 'catalog-map-theme-' + m.id, onClick: () => { close(true); props.onChoose(m.id) } },
+              h('span', null, kt(m.label[0], m.label[1])), m.id === props.choice ? Ic('check', 14) : null)),
+            props.failed ? h('p', { className: 'kbcg-mapthemes-note', role: 'alert', 'data-kb': 'catalog-map-theme-failed' }, kt('Ce thème n’a pas pu être chargé.', 'This theme could not be loaded.')) : null) : null)
+      }
+      /** The zoom and fit buttons, the same for the real map and the drawn one; the real map adds the theme button (`props.themes`). */
       const MapControls = (props) => h('div', { className: 'kbcg-mapctl' },
         h('button', { type: 'button', 'data-kb': 'catalog-map-zoom-in', 'aria-label': kt('Zoom avant', 'Zoom in'), title: kt('Zoom avant', 'Zoom in'), onClick: props.onIn }, Ic('plus', 16)),
         h('button', { type: 'button', 'data-kb': 'catalog-map-zoom-out', 'aria-label': kt('Zoom arrière', 'Zoom out'), title: kt('Zoom arrière', 'Zoom out'), onClick: props.onOut }, Ic('minus', 16)),
-        h('button', { type: 'button', 'data-kb': 'catalog-map-fit', 'aria-label': kt('Tout voir', 'Show everything'), title: kt('Tout voir', 'Show everything'), onClick: props.onFit }, Ic('fit', 16)))
+        h('button', { type: 'button', 'data-kb': 'catalog-map-fit', 'aria-label': kt('Tout voir', 'Show everything'), title: kt('Tout voir', 'Show everything'), onClick: props.onFit }, Ic('fit', 16)),
+        props.themes === undefined ? null : h(MapThemes, props.themes))
       /** The caption of a map: what it is (the drawn one says so), how many places, how many items have none. */
       const MapNote = (props) => h('div', { className: 'kbcg-mapnote', 'data-kb': 'catalog-map-note' }, Ic('map', 14),
         h('span', null, props.lead === undefined ? null : props.lead, props.lead === undefined ? null : ' · ', props.placed + (props.placed === 1 ? kt(' lieu', ' place') : kt(' lieux', ' places'))),
         props.unplaced > 0 ? h('span', { 'data-kb': 'catalog-map-unplaced' }, ' · ' + props.unplaced + kt(' sans emplacement', ' without a place')) : null,
         props.children)
+
+      const attributionLinks = () => ATTRIBUTION.map((a, i) => h(React.Fragment, { key: a.text }, i > 0 ? ' · ' : null, h('a', { href: a.href, target: '_blank', rel: 'noopener noreferrer' }, a.text)))
+      /**
+       * The credit the data licences ask for, as small as it can be read: one line of 9 px text in the corner, its box no bigger than the text. Where that line would run into the
+       * caption (or past the edge of a narrow map) it folds into a small « i » button that opens the same words, closes with Escape or a click elsewhere. A hidden copy of the line
+       * is what is measured, so the choice does not wait for the line to have been drawn. `props.sig` says when the caption beside it has changed.
+       */
+      const MapAttribution = (props) => {
+        const [fold, setFold] = useState(false)
+        const [open, setOpen] = useState(false)
+        const root = useRef(null)
+        const gauge = useRef(null)
+        useEffect(() => {
+          const box = root.current === null ? null : root.current.parentNode
+          if (box === null || box === undefined) return undefined
+          const decide = () => {
+            try {
+              const need = gauge.current === null ? 0 : gauge.current.getBoundingClientRect().width + 16
+              const b = box.getBoundingClientRect()
+              const note = box.querySelector('.kbcg-mapnote')
+              let room = b.width - 12
+              if (note !== null) { const n = note.getBoundingClientRect(); if (n.top > b.top + b.height / 2) room = b.right - n.right - 14 } // a caption along the bottom takes its share
+              setFold(need > room)
+            } catch (e) { setFold(false) }
+          }
+          decide()
+          let watcher = null
+          try { watcher = new ResizeObserver(decide); watcher.observe(box) } catch (e) { watcher = null }
+          return () => { if (watcher !== null) watcher.disconnect() }
+        }, [props.sig])
+        useEffect(() => {
+          if (!open) return undefined
+          const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); try { root.current.querySelector('button').focus() } catch (err) { /* no button */ } } }
+          const away = (e) => { if (root.current !== null && !root.current.contains(e.target)) setOpen(false) }
+          document.addEventListener('keydown', onKey, true)
+          document.addEventListener('pointerdown', away, true)
+          return () => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('pointerdown', away, true) }
+        }, [open])
+        const name = kt('Crédits de la carte', 'Map credits')
+        return h('div', { ref: root, className: 'kbcg-attr' + (fold ? ' fold' : '') + (fold && open ? ' open' : ''), 'data-kb': 'catalog-map-attribution', 'data-fold': fold ? 'true' : 'false' },
+          h('span', { ref: gauge, className: 'kbcg-attr-gauge', 'aria-hidden': 'true' }, ATTRIBUTION.map((a) => a.text).join(' · ')),
+          fold ? h('button', { type: 'button', className: 'kbcg-attr-i', 'data-kb': 'catalog-map-attribution-i', 'aria-label': name, title: name, 'aria-expanded': open ? 'true' : 'false', onClick: () => setOpen(!open) }, Ic('info', 12)) : null,
+          fold && !open ? null : h('span', { className: 'kbcg-attr-text', 'data-kb': 'catalog-map-attribution-text' }, attributionLinks()))
+      }
 
       /**
        * The real map. The library, the style and the tiles are asked for when this component mounts and not before; if anything fails or is too slow (MAP_BUDGET_MS) it tells
@@ -938,9 +1089,12 @@ window.__ModuleLoader__.load({
         const latest = useRef(props)
         latest.current = props
         const [ready, setReady] = useState(false)
+        const [choice, setChoice] = useState(readMapStyle)
+        const [themeFailed, setThemeFailed] = useState(false)
+        const want = useRef(choice) // the theme asked for (the map follows it a moment later: the style may have to be fetched)
 
         useEffect(() => {
-          const st = { lib: null, map: null, pins: new Map(), order: '', refocus: null, waiting: false, ready: false, dead: false, loaded: false, ok: 0, errors: 0, t0: Date.now(), down: null, abort: null, timer: null, ticker: null, watcher: null, sig: '', styleSrc: null, sync: () => {}, paint: () => {} }
+          const st = { lib: null, map: null, seq: 0, choice: 'auto', styleName: '', apply: () => {}, pins: new Map(), order: '', refocus: null, waiting: false, ready: false, dead: false, loaded: false, ok: 0, errors: 0, t0: Date.now(), down: null, abort: null, timer: null, ticker: null, watcher: null, sig: '', styleSrc: null, sync: () => {}, paint: () => {} }
           live.current = st
           const teardown = () => {
             st.dead = true
@@ -1022,21 +1176,24 @@ window.__ModuleLoader__.load({
               if (pin.cluster.count === 1) pin.root.setAttribute('aria-pressed', isSel ? 'true' : 'false')
             }
           }
-          const start = (lib, style) => {
+          const start = (lib, style, id) => {
             const box = host.current
             if (box === null) return
             const tok = readTokens(box)
-            st.sig = tok === null ? '' : tokensSig(tok) + '|' + lang()
+            st.sig = (tok === null ? '' : tokensSig(tok)) + '|' + lang() + '|' + id
             st.styleSrc = style
+            st.styleName = mapStyleOf(id).style
+            st.choice = id
             st.lib = lib
-            const palette0 = tok === null ? null : paletteFrom(tok)
-            box.setAttribute('data-scheme', palette0 !== null && palette0.dark ? 'dark' : 'light')
+            const palette0 = tok === null ? null : mapPalette(tok, id)
+            box.setAttribute('data-scheme', tok !== null && paletteFrom(tok).dark ? 'dark' : 'light') // the pills follow the page, whatever the map's theme
+            box.setAttribute('data-style', id)
             const narrow = (() => { try { return window.matchMedia('(max-width: 900px)').matches } catch (e) { return false } })()
             let map
             try {
               map = new lib.Map({
                 container: box,
-                style: tweakStyle(style, palette0, { lang: lang() }),
+                style: tweakStyle(style, palette0, { lang: lang(), calm: mapStyleOf(id).calm }),
                 bounds: boundsOf(latest.current.placed),
                 fitBoundsOptions: MAP_FIT,
                 maxZoom: MAP_MAX_ZOOM,
@@ -1062,21 +1219,40 @@ window.__ModuleLoader__.load({
             try { map.touchZoomRotate.disableRotation(); map.keyboard.disableRotation() } catch (e) { /* the map keeps its other gestures */ }
             map.on('sourcedata', (e) => { if (e.dataType === 'source' && e.tile !== undefined) st.ok += 1 })
             map.on('error', () => { st.errors += 1; verdict() })
-            const markZoom = () => { if (st.map !== null) box.setAttribute('data-zoom', st.map.getZoom().toFixed(1)) } // read by the live check
+            const markZoom = () => { if (st.map !== null) { const c = st.map.getCenter(); box.setAttribute('data-zoom', st.map.getZoom().toFixed(1)); box.setAttribute('data-center', c.lat.toFixed(4) + ',' + c.lng.toFixed(4)) } } // read by the live check
             map.on('load', () => { st.loaded = true; markZoom(); verdict() })
             map.on('zoomend', () => { markZoom(); st.sync() })
             map.on('moveend', markZoom)
-            // a light or dark page that changes while the map is open gives the map its colours again
-            st.ticker = setInterval(() => {
+            // a light or dark page that changes while the map is open, or a theme the person picks, gives the map its style again: the pins, the clusters, the selection and the camera stay as they are
+            st.apply = async () => {
+              if (st.map === null || !st.ready || st.dead) return
+              const id = want.current
               const t = readTokens(box)
-              if (t === null || st.map === null || !st.ready) return
-              const sig = tokensSig(t) + '|' + lang()
+              const sig = (t === null ? '' : tokensSig(t)) + '|' + lang() + '|' + id
               if (sig === st.sig) return
+              if (t === null && id === st.choice) return // the page cannot say what it looks like: the map keeps what it has
+              const mine = (st.seq += 1)
+              let src = st.styleSrc
+              if (mapStyleOf(id).style !== st.styleName) {
+                try { src = await loadMapStyle(id, st.abort === null ? undefined : st.abort.signal) } catch (e) {
+                  if (st.dead || mine !== st.seq) return
+                  want.current = st.choice // the theme could not be had: the map keeps the one it has, and the menu says so
+                  setChoice(st.choice)
+                  setThemeFailed(true)
+                  return
+                }
+                if (st.dead || mine !== st.seq || st.map === null) return
+                st.styleSrc = src
+                st.styleName = mapStyleOf(id).style
+              }
               st.sig = sig
-              const next = paletteFrom(t)
-              box.setAttribute('data-scheme', next.dark ? 'dark' : 'light')
-              st.map.setStyle(tweakStyle(st.styleSrc, next, { lang: lang() }), { diff: true })
-            }, 1500)
+              st.choice = id
+              box.setAttribute('data-scheme', t !== null && paletteFrom(t).dark ? 'dark' : 'light')
+              box.setAttribute('data-style', id)
+              st.map.setStyle(tweakStyle(src, t === null ? null : mapPalette(t, id), { lang: lang(), calm: mapStyleOf(id).calm }), { diff: true })
+              saveMapStyle(id) // remembered only once the map wears it
+            }
+            st.ticker = setInterval(st.apply, 1500)
             try { st.watcher = new ResizeObserver(() => { if (st.map !== null) st.map.resize() }); st.watcher.observe(box) } catch (e) { st.watcher = null }
           }
           st.timer = setTimeout(verdict, MAP_BUDGET_MS)
@@ -1087,9 +1263,17 @@ window.__ModuleLoader__.load({
               const lib = await loadMapLib()
               if (st.dead) return
               step = 'style'
-              const style = await loadMapStyle(st.abort === null ? undefined : st.abort.signal)
+              let id = want.current
+              let style = null
+              try { style = await loadMapStyle(id, st.abort === null ? undefined : st.abort.signal) } catch (e) {
+                if (st.dead || mapStyleOf(id).style === mapStyleOf('auto').style) throw e
+                id = 'auto' // the remembered theme cannot be had (a style that is gone, a host that does not serve it): the quiet map comes instead, never the drawing
+                want.current = id
+                setChoice(id)
+                style = await loadMapStyle(id, st.abort === null ? undefined : st.abort.signal)
+              }
               if (st.dead) return
-              start(lib, style)
+              start(lib, style, id)
             } catch (e) { fail(step) }
           })()
           return teardown
@@ -1128,17 +1312,26 @@ window.__ModuleLoader__.load({
         }, [props.selected, ready])
 
         const go = (fn) => () => { const st = live.current; if (st !== null && st.map !== null && st.ready) fn(st.map, reducedMotion() ? 0 : 280) }
+        const choose = (id) => {
+          want.current = mapStyleOf(id).id
+          setChoice(want.current)
+          setThemeFailed(false)
+          const st = live.current
+          if (st !== null) st.apply()
+        }
         const placed = props.placed.length
         return h('div', { className: 'kbcg-mapbox', 'data-kb': 'catalog-map-box', 'data-map': ready ? 'real' : 'loading' },
           h('div', { ref: host, className: 'kbcg-gl', 'data-kb': 'catalog-map', 'data-map': 'real', role: 'group', 'aria-label': kt('Carte des biens', 'Map of the items') }),
           ready ? null : h('div', { className: 'kbcg-maploading', 'data-kb': 'catalog-map-loading', role: 'status' }, h('span', { className: 'kbcg-bone' }), h('span', { className: 'kbcg-maploading-text' }, kt('Chargement de la carte…', 'Loading the map…'))),
           h(MapControls, {
+            key: 'controls',
+            themes: { choice, failed: themeFailed, disabled: !ready, onChoose: choose },
             onIn: go((map, ms) => map.zoomIn({ duration: ms })),
             onOut: go((map, ms) => map.zoomOut({ duration: ms })),
             onFit: go((map, ms) => { const b = boundsOf(latest.current.placed); if (b !== null) map.fitBounds(b, Object.assign({ duration: ms * 2 }, MAP_FIT)) }),
           }),
-          h(MapNote, { placed, unplaced: props.unplaced }),
-          h('div', { className: 'kbcg-attr', 'data-kb': 'catalog-map-attribution' }, ATTRIBUTION.map((a, i) => h(React.Fragment, { key: a.text }, i > 0 ? ' · ' : null, h('a', { href: a.href, target: '_blank', rel: 'noopener noreferrer' }, a.text)))))
+          h(MapNote, { key: 'note', placed, unplaced: props.unplaced }),
+          h(MapAttribution, { key: 'credit', sig: placed + ':' + props.unplaced }))
       }
 
       /**
@@ -1159,9 +1352,9 @@ window.__ModuleLoader__.load({
         }, [mode.use, mode.why])
         useEffect(() => { if (mode.why === 'empty' && props.placed.length > 0) ask() }, [props.placed.length])
         const real = mode.use && props.placed.length > 0
-        if (real) return h(RealMap, Object.assign({}, props, { onFail: failed }))
+        if (real) return h(React.Fragment, null, h(RealMap, Object.assign({}, props, { key: 'real', onFail: failed }))) // keyed, so the drawn map that may replace it is never taken for the same component
         const why = props.placed.length === 0 ? 'empty' : mode.why
-        return h(MapView, Object.assign({}, props, { why, onRetry: why === 'webgl' || why === 'empty' || why === '' ? undefined : retry }))
+        return h(React.Fragment, null, h(MapView, Object.assign({}, props, { key: 'drawn', why, onRetry: why === 'webgl' || why === 'empty' || why === '' ? undefined : retry })))
       }
       /** The shape of the page's two columns in the map view: the cards on the left, the map that follows the page on the right. */
       const Bones = () => h('div', { className: 'kbcg-cards', 'aria-busy': 'true' }, [0, 1, 2, 3, 4, 5].map((i) => h('div', { key: i, className: 'kbcg-card', style: { cursor: 'default' } },
@@ -1640,7 +1833,7 @@ window.__ModuleLoader__.load({
         apply (ctx) {
           try { apply(ctx) } catch (e) { console.warn('[kybernos-catalog] page not mounted:', e) }
         },
-        __test: { pick, humanize, valueText, cardOf, flagText, viewsOf, chipsOf, sumCounts, pageTitle, newLabel, errorText, formOf, payloadOf, typeOf, statusOf, CatalogPage, FormDialog, Panel, CSS, pictureRef, fallbackArt, energyHue, statText, cardChips, pinPrice, placedRows, projectPins, sortRows, townBlocks, MapView, Picture, Cards, Table, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, parseColor, colorHex, flipColor, paletteFrom, tweakStyle, whyText, MapSwitch, RealMap, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_STYLE_URL, MAP_LIB, ATTRIBUTION, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = null; tokenCx = null } },
+        __test: { pick, humanize, valueText, cardOf, flagText, viewsOf, chipsOf, sumCounts, pageTitle, newLabel, errorText, formOf, payloadOf, typeOf, statusOf, CatalogPage, FormDialog, Panel, CSS, pictureRef, fallbackArt, energyHue, statText, cardChips, pinPrice, placedRows, projectPins, sortRows, townBlocks, MapView, Picture, Cards, Table, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, parseColor, colorHex, flipColor, paletteFrom, flipTokens, mapPalette, tweakStyle, MAP_STYLES, MAP_STYLE_KEY, mapStyleOf, mapStyleUrl, readMapStyle, saveMapStyle, whyText, MapSwitch, RealMap, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_STYLE_URL, MAP_LIB, ATTRIBUTION, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = {}; tokenCx = null } },
       }
     } catch (e) {
       console.warn('[kybernos-catalog] disabled:', e)
