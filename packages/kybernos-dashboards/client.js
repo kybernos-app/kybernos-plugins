@@ -20,7 +20,7 @@ window.__ModuleLoader__.load({
 
       const KIND = 'dashboard'
       const VERSION = 1
-      const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3, tableCols: 6 }
+      const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3, tableCols: 6, followUp: 12 }
 
       const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
       const arr = (v) => (Array.isArray(v) ? v : [])
@@ -50,6 +50,10 @@ window.__ModuleLoader__.load({
         return null
       }
       const lastDays = (n, nowMs) => { const out = []; for (let i = n - 1; i >= 0; i--) out.push(dayKey(nowMs - i * DAY)); return out }
+      /** A local calendar day as a whole number (days since 1970): two of them subtract into a number of days, whatever the time zone or the hour. */
+      const localDayNo = (ms) => { const d = new Date(ms); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY) }
+      /** The same number for a `YYYY-MM-DD` text, or null when the text is not a date. */
+      const dateDayNo = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str(s)); return m === null ? null : Math.round(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / DAY) }
 
       // ── 2. the provider catalogue ────────────────────────────────────────────────
       //
@@ -76,6 +80,67 @@ window.__ModuleLoader__.load({
         if (str(o.cron) !== '') return 'cron ' + o.cron
         if (str(o.at) !== '') return 'once ' + o.at
         return str(o.mode)
+      }
+
+      // ── helpers of the Business providers (Contacts, Catalog, Pipeline answer 500 rows at most per call) ──────────────────────────────────────
+      const BIZ_PAGE = 500
+      const BIZ_PAGES = 4
+      const BIZ_BOARDS = 6
+      const bizSlug = (v) => { const s = str(v); return /^[a-z0-9][a-z0-9_-]{0,39}$/.test(s) ? s : '' }
+      const typeQuery = (p) => (bizSlug(p.type) === '' ? '' : '&type=' + bizSlug(p.type))
+      /** The English word of a `{ en, fr }` label, else `fallback`. A provider speaks English like every other source: the page translates around it. */
+      const bizWord = (label, fallback) => { const w = cut(obj(label).en, 60); return w !== '' ? w : cut(fallback, 60) }
+      const bizDay = (v) => { const at = toMs(v); return at === null ? '' : dayKey(at) }
+      /** The requests for the pages after the first one, from the total the first page answered (at most BIZ_PAGES pages). */
+      const bizPages = (parts, path, suffix) => {
+        const total = num(obj(parts.page0).total)
+        const out = []
+        for (let i = 1; i < BIZ_PAGES && i * BIZ_PAGE < total; i++) out.push({ key: 'page' + i, method: 'GET', path: path + (i * BIZ_PAGE) + suffix, optional: true })
+        return out
+      }
+      /** The rows of every page read, in order; an archived row is never one of them. */
+      const bizRows = (parts, prefix) => {
+        const out = []
+        for (let i = 0; i < BIZ_PAGES; i++) {
+          const pg = parts[prefix + i]
+          if (isObj(pg)) for (const r of arr(pg.rows)) if (isObj(r) && (r.archived_at === null || r.archived_at === undefined)) out.push(r)
+        }
+        return out
+      }
+      /** What the table says when it does not hold everything the base has. */
+      const bizNote = (parts, prefix, read) => {
+        const total = num(obj(parts[prefix + '0']).total)
+        return total > read ? 'The first ' + formatNumber(read, 'number') + ' of ' + formatNumber(total, 'number') + ' rows are read.' : ''
+      }
+      const PICTURE_REF = /^(?:art|photo):/
+      const FIELD_KEY = /^[a-z][a-z0-9_]{0,31}$/
+      /**
+       * The scalar fields of a row, flattened into `row` under their own key (never over a column that is already there). A field that holds a day also gives
+       * `<key>_in` (days until it, negative once past) and `<key>_ago` (days since it). A picture reference is not data and is left out.
+       */
+      function bizFields (fields, row, now) {
+        const f = obj(fields)
+        const today = localDayNo(now)
+        let n = 0
+        for (const k of Object.keys(f)) {
+          if (n >= 40) break
+          if (!FIELD_KEY.test(k) || own(row, k)) continue
+          const v = f[k]
+          if (typeof v === 'number' && Number.isFinite(v)) row[k] = v
+          else if (typeof v === 'string') {
+            if (PICTURE_REF.test(v)) continue
+            row[k] = cut(v, 120)
+            const day = dateDayNo(v)
+            if (day !== null) { row[k + '_in'] = day - today; row[k + '_ago'] = today - day }
+          } else if (typeof v === 'boolean') row[k] = v ? 'yes' : 'no'
+          else continue
+          n++
+        }
+      }
+      /** Every declared column in every row ('' where the row has nothing), so a missing value is empty, never "undefined". */
+      const bizComplete = (rows, columns) => {
+        for (const r of rows) for (const c of columns) if (!own(r, c.id)) r[c.id] = ''
+        return rows
       }
 
       const PROVIDERS = {
@@ -327,6 +392,137 @@ window.__ModuleLoader__.load({
             return table(PROVIDERS['deliverables.list'].columns, rows.slice(0, limit))
           },
         },
+        // ── the Business providers: the read routes of Contacts, Catalog and Pipeline, flattened into tables ───────────────────────────────────
+        // The three plugins answer at most 500 rows a call, so a table is read page by page (`next`: the pages after the first, and one board per flow).
+        // Every declared column is present in every row ('' when the row has no value), so a chart never draws "undefined" and `empty` / `not_empty` mean what they say.
+        // Dates come twice: as a day (`due`) and as a number of days (`due_in`, days until it, negative once past; `due_ago`, days since it), computed at the moment the
+        // page reads, because the where-filter compares numbers only.
+        'catalog.items': {
+          label: 'Catalog items',
+          about: 'The items of the Catalog page (properties, products, jobs…), one row per item: its type, status, title, price and its own fields under their key. A date field also gives <key>_in (days until it, negative once past) and <key>_ago (days since it). Archived items are left out; sample rows have demo = yes.',
+          params: { type: 'text, a type key (property, product, job…): only the items of that type' },
+          period: false,
+          sparse: true,
+          open: true,
+          columns: [
+            col('title', 'Title', 'string'), col('subtitle', 'Subtitle', 'string'), col('type', 'Type', 'string'), col('type_key', 'Type key', 'string'), col('status', 'Status', 'string'), col('status_key', 'Status key', 'string'),
+            col('price', 'Price', 'number'), col('price_text', 'Price as written', 'string'), col('created', 'Added', 'date'), col('updated', 'Changed', 'date'), col('demo', 'Sample row', 'string'),
+            col('address', 'Address', 'string'), col('surface', 'Surface (m²)', 'number'), col('rooms', 'Rooms', 'number'), col('energy', 'Energy class', 'string'), col('kind', 'Kind', 'string'), col('district', 'District', 'string'), col('outdoor', 'Outdoor space', 'string'),
+            col('offer', 'Offer received', 'number'), col('owner', 'Owner', 'string'), col('mandate_until', 'Mandate until', 'date'), col('mandate_until_in', 'Mandate ends in (days)', 'number'),
+            col('sku', 'SKU', 'string'), col('stock', 'Stock', 'number'), col('reorder_at', 'Reorder at', 'number'), col('stock_gap', 'Stock above the reorder level', 'number'), col('supplier', 'Supplier', 'string'), col('category', 'Category', 'string'), col('material', 'Material', 'string'), col('badge', 'Badge', 'string'), col('rating', 'Rating', 'string'),
+            col('client', 'Client', 'string'), col('location', 'Location', 'string'), col('salary', 'Salary', 'string'), col('contract', 'Contract', 'string'), col('department', 'Department', 'string'), col('seniority', 'Seniority', 'string'), col('candidates', 'Candidates', 'number'), col('opened', 'Opened', 'date'), col('opened_ago', 'Open for (days)', 'number'),
+          ],
+          routes: (p) => [
+            { key: 'types', method: 'GET', path: '/kybernos-catalog/types', optional: true },
+            { key: 'page0', method: 'GET', path: '/kybernos-catalog/list?limit=' + BIZ_PAGE + '&offset=0' + typeQuery(p) },
+          ],
+          next: (parts, p) => bizPages(parts, '/kybernos-catalog/list?limit=' + BIZ_PAGE + '&offset=', typeQuery(p)),
+          build: (parts, p, now) => {
+            const types = new Map()
+            for (const t of arr(obj(parts.types).types)) if (isObj(t) && typeof t.id === 'string') types.set(t.id, t)
+            const rows = []
+            for (const r of bizRows(parts, 'page')) {
+              const t = types.get(r.type)
+              const st = t === undefined ? undefined : arr(t.statuses).find((s) => isObj(s) && s.key === r.status)
+              const f = obj(r.fields)
+              const row = {
+                title: cut(r.title, 120), subtitle: cut(r.subtitle, 120), type: t === undefined ? cut(r.type, 40) : bizWord(t.label, r.type), type_key: cut(r.type, 40),
+                status: st === undefined ? cut(r.status, 40) : bizWord(st.label, r.status), status_key: cut(r.status, 40),
+                price: typeof r.price_num === 'number' && Number.isFinite(r.price_num) ? r.price_num : (typeof f.price === 'number' && Number.isFinite(f.price) ? f.price : ''),
+                price_text: cut(r.price_text, 60), created: bizDay(r.created_at), updated: bizDay(r.updated_at), demo: r.demo === true ? 'yes' : 'no',
+              }
+              bizFields(f, row, now)
+              if (typeof row.stock === 'number' && typeof row.reorder_at === 'number') row.stock_gap = row.stock - row.reorder_at
+              rows.push(row)
+            }
+            return table(PROVIDERS['catalog.items'].columns, bizComplete(rows, PROVIDERS['catalog.items'].columns), { note: bizNote(parts, 'page', rows.length) })
+          },
+        },
+        'contacts.people': {
+          label: 'Contacts',
+          about: 'The people and companies of the Contacts page, one row per contact: its kind, type, e-mail, company, tags and its own fields under their key. A date field also gives <key>_in and <key>_ago (days until it / since it). Archived contacts are left out; sample rows have demo = yes.',
+          params: {},
+          period: false,
+          sparse: true,
+          open: true,
+          columns: [
+            col('name', 'Name', 'string'), col('kind', 'Person or company', 'string'), col('type', 'Type', 'string'), col('type_key', 'Type key', 'string'), col('email', 'E-mail', 'string'), col('company', 'Company', 'string'),
+            col('tags', 'Tags', 'string'), col('tag_count', 'Number of tags', 'number'), col('created', 'Added', 'date'), col('updated', 'Changed', 'date'), col('demo', 'Sample row', 'string'),
+            col('city', 'City', 'string'), col('sector', 'Sector', 'string'), col('budget', 'Budget', 'number'), col('spent', 'Spent', 'number'), col('last_order', 'Last order', 'date'), col('last_order_ago', 'Last order (days ago)', 'number'),
+            col('lead_time', 'Lead time', 'string'), col('seniority', 'Seniority', 'string'), col('salary_target', 'Salary target', 'number'), col('role', 'Role', 'string'), col('availability', 'Availability', 'string'),
+          ],
+          routes: () => [
+            { key: 'schema', method: 'GET', path: '/kybernos-contacts/schema', optional: true },
+            { key: 'page0', method: 'GET', path: '/kybernos-contacts/list?limit=' + BIZ_PAGE + '&offset=0' },
+          ],
+          next: (parts) => bizPages(parts, '/kybernos-contacts/list?limit=' + BIZ_PAGE + '&offset=', ''),
+          build: (parts, p, now) => {
+            const types = new Map()
+            for (const t of arr(obj(obj(parts.schema).schema).types)) if (isObj(t) && typeof t.key === 'string') types.set(t.key, t)
+            const rows = []
+            for (const r of bizRows(parts, 'page')) {
+              const t = types.get(r.type)
+              const tags = arr(r.tags).filter((x) => typeof x === 'string' && x !== '')
+              const row = {
+                name: cut(r.name, 120), kind: r.kind === 'company' ? 'company' : 'person', type: t === undefined ? cut(r.type, 40) : bizWord(t.label, r.type), type_key: cut(r.type, 40), email: cut(r.email, 120),
+                company: isObj(r.company) ? cut(r.company.name, 120) : '', tags: tags.join(', '), tag_count: tags.length, created: bizDay(r.created_at), updated: bizDay(r.updated_at), demo: r.demo === true ? 'yes' : 'no',
+              }
+              bizFields(r.fields, row, now)
+              rows.push(row)
+            }
+            return table(PROVIDERS['contacts.people'].columns, bizComplete(rows, PROVIDERS['contacts.people'].columns), { note: bizNote(parts, 'page', rows.length) })
+          },
+        },
+        'pipeline.cards': {
+          label: 'Pipeline cards',
+          about: 'The cards of the Pipeline boards, one row per card: its board, stage (in the board\'s own words, stage_no is its place in the board), value, the person and item it is about, where it came from, its priority and due date, and how long it has been in its stage. Without flow it reads every board; with flow, one board, and a chart of its stages keeps the board\'s order. Archived cards are left out; sample cards have demo = yes.',
+          params: { flow: 'text, a board key (sales, orders, candidates…): only the cards of that board' },
+          period: false,
+          sparse: true,
+          columns: [
+            col('title', 'Card', 'string'), col('subtitle', 'Line under the title', 'string'), col('flow', 'Board', 'string'), col('flow_key', 'Board key', 'string'), col('stage', 'Stage', 'string'), col('stage_key', 'Stage key', 'string'), col('stage_no', 'Place of the stage', 'number'),
+            col('value', 'Value', 'number'), col('since', 'In this stage since', 'date'), col('days_in_stage', 'Days in this stage', 'number'), col('source', 'Source', 'string'), col('priority', 'Priority', 'string'),
+            col('due', 'Due', 'date'), col('due_in', 'Due in (days)', 'number'), col('tags', 'Tags', 'string'), col('contact', 'Contact', 'string'), col('item', 'Item', 'string'), col('demo', 'Sample card', 'string'),
+          ],
+          routes: (p) => (bizSlug(p.flow) === ''
+            ? [{ key: 'flows', method: 'GET', path: '/kybernos-pipeline/flows' }]
+            : [{ key: 'board:' + bizSlug(p.flow), method: 'GET', path: '/kybernos-pipeline/board?flow=' + bizSlug(p.flow) }]),
+          next: (parts, p) => {
+            if (bizSlug(p.flow) !== '') return []
+            return arr(obj(parts.flows).flows).filter((f) => isObj(f) && /^[a-z0-9][a-z0-9_-]{0,39}$/.test(str(f.id)) && num(f.cards) > 0).slice(0, BIZ_BOARDS)
+              .map((f) => ({ key: 'board:' + f.id, method: 'GET', path: '/kybernos-pipeline/board?flow=' + f.id, optional: true }))
+          },
+          build: (parts, p, now) => {
+            const rows = []
+            const order = []
+            let more = false
+            for (const key of Object.keys(parts).filter((k) => k.startsWith('board:')).sort()) {
+              const b = obj(parts[key])
+              if (b.truncated === true) more = true
+              const flow = obj(b.flow)
+              const stages = arr(b.columns).filter(isObj)
+              stages.forEach((c, i) => {
+                const label = bizWord(c.label, c.stage)
+                if (!order.includes(label)) order.push(label)
+                for (const k of arr(c.cards)) {
+                  if (!isObj(k)) continue
+                  const x = obj(k.fields)
+                  const since = toMs(k.since)
+                  const due = str(x.due)
+                  const dueNo = dateDayNo(due)
+                  rows.push({
+                    title: cut(k.title, 120), subtitle: cut(k.subtitle, 120), flow: bizWord(flow.label, flow.id), flow_key: cut(flow.id, 40), stage: label, stage_key: cut(c.stage, 40), stage_no: i + 1,
+                    value: typeof k.value === 'number' && Number.isFinite(k.value) ? k.value : '', since: since === null ? '' : dayKey(since), days_in_stage: since === null ? '' : Math.max(0, localDayNo(now) - localDayNo(since)),
+                    source: cut(x.source, 40), priority: cut(x.priority, 12), due: dueNo === null ? '' : due, due_in: dueNo === null ? '' : dueNo - localDayNo(now),
+                    tags: arr(x.tags).filter((t) => typeof t === 'string').join(', '), contact: isObj(k.contact) ? cut(k.contact.name, 120) : '', item: isObj(k.item) ? cut(k.item.title, 120) : '', demo: k.demo === true ? 'yes' : 'no',
+                  })
+                }
+              })
+            }
+            const single = bizSlug(p.flow) !== ''
+            return table(PROVIDERS['pipeline.cards'].columns, bizComplete(rows, PROVIDERS['pipeline.cards'].columns), { xDomain: single && order.length > 0 ? { field: 'stage', values: order } : null, note: more ? 'A board longer than 2,000 cards is cut short.' : '' })
+          },
+        },
       }
       const PROVIDER_IDS = Object.keys(PROVIDERS)
 
@@ -335,6 +531,15 @@ window.__ModuleLoader__.load({
         const p = PROVIDERS[source && source.provider]
         if (p === undefined) return []
         return p.routes(obj(source.params), now)
+      }
+      /**
+       * The requests of a second round, for the providers whose first answers say what to ask next (the pages after the first, one board per flow):
+       * `parts` are the answers of `planFor`, keyed like the plan. [] for a provider with nothing more to ask, and for any failure.
+       */
+      const planNext = (source, parts, now) => {
+        const p = PROVIDERS[source && source.provider]
+        if (p === undefined || typeof p.next !== 'function') return []
+        try { return arr(p.next(obj(parts), obj(source.params), now)).slice(0, LIMITS.followUp) } catch (e) { return [] }
       }
       /** The table for a source, from the answers keyed like the plan. Never throws: a provider that cannot read its answer returns an empty table. */
       const buildTable = (source, parts, now) => {
@@ -572,6 +777,8 @@ window.__ModuleLoader__.load({
         const need = (w, cols, field, label, numeric) => {
           if (field === undefined || field === '' || cols === null) return
           const c = cols.find((x) => x.id === field)
+          // an open source (Catalog, Contacts) also carries the fields of the item's own type, which no catalogue can list: a plausible field key is not an error there
+          if (c === undefined && PROVIDERS[w.source.provider].open === true && FIELD_KEY.test(field)) return
           if (c === undefined) { out.push('widget "' + w.id + '": ' + label + ' "' + field + '" is not a column of ' + w.source.provider + ' (columns: ' + cols.map((x) => x.id).join(', ') + ')'); return }
           if (numeric === true && c.type !== 'number') out.push('widget "' + w.id + '": ' + label + ' "' + field + '" is ' + c.type + ', not a number (use agg "count", or a numeric column)')
         }
@@ -658,6 +865,8 @@ window.__ModuleLoader__.load({
           const p = PROVIDERS[id]
           return '- ' + id + ': ' + p.about + (Object.keys(p.params).length ? ' Params: ' + Object.keys(p.params).map((k) => k + ' (' + p.params[k] + ')').join('; ') + '.' : '')
             + ' Columns: ' + p.columns.map((c) => c.id + ':' + c.type).join(', ') + '.' + (p.period ? '' : ' No period filter: it shows the current state.')
+            + (p.open === true ? ' The fields of the item\'s own type are columns too, under their key.' : '')
+            + (p.sparse === true ? ' A column can be empty: add not_empty to where before an average, a minimum or a maximum.' : '')
         }).join('\n')
         const wid = WIDGET_TYPES.map((t) => '- ' + t + ' (default ' + WIDGETS[t].w + 'x' + WIDGETS[t].h + '): ' + WIDGETS[t].about).join('\n')
         return { providers: prov, widgets: wid }
@@ -947,7 +1156,7 @@ window.__ModuleLoader__.load({
         const kept = out.filter((l) => remap[l[0]].has(l[1]) && remap[l[2]].has(l[3])).map((l) => [l[0], remap[l[0]].get(l[1]), l[2], remap[l[2]].get(l[3]), l[4]])
         return { cols: nodes, links: kept, total: nodes[0].reduce((a, n) => a + n.v, 0), empty: kept.length === 0 }
       }
-      return { KIND, VERSION, LIMITS, slug, dayKey, PROVIDERS, PROVIDER_IDS, planFor, buildTable, supportsPeriod, CHART_KINDS, AGGS, TINTS, NODE_STATES, FORMATS, WIDGETS, WIDGET_TYPES, validateDashboard, emptyDashboard, inspectDashboard, shapeOf, sourcesOf, describeCatalogue, applyWhere, aggregate, formatNumber, stateTone, flowSources, measure, liveNode, cardData, chartData, listData, tableData, kanbanData, carouselData, calendarData, sankeyData }
+      return { KIND, VERSION, LIMITS, slug, dayKey, PROVIDERS, PROVIDER_IDS, planFor, planNext, buildTable, supportsPeriod, CHART_KINDS, AGGS, TINTS, NODE_STATES, FORMATS, WIDGETS, WIDGET_TYPES, validateDashboard, emptyDashboard, inspectDashboard, shapeOf, sourcesOf, describeCatalogue, applyWhere, aggregate, formatNumber, stateTone, flowSources, measure, liveNode, cardData, chartData, listData, tableData, kanbanData, carouselData, calendarData, sankeyData }
       })()
       const chart = (() => {
       // kybernos-dashboards: chart geometry and motion maths. Pure: numbers in, numbers and path strings out. No DOM, no clock,
@@ -1349,6 +1558,7 @@ window.__ModuleLoader__.load({
         .kbdb-ib[aria-pressed="true"]{background:var(--kbdb-hover2);color:var(--kbdb-t1)}
         .kbdb-pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding-inline:8px;border-radius:11px;background:var(--kbdb-hover);color:var(--kbdb-t2);font-size:12px;white-space:nowrap}
         .kbdb-pill.def{background:var(--kbdb-hover2);color:var(--kbdb-t1)}
+        .kbdb-pill.tpl{background:var(--kbdb-biz-t);color:var(--kbdb-t1)}
         .kbdb-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding-inline:12px;border-radius:14px;border:1px solid var(--kbdb-b2);background:transparent;font-size:12px;color:var(--kbdb-t2);white-space:nowrap}
         .kbdb-chip:hover{background:var(--kbdb-hover);color:var(--kbdb-t1)}
         .kbdb-chip[aria-pressed="true"]{background:var(--kbdb-hover2);color:var(--kbdb-t1)}
@@ -1766,7 +1976,13 @@ window.__ModuleLoader__.load({
             if (j === null) { if (req.optional !== true) failed++ } else parts[req.key] = j
           }))
           if (required > 0 && failed >= required) return { state: 'error', table: model.buildTable(source, {}, now), at: now, partial: false }
-          return { state: 'ok', table: model.buildTable(source, parts, now), at: now, partial: failed > 0 }
+          // a second round, for the sources whose first answers say what to ask next (the pages after the first, one board per flow); a page that fails leaves the table partial
+          let partial = failed > 0
+          await Promise.all(model.planNext(source, parts, now).map(async (req) => {
+            const j = await fetchRoute(req, fresh)
+            if (j === null) partial = true; else parts[req.key] = j
+          }))
+          return { state: 'ok', table: model.buildTable(source, parts, now), at: now, partial }
         }
 
         /** "just now", "5 min ago", "2 h ago", "3 d ago". */
@@ -1837,7 +2053,10 @@ window.__ModuleLoader__.load({
           const L = chart.columnsLayout({ series: data.series.map((s) => s.values), labelCount: n, W, H, mode: data.kind === 'stacked' ? 'stack' : 'group' })
           let g = ''
           for (const t of L.ticks) g += '<line class="gl" x1="' + L.plot.l + '" x2="' + (L.plot.l + L.plot.w) + '" y1="' + t.y + '" y2="' + t.y + '"/><text x="' + (L.plot.l - 6) + '" y="' + (t.y + 4) + '" text-anchor="end">' + esc(num(t.v, 'compact')) + '</text>'
-          for (const lb of L.labels) g += '<text x="' + lb.x + '" y="' + (H - 5) + '" text-anchor="middle">' + esc(fmtLabel(data.labels[lb.i].label, opts.lang)) + '</text>'
+          // two names that would touch are cut to the room they have (« Shortlist sent » next to « Searching » ran together on a phone); the tooltip has them whole
+          const gap = L.labels.length > 1 ? L.labels[1].x - L.labels[0].x : L.plot.w
+          const room = Math.max(3, Math.floor(gap / 6.4))
+          for (const lb of L.labels) g += '<text x="' + lb.x + '" y="' + (H - 5) + '" text-anchor="middle">' + esc(cutText(fmtLabel(data.labels[lb.i].label, opts.lang), room)) + '</text>'
           // one <g> per column, so hovering anywhere in the band lifts its bars
           for (const hit of L.hits) {
             const bars = L.bars.filter((b) => b.i === hit.i)
@@ -1861,14 +2080,18 @@ window.__ModuleLoader__.load({
         function paintBars (data, W, H, o) {
           const opts = o || {}
           const values = data.series[0].values
-          const L = chart.hbarsLayout({ values, W, H })
+          // The words of the rows get the room they need, up to two fifths of the chart: « Hand-poured soy candle » is read whole, not as « Hand-poured s… » (the tooltip had it, the page did not).
+          const longest = Math.max(1, ...data.labels.map((l) => String(l.label).length))
+          const chars = Math.max(14, Math.min(longest, Math.floor((W * 0.4) / 6.2)))
+          const labelW = Math.max(96, Math.round(chars * 6.2 + 14))
+          const L = chart.hbarsLayout({ values, W, H, labelW })
           let g = ''
           for (const t of L.ticks) g += '<line class="gl" x1="' + t.x + '" x2="' + t.x + '" y1="' + L.plot.t + '" y2="' + (L.plot.t + L.plot.h) + '"/><text x="' + t.x + '" y="' + (H - 3) + '" text-anchor="middle">' + esc(num(t.v, 'compact')) + '</text>'
           L.bars.forEach((b, i) => {
             const lab = data.labels[i]
             const tip = '<b>' + esc(lab.label) + '</b><span>' + esc(num(b.v)) + (data.unit ? ' ' + esc(data.unit) : '') + '</span>'
             g += '<g class="kbdb-row" data-tip="' + esc(tip) + '"><rect class="hit" x="0" y="' + r(b.y - (L.rowH - b.h) / 2) + '" width="' + W + '" height="' + L.rowH + '"/>'
-              + '<text x="' + (L.plot.l - 8) + '" y="' + (b.y + b.h - 3) + '" text-anchor="end" style="fill:var(--kbdb-t1)">' + esc(cutText(lab.label, 14)) + '</text>'
+              + '<text x="' + (L.plot.l - 8) + '" y="' + (b.y + b.h - 3) + '" text-anchor="end" style="fill:var(--kbdb-t1)">' + esc(cutText(lab.label, chars)) + '</text>'
               + (b.w > 0 ? '<path class="kbdb-hbar ' + (lab.tone !== undefined ? fillClass(i, lab.tone) : 'kbdb-s' + (lab.other ? 6 : 1)) + '" style="--i:' + stagger(i, L.bars.length) + '" d="' + chart.roundedRightPath(b.x, b.y, b.w, b.h, 4) + '"/>' : '')
               + '<text class="kbdb-val" style="--i:' + stagger(i, L.bars.length) + ';fill:var(--kbdb-t1)" x="' + r(b.x + b.w + 6) + '" y="' + (b.y + b.h - 3) + '">' + esc(num(b.v, 'compact')) + '</text></g>'
           })
@@ -2499,6 +2722,15 @@ window.__ModuleLoader__.load({
         // In scope: React, `model`, `chart`, the painters, data.js helpers and widgets.js components.
 
         let WANT_OPEN_ID = null // set by the pane ("Open full page") for the page to pick up
+        let OVERVIEW_LABEL = null // { en, fr }: the word of the « Overview » row of the Business group, as the host last said it (the template's own, else « Overview »)
+        /** The word of the Overview row in the page's language. */
+        const overviewWord = () => {
+          const l = OVERVIEW_LABEL
+          const w = l !== null && typeof l === 'object' ? String((langBase() === 'fr' ? l.fr : l.en) || l.en || '') : ''
+          return w !== '' ? w : kt('Vue d’ensemble', 'Overview')
+        }
+        /** Leaves the Overview for the Dashboards page, where every dashboard and the presets are. */
+        const openDashboardsPage = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'dashboards' }) } catch (e) { /* the page cannot be reached from here */ } }
 
         /** The last dashboard looked at, per browser (a convenience: the host stays the truth). */
         const lastOpened = {
@@ -2595,7 +2827,9 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbdb-banner', role: 'status', 'data-kb': 'dashboards-unreadable' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, lead + shown))
         }
 
-        function DashboardsPage () {
+        function DashboardsPage (props) {
+          // `overview`: this is the « Overview » row of the Business group, not the Dashboards page: it opens the person's copy of the installed template's overview and stays on it
+          const overview = props !== null && props !== undefined && props.overview === true
           const rootRef = useRef(null)
           const [list, setList] = useState(null)
           const [presets, setPresets] = useState([])
@@ -2654,6 +2888,13 @@ window.__ModuleLoader__.load({
             ;(async () => {
               const l = await refreshList()
               if (dead || l === null) { if (!dead) setScreen('gallery'); return }
+              if (overview) {
+                // the row opens the template's overview, made the first time; with none to open (the template was removed since the row was drawn) the gallery says so by being the gallery
+                const o = await api('POST', 'overview-copy', {})
+                if (dead) return
+                if (o.ok && typeof o.json.id === 'string') { await refreshList(); if (!dead) await open(o.json.id); return }
+                setScreen('gallery'); return
+              }
               // a suggestion of Kaby waits in its block of the gallery: it is never opened by itself, not even as the only dashboard
               const live = (l.dashboards || []).filter((d) => !d.archived && d.suggested !== true)
               const want = WANT_OPEN_ID; WANT_OPEN_ID = null
@@ -2743,8 +2984,8 @@ window.__ModuleLoader__.load({
           const header = screen === 'dash' && D !== null
             ? h('header', { className: 'kbdb-ph' },
               h('div', { className: 'kbdb-ph-l' },
-                h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
-                h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
+                h('div', { className: 'kbdb-crumb' }, overview ? h('span', { 'data-kb': 'crumb-overview' }, overviewWord()) : h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
+                overview ? h('h1', { className: 'kbdb-title', 'data-kb': 'overview-title' }, D.name) : h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
                   h('button', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': pop === 'switch', onClick: () => setPop(pop === 'switch' ? '' : 'switch') }, D.name, Ic('chev', 16)),
                   pop === 'switch' ? h('div', { className: 'kbdb-pop', role: 'listbox' },
                     h('span', { className: 'hd' }, kt('Tes dashboards', 'Your dashboards')),
@@ -2759,6 +3000,7 @@ window.__ModuleLoader__.load({
                     h('span', { className: 'hd' }, kt('Sources lues par ce dashboard', 'Sources this dashboard reads')),
                     sources.length === 0 ? h('span', { className: 'foot' }, kt('Aucune : ce dashboard ne contient que tes notes.', 'None: this dashboard only holds your notes.')) : sources.map((s) => h('div', { key: s.provider, className: 'src' }, h('span', { className: 'kbdb-dot', style: { marginTop: 6 } }), h('span', { className: 'tx' }, h('b', { style: { fontWeight: 500 } }, s.label), h('i', null, s.provider + ' · ' + s.widgets.length + ' widget' + (s.widgets.length > 1 ? 's' : ''))))),
                     h('span', { className: 'foot' }, kt('Les sources sont lues sur cet ordinateur. Un fichier dashboard ne peut lire que ces sources.', 'Sources are read on this computer. A dashboard file can only read these sources.'))) : null),
+                overview ? h('button', { type: 'button', className: 'kbdb-btn', 'data-act': 'all-dashboards', onClick: () => { flush(); openDashboardsPage() } }, kt('Tous les dashboards', 'All dashboards')) : null,
                 h('button', { type: 'button', className: 'kbdb-btn' + (busy ? ' busy' : ''), 'data-act': 'refresh', onClick: refresh }, h('span', { className: 'kbdb-spin' }, Ic('refresh', 14)), kt('Actualiser', 'Refresh')),
                 h('span', { className: 'kbdb-rel' },
                   h('button', { type: 'button', className: 'kbdb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': pop === 'history', onClick: async () => { if (pop === 'history') { setPop(''); return } await flush(); const r = await api('GET', 'revisions?id=' + encodeURIComponent(dash.id)); setRevs(r.ok ? r.json.revisions : []); setPop('history') } }, Ic('clock', 14), kt('Historique', 'History')),
@@ -2788,9 +3030,9 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kbdb-ib', 'data-more': '1', 'aria-label': kt('Actions', 'Actions'), 'aria-haspopup': 'menu', onClick: (e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenu(menu !== null && menu.id === d.id ? null : { id: d.id, x: Math.max(8, Math.min(window.innerWidth - 228, r.right - 220)), y: r.bottom + 6 }) } }, Ic('more', 16))),
             d.desc !== '' ? h('p', null, d.desc) : null,
             h('span', { className: 'kbdb-gmeta' }, h('span', { className: 'kbdb-pill' }, d.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, d.sources.length + ' ' + kt('sources', 'sources')), h('span', { className: 'kbdb-pill' }, d.by === 'agent' ? kt('par l’IA', 'by AI') : (d.by === 'preset' ? kt('depuis un preset', 'from a preset') : kt('par toi', 'by you'))), d.hidden ? h('span', { className: 'kbdb-pill' }, kt('masqué', 'hidden')) : null))
-          const presetCard = (p, i) => h('article', { key: p.id, className: 'kbdb-gcard', style: { '--i': Math.min(i, 8) }, 'data-kb': 'dashboards-preset', 'data-id': p.id },
+          const presetCard = (p, i) => h('article', { key: p.id, className: 'kbdb-gcard', style: { '--i': Math.min(i, 8) }, 'data-kb': 'dashboards-preset', 'data-id': p.id, 'data-template': p.template ? p.template.id : undefined },
             h(Mini, { shape: p.shape }), h('div', { className: 'gh' }, h('h3', null, p.name)), h('p', null, p.desc),
-            h('span', { className: 'kbdb-gmeta' }, h('span', { className: 'kbdb-pill' }, p.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, p.sources.length + ' ' + kt('sources', 'sources'))),
+            h('span', { className: 'kbdb-gmeta' }, p.template ? h('span', { className: 'kbdb-pill tpl', 'data-kb': 'preset-template' }, p.template.name) : null, h('span', { className: 'kbdb-pill' }, p.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, p.sources.length + ' ' + kt('sources', 'sources'))),
             h('div', { className: 'acts' }, h('button', { type: 'button', className: 'kbdb-btn sm', 'data-act': 'use-preset', onClick: () => usePreset(p) }, kt('Utiliser ce preset', 'Use this preset'))))
 
           let body
@@ -2833,7 +3075,8 @@ window.__ModuleLoader__.load({
             body = h(React.Fragment, null,
               conflict ? h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Ce dashboard a changé ailleurs (l’IA, un autre onglet). Tes dernières retouches ne sont pas enregistrées.', 'This dashboard changed elsewhere (the AI, another tab). Your last edits were not saved.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: async () => { await load(dash.id); setTick((x) => x + 1) } }, kt('Recharger', 'Reload'))) : null,
               D.widgets.length === 0 ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Ce dashboard est vide', 'This dashboard is empty')), h('span', null, kt('Dis à l’IA ce que tu veux y voir.', 'Tell the AI what you want to see here.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askImprove }, Ic('spark', 14), kt('Améliorer avec l’IA', 'Improve with AI')))
-                : h(DashboardView, { dash: D, tick, edit, flashIds: flash, onChange: change, onAsk: (kind) => { if (kind === 'add') askAdd() }, onRetry: refresh }))
+                // keyed by the dashboard: widgets of two dashboards share ids (chart-5, card-1…), and a widget that keeps its place between them keeps what it measured (a size from another chart, an unfinished entrance)
+                : h(DashboardView, { key: dash.id, dash: D, tick, edit, flashIds: flash, onChange: change, onAsk: (kind) => { if (kind === 'add') askAdd() }, onRetry: refresh }))
           } else body = null
 
           const menuItem = (key, icon, label, fn) => h('button', { key, type: 'button', className: 'o', onClick: async () => { setMenu(null); await fn() } }, Ic(icon, 14), label)
@@ -2847,6 +3090,9 @@ window.__ModuleLoader__.load({
           return h('div', { ref: rootRef, className: 'kbdb kbdb-page' + (edit && screen === 'dash' ? ' kbdb-editing' : ''), 'data-kb': 'dashboards-page', 'data-screen': screen },
             header, body, fpop, toast !== '' ? h('div', { className: 'kbdb-toast', role: 'status' }, toast) : null)
         }
+
+        /** The page of the « Overview » row: the Dashboards page, opened on the installed template's overview and kept there. */
+        function OverviewPage () { return h(DashboardsPage, { overview: true }) }
 
         /* ── the right-pane tab ── */
         function DashboardsPane () {
@@ -2888,7 +3134,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbdb-pane-h' }, h('span', { className: 'kbdb-dot live' }), h('span', { className: 'nm' }, dash.dashboard.name), h('span', { className: 'sp' }),
               h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Actualiser', 'Refresh'), onClick: () => { clearRoutes(); setTick((x) => x + 1) } }, Ic('refresh', 14)),
               h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Ouvrir en pleine page', 'Open full page'), title: kt('Ouvrir en pleine page', 'Open full page'), onClick: full }, Ic('ext', 14))),
-            h('div', { className: 'kbdb-pane-b' }, h(DashboardView, { dash: dash.dashboard, tick, edit: false, flashIds: flash, onChange: () => {}, onRetry: () => { clearRoutes(); setTick((x) => x + 1) } })))
+            h('div', { className: 'kbdb-pane-b' }, h(DashboardView, { key: dash.id, dash: dash.dashboard, tick, edit: false, flashIds: flash, onChange: () => {}, onRetry: () => { clearRoutes(); setTick((x) => x + 1) } })))
         }
 
         /* ── the player of the MiniApp door (Creations page, chat card, popup) ── */
@@ -2917,6 +3163,8 @@ window.__ModuleLoader__.load({
         const KIND = 'kybernos-dashboards'
         const SLOT_PANE = 'sidebar.right.pane.tab'
         const SLOT_PAGE = 'main.kybernos-dashboards'
+        const SLOT_BUSINESS = 'main.kybernos-business'
+        const OVERVIEW_ROW = 'overview'
         const STYLE_ID = 'kybernos-dashboards-styles'
 
         let CTX = null
@@ -2952,6 +3200,37 @@ window.__ModuleLoader__.load({
 
           // the page: the child slot the core's menu row opens
           ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, DashboardsPage)), 'kybernos-dashboards: page')
+
+          // The « Overview » row of the Business group: the dashboard an installed template ships (kybernos/dashboards#preset), on the business pages' own keyed slot. The row
+          // exists only while the host says a template ships one, so it follows an install and a removal without a reload: the host is asked now, quickly for the first
+          // seconds (the core builds window.__KB_MENU__ after this plugin), then every 20 s. It is taken back with the plugin.
+          ctx.effect(() => ctx.slots.inject(SLOT_BUSINESS, () => ctx.slots.register({ name: SLOT_BUSINESS, key: OVERVIEW_ROW }, OverviewPage)), 'kybernos-dashboards: overview page')
+          ctx.effect(() => {
+            let off = null
+            let shown = ''
+            let dead = false
+            let timer = 0
+            let asked = 0
+            const sync = async () => {
+              timer = 0
+              try {
+                const r = await api('GET', 'overview')
+                if (dead) return
+                const o = r.ok && r.json.overview ? r.json.overview : null
+                const want = o === null ? '' : JSON.stringify(o.label)
+                OVERVIEW_LABEL = o === null ? null : o.label
+                const menu = window.__KB_MENU__
+                if (want !== shown && menu !== undefined && menu !== null && typeof menu.register === 'function') {
+                  if (off !== null) { try { off() } catch (e) { /* already taken back */ } off = null }
+                  if (o !== null) off = menu.register({ id: OVERVIEW_ROW, group: 'business', icon: 'layoutDashboard', label: { en: String(o.label.en), fr: String(o.label.fr) }, order: 5 })
+                  shown = want
+                }
+              } catch (e) { /* the next question tries again */ }
+              if (!dead) { asked += 1; timer = setTimeout(sync, asked < 12 ? 1500 : 20000) }
+            }
+            sync()
+            return () => { dead = true; if (timer) clearTimeout(timer); if (off !== null) { try { off() } catch (e) { /* already taken back */ } } }
+          }, 'kybernos-dashboards: overview row')
 
           // the right-pane tab
           // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
@@ -3025,7 +3304,7 @@ window.__ModuleLoader__.load({
           // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
           inject: ['slots', 'sidebarRightTabs'],
           apply,
-          __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
+          __test: { OverviewPage, DashboardsPage, overviewWord, model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
         }
       })(model, chart)
     } catch (error) {

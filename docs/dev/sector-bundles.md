@@ -207,7 +207,12 @@ until those plugins are installed and have told their points to the registry, th
 node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
 ```
 
-Sample rows for the pages (so a new install is not empty) are not part of these three points: a theme keeps them in `demo/sample.json`, the argument of the base's `seed()`.
+A fourth folder, `dashboards/`, extends `kybernos/dashboards#preset` (owned by the Dashboards plugin, at most 4 files): a dashboard of the trade built from the three
+business sources (`catalog.items`, `contacts.people`, `pipeline.cards`) and the widgets the Dashboards plugin already has. It is data too and inert (no note, no free text);
+its rules and an example are in [`plugin-contract.md`](plugin-contract.md) section 6.2b. A theme that ships one names `kybernos/dashboards` (`^1.0`) in `requires.plugins`
+like the three owners above, and the Templates page lists the Dashboards among what the theme needs.
+
+Sample rows for the pages (so a new install is not empty) are not part of these points: a theme keeps them in `demo/sample.json`, the argument of the base's `seed()`.
 The three themes the product ships, with their sample rows, are described in [`shipped-themes.md`](shipped-themes.md).
 
 ## One complete `plugin.json`

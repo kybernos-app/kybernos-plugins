@@ -26,6 +26,9 @@ on this computer and read what DSH already holds. Get the exact list and columns
 | Installed skills | `skills.list` | no period |
 | Sessions that carry runs | `sessions.runs` | no period |
 | Files the teams produced | `deliverables.list` | no period |
+| What the business lists, sells or recruits for (properties, products, jobs) | `catalog.items` | no period; the Catalog page's items, with the fields of their type as columns; `type` limits it to one kind |
+| People and companies | `contacts.people` | no period; the Contacts page, with the fields of their type as columns |
+| Cards on the Pipeline boards (sales, orders, candidates) | `pipeline.cards` | no period; `flow` limits it to one board, and a chart of that board keeps its stages in order |
 
 ## Honest limits
 
@@ -36,6 +39,11 @@ on this computer and read what DSH already holds. Get the exact list and columns
 - **Messages and the busiest hour are not measured.** The usage ledger keeps tokens per day,
   model and session, nothing about messages or the time of day. Do not invent them.
 - **Automation history is short**: each automation keeps its last 20 runs.
+- **The business sources hold what the person put there, nothing more.** A card has the day it entered its stage, not a history
+  of stages, so "time in stage" is a number for today, never a trend. A column can be empty (a property without a mandate date):
+  add `not_empty` to `where` before an average, a minimum or a maximum. A date also comes as a number of days
+  (`mandate_until_in`, `due_in`: days until it, negative once past; `opened_ago`: days since it) because a filter compares numbers.
+  The sample rows a template brings have `demo` = `yes`: say so when a number is made of them.
 - **Connected apps are not sources yet.** If someone asks for Stripe, GitHub, Gmail or a
   calendar, say that dashboards read local data for now, and offer the closest local
   thing. Never put a made-up number in a note to fill the gap.

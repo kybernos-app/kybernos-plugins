@@ -36,9 +36,36 @@ computer, read when the page opens or you refresh. Nothing leaves the machine.
 | `teams.lessons` | `GET /kybernos-sessions/state` | no |
 | `skills.list` | `GET /kybernos-skills/skills` | no |
 | `sessions.runs` | `GET /kybernos/runs-index` | no |
+| `catalog.items` | `GET /kybernos-catalog/list` (pages of 500) and `GET /kybernos-catalog/types` | no |
+| `contacts.people` | `GET /kybernos-contacts/list` (pages of 500) and `GET /kybernos-contacts/schema` | no |
+| `pipeline.cards` | `GET /kybernos-pipeline/flows`, then `GET /kybernos-pipeline/board?flow=` per board (or the one named by `flow`) | no |
+
+The three **Business sources** read the pages of Contacts, Catalog and Pipeline (the person's own items, people and cards, sample rows
+included: `demo` is `yes` on those). They are read page by page, so the model has a second round: `planNext(source, answers)` returns the
+requests the first answers call for (the pages after the first, up to 2,000 rows; one board per flow, up to six), and a table that stops short
+says so in its note. A column is always there, `''` when the row has no value (a source here is *sparse*: add `not_empty` to a `where` before an
+average, a minimum or a maximum), and the fields of an item's own type are columns under their key (an *open* source: `stock`, `surface`, `opened`…,
+beside the declared ones). A field that holds a day also gives `<key>_in` (days until it, negative once past) and `<key>_ago` (days since it), and a
+card gives `due_in` and `days_in_stage`, because a `where` compares numbers, not dates. Stages and statuses are in the words of the template
+(`stage`, `status`), their keys beside (`stage_key`, `status_key`); with `flow` set a chart of `stage` keeps the board's order and shows an empty stage.
 
 A source without a period shows the current state, and the widget does not pretend otherwise. Money is not stored, only
 tokens, so a dashboard shows tokens. Connected apps (Stripe, GitHub, …) are **not** sources yet: see "Not built".
+
+## Dashboards a template ships (`kybernos/dashboards#preset`)
+
+A template (a data plugin: real estate, e-commerce, recruitment…) names the point in its `plugin.json` and ships `dashboards/<id>.json`: a name, a line,
+the word of its row in the menu, and widgets over the sources above, in the words of the trade. The plugin tells the point to the registry at boot
+and again until it is heard (`tellWhenReady`), checks every file with `preset-point.mjs` (the model's own validator, with nothing dropped or warned about;
+no note, no flow, no address) and lists the dashboards of the **installed** templates in *Presets*, ahead of the built-in ones, with the template's name on
+each card. Using one gives the person their own copy, like any preset; the copy remembers its preset (in `index.json`).
+
+While a template ships a dashboard marked `overview: true`, the *Business* group of the menu has a first row, **Overview** (the template's own `menu` word if it
+gives one), which opens the Dashboards page on the person's copy of that dashboard, made the first time, with a *All dashboards* button to the Dashboards page.
+The row is declared through `window.__KB_MENU__` and its page on the keyed slot `main.kybernos-business`: no core change. The contract is in
+`docs/dev/plugin-contract.md` (6.2b); `template-presets.mjs` holds `isOffered`, the one function that says whose presets are offered (an installed template
+today, the active one when "one template at a time" lands). Until the Dashboards plugin has told its point, a template that extends it is
+`missing-dependency` as a whole.
 
 ## A dashboard is a file, never code
 
@@ -70,9 +97,11 @@ All under `/kybernos-dashboards/`, served before DSH's own authentication, so ea
 | Route | Does |
 | --- | --- |
 | `GET state?session=&strict=1` | the dashboard a chat is working on (`strict`: never another chat's, so a page edit never opens the tab) |
-| `GET list`, `GET presets`, `GET dashboard?id=`, `GET revisions?id=` | read |
+| `GET list`, `GET presets`, `GET dashboard?id=`, `GET revisions?id=` | read (`presets`: the installed templates' first, each with `template: { id, name }`) |
+| `GET overview` | which dashboard the Overview row opens (`null`: no installed template ships one), its words, and the person's copy if there is one |
 | `POST save {id, dashboard, what, expectRev}` | the person's edit; a stale `expectRev` is a 409 |
 | `POST preset {preset, name?}`, `POST clone {id}`, `POST flags {id, hidden?, archived?, default?}` | gallery actions |
+| `POST overview-copy` | the person's copy of the Overview's dashboard, made the first time (its own path: the web server takes one handler per path) |
 | `POST open {id, session}`, `POST restore {id, rev}` | open in the pane, restore a revision |
 
 ## The agent's tool and skills
@@ -89,6 +118,8 @@ limits) are seeded into `<dsh home>/skills` on start; a copy the person edited i
 | --- | --- | --- |
 | `model.mjs` | both | Pure: providers, widget schema, validate, inspect, query, shapers. No DOM, no disk, no import. |
 | `chart-core.mjs` | both | Pure: scales, layouts (columns, bars, lines, donut, heatmap, sankey, flow) and motion maths (easings, count-up, stagger). |
+| `preset-point.mjs` | host | Pure: the point `kybernos/dashboards#preset` (the check of a template's dashboard). |
+| `template-presets.mjs` | host | Pure: the presets of the installed templates, `isOffered`, the Overview's pick and word. |
 | `presets.mjs` | host | The shipped dashboards, as data: usage, automations health, Agent Teams, workspace pulse, three that show a live flow and sankeys (automation pipeline, skill to deliverable, token routes) and two that rebuild the overview and the models views of a usage page (usage overview, usage by model). |
 | `dashboard-host.mjs` | host | Files, revisions, flags, the tool. No `ctx`: everything is injected. |
 | `index.js` | host | Wires DSH services: the tool, the guarded routes, the skills. |
@@ -99,8 +130,12 @@ limits) are seeded into `<dsh home>/skills` on start; a copy the person edited i
 ```bash
 cd packages/kybernos-dashboards
 node scripts/build.mjs        # client.js, after any change under src/ or the two pure modules
-node test-model.mjs && node test-chart-core.mjs && node test-presets.mjs && node test-host.mjs && node test-client.mjs
+node test-model.mjs && node test-chart-core.mjs && node test-presets.mjs && node test-point.mjs && node test-host.mjs && node test-client.mjs
 ```
+
+`scripts/test-business-dashboards.mjs` (repo level) installs each shipped template in a temp profile read by the real registry, seeds its sample rows into a real base, answers the
+routes with the real Catalog, Contacts and Pipeline code, draws every widget of every template dashboard and checks each number on a card against a direct count of the sample file.
+`scripts/check-business-dashboards-live.mjs` does it on the real GUI of a sandbox (screenshots included).
 
 `scripts/check-dashboards-render.mjs` (a `check-*`: it needs a Chromium and React from a node_modules, so CI does not run
 it) renders the real client in headless Chromium against the real host logic, takes screenshots and checks the motion.

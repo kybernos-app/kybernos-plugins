@@ -10,5 +10,9 @@
   "kybernos/pipeline": {
     "en": "Sales and lettings, from first enquiry to closing.",
     "fr": "Ventes et locations, de la première demande à la conclusion."
+  },
+  "kybernos/dashboards": {
+    "en": "An overview of your listings, sales, viewings and mandates.",
+    "fr": "Une vue d’ensemble de vos biens, ventes, visites et mandats."
   }
 }
