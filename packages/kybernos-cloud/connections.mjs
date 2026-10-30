@@ -15,6 +15,8 @@ export const connectionsPaths = Object.freeze({
   // The same catalogue and its logos with no token: what a person who is not signed in sees (kybernos-server, ADR 0008 addendum).
   catalogue: CONNECTIONS_BASE + '/catalogue',
   catalogueLogo: (slug) => CONNECTIONS_BASE + '/catalogue/logo?slug=' + encodeURIComponent(slug),
+  // The account's own logo route (older servers have only this one: it needs the token).
+  logo: (slug) => CONNECTIONS_BASE + '/logo?slug=' + encodeURIComponent(slug),
   link: CONNECTIONS_BASE + '/link',
   one: (id) => CONNECTIONS_BASE + '/' + encodeURIComponent(id),
 })
