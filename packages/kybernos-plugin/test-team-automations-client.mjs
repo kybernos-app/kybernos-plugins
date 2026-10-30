@@ -482,7 +482,6 @@ console.log('the lock of each word of the relay')
     ['plan_required', 'plan', 'Team automations come with the Team plan', 'See plans', null],
     ['offre_requise', 'plan', 'Team automations come with the Team plan', 'See plans', null],
     ['aucun_espace', 'personal', 'Team automations are for team spaces', 'Create a team', 'kybernos-cloud:open'],
-    ['not_on_this_server', 'server', 'Not available on this server', 'Open the Servers page', null],
     ['reconnect_required', 'reconnect', 'Your Kybernos session has expired', 'Sign in', 'kybernos-cloud:open'],
     ['network', 'net', 'The server could not be reached', 'Try again', null],
     ['forbidden', 'other', 'Team automations are not answering', 'Try again', null],
@@ -516,9 +515,10 @@ console.log('the lock of each word of the relay')
   check('a personal space gets the answer « plan » from the server, and the screen of a personal space (create a team / join with a link)', kb(root, 'team-locked')[0].props['data-lock'] === 'personal' && kb(root, 'team-lock-create').length === 1 && kb(root, 'team-lock-join').length === 1 && !page(root).includes('Team plan'))
   w.lock = { ok: false, error: 'not_on_this_server' }
   root = await mountTeam(w)
-  world.opened.length = 0
-  await click(root, kb(root, 'team-lock-servers')[0])
-  check('« Open the Servers page » opens Settings on the Servers page', JSON.stringify(world.opened) === '[["kybernos-servers"]]', world.opened)
+  {
+    const lock = kb(root, 'team-locked')[0]
+    check('not_on_this_server → « Soon »: greyed, the chip, a sentence, and no button at all (the server half is not built: nothing to open, nothing to retry)', lock !== undefined && lock.props['data-lock'] === 'soon' && kb(root, 'team-soon').length === 1 && page(root).includes('Team automations are coming soon') && all(lock, (n) => n.tag === 'button' || n.tag === 'a').length === 0 && kb(root, 'team-lock-servers').length === 0, page(root).slice(0, 160))
+  }
   w.lock = { ok: false, error: 'network' }
   root = await mountTeam(w)
   w.lock = null
@@ -528,7 +528,7 @@ console.log('the lock of each word of the relay')
   LANG = 'kybernos'
   w.lock = { ok: false, error: 'not_on_this_server' }
   root = await mountTeam(w)
-  check('in French the lock speaks French (title, sentence, button)', page(root).includes('Indisponible sur ce serveur') && page(root).includes('Ouvrir la page Serveurs') && !/[A-Z][a-z]+ [a-z]+ (the|your|team)/.test(page(root)), page(root).slice(0, 200))
+  check('in French the lock speaks French (chip, title, sentence)', page(root).includes('Bientôt') && page(root).includes('arrivent bientôt') && !page(root).includes('Serveurs') && !/[A-Z][a-z]+ [a-z]+ (the|your|team)/.test(page(root)), page(root).slice(0, 200))
   LANG = 'en'
 }
 
