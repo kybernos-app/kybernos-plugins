@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   CONNECTION_TOOLS, MAX_RESULT_CHARS, STATUSES, asApp, asAppList, asConnection, asConnectionList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit,
-  linkBody, rpcCall, rpcOutcome, safeRedirect,
+  linkBody, rpcCall, rpcOutcome, safeLogo, safeRedirect,
 } from './connections.mjs'
 
 let pass = 0
@@ -91,7 +91,7 @@ const KEY = 'sk-live-THIS-IS-AN-API-KEY-9876543210'
   assert.equal(asConnectionList({ connections: [{ id: C1, toolkit: 'a', status: 'active' }, { id: C2, toolkit: 'b', status: 'pending' }] }).count, 2, 'without its number, what was read')
   ok('the list maps its rows, quietly drops what is no row, and keeps "2 of 3" and the stale flag')
 
-  assert.deepEqual(asApp({ slug: 'gmail', name: 'Gmail', categories: ['email', 5], description: 'Mail', logo: 'https://logos.example/x.svg', needs_api_key: false }), { slug: 'gmail', name: 'Gmail', categories: ['email'], description: 'Mail', needsApiKey: false })
+  assert.deepEqual(asApp({ slug: 'gmail', name: 'Gmail', categories: ['email', 5], description: 'Mail', logo: 'https://logos.example/x.svg', needs_api_key: false }), { slug: 'gmail', name: 'Gmail', categories: ['email'], description: 'Mail', logo: true, needsApiKey: false })
   assert.equal(asApp({ slug: 'x', name: 'X', needs_api_key: true }).needsApiKey, true)
   assert.equal(asApp({ slug: 'x' }).name, 'x')
   assert.equal(asApp({ slug: 'BAD SLUG', name: 'x' }), null)
@@ -151,8 +151,9 @@ const api = createServer((req, res) => {
     try { body = raw === '' ? null : JSON.parse(raw) } catch (e) { body = '<<not json>>' }
     seen.push({ method: req.method, url: req.url, auth: req.headers.authorization || null, body, raw })
     const a = answer(req, body)
-    res.writeHead(a.status, { 'content-type': 'application/json' })
-    res.end(JSON.stringify(a.body))
+    // `raw`: a text answer as it is (a logo), not JSON.
+    res.writeHead(a.status, { 'content-type': a.raw === undefined ? 'application/json' : 'image/svg+xml' })
+    res.end(a.raw === undefined ? JSON.stringify(a.body) : a.raw)
   })
 })
 await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
@@ -187,7 +188,8 @@ try {
   assert.deepEqual(paths.map((p) => route(p).method), ['GET', 'GET', 'GET', 'POST', 'POST'])
   for (const p of [BASE + '/link', BASE + '/delete']) assert.ok(route(p).cap <= 16384, p + ' takes a small body')
   assert.equal(new Set(mod.ROUTES.map((r) => r.path)).size, mod.ROUTES.length, 'no two routes share a path')
-  ok('five routes, all behind the same-origin guard, small bodies, no path shared')
+  assert.deepEqual([route(BASE + '/logo').method, route(BASE + '/logo').guarded, route(BASE + '/logo').raw], ['GET', true, true], 'the logo route is the one raw (non-JSON) answer, behind the same guard')
+  ok('five routes and a raw logo route, all behind the same-origin guard, small bodies, no path shared')
 
   // a server that does not offer connections, and an account that is not connected: nothing leaves the machine
   writeState(connected)
@@ -204,7 +206,7 @@ try {
   registry(MCP)
   rmSync(STATE, { force: true })
   reset()
-  for (const [p, q, b] of [[BASE], [BASE + '/apps'], [BASE + '/item', 'id=' + C1], [BASE + '/link', undefined, { toolkit: 'gmail' }], [BASE + '/delete', undefined, { id: C1 }]]) {
+  for (const [p, q, b] of [[BASE], [BASE + '/item', 'id=' + C1], [BASE + '/link', undefined, { toolkit: 'gmail' }], [BASE + '/delete', undefined, { id: C1 }]]) {
     assert.deepEqual(await call(p, q, b), { ok: false, offered: true, connected: false, error: 'non connecte' }, p)
   }
   assert.equal(seen.length, 0, 'not connected: not one call to the server')
@@ -235,16 +237,63 @@ try {
   assert.equal((await call(BASE)).error, 'invalid_response')
   ok('list: the account\'s own token in the header only, ?refresh=1 passed on only when it is exactly that, "2 of 3" and stale kept, nothing of the third party')
 
-  // the catalogue
+  // the catalogue: the public route first, with no token, so a person who is not signed in sees all of it
+  const APPS = [{ slug: 'gmail', name: 'Gmail', categories: ['email'], logo: '/v1/connections/catalogue/logo?slug=gmail', description: 'Mail' }, { slug: 'notion', name: 'Notion', needs_api_key: true }]
   reset()
-  answer = () => ({ status: 200, body: { configured: true, apps: [{ slug: 'gmail', name: 'Gmail', categories: ['email'], logo: 'https://l.test/g.svg', description: 'Mail' }, { slug: 'notion', name: 'Notion', needs_api_key: true }] } })
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
   const apps = await call(BASE + '/apps')
-  assert.deepEqual([apps.ok, apps.apps.map((a) => a.slug), apps.apps[1].needsApiKey], [true, ['gmail', 'notion'], true])
-  assert.deepEqual([seen[0].method, seen[0].url, seen[0].auth], ['GET', '/v1/connections/apps', 'Bearer ' + TOKEN])
-  assert.equal(leaks(apps, 'l.test'), false)
+  assert.deepEqual([apps.ok, apps.apps.map((a) => a.slug), apps.apps[1].needsApiKey, apps.apps.map((a) => a.logo), apps.source, apps.connected], [true, ['gmail', 'notion'], true, [true, false], 'public', true])
+  assert.deepEqual([seen.length, seen[0].method, seen[0].url, seen[0].auth], [1, 'GET', '/v1/connections/catalogue', null], 'the public route, and the token does not go with it')
+  assert.equal(leaks(apps), false)
+  assert.equal(leaks(apps, '/v1/connections/catalogue/logo'), false, 'a logo address of the server never reaches the page: it asks this host')
   answer = () => ({ status: 200, body: { configured: false, apps: [] } })
   assert.deepEqual([(await call(BASE + '/apps')).configured, (await call(BASE + '/apps')).apps], [false, []])
-  ok('catalogue: fetched with the token, a module that is switched off says configured:false')
+  // not signed in: the same, and still no token
+  rmSync(STATE, { force: true })
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  const anon = await call(BASE + '/apps')
+  assert.deepEqual([anon.ok, anon.connected, anon.apps.length, anon.source, seen.length, seen[0].auth], [true, false, 2, 'public', 1, null], 'not signed in: the whole catalogue, from the public route')
+  // a server with no public route yet: a signed-in person still gets the account's route, a person who is not is told to sign in
+  reset()
+  answer = (req) => (req.url === '/v1/connections/catalogue' ? { status: 404, body: { error: 'not_found' } } : { status: 200, body: { configured: true, apps: APPS } })
+  assert.deepEqual(await call(BASE + '/apps'), { ok: false, offered: true, connected: false, error: 'non connecte' })
+  writeState(connected)
+  seen.length = 0
+  const older = await call(BASE + '/apps')
+  assert.deepEqual([older.ok, older.source, older.apps.length, seen.map((c) => c.url), seen.map((c) => c.auth)], [true, 'account', 2, ['/v1/connections/catalogue', '/v1/connections/apps'], [null, 'Bearer ' + TOKEN]])
+  ok('catalogue: the public route first and with no token (signed in or not), an older server falls back to the account\'s route, a module that is switched off says configured:false')
+
+  // the logos: always the public route, a plain SVG only, a day in memory, one raw answer
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><defs><linearGradient id="a"/></defs><path fill="url(#a)" d="M0 0h8v8z"/></svg>'
+  const logo = (slug) => route(BASE + '/logo').run({ url: BASE + '/logo?slug=' + encodeURIComponent(slug) })
+  reset()
+  answer = () => ({ status: 200, raw: SVG })
+  const got = await logo('gmail')
+  assert.deepEqual([got.status, got.type, got.body, got.maxAge], [200, 'image/svg+xml', SVG, 86400])
+  assert.deepEqual([seen.length, seen[0].url, seen[0].auth], [1, '/v1/connections/catalogue/logo?slug=gmail', null], 'the public logo route, no token')
+  await logo('gmail')
+  assert.equal(seen.length, 1, 'a logo is kept in memory: the second ask makes no call')
+  const both = await Promise.all([logo('slack'), logo('slack')])
+  assert.deepEqual([both[0].status, both[1].status, seen.length], [200, 200, 2], 'two asks for one logo at once make one call')
+  for (const evil of ['<svg><script>alert(1)</script></svg>', '<svg onload="x()"/>', '<svg><image href="https://evil.test/p.png"/></svg>', '<svg><path style="fill:url(https://evil.test/x)"/></svg>', '<html><body>hi</body></html>', '<svg><foreignObject><iframe/></foreignObject></svg>']) {
+    answer = () => ({ status: 200, raw: evil })
+    const r = await logo('evil' + Math.abs(evil.length))
+    assert.equal(r.status, 404, evil)
+    assert.equal(r.body, undefined, 'nothing of a refused picture is passed on')
+  }
+  assert.equal(safeLogo(SVG), true)
+  answer = () => ({ status: 404, body: { error: 'not_found' } })
+  assert.equal((await logo('nothere')).status, 404)
+  seen.length = 0
+  for (const bad of ['', 'GitHub', '../x', 'a b', 'x'.repeat(65), 'a/b']) assert.equal((await logo(bad)).status, 404, String(bad))
+  assert.equal((await route(BASE + '/logo').run({ url: BASE + '/logo' })).status, 404)
+  assert.equal(seen.length, 0, 'a slug that is no toolkit is refused before any call')
+  registry(false)
+  assert.equal((await logo('gmail2')).status, 404)
+  assert.equal(seen.length, 0, 'a server without connections is never asked for a logo')
+  registry(MCP)
+  ok('logos: the public route and never the token, a plain SVG only (script, handler, outside reference, HTML refused), a day in memory, one call for two asks, no call for a bad slug or a server without connections')
 
   // one connection, polled
   reset()

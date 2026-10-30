@@ -70,6 +70,11 @@ switch off, delete.
   (it is read when DSH starts); the page says so. The on-page « Yours » switch writes the same choice.
 - **Discover**: twelve known apps (`POPULAR`) in their own « Popular » section above « All apps », drawn with the same cards. Any search
   or filter shows one list, as before.
+- **Discover is open to everyone; connecting is not.** The whole catalogue (about 1,600 apps) shows with nobody signed in, and a pill beside the tabs says
+  who connects (not signed in, Kybernos account, own Composio key). Opening an app where nothing yet lets the person connect shows the **gate** instead of « Add a connection »:
+  a free Kybernos account (recommended: the pairing runs in the page, then the Kybernos add window opens for that very app) or the person's own
+  Composio key (smaller, folded; saved on this machine by the host like Settings › Connectors does). With a key or a signed-in account there is no gate; with an
+  account whose plan has no connections the gate says so and keeps the key. A check against a real DSH: `scripts/check-connectors-gate-live.mjs`.
 - **Add menu**: « API from an OpenAPI spec » and « Add with AI » next to the form and the JSON paste.
   - OpenAPI (`openapi.mjs`, routes `GET|POST /kybernos/composio/openapi`): JSON OpenAPI 3 specs only. Step 1 reads the spec anonymously
     (the key never goes where the spec is hosted), step 2 picks operations (reads on, writes off) and the host registers one native tool
@@ -195,8 +200,8 @@ All paths are under the DSH home, resolved like DSH does (`$DSH_HOME` when set, 
   `@deepseek-ai/dsh-api-remotes` among seven client dependencies.
 - Network: from the host, `https://connect.composio.dev/mcp` and
   an app-list address ONLY when `KYBERNOS_COMPOSIO_APPS_URL` is set (a public list; the old Composio proxy was the default, it is not any
-  more: the new server's `GET /v1/connections/apps` needs the account's token, so the page's "Load the full catalog" asks the cloud plugin's host
-  route `/kybernos-cloud/connections/apps` instead, and the host half scans against the local catalog unless that variable is set); a server's own address when it is tested; links to
+  more: Discover reads the whole catalogue, about 1,600 apps with their logos, through the cloud plugin's host route `/kybernos-cloud/connections/apps`,
+  which asks the Kybernos server's public catalogue and needs no sign-in; the host half scans against the local catalog unless that variable is set); a server's own address when it is tested; links to
   `https://dashboard.composio.dev/`. The page itself never contacts Composio.
 
 ## Tests
@@ -239,7 +244,8 @@ mangled markup the cloud repo carries, checks every logo and stops on a defect.
 - The state of a server needs DSH's `pluginInventory` service; without it the row only says "Configured".
 - `catalog` and `connections` have no `Origin` check. Every route that WRITES (the key, the accounts, the connectors, their folders, the test that starts a connector's command, the provider, the API connectors) needs a strict same-origin request AND DSH's signed browser-session cookie, like the terminal's run route (`session-guard.mjs`, `test-write-guard.mjs`): a request with no Origin is a 403, one with the right Origin and no cookie is a 401. The spec address of an API connector is fetched with no redirect followed.
 - The local catalog is 100 apps (the Airparser logo cannot be rebuilt from the cloud repo: it shows the app's
-  initial); "Load the full catalog" fetches the rest of the names from the Kybernos proxy.
+  initial); Discover loads the server's whole catalogue by itself when it opens (names, categories, descriptions; logos through `/kybernos-cloud/connections/logo`, a
+  letter when one does not come). The local 100 stay when that fails, and « Load the full catalog » appears to try again.
 - UI strings exist in French and English only; French is the default for `kybernos` and `fr`, English for every
   other locale.
 - About twenty `kb7-*` class names are defined both here and in the kybernos bundle's sheet for this tab (it

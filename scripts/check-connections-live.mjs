@@ -175,7 +175,9 @@ try {
   if (first.length < 3 || !first.some((r) => r.status === 'active') || !first.some((r) => r.status === 'pending')) stop('the list did not load: ' + JSON.stringify(first) + ' (the stand-in was asked ' + calls.filter((c) => c.path.startsWith('/v1/connections')).length + ' time(s) about connections)')
   check('each row has its state: two active, one pending', first.filter((r) => r.status === 'active').length === 2 && first.filter((r) => r.status === 'pending').length === 1, first)
   check('the quota is shown: 3 of 4', /3\D+4/.test(String(await text('.kbcp-kcmeter'))), await text('.kbcp-kcmeter'))
-  check('the stand-in saw the account\'s own token and nothing else of the person', calls.filter((c) => c.path.startsWith('/v1/connections')).every((c) => c.auth === 'Bearer ' + TOKEN))
+  // The two public routes (`/v1/connections/catalogue`, `/catalogue/logo`) are asked with no token at all: this stand-in does not have them (404), the page falls back to the account route.
+  const isPublic = (c) => c.path.startsWith('/v1/connections/catalogue')
+  check('the stand-in saw the account\'s own token on every account route, and no token on the public ones', calls.filter((c) => c.path.startsWith('/v1/connections') && !isPublic(c)).every((c) => c.auth === 'Bearer ' + TOKEN) && calls.filter(isPublic).every((c) => c.auth === null))
   await shot('02-list')
 
   console.log('row actions')
