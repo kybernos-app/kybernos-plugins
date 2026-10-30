@@ -558,6 +558,25 @@ ok('a view is refused when it does not fit the object, and another object\'s vie
   assert.equal(db.removeView('ghost', 'x').code, 'unknown-object')
 })
 
+ok('viewStamps says who last saved each view, and counts the saves', () => {
+  const { db } = make()
+  const a = db.saveView('task', { name: 'Open', kind: 'table' }, 'kaby-agent')
+  assert.deepEqual(Object.keys(db.viewStamps('task')), [a.view.id])
+  const s1 = db.viewStamps('task')[a.view.id]
+  assert.equal(s1.rev, 1)
+  assert.equal(s1.by, 'kaby-agent')
+  assert.match(s1.at, /^\d{4}-\d\d-\d\dT/)
+  db.saveView('task', { ...a.view, fav: true }, 'person')
+  const s2 = db.viewStamps('task')[a.view.id]
+  assert.deepEqual([s2.rev, s2.by], [2, 'person'])
+  db.saveView('task', { ...a.view, fav: true }, 'kaby-agent')
+  assert.equal(db.viewStamps('task')[a.view.id].by, 'person', 'a save that changes nothing leaves the stamp alone')
+  assert.deepEqual(db.viewStamps('note'), {})
+  db.removeView('task', a.view.id)
+  assert.deepEqual(db.viewStamps('task'), {})
+  assert.throws(() => db.viewStamps('ghost'))
+})
+
 ok('verify() reports a view that no longer fits its object', () => {
   const { db, file } = make()
   db.saveView('task', { id: 'v1', name: 'Doing', kind: 'table', state: { flt: { conj: 'and', items: [{ k: 'status', op: 'is', v: 'doing' }] } } }, 'noor')
@@ -696,6 +715,31 @@ ok('a blob that was changed on disk is not served, and a name that is not a hash
 })
 
 // ---------------------------------------------------------------- the folder of dbs
+ok('the fingerprint moves with any change of structure, record or view, and with nothing else', () => {
+  const { db } = make()
+  let last = db.fingerprint()
+  const moved = (label) => { const s = db.fingerprint(); assert.notEqual(s, last, label + ' moves the fingerprint'); last = s; assert.equal(db.fingerprint(), s, 'reading does not') }
+  const made = db.create('task', { title: 'a' }, 'noor')
+  moved('a record created')
+  db.update('task', made.record.id, { title: 'b' }, 'noor')
+  moved('a record changed')
+  db.remove('task', made.record.id, 'noor')
+  moved('a record deleted')
+  db.restore('task', made.record.id, 'noor')
+  moved('a record restored')
+  db.addField('task', { key: 'extra', type: 'text', label: 'Extra' }, 'noor')
+  moved('a field added')
+  const v = db.saveView('task', { name: 'V', kind: 'table' }, 'noor')
+  moved('a view created')
+  db.saveView('task', { ...v.view, name: 'W' }, 'noor')
+  moved('a view renamed')
+  db.removeView('task', v.view.id)
+  moved('a view removed')
+  const before = db.fingerprint()
+  db.update('task', made.record.id, { title: 'b' }, 'noor')
+  assert.equal(db.fingerprint(), before, 'a change that changes nothing leaves it')
+})
+
 ok('a folder of dbs lists them by their own meta and opens them by id', () => {
   const dir = fresh()
   const reg = openRegistry(dir, { now: clock().now, random: sequence() })

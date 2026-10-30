@@ -21,17 +21,28 @@
   "pricing": "free",
   "package": "@local/kybernos-db",
   "entry": {
-    "host": "index.js"
+    "host": "index.js",
+    "client": "client.js"
   },
   "requires": {
-    "kybernos": ">=0.1.0"
+    "kybernos": ">=0.1.0",
+    "plugins": {
+      "kybernos/core": "^1.0"
+    }
   },
   "permissions": [
+    "ui.slot:main.kybernos-business",
+    "host.routes:/kybernos-db:write",
     "fs.read:dsh-home",
     "fs.write:dsh-home",
     "agent.prompt",
     "agent.tools"
   ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-db"
+    ]
+  },
   "help": "help.json",
   "suite": {
     "default": "off"

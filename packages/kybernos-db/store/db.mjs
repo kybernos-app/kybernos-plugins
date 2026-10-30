@@ -335,6 +335,13 @@ function makeDb (handle, file, ports) {
     const row = prepare('SELECT json FROM views WHERE object = ? AND id = ?').get(need(objectKey).key, String(id))
     return row === undefined ? null : JSON.parse(row.json)
   }
+  /** Who last saved each view of an object and when: `{ [id]: { rev, by, at } }`, so a page can tell its own save from the agent's. */
+  const viewStamps = (objectKey) => {
+    live()
+    const out = {}
+    for (const r of prepare('SELECT id, rev, modified_by, modified_at FROM views WHERE object = ?').all(need(objectKey).key)) out[r.id] = { rev: Number(r.rev), by: r.modified_by, at: r.modified_at }
+    return out
+  }
   const removeView = (objectKey, id) => write(() => {
     const obj = objOf(objectKey)
     if (!obj) return refuse('unknown-object', 'no such object')
@@ -345,6 +352,17 @@ function makeDb (handle, file, ports) {
     live()
     const meta = Object.fromEntries(prepare('SELECT k, v FROM meta').all().map((r) => [r.k, r.v]))
     return { id: meta.id, name: meta.name, format: FORMAT, version: catalog().version, created: { by: meta.created_by, at: meta.created_at } }
+  }
+
+  /**
+   * A short text (the fingerprint) that changes whenever anything in the db does: the structure, a record (the journal moves, raw SQL included once the triggers write it) or a
+   * view. A page polls it to know when to read again; two equal fingerprints mean nothing changed in between.
+   */
+  const fingerprint = () => {
+    live()
+    const ops = prepare('SELECT COALESCE(MAX(seq), 0) AS n FROM ops').get().n
+    const views = prepare('SELECT COUNT(*) AS n, COALESCE(SUM(rev), 0) AS r FROM views').get()
+    return [catalog().version, Number(ops), Number(views.n), Number(views.r)].join('.')
   }
 
   /** Stores a file next to the db and gives the value to put in an attachment field: `{ ok: true, file: { name, size, type, hash } }`. */
@@ -362,6 +380,7 @@ function makeDb (handle, file, ports) {
     file,
     blobs,
     info,
+    fingerprint,
     objects: () => { live(); return structuredClone(catalog().objects) },
     addObject,
     addField,
@@ -370,6 +389,7 @@ function makeDb (handle, file, ports) {
     saveView,
     listViews,
     getView,
+    viewStamps,
     removeView,
     create,
     update,
