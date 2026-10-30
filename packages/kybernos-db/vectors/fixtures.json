@@ -1,0 +1,81 @@
+{
+  "doc": "Shared by every suite. A string equal to a key of `alias` stands for its value (so a case reads #T01, not a 26-character id). `labels` is what ctx.label answers for a person or a record id. Today is Friday 2026-10-30 and « me » is noor.",
+  "today": "2026-10-30",
+  "me": "noor",
+  "alias": {
+    "#T01": "01JBTASK000000000000000001",
+    "#T02": "01JBTASK000000000000000002",
+    "#T03": "01JBTASK000000000000000003",
+    "#T04": "01JBTASK000000000000000004",
+    "#T05": "01JBTASK000000000000000005",
+    "#T06": "01JBTASK000000000000000006",
+    "#T07": "01JBTASK000000000000000007",
+    "#T08": "01JBTASK000000000000000008",
+    "#T09": "01JBTASK000000000000000009",
+    "#P1": "01JBPRJT000000000000000001",
+    "#P2": "01JBPRJT000000000000000002",
+    "#X1": "01JBXACT000000000000000001",
+    "#X2": "01JBXACT000000000000000002",
+    "#X3": "01JBXACT000000000000000003",
+    "#X4": "01JBXACT000000000000000004",
+    "#X5": "01JBXACT000000000000000005",
+    "#X6": "01JBXACT000000000000000006",
+    "#X7": "01JBXACT000000000000000007"
+  },
+  "labels": {
+    "noor": "Noor",
+    "ines": "Inès",
+    "#P1": "Launch",
+    "#P2": "Accounting",
+    "#T01": "Write launch post",
+    "#T02": "Fix invoice rounding",
+    "#T03": "Plan Q4 retro",
+    "#T04": "Update price list"
+  },
+  "objects": {
+    "task": {
+      "key": "task",
+      "label": "Tasks",
+      "title": "title",
+      "fields": [
+        { "key": "title", "type": "text", "label": "Title", "required": true, "protection": "normal" },
+        { "key": "status", "type": "choice", "label": "Status", "required": false, "protection": "normal", "options": [{ "key": "todo", "label": "To do", "color": "gray" }, { "key": "doing", "label": "Doing", "color": "blue" }, { "key": "done", "label": "Done", "color": "green" }] },
+        { "key": "assignee", "type": "person", "label": "Assignee", "required": false, "protection": "normal" },
+        { "key": "due", "type": "date", "label": "Due", "required": false, "protection": "normal" },
+        { "key": "estimate", "type": "number", "label": "Estimate (days)", "required": false, "protection": "normal" },
+        { "key": "budget", "type": "money", "label": "Budget", "required": false, "protection": "normal", "currency": "EUR", "precision": 2 },
+        { "key": "urgent", "type": "checkbox", "label": "Urgent", "required": false, "protection": "normal" },
+        { "key": "tags", "type": "multichoice", "label": "Tags", "required": false, "protection": "normal", "options": [{ "key": "bug", "label": "Bug" }, { "key": "ui", "label": "UI" }, { "key": "api", "label": "API" }] },
+        { "key": "project", "type": "relation", "label": "Project", "required": false, "protection": "normal", "to": "project", "many": false },
+        { "key": "depends", "type": "relation", "label": "Depends on", "required": false, "protection": "normal", "to": "task", "many": true },
+        { "key": "files", "type": "attachment", "label": "Files", "required": false, "protection": "normal", "maxBytes": 26214400 },
+        { "key": "site", "type": "url", "label": "Site", "required": false, "protection": "normal" },
+        { "key": "contact", "type": "email", "label": "Contact", "required": false, "protection": "personal" },
+        { "key": "phone", "type": "phone", "label": "Phone", "required": false, "protection": "sensitive" },
+        { "key": "notes", "type": "longtext", "label": "Notes", "required": false, "protection": "secret" }
+      ]
+    },
+    "note": {
+      "key": "note",
+      "label": "Notes",
+      "title": "name",
+      "fields": [
+        { "key": "name", "type": "text", "label": "Name", "required": true, "protection": "normal" },
+        { "key": "body", "type": "longtext", "label": "Body", "required": false, "protection": "normal" }
+      ]
+    }
+  },
+  "records": {
+    "task": [
+      { "id": "#T01", "values": { "title": "Write launch post", "status": "doing", "assignee": "noor", "due": "2026-10-31", "estimate": 3, "budget": 120, "urgent": true, "tags": ["ui"], "project": "#P1", "files": [{ "name": "brief.pdf", "size": 120000, "type": "application/pdf", "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" }], "site": "https://example.com/launch" } },
+      { "id": "#T02", "values": { "title": "Fix invoice rounding", "status": "todo", "assignee": "ines", "due": "2026-10-30", "estimate": 1.5, "budget": 0, "urgent": true, "tags": ["bug", "api"], "project": "#P2", "depends": ["#T01"], "contact": "ines@example.com" } },
+      { "id": "#T03", "values": { "title": "Plan Q4 retro", "status": "todo", "assignee": "noor", "due": "2026-11-12", "estimate": 2, "urgent": false, "project": "#P1", "depends": ["#T01", "#T02"] } },
+      { "id": "#T04", "values": { "title": "Update price list", "status": "done", "assignee": "ines", "due": "2026-10-20", "estimate": 4, "budget": 450.5, "urgent": false, "tags": ["ui"], "project": "#P2" } },
+      { "id": "#T05", "values": { "title": "Éclair photo shoot", "status": "doing", "budget": 80, "urgent": false, "tags": ["ui", "bug"], "notes": "photographer: Camille" } },
+      { "id": "#T06", "values": { "title": "Call supplier", "status": "todo", "assignee": "noor", "due": "2026-10-27", "estimate": 0.5, "urgent": false, "phone": "+33 1 23 45 67 89" } },
+      { "id": "#T07", "values": { "title": "écran test", "status": "done", "assignee": "noor", "due": "2026-11-29", "estimate": 8, "budget": 1200, "urgent": false, "tags": ["api"], "notes": "launch codes" } },
+      { "id": "#T08", "values": { "title": "Old draft", "status": "todo", "assignee": "ines", "due": "2026-10-05", "urgent": false }, "deleted": { "by": "noor", "at": "2026-10-06T08:00:00.000Z" } }
+    ],
+    "note": []
+  }
+}
