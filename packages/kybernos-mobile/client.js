@@ -406,7 +406,10 @@ window.__ModuleLoader__.load({
             if (t === null || t === undefined || typeof t.closest !== 'function') return
             const modal = t.closest('[data-shortcut-modal="settings"]')
             if (modal === null) return
-            const page = modal.children !== undefined ? modal.children[1] : null
+            // The box that carries the "back" bar: the title strip when DSH draws the panel flat (0.2.2: strip, nav, header, page), the page next to the nav before.
+            const first = modal.children !== undefined ? modal.children[0] : null
+            const flat = first !== undefined && first !== null && first.tagName === 'DIV'
+            const page = flat ? first : (modal.children !== undefined ? modal.children[1] : null)
             if (!modal.hasAttribute('data-kbmob-page')) {
               const btn = t.closest('nav > div:last-child > button')
               if (btn !== null && page !== null && page !== undefined) {
@@ -416,7 +419,7 @@ window.__ModuleLoader__.load({
               }
             } else if (page !== null && page !== undefined && t === page) {
               const r = page.getBoundingClientRect()
-              if (e.clientY - r.top < 56) { e.stopPropagation(); modal.removeAttribute('data-kbmob-page') }
+              if (e.clientY - r.top < 64) { e.stopPropagation(); modal.removeAttribute('data-kbmob-page') }
             }
           } catch (err) { /* DSH's own settings then */ }
         }
