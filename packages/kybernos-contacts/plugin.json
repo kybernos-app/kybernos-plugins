@@ -8,8 +8,8 @@
     "fr": "Contacts"
   },
   "description": {
-    "en": "The people and companies of your work in one place, with the kinds and fields your theme speaks of. Its page arrives in a later release.",
-    "fr": "Les personnes et les entreprises de ton travail au même endroit, avec les types et les champs dont parle ton thème. Sa page arrive dans une prochaine version."
+    "en": "The people and companies of your work in one list, with notes, search and the words of your template. Agents can look contacts up; adding or changing one needs your approval.",
+    "fr": "Les personnes et les entreprises de ton travail dans une liste, avec notes, recherche et les mots de ton modèle. Les agents cherchent un contact ; en ajouter ou en modifier un demande ton accord."
   },
   "icon": "contacts",
   "family": "data",
@@ -30,7 +30,13 @@
       "kybernos/core": "^1.0"
     }
   },
-  "permissions": [],
+  "permissions": [
+    "ui.slot:main.kybernos-business",
+    "host.routes:/kybernos-contacts:write",
+    "fs.read:dsh-home",
+    "fs.write:dsh-home",
+    "agent.tools"
+  ],
   "claims": {
     "routePrefixes": [
       "/kybernos-contacts"
@@ -43,7 +49,7 @@
       "kind": "data",
       "class": "inert",
       "summary": {
-        "en": "A contact: a person or a company, with the types and fields a theme defines."
+        "en": "A contact: a person or a company, with the types and fields a template defines."
       },
       "validator": "builtin"
     }

@@ -1,0 +1,160 @@
+{
+  "id": "job",
+  "label": {
+    "en": "Job",
+    "fr": "Offre"
+  },
+  "plural": {
+    "en": "Jobs",
+    "fr": "Offres"
+  },
+  "icon": "briefcase",
+  "statuses": [
+    {
+      "key": "open",
+      "tone": "ok",
+      "label": {
+        "en": "Open",
+        "fr": "Ouverte"
+      }
+    },
+    {
+      "key": "on-hold",
+      "tone": "warn",
+      "label": {
+        "en": "On hold",
+        "fr": "En pause"
+      }
+    },
+    {
+      "key": "filled",
+      "tone": "neutral",
+      "label": {
+        "en": "Filled",
+        "fr": "Pourvue"
+      }
+    },
+    {
+      "key": "draft",
+      "tone": "neutral",
+      "label": {
+        "en": "Draft",
+        "fr": "Brouillon"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "key": "client",
+      "type": "text",
+      "label": {
+        "en": "Client",
+        "fr": "Client"
+      }
+    },
+    {
+      "key": "location",
+      "type": "text",
+      "label": {
+        "en": "Location",
+        "fr": "Lieu"
+      }
+    },
+    {
+      "key": "salary",
+      "type": "text",
+      "label": {
+        "en": "Salary",
+        "fr": "Rémunération"
+      }
+    },
+    {
+      "key": "contract",
+      "type": "text",
+      "label": {
+        "en": "Contract",
+        "fr": "Contrat"
+      }
+    },
+    {
+      "key": "candidates",
+      "type": "number",
+      "label": {
+        "en": "Candidates",
+        "fr": "Candidats"
+      }
+    },
+    {
+      "key": "opened",
+      "type": "date",
+      "label": {
+        "en": "Opened on",
+        "fr": "Ouverte le"
+      }
+    },
+    {
+      "key": "department",
+      "type": "choice",
+      "options": [
+        "Data",
+        "Engineering",
+        "Design",
+        "Sales",
+        "Finance",
+        "People",
+        "Operations"
+      ],
+      "label": {
+        "en": "Department",
+        "fr": "Département"
+      }
+    },
+    {
+      "key": "seniority",
+      "type": "choice",
+      "options": [
+        "Junior",
+        "Mid",
+        "Senior",
+        "Lead"
+      ],
+      "label": {
+        "en": "Seniority",
+        "fr": "Séniorité"
+      }
+    },
+    {
+      "key": "image",
+      "type": "text",
+      "label": {
+        "en": "Picture",
+        "fr": "Image"
+      }
+    }
+  ],
+  "card": {
+    "title": "title",
+    "subtitle": "client",
+    "price": "salary",
+    "image": "image",
+    "company": "client",
+    "chips": [
+      "department",
+      "seniority",
+      "location",
+      "contract"
+    ],
+    "flag": {
+      "field": "candidates",
+      "gte": 1,
+      "label": {
+        "en": "{n} candidates",
+        "fr": "{n} candidats"
+      }
+    }
+  },
+  "views": [
+    "cards",
+    "list"
+  ]
+}

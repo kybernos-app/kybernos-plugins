@@ -226,6 +226,8 @@ export function createRegistry ({ profileDir, stateFile, draftsDir = null, kyber
     if (m.kind === 'data') {
       for (const e of m.extends ?? []) {
         const p = points.get(e.point)
+        // an optional extension of a point that is not there (or not at this version) is skipped, it does not make the plugin unusable
+        if (e.optional === true && (p === undefined || !satisfies(p.version + '.0', e.range))) continue
         if (p === undefined) return { status: 'missing-dependency', reason: 'extends ' + e.point + ', which is not available' }
         if (!satisfies(p.version + '.0', e.range)) return { status: 'incompatible-point', reason: e.point + ' is version ' + p.version + ', this plugin wants ' + e.range }
       }
@@ -355,6 +357,8 @@ export function createRegistry ({ profileDir, stateFile, draftsDir = null, kyber
       const status = !on ? 'disabled' : brings && !base.consented ? 'needs-consent' : 'ok'
       for (const e of m.extends ?? []) {
         if (status !== 'ok' || m.kind !== 'data') { detail.extends.push({ point: e.point, contributions: 0, rejected: [] }); continue }
+        const owner = points.get(e.point)
+        if (e.optional === true && (owner === undefined || !satisfies(owner.version + '.0', e.range))) { detail.extends.push({ point: e.point, contributions: 0, rejected: [], skipped: 'the owner of this point is not available' }); continue }
         const r = readExtension({ ...rec, folder: rec.folder }, e, points.get(e.point))
         for (const c of r.contributions) { if (!contributions.has(e.point)) contributions.set(e.point, []); contributions.get(e.point).push(c) }
         detail.extends.push({ point: e.point, contributions: r.contributions.length, rejected: r.rejected })

@@ -1,0 +1,80 @@
+{
+  "id": "prospect-replies",
+  "cat": "agency",
+  "icon": "bell",
+  "title": {
+    "en": "Draft replies to new prospects",
+    "fr": "Brouillons de réponses aux prospects"
+  },
+  "cadence": {
+    "en": "Every weekday at 09:00",
+    "fr": "Chaque jour ouvré à 09h00"
+  },
+  "desc": {
+    "en": "Drafts a first reply to each prospect who wrote since yesterday, with two viewing slots. Nothing is sent.",
+    "fr": "Rédige une première réponse à chaque prospect qui a écrit depuis hier, avec deux créneaux de visite. Rien n’est envoyé."
+  },
+  "cron": "0 9 * * 1-5",
+  "tags": [
+    "real estate",
+    "prospects"
+  ],
+  "apps": [
+    "hubspot",
+    "pipedrive",
+    "gmail"
+  ],
+  "steps": [
+    {
+      "kind": "ai",
+      "text": {
+        "en": "Read the enquiries that came in since yesterday from the mailbox or the CRM that is connected, or from the list the agent pastes.",
+        "fr": "Lis les demandes arrivées depuis hier dans la messagerie ou le CRM connecté, ou dans la liste collée par l’agent."
+      }
+    },
+    {
+      "kind": "ai",
+      "text": {
+        "en": "For each prospect, thank them, answer what they asked and propose two viewing slots, with the draft-outreach skill.",
+        "fr": "Pour chaque prospect, remercie, réponds à sa question et propose deux créneaux de visite, avec la compétence draft-outreach."
+      }
+    },
+    {
+      "kind": "act",
+      "text": {
+        "en": "Put every draft in one list for the agent to read and send. Send nothing.",
+        "fr": "Dépose tous les brouillons dans une liste pour que l’agent les relise et les envoie. N’envoie rien."
+      }
+    }
+  ],
+  "needs": [
+    {
+      "en": "A mailbox or a CRM that is connected, or the enquiries pasted in the chat",
+      "fr": "Une messagerie ou un CRM connecté, ou les demandes collées dans le chat"
+    }
+  ],
+  "guard": [
+    {
+      "en": "Drafts only: never send, never state a price or an availability that was not given.",
+      "fr": "Brouillons seulement : n’envoie jamais, n’annonce jamais un prix ou une disponibilité qui n’a pas été donné."
+    }
+  ],
+  "ask": [
+    {
+      "q": {
+        "en": "Where are the enquiries?",
+        "fr": "Où sont les demandes ?"
+      },
+      "o": [
+        {
+          "en": "In my mailbox or my CRM",
+          "fr": "Dans ma messagerie ou mon CRM"
+        },
+        {
+          "en": "I paste them in the chat",
+          "fr": "Je les colle dans le chat"
+        }
+      ]
+    }
+  ]
+}

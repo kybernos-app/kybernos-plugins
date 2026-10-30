@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
-import { CATALOG_POINT, CATALOG_POINT_REF, ICONS, LIMITS, RESERVED, TONES, VIEWS, validateCatalogType as check } from './catalog-type.mjs'
+import { CATALOG_POINT, CATALOG_POINT_REF, ICONS, LIMITS, PICTURE, RESERVED, TONES, VIEWS, validateCatalogType as check } from './catalog-type.mjs'
 import { apply, name, tellPoint, tellWhenReady } from './index.js'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
@@ -82,12 +82,53 @@ ok('the flag points at a number or money field, with a threshold and a label', (
   // a flag on a field the type then lost is refused, not drawn wrong
   refused(bad((v) => { v.fields = v.fields.filter((f) => f.key !== 'stock') }), /flag\.field/)
 })
-ok('views: one or two of cards and list, no duplicate', () => {
-  assert.deepEqual([...VIEWS], ['cards', 'list'])
+ok('views: one to three of cards, list and map, no duplicate; the map only for a type that says where its items are', () => {
+  assert.deepEqual([...VIEWS], ['cards', 'list', 'map'])
   assert.deepEqual(bad((v) => { v.views = ['list'] }).value.views, ['list'])
-  refused(bad((v) => { v.views = [] }), /views: a list of 1 to 2/)
-  refused(bad((v) => { v.views = ['map'] }), /views\[0\]: one of cards, list/)
+  refused(bad((v) => { v.views = [] }), /views: a list of 1 to 3/)
+  refused(bad((v) => { v.views = ['grid'] }), /views\[0\]: one of cards, list, map/)
   refused(bad((v) => { v.views = ['list', 'list'] }), /views: "list" appears twice/)
+  refused(bad((v) => { v.views = ['cards', 'map'] }), /views: "map" needs a map/)
+})
+const located = (v) => { v.fields.push({ key: 'lat', type: 'number' }, { key: 'lng', type: 'number' }); v.map = { lat: 'lat', lng: 'lng' } }
+ok('map: two different number fields place an item; with a map the default views gain « map »', () => {
+  const r = bad((v) => { located(v); delete v.views })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.deepEqual(r.value.map, { lat: 'lat', lng: 'lng' })
+  assert.deepEqual(r.value.views, ['cards', 'list', 'map'])
+  assert.deepEqual(bad((v) => { located(v); v.views = ['map'] }).value.views, ['map'])
+  assert.equal('map' in bad((v) => { delete v.views }).value, false, 'no map declared, no map in the value')
+  assert.deepEqual(bad((v) => { delete v.views }).value.views, ['cards', 'list'])
+  refused(bad((v) => { located(v); v.map = { lat: 'lat', lng: 'lat' } }), /map: lat and lng are two different fields/)
+  refused(bad((v) => { located(v); v.map = { lat: 'lat', lng: 'sku' } }), /map\.lng: the key of a number field/)
+  refused(bad((v) => { located(v); v.map = { lat: 'lat' } }), /map\.lng/)
+  refused(bad((v) => { located(v); v.map = { lat: 'lat', lng: 'lng', zoom: 3 } }), /map: unknown key "zoom"/)
+  refused(bad((v) => { v.map = 'here' }), /map: an object/)
+})
+ok('card.image names a text field, card.chips up to six fields: anything else is refused', () => {
+  const r = bad((v) => { v.fields.push({ key: 'photo', type: 'text' }); v.card.image = 'photo'; v.card.chips = ['size', 'stock'] })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.value.card.image, 'photo')
+  assert.deepEqual(r.value.card.chips, ['size', 'stock'])
+  refused(bad((v) => { v.card.image = 'stock' }), /card\.image: the key of a text field/)
+  refused(bad((v) => { v.card.image = 'nope' }), /card\.image: the key of a text field/)
+  refused(bad((v) => { v.card.chips = [] }), /card\.chips: a list of 1 to 6/)
+  refused(bad((v) => { v.card.chips = ['sku', 'stock', 'price', 'size', 'sku', 'sku', 'sku'] }), /card\.chips: a list of 1 to 6/)
+  refused(bad((v) => { v.card.chips = ['nope'] }), /card\.chips\[0\]: the key of one of the fields/)
+  refused(bad((v) => { v.card.chips = ['size', 'size'] }), /card\.chips: "size" appears twice/)
+})
+ok('card.company names a text field that holds the name of a company: anything else is refused', () => {
+  const r = bad((v) => { v.fields.push({ key: 'client', type: 'text' }); v.card.company = 'client'; v.card.subtitle = 'client' })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.equal(r.value.card.company, 'client')
+  assert.equal('company' in bad((v) => { delete v.card.company }).value.card, false, 'no company, no key')
+  refused(bad((v) => { v.card.company = 'stock' }), /card\.company: the key of a text field/)
+  refused(bad((v) => { v.card.company = 'nope' }), /card\.company: the key of a text field/)
+  refused(bad((v) => { v.card.company = 7 }), /card\.company: the key of a text field/)
+})
+ok('PICTURE accepts a drawn picture or a shipped one, nothing that could be fetched', () => {
+  for (const good of ['art:house/willow', 'art:box', 'art:villa/lake@210', 'photo:real-estate/willow-lane']) assert.match(good, PICTURE, good)
+  for (const bad of ['https://example.org/a.jpg', 'data:image/svg+xml;base64,AAAA', 'photo:../x/y', 'photo:real-estate', 'photo:a/b/c', 'art:HOUSE', 'file:///etc/passwd', '']) assert.doesNotMatch(bad, PICTURE, bad)
 })
 ok('anything that is not an object, and any other junk, is refused and never thrown', () => {
   for (const junk of [null, undefined, 7, 'text', true, [], [{}]]) refused(check(junk, 'x'), /JSON object/)
@@ -150,16 +191,16 @@ ok('a registry that throws, of another version or without definePoint: nothing s
   try { withSeam(undefined, () => apply({}, { schedule: () => { throw new Error('no timers here') } })) } finally { console.log = log }
   assert.deepEqual(logs, ['[kybernos-catalog] disabled: no timers here'], 'only a broken clock is worth a line')
 })
-ok('the browser half hands the loader a plugin that never throws, and draws nothing', () => {
+ok('the browser half hands the loader a plugin that never throws, even when its React is missing', () => {
   const loaded = []
   const sandbox = { window: { __ModuleLoader__: { load: (entry) => loaded.push(entry) } }, console: { warn () {}, log () {} } }
   const src = readFileSync(here + 'client.js', 'utf8')
   vm.runInNewContext(src, sandbox)
   assert.equal(loaded.length, 1)
   assert.equal(loaded[0].id, '@local/kybernos-catalog')
-  const plugin = loaded[0].factory((m) => assert.fail('it requires nothing: ' + m))
+  const plugin = loaded[0].factory(() => { throw new Error('no react here') })
   assert.equal(typeof plugin.apply, 'function')
-  assert.equal(plugin.apply({ effect: () => assert.fail('nothing is registered yet') }), undefined)
+  assert.equal(plugin.apply({ effect: () => assert.fail('a disabled plugin registers nothing') }), undefined)
   assert.doesNotMatch(src, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, 'no colour of its own')
 })
 

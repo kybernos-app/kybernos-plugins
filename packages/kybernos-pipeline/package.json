@@ -1,7 +1,7 @@
 {
   "name": "@local/kybernos-pipeline",
   "version": "1.0.0",
-  "description": "Orders, deals or candidates as cards that move from stage to stage, with the stages a theme defines (the page arrives in a later release).",
+  "description": "Orders, deals or candidates as cards that move from stage to stage, with the stages a theme defines.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",

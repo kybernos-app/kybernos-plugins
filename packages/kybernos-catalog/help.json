@@ -1,29 +1,33 @@
 {
   "what": {
-    "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres d’emploi — en cartes et en listes, avec les statuts et les champs de ton thème.",
-    "en": "What you sell, rent or recruit for — products, properties, jobs — as cards and lists, with the statuses and fields of your theme."
+    "fr": "Ce que tu vends, loues ou recrutes — produits, biens, offres — en cartes ou en liste, avec les statuts et les champs de ton modèle.",
+    "en": "What you sell, rent or recruit for — products, properties, jobs — as cards or a list, with the statuses and fields of your template."
   },
   "steps": [
     {
-      "fr": "Active Catalog ici, ou installe un thème qui en a besoin : le thème l’installe avec lui.",
-      "en": "Switch Catalog on here, or install a theme that needs it: the theme installs it with it."
+      "fr": "Ouvre « Catalogue » dans le groupe Business du menu. Un modèle lui donne ses mots, ses statuts et ses champs.",
+      "en": "Open “Catalog” in the Business group of the menu. A template gives it its own words, statuses and fields."
     },
     {
-      "fr": "Un thème décrit ce qu’il liste, ses statuts et ses champs ; Kybernos vérifie cette description quand tu l’installes.",
-      "en": "A theme describes what it lists, its statuses and its fields; Kybernos checks that description when you install it."
+      "fr": "Cherche, filtre par statut, passe des cartes à la liste ou à la carte. Clique un élément pour le voir, le modifier ou l’archiver.",
+      "en": "Search, filter by status, switch between cards, list and map. Click an item to see it, edit it or archive it."
     },
     {
-      "fr": "La page Catalog elle-même, avec les cartes, le filtre par statut et la fiche de chaque élément, arrive dans une prochaine version.",
-      "en": "The Catalog page itself, with the cards, the filter by status and a sheet for each item, arrives in a later release."
+      "fr": "Les lignes « démo » montrent la page : « Supprimer les données d’exemple » les retire, ce que tu as ajouté reste.",
+      "en": "The “demo” rows show the page: “Clear sample data” removes them, what you added stays."
+    },
+    {
+      "fr": "Ton agent peut chercher et ajouter ou modifier un élément : chaque modification te demande ton accord.",
+      "en": "Your agent can look things up and add or change an item: every change asks for your approval."
     }
   ],
   "where": {
-    "fr": "Dans la Suite, une fois activé",
-    "en": "In the Suite, once switched on",
-    "page": false
+    "fr": "Dans le groupe Business de la barre latérale",
+    "en": "In the Business group of the sidebar",
+    "page": true
   },
   "good": {
-    "fr": "Les photos ne sont jamais dans le dépôt : un visuel neutre tient la place tant que tu n’en as pas ajouté. Tout reste dans un seul fichier sur cette machine.",
-    "en": "Photos are never kept in the repository: a neutral picture stands in until you add yours. Everything stays in one file on this machine."
+    "fr": "Tout reste dans un fichier sur cet ordinateur. Seule la vue Carte appelle un serveur (OpenFreeMap) pour dessiner la zone regardée : il voit la zone et ton adresse IP, jamais tes éléments.",
+    "en": "Everything stays in one file on this computer. Only the Map view calls a server (OpenFreeMap) to draw the area you look at: it sees the area and your IP address, never your items."
   }
 }

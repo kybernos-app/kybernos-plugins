@@ -1,0 +1,65 @@
+[
+  {
+    "id": "consulting",
+    "name": {
+      "en": "Consulting",
+      "fr": "Conseil"
+    }
+  },
+  {
+    "id": "it-services",
+    "name": {
+      "en": "IT services",
+      "fr": "Informatique"
+    }
+  },
+  {
+    "id": "accounting",
+    "name": {
+      "en": "Accounting",
+      "fr": "Comptabilité"
+    }
+  },
+  {
+    "id": "law-firm",
+    "name": {
+      "en": "Law firm",
+      "fr": "Cabinet d’avocats"
+    }
+  },
+  {
+    "id": "restaurant",
+    "name": {
+      "en": "Restaurant",
+      "fr": "Restaurant"
+    }
+  },
+  {
+    "id": "architecture",
+    "name": {
+      "en": "Architecture",
+      "fr": "Architecture"
+    }
+  },
+  {
+    "id": "construction",
+    "name": {
+      "en": "Construction",
+      "fr": "BTP"
+    }
+  },
+  {
+    "id": "medical-cabinet",
+    "name": {
+      "en": "Medical cabinet",
+      "fr": "Cabinet médical"
+    }
+  },
+  {
+    "id": "student",
+    "name": {
+      "en": "Student",
+      "fr": "Étudiant"
+    }
+  }
+]

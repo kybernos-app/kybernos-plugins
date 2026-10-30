@@ -17,6 +17,8 @@
     "model.mjs",
     "chart-core.mjs",
     "presets.mjs",
+    "preset-point.mjs",
+    "template-presets.mjs",
     "dashboard-host.mjs",
     "seed-skills.mjs",
     "skills/dashboard-builder/SKILL.md",
@@ -28,7 +30,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node --check index.js && node --check client.js && node scripts/build.mjs --check",
-    "test": "node test-model.mjs && node test-chart-core.mjs && node test-presets.mjs && node test-host.mjs && node test-client.mjs"
+    "test": "node test-model.mjs && node test-chart-core.mjs && node test-presets.mjs && node test-point.mjs && node test-host.mjs && node test-client.mjs"
   },
   "dsh": {
     "bundle": {

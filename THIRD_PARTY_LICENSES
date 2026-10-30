@@ -4,7 +4,8 @@ Kybernos — third-party licences
 Kybernos is licensed under the Apache License 2.0 (see LICENSE). This file gives the
 licence texts for the third-party components that NOTICE credits. It covers only those
 components: other code vendored in this repository (for example under
-packages/kybernos-plugin/vendor, packages/kybernos-theme/vendor or packages/kybernos-slides/vendor)
+packages/kybernos-plugin/vendor, packages/kybernos-theme/vendor, packages/kybernos-slides/vendor or
+packages/kybernos-catalog/vendor)
 keeps its own licence files and notices in its own vendor/ folder. Component names, versions
 and copyright lines are the ones given in NOTICE and, for mermaid and its dependencies, in
 packages/dsh-mermaid/vendor/NOTICES.md.
@@ -32,6 +33,9 @@ ISC License
 BSD 3-Clause License
   - d3-sankey, (c) 2015 Mike Bostock
   - ZRender 5.6.1 (embedded in Apache ECharts), (c) 2013 Baidu Inc.
+  - MapLibre GL JS 5.24.0, (c) 2023 MapLibre contributors (portions (c) 2020 Mapbox);
+    the full text and the notices of its own components are in
+    packages/kybernos-catalog/vendor/MAPLIBRE-LICENSE
 
 Zero-Clause BSD License (0BSD)
   - tslib helpers (embedded in Apache ECharts), (c) Microsoft Corporation

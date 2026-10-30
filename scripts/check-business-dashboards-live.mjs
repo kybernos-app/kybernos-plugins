@@ -1,0 +1,266 @@
+#!/usr/bin/env node
+// The dashboards the sector templates ship (kybernos/dashboards#preset), on the REAL GUI of a SANDBOX: the three templates (E-commerce, Real estate, Recruitment) installed from
+// THIS checkout with their sample rows, the Presets gallery that lists their dashboards with the template's name on each card, the dashboards drawn from the real routes of
+// Catalog, Contacts and Pipeline, and the « Overview » row of the Business group. Everything is measured; nothing is taken on trust.
+//
+//   source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-business-dashboards-live.mjs [--shots <dir>]
+//
+// What it checks, in a real page:
+//   1. the three templates are `ok` in the registry once the Dashboards plugin has told its point, and their sample rows are in the base;
+//   2. the Presets gallery lists the three template dashboards first, each with its template's name, and using one makes the person's own copy;
+//   3. the Overview row: first in the Business group, opens the dashboard on a copy made once, with no way back to a gallery it does not belong to;
+//   4. each dashboard: every widget drawn (none empty, none on its error state), no horizontal overflow, no clipped number or title, no console error,
+//      the numbers on nine cards equal to a direct count of the sandbox's own base;
+//   5. light and dark, 1500 px and 420 px: one screenshot of each (--shots), the page height fitted to the dashboard.
+//
+// SANDBOX ONLY (exit 3 against :3080, and without a sandbox DSH_HOME): it links the templates into the sandbox profile, accepts their consent and seeds their sample rows.
+// The profile of a sandbox is a clone of the owner's, where the Dashboards module is switched OFF (`disabled: true` in cordis.patch.yml): this check does not switch it on, it
+// says so (exit 3). Nothing is sent to a model. Exit 0 all green, 1 a check failed, 3 not run.
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
+import * as M from '../packages/kybernos-dashboards/model.mjs'
+import { openLivePage, waitFor } from './live-page.mjs'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const WORKTREE = join(here, '..')
+const args = process.argv.slice(2)
+const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
+const host = process.env.KB_HOST || ''
+const dshHome = process.env.DSH_HOME || ''
+if (host === '' || /:3080$/.test(host) || !dshHome.includes('.kybernos-sandbox')) { console.error('○ not run: sandbox only. `source scripts/sandbox/env.sh` first (KB_HOST "' + host + '", DSH_HOME "' + dshHome + '")'); process.exit(3) }
+if (shotsDir !== null) mkdirSync(shotsDir, { recursive: true })
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+let pass = 0
+const failures = []
+const check = (name, ok, detail) => {
+  if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { failures.push(name); console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail).slice(0, 600))) }
+}
+
+// ── the sandbox profile: the three templates of this checkout, linked the way DSH's manager links a folder ──────────────────────────────
+const THEMES = ['ecommerce', 'real-estate', 'recruitment']
+const profileDir = join(dshHome, 'profiles', 'web')
+function linkTemplates () {
+  const file = join(profileDir, 'package.json')
+  const pkg = JSON.parse(readFileSync(file, 'utf8'))
+  const store = join(profileDir, 'node_modules', '@kybernos-themes')
+  mkdirSync(store, { recursive: true })
+  for (const dir of THEMES) {
+    const name = '@kybernos-themes/' + dir
+    const target = join(WORKTREE, 'packages', 'kybernos-plugin', 'themes', dir)
+    pkg.dependencies[name] = 'link:' + target
+    if (!pkg.dsh.profile.bundles.includes(name)) pkg.dsh.profile.bundles.push(name)
+    const at = join(store, dir)
+    try { lstatSync(at); rmSync(at, { force: true }) } catch (e) { /* not there yet */ }
+    symlinkSync(relative(store, target), at)
+  }
+  writeFileSync(file + '.tmp', JSON.stringify(pkg, null, 2) + '\n')
+  renameSync(file + '.tmp', file)
+}
+linkTemplates()
+// a clean slate for the person's own dashboards (the sandbox's, never the real ones: the guard above): every run makes its copies from the gallery again
+rmSync(join(dshHome, 'kybernos', 'dashboards'), { recursive: true, force: true })
+
+// ── the page ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+const live = await openLivePage({ width: 1500, height: 1000 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
+const { page } = live
+await page.send('Runtime.enable', {})
+const val = async (expr, ms) => { const r = await page.evalJs(expr, ms || 10000); if (r.err !== undefined) throw new Error(r.err.slice(0, 300)); return r.val }
+const api = (path, body) => val(`fetch(${JSON.stringify(path)}, ${body === undefined ? '{}' : `{ method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }`}).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }))`)
+const poll = async (fn, ms = 15000) => { const end = Date.now() + ms; for (;;) { const v = await fn(); if (v) return v; if (Date.now() > end) return v; await sleep(250) } }
+const mouse = async (x, y) => { await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y }); await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 }); await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 }) }
+/** A real mouse press at the middle of the first element matching the selector (scrolled into view first). false when there is none or it has no size. */
+const press = async (selector, textRe) => {
+  const pos = await val(`(() => { const all = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).filter((e) => ${textRe === undefined ? 'true' : `new RegExp(${JSON.stringify(textRe)}).test(e.textContent)`}); const e = all[0]; if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) : null })()`)
+  if (typeof pos !== 'string') return false
+  await sleep(150)
+  const again = await val(`(() => { const all = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).filter((e) => ${textRe === undefined ? 'true' : `new RegExp(${JSON.stringify(textRe)}).test(e.textContent)`}); const r = all[0].getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
+  const { x, y } = JSON.parse(again)
+  await mouse(x, y)
+  return true
+}
+const setViewport = async (width, height) => page.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
+const clearViewport = async () => page.send('Emulation.clearDeviceMetricsOverride', {})
+/** The page's own scroller around the dashboard, grown so the whole dashboard is in the picture. */
+const fitShot = async (name, selector) => {
+  if (shotsDir === null) return
+  try {
+    const need = await val(`(() => { const root = document.querySelector(${JSON.stringify(selector)}); if (!root) return 0; let s = root; while (s && s !== document.body) { const cs = getComputedStyle(s); if (/(auto|scroll)/.test(cs.overflowY) && s.scrollHeight > s.clientHeight + 4) break; s = s.parentElement } const top = (s && s !== document.body ? s.getBoundingClientRect().top : 0); return Math.ceil(Math.max(root.getBoundingClientRect().height + root.getBoundingClientRect().top + 40, (s && s !== document.body ? s.scrollHeight : 0) + top + 8)) })()`)
+    const width = await val('window.innerWidth')
+    if (need > 0) { await setViewport(width, Math.min(Math.max(need, 700), 4200)); await sleep(900); await settle(); await sleep(300) }
+    await page.shot(join(shotsDir, name + '.png'))
+  } catch (e) { console.log('     (no screenshot ' + name + ': ' + e.message + ')') } finally { await setViewport(await val('window.innerWidth'), 1000).catch(() => null) }
+}
+/** The entrance animations are over (charts draw themselves, cards count up): a picture taken before shows half a chart. The endless ones (the dot that breathes) are left out. */
+const settle = async () => poll(() => val(`document.getAnimations().filter((a) => { const t = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null; return a.playState === 'running' && t !== null && t.iterations !== Infinity }).length === 0`), 9000)
+const theme = async (dark) => {
+  const now = await val(`document.documentElement.getAttribute('data-kb-theme') || (document.body.hasAttribute('data-ds-dark-theme') ? 'dark' : 'light')`)
+  if ((now === 'dark') === dark) return true
+  await val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => ${dark ? "x.getAttribute('title') === 'Dark theme' || x.getAttribute('aria-label') === 'Dark theme'" : "x.getAttribute('title') === 'Light theme' || x.getAttribute('aria-label') === 'Light theme'"}); if (b) b.click(); return !!b })()`)
+  await sleep(900)
+  const after = await val(`document.documentElement.getAttribute('data-kb-theme') || (document.body.hasAttribute('data-ds-dark-theme') ? 'dark' : 'light')`)
+  return (after === 'dark') === dark
+}
+const openDashboards = async () => {
+  await val(`(() => { const b = Array.from(document.querySelectorAll('.kb4-menu .kb4-item')).find((x) => (x.querySelector('.kb4-lab') || {}).textContent === 'Dashboards'); if (b) b.click(); return !!b })()`)
+  return (await poll(() => val(`!!document.querySelector('[data-kb="dashboards-page"]')`), 15000)) === true
+}
+
+try {
+  // the first reply of the GUI: DSH asks for a key on a fresh instance; the helper presses it away
+  await sleep(2500)
+
+  console.log('── 1. the templates, the point, the sample rows ──')
+  const list0 = await api('/kybernos-dashboards/list')
+  if (list0.status !== 200) {
+    console.error('○ not run: the Dashboards module is not loaded in this sandbox (GET /kybernos-dashboards/list answers ' + list0.status + '). The sandbox profile is a clone of the owner\'s, where Dashboards is switched off: remove its `disabled: true` entry from ' + join(profileDir, 'cordis.patch.yml') + ' and restart the sandbox.')
+    await live.close(); process.exit(3)
+  }
+  await sleep(1500)
+  for (const dir of THEMES) await api('/kybernos-registry/consent', { id: 'kybernos-themes/' + dir, accepted: true })
+  for (const dir of THEMES) await api('/kybernos/themes', { action: 'seed', id: 'kybernos-themes/' + dir })
+  const registry = await poll(async () => { const r = await api('/kybernos-registry/state?fresh=1'); const mine = r.body && r.body.plugins ? r.body.plugins.filter((p) => p.id.startsWith('kybernos-themes/')) : []; return mine.length === 3 && mine.every((p) => p.status === 'ok') ? mine : null }, 30000)
+  check('the three templates are ok in the registry (the Dashboards plugin told its point)', registry !== null && registry.every((p) => p.extends.some((e) => e.point === 'kybernos/dashboards#preset' && e.contributions === 1 && e.rejected.length === 0)), registry)
+
+  const base = createBusinessBase({ file: join(dshHome, 'kybernos', 'business', 'donnees.sqlite') })
+  const rows = (table, filter) => { const out = []; for (let offset = 0; ; offset += 500) { const r = base.list(table, Object.assign({ limit: 500, offset }, filter || {})); if (r.ok !== true) throw new Error(table + ': ' + r.error); out.push(...r.rows); if (r.rows.length < 500 || out.length >= r.total) break } return out }
+  const items = rows('item')
+  const cards = rows('flow_card')
+  check('the sample rows of the three templates are in the sandbox base', items.length === 46 && cards.length === 56 && rows('contact').length === 71, [items.length, cards.length, rows('contact').length])
+
+  const presets = (await api('/kybernos-dashboards/presets')).body.presets
+  check('the gallery lists the three template dashboards first, each with its template\'s name', presets.slice(0, 3).map((p) => p.id).join() === 'ecommerce-overview,real-estate-overview,recruitment-overview' && presets.slice(0, 3).map((p) => p.template.name).join() === 'E-commerce shop,Real estate agency,Recruitment firm' && presets.slice(3).every((p) => p.template === undefined), presets.map((p) => [p.id, p.template && p.template.name]))
+  const ov0 = (await api('/kybernos-dashboards/overview')).body.overview
+  check('the Overview names the first template\'s dashboard and has no copy yet', ov0 !== null && ov0.preset === 'ecommerce-overview' && ov0.dashboardId === null && ov0.label.en === 'Overview', ov0)
+
+  console.log('\n── 2. the Presets gallery ──')
+  check('the Dashboards page opens from the menu', await openDashboards())
+  await poll(() => val(`document.querySelectorAll('[data-kb="dashboards-preset"]').length >= 3`), 15000)
+  const gallery = await val(`(() => { const cards = Array.from(document.querySelectorAll('[data-kb="dashboards-preset"]')); return { n: cards.length, first: cards.slice(0, 3).map((c) => ({ id: c.getAttribute('data-id'), tpl: (c.querySelector('[data-kb="preset-template"]') || {}).textContent || null, name: (c.querySelector('h3') || {}).textContent, btn: !!c.querySelector('[data-act="use-preset"]'), clipped: Array.from(c.querySelectorAll('h3, p, .kbdb-pill')).filter((e) => e.scrollWidth > e.clientWidth + 1).length })), others: cards.slice(3).filter((c) => c.querySelector('[data-kb="preset-template"]')).length } })()`)
+  check('the gallery shows the template dashboards first, each card with a pill naming its template and a button', gallery.n >= 9 && gallery.first.map((c) => c.tpl).join() === 'E-commerce shop,Real estate agency,Recruitment firm' && gallery.first.every((c) => c.btn) && gallery.others === 0, gallery)
+  check('and nothing on those cards is clipped', gallery.first.every((c) => c.clipped === 0), gallery.first)
+  await val(`window.scrollTo(0, 0)`)
+  for (const dark of [false, true]) {
+    await theme(dark)
+    await poll(() => val(`!!document.querySelector('[data-kb="dashboards-preset"]')`), 8000)
+    await val(`(() => { const c = document.querySelector('[data-kb="dashboards-preset"]'); if (c) c.scrollIntoView({ block: 'start' }) })()`)
+    await fitShot('gallery-' + (dark ? 'dark' : 'light') + '-1500', '[data-kb="dashboards-page"]')
+  }
+  await theme(false)
+
+  // use two of them from the gallery with a real mouse; the third comes through the Overview row below
+  for (const id of ['real-estate-overview', 'recruitment-overview']) {
+    const before = (await api('/kybernos-dashboards/list')).body.dashboards.length
+    check('"Use this preset" on ' + id + ' is a real click', await press('[data-kb="dashboards-preset"][data-id="' + id + '"] [data-act="use-preset"]'))
+    const opened = await poll(() => val(`(() => { const t = document.querySelector('[data-kb="dashboards-page"][data-screen="dash"] .kbdb-title'); return t ? t.textContent : null })()`), 15000)
+    const after = (await api('/kybernos-dashboards/list')).body.dashboards
+    check('it made the person\'s own copy and opened it, remembering where it came from', typeof opened === 'string' && after.length === before + 1 && after.some((d) => d.id === id && d.preset === id), [opened, after.map((d) => [d.id, d.preset])])
+    await val(`(() => { const b = document.querySelector('[data-kb="crumb-gallery"]'); if (b) b.click() })()`)
+    await poll(() => val(`!!document.querySelector('[data-kb="dashboards-page"][data-screen="gallery"]')`), 8000)
+  }
+
+  console.log('\n── 3. the Overview row of the Business group ──')
+  const rowInfo = await poll(() => val(`(() => { const g = document.querySelector('[data-kb="menu-business"]'); if (!g) return null; const rows = Array.from(g.querySelectorAll('.kb4-item')).map((b) => (b.querySelector('.kb4-lab') || {}).textContent); return JSON.stringify(rows) })()`), 25000)
+  const rowsList = typeof rowInfo === 'string' ? JSON.parse(rowInfo) : []
+  check('the Business group has a first row, Overview, before the three business pages', rowsList[0] === 'Overview' && rowsList.length >= 4, rowsList)
+  check('the Overview row is a real click away', await press('[data-kb="menu-business"] .kb4-item', '^Overview'))
+  const ovTitle = await poll(() => val(`(() => { const t = document.querySelector('[data-kb="overview-title"]'); return t ? t.textContent : null })()`), 20000)
+  check('it opens the dashboard of the first template, named in the template\'s words', ovTitle === 'Shop overview', ovTitle)
+  const ovShape = await val(`({ crumb: !!document.querySelector('[data-kb="crumb-overview"]'), galleryCrumb: !!document.querySelector('[data-kb="crumb-gallery"]'), all: !!document.querySelector('[data-act="all-dashboards"]'), switcher: !!document.querySelector('.kbdb-title button'), screen: (document.querySelector('[data-kb="dashboards-page"]') || { getAttribute: () => null }).getAttribute('data-screen') })`)
+  check('the page is the Overview (no gallery crumb, no switcher), with a way to all the dashboards', ovShape.crumb && !ovShape.galleryCrumb && ovShape.all && !ovShape.switcher && ovShape.screen === 'dash', ovShape)
+  const listed = (await api('/kybernos-dashboards/list')).body.dashboards
+  check('the copy was made once and is the preset\'s own id', listed.filter((d) => d.preset === 'ecommerce-overview').length === 1 && listed.some((d) => d.id === 'ecommerce-overview'), listed.map((d) => [d.id, d.preset]))
+  const again = await api('/kybernos-dashboards/overview-copy', {})
+  check('asking again opens the same copy and makes none', again.status === 200 && again.body.id === 'ecommerce-overview' && again.body.created === false, again)
+  check('the button "All dashboards" leaves for the Dashboards page', await press('[data-act="all-dashboards"]') && (await poll(() => val(`(() => { const p = document.querySelector('[data-kb="dashboards-page"]'); return !!p && !document.querySelector('[data-kb="overview-title"]') })()`), 10000)) === true)
+
+  console.log('\n── 4. the dashboards ──')
+  const DASH = [
+    { id: 'ecommerce-overview', name: 'Shop overview', widgets: 10 },
+    { id: 'real-estate-overview', name: 'Agency overview', widgets: 9 },
+    { id: 'recruitment-overview', name: 'Desk overview', widgets: 9 },
+  ]
+  // the numbers, counted straight from the sandbox base
+  const sum = (xs) => xs.reduce((a, b) => a + b, 0)
+  const num = (v, fmt, unit) => M.formatNumber(v, fmt) + (unit ? ' ' + unit : '')
+  const of = (type) => items.filter((i) => i.type === type)
+  const board = (flow) => cards.filter((c) => c.flow === flow)
+  const paid = board('orders').filter((c) => ['paid', 'packed', 'shipped', 'delivered'].includes(c.stage))
+  const lowStock = of('product').filter((i) => typeof i.fields.stock === 'number' && typeof i.fields.reorder_at === 'number' && i.fields.stock <= i.fields.reorder_at && i.status !== 'draft')
+  const sales = board('sales').filter((c) => c.stage !== 'closed')
+  const EXPECT = {
+    'ecommerce-overview': { 'Revenue, paid orders': num(sum(paid.map((c) => c.value_num)), 'number', '€'), 'Orders to ship': num(board('orders').filter((c) => ['paid', 'packed'].includes(c.stage)).length), 'Low stock': num(lowStock.length) },
+    'real-estate-overview': { 'Active listings': num(of('property').filter((i) => ['for-sale', 'to-let', 'under-offer'].includes(i.status)).length), 'Open sales value': num(sum(sales.map((c) => c.value_num)), 'compact', '€'), 'Viewings to run': num(cards.filter((c) => ['sales', 'lettings'].includes(c.flow) && c.stage === 'viewing').length) },
+    'recruitment-overview': { 'Open jobs': num(of('job').filter((i) => i.status === 'open').length), 'Candidates in play': num(board('candidates').filter((c) => c.stage !== 'placed').length), 'Placements': num(cards.filter((c) => ['candidates', 'missions'].includes(c.flow) && c.stage === 'placed').length) },
+  }
+  const open = async (id) => {
+    await val(`window.__KB_DASHBOARDS__.open(${JSON.stringify(id)})`)
+    return (await poll(() => val(`(() => { const p = document.querySelector('[data-kb="dashboards-page"][data-screen="dash"]'); return !!p && !!document.querySelector('.kbdb-w') })()`), 20000)) === true
+  }
+  const measure = () => val(`(() => {
+    const ws = Array.from(document.querySelectorAll('[data-kb="dashboards-page"] .kbdb-w'))
+    const clipped = (e) => e.scrollWidth > e.clientWidth + 1
+    return JSON.stringify({
+      n: ws.length,
+      loading: document.querySelectorAll('[data-kb="dashboards-page"] .kbdb-sk, [data-kb="dashboards-page"] .kbdb-bone').length,
+      empty: ws.filter((w) => w.querySelector('.kbdb-empty')).map((w) => (w.querySelector('.kbdb-wt, h3, header') || w).textContent.slice(0, 40)),
+      banners: document.querySelectorAll('[data-kb="dashboards-page"] .kbdb-banner').length,
+      values: Object.fromEntries(ws.filter((w) => w.getAttribute('data-type') === 'card').map((w) => [(w.querySelector('.kbdb-wt, h3, header') || w).textContent.trim(), ((w.querySelector('[data-kb="dashboards-value"]') || {}).textContent || '').trim()])),
+      kpiClipped: ws.flatMap((w) => Array.from(w.querySelectorAll('[data-kb="dashboards-value"], .kbdb-kpi-s'))).filter(clipped).length,
+      titleClipped: ws.flatMap((w) => Array.from(w.querySelectorAll('.kbdb-wt, h3'))).filter(clipped).length,
+      lists: ws.filter((w) => w.getAttribute('data-type') === 'list').map((w) => w.querySelectorAll('.kbdb-lrow').length),
+      svgs: ws.filter((w) => ['chart'].includes(w.getAttribute('data-type'))).map((w) => !!w.querySelector('svg')),
+      marks: ws.filter((w) => w.getAttribute('data-type') === 'chart').map((w) => Array.from(w.querySelectorAll('.kbdb-bar, .kbdb-hbar, .kbdb-seg')).filter((m) => { const r = m.getBoundingClientRect(); return r.width > 0 && r.height > 0 }).length),
+      ellipsed: ws.flatMap((w) => Array.from(w.querySelectorAll('svg text'))).filter((t) => /…$/.test(t.textContent)).map((t) => t.textContent),
+      rowClipped: ws.flatMap((w) => Array.from(w.querySelectorAll('.kbdb-lrow b, .kbdb-lrow i, td'))).filter(clipped).length,
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+    })
+  })()`)
+  for (const d of DASH) {
+    console.log('  ' + d.id)
+    page.errs.length = 0
+    check(d.id + ': opens through the page', await open(d.id))
+    await sleep(2200) // data read, the entrance animations and the count-ups done
+    let m = JSON.parse(await measure())
+    if (m.loading > 0) { await sleep(2500); m = JSON.parse(await measure()) }
+    check(d.id + ': ' + d.widgets + ' widgets drawn, none empty, none still loading, no error banner', m.n === d.widgets && m.empty.length === 0 && m.loading === 0 && m.banners === 0, m)
+    check(d.id + ': every list has rows and every chart has its drawing, marks and all', m.lists.every((n) => n > 0) && m.svgs.every((x) => x) && m.marks.every((n) => n > 0), m)
+    check(d.id + ': no clipped number, title, list line or table cell, no chart label cut with an ellipsis, no horizontal overflow', m.kpiClipped === 0 && m.titleClipped === 0 && m.rowClipped === 0 && m.ellipsed.length === 0 && m.overflow <= 0, m)
+    for (const [title, text] of Object.entries(EXPECT[d.id])) check(d.id + ': "' + title + '" reads ' + text + ', as the base counts it', m.values[title] === text, m.values[title])
+    check(d.id + ': no console error', page.errs.length === 0, page.errs.slice(0, 3))
+    for (const dark of [false, true]) {
+      await theme(dark)
+      await sleep(900)
+      for (const width of [1500, 420]) {
+        await setViewport(width, 1000)
+        await sleep(1300)
+        await settle()
+        const mm = JSON.parse(await measure())
+        check(d.id + ' ' + (dark ? 'dark' : 'light') + ' at ' + width + ' px: nothing overflows sideways, nothing is empty, every chart is drawn', mm.overflow <= 0 && mm.empty.length === 0 && mm.n === d.widgets && mm.marks.every((n) => n > 0) && (width < 1000 || (mm.titleClipped === 0 && mm.kpiClipped === 0)), mm)
+        await fitShot(d.id.replace('-overview', '') + '-' + (dark ? 'dark' : 'light') + '-' + width, '[data-kb="dashboards-page"]')
+      }
+      await clearViewport()
+      await setViewport(1500, 1000)
+    }
+    await theme(false)
+  }
+
+  console.log('\n── 5. the Overview row, shot ──')
+  await setViewport(1500, 1000)
+  await press('[data-kb="menu-business"] .kb4-item', '^Overview')
+  await poll(() => val(`!!document.querySelector('[data-kb="overview-title"]') && !!document.querySelector('.kbdb-w')`), 20000)
+  await sleep(2500)
+  await fitShot('overview-row-light-1500', '[data-kb="dashboards-page"]')
+  await val(`(() => { const g = document.querySelector('[data-kb="menu-business"]'); if (g) g.scrollIntoView({ block: 'center' }) })()`)
+  if (shotsDir !== null) await page.shot(join(shotsDir, 'overview-menu-light-1500.png')).catch(() => null)
+  check('no console error over the whole run', page.errs.length === 0, page.errs.slice(0, 3))
+} catch (e) {
+  failures.push('the run itself: ' + String(e && e.message ? e.message : e).slice(0, 300))
+  console.log('  ✗ the run itself — ' + String(e && e.stack ? e.stack : e).slice(0, 900))
+} finally {
+  await live.close()
+}
+console.log('\n' + pass + ' checks passed' + (failures.length > 0 ? ', ' + failures.length + ' failed:\n - ' + failures.join('\n - ') : ''))
+process.exit(failures.length > 0 ? 1 : 0)

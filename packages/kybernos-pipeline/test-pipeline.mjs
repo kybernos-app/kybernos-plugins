@@ -1,5 +1,5 @@
-// kybernos-pipeline, the frame: the point `kybernos/pipeline#flow` (its check, bounded and pure), the host half that tells the registry about it
-// without ever throwing, and the browser half that draws nothing yet but must still return a plugin.
+// kybernos-pipeline, the point: `kybernos/pipeline#flow` (its check, bounded and pure), the host half that tells the registry about it without ever
+// throwing, and the browser half that must still return a plugin. The routes and tools are in test-host.mjs, the guard in test-write-guard.mjs.
 //
 //   node packages/kybernos-pipeline/test-pipeline.mjs
 import assert from 'node:assert/strict'
@@ -72,9 +72,9 @@ ok('anything that is not an object, and any other junk, is refused and never thr
   for (const junk of [{ stages: 'x' }, { stages: [null, null] }, { id: 'a', label: 7, stages: [[], []], value: [], links: 'x' }]) assert.equal(check(junk, 'a').ok, false)
   assert.ok(check({ id: 'a', label: 7, stages: [[], []], value: [], links: 'x' }, 'a').errors.length <= 20)
 })
-ok('the point is what the registry expects: data, inert, version 1.0, at most four files', () => {
+ok('the point is what the registry expects: data, inert, version 1.0, at most twelve files (the boards of every active theme)', () => {
   assert.equal(PIPELINE_POINT_REF, 'kybernos/pipeline#flow')
-  assert.deepEqual([PIPELINE_POINT.owner, PIPELINE_POINT.name, PIPELINE_POINT.version, PIPELINE_POINT.kind, PIPELINE_POINT.class, PIPELINE_POINT.max], ['kybernos/pipeline', 'flow', '1.0', 'data', 'inert', 4])
+  assert.deepEqual([PIPELINE_POINT.owner, PIPELINE_POINT.name, PIPELINE_POINT.version, PIPELINE_POINT.kind, PIPELINE_POINT.class, PIPELINE_POINT.max], ['kybernos/pipeline', 'flow', '1.0', 'data', 'inert', 12])
   assert.equal(PIPELINE_POINT.validate, check)
   assert.equal(Object.isFrozen(PIPELINE_POINT), true)
   const pj = JSON.parse(readFileSync(here + 'plugin.json', 'utf8'))
@@ -128,17 +128,15 @@ ok('a registry that throws, of another version or without definePoint: nothing s
   try { withSeam(undefined, () => apply({}, { schedule: () => { throw new Error('no timers here') } })) } finally { console.log = log }
   assert.deepEqual(logs, ['[kybernos-pipeline] disabled: no timers here'], 'only a broken clock is worth a line')
 })
-ok('the browser half hands the loader a plugin that never throws, and draws nothing', () => {
+ok('the browser half hands the loader a plugin even when it cannot start (the page itself is checked by test-client.mjs)', () => {
   const loaded = []
   const sandbox = { window: { __ModuleLoader__: { load: (entry) => loaded.push(entry) } }, console: { warn () {}, log () {} } }
-  const src = readFileSync(here + 'client.js', 'utf8')
-  vm.runInNewContext(src, sandbox)
+  vm.runInNewContext(readFileSync(here + 'client.js', 'utf8'), sandbox)
   assert.equal(loaded.length, 1)
   assert.equal(loaded[0].id, '@local/kybernos-pipeline')
-  const plugin = loaded[0].factory((m) => assert.fail('it requires nothing: ' + m))
+  const plugin = loaded[0].factory(() => { throw new Error('no react here') })
   assert.equal(typeof plugin.apply, 'function')
-  assert.equal(plugin.apply({ effect: () => assert.fail('nothing is registered yet') }), undefined)
-  assert.doesNotMatch(src, /#[0-9a-fA-F]{3,6}\b|rgba?\(/, 'no colour of its own')
+  assert.equal(plugin.apply({ effect: () => assert.fail('a plugin that could not start registers nothing') }), undefined)
 })
 
 console.log('\n' + count + ' checks passed')

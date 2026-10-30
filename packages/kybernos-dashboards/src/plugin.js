@@ -65,6 +65,7 @@ body[data-ds-dark-theme] .kbdb,[data-ds-dark-theme] .kbdb{--kbdb-s1:#3987e5;--kb
 .kbdb-ib[aria-pressed="true"]{background:var(--kbdb-hover2);color:var(--kbdb-t1)}
 .kbdb-pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding-inline:8px;border-radius:11px;background:var(--kbdb-hover);color:var(--kbdb-t2);font-size:12px;white-space:nowrap}
 .kbdb-pill.def{background:var(--kbdb-hover2);color:var(--kbdb-t1)}
+.kbdb-pill.tpl{background:var(--kbdb-biz-t);color:var(--kbdb-t1)}
 .kbdb-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding-inline:12px;border-radius:14px;border:1px solid var(--kbdb-b2);background:transparent;font-size:12px;color:var(--kbdb-t2);white-space:nowrap}
 .kbdb-chip:hover{background:var(--kbdb-hover);color:var(--kbdb-t1)}
 .kbdb-chip[aria-pressed="true"]{background:var(--kbdb-hover2);color:var(--kbdb-t1)}
@@ -482,7 +483,13 @@ async function readSource (source, fresh) {
     if (j === null) { if (req.optional !== true) failed++ } else parts[req.key] = j
   }))
   if (required > 0 && failed >= required) return { state: 'error', table: model.buildTable(source, {}, now), at: now, partial: false }
-  return { state: 'ok', table: model.buildTable(source, parts, now), at: now, partial: failed > 0 }
+  // a second round, for the sources whose first answers say what to ask next (the pages after the first, one board per flow); a page that fails leaves the table partial
+  let partial = failed > 0
+  await Promise.all(model.planNext(source, parts, now).map(async (req) => {
+    const j = await fetchRoute(req, fresh)
+    if (j === null) partial = true; else parts[req.key] = j
+  }))
+  return { state: 'ok', table: model.buildTable(source, parts, now), at: now, partial }
 }
 
 /** "just now", "5 min ago", "2 h ago", "3 d ago". */
@@ -553,7 +560,10 @@ function paintColumns (data, W, H, o) {
   const L = chart.columnsLayout({ series: data.series.map((s) => s.values), labelCount: n, W, H, mode: data.kind === 'stacked' ? 'stack' : 'group' })
   let g = ''
   for (const t of L.ticks) g += '<line class="gl" x1="' + L.plot.l + '" x2="' + (L.plot.l + L.plot.w) + '" y1="' + t.y + '" y2="' + t.y + '"/><text x="' + (L.plot.l - 6) + '" y="' + (t.y + 4) + '" text-anchor="end">' + esc(num(t.v, 'compact')) + '</text>'
-  for (const lb of L.labels) g += '<text x="' + lb.x + '" y="' + (H - 5) + '" text-anchor="middle">' + esc(fmtLabel(data.labels[lb.i].label, opts.lang)) + '</text>'
+  // two names that would touch are cut to the room they have (« Shortlist sent » next to « Searching » ran together on a phone); the tooltip has them whole
+  const gap = L.labels.length > 1 ? L.labels[1].x - L.labels[0].x : L.plot.w
+  const room = Math.max(3, Math.floor(gap / 6.4))
+  for (const lb of L.labels) g += '<text x="' + lb.x + '" y="' + (H - 5) + '" text-anchor="middle">' + esc(cutText(fmtLabel(data.labels[lb.i].label, opts.lang), room)) + '</text>'
   // one <g> per column, so hovering anywhere in the band lifts its bars
   for (const hit of L.hits) {
     const bars = L.bars.filter((b) => b.i === hit.i)
@@ -577,14 +587,18 @@ function paintColumns (data, W, H, o) {
 function paintBars (data, W, H, o) {
   const opts = o || {}
   const values = data.series[0].values
-  const L = chart.hbarsLayout({ values, W, H })
+  // The words of the rows get the room they need, up to two fifths of the chart: « Hand-poured soy candle » is read whole, not as « Hand-poured s… » (the tooltip had it, the page did not).
+  const longest = Math.max(1, ...data.labels.map((l) => String(l.label).length))
+  const chars = Math.max(14, Math.min(longest, Math.floor((W * 0.4) / 6.2)))
+  const labelW = Math.max(96, Math.round(chars * 6.2 + 14))
+  const L = chart.hbarsLayout({ values, W, H, labelW })
   let g = ''
   for (const t of L.ticks) g += '<line class="gl" x1="' + t.x + '" x2="' + t.x + '" y1="' + L.plot.t + '" y2="' + (L.plot.t + L.plot.h) + '"/><text x="' + t.x + '" y="' + (H - 3) + '" text-anchor="middle">' + esc(num(t.v, 'compact')) + '</text>'
   L.bars.forEach((b, i) => {
     const lab = data.labels[i]
     const tip = '<b>' + esc(lab.label) + '</b><span>' + esc(num(b.v)) + (data.unit ? ' ' + esc(data.unit) : '') + '</span>'
     g += '<g class="kbdb-row" data-tip="' + esc(tip) + '"><rect class="hit" x="0" y="' + r(b.y - (L.rowH - b.h) / 2) + '" width="' + W + '" height="' + L.rowH + '"/>'
-      + '<text x="' + (L.plot.l - 8) + '" y="' + (b.y + b.h - 3) + '" text-anchor="end" style="fill:var(--kbdb-t1)">' + esc(cutText(lab.label, 14)) + '</text>'
+      + '<text x="' + (L.plot.l - 8) + '" y="' + (b.y + b.h - 3) + '" text-anchor="end" style="fill:var(--kbdb-t1)">' + esc(cutText(lab.label, chars)) + '</text>'
       + (b.w > 0 ? '<path class="kbdb-hbar ' + (lab.tone !== undefined ? fillClass(i, lab.tone) : 'kbdb-s' + (lab.other ? 6 : 1)) + '" style="--i:' + stagger(i, L.bars.length) + '" d="' + chart.roundedRightPath(b.x, b.y, b.w, b.h, 4) + '"/>' : '')
       + '<text class="kbdb-val" style="--i:' + stagger(i, L.bars.length) + ';fill:var(--kbdb-t1)" x="' + r(b.x + b.w + 6) + '" y="' + (b.y + b.h - 3) + '">' + esc(num(b.v, 'compact')) + '</text></g>'
   })
@@ -1215,6 +1229,15 @@ function DashboardView ({ dash, tick, edit, flashIds, onChange, onAsk, onRetry }
 // In scope: React, `model`, `chart`, the painters, data.js helpers and widgets.js components.
 
 let WANT_OPEN_ID = null // set by the pane ("Open full page") for the page to pick up
+let OVERVIEW_LABEL = null // { en, fr }: the word of the « Overview » row of the Business group, as the host last said it (the template's own, else « Overview »)
+/** The word of the Overview row in the page's language. */
+const overviewWord = () => {
+  const l = OVERVIEW_LABEL
+  const w = l !== null && typeof l === 'object' ? String((langBase() === 'fr' ? l.fr : l.en) || l.en || '') : ''
+  return w !== '' ? w : kt('Vue d’ensemble', 'Overview')
+}
+/** Leaves the Overview for the Dashboards page, where every dashboard and the presets are. */
+const openDashboardsPage = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'dashboards' }) } catch (e) { /* the page cannot be reached from here */ } }
 
 /** The last dashboard looked at, per browser (a convenience: the host stays the truth). */
 const lastOpened = {
@@ -1311,7 +1334,9 @@ function UnreadableNotice ({ items }) {
   return h('div', { className: 'kbdb-banner', role: 'status', 'data-kb': 'dashboards-unreadable' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, lead + shown))
 }
 
-function DashboardsPage () {
+function DashboardsPage (props) {
+  // `overview`: this is the « Overview » row of the Business group, not the Dashboards page: it opens the person's copy of the installed template's overview and stays on it
+  const overview = props !== null && props !== undefined && props.overview === true
   const rootRef = useRef(null)
   const [list, setList] = useState(null)
   const [presets, setPresets] = useState([])
@@ -1370,6 +1395,13 @@ function DashboardsPage () {
     ;(async () => {
       const l = await refreshList()
       if (dead || l === null) { if (!dead) setScreen('gallery'); return }
+      if (overview) {
+        // the row opens the template's overview, made the first time; with none to open (the template was removed since the row was drawn) the gallery says so by being the gallery
+        const o = await api('POST', 'overview-copy', {})
+        if (dead) return
+        if (o.ok && typeof o.json.id === 'string') { await refreshList(); if (!dead) await open(o.json.id); return }
+        setScreen('gallery'); return
+      }
       // a suggestion of Kaby waits in its block of the gallery: it is never opened by itself, not even as the only dashboard
       const live = (l.dashboards || []).filter((d) => !d.archived && d.suggested !== true)
       const want = WANT_OPEN_ID; WANT_OPEN_ID = null
@@ -1459,8 +1491,8 @@ function DashboardsPage () {
   const header = screen === 'dash' && D !== null
     ? h('header', { className: 'kbdb-ph' },
       h('div', { className: 'kbdb-ph-l' },
-        h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
-        h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
+        h('div', { className: 'kbdb-crumb' }, overview ? h('span', { 'data-kb': 'crumb-overview' }, overviewWord()) : h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
+        overview ? h('h1', { className: 'kbdb-title', 'data-kb': 'overview-title' }, D.name) : h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
           h('button', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': pop === 'switch', onClick: () => setPop(pop === 'switch' ? '' : 'switch') }, D.name, Ic('chev', 16)),
           pop === 'switch' ? h('div', { className: 'kbdb-pop', role: 'listbox' },
             h('span', { className: 'hd' }, kt('Tes dashboards', 'Your dashboards')),
@@ -1475,6 +1507,7 @@ function DashboardsPage () {
             h('span', { className: 'hd' }, kt('Sources lues par ce dashboard', 'Sources this dashboard reads')),
             sources.length === 0 ? h('span', { className: 'foot' }, kt('Aucune : ce dashboard ne contient que tes notes.', 'None: this dashboard only holds your notes.')) : sources.map((s) => h('div', { key: s.provider, className: 'src' }, h('span', { className: 'kbdb-dot', style: { marginTop: 6 } }), h('span', { className: 'tx' }, h('b', { style: { fontWeight: 500 } }, s.label), h('i', null, s.provider + ' · ' + s.widgets.length + ' widget' + (s.widgets.length > 1 ? 's' : ''))))),
             h('span', { className: 'foot' }, kt('Les sources sont lues sur cet ordinateur. Un fichier dashboard ne peut lire que ces sources.', 'Sources are read on this computer. A dashboard file can only read these sources.'))) : null),
+        overview ? h('button', { type: 'button', className: 'kbdb-btn', 'data-act': 'all-dashboards', onClick: () => { flush(); openDashboardsPage() } }, kt('Tous les dashboards', 'All dashboards')) : null,
         h('button', { type: 'button', className: 'kbdb-btn' + (busy ? ' busy' : ''), 'data-act': 'refresh', onClick: refresh }, h('span', { className: 'kbdb-spin' }, Ic('refresh', 14)), kt('Actualiser', 'Refresh')),
         h('span', { className: 'kbdb-rel' },
           h('button', { type: 'button', className: 'kbdb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': pop === 'history', onClick: async () => { if (pop === 'history') { setPop(''); return } await flush(); const r = await api('GET', 'revisions?id=' + encodeURIComponent(dash.id)); setRevs(r.ok ? r.json.revisions : []); setPop('history') } }, Ic('clock', 14), kt('Historique', 'History')),
@@ -1504,9 +1537,9 @@ function DashboardsPage () {
       h('button', { type: 'button', className: 'kbdb-ib', 'data-more': '1', 'aria-label': kt('Actions', 'Actions'), 'aria-haspopup': 'menu', onClick: (e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenu(menu !== null && menu.id === d.id ? null : { id: d.id, x: Math.max(8, Math.min(window.innerWidth - 228, r.right - 220)), y: r.bottom + 6 }) } }, Ic('more', 16))),
     d.desc !== '' ? h('p', null, d.desc) : null,
     h('span', { className: 'kbdb-gmeta' }, h('span', { className: 'kbdb-pill' }, d.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, d.sources.length + ' ' + kt('sources', 'sources')), h('span', { className: 'kbdb-pill' }, d.by === 'agent' ? kt('par l’IA', 'by AI') : (d.by === 'preset' ? kt('depuis un preset', 'from a preset') : kt('par toi', 'by you'))), d.hidden ? h('span', { className: 'kbdb-pill' }, kt('masqué', 'hidden')) : null))
-  const presetCard = (p, i) => h('article', { key: p.id, className: 'kbdb-gcard', style: { '--i': Math.min(i, 8) }, 'data-kb': 'dashboards-preset', 'data-id': p.id },
+  const presetCard = (p, i) => h('article', { key: p.id, className: 'kbdb-gcard', style: { '--i': Math.min(i, 8) }, 'data-kb': 'dashboards-preset', 'data-id': p.id, 'data-template': p.template ? p.template.id : undefined },
     h(Mini, { shape: p.shape }), h('div', { className: 'gh' }, h('h3', null, p.name)), h('p', null, p.desc),
-    h('span', { className: 'kbdb-gmeta' }, h('span', { className: 'kbdb-pill' }, p.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, p.sources.length + ' ' + kt('sources', 'sources'))),
+    h('span', { className: 'kbdb-gmeta' }, p.template ? h('span', { className: 'kbdb-pill tpl', 'data-kb': 'preset-template' }, p.template.name) : null, h('span', { className: 'kbdb-pill' }, p.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, p.sources.length + ' ' + kt('sources', 'sources'))),
     h('div', { className: 'acts' }, h('button', { type: 'button', className: 'kbdb-btn sm', 'data-act': 'use-preset', onClick: () => usePreset(p) }, kt('Utiliser ce preset', 'Use this preset'))))
 
   let body
@@ -1549,7 +1582,8 @@ function DashboardsPage () {
     body = h(React.Fragment, null,
       conflict ? h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Ce dashboard a changé ailleurs (l’IA, un autre onglet). Tes dernières retouches ne sont pas enregistrées.', 'This dashboard changed elsewhere (the AI, another tab). Your last edits were not saved.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: async () => { await load(dash.id); setTick((x) => x + 1) } }, kt('Recharger', 'Reload'))) : null,
       D.widgets.length === 0 ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Ce dashboard est vide', 'This dashboard is empty')), h('span', null, kt('Dis à l’IA ce que tu veux y voir.', 'Tell the AI what you want to see here.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askImprove }, Ic('spark', 14), kt('Améliorer avec l’IA', 'Improve with AI')))
-        : h(DashboardView, { dash: D, tick, edit, flashIds: flash, onChange: change, onAsk: (kind) => { if (kind === 'add') askAdd() }, onRetry: refresh }))
+        // keyed by the dashboard: widgets of two dashboards share ids (chart-5, card-1…), and a widget that keeps its place between them keeps what it measured (a size from another chart, an unfinished entrance)
+        : h(DashboardView, { key: dash.id, dash: D, tick, edit, flashIds: flash, onChange: change, onAsk: (kind) => { if (kind === 'add') askAdd() }, onRetry: refresh }))
   } else body = null
 
   const menuItem = (key, icon, label, fn) => h('button', { key, type: 'button', className: 'o', onClick: async () => { setMenu(null); await fn() } }, Ic(icon, 14), label)
@@ -1563,6 +1597,9 @@ function DashboardsPage () {
   return h('div', { ref: rootRef, className: 'kbdb kbdb-page' + (edit && screen === 'dash' ? ' kbdb-editing' : ''), 'data-kb': 'dashboards-page', 'data-screen': screen },
     header, body, fpop, toast !== '' ? h('div', { className: 'kbdb-toast', role: 'status' }, toast) : null)
 }
+
+/** The page of the « Overview » row: the Dashboards page, opened on the installed template's overview and kept there. */
+function OverviewPage () { return h(DashboardsPage, { overview: true }) }
 
 /* ── the right-pane tab ── */
 function DashboardsPane () {
@@ -1604,7 +1641,7 @@ function DashboardsPane () {
     h('div', { className: 'kbdb-pane-h' }, h('span', { className: 'kbdb-dot live' }), h('span', { className: 'nm' }, dash.dashboard.name), h('span', { className: 'sp' }),
       h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Actualiser', 'Refresh'), onClick: () => { clearRoutes(); setTick((x) => x + 1) } }, Ic('refresh', 14)),
       h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Ouvrir en pleine page', 'Open full page'), title: kt('Ouvrir en pleine page', 'Open full page'), onClick: full }, Ic('ext', 14))),
-    h('div', { className: 'kbdb-pane-b' }, h(DashboardView, { dash: dash.dashboard, tick, edit: false, flashIds: flash, onChange: () => {}, onRetry: () => { clearRoutes(); setTick((x) => x + 1) } })))
+    h('div', { className: 'kbdb-pane-b' }, h(DashboardView, { key: dash.id, dash: dash.dashboard, tick, edit: false, flashIds: flash, onChange: () => {}, onRetry: () => { clearRoutes(); setTick((x) => x + 1) } })))
 }
 
 /* ── the player of the MiniApp door (Creations page, chat card, popup) ── */
@@ -1633,6 +1670,8 @@ const TYPE_ID = 'kybernos-dashboards'
 const KIND = 'kybernos-dashboards'
 const SLOT_PANE = 'sidebar.right.pane.tab'
 const SLOT_PAGE = 'main.kybernos-dashboards'
+const SLOT_BUSINESS = 'main.kybernos-business'
+const OVERVIEW_ROW = 'overview'
 const STYLE_ID = 'kybernos-dashboards-styles'
 
 let CTX = null
@@ -1668,6 +1707,40 @@ function apply (ctx) {
 
   // the page: the child slot the core's menu row opens
   ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, DashboardsPage)), 'kybernos-dashboards: page')
+
+  // The « Overview » row of the Business group: the dashboard an installed template ships (kybernos/dashboards#preset), on the business pages' own keyed slot. The row
+  // exists only while the host says a template ships one, so it follows an install and a removal without a reload: the host is asked now, quickly for the first
+  // seconds (the core builds window.__KB_MENU__ after this plugin), then every 20 s. It is taken back with the plugin.
+  ctx.effect(() => ctx.slots.inject(SLOT_BUSINESS, () => ctx.slots.register({ name: SLOT_BUSINESS, key: OVERVIEW_ROW }, OverviewPage)), 'kybernos-dashboards: overview page')
+  ctx.effect(() => {
+    let off = null
+    let shown = ''
+    let dead = false
+    let timer = 0
+    let asked = 0
+    const sync = async () => {
+      timer = 0
+      try {
+        const r = await api('GET', 'overview')
+        if (dead) return
+        const o = r.ok && r.json.overview ? r.json.overview : null
+        const want = o === null ? '' : JSON.stringify(o.label)
+        OVERVIEW_LABEL = o === null ? null : o.label
+        const menu = window.__KB_MENU__
+        if (want !== shown && menu !== undefined && menu !== null && typeof menu.register === 'function') {
+          if (off !== null) { try { off() } catch (e) { /* already taken back */ } off = null }
+          if (o !== null) off = menu.register({ id: OVERVIEW_ROW, group: 'business', icon: 'layoutDashboard', label: { en: String(o.label.en), fr: String(o.label.fr) }, order: 5 })
+          shown = want
+        }
+      } catch (e) { /* the next question tries again */ }
+      if (!dead) { asked += 1; timer = setTimeout(sync, asked < 12 ? 1500 : 20000) }
+    }
+    sync()
+    // the person picked another template in the Business group: the row follows at once, not at the next question
+    const onScope = () => { if (dead) return; if (timer) { clearTimeout(timer); timer = 0 } asked = 0; sync() }
+    try { window.addEventListener('kb-business-scope-change', onScope) } catch (e) { /* no window events here */ }
+    return () => { dead = true; if (timer) clearTimeout(timer); try { window.removeEventListener('kb-business-scope-change', onScope) } catch (e) { /* gone */ } if (off !== null) { try { off() } catch (e) { /* already taken back */ } } }
+  }, 'kybernos-dashboards: overview row')
 
   // the right-pane tab
   // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
@@ -1741,5 +1814,5 @@ return {
   // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
   inject: ['slots', 'sidebarRightTabs'],
   apply,
-  __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
+  __test: { OverviewPage, DashboardsPage, overviewWord, model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
 }

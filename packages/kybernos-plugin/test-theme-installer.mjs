@@ -364,6 +364,28 @@ ok('a record is written, read back, and forgetting it twice is a no-op', () => {
     assert.equal(again.body.already, true)
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
+ok('recording an install makes the template the one the Business pages follow; a refusal, a throw or no hook never fails the record', () => {
+  const dir = fresh('a6-rt-')
+  try {
+    const store = { dir }
+    const asked = []
+    const hook = (answer) => (id) => { asked.push(id); if (answer instanceof Error) throw answer; return answer }
+    const record = (id, extra) => T.handleThemes(store, { method: 'POST', body: { action: 'record', id } }, { ...portsOK(), ...extra })
+    const made = record('acme/vet', { activate: hook({ ok: true, active: 'acme/vet' }) })
+    assert.equal(made.status, 200)
+    assert.deepEqual([made.body.ok, made.body.businessActive, asked], [true, 'acme/vet', ['acme/vet']])
+    const refused = record('acme/skills-only', { activate: hook({ ok: false, error: 'unknown_template' }) })
+    assert.deepEqual([refused.status, refused.body.ok, refused.body.businessActive], [200, true, null], 'a template that touches none of the three points is just recorded')
+    const threw = record('acme/garden', { activate: hook(new Error('boom')) })
+    assert.deepEqual([threw.status, threw.body.ok, threw.body.businessActive], [200, true, null])
+    const none = record('acme/shop', {})
+    assert.deepEqual([none.status, none.body.ok, none.body.businessActive], [200, true, null], 'no hook (an older core): the record is as it was')
+    assert.deepEqual(T.readThemes(dir).records.map((r) => r.id), ['acme/vet', 'acme/skills-only', 'acme/garden', 'acme/shop'])
+    const forget = T.handleThemes(store, { method: 'POST', body: { action: 'forget', id: 'acme/shop' } }, { ...portsOK(), activate: hook({ ok: true }) })
+    assert.equal(forget.status, 200)
+    assert.deepEqual(asked, ['acme/vet', 'acme/skills-only', 'acme/garden'], 'forgetting a theme does not choose another: the choice falls back by itself')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
 ok('the sources are https only, at most three, and a source with no pinned key is refused as unverifiable', () => {
   const dir = fresh('a6-rt-')
   try {
@@ -531,6 +553,8 @@ const fake = (seen) => {
     post: async (path, body) => {
       calls.push({ m: 'POST', path, body })
       if (path.indexOf('/kybernos/tasks') === 0 && body !== null && body.action === 'list') return { ok: true, tasks: (seen.tasks || []).map((n) => ({ name: n })) }
+      // a theme that does not carry the skill in its own folder (the host answers no-skill): the skill goes the usual way
+      if (path === '/kybernos/themes' && body !== null && body.action === 'skill') return seen.ownSkills === true ? { ok: true, action: 'created' } : { ok: false, error: 'no-skill' }
       return { ok: true }
     },
     team: (item) => ({ name: item.id, id: item.id, home: true }),
@@ -539,6 +563,16 @@ const fake = (seen) => {
   return { calls, ports }
 }
 const TICKS = { style: true, goals: ['recall'], skills: ['patient-reminders'], teams: ['clinic-assist', 'assist'], automations: ['daily-recall'] }
+await okA('a skill the theme carries in its own folder is installed by the host from there, and the usual route is not asked', async () => {
+  const f = fake({ ownSkills: true })
+  const r = await coreMod.kbThApply(PLAN, TICKS, f.ports)
+  const posts = f.calls.filter((c) => c.m === 'POST')
+  assert.equal(r.ok, true)
+  assert.equal(r.added, 6, JSON.stringify(r))
+  assert.equal(r.failed, 0)
+  assert.deepEqual(posts.filter((c) => c.path === '/kybernos/themes').map((c) => c.body), [{ action: 'skill', id: PLAN.id, name: 'patient-reminders' }])
+  assert.equal(posts.filter((c) => c.path.indexOf('/kybernos/domain/skill') === 0).length, 0)
+})
 await okA('the applier writes the field, the kit and the look once, in the routes\' order, and counts 6', async () => {
   const f = fake({})
   const r = await coreMod.kbThApply(PLAN, TICKS, f.ports)
@@ -568,7 +602,7 @@ await okA('the applier writes nothing outside the routes of this batch: no sessi
   const f = fake({})
   await coreMod.kbThApply(PLAN, TICKS, f.ports)
   assert.deepEqual(f.calls.filter((c) => /sessions|memory|workspaces/.test(c.path)), [])
-  const allowed = ['/kybernos-registry/consent', '/kybernos/onboarding', '/kybernos/domain/skill', '/kybernos-skills/install', '/kybernos/create', '/kybernos/tasks']
+  const allowed = ['/kybernos-registry/consent', '/kybernos/onboarding', '/kybernos/themes', '/kybernos/domain/skill', '/kybernos-skills/install', '/kybernos/create', '/kybernos/tasks'] // /kybernos/themes: a skill the shipped theme carries
   for (const c of f.calls.filter((c) => c.m === 'POST')) assert.ok(allowed.some((p) => c.path.indexOf(p) === 0), 'an unexpected path: ' + c.path)
 })
 await okA('a replay is a no-op: already true, not one write', async () => {
@@ -607,7 +641,7 @@ await okA('a failing step is counted and does not stop the next one', async () =
     post: async (path, body) => {
       calls.push(path)
       if (path.indexOf('/kybernos-registry/consent') === 0) return { ok: false }
-      if (path.indexOf('/kybernos/domain/skill') === 0) return { ok: false }
+      if (path.indexOf('/kybernos/domain/skill') === 0 || path === '/kybernos/themes') return { ok: false }
       return { ok: true }
     },
     team: (item) => ({ name: item.id, id: item.id }),
@@ -708,19 +742,22 @@ ok('kbThManagerIssue reads DSH\'s refusals as refusals: an object that says not-
   for (const none of [null, undefined, 'applied', 3, [], [{ application: 'applied' }]]) assert.equal(issue(none), 'no-answer', JSON.stringify(none))
 })
 ok('the page reads the manager\'s answer instead of "not null", and the Themes cards keep their actions visible', () => {
-  const stage = src.slice(src.indexOf('const stageFolder = async'), src.indexOf('const toggle = (kind, value)'))
-  assert.match(stage, /kbThManagerIssue\(installed\)/)
-  assert.doesNotMatch(stage, /installed === null/)
-  assert.match(stage, /kbThFreshRegistry\(\)[\s\S]*openPlan/) // the registry scan is reused for two seconds: ask for a fresh one before reading the plan
+  const stage = src.slice(src.indexOf('const stageWith = async'), src.indexOf('const toggle = (kind, value)'))
+  // the bring-in is shared by the gallery and Settings › Templates: it reads the manager's answer, then asks the registry for a fresh scan before anyone reads the plan
+  const bring = src.slice(src.indexOf('const kbThBringIn = async'), src.indexOf('/** What the host said about a folder'))
+  assert.match(bring, /kbThManagerIssue\(installed\)/)
+  assert.doesNotMatch(bring, /installed === null/)
+  assert.match(bring, /kbThFreshRegistry\(\)/) // the registry scan is reused for two seconds: ask for a fresh one before reading the plan
+  assert.match(stage, /kbThBringIn\(body[\s\S]*openPlan/)
   const seam = src.slice(src.indexOf('const kbThSeamInstall = async'), src.indexOf('const kbThSeamRemove = async'))
   assert.match(seam, /kbThManagerIssue\(installed\)/)
   assert.doesNotMatch(seam, /installed === null/)
   assert.doesNotMatch(src.slice(src.indexOf('const kbThRemoveTheme = async'), src.indexOf('// A catalogue theme\'s archive is NOT fetched here')), /removeBundle\(record\.id\)\)\s*!==\s*null/)
-  // the team list hides a card's description and actions; the Themes cards are `.kbg-card` too and their buttons live in `.kbg-cta`
-  const hide = src.indexOf('.kbg-card .kbg-desc,.kbg-card .kbg-cta{display:none}')
-  const showCta = src.indexOf('[data-kb-page="themes"] .kbg-card .kbg-cta{display:flex}')
-  const showDesc = src.indexOf('[data-kb-page="themes"] .kbg-card .kbg-desc{display:block}')
-  assert.ok(hide > 0 && showCta > hide && showDesc > hide, 'the Themes override must come after the rule it overrides: ' + [hide, showCta, showDesc])
+  // the team list hides a `.kbg-card`'s description and actions: the Themes gallery uses cards of its own, so no rule of the team list reaches them
+  const view = src.slice(src.indexOf('const KbThemesView = () =>'), src.indexOf('// ── Skills and Connectors: one page each'))
+  assert.doesNotMatch(view, /kbg-card/)
+  assert.match(view, /className: 'kbgal-card'/)
+  assert.doesNotMatch(src, /\[data-kb-page="themes"\] \.kbg-card/, 'the old overrides are gone with the cards they served')
 })
 
 console.log('\n' + count + ' checks passed')

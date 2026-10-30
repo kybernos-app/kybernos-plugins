@@ -9,7 +9,10 @@
       "kybernos-theme"
     ],
     "kb6": [
+      "kybernos-catalog",
       "kybernos-composio",
+      "kybernos-contacts",
+      "kybernos-pipeline",
       "kybernos-plugin"
     ],
     "kb7": [
@@ -17,6 +20,8 @@
       "kybernos-plugin"
     ],
     "kb8": [
+      "kybernos-catalog",
+      "kybernos-contacts",
       "kybernos-dashboards",
       "kybernos-mobile",
       "kybernos-plugin",
@@ -64,10 +69,6 @@
       "kybernos-mobile",
       "kybernos-plugin"
     ],
-    "kbr": [
-      "kybernos-plugin",
-      "kybernos-sessions"
-    ],
     "kbs": [
       "kybernos-mobile",
       "kybernos-plugin",
@@ -89,6 +90,10 @@
     ],
     "kml": [
       "kybernos-modeles-locaux",
+      "kybernos-plugin"
+    ],
+    "kz": [
+      "kybernos-pipeline",
       "kybernos-plugin"
     ]
   },

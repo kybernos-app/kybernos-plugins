@@ -271,9 +271,11 @@ const fakePorts = {
 {
   const registrations = (src.match(/name: 'settings\.section', id: 'kybernos-themes-market'/g) || []).length
   const defs = (src.match(/const KbThemesMarket = /g) || []).length
-  const pageBranch = /\bview: 'themes'|\bview === 'themes'|kbOpenPage/.test(ui[1])
-  check('the listing is one component registered as a Settings section, never a second page', registrations === 1 && defs === 1 && pageBranch === false && /order: 30/.test(ui[1]) && /label: marketSay\(\['Thèmes', 'Themes'\]/.test(ui[1]) && /marketCards\(view, lang\)/.test(ui[1]) && /marketState\(view, lang\)/.test(ui[1]), { registrations, defs, pageBranch })
-  check('the Settings menu knows the section: a nav key, an icon and the Interface group\'s word', /'kybernos-themes-market': 'themes'/.test(src) && /'themes': '<path/.test(src) && /id: 'look'[^}]*mots: \['theme', 'themes', 'langue', 'language'\]/.test(src))
+  // the listing draws no second gallery: it only leads to the sidebar page by the shell's own opener
+  const links = (ui[1].match(/view: 'themes'/g) || []).length
+  const pageBranch = /\bview === 'themes'|kbOpenPage/.test(ui[1]) || links !== (ui[1].match(/window\.__KB_OPEN__\(\{ view: 'themes' \}\)/g) || []).length
+  check('the listing is one component registered as a Settings section, never a second page', registrations === 1 && defs === 1 && pageBranch === false && /order: 30/.test(ui[1]) && /label: marketSay\(\['Modèles', 'Templates'\]/.test(ui[1]) && /marketCards\(view, lang\)/.test(ui[1]) && /marketState\(view, lang\)/.test(ui[1]), { registrations, defs, pageBranch })
+  check('the Settings menu knows the section: a nav key, an icon and the Interface group\'s word', /'kybernos-themes-market': 'templates'/.test(src) && /'templates': '<path/.test(src) && /id: 'look'[^}]*mots: \['theme', 'templates', 'langue', 'language'\]/.test(src))
   check('the registration is guarded, so a broken listing never stops the bundle from starting', /ctx\.effect\(\(\) => \{\s*try \{/.test(ui[1]) && /catch \(e\) \{ return undefined \}/.test(ui[1]))
   check('the listing uses the host\'s shell classes and its own prefix only', !/(^|[^a-z-])kb[0-9a-z]*-[a-z]+\{/.test(ui[1].replace(/\.kbtm-[^{]*\{/g, '')))
 }
@@ -315,7 +317,7 @@ const fakePorts = {
     /marketSourceAdd\(/.test(ui[1]) && /marketSourceRemove\(/.test(ui[1]) && /kbThApi\(body\)/.test(ui[1]) &&
     !/fetch\(/.test(ui[1].replace(/fetch\('\/kybernos\/themes'[^)]*\)/, '')))
   check('the row is a Settings surface: drawn by the section, with its warning and its bound of three',
-    /h\(KbMarketSources, \{ lang, view, reload: relire \}\)/.test(ui[1]) && /'data-kb': 'kb-market-sources'/.test(ui[1]) &&
+    /h\(KbMarketSources, \{ key: 'src', lang, view, reload: relire \}\)/.test(ui[1]) && /'data-kb': 'kb-market-sources'/.test(ui[1]) &&
     /Community level/.test(ui[1]) && /'\{n\} sur 3'/.test(ui[1]) && /MARKET_SOURCES_MAX/.test(ui[1]))
 
   // The row really RENDERS, and its clicks reach A6's route: the UI block is evaluated with a three-line React stub (the block's
@@ -374,6 +376,20 @@ const fakePorts = {
   const frenchRow = render({ lang: 'fr', view: { ok: true, sources: [{ url: SOURCE, keyId: 'cat-1', pinned: true }] }, reload: null })
   check('the row speaks French in French', JSON.stringify(frenchRow).indexOf('Sources du catalogue') >= 0 && JSON.stringify(frenchRow).indexOf('Clé épinglée · cat-1') >= 0)
   rmSync(uiDir, { recursive: true, force: true })
+}
+
+/* ── 11. Settings › Templates is where a template is ADDED: a folder tab (checked as you type, previewed, then added) and a catalogue tab ───────── */
+{
+  const page = ui[1]
+  check('two tabs: from a folder (the first) and from a catalogue', /'data-kb': 'kb-tpl-tab-' \+ id/.test(page) && /useState\('folder'\)/.test(page) && /tabButton\('folder'/.test(page) && /tabButton\('catalogue'/.test(page) && /role: 'tablist'/.test(page) && /role: 'tabpanel'/.test(page))
+  check('the folder tab checks the path while it is typed (read-only `stage`, debounced), and shows the preview before anything is installed',
+    /action: 'stage', folder: path/.test(page) && /setTimeout\(async \(\) =>/.test(page) && /clearTimeout\(timer\)/.test(page) && /'data-kb': 'kb-tpl-preview'/.test(page) && /'data-kb': 'kb-tpl-refused'/.test(page))
+  check('the button is off until the folder is good, and adds through the shared bring-in, then hands over to the gallery for the plan',
+    /disabled: check\.phase !== 'ok' \|\| busy/.test(page) && /kbThBringIn\(\{ action: 'stage', folder: folder\.trim\(\) \}\)/.test(page) && /kbThPending\.id = r\.id/.test(page) && /window\.__KB_OPEN__\(\{ view: 'themes' \}\)/.test(page))
+  check('the gallery reads the pending id once it is mounted and opens its plan; its own folder card is gone, a link to this page replaces it',
+    /kbThPending\.id;[\s\S]{0,80}openPlan\(id\)/.test(src) && /'data-kb': 'theme-add-link'/.test(src) && !/'data-kb': 'theme-folder'/.test(src) && /kbOpenSettingsPage\(\['kybernos-themes-market'\]\)/.test(src))
+  check('the catalogue key fields are still there, folded under « Pin a key (advanced) »', /'data-kb': 'kb-market-source-adv'/.test(page) && /kb-market-source-keyid/.test(page) && /kb-market-source-pem/.test(page) && /Pin a key \(advanced\)/.test(page))
+  check('the page leads to the gallery by a button, and the folder tab remembers at most three recent folders', /'data-kb': 'kb-tpl-open-gallery'/.test(page) && /kbThRemember\(folder\.trim\(\)\)/.test(page) && /slice\(0, 3\)/.test(src))
 }
 
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')

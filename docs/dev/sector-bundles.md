@@ -207,7 +207,18 @@ until those plugins are installed and have told their points to the registry, th
 node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
 ```
 
-Sample rows for the pages (so a new install is not empty) are not part of these three points: a later lot adds them.
+A fourth folder, `dashboards/`, extends `kybernos/dashboards#preset` (owned by the Dashboards plugin, at most 4 files): a dashboard of the trade built from the three
+business sources (`catalog.items`, `contacts.people`, `pipeline.cards`) and the widgets the Dashboards plugin already has. It is data too and inert (no note, no free text);
+its rules and an example are in [`plugin-contract.md`](plugin-contract.md) section 6.2b. A theme that ships one extends the point as an **optional** extension (`"optional": true`) and does NOT name `kybernos/dashboards` in `requires.plugins`:
+with the Dashboards plugin off the theme stays whole and only its dashboard is missing. The Templates page still lists the Dashboards among what the theme brings.
+
+**One template at a time.** Several themes can be installed side by side, but the three pages show one: the **active** theme (the last one installed until the person picks another with the
+selector of the Business group, `docs/dev/business-visuals.md`). Only the active theme's contributions to the three points are offered, only its rows are shown, and the rows (and the pack words)
+of the others wait, installed. The selector and the three rows read the theme's field-of-work pack (`domains/<id>.json`): its `name`, `icon`, `accent` and `menu.labels.contacts|catalog|pipeline`
+(a theme with no label for a row leaves the row its plain word). Nothing else to add to a theme: no key, no file.
+
+Sample rows for the pages (so a new install is not empty) are not part of these points: a theme keeps them in `demo/sample.json`, the argument of the base's `seed()`.
+The three themes the product ships, with their sample rows, are described in [`shipped-themes.md`](shipped-themes.md).
 
 ## One complete `plugin.json`
 
@@ -242,7 +253,7 @@ There is no `provides`: a theme contributes, it does not open a point. Its `pack
 (`"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }`, the file holding `[]`) and nothing else under `dsh`: DSH's
 manager installs a package only as a bundle, and a data theme is a bundle that loads nothing. `dataPackageProblems`
 (`packages/kybernos-registry/registry.mjs:57-75`) accepts a package with no `dsh` key too, and the registry reads it, but the
-manager answers `not-bundle` and puts the profile back as it was, so the Themes page refuses such a folder at the
+manager answers `not-bundle` and puts the profile back as it was, so the Templates page refuses such a folder at the
 first step (`bundleProblem`, `packages/kybernos-plugin/theme-installer.mjs`) and says why. This is also the shape the
 plugin-creator skill writes for a data plugin.
 

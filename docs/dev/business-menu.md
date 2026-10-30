@@ -18,7 +18,9 @@ const off = window.__KB_MENU__ && window.__KB_MENU__.register({
 // `off()` takes the row back (idempotent). `register` returns null, and warns in the console, when the entry is refused.
 ```
 
-- The registry is created when the core loads, before the business plugins (mount order). A plugin that finds no `window.__KB_MENU__` draws nothing.
+- The registry is made when the core's own page half applies, and mount order does not promise that comes first: measured in a sandbox, Pipeline applied before it, found no
+  `window.__KB_MENU__` and its row was never declared. A plugin therefore declares in a small retry (look again every 100 ms for 10 s, the disposer clears the timer): see the
+  `kybernos-pipeline: menu row` effect in `packages/kybernos-pipeline/client.js`. One that finds no registry in the end draws nothing.
 - Declare inside the plugin's `apply()` and hand `off` to its cleanup: switching the plugin off takes its row away, and the page area redraws.
 - `window.__KB_MENU__.check(entry)` says why an entry would be refused, without declaring it. At most 8 rows.
 - The words of a row: a pack's `menu.labels.<id>` first (a theme renames « Contacts » to « Clients »), then the plugin's `label` for the language,
@@ -43,6 +45,9 @@ a second registration of the same key at the same priority throws. The core pick
 - `menu.labels` of a domain pack accepts `contacts`, `catalog` and `pipeline` (`BUSINESS_ROW_IDS` in `domain-pack.mjs`). The registry lives in the
   browser and the host validates packs, so the host cannot read it: the three ids the plugins may take are listed there.
 - `window.__KB_OPEN__.views` lists the declared rows next to the core's pages.
+- **The template selector.** When two or more sector templates touch the pages, the group draws a selector above its rows (`kb-business-scope` in `client.js`, `docs/dev/business-visuals.md`,
+  « One active template »): the three rows then take the **active template's** words (`menu.labels` of its pack, before the person's field), and a page is mounted again, under a key that holds the
+  template, when the choice changes. A control of the group that must not close the phone's drawer carries `data-kb-keep-open` (`kybernos-mobile`).
 - The group is folded or open as the person left it, in `localStorage` (`kybernos.menu.business.collapsed.v1`, per browser, read and written inside
   try/catch). Nothing depends on it: without storage the group starts open.
 - In the collapsed icon rail the header goes away and the rows always show.
