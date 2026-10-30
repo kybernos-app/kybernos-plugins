@@ -6,6 +6,8 @@
 //                          `webserver/index-inject` seam, so a phone never paints the desktop layout first
 //                          (on a slow link the shell can be on screen long before the plugin bundles are)
 //   GET /kybernos-mobile/mobile.css   the same file, for the browser half to link when the seam did not deliver it
+//   (every index render)   the head tags of an installed copy (manifest, home-screen icon, iOS web-app tags), and
+//   GET /kybernos-mobile/pwa/<file>   the manifest and the icons they point at (pwa.mjs). KYBERNOS_MOBILE_PWA=0 turns both off.
 //
 // Rules this file keeps: it only touches plugin seams (ctx.on, ctx.effect, the web server service), patches nothing in
 // the engine, and no failure escapes apply(): a missing service, an unreadable file or a refused row is logged and
@@ -14,6 +16,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeGuard } from './session-guard.mjs'
+import { FILES as PWA_FILES, PWA_PREFIX, pwaRows, servePwa } from './pwa.mjs'
 
 export const name = 'kybernos-mobile'
 export const SHEET_ID = 'kbmob-sheet'
@@ -72,6 +75,10 @@ export const sameOriginLax = (req) => {
     return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch (e) { return true }
 }
+
+// The web-app layer (manifest, icons, iOS tags) is on unless KYBERNOS_MOBILE_PWA=0; its routes use the stylesheet's fences.
+export const pwaEnabled = () => process.env.KYBERNOS_MOBILE_PWA !== '0'
+const pwaFence = (req) => hostOK(req) === true && sameOriginLax(req) === true
 
 export function serveSheet (req, res, file = CSS_FILE) {
   try {
@@ -154,6 +161,8 @@ export function apply (ctx, options = {}) {
   // A failure here must never stop DSH from starting: log it and let the rest go on.
   try {
     ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
+      // Two rows from two sources: one failing never costs the other. The tags go first (they are small).
+      if (pwaEnabled()) { try { table.push(...pwaRows()) } catch (e) { logError('web-app tags not injected', e) } }
       try { table.push(...sheetRows()) } catch (e) { logError('stylesheet not injected', e) }
     }), 'kybernos-mobile: stylesheet')
   } catch (e) { logError('index injection not mounted', e) }
@@ -164,6 +173,12 @@ export function apply (ctx, options = {}) {
       if (phone) {
         try { ctx.effect(() => svc.register({ kind: 'exact', path: NOTICES_ROUTE, handler: (req, res) => serveNotices(req, res) }), 'kybernos-mobile: route notices') } catch (e) { logError('notices route not mounted', e) }
         return
+      }
+      // The manifest and the icons of an installed copy: the same fences as the stylesheet (Host, and Origin when there is one).
+      if (pwaEnabled()) {
+        for (const file of PWA_FILES) {
+          try { ctx.effect(() => svc.register({ kind: 'exact', path: PWA_PREFIX + file, handler: (req, res) => servePwa(file, req, res, pwaFence) }), 'kybernos-mobile: route pwa ' + file) } catch (e) { logError('pwa route not mounted', e) }
+        }
       }
       // The remote half's routes: separate from the stylesheet's, so one cannot take the other down.
       for (const name of Object.keys(REMOTE_ROUTES)) {
