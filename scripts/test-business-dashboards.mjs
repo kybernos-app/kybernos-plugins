@@ -57,9 +57,9 @@ for (const dir of dirs) {
   const raw = readJson(file)
   const world = openWorld({ themeDir, now: NOW })
 
-  ok(dir + ': the template names the point, needs the dashboards, and ships one valid overview with its own word for the row', () => {
-    assert.ok(manifest.extends.some((e) => e.point === POINT_REF && e.dir === 'dashboards' && e.range === '^1.0'))
-    assert.equal(manifest.requires.plugins['kybernos/dashboards'], '^1.0')
+  ok(dir + ': the template names the point (optionally), and ships one valid overview with its own word for the row', () => {
+    assert.ok(manifest.extends.some((e) => e.point === POINT_REF && e.dir === 'dashboards' && e.range === '^1.0' && e.optional === true))
+    assert.equal(manifest.requires.plugins['kybernos/dashboards'], undefined, 'optional: the template works without the Dashboards plugin')
     const checked = validateDashboardPreset(raw, 'overview')
     assert.equal(checked.ok, true, JSON.stringify(checked.errors))
     assert.equal(checked.value.overview, true)

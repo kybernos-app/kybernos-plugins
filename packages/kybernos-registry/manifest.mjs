@@ -90,6 +90,8 @@ export function manifestErrors (manifest, ctx = {}) {
   // 4. you cannot extend what you do not depend on
   for (const e of m.extends ?? []) {
     const owner = e.point.split('#')[0]
+    // an optional extension is the opposite of a dependency: naming the owner in requires.plugins would make it required after all
+    if (e.optional === true) { if (owner !== m.id && (m.requires.plugins ?? {})[owner] !== undefined) fault('extends "' + e.point + '" is optional but "' + owner + '" is in requires.plugins, which makes it required'); continue }
     if (owner !== m.id && (m.requires.plugins ?? {})[owner] === undefined) fault('extends "' + e.point + '" but "' + owner + '" is not in requires.plugins')
   }
 

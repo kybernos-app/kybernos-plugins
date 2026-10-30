@@ -236,7 +236,8 @@
       "properties": {
         "point": { "type": "string", "maxLength": 120, "pattern": "^[a-z][a-z0-9-]{1,31}/[a-z][a-z0-9-]{1,39}#[a-z][a-z0-9-]{1,31}$" },
         "range": { "$ref": "#/$defs/range" },
-        "dir": { "$ref": "#/$defs/relPath" }
+        "dir": { "$ref": "#/$defs/relPath" },
+        "optional": { "type": "boolean", "description": "true: the plugin is still valid when the owner of the point is not installed or not at this version; its contributions are simply not read" }
       }
     }
   }
