@@ -1793,6 +1793,7 @@ let kbLocaleRead = () => 'en'
       'kbsd.remove.confirm': { kybernos: 'Confirmer', en: 'Confirm' },
       'kbsd.loading': { kybernos: 'Chargement…', en: 'Loading…' },
       'kbsd.local.note': { kybernos: 'Enregistré seulement sur cet appareil : le serveur ne distingue pas encore équipe et privé.', en: 'Saved on this device only: the server does not distinguish team from private yet.' },
+      'kbsd.nocloud': { kybernos: 'Connecte ton compte Kybernos pour partager : sans compte, rien ne sort de cet appareil.', en: 'Connect your Kybernos account to share: without an account, nothing leaves this device.' },
       'kbsd.ok.public': { kybernos: 'Lien public créé et confirmé par le Cloud', en: 'Public link created and confirmed by the Cloud' },
       'kbsd.ok.team': { kybernos: 'Accès équipe enregistré (local)', en: 'Team access saved (local)' },
       'kbsd.ok.private': { kybernos: 'Retour en privé', en: 'Back to private' },
@@ -2194,6 +2195,11 @@ let kbLocaleRead = () => 'en'
       'kbta.lock.net.b': { kybernos: 'Rien n’est perdu. Vérifie ta connexion, puis réessaie.', en: 'Nothing was lost. Check your connection and try again.' },
       'kbta.lock.reconnect.t': { kybernos: 'Ta session Kybernos a expiré', en: 'Your Kybernos session has expired' },
       'kbta.lock.reconnect.b': { kybernos: 'Reconnecte ton compte, puis rouvre cet onglet.', en: 'Reconnect your account, then reopen this tab.' },
+      // Not delivered yet (the contract is written, the server half is not: docs/dev/team-automations-contract.md says
+      // « Nothing implements it yet »). « Bientôt » is the state, with no door: a CTA here would promise a page that does not exist.
+      'kbta.lock.soon.t': { kybernos: 'Les automatisations d’équipe arrivent bientôt', en: 'Team automations are coming soon' },
+      'kbta.lock.soon.b': { kybernos: 'Ton serveur ne les sert pas encore. Rien n’est perdu : tes automatisations personnelles ne sont pas touchées, elles continuent de tourner.', en: 'Your server does not serve them yet. Nothing is lost: your own automations are untouched and keep running.' },
+      'kbta.soon': { kybernos: 'Bientôt', en: 'Soon' },
       'kbta.lock.other.t': { kybernos: 'Les automatisations d’équipe ne répondent pas', en: 'Team automations are not answering' },
       'kbta.lock.other.b': { kybernos: 'Réponse inattendue ({code}). Tes propres automatisations ne sont pas touchées.', en: 'Unexpected answer ({code}). Your own automations are not affected.' },
       'kbta.cta.plans': { kybernos: 'Voir les plans', en: 'See plans' },
@@ -8963,12 +8969,13 @@ const CSS = `
 .kb4-badge{display:none}
 /* The « Business » group (kb-business-menu): a folding header over the rows of the plugins that declared one. In em, like the rows. */
 .kb4-grp{margin-top:.35em}
-.kb4-grph{display:flex;align-items:center;gap:.5em;width:100%;min-height:2em;margin:0;padding:.25em .8em .25em .45em;border:none;border-radius:.75em;background:none;font:inherit;font-size:.95em;line-height:1.3;letter-spacing:.02em;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
+.kb4-grph{display:flex;align-items:center;gap:.5em;width:100%;min-height:2em;margin:0;padding:.25em .8em .25em .6em;border:none;border-radius:.75em;background:none;font:inherit;font-size:1em;line-height:1.3;letter-spacing:.02em;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
 .kb4-grph:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
 .kb4-grph.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
 .kb4-grph.on .kb4-lab{font-weight:700}
+.kb4-grph .kb4-lab{font-size:.95em}
 .kb4-grprows.folded{display:none}
-.kb4-grpchev{flex:none;display:flex;align-items:center;justify-content:center;width:1em;transition:transform .18s}
+.kb4-grpchev{flex:none;display:flex;align-items:center;justify-content:center;width:1em;margin-left:auto;transition:transform .18s}
 .kb4-grph[aria-expanded="false"] .kb4-grpchev{transform:rotate(-90deg)}
 .kb4-grpcnt{margin-inline-start:auto;min-width:1.7em;padding:0 .5em;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);font-size:.85em;font-weight:650;text-align:center;font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion:reduce){.kb4-grpchev{transition:none}}
@@ -8977,11 +8984,14 @@ const CSS = `
 [class*="collapsed"] .kb4-menu .kb4-grprows.folded{display:block}
 /* The template selector of the group (kb-business-scope): the active template, and opened, the ones to pick from. Inline, in em like the rows around it. */
 .kb4-scope{margin:.15em 0 .3em}
-.kb4-scopebtn,.kb4-scopeitem{display:flex;align-items:center;gap:.55em;width:100%;min-height:2.15em;margin:0;padding:.25em .7em .25em .45em;border:1px solid var(--dsw-alias-border-l1);border-radius:.75em;background:var(--dsw-alias-bg-layer-1);font:inherit;font-size:.95em;line-height:1.3;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:left}
+/* its 1px border sits inside the 0.6em inset: 1px back, so the tile starts where the items' icon does (measured live 30/10) */
+.kb4-scopebtn,.kb4-scopeitem{display:flex;align-items:center;gap:.5em;width:100%;min-height:2.15em;margin:0;padding:.25em .7em .25em calc(.6em - 1px);border:1px solid var(--dsw-alias-border-l1);border-radius:.75em;background:var(--dsw-alias-bg-layer-1);font:inherit;font-size:1em;line-height:1.3;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:left}
 .kb4-scopebtn:hover,.kb4-scopeitem:hover{background:var(--dsw-alias-bg-layer-2)}
 .kb4-scopebtn:focus-visible,.kb4-scopeitem:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .kb4-scopebtn:disabled,.kb4-scopeitem:disabled{cursor:progress;opacity:.7}
-.kb4-scopebtn .kb4-lab,.kb4-scopeitem .kb4-lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.kb4-scopebtn .kb4-lab,.kb4-scopeitem .kb4-lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:.95em}
+.kb4-scopebtn .kb4-scopetile,.kb4-scopeitem .kb4-scopetile{width:1.25em;height:1.25em}
+.kb4-scopebtn .kb4-scopetile svg,.kb4-scopeitem .kb4-scopetile svg{width:13px;height:13px}
 .kb4-scopetile{display:flex;align-items:center;justify-content:center;flex:none;width:1.65em;height:1.65em;border-radius:.5em;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
 .kb4-scopechev{flex:none;display:flex;color:var(--dsw-alias-label-secondary);transition:transform .16s ease}
 .kb4-scopebtn.open .kb4-scopechev{transform:rotate(180deg)}
@@ -12605,6 +12615,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // V1-27: a disabled button that explains nothing. When the reason is « nothing to share yet », say it, once.
           (inactif === true && busy !== true && niveau === 'me' && meilleurDispo !== true)
             ? h('div', { className: 'kbsp-hint', 'data-kb': 'share-link-none' }, T('kbsd.link.none'))
+            : null,
+          // Same rule, other reason: with no account there is no server to share through, and the button must say it
+          // rather than sit there greyed (person, 2026-10-30, « même remarque pour share creation »).
+          (inactif === true && busy !== true && cloud === null)
+            ? h('div', { className: 'kbsp-hint', 'data-kb': 'share-no-cloud' }, T('kbsd.nocloud'))
             : null)
       } else {
         // ── Variante PROJET ──
@@ -15157,7 +15172,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (s.data !== null && s.data !== undefined) {
         for (const root of s.data.roots || []) for (const k of root.kybers || []) if (k.file === s.detailPath) kyber = k
       }
-      const tabPair = React.useState('Identity')
+      // Roles first, then Identity: the roles are what an Agent Team is made of, and the person
+      // asked for that order on 2026-10-30. The first tab is also the one the page opens on.
+      const tabPair = React.useState('Roles')
       const tab = tabPair[0]
       const setTab = tabPair[1]
       const draftPair = React.useState(null)
@@ -15443,7 +15460,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (kyber === null) return h('div', { className: 'kb9-empty' }, kbt('kbui.kyber.notfound'))
       if (draft === null) return null
       // There is no 'Access' tab: it was taken off the bar on a user request (23/09/2026) and its code is gone.
-      const TABS = ['Identity', 'Roles', 'Workflow', kbt('kbui.skills'), kbt('kbui.insight'), kbt('kbui.quality'), kbt('kbui.connecteurs'), KBW_PUBLIC_RUNTIME === true ? kbt('kbw.tab') : null, 'Settings', 'Danger Zone'].filter((t) => t !== null)
+      const TABS = ['Roles', 'Identity', 'Workflow', kbt('kbui.skills'), kbt('kbui.insight'), kbt('kbui.quality'), kbt('kbui.connecteurs'), KBW_PUBLIC_RUNTIME === true ? kbt('kbw.tab') : null, 'Settings', 'Danger Zone'].filter((t) => t !== null)
       const protectedTeam = kyber.id === 'digital-clone'
       const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
       const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '11px' }
@@ -22709,18 +22726,21 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const fire = (name, detail) => { try { window.dispatchEvent(new CustomEvent(name, detail === undefined ? undefined : { detail })) } catch (e) { /* no window events here */ } }
       const spaceId = props.space !== null && props.space !== undefined && typeof props.space.id === 'string' ? props.space.id : ''
       const btn = (id, label, onClick, primary) => h('button', { key: id, type: 'button', className: 'kba-btn' + (primary === true ? ' pri' : ''), 'data-kb': 'team-lock-' + id, onClick }, label)
+      // Not delivered: the honest state is « Bientôt » with no button. A network or a plan problem, by contrast, keeps
+      // its door out (retry, plans, servers) — that is the difference this branch makes.
+      const soon = kind === 'server' || kind === 'absent'
       const acts = []
-      if (kind === 'plan') acts.push(planPair[0] !== '' ? h('a', { key: 'plans', className: 'kba-btn pri', 'data-kb': 'team-lock-plans', href: planPair[0], target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none' } }, kbt('kbta.cta.plans')) : btn('plans', kbt('kbta.cta.plans'), () => fire('kybernos-cloud:plan', spaceId === '' ? undefined : { workspace_id: spaceId }), true))
+      if (soon === true) { /* no action at all: nothing to retry, no page to open */ } else if (kind === 'plan') acts.push(planPair[0] !== '' ? h('a', { key: 'plans', className: 'kba-btn pri', 'data-kb': 'team-lock-plans', href: planPair[0], target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none' } }, kbt('kbta.cta.plans')) : btn('plans', kbt('kbta.cta.plans'), () => fire('kybernos-cloud:plan', spaceId === '' ? undefined : { workspace_id: spaceId }), true))
       else if (kind === 'signin' || kind === 'reconnect') acts.push(btn('signin', kbt('kbta.cta.signin'), () => fire('kybernos-cloud:open'), true))
       else if (kind === 'personal') { acts.push(btn('create', kbt('kbta.cta.create'), () => fire('kybernos-cloud:open'), true)); acts.push(btn('join', kbt('kbta.cta.join'), () => fire('kybernos-cloud:open'))) }
-      else if (kind === 'server') acts.push(btn('servers', kbt('kbta.cta.servers'), () => kbOpenSettingsPage(['kybernos-servers']), true))
       else acts.push(btn('retry', kbt('kbta.retry'), () => { if (typeof props.onRetry === 'function') props.onRetry() }, true))
       if ((kind === 'reconnect' || kind === 'other') && typeof props.onRetry === 'function') acts.push(btn('retry', kbt('kbta.retry'), () => props.onRetry()))
       const plan = kind === 'plan' && typeof props.plan === 'string' && props.plan !== '' ? kbtaT('kbta.lock.plan.yours', { plan: props.plan }) : ''
-      return h('div', { className: 'kba-card kbta-lock', 'data-kb': 'team-locked', 'data-lock': kind, role: 'status' },
+      return h('div', { className: 'kba-card kbta-lock', 'data-kb': 'team-locked', 'data-lock': soon === true ? 'soon' : kind, role: 'status' },
         kbtaIcon(kind === 'net' || kind === 'other' || kind === 'server' ? 'triangleAlert' : 'lock', 28),
-        h('div', { className: 'kbta-lock-t' }, known ? kbt('kbta.lock.' + kind + '.t') : kbt('kbta.lock.other.t')),
-        h('div', { className: 'kbta-lock-b' }, known ? plan + kbt('kbta.lock.' + kind + '.b') : kbtaT('kbta.lock.other.b', { code: props.detail === undefined || props.detail === '' ? '?' : props.detail })),
+        soon === true ? h('span', { className: 'kb8-soon', 'data-kb': 'team-soon' }, kbt('kbta.soon')) : null,
+        h('div', { className: 'kbta-lock-t' }, soon === true ? kbt('kbta.lock.soon.t') : (known ? kbt('kbta.lock.' + kind + '.t') : kbt('kbta.lock.other.t'))),
+        h('div', { className: 'kbta-lock-b' }, soon === true ? kbt('kbta.lock.soon.b') : (known ? plan + kbt('kbta.lock.' + kind + '.b') : kbtaT('kbta.lock.other.b', { code: props.detail === undefined || props.detail === '' ? '?' : props.detail }))),
         h('div', { className: 'kbta-lock-acts' }, acts))
     }
 
@@ -29360,9 +29380,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           'data-kb-keep-open': 'true', // folding the group is not a destination: the phone's drawer stays open (kybernos-mobile: KEEP_OPEN)
           onClick: toggle,
         },
-        h('span', { className: 'kb4-grpchev' }, Icon('chevronDown', 13)),
         h('span', { className: 'kb4-ico' }, Icon('briefcase', 15)),
         h('span', { className: 'kb4-lab' }, title),
+        h('span', { className: 'kb4-grpchev' }, Icon('chevronDown', 13)),
         (collapsed && att.count > 0) ? h('span', { className: 'kb4-grpcnt', role: 'img', 'aria-label': kbt('menu.review') + ': ' + att.count }, att.count >= 99 ? '99+' : String(att.count)) : null,
         (collapsed && att.count === 0 && att.running) ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': kbt('menu.working') }) : null),
         h('div', { id: 'kb4-biz-rows', className: 'kb4-grprows' + (collapsed ? ' folded' : ''), role: 'group', 'aria-label': title },
@@ -29961,6 +29981,72 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     // ── menu maquette : au-dessus des workspaces, conversations natives ────
     ctx.effect(() => slots.inject('sidebar.panellist', () => slots.register({ name: 'sidebar.panellist', id: 'kybers-menu', order: 5, label: kbt('kbui.kybernos') }, SalesMenu)), 'kybers: menu kybernos panellist');
+    // ── the native « More » row of the sidebar ───────────────────────────────────────────────────────
+    // Its menu holds two rows drawn by the native bundle @deepseek-ai/dsh-client-ui-entry-customization
+    // (« Browse other plugins », « Create your plugin », 0.2.2-alpha.2, lib/client.js:78 and :149), and both lead to
+    // the Plugins page this product does not show (person, 2026-10-30). No engine patch: we mark the sidebar's
+    // launcher once it is in the DOM, and one CSS rule hides it — so the row and its menu go away together.
+    // Scope: the SIDEBAR launcher only, matched by its own markup (role-less button, aria-haspopup="menu", class
+    // « panelRow » from the shell). The conversation and rightbar « More » menus are left alone: they may hold the
+    // folded conversation views, and hiding their rows there is a product decision nobody has taken yet.
+    // <kb-hide-native-rows>
+    /** Is this element the sidebar's « More » launcher? Pure. The shell gives it `aria-haspopup="menu"` and the
+     *  panel-row class (SidebarRoot, `panelRow` + module hash); our own menu row has no aria-haspopup. */
+    const kbIsMoreLauncher = (el) => {
+      try {
+        if (el === null || el === undefined || el.getAttribute === undefined) return false
+        if (el.getAttribute('aria-haspopup') !== 'menu') return false
+        const cls = el.getAttribute('class')
+        return typeof cls === 'string' && cls.indexOf('panelRow') >= 0
+      } catch (e) { return false }
+    }
+    /** Marks the launcher under `root` (a Document or an Element). Idempotent; returns how many it marked now. */
+    const kbHideNativeMoreRow = (root) => {
+      let marked = 0
+      try {
+        const all = root.querySelectorAll('button[aria-haspopup="menu"]')
+        for (let i = 0; i < all.length; i += 1) {
+          const el = all[i]
+          if (kbIsMoreLauncher(el) !== true) continue
+          if (el.getAttribute('data-kb-hidden-row') === '1') continue
+          el.setAttribute('data-kb-hidden-row', '1')
+          marked += 1
+        }
+      } catch (e) { /* no DOM (a test, the host) */ }
+      return marked
+    }
+    // </kb-hide-native-rows>
+    ctx.effect(() => {
+      try {
+        if (document.getElementById('kb-hidden-native-rows-css') === null) {
+          const st = document.createElement('style')
+          st.id = 'kb-hidden-native-rows-css'
+          st.setAttribute('data-plugin', '@local/kybernos-plugin')
+          st.textContent = '[data-kb-hidden-row]{display:none!important}'
+          const head = document.head !== null && document.head !== undefined ? document.head : document.documentElement
+          if (head !== null && head !== undefined) head.appendChild(st)
+        }
+        // Only a batch that brings a menu launcher is worth a pass: a chat that streams text never calls the matcher.
+        const worth = (n) => {
+          if (n === null || n === undefined || n.nodeType !== 1) return false
+          try {
+            if (n.matches !== undefined && n.matches('[aria-haspopup="menu"]') === true) return true
+            return n.querySelector !== undefined && n.querySelector('[aria-haspopup="menu"]') !== null
+          } catch (e) { return false }
+        }
+        const mo = new MutationObserver((records) => {
+          for (let r = 0; r < records.length; r += 1) {
+            const added = records[r].addedNodes
+            for (let i = 0; i < added.length; i += 1) {
+              if (worth(added[i]) === true) { kbHideNativeMoreRow(document); return }
+            }
+          }
+        })
+        mo.observe(document.body === null || document.body === undefined ? document.documentElement : document.body, { childList: true, subtree: true })
+        kbHideNativeMoreRow(document)
+        return () => mo.disconnect()
+      } catch (e) { return undefined }
+    }, 'kybernos: hide the native « More » row of the sidebar');
     // Occupant attendu de l'emplacement enfant ci-dessous : le module
     // '@local/kybernos-skills' (et lui seul — slot `single` : un second
     // injectant au même priority lève). ARB-1 : un seul mécanisme, l'emplacement
@@ -37880,6 +37966,9 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
 .kbta-n{opacity:.7;font-variant-numeric:tabular-nums}
 .kba-sub button .kbta-ini{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-size:10px;font-weight:700;flex:none}
 .kbta-lockico{display:inline-flex;color:var(--dsw-alias-label-tertiary)}
+/* not delivered yet: the card reads as inactive, the chip says what it is (person, 2026-10-30) */
+.kbta-lock[data-lock="soon"]{opacity:.72}
+.kbta-lock[data-lock="soon"] .kb8-soon{align-self:flex-start;margin-left:0}
 .kbta-chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);font-size:11px;font-weight:500;color:var(--dsw-alias-label-secondary);white-space:nowrap;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;flex:none}
 .kbta-chip.ok{border-color:var(--dsw-alias-state-success-primary);color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 60%,var(--dsw-alias-label-primary))}
 .kbta-chip.warn{border-color:var(--dsw-alias-state-warn-primary);color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 60%,var(--dsw-alias-label-primary))}
