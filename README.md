@@ -122,7 +122,7 @@ node scripts/smoke-gui.mjs --token <token>                                      
 
 None of these is a DSH bundle. The first two are separate processes, with their own tests (`node --test test/*.test.mjs` in their folder); the third is a library for now.
 
-- [`packages/kybernos-db`](packages/kybernos-db): the rules of user- and agent-defined databases (field types, filter, sort, views, rights, operations), pure and shared with the server. Test it with `node packages/kybernos-db/test-core.mjs`.
+- [`packages/kybernos-db`](packages/kybernos-db): user- and agent-defined databases: the rules (field types, filter, sort, views, rights, operations; pure, shared with the server) and the SQLite file with its journal and attachments. Test them with `node packages/kybernos-db/test-core.mjs` and `node packages/kybernos-db/test-store.mjs`.
 - [`packages/messaging`](packages/messaging): a daemon bridging DSH and messaging apps (Telegram first). Run it with `npm run daemon` in that folder.
 - [`packages/kybernos-gate`](packages/kybernos-gate): the sign-in gate for a hosted DSH (see [Install on a server or with Docker](#install-on-a-server-or-with-docker)). Run it with `node bin/kybernos-gate.mjs`; it refuses to start without a password.
 
