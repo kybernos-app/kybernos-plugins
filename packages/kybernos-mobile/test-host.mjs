@@ -64,7 +64,7 @@ console.log('the stylesheet')
     if (at < 0) return false
     const open = withoutComments.lastIndexOf('{', at)
     const body = withoutComments.slice(open, withoutComments.indexOf('}', at))
-    return /padding-top:\s*(?:var\(--kb-sat,\s*)?env\(safe-area-inset-top,\s*0px\)/.test(body) && /padding-bottom:\s*env\(safe-area-inset-bottom,\s*0px\)/.test(body)
+    return /padding-top:\s*(?:var\(--kb-sat,\s*)?env\(safe-area-inset-top,\s*0px\)/.test(body) && /padding-bottom:\s*(?:var\(--kb-sab,\s*)?env\(safe-area-inset-bottom,\s*0px\)/.test(body)
   })())
   check('the browser scales text up on a phone (the app was too small): text-size-adjust, not zoom', /text-size-adjust:\s*118%/.test(withoutComments) && !/\bzoom\s*:/.test(withoutComments))
   check('the drawer leaves part of the chat to tap (never the full width)', /width:\s*min\(84vw,\s*330px\)/.test(withoutComments))
