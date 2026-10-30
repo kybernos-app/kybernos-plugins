@@ -209,7 +209,7 @@ window.__ModuleLoader__.load({
         winPayment: 'Paiement échoué',
         winUsed: '{pct}\u00a0% utilisé',
         planManage: 'Gérer',
-        planAddCredits: 'Ajouter des crédits',
+        planAddCredits: 'Recharger',
         cueMemory: 'Mémoire d\'équipe',
         cueMemoryOff: 'Mémoire d\'équipe · perso coupée',
         cueMemoryTip: 'Cette équipe utilise ses leçons partagées.',
@@ -262,10 +262,10 @@ window.__ModuleLoader__.load({
         upPerMonthTotal: 'par mois',
         upCalculating: 'Calcul du prix…',
         upQuoteFail: 'Le prix n\'a pas pu être calculé.',
-        upTopup: 'Crédits supplémentaires',
+        upTopup: 'Recharger des crédits',
         upTopupSub: 'Paiement unique, valables pendant',
         upMonths: 'mois',
-        upBuyCredits: 'Acheter des crédits',
+        upBuyCredits: 'Recharger',
         upTaxExcl: 'Prix hors taxes.',
         upTaxIncl: 'Prix toutes taxes comprises.',
         upOpened: 'La page de paiement est ouverte dans ton navigateur. Reviens ici une fois terminé.',
@@ -502,7 +502,7 @@ window.__ModuleLoader__.load({
         winPayment: 'Payment failed',
         winUsed: '{pct}% used',
         planManage: 'Manage',
-        planAddCredits: 'Add credits',
+        planAddCredits: 'Top up',
         cueMemory: 'Team memory',
         cueMemoryOff: 'Team memory · personal off',
         cueMemoryTip: 'This team uses its shared lessons.',
@@ -553,10 +553,10 @@ window.__ModuleLoader__.load({
         upPerMonthTotal: 'per month',
         upCalculating: 'Calculating the price…',
         upQuoteFail: 'The price could not be calculated.',
-        upTopup: 'Extra credits',
+        upTopup: 'Top-up',
         upTopupSub: 'Paid once, valid for',
         upMonths: 'months',
-        upBuyCredits: 'Buy credits',
+        upBuyCredits: 'Top up',
         upTaxExcl: 'Prices exclude tax.',
         upTaxIncl: 'Prices include tax.',
         upOpened: 'The payment page is open in your browser. Come back here when you are done.',
@@ -2617,6 +2617,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         const upFeatureText = (k) => { if (UP_FEATURES[k] !== undefined) return t(UP_FEATURES[k]); const w = String(k).replace(/[._]/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
         // <up-feat:end>
         const upLocale = () => { const l = lang(); return l === 'en' ? 'en-US' : l === 'fr' ? 'fr-FR' : l }
+        /** What a top-up pack grants, in the words the server's shape allows: credits when it says so, money
+         *  when it only carries `grant_usd` (both shapes are in the fixtures), nothing when it carries neither. */
+        const upGrantText = (pack) => {
+          const credits = pack === null || pack === undefined ? null : pack.grant_credits
+          if (Number.isInteger(credits) && credits > 0) return Number(credits).toLocaleString(upLocale()) + ' ' + t('upCreditsUnit')
+          const usd = pack === null || pack === undefined ? null : pack.grant_usd
+          if (typeof usd === 'string' && usd !== '') return upMoney(usd, 'USD') + ' ' + t('upCreditsUnit')
+          return ''
+        }
         const upMoney = (amount, currency) => {
           const n = Number(amount)
           if (!Number.isFinite(n)) return String(amount)
@@ -2825,7 +2834,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             return h('div', { className: 'kbup-topup', 'data-kb': 'upgrade-topup' },
               h('div', { className: 'kbup-topup-txt' },
                 h('b', null, t('upTopup')),
-                h('span', { className: 'kbup-muted' }, Number(topup.pack.grant_credits).toLocaleString(upLocale()) + ' ' + t('upCreditsUnit') + ' · ' + upMoney(price.amount, cur)
+                h('span', { className: 'kbup-muted' }, upGrantText(topup.pack) + ' · ' + upMoney(price.amount, cur)
                   + (Number.isInteger(topup.pack.expires_months) ? ' · ' + t('upTopupSub') + ' ' + topup.pack.expires_months + ' ' + t('upMonths') : ''))),
               h('span', { className: 'kbup-stepper' },
                 h('button', { type: 'button', 'aria-label': t('upSeatsLess'), disabled: n <= 1, onClick: () => setPacks(n - 1) }, '−'),
