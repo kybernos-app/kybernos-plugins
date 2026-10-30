@@ -37,6 +37,8 @@ const SAY = {
   newField: { en: 'new field ', fr: 'nouveau champ ' },
   severalOf: { en: 'each row can have several ', fr: 'chaque ligne peut avoir plusieurs ' },
   atMostOne: { en: 'each row has at most one ', fr: 'chaque ligne a au plus un(e) ' },
+  shownAs: { en: 'seen from the other side as ', fr: 'vu de l’autre côté sous le nom ' },
+  changeInverse: { en: 'name seen from the other side: ', fr: 'nom vu de l’autre côté : ' },
   changeName: { en: 'name: ', fr: 'nom : ' },
   changeProtection: { en: 'protection: ', fr: 'protection : ' },
   choicesAdded: { en: 'choices added: ', fr: 'choix ajoutés : ' },

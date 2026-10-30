@@ -168,12 +168,13 @@ export function textOf (field, value, ctx) {
 }
 
 const tidy = (s, max) => typeof s === 'string' && s.trim().length >= 1 && s.trim().length <= max && !CONTROL.test(s)
-const FIELD_KEYS = ['key', 'type', 'label', 'required', 'protection', 'options', 'currency', 'precision', 'to', 'many', 'maxBytes']
-const ONLY_FOR = { options: ['choice', 'multichoice'], currency: ['money'], precision: ['money'], to: ['relation'], many: ['relation'], maxBytes: ['attachment'] }
+const FIELD_KEYS = ['key', 'type', 'label', 'required', 'protection', 'options', 'currency', 'precision', 'to', 'many', 'inverse', 'maxBytes']
+const ONLY_FOR = { options: ['choice', 'multichoice'], currency: ['money'], precision: ['money'], to: ['relation'], many: ['relation'], inverse: ['relation'], maxBytes: ['attachment'] }
 
 /**
  * Checks a field definition and fills its defaults: `{ ok: true, field }`, or `{ ok: false, errors: [{ path, code, message }] }`.
- *   { key, type, label, required?, protection?, options? (choice, multichoice), currency + precision? (money), to + many? (relation), maxBytes? (attachment) }
+ *   { key, type, label, required?, protection?, options? (choice, multichoice), currency + precision? (money), to + many + inverse? (relation), maxBytes? (attachment) }
+ * An `inverse` is the name the link shows under on the object it points to (« Orders » on a customer); without one the page says the label of the object it comes from.
  */
 export function normalizeField (def) {
   const errors = []
@@ -218,8 +219,10 @@ export function normalizeField (def) {
   if (def.type === 'relation') {
     if (typeof def.to !== 'string' || !FIELD_KEY.test(def.to)) fail('to', 'to', 'a relation names the object it points to')
     if (def.many !== undefined && typeof def.many !== 'boolean') fail('many', 'type', 'true or false')
+    if (def.inverse !== undefined && !tidy(def.inverse, 80)) fail('inverse', 'inverse', 'the name of the link seen from the other side is 1 to 80 characters')
     field.to = def.to
     field.many = def.many === true
+    if (typeof def.inverse === 'string' && tidy(def.inverse, 80)) field.inverse = def.inverse.trim()
   }
   if (def.type === 'attachment') {
     if (def.maxBytes !== undefined && !(Number.isInteger(def.maxBytes) && def.maxBytes >= 1 && def.maxBytes <= MAX_ATTACHMENT_BYTES)) fail('maxBytes', 'maxBytes', 'a whole number of bytes, at most ' + MAX_ATTACHMENT_BYTES)

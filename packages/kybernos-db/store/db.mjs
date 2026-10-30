@@ -5,8 +5,9 @@
 // (source « sql ») and keep `rev` and the stamps true. `verify()` replays the journal and says whether the tables still agree with it.
 //
 // Failures a caller can cause come back as `{ ok: false, code, message, errors? }` (the core's shape); only a broken environment throws.
-// Not here yet: removing or renaming objects and fields, changing a field's type, views, the check that a relation points at a real record, rights (core/rights.mjs
-// is asked by the caller), the sync with the server.
+// A link written through `create` or `update` must point at a record that exists and is not deleted (`invalid`, code `link`); an operation replayed with `apply` is not
+// judged, because another device's operations can arrive before the record they point at. A deleted record keeps the links that point at it (a restore brings them back).
+// Not here yet: removing or renaming objects and fields, changing a field's type, rights (core/rights.mjs is asked by the caller), the sync with the server.
 
 import { chmodSync, closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -117,12 +118,32 @@ function makeDb (handle, file, ports) {
     return { ok: true, record: r.record, applied: true }
   })
 
+  /** The links of `values` that point at nothing: `[{ path, code: 'link', message }]`. A link the record already had is not asked again (its target may have been deleted since). */
+  const brokenLinks = (obj, values, before) => {
+    const errors = []
+    for (const f of obj.fields) {
+      if (f.type !== 'relation' || !Object.prototype.hasOwnProperty.call(values, f.key)) continue
+      const target = objOf(f.to)
+      const given = values[f.key]
+      const ids = Array.isArray(given) ? given : [given]
+      const had = before === null ? [] : [].concat(before.values[f.key] === null || before.values[f.key] === undefined ? [] : before.values[f.key])
+      for (const id of ids) {
+        if (!isUlid(id) || had.includes(id)) continue
+        const there = target !== undefined && prepare(`SELECT 1 AS x FROM ${q(tableName(target.key))} WHERE id = ? AND deleted_at IS NULL`).get(id) !== undefined
+        if (!there) errors.push({ path: f.key, code: 'link', message: 'no such ' + (target === undefined ? f.to : target.label) + ' record' })
+      }
+    }
+    return errors
+  }
+
   const create = (objectKey, values, by) => write(() => {
     const obj = objOf(objectKey)
     if (!obj) return refuse('unknown-object', 'no such object')
     const { t, at } = stamp()
     const built = buildCreate(obj, values, { id: nextId(t), record: nextId(t), by, at })
-    return built.ok ? apply(built.op) : invalid(built.errors)
+    if (!built.ok) return invalid(built.errors)
+    const broken = brokenLinks(obj, built.op.set, null)
+    return broken.length ? invalid(broken) : apply(built.op)
   })
 
   const update = (objectKey, id, changes, by) => write(() => {
@@ -134,7 +155,9 @@ function makeDb (handle, file, ports) {
     const { t, at } = stamp()
     const built = buildUpdate(obj, before, changes, { id: nextId(t), by, at })
     if (!built.ok) return invalid(built.errors)
-    return built.op === null ? { ok: true, record: before, applied: false } : apply(built.op)
+    if (built.op === null) return { ok: true, record: before, applied: false }
+    const broken = brokenLinks(obj, built.op.set, before)
+    return broken.length ? invalid(broken) : apply(built.op)
   })
 
   const mark = (kind) => (objectKey, id, by) => write(() => {
@@ -148,6 +171,32 @@ function makeDb (handle, file, ports) {
   })
 
   const get = (objectKey, id) => { live(); return isUlid(id) ? readRecord(need(objectKey), id) : null }
+
+  /**
+   * What points at a record, from every other side: one group per link field (of any object) that points at `objectKey`, in the order of the structure,
+   * `[{ object, field, count, ids }]`. Only live records count; `ids` are the first `limit` (50 by default, 200 at most), oldest first. A group is there even when it is empty.
+   */
+  const backlinks = (objectKey, id, opts = {}) => {
+    live()
+    const target = need(objectKey)
+    const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? Math.min(opts.limit, 200) : 50
+    const out = []
+    for (const obj of catalog().objects) {
+      for (const f of obj.fields) {
+        if (f.type !== 'relation' || f.to !== target.key) continue
+        if (!isUlid(id)) { out.push({ object: obj.key, field: f.key, count: 0, ids: [] }); continue }
+        const t = q(tableName(obj.key))
+        const c = q(f.key)
+        const from = `FROM ${t} WHERE deleted_at IS NULL AND ` + (f.many ? `EXISTS (SELECT 1 FROM json_each(${t}.${c}) WHERE value = ?)` : `${c} = ?`)
+        out.push({
+          object: obj.key, field: f.key,
+          count: Number(prepare(`SELECT count(*) AS n ${from}`).get(id).n),
+          ids: prepare(`SELECT id ${from} ORDER BY id LIMIT ${limit}`).all(id).map((r) => r.id),
+        })
+      }
+    }
+    return out
+  }
   /** The records of an object, oldest first. By default the live ones; `{ deleted: true }` for the deleted ones, `{ deleted: 'all' }` for both. */
   const list = (objectKey, opts = {}) => {
     live()
@@ -335,6 +384,13 @@ function makeDb (handle, file, ports) {
     const row = prepare('SELECT json FROM views WHERE object = ? AND id = ?').get(need(objectKey).key, String(id))
     return row === undefined ? null : JSON.parse(row.json)
   }
+  /** Who last saved each view of an object and when: `{ [id]: { rev, by, at } }`, so a page can tell its own save from the agent's. */
+  const viewStamps = (objectKey) => {
+    live()
+    const out = {}
+    for (const r of prepare('SELECT id, rev, modified_by, modified_at FROM views WHERE object = ?').all(need(objectKey).key)) out[r.id] = { rev: Number(r.rev), by: r.modified_by, at: r.modified_at }
+    return out
+  }
   const removeView = (objectKey, id) => write(() => {
     const obj = objOf(objectKey)
     if (!obj) return refuse('unknown-object', 'no such object')
@@ -345,6 +401,17 @@ function makeDb (handle, file, ports) {
     live()
     const meta = Object.fromEntries(prepare('SELECT k, v FROM meta').all().map((r) => [r.k, r.v]))
     return { id: meta.id, name: meta.name, format: FORMAT, version: catalog().version, created: { by: meta.created_by, at: meta.created_at } }
+  }
+
+  /**
+   * A short text (the fingerprint) that changes whenever anything in the db does: the structure, a record (the journal moves, raw SQL included once the triggers write it) or a
+   * view. A page polls it to know when to read again; two equal fingerprints mean nothing changed in between.
+   */
+  const fingerprint = () => {
+    live()
+    const ops = prepare('SELECT COALESCE(MAX(seq), 0) AS n FROM ops').get().n
+    const views = prepare('SELECT COUNT(*) AS n, COALESCE(SUM(rev), 0) AS r FROM views').get()
+    return [catalog().version, Number(ops), Number(views.n), Number(views.r)].join('.')
   }
 
   /** Stores a file next to the db and gives the value to put in an attachment field: `{ ok: true, file: { name, size, type, hash } }`. */
@@ -362,6 +429,7 @@ function makeDb (handle, file, ports) {
     file,
     blobs,
     info,
+    fingerprint,
     objects: () => { live(); return structuredClone(catalog().objects) },
     addObject,
     addField,
@@ -370,6 +438,7 @@ function makeDb (handle, file, ports) {
     saveView,
     listViews,
     getView,
+    viewStamps,
     removeView,
     create,
     update,
@@ -377,6 +446,7 @@ function makeDb (handle, file, ports) {
     restore: mark('restore'),
     apply,
     get,
+    backlinks,
     list,
     count,
     journal,

@@ -12,6 +12,7 @@
       "kybernos-catalog",
       "kybernos-composio",
       "kybernos-contacts",
+      "kybernos-db",
       "kybernos-pipeline",
       "kybernos-plugin"
     ],
@@ -23,6 +24,7 @@
       "kybernos-catalog",
       "kybernos-contacts",
       "kybernos-dashboards",
+      "kybernos-db",
       "kybernos-mobile",
       "kybernos-plugin",
       "kybernos-skills"

@@ -118,11 +118,13 @@ assert.equal(dict.get('kbat.c3.a').en, 'Agent Team')
 assert.ok(/runtime/i.test(dict.get('kbat.c2.a').en) && /runtime/i.test(dict.get('kbat.c2.a').kybernos), 'the second « notion » is the runtime, not a second name for the Agent Team')
 ok('the help says: an Agent Team is defined by a kyber.yml and run by DSH’s Agent Teams runtime; a subagent is another thing')
 
-// 8. a team's page: its roles tab is not called « Team »
-assert.ok(src.includes("const TABS = ['Identity', 'Roles', 'Workflow',"), 'the Agent Team page has an « Identity · Roles · Workflow… » tab bar')
-assert.ok(!/const TABS = \['Identity', 'Team'/.test(src))
+// 8. a team's page: its roles tab is not called « Team », and Roles comes before Identity
+//    (the person asked for that order on 2026-10-30; the first tab is also the one the page opens on)
+assert.ok(src.includes("const TABS = ['Roles', 'Identity', 'Workflow',"), 'the Agent Team page has a « Roles · Identity · Workflow… » tab bar')
+assert.ok(src.includes("const tabPair = React.useState('Roles')"), 'an Agent Team opens on its first tab, Roles')
+assert.ok(!/const TABS = \['(?:Roles|Identity)', 'Team'/.test(src))
 assert.equal(dict.get('kbui.insight').en, 'Insight')
-ok('an Agent Team’s tabs are Identity · Roles · Workflow · … · Insight (« Team » is the plan)')
+ok('an Agent Team’s tabs are Roles · Identity · Workflow · … · Insight (« Team » is the plan)')
 
 // 9. the marketplace is one word, and the page header does not change with the tab
 assert.ok(!dict.has('kbui.marketplace.title'), 'no second title for the Marketplace tab (the header moved when it was swapped)')

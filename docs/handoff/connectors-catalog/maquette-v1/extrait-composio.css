@@ -1,0 +1,175 @@
+/* extrait-composio.css — page « Connectors », onglet Discover.
+   Copie VERBATIM des règles de packages/kybernos-composio/client.js (chaîne CSS de la page,
+   lignes ~940-1260). Aucune règle renommée, aucune valeur retouchée : seuls les commentaires
+   « source: » (un par bloc) et le bloc de mesures final sont ajoutés.
+   Maquette HTML autonome : les variables --dsw-alias-* viennent du thème hôte ; hors
+   application, les valeurs de repli écrites dans les règles (rgba, #22c55e…) prennent le relais.
+   Périmètre : barre d’onglets secondaires, barre d’actions de droite, grille + carte d’app,
+   champ de recherche / puce de facette / bouton. */
+
+/* ─── 1. Barre d’onglets secondaires « Yours / Discover » ─── */
+/* source: packages/kybernos-composio/client.js:1081 — ligne de contrôle qui porte les onglets (onglets à gauche, actions à droite) */
+.kb7-ctlrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;min-height:44px}
+
+/* source: packages/kybernos-composio/client.js:1097 — groupe d’onglets en pastilles (conteneur) */
+.kb7-subtabs{display:inline-flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
+
+/* source: packages/kybernos-composio/client.js:1098 — bouton d’onglet — hauteur 34px (défaut, survol, état .on) */
+.kb7-subtab{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:0;background:transparent;color:var(--dsw-alias-label-secondary)}
+.kb7-subtab:hover{color:var(--dsw-alias-label-primary)}
+.kb7-subtab.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
+
+/* source: packages/kybernos-composio/client.js:1073 — compteur de l’onglet (kb7-cxcount) */
+.kb7-cxcount{font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
+
+/* ─── 2. Barre d’actions à droite des onglets ─── */
+/* source: packages/kybernos-composio/client.js:1089 — recherche / filtre / rafraîchir / « Load the full catalog » : barre d’outils partagée (kb6) alignée à droite, sur une seule ligne */
+/* The search/filter bar stays on ONE line, right-aligned, under the width of the sub-tabs: never a line break
+   (the search field that opens must not push the content). */
+.kb7-ctlrow .kb6-toolbar{flex:1 1 0;min-width:0;display:flex;justify-content:flex-end}
+.kb7-ctlrow .kb6-tb-row{flex-wrap:nowrap;justify-content:flex-end;min-width:0}
+.kb7-ctlrow .kb6-tb-tools{flex-wrap:nowrap;width:auto;justify-content:flex-end}
+.kb7-ctlrow .kb6-tb-tools{margin-inline-start:auto}
+.kb7-ctlrow .kb6-tb-trailing{margin-inline-start:8px;gap:8px}
+.kb7-ctlrow .kb6-tb-trailing:empty{display:none}
+
+/* source: packages/kybernos-composio/client.js:1018 — conteneur des actions propres au Discover (rafraîchir + catalogue complet) */
+.kb7-discact{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-inline-start:auto}
+
+/* source: packages/kybernos-composio/client.js:1049 — bouton « Load the full catalog » = kbcp-btn + kb7-more */
+.kb7-more{align-self:flex-start}
+
+/* source: packages/kybernos-composio/client.js:972 — bouton de la barre (kbcp-btn : rafraîchir, catalogue complet, pagination) — aucune classe kb7-btn */
+.kbcp-btn{height:32px;padding:0 13px;border-radius:8px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.kbcp-btn:hover{background:rgba(128,128,128,.12)}
+.kbcp-btn:disabled{opacity:.5;cursor:default}
+
+/* ─── 3. Grille des cartes d’app et carte elle-même ─── */
+/* source: packages/kybernos-composio/client.js:1016 — grille des cartes (auto-fill / minmax) */
+.kb7-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;max-width:1180px}
+
+/* source: packages/kybernos-composio/client.js:1025 — carte d’app (padding, rayon, bordure, min-height) */
+.kb7-card{display:flex;flex-direction:column;gap:8px;padding:18px;border:1px solid rgba(128,128,128,.22);border-radius:16px;background:var(--kb-surface,transparent);cursor:pointer;text-align:left;color:inherit;font:inherit;min-height:170px}
+.kb7-card:hover{background:rgba(128,128,128,.07);border-color:rgba(128,128,128,.45)}
+
+/* source: packages/kybernos-composio/client.js:1027 — rangée logo + titre + catégorie */
+.kb7-lr{display:flex;align-items:center;gap:12px}
+
+/* source: packages/kybernos-composio/client.js:1028 — carré de logo : taille du SVG dans son conteneur (le conteneur .kb7-applogo est stylé en style inline, voir ABSENT) */
+.kb7-applogo svg{width:74%;height:74%;display:block}
+
+/* source: packages/kybernos-composio/client.js:1030 — titre de l’app */
+.kb7-name{font-size:15px;font-weight:650}
+
+/* source: packages/kybernos-composio/client.js:1031 — catégorie de l’app */
+.kb7-cat{font-size:11px;opacity:.55;margin-top:2px}
+
+/* source: packages/kybernos-composio/client.js:1032 — description tronquée à deux lignes (-webkit-line-clamp) */
+.kb7-desc{font-size:12.5px;opacity:.78;line-height:1.5;min-height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* source: packages/kybernos-composio/client.js:1039 — barres vertes de progression des comptes */
+.kb7-bars{display:flex;gap:4px}
+.kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
+.kb7-bar.pend{background:#facc15}
+
+/* source: packages/kybernos-composio/client.js:1033 — pied de carte (étiquette Connected à gauche, compteur de comptes à droite) */
+.kb7-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px;margin-top:auto;padding-top:6px}
+
+/* source: packages/kybernos-composio/client.js:1034 — étiquette « Connected » (kb7-pill ; .pend quand le compte est en attente) */
+.kb7-pill{font-size:11.5px;font-weight:600;padding:0 10px;border-radius:99px;background:var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary, #22c55e);white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:24px}
+.kb7-pill.pend{background:var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16));color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f0a030))}
+
+/* source: packages/kybernos-composio/client.js:1036 — lisibilité de l’étiquette dans les thèmes clairs */
+/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary, #22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary, #f0a030) 50%,var(--dsw-alias-label-primary))}
+
+/* source: packages/kybernos-composio/client.js:1245 — variante « Popular » du pied de carte */
+.kb7-pill.pop{color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
+
+/* source: packages/kybernos-composio/client.js:1247 — puce de domaine du pied de carte */
+.kb7-fdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--kb7-fld);flex:none;margin-inline-end:6px}
+
+/* source: packages/kybernos-composio/client.js:1253 — variante « for your field » de l’étiquette dans la carte */
+.kb7-card .kb7-pill.fld,.kb7-row .kb7-pill.fld{background:transparent;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1);font-weight:500}
+
+/* ─── 4. Champ de recherche, puce de facette, bouton (repli hors barre kb6) ─── */
+/* source: packages/kybernos-composio/client.js:1007 — champ de recherche (repli quand la barre kb6 n’est pas montée) */
+.kb7-search{height:46px;border-radius:12px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 16px;font-size:13.5px;max-width:100%;width:100%;box-sizing:border-box}
+.kb7-search:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+
+/* source: packages/kybernos-composio/client.js:1009 — rangée des puces de facette */
+.kb7-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.kb7-chips::-webkit-scrollbar{display:none}
+
+/* source: packages/kybernos-composio/client.js:1011 — puce de facette (kb7-chip) et son survol */
+.kb7-chip{height:32px;padding:0 14px;border-radius:99px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;flex:none;white-space:nowrap}
+.kb7-chip:hover{background:rgba(128,128,128,.1)}
+
+/* source: packages/kybernos-composio/client.js:1013 — puce de facette sélectionnée */
+/* The brand colour is near white in the dark theme: the text on it is the theme's own "foreground"
+   token (a fixed #fff was invisible on it). */
+.kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   NOMBRES MESURÉS — chaque valeur est citée depuis une règle recopiée ci-dessus.
+   ══════════════════════════════════════════════════════════════════════
+   Grille (.kb7-grid, client.js:1016)
+     nombre de colonnes ....... repeat(auto-fill, minmax(300px, 1fr)) → fluide, 300px mini
+     minmax ................... minmax(300px, 1fr)
+     gap ...................... 14px
+     largeur maximale ......... max-width:1180px
+
+   Carte (.kb7-card, client.js:1025)
+     border-radius ............ 16px
+     padding .................. 18px
+     gap interne .............. 8px
+     min-height ............... 170px
+     bordure .................. 1px solid rgba(128,128,128,.22)
+
+   Carré de logo
+     hauteur / largeur ........ 42px — AppLogo(a.s, 42), style inline (client.js:2578 + 952)
+     border-radius ............ 10px — style inline (client.js:952)
+     SVG dans le carré ........ 74% x 74% (client.js:1028)
+
+   Tailles de police
+     titre .................... 15px, poids 650 (client.js:1030, .kb7-name)
+     catégorie ................ 11px, opacité .55 (client.js:1031, .kb7-cat)
+     description .............. 12.5px, interligne 1.5, 2 lignes max (client.js:1032, .kb7-desc)
+     étiquette Connected ...... 11.5px, hauteur 24px (client.js:1034, .kb7-pill)
+
+   Barre verte de progression
+     hauteur .................. 4px (client.js:1040, .kb7-bar)
+     border-radius ............ 2px (client.js:1040)
+     gap entre barres ......... 4px (client.js:1039, .kb7-bars)
+     couleurs ................. #22c55e opacité .55 / #facc15 en attente (client.js:1040-1041)
+
+   Bouton d’onglet (.kb7-subtab, client.js:1098)
+     hauteur .................. 34px
+     padding .................. 0 16px
+     border-radius ............ 999px
+     police ................... 13px, poids 600
+     conteneur .kb7-subtabs ... padding 4px, gap 2px, rayon 999px (client.js:1097)
+
+   Champ de recherche / puce / bouton
+     .kb7-search hauteur ...... 46px, rayon 12px, police 13.5px (client.js:1007)
+     .kb7-chip hauteur ........ 32px, rayon 99px, police 12.5px (client.js:1011)
+     .kbcp-btn hauteur ........ 32px, rayon 8px, police 12.5px (client.js:972)
+     ligne de contrôle ....... min-height 44px, gap 16px (client.js:1081)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ABSENT — classes présentes dans le rendu mais SANS règle CSS recopiable dans ce fichier
+   (rien n’est inventé : la ligne dit où la règle manque, pas comment la remplacer) :
+   ABSENT: .kb7-btn — cette classe n’existe pas ; le bouton réel de la barre est .kbcp-btn
+           (client.js:972), et « Load the full catalog » = .kbcp-btn.kb7-more (client.js:2705)
+   ABSENT: .kb7-applogo (le conteneur du carré de logo) — seule la règle descendante
+           .kb7-applogo svg existe (client.js:1028) ; taille, rayon et bordure du carré sont en
+           style inline (client.js:952 / 957-959) et ne peuvent donc pas figurer en CSS
+   ABSENT: .kb6-toolbar, .kb6-tb-row, .kb6-tb-tools, .kb6-tb-trailing, .kb6-tb-search — la barre
+           de recherche/filtre RÉELLE est le composant KbToolbar du bundle kybernos ; ce fichier
+           n’en porte que les surcharges scopées sous .kb7-ctlrow (client.js:1089-1094). Règles de
+           base : packages/kybernos-plugin/client.js:35124 et suivantes (hors périmètre)
+   ABSENT: .kb7-mhead .kb7-applogo svg — existe (client.js:1029) mais concerne l’en-tête de la
+           fenêtre modale, pas la carte : volontairement non recopié
+*/

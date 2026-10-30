@@ -429,7 +429,9 @@ const WEEKDAYS = {
 const reduceMotion = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true } catch (e) { return false } }
 
 let SESSION_ID = ''
-const setSession = (id) => { if (typeof id === 'string' && id.length > 0) SESSION_ID = id }
+// '' is a real answer too: the chat on screen may have no key yet, and keeping the last one made the previous
+// chat's dashboard the current one (person, 2026-10-30).
+const setSession = (id) => { SESSION_ID = typeof id === 'string' ? id : '' }
 const sessionId = () => SESSION_ID
 /** The pulse on the Dashboards row of the menu: how many suggestions of Kaby wait. The core plugin draws it from its shared store; without it, nothing happens. */
 const publishWaiting = (n) => { try { if (window.__KB_MENU_STATE__ && typeof window.__KB_MENU_STATE__.set === 'function') window.__KB_MENU_STATE__.set('dashboards', { review: Number(n) > 0 ? Number(n) : 0 }) } catch (e) { /* no menu */ } }
@@ -1621,8 +1623,17 @@ function DashboardsPane () {
   useEffect(() => {
     let dead = false
     const probe = async () => {
-      const s = await api('GET', 'state')
-      if (dead || !s.ok || !s.json.current) return
+      // strict: this chat's own dashboard, never « the last one of the last chat that wrote one »
+      // (dashboard-host.mjs:367-371 falls back to `lastSession` when strict is not asked for).
+      const s = await api('GET', 'state?strict=1')
+      if (dead) return
+      if (!s.ok || !s.json.current) {
+        // the chat on screen has no dashboard: say so, instead of leaving the previous one on screen
+        setCur((old) => (old === null ? old : null))
+        setDash((old) => (old === null ? old : null))
+        dashRef.current = null
+        return
+      }
       const c = s.json.current
       setCur((old) => (old !== null && old.id === c.id && old.name === c.name ? old : { id: c.id, name: c.name }))
       const d = dashRef.current
@@ -1683,6 +1694,14 @@ function openTab () {
 }
 // The tab can only show inside a chat: keep trying for a minute after a dashboard arrives, so it appears as soon as one is on screen.
 let WANT_OPEN_UNTIL = 0
+/** The dashboard write the person closed the panel on: it is never reopened for that one (person, 2026-10-30). */
+let PANEL_DISMISSED_AT = 0
+// <kb-open-guard>
+/** A dashboard arrived? The first reading only opens for a fresh write, a reload must not reopen an old one. */
+const kbDashArrival = (seenAt, at, now) => seenAt !== at && (seenAt === null ? now - at < 15000 : true)
+/** May the panel be (re)opened? Not once the person closed it on this very write. */
+const kbDashMayOpen = (wantUntil, dismissedAt, at, now) => wantUntil > now && at > dismissedAt
+// </kb-open-guard>
 const panelShown = () => { const p = document.querySelector('[data-kb="dashboards-pane"]'); return !!p && p.getClientRects().length > 0 }
 
 /** The door of the Creations page, the chat card and the popup: the "dashboard" player. */
@@ -1775,22 +1794,36 @@ function apply (ctx) {
   // open the tab when the agent writes a dashboard (strict: only this chat's own dashboard, never a page edit)
   let seen = null
   ctx.effect(() => {
+    // A close is a close: after opening the panel we look once, shortly after, and if it is not on screen the person
+    // closed it — that write is then excluded until the next one (see kbDashMayOpen).
+    let closeTimer = 0
+    const armCloseCheck = (at) => {
+      if (closeTimer) return
+      closeTimer = setTimeout(() => {
+        closeTimer = 0
+        if (panelShown() === true) return
+        PANEL_DISMISSED_AT = Math.max(PANEL_DISMISSED_AT, Number(at) || 0)
+        WANT_OPEN_UNTIL = 0
+      }, 1600)
+    }
     const probe = async () => {
       const s = await api('GET', 'state?strict=1')
       if (s.ok) publishWaiting(s.json.suggested)
-      if (s.ok && s.json.current) {
-        const at = s.json.current.at
-        if (seen !== at) {
-          const first = seen === null
-          seen = at
-          if (!first || Date.now() - at < 15000) { WANT_OPEN_UNTIL = Date.now() + 60000; openTab() }
-        }
+      const at = s.ok && s.json.current ? Number(s.json.current.at) || 0 : 0
+      if (at !== 0 && kbDashArrival(seen, at, Date.now())) {
+        seen = at
+        WANT_OPEN_UNTIL = Date.now() + 60000
+        openTab()
+        armCloseCheck(at)
       }
-      if (WANT_OPEN_UNTIL > Date.now()) { if (panelShown()) WANT_OPEN_UNTIL = 0; else openTab() }
+      if (at !== 0 && kbDashMayOpen(WANT_OPEN_UNTIL, PANEL_DISMISSED_AT, at, Date.now())) {
+        if (panelShown()) WANT_OPEN_UNTIL = 0
+        else { openTab(); armCloseCheck(at) }
+      }
     }
     probe()
     const t = setInterval(probe, 1500)
-    return () => clearInterval(t)
+    return () => { clearInterval(t); if (closeTimer) clearTimeout(closeTimer) }
   }, 'kybernos-dashboards: open-on-arrival probe')
 
   registerPlayer()
