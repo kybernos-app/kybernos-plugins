@@ -7,7 +7,7 @@
 // Sortie 0 si tout passe.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,7 +17,7 @@ import {
   lireCompat, testerCompatibilite, comparerVersions, inspecterFraicheur, versionDuGlobal, etatDoctor, planUpgrade,
   photographier, restaurerPhoto, photoLaPlusRecente, journaliser, lireJournal,
   alignerPins, alignerLiens, verifierBundles, ecrireLisezMoi,
-  DEPUIS_VERS, motifDeRetrait
+  DEPUIS_VERS, motifDeRetrait, migrerProfil
 } from './lifecycle-engine.mjs'
 
 let ko = 0
@@ -384,6 +384,35 @@ ok('le cache de racine tombe quand le moteur change', /RACINE_CACHE = null[\s\S]
   ok('motifDeRetrait : sans motif écrit, un motif par défaut qui nomme la version', /0\.2\.0-rc\.2/.test(motifDeRetrait({ retire_depuis_moteur: '0.2.0-rc.2' }, '0.2.0-rc.2')))
   ok('motifDeRetrait : une retouche ordinaire reste posée, une entrée invalide aussi', motifDeRetrait({ id: 'z' }, '0.2.0-rc.2') === null && motifDeRetrait(null, '0.2.0-rc.2') === null && motifDeRetrait(undefined, '0.2.0-rc.2') === null)
   ok('motifDeRetrait : un seuil mal typé est ignoré', motifDeRetrait({ retire_depuis_moteur: 2 }, '0.2.0-rc.2') === null)
+}
+
+// ── migrerProfil: the `tools` row with a lone `mode` goes away for DSH 0.2.2+ (measured 2026-10-30) ──
+{
+  const fsDur = { existe: existsSync, lire: (p) => readFileSync(p, 'utf8'), ecrire: (p, c) => writeFileSync(p, c) }
+  const rangee = "- id: tools\n  config:\n    mode: !!js process.env.DSH_TOOLS_MODE || 'native'\n"
+  const avant = '# patches\n- id: tool-web\n  config:\n    fetch: true\n\n' + rangee + '\n- insert:\n    - id: other\n      config: {}\n'
+  const profil = (nom, contenu) => { const d = join(R, nom); mkdirSync(d, { recursive: true }); if (contenu !== null) writeFileSync(join(d, 'cordis.patch.yml'), contenu); return d }
+  const lire = (d) => readFileSync(join(d, 'cordis.patch.yml'), 'utf8')
+
+  const a = profil('migrer-a', avant)
+  const ra = migrerProfil({ fs: fsDur, profilDir: a, cible: '0.2.2-alpha.2' })
+  ok('migrerProfil: the lone-`mode` tools row is removed on 0.2.2-alpha.2', ra.retires.length === 1 && !/id: tools/.test(lire(a)) && !/DSH_TOOLS_MODE/.test(lire(a)))
+  ok('migrerProfil: the neighbouring rows are untouched', /- id: tool-web\n  config:\n    fetch: true/.test(lire(a)) && /- insert:\n    - id: other/.test(lire(a)))
+  ok('migrerProfil: it leaves a one-line comment that says why', /removed by dsh-lifecycle/.test(lire(a)))
+  ok('migrerProfil: a second run changes nothing', migrerProfil({ fs: fsDur, profilDir: a, cible: '0.2.2-alpha.2' }).retires.length === 0)
+
+  const b = profil('migrer-b', avant)
+  ok('migrerProfil: on 0.2.1-rc.2 the file is not touched', migrerProfil({ fs: fsDur, profilDir: b, cible: '0.2.1-rc.2' }).retires.length === 0 && lire(b) === avant)
+  ok('migrerProfil: on a later line (0.2.2, 0.3.0) it applies', ['0.2.2', '0.3.0'].every((v) => { const d = profil('migrer-v' + v, avant); return migrerProfil({ fs: fsDur, profilDir: d, cible: v }).retires.length === 1 }))
+
+  const c = profil('migrer-c', '- id: tools\n  config:\n    mode: native\n    timeoutMs: 5000\n- id: x\n  config: {}\n')
+  const rc = migrerProfil({ fs: fsDur, profilDir: c, cible: '0.2.2-alpha.2' })
+  ok('migrerProfil: a tools row that carries more than `mode` is kept and named', rc.retires.length === 0 && rc.gardes.length === 1 && /timeoutMs/.test(lire(c)))
+
+  ok('migrerProfil: no cordis.patch.yml, an empty target or no target: nothing happens, nothing throws',
+    migrerProfil({ fs: fsDur, profilDir: profil('migrer-d', null), cible: '0.2.2-alpha.2' }).retires.length === 0
+    && migrerProfil({ fs: fsDur, profilDir: a, cible: '' }).retires.length === 0
+    && migrerProfil({ fs: fsDur, profilDir: a, cible: undefined }).retires.length === 0)
 }
 
 console.log(ko === 0 ? `\nMOTEUR DE CYCLE DE VIE — ${n} assertions, 0 échec` : `\n✗ ${ko} échec(s) sur ${n}`)
