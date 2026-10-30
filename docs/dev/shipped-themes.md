@@ -33,7 +33,9 @@ three seams, the three business plugins and the Dashboards.
   catalog/<id>.json      one file per kind of item: statuses, fields, what the card shows
   pipeline/<id>.json     one file per board: stages (2 to 8), how a value is counted, what a card may link to
   dashboards/<id>.json   a dashboard of the trade (kybernos/dashboards#preset): widgets over the three business sources, the word of its menu row
+  db/<id>.json           the same trade as one ready database (kybernos/db#template): objects, fields, links, saved views, every label in English and French
   demo/sample.json       the sample rows (below)
+  demo/db-sample.json    the same rows for that database: { rows: { <object>: [{ ref?, values }] } }, links as { ref }, pictures as { photo } (README of kybernos-db)
   README.md              what is inside, in English
 ```
 

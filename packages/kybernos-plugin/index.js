@@ -11773,6 +11773,9 @@ function boot(ctx) {
           next: readNext(pluginDir + '/themes'),
           preview: (folder) => { try { return previewFolder(folder) } catch (e) { return null } },
           business: (() => { try { return globalThis[Symbol.for('kybernos.business')] } catch (e) { return null } })(),
+          // The database a shipped theme ships is made through kybernos-db's seam (absent when that bundle is off); its pictures are read from the theme's own `demo/photos`.
+          db: (() => { try { return globalThis[Symbol.for('kybernos.db')] } catch (e) { return null } })(),
+          photo: (spec) => { try { const f = photoFile(pluginDir + '/themes', spec); return f === null ? null : readFileSync(f) } catch (e) { return null } },
           // A template that touches the Business pages becomes the one they follow the moment its install is recorded (a plugin the registry does not know to touch them is ignored).
           activate: (id) => { try { return activateTemplate(businessScopePorts(), id, false) } catch (e) { return { ok: false, error: 'failed' } } },
           skill: (folder, name) => {

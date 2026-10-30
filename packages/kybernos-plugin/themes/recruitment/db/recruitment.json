@@ -1,0 +1,1339 @@
+{
+  "id": "recruitment",
+  "name": {
+    "en": "Recruitment firm",
+    "fr": "Cabinet de recrutement"
+  },
+  "objects": [
+    {
+      "key": "contact",
+      "label": {
+        "en": "Contacts",
+        "fr": "Contacts"
+      },
+      "title": "name",
+      "fields": [
+        {
+          "key": "name",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Name",
+            "fr": "Nom"
+          }
+        },
+        {
+          "key": "kind",
+          "type": "choice",
+          "label": {
+            "en": "Kind",
+            "fr": "Nature"
+          },
+          "options": [
+            {
+              "key": "person",
+              "label": {
+                "en": "Person",
+                "fr": "Personne"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "company",
+              "label": {
+                "en": "Company",
+                "fr": "Entreprise"
+              },
+              "color": "purple"
+            }
+          ]
+        },
+        {
+          "key": "type",
+          "type": "choice",
+          "label": {
+            "en": "Type",
+            "fr": "Type"
+          },
+          "options": [
+            {
+              "key": "candidate",
+              "label": {
+                "en": "Candidate",
+                "fr": "Candidat"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "client-contact",
+              "label": {
+                "en": "Client contact",
+                "fr": "Contact client"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "client",
+              "label": {
+                "en": "Client company",
+                "fr": "Entreprise cliente"
+              },
+              "color": "purple"
+            }
+          ]
+        },
+        {
+          "key": "email",
+          "type": "email",
+          "protection": "personal",
+          "label": {
+            "en": "Email",
+            "fr": "E-mail"
+          }
+        },
+        {
+          "key": "city",
+          "type": "text",
+          "label": {
+            "en": "Location",
+            "fr": "Lieu"
+          }
+        },
+        {
+          "key": "seniority",
+          "type": "choice",
+          "label": {
+            "en": "Seniority",
+            "fr": "Séniorité"
+          },
+          "options": [
+            {
+              "key": "junior",
+              "label": {
+                "en": "Junior",
+                "fr": "Junior"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "mid",
+              "label": {
+                "en": "Mid",
+                "fr": "Confirmé"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "senior",
+              "label": {
+                "en": "Senior",
+                "fr": "Senior"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "lead",
+              "label": {
+                "en": "Lead",
+                "fr": "Lead"
+              },
+              "color": "pink"
+            }
+          ]
+        },
+        {
+          "key": "salary_target",
+          "type": "money",
+          "label": {
+            "en": "Salary target",
+            "fr": "Prétentions salariales"
+          },
+          "currency": "EUR",
+          "precision": 0
+        },
+        {
+          "key": "sector",
+          "type": "text",
+          "label": {
+            "en": "Sector",
+            "fr": "Secteur"
+          }
+        },
+        {
+          "key": "role",
+          "type": "text",
+          "label": {
+            "en": "Current role",
+            "fr": "Poste actuel"
+          }
+        },
+        {
+          "key": "availability",
+          "type": "choice",
+          "label": {
+            "en": "Available in",
+            "fr": "Disponibilité"
+          },
+          "options": [
+            {
+              "key": "immediately",
+              "label": {
+                "en": "Immediately",
+                "fr": "Immédiatement"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "1-month",
+              "label": {
+                "en": "1 month",
+                "fr": "1 mois"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "2-months",
+              "label": {
+                "en": "2 months",
+                "fr": "2 mois"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "3-months",
+              "label": {
+                "en": "3 months",
+                "fr": "3 mois"
+              },
+              "color": "pink"
+            }
+          ]
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "data",
+              "label": {
+                "en": "data",
+                "fr": "data"
+              }
+            },
+            {
+              "key": "design",
+              "label": {
+                "en": "design",
+                "fr": "design"
+              }
+            },
+            {
+              "key": "sales",
+              "label": {
+                "en": "sales",
+                "fr": "ventes"
+              }
+            },
+            {
+              "key": "devops",
+              "label": {
+                "en": "devops",
+                "fr": "devops"
+              }
+            },
+            {
+              "key": "engineering",
+              "label": {
+                "en": "engineering",
+                "fr": "ingénierie"
+              }
+            },
+            {
+              "key": "finance",
+              "label": {
+                "en": "finance",
+                "fr": "finance"
+              }
+            },
+            {
+              "key": "hr",
+              "label": {
+                "en": "hr",
+                "fr": "RH"
+              }
+            },
+            {
+              "key": "operations",
+              "label": {
+                "en": "operations",
+                "fr": "opérations"
+              }
+            },
+            {
+              "key": "senior",
+              "label": {
+                "en": "senior",
+                "fr": "senior"
+              }
+            },
+            {
+              "key": "junior",
+              "label": {
+                "en": "junior",
+                "fr": "junior"
+              }
+            },
+            {
+              "key": "remote",
+              "label": {
+                "en": "remote",
+                "fr": "télétravail"
+              }
+            },
+            {
+              "key": "available-now",
+              "label": {
+                "en": "available now",
+                "fr": "disponible"
+              }
+            },
+            {
+              "key": "referral",
+              "label": {
+                "en": "referral",
+                "fr": "recommandation"
+              }
+            },
+            {
+              "key": "key-account",
+              "label": {
+                "en": "key account",
+                "fr": "compte clé"
+              }
+            },
+            {
+              "key": "new-client",
+              "label": {
+                "en": "new client",
+                "fr": "nouveau client"
+              }
+            }
+          ]
+        },
+        {
+          "key": "company",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Company",
+            "fr": "Entreprise"
+          },
+          "inverse": {
+            "en": "People",
+            "fr": "Personnes"
+          }
+        },
+        {
+          "key": "photo",
+          "type": "attachment",
+          "label": {
+            "en": "Photo",
+            "fr": "Photo"
+          },
+          "maxBytes": 262144
+        }
+      ]
+    },
+    {
+      "key": "job",
+      "label": {
+        "en": "Jobs",
+        "fr": "Offres"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "status",
+          "type": "choice",
+          "label": {
+            "en": "Status",
+            "fr": "Statut"
+          },
+          "options": [
+            {
+              "key": "open",
+              "label": {
+                "en": "Open",
+                "fr": "Ouverte"
+              },
+              "color": "green"
+            },
+            {
+              "key": "on-hold",
+              "label": {
+                "en": "On hold",
+                "fr": "En pause"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "filled",
+              "label": {
+                "en": "Filled",
+                "fr": "Pourvue"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "draft",
+              "label": {
+                "en": "Draft",
+                "fr": "Brouillon"
+              },
+              "color": "gray"
+            }
+          ]
+        },
+        {
+          "key": "client",
+          "type": "text",
+          "label": {
+            "en": "Client",
+            "fr": "Client"
+          }
+        },
+        {
+          "key": "location",
+          "type": "text",
+          "label": {
+            "en": "Location",
+            "fr": "Lieu"
+          }
+        },
+        {
+          "key": "salary",
+          "type": "text",
+          "label": {
+            "en": "Salary",
+            "fr": "Rémunération"
+          }
+        },
+        {
+          "key": "contract",
+          "type": "text",
+          "label": {
+            "en": "Contract",
+            "fr": "Contrat"
+          }
+        },
+        {
+          "key": "candidates",
+          "type": "number",
+          "label": {
+            "en": "Candidates",
+            "fr": "Candidats"
+          }
+        },
+        {
+          "key": "opened",
+          "type": "date",
+          "label": {
+            "en": "Opened on",
+            "fr": "Ouverte le"
+          }
+        },
+        {
+          "key": "department",
+          "type": "choice",
+          "label": {
+            "en": "Department",
+            "fr": "Département"
+          },
+          "options": [
+            {
+              "key": "data",
+              "label": {
+                "en": "Data",
+                "fr": "Data"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "engineering",
+              "label": {
+                "en": "Engineering",
+                "fr": "Ingénierie"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "design",
+              "label": {
+                "en": "Design",
+                "fr": "Design"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "sales",
+              "label": {
+                "en": "Sales",
+                "fr": "Ventes"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "finance",
+              "label": {
+                "en": "Finance",
+                "fr": "Finance"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "people",
+              "label": {
+                "en": "People",
+                "fr": "RH"
+              },
+              "color": "green"
+            },
+            {
+              "key": "operations",
+              "label": {
+                "en": "Operations",
+                "fr": "Opérations"
+              },
+              "color": "blue"
+            }
+          ]
+        },
+        {
+          "key": "seniority",
+          "type": "choice",
+          "label": {
+            "en": "Seniority",
+            "fr": "Séniorité"
+          },
+          "options": [
+            {
+              "key": "junior",
+              "label": {
+                "en": "Junior",
+                "fr": "Junior"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "mid",
+              "label": {
+                "en": "Mid",
+                "fr": "Confirmé"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "senior",
+              "label": {
+                "en": "Senior",
+                "fr": "Senior"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "lead",
+              "label": {
+                "en": "Lead",
+                "fr": "Lead"
+              },
+              "color": "pink"
+            }
+          ]
+        },
+        {
+          "key": "photo",
+          "type": "attachment",
+          "label": {
+            "en": "Photo",
+            "fr": "Photo"
+          },
+          "maxBytes": 262144
+        }
+      ]
+    },
+    {
+      "key": "candidates",
+      "label": {
+        "en": "Candidates",
+        "fr": "Candidats"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "stage",
+          "type": "choice",
+          "label": {
+            "en": "Stage",
+            "fr": "Étape"
+          },
+          "options": [
+            {
+              "key": "sourced",
+              "label": {
+                "en": "Sourced",
+                "fr": "Repéré"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "screened",
+              "label": {
+                "en": "Screened",
+                "fr": "Présélectionné"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "interview",
+              "label": {
+                "en": "Interview",
+                "fr": "Entretien"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "proposed",
+              "label": {
+                "en": "Proposed",
+                "fr": "Proposé"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "placed",
+              "label": {
+                "en": "Placed",
+                "fr": "Placé"
+              },
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "key": "value",
+          "type": "money",
+          "currency": "EUR",
+          "label": {
+            "en": "Value",
+            "fr": "Valeur"
+          },
+          "precision": 0
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Candidates",
+            "fr": "Candidats"
+          }
+        },
+        {
+          "key": "job",
+          "type": "relation",
+          "to": "job",
+          "label": {
+            "en": "Job",
+            "fr": "Offre"
+          },
+          "inverse": {
+            "en": "Candidates",
+            "fr": "Candidats"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "text",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé"
+          }
+        },
+        {
+          "key": "source",
+          "type": "choice",
+          "label": {
+            "en": "Source",
+            "fr": "Origine"
+          },
+          "options": [
+            {
+              "key": "linkedin",
+              "label": {
+                "en": "LinkedIn",
+                "fr": "LinkedIn"
+              }
+            },
+            {
+              "key": "job-board",
+              "label": {
+                "en": "Job board",
+                "fr": "Site d’emploi"
+              }
+            },
+            {
+              "key": "referral",
+              "label": {
+                "en": "Referral",
+                "fr": "Recommandation"
+              }
+            },
+            {
+              "key": "talent-pool",
+              "label": {
+                "en": "Talent pool",
+                "fr": "Vivier"
+              }
+            }
+          ]
+        },
+        {
+          "key": "priority",
+          "type": "choice",
+          "label": {
+            "en": "Priority",
+            "fr": "Priorité"
+          },
+          "options": [
+            {
+              "key": "low",
+              "label": {
+                "en": "Low",
+                "fr": "Basse"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "normal",
+              "label": {
+                "en": "Normal",
+                "fr": "Normale"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "high",
+              "label": {
+                "en": "High",
+                "fr": "Haute"
+              },
+              "color": "red"
+            }
+          ]
+        },
+        {
+          "key": "due",
+          "type": "date",
+          "label": {
+            "en": "Due",
+            "fr": "Échéance"
+          }
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "data",
+              "label": {
+                "en": "data",
+                "fr": "data"
+              }
+            },
+            {
+              "key": "remote",
+              "label": {
+                "en": "remote",
+                "fr": "télétravail"
+              }
+            },
+            {
+              "key": "design",
+              "label": {
+                "en": "design",
+                "fr": "design"
+              }
+            },
+            {
+              "key": "junior",
+              "label": {
+                "en": "junior",
+                "fr": "junior"
+              }
+            },
+            {
+              "key": "devops",
+              "label": {
+                "en": "devops",
+                "fr": "devops"
+              }
+            },
+            {
+              "key": "client-paused",
+              "label": {
+                "en": "client paused",
+                "fr": "client en pause"
+              }
+            },
+            {
+              "key": "second-round",
+              "label": {
+                "en": "second round",
+                "fr": "second tour"
+              }
+            },
+            {
+              "key": "technical-test",
+              "label": {
+                "en": "technical test",
+                "fr": "test technique"
+              }
+            },
+            {
+              "key": "sales",
+              "label": {
+                "en": "sales",
+                "fr": "ventes"
+              }
+            },
+            {
+              "key": "offer",
+              "label": {
+                "en": "offer",
+                "fr": "offre"
+              }
+            },
+            {
+              "key": "engineering",
+              "label": {
+                "en": "engineering",
+                "fr": "ingénierie"
+              }
+            },
+            {
+              "key": "finance",
+              "label": {
+                "en": "finance",
+                "fr": "finance"
+              }
+            },
+            {
+              "key": "invoice",
+              "label": {
+                "en": "invoice",
+                "fr": "facture"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "missions",
+      "label": {
+        "en": "Client missions",
+        "fr": "Missions clients"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "stage",
+          "type": "choice",
+          "label": {
+            "en": "Stage",
+            "fr": "Étape"
+          },
+          "options": [
+            {
+              "key": "brief",
+              "label": {
+                "en": "Brief",
+                "fr": "Brief"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "searching",
+              "label": {
+                "en": "Searching",
+                "fr": "Recherche"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "shortlist",
+              "label": {
+                "en": "Shortlist sent",
+                "fr": "Sélection envoyée"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "offer",
+              "label": {
+                "en": "Offer",
+                "fr": "Offre"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "placed",
+              "label": {
+                "en": "Placed",
+                "fr": "Placé"
+              },
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "key": "value",
+          "type": "money",
+          "currency": "EUR",
+          "label": {
+            "en": "Value",
+            "fr": "Valeur"
+          },
+          "precision": 0
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Client missions",
+            "fr": "Missions clients"
+          }
+        },
+        {
+          "key": "job",
+          "type": "relation",
+          "to": "job",
+          "label": {
+            "en": "Job",
+            "fr": "Offre"
+          },
+          "inverse": {
+            "en": "Client missions",
+            "fr": "Missions clients"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "text",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé"
+          }
+        },
+        {
+          "key": "source",
+          "type": "choice",
+          "label": {
+            "en": "Source",
+            "fr": "Origine"
+          },
+          "options": [
+            {
+              "key": "inbound-call",
+              "label": {
+                "en": "Inbound call",
+                "fr": "Appel entrant"
+              }
+            },
+            {
+              "key": "account-review",
+              "label": {
+                "en": "Account review",
+                "fr": "Revue de compte"
+              }
+            },
+            {
+              "key": "existing-client",
+              "label": {
+                "en": "Existing client",
+                "fr": "Client existant"
+              }
+            },
+            {
+              "key": "referral",
+              "label": {
+                "en": "Referral",
+                "fr": "Recommandation"
+              }
+            },
+            {
+              "key": "website-form",
+              "label": {
+                "en": "Website form",
+                "fr": "Formulaire du site"
+              }
+            }
+          ]
+        },
+        {
+          "key": "priority",
+          "type": "choice",
+          "label": {
+            "en": "Priority",
+            "fr": "Priorité"
+          },
+          "options": [
+            {
+              "key": "low",
+              "label": {
+                "en": "Low",
+                "fr": "Basse"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "normal",
+              "label": {
+                "en": "Normal",
+                "fr": "Normale"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "high",
+              "label": {
+                "en": "High",
+                "fr": "Haute"
+              },
+              "color": "red"
+            }
+          ]
+        },
+        {
+          "key": "due",
+          "type": "date",
+          "label": {
+            "en": "Due",
+            "fr": "Échéance"
+          }
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "hr",
+              "label": {
+                "en": "hr",
+                "fr": "RH"
+              }
+            },
+            {
+              "key": "new-client",
+              "label": {
+                "en": "new client",
+                "fr": "nouveau client"
+              }
+            },
+            {
+              "key": "engineering",
+              "label": {
+                "en": "engineering",
+                "fr": "ingénierie"
+              }
+            },
+            {
+              "key": "lead",
+              "label": {
+                "en": "lead",
+                "fr": "lead"
+              }
+            },
+            {
+              "key": "sales",
+              "label": {
+                "en": "sales",
+                "fr": "ventes"
+              }
+            },
+            {
+              "key": "data",
+              "label": {
+                "en": "data",
+                "fr": "data"
+              }
+            },
+            {
+              "key": "urgent",
+              "label": {
+                "en": "urgent",
+                "fr": "urgent"
+              }
+            },
+            {
+              "key": "operations",
+              "label": {
+                "en": "operations",
+                "fr": "opérations"
+              }
+            },
+            {
+              "key": "fixed-term",
+              "label": {
+                "en": "fixed-term",
+                "fr": "CDD"
+              }
+            },
+            {
+              "key": "design",
+              "label": {
+                "en": "design",
+                "fr": "design"
+              }
+            },
+            {
+              "key": "offer",
+              "label": {
+                "en": "offer",
+                "fr": "offre"
+              }
+            },
+            {
+              "key": "finance",
+              "label": {
+                "en": "finance",
+                "fr": "finance"
+              }
+            },
+            {
+              "key": "invoice",
+              "label": {
+                "en": "invoice",
+                "fr": "facture"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "note",
+      "label": {
+        "en": "Notes",
+        "fr": "Notes"
+      },
+      "title": "body",
+      "fields": [
+        {
+          "key": "body",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Note",
+            "fr": "Note"
+          }
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Notes",
+            "fr": "Notes"
+          }
+        }
+      ]
+    }
+  ],
+  "views": [
+    {
+      "object": "contact",
+      "id": "contact-1-all",
+      "name": {
+        "en": "All contacts",
+        "fr": "Tous les contacts"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "contact",
+      "id": "contact-2-cards",
+      "name": {
+        "en": "Cards",
+        "fr": "Fiches"
+      },
+      "kind": "cards",
+      "fav": true
+    },
+    {
+      "object": "contact",
+      "id": "contact-3-by-type",
+      "name": {
+        "en": "By type",
+        "fr": "Par type"
+      },
+      "kind": "board",
+      "by": "type"
+    },
+    {
+      "object": "job",
+      "id": "job-1-gallery",
+      "name": {
+        "en": "Gallery",
+        "fr": "Galerie"
+      },
+      "kind": "cards",
+      "fav": true
+    },
+    {
+      "object": "job",
+      "id": "job-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "job",
+      "id": "job-3-by-status",
+      "name": {
+        "en": "By status",
+        "fr": "Par statut"
+      },
+      "kind": "board",
+      "by": "status"
+    },
+    {
+      "object": "candidates",
+      "id": "candidates-1-pipeline",
+      "name": {
+        "en": "Pipeline",
+        "fr": "Pipeline"
+      },
+      "kind": "board",
+      "by": "stage",
+      "fav": true
+    },
+    {
+      "object": "candidates",
+      "id": "candidates-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "candidates",
+      "id": "candidates-3-calendar",
+      "name": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      },
+      "kind": "calendar",
+      "date": "due"
+    },
+    {
+      "object": "missions",
+      "id": "missions-1-pipeline",
+      "name": {
+        "en": "Pipeline",
+        "fr": "Pipeline"
+      },
+      "kind": "board",
+      "by": "stage",
+      "fav": true
+    },
+    {
+      "object": "missions",
+      "id": "missions-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "missions",
+      "id": "missions-3-calendar",
+      "name": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      },
+      "kind": "calendar",
+      "date": "due"
+    },
+    {
+      "object": "note",
+      "id": "note-1-all",
+      "name": {
+        "en": "All notes",
+        "fr": "Toutes les notes"
+      },
+      "kind": "table",
+      "fav": true
+    }
+  ]
+}

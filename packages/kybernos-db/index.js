@@ -8,6 +8,9 @@
 // The approval is the engine's own (`tools/pre-execute`): a change of structure, a write to a protected field and the reading of one in clear are put to the
 // person on a card before they run; a session that never asks refuses them. A database that does not open (a newer Kybernos wrote it, `node:sqlite` is
 // missing) is reported by the tools with its own code and never stops DSH from starting.
+//
+// It also opens the point `kybernos/db#template` (template.mjs) for the themes that ship a ready database, and publishes the seam `Symbol.for('kybernos.db')` the core
+// makes one through (instantiate.mjs): nothing is read or written until a template is installed.
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -15,8 +18,10 @@ import { makeApi } from './api.mjs'
 import { SECTION_NAME, SECTION_ORDER, renderBlock } from './agent/context.mjs'
 import { makeService } from './agent/service.mjs'
 import { approvalGate, tools as dbTools } from './agent/tools.mjs'
+import { installTemplate } from './instantiate.mjs'
 import { mountRoutes } from './routes.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { DB_TEMPLATE_POINT } from './template.mjs'
 
 export const name = 'kybernos-db'
 
@@ -48,6 +53,50 @@ export function lazyService (dir, ports) {
   }
 }
 
+// ── telling the registry (the SAME text in the three business plugins; scripts/test-business-points.mjs compares them) ────────────────────────
+const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+
+/** Tells the registry the point this plugin owns. `true` when the registry was there to hear it (telling it twice changes nothing). */
+export const tellPoint = () => {
+  try {
+    const registry = registrySeam()
+    if (registry === null) return false
+    registry.definePoint(DB_TEMPLATE_POINT)
+    return true
+  } catch (e) { return false }
+}
+
+/**
+ * Tells the point now, and again after each delay until the registry has heard it: the registry mounts when DSH decides, maybe after this plugin
+ * (measured in a sandbox: at boot the seam was not there yet, and nothing asked a question later). Never throws; the timers never hold DSH open.
+ * `options.schedule` and `options.delays` are for the test.
+ */
+export function tellWhenReady (options = {}) {
+  const schedule = options.schedule || setTimeout
+  const delays = Array.isArray(options.delays) ? options.delays : [500, 1500, 4000, 10000, 30000]
+  let told = tellPoint()
+  let tries = 0
+  const next = () => {
+    if (told || tries >= delays.length) return
+    const timer = schedule(() => { told = tellPoint(); next() }, delays[tries++])
+    if (timer !== undefined && timer !== null && typeof timer.unref === 'function') timer.unref()
+  }
+  next()
+  return () => told
+}
+// ── end of the telling ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// ── the seam the core installs a template through ───────────────────────────────────────────────────────────
+/** The key of the seam on `globalThis`: the core installs the sample of a shipped template through it, the way it reaches the business base. */
+export const SEAM = Symbol.for('kybernos.db')
+
+/** Publishes `{ version: 1, install }` and answers what takes it off again. The service is reached when a call comes, never at boot. */
+export function publishSeam (service) {
+  const seam = Object.freeze({ version: 1, install: (args) => installTemplate({ ...args, service }) })
+  try { globalThis[SEAM] = seam } catch (e) { return () => {} }
+  return () => { try { if (globalThis[SEAM] === seam) delete globalThis[SEAM] } catch (e) { /* already gone */ } }
+}
+
 /** The service with its methods looked up at each call, so the tools can be built before the folder is touched. */
 const deferred = (get) => ({
   get dir () { return get().dir },
@@ -55,6 +104,7 @@ const deferred = (get) => ({
   byId: (id) => get().byId(id),
   resolve: (id) => get().resolve(id),
   create: (def) => get().create(def),
+  discard: (id) => get().discard(id),
   snapshot: () => get().snapshot(),
   close: () => get().close(),
 })
@@ -105,6 +155,8 @@ export function apply (ctx, options = {}) {
     const home = typeof options.home === 'string' && options.home !== '' ? options.home : dshHome()
     const service = deferred(lazyService(dbsDir(home), options.ports))
     const retraits = []
+    tellWhenReady(options)
+    retraits.push(publishSeam(service))
     if (typeof ctx.effect === 'function') {
       ctx.effect(() => () => {
         for (const retrait of retraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } }

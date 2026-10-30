@@ -79,6 +79,12 @@
       "range": "^1.0",
       "dir": "dashboards",
       "optional": true
+    },
+    {
+      "point": "kybernos/db#template",
+      "range": "^1.0",
+      "dir": "db",
+      "optional": true
     }
   ]
 }

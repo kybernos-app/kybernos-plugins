@@ -3,7 +3,8 @@
 // One db is the common case, so a call that names none means the only one; with none the agent is told to create one, with several it is told which exist.
 // A db that cannot be opened (a newer Kybernos wrote it, the file is damaged) is reported with its own code, never skipped silently.
 
-import { readdirSync } from 'node:fs'
+import { readdirSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
 import { isUlid } from '../core/index.mjs'
 import { openRegistry } from '../store/index.mjs'
 
@@ -43,6 +44,13 @@ export function makeService ({ dir, ports = {} }) {
       const r = registry.create(def)
       if (r.ok) open.set(r.db.info().id, r.db)
       return r
+    },
+    /** Closes a db and removes its folder: for a db that was only half made (an installer that failed), never for one a person has used. */
+    discard (id) {
+      if (!isUlid(id)) return
+      const db = open.get(id)
+      if (db !== undefined) { try { db.close() } catch (e) { /* already closed */ } open.delete(id) }
+      rmSync(join(dir, id), { recursive: true, force: true })
     },
     /** What the prompt says about the dbs: `[{ id, name, version, objects }]`. A db that does not open is left out (db_list says why). */
     snapshot () {
