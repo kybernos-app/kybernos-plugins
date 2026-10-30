@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connecteurs — catalogue complet et verrou d'accès (maquette)</title>
+<link rel="stylesheet" href="dsh.css">
+<style>
+/* ── Cadre de présentation (mk-*), jamais repris dans le plugin ───────────── */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+.mk-page{max-width:1240px;margin:0 auto;padding:24px 20px 40px}
+.mk-head{display:flex;align-items:flex-end;gap:16px;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px}
+.mk-head h1{margin:0;font-size:20px;line-height:28px;font-weight:600;letter-spacing:-.01em}
+.mk-head-actions{display:flex;gap:8px}
+.mk-explication{margin:0 0 16px;max-width:96ch;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}
+.mk-explication b{color:var(--dsw-alias-label-primary);font-weight:600}
+.mk-cadre{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;overflow:hidden;background:var(--dsw-alias-bg-base);box-shadow:var(--dsw-elevation-panel)}
+.mk-cadre-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.mk-cadre-bar .mk-dot{width:9px;height:9px;border-radius:50%;background:var(--dsw-alias-state-error-primary);opacity:.6}
+.mk-cadre-bar .mk-url{font-family:var(--ds-font-family-code);color:var(--dsw-alias-label-secondary)}
+.mk-app{display:flex;min-height:620px}
+
+/* ── Rail latéral replié (structure de la barre latérale réelle) ──────────── */
+.mk-rail{flex:none;width:56px;border-right:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0}
+.mk-rail .mk-brand{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-inverted);font-weight:700;font-size:13px;margin-bottom:8px}
+.mk-rail button{width:36px;height:36px;border:0;border-radius:10px;background:none;color:var(--dsw-alias-label-secondary);display:grid;place-items:center;cursor:pointer}
+.mk-rail button[aria-current="page"]{background:var(--dsw-alias-interactive-bg-active,var(--dsw-alias-bg-layer-3));color:var(--dsw-alias-label-primary)}
+
+/* ── La page Connecteurs (kb-*), la partie qui partira dans le plugin ─────── */
+.kb-page{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--dsw-alias-bg-base)}
+.kb-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 28px 0}
+.kb-title{margin:0;font-size:26px;line-height:34px;font-weight:600;letter-spacing:-.015em}
+.kb-sub{margin:8px 0 0;font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.kb-info{width:14px;height:14px;border-radius:50%;border:1px solid var(--dsw-alias-border-l4);color:var(--dsw-alias-label-tertiary);font-size:11px;font-weight:600;display:inline-grid;place-items:center;line-height:1;cursor:help}
+.kb-desc{margin:6px 0 0;max-width:78ch;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}
+.kb-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 28px 0}
+.kb-tabs{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
+.kb-tab{appearance:none;border:0;background:none;font:inherit;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);border-radius:999px;padding:7px 13px;min-height:34px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.kb-tab[aria-selected="true"]{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);font-weight:600}
+.kb-count{font-size:11px;line-height:16px;padding:0 5px;border-radius:6px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+.kb-tab[aria-selected="true"] .kb-count{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary)}
+.kb-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap}
+.kb-searchrow{padding:12px 28px 0}
+.kb-search{width:min(420px,100%)}
+.kb-facets{display:flex;gap:6px;flex-wrap:wrap;padding:10px 28px 0}
+
+/* Le verrou : la bande qui dit où l'on en est et par où passer */
+.kb-gate{display:flex;align-items:center;gap:12px;margin:16px 28px 0;padding:12px 14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+.kb-gate-ico{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
+.kb-gate-txt{flex:1;min-width:0;font-size:13px;line-height:19px;color:var(--dsw-alias-label-secondary)}
+.kb-gate-txt b{display:block;color:var(--dsw-alias-label-primary);font-weight:600;font-size:13px;line-height:19px}
+.kb-gate-acts{display:flex;gap:8px;flex-wrap:wrap}
+.kb-gate[data-mode="key"]{border-color:var(--dsw-alias-state-success-primary)}
+
+/* La grille de cartes d'app */
+.kb-scroll{position:relative;flex:1;min-height:0;max-height:min(540px,56vh);overflow:auto;margin:16px 28px 20px;padding-bottom:8px;scrollbar-width:thin}
+.kb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.kb-card{position:relative;display:flex;flex-direction:column;gap:8px;padding:18px;min-height:170px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;font:inherit;color:inherit}
+.kb-card:hover{border-color:var(--dsw-alias-border-l4);background:var(--dsw-alias-bg-layer-2)}
+.kb-card:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kb-card-top{display:flex;align-items:center;gap:12px}
+.kb-logo{flex:none;width:42px;height:42px;border-radius:10px;display:grid;place-items:center;overflow:hidden}
+.kb-logo svg{width:74%;height:74%;display:block}
+.kb-logo-mono{width:100%;height:100%;display:grid;place-items:center;background:var(--dsw-alias-bg-layer-3);font-size:15px;font-weight:700;color:var(--dsw-alias-label-secondary);letter-spacing:-.02em}
+.kb-name{font-size:15px;line-height:22px;font-weight:650;letter-spacing:-.01em}
+.kb-cat{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+.kb-text{margin:0;font-size:12.5px;line-height:19px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kb-foot{display:flex;align-items:center;gap:10px;margin-top:auto;min-height:26px}
+.kb-meter{flex:1;height:3px;border-radius:999px;background:var(--dsw-alias-state-success-primary);opacity:.85}
+.kb-cta{opacity:0;transition:opacity .12s ease}
+.kb-card:hover .kb-cta,.kb-card:focus-within .kb-cta,.kb-card.kb-hover .kb-cta{opacity:1}
+.kb-card.kb-hover{border-color:var(--dsw-alias-border-l4);background:var(--dsw-alias-bg-layer-2)}
+.kb-card[data-connected="true"] .kb-cta{display:none}
+
+/* Le verrou de bas de grille : le catalogue complet s'arrête ici */
+.kb-veil{position:sticky;bottom:0;margin-top:-150px;padding:132px 0 2px;background:linear-gradient(to bottom,transparent,var(--dsw-alias-bg-base) 42%)}
+.kb-veil-panel{display:flex;align-items:center;gap:16px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-2)}
+.kb-veil-ico{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
+.kb-veil-txt{flex:1;min-width:0;font-size:13px;line-height:19px;color:var(--dsw-alias-label-secondary)}
+.kb-veil-txt b{display:block;font-size:14px;line-height:20px;color:var(--dsw-alias-label-primary);font-weight:600}
+.kb-veil-acts{display:flex;gap:8px;flex-wrap:wrap}
+.kb-empty{padding:40px 0;text-align:center;color:var(--dsw-alias-label-tertiary);font-size:13px}
+
+/* Onglet Yours : les apps réellement connectées de la capture */
+.kb-yours{display:flex;flex-direction:column;gap:16px}
+#grid[data-tab="yours"]{display:block}
+.kb-custom-t{margin:8px 0 0;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.kb-custom{padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;overflow:hidden}
+.kb-custom-row{display:flex;align-items:center;gap:12px;padding:12px 14px;font-size:13px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kb-custom-row:last-child{border-bottom:0}
+.kb-custom-row .kb-cat{margin-top:2px}
+.kb-custom-row .kb-grow{flex:1;min-width:0}
+
+/* ── La feuille du verrou (deux portes) ───────────────────────────────────── */
+.kb-sheet{width:min(520px,100%)}
+.kb-sheet:focus,.kb-sheet:focus-visible{outline:none}
+.kbm-mdl-body .kb-err{margin:2px 0 0}
+.kbm-mdl-body .kb-ok{margin:2px 0 0}
+.kb-sheet-note{flex:1;min-width:0;text-align:left;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}
+.kb-sheet-opt{display:flex;gap:12px;align-items:flex-start;width:100%;padding:14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);text-align:left;font:inherit;color:inherit;cursor:pointer}
+.kb-sheet-opt:hover{border-color:var(--dsw-alias-border-l4);background:var(--dsw-alias-bg-layer-2)}
+.kb-sheet-opt[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary)}
+.kb-sheet-opt .kb-grow{flex:1;min-width:0}
+.kb-sheet-opt b{display:block;font-size:14px;line-height:20px}
+.kb-sheet-opt span{display:block;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}
+.kb-key{margin-top:2px;display:flex;flex-direction:column;gap:8px}
+.kb-sheet .kbm-mdl-body{gap:10px}
+.kb-back{align-self:flex-start;margin-bottom:2px}
+.kbm-mdl-body .kb-err{font-size:12px;line-height:18px;color:var(--dsw-alias-state-error-primary)}
+.kbm-mdl-body .kb-ok{font-size:12px;line-height:18px;color:var(--dsw-alias-state-success-primary)}
+
+/* ── Fluide : une seul colonne, le verrou passe sous le texte ─────────────── */
+@media (max-width:900px){
+  .mk-page{padding:16px 12px 24px}
+  .mk-app{flex-direction:column}
+  .mk-rail{flex-direction:row;width:auto;height:48px;border-right:0;border-bottom:1px solid var(--dsw-alias-border-l1);padding:0 10px;gap:4px}
+  .mk-rail .mk-brand{margin:0 6px 0 0}
+  .kb-head{padding:16px 16px 0}
+  .kb-title{font-size:22px;line-height:28px}
+  .kb-bar,.kb-searchrow,.kb-facets{padding-left:16px;padding-right:16px}
+  .kb-actions{margin-left:0;width:100%;justify-content:flex-start}
+  .kb-gate{margin:12px 16px 0;flex-wrap:wrap}
+  .kb-gate-acts{width:100%}
+  .kb-scroll{margin:12px 16px 16px}
+  .kb-grid{grid-template-columns:1fr}
+  .kb-veil-panel{flex-wrap:wrap}
+  .kb-veil-txt{flex:1 1 100%;order:1}
+  .kb-veil-acts{flex:1 1 100%;order:2}
+  .kb-veil-ico{order:0}
+  .kb-scroll{max-height:min(430px,48vh)}
+  .kb-custom-row{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="mk-page">
+  <div class="mk-head">
+    <h1>Connecteurs — tout le catalogue, verrouillé au moment d'agir</h1>
+    <div class="mk-head-actions">
+      <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline" id="dark">Thème sombre</button>
+      <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost" id="reset">Réinitialiser</button>
+    </div>
+  </div>
+  <p class="mk-explication"><b>Cent apps réelles</b> (logos compris) sont chargées ; le reste du catalogue Composio n'est pas dans nos données, donc il est <b>annoncé, pas inventé</b>. Clique une carte, ou « Charger le catalogue complet » : tu tombes sur le verrou et ses deux portes — compte Kybernos, ou ta propre clé.</p>
+
+  <div class="mk-cadre" id="cadre-app">
+    <div class="mk-cadre-bar"><span class="mk-dot"></span><span class="mk-url">127.0.0.1:3080 · Connecteurs ▸ Découvrir</span><span style="margin-left:auto">maquette v1</span></div>
+    <div class="mk-app">
+      <aside class="mk-rail" aria-label="Barre latérale (repliée)">
+        <span class="mk-brand" aria-hidden="true">K</span>
+        <button type="button" title="Agent Teams" aria-label="Agent Teams"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17.5" cy="10" r="2.4"/><path d="M16 20a5 5 0 0 1 5-4.6"/></svg></button>
+        <button type="button" title="Créations" aria-label="Créations"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16v12H4z"/><path d="M9 7V5h6v2"/></svg></button>
+        <button type="button" title="Automations" aria-label="Automations"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></button>
+        <button type="button" title="Skills" aria-label="Skills"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></button>
+        <button type="button" title="Connecteurs" aria-label="Connecteurs" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 3v5M15 3v5M7 8h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5z"/><path d="M12 16v5"/></svg></button>
+      </aside>
+
+      <main class="kb-page" role="tabpanel">
+        <div class="kb-head">
+          <div>
+            <h1 class="kb-title">Connecteurs</h1>
+            <div class="kb-sub">Connexions <span class="kb-info" title="Les connexions sont les comptes réels derrière chaque app : une app peut en avoir plusieurs.">i</span></div>
+            <p class="kb-desc">Les apps, serveurs MCP et API par lesquels tes agents agissent. Les apps passent par Composio (ta clé) ou ton compte Kybernos : plusieurs connexions par app, une par compte.</p>
+          </div>
+          <button type="button" class="kbm-btn kbm-btn-md kbm-btn-primary"><span class="kbm-btn-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>Créer</button>
+        </div>
+
+        <div class="kb-bar">
+          <div class="kb-tabs" role="tablist" aria-label="Connexions">
+            <button type="button" role="tab" class="kb-tab" id="tab-yours" aria-selected="false" data-tab="yours">Tes apps <span class="kb-count">5</span></button>
+            <button type="button" role="tab" class="kb-tab" id="tab-discover" aria-selected="true" data-tab="discover">Découvrir <span class="kb-count" id="total">100</span></button>
+          </div>
+          <div class="kb-actions">
+            <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost" id="searchbtn" aria-label="Rechercher une app" title="Rechercher une app"><span class="kbm-btn-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span></button>
+            <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost" id="filterbtn" aria-label="Filtrer par catégorie" title="Filtrer par catégorie"><span class="kbm-btn-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span></button>
+            <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost" id="refresh" aria-label="Rafraîchir" title="Rafraîchir"><span class="kbm-btn-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></span></button>
+            <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-outline" id="loadall">Charger le catalogue complet</button>
+          </div>
+        </div>
+
+        <div class="kb-searchrow" id="searchrow" hidden>
+          <span class="kbm-in-wrap kb-search"><span class="kbm-in-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span><input class="kbm-in-input" id="q" type="search" placeholder="Rechercher une app, une catégorie…" aria-label="Rechercher une app"></span>
+        </div>
+        <div class="kb-facets" id="facets" hidden></div>
+
+        <div class="kb-gate" id="gate" data-mode="signedout" hidden>
+          <span class="kb-gate-ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+          <div class="kb-gate-txt" id="gatetext"></div>
+          <div class="kb-gate-acts" id="gateacts"></div>
+        </div>
+
+        <div class="kb-scroll" id="scroll">
+          <div class="kb-grid" id="grid" aria-live="polite"></div>
+          <div class="kb-veil" id="veil">
+            <div class="kb-veil-panel">
+              <span class="kb-veil-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              <div class="kb-veil-txt" id="veiltext"></div>
+              <div class="kb-veil-acts" id="veilacts"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- La feuille du verrou -->
+<div class="kbm-mdl-root" id="sheetroot" hidden>
+  <div class="kbm-mdl-mask" id="sheetmask"></div>
+  <div class="kbm-mdl-dialog kb-sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle">
+    <div class="kbm-mdl-content">
+      <header class="kbm-mdl-header">
+        <h2 class="kbm-mdl-title" id="sheettitle"></h2>
+        <button type="button" class="kbm-mdl-close" id="sheetclose" aria-label="Fermer" title="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="kbm-mdl-body" id="sheetbody"></div>
+      <footer class="kbm-mdl-footer">
+        <span id="sheetnote" class="kb-sheet-note"></span>
+        <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-ghost" id="sheetcancel">Plus tard</button>
+        <button type="button" class="kbm-btn kbm-btn-sm kbm-btn-primary" id="sheetgo" hidden></button>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script src="donnees-catalogue.js"></script>
+<script src="donnees-logos.js"></script>
+<script>
+(() => {
+  // ── Données : les 100 apps réelles du catalogue embarqué (composio-catalog.js) ──
+  const ALL = Array.isArray(window.KB_CATALOG) ? window.KB_CATALOG : []
+  const LOGOS = window.KB_LOGOS || {}
+  // Les 5 connexions réelles de la capture « Yours » (source-ecran-reel-yours.png).
+  const CONNECTED = ['gmail', 'googlecalendar', 'googledrive', 'googlesheets', 'outlook']
+  // Le nombre total annoncé par Composio (jamais vérifié ici : l'API répond 401 sans clé).
+  const TOTAL_ANNONCE = 1559   // « about 1559 apps » : packages/kybernos-composio/index.js:145
+  const FR = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')
+
+  const ICON_LOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
+  const ICON_KEY = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v4"/></svg>'
+
+  const state = {
+    tab: 'discover', q: '', facet: null,
+    sheet: null,            // null | { slug }
+    doors: 'closed',        // 'closed' | 'key' | 'account'
+    keyState: 'idle',       // 'idle' | 'error' | 'ok'
+    full: false,            // « charger le catalogue complet » joué
+    account: false,         // démo : compte Kybernos relié
+    key: false,             // démo : clé personnelle acceptée
+    loading: false,
+  }
+  const signed = () => state.account === true || state.key === true
+  const $ = (s) => document.querySelector(s)
+  const el = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt !== undefined) n.textContent = txt; return n }
+
+  const svgOf = (slug) => {
+    const raw = LOGOS[slug]
+    if (typeof raw !== 'string' || raw.indexOf('<svg') !== 0) return null
+    return raw.replace(/<svg([^>]*)>/i, (m, attrs) => '<svg' + attrs.replace(/\s(width|height)="[^"]*"/gi, '') + '>')
+  }
+  const mono = (name) => String(name).replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?'
+
+  // ── Une seule fonction de rendu de carte, réutilisée partout ────────────────
+  const renderCard = (app) => {
+    // Un div (pas un button) : la carte contient un vrai bouton « Se connecter », et un
+    // button dans un button est un balisage invalide (le clic du fils déclenche le père).
+    const card = el('div', 'kb-card')
+    card.setAttribute('role', 'group')
+    card.setAttribute('tabindex', '0')
+    card.dataset.slug = app.s
+    card.dataset.connected = CONNECTED.indexOf(app.s) >= 0 ? 'true' : 'false'
+    card.setAttribute('aria-label', app.n + ' — ' + (signed() ? 'ajouter une connexion' : 'se connecter pour connecter'))
+    const top = el('div', 'kb-card-top')
+    const logo = el('span', 'kb-logo')
+    const svg = svgOf(app.s)
+    if (svg === null) { const m = el('span', 'kb-logo-mono', mono(app.n)); logo.appendChild(m) } else logo.innerHTML = svg
+    const names = el('div')
+    names.appendChild(el('div', 'kb-name', app.n))
+    names.appendChild(el('div', 'kb-cat', (app.c || []).join(' · ')))
+    top.appendChild(logo); top.appendChild(names)
+    card.appendChild(top)
+    card.appendChild(el('p', 'kb-text', app.d || ''))
+    const foot = el('div', 'kb-foot')
+    if (card.dataset.connected === 'true') {
+      foot.appendChild(el('span', 'kb-meter'))
+      const tag = el('span', 'kbm-tag', 'Connecté'); tag.dataset.tone = 'success'; foot.appendChild(tag)
+    } else {
+      foot.appendChild(el('span', 'kb-cat', signed() ? 'Prêt à relier' : 'Connexion requise'))
+      const cta = el('button', 'kbm-btn kbm-btn-sm kbm-btn-outline kb-cta', signed() ? 'Ajouter une connexion' : 'Se connecter')
+      cta.type = 'button'
+      cta.addEventListener('click', (e) => { e.stopPropagation(); openSheet(app.s) })
+      foot.appendChild(cta)
+    }
+    card.appendChild(foot)
+    card.addEventListener('click', () => { if (card.dataset.connected === 'true') return; openSheet(app.s) })
+    card.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      if (e.target !== card) return
+      e.preventDefault()
+      if (card.dataset.connected === 'true') return
+      openSheet(app.s)
+    })
+    return card
+  }
+
+  const visible = () => {
+    const q = state.q.trim().toLowerCase()
+    return ALL.filter((a) => {
+      if (state.facet !== null && (a.c || []).indexOf(state.facet) < 0) return false
+      if (q === '') return true
+      return (a.n + ' ' + (a.c || []).join(' ') + ' ' + (a.d || '')).toLowerCase().indexOf(q) >= 0
+    })
+  }
+
+  const renderGrid = () => {
+    const grid = $('#grid')
+    grid.innerHTML = ''
+    grid.dataset.tab = state.tab
+    $('#gate').hidden = state.tab !== 'discover'
+    if (state.tab === 'yours') { renderYours(grid); return }
+    const list = visible()
+    if (list.length === 0) { grid.appendChild(el('div', 'kb-empty', 'Aucune app ne correspond à « ' + state.q + ' ». Retire un mot ou change de catégorie.')); $('#veil').hidden = true; return }
+    const frag = document.createDocumentFragment()
+    for (const app of list) frag.appendChild(renderCard(app))
+    grid.appendChild(frag)
+    $('#veil').hidden = false
+    renderVeil(list.length)
+  }
+
+  const renderYours = (grid) => {
+    $('#veil').hidden = true
+    const wrap = el('div', 'kb-yours')
+    const list = ALL.filter((a) => CONNECTED.indexOf(a.s) >= 0)
+    const g = el('div', 'kb-grid')
+    for (const app of list) g.appendChild(renderCard(app))
+    wrap.appendChild(g)
+    const t = el('div', 'kb-custom-t', 'Custom connectors · 2')
+    wrap.appendChild(t)
+    const box = el('div', 'kb-custom')
+    const rows = [
+      ['STDIO', 'horloge', 'mcp_horloge_*  ·  /opt/homebrew/bin/node'],
+      ['STDIO', 'zcode', 'mcp_zcode  *  ·  /opt/homebrew/bin/node'],
+    ]
+    for (const r of rows) {
+      const row = el('div', 'kb-custom-row')
+      const tag = el('span', 'kbm-tag', r[0]); tag.dataset.tone = 'neutral'
+      row.appendChild(tag)
+      const grow = el('div', 'kb-grow')
+      grow.appendChild(el('div', 'kb-name', r[1]))
+      grow.appendChild(el('div', 'kb-cat', r[2]))
+      row.appendChild(grow)
+      row.appendChild(el('span', 'kb-cat', 'pas depuis le formulaire'))
+      const imp = el('button', 'kbm-btn kbm-btn-sm kbm-btn-ghost')
+      imp.type = 'button'; imp.setAttribute('aria-label', 'Supprimer ' + r[1]); imp.title = 'Supprimer'
+      imp.innerHTML = '<span class="kbm-btn-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></span>'
+      row.appendChild(imp)
+      box.appendChild(row)
+    }
+    wrap.appendChild(box)
+    grid.appendChild(wrap)
+  }
+
+  const renderGate = () => {
+    const gate = $('#gate')
+    gate.hidden = false
+    const txt = $('#gatetext')
+    const acts = $('#gateacts')
+    txt.innerHTML = ''; acts.innerHTML = ''
+    if (state.key === true) {
+      gate.dataset.mode = 'key'
+      const b = el('b', null, 'Clé Composio acceptée · les connexions passent par ton projet Composio.')
+      txt.appendChild(b)
+      txt.appendChild(document.createTextNode('Elle reste sur cet ordinateur. Tu peux relier une app en un clic, ou revenir à ton compte Kybernos quand tu veux.'))
+      const ghost = el('button', 'kbm-btn kbm-btn-sm kbm-btn-ghost', 'Gérer ma clé'); ghost.type = 'button'
+      ghost.addEventListener('click', () => openSheet(null))
+      acts.appendChild(ghost)
+      return
+    }
+    if (state.account === true) {
+      gate.dataset.mode = 'account'
+      const b = el('b', null, 'Compte Kybernos relié · les connexions vivent dans ton espace de travail.')
+      txt.appendChild(b)
+      txt.appendChild(document.createTextNode('Relie une app en un clic, sans clé à gérer. Tes coéquipiers voient les mêmes connexions d’équipe.'))
+      const ghost = el('button', 'kbm-btn kbm-btn-sm kbm-btn-ghost', 'Voir mon compte'); ghost.type = 'button'
+      acts.appendChild(ghost)
+      return
+    }
+    gate.dataset.mode = 'signedout'
+    const b = el('b', null, 'Le catalogue est ouvert. La connexion ne l’est pas encore.')
+    txt.appendChild(b)
+    txt.appendChild(document.createTextNode('Relie une app en un clic avec ton compte Kybernos — ou apporte ta clé Composio, qui reste sur cet ordinateur.'))
+    const acc = el('button', 'kbm-btn kbm-btn-sm kbm-btn-primary', 'Créer un compte'); acc.type = 'button'
+    acc.addEventListener('click', () => openSheet(null))
+    const key = el('button', 'kbm-btn kbm-btn-sm kbm-btn-outline', 'J’ai ma clé Composio'); key.type = 'button'
+    key.addEventListener('click', () => openSheet(null))
+    acts.appendChild(acc); acts.appendChild(key)
+  }
+
+  const renderVeil = (shown) => {
+    const t = $('#veiltext'); const a = $('#veilacts')
+    t.innerHTML = ''; a.innerHTML = ''
+    const b = el('b', null, state.full === false
+      ? 'Tu vois ' + shown + ' apps. Le catalogue Composio en compte environ ' + FR(TOTAL_ANNONCE) + '.'
+      : 'Catalogue complet : ' + FR(TOTAL_ANNONCE) + ' apps, dont ' + shown + ' embarquées ici.')
+    t.appendChild(b)
+    t.appendChild(document.createTextNode(state.full === false
+      ? 'Les autres ne s’affichent qu’avec ton compte ou ta clé : ce sont eux qui portent les logos et les comptes.'
+      : 'Les ' + (TOTAL_ANNONCE - shown) + ' autres arrivent de ton compte Composio, avec leurs logos — pas depuis nos données.'))
+    if (signed() === false) {
+      const acc = el('button', 'kbm-btn kbm-btn-sm kbm-btn-primary', 'Créer un compte'); acc.type = 'button'
+      acc.addEventListener('click', () => openSheet(null))
+      const key = el('button', 'kbm-btn kbm-btn-sm kbm-btn-outline', 'Utiliser ma clé'); key.type = 'button'
+      key.addEventListener('click', () => openSheet(null))
+      a.appendChild(acc); a.appendChild(key)
+    } else {
+      const all = el('button', 'kbm-btn kbm-btn-sm kbm-btn-primary', 'Charger les ' + (TOTAL_ANNONCE - shown) + ' autres apps'); all.type = 'button'
+      all.addEventListener('click', () => { setFull(true) })
+      a.appendChild(all)
+    }
+  }
+
+  // ── La feuille du verrou : deux portes, la clé, le refus 401 ────────────────
+  const openSheet = (slug) => { state.sheet = slug === undefined ? null : slug; state.doors = 'closed'; state.keyState = 'idle'; renderSheet(); $('#sheetroot').hidden = false; try { const d = document.querySelector('.kb-sheet'); if (d) { d.setAttribute('tabindex', '-1'); d.focus() } } catch (e) {} }
+  const closeSheet = () => { $('#sheetroot').hidden = true; state.sheet = null }
+
+  const renderSheet = () => {
+    const body = $('#sheetbody')
+    const title = $('#sheettitle')
+    const note = $('#sheetnote')
+    const go = $('#sheetgo')
+    body.innerHTML = ''; note.textContent = ''; go.hidden = true
+    const app = state.sheet === null ? null : ALL.find((a) => a.s === state.sheet)
+    title.textContent = app === null ? 'Relier tes apps' : 'Relier ' + app.n
+
+    if (state.doors === 'closed') {
+      const opt = (id, icon, label, sub) => {
+        const b = el('button', 'kb-sheet-opt'); b.type = 'button'; b.dataset.door = id
+        const i = el('span', 'kb-gate-ico'); i.innerHTML = icon; b.appendChild(i)
+        const g = el('div', 'kb-grow'); g.appendChild(el('b', null, label)); g.appendChild(el('span', null, sub)); b.appendChild(g)
+        b.addEventListener('click', () => {
+          if (id === 'account') { state.account = true; closeSheet(); afterSignin() }
+          else { state.doors = 'key'; renderSheet() }
+        })
+        return b
+      }
+      const wrap = el('div', null)
+      wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '10px'
+      wrap.appendChild(opt('account', ICON_LOCK, 'Créer un compte Kybernos', 'Un clic par app, les connexions partagées avec ton espace de travail. Gratuit pour commencer.'))
+      wrap.appendChild(opt('key', ICON_KEY, 'J’apporte ma clé Composio', 'Ta clé, ton projet Composio : elle reste sur cet ordinateur et rien ne part chez nous.'))
+      body.appendChild(wrap)
+      note.textContent = 'C’est le seul endroit où l’on demande quelque chose : le catalogue, lui, reste ouvert à la lecture.'
+      return
+    }
+    // Porte « clé personnelle »
+    const back = el('button', 'kbm-btn kbm-btn-sm kbm-btn-ghost kb-back', '← Compte Kybernos ou clé')
+    back.type = 'button'
+    back.addEventListener('click', () => { state.doors = 'closed'; state.keyState = 'idle'; renderSheet() })
+    body.appendChild(back)
+    const lab = el('div', 'kb-cat', 'Clé API Composio')
+    lab.style.fontSize = '12px'; lab.style.marginBottom = '6px'
+    body.appendChild(lab)
+    const wrap = el('span', 'kbm-in-wrap')
+    const icon = el('span', 'kbm-in-icon'); icon.innerHTML = ICON_KEY; wrap.appendChild(icon)
+    const input = el('input', 'kbm-in-input'); input.type = 'password'; input.id = 'keyinput'
+    input.placeholder = 'ck_…'; input.value = state.keyState === 'ok' ? 'composio_••••••••••••4f2a' : ''
+    input.setAttribute('aria-label', 'Clé API Composio')
+    wrap.appendChild(input); body.appendChild(wrap)
+    const msg = el('div', state.keyState === 'error' ? 'kb-err' : 'kb-ok')
+    msg.id = 'keymsg'
+    msg.textContent = state.keyState === 'error'
+      ? 'Composio a refusé la clé API (401). Vérifie-la dans le panneau de la clé.'
+      : (state.keyState === 'ok' ? 'Clé acceptée : le catalogue complet va se charger depuis ton projet Composio.' : '')
+    body.appendChild(msg)
+    const test = el('button', 'kbm-btn kbm-btn-sm kbm-btn-outline', 'Tester la clé'); test.type = 'button'
+    test.style.marginTop = '10px'; test.style.alignSelf = 'flex-start'
+    test.addEventListener('click', () => {
+      const v = String(input.value || '').trim()
+      if (v.length >= 8) { state.key = true; state.keyState = 'ok'; state.doors = 'closed'; closeSheet(); afterSignin(); return }
+      state.keyState = 'error'; renderSheet()
+    })
+    body.appendChild(test)
+    note.textContent = 'Démo : une valeur de 8 caractères est refusée (401), une plus longue est acceptée.'
+  }
+
+  const afterSignin = () => { state.full = true; $('#total').textContent = FR(TOTAL_ANNONCE); renderGate(); renderGrid() }
+  const setFull = (on) => {
+    if (signed() === false) { openSheet(null); return }
+    state.loading = true; renderVeilShown()
+    setTimeout(() => { state.loading = false; state.full = on; $('#total').textContent = on ? FR(TOTAL_ANNONCE) : String(ALL.length); renderGate(); renderGrid() }, 420)
+  }
+  const renderVeilShown = () => { const t = $('#veiltext'); t.innerHTML = ''; t.appendChild(el('b', null, 'Chargement du catalogue Composio…')); $('#veilacts').innerHTML = '' }
+
+  // ── Interactions ────────────────────────────────────────────────────────────
+  const renderFacets = () => {
+    const wrap = $('#facets')
+    if (wrap.hidden === true) { wrap.hidden = false }
+    const cats = {}
+    for (const a of ALL) for (const c of a.c || []) cats[c] = (cats[c] || 0) + 1
+    const top = Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 8)
+    wrap.innerHTML = ''
+    const all = el('button', 'kbm-pill kbm-pill-interactive' + (state.facet === null ? ' kbm-pill-active' : ''), 'Tout')
+    all.type = 'button'; all.addEventListener('click', () => { state.facet = null; renderFacets(); renderGrid() })
+    wrap.appendChild(all)
+    for (const [c, n] of top) {
+      const b = el('button', 'kbm-pill kbm-pill-interactive' + (state.facet === c ? ' kbm-pill-active' : ''), c.replace(/-/g, ' ') + ' ' + n)
+      b.type = 'button'; b.addEventListener('click', () => { state.facet = state.facet === c ? null : c; renderFacets(); renderGrid() })
+      wrap.appendChild(b)
+    }
+  }
+
+  const start = () => {
+    renderGate(); renderGrid()
+    for (const t of document.querySelectorAll('.kb-tab')) t.addEventListener('click', () => {
+      state.tab = t.dataset.tab
+      for (const o of document.querySelectorAll('.kb-tab')) o.setAttribute('aria-selected', o === t ? 'true' : 'false')
+      $('#facets').hidden = state.tab !== 'discover'
+      if (state.tab === 'discover') renderFacets()
+      renderGrid()
+    })
+    $('#searchbtn').addEventListener('click', () => { const row = $('#searchrow'); row.hidden = row.hidden === false; if (row.hidden === false) $('#q').focus() })
+    $('#filterbtn').addEventListener('click', () => { const f = $('#facets'); if (f.hidden === true) renderFacets(); else f.hidden = true })
+    $('#q').addEventListener('input', (e) => { state.q = e.target.value; renderGrid() })
+    $('#refresh').addEventListener('click', () => { state.q = ''; state.facet = null; if ($('#q')) $('#q').value = ''; renderFacets(); renderGrid() })
+    $('#loadall').addEventListener('click', () => setFull(true))
+    $('#sheetclose').addEventListener('click', closeSheet)
+    $('#sheetcancel').addEventListener('click', closeSheet)
+    $('#sheetmask').addEventListener('click', closeSheet)
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#sheetroot').hidden === false) closeSheet() })
+    const dark = $('#dark')
+    const paint = () => { const on = document.body.hasAttribute('data-ds-dark-theme'); dark.textContent = on ? 'Thème clair' : 'Thème sombre' }
+    if (location.hash === '#dark') document.body.setAttribute('data-ds-dark-theme', '')
+    paint()
+    dark.addEventListener('click', () => { if (document.body.hasAttribute('data-ds-dark-theme')) document.body.removeAttribute('data-ds-dark-theme'); else document.body.setAttribute('data-ds-dark-theme', ''); paint() })
+    $('#reset').addEventListener('click', () => { location.reload() })
+  }
+  const demo = () => {
+    const h = String(location.hash || '')
+    if (h.indexOf('yours') >= 0) { const t = $('#tab-yours'); if (t) t.click() }
+    if (h.indexOf('sheet') >= 0) openSheet(null)
+    if (h.indexOf('key') >= 0) { openSheet(null); state.doors = 'key'; renderSheet() }
+    if (h.indexOf('error') >= 0) { openSheet(null); state.doors = 'key'; state.keyState = 'error'; renderSheet() }
+    if (h.indexOf('full') >= 0) { state.account = true; afterSignin() }
+    if (h.indexOf('hover') >= 0) { const c = document.querySelector('.kb-card[data-connected="false"]'); if (c) c.classList.add('kb-hover') }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { start(); demo() }); else { start(); demo() }
+})()
+</script>
+</body>
+</html>
