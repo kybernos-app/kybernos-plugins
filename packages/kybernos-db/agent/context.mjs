@@ -12,7 +12,7 @@ export const SECTION_MAX_CHARS = 3000
 
 const fieldText = (f) => {
   let s = f.key + ' (' + f.type
-  if (f.type === 'relation') s += ' → ' + f.to + (f.many ? ', many' : '')
+  if (f.type === 'relation') s += ' → ' + f.to + (f.many ? ', many' : '') + (f.inverse === undefined ? '' : ', seen from there as "' + f.inverse + '"')
   if (f.options) s += ': ' + f.options.map((o) => o.key).join('|')
   if (f.required) s += ', required'
   if (f.protection !== 'normal') s += ', ' + protectionWord(f.protection, 'en')

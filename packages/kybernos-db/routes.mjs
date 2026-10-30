@@ -2,6 +2,7 @@
 //
 //   GET  /kybernos-db/state                         the dbs, their tables, fields and views, and a fingerprint per db to poll
 //   GET  /kybernos-db/records?db=&object=&deleted=  the records of one table
+//   GET  /kybernos-db/links?db=&object=&id=         what points at a record, from the other tables (the first 50 of each link field, and how many there are)
 //   POST /kybernos-db/write                         { db, object, op: create | update | delete | restore, id?, values? }
 //   POST /kybernos-db/view                          { db, object, op: save | remove, view?, id? }
 //   GET  /kybernos-db/core/<file>.mjs               the pure rules of core/, so the browser runs the very code the agent runs
@@ -77,6 +78,7 @@ const queryOf = (req) => { try { return Object.fromEntries(new URL(req.url, 'htt
 export const routeTable = (api) => ({
   state: { method: 'GET', run: () => api.state() },
   records: { method: 'GET', run: (q) => api.records(q) },
+  links: { method: 'GET', run: (q) => api.links(q) },
   write: { method: 'POST', run: (b) => api.write(b) },
   view: { method: 'POST', run: (b) => api.view(b) },
 })

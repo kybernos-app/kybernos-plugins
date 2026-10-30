@@ -49,7 +49,7 @@ export function normalizeObject (def) {
   return { ok: false, errors }
 }
 
-const CHANGEABLE_FIELD = ['label', 'protection', 'options']
+const CHANGEABLE_FIELD = ['label', 'protection', 'options', 'inverse']
 
 /**
  * A field after a change: `{ ok: true, field }` or `{ ok: false, errors }`. Only the label, the protection and the options of a choice can change: a field

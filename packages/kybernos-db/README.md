@@ -3,10 +3,10 @@
 The engine for user- and agent-defined databases: objects (Tasks, Orders, Contacts…), typed fields, relations and views. It replaces the three fixed
 engines (Contacts, Catalog, Pipeline) in phase A; "task management" is one more object, not a plugin.
 
-This folder holds **lots 1 to 4: `core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
+This folder holds **lots 1 to 5: `core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
 attachments, `agent/` with `index.js`, the DSH bundle that gives the agents thirteen tools, a block of their system prompt and the `db-builder` skill, and the
-page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Tables » page).** Relations as links you can edit (lot 5), the attachment fields in the
-UI (lot 6) and the replacement of the old engines (lot 7) come next and import these.
+page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Tables » page), with the relations between tables edited from it.** The attachment
+fields in the UI (lot 6) and the replacement of the old engines (lot 7) come next and import these.
 
 ```bash
 node packages/kybernos-db/test-agent.mjs && node packages/kybernos-db/test-host.mjs && node packages/kybernos-db/test-routes.mjs && node packages/kybernos-db/test-client.mjs
@@ -29,15 +29,20 @@ drawer where each field saves when it is left; a secret field is a password inpu
 - **The host's door.** `GET state`, `GET records`, `POST write` (create, update, delete, restore) and `POST view` (save, remove), all behind DSH's signed session cookie
   and the host fence (`session-guard.mjs`, a copy of the shared shape), a 64 KB body cap, and the core served at `/kybernos-db/core/<file>.mjs` so the page applies
   the very rules the host does (the shared vector cases keep the two in step).
+- **Links between tables (lot 5).** A link field points at rows of another table, one or many. In the drawer its rows are chips (each opens its row, an × takes the link off) and
+  a picker (search, keyboard, Escape closes only the picker) adds one; a chip in a table or a board card opens the row too, and **Back** in the drawer returns to where the click was.
+  The links are kept on one side only: the other table shows them under **Linked from**, computed by the host (`GET /kybernos-db/links?db=&object=&id=`), under the name the
+  link was given (`inverse`, e.g. an order's Customer field seen from the customer as « Purchases ») or else the name of the table it comes from. A write refuses a link to a row
+  that does not exist or is deleted (`link`); a row deleted afterwards leaves a dashed « Removed link » chip, and restoring it makes the link live again.
+  **« How it's built »** (button under the tabs) lists the fields of each table with their links both ways, and draws the map of the links (a box per table, a line per link; a box opens its table).
 - **The toolbar.** The page's controls ride in the product's toolbar as its `trailing` slot (the toolbar's own `views` prop already means the view modes of the old pages);
   without a toolbar handed over, the same controls sit in a bar of their own.
 
 Tests: `test-routes.mjs` (every route behind the session), `test-client.mjs` (the pure parts, the registration, each piece rendered to a plain tree) and, against the
 sandbox, `source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-tables-live.mjs [--shots <dir>]` (the real page over a real db: each control
-saved and read back from the host, Kaby's change with Undo, a failing host, 420 px, the console). `scripts/lib-tables-seed.mjs` builds the db it opens.
+saved and read back from the host, Kaby's change with Undo, an order linked to a customer and products and opened both ways, a failing host, 420 px, the console). `scripts/lib-tables-seed.mjs` builds the two dbs it opens (Home and Shop).
 
 ## What is not here yet
 
-Removing or renaming an object or a field and changing a field's type (only adding is possible), the check that a relation points at a
-real record, editing a relation or an attachment from the page (read-only chips and a list for now), sync with the server, the garbage collection of blobs, and team rights
+Removing or renaming an object or a field and changing a field's type (only adding is possible), creating a row from a link picker, editing an attachment from the page (a read-only list for now), sync with the server, the garbage collection of blobs, and team rights
 (`can()` refuses everyone but the owner, and the store does not call it: the door that calls the store does).

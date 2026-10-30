@@ -13,8 +13,8 @@
       "en": "Kaby shows you a card before creating or changing a table: the fields, their type, what is protected. You accept or refuse."
     },
     {
-      "fr": "Ouvre Business › Tables : tableau, cartes ou calendrier, filtre, tri, champs. Tout s’enregistre seul ; « Modifier la vue » demande à Kaby.",
-      "en": "Open Business › Tables: table, board, cards or calendar, filter, sort, fields. All saves itself; “Modify view” asks Kaby."
+      "fr": "Ouvre Business › Tables : tableau, cartes ou calendrier, filtre, tri. Tout s’enregistre seul. Un lien relie deux tables.",
+      "en": "Open Business › Tables: table, board, cards or calendar, filter, sort. All saves itself. A link joins two tables."
     },
     {
       "fr": "Demande aussi à Kaby d’ajouter ou de retrouver des lignes : « quelles commandes sont en retard ? ».",

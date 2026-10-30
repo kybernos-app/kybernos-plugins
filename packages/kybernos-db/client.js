@@ -77,6 +77,7 @@ window.__ModuleLoader__.load({
       const fmtStamp = (iso) => { try { return new Date(iso).toLocaleString(lang(), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch (e) { return String(iso) } }
       const fmtBytes = (n) => (n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB')
       const MASK = '••••••'
+      const TRAIL_MAX = 12
 
       /** The title of a record as a list or a link shows it. */
       const titleOf = (obj, rec) => {
@@ -95,6 +96,105 @@ window.__ModuleLoader__.load({
         }
         return { today, resolve, label: (field, value) => (field.type === 'relation' ? resolve(field, value).title : value) }
       }
+
+      // ── links between tables ──────────────────────────────────────────────────────────────────────────────────────────────
+      /** Every link field of the database whose target table exists: what the « How it's built » panel lists and draws. */
+      const relationFields = (objects) => {
+        const out = []
+        for (const o of objects) {
+          for (const f of o.fields) {
+            if (f.type !== 'relation') continue
+            const target = objects.find((x) => x.key === f.to)
+            if (!target) continue
+            out.push({ from: o.key, fromLabel: o.label, field: f.key, label: f.label, to: target.key, toLabel: target.label, many: f.many === true, inverse: typeof f.inverse === 'string' && f.inverse !== '' ? f.inverse : null })
+          }
+        }
+        return out
+      }
+      /** What the target table calls the link when it shows it from its side. */
+      const seenAs = (rel) => (rel.inverse !== null ? rel.inverse : rel.fromLabel)
+      /** The records a link picker offers: the ones not chosen yet whose title holds what was typed, by title, at most `max`. */
+      const linkOptions = (target, rows, chosen, q, max) => {
+        const need = typeof q === 'string' ? q.trim().toLowerCase() : ''
+        const taken = new Set(chosen)
+        const all = []
+        for (const r of Array.isArray(rows) ? rows : []) {
+          if (taken.has(r.id)) continue
+          const title = titleOf(target, r)
+          if (need !== '' && !title.toLowerCase().includes(need)) continue
+          all.push({ id: r.id, title })
+        }
+        all.sort((a, b) => a.title.localeCompare(b.title, lang()))
+        return { items: all.slice(0, max), total: all.length }
+      }
+      /** Where the map of links puts each table, and how each link is drawn between two of them (a straight line, a curve when two links share the same pair, a loop on its own table). */
+      const MAP_W = 640
+      const NODE_W = 156
+      const NODE_H = 46
+      const mapLayout = (objects) => {
+        const n = objects.length
+        const nodes = []
+        let height = 120
+        if (n <= 2) {
+          objects.forEach((o, i) => nodes.push({ key: o.key, label: o.label, x: n === 1 ? MAP_W / 2 : MAP_W * (i === 0 ? 0.27 : 0.73), y: 70 }))
+        } else if (n <= 8) {
+          height = 330
+          const rx = 215
+          const ry = 118
+          objects.forEach((o, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; nodes.push({ key: o.key, label: o.label, x: Math.round(MAP_W / 2 + rx * Math.cos(a)), y: Math.round(height / 2 + ry * Math.sin(a)) }) })
+        } else {
+          const cols = Math.ceil(Math.sqrt(n * 1.6))
+          const rows = Math.ceil(n / cols)
+          height = rows * 110 + 20
+          objects.forEach((o, i) => nodes.push({ key: o.key, label: o.label, x: Math.round(((i % cols) + 0.5) * (MAP_W / cols)), y: 55 + Math.floor(i / cols) * 110 }))
+        }
+        const at = (key) => nodes.find((x) => x.key === key)
+        // the point where a line from the node's centre to (tx, ty) leaves its box
+        const edge = (node, tx, ty) => {
+          const dx = tx - node.x
+          const dy = ty - node.y
+          if (dx === 0 && dy === 0) return { x: node.x, y: node.y }
+          const k = Math.min(dx === 0 ? Infinity : NODE_W / 2 / Math.abs(dx), dy === 0 ? Infinity : NODE_H / 2 / Math.abs(dy))
+          return { x: Math.round(node.x + dx * k), y: Math.round(node.y + dy * k) }
+        }
+        const rels = relationFields(objects)
+        const pair = (r) => (r.from < r.to ? r.from + '|' + r.to : r.to + '|' + r.from)
+        const sizes = {}
+        const seen = {}
+        for (const r of rels) if (r.from !== r.to) sizes[pair(r)] = (sizes[pair(r)] || 0) + 1
+        const edges = []
+        for (const r of rels) {
+          const a = at(r.from)
+          const b = at(r.to)
+          const label = r.label + (r.many ? ' · n' : ' · 1')
+          if (r.from === r.to) {
+            const top = a.y - NODE_H / 2
+            seen[r.from] = (seen[r.from] || 0) + 1
+            const spread = 26 + (seen[r.from] - 1) * 24
+            edges.push({ rel: r, label, d: 'M ' + (a.x + 34) + ' ' + top + ' C ' + (a.x + 34 + spread) + ' ' + (top - 54 - (seen[r.from] - 1) * 12) + ' ' + (a.x - 34 - spread) + ' ' + (top - 54 - (seen[r.from] - 1) * 12) + ' ' + (a.x - 34) + ' ' + top, lx: a.x, ly: top - 50 - (seen[r.from] - 1) * 12 })
+            continue
+          }
+          const k = pair(r)
+          const idx = (seen[k] = (seen[k] || 0) + 1) - 1
+          const off = (idx - (sizes[k] - 1) / 2) * 44
+          // the side of the pair a link bends towards does not depend on its direction, so two opposite links never cross
+          const lo = r.from < r.to ? a : b
+          const hi = r.from < r.to ? b : a
+          const len = Math.hypot(hi.x - lo.x, hi.y - lo.y) || 1
+          const mx = (a.x + b.x) / 2 + (-(hi.y - lo.y) / len) * off * 2
+          const my = (a.y + b.y) / 2 + ((hi.x - lo.x) / len) * off * 2
+          const p0 = edge(a, off === 0 ? b.x : mx, off === 0 ? b.y : my)
+          const p1 = edge(b, off === 0 ? a.x : mx, off === 0 ? a.y : my)
+          if (off === 0) edges.push({ rel: r, label, d: 'M ' + p0.x + ' ' + p0.y + ' L ' + p1.x + ' ' + p1.y, lx: Math.round((p0.x + p1.x) / 2), ly: Math.round((p0.y + p1.y) / 2) })
+          else edges.push({ rel: r, label, d: 'M ' + p0.x + ' ' + p0.y + ' Q ' + Math.round(mx) + ' ' + Math.round(my) + ' ' + p1.x + ' ' + p1.y, lx: Math.round(0.25 * p0.x + 0.5 * mx + 0.25 * p1.x), ly: Math.round(0.25 * p0.y + 0.5 * my + 0.25 * p1.y) })
+        }
+        return { width: MAP_W, height, nodes, edges }
+      }
+      const TYPE_NAME = () => ({
+        text: kt('Texte', 'Text'), longtext: kt('Texte long', 'Long text'), number: kt('Nombre', 'Number'), money: kt('Montant', 'Amount'), date: kt('Date', 'Date'), checkbox: kt('Case à cocher', 'Checkbox'),
+        choice: kt('Choix', 'Choice'), multichoice: kt('Choix multiples', 'Multiple choice'), person: kt('Personne', 'Person'), url: kt('Lien web', 'Web link'), email: kt('E-mail', 'Email'), phone: kt('Téléphone', 'Phone'),
+        relation: kt('Lien', 'Link'), attachment: kt('Fichiers', 'Files'),
+      })
 
       /** A value as plain text, for a cell that is not drawn rich, a tooltip, a chip. A secret field is never spelled out. */
       const cellText = (field, value, ctx) => {
@@ -576,6 +676,64 @@ window.__ModuleLoader__.load({
         .kbtb-opt.hue i,.kbtb-dot.hue{background:hsl(var(--kbtb-h) 70% 48%)}
         .kbtb-rel{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:7px;border:1px solid var(--dsw-alias-border-l1);font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
         .kbtb-more{color:var(--dsw-alias-label-tertiary);font-size:11px;font-weight:600}
+        button.kbtb-rel{font-family:inherit;background:transparent;cursor:pointer;transition:border-color .14s,color .14s,background .14s}
+        button.kbtb-rel.go:hover{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 8%,transparent)}
+        button.kbtb-rel.go:active{transform:scale(.97)}
+        .kbtb-rel.gone{color:var(--dsw-alias-label-tertiary);border-style:dashed}
+        .kbtb-rel.edit{padding:0 2px 0 8px;max-width:100%;gap:4px}
+        .kbtb-rel-t{border:none;background:transparent;padding:0;font:inherit;color:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+        button.kbtb-rel-t{cursor:pointer;border-radius:4px}
+        button.kbtb-rel-t:hover{color:var(--dsw-alias-label-primary);text-decoration:underline}
+        .kbtb-rel-t.gone{text-decoration:line-through}
+        .kbtb-rel-x{display:inline-grid;place-items:center;width:18px;height:18px;border:none;border-radius:5px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;flex:none}
+        .kbtb-rel-x:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+        .kbtb-links{display:flex;flex-direction:column;gap:8px;min-width:0}
+        .kbtb-linkrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+        .kbtb-linkrow .kbtb-pill{gap:6px}
+        .kbtb-lp{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);animation:kbtb-pop .16s ease-out both}
+        .kbtb-lp .kbtb-find{height:32px}
+        .kbtb-lp .kbtb-find input{flex:1;min-width:0;border:none;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;outline:none}
+        .kbtb-lpl{display:flex;flex-direction:column;gap:2px;max-height:210px;overflow-y:auto}
+        .kbtb-lpo{display:block;width:100%;padding:7px 9px;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-align:start;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .kbtb-lpo:hover,.kbtb-lpo:focus-visible{background:var(--dsw-alias-bg-layer-2)}
+        .kbtb-lp .kbtb-note{margin:2px 4px}
+        .kbtb-lf{display:flex;flex-direction:column;gap:12px;padding:14px 18px 6px;border-top:1px solid var(--dsw-alias-border-l1)}
+        p.kbtb-lf{margin:0;border-top:1px solid var(--dsw-alias-border-l1)}
+        .kbtb-lft{display:flex;align-items:center;gap:6px;margin:0;font-size:12px;font-weight:700;color:var(--dsw-alias-label-secondary)}
+        .kbtb-lg{display:flex;flex-direction:column;gap:6px;min-width:0}
+        .kbtb-lgh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+        .kbtb-lgh b{font-size:13px}
+        .kbtb-lgc{min-width:20px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary);font-size:11px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+        .kbtb-lgv{color:var(--dsw-alias-label-tertiary);font-size:11.5px}
+
+        .kbtb-built{display:flex;flex-direction:column;gap:12px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1);animation:kbtb-pop .18s ease-out both}
+        .kbtb-bh{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+        .kbtb-bh b{font-size:14px;margin-inline-end:auto}
+        .kbtb-tab.sm{height:28px;padding:0 12px;font-size:12px}
+        .kbtb-bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+        .kbtb-bcol{display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2)}
+        .kbtb-bcol h4{margin:0;font-size:13.5px}
+        .kbtb-bl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+        .kbtb-bf{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0}
+        .kbtb-bfl{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+        .kbtb-bft{color:var(--dsw-alias-label-secondary);font-size:12px;overflow-wrap:anywhere}
+        .kbtb-bfx{color:var(--dsw-alias-label-tertiary);font-size:11.5px}
+        .kbtb-bback{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px dashed var(--dsw-alias-border-l2)}
+        .kbtb-bbt{display:flex;align-items:center;gap:5px;color:var(--dsw-alias-label-tertiary);font-size:11.5px;font-weight:600}
+        .kbtb-mapw{display:flex;flex-direction:column;gap:12px}
+        .kbtb-map{width:100%;height:auto;max-height:380px;border-radius:12px;background:var(--dsw-alias-bg-layer-2)}
+        .kbtb-mn{cursor:pointer;outline:none}
+        .kbtb-mn rect{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-border-l2);stroke-width:1.2;transition:stroke .14s}
+        .kbtb-mn.on rect{stroke:var(--dsw-alias-brand-primary);stroke-width:2}
+        .kbtb-mn:hover rect,.kbtb-mn:focus-visible rect{stroke:var(--dsw-alias-brand-primary)}
+        .kbtb-mn text{fill:var(--dsw-alias-label-primary);font-size:13px;font-weight:650;pointer-events:none}
+        .kbtb-mp{fill:none;stroke:var(--dsw-alias-label-tertiary);stroke-width:1.5}
+        .kbtb-mk{fill:var(--dsw-alias-label-tertiary)}
+        .kbtb-ml{fill:var(--dsw-alias-label-secondary);font-size:11px;paint-order:stroke;stroke:var(--dsw-alias-bg-layer-2);stroke-width:5px;stroke-linejoin:round}
+        .kbtb-maplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:13px}
+        .kbtb-maplist .kbtb-note{margin:0}
+        .kbtb-mapnone{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;color:var(--dsw-alias-label-secondary);font-size:13px}
+        .kbtb-link.flat{margin-inline-start:0}
 
         .kbtb-board{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}
         .kbtb-col{flex:0 0 260px;display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:14px;background:var(--dsw-alias-bg-layer-2);border:1px solid transparent;min-height:90px;transition:border-color .14s,background .14s}
@@ -619,7 +777,7 @@ window.__ModuleLoader__.load({
 
         .kbtb-drawer{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l1);border-radius:18px;background:var(--dsw-alias-bg-layer-1);min-width:0;animation:kbtb-slide .26s cubic-bezier(.2,.8,.2,1) both}
         .kbtb-dh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 14px 10px 18px;border-bottom:1px solid var(--dsw-alias-border-l1);font-size:15px}
-        .kbtb-dh b{overflow-wrap:anywhere}
+        .kbtb-dh b{overflow-wrap:anywhere;flex:1;min-width:0}
         .kbtb-dfields{display:flex;flex-direction:column;gap:14px;padding:16px 18px}
         .kbtb-df{display:flex;flex-direction:column;gap:5px;min-width:0}
         .kbtb-dl{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;gap:5px}
@@ -718,10 +876,18 @@ window.__ModuleLoader__.load({
           return h('span', { className: 'kbtb-opt' + (hue === null ? '' : ' hue'), style: hue === null ? undefined : { '--kbtb-h': hue } }, h('i', { 'aria-hidden': 'true' }), o ? o.label : String(value))
         }
         const empty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0)
+        /** The same `ctx` without the way to open a linked row: a card is itself one button, and a button does not hold another. */
+        const noOpen = (ctx) => (typeof ctx.open === 'function' ? Object.assign({}, ctx, { open: undefined }) : ctx)
+        /** The records a link field points at, as chips; a chip opens its record when the page can (`ctx.open`), and a record that was deleted is shown as such. */
         const LinkChips = ({ field, value, ctx, max }) => {
           const ids = field.many ? value : [value]
           return h('span', { className: 'kbtb-opts' },
-            ids.slice(0, max).map((id) => h('span', { key: id, className: 'kbtb-rel' }, svg('link', 11), ctx.label(field, id))),
+            ids.slice(0, max).map((id) => {
+              const r = ctx.resolve(field, id)
+              if (r.missing) return h('span', { key: id, className: 'kbtb-rel gone', 'data-kb': 'tables-link-gone', title: kt('Cette ligne a été supprimée.', 'This row was deleted.') }, svg('link', 11), r.title)
+              if (typeof ctx.open === 'function' && !r.loading) return h('button', { key: id, type: 'button', className: 'kbtb-rel go', 'data-kb': 'tables-link', 'data-object': field.to, 'data-id': id, title: kt('Ouvrir ', 'Open ') + r.title, onClick: (e) => { stop(e); ctx.open(field, id) } }, svg('link', 11), r.title)
+              return h('span', { key: id, className: 'kbtb-rel' }, svg('link', 11), r.title)
+            }),
             ids.length > max ? h('span', { className: 'kbtb-more' }, '+' + (ids.length - max)) : null)
         }
         /** What a record holds in a field, drawn for a table cell, a card or a board card. */
@@ -1054,8 +1220,8 @@ window.__ModuleLoader__.load({
               return h('button', { key: r.id, type: 'button', className: 'kbtb-tile', 'data-kb': 'tables-card', 'data-id': r.id, onClick: () => p.openRecord(r.id) },
                 h('span', { className: 'kbtb-im' + (hue === null ? '' : ' hue'), style: hue === null ? undefined : { '--kbtb-h': hue }, 'aria-hidden': 'true' }, Array.from(name)[0].toUpperCase()),
                 h('span', { className: 'kbtb-tb' }, h('span', { className: 'kbtb-tt' }, name),
-                  tone && !empty(r.values[tone.key]) ? h('span', null, h(Cell, { field: tone, rec: r, ctx: p.ctx })) : null,
-                  lines.map((f) => (empty(r.values[f.key]) && f.type !== 'checkbox' ? null : h('span', { key: f.key, className: 'kbtb-tl2' }, h('span', { className: 'kbtb-k' }, f.label), h(Cell, { field: f, rec: r, ctx: p.ctx }))))))
+                  tone && !empty(r.values[tone.key]) ? h('span', null, h(Cell, { field: tone, rec: r, ctx: noOpen(p.ctx) })) : null,
+                  lines.map((f) => (empty(r.values[f.key]) && f.type !== 'checkbox' ? null : h('span', { key: f.key, className: 'kbtb-tl2' }, h('span', { className: 'kbtb-k' }, f.label), h(Cell, { field: f, rec: r, ctx: noOpen(p.ctx) }))))))
             })),
             h(MoreRows, { shown: shown.length, total: p.rows.length, onMore: () => setLimit((n) => n + PAGE_STEP) }))
         }
@@ -1139,6 +1305,75 @@ window.__ModuleLoader__.load({
             field.type === 'money' ? h('span', { className: 'kbtb-unit' }, field.currency) : null,
             bad ? h('span', { className: 'kbtb-ferr', role: 'alert' }, kt('Saisis un nombre.', 'Enter a number.')) : null)
         }
+        /** A link field: the records it points at as chips (each opens its record, each can be taken off), and a picker over the other table's rows to add one. */
+        const PICK_MAX = 50
+        const RelationEditor = ({ field, value, onCommit, p }) => {
+          const [open, setOpen] = useState(false)
+          const [q, setQ] = useState('')
+          const root = useRef(null)
+          const addBtn = useRef(null)
+          const target = p.db.objects.find((o) => o.key === field.to)
+          const rows = p.related[field.to]
+          const ids = empty(value) ? [] : (field.many ? value : [value])
+          const saved = p.drawer !== null && p.drawer.mode === 'edit'
+          useEffect(() => {
+            if (!open) return undefined
+            const onDown = (e) => { try { if (root.current !== null && !root.current.contains(e.target)) setOpen(false) } catch (x) { setOpen(false) } }
+            document.addEventListener('mousedown', onDown, true)
+            return () => document.removeEventListener('mousedown', onDown, true)
+          }, [open])
+          if (!target) return h('span', { className: 'kbtb-ferr', 'data-kb': 'tables-field-' + field.key }, kt('La table liée n’existe plus.', 'The table this field links to no longer exists.'))
+          const close = () => { setOpen(false); setQ(''); try { if (addBtn.current !== null) addBtn.current.focus() } catch (e) { /* no focus */ } }
+          // after a pick in a many link the picker stays for the next one: focus goes back to its search (the row clicked is gone, and a focus lost to the page would make Escape close the drawer)
+          const pick = (id) => {
+            onCommit(field.many ? ids.concat([id]) : id)
+            if (!field.many) { close(); return }
+            setQ('')
+            try { root.current.querySelector('input').focus() } catch (e) { /* no input */ }
+          }
+          const drop = (id) => { const next = ids.filter((x) => x !== id); onCommit(next.length === 0 ? null : (field.many ? next : next[0])) }
+          const found = rows === undefined ? { items: [], total: 0 } : linkOptions(target, rows, ids, q, PICK_MAX)
+          const onFind = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); close(); return }
+            if (e.key === 'Enter') { e.preventDefault(); if (found.items.length > 0) pick(found.items[0].id); return }
+            if (e.key === 'ArrowDown') { e.preventDefault(); try { const first = root.current.querySelector('[data-kb="tables-link-option"]'); if (first !== null) first.focus() } catch (x) { /* no list */ } }
+          }
+          const onList = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); close(); return }
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+            e.preventDefault()
+            try {
+              const all = Array.from(root.current.querySelectorAll('[data-kb="tables-link-option"]'))
+              const at = all.indexOf(document.activeElement)
+              const next = all[at + (e.key === 'ArrowDown' ? 1 : -1)]
+              if (next !== undefined) next.focus(); else if (e.key === 'ArrowUp') root.current.querySelector('input').focus()
+            } catch (x) { /* no list */ }
+          }
+          const chip = (id) => {
+            const r = p.ctx.resolve(field, id)
+            const body = r.missing
+              ? h('span', { className: 'kbtb-rel-t gone', title: kt('Cette ligne a été supprimée.', 'This row was deleted.') }, r.title)
+              : saved && !r.loading && typeof p.ctx.open === 'function'
+                ? h('button', { type: 'button', className: 'kbtb-rel-t', 'data-kb': 'tables-link', 'data-object': field.to, 'data-id': id, title: kt('Ouvrir ', 'Open ') + r.title, onClick: () => p.ctx.open(field, id) }, r.title)
+                : h('span', { className: 'kbtb-rel-t' }, r.title)
+            return h('span', { key: id, className: 'kbtb-rel edit' + (r.missing ? ' gone' : '') }, svg('link', 11), body,
+              h('button', { type: 'button', className: 'kbtb-rel-x', 'data-kb': 'tables-link-remove', 'aria-label': kt('Retirer le lien vers ', 'Remove the link to ') + r.title, onClick: () => drop(id) }, svg('x', 11)))
+          }
+          const addLabel = field.many ? kt('Ajouter…', 'Add…') : (ids.length > 0 ? kt('Changer…', 'Change…') : kt('Choisir…', 'Choose…'))
+          return h('div', { className: 'kbtb-links', ref: root, 'data-kb': 'tables-field-' + field.key },
+            h('div', { className: 'kbtb-linkrow' },
+              ids.map(chip),
+              h('button', { type: 'button', ref: addBtn, className: 'kbtb-pill', 'data-kb': 'tables-link-add', 'aria-expanded': open ? 'true' : 'false', onClick: () => { setOpen(!open); setQ('') } }, svg(ids.length > 0 && !field.many ? 'edit' : 'plus', 12), addLabel)),
+            open ? h('div', { className: 'kbtb-lp', 'data-kb': 'tables-link-picker' },
+              h('label', { className: 'kbtb-find' }, svg('search', 14), h('input', { type: 'search', autoFocus: true, autoComplete: 'off', value: q, 'data-kb': 'tables-link-find', 'aria-label': kt('Chercher dans ', 'Search in ') + target.label, placeholder: kt('Chercher dans ', 'Search in ') + target.label, onChange: (e) => setQ(e.target.value), onKeyDown: onFind })),
+              rows === undefined
+                ? h('p', { className: 'kbtb-note faint' }, p.rec.status === 'ok' ? kt('La liste n’a pas pu être lue.', 'The list could not be read.') : kt('Chargement…', 'Loading…'))
+                : found.items.length === 0
+                  ? h('p', { className: 'kbtb-note faint', 'data-kb': 'tables-link-none' }, rows.length === 0 ? kt('Il n’y a encore aucune ligne dans ' + target.label + '.', 'There is no row in ' + target.label + ' yet.') : q.trim() !== '' ? kt('Aucune ligne ne correspond.', 'No row matches.') : kt('Tout est déjà lié.', 'Everything is already linked.'))
+                  : h('div', { className: 'kbtb-lpl', role: 'listbox', 'aria-label': target.label, onKeyDown: onList },
+                    found.items.map((o) => h('button', { key: o.id, type: 'button', role: 'option', 'aria-selected': 'false', className: 'kbtb-lpo', 'data-kb': 'tables-link-option', 'data-id': o.id, onClick: () => pick(o.id) }, o.title))),
+              found.total > PICK_MAX ? h('p', { className: 'kbtb-note faint' }, kt(PICK_MAX + ' sur ' + found.total + ' : tape pour affiner.', PICK_MAX + ' of ' + found.total + ': type to narrow it down.')) : null) : null)
+        }
         const Editor = ({ field, value, onCommit, p }) => {
           if (field.protection === 'secret' && (field.type === 'text' || field.type === 'longtext' || field.type === 'url' || field.type === 'email' || field.type === 'phone')) return h(SecretEditor, { field, value, onCommit })
           switch (field.type) {
@@ -1154,7 +1389,7 @@ window.__ModuleLoader__.load({
                 return h('button', { key: o.key, type: 'button', className: 'kbtb-pick' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false', onClick: () => { const next = on ? list.filter((k) => k !== o.key) : list.concat([o.key]); onCommit(next.length ? next : null) } }, on ? svg('check', 12) : null, o.label)
               }))
             }
-            case 'relation': return empty(value) ? h('span', { className: 'kbtb-nil' }, '—') : h(LinkChips, { field, value, ctx: p.ctx, max: 50 })
+            case 'relation': return h(RelationEditor, { field, value, onCommit, p })
             case 'attachment': return empty(value) ? h('span', { className: 'kbtb-nil' }, '—') : h('ul', { className: 'kbtb-filelist' }, value.map((f) => h('li', { key: f.hash }, svg('clip', 12), h('span', { className: 'kbtb-fn' }, f.name), h('span', { className: 'kbtb-fs' }, fmtBytes(f.size)))))
             default: return null
           }
@@ -1165,9 +1400,38 @@ window.__ModuleLoader__.load({
           const onCommit = async (v) => { setErr(''); const r = await commit(field.key, v); if (r && r.ok === false) setErr(errorText(r)) }
           return h('div', { className: 'kbtb-df' + (field.key === p.obj.title ? ' title' : '') },
             h('label', { className: 'kbtb-dl' }, field.label, field.required ? h('span', { className: 'kbtb-req', 'aria-hidden': 'true' }, ' *') : null, field.protection !== 'normal' ? h('span', { className: 'kbtb-prot', title: kt('Protégé : ', 'Protected: ') + field.protection }, svg('lock', 11)) : null),
-            h(Editor, { key: JSON.stringify(value === undefined ? null : value), field, value, onCommit, p }),
+            h(Editor, { key: field.type === 'relation' ? 'link' : JSON.stringify(value === undefined ? null : value), field, value, onCommit, p }),
             err !== '' || error ? h('span', { className: 'kbtb-ferr', role: 'alert' }, err || error) : null)
         }
+        /** « Linked from »: the rows of other tables that point at this one, one group per link field, read from the host (the links are kept on their own side, this side is computed). */
+        const LinkedFrom = ({ p, id }) => {
+          const [st, setSt] = useState({ status: 'loading', groups: [], error: null })
+          const fp = p.db.fingerprint
+          useEffect(() => {
+            let off = false
+            ;(async () => {
+              const r = await call('GET', '/links' + qs({ db: p.db.id, object: p.obj.key, id }))
+              if (off) return
+              setSt((cur) => (r.ok ? { status: 'ok', groups: r.groups, error: null } : { status: 'error', groups: cur.groups, error: r }))
+            })()
+            return () => { off = true }
+          }, [p.db.id, p.obj.key, id, fp])
+          if (st.status === 'loading' || (st.status === 'ok' && st.groups.length === 0)) return null
+          if (st.status === 'error' && st.groups.length === 0) return h('p', { className: 'kbtb-lf kbtb-note faint', 'data-kb': 'tables-linked-error' }, kt('Les lignes qui renvoient ici ne sont pas lisibles pour l’instant.', 'The rows that link here cannot be read right now.'))
+          return h(LinkedGroups, { p, groups: st.groups })
+        }
+        const LinkedGroups = ({ p, groups }) => h('section', { className: 'kbtb-lf', 'data-kb': 'tables-linked', 'aria-label': kt('Lié depuis', 'Linked from') },
+          h('h4', { className: 'kbtb-lft' }, svg('link', 12), kt('Lié depuis', 'Linked from')),
+          groups.map((g) => {
+            const name = (r) => (r.title === '' ? kt('Sans titre', 'Untitled') : r.title)
+            return h('div', { key: g.object + '/' + g.field, className: 'kbtb-lg', 'data-kb': 'tables-linked-group', 'data-object': g.object, 'data-field': g.field },
+              h('div', { className: 'kbtb-lgh' }, h('b', null, g.inverse !== null ? g.inverse : g.objectLabel), h('span', { className: 'kbtb-lgc', 'data-kb': 'tables-linked-count' }, String(g.count)), h('span', { className: 'kbtb-lgv' }, kt('via ', 'via ') + (g.inverse !== null ? g.objectLabel + ' › ' : '') + g.fieldLabel)),
+              g.records.length === 0
+                ? h('span', { className: 'kbtb-nil' }, kt('Aucune pour l’instant.', 'None yet.'))
+                : h('span', { className: 'kbtb-opts' },
+                  g.records.map((r) => h('button', { key: r.id, type: 'button', className: 'kbtb-rel go', 'data-kb': 'tables-link', 'data-object': g.object, 'data-id': r.id, title: kt('Ouvrir ', 'Open ') + name(r), onClick: () => p.openLinked(g.object, r.id) }, svg('link', 11), name(r))),
+                  g.count > g.records.length ? h('span', { className: 'kbtb-more' }, '+' + (g.count - g.records.length)) : null))
+          }))
         const Drawer = ({ p }) => {
           const d = p.drawer
           const rec = d.mode === 'edit' ? p.all.find((r) => r.id === d.id) : null
@@ -1177,8 +1441,13 @@ window.__ModuleLoader__.load({
           const [top, setTop] = useState('')
           const ordered = [p.obj.fields.find((f) => f.key === p.obj.title)].concat(p.obj.fields.filter((f) => f.key !== p.obj.title))
           const closeBtn = h('button', { type: 'button', className: 'kbtb-ib', 'data-kb': 'tables-drawer-close', 'aria-label': kt('Fermer', 'Close'), onClick: p.closeDrawer }, svg('x', 16))
+          const trail = Array.isArray(d.trail) ? d.trail : []
+          const backText = trail.length > 0 ? kt('Retour à ', 'Back to ') + trail[trail.length - 1].label : ''
+          const backBtn = trail.length > 0 ? h('button', { type: 'button', className: 'kbtb-ib', 'data-kb': 'tables-drawer-back', 'aria-label': backText, title: backText, onClick: p.goBack }, svg('chevL', 16)) : null
           if (d.mode === 'edit' && !rec) {
-            return h('aside', { className: 'kbtb-drawer', 'data-kb': 'tables-drawer', 'aria-label': kt('Ligne', 'Row') }, h('div', { className: 'kbtb-dh' }, h('b', null, kt('Cette ligne n’existe plus.', 'This row no longer exists.')), closeBtn))
+            // the row of another table is read after the table is: until then it is not missing, only not here yet
+            const wait = p.rec.status === 'loading'
+            return h('aside', { className: 'kbtb-drawer', 'data-kb': 'tables-drawer', 'aria-label': kt('Ligne', 'Row') }, h('div', { className: 'kbtb-dh' }, backBtn, h('b', null, wait ? kt('Chargement…', 'Loading…') : kt('Cette ligne n’existe plus.', 'This row no longer exists.')), closeBtn))
           }
           const submit = async (e) => {
             if (e) e.preventDefault()
@@ -1200,12 +1469,13 @@ window.__ModuleLoader__.load({
             commit: isNew ? async (key, v) => { setVals((cur) => Object.assign({}, cur, { [key]: v })); setErrs((cur) => Object.assign({}, cur, { [key]: undefined })); return { ok: true } } : (key, v) => p.updateField(rec.id, key, v) }))
           const name = isNew ? kt('Nouvelle ligne', 'New row') : titleOf(p.obj, rec)
           return h('aside', { className: 'kbtb-drawer', 'data-kb': 'tables-drawer', 'aria-label': name },
-            h('div', { className: 'kbtb-dh' }, h('b', null, name), closeBtn),
+            h('div', { className: 'kbtb-dh' }, backBtn, h('b', null, name), closeBtn),
             h('form', { className: 'kbtb-dfields', onSubmit: submit, noValidate: true }, body,
               top !== '' ? h('p', { className: 'kbtb-ferr', role: 'alert' }, top) : null,
               isNew ? h('div', { className: 'kbtb-dfoot' }, h('button', { type: 'button', className: 'kbtb-btn', onClick: p.closeDrawer }, kt('Annuler', 'Cancel')), h('button', { type: 'submit', className: 'kbtb-btn primary', 'data-kb': 'tables-create', disabled: busy }, kt('Ajouter', 'Add'))) : null),
+            isNew ? null : h(LinkedFrom, { p, id: rec.id }),
             isNew ? null : h('div', { className: 'kbtb-dfoot split' },
-              h('span', { className: 'kbtb-stamp' }, kt('Créée le ', 'Created ') + fmtStamp(rec.created), h('br'), kt('Modifiée le ', 'Modified ') + fmtStamp(rec.modified)),
+              h('span', { className: 'kbtb-stamp' }, kt('Créée le ', 'Created ') + fmtStamp(rec.created.at), h('br'), kt('Modifiée le ', 'Modified ') + fmtStamp(rec.modified.at)),
               h('button', { type: 'button', className: 'kbtb-btn danger', 'data-kb': 'tables-delete', onClick: () => p.deleteRecord(rec.id) }, svg('trash', 14), kt('Supprimer', 'Delete'))))
         }
 
@@ -1232,6 +1502,65 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbtb-mex center' }, EXAMPLES().map((t) => h('button', { key: t, type: 'button', className: 'kbtb-ex', onClick: () => setText(t) }, t))))
         }
 
+        // ── how it's built: the fields of each table, and the map of the links between them ─────────────────────────────────────
+        const linkAskText = (db) => kt(
+          'Sur la page Tables, dans la base « ' + db.name + ' » (id ' + db.id + '), relie deux de mes tables avec un champ de lien (relation_add), en donnant un nom au lien vu de l’autre côté (inverse). Si ce n’est pas clair, demande-moi lesquelles.',
+          'On the Tables page, in the database “' + db.name + '” (id ' + db.id + '), link two of my tables with a link field (relation_add), naming the link as the other table sees it (inverse). If it is unclear, ask me which ones.')
+        const short = (t, n) => (t.length > n ? t.slice(0, n - 1) + '…' : t)
+        const LinkMap = ({ p, objects, rels }) => {
+          const m = useMemo(() => mapLayout(objects), [objects])
+          const pick = (key) => p.openTable(key)
+          const word = (r) => (r.many ? kt('plusieurs', 'many') : kt('un seul', 'one'))
+          return h('div', { className: 'kbtb-mapw' },
+            h('svg', { className: 'kbtb-map', viewBox: '0 0 ' + m.width + ' ' + m.height, role: 'img', 'data-kb': 'tables-map', 'aria-label': kt('Carte des liens entre les tables', 'Map of the links between the tables') },
+              h('defs', null, h('marker', { id: 'kbtb-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto' }, h('path', { d: 'M 0 0 L 10 5 L 0 10 z', className: 'kbtb-mk' }))),
+              m.edges.map((e) => h('g', { key: e.rel.from + '.' + e.rel.field, className: 'kbtb-me', 'data-kb': 'tables-map-link', 'data-from': e.rel.from, 'data-to': e.rel.to, 'data-field': e.rel.field },
+                h('path', { d: e.d, className: 'kbtb-mp', markerEnd: 'url(#kbtb-arrow)' }),
+                h('text', { x: e.lx, y: e.ly - 6, textAnchor: 'middle', className: 'kbtb-ml' }, short(e.label, 26)))),
+              m.nodes.map((n) => h('g', { key: n.key, className: 'kbtb-mn' + (n.key === p.obj.key ? ' on' : ''), role: 'button', tabIndex: 0, 'data-kb': 'tables-map-node', 'data-object': n.key, 'aria-label': kt('Ouvrir la table ', 'Open the table ') + n.label,
+                onClick: () => pick(n.key), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(n.key) } } },
+              h('rect', { x: n.x - NODE_W / 2, y: n.y - NODE_H / 2, width: NODE_W, height: NODE_H, rx: 12 }),
+              h('text', { x: n.x, y: n.y + 4.5, textAnchor: 'middle' }, short(n.label, 20))))),
+            rels.length === 0
+              ? h('div', { className: 'kbtb-mapnone', 'data-kb': 'tables-map-none' }, h('span', null, kt('Aucune table n’est encore reliée à une autre.', 'No table is linked to another yet.')),
+                h('button', { type: 'button', className: 'kbtb-link flat', 'data-kb': 'tables-map-ask', onClick: () => p.ask(linkAskText(p.db)) }, svg('sparkle', 13), kt('Demander à Kaby de relier deux tables', 'Ask Kaby to link two tables')))
+              : h('ul', { className: 'kbtb-maplist', 'data-kb': 'tables-map-list' }, rels.map((r) => h('li', { key: r.from + '.' + r.field },
+                h('b', null, r.fromLabel + ' › ' + r.label), ' → ', r.toLabel, h('span', { className: 'kbtb-note faint' }, ' · ' + word(r) + ' · ' + kt('vu de ', 'seen from ') + r.toLabel + kt(' sous le nom « ', ' as “') + seenAs(r) + kt(' »', '”'))))))
+        }
+        const BuiltPanel = ({ p }) => {
+          const objects = p.db.objects
+          const rels = relationFields(objects)
+          const names = TYPE_NAME()
+          const tab = p.built === 'map' ? 'map' : 'fields'
+          const tabBtn = (id, label) => h('button', { key: id, type: 'button', role: 'tab', className: 'kbtb-tab sm', 'aria-selected': tab === id ? 'true' : 'false', 'data-kb': 'tables-built-tab', 'data-tab': id, onClick: () => p.setBuilt(id) }, label)
+          const fieldLine = (o, f) => {
+            let kind = names[f.type] || f.type
+            if (f.type === 'relation') {
+              const target = objects.find((x) => x.key === f.to)
+              kind = target ? kt('Lien vers ', 'Link to ') + target.label + ' · ' + (f.many ? kt('plusieurs', 'many') : kt('un seul', 'one')) : kt('Lien vers une table qui n’existe plus', 'Link to a table that no longer exists')
+            } else if (f.type === 'money') kind += ' · ' + f.currency
+            else if (f.options && f.options.length) kind += ' · ' + f.options.map((x) => x.label).join(', ')
+            const flags = [].concat(f.key === o.title ? [kt('titre', 'title')] : [], f.required ? [kt('obligatoire', 'required')] : [], f.protection !== 'normal' ? [f.protection] : [])
+            return h('li', { key: f.key, className: 'kbtb-bf', 'data-kb': 'tables-built-field', 'data-field': f.key },
+              h('span', { className: 'kbtb-bfl' }, f.label), h('span', { className: 'kbtb-bft' }, kind), flags.length ? h('span', { className: 'kbtb-bfx' }, flags.join(' · ')) : null)
+          }
+          const fields = h('div', { className: 'kbtb-bgrid', 'data-kb': 'tables-built-fields' }, objects.map((o) => {
+            const from = rels.filter((r) => r.to === o.key)
+            return h('section', { key: o.key, className: 'kbtb-bcol', 'data-kb': 'tables-built-table', 'data-object': o.key },
+              h('h4', null, o.label),
+              h('ul', { className: 'kbtb-bl' }, o.fields.map((f) => fieldLine(o, f))),
+              from.length === 0 ? null : h('div', { className: 'kbtb-bback' },
+                h('span', { className: 'kbtb-bbt' }, svg('link', 11), kt('Lié depuis les autres tables', 'Linked from other tables')),
+                h('ul', { className: 'kbtb-bl' }, from.map((r) => h('li', { key: r.from + '.' + r.field, className: 'kbtb-bf', 'data-kb': 'tables-built-back' }, h('span', { className: 'kbtb-bfl' }, seenAs(r)), h('span', { className: 'kbtb-bft' }, kt('depuis ', 'from ') + r.fromLabel + ' › ' + r.label))))))
+          }))
+          return h('section', { className: 'kbtb-built', 'data-kb': 'tables-built-panel', 'aria-label': kt('Comment c’est construit', 'How it’s built') },
+            h('div', { className: 'kbtb-bh' },
+              h('b', null, kt('Comment c’est construit', 'How it’s built')),
+              h('div', { className: 'kbtb-tabs', role: 'tablist', 'aria-label': kt('Vue du plan', 'Way to look at the plan') }, tabBtn('fields', kt('Champs', 'Fields')), tabBtn('map', kt('Carte des liens', 'Map of links'))),
+              h('button', { type: 'button', className: 'kbtb-ib', 'data-kb': 'tables-built-close', 'aria-label': kt('Fermer', 'Close'), onClick: () => p.setBuilt(null) }, svg('x', 16))),
+            tab === 'map' ? h(LinkMap, { p, objects, rels }) : fields)
+        }
+
         // ── the page ─────────────────────────────────────────────────────────────────────────────────────────────────────────
         const EMPTY_SEL = { db: '', object: '', views: {} }
         const readSel = () => {
@@ -1256,6 +1585,7 @@ window.__ModuleLoader__.load({
           const [, setDrafts] = useState({})
           const [work, setWork] = useState(null)
           const [drawer, setDrawer] = useState(null)
+          const [built, setBuilt] = useState(null)
           const [toast, setToast] = useState(null)
           const [months, setMonths] = useState({})
           const live = useRef({})
@@ -1279,10 +1609,15 @@ window.__ModuleLoader__.load({
           const wanted = ready ? sel.views[db.id + '/' + obj.key] : undefined
           const view = ready ? (views.find((v) => v.id === wanted) || views.find((v) => v.fav) || views[0]) : null
           const flt = ready ? (menu === 'filter' && work !== null && work.viewId === view.id ? work.flt : view.state.flt) : null
-          const ctx = useMemo(() => (ready ? makeCtx(data.today, db.objects, related) : null), [ready, data.today, db, related])
+          const ctx = useMemo(() => {
+            if (!ready) return null
+            const c = makeCtx(data.today, db.objects, related)
+            c.open = (field, id) => live.current.openLinked(field.to, id)
+            return c
+          }, [ready, data.today, db, related])
           const mine = rec.key === (ready ? db.id + '/' + obj.key : '') ? rec : { rows: [], status: 'loading', truncated: false }
           const rows = useMemo(() => (ready && mine.status === 'ok' ? K.queryRecords(mine.rows, { fields: obj.fields, q: query, flt, sorts: view.state.sorts }, ctx) : []), [ready, mine, obj, query, flt, view, ctx])
-          live.current = { db, obj, view, views, ready, sel: sel.views }
+          live.current = { db, obj, view, views, ready, sel: sel.views, all: mine.rows, openLinked: () => {} }
 
           // ── small helpers ──
           const say = useCallback((text, action) => {
@@ -1446,6 +1781,29 @@ window.__ModuleLoader__.load({
           }
           const openRecord = (id) => { setMenu(null); setDrawer({ mode: 'edit', id }) }
           const newRecord = (prefill) => { setMenu(null); setDrawer({ mode: 'new', prefill: prefill || {}, nonce: Date.now() }) }
+          /** Opens a row of any table of the database (a chip, a « Linked from » row): the table comes up under the drawer, and Back returns to where the click was. */
+          const openLinked = (objKey, id) => {
+            const L = live.current
+            if (!L.ready || !L.db.objects.some((o) => o.key === objKey)) return
+            setMenu(null)
+            setDrawer((d) => {
+              let trail = []
+              if (d !== null && d.mode === 'edit') {
+                const here = L.all.find((r) => r.id === d.id)
+                trail = (Array.isArray(d.trail) ? d.trail : []).concat([{ object: L.obj.key, id: d.id, label: here ? titleOf(L.obj, here) : L.obj.label }])
+              } else if (d === null) trail = [{ object: L.obj.key, id: null, label: L.obj.label }]
+              return { mode: 'edit', id, trail: trail.slice(-TRAIL_MAX) }
+            })
+            if (objKey !== L.obj.key) { setQuery(''); choose({ object: objKey }) }
+          }
+          const goBack = () => {
+            if (drawer === null || !Array.isArray(drawer.trail) || drawer.trail.length === 0) return
+            const prev = drawer.trail[drawer.trail.length - 1]
+            setDrawer(prev.id === null ? null : { mode: 'edit', id: prev.id, trail: drawer.trail.slice(0, -1) })
+            if (prev.object !== live.current.obj.key) { setQuery(''); choose({ object: prev.object }) }
+          }
+          const openTable = (key) => { setQuery(''); setDrawer(null); setMenu(null); choose({ object: key }) }
+          live.current.openLinked = openLinked
           const ask = (text) => { try { if (typeof window.__KB_ASK__ === 'function') { window.__KB_ASK__(text); return true } } catch (e) { /* the chat could not open */ } return false }
 
           // ── effects ──
@@ -1503,13 +1861,14 @@ window.__ModuleLoader__.load({
           }, [ready, ready ? db.id : '', ready ? obj.key : '', ready ? obj.views.length : 0])
           useEffect(() => { if (menu !== 'filter') setWork(null) }, [menu])
           useEffect(() => {
-            if (menu === null && drawer === null) return undefined
-            const onKey = (e) => { if (e.key === 'Escape') { if (menu !== null) setMenu(null); else setDrawer(null) } }
+            if (menu === null && drawer === null && built === null) return undefined
+            // a link picker closes itself on Escape; the key then goes no further
+            const onKey = (e) => { if (e.key === 'Escape') { if (menu !== null) setMenu(null); else if (e.target && e.target.closest && e.target.closest('.kbtb-lp') !== null) return; else if (drawer !== null) setDrawer(null); else setBuilt(null) } }
             const onDown = (e) => { try { if (menu !== null && e.target.closest && e.target.closest('.kbtb-pw') === null && e.target.closest('[data-kb="tables-th-filter"]') === null) setMenu(null) } catch (x) { setMenu(null) } }
             document.addEventListener('keydown', onKey, true)
             document.addEventListener('mousedown', onDown, true)
             return () => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('mousedown', onDown, true) }
-          }, [menu, drawer])
+          }, [menu, drawer, built])
 
           // ── the page API the bar, the popovers and the views share ──
           const p = ready ? {
@@ -1517,7 +1876,7 @@ window.__ModuleLoader__.load({
             setMenu, setFlt, editView, sortBy, filterBy, clearAll, selectView, createView: (k) => createView(k, null), dupView: (id) => createView(null, views.find((v) => v.id === id)), removeView, ask, say,
             renameView: (id, name) => updateView(id, (v) => { v.name = name; return v }, true),
             favView: (id) => updateView(id, (v) => { v.fav = !v.fav; return v }, true),
-            openRecord, newRecord, closeDrawer: () => setDrawer(null), createRecord, updateField, deleteRecord, moveRecord,
+            openRecord, newRecord, openLinked, goBack, openTable, built, setBuilt, closeDrawer: () => setDrawer(null), createRecord, updateField, deleteRecord, moveRecord,
             setMonth: (id, ym) => setMonths((m) => Object.assign({}, m, { [id]: ym })),
           } : null
 
@@ -1555,7 +1914,8 @@ window.__ModuleLoader__.load({
           const strip = ready ? h('div', { className: 'kbtb-strip' },
             data.dbs.length > 1 ? h('label', { className: 'kbtb-dbsel' }, svg('db', 14), h('select', { className: 'kbtb-sel', value: db.id, 'data-kb': 'tables-db', 'aria-label': kt('Base de données', 'Database'), onChange: (e) => { setQuery(''); choose({ db: e.target.value, object: '' }) } }, data.dbs.map((d) => h('option', { key: d.id, value: d.id }, d.name)))) : null,
             h('div', { className: 'kbtb-tabs', role: 'tablist', 'aria-label': kt('Tables', 'Tables') }, db.objects.map((o) => h('button', { key: o.key, type: 'button', role: 'tab', className: 'kbtb-tab', 'aria-selected': o.key === obj.key ? 'true' : 'false', 'data-kb': 'tables-tab', 'data-object': o.key, onClick: () => { setQuery(''); setDrawer(null); setMenu(null); choose({ db: db.id, object: o.key }) } }, o.label))),
-            h('button', { type: 'button', className: 'kbtb-link', 'data-kb': 'tables-ask-kaby', onClick: () => ask(buildText('')) }, svg('sparkle', 13), kt('Demander à Kaby…', 'Ask Kaby…'))) : null
+            h('button', { type: 'button', className: 'kbtb-link', 'data-kb': 'tables-built', 'aria-expanded': built !== null ? 'true' : 'false', onClick: () => setBuilt(built === null ? 'fields' : null) }, svg('link', 13), kt('Comment c’est construit', 'How it’s built')),
+            h('button', { type: 'button', className: 'kbtb-link flat', 'data-kb': 'tables-ask-kaby', onClick: () => ask(buildText('')) }, svg('sparkle', 13), kt('Demander à Kaby…', 'Ask Kaby…'))) : null
 
           const banners = [].concat(
             data.unreadable.map((u) => h('div', { key: 'u' + u.id, className: 'kbtb-banner warn', role: 'alert', 'data-kb': 'tables-unreadable' }, svg('alert', 16), h('span', { className: 'sp' }, h('b', null, u.name + ' : '), errorText(u)))),
@@ -1567,6 +1927,7 @@ window.__ModuleLoader__.load({
               header(toolbar),
               strip,
               banners,
+              ready && built !== null ? h(BuiltPanel, { p }) : null,
               ready ? h(Chips, { p }) : null,
               h('div', { className: 'kbtb-body' + (drawer !== null ? ' has-drawer' : '') },
                 h('div', { className: 'kbtb-content' }, body),
@@ -1574,7 +1935,7 @@ window.__ModuleLoader__.load({
             toast !== null ? h('div', { className: 'kbtb-toast', role: 'status', 'data-kb': 'tables-toast', key: toast.id }, svg('check', 15), h('span', null, toast.text), toast.action ? h('button', { type: 'button', className: 'kbtb-tact', 'data-kb': 'tables-toast-action', onClick: () => { const run = toast.action.run; setToast(null); run() } }, toast.action.label) : null) : null)
         }
         // the pieces, handed out for the tests (they render each one in a state the page takes a while to reach)
-        Page.parts = { Bar, MenuButton, ViewsPop, FieldsPop, FilterPop, SortPop, ModifyPop, ValueCell, TableView, BoardView, CardsView, CalendarView, Chips, Drawer, Empty, NoTables, Cell, Opt, LinkChips }
+        Page.parts = { Bar, MenuButton, ViewsPop, FieldsPop, FilterPop, SortPop, ModifyPop, ValueCell, TableView, BoardView, CardsView, CalendarView, Chips, Drawer, Empty, NoTables, Cell, Opt, LinkChips, RelationEditor, LinkedFrom, LinkedGroups, BuiltPanel, LinkMap }
         return Page
       }
 
@@ -1616,7 +1977,7 @@ window.__ModuleLoader__.load({
         name: NAME,
         inject: ['slots'],
         apply: start,
-        __test: { useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, freshName, savable, barViews, viewIndex, agentViewEvents, boardColumns, monthOf, shiftMonth, monthGrid, monthLabel, askText, buildText, modifyExamples, errorText, qs, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
+        __test: { useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, relationFields, seenAs, linkOptions, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, freshName, savable, barViews, viewIndex, agentViewEvents, boardColumns, monthOf, shiftMonth, monthGrid, monthLabel, askText, buildText, modifyExamples, errorText, qs, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
       }
     } catch (e) {
       console.warn('[kybernos-db] disabled:', e)

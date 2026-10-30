@@ -72,7 +72,7 @@ const TASK = {
 }
 const PROJECT = { key: 'project', label: 'Projects', title: 'name', fields: [field('name', 'text', 'Name', { required: true })] }
 const view = (extra) => Object.assign({ id: 'v1', name: 'Open', kind: 'table', owner: 'me', fav: true, state: { flt: core.blankFilter(), sorts: [], hidden: [] } }, extra || {})
-const rec = (id, values) => ({ id, values, rev: 1, created: '2026-10-30T09:00:00.000Z', modified: '2026-10-30T10:00:00.000Z', deleted: false })
+const rec = (id, values) => ({ id, values, rev: 1, created: { by: 'person', at: '2026-10-30T09:00:00.000Z' }, modified: { by: 'person', at: '2026-10-30T10:00:00.000Z' }, deleted: null }) // the shape the host sends: a stamp is { by, at }
 const ROWS = [
   rec('r1', { name: 'Write the brief', status: 'doing', due: '2026-11-04', amount: 12.5, email: 'a@b.co', token: 'sekret', tags: ['a'], flag: true, project: 'p1' }),
   rec('r2', { name: 'Ship it', status: 'todo', due: '2026-10-31', amount: 1200 }),
@@ -204,6 +204,67 @@ ok('a link shows « … » while its table is being read, and a removed link say
   assert.equal(loading.label(TASK.fields[8], 'p1'), '…')
   assert.equal(CTX.label(TASK.fields[8], 'gone'), 'Removed link')
   assert.equal(CTX.label(TASK.fields[1], 'todo'), 'todo', 'only links are looked up')
+})
+
+console.log('── links between tables ──')
+const CUSTOMER = { key: 'customer', label: 'Customers', title: 'name', fields: [field('name', 'text', 'Name', { required: true })] }
+const ITEM = { key: 'item', label: 'Products', title: 'name', fields: [field('name', 'text', 'Name', { required: true })] }
+const ORDER = {
+  key: 'order', label: 'Orders', title: 'ref',
+  fields: [field('ref', 'text', 'Reference', { required: true }), field('customer', 'relation', 'Customer', { to: 'customer', many: false, inverse: 'Purchases' }), field('items', 'relation', 'Products', { to: 'item', many: true }), field('lost', 'relation', 'Lost', { to: 'gone', many: false })],
+}
+const SHOP = [CUSTOMER, ITEM, ORDER]
+ok('the links of a database are listed with the name each shows under on the other side, a link to a missing table left out', () => {
+  const rels = T.relationFields(SHOP)
+  assert.deepEqual(rels.map((r) => r.from + '.' + r.field + '>' + r.to + (r.many ? '*' : '')), ['order.customer>customer', 'order.items>item*'])
+  assert.equal(T.seenAs(rels[0]), 'Purchases', 'a named link is seen under its name')
+  assert.equal(T.seenAs(rels[1]), 'Orders', 'an unnamed one under the label of the table it comes from')
+  assert.deepEqual(T.relationFields([CUSTOMER]), [])
+})
+ok('the picker offers the rows not chosen yet, filtered by what is typed, by title, and says how many there are', () => {
+  const rows = ['Zed', 'amy', 'Bob', 'Ann'].map((n, i) => rec('c' + i, { name: n }))
+  assert.deepEqual(T.linkOptions(CUSTOMER, rows, [], '', 10).items.map((o) => o.title), ['amy', 'Ann', 'Bob', 'Zed'])
+  assert.deepEqual(T.linkOptions(CUSTOMER, rows, ['c1'], '', 10).items.map((o) => o.id), ['c3', 'c2', 'c0'], 'a chosen row is not offered again')
+  assert.deepEqual(T.linkOptions(CUSTOMER, rows, [], ' AN ', 10).items.map((o) => o.title), ['Ann'], 'case does not matter, and the spaces around are not part of it')
+  const cut = T.linkOptions(CUSTOMER, rows, [], '', 2)
+  assert.equal(cut.items.length, 2); assert.equal(cut.total, 4)
+  assert.deepEqual(T.linkOptions(CUSTOMER, undefined, [], '', 5), { items: [], total: 0 })
+  assert.equal(T.linkOptions(CUSTOMER, [rec('x', {})], [], '', 5).items[0].title, 'Untitled', 'a row with no title is still pickable')
+})
+ok('the map puts every table once, draws every link from its table to the one it points at, and keeps two links of one pair apart', () => {
+  const m = T.mapLayout(SHOP)
+  assert.deepEqual(m.nodes.map((n) => n.key), ['customer', 'item', 'order'])
+  assert.deepEqual(m.edges.map((e) => e.rel.field), ['customer', 'items'])
+  assert.ok(m.edges.every((e) => /^M -?\d/.test(e.d) && Number.isFinite(e.lx) && Number.isFinite(e.ly)))
+  assert.ok(m.edges[0].label.endsWith('· 1') && m.edges[1].label.endsWith('· n'), 'one or many is on the label')
+  for (const n of m.nodes) assert.ok(n.x > 0 && n.x < m.width && n.y > 0 && n.y < m.height, n.key + ' is inside the map')
+  const both = T.mapLayout([CUSTOMER, Object.assign({}, ORDER, { fields: ORDER.fields.concat([field('mirror', 'relation', 'Mirror', { to: 'customer', many: true })]) })])
+  const pairEdges = both.edges.filter((e) => e.rel.to === 'customer')
+  assert.equal(pairEdges.length, 2); assert.notEqual(pairEdges[0].d, pairEdges[1].d, 'two links between the same two tables are two lines')
+  assert.ok(pairEdges.every((e) => e.d.includes(' Q ')), 'and both bend, so neither hides the other')
+  const self = T.mapLayout([{ key: 'person', label: 'People', title: 'name', fields: [field('name', 'text', 'Name'), field('boss', 'relation', 'Boss', { to: 'person', many: false })] }])
+  assert.equal(self.edges.length, 1); assert.ok(self.edges[0].d.includes(' C '), 'a link to its own table is a loop')
+  assert.deepEqual(T.mapLayout([]).edges, []); assert.equal(T.mapLayout([]).nodes.length, 0)
+  const wide = T.mapLayout(Array.from({ length: 12 }, (_, i) => ({ key: 't' + i, label: 'T' + i, title: 'name', fields: [] })))
+  assert.equal(new Set(wide.nodes.map((n) => n.x + ',' + n.y)).size, 12, 'a dozen tables never share a place')
+})
+ok('a link chip opens its row when the page can open it, is plain when it cannot, and says a deleted row is gone', () => {
+  const link = TASK.fields[8]
+  const opened = []
+  const ctxOpen = Object.assign({}, CTX, { open: (f, id) => opened.push([f.to, id]) })
+  const t = tree(React.createElement(P.LinkChips, { field: link, value: 'p1', ctx: ctxOpen, max: 2 }))
+  const chip = kb(t, 'tables-link')[0]
+  assert.equal(chip.type, 'button'); assert.equal(chip.props['data-object'], 'project'); assert.equal(chip.props['data-id'], 'p1')
+  click(chip)
+  assert.deepEqual(opened, [['project', 'p1']])
+  assert.equal(kb(tree(React.createElement(P.LinkChips, { field: link, value: 'p1', ctx: CTX, max: 2 })), 'tables-link').length, 0, 'no way to open: a plain chip')
+  const gone = tree(React.createElement(P.LinkChips, { field: link, value: 'zz', ctx: ctxOpen, max: 2 }))
+  assert.equal(kb(gone, 'tables-link').length, 0); assert.equal(kb(gone, 'tables-link-gone').length, 1); assert.ok(text(gone).includes('Removed link'))
+  const loading = T.makeCtx('2026-10-30', [TASK, PROJECT], {})
+  loading.open = ctxOpen.open
+  assert.equal(kb(tree(React.createElement(P.LinkChips, { field: link, value: 'p1', ctx: loading, max: 2 })), 'tables-link').length, 0, 'a row not read yet is not a button yet')
+  const many = tree(React.createElement(P.LinkChips, { field: Object.assign({}, link, { many: true }), value: ['p1', 'p1', 'p1'], ctx: ctxOpen, max: 2 }))
+  assert.ok(text(many).includes('+1'))
 })
 
 console.log('── the filter tree ──')
@@ -551,6 +612,8 @@ ok('the drawer lists every field with its editor, never shows a secret in clear,
   click(kb(t, 'tables-delete')[0]); click(kb(t, 'tables-drawer-close')[0])
   assert.deepEqual(calls.splice(0).map((c) => (c[0] === 'deleteRecord' ? c.slice(0, 2) : c.slice(0, 1))), [['deleteRecord', 'r1'], ['closeDrawer']])
   assert.ok(text(t).includes('Launch'), 'a link shows the title of the record it points to')
+  const stamp = text(kb(t, 'tables-drawer')[0]).match(/Created ([^\n]*?)Modified/)
+  assert.ok(!/Invalid/.test(text(kb(t, 'tables-drawer')[0])) && /2026/.test(text(all(t, (n) => n.props.className === 'kbtb-stamp')[0])), 'the drawer dates the row from the host\'s stamps: ' + (stamp && stamp[1]))
 })
 ok('a row that is gone says so; a new row asks for the required fields before it asks the host', async () => {
   const gone = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'zz' } }) }))
@@ -558,6 +621,92 @@ ok('a row that is gone says so; a new row asks for the required fields before it
   const t = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'new', prefill: { status: 'doing' } } }) }))
   assert.equal(kb(t, 'tables-delete').length, 0); assert.equal(kb(t, 'tables-create').length, 1)
   assert.equal(kb(t, 'tables-field-status')[0].props.value, 'doing', 'a column or a day hands its value to the new row')
+})
+ok('a link field in the drawer shows its rows as chips that open, come off, and an Add button; a new row cannot navigate yet', () => {
+  const SHOP_DB = { id: 'db1', name: 'Shop', objects: SHOP }
+  const customers = [rec('c1', { name: 'Ada' }), rec('c2', { name: 'Bob' })]
+  const items = [rec('i1', { name: 'Pen' }), rec('i2', { name: 'Ink' })]
+  const related = { customer: customers, item: items }
+  const ctx = T.makeCtx('2026-10-30', SHOP, related)
+  const opened = []
+  ctx.open = (f, id) => opened.push([f.to, id])
+  const orders = [rec('o1', { ref: 'A-1', customer: 'c1', items: ['i1', 'i2'] }), rec('o2', { ref: 'A-2' })]
+  const mk = (drawer) => pageApi({ db: SHOP_DB, obj: ORDER, rows: orders, all: orders, rec: { status: 'ok', rows: orders }, ctx, related, drawer, view: view() })
+  const t = tree(React.createElement(P.Drawer, { p: mk({ mode: 'edit', id: 'o1' }) }))
+  const one = kb(t, 'tables-field-customer')[0]
+  assert.equal(all(one, (n) => n.props['data-kb'] === 'tables-link').length, 1)
+  assert.equal(text(one).includes('Ada'), true)
+  assert.equal(text(kb(t, 'tables-field-items')[0]).includes('Pen') && text(kb(t, 'tables-field-items')[0]).includes('Ink'), true)
+  assert.equal(text(kb(t, 'tables-field-customer')[0]).includes('Change'), true, 'a filled single link offers Change')
+  assert.equal(text(kb(t, 'tables-field-items')[0]).includes('Add'), true)
+  click(all(one, (n) => n.props['data-kb'] === 'tables-link')[0])
+  assert.deepEqual(opened, [['customer', 'c1']])
+  const remove = all(kb(t, 'tables-field-items')[0], (n) => n.props['data-kb'] === 'tables-link-remove')
+  assert.equal(remove.length, 2); assert.ok(remove[0].props['aria-label'].includes('Pen'))
+  click(remove[0])
+  assert.deepEqual(calls.filter((c) => c[0] === 'updateField').map((c) => c.slice(1)), [['o1', 'items', ['i2']]], 'taking one off keeps the rest')
+  calls.length = 0
+  click(all(one, (n) => n.props['data-kb'] === 'tables-link-remove')[0])
+  click(all(kb(t, 'tables-field-items')[0], (n) => n.props['data-kb'] === 'tables-link-remove')[1])
+  assert.deepEqual(calls.filter((c) => c[0] === 'updateField').map((c) => c.slice(1)), [['o1', 'customer', null], ['o1', 'items', ['i1']]], 'the last way to empty a single link is null')
+  calls.length = 0
+  const fresh = tree(React.createElement(P.Drawer, { p: mk({ mode: 'new', prefill: {} }) }))
+  assert.equal(all(kb(fresh, 'tables-field-customer')[0], (n) => n.props['data-kb'] === 'tables-link').length, 0)
+  assert.equal(text(kb(fresh, 'tables-field-customer')[0]).includes('Choose'), true, 'an empty single link says Choose')
+  const lost = tree(React.createElement(P.Drawer, { p: mk({ mode: 'edit', id: 'o1' }) }))
+  assert.ok(text(kb(lost, 'tables-field-lost')[0]).includes('no longer exists'), 'a link to a table that was removed says so and offers nothing')
+})
+ok('the rows that link here are listed by link field with how many, each opens its row; the drawer has a Back button once it was followed', () => {
+  const opened = []
+  const groups = [
+    { object: 'order', objectLabel: 'Orders', field: 'customer', fieldLabel: 'Customer', inverse: 'Purchases', many: false, count: 3, records: [{ id: 'o1', title: 'A-1' }, { id: 'o2', title: '' }] },
+    { object: 'review', objectLabel: 'Reviews', field: 'about', fieldLabel: 'About', inverse: null, many: false, count: 0, records: [] },
+  ]
+  const t = tree(React.createElement(P.LinkedGroups, { p: { openLinked: (o, id) => opened.push([o, id]) }, groups }))
+  const gs = kb(t, 'tables-linked-group')
+  assert.equal(gs.length, 2)
+  assert.ok(text(gs[0]).includes('Purchases') && text(gs[0]).includes('via Orders › Customer') && text(gs[0]).includes('+1'), 'the name it is seen under, where it comes from, how many are not shown')
+  assert.equal(text(kb(gs[0], 'tables-linked-count')[0]), '3')
+  assert.ok(text(gs[1]).includes('Reviews') && text(gs[1]).includes('None yet.'), 'a link field nobody uses yet is listed, empty')
+  const chips = kb(gs[0], 'tables-link')
+  assert.equal(chips.length, 2); assert.ok(text(chips[1]).includes('Untitled'))
+  click(chips[0])
+  assert.deepEqual(opened, [['order', 'o1']])
+  const back = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'r1', trail: [{ object: 'customer', id: 'c1', label: 'Ada' }] } }) }))
+  const b = kb(back, 'tables-drawer-back')[0]
+  assert.ok(b.props['aria-label'].includes('Back to Ada'))
+  assert.equal(kb(tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'r1' } }) })), 'tables-drawer-back').length, 0, 'no Back button when nothing was followed')
+  const waiting = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'zz', trail: [{ object: 'customer', id: null, label: 'Customers' }] }, rec: { status: 'loading', rows: [] } }) }))
+  assert.ok(text(waiting).includes('Loading…') && !text(waiting).includes('no longer exists'), 'a row of a table still being read is not reported missing')
+  assert.equal(kb(waiting, 'tables-drawer-back').length, 1)
+})
+ok('« How it is built » lists the fields of each table with their links both ways, and draws the map with a table and a line each', () => {
+  const SHOP_DB = { id: 'db1', name: 'Shop', objects: SHOP }
+  const asked = []
+  const picked = []
+  const mk = (built) => pageApi({ db: SHOP_DB, obj: ORDER, built, setBuilt: spy('setBuilt'), openTable: (k) => picked.push(k), ask: (x) => { asked.push(x); return true } })
+  const f = tree(React.createElement(P.BuiltPanel, { p: mk('fields') }))
+  assert.equal(kb(f, 'tables-built-table').length, 3)
+  const orderCard = kb(f, 'tables-built-table').find((n) => n.props['data-object'] === 'order')
+  assert.ok(text(orderCard).includes('Link to Customers · one') && text(orderCard).includes('Link to Products · many'))
+  assert.ok(text(orderCard).includes('Link to a table that no longer exists'), 'a link to a missing table is said, not hidden')
+  const customerCard = kb(f, 'tables-built-table').find((n) => n.props['data-object'] === 'customer')
+  assert.ok(text(kb(customerCard, 'tables-built-back')[0]).includes('Purchases') && text(kb(customerCard, 'tables-built-back')[0]).includes('from Orders › Customer'), 'the inverse link shows under the table it appears on')
+  assert.equal(kb(orderCard, 'tables-built-back').length, 0, 'a table nothing points at lists no inverse links')
+  const tabs = kb(f, 'tables-built-tab'); assert.equal(tabs.length, 2); assert.equal(tabs[0].props['aria-selected'], 'true')
+  click(tabs[1]); click(kb(f, 'tables-built-close')[0])
+  assert.deepEqual(calls.splice(0).map((c) => c.slice(0, 2)), [['setBuilt', 'map'], ['setBuilt', null]])
+  const m = tree(React.createElement(P.BuiltPanel, { p: mk('map') }))
+  assert.equal(kb(m, 'tables-map-node').length, 3); assert.equal(kb(m, 'tables-map-link').length, 2)
+  assert.equal(kb(m, 'tables-map-list')[0].children.length, 2, 'the same links as a list, for those who do not see the drawing')
+  assert.equal(kb(m, 'tables-map')[0].props.role, 'img')
+  click(kb(m, 'tables-map-node').find((n) => n.props['data-object'] === 'item'))
+  kb(m, 'tables-map-node')[0].props.onKeyDown({ key: 'Enter', preventDefault () {} })
+  assert.deepEqual(picked, ['item', 'customer'])
+  const bare = tree(React.createElement(P.BuiltPanel, { p: pageApi({ db: { id: 'db1', name: 'Shop', objects: [CUSTOMER, ITEM] }, built: 'map', ask: (x) => { asked.push(x); return true } }) }))
+  assert.equal(kb(bare, 'tables-map-none').length, 1); assert.equal(kb(bare, 'tables-map-link').length, 0)
+  click(kb(bare, 'tables-map-ask')[0])
+  assert.ok(asked.length === 1 && asked[0].includes('relation_add') && asked[0].includes('db1'), 'Kaby is asked for the link tool, in that database')
 })
 ok('the empty states: no row, nothing matching, no table at all', () => {
   const none = tree(React.createElement(P.Empty, { p: pageApi(), why: 'none' }))
@@ -579,6 +728,11 @@ ok('every piece draws in French too, with no English left in the words it speaks
     assert.ok(said.includes('Où'), 'the filter panel')
     const chips = text(tree(React.createElement(P.Chips, { p: pageApi() })))
     assert.ok(chips.includes('4 lignes'))
+    const shop = pageApi({ db: { id: 'db1', name: 'Shop', objects: SHOP }, built: 'fields' })
+    const built = text(tree(React.createElement(P.BuiltPanel, { p: shop })))
+    for (const w of ['Comment c’est construit', 'Champs', 'Carte des liens', 'Lien vers Customers', 'un seul', 'plusieurs', 'Lié depuis les autres tables']) assert.ok(built.includes(w), w)
+    const linked = text(tree(React.createElement(P.LinkedGroups, { p: {}, groups: [{ object: 'order', objectLabel: 'Orders', field: 'customer', fieldLabel: 'Customer', inverse: null, many: false, count: 0, records: [] }] })))
+    assert.ok(linked.includes('Lié depuis') && linked.includes('Aucune pour l’instant.'))
   } finally { resolved = 'en' }
 })
 
