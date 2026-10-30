@@ -541,7 +541,7 @@ ok('a view is saved in place, listed in order, and a save that changes nothing w
 ok('a view is refused when it does not fit the object, and another object\'s view id is not taken over', () => {
   const { db } = make()
   const cases = [
-    [{ name: 'x', kind: 'board', by: 'title' }, 'by'], [{ name: 'x', kind: 'calendar', date: 'estimate' }, 'date'], [{ name: '', kind: 'table' }, 'name'], [{ name: 'x', kind: 'map' }, 'kind'],
+    [{ name: 'x', kind: 'board', by: 'title' }, 'by'], [{ name: 'x', kind: 'calendar', date: 'estimate' }, 'date'], [{ name: '', kind: 'table' }, 'name'], [{ name: 'x', kind: 'gantt' }, 'kind'],
     [{ name: 'x', kind: 'table', state: { flt: { conj: 'and', items: [{ k: 'ghost', op: 'is', v: 1 }] } } }, 'unknown-field'], [{ name: 'x', kind: 'table', state: { hidden: ['title'] } }, 'title'],
     [{ id: 'bad id', name: 'x', kind: 'table' }, 'id'],
   ]

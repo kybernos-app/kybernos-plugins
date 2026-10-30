@@ -507,6 +507,11 @@ ok('the views panel lists the views with their actions and offers the kinds this
   const noDate = Object.assign({}, TASK, { fields: TASK.fields.filter((f) => f.type !== 'date') })
   const t2 = tree(React.createElement(P.ViewsPop, { p: pageApi({ view: vs[0], views: vs, obj: noDate }) }))
   assert.equal(kb(t2, 'tables-view-new-calendar').length, 0, 'no date field, no calendar')
+  assert.equal(kb(t, 'tables-view-new-map').length, 0, 'one number field is not a place')
+  const placed = Object.assign({}, TASK, { fields: TASK.fields.concat([field('lat', 'number', 'Latitude'), field('lng', 'number', 'Longitude')]) })
+  const t3 = tree(React.createElement(P.ViewsPop, { p: pageApi({ view: vs[0], views: vs, obj: placed }) }))
+  assert.equal(kb(t3, 'tables-view-new-map').length, 1, 'two number fields place records on a map')
+  click(kb(t3, 'tables-view-new-map')[0]); assert.deepEqual(calls.splice(0), [['createView', 'map']])
   const del = all(t, (n) => n.props['aria-label'] === 'Delete “Open”')[0]
   click(del)
   assert.deepEqual(calls.splice(0).map((c) => c.slice(0, 2)), [['removeView', 'a']])
@@ -932,10 +937,12 @@ ok('the query string leaves out what is empty and encodes the rest', () => {
 })
 
 console.log('── promises a browser would only break late ──')
-ok('the page imports the core from the host it came from, and asks no other host', () => {
+ok('the page imports the core from the host it came from, and asks one other host, for the map and only the map, without a cookie', () => {
   assert.ok(source.includes("const BASE = '/kybernos-db'") && source.includes("const CORE_URL = BASE + '/core/index.mjs'"))
-  assert.equal((source.match(/\bfetch\(/g) || []).length, 1, 'one door to the network')
-  assert.equal(/https?:\/\//.test(source.replace(/\/\/ .*$/gm, '')), false, 'no address in the code')
+  assert.equal((source.match(/\bfetch\(/g) || []).length, 2, 'two doors to the network: the host, and the map style')
+  assert.ok(source.includes("fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer', signal })"), 'the style is asked with no cookie and no referrer')
+  const hosts = [...new Set((source.replace(/\/\/ .*$/gm, '').match(/https?:\/\/[^'"\s)/]+/g) || []).map((a) => a.replace(/^https?:\/\//, '')))].sort()
+  assert.deepEqual(hosts, ['openfreemap.org', 'tiles.openfreemap.org', 'www.openmaptiles.org', 'www.openstreetmap.org'], 'the style host the manifest names, and the credits the data licences ask for')
   assert.equal((source.match(/\bimport\(/g) || []).length, 1, 'one dynamic import')
 })
 ok('colours come from DSH\'s tokens or from a hue, never a literal', () => {

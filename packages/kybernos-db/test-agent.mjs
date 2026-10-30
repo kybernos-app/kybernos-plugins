@@ -267,6 +267,24 @@ await ok('view_save makes a gallery of cards with a cover picture, and refuses a
   assert.ok(JSON.stringify(bad).includes('cover'), JSON.stringify(bad))
 })
 
+await ok('view_save makes a map placed by the two number fields it names, or by the ones named like a latitude and a longitude, and refuses one with no place to put records', async () => {
+  const { T, svc } = await seeded()
+  const db = svc.resolve().db
+  const f = (key, type, label) => ({ key, type, label })
+  assert.equal(db.addObject({ key: 'place', label: 'Places', title: 'name', fields: [f('name', 'text', 'Name'), f('altitude', 'number', 'Altitude'), f('latitude', 'number', 'Latitude'), f('longitude', 'number', 'Longitude')] }, 'agent').ok, true)
+  assert.equal(db.addObject({ key: 'thing', label: 'Things', title: 'name', fields: [f('name', 'text', 'Name'), f('size', 'number', 'Size')] }, 'agent').ok, true)
+  const guessed = await T.view_save.execute({ object: 'place', view: { name: 'Map', kind: 'map' } })
+  assert.equal(guessed.ok, true, JSON.stringify(guessed))
+  assert.deepEqual([guessed.view.kind, guessed.view.lat, guessed.view.lng], ['map', 'latitude', 'longitude'])
+  const named = await T.view_save.execute({ object: 'place', view: { name: 'Odd map', kind: 'map', lat: 'altitude', lng: 'latitude' } })
+  assert.deepEqual([named.ok, named.view.lat, named.view.lng], [true, 'altitude', 'latitude'])
+  const refused = await T.view_save.execute({ object: 'thing', view: { name: 'Map', kind: 'map' } })
+  assert.equal(refused.ok, false)
+  assert.ok(JSON.stringify(refused).includes('lat'), JSON.stringify(refused))
+  const wrong = await T.view_save.execute({ object: 'place', view: { name: 'Bad', kind: 'map', lat: 'name', lng: 'latitude' } })
+  assert.equal(wrong.ok, false)
+})
+
 await ok('a view the person made keeps its owner when Kaby changes it', async () => {
   const { T, svc } = await seeded()
   const db = svc.resolve().db

@@ -251,7 +251,7 @@ export function tools (service, ports = {}) {
 
   const viewTool = {
     name: 'view_save',
-    description: 'Creates or changes a saved view of an object: how its records are shown (table, board with the columns of a choice field, calendar on a date field, cards), which are shown (`state.flt`), in what order (`state.sorts`) and which fields are hidden (`state.hidden`). '
+    description: 'Creates or changes a saved view of an object: how its records are shown (table, board with the columns of a choice field, calendar on a date field, cards, map placed by a latitude and a longitude), which are shown (`state.flt`), in what order (`state.sorts`) and which fields are hidden (`state.hidden`). '
       + 'Give `id` to change an existing view (db_list shows them), nothing to create one. The person sees the result at once and can change it. ' + FILTER_HELP + ' ' + SORTS_HELP,
     parameters: {
       type: 'object',
@@ -265,9 +265,11 @@ export function tools (service, ports = {}) {
           properties: {
             id: { type: 'string', description: 'An existing view to change.' },
             name: { type: 'string' },
-            kind: { type: 'string', enum: ['table', 'board', 'cards', 'calendar'] },
+            kind: { type: 'string', enum: ['table', 'board', 'cards', 'calendar', 'map'] },
             by: { type: 'string', description: 'A board: the key of the choice field that makes its columns (default: the first one).' },
             date: { type: 'string', description: 'A calendar: the key of the date field that places a record (default: the first one).' },
+            lat: { type: 'string', description: 'A map: the key of the number field that holds the latitude (default: the one named lat or latitude, else the first number field).' },
+            lng: { type: 'string', description: 'A map: the key of the number field that holds the longitude (default: the one named lng, lon or longitude, else the next number field).' },
             cover: { type: 'boolean', description: 'Cards: true puts the first picture of each record on top of its card (a gallery of properties, products); leave it out for a small round-cornered avatar.' },
             fav: { type: 'boolean' },
             state: { type: 'object', description: '{ "flt": <filter>, "sorts": [...], "hidden": [field keys] }; leave out what you do not change.' },

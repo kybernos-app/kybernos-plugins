@@ -33,6 +33,7 @@
   "permissions": [
     "ui.slot:main.kybernos-business",
     "host.routes:/kybernos-db:write",
+    "net:tiles.openfreemap.org",
     "fs.read:dsh-home",
     "fs.write:dsh-home",
     "agent.prompt",

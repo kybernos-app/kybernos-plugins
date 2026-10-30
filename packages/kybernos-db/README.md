@@ -17,7 +17,7 @@ loses its owner, an approval that is never registered, a database left open when
 
 ## The page
 
-Business › Tables (menu row `tables`, group `business`, `client.js`). One tab per table; for the table on screen, a bar with its **views** (table, board, cards, calendar), and
+Business › Tables (menu row `tables`, group `business`, `client.js`). One tab per table; for the table on screen, a bar with its **views** (table, board, cards, calendar, map), and
 the menus **Fields** (which to show), **Filter** (a tree of conditions, « and » / « or », groups), **Sort** (up to three), **Modify view** and **New row**. Every view is
 the person's to change and **every change saves itself** (450 ms after the last one, to `POST /kybernos-db/view`); a table always keeps at least one view. A row opens in a
 drawer where each field saves when it is left; a secret field is a password input and is never in the page text.
@@ -25,6 +25,11 @@ drawer where each field saves when it is left; a secret field is a password inpu
 - **Cards with a cover, board totals.** A cards view with `cover: true` puts the first picture of a row (the first attachment field that holds an image) on top of its card, a gallery
   of properties or products; without it the picture is the card's small avatar, and a row with none keeps its initial. Each column of a board adds up the first money field that is shown and
   not protected (a column of unpriced rows says nothing). The person does not toggle the cover yet: a template or Kaby (`view_save`, `cover`) sets it.
+- **Map.** A map view (`kind: 'map'`, `lat`, `lng`: two number fields, latitude and longitude in degrees) puts each row on a real map: MapLibre GL, vendored under `vendor/` and served
+  at `/kybernos-db/vendor/maplibre-gl.js|css` (loaded only when a Map view opens), OpenFreeMap tiles restyled to the page's colours (`plugin.json` declares `net:tiles.openfreemap.org`; tiles are
+  fetched without credentials or referrer). A pin is the price (the first money field) or the title; pins close together fold into a count by zoom; a pin opens its row in the drawer and the open row's pin
+  lights up. When the library or the tiles cannot load, the view falls back to a drawn schematic map with the same pins. A row without a valid latitude and longitude is left off the map and counted
+  in the caption. `view_save` takes `kind: 'map'` with `lat` and `lng` (guessed from the field names when left out).
 - **Kaby changes a view.** The page asks `/kybernos-db/state` every 3 s (not while the tab is hidden); a view whose stamp (`rev`, `by`) moved by the agent while the person
   has no edit waiting is announced with a toast and an Undo, which puts the view back as it was (the host then records the person's hand).
 - **« Modify view » and « Ask Kaby… »** hand a sentence to the chat through `window.__KB_ASK__` (the core's `kbStartChatText`: the draft is written, the person sends it);

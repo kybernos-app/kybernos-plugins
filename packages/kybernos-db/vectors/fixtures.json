@@ -63,6 +63,18 @@
         { "key": "name", "type": "text", "label": "Name", "required": true, "protection": "normal" },
         { "key": "body", "type": "longtext", "label": "Body", "required": false, "protection": "normal" }
       ]
+    },
+    "place": {
+      "key": "place",
+      "label": "Places",
+      "title": "name",
+      "fields": [
+        { "key": "name", "type": "text", "label": "Name", "required": true, "protection": "normal" },
+        { "key": "altitude", "type": "number", "label": "Altitude", "required": false, "protection": "normal" },
+        { "key": "latitude", "type": "number", "label": "Latitude", "required": false, "protection": "normal" },
+        { "key": "longitude", "type": "number", "label": "Longitude", "required": false, "protection": "normal" },
+        { "key": "kind", "type": "choice", "label": "Kind", "required": false, "protection": "normal", "options": [{ "key": "park", "label": "Park" }, { "key": "museum", "label": "Museum" }] }
+      ]
     }
   },
   "records": {

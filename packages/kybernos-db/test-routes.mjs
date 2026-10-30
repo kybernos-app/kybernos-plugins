@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { makeService } from './agent/service.mjs'
 import { RECORDS_MAX, makeApi } from './api.mjs'
 import { apply } from './index.js'
-import { CORE_ROUTE, ROUTE, UPLOAD_MAX, coreFiles, uploadHandler } from './routes.mjs'
+import { CORE_ROUTE, ROUTE, UPLOAD_MAX, VENDOR_ROUTES, coreFiles, uploadHandler } from './routes.mjs'
 import { sessionSource } from './session-guard.mjs'
 import { OTHER_SECRET, SESSION_SECRET, browserHeaders, sessionCookie } from './lib-session-test.mjs'
 
@@ -299,6 +299,24 @@ await ok('upload and file are behind the signed session, like every data route',
     assert.equal((await hitRaw(routes, path, method, { origin: 'http://127.0.0.1:3080', cookie: sessionCookie(undefined, { secret: OTHER_SECRET }) }, PNG, query)).code, 401, path + ' forged cookie')
     assert.equal((await hitRaw(routes, path, method, { origin: 'http://127.0.0.1:3080', cookie: sessionCookie(undefined, { expiresAt: Date.now() - 1000 }) }, PNG, query)).code, 401, path + ' expired cookie')
     assert.equal((await hitRaw(routes, path, method, { ...browserHeaders(), host: 'attacker.example:3080' }, PNG, query)).code, 403, path + ' a Host that is not ours')
+  }
+})
+
+await ok('the map library is served to the signed session only: the two files, byte for byte, kept for a day, and nothing else of vendor/', async () => {
+  const { routes } = door()
+  assert.deepEqual(Object.keys(routes).filter((r) => r.startsWith(ROUTE + 'vendor/')).sort(), Object.keys(VENDOR_ROUTES).map((n) => ROUTE + n).sort())
+  for (const [name, [file, type]] of Object.entries(VENDOR_ROUTES)) {
+    const path = ROUTE + name
+    const bytes = readFileSync(new URL('./vendor/' + file, import.meta.url))
+    assert.equal((await hitRaw(routes, path, 'GET', {}, undefined, '?v=5.24.0')).code, 401, path + ' no cookie')
+    assert.equal((await hitRaw(routes, path, 'GET', { cookie: sessionCookie(undefined, { secret: OTHER_SECRET }) }, undefined, '')).code, 401, path + ' forged cookie')
+    assert.equal((await hitRaw(routes, path, 'GET', { ...browserHeaders(), host: 'attacker.example:3080' }, undefined, '')).code, 403, path + ' a Host that is not ours')
+    const got = await hitRaw(routes, path, 'GET', { cookie: sessionCookie() }, undefined, '?v=5.24.0')
+    assert.equal(got.code, 200, path + ' the page’s own <script> sends the cookie and no Origin')
+    assert.deepEqual(got.body, bytes)
+    assert.equal(got.headers['content-type'], type); assert.equal(got.headers['x-content-type-options'], 'nosniff'); assert.equal(got.headers['cache-control'], 'private, max-age=86400')
+    assert.equal(got.headers['content-length'], String(bytes.length))
+    assert.equal((await hitRaw(routes, path, 'POST', browserHeaders(), Buffer.from('x'), '')).code, 405, path + ' only GET and HEAD')
   }
 })
 

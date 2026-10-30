@@ -1,8 +1,9 @@
 // A view: a saved way of looking at an object. Pure.
 //
-//   { id, name, kind: 'table' | 'board' | 'cards' | 'calendar', owner: 'kaby' | 'me', fav,
+//   { id, name, kind: 'table' | 'board' | 'cards' | 'calendar' | 'map', owner: 'kaby' | 'me', fav,
 //     by?    (board: the choice field that makes the columns),
 //     date?  (calendar: the date field that places a record),
+//     lat?, lng? (map: the two number fields that place a record, latitude and longitude in degrees),
 //     cover? (cards: true draws the first picture of a row as a banner over the card; absent or false, as a small avatar),
 //     state: { flt, sorts, hidden } }     flt is the JSON filter, sorts up to three, hidden the field keys left out of the view
 //
@@ -13,7 +14,7 @@ import { blankFilter, checkFilter, prepareFilter } from './filter.mjs'
 import { checkSorts, prepareSorts } from './sort.mjs'
 import { isPlain } from './text.mjs'
 
-export const VIEW_KINDS = ['table', 'board', 'cards', 'calendar']
+export const VIEW_KINDS = ['table', 'board', 'cards', 'calendar', 'map']
 export const OWNERS = ['kaby', 'me']
 
 const VIEW_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -21,14 +22,24 @@ const err = (path, code, message) => ({ path, code, message })
 
 export const blankState = () => ({ flt: blankFilter(), sorts: [], hidden: [] })
 
-/** Whether an object can be drawn as a kind: a board needs a choice field, a calendar a date field. */
-export const kindAvailable = (fields, kind) => kind === 'table' || kind === 'cards' || (kind === 'board' && fields.some((f) => f.type === 'choice')) || (kind === 'calendar' && fields.some((f) => f.type === 'date'))
+/** Whether an object can be drawn as a kind: a board needs a choice field, a calendar a date field, a map two number fields. */
+export const kindAvailable = (fields, kind) => kind === 'table' || kind === 'cards' || (kind === 'board' && fields.some((f) => f.type === 'choice')) || (kind === 'calendar' && fields.some((f) => f.type === 'date')) || (kind === 'map' && fields.filter((f) => f.type === 'number').length >= 2)
+
+const LAT_KEY = /^lat(itude)?$/i
+const LNG_KEY = /^(lng|lon|long|longitude)$/i
+/** The two number fields a map places records by: the ones named like a latitude and a longitude, else the first two numbers; `{ lat, lng }` as keys, undefined when there are not two. */
+export function mapFields (fields) {
+  const numbers = fields.filter((f) => f.type === 'number')
+  const lat = numbers.find((f) => LAT_KEY.test(f.key)) || numbers.find((f) => !LNG_KEY.test(f.key))
+  const lng = numbers.find((f) => LNG_KEY.test(f.key) && f !== lat) || numbers.find((f) => f !== lat)
+  return lat && lng ? { lat: lat.key, lng: lng.key } : { lat: undefined, lng: undefined }
+}
 
 /** Every problem of a view for an object `{ fields, title }`, `[{ path, code, message }]`. */
 export function checkView (view, obj) {
   const errors = []
   if (!isPlain(view)) return [err('', 'shape', 'a view is an object')]
-  for (const k of Object.keys(view)) if (!['id', 'name', 'kind', 'owner', 'fav', 'by', 'date', 'cover', 'state'].includes(k)) errors.push(err(k, 'unknown-key', 'not a view property'))
+  for (const k of Object.keys(view)) if (!['id', 'name', 'kind', 'owner', 'fav', 'by', 'date', 'lat', 'lng', 'cover', 'state'].includes(k)) errors.push(err(k, 'unknown-key', 'not a view property'))
   if (typeof view.id !== 'string' || !VIEW_ID.test(view.id)) errors.push(err('id', 'id', 'an id is letters, digits, - and _, 64 at most'))
   if (typeof view.name !== 'string' || view.name.trim().length < 1 || view.name.trim().length > 60) errors.push(err('name', 'name', 'a name is 1 to 60 characters'))
   if (!VIEW_KINDS.includes(view.kind)) errors.push(err('kind', 'kind', 'one of ' + VIEW_KINDS.join(', ')))
@@ -41,6 +52,12 @@ export function checkView (view, obj) {
   if (view.kind === 'calendar') {
     if (!field(view.date) || field(view.date).type !== 'date') errors.push(err('date', 'date', 'a calendar places records by a date field'))
   } else if (view.date !== undefined) errors.push(err('date', 'not-for-kind', 'only a calendar has a date field'))
+  if (view.kind === 'map') {
+    for (const k of ['lat', 'lng']) if (!field(view[k]) || field(view[k]).type !== 'number') errors.push(err(k, k, 'a map places records by two number fields, latitude and longitude'))
+    if (view.lat !== undefined && view.lat === view.lng) errors.push(err('lng', 'lng', 'latitude and longitude are two different fields'))
+  } else {
+    for (const k of ['lat', 'lng']) if (view[k] !== undefined) errors.push(err(k, 'not-for-kind', 'only a map has a latitude and a longitude'))
+  }
   if (view.kind === 'cards') {
     if (view.cover !== undefined && typeof view.cover !== 'boolean') errors.push(err('cover', 'type', 'true or false'))
   } else if (view.cover !== undefined) errors.push(err('cover', 'not-for-kind', 'only a cards view has a cover'))
@@ -78,6 +95,14 @@ export function normalizeView (view, obj) {
   else if (view.by !== undefined) out.by = view.by
   if (view.kind === 'calendar') out.date = view.date === undefined ? (obj.fields.find((f) => f.type === 'date') || {}).key : view.date
   else if (view.date !== undefined) out.date = view.date
+  if (view.kind === 'map') {
+    const guess = mapFields(obj.fields)
+    out.lat = view.lat === undefined ? guess.lat : view.lat
+    out.lng = view.lng === undefined ? guess.lng : view.lng
+  } else {
+    if (view.lat !== undefined) out.lat = view.lat
+    if (view.lng !== undefined) out.lng = view.lng
+  }
   // only `true` is stored: a cards view saved before the cover existed stays exactly as it was
   if (view.kind === 'cards' && view.cover === true) out.cover = true
   else if (view.kind !== 'cards' && view.cover !== undefined) out.cover = view.cover
@@ -89,7 +114,7 @@ export function normalizeView (view, obj) {
 
 /**
  * The view made sound again after the fields changed (`fields` are the ones left, `title` the title field's key): what points at a removed field is cut,
- * and a board or a calendar that lost its field takes another one of the right type or becomes a table. Never throws; the view is not changed.
+ * and a board, a calendar or a map that lost its field takes another one of the right type or becomes a table. Never throws; the view is not changed.
  */
 export function repairView (view, fields, title) {
   const has = (key) => fields.some((f) => f.key === key)
@@ -116,6 +141,14 @@ export function repairView (view, fields, title) {
     const date = fields.find((f) => f.key === view.date && f.type === 'date') || fields.find((f) => f.type === 'date')
     if (date) out.date = date.key
     else out.kind = 'table'
+  }
+  if (view.kind === 'map') {
+    const keep = (key, type) => fields.find((f) => f.key === key && f.type === type)
+    const lat = keep(view.lat, 'number')
+    const lng = keep(view.lng, 'number')
+    const guess = mapFields(fields)
+    const a = lat && lng && lat.key !== lng.key ? { lat: lat.key, lng: lng.key } : guess
+    if (a.lat !== undefined) { out.lat = a.lat; out.lng = a.lng } else out.kind = 'table'
   }
   return out
 }
