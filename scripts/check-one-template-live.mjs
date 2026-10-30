@@ -81,7 +81,8 @@ const press = async (key) => {
 }
 const BTN = '[data-act="business-scope"]'
 const ITEM = (id) => `[role="menuitemradio"][data-scope-id="${id}"]`
-const rowLabels = () => ev(`[...document.querySelectorAll('[data-kb="menu-business"] .kb4-item')].map((e) => e.getAttribute('aria-label'))`)
+// The Dashboards plugin, when it is on, adds an « Overview » row before the three pages; the check is about the three pages.
+const rowLabels = async () => { const all = await ev(`[...document.querySelectorAll('[data-kb="menu-business"] .kb4-item')].map((e) => e.getAttribute('aria-label'))`); return Array.isArray(all) && all.length === 4 ? all.slice(1) : all }
 const clickRow = async (label) => {
   const r = await ev(`(() => { const e = [...document.querySelectorAll('[data-kb="menu-business"] .kb4-item')].find((x) => x.getAttribute('aria-label') === ${JSON.stringify(label)}); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
   if (r === null || r.err) return false
