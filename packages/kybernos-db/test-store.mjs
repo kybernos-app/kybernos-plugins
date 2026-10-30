@@ -16,6 +16,8 @@ const here = fileURLToPath(new URL('.', import.meta.url))
 const fx = JSON.parse(readFileSync(here + 'vectors/fixtures.json', 'utf8'))
 const TASK = fx.objects.task
 const NOTE = fx.objects.note
+// the shared fixture's `task.project` points at a « project » object the pure fixtures do not define; the store, which checks links, needs it
+const PROJECT = { key: 'project', label: 'Projects', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }] }
 let count = 0
 const ok = (label, fn) => { fn(); count++; console.log('ok  ', label) }
 
@@ -151,9 +153,13 @@ ok('the db file is private to its owner', () => {
 ok('values are stored in their canonical form and every field type survives a reopen', () => {
   const { dir, db } = make()
   const hash = 'b'.repeat(64)
+  assert.ok(db.addObject(PROJECT, 'noor').ok)
+  const project = db.create('project', { name: 'Launch' }, 'noor').record.id
+  const first = db.create('task', { title: 'First' }, 'noor').record.id
+  const second = db.create('task', { title: 'Second' }, 'noor').record.id
   const r = db.create('task', {
     title: 'All fields', status: 'todo', assignee: 'noor', due: '2026-12-31', estimate: 0.1, budget: 1.005, urgent: true, tags: ['api', 'ui', 'api'],
-    project: '01ARYZ6S410000000000000001', depends: ['01ARYZ6S410000000000000002', '01ARYZ6S410000000000000003'],
+    project, depends: [first, second],
     files: [{ name: 'brief.pdf', size: 12, type: 'application/pdf', hash }], site: 'https://example.com/x', contact: 'a@b.co', phone: '+33 1 23 45', notes: 'ligne\nsuivante',
   }, 'noor')
   assert.ok(r.ok, r.message)
@@ -789,6 +795,112 @@ ok('a db file says what it is', () => {
   assert.equal(h.prepare('PRAGMA user_version').get().user_version, FORMAT)
   assert.equal(h.prepare('PRAGMA journal_mode').get().journal_mode, 'wal')
   h.close()
+})
+
+// ---------------------------------------------------------------- links
+const SHOP = () => {
+  const { dir, db, file } = make({ objects: [] })
+  const def = (key, label, fields) => assert.ok(db.addObject({ key, label, title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }, ...fields] }, 'noor').ok)
+  def('customer', 'Customers', [])
+  def('product', 'Products', [])
+  def('order', 'Orders', [{ key: 'customer', type: 'relation', label: 'Customer', to: 'customer', inverse: 'Orders' }, { key: 'items', type: 'relation', label: 'Products', to: 'product', many: true }])
+  def('invoice', 'Invoices', [{ key: 'customer', type: 'relation', label: 'Customer', to: 'customer' }])
+  const mk = (object, values) => { const r = db.create(object, values, 'noor'); assert.ok(r.ok, r.message); return r.record.id }
+  return { dir, db, file, mk }
+}
+
+ok('a link must point at a record that exists: a made-up id, an id of nothing, a deleted record are refused with the field named', () => {
+  const { db, mk } = SHOP()
+  const ada = mk('customer', { name: 'Ada' })
+  const pen = mk('product', { name: 'Pen' })
+  assert.ok(db.create('order', { name: 'O-1', customer: ada, items: [pen] }, 'noor').ok)
+  const ghost = '01ARYZ6S410000000000000009'
+  for (const values of [{ customer: ghost }, { items: [pen, ghost] }, { customer: pen }]) {
+    const r = db.create('order', { name: 'O-x', ...values }, 'noor')
+    assert.equal(r.ok, false)
+    assert.equal(r.code, 'invalid')
+    assert.equal(r.errors[0].code, 'link')
+    assert.equal(r.errors[0].path, Object.keys(values)[0])
+  }
+  assert.equal(db.count('order'), 1, 'a refused write leaves nothing behind')
+  db.remove('customer', ada, 'noor')
+  const gone = db.create('order', { name: 'O-2', customer: ada }, 'noor')
+  assert.equal(gone.errors[0].code, 'link', 'a deleted record is not a target')
+  assert.equal(db.journal().filter((o) => o.kind === 'create' && o.object === 'order').length, 1)
+})
+
+ok('an update is judged only on the links it adds: a link whose target was deleted since can stay while something else changes', () => {
+  const { db, mk } = SHOP()
+  const ada = mk('customer', { name: 'Ada' })
+  const bob = mk('customer', { name: 'Bob' })
+  const pen = mk('product', { name: 'Pen' })
+  const ink = mk('product', { name: 'Ink' })
+  const order = mk('order', { name: 'O-1', customer: ada, items: [pen] })
+  db.remove('customer', ada, 'noor')
+  db.remove('product', pen, 'noor')
+  assert.ok(db.update('order', order, { name: 'O-1 (paid)' }, 'noor').ok)
+  assert.ok(db.update('order', order, { customer: ada }, 'noor').ok, 'writing the same link again changes nothing and is not asked')
+  assert.ok(db.update('order', order, { items: [pen, ink] }, 'noor').ok, 'the link it already had stays, the one it adds exists')
+  const bad = db.update('order', order, { items: [pen, '01ARYZ6S410000000000000009'] }, 'noor')
+  assert.equal(bad.errors[0].code, 'link')
+  assert.ok(db.update('order', order, { customer: bob }, 'noor').ok)
+  assert.deepEqual(db.get('order', order).values.items, [pen, ink])
+  db.restore('customer', ada, 'noor')
+})
+
+ok('an operation replayed with apply() is not judged: another device\'s operations can arrive before the record they point at', () => {
+  const { db, mk } = SHOP()
+  const ada = mk('customer', { name: 'Ada' })
+  const op = { id: '01ARYZ6S4100000000000000AA', kind: 'create', object: 'order', record: '01ARYZ6S4100000000000000AB', by: 'noor', at: '2026-10-30T10:00:00.000Z', set: { name: 'Later', customer: '01ARYZ6S410000000000000009' } }
+  const r = db.apply(op)
+  assert.equal(r.ok, true, r.message)
+  assert.ok(ada)
+})
+
+ok('what points at a record is found from every side: one group per link field, counted, the live records only', () => {
+  const { db, mk } = SHOP()
+  const ada = mk('customer', { name: 'Ada' })
+  const bob = mk('customer', { name: 'Bob' })
+  const pen = mk('product', { name: 'Pen' })
+  const ink = mk('product', { name: 'Ink' })
+  const o1 = mk('order', { name: 'O-1', customer: ada, items: [pen, ink] })
+  const o2 = mk('order', { name: 'O-2', customer: ada, items: [pen] })
+  const o3 = mk('order', { name: 'O-3', customer: bob })
+  const inv = mk('invoice', { name: 'F-1', customer: ada })
+  assert.deepEqual(db.backlinks('customer', ada), [{ object: 'order', field: 'customer', count: 2, ids: [o1, o2] }, { object: 'invoice', field: 'customer', count: 1, ids: [inv] }])
+  assert.deepEqual(db.backlinks('customer', bob), [{ object: 'order', field: 'customer', count: 1, ids: [o3] }, { object: 'invoice', field: 'customer', count: 0, ids: [] }])
+  assert.deepEqual(db.backlinks('product', pen), [{ object: 'order', field: 'items', count: 2, ids: [o1, o2] }])
+  assert.deepEqual(db.backlinks('product', ink), [{ object: 'order', field: 'items', count: 1, ids: [o1] }])
+  assert.deepEqual(db.backlinks('order', o1), [], 'nothing points at an order')
+  db.remove('order', o1, 'noor')
+  assert.deepEqual(db.backlinks('product', ink), [{ object: 'order', field: 'items', count: 0, ids: [] }], 'a deleted record no longer counts')
+  db.restore('order', o1, 'noor')
+  assert.equal(db.backlinks('product', ink)[0].count, 1, 'and counts again once restored')
+  assert.deepEqual(db.backlinks('customer', 'not-an-id').map((g) => g.count), [0, 0])
+  assert.throws(() => db.backlinks('ghost', ada), /no such object/)
+})
+
+ok('the first records of a group are listed up to the limit, and the count is the whole', () => {
+  const { db, mk } = SHOP()
+  const ada = mk('customer', { name: 'Ada' })
+  const ids = []
+  for (let i = 0; i < 7; i++) ids.push(mk('order', { name: 'O-' + i, customer: ada }))
+  const g = db.backlinks('customer', ada, { limit: 3 })[0]
+  assert.equal(g.count, 7)
+  assert.deepEqual(g.ids, ids.slice(0, 3))
+  assert.equal(db.backlinks('customer', ada, { limit: 5000 })[0].ids.length, 7, 'the limit is capped, not trusted')
+})
+
+ok('a link field keeps the name it shows under on the other side, and that name can change later', () => {
+  const { db, dir } = SHOP()
+  const f = db.objects().find((o) => o.key === 'order').fields.find((x) => x.key === 'customer')
+  assert.equal(f.inverse, 'Orders')
+  assert.equal(db.objects().find((o) => o.key === 'order').fields.find((x) => x.key === 'items').inverse, undefined)
+  const r = db.updateField('order', 'customer', { inverse: 'Purchases' }, 'noor')
+  assert.ok(r.ok && r.applied, r.message)
+  assert.equal(open(dir).objects().find((o) => o.key === 'order').fields.find((x) => x.key === 'customer').inverse, 'Purchases')
+  assert.equal(db.updateField('order', 'name', { inverse: 'x' }, 'noor').ok, false, 'only a link has one')
+  assert.equal(db.updateField('order', 'customer', { to: 'product' }, 'noor').code, 'invalid', 'the target never changes')
 })
 
 rmSync(root, { recursive: true, force: true })

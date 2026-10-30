@@ -49,3 +49,26 @@ export function seedHome ({ dshHome, today, by = 'agent' }) {
   if (open.ok !== true) throw new Error('seed view: ' + JSON.stringify(open))
   return { id: db.info().id, made: true, db }
 }
+
+// A small shop for the links: customers, products, and orders that point at both. The orders start with no link at all, so the check makes them the way a person does.
+export const CUSTOMER = { key: 'customer', label: 'Customers', title: 'name', fields: [f('name', 'text', 'Name', { required: true }), f('city', 'text', 'City')] }
+export const ITEM = { key: 'item', label: 'Products', title: 'name', fields: [f('name', 'text', 'Name', { required: true }), f('price', 'money', 'Price', { currency: 'EUR', precision: 2 })] }
+export const ORDER = {
+  key: 'order', label: 'Orders', title: 'ref',
+  fields: [f('ref', 'text', 'Reference', { required: true }), f('customer', 'relation', 'Customer', { to: 'customer', many: false, inverse: 'Purchases' }), f('items', 'relation', 'Products', { to: 'item', many: true }), f('note', 'text', 'Note')],
+}
+
+export function seedShop ({ dshHome, by = 'agent' }) {
+  const service = makeService({ dir: join(dshHome, 'kybernos', 'kybernos-db', 'dbs') })
+  const found = service.list().find((d) => d.name === 'Shop')
+  if (found !== undefined) { service.close(); return { id: found.id, made: false } }
+  const made = service.create({ name: 'Shop', by })
+  if (made.ok !== true) throw new Error('seed: ' + JSON.stringify(made))
+  const db = made.db
+  for (const o of [CUSTOMER, ITEM, ORDER]) { const r = db.addObject(o, by); if (r.ok !== true) throw new Error('seed object: ' + JSON.stringify(r)) }
+  const add = (object, values) => { const r = db.create(object, values, by); if (r.ok !== true) throw new Error('seed ' + object + ': ' + JSON.stringify(r)) }
+  add('customer', { name: 'Ada Lovelace', city: 'London' }); add('customer', { name: 'Bob Stone', city: 'Leeds' })
+  add('item', { name: 'Pen', price: 2.5 }); add('item', { name: 'Ink', price: 7 }); add('item', { name: 'Paper', price: 4.2 })
+  add('order', { ref: 'A-1001' }); add('order', { ref: 'A-1002' })
+  return { id: db.info().id, made: true, db }
+}

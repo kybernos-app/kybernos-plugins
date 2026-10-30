@@ -2,7 +2,8 @@
 // The Tables page (kybernos-db) on the REAL GUI of a SANDBOX, over a real database: it opens from the « Business » menu row, draws the saved view of a table, and every control of
 // the bar does what it says and is SAVED by the host (each change is read back from /kybernos-db/state, with who made it): filter by conditions, sort, visible fields, the
 // views (table, board, cards, calendar), the row drawer (edit, secret never shown, create with a required field), and a view that Kaby changes behind the page's back (the
-// toast, Undo, the sparkle). Failure states (the host answering badly), the narrow layout (no overflow, popovers as a sheet) and the console are measured too.
+// toast, Undo, the sparkle), the links between tables (an order linked to a customer and products from the drawer, opened both ways, the picker, Back, a deleted
+// row, « How it's built »). Failure states (the host answering badly), the narrow layout (no overflow, popovers as a sheet) and the console are measured too.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-tables-live.mjs [--shots <dir>]
 //
@@ -14,7 +15,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeService } from '../packages/kybernos-db/agent/service.mjs'
 import { cookieDeSession } from './cdp-lib.mjs'
-import { dayFrom, seedHome } from './lib-tables-seed.mjs'
+import { dayFrom, seedHome, seedShop } from './lib-tables-seed.mjs'
 import { clickText, openLivePage } from './live-page.mjs'
 
 const args = process.argv.slice(2)
@@ -51,9 +52,14 @@ const today = seeded.today
 const made = seedHome({ dshHome, today })
 if (made.db) made.db.close()
 const dbId = made.id
+const shopMade = seedShop({ dshHome })
+if (shopMade.db) shopMade.db.close()
+const shopId = shopMade.id
 
 // Kaby, as the service: another process writing the db file while the host has it open (WAL lets two processes write).
 const asKaby = (fn) => { const svc = makeService({ dir: join(dshHome, 'kybernos', 'kybernos-db', 'dbs') }); try { const r = svc.byId(dbId); if (r.ok !== true) throw new Error('kaby: ' + JSON.stringify(r)); return fn(r.db) } finally { svc.close() } }
+
+const asKaby2 = (id, fn) => { const svc = makeService({ dir: join(dshHome, 'kybernos', 'kybernos-db', 'dbs') }); try { const r = svc.byId(id); if (r.ok !== true) throw new Error('kaby: ' + JSON.stringify(r)); return fn(r.db) } finally { svc.close() } }
 
 // A previous run leaves its edits behind (it is the sandbox's own db): put the rows back as the seed made them, so every run starts from the same nine tasks.
 {
@@ -280,6 +286,162 @@ try {
   await click(kb('tables-modify-send'))
   const asked = await ev('window.__asked')
   check('Send hands Kaby a sentence naming the db, the table, the view and the request, and closes the menu', typeof asked === 'string' && asked.includes('show overdue rows first') && asked.includes(openView.id) && asked.includes(dbId) && (await count('[role="dialog"]')) === 0, asked)
+
+  console.log('── links between tables ──')
+  const shopRows = async (object) => (await get('/kybernos-db/records?db=' + shopId + '&object=' + object)).records
+  const idOf = async (object, field, value) => (await shopRows(object)).find((r) => r.values[field] === value).id
+  const orderOf = async (ref) => (await shopRows('order')).find((r) => r.values.ref === ref)
+  const inShop = (fn) => asKaby2(shopId, fn)
+  // a previous run leaves links behind: start from orders that point at nothing, and a customer that is not deleted
+  inShop((db) => { for (const r of db.list('order')) db.update('order', r.id, { customer: null, items: null }, 'person'); for (const r of db.list('customer', { deleted: true })) db.restore('customer', r.id, 'person') })
+  const FIELD = (key) => kb('tables-field-' + key)
+  const inField = (key, hook, extra = '') => `${FIELD(key)} ${kb(hook, extra)}`
+  const drawerTitle = () => text(kb('tables-drawer') + ' .kbtb-dh b')
+  const activeTab = () => ev(`(document.querySelector('[data-kb="tables-tab"][aria-selected="true"]') || {}).innerText || null`)
+  try {
+    await ev(`window.__KB_ASK__ = (t) => { window.__asked = t; return true }; true`)
+    await until(() => exists(kb('tables-db')), 9000)
+    check('with two databases the page offers a picker, and choosing Shop shows its tables', (await pick(kb('tables-db'), shopId)) === true && (await until(async () => (await texts(kb('tables-tab'))).join('|') === 'Customers|Products|Orders')) === true, await texts(kb('tables-tab')))
+    await click(kb('tables-tab', '[data-object="order"]'))
+    await sleep(500)
+    check('the Orders table draws its two orders, with the link columns empty', (await count(ROWS)) === 2 && (await heads()).join('|') === 'Reference|Customer|Products|Note', { heads: await heads() })
+    const o1 = await orderOf('A-1001')
+    await click(kb('tables-row', `[data-id="${o1.id}"]`) + ' ' + kb('tables-open'))
+    check('an order opens in the drawer; a single link starts with a Choose… button, a many link with Add…', (await exists(kb('tables-drawer'))) && /Choose/.test(String(await text(FIELD('customer')))) && /Add/.test(String(await text(FIELD('items')))), await text(FIELD('customer')))
+    // ── link the customer ──
+    const ada = await idOf('customer', 'name', 'Ada Lovelace')
+    const bob = await idOf('customer', 'name', 'Bob Stone')
+    await click(inField('customer', 'tables-link-add'))
+    check('Choose… opens a picker over the Customers rows, focus in its search', (await exists(kb('tables-link-picker'))) && (await count(kb('tables-link-option'))) === 2 && (await ev(`document.activeElement && document.activeElement.getAttribute('data-kb')`)) === 'tables-link-find')
+    await typeInto(kb('tables-link-find'), 'ada')
+    check('typing narrows the picker to what matches', (await count(kb('tables-link-option'))) === 1 && /Ada/.test(String(await text(kb('tables-link-option')))), await texts(kb('tables-link-option')))
+    await shot('16-link-picker')
+    await press('Escape')
+    check('Escape closes the picker only: the drawer stays', !(await exists(kb('tables-link-picker'))) && (await exists(kb('tables-drawer'))))
+    await click(inField('customer', 'tables-link-add'))
+    await click(kb('tables-link-option', `[data-id="${ada}"]`))
+    const linked = await until(async () => { const r = await orderOf('A-1001'); return r.values.customer === ada ? r : null })
+    check('picking Ada writes the link on the order (by the person) and the picker closes', !!linked && !(await exists(kb('tables-link-picker'))), linked)
+    check('the drawer shows Ada as a chip; the button now says Change…', (await text(inField('customer', 'tables-link', ''))) === 'Ada Lovelace' && /Change/.test(String(await text(FIELD('customer')))))
+    // ── link two products: the picker stays open for the second ──
+    const pen = await idOf('item', 'name', 'Pen'); const ink = await idOf('item', 'name', 'Ink')
+    await click(inField('items', 'tables-link-add'))
+    await click(kb('tables-link-option', `[data-id="${pen}"]`))
+    check('adding a product keeps the picker open and no longer offers it', (await exists(kb('tables-link-picker'))) && (await count(kb('tables-link-option'))) === 2 && !(await exists(kb('tables-link-option', `[data-id="${pen}"]`))))
+    await click(kb('tables-link-option', `[data-id="${ink}"]`))
+    const two = await until(async () => { const r = await orderOf('A-1001'); return Array.isArray(r.values.items) && r.values.items.length === 2 ? r : null })
+    check('the order holds both products, in the order they were picked', !!two && two.values.items[0] === pen && two.values.items[1] === ink, two)
+    await press('Escape')
+    // ── opened from the other side ──
+    check('the order lists its customer and its products', (await texts(inField('items', 'tables-link'))).join('|') === 'Pen|Ink')
+    await click(inField('customer', 'tables-link'))
+    check('clicking the customer chip opens Ada, in the Customers table', (await activeTab()) === 'Customers' && (await drawerTitle()) === 'Ada Lovelace', { tab: await activeTab(), title: await drawerTitle() })
+    const fromAda = await until(() => exists(kb('tables-linked-group')))
+    const groupAda = await texts(kb('tables-linked-group'))
+    check('Ada shows her orders under the name the link was given (Purchases), with a count and the order', fromAda === true && groupAda.length === 1 && /^Purchases 1 via Orders › Customer.*A-1001/.test(groupAda[0]), groupAda)
+    await shot('17-linked-from')
+    check('the drawer dates the row (created and modified), not « Invalid Date »', /Created .*\d{4}/.test(String(await text('.kbtb-stamp'))) && !/Invalid/.test(String(await text('.kbtb-stamp'))), await text('.kbtb-stamp'))
+    check('the drawer has a Back button naming where we came from', (await exists(kb('tables-drawer-back'))) && /Back to A-1001/.test(String(await ev(`document.querySelector('[data-kb="tables-drawer-back"]').getAttribute('aria-label')`))))
+    await click(kb('tables-drawer-back'))
+    check('Back returns to the order, in the Orders table', (await activeTab()) === 'Orders' && (await drawerTitle()) === 'A-1001', { tab: await activeTab(), title: await drawerTitle() })
+    await click(inField('items', 'tables-link', `[data-id="${pen}"]`))
+    const fromPen = await until(() => exists(kb('tables-linked-group')))
+    const groupPen = await texts(kb('tables-linked-group'))
+    check('a product shows the orders that include it, under the name of the table they come from', fromPen === true && (await activeTab()) === 'Products' && groupPen.length === 1 && /^Orders 1 via Products.*A-1001/.test(groupPen[0]), groupPen)
+    await click(kb('tables-linked-group') + ' ' + kb('tables-link'))
+    check('and a row of that list opens the order, with Back going to the product', (await activeTab()) === 'Orders' && (await drawerTitle()) === 'A-1001' && (await exists(kb('tables-drawer-back'))))
+    await click(kb('tables-drawer-close'))
+    // ── from a cell of the table, no drawer open ──
+    const cellChip = kb('tables-row', `[data-id="${o1.id}"]`) + ' ' + kb('tables-link', `[data-id="${ada}"]`)
+    check('in the Orders table the Customer cell holds a chip that is a button', (await text(cellChip)) === 'Ada Lovelace')
+    await click(cellChip)
+    check('clicking it opens Ada (the click does not also open the order)', (await activeTab()) === 'Customers' && (await drawerTitle()) === 'Ada Lovelace')
+    await click(kb('tables-drawer-back'))
+    check('Back from there goes to the Orders table with no row open', (await activeTab()) === 'Orders' && !(await exists(kb('tables-drawer'))))
+    // ── Kaby links another order while Ada is open: the list moves by itself ──
+    await click(kb('tables-tab', '[data-object="customer"]'))
+    await click(kb('tables-row', `[data-id="${ada}"]`) + ' ' + kb('tables-open'))
+    inShop((db) => { const o2 = db.list('order').find((r) => r.values.ref === 'A-1002'); db.update('order', o2.id, { customer: ada }, 'agent') })
+    const grown = await until(async () => { const g = await texts(kb('tables-linked-group')); return g.length === 1 && /^Purchases 2 /.test(g[0]) ? g[0] : null }, 9000)
+    check('an order that Kaby links to Ada appears in her list within a few seconds', !!grown, await texts(kb('tables-linked-group')))
+    await click(kb('tables-drawer-close'))
+    // ── a customer with no order, and a deleted row ──
+    await click(kb('tables-row', `[data-id="${bob}"]`) + ' ' + kb('tables-open'))
+    const none = await until(() => exists(kb('tables-linked-group')))
+    check('a customer nobody ordered for still lists the link field, empty', none === true && /None yet/.test(String(await text(kb('tables-linked-group')))) && /^Purchases 0 /.test((await texts(kb('tables-linked-group')))[0]), await texts(kb('tables-linked-group')))
+    await click(kb('tables-drawer-close'))
+    inShop((db) => db.remove('customer', ada, 'agent'))
+    await click(kb('tables-tab', '[data-object="order"]'))
+    const gone = await until(async () => (await count(kb('tables-link-gone'))) >= 1, 9000)
+    check('a customer deleted behind the page leaves the chip on the order, marked as a removed link', gone === true && /Removed link/.test(String(await text(kb('tables-link-gone')))), await texts(kb('tables-row')))
+    await shot('18-removed-link')
+    inShop((db) => db.restore('customer', ada, 'agent'))
+    const back = await until(async () => (await count(kb('tables-link-gone'))) === 0 && (await count(cellChip)) === 1, 9000)
+    check('and when the row is restored the chip is a link again', back === true)
+    // ── take a link off ──
+    await click(kb('tables-row', `[data-id="${o1.id}"]`) + ' ' + kb('tables-open'))
+    await click(inField('items', 'tables-link-remove'))
+    const oneLeft = await until(async () => { const r = await orderOf('A-1001'); return Array.isArray(r.values.items) && r.values.items.length === 1 ? r : null })
+    check('the × on a product chip takes that link off and keeps the other', !!oneLeft && oneLeft.values.items[0] === ink, oneLeft)
+    await click(inField('customer', 'tables-link-remove'))
+    const noCustomer = await until(async () => { const r = await orderOf('A-1001'); return r.values.customer === null || r.values.customer === undefined ? r : null })
+    check('the × on a single link empties it', !!noCustomer, noCustomer)
+    check('the drawer shows it empty again (Choose…)', /Choose/.test(String(await text(FIELD('customer')))))
+    await click(kb('tables-drawer-close'))
+    // ── a new row with links ──
+    await click(kb('tables-new'))
+    await typeInto(FIELD('ref') , 'A-2000')
+    await click(inField('customer', 'tables-link-add'))
+    await click(kb('tables-link-option', `[data-id="${bob}"]`))
+    check('in a new row the chip is shown but does not navigate (the row is not saved yet)', (await text(inField('customer', 'tables-link'))) === null && /Bob Stone/.test(String(await text(FIELD('customer')))))
+    await click(kb('tables-create'))
+    const fresh = await until(async () => (await orderOf('A-2000')) || null)
+    check('Add writes the new order with its link', !!fresh && fresh.values.customer === bob, fresh)
+    inShop((db) => { const r = db.list('order').find((x) => x.values.ref === 'A-2000'); if (r) db.remove('order', r.id, 'person') })
+    await click(kb('tables-drawer-close'))
+    // ── the narrow layout ──
+    await until(async () => !(await exists(kb('tables-toast'))), 12000) // the « Row added » toast is fixed to the bottom and would sit on the button
+    await click(kb('tables-row', `[data-id="${o1.id}"]`) + ' ' + kb('tables-open'))
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 900, deviceScaleFactor: 1, mobile: false })
+    await sleep(500)
+    // the drawer sits under the table at this width and the page is still settling after the resize: bring the button in, wait, then click where it ended up
+    await ev(`document.querySelector('[data-kb="tables-field-items"] [data-kb="tables-link-add"]').scrollIntoView({ block: 'nearest', behavior: 'instant' })`)
+    await sleep(400)
+    await click(inField('items', 'tables-link-add'))
+    check('at 420 px the drawer with its picker open does not overflow the page sideways', (await overflow()) <= 1 && (await exists(kb('tables-link-picker'))), await overflow())
+    await shot('19-narrow-picker')
+    await press('Escape')
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 1500, height: 950, deviceScaleFactor: 1, mobile: false })
+    await sleep(400)
+    await click(kb('tables-drawer-close'))
+
+    console.log('── how it is built ──')
+    check('the strip has a « How it\'s built » button', (await exists(kb('tables-built'))) && /How it.s built/.test(String(await text(kb('tables-built')))))
+    await click(kb('tables-built'))
+    const cards = await texts(kb('tables-built-table'))
+    check('it opens the fields of every table, the links named with their target and how many', cards.length === 3 && /Link to Customers · one/.test(cards[2]) && /Link to Products · many/.test(cards[2]), cards)
+    check('the customers card lists the link as seen from there (Purchases) and the products card the default name (Orders)', /Linked from other tables[\s\S]*Purchases[\s\S]*from Orders › Customer/.test(cards[0]) && /Orders[\s\S]*from Orders › Products/.test(cards[1]), cards)
+    await shot('20-built-fields')
+    await click(kb('tables-built-tab', '[data-tab="map"]'))
+    check('the map draws one box per table and one line per link', (await count(kb('tables-map-node'))) === 3 && (await count(kb('tables-map-link'))) === 2)
+    const boxes = await ev(`[...document.querySelectorAll('[data-kb="tables-map-node"]')].map((g) => { const r = g.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom] })`)
+    const apart = boxes.every((a, i) => boxes.every((b, j) => i === j || a[2] <= b[0] || b[2] <= a[0] || a[3] <= b[1] || b[3] <= a[1]))
+    const svgBox = await rect(kb('tables-map'))
+    check('no two boxes overlap, and the drawing fits its frame', apart && svgBox !== null && svgBox.w > 300 && (await overflow()) <= 1, { boxes, svgBox })
+    check('the same links are listed as text below', (await texts(kb('tables-map-list') + ' li')).length === 2)
+    await shot('21-built-map')
+    await click(kb('tables-map-node', '[data-object="item"]'))
+    check('clicking a box on the map opens that table', (await activeTab()) === 'Products')
+    await press('Escape')
+    check('Escape closes the panel', !(await exists(kb('tables-built-panel'))))
+  } finally {
+    await closePop()
+    if (await exists(kb('tables-drawer'))) await click(kb('tables-drawer-close'))
+    await pick(kb('tables-db'), dbId)
+    await sleep(500)
+    await click(kb('tables-tab', '[data-object="task"]'))
+    await sleep(400)
+  }
 
   console.log('── failure states ──')
   await ev(`(() => { window.__realFetch = window.fetch; window.fetch = (u, o) => (String(u).includes('/kybernos-db/state') ? Promise.reject(new TypeError('failed')) : window.__realFetch(u, o)); return 1 })()`)

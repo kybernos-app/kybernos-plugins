@@ -191,15 +191,53 @@ async function hit (routes, path, method, headers, body, query = '') {
   return out
 }
 
-await ok('apply mounts the four data routes and the core files', () => {
+// ---------------------------------------------------------------- links
+const CUSTOMERS = { key: 'customer', label: 'Customers', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }] }
+const ORDERS = { key: 'order', label: 'Orders', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }, { key: 'customer', type: 'relation', label: 'Customer', to: 'customer', inverse: 'Purchases' }, { key: 'items', type: 'relation', label: 'Products', to: 'product', many: true }] }
+const PRODUCTS = { key: 'product', label: 'Products', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }] }
+const shop = () => {
+  const svc = service()
+  const db = svc.create({ name: 'Shop', by: 'agent' }).db
+  for (const o of [CUSTOMERS, PRODUCTS, ORDERS]) assert.equal(db.addObject(o, 'agent').ok, true)
+  return { api: makeApi({ service: svc, ports: { today: () => '2026-10-30' } }), db }
+}
+
+await ok('links says what points at a record: a group per link field, titled, with the name it shows under and how many there are', () => {
+  const { api, db } = shop()
+  const ada = db.create('customer', { name: 'Ada' }, 'agent').record.id
+  const pen = db.create('product', { name: 'Pen' }, 'agent').record.id
+  const o1 = db.create('order', { name: 'O-1', customer: ada, items: [pen] }, 'agent').record.id
+  const l = api.links({ object: 'customer', id: ada })
+  assert.deepEqual(l, { ok: true, object: 'customer', id: ada, groups: [{ object: 'order', objectLabel: 'Orders', field: 'customer', fieldLabel: 'Customer', inverse: 'Purchases', many: false, count: 1, records: [{ id: o1, title: 'O-1' }] }] })
+  const p = api.links({ object: 'product', id: pen }).groups[0]
+  assert.equal(p.inverse, null, 'no name given: the page says the label of the table it comes from')
+  assert.equal(p.many, true)
+  assert.deepEqual(api.links({ object: 'order', id: o1 }).groups, [], 'nothing points at an order')
+})
+
+await ok('links refuses what it cannot answer, and a write that links to nothing is refused with the field named', () => {
+  const { api, db } = shop()
+  const ada = db.create('customer', { name: 'Ada' }, 'agent').record.id
+  assert.equal(api.links({ object: 'customer', id: '01ARYZ6S410000000000000009' }).error, 'missing')
+  assert.equal(api.links({ object: 'customer' }).error, 'missing')
+  assert.equal(api.links({ object: 'nope', id: ada }).error, 'unknown_object')
+  const w = api.write({ object: 'order', op: 'create', values: { name: 'O-x', customer: '01ARYZ6S410000000000000009' } })
+  assert.equal(w.ok, false)
+  assert.equal(w.error, 'invalid')
+  assert.equal(w.errors[0].path, 'customer')
+  assert.equal(w.errors[0].code, 'link')
+  assert.equal(api.write({ object: 'order', op: 'create', values: { name: 'O-1', customer: ada } }).ok, true)
+})
+
+await ok('apply mounts the five data routes and the core files', () => {
   const { routes } = door()
-  for (const name of ['state', 'records', 'write', 'view']) assert.equal(typeof routes[ROUTE + name].handler, 'function', name)
+  for (const name of ['state', 'records', 'links', 'write', 'view']) assert.equal(typeof routes[ROUTE + name].handler, 'function', name)
   assert.equal(routes[CORE_ROUTE.slice(0, -1)].kind, 'prefix')
 })
 
 await ok('EVERY data route is behind the signed session, reads included', async () => {
   const { routes } = door()
-  const table = [['state', 'GET', undefined, ''], ['records', 'GET', undefined, '?object=task'], ['write', 'POST', { object: 'task', op: 'create', values: { name: 'Intruder' } }, ''], ['view', 'POST', { object: 'task', op: 'save', view: { name: 'X', kind: 'table' } }, '']]
+  const table = [['state', 'GET', undefined, ''], ['records', 'GET', undefined, '?object=task'], ['links', 'GET', undefined, '?object=task&id=01ARYZ6S410000000000000001'], ['write', 'POST', { object: 'task', op: 'create', values: { name: 'Intruder' } }, ''], ['view', 'POST', { object: 'task', op: 'save', view: { name: 'X', kind: 'table' } }, '']]
   for (const [name, method, body, query] of table) {
     const path = ROUTE + name
     const read = method === 'GET'

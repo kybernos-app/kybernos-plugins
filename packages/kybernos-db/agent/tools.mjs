@@ -91,6 +91,7 @@ const FIELD = {
     precision: { type: 'integer', description: 'A "money" field: decimals, 0 to 4 (default 2).' },
     to: { type: 'string', description: 'A "relation" field: the key of the object it points to.' },
     many: { type: 'boolean', description: 'A "relation" field: several linked records instead of one.' },
+    inverse: { type: 'string', description: 'A "relation" field: the name the link shows under on the other object ("Orders" on a customer). Leave it out to use the label of this object.' },
     maxBytes: { type: 'integer', description: 'An "attachment" field: the largest file, in bytes.' },
   },
   required: ['key', 'type', 'label'],
@@ -202,7 +203,7 @@ export function tools (service, ports = {}) {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      properties: { db: DB, object: OBJECT, key: { type: 'string', description: 'The key of the new field, for example "project".' }, label: { type: 'string' }, to: { type: 'string', description: 'The key of the object it points to.' }, many: { type: 'boolean', description: 'Several linked records instead of one.' }, protection: { type: 'string', enum: PROTECTION } },
+      properties: { db: DB, object: OBJECT, key: { type: 'string', description: 'The key of the new field, for example "project".' }, label: { type: 'string' }, to: { type: 'string', description: 'The key of the object it points to.' }, many: { type: 'boolean', description: 'Several linked records instead of one.' }, inverse: { type: 'string', description: 'The name the link shows under on the other object ("Orders" on a customer). Leave it out to use the label of this object.' }, protection: { type: 'string', enum: PROTECTION } },
       required: ['object', 'key', 'label', 'to'],
     },
     output: {
@@ -214,7 +215,7 @@ export function tools (service, ports = {}) {
       const t = aim(a)
       if (t.err) return t.err
       if (!findObject(t.db.objects(), a.to)) return problem('unknown_object', 'no object "' + String(a.to) + '" to link to: define it first with object_define')
-      const r = t.db.addField(t.obj.key, { key: a.key, type: 'relation', label: a.label, to: a.to, many: a.many === true, ...(a.protection === undefined ? {} : { protection: a.protection }) }, BY)
+      const r = t.db.addField(t.obj.key, { key: a.key, type: 'relation', label: a.label, to: a.to, many: a.many === true, ...(a.inverse === undefined ? {} : { inverse: a.inverse }), ...(a.protection === undefined ? {} : { protection: a.protection }) }, BY)
       return r.ok ? { ok: true, field: r.field } : failure(r)
     },
   }
@@ -225,7 +226,7 @@ export function tools (service, ports = {}) {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      properties: { db: DB, object: OBJECT, key: { type: 'string', description: 'The key of the field to change.' }, label: { type: 'string' }, protection: { type: 'string', enum: PROTECTION }, options: { type: 'array', items: OPTION, description: 'The whole list of choices: the existing ones (same keys) and the new ones.' } },
+      properties: { db: DB, object: OBJECT, key: { type: 'string', description: 'The key of the field to change.' }, label: { type: 'string' }, inverse: { type: 'string', description: 'A link: the name it shows under on the other object.' }, protection: { type: 'string', enum: PROTECTION }, options: { type: 'array', items: OPTION, description: 'The whole list of choices: the existing ones (same keys) and the new ones.' } },
       required: ['object', 'key'],
     },
     output: {
@@ -242,7 +243,7 @@ export function tools (service, ports = {}) {
         return problem('agent_cannot_lower', 'the protection of "' + field.key + '" is ' + field.protection + ': you can raise it, only the person can lower it')
       }
       const changes = {}
-      for (const k of ['label', 'protection', 'options']) if (a[k] !== undefined) changes[k] = a[k]
+      for (const k of ['label', 'protection', 'options', 'inverse']) if (a[k] !== undefined) changes[k] = a[k]
       const r = t.db.updateField(t.obj.key, field.key, changes, BY)
       return r.ok ? { ok: true, applied: r.applied, field: r.field } : failure(r)
     },

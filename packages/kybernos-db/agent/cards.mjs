@@ -31,14 +31,14 @@ function fieldCard (args, objects) {
 function relationCard (args, objects) {
   const obj = findObject(objects, args.object)
   const target = findObject(objects, args.to)
-  const n = normalizeField({ key: args.key, type: 'relation', label: args.label, to: args.to, many: args.many === true, protection: args.protection })
+  const n = normalizeField({ key: args.key, type: 'relation', label: args.label, to: args.to, many: args.many === true, protection: args.protection, ...(args.inverse === undefined ? {} : { inverse: args.inverse }) })
   if (!obj || !target || !n.ok || obj.fields.some((f) => f.key === n.field.key)) return null
   return both((lang) => {
     const one = word('object', lang)
     return say('link', lang) + one + ' ' + quote(obj.label) + say('toThe', lang) + one + ' ' + quote(target.label) + say('colon', lang) + '\n'
       + bullets([say('newField', lang) + quote(n.field.label) + ' — ' + (n.field.many
         ? say('severalOf', lang) + quote(target.label)
-        : say('atMostOne', lang) + quote(target.label))])
+        : say('atMostOne', lang) + quote(target.label))].concat(n.field.inverse === undefined ? [] : [quote(target.label) + ' ' + say('shownAs', lang) + quote(n.field.inverse)]))
   })
 }
 
@@ -50,6 +50,7 @@ function updateCard (args, objects) {
     const out = []
     if (args.label !== undefined && args.label !== field.label) out.push(say('changeName', lang) + quote(field.label) + ' → ' + quote(args.label))
     if (args.protection !== undefined && args.protection !== field.protection) out.push(say('changeProtection', lang) + protectionWord(field.protection, lang) + ' → ' + protectionWord(args.protection, lang))
+    if (args.inverse !== undefined && field.type === 'relation' && args.inverse !== field.inverse) out.push(say('changeInverse', lang) + quote(field.inverse === undefined ? '—' : field.inverse) + ' → ' + quote(args.inverse))
     if (Array.isArray(args.options)) {
       const have = new Set((field.options || []).map((o) => o.key))
       const added = args.options.filter((o) => o && !have.has(o.key)).map((o) => o.label || o.key)

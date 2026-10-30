@@ -5,12 +5,14 @@
 //
 //   state()                              the dbs with their objects, fields and views, a fingerprint to poll, and « today »
 //   records({ db, object, deleted? })    the records of one object (5,000 at most)
+//   links({ db, object, id })            what points at a record, from the other tables: one group per link field, with the first records of each
 //   write({ db, object, op, id?, values? })   op: create | update | delete | restore
 //   view({ db, object, op, view?, id? })      op: save | remove
 
 import { findObject } from './store/catalog.mjs'
 
 export const RECORDS_MAX = 5000
+export const LINKS_MAX = 50
 const BY = 'person'
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const fail = (error, message, extra) => ({ ok: false, error, message, ...(extra || {}) })
@@ -53,6 +55,21 @@ export function makeApi ({ service, ports = {} }) {
       if (t.err) return t.err
       const rows = t.db.list(t.obj.key, t.a.deleted === true || t.a.deleted === '1' ? { deleted: true } : {})
       return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > RECORDS_MAX, records: rows.slice(0, RECORDS_MAX).map(shape), fingerprint: t.db.fingerprint() }
+    },
+
+    links (q) {
+      const t = aim(q)
+      if (t.err) return t.err
+      const id = typeof t.a.id === 'string' ? t.a.id : ''
+      if (t.db.get(t.obj.key, id) === null) return fail('missing', 'no such record')
+      const objects = t.db.objects()
+      const groups = t.db.backlinks(t.obj.key, id, { limit: LINKS_MAX }).map((g) => {
+        const from = findObject(objects, g.object)
+        const field = from.fields.find((f) => f.key === g.field)
+        const titled = g.ids.map((rid) => t.db.get(g.object, rid)).filter((r) => r !== null).map((r) => ({ id: r.id, title: r.values[from.title] === null || r.values[from.title] === undefined ? '' : String(r.values[from.title]) }))
+        return { object: g.object, objectLabel: from.label, field: g.field, fieldLabel: field.label, inverse: field.inverse === undefined ? null : field.inverse, many: field.many === true, count: g.count, records: titled }
+      })
+      return { ok: true, object: t.obj.key, id, groups }
     },
 
     write (body) {
