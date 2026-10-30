@@ -5,20 +5,60 @@ Everything below was measured on DSH 0.2.0-rc.2 (`dsh-client-ui-settings-models`
 
 ## What a user sees
 
-- **Cards** read at rest: icon, name, model count, a key dot, a *Custom* tag, the
-  *Free models · quota ↗* link where one exists. A click opens the provider's models.
-- **Actions on hover** (and on focus; always visible on touch screens): the switch (disable),
-  edit, and a menu (View models, Add model…, Delete…).
-- **Edit** opens a side panel like DSH's editor: the API key first, everything else folded
-  under *Customized settings* (display name and protocol on hand-declared routes only, base URL,
-  models as *Model ID* + *Display name*). Apply writes only what changed.
-- **Fetch available models** (in the models header of Edit and of Add ▸ Custom API) asks the engine what the provider
-  serves and opens a picker: search, *Select all / Deselect all*, *Add selected (n)*. See below.
+- **Cards** read at rest: icon, name, the model count and the key count as icons (the words come on hover and on
+  keyboard focus, and are the accessible name), a key dot, a *Custom* tag, the *Free models · quota ↗* link where one
+  exists. **A click on the card opens the provider's sheet** (the Models tab is still the page's other tab; a
+  provider that cannot be edited here, switched off or managed, shows its models there instead).
+- **Actions on hover** (and on focus; always visible on touch screens): the switch (disable) and a menu
+  (Add model…, Delete…). There is no pencil: the card is the edit.
+- **The sheet** (one side panel, built like DSH's editor) holds, top to bottom: the API key, **what the provider
+  says about it**, the provider's models (all of them, each with a checkbox, a search and *All / None*), the custom
+  models of the provider, *Customized settings* (folded: display name and protocol on hand-declared routes only, base
+  URL) and the enable / delete zone. Apply writes only what changed. See *The sheet* below.
 - **Add** opens the same panel with two tabs, like DSH's: the models.dev catalog (213 providers,
   icons, search, Free / Popular / All groups, arrow keys, *Already added* last) and *Custom API*
   (Provider ID, name, base URL, protocol, key, models).
 - **Delete** asks for the provider id before it enables the button, and offers *Disable instead*.
 - **Disable** is described in `disabling-providers.md`.
+
+## The sheet
+
+Opening a provider's sheet asks the provider for its models with the **stored** key, through the host's live route
+(`POST /kybernos-models/models/live`: the key never leaves the host); pasting a key asks again once the typing stops
+(650 ms), with the typed key for that call alone. Emptying the field goes back to the stored key. A route that names
+no key at all (a local Ollama) is asked with none and claims nothing about a key. A route whose key is missing waits
+for the paste. A newer check replaces an older one; a late answer is dropped.
+
+The answer gives the **key's state**, in words under the field, never a blocker:
+
+| State | When | Says |
+|---|---|---|
+| `checking` | the call is out | spinner and *Checking the key…* |
+| `ok` | the provider listed its models with the key | *Connected, the key works. N models found.* |
+| `listed` | the same list also came back for a key that cannot be real (a second call, only after an `ok`) | the provider lists its models to anyone, so the key is checked on the first request |
+| `refused` | 401 or 403 | *The provider refused this key (HTTP n)*; the models the engine's catalog ships stay on screen |
+| `unreachable` | no network | *The provider cannot be reached*; the key is checked later |
+| `unknown` | any other refusal, or the engine refused too | *The key could not be verified* |
+
+For `refused`, `unreachable` and `unknown` (and when a custom model does not answer) **Apply becomes *Apply anyway***:
+the check informs, it never holds the button.
+
+**Models.** The list is the provider's whole answer (no cap, no « + N more »): a list of 173 models is 173 rows in a
+scrolling box with a search, and *All / None* act on what the search shows. A model is ticked as the route serves it
+today (its saved `models` list, else the engine's catalog); the first tick materialises the choice. Writing follows
+the old picker's rules: ticked candidates become `models` rows (a row already there keeps every field it carried), a
+model the engine's catalog does not describe is flagged `outside` and moves to the provider's companion route on save
+(`kbPvSaveSmart`), *Restore default models* removes the override. Nothing is written until *Apply*.
+
+**Custom models.** *Add a custom model* puts the id under *Your models* at once and checks it in the background with the
+host's probe (`POST /kybernos-models/models/probe`, one tiny call, the route's **stored** key only): *answers*,
+*rate-limited, but it exists*, *not found / does not answer* (a red dot), *cannot be checked*. With a key that is typed
+but not saved yet the probe cannot run (it never takes a key from the page): the dot says *will be checked once the key
+is saved*. An id that is already in the provider's list is ticked instead of added twice.
+
+Not in the sheet yet: **several named keys per provider** (the engine takes one key per route, so extra keys would be
+sibling routes grouped under one card; the open points are the models' capabilities on a declared copy and how Auto
+Routing's whitelist and failover see them), and the same inline check in **Add ▸ Catalog**.
 
 ## Fetch available models
 
@@ -111,6 +151,9 @@ invalidations, so they stay in sync by construction.
 - On the real GUI, read-only (client swapped into the served bundle, host routes faked, no write button
   pressed): cards, hover, edit, add and the picker, delete confirmation, the native page round trip. The fetch picker
   is checked the same way (the real engine answers; the settings file's hash is compared before and after).
+- `scripts/check-provider-sheet-live.mjs` (sandbox only): the sheet end to end against a fake local provider (60 models, a good
+  key, unknown models answering 404, a switch that makes the list public): card icons and hover words, click opens the
+  sheet, key states, the whole list, ticks, custom models, 400 px, Apply and reopen.
 
 ## Not done yet
 

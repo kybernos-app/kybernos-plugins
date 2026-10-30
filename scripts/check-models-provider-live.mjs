@@ -93,7 +93,7 @@ try {
   check('Create provider creates it', (await click('[data-kbm="prov-ok"]')) === true && (await poll(() => val(`!!document.querySelector('[data-kbm="prov-card"][data-prov="audit-test"]')`), 15000)) === true)
 
   console.log('\n── A3-07 · the drawer\'s enable row ──')
-  check('the pencil of the provider opens its drawer', (await click('[data-kbm="prov-card"][data-prov="audit-test"] [data-kbm="prov-edit"]')) === true && (await poll(() => q('[data-kbm="pv-drawer"]'))) !== null)
+  check('a click on the provider\'s card opens its drawer', (await click('[data-kbm="prov-card"][data-prov="audit-test"] [data-kbm="prov-voir"]')) === true && (await poll(() => q('[data-kbm="pv-drawer"]'))) !== null)
   await sleep(500)
   const row = JSON.parse(await val(`(() => { const z = document.querySelector('.kbpv-zone .kbpv-z'); const sw = z ? z.querySelector('[data-kbm="prov-switch"]') : null; return JSON.stringify({ label: z ? z.querySelector('b').innerText : null, on: sw ? sw.getAttribute('aria-checked') : null, aria: sw ? sw.getAttribute('aria-label') : null }) })()`))
   check('the row is labelled « Enabled » and its switch is on while the provider is enabled', row.label === 'Enabled' && row.on === 'true', row)

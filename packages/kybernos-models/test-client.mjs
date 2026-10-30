@@ -351,7 +351,8 @@ ok('no colour hard-coded in the new styles', !/kbmp-(sw|off)[^']*#[0-9a-fA-F]{3,
 
 ok('the panels are plain render calls: an inline component type would remount on every keystroke and drop focus', !/h\((Card|EditPanel|AddPanel|Dialogs|Switch|Combo), /.test(src))
 ok('a component that owns hooks is never called conditionally (React error #300 on the tab switch)', !/\? KybernosHero\(\)/.test(src))
-ok('edit, add and delete are reachable from the card (hover actions) and from the menu', has("'data-kbm': 'prov-edit'") && has("'data-kbm': 'prov-more'") && has("'data-kbm': 'prov-delete'") && has("'data-kbm': 'prov-add-model'"))
+ok('a click on the card opens the edit sheet (no pencil, no « View models »); add a model and delete are in the menu, the switch shows on hover', has("if (editable) openEdit(route, false); else { uiSet('prov', route); uiSet('tab', 'models') }") && !has("'data-kbm': 'prov-edit'") && !has("kb.prov.voir") && has("'data-kbm': 'prov-more'") && has("'data-kbm': 'prov-delete'") && has("'data-kbm': 'prov-add-model'") && has("'data-kbm': 'prov-switch'"))
+ok('the counts on a card are icons with the words on hover and for assistive tech (model count, key count)', has("const CardIcon = ({ icon, n, tip, kbm })") && has("'data-tip': tip, 'aria-label': tip") && has("icon: 'cube', n: count") && has("icon: 'key', n: 1") && has('.kbpv-ico:hover::after,.kbpv-ico:focus-visible::after') && has("cube: ['M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0"))
 ok('the delete dialog asks for the provider id before it enables the button', has("'data-kbm': 'prov-del-type'") && has('const okType = ui.typed.trim() === route') && has('disabled: !okType'))
 ok('the drawer closes on Escape and on a click outside, and Escape is captured so DSH does not also close Settings', has("ev.key === 'Escape'") && has('onMouseDown: onClose') && has("document.addEventListener('keydown', key, true)") && has("document.addEventListener('keydown', touche, true)"))
 ok('the models.dev picker keeps its search, groups, arrow keys and Already-added rows', has("'data-kbm': 'prov-picker'") && has("ev.key === 'ArrowDown'") && has("m('kb.prov.add.deja')") && has("m('kb.prov.add.grp.free')") && has("m('kb.prov.add.pied'"))
@@ -370,7 +371,8 @@ ok('the provider column and the matrix appear from 860 px, the compact layout be
 ok('the capability chips are hidden by default from 860 px (the header filters), always shown below, and one menu item turns them on', has("const KB_CHIPS_PREF = 'kb.models.capChips'") && has('kbmp-capsbar-on') && has('.kbmp-capsbar:not(.kbmp-capsbar-on){display:none}') && has("'data-kbm': 'chips-toggle'"))
 ok('Restore, Sync all, the chips and DSH’s native page live in one ⋯ menu on the tab bar', has("'data-kbm': 'models-more'") && has("'data-kbm': 'models-menu'") && has("'data-kbm': 'restore'") && has("'data-kbm': 'fetch'"))
 ok('the Cloud card is the first cell of the provider grid, a card of its own size (so it shows on the Providers tab only and the tab bar never moves), and the old header block (intro, Live data pill, two buttons) is gone from Models', has("h(KybernosHero, { key: 'kb-hero' })") && !has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && has("className: 'kbpv-card kbmh-hero'") && !has('grid-column:1/-1') && !has("className: 'kbm-head'"))
-ok('the Cloud card IS the « kybernos » provider while the account is connected: its plain card is not drawn beside it (it is when the account is disconnected, and in a search result where the provider has to be findable)', has("cloud: route === 'kybernos'") && has('const listed = cards.filter((x) => !(x.cloud === true && KBM.cloud !== false))') && has('KBM.cloud = res !== null && typeof res === \'object\' && res.connected === true; kbmNotify()') && has('.catch(() => { if (mort !== true) { KBM.cloud = false; kbmNotify() } })') && has('const hits = searching ? kbPvSearch(cards, UI.pq) : listed') && has('(searching ? hits : (fold.fold && !ui.waitOpen ? ready : listed))'))
+ok('the Cloud card IS the « kybernos » provider while the account is connected: its plain card is not drawn beside it (it is when the account is disconnected, and in a search result where the provider has to be findable)', has("cloud: route === 'kybernos'") && has('const listed = cards.filter((x) => !(x.cloud === true && KBM.cloud !== false))') && has('KBM.cloud = res !== null && typeof res === \'object\' && res.connected === true; kbmNotify()') && has('.catch(() => { if (mort !== true) { KBM.cloud = false; kbmNotify() } })') && has('const hits = searching ? kbPvSearch(cards, UI.pq) : listed') && has('(searching ? hits : (fold.fold ? ready : listed))'))
+ok('with the « no key » fold open each waiting card is drawn once (under the fold), not again in the grid above it', has('(searching ? hits : (fold.fold ? ready : listed))') && !has('fold.fold && !ui.waitOpen ? ready : listed') && has("waiting.map((x) => x.node)"))
 ok('the tab bar is the first thing the panel draws: nothing sits above it on either tab (it jumped 85 px between Providers and Models)', (() => { const a = src.indexOf("'data-slot': 'kybernos-models-header' }"); const b = src.indexOf("className: 'kbmp-tabs'", a); return a > 0 && b > a && b - a < 3000 && !src.slice(a, b).includes('KybernosHero') })())
 ok('the page uses the room it has (1120 px, against the core plugin’s 720 cap, with more specificity)', has('>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}'))
 ok('no colour hard-coded in the new Providers styles', !/kbpv-[a-z-]+\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
@@ -535,7 +537,7 @@ console.log('\n── DeepSeek: the two adapters outside llm-pi-ai, edited here 
   ok('the base state is read with the parked one, and a switch rereads the page', w2('await kbMLoadParked()') && w2('await kbMLoadBase()') && w2("await kbMParkCall('base', { slug, enabled: enabled === true })") && w2('await kbMLoad()'))
   ok('a built-in provider has a switch and a confirmation dialog, while enable stays immediate', w2("'data-kbm': off ? 'prov-card-off' : 'prov-card'") && w2("patch({ dlg: { type: 'off', id: route, base: true, name: name || null } })") && w2('doBaseSet(route, true)') && w2('base ? doBaseSet(route, false) : doDisable(route)'))
   ok('the dialog sentence depends on the kind: settings provider or built-in row, in both languages', w2("m(base ? 'kb.prov.off.dlg.body.ds' : 'kb.prov.off.dlg.body', { slug: shown })"))
-  ok('the built-in card says the model count is unknown when its row is off, and shows no edit button without a settings namespace', w2("(count === null ? '—' : String(count))") && w2("off || view === undefined ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit'"))
+  ok('the built-in card says the model count is unknown when its row is off, and a click edits only with a settings namespace', w2("n: count === null ? '—' : count") && w2("off || view === undefined || ro ? h('span', { className: 'kbpv-link kbpv-static' }, c.name)") && w2("onClick: () => openDs(c.ns)") && !w2("'data-kbm': 'prov-edit'"))
   ok('no colour hard-coded in the DeepSeek styles', !/\.kbpv-ds[a-z-]*\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
 }
 
@@ -773,11 +775,11 @@ console.log('\n── Fetch available models (the engine lists what a provider s
     /const pvLabel = \(route\) => \{[\s\S]*?engineName\.trim\(\)\.toLowerCase\(\) !== String\(route\)\.toLowerCase\(\)\) return engineName[\s\S]*?const known = catDe\(route\)[\s\S]*?known\.nom[\s\S]*?: route\n\s*\}/.test(src))
   // ...and an engine name that is only the id ("openrouter") does not win over the catalogue's name: the live page showed the ids because the engine directory carries them as names.
   ok('an engine name equal to the id is not a name: it comes after the catalogue name', /engineName\.trim\(\)\.toLowerCase\(\) !== String\(route\)\.toLowerCase\(\)/.test(src))
-  ok('the button sits in the models header of both panels, disabled with a reason until there is something to ask', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(route, dr)') && w('probe: kbFetchProbe(null, dr)'))
+  ok('the Add (custom) panel keeps its Fetch button, disabled with a reason until there is something to ask; the Edit sheet has none: it asks by itself', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(null, dr)') && !w('probe: kbFetchProbe(route, dr)') && w("h(PvSheetBody, { d: dr, set: setD, route, keyState: ks"))
   ok('the picker asks the provider\'s own endpoint for a catalog route, and tells where the list came from (live, or the catalog and why not)', w('kbFetchRun(kbMApi(), probe, { live: custom !== true })') && w("'data-kbm': 'fetch-source'") && w("m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) })"))
   ok('Add provider from the catalogue still adopts the engine\'s answer (a live list of hundreds is not adopted unasked)', w('const found = await kbFetchRun(api, kbFetchProbe(slug, d))'))
   ok('the picker tags the models outside the engine\'s catalog and says what happens to them', w("kbFetchTagUndescribed(out.models, out.described)") && w("'data-kbm': 'fetch-undescribed'") && w("m('kb.fetch.undescribed')"))
-  ok('Apply saves through the smart save: a refused model becomes a custom model of the provider, and the page says how many (and when the protocol was a guess)', w("kbPvSaveSmart(route, { ...dr, models: dr.touched === true ? dr.models : undefined })") && w("m('kb.pv.saved.custom', { n: out.customN, slug: route })") && w("m('kb.pv.saved.custom.guess')"))
+  ok('Apply saves through the smart save: a refused model becomes a custom model of the provider, and the page says how many (and when the protocol was a guess)', w("kbPvSaveSmart(route, { ...dr, models: kbSheetModels(dr) })") && w("m('kb.pv.saved.custom', { n: out.customN, slug: route })") && w("m('kb.pv.saved.custom.guess')"))
   ok('the companion routes are not drawn as providers, their models count with the provider, and the Models tab lists them under it (name, logo, filter) with a « custom » tag', w("const routes = kbProvRoutes()") && w("const kbProvRoutes = () =>") && w("n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir, KBM.baseRows).length") && w("kbProvOf(mo.route) === route") && w("if (UI.prov !== 'all' && kbProvOf(mo.route) !== UI.prov) return false") && w("pvLabel(kbProvOf(mo.route))") && w("'data-kbm': 'row-custom'"))
   ok('the Edit panel lists the custom models with a remove each, and a provider\'s companions follow it when it is deleted, switched off or on', w("'data-kbm': 'pv-custom'") && w("'data-kbm': 'pv-custom-del'") && w("kbCompanionRemove(route, x.id)") && w("const gone = [slug].concat(kbCompanionsOf(slug, KBM.routes))") && w("for (const c of kbCompanionsOf(route, KBM.routes)) { try { await kbMDisable(c) }") && w("for (const pk of KBM.parked.filter((x) => kbCompanionOf(x.slug, [slug]) !== null))"))
   ok('no select of the provider\'s protocol, no lock: the engine\'s one-api-per-route rule is met by a route of its own, not by binding every model', !w('pv-apisel') && !w('apiSel') && !w('needsApi') && !w('kb.pv.proto.auto'))
@@ -871,7 +873,7 @@ console.log('\n── a provider card with no model says what to do (A3-32) ─�
 {
   const has = (frag) => src.includes(frag)
   ok('the key dot reads the credential of the catalogue provider when the profile names none', has('return kbPvKeyState(kbMOBJ(KBM.userProviders)[route], entry !== null ? entry.env : null, KBM.keys)') && has('const ref = kbPvKeyRefOf(prof, entry !== null ? entry.env : null)'))
-  ok('a card with 0 models and no managed block offers the next step, which opens the panel on the models block', has("count === 0 && off !== true && bloc === null && ro !== true") && has("'data-kbm': 'prov-next', onClick: () => openEdit(route, false, true)") && has("if (showModels === true) d.adv = true"))
+  ok('a card with 0 models and no managed block offers the next step, which opens the sheet (its models are listed there)', has("count === 0 && off !== true && bloc === null && ro !== true") && has("'data-kbm': 'prov-next', onClick: () => openEdit(route, false)") && !has('showModels'))
   ok('the hint says "add the key" while the key is missing, "fetch the models" otherwise', has("m(ks === 'missing' ? 'kb.pv.empty.nokey' : 'kb.pv.empty.fetch')"))
 }
 
@@ -1058,6 +1060,87 @@ console.log('\n── the server\'s creation models (pictures, videos, voices) �
   ok('the rows come from the cloud models route, after the annotations overlay and before the route list', /await kbMCreation\(\)[\s\S]{0,120}KBM\.routes = routes/.test(src) && /fetch\('\/kybernos-cloud\/models'/.test(src))
   ok('a creation model is priced per unit, not per million tokens', /if \(mo\.kind === 'creation'\) \{\s*const p = String\(mo\.baseCtl\.unitPrice/.test(src))
   ok('the page says it is managed, in both languages', /'kb\.models\.creation': \{ kybernos: [^}]+en: /.test(src) && /'kb\.models\.error\.managed': \{ kybernos: [^}]+en: /.test(src))
+}
+
+console.log('\n── The provider sheet: key checked on paste, every model listed, custom models checked in the background ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  ok('the sheet blocks are delimited', bl('KB-SHEET-PURE').length > 100 && bl('KB-SHEET-ACTIONS').length > 100)
+  const make = (timeout) => new Function('kbMTimeout', 'KB_NS', bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + bl('KB-FETCH-ACTIONS') + bl('KB-SHEET-PURE') + bl('KB-SHEET-ACTIONS') +
+    '\nreturn { kbSheetKeyOf, kbSheetErrOf, kbSheetPick, kbSheetModels, kbSheetProbeState, kbSheetAnyway, kbSheetCheck, kbSheetProbe, KB_SHEET_JUNK }')(timeout || ((p) => Promise.resolve(p)), 'llm-pi-ai')
+  const sh = make()
+
+  console.log('  — what the key is judged by')
+  ok('a live answer is a working key; a refusal of the key (401/403) is a refused one, with its status', sh.kbSheetKeyOf({ kind: 'found', live: true }).st === 'ok' && sh.kbSheetKeyOf({ kind: 'found', live: false, why: { key: 'kb.fetch.why.key', vars: { status: 403 } } }).st === 'refused' && sh.kbSheetKeyOf({ kind: 'found', live: false, why: { key: 'kb.fetch.why.key', vars: { status: 403 } } }).status === 403)
+  ok('no network is « unreachable »; any other refusal, or a refusal of the engine too, is « unknown » (never a verdict on the key)', sh.kbSheetKeyOf({ kind: 'found', live: false, why: { key: 'kb.fetch.why.unreachable', vars: {} } }).st === 'unreachable' && sh.kbSheetKeyOf({ kind: 'found', live: false, why: { key: 'kb.fetch.why.refused', vars: { status: 400 } } }).st === 'unknown' && sh.kbSheetKeyOf({ kind: 'refused', message: 'x', why: { key: 'kb.fetch.why.host', vars: {} } }).st === 'unknown' && sh.kbSheetKeyOf(null).st === 'unknown')
+  ok('a failed fetch says why: no service, timeout, or the engine\'s words', sh.kbSheetErrOf({ unavailable: true }).key === 'kb.fetch.unavailable' && sh.kbSheetErrOf({ timeout: true }).key === 'kb.fetch.timeout' && sh.kbSheetErrOf({ message: '' }).vars.raison === '—' && sh.kbSheetErrOf({ message: 'HTTP 401' }).vars.raison === 'HTTP 401')
+
+  console.log('  — which models are on')
+  const list = [{ id: 'a' }, { id: 'b' }, { id: 'out', undescribed: true }]
+  const servedAB = new Set(['a', 'b'])
+  ok('untouched, the ticks are what the route serves today', JSON.stringify(sh.kbSheetPick({ pick: null }, servedAB, list)) === '{"a":true,"b":true}')
+  ok('the user\'s choice, once made, is the ticks', JSON.stringify(sh.kbSheetPick({ pick: { b: true } }, servedAB, list)) === '{"b":true}')
+  ok('after « restore » the models the catalog describes are on, an outside one is not', JSON.stringify(sh.kbSheetPick({ pick: { b: true }, restoreModels: true }, servedAB, list)) === '{"a":true,"b":true}')
+  ok('nothing touched writes nothing about the models', sh.kbSheetModels({ pick: null, touched: false, models: [], cands: list }) === undefined)
+  ok('a custom model typed without touching the ticks is written as it is', JSON.stringify(sh.kbSheetModels({ pick: null, touched: true, models: [{ id: 'mine', name: '' }], cands: null })) === '[{"id":"mine","name":""}]')
+  const w1 = sh.kbSheetModels({ pick: { a: true, out: true }, models: [{ id: 'a', name: 'Kept', contextWindow: 7 }, { id: 'mine', name: '' }], cands: [{ id: 'a', name: 'A', contextWindow: 100 }, { id: 'b' }, { id: 'out', undescribed: true }] })
+  ok('ticked candidates become rows (a row already there keeps what it carried), an unticked one goes, an outside one is flagged for the companion route, a custom row stays', w1.map((r) => r.id).join() === 'a,out,mine' && w1[0].name === 'Kept' && w1[0].contextWindow === 7 && w1[1].outside === true, w1)
+  ok('restore removes the override whatever else is in the draft', JSON.stringify(sh.kbSheetModels({ restoreModels: true, pick: { a: true }, models: [{ id: 'a' }], cands: list })) === '[]')
+
+  console.log('  — the custom model\'s check, and Apply\'s words')
+  ok('the probe\'s answer: answers / rate-limited (it exists) / no protocol answers (not found) / anything else cannot be told', sh.kbSheetProbeState({ ok: true }) === 'ok' && sh.kbSheetProbeState({ ok: false, error: 'rate-limited' }) === 'busy' && sh.kbSheetProbeState({ ok: false, error: 'unknown-protocol', status: 404 }) === 'fail' && sh.kbSheetProbeState({ ok: false, error: 'refused' }) === 'unknown' && sh.kbSheetProbeState({ ok: false, error: 'unreachable' }) === 'unknown' && sh.kbSheetProbeState(null) === 'unknown')
+  ok('Apply says « anyway » for a refused, unreachable or unknown key and for a model that does not answer; never for a good state', sh.kbSheetAnyway({ ck: 'refused' }) && sh.kbSheetAnyway({ ck: 'unreachable' }) && sh.kbSheetAnyway({ ck: 'unknown' }) && sh.kbSheetAnyway({ ck: 'ok', mst: { x: 'fail' } }) && !sh.kbSheetAnyway({ ck: 'ok', mst: { x: 'ok', y: 'checking', z: 'later' } }) && !sh.kbSheetAnyway({ ck: 'idle' }) && !sh.kbSheetAnyway({ ck: 'listed' }))
+
+  console.log('  — the calls (the host\'s live route and probe route, a fake engine)')
+  const realFetch = globalThis.fetch
+  const script = (steps) => { const calls = []; globalThis.fetch = async (url, init) => { calls.push({ url, body: init && init.body ? JSON.parse(init.body) : null }); const st = steps.shift(); if (st instanceof Error) throw st; return new Response(JSON.stringify(st.body), { status: st.status || 200 }) }; return calls }
+  const engine = { llm: { discoverModels: async () => ({ ok: true, value: [{ id: 'a', name: 'A' }, { id: 'b' }] }) } }
+  try {
+    let calls = script([{ body: { ok: true, source: 'live', url: 'https://api.x/v1/models', models: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } }, { body: { ok: false, error: 'refused', status: 401, detail: '' } }])
+    const r1 = await sh.kbSheetCheck(engine, { provider: 'x', apiKey: 'sk-typed-1234' }, { keyed: true })
+    ok('a live list with a key is « ok », every model of the provider is offered (no cap), the outside one is flagged', r1.ck === 'ok' && r1.cands.length === 3 && r1.cands.filter((c) => c.undescribed === true).map((c) => c.id).join() === 'c' && r1.src.live === true, r1)
+    ok('a second call with a key that cannot be real asks whether the list is public: refused there means the first key was really checked', calls.length === 2 && calls[1].body.key === sh.KB_SHEET_JUNK && calls[1].body.route === 'x', calls)
+
+    calls = script([{ body: { ok: true, source: 'live', url: 'https://openrouter.ai/api/v1/models', models: [{ id: 'a' }] } }, { body: { ok: true, source: 'live', url: 'https://openrouter.ai/api/v1/models', models: [{ id: 'a' }] } }])
+    const r2 = await sh.kbSheetCheck(engine, { provider: 'openrouter', apiKey: 'sk-typed-1234' }, { keyed: true })
+    ok('a provider that lists its models to anyone is « listed »: the key is not claimed to work', r2.ck === 'listed' && r2.cands.length === 1, r2)
+
+    calls = script([{ body: { ok: true, source: 'live', url: 'https://ollama/v1/models', models: [{ id: 'llama' }] } }])
+    const r3 = await sh.kbSheetCheck(engine, { provider: 'ollama-local' }, { keyed: false })
+    ok('a route with no key at all is not asked twice and claims nothing about a key', r3.ck === 'ok' && calls.length === 1, calls)
+
+    calls = script([{ body: { ok: false, error: 'refused', status: 401, detail: '' } }])
+    const r4 = await sh.kbSheetCheck(engine, { provider: 'x', apiKey: 'sk-bad-key-1234' }, { keyed: true })
+    ok('a refused key still shows the models the engine\'s catalog ships (the person can keep working), and says refused with the status', r4.ck === 'refused' && r4.status === 401 && r4.cands.length === 2 && r4.src.live === false, r4)
+
+    script([new Error('network down')])
+    const r5 = await sh.kbSheetCheck({ llm: { discoverModels: async () => ({ ok: false, error: { message: 'HTTP 500' } }) } }, { provider: 'x' }, { keyed: true })
+    ok('nothing answers at all: unknown (not refused), no list, and the engine\'s words are the error; never a throw', r5.ck === 'unknown' && r5.cands === null && r5.err.vars.raison === 'HTTP 500', r5)
+
+    script([{ body: { ok: true, source: 'live', url: 'https://x', models: [] } }])
+    const r6 = await sh.kbSheetCheck(engine, { provider: 'x', apiKey: 'sk-typed-1234' }, { keyed: false })
+    ok('a provider that lists nothing says so', r6.err !== null && r6.err.key === 'kb.fetch.empty', r6)
+
+    calls = script([{ body: { ok: true, api: 'openai-completions', baseURL: 'https://x/v1' } }])
+    const p1 = await sh.kbSheetProbe('acme', 'my-model')
+    ok('a custom model is probed through the host with the route and the model id only (never a key)', p1 === 'ok' && calls[0].url === '/kybernos-models/models/probe' && JSON.stringify(calls[0].body) === '{"route":"acme","model":"my-model"}', calls)
+    script([{ body: { ok: false, error: 'unknown-protocol', status: 404 } }])
+    ok('an unknown model is « fail »', await sh.kbSheetProbe('acme', 'nope') === 'fail')
+    script([new Error('offline')])
+    ok('a probe that cannot run is « unknown », never a throw', await sh.kbSheetProbe('acme', 'x') === 'unknown')
+  } finally { globalThis.fetch = realFetch }
+
+  console.log('  — the wiring')
+  const has = (frag) => src.includes(frag)
+  ok('opening the sheet checks the stored key (a missing one waits), pasting checks once the typing stops, emptying the field goes back to the stored key', has("if (keyState !== 'missing') checkRef.current('')") && has('const t = setTimeout(() => checkRef.current(typed), 650)') && has("if (typed === '' && prev !== '')"))
+  ok('ticks made while the list is the catalog fallback (no live answer yet) keep that list as the candidates, so they are written', has('cands: Array.isArray(cur.cands) ? cur.cands : list'))
+  ok('an answer from a check that a newer one replaced is dropped', has('const mine = ++seq.current') && has('if (mine !== seq.current) return'))
+  ok('the models are listed in the sheet itself (no popup), all of them, with a search and All / None', has("'data-kbm': 'pv-list'") && has("'data-kbm': 'pv-search'") && has("'data-kbm': 'pv-sel-all'") && has("'data-kbm': 'pv-sel-none'") && !has('more models from this provider') && !/kb\.fetch\.more|\.slice\(0, *(20|30|50|100)\)/.test(bl('KB-SHEET-PURE') + bl('KB-SHEET-ACTIONS')))
+  ok('a custom model is added in the sheet, checked in the background, and the check does not hold Apply', has("'data-kbm': 'pv-new-id'") && has("'data-kbm': 'pv-new-add'") && has("[id]: 'checking'") && has('probeOwn(id)') && has("m(kbSheetAnyway(dr) ? 'kb.sh.apply.anyway' : 'kb.pv.apply')") && has("disabled: ui.busy === true || urlBad || ro, onClick: () => doSave(route)"))
+  ok('the check line is announced to assistive tech and has a « check again » link', has("role: 'status', 'data-kbm': 'pv-ck'") && has("'data-kbm': 'pv-recheck'"))
+  ok('the checkbox is the page\'s own (white fill, dark tick), with a visible focus ring and a disabled look', has('.kbpv-cbx:checked{background:var(--dsw-alias-label-primary)') && has('.kbpv-cbx:focus-visible') && has('.kbpv-cbx:disabled') && !/\.kbpv-cbx[^']*#[0-9a-fA-F]{3,6}\b/.test(src))
+  ok('the spinner and the pulse stop for people who asked for reduced motion', has('@media (prefers-reduced-motion:reduce){.kbpv-spin{animation:none}}') && has('@media (prefers-reduced-motion:reduce){.kbpv-md-checking{animation:none}}'))
+  ok('the sheet does not use the old fetch popup (it stays for the Add (custom) panel only)', !src.slice(src.indexOf('const renderEdit = () =>'), src.indexOf('const renderDsEdit = () =>')).includes('PvModels'))
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
