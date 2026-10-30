@@ -12,6 +12,9 @@ export const CONNECTIONS_BASE = '/v1/connections'
 export const connectionsPaths = Object.freeze({
   list: CONNECTIONS_BASE,
   apps: CONNECTIONS_BASE + '/apps',
+  // The same catalogue and its logos with no token: what a person who is not signed in sees (kybernos-server, ADR 0008 addendum).
+  catalogue: CONNECTIONS_BASE + '/catalogue',
+  catalogueLogo: (slug) => CONNECTIONS_BASE + '/catalogue/logo?slug=' + encodeURIComponent(slug),
   link: CONNECTIONS_BASE + '/link',
   one: (id) => CONNECTIONS_BASE + '/' + encodeURIComponent(id),
 })
@@ -107,7 +110,8 @@ export const asConnectionList = (body) => {
   }
 }
 
-/** A toolkit of the catalogue. The logo is left out on purpose: it is a third-party address the page must not load by itself. */
+/** A toolkit of the catalogue. `logo` only says the server has one: the page asks this host for the picture (`/kybernos-cloud/connections/logo`),
+ *  never a third-party address, so a page that is not signed in contacts nobody but the active server, through this machine. */
 export const asApp = (r) => {
   const row = obj(r)
   if (!isToolkit(row.slug)) return null
@@ -117,7 +121,24 @@ export const asApp = (r) => {
     categories: Array.isArray(row.categories) ? row.categories.filter((x) => typeof x === 'string').slice(0, 8) : [],
     description: typeof row.description === 'string' ? row.description.slice(0, 400) : '',
     needsApiKey: row.needs_api_key === true,
+    logo: typeof row.logo === 'string' && row.logo !== '',
   }
+}
+
+/** The most a logo may be: the server's own bound. */
+export const MAX_LOGO_BYTES = 256 * 1024
+
+/**
+ * A logo is served by this host to an <img> (no script runs there), and the server already refused anything unsafe. Checked again here because this host
+ * answers on a loopback address: a plain SVG only, no script, no embedded object, no event handler, no reference to anything but the file itself.
+ */
+export const safeLogo = (text) => {
+  if (typeof text !== 'string' || text === '' || text.length > MAX_LOGO_BYTES) return false
+  if (!/^\s*(?:<\?xml[^>]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*(?:<!DOCTYPE[^>[]*>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(text)) return false
+  if (/<script|<foreignObject|<iframe|<object|<embed|<!ENTITY|<!DOCTYPE[^>]*\[|\son[a-z]+\s*=|javascript:|@import/i.test(text)) return false
+  if (/(?:href|src)\s*=\s*["'](?!#)/i.test(text)) return false
+  if (/url\(\s*(?!["']?#)/i.test(text)) return false
+  return true
 }
 
 /** `GET /v1/connections/apps` → `{ configured, apps }`, or null. */

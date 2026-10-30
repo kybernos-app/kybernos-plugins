@@ -7,7 +7,7 @@
 // to the server's endpoint (stateless: no `initialize` first).
 import { connectionsEndpoint } from './server-profile.mjs'
 import {
-  asConnection, asConnectionList, asAppList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit, linkBody, rpcCall, rpcOutcome,
+  asConnection, asConnectionList, asAppList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit, linkBody, MAX_LOGO_BYTES, rpcCall, rpcOutcome, safeLogo,
 } from './connections.mjs'
 
 /** A call to an app may run 30 s at the server (ADR 0008 § 5): wait a little longer than that, never less. */
@@ -15,6 +15,10 @@ const TOOL_TIMEOUT_MS = 40000
 /** What an agent may send as `params` (the server's own bound, checked here first so nothing bigger is sent). */
 const MAX_PARAMS_BYTES = 256 * 1024
 const SYNC_EVERY_MS = 5000
+/** A logo is kept a day in memory (the page's browser keeps it a day too); never more than this many, the oldest out first. */
+const LOGO_TTL_MS = 24 * 60 * 60 * 1000
+const LOGO_CACHE_MAX = 600
+const LOGO_TIMEOUT_MS = 8000
 
 const TEXT_RESULT = (text) => [{ type: 'text', text }]
 const queryOf = (req) => { try { return new URL(req.url, 'http://localhost').searchParams } catch (e) { return new URLSearchParams('') } }
@@ -77,14 +81,49 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
     return list === null ? { ok: false, offered: true, connected: true, error: 'invalid_response' } : { ok: true, offered: true, connected: true, ...list, web }
   }
 
+  /**
+   * The catalogue. The public route comes first and needs no token: a person who is not signed in sees the whole of it (the reason to sign in is to
+   * connect one, not to look). A server that has no public route yet (older) still answers a signed-in person on the account's route.
+   */
   const appsRoute = async () => {
+    const endpoint = connectionsEndpoint(server().profile)
+    if (endpoint === null) return { ok: true, offered: false, connected: isConnected(readState()) }
+    const connected = isConnected(readState()) === true
+    const open = await apiCall(connectionsPaths.catalogue, { timeoutMs: 15000 })
+    if (open.status === 200) {
+      const list = asAppList(open.body)
+      if (list !== null) return { ok: true, offered: true, connected, ...list, source: 'public' }
+    }
     const g = gate()
     if (g.done !== undefined) return g.done
     const made = await rest(g, connectionsPaths.apps)
     if (notOffered(made)) return { ok: true, offered: false, connected: true }
     if (made.ok !== true) return made
     const list = asAppList(made.body)
-    return list === null ? { ok: false, offered: true, connected: true, error: 'invalid_response' } : { ok: true, offered: true, connected: true, ...list }
+    return list === null ? { ok: false, offered: true, connected: true, error: 'invalid_response' } : { ok: true, offered: true, connected: true, ...list, source: 'account' }
+  }
+
+  // One logo at a time per slug, a day in memory. Always the PUBLIC route and never the token: this route answers on a loopback address without a sign-in,
+  // so it carries nothing of the account.
+  const logos = new Map()
+  const flights = new Map()
+  const fetchLogo = async (slug) => {
+    const res = await apiCall(connectionsPaths.catalogueLogo(slug), { raw: true, timeoutMs: LOGO_TIMEOUT_MS, maxBytes: MAX_LOGO_BYTES })
+    return res.status === 200 && safeLogo(res.text) === true ? res.text : null
+  }
+  /** `{ status, type, body, maxAge }` for the route to send as it is (the one route here that is not JSON). */
+  const logoRoute = async (req) => {
+    const slug = queryOf(req).get('slug')
+    if (!isToolkit(slug) || connectionsEndpoint(server().profile) === null) return { status: 404, maxAge: 0 }
+    const hit = logos.get(slug)
+    if (hit !== undefined && Date.now() - hit.at < LOGO_TTL_MS) return { status: 200, type: 'image/svg+xml', body: hit.svg, maxAge: 86400 }
+    if (!flights.has(slug)) flights.set(slug, fetchLogo(slug).finally(() => flights.delete(slug)))
+    const svg = await flights.get(slug)
+    if (svg === null) return { status: 404, maxAge: 300 }
+    logos.delete(slug)
+    logos.set(slug, { svg, at: Date.now() })
+    while (logos.size > LOGO_CACHE_MAX) logos.delete(logos.keys().next().value)
+    return { status: 200, type: 'image/svg+xml', body: svg, maxAge: 86400 }
   }
 
   /** One connection, reconciled at the server on the spot: what the page polls while an add is pending. */
@@ -254,5 +293,5 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
     }, 'kybernos-cloud: connections tools')
   }
 
-  return { listRoute, appsRoute, itemRoute, linkRoute, deleteRoute, toolDefs, sync, attach, detach, mount }
+  return { listRoute, appsRoute, logoRoute, itemRoute, linkRoute, deleteRoute, toolDefs, sync, attach, detach, mount }
 }

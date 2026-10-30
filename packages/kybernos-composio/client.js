@@ -34,6 +34,8 @@ window.__ModuleLoader__.load({
     // real Composio toolkit ids as they appear in catalog.js (checked there).
     const POPULAR = ['gmail', 'googlecalendar', 'googledrive', 'outlook', 'slack', 'notion', 'github', 'linear', 'trello', 'asana', 'airtable', 'hubspot']
     let CAT_BY_SLUG = {}
+    // Names of the apps of the full list that the local catalogue does not hold (kbCpFullRows), so a letter tile shows the right letter.
+    const KB_CP_NAMES = {}
     let catalogLoad = null
     // catOk: true ONLY after a valid, NON-EMPTY catalog has loaded.
     // A 200 + [] is a valid terminal outcome (ready -> true) but leaves
@@ -158,7 +160,7 @@ window.__ModuleLoader__.load({
     // ── catalog helpers ───────────────────────────────────────────────────────
     // CAT_BY_SLUG is (re)built when the catalog arrives (kbCpCatalog).
     const catOf = (slug) => CAT_BY_SLUG[slug] || null
-    const nameOf = (slug) => { const c = catOf(slug); return c ? c.n : slug }
+    const nameOf = (slug) => { const c = catOf(slug); return c ? c.n : (KB_CP_NAMES[slug] || slug) }
     const logoOf = (slug) => { const c = catOf(slug); return c ? c.l : null }
 
     // ── i18n ──────────────────────────────────────────────────────────────────
@@ -450,6 +452,26 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.signin.wait': { fr: 'En attente de ton accord dans l’onglet ouvert…', en: 'Waiting for your approval in the opened tab…' },
       'kb.cp.kc.signin.code': { fr: 'Code : {code}', en: 'Code: {code}' },
       'kb.cp.kc.signin.open': { fr: 'Ouvrir la page', en: 'Open the page' },
+      // The gate of « Add a connection » (Discover): the whole catalogue is visible to everyone, connecting needs an account or a key.
+      'kb.cp.gate.title': { fr: 'Pour connecter {app}', en: 'To connect {app}' },
+      'kb.cp.gate.rec': { fr: 'Recommandé', en: 'Recommended' },
+      'kb.cp.gate.acc.title': { fr: 'Crée ton compte Kybernos gratuit', en: 'Create your free Kybernos account' },
+      'kb.cp.gate.acc.body': { fr: 'Les {n} apps, reliées à ton compte : elles te suivent sur chaque machine, sans clé à gérer.', en: 'All {n} apps, linked to your account: they follow you on every machine, with no key to manage.' },
+      'kb.cp.gate.acc.go': { fr: 'Créer mon compte', en: 'Create my account' },
+      'kb.cp.gate.acc.have': { fr: 'J’ai déjà un compte', en: 'I already have one' },
+      'kb.cp.gate.wait': { fr: 'Je t’attends dans l’autre onglet', en: 'Waiting for you in the other tab' },
+      'kb.cp.gate.wait.body': { fr: 'Un onglet de Kybernos s’est ouvert pour créer ton compte ou te connecter. Cette page continue ici dès que c’est fait.', en: 'A Kybernos tab opened to create your account or sign in. This page carries on here as soon as you are signed in.' },
+      'kb.cp.gate.key.title': { fr: 'Ou utilise ta propre clé Composio', en: 'Or use your own Composio key' },
+      'kb.cp.gate.key.body': { fr: 'Déjà sur Composio ? Connecte-toi avec ton propre compte, sans compte Kybernos.', en: 'Already on Composio? Connect through your own account, with no Kybernos account.' },
+      'kb.cp.gate.key.paste': { fr: 'Coller une clé', en: 'Paste a key' },
+      'kb.cp.gate.key.save': { fr: 'Enregistrer et connecter', en: 'Save and connect' },
+      'kb.cp.gate.key.checking': { fr: 'Vérification chez Composio…', en: 'Checking with Composio…' },
+      'kb.cp.gate.key.note': { fr: 'Ouvre dashboard.composio.dev et connecte-toi (compte gratuit), puis copie la clé. Elle reste sur cette machine.', en: 'Open dashboard.composio.dev and sign in (free account), then copy the key. It stays on this machine.' },
+      'kb.cp.gate.key.only': { fr: 'Pour connecter une app, colle ta clé Composio : elle reste sur cette machine.', en: 'To connect an app, paste your Composio key: it stays on this machine.' },
+      'kb.cp.sess.anon': { fr: 'Sans compte', en: 'Not signed in' },
+      'kb.cp.sess.kc': { fr: 'Compte Kybernos', en: 'Kybernos account' },
+      'kb.cp.sess.key': { fr: 'Clé Composio perso', en: 'Own Composio key' },
+      'kb.cp.sess.tip': { fr: 'Tout le catalogue est visible sans compte ; seule la connexion d’une app en demande un.', en: 'The whole catalog is visible without an account; only connecting an app needs one.' },
       'kb.cp.kc.err.signin_failed': { fr: 'La connexion du compte n’a pas abouti : réessaie.', en: 'Connecting the account did not work: try again.' },
       'kb.cp.kc.err.reconnect_required': { fr: 'Ta session Kybernos a pris fin. Connecte ton compte à nouveau.', en: 'Your Kybernos session has ended. Connect your account again.' },
       'kb.cp.kc.err.network': { fr: 'Le serveur Kybernos est injoignable. Réessaie dans un instant.', en: 'The Kybernos server cannot be reached. Try again in a moment.' },
@@ -929,6 +951,32 @@ window.__ModuleLoader__.load({
       const rank = (a) => (starts(a) ? 0 : 2) + (a.needsApiKey === true ? 1 : 0)
       return list.filter(hit).map((a, i) => ({ a: a, i: i, r: rank(a) })).sort((x, y) => x.r - y.r || x.i - y.i).map((x) => x.a).slice(0, max)
     }
+    /**
+     * The server's catalogue as the rows of the Discover page ({ s, n, c, d, k }): a slug, a string name, string categories, the description
+     * and `k` for an app that needs its own API key. An app the local catalogue knows keeps its curated description and its inline logo;
+     * the server's categories win for every app, so the facets speak one vocabulary. Notes the names and the apps that have a logo on the
+     * server (KB_CP_NAMES, KB_CP_REMOTE_LOGO).
+     */
+    const kbCpFullRows = (list) => {
+      const rows = []
+      for (const a of (Array.isArray(list) ? list : [])) {
+        if (a === null || typeof a !== 'object' || typeof a.slug !== 'string' || a.slug.length === 0) continue
+        const known = catOf(a.slug)
+        const name = String(a.name || a.slug)
+        if (known === null) KB_CP_NAMES[a.slug] = name
+        if (a.logo === true && !(known !== null && known.l)) KB_CP_REMOTE_LOGO[a.slug] = true
+        const cats = Array.isArray(a.categories) ? a.categories.filter((x) => typeof x === 'string' && x.length > 0) : []
+        rows.push({ s: a.slug, n: name, c: cats.length > 0 ? cats : (known !== null && Array.isArray(known.c) ? known.c : []), d: known !== null && known.d ? known.d : (typeof a.description === 'string' ? a.description : ''), l: known !== null ? known.l : undefined, k: a.needsApiKey === true })
+      }
+      return rows
+    }
+    /** The categories of a list of rows, most used first: the facet bar shows the first few. */
+    const kbCpTopCats = (rows) => {
+      const n = {}
+      const order = []
+      for (const a of rows) for (const c of (a.c || [])) { if (n[c] === undefined) { n[c] = 0; order.push(c) } n[c]++ }
+      return order.map((c, i) => ({ c: c, n: n[c], i: i })).sort((x, y) => y.n - x.n || x.i - y.i).map((x) => x.c)
+    }
 
     const Icon = (name, size) => {
       const d = LUCIDE[name]
@@ -944,6 +992,24 @@ window.__ModuleLoader__.load({
     const APP_TILES = {
       cal: { bg: '#fff', color: '#1A73E8', border: true },
     }
+    // The apps of the full list that have a logo on the Kybernos server. The cloud half of this machine serves it (same origin, kept a day,
+    // sanitised there): the page never contacts a third party for an image. Filled by kbCpFullRows.
+    const KB_CP_REMOTE_LOGO = {}
+    const kbCpLogoUrl = (slug) => CLOUD + '/connections/logo?slug=' + encodeURIComponent(slug)
+    const kbCpLetterTile = (slug, size) => {
+      const t = APP_TILES[slug] || { bg: 'rgba(128,128,128,.18)', color: 'inherit' }
+      return h('div', { style: { width: size, height: size, borderRadius: 10, background: t.bg, color: t.color, border: t.border === true ? '1px solid rgba(128,128,128,.3)' : 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: Math.round(size * 0.42), flex: 'none' } },
+        String(nameOf(slug) || '?').charAt(0).toUpperCase())
+    }
+    /** A logo asked of the cloud half. An image that does not come (older host, offline, refused SVG) leaves the letter tile. */
+    const KbCpRemoteLogo = (props) => {
+      const [bad, setBad] = React.useState(false)
+      if (bad === true) return kbCpLetterTile(props.slug, props.size)
+      return h('div', {
+        className: 'kb7-applogo',
+        style: { width: props.size, height: props.size, borderRadius: 10, background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', overflow: 'hidden', border: '1px solid rgba(128,128,128,.18)' },
+      }, h('img', { src: kbCpLogoUrl(props.slug), alt: '', loading: 'lazy', decoding: 'async', draggable: false, onError: () => setBad(true) }))
+    }
     const AppLogo = (slug, size) => {
       const svg = logoOf(slug)
       if (svg) {
@@ -955,9 +1021,8 @@ window.__ModuleLoader__.load({
           dangerouslySetInnerHTML: { __html: svg },
         })
       }
-      const t = APP_TILES[slug] || { bg: 'rgba(128,128,128,.18)', color: 'inherit' }
-      return h('div', { style: { width: size, height: size, borderRadius: 10, background: t.bg, color: t.color, border: t.border === true ? '1px solid rgba(128,128,128,.3)' : 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: Math.round(size * 0.42), flex: 'none' } },
-        String(nameOf(slug) || '?').charAt(0).toUpperCase())
+      if (KB_CP_REMOTE_LOGO[slug] === true) return h(KbCpRemoteLogo, { slug: slug, size: size, key: 'rl-' + slug })
+      return kbCpLetterTile(slug, size)
     }
 
     // ── CSS (classes kb7-*) ──────────────────────────────────────────────────
@@ -1027,6 +1092,8 @@ body:not([data-ds-dark-theme]) .kb7-root{--dsw-alias-label-tertiary:var(--dsw-al
 .kb7-lr{display:flex;align-items:center;gap:12px}
 .kb7-applogo svg{width:74%;height:74%;display:block}
 .kb7-mhead .kb7-applogo svg{width:72%;height:72%}
+.kb7-applogo img{width:74%;height:74%;object-fit:contain;display:block}
+.kb7-mhead .kb7-applogo img{width:72%;height:72%}
 .kb7-name{font-size:15px;font-weight:650}
 .kb7-cat{font-size:11px;opacity:.55;margin-top:2px}
 .kb7-desc{font-size:12.5px;opacity:.78;line-height:1.5;min-height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1240,6 +1307,26 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kbcp-kcapp span{display:flex;flex-direction:column;min-width:0}
 .kbcp-kcapp b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbcp-kcapp small{font-size:11px;opacity:.6}
+.kbcp-gate{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.kbcp-gate-h{font-size:13px;font-weight:700}
+.kbcp-gbox{border:1px solid rgba(128,128,128,.3);border-radius:12px;padding:14px}
+.kbcp-gbox.rec{border-color:var(--dsw-alias-brand-primary)}
+.kbcp-gbox h4{margin:0 0 4px;font-size:13.5px;font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kbcp-gbox p{margin:0 0 10px;font-size:12.5px;line-height:1.5;opacity:.75}
+.kbcp-gtag{font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
+.kbcp-glink{background:none;border:0;padding:0;color:inherit;font:inherit;font-size:12.5px;text-decoration:underline;opacity:.7;cursor:pointer}
+.kbcp-glink:hover{opacity:1}
+.kbcp-gbox.sm{padding:10px 12px}
+.kbcp-gbox.sm h4{font-size:12px;font-weight:600;margin-bottom:2px;opacity:.85}
+.kbcp-gbox.sm p{font-size:11.5px;margin-bottom:8px}
+.kbcp-gbox.sm .kbcp-glink,.kbcp-gbox.sm .kbcp-btn{font-size:11.5px}
+.kbcp-gbox.sm .kbcp-btn{height:28px;padding:0 11px}
+.kbcp-gbox.sm .kbcp-input{height:28px;font-size:11.5px}
+.kbcp-gbox .kbcp-gnote{font-size:11px;opacity:.6;margin:8px 0 0}
+.kbcp-sp{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(128,128,128,.35);border-top-color:var(--dsw-alias-label-primary);animation:kbcp-spin .8s linear infinite;vertical-align:-3px}
+@keyframes kbcp-spin{to{transform:rotate(360deg)}}
+.kbcp-sess{font-size:12px;font-weight:600;padding:0 10px;height:24px;border-radius:99px;display:inline-flex;align-items:center;white-space:nowrap;background:rgba(128,128,128,.16);color:var(--dsw-alias-label-secondary)}
+.kbcp-sess.ok{background:var(--dsw-alias-state-success-tertiary,rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbcp-kcrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
 /* ── Discover popular pin + Yours empty-state illustration ── */
 .kb7-pill.pop{color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
@@ -1927,10 +2014,11 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'kb7-mname' }, kbt('kb.cp.kc.m.title'))),
             h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose, 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
           h('div', { className: 'kb7-form' },
-            h('div', null,
+            // Opened for one app (from Discover): that app is shown instead of the search and the list.
+            props.fixed === true ? (app === null ? null : h('div', { className: 'kbcp-kcapp on', style: { cursor: 'default' } }, AppLogo(app.slug, 28), h('span', null, h('b', null, app.name), h('small', null, app.needsApiKey === true ? kbt('kb.cp.kc.type.api_key') : 'OAuth')))) : h('div', null,
               h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-kc-q' }, kbt('kb.cp.kc.m.search')),
               h('input', { className: 'kb7-finput', id: 'kbcp-kc-q', value: q, placeholder: 'Gmail, GitHub, Slack…', autoComplete: 'off', spellCheck: false, onChange: (e) => { setQ(e.target.value); setPages(1) } })),
-            apps === null ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.loading'))
+            props.fixed === true ? null : apps === null ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.loading'))
               : (matches.length === 0 ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.m.noapps'))
                 : h(React.Fragment, null,
                   h('div', { className: 'kbcp-kcpick', role: 'listbox', 'aria-label': kbt('kb.cp.kc.m.title') },
@@ -2156,6 +2244,109 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         }) : null)
     }
 
+    // ── Discover: what « Add a connection » asks when nothing yet lets the person connect ─────────────────────
+    /**
+     * The whole catalogue is visible to everyone; connecting an app needs a way to pay for it. Shown in an app's window when the person
+     * has none: a free Kybernos account (the recommended way: the pairing runs here and the page carries on by itself), or their own
+     * Composio key (kept on this machine by the host). `account` false: this server offers no Kybernos account, only the key is left.
+     * `plan` true: signed in, but the plan does not include connecting apps.
+     */
+    const ConnectGate = (props) => {
+      const [pair, setPair] = React.useState(null)
+      const [starting, setStarting] = React.useState(false)
+      const [keyOpen, setKeyOpen] = React.useState(props.account !== true)
+      const [key, setKey] = React.useState('')
+      const [busy, setBusy] = React.useState(false)
+      const [msg, setMsg] = React.useState(null)
+      const live = React.useRef(true)
+      React.useEffect(() => () => { live.current = false }, [])
+      // The person approves the pairing in the tab that opened; this asks every 3 s.
+      React.useEffect(() => {
+        if (pair === null || pair.failed === true) return undefined
+        let alive = true
+        const t = setInterval(async () => {
+          const r = await kbCpCloud('/poll', 'POST')
+          if (alive === false) return
+          const j = r.json
+          if (j !== null && j.ok === true && j.connected === true) { setPair(null); props.onSignedIn() }
+          else if (j !== null && j.ok === true && (j.status === 'denied' || j.status === 'expired' || j.status === 'none')) setPair(Object.assign({}, pair, { failed: true }))
+        }, 3000)
+        return () => { alive = false; clearInterval(t) }
+      }, [pair])
+      const signIn = async () => {
+        if (starting === true) return
+        setStarting(true)
+        const r = await kbCpCloud('/start', 'POST')
+        if (live.current === false) return
+        setStarting(false)
+        const j = r.json
+        if (j !== null && j.ok === true && j.connected === true) { props.onSignedIn(); return }
+        if (j !== null && j.ok === true && j.pairing !== null && typeof j.pairing === 'object') {
+          const url = kbCpWebUrl(j.pairing.activation_url)
+          setPair({ code: j.pairing.user_code, url: url, failed: false })
+          if (url !== null) { try { window.open(url, '_blank', 'noopener,noreferrer') } catch (e) { /* the button below opens it */ } }
+          return
+        }
+        setPair({ code: null, url: null, failed: true })
+      }
+      const saveKey = async () => {
+        const value = key.trim()
+        if (value.length === 0 || busy === true) return
+        setBusy(true)
+        setMsg(null)
+        const r = await kbCpHost('/key', 'POST', { key: value })
+        if (live.current === false) return
+        setBusy(false)
+        if (r.status === 200 && r.json !== null && r.json.ok === true) {
+          setKey('')
+          try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { /* the page asks the host again on its own */ }
+          props.onKeySaved()
+          return
+        }
+        const code = r.json !== null && r.json.code !== undefined ? String(r.json.code) : ''
+        setMsg(r.status === 404 && r.json === null ? kbt('kb.cp.hostold') : kbt(code === 'invalid-key' ? 'composio.err.invalid' : (code === '401' || code === '403' ? 'composio.err.rejected' : (code === 'inherited' ? 'composio.err.inherited' : 'composio.err.write'))))
+      }
+      const linkBtn = (href, label) => h('a', { className: 'kbcp-btn primary', style: { textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }, href: href, target: '_blank', rel: 'noopener noreferrer' }, label)
+      let accountBox = null
+      if (props.plan === true) {
+        accountBox = h('div', { className: 'kbcp-gbox rec', 'data-kb': 'gate-plan' },
+          h('h4', null, kbt('kb.cp.kc.pro.title')),
+          h('p', null, kbt('kb.cp.kc.pro.body')),
+          props.web !== null ? h('div', { className: 'kbcp-row' }, h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'gate-plans', onClick: () => { try { window.open(props.web, '_blank', 'noopener') } catch (e) { /* the browser refused: nothing to do */ } } }, kbt('kb.cp.kc.pro.cta'))) : null)
+      } else if (props.account === true && pair !== null && pair.failed !== true) {
+        accountBox = h('div', { className: 'kbcp-gbox rec', role: 'status', 'data-kb': 'gate-wait' },
+          h('h4', null, h('span', { className: 'kbcp-sp', 'aria-hidden': 'true' }), kbt('kb.cp.gate.wait')),
+          h('p', null, kbt('kb.cp.gate.wait.body')),
+          pair.code ? h('p', null, kbt('kb.cp.kc.signin.code').replace('{code}', String(pair.code))) : null,
+          h('div', { className: 'kbcp-row' },
+            pair.url !== null ? linkBtn(pair.url, kbt('kb.cp.kc.signin.open')) : null,
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setPair(null) }, kbt('kb.cp.form.cancel'))))
+      } else if (props.account === true) {
+        accountBox = h('div', { className: 'kbcp-gbox rec', 'data-kb': 'gate-account' },
+          h('h4', null, kbt('kb.cp.gate.acc.title'), h('span', { className: 'kbcp-gtag' }, kbt('kb.cp.gate.rec'))),
+          h('p', null, kbt('kb.cp.gate.acc.body').replace('{n}', String(props.total))),
+          h('div', { className: 'kbcp-row' },
+            h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'gate-signin', disabled: starting, onClick: signIn }, kbt('kb.cp.gate.acc.go')),
+            h('button', { type: 'button', className: 'kbcp-glink', 'data-kb': 'gate-signin-have', disabled: starting, onClick: signIn }, kbt('kb.cp.gate.acc.have'))),
+          pair !== null && pair.failed === true ? h('div', { className: 'kbcp-err', role: 'alert', style: { marginTop: 8 } }, kbCpCloudErr('signin_failed')) : null)
+      }
+      const small = accountBox !== null
+      const keyBox = h('div', { className: 'kbcp-gbox' + (small ? ' sm' : ''), 'data-kb': 'gate-key' },
+        small ? h('h4', null, kbt('kb.cp.gate.key.title')) : null,
+        h('p', null, kbt(small ? 'kb.cp.gate.key.body' : 'kb.cp.gate.key.only')),
+        keyOpen === false ? h('button', { type: 'button', className: 'kbcp-glink', 'data-kb': 'gate-key-open', onClick: () => setKeyOpen(true) }, kbt('kb.cp.gate.key.paste'))
+          : h(React.Fragment, null,
+            h('div', { className: 'kbcp-row' },
+              h('input', { className: 'kbcp-input', type: 'password', value: key, placeholder: 'ck_…', autoComplete: 'off', spellCheck: false, disabled: busy, 'aria-label': kbt('composio.keylabel'), onChange: (e) => setKey(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') saveKey() } }),
+              h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'gate-key-save', disabled: busy || key.trim().length === 0, onClick: saveKey }, busy === true ? h(React.Fragment, null, h('span', { className: 'kbcp-sp', 'aria-hidden': 'true' }), ' ' + kbt('kb.cp.gate.key.checking')) : kbt('kb.cp.gate.key.save'))),
+            msg !== null ? h('div', { className: 'kbcp-err', role: 'alert', style: { marginTop: 8 } }, msg) : null,
+            h('p', { className: 'kbcp-gnote' }, kbt('kb.cp.gate.key.note'))))
+      return h('div', { className: 'kbcp-gate', 'data-kb': 'connect-gate' },
+        h('div', { className: 'kbcp-gate-h' }, kbt('kb.cp.gate.title').replace('{app}', props.app.n)),
+        accountBox,
+        keyBox)
+    }
+
     // ── page Connections ─────────────────────────────────────────────────────
     const PAGE = 24
     const ComposioPage = (props) => {
@@ -2248,9 +2439,16 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         try { if (window.__KB_DOMAIN__ && typeof window.__KB_DOMAIN__.subscribe === 'function') stop = window.__KB_DOMAIN__.subscribe(() => setDomTick((n) => n + 1)) } catch (e) { stop = null }
         return () => { try { if (typeof stop === 'function') stop() } catch (e2) { /* gone */ } }
       }, [])
+      // The Kybernos add window opened for one app of Discover: { app: { slug, name, needsApiKey } }.
+      const [kcAdd, setKcAdd] = React.useState(null)
+      // True once the page has tried to read the server's whole catalogue (the « load the full catalog » button is for a failed try).
+      const [fullTried, setFullTried] = React.useState(false)
+      /** Asks the cloud half for the account's connections; gives back the view it read (null: no usable answer). */
       const reloadKc = React.useCallback(async (fresh) => {
         const r = await kbCpCloud('/connections' + (fresh === true ? '?refresh=1' : ''))
-        setKc((prev) => kbCpCloudMerge(prev, kbCpCloudView(r)))
+        const view = kbCpCloudView(r)
+        setKc((prev) => kbCpCloudMerge(prev, view))
+        return view
       }, [])
       React.useEffect(() => { reloadKc(false) }, [reloadKc])
       const patchKc = React.useCallback((conn) => setKc((prev) => (prev === null || prev.offered !== true ? prev : Object.assign({}, prev, { connections: prev.connections.map((c) => (c.id === conn.id ? conn : c)) }))), [])
@@ -2305,7 +2503,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           } catch (e) {
             setErr(kbt('kb.cp.err.catalog') + ': ' + String((e && e.message) || e))
             setConns({})
-            return
+            return null
           }
         }
         setBusy(true)
@@ -2320,6 +2518,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           if (r.status !== 200 || r.json === null) { failure = r.status === 0 ? 'offline' : String(r.status); break }
           if (r.json.configured === true) configured = true
           else if (configured === null) configured = false
+          // No key on this machine: the next batches would say the same.
+          if (configured === false) break
           if (failure === null && r.json.configured === true && typeof r.json.error === 'string' && r.json.error.length > 0) failure = r.json.error
           for (const c of (Array.isArray(r.json.connections) ? r.json.connections : [])) {
             const key = String((c && c.toolkit) || '').toLowerCase()
@@ -2338,6 +2538,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         setHostCfg(configured)
         if (failure !== null) setErr(kbCpErrText(failure))
         setBusy(false)
+        return configured
       }, [])
       // The catalog comes from the host, on demand: first need = opening the page.
       React.useEffect(() => {
@@ -2346,7 +2547,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           if (alive === false) return
           setReady(true)
           setApps((prev) => (prev.length > list.length ? prev : list))
-          refresh(list)
+          // The whole server catalogue, for everyone (no sign-in needed to look); then, for someone with a key of their own, which of those apps are connected.
+          Promise.all([refresh(list), loadAll(true)]).then((res) => { if (alive === true && res[0] === true && res[1] !== null) refresh(res[1]) })
         }).catch((e2) => { if (alive === true) { setReady(true); setErr(kbt('kb.cp.err.catalog') + ': ' + String((e2 && e2.message) || e2)) } })
         return () => { alive = false }
       }, [refresh])
@@ -2356,27 +2558,31 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         return () => { try { window.removeEventListener('kbcp-key', on) } catch (e2) { } }
       }, [refresh, apps])
 
-      /** Loads the apps of the Kybernos catalog (slug + name + categories) from the server this machine is signed in to, through the cloud half
-       *  (the server's `GET /v1/connections/apps` needs the account's token, which only the host holds). Without that sign-in, or on a server
-       *  with no connected apps, the page keeps the local catalog and says why. */
-      const loadAll = async () => {
-        setLoadingAll(true)
-        setErr(null)
+      /** Reads the server's whole catalogue (about 1,600 apps: name, categories, description, logo) through the cloud half. The cloud half asks the
+       *  server's public route, so this works without any sign-in, and falls back to the account route on an older server. `quiet`: the page opening it
+       *  by itself says nothing when it cannot (the local catalogue stays and the button offers to try again). Gives back the rows, or null. */
+      const loadAll = async (quiet) => {
+        if (quiet !== true) { setLoadingAll(true); setErr(null) }
         try {
           const r = await kbCpCloud('/connections/apps')
           const j = r.json
-          const list = r.status === 200 && j !== null && j.ok === true && Array.isArray(j.apps) ? j.apps : []
-          if (list.length === 0) throw new Error(j !== null && j.connected === false ? 'sign in to Kybernos Cloud first' : (j !== null && j.offered === false ? 'this server offers no catalog' : 'empty catalog'))
-          // Whatever the list holds, an entry gets a string name and string categories: a missing
-          // name or an object in `categories` would throw in the search and in the facets.
-          const merged = list.filter((a) => a !== null && typeof a === 'object' && typeof a.slug === 'string' && a.slug.length > 0)
-            .map((a) => ({ s: a.slug, n: String(a.name || a.slug), c: Array.isArray(a.categories) ? a.categories.filter((x) => typeof x === 'string') : [], d: '', l: logoOf(a.slug) }))
-          setApps(merged)
+          const rows = r.status === 200 && j !== null && j.ok === true && Array.isArray(j.apps) ? kbCpFullRows(j.apps) : []
+          if (rows.length <= CATALOG.length) throw new Error(j !== null && j.connected === false ? 'sign in to Kybernos Cloud first' : (j !== null && j.offered === false ? 'this server offers no catalog' : 'empty catalog'))
+          setApps(rows)
           setReady(true)
-          refresh(merged)
+          return rows
         } catch (e) {
-          setErr(kbt('kb.cp.err.fullcatalog') + ': ' + String((e && e.message) || e))
-        } finally { setLoadingAll(false) }
+          if (quiet !== true) setErr(kbt('kb.cp.err.fullcatalog') + ': ' + String((e && e.message) || e))
+          return null
+        } finally {
+          if (quiet !== true) setLoadingAll(false)
+          setFullTried(true)
+        }
+      }
+      /** The button: read the whole catalogue, then which of its apps are connected. */
+      const reloadAll = async () => {
+        const rows = await loadAll(false)
+        if (rows !== null) refresh(rows)
       }
 
       /** Connect: the host starts the connection and gives the address where the person authorizes it. */
@@ -2445,14 +2651,20 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         loadConnecteurs()
       }
 
-      const accOf = (slug) => (conns[slug] || {}).accounts || []
+      // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
+      const effMode = kbCpModeEffective(mode, kc !== null && kc.offered === true, hostCfg)
+      const kcMode = effMode === 'kybernos'
+      const kcReady = kc !== null && kc.offered === true && kc.connected === true
+      // In that mode the cards show the account's connections (the Kybernos ones), not the ones of a key that may not exist here.
+      const kcAccs = {}
+      if (kcMode === true && kcReady === true) for (const c of kc.connections) (kcAccs[c.toolkit] = kcAccs[c.toolkit] || []).push({ id: c.id, label: String(c.alias || (c.accountType === 'api_key' ? kbt('kb.cp.kc.type.api_key') : 'OAuth')), status: c.status === 'active' ? 'ACTIVE' : 'PENDING' })
+      const accOf = (slug) => (kcMode === true ? (kcAccs[slug] || []) : ((conns[slug] || {}).accounts || []))
       const statusOf = (slug) => {
         const list = accOf(slug)
         if (list.length === 0) return null
         return list.some((a) => String(a.status).toUpperCase() === 'ACTIVE') ? 'ACTIVE' : 'PENDING'
       }
-      const cats = []
-      for (const a of apps) for (const c of (a.c || [])) if (cats.indexOf(c) < 0) cats.push(c)
+      const cats = kbCpTopCats(apps)
       // Multi-choice facet on the bar side, single-chip semantics on the page side: the
       // first type ticked filters, an empty selection means "All" (same
       // convention as the Teams view, which also reads types[0]).
@@ -2519,6 +2731,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const shown = mainList.slice((cur - 1) * PAGE, cur * PAGE)
       const totalConn = Object.values(conns).reduce((n, v) => n + ((v && v.accounts) ? v.accounts.length : 0), 0)
 
+      const openApp = (a) => setOpen(a)
+      const closeApp = () => setOpen(null)
       const accountRow = (slug, a) => {
         const on = String(a.status).toUpperCase() === 'ACTIVE'
         return h('div', { className: 'kb7-acc', key: a.id || Math.random() },
@@ -2527,7 +2741,35 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             h('div', { className: 'kb7-accname' }, a.label || a.id || kbt('kb.cp.account')),
             h('div', { className: 'kb7-accid', title: a.id }, (typeof a.id === 'string' && a.id.length > 12) ? (a.id.slice(0, 5) + '\u2022\u2022\u2022\u2022' + a.id.slice(-3)) : a.id),
             h('div', { className: 'kb7-accst ' + (on ? 'on' : 'pend') }, on ? kbt('kb.cp.active') : kbt('kb.cp.pend'))),
-          h('button', { type: 'button', className: 'kbcp-btn', title: kbt('kb.cp.remove'), onClick: (e) => { e.stopPropagation(); removeAccount(slug, a.id) } }, Icon('trash', 13)))
+          // The account's own connections are managed in Yours › Kybernos connections, not from here.
+          kcMode === true ? null : h('button', { type: 'button', className: 'kbcp-btn', title: kbt('kb.cp.remove'), onClick: (e) => { e.stopPropagation(); removeAccount(slug, a.id) } }, Icon('trash', 13)))
+      }
+
+      /** « Add a connection », for someone who can: Kybernos account (the add window, opened for this app) or their own key (the host). */
+      const addConn = (a) => {
+        if (kcMode === true) { setKcAdd({ app: { slug: a.s, name: a.n, needsApiKey: a.k === true } }); closeApp(); return }
+        connect(a.s)
+      }
+      // Nothing yet lets this person connect: no key on this machine, or a Kybernos account that is not signed in (or whose plan has no connections).
+      const needGate = kcMode === true ? (kcReady === false || kc.entitled === false) : hostCfg === false
+      /** Signed in from the gate: carry on with the app the person picked, if the plan allows it (else the gate now says why). */
+      const gateSignedIn = async (a) => {
+        setMode('kybernos')
+        const v = await reloadKc(false)
+        if (v !== null && v.offered === true && v.connected === true && v.entitled !== false) { setKcAdd({ app: { slug: a.s, name: a.n, needsApiKey: a.k === true } }); closeApp() }
+      }
+      const gateKeySaved = (a) => { setMode('personal'); connect(a.s) }
+      /** The Kybernos add window linked an app: go to Yours, where the pending row opens the authorization page and follows it. */
+      const kcLinked = (res) => {
+        setKcAdd(null)
+        const url = kbCpWebUrl(res.redirectUrl)
+        if (url !== null) {
+          kbCpSaveLink('kc:' + res.connection.id, url)
+          try { window.open(url, '_blank', 'noopener,noreferrer') } catch (e) { /* the pending row keeps a button that opens it */ }
+          flash(kbt('kb.cp.kc.done.opened').replace('{app}', res.app.name))
+        } else flash(kbt('kb.cp.kc.done.active').replace('{app}', res.app.name))
+        setVtab('yours')
+        reloadKc(false)
       }
 
       const modal = () => {
@@ -2535,14 +2777,14 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         const a = open
         const accs = accOf(a.s)
         const link = kbCpWebUrl(authLinks[a.s]) || kbCpGetLink(a.s)
-        return h('div', { className: 'kb7-overlay', onClick: () => setOpen(null) },
+        return h('div', { className: 'kb7-overlay', onClick: closeApp },
           h('div', { className: 'kb7-modal', onClick: (e) => e.stopPropagation() },
             h('div', { className: 'kb7-mhead' },
               AppLogo(a.s, 44),
               h('div', { style: { flex: 1, minWidth: 0 } },
                 h('div', { className: 'kb7-mname' }, a.n),
                 h('div', { className: 'kb7-mcat' }, (a.c || []).slice(0, 3).join(' · '))),
-              h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setOpen(null), 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
+              h('button', { type: 'button', className: 'kbcp-btn', onClick: closeApp, 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
             a.d ? h('p', { className: 'kb7-mdesc' }, a.d) : null,
             accs.length > 0
               ? h('div', null, accs.map((x) => accountRow(a.s, x)))
@@ -2551,8 +2793,10 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
               h('div', { className: 'kb7-authrow' }, Icon('ext', 15), kbt('kb.cp.wait')),
               h('a', { href: link, target: '_blank', rel: 'noopener', className: 'kbcp-btn primary', style: { textDecoration: 'none' } }, Icon('link', 13), kbt('kb.cp.openlink')),
               h('button', { type: 'button', className: 'kbcp-btn', title: kbt('kb.cp.dismiss'), onClick: () => { kbCpDropLink(a.s); setAuthLinks((prev) => { const n = Object.assign({}, prev); delete n[a.s]; return n }) } }, Icon('x', 13), kbt('kb.cp.dismiss'))) : null,
-            h('div', { className: 'kb7-actions' },
-              h('button', { type: 'button', className: 'kbcp-btn primary', disabled: busy, onClick: () => connect(a.s) }, Icon('plus', 14), kbt('kb.cp.addconn')))
+            needGate === true
+              ? h(ConnectGate, { key: a.s, app: a, account: kc !== null && kc.offered === true, plan: kcMode === true && kcReady === true && kc.entitled === false, web: kc !== null && kc.offered === true ? kc.web : null, total: apps.length, onSignedIn: () => gateSignedIn(a), onKeySaved: () => gateKeySaved(a) })
+              : h('div', { className: 'kb7-actions' },
+                h('button', { type: 'button', className: 'kbcp-btn primary', disabled: busy, 'data-kb': 'add-connection', onClick: () => addConn(a) }, Icon('plus', 14), kbt('kb.cp.addconn')))
           ))
       }
 
@@ -2574,7 +2818,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const appCard = (a, inPop, tag) => {
         const st = statusOf(a.s)
         const accs = accOf(a.s)
-        return h('button', { type: 'button', className: 'kb7-card', key: a.s, onClick: () => setOpen(a) },
+        return h('button', { type: 'button', className: 'kb7-card', key: a.s, onClick: () => openApp(a) },
           h('div', { className: 'kb7-lr' }, AppLogo(a.s, 42),
             h('div', { style: { minWidth: 0 } },
               h('div', { className: 'kb7-name' }, a.n),
@@ -2618,7 +2862,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const appRow = (a, inPop, tag) => {
         const st = statusOf(a.s)
         const accs = accOf(a.s)
-        return h('button', { type: 'button', className: 'kb7-row', key: a.s, onClick: () => setOpen(a) },
+        return h('button', { type: 'button', className: 'kb7-row', key: a.s, onClick: () => openApp(a) },
           AppLogo(a.s, 30),
           h('div', { className: 'kb7-rowid' }, h('div', { className: 'kb7-name' }, a.n), h('div', { className: 'kb7-cat' }, (a.c || [])[0] || 'App')),
           h('div', { className: 'kb7-rowdesc', title: a.d || undefined }, a.d || ''),
@@ -2629,10 +2873,10 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             accs.length > 1 ? h('span', { className: 'kb7-cat' }, accs.length + ' ' + kbt('kb.cp.accounts')) : null))
       }
       const appItem = (a, inPop, tag) => (viewMode === 'list' ? appRow(a, inPop, tag) : appCard(a, inPop, tag))
-      // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
-      const effMode = kbCpModeEffective(mode, kc !== null && kc.offered === true, hostCfg)
-      const kcMode = effMode === 'kybernos'
-
+      // Who the person connects as, beside the tabs: the catalogue is open to everyone, only connecting needs an account or a key.
+      const sessionPill = kcMode === true
+        ? h('span', { className: 'kbcp-sess' + (kcReady === true ? ' ok' : ''), title: kbt('kb.cp.sess.tip'), 'data-kb': 'session' }, kbt(kcReady === true ? 'kb.cp.sess.kc' : 'kb.cp.sess.anon'))
+        : (hostCfg === null ? null : h('span', { className: 'kbcp-sess' + (hostCfg === true ? ' ok' : ''), title: kbt('kb.cp.sess.tip'), 'data-kb': 'session' }, kbt(hostCfg === true ? 'kb.cp.sess.key' : 'kb.cp.sess.anon')))
       // The add menu is the page's primary action: a value, so the header can put it where the template wants it.
       const addWrap = h('div', { className: 'kbcp-addwrap' },
               h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add'), Icon('chev', 14)),
@@ -2701,11 +2945,12 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
               kbt('kb.cp.tab.mcp'), cx.length + apis.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length + apis.length)) : null)),
           // Refresh and « load the full catalog » belong to Discover: on the tabs' row, so the bar stays the same on every tab.
           vtab === 'discover' && kbTb !== null ? h('div', { className: 'kb7-discact' },
+            sessionPill,
             h('button', { type: 'button', className: 'kbcp-btn', disabled: busy || loadingAll, onClick: () => refresh(apps, true), title: kbt('kb.cp.refresh') }, Icon('refresh', 13)),
-            apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null) : null),
+            apps.length <= CATALOG.length && fullTried === true ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: reloadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null) : null),
         // (01/10) The status banners go UNDER the control row: their
         // appearance no longer moves the title or the row (tab parity).
-        (vtab !== 'mcp' && kcMode === false && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
+        (vtab === 'yours' && kcMode === false && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
         err !== null && (vtab !== 'yours' || kcMode === false) ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
         // ── Tes connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
@@ -2743,7 +2988,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             h('button', { type: 'button', className: 'kb7-chip' + (chip === 'connected' ? ' on' : ''), onClick: () => { setChipFb('connected'); setPage(1) } }, kbt('kb.cp.chipconn') + (totalConn > 0 ? ' · ' + totalConn : '')),
             cats.slice(0, 14).map((c) => h('button', { type: 'button', key: c, className: 'kb7-chip' + (chip === c ? ' on' : ''), onClick: () => { setChipFb(c); setPage(1) } }, c)),
             h('button', { type: 'button', className: 'kbcp-btn', disabled: busy || loadingAll, onClick: () => refresh(apps, true), title: kbt('kb.cp.refresh') }, Icon('refresh', 13)),
-            apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null),
+            apps.length <= CATALOG.length && fullTried === true ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: reloadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null),
           (ready === false || (busy === true && Object.keys(conns).length === 0)) && shown.length === 0 && skelCards(9) !== null ? skelCards(9)
             : (ready === false || (busy === true && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')) : null),
           h('div', { className: gridCls, 'data-kb': 'discover-grid' },
@@ -2758,6 +3003,13 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             h('button', { type: 'button', className: 'kbcp-btn', disabled: cur >= pages, onClick: () => setPage(cur + 1) }, '›')) : null,
         ) : null,
         modal(),
+        kcAdd !== null && kcReady === true ? h(KcAddModal, {
+          fixed: true, apps: [kcAdd.app], preset: { toolkit: kcAdd.app.slug, alias: '', apiKey: kcAdd.app.needsApiKey === true }, limit: kc.limit, count: kc.count,
+          onClose: () => setKcAdd(null),
+          onLinked: kcLinked,
+          onCheck: () => { setKcAdd(null); reloadKc(true) },
+          onCancelExisting: async (id) => { const r = await kbCpCloud('/connections/delete', 'POST', { id: id }); reloadKc(false); return r },
+        }) : null,
         cxForm !== null ? h(ConnecteurForm, {
           initial: cxForm.initial,
           onSaved: (nom) => savedServers([nom], kbt('kb.cp.form.saved')),
@@ -3254,7 +3506,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { needView: kbCpNeedView, modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { needView: kbCpNeedView, modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, fullRows: kbCpFullRows, topCats: kbCpTopCats, logoUrl: kbCpLogoUrl, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

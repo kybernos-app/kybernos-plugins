@@ -938,6 +938,8 @@ const apiFetch = async (path, options = {}) => {
     const got = await readBoundedText(res, Number.isFinite(options.maxBytes) && options.maxBytes > 0 ? options.maxBytes : MAX_RESPONSE_BYTES)
     if (got.tooLarge === true) return { status: 0, body: null, error: 'response_too_large' }
     if (got.error !== undefined) return { status: 0, body: null, error: got.error }
+    // `raw`: the caller wants the text as it came (a logo is an SVG, not JSON); it checks what it got.
+    if (options.raw === true) return { status: res.status, body: null, text: got.text }
     let parsed = null
     let readable = true
     try { parsed = JSON.parse(got.text) } catch (e) { parsed = null; readable = got.text.trim() === '' }
@@ -1812,6 +1814,22 @@ const referralRoute = async () => {
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
+
+/** The one answer that is not JSON: `{ status, type, body, maxAge }` from a route marked `raw` (a connected-app logo, an image for an <img>). Never sniffed, never run. */
+const sendRaw = (res, out) => {
+  try {
+    const o = out !== null && typeof out === 'object' ? out : {}
+    const ok = o.status === 200 && typeof o.body === 'string' && typeof o.type === 'string'
+    const age = Number.isFinite(o.maxAge) ? o.maxAge : 0
+    res.writeHead(ok ? 200 : 404, {
+      'content-type': ok ? o.type : 'text/plain; charset=utf-8',
+      'cache-control': age > 0 ? 'public, max-age=' + String(Math.floor(age)) : 'no-store',
+      'x-content-type-options': 'nosniff',
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    })
+    res.end(ok ? o.body : 'not found')
+  } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket closed */ } }
+}
 
 const sendJson = (res, status, payload) => {
   try {
@@ -5966,6 +5984,7 @@ const ROUTES = [
   // link may carry the API key of a toolkit that has no OAuth, so its body is small and its handler never logs or echoes it.
   { path: '/kybernos-cloud/connections', method: 'GET', guarded: true, run: connections.listRoute },
   { path: '/kybernos-cloud/connections/apps', method: 'GET', guarded: true, run: connections.appsRoute },
+  { path: '/kybernos-cloud/connections/logo', method: 'GET', guarded: true, raw: true, run: connections.logoRoute },
   { path: '/kybernos-cloud/connections/item', method: 'GET', guarded: true, run: connections.itemRoute },
   { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: connections.linkRoute },
   { path: '/kybernos-cloud/connections/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: connections.deleteRoute },
@@ -6007,7 +6026,9 @@ const mountWebRoutes = (ctx, webServer) => {
         // `body: true` → JSON body read here (bounded by `cap`) and passed to the
         // handler with the request; the other handlers ignore these arguments.
         const body = route.body === true ? await readJsonBody(req, route.cap) : null
-        sendJson(res, 200, await route.run(req, body))
+        const out = await route.run(req, body)
+        if (route.raw === true) return sendRaw(res, out)
+        sendJson(res, 200, out)
       } catch (e) {
         console.error('[kybernos-cloud] ' + route.path + ': ' + String((e && e.message) || e))
         sendJson(res, 500, { ok: false, error: 'internal error' })
