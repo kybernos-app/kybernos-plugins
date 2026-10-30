@@ -1,0 +1,898 @@
+{
+  "id": "ecommerce",
+  "name": {
+    "en": "E-commerce shop",
+    "fr": "Boutique en ligne"
+  },
+  "objects": [
+    {
+      "key": "contact",
+      "label": {
+        "en": "Contacts",
+        "fr": "Contacts"
+      },
+      "title": "name",
+      "fields": [
+        {
+          "key": "name",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Name",
+            "fr": "Nom"
+          }
+        },
+        {
+          "key": "kind",
+          "type": "choice",
+          "label": {
+            "en": "Kind",
+            "fr": "Nature"
+          },
+          "options": [
+            {
+              "key": "person",
+              "label": {
+                "en": "Person",
+                "fr": "Personne"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "company",
+              "label": {
+                "en": "Company",
+                "fr": "Entreprise"
+              },
+              "color": "purple"
+            }
+          ]
+        },
+        {
+          "key": "type",
+          "type": "choice",
+          "label": {
+            "en": "Type",
+            "fr": "Type"
+          },
+          "options": [
+            {
+              "key": "customer",
+              "label": {
+                "en": "Customer",
+                "fr": "Client"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "trade-customer",
+              "label": {
+                "en": "Trade customer",
+                "fr": "Client professionnel"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "supplier",
+              "label": {
+                "en": "Supplier",
+                "fr": "Fournisseur"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "supplier-contact",
+              "label": {
+                "en": "Supplier contact",
+                "fr": "Contact fournisseur"
+              },
+              "color": "pink"
+            }
+          ]
+        },
+        {
+          "key": "email",
+          "type": "email",
+          "protection": "personal",
+          "label": {
+            "en": "Email",
+            "fr": "E-mail"
+          }
+        },
+        {
+          "key": "city",
+          "type": "text",
+          "label": {
+            "en": "City",
+            "fr": "Ville"
+          }
+        },
+        {
+          "key": "sector",
+          "type": "text",
+          "label": {
+            "en": "Sector",
+            "fr": "Secteur"
+          }
+        },
+        {
+          "key": "lead_time",
+          "type": "text",
+          "label": {
+            "en": "Lead time",
+            "fr": "Délai de livraison"
+          }
+        },
+        {
+          "key": "spent",
+          "type": "money",
+          "label": {
+            "en": "Total spent",
+            "fr": "Total dépensé"
+          },
+          "currency": "EUR",
+          "precision": 0
+        },
+        {
+          "key": "last_order",
+          "type": "date",
+          "label": {
+            "en": "Last order",
+            "fr": "Dernière commande"
+          }
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "vip",
+              "label": {
+                "en": "vip",
+                "fr": "vip"
+              }
+            },
+            {
+              "key": "repeat",
+              "label": {
+                "en": "repeat",
+                "fr": "client fidèle"
+              }
+            },
+            {
+              "key": "newsletter",
+              "label": {
+                "en": "newsletter",
+                "fr": "newsletter"
+              }
+            },
+            {
+              "key": "wholesale",
+              "label": {
+                "en": "wholesale",
+                "fr": "grossiste"
+              }
+            },
+            {
+              "key": "first-order",
+              "label": {
+                "en": "first order",
+                "fr": "première commande"
+              }
+            },
+            {
+              "key": "gift-buyer",
+              "label": {
+                "en": "gift buyer",
+                "fr": "acheteur cadeau"
+              }
+            },
+            {
+              "key": "abroad",
+              "label": {
+                "en": "abroad",
+                "fr": "étranger"
+              }
+            },
+            {
+              "key": "handmade",
+              "label": {
+                "en": "handmade",
+                "fr": "fait main"
+              }
+            }
+          ]
+        },
+        {
+          "key": "company",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Company",
+            "fr": "Entreprise"
+          },
+          "inverse": {
+            "en": "People",
+            "fr": "Personnes"
+          }
+        },
+        {
+          "key": "photo",
+          "type": "attachment",
+          "label": {
+            "en": "Photo",
+            "fr": "Photo"
+          },
+          "maxBytes": 262144
+        }
+      ]
+    },
+    {
+      "key": "product",
+      "label": {
+        "en": "Products",
+        "fr": "Produits"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "status",
+          "type": "choice",
+          "label": {
+            "en": "Status",
+            "fr": "Statut"
+          },
+          "options": [
+            {
+              "key": "live",
+              "label": {
+                "en": "Live",
+                "fr": "En ligne"
+              },
+              "color": "green"
+            },
+            {
+              "key": "draft",
+              "label": {
+                "en": "Draft",
+                "fr": "Brouillon"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "out",
+              "label": {
+                "en": "Out of stock",
+                "fr": "En rupture"
+              },
+              "color": "red"
+            }
+          ]
+        },
+        {
+          "key": "sku",
+          "type": "text",
+          "label": {
+            "en": "Reference",
+            "fr": "Référence"
+          }
+        },
+        {
+          "key": "price",
+          "type": "money",
+          "label": {
+            "en": "Price",
+            "fr": "Prix"
+          },
+          "currency": "EUR",
+          "precision": 0
+        },
+        {
+          "key": "stock",
+          "type": "number",
+          "label": {
+            "en": "Stock",
+            "fr": "Stock"
+          }
+        },
+        {
+          "key": "reorder_at",
+          "type": "number",
+          "label": {
+            "en": "Reorder at",
+            "fr": "Seuil de réassort"
+          }
+        },
+        {
+          "key": "supplier",
+          "type": "text",
+          "label": {
+            "en": "Supplier",
+            "fr": "Fournisseur"
+          }
+        },
+        {
+          "key": "category",
+          "type": "choice",
+          "label": {
+            "en": "Category",
+            "fr": "Catégorie"
+          },
+          "options": [
+            {
+              "key": "kitchen",
+              "label": {
+                "en": "Kitchen",
+                "fr": "Cuisine"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "table",
+              "label": {
+                "en": "Table",
+                "fr": "Table"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "home",
+              "label": {
+                "en": "Home",
+                "fr": "Maison"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "candles",
+              "label": {
+                "en": "Candles",
+                "fr": "Bougies"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "textiles",
+              "label": {
+                "en": "Textiles",
+                "fr": "Textiles"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "gifts",
+              "label": {
+                "en": "Gifts",
+                "fr": "Cadeaux"
+              },
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "key": "material",
+          "type": "text",
+          "label": {
+            "en": "Material",
+            "fr": "Matière"
+          }
+        },
+        {
+          "key": "badge",
+          "type": "choice",
+          "label": {
+            "en": "Badge",
+            "fr": "Mention"
+          },
+          "options": [
+            {
+              "key": "bestseller",
+              "label": {
+                "en": "Bestseller",
+                "fr": "Meilleure vente"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "new",
+              "label": {
+                "en": "New",
+                "fr": "Nouveau"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "limited",
+              "label": {
+                "en": "Limited",
+                "fr": "Édition limitée"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "sale",
+              "label": {
+                "en": "Sale",
+                "fr": "Soldes"
+              },
+              "color": "pink"
+            }
+          ]
+        },
+        {
+          "key": "rating",
+          "type": "text",
+          "label": {
+            "en": "Customer rating",
+            "fr": "Note des clients"
+          }
+        },
+        {
+          "key": "photo",
+          "type": "attachment",
+          "label": {
+            "en": "Photo",
+            "fr": "Photo"
+          },
+          "maxBytes": 262144
+        }
+      ]
+    },
+    {
+      "key": "orders",
+      "label": {
+        "en": "Orders",
+        "fr": "Commandes"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "stage",
+          "type": "choice",
+          "label": {
+            "en": "Stage",
+            "fr": "Étape"
+          },
+          "options": [
+            {
+              "key": "new",
+              "label": {
+                "en": "New",
+                "fr": "Nouvelle"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "paid",
+              "label": {
+                "en": "Paid",
+                "fr": "Payée"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "packed",
+              "label": {
+                "en": "Packed",
+                "fr": "Préparée"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "shipped",
+              "label": {
+                "en": "Shipped",
+                "fr": "Expédiée"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "delivered",
+              "label": {
+                "en": "Delivered",
+                "fr": "Livrée"
+              },
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "key": "value",
+          "type": "money",
+          "currency": "EUR",
+          "label": {
+            "en": "Value",
+            "fr": "Valeur"
+          },
+          "precision": 0
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Orders",
+            "fr": "Commandes"
+          }
+        },
+        {
+          "key": "product",
+          "type": "relation",
+          "to": "product",
+          "label": {
+            "en": "Product",
+            "fr": "Produit"
+          },
+          "inverse": {
+            "en": "Orders",
+            "fr": "Commandes"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "text",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé"
+          }
+        },
+        {
+          "key": "source",
+          "type": "choice",
+          "label": {
+            "en": "Source",
+            "fr": "Origine"
+          },
+          "options": [
+            {
+              "key": "website",
+              "label": {
+                "en": "Website",
+                "fr": "Site web"
+              }
+            },
+            {
+              "key": "marketplace",
+              "label": {
+                "en": "Marketplace",
+                "fr": "Place de marché"
+              }
+            },
+            {
+              "key": "newsletter",
+              "label": {
+                "en": "Newsletter",
+                "fr": "Newsletter"
+              }
+            },
+            {
+              "key": "instagram",
+              "label": {
+                "en": "Instagram",
+                "fr": "Instagram"
+              }
+            },
+            {
+              "key": "wholesale-form",
+              "label": {
+                "en": "Wholesale form",
+                "fr": "Formulaire grossiste"
+              }
+            },
+            {
+              "key": "phone",
+              "label": {
+                "en": "Phone",
+                "fr": "Téléphone"
+              }
+            }
+          ]
+        },
+        {
+          "key": "priority",
+          "type": "choice",
+          "label": {
+            "en": "Priority",
+            "fr": "Priorité"
+          },
+          "options": [
+            {
+              "key": "low",
+              "label": {
+                "en": "Low",
+                "fr": "Basse"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "normal",
+              "label": {
+                "en": "Normal",
+                "fr": "Normale"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "high",
+              "label": {
+                "en": "High",
+                "fr": "Haute"
+              },
+              "color": "red"
+            }
+          ]
+        },
+        {
+          "key": "due",
+          "type": "date",
+          "label": {
+            "en": "Due",
+            "fr": "Échéance"
+          }
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "vip",
+              "label": {
+                "en": "vip",
+                "fr": "vip"
+              }
+            },
+            {
+              "key": "gift-wrap",
+              "label": {
+                "en": "gift wrap",
+                "fr": "emballage cadeau"
+              }
+            },
+            {
+              "key": "first-order",
+              "label": {
+                "en": "first order",
+                "fr": "première commande"
+              }
+            },
+            {
+              "key": "repeat",
+              "label": {
+                "en": "repeat",
+                "fr": "client fidèle"
+              }
+            },
+            {
+              "key": "welcome-code",
+              "label": {
+                "en": "welcome code",
+                "fr": "code de bienvenue"
+              }
+            },
+            {
+              "key": "abroad",
+              "label": {
+                "en": "abroad",
+                "fr": "étranger"
+              }
+            },
+            {
+              "key": "wholesale",
+              "label": {
+                "en": "wholesale",
+                "fr": "grossiste"
+              }
+            },
+            {
+              "key": "hotel",
+              "label": {
+                "en": "hotel",
+                "fr": "hôtel"
+              }
+            },
+            {
+              "key": "gift",
+              "label": {
+                "en": "gift",
+                "fr": "cadeau"
+              }
+            },
+            {
+              "key": "backorder",
+              "label": {
+                "en": "backorder",
+                "fr": "précommande"
+              }
+            },
+            {
+              "key": "market",
+              "label": {
+                "en": "market",
+                "fr": "marché"
+              }
+            },
+            {
+              "key": "tracked",
+              "label": {
+                "en": "tracked",
+                "fr": "suivi"
+              }
+            },
+            {
+              "key": "ask-review",
+              "label": {
+                "en": "ask review",
+                "fr": "demander un avis"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "note",
+      "label": {
+        "en": "Notes",
+        "fr": "Notes"
+      },
+      "title": "body",
+      "fields": [
+        {
+          "key": "body",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Note",
+            "fr": "Note"
+          }
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Notes",
+            "fr": "Notes"
+          }
+        }
+      ]
+    }
+  ],
+  "views": [
+    {
+      "object": "contact",
+      "id": "contact-1-all",
+      "name": {
+        "en": "All contacts",
+        "fr": "Tous les contacts"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "contact",
+      "id": "contact-2-cards",
+      "name": {
+        "en": "Cards",
+        "fr": "Fiches"
+      },
+      "kind": "cards",
+      "fav": true
+    },
+    {
+      "object": "contact",
+      "id": "contact-3-by-type",
+      "name": {
+        "en": "By type",
+        "fr": "Par type"
+      },
+      "kind": "board",
+      "by": "type"
+    },
+    {
+      "object": "product",
+      "id": "product-1-gallery",
+      "name": {
+        "en": "Gallery",
+        "fr": "Galerie"
+      },
+      "kind": "cards",
+      "fav": true
+    },
+    {
+      "object": "product",
+      "id": "product-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "product",
+      "id": "product-3-by-status",
+      "name": {
+        "en": "By status",
+        "fr": "Par statut"
+      },
+      "kind": "board",
+      "by": "status"
+    },
+    {
+      "object": "orders",
+      "id": "orders-1-pipeline",
+      "name": {
+        "en": "Pipeline",
+        "fr": "Pipeline"
+      },
+      "kind": "board",
+      "by": "stage",
+      "fav": true
+    },
+    {
+      "object": "orders",
+      "id": "orders-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "orders",
+      "id": "orders-3-calendar",
+      "name": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      },
+      "kind": "calendar",
+      "date": "due"
+    },
+    {
+      "object": "note",
+      "id": "note-1-all",
+      "name": {
+        "en": "All notes",
+        "fr": "Toutes les notes"
+      },
+      "kind": "table",
+      "fav": true
+    }
+  ]
+}

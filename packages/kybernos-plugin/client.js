@@ -28252,7 +28252,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // the sample rows (marked demo) go into the business base through the host, which knows the theme's folder
         rep.demo = 'skipped'
         if (ticks.demo === true) {
-          const sown = await kbThApi({ action: 'seed', id: plan.id })
+          const sown = await kbThApi({ action: 'seed', id: plan.id, lang: kbThEn('en', 'fr') })
           rep.demo = kbThPlain(sown) && sown.ok === true ? (sown.skipped === true ? 'already there' : 'added') : 'failed'
         }
         const applied = {

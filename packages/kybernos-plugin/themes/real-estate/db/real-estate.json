@@ -1,0 +1,1402 @@
+{
+  "id": "real-estate",
+  "name": {
+    "en": "Real estate agency",
+    "fr": "Agence immobilière"
+  },
+  "objects": [
+    {
+      "key": "contact",
+      "label": {
+        "en": "Contacts",
+        "fr": "Contacts"
+      },
+      "title": "name",
+      "fields": [
+        {
+          "key": "name",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Name",
+            "fr": "Nom"
+          }
+        },
+        {
+          "key": "kind",
+          "type": "choice",
+          "label": {
+            "en": "Kind",
+            "fr": "Nature"
+          },
+          "options": [
+            {
+              "key": "person",
+              "label": {
+                "en": "Person",
+                "fr": "Personne"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "company",
+              "label": {
+                "en": "Company",
+                "fr": "Entreprise"
+              },
+              "color": "purple"
+            }
+          ]
+        },
+        {
+          "key": "type",
+          "type": "choice",
+          "label": {
+            "en": "Type",
+            "fr": "Type"
+          },
+          "options": [
+            {
+              "key": "buyer",
+              "label": {
+                "en": "Buyer",
+                "fr": "Acheteur"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "seller",
+              "label": {
+                "en": "Seller",
+                "fr": "Vendeur"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "landlord",
+              "label": {
+                "en": "Landlord",
+                "fr": "Bailleur"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "tenant",
+              "label": {
+                "en": "Tenant",
+                "fr": "Locataire"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "partner",
+              "label": {
+                "en": "Partner",
+                "fr": "Partenaire"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "owner-company",
+              "label": {
+                "en": "Owner company",
+                "fr": "Société propriétaire"
+              },
+              "color": "green"
+            },
+            {
+              "key": "partner-firm",
+              "label": {
+                "en": "Partner firm",
+                "fr": "Cabinet partenaire"
+              },
+              "color": "blue"
+            }
+          ]
+        },
+        {
+          "key": "email",
+          "type": "email",
+          "protection": "personal",
+          "label": {
+            "en": "Email",
+            "fr": "E-mail"
+          }
+        },
+        {
+          "key": "city",
+          "type": "text",
+          "label": {
+            "en": "City",
+            "fr": "Ville"
+          }
+        },
+        {
+          "key": "budget",
+          "type": "money",
+          "label": {
+            "en": "Budget",
+            "fr": "Budget"
+          },
+          "currency": "EUR",
+          "precision": 0
+        },
+        {
+          "key": "sector",
+          "type": "text",
+          "label": {
+            "en": "Sector",
+            "fr": "Secteur"
+          }
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "pre-approved",
+              "label": {
+                "en": "pre-approved",
+                "fr": "prêt accordé"
+              }
+            },
+            {
+              "key": "first-time",
+              "label": {
+                "en": "first-time",
+                "fr": "primo-accédant"
+              }
+            },
+            {
+              "key": "family",
+              "label": {
+                "en": "family",
+                "fr": "famille"
+              }
+            },
+            {
+              "key": "investor",
+              "label": {
+                "en": "investor",
+                "fr": "investisseur"
+              }
+            },
+            {
+              "key": "cash-buyer",
+              "label": {
+                "en": "cash-buyer",
+                "fr": "acheteur comptant"
+              }
+            },
+            {
+              "key": "relocating",
+              "label": {
+                "en": "relocating",
+                "fr": "mutation"
+              }
+            },
+            {
+              "key": "mandate",
+              "label": {
+                "en": "mandate",
+                "fr": "mandat"
+              }
+            },
+            {
+              "key": "urgent",
+              "label": {
+                "en": "urgent",
+                "fr": "urgent"
+              }
+            },
+            {
+              "key": "new",
+              "label": {
+                "en": "new",
+                "fr": "nouveau"
+              }
+            },
+            {
+              "key": "vip",
+              "label": {
+                "en": "vip",
+                "fr": "vip"
+              }
+            },
+            {
+              "key": "landlord",
+              "label": {
+                "en": "landlord",
+                "fr": "bailleur"
+              }
+            },
+            {
+              "key": "partner",
+              "label": {
+                "en": "partner",
+                "fr": "partenaire"
+              }
+            }
+          ]
+        },
+        {
+          "key": "company",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Company",
+            "fr": "Entreprise"
+          },
+          "inverse": {
+            "en": "People",
+            "fr": "Personnes"
+          }
+        },
+        {
+          "key": "photo",
+          "type": "attachment",
+          "label": {
+            "en": "Photo",
+            "fr": "Photo"
+          },
+          "maxBytes": 262144
+        }
+      ]
+    },
+    {
+      "key": "property",
+      "label": {
+        "en": "Properties",
+        "fr": "Biens"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "status",
+          "type": "choice",
+          "label": {
+            "en": "Status",
+            "fr": "Statut"
+          },
+          "options": [
+            {
+              "key": "for-sale",
+              "label": {
+                "en": "For sale",
+                "fr": "À vendre"
+              },
+              "color": "green"
+            },
+            {
+              "key": "to-let",
+              "label": {
+                "en": "To let",
+                "fr": "À louer"
+              },
+              "color": "green"
+            },
+            {
+              "key": "under-offer",
+              "label": {
+                "en": "Under offer",
+                "fr": "Sous offre"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "sold",
+              "label": {
+                "en": "Sold",
+                "fr": "Vendu"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "mandate-draft",
+              "label": {
+                "en": "Mandate draft",
+                "fr": "Mandat à signer"
+              },
+              "color": "gray"
+            }
+          ]
+        },
+        {
+          "key": "address",
+          "type": "text",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse"
+          }
+        },
+        {
+          "key": "surface",
+          "type": "number",
+          "label": {
+            "en": "Surface (m²)",
+            "fr": "Surface (m²)"
+          }
+        },
+        {
+          "key": "rooms",
+          "type": "number",
+          "label": {
+            "en": "Rooms",
+            "fr": "Pièces"
+          }
+        },
+        {
+          "key": "energy",
+          "type": "choice",
+          "label": {
+            "en": "Energy class",
+            "fr": "Classe énergie"
+          },
+          "options": [
+            {
+              "key": "a",
+              "label": {
+                "en": "A",
+                "fr": "A"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "b",
+              "label": {
+                "en": "B",
+                "fr": "B"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "c",
+              "label": {
+                "en": "C",
+                "fr": "C"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "d",
+              "label": {
+                "en": "D",
+                "fr": "D"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "e",
+              "label": {
+                "en": "E",
+                "fr": "E"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "f",
+              "label": {
+                "en": "F",
+                "fr": "F"
+              },
+              "color": "green"
+            },
+            {
+              "key": "g",
+              "label": {
+                "en": "G",
+                "fr": "G"
+              },
+              "color": "blue"
+            }
+          ]
+        },
+        {
+          "key": "price",
+          "type": "money",
+          "label": {
+            "en": "Price or rent",
+            "fr": "Prix ou loyer"
+          },
+          "currency": "EUR",
+          "precision": 0
+        },
+        {
+          "key": "offer",
+          "type": "money",
+          "label": {
+            "en": "Offer received",
+            "fr": "Offre reçue"
+          },
+          "currency": "EUR",
+          "precision": 0
+        },
+        {
+          "key": "mandate_until",
+          "type": "date",
+          "label": {
+            "en": "Mandate until",
+            "fr": "Mandat jusqu’au"
+          }
+        },
+        {
+          "key": "owner",
+          "type": "text",
+          "label": {
+            "en": "Owner or landlord",
+            "fr": "Propriétaire ou bailleur"
+          }
+        },
+        {
+          "key": "kind",
+          "type": "choice",
+          "label": {
+            "en": "Kind",
+            "fr": "Type de bien"
+          },
+          "options": [
+            {
+              "key": "apartment",
+              "label": {
+                "en": "Apartment",
+                "fr": "Appartement"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "house",
+              "label": {
+                "en": "House",
+                "fr": "Maison"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "villa",
+              "label": {
+                "en": "Villa",
+                "fr": "Villa"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "loft",
+              "label": {
+                "en": "Loft",
+                "fr": "Loft"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "studio",
+              "label": {
+                "en": "Studio",
+                "fr": "Studio"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "townhouse",
+              "label": {
+                "en": "Townhouse",
+                "fr": "Maison de ville"
+              },
+              "color": "green"
+            },
+            {
+              "key": "farmhouse",
+              "label": {
+                "en": "Farmhouse",
+                "fr": "Corps de ferme"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "bungalow",
+              "label": {
+                "en": "Bungalow",
+                "fr": "Bungalow"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "penthouse",
+              "label": {
+                "en": "Penthouse",
+                "fr": "Penthouse"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "commercial",
+              "label": {
+                "en": "Commercial",
+                "fr": "Local commercial"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "cottage",
+              "label": {
+                "en": "Cottage",
+                "fr": "Cottage"
+              },
+              "color": "amber"
+            }
+          ]
+        },
+        {
+          "key": "district",
+          "type": "choice",
+          "label": {
+            "en": "District",
+            "fr": "Quartier"
+          },
+          "options": [
+            {
+              "key": "old-town",
+              "label": {
+                "en": "Old Town",
+                "fr": "Vieille ville"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "lakeside",
+              "label": {
+                "en": "Lakeside",
+                "fr": "Bord de lac"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "hillside",
+              "label": {
+                "en": "Hillside",
+                "fr": "Coteau"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "riverside",
+              "label": {
+                "en": "Riverside",
+                "fr": "Bord de rivière"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "station",
+              "label": {
+                "en": "Station",
+                "fr": "Gare"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "market",
+              "label": {
+                "en": "Market",
+                "fr": "Marché"
+              },
+              "color": "green"
+            },
+            {
+              "key": "countryside",
+              "label": {
+                "en": "Countryside",
+                "fr": "Campagne"
+              },
+              "color": "blue"
+            }
+          ]
+        },
+        {
+          "key": "outdoor",
+          "type": "choice",
+          "label": {
+            "en": "Outdoor space",
+            "fr": "Extérieur"
+          },
+          "options": [
+            {
+              "key": "garden",
+              "label": {
+                "en": "Garden",
+                "fr": "Jardin"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "balcony",
+              "label": {
+                "en": "Balcony",
+                "fr": "Balcon"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "terrace",
+              "label": {
+                "en": "Terrace",
+                "fr": "Terrasse"
+              },
+              "color": "purple"
+            },
+            {
+              "key": "pool",
+              "label": {
+                "en": "Pool",
+                "fr": "Piscine"
+              },
+              "color": "pink"
+            },
+            {
+              "key": "jetty",
+              "label": {
+                "en": "Jetty",
+                "fr": "Ponton"
+              },
+              "color": "amber"
+            }
+          ]
+        },
+        {
+          "key": "lat",
+          "type": "number",
+          "label": {
+            "en": "Latitude",
+            "fr": "Latitude"
+          }
+        },
+        {
+          "key": "lng",
+          "type": "number",
+          "label": {
+            "en": "Longitude",
+            "fr": "Longitude"
+          }
+        },
+        {
+          "key": "photo",
+          "type": "attachment",
+          "label": {
+            "en": "Photo",
+            "fr": "Photo"
+          },
+          "maxBytes": 262144
+        }
+      ]
+    },
+    {
+      "key": "lettings",
+      "label": {
+        "en": "Lettings",
+        "fr": "Locations"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "stage",
+          "type": "choice",
+          "label": {
+            "en": "Stage",
+            "fr": "Étape"
+          },
+          "options": [
+            {
+              "key": "application",
+              "label": {
+                "en": "Application",
+                "fr": "Dossier"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "viewing",
+              "label": {
+                "en": "Viewing",
+                "fr": "Visite"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "lease",
+              "label": {
+                "en": "Lease",
+                "fr": "Bail"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "moved-in",
+              "label": {
+                "en": "Moved in",
+                "fr": "Entrée"
+              },
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "key": "value",
+          "type": "money",
+          "currency": "EUR",
+          "label": {
+            "en": "Value",
+            "fr": "Valeur"
+          },
+          "precision": 0
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Lettings",
+            "fr": "Locations"
+          }
+        },
+        {
+          "key": "property",
+          "type": "relation",
+          "to": "property",
+          "label": {
+            "en": "Property",
+            "fr": "Bien"
+          },
+          "inverse": {
+            "en": "Lettings",
+            "fr": "Locations"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "text",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé"
+          }
+        },
+        {
+          "key": "source",
+          "type": "choice",
+          "label": {
+            "en": "Source",
+            "fr": "Origine"
+          },
+          "options": [
+            {
+              "key": "phone",
+              "label": {
+                "en": "Phone",
+                "fr": "Téléphone"
+              }
+            },
+            {
+              "key": "walk-in",
+              "label": {
+                "en": "Walk-in",
+                "fr": "Passage"
+              }
+            },
+            {
+              "key": "referral",
+              "label": {
+                "en": "Referral",
+                "fr": "Recommandation"
+              }
+            },
+            {
+              "key": "portal",
+              "label": {
+                "en": "Portal",
+                "fr": "Portail"
+              }
+            },
+            {
+              "key": "website",
+              "label": {
+                "en": "Website",
+                "fr": "Site web"
+              }
+            }
+          ]
+        },
+        {
+          "key": "priority",
+          "type": "choice",
+          "label": {
+            "en": "Priority",
+            "fr": "Priorité"
+          },
+          "options": [
+            {
+              "key": "low",
+              "label": {
+                "en": "Low",
+                "fr": "Basse"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "normal",
+              "label": {
+                "en": "Normal",
+                "fr": "Normale"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "high",
+              "label": {
+                "en": "High",
+                "fr": "Haute"
+              },
+              "color": "red"
+            }
+          ]
+        },
+        {
+          "key": "due",
+          "type": "date",
+          "label": {
+            "en": "Due",
+            "fr": "Échéance"
+          }
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "new",
+              "label": {
+                "en": "new",
+                "fr": "nouveau"
+              }
+            },
+            {
+              "key": "business",
+              "label": {
+                "en": "business",
+                "fr": "professionnel"
+              }
+            },
+            {
+              "key": "family",
+              "label": {
+                "en": "family",
+                "fr": "famille"
+              }
+            },
+            {
+              "key": "move-in",
+              "label": {
+                "en": "move-in",
+                "fr": "emménagement"
+              }
+            },
+            {
+              "key": "relocating",
+              "label": {
+                "en": "relocating",
+                "fr": "mutation"
+              }
+            },
+            {
+              "key": "first-time",
+              "label": {
+                "en": "first-time",
+                "fr": "primo-accédant"
+              }
+            },
+            {
+              "key": "landlord",
+              "label": {
+                "en": "landlord",
+                "fr": "bailleur"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "sales",
+      "label": {
+        "en": "Sales",
+        "fr": "Ventes"
+      },
+      "title": "title",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Title",
+            "fr": "Titre"
+          }
+        },
+        {
+          "key": "stage",
+          "type": "choice",
+          "label": {
+            "en": "Stage",
+            "fr": "Étape"
+          },
+          "options": [
+            {
+              "key": "enquiry",
+              "label": {
+                "en": "Enquiry",
+                "fr": "Demande"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "viewing",
+              "label": {
+                "en": "Viewing",
+                "fr": "Visite"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "offer",
+              "label": {
+                "en": "Offer",
+                "fr": "Offre"
+              },
+              "color": "amber"
+            },
+            {
+              "key": "agreement",
+              "label": {
+                "en": "Agreement",
+                "fr": "Compromis"
+              },
+              "color": "teal"
+            },
+            {
+              "key": "closed",
+              "label": {
+                "en": "Closed",
+                "fr": "Conclue"
+              },
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "key": "value",
+          "type": "money",
+          "currency": "EUR",
+          "label": {
+            "en": "Value",
+            "fr": "Valeur"
+          },
+          "precision": 0
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Sales",
+            "fr": "Ventes"
+          }
+        },
+        {
+          "key": "property",
+          "type": "relation",
+          "to": "property",
+          "label": {
+            "en": "Property",
+            "fr": "Bien"
+          },
+          "inverse": {
+            "en": "Sales",
+            "fr": "Ventes"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "text",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé"
+          }
+        },
+        {
+          "key": "source",
+          "type": "choice",
+          "label": {
+            "en": "Source",
+            "fr": "Origine"
+          },
+          "options": [
+            {
+              "key": "website",
+              "label": {
+                "en": "Website",
+                "fr": "Site web"
+              }
+            },
+            {
+              "key": "phone",
+              "label": {
+                "en": "Phone",
+                "fr": "Téléphone"
+              }
+            },
+            {
+              "key": "walk-in",
+              "label": {
+                "en": "Walk-in",
+                "fr": "Passage"
+              }
+            },
+            {
+              "key": "referral",
+              "label": {
+                "en": "Referral",
+                "fr": "Recommandation"
+              }
+            },
+            {
+              "key": "portal",
+              "label": {
+                "en": "Portal",
+                "fr": "Portail"
+              }
+            }
+          ]
+        },
+        {
+          "key": "priority",
+          "type": "choice",
+          "label": {
+            "en": "Priority",
+            "fr": "Priorité"
+          },
+          "options": [
+            {
+              "key": "low",
+              "label": {
+                "en": "Low",
+                "fr": "Basse"
+              },
+              "color": "gray"
+            },
+            {
+              "key": "normal",
+              "label": {
+                "en": "Normal",
+                "fr": "Normale"
+              },
+              "color": "blue"
+            },
+            {
+              "key": "high",
+              "label": {
+                "en": "High",
+                "fr": "Haute"
+              },
+              "color": "red"
+            }
+          ]
+        },
+        {
+          "key": "due",
+          "type": "date",
+          "label": {
+            "en": "Due",
+            "fr": "Échéance"
+          }
+        },
+        {
+          "key": "tags",
+          "type": "multichoice",
+          "label": {
+            "en": "Tags",
+            "fr": "Étiquettes"
+          },
+          "options": [
+            {
+              "key": "loft",
+              "label": {
+                "en": "loft",
+                "fr": "loft"
+              }
+            },
+            {
+              "key": "investor",
+              "label": {
+                "en": "investor",
+                "fr": "investisseur"
+              }
+            },
+            {
+              "key": "first-time",
+              "label": {
+                "en": "first-time",
+                "fr": "primo-accédant"
+              }
+            },
+            {
+              "key": "family",
+              "label": {
+                "en": "family",
+                "fr": "famille"
+              }
+            },
+            {
+              "key": "offer",
+              "label": {
+                "en": "offer",
+                "fr": "offre"
+              }
+            },
+            {
+              "key": "sold",
+              "label": {
+                "en": "sold",
+                "fr": "vendu"
+              }
+            },
+            {
+              "key": "urgent",
+              "label": {
+                "en": "urgent",
+                "fr": "urgent"
+              }
+            },
+            {
+              "key": "relocating",
+              "label": {
+                "en": "relocating",
+                "fr": "mutation"
+              }
+            },
+            {
+              "key": "vip",
+              "label": {
+                "en": "vip",
+                "fr": "vip"
+              }
+            },
+            {
+              "key": "cash",
+              "label": {
+                "en": "cash",
+                "fr": "comptant"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "note",
+      "label": {
+        "en": "Notes",
+        "fr": "Notes"
+      },
+      "title": "body",
+      "fields": [
+        {
+          "key": "body",
+          "type": "text",
+          "required": true,
+          "label": {
+            "en": "Note",
+            "fr": "Note"
+          }
+        },
+        {
+          "key": "contact",
+          "type": "relation",
+          "to": "contact",
+          "label": {
+            "en": "Contact",
+            "fr": "Contact"
+          },
+          "inverse": {
+            "en": "Notes",
+            "fr": "Notes"
+          }
+        }
+      ]
+    }
+  ],
+  "views": [
+    {
+      "object": "contact",
+      "id": "contact-1-all",
+      "name": {
+        "en": "All contacts",
+        "fr": "Tous les contacts"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "contact",
+      "id": "contact-2-cards",
+      "name": {
+        "en": "Cards",
+        "fr": "Fiches"
+      },
+      "kind": "cards",
+      "fav": true
+    },
+    {
+      "object": "contact",
+      "id": "contact-3-by-type",
+      "name": {
+        "en": "By type",
+        "fr": "Par type"
+      },
+      "kind": "board",
+      "by": "type"
+    },
+    {
+      "object": "property",
+      "id": "property-1-gallery",
+      "name": {
+        "en": "Gallery",
+        "fr": "Galerie"
+      },
+      "kind": "cards",
+      "fav": true
+    },
+    {
+      "object": "property",
+      "id": "property-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "property",
+      "id": "property-3-by-status",
+      "name": {
+        "en": "By status",
+        "fr": "Par statut"
+      },
+      "kind": "board",
+      "by": "status"
+    },
+    {
+      "object": "lettings",
+      "id": "lettings-1-pipeline",
+      "name": {
+        "en": "Pipeline",
+        "fr": "Pipeline"
+      },
+      "kind": "board",
+      "by": "stage",
+      "fav": true
+    },
+    {
+      "object": "lettings",
+      "id": "lettings-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "lettings",
+      "id": "lettings-3-calendar",
+      "name": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      },
+      "kind": "calendar",
+      "date": "due"
+    },
+    {
+      "object": "sales",
+      "id": "sales-1-pipeline",
+      "name": {
+        "en": "Pipeline",
+        "fr": "Pipeline"
+      },
+      "kind": "board",
+      "by": "stage",
+      "fav": true
+    },
+    {
+      "object": "sales",
+      "id": "sales-2-list",
+      "name": {
+        "en": "List",
+        "fr": "Liste"
+      },
+      "kind": "table",
+      "fav": true
+    },
+    {
+      "object": "sales",
+      "id": "sales-3-calendar",
+      "name": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      },
+      "kind": "calendar",
+      "date": "due"
+    },
+    {
+      "object": "note",
+      "id": "note-1-all",
+      "name": {
+        "en": "All notes",
+        "fr": "Toutes les notes"
+      },
+      "kind": "table",
+      "fav": true
+    }
+  ]
+}

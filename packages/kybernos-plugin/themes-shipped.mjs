@@ -20,6 +20,8 @@ export const SAMPLE_MAX = 512 * 1024
 export const NEXT_MAX = 12
 /** The plugin ids a business theme names in `requires.plugins`, in the order a page shows them. */
 export const BUSINESS_PLUGINS = Object.freeze(['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline'])
+/** The owner of the databases a theme ships (`db/<id>.json`). Optional for now: no card names it and no install switches it on until the Tables page replaces the three Business pages. */
+export const STAGED_OWNER = 'kybernos/db'
 
 const ID = /^[a-z][a-z0-9-]{1,31}\/[a-z][a-z0-9-]{1,39}$/
 const DIR = /^[a-z][a-z0-9-]{1,39}$/
@@ -53,6 +55,25 @@ export const readSample = (folder) => {
     if (statSync(file).size > SAMPLE_MAX) return null
     const v = JSON.parse(readFileSync(file, 'utf8'))
     return plain(v) ? v : null
+  } catch (e) { return null }
+}
+/**
+ * The database a theme ships (kybernos-db's `kybernos/db#template`): `{ template, sample }` from `db/<id>.json` and `demo/db-sample.json`, or `null` when the theme carries
+ * no template. Read whole and never larger than `SAMPLE_MAX`; the checking is the owner's (kybernos-db validates both before it writes anything). `sample` is `null` without rows.
+ */
+export const readDbTemplate = (folder) => {
+  try {
+    const dir = join(folder, 'db')
+    const file = readdirSync(dir).filter((f) => f.endsWith('.json') && !f.startsWith('.')).sort()[0]
+    if (file === undefined || statSync(join(dir, file)).size > SAMPLE_MAX) return null
+    const template = JSON.parse(readFileSync(join(dir, file), 'utf8'))
+    if (!plain(template) || template.id !== file.replace(/\.json$/, '')) return null
+    let sample = null
+    try {
+      const rows = join(folder, 'demo', 'db-sample.json')
+      if (statSync(rows).size <= SAMPLE_MAX) { const v = JSON.parse(readFileSync(rows, 'utf8')); sample = plain(v) ? v : null }
+    } catch (e) { sample = null }
+    return { template, sample }
   } catch (e) { return null }
 }
 const names = (dir, test) => { try { return readdirSync(dir).filter((f) => test(f) && !f.startsWith('.')).sort() } catch (e) { return [] } }
@@ -90,7 +111,7 @@ function readThemeAt (folder, dir) {
   for (const row of ['contacts', 'catalog', 'pipeline']) { const w = pair(labels[row], 40); if (w !== null) words[row] = w }
   const hard = plain(manifest.requires) && plain(manifest.requires.plugins) ? Object.keys(manifest.requires.plugins) : []
   // the owner of an OPTIONAL extension is not required, but the page still names it: it is what the dashboard of the theme needs
-  const optional = (Array.isArray(manifest.extends) ? manifest.extends : []).filter((e) => plain(e) && e.optional === true && typeof e.point === 'string').map((e) => e.point.split('#')[0]).filter((id) => hard.indexOf(id) < 0)
+  const optional = (Array.isArray(manifest.extends) ? manifest.extends : []).filter((e) => plain(e) && e.optional === true && typeof e.point === 'string').map((e) => e.point.split('#')[0]).filter((id) => hard.indexOf(id) < 0 && id !== STAGED_OWNER)
   const requires = hard.concat(optional.filter((id, i) => optional.indexOf(id) === i))
   const needs = BUSINESS_PLUGINS.filter((id) => requires.indexOf(id) >= 0).concat(requires.filter((id) => BUSINESS_PLUGINS.indexOf(id) < 0 && !/^kybernos\/(core|theme|skills)$/.test(id)).sort())
   const connectors = new Set()

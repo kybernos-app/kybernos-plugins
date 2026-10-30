@@ -54,6 +54,20 @@ Tests: `test-routes.mjs` (every route behind the session), `test-client.mjs` (th
 sandbox, `source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-tables-live.mjs [--shots <dir>]` (the real page over a real db: each control
 saved and read back from the host, Kaby's change with Undo, an order linked to a customer and products and opened both ways, an image and a PDF dropped on a cell and chosen in the drawer and served back byte for byte, a file over the cap, an Undo, a failing host, 420 px, the console). `scripts/lib-tables-seed.mjs` builds the three dbs it opens (Home, Shop and Papers). After a restart of the sandbox, `node scripts/check-tables-files-after-restart.mjs` finds the files the run attached again.
 
+## Templates
+
+A trade's template (the themes under `packages/kybernos-plugin/themes`) can ship a ready database, so a person starts with a shop, an agency desk or a recruitment board
+instead of an empty page. The bundle owns the point `kybernos/db#template` (`template.mjs`): `db/<id>.json` holds the objects, fields, links and saved views with every label
+as an `{ en, fr }` pair; `demo/db-sample.json` holds the sample rows, which link to one another by `ref` and name their pictures (`{ "photo": "<theme folder>/<name>" }`, a file of
+the theme's `demo/photos`). The point is inert data: the rows live apart, so an agent that reads a contribution never reads a person.
+
+`instantiate.mjs` makes the database through the same store calls the tools use: the structure first, then the views, then the rows (a link to a row not made yet is set once both
+exist), then the pictures as blobs. The person's language picks the labels, and the database keeps plain strings from then on. Everything is checked before the first write; a
+failure half way removes the half-made database. `<DSH home>/kybernos/kybernos-db/templates.json` remembers which database each template made, so installing twice changes nothing.
+
+The core reaches it through the seam `globalThis[Symbol.for('kybernos.db')]` (`{ version: 1, install({ template, sample, lang, photo }) }`), published while the bundle is on; the
+Themes route calls it from its `seed` action. Tests: `test-template.mjs`, `test-instantiate.mjs`, and the seam in `test-host.mjs`.
+
 ## What is not here yet
 
 Removing or renaming an object or a field and changing a field's type (only adding is possible), creating a row from a link picker, a preview bigger than a thumbnail, dropping a folder, sync with the server, and team rights

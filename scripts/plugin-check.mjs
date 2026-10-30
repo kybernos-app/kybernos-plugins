@@ -33,6 +33,7 @@ import { CONTACTS_POINT } from '../packages/kybernos-contacts/contacts-schema.mj
 import { CATALOG_POINT } from '../packages/kybernos-catalog/catalog-type.mjs'
 import { PIPELINE_POINT } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
 import { PRESET_POINT } from '../packages/kybernos-dashboards/preset-point.mjs'
+import { DB_TEMPLATE_POINT } from '../packages/kybernos-db/template.mjs'
 import { LIMITS, dataPackageProblems, readBounded } from '../packages/kybernos-registry/registry.mjs'
 import { compareVersions, satisfies } from '../packages/kybernos-registry/version.mjs'
 import { scanText, uncovered } from './plugin-scan.mjs'
@@ -59,7 +60,7 @@ const readJsonBounded = (file, max) => {
 
 // ── the point table: what the repository declares, joined with the validator its owner exports ────────────────
 /**
- * The owners that export a point object (the core, the theme styles, the three business plugins and the dashboards), and the skills owner, which exports its RULES but not its point
+ * The owners that export a point object (the core, the theme styles, the three business plugins, the dashboards and the databases), and the skills owner, which exports its RULES but not its point
  * object (SKILL_POINT stays module-private in packages/kybernos-skills/index.js). The four-line adapter below is
  * the shape wrapper that file applies, never a second copy of the rules.
  */
@@ -78,6 +79,7 @@ export const OWNER_VALIDATORS = {
   'kybernos/catalog#type': CATALOG_POINT.validate,
   'kybernos/pipeline#flow': PIPELINE_POINT.validate,
   'kybernos/dashboards#preset': PRESET_POINT.validate,
+  'kybernos/db#template': DB_TEMPLATE_POINT.validate,
 }
 
 /**

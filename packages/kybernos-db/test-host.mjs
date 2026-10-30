@@ -9,7 +9,8 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { SECTION_NAME, SECTION_ORDER } from './agent/context.mjs'
 import { NAMES } from './agent/tools.mjs'
-import { SEEDED_SKILLS, SKILLS_DIR, apply, dbsDir, dshHome, lazyService, name } from './index.js'
+import { DB_TEMPLATE_POINT } from './template.mjs'
+import { SEAM, SEEDED_SKILLS, SKILLS_DIR, apply, dbsDir, dshHome, lazyService, name, publishSeam, tellPoint, tellWhenReady } from './index.js'
 
 let count = 0
 const ok = async (label, fn) => { await fn(); count++; console.log('ok  ', label) }
@@ -236,6 +237,65 @@ await ok('a section that cannot be installed falls back to the context, and a br
   const svcCtx = fakeCtx()
   apply(svcCtx, { ...options(home), ports: { now: 'not a function' } })
   assert.equal(typeof svcCtx.contexts[0].text(), 'string', 'the provider never throws')
+})
+
+await ok('the point of the templates is told to the registry, again until it hears, and a missing or broken registry changes nothing', () => {
+  const REGISTRY = Symbol.for('kybernos.registry')
+  const before = globalThis[REGISTRY]
+  try {
+    delete globalThis[REGISTRY]
+    assert.equal(tellPoint(), false, 'no registry yet')
+    const told = []
+    const timers = []
+    const heard = tellWhenReady({ schedule: (fn) => { timers.push(fn); return { unref () {} } }, delays: [1, 2] })
+    assert.equal(heard(), false)
+    globalThis[REGISTRY] = { version: 1, definePoint: (p) => told.push(p) }
+    timers.shift()()
+    assert.equal(heard(), true)
+    assert.deepEqual(told, [DB_TEMPLATE_POINT])
+    assert.equal(told[0].owner + '#' + told[0].name, 'kybernos/db#template')
+    globalThis[REGISTRY] = { version: 1, definePoint () { throw new Error('refused') } }
+    assert.equal(tellPoint(), false, 'a registry that throws is not an error')
+    globalThis[REGISTRY] = { version: 2, definePoint () {} }
+    assert.equal(tellPoint(), false, 'a registry of another version is not spoken to')
+  } finally {
+    if (before === undefined) delete globalThis[REGISTRY]
+    else globalThis[REGISTRY] = before
+  }
+})
+
+await ok('apply publishes the install seam for the core and takes it off again with the bundle', async () => {
+  const before = globalThis[SEAM]
+  try {
+    delete globalThis[SEAM]
+    const home = fresh()
+    const ctx = fakeCtx()
+    apply(ctx, options(home))
+    const seam = globalThis[SEAM]
+    assert.equal(seam.version, 1)
+    assert.equal(typeof seam.install, 'function')
+    assert.ok(Object.isFrozen(seam))
+    const bad = seam.install({ template: 'x' })
+    assert.equal(bad.ok, false)
+    assert.equal(bad.error, 'template')
+    const template = { id: 'tiny', name: { en: 'Tiny' }, objects: [{ key: 'thing', label: { en: 'Things' }, fields: [{ key: 'name', type: 'text', label: { en: 'Name' } }] }] }
+    const made = seam.install({ template, sample: { rows: { thing: [{ values: { name: 'One' } }] } }, lang: 'en' })
+    assert.equal(made.ok, true, JSON.stringify(made))
+    assert.equal(made.counts.rows, 1)
+    assert.equal(existsSync(join(home, 'kybernos', 'kybernos-db', 'templates.json')), true, 'the marker sits beside the dbs folder')
+    assert.equal(seam.install({ template }).skipped, true)
+    for (const e of ctx.effects) { const dispose = e.fn(); if (typeof dispose === 'function') dispose() }
+    assert.equal(globalThis[SEAM], undefined, 'the seam goes with the bundle')
+    const other = publishSeam(lazyService(join(fresh(), 'dbs')))
+    const mine = globalThis[SEAM]
+    globalThis[SEAM] = { version: 1, install () {} }
+    other()
+    assert.notEqual(globalThis[SEAM], mine, 'taking it off leaves another bundle’s seam alone')
+    assert.equal(typeof globalThis[SEAM].install, 'function')
+  } finally {
+    if (before === undefined) delete globalThis[SEAM]
+    else globalThis[SEAM] = before
+  }
 })
 
 await ok('the service is made when first asked, not at boot', () => {

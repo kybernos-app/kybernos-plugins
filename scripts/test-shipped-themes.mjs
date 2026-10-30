@@ -17,6 +17,7 @@ import { PHOTO_MAX, PHOTO_WIDTH_MAX, PHOTOS_PER_THEME, jpegSize } from './garde-
 import { validateContactsSchema } from '../packages/kybernos-contacts/contacts-schema.mjs'
 import { validateCatalogType } from '../packages/kybernos-catalog/catalog-type.mjs'
 import { validatePipelineFlow } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
+import { buildStructure, languagesOf, validateSample, validateTemplate } from '../packages/kybernos-db/template.mjs'
 import { OWNER_VALIDATORS, checkFolder } from './plugin-check.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -24,7 +25,7 @@ const ROOT = join(REPO, 'packages', 'kybernos-plugin', 'themes')
 const BUSINESS = ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline']
 // what the Templates page lists a theme as needing: the three business pages, then the Dashboards (the theme ships a dashboard, kybernos/dashboards#preset)
 const NEEDS = [...BUSINESS, 'kybernos/dashboards']
-const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline', 'dashboards']
+const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline', 'dashboards', 'db']
 // What each shipped theme must hold: the folder, and the number of sample rows its demo/sample.json seeds (a sample stays modest and readable).
 const EXPECT = {
   ecommerce: { contacts: 22, items: 16, cards: 18, notes: 8, flows: 1 },
@@ -76,7 +77,7 @@ for (const dir of dirs) {
     const r = checkFolder(join(ROOT, dir))
     assert.equal(r.exitCode, 0, r.lines.filter((l) => l.status === 'FAIL').map((l) => l.id + ' ' + l.message).join('; '))
     const points = r.lines.filter((l) => l.id.startsWith('point.'))
-    assert.equal(points.length, 9, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
+    assert.equal(points.length, 10, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
     for (const l of points) assert.equal(l.status, 'PASS', l.id + ': ' + l.message)
   })
 
@@ -90,6 +91,8 @@ for (const dir of dirs) {
     // the Dashboards are NOT required: a template whose dashboard cannot be read must stay a working template (the extension is optional)
     assert.deepEqual(Object.keys(t.manifest.requires.plugins).sort(), ['kybernos/catalog', 'kybernos/contacts', 'kybernos/core', 'kybernos/pipeline', 'kybernos/skills', 'kybernos/theme'])
     assert.equal(t.manifest.extends.find((e) => e.point === 'kybernos/dashboards#preset').optional, true)
+    // nor the database: the Tables bundle is a satellite, off by default, and the old pages still serve the template until they are replaced
+    assert.equal(t.manifest.extends.find((e) => e.point === 'kybernos/db#template').optional, true)
     for (const range of Object.values(t.manifest.requires.plugins)) assert.equal(range, '^1.0')
     assert.deepEqual(t.manifest.extends.map((e) => e.dir), POINTS)
     assert.equal(readFileSync(join(t.root, 'cordis.patch.yml'), 'utf8').replace(/#[^\n]*/g, '').trim(), '[]')
@@ -114,6 +117,34 @@ for (const dir of dirs) {
     assert.equal(plan.pack.goals.length, t.pack.goals.length)
     for (const a of t.automations) assert.ok(plan.kit.automations.some((x) => x.id === a.id), 'the plan offers the automation ' + a.id)
     for (const x of t.teams) assert.ok(plan.kit.teams.some((y) => y.id === x.id), 'the plan offers the team ' + x.id)
+  })
+
+  ok(dir + ': the database it ships is sound in each language, says what the old pages said, and finds every picture of its sample', () => {
+    const files = names(join(t.root, 'db'), '.json')
+    assert.deepEqual(files, [dir + '.json'], 'one template, named like its folder')
+    const raw = readJson(join(t.root, 'db', files[0]))
+    const checked = validateTemplate(raw, dir)
+    assert.equal(checked.ok, true, JSON.stringify(checked.errors))
+    assert.deepEqual(languagesOf(raw).sort(), ['en', 'fr'], 'English and French, every label')
+    for (const lang of ['en', 'fr']) assert.deepEqual(buildStructure(raw, lang).errors, [], lang)
+    assert.deepEqual(raw.name, { en: t.manifest.name.en, fr: t.manifest.name.fr }, 'the database is named like the template')
+    // the old three pages become objects: contacts, the catalog's items, one object per board, and the notes
+    assert.deepEqual(raw.objects.map((o) => o.key), ['contact', t.catalog[0].value.id.replace(/-/g, '_'), ...t.pipeline.map((p) => p.value.id.replace(/-/g, '_')), 'note'])
+    const sample = readJson(join(t.root, 'demo', 'db-sample.json'))
+    const rows = validateSample(sample, raw)
+    assert.equal(rows.ok, true, JSON.stringify(rows.errors))
+    const total = (list) => list.reduce((n, o) => n + (sample.rows[o.key] || []).length, 0)
+    const want = EXPECT[dir]
+    assert.equal(sample.rows.contact.length, want.contacts)
+    assert.equal(sample.rows[raw.objects[1].key].length, want.items)
+    assert.equal(total(raw.objects.slice(2, -1)), want.cards)
+    assert.equal(sample.rows.note.length, want.notes)
+    // a picture is a file of the theme (the same ones the old sample named), read through the core's own reader
+    const photos = Object.values(sample.rows).flat().flatMap((r) => Object.values(r.values)).filter(Array.isArray).flat().filter((v) => v && typeof v.photo === 'string').map((v) => v.photo)
+    assert.ok(photos.length > 0)
+    for (const spec of photos) assert.notEqual(photoFile(ROOT, spec), null, spec)
+    const old = JSON.stringify(t.sample).match(/photo:[a-z0-9-]+\/[a-z0-9-]+/g) || []
+    assert.deepEqual([...new Set(photos)].sort(), [...new Set(old.map((x) => x.slice(6)))].sort(), 'the same pictures as the old sample')
   })
 
   ok(dir + ': a card has what the Themes page reads (name, line, colour, icon, the three words, the style, the kit names)', () => {

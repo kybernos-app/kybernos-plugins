@@ -43,6 +43,18 @@
       "/kybernos-db"
     ]
   },
+  "provides": [
+    {
+      "name": "template",
+      "version": "1.0",
+      "kind": "data",
+      "class": "inert",
+      "summary": {
+        "en": "A ready database a template ships: its objects, fields, links and saved views, with optional sample rows."
+      },
+      "validator": "builtin"
+    }
+  ],
   "help": "help.json",
   "suite": {
     "default": "off"
