@@ -5091,7 +5091,7 @@ const connectorsProvider = () => {
     return v !== null && typeof v === 'object' && (v.provider === 'composio' || v.provider === 'kybernos') ? v.provider : null
   } catch (e) { return null }
 }
-const connections = createConnections({ apiCall, readState, isConnected, server, providerChoice: connectorsProvider, log: (m) => console.error('[kybernos-cloud] connections: ' + m) })
+const connections = createConnections({ apiCall, readState, isConnected, server, providerChoice: connectorsProvider, cacheDir: () => join(dshHome(), 'kybernos', 'connections-catalogue'), log: (m) => console.error('[kybernos-cloud] connections: ' + m) })
 
 // The Account page's "Custom instructions", kept as a marked section of `<DSH home>/AGENTS.md` (instructions.mjs): DSH's own loader hands
 // that file to every agent. The page asks for the file's path so it can say where the text went (a hosted DSH is not the person's device).

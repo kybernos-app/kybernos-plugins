@@ -20,7 +20,7 @@
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down / the page did not open).
 // Named check-*, not test-*: CI runs every test-*.mjs with no DSH, and this one needs one.
 import { createServer } from 'node:http'
-import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
 
@@ -95,6 +95,8 @@ const ORIGIN = 'http://127.0.0.1:' + stub.address().port
 const SERVERS = join(DSH_HOME, 'kybernos', 'servers.json')
 const STATE = join(DSH_HOME, 'kybernos-cloud-live-gate.json')
 const CHOICE = join(DSH_HOME, 'kybernos', 'connectors.json')
+// The public list and its logos the host keeps on disk (served for a day, so each scene that changes what the server says starts without them).
+const CACHE = join(DSH_HOME, 'kybernos', 'connections-catalogue')
 const keep = (file) => { if (existsSync(file)) { const bak = file + '.live-gate-bak'; renameSync(file, bak); return bak } return null }
 const unkeep = (file, bak) => { rmSync(file, { force: true }); if (bak !== null) renameSync(bak, file) }
 const registry = () => {
@@ -106,6 +108,7 @@ const bakServers = keep(SERVERS)
 const bakState = keep(STATE)
 const bakChoice = keep(CHOICE)
 registry()
+rmSync(CACHE, { recursive: true, force: true })
 
 let live = null
 try {
@@ -157,6 +160,8 @@ try {
   check('an app whose logo does not come keeps a letter tile, not a broken picture', tile !== null && tile.img === false && /^Z/.test(String(tile.letter)), tile)
   const noLogo = await ev(`(() => { const c = ${cardOf('Zeta App 020')}; return c ? { img: !!c.querySelector('img') } : null })()`)
   check('an app with no logo flag never asks for one', noLogo !== null && noLogo.img === false && !calls.some((c) => c.path.indexOf('slug=zeta-app-020') >= 0), noLogo)
+  const kept = (() => { try { const d = join(CACHE, readdirSync(CACHE)[0]); return { list: existsSync(join(d, 'catalogue.json')), logos: readdirSync(join(d, 'logos')).length } } catch (e) { return null } })()
+  check('the list and the logos the page asked for are kept on this machine\'s disk (the daily load fills the rest)', kept !== null && kept.list === true && kept.logos >= 5, kept)
   await shot('02-logos')
 
   console.log('the gate')
@@ -233,6 +238,7 @@ try {
   console.log('an older server (no public route)')
   st.entitled = true; st.limit = 4; st.publicCatalogue = false
   rmSync(STATE, { force: true })
+  rmSync(CACHE, { recursive: true, force: true })
   await page.send('Page.reload', {})
   if ((await openPage()) !== true) { check('the page reopens', false); throw new Error('page did not reopen') }
   await discover()
@@ -247,6 +253,7 @@ try {
 } finally {
   if (live !== null) await live.close().catch(() => {})
   stub.close()
+  rmSync(CACHE, { recursive: true, force: true })
   unkeep(SERVERS, bakServers)
   unkeep(STATE, bakState)
   unkeep(CHOICE, bakChoice)
