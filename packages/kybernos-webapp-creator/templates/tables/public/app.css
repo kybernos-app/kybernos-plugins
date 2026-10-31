@@ -295,3 +295,43 @@ details.ask > summary::-webkit-details-marker { display: none; }
 details.ask[open] > summary { background: var(--danger-soft); }
 details.ask .confirm { margin-top: 8px; max-width: 280px; }
 .sheet h1 { font-size: 18px; }
+
+/* ── privacy, account and activity pages (server-rendered, no script) ── */
+.legal { margin: 0; font-size: 12px; text-align: center; }
+.legal a { color: var(--muted); }
+.sheet-top h1 { flex: none; }
+.sheet-links { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: flex-end; }
+.sheet-links a { color: var(--ink2); text-decoration: none; font-weight: 500; }
+.sheet-links a:hover { color: var(--ink); text-decoration: underline; }
+.sheet-foot { padding: 0 24px 28px; display: grid; gap: 6px; justify-items: center; }
+.sheet-foot .made { padding: 0; }
+.sheet-main .lead { max-width: 64ch; }
+.panel p { margin: 0; max-width: 72ch; }
+.panel ul { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 72ch; }
+.panel .sub { max-width: 72ch; }
+.panel dl.kv { max-width: 560px; }
+table.activity td.when { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+table.activity td { vertical-align: top; }
+table.activity code, .mute code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.pager { display: flex; gap: 8px; }
+.sheet-main.narrow { max-width: 720px; }
+.form-row.filter .col1 { flex: 0 1 320px; }
+details.ask .confirm.wide { max-width: 420px; }
+.nav-item.sub { color: var(--ink2); }
+.made a { color: var(--muted); margin-left: auto; }
+@media (max-width: 640px) {
+  .sheet-top { flex-wrap: wrap; row-gap: 6px; }
+  .sheet-links { margin-left: 0; width: 100%; justify-content: flex-start; }
+  .sheet-foot { padding-inline: 16px; }
+  /* the log as a list on a phone: when and kind on one line, the sentence under it at the full width; buttons a thumb can hit */
+  table.activity thead { display: none; }
+  table.activity, table.activity tbody { display: block; }
+  table.activity tbody tr { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 4px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+  table.activity tbody tr:last-child { border-bottom: 0; }
+  table.activity tbody tr:hover td { background: none; }
+  table.activity tbody td { display: block; padding: 0; border: 0; }
+  table.activity tbody td.when { grid-column: 1; font-size: 13px; white-space: nowrap; }
+  table.activity tbody td:nth-child(2) { grid-column: 2; justify-self: start; }
+  table.activity tbody td:nth-child(3) { grid-column: 1 / -1; }
+  details.ask > summary.btn, details.ask .confirm .btn, .panel a.btn, .pager .btn, .sheet-main form .btn { min-height: 40px; }
+}

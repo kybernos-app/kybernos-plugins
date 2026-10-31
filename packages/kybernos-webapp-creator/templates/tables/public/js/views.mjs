@@ -39,7 +39,8 @@ export function signInView ({ submit, notice }) {
     h('h1', null, 'Sign in'),
     notice ? h('p', { class: 'dim', role: 'status' }, notice) : h('p', { class: 'dim' }, 'Use the email and password you joined with.'),
     form,
-    h('p', { class: 'made' }, kmark(), h('span', null, 'Made with Kybernos'))))
+    h('p', { class: 'made' }, kmark(), h('span', null, 'Made with Kybernos')),
+    h('p', { class: 'legal' }, h('a', { href: '/privacy' }, 'Privacy'))))
 }
 
 /** A card with a title, a sentence and one button: the page when the server cannot be reached. */
@@ -63,11 +64,15 @@ function nav (ctx) {
   return h('nav', { class: 'nav', 'aria-label': 'Main' },
     h('div', { class: 'space' }, h('div', { class: 'logo', 'aria-hidden': 'true' }, m.initials(name)), h('div', { class: 'grow' }, h('b', null, name), h('small', null, location.host))),
     lists,
-    m.isOwner(me) ? [h('div', { class: 'navh' }, 'Team'), h('a', { class: 'nav-item', href: '/people' }, icon('users'), h('span', null, 'People'), ctx.peopleCount === null ? null : h('span', { class: 'n' }, ctx.peopleCount))] : null,
+    m.isOwner(me) ? [h('div', { class: 'navh' }, 'Team'),
+      h('a', { class: 'nav-item', href: '/people' }, icon('users'), h('span', null, 'People'), ctx.peopleCount === null ? null : h('span', { class: 'n' }, ctx.peopleCount)),
+      h('a', { class: 'nav-item', href: '/activity' }, icon('activity'), h('span', null, 'Activity')),
+      apps.map((app) => h('a', { class: 'nav-item', href: '/api/apps/' + encodeURIComponent(app.slug) + '/export.json', download: true, title: 'Everything in ' + app.name + ' as one JSON file' }, icon('download'), h('span', null, apps.length === 1 ? 'Export data' : 'Export ' + app.name)))] : null,
     h('div', { class: 'grow' }),
+    h('a', { class: 'nav-item', href: '/account' }, icon('user'), h('span', null, 'Your account')),
     h('div', { class: 'me' }, h('span', { class: 'av', 'aria-hidden': 'true' }, m.initials(who)), h('div', null, h('b', { title: who }, who), h('small', null, profile)),
       h('button', { type: 'button', class: 'btn icon ghost sm', 'aria-label': 'Sign out', title: 'Sign out', onclick: a.signOut }, icon('out'))),
-    h('div', { class: 'made' }, kmark(), h('span', null, 'Made with Kybernos')))
+    h('div', { class: 'made' }, kmark(), h('span', null, 'Made with Kybernos'), h('a', { href: '/privacy' }, 'Privacy')))
 }
 
 // ── states ──

@@ -37,6 +37,12 @@ export function makeApps ({ dir, today, ports = {} }) {
       else { renameSync(join(dir, slug), trash); rmSync(trash, { recursive: true, force: true }) }
       return true
     },
+    /** The apps by slug with the name of their database, for the owner's pages: `[{ slug, name }]`. An app that does not open is listed under its slug. */
+    names () {
+      return slugs().map((slug) => {
+        try { const live = entry(slug).service.list().filter((d) => d.archived === null); return { slug, name: live.length > 0 ? live[0].name : slug } } catch (e) { return { slug, name: slug } }
+      })
+    },
     /** The door of an app for an actor (`api.as(actor)`), or null when there is no such app. */
     door: (slug, actor) => entry(slug)?.api.as(actor) ?? null,
     /** The profiles the apps define, by id: `[{ id, label, apps: [slug] }]`. An app that does not open is left out. */

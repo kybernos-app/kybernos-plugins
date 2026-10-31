@@ -11,8 +11,9 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync } from 'node:fs'
-import { request as httpRequest } from 'node:http'
+import { createServer as createHttpServer, request as httpRequest } from 'node:http'
 import { createServer } from 'node:net'
+import { DatabaseSync } from 'node:sqlite'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -34,7 +35,10 @@ const check = (label, cond, detail = '') => { total++; console.log((cond ? 'ok  
 const group = (name) => console.log('\n' + name)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let server = null
+let serverB = null // the second instance, the one with a (fake) mail provider
 let output = ''
+let outputB = ''
+const MAIL_KEY = 're_test_' + randomBytes(12).toString('hex') // never printed, searched for in everything the servers say
 const BUNDLE_CAP = 4 * 1024 * 1024
 const issued = [] // every API token minted below: none may reach the server's output
 
@@ -95,13 +99,13 @@ async function main () {
 
   /** One browser: its own cookies, its own address for the rate limits, its CSRF token fetched the way a page would. */
   class Browser {
-    constructor (ip) { this.ip = ip; this.jar = new Map(); this.token = null }
+    constructor (ip, base = BASE) { this.ip = ip; this.base = base; this.jar = new Map(); this.token = null }
     keep (res) { for (const c of res.headers.getSetCookie()) { const [kv] = c.split(';'); const i = kv.indexOf('='); const name = kv.slice(0, i); const val = kv.slice(i + 1); if (val === '' || /max-age=0/i.test(c)) this.jar.delete(name); else this.jar.set(name, val) } }
     get cookie () { return [...this.jar].map(([k, v]) => k + '=' + v).join('; ') }
     has (part) { return [...this.jar.keys()].some((k) => k.includes(part)) }
     async csrf () { if (this.token === null) { const r = await this.fetch('/api/csrf', { csrf: false }); this.token = (await r.json()).token } return this.token }
     /** `json` or `form` or `body`; `origin: null` sends none; `csrf: false` sends no token. */
-    async fetch (path, { method = 'GET', json, form, body, headers = {}, origin = BASE, csrf = true } = {}) {
+    async fetch (path, { method = 'GET', json, form, body, headers = {}, origin = this.base, csrf = true } = {}) {
       const h = { 'x-forwarded-for': this.ip, ...headers }
       if (origin !== null) h.origin = origin
       let payload = body
@@ -110,7 +114,7 @@ async function main () {
       if (method !== 'GET' && csrf && h['x-csrf-token'] === undefined && form === undefined) h['x-csrf-token'] = await this.csrf()
       if (form !== undefined && csrf && form._csrf === undefined) payload = new URLSearchParams({ ...form, _csrf: await this.csrf() }).toString()
       if (this.cookie !== '') h.cookie = this.cookie
-      const res = await fetch(BASE + path, { method, headers: h, body: payload, redirect: 'manual' }).catch((e) => { e.message += ' (' + method + ' ' + path.split('?')[0] + ')'; throw e })
+      const res = await fetch(this.base + path, { method, headers: h, body: payload, redirect: 'manual' }).catch((e) => { e.message += ' (' + method + ' ' + path.split('?')[0] + ')'; throw e })
       this.keep(res)
       return res
     }
@@ -495,6 +499,141 @@ async function main () {
   check('and the same files stay public GETs for anyone who sends no token', (await Promise.all(['/', '/app.css', '/js/main.mjs'].map((a) => anon.fetch(a)))).every((r) => r.status === 200))
   check('and the owner’s password was not touched', (await signIn(new Browser('10.0.1.10'), 'olga@example.test', PW.owner2)).status === 200)
 
+  // ── 12b. L7: what the space holds about a person, the owner's export of an app, erasure ──
+  group('privacy: the page, and a person’s own data')
+  const CHROME = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+  const authFile = join(data, 'auth.sqlite')
+  /** Runs `fn` on a connection of its own to auth.sqlite, closed at once so that the server's checkpoints are never held up by it. */
+  const withAuth = (fn, readOnly = true) => { const h = new DatabaseSync(authFile, { readOnly }); try { return fn(h) } finally { h.close() } }
+  const authQuery = (sql, ...args) => withAuth((h) => h.prepare(sql).all(...args))
+  /** Every table of auth.sqlite as text. */
+  const authDump = () => withAuth((h) => Object.fromEntries(h.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map(({ name }) => [name, JSON.stringify(h.prepare('SELECT * FROM "' + name + '"').all())])))
+  /** Where a text is: the tables whose rows hold it, and the file or its write-ahead log when their bytes do. */
+  const whereIs = (needle) => {
+    const found = Object.entries(authDump()).filter(([, text]) => text.includes(needle)).map(([name]) => name)
+    for (const f of [authFile, authFile + '-wal']) if (existsSync(f) && readFileSync(f).includes(Buffer.from(needle))) found.push('file:' + f.slice(-6))
+    return found
+  }
+  const rawToken = (b) => decodeURIComponent([...b.jar].find(([k]) => k.includes('session_token'))?.[1] ?? '').split('.')[0]
+  const roleLabelOf = (people0, id) => people0.roles.find((r) => r.id === id)?.label
+
+  const privacy = await anon.fetch('/privacy')
+  const privacyHtml = await privacy.text()
+  check('/privacy is public, plain html with the stylesheet and nothing inline; with nothing set it says where it lives in general words and asks the owner', privacy.status === 200 && noInline(privacyHtml) && privacyHtml.includes('href="/app.css"') && privacyHtml.includes('in the EU region your team space was created in') && privacyHtml.includes('ask the owner of this space.') && !/mailto:/.test(privacyHtml))
+  check('…and claims nothing about the law', !/complian|certif|guarantee|GDPR|RGPD|legally/i.test(privacyHtml.replace(/<[^>]+>/g, ' ')))
+  const inviteAgain = await anon.fetch('/invite?t=nope')
+  check('the invitation page, the notices and the owner’s pages link to it; so does the sign-in screen of the page', pageHtml.includes('href="/privacy"') && (await inviteAgain.text()).includes('href="/privacy"') && peopleHtml.includes('href="/privacy"') && readFileSync(join(app, 'public', 'js', 'views.mjs'), 'utf8').includes('/privacy'))
+
+  // three people with something to find: Zorica (two invitations for her address, a failed sign-in before she exists), and a typed password in the address box
+  const people0 = (await owner.j('/api/people')).body
+  const zInv1 = await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'Zorica.Vukovic@Example.test', role: 'member' } })
+  const zInv2 = await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'zorica.vukovic@example.test', role: 'viewer' } })
+  check('two invitations are made for one address', zInv1.status === 200 && zInv2.status === 200 && zInv1.body.invitation.email === 'zorica.vukovic@example.test')
+  await signIn(new Browser('10.0.6.1'), 'zorica.vukovic@example.test', 'wrong-password-zz1')
+  await signIn(new Browser('10.0.6.2'), 'my-typed-PASSWORD-in-the-wrong-box', 'wrong-password-zz2')
+  const zo = new Browser('10.0.6.3')
+  const zAcc = await zo.j('/api/invitations/accept', { method: 'POST', json: { token: tokenOf(zInv1.body.link), name: 'Zorica Vukovic', password: PW.member }, headers: { 'user-agent': CHROME } })
+  const zo2 = new Browser('10.0.6.4')
+  const zSign = await zo2.j('/api/auth/sign-in/email', { method: 'POST', json: { email: 'zorica.vukovic@example.test', password: PW.member }, headers: { 'user-agent': IPHONE } })
+  check('she joins on one device and signs in on another', zAcc.status === 200 && zSign.status === 200 && rawToken(zo) !== '' && rawToken(zo) !== rawToken(zo2))
+  const zId = (await zo.j('/api/me')).body.id
+  const zNote = await write(zo, { body: 'a note from the new member' }, 'note', 'create')
+  const zHash = authQuery('SELECT password FROM account WHERE userId = ?', zId)[0]?.password
+  const zTokens = authQuery('SELECT token FROM session WHERE userId = ?', zId).map((r) => r.token)
+  check('she has a password hash and two sessions in auth.sqlite', typeof zHash === 'string' && zHash.length > 20 && zTokens.length === 2)
+
+  const zExp = await zo.fetch('/api/me/export')
+  const zExpText = await zExp.text()
+  const zExpJson = (() => { try { return JSON.parse(zExpText) } catch (e) { return {} } })()
+  check('a person downloads what the space holds about them: an attachment, JSON, never cached', zExp.status === 200 && /^attachment; filename="my-data-\d{4}-\d{2}-\d{2}\.json"$/.test(zExp.headers.get('content-disposition') ?? '') && /no-store/.test(zExp.headers.get('cache-control') ?? '') && (zExp.headers.get('content-type') ?? '').startsWith('application/json'))
+  check('…their name, address and profile, and their sessions as dates and a coarse device', zExpJson.person?.name === 'Zorica Vukovic' && zExpJson.person?.email === 'zorica.vukovic@example.test' && zExpJson.person?.role === 'member' && zExpJson.person?.profile === roleLabelOf(people0, 'member') && zExpJson.sessions?.length === 2 && zExpJson.sessions.map((s) => s.device).sort().join() === 'Chrome on macOS,Safari on iOS' && zExpJson.sessions.filter((s) => s.thisSession).length === 1, JSON.stringify(zExpJson.sessions))
+  check('…and no token, no password hash, no network address, no user agent string', ![zHash, ...zTokens, rawToken(zo), 'Mozilla', 'AppleWebKit', '10.0.6.', 'ipAddress'].some((x) => zExpText.includes(x)))
+  check('without a session the export is 401; a bearer does not reach it (403)', (await anon.fetch('/api/me/export')).status === 401 && (await machine('/api/me/export')).status === 403)
+  const zAccount = await zo.fetch('/account')
+  const zAccountHtml = await zAccount.text()
+  check('her account page: details, a download, and the delete form with a typed confirmation, nothing inline', zAccount.status === 200 && zAccountHtml.includes('zorica.vukovic@example.test') && zAccountHtml.includes('href="/api/me/export"') && zAccountHtml.includes('action="/account/delete"') && zAccountHtml.includes('name="confirm"') && noInline(zAccountHtml) && zAccountHtml.includes('href="/privacy"'))
+  const ownerAccountHtml = await (await owner.fetch('/account')).text()
+  check('the owner’s page has no delete form, says why, and offers the export of each app', !ownerAccountHtml.includes('action="/account/delete"') && ownerAccountHtml.includes('cannot delete their own account') && ownerAccountHtml.includes('/api/apps/shop/export.json') && ownerAccountHtml.includes('/api/apps/ledger/export.json'))
+  check('/account needs a session', (await anon.fetch('/account')).status === 401)
+
+  group('privacy: a member deletes their own account')
+  const dInv = await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'dario.ortiz@example.test', role: 'member' } })
+  const dario = new Browser('10.0.6.5')
+  await dario.j('/api/invitations/accept', { method: 'POST', json: { token: tokenOf(dInv.body.link), name: 'Dario Ortiz', password: PW.member }, headers: { 'user-agent': CHROME } })
+  const darioPlanted = authQuery('SELECT password FROM account WHERE userId = ?', (await dario.j('/api/me')).body.id)[0]?.password
+  check('Dario is in, and his address and name are in auth.sqlite', (await dario.j('/api/me')).status === 200 && whereIs('dario.ortiz@example.test').length >= 2 && whereIs('Dario Ortiz').length >= 1)
+  const delJ = (b, o) => b.j('/api/me', { method: 'DELETE', ...o })
+  check('the delete needs the Origin and the CSRF token like any write', (await delJ(dario, { json: { confirm: 'dario.ortiz@example.test' }, origin: 'https://evil.example' })).status === 403 && (await delJ(dario, { json: { confirm: 'dario.ortiz@example.test' }, csrf: false })).status === 403 && (await dario.j('/api/me')).status === 200)
+  check('typing nothing, or someone else’s address, erases nothing (400)', (await delJ(dario, { json: {} })).status === 400 && (await delJ(dario, { json: { confirm: 'someone.else@example.test' } })).status === 400 && (await delJ(dario, { body: 'not json', headers: { 'content-type': 'application/json' } })).status === 400 && (await dario.j('/api/me')).status === 200)
+  const wrongForm = await dario.fetch('/account/delete', { method: 'POST', form: { confirm: 'nobody@example.test' } })
+  const wrongFormHtml = await wrongForm.text()
+  check('the form says so in a visible message and keeps the account', wrongForm.status === 400 && wrongFormHtml.includes('role="alert"') && wrongFormHtml.includes('Type your own email address') && (await dario.j('/api/me')).status === 200)
+  const bye = await dario.fetch('/account/delete', { method: 'POST', form: { confirm: ' Dario.Ortiz@Example.test ' } })
+  const byeHtml = await bye.text()
+  check('with his own address (any case) the account is erased: a goodbye page, the cookie cleared', bye.status === 200 && byeHtml.includes('Your account was erased') && noInline(byeHtml) && byeHtml.includes('href="/privacy"') && !dario.has('session_token'))
+  const gonePlaces = ['dario.ortiz@example.test', 'Dario Ortiz', 'Ortiz', 'd***@example.test', darioPlanted].map((x) => [x.slice(0, 8), whereIs(x)]).filter(([, w]) => w.length > 0)
+  check('no table of auth.sqlite and no byte of the file or its log holds his name, address or password hash', gonePlaces.length === 0, JSON.stringify(gonePlaces))
+  check('his next request is 401, he cannot sign in, and the address is free to be invited again', (await dario.fetch('/api/me')).status === 401 && (await signIn(new Browser('10.0.6.6'), 'dario.ortiz@example.test', PW.member)).status === 401 && (await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'dario.ortiz@example.test', role: 'member' } })).status === 200)
+  const eInv = await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'ema.ruiz@example.test', role: 'member' } })
+  const ema = new Browser('10.0.6.7')
+  await ema.j('/api/invitations/accept', { method: 'POST', json: { token: tokenOf(eInv.body.link), name: 'Ema Ruiz', password: PW.member } })
+  const emaGone = await delJ(ema, { json: { confirm: 'EMA.RUIZ@example.test' } })
+  check('the JSON route does the same: 200, the cookie cleared, 401 after, and nothing left in the file', emaGone.status === 200 && emaGone.body.ok === true && !ema.has('session_token') && (await ema.fetch('/api/me')).status === 401 && ['ema.ruiz@example.test', 'Ema Ruiz', 'e***@example.test'].every((x) => whereIs(x).length === 0))
+  const ownerDel = await delJ(owner, { json: { confirm: 'olga@example.test' } })
+  const ownerDelForm = await owner.fetch('/account/delete', { method: 'POST', form: { confirm: 'olga@example.test' } })
+  check('the owner cannot delete themselves: 403 with the reason, and still signed in', ownerDel.status === 403 && /owner/.test(ownerDel.body?.message ?? '') && ownerDelForm.status === 403 && (await owner.j('/api/me')).body?.role === 'owner')
+  check('a bearer cannot delete an account (403), nor can an anonymous visitor (401)', (await machine('/api/me', { method: 'DELETE', json: { confirm: 'olga@example.test' } })).status === 403 && (await delJ(anon, { json: { confirm: 'x@example.test' } })).status === 401)
+
+  group('privacy: the owner removes a person')
+  const beforeRemoval = [...['zorica.vukovic@example.test', 'Zorica Vukovic', 'Vukovic', zHash, ...zTokens].map((x) => [x, whereIs(x)])]
+  check('before the removal Zorica’s address, name, hash and tokens are in auth.sqlite', beforeRemoval.every(([, w]) => w.length >= 1) && whereIs('zorica.vukovic@example.test').length >= 4, JSON.stringify(beforeRemoval.map(([x, w]) => [x.slice(0, 8), w.length])))
+  check('she wrote a row while she was in', zNote.status === 200 && zNote.body.ok === true)
+  const removed = await owner.j('/api/people/members/' + zId, { method: 'DELETE' })
+  check('the owner removes her', removed.status === 200 && removed.body.ok === true, JSON.stringify(removed.body))
+  const stillThere = ['zorica.vukovic@example.test', 'Zorica Vukovic', 'Zorica', 'Vukovic', 'z***@example.test', zHash, ...zTokens].map((x) => [x.slice(0, 10), whereIs(x)]).filter(([, w]) => w.length > 0)
+  check('no table of auth.sqlite (user, session, account, verification, members, invitations, activity) and no byte of the file or its log holds her address, name, hash or tokens', stillThere.length === 0, JSON.stringify(stillThere))
+  const idLeft = [['user', 'id'], ['session', 'userId'], ['account', 'userId'], ['app_member', 'user_id']].filter(([t, c]) => authQuery('SELECT count(*) AS n FROM "' + t + '" WHERE "' + c + '" = ?', zId)[0].n > 0)
+  check('her id is in no table of the people (the activity log keeps it as an opaque id, nothing else about her)', idLeft.length === 0, JSON.stringify(idLeft))
+  check('both of her devices are signed out at once and she cannot sign in (a failed attempt keeps a masked address, as any does)', (await zo.fetch('/api/me')).status === 401 && (await zo2.fetch('/api/me')).status === 401 && (await signIn(new Browser('10.0.6.8'), 'zorica.vukovic@example.test', PW.member)).status === 401)
+  const peopleAfter = (await owner.j('/api/people')).body
+  check('neither the members nor the pending invitations list her any more (both of her invitations went)', !JSON.stringify(peopleAfter).includes('zorica') && peopleAfter.invitations.length >= 1)
+  const noteJournal = (() => { const s = makeService({ dir: join(data, 'apps', 'shop') }); try { return s.byId(shopId).db.journal({ object: 'note', record: zNote.body.record.id }).map((e) => e.by) } finally { s.close() } })()
+  const appBytes = walk(join(data, 'apps')).flatMap((f) => readFileSync(join(data, 'apps', f)))
+  check('what stays: her row is still in the app, written by an opaque id that names nobody; the apps’ files hold neither her address nor her name', (await records(owner, 'note')).records.some((r) => r.id === zNote.body.record.id) && noteJournal.includes('member:' + zId) && !appBytes.some((b) => b.includes('zorica.vukovic') || b.includes('Zorica Vukovic')))
+  const nInv = await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'noel.park@example.test', role: 'viewer' } })
+  const noel = new Browser('10.0.6.9')
+  await noel.j('/api/invitations/accept', { method: 'POST', json: { token: tokenOf(nInv.body.link), name: 'Noel Park', password: PW.member } })
+  const noelId = (await noel.j('/api/me')).body.id
+  const noelPage = await owner.fetch('/people/members/' + noelId + '/remove', { method: 'POST', form: {} })
+  const noelHtml = await noelPage.text()
+  check('the people page removes through its form and says what is erased and what stays', noelPage.status === 200 && noelHtml.includes('Their account and address were erased') && noelHtml.includes('opaque id') && (await noel.fetch('/api/me')).status === 401 && whereIs('noel.park@example.test').length === 0 && whereIs('Noel Park').length === 0)
+  check('the removal question on the page says the same before it is asked', peopleHtml.includes('their account and address are erased') && peopleHtml.includes('opaque id'))
+  check('the owner cannot be removed this way, and a member cannot remove anyone (403)', (await owner.j('/api/people/members/' + (await owner.j('/api/me')).body.id, { method: 'DELETE' })).status === 403 && (await m3.j('/api/people/members/' + noelId, { method: 'DELETE' })).status === 403)
+
+  group('privacy: the owner’s export of an app')
+  const noteList = (await records(owner, 'note')).records
+  const noteToArchive = noteList.find((r) => r.id !== zNote.body.record.id)
+  const archived = await write(owner, {}, 'note', 'delete', noteToArchive.id)
+  check('one row is archived first (deleted, kept)', archived.status === 200 && archived.body.ok === true, JSON.stringify(archived.body).slice(0, 100))
+  const ex = await owner.fetch('/api/apps/shop/export.json')
+  const exText = await ex.text()
+  const exJson = (() => { try { return JSON.parse(exText) } catch (e) { return {} } })()
+  check('the export is an attachment named after the app, JSON, never cached', ex.status === 200 && /^attachment; filename="shop-export-\d{4}-\d{2}-\d{2}\.json"$/.test(ex.headers.get('content-disposition') ?? '') && /no-store/.test(ex.headers.get('cache-control') ?? '') && (ex.headers.get('content-type') ?? '').startsWith('application/json') && ex.headers.get('x-content-type-options') === 'nosniff')
+  const exShop = exJson.databases?.[0]
+  const exContact = exShop?.tables?.find((t) => t.key === 'contact')
+  const exNote = exShop?.tables?.find((t) => t.key === 'note')
+  check('it holds the definitions of every table (fields with their protection) and the profiles', exJson.format === 'kybernos-team-space-export/1' && exJson.app === 'shop' && exShop?.tables?.map((t) => t.key).sort().join() === 'contact,note,orders,product' && exContact?.definition?.fields?.some((f) => f.key === 'iban' && f.protection === 'sensitive') && exShop?.profiles?.some((p) => p.id === 'member'))
+  check('…every record, personal and sensitive fields in clear (it is the owner’s), and the archived row with its stamp', exContact?.records?.[0]?.values?.phone === '0102030405' && exContact.records[0].values.iban === 'FR7612345' && exNote?.records?.some((r) => r.id === noteToArchive.id && r.deleted !== null) && exNote.records.some((r) => r.id === zNote.body.record.id && r.deleted === null))
+  check('…and the list of files with names, types and hashes (the bytes are not in it)', exShop?.files?.length >= 1 && exShop.files.every((f) => f.table === 'contact' && typeof f.name === 'string' && /^[0-9a-f]{64}$/.test(f.hash) && Number.isInteger(f.size)) && !exText.includes('PNG'), JSON.stringify(exShop?.files))
+  const exLedger = await owner.j('/api/apps/ledger/export.json')
+  check('an app with no profile is exported too', exLedger.status === 200 && exLedger.body?.databases?.[0]?.name === 'Ledger')
+  const exRefused = [await m3.fetch('/api/apps/shop/export.json'), await m2b.fetch('/api/apps/shop/export.json'), await anon.fetch('/api/apps/shop/export.json'), await machine('/api/apps/shop/export.json')]
+  check('a member and a viewer are refused (403), a visitor too (401), and so is the owner’s token: the owner’s session only (403)', exRefused.map((r) => r.status).join() === '403,403,401,403' && (await exRefused[3].json()).reason === 'bearer-scope')
+  check('an unknown app is a 404, and so is a bad name', (await owner.fetch('/api/apps/nothing/export.json')).status === 404 && (await owner.fetch('/api/apps/..%2Fetc/export.json')).status === 404)
+  check('the client has a visible « Export data » control for the owner, a plain download link', readFileSync(join(app, 'public', 'js', 'views.mjs'), 'utf8').includes('Export data') && readFileSync(join(app, 'public', 'js', 'views.mjs'), 'utf8').includes('/export.json'))
+  check('a copy of the app taken with the session is written down too (manifest)', (await owner.fetch('/api/apps/shop/snapshot/manifest')).status === 200)
+
   group('transfer routes: who may call them')
   const png2 = png
   const shopBlob = (await mj('/api/apps/shop/snapshot/manifest')).body?.blobs?.[0]?.hash ?? '0'.repeat(64)
@@ -668,6 +807,78 @@ async function main () {
   check('thirty wrong tokens an address in 15 minutes are answered 401, the next ones 429', bads.slice(0, 30).every((c) => c === 401) && bads.slice(30).every((c) => c === 429), bads.join())
   check('another address is not slowed', (await machine('/api/me', { ip: '10.0.7.10' })).status === 200)
 
+  // ── 12c. L7: invitations that really send, against a fake provider (a second instance of the same app, configured by its environment) ──
+  group('e-mail invitations (a second instance, a fake provider)')
+  const provider = { calls: [], mode: 'ok' }
+  const fakeProvider = createHttpServer((req, res) => {
+    const chunks = []
+    req.on('data', (c) => chunks.push(c))
+    req.on('end', () => {
+      provider.calls.push({ method: req.method, url: req.url, headers: req.headers, raw: Buffer.concat(chunks).toString('utf8') })
+      res.writeHead(provider.mode === 'fail' ? 422 : 200, { 'content-type': 'application/json' })
+      res.end(provider.mode === 'fail' ? JSON.stringify({ name: 'validation_error', message: 'PROVIDER-SECRET-BODY the domain is not verified' }) : JSON.stringify({ id: 're_' + randomBytes(6).toString('hex') }))
+    })
+  })
+  await new Promise((resolve) => fakeProvider.listen(0, '127.0.0.1', resolve))
+  const fakePort = fakeProvider.address().port
+  const mailDbs = join(root, 'dbs-mail')
+  const mailSvc = makeService({ dir: mailDbs })
+  const mailMade = mailSvc.create({ name: 'Notes', by: 'template', objects: [{ key: 'note', label: 'Notes', title: 'body', fields: [{ key: 'body', type: 'text', label: 'Body' }] }] })
+  mailMade.db.setProfiles([{ id: 'member', label: 'Team member', grants: [{ object: 'note', do: ['read'] }] }], 'template')
+  const mailDbId = mailMade.db.info().id
+  mailSvc.close()
+  const mailData = join(root, 'data-mail')
+  installApp(join(mailData, 'apps'), 'notes', join(mailDbs, mailDbId))
+  const portB = await new Promise((resolve) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)) }) })
+  const BASE_B = 'http://127.0.0.1:' + portB
+  serverB = spawn(process.execPath, ['--no-warnings', 'server.js'], { cwd: app, env: { PATH: process.env.PATH, PORT: String(portB), KB_AUTH_SECRET: authSecret, KB_BOOT_KEY: bootHex, KB_DATA_DIR: mailData, KB_TRUST_PROXY: '1', KB_MAIL_API_KEY: MAIL_KEY, KB_MAIL_FROM: 'Team space <team@example.test>', KB_MAIL_REPLY_TO: 'owner@example.test', KB_MAIL_API_BASE: 'http://127.0.0.1:' + fakePort, KB_PRIVACY_CONTACT: 'privacy@example.test', KB_REGION_LABEL: 'Test region (EU)' }, stdio: ['ignore', 'pipe', 'pipe'] })
+  serverB.stdout.on('data', (d) => { outputB += d })
+  serverB.stderr.on('data', (d) => { outputB += d })
+  for (let i = 0; i < 100 && !outputB.includes('listening ' + portB); i++) await sleep(100)
+  check('the second instance listens, with a provider key in its environment', outputB.includes('listening ' + portB), outputB.slice(0, 200))
+  const boss = new Browser('10.0.5.1', BASE_B)
+  check('its owner opens the first link', (await boss.fetch(link({ email: 'boss@example.test' }))).status === 303)
+  const mailed = await boss.j('/api/people/invitations', { method: 'POST', json: { email: 'mia@example.test', role: 'member' } })
+  const call1 = provider.calls[0]
+  const sent1 = (() => { try { return JSON.parse(call1.raw) } catch (e) { return {} } })()
+  check('an invitation by e-mail goes out: the answer says sent, and gives no link (it is in the mail)', mailed.status === 200 && mailed.body.sent === true && mailed.body.link === undefined && mailed.body.mailFailed === undefined && provider.calls.length === 1, JSON.stringify(mailed.body).slice(0, 160))
+  check('the provider got one POST /emails with the key as a bearer and JSON', call1?.method === 'POST' && call1.url === '/emails' && call1.headers.authorization === 'Bearer ' + MAIL_KEY && (call1.headers['content-type'] ?? '').startsWith('application/json'))
+  const mailedLink = (sent1.text ?? '').split('\n').find((l) => l.startsWith(BASE_B + '/invite?t=')) ?? ''
+  check('…from the configured sender, to the invited address only, with a reply-to, a subject, a text and a small html', sent1.from === 'Team space <team@example.test>' && JSON.stringify(sent1.to) === '["mia@example.test"]' && sent1.reply_to === 'owner@example.test' && /^You are invited to /.test(sent1.subject ?? '') && typeof sent1.text === 'string' && typeof sent1.html === 'string' && !('cc' in sent1) && !('bcc' in sent1), Object.keys(sent1).join())
+  const urlsInHtml = (sent1.html ?? '').match(/https?:\/\/[^\s"'<>]+/g) ?? []
+  check('the text says who invited, the space, the link, and that it expires in 7 days', (sent1.text ?? '').startsWith('boss@example.test invited you to join Notes.') && sent1.subject === 'You are invited to Notes' && mailedLink !== '' && /expires in 7 days/.test(sent1.text ?? '') && /You will join as Team member/.test(sent1.text ?? ''), (sent1.text ?? '').slice(0, 200))
+  check('the html has no image, no script, no style, no tracking, and no address but the invitation link', !/<img|<script|<style|<link|<iframe|src=|pixel|track/i.test(sent1.html ?? '') && urlsInHtml.length > 0 && urlsInHtml.every((u) => u.replace(/&amp;/g, '&').startsWith(BASE_B + '/invite?t=')), (sent1.html ?? '').slice(0, 200))
+  const stranger2 = new Browser('10.0.5.2', BASE_B)
+  const joined = await stranger2.j('/api/invitations/accept', { method: 'POST', json: { token: new URL(mailedLink).searchParams.get('t'), name: 'Mia', password: PW.member } })
+  check('the link in the mail works: she joins as the profile it gave', joined.status === 200 && joined.body.role === 'member' && (await stranger2.j('/api/me')).body?.email === 'mia@example.test')
+  provider.mode = 'fail'
+  const failed = await boss.j('/api/people/invitations', { method: 'POST', json: { email: 'noa@example.test', role: 'member' } })
+  const failedText = JSON.stringify(failed.body)
+  check('when the provider refuses, the owner is told the e-mail could not be sent and gets the link; nothing of the provider’s answer or the key is shown', failed.status === 200 && failed.body.sent === false && failed.body.mailFailed === true && failed.body.message === 'The e-mail could not be sent. Here is the link to give them yourself.' && typeof failed.body.link === 'string' && !failedText.includes('PROVIDER-SECRET-BODY') && !failedText.includes('not verified') && !failedText.includes(MAIL_KEY) && provider.calls.length === 2, failedText.slice(0, 200))
+  const failedForm = await boss.fetch('/people/invitations', { method: 'POST', form: { email: 'otto@example.test', role: 'member' } })
+  const failedFormHtml = await failedForm.text()
+  check('the people page says it too, in a visible message with the link to copy, and shows nothing of the provider', failedForm.status === 200 && failedFormHtml.includes('role="alert"') && failedFormHtml.includes('The e-mail could not be sent') && failedFormHtml.includes('/invite?t=') && !failedFormHtml.includes('PROVIDER-SECRET-BODY') && !failedFormHtml.includes(MAIL_KEY) && noInline(failedFormHtml))
+  provider.mode = 'ok'
+  const pendingNoa = (await boss.j('/api/people')).body.invitations.find((i) => i.email === 'noa@example.test')
+  const callsBefore = provider.calls.length
+  const resentMail = await boss.j('/api/people/invitations/' + pendingNoa.id + '/resend', { method: 'POST', json: {} })
+  const sentAgain = (() => { try { return JSON.parse(provider.calls[callsBefore]?.raw ?? '{}') } catch (e) { return {} } })()
+  const firstLink = (failed.body.link ?? '')
+  const secondLink = (sentAgain.text ?? '').split('\n').find((l) => l.startsWith(BASE_B + '/invite?t=')) ?? ''
+  check('a resend goes through the same path: one more mail, a new link, the old one dead', resentMail.status === 200 && resentMail.body.sent === true && provider.calls.length === callsBefore + 1 && secondLink !== '' && secondLink !== firstLink && (await new Browser('10.0.5.3', BASE_B).j('/api/invitations/accept', { method: 'POST', json: { token: new URL(firstLink).searchParams.get('t'), email: 'noa@example.test', password: PW.member } })).status === 400)
+  const nobody = await boss.j('/api/people/invitations', { method: 'POST', json: { role: 'member' } })
+  check('an invitation by link alone sends nothing and gives the link', nobody.status === 200 && nobody.body.sent === false && nobody.body.mailFailed === undefined && typeof nobody.body.link === 'string' && provider.calls.length === callsBefore + 1)
+  const privacyB = await (await new Browser('10.0.5.4', BASE_B).fetch('/privacy')).text()
+  check('/privacy on that instance says what the operator set: the region, the contact as a mail link, and that invitation e-mails go through the provider', privacyB.includes('in Test region (EU)') && privacyB.includes('<a href="mailto:privacy@example.test">privacy@example.test</a>') && privacyB.includes('Invitation emails are sent through'))
+  const feedB = (await boss.j('/api/audit?kind=invitations&limit=50')).body
+  const sentEvents = feedB?.events?.filter((e) => e.kind === 'invite.sent') ?? []
+  check('the activity log says which invitations went by e-mail and which failed, without the key, a link or a provider word', sentEvents.some((e) => e.detail.mail === 'sent') && sentEvents.some((e) => e.detail.mail === 'failed') && !JSON.stringify(feedB).includes(MAIL_KEY) && !JSON.stringify(feedB).includes('PROVIDER-SECRET-BODY') && !JSON.stringify(feedB).includes('/invite?t='))
+  const defaultNoMail = await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'nomail@example.test', role: 'member' } })
+  check('the first instance, with no key, still sends nothing and gives the link (no “could not be sent”)', defaultNoMail.status === 200 && defaultNoMail.body.sent === false && defaultNoMail.body.mailFailed === undefined && typeof defaultNoMail.body.link === 'string' && provider.calls.length === callsBefore + 1)
+  await owner.j('/api/people/invitations/' + defaultNoMail.body.invitation.id, { method: 'DELETE' })
+  serverB.kill('SIGTERM')
+  await new Promise((resolve) => fakeProvider.close(resolve))
+
   // ── 13. rate limits (each « browser » has its own address, so only these trip) ──
   group('rate limits')
   const guess = new Browser('10.0.7.1')
@@ -687,6 +898,63 @@ async function main () {
   const invites = []
   for (let i = 0; i < 32; i++) invites.push(await owner.j('/api/people/invitations', { method: 'POST', json: { role: 'viewer' } }))
   check('invitations sent: thirty an hour, then 400 rate-limited', invites[0].status === 200 && invites.at(-1).status === 400 && invites.at(-1).body.error === 'rate-limited', invites.map((r) => r.status).join())
+
+  // ── 14. L7: the activity log, once everything above has happened ──
+  group('activity log: the owner’s view, and what it must never hold')
+  const feed = (b, q = '') => b.j('/api/audit' + q)
+  check('anonymous: 401, a member: 403, a viewer: 403, the owner’s token: 403 (the log is the owner’s session’s)', (await feed(anon)).status === 401 && (await feed(m3)).status === 403 && (await feed(m2b)).status === 403 && (await machine('/api/audit')).status === 403)
+  const pageStatuses = [(await anon.fetch('/activity')).status, (await m3.fetch('/activity')).status, (await machine('/activity')).status, (await owner.fetch('/activity')).status]
+  check('the page /activity: anonymous 401, a member 403, a bearer 403, the owner 200', pageStatuses.join() === '401,403,403,200', pageStatuses.join())
+  const top = await feed(owner, '?limit=5')
+  const topBad = top.body.events.filter((e, i, all) => !(typeof e.text === 'string' && /^[A-Z].*\.$/.test(e.text) && (i === 0 || all[i - 1].id > e.id))).map((e) => e.id + ': ' + e.text)
+  check('newest first, five at a time, each with a sentence and an opaque cursor for the older page', top.status === 200 && top.body.ok === true && top.body.events.length === 5 && topBad.length === 0 && Number.isInteger(top.body.next), topBad.join(' | ') + ' ' + JSON.stringify(top.body.next))
+  const older = await feed(owner, '?limit=5&before=' + top.body.next)
+  check('the older page continues where the first stopped', older.status === 200 && older.body.events.length === 5 && older.body.events[0].id < top.body.events[4].id)
+  const asked = [await feed(owner, '?limit=0'), await feed(owner, '?limit=abc'), await feed(owner, '?limit=201'), await feed(owner, '?before=-3'), await feed(owner, '?before=x'), await feed(owner, '?kind=nope'), await feed(owner, '?kind=__proto__')]
+  check('a bad limit, cursor or filter is a 400 that names the problem, never a crash', asked.every((r) => r.status === 400 && r.body.ok === false && typeof r.body.message === 'string'), asked.map((r) => r.status).join())
+  const all = []
+  for (let before; ;) {
+    const r = await feed(owner, '?limit=200' + (before === undefined ? '' : '&before=' + before))
+    all.push(...r.body.events)
+    if (r.body.next === null) break
+    before = r.body.next
+  }
+  const kinds = new Set(all.map((e) => e.kind))
+  const wanted = ['signin.ok', 'signin.failed', 'owner.open', 'owner.open.refused', 'password.changed', 'invite.sent', 'invite.resent', 'invite.revoked', 'invite.accepted', 'invite.role', 'member.removed', 'member.role', 'member.self_deleted', 'export.app', 'export.me', 'export.snapshot', 'app.imported', 'app.released', 'ratelimit']
+  check('every kind of event the brief names has happened above and is in the log', wanted.every((k) => kinds.has(k)), 'missing: ' + wanted.filter((k) => !kinds.has(k)).join())
+  check('the whole log, page by page, is newest first with no repeat', all.length > 60 && all.every((e, i) => i === 0 || all[i - 1].id > e.id) && new Set(all.map((e) => e.id)).size === all.length, String(all.length))
+  const failedSignins = all.filter((e) => e.kind === 'signin.failed')
+  check('a failed sign-in keeps a masked address (a***@domain) and a short code for the network, never the password', failedSignins.length >= 10 && failedSignins.every((e) => e.detail.email === undefined || /^[a-z0-9]\*\*\*@[a-z0-9.-]+$/.test(e.detail.email)) && failedSignins.some((e) => e.detail.email === 'o***@example.test') && failedSignins.every((e) => e.ip === null || /^[0-9a-f]{8}$/.test(e.ip)))
+  const viaToken = all.filter((e) => (e.kind === 'app.imported' || e.kind === 'app.released') && e.actor === 'owner-token')
+  check('actions through the owner’s token are named as the owner’s computer; the same actions with a session name the owner', viaToken.length >= 2 && viaToken.every((e) => /^The owner's computer /.test(e.text)) && all.filter((e) => (e.kind === 'app.imported' || e.kind === 'app.released') && e.actor !== 'owner-token').every((e) => !/^The owner's computer /.test(e.text)), String(viaToken.length))
+  check('removals and erasures say what happened without naming the person', all.filter((e) => e.kind === 'member.removed' || e.kind === 'member.self_deleted').every((e) => /Their account and address were erased\.$/.test(e.text) && e.detail.email === undefined) && all.filter((e) => e.kind === 'member.removed').length >= 2 && all.filter((e) => e.kind === 'member.self_deleted').length >= 2)
+  // nothing secret, nothing personal beyond a masked address: in the answer, in the page, and in the table itself
+  const logTable = authDump().audit
+  const planted = [PW.owner1, PW.owner2, PW.member, 'wrong-password', 'guess-', 'my-typed', 'PASSWORD-in', 'Bearer', 'session_token', '/invite?t=', '/open?t=', 'Zorica', 'Vukovic', 'Dario', 'Ortiz', 'Ema Ruiz', 'Noel', 'Mozilla', '10.0.', 'x-forwarded', ...issued.filter((t) => t.length > 20), maxToken, viewerToken, tokenOf(zInv1.body.link), tokenOf(zInv2.body.link)]
+  const feedText = JSON.stringify(all)
+  const activityHtml = await (await owner.fetch('/activity')).text()
+  const leaksIn = (name, text) => planted.filter((x) => text.includes(x)).map((x) => name + ': ' + x.slice(0, 12))
+  const mail = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/
+  const net = /\b\d{1,3}(\.\d{1,3}){3}\b/
+  check('no password, token, link, user agent or planted name in the log: the API answer, the page, the table', [...leaksIn('api', feedText), ...leaksIn('page', activityHtml), ...leaksIn('table', logTable)].length === 0, [...leaksIn('api', feedText), ...leaksIn('page', activityHtml), ...leaksIn('table', logTable)].join(' | '))
+  // the sentences name the people who are in the team now (as the People page does), so their own addresses may show; nobody else's, and the stored rows hold none at all
+  const present = new Set([...(await owner.j('/api/people')).body.members.map((m) => m.email.toLowerCase()), 'olga@example.test'])
+  const strangers = (text) => [...text.matchAll(new RegExp(mail.source, 'g'))].map((m) => m[0].toLowerCase()).filter((x) => !present.has(x))
+  const found = [...strangers(feedText).map((x) => 'api: ' + x), ...strangers(activityHtml).map((x) => 'page: ' + x), ...(mail.test(logTable) ? ['table: an address'] : []), ...[feedText, activityHtml, logTable].filter((t) => net.test(t)).map(() => 'a network address')]
+  check('no address of anyone who is not in the team, and no network address, in the log: the API answer, the page, the table (which holds no whole address at all)', found.length === 0, found.join(' | '))
+  const filtered = await feed(owner, '?kind=exports&limit=200')
+  check('a group filters to its own kinds', filtered.body.events.length >= 3 && filtered.body.events.every((e) => e.group === 'exports') && (await feed(owner, '?kind=member.removed')).body.events.every((e) => e.kind === 'member.removed'))
+  const pageOne = await (await owner.fetch('/activity')).text()
+  const olderLink = pageOne.match(/href="(\/activity\?before=\d+)"/)
+  const pageTwo = olderLink === null ? '' : await (await owner.fetch(olderLink[1].replace(/&amp;/g, '&'))).text()
+  const pill = (html, label) => (html.match(new RegExp('<span class="pill [a-z]+">' + label + '</span>', 'g')) ?? []).length
+  check('the page: a table of sentences, a filter that is a plain form, newest first, an “Older” link that leads to a page with “Newest”, nothing inline', pageOne.includes('<table class="activity">') && pageOne.includes('name="kind"') && noInline(pageOne) && pageOne.includes('href="/app.css"') && pageOne.includes('href="/privacy"') && olderLink !== null && pageTwo.includes('>Newest<') && noInline(pageTwo) && pageOne.includes('href="/people"'))
+  const exportsPage = await (await owner.fetch('/activity?kind=exports')).text()
+  check('the page filtered on exports shows only exports', pill(exportsPage, 'Exports') >= 3 && pill(exportsPage, 'Sign-ins') === 0 && pill(exportsPage, 'People') === 0)
+  check('a bad filter on the page is a 400 with the whole list, not a crash', (await owner.fetch('/activity?kind=nope')).status === 400 && (await owner.fetch('/activity?before=zz')).status === 400)
+  check('the people page links to the activity page', peopleHtml.includes('href="/activity"'))
+  const tamper = withAuth((h) => { const out = []; for (const sql of ["UPDATE audit SET kind = 'signin.ok'", 'DELETE FROM audit', "DELETE FROM audit WHERE kind = 'signin.failed'"]) { try { h.exec(sql); out.push('went through') } catch (e) { out.push(/append-only/.test(String(e.message)) ? 'refused' : 'other: ' + e.message) } } return out }, false)
+  check('the log is append-only in the file itself: an UPDATE or a DELETE is refused by the table', tamper.every((x) => x === 'refused') && authQuery('SELECT count(*) AS n FROM audit')[0].n === all.length, tamper.join())
 }
 
 try {
@@ -697,11 +965,12 @@ try {
 } finally {
   if (server !== null) {
     server.kill('SIGTERM')
-    await sleep(400)
   }
+  if (serverB !== null) serverB.kill('SIGTERM')
+  await sleep(400)
   // nothing secret may have reached the server's output: the secrets, a minted link or a password
-  const leaked = ['owner-password-one', 'owner-password-two', 'member-password-1', 'session_token', '/open?t=', '/invite?t=', 'Bearer ', ...issued.filter((t) => t.length > 20)].filter((s) => output.includes(s))
-  console.log('\n' + (leaked.length === 0 ? 'ok   ' : 'FAIL ') + 'the server output holds no password, token (owner link or API) or link (' + output.split('\n').filter(Boolean).length + ' lines)')
+  const leaked = ['owner-password-one', 'owner-password-two', 'member-password-1', 'session_token', '/open?t=', '/invite?t=', 'Bearer ', MAIL_KEY, 'PROVIDER-SECRET-BODY', 'zorica', 'vukovic', 'dario.ortiz', 'ema.ruiz', 'noel.park', 'mia@example', ...issued.filter((t) => t.length > 20)].filter((s) => (output + outputB).toLowerCase().includes(String(s).toLowerCase()))
+  console.log('\n' + (leaked.length === 0 ? 'ok   ' : 'FAIL ') + 'the output of both instances holds no password, token (owner link or API), link, mail provider key, planted name or address (' + (output + outputB).split('\n').filter(Boolean).length + ' lines)')
   if (leaked.length > 0) fails++
   rmSync(root, { recursive: true, force: true })
 }

@@ -32,10 +32,10 @@ const OCTET = 'application/octet-stream'
 const SNAPSHOT_TTL_MS = 2 * 60 * 1000
 
 /**
- * `{ apps (lib/apps.mjs), appsDir, tmpDir, bootKey (Buffer), store (lib/store.mjs), now, ipOf(c), tooMany(c, limiterAnswer), bundleMaxBytes?, log?, ports? }`.
+ * `{ apps (lib/apps.mjs), appsDir, tmpDir, bootKey (Buffer), store (lib/store.mjs), now, ipOf(c), tooMany(c, limiterAnswer, scope), bundleMaxBytes?, log?, audit?(kind, c, detail), ports? }`.
  * `tmpDir` must be on the same file system as `appsDir` (an import is one `rename`) and outside it (a folder in `apps/` is an app); it is emptied at start and at close.
  */
-export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Date.now, ipOf, tooMany, bundleMaxBytes = DEFAULT_MAX_BYTES, log = () => {}, ports = {} }) {
+export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Date.now, ipOf, tooMany, bundleMaxBytes = DEFAULT_MAX_BYTES, log = () => {}, audit = () => {}, ports = {} }) {
   rmSync(tmpDir, { recursive: true, force: true })
   mkdirSync(tmpDir, { recursive: true, mode: 0o700 })
 
@@ -52,12 +52,12 @@ export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Dat
     if (bearerOf(authorization) === null) return next()
     const ip = ipOf(c)
     const all = limits.any.hit(ip)
-    if (!all.ok) return tooMany(c, all)
+    if (!all.ok) return tooMany(c, all, 'bearer')
     const verdict = judgeBearer({ authorization, cookie: c.req.header('cookie'), path: c.req.path, key: bootKey, now })
     if (verdict.who === 'refused') {
       if (verdict.status === 401) {
         const bad = limits.bad.hit(ip)
-        if (!bad.ok) return tooMany(c, bad)
+        if (!bad.ok) return tooMany(c, bad, 'bearer-bad')
         c.header('www-authenticate', 'Bearer')
         return c.json({ ok: false, error: verdict.error }, 401)
       }
@@ -135,6 +135,7 @@ export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Dat
       if (!staged.ok) return refused(c, staged)
       try { renameSync(staged.dir, dest) } catch (e) { discardStage(staged.dir); throw e }
       log('transfer: imported ' + slug + ' (db ' + staged.id + ')')
+      audit('app.imported', c, { app: slug })
       return c.json({ ok: true, slug, db: { id: staged.id, name: staged.name }, fingerprint: staged.fingerprint }, 201)
     })
 
@@ -143,9 +144,13 @@ export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Dat
       return t.res ?? c.json({ ok: true, fingerprint: t.db.fingerprint() })
     })
 
+    // the owner's computer pulls copies all day with its token: that is not news. A person who pulls one from a browser session is.
+    const copied = (c, slug, what) => { if (c.get('bearer') !== true) audit('export.snapshot', c, { app: slug, what }) }
+
     app.get('/api/apps/:slug/snapshot', ...owner, (c) => {
       const t = dbOf(c)
       if (t.res) return t.res
+      copied(c, t.slug, 'bundle')
       const snap = snapshotOf(t.slug, t.db)
       const packed = bundleOf(snap, t.db, { maxBytes: bundleMaxBytes })
       if (!packed.ok) return packed.code === 'too-big' ? c.json({ ok: false, error: 'too-large', maxBytes: bundleMaxBytes, message: 'too big for one bundle: pull snapshot/manifest, snapshot/db and the blobs' }, 413) : c.json({ ok: false, error: 'server-error' }, 500)
@@ -155,6 +160,7 @@ export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Dat
     app.get('/api/apps/:slug/snapshot/manifest', ...owner, (c) => {
       const t = dbOf(c)
       if (t.res) return t.res
+      copied(c, t.slug, 'manifest')
       const snap = snapshotOf(t.slug, t.db)
       const manifest = manifestOf(snap, { maxBytes: Number.MAX_SAFE_INTEGER })
       return manifest.ok === false ? c.json({ ok: false, error: 'server-error' }, 500) : c.json({ ok: true, ...manifest, ...(snap.missing.length > 0 ? { missing: snap.missing.length } : {}) })
@@ -163,6 +169,7 @@ export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Dat
     app.get('/api/apps/:slug/snapshot/db', ...owner, (c) => {
       const t = dbOf(c)
       if (t.res) return t.res
+      copied(c, t.slug, 'db')
       const snap = snapshotOf(t.slug, t.db)
       // the file is opened here, not when the stream starts: a newer snapshot may remove it, and an open file stays readable
       const stream = createReadStream(snap.file, { fd: openSync(snap.file, 'r'), autoClose: true })
@@ -186,6 +193,7 @@ export function makeTransfer ({ apps, appsDir, tmpDir, bootKey, store, now = Dat
       forget(slug)
       apps.release(slug, join(tmpDir, 'released-' + randomBytes(6).toString('hex')))
       log('transfer: released ' + slug)
+      audit('app.released', c, { app: slug })
       return c.json({ ok: true, released: slug })
     })
   }

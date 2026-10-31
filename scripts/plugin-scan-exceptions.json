@@ -10,6 +10,7 @@
     { "file": "helper/gen-icon.mjs", "categories": ["exec"], "why": "A build-time script of the Mac menu-bar app: it paints the app icon and turns it into an .icns when the app is built. It is not an export of the bundle and never runs inside DSH." }
   ],
   "kybernos-webapp-creator": [
-    { "file": "templates/tables/public/js/api.mjs", "categories": ["net"], "why": "Browser code of the hosted team space: the `fetch(` calls run in the person's browser against the app's own origin (connect-src falls back to default-src 'self'). The host code makes no request." }
+    { "file": "templates/tables/public/js/api.mjs", "categories": ["net"], "why": "Browser code of the hosted team space: the `fetch(` calls run in the person's browser against the app's own origin (connect-src falls back to default-src 'self'). The host code makes no request." },
+    { "file": "templates/tables/lib/mailer.mjs", "categories": ["net"], "why": "Code of the hosted team space, a template that is copied to the server: its one `fetch(` posts an invitation to the mail provider from that server's process, when the operator sets a provider key in the space's own environment. It never runs inside DSH, which makes no request here." }
   ]
 }
