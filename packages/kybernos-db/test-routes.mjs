@@ -177,6 +177,60 @@ await ok('several databases need the db named; one is found by itself', () => {
   assert.equal(api.state().dbs.length, 2)
 })
 
+await ok('an app and a table are put away, brought back and deleted for good, the name typed back; state and impact say what is there', () => {
+  const { svc, api, id, db } = seeded()
+  assert.ok(db.addObject({ key: 'project', label: 'Projects', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name' }] }, 'agent').ok)
+  assert.ok(db.addField('task', { key: 'project', type: 'relation', label: 'Project', to: 'project' }, 'agent').ok)
+  const project = db.create('project', { name: 'Move' }, 'agent').record
+  assert.ok(db.create('task', { name: 'Box up', project: project.id }, 'agent').ok)
+  assert.equal(api.state().dbs[0].objects.find((o) => o.key === 'task').count, 1)
+  assert.deepEqual(api.state().archived, [])
+
+  const weigh = api.impact({ db: id, object: 'project' })
+  assert.deepEqual([weigh.ok, weigh.tables, weigh.rows, weigh.links, weigh.cut.length, weigh.cut[0].fieldLabel], [true, 1, 1, 1, 1, 'Project'])
+  assert.deepEqual([api.impact({ db: id }).tables, api.impact({ db: id }).rows, api.impact({ db: id }).links], [2, 2, 1])
+  assert.equal(api.impact({ db: id, object: 'nope' }).error, 'unknown_object')
+  assert.equal(api.impact({ db: 'nope' }).error, 'unknown_db')
+
+  assert.equal(api.app({ db: id, object: 'project', op: 'delete', confirm: 'Projects' }).error, 'not-archived', 'a live table cannot be deleted')
+  assert.deepEqual(api.app({ db: id, object: 'project', op: 'archive' }), { ok: true, applied: true })
+  assert.deepEqual(api.state().dbs[0].objects.map((o) => o.key), ['task'])
+  assert.deepEqual(api.state().dbs[0].archivedObjects.map((o) => [o.key, o.count]), [['project', 1]])
+  assert.equal(api.app({ db: id, object: 'project', op: 'delete', confirm: 'projects' }).error, 'confirm', 'the name must be typed back exactly')
+  assert.deepEqual(api.app({ db: id, object: 'project', op: 'restore' }), { ok: true, applied: true })
+  assert.deepEqual(api.app({ db: id, object: 'project', op: 'archive' }), { ok: true, applied: true })
+  assert.deepEqual(api.app({ db: id, object: 'project', op: 'delete', confirm: 'Projects' }), { ok: true, applied: true })
+  assert.deepEqual(db.objects({ all: true }).map((o) => o.key), ['task'])
+  assert.deepEqual(db.objects()[0].fields.map((f) => f.key), ['name', 'status', 'email', 'token'], 'the link field is gone with its target')
+  assert.equal(db.verify().ok, true)
+
+  assert.equal(api.app({ db: id, op: 'delete', confirm: 'Home' }).error, 'not-archived')
+  assert.deepEqual(api.app({ db: id, op: 'archive' }), { ok: true, applied: true })
+  const gone = api.state()
+  assert.deepEqual([gone.dbs.length, gone.archived.length, gone.archived[0].name, gone.archived[0].tables, gone.archived[0].rows], [0, 1, 'Home', 1, 1])
+  assert.equal(api.app({ db: id, op: 'delete', confirm: 'home' }).error, 'confirm')
+  assert.equal(api.app({ db: id, object: 'task', op: 'archive' }).error, 'archived', 'an archived app takes no change')
+  assert.deepEqual(api.app({ db: id, op: 'restore' }), { ok: true, applied: true })
+  assert.equal(api.state().dbs.length, 1)
+  api.app({ db: id, op: 'archive' })
+  assert.deepEqual(api.app({ db: id, op: 'delete', confirm: 'Home' }), { ok: true, applied: true })
+  assert.deepEqual(svc.list(), [])
+  assert.equal(api.app({ db: id, op: 'archive' }).error, 'unknown_db')
+  assert.equal(api.app({ db: id, op: 'burn' }).error, 'invalid')
+})
+
+await ok('a published app cannot be deleted while the host says it is published', () => {
+  const published = new Set()
+  const svc = makeService({ dir: join(root, 's' + (n++)), ports: { ...ports(), published: (id) => published.has(id) } })
+  const id = svc.create({ name: 'Shop', by: 'agent' }).db.info().id
+  const api = makeApi({ service: svc })
+  api.app({ db: id, op: 'archive' })
+  published.add(id)
+  assert.equal(api.app({ db: id, op: 'delete', confirm: 'Shop' }).error, 'published')
+  published.delete(id)
+  assert.equal(api.app({ db: id, op: 'delete', confirm: 'Shop' }).ok, true)
+})
+
 // ---------------------------------------------------------------- the http door
 function door () {
   const routes = {}
@@ -395,13 +449,13 @@ await ok('an upload refuses what is not octet-stream, what is over the cap (by i
 
 await ok('apply mounts the data routes, the file door and the core files', () => {
   const { routes } = door()
-  for (const name of ['state', 'records', 'links', 'write', 'view', 'upload', 'file']) assert.equal(typeof routes[ROUTE + name].handler, 'function', name)
+  for (const name of ['state', 'records', 'links', 'write', 'view', 'app', 'impact', 'upload', 'file']) assert.equal(typeof routes[ROUTE + name].handler, 'function', name)
   assert.equal(routes[CORE_ROUTE.slice(0, -1)].kind, 'prefix')
 })
 
 await ok('EVERY data route is behind the signed session, reads included', async () => {
   const { routes } = door()
-  const table = [['state', 'GET', undefined, ''], ['records', 'GET', undefined, '?object=task'], ['links', 'GET', undefined, '?object=task&id=01ARYZ6S410000000000000001'], ['write', 'POST', { object: 'task', op: 'create', values: { name: 'Intruder' } }, ''], ['view', 'POST', { object: 'task', op: 'save', view: { name: 'X', kind: 'table' } }, '']]
+  const table = [['state', 'GET', undefined, ''], ['records', 'GET', undefined, '?object=task'], ['links', 'GET', undefined, '?object=task&id=01ARYZ6S410000000000000001'], ['write', 'POST', { object: 'task', op: 'create', values: { name: 'Intruder' } }, ''], ['view', 'POST', { object: 'task', op: 'save', view: { name: 'X', kind: 'table' } }, ''], ['app', 'POST', { db: '01ARYZ6S410000000000000001', op: 'archive' }, ''], ['impact', 'GET', undefined, '?db=01ARYZ6S410000000000000001']]
   for (const [name, method, body, query] of table) {
     const path = ROUTE + name
     const read = method === 'GET'

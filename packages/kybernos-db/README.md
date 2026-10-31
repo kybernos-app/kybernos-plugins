@@ -6,7 +6,7 @@ engines (Contacts, Catalog, Pipeline), which no longer exist; "task management" 
 
 This folder holds **`core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
 attachments, `agent/` with `index.js`, the DSH bundle that gives the agents fifteen tools, a block of their system prompt and the `db-builder` skill, the
-page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Tables » page), with the relations between tables and the files of a row edited from it, and the
+page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Apps » page), with the relations between tables and the files of a row shown on it, and the
 templates (`template.mjs`, `instantiate.mjs`).**
 
 ```bash
@@ -18,10 +18,19 @@ loses its owner, an approval that is never registered, a database left open when
 
 ## The page
 
-Business › Tables (menu row `tables`, group `business`, `client.js`). One tab per table; for the table on screen, a bar with its **views** (table, board, cards, calendar, map), and
-the menus **Fields** (which to show), **Filter** (a tree of conditions, « and » / « or », groups), **Sort** (up to three), **Modify view** and **New row**. Every view is
-the person's to change and **every change saves itself** (450 ms after the last one, to `POST /kybernos-db/view`); a table always keeps at least one view. A row opens in a
-drawer where each field saves when it is left; a secret field is a password input and is never in the page text.
+Business › Apps (menu row `tables`, group `business`, `client.js`). The page opens on a **gallery**: one card per app (its tables with their row counts, a monogram on a hue only that app has);
+the ⋯ of a card opens it, asks Kaby about it or puts it away. An app opens on **one tab per table**, with **Relations** after them when it has more than one (the map of the links, and the same as a list).
+For the table on screen, a bar with its **views** (table, board, cards, calendar, map) and the menus **Fields** (which to show), **Filter** (a tree of conditions, « and » / « or », groups),
+**Sort** (up to three) and **Modify view**. **Nothing is edited by hand in Kybernos**: a row opens in a read-only drawer, and every change of data is Kaby's (**Ask Kaby** opens a new chat that already knows
+the app, the table, the view or the row). What the page does save is how a table is *shown* (450 ms after the last change, to `POST /kybernos-db/view`); a table always keeps at least one view.
+A secret field is never in the page text.
+
+**Archive and delete.** The ⋯ of an app (or of a table, under the app's menu) archives: it leaves the apps and Kaby stops seeing it, nothing is deleted, and it can be restored. Only an
+archived app or table can be deleted for good, from the « Archived » fold: the dialog says what disappears (tables, rows, links, files, views and, for a table, which links to other tables are cut,
+from `GET /kybernos-db/impact`) and waits for the exact name to be typed. `POST /kybernos-db/app { db, object?, op: archive | restore | delete, confirm? }` is the door; an app that is
+published refuses both (`published`).
+
+**Templates.** When the core publishes `window.__KB_TEMPLATES__` (`list()`, `add(id, { sample, kit })`) the new-app screen offers the trade templates; without it that section is not drawn.
 
 - **Cards with a cover, board totals.** A cards view with `cover: true` puts the first picture of a row (the first attachment field that holds an image) on top of its card, a gallery
   of properties or products; without it the picture is the card's small avatar, and a row with none keeps its initial. Each column of a board adds up the first money field that is shown and
@@ -38,18 +47,16 @@ drawer where each field saves when it is left; a secret field is a password inpu
 - **The host's door.** `GET state` (each db also says the template it came from, `template`, so that a shipped dashboard can name its data by that id), `GET records`, `POST write` (create, update, delete, restore) and `POST view` (save, remove), all behind DSH's signed session cookie
   and the host fence (`session-guard.mjs`, a copy of the shared shape), a 64 KB body cap, and the core served at `/kybernos-db/core/<file>.mjs` so the page applies
   the very rules the host does (the shared vector cases keep the two in step).
-- **Links between tables (lot 5).** A link field points at rows of another table, one or many. In the drawer its rows are chips (each opens its row, an × takes the link off) and
-  a picker (search, keyboard, Escape closes only the picker) adds one; a chip in a table or a board card opens the row too, and **Back** in the drawer returns to where the click was.
-  The links are kept on one side only: the other table shows them under **Linked from**, computed by the host (`GET /kybernos-db/links?db=&object=&id=`), under the name the
-  link was given (`inverse`, e.g. an order's Customer field seen from the customer as « Purchases ») or else the name of the table it comes from. A write refuses a link to a row
-  that does not exist or is deleted (`link`); a row deleted afterwards leaves a dashed « Removed link » chip, and restoring it makes the link live again.
-  **« How it's built »** (button under the tabs) lists the fields of each table with their links both ways, and draws the map of the links (a box per table, a line per link; a box opens its table).
-- **Files (lot 6).** A field of files holds `[{ name, size, type, hash }]`; the bytes are kept next to the db (`dbs/<id>/blobs/<sha256>`), once per content. In the drawer each file
-  is a picture (an image) or an icon, a link that opens it (a picture in a new tab, anything else as a download under its own name), its size and an ×; a box takes files chosen with the
-  button or dropped, and says the cap before anything is tried. In the table the cell shows a thumbnail per image and a chip per other file (three at most, then a count), takes
-  files dropped on it, and an × on hover or focus takes one off. A file over the cap (25 MB, or the field's `maxBytes`) is refused in the browser before a byte is sent, and again by the host
+- **Links between tables (lot 5).** A link field points at rows of another table, one or many. In the read-only drawer its rows are chips (each opens its row, **Back** returns to where the
+  click was); a chip in a table or a board card opens the row too. The links are kept on one side only: the other table shows them under **Linked from**, computed by the host
+  (`GET /kybernos-db/links?db=&object=&id=`), under the name the link was given (`inverse`, e.g. an order's Customer field seen from the customer as « Purchases ») or else the name of the
+  table it comes from. A write refuses a link to a row that does not exist or is deleted (`link`); a row deleted afterwards leaves a dashed « Removed link » chip, and restoring it makes the link
+  live again. The **Relations** tab of an app draws the map of the links (a box per table, a line per link; a box opens its table) and lists them.
+- **Files (lot 6).** A field of files holds `[{ name, size, type, hash }]`; the bytes are kept next to the db (`dbs/<id>/blobs/<sha256>`), once per content. In the read-only drawer each file
+  is a picture (an image) or an icon, a link that opens it (a picture in a new tab, anything else as a download under its own name) and its size. In the table the cell shows a thumbnail per image
+  and a chip per other file (three at most, then a count). The page no longer adds or takes files off: Kaby does. A file over the cap (25 MB, or the field's `maxBytes`) is refused by the host
   (`POST /kybernos-db/upload?db=&object=&field=&name=&type=` takes the raw bytes as `application/octet-stream`, 413 over the cap by the announced length and by the bytes actually
-  streamed). Taking a file off has an Undo that puts the list back. `GET /kybernos-db/file?db=&object=&id=&field=&hash=` serves a file **only to the row that holds it in that
+  streamed). `GET /kybernos-db/file?db=&object=&id=&field=&hash=` serves a file **only to the row that holds it in that
   field** (a hash alone opens nothing), behind the same session and fence, through `serve-user-file.mjs` (DL-04: a person's file is never shown as a document in DSH's origin): its
   type comes from its first bytes, never from what the upload said, a PNG, JPEG, GIF or WebP is shown in place and everything else (a PDF, an SVG, a page) is a download, always with `nosniff`
   and a closed content-security-policy (`scripts/test-serve-user-file.mjs` keeps the copy identical to the other bundles').
@@ -60,8 +67,9 @@ drawer where each field saves when it is left; a secret field is a password inpu
   without a toolbar handed over, the same controls sit in a bar of their own.
 
 Tests: `test-routes.mjs` (every route behind the session), `test-client.mjs` (the pure parts, the registration, each piece rendered to a plain tree) and, against the
-sandbox, `source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-tables-live.mjs [--shots <dir>]` (the real page over a real db: each control
-saved and read back from the host, Kaby's change with Undo, an order linked to a customer and products and opened both ways, an image and a PDF dropped on a cell and chosen in the drawer and served back byte for byte, a file over the cap, an Undo, a failing host, 420 px, the console). `scripts/lib-tables-seed.mjs` builds the three dbs it opens (Home, Shop and Papers). After a restart of the sandbox, `node scripts/check-tables-files-after-restart.mjs` finds the files the run attached again.
+sandbox, `source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-apps-live.mjs [--shots <dir>]` (the real page over two real dbs: the gallery, an app and its
+tabs, Relations, the archive / restore / delete round trip read back from the host, a narrow width, the console) and `scripts/check-db-templates-live.mjs` (the three template dbs opened
+from their cards). `scripts/lib-tables-seed.mjs` builds the dbs they open (Home and Shop).
 
 ## Templates
 

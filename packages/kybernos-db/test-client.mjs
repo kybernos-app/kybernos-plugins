@@ -85,12 +85,14 @@ const spy = (name) => (...args) => { calls.push([name, ...args]); return undefin
 const pageApi = (extra) => {
   const v = (extra && extra.view) || view()
   return Object.assign({
+    dbs: [], archived: [], templates: null, fold: false, dialog: null, relTab: false,
     db: { id: 'db1', name: 'Home', objects: [TASK, PROJECT] }, obj: TASK, view: v, views: [v], rows: ROWS, all: ROWS, rec: { status: 'ok', truncated: false, rows: ROWS }, ctx: CTX, related: { project: [rec('p1', { name: 'Launch' })] },
     flt: v.state.flt, menu: null, drawer: null, query: '', months: {},
     setMenu: spy('setMenu'), setFlt: spy('setFlt'), editView: spy('editView'), sortBy: spy('sortBy'), filterBy: spy('filterBy'), clearAll: spy('clearAll'), selectView: spy('selectView'),
-    createView: spy('createView'), dupView: spy('dupView'), removeView: spy('removeView'), renameView: spy('renameView'), favView: spy('favView'), ask: () => true, say: spy('say'),
-    openRecord: spy('openRecord'), newRecord: spy('newRecord'), closeDrawer: spy('closeDrawer'), createRecord: async (v) => { calls.push(['createRecord', v]); return { ok: true, record: rec('n1', v) } }, updateField: spy('updateField'), deleteRecord: spy('deleteRecord'), moveRecord: spy('moveRecord'), setMonth: spy('setMonth'),
-    sending: {}, dropFiles: spy('dropFiles'), removeFile: spy('removeFile'), attach: async () => ({ added: [], failed: [] }),
+    favView: spy('favView'), askKaby: spy('askKaby'), say: spy('say'), openRecord: spy('openRecord'), closeDrawer: spy('closeDrawer'), setMonth: spy('setMonth'),
+    openTable: spy('openTable'), openApp: spy('openApp'), goGallery: spy('goGallery'), newApp: spy('newApp'), setFold: spy('setFold'),
+    confirmArchive: spy('confirmArchive'), confirmDelete: spy('confirmDelete'), restoreApp: spy('restoreApp'), restoreTable: spy('restoreTable'),
+    closeDialog: spy('closeDialog'), runDialog: spy('runDialog'), openTemplate: spy('openTemplate'), setTemplateOpt: spy('setTemplateOpt'),
   }, extra || {})
 }
 /** The view a function handed to `editView` would produce from the current one. */
@@ -124,7 +126,7 @@ ok('apply declares the menu row inside an effect and the cleanup takes it back',
   const row = effects.find((e) => /menu row/.test(e.label))
   assert.ok(row !== undefined)
   const cleanup = row.fn()
-  assert.deepEqual(menuCalls, [{ id: 'tables', group: 'business', icon: 'grid', labelKey: 'business.tables', label: { en: 'Tables', fr: 'Tables' }, order: 40 }])
+  assert.deepEqual(menuCalls, [{ id: 'tables', group: 'business', icon: 'grid', labelKey: 'business.apps', label: { en: 'Apps', fr: 'Apps' }, order: 40 }])
   cleanup(); cleanup()
   assert.equal(menuOff, 1, 'the disposer the menu gave is the one the cleanup calls, once')
 })
@@ -221,16 +223,6 @@ ok('the links of a database are listed with the name each shows under on the oth
   assert.equal(T.seenAs(rels[0]), 'Purchases', 'a named link is seen under its name')
   assert.equal(T.seenAs(rels[1]), 'Orders', 'an unnamed one under the label of the table it comes from')
   assert.deepEqual(T.relationFields([CUSTOMER]), [])
-})
-ok('the picker offers the rows not chosen yet, filtered by what is typed, by title, and says how many there are', () => {
-  const rows = ['Zed', 'amy', 'Bob', 'Ann'].map((n, i) => rec('c' + i, { name: n }))
-  assert.deepEqual(T.linkOptions(CUSTOMER, rows, [], '', 10).items.map((o) => o.title), ['amy', 'Ann', 'Bob', 'Zed'])
-  assert.deepEqual(T.linkOptions(CUSTOMER, rows, ['c1'], '', 10).items.map((o) => o.id), ['c3', 'c2', 'c0'], 'a chosen row is not offered again')
-  assert.deepEqual(T.linkOptions(CUSTOMER, rows, [], ' AN ', 10).items.map((o) => o.title), ['Ann'], 'case does not matter, and the spaces around are not part of it')
-  const cut = T.linkOptions(CUSTOMER, rows, [], '', 2)
-  assert.equal(cut.items.length, 2); assert.equal(cut.total, 4)
-  assert.deepEqual(T.linkOptions(CUSTOMER, undefined, [], '', 5), { items: [], total: 0 })
-  assert.equal(T.linkOptions(CUSTOMER, [rec('x', {})], [], '', 5).items[0].title, 'Untitled', 'a row with no title is still pickable')
 })
 ok('the map puts every table once, draws every link from its table to the one it points at, and keeps two links of one pair apart', () => {
   const m = T.mapLayout(SHOP)
@@ -345,13 +337,9 @@ ok('the direction is worded by the type of the field', () => {
 })
 
 console.log('── views ──')
-ok('a table with no saved view shows a plain table; a new view takes the first free name of its kind', () => {
+ok('a table with no saved view shows a plain table', () => {
   const d = T.defaultView(TASK)
   assert.equal(d.id, 'default-task'); assert.equal(d.kind, 'table'); assert.deepEqual(core.checkView(T.savable(d, TASK), TASK), [])
-  assert.equal(T.freshName([], 'board'), 'Board')
-  assert.equal(T.freshName([{ name: 'Board' }], 'board'), 'Board 2')
-  assert.equal(T.freshName([{ name: 'Board' }, { name: 'Board 2' }], 'board'), 'Board 3')
-  resolved = 'fr'; assert.equal(T.freshName([], 'calendar'), 'Calendrier'); resolved = 'en'
 })
 ok('the bar shows the favourites and the view on screen, in the order the views have', () => {
   const vs = [view({ id: 'a', fav: true }), view({ id: 'b', fav: false }), view({ id: 'c', fav: true }), view({ id: 'd', fav: false })]
@@ -371,18 +359,46 @@ ok('Kaby\'s changes are told from the person\'s, and from what waits to be saved
   assert.deepEqual(T.agentViewEvents({}, T.viewIndex([o(1, 'person', 'New')]), new Set()), [])
   assert.deepEqual(Object.keys(T.viewIndex([{ key: 'x', views: [view({ id: 'q' })] }])), ['q'], 'an object with no stamps still indexes')
 })
-ok('the sentence for Kaby names the database, the table and the view, and limits what she may change', () => {
-  const s = T.askText({ id: 'db1' }, TASK, view({ id: 'v9', name: 'Late' }), '  overdue first  ')
-  for (const part of ['Late', 'v9', 'Tasks', 'task', 'db1', 'overdue first', 'view_save', 'never the records or the structure']) assert.ok(s.includes(part), part)
-  assert.equal(s.includes('  overdue'), false, 'the request is trimmed')
+ok('the sentence for Kaby names the app, the table and the view, and leaves the end to the person', () => {
+  const s = T.askAbout({ id: 'db1', name: 'Shop' }, TASK, view({ id: 'v9', name: 'Late' }))
+  for (const part of ['Apps page', 'Shop', 'db1', 'Tasks', 'task', 'Late', 'v9']) assert.ok(s.includes(part), part)
+  assert.ok(s.endsWith(': '), 'the sentence waits for what the person adds')
+  const app = T.askAbout({ id: 'db1', name: 'Shop' }, null, null)
+  assert.ok(app.includes('Shop') && !app.includes('table'), 'about the app alone, no table is named')
+  assert.ok(T.askAbout({ id: 'db1', name: 'Shop' }, TASK, null).includes('Tasks') && !T.askAbout({ id: 'db1', name: 'Shop' }, TASK, null).includes('view'), 'a table with no view on screen names none')
   resolved = 'fr'
-  const f = T.askText({ id: 'db1' }, TASK, view({ id: 'v9', name: 'Late' }), 'les retards')
-  assert.ok(f.includes('view_save') && f.includes('jamais les enregistrements ni la structure') && f.includes('les retards'))
+  const f = T.askAbout({ id: 'db1', name: 'Boutique' }, TASK, view({ id: 'v9', name: 'Retards' }))
+  assert.ok(f.startsWith('Sur la page Apps, dans mon app « Boutique »') && f.includes('vue « Retards »'))
   resolved = 'en'
-  assert.equal(T.buildText(''), 'On the Tables page, I would like to keep track of: ')
+  assert.equal(T.buildText(''), 'On the Apps page, I would like to keep track of: ')
   assert.ok(T.buildText('my books').includes('db-builder'))
-  assert.ok(T.modifyExamples(TASK).length <= 3 && T.modifyExamples(TASK).length >= 2)
-  assert.deepEqual(T.modifyExamples({ fields: [field('name', 'text', 'Name')], title: 'name' }), [])
+})
+ok('the simple starts are three shapes, each a sentence Kaby builds from, in both languages', () => {
+  const en = T.STARTS()
+  assert.deepEqual(en.map((x) => x.id), ['contacts', 'tasks', 'collection'])
+  assert.ok(en.every((x) => x.name !== '' && x.line !== '' && x.text !== ''))
+  resolved = 'fr'
+  try { assert.ok(T.STARTS()[1].text.includes('liste de tâches')) } finally { resolved = 'en' }
+})
+ok('an app has a hue and a letter of its own, the same every time; a name to confirm must be typed exactly', () => {
+  assert.equal(T.appHue('db1'), T.appHue('db1')); assert.ok(Number.isFinite(T.appHue('db1')))
+  assert.notEqual(new Set(['a1', 'b2', 'c3', 'd4', 'e5', 'f6', 'g7', 'h8'].map(T.appHue)).size, 1, 'apps do not all get one hue')
+  assert.equal(T.monogram('  shop'), 'S'); assert.equal(T.monogram('élan'), 'É'); assert.equal(T.monogram(''), '?'); assert.equal(T.monogram('😀 fun'), '😀')
+  assert.equal(T.confirmOk('Shop', 'Shop'), true); assert.equal(T.confirmOk('shop', 'Shop'), false, 'a near miss does not delete'); assert.equal(T.confirmOk(' Shop', 'Shop'), false)
+  assert.equal(T.confirmOk('', ''), false, 'nothing typed never confirms nothing'); assert.equal(T.confirmOk('x', undefined), false)
+  assert.equal(T.rowsIn({ objects: [{ count: 3 }, { count: 4 }, {}] }), 7, 'a table with no count adds nothing')
+})
+ok('the templates the core offers are read with care: a bad entry is dropped, a good one is cut to size', () => {
+  assert.equal(T.templateOf(null), null); assert.equal(T.templateOf({ id: '', name: 'x' }), null); assert.equal(T.templateOf({ id: 'a' }), null)
+  const t = T.templateOf({ id: 'shop', name: 'Shop', line: 'Sell things', tag: 'Retail', extras: 'a dashboard', tables: ['Contacts', '', 3, 'Orders'], have: true, appId: 'db9', evil: '<b>' })
+  assert.deepEqual(t, { id: 'shop', name: 'Shop', line: 'Sell things', tag: 'Retail', extras: 'a dashboard', tables: ['Contacts', 'Orders'], have: true, appId: 'db9' })
+  assert.deepEqual(T.templateOf({ id: 'a', name: 'A' }), { id: 'a', name: 'A', line: '', tag: '', extras: '', tables: [], have: false, appId: null })
+  assert.equal(T.templateOf({ id: 'a', name: 'x'.repeat(500) }).name.length, 80)
+  assert.equal(T.tplSeam(), null, 'no seam, no templates')
+  window.__KB_TEMPLATES__ = { list () {}, add () {} }
+  try { assert.equal(typeof T.tplSeam().add, 'function') } finally { delete window.__KB_TEMPLATES__ }
+  window.__KB_TEMPLATES__ = { list () {} }
+  try { assert.equal(T.tplSeam(), null, 'half a seam is none') } finally { delete window.__KB_TEMPLATES__ }
 })
 
 console.log('── board and calendar ──')
@@ -404,12 +420,13 @@ ok('the calendar shows six weeks, Monday first, and moves from month to month ac
 })
 
 console.log('── the page, piece by piece ──')
-ok('the bar has the views, the five menus and the primary action, each with a hook', () => {
+ok('the bar has the views, four menus and the table menu, each with a hook, and nothing that writes a row', () => {
   const t = tree(React.createElement(P.Bar, { p: pageApi() }))
-  for (const hook of ['tables-bar', 'tables-menu-views', 'tables-menu-fields', 'tables-menu-filter', 'tables-menu-sort', 'tables-menu-modify', 'tables-new']) assert.equal(kb(t, hook).length, 1, hook)
+  for (const hook of ['tables-bar', 'tables-menu-views', 'tables-menu-fields', 'tables-menu-filter', 'tables-menu-sort', 'tables-menu-topt']) assert.equal(kb(t, hook).length, 1, hook)
+  for (const gone of ['tables-menu-modify', 'tables-new']) assert.equal(kb(t, gone).length, 0, gone + ' is gone: Kaby changes rows')
   assert.equal(kb(t, 'tables-view').length, 1)
-  click(kb(t, 'tables-menu-filter')[0]); click(kb(t, 'tables-new')[0]); click(kb(t, 'tables-view')[0])
-  assert.deepEqual(calls.splice(0).map((c) => c[0]), ['setMenu', 'newRecord', 'selectView'])
+  click(kb(t, 'tables-menu-filter')[0]); click(kb(t, 'tables-view')[0])
+  assert.deepEqual(calls.splice(0).map((c) => c[0]), ['setMenu', 'selectView'])
 })
 ok('a badge counts what is active, and a calendar has no fields menu', () => {
   const v = view({ state: { flt: { conj: 'and', items: [{ k: 'status', op: 'is', v: 'todo' }, { k: 'flag', op: 'checked' }] }, sorts: [{ k: 'due', dir: 'asc' }], hidden: ['email', 'token', 'tags'] } })
@@ -420,7 +437,7 @@ ok('a badge counts what is active, and a calendar has no fields menu', () => {
   assert.equal(kb(cal, 'tables-menu-fields').length, 0)
 })
 ok('only the open menu draws its panel, and it is labelled as a dialog', () => {
-  for (const id of ['views', 'fields', 'filter', 'sort', 'modify']) {
+  for (const id of ['views', 'fields', 'filter', 'sort', 'topt']) {
     const t = tree(React.createElement(P.Bar, { p: pageApi({ menu: id }) }))
     const pops = all(t, (n) => n.props.role === 'dialog')
     assert.equal(pops.length, 1, id)
@@ -498,31 +515,23 @@ ok('the fields panel hides and shows a field, never the title, and all at once',
   assert.equal(edited(1, v).state.hidden.length, TASK.fields.length - 1)
   calls.length = 0
 })
-ok('the views panel lists the views with their actions and offers the kinds this table can be drawn as', () => {
+ok('the views panel lists the views to choose and pin, and sends a new view, a rename or a removal to Kaby', () => {
   const vs = [view({ id: 'a', name: 'Open' }), view({ id: 'b', name: 'By Kaby', owner: 'kaby', fav: false })]
   const t = tree(React.createElement(P.ViewsPop, { p: pageApi({ view: vs[0], views: vs }) }))
   assert.equal(kb(t, 'tables-view-pick').length, 2)
   assert.equal(all(t, (n) => n.props.title === 'Made by Kaby').length, 1)
-  assert.deepEqual(['table', 'board', 'cards', 'calendar'].map((k) => kb(t, 'tables-view-new-' + k).length), [1, 1, 1, 1])
-  const noDate = Object.assign({}, TASK, { fields: TASK.fields.filter((f) => f.type !== 'date') })
-  const t2 = tree(React.createElement(P.ViewsPop, { p: pageApi({ view: vs[0], views: vs, obj: noDate }) }))
-  assert.equal(kb(t2, 'tables-view-new-calendar').length, 0, 'no date field, no calendar')
-  assert.equal(kb(t, 'tables-view-new-map').length, 0, 'one number field is not a place')
-  const placed = Object.assign({}, TASK, { fields: TASK.fields.concat([field('lat', 'number', 'Latitude'), field('lng', 'number', 'Longitude')]) })
-  const t3 = tree(React.createElement(P.ViewsPop, { p: pageApi({ view: vs[0], views: vs, obj: placed }) }))
-  assert.equal(kb(t3, 'tables-view-new-map').length, 1, 'two number fields place records on a map')
-  click(kb(t3, 'tables-view-new-map')[0]); assert.deepEqual(calls.splice(0), [['createView', 'map']])
-  const del = all(t, (n) => n.props['aria-label'] === 'Delete “Open”')[0]
-  click(del)
-  assert.deepEqual(calls.splice(0).map((c) => c.slice(0, 2)), [['removeView', 'a']])
-  const lone = tree(React.createElement(P.ViewsPop, { p: pageApi({ view: vs[0], views: [vs[0]] }) }))
-  assert.equal(all(lone, (n) => n.props['aria-label'] === 'Delete “Open”')[0].props.disabled, true, 'a table keeps one view')
+  for (const gone of ['tables-view-new-table', 'tables-view-new-board']) assert.equal(kb(t, gone).length, 0, gone)
+  assert.equal(all(t, (n) => /^(Rename|Duplicate|Delete) /.test(String(n.props['aria-label'] || ''))).length, 0, 'no rename, duplicate or delete by hand')
+  click(kb(t, 'tables-view-pick')[1]); click(kb(t, 'tables-view-fav')[1]); click(kb(t, 'tables-view-ask')[0])
+  assert.deepEqual(calls.splice(0).map((c) => c.slice(0, 2)), [['selectView', 'b'], ['favView', 'b'], ['askKaby']])
+  assert.equal(kb(t, 'tables-view-fav')[1].props['aria-pressed'], 'false'); assert.equal(kb(t, 'tables-view-fav')[0].props['aria-pressed'], 'true')
 })
-ok('Modify view sends the sentence to the chat, or offers it to copy when the chat cannot open', () => {
-  const t = tree(React.createElement(P.ModifyPop, { p: pageApi() }))
-  assert.equal(kb(t, 'tables-modify-input').length, 1)
-  assert.equal(kb(t, 'tables-modify-send')[0].props.disabled, true, 'nothing to send yet')
-  assert.ok(all(t, (n) => n.props.className === 'kbtb-ex').length >= 2, 'examples to start from')
+ok('the table menu offers a chat about the table, and putting it away', () => {
+  const open = tree(React.createElement(P.TableMenu, { p: pageApi({ menu: 'topt' }) }))
+  assert.equal(kb(open, 'tables-menu-topt')[0].props['aria-expanded'], 'true')
+  click(kb(open, 'tables-menu-topt-ask')[0]); click(kb(open, 'tables-menu-topt-archive')[0])
+  assert.deepEqual(calls.splice(0).map((c) => c.slice(0, 3)), [['setMenu', null], ['askKaby'], ['setMenu', null], ['confirmArchive', 'db1', 'task']])
+  assert.equal(all(tree(React.createElement(P.TableMenu, { p: pageApi() })), (n) => n.props.role === 'menuitem').length, 0, 'closed: no items')
 })
 ok('a table view draws a header per shown field with sort and filter buttons, and a row per record that opens', () => {
   const v = view({ state: { flt: core.blankFilter(), sorts: [{ k: 'due', dir: 'desc' }], hidden: ['token', 'email'] } })
@@ -549,21 +558,18 @@ ok('a table draws 200 rows at a time, and says how many there are', () => {
   assert.equal(kb(t, 'tables-more').length, 1)
   assert.ok(text(t).includes('200 / 450'))
 })
-ok('a board has its columns, adds in a column with the column\'s value, and moves a card by drag and drop', () => {
+ok('a board has its columns and its cards; a card opens its row, and nothing is dragged or added by hand', () => {
   const v = view({ kind: 'board', by: 'status' })
   const t = tree(React.createElement(P.BoardView, { p: pageApi({ view: v }) }))
   const cols = all(t, (n) => n.props['data-col'] !== undefined)
   assert.deepEqual(cols.map((c) => c.props['data-col']), ['todo', 'doing', 'done', ''])
   assert.equal(kb(t, 'tables-card').length, ROWS.length)
-  click(kb(t, 'tables-col-add')[1]); click(kb(t, 'tables-col-add')[3])
-  assert.deepEqual(calls.splice(0), [['newRecord', { status: 'doing' }], ['newRecord', { status: null }]])
+  assert.equal(kb(t, 'tables-col-add').length, 0, 'no add button in a column')
   assert.ok(!text(t).includes('sekret'))
-  // the hooks of a drag keep their first value in this fake, so the drop is read from what the card hands over
   const card = kb(t, 'tables-card')[0]
-  assert.equal(card.props.draggable, true); assert.equal(card.props.tabIndex, 0)
-  let data = null
-  card.props.onDragStart({ dataTransfer: { setData: (_, v) => { data = v }, effectAllowed: '' } })
-  assert.equal(data, 'r2', 'the first card is the first of the first column')
+  assert.equal(card.props.draggable, undefined); assert.equal(card.props.tabIndex, 0)
+  click(card); card.props.onKeyDown({ key: 'Enter', target: card, currentTarget: card, preventDefault () {} })
+  assert.deepEqual(calls.splice(0), [['openRecord', 'r2'], ['openRecord', 'r2']])
   assert.equal(P.BoardView({ p: pageApi({ view: view({ kind: 'board', by: 'gone' }) }) }), null, 'a board whose field is gone draws nothing instead of throwing')
 })
 ok('the cards show the first choice as the tone and three more fields', () => {
@@ -607,14 +613,13 @@ ok('a board adds up the first shown, unprotected money field in each column, and
   assert.equal(T.columnTotal(field('m', 'money', 'M', { currency: 'EUR' }), [rec('a', { m: 2.5 }), rec('b', { m: 'x' }), rec('c', {})]), 2.5)
   assert.equal(T.columnTotal(field('m', 'money', 'M', { currency: 'EUR' }), [rec('c', {})]), null, 'no amount, no total')
 })
-ok('a calendar places records on their day, adds on a day, and says how many have no date', () => {
+ok('a calendar places records on their day, moves by month, and says how many have no date', () => {
   const v = view({ kind: 'calendar', date: 'due' })
   const t = tree(React.createElement(P.CalendarView, { p: pageApi({ view: v, months: { v1: '2026-10' } }) }))
   assert.equal(kb(t, 'tables-event').length, 2, 'the record due on 31 October and the one due on 4 November, which the sixth week still shows')
-  assert.equal(all(t, (n) => n.props['data-kb'] === 'tables-cal-add').length, 42)
-  click(kb(t, 'tables-cal-add')[0]); assert.deepEqual(calls.splice(0), [['newRecord', { due: '2026-09-28' }]])
-  click(kb(t, 'tables-cal-next')[0]); click(kb(t, 'tables-cal-prev')[0]); click(kb(t, 'tables-cal-today')[0])
-  assert.deepEqual(calls.splice(0), [['setMonth', 'v1', '2026-11'], ['setMonth', 'v1', '2026-09'], ['setMonth', 'v1', '2026-10']])
+  assert.equal(kb(t, 'tables-cal-add').length, 0, 'a day takes no row by hand')
+  click(kb(t, 'tables-cal-next')[0]); click(kb(t, 'tables-cal-prev')[0]); click(kb(t, 'tables-cal-today')[0]); click(kb(t, 'tables-event')[0])
+  assert.deepEqual(calls.splice(0), [['setMonth', 'v1', '2026-11'], ['setMonth', 'v1', '2026-09'], ['setMonth', 'v1', '2026-10'], ['openRecord', 'r2']])
   assert.ok(text(t).includes('1 row without a date is not in the calendar'))
   const nov = tree(React.createElement(P.CalendarView, { p: pageApi({ view: v, months: { v1: '2026-11' } }) }))
   assert.equal(kb(nov, 'tables-event').length, 2)
@@ -635,33 +640,28 @@ ok('the chips say what filters and sorts, remove one at a time, and count the ro
   assert.equal(kb(or, 'tables-chip').length, 1, 'an « or » is one chip')
   assert.equal(text(kb(tree(React.createElement(P.Chips, { p: pageApi() })), 'tables-count')[0]), '4 rows')
 })
-ok('the drawer lists every field with its editor, never shows a secret in clear, and offers delete', () => {
-  const t = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'r1' } }) }))
+ok('the drawer reads every field of a row, never shows a secret in clear, and has no editor, no delete', () => {
+  const t = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { id: 'r1' } }) }))
   assert.equal(kb(t, 'tables-drawer').length, 1)
-  for (const f of TASK.fields.filter((x) => !['relation', 'attachment'].includes(x.type))) assert.ok(kb(t, 'tables-field-' + f.key).length >= 1, f.key)
-  const token = kb(t, 'tables-field-token')[0]
-  assert.equal(token.props.type, 'password')
-  assert.equal(all(t, (n) => n.props.type === 'text' && n.props.value === 'sekret').length, 0)
-  token.props.onBlur()
-  assert.deepEqual(calls.filter((c) => c[0] === 'updateField'), [], 'leaving a field as it was writes nothing')
-  const r2 = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'r2' } }) }))
-  kb(r2, 'tables-field-token')[0].props.onBlur()
-  assert.deepEqual(calls.filter((c) => c[0] === 'updateField'), [], 'nor does leaving an empty secret empty')
-  calls.length = 0
-  click(kb(t, 'tables-delete')[0]); click(kb(t, 'tables-drawer-close')[0])
-  assert.deepEqual(calls.splice(0).map((c) => (c[0] === 'deleteRecord' ? c.slice(0, 2) : c.slice(0, 1))), [['deleteRecord', 'r1'], ['closeDrawer']])
+  for (const f of TASK.fields) assert.ok(kb(t, 'tables-field-' + f.key).length >= 1, f.key)
+  assert.equal(all(t, (n) => n.type === 'input' || n.type === 'textarea' || n.type === 'select' || n.type === 'form').length, 0, 'nothing to type in')
+  assert.equal(kb(t, 'tables-delete').length, 0); assert.equal(kb(t, 'tables-create').length, 0)
+  assert.ok(text(kb(t, 'tables-field-token')[0]).includes(T.MASK) && !text(t).includes('sekret'), 'a secret stays masked')
+  assert.ok(text(kb(t, 'tables-field-name')[0]).includes('Write the brief'))
+  assert.equal(all(kb(t, 'tables-field-flag')[0], (n) => n.props.role === 'img').length, 1, 'a ticked box shows a tick')
+  assert.ok(text(kb(tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { id: 'r4' } }) })), 'tables-field-status')[0]).includes('—'), 'an empty field says so')
+  click(kb(t, 'tables-drawer-ask')[0]); click(kb(t, 'tables-drawer-close')[0])
+  assert.deepEqual(calls.splice(0).map((c) => c[0]), ['askKaby', 'closeDrawer'])
   assert.ok(text(t).includes('Launch'), 'a link shows the title of the record it points to')
-  const stamp = text(kb(t, 'tables-drawer')[0]).match(/Created ([^\n]*?)Modified/)
-  assert.ok(!/Invalid/.test(text(kb(t, 'tables-drawer')[0])) && /2026/.test(text(all(t, (n) => n.props.className === 'kbtb-stamp')[0])), 'the drawer dates the row from the host\'s stamps: ' + (stamp && stamp[1]))
+  assert.ok(!/Invalid/.test(text(kb(t, 'tables-drawer')[0])) && /2026/.test(text(all(t, (n) => n.props.className === 'kbtb-stamp')[0])), 'the drawer dates the row from the host\'s stamps')
 })
-ok('a row that is gone says so; a new row asks for the required fields before it asks the host', async () => {
-  const gone = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'zz' } }) }))
+ok('a row that is gone says so, and a row of a table still being read is not reported gone', () => {
+  const gone = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { id: 'zz' } }) }))
   assert.ok(text(gone).includes('This row no longer exists.'))
-  const t = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'new', prefill: { status: 'doing' } } }) }))
-  assert.equal(kb(t, 'tables-delete').length, 0); assert.equal(kb(t, 'tables-create').length, 1)
-  assert.equal(kb(t, 'tables-field-status')[0].props.value, 'doing', 'a column or a day hands its value to the new row')
+  const waiting = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { id: 'zz' }, rec: { status: 'loading', rows: [] } }) }))
+  assert.ok(text(waiting).includes('Loading…') && !text(waiting).includes('no longer exists'))
 })
-ok('a link field in the drawer shows its rows as chips that open, come off, and an Add button; a new row cannot navigate yet', () => {
+ok('a link field in the drawer shows the rows it points at as chips that open, and nothing to change them', () => {
   const SHOP_DB = { id: 'db1', name: 'Shop', objects: SHOP }
   const customers = [rec('c1', { name: 'Ada' }), rec('c2', { name: 'Bob' })]
   const items = [rec('i1', { name: 'Pen' }), rec('i2', { name: 'Ink' })]
@@ -670,30 +670,17 @@ ok('a link field in the drawer shows its rows as chips that open, come off, and 
   const opened = []
   ctx.open = (f, id) => opened.push([f.to, id])
   const orders = [rec('o1', { ref: 'A-1', customer: 'c1', items: ['i1', 'i2'] }), rec('o2', { ref: 'A-2' })]
-  const mk = (drawer) => pageApi({ db: SHOP_DB, obj: ORDER, rows: orders, all: orders, rec: { status: 'ok', rows: orders }, ctx, related, drawer, view: view() })
-  const t = tree(React.createElement(P.Drawer, { p: mk({ mode: 'edit', id: 'o1' }) }))
+  const mk = (id) => pageApi({ db: SHOP_DB, obj: ORDER, rows: orders, all: orders, rec: { status: 'ok', rows: orders }, ctx, related, drawer: { id }, view: view() })
+  const t = tree(React.createElement(P.Drawer, { p: mk('o1') }))
   const one = kb(t, 'tables-field-customer')[0]
   assert.equal(all(one, (n) => n.props['data-kb'] === 'tables-link').length, 1)
-  assert.equal(text(one).includes('Ada'), true)
-  assert.equal(text(kb(t, 'tables-field-items')[0]).includes('Pen') && text(kb(t, 'tables-field-items')[0]).includes('Ink'), true)
-  assert.equal(text(kb(t, 'tables-field-customer')[0]).includes('Change'), true, 'a filled single link offers Change')
-  assert.equal(text(kb(t, 'tables-field-items')[0]).includes('Add'), true)
+  assert.ok(text(one).includes('Ada'))
+  assert.ok(text(kb(t, 'tables-field-items')[0]).includes('Pen') && text(kb(t, 'tables-field-items')[0]).includes('Ink'))
+  assert.equal(all(t, (n) => n.props['data-kb'] === 'tables-link-remove' || n.props['data-kb'] === 'tables-link-add').length, 0, 'no way to add or take off a link by hand')
   click(all(one, (n) => n.props['data-kb'] === 'tables-link')[0])
   assert.deepEqual(opened, [['customer', 'c1']])
-  const remove = all(kb(t, 'tables-field-items')[0], (n) => n.props['data-kb'] === 'tables-link-remove')
-  assert.equal(remove.length, 2); assert.ok(remove[0].props['aria-label'].includes('Pen'))
-  click(remove[0])
-  assert.deepEqual(calls.filter((c) => c[0] === 'updateField').map((c) => c.slice(1)), [['o1', 'items', ['i2']]], 'taking one off keeps the rest')
-  calls.length = 0
-  click(all(one, (n) => n.props['data-kb'] === 'tables-link-remove')[0])
-  click(all(kb(t, 'tables-field-items')[0], (n) => n.props['data-kb'] === 'tables-link-remove')[1])
-  assert.deepEqual(calls.filter((c) => c[0] === 'updateField').map((c) => c.slice(1)), [['o1', 'customer', null], ['o1', 'items', ['i1']]], 'the last way to empty a single link is null')
-  calls.length = 0
-  const fresh = tree(React.createElement(P.Drawer, { p: mk({ mode: 'new', prefill: {} }) }))
-  assert.equal(all(kb(fresh, 'tables-field-customer')[0], (n) => n.props['data-kb'] === 'tables-link').length, 0)
-  assert.equal(text(kb(fresh, 'tables-field-customer')[0]).includes('Choose'), true, 'an empty single link says Choose')
-  const lost = tree(React.createElement(P.Drawer, { p: mk({ mode: 'edit', id: 'o1' }) }))
-  assert.ok(text(kb(lost, 'tables-field-lost')[0]).includes('no longer exists'), 'a link to a table that was removed says so and offers nothing')
+  const empty = tree(React.createElement(P.Drawer, { p: mk('o2') }))
+  assert.ok(text(kb(empty, 'tables-field-customer')[0]).includes('—'))
 })
 ok('the rows that link here are listed by link field with how many, each opens its row; the drawer has a Back button once it was followed', () => {
   const opened = []
@@ -711,50 +698,187 @@ ok('the rows that link here are listed by link field with how many, each opens i
   assert.equal(chips.length, 2); assert.ok(text(chips[1]).includes('Untitled'))
   click(chips[0])
   assert.deepEqual(opened, [['order', 'o1']])
-  const back = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'r1', trail: [{ object: 'customer', id: 'c1', label: 'Ada' }] } }) }))
+  const back = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { id: 'r1', trail: [{ object: 'customer', id: 'c1', label: 'Ada' }] } }) }))
   const b = kb(back, 'tables-drawer-back')[0]
   assert.ok(b.props['aria-label'].includes('Back to Ada'))
-  assert.equal(kb(tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'r1' } }) })), 'tables-drawer-back').length, 0, 'no Back button when nothing was followed')
-  const waiting = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { mode: 'edit', id: 'zz', trail: [{ object: 'customer', id: null, label: 'Customers' }] }, rec: { status: 'loading', rows: [] } }) }))
+  assert.equal(kb(tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { id: 'r1' } }) })), 'tables-drawer-back').length, 0, 'no Back button when nothing was followed')
+  const waiting = tree(React.createElement(P.Drawer, { p: pageApi({ drawer: { id: 'zz', trail: [{ object: 'customer', id: null, label: 'Customers' }] }, rec: { status: 'loading', rows: [] } }) }))
   assert.ok(text(waiting).includes('Loading…') && !text(waiting).includes('no longer exists'), 'a row of a table still being read is not reported missing')
   assert.equal(kb(waiting, 'tables-drawer-back').length, 1)
 })
-ok('« How it is built » lists the fields of each table with their links both ways, and draws the map with a table and a line each', () => {
+ok('the Relations tab draws the map with a table and a line each, and lists the same links for those who do not see the drawing', () => {
   const SHOP_DB = { id: 'db1', name: 'Shop', objects: SHOP }
   const asked = []
   const picked = []
-  const mk = (built) => pageApi({ db: SHOP_DB, obj: ORDER, built, setBuilt: spy('setBuilt'), openTable: (k) => picked.push(k), ask: (x) => { asked.push(x); return true } })
-  const f = tree(React.createElement(P.BuiltPanel, { p: mk('fields') }))
-  assert.equal(kb(f, 'tables-built-table').length, 3)
-  const orderCard = kb(f, 'tables-built-table').find((n) => n.props['data-object'] === 'order')
-  assert.ok(text(orderCard).includes('Link to Customers · one') && text(orderCard).includes('Link to Products · many'))
-  assert.ok(text(orderCard).includes('Link to a table that no longer exists'), 'a link to a missing table is said, not hidden')
-  const customerCard = kb(f, 'tables-built-table').find((n) => n.props['data-object'] === 'customer')
-  assert.ok(text(kb(customerCard, 'tables-built-back')[0]).includes('Purchases') && text(kb(customerCard, 'tables-built-back')[0]).includes('from Orders › Customer'), 'the inverse link shows under the table it appears on')
-  assert.equal(kb(orderCard, 'tables-built-back').length, 0, 'a table nothing points at lists no inverse links')
-  const tabs = kb(f, 'tables-built-tab'); assert.equal(tabs.length, 2); assert.equal(tabs[0].props['aria-selected'], 'true')
-  click(tabs[1]); click(kb(f, 'tables-built-close')[0])
-  assert.deepEqual(calls.splice(0).map((c) => c.slice(0, 2)), [['setBuilt', 'map'], ['setBuilt', null]])
-  const m = tree(React.createElement(P.BuiltPanel, { p: mk('map') }))
+  const mk = (extra) => pageApi(Object.assign({ db: SHOP_DB, obj: null, relTab: true, openTable: (k) => picked.push(k), askKaby: (x) => asked.push(x) }, extra || {}))
+  const m = tree(React.createElement(P.RelationsView, { p: mk() }))
+  assert.equal(kb(m, 'tables-relations').length, 1)
   assert.equal(kb(m, 'tables-map-node').length, 3); assert.equal(kb(m, 'tables-map-link').length, 2)
-  assert.equal(kb(m, 'tables-map-list')[0].children.length, 2, 'the same links as a list, for those who do not see the drawing')
+  assert.equal(kb(m, 'tables-map-list')[0].children.length, 2, 'the same links as a list')
   assert.equal(kb(m, 'tables-map')[0].props.role, 'img')
+  assert.ok(text(kb(m, 'tables-map-list')[0]).includes('Orders › Customer') && text(kb(m, 'tables-map-list')[0]).includes('Purchases'), 'the name a link is seen under on the other side')
   click(kb(m, 'tables-map-node').find((n) => n.props['data-object'] === 'item'))
   kb(m, 'tables-map-node')[0].props.onKeyDown({ key: 'Enter', preventDefault () {} })
   assert.deepEqual(picked, ['item', 'customer'])
-  const bare = tree(React.createElement(P.BuiltPanel, { p: pageApi({ db: { id: 'db1', name: 'Shop', objects: [CUSTOMER, ITEM] }, built: 'map', ask: (x) => { asked.push(x); return true } }) }))
+  const bare = tree(React.createElement(P.RelationsView, { p: mk({ db: { id: 'db1', name: 'Shop', objects: [CUSTOMER, ITEM] } }) }))
   assert.equal(kb(bare, 'tables-map-none').length, 1); assert.equal(kb(bare, 'tables-map-link').length, 0)
   click(kb(bare, 'tables-map-ask')[0])
-  assert.ok(asked.length === 1 && asked[0].includes('relation_add') && asked[0].includes('db1'), 'Kaby is asked for the link tool, in that database')
+  assert.ok(asked.length === 1 && asked[0].includes('relation_add') && asked[0].includes('db1') && asked[0].includes('Apps page'), 'Kaby is asked for the link tool, in that app')
 })
-ok('the empty states: no row, nothing matching, no table at all', () => {
+ok('the empty states: no row (Kaby fills it), nothing matching (clear the filter)', () => {
   const none = tree(React.createElement(P.Empty, { p: pageApi(), why: 'none' }))
-  assert.equal(kb(none, 'tables-empty')[0].props['data-why'], 'none'); click(kb(none, 'tables-empty-new')[0])
+  assert.equal(kb(none, 'tables-empty')[0].props['data-why'], 'none'); assert.equal(kb(none, 'tables-empty-new').length, 0, 'no New row button'); click(kb(none, 'tables-empty-ask')[0])
   const filtered = tree(React.createElement(P.Empty, { p: pageApi(), why: 'filtered' }))
   assert.equal(kb(filtered, 'tables-empty')[0].props['data-why'], 'filtered')
-  const nt = tree(React.createElement(P.NoTables, { p: pageApi() }))
-  assert.equal(kb(nt, 'tables-none').length, 1); assert.equal(kb(nt, 'tables-build-input').length, 1)
-  assert.deepEqual(calls.splice(0).map((c) => c[0]), ['newRecord'])
+  click(all(filtered, (n) => n.type === 'button')[0])
+  assert.deepEqual(calls.splice(0).map((c) => c[0]), ['askKaby', 'clearAll'])
+})
+const APP_SHOP = {
+  id: 'shop', name: 'Shop', fingerprint: 'f1', template: null,
+  objects: [Object.assign({}, CUSTOMER, { count: 12, views: [], fields: CUSTOMER.fields }), Object.assign({}, ITEM, { count: 3, views: [] }), Object.assign({}, ORDER, { count: 7, views: [] })],
+  archivedObjects: [{ key: 'old', label: 'Old notes', archived: { by: 'person', at: 'x' }, count: 4 }],
+}
+ok('the gallery draws a card per app with its tables and rows, and a card opens its app; the ⋯ menu offers Open, Ask Kaby and Archive', () => {
+  const t = tree(React.createElement(P.Gallery, { p: pageApi({ dbs: [APP_SHOP, Object.assign({}, APP_SHOP, { id: 'b', name: 'Books', objects: [] })] }) }))
+  const cards = kb(t, 'apps-card')
+  assert.equal(cards.length, 2); assert.equal(cards[0].props['data-db'], 'shop')
+  const first = text(cards[0])
+  assert.ok(first.includes('Shop') && first.includes('3 tables') && first.includes('22 rows') && first.includes('12 Customers') && first.includes('Private, on this computer'), first)
+  assert.ok(text(cards[1]).includes('No table yet'))
+  assert.equal(text(all(cards[0], (n) => String(n.props.className).startsWith('kbtb-apptile'))[0]), 'S', 'the first letter stands for the app')
+  click(kb(cards[0], 'apps-open')[0])
+  assert.deepEqual(calls.splice(0), [['openApp', 'shop']])
+  assert.equal(all(cards[0], (n) => n.props.role === 'menuitem').length, 0, 'the menu is closed')
+  const menu = tree(React.createElement(P.AppCard, { p: pageApi({ menu: 'card:shop' }), app: APP_SHOP }))
+  const items = all(menu, (n) => n.props.role === 'menuitem')
+  assert.deepEqual(items.map((n) => n.props['data-kb']), ['apps-card-menu-open', 'apps-card-menu-ask', 'apps-card-menu-archive'])
+  click(items[0]); click(items[1]); click(items[2])
+  const c = calls.splice(0)
+  assert.deepEqual(c.map((x) => x[0]), ['setMenu', 'openApp', 'setMenu', 'askKaby', 'setMenu', 'confirmArchive'])
+  assert.ok(c[3][1].includes('Shop') && c[3][1].includes('shop') && !c[3][1].includes('Customers'), 'asking about the card asks about the app, not a table')
+  assert.deepEqual(c[5].slice(1), ['shop', null])
+})
+ok('no app yet is a place that teaches: a sentence and the button for the first one', () => {
+  const t = tree(React.createElement(P.Gallery, { p: pageApi({ dbs: [] }) }))
+  assert.equal(kb(t, 'apps-none').length, 1); assert.equal(kb(t, 'apps-card').length, 0)
+  click(kb(t, 'apps-none-new')[0]); assert.deepEqual(calls.splice(0), [['newApp']])
+})
+ok('apps put away fold under the cards: a count, then Restore and Delete forever, never an open', () => {
+  const away = [{ id: 'old', name: 'Old', archived: { by: 'person', at: 'x' }, tables: 2, rows: 5 }]
+  const shut = tree(React.createElement(P.Gallery, { p: pageApi({ dbs: [APP_SHOP], archived: away, fold: false }) }))
+  assert.equal(kb(shut, 'apps-fold')[0].props['aria-expanded'], 'false'); assert.equal(kb(shut, 'apps-archived').length, 0)
+  assert.ok(text(kb(shut, 'apps-fold')[0]).includes('Archived · 1'))
+  click(kb(shut, 'apps-fold')[0]); assert.deepEqual(calls.splice(0), [['setFold', true]])
+  const open = tree(React.createElement(P.Gallery, { p: pageApi({ dbs: [APP_SHOP], archived: away, fold: true }) }))
+  const card = kb(open, 'apps-archived')[0]
+  assert.equal(kb(card, 'apps-open').length, 0, 'an app put away does not open')
+  assert.ok(text(card).includes('2 tables') && text(card).includes('5 rows'))
+  click(kb(card, 'apps-restore')[0]); click(kb(card, 'apps-delete')[0])
+  assert.deepEqual(calls.splice(0), [['restoreApp', 'old'], ['confirmDelete', 'old', null]])
+  assert.equal(kb(tree(React.createElement(P.Gallery, { p: pageApi({ dbs: [APP_SHOP], archived: [] }) })), 'apps-fold').length, 0, 'nothing put away, no fold')
+})
+ok('a new app is described to Kaby, or started from a simple shape, or from a template when the core offers some', () => {
+  const t = tree(React.createElement(P.NewApp, { p: pageApi() }))
+  assert.equal(kb(t, 'tables-build-input').length, 1); assert.equal(kb(t, 'tables-build-send')[0].props.disabled, true, 'nothing to send yet')
+  assert.equal(kb(t, 'apps-templates').length, 0, 'no templates from the core, no section')
+  const starts = kb(t, 'apps-start')
+  assert.deepEqual(starts.map((n) => n.props['data-id']), ['contacts', 'tasks', 'collection'])
+  click(starts[1])
+  const asked = calls.splice(0)
+  assert.equal(asked[0][0], 'askKaby'); assert.ok(asked[0][1].includes('task list') && asked[0][1].includes('db-builder'))
+  const tpl = [T.templateOf({ id: 'shop', name: 'Online shop', line: 'Sell online', tag: 'Retail', extras: 'a dashboard', tables: ['Contacts', 'Orders', 'Products', 'Notes'] }), T.templateOf({ id: 'agency', name: 'Agency', have: true, appId: 'db7' })]
+  const withTpl = tree(React.createElement(P.NewApp, { p: pageApi({ templates: { status: 'ok', list: tpl } }) }))
+  const cards = kb(withTpl, 'apps-template')
+  assert.equal(cards.length, 2)
+  assert.ok(text(cards[0]).includes('Online shop') && text(cards[0]).includes('+1') && text(cards[0]).includes('Comes with a dashboard') && text(cards[0]).includes('Use template'))
+  assert.ok(text(cards[1]).includes('In your apps'))
+  click(all(cards[0], (n) => n.type === 'button')[0]); click(all(cards[1], (n) => n.type === 'button')[0])
+  assert.deepEqual(calls.splice(0), [['openTemplate', 'shop'], ['openApp', 'db7']], 'a template in use opens its app instead of adding it twice')
+  assert.equal(kb(tree(React.createElement(P.NewApp, { p: pageApi({ templates: { status: 'loading', list: [] } }) })), 'apps-templates').length, 0)
+})
+ok('an app opens on its tables with Relations after them, only when there is more than one table; the header goes back and asks Kaby', () => {
+  const p = pageApi({ db: APP_SHOP, obj: APP_SHOP.objects[0] })
+  const tabs = tree(React.createElement(P.Tabs, { p }))
+  assert.deepEqual(kb(tabs, 'tables-tab').map((n) => n.props['data-object']), ['customer', 'item', 'order'])
+  assert.equal(kb(tabs, 'tables-tab')[0].props['aria-selected'], 'true'); assert.equal(kb(tabs, 'tables-tab')[1].props['aria-selected'], 'false')
+  const rel = kb(tabs, 'tables-tab-relations')[0]
+  assert.equal(rel.props['aria-selected'], 'false')
+  click(rel); click(kb(tabs, 'tables-tab')[2])
+  assert.deepEqual(calls.splice(0), [['openTable', T.REL_TAB], ['openTable', 'order']])
+  const onRel = tree(React.createElement(P.Tabs, { p: pageApi({ db: APP_SHOP, obj: null, relTab: true }) }))
+  assert.equal(kb(onRel, 'tables-tab-relations')[0].props['aria-selected'], 'true'); assert.ok(kb(onRel, 'tables-tab').every((n) => n.props['aria-selected'] === 'false'))
+  const one = tree(React.createElement(P.Tabs, { p: pageApi({ db: Object.assign({}, APP_SHOP, { objects: [APP_SHOP.objects[0]] }), obj: APP_SHOP.objects[0] }) }))
+  assert.equal(kb(one, 'tables-tab-relations').length, 0, 'one table has nothing to relate')
+  const head = tree(React.createElement(P.AppHeader, { p, title: 'Shop', back: () => calls.push(['back']), backLabel: 'All apps' }))
+  assert.equal(kb(head, 'apps-back')[0].props['aria-label'], 'All apps'); click(kb(head, 'apps-back')[0]); assert.deepEqual(calls.splice(0), [['back']])
+  assert.ok(text(head).includes('Shop'))
+})
+ok('the ⋯ of an app lists its archived tables with Restore and Delete forever, and puts the app away', () => {
+  const p = (menu) => pageApi({ db: APP_SHOP, obj: APP_SHOP.objects[0], menu })
+  const closed = tree(React.createElement(P.AppMenu, { p: p(null) }))
+  assert.equal(kb(closed, 'apps-menu')[0].props['aria-expanded'], 'false'); assert.equal(all(closed, (n) => n.props.role === 'menuitem').length, 0)
+  const open = tree(React.createElement(P.AppMenu, { p: p('app') }))
+  assert.ok(text(open).includes('Archived tables · 1'))
+  click(kb(open, 'apps-menu-archt')[0]); click(kb(open, 'apps-menu-archive')[0])
+  assert.deepEqual(calls.splice(0), [['setMenu', 'archt'], ['confirmArchive', 'shop', null]])
+  const none = tree(React.createElement(P.AppMenu, { p: pageApi({ db: Object.assign({}, APP_SHOP, { archivedObjects: [] }), menu: 'app' }) }))
+  assert.ok(text(none).includes('No archived table.') && kb(none, 'apps-menu-archt').length === 0)
+  const list = tree(React.createElement(P.AppMenu, { p: p('archt') }))
+  const row = kb(list, 'apps-archived-table')[0]
+  assert.ok(text(row).includes('Old notes') && text(row).includes('4 rows'))
+  click(kb(row, 'apps-table-restore')[0]); click(kb(row, 'apps-table-delete')[0])
+  assert.deepEqual(calls.splice(0), [['restoreTable', 'shop', 'old'], ['confirmDelete', 'shop', 'old']])
+})
+ok('archiving says what is kept and how to bring it back, for an app and for a table, and asks nothing to be typed', () => {
+  const dlg = (extra) => tree(React.createElement(P.AppDialog, { p: pageApi({ dbs: [APP_SHOP], dialog: Object.assign({ kind: 'archive', db: 'shop', table: null, impact: null, busy: false, error: null }, extra) }) }))
+  const app = dlg()
+  assert.equal(kb(app, 'apps-dialog')[0].props.role, 'dialog'); assert.equal(kb(app, 'apps-dialog')[0].props['aria-modal'], 'true')
+  const said = text(app)
+  assert.ok(said.includes('Archive “Shop”?') && said.includes('3 tables · 22 rows') && said.includes('“Archived” under your apps') && said.includes('Nothing is deleted'), said)
+  assert.equal(kb(app, 'apps-typed').length, 0); assert.equal(kb(app, 'apps-confirm')[0].props.disabled, false)
+  click(kb(app, 'apps-confirm')[0]); click(kb(app, 'apps-cancel')[0])
+  assert.deepEqual(calls.splice(0), [['runDialog', ''], ['closeDialog']])
+  const table = text(dlg({ table: 'customer' }))
+  assert.ok(table.includes('Archive “Customers”?') && table.includes('12 rows') && table.includes('1 field') && table.includes('Archived tables'), table)
+  const busy = dlg({ busy: true })
+  assert.equal(kb(busy, 'apps-confirm')[0].props.disabled, true); assert.equal(kb(busy, 'apps-cancel')[0].props.disabled, true)
+  assert.ok(text(dlg({ error: 'This app is published: unpublish it first.' })).includes('unpublish it first'))
+})
+ok('deleting for good says what disappears, waits for the facts, and needs the name typed back exactly', () => {
+  const dlg = (extra, apps) => tree(React.createElement(P.AppDialog, { p: pageApi({ dbs: [], archived: apps || [{ id: 'old', name: 'Old', archived: { by: 'person', at: 'x' }, tables: 2, rows: 5 }], dialog: Object.assign({ kind: 'delete', db: 'old', table: null, impact: null, busy: false, error: null }, extra) }) }))
+  const wait = dlg()
+  assert.ok(text(wait).includes('Working it out…')); assert.equal(kb(wait, 'apps-confirm')[0].props.disabled, true, 'nothing to confirm before the facts')
+  assert.equal(kb(wait, 'apps-typed').length, 1)
+  const facts = dlg({ impact: { ok: true, tables: 2, rows: 5, links: 3, files: 1, views: 4, cut: [] } })
+  const said = text(facts)
+  assert.ok(said.includes('Delete “Old” for good?') && said.includes('2 tables · 5 rows · 3 links · 1 file · their views') && said.includes('Can it come back?') && said.includes('No'), said)
+  assert.equal(kb(facts, 'apps-confirm')[0].props.disabled, true, 'the name is not typed yet')
+  const bare = dlg({ impact: { ok: true, tables: 1, rows: 0, links: 0, files: 0, views: 1, cut: [] } })
+  assert.ok(text(bare).includes('1 table · 0 rows · their views') && !text(bare).includes('link') && !text(bare).includes('file'), 'what is zero is not listed')
+  const tbl = text(dlg({ table: 'order', impact: { ok: true, tables: 1, rows: 7, fields: 3, links: 5, files: 0, views: 1, cut: [{ object: 'customer', objectLabel: 'Customers', field: 'orders', fieldLabel: 'Orders', links: 5 }] } },
+    [{ id: 'old', name: 'Old', archived: { by: 'person', at: 'x' }, tables: 2, rows: 5, objects: [], archivedObjects: [{ key: 'order', label: 'Orders', count: 7 }] }]))
+  assert.ok(tbl.includes('Delete “Orders” for good?') && tbl.includes('7 rows · 3 fields') && tbl.includes('Customers › Orders (5 links)') && tbl.includes('lose their “Orders” field'), tbl)
+  const none = text(dlg({ table: 'order', impact: { ok: true, tables: 1, rows: 0, fields: 1, links: 0, files: 0, views: 1, cut: [] } }, [{ id: 'old', name: 'Old', tables: 1, rows: 0, objects: [], archivedObjects: [{ key: 'order', label: 'Orders', count: 0 }] }]))
+  assert.ok(none.includes('None'))
+  assert.ok(text(dlg({ error: 'The local server does not answer. Try again in a moment.' })).includes('does not answer'))
+})
+ok('a template asks which of its extras to add, and Add app runs the dialog', () => {
+  const t = T.templateOf({ id: 'shop', name: 'Online shop', line: 'Sell online', extras: 'a dashboard and automations', tables: ['Contacts', 'Orders'] })
+  const dlg = (extra) => tree(React.createElement(P.Dialogs, { p: pageApi({ dialog: Object.assign({ kind: 'template', template: t, opts: { sample: true, kit: true }, busy: false, error: null }, extra) }) }))
+  const d = dlg()
+  assert.ok(text(d).includes('Add “Online shop”?') && text(d).includes('2 tables') && text(d).includes('A dashboard and automations.'))
+  assert.equal(kb(d, 'apps-opt-sample')[0].props.checked, true); assert.equal(kb(d, 'apps-opt-kit')[0].props.checked, true)
+  kb(d, 'apps-opt-kit')[0].props.onChange({ target: { checked: false } }); click(kb(d, 'apps-confirm')[0])
+  assert.deepEqual(calls.splice(0), [['setTemplateOpt', 'kit', false], ['runDialog', '']])
+  const plain = tree(React.createElement(P.Dialogs, { p: pageApi({ dialog: { kind: 'template', template: T.templateOf({ id: 'a', name: 'A' }), opts: { sample: true, kit: false }, busy: false, error: null } }) }))
+  assert.equal(kb(plain, 'apps-opt-kit').length, 0, 'no extras, no checkbox for them')
+  assert.equal(P.Dialogs({ p: pageApi() }), null, 'no dialog open, nothing drawn')
+  assert.equal(kb(dlg({ busy: true }), 'apps-confirm')[0].props.disabled, true)
+})
+ok('the whole page draws its first state without a host: the heading and the loading line, nothing thrown', () => {
+  const t = tree(React.createElement(Page, {}))
+  assert.equal(kb(t, 'tables-page')[0].props['data-screen'], 'gallery')
+  assert.ok(text(t).includes('Apps') && text(t).includes('Loading apps…'))
 })
 ok('every piece draws in French too, with no English left in the words it speaks', () => {
   resolved = 'fr'
@@ -763,15 +887,19 @@ ok('every piece draws in French too, with no English left in the words it speaks
     const p = pageApi({ menu: 'filter', flt, view: view({ state: { flt, sorts: [], hidden: [] } }) })
     const t = tree(React.createElement(P.Bar, { p }))
     const said = text(t)
-    for (const w of ['Filtre', 'Tri', 'Champs', 'Vues', 'Nouvelle ligne', 'Modifier la vue']) assert.ok(said.includes(w), w)
+    for (const w of ['Filtre', 'Tri', 'Champs', 'Vues']) assert.ok(said.includes(w), w)
     assert.ok(said.includes('Où'), 'the filter panel')
     const chips = text(tree(React.createElement(P.Chips, { p: pageApi() })))
     assert.ok(chips.includes('4 lignes'))
-    const shop = pageApi({ db: { id: 'db1', name: 'Shop', objects: SHOP }, built: 'fields' })
-    const built = text(tree(React.createElement(P.BuiltPanel, { p: shop })))
-    for (const w of ['Comment c’est construit', 'Champs', 'Carte des liens', 'Lien vers Customers', 'un seul', 'plusieurs', 'Lié depuis les autres tables']) assert.ok(built.includes(w), w)
+    const shop = pageApi({ db: { id: 'db1', name: 'Shop', objects: SHOP }, obj: null, relTab: true })
+    const rel = text(tree(React.createElement(P.RelationsView, { p: shop })))
+    for (const w of ['Chaque ligne porte le nom', 'un seul', 'plusieurs']) assert.ok(rel.includes(w), w)
     const linked = text(tree(React.createElement(P.LinkedGroups, { p: {}, groups: [{ object: 'order', objectLabel: 'Orders', field: 'customer', fieldLabel: 'Customer', inverse: null, many: false, count: 0, records: [] }] })))
     assert.ok(linked.includes('Lié depuis') && linked.includes('Aucune pour l’instant.'))
+    const gal = text(tree(React.createElement(P.Gallery, { p: pageApi({ dbs: [APP_SHOP], archived: [{ id: 'old', name: 'Old', archived: { by: 'person', at: 'x' }, tables: 2, rows: 5 }], fold: true }) })))
+    for (const w of ['Privée, sur cet ordinateur', 'Rangées', 'Rétablir', 'Supprimer pour de bon…']) assert.ok(gal.includes(w), w)
+    const dlg = text(tree(React.createElement(P.AppDialog, { p: pageApi({ dbs: [APP_SHOP], dialog: { kind: 'archive', db: 'shop', table: null, impact: null, busy: false, error: null } }) })))
+    for (const w of ['Ranger « Shop » ?', 'Gardé', 'Annuler']) assert.ok(dlg.includes(w), w)
   } finally { resolved = 'en' }
 })
 
@@ -783,58 +911,26 @@ const PNG = { name: 'logo.png', size: 2048, type: 'image/png', hash: HASH('a') }
 const PDF = { name: 'contract.pdf', size: 300000, type: 'application/pdf', hash: HASH('b') }
 const TXT = { name: 'notes.txt', size: 12, type: 'text/plain', hash: HASH('c') }
 const SVG = { name: 'mark.svg', size: 90, type: 'image/svg+xml', hash: HASH('d') }
-const dropEvent = (types, files) => { const log = { prevented: 0 }; return { log, e: { dataTransfer: { types, files }, preventDefault () { log.prevented += 1 }, stopPropagation () {}, currentTarget: { contains: () => false }, relatedTarget: null } } }
-ok('what can be sent: each file within the field\'s cap, and no more in all than a field holds; the others come back with their reason', () => {
-  assert.equal(T.capOf(FILES), 1000)
-  assert.equal(T.capOf({ key: 'f', type: 'attachment' }), 25 * 1024 * 1024, 'no cap on the field: the core\'s')
-  assert.equal(T.capOf({ key: 'f', type: 'attachment', maxBytes: 0 }), 25 * 1024 * 1024)
-  const small = { name: 'a.txt', size: 500 }
-  const big = { name: 'big.bin', size: 1001 }
-  const plan = T.planFiles(FILES, [], [small, big])
-  assert.deepEqual(plan.ok, [small]); assert.deepEqual(plan.failed, [{ name: 'big.bin', why: 'too-big', cap: 1000 }])
-  assert.equal(T.planFiles(FILES, [], [{ name: 'edge', size: 1000 }]).ok.length, 1, 'exactly the cap goes')
-  const held = Array.from({ length: T.MAX_FILES - 1 }, (_, i) => ({ name: 'f' + i, size: 1, type: 'text/plain', hash: String(i).padStart(64, '0') }))
-  const room = T.planFiles(FILES, held, [small, { name: 'b.txt', size: 1 }, { name: 'c.txt', size: 1 }])
-  assert.equal(room.ok.length, 1); assert.deepEqual(room.failed.map((x) => x.why), ['too-many', 'too-many'])
-  assert.deepEqual(T.planFiles(FILES, null, []), { ok: [], failed: [] })
-})
-ok('the sentences about files are said in both languages, with the name and the size in them', () => {
-  const say = (code) => { resolved = code; return [T.failText({ name: 'big.bin', why: 'too-big', cap: 1000 }), T.failText({ name: 'x', why: 'too-many' }), T.failText({ name: 'x', why: 'same' }), T.failText({ name: 'x', why: 'host', message: 'nope' }), T.filesSummary(2, []), T.filesSummary(1, [{ name: 'big.bin', why: 'too-big', cap: 1000 }]), T.filesSummary(0, [{ name: 'a', why: 'same' }, { name: 'b', why: 'same' }, { name: 'c', why: 'same' }])] }
-  try {
-    const en = say('en')
-    assert.equal(en[0], '“big.bin” is over 1000 B.'); assert.ok(en[1].includes('20 files')); assert.ok(en[2].includes('already there')); assert.equal(en[3], '“x”: nope')
-    assert.equal(en[4], '2 files added.'); assert.equal(en[5], '1 file added. “big.bin” is over 1000 B.'); assert.ok(en[6].endsWith('(+2 more)'))
-    const fr = say('fr')
-    assert.equal(fr[0], '« big.bin » dépasse 1000 B.'); assert.ok(fr[1].includes('20 fichiers')); assert.ok(fr[2].includes('déjà là')); assert.equal(fr[3], '« x » : nope')
-    assert.equal(fr[4], '2 fichiers ajoutés.'); assert.equal(fr[5], '1 fichier ajouté. « big.bin » dépasse 1000 B.'); assert.ok(fr[6].endsWith('(+2 autres)'))
-    assert.equal(T.filesSummary(0, []), '', 'nothing to say when nothing happened')
-  } finally { resolved = 'en' }
-  for (const code of ['too-big', 'too-many']) assert.ok(T.errorText({ error: code }).length > 10, code)
-})
 ok('a file is read from the host by the row that holds it; a picture is drawn and opens in a tab, the rest (a PDF, an SVG, a text) is a download', () => {
   assert.equal(T.fileUrl('db1', 'task', 'r1', FILES, PNG), '/kybernos-db/file?db=db1&object=task&id=r1&field=files&hash=' + HASH('a'))
   assert.equal(T.isImage(PNG), true); assert.equal(T.isImage(PDF), false); assert.equal(T.isImage(SVG), false, 'an SVG can hold a script: it is never drawn')
   assert.equal(T.isImage({ type: 'IMAGE/PNG' }), true, 'a type is compared without its case'); assert.equal(T.isImage({ type: 'text/html' }), false)
 })
-await okAsync('a file goes to the host as its own bytes, anything else as JSON, and a refusal is an answer', async () => {
+await okAsync('a body goes to the host as JSON, a read as no body at all, and a refusal is an answer', async () => {
   const sent = []
   const real = globalThis.fetch
-  globalThis.fetch = async (url, init) => { sent.push([url, init]); return { status: 413, json: async () => ({ ok: false, error: 'too-big' }) } }
+  globalThis.fetch = async (url, init) => { sent.push([url, init]); return { status: 409, json: async () => ({ ok: false, error: 'not-archived' }) } }
   try {
-    const blob = new Blob(['hello'], { type: 'text/plain' })
-    const r = await T.call('POST', '/upload?db=db1', blob)
-    assert.deepEqual(r, { ok: false, error: 'too-big' })
-    assert.equal(sent[0][1].headers['content-type'], 'application/octet-stream'); assert.equal(sent[0][1].body, blob, 'the bytes, not a JSON copy of them')
-    await T.call('POST', '/write', { op: 'create' })
-    assert.equal(sent[1][1].headers['content-type'], 'application/json'); assert.equal(sent[1][1].body, '{"op":"create"}')
+    const r = await T.call('POST', '/app', { db: 'db1', op: 'delete' })
+    assert.deepEqual(r, { ok: false, error: 'not-archived' })
+    assert.equal(sent[0][1].headers['content-type'], 'application/json'); assert.equal(sent[0][1].body, '{"db":"db1","op":"delete"}')
     await T.call('GET', '/state')
-    assert.deepEqual(sent[2][1].headers, {}); assert.equal(sent[2][1].body, undefined)
+    assert.deepEqual(sent[1][1].headers, {}); assert.equal(sent[1][1].body, undefined)
   } finally { globalThis.fetch = real }
 })
-ok('the cells of a field of files: a thumbnail for a picture, a name for the rest, each opening its file, and an × to take one off', () => {
+ok('the cells of a field of files: a thumbnail for a picture, a name for the rest, each opening its file; nothing takes one off', () => {
   const row = rec('r1', { name: 'x', files: [PNG, PDF, TXT, SVG] })
-  const taken = []
-  const ctx = Object.assign({}, CTX, { fileUrl: (f, r, file) => T.fileUrl('db1', 'task', r.id, f, file), removeFile: (r, f, file) => taken.push([r.id, f.key, file.hash]) })
+  const ctx = Object.assign({}, CTX, { fileUrl: (f, r, file) => T.fileUrl('db1', 'task', r.id, f, file) })
   const t = tree(React.createElement(P.Cell, { field: FILES, rec: row, ctx }))
   const chips = kb(t, 'tables-file')
   assert.equal(chips.length, 3, 'three at most, the rest is counted'); assert.equal(text(t).includes('+1'), true)
@@ -847,10 +943,7 @@ ok('the cells of a field of files: a thumbnail for a picture, a name for the res
   assert.ok(links[2].props['aria-label'].includes('notes.txt'))
   let stopped = 0
   links[0].props.onClick({ stopPropagation () { stopped += 1 } }); assert.equal(stopped, 1, 'opening a file does not open the row')
-  const x = kb(t, 'tables-file-remove')
-  assert.equal(x.length, 3); assert.ok(x[1].props['aria-label'].includes('contract.pdf'))
-  click(x[1], { stopPropagation () { stopped += 1 } })
-  assert.deepEqual(taken, [['r1', 'files', HASH('b')]]); assert.equal(stopped, 2)
+  assert.equal(kb(t, 'tables-file-remove').length, 0, 'no × on a file: Kaby changes what a row holds')
   const bare = tree(React.createElement(P.Cell, { field: FILES, rec: row, ctx: CTX }))
   assert.equal(kb(bare, 'tables-file').length, 0, 'a caller with no way to read files still gets the count'); assert.equal(text(bare).includes('4 files'), true)
   assert.equal(kb(tree(React.createElement(P.Cell, { field: FILES, rec: rec('r2', { name: 'y' }), ctx })), 'tables-file').length, 0, 'a row with no file draws nothing')
@@ -859,74 +952,10 @@ ok('a thumbnail that cannot be read falls back to the file\'s icon instead of a 
   const t = tree(React.createElement(P.Thumb, { src: '/x', cls: 'kbtb-thumb' }))
   assert.equal(all(t, (n) => n.type === 'img').length, 1); assert.equal(typeof all(t, (n) => n.type === 'img')[0].props.onError, 'function')
 })
-ok('files dropped on a cell go to the page with the row and the field; a drag that carries no file is left alone', () => {
-  const row = rec('r1', { name: 'x', files: [PNG] })
-  const ctx = Object.assign({}, CTX, { fileUrl: () => '/f' })
-  const p = pageApi({ ctx })
-  const td = kb(tree(React.createElement(P.FileTd, { field: FILES, rec: row, p })), 'tables-cell-files')[0]
-  assert.equal(td.type, 'td'); assert.equal(td.props['data-field'], 'files')
-  const file = { name: 'a.txt', size: 3, type: 'text/plain' }
-  const yes = dropEvent(['Files'], [file]); td.props.onDragOver(yes.e); assert.equal(yes.log.prevented, 1, 'a file may be dropped here')
-  td.props.onDrop(yes.e)
-  assert.deepEqual(calls.filter((c) => c[0] === 'dropFiles').map((c) => [c[1].id, c[2].key, c[3]]), [['r1', 'files', [file]]])
-  const no = dropEvent(['text/plain'], []); td.props.onDragOver(no.e); td.props.onDrop(no.e); assert.equal(no.log.prevented, 0)
-  assert.equal(calls.filter((c) => c[0] === 'dropFiles').length, 1)
-  const busy = tree(React.createElement(P.FileTd, { field: FILES, rec: row, p: pageApi({ ctx, sending: { 'r1/files': 2 } }) }))
-  assert.equal(all(busy, (n) => n.props.role === 'status').length, 1, 'a row being sent says so')
-  const pdfRow = rec('r9', { name: 'z', files: [PDF] })
-  const grid = tree(React.createElement(P.TableView, { p: pageApi({ ctx, rows: [pdfRow], all: [pdfRow] }) }))
-  assert.equal(kb(grid, 'tables-cell-files').length, 1, 'the table draws a field of files through the cell that takes drops'); assert.equal(text(grid).includes('contract.pdf'), true)
-})
-await okAsync('in the drawer a saved row shows its files with a picture or an icon, a link, a size and an ×; the box takes files by choice or by drop', async () => {
-  const held = [PNG, PDF, TXT]
-  const edit = (extra) => pageApi({ drawer: { mode: 'edit', id: 'r1' }, ...(extra || {}) })
-  const commits = []
-  const mk = (p, value) => tree(React.createElement(P.AttachEditor, { field: FILES, value, onCommit: async (v) => { commits.push(v) }, p }))
-  let t = mk(edit(), held)
-  const items = kb(t, 'tables-file')
-  assert.equal(items.length, 3)
-  assert.equal(all(items[0], (n) => n.type === 'img').length, 1, 'a picture is drawn'); assert.equal(all(items[1], (n) => n.type === 'img').length, 0)
-  assert.equal(all(items[0], (n) => n.props['data-kb'] === 'tables-file-open')[0].props.href.includes('id=r1&field=files'), true)
-  assert.equal(text(items[1]).includes('293 KB'), true); assert.equal(text(items[2]).includes('12 B'), true)
-  click(all(items[1], (n) => n.props['data-kb'] === 'tables-file-remove')[0])
-  assert.deepEqual(calls.filter((c) => c[0] === 'removeFile').map((c) => [c[1].id, c[2].key, c[3].hash]), [['r1', 'files', HASH('b')]], 'a saved row is changed by the page, which keeps the Undo')
-  const input = kb(t, 'tables-file-input')[0]
-  assert.equal(input.props.type, 'file'); assert.equal(input.props.multiple, true); assert.equal(input.props.hidden, true)
-  assert.equal(kb(t, 'tables-file-add')[0].props.disabled, false)
-  assert.equal(text(kb(t, 'tables-drop')[0]).includes('1000 B'), true, 'the cap is said before a file is tried')
-  // a choice: sent through the page, then added to what the row holds
-  const sentFiles = []
-  const added = { name: 'new.txt', size: 3, type: 'text/plain', hash: HASH('e') }
-  t = mk(edit({ attach: async (f, files, h) => { sentFiles.push([f.key, files.map((x) => x.name), h.length]); return { added: [added], failed: [] } } }), held)
-  await kb(t, 'tables-file-input')[0].props.onChange({ target: { files: [{ name: 'new.txt', size: 3 }], value: 'C:\\fakepath\\new.txt' } })
-  assert.deepEqual(sentFiles, [['files', ['new.txt'], 3]]); assert.deepEqual(commits[commits.length - 1], held.concat([added]))
-  // a drop does the same; nothing is written when nothing was kept
-  const before = commits.length
-  t = mk(edit({ attach: async () => ({ added: [], failed: [{ name: 'big', why: 'too-big', cap: 1000 }] }) }), held)
-  const dz = kb(t, 'tables-drop')[0]
-  const ev = dropEvent(['Files'], [{ name: 'big', size: 5000 }]); dz.props.onDragOver(ev.e); assert.equal(ev.log.prevented, 1)
-  await dz.props.onDrop(ev.e)
-  assert.equal(commits.length, before, 'a refused file writes nothing to the row')
-})
-await okAsync('a new row has not been saved: its files are listed by name only, and taking one off changes the form, not the page', async () => {
-  const commits = []
-  const t = tree(React.createElement(P.AttachEditor, { field: FILES, value: [PNG, PDF], onCommit: async (v) => { commits.push(v) }, p: pageApi({ drawer: { mode: 'new', prefill: {} } }) }))
-  const items = kb(t, 'tables-file')
-  assert.equal(items.length, 2); assert.equal(all(t, (n) => n.type === 'img').length, 0); assert.equal(all(t, (n) => n.type === 'a').length, 0, 'the host serves a file only to the row that holds it')
-  click(all(items[0], (n) => n.props['data-kb'] === 'tables-file-remove')[0])
-  assert.deepEqual(commits, [[PDF]]); assert.equal(calls.filter((c) => c[0] === 'removeFile').length > 0, true)
-  click(all(tree(React.createElement(P.AttachEditor, { field: FILES, value: [PNG], onCommit: async (v) => { commits.push(v) }, p: pageApi({ drawer: { mode: 'new', prefill: {} } }) })), (n) => n.props['data-kb'] === 'tables-file-remove')[0])
-  assert.equal(commits[commits.length - 1], null, 'the last file off leaves the field empty')
-})
-ok('a field that holds the most files it can says so and offers no more', () => {
-  const full = Array.from({ length: T.MAX_FILES }, (_, i) => ({ name: 'f' + i, size: 1, type: 'text/plain', hash: String(i + 1).padStart(64, '0') }))
-  const t = tree(React.createElement(P.AttachEditor, { field: FILES, value: full, onCommit: async () => {}, p: pageApi({ drawer: { mode: 'edit', id: 'r1' } }) }))
-  assert.equal(kb(t, 'tables-file-add')[0].props.disabled, true); assert.equal(text(kb(t, 'tables-drop')[0]).includes('20 files'), true)
-})
 
 console.log('── errors and the host ──')
 ok('each answer of the host has a sentence, and an unknown refusal shows the host\'s own words', () => {
-  for (const code of ['network', 'sign-in required', 'origin refused', 'sqlite_unavailable', 'db_newer', 'not_a_db', 'unknown_object', 'missing', 'deleted']) assert.ok(T.errorText({ error: code }).length > 10, code)
+  for (const code of ['network', 'sign-in required', 'origin refused', 'sqlite_unavailable', 'db_newer', 'not_a_db', 'unknown_object', 'missing', 'deleted', 'unknown_db', 'archived', 'not-archived', 'published', 'confirm']) assert.ok(T.errorText({ error: code }).length > 10, code)
   assert.equal(T.errorText({ error: 'invalid', message: 'name: a name is 1 to 60 characters' }), 'name: a name is 1 to 60 characters')
   assert.ok(T.errorText({ error: 'invalid' }).length > 10)
   assert.ok(T.errorText(undefined).length > 10)
