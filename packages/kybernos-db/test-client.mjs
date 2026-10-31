@@ -10,6 +10,7 @@ import * as core from './core/index.mjs'
 
 let failed = 0
 const ok = (label, fn) => { try { fn(); console.log('  ok   ' + label) } catch (e) { failed += 1; console.log('  FAIL ' + label + ' — ' + (e && e.message)) } }
+const okAsync = async (label, fn) => { try { await fn(); console.log('  ok   ' + label) } catch (e) { failed += 1; console.log('  FAIL ' + label + ' — ' + (e && e.message)) } }
 
 const source = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
 let definition = null
@@ -93,6 +94,7 @@ const pageApi = (extra) => {
     openTable: spy('openTable'), openApp: spy('openApp'), goGallery: spy('goGallery'), newApp: spy('newApp'), setFold: spy('setFold'),
     confirmArchive: spy('confirmArchive'), confirmDelete: spy('confirmDelete'), restoreApp: spy('restoreApp'), restoreTable: spy('restoreTable'),
     closeDialog: spy('closeDialog'), runDialog: spy('runDialog'), openTemplate: spy('openTemplate'), setTemplateOpt: spy('setTemplateOpt'),
+    hosting: null, syncBusy: '', openPublish: spy('openPublish'), openUnpublish: spy('openUnpublish'), startForget: spy('startForget'), openWeb: spy('openWeb'), refreshNow: spy('refreshNow'),
   }, extra || {})
 }
 /** The view a function handed to `editView` would produce from the current one. */
@@ -903,8 +905,190 @@ ok('every piece draws in French too, with no English left in the words it speaks
   } finally { resolved = 'en' }
 })
 
+console.log('── publish: an app that lives in a web app ──')
+const NOW = Date.parse('2026-10-31T12:00:00.000Z')
+const PUB = { slug: 'shop', url: 'https://team.example.test', since: '2026-10-30T08:00:00.000Z', lastSync: '2026-10-31T11:57:00.000Z', syncError: null }
+const APP_PUB = Object.assign({}, APP_SHOP, { published: PUB })
+const HOSTING = { available: true, name: 'Kybernos team space', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true }
+const inFrench = (fn) => { resolved = 'fr'; try { return fn() } finally { resolved = 'en' } }
+ok('how long ago a copy was brought up to date is said in plain words, in both languages, and a date that is not one says nothing', () => {
+  assert.equal(T.agoWord('2026-10-31T11:59:40.000Z', NOW), 'just now'); assert.equal(T.agoWord('2026-10-31T12:00:30.000Z', NOW), 'just now', 'a clock a little ahead is not a mystery')
+  assert.equal(T.agoWord('2026-10-31T11:57:00.000Z', NOW), '3 min ago'); assert.equal(T.agoWord('2026-10-31T09:00:00.000Z', NOW), '3 h ago'); assert.equal(T.agoWord('2026-10-28T12:00:00.000Z', NOW), '3 d ago')
+  assert.equal(T.agoWord('nonsense', NOW), ''); assert.equal(T.agoWord(undefined, NOW), '')
+  assert.equal(inFrench(() => T.agoWord('2026-10-31T11:57:00.000Z', NOW)), 'il y a 3 min'); assert.equal(inFrench(() => T.agoWord('2026-10-31T11:59:50.000Z', NOW)), 'à l’instant')
+})
+ok('the sync line says when the copy was refreshed, or why it could not be, and what the person is looking at meanwhile', () => {
+  assert.equal(T.syncLine(PUB, NOW), 'Synced 3 min ago'); assert.equal(inFrench(() => T.syncLine(PUB, NOW)), 'Synchronisée il y a 3 min')
+  assert.equal(T.syncLine(Object.assign({}, PUB, { lastSync: null }), NOW), 'Copy kept on this computer')
+  const down = Object.assign({}, PUB, { syncError: { code: 'unreachable', message: 'x', at: 'y' } })
+  assert.equal(T.syncLine(down, NOW), 'The web app is not answering. Last synced 3 min ago.')
+  assert.equal(T.syncLine(Object.assign({}, down, { lastSync: null }), NOW), 'The web app is not answering. You are seeing the copy kept on this computer.')
+  assert.ok(T.syncLine(Object.assign({}, down, { syncError: { code: 'refused' } }), NOW).startsWith('The web app refused this computer’s key.'))
+  assert.ok(T.syncLine(Object.assign({}, down, { syncError: { code: 'mismatch' } }), NOW).startsWith('The copy from the web app could not be checked.'))
+  assert.ok(inFrench(() => T.syncLine(down, NOW)).startsWith('L’app web ne répond pas. Dernière mise à jour il y a 3 min.'))
+})
+ok('the page reads only what it needs of the state: a published object with a url, a host that says it is available', () => {
+  assert.equal(T.pubOf(APP_PUB), PUB); assert.equal(T.pubOf(APP_SHOP), null); assert.equal(T.pubOf(Object.assign({}, APP_SHOP, { published: null })), null); assert.equal(T.pubOf(Object.assign({}, APP_SHOP, { published: { slug: 'x' } })), null); assert.equal(T.pubOf(null), null)
+  assert.equal(T.hostWord('https://team.example.test/open?t=abc'), 'team.example.test'); assert.equal(T.hostWord('not a url'), '')
+  assert.equal(T.canPublishVia(HOSTING), true); assert.equal(T.canPublishVia({ available: false }), false); assert.equal(T.canPublishVia(null), false); assert.equal(T.canPublishVia({ available: 'yes' }), false, 'only a true')
+})
+ok('a card offers Publish only when the host offers it, and a private card still says it is private', () => {
+  const none = tree(React.createElement(P.AppCard, { p: pageApi({ menu: 'card:shop' }), app: APP_SHOP }))
+  assert.equal(kb(none, 'apps-card-menu-publish').length, 0, 'no hosting, no Publish')
+  const off = tree(React.createElement(P.AppCard, { p: pageApi({ menu: 'card:shop', hosting: { available: false } }), app: APP_SHOP }))
+  assert.equal(kb(off, 'apps-card-menu-publish').length, 0)
+  const on = tree(React.createElement(P.AppCard, { p: pageApi({ menu: 'card:shop', hosting: HOSTING }), app: APP_SHOP }))
+  assert.deepEqual(all(on, (n) => n.props.role === 'menuitem').map((n) => n.props['data-kb']), ['apps-card-menu-open', 'apps-card-menu-ask', 'apps-card-menu-publish', 'apps-card-menu-archive'])
+  assert.ok(text(on).includes('Private, on this computer') && text(on).includes('Publish…')); assert.equal(kb(on, 'apps-card-published').length, 0)
+  click(kb(on, 'apps-card-menu-publish')[0]); assert.deepEqual(calls.splice(0), [['setMenu', null], ['openPublish', 'shop']])
+})
+ok('a published card says so with its host, and its menu opens the web app, unpublishes, and shows Archive locked with the reason', () => {
+  const t = tree(React.createElement(P.AppCard, { p: pageApi({ menu: 'card:shop', hosting: HOSTING }), app: APP_PUB }))
+  assert.equal(text(kb(t, 'apps-card-published')[0]), 'Published · team.example.test'); assert.ok(!text(t).includes('Private, on this computer'))
+  assert.deepEqual(all(t, (n) => n.props.role === 'menuitem').map((n) => n.props['data-kb']), ['apps-card-menu-open', 'apps-card-menu-ask', 'apps-card-menu-web', 'apps-card-menu-unpublish', 'apps-card-menu-archive'])
+  const locked = kb(t, 'apps-card-menu-archive')[0]
+  assert.equal(locked.props['aria-disabled'], 'true'); assert.ok(text(locked).includes('Unpublish first')); assert.equal(locked.props.title, 'Unpublish to change this')
+  click(locked); assert.deepEqual(calls.splice(0), [], 'a locked item does nothing, and does not even close the menu')
+  click(kb(t, 'apps-card-menu-web')[0]); click(kb(t, 'apps-card-menu-unpublish')[0])
+  assert.deepEqual(calls.splice(0), [['setMenu', null], ['openWeb', 'shop'], ['setMenu', null], ['openUnpublish', 'shop']])
+  const down = tree(React.createElement(P.AppCard, { p: pageApi({ hosting: HOSTING }), app: Object.assign({}, APP_PUB, { published: Object.assign({}, PUB, { syncError: { code: 'unreachable', message: 'x', at: 'y' } }) }) }))
+  assert.ok(kb(down, 'apps-card-published')[0].props.className.includes('bad'), 'a copy that cannot be refreshed is told apart on the card')
+  assert.ok(kb(down, 'apps-card-published')[0].props.title.includes('not answering'))
+  assert.ok(inFrench(() => text(kb(tree(React.createElement(P.AppCard, { p: pageApi({}), app: APP_PUB })), 'apps-card-published')[0])).startsWith('Publiée · '))
+})
+ok('a published app wears a pill next to its name, and its ⋯ unpublishes and keeps Archive locked', () => {
+  const pill = React.createElement(P.PubPill, { pub: PUB, hd: true })
+  const head = tree(React.createElement(P.AppHeader, { p: pageApi(), title: 'Shop', pill }))
+  assert.equal(text(kb(head, 'apps-published-pill')[0]), 'Published', 'the host is under the tabs, once')
+  assert.equal(kb(tree(React.createElement(P.AppHeader, { p: pageApi(), title: 'Shop' })), 'apps-published-pill').length, 0)
+  const open = tree(React.createElement(P.AppMenu, { p: pageApi({ db: APP_PUB, obj: APP_PUB.objects[0], menu: 'app' }) }))
+  click(kb(open, 'apps-menu-unpublish')[0]); click(kb(open, 'apps-menu-archive')[0])
+  assert.deepEqual(calls.splice(0), [['openUnpublish', 'shop']], 'the locked Archive does nothing')
+  assert.equal(kb(open, 'apps-menu-archive')[0].props['aria-disabled'], 'true'); assert.ok(text(kb(open, 'apps-menu-archive')[0]).includes('Unpublish first'))
+  const priv = tree(React.createElement(P.AppMenu, { p: pageApi({ db: APP_SHOP, obj: APP_SHOP.objects[0], menu: 'app' }) }))
+  assert.equal(kb(priv, 'apps-menu-unpublish').length, 0); assert.equal(kb(priv, 'apps-menu-archive')[0].props['aria-disabled'], undefined)
+})
+ok('the note under the tabs says where the app lives, how fresh the copy is, why the structure is locked, and offers Update and Unpublish', () => {
+  const t = tree(React.createElement(P.PublishedNote, { p: pageApi({ db: APP_PUB }) }))
+  const said = text(t)
+  assert.ok(said.includes('team.example.test') && said.includes('Rows are written in the web app and copied here') && said.includes('can’t change while the app is published') && said.includes('for this visit only'), said)
+  assert.ok(/Synced (just now|\d+ (min|h|d) ago)/.test(text(kb(t, 'apps-sync')[0])))
+  const refresh = kb(t, 'apps-refresh')[0]
+  assert.equal(refresh.props['aria-label'], 'Update the copy now'); assert.equal(text(refresh), '', 'an icon, named for the people who cannot see it'); assert.equal(refresh.props.disabled, false)
+  click(refresh); click(kb(t, 'apps-unpublish')[0])
+  assert.deepEqual(calls.splice(0), [['refreshNow', 'shop'], ['openUnpublish', 'shop']])
+  assert.equal(kb(tree(React.createElement(P.PublishedNote, { p: pageApi({ db: APP_PUB, syncBusy: 'shop' }) })), 'apps-refresh')[0].props.disabled, true, 'one update at a time')
+  assert.equal(P.PublishedNote({ p: pageApi({ db: APP_SHOP }) }), null)
+  const bad = tree(React.createElement(P.PublishedNote, { p: pageApi({ db: Object.assign({}, APP_PUB, { published: Object.assign({}, PUB, { syncError: { code: 'unreachable', message: 'x', at: 'y' } }) }) }) }))
+  assert.ok(kb(bad, 'apps-published-note')[0].props.className.includes('warn')); assert.ok(text(kb(bad, 'apps-sync')[0]).includes('not answering'))
+  assert.ok(inFrench(() => text(tree(React.createElement(P.PublishedNote, { p: pageApi({ db: APP_PUB }) })))).includes('Arrêter la publication…'))
+})
+const CARD = {
+  ok: true, can: true, reason: null, app: { id: 'shop', name: 'Shop' }, tables: 3, rows: 22, files: 2, bytes: 1258291,
+  personal: [{ object: 'customer', objectLabel: 'Customers', field: 'email', fieldLabel: 'Email' }], blocked: [], where: 'new',
+  hosting: { available: true, name: 'Kybernos team space', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true, region: 'EU', budget: { label: 'Cloud budget', remaining: 3, enough: true } },
+}
+const pubDialog = (extra, card) => tree(React.createElement(P.Dialogs, { p: pageApi({ dbs: [APP_SHOP], dialog: Object.assign({ kind: 'publish', db: 'shop', card: card === undefined ? CARD : card, busy: false, error: null }, extra) }) }))
+ok('the Publish card says what goes, where, what it costs and what changes, and nothing leaves before its button', () => {
+  const t = pubDialog()
+  const said = text(t)
+  assert.ok(said.includes('Publish “Shop”?') && said.includes('3 tables · 22 rows · 2 files') && said.includes('1.2 MB') && said.includes('Kybernos team space · EU') && said.includes('A new web app is set up'), said)
+  assert.ok(said.includes('$7.30 a month') && said.includes('Cloud budget') && said.includes('3 left'), said)
+  assert.ok(said.includes('Stays available when this computer is off'), 'the host says it is always on')
+  assert.ok(said.includes('Customers › Email') && said.includes('go to the web app with the rest'), 'personal fields are listed')
+  assert.ok(said.includes('While published') && said.includes('unpublish to change them'), said)
+  assert.equal(kb(t, 'apps-confirm')[0].props.disabled, false); assert.equal(text(kb(t, 'apps-confirm')[0]), 'Publish')
+  click(kb(t, 'apps-confirm')[0]); click(kb(t, 'apps-cancel')[0]); assert.deepEqual(calls.splice(0), [['runDialog', ''], ['closeDialog']])
+  assert.ok(text(pubDialog({}, Object.assign({}, CARD, { where: 'existing' }))).includes('Into the web app you already have'))
+  assert.ok(inFrench(() => text(pubDialog())).includes('Publier « Shop » ?'))
+})
+ok('the card claims nothing it was not told: no price without a currency, no « stays available » unless the host said alwaysOn, no personal row without personal fields', () => {
+  const bare = Object.assign({}, CARD, { personal: [], hosting: { available: true, name: '', pricePerMonth: 7.3, currency: '', alwaysOn: false } })
+  const said = text(pubDialog({}, bare))
+  assert.ok(!/a month|\$7|7\.3/.test(said), said); assert.ok(!/always|stays available|toujours/i.test(said), said); assert.ok(!said.includes('Personal data')); assert.ok(said.includes('A web app'), 'a host with no name is still a web app')
+  assert.ok(!/budget/i.test(said), 'no budget row without a budget')
+  const sleeping = text(pubDialog({}, Object.assign({}, CARD, { hosting: Object.assign({}, CARD.hosting, { alwaysOn: 'yes' }) })))
+  assert.ok(!sleeping.includes('Stays available'), 'only a true counts')
+})
+ok('the card asks while it checks, shows a refusal instead of a button, and says why in plain words', () => {
+  const wait = pubDialog({}, null)
+  assert.ok(text(wait).includes('Checking…')); assert.equal(kb(wait, 'apps-confirm').length, 0, 'nothing to confirm before the facts')
+  const failed2 = pubDialog({ error: 'The web app is not answering.' }, null)
+  assert.ok(text(failed2).includes('The web app is not answering.')); assert.equal(text(kb(failed2, 'apps-cancel')[0]), 'Close')
+  const sens = pubDialog({}, Object.assign({}, CARD, { can: false, reason: 'sensitive', blocked: [{ object: 'customer', objectLabel: 'Customers', field: 'iban', fieldLabel: 'IBAN', protection: 'secret' }, { object: 'customer', objectLabel: 'Customers', field: 'notes', fieldLabel: 'Notes', protection: 'sensitive' }] }))
+  const s = text(sens)
+  assert.ok(s.includes('never sent to a web app') && s.includes('Customers › IBAN (secret)') && s.includes('Customers › Notes (sensitive)'), s)
+  assert.equal(kb(sens, 'apps-confirm').length, 0); assert.equal(text(kb(sens, 'apps-cancel')[0]), 'Close')
+  assert.ok(text(pubDialog({}, Object.assign({}, CARD, { can: false, reason: 'budget' }))).includes('budget for the web app is used up'))
+  assert.ok(text(pubDialog({}, Object.assign({}, CARD, { can: false, reason: 'too-big', bytes: 5 * 1048576 }))).includes('too big to publish in one go (5.0 MB)'))
+  for (const [reason, said] of [['archived', 'archived: restore it first'], ['busy', 'already being published or unpublished'], ['published', 'already published'], ['unavailable', 'not available on this computer'], ['whatever', 'can’t be published right now']]) assert.ok(text(pubDialog({}, Object.assign({}, CARD, { can: false, reason }))).includes(said), reason)
+  assert.ok(inFrench(() => text(pubDialog({}, Object.assign({}, CARD, { can: false, reason: 'sensitive', blocked: [{ objectLabel: 'Clients', fieldLabel: 'IBAN', protection: 'sensitive' }] })))).includes('Clients › IBAN (sensible)'))
+})
+ok('while it publishes the card cannot be closed or pressed twice, and a refusal stays on the card with its sentence', () => {
+  const busy = pubDialog({ busy: true })
+  assert.equal(kb(busy, 'apps-confirm')[0].props.disabled, true); assert.equal(text(kb(busy, 'apps-confirm')[0]), 'Publishing…'); assert.equal(kb(busy, 'apps-cancel')[0].props.disabled, true); assert.ok(text(busy).includes('This can take a minute.'))
+  const err = pubDialog({ error: T.errorText({ error: 'unreachable' }) })
+  assert.equal(kb(err, 'apps-dialog-error')[0].props.role, 'alert'); assert.ok(text(kb(err, 'apps-dialog-error')[0]).includes('Nothing was lost'))
+})
+const unpubDialog = (extra) => tree(React.createElement(P.Dialogs, { p: pageApi({ dbs: [APP_PUB], dialog: Object.assign({ kind: 'unpublish', db: 'shop', forget: false, canForget: false, busy: false, error: null }, extra) }) }))
+ok('Unpublish says what comes back and what goes, and offers the way that keeps this computer\'s copy only when the web app could not be reached', () => {
+  const t = unpubDialog()
+  const said = text(t)
+  assert.ok(said.includes('Unpublish “Shop”?') && said.includes('as it is in the web app right now') && said.includes('Is taken down') && said.includes('publish it again later'), said)
+  assert.equal(kb(t, 'apps-forget').length, 0); assert.equal(kb(t, 'apps-typed').length, 0, 'nothing to type for the normal way')
+  assert.equal(kb(t, 'apps-confirm')[0].props.disabled, false); assert.equal(text(kb(t, 'apps-confirm')[0]), 'Unpublish'); assert.ok(kb(t, 'apps-confirm')[0].props.className.includes('danger'))
+  click(kb(t, 'apps-confirm')[0]); assert.deepEqual(calls.splice(0), [['runDialog', '']])
+  const stuck = unpubDialog({ error: T.errorText({ error: 'unreachable' }), canForget: true })
+  assert.ok(text(stuck).includes('not answering')); click(kb(stuck, 'apps-forget')[0]); assert.deepEqual(calls.splice(0), [['startForget']])
+  assert.equal(text(kb(unpubDialog({ busy: true }), 'apps-confirm')[0]), 'Unpublishing…'); assert.equal(kb(unpubDialog({ busy: true }), 'apps-cancel')[0].props.disabled, true)
+})
+ok('keeping the local copy and forgetting the web app is behind the app\'s typed name, says the web app is left as it is, and has no other way in', () => {
+  const t = unpubDialog({ forget: true, canForget: true, error: 'x' })
+  const said = text(t)
+  assert.ok(said.includes('Keep the local copy of “Shop”?') && said.includes('without asking it anything') && said.includes('Left as it is, online') && said.includes('Synced 3 min ago') === false, said)
+  assert.ok(said.includes('As it was ') && said.includes('Type the name to confirm: Shop'), said)
+  assert.equal(kb(t, 'apps-typed').length, 1); assert.equal(kb(t, 'apps-confirm')[0].props.disabled, true, 'the name is not typed yet'); assert.equal(kb(t, 'apps-forget').length, 0, 'already there')
+  assert.ok(text(kb(t, 'apps-confirm')[0]).includes('forget the web app'))
+  assert.equal(T.errorText({ error: 'confirm' }), 'The name typed is not the right one.')
+})
+ok('every refusal Publish can give has a sentence of its own, in both languages, and none is the generic one', () => {
+  const generic = T.errorText({ error: 'zzz' })
+  for (const code of ['unreachable', 'refused', 'space', 'rate-limited', 'hosting-failed', 'mismatch', 'changed', 'db-exists', 'sensitive', 'budget', 'busy', 'not-published', 'registry', 'too-large', 'unavailable', 'failed', 'popup', 'published', 'confirm']) {
+    const en = T.errorText({ error: code }); const fr = inFrench(() => T.errorText({ error: code }))
+    assert.ok(en.length > 10 && en !== generic && fr.length > 10 && fr !== en, code)
+  }
+  assert.equal(T.errorText({ error: 'other-code', message: 'The host says this.' }), 'The host says this.', 'a code the page does not know shows the host\'s own words')
+})
+await okAsync('Open web app opens its tab first, inside the click, then points it at the one-time link; the link goes nowhere else', async () => {
+  const log = []
+  const win = { opener: 'the page', closed: false, location: { set href (v) { log.push(['href', v]) } }, close () { this.closed = true } }
+  let answer
+  const pending = new Promise((resolve) => { answer = resolve })
+  const run = T.openWebApp('shop', { open: (url, target) => { log.push(['open', url, target]); return win }, call: async (m, path, body) => { log.push(['call', m, path, body]); return pending } })
+  assert.deepEqual(log, [['open', '', '_blank'], ['call', 'POST', '/open-web', { db: 'shop' }]], 'the tab exists before the host has answered: a pop-up blocker sees a click, not a timer')
+  assert.equal(win.opener, null, 'the new tab cannot reach this page')
+  answer({ ok: true, url: 'https://team.example.test/open?t=abc.def' })
+  assert.deepEqual(await run, { ok: true }); assert.deepEqual(log.slice(2), [['href', 'https://team.example.test/open?t=abc.def']]); assert.equal(win.closed, false)
+  const blocked = await T.openWebApp('shop', { open: () => null, call: async () => { throw new Error('must not ask the host when there is no tab') } })
+  assert.deepEqual(blocked, { ok: false, error: 'popup' }); assert.equal((await T.openWebApp('shop', { open: () => { throw new Error('blocked') }, call: async () => ({ ok: true }) })).error, 'popup')
+  const refused = { opener: 'x', closed: false, location: {}, close () { this.closed = true } }
+  const r1 = await T.openWebApp('shop', { open: () => refused, call: async () => ({ ok: false, error: 'unreachable', message: 'x' }) })
+  assert.equal(r1.error, 'unreachable'); assert.equal(refused.closed, true, 'a tab that goes nowhere is closed')
+  for (const url of ['javascript:alert(1)', 'data:text/html,x', 'file:///etc/passwd', 'not a url', undefined]) {
+    const w = { opener: 'x', closed: false, location: {}, close () { this.closed = true } }
+    const r = await T.openWebApp('shop', { open: () => w, call: async () => ({ ok: true, url }) })
+    assert.deepEqual(r, { ok: false, error: 'failed' }, String(url)); assert.equal(w.closed, true); assert.equal(w.location.href, undefined, 'never pointed at ' + url)
+  }
+})
+ok('the page never keeps, shows or logs the one-time link, and never saves a view of a published app', () => {
+  assert.equal((source.match(/\br\.url\b/g) || []).length, 1, 'the link is read in one place: the helper that opens the tab')
+  assert.equal(/console\.(log|warn|info|error)\([^)]*(\.url|href)/.test(source), false)
+  assert.ok(source.includes("const local = pubOf(L.db) !== null") && source.includes('if (!local) schedule(id, now === true)'), 'a published app\'s view edits are never scheduled for saving')
+  assert.ok(source.includes('if (e.local !== true) call(') && source.includes('entry.local === true) return'), 'neither the unmount flush nor a late save sends them')
+  assert.ok(source.includes('pubOf(db) !== null) return // a published app'), 'the plain default view is not created on a published app')
+})
+
 console.log('── files ──')
-const okAsync = async (label, fn) => { try { await fn(); console.log('  ok   ' + label) } catch (e) { failed += 1; console.log('  FAIL ' + label + ' — ' + (e && e.message)) } }
 const FILES = TASK.fields.find((f) => f.key === 'files')
 const HASH = (c) => c.repeat(64)
 const PNG = { name: 'logo.png', size: 2048, type: 'image/png', hash: HASH('a') }

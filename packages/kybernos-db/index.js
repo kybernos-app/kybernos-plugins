@@ -9,9 +9,14 @@
 // person on a card before they run; a session that never asks refuses them. A database that does not open (a newer Kybernos wrote it, `node:sqlite` is
 // missing) is reported by the tools with its own code and never stops DSH from starting.
 //
+// An app can be PUBLISHED into a team space (remote/): the hosted copy becomes the truth, the folder here a read-only mirror, and the rows are written through the web app. The five
+// publish routes, the poll that keeps the mirror fresh and the registry of published apps are built here, each guarded: a failure to build any of them leaves every db a plain local one
+// and never stops DSH from starting. Publishing needs a hosting (remote/hosting.mjs, a port); without one nothing is offered.
+//
 // It also opens the point `kybernos/db#template` (template.mjs) for the themes that ship a ready database, and publishes the seam `Symbol.for('kybernos.db')` the core
 // makes one through (instantiate.mjs): nothing is read or written until a template is installed.
 import { homedir } from 'node:os'
+import { rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { makeApi } from './api.mjs'
@@ -21,6 +26,9 @@ import { approvalGate, tools as dbTools } from './agent/tools.mjs'
 import { MARKER_FILE, installTemplate, readMarkers } from './instantiate.mjs'
 import { mountRoutes } from './routes.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { envHosting, unavailableHosting } from './remote/hosting.mjs'
+import { makePublisher } from './remote/publisher.mjs'
+import { REGISTRY_FILE, openPublishedRegistry } from './remote/registry.mjs'
 import { DB_TEMPLATE_POINT } from './template.mjs'
 
 export const name = 'kybernos-db'
@@ -103,6 +111,8 @@ export const deferred = (get) => ({
   list: () => get().list(),
   byId: (id) => get().byId(id),
   resolve: (id) => get().resolve(id),
+  raw: (id) => get().raw(id),
+  replaceMirror: (id, folder) => get().replaceMirror(id, folder),
   create: (def) => get().create(def),
   discard: (id) => get().discard(id),
   archive: (id, by) => get().archive(id, by),
@@ -152,12 +162,47 @@ function mountPrompt (ctx, service) {
   return () => { for (const off of offs.splice(0)) { try { off() } catch (e) { /* already gone */ } } }
 }
 
+/** The hosting a host process uses: the one it was given, else one pointed at a space somebody runs (two environment variables, development and self-hosting), else none. Never throws. */
+export function chooseHosting (given, env = process.env) {
+  try {
+    if (given !== undefined && given !== null && typeof given.available === 'function') return given
+    return envHosting(env)
+  } catch (e) { return unavailableHosting() }
+}
+
+/**
+ * The publisher over a DSH home, or null when it cannot be built (then every db stays a local one). `holder.publisher` is what the service asks, through `ports.published` and
+ * `ports.facade`, so the service can be made before the publisher exists.
+ */
+export function buildPublisher ({ home, service, options, holder }) {
+  try {
+    const root = dirname(dbsDir(home))
+    const remote = options.remote !== null && typeof options.remote === 'object' ? options.remote : {}
+    const registry = openPublishedRegistry({ file: join(root, REGISTRY_FILE) })
+    const tmpRoot = join(root, 'tmp')
+    try { rmSync(tmpRoot, { recursive: true, force: true }) } catch (e) { /* nothing left over from a cut-short pull */ }
+    holder.publisher = makePublisher({ service, registry, hosting: chooseHosting(remote.hosting), tmpRoot, ports: { fetch: remote.fetch, now: remote.now, store: options.ports, log: say, timers: remote.timers } })
+    return holder.publisher
+  } catch (e) {
+    holder.publisher = null
+    say('publishing not available: ' + why(e))
+    return null
+  }
+}
+
 export function apply (ctx, options = {}) {
   try {
     if (ctx === null || ctx === undefined || typeof ctx.get !== 'function') return // no services to mount on: nothing to do, nothing to say
     const home = typeof options.home === 'string' && options.home !== '' ? options.home : dshHome()
-    const service = deferred(lazyService(dbsDir(home), options.ports))
+    const holder = { publisher: null }
+    const storePorts = {
+      ...options.ports,
+      published: (id) => { try { return holder.publisher !== null && holder.publisher.isPublished(id) } catch (e) { return false } },
+      facade: (id, rawOf) => (holder.publisher === null ? null : holder.publisher.facade(id, rawOf)),
+    }
+    const service = deferred(lazyService(dbsDir(home), storePorts))
     const retraits = []
+    const publisher = buildPublisher({ home, service, options, holder })
     tellWhenReady(options)
     retraits.push(publishSeam(service))
     if (typeof ctx.effect === 'function') {
@@ -168,12 +213,17 @@ export function apply (ctx, options = {}) {
     }
 
     // The routes of the Tables page (routes.mjs): every data route needs DSH's signed session.
-    const api = makeApi({ service, ports: { markers: () => readMarkers(join(dirname(dbsDir(home)), MARKER_FILE)), ...options.toolPorts } })
+    const remote = publisher === null ? undefined : { info: (id) => publisher.info(id), hosting: () => publisher.hostingState() }
+    const api = makeApi({ service, ports: { markers: () => readMarkers(join(dirname(dbsDir(home)), MARKER_FILE)), remote, ...options.toolPorts } })
     const mountWeb = (c) => {
       try {
         const webServer = c.get('webServer')
-        if (webServer !== undefined) retraits.push(...mountRoutes(webServer, api))
+        if (webServer !== undefined) retraits.push(...mountRoutes(webServer, api, publisher === null ? undefined : publisher))
       } catch (e) { say('routes not mounted: ' + why(e)) }
+    }
+    // the mirror of a published app is kept fresh on a timer that never holds DSH open and is taken off with everything else
+    if (publisher !== null) {
+      try { publisher.start({ ...(options.remote && options.remote.pollMs ? { everyMs: options.remote.pollMs } : {}), ...(options.remote && options.remote.firstPollMs ? { firstMs: options.remote.firstPollMs } : {}) }); retraits.push(() => publisher.stop()) } catch (e) { say('the mirror is not kept fresh: ' + why(e)) }
     }
     if (ctx.get('webServer') !== undefined) mountWeb(ctx)
     else ctx.inject(['webServer'], mountWeb)
