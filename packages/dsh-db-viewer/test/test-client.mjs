@@ -118,6 +118,21 @@ if (typeof t.profiler === 'function' && typeof t.construireGraphiques === 'funct
     String(gsClair[0].options.series[0].label.color).indexOf('15,17,21') !== -1)
 }
 
+// A record table of Tables starts with a fixed envelope (rev, created_*, modified_*, deleted_*): the charts read the table's own columns.
+if (typeof t.profiler === 'function') {
+  const enveloppe = ['id', 'rev', 'created_by', 'created_at', 'modified_by', 'modified_at', 'deleted_by', 'deleted_at']
+  const tableR = { nom: 'r_orders', compte: 4, colonnes: [...enveloppe.map((name) => ({ name, type: name === 'rev' ? 'integer' : 'text', pk: name === 'id' })), { name: 'stage', type: 'text' }, { name: 'value', type: 'real' }] }
+  const stamp = (d) => '2026-10-0' + d + 'T09:00:00.000Z'
+  const lignesR = [1, 2, 3, 4].map((d) => ({ id: 'A' + d, rev: 1, created_by: 'kaby', created_at: stamp(d), modified_by: 'kaby', modified_at: stamp(d), deleted_by: null, deleted_at: null, stage: d % 2 ? 'new' : 'paid', value: d * 100 }))
+  const profR = t.profiler(tableR, lignesR)
+  ok('profiler: a Tables record table is read by its own columns (value by stage, no rev, no stamps)',
+    profR.nums.map((c) => c.col).join() === 'value' && profR.cats.map((c) => c.col).join() === 'stage' && profR.dates.length === 0,
+    JSON.stringify({ nums: profR.nums.map((c) => c.col), cats: profR.cats.map((c) => c.col), dates: profR.dates.map((c) => c.col) }))
+  const autre = { nom: 'affaires', compte: 4, colonnes: [{ name: 'id', type: 'integer', pk: true }, { name: 'rev', type: 'integer' }, { name: 'created_at', type: 'text' }] }
+  const profA = t.profiler(autre, [1, 2, 3, 4].map((d) => ({ id: d, rev: d, created_at: stamp(d) })))
+  ok('profiler: any other table keeps its columns, even one called rev or created_at', profA.nums.length === 1 && profA.dates.length === 1, JSON.stringify(profA))
+}
+
 // ── calendrier (pur) ───────────────────────────────────────────────────────
 if (typeof t.construireCalendrier === 'function') {
   const lignesCal = [
