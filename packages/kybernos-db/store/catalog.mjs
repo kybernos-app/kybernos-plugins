@@ -1,7 +1,8 @@
 // The catalog: which objects a db has and which fields each one has. Pure.
 //
 // Every change to the structure writes a new version of the whole catalog (`{ objects: [...] }`) to the `catalog` table, so the file says what its structure was and
-// who changed it. An object is `{ key, label, title, fields }`; `title` is the key of the text field that names a record in lists and links.
+// who changed it. An object is `{ key, label, title, fields, archived? }`; `title` is the key of the text field that names a record in lists and links.
+// `archived` is `{ by, at }` once the object is put away: it keeps its table and its records, hides from the lists, and takes no write until it is restored.
 
 import { isPlain, normalizeField } from '../core/index.mjs'
 
@@ -9,7 +10,8 @@ export const OBJECT_KEY = /^[a-z][a-z0-9_]{0,39}$/
 export const MAX_OBJECTS = 100
 export const MAX_FIELDS = 60
 
-const OBJECT_KEYS = ['key', 'label', 'title', 'fields']
+const OBJECT_KEYS = ['key', 'label', 'title', 'fields', 'archived']
+const STAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 const CONTROL = /[\u0000-\u001f\u007f]/
 
 /** The object with that key, or undefined. */
@@ -39,12 +41,19 @@ export function normalizeObject (def) {
     })
   }
 
+  let archived
+  if (def.archived !== undefined) {
+    const a = def.archived
+    if (!isPlain(a) || typeof a.by !== 'string' || a.by.length < 1 || a.by.length > 64 || typeof a.at !== 'string' || !STAMP.test(a.at) || Object.keys(a).length !== 2) fail('archived', 'archived', 'archived is { by, at }: who put it away and when')
+    else archived = { by: a.by, at: a.at }
+  }
+
   if (errors.length === 0) {
     const title = def.title === undefined ? fields[0].key : def.title
     const f = fields.find((x) => x.key === title)
     if (!f) fail('title', 'title', 'the title is the key of one of the fields')
     else if (f.type !== 'text') fail('title', 'title', 'the title field is a text')
-    else return { ok: true, object: { key: def.key, label, title, fields } }
+    else return { ok: true, object: { key: def.key, label, title, fields, ...(archived === undefined ? {} : { archived }) } }
   }
   return { ok: false, errors }
 }

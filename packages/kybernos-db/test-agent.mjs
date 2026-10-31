@@ -99,10 +99,10 @@ await ok('a db that is already open is the same object, and a new service over t
 })
 
 // ---------------------------------------------------------------- the tools: structure
-await ok('the tools are the thirteen named, each with strict parameters and a render that never throws', async () => {
+await ok('the tools are the fifteen named, each with strict parameters and a render that never throws', async () => {
   const T = toolbox(service())
   assert.deepEqual(Object.keys(T), NAMES)
-  assert.equal(new Set(Object.keys(T)).size, 13)
+  assert.equal(new Set(Object.keys(T)).size, 15)
   for (const t of Object.values(T)) {
     assert.equal(typeof t.description, 'string')
     assert.ok(t.description.length > 40, t.name + ' describes itself')
@@ -116,7 +116,7 @@ await ok('the tools are the thirteen named, each with strict parameters and a re
 await ok('db_list reads an empty folder, then every db with its objects, fields and views', async () => {
   const svc = service()
   const T = toolbox(svc)
-  assert.deepEqual(await T.db_list.execute(), { ok: true, dbs: [], unreadable: [] })
+  assert.deepEqual(await T.db_list.execute(), { ok: true, dbs: [], archived: [], unreadable: [] })
   assert.equal(text(T.db_list.output.render({}, await T.db_list.execute())), 'No database yet.')
   await T.db_create.execute({ name: 'Home' })
   await T.object_define.execute({ key: 'task', label: 'Tasks', fields: TASKS.fields })
@@ -624,6 +624,62 @@ await ok('each db is one folder of the dbs folder, and a second service sees wha
   const again = makeService({ dir: svc.dir })
   assert.equal(again.resolve().db.list('task').length, 3)
   again.close()
+})
+
+await ok('the agent puts a table or an app away with a card, brings it back freely, and can never delete one for good', async () => {
+  const { svc, T, db } = await seeded()
+  const gate = (name, args) => approvalGate(svc, { name, arguments: args })
+  const asked = gate('db_archive', { object: 'task' })
+  assert.equal(asked.kind, 'ask')
+  assert.match(asked.displayReason.en, /^Archive the table “Tasks” of the database “Home”\. Nothing is deleted/)
+  assert.match(asked.displayReason.fr, /^Archiver la table “Tasks” de la base de données “Home”\. Rien n’est supprimé/)
+  assert.match(gate('db_archive', {}).displayReason.en, /^Archive the database “Home”/)
+  assert.equal(gate('db_archive', { object: 'nope' }), null, 'a call the engine will refuse asks nothing')
+  assert.equal(gate('db_restore', { object: 'task' }), null, 'bringing back is free')
+  assert.equal(NAMES.includes('db_delete'), false, 'there is no tool to delete for good')
+
+  const away = await T.db_archive.execute({ object: 'task' })
+  assert.deepEqual([away.ok, away.applied, away.archived.name], [true, true, 'Tasks'])
+  assert.equal((await T.db_archive.execute({ object: 'task' })).applied, false, 'putting away twice changes nothing')
+  assert.equal((await T.records_list.execute({ object: 'task' })).error, 'archived', 'an archived table is no target')
+  const list = await T.db_list.execute({})
+  assert.deepEqual(list.dbs[0].objects, [], 'the lists no longer show it')
+  assert.deepEqual(list.archived, [{ db: db.id, name: 'Home', object: 'task', label: 'Tasks' }])
+  assert.match(text(T.db_list.output.render({}, list)), /archived: Home \/ task/)
+  const refused = await T.records_create.execute({ object: 'task', records: [{ name: 'x' }] })
+  assert.equal(refused.error, 'archived')
+  assert.match(refused.detail, /db_restore/)
+  assert.equal((await T.db_restore.execute({ object: 'task' })).applied, true)
+  assert.equal((await T.records_create.execute({ object: 'task', records: [{ name: 'x' }] })).ok, true)
+
+  const whole = await T.db_archive.execute({})
+  assert.deepEqual([whole.ok, whole.applied], [true, true])
+  assert.equal(svc.resolve().code, 'no_db', 'the only db is archived: a call that names none finds nothing')
+  assert.equal(svc.resolve(db.id).code, 'archived')
+  assert.deepEqual(svc.snapshot(), [])
+  assert.equal(svc.list()[0].archived.by, 'agent')
+  assert.equal((await T.db_list.execute({})).archived[0].name, 'Home')
+  assert.equal((await T.db_restore.execute({})).error, 'which_db', 'bringing a whole db back names it')
+  assert.equal((await T.db_restore.execute({ db: db.id })).applied, true)
+  assert.equal(svc.resolve().db.info().name, 'Home')
+  assert.match(text(T.db_archive.output.render({}, { ok: false, error: 'x' })), /Not archived/)
+})
+
+await ok('only the person deletes an app for good: it must be archived first, and not published', async () => {
+  const published = new Set()
+  const svc = makeService({ dir: join(root, 's' + (n++)), ports: { now: clock(), random: sequence(), published: (id) => published.has(id) } })
+  const made = svc.create({ name: 'Doomed', by: 'noor' })
+  const id = made.db.info().id
+  assert.equal(svc.remove(id).code, 'not-archived')
+  assert.equal(svc.remove('nope').code, 'unknown_db')
+  assert.ok(svc.archive(id, 'noor').ok)
+  published.add(id)
+  assert.equal(svc.remove(id).code, 'published')
+  published.delete(id)
+  assert.deepEqual(svc.remove(id), { ok: true })
+  assert.deepEqual(svc.list(), [])
+  assert.equal(readdirSync(svc.dir).length, 0, 'the folder is gone')
+  svc.close()
 })
 
 console.log('\nkybernos-db agent: ' + count + ' checks passed')

@@ -8,12 +8,16 @@
     { "name": "the owner reads a secret field, masked", "actor": { "kind": "person", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "secret" } }, "expect": { "effect": "allow", "mask": true } },
     { "name": "the owner writes a secret field without being asked", "actor": { "kind": "person", "role": "owner" }, "action": "field.write", "resource": { "field": { "protection": "secret" } }, "expect": { "effect": "allow" } },
     { "name": "the owner changes the structure", "actor": { "kind": "person", "role": "owner" }, "action": "schema.change", "expect": { "effect": "allow" } },
+    { "name": "the owner puts a table or an app away", "actor": { "kind": "person", "role": "owner" }, "action": "schema.archive", "expect": { "effect": "allow" } },
+    { "name": "the owner deletes a table or an app for good", "actor": { "kind": "person", "role": "owner" }, "action": "schema.delete", "expect": { "effect": "allow" } },
     { "name": "the owner lowers a protection", "actor": { "kind": "person", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "secret" }, "to": "normal" }, "expect": { "effect": "allow" } },
 
     { "name": "the agent reads records", "actor": { "kind": "agent", "role": "owner" }, "action": "record.read", "expect": { "effect": "allow" } },
     { "name": "the agent creates, updates and deletes records", "actor": { "kind": "agent", "role": "owner" }, "action": "record.delete", "expect": { "effect": "allow" } },
     { "name": "the agent edits a view", "actor": { "kind": "agent", "role": "owner" }, "action": "view.edit", "expect": { "effect": "allow" } },
     { "name": "the agent changes the structure only with the person's OK", "actor": { "kind": "agent", "role": "owner" }, "action": "schema.change", "expect": { "effect": "ask", "reason": "schema-change" } },
+    { "name": "the agent puts a table or an app away only with the person's OK", "actor": { "kind": "agent", "role": "owner" }, "action": "schema.archive", "expect": { "effect": "ask", "reason": "archive" } },
+    { "name": "the agent never deletes a table or an app for good", "actor": { "kind": "agent", "role": "owner" }, "action": "schema.delete", "expect": { "effect": "deny", "reason": "person-only" } },
     { "name": "the agent reads a normal field", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "resource": { "field": { "protection": "normal" } }, "expect": { "effect": "allow" } },
     { "name": "the agent reads a field with no protection stated", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "resource": { "field": {} }, "expect": { "effect": "allow" } },
     { "name": "the agent reads with no resource", "actor": { "kind": "agent", "role": "owner" }, "action": "field.read", "expect": { "effect": "allow" } },
@@ -28,6 +32,7 @@
     { "name": "the agent asks for a level that does not exist: refused", "actor": { "kind": "agent", "role": "owner" }, "action": "field.protect", "resource": { "field": { "protection": "normal" }, "to": "top" }, "expect": { "effect": "deny", "reason": "agent-cannot-lower" } },
 
     { "name": "a team member is refused until profiles exist", "actor": { "kind": "person", "role": "member" }, "action": "record.read", "expect": { "effect": "deny", "reason": "not-owner" } },
+    { "name": "a team member cannot archive", "actor": { "kind": "person", "role": "member" }, "action": "schema.archive", "expect": { "effect": "deny", "reason": "not-owner" } },
     { "name": "no actor", "actor": null, "action": "record.read", "expect": { "effect": "deny", "reason": "not-owner" } },
     { "name": "an action that does not exist", "actor": { "kind": "person", "role": "owner" }, "action": "db.drop", "expect": { "effect": "deny", "reason": "unknown-action" } },
     { "name": "an actor of an unknown kind", "actor": { "kind": "bot", "role": "owner" }, "action": "record.read", "expect": { "effect": "deny", "reason": "unknown-actor" } }

@@ -3,7 +3,8 @@
 // Phase A has one person and their agents, so the rule is short:
 //   - the owner (the person at the screen) may do everything; a field that is not `normal` is shown masked until they reveal it;
 //   - the owner's agent (Kaby) reads and writes records and views freely, but asks the person before it touches a field that is not `normal`
-//     or changes the structure (a card shows the change before and after), and it can raise a field's protection, never lower it;
+//     or changes the structure (a card shows the change before and after) or puts a table or an app away, and it can raise a field's protection, never lower it;
+//     deleting a table or an app for good is the person's alone: the agent is refused, and says so;
 //   - anyone else is refused until team profiles bring their own rules (phase C): the answer is deny, never a guess.
 //
 // The answer is `{ effect: 'allow' | 'ask' | 'deny', reason?, mask? }`. `ask` means « only with the person's OK, now ».
@@ -11,7 +12,7 @@
 import { PROTECTION } from './types.mjs'
 import { isPlain } from './text.mjs'
 
-export const ACTIONS = ['record.read', 'record.create', 'record.update', 'record.delete', 'field.read', 'field.write', 'view.edit', 'schema.change', 'field.protect']
+export const ACTIONS = ['record.read', 'record.create', 'record.update', 'record.delete', 'field.read', 'field.write', 'view.edit', 'schema.change', 'schema.archive', 'schema.delete', 'field.protect']
 
 /** The rank of a protection level: 0 normal, 1 personal, 2 sensitive, 3 secret. */
 export const protectionRank = (level) => PROTECTION.indexOf(level)
@@ -36,6 +37,8 @@ export function can (actor, action, resource) {
   if (actor.kind !== 'agent') return answer('deny', 'unknown-actor')
   switch (action) {
     case 'schema.change': return answer('ask', 'schema-change')
+    case 'schema.archive': return answer('ask', 'archive')
+    case 'schema.delete': return answer('deny', 'person-only')
     case 'field.protect': return protectionRank(resource && resource.to) < protectionRank(level) ? answer('deny', 'agent-cannot-lower') : answer('allow')
     case 'field.read': case 'field.write': return level === 'normal' ? answer('allow') : answer('ask', 'protected-field')
     default: return answer('allow')

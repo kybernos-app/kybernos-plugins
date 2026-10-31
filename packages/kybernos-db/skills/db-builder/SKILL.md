@@ -59,6 +59,11 @@ If the person asks for something the engine refuses (a retype, a delete), say so
 - `records_update` changes only the fields named. `records_delete` hides a record and `records_restore` brings it back: nothing is lost, so delete when asked without a long warning, and say it can be undone.
 - Importing many rows: batch by 50, tell the person how many went in and how many were refused.
 
+## 5b. Put a table or an app away
+
+- To remove something, put it away with `db_archive` (a table: give `object`; the whole database: leave it out). The person approves a card; nothing is deleted, it leaves the lists and `db_restore` brings it back. `db_list` shows what is archived.
+- You cannot delete a table or a database for good: only the person can, from the screen, after it was archived. If asked, archive it and say where the person finishes the job.
+
 ## 6. Answer questions from the data
 
 Use `records_list` with a `filter` and `sorts` instead of reading everything and counting by hand. A saved view's filter and sorts apply when you pass its id as `view`. The `total` in the answer is the real count, `count` the page you got; read the next page with `offset` when you need it.

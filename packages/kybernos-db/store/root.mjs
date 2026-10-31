@@ -3,7 +3,7 @@
 //
 // A db id is a ULID, and nothing else is ever joined to a path: an id from a tool call or a link cannot walk out of `dir`.
 
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { isPlain, isUlid } from '../core/index.mjs'
@@ -26,7 +26,7 @@ function peek (lib, file) {
     if (Number(handle.prepare('PRAGMA application_id').get().application_id) !== APPLICATION_ID) return null
     const format = Number(handle.prepare('PRAGMA user_version').get().user_version)
     const meta = Object.fromEntries(handle.prepare('SELECT k, v FROM meta').all().map((r) => [r.k, r.v]))
-    return { id: meta.id, name: meta.name, format, created: { by: meta.created_by, at: meta.created_at }, file }
+    return { id: meta.id, name: meta.name, format, created: { by: meta.created_by, at: meta.created_at }, archived: meta.archived_at === undefined ? null : { by: meta.archived_by, at: meta.archived_at }, file }
   } catch (e) {
     return null
   } finally {
@@ -49,13 +49,25 @@ export function openRegistry (dir, ports = {}) {
       return createDb(dbFile(dir, id), isPlain(def) ? { ...def, id } : def, ports)
     },
     open: (id) => (isUlid(id) ? openDb(dbFile(dir, id), ports) : badId()),
-    /** `[{ id, name, format, created: { by, at }, file }]`, oldest first. A folder that holds no db is skipped. */
+    /** `[{ id, name, format, created: { by, at }, archived: { by, at } | null, file }]`, oldest first. A folder that holds no db is skipped. */
     list () {
       const lib = sqliteOf(ports)
       if (lib === null) return []
       let names
       try { names = readdirSync(dir) } catch (e) { return [] }
       return names.filter(isUlid).sort().map((id) => peek(lib, dbFile(dir, id))).filter((info) => info !== null)
+    },
+    /**
+     * Deletes a db for good, its folder and its attachments with it: `{ ok: true }`. Only a db that was archived first (the caller closes its own handle before): `missing`, `not-archived`.
+     */
+    remove (id) {
+      if (!isUlid(id)) return badId()
+      const lib = sqliteOf(ports)
+      const info = lib === null ? null : peek(lib, dbFile(dir, id))
+      if (info === null) return { ok: false, code: 'missing', message: 'no such db' }
+      if (info.archived === null) return { ok: false, code: 'not-archived', message: 'archive the app first: only an archived app can be deleted' }
+      rmSync(join(dir, id), { recursive: true, force: true })
+      return { ok: true }
     },
   }
 }

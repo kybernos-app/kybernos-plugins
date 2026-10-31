@@ -68,6 +68,13 @@ function dbCard (args) {
   return both((lang) => say('createDb', lang) + word('db', lang) + ' ' + quote(name) + say('emptyFile', lang))
 }
 
+function archiveCard (args, objects, dbName) {
+  if (args.object === undefined) return dbName === '' ? null : both((lang) => say('archive', lang) + word('db', lang) + ' ' + quote(dbName) + say('keepNote', lang))
+  const obj = findObject(objects, args.object)
+  if (!obj) return null
+  return both((lang) => say('archive', lang) + word('object', lang) + ' ' + quote(obj.label) + say('ofThe', lang) + word('db', lang) + ' ' + quote(dbName) + say('keepNote', lang))
+}
+
 /** The card of a structure call, or null. */
 export function cardFor (name, args, objects, dbName) {
   const a = args !== null && typeof args === 'object' && !Array.isArray(args) ? args : {}
@@ -77,6 +84,7 @@ export function cardFor (name, args, objects, dbName) {
     case 'field_add': return fieldCard(a, objects || [])
     case 'relation_add': return relationCard(a, objects || [])
     case 'field_update': return updateCard(a, objects || [])
+    case 'db_archive': return archiveCard(a, objects || [], dbName)
     default: return null
   }
 }

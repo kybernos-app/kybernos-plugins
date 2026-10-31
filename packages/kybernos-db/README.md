@@ -5,7 +5,7 @@ engines (Contacts, Catalog, Pipeline), which no longer exist; "task management" 
 (« Templates », below).
 
 This folder holds **`core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
-attachments, `agent/` with `index.js`, the DSH bundle that gives the agents thirteen tools, a block of their system prompt and the `db-builder` skill, the
+attachments, `agent/` with `index.js`, the DSH bundle that gives the agents fifteen tools, a block of their system prompt and the `db-builder` skill, the
 page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Tables » page), with the relations between tables and the files of a row edited from it, and the
 templates (`template.mjs`, `instantiate.mjs`).**
 
@@ -77,7 +77,19 @@ failure half way removes the half-made database. `<DSH home>/kybernos/kybernos-d
 The core reaches it through the seam `globalThis[Symbol.for('kybernos.db')]` (`{ version: 1, install({ template, sample, lang, photo }) }`), published while the bundle is on; the
 Themes route calls it from its `seed` action. Tests: `test-template.mjs`, `test-instantiate.mjs`, and the seam in `test-host.mjs`.
 
+## Putting away and deleting
+
+A table, or a whole database (an « app »), is **archived** before it can go: `db.archiveObject(key, by)` / `db.restoreObject(key, by)` and `db.archive(by)` / `db.unarchive()`. An archived
+table keeps its records and its history, leaves `db.objects()` (`{ all: true }` lists it with `archived: { by, at }`) and takes no write until it is restored (code `archived`); an archived
+database does the same for every table, is flagged in `registry.list()` and `db.info()`, and is no target for a call that names none. Deleting for good is a second step and only works on what is
+archived: `db.deleteObject(key, by)` drops the table, its records and history, its views and the files only it held, and **cuts the link fields that pointed at it** from the other tables (their
+column, their place in the views, their values in the journal; an update that only touched such a link leaves the history, and `rev` and the stamps follow), so `verify()` stays true.
+`registry.remove(id)` removes an archived database's folder, attachments included; `service.remove(id)` also closes it and asks the host's `ports.published(id)` whether the app is still published.
+
+Rights: `can()` has `schema.archive` (Kaby asks the person, with a card) and `schema.delete` (the person's alone, Kaby is refused). The agent has `db_archive` and `db_restore` (restore is free); it has
+no tool to delete for good, by design.
+
 ## What is not here yet
 
-Removing or renaming an object or a field and changing a field's type (only adding is possible), creating a row from a link picker, a preview bigger than a thumbnail, dropping a folder, sync with the server, and team rights
+Removing a single field or renaming an object or a field, and changing a field's type (only adding is possible), creating a row from a link picker, a preview bigger than a thumbnail, dropping a folder, sync with the server, and team rights
 (`can()` refuses everyone but the owner, and the store does not call it: the door that calls the store does).
