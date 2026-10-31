@@ -8,9 +8,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { SECTION_NAME, SECTION_ORDER } from './agent/context.mjs'
+import { makeService } from './agent/service.mjs'
 import { NAMES } from './agent/tools.mjs'
 import { DB_TEMPLATE_POINT } from './template.mjs'
-import { SEAM, SEEDED_SKILLS, SKILLS_DIR, apply, dbsDir, dshHome, lazyService, name, publishSeam, tellPoint, tellWhenReady } from './index.js'
+import { SEAM, SEEDED_SKILLS, SKILLS_DIR, apply, dbsDir, deferred, dshHome, lazyService, name, publishSeam, tellPoint, tellWhenReady } from './index.js'
 
 let count = 0
 const ok = async (label, fn) => { await fn(); count++; console.log('ok  ', label) }
@@ -305,6 +306,13 @@ await ok('the service is made when first asked, not at boot', () => {
   const a = get()
   assert.equal(get(), a)
   a.close()
+})
+
+await ok('the deferred service the tools get has every method of the real one', () => {
+  const real = makeService({ dir: join(fresh(), 'svc') })
+  const wrapped = deferred(() => real)
+  for (const key of Object.keys(real)) assert.equal(typeof wrapped[key], typeof real[key], 'the tools cannot reach service.' + key)
+  real.close()
 })
 
 console.log('\nkybernos-db host: ' + count + ' checks passed')

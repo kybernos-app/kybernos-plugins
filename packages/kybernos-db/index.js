@@ -98,13 +98,16 @@ export function publishSeam (service) {
 }
 
 /** The service with its methods looked up at each call, so the tools can be built before the folder is touched. */
-const deferred = (get) => ({
+export const deferred = (get) => ({
   get dir () { return get().dir },
   list: () => get().list(),
   byId: (id) => get().byId(id),
   resolve: (id) => get().resolve(id),
   create: (def) => get().create(def),
   discard: (id) => get().discard(id),
+  archive: (id, by) => get().archive(id, by),
+  unarchive: (id) => get().unarchive(id),
+  remove: (id) => get().remove(id),
   snapshot: () => get().snapshot(),
   close: () => get().close(),
 })

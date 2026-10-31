@@ -5,6 +5,8 @@
 //   GET  /kybernos-db/links?db=&object=&id=         what points at a record, from the other tables (the first 50 of each link field, and how many there are)
 //   POST /kybernos-db/write                         { db, object, op: create | update | delete | restore, id?, values? }
 //   POST /kybernos-db/view                          { db, object, op: save | remove, view?, id? }
+//   POST /kybernos-db/app                           { db, object?, op: archive | restore | delete, confirm? }: put an app or one of its tables away, bring it back, or delete it for good (archived only, name typed back)
+//   GET  /kybernos-db/impact?db=&object=            what deleting that app or table would take (tables, rows, links cut, files)
 //   POST /kybernos-db/upload?db=&object=&field=&name=&type=   the bytes of one file (application/octet-stream, 25 MB at most): { ok, file } to write into the field
 //   GET  /kybernos-db/file?db=&object=&id=&field=&hash=   a file a row holds: a picture is shown, anything else is handed over as a download (type from the bytes, closed CSP)
 //   GET  /kybernos-db/core/<file>.mjs               the pure rules of core/, so the browser runs the very code the agent runs
@@ -43,7 +45,7 @@ export const hostOk = (req) => {
   } catch (e) { return false }
 }
 
-const STATUS = { 'too-big': 413, unknown_db: 404, unknown_object: 404, no_db: 404, which_db: 400, missing: 404, deleted: 409, exists: 409, sqlite_unavailable: 503, db_newer: 503, not_a_db: 503, failed: 500 }
+const STATUS = { 'too-big': 413, unknown_db: 404, unknown_object: 404, no_db: 404, which_db: 400, missing: 404, deleted: 409, exists: 409, archived: 409, 'not-archived': 409, published: 409, confirm: 400, sqlite_unavailable: 503, db_newer: 503, not_a_db: 503, failed: 500 }
 const statusOf = (answer) => (answer.ok === true ? 200 : (STATUS[answer.error] || 400))
 
 const sendJson = (res, status, payload) => {
@@ -104,6 +106,8 @@ export const routeTable = (api) => ({
   links: { method: 'GET', run: (q) => api.links(q) },
   write: { method: 'POST', run: (b) => api.write(b) },
   view: { method: 'POST', run: (b) => api.view(b) },
+  app: { method: 'POST', run: (b) => api.app(b) },
+  impact: { method: 'GET', run: (q) => api.impact(q) },
 })
 
 const handlerFor = (route) => async (req, res) => {

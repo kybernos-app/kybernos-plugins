@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The databases the three shipped templates ship, on the REAL GUI of a SANDBOX: the Themes route seeds each one through the db seam (the page's own `seed` action, in French),
-// the host lists them, and the Tables page opens them: the tabs are the objects of the template, the board has the stages of the pipeline, the cards show the people, a linked row
+// the host lists them, and the Apps page opens them: the tabs are the objects of the template, the board has the stages of the pipeline, the cards show the people, a linked row
 // opens both ways, a second seed changes nothing. The numbers are the ones of the old sample (27 contacts, 16 properties…), so nothing was lost on the way.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-db-templates-live.mjs [--shots <dir>]
@@ -99,11 +99,12 @@ try {
   }
 
   // 3. the real page opens each one
-  check('the page opens on the Tables row', (await click('.kb4-menu .kb4-item[aria-label="Tables"]')) === true && (await until(() => ev(`document.querySelector('[data-kb="tables-bar"]') !== null`))) === true)
+  check('the page opens on the Apps row', (await click('.kb4-menu .kb4-item[aria-label="Apps"]')) === true && (await until(() => ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`))) === true)
   for (const [dir, want] of Object.entries(WANT)) {
     const id = first[dir].json.db
-    const chose = await until(() => ev(`(() => { const e = document.querySelector('[data-kb="tables-db"]'); if (e === null || ![...e.options].some((o) => o.value === ${JSON.stringify(id)})) return false; e.value = ${JSON.stringify(id)}; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === ${JSON.stringify(id)} })()`))
-    check(dir + ': the picker chooses the database', chose === true)
+    if ((await ev(`document.querySelector('[data-kb="apps-back"]') !== null`)) === true) await click('[data-kb="apps-back"]')
+    const chose = await until(async () => (await click('[data-kb="apps-card"][data-db="' + id + '"] [data-kb="apps-open"]')) === true)
+    check(dir + ': its card in the gallery opens the app', chose === true)
     check(dir + ': the tabs are the objects of the template, in the template’s French', (await until(async () => JSON.stringify(await texts(kb('tables-tab'))) === JSON.stringify(want.tabs))) === true, await texts(kb('tables-tab')))
     check(dir + ': the contacts table shows the people', (await until(() => ev(`document.querySelectorAll('[data-kb="tables-row"]').length >= 20`))) === true)
     await shot(dir + '-contacts')

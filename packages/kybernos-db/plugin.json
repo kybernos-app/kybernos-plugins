@@ -4,12 +4,12 @@
   "kind": "code",
   "version": "0.1.0",
   "name": {
-    "en": "Tables",
-    "fr": "Tables"
+    "en": "Apps",
+    "fr": "Apps"
   },
   "description": {
-    "en": "Your own tables — tasks, customers, orders, anything — built by Kaby from a sentence. Personal data stays protected: Kaby asks before changing a table or reading a protected field.",
-    "fr": "Tes propres tables — tâches, clients, commandes, ce que tu veux — construites par Kaby à partir d’une phrase. Les données personnelles restent protégées : Kaby demande avant de modifier une table ou de lire un champ protégé."
+    "en": "Your own data apps — tasks, customers, orders, anything — built by Kaby from a sentence. Personal data stays protected: Kaby asks before changing a table or reading a protected field.",
+    "fr": "Tes propres apps de données — tâches, clients, commandes, ce que tu veux — construites par Kaby à partir d’une phrase. Les données personnelles restent protégées : Kaby demande avant de modifier une table ou de lire un champ protégé."
   },
   "icon": "tables",
   "family": "data",

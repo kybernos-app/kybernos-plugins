@@ -2968,7 +2968,7 @@
     {
       "id": "kybernos-db",
       "nom": "@local/kybernos-db",
-      "titre": "Tables",
+      "titre": "Apps",
       "glyphe": "tables",
       "famille": "data",
       "palier": "core",
@@ -2977,35 +2977,35 @@
       "defaut": null,
       "poids_ko": 330,
       "promesse": {
-        "fr": "Tes propres tables — tâches, clients, commandes, ce que tu veux — construites par Kaby à partir d’une phrase. Les données personnelles restent protégées : Kaby demande avant de modifier une table ou de lire un champ protégé.",
-        "en": "Your own tables — tasks, customers, orders, anything — built by Kaby from a sentence. Personal data stays protected: Kaby asks before changing a table or reading a protected field."
+        "fr": "Tes propres apps de données — tâches, clients, commandes, ce que tu veux — construites par Kaby à partir d’une phrase. Les données personnelles restent protégées : Kaby demande avant de modifier une table ou de lire un champ protégé.",
+        "en": "Your own data apps — tasks, customers, orders, anything — built by Kaby from a sentence. Personal data stays protected: Kaby asks before changing a table or reading a protected field."
       },
       "aide": {
         "what": {
-          "fr": "Tes propres tables : tâches, clients, commandes, une collection, un budget. Tu décris ce que tu veux suivre en une phrase, Kaby construit la table, la remplit et répond à tes questions dessus.",
-          "en": "Your own tables: tasks, customers, orders, a collection, a budget. You describe what you want to keep track of in a sentence, and Kaby builds the table, fills it and answers your questions about it."
+          "fr": "Tes propres apps de données : tâches, clients, commandes, une collection, un budget. Tu décris ce que tu veux suivre en une phrase, Kaby construit l’app, la remplit et répond à tes questions dessus.",
+          "en": "Your own data apps: tasks, customers, orders, a collection, a budget. You describe what you want to keep track of in a sentence, and Kaby builds the app, fills it and answers your questions about it."
         },
         "steps": [
           {
-            "fr": "Active Tables ici, puis dis à Kaby ce que tu veux suivre : « une liste de mes clients et de leurs commandes ».",
-            "en": "Switch Tables on here, then tell Kaby what you want to keep track of: “a list of my customers and their orders”."
+            "fr": "Active Apps ici, puis dis à Kaby ce que tu veux suivre : « une liste de mes clients et de leurs commandes ».",
+            "en": "Switch Apps on here, then tell Kaby what you want to keep track of: “a list of my customers and their orders”."
           },
           {
             "fr": "Kaby te montre une fiche avant de créer ou de modifier une table : les champs, leur type, ce qui est protégé. Tu acceptes ou tu refuses.",
             "en": "Kaby shows you a card before creating or changing a table: the fields, their type, what is protected. You accept or refuse."
           },
           {
-            "fr": "Ouvre Business › Tables : vues, filtre, tri, tout s’enregistre seul. Un lien relie deux tables ; glisse tes fichiers sur une ligne.",
-            "en": "Open Business › Tables: views, filter, sort, all saves itself. A link joins two tables; drop your files on a row."
+            "fr": "Ouvre Business › Apps : une carte par app, ses tables en onglets, les liens dans Relations. Pour changer une donnée, demande à Kaby.",
+            "en": "Open Business › Apps: a card per app, its tables as tabs, the links under Relations. To change a piece of data, ask Kaby."
           },
           {
-            "fr": "Demande aussi à Kaby d’ajouter ou de retrouver des lignes : « quelles commandes sont en retard ? ».",
-            "en": "You can also ask Kaby to add or find rows: “which orders are late?”."
+            "fr": "Demande aussi à Kaby de trouver des lignes : « quelles commandes sont en retard ? ». Une app rangée est gardée : tu peux la rétablir.",
+            "en": "Ask Kaby to find rows too: “which orders are late?”. An app you put away is kept: you can restore it."
           }
         ],
         "where": {
-          "fr": "Business › Tables",
-          "en": "Business › Tables",
+          "fr": "Business › Apps",
+          "en": "Business › Apps",
           "page": true
         },
         "good": {
