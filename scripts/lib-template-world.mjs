@@ -15,16 +15,14 @@ import { MARKER_FILE, installTemplate, readMarkers } from '../packages/kybernos-
 import { dayKey } from '../packages/kybernos-dashboards/model.mjs'
 import { DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT } from '../packages/kybernos-plugin/domain-pack.mjs'
 import { THEME_POINT } from '../packages/kybernos-theme/themes-catalogue.mjs'
-import { CONTACTS_POINT } from '../packages/kybernos-contacts/contacts-schema.mjs'
-import { CATALOG_POINT } from '../packages/kybernos-catalog/catalog-type.mjs'
-import { PIPELINE_POINT } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
+import { DB_TEMPLATE_POINT } from '../packages/kybernos-db/template.mjs'
 import { PRESET_POINT } from '../packages/kybernos-dashboards/preset-point.mjs'
 import { createRegistry } from '../packages/kybernos-registry/registry.mjs'
 import { OWNER_VALIDATORS } from './plugin-check.mjs'
 
 /** The skills point, as its owner tells it (the object is private to that plugin; plugin-check keeps the same adapter). */
 const SKILL_POINT = { owner: 'kybernos/skills', ownerVersion: '1.0.0', name: 'skill', version: '1.0', kind: 'data', class: 'instruction', files: 'folder', max: 32, validate: OWNER_VALIDATORS['kybernos/skills#skill'] }
-export const ALL_POINTS = [DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT, THEME_POINT, SKILL_POINT, CONTACTS_POINT, CATALOG_POINT, PIPELINE_POINT, PRESET_POINT]
+export const ALL_POINTS = [DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT, THEME_POINT, SKILL_POINT, PRESET_POINT, DB_TEMPLATE_POINT]
 
 /**
  * `also`: the folders of other templates installed in the same profile, their databases in the same service (the owner's DSH holds several at once).

@@ -178,46 +178,35 @@ A theme contributes to five **points** — the extensible slots of the plugin co
 | `kybernos/core#team-template` | `teams/<id>.json` — roles and stages of an Agent Team | `validateTeamTemplate`, `packages/kybernos-plugin/domain-pack.mjs:283` |
 | `kybernos/core#automation-template` | `automations/<id>.json` — steps, guard and a five-field cron | `validateAutomationTemplate`, `packages/kybernos-plugin/domain-pack.mjs:315` |
 
-The six other points of the contract's table are not a theme's business: `kybernos/dashboards#preset` is not
-built, the two dashboards source points are for later, and `kybernos/language#pack`,
-`kybernos/modeles-locaux#model` belong to their own catalogues.
+Two more points are a theme's business, described below: `kybernos/db#template` (a ready database) and `kybernos/dashboards#preset` (a dashboard). The two dashboards source points are for later, and
+`kybernos/language#pack`, `kybernos/modeles-locaux#model` belong to their own catalogues.
 
-## The three business points
+## The database a theme ships
 
-A theme for a trade that keeps people, things and a board (a shop, an agency, a recruitment firm) can also tell the three business plugins
-(Contacts, Catalog, Pipeline, `docs/dev/business-base.md`) its words. They are three more points, owned by those plugins and extended the same
-way, from folders of JSON:
+A theme for a trade that keeps people, things and a board (a shop, an agency, a recruitment firm) can ship a **ready database** for the Tables plugin (`packages/kybernos-db`): one point,
+owned by that plugin and extended the same way, from a folder of JSON.
 
 | Folder | Point | One file = | At most |
 |---|---|---|---|
-| `contacts/` | `kybernos/contacts#schema` | the kinds of contact (a person or a company), the fields and the tags | 4 files |
-| `catalog/` | `kybernos/catalog#type` | one kind of item: statuses, fields, what its card shows, its views | 12 files |
-| `pipeline/` | `kybernos/pipeline#flow` | one board: its stages (2 to 8), how its value is counted, what a card may link to | 4 files |
+| `db/` | `kybernos/db#template` | the database: its tables (objects), their fields, the links between tables and the saved views (table, board, cards, calendar, map) | 4 files |
 
-The file's name is the `id` inside it. Texts are `{ "en": …, "fr": … }` (English required; `es` and `ar` allowed), 1 to 60 characters, no control
-character and no angle bracket. A field is `{ key, type, label?, options?, currency? }` with a type among `text`, `number`, `money`, `date`,
-`choice`, `email`, `url`. A catalog card and its flag name fields by key; a key the type does not define is refused when the folder is checked.
-Each point is inert (nothing in it is an instruction an agent follows), and each check is pure and bounded.
+The file's name is the `id` inside it. Every label (the database, a table, a field, an option, a view) is `{ "en": …, "fr": … }`; a link names its inverse; rows are not part of it. The check is pure and bounded (`validateTemplate` in
+`packages/kybernos-db/template.mjs`) and the point is inert: nothing in it is an instruction an agent follows. The sample rows are a separate file, `demo/db-sample.json`, whose rows link to one another by `ref` and name their pictures
+(`packages/kybernos-db/README.md`, « Templates »).
 
-A theme that extends them must name their owners in `requires.plugins` (`kybernos/contacts`, `kybernos/catalog`, `kybernos/pipeline`, `^1.0`):
-until those plugins are installed and have told their points to the registry, the theme is listed `missing-dependency`. The starter is
-`docs/dev/templates/acme-garden-shop/`, with one broken variant per point:
-
-```bash
-node scripts/plugin-check.mjs docs/dev/templates/acme-garden-shop
-```
+A theme that extends it must name its owner in `requires.plugins` (`kybernos/db`, `^0.1`): until Tables is installed and has told its point to the registry, the theme is listed `missing-dependency`. The Templates page offers to switch Tables
+on with the template, and makes the database once Tables runs (after a restart of DSH when it was off). There is no starter folder for it: the three shipped themes (`packages/kybernos-plugin/themes/`) are the examples, and
+`node scripts/plugin-check.mjs packages/kybernos-plugin/themes/<dir>` checks one.
 
 A fourth folder, `dashboards/`, extends `kybernos/dashboards#preset` (owned by the Dashboards plugin, at most 4 files): a dashboard of the trade built from the Tables source
 (`db.rows`, with `"db": "<the template id>"` and the table's `object`: the database the theme's own `db/` template makes) and the widgets the Dashboards plugin already has. It is data too and inert (no note, no free text);
 its rules and an example are in [`plugin-contract.md`](plugin-contract.md) section 6.2b. A theme that ships one extends the point as an **optional** extension (`"optional": true`) and does NOT name `kybernos/dashboards` in `requires.plugins`:
 with the Dashboards plugin off the theme stays whole and only its dashboard is missing. The Templates page still lists the Dashboards among what the theme brings.
 
-**One template at a time.** Several themes can be installed side by side, but the three pages show one: the **active** theme (the last one installed until the person picks another with the
-selector of the Business group, `docs/dev/business-visuals.md`). Only the active theme's contributions to the three points are offered, only its rows are shown, and the rows (and the pack words)
-of the others wait, installed. The selector and the three rows read the theme's field-of-work pack (`domains/<id>.json`): its `name`, `icon`, `accent` and `menu.labels.contacts|catalog|pipeline`
-(a theme with no label for a row leaves the row its plain word). Nothing else to add to a theme: no key, no file.
+Several themes can be installed side by side: each makes its own database (the picker of the Tables page) and its dashboards are offered with its name on each card. The theme's field-of-work pack (`domains/<id>.json`) may rename
+the row of the Business group with `menu.labels.tables`.
 
-Sample rows for the pages (so a new install is not empty) are not part of these points: a theme keeps them in `demo/sample.json`, the argument of the base's `seed()`.
+Sample rows (so a new install is not empty) are not part of the point: a theme keeps them in `demo/db-sample.json`, the `sample` argument of the Tables seam.
 The three themes the product ships, with their sample rows, are described in [`shipped-themes.md`](shipped-themes.md).
 
 ## One complete `plugin.json`

@@ -34,19 +34,17 @@ const rule = (sel) => {
   return src.slice(open + 1, close)
 }
 
-// 1. the three row kinds share one inset and one gap
-for (const sel of ['.kb4-item{', '.kb4-grph{', '.kb4-scopebtn,.kb4-scopeitem{']) {
+// 1. the two row kinds share one inset and one gap
+for (const sel of ['.kb4-item{', '.kb4-grph{']) {
   const body = rule(sel)
   assert.ok(/padding:[^;]*\.6em/.test(body) || /padding-left:calc\(\.6em - 1px\)/.test(body), sel + ' starts its content at .6em (' + body.slice(0, 90) + ')')
   assert.ok(/gap:\.5em/.test(body), sel + ' uses the items’ .5em gap')
 }
-ok('the item, the group header and the workspace selector share one inset and one gap')
+ok('the item and the group header share one inset and one gap')
 
 // 2. one icon box, one label voice
 assert.ok(/\.kb4-ico\{[^}]*width:1\.25em/.test(src), 'the items’ icon sits in a fixed 1.25em box')
-assert.ok(/\.kb4-scopebtn \.kb4-scopetile,\.kb4-scopeitem \.kb4-scopetile\{width:1\.25em;height:1\.25em\}/.test(src), 'the selector’s tile takes the same 1.25em footprint')
 assert.ok(/\.kb4-grph \.kb4-lab\{font-size:\.95em\}/.test(src), 'the header keeps the smaller voice on its label, not on the row (its `em` paddings stay the items’)')
-assert.ok(/\.kb4-scopebtn \.kb4-lab,\.kb4-scopeitem \.kb4-lab\{[^}]*font-size:\.95em/.test(src), 'the selector’s label carries its own size too')
 assert.ok(!/\.kb4-grph\{[^}]*font-size:\.95em/.test(src), 'the header row is back to 1em (a .95em row rescaled its own paddings)')
 ok('one icon column of 1.25em, and the smaller voice lives on the label')
 
@@ -56,9 +54,5 @@ const chevAt = src.indexOf("className: 'kb4-grpchev'", labAt >= 0 ? labAt : 0)
 assert.ok(labAt >= 0 && chevAt > labAt, 'the group header draws its label before its chevron')
 assert.ok(/\.kb4-grpchev\{[^}]*margin-left:auto/.test(src), 'the chevron is pushed to the end of the header')
 ok('the disclosure sits at the end of the header, after the label')
-
-// 4. the selector’s 1px border is compensated, so its tile starts exactly where the items’ icon does
-assert.ok(/\.kb4-scopebtn,\.kb4-scopeitem\{[^}]*padding:\.25em \.7em \.25em calc\(\.6em - 1px\)/.test(src), 'the selector insets 1px less, and its 1px border makes up the difference')
-ok('the border of the selector row does not add a pixel (measured live: 16.4 for both)')
 
 console.log('\n' + pass + ' verifications OK')

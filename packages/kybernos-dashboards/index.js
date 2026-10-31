@@ -21,7 +21,7 @@ export const SKILLS_DIR = join(here, 'skills')
 export const SEEDED_SKILLS = ['dashboard-builder', 'dashboard-sources']
 const dire = (msg) => console.log(`[kybernos-dashboards] ${msg}`)
 
-// ── telling the registry (the same shape in the business plugins: packages/kybernos-catalog/index.js; test-point.mjs proves this one) ───────────────────────────
+// ── telling the registry (the same shape in kybernos-db: packages/kybernos-db/index.js; test-point.mjs proves this one) ───────────────────────────
 const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
 
 /** Tells the registry the point this plugin owns. `true` when the registry was there to hear it (telling it twice changes nothing). */
@@ -54,17 +54,8 @@ export function tellWhenReady (options = {}) {
 }
 // ── end of the telling ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-/** The template the Business pages follow now (the core's business seam), or null when none is chosen or the core is older. Never throws. */
-const activeTemplate = () => {
-  try {
-    const business = globalThis[Symbol.for('kybernos.business')]
-    const r = business !== null && business !== undefined && typeof business.scope === 'function' ? business.scope() : null
-    return r !== null && typeof r === 'object' && r.ok === true && typeof r.scope === 'string' && r.scope !== '' ? r.scope : null
-  } catch (e) { return null }
-}
-
-/** The presets of the ACTIVE template (every installed one when none is chosen), read from the registry now (never at boot). */
-export const livePresets = (taken) => templatePresets(registrySeam(), taken, activeTemplate())
+/** The presets of every installed template, read from the registry now (never at boot). */
+export const livePresets = (taken) => templatePresets(registrySeam(), taken)
 
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host (published by the core bundle).
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }

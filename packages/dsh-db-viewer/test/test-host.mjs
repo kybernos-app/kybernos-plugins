@@ -123,10 +123,14 @@ try {
   // ── the plugins' own root: <DSH home>/kybernos/<dir>/donnees.sqlite, listed as kybernos-<dir> ──────────────────────────────────
   const kybernosHome = mkdtempSync(join(tmpdir(), 'dbv-kybernos-'))
   try {
-    // The REAL business base (kybernos-plugin/business-base.mjs), made on a temp tree: the viewer must list it and read it.
-    const { createBusinessBase } = await import('../../kybernos-plugin/business-base.mjs')
-    const business = createBusinessBase({ file: join(kybernosHome, 'business', 'donnees.sqlite') })
-    assert.equal(business.seed({ contacts: [{ ref: 'a', name: 'Ada' }, { name: 'Bob', company_ref: undefined }], items: [{ title: 'Mug' }], cards: [{ flow: 'orders', stage: 'new', title: '#1' }] }, { theme: 'ecommerce' }).ok, true)
+    // A plugin's own database, made on a temp tree: the viewer must list it and read it.
+    mkdirSync(join(kybernosHome, 'business'))
+    const business = new DatabaseSync(join(kybernosHome, 'business', 'donnees.sqlite'))
+    business.exec('CREATE TABLE contact (id INTEGER PRIMARY KEY, name TEXT NOT NULL)')
+    business.exec('CREATE TABLE note (id INTEGER PRIMARY KEY, contact_id INTEGER REFERENCES contact(id), body TEXT)')
+    business.exec('CREATE TABLE pack (id INTEGER PRIMARY KEY, contenu TEXT)')
+    business.exec("INSERT INTO contact (name) VALUES ('Ada'), ('Bob')")
+    business.exec(`INSERT INTO pack (contenu) VALUES ('{"entites":[{"table":"contact"}]}')`)
     business.close()
     mkdirSync(join(kybernosHome, 'moteur'))                                  // a folder with no database: ignored
     mkdirSync(join(kybernosHome, 'Not A Valid Id'))                          // an id the viewer would refuse: ignored
@@ -134,7 +138,7 @@ try {
     const both = listerBases(kybersHome, kybernosHome)
     const bus = both.find((b) => b.id === 'kybernos-business')
     assert.ok(bus, 'the business base is listed as kybernos-business')
-    assert.deepEqual(bus.tables.map((t) => t.nom), ['changes', 'contact', 'flow_card', 'item', 'meta', 'note', 'pack'])
+    assert.deepEqual(bus.tables.map((t) => t.nom), ['contact', 'note', 'pack'])
     assert.equal(bus.tables.find((t) => t.nom === 'contact').compte, 2)
     assert.ok(both.some((b) => b.id === 'mini-crm'), 'the kybers are still listed')
     assert.deepEqual(both.map((b) => b.id), [...both.map((b) => b.id)].sort(), 'sorted')

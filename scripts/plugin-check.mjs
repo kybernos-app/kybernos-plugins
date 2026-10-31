@@ -29,9 +29,6 @@ import { SCHEMA_FILE, manifestErrors } from './plugin-manifest.mjs'
 import { DOMAIN_POINT, TEAM_POINT, AUTOMATION_POINT } from '../packages/kybernos-plugin/domain-pack.mjs'
 import { THEME_POINT } from '../packages/kybernos-theme/themes-catalogue.mjs'
 import { validateTeamSkill } from '../packages/kybernos-skills/team-skills.mjs'
-import { CONTACTS_POINT } from '../packages/kybernos-contacts/contacts-schema.mjs'
-import { CATALOG_POINT } from '../packages/kybernos-catalog/catalog-type.mjs'
-import { PIPELINE_POINT } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
 import { PRESET_POINT } from '../packages/kybernos-dashboards/preset-point.mjs'
 import { DB_TEMPLATE_POINT } from '../packages/kybernos-db/template.mjs'
 import { LIMITS, dataPackageProblems, readBounded } from '../packages/kybernos-registry/registry.mjs'
@@ -60,7 +57,7 @@ const readJsonBounded = (file, max) => {
 
 // ── the point table: what the repository declares, joined with the validator its owner exports ────────────────
 /**
- * The owners that export a point object (the core, the theme styles, the three business plugins, the dashboards and the databases), and the skills owner, which exports its RULES but not its point
+ * The owners that export a point object (the core, the theme styles, the dashboards and the databases), and the skills owner, which exports its RULES but not its point
  * object (SKILL_POINT stays module-private in packages/kybernos-skills/index.js). The four-line adapter below is
  * the shape wrapper that file applies, never a second copy of the rules.
  */
@@ -75,9 +72,6 @@ export const OWNER_VALIDATORS = {
   'kybernos/core#team-template': TEAM_POINT.validate,
   'kybernos/core#automation-template': AUTOMATION_POINT.validate,
   'kybernos/skills#skill': validateSkillContribution,
-  'kybernos/contacts#schema': CONTACTS_POINT.validate,
-  'kybernos/catalog#type': CATALOG_POINT.validate,
-  'kybernos/pipeline#flow': PIPELINE_POINT.validate,
   'kybernos/dashboards#preset': PRESET_POINT.validate,
   'kybernos/db#template': DB_TEMPLATE_POINT.validate,
 }

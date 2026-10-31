@@ -14,14 +14,12 @@ export const FILE_MAX = 128 * 1024
 export const LIST_MAX = 12
 /** A cover picture: `cover.jpg` in the theme's folder, at most this big (a card's picture, not a gallery). */
 export const COVER_MAX = 160 * 1024
-/** The sample rows of a theme (`demo/sample.json`, the argument of the base's `seed`) are read whole and never larger than this. */
+/** The database a theme ships (`db/<id>.json`) and its sample rows (`demo/db-sample.json`) are read whole and never larger than this. */
 export const SAMPLE_MAX = 512 * 1024
 /** The « next trades » shown as « soon » cards: `_next/next.json` and one `_next/<id>.jpg` each. */
 export const NEXT_MAX = 12
-/** The plugin ids a business theme names in `requires.plugins`, in the order a page shows them. */
-export const BUSINESS_PLUGINS = Object.freeze(['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline'])
-/** The owner of the databases a theme ships (`db/<id>.json`). Optional for now: no card names it and no install switches it on until the Tables page replaces the three Business pages. */
-export const STAGED_OWNER = 'kybernos/db'
+/** The plugin that owns the databases a theme ships (`db/<id>.json`): the first one a theme page names, the one an install switches on when it is off. */
+export const DB_OWNER = 'kybernos/db'
 
 const ID = /^[a-z][a-z0-9-]{1,31}\/[a-z][a-z0-9-]{1,39}$/
 const DIR = /^[a-z][a-z0-9-]{1,39}$/
@@ -48,15 +46,6 @@ const readJson = (file) => {
 }
 /** Whether a cover picture is there, a plain file of a sane size (the route re-checks when it serves it). */
 const hasCover = (file) => { try { const st = statSync(file); return st.isFile() && st.size > 0 && st.size <= COVER_MAX } catch (e) { return false } }
-/** The sample rows a theme carries: the parsed `demo/sample.json` (a plain object), or `null` (none, too large, unreadable). The base checks every row. */
-export const readSample = (folder) => {
-  try {
-    const file = join(folder, 'demo', 'sample.json')
-    if (statSync(file).size > SAMPLE_MAX) return null
-    const v = JSON.parse(readFileSync(file, 'utf8'))
-    return plain(v) ? v : null
-  } catch (e) { return null }
-}
 /**
  * The database a theme ships (kybernos-db's `kybernos/db#template`): `{ template, sample }` from `db/<id>.json` and `demo/db-sample.json`, or `null` when the theme carries
  * no template. Read whole and never larger than `SAMPLE_MAX`; the checking is the owner's (kybernos-db validates both before it writes anything). `sample` is `null` without rows.
@@ -76,19 +65,31 @@ export const readDbTemplate = (folder) => {
     return { template, sample }
   } catch (e) { return null }
 }
+/** How many sample rows a shipped database brings and in which object, or `null` without rows. */
+const sampleSummary = (shipped) => {
+  if (shipped === null || shipped.sample === null || !plain(shipped.sample.rows)) return null
+  const objects = Array.isArray(shipped.template.objects) ? shipped.template.objects : []
+  const by = []
+  for (const o of objects) {
+    const rows = plain(o) ? shipped.sample.rows[o.key] : undefined
+    if (Array.isArray(rows) && rows.length > 0) by.push({ label: pair(o.label, 60) ?? { en: String(o.key), fr: String(o.key) }, n: rows.length })
+  }
+  return by.length === 0 ? null : { total: by.reduce((a, b) => a + b.n, 0), by: by.slice(0, LIST_MAX) }
+}
 const names = (dir, test) => { try { return readdirSync(dir).filter((f) => test(f) && !f.startsWith('.')).sort() } catch (e) { return [] } }
 const jsonNames = (dir) => names(dir, (f) => f.endsWith('.json'))
 
 /**
  * One theme folder as the page needs it, or `{ ok: false, dir, reason }`.
  * `{ ok: true, theme }`: `{ id, dir, version, name, description, accent, icon, field, tagline, words, style, needs, adds }`
- *   words  { contacts, catalog, pipeline }: the pack's `menu.labels` for the rows of the Business group, `{ en, fr }` each (or absent)
+ *   words  { tables }: the pack's `menu.labels` for the row of the Business group, `{ en, fr }` (or absent)
  *   style  { id, name, accent } of the first `themes/*.json`
- *   needs  the ids of `requires.plugins` that are not the core's own seams, in the order of `BUSINESS_PLUGINS` first
- *   sample { contacts, items, cards, notes }: how many sample rows `demo/sample.json` holds, or `null` when the theme carries none
+ *   needs  the ids of `requires.plugins` that are not the core's own seams, `kybernos/db` first
+ *   db     { objects: [{ en, fr }] }: the names of the tables of the theme's database (at most LIST_MAX), or `null` when the theme ships none
+ *   sample { total, by: [{ label, n }] }: how many sample rows `demo/db-sample.json` holds, and in which object (`label` is `{ en, fr }`), or `null` when the theme carries none
  *   tag    the first of the manifest's `keywords` (they are lower case), with a capital: the chip over the cover; `cover` whether `cover.jpg` is there
  *   why    { <plugin id>: { en, fr } } from `why.json`: one line per needed plugin, in this theme's words
- *   adds   { skills, teams, automations, connectors } counts; `lists` their names (at most LIST_MAX each); `points` the business points the theme extends, with how many files each has
+ *   adds   { skills, teams, automations, connectors } counts; `lists` their names (at most LIST_MAX each); `points` the points the theme extends that hold files, with how many files each has
  */
 export function readTheme (root, dir) {
   if (typeof dir !== 'string' || !DIR.test(dir)) return { ok: false, dir: String(dir), reason: 'the folder name is not an id' }
@@ -108,12 +109,12 @@ function readThemeAt (folder, dir) {
   const accent = pack !== null && typeof pack.accent === 'string' && ACCENT.test(pack.accent) ? pack.accent : (style !== null && plain(style.settings) && typeof style.settings.acc === 'string' && ACCENT.test(style.settings.acc) ? style.settings.acc : null)
   const labels = pack !== null && plain(pack.menu) && plain(pack.menu.labels) ? pack.menu.labels : {}
   const words = {}
-  for (const row of ['contacts', 'catalog', 'pipeline']) { const w = pair(labels[row], 40); if (w !== null) words[row] = w }
+  for (const row of ['tables']) { const w = pair(labels[row], 40); if (w !== null) words[row] = w }
   const hard = plain(manifest.requires) && plain(manifest.requires.plugins) ? Object.keys(manifest.requires.plugins) : []
   // the owner of an OPTIONAL extension is not required, but the page still names it: it is what the dashboard of the theme needs
-  const optional = (Array.isArray(manifest.extends) ? manifest.extends : []).filter((e) => plain(e) && e.optional === true && typeof e.point === 'string').map((e) => e.point.split('#')[0]).filter((id) => hard.indexOf(id) < 0 && id !== STAGED_OWNER)
+  const optional = (Array.isArray(manifest.extends) ? manifest.extends : []).filter((e) => plain(e) && e.optional === true && typeof e.point === 'string').map((e) => e.point.split('#')[0]).filter((id) => hard.indexOf(id) < 0)
   const requires = hard.concat(optional.filter((id, i) => optional.indexOf(id) === i))
-  const needs = BUSINESS_PLUGINS.filter((id) => requires.indexOf(id) >= 0).concat(requires.filter((id) => BUSINESS_PLUGINS.indexOf(id) < 0 && !/^kybernos\/(core|theme|skills)$/.test(id)).sort())
+  const needs = requires.filter((id) => !/^kybernos\/(core|theme|skills)$/.test(id)).sort((a, b) => (a === DB_OWNER ? -1 : b === DB_OWNER ? 1 : a < b ? -1 : a > b ? 1 : 0))
   const connectors = new Set()
   if (pack !== null && Array.isArray(pack.goals)) for (const g of pack.goals) if (plain(g) && Array.isArray(g.connectors)) for (const c of g.connectors) if (typeof c === 'string') connectors.add(c)
   const skillNames = names(join(folder, 'skills'), (f) => f !== 'README.md')
@@ -125,10 +126,9 @@ function readThemeAt (folder, dir) {
   const whyFile = readJson(join(folder, 'why.json'))
   const why = {}
   if (whyFile !== null) for (const id of needs) { const w = pair(whyFile[id], 160); if (w !== null) why[id] = w }
-  const smp = readSample(folder)
-  const many = (k) => (smp !== null && Array.isArray(smp[k]) ? smp[k].length : 0)
-  const points = {}
-  for (const [key, sub] of [['contacts', 'contacts'], ['catalog', 'catalog'], ['pipeline', 'pipeline']]) { const n = jsonNames(join(folder, sub)).length; if (n > 0) points[key] = n }
+  const shippedDb = readDbTemplate(folder)
+  const dbFiles = jsonNames(join(folder, 'db')).length
+  const points = dbFiles > 0 ? { db: dbFiles } : {}
   return {
     ok: true,
     folder,
@@ -139,7 +139,8 @@ function readThemeAt (folder, dir) {
       name,
       description: pair(manifest.description, 300),
       accent,
-      sample: smp === null ? null : { contacts: many('contacts'), items: many('items'), cards: many('cards'), notes: many('notes') },
+      db: shippedDb === null ? null : { objects: (Array.isArray(shippedDb.template.objects) ? shippedDb.template.objects : []).map((o) => (plain(o) ? pair(o.label, 60) : null)).filter((x) => x !== null).slice(0, LIST_MAX) },
+      sample: sampleSummary(shippedDb),
       tag,
       cover: hasCover(join(folder, 'cover.jpg')),
       why,

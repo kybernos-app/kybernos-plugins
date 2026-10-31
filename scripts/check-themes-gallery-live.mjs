@@ -12,7 +12,6 @@
 // Exit code: 0 all green, 1 a check failed, 3 not run.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { existsSync } from 'node:fs'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const args = process.argv.slice(2)
@@ -58,7 +57,7 @@ const openThemes = async () => {
 
 try {
   const errs = []
-  // Three answers are held back here. The sandbox is a copy of a profile where the three Business plugins ARE on, so the registry would say « nothing missing »: it is told they are not, to play the switch-on.
+  // Three answers are held back here. The sandbox may run Tables and Dashboards, so the registry would say « nothing missing »: it is told neither is there, to play the switch-on.
   // The Suite's routes are answered, never called (the robot and the restart touch the owner's profile). Every request the page makes that is refused is kept, to say what failed.
   await ev(`(() => {
     const real = window.fetch.bind(window); window.__kbHub = []; window.__kbRefused = []
@@ -69,7 +68,7 @@ try {
       const r = await real(u, o)
       if (url.indexOf('/kybernos-registry/state') >= 0 && url.indexOf('fresh') < 0) {
         const j = await r.clone().json().catch(() => null)
-        if (j && Array.isArray(j.points)) return json(Object.assign({}, j, { points: j.points.filter((p) => !new RegExp('^kybernos/(contacts|catalog|pipeline)#').test(String(p.id))) }))
+        if (j && Array.isArray(j.points)) return json(Object.assign({}, j, { points: j.points.filter((p) => !new RegExp('^kybernos/(db|dashboards)#').test(String(p.id))) }))
       }
       if (url.indexOf('/kybernos/') >= 0 || url.indexOf('/kybernos-') >= 0) {
         if (!r.ok) window.__kbRefused.push({ url: url, status: r.status })
@@ -131,7 +130,7 @@ try {
   if (needs > 0) check('one pill per plugin the theme needs, with its icon and its status', (await ev(`[...document.querySelectorAll('[data-kb="theme-pill"]')].filter((p) => p.querySelector('svg') && p.innerText.trim().split('\\n').length >= 2).length`)) === needs)
   check('what it adds is in tiles, each with an icon and a switch', (await ev(`(() => { const t = [...document.querySelectorAll('[data-kb="theme-tile"]')]; return t.length >= 4 && t.every((x) => x.querySelector('svg') && (x.querySelector('[role="switch"]') || x.querySelector('.kbgal-always'))) })()`)) === true)
   check('every switch is on, except what the tile says is « Already there » (which is off and cannot be turned on)', (await ev(`[...document.querySelectorAll('[data-kb="theme-tile"] [role="switch"]')].every((s) => { const there = /Already there|Déjà là/.test(s.closest('[data-kb="theme-tile"]').innerText); return there ? (s.disabled && s.getAttribute('aria-checked') === 'false') : s.getAttribute('aria-checked') === 'true' })`)) === true)
-  if (theme.sample) check('a tile offers the sample rows (marked demo), switched on, with their counts', (await ev(`(() => { const t = document.querySelector('[data-tile="sample"]'); const s = t && t.querySelector('[role="switch"]'); return t !== null && s !== null && s.getAttribute('aria-checked') === 'true' && /\\d+ contacts?/.test(t.innerText) })()`)) === true)
+  if (theme.sample) check('a tile offers the sample rows, switched on, with their counts', (await ev(`(() => { const t = document.querySelector('[data-tile="sample"]'); const s = t && t.querySelector('[role="switch"]'); return t !== null && s !== null && s.getAttribute('aria-checked') === 'true' && t.innerText.indexOf('${theme.sample.by[0].n} ') >= 0 })()`)) === true)
   const sk = await rect('[data-kb="theme-switch-skills"]')
   if (sk !== null && sk.shown) {
     const was = await ev(`document.querySelector('[data-kb="theme-switch-skills"]').getAttribute('aria-checked')`)
@@ -170,12 +169,17 @@ try {
     } else check('nothing was missing: no restart is asked', (await rect('[data-kb="theme-restart"]')) === null && modules.length === 0)
     await shot('5-report')
     check('nothing failed: the skills the theme carries are installed from its folder, so the report says « Installed »', /^\s*Installed|^\s*Installé/.test(await text('[data-kb="theme-report"] h3') || '') && /Failed\s*\n?\s*0/.test(rep || ''), { refused: (await ev(`window.__kbRefused`) || []).filter((x) => !/artifacts|cloud/.test(x.url)), report: String(rep).replace(/\n+/g, ' ') })
-    if (theme.sample) {
-      check('the report says the sample rows were added', /Sample rows\s*\|?\s*(added|already there)/i.test((rep || '').replace(/\n+/g, ' | ')) || /Sample rows[\s\S]*(added|already there)/i.test(rep || ''), rep)
-      const file = join(process.env.DSH_HOME, 'kybernos', 'business', 'donnees.sqlite')
-      let n = null
-      try { const { DatabaseSync } = await import('node:sqlite'); const db = new DatabaseSync(file, { readOnly: true }); n = { contacts: db.prepare('SELECT COUNT(*) AS c FROM contact WHERE demo = 1').get().c, cards: db.prepare('SELECT COUNT(*) AS c FROM flow_card WHERE demo = 1').get().c, items: db.prepare('SELECT COUNT(*) AS c FROM item WHERE demo = 1').get().c }; db.close() } catch (e) { n = String(e && e.message) }
-      check('the business base holds the sample rows, every one marked demo (' + theme.sample.contacts + ' contacts, ' + theme.sample.items + ' items, ' + theme.sample.cards + ' cards)', existsSync(file) && n !== null && typeof n === 'object' && n.contacts === theme.sample.contacts && n.items === theme.sample.items && n.cards === theme.sample.cards, n)
+    {
+      // the theme's database: made by the host when Tables runs; when Tables was only just switched on, it comes after the restart and the report says so
+      const state = await ev(`fetch('/kybernos-db/state', { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)`, 10000)
+      const tplId = theme.id.split('/').pop()
+      const made = state !== null && state !== undefined && Array.isArray(state.dbs) ? state.dbs.find((d) => d.template === tplId) : undefined
+      check('the report has a Tables line: the database ' + (made !== undefined ? 'was made' : 'comes after the restart'), made !== undefined ? /Tables\s*\n?\s*(added|already there)/i.test(rep || '') : /Tables\s*\n?\s*after restart/i.test(rep || ''), rep)
+      if (made !== undefined && theme.sample) {
+        const keys = (made.objects || []).map((o) => o.key)
+        const total = await ev(`(async () => { let n = 0; for (const o of ${JSON.stringify(keys)}) { const r = await fetch('/kybernos-db/records?db=' + encodeURIComponent(${JSON.stringify(made.id)}) + '&object=' + encodeURIComponent(o), { credentials: 'same-origin' }).then((x) => x.json()); n += (r.records || []).length } return n })()`, 20000)
+        check('the database holds the sample rows (' + theme.sample.total + ')', total === theme.sample.total, total)
+      }
     }
     check('« Back to templates » is pressed', await click('[data-kb="theme-back-to-themes"]'))
     const marked = await waitFor(page, `(() => { const c = document.querySelector('${PAGE} [data-theme="${theme.id}"]'); return c !== null && /Installed|Installé/.test(c.innerText) })()`, 20000)

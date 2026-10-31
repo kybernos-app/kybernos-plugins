@@ -1,7 +1,7 @@
 // The themes the product ships (packages/kybernos-plugin/themes/<dir>/, docs/dev/shipped-themes.md): each folder is well-formed data, installable alone,
-// readable by the Themes page, and its sample rows seed a business base without one dangling reference.
+// readable by the Themes page, and its database (db/<id>.json) and sample rows (demo/db-sample.json) make a Tables database without one dangling reference.
 //
-// Hermetic: temp folders only (a base file in a temp folder, never a DSH home), nothing started, nothing fetched.
+// Hermetic: temp folders only (a Tables service in a temp folder, never a DSH home), nothing started, nothing fetched.
 //
 //   node scripts/test-shipped-themes.mjs
 import assert from 'node:assert/strict'
@@ -9,31 +9,27 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } 
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { createBusinessBase } from '../packages/kybernos-plugin/business-base.mjs'
 import { BUSINESS_ROW_IDS } from '../packages/kybernos-plugin/domain-pack.mjs'
 import { bundleProblem, dataPluginProblems, planTheme } from '../packages/kybernos-plugin/theme-installer.mjs'
 import { photoFile } from '../packages/kybernos-plugin/themes-shipped.mjs'
 import { PHOTO_MAX, PHOTO_WIDTH_MAX, PHOTOS_PER_THEME, jpegSize } from './garde-depot.mjs'
-import { validateContactsSchema } from '../packages/kybernos-contacts/contacts-schema.mjs'
-import { validateCatalogType } from '../packages/kybernos-catalog/catalog-type.mjs'
-import { validatePipelineFlow } from '../packages/kybernos-pipeline/pipeline-flow.mjs'
+import { makeService } from '../packages/kybernos-db/agent/service.mjs'
+import { MARKER_FILE, installTemplate } from '../packages/kybernos-db/instantiate.mjs'
 import { buildStructure, languagesOf, validateSample, validateTemplate } from '../packages/kybernos-db/template.mjs'
 import { OWNER_VALIDATORS, checkFolder } from './plugin-check.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ROOT = join(REPO, 'packages', 'kybernos-plugin', 'themes')
-const BUSINESS = ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline']
-// what the Templates page lists a theme as needing: the three business pages, then the Dashboards (the theme ships a dashboard, kybernos/dashboards#preset)
-const NEEDS = [...BUSINESS, 'kybernos/dashboards']
-const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'contacts', 'catalog', 'pipeline', 'dashboards', 'db']
-// What each shipped theme must hold: the folder, and the number of sample rows its demo/sample.json seeds (a sample stays modest and readable).
+// what the Templates page lists a theme as needing: Tables (its database), then the Dashboards (the theme ships a dashboard, kybernos/dashboards#preset)
+const NEEDS = ['kybernos/db', 'kybernos/dashboards']
+const POINTS = ['domains', 'themes', 'skills', 'teams', 'automations', 'dashboards', 'db']
+// What each shipped theme must hold: the tables its database makes, and the number of sample rows of each (demo/db-sample.json; a sample stays modest and readable).
 const EXPECT = {
-  ecommerce: { contacts: 22, items: 16, cards: 18, notes: 8, flows: 1 },
-  'real-estate': { contacts: 27, items: 16, cards: 19, notes: 11, flows: 2 },
-  recruitment: { contacts: 22, items: 14, cards: 19, notes: 8, flows: 2 },
+  ecommerce: { rows: { contact: 22, product: 16, orders: 18, note: 8 } },
+  'real-estate': { rows: { contact: 27, property: 16, lettings: 8, sales: 11, note: 11 } },
+  recruitment: { rows: { contact: 22, job: 14, candidates: 10, missions: 9, note: 8 } },
 }
-const WORDS = ['contacts', 'catalog', 'pipeline']
-// The themes whose sample is rich (22 contacts, a photograph per item, cards that follow the board convention); a theme joins the list when its sample does.
+// The themes whose sample is rich (22 contacts, a photograph per item); a theme joins the list when its sample does.
 const RICH = ['ecommerce', 'real-estate', 'recruitment']
 let count = 0
 const ok = (label, fn) => { fn(); count++; console.log('ok  ', label) }
@@ -55,10 +51,8 @@ const loadTheme = (dir) => {
     skills: readdirSync(join(root, 'skills')).sort(),
     teams: names(join(root, 'teams'), '.json').map((f) => readJson(join(root, 'teams', f))),
     automations: names(join(root, 'automations'), '.json').map((f) => readJson(join(root, 'automations', f))),
-    contacts: names(join(root, 'contacts'), '.json').map((f) => validateContactsSchema(readJson(join(root, 'contacts', f)), f.replace(/\.json$/, ''))),
-    catalog: names(join(root, 'catalog'), '.json').map((f) => validateCatalogType(readJson(join(root, 'catalog', f)), f.replace(/\.json$/, ''))),
-    pipeline: names(join(root, 'pipeline'), '.json').map((f) => validatePipelineFlow(readJson(join(root, 'pipeline', f)), f.replace(/\.json$/, ''))),
-    sample: readJson(join(root, 'demo', 'sample.json')),
+    db: readJson(join(root, 'db', dir + '.json')),
+    sample: readJson(join(root, 'demo', 'db-sample.json')),
     why: readJson(join(root, 'why.json')),
   }
 }
@@ -71,13 +65,12 @@ ok('the three themes are there, and nothing else is in the folder', () => {
 for (const dir of dirs) {
   const t = loadTheme(dir)
   const sample = t.sample
-  const want = EXPECT[dir]
 
   ok(dir + ': plugin-check exits 0 and every point line passes', () => {
     const r = checkFolder(join(ROOT, dir))
     assert.equal(r.exitCode, 0, r.lines.filter((l) => l.status === 'FAIL').map((l) => l.id + ' ' + l.message).join('; '))
     const points = r.lines.filter((l) => l.id.startsWith('point.'))
-    assert.equal(points.length, 10, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
+    assert.equal(points.length, POINTS.length, 'one line per extended point: ' + points.map((l) => l.id).join(', '))
     for (const l of points) assert.equal(l.status, 'PASS', l.id + ': ' + l.message)
   })
 
@@ -89,11 +82,11 @@ for (const dir of dirs) {
     assert.equal(t.manifest.kind, 'data')
     assert.equal(t.manifest.license, 'Apache-2.0')
     // the Dashboards are NOT required: a template whose dashboard cannot be read must stay a working template (the extension is optional)
-    assert.deepEqual(Object.keys(t.manifest.requires.plugins).sort(), ['kybernos/catalog', 'kybernos/contacts', 'kybernos/core', 'kybernos/pipeline', 'kybernos/skills', 'kybernos/theme'])
+    assert.deepEqual(Object.keys(t.manifest.requires.plugins).sort(), ['kybernos/core', 'kybernos/db', 'kybernos/skills', 'kybernos/theme'])
     assert.equal(t.manifest.extends.find((e) => e.point === 'kybernos/dashboards#preset').optional, true)
-    // nor the database: the Tables bundle is a satellite, off by default, and the old pages still serve the template until they are replaced
-    assert.equal(t.manifest.extends.find((e) => e.point === 'kybernos/db#template').optional, true)
-    for (const range of Object.values(t.manifest.requires.plugins)) assert.equal(range, '^1.0')
+    // the database is the template's tables: Tables is required, and the extension is not optional (the point is 1.0, the owner's own version 0.1)
+    assert.equal(t.manifest.extends.find((e) => e.point === 'kybernos/db#template').optional, undefined)
+    for (const [id, range] of Object.entries(t.manifest.requires.plugins)) assert.equal(range, id === 'kybernos/db' ? '^0.1' : '^1.0', id)
     assert.deepEqual(t.manifest.extends.map((e) => e.dir), POINTS)
     assert.equal(readFileSync(join(t.root, 'cordis.patch.yml'), 'utf8').replace(/#[^\n]*/g, '').trim(), '[]')
   })
@@ -119,7 +112,7 @@ for (const dir of dirs) {
     for (const x of t.teams) assert.ok(plan.kit.teams.some((y) => y.id === x.id), 'the plan offers the team ' + x.id)
   })
 
-  ok(dir + ': the database it ships is sound in each language, says what the old pages said, and finds every picture of its sample', () => {
+  ok(dir + ': the database it ships is sound in each language, holds the tables it should, and finds every picture of its sample', () => {
     const files = names(join(t.root, 'db'), '.json')
     assert.deepEqual(files, [dir + '.json'], 'one template, named like its folder')
     const raw = readJson(join(t.root, 'db', files[0]))
@@ -128,23 +121,16 @@ for (const dir of dirs) {
     assert.deepEqual(languagesOf(raw).sort(), ['en', 'fr'], 'English and French, every label')
     for (const lang of ['en', 'fr']) assert.deepEqual(buildStructure(raw, lang).errors, [], lang)
     assert.deepEqual(raw.name, { en: t.manifest.name.en, fr: t.manifest.name.fr }, 'the database is named like the template')
-    // the old three pages become objects: contacts, the catalog's items, one object per board, and the notes
-    assert.deepEqual(raw.objects.map((o) => o.key), ['contact', t.catalog[0].value.id.replace(/-/g, '_'), ...t.pipeline.map((p) => p.value.id.replace(/-/g, '_')), 'note'])
-    const sample = readJson(join(t.root, 'demo', 'db-sample.json'))
+    const want = EXPECT[dir]
+    assert.deepEqual(raw.objects.map((o) => o.key), Object.keys(want.rows), 'the tables of the trade, in the order of the menu')
     const rows = validateSample(sample, raw)
     assert.equal(rows.ok, true, JSON.stringify(rows.errors))
-    const total = (list) => list.reduce((n, o) => n + (sample.rows[o.key] || []).length, 0)
-    const want = EXPECT[dir]
-    assert.equal(sample.rows.contact.length, want.contacts)
-    assert.equal(sample.rows[raw.objects[1].key].length, want.items)
-    assert.equal(total(raw.objects.slice(2, -1)), want.cards)
-    assert.equal(sample.rows.note.length, want.notes)
-    // a picture is a file of the theme (the same ones the old sample named), read through the core's own reader
+    for (const [key, n] of Object.entries(want.rows)) assert.equal(sample.rows[key].length, n, key)
+    assert.ok(sample.rows.contact.filter((c) => c.values.kind === 'person').length >= 8 && sample.rows.contact.filter((c) => c.values.kind === 'company').length >= 4, 'about 8 people and 4 companies')
+    // a picture is a file of the theme, read through the core's own reader
     const photos = Object.values(sample.rows).flat().flatMap((r) => Object.values(r.values)).filter(Array.isArray).flat().filter((v) => v && typeof v.photo === 'string').map((v) => v.photo)
     assert.ok(photos.length > 0)
     for (const spec of photos) assert.notEqual(photoFile(ROOT, spec), null, spec)
-    const old = JSON.stringify(t.sample).match(/photo:[a-z0-9-]+\/[a-z0-9-]+/g) || []
-    assert.deepEqual([...new Set(photos)].sort(), [...new Set(old.map((x) => x.slice(6)))].sort(), 'the same pictures as the old sample')
   })
 
   ok(dir + ': a card has what the Themes page reads (name, line, colour, icon, the three words, the style, the kit names)', () => {
@@ -154,30 +140,30 @@ for (const dir of dirs) {
     assert.match(t.pack.accent, /^#[0-9a-fA-F]{6}$/)
     assert.ok(t.pack.icon && t.pack.name.en && t.pack.tagline.en && t.pack.tagline.fr)
     assert.ok(t.pack.tagline.en.length <= 200 && t.pack.tagline.fr.length <= 200)
-    for (const row of WORDS) {
-      assert.ok(BUSINESS_ROW_IDS.includes(row))
-      const w = t.pack.menu.labels[row]
-      assert.ok(w && w.en && w.fr, 'menu.labels.' + row)
-      assert.ok(w.en.length <= 40 && w.fr.length <= 40, 'the page keeps 40 characters of a word')
+    // the rows of the Business group are the Tables page and the Overview: a trade's words live in its tables, so a pack may rename the row but a shipped one need not
+    for (const [row, w] of Object.entries(t.pack.menu.labels)) {
+      if (!BUSINESS_ROW_IDS.includes(row)) continue
+      assert.ok(w.en && w.fr && w.en.length <= 40 && w.fr.length <= 40, 'the page keeps 40 characters of a word: ' + row)
     }
+    for (const gone of ['contacts', 'catalog', 'pipeline']) assert.equal(t.pack.menu.labels[gone], undefined, gone + ' is not a menu row any more')
     assert.equal(t.pack.theme, t.style.id, 'the pack starts from the theme\'s own style')
     assert.equal(t.style.settings.acc.toLowerCase(), t.pack.accent.toLowerCase(), 'the style and the pack share one accent')
     assert.ok(typeof t.style.name === 'string' && t.style.name.length >= 3 && t.style.name.length <= 40)
     assert.ok(t.skills.length >= 1 && t.teams.length >= 1 && t.automations.length >= 1)
   })
 
-  ok(dir + ': the gallery has its chip and one line per business plugin, in this theme\'s words (en and fr, 160 characters)', () => {
+  ok(dir + ': the gallery has its chip and one line per plugin it needs, in this theme\'s words (en and fr, 160 characters)', () => {
     const kw = t.manifest.keywords
     assert.ok(Array.isArray(kw) && kw.length >= 1 && kw.length <= 8, 'keywords')
     for (const k of kw) assert.match(k, /^[a-z0-9][a-z0-9 -]{1,23}$/, 'keyword ' + k)
     assert.equal(new Set(kw).size, kw.length)
-    assert.deepEqual(Object.keys(t.why).sort(), [...NEEDS].sort(), 'why.json: one line per needed plugin (the three business plugins and the dashboards), nothing else')
+    assert.deepEqual(Object.keys(t.why).sort(), [...NEEDS].sort(), 'why.json: one line per needed plugin (Tables and the dashboards), nothing else')
     for (const id of NEEDS) {
       const w = t.why[id]
       assert.deepEqual(Object.keys(w).sort(), ['en', 'fr'], id)
       for (const l of ['en', 'fr']) assert.ok(typeof w[l] === 'string' && w[l].trim() !== '' && w[l].length <= 160 && !/[<>]/.test(w[l]), id + '.' + l)
     }
-    assert.equal(new Set(NEEDS.map((id) => t.why[id].en)).size, 4, 'four different lines')
+    assert.equal(new Set(NEEDS.map((id) => t.why[id].en)).size, NEEDS.length, 'different lines')
   })
 
   ok(dir + ': the kit hangs together (the automations and the team named by the goals, the skills the team names, nothing copied from another pack)', () => {
@@ -234,13 +220,14 @@ for (const dir of dirs) {
     assert.ok(walk(t.root).length - photos <= 24, 'a theme stays small')
   })
 
-  ok(dir + ': the sample pictures are plain JPEGs (a photograph per item at 1280 px, a portrait per person), at most 24, and every `photo:` a row names is one of them', () => {
+  ok(dir + ': the sample pictures are plain JPEGs (a photograph per item at 1280 px, a portrait per person), at most 24, and every `photo` a row names is one of them', () => {
     const folder = join(t.root, 'demo', 'photos')
     const files = existsSync(folder) ? readdirSync(folder) : []
     assert.ok(files.length <= PHOTOS_PER_THEME, files.length + ' pictures')
-    const refsOf = (rows) => rows.map((r) => (r.fields !== undefined ? r.fields.image : undefined)).filter((v) => typeof v === 'string' && v.startsWith('photo:')).map((v) => v.slice(6))
-    const people = sample.contacts.filter((c) => c.kind === 'person')
-    const itemRefs = refsOf(sample.items)
+    const refsOf = (rows) => rows.flatMap((r) => (Array.isArray(r.values.photo) ? r.values.photo : [])).filter((v) => v && typeof v.photo === 'string').map((v) => v.photo)
+    const contacts = sample.rows.contact
+    const people = contacts.filter((c) => c.values.kind === 'person')
+    const itemRefs = refsOf(Object.entries(sample.rows).filter(([k]) => k !== 'contact').flatMap(([, v]) => v))
     const personRefs = refsOf(people)
     for (const ref of itemRefs.concat(personRefs)) { assert.ok(ref.startsWith(dir + '/'), ref + ' belongs to another theme'); assert.ok(photoFile(ROOT, ref) !== null, ref + ' is not a picture of this theme') }
     for (const f of files) {
@@ -259,184 +246,30 @@ for (const dir of dirs) {
     if (RICH.includes(dir)) {
       assert.equal(personRefs.length, people.length, 'every sample person names a portrait')
       for (const ref of new Set(personRefs)) assert.ok(personRefs.filter((r) => r === ref).length <= 2, ref + ' serves more than two people')
-      for (const c of sample.contacts.filter((x) => x.kind === 'company')) assert.equal(c.fields.image, undefined, c.name + ': a company\'s logo is drawn, never a file')
+      for (const c of contacts.filter((x) => x.values.kind === 'company')) assert.equal(c.values.photo, undefined, c.values.name + ': a company\'s logo is drawn, never a file')
     }
   })
 
-  ok(dir + ': the three business points read back as valid data', () => {
-    for (const r of [...t.contacts, ...t.catalog, ...t.pipeline]) assert.equal(r.ok, true, JSON.stringify(r.errors))
-    assert.equal(t.contacts.length, 1)
-    assert.ok(t.catalog.length >= 1)
-    assert.equal(t.pipeline.length, want.flows)
-  })
-
-  ok(dir + ': the sample rows use only what the theme\'s own points define', () => {
-    assert.deepEqual(Object.keys(sample).sort(), ['cards', 'contacts', 'items', 'notes'], 'exactly the data argument of seed()')
-    assert.equal(sample.contacts.length, want.contacts)
-    assert.equal(sample.items.length, want.items)
-    assert.equal(sample.cards.length, want.cards)
-    assert.equal(sample.notes.length, want.notes)
-    assert.ok(sample.contacts.filter((c) => c.kind === 'person').length >= 8 && sample.contacts.filter((c) => c.kind === 'company').length >= 4, 'about 8 people and 4 companies')
-    if (RICH.includes(dir)) assert.ok(sample.contacts.length >= 16 && sample.contacts.length <= 27 && sample.notes.length >= 5 && sample.notes.length <= 11, 'a sample the pages can show: 16 to 27 contacts, 5 to 11 notes')
-    assert.ok(sample.items.length >= 8 && sample.items.length <= 20 && sample.cards.length >= 10 && sample.cards.length <= 24)
-    const schema = t.contacts[0].value
-    const types = new Map(t.catalog.map((r) => [r.value.id, r.value]))
-    const flows = new Map(t.pipeline.map((r) => [r.value.id, r.value]))
-    const once = (rows, what) => { const refs = rows.map((r) => r.ref).filter((x) => x !== undefined); assert.equal(new Set(refs).size, refs.length, what + ' refs are unique') }
-    const only = (row, keys, what) => { for (const k of Object.keys(row)) assert.ok(keys.includes(k), what + ' has an unknown key ' + k) }
-    // a value as its field says it is
-    const typed = (field, v, what) => {
-      switch (field.type) {
-        case 'text': assert.ok(typeof v === 'string' && v.trim() !== '' && v.length <= 200, what); break
-        case 'number': case 'money': assert.ok(typeof v === 'number' && Number.isFinite(v), what); break
-        case 'date': assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)), what + ' is a date'); break
-        case 'choice': assert.ok(field.options.includes(v), what + ' is one of ' + field.options.join(', ')); break
-        case 'email': assert.ok(/^[^@\s]+@[^@\s]+$/.test(v), what); break
-        case 'url': assert.match(v, /^https:\/\//, what); break
-        default: assert.fail(what + ': unknown field type')
-      }
-    }
-    const fieldsOf = (row, defs, what) => {
-      const byKey = new Map(defs.map((f) => [f.key, f]))
-      for (const [k, v] of Object.entries(row.fields || {})) { assert.ok(byKey.has(k), what + ' uses the field ' + k + ', which its type does not define'); typed(byKey.get(k), v, what + '.' + k) }
-    }
-
-    once(sample.contacts, 'contact'); once(sample.items, 'item')
-    const contacts = new Map(sample.contacts.map((c) => [c.ref, c]))
-    for (const c of sample.contacts) {
-      const what = 'contact ' + c.ref
-      only(c, ['ref', 'kind', 'type', 'name', 'email', 'company_ref', 'tags', 'fields'], what)
-      const type = schema.types.find((x) => x.key === c.type)
-      assert.ok(type, what + ' has the type ' + c.type + ', which the theme does not define')
-      assert.equal(c.kind, type.kind, what + ': its kind is not the kind of its type')
-      for (const tag of c.tags) assert.ok(schema.tags.includes(tag), what + ' has the tag ' + tag + ', which the theme does not propose')
-      fieldsOf(c, schema.fields, what)
-      if (c.company_ref !== undefined) { assert.equal(c.kind, 'person', what + ': only a person works for a company'); assert.equal((contacts.get(c.company_ref) || {}).kind, 'company', what + ': company_ref points at no company') }
-    }
-    for (const type of schema.types) assert.ok(sample.contacts.some((c) => c.type === type.key), 'no sample contact of the type ' + type.key)
-
-    for (const i of sample.items) {
-      const what = 'item ' + i.ref
-      only(i, ['ref', 'type', 'title', 'subtitle', 'status', 'price_text', 'price_num', 'fields'], what)
-      const type = types.get(i.type)
-      assert.ok(type, what + ' has the type ' + i.type + ', which the theme does not define')
-      assert.ok(type.statuses.some((s) => s.key === i.status), what + ' has the status ' + i.status + ', which its type does not define')
-      fieldsOf(i, type.fields, what)
-      const price = type.fields.find((f) => f.key === 'price' && f.type === 'money')
-      if (price !== undefined && i.price_num !== null) assert.equal(i.fields.price, i.price_num, what + ': price_num and the price field disagree')
-      assert.ok(i.price_text === '' || i.price_text.length <= 60)
-    }
-    // A type with a map puts each sample item at a REAL place: the same city for the whole sample (Paris for the real-estate theme), each item on its own spot, never the
-    // made-up coordinates of an invented town (the Catalog's Map view is a real map: docs/dev/business-visuals.md).
-    const CITY = { 'real-estate': { name: 'Paris', lat: [48.81, 48.91], lng: [2.22, 2.48] } }
-    for (const type of types.values()) {
-      if (type.map === undefined) continue
-      const mapped = sample.items.filter((i) => i.type === type.id)
-      const spots = new Set()
-      for (const i of mapped) {
-        const lat = i.fields[type.map.lat]
-        const lng = i.fields[type.map.lng]
-        assert.ok(typeof lat === 'number' && typeof lng === 'number', 'item ' + i.ref + ' has no place on the map')
-        const city = CITY[dir]
-        assert.ok(city !== undefined, 'the theme ' + dir + ' has a map but the test names no city for it')
-        assert.ok(lat >= city.lat[0] && lat <= city.lat[1] && lng >= city.lng[0] && lng <= city.lng[1], 'item ' + i.ref + ' is not in ' + city.name + ' (' + lat + ', ' + lng + ')')
-        spots.add(lat + ',' + lng)
-      }
-      assert.equal(spots.size, mapped.length, 'two sample items of ' + type.id + ' stand on the same spot')
-    }
-    for (const type of types.values()) for (const s of type.statuses) assert.ok(sample.items.some((i) => i.type === type.id && i.status === s.key), 'no sample item is ' + s.key + ' in ' + type.id)
-
-    const perStage = new Map()
-    for (const c of sample.cards) {
-      const what = 'card "' + c.title + '"'
-      only(c, ['flow', 'stage', 'title', 'subtitle', 'value_num', 'contact_ref', 'item_ref', 'fields'], what)
-      const flow = flows.get(c.flow)
-      assert.ok(flow, what + ' is on the board ' + c.flow + ', which the theme does not define')
-      assert.ok(flow.stages.some((s) => s.key === c.stage), what + ' is in the stage ' + c.stage + ', which the board ' + c.flow + ' does not have')
-      assert.ok(typeof c.value_num === 'number' && c.value_num >= 0, what)
-      if (c.contact_ref !== undefined) { assert.ok(flow.links.contact, what + ' links a contact on a board that does not'); assert.ok(contacts.has(c.contact_ref), what + ': contact_ref points at no contact') }
-      if (c.item_ref !== undefined) { assert.ok(flow.links.item, what + ' links an item on a board that does not'); assert.ok(sample.items.some((i) => i.ref === c.item_ref), what + ': item_ref points at no item') }
-      perStage.set(c.flow + '/' + c.stage, (perStage.get(c.flow + '/' + c.stage) || 0) + 1)
-    }
-    for (const flow of flows.values()) for (const s of flow.stages) assert.ok(perStage.get(flow.id + '/' + s.key) >= 1, 'the stage ' + s.key + ' of ' + flow.id + ' has no sample card')
-    for (const n of sample.notes) { only(n, ['contact_ref', 'body'], 'note'); assert.ok(contacts.has(n.contact_ref) && n.body.length <= 4000, 'a note points at no contact') }
-  })
-
-  if (RICH.includes(dir)) ok(dir + ': the sample is rich: tags that recur, a picture for every item (two items at most share one), cards that follow the board convention', () => {
-    const schema = t.contacts[0].value
-    const types = new Map(t.catalog.map((r) => [r.value.id, r.value]))
-    // 2 to 3 tags a contact, and every tag the theme proposes is worn by at least two contacts (a filter with a count worth showing)
-    const worn = new Map()
-    for (const c of sample.contacts) {
-      assert.ok(c.tags.length >= 2 && c.tags.length <= 3, c.ref + ': 2 to 3 tags')
-      for (const x of c.tags) worn.set(x, (worn.get(x) || 0) + 1)
-    }
-    for (const tag of schema.tags) assert.ok((worn.get(tag) || 0) >= 2, 'the tag ' + tag + ' is worn by fewer than two contacts')
-    // the cards of the catalog show a picture and 1 to 4 coloured chips, and the picture is a photograph the theme ships, used once
-    const photoDir = join(t.root, 'demo', 'photos')
-    const files = existsSync(photoDir) ? readdirSync(photoDir).map((f) => f.replace(/\.jpg$/, '')).sort() : []
-    const named = []
-    for (const type of types.values()) assert.ok(type.card.image && type.card.chips && type.card.chips.length >= 1 && type.card.chips.length <= 6, type.id + ': the card shows a picture and chips')
-    for (const i of sample.items) {
-      const card = types.get(i.type).card
-      const m = /^photo:([a-z][a-z0-9-]+)\/([a-z0-9][a-z0-9-]+)$/.exec(i.fields[card.image])
-      assert.ok(m !== null && m[1] === dir, 'item ' + i.ref + ' has no photograph of this theme')
-      named.push(m[2])
-      assert.ok(card.chips.filter((k) => i.fields[k] !== undefined).length >= 2, 'item ' + i.ref + ' shows fewer than two chips')
-    }
-    // the photographs are the pictures that are not portraits; a photograph serves two items at most (the 24-picture budget of a theme is shared with its portraits: two related items may show the same one)
-    assert.deepEqual([...new Set(named)].sort(), files.filter((f) => !/^portrait-\d\d$/.test(f)), 'every item has its photograph and every photograph is used')
-    for (const f of new Set(named)) assert.ok(named.filter((n) => n === f).length <= 2, f + ' serves more than two items')
-    // two items that show one photograph never sit on the same board (a column of twins would be the first thing seen): their cards are on different boards
-    const boardsOf = (ref) => new Set(sample.cards.filter((c) => c.item_ref === ref).map((c) => c.flow))
-    for (const f of new Set(named)) {
-      const twins = sample.items.filter((i) => i.fields.image === 'photo:' + dir + '/' + f).map((i) => i.ref)
-      if (twins.length === 2) assert.ok([...boardsOf(twins[0])].every((b) => !boardsOf(twins[1]).has(b)), twins.join(' and ') + ' share ' + f + ' and appear on the same board')
-    }
-    // a card of a board: where it comes from, how urgent, when, a few words, and the person and the product or job it is about
-    for (const c of sample.cards) {
-      const what = 'card "' + c.title + '"'
-      assert.deepEqual(Object.keys(c.fields).sort(), ['due', 'priority', 'source', 'tags'], what + ': source, priority, due, tags')
-      assert.ok(typeof c.fields.source === 'string' && c.fields.source.length >= 3 && c.fields.source.length <= 30, what + ' source')
-      assert.ok(['high', 'normal', 'low'].includes(c.fields.priority), what + ' priority')
-      assert.ok(/^2026-(11-(0[1-9]|[12]\d|30)|12-(0[1-9]|1\d|20))$/.test(c.fields.due), what + ' is due between 2026-11-01 and 2026-12-20')
-      assert.ok(Array.isArray(c.fields.tags) && c.fields.tags.length >= 1 && c.fields.tags.length <= 3 && c.fields.tags.every((x) => typeof x === 'string' && x.length >= 2 && x.length <= 20), what + ' tags')
-      assert.ok(c.contact_ref !== undefined && c.item_ref !== undefined, what + ' links a person and a product or job')
-    }
-    // the Catalog page shows the mix: every status of a type is worn, and the board is not empty in any stage (checked above); at least three of each money or number the page sorts on
-    assert.ok(new Set(sample.items.map((i) => i.status)).size >= 3, 'a catalog with at least three different statuses')
-  })
-
-  ok(dir + ': the sample seeds a temporary base, every row is marked demo, a second seed is skipped, and clearing leaves nothing', () => {
+  ok(dir + ': the database is made in a temporary Tables service with its sample rows, a second install is skipped, and without the sample only the structure is there', () => {
     const tmp = mkdtempSync(join(tmpdir(), 'shipped-theme-'))
-    const base = createBusinessBase({ file: join(tmp, 'donnees.sqlite') })
+    const service = makeService({ dir: join(tmp, 'dbs') })
     try {
-      const opened = base.open()
-      if (opened.ok !== true && opened.error === 'sqlite_unavailable') { console.log('SKIPPED: this Node has no node:sqlite, the seed of ' + dir + ' is not played'); return }
-      assert.equal(opened.ok, true, JSON.stringify(opened))
-      const theme = t.manifest.id
-      const seeded = base.seed(sample, { theme })
-      assert.equal(seeded.ok, true, JSON.stringify(seeded))
-      assert.equal(seeded.skipped, false)
-      assert.deepEqual(seeded.counts, { contacts: want.contacts, items: want.items, cards: want.cards, notes: want.notes })
-      const counts = base.counts()
-      assert.deepEqual(counts.tables, { contact: want.contacts, note: want.notes, item: want.items, flow_card: want.cards })
-      assert.deepEqual(counts.demo, counts.tables, 'every row is demo')
-      const links = base.list('flow_card', { limit: 500 }).rows
-      assert.equal(links.filter((r) => r.contact_id !== null).length, sample.cards.filter((c) => c.contact_ref !== undefined).length, 'every contact link landed')
-      assert.equal(links.filter((r) => r.item_id !== null).length, sample.cards.filter((c) => c.item_ref !== undefined).length, 'every item link landed')
-      const staff = base.list('contact', { kind: 'person', limit: 500 }).rows
-      assert.equal(staff.filter((r) => r.company_id !== null).length, sample.contacts.filter((c) => c.company_ref !== undefined).length, 'every company link landed')
-      const again = base.seed(sample, { theme })
+      const markerFile = join(tmp, MARKER_FILE)
+      const made = installTemplate({ service, template: t.db, sample, lang: 'en', markerFile })
+      assert.equal(made.ok, true, JSON.stringify(made))
+      assert.ok(made.skipped !== true)
+      assert.equal(service.byId(made.db).ok, true)
+      const want = EXPECT[dir].rows
+      assert.deepEqual([made.counts.objects, made.counts.views, made.counts.rows], [Object.keys(want).length, t.db.views.length, Object.values(want).reduce((a, b) => a + b, 0)], 'the structure, the views and every sample row')
+      const again = installTemplate({ service, template: t.db, sample, lang: 'en', markerFile })
       assert.equal(again.ok, true)
-      assert.equal(again.skipped, true, 'the same theme seeds once')
-      assert.deepEqual(base.counts().tables, counts.tables, 'a second seed adds nothing')
-      const cleared = base.clearDemo()
-      assert.equal(cleared.ok, true)
-      assert.deepEqual(cleared.removed, { note: want.notes, flow_card: want.cards, item: want.items, contact: want.contacts })
-      assert.deepEqual(base.counts().tables, { contact: 0, note: 0, item: 0, flow_card: 0 })
-      assert.equal(base.seed(sample, { theme }).skipped, false, 'a theme can seed again after the sample rows are cleared')
-    } finally { base.close(); rmSync(tmp, { recursive: true, force: true }) }
+      assert.equal(again.skipped, true, 'the same template installs once while its database exists')
+      assert.equal(again.db, made.db)
+      const bare = installTemplate({ service, template: Object.assign({}, t.db, { id: dir + '-bare' }), sample: null, lang: 'fr', markerFile })
+      assert.equal(bare.ok, true, JSON.stringify(bare))
+      assert.notEqual(bare.db, made.db)
+      assert.deepEqual([bare.counts.objects, bare.counts.views, bare.counts.rows], [Object.keys(want).length, t.db.views.length, 0], 'the structure and the views, no row')
+    } finally { try { service.close() } catch (e) { /* closed */ } rmSync(tmp, { recursive: true, force: true }) }
   })
 }
 
@@ -450,9 +283,7 @@ ok('the three themes can be installed together: no id is shared, and none is tak
     'skill': (t) => t.skills,
     'team': (t) => t.teams.map((x) => x.id),
     'automation': (t) => t.automations.map((x) => x.id),
-    'contacts schema': (t) => t.contacts.map((r) => r.value.id),
-    'catalog type': (t) => t.catalog.map((r) => r.value.id),
-    'pipeline board': (t) => t.pipeline.map((r) => r.value.id),
+    'database': (t) => [t.db.id],
   }
   for (const [kind, of] of Object.entries(kinds)) {
     const ids = all.flatMap(of)
@@ -469,7 +300,7 @@ ok('the three themes can be installed together: no id is shared, and none is tak
 const reader = join(REPO, 'packages', 'kybernos-plugin', 'themes-shipped.mjs')
 if (existsSync(reader)) {
   const { COVER_MAX, coverFile, readNext, readShipped } = await import(pathToFileURL(reader).href)
-  ok('readShipped lists the three themes, each with a name, an accent, the three words and the three business plugins it needs', () => {
+  ok('readShipped lists the three themes, each with a name, an accent, the database it ships and the plugins it needs', () => {
     const { themes, skipped } = readShipped(ROOT)
     assert.deepEqual(skipped, [], 'nothing is left out: ' + JSON.stringify(skipped))
     assert.deepEqual(themes.map((x) => x.dir).sort(), dirs)
@@ -478,9 +309,11 @@ if (existsSync(reader)) {
       assert.equal(x.id, 'kybernos-themes/' + x.dir)
       assert.ok(x.name.en && x.name.fr && x.description.en && x.description.fr)
       assert.match(x.accent, /^#[0-9a-fA-F]{6}$/)
-      assert.deepEqual(Object.keys(x.words).sort(), [...WORDS].sort())
-      for (const row of WORDS) assert.deepEqual(x.words[row], t.pack.menu.labels[row])
-      assert.deepEqual(x.needs, NEEDS, 'needs = the three business plugins in the order of the Business group, then the dashboards')
+      assert.deepEqual(x.words, {}, 'a shipped pack renames no row of the Business group')
+      assert.deepEqual(x.needs, NEEDS, 'needs = Tables, then the dashboards')
+      assert.deepEqual(x.db.objects, t.db.objects.map((o) => o.label), 'the tables of its database, named')
+      assert.equal(x.sample.total, Object.values(EXPECT[x.dir].rows).reduce((a, b) => a + b, 0), 'the sample rows, counted')
+      assert.deepEqual(x.sample.by.map((b) => b.n), Object.values(EXPECT[x.dir].rows), 'and counted table by table')
       assert.equal(x.tag, t.manifest.keywords[0][0].toUpperCase() + t.manifest.keywords[0].slice(1), 'the chip is the first keyword, capitalised')
       assert.deepEqual(x.why, t.why, 'the lines of why.json, one per plugin')
       assert.equal(x.cover, true, 'each theme ships its cover picture (the one media exception of AGENTS.md rule 4)')
@@ -489,7 +322,7 @@ if (existsSync(reader)) {
       assert.deepEqual(x.lists.teams, t.teams.map((y) => y.id))
       assert.deepEqual(x.lists.automations, t.automations.map((y) => y.id).sort())
       assert.deepEqual(x.adds, { skills: t.skills.length, teams: t.teams.length, automations: t.automations.length, connectors: x.adds.connectors })
-      assert.deepEqual(x.points, { contacts: 1, catalog: t.catalog.length, pipeline: t.pipeline.length })
+      assert.deepEqual(x.points, { db: 1 })
       assert.ok(x.adds.connectors >= 1, 'a card names the apps it suggests')
     }
   })

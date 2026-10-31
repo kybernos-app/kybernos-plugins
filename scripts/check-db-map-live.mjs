@@ -12,7 +12,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { cookieDeSession } from './cdp-lib.mjs'
-import { clickText, openLivePage } from './live-page.mjs'
+import { openLivePage } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -62,14 +62,14 @@ try {
   await page.send('Runtime.enable', {})
   await sleep(2500)
   const seeded = await post('/kybernos/themes', { action: 'seed', id: 'kybernos-themes/real-estate', lang: 'fr' })
-  const dbId = seeded.json && seeded.json.db && seeded.json.db.db
+  const dbId = seeded.json && seeded.json.db
   check('the real-estate database exists (made now or by an earlier run)', seeded.status === 200 && typeof dbId === 'string', seeded)
   const state = await get('/kybernos-db/state')
   const db = state.dbs.find((d) => d.id === dbId)
   const views = db && db.objects.find((o) => o.key === 'property').views
   check('its properties have a Map view, placed by their latitude and longitude', Array.isArray(views) && views.some((v) => v.kind === 'map' && v.lat === 'lat' && v.lng === 'lng'), views)
 
-  check('the page opens on the Tables row', (await clickText(page, 'Tables')) === true && (await until(() => ev(`document.querySelector('[data-kb="tables-bar"]') !== null`))) === true)
+  check('the page opens on the Tables row', (await click('.kb4-menu .kb4-item[aria-label="Tables"]')) === true && (await until(() => ev(`document.querySelector('[data-kb="tables-bar"]') !== null`))) === true)
   await until(() => ev(`(() => { const e = document.querySelector('[data-kb="tables-db"]'); if (e === null || ![...e.options].some((o) => o.value === ${JSON.stringify(dbId)})) return false; e.value = ${JSON.stringify(dbId)}; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === ${JSON.stringify(dbId)} })()`))
   await ev(`(() => { const t = [...document.querySelectorAll('[data-kb="tables-tab"]')].find((e) => e.getAttribute('data-object') === 'property'); if (t) t.setAttribute('data-chk', 'tab'); return 1 })()`)
   check('the Properties tab opens', (await click('[data-chk="tab"]')) === true && (await until(() => count(kb('tables-card')).then((n) => n > 0))) === true)

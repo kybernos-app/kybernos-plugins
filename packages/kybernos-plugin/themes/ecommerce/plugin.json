@@ -8,8 +8,8 @@
     "fr": "Boutique en ligne"
   },
   "description": {
-    "en": "An online shop: Customers, Products and Orders with sample data, a warm light style, a shop desk team, two skills and two automations that start switched off.",
-    "fr": "Une boutique en ligne : Clients, Produits et Commandes avec des données d’exemple, un style clair et chaleureux, une équipe d’accueil, deux compétences et deux automatisations créées désactivées."
+    "en": "An online shop: ready Tables (Contacts, Products, Orders) with sample data, a warm light style, a shop desk team, two skills and two automations that start switched off.",
+    "fr": "Une boutique en ligne : des Tables prêtes (Contacts, Produits, Commandes) avec des données d’exemple, un style clair et chaleureux, une équipe d’accueil, deux compétences et deux automatisations créées désactivées."
   },
   "keywords": [
     "commerce",
@@ -28,9 +28,7 @@
       "kybernos/core": "^1.0",
       "kybernos/theme": "^1.0",
       "kybernos/skills": "^1.0",
-      "kybernos/contacts": "^1.0",
-      "kybernos/catalog": "^1.0",
-      "kybernos/pipeline": "^1.0"
+      "kybernos/db": "^0.1"
     }
   },
   "extends": [
@@ -60,21 +58,6 @@
       "dir": "automations"
     },
     {
-      "point": "kybernos/contacts#schema",
-      "range": "^1.0",
-      "dir": "contacts"
-    },
-    {
-      "point": "kybernos/catalog#type",
-      "range": "^1.0",
-      "dir": "catalog"
-    },
-    {
-      "point": "kybernos/pipeline#flow",
-      "range": "^1.0",
-      "dir": "pipeline"
-    },
-    {
       "point": "kybernos/dashboards#preset",
       "range": "^1.0",
       "dir": "dashboards",
@@ -83,8 +66,7 @@
     {
       "point": "kybernos/db#template",
       "range": "^1.0",
-      "dir": "db",
-      "optional": true
+      "dir": "db"
     }
   ]
 }

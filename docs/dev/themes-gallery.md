@@ -15,8 +15,8 @@ the profile (« Added »), the install records (« Installed »). A card shows a
 the name, one line, the colour and style, and what it brings (plugins, skills).
 
 - **Shipped themes** are folders `packages/kybernos-plugin/themes/<dir>/` (data only, the shape of `docs/dev/sector-bundles.md`). `themes-shipped.mjs`
-  reads them (`readShipped`: name, tagline, accent, the words of the three Business rows, the style, `needs` = the plugins a theme requires beyond the
-  core's seams, counts and names of skills, teams, automations, connectors). `GET /kybernos/themes` answers them as `shipped`, never with the folder.
+  reads them (`readShipped`: name, tagline, accent, the word of the Tables row, the style, `needs` = the plugins a theme requires beyond the
+  core's seams, the tables of its database and its sample rows counted table by table, counts and names of skills, teams, automations, connectors). `GET /kybernos/themes` answers them as `shipped`, never with the folder.
   `POST /kybernos/themes { action: 'stage', shipped: '<plugin id>' }` stages one: the host knows the path, the page sends none, the level is `included`.
 - **Covers.** A shipped theme carries its picture as `cover.jpg` at the root of its folder, and the « next trades » as `themes/_next/<id>.jpg` listed in
   `themes/_next/next.json` (`[{ "id", "name": { "en", "fr" } }]`, at most 12). This is the one exception to AGENTS rule 4: a JPEG of at most 160 KB,
@@ -42,7 +42,7 @@ Hooks for tests: `data-kb` = `theme-grid`, `theme-card` (+ `data-theme`), `theme
 ## Not built yet
 
 Installing the plugins a theme needs together with the theme (the plan lists them and says which are missing; DSH's manager and the Suite switch them on),
-and seeding the sample rows (`demo/sample.json`) through the business base.
+and making the theme's database (`db/<id>.json`, with the sample rows of `demo/db-sample.json`) through the Tables seam; when Tables was off it is made after the restart (`applied.db.pending` in the install record).
 
 ## Tests
 

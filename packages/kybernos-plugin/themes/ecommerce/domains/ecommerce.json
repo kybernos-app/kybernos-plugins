@@ -36,18 +36,6 @@
       "tasks": {
         "en": "Customer follow-ups",
         "fr": "Suivi clients"
-      },
-      "contacts": {
-        "en": "Customers",
-        "fr": "Clients"
-      },
-      "catalog": {
-        "en": "Products",
-        "fr": "Produits"
-      },
-      "pipeline": {
-        "en": "Orders",
-        "fr": "Commandes"
       }
     }
   },

@@ -15,10 +15,10 @@ export const FORMAT = 1
 /** The rows of the Kybernos sidebar menu (SalesMenu in client.js): the only ones a pack may rename. */
 export const ROW_IDS = ['kyber', 'dashboards', 'aiteams', 'projects', 'deliverables', 'tasks', 'skills', 'connectors', 'documents']
 /**
- * The rows the business plugins declare in the « Business » group (window.__KB_MENU__ in client.js, docs/dev/business-menu.md): a pack renames them
- * the same way. The registry lives in the browser, so the host cannot read it: these are the ids the three business plugins are allowed to take.
+ * The rows the plugins declare in the « Business » group (window.__KB_MENU__ in client.js, docs/dev/business-menu.md): a pack renames them
+ * the same way. The registry lives in the browser, so the host cannot read it: these are the ids the group's plugins are allowed to take.
  */
-export const BUSINESS_ROW_IDS = ['contacts', 'catalog', 'pipeline']
+export const BUSINESS_ROW_IDS = ['tables']
 /** The rows a pack may hide: the others are the only door to a page. */
 export const HIDEABLE = ['documents']
 export const LANGS = ['en', 'fr', 'es', 'ar']

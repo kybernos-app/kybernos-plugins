@@ -1,2 +1,0 @@
-# A data theme loads nothing: its patch is an empty list. DSH installs a package only as a bundle, and this is the bundle.
-[]

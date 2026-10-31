@@ -1,3 +1,0 @@
-- insert:
-    - id: kybernos-pipeline
-      name: '@local/kybernos-pipeline'

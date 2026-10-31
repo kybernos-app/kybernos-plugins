@@ -40,18 +40,6 @@
       "tasks": {
         "en": "Follow-ups",
         "fr": "Relances"
-      },
-      "contacts": {
-        "en": "Contacts",
-        "fr": "Contacts"
-      },
-      "catalog": {
-        "en": "Properties",
-        "fr": "Biens"
-      },
-      "pipeline": {
-        "en": "Sales and lettings",
-        "fr": "Ventes et locations"
       }
     }
   },

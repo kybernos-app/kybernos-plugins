@@ -8,8 +8,8 @@
     "fr": "Agence immobilière"
   },
   "description": {
-    "en": "A real estate agency: Contacts, Properties and Sales and lettings with sample data, a warm light style, an agency desk team, two skills and three automations that start switched off.",
-    "fr": "Une agence immobilière : Contacts, Biens et Ventes et locations avec des données d’exemple, un style clair et chaleureux, une équipe d’agence, deux compétences et trois automatisations créées désactivées."
+    "en": "A real estate agency: ready Tables (Contacts, Properties, Sales and lettings) with sample data, a warm light style, an agency desk team, two skills and three automations that start switched off.",
+    "fr": "Une agence immobilière : des Tables prêtes (Contacts, Biens, Ventes et locations) avec des données d’exemple, un style clair et chaleureux, une équipe d’agence, deux compétences et trois automatisations créées désactivées."
   },
   "keywords": [
     "property",
@@ -28,9 +28,7 @@
       "kybernos/core": "^1.0",
       "kybernos/theme": "^1.0",
       "kybernos/skills": "^1.0",
-      "kybernos/contacts": "^1.0",
-      "kybernos/catalog": "^1.0",
-      "kybernos/pipeline": "^1.0"
+      "kybernos/db": "^0.1"
     }
   },
   "extends": [
@@ -60,21 +58,6 @@
       "dir": "automations"
     },
     {
-      "point": "kybernos/contacts#schema",
-      "range": "^1.0",
-      "dir": "contacts"
-    },
-    {
-      "point": "kybernos/catalog#type",
-      "range": "^1.0",
-      "dir": "catalog"
-    },
-    {
-      "point": "kybernos/pipeline#flow",
-      "range": "^1.0",
-      "dir": "pipeline"
-    },
-    {
       "point": "kybernos/dashboards#preset",
       "range": "^1.0",
       "dir": "dashboards",
@@ -83,8 +66,7 @@
     {
       "point": "kybernos/db#template",
       "range": "^1.0",
-      "dir": "db",
-      "optional": true
+      "dir": "db"
     }
   ]
 }

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleThemes } from './theme-installer.mjs'
-import { BUSINESS_PLUGINS, COVER_MAX, FILE_MAX, NEXT_MAX, PHOTO_MAX, SAMPLE_MAX, SHIPPED_MAX, STAGED_OWNER, coverFile, photoFile, previewFolder, publicView, readDbTemplate, readNext, readSample, readShipped, readTheme } from './themes-shipped.mjs'
+import { COVER_MAX, DB_OWNER, FILE_MAX, NEXT_MAX, PHOTO_MAX, SAMPLE_MAX, SHIPPED_MAX, coverFile, photoFile, previewFolder, publicView, readDbTemplate, readNext, readShipped, readTheme } from './themes-shipped.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 let count = 0
@@ -15,30 +15,34 @@ const json = (file, v) => { mkdirSync(dirname(file), { recursive: true }); write
 
 const root = mkdtempSync(join(tmpdir(), 'kb-shipped-'))
 try {
-  // a business theme written by hand: pack with words, a style, three kinds of kit, three business points
+  // a business theme written by hand: pack with a word, a style, three kinds of kit, a database with its sample rows
   const shop = join(root, 'shop')
   json(join(shop, 'plugin.json'), {
     contract: 1, id: 'kybernos-themes/shop', kind: 'data', version: '1.0.0', name: { en: 'E-commerce shop', fr: 'Boutique en ligne' }, description: { en: 'Answer customers faster.', fr: 'Réponds plus vite.' },
     keywords: ['commerce', 'shop'],
-    requires: { kybernos: '^0.1', plugins: { 'kybernos/core': '^1.0', 'kybernos/pipeline': '^1.0', 'kybernos/contacts': '^1.0', 'kybernos/catalog': '^1.0', 'kybernos/skills': '^1.0', 'acme/inbox': '^1.0' } },
+    requires: { kybernos: '^0.1', plugins: { 'kybernos/core': '^1.0', 'kybernos/db': '^0.1', 'kybernos/skills': '^1.0', 'acme/inbox': '^1.0' } },
+    extends: [{ point: 'kybernos/db#template', range: '^1.0', dir: 'db' }, { point: 'acme/rules#rule', range: '^1.0', dir: 'rules', optional: true }],
   })
   json(join(shop, 'domains', 'shop.json'), {
     id: 'shop', name: { en: 'E-commerce', fr: 'E-commerce' }, tagline: { en: 'Sell online', fr: 'Vendre en ligne' }, accent: '#c35e08', icon: 'bag',
-    menu: { labels: { contacts: { en: 'Customers', fr: 'Clients' }, catalog: { en: 'Products', fr: 'Produits' }, pipeline: 'Orders', dashboards: { en: 'Numbers' } } },
+    menu: { labels: { tables: { en: 'Shop data', fr: 'Données' }, contacts: { en: 'Customers', fr: 'Clients' }, dashboards: { en: 'Numbers' } } },
     goals: [{ id: 'g1', connectors: ['shopify', 'stripe'] }, { id: 'g2', connectors: ['stripe', 'gmail'] }, 'junk'],
   })
   json(join(shop, 'themes', 'shop.json'), { id: 'shop', name: { en: 'Warm light', fr: 'Lumière chaude' }, settings: { acc: '#c25e0a' } })
   json(join(shop, 'teams', 'desk.json'), { id: 'desk' })
   json(join(shop, 'automations', 'a.json'), { id: 'a' }); json(join(shop, 'automations', 'b.json'), { id: 'b' })
   json(join(shop, 'skills', 'order-replies', 'skill.json'), {}); json(join(shop, 'skills', 'stock-check', 'skill.json'), {})
-  json(join(shop, 'contacts', 'shop.json'), {}); json(join(shop, 'pipeline', 'orders.json'), {}); json(join(shop, 'pipeline', 'returns.json'), {})
+  // the database the theme ships: three tables, and sample rows in two of them
+  const SHOP_DB = { id: 'shop', name: { en: 'Shop' }, objects: [{ key: 'contact', label: { en: 'Customers', fr: 'Clients' } }, { key: 'item', label: { en: 'Products', fr: 'Produits' } }, { key: 'empty', label: { en: 'Nothing', fr: 'Rien' } }] }
+  const SHOP_ROWS = { rows: { contact: [{ ref: 'a', values: { name: 'Ann' } }, { ref: 'b', values: { name: 'Bco' } }], item: [{ values: { title: 'Mug' } }] } }
+  json(join(shop, 'db', 'shop.json'), SHOP_DB)
+  json(join(shop, 'demo', 'db-sample.json'), SHOP_ROWS)
   // a cover picture (the three bytes of a JPEG, then padding), one line per needed plugin, and the « next trades »
   const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(60, 1)])
   writeFileSync(join(shop, 'cover.jpg'), JPEG)
-  json(join(shop, 'why.json'), { 'kybernos/contacts': { en: 'Your customers.', fr: 'Tes clients.' }, 'kybernos/pipeline': 'Orders, new to delivered.', 'kybernos/skills': { en: 'not a business plugin' }, 'acme/inbox': { fr: 'no English: left out' } })
+  json(join(shop, 'why.json'), { 'kybernos/db': { en: 'Your customers.', fr: 'Tes clients.' }, 'acme/rules': 'Orders, new to delivered.', 'kybernos/pipeline': 'not needed', 'kybernos/skills': { en: 'not a business plugin' }, 'acme/inbox': { fr: 'no English: left out' } })
   json(join(root, '_next', 'next.json'), [{ id: 'consulting', name: { en: 'Consulting', fr: 'Conseil' } }, { id: 'law-firm', name: 'Law firm' }, { id: 'Bad Id', name: 'x' }, { id: 'nameless' }, { id: 'consulting', name: 'twice' }, 'junk'])
   writeFileSync(join(root, '_next', 'consulting.jpg'), JPEG)
-  json(join(shop, 'demo', 'sample.json'), { contacts: [{ ref: 'a', kind: 'person', type: 'customer', name: 'Ann' }, { ref: 'b', kind: 'company', type: 'customer', name: 'Bco' }], items: [{ ref: 'i', type: 'product', title: 'Mug', status: 'live' }], cards: [] })
   // folders that must be skipped, each for its own reason
   mkdirSync(join(root, 'empty'))
   json(join(root, 'code', 'plugin.json'), { id: 'acme/code', kind: 'code', name: 'Code' })
@@ -47,7 +51,7 @@ try {
   mkdirSync(join(root, 'Bad Name'))
   writeFileSync(join(root, 'file.txt'), 'not a folder')
 
-  ok('a theme folder is summarised for a card: name, line, colour, words of the Business rows, what it needs and adds', () => {
+  ok('a theme folder is summarised for a card: name, line, colour, the word of the Business row, what it needs, ships and adds', () => {
     const r = readTheme(root, 'shop')
     assert.equal(r.ok, true, JSON.stringify(r))
     const t = r.theme
@@ -57,10 +61,12 @@ try {
     assert.equal(t.accent, '#c35e08', 'the pack\'s colour first')
     assert.equal(t.icon, 'bag')
     assert.deepEqual(t.field, { en: 'E-commerce', fr: 'E-commerce' })
-    assert.deepEqual(t.words, { contacts: { en: 'Customers', fr: 'Clients' }, catalog: { en: 'Products', fr: 'Produits' }, pipeline: { en: 'Orders', fr: 'Orders' } }, 'only the three business rows; a text word is kept for both languages; dashboards is not a business row')
+    assert.deepEqual(t.words, { tables: { en: 'Shop data', fr: 'Données' } }, 'only the row of the Business group a pack may rename; the old rows are not words any more')
     assert.deepEqual(t.style, { id: 'shop', name: { en: 'Warm light', fr: 'Lumière chaude' }, accent: '#c25e0a' })
-    assert.deepEqual(t.needs, ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline', 'acme/inbox'], 'the business plugins first in their order, then the others; never core/theme/skills')
-    assert.deepEqual(t.points, { contacts: 1, pipeline: 2 })
+    assert.deepEqual(t.needs, ['kybernos/db', 'acme/inbox', 'acme/rules'], 'Tables first, then the others in order, the owner of an optional extension too; never core/theme/skills')
+    assert.deepEqual(t.points, { db: 1 })
+    assert.deepEqual(t.db, { objects: [{ en: 'Customers', fr: 'Clients' }, { en: 'Products', fr: 'Produits' }, { en: 'Nothing', fr: 'Rien' }] }, 'the tables of the database, named')
+    assert.deepEqual(t.sample, { total: 3, by: [{ label: { en: 'Customers', fr: 'Clients' }, n: 2 }, { label: { en: 'Products', fr: 'Produits' }, n: 1 }] }, 'the sample rows, table by table; a table with none is left out')
     assert.deepEqual(t.adds, { skills: 2, teams: 1, automations: 2, connectors: 3 }, 'connectors counted once each across goals')
     assert.equal(t.dir, 'shop')
     assert.equal(r.folder, join(root, 'shop'))
@@ -104,7 +110,7 @@ try {
     const t = readTheme(root, 'shop').theme
     assert.equal(t.tag, 'Commerce', 'the first keyword, with a capital')
     assert.equal(t.cover, true)
-    assert.deepEqual(t.why, { 'kybernos/contacts': { en: 'Your customers.', fr: 'Tes clients.' }, 'kybernos/pipeline': { en: 'Orders, new to delivered.', fr: 'Orders, new to delivered.' } }, 'only plugins the theme needs, only with English; a text stands for both languages')
+    assert.deepEqual(t.why, { 'kybernos/db': { en: 'Your customers.', fr: 'Tes clients.' }, 'acme/rules': { en: 'Orders, new to delivered.', fr: 'Orders, new to delivered.' } }, 'only plugins the theme needs, only with English; a text stands for both languages')
     assert.ok(readShipped(root).themes.every((x) => x.dir !== '_next'))
     assert.ok(readShipped(root).skipped.every((x) => x.dir !== '_next'))
   })
@@ -134,23 +140,24 @@ try {
     writeFileSync(join(root, 'shop', 'cover.jpg'), JPEG)
   })
 
-  ok('the sample rows a theme carries are counted for its card and read whole for the seed; a broken or oversized file is no sample', () => {
-    assert.deepEqual(readTheme(root, 'shop').theme.sample, { contacts: 2, items: 1, cards: 0, notes: 0 })
-    assert.equal(readSample(join(root, 'shop')).contacts.length, 2)
-    assert.equal(readSample(join(root, 'nowhere')), null)
-    writeFileSync(join(root, 'shop', 'demo', 'sample.json'), '[1,2]')
-    assert.equal(readSample(join(root, 'shop')), null, 'a list is not a sample')
+  ok('the sample rows of the database are counted for the card; a broken, oversized or empty file is no sample, and the template stays', () => {
+    const file = join(root, 'shop', 'demo', 'db-sample.json')
+    assert.equal(readTheme(root, 'shop').theme.sample.total, 3)
+    writeFileSync(file, '[1,2]')
+    assert.equal(readTheme(root, 'shop').theme.sample, null, 'a list is not a sample')
+    assert.ok(readTheme(root, 'shop').theme.db !== null, 'the database is still there')
+    writeFileSync(file, '{ broken')
     assert.equal(readTheme(root, 'shop').theme.sample, null)
-    writeFileSync(join(root, 'shop', 'demo', 'sample.json'), '{ broken')
-    assert.equal(readSample(join(root, 'shop')), null)
-    writeFileSync(join(root, 'shop', 'demo', 'sample.json'), JSON.stringify({ contacts: [], pad: 'x'.repeat(SAMPLE_MAX) }))
-    assert.equal(readSample(join(root, 'shop')), null, 'too big')
-    json(join(shop, 'demo', 'sample.json'), { contacts: [{ ref: 'a', kind: 'person', type: 'customer', name: 'Ann' }, { ref: 'b', kind: 'company', type: 'customer', name: 'Bco' }], items: [{ ref: 'i', type: 'product', title: 'Mug', status: 'live' }], cards: [] })
-    assert.equal(readTheme(root, 'shop').theme.sample.contacts, 2)
+    writeFileSync(file, JSON.stringify({ rows: {}, pad: 'x'.repeat(SAMPLE_MAX) }))
+    assert.equal(readTheme(root, 'shop').theme.sample, null, 'too big')
+    json(file, { rows: { contact: [] } })
+    assert.equal(readTheme(root, 'shop').theme.sample, null, 'no row at all is no sample')
+    json(file, SHOP_ROWS)
+    assert.equal(readTheme(root, 'shop').theme.sample.total, 3)
   })
 
-  ok('BUSINESS_PLUGINS are the three plugins of the Business group, in the menu\'s order', () => {
-    assert.deepEqual(BUSINESS_PLUGINS, ['kybernos/contacts', 'kybernos/catalog', 'kybernos/pipeline'])
+  ok('DB_OWNER is the plugin that owns the databases a theme ships', () => {
+    assert.equal(DB_OWNER, 'kybernos/db')
   })
 
   // the Themes route: the read lists them, `stage` takes the id
@@ -195,99 +202,62 @@ try {
     assert.equal(post({ action: 'stage', shipped: 'acme/vet-clinic' }, { session: () => ({ status: 401, error: 'sign-in required' }) }).status, 401)
   })
 
-  ok('seed: the sample rows go into the business base through its seam, with the theme id; the second time the base says skipped', () => {
+  ok('seed: the theme\'s database is made through the db seam, in the page\'s language, with the theme\'s own file, rows and pictures; the second time it says skipped', () => {
     const calls = []
     let skip = false
-    const business = { seed: (data, opts) => { calls.push([data, opts]); return skip ? { ok: true, skipped: true, theme: opts.theme } : { ok: true, theme: opts.theme, counts: { contacts: data.contacts.length, items: data.items.length, cards: 0, notes: 0 } } } }
-    const r = post({ action: 'seed', id: 'kybernos-themes/shop' }, { business })
-    assert.deepEqual([r.status, r.body.ok, r.body.skipped, r.body.counts], [200, true, false, { contacts: 2, items: 1, cards: 0, notes: 0 }])
+    const db = { install: (args) => { calls.push(args); return skip ? { ok: true, skipped: true, db: 'D1' } : { ok: true, db: 'D1', counts: { objects: 2, views: 3, rows: 4, photos: 1 } } } }
+    const photo = (spec) => spec
+    const r = post({ action: 'seed', id: 'kybernos-themes/shop', lang: 'fr' }, { db, photo })
+    assert.deepEqual([r.status, r.body], [200, { ok: true, skipped: false, db: 'D1', counts: { objects: 2, views: 3, rows: 4, photos: 1 } }])
     assert.equal(calls.length, 1)
-    assert.equal(calls[0][1].theme, 'kybernos-themes/shop')
-    assert.equal(calls[0][1].actor, 'theme')
-    assert.equal(calls[0][0].contacts[0].name, 'Ann', 'the rows are the theme\'s own file, not the page\'s')
+    assert.equal(calls[0].lang, 'fr')
+    assert.equal(calls[0].photo, photo)
+    assert.deepEqual(calls[0].template, SHOP_DB, 'the theme\'s own file, not the page\'s')
+    assert.deepEqual(calls[0].sample, SHOP_ROWS)
+    post({ action: 'seed', id: 'kybernos-themes/shop', sample: false }, { db })
+    assert.equal(calls[1].sample, null, 'the page can leave the sample rows out; the structure stays')
+    assert.deepEqual(calls[1].template, SHOP_DB)
+    post({ action: 'seed', id: 'kybernos-themes/shop', sample: 'no' }, { db })
+    assert.deepEqual(calls[2].sample, SHOP_ROWS, 'only false leaves them out')
+    for (const lang of [undefined, 'xx', 42, { en: 1 }]) { post({ action: 'seed', id: 'kybernos-themes/shop', lang }, { db }); assert.equal(calls[calls.length - 1].lang, 'en', JSON.stringify(lang)) }
     skip = true
-    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business }).body, { ok: true, skipped: true, counts: null })
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { db }).body, { ok: true, skipped: true, db: 'D1', counts: null })
   })
 
-  ok('seed: no seam, a seam that throws or refuses, a theme with no sample, an unknown theme, a bad id and the guards all answer plainly', () => {
-    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }).body, { ok: false, error: 'base_missing' })
-    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business: { seed: () => { throw new Error('boom') } } }).body, { ok: false, error: 'failed' })
-    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business: { seed: () => ({ ok: false, error: 'bad_ref', detail: 'company_ref: no such row' }) } }).body, { ok: false, error: 'bad_ref', detail: 'company_ref: no such row' })
-    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business: { seed: () => 'nonsense' } }).body, { ok: false, error: 'failed' })
-    assert.equal(post({ action: 'seed', id: 'acme/vet-clinic' }, { business: { seed: () => assert.fail('no sample: the base is not asked') } }).body.error, 'no-sample')
-    assert.equal(post({ action: 'seed', id: 'acme/other' }, { business: { seed: () => assert.fail('unknown theme') } }).body.error, 'no-sample')
+  ok('seed: no seam, a seam that refuses, throws or answers nonsense, a theme with no database, an unknown theme, a bad id and the guards all answer plainly', () => {
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }).body, { ok: false, error: 'db_off' }, 'Tables is off: a restart is due first')
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { db: {} }).body, { ok: false, error: 'db_off' }, 'a seam without install is no seam')
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { db: { install: () => ({ ok: false, error: 'rows', detail: 'a field' }) } }).body, { ok: false, error: 'rows', detail: 'a field' })
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { db: { install: () => { throw new Error('boom') } } }).body, { ok: false, error: 'failed' })
+    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { db: { install: () => 'nonsense' } }).body, { ok: false, error: 'failed' })
+    assert.equal(post({ action: 'seed', id: 'acme/vet-clinic' }, { db: { install: () => assert.fail('no database in that theme') } }).body.error, 'no-db')
+    assert.equal(post({ action: 'seed', id: 'acme/other' }, { db: { install: () => assert.fail('unknown theme') } }).body.error, 'no-db')
     assert.equal(post({ action: 'seed', id: '../etc' }).status, 400)
     assert.equal(post({ action: 'seed', id: 'kybernos-themes/shop' }, { sameOrigin: () => false }).status, 403)
     assert.equal(post({ action: 'seed', id: 'kybernos-themes/shop' }, { session: () => ({ status: 401, error: 'sign-in required' }) }).status, 401)
   })
 
-  ok('the owner of the databases a theme ships is not named as a need yet: no card lists it, no install would switch it on', () => {
-    const manifest = JSON.parse(readFileSync(join(shop, 'plugin.json'), 'utf8'))
-    const before = readTheme(root, 'shop').theme.needs
-    json(join(shop, 'plugin.json'), { ...manifest, extends: [...(manifest.extends || []), { point: 'kybernos/db#template', range: '^1.0', dir: 'db', optional: true }, { point: 'acme/inbox#rule', range: '^1.0', dir: 'rules', optional: true }] })
-    try {
-      assert.equal(STAGED_OWNER, 'kybernos/db')
-      assert.deepEqual(readTheme(root, 'shop').theme.needs, before, 'the owner of an optional extension is named, except this one')
-    } finally { json(join(shop, 'plugin.json'), manifest) }
-  })
-
   ok('readDbTemplate: the database a theme ships is read whole with its sample; a template that does not carry its file name, a broken or an oversized file is none', () => {
-    const dir = join(shop, 'db')
-    assert.equal(readDbTemplate(shop), null, 'no db folder: no template')
-    json(join(dir, 'shop.json'), { id: 'shop', name: { en: 'Shop' }, objects: [] })
-    assert.deepEqual(readDbTemplate(shop), { template: { id: 'shop', name: { en: 'Shop' }, objects: [] }, sample: null })
-    json(join(shop, 'demo', 'db-sample.json'), { rows: { thing: [] } })
-    assert.deepEqual(readDbTemplate(shop).sample, { rows: { thing: [] } })
-    writeFileSync(join(shop, 'demo', 'db-sample.json'), '{ broken')
-    assert.equal(readDbTemplate(shop).sample, null, 'a broken sample leaves the template, without rows')
-    writeFileSync(join(shop, 'demo', 'db-sample.json'), JSON.stringify({ rows: {}, pad: 'x'.repeat(SAMPLE_MAX) }))
-    assert.equal(readDbTemplate(shop).sample, null, 'too big')
-    json(join(dir, 'shop.json'), { id: 'other', objects: [] })
-    assert.equal(readDbTemplate(shop), null, 'the id is the name of the file')
-    writeFileSync(join(dir, 'shop.json'), JSON.stringify({ id: 'shop', pad: 'x'.repeat(SAMPLE_MAX) }))
-    assert.equal(readDbTemplate(shop), null, 'too big')
-    writeFileSync(join(dir, 'shop.json'), '[1]')
-    assert.equal(readDbTemplate(shop), null, 'a list is not a template')
-    assert.equal(readDbTemplate(join(root, 'nowhere')), null)
-    rmSync(dir, { recursive: true, force: true })
-    rmSync(join(shop, 'demo', 'db-sample.json'), { force: true })
-  })
-
-  ok('seed: a theme that ships a database has it made through the db seam, in the page’s language, with the theme’s pictures; the answer carries it beside the old seed', () => {
-    json(join(shop, 'db', 'shop.json'), { id: 'shop', name: { en: 'Shop' }, objects: [] })
-    json(join(shop, 'demo', 'db-sample.json'), { rows: {} })
-    const business = { seed: (data, opts) => ({ ok: true, theme: opts.theme, counts: { contacts: data.contacts.length, items: 1, cards: 0, notes: 0 } }) }
-    const calls = []
-    const db = { install: (args) => { calls.push(args); return { ok: true, db: 'D1', counts: { objects: 2, views: 3, rows: 4, photos: 1 } } } }
-    const photo = (spec) => spec
-    const r = post({ action: 'seed', id: 'kybernos-themes/shop', lang: 'fr' }, { business, db, photo })
-    assert.deepEqual(r.body, { ok: true, skipped: false, counts: { contacts: 2, items: 1, cards: 0, notes: 0 }, db: { ok: true, skipped: false, db: 'D1', counts: { objects: 2, views: 3, rows: 4, photos: 1 } } })
-    assert.equal(calls.length, 1)
-    assert.equal(calls[0].lang, 'fr')
-    assert.equal(calls[0].photo, photo)
-    assert.deepEqual(calls[0].template, { id: 'shop', name: { en: 'Shop' }, objects: [] }, 'the theme’s own file, not the page’s')
-    assert.deepEqual(calls[0].sample, { rows: {} })
-    for (const lang of [undefined, 'xx', 42, { en: 1 }]) { post({ action: 'seed', id: 'kybernos-themes/shop', lang }, { business, db }); assert.equal(calls[calls.length - 1].lang, 'en', JSON.stringify(lang)) }
-    assert.equal(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business, db: { install: () => ({ ok: true, skipped: true, db: 'D1' }) } }).body.db.skipped, true)
-  })
-
-  ok('seed: a db seam that refuses, throws or is absent never blocks the old seed; a theme with only a database is seeded through it; a page cannot ask for a db the theme does not ship', () => {
-    const business = { seed: () => ({ ok: true, counts: { contacts: 2, items: 1, cards: 0, notes: 0 } }) }
-    const refused = post({ action: 'seed', id: 'kybernos-themes/shop' }, { business, db: { install: () => ({ ok: false, error: 'rows', detail: 'a field' }) } }).body
-    assert.deepEqual([refused.ok, refused.db], [true, { ok: false, error: 'rows', detail: 'a field' }])
-    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business, db: { install: () => { throw new Error('boom') } } }).body.db, { ok: false, error: 'failed', detail: undefined })
-    assert.deepEqual(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business, db: { install: () => 'nonsense' } }).body.db, { ok: false, error: 'failed', detail: undefined })
-    assert.equal('db' in post({ action: 'seed', id: 'kybernos-themes/shop' }, { business }).body, false, 'no seam: the old answer, unchanged')
-    assert.equal('db' in post({ action: 'seed', id: 'kybernos-themes/shop' }, { business, db: {} }).body, false, 'a seam without install is no seam')
-    // a theme with no sample.json but with a database: the old base is not asked
-    rmSync(join(shop, 'demo', 'sample.json'))
-    const only = post({ action: 'seed', id: 'kybernos-themes/shop' }, { business: { seed: () => assert.fail('no sample: the base is not asked') }, db: { install: () => ({ ok: true, db: 'D2', counts: null }) } }).body
-    assert.deepEqual(only, { ok: true, skipped: true, counts: null, db: { ok: true, skipped: false, db: 'D2', counts: null } })
-    assert.equal(post({ action: 'seed', id: 'kybernos-themes/shop' }, { business }).body.error, 'no-sample', 'neither a sample nor a seam')
-    // a theme that ships no database is never offered to the seam
-    assert.equal(post({ action: 'seed', id: 'acme/vet-clinic' }, { business, db: { install: () => assert.fail('no database in that theme') } }).body.error, 'no-sample')
-    rmSync(join(shop, 'db'), { recursive: true, force: true })
-    rmSync(join(shop, 'demo', 'db-sample.json'), { force: true })
+    const bare = mkdtempSync(join(tmpdir(), 'kb-db-template-'))
+    try {
+      const dir = join(bare, 'db')
+      assert.equal(readDbTemplate(bare), null, 'no db folder: no template')
+      json(join(dir, 'shop.json'), { id: 'shop', name: { en: 'Shop' }, objects: [] })
+      assert.deepEqual(readDbTemplate(bare), { template: { id: 'shop', name: { en: 'Shop' }, objects: [] }, sample: null })
+      json(join(bare, 'demo', 'db-sample.json'), { rows: { thing: [] } })
+      assert.deepEqual(readDbTemplate(bare).sample, { rows: { thing: [] } })
+      writeFileSync(join(bare, 'demo', 'db-sample.json'), '{ broken')
+      assert.equal(readDbTemplate(bare).sample, null, 'a broken sample leaves the template, without rows')
+      writeFileSync(join(bare, 'demo', 'db-sample.json'), JSON.stringify({ rows: {}, pad: 'x'.repeat(SAMPLE_MAX) }))
+      assert.equal(readDbTemplate(bare).sample, null, 'too big')
+      json(join(dir, 'shop.json'), { id: 'other', objects: [] })
+      assert.equal(readDbTemplate(bare), null, 'the id is the name of the file')
+      writeFileSync(join(dir, 'shop.json'), JSON.stringify({ id: 'shop', pad: 'x'.repeat(SAMPLE_MAX) }))
+      assert.equal(readDbTemplate(bare), null, 'too big')
+      writeFileSync(join(dir, 'shop.json'), '[1]')
+      assert.equal(readDbTemplate(bare), null, 'a list is not a template')
+      assert.equal(readDbTemplate(join(root, 'nowhere')), null)
+    } finally { rmSync(bare, { recursive: true, force: true }) }
   })
 
   ok('skill: the host copies a skill the shipped theme carries, by name, through its own port; nothing else is asked of it', () => {
