@@ -203,6 +203,12 @@ dl.kv { margin: 0; display: grid; gap: 12px; }
 dl.kv div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: center; }
 dl.kv dt { color: var(--muted); font-size: 13px; }
 dl.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.editlist { display: grid; gap: 16px; }
+.fld.ro > .lab { color: var(--muted); font-weight: 400; }
+.fld.ro > :not(.lab) { min-width: 0; overflow-wrap: anywhere; }
+.editnote { display: grid; gap: 8px; justify-items: start; padding: 10px 12px; border-radius: 10px; background: var(--danger-soft); }
+.editnote p { margin: 0; }
+.editnote[hidden], .editnote [hidden] { display: none; }
 .hist { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
 .hist li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 10px; color: var(--ink2); font-size: 13px; }
 .hist li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); margin: 6px 0 0 4px; }

@@ -18,6 +18,12 @@ export const canCreate = (me, object) => isOwner(me) || (object.can !== undefine
 export const canArchive = (me) => isOwner(me)
 /** A field the actor may change on an existing row (a choice select in the detail, a card dropped in another column). */
 export const canUpdateField = (me, object, field) => isOwner(me) || (object.can !== undefined && object.can.update === true && field.access === 'write')
+/**
+ * A field the row detail edits in place: one the actor may update that a person types or picks. A choice keeps its own select in the detail (it saves as soon as it changes), a file and
+ * a person are not typed here, and a link is edited only when the table it points at is one the actor sees (`tables`: the keys of the tables of the app).
+ */
+export const canEditInPlace = (me, object, field, tables) => canUpdateField(me, object, field) && !['choice', 'attachment', 'person'].includes(field.type) && (field.type !== 'relation' || tables.has(field.to))
+export const editableFields = (me, object, tables) => object.fields.filter((f) => canEditInPlace(me, object, f, tables))
 /** A field the actor may fill when adding a row. A person field is left out: the page has no member list to pick from. */
 export const canWriteField = (me, object, field) => field.type !== 'person' && (isOwner(me) || (canCreate(me, object) && field.access === 'write'))
 
@@ -265,13 +271,39 @@ export function readForm (fields, raw) {
   return { values, errors }
 }
 
+const canon = (field, v) => {
+  if (field.type === 'checkbox') return v === true
+  if (v === undefined || v === null || v === '') return null
+  if (Array.isArray(v)) return v.length === 0 ? null : v.slice().sort()
+  return v
+}
+/** Do two values mean the same to the door? An empty text, an empty list and nothing are one; a list is a set. */
+export const sameValue = (field, a, b) => JSON.stringify(canon(field, a)) === JSON.stringify(canon(field, b))
+
+/**
+ * What to send to change a row: `raw` holds what was typed in the controls the person touched (same shapes as `readForm`), `record` is the row as it was read. Only a value that differs
+ * from the row is sent, and a field that was emptied goes as `null`. `{ values, errors: { <key>: message } }`; `values` is empty when nothing changed.
+ */
+export function readEdit (fields, raw, record) {
+  const values = {}
+  const errors = {}
+  for (const f of fields) {
+    if (!(f.key in raw)) continue
+    const one = readForm([f], { [f.key]: raw[f.key] })
+    if (one.errors[f.key] !== undefined) { errors[f.key] = one.errors[f.key]; continue }
+    const next = one.values[f.key] === undefined ? null : one.values[f.key]
+    if (!sameValue(f, next, record.values[f.key])) values[f.key] = next
+  }
+  return { values, errors }
+}
+
 const REASONS = {
   'owner-only': 'Only the owner can do that.',
   'no-profile': 'Your role does not give you access to this app.',
   'not-allowed': 'You do not have access to that.',
 }
 /**
- * What the door (or the edge) answered, as words for a person: `{ fields: { <key>: message }, message }`. Field errors come from the door's `errors` (`set.<key>`), the general
+ * What the door (or the edge) answered, as words for a person: `{ fields: { <key>: message }, message, conflict? }`. Field errors come from the door's `errors` (`set.<key>`), the general
  * message from its own text, or from what a status says.
  */
 export function readAnswer (status, body) {
@@ -286,6 +318,7 @@ export function readAnswer (status, body) {
     }
   }
   if (Object.keys(out.fields).length > 0) { out.message = 'Some fields need a look.'; return out }
+  if (b.error === 'conflict') { out.conflict = true; out.message = 'Someone else changed this row while you were editing it. Reload it to see their change, then make yours again.'; return out }
   if (status === 0) out.message = 'The server cannot be reached. Check your connection and try again.'
   else if (status === 401 || b.error === 'unauthenticated') out.message = 'Your session ended. Sign in again.'
   else if (status === 429 || b.error === 'rate-limited') {

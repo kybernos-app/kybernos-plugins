@@ -267,16 +267,21 @@ function mainEl (ctx) {
 
 function detailBody (ctx, object, record) {
   const { me, a } = ctx
-  const rows = object.fields.filter((f) => f.key !== object.title).map((f) => {
+  const edit = ctx.detail.edit
+  const shown = object.fields.filter((f) => f.key !== object.title || (edit !== null && edit.partOf(f.key) !== undefined))
+  /** A field as it is read: a select for a choice the actor may change (it saves as soon as it changes), else the value. */
+  const readOf = (f) => {
     const value = record.values[f.key]
-    let dd
     if (f.type === 'choice' && m.canUpdateField(me, object, f)) {
       const known = m.optionOf(f, value) !== undefined
-      dd = h('select', { class: 'input auto', id: 'd-' + f.key, 'aria-label': f.label, onchange: (e) => a.setField(object, record, f, e.target.value) },
+      return h('select', { class: 'input auto', id: 'd-' + f.key, 'aria-label': f.label, onchange: (e) => a.setField(object, record, f, e.target.value) },
         f.required && known ? null : h('option', { value: '' }, '—'), f.options.map((o) => h('option', { value: o.key, selected: o.key === value }, o.label)))
-    } else dd = renderValue(m.describe(f, value, ctx.resolve), { detail: true, open: a.open, fileUrl: (hashOf) => ctx.fileUrl(object.key, record.id, f.key, hashOf) })
-    return h('div', null, h('dt', null, f.label), h('dd', null, dd))
-  })
+    }
+    return renderValue(m.describe(f, value, ctx.resolve), { detail: true, open: a.open, fileUrl: (hashOf) => ctx.fileUrl(object.key, record.id, f.key, hashOf) })
+  }
+  const list = edit === null
+    ? h('dl', { class: 'kv' }, shown.map((f) => h('div', null, h('dt', null, f.label), h('dd', null, readOf(f)))))
+    : h('div', { class: 'editlist' }, shown.map((f) => { const part = edit.partOf(f.key); return part !== undefined ? part.ctl.node : h('div', { class: 'fld ro' }, h('span', { class: 'lab' }, f.label), readOf(f)) }))
   const by = (who) => { const w = m.byWords(who); return w === '' ? '' : ' by ' + w }
   const history = []
   if (record.rev > 1 || record.modified.at !== record.created.at) history.push(h('li', null, h('span', null, 'Last changed' + by(record.modified.by), h('small', null, m.fmtStamp(record.modified.at)))))
@@ -284,16 +289,17 @@ function detailBody (ctx, object, record) {
   const groups = ctx.detail.links ?? []
   const visible = new Set(ctx.app.objects.map((o) => o.key))
   return [
-    h('dl', { class: 'kv' }, rows),
+    edit === null ? null : edit.banner,
+    list,
     groups.length === 0 ? null : h('div', { class: 'detail-section' }, h('h2', null, 'Linked here'), groups.map((g) => h('div', { class: 'group' }, h('b', null, g.objectLabel + ' · ' + g.fieldLabel),
       h('span', { class: 'chips' }, g.records.map((r) => {
         const title = r.title === '' ? 'Untitled' : r.title
         const inner = [h('i', { 'aria-hidden': 'true' }, m.initials(title)), h('span', null, title)]
         return visible.has(g.object) ? h('button', { type: 'button', class: 'chip', onclick: () => a.open(g.object, r.id) }, inner) : h('span', { class: 'chip' }, inner)
       }))))),
-    m.isOwner(me) ? null : h('p', { class: 'note' }, icon('lock'), 'You see the fields your role allows.'),
+    m.isOwner(me) ? null : h('p', { class: 'note' }, icon('lock'), edit === null ? 'You see the fields your role allows.' : 'Fields your role cannot change stay as they are.'),
     h('div', { class: 'detail-section' }, h('h2', null, 'History'), h('ul', { class: 'hist' }, history)),
-    m.canArchive(me) ? archiveBox(ctx, object, record) : null,
+    m.canArchive(me) && edit === null ? archiveBox(ctx, object, record) : null,
   ]
 }
 
@@ -310,7 +316,13 @@ export function detailDrawer (ctx) {
   const object = ctx.app.objects.find((o) => o.key === detail.object)
   const record = ctx.recordOf(detail.object, detail.id)
   if (object === undefined || record === undefined) return []
-  return drawerBox({ label: m.titleOf(object, record), title: m.titleOf(object, record), body: detailBody(ctx, object, record), onClose: ctx.a.closeDrawer })
+  const edit = detail.edit
+  const canEdit = edit === null && m.editableFields(ctx.me, object, new Set(ctx.app.objects.map((o) => o.key))).length > 0
+  return drawerBox({
+    label: m.titleOf(object, record), title: m.titleOf(object, record), body: detailBody(ctx, object, record), onClose: ctx.a.closeDrawer,
+    actions: canEdit ? h('button', { type: 'button', class: 'btn sm', onclick: ctx.a.startEdit }, icon('edit'), 'Edit') : null,
+    footer: edit === null ? null : edit.footer, onsubmit: edit === null ? undefined : ctx.a.saveEdit, lockScrim: edit !== null,
+  })
 }
 
 // ── the page ──

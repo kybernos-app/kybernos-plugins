@@ -326,6 +326,25 @@ async function main () {
   check('a viewer reads orders and products, no other table', vOrders.ok && (await records(m2, 'product')).ok && (await api(m2, 'shop', 'records?object=contact')).status === 403 && (await api(m2, 'shop', 'records?object=note')).status === 403)
   check('a viewer cannot create or update anything', (await write(m2, { title: 'x' }, 'orders', 'create')).status === 403 && (await write(m2, { title: 'x' }, 'orders', 'update', orderId)).status === 403 && (await write(m2, { stock: 1 }, 'product', 'update', candleId)).status === 403)
 
+  // in-place editing: an update may name the revision it read, and a row that has moved on is a conflict (the door has no such precondition; the edge checks it)
+  const withRev = (b, object, id, values, rev) => api(b, 'shop', 'write', { method: 'POST', json: { object, op: 'update', id, values, rev } })
+  const titleNow = async () => (await records(owner, 'orders')).records.find((r) => r.id === orderId)
+  const read0 = await titleNow()
+  const revOk = await withRev(m1, 'orders', orderId, { title: '#2001 by revision' }, read0.rev)
+  check('an update that names the revision it read is applied, and answers the next revision', revOk.status === 200 && revOk.body.record.values.title === '#2001 by revision' && revOk.body.record.rev === read0.rev + 1, revOk.status + ' ' + revOk.body?.record?.rev + '/' + read0.rev)
+  const revStale = await withRev(owner, 'orders', orderId, { title: '#2001 from a stale read' }, read0.rev)
+  const read1 = await titleNow()
+  check('the same revision again is a conflict (409, « conflict », the current revision) and nothing is written', revStale.status === 409 && revStale.body.ok === false && revStale.body.error === 'conflict' && revStale.body.rev === read1.rev && read1.values.title === '#2001 by revision' && read1.rev === read0.rev + 1, revStale.status + ' ' + JSON.stringify(revStale.body))
+  const revMixed = await withRev(m1, 'orders', orderId, { title: '#2001 mixed', status: read1.values.status }, read0.rev)
+  check('a member with a stale revision is refused the same way, whatever the fields', revMixed.status === 409 && (await titleNow()).values.title === '#2001 by revision')
+  const revNone = await write(owner, { title: '#2001 no revision' }, 'orders', 'update', orderId)
+  check('an update with no revision is last-writer-wins, as before', revNone.status === 200 && (await titleNow()).values.title === '#2001 no revision')
+  const revBad = await Promise.all([withRev(owner, 'orders', orderId, { title: 'x' }, '3'), withRev(owner, 'orders', orderId, { title: 'x' }, 0), withRev(owner, 'orders', orderId, { title: 'x' }, 1.5), withRev(owner, 'orders', orderId, { title: 'x' }, null)])
+  check('a revision that is not a whole number from 1 is refused (400) and nothing is written', revBad.every((r) => r.status === 400) && (await titleNow()).values.title === '#2001 no revision', revBad.map((r) => r.status).join())
+  const cur = await titleNow()
+  const revRights = [await withRev(m1, 'product', candleId, { price: 1 }, (await records(owner, 'product')).records[0].rev), await withRev(m2, 'orders', orderId, { title: 'x' }, cur.rev), await withRev(m1, 'orders', 'NOT-A-ROW', { title: 'x' }, 1)]
+  check('naming a current revision opens nothing: a field the profile refuses (403), a viewer (403), an unknown row (404)', revRights.map((r) => r.status).join() === '403,403,404' && (await titleNow()).values.title === '#2001 no revision', revRights.map((r) => r.status).join())
+
   // the journal says who: the owner as « person », a member as member:<id>
   const spy = makeService({ dir: join(data, 'apps', 'shop') })
   const j = spy.byId(shopId).db.journal({ object: 'orders', record: orderId })

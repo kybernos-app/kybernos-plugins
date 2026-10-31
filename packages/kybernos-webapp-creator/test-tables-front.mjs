@@ -179,6 +179,45 @@ ok('a form reads typed text into values, and says what is wrong where', () => {
   assert.equal(m.parseNumber(''), null)
 })
 
+ok('what the row detail edits in place: what the actor may update and a person types or picks', () => {
+  const tables = new Set(['contacts', 'companies'])
+  assert.deepEqual(m.editableFields(OWNER, contacts, tables).map((f) => f.key), ['name', 'email', 'since', 'spend', 'company', 'note'], 'no choice (its select saves on change), no person')
+  const member = { ...contacts, can: { create: false, update: true }, fields: contacts.fields.map((f) => ({ ...f, access: ['name', 'since', 'company'].includes(f.key) ? 'write' : 'read' })) }
+  assert.deepEqual(m.editableFields(MEMBER, member, tables).map((f) => f.key), ['name', 'since', 'company'], 'only what the profile lets this actor write')
+  assert.deepEqual(m.editableFields(MEMBER, { ...member, can: { create: true, update: false } }, tables), [], 'a profile that cannot update edits nothing')
+  assert.deepEqual(m.editableFields(MEMBER, contacts, tables), [], 'no `can`, no editing')
+  assert.deepEqual(m.editableFields(MEMBER, member, new Set(['contacts'])).map((f) => f.key), ['name', 'since'], 'a link to a table this actor cannot see is not offered')
+  const files = { ...contacts, fields: [{ key: 'doc', type: 'attachment', label: 'Doc', access: 'write' }], can: { update: true } }
+  assert.deepEqual(m.editableFields(MEMBER, files, tables), [], 'files are not typed here')
+})
+
+ok('an edit sends only what changed, null for what was emptied, and says what is wrong', () => {
+  const row = rec('A', { name: 'Ada', email: 'ada@example.test', since: '2026-01-05', spend: 24.5, company: 'C1', note: null })
+  const f = (keys) => contacts.fields.filter((x) => keys.includes(x.key))
+  assert.deepEqual(m.readEdit(f(['name']), { name: 'Ada' }, row), { values: {}, errors: {} }, 'the same text is no change')
+  assert.deepEqual(m.readEdit(f(['name']), { name: '  Grace ' }, row), { values: { name: 'Grace' }, errors: {} }, 'trimmed, and only that field')
+  assert.deepEqual(m.readEdit(f(['name']), { name: '' }, row).errors, { name: 'Name is required.' }, 'a required field cannot be emptied')
+  assert.deepEqual(m.readEdit(f(['email']), { email: '' }, row), { values: { email: null }, errors: {} }, 'an optional one is emptied with null')
+  assert.deepEqual(m.readEdit(f(['email']), { email: 'nope' }, row).errors, { email: 'Enter a full email address, like name@company.com.' })
+  assert.deepEqual(m.readEdit(f(['spend']), { spend: '24,50' }, row), { values: {}, errors: {} }, '24,50 is the 24.5 it already was')
+  assert.deepEqual(m.readEdit(f(['spend']), { spend: '30' }, row), { values: { spend: 30 }, errors: {} })
+  assert.deepEqual(m.readEdit(f(['spend']), { spend: 'lots' }, row).errors, { spend: 'Enter an amount, for example 24.50.' })
+  assert.deepEqual(m.readEdit(f(['since']), { since: '2026-02-01' }, row).values, { since: '2026-02-01' })
+  assert.deepEqual(m.readEdit(f(['note']), { note: '' }, row), { values: {}, errors: {} }, 'empty over nothing is no change')
+  assert.deepEqual(m.readEdit(f(['company']), { company: 'C2' }, row).values, { company: 'C2' })
+  assert.deepEqual(m.readEdit(f(['company']), { company: '' }, row).values, { company: null }, 'a link cleared')
+  const group = { key: 'people', type: 'relation', label: 'People', to: 'contacts', many: true }
+  const withPeople = rec('B', { people: ['P2', 'P1'] })
+  assert.deepEqual(m.readEdit([group], { people: ['P1', 'P2'] }, withPeople).values, {}, 'a list is a set: the order is no change')
+  assert.deepEqual(m.readEdit([group], { people: ['P1'] }, withPeople).values, { people: ['P1'] })
+  assert.deepEqual(m.readEdit([group], { people: [] }, withPeople).values, { people: null }, 'an empty list is null')
+  const tick = { key: 'vip', type: 'checkbox', label: 'VIP' }
+  assert.deepEqual(m.readEdit([tick], { vip: true }, rec('C', { vip: false })).values, { vip: true })
+  assert.deepEqual(m.readEdit([tick], { vip: false }, rec('C', { vip: null })).values, {}, 'false over nothing is no change')
+  assert.deepEqual(m.readEdit(f(['name', 'email']), { name: 'Grace' }, row).values, { name: 'Grace' }, 'a control that was not touched is never read, nor sent')
+  assert.equal(m.sameValue({ type: 'text' }, undefined, null), true)
+})
+
 ok('each type has the control a person expects', () => {
   const control = (type, extra = {}) => m.controlOf({ key: 'k', type, label: 'K', ...extra })
   assert.equal(control('text'), 'text')
@@ -190,6 +229,14 @@ ok('each type has the control a person expects', () => {
   assert.equal(control('relation', { to: 'x', many: true }), 'links')
   assert.equal(control('relation', { to: 'x' }), 'link')
   assert.equal(control('attachment'), 'file')
+})
+
+ok('a revision conflict is a plain sentence with a way to go on', () => {
+  const a = m.readAnswer(409, { ok: false, error: 'conflict', message: 'this row was changed by someone else since you read it', rev: 4 })
+  assert.equal(a.conflict, true)
+  assert.match(a.message, /^Someone else changed this row while you were editing it\. Reload it/)
+  assert.deepEqual(a.fields, {})
+  assert.equal(m.readAnswer(409, { ok: false, error: 'archived', message: 'the record is archived' }).conflict, undefined, 'another 409 is not a conflict')
 })
 
 ok('the door and the edge answers are read as sentences, field errors first', () => {

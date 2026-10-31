@@ -1,9 +1,9 @@
 // main.mjs — the state of the page and what the page does: sign in, load the apps this person may see, follow the hash route, load a table's rows, and carry out the actions the
-// views ask for (open a row, add one, move a card, archive). Rights are the server's: a control is drawn only when model.mjs says the door allowed it, and a refusal from the door
+// views ask for (open a row, add one, edit it in place, move a card, archive). Rights are the server's: a control is drawn only when model.mjs says the door allowed it, and a refusal from the door
 // is shown as the answer. No framework: every change rebuilds the page from the state (keeping focus, scroll and a form being filled), typing in the search rebuilds only the results.
 import { makeApi } from './api.mjs'
 import { fill, h } from './dom.mjs'
-import { addDrawer, passwordDrawer } from './forms.mjs'
+import { addDrawer, makeEditor, passwordDrawer } from './forms.mjs'
 import * as m from './model.mjs'
 import { PAGE, detailDrawer, messageView, resultsEl, shell, signInView } from './views.mjs'
 
@@ -18,7 +18,7 @@ const S = {
   route: { slug: '', object: '', view: 'table' },
   ui: { q: '', filter: '', sort: 'new', group: '', shown: PAGE, nav: false, passwordSkipped: false },
   cache: new Map(), // `<slug>/<object>` → { status: 'loading' | 'ready' | 'error', records, byId, message }
-  drawer: null, // null | { kind: 'add' | 'password', nodes } | { kind: 'detail', object, id, confirm, links }
+  drawer: null, // null | { kind: 'add' | 'password', nodes } | { kind: 'detail', object, id, confirm, links, edit (null, or the editor of forms.mjs) }
   focusDrawer: false,
   returnTo: null, // what to give focus back to when the drawer closes
   notice: '',
@@ -231,9 +231,73 @@ async function setField (object, record, field, value) {
   }
   const entry = entryOf(object.key)
   store(S.route.slug, object.key, { status: 'ready', records: entry.records.map((x) => (x.id === record.id ? r.body.record : x)), message: '' })
+  // a change of status made while the row is being edited is the person's own: the edit goes on from the new revision
+  if (S.drawer !== null && S.drawer.kind === 'detail' && S.drawer.id === record.id && S.drawer.edit !== null) S.drawer.edit.rev = r.body.record.rev
   render()
   const option = m.optionOf(field, next)
   toast(next === null ? m.titleOf(object, r.body.record) + ': ' + field.label.toLowerCase() + ' cleared' : m.titleOf(object, r.body.record) + ' is now ' + (option === undefined ? next : option.label))
+}
+
+// ── editing a row in place ──
+function startEdit () {
+  const d = S.drawer
+  const object = appNow().objects.find((o) => o.key === d.object)
+  const record = recordOf(d.object, d.id)
+  if (record === undefined) return
+  const fields = m.editableFields(S.me, object, new Set(appNow().objects.map((o) => o.key)))
+  if (fields.length === 0) return
+  d.edit = makeEditor(context(), object, record, fields, { onCancel: cancelEdit, onReload: reloadRow })
+  render()
+  d.edit.parts[0].ctl.focus()
+}
+function cancelEdit () {
+  if (S.drawer === null || S.drawer.kind !== 'detail') return
+  S.drawer.edit = null
+  render()
+  root.querySelector('.drawer .dh .btn:not(.icon)')?.focus({ preventScroll: true })
+}
+/** Reads the row again from the server, drops the edit and shows the row as it is now. */
+async function reloadRow () {
+  const d = S.drawer
+  const slug = S.route.slug
+  const rows = await fetchRows(slug, d.object)
+  if (rows.status === 'expired') return sessionEnded()
+  if (rows.status !== 'ready') { d.edit.show({}, rows.message, true); return }
+  store(slug, d.object, rows)
+  if (S.drawer !== d) return
+  d.edit = null
+  if (recordOf(d.object, d.id) === undefined) { closeDrawer(); toast('That row is not there any more.', true); return }
+  render()
+  toast('Row reloaded')
+}
+async function saveEdit (e) {
+  e.preventDefault()
+  const d = S.drawer
+  const edit = d.edit
+  if (edit === null || edit.saving) return
+  const object = appNow().objects.find((o) => o.key === d.object)
+  const record = recordOf(d.object, d.id)
+  edit.clear()
+  const { values, errors } = m.readEdit(edit.parts.map((p) => p.field), edit.raw(), record)
+  if (Object.keys(errors).length > 0) { edit.show(errors, 'Some fields need a look.'); return }
+  if (Object.keys(values).length === 0) { d.edit = null; render(); toast('Nothing changed'); return }
+  edit.saving = true
+  edit.busy(true)
+  const r = await api.write(S.route.slug, { object: object.key, op: 'update', id: record.id, values, rev: edit.rev })
+  edit.saving = false
+  edit.busy(false)
+  if (r.status === 401) return sessionEnded()
+  if (S.drawer !== d || d.edit !== edit) return
+  if (!r.ok) {
+    const a = m.readAnswer(r.status, r.body)
+    edit.show(a.fields, a.message, a.conflict === true)
+    return
+  }
+  const entry = entryOf(object.key)
+  store(S.route.slug, object.key, { status: 'ready', records: entry.records.map((x) => (x.id === record.id ? r.body.record : x)), message: '' })
+  d.edit = null
+  render()
+  toast('Saved ' + m.titleOf(object, r.body.record))
 }
 
 async function archive () {
@@ -290,7 +354,7 @@ const actions = {
       store(slug, objectKey, rows)
     }
     if (recordOf(objectKey, id) === undefined) return
-    openDrawer({ kind: 'detail', object: objectKey, id, confirm: false, links: null })
+    openDrawer({ kind: 'detail', object: objectKey, id, confirm: false, links: null, edit: null })
     render()
     const mine = S.drawer
     const r = await api.links(slug, objectKey, id)
@@ -311,6 +375,8 @@ const actions = {
     if (record !== undefined && field !== undefined) setField(object, record, field, columnKey)
   },
   setField,
+  startEdit,
+  saveEdit,
   askArchive () { S.drawer.confirm = true; render() },
   cancelArchive () { S.drawer.confirm = false; render() },
   archive,

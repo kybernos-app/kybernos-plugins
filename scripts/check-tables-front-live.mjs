@@ -4,9 +4,10 @@
 //
 // Needs Chrome (CHROME=<binary>, else the macOS app or google-chrome / chromium on PATH) and the app's three dependencies, as scripts/check-tables-app.mjs does
 // (TABLES_APP_NODE_MODULES=<a node_modules that holds them>, else one npm ci in a temporary folder). It builds the app, seeds a small coffee roastery (customers, products, orders,
-// an empty sample-requests table; a Fulfilment and a Sales profile), boots it on a free port (never :3080) and drives the page like a person: the owner's link, the sign-in, the
+// an empty sample-requests table; a Fulfilment, a Sales and a Desk profile), boots it on a free port (never :3080) and drives the page like a person: the owner's link, the sign-in, the
 // Table, Board and Relations tabs, search, filter and sort, a row's detail and its status, a card dragged to another column, adding a row with its errors, archiving with its
-// confirmation, the People page, the invitation page, then a member with fewer rights, then a phone-sized window. The page policy is checked in the browser itself: not one
+// confirmation, a row edited in place (the owner's text and links, a value the page refuses and one the door refuses, a conflict with someone else's change), the People page, the
+// invitation page, then a member who may only read, a member who may edit part of a row (no hidden field in sight or on the wire), then a phone-sized window. The page policy is checked in the browser itself: not one
 // console error or policy violation, no `style` attribute and no inline script in the DOM at any step. Screenshots go to --shots (not into the repo); nothing is kept otherwise.
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
@@ -99,6 +100,11 @@ function seed (dir) {
       { object: 'customers', do: ['read'] },
       { object: 'products', do: ['read'] },
     ] },
+    { id: 'desk', label: 'Desk', grants: [
+      { object: 'orders', do: ['read', 'update'], fields: { number: 'write', customer: 'write', products: 'write', total: 'read', placed: 'write', notes: 'write', status: 'write' } },
+      { object: 'customers', do: ['read', 'update'], fields: { name: 'read', type: 'read', city: 'write' } },
+      { object: 'products', do: ['read'] },
+    ] },
     { id: 'sales', label: 'Sales', grants: [
       { object: 'customers', do: ['read', 'create', 'update'], fields: { email: 'write', phone: 'write' } },
       { object: 'orders', do: ['read', 'create'] },
@@ -162,6 +168,7 @@ async function main () {
   const invite = async (role, email) => (await (await call('/api/people/invitations', { method: 'POST', json: { role, email }, token: csrf })).json())
   const sam = await invite('fulfilment', 'sam@example.test')
   const lena = await invite('sales', 'lena@example.test')
+  const dana = await invite('desk', 'dana@example.test')
   const loose = await invite('sales')
   const tokenOf = (l) => new URL(l).searchParams.get('t')
   // a member can only be made through the page that accepts an invitation: it needs the csrf cookie of its own browser
@@ -173,8 +180,8 @@ async function main () {
     const token = (await r1.json()).token
     return fetch(BASE + '/api/invitations/accept', { method: 'POST', headers: { ...jarH(), 'content-type': 'application/json', 'x-csrf-token': token }, body: JSON.stringify({ token: tokenOf(inv.link), name, password }) })
   }
-  const PW = { sam: 'sam-password-123', lena: 'lena-password-123', owner: 'owner-password-123' }
-  check('two members are made (Fulfilment and Sales)', (await acceptAs(sam, 'Sam Okafor', PW.sam)).status === 200 && (await acceptAs(lena, 'Lena Brandt', PW.lena)).status === 200)
+  const PW = { sam: 'sam-password-123', lena: 'lena-password-123', dana: 'dana-password-123', owner: 'owner-password-123' }
+  check('three members are made (Fulfilment, Sales and Desk)', (await acceptAs(sam, 'Sam Okafor', PW.sam)).status === 200 && (await acceptAs(lena, 'Lena Brandt', PW.lena)).status === 200 && (await acceptAs(dana, 'Dana Reyes', PW.dana)).status === 200)
   check('an open invitation is kept for the invitation page', typeof loose.link === 'string')
 
   group('the browser')
@@ -190,8 +197,8 @@ async function main () {
   if (target === null) return
   const tab = await connect(target)
   const problems = []
-  let refusals = 0 // the one refused write the run provokes on purpose (a row archived under the page's feet): the browser logs every 4xx
-  tab.on('Log.entryAdded', (p) => { if (p.entry && String(p.entry.url).endsWith('/api/apps/shop/write') && /status of 400/.test(p.entry.text)) refusals++; else if (p.entry && (p.entry.level === 'error' || p.entry.source === 'security') && !String(p.entry.url).endsWith('/api/auth/sign-in/email')) problems.push(p.entry.source + ': ' + String(p.entry.text).slice(0, 160) + ' ' + (p.entry.url ?? '')) })
+  const refusals = { 400: 0, 403: 0, 409: 0 } // the refused writes the run provokes on purpose, by status: the browser logs every 4xx
+  tab.on('Log.entryAdded', (p) => { const refused = p.entry ? /status of (400|403|409)\b/.exec(p.entry.text) : null; if (refused !== null && String(p.entry.url).endsWith('/api/apps/shop/write')) refusals[refused[1]]++; else if (p.entry && (p.entry.level === 'error' || p.entry.source === 'security') && !String(p.entry.url).endsWith('/api/auth/sign-in/email')) problems.push(p.entry.source + ': ' + String(p.entry.text).slice(0, 160) + ' ' + (p.entry.url ?? '')) })
   tab.on('Runtime.exceptionThrown', (p) => problems.push('exception: ' + String((p.exceptionDetails && (p.exceptionDetails.exception && p.exceptionDetails.exception.description || p.exceptionDetails.text)) || '').slice(0, 200)))
   tab.on('Runtime.consoleAPICalled', (p) => { if (p.type === 'error') problems.push('console: ' + (p.args || []).map((a) => a.value ?? a.description ?? '').join(' ').slice(0, 200)) })
   for (const m of ['Page.enable', 'Runtime.enable', 'Log.enable']) await tab.send(m)
@@ -214,6 +221,19 @@ async function main () {
   }
   const api = (path, init) => ev(`fetch(${JSON.stringify(path)}, ${JSON.stringify(init ?? {})}).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }))`)
   const saved = async (object) => (await api('/api/apps/shop/records?object=' + object)).body.records
+  /** A write from the page, as the signed-in person (the page's own csrf token). */
+  const writeNow = async (payload) => api('/api/apps/shop/write', { method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': (await api('/api/csrf')).body.token }, body: JSON.stringify(payload) })
+  /** The control of an edited field, found by its label. */
+  const inField = (label, js) => ev(`(() => { const f = [...document.querySelectorAll('.editlist .fld')].find((x) => ((x.querySelector(':scope > label, :scope > .lab') ?? x.querySelector('label'))?.textContent ?? '').trim().startsWith(${JSON.stringify(label)})); if (!f) throw new Error('no field ' + ${JSON.stringify(label)}); ${js}; return true })()`)
+  const typeIn = (label, value) => inField(label, `const el = f.querySelector('input, textarea, select'); el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true }))`)
+  const tick = (label, option) => inField(label, `const o = [...f.querySelectorAll('.opt')].find((x) => x.textContent.includes(${JSON.stringify(option)})); if (!o) throw new Error('no option ' + ${JSON.stringify(option)}); o.querySelector('input').click()`)
+  const labelsIn = (sel) => ev(`[...document.querySelectorAll(${JSON.stringify(sel)})].map((f) => ((f.querySelector(':scope > label, :scope > .lab') ?? f.querySelector('label'))?.textContent ?? '').replace(/Required$/, '').trim())`)
+  const openRow = async (contains) => {
+    await ev(`[...document.querySelectorAll('tbody tr')].find((r) => r.textContent.includes(${JSON.stringify(contains)})).querySelector('.rowlink').click()`)
+    await until(`document.querySelector('.drawer') !== null`, 'the drawer of ' + contains)
+  }
+  const toasted = (part) => until(`document.querySelector('.toast') && !document.querySelector('.toast').hidden && document.querySelector('.toast').textContent.includes(${JSON.stringify(part)})`, 'the toast « ' + part + ' »')
+  const closeDrawer = async () => { await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`); await until(`document.querySelector('.drawer') === null`, 'the drawer closed') }
 
   // ── sign-in screen ──
   group('sign-in')
@@ -234,7 +254,7 @@ async function main () {
   await go(openLink())
   await until(`document.querySelector('.shell h1') !== null && document.querySelector('table') !== null`, 'the Orders table')
   check('the owner lands on the first table (Orders) with its rows', (await text('.main h1')) === 'Orders' && (await n('tbody tr')) === 10)
-  check('the rail lists the tables with their counts, and People for the owner', JSON.stringify(await texts('.nav-item')) === JSON.stringify(['Orders10', 'Customers6', 'Products5', 'Sample requests0', 'People3']), JSON.stringify(await texts('.nav-item')))
+  check('the rail lists the tables with their counts, and People for the owner', JSON.stringify(await texts('.nav-item')) === JSON.stringify(['Orders10', 'Customers6', 'Products5', 'Sample requests0', 'People4']), JSON.stringify(await texts('.nav-item')))
   check('the owner came in with a link: the page offers to set a password', (await n('.banner')) === 1)
   check('the header counts the rows and the owner can add', (await text('.top .sub')) === '10 rows' && (await text('.top .btn.primary')) === 'Add order')
   check('money, dates and choices are worded for a person', JSON.stringify((await texts('tbody tr:first-child td')).slice(0, 5)) !== '[]' && (await text('tbody tr td.a')).startsWith('£'))
@@ -353,6 +373,101 @@ async function main () {
   await until(`document.querySelector('.drawer') === null`, 'the drawer closing after the archive')
   check('« Archive » takes the row out of the list and of the door’s live rows', !(await saved('orders')).some((r) => r.values.number === '#1052') && !(await texts('tbody tr td.t')).includes('#1052'))
 
+  group('edit a row in place (owner)')
+  await go(BASE + '/#/shop/customers')
+  await until(`document.querySelector('.main h1').textContent.trim() === 'Customers' && document.querySelector('tbody tr')`, 'Customers')
+  await openRow('Studio Fenn')
+  check('Edit sits in the drawer header; before it is pressed there is no form', (await text('.drawer .dh .btn:not(.icon)')) === 'Edit' && (await n('.drawer .editlist')) === 0 && (await n('.drawer .df')) === 0)
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode')
+  check('every field the owner may change has a control, the name too; the Type select is the one it already was (not twice)', JSON.stringify(await labelsIn('.drawer .editlist .fld')) === JSON.stringify(['Name', 'Type', 'City', 'Email', 'Phone']) && (await n('.drawer .editlist .fld:not(.ro)')) === 4 && (await n('.drawer #d-type')) === 1 && (await n('.drawer .editlist select')) === 1)
+  check('Save and Cancel are in the drawer’s footer, and focus is in the first field', (await texts('.drawer .df .btn')).join() === 'Cancel,Save' && (await ev(`document.activeElement === document.querySelector('.drawer .editlist input')`)))
+  await shot('22-edit-owner')
+  await policy('edit')
+  const fenn = (await saved('customers')).find((r) => r.values.name === 'Studio Fenn')
+  await typeIn('City', 'Nowhere')
+  await click('.drawer .df .btn:not(.primary)')
+  check('Cancel puts the row back as it was and writes nothing', (await n('.drawer .editlist')) === 0 && (await text('.drawer dl.kv')).includes(fenn.values.city) && (await saved('customers')).find((r) => r.id === fenn.id).rev === fenn.rev)
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode again')
+  await typeIn('City', 'Whitby')
+  await typeIn('Name', 'Studio Fenn & Co')
+  await click('.drawer .df .btn.primary')
+  await toasted('Saved')
+  const fennNow = (await saved('customers')).find((r) => r.id === fenn.id)
+  check('Save writes only what changed (the city, the name), and the row shows it', fennNow.values.city === 'Whitby' && fennNow.values.name === 'Studio Fenn & Co' && fennNow.values.email === fenn.values.email && fennNow.rev === fenn.rev + 1 && (await n('.drawer .editlist')) === 0 && (await text('.drawer h2')) === 'Studio Fenn & Co' && (await text('.drawer dl.kv')).includes('Whitby'), JSON.stringify([fennNow.rev, fenn.rev]))
+  check('the history now says it was changed', (await texts('.drawer .hist li')).some((t) => t.startsWith('Last changed')))
+  await closeDrawer()
+
+  await go(BASE + '/#/shop/orders')
+  await until(`document.querySelector('.main h1').textContent.trim() === 'Orders' && document.querySelector('tbody tr')`, 'Orders')
+  await openRow('#1051')
+  const o1051 = (await saved('orders')).find((r) => r.values.number === '#1051')
+  const customers = await saved('customers')
+  const products = await saved('products')
+  const otherCustomer = customers.find((c) => c.id !== o1051.values.customer && c.values.name !== 'Studio Fenn & Co')
+  const kenya = products.find((r) => r.values.name === 'Kenya AA')
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode on an order')
+  check('an order is edited with text, a link, a list of links, an amount, a date and a long text; the Status select is not repeated', JSON.stringify(await labelsIn('.drawer .editlist .fld')) === JSON.stringify(['Order', 'Customer', 'Status', 'Products', 'Total', 'Placed', 'Notes']) && (await n('.drawer #d-status')) === 1 && (await n('.drawer .editlist .fld:not(.ro)')) === 6)
+  check('what is on the row is in the controls', (await ev(`document.querySelector('.editlist .money input').value`)) === o1051.values.total.toFixed(2) && (await ev(`[...document.querySelectorAll('.editlist select')].some((x) => x.value === ${JSON.stringify(o1051.values.customer)})`)))
+  await typeIn('Customer', otherCustomer.id)
+  await tick('Products', 'Kenya AA')
+  await typeIn('Notes', 'Leave with the neighbour')
+  await click('.drawer .df .btn.primary')
+  await toasted('Saved')
+  const o1051Now = (await saved('orders')).find((r) => r.id === o1051.id)
+  check('a link and a list of links are saved, with a long text', o1051Now.values.customer === otherCustomer.id && o1051Now.values.products.includes(kenya.id) && o1051Now.values.notes === 'Leave with the neighbour' && o1051Now.values.total === o1051.values.total)
+  check('the drawer shows the new customer as a chip', (await texts('.drawer dl.kv .chip')).some((t) => t.includes(otherCustomer.values.name)))
+  await closeDrawer()
+  check('the table behind shows it too', (await texts('tbody tr')).some((t) => t.includes('#1051') && t.includes(otherCustomer.values.name)))
+
+  // a value the page refuses (nothing is sent), then one only the door refuses (its words are shown under the field)
+  await openRow('#1051')
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode again')
+  await typeIn('Total', 'lots')
+  await click('.drawer .df .btn.primary')
+  const totalErr = await ev(`(() => { const f = [...document.querySelectorAll('.editlist .fld')].find((x) => x.textContent.startsWith('Total')); const e = f.querySelector('.err'); return { text: e.textContent, hidden: e.hidden, invalid: f.querySelector('input').getAttribute('aria-invalid') } })()`)
+  check('a value the page can see is wrong is said under the field, and not sent', totalErr.text === 'Enter an amount, for example 24.50.' && totalErr.hidden === false && totalErr.invalid === 'true' && (await saved('orders')).find((r) => r.id === o1051.id).rev === o1051Now.rev)
+  await typeIn('Total', o1051.values.total.toFixed(2))
+  await typeIn('Notes', 'x'.repeat(100001))
+  await click('.drawer .df .btn.primary')
+  await until(`[...document.querySelectorAll('.editlist .fld')].some((x) => x.textContent.startsWith('Notes') && x.querySelector('.err') && !x.querySelector('.err').hidden)`, 'the door’s message under Notes')
+  const notesErr = await ev(`[...document.querySelectorAll('.editlist .fld')].find((x) => x.textContent.startsWith('Notes')).querySelector('.err').textContent`)
+  check('a value only the door refuses shows the door’s words under that field; the row is not changed', notesErr.length > 8 && notesErr.length < 200 && (await saved('orders')).find((r) => r.id === o1051.id).values.notes === 'Leave with the neighbour', notesErr)
+  await shot('23-edit-errors')
+  await typeIn('Notes', 'Leave with the neighbour, ring twice')
+  await click('.drawer .df .btn.primary')
+  await toasted('Saved')
+  check('after the fix the same form saves', (await saved('orders')).find((r) => r.id === o1051.id).values.notes === 'Leave with the neighbour, ring twice' && (await n('.drawer .editlist')) === 0)
+  await closeDrawer()
+
+  // someone else changes the row while this one is being edited
+  await go(BASE + '/#/shop/customers')
+  await until(`document.querySelector('.main h1').textContent.trim() === 'Customers' && document.querySelector('tbody tr')`, 'Customers')
+  await openRow('Maple & Rye')
+  const maple = (await saved('customers')).find((r) => r.values.name.startsWith('Maple'))
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode')
+  await typeIn('City', 'Harrogate')
+  await writeNow({ object: 'customers', op: 'update', id: maple.id, values: { city: 'Scarborough' } })
+  await click('.drawer .df .btn.primary')
+  await until(`document.querySelector('.editnote') !== null && !document.querySelector('.editnote').hidden`, 'the conflict message')
+  const note = await ev(`({ text: document.querySelector('.editnote').textContent, reload: !document.querySelector('.editnote .btn').hidden, typed: [...document.querySelectorAll('.editlist input')].some((i) => i.value === 'Harrogate') })`)
+  check('a row changed meanwhile is a plain message with a way to reload it, and what was typed is still there', note.text.includes('Someone else changed this row') && note.reload && note.typed && (await saved('customers')).find((r) => r.id === maple.id).values.city === 'Scarborough', note.text)
+  await shot('24-edit-conflict')
+  await click('.editnote .btn')
+  await until(`document.querySelector('.drawer .editlist') === null`, 'the row reloaded')
+  check('Reload shows the other change, drops the edit, and says so', (await text('.drawer dl.kv')).includes('Scarborough') && !(await text('.drawer dl.kv')).includes('Harrogate'))
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode after the reload')
+  await typeIn('City', 'Harrogate')
+  await click('.drawer .df .btn.primary')
+  await toasted('Saved')
+  check('edited again from the fresh row, it saves', (await saved('customers')).find((r) => r.id === maple.id).values.city === 'Harrogate')
+  await closeDrawer()
+
   group('empty state, password')
   await go(BASE + '/#/shop/samples')
   await until(`document.querySelector('#results .empty') !== null`, 'the empty table')
@@ -399,6 +514,7 @@ async function main () {
   await click('tbody tr:first-child .rowlink')
   await until(`document.querySelector('.drawer') !== null`, 'the detail')
   check('the status can be changed (write), the rest is read-only, nothing can be archived', (await n('.drawer select')) === 1 && (await n('.drawer .btn.danger')) === 0)
+  check('with a status only to change there is no Edit button: the select is the whole of it', (await n('.drawer .dh .btn:not(.icon)')) === 0)
   await shot('16-member-detail')
   await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`)
   await go(BASE + '/#/shop/customers')
@@ -406,6 +522,57 @@ async function main () {
   check('personal fields are not there at all, not even an empty column', !(await texts('thead th')).some((t) => t === 'Email' || t === 'Phone'), JSON.stringify(await texts('thead th')))
   await shot('17-member-customers')
   await policy('member')
+
+  group('a member who may edit part of a row (Desk)')
+  await closeDrawer().catch(() => {})
+  await click('.me .btn')
+  await until(`document.querySelector('#si-email') !== null`, 'signed out')
+  await type('#si-email', 'dana@example.test')
+  await type('#si-password', PW.dana)
+  await ev(`document.querySelector('form').requestSubmit()`)
+  await until(`document.querySelector('.shell h1') !== null`, 'Dana’s app')
+  check('Dana is signed in with the Desk profile', (await text('.me small')) === 'Desk')
+  await go(BASE + '/#/shop/orders')
+  await until(`document.querySelector('.main h1').textContent.trim() === 'Orders' && document.querySelector('tbody tr')`, 'Orders')
+  await openRow('#1051')
+  check('Edit is offered, Archive is not', (await text('.drawer .dh .btn:not(.icon)')) === 'Edit' && (await n('.drawer .btn.danger')) === 0)
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode')
+  check('a control for what the profile writes; the Total she may only read stays text; the Status select is not repeated', JSON.stringify(await labelsIn('.drawer .editlist .fld:not(.ro)')) === JSON.stringify(['Order', 'Customer', 'Products', 'Placed', 'Notes']) && JSON.stringify(await labelsIn('.drawer .editlist .fld.ro')) === JSON.stringify(['Status', 'Total']) && (await n('.drawer .editlist .fld.ro input')) === 0 && (await n('.drawer #d-status')) === 1)
+  await ev(`window.__writes = []; const real = window.fetch; window.fetch = (u, i) => { if (String(u).endsWith('/write') && i && i.body) window.__writes.push(JSON.parse(i.body)); return real(u, i) }`)
+  const o1051d = (await saved('orders')).find((r) => r.values.number === '#1051')
+  await typeIn('Placed', '2026-10-20')
+  await shot('25-edit-member')
+  await typeIn('Notes', 'x'.repeat(100001))
+  await click('.drawer .df .btn.primary')
+  await until(`[...document.querySelectorAll('.editlist .fld')].some((x) => x.textContent.startsWith('Notes') && x.querySelector('.err') && !x.querySelector('.err').hidden)`, 'the door’s message')
+  check('what the door refuses is said under the field here too, and nothing is saved, not even the date typed with it', (await saved('orders')).find((r) => r.id === o1051d.id).rev === o1051d.rev)
+  await typeIn('Notes', 'Back door')
+  await click('.drawer .df .btn.primary')
+  await toasted('Saved')
+  const o1051n = (await saved('orders')).find((r) => r.id === o1051d.id)
+  const sent = await ev(`window.__writes`)
+  check('the saved row has her two changes', o1051n.values.placed === '2026-10-20' && o1051n.values.notes === 'Back door' && o1051n.values.total === o1051d.values.total)
+  check('only the touched writable fields went on the wire, with the revision they came from: no total, no status, no other field', sent.length === 2 && sent.every((w) => w.op === 'update' && Object.keys(w.values).sort().join() === 'notes,placed' && w.rev === o1051d.rev) && sent[1].values.notes === 'Back door', JSON.stringify(sent.map((w) => Object.keys(w.values))))
+  await closeDrawer()
+  await go(BASE + '/#/shop/customers')
+  await until(`document.querySelector('.main h1').textContent.trim() === 'Customers' && document.querySelector('tbody tr')`, 'Customers')
+  await openRow('Maple & Rye')
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode on a customer')
+  const drawerText = await text('.drawer')
+  check('a customer: only the City is a control; the name and type are text; Email and Phone are not on the page at all', JSON.stringify(await labelsIn('.drawer .editlist .fld:not(.ro)')) === JSON.stringify(['City']) && !/Email|Phone|orders@|\+44/.test(drawerText + (await text('tbody'))), drawerText.slice(0, 160))
+  const mapleD = (await saved('customers')).find((r) => r.values.name.startsWith('Maple'))
+  const hidden = await writeNow({ object: 'customers', op: 'update', id: mapleD.id, values: { email: 'x@example.test', phone: '+44 1' } })
+  const hiddenOne = await writeNow({ object: 'customers', op: 'update', id: mapleD.id, values: { city: 'Leeds', phone: '+44 1' }, rev: mapleD.rev })
+  // the owner's own session was ended when the browser opened the owner's link again: a fresh one, with the password the page set
+  jar.clear()
+  const again = (await (await call('/api/csrf')).json()).token
+  await call('/api/auth/sign-in/email', { method: 'POST', json: { email: 'olga@example.test', password: PW.owner }, token: again })
+  const asOwner = (await (await call('/api/apps/shop/records?object=customers')).json()).records.find((r) => r.id === mapleD.id)
+  check('sending a hidden field is refused (403) and a mixed write changes nothing: the owner still has the real email and phone and the old city', hidden.status === 403 && hiddenOne.status === 403 && asOwner.values.email === 'orders@maplerye.example' && asOwner.values.phone === '+44 113 496 0142' && asOwner.values.city === 'Harrogate', hidden.status + '/' + hiddenOne.status + ' ' + asOwner.values.city)
+  await closeDrawer()
+  await policy('member editing')
 
   group('a phone-sized window')
   await size(390, 844)
@@ -425,6 +592,12 @@ async function main () {
   await until(`document.querySelector('.drawer') !== null`, 'the phone drawer')
   check('the drawer fills the width', await ev(`document.querySelector('.drawer').getBoundingClientRect().width >= window.innerWidth - 1`))
   await shot('20-phone-detail')
+  check('the edit button fits in the header at 390 px', await ev(`(() => { const b = document.querySelector('.drawer .dh .btn:not(.icon)'); const r = b.getBoundingClientRect(); return r.left >= 0 && r.right <= window.innerWidth })()`))
+  await click('.drawer .dh .btn:not(.icon)')
+  await until(`document.querySelector('.drawer .editlist') !== null`, 'edit mode at 390 px')
+  const fit = await ev(`(() => { const d = document.querySelector('.drawer'); const f = document.querySelector('.drawer .df').getBoundingClientRect(); const save = document.querySelector('.drawer .df .btn.primary').getBoundingClientRect(); return { sideways: d.scrollWidth > d.clientWidth + 1 || document.documentElement.scrollWidth > window.innerWidth + 1, footerInside: f.bottom <= window.innerHeight + 1 && f.top >= 0, saveInside: save.left >= 0 && save.right <= window.innerWidth } })()`)
+  check('the edit form fits the phone: nothing sideways, Save and Cancel in view at the bottom, the fields scroll above them', fit.sideways === false && fit.footerInside && fit.saveInside, JSON.stringify(fit))
+  await shot('26-phone-edit')
   await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`)
   await click('a.tab[href$="/board"]').catch(() => {})
   await sleep(300)
@@ -433,7 +606,7 @@ async function main () {
 
   group('the page policy, across the whole run')
   check('not one console error, exception or policy violation in the browser', problems.length === 0, problems.slice(0, 3).join(' | '))
-  check('the only refused write is the one the run provoked', refusals === 1, String(refusals))
+  check('the only refused writes are the ones the run provoked: a card on an archived row and two values the door refuses (400), hidden fields (403), a stale revision (409)', refusals[400] === 3 && refusals[403] === 2 && refusals[409] === 1, JSON.stringify(refusals))
   tab.close()
 }
 

@@ -32,7 +32,7 @@ export const JSON_MAX = 1024 * 1024
 export const UPLOAD_MAX = 26 * 1024 * 1024
 const OWNER_FALLBACK_EMAIL = 'owner@app.invalid'
 const AUTH_OPEN = new Set(['POST /api/auth/sign-in/email', 'POST /api/auth/sign-out', 'GET /api/auth/get-session'])
-const STATUS = { forbidden: 403, owner: 403, unknown: 404, unknown_db: 404, unknown_object: 404, missing: 404, no_db: 404, which_db: 409, archived: 409, invalid: 400, confirm: 400 }
+const STATUS = { forbidden: 403, owner: 403, unknown: 404, unknown_db: 404, unknown_object: 404, missing: 404, no_db: 404, which_db: 409, archived: 409, invalid: 400, confirm: 400, conflict: 409 }
 const WINDOW = 15 * 60 * 1000
 
 /** What a door (or the people service) answered, as an http answer. */
@@ -251,6 +251,15 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
     if (d === null) return noApp(c)
     const b = await c.req.json().catch(() => null)
     if (b === null || typeof b !== 'object' || Array.isArray(b)) return c.json({ ok: false, error: 'invalid', message: 'a JSON object' }, 400)
+    // `rev` (optional, on an update): the revision the person last read. A row that has moved on since is refused as a conflict and nothing is written. The door has no such
+    // precondition of its own, so it is checked here: the read and the write below run in one tick of this single process, nothing else writes in between.
+    if (b.op === 'update' && b.rev !== undefined) {
+      if (!Number.isInteger(b.rev) || b.rev < 1) return c.json({ ok: false, error: 'invalid', message: 'rev is the revision you read, a whole number' }, 400)
+      const fresh = d.records({ object: b.object })
+      if (!fresh.ok) return reply(c, fresh)
+      const row = fresh.records.find((r) => r.id === b.id)
+      if (row !== undefined && row.rev !== b.rev) return c.json({ ok: false, error: 'conflict', message: 'this row was changed by someone else since you read it', rev: row.rev }, 409)
+    }
     return reply(c, d.write({ object: b.object, op: b.op, id: b.id, values: b.values }))
   })
   app.post('/api/apps/:slug/upload', needMember, async (c) => {
