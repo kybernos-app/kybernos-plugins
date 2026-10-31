@@ -9,8 +9,8 @@
 //   GET  /kybernos-db/impact?db=&object=            what deleting that app or table would take (tables, rows, links cut, files)
 //   POST /kybernos-db/upload?db=&object=&field=&name=&type=   the bytes of one file (application/octet-stream, 25 MB at most): { ok, file } to write into the field
 //   GET  /kybernos-db/file?db=&object=&id=&field=&hash=   a file a row holds: a picture is shown, anything else is handed over as a download (type from the bytes, closed CSP)
-//   GET  /kybernos-db/publish-check?db=             the facts of the Publish card for an app, and whether it can be published (remote/publisher.mjs)
-//   POST /kybernos-db/publish                       { db, confirm: true }: put the app in a team space (the confirm button; nothing happens without it)
+//   GET  /kybernos-db/publish-check?db=             the facts of the Publish card for an app, the person's cloud computers (read now, never on a state read), and whether it can be published (remote/publisher.mjs)
+//   POST /kybernos-db/publish                       { db, host, confirm: true }: put the app on the cloud computer `host` (the confirm button; nothing happens without it; a computer that is not listed now is refused)
 //   POST /kybernos-db/unpublish                     { db } brings the app back to this computer; { db, forget: true, confirm: <name> } keeps the local copy and forgets the hosted one
 //   POST /kybernos-db/open-web                      { db } -> { url }: the one-time link that signs the owner in to the web app (ten minutes, once); the page opens it in a new tab
 //   POST /kybernos-db/refresh                       { db } brings the read-only copy up to date with the web app now
@@ -60,6 +60,7 @@ const STATUS = {
   sqlite_unavailable: 503, db_newer: 503, not_a_db: 503, failed: 500,
   // the web app and the hosting behind Publish
   unreachable: 503, unavailable: 503, refused: 502, space: 502, mismatch: 502, 'hosting-failed': 502, 'rate-limited': 429, budget: 402, sensitive: 409, busy: 409, changed: 409, 'not-published': 409, 'db-exists': 409, registry: 500,
+  'unknown-host': 409, 'host-gone': 409, 'host-unavailable': 503, 'hosts-unreachable': 503,
 }
 const statusOf = (answer) => (answer.ok === true ? 200 : (STATUS[answer.error] || 400))
 
@@ -132,7 +133,7 @@ export const routeTable = (api, publisher) => ({
   impact: { method: 'GET', run: (q) => api.impact(q) },
   ...(publisher ? {
     'publish-check': { method: 'GET', run: (q) => through(publisher, q, (id) => publisher.check(id)) },
-    publish: { method: 'POST', run: (b) => through(publisher, b, (id) => publisher.publish(id, { confirm: b.confirm === true })) },
+    publish: { method: 'POST', run: (b) => through(publisher, b, (id) => publisher.publish(id, { confirm: b.confirm === true, host: typeof b.host === 'string' ? b.host : undefined })) },
     unpublish: { method: 'POST', run: (b) => through(publisher, b, (id) => publisher.unpublish(id, { forget: b.forget === true, confirm: typeof b.confirm === 'string' ? b.confirm : undefined })) },
     'open-web': { method: 'POST', run: (b) => through(publisher, b, (id) => publisher.openWeb(id)) },
     refresh: { method: 'POST', run: (b) => through(publisher, b, (id) => publisher.refresh(id)) },

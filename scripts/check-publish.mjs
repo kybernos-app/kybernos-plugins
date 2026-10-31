@@ -9,7 +9,8 @@
 // local mirror before the answer returns; a row written by an invited member in the hosted app reaches the mirror (on demand and by the timer), with the member named in the copy's
 // journal; a file goes up and comes back byte for byte; every change of structure is refused with `published`; an app with a sensitive field is not published; a wrong key, a
 // server that is down in the middle of a write and a server that comes back are all told plainly and never damage the mirror; Unpublish brings the last state back and the app is an
-// ordinary local one again (and can be published again); and the way out when the space cannot be reached. No secret, key or link is printed, and everything that was said (the
+// ordinary local one again (and can be published again); and the way out when the space cannot be reached. Publish goes onto a computer the person chose among the ones
+// the hosting lists (an unlisted one is refused), and the state names it. No secret, key or link is printed, and everything that was said (the
 // server's output, the publisher's log, every answer collected below) is searched for them at the end.
 import { spawn, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
@@ -104,7 +105,16 @@ async function main () {
 
   // ── 2. this computer: a service, a registry, a publisher with the real client, and an e-commerce app with a picture ──
   const logs = []
-  const hosting = { available: () => true, describe: () => ({ name: 'Check space' }), ensureSpace: async () => ({ ok: true, space: { id: 'check-space', url: BASE, bootKey: bootHex } }) }
+  // the hosting port, with one computer: the space is the template booted above, and "the computer it runs on" is a name here
+  const ORDER = 'https://kybernos.example.test/computers'
+  const hostList = [{ id: 'check-host', name: 'Check computer', state: 'running', region: 'Nowhere, EU' }]
+  const hosting = {
+    available: () => true,
+    describe: () => ({ name: 'Check space', orderUrl: ORDER }),
+    hosts: async () => ({ ok: true, hosts: hostList }),
+    ensureSpace: async ({ host }) => (host === 'check-host' ? { ok: true, space: { id: 'check-space', url: BASE, bootKey: bootHex } } : { ok: false, code: 'unknown-host', message: 'No such computer.' }),
+  }
+  const HOST = 'check-host'
   const local = join(root, 'local')
   const buildSide = () => {
     const registry = openPublishedRegistry({ file: join(local, 'published.json') })
@@ -136,18 +146,21 @@ async function main () {
 
   // ── 3. Publish ──
   group('publish')
-  const card = side.publisher.check(shopId)
+  const card = await side.publisher.check(shopId)
   seen.push(card)
   check('the card says it can be published, with its numbers and no blocked field', card.ok && card.can && card.tables >= 4 && card.rows >= 4 && card.files === 1 && card.blocked.length === 0, JSON.stringify(card).slice(0, 200))
-  const unconfirmed = await side.publisher.publish(shopId, {})
+  check('and lists the person\'s computers and the address that orders another', card.hosts.map((h) => h.id).join() === HOST && card.hosts[0].name === 'Check computer' && card.hosting.orderUrl === ORDER && card.lastHost === null)
+  const unconfirmed = await side.publisher.publish(shopId, { host: HOST })
   check('Publish does nothing without the confirm button', unconfirmed.ok === false && unconfirmed.code === 'confirm' && side.registry.apps().length === 0)
+  const stranger = await side.publisher.publish(shopId, { confirm: true, host: 'not-mine' })
+  check('nor onto a computer that is not one of the person\'s', stranger.ok === false && stranger.code === 'unknown-host' && side.registry.apps().length === 0 && side.registry.spaces().length === 0)
   const before = mirror().fingerprint()
-  const pub = await side.publisher.publish(shopId, { confirm: true })
+  const pub = await side.publisher.publish(shopId, { confirm: true, host: HOST })
   seen.push(pub)
   check('published', pub.ok === true, JSON.stringify(pub).slice(0, 300))
   if (!pub.ok) return
   const slug = pub.published.slug
-  check('the app has a plain name there, and the registry says where', /^[a-z][a-z0-9-]*$/.test(slug) && side.registry.published(shopId) && pub.published.url === BASE)
+  check('the app has a plain name there, and the registry says where, and on which computer', /^[a-z][a-z0-9-]*$/.test(slug) && side.registry.published(shopId) && pub.published.url === BASE && pub.published.host.id === HOST && pub.published.host.name === 'Check computer' && pub.published.hostGone === false && side.registry.lastHost() === HOST)
   const hostedFp = await probe.fingerprint(slug)
   check('the hosted copy is exactly what was sent (same fingerprint)', hostedFp.ok && hostedFp.fingerprint === before && mirror().fingerprint() === before, JSON.stringify(hostedFp))
   check('the registry file is private (0600) and is the only place the key is kept', (statSync(join(local, 'published.json')).mode & 0o777) === 0o600 && readFileSync(join(local, 'published.json'), 'utf8').includes(bootHex))
@@ -155,7 +168,7 @@ async function main () {
   check('no working copy is left behind', !existsSync(join(local, 'tmp')) || readdirSync(join(local, 'tmp')).every((d) => readdirSync(join(local, 'tmp', d)).length === 0))
   const state = side.api.state()
   seen.push(state)
-  check('the state says it is published, and carries no key', state.dbs.find((d) => d.id === shopId).published.slug === slug && state.hosting.available === true && !JSON.stringify(state).includes(bootHex))
+  check('the state says it is published, and carries no key', state.dbs.find((d) => d.id === shopId).published.slug === slug && state.dbs.find((d) => d.id === shopId).published.host.id === HOST && state.hosting.available === true && !JSON.stringify(state).includes(bootHex))
 
   // ── 4. Open web app: the one-time link made on this side, redeemed by the hosted app's own /open ──
   group('open web app')
@@ -248,8 +261,8 @@ async function main () {
   check('the person is not asked to approve something that cannot happen', (await import('../packages/kybernos-db/agent/tools.mjs')).approvalGate(side.service, { name: 'field_add', arguments: { db: shopId, object: 'note', field: { key: 'tag', type: 'text', label: 'Tag' } } }) === null)
   const bank = side.service.create({ name: 'Bank', by: 'agent', objects: [{ key: 'account', label: 'Accounts', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }, { key: 'iban', type: 'text', label: 'IBAN', protection: 'sensitive' }, { key: 'pin', type: 'text', label: 'PIN', protection: 'secret' }] }] })
   const bankId = bank.db.info().id
-  const bankCard = side.publisher.check(bankId)
-  const bankTry = await side.publisher.publish(bankId, { confirm: true })
+  const bankCard = await side.publisher.check(bankId)
+  const bankTry = await side.publisher.publish(bankId, { confirm: true, host: HOST })
   check('an app with a sensitive or a secret field is not published, and the fields are named', bankCard.can === false && bankCard.reason === 'sensitive' && bankTry.ok === false && bankTry.code === 'sensitive' && bankTry.fields.map((f) => f.field).join() === 'iban,pin')
   check('and nothing of it reached the space', (await owner.j('/api/apps')).body.apps.map((a) => a.slug).join() === slug)
 
@@ -258,7 +271,7 @@ async function main () {
   const spare = side.service.create({ name: 'Spare', by: 'agent', objects: [{ key: 'item', label: 'Items', title: 'name', fields: [{ key: 'name', type: 'text', label: 'Name', required: true }] }] })
   const spareId = spare.db.info().id
   const wrong = makePublisher({ service: side.service, registry: openPublishedRegistry({ file: join(root, 'other-registry.json') }), hosting: { ...hosting, ensureSpace: async () => ({ ok: true, space: { id: 'wrong', url: BASE, bootKey: randomBytes(32).toString('hex') } }) }, tmpRoot: join(root, 'wrong-tmp'), ports: {} })
-  const refusedKey = await wrong.publish(spareId, { confirm: true })
+  const refusedKey = await wrong.publish(spareId, { confirm: true, host: HOST })
   seen.push(refusedKey)
   check('a space that does not accept the key is told "refused", and nothing is published or left there', refusedKey.ok === false && refusedKey.code === 'refused' && wrong.isPublished(spareId) === false && (await owner.j('/api/apps')).body.apps.map((a) => a.slug).join() === slug)
   check('the right key still works afterwards (a refusal locks nobody out)', (await probe.fingerprint(slug)).ok === true)
@@ -273,6 +286,7 @@ async function main () {
   await side.publisher.tick()
   const sick = side.api.state().dbs.find((d) => d.id === shopId).published
   check('the state says the sync failed and when it last worked', sick.syncError?.code === 'unreachable' && typeof sick.lastSync === 'string', JSON.stringify(sick).slice(0, 200))
+  check('and, as the hosting still lists its computer, that the computer is not gone', sick.hostGone === false && sick.host.id === HOST)
   check('the page still reads the copy it has', titles('contact', 'name').join() === names && side.service.byId(shopId).db.count('contact') === 2)
   const stuck = await side.publisher.unpublish(shopId)
   check('Unpublish says it cannot reach the space, offers the way out, and changes nothing', stuck.ok === false && stuck.code === 'unreachable' && stuck.canForget === true && side.publisher.isPublished(shopId))
@@ -312,7 +326,7 @@ async function main () {
   check('a second Unpublish says there is nothing to unpublish', (await side.publisher.unpublish(shopId)).code === 'not-published')
 
   group('publish again, and the way out')
-  const again2 = await side.publisher.publish(shopId, { confirm: true })
+  const again2 = await side.publisher.publish(shopId, { confirm: true, host: HOST })
   check('the same app can be published again (a new copy, the local changes included)', again2.ok === true && (await probe.fingerprint(again2.published.slug)).fingerprint === side.service.byId(shopId).db.fingerprint(), JSON.stringify(again2).slice(0, 200))
   const slug2 = again2.published.slug
   await stopServer()

@@ -66,10 +66,11 @@ published refuses both (`published`).
 - **The toolbar.** The page's controls ride in the product's toolbar as its `trailing` slot (the toolbar's own `views` prop already means the view modes of the old pages);
   without a toolbar handed over, the same controls sit in a bar of their own.
 
-**Publish.** When the host offers a hosting (below), an app's header and the ⋯ of its card get **Publish…**: a card says what goes (tables, rows, files, size), where, what it costs and whether it stays up when the
-computer is off (only when the hosting says so), lists the `personal` fields that travel, and refuses an app with a `sensitive` or `secret` field by naming them. A published app shows a pill with the web app's
-host, a note under its tabs (how fresh the copy kept here is, and why the structure is locked), **Open web app** (a new tab, signed in by a one-time link the host makes) and **Unpublish…**; Archive is shown locked with the
-reason. While an app is published the filters, sorts and field choices of a view still work **for the visit only**: they are never saved, because the saved views are the web app's. With no hosting the page shows none of this.
+**Publish.** When the host offers a hosting (below), an app's header and the ⋯ of its card get **Publish…**: a card says what goes (tables, rows, files, size), lists the `personal` fields that travel, refuses an app with a
+`sensitive` or `secret` field by naming them, and asks **where it runs**: the person picks one of their own cloud computers (name, region, running or sleeping, « always on » only when the hosting says so), and a small
+**Get another cloud computer** button opens their Kybernos server to order one (an `https` address the hosting gave; no address, no button). With no computer the card shows only that button. Publish never creates a computer.
+A published app shows a pill with the computer it lives on, a note under its tabs (that computer, how fresh the copy kept here is, and why the structure is locked), **Open web app** (a new tab, signed in by a one-time link
+the host makes) and **Unpublish…**; if its computer was deleted the pill and the note say so and the only way out is to keep the local copy; Archive is shown locked with the reason. While an app is published the filters, sorts and field choices of a view still work **for the visit only**: they are never saved, because the saved views are the web app's. With no hosting the page shows none of this.
 
 Tests: `test-routes.mjs` (every route behind the session), `test-client.mjs` (the pure parts, the registration, each piece rendered to a plain tree) and, against the
 sandbox, `source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-apps-live.mjs [--shots <dir>]` (the real page over two real dbs: the gallery, an app and its
@@ -126,25 +127,27 @@ Two small additions to the store serve it: `db.backup(dest)` and `db.referenced(
 
 ## Publish (`remote/`, DSH side)
 
-Publish puts an app into a **team space**, one small web app per workspace that holds any number of published apps. From then on the hosted copy is the truth and the folder on the computer is a read-only **mirror** of it.
+Publish puts an app into a **team space**, one small web app per cloud computer of the person that holds any number of published apps. From then on the hosted copy is the truth and the folder on the computer is a read-only **mirror** of it.
 The decisions are in `docs/etudes/2026-10-31-share-as-app-cadrage.md`; what the space's host has to provide is `docs/dev/apps-hosting-port.md`.
 
-- **`remote/hosting.mjs`: the port.** The plugin never talks to a billing system or a cloud: it asks an object the host process hands over (`apply(ctx, { remote: { hosting } })`) whether Publish `available()` and `describe()`s it
-  (`name`, `pricePerMonth` and `currency`, `alwaysOn`, `region`, `budget`), and asks `ensureSpace({ workspace })` for the space (`{ id, url, bootKey }`). **The default is "not available"**: a product with no hosting shows no Publish button.
-  `alwaysOn` is the only source of the words "always on" or "stays available when the computer is off", and only when it is `true`. `envHosting(env)` is a development adapter (`KYBERNOS_DB_SPACE_URL`, `KYBERNOS_DB_SPACE_KEY`, read once
-  at start, never from a request) that points Publish at one space on `localhost`; it is how the checks run.
-- **`remote/registry.mjs`**: `<DSH home>/kybernos/kybernos-db/published.json` (mode 0600, written whole or not at all) holds each space (its id, origin and boot key) and the apps published into it. The boot key is in no state, log, error or prompt.
+- **`remote/hosting.mjs`: the port.** The plugin never talks to a billing system or a cloud: it asks an object the host process hands over (`apply(ctx, { remote: { hosting } })`) whether Publish `available()`, `describe()`s it
+  (`name`, and `orderUrl`, the `https` address that orders another computer, never built or changed here), lists the person's `hosts()` (id, name, state, region, `alwaysOn`, `shared`; read when the dialog opens, never on a state read; none is a
+  valid answer) and asks `ensureSpace({ host })` for the space on the one they chose (`{ id, url, bootKey }`). **The default is "not available"**: a product with no hosting shows no Publish button. `alwaysOn` is the only source of the
+  words « always on », and only when it is `true`. `envHosting(env)` is a development adapter (`KYBERNOS_DB_SPACE_URL`, `KYBERNOS_DB_SPACE_KEY`, optionally `KYBERNOS_DB_ORDER_URL`, read once at start, never from a request) that lists
+  that one space as the one computer; it is how the checks run.
+- **`remote/registry.mjs`**: `<DSH home>/kybernos/kybernos-db/published.json` (mode 0600, written whole or not at all) holds each space (its id, origin, boot key and the id of its computer) and the apps published into it (with the computer's id and the last name and region seen for it), and the computer the last Publish used (only the default choice of the next dialog). The boot key is in no state, log, error or prompt.
 - **`remote/space.mjs`**: the owner's client of a space (bundle, fingerprint, snapshot, blobs, write, upload, release, the one-time link), authenticated with a five-minute owner token minted per request from the boot key.
   Every call answers `{ ok, … }` or `{ ok: false, code, message }` and never throws; a response body is never repeated in an error.
 - **`remote/mirror.mjs`**: pulls manifest → database → only the missing files, recomputes every hash and size, stages the result and swaps it in atomically; a failed pull never damages the mirror.
-- **`remote/publisher.mjs`**: the one place that makes an app published. `check` (the card's facts), `publish` (atomic: nothing is registered before the hosted copy's fingerprint matches the one sent, a failure after the upload releases it, an
+- **`remote/publisher.mjs`**: the one place that makes an app published. `check` (the card's facts and the computers), `publish` (onto a computer read in `hosts()` just before, else `unknown-host`; atomic: nothing is registered before the hosted copy's fingerprint matches the one sent, a failure after the upload releases it, an
   upload that cannot be released is remembered and taken out first next time), `unpublish` (pulls the hosted copy one last time, checks it is what this computer holds, releases it, deregisters; if the space cannot be reached it says so
   and offers *keep my local copy and forget the hosted one*, behind the app's typed name), `openWeb` (the ten-minute one-time link, a secret that is never kept), `refresh` and the poll (30 s, unref'd, one in flight per app, backoff up to 5 min;
-  the state says `lastSync` and `syncError`), and the writes. One publish or unpublish per app at a time.
+  the state says `lastSync` and `syncError`), and the writes. One publish or unpublish per app at a time. An app is `hostGone` only when it could not be reached **and** a `hosts()` that succeeded no longer lists its computer
+  (asked at most once a minute; a failed `hosts()` proves nothing). Moving an app is Unpublish, then Publish.
 - **`remote/facade.mjs`**: what `service.resolve` hands out for a published app. Reads and `list` come from the mirror; every write, view, profile, archive, delete or structure change is refused with code `published` and a plain
   "unpublish first" message (the agent's approval gate does not even ask). A row write (create, update, delete, restore, upload) goes to the web app as the owner and is awaited, and the mirror is refreshed before the answer returns.
   `api.mjs` stays synchronous; `routes.mjs` forwards `write` and `upload` for a published app and mounts five more routes only when a publisher exists: `GET publish-check`, `POST publish`, `POST unpublish`, `POST open-web`, `POST refresh`.
-  `GET state` gains `hosting` and, per app, `published: { slug, url, since, lastSync, syncError } | null`.
+  `GET state` gains `hosting` (`{ available, name }`) and, per app, `published: { slug, url, since, lastSync, syncError, host: { id, name, region } | null, hostGone } | null`.
 
 Tests: `test-publish.mjs` (the publisher, the mirror, the facade and the routes against an in-memory space, `lib-space-test.mjs`, with failures made on purpose) and `scripts/check-publish.mjs` (the same against the real hosted app
 built from `templates/tables`, booted on a free port: publish, member writes, files, the poll, a killed and restarted server, a simulated restart of DSH, Unpublish and the forget path, and a scan of everything it printed for the key).
@@ -152,6 +155,6 @@ built from `templates/tables`, booted on a free port: publish, member writes, fi
 ## What is not here yet
 
 Removing a single field or renaming an object or a field, and changing a field's type (only adding is possible), creating a row from a link picker, a preview bigger than a thumbnail, dropping a folder, sync with the server beyond what Publish does (an app is written in one place at a time), row rules
-(a member sees every row of a table they may read), and a way to edit profiles from the page or from Kaby (a template ships them today). For Publish: a real `hosting` that provisions a computer per workspace and bills the Cloud pot
-(until one exists nothing in the product offers Publish), a way to freeze writes on the space between Unpublish's last check and its release, the journal saying `agent` for an agent's hosted writes (it says `person`), and the real
+(a member sees every row of a table they may read), and a way to edit profiles from the page or from Kaby (a template ships them today). For Publish: a real `hosting` that lists the person's cloud computers and starts the app on the chosen one
+(until one exists nothing in the product offers Publish), moving an app from one computer to another in one step (today: Unpublish, then Publish), a way to freeze writes on the space between Unpublish's last check and its release, the journal saying `agent` for an agent's hosted writes (it says `person`), and the real
 domain for the `net:` permission (a placeholder is declared). The store does not call `can()`: the door that calls the store does.

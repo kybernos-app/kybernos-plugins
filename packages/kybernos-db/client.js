@@ -818,6 +818,11 @@ window.__ModuleLoader__.load({
           'db-exists': kt('Une copie de cette app est déjà dans l’app web.', 'A copy of this app is already in the web app.'),
           sensitive: kt('Cette app a des champs sensibles ou secrets : elle ne peut pas être publiée.', 'This app has sensitive or secret fields, so it cannot be published.'),
           budget: kt('Le budget prévu pour l’app web est épuisé.', 'The budget for the web app is used up.'),
+          // the person's cloud computers: the host's own sentence is shown for the two it writes itself (see `errorText`), these are the fallbacks
+          'unknown-host': kt('Ce n’est plus l’un de tes ordinateurs cloud. Choisis-en un autre.', 'That is not one of your cloud computers any more. Pick another one.'),
+          'host-gone': kt('Cet ordinateur cloud n’existe plus. Choisis-en un autre.', 'That cloud computer no longer exists. Pick another one.'),
+          'host-unavailable': kt('Cet ordinateur cloud ne peut pas démarrer pour l’instant. Réessaie dans une minute, ou choisis-en un autre.', 'That cloud computer can’t be started right now. Try again in a minute, or pick another one.'),
+          'hosts-unreachable': kt('Tes ordinateurs cloud ne se chargent pas. Réessaie dans un instant.', 'Your cloud computers could not be loaded. Try again in a moment.'),
           busy: kt('Une publication ou un retrait est déjà en cours pour cette app : attends qu’il se termine.', 'This app is being published or unpublished: wait for that to end.'),
           'not-published': kt('Cette app n’est pas publiée.', 'This app is not published.'),
           registry: kt('La liste des apps publiées n’a pas pu être enregistrée sur cet ordinateur. Réessaie.', 'The list of published apps could not be saved on this computer. Try again.'),
@@ -826,6 +831,8 @@ window.__ModuleLoader__.load({
           failed: kt('Ça n’a pas marché. Réessaie.', 'That did not work. Try again.'),
           popup: kt('Le navigateur a bloqué le nouvel onglet : autorise les fenêtres pour cette page, puis réessaie.', 'The browser blocked the new tab: allow pop-ups for this page, then try again.'),
         }
+        // the two refusals only the host can explain (a deleted computer, one that cannot start) are shown in its own words, as it wrote them
+        if ((code === 'host-gone' || code === 'host-unavailable') && typeof r.message === 'string' && r.message.trim() !== '') return r.message.trim().slice(0, 300)
         if (known[code] !== undefined) return known[code]
         return typeof (r && r.message) === 'string' && r.message !== '' ? r.message : kt('Cette valeur n’est pas acceptée.', 'This value is not accepted.')
       }
@@ -836,6 +843,51 @@ window.__ModuleLoader__.load({
       /** True when the host offers Publish at all: without it the page shows no Publish control. */
       const canPublishVia = (hosting) => plain(hosting) && hosting.available === true
       const hostWord = (url) => { try { return new URL(url).host } catch (e) { return '' } }
+      /** The computers a Publish card lists, as the host described them (the plugin validated them already; this only keeps the page from trusting its own server blindly). */
+      const hostsOf = (card) => (plain(card) && Array.isArray(card.hosts) ? card.hosts.filter((x) => plain(x) && typeof x.id === 'string' && x.id !== '').map((x) => ({ id: x.id, name: typeof x.name === 'string' && x.name !== '' ? x.name : x.id, state: ['running', 'sleeping', 'starting', 'stopped'].indexOf(x.state) >= 0 ? x.state : 'stopped', region: typeof x.region === 'string' ? x.region : '', alwaysOn: x.alwaysOn === true, shared: x.shared === true })) : [])
+      /** The computer a card starts on: the one the last Publish went to if it is still listed, else the only one there is, else none (the person picks). */
+      const defaultHost = (card) => {
+        const hosts = hostsOf(card)
+        if (plain(card) && typeof card.lastHost === 'string' && hosts.some((x) => x.id === card.lastHost)) return card.lastHost
+        return hosts.length === 1 ? hosts[0].id : null
+      }
+      /** The address of the button that orders another computer, as the host gave it, or '': https only, no credentials. The page never builds or adds to it. */
+      const orderHref = (url) => {
+        if (typeof url !== 'string' || url === '' || url.length > 2000) return ''
+        try { const u = new URL(url); return u.protocol === 'https:' && u.username === '' && u.password === '' && u.hostname !== '' ? url : '' } catch (e) { return '' }
+      }
+      /**
+       * Opens the order address in a new tab that knows nothing of this page (no opener, no referrer). Only the address the host gave, and only if it is https: nothing is added to it.
+       * `ports.open` is for the tests. `{ ok: true }`, or `{ ok: false, error: 'failed' }` for an address that cannot be opened, `'popup'` when the browser refuses.
+       */
+      const openOrderPage = (url, ports) => {
+        const href = orderHref(url)
+        if (href === '') return { ok: false, error: 'failed' }
+        try { (ports && ports.open ? ports.open : (...a) => window.open(...a))(href, '_blank', 'noopener,noreferrer'); return { ok: true } } catch (e) { return { ok: false, error: 'popup' } }
+      }
+      /** What a computer is doing now, as the pill on its row says it: `always on` wins, because only a computer that is set never to sleep is called that. */
+      const hostState = (x) => {
+        if (x.alwaysOn === true) return { key: 'on', icon: 'bolt', label: kt('Toujours allumé', 'Always on') }
+        if (x.state === 'sleeping') return { key: 'sleep', icon: 'moon', label: kt('En veille', 'Sleeping') }
+        if (x.state === 'starting') return { key: 'start', icon: null, label: kt('Démarrage', 'Starting') }
+        if (x.state === 'stopped') return { key: 'stop', icon: null, label: kt('Arrêté', 'Stopped') }
+        return { key: 'run', icon: null, label: kt('En marche', 'Running') }
+      }
+      /** The Availability line of the card for the computer picked: only a computer set to stay up says so; any other says it sleeps and how long the team waits. */
+      const availability = (x) => {
+        if (x.alwaysOn === true) return { k: kt('Disponibilité', 'Availability'), v: kt('Toujours allumé', 'Always on'), sm: kt(x.name + ' reste allumé : ton équipe peut ouvrir l’app à tout moment.', x.name + ' stays up, so your team can open the app at any time.') }
+        const now = x.state === 'sleeping' ? kt(' Il dort en ce moment ; Publier le réveille.', ' It is asleep now; Publish wakes it.') : x.state === 'stopped' ? kt(' Il est arrêté en ce moment ; Publier le démarre.', ' It is stopped now; Publish starts it.') : ''
+        return { k: kt('Disponibilité', 'Availability'), v: kt('Se met en veille quand il est inactif', 'Sleeps when idle'), sm: kt('Ton équipe attend environ une seconde le temps que ' + x.name + ' se réveille.', 'Your team waits about a second while ' + x.name + ' wakes.') + now }
+      }
+      /** The one status line while Publish runs, naming the computer: there are no progress events to show steps from, so it says only what is true. */
+      const publishingLine = (x) => {
+        if (x === null) return kt('Envoi de l’app…', 'Sending the app…')
+        if (x.state === 'sleeping') return kt('Réveil de ' + x.name + ' et envoi de l’app', 'Waking ' + x.name + ' and sending the app')
+        if (x.state === 'stopped') return kt('Démarrage de ' + x.name + ' et envoi de l’app', 'Starting ' + x.name + ' and sending the app')
+        return kt('Envoi de l’app vers ' + x.name, 'Sending the app to ' + x.name)
+      }
+      /** The computer a published app lives on, as the state gives it: its name when it is known, else nothing. */
+      const hostNameOf = (pub) => (plain(pub) && plain(pub.host) && typeof pub.host.name === 'string' ? pub.host.name : '')
       /** « just now », « 3 min ago »… for a moment in the past; an empty string when the moment is not a date. */
       const agoWord = (iso, now) => {
         const t = Date.parse(iso)
@@ -861,7 +913,6 @@ window.__ModuleLoader__.load({
         }
         return ago !== '' ? kt('Synchronisée ' + ago, 'Synced ' + ago) : kt('Copie gardée sur cet ordinateur', 'Copy kept on this computer')
       }
-      const priceWord = (n, cur) => { try { return new Intl.NumberFormat(lang(), { style: 'currency', currency: cur }).format(n) } catch (e) { return String(n) + ' ' + cur } }
       /**
        * Opens the web app of a published app in a new tab. The tab is opened FIRST, inside the click that asked for it, so a pop-up blocker lets it through, and is pointed at the
        * host's one-time link once that is made. The link is a secret for ten minutes: it is never kept, shown or logged here. `ports` ({ open, call }) is for the tests.
@@ -1384,6 +1435,46 @@ window.__ModuleLoader__.load({
         .kbtb-sync{color:var(--dsw-alias-label-tertiary);font-size:12px}
         .kbtb-pubnote.warn .kbtb-sync{color:var(--dsw-alias-label-secondary)}
         .kbtb-pubsent{font-size:12.5px}
+        .kbtb-where{margin-top:18px}
+        .kbtb-whead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:30px;margin:0 0 8px;color:var(--dsw-alias-label-tertiary);font-size:12.5px;font-weight:500}
+        .kbtb-whead h4{margin:0;font:inherit}
+        .kbtb-whead .n{color:var(--dsw-alias-label-secondary)}
+        .kbtb-whead .kbtb-btn{margin-inline-start:auto}
+        .kbtb-hosts{display:grid;gap:8px}
+        .kbtb-host{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:52px;padding:11px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);text-align:start;cursor:pointer;transition:border-color .14s,background .14s}
+        .kbtb-host:hover{background:var(--dsw-alias-bg-layer-2)}
+        .kbtb-host[aria-checked="true"]{border-color:var(--dsw-alias-state-business-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 10%,var(--dsw-alias-bg-layer-1));box-shadow:inset 0 0 0 1px var(--dsw-alias-state-business-primary)}
+        .kbtb-host[disabled]{cursor:not-allowed;opacity:.65}
+        .kbtb-radio{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--dsw-alias-label-tertiary)}
+        .kbtb-host[aria-checked="true"] .kbtb-radio{border-color:var(--dsw-alias-state-business-primary)}
+        .kbtb-host[aria-checked="true"] .kbtb-radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-business-primary)}
+        .kbtb-hostmid{display:flex;flex-direction:column;gap:1px;min-width:0}
+        .kbtb-hostnm{display:flex;align-items:center;gap:8px;min-width:0;font-weight:600;font-size:14px}
+        .kbtb-hostnm svg{flex:none;color:var(--dsw-alias-label-secondary)}
+        .kbtb-hostnm span,.kbtb-hostsub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .kbtb-hostsub{color:var(--dsw-alias-label-secondary);font-size:12.5px}
+        .kbtb-hstate{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:550;white-space:nowrap}
+        .kbtb-hstate svg{flex:none}
+        .kbtb-hstate .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+        .kbtb-hstate.run{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}
+        .kbtb-hstate.sleep,.kbtb-hstate.stop{color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3)}
+        .kbtb-hstate.on{color:var(--dsw-alias-state-business-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 12%,transparent)}
+        .kbtb-hstate.start{color:var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
+        .kbtb-shared{display:flex;align-items:flex-start;gap:8px;margin:10px 0 0;color:var(--dsw-alias-label-secondary);font-size:12.5px}
+        .kbtb-shared svg{flex:none;margin-top:2px}
+        .kbtb-hempty{display:grid;justify-items:center;gap:6px;padding:22px 18px;border:1px dashed var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);text-align:center}
+        .kbtb-hempty .ico{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
+        .kbtb-hempty p{margin:0;max-width:34ch;color:var(--dsw-alias-label-secondary);font-size:13px}
+        .kbtb-hempty .kbtb-btn{margin-top:6px}
+        .kbtb-hosts.bones .kbtb-host{pointer-events:none}
+        .kbtb-bone{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--dsw-alias-bg-layer-3),var(--dsw-alias-bg-layer-2),var(--dsw-alias-bg-layer-3));background-size:200% 100%;animation:kbtb-sh 1.4s linear infinite}
+        .kbtb-pubstatus{display:grid;gap:3px;margin:18px 0 0;padding:14px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;font-size:13px}
+        .kbtb-pubstatus .row{display:flex;align-items:center;gap:10px;font-weight:550}
+        .kbtb-pubstatus small{margin-inline-start:26px;color:var(--dsw-alias-label-tertiary);font-size:12.5px}
+        .kbtb-spin{flex:none;width:16px;height:16px;border-radius:50%;border:2px solid var(--dsw-alias-bg-layer-3);border-top-color:var(--dsw-alias-state-business-primary);animation:kbtb-sp .8s linear infinite}
+        @keyframes kbtb-sp{to{transform:rotate(360deg)}}
+        @keyframes kbtb-sh{to{background-position:-200% 0}}
+        @media (prefers-reduced-motion:reduce){.kbtb-bone,.kbtb-spin{animation:none}}
         .kbtb-mi2.dis{opacity:.55;cursor:not-allowed}
         .kbtb-mi2.dis:hover{background:transparent}
         .kbtb-mi2 .kbtb-why{margin-inline-start:auto;color:var(--dsw-alias-label-tertiary);font-size:11.5px;white-space:nowrap}
@@ -1431,6 +1522,9 @@ window.__ModuleLoader__.load({
         upload: ['M12 16V4', 'M6 10l6-6 6 6', 'M4 20h16'],
         apps: ['M4 4h6.5v6.5H4z', 'M13.5 4H20v6.5h-6.5z', 'M4 13.5h6.5V20H4z', 'M16.75 13.5v6.5', 'M13.5 16.75H20'],
         nodes: ['M12 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M18 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M10.5 8.5 7.5 15.5', 'M13.5 8.5l3 7'],
+        host: ['M5 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'M8 20h8', 'M12 16v4'],
+        moon: ['M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z'],
+        bolt: ['M13 2 4 14h7l-1 8 9-12h-7z'],
         db: ['M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z', 'M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6', 'M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'],
       }
 
@@ -2485,21 +2579,38 @@ window.__ModuleLoader__.load({
         // ── Publish: what the page shows of an app that lives in a web app ──
         /** The pill of a published app: on its card (with the web app's host) and next to its name. It turns to a warning, with another icon, when the copy cannot be refreshed. */
         const PubPill = ({ pub, hd }) => {
-          const bad = plain(pub.syncError)
+          const gone = pub.hostGone === true
+          const bad = gone || plain(pub.syncError)
+          const name = hostNameOf(pub)
           const host = hostWord(pub.url)
-          return h('span', { className: 'kbtb-pub' + (bad ? ' bad' : '') + (hd ? ' hd' : ''), 'data-kb': hd ? 'apps-published-pill' : 'apps-card-published', title: bad ? syncLine(pub) : host },
-            svg(bad ? 'alert' : 'globe', 12), h('span', null, kt('Publiée', 'Published') + (hd || host === '' ? '' : ' · ' + host)))
+          const goneWord = kt('Son ordinateur n’existe plus', 'Its computer is gone')
+          // « Published · on Studio »: the computer it lives on; an app published before computers were chosen still shows its web address
+          const label = gone ? goneWord : kt('Publiée', 'Published') + (name !== '' ? kt(' · sur ', ' · on ') + name : (hd || host === '' ? '' : ' · ' + host))
+          return h('span', { className: 'kbtb-pub' + (bad ? ' bad' : '') + (hd ? ' hd' : ''), 'data-kb': hd ? 'apps-published-pill' : 'apps-card-published', 'data-gone': gone ? 'true' : undefined, title: gone ? goneWord : bad ? syncLine(pub) : (name !== '' ? name : host) },
+            svg(bad ? 'alert' : 'globe', 12), h('span', null, label))
         }
         /** Under the tabs of a published app: where it lives, how fresh the copy is, why the structure is locked, and the two things that can be done about it. */
         const PublishedNote = ({ p }) => {
           const pub = pubOf(p.db)
           if (pub === null) return null
+          const name = hostNameOf(pub)
+          if (pub.hostGone === true) {
+            // the computer is no longer one of the person's: the web app cannot come back, the copy kept here is the app, and the way out is to keep it and forget the web app
+            const ago = typeof pub.lastSync === 'string' ? agoWord(pub.lastSync) : ''
+            return h('div', { className: 'kbtb-banner kbtb-pubnote warn', 'data-kb': 'apps-published-note', 'data-gone': 'true', role: 'alert' },
+              svg('alert', 16),
+              h('span', { className: 'sp' },
+                h('span', null, h('b', null, name !== '' ? name : kt('L’ordinateur de cette app', 'The computer of this app')), kt(' n’existe plus, l’app web est donc injoignable.', ' no longer exists, so the web app can’t be reached.')),
+                h('span', { className: 'kbtb-pubsent' }, kt('Ta copie ici est en sécurité' + (ago !== '' ? ', telle qu’elle était ' + ago : '') + '. Garde-la et oublie l’app web pour utiliser de nouveau l’app ici.', 'Your copy here is safe' + (ago !== '' ? ', as it was ' + ago : '') + '. Keep it and forget the web app to use the app here again.'))),
+              h('button', { type: 'button', className: 'kbtb-btn sm', 'data-kb': 'apps-keep-local', onClick: () => p.openUnpublish(p.db.id, true) }, kt('Garder ma copie locale…', 'Keep my local copy…')))
+          }
           const bad = plain(pub.syncError)
           const update = kt('Mettre la copie à jour maintenant', 'Update the copy now')
+          const region = plain(pub.host) && typeof pub.host.region === 'string' ? pub.host.region : ''
           return h('div', { className: 'kbtb-banner kbtb-pubnote' + (bad ? ' warn' : ''), 'data-kb': 'apps-published-note' },
             svg(bad ? 'alert' : 'globe', 16),
             h('span', { className: 'sp' },
-              h('span', null, h('b', null, hostWord(pub.url)), h('span', { className: 'kbtb-sync', 'data-kb': 'apps-sync' }, ' · ' + syncLine(pub))),
+              h('span', null, name !== '' ? [kt('Hébergée sur ', 'Hosted on '), h('b', { key: 'n' }, name), region !== '' ? ' · ' + region : ''] : h('b', null, hostWord(pub.url)), h('span', { className: 'kbtb-sync', 'data-kb': 'apps-sync' }, ' · ' + (bad ? syncLine(pub) : syncLine(pub).replace(/^./u, (c) => c.toLowerCase())))),
               h('span', { className: 'kbtb-pubsent' }, kt('Les lignes s’écrivent dans l’app web et sont recopiées ici. La structure et les vues enregistrées ne changent plus tant que l’app est publiée ; les filtres et les tris marchent, pour cette visite seulement.', 'Rows are written in the web app and copied here. The structure and the saved views can’t change while the app is published; filters and sorting still work, for this visit only.'))),
             h('button', { type: 'button', className: 'kbtb-ib', 'data-kb': 'apps-refresh', 'aria-label': update, title: update, disabled: p.syncBusy === p.db.id, onClick: () => p.refreshNow(p.db.id) }, svg('refresh', 16)),
             h('button', { type: 'button', className: 'kbtb-btn sm', 'data-kb': 'apps-unpublish', onClick: () => p.openUnpublish(p.db.id) }, kt('Arrêter la publication…', 'Unpublish…')))
@@ -2705,37 +2816,101 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kbtb-btn primary', 'data-kb': 'apps-confirm', disabled: d.busy, onClick: () => p.runDialog('') }, d.busy ? kt('Ajout…', 'Adding…') : kt('Ajouter l’app', 'Add app'))))
         }
         const fieldList = (items, withProtection) => items.slice(0, 6).map((x) => x.objectLabel + ' › ' + x.fieldLabel + (withProtection ? ' (' + (x.protection === 'secret' ? 'secret' : kt('sensible', 'sensitive')) + ')' : '')).join(' ; ') + (items.length > 6 ? kt(' et ' + (items.length - 6) + ' autres', ' and ' + (items.length - 6) + ' more') : '')
-        /** The card of Publish: what goes, where, what it costs, what changes for the app while it is published. Nothing leaves before the confirm button. */
+        /**
+         * The computers as a radio group: arrows (and Home, End) move the choice, a click or Space picks, one tab stop. The choice is the dialog's `host`, kept by the page (`p.pickHost`); nothing here
+         * keeps a state of its own.
+         */
+        const HostPicker = ({ p, hosts, selected, busy }) => {
+          const onKeyDown = (e) => {
+            if (busy || hosts.length === 0) return
+            const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]
+            const at = hosts.findIndex((x) => x.id === (e.target && typeof e.target.getAttribute === 'function' ? e.target.getAttribute('data-host') : selected))
+            let to
+            if (step !== undefined) to = (Math.max(at, 0) + step + hosts.length) % hosts.length
+            else if (e.key === 'Home') to = 0
+            else if (e.key === 'End') to = hosts.length - 1
+            else return
+            e.preventDefault(); stop(e)
+            p.pickHost(hosts[to].id)
+            try { e.currentTarget.querySelectorAll('[role="radio"]')[to].focus() } catch (x) { /* the row is drawn again by the pick */ }
+          }
+          return h('div', { className: 'kbtb-hosts', role: 'radiogroup', 'aria-label': kt('Ordinateur cloud', 'Cloud computer'), 'data-kb': 'apps-hosts', onKeyDown },
+            hosts.map((x, i) => {
+              const st = hostState(x)
+              const on = x.id === selected
+              return h('button', { key: x.id, type: 'button', role: 'radio', 'aria-checked': on ? 'true' : 'false', 'data-kb': 'apps-host', 'data-host': x.id, className: 'kbtb-host', disabled: busy, tabIndex: on || (selected === null && i === 0) ? 0 : -1, autoFocus: on, onClick: () => p.pickHost(x.id) },
+                h('span', { className: 'kbtb-radio', 'aria-hidden': 'true' }),
+                h('span', { className: 'kbtb-hostmid' }, h('span', { className: 'kbtb-hostnm' }, svg('host', 16), h('span', null, x.name)), x.region !== '' ? h('span', { className: 'kbtb-hostsub' }, x.region) : null),
+                h('span', { className: 'kbtb-hstate ' + st.key, 'data-kb': 'apps-host-state' }, st.icon !== null ? svg(st.icon, 13) : h('span', { className: 'dot', 'aria-hidden': 'true' }), st.label))
+            }))
+        }
+        /**
+         * « Where it runs »: the person's cloud computers, and the button that opens their Kybernos server to order another (only when the host gave an address). Four shapes: the computers
+         * being read (bones), none (the box that says so, with the one button), the list that could not be read (a warning with Try again), and the list.
+         */
+        const WhereBlock = ({ p, d, card }) => {
+          const title = kt('Où ça tourne', 'Where it runs')
+          const orderUrl = card !== null && plain(card.hosting) ? orderHref(card.hosting.orderUrl) : ''
+          const order = (primary) => (orderUrl === '' ? null : h('button', { type: 'button', className: 'kbtb-btn' + (primary ? ' primary' : ' sm'), 'data-kb': 'apps-order', disabled: d.busy, title: kt('Ouvre ton serveur Kybernos dans le navigateur', 'Opens your Kybernos server in the browser'), onClick: () => p.orderComputer(orderUrl) },
+            svg('external', primary ? 15 : 14), primary ? kt('Obtenir un ordinateur cloud', 'Get a cloud computer') : kt('Obtenir un autre ordinateur cloud', 'Get another cloud computer')))
+          if (card === null) {
+            const bone = (w, hgt) => h('span', { className: 'kbtb-bone', style: { width: w, height: hgt || 12, display: 'block' } })
+            return h('div', { className: 'kbtb-where', 'data-kb': 'apps-where', 'data-state': 'loading', 'aria-busy': 'true' },
+              h('div', { className: 'kbtb-whead' }, h('h4', null, title)),
+              h('div', { className: 'kbtb-hosts bones', 'aria-hidden': 'true' }, [110, 90].map((w, i) => h('div', { key: i, className: 'kbtb-host' }, h('span', { className: 'kbtb-radio' }), h('span', { className: 'kbtb-hostmid', style: { gap: 6 } }, bone(w), bone(w - 20, 10)), bone(70, 22)))))
+          }
+          if (card.reason === 'hosts-unreachable') {
+            const said = plain(card.hostsError) && typeof card.hostsError.message === 'string' ? card.hostsError.message : ''
+            return h('div', { className: 'kbtb-where', 'data-kb': 'apps-where', 'data-state': 'unreachable' },
+              h('div', { className: 'kbtb-whead' }, h('h4', null, title), order(false)),
+              h('div', { className: 'kbtb-banner warn', role: 'alert', 'data-kb': 'apps-hosts-error' }, svg('alert', 16),
+                h('span', { className: 'sp' }, h('b', null, kt('Tes ordinateurs cloud ne se sont pas chargés.', 'We couldn’t load your cloud computers.')), ' ', said !== '' ? said : kt('Vérifie ta connexion, puis réessaie.', 'Check your connection, then try again.')),
+                h('button', { type: 'button', className: 'kbtb-btn sm', 'data-kb': 'apps-hosts-retry', disabled: d.busy, onClick: () => p.retryPublish() }, kt('Réessayer', 'Try again'))))
+          }
+          const hosts = hostsOf(card)
+          if (hosts.length === 0) {
+            return h('div', { className: 'kbtb-where', 'data-kb': 'apps-where', 'data-state': 'none' },
+              h('div', { className: 'kbtb-whead' }, h('h4', null, title)),
+              h('div', { className: 'kbtb-hempty', 'data-kb': 'apps-hosts-none' }, h('span', { className: 'ico', 'aria-hidden': 'true' }, svg('host', 22)),
+                h('b', null, kt('Pas encore d’ordinateur cloud', 'No cloud computer yet')),
+                h('p', null, kt('Un ordinateur cloud est une machine Kybernos qui reste active quand le tien est éteint. Ton app va sur l’un d’eux.', 'A cloud computer is a Kybernos machine that keeps running when yours is off. Your app goes onto one.')),
+                order(true)))
+          }
+          return h('div', { className: 'kbtb-where', 'data-kb': 'apps-where', 'data-state': 'list' },
+            h('div', { className: 'kbtb-whead' }, h('h4', null, title, h('span', { className: 'n' }, ' · ' + hosts.length + ' ' + plural(hosts.length, 'ordinateur', 'ordinateurs', 'computer', 'computers'))), order(false)),
+            h(HostPicker, { p, hosts, selected: d.host, busy: d.busy }),
+            d.host === null && !d.busy ? h('p', { className: 'kbtb-note faint', 'data-kb': 'apps-host-hint' }, kt('Choisis l’ordinateur qui reçoit l’app.', 'Choose the computer that receives the app.')) : null,
+            hosts.some((x) => x.shared) ? h('p', { className: 'kbtb-shared', 'data-kb': 'apps-hosts-shared' }, svg('info', 14), h('span', null, kt('Ces ordinateurs font aussi tourner tes agents. Pour une app que ton équipe utilise tous les jours, commandes-en un à part.', 'These computers also run your agents. For an app your team uses daily, order a separate one.'))) : null)
+        }
+        /** The card of Publish: what goes, where it runs (the person's computers), what changes for the app while it is published. Nothing leaves before the confirm button. */
         const PublishDialog = ({ p }) => {
           const d = p.dialog
           const app = p.dbs.find((x) => x.id === d.db) || null
           const name = app === null ? '' : app.name
           const card = d.card
           const can = card !== null && card.can === true
-          const hosting = card !== null && plain(card.hosting) ? card.hosting : {}
+          const reason = card === null ? null : card.reason
+          const hosts = hostsOf(card)
+          const picked = hosts.find((x) => x.id === d.host) || null
           const close = () => { if (!d.busy) p.closeDialog() }
           const title = kt('Publier « ' + name + ' » ?', 'Publish “' + name + '”?')
+          const toTheHosts = can || reason === 'no-host' || reason === 'hosts-unreachable' // the card got as far as the computers
           let lead = ''
           let rows = []
+          const after = []
           if (card === null) lead = d.error === null ? kt('Vérification en cours…', 'Checking…') : ''
-          else if (can) {
-            lead = kt('Une copie de l’app part dans une app web. Ensuite c’est l’app web qui tient les données ; cet ordinateur en garde une copie en lecture seule.', 'A copy of the app goes to a web app. From then on the web app holds the data, and this computer keeps a read-only copy of it.')
-            const price = Number.isFinite(hosting.pricePerMonth) && typeof hosting.currency === 'string' && hosting.currency !== ''
-            const budget = plain(hosting.budget) && typeof hosting.budget.label === 'string' && hosting.budget.label !== '' ? hosting.budget : null
-            rows = [
-              { k: kt('Ce qui part', 'What goes'), v: [tablesWord(card.tables), rowsWord(card.rows)].concat(card.files > 0 ? [card.files + ' ' + plural(card.files, 'fichier', 'fichiers', 'file', 'files')] : []).join(' · '), sm: fmtBytes(card.bytes) },
-              { k: kt('Où', 'Where'), v: (typeof hosting.name === 'string' && hosting.name !== '' ? hosting.name : kt('Une app web', 'A web app')) + (typeof hosting.region === 'string' && hosting.region !== '' ? ' · ' + hosting.region : ''),
-                sm: card.where === 'existing' ? kt('Dans l’app web que tu as déjà', 'Into the web app you already have') : kt('Une nouvelle app web est préparée', 'A new web app is set up') },
-            ]
-            if (price) rows.push({ k: kt('Coût estimé', 'Estimated cost'), v: priceWord(hosting.pricePerMonth, hosting.currency) + kt(' par mois', ' a month') })
-            if (budget !== null) rows.push({ k: kt('Budget', 'Budget'), v: budget.label, sm: Number.isFinite(budget.remaining) ? fmtNumber(budget.remaining) + kt(' restant', ' left') : '' })
-            if (hosting.alwaysOn === true) rows.push({ k: kt('Disponibilité', 'Availability'), v: kt('Reste disponible quand cet ordinateur est éteint', 'Stays available when this computer is off') })
+          else if (toTheHosts) {
+            lead = reason === 'no-host' ? kt('Publier met l’app sur l’un de tes ordinateurs cloud, et tu n’en as pas encore.', 'Publishing puts the app on one of your cloud computers, and you don’t have one yet.')
+              : kt('Une copie de l’app part sur l’ordinateur cloud que tu choisis. Ensuite c’est cet ordinateur qui tient les données ; celui-ci en garde une copie en lecture seule.', 'A copy of the app goes to the cloud computer you choose. From then on that computer holds the data, and this computer keeps a read-only copy of it.')
+            rows = [{ k: kt('Ce qui part', 'What goes'), v: [tablesWord(card.tables), rowsWord(card.rows)].concat(card.files > 0 ? [card.files + ' ' + plural(card.files, 'fichier', 'fichiers', 'file', 'files')] : []).join(' · '), sm: fmtBytes(card.bytes) }]
             if (Array.isArray(card.personal) && card.personal.length > 0) rows.push({ k: kt('Données personnelles', 'Personal data'), v: fieldList(card.personal, false), sm: kt('Ces champs partent dans l’app web avec le reste.', 'These fields go to the web app with the rest.') })
-            rows.push({ k: kt('Pendant la publication', 'While published'), v: kt('Les lignes s’écrivent dans l’app web. La structure et les vues ne changent plus ici ; arrête la publication pour les changer.', 'Rows are written in the web app. The structure and the views can’t change here; unpublish to change them.') })
+            if (can) {
+              if (picked !== null) after.push(availability(picked))
+              after.push({ k: kt('Pendant la publication', 'While published'), v: kt('Les lignes s’écrivent dans l’app web. La structure et les vues ne changent plus ici ; arrête la publication pour les changer.', 'Rows are written in the web app. The structure and the views can’t change here; unpublish to change them.') })
+            }
           } else {
             const why = {
               sensitive: kt('Cette app a des champs marqués sensibles ou secrets. Ils ne partent jamais dans une app web : elle ne peut pas être publiée telle quelle.', 'This app has fields marked sensitive or secret. They are never sent to a web app, so it can’t be published as it is.'),
-              budget: kt('Le budget prévu pour l’app web est épuisé.', 'The budget for the web app is used up.'),
               'too-big': kt('Cette app est trop grosse pour être publiée d’un coup (' + fmtBytes(card.bytes) + ').', 'This app is too big to publish in one go (' + fmtBytes(card.bytes) + ').'),
               archived: kt('Cette app est rangée : rétablis-la d’abord.', 'This app is archived: restore it first.'),
               busy: kt('Une publication ou un retrait est déjà en cours pour cette app.', 'This app is already being published or unpublished.'),
@@ -2744,16 +2919,19 @@ window.__ModuleLoader__.load({
             }
             lead = why[card.reason] || kt('Cette app ne peut pas être publiée pour l’instant.', 'This app can’t be published right now.')
             if (card.reason === 'sensitive' && Array.isArray(card.blocked)) rows = [{ k: kt('Champs', 'Fields'), v: fieldList(card.blocked, true), sm: kt('Demande à Kaby de les retirer ou de changer leur protection, puis réessaie.', 'Ask Kaby to remove them or change their protection, then try again.') }]
-            if (card.reason === 'budget' && plain(hosting.budget) && typeof hosting.budget.label === 'string') rows = [{ k: kt('Budget', 'Budget'), v: hosting.budget.label, sm: Number.isFinite(hosting.budget.remaining) ? fmtNumber(hosting.budget.remaining) + kt(' restant', ' left') : '' }]
           }
+          const waiting = card === null && d.error === null
+          const cancels = can || waiting || reason === 'hosts-unreachable'
           return h(Dialog, { label: title, onClose: close },
             h('div', { className: 'kbtb-dlgh' }, app === null ? null : h(Tile, { app }), h('div', null, h('h3', null, title), lead !== '' ? h('p', { className: 'kbtb-lead' }, lead) : null)),
             rows.length > 0 ? h(Facts, { rows }) : null,
-            d.busy ? h('p', { className: 'kbtb-note faint', role: 'status', 'data-kb': 'apps-publishing' }, kt('Cela peut prendre une minute.', 'This can take a minute.')) : null,
+            waiting || toTheHosts ? h(WhereBlock, { p, d, card }) : null,
+            after.length > 0 && !d.busy ? h(Facts, { rows: after }) : null,
+            d.busy ? h('div', { className: 'kbtb-pubstatus', role: 'status', 'data-kb': 'apps-publishing' }, h('span', { className: 'row' }, h('span', { className: 'kbtb-spin', 'aria-hidden': 'true' }), h('span', { 'data-kb': 'apps-publishing-line' }, publishingLine(picked))), h('small', null, kt('Cela peut prendre une minute.', 'This can take a minute.'))) : null,
             d.error ? h('p', { className: 'kbtb-ferr', role: 'alert', 'data-kb': 'apps-dialog-error' }, d.error) : null,
             h('div', { className: 'kbtb-acts' },
-              h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-cancel', disabled: d.busy, onClick: close }, can || (card === null && d.error === null) ? kt('Annuler', 'Cancel') : kt('Fermer', 'Close')),
-              can ? h('button', { type: 'button', className: 'kbtb-btn primary', 'data-kb': 'apps-confirm', disabled: d.busy, onClick: () => p.runDialog('') }, d.busy ? kt('Publication…', 'Publishing…') : kt('Publier', 'Publish')) : null))
+              h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-cancel', disabled: d.busy, onClick: close }, cancels ? kt('Annuler', 'Cancel') : kt('Fermer', 'Close')),
+              cancels ? h('button', { type: 'button', className: 'kbtb-btn primary', 'data-kb': 'apps-confirm', disabled: !can || picked === null || d.busy, onClick: () => p.runDialog('') }, d.busy ? kt('Publication…', 'Publishing…') : kt('Publier', 'Publish')) : null))
         }
         /** Unpublish: the app comes back as the web app holds it now. When the web app cannot be reached, the way out that keeps this computer's copy is offered, behind the app's typed name. */
         const UnpublishDialog = ({ p }) => {
@@ -3042,12 +3220,14 @@ window.__ModuleLoader__.load({
               return
             }
             if (d.kind === 'publish') {
-              const r = await call('POST', '/publish', { db: d.db, confirm: true })
+              if (typeof d.host !== 'string' || d.host === '') { setDialog((cur) => (cur === null ? cur : Object.assign({}, cur, { busy: false }))); return }
+              const r = await call('POST', '/publish', { db: d.db, host: d.host, confirm: true })
               if (!alive.current) return
+              // a refusal keeps the card open, with the sentence and the computer still picked
               if (!r.ok) { setDialog((cur) => (cur === null ? cur : Object.assign({}, cur, { busy: false, error: errorText(r) }))); return }
               setDialog(null)
-              const host = plain(r.published) ? hostWord(r.published.url) : ''
-              say(host !== '' ? kt('Publiée sur ' + host + '.', 'Published at ' + host + '.') : kt('Publiée.', 'Published.'), { label: kt('Ouvrir l’app web', 'Open web app'), run: () => openWeb(d.db) })
+              const where = hostNameOf(plain(r.published) ? r.published : null) || (plain(r.published) ? hostWord(r.published.url) : '')
+              say(where !== '' ? kt('Publiée sur ' + where + '.', 'Published on ' + where + '.') : kt('Publiée.', 'Published.'), { label: kt('Ouvrir l’app web', 'Open web app'), run: () => openWeb(d.db) })
               refresh()
               return
             }
@@ -3079,12 +3259,18 @@ window.__ModuleLoader__.load({
           // ── Publish: the card, the web app, the copy kept here ──
           const openPublish = async (dbId) => {
             setMenu(null)
-            setDialog({ kind: 'publish', db: dbId, card: null, busy: false, error: null })
+            setDialog({ kind: 'publish', db: dbId, card: null, host: null, busy: false, error: null })
             const r = await call('GET', '/publish-check' + qs({ db: dbId }))
             if (!alive.current) return
-            setDialog((d) => (d !== null && d.kind === 'publish' && d.db === dbId ? Object.assign({}, d, r.ok ? { card: r } : { error: errorText(r) }) : d))
+            setDialog((d) => (d !== null && d.kind === 'publish' && d.db === dbId ? Object.assign({}, d, r.ok ? { card: r, host: defaultHost(r) } : { error: errorText(r) }) : d))
           }
-          const openUnpublish = (dbId) => { setMenu(null); setDialog({ kind: 'unpublish', db: dbId, forget: false, canForget: false, busy: false, error: null }) }
+          /** The card again, from the start: the computers are read once more. */
+          const retryPublish = () => { const d = dialogRef.current; if (d !== null && d.kind === 'publish' && !d.busy) openPublish(d.db) }
+          const pickHost = (id) => setDialog((d) => (d !== null && d.kind === 'publish' && !d.busy && d.host !== id ? Object.assign({}, d, { host: id, error: null }) : d))
+          /** The order button: the address the host gave, in a new tab that knows nothing of this page. Nothing is added to it. */
+          const orderComputer = (url) => { const r = openOrderPage(url); if (!r.ok && r.error === 'popup') say(errorText(r)) }
+          /** `forget` opens it on the way that keeps this computer's copy and forgets the web app (for an app whose computer is gone). */
+          const openUnpublish = (dbId, forget) => { setMenu(null); setDialog({ kind: 'unpublish', db: dbId, forget: forget === true, canForget: forget === true, busy: false, error: null }) }
           const startForget = () => setDialog((d) => (d !== null && d.kind === 'unpublish' ? Object.assign({}, d, { forget: true, error: null }) : d))
           /** The edits a person made to the views of an app while it was published are gone with the publication. */
           const dropLocalDrafts = (dbId) => {
@@ -3204,7 +3390,7 @@ window.__ModuleLoader__.load({
             favView: (id) => updateView(id, (v) => { v.fav = !v.fav; return v }, true),
             openRecord, openLinked, goBack, openTable, openApp, goGallery, newApp: startNew, closeDrawer: () => setDrawer(null),
             confirmArchive, confirmDelete, restoreApp, restoreTable, closeDialog: () => setDialog(null), runDialog, openTemplate, setTemplateOpt,
-            hosting: data.hosting, syncBusy, openPublish, openUnpublish, startForget, openWeb, refreshNow,
+            hosting: data.hosting, syncBusy, openPublish, retryPublish, pickHost, orderComputer, openUnpublish, startForget, openWeb, refreshNow,
             setMonth: (id, ym) => setMonths((m) => Object.assign({}, m, { [id]: ym })),
           }
 
@@ -3274,7 +3460,7 @@ window.__ModuleLoader__.load({
             toast !== null ? h('div', { className: 'kbtb-toast', role: 'status', 'data-kb': 'tables-toast', key: toast.id }, svg('check', 15), h('span', null, toast.text), toast.action ? h('button', { type: 'button', className: 'kbtb-tact', 'data-kb': 'tables-toast-action', onClick: () => { const run = toast.action.run; setToast(null); run() } }, toast.action.label) : null) : null)
         }
         // the pieces, handed out for the tests (they render each one in a state the page takes a while to reach)
-        Page.parts = { PubPill, PublishedNote, PublishDialog, UnpublishDialog, Bar, MenuButton, ActionMenu, TableMenu, ViewsPop, FieldsPop, FilterPop, SortPop, ValueCell, TableView, BoardView, CardsView, CalendarView, GeoView, MapSwitch, RealMap, MapView, Chips, Drawer, FieldRow, Empty, Gallery, AppCard, ArchivedCard, NewApp, TemplateCard, AppHeader, AppMenu, Tabs, RelationsView, AppDialog, TemplateDialog, Dialogs, Cell, Opt, LinkChips, LinkedFrom, LinkedGroups, LinkMap, Thumb, FileChips }
+        Page.parts = { PubPill, PublishedNote, PublishDialog, HostPicker, WhereBlock, UnpublishDialog, Bar, MenuButton, ActionMenu, TableMenu, ViewsPop, FieldsPop, FilterPop, SortPop, ValueCell, TableView, BoardView, CardsView, CalendarView, GeoView, MapSwitch, RealMap, MapView, Chips, Drawer, FieldRow, Empty, Gallery, AppCard, ArchivedCard, NewApp, TemplateCard, AppHeader, AppMenu, Tabs, RelationsView, AppDialog, TemplateDialog, Dialogs, Cell, Opt, LinkChips, LinkedFrom, LinkedGroups, LinkMap, Thumb, FileChips }
         return Page
       }
 
@@ -3316,7 +3502,7 @@ window.__ModuleLoader__.load({
         name: NAME,
         inject: ['slots'],
         apply: start,
-        __test: { pubOf, canPublishVia, hostWord, agoWord, syncLine, priceWord, openWebApp, useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, isImage, fileUrl, relationFields, seenAs, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, savable, barViews, viewIndex, agentViewEvents, boardColumns, pictureOf, totalField, columnTotal, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = {} }, MAP_STYLE_KEY, MAP_STYLE_URL, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_LIB, readMapStyle, saveMapStyle, flipColor, compactMoney, pinLabel, pinAmount, placedRecords, MAP_STYLES, mapStyleOf, mapStyleUrl, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, projectPins, parseColor, colorHex, paletteFrom, mapPalette, tweakStyle, flipTokens, monthOf, shiftMonth, monthGrid, monthLabel, askAbout, buildText, STARTS, appHue, monogram, confirmOk, rowsIn, tplSeam, templateOf, REL_TAB, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
+        __test: { pubOf, canPublishVia, hostWord, agoWord, syncLine, openWebApp, hostsOf, defaultHost, orderHref, openOrderPage, hostState, availability, publishingLine, hostNameOf, useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, isImage, fileUrl, relationFields, seenAs, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, savable, barViews, viewIndex, agentViewEvents, boardColumns, pictureOf, totalField, columnTotal, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = {} }, MAP_STYLE_KEY, MAP_STYLE_URL, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_LIB, readMapStyle, saveMapStyle, flipColor, compactMoney, pinLabel, pinAmount, placedRecords, MAP_STYLES, mapStyleOf, mapStyleUrl, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, projectPins, parseColor, colorHex, paletteFrom, mapPalette, tweakStyle, flipTokens, monthOf, shiftMonth, monthGrid, monthLabel, askAbout, buildText, STARTS, appHue, monogram, confirmOk, rowsIn, tplSeam, templateOf, REL_TAB, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
       }
     } catch (e) {
       console.warn('[kybernos-db] disabled:', e)

@@ -244,7 +244,7 @@ the only exposed port, sleeping (suspended with its memory) when idle. The perso
 | Sleep | exempt from idle sleep | normal sleep; a member's request wakes it (about a second); hosted traffic must count as activity for the idle rule |
 | Exposure | its own origin | the Gate stays the only exposed port; the router sends `<slug>.kaby.app` to the hosted app on that computer, which has its own sign-in (members are not Kybernos users) |
 | Isolation | a machine of its own | same machine as the owner's DSH: the hosted app runs as another OS user in its own directory and port, never sees the DSH's volume, credentials or the computer's device token, and gets only its own boot key and auth secret |
-| Hosting port | `ensureSpace({ workspace })` | `hosts()` lists the person's computers, `orderUrl()` opens the server page, `ensureSpace({ host })` starts the hosted app on the chosen one; `describe()` is per host |
+| Hosting port | `ensureSpace({ workspace })` | `hosts()` lists the person's computers, `describe().orderUrl` is the server page the order button opens, `ensureSpace({ host })` starts the hosted app on the chosen one (built on the DSH side: `docs/dev/apps-hosting-port.md`) |
 
 Kept as they are: the DSH side (mirror, facade, `published` refusals, registry), the hosted app and its bundle API, the router and slug
 rules, the per-instance keys and their rotation, the backups with the restore drill and the retention sentence, the write-freeze route,
@@ -256,5 +256,11 @@ estimate, the budget pause and the "paused" page of a space. They return as a pa
 - How the hosted app gets onto an existing computer: baked into the computer image, or installed on the first Publish. The server and
   the image owner decide; the plugin only needs `ensureSpace` to answer once the app answers `GET /health`.
 - Whether the idle rule can count the hosted app's requests as activity without a change to the computer image.
-- A person with several computers who published apps on two of them: the registry already keys a space by id, so each app records its
-  host; the Apps page shows it on the card.
+- ~~A person with several computers who published apps on two of them~~ Decided and built on the DSH side: each space and each app records the
+  host id (and the app the last name and region seen), the card and the header say "on <name>", and "its computer is gone" is declared only when
+  the app cannot be reached **and** a successful `hosts()` no longer lists the computer (asked at most once a minute; a failed `hosts()`
+  proves nothing). Moving an app stays Unpublish then Publish.
+- Whether the server wants `hosts()` to count a computer that is being created as `starting` or leave it out of the list until it runs (the
+  dialog shows `starting` as « Starting » and Publish onto it waits for `ensureSpace`).
+- The real `orderUrl`: the plugin opens whatever `https` address the hosting gives, unchanged; the server decides whether it carries a return
+  path or a pre-selected plan.

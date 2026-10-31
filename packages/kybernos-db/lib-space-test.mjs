@@ -103,14 +103,24 @@ export function fakeSpace ({ root, ports = {} }) {
   return space
 }
 
-/** A hosting port that hands back the fake space, with the facts a card shows. */
+/** The computer the fake hosting lists, and the order address it describes. */
+export const HOST_ID = 'host-1'
+export const ORDER_URL = 'https://kybernos.example.test/computers'
+
+/**
+ * A hosting port that lists the person's computers (`list`, which a test may change) and hands back the fake space on the one it is asked for, with the facts a card shows.
+ * `hostReads` counts the reads of the list.
+ */
 export function fakeHosting (space, extra = {}) {
   const calls = []
   const h = {
     calls,
+    hostReads: 0,
+    list: [{ id: HOST_ID, name: 'Studio', state: 'running', region: 'Frankfurt, EU' }],
     available: () => true,
-    describe: () => ({ name: 'Kybernos team space', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true, region: 'EU', budget: { label: 'Cloud budget', remaining: 3, enough: true } }),
-    ensureSpace: async (arg) => { calls.push(arg); return { ok: true, space: { id: 'space-1', url: space.url, bootKey: space.bootKey } } },
+    describe: () => ({ name: 'Kybernos', orderUrl: ORDER_URL }),
+    hosts: async () => { h.hostReads += 1; return { ok: true, hosts: h.list.map((x) => ({ ...x })) } },
+    ensureSpace: async (arg) => { calls.push(arg); return { ok: true, space: { id: 'space-' + arg.host, url: space.url, bootKey: space.bootKey } } },
     ...extra,
   }
   return h

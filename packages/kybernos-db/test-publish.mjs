@@ -18,13 +18,13 @@ import { ROUTE, mountRoutes } from './routes.mjs'
 import { sessionSource } from './session-guard.mjs'
 import { sha256 } from './remote/bundle.mjs'
 import { MIRROR_READS, PUBLISHED_MESSAGE, REFUSED, doorShape, makeFacade } from './remote/facade.mjs'
-import { describeHosting, envHosting, unavailableHosting } from './remote/hosting.mjs'
+import { HOSTS_MAX, HOSTS_TIMEOUT_MS, cleanOrderUrl, describeHosting, envHosting, readHosts, unavailableHosting } from './remote/hosting.mjs'
 import { pullMirror } from './remote/mirror.mjs'
-import { BACKOFF_MAX_MS, POLL_MS, makePublisher, slugFor } from './remote/publisher.mjs'
+import { BACKOFF_MAX_MS, HOSTS_EVERY_MS, POLL_MS, makePublisher, slugFor } from './remote/publisher.mjs'
 import { REGISTRY_FILE, cleanSpace, openPublishedRegistry } from './remote/registry.mjs'
 import { OPEN_KIND, OPEN_TTL_SEC, makeSpaceClient, normalizeSpaceUrl } from './remote/space.mjs'
 import { bearerOf, hexKey, verifyOwnerApiToken, verifyToken } from './remote/token.mjs'
-import { SPACE_KEY, SPACE_URL, fakeHosting, fakeSpace } from './lib-space-test.mjs'
+import { HOST_ID, ORDER_URL, SPACE_KEY, SPACE_URL, fakeHosting, fakeSpace } from './lib-space-test.mjs'
 import { OTHER_SECRET, SESSION_SECRET, browserHeaders, sessionCookie } from './lib-session-test.mjs'
 
 let count = 0
@@ -92,7 +92,7 @@ function world (o = {}) {
 /** A world whose app is already published. */
 async function published (o) {
   const w = world(o)
-  const r = await w.publisher.publish(w.id, { confirm: true })
+  const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
   assert.equal(r.ok, true, JSON.stringify(r))
   return { ...w, slug: r.published.slug }
 }
@@ -166,6 +166,55 @@ await ok('a registry that cannot be written says so and keeps what it had', () =
   assert.equal(r.code, 'registry')
   assert.deepEqual(reg.spaces(), [])
   assert.equal(JSON.stringify(r).includes(SPACE_KEY), false)
+})
+
+await ok('the registry remembers which computer a space and an app live on and which one the last Publish used, refreshes the name and region it last saw, and still opens a file written before any of it', () => {
+  const file = join(root, 'reg-host', REGISTRY_FILE)
+  const SINCE = '2026-10-31T09:00:00.000Z'
+  const reg = openPublishedRegistry({ file })
+  const bad = (r, code) => { assert.equal(r.ok, false); assert.equal(r.code, code, JSON.stringify(r)) }
+  assert.equal(reg.lastHost(), null)
+  assert.equal(reg.addSpace({ id: 's-1', url: 'https://team.example.test', bootKey: SPACE_KEY, host: 'studio' }).ok, true)
+  assert.equal(reg.addApp({ db: ULID, space: 's-1', slug: 'home', since: SINCE, host: { id: 'studio', name: 'Studio', region: 'Frankfurt, EU' } }).ok, true)
+  assert.equal(reg.setLastHost('studio').ok, true)
+  const again = openPublishedRegistry({ file })
+  assert.deepEqual(again.spaceOf(ULID), { app: { db: ULID, space: 's-1', slug: 'home', since: SINCE, host: { id: 'studio', name: 'Studio', region: 'Frankfurt, EU' } }, space: { id: 's-1', url: 'https://team.example.test', bootKey: SPACE_KEY, host: 'studio' } })
+  assert.deepEqual([again.lastHost(), again.space('s-1').host, again.appOf(ULID).host.name], ['studio', 'studio', 'Studio'])
+  again.appOf(ULID).host.name = 'changed'; again.apps()[0].host.id = 'changed'; again.spaceOf(ULID).app.host.name = 'changed'
+  assert.equal(again.appOf(ULID).host.name, 'Studio', 'what it hands out is a copy, the computer\'s data too')
+  // the name and region follow the computer; the file is written only when something changed
+  const text = readFileSync(file, 'utf8')
+  assert.deepEqual(again.setHostInfo('studio', { name: 'Studio', region: 'Frankfurt, EU' }), { ok: true, changed: false })
+  assert.deepEqual(again.setHostInfo('another', { name: 'X', region: 'Y' }), { ok: true, changed: false })
+  assert.equal(readFileSync(file, 'utf8'), text, 'nothing to say, nothing written')
+  assert.deepEqual(again.setHostInfo('studio', { name: 'Studio ' + 'n'.repeat(100), region: 7 }), { ok: true, changed: true })
+  assert.deepEqual([again.appOf(ULID).host.name.length, again.appOf(ULID).host.region], [80, ''], 'cut, and a region that is not text is nothing')
+  assert.deepEqual(openPublishedRegistry({ file }).appOf(ULID).host.id, 'studio')
+  // what is not a computer\'s id is refused
+  bad(reg.addSpace({ id: 's-2', url: 'https://team.example.test', bootKey: SPACE_KEY, host: '../x' }), 'invalid')
+  bad(reg.addSpace({ id: 's-2', url: 'https://team.example.test', bootKey: SPACE_KEY, host: 42 }), 'invalid')
+  assert.equal(reg.addSpace({ id: 's-2', url: 'https://team.example.test', bootKey: SPACE_KEY }).ok, true, 'a space with no computer (an older one) is fine')
+  bad(reg.addApp({ db: ULID2, space: 's-2', slug: 'other', since: SINCE, host: 'studio' }), 'invalid')
+  bad(reg.addApp({ db: ULID2, space: 's-2', slug: 'other', since: SINCE, host: { id: '../x', name: 'X' } }), 'invalid')
+  bad(reg.addApp({ db: ULID2, space: 's-2', slug: 'other', since: SINCE, host: { id: 'studio', name: 42 } }), 'invalid')
+  bad(reg.addApp({ db: ULID2, space: 's-2', slug: 'other', since: SINCE, host: null }), 'invalid')
+  bad(reg.setLastHost('../x'), 'invalid'); bad(reg.setLastHost(42), 'invalid'); bad(reg.setLastHost(undefined), 'invalid')
+  assert.equal(reg.lastHost(), 'studio', 'a refused choice changes nothing')
+  assert.equal(reg.addApp({ db: ULID2, space: 's-2', slug: 'other', since: SINCE }).ok, true)
+  assert.equal(reg.appOf(ULID2).host, undefined, 'an app with no computer recorded says nothing of one')
+  // a file written before computers were chosen opens as it is
+  const old = join(root, 'reg-old', REGISTRY_FILE)
+  mkdirSync(join(root, 'reg-old'), { recursive: true })
+  writeFileSync(old, JSON.stringify({ version: 1, spaces: [{ id: 's-1', url: 'https://team.example.test', bootKey: SPACE_KEY }], apps: [{ db: ULID, space: 's-1', slug: 'home', since: SINCE }], pending: [] }))
+  const legacy = openPublishedRegistry({ file: old })
+  assert.deepEqual([legacy.fault, legacy.lastHost(), legacy.space('s-1').host, legacy.appOf(ULID).host], [null, null, undefined, undefined])
+  assert.deepEqual(legacy.setHostInfo('studio', { name: 'Studio' }), { ok: true, changed: false }, 'and there is nothing to refresh on it')
+  // a usual choice that is junk is forgotten; a computer that is junk on an app is a file that cannot be trusted
+  writeFileSync(old, JSON.stringify({ version: 1, spaces: [{ id: 's-1', url: 'https://team.example.test', bootKey: SPACE_KEY }], apps: [], pending: [], lastHost: { id: 1 } }))
+  const junk = openPublishedRegistry({ file: old })
+  assert.deepEqual([junk.fault, junk.lastHost(), junk.spaces().length], [null, null, 1])
+  writeFileSync(old, JSON.stringify({ version: 1, spaces: [{ id: 's-1', url: 'https://team.example.test', bootKey: SPACE_KEY }], apps: [{ db: ULID, space: 's-1', slug: 'home', since: SINCE, host: { id: '../x' } }], pending: [] }))
+  assert.equal(openPublishedRegistry({ file: old, now: () => 99 }).fault, 'unreadable')
 })
 
 // ---------------------------------------------------------------- the space client, against a fake fetch
@@ -297,32 +346,98 @@ await ok('the owner\'s link is a one-time `open` token good for ten minutes, mad
 })
 
 // ---------------------------------------------------------------- the hosting port
-await ok('without a hosting nothing is offered; a hosting describes itself in plain data only', () => {
+await ok('without a hosting nothing is offered; a hosting describes itself in plain data only, and the order address is an https address nobody built', async () => {
   const none = unavailableHosting()
   assert.equal(none.available(), false)
   assert.equal(describeHosting(none).name, '')
   assert.equal(Object.isFrozen(none), true)
-  const d = describeHosting({ describe: () => ({ name: 'Team space', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true, region: 'EU', budget: { label: 'Cloud budget', remaining: 3, enough: true, token: 'sk-x' }, bootKey: SPACE_KEY, extra: 1 }) })
-  assert.deepEqual(d, { name: 'Team space', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true, region: 'EU', budget: { label: 'Cloud budget', remaining: 3, enough: true } })
+  assert.deepEqual(await none.hosts(), { ok: false, code: 'unavailable', message: 'Publishing is not available yet.' })
+  assert.equal((await none.ensureSpace({ host: 'h' })).code, 'unavailable')
+  const d = describeHosting({ describe: () => ({ name: 'Kybernos', orderUrl: 'https://kybernos.example.test/computers?plan=pro', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true, region: 'EU', budget: { remaining: 3 }, bootKey: SPACE_KEY, extra: 1 }) })
+  assert.deepEqual(d, { name: 'Kybernos', orderUrl: 'https://kybernos.example.test/computers?plan=pro' }, 'a name and an address, nothing else: no price, no budget, no region of its own')
   noKey(d)
-  const odd = describeHosting({ describe: () => ({ name: 'x'.repeat(200), pricePerMonth: -1, currency: 'dollars', alwaysOn: 'yes', budget: 'lots' }) })
-  assert.deepEqual([odd.name.length, odd.pricePerMonth, odd.currency, odd.alwaysOn, odd.budget], [80, null, '', false, null], 'a value that is not what it should be becomes nothing, never a claim')
-  assert.equal(describeHosting({ describe: () => { throw new Error('boom') } }).alwaysOn, false)
-  assert.equal(describeHosting({ describe: () => null }).name, '')
+  assert.equal(describeHosting({ describe: () => ({ name: 'x'.repeat(200) }) }).name.length, 80)
+  for (const bad of ['http://kybernos.example.test/computers', 'https://user:pw@kybernos.example.test/', 'https://user@kybernos.example.test/', 'javascript:alert(1)', 'data:text/html,x', '//kybernos.example.test/computers', '/computers', 'kybernos.example.test', 'https://', 'https://kybernos.example.test/ a', 'https://kybernos.example.test/\n', 'https://kybernos.example.test/' + 'x'.repeat(2000), 42, null, {}]) {
+    assert.equal(describeHosting({ describe: () => ({ name: 'Kybernos', orderUrl: bad }) }).orderUrl, '', String(bad).slice(0, 50))
+  }
+  assert.equal(cleanOrderUrl('https://kybernos.example.test/computers'), 'https://kybernos.example.test/computers', 'it is handed back as it came, never rebuilt')
+  assert.deepEqual(describeHosting({ describe: () => { throw new Error('boom') } }), { name: '', orderUrl: '' })
+  assert.deepEqual(describeHosting({ describe: () => null }), { name: '', orderUrl: '' })
 })
 
-await ok('a hosting set by the host process from two variables is for one space, and anything unusable is no hosting', async () => {
+await ok('the computers are read as the port gave them, cleaned: a list that lies about its types never becomes a claim, and the port never throws into the plugin', async () => {
+  const read = (answer) => readHosts({ hosts: typeof answer === 'function' ? answer : async () => answer })
+  const good = await read({ ok: true, hosts: [{ id: 'a-1', name: 'Studio', state: 'sleeping', region: 'Paris, FR', alwaysOn: true, shared: true, token: 'secret' }, { id: 'b-2', name: 'Cabinet', state: 'running' }] })
+  assert.deepEqual(good, { ok: true, hosts: [{ id: 'a-1', name: 'Studio', state: 'sleeping', region: 'Paris, FR', alwaysOn: true, shared: true }, { id: 'b-2', name: 'Cabinet', state: 'running', region: '', alwaysOn: false, shared: false }] })
+  assert.deepEqual(await read({ ok: true, hosts: [] }), { ok: true, hosts: [] }, 'no computer is a valid answer')
+  const lying = await read({ ok: true, hosts: [
+    { id: 'c-3', name: 42, state: 'on fire', region: { x: 1 }, alwaysOn: 'yes', shared: 1 },
+    { id: 'd-4', name: '  Nice\n' + String.fromCharCode(0x2028) + '  name  ', state: 'starting', region: 'x'.repeat(200) },
+    { id: '../etc', name: 'Bad id' }, { id: 7, name: 'Number id' }, { id: '', name: 'Empty id' }, { name: 'No id' }, null, 'string', 3, [],
+    { id: 'c-3', name: 'Same id twice' },
+  ] })
+  assert.deepEqual(lying.hosts.map((h) => h.id), ['c-3', 'd-4'], 'what cannot be told apart is dropped, a twin is dropped')
+  assert.deepEqual(lying.hosts[0], { id: 'c-3', name: 'c-3', state: 'stopped', region: '', alwaysOn: false, shared: false }, 'a name that is not text is the id, a state nobody knows is stopped, a flag that is not true is false')
+  assert.equal(lying.hosts[1].name, 'Nice name', 'whitespace and control characters fold to one space')
+  assert.equal(lying.hosts[1].region.length, 80)
+  const many = await read({ ok: true, hosts: Array.from({ length: HOSTS_MAX + 20 }, (_, i) => ({ id: 'h-' + i, name: 'H' + i, state: 'running' })) })
+  assert.equal(many.hosts.length, HOSTS_MAX)
+  for (const answer of [null, undefined, 'ok', 42, [], {}, { ok: true }, { ok: true, hosts: 'many' }, { ok: true, hosts: { 0: 1 } }, { ok: 'true', hosts: [] }]) {
+    const r = await read(answer)
+    assert.deepEqual([r.ok, r.code], [false, 'hosts-unreachable'], JSON.stringify(answer))
+    assert.ok(typeof r.message === 'string' && r.message !== '')
+  }
+  const refused = await read({ ok: false, code: 'unavailable', message: 'The  Kybernos\nserver is unreachable.' })
+  assert.deepEqual([refused.ok, refused.code, refused.message], [false, 'hosts-unreachable', 'The Kybernos server is unreachable.'], 'the port\'s own words, tidied')
+  const loud = await read({ ok: false, message: 'y'.repeat(900) })
+  assert.equal(loud.message.length, 300)
+  const thrown = await read(() => { throw new Error('ECONNREFUSED 10.0.0.1 ' + SPACE_KEY) })
+  assert.equal(thrown.code, 'hosts-unreachable'); assert.equal(JSON.stringify(thrown).includes('10.0.0.1'), false, 'an exception is not repeated'); noKey(thrown)
+  assert.equal((await read(() => Promise.reject(new Error('no')))).code, 'hosts-unreachable')
+  for (const bad of [null, undefined, {}, { hosts: 'x' }, 'x']) assert.equal((await readHosts(bad)).code, 'hosts-unreachable', 'no usable port')
+})
+
+await ok('a port that does not answer is given a limit, and the timer is taken off when it did answer', async () => {
+  const tm = timers()
+  const never = readHosts({ hosts: () => new Promise(() => {}) }, { timers: tm })
+  await Promise.resolve(); await Promise.resolve()
+  assert.deepEqual([tm.timeouts.length, tm.timeouts[0].ms, tm.unrefs], [1, HOSTS_TIMEOUT_MS, 1], 'a fifteen second limit, that does not keep the process alive')
+  tm.timeouts[0].fn()
+  const r = await never
+  assert.deepEqual([r.ok, r.code], [false, 'hosts-unreachable'])
+  assert.equal(tm.cleared.length, 1)
+  const tm2 = timers()
+  assert.equal((await readHosts({ hosts: async () => ({ ok: true, hosts: [] }) }, { timers: tm2 })).ok, true)
+  assert.equal(tm2.cleared.length, 1, 'an answer in time clears the limit')
+  const keep = setInterval(() => {}, 1000) // the limit does not keep a process alive, so something else has to while this waits
+  const real = await readHosts({ hosts: () => new Promise(() => {}) }, { timeoutMs: 20 })
+  clearInterval(keep)
+  assert.equal(real.code, 'hosts-unreachable', 'and with the real timers too')
+})
+
+await ok('a hosting set by the host process from its variables lists its one space as a running computer and gives it to that computer only; anything unusable is no hosting', async () => {
   const env = { KYBERNOS_DB_SPACE_URL: 'https://team.example.test', KYBERNOS_DB_SPACE_KEY: SPACE_KEY }
   const h = envHosting(env)
   assert.equal(h.available(), true)
-  const given = await h.ensureSpace({ workspace: 'default' })
+  const listed = await h.hosts()
+  assert.deepEqual(listed, { ok: true, hosts: [{ id: 'env-team-example-test', name: 'Your own team space', state: 'running' }] })
+  noKey(listed)
+  const given = await h.ensureSpace({ host: listed.hosts[0].id })
   assert.deepEqual([given.ok, given.space.id, given.space.url, given.space.bootKey], [true, 'env-team-example-test', 'https://team.example.test', SPACE_KEY])
-  assert.equal(describeHosting(h).alwaysOn, false, 'nothing here says always on')
+  for (const arg of [{ host: 'another' }, { workspace: 'default' }, {}, null, undefined, 'env-team-example-test']) {
+    const r = await h.ensureSpace(arg)
+    assert.deepEqual([r.ok, r.code], [false, 'unknown-host'], JSON.stringify(arg))
+    noKey(r)
+  }
+  assert.deepEqual(describeHosting(h), { name: 'Your own team space', orderUrl: '' }, 'no order address unless the host process gave one')
   noKey(h.describe())
+  const ordered = envHosting({ ...env, KYBERNOS_DB_ORDER_URL: 'https://kybernos.example.test/computers' })
+  assert.equal(describeHosting(ordered).orderUrl, 'https://kybernos.example.test/computers')
+  for (const bad of ['http://kybernos.example.test/computers', 'https://u:p@kybernos.example.test/', 'nonsense', '']) assert.equal(describeHosting(envHosting({ ...env, KYBERNOS_DB_ORDER_URL: bad })).orderUrl, '', bad)
   for (const bad of [{}, { KYBERNOS_DB_SPACE_URL: env.KYBERNOS_DB_SPACE_URL }, { KYBERNOS_DB_SPACE_KEY: SPACE_KEY }, { ...env, KYBERNOS_DB_SPACE_URL: 'http://team.example.test' }, { ...env, KYBERNOS_DB_SPACE_KEY: 'nothex' }]) assert.equal(envHosting(bad).available(), false)
   assert.equal(chooseHosting(undefined, {}).available(), false, 'the default is no hosting')
   assert.equal(chooseHosting(undefined, env).available(), true)
-  assert.equal(chooseHosting({ available: () => true, describe: () => ({}), ensureSpace: async () => null }, {}).available(), true, 'a hosting given by the host wins')
+  assert.equal(chooseHosting({ available: () => true, describe: () => ({}), hosts: async () => ({ ok: true, hosts: [] }), ensureSpace: async () => null }, {}).available(), true, 'a hosting given by the host wins')
   assert.equal(chooseHosting('junk', {}).available(), false)
 })
 
@@ -388,76 +503,151 @@ await ok('a hosted name comes from the app\'s name: plain letters, digits and da
 })
 
 // ---------------------------------------------------------------- the card
-await ok('the Publish card says what would go, what is personal, and whether it can go', async () => {
+await ok('the Publish card says what would go, what is personal, whether it can go, and which computers it could go to', async () => {
   const w = world()
-  const c = w.publisher.check(w.id)
-  assert.deepEqual([c.ok, c.can, c.reason, c.where], [true, true, null, 'new'])
+  const c = await w.publisher.check(w.id)
+  assert.deepEqual([c.ok, c.can, c.reason], [true, true, null])
   assert.deepEqual([c.app.name, c.tables, c.rows, c.files], ['Home', 1, 2, 1])
   assert.ok(c.bytes > PNG.length, 'the file and the database count')
   assert.deepEqual(c.personal.map((p) => [p.object, p.field, p.fieldLabel]), [['contact', 'email', 'Email']], 'personal fields may go, and are listed')
   assert.deepEqual(c.blocked, [])
-  assert.deepEqual(c.hosting, { available: true, name: 'Kybernos team space', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true, region: 'EU', budget: { label: 'Cloud budget', remaining: 3, enough: true } })
+  assert.deepEqual(c.hosting, { name: 'Kybernos', orderUrl: ORDER_URL }, 'the product\'s name, and the address that orders another computer')
+  assert.deepEqual(c.hosts, [{ id: HOST_ID, name: 'Studio', state: 'running', region: 'Frankfurt, EU', alwaysOn: false, shared: false }])
+  assert.equal(c.lastHost, null, 'nothing was published yet, so no computer is the usual one')
+  for (const gone of ['where', 'pricePerMonth', 'currency', 'budget']) assert.equal(gone in c || gone in c.hosting, false, gone + ' is not part of the card any more')
   noKey(c)
-  assert.equal(w.publisher.check('nope').ok, false)
+  assert.equal((await w.publisher.check('nope')).ok, false)
   assert.equal(w.space.calls.length, 0, 'looking at the card asks nothing of the space')
+  assert.equal(w.hosting.calls.length, 0, 'and asks for no space on any computer')
+})
+
+await ok('the computers are read when the card opens, once for each opening, and never by a state read', async () => {
+  const w = world()
+  assert.equal(w.hosting.hostReads, 0)
+  w.api.state(); w.publisher.hostingState(); w.publisher.info(w.id); w.api.state()
+  assert.equal(w.hosting.hostReads, 0, 'the header and the state never wait for the hosting')
+  await w.publisher.check(w.id)
+  assert.equal(w.hosting.hostReads, 1)
+  await w.publisher.check(w.id)
+  assert.equal(w.hosting.hostReads, 2, 'a card that opens again reads again: the list is the person\'s, it changes')
+  w.hosting.list.push({ id: 'host-2', name: 'Cabinet', state: 'sleeping', region: 'Paris, FR', alwaysOn: true, shared: true })
+  const c = await w.publisher.check(w.id)
+  assert.deepEqual(c.hosts.map((h) => [h.id, h.state, h.region, h.alwaysOn, h.shared]), [[HOST_ID, 'running', 'Frankfurt, EU', false, false], ['host-2', 'sleeping', 'Paris, FR', true, true]], 'in the order the port gave them, with what it said of each')
+  const done = await published()
+  const before = done.hosting.hostReads
+  assert.equal((await done.publisher.check(done.id)).reason, 'published')
+  assert.equal(done.hosting.hostReads, before, 'an app that cannot be published asks nothing of the hosting')
 })
 
 await ok('the card refuses an app with sensitive or secret fields, and names them', async () => {
   const w = world({ objects: [CONTACT, COSTS] })
-  const c = w.publisher.check(w.id)
+  const c = await w.publisher.check(w.id)
   assert.deepEqual([c.can, c.reason], [false, 'sensitive'])
   assert.deepEqual(c.blocked.map((b) => [b.object, b.field, b.protection]), [['cost', 'amount', 'sensitive'], ['cost', 'key', 'secret']])
-  const r = await w.publisher.publish(w.id, { confirm: true })
+  assert.equal(w.hosting.hostReads, 0, 'and does not list computers it will not send anything to')
+  const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([r.ok, r.code], [false, 'sensitive'])
   assert.deepEqual(r.fields.map((f) => f.field), ['amount', 'key'])
   assert.equal(w.hosting.calls.length, 0, 'and no space was asked for')
   assert.equal(w.registry.spaces().length, 0)
 })
 
-await ok('the card refuses what cannot be published: no hosting, an archived app, an exhausted budget, an app too big, an app already published', async () => {
+await ok('the card refuses what cannot be published: no hosting, an archived app, an app too big, an app already published; none of them reads the computers', async () => {
   const none = world({ hosting: unavailableHosting() })
-  assert.deepEqual([none.publisher.check(none.id).can, none.publisher.check(none.id).reason], [false, 'unavailable'])
-  assert.deepEqual(none.publisher.hostingState(), { available: false, name: '', pricePerMonth: null, currency: '', alwaysOn: false })
-  assert.equal((await none.publisher.publish(none.id, { confirm: true })).code, 'unavailable')
+  const nc = await none.publisher.check(none.id)
+  assert.deepEqual([nc.can, nc.reason, nc.hosting], [false, 'unavailable', { name: '', orderUrl: '' }])
+  assert.deepEqual(none.publisher.hostingState(), { available: false, name: '' })
+  assert.equal((await none.publisher.publish(none.id, { confirm: true, host: HOST_ID })).code, 'unavailable')
+  const off = world({ hostingExtra: { available: () => false } })
+  assert.equal((await off.publisher.check(off.id)).reason, 'unavailable')
   const arch = world()
   assert.equal(arch.api.app({ db: arch.id, op: 'archive' }).ok, true)
-  assert.equal(arch.publisher.check(arch.id).reason, 'archived')
-  const poor = world({ hostingExtra: { describe: () => ({ name: 'Team space', budget: { label: 'Cloud budget', remaining: 0, enough: false } }) } })
-  assert.equal(poor.publisher.check(poor.id).reason, 'budget')
-  assert.equal((await poor.publisher.publish(poor.id, { confirm: true })).code, 'budget')
+  assert.equal((await arch.publisher.check(arch.id)).reason, 'archived')
   const big = world({ maxBytes: 500 })
-  assert.equal(big.publisher.check(big.id).reason, 'too-big')
+  assert.equal((await big.publisher.check(big.id)).reason, 'too-big')
+  assert.equal((await big.publisher.publish(big.id, { confirm: true, host: HOST_ID })).code, 'too-big')
   const done = await published()
-  assert.equal(done.publisher.check(done.id).reason, 'published')
-  assert.equal((await done.publisher.publish(done.id, { confirm: true })).code, 'published')
+  assert.equal((await done.publisher.check(done.id)).reason, 'published')
+  assert.equal((await done.publisher.publish(done.id, { confirm: true, host: HOST_ID })).code, 'published')
+  for (const w of [none, off, arch, big]) assert.equal(w.hosting.hostReads || 0, 0)
+  assert.deepEqual(world().publisher.hostingState(), { available: true, name: 'Kybernos' }, 'the header knows the product\'s name and nothing else')
 })
 
-await ok('a hosting that says nothing about "always on" is never presented as one', () => {
-  const w = world({ hostingExtra: { describe: () => ({ name: 'A space' }) } })
-  assert.equal(w.publisher.hostingState().alwaysOn, false)
-  assert.equal(w.publisher.check(w.id).hosting.alwaysOn, false)
-  const on = world()
-  assert.equal(on.publisher.hostingState().alwaysOn, true)
+await ok('no computer is a valid answer: the card says so, still carries the order address, and there is nothing to publish to', async () => {
+  const w = world({ hostingExtra: { list: [] } })
+  const c = await w.publisher.check(w.id)
+  assert.deepEqual([c.ok, c.can, c.reason, c.hosts, c.lastHost, c.hosting.orderUrl], [true, false, 'no-host', [], null, ORDER_URL])
+  assert.deepEqual([c.tables, c.rows], [1, 2], 'the facts are still there')
+  const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
+  assert.deepEqual([r.ok, r.code], [false, 'unknown-host'])
+  assert.deepEqual([w.hosting.calls.length, w.registry.spaces().length, w.registry.apps().length, w.registry.lastHost()], [0, 0, 0, null])
+  const bare = world({ hostingExtra: { list: [], describe: () => ({ name: 'Kybernos' }) } })
+  assert.equal((await bare.publisher.check(bare.id)).hosting.orderUrl, '', 'and a hosting with no usable address offers none: the page then has no button to show')
+})
+
+await ok('a list of computers that cannot be read is its own answer, with the order address; a port that refuses, throws, lies or hangs changes nothing else', async () => {
+  const cases = [
+    ['refuses', { hosts: async () => ({ ok: false, code: 'unavailable', message: 'The Kybernos server is not answering.' }) }, 'The Kybernos server is not answering.'],
+    ['throws', { hosts: async () => { throw new Error('boom ' + SPACE_KEY) } }, null],
+    ['rejects', { hosts: () => Promise.reject(new Error('no')) }, null],
+    ['lies', { hosts: async () => ({ ok: true, hosts: 'many' }) }, null],
+    ['says nothing', { hosts: async () => undefined }, null],
+    ['is missing', { hosts: undefined }, null],
+  ]
+  for (const [label, extra, message] of cases) {
+    const w = world({ hostingExtra: extra })
+    const c = await w.publisher.check(w.id)
+    assert.deepEqual([c.ok, c.can, c.reason, c.hosts, c.lastHost, c.hostsError.code], [true, false, 'hosts-unreachable', null, null, 'hosts-unreachable'], label)
+    if (message !== null) assert.equal(c.hostsError.message, message, label)
+    assert.ok(c.hostsError.message.length > 0, label)
+    assert.equal(c.hosting.orderUrl, ORDER_URL, label + ': the person can still go and order a computer')
+    assert.deepEqual([c.tables, c.rows], [1, 2], label)
+    noKey(c)
+    const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
+    assert.deepEqual([r.ok, r.code], [false, 'hosts-unreachable'], label)
+    noKey(r)
+    assert.deepEqual([w.hosting.calls.length, w.registry.spaces().length, w.publisher.isPublished(w.id)], [0, 0, false], label)
+  }
+  const hang = world({ hostingExtra: { hosts: () => new Promise(() => {}) } })
+  const waiting = hang.publisher.check(hang.id)
+  assert.deepEqual([hang.tm.timeouts.length, hang.tm.timeouts[0].ms], [1, HOSTS_TIMEOUT_MS], 'the wait has a limit')
+  hang.tm.timeouts[0].fn()
+  assert.equal((await waiting).reason, 'hosts-unreachable')
+})
+
+await ok('the computer the last Publish went to is the card\'s usual choice, while it is still listed', async () => {
+  const w = await published({ hostingExtra: { list: [{ id: HOST_ID, name: 'Studio', state: 'running' }, { id: 'host-2', name: 'Cabinet', state: 'running' }] } })
+  assert.equal(w.registry.lastHost(), HOST_ID)
+  const other = w.svc.create({ name: 'Other', by: 'agent', objects: [CONTACT] }).db.info().id
+  assert.equal((await w.publisher.check(other)).lastHost, HOST_ID)
+  w.hosting.list = [{ id: 'host-2', name: 'Cabinet', state: 'running' }]
+  assert.equal((await w.publisher.check(other)).lastHost, null, 'a computer that is no longer listed is not offered')
+  const again = openPublishedRegistry({ file: w.registry.file })
+  assert.equal(again.lastHost(), HOST_ID, 'and it is kept in the private file')
 })
 
 // ---------------------------------------------------------------- Publish
-await ok('Publish waits for the confirm button, then puts the app in the space and registers it only once the hosted copy is proven', async () => {
+await ok('Publish waits for the confirm button, then puts the app in the space of the chosen computer and registers it only once the hosted copy is proven', async () => {
   const w = world()
   const before = w.db.fingerprint()
-  const no = await w.publisher.publish(w.id, {})
+  const no = await w.publisher.publish(w.id, { host: HOST_ID })
   assert.deepEqual([no.ok, no.code], [false, 'confirm'])
   assert.equal(w.hosting.calls.length, 0, 'nothing is asked of the hosting before the button')
   assert.equal(w.registry.apps().length, 0)
-  const r = await w.publisher.publish(w.id, { confirm: true })
+  const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
   assert.equal(r.ok, true, JSON.stringify(r))
-  assert.deepEqual([r.published.slug, r.published.url, r.published.syncError], ['home', SPACE_URL, null])
+  assert.deepEqual([r.published.slug, r.published.url, r.published.syncError, r.published.hostGone], ['home', SPACE_URL, null, false])
+  assert.deepEqual(r.published.host, { id: HOST_ID, name: 'Studio', region: 'Frankfurt, EU' }, 'the state names the computer')
   assert.equal(typeof r.published.since, 'string')
-  assert.deepEqual(w.hosting.calls, [{ workspace: 'default' }])
+  assert.deepEqual(w.hosting.calls, [{ host: HOST_ID }], 'the hosting is asked for a space on that computer')
   assert.equal(w.space.has('home'), true)
   assert.equal(w.space.dbOf('home').fingerprint(), before, 'the hosted copy is exactly what was sent')
   assert.deepEqual(w.space.dbOf('home').list('contact').map((r) => r.values.name).sort(), ['Ada', 'Bob'])
   assert.ok(w.space.dbOf('home').blobs.get(w.att.hash).equals(PNG), 'with its file')
   assert.deepEqual([w.registry.published(w.id), w.registry.spaces().length, w.registry.pendingOf(w.id)], [true, 1, []])
+  assert.equal(w.registry.spaces()[0].host, HOST_ID, 'the space knows its computer')
+  assert.deepEqual(w.registry.apps()[0].host, { id: HOST_ID, name: 'Studio', region: 'Frankfurt, EU' }, 'so does the app, with the name and region it had')
+  assert.equal(w.registry.lastHost(), HOST_ID)
   assert.equal(w.publisher.isPublished(w.id), true)
   assert.deepEqual(w.publisher.info(w.id), r.published)
   assert.equal(w.svc.byId(w.id).db.published, true, 'the agent now gets the facade')
@@ -467,12 +657,33 @@ await ok('Publish waits for the confirm button, then puts the app in the space a
   noKey(r)
   noKey(w.logs)
   noKey(w.publisher.info(w.id))
-  noKey(w.publisher.check(w.id))
+  noKey(await w.publisher.check(w.id))
+})
+
+await ok('Publish reads the computers again and refuses one that is not among them, or no computer at all', async () => {
+  for (const host of [undefined, null, '', 42, {}, [HOST_ID], '../etc', 'host-9', 'HOST-1', ' ' + HOST_ID, HOST_ID + '\n', 'x'.repeat(300)]) {
+    const w = world()
+    const r = await w.publisher.publish(w.id, { confirm: true, host })
+    assert.deepEqual([r.ok, r.code], [false, 'unknown-host'], JSON.stringify(host))
+    assert.match(r.message, /not one of your cloud computers/)
+    assert.deepEqual([w.hosting.calls.length, w.registry.spaces().length, w.registry.apps().length, w.registry.pendingOf(w.id).length, w.space.slugs()], [0, 0, 0, 0, []], JSON.stringify(host))
+  }
+  const w = world()
+  assert.deepEqual([(await w.publisher.publish(w.id)).code, (await w.publisher.publish(w.id, { host: HOST_ID })).code], ['confirm', 'confirm'])
+  const card = await w.publisher.check(w.id)
+  assert.equal(card.hosts[0].id, HOST_ID)
+  const reads = w.hosting.hostReads
+  w.hosting.list = [{ id: 'host-9', name: 'Another', state: 'running' }] // the computer was deleted between the card and the button
+  const gone = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
+  assert.deepEqual([gone.ok, gone.code], [false, 'unknown-host'])
+  assert.equal(w.hosting.hostReads, reads + 1, 'the list was read again, not trusted from the card')
+  assert.deepEqual([w.hosting.calls.length, w.registry.spaces().length, w.publisher.isPublished(w.id), w.registry.lastHost()], [0, 0, false, null])
+  assert.equal((await w.publisher.publish(w.id, { confirm: true, host: 'host-9' })).ok, true, 'and the one that is listed can be chosen')
 })
 
 await ok('two publishes of the same app at once: one runs, the other is told to wait', async () => {
   const w = world()
-  const [a, b] = await Promise.all([w.publisher.publish(w.id, { confirm: true }), w.publisher.publish(w.id, { confirm: true })])
+  const [a, b] = await Promise.all([w.publisher.publish(w.id, { confirm: true, host: HOST_ID }), w.publisher.publish(w.id, { confirm: true, host: HOST_ID })])
   assert.deepEqual([a.ok, b.ok, b.code], [true, false, 'busy'])
   assert.deepEqual(w.space.slugs(), ['home'])
 })
@@ -480,51 +691,81 @@ await ok('two publishes of the same app at once: one runs, the other is told to 
 await ok('a second app goes to the same space under its own name; a name already taken there gets the next free one', async () => {
   const w = await published()
   const second = w.svc.create({ name: 'Home', by: 'agent', objects: [CONTACT] }).db
-  const r = await w.publisher.publish(second.info().id, { confirm: true })
+  const r = await w.publisher.publish(second.info().id, { confirm: true, host: HOST_ID })
   assert.deepEqual([r.ok, r.published.slug], [true, 'home-2'])
   assert.equal(w.registry.spaces().length, 1, 'one space')
-  assert.equal(w.publisher.check(w.svc.create({ name: 'Third', by: 'agent' }).db.info().id).where, 'existing')
+  assert.equal((await w.publisher.check(w.svc.create({ name: 'Third', by: 'agent' }).db.info().id)).lastHost, HOST_ID)
   const taken = world()
   mkdirSync(join(taken.space.appsDir, 'home'))
-  const r2 = await taken.publisher.publish(taken.id, { confirm: true })
+  const r2 = await taken.publisher.publish(taken.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([r2.ok, r2.published.slug], [true, 'home-2'], 'a name the space refuses is not a reason to fail')
 })
 
-await ok('a hosting that fails, or hands back something unusable, leaves nothing behind', async () => {
-  const refuses = world({ hostingExtra: { ensureSpace: async () => ({ ok: false, code: 'budget', message: 'The budget for the web app is used up.' }) } })
-  const r = await refuses.publisher.publish(refuses.id, { confirm: true })
-  assert.deepEqual([r.ok, r.code, r.message], [false, 'budget', 'The budget for the web app is used up.'])
+await ok('a hosting that refuses, in any of its codes, or hands back something unusable, leaves nothing behind and says what the port said', async () => {
+  for (const code of ['budget', 'host-gone', 'host-unavailable', 'unavailable', 'unknown-host', 'something-new']) {
+    const w = world({ hostingExtra: { ensureSpace: async () => ({ ok: false, code, message: 'The port says ' + code + '.' }) } })
+    const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
+    assert.deepEqual([r.ok, r.code, r.message], [false, code, 'The port says ' + code + '.'], code)
+    assert.deepEqual([w.registry.spaces().length, w.registry.apps().length, w.registry.lastHost(), w.space.slugs(), w.publisher.isPublished(w.id)], [0, 0, null, [], false], code)
+  }
+  const long = world({ hostingExtra: { ensureSpace: async () => ({ ok: false, code: 'host-unavailable', message: 'z'.repeat(900) }) } })
+  assert.equal((await long.publisher.publish(long.id, { confirm: true, host: HOST_ID })).message.length, 300)
+  const mute = world({ hostingExtra: { ensureSpace: async () => ({ ok: false }) } })
+  assert.deepEqual((({ ok, code }) => [ok, code])(await mute.publisher.publish(mute.id, { confirm: true, host: HOST_ID })), [false, 'hosting-failed'])
   const throws = world({ hostingExtra: { ensureSpace: async () => { throw new Error('boom ' + SPACE_KEY) } } })
-  const t = await throws.publisher.publish(throws.id, { confirm: true })
+  const t = await throws.publisher.publish(throws.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([t.ok, t.code], [false, 'hosting-failed'])
   noKey(t)
   for (const bad of [null, { ok: true }, { ok: true, space: { id: 's', url: 'http://evil.example', bootKey: SPACE_KEY } }, { ok: true, space: { id: 's', url: SPACE_URL, bootKey: 'short' } }, { ok: true, space: { id: '../s', url: SPACE_URL, bootKey: SPACE_KEY } }]) {
     const w = world({ hostingExtra: { ensureSpace: async () => bad } })
-    const x = await w.publisher.publish(w.id, { confirm: true })
+    const x = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
     assert.equal(x.ok, false)
     assert.equal(w.registry.spaces().length + w.registry.apps().length, 0)
     assert.deepEqual(w.space.slugs(), [])
   }
 })
 
+await ok('a space that already belongs to one computer is not handed out for another', async () => {
+  const two = [{ id: HOST_ID, name: 'Studio', state: 'running' }, { id: 'host-2', name: 'Cabinet', state: 'running' }]
+  const w = await published({ hostingExtra: { list: two, ensureSpace: async (arg) => ({ ok: true, space: { id: 'one-space', url: SPACE_URL, bootKey: SPACE_KEY } }) } })
+  const other = w.svc.create({ name: 'Other', by: 'agent', objects: [CONTACT] }).db.info().id
+  const r = await w.publisher.publish(other, { confirm: true, host: 'host-2' })
+  assert.deepEqual([r.ok, r.code], [false, 'hosting-failed'])
+  assert.match(r.message, /another computer/)
+  assert.deepEqual([w.registry.spaces().length, w.registry.apps().length, w.registry.spaceOf(w.id).space.host], [1, 1, HOST_ID])
+})
+
+await ok('moving an app is Unpublish, then Publish on the other computer: it goes to its own space, and the usual choice follows', async () => {
+  const two = [{ id: HOST_ID, name: 'Studio', state: 'running', region: 'Frankfurt, EU' }, { id: 'host-2', name: 'Cabinet', state: 'sleeping', region: 'Paris, FR' }]
+  const w = await published({ hostingExtra: { list: two, releaseSpace: async (id) => { w.released.push(id); return { ok: true } } } })
+  w.released = []
+  assert.equal((await w.publisher.unpublish(w.id)).ok, true)
+  assert.deepEqual([w.released, w.registry.spaces().length], [['space-' + HOST_ID], 0])
+  const r = await w.publisher.publish(w.id, { confirm: true, host: 'host-2' })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  assert.deepEqual(r.published.host, { id: 'host-2', name: 'Cabinet', region: 'Paris, FR' })
+  assert.deepEqual([w.hosting.calls.map((c) => c.host), w.registry.spaces().map((s) => [s.id, s.host]), w.registry.lastHost()], [[HOST_ID, 'host-2'], [['space-host-2', 'host-2']], 'host-2'])
+  assert.equal((await w.publisher.check(w.id)).reason, 'published', 'and an app that is published has no way to be published somewhere else')
+})
+
 await ok('a space that cannot be reached, or that refuses the upload, is no published app and no stray upload', async () => {
   const down = world()
   down.space.down = true
-  const d = await down.publisher.publish(down.id, { confirm: true })
+  const d = await down.publisher.publish(down.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([d.ok, d.code], [false, 'unreachable'])
-  assert.deepEqual([down.registry.apps().length, down.registry.pendingOf(down.id).length, down.publisher.isPublished(down.id)], [0, 0, false])
+  assert.deepEqual([down.registry.apps().length, down.registry.pendingOf(down.id).length, down.publisher.isPublished(down.id), down.registry.lastHost()], [0, 0, false, null])
   down.space.down = false
-  assert.equal((await down.publisher.publish(down.id, { confirm: true })).ok, true, 'and the same app publishes once it is up')
+  assert.equal((await down.publisher.publish(down.id, { confirm: true, host: HOST_ID })).ok, true, 'and the same app publishes once it is up')
   const bad = world()
   bad.space.failNext('putBundle', { ok: false, code: 'invalid-bundle', message: 'The web app did not accept that app.' })
-  const b = await bad.publisher.publish(bad.id, { confirm: true })
+  const b = await bad.publisher.publish(bad.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([b.ok, b.code], [false, 'invalid-bundle'])
   assert.deepEqual([bad.registry.pendingOf(bad.id), bad.space.slugs()], [[], []])
   const twin = world()
-  const first = await twin.publisher.publish(twin.id, { confirm: true })
+  const first = await twin.publisher.publish(twin.id, { confirm: true, host: HOST_ID })
   assert.equal(first.ok, true)
   await twin.publisher.unpublish(twin.id, { forget: true, confirm: 'Home' })
-  const again = await twin.publisher.publish(twin.id, { confirm: true })
+  const again = await twin.publisher.publish(twin.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([again.ok, again.code], [false, 'db-exists'], 'a copy left in the space by a forgotten app is named, not duplicated')
   assert.match(again.message, /earlier attempt/)
 })
@@ -532,17 +773,17 @@ await ok('a space that cannot be reached, or that refuses the upload, is no publ
 await ok('a space that does not hold what was sent takes the upload back and registers nothing', async () => {
   const w = world()
   w.space.failNext('fingerprint', { ok: true, fingerprint: '0.0.0.0' })
-  const r = await w.publisher.publish(w.id, { confirm: true })
+  const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([r.ok, r.code], [false, 'mismatch'])
   assert.deepEqual([w.space.slugs(), w.registry.apps().length, w.registry.pendingOf(w.id).length], [[], 0, 0], 'the upload was released')
   assert.deepEqual(names(w), ['Ada', 'Bob'])
   const gone = world()
   gone.space.before('fingerprint', () => { gone.space.failNext('release', { ok: false, code: 'unreachable', message: 'down' }); gone.space.failNext('fingerprint', { ok: true, fingerprint: '0.0.0.0' }) })
-  const g = await gone.publisher.publish(gone.id, { confirm: true })
+  const g = await gone.publisher.publish(gone.id, { confirm: true, host: HOST_ID })
   assert.equal(g.ok, false)
   assert.equal(gone.registry.pendingOf(gone.id).length, 1, 'an upload that could not be taken back is remembered')
   assert.equal(gone.registry.apps().length, 0)
-  const next = await gone.publisher.publish(gone.id, { confirm: true })
+  const next = await gone.publisher.publish(gone.id, { confirm: true, host: HOST_ID })
   assert.equal(next.ok, true, JSON.stringify(next))
   assert.deepEqual([gone.registry.pendingOf(gone.id).length, gone.space.slugs()], [0, ['home']], 'the next attempt took the old upload out first, so there is one copy and its name is free again')
 })
@@ -550,17 +791,17 @@ await ok('a space that does not hold what was sent takes the upload back and reg
 await ok('an app that changes while it is being published is not published (the change would be lost to the copy)', async () => {
   const w = world()
   w.space.before('putBundle', () => { assert.equal(w.db.create('contact', { name: 'Late' }, 'agent').ok, true) })
-  const r = await w.publisher.publish(w.id, { confirm: true })
+  const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([r.ok, r.code], [false, 'changed'])
   assert.deepEqual([w.space.slugs(), w.registry.apps().length], [[], 0])
   assert.equal(w.publisher.isPublished(w.id), false)
   assert.deepEqual(names(w), ['Ada', 'Bob', 'Late'])
-  assert.equal((await w.publisher.publish(w.id, { confirm: true })).ok, true, 'and trying again works')
+  assert.equal((await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })).ok, true, 'and trying again works')
 })
 
 await ok('a registry that cannot save leaves the app unpublished and the upload taken back', async () => {
   const w = world({ wrapRegistry: (reg) => ({ ...reg, addApp: () => ({ ok: false, code: 'registry', message: 'could not save' }) }) })
-  const r = await w.publisher.publish(w.id, { confirm: true })
+  const r = await w.publisher.publish(w.id, { confirm: true, host: HOST_ID })
   assert.deepEqual([r.ok, r.code], [false, 'registry'])
   assert.deepEqual(w.space.slugs(), [])
 })
@@ -711,7 +952,7 @@ await ok('a pull that goes wrong leaves the copy exactly as it was, says so, and
   assert.equal((await w.publisher.refresh(w.id)).code, 'mismatch')
   // another app's data at this app's address
   const other = w.svc.create({ name: 'Other', by: 'agent', objects: [CONTACT] }).db.info().id
-  assert.equal((await w.publisher.publish(other, { confirm: true })).ok, true)
+  assert.equal((await w.publisher.publish(other, { confirm: true, host: HOST_ID })).ok, true)
   const swapped = await pullMirror({ space: w.space, slug: 'other', dbId: w.id, current: { fingerprint: 'x', blobSize: () => null, blobFile: () => '' }, tmpRoot: w.tmpRoot })
   assert.deepEqual([swapped.ok, swapped.code], [false, 'mismatch'])
   assert.match(swapped.message, /different database/)
@@ -839,22 +1080,140 @@ await ok('the poll does not touch an app that is being published or unpublished'
 
 await ok('the timer is started once, never holds the process open, runs one tick at a time and is taken off with everything else', async () => {
   const w = await published({ timers: timers() })
+  const was = { timeouts: w.tm.timeouts.length, cleared: w.tm.cleared.length, unrefs: w.tm.unrefs } // Publish read the computers, which set and took off its own limit
+  assert.deepEqual([was.timeouts, was.cleared, was.unrefs], [1, 1, 1])
   w.publisher.start({ everyMs: 1234, firstMs: 56 })
-  assert.deepEqual([w.tm.timeouts.length, w.tm.intervals.length, w.tm.unrefs], [1, 1, 2])
-  assert.deepEqual([w.tm.timeouts[0].ms, w.tm.intervals[0].ms], [56, 1234])
+  assert.deepEqual([w.tm.timeouts.length - was.timeouts, w.tm.intervals.length, w.tm.unrefs - was.unrefs], [1, 1, 2])
+  assert.deepEqual([w.tm.timeouts[was.timeouts].ms, w.tm.intervals[0].ms], [56, 1234])
   w.publisher.start()
-  assert.equal(w.tm.cleared.length, 2, 'starting again takes the old ones off first')
+  assert.equal(w.tm.cleared.length - was.cleared, 2, 'starting again takes the old ones off first')
   assert.equal(w.tm.intervals[1].ms, POLL_MS)
   w.space.writeInside(w.slug, (db) => db.create('contact', { name: 'Ticked' }, 'person'))
   w.tm.intervals[1].fn()
   for (let i = 0; i < 200 && names(w).length < 3; i++) await new Promise((r) => setTimeout(r, 5))
   assert.deepEqual(names(w), ['Ada', 'Bob', 'Ticked'])
   w.publisher.stop()
-  assert.equal(w.tm.cleared.length, 4)
+  assert.equal(w.tm.cleared.length - was.cleared, 4)
   w.publisher.stop()
-  assert.equal(w.tm.cleared.length, 4, 'stopping twice is harmless')
+  assert.equal(w.tm.cleared.length - was.cleared, 4, 'stopping twice is harmless')
   const broken = world({ timers: { ...timers(), setTimeout: () => { throw new Error('no timers') } } })
   assert.doesNotThrow(() => broken.publisher.start())
+})
+
+// ---------------------------------------------------------------- an app whose computer is gone
+await ok('an app is "gone" only when it cannot be reached AND a list that succeeded no longer holds its computer; a list that failed, threw or lied never says so', async () => {
+  const w = await published()
+  const reads = w.hosting.hostReads
+  assert.deepEqual([w.publisher.info(w.id).hostGone, w.publisher.info(w.id).host.name], [false, 'Studio'])
+  await w.publisher.refresh(w.id)
+  assert.equal(w.hosting.hostReads, reads, 'a web app that answers never makes the hosting list anything')
+  const later = () => { w.c.advance(HOSTS_EVERY_MS + 1) }
+  w.space.down = true
+  later()
+  await w.publisher.refresh(w.id)
+  assert.deepEqual([w.publisher.info(w.id).syncError.code, w.publisher.info(w.id).hostGone, w.hosting.hostReads], ['unreachable', false, reads + 1], 'cannot be reached, but its computer is still listed: not gone')
+  w.hosting.list = [] // the computer is deleted...
+  const list = w.hosting.hosts
+  for (const [label, hosts] of [
+    ['a refusal', async () => ({ ok: false, code: 'unavailable', message: 'Not now.' })],
+    ['an exception', async () => { throw new Error('boom') }],
+    ['a lie', async () => ({ ok: true, hosts: 'nonsense' })],
+    ['silence', async () => undefined],
+  ]) {
+    w.hosting.hosts = hosts // ...but the hosting cannot say so
+    later()
+    await w.publisher.refresh(w.id)
+    assert.deepEqual([w.publisher.info(w.id).hostGone, w.publisher.info(w.id).syncError.code], [false, 'unreachable'], label + ' proves nothing')
+  }
+  w.hosting.hosts = list
+  later()
+  await w.publisher.refresh(w.id)
+  const gone = w.publisher.info(w.id)
+  assert.deepEqual([gone.hostGone, gone.syncError.code], [true, 'unreachable'], 'a list that succeeded and does not hold it')
+  assert.deepEqual(gone.host, { id: HOST_ID, name: 'Studio', region: 'Frankfurt, EU' }, 'the name and region are the last ones it had')
+  assert.equal(w.api.state().dbs.find((d) => d.id === w.id).published.hostGone, true, 'the state says it')
+  assert.deepEqual(names(w), ['Ada', 'Bob'], 'and the copy on this computer is untouched')
+  noKey(w.api.state())
+  // the computer comes back, and the app answers again
+  w.hosting.list = [{ id: HOST_ID, name: 'Studio', state: 'running', region: 'Frankfurt, EU' }]
+  w.space.down = false
+  await w.publisher.refresh(w.id)
+  assert.deepEqual([w.publisher.info(w.id).hostGone, w.publisher.info(w.id).syncError], [false, null], 'an app that answers is not gone, whatever a list said before')
+})
+
+await ok('an app that is not reached asks the hosting at most once a minute, however many apps fail and however often; one that answers, refuses or has no computer asks nothing', async () => {
+  const w = await published()
+  const other = w.svc.create({ name: 'Other', by: 'agent', objects: [CONTACT] }).db.info().id
+  assert.equal((await w.publisher.publish(other, { confirm: true, host: HOST_ID })).ok, true)
+  w.space.down = true
+  w.c.advance(HOSTS_EVERY_MS + 1)
+  const n = w.hosting.hostReads
+  await Promise.all([w.publisher.refresh(w.id), w.publisher.refresh(other)])
+  for (let i = 0; i < 4; i++) { await w.publisher.refresh(w.id); await w.publisher.refresh(other) }
+  assert.equal(w.hosting.hostReads, n + 1, 'eleven failures, one question')
+  w.c.advance(HOSTS_EVERY_MS - 2000)
+  await w.publisher.refresh(w.id)
+  assert.equal(w.hosting.hostReads, n + 1)
+  w.c.advance(3000)
+  await w.publisher.refresh(w.id)
+  assert.equal(w.hosting.hostReads, n + 2, 'and again after a minute')
+  // a space that answers, but to refuse, is not "gone"
+  const refused = await published()
+  refused.hosting.list = []
+  refused.space.failNext('fingerprint', { ok: false, code: 'refused', message: 'The web app refused the key.' })
+  refused.c.advance(HOSTS_EVERY_MS + 1)
+  const before = refused.hosting.hostReads
+  const x = await refused.publisher.refresh(refused.id)
+  assert.deepEqual([x.ok, x.code, refused.publisher.info(refused.id).hostGone, refused.hosting.hostReads], [false, 'refused', false, before])
+})
+
+await ok('an app published before computers were chosen has no computer to lose: it is never gone, and the hosting is not asked about it', async () => {
+  const old = world()
+  const pub = await old.publisher.publish(old.id, { confirm: true, host: HOST_ID })
+  assert.equal(pub.ok, true)
+  // rewrite its registry the way an earlier version wrote it: no computer on the space, none on the app, no usual choice
+  const file = JSON.parse(readFileSync(old.registry.file, 'utf8'))
+  delete file.lastHost
+  delete file.spaces[0].host
+  delete file.apps[0].host
+  writeFileSync(old.registry.file, JSON.stringify(file))
+  const reg = openPublishedRegistry({ file: old.registry.file })
+  assert.deepEqual([reg.fault, reg.lastHost(), reg.spaceOf(old.id).space.host, reg.appOf(old.id).host], [null, null, undefined, undefined])
+  const again = makePublisher({ service: old.svc, registry: reg, hosting: old.hosting, tmpRoot: old.tmpRoot, ports: { now: old.c.now, store: ports(), clientFor: () => old.space, timers: timers() } })
+  assert.deepEqual([again.info(old.id).host, again.info(old.id).hostGone], [null, false])
+  old.space.down = true
+  const reads = old.hosting.hostReads
+  old.c.advance(HOSTS_EVERY_MS + 1)
+  await again.refresh(old.id)
+  assert.deepEqual([again.info(old.id).syncError.code, again.info(old.id).hostGone, old.hosting.hostReads], ['unreachable', false, reads])
+})
+
+await ok('a computer that is gone takes its space with it when the app is forgotten, and a computer that is not gone keeps it', async () => {
+  const w = await published()
+  w.space.down = true
+  w.hosting.list = []
+  w.c.advance(HOSTS_EVERY_MS + 1)
+  await w.publisher.refresh(w.id)
+  assert.equal(w.publisher.info(w.id).hostGone, true)
+  const r = await w.publisher.unpublish(w.id)
+  assert.deepEqual([r.ok, r.canForget], [false, true], 'the way that asks the space is still refused')
+  const f = await w.publisher.unpublish(w.id, { forget: true, confirm: 'Home' })
+  assert.deepEqual([f.ok, f.forgotten], [true, true])
+  assert.deepEqual([w.registry.spaces().length, w.registry.apps().length, w.publisher.info(w.id)], [0, 0, null], 'no key is kept for a computer that does not exist')
+  assert.deepEqual(w.svc.byId(w.id).db.list('contact').map((r) => r.values.name).sort(), ['Ada', 'Bob'], 'the local copy is the app, as of the last sync')
+  const kept = await published()
+  kept.space.down = true
+  assert.equal((await kept.publisher.unpublish(kept.id, { forget: true, confirm: 'Home' })).ok, true)
+  assert.equal(kept.registry.spaces().length, 1, 'an app that was only unreachable leaves its space to whoever might still answer')
+  const shared = await published()
+  const other = shared.svc.create({ name: 'Other', by: 'agent', objects: [CONTACT] }).db.info().id
+  assert.equal((await shared.publisher.publish(other, { confirm: true, host: HOST_ID })).ok, true)
+  shared.space.down = true
+  shared.hosting.list = []
+  shared.c.advance(HOSTS_EVERY_MS + 1)
+  await shared.publisher.refresh(shared.id)
+  assert.equal((await shared.publisher.unpublish(shared.id, { forget: true, confirm: 'Home' })).ok, true)
+  assert.equal(shared.registry.spaces().length, 1, 'a space still holding another app stays')
 })
 
 // ---------------------------------------------------------------- Unpublish
@@ -868,7 +1227,7 @@ await ok('Unpublish pulls the last state, takes the app out of the space, and th
   assert.deepEqual([w.registry.published(w.id), w.registry.apps().length], [false, 0])
   assert.equal(w.publisher.info(w.id), null)
   assert.equal(w.publisher.isPublished(w.id), false)
-  assert.deepEqual(w.released, ['space-1'], 'the last app left, so the space is given back')
+  assert.deepEqual(w.released, ['space-' + HOST_ID], 'the last app left, so the space is given back')
   assert.equal(w.registry.spaces().length, 0)
   const db = w.svc.byId(w.id).db
   assert.equal(db.published, undefined, 'a plain store handle again')
@@ -883,7 +1242,7 @@ await ok('the space stays when other apps still live in it', async () => {
   const w = await published({ hostingExtra: { releaseSpace: async (id) => { w.released.push(id); return { ok: true } } } })
   w.released = []
   const other = w.svc.create({ name: 'Other', by: 'agent', objects: [CONTACT] }).db.info().id
-  assert.equal((await w.publisher.publish(other, { confirm: true })).ok, true)
+  assert.equal((await w.publisher.publish(other, { confirm: true, host: HOST_ID })).ok, true)
   assert.equal((await w.publisher.unpublish(w.id)).ok, true)
   assert.deepEqual([w.released, w.registry.spaces().length], [[], 1])
 })
@@ -969,10 +1328,12 @@ await ok('the state says which apps are published and what the hosting is, and n
   const w = await published()
   const s = w.api.state()
   assert.equal(s.ok, true)
-  assert.deepEqual(s.hosting, { available: true, name: 'Kybernos team space', pricePerMonth: 7.3, currency: 'USD', alwaysOn: true })
+  assert.deepEqual(s.hosting, { available: true, name: 'Kybernos' }, 'the product\'s name, no price and no computers: those are read when the card opens')
   const mine = s.dbs.find((d) => d.id === w.id)
-  assert.deepEqual(Object.keys(mine.published).sort(), ['lastSync', 'since', 'slug', 'syncError', 'url'])
+  assert.deepEqual(Object.keys(mine.published).sort(), ['host', 'hostGone', 'lastSync', 'since', 'slug', 'syncError', 'url'])
   assert.equal(mine.published.url, SPACE_URL)
+  assert.deepEqual([mine.published.host, mine.published.hostGone], [{ id: HOST_ID, name: 'Studio', region: 'Frankfurt, EU' }, false])
+  assert.equal(w.hosting.hostReads, 1, 'only Publish read the computers; a state read does not')
   noKey(s)
   w.space.down = true
   await w.publisher.refresh(w.id)
@@ -1104,11 +1465,11 @@ await ok('the publish routes take a database id and nothing else, and answer in 
   const notYet = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id })
   assert.deepEqual([notYet.code, jsonOf(notYet).error], [400, 'confirm'])
   assert.equal(w.space.calls.length, 0)
-  const pub = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id, confirm: true })
+  const pub = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id, confirm: true, host: HOST_ID })
   assert.equal(pub.code, 200, pub.body)
   assert.equal(jsonOf(pub).published.slug, 'home')
   noKey(jsonOf(pub))
-  const again = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id, confirm: true })
+  const again = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id, confirm: true, host: HOST_ID })
   assert.deepEqual([again.code, jsonOf(again).error], [409, 'published'])
   const open = await hit(routes, ROUTE + 'open-web', 'POST', H, { db: w.id })
   assert.equal(open.code, 200)
@@ -1125,10 +1486,48 @@ await ok('the publish routes take a database id and nothing else, and answer in 
   assert.deepEqual([none.code, jsonOf(none).error], [409, 'not-published'])
 })
 
+await ok('the page gets the computers with the card, and the computer it chose is a plain id in the body of Publish; every refusal of a computer has its own status', async () => {
+  const w = world()
+  const { routes } = hostOf(w)
+  const H = browserHeaders()
+  const card = jsonOf(await hit(routes, ROUTE + 'publish-check', 'GET', H, undefined, '?db=' + w.id))
+  assert.deepEqual([card.ok, card.can, card.reason, card.hosts.map((h) => h.id), card.lastHost, card.hosting], [true, true, null, [HOST_ID], null, { name: 'Kybernos', orderUrl: ORDER_URL }])
+  assert.equal(w.hosting.hostReads, 1)
+  jsonOf(await hit(routes, ROUTE + 'state', 'GET', H)); jsonOf(await hit(routes, ROUTE + 'state', 'GET', H))
+  assert.equal(w.hosting.hostReads, 1, 'a state read never reads them')
+  // no body, or a body that does not name one of the person\'s computers: refused, nothing asked of the hosting
+  for (const host of [undefined, 42, null, ['host-1'], { id: HOST_ID }, 'host-9', '']) {
+    const r = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id, confirm: true, host })
+    assert.deepEqual([r.code, jsonOf(r).error], [409, 'unknown-host'], JSON.stringify(host))
+  }
+  assert.equal(w.hosting.calls.length, 0)
+  // the computers cannot be read: the card is still an answer, with the way to order one; Publish is a 503
+  w.hosting.hosts = async () => ({ ok: false, code: 'unavailable', message: 'The Kybernos server is not answering.' })
+  const sick = await hit(routes, ROUTE + 'publish-check', 'GET', H, undefined, '?db=' + w.id)
+  assert.equal(sick.code, 200)
+  assert.deepEqual([jsonOf(sick).ok, jsonOf(sick).can, jsonOf(sick).reason, jsonOf(sick).hosts, jsonOf(sick).hostsError.message, jsonOf(sick).hosting.orderUrl], [true, false, 'hosts-unreachable', null, 'The Kybernos server is not answering.', ORDER_URL])
+  const blocked = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id, confirm: true, host: HOST_ID })
+  assert.deepEqual([blocked.code, jsonOf(blocked).error, jsonOf(blocked).message], [503, 'hosts-unreachable', 'The Kybernos server is not answering.'])
+  // the computer vanishes or is not available between the list and the space
+  w.hosting.hosts = async () => ({ ok: true, hosts: [{ id: HOST_ID, name: 'Studio', state: 'running' }] })
+  for (const [code, status] of [['host-gone', 409], ['host-unavailable', 503], ['unavailable', 503], ['budget', 402]]) {
+    w.hosting.ensureSpace = async () => ({ ok: false, code, message: 'The port says ' + code + '.' })
+    const r = await hit(routes, ROUTE + 'publish', 'POST', H, { db: w.id, confirm: true, host: HOST_ID })
+    assert.deepEqual([r.code, jsonOf(r).error, jsonOf(r).message], [status, code, 'The port says ' + code + '.'], code)
+  }
+  assert.deepEqual([w.registry.spaces().length, w.registry.apps().length, w.publisher.isPublished(w.id)], [0, 0, false])
+  // no computer at all
+  w.hosting.list = []
+  w.hosting.hosts = async () => ({ ok: true, hosts: [] })
+  const none = jsonOf(await hit(routes, ROUTE + 'publish-check', 'GET', H, undefined, '?db=' + w.id))
+  assert.deepEqual([none.can, none.reason, none.hosts, none.hosting.orderUrl], [false, 'no-host', [], ORDER_URL])
+  noKey(none)
+})
+
 await ok('the sensitive fields come back to the page by name when Publish is refused', async () => {
   const w = world({ objects: [CONTACT, COSTS] })
   const { routes } = hostOf(w)
-  const r = await hit(routes, ROUTE + 'publish', 'POST', browserHeaders(), { db: w.id, confirm: true })
+  const r = await hit(routes, ROUTE + 'publish', 'POST', browserHeaders(), { db: w.id, confirm: true, host: HOST_ID })
   assert.deepEqual([r.code, jsonOf(r).error], [409, 'sensitive'])
   assert.deepEqual(jsonOf(r).fields.map((f) => f.field), ['amount', 'key'])
 })
@@ -1138,7 +1537,7 @@ await ok('every publish route is behind the same Origin and signed-session guard
   const { routes } = hostOf(w)
   const fp = w.svc.byId(w.id).db.fingerprint()
   const calls = w.space.calls.length
-  for (const [name, method, body, query] of [['publish-check', 'GET', undefined, '?db=' + w.id], ['publish', 'POST', { db: w.id, confirm: true }, ''], ['unpublish', 'POST', { db: w.id }, ''], ['open-web', 'POST', { db: w.id }, ''], ['refresh', 'POST', { db: w.id }, ''], ['write', 'POST', { object: 'contact', op: 'create', values: { name: 'Sneak' } }, '']]) {
+  for (const [name, method, body, query] of [['publish-check', 'GET', undefined, '?db=' + w.id], ['publish', 'POST', { db: w.id, confirm: true, host: HOST_ID }, ''], ['unpublish', 'POST', { db: w.id }, ''], ['open-web', 'POST', { db: w.id }, ''], ['refresh', 'POST', { db: w.id }, ''], ['write', 'POST', { object: 'contact', op: 'create', values: { name: 'Sneak' } }, '']]) {
     const path = ROUTE + name
     const code = async (headers) => (await hit(routes, path, method, headers, body, query)).code
     assert.equal(await code({}), method === 'GET' ? 401 : 403, path + ' no Origin and no cookie')
@@ -1182,7 +1581,7 @@ await ok('a host with no hosting starts fine, offers nothing, and a failure to b
   assert.notEqual(built, null)
   assert.equal(built.hostingState().available, false)
   const id = svc.create({ name: 'Local', by: 'agent', objects: [CONTACT] }).db.info().id
-  const card = built.check(id)
+  const card = await built.check(id)
   assert.deepEqual([card.can, card.reason], [false, 'unavailable'])
   const clash = join(root, 'home-clash')
   mkdirSync(join(clash, 'kybernos'), { recursive: true })
@@ -1200,7 +1599,7 @@ await ok('installing a template again, while the database it made is published, 
   const markerFile = join(w.dir, 'local', 'templates.json')
   const made = installTemplate({ service: w.svc, template: TPL, markerFile })
   assert.equal(made.ok, true, JSON.stringify(made))
-  assert.equal((await w.publisher.publish(made.db, { confirm: true })).ok, true)
+  assert.equal((await w.publisher.publish(made.db, { confirm: true, host: HOST_ID })).ok, true)
   const before = [w.svc.byId(made.db).db.fingerprint(), w.space.calls.length]
   const again = installTemplate({ service: w.svc, template: TPL, markerFile })
   assert.deepEqual(again, { ok: true, skipped: true, db: made.db })
