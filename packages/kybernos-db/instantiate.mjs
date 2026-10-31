@@ -92,6 +92,11 @@ export function installTemplate (o) {
       if (!r.ok) throw new Error('view ' + view.id + ': ' + r.message)
     }
 
+    if (built.profiles.length > 0) {
+      const r = db.setProfiles(built.profiles, by)
+      if (!r.ok) throw new Error('profiles: ' + r.message)
+    }
+
     const photos = new Map()
     const fileOf = (spec, field) => {
       const key = spec + '|' + field.maxBytes
