@@ -692,7 +692,7 @@ try {
     // Team automations (test-team-automations.mjs): the same, for the automations of a Team's catalogue.
     '/kybernos-cloud/team/automations', '/kybernos-cloud/team/automations/item', '/kybernos-cloud/team/automations/check', '/kybernos-cloud/team/automations/add', '/kybernos-cloud/team/automations/review', '/kybernos-cloud/team/automations/retire', '/kybernos-cloud/team/automations/delete',
     // Kybernos connections (test-connections.mjs): the account's connected apps, through the server's own Composio project.
-    '/kybernos-cloud/connections', '/kybernos-cloud/connections/apps', '/kybernos-cloud/connections/item', '/kybernos-cloud/connections/link', '/kybernos-cloud/connections/delete',
+    '/kybernos-cloud/connections', '/kybernos-cloud/connections/apps', '/kybernos-cloud/connections/logo', '/kybernos-cloud/connections/item', '/kybernos-cloud/connections/link', '/kybernos-cloud/connections/delete',
     '/kybernos-cloud/memory/tidy', '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss', '/kybernos-cloud/memory/tidy/undo', '/kybernos-cloud/memory/tidy/settings',
     '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
     // Code de parrainage du compte (carte d'invitation du pied de sidebar).

@@ -9,12 +9,12 @@
 // the server's own text never reaches the page, and that the tools exist exactly while they can work.
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   CONNECTION_TOOLS, MAX_RESULT_CHARS, STATUSES, asApp, asAppList, asConnection, asConnectionList, asLinked, connectionsFailure, connectionsPaths, isConnectionId, isToolkit,
-  linkBody, rpcCall, rpcOutcome, safeRedirect,
+  linkBody, rpcCall, rpcOutcome, safeLogo, safeRedirect,
 } from './connections.mjs'
 
 let pass = 0
@@ -91,7 +91,7 @@ const KEY = 'sk-live-THIS-IS-AN-API-KEY-9876543210'
   assert.equal(asConnectionList({ connections: [{ id: C1, toolkit: 'a', status: 'active' }, { id: C2, toolkit: 'b', status: 'pending' }] }).count, 2, 'without its number, what was read')
   ok('the list maps its rows, quietly drops what is no row, and keeps "2 of 3" and the stale flag')
 
-  assert.deepEqual(asApp({ slug: 'gmail', name: 'Gmail', categories: ['email', 5], description: 'Mail', logo: 'https://logos.example/x.svg', needs_api_key: false }), { slug: 'gmail', name: 'Gmail', categories: ['email'], description: 'Mail', needsApiKey: false })
+  assert.deepEqual(asApp({ slug: 'gmail', name: 'Gmail', categories: ['email', 5], description: 'Mail', logo: 'https://logos.example/x.svg', needs_api_key: false }), { slug: 'gmail', name: 'Gmail', categories: ['email'], description: 'Mail', logo: true, needsApiKey: false })
   assert.equal(asApp({ slug: 'x', name: 'X', needs_api_key: true }).needsApiKey, true)
   assert.equal(asApp({ slug: 'x' }).name, 'x')
   assert.equal(asApp({ slug: 'BAD SLUG', name: 'x' }), null)
@@ -151,8 +151,9 @@ const api = createServer((req, res) => {
     try { body = raw === '' ? null : JSON.parse(raw) } catch (e) { body = '<<not json>>' }
     seen.push({ method: req.method, url: req.url, auth: req.headers.authorization || null, body, raw })
     const a = answer(req, body)
-    res.writeHead(a.status, { 'content-type': 'application/json' })
-    res.end(JSON.stringify(a.body))
+    // `raw`: a text answer as it is (a logo), not JSON.
+    res.writeHead(a.status, { 'content-type': a.raw === undefined ? 'application/json' : 'image/svg+xml' })
+    res.end(a.raw === undefined ? JSON.stringify(a.body) : a.raw)
   })
 })
 await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
@@ -166,6 +167,9 @@ delete process.env.KYBERNOS_CLOUD_API
 process.env.KYBERNOS_SERVERS_FILE = SERVERS
 process.env.KYBERNOS_CLOUD_STATE = STATE
 process.env.KYBERNOS_CLOUD_KYBERS = join(dir, 'kybers')
+// The catalogue and its logos are kept under DSH's home: here a folder of this run, never the real one.
+process.env.DSH_HOME = join(dir, 'dsh-home')
+const CACHE = join(dir, 'dsh-home', 'kybernos', 'connections-catalogue')
 const connected = { token: TOKEN, user: { id: 'u-me', name: 'Sara M.', plan: 'studio' }, workspaces: [] }
 const MCP = ORIGIN + '/v1/mcp/connections'
 
@@ -174,7 +178,7 @@ try {
   const route = (path) => mod.ROUTES.find((r) => r.path === path)
   const BASE = '/kybernos-cloud/connections'
   const call = async (path, query, body) => route(path).run({ url: path + (query === undefined ? '' : '?' + query) }, body)
-  const reset = () => { seen.length = 0; answer = () => ({ status: 200, body: {} }) }
+  const reset = () => { seen.length = 0; answer = () => ({ status: 200, body: {} }); rmSync(CACHE, { recursive: true, force: true }) }
   const leaks = (v, needle = TOKEN) => JSON.stringify(v).includes(needle)
 
   // route table
@@ -187,7 +191,8 @@ try {
   assert.deepEqual(paths.map((p) => route(p).method), ['GET', 'GET', 'GET', 'POST', 'POST'])
   for (const p of [BASE + '/link', BASE + '/delete']) assert.ok(route(p).cap <= 16384, p + ' takes a small body')
   assert.equal(new Set(mod.ROUTES.map((r) => r.path)).size, mod.ROUTES.length, 'no two routes share a path')
-  ok('five routes, all behind the same-origin guard, small bodies, no path shared')
+  assert.deepEqual([route(BASE + '/logo').method, route(BASE + '/logo').guarded, route(BASE + '/logo').raw], ['GET', true, true], 'the logo route is the one raw (non-JSON) answer, behind the same guard')
+  ok('five routes and a raw logo route, all behind the same-origin guard, small bodies, no path shared')
 
   // a server that does not offer connections, and an account that is not connected: nothing leaves the machine
   writeState(connected)
@@ -204,7 +209,7 @@ try {
   registry(MCP)
   rmSync(STATE, { force: true })
   reset()
-  for (const [p, q, b] of [[BASE], [BASE + '/apps'], [BASE + '/item', 'id=' + C1], [BASE + '/link', undefined, { toolkit: 'gmail' }], [BASE + '/delete', undefined, { id: C1 }]]) {
+  for (const [p, q, b] of [[BASE], [BASE + '/item', 'id=' + C1], [BASE + '/link', undefined, { toolkit: 'gmail' }], [BASE + '/delete', undefined, { id: C1 }]]) {
     assert.deepEqual(await call(p, q, b), { ok: false, offered: true, connected: false, error: 'non connecte' }, p)
   }
   assert.equal(seen.length, 0, 'not connected: not one call to the server')
@@ -235,16 +240,84 @@ try {
   assert.equal((await call(BASE)).error, 'invalid_response')
   ok('list: the account\'s own token in the header only, ?refresh=1 passed on only when it is exactly that, "2 of 3" and stale kept, nothing of the third party')
 
-  // the catalogue
+  // the catalogue: the public route first, with no token, so a person who is not signed in sees all of it
+  const APPS = [{ slug: 'gmail', name: 'Gmail', categories: ['email'], logo: '/v1/connections/catalogue/logo?slug=gmail', description: 'Mail' }, { slug: 'notion', name: 'Notion', needs_api_key: true }]
   reset()
-  answer = () => ({ status: 200, body: { configured: true, apps: [{ slug: 'gmail', name: 'Gmail', categories: ['email'], logo: 'https://l.test/g.svg', description: 'Mail' }, { slug: 'notion', name: 'Notion', needs_api_key: true }] } })
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
   const apps = await call(BASE + '/apps')
-  assert.deepEqual([apps.ok, apps.apps.map((a) => a.slug), apps.apps[1].needsApiKey], [true, ['gmail', 'notion'], true])
-  assert.deepEqual([seen[0].method, seen[0].url, seen[0].auth], ['GET', '/v1/connections/apps', 'Bearer ' + TOKEN])
-  assert.equal(leaks(apps, 'l.test'), false)
+  assert.deepEqual([apps.ok, apps.apps.map((a) => a.slug), apps.apps[1].needsApiKey, apps.apps.map((a) => a.logo), apps.source, apps.connected], [true, ['gmail', 'notion'], true, [true, false], 'public', true])
+  assert.deepEqual([seen.length, seen[0].method, seen[0].url, seen[0].auth], [1, 'GET', '/v1/connections/catalogue', null], 'the public route, and the token does not go with it')
+  assert.equal(leaks(apps), false)
+  assert.equal(leaks(apps, '/v1/connections/catalogue/logo'), false, 'a logo address of the server never reaches the page: it asks this host')
+  reset()
   answer = () => ({ status: 200, body: { configured: false, apps: [] } })
   assert.deepEqual([(await call(BASE + '/apps')).configured, (await call(BASE + '/apps')).apps], [false, []])
-  ok('catalogue: fetched with the token, a module that is switched off says configured:false')
+  // not signed in: the same, and still no token
+  rmSync(STATE, { force: true })
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  const anon = await call(BASE + '/apps')
+  assert.deepEqual([anon.ok, anon.connected, anon.apps.length, anon.source, seen.length, seen[0].auth], [true, false, 2, 'public', 1, null], 'not signed in: the whole catalogue, from the public route')
+  // a server with no public route yet: a signed-in person still gets the account's route, a person who is not is told to sign in
+  reset()
+  answer = (req) => (req.url === '/v1/connections/catalogue' ? { status: 404, body: { error: 'not_found' } } : { status: 200, body: { configured: true, apps: APPS } })
+  assert.deepEqual(await call(BASE + '/apps'), { ok: false, offered: true, connected: false, error: 'non connecte' })
+  writeState(connected)
+  seen.length = 0
+  const older = await call(BASE + '/apps')
+  assert.deepEqual([older.ok, older.source, older.apps.length, seen.map((c) => c.url), seen.map((c) => c.auth)], [true, 'account', 2, ['/v1/connections/catalogue', '/v1/connections/apps'], [null, 'Bearer ' + TOKEN]])
+  ok('catalogue: the public route first and with no token (signed in or not), an older server falls back to the account\'s route, a module that is switched off says configured:false')
+
+  // the logos: always the public route, a plain SVG only, a day in memory, one raw answer
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><defs><linearGradient id="a"/></defs><path fill="url(#a)" d="M0 0h8v8z"/></svg>'
+  const logo = (slug) => route(BASE + '/logo').run({ url: BASE + '/logo?slug=' + encodeURIComponent(slug) })
+  // the catalogue came from the public route, so the logos do too
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  await call(BASE + '/apps')
+  reset()
+  answer = () => ({ status: 200, raw: SVG })
+  const got = await logo('gmail')
+  assert.deepEqual([got.status, got.type, got.body, got.maxAge], [200, 'image/svg+xml', SVG, 86400])
+  assert.deepEqual([seen.length, seen[0].url, seen[0].auth], [1, '/v1/connections/catalogue/logo?slug=gmail', null], 'the public logo route, no token')
+  await logo('gmail')
+  assert.equal(seen.length, 1, 'a logo is kept in memory: the second ask makes no call')
+  const both = await Promise.all([logo('slack'), logo('slack')])
+  assert.deepEqual([both[0].status, both[1].status, seen.length], [200, 200, 2], 'two asks for one logo at once make one call')
+  for (const evil of ['<svg><script>alert(1)</script></svg>', '<svg onload="x()"/>', '<svg><image href="https://evil.test/p.png"/></svg>', '<svg><path style="fill:url(https://evil.test/x)"/></svg>', '<html><body>hi</body></html>', '<svg><foreignObject><iframe/></foreignObject></svg>']) {
+    answer = () => ({ status: 200, raw: evil })
+    const r = await logo('evil' + Math.abs(evil.length))
+    assert.equal(r.status, 404, evil)
+    assert.equal(r.body, undefined, 'nothing of a refused picture is passed on')
+  }
+  assert.equal(safeLogo(SVG), true)
+  answer = () => ({ status: 404, body: { error: 'not_found' } })
+  assert.equal((await logo('nothere')).status, 404)
+  seen.length = 0
+  for (const bad of ['', 'GitHub', '../x', 'a b', 'x'.repeat(65), 'a/b']) assert.equal((await logo(bad)).status, 404, String(bad))
+  assert.equal((await route(BASE + '/logo').run({ url: BASE + '/logo' })).status, 404)
+  assert.equal(seen.length, 0, 'a slug that is no toolkit is refused before any call')
+  // an older server (its catalogue came from the account route): its logos come from the account's own logo route, with the token, asked by this host and never by the page
+  reset()
+  answer = (req) => (req.url.startsWith('/v1/connections/catalogue') ? { status: 404, body: { error: 'not_found' } } : (req.url.startsWith('/v1/connections/apps') ? { status: 200, body: { configured: true, apps: APPS } } : { status: 200, raw: SVG }))
+  await call(BASE + '/apps')
+  seen.length = 0
+  const old = await logo('older1')
+  assert.deepEqual([old.status, old.body, seen.length, seen[0].url, seen[0].auth], [200, SVG, 1, '/v1/connections/logo?slug=older1', 'Bearer ' + TOKEN], 'the account\'s logo route, with the token')
+  writeState({ token: '' })
+  seen.length = 0
+  assert.equal((await logo('older2')).status, 404)
+  assert.equal(seen.length, 0, 'signed out, an older server is not asked for a logo (there is no token to ask with)')
+  writeState(connected)
+  reset()
+  answer = () => ({ status: 200, body: { configured: true, apps: APPS } })
+  await call(BASE + '/apps')
+  reset()
+  registry(false)
+  assert.equal((await logo('gmail2')).status, 404)
+  assert.equal(seen.length, 0, 'a server without connections is never asked for a logo')
+  registry(MCP)
+  ok('logos: the public route with no token (an older server: the account\'s logo route, from this host only), a plain SVG only (script, handler, outside reference, HTML refused), a day in memory, one call for two asks, no call for a bad slug or a server without connections')
 
   // one connection, polled
   reset()
@@ -546,6 +619,146 @@ try {
   stop()
   assert.equal(registered.size, 0, 'when the plugin goes, so do its tools and its timer')
   ok('mounted on the plugin: registered when the tools service arrives, removed with the plugin, the timer never keeps the process alive')
+
+
+  // the background load: the whole catalogue and every logo kept on disk, renewed once a day
+  {
+    const root = join(dir, 'cache-load')
+    const calls = []
+    let serve = null
+    const stub = async (path, opts = {}) => { calls.push({ path, token: opts.token === undefined ? null : opts.token }); return serve(path, opts) }
+    const SVG2 = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M0 0h8v8z"/></svg>'
+    const SLUGS = ['gmail', 'notion', 'slack', 'github', 'figma', 'zoom', 'asana']
+    const LAPPS = [...SLUGS.map((slug) => ({ slug, name: slug, logo: '/x' })), { slug: 'nologo', name: 'No logo' }]
+    const isCat = (path) => path === '/v1/connections/catalogue'
+    const isPubLogo = (path) => path.startsWith('/v1/connections/catalogue/logo?slug=')
+    const healthy = (path) => (isCat(path) ? { status: 200, body: { configured: true, apps: LAPPS } } : (isPubLogo(path) && !path.endsWith('slug=nologo') ? { status: 200, text: SVG2 } : { status: 404, body: {} }))
+    const mkLoad = (extra = {}) => createConnections({ apiCall: stub, readState: () => state, isConnected: (st) => st !== null && typeof st.token === 'string' && st.token !== '', server: () => ({ profile }), cacheDir: () => root, pace: { batch: 3, everyMs: 0 }, log: (m) => logs.push(m), ...extra })
+    const here = () => join(root, readdirSync(root)[0])
+    const files = () => readdirSync(join(here(), 'logos')).sort()
+    const age = (file, days) => { const t = new Date(Date.now() - days * 86400000); utimesSync(file, t, t) }
+    const ageAll = (days) => { for (const f of files()) age(join(here(), 'logos', f), days); const j = JSON.parse(readFileSync(join(here(), 'catalogue.json'), 'utf8')); j.at -= days * 86400000; writeFileSync(join(here(), 'catalogue.json'), JSON.stringify(j)) }
+    const asked = () => calls.splice(0).map((c) => c.path)
+    state = null
+    profile = profileWith(MCP)
+    serve = healthy
+
+    // first load, signed out: one list and every logo (not the app with no logo), no token anywhere, everything on disk
+    const c1 = mkLoad()
+    await c1.load()
+    const first = calls.splice(0)
+    assert.deepEqual([first.length, first[0].path, first.slice(1).every((c) => isPubLogo(c.path)), first.every((c) => c.token === null)], [8, '/v1/connections/catalogue', true, true], 'the list, then the 7 logos, with no token')
+    assert.deepEqual(files(), SLUGS.map((x) => x + '.svg').sort())
+    assert.equal(statSync(join(here(), 'catalogue.json')).isFile(), true)
+    // the page reads what is kept: no call
+    const kept1 = await c1.appsRoute({ url: BASE + '/apps' })
+    assert.deepEqual([kept1.ok, kept1.apps.length, kept1.source, kept1.connected, asked().length], [true, 8, 'public', false, 0], 'a list under a day old is served from disk')
+    // another run of DSH (a new instance): list and logos from disk, no call; a logo that was never loaded is asked at the server
+    const c2 = mkLoad()
+    const kept2 = await c2.appsRoute({ url: BASE + '/apps' })
+    const lg = await c2.logoRoute({ url: BASE + '/logo?slug=gmail' })
+    assert.deepEqual([kept2.apps.length, lg.status, lg.body, asked().length], [8, 200, SVG2, 0])
+    const none = await c2.logoRoute({ url: BASE + '/logo?slug=nologo' })
+    assert.deepEqual([none.status, asked().length], [404, 1], 'a logo not on disk is asked once, and a 404 is a 404')
+    // nothing due: a second load makes no call at all
+    await c2.load()
+    assert.equal(asked().length, 0, 'everything is under a day old: the load asks nothing')
+    // ?refresh=1 asks the server anyway
+    await c2.appsRoute({ url: BASE + '/apps?refresh=1' })
+    assert.deepEqual(asked(), ['/v1/connections/catalogue'])
+    ok('the background load: the list and every logo kept on disk with no token, read from disk by the page and by the next run, nothing asked again within the day, ?refresh=1 asks anyway')
+
+    // a day later: the list and every logo are renewed
+    ageAll(2)
+    const c3 = mkLoad()
+    await c3.load()
+    const again = asked()
+    assert.deepEqual([again.length, again[0]], [8, '/v1/connections/catalogue'], 'a day on: the list and the 7 logos again')
+    assert.ok(statSync(join(here(), 'logos', 'gmail.svg')).mtimeMs > Date.now() - 60000, 'the file is new')
+    // a logo the server does not have is skipped, the others go on
+    ageAll(2)
+    serve = (path) => (path.endsWith('slug=slack') ? { status: 404, body: {} } : healthy(path))
+    await mkLoad().load()
+    assert.equal(asked().length, 8)
+    assert.ok(statSync(join(here(), 'logos', 'slack.svg')).mtimeMs < Date.now() - 86400000, 'the logo the server lacked keeps its old file')
+    assert.ok(statSync(join(here(), 'logos', 'zoom.svg')).mtimeMs > Date.now() - 60000, 'the others were renewed')
+    ok('a day later everything is renewed, a logo the server lacks is skipped without stopping the rest')
+
+    // a server that does not answer: the copy on disk is served, the load stops after three failed batches instead of asking every logo
+    ageAll(2)
+    rmSync(join(root), { recursive: true, force: true })
+    serve = healthy
+    const big = Array.from({ length: 30 }, (_, i) => ({ slug: 'app' + i, name: 'App ' + i, logo: '/x' }))
+    serve = (path) => (isCat(path) ? { status: 200, body: { configured: true, apps: big } } : healthy(path))
+    await mkLoad().load()
+    assert.equal(files().length, 30)
+    ageAll(2)
+    asked()
+    serve = () => ({ status: 0, body: null })
+    const down = mkLoad()
+    await down.load()
+    const sent = asked()
+    assert.ok(sent.length <= 3 + 9 + 1, 'at most the list (public + account) and three batches of logos: ' + sent.length)
+    const stale = await down.appsRoute({ url: BASE + '/apps' })
+    assert.deepEqual([stale.ok, stale.apps.length, stale.stale], [true, 30, true], 'the server is down: the copy on disk is shown')
+    const empty = mkLoad({ cacheDir: () => join(dir, 'cache-empty') })
+    asked()
+    assert.equal((await empty.appsRoute({ url: BASE + '/apps' })).ok, false, 'no copy and no server: the error, as before')
+    ok('a silent server: the load stops after three failed batches, the page keeps the copy on disk, with no copy the error is the same as before')
+
+    // what is read back is checked again as if it came from outside
+    rmSync(join(root), { recursive: true, force: true })
+    serve = healthy
+    const c4 = mkLoad()
+    await c4.load()
+    asked()
+    writeFileSync(join(here(), 'logos', 'gmail.svg'), '<svg><script>alert(1)</script></svg>')
+    writeFileSync(join(here(), 'logos', 'notion.svg'), 'not a picture')
+    const bad = await mkLoad().logoRoute({ url: BASE + '/logo?slug=gmail' })
+    assert.deepEqual([bad.status, bad.body, asked().length], [200, SVG2, 1], 'a tampered file is not served: the server is asked again and the file is replaced')
+    assert.equal(readFileSync(join(here(), 'logos', 'gmail.svg'), 'utf8'), SVG2)
+    writeFileSync(join(here(), 'catalogue.json'), '{"at": "x"')
+    assert.equal((await mkLoad().appsRoute({ url: BASE + '/apps' })).apps.length, 8, 'an unreadable list is asked again')
+    for (const slug of ['../x', 'a/b', 'GitHub', '']) assert.equal((await c4.logoRoute({ url: BASE + '/logo?slug=' + encodeURIComponent(slug) })).status, 404, slug)
+    assert.ok(files().every((f) => /^[a-z0-9][a-z0-9_-]*\.svg$/.test(f)), 'only toolkit names become file names')
+    ok('what is read back is checked again: a tampered logo or an unreadable list is asked at the server, only toolkit names become file names')
+
+    // an older server: the list and the logos come from the account's routes, with the token, from this host only; signed out later, the disk still serves
+    rmSync(join(root), { recursive: true, force: true })
+    asked()
+    state = { token: TOKEN }
+    serve = (path) => (isCat(path) ? { status: 404, body: { error: 'not_found' } } : (path === '/v1/connections/apps' ? { status: 200, body: { configured: true, apps: LAPPS } } : (path.startsWith('/v1/connections/logo?slug=') ? { status: 200, text: SVG2 } : { status: 404, body: {} })))
+    await mkLoad().load()
+    const olderCalls = calls.splice(0)
+    assert.deepEqual([olderCalls.length, olderCalls.slice(2).every((c) => c.path.startsWith('/v1/connections/logo?slug=') && c.token === TOKEN), olderCalls[0].token, olderCalls[1].token], [9, true, null, TOKEN], 'public list first (no token), then the account\'s list and logos with the token')
+    state = null
+    serve = () => ({ status: 0, body: null })
+    const offline = mkLoad()
+    const fromDisk = await offline.appsRoute({ url: BASE + '/apps' })
+    const logoDisk = await offline.logoRoute({ url: BASE + '/logo?slug=figma' })
+    assert.deepEqual([fromDisk.ok, fromDisk.source, fromDisk.connected, fromDisk.apps.length, logoDisk.status, asked().length], [true, 'account', false, 8, 200, 0], 'signed out, offline: the copy still shows')
+    ok('an older server: the list and the logos come from the account\'s routes with the token (this host only), and the disk keeps serving once signed out')
+
+    // without a folder nothing is kept and the load asks nothing; the timers never keep the process alive and stop with the plugin
+    const memoryOnly = createConnections({ apiCall: stub, readState: () => state, isConnected: () => false, server: () => ({ profile }), log: () => {} })
+    serve = healthy
+    await memoryOnly.load()
+    assert.equal(asked().length, 0, 'no folder: no background load')
+    const fx = []
+    const realTimeout = globalThis.setTimeout
+    const realInterval = globalThis.setInterval
+    const made = []
+    globalThis.setTimeout = (...a) => { const t = realTimeout(...a); made.push(t); return t }
+    globalThis.setInterval = (...a) => { const t = realInterval(...a); made.push(t); return t }
+    const cm = mkLoad()
+    cm.mount({ inject: () => {}, effect: (fn) => fx.push(fn) })
+    const undo = fx[0]()
+    globalThis.setTimeout = realTimeout
+    globalThis.setInterval = realInterval
+    assert.ok(made.length >= 3 && made.every((t) => t.hasRef() === false), 'the sync, the first load and the hourly check never keep the process alive')
+    undo()
+    ok('no folder, no background load; the load\'s timers are unref\'d and cleared with the plugin')
+  }
 
   assert.equal(mod.server().profile.services.connections, MCP)
   ok('the active server\'s endpoint is what the routes and the tools use')

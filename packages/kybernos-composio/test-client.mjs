@@ -485,6 +485,22 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('search: the apps whose name starts with it come before the others', appsMatch(apps, 'mail', 10).map((a) => a.slug).join() === 'mailchimp,gmail,zohomail')
   ok('search: accents, case and punctuation do not matter; a bad list does not throw', appsMatch(apps, ' GIT-hub ', 10).length === 1 && appsMatch(null, 'x', 5).length === 0 && appsMatch(undefined, '', 5).length === 0 && appsMatch(apps, 'zzz', 5).length === 0)
 
+  // Discover: the server's whole catalogue as rows, and its facets
+  {
+    const { fullRows, topCats, logoUrl } = plugin.composio
+    const rows = fullRows([
+      { slug: 'zeta', name: 'Zeta', categories: ['tools', 'data', 7], description: 'Does zeta.', needsApiKey: true, logo: true },
+      { slug: 'plain', categories: [], description: 12 },
+      null, 'text', { slug: '' }, { name: 'no slug' },
+    ])
+    ok('Discover rows: a bad entry is skipped, a good one keeps its slug, name, categories (strings only) and description', rows.length === 2 && rows[0].s === 'zeta' && rows[0].n === 'Zeta' && rows[0].c.join() === 'tools,data' && rows[0].d === 'Does zeta.')
+    ok('Discover rows: an app that needs its own API key says so, and a missing name is the slug', rows[0].k === true && rows[1].k === false && rows[1].n === 'plain' && rows[1].d === '')
+    ok('Discover rows: a list that is not a list is no rows', fullRows(null).length === 0 && fullRows({}).length === 0)
+    const sample = [{ c: ['a', 'b'] }, { c: ['b'] }, { c: ['c', 'b'] }, { c: ['a'] }, {}]
+    ok('facets: the most used category first, the first seen first among equals', topCats(sample).join() === 'b,a,c')
+    ok('the logo address is this machine\'s own route, with the slug encoded', logoUrl('a b&c') === '/kybernos-cloud/connections/logo?slug=a%20b%26c')
+  }
+
   // the person's choice of mode
   store.clear()
   ok('nothing is chosen until the person chooses: the stored mode is null, and the page takes its default (V-34)', modeGet() === null)
@@ -527,8 +543,25 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('the key field is a password field that the browser does not remember', /type: 'password', value: apiKey, autoComplete: 'off'/.test(kcSrc))
   ok('the page asks no redirect address and no user id: the server decides both', !/redirect_uri|user_id|redirectUri/.test(kcSrc.replace(/res\.redirectUrl|j\.redirectUrl|r\.json\.redirectUrl|redirectUrl/g, '')))
   ok('everything the page asks for goes to the cloud half of this machine, never to Kybernos or Composio directly', !/fetch\(\s*['"`]https?:/.test(kcSrc) && /kbCpCloud\('\/connections/.test(kcSrc))
-  ok('the full app catalogue is read from the server this machine is signed in to, through the cloud half: no address of a deployed service is written in the page', /kbCpCloud\('\/connections\/apps'\)/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))) && !/railway\.app|fetch\(\s*['"`]https?:/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))))
+  ok('the full app catalogue is read through the cloud half of this machine (which asks the server\'s public route): no address of a deployed service is written in the page', /kbCpCloud\('\/connections\/apps'\)/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))) && !/railway\.app|fetch\(\s*['"`]https?:/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))))
   ok('the address the person is sent to goes through the one URL rule', /kbCpWebUrl\(res\.redirectUrl\)/.test(kcSrc) && /rel: 'noopener noreferrer'/.test(kcSrc))
+  // Discover: the whole catalogue is open to everyone, connecting is not
+  {
+    const loadSrc = src.slice(src.indexOf('const loadAll'), src.indexOf('const reloadAll'))
+    ok('Discover loads the whole catalogue by itself when it opens, quietly: nobody is told off for not being signed in', /Promise\.all\(\[refresh\(list\), loadAll\(true\)\]\)/.test(src) && /if \(quiet !== true\) setErr/.test(loadSrc))
+    ok('the local catalogue stays when the server\'s list is not bigger than it', /rows\.length <= CATALOG\.length/.test(loadSrc))
+    ok('the button to load the catalogue by hand only shows after a try that failed', (src.match(/apps\.length <= CATALOG\.length && fullTried === true/g) || []).length === 2)
+    ok('a person with no key on this machine does not ask the host about 1,600 apps in 40 batches', /if \(configured === false\) break/.test(src))
+    ok('a logo comes from the cloud half of this machine, never from a third party, and a picture that fails leaves the letter tile', /CLOUD \+ '\/connections\/logo\?slug='/.test(src) && /onError: \(\) => setBad\(true\)/.test(src) && !/logos\.composio\.dev|<img[^\n]*src: ['"`]https?:/.test(src))
+    const gateSrc = src.slice(src.indexOf('const ConnectGate'), src.indexOf('// ── page Connections'))
+    ok('the gate has two ways: the account (recommended) and the key (smaller, folded when there is an account)', /gate-account/.test(gateSrc) && /gate-key/.test(gateSrc) && /small \? ' sm' : ''/.test(gateSrc) && /useState\(props\.account !== true\)/.test(gateSrc))
+    ok('the account way pairs in the page through the cloud half and asks about it every 3 s; nothing is sent to Kybernos from the browser', /kbCpCloud\('\/start', 'POST'\)/.test(gateSrc) && /kbCpCloud\('\/poll', 'POST'\)/.test(gateSrc) && /3000\)/.test(gateSrc) && !/fetch\(/.test(gateSrc))
+    ok('the key way sends the key to the host once, in a password field the browser does not remember, and keeps no copy', /kbCpHost\('\/key', 'POST', \{ key: value \}\)/.test(gateSrc) && /type: 'password', value: key, placeholder: 'ck_…', autoComplete: 'off'/.test(gateSrc) && /setKey\(''\)/.test(gateSrc) && !/localStorage|sessionStorage/.test(gateSrc))
+    ok('the key way takes the same host sentences as the key panel for a refused key', /composio\.err\.invalid/.test(gateSrc) && /composio\.err\.rejected/.test(gateSrc) && /composio\.err\.inherited/.test(gateSrc))
+    ok('the gate shows instead of the add button only when nothing lets the person connect', /const needGate = kcMode === true \? \(kcReady === false \|\| kc\.entitled === false\) : hostCfg === false/.test(src))
+    ok('after signing in from the gate the page carries on with that app, in the Kybernos add window opened for it alone', /fixed: true, apps: \[kcAdd\.app\]/.test(src) && /props\.fixed === true \? \(app === null/.test(src))
+    ok('the account\'s connections are managed in Yours: Discover shows them without a remove button', /kcMode === true \? null : h\('button'[^\n]*removeAccount/.test(src))
+  }
   ok('an add that failed in a way that may have gone through offers to check the list, and never retries by itself', /checkFirst === true/.test(kcSrc) && !/setTimeout\([^)]*submit/.test(kcSrc))
 }
 
