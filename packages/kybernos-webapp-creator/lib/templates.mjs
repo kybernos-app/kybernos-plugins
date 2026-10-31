@@ -15,6 +15,7 @@ export const STACKS = {
   statique: { titre: 'Static site', pour: 'landing page, vitrine — no database, no admin' },
   web: { titre: 'Web app', pour: 'CRUD, dashboard — mini base + API' },
   commerce: { titre: 'E-commerce', pour: 'boutique : produits, panier, commandes — preset on top of web' },
+  tables: { titre: 'Team space', pour: 'apps (kybernos-db) shared with a team: owner + members with profiles — needs npm install and the vendoring build, see its README' },
 }
 const BASES = { commerce: ['web'] }
 

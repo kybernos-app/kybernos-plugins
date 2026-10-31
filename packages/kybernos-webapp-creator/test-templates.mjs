@@ -1,12 +1,13 @@
 // test-templates.mjs — the conformance suite of the stack catalog: scaffold, boot through the REAL
 // runtime, serve, stop. Same suite for every stack (rule of the adversarial review, 2026-10-27):
 // a stack that does not pass here does not enter the catalog.
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { scaffoldApp } from './lib/apps.mjs'
 import { DEFAULT_STACK, listTemplates, scaffoldFromTemplate } from './lib/templates.mjs'
 import { startApp, stopApp } from './lib/runtime.mjs'
+import { vendorKybernosDb } from './templates/tables/scripts/build-tables-app.mjs'
 
 let echecs = 0
 const check = (libelle, ok, detail) => {
@@ -17,7 +18,7 @@ const check = (libelle, ok, detail) => {
 
 console.log('catalogue')
 const catalogue = listTemplates()
-check('three stacks listed', catalogue.length === 3, catalogue)
+check('four stacks listed', catalogue.length === 4, catalogue)
 check('every stack is present on disk', catalogue.every((t) => t.dispo === true), catalogue)
 check('the default stack is web', DEFAULT_STACK === 'web')
 check('an unknown stack is refused', scaffoldFromTemplate('/tmp/nowhere', 'php-nuke').ok === false)
@@ -146,6 +147,26 @@ try {
   check('the replayed payment sends no second email', mails() === 1, mails())
   base2.close()
   await stopApp(join(racine, 'boutique'))
+
+  console.log('tables — the real runtime boots it (once kybernos-db is vendored and the dependencies are installed)')
+  const team = scaffoldFromTemplate(join(racine, 'team'), 'tables')
+  check('scaffolded', team.ok === true && existsSync(join(racine, 'team', 'server.js')) && existsSync(join(racine, 'team', 'app.mjs')) && existsSync(join(racine, 'team', 'package.json')), team)
+  const modules = process.env.TABLES_APP_NODE_MODULES
+  if (modules === undefined || existsSync(join(modules, 'hono')) !== true) {
+    console.log('SKIPPED: tables boot through the runtime \u2014 hono, @hono/node-server and better-auth are not installed here (TABLES_APP_NODE_MODULES=<a node_modules that holds them>; scripts/check-tables-app.mjs installs them itself)')
+  } else {
+    vendorKybernosDb({ out: join(racine, 'team') })
+    symlinkSync(modules, join(racine, 'team', 'node_modules'), 'dir')
+    const dt = await startApp(join(racine, 'team'))
+    check('it serves', dt.ok === true, dt)
+    const health = await fetch('http://127.0.0.1:' + dt.port + '/health')
+    check('the health answers 200', health.status === 200 && (await health.json()).ok === true)
+    const anon = await fetch('http://127.0.0.1:' + dt.port + '/api/apps')
+    check('an app list needs a session', anon.status === 401)
+    const headers = await fetch('http://127.0.0.1:' + dt.port + '/api/csrf')
+    check('the answers carry the security headers', headers.headers.get('x-content-type-options') === 'nosniff' && /frame-ancestors 'none'/.test(headers.headers.get('content-security-policy') ?? ''))
+    await stopApp(join(racine, 'team'))
+  }
 
   console.log('brief + template, the way /create does it')
   const r = scaffoldApp(racine, { nom: 'Flux', slug: 'flux', stack: 'web' })
