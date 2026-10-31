@@ -5,7 +5,7 @@
 //     "menu": { "en": "Overview", "fr": "Vue d’ensemble" }, "overview": true,
 //     "widgets": [ { "type": "card", "title": "Active listings", "source": { "provider": "db.rows", "params": { "db": "real-estate", "object": "property" } }, "metric": { "agg": "count" } } ] }
 // The Dashboards plugin lists it in its Presets gallery with the template's name, only while the template is installed; using it gives the person their own copy,
-// exactly like a built-in preset. `menu` is the word of the « Overview » row of the Business group (English required); `overview: true` marks the dashboard that
+// exactly like a built-in preset. `menu` is the word the template gives its overview (English required; the menu has no Overview row any more); `overview: true` marks the dashboard that
 // row opens (at most one per file).
 //
 // The check is pure and bounded: known keys only, every text and list has a limit, no code and no URL. The widgets are checked by the dashboards' own model

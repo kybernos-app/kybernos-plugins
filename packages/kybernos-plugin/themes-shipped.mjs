@@ -82,7 +82,7 @@ const jsonNames = (dir) => names(dir, (f) => f.endsWith('.json'))
 /**
  * One theme folder as the page needs it, or `{ ok: false, dir, reason }`.
  * `{ ok: true, theme }`: `{ id, dir, version, name, description, accent, icon, field, tagline, words, style, needs, adds }`
- *   words  { tables }: the pack's `menu.labels` for the row of the Business group, `{ en, fr }` (or absent)
+ *   words  { tables }: the pack's `menu.labels` for the Apps row, `{ en, fr }` (or absent; the fixed menu no longer draws it)
  *   style  { id, name, accent } of the first `themes/*.json`
  *   needs  the ids of `requires.plugins` that are not the core's own seams, `kybernos/db` first
  *   db     { objects: [{ en, fr }] }: the names of the tables of the theme's database (at most LIST_MAX), or `null` when the theme ships none

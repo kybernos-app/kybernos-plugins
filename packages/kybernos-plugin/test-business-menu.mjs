@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// The « Business » group of the sidebar (docs/dev/business-menu.md): the registry a plugin declares its row in (`window.__KB_MENU__`), cut out of
-// client.js and run alone, and the places where the core reads it, checked at source level. No browser; the drawn result is measured by
-// scripts/check-menu-business-live.mjs.
+// The rows a plugin adds to the sidebar (docs/dev/business-menu.md): the registry a plugin declares its row in (`window.__KB_MENU__`), cut out of
+// client.js and run alone, and the places where the core reads it, checked at source level. The menu is fixed and the rows are drawn flat, right
+// after Agent Teams: no group, no header. No browser; the drawn result is measured by scripts/check-menu-live.mjs.
 //
 //   node packages/kybernos-plugin/test-business-menu.mjs
 import { readFileSync } from 'node:fs'
@@ -24,7 +24,7 @@ const fresh = () => {
   const warns = []
   const win = { dispatchEvent: (e) => { events.push(e.type) } }
   const fake = { warn: (m) => warns.push(String(m)) }
-  const made = new Function('window', 'CustomEvent', 'console', BLOCK + '\nreturn { kbBizMenu, kbBizCheck, kbBizLabel, kbBizCollapsed, kbBizSetCollapsed, kbBizAttention, KB_BIZ_TAKEN, KB_BIZ_MAX, KB_BIZ_KEY }')(win, class { constructor (type) { this.type = type } }, fake)
+  const made = new Function('window', 'CustomEvent', 'console', BLOCK + '\nreturn { kbBizMenu, kbBizCheck, kbBizLabel, KB_BIZ_TAKEN, KB_BIZ_MAX }')(win, class { constructor (type) { this.type = type } }, fake)
   return Object.assign(made, { win, events, warns })
 }
 const row = (id, extra) => Object.assign({ id, group: 'business', icon: 'users', labelKey: 'business.' + id }, extra || {})
@@ -118,38 +118,15 @@ console.log('the words of a row')
   check('a dictionary that throws does not stop the menu', m.kbBizLabel(own, () => { throw new Error('boom') }, 'es') === 'People')
 }
 
-console.log('the folded state is a convenience, never a need')
-{
-  const m = fresh()
-  const mem = new Map()
-  const storage = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => { mem.set(k, v) } }
-  check('open at first (nothing kept)', m.kbBizCollapsed(storage) === false)
-  check('folding is kept', m.kbBizSetCollapsed(storage, true) === true && m.kbBizCollapsed(storage) === true && mem.get(m.KB_BIZ_KEY) === '1')
-  check('opening is kept', m.kbBizSetCollapsed(storage, false) === true && m.kbBizCollapsed(storage) === false)
-  const broken = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
-  check('a browser that refuses storage: open, and nothing thrown', m.kbBizCollapsed(broken) === false && m.kbBizSetCollapsed(broken, true) === false)
-  check('no storage at all: the same', m.kbBizCollapsed(null) === false && m.kbBizSetCollapsed(null, true) === false)
-}
-
-console.log('what the folded header says for its rows')
-{
-  const m = fresh()
-  const rows = [{ id: 'contacts' }, { id: 'catalog' }, { id: 'pipeline' }]
-  const state = { contacts: { review: 2 }, catalog: { need: 1, running: true }, pipeline: null }
-  const got = m.kbBizAttention(rows, (k) => (state[k] === undefined ? null : state[k]))
-  check('it adds what waits for the person and says whether something works', got.count === 3 && got.running === true, got)
-  check('nothing published: nothing to say', m.kbBizAttention(rows, () => null).count === 0 && m.kbBizAttention(rows, () => null).running === false)
-  check('garbage in the state is ignored', m.kbBizAttention(rows, () => 'x').count === 0 && m.kbBizAttention(rows, () => ({ review: 'many', need: -4 })).count === 0)
-  check('a state reader that throws is ignored', m.kbBizAttention(rows, () => { throw new Error('boom') }).count === 0)
-  check('the number stops at 99', m.kbBizAttention(rows, () => ({ review: 80 })).count === 99)
-}
-
 console.log('where the core reads the registry (source level)')
 {
   const count = (re) => (SRC.match(re) || []).length
   check('the keyed child is declared once, in the registration of `main`, next to the three single ones', count(/'main\.kybernos-business': \{ kind: 'keyed', scope: 'root' \}/g) === 1 && /key: 'kybers', children: \{ 'main\.kybernos-skills'[^}]*\}, 'main\.kybernos-dashboards'[^}]*\}, 'main\.kybernos-kyber'[^}]*\}, 'main\.kybernos-business': \{ kind: 'keyed'/.test(SRC))
   const menu = SRC.slice(SRC.indexOf('const SalesMenu = '), SRC.indexOf("slots.inject('sidebar.panellist'"))
-  check('SalesMenu draws the group once, after the documents row and before the progress bar', count(/h\(KbBusinessGroup, \{ row, openPage, shown \}\)/g) === 1 && menu.indexOf("row('documents'") > 0 && menu.indexOf("row('documents'") < menu.indexOf('h(KbBusinessGroup') && menu.indexOf('h(KbBusinessGroup') < menu.indexOf('h(KbProgressBar'))
+  const at = (id) => menu.indexOf("row('" + id + "'")
+  const order = ['dashboards', 'tasks', 'connectors', 'skills', 'aiteams'].map(at)
+  check('the menu is fixed: Dashboards, Automations, Connectors, Skills, Agent Teams, the declared rows, then Creations', order.every((n) => n > 0) && order.every((n, k) => k === 0 || n > order[k - 1]) && count(/h\(KbMenuRows, \{ row, openPage, shown \}\)/g) === 1 && menu.indexOf('h(KbMenuRows') > order[4] && menu.indexOf('h(KbMenuRows') < at('deliverables') && at('deliverables') < menu.indexOf('h(KbProgressBar'), order)
+  check('no Templates row and no group header any more', at('themes') < 0 && !/KbBusinessGroup|menu-business|toggle-business/.test(SRC))
   check('the pages the store can hold include the rows that are declared', /\.concat\(\['themes'\]\)\.concat\(kbBizMenu\.ids\(\)\)/.test(SRC))
   const main = SRC.slice(SRC.indexOf('const KybersMain = '), SRC.indexOf('// ── colonne 1 : navigation Kybernos'))
   check('the page area opens a declared row on its view, after every page of the core, before the default', main.indexOf('kbBizMenu.has(s.view)') > main.indexOf("s.view === 'teaminfo'") && main.indexOf('kbBizMenu.has(s.view)') < main.indexOf('return h(KybersPanel, props)'))
@@ -158,30 +135,17 @@ console.log('where the core reads the registry (source level)')
   check('every view the core draws is an id a business row cannot take (found ' + coreViews.length + ')', coreViews.length >= 10 && coreViews.every((v) => fresh2.KB_BIZ_TAKEN.indexOf(v) >= 0), coreViews.filter((v) => fresh2.KB_BIZ_TAKEN.indexOf(v) < 0))
   const mount = SRC.slice(SRC.indexOf('const KbBusinessMount = '), SRC.indexOf('const KbBusinessView = '))
   check('the page of a row is the slot entry with the row\'s key, or an honest empty line', /slots\.subscribe\('main\.kybernos-business'/.test(mount) && /slots\.entriesOfSlot\('main\.kybernos-business'\)/.test(mount) && /e\.options\.key === props\.id/.test(mount) && /kbt\('kbui\.business\.off'\)/.test(mount))
-  const group = SRC.slice(SRC.indexOf('const KbBusinessGroup = '), SRC.indexOf('const KbBusinessMount = '))
-  check('the group draws nothing while no row is declared', /if \(rows\.length === 0\) return null/.test(group))
-  check('the header is a button that says whether it is open, and what it controls', /'aria-expanded': collapsed \? 'false' : 'true'/.test(group) && /'aria-controls': 'kb4-biz-rows'/.test(group) && /id: 'kb4-biz-rows'/.test(group))
-  check('the rows go through the menu\'s own row() (labels renamed by a pack, icon sets, selection)', /props\.row\(r\.id,/.test(group) && /props\.openPage\(\{ view: r\.id \}\)/.test(group))
-  check('the folded state is kept in the browser through the guarded helpers only', /kbBizCollapsed\(store\)/.test(group) && /kbBizSetCollapsed\(store, next\)/.test(group) && !/localStorage\.(get|set)Item/.test(group))
-  check('the words exist in French and English', /'kbui\.business': \{ kybernos: 'Business', en: 'Business' \}/.test(SRC) && /'kbui\.business\.off': \{ kybernos: '[^']+', en: '[^']+' \}/.test(SRC))
+  const rows = SRC.slice(SRC.indexOf('const KbMenuRows = '), SRC.indexOf('const KbBusinessMount = '))
+  check('the declared rows draw nothing while none is declared, and no header', /kbBizMenu\.list\(\)\.map\(/.test(rows) && !/'kb4-grph'|aria-expanded|aria-controls/.test(rows))
+  check('the rows go through the menu\'s own row() (icon sets, selection) and the pack does not rename them (the menu is fixed)', /props\.row\(r\.id,/.test(rows) && /props\.openPage\(\{ view: r\.id \}\)/.test(rows) && /, true\)\)\)/.test(rows) && /fixed !== true && kbDomainLabel\(id\) !== null/.test(SRC))
+  check('the rows follow the registry and the rows\' state, so a row that comes or goes is drawn at once', /kbBizMenu\.subscribe\(/.test(rows) && /KB_MENU_STATE\.subscribe\(/.test(rows))
+  check('the words of the old group are gone', !/'kbui\.business': /.test(SRC) && /'kbui\.business\.off': \{ kybernos: '[^']+', en: '[^']+' \}/.test(SRC))
   check('the briefcase is drawn by the core\'s own icon table', /^ {2}briefcase: \['M16 20V4/m.test(SRC))
 }
 
 console.log('the look (CSS promises)')
 {
-  const rule = (sel) => { const at = SRC.indexOf('\n' + sel + '{'); if (at < 0) return null; return SRC.slice(at + 1, SRC.indexOf('}', at) + 1) }
-  const sized = ['.kb4-grp', '.kb4-grph', '.kb4-grpchev', '.kb4-grpcnt']
-  const missing = sized.filter((s) => rule(s) === null)
-  check('every class of the group has a rule', missing.length === 0, missing)
-  const px = sized.filter((s) => { const r = rule(s); return r !== null && /(^|[;{ ])(font-size|width|height|min-height|padding|margin|gap):[^;}]*\d+(\.\d+)?px/.test(r) })
-  check('every size of the group (font, height, padding, gap) is in em, none in px, so it follows the chat text size', px.length === 0, px)
-  const colours = sized.map(rule).filter((r) => r !== null).filter((r) => /#[0-9a-fA-F]{3,6}\b(?!\))|rgba?\(/.test(r.replace(/var\([^)]*\)/g, '')))
-  check('no colour of its own: the theme\'s tokens only', colours.length === 0, colours)
-  check('the count pill has its own class (the row counters are hidden on purpose, this one must show)', rule('.kb4-grpcnt') !== null && !/display:none/.test(rule('.kb4-grpcnt')))
-  check('the chevron turns when the group is folded, and holds still for people who ask for less motion', /\.kb4-grph\[aria-expanded="false"\] \.kb4-grpchev\{transform:rotate\(-90deg\)\}/.test(SRC) && /prefers-reduced-motion:reduce\)\{\.kb4-grpchev\{transition:none\}\}/.test(SRC))
-  check('in the icon rail the header goes and the rows always show', /\[class\*="collapsed"\] \.kb4-menu \.kb4-grph\{display:none\}/.test(SRC) && /\[class\*="collapsed"\] \.kb4-menu \.kb4-grprows\.folded\{display:block\}/.test(SRC))
-  check('a folded group is hidden by its own class, not by the `hidden` attribute (the shell\'s CSS overrides that one: measured in the rail)', /\.kb4-grprows\.folded\{display:none\}/.test(SRC) && !/hidden: collapsed/.test(SRC.slice(SRC.indexOf('const KbBusinessGroup = '), SRC.indexOf('const KbBusinessMount = '))))
-  check('the header that holds the selected page looks selected, like a row', /\.kb4-grph\.on\{background:var\(--dsw-alias-bg-layer-1\);color:var\(--dsw-alias-brand-primary\)\}/.test(SRC))
+  check('the group\'s CSS is gone: no rule of the header, the chevron, the count or the folded rows', !/\.kb4-grp/.test(SRC))
   check('the page area redraws when a row comes or goes, so the page of a vanished row is not left on screen', /kbBizMenu\.subscribe\(\(\) => domainTick\(\(n\) => n \+ 1\)\)/.test(SRC.slice(SRC.indexOf('const KybersMain = '), SRC.indexOf('// ── colonne 1 : navigation Kybernos'))))
 }
 

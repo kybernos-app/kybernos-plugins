@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // The dashboards the sector templates ship (kybernos/dashboards#preset), on the REAL GUI of a SANDBOX: the three templates (E-commerce, Real estate, Recruitment) installed from
 // THIS checkout with their sample rows, the Presets gallery that lists their dashboards with the template's name on each card, the dashboards drawn from the real routes of
-// Tables (the database each template makes), and the « Overview » row of the Business group. Everything is measured; nothing is taken on trust.
+// Tables (the database each template makes). There is no Overview row in the menu any more: the first template's dashboard is made from the gallery with a real click. Everything is measured; nothing is taken on trust.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-business-dashboards-live.mjs [--shots <dir>]
 //
 // What it checks, in a real page:
 //   1. the three templates are `ok` in the registry once the Dashboards plugin has told its point, and their databases (Tables) hold the sample rows;
 //   2. the Presets gallery lists the three template dashboards first, each with its template's name, and using one makes the person's own copy;
-//   3. the Overview row: in the Business group beside Tables, opens the dashboard on a copy made once, with no way back to a gallery it does not belong to;
+//   3. the menu holds no Overview row and no Business group; a click on « Use this preset » makes the first template's copy once and opens it;
 //   4. each dashboard: every widget drawn (none empty, none on its error state), no horizontal overflow, no clipped number or title, no console error,
 //      the numbers on nine cards equal to a direct count of the rows of the template's own database (Tables);
 //   5. light and dark, 1500 px and 420 px: one screenshot of each (--shots), the page height fitted to the dashboard.
@@ -139,15 +139,12 @@ try {
   const total = (objectKeys) => Object.entries(DB).filter(([k]) => objectKeys.includes(k.split('/')[1])).reduce((n, [, v]) => n + v.length, 0)
   check('the sample rows of the three templates are in their databases', total(['product', 'property', 'job']) === 46 && total(['orders', 'lettings', 'sales', 'candidates', 'missions']) === 56 && total(['contact']) === 71, [total(['product', 'property', 'job']), total(['orders', 'lettings', 'sales', 'candidates', 'missions']), total(['contact'])])
 
-  // Every installed template offers its dashboard (the Business pages follow no "active" template any more); the Overview row opens the first one.
+  // Every installed template offers its dashboard (the pages follow no "active" template any more).
   const NAMES = { ecommerce: 'E-commerce shop', 'real-estate': 'Real estate agency', recruitment: 'Recruitment firm' }
-  const OVERVIEW_NAME = { 'ecommerce-overview': 'Shop overview', 'real-estate-overview': 'Agency overview', 'recruitment-overview': 'Desk overview' }
   const presets = (await api('/kybernos-dashboards/presets')).body.presets
   check('the gallery lists the three templates\' dashboards first, each with its template\'s name, then the built-in ones', THEMES.every((dir) => presets.some((p) => p.id === dir + '-overview' && p.template.name === NAMES[dir])) && presets.slice(0, 3).every((p) => p.template !== undefined) && presets.slice(3).every((p) => p.template === undefined), presets.map((p) => [p.id, p.template && p.template.name]))
   const FIRST = presets[0].id
   const OTHERS = THEMES.map((dir) => dir + '-overview').filter((id) => id !== FIRST)
-  const ov0 = (await api('/kybernos-dashboards/overview')).body.overview
-  check('the Overview names the first template\'s dashboard and has no copy yet', ov0 !== null && ov0.preset === FIRST && ov0.dashboardId === null && ov0.label.en === 'Overview', ov0)
 
 
   console.log('\n── 2. the Presets gallery ──')
@@ -165,7 +162,7 @@ try {
   }
   await theme(false)
 
-  // the other two templates' dashboards: each is made active in turn and copied through the host (the Overview row below makes the first one's copy with a real click)
+  // the other two templates' dashboards: each is made active in turn and copied through the host (section 3 makes the first one's copy with a real click)
   for (const id of OTHERS) {
     const before = (await api('/kybernos-dashboards/list')).body.dashboards.length
     const made = await api('/kybernos-dashboards/preset', { preset: id })
@@ -173,20 +170,15 @@ try {
     check('using ' + id + ' makes the person\'s own copy, remembering where it came from', made.status === 200 && after.length === before + 1 && after.some((d) => d.id === id && d.preset === id), [made, after.map((d) => [d.id, d.preset])])
   }
 
-  console.log('\n── 3. the Overview row of the Business group ──')
-  const rowInfo = await poll(() => val(`(() => { const g = document.querySelector('[data-kb="menu-business"]'); if (!g) return null; const rows = Array.from(g.querySelectorAll('.kb4-item')).map((b) => (b.querySelector('.kb4-lab') || {}).textContent); return JSON.stringify(rows) })()`), 25000)
-  const rowsList = typeof rowInfo === 'string' ? JSON.parse(rowInfo) : []
-  check('the Business group has two rows, Tables and Overview, and none of the three old pages', rowsList.length === 2 && rowsList.includes('Overview') && rowsList.includes('Tables'), rowsList)
-  check('the Overview row is a real click away', await press('[data-kb="menu-business"] .kb4-item', '^Overview'))
-  const ovTitle = await poll(() => val(`(() => { const t = document.querySelector('[data-kb="overview-title"]'); return t ? t.textContent : null })()`), 20000)
-  check('it opens the dashboard of the first template, named in the template\'s words', ovTitle === OVERVIEW_NAME[FIRST], ovTitle)
-  const ovShape = await val(`({ crumb: !!document.querySelector('[data-kb="crumb-overview"]'), galleryCrumb: !!document.querySelector('[data-kb="crumb-gallery"]'), all: !!document.querySelector('[data-act="all-dashboards"]'), switcher: !!document.querySelector('.kbdb-title button'), screen: (document.querySelector('[data-kb="dashboards-page"]') || { getAttribute: () => null }).getAttribute('data-screen') })`)
-  check('the page is the Overview (no gallery crumb, no switcher), with a way to all the dashboards', ovShape.crumb && !ovShape.galleryCrumb && ovShape.all && !ovShape.switcher && ovShape.screen === 'dash', ovShape)
+  console.log('\n── 3. no Overview row; the gallery makes the first copy ──')
+  const menuLabels = await val(`Array.from(document.querySelectorAll('.kb4-menu .kb4-item')).map((b) => b.getAttribute('aria-label'))`)
+  check('the menu has no Overview row and no Business group', Array.isArray(menuLabels) && !menuLabels.includes('Overview') && (await val(`document.querySelector('[data-kb="menu-business"]') === null`)) === true, menuLabels)
+  check('« Use this preset » on the first template\'s card is a real click away', await press('[data-kb="dashboards-preset"][data-id="' + FIRST + '"] [data-act="use-preset"]'))
+  const opened = await poll(() => val(`(() => { const p = document.querySelector('[data-kb="dashboards-page"][data-screen="dash"]'); return !!p && !!document.querySelector('.kbdb-w') })()`), 20000)
+  check('it opens the dashboard drawn from the template\'s database', opened === true)
   const listed = (await api('/kybernos-dashboards/list')).body.dashboards
   check('the copy was made once and is the preset\'s own id', listed.filter((d) => d.preset === FIRST).length === 1 && listed.some((d) => d.id === FIRST), listed.map((d) => [d.id, d.preset]))
-  const again = await api('/kybernos-dashboards/overview-copy', {})
-  check('asking again opens the same copy and makes none', again.status === 200 && again.body.id === FIRST && again.body.created === false, again)
-  check('the button "All dashboards" leaves for the Dashboards page', await press('[data-act="all-dashboards"]') && (await poll(() => val(`(() => { const p = document.querySelector('[data-kb="dashboards-page"]'); return !!p && !document.querySelector('[data-kb="overview-title"]') })()`), 10000)) === true)
+  check('the crumb leaves for the gallery', await press('[data-kb="crumb-gallery"]') && (await poll(() => val(`!!document.querySelector('[data-kb="dashboards-preset"]')`), 8000)) === true)
 
   console.log('\n── 4. the dashboards ──')
   const DASH = [
@@ -259,14 +251,6 @@ try {
     await theme(false)
   }
 
-  console.log('\n── 5. the Overview row, shot ──')
-  await setViewport(1500, 1000)
-  await press('[data-kb="menu-business"] .kb4-item', '^Overview')
-  await poll(() => val(`!!document.querySelector('[data-kb="overview-title"]') && !!document.querySelector('.kbdb-w')`), 20000)
-  await sleep(2500)
-  await fitShot('overview-row-light-1500', '[data-kb="dashboards-page"]')
-  await val(`(() => { const g = document.querySelector('[data-kb="menu-business"]'); if (g) g.scrollIntoView({ block: 'center' }) })()`)
-  if (shotsDir !== null) await page.shot(join(shotsDir, 'overview-menu-light-1500.png')).catch(() => null)
   check('no console error over the whole run', page.errs.length === 0, page.errs.slice(0, 3))
 } catch (e) {
   failures.push('the run itself: ' + String(e && e.message ? e.message : e).slice(0, 300))

@@ -18,7 +18,7 @@ loses its owner, an approval that is never registered, a database left open when
 
 ## The page
 
-Business › Apps (menu row `tables`, group `business`, `client.js`). The page opens on a **gallery**: one card per app (its tables with their row counts, a monogram on a hue only that app has);
+The Apps row of the menu (row `tables`, `client.js`). The page opens on a **gallery**: one card per app (its tables with their row counts, a monogram on a hue only that app has);
 the ⋯ of a card opens it, asks Kaby about it or puts it away. An app opens on **one tab per table**, with **Relations** after them when it has more than one (the map of the links, and the same as a list).
 For the table on screen, a bar with its **views** (table, board, cards, calendar, map) and the menus **Fields** (which to show), **Filter** (a tree of conditions, « and » / « or », groups),
 **Sort** (up to three) and **Modify view**. **Nothing is edited by hand in Kybernos**: a row opens in a read-only drawer, and every change of data is Kaby's (**Ask Kaby** opens a new chat that already knows

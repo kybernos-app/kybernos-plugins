@@ -1590,7 +1590,6 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
       'kbui.kyber.off': { kybernos: 'Le module Kaby n’est pas actif. Active-le dans la Suite.', en: 'The Kaby module is not active. Switch it on in the Suite.' },
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Active-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
-      'kbui.business': { kybernos: 'Business', en: 'Business' },
       'kbui.business.off': { kybernos: 'Cette page n’est pas disponible. Active son module dans la Suite.', en: 'This page is not available. Switch its module on in the Suite.' },
       'kbui.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.speed': { kybernos: 'Vitesse · ', en: 'Speed · ' },
@@ -8966,21 +8965,6 @@ const CSS = `
 .kb4-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-inline-start:6px;background:var(--dsw-alias-brand-primary)}
 .kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}/* Demande du 28/10 : les compteurs des entrées de menu (13, 500+, 14…) sont masqués pour rendre la place au libellé. Ils RESTENT dans le DOM — un lecteur d'écran et le survol les lisent encore ; les remettre est une seule règle à retirer. */
 .kb4-badge{display:none}
-/* The « Business » group (kb-business-menu): a folding header over the rows of the plugins that declared one. In em, like the rows. */
-.kb4-grp{margin-top:.35em}
-.kb4-grph{display:flex;align-items:center;gap:.5em;width:100%;min-height:2em;margin:0;padding:.25em .8em .25em .6em;border:none;border-radius:.75em;background:none;font:inherit;font-size:1em;line-height:1.3;letter-spacing:.02em;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
-.kb4-grph:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
-.kb4-grph.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
-.kb4-grph.on .kb4-lab{font-weight:700}
-.kb4-grph .kb4-lab{font-size:.95em}
-.kb4-grprows.folded{display:none}
-.kb4-grpchev{flex:none;display:flex;align-items:center;justify-content:center;width:1em;margin-left:auto;transition:transform .18s}
-.kb4-grph[aria-expanded="false"] .kb4-grpchev{transform:rotate(-90deg)}
-.kb4-grpcnt{margin-inline-start:auto;min-width:1.7em;padding:0 .5em;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);font-size:.85em;font-weight:650;text-align:center;font-variant-numeric:tabular-nums}
-@media (prefers-reduced-motion:reduce){.kb4-grpchev{transition:none}}
-/* In the icon rail there is no room for a header: it goes, and the rows always show. */
-[class*="collapsed"] .kb4-menu .kb4-grph{display:none}
-[class*="collapsed"] .kb4-menu .kb4-grprows.folded{display:block}
 /* Demande du 28/10 : le libellé « Workspaces » du pied ouvre la page Workspaces (l'écouteur de document plus bas), donc il
    s'annonce comme un lien. Rien d'autre n'est posé ici : mesuré dans la page, l'hôte masque déjà les actions du pied
    (« headerActions » et le bouton de recherche à « opacity: 0 ») et ne les révèle qu'au survol — nos règles étaient en double. */
@@ -27912,14 +27896,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       }
       return made
     }
-    /** One theme, applied: the host's plan, the screen's ticks, the applier, then the record. The page and both seams run THIS. */
+    /** One theme, applied: the host's plan, the screen's ticks (or a function of the plan and what is there, for the callers that choose after reading the plan), the applier, then the record. The page and the seams run THIS. */
     const kbThRunPlan = async (id, ticks) => {
       const ports = kbThPorts()
       const answer = await kbThApi({ action: 'plan', id })
       const plan = kbThPlain(answer) && answer.ok === true && kbThPlain(answer.plan) ? answer.plan : null
       if (plan === null) return { ok: false, error: kbThPlain(answer) ? kbThStr(answer.error) ?? 'no-plan' : 'no-plan' }
       const seen = await kbThPresence(ports)
-      const chosen = ticks !== null && ticks !== undefined ? ticks : kbThDefaultTicks(plan, seen)
+      const chosen = typeof ticks === 'function' ? ticks(plan, seen) : (ticks !== null && ticks !== undefined ? ticks : kbThDefaultTicks(plan, seen))
       const look = kbThLook()
       const report = await kbThApply(plan, chosen, ports)
       report.db = await kbThMakeDb(id, chosen.demo === true)
@@ -28067,6 +28051,104 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (typeof window.__KB_THEME_REMOVE__ !== 'function') window.__KB_THEME_REMOVE__ = kbThSeamRemove
       }
     } catch (e) { /* outside a browser, or a locked window: the page still works */ }
+    // <kb-templates-seam>
+    // `window.__KB_TEMPLATES__`: the templates that ship a database, as the Apps page offers them when a person starts a new app (kybernos-db reads this door; its page draws no
+    // template without it). `list()` → [{ id, name, line, tag, extras, tables, have, appId? }]; `add(id, { sample, kit })` → { ok, appId?, message? }. Neither throws. Both ride the
+    // gallery's own machinery (kbThApi, kbThBringIn, kbThRunPlan), asked a narrower question: a template added here never changes the look (a theme is the look only) and never takes the
+    // trade's field, so no label of its pack reaches the menu, which is fixed. Only the templates the product ships describe their database, so only those are listed.
+    /** A pair `{ en, fr }` in the page's language (the other one when this one is missing). */
+    const kbTplWord = (v) => {
+      if (typeof v === 'string') return v
+      const want = kbThEn('en', 'fr')
+      return kbThPlain(v) && typeof v[want] === 'string' && v[want] !== '' ? v[want] : kbThLabel(v)
+    }
+    /** What comes with a template besides its tables, as one phrase (« a dashboard, automations and an agent team »), or '' when nothing does. */
+    const kbTplExtras = (t) => {
+      const adds = kbThPlain(t.adds) ? t.adds : {}
+      const n = (k) => (Number.isInteger(adds[k]) ? adds[k] : 0)
+      const parts = []
+      if (Array.isArray(t.needs) && t.needs.indexOf('kybernos/dashboards') >= 0) parts.push(kbThEn('a dashboard', 'un tableau de bord'))
+      if (n('automations') > 0) parts.push(kbThEn('automations', 'des automatisations'))
+      if (n('skills') > 0) parts.push(kbThEn('skills', 'des compétences'))
+      if (n('teams') > 0) parts.push(kbThEn('an agent team', 'une équipe d’agents'))
+      if (parts.length < 2) return parts.join('')
+      return parts.slice(0, -1).join(', ') + kbThEn(' and ', ' et ') + parts[parts.length - 1]
+    }
+    /** `{ <template id>: <app id> }` from the database bundle's own state: which template made which database. `{}` when it does not answer. */
+    const kbTplMarkers = async () => {
+      try {
+        const r = await fetch('/kybernos-db/state', { cache: 'no-store', credentials: 'same-origin' }).then((x) => x.json())
+        const out = {}
+        for (const d of kbThPlain(r) && Array.isArray(r.dbs) ? r.dbs : []) if (kbThPlain(d) && typeof d.id === 'string' && typeof d.template === 'string') out[d.template] = d.id
+        return out
+      } catch (e) { return {} }
+    }
+    /** The entries that ship a database: the shipped themes with a `db` description. */
+    const kbTplEntries = (data) => kbThEntries(data).filter((e) => e.shipped !== null && kbThPlain(e.shipped.db))
+    /** The app a template made, if one is there: the database template's id is the theme's folder name (the marker's key). */
+    const kbTplAppOf = (entry, markers) => {
+      const dir = typeof entry.shipped.dir === 'string' ? entry.shipped.dir : ''
+      const tail = entry.id.slice(entry.id.lastIndexOf('/') + 1)
+      for (const k of [dir, tail]) if (k !== '' && typeof markers[k] === 'string') return markers[k]
+      return null
+    }
+    const kbTplList = async () => {
+      try {
+        const data = await kbThApi()
+        if (!kbThPlain(data) || data.ok !== true) return []
+        const markers = await kbTplMarkers()
+        return kbTplEntries(data).map((e) => {
+          const t = e.shipped
+          const appId = kbTplAppOf(e, markers)
+          const item = {
+            id: e.id,
+            name: kbTplWord(t.name) || e.id,
+            line: kbTplWord(t.tagline) || kbTplWord(t.description),
+            tag: typeof t.tag === 'string' ? t.tag : kbTplWord(t.field),
+            extras: kbTplExtras(t),
+            tables: (Array.isArray(t.db.objects) ? t.db.objects : []).map(kbTplWord).filter((x) => x !== ''),
+            have: appId !== null,
+          }
+          if (appId !== null) item.appId = appId
+          return item
+        })
+      } catch (e) { return [] }
+    }
+    const kbTplAdd = async (id, opts) => {
+      const fail = (message) => ({ ok: false, message: typeof message === 'string' ? message : '' })
+      try {
+        if (typeof id !== 'string' || id === '') return fail('')
+        const sample = kbThPlain(opts) && opts.sample === true
+        const kit = kbThPlain(opts) && opts.kit === true
+        const data = await kbThApi()
+        const entry = kbThPlain(data) && data.ok === true ? kbTplEntries(data).find((e) => e.id === id) : undefined
+        if (entry === undefined) return fail(kbThEn('This template is not available.', 'Ce modèle n’est pas disponible.'))
+        // brought in through DSH's own manager, like the gallery's card does it
+        if (entry.state === 'available') {
+          const r = await kbThBringIn({ action: 'stage', shipped: id })
+          if (r.ok !== true) return fail(r.error)
+        }
+        // what the kit needs besides the tables (the dashboard) is switched on the way the Suite's Install button does it: live after DSH restarts, and the app does not wait for it
+        if (kit) {
+          const missing = kbThMissing(entry, await kbThOwners()).filter((n) => n !== 'kybernos/db')
+          if (missing.length > 0) await kbThSwitchOn(missing)
+        }
+        const run = await kbThRunPlan(id, (plan, seen) => {
+          const d = kbThDefaultTicks(plan, seen)
+          return { style: false, goals: [], skills: kit ? d.skills : [], teams: kit ? d.teams : [], automations: kit ? d.automations : [], demo: sample }
+        })
+        if (run.ok !== true) return fail(kbThEn('The template could not be applied.', 'Le modèle n’a pas pu être appliqué.'))
+        const made = kbThPlain(run.report) ? run.report.db : null
+        if (made === 'after restart') return fail(kbThEn('Restart Kybernos to finish adding this app.', 'Redémarre Kybernos pour finir d’ajouter cette app.'))
+        if (made !== 'added' && made !== 'already there') return fail('')
+        const appId = kbTplAppOf(entry, await kbTplMarkers())
+        return appId === null ? { ok: true } : { ok: true, appId }
+      } catch (e) { return fail('') }
+    }
+    try {
+      if (typeof window !== 'undefined' && (window.__KB_TEMPLATES__ === undefined || window.__KB_TEMPLATES__ === null)) window.__KB_TEMPLATES__ = Object.freeze({ v: 1, list: kbTplList, add: kbTplAdd })
+    } catch (e) { /* outside a browser, or a locked window: the Apps page draws no template */ }
+    // </kb-templates-seam>
     /** The level as a person reads it (INT4): the stored `local`/`unlisted`, and the catalogue's own computed level. */
     const kbThLevelLabel = (level) => ({
       official: kbThEn('Official', 'Officiel'),
@@ -28114,11 +28196,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     /** A switch (role=switch): on, off, or `mixed` when only some of a group is ticked. */
     const KbThSwitch = (props) => h('button', { type: 'button', role: 'switch', 'aria-checked': props.part === true ? 'mixed' : (props.on === true ? 'true' : 'false'), 'aria-label': props.label, disabled: props.disabled === true, className: 'kbgal-switch' + (props.on === true ? ' on' : '') + (props.part === true ? ' part' : ''), 'data-kb': props.hook, onClick: props.onClick }, h('span', { className: 'kbgal-knob' }))
-    /** The plugins a theme page names: Tables (the ready database of the trade, the row of the Business group) and the Dashboards. */
+    /** The plugins a theme page names: Apps (the ready database of the trade) and the Dashboards. */
     const KB_TH_PLUGINS = {
-      'kybernos/db': { row: 'tables', icon: 'grid', name: 'Tables', blurb: ['The trade’s own tables, linked, with their views.', 'Les tables du métier, reliées, avec leurs vues.'] },
-      // not a row of the Business group: the dashboard a theme ships opens from the Dashboards page (and its own « Overview » row)
-      'kybernos/dashboards': { row: null, icon: 'layoutDashboard', name: 'Dashboards', blurb: ['A dashboard of the numbers that matter in this trade.', 'Un tableau de bord des chiffres qui comptent dans ce métier.'] },
+      'kybernos/db': { icon: 'grid', name: 'Apps', blurb: ['The trade’s own apps: tables, linked, with their views.', 'Les apps du métier : des tables reliées, avec leurs vues.'] },
+      // not a menu row: the dashboard a theme ships opens from the Dashboards page
+      'kybernos/dashboards': { icon: 'layoutDashboard', name: 'Dashboards', blurb: ['A dashboard of the numbers that matter in this trade.', 'Un tableau de bord des chiffres qui comptent dans ce métier.'] },
     }
     /**
      * What the gallery lists, one entry per theme id: the shipped themes first, then the catalogue's, then what is only added or installed.
@@ -28287,8 +28369,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const lang = () => { try { return kbLangResolve() === 'fr' ? 'fr' : 'en' } catch (e) { return 'en' } }
       const pairText = (v) => { if (kbThPlain(v)) { const t = v[lang()]; return typeof t === 'string' && t !== '' ? t : kbThLabel(v) } return typeof v === 'string' ? v : '' }
       const accentOf = (e) => (e.shipped !== null && typeof e.shipped.accent === 'string' ? e.shipped.accent : null)
-      const plugInfo = (id) => KB_TH_PLUGINS[id] ?? { row: null, icon: null, name: id, blurb: ['', ''] }
-      const wordOf = (e, row) => (e.shipped !== null && kbThPlain(e.shipped.words) && kbThPlain(e.shipped.words[row]) ? pairText(e.shipped.words[row]) : '')
+      const plugInfo = (id) => KB_TH_PLUGINS[id] ?? { icon: null, name: id, blurb: ['', ''] }
+      /** The words of the menu row the template's apps open on: the row's own (the menu is fixed, so no pack renames it). */
+      const kbRowWord = (id) => { const r = kbBizMenu.list().find((x) => x.id === id); return r === undefined ? '' : kbBizLabel(r, kbt, kbDomainLang()) }
       const firstRow = () => { try { return window.__KB_MENU__ !== undefined && window.__KB_MENU__.has('tables') ? 'tables' : null } catch (e) { return null } }
       const openFirst = () => { const r = firstRow(); if (r !== null) { try { window.__KB_OPEN__({ view: r }) } catch (e) { /* the page is not there */ } } }
       const back = () => { setScreen('gallery'); setPick(null); setPlan(null); setReport(null); setError(null) }
@@ -28352,15 +28435,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const lists = s !== null && kbThPlain(s.lists) ? s.lists : {}
         const asList = (k) => (Array.isArray(lists[k]) ? lists[k].filter((x) => typeof x === 'string') : [])
         const installedHere = e.state === 'installed'
-        const word = firstRow() === null ? '' : (kbDomainLabel(firstRow()) ?? wordOf(e, firstRow()) ?? '')
+        const word = firstRow() === null ? '' : kbRowWord(firstRow())
         const plist = needs.map((id) => {
           const info = plugInfo(id)
           const have = owners.has(id)
-          const w = info.row !== null ? wordOf(e, info.row) : ''
           return h('div', { key: id, className: 'kbgal-pl' }, [
             h('span', { key: 'i', className: 'kbgal-pico' }, info.icon !== null ? Icon(info.icon, 16) : null),
             h('div', { key: 'b', className: 'kbgal-pbody' }, [
-              h('div', { key: 'n' }, [h('b', { key: 'n' }, info.name), w !== '' ? h('span', { key: 'w', className: 'kbgal-muted' }, ' · ' + kbThEn('in your menu: “', 'dans ton menu : « ') + w + kbThEn('”', ' »')) : null]),
+              h('div', { key: 'n' }, [h('b', { key: 'n' }, info.name)]),
               h('small', { key: 's' }, kbThPlain(s.why) && kbThPlain(s.why[id]) ? pairText(s.why[id]) : kbThEn(info.blurb[0], info.blurb[1])),
             ]),
             h('span', { key: 't', className: 'kbgal-tagok' + (have ? ' kbgal-ok' : ' kbgal-warn'), 'data-kb': 'theme-plugin-state' }, have ? kbThEn('Installed', 'Installé') : kbThEn('Not installed', 'Non installé')),
@@ -28570,7 +28652,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             report.plugins !== undefined && report.plugins !== null && report.plugins.ok !== true ? h('div', { key: 'rf', className: 'kbgal-banner', 'data-kb': 'theme-plugins-failed' }, kbThEn('The plugins could not be switched on (' + String(report.plugins.error) + '). The rest of the template is in place; switch them on in Settings › Kybernos Suite.', 'Les plugins n’ont pas pu être activés (' + String(report.plugins.error) + '). Le reste du modèle est en place ; active-les dans Réglages › Kybernos Suite.')) : null,
             h('div', { key: 'a', className: 'kbgal-acts' }, [
               h('button', { key: 'c', type: 'button', className: 'kbg-open', 'data-kb': 'theme-back-to-themes', onClick: back }, kbThEn('Back to templates', 'Retour aux modèles')),
-              firstRow() !== null ? h('button', { key: 'o', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-open', onClick: () => { closeDialog(); openFirst() } }, kbThEn('Open ', 'Ouvrir ') + (kbDomainLabel(firstRow()) ?? kbThEn('Tables', 'Tables'))) : null,
+              firstRow() !== null ? h('button', { key: 'o', type: 'button', className: 'kbg-talk', 'data-kb': 'theme-open', onClick: () => { closeDialog(); openFirst() } }, kbThEn('Open ', 'Ouvrir ') + kbRowWord(firstRow())) : null,
             ]),
           ]))
       }
@@ -28955,12 +29037,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     // KB-LEAVE-SETTINGS-END
     // <kb-business-menu>
-    // The « Business » group of the menu (docs/dev/business-menu.md). A plugin that brings a business page declares its row here,
+    // The rows a plugin adds to the menu (docs/dev/business-menu.md). A plugin that brings a page of its own declares its row here,
     //   window.__KB_MENU__.register({ id, group: 'business', icon, labelKey })   (and optionally label: { en, fr })
-    // and mounts the page on the keyed child slot 'main.kybernos-business' with `key: id`. The core knows no business plugin by name: the group is
-    // drawn only while a row is declared, a pack renames a row through menu.labels like any other, and a plugin that goes away takes its row with it.
-    // Pure: nothing here reads the page except the guarded window.
-    const KB_BIZ_KEY = 'kybernos.menu.business.collapsed.v1'
+    // and mounts the page on the keyed child slot 'main.kybernos-business' with `key: id`. The core knows no such plugin by name: the rows are
+    // drawn flat, right after Agent Teams, and only while declared; the menu is fixed, so no pack renames them; a plugin that goes away takes its row with it.
+    // `group: 'business'` is the only value the registry takes, kept so a plugin written for the old group still registers. Pure: nothing here reads the page except the guarded window.
     const KB_BIZ_MAX = 8
     const KB_BIZ_ID = /^[a-z][a-z0-9-]{1,23}$/
     /** The pages the core already has: a business row cannot take their id. */
@@ -29038,60 +29119,19 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (row.labelKey !== null) { try { const t = translate(row.labelKey); if (typeof t === 'string' && t !== row.labelKey) return t } catch (e) { /* the English stays */ } }
       return row.label !== null && typeof row.label.en === 'string' ? row.label.en : row.id
     }
-    /** Whether the group is folded (`false` when the browser keeps nothing: the group starts open). */
-    const kbBizCollapsed = (storage) => { try { return storage.getItem(KB_BIZ_KEY) === '1' } catch (e) { return false } }
-    const kbBizSetCollapsed = (storage, on) => { try { storage.setItem(KB_BIZ_KEY, on === true ? '1' : '0'); return true } catch (e) { return false } }
-    /** What the folded header says for its rows: how many things wait for the person, and whether something works. `get` reads one row's state. */
-    const kbBizAttention = (rows, get) => {
-      let count = 0
-      let running = false
-      for (const r of rows) {
-        let v = null
-        try { v = get(r.id) } catch (e) { v = null }
-        if (v === null || v === undefined || typeof v !== 'object') continue
-        if (v.running === true) running = true
-        count += (Number(v.review) > 0 ? Number(v.review) : 0) + (Number(v.need) > 0 ? Number(v.need) : 0)
-      }
-      return { count: Math.min(count, 99), running }
-    }
     // </kb-business-menu>
     // <kb-business-ui>
-    // The header and the rows of the group, and the page of a row: the page is the plugin's, mounted on the keyed child slot (subscription only,
+    // The declared rows, and the page of a row: the page is the plugin's, mounted on the keyed child slot (subscription only,
     // no assumption on load order; an empty slot says so).
-    const KbBusinessGroup = (props) => {
+    const KbMenuRows = (props) => {
       const bump = React.useState(0)[1]
-      const store = (() => { try { return window.localStorage } catch (e) { return null } })()
-      const colPair = React.useState(() => kbBizCollapsed(store))
-      const collapsed = colPair[0]
       React.useEffect(() => {
         const offRows = kbBizMenu.subscribe(() => bump((n) => n + 1))
         const offState = KB_MENU_STATE.subscribe(() => bump((n) => n + 1))
         return () => { offRows(); offState() }
       }, [])
-      const rows = kbBizMenu.list()
-      if (rows.length === 0) return null
       const lang = kbDomainLang()
-      const att = kbBizAttention(rows, KB_MENU_STATE.get)
-      const title = kbt('kbui.business')
-      const toggle = () => { const next = !collapsed; colPair[1](next); kbBizSetCollapsed(store, next) }
-      return h('div', { className: 'kb4-grp', 'data-kb': 'menu-business' },
-        h('button', {
-          type: 'button',
-          className: 'kb4-grph' + (collapsed && rows.some((r) => r.id === props.shown) ? ' on' : ''),
-          'aria-expanded': collapsed ? 'false' : 'true',
-          'aria-controls': 'kb4-biz-rows',
-          title,
-          'data-act': 'toggle-business',
-          'data-kb-keep-open': 'true', // folding the group is not a destination: the phone's drawer stays open (kybernos-mobile: KEEP_OPEN)
-          onClick: toggle,
-        },
-        h('span', { className: 'kb4-ico' }, Icon('briefcase', 15)),
-        h('span', { className: 'kb4-lab' }, title),
-        h('span', { className: 'kb4-grpchev' }, Icon('chevronDown', 13)),
-        (collapsed && att.count > 0) ? h('span', { className: 'kb4-grpcnt', role: 'img', 'aria-label': kbt('menu.review') + ': ' + att.count }, att.count >= 99 ? '99+' : String(att.count)) : null,
-        (collapsed && att.count === 0 && att.running) ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': kbt('menu.working') }) : null),
-        h('div', { id: 'kb4-biz-rows', className: 'kb4-grprows' + (collapsed ? ' folded' : ''), role: 'group', 'aria-label': title },
-          rows.map((r) => props.row(r.id, Icon(r.icon, 15) || Icon('layers', 15), kbBizLabel(r, kbt, lang), 0, props.shown === r.id, () => props.openPage({ view: r.id }), h(KbRowState, { k: r.id })))))
+      return h(React.Fragment, null, kbBizMenu.list().map((r) => props.row(r.id, Icon(r.icon, 15) || Icon('layers', 15), kbBizLabel(r, kbt, lang), 0, props.shown === r.id, () => props.openPage({ view: r.id }), h(KbRowState, { k: r.id }), true)))
     }
     const KbBusinessMount = (props) => {
       const pair = React.useState(0)
@@ -29354,10 +29394,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       }
       // In the icon rail the label is hidden: the row names itself (a screen reader, and a tooltip of its own, instead of the
       // group's « Kybernos » for all eight pages).
-      const row = (id, ico, dflt, badge, active, onClick, extra) => {
+      const row = (id, ico, dflt, badge, active, onClick, extra, fixed) => {
         // Kaby's row carries what the person gave it (kybernos-kaby-customisation): its name over the domain's word, its portrait over the icon.
         const kabyOwn = id === 'kyber' && kabyMe !== null
-        const label = kabyOwn ? kabyMe.name : (kbDomainLabel(id) !== null ? kbDomainLabel(id) : dflt)
+        const label = kabyOwn ? kabyMe.name : (fixed !== true && kbDomainLabel(id) !== null ? kbDomainLabel(id) : dflt)
         const iconNode = kabyOwn && kabyMe.portrait !== null ? h('img', { className: 'kb4-kabyav', src: kabyMe.portrait.url, alt: '', 'data-kb': 'kb-kaby-row-portrait' }) : kbMenuIcon(id, ico, active === true)
         return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
         h('span', { className: 'kb4-ico' }, iconNode), h('span', { className: 'kb4-lab' }, label),
@@ -29425,21 +29465,20 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         }) : null),
         (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' }), h(KbRowState, { k: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
+        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
+        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
+        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
+        // The rows plugins declare (Apps): flat, after Agent Teams. The menu is fixed: no pack renames them (docs/dev/business-menu.md).
+        h(KbMenuRows, { row, openPage, shown }),
+        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
+        (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
         // Le « Workspaces » du pied de barre ouvre cette page (demande du 28/10) : la rangée du haut a donc été retirée —
         // une seule entrée, un seul endroit. Le compteur d'espaces reste dans l'état (`wsCount`) pour les autres vues.
-        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
-        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
-        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
-        row('themes', Icon('layers', 15), kbThEn('Templates', 'Modèles'), 0, shown === 'themes', () => openPage({ view: 'themes' })),
-        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
-        (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
-        // The « Business » group: drawn only while a plugin has declared a row (window.__KB_MENU__, <kb-business-menu>).
-        h(KbBusinessGroup, { row, openPage, shown }),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
         // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
@@ -33148,7 +33187,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
         if (r.ok !== true) { setError(r.error); return }
         kbThRemember(folder.trim())
         kbThPending.id = r.id
-        try { window.__KB_OPEN__({ view: 'themes' }) } catch (e) { setError(say(['Ajouté. Ouvre Modèles dans la barre latérale pour voir le plan.', 'Added. Open Templates in the sidebar to see the plan.'])) }
+        try { window.__KB_OPEN__({ view: 'themes' }) } catch (e) { setError(say(['Ajouté. Ouvre les modèles pour voir le plan.', 'Added. Open templates to see the plan.'])) }
       }
       const text = (v) => (kbThPlain(v) ? (typeof v[lang] === 'string' && v[lang] !== '' ? v[lang] : (typeof v.en === 'string' ? v.en : '')) : (typeof v === 'string' ? v : ''))
       const pv = check.phase === 'ok' ? check.preview : null
@@ -33282,8 +33321,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
         h('div', { className: 'kbtm-head' },
           h('div', { className: 'kbtm-headrow' },
             h('h2', { className: 'kbtm-h1' }, say(['Modèles', 'Templates'])),
-            h('button', { type: 'button', className: 'kbm-btn kbtm-open kbtm-secondary', 'data-kb': 'kb-tpl-open-gallery', onClick: () => { try { window.__KB_OPEN__({ view: 'themes' }) } catch (e) { /* the sidebar row does the same */ } } }, say(['Ouvrir les modèles', 'Open Templates']))),
-          h('p', { className: 'kbtm-sub' }, say(['Ajoute des modèles à Kybernos, depuis un dossier de cet ordinateur ou depuis un catalogue. Pour en choisir un pour ton travail, ouvre Modèles dans la barre latérale.', 'Add templates to Kybernos, from a folder on this computer or from a catalogue. To pick one for your work, open Templates in the sidebar.']))),
+            h('button', { type: 'button', className: 'kbm-btn kbtm-open kbtm-secondary', 'data-kb': 'kb-tpl-open-gallery', onClick: () => { try { window.__KB_OPEN__({ view: 'themes' }) } catch (e) { /* the page is not there */ } } }, say(['Ouvrir les modèles', 'Open Templates']))),
+          h('p', { className: 'kbtm-sub' }, say(['Ajoute des modèles à Kybernos, depuis un dossier de cet ordinateur ou depuis un catalogue. Pour en choisir un pour ton travail, ouvre les modèles ici, ou crée une app depuis la page Apps.', 'Add templates to Kybernos, from a folder on this computer or from a catalogue. To pick one for your work, open the templates here, or start an app from the Apps page.']))),
         h('div', { className: 'kbtm-tabs', role: 'tablist', 'aria-label': say(['Ajouter un modèle', 'Add a template']) },
           tabButton('folder', say(['Depuis un dossier', 'From a folder'])),
           tabButton('catalogue', say(['Depuis un catalogue', 'From a catalogue']))),
