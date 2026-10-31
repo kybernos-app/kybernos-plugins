@@ -5,15 +5,21 @@
 //
 // It builds the app (vendoring kybernos-db), boots it on a free port (never :3080) with a trusted proxy header so each « browser » below has its own address for the rate
 // limits, and runs: the spike's checks, the e-commerce rights matrix for the owner and two members, the owner's link, invitations, removal, CSRF and Origin, cookie flags,
-// uploads, the body limit and the rate limits. No secret or token is printed, and the server's output is searched for them at the end.
+// uploads, the body limit and the rate limits, then the owner's API token (a bearer, no cookie) and the transfer routes: import a bundle, snapshot it back, release it.
+// No secret or token is printed, and the server's output is searched for them at the end.
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
+import { request as httpRequest } from 'node:http'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { randomBytes } from 'node:crypto'
 import { makeService } from '../packages/kybernos-db/agent/service.mjs'
+import { decodeBundle, checkManifest } from '../packages/kybernos-db/remote/bundle.mjs'
+import { bundleOf, snapshotDb, stageBundle } from '../packages/kybernos-db/remote/snapshot.mjs'
+import { openDb } from '../packages/kybernos-db/store/index.mjs'
 import { buildStructure } from '../packages/kybernos-db/template.mjs'
 import { buildTablesApp } from '../packages/kybernos-webapp-creator/templates/tables/scripts/build-tables-app.mjs'
 import { installApp } from '../packages/kybernos-webapp-creator/templates/tables/lib/install.mjs'
@@ -28,6 +34,8 @@ const group = (name) => console.log('\n' + name)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let server = null
 let output = ''
+const BUNDLE_CAP = 4 * 1024 * 1024
+const issued = [] // every API token minted below: none may reach the server's output
 
 async function main () {
   // ── 1. the app: built with kybernos-db vendored, dependencies installed ──
@@ -71,7 +79,7 @@ async function main () {
   const authSecret = randomBytes(32).toString('base64url')
   const bootHex = randomBytes(32).toString('hex')
   const BASE = 'http://127.0.0.1:' + port
-  server = spawn(process.execPath, ['--no-warnings', 'server.js'], { cwd: app, env: { PATH: process.env.PATH, PORT: String(port), KB_AUTH_SECRET: authSecret, KB_BOOT_KEY: bootHex, KB_DATA_DIR: data, KB_TRUST_PROXY: '1' }, stdio: ['ignore', 'pipe', 'pipe'] })
+  server = spawn(process.execPath, ['--no-warnings', 'server.js'], { cwd: app, env: { PATH: process.env.PATH, PORT: String(port), KB_AUTH_SECRET: authSecret, KB_BOOT_KEY: bootHex, KB_DATA_DIR: data, KB_TRUST_PROXY: '1', KB_BUNDLE_MAX_BYTES: String(BUNDLE_CAP) }, stdio: ['ignore', 'pipe', 'pipe'] })
   server.stdout.on('data', (d) => { output += d })
   server.stderr.on('data', (d) => { output += d })
   for (let i = 0; i < 100 && !output.includes('listening ' + port); i++) await sleep(100)
@@ -107,6 +115,14 @@ async function main () {
     }
     async j (path, o) { const r = await this.fetch(path, o); return { status: r.status, body: await r.json().catch(() => null) } }
   }
+  /** A request on a connection of its own (never the shared pool): `{ status }`, or `{ status: 0, dropped }` when the server hung up first. With no `body` only the headers are sent. */
+  const lone = (path, { method, headers, body }) => new Promise((resolve) => {
+    const req = httpRequest({ host: '127.0.0.1', port, path, method, headers, agent: false }, (res) => { res.resume(); res.on('end', () => { resolve({ status: res.statusCode }); req.destroy() }) })
+    req.on('error', (e) => resolve({ status: 0, dropped: e.code }))
+    req.setTimeout(5000, () => { resolve({ status: 0, dropped: 'timeout' }); req.destroy() })
+    if (body !== undefined) req.end(body)
+    else req.flushHeaders()
+  })
   const PW = { owner1: 'owner-password-one', owner2: 'owner-password-two', member: 'member-password-1' }
   const signIn = async (b, email, password) => b.j('/api/auth/sign-in/email', { method: 'POST', json: { email, password } })
   const api = (b, slug, what, o) => b.j('/api/apps/' + slug + '/' + what, o)
@@ -291,9 +307,9 @@ async function main () {
     const served = await owner.fetch('/api/apps/shop/file?object=contact&id=' + adaId + '&field=photo&hash=' + upHtml.body.file.hash)
     check('anything that is not a raster picture is a download, never page content', served.headers.get('content-type') !== 'text/html' && /^attachment/.test(served.headers.get('content-disposition') ?? ''))
   } else check('a non-picture upload is refused by the field, or served as a download', upHtml.status >= 400, String(upHtml.status))
-  const big = await owner.fetch('/api/apps/shop/write', { method: 'POST', body: JSON.stringify({ object: 'note', op: 'create', values: { body: 'x'.repeat(1.2 * 1024 * 1024) } }), headers: { 'content-type': 'application/json' } })
-  check('a JSON body over 1 MiB is refused (413)', big.status === 413)
-  await sleep(300) // the server answers before reading the whole body and drops that connection: let the client notice before it reuses one
+  // the server answers an oversize body before reading it and then drops that connection: such a request gets a connection of its own, so that the shared pool never reuses a dead one
+  const big = await lone('/api/apps/shop/write', { method: 'POST', body: JSON.stringify({ object: 'note', op: 'create', values: { body: 'x'.repeat(1.2 * 1024 * 1024) } }), headers: { 'content-type': 'application/json', cookie: owner.cookie, origin: BASE, 'x-csrf-token': await owner.csrf(), 'x-forwarded-for': owner.ip } })
+  check('a JSON body over 1 MiB is refused (413)', big.status === 413, JSON.stringify(big))
 
   // ── 10. removal ──
   group('removal')
@@ -340,7 +356,247 @@ async function main () {
   check('the https instance refuses the http origin', (await secure.app.request('https://team.example.com/api/csrf', { method: 'POST', headers: { origin: BASE, 'x-csrf-token': 'x' } })).status === 403)
   secure.close()
 
-  // ── 12. rate limits (each « browser » has its own address, so only these trip) ──
+  // ── 12. the owner's API token and the transfer routes ──
+  group('owner API token')
+  const { mintOwnerApiToken, signToken } = await import(pathToFileURL(join(app, 'lib', 'token.mjs')).href)
+  const mint = (o = {}) => { const t = mintOwnerApiToken({ key: bootKey, ...o }); issued.push(t); return t }
+  const sha = (b) => createHash('sha256').update(b).digest('hex')
+  let nextIp = 0
+  /** One machine call: a bearer and nothing else (no cookie, no Origin, no CSRF), from an address of its own. `token: null` sends no Authorization at all. */
+  const machine = (path, { method = 'GET', token = mint(), body, json, headers = {}, ip = '10.0.8.' + (nextIp++ % 250 + 1) } = {}) => {
+    const h = { 'x-forwarded-for': ip, ...headers }
+    if (token !== null) h.authorization = 'Bearer ' + token
+    let payload = body
+    if (json !== undefined) { h['content-type'] = 'application/json'; payload = JSON.stringify(json) }
+    return fetch(BASE + path, { method, headers: h, body: payload, redirect: 'manual' })
+  }
+  const mj = async (path, o) => { const r = await machine(path, o); return { status: r.status, body: await r.json().catch(() => null), headers: r.headers } }
+  const put = (slug, bytes, o = {}) => mj('/api/apps/' + slug + '/bundle', { method: 'PUT', body: bytes, headers: { 'content-type': 'application/octet-stream' }, ...o })
+  const slugsNow = async () => (await owner.j('/api/apps')).body.apps.map((a) => a.slug).join()
+
+  const viaBearer = await mj('/api/me')
+  check('a bearer alone acts as the owner: /api/me', viaBearer.status === 200 && viaBearer.body.role === 'owner' && viaBearer.body.email === 'olga@example.test', JSON.stringify(viaBearer.body))
+  check('…and sets no cookie', (await machine('/api/me')).headers.getSetCookie().length === 0)
+  check('it lists the apps', (await mj('/api/apps')).body?.apps?.map((a) => a.slug).join() === 'ledger,shop')
+  const fpCookie = await owner.j('/api/apps/shop/fingerprint')
+  const fpBearer = await mj('/api/apps/shop/fingerprint')
+  check('the fingerprint route: a cheap { ok, fingerprint }, the same for the owner’s session and the owner’s bearer', fpBearer.status === 200 && fpBearer.body.ok === true && /^\d+\.\d+\.\d+\.\d+$/.test(fpBearer.body.fingerprint) && fpCookie.body.fingerprint === fpBearer.body.fingerprint, JSON.stringify(fpBearer.body))
+  const notesBefore = (await records(owner, 'note')).records.length
+  const bearerWrite = await mj('/api/apps/shop/write', { method: 'POST', json: { object: 'note', op: 'create', values: { body: 'written with the owner token' } } })
+  check('a bearer writes with no Origin and no CSRF token (it has no cookie to ride on)', bearerWrite.status === 200 && bearerWrite.body.ok === true && (await records(owner, 'note')).records.length === notesBefore + 1, JSON.stringify(bearerWrite.body).slice(0, 100))
+  check('the journal names the bearer as « person », the owner', new Set((() => { const s = makeService({ dir: join(data, 'apps', 'shop') }); try { return s.byId(shopId).db.journal({ object: 'note', record: bearerWrite.body.record.id }).map((e) => e.by) } finally { s.close() } })()).has('person'))
+  const fpAfter = await mj('/api/apps/shop/fingerprint')
+  check('the fingerprint moved with the write', fpAfter.body.fingerprint !== fpBearer.body.fingerprint)
+  const edgeHeaders = (await machine('/api/me')).headers
+  check('a bearer answer carries the same security headers', edgeHeaders.get('x-content-type-options') === 'nosniff' && /frame-ancestors 'none'/.test(edgeHeaders.get('content-security-policy') ?? '') && edgeHeaders.get('referrer-policy') === 'no-referrer')
+
+  group('owner API token: what is refused')
+  const refusals = {
+    expired: mint({ now: () => Date.now() - 3600_000 }),
+    forged: (() => { const t = mint(); return t.slice(0, -2) + (t.at(-2) === 'A' ? 'B' : 'A') + t.slice(-1) })(),
+    'another key': mintOwnerApiToken({ key: randomBytes(32) }),
+    'an owner link': mintOpenToken({ key: bootKey }),
+    'a token that claims an hour': signToken('owner-api', { n: 'x', i: Math.floor(Date.now() / 1000) }, bootKey, { ttlSec: 3600 }),
+    'a token with no issue time': signToken('owner-api', { n: 'x' }, bootKey, { ttlSec: 60 }),
+    'a token about to be issued': mint({ now: () => Date.now() + 3600_000 }),
+    garbage: 'not.a.token',
+    empty: '',
+  }
+  for (const [what, token] of Object.entries(refusals)) issued.push(token)
+  const refusedAll = []
+  for (const [what, token] of Object.entries(refusals)) {
+    const r = await machine('/api/me', { token })
+    refusedAll.push([what, r.status, r.headers.get('www-authenticate'), r.headers.getSetCookie().length])
+  }
+  check('expired, forged, another key, the owner’s link, a longer life, no issue time, a future one, garbage, nothing: all 401 with WWW-Authenticate: Bearer', refusedAll.every(([, status, auth, cookies]) => status === 401 && auth === 'Bearer' && cookies === 0), JSON.stringify(refusedAll.filter(([, s]) => s !== 401)))
+  check('a refused bearer reaches no data and does no write', (await machine('/api/apps/shop/write', { method: 'POST', token: refusals.forged, json: { object: 'note', op: 'create', values: { body: 'nope' } } })).status === 401 && (await records(owner, 'note')).records.length === notesBefore + 1)
+  check('no Authorization header at all is anonymous: 401', (await machine('/api/apps/shop/fingerprint', { token: null })).status === 401)
+  check('another scheme (Basic) is not a bearer and gives nothing', (await machine('/api/me', { token: null, headers: { authorization: 'Basic ' + Buffer.from('owner:password').toString('base64') } })).status === 401)
+  const owner2 = new Browser('10.0.1.9')
+  await signIn(owner2, 'olga@example.test', PW.owner2)
+  check('an owner session, a bad bearer: refused (401), the bad bearer never falls back to the cookie', (await owner2.fetch('/api/me', { headers: { authorization: 'Bearer ' + refusals.forged } })).status === 401 && (await owner2.fetch('/api/me', { headers: { authorization: 'Bearer ' + refusals.expired } })).status === 401 && (await owner2.fetch('/api/me')).status === 200)
+  check('an owner session, a good bearer: cookie-authenticated, so Origin and CSRF stay in force', (await owner2.fetch('/api/apps/shop/write', { method: 'POST', json: { object: 'note', op: 'create', values: { body: 'x' } }, csrf: false, headers: { authorization: 'Bearer ' + mint() } })).status === 403 && (await owner2.fetch('/api/apps/shop/write', { method: 'POST', json: { object: 'note', op: 'create', values: { body: 'x' } }, origin: null, headers: { authorization: 'Bearer ' + mint() } })).status === 403 && (await owner2.fetch('/api/apps/shop/write', { method: 'POST', json: { object: 'note', op: 'create', values: { body: 'x' } }, origin: 'https://evil.example', headers: { authorization: 'Bearer ' + mint() } })).status === 403)
+  const vera = m2b
+  const veraMe = await vera.j('/api/me', { headers: { authorization: 'Bearer ' + mint() } })
+  check('a member session with the owner’s bearer stays a member (the bearer gives nothing on top of a cookie)', veraMe.status === 200 && veraMe.body.role === 'viewer' && (await vera.fetch('/api/apps/shop/snapshot', { headers: { authorization: 'Bearer ' + mint() } })).status === 403)
+  const scopeRefusals = [await machine('/api/people'), await machine('/api/people/invitations', { method: 'POST', json: { role: 'member' } }), await machine('/api/me/password', { method: 'POST', json: { password: 'owner-password-new1' } }), await machine('/people'), await machine('/api/csrf'), await machine('/api/auth/sign-out', { method: 'POST', json: {} })]
+  check('a bearer is for the apps routes only: not the people, the password, the pages or sign-in (403)', scopeRefusals.every((r) => r.status === 403), scopeRefusals.map((r) => r.status).join())
+  check('and the owner’s password was not touched', (await signIn(new Browser('10.0.1.10'), 'olga@example.test', PW.owner2)).status === 200)
+
+  group('transfer routes: who may call them')
+  const png2 = png
+  const shopBlob = (await mj('/api/apps/shop/snapshot/manifest')).body?.blobs?.[0]?.hash ?? '0'.repeat(64)
+  const doors = [
+    ['PUT', '/api/apps/nothere/bundle', { body: Buffer.alloc(32), headers: { 'content-type': 'application/octet-stream' } }],
+    ['GET', '/api/apps/shop/fingerprint', {}],
+    ['GET', '/api/apps/shop/snapshot', {}],
+    ['GET', '/api/apps/shop/snapshot/manifest', {}],
+    ['GET', '/api/apps/shop/snapshot/db', {}],
+    ['GET', '/api/apps/shop/blobs/' + shopBlob, {}],
+    ['POST', '/api/apps/shop/release', { json: { confirm: 'shop' } }],
+  ]
+  const anonymous = []
+  const asMember = []
+  for (const [method, path, o] of doors) {
+    anonymous.push((await anon.fetch(path, { method, ...o })).status)
+    asMember.push((await vera.fetch(path, { method, ...o })).status)
+  }
+  check('anonymous: 401 on every one of the seven', anonymous.every((c) => c === 401), anonymous.join())
+  check('a member (any profile): 403 on every one of the seven', asMember.every((c) => c === 403), asMember.join())
+  check('and the member’s release removed nothing', (await slugsNow()) === 'ledger,shop')
+
+  group('transfer: a live app out, as one bundle')
+  const snapOut = await machine('/api/apps/shop/snapshot')
+  const outBytes = Buffer.from(await snapOut.arrayBuffer())
+  const shopBundle = decodeBundle(outBytes)
+  check('the snapshot of a live app is one octet-stream bundle that the codec accepts', snapOut.status === 200 && snapOut.headers.get('content-type') === 'application/octet-stream' && snapOut.headers.get('cache-control') === 'no-store' && shopBundle.ok, snapOut.status + ' ' + JSON.stringify(shopBundle).slice(0, 120))
+  check('it names the db, the fingerprint of the moment, and only the attachments the rows hold (the page; the picture it replaced is not shipped)', shopBundle.ok && shopBundle.manifest.db.id === shopId && shopBundle.manifest.fingerprint === snapOut.headers.get('x-kb-fingerprint') && shopBundle.manifest.fingerprint === (await mj('/api/apps/shop/fingerprint')).body.fingerprint && shopBundle.blobs.some((b) => b.bytes.equals(html)) && !shopBundle.blobs.some((b) => b.bytes.equals(png)), JSON.stringify(shopBundle.manifest ?? shopBundle).slice(0, 160))
+  const looked = stageBundle({ decoded: shopBundle, tmpRoot: join(root, 'looked') })
+  check('it opens as the same app: contact, orders, the owner’s notes, a verified journal', looked.ok && (() => { const o = openDb(join(looked.folder, 'db.sqlite')); try { return o.ok && o.db.list('contact').length === 1 && o.db.list('contact')[0].values.name === 'Ada' && o.db.list('orders').length >= 3 && o.db.verify().ok } finally { if (o.ok) o.db.close() } })())
+
+  group('transfer: the same in pieces')
+  const man = await mj('/api/apps/shop/snapshot/manifest')
+  const { ok: _ok, ...manifestBody } = man.body ?? {}
+  check('manifest: the fingerprint, the size and hash of the db, the attachments', man.status === 200 && man.body.ok === true && checkManifest(manifestBody, { maxBytes: Number.MAX_SAFE_INTEGER }).ok && man.body.blobs.length >= 1, JSON.stringify(man.body).slice(0, 160))
+  const dbRes = await machine('/api/apps/shop/snapshot/db')
+  const dbBytes = Buffer.from(await dbRes.arrayBuffer())
+  check('snapshot/db: the SQLite bytes, of the very snapshot the manifest described', dbRes.status === 200 && dbRes.headers.get('content-type') === 'application/octet-stream' && dbRes.headers.get('x-kb-fingerprint') === man.body.fingerprint && dbBytes.length === man.body.db.size && Number(dbRes.headers.get('content-length')) === dbBytes.length && sha(dbBytes) === man.body.db.sha256)
+  const htmlBlob = man.body.blobs.find((b) => b.size === html.length)
+  const blobRes = await machine('/api/apps/shop/blobs/' + htmlBlob.hash)
+  check('blobs/:hash: one attachment, as octet-stream, whatever it is', blobRes.status === 200 && blobRes.headers.get('content-type') === 'application/octet-stream' && Buffer.from(await blobRes.arrayBuffer()).equals(html) && sha(html) === htmlBlob.hash)
+  const hashes = await Promise.all([machine('/api/apps/shop/blobs/zz'), machine('/api/apps/shop/blobs/' + '0'.repeat(63)), machine('/api/apps/shop/blobs/..%2F..%2Fauth.sqlite'), machine('/api/apps/shop/blobs/' + 'F'.repeat(64)), machine('/api/apps/shop/blobs/' + '0'.repeat(64))])
+  check('a blob is named by 64 lower-case hex characters only (anything else is 400), an unknown one is 404, and a path is never read', hashes.slice(0, 4).every((r) => r.status === 400) && hashes[4].status === 404, hashes.map((r) => r.status).join())
+  check('an unknown app is 404 on every read route; a bad slug too', (await Promise.all(['fingerprint', 'snapshot', 'snapshot/manifest', 'snapshot/db', 'blobs/' + '0'.repeat(64)].map((w) => machine('/api/apps/ghost/' + w)))).every((r) => r.status === 404) && (await machine('/api/apps/..%2Fetc/snapshot')).status === 404)
+  await owner.j('/api/apps/shop/write', { method: 'POST', json: { object: 'note', op: 'create', values: { body: 'after the manifest' } } })
+  const dbLater = await machine('/api/apps/shop/snapshot/db')
+  await dbLater.arrayBuffer()
+  check('a write after the manifest: the db that follows says its own fingerprint, so the puller can tell', dbLater.headers.get('x-kb-fingerprint') !== man.body.fingerprint && dbLater.headers.get('x-kb-fingerprint') === (await mj('/api/apps/shop/fingerprint')).body.fingerprint)
+
+  group('transfer: a whole app in')
+  const tripSvc = makeService({ dir: join(root, 'trip-src') })
+  const tripDb = tripSvc.create({ name: 'Trip', by: 'agent', objects: [{ key: 'item', label: 'Items', title: 'label', fields: [{ key: 'label', type: 'text', label: 'Label', required: true }, { key: 'photo', type: 'attachment', label: 'Photo' }, { key: 'qty', type: 'number', label: 'Qty' }] }] }).db
+  const tripFile = tripDb.attach(png2, { name: 'trip.png', type: 'image/png' }).file
+  const tripOne = tripDb.create('item', { label: 'one', qty: 3, photo: [tripFile] }, 'agent').record.id
+  tripDb.create('item', { label: 'two', qty: 5 }, 'agent')
+  tripDb.saveView('item', { id: 'all', name: 'All', kind: 'table' }, 'agent')
+  const tripSnap = snapshotDb({ db: tripDb, tmpDir: join(root, 'trip-tmp') })
+  const tripPacked = bundleOf(tripSnap, tripDb)
+  const tripId = tripDb.info().id
+  check('a bundle of a local app is made with SQLite’s own copy', tripPacked.ok && tripSnap.fingerprint === tripDb.fingerprint())
+  const imported = await put('trip', tripPacked.bytes)
+  check('PUT bundle: 201, the slug, the db, the fingerprint', imported.status === 201 && imported.body.ok === true && imported.body.slug === 'trip' && imported.body.db.id === tripId && imported.body.db.name === 'Trip' && imported.body.fingerprint === tripSnap.fingerprint, JSON.stringify(imported.body))
+  check('the app is in the space and listed', (await slugsNow()) === 'ledger,shop,trip' && existsSync(join(data, 'apps', 'trip', tripId, 'db.sqlite')))
+  const tripRows = (await api(owner, 'trip', 'records?object=item')).body
+  check('its rows are the original’s, field for field', tripRows.ok && JSON.stringify(tripRows.records.map((r) => r.values)) === JSON.stringify(tripDb.list('item').map((r) => r.values)), JSON.stringify(tripRows).slice(0, 120))
+  const tripPic = await owner.fetch('/api/apps/trip/file?object=item&id=' + tripOne + '&field=photo&hash=' + tripFile.hash)
+  check('its picture is served, byte for byte', tripPic.status === 200 && Buffer.from(await tripPic.arrayBuffer()).equals(png2))
+  check('its fingerprint is the original’s', (await mj('/api/apps/trip/fingerprint')).body.fingerprint === tripDb.fingerprint())
+  const back = await machine('/api/apps/trip/snapshot')
+  const backBundle = decodeBundle(Buffer.from(await back.arrayBuffer()))
+  const backStage = backBundle.ok ? stageBundle({ decoded: backBundle, tmpRoot: join(root, 'back') }) : backBundle
+  const sameAsOriginal = (stage) => {
+    const o = openDb(join(stage.folder, 'db.sqlite'))
+    try { return o.ok && JSON.stringify(o.db.list('item')) === JSON.stringify(tripDb.list('item')) && JSON.stringify(o.db.journal()) === JSON.stringify(tripDb.journal()) && o.db.blobs.get(tripFile.hash).equals(png2) && o.db.verify().ok } finally { if (o.ok) o.db.close() }
+  }
+  check('the snapshot of the import is the original: same db id, fingerprint, rows, picture and journal — a round trip', backStage.ok && backStage.id === tripId && backStage.fingerprint === tripDb.fingerprint() && sameAsOriginal(backStage))
+  const sameSlug = await put('trip', tripPacked.bytes)
+  const dupSlug = await put('trip-copy', tripPacked.bytes)
+  check('the same slug again: 409 exists', sameSlug.status === 409 && sameSlug.body.error === 'exists')
+  check('another slug, a db the space already holds: 409 db-exists, and nothing was made', dupSlug.status === 409 && dupSlug.body.error === 'db-exists' && !existsSync(join(data, 'apps', 'trip-copy')) && (await slugsNow()) === 'ledger,shop,trip')
+
+  const bigSvc = makeService({ dir: join(root, 'big-src') })
+  const bigDb = bigSvc.create({ name: 'Big', by: 'agent', objects: [{ key: 'item', label: 'Items', title: 'label', fields: [{ key: 'label', type: 'text', label: 'Label' }, { key: 'scan', type: 'attachment', label: 'Scan' }] }] }).db
+  const scanBytes = randomBytes(2 * 1024 * 1024)
+  bigDb.create('item', { label: 'scan', scan: [bigDb.attach(scanBytes, { name: 'scan.bin', type: 'application/octet-stream' }).file] }, 'agent')
+  const bigSnap = snapshotDb({ db: bigDb, tmpDir: join(root, 'big-tmp') })
+  const bigPacked = bundleOf(bigSnap, bigDb)
+  const bigIn = await put('big', bigPacked.bytes)
+  check('the bundle route has its own, larger body limit: a ' + Math.round(bigPacked.bytes.length / 1024 / 1024 * 10) / 10 + ' MiB bundle (the JSON limit is 1 MiB) comes in', bigPacked.bytes.length > 2 * 1024 * 1024 && bigPacked.bytes.length < BUNDLE_CAP && bigIn.status === 201, bigIn.status + ' ' + JSON.stringify(bigIn.body).slice(0, 100))
+  const bigBack = decodeBundle(Buffer.from(await (await machine('/api/apps/big/snapshot')).arrayBuffer()))
+  check('and comes out whole: the 2 MiB attachment is in the snapshot, byte for byte', bigBack.ok && bigBack.blobs.length === 1 && bigBack.blobs[0].bytes.equals(scanBytes))
+  await mj('/api/apps/big/release', { method: 'POST', json: { confirm: 'big' } })
+  bigSnap.dispose()
+  bigSvc.close()
+
+  group('transfer: what an import refuses leaves nothing behind')
+  const strays = () => readdirSync(join(data, 'tmp')).filter((n) => n.startsWith('in-') || n.startsWith('released-')).length
+  const goodBundle = tripPacked.bytes
+  const mangled = (at) => { const b = Buffer.from(goodBundle); b[at] ^= 1; return b }
+  const cases = [
+    ['not a bundle', Buffer.from('PK\u0003\u0004 definitely a zip'), 'magic'],
+    ['truncated', goodBundle.subarray(0, goodBundle.length - 5), 'truncated'],
+    ['trailing bytes', Buffer.concat([goodBundle, Buffer.from('x')]), 'trailing'],
+    ['a flipped byte in the last attachment', mangled(goodBundle.length - 1), 'hash'],
+    ['a flipped byte in the database', mangled(16 + goodBundle.readUInt32BE(12) + 2000), 'hash'],
+    ['a manifest length that lies', (() => { const b = Buffer.from(goodBundle); b.writeUInt32BE(0xfffffff0, 12); return b })(), 'manifest-size'],
+    ['another format version', (() => { const b = Buffer.from(goodBundle); b.writeUInt32BE(9, 8); return b })(), 'version'],
+  ]
+  for (const [what, bytes, code] of cases) {
+    const r = await put('refused', bytes)
+    check('PUT ' + what + ': 400 invalid-bundle (' + code + ')', r.status === 400 && r.body.error === 'invalid-bundle' && r.body.code === code, r.status + ' ' + JSON.stringify(r.body).slice(0, 100))
+  }
+  await owner.j('/api/apps/trip/write', { method: 'POST', json: { object: 'item', op: 'update', id: tripOne, values: { qty: 9 } } })
+  check('a bad slug is 400, a wrong content type 415, an empty body 400', (await put('Bad_Slug', goodBundle)).status === 400 && (await put('refused', goodBundle, { headers: { 'content-type': 'application/json' } })).status === 415 && (await put('refused', Buffer.alloc(0))).status === 400)
+  const huge = await lone('/api/apps/refused/bundle', { method: 'PUT', body: Buffer.alloc(BUNDLE_CAP + 1024), headers: { authorization: 'Bearer ' + mint(), 'content-type': 'application/octet-stream', 'x-forwarded-for': '10.0.6.2' } })
+  check('a body over the cap (KB_BUNDLE_MAX_BYTES) is 413 and nothing is made', huge.status === 413, JSON.stringify(huge))
+  const lied = await lone('/api/apps/refused/bundle', { method: 'PUT', headers: { authorization: 'Bearer ' + mint(), 'content-type': 'application/octet-stream', 'content-length': String(300 * 1024 * 1024), 'x-forwarded-for': '10.0.6.1' } })
+  check('a body that announces more than the cap is refused before a byte is read (413 on the headers alone)', lied.status === 413, JSON.stringify(lied))
+  const early = await lone('/api/apps/shop/bundle', { method: 'PUT', headers: { authorization: 'Bearer ' + mint(), 'content-type': 'application/octet-stream', 'content-length': '2000000', 'x-forwarded-for': '10.0.6.3' } })
+  const earlySlug = await lone('/api/apps/Bad_Slug/bundle', { method: 'PUT', headers: { authorization: 'Bearer ' + mint(), 'content-type': 'application/octet-stream', 'content-length': '2000000', 'x-forwarded-for': '10.0.6.4' } })
+  check('a slug that is taken or not a slug is refused before the body is read (409, 400 on the headers alone)', early.status === 409 && earlySlug.status === 400, JSON.stringify([early, earlySlug]))
+  check('after every refusal: no app made, no staging folder left', (await slugsNow()) === 'ledger,shop,trip' && !existsSync(join(data, 'apps', 'refused')) && strays() === 0)
+
+  group('transfer: release')
+  const before3 = await owner.j('/api/me')
+  const rel0 = await Promise.all([mj('/api/apps/trip/release', { method: 'POST', json: {} }), mj('/api/apps/trip/release', { method: 'POST', json: { confirm: 'shop' } }), mj('/api/apps/trip/release', { method: 'POST', body: 'nope', headers: { 'content-type': 'text/plain' } }), mj('/api/apps/nothing/release', { method: 'POST', json: { confirm: 'nothing' } })])
+  check('release needs { confirm: <slug> }: 400 without or with another name, 404 for an app that is not there', rel0[0].status === 400 && rel0[1].status === 400 && rel0[2].status === 400 && rel0[3].status === 404 && (await slugsNow()) === 'ledger,shop,trip')
+  const rel = await mj('/api/apps/trip/release', { method: 'POST', json: { confirm: 'trip' } })
+  check('release with the slug: 200, the app is gone from the space, the list and the disk', rel.status === 200 && rel.body.ok === true && rel.body.released === 'trip' && (await slugsNow()) === 'ledger,shop' && !existsSync(join(data, 'apps', 'trip')) && strays() === 0)
+  check('a later request for it is 404, by session or by bearer', (await api(owner, 'trip', 'records?object=item')).status === 404 && (await mj('/api/apps/trip/fingerprint')).status === 404 && (await mj('/api/apps/trip/snapshot')).status === 404 && (await mj('/api/apps/trip/release', { method: 'POST', json: { confirm: 'trip' } })).status === 404)
+  check('release ends nothing else: the other apps answer, the owner’s and the members’ sessions are alive', (await records(owner, 'orders')).ok && (await owner.j('/api/me')).status === 200 && before3.status === 200 && (await vera.j('/api/me')).status === 200)
+  const racers = await Promise.all([put('race-a', tripPacked.bytes), put('race-b', tripPacked.bytes)])
+  const won = racers.filter((r) => r.status === 201)
+  const lost = racers.filter((r) => r.status === 409)
+  check('two imports of one db at once: exactly one wins, the other is told the db is in the space, and one app exists', won.length === 1 && lost.length === 1 && lost[0].body.error === 'db-exists' && (await slugsNow()).split(',').filter((x) => x.startsWith('race-')).length === 1 && strays() === 0, racers.map((r) => r.status).join())
+  await mj('/api/apps/' + won[0].body.slug + '/release', { method: 'POST', json: { confirm: won[0].body.slug } })
+  const reimport = await put('trip', tripPacked.bytes)
+  check('the db is free again: the same bundle imports once more (and the rows are those of the bundle, not of the released copy)', reimport.status === 201 && (await api(owner, 'trip', 'records?object=item')).body.records.find((r) => r.id === tripOne).values.qty === 3)
+  const viaCookie = await owner.fetch('/api/apps/trip/release', { method: 'POST', json: { confirm: 'trip' } })
+  check('the owner’s session can release too (Origin and CSRF as for any change)', viaCookie.status === 200 && (await slugsNow()) === 'ledger,shop')
+  const putCookie = await owner.fetch('/api/apps/trip/bundle', { method: 'PUT', body: tripPacked.bytes, headers: { 'content-type': 'application/octet-stream' } })
+  check('and import: PUT from the owner’s session', putCookie.status === 201 && (await slugsNow()) === 'ledger,shop,trip')
+  check('…but not without its CSRF token', (await owner.fetch('/api/apps/trip2/bundle', { method: 'PUT', body: tripPacked.bytes, headers: { 'content-type': 'application/octet-stream' }, csrf: false })).status === 403)
+  check('the imported app is a normal app for the team: a member with a profile there is refused where the profile says so', (await api(m2b, 'trip', 'records?object=item')).status === 403)
+  await mj('/api/apps/trip/release', { method: 'POST', json: { confirm: 'trip' } })
+  tripSnap.dispose()
+  tripSvc.close()
+
+  group('owner API token: a space that has no owner yet, and the edge')
+  const freshData = join(root, 'data-fresh')
+  mkdirSync(freshData, { recursive: true })
+  const fresh = await buildApp({ dataDir: freshData, authSecret, bootKey, port: 4999, trustProxy: false, bundleMaxBytes: BUNDLE_CAP, ports: { log () {} } })
+  const call = (path, o = {}) => fresh.app.request('http://127.0.0.1:4999' + path, { ...o, headers: { authorization: 'Bearer ' + mint(), ...(o.headers ?? {}) } })
+  const meFresh = await call('/api/me')
+  const meFreshBody = await meFresh.json()
+  check('before anyone has opened the first link the token still opens the door: the first publish needs no browser', meFresh.status === 200 && meFreshBody.role === 'owner' && meFreshBody.email === null)
+  const firstPut = await call('/api/apps/trip/bundle', { method: 'PUT', body: tripPacked.bytes, headers: { 'content-type': 'application/octet-stream' } })
+  check('…and imports an app', firstPut.status === 201 && existsSync(join(freshData, 'apps', 'trip', tripId, 'db.sqlite')))
+  const openFresh = await fresh.app.request('http://127.0.0.1:4999' + link())
+  check('the owner’s first link then creates the owner as usual, and the app is theirs to open', openFresh.status === 303 && (await (await call('/api/me')).json()).email === 'owner@app.invalid')
+  const dupFresh = await call('/api/apps/trip2/bundle', { method: 'PUT', body: tripPacked.bytes, headers: { 'content-type': 'application/octet-stream' } })
+  check('…and refuses the same db under another name', dupFresh.status === 409 && (await dupFresh.json()).error === 'db-exists')
+  let last = 0
+  for (let i = 0; i < 601; i++) last = (await fresh.app.request('http://127.0.0.1:4999/health', { headers: { authorization: 'Bearer ' + mint() } })).status
+  check('a bearer is not exempt from the rate limit: 600 a minute per address, then 429', last === 429, String(last))
+  fresh.close()
+
+  group('owner API token: bad tokens are rate-limited too')
+  const bads = []
+  for (let i = 0; i < 32; i++) bads.push((await machine('/api/me', { token: 'bad-token-' + i, ip: '10.0.7.9' })).status)
+  check('thirty wrong tokens an address in 15 minutes are answered 401, the next ones 429', bads.slice(0, 30).every((c) => c === 401) && bads.slice(30).every((c) => c === 429), bads.join())
+  check('another address is not slowed', (await machine('/api/me', { ip: '10.0.7.10' })).status === 200)
+
+  // ── 13. rate limits (each « browser » has its own address, so only these trip) ──
   group('rate limits')
   const guess = new Browser('10.0.7.1')
   const codes = []
@@ -372,8 +628,8 @@ try {
     await sleep(400)
   }
   // nothing secret may have reached the server's output: the secrets, a minted link or a password
-  const leaked = ['owner-password-one', 'owner-password-two', 'member-password-1', 'session_token', '/open?t=', '/invite?t='].filter((s) => output.includes(s))
-  console.log('\n' + (leaked.length === 0 ? 'ok   ' : 'FAIL ') + 'the server output holds no password, token or link (' + output.split('\n').filter(Boolean).length + ' lines)')
+  const leaked = ['owner-password-one', 'owner-password-two', 'member-password-1', 'session_token', '/open?t=', '/invite?t=', 'Bearer ', ...issued.filter((t) => t.length > 20)].filter((s) => output.includes(s))
+  console.log('\n' + (leaked.length === 0 ? 'ok   ' : 'FAIL ') + 'the server output holds no password, token (owner link or API) or link (' + output.split('\n').filter(Boolean).length + ' lines)')
   if (leaked.length > 0) fails++
   rmSync(root, { recursive: true, force: true })
 }

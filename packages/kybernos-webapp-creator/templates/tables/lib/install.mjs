@@ -1,5 +1,5 @@
 // install.mjs — puts an app in the team space: a copy of a db folder (`<dbs>/<db id>/`, as kybernos-db keeps it) under `<data>/apps/<slug>/`. For the local run and the tests;
-// the publish that fills a hosted space is a later lot. Plain file work, no kybernos-db.
+// a hosted space is filled by `PUT /api/apps/:slug/bundle` (lib/transfer.mjs). Plain file work, no kybernos-db.
 import { cpSync, existsSync, mkdirSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { isSlug } from './actor.mjs'

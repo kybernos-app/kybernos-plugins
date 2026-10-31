@@ -9,10 +9,14 @@ export const DB_DIR = pickDb(HERE, existsSync)
 if (DB_DIR === null) throw new Error('kybernos-db not found: build this app with scripts/build-tables-app.mjs (it copies kybernos-db to vendor/kybernos-db)')
 
 const load = (file) => import(pathToFileURL(join(DB_DIR, file)).href)
-const [api, service, template, core, served] = await Promise.all([load('api.mjs'), load('agent/service.mjs'), load('template.mjs'), load('core/index.mjs'), load('serve-user-file.mjs')])
+const [api, service, template, core, served, token, bundle, snapshot, store] = await Promise.all([load('api.mjs'), load('agent/service.mjs'), load('template.mjs'), load('core/index.mjs'), load('serve-user-file.mjs'), load('remote/token.mjs'), load('remote/bundle.mjs'), load('remote/snapshot.mjs'), load('store/index.mjs')])
 
 export const { makeApi } = api
 export const { makeService } = service
 export const { buildStructure } = template
-export const { PROFILE_ID } = core
+export const { PROFILE_ID, isUlid } = core
 export const { userFileHeaders } = served
+export const { bearerOf, hexKey, mintOwnerApiToken, signToken, verifyOwnerApiToken, verifyToken } = token
+export const { DEFAULT_MAX_BYTES, decodeBundle } = bundle
+export const { bundleOf, discardStage, manifestOf, snapshotDb, stageBundle } = snapshot
+export const { isHash } = store

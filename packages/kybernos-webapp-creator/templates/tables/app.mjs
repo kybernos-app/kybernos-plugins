@@ -24,6 +24,7 @@ import { makePeople } from './lib/people.mjs'
 import { makeLimiter } from './lib/ratelimit.mjs'
 import { CSRF_FIELD, CSRF_HEADER, SAFE_METHODS, allowedOrigins, clientIp, csrfCookie, csrfCookieName, csrfOk, csrfToken, isHttps, newCsrfValue, originOk, securityHeaders } from './lib/safety.mjs'
 import { makeStore } from './lib/store.mjs'
+import { makeTransfer } from './lib/transfer.mjs'
 
 export const MIN_PASSWORD = 10
 export const JSON_MAX = 1024 * 1024
@@ -42,10 +43,10 @@ const redirect = (to, cookies) => {
 }
 
 /**
- * `{ dataDir, authSecret, bootKey (Buffer), publicUrl?, port?, trustProxy?, ports? }`. `ports`: `now()` in ms, `today()` as YYYY-MM-DD, `mailer`, `log(message)`.
+ * `{ dataDir, authSecret, bootKey (Buffer), publicUrl?, port?, trustProxy?, bundleMaxBytes?, ports? }`. `ports`: `now()` in ms, `today()` as YYYY-MM-DD, `mailer`, `log(message)`.
  * Answers `{ app (a Hono app: `app.fetch`), close() }`.
  */
-export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port, trustProxy = false, ports = {} }) {
+export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port, trustProxy = false, bundleMaxBytes, ports = {} }) {
   const now = ports.now ?? Date.now
   const log = ports.log ?? ((m) => console.error(m))
   const origins = allowedOrigins({ publicUrl, port })
@@ -87,6 +88,8 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
   const ipOf = (c) => clientIp({ forwardedFor: c.req.header('x-forwarded-for'), remote: c.env?.incoming?.socket?.remoteAddress, trustProxy })
   const tooMany = (c, r) => { c.header('retry-after', String(r.retryAfterSec)); return c.json({ ok: false, error: 'rate-limited', retryAfterSec: r.retryAfterSec }, 429) }
 
+  const transfer = makeTransfer({ apps, appsDir: join(dataDir, 'apps'), tmpDir: join(dataDir, 'tmp'), bootKey, store, now, ipOf, tooMany, bundleMaxBytes, log })
+
   const app = new Hono()
   const edge = securityHeaders(https)
 
@@ -98,14 +101,17 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
     c.res = res
   })
 
+  // who a request is when it carries the owner's API token (lib/transfer.mjs), settled before any body is read
+  app.use('*', transfer.edge)
+
   const tooBig = (c) => c.json({ ok: false, error: 'too-large' }, 413)
   const small = bodyLimit({ maxSize: JSON_MAX, onError: tooBig })
   const large = bodyLimit({ maxSize: UPLOAD_MAX, onError: tooBig })
-  app.use('*', (c, next) => (/^\/api\/apps\/[^/]+\/upload$/.test(c.req.path) ? large : small)(c, next))
+  app.use('*', (c, next) => (/^\/api\/apps\/[^/]+\/upload$/.test(c.req.path) ? large : (transfer.limitFor(c.req.path) ?? small))(c, next))
 
   // Origin first, then the token: a request that changes something needs both
   app.use('*', async (c, next) => {
-    if (SAFE_METHODS.has(c.req.method)) return next()
+    if (SAFE_METHODS.has(c.req.method) || c.get('bearer') === true) return next() // a bearer request has no ambient cookie to protect
     if (!originOk(c.req.header('origin'), origins)) return c.json({ ok: false, error: 'bad-origin' }, 403)
     let given = c.req.header(CSRF_HEADER)
     if (given === undefined && (c.req.header('content-type') ?? '').startsWith('application/x-www-form-urlencoded')) {
@@ -127,6 +133,7 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
   }
 
   const session = async (c) => {
+    if (c.get('bearer') === true) return transfer.ownerSession()
     const s = await auth.api.getSession({ headers: c.req.raw.headers }).catch(() => null)
     if (s === null || s === undefined) return null
     const member = store.member(s.user.id)
@@ -265,6 +272,9 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
     return new Response(bytes, { headers: userFileHeaders(bytes) })
   })
 
+  // ── the owner's way in and out for an app: bundles, snapshots, release (lib/transfer.mjs) ──
+  transfer.mount(app, { needMember, needOwner })
+
   // ── people: the owner's, as an API and as a plain page over the same calls ──
   async function removeMember (me, userId) {
     const m = store.member(userId)
@@ -353,5 +363,5 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
   app.notFound((c) => c.json({ ok: false, error: 'not-found' }, 404))
   app.onError((err, c) => { log('error: ' + String((err && err.message) || err).slice(0, 160)); return c.json({ ok: false, error: 'server-error' }, 500) })
 
-  return { app, close () { apps.close(); authDb.close() } }
+  return { app, close () { transfer.close(); apps.close(); authDb.close() } }
 }
