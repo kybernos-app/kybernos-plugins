@@ -9,7 +9,7 @@
 // journalled as « member:<id> ». Anyone else gets a door that refuses everything (`forbidden`). The decision is made here, on every call, never in the page.
 //
 //   state()                              the dbs (apps) with their objects, fields and views, a fingerprint to poll, the archived apps, and « today »; on a host that can publish, each db also says
-//                                        `published` (null, or { slug, url, since, lastSync, syncError }) and the state says `hosting` ({ available, name, pricePerMonth, currency, alwaysOn }): no secret
+//                                        `published` (null, or { slug, url, since, lastSync, syncError, host: { id, name, region } | null, hostGone }) and the state says `hosting` ({ available, name }): no secret
 //   app({ db, object?, op, confirm? })   op: archive | restore | delete, for an app or (with `object`) one of its tables; delete only what is archived, and asks the name back
 //   impact({ db, object? })              what deleting an app or a table would take: tables, rows, links cut, files
 //   records({ db, object, deleted? })    the records of one object (5,000 at most)

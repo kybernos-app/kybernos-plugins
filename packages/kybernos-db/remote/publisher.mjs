@@ -2,6 +2,7 @@
 // follows it, and the link that opens it. The page and the agent reach it through routes.mjs, agent/tools.mjs (by way of remote/facade.mjs) and api.mjs's state.
 //
 // The shape of it (decisions of the cadrage, docs/etudes/2026-10-31-share-as-app-cadrage.md, and docs/dev/apps-hosting-port.md):
+//   - the person chooses which of their own cloud computers receives the app: the card reads `hosting.hosts()` when it opens, Publish reads it again and refuses a computer it does not list;
 //   - a published app's truth is the hosted copy; the folder on this computer is a read-only MIRROR refreshed from it (mirror.mjs, service.replaceMirror);
 //   - Publish is atomic: nothing is registered before the hosted copy is verified, and a failure after the upload takes the upload back;
 //   - Unpublish pulls the hosted copy one last time, takes the app out of the space, and only then forgets it: the mirror is the db again, a normal local one;
@@ -12,9 +13,9 @@ import { rmSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { DEFAULT_MAX_BYTES } from './bundle.mjs'
 import { doorShape, makeFacade } from './facade.mjs'
-import { describeHosting } from './hosting.mjs'
+import { describeHosting, readHosts } from './hosting.mjs'
 import { pullMirror } from './mirror.mjs'
-import { SLUG } from './registry.mjs'
+import { SLUG, SPACE_ID } from './registry.mjs'
 import { bundleOf, discardStage, snapshotDb } from './snapshot.mjs'
 import { makeSpaceClient, normalizeSpaceUrl } from './space.mjs'
 import { hexKey } from './token.mjs'
@@ -22,7 +23,8 @@ import { hexKey } from './token.mjs'
 export const POLL_MS = 30 * 1000
 export const FIRST_POLL_MS = 2 * 1000
 export const BACKOFF_MAX_MS = 5 * 60 * 1000
-export const WORKSPACE = 'default'
+/** An app that cannot be reached asks the hosting whether its computer still exists, and the hosting is asked at most this often however many apps fail. */
+export const HOSTS_EVERY_MS = 60 * 1000
 
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const fail = (code, message, extra) => ({ ok: false, code, message, ...(extra || {}) })
@@ -50,7 +52,7 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
   const timers = { setTimeout, setInterval, clearInterval, clearTimeout, ...(ports.timers || {}) }
   const iso = () => new Date(now()).toISOString()
   const locks = new Set()
-  const sync = new Map() // db id → { lastSync, syncError, fails, nextAt }
+  const sync = new Map() // db id → { lastSync, syncError, fails, nextAt, hostGone }
   const chains = new Map()
 
   const isPublished = (id) => { try { return registry.published(id) } catch (e) { return false } }
@@ -66,27 +68,58 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
   }
 
   // ── what the state says ──────────────────────────────────────────────────────────────────────────────────────────────────────
-  const stateOf = (id) => sync.get(id) || { lastSync: null, syncError: null, fails: 0, nextAt: 0 }
-  /** `{ slug, url, since, lastSync, syncError }` for a published app, else null. No secret. */
+  const stateOf = (id) => sync.get(id) || { lastSync: null, syncError: null, fails: 0, nextAt: 0, hostGone: false }
+  /**
+   * `{ slug, url, since, lastSync, syncError, host, hostGone }` for a published app, else null. `host` is `{ id, name, region }` (the computer it lives on, as last seen) or null for an app
+   * published before computers were chosen; `hostGone` is true only once the app could not be reached AND the hosting answered a list that no longer holds that computer. No secret.
+   */
   function info (id) {
     const f = registry.spaceOf(id)
     if (f === null) return null
     const s = stateOf(id)
-    return { slug: f.app.slug, url: f.space.url, since: f.app.since, lastSync: s.lastSync, syncError: s.syncError }
+    return { slug: f.app.slug, url: f.space.url, since: f.app.since, lastSync: s.lastSync, syncError: s.syncError, host: f.app.host === undefined ? null : { ...f.app.host }, hostGone: s.hostGone === true }
   }
   /** What the Publish card and the header need to know about the hosting: no secret. */
   function hostingState () {
-    const a = available()
-    if (!a) return { available: false, name: '', pricePerMonth: null, currency: '', alwaysOn: false }
-    const d = describeHosting(hosting)
-    return { available: true, name: d.name, pricePerMonth: d.pricePerMonth, currency: d.currency, alwaysOn: d.alwaysOn }
+    if (!available()) return { available: false, name: '' }
+    return { available: true, name: describeHosting(hosting).name }
   }
-  const markOk = (id) => { sync.set(id, { lastSync: iso(), syncError: null, fails: 0, nextAt: 0 }) }
+  const markOk = (id) => { sync.set(id, { lastSync: iso(), syncError: null, fails: 0, nextAt: 0, hostGone: false }) }
   const markFailed = (id, r) => {
     const s = stateOf(id)
     const fails = s.fails + 1
-    sync.set(id, { lastSync: s.lastSync, syncError: { code: r.code || 'failed', message: String(r.message || 'the web app could not be reached').slice(0, 200), at: iso() }, fails, nextAt: now() + Math.min(POLL_MS * 2 ** fails, BACKOFF_MAX_MS) })
+    sync.set(id, { lastSync: s.lastSync, syncError: { code: r.code || 'failed', message: String(r.message || 'the web app could not be reached').slice(0, 200), at: iso() }, fails, nextAt: now() + Math.min(POLL_MS * 2 ** fails, BACKOFF_MAX_MS), hostGone: s.hostGone })
   }
+
+  // ── the person's computers ───────────────────────────────────────────────────────────────────────────────────────────────────────
+  let hostsMemo = { at: -Infinity, ids: null } // the last attempt of the poll: when, and the ids it listed (null: it failed, which proves nothing)
+  let hostsFlight = null
+  /** Reads the hosting's list (`readHosts`: bounded, validated) and keeps the name and region of every listed computer on the apps that live there. */
+  async function listHosts () {
+    const r = await readHosts(hosting, { timers, timeoutMs: ports.hostsTimeoutMs })
+    hostsMemo = { at: now(), ids: r.ok ? r.hosts.map((h) => h.id) : null }
+    if (r.ok) for (const h of r.hosts) registry.setHostInfo(h.id, h)
+    return r
+  }
+  /** The ids of the person's computers, or null when that cannot be known now. A fresh answer is reused for a minute, whoever asks, so a failing app never makes the hosting a busy loop. */
+  function knownHosts () {
+    if (now() - hostsMemo.at < HOSTS_EVERY_MS) return Promise.resolve(hostsMemo.ids)
+    if (hostsFlight === null) hostsFlight = listHosts().then((r) => (r.ok ? r.hosts.map((h) => h.id) : null)).finally(() => { hostsFlight = null })
+    return hostsFlight
+  }
+  /** An app that was not reached: is its computer still one of the person's? Only an answer that succeeded and does not list it says no; a list that failed changes nothing. */
+  async function judgeHost (id) {
+    const f = registry.spaceOf(id)
+    if (f === null || f.app.host === undefined || !available()) return
+    let ids = null
+    try { ids = await knownHosts() } catch (e) { ids = null }
+    if (ids === null || !isPublished(id)) return
+    const s = stateOf(id)
+    const gone = !ids.includes(f.app.host.id)
+    if (s.hostGone !== gone) sync.set(id, { ...s, hostGone: gone })
+  }
+  /** Whether a failed pull means the web app was not reached (as opposed to answering, even to refuse). */
+  const notReached = (r) => r.code === 'unreachable' || r.code === 'space'
 
   // ── the mirror: one refresh at a time per app, and a refresh asked for while one runs waits for the next ────────────────────────
   async function doRefresh (id) {
@@ -100,7 +133,7 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
       current = { fingerprint: raw.db.fingerprint(), blobSize: (h) => { const st = blobs.stat(h); return st === null ? null : st.size }, blobFile: (h) => join(blobs.dir, h) }
     } catch (e) { return fail('failed', 'The copy of this app on this computer cannot be read.') }
     const pulled = await pullMirror({ space: f.client, slug: f.app.slug, dbId: id, current, tmpRoot, ports: ports.store, maxBytes })
-    if (!pulled.ok) { markFailed(id, pulled); return pulled }
+    if (!pulled.ok) { markFailed(id, pulled); if (notReached(pulled)) await judgeHost(id); return pulled }
     if (pulled.changed) {
       const swapped = service.replaceMirror(id, pulled.staged.folder)
       try { discardStage(pulled.staged.dir) } catch (e) { /* the staging folder is emptied at the next start */ }
@@ -195,12 +228,21 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
 
   // ── the card ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const fieldRef = (o, f) => ({ object: o.key, objectLabel: o.label, field: f.key, fieldLabel: f.label })
-  /** The facts the Publish card shows, and whether Publish is possible: `{ ok: true, can, reason, … }`. */
-  function check (id) {
+  /**
+   * The Publish card: the facts, and whether Publish is possible, `{ ok: true, can, reason, … }`. When nothing else stands in the way it also reads the person's computers
+   * (`hosts`, and `lastHost`, the one the last Publish went to if it is still listed): none at all is `reason: 'no-host'`, a list that could not be read is `reason: 'hosts-unreachable'`
+   * with `hostsError`; both still carry `hosting.orderUrl`, so the person can always go and order one. This runs when the card opens, never on a state read.
+   */
+  async function check (id) {
     const c = facts(id)
-    return c.ok && c.reason === null && locks.has(id) ? { ...c, can: false, reason: 'busy' } : c
+    if (!c.ok || c.reason !== null) return c
+    if (locks.has(id)) return { ...c, can: false, reason: 'busy' }
+    const read = await listHosts()
+    if (!read.ok) return { ...c, can: false, reason: 'hosts-unreachable', hosts: null, lastHost: null, hostsError: { code: read.code, message: read.message } }
+    const last = registry.lastHost()
+    return { ...c, can: read.hosts.length > 0, reason: read.hosts.length > 0 ? null : 'no-host', hosts: read.hosts, lastHost: last !== null && read.hosts.some((h) => h.id === last) ? last : null }
   }
-  /** The same without the lock (Publish holds the lock itself when it asks). */
+  /** The same facts without the lock and without the computers (Publish holds the lock itself, and reads the computers itself, when it asks). */
   function facts (id) {
     const r = service.raw(id)
     if (!r.ok) return fail(r.code, r.message)
@@ -221,21 +263,18 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
     let bytes = 0
     try { bytes += statSync(db.file).size } catch (e) { /* the size is an estimate */ }
     for (const hash of db.referenced()) { const st = db.blobs.stat(hash); if (st !== null) { files += 1; bytes += st.size } }
-    const hostInfo = hostingState()
-    const described = hostInfo.available ? describeHosting(hosting) : null
+    const on = available()
     let reason = null
     if (isPublished(id)) reason = 'published'
     else if (meta.archived !== null) reason = 'archived'
-    else if (!hostInfo.available) reason = 'unavailable'
+    else if (!on) reason = 'unavailable'
     else if (blocked.length > 0) reason = 'sensitive'
-    else if (described !== null && described.budget !== null && described.budget.enough === false) reason = 'budget'
     else if (bytes > maxBytes) reason = 'too-big'
     return {
       ok: true, can: reason === null, reason,
       app: { id, name: meta.name }, tables: objects.filter((o) => o.archived === undefined).length, rows, files, bytes,
       personal, blocked,
-      hosting: hostInfo.available ? { ...hostInfo, region: described.region, budget: described.budget } : hostInfo,
-      where: registry.spaces().length > 0 ? 'existing' : 'new',
+      hosting: on ? describeHosting(hosting) : { name: '', orderUrl: '' },
     }
   }
 
@@ -248,8 +287,11 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
   }
   const validSpace = (s) => plain(s) && typeof s.id === 'string' && normalizeSpaceUrl(s.url) !== null && hexKey(s.bootKey) !== null
 
-  /** Publishes an app: the card's confirm button. `{ ok: true, published }`, or `{ ok: false, code, message }` with the db exactly as it was and no stray app in the space. */
-  function publish (id, { confirm } = {}) {
+  /**
+   * Publishes an app onto the computer the person chose (`host`, an id): the card's confirm button. `{ ok: true, published }`, or `{ ok: false, code, message }` with the db exactly as it was and
+   * no stray app in the space. The computers are read again first, and one that is not in that answer is refused (`unknown-host`): nothing is asked of a computer the person does not have.
+   */
+  function publish (id, { confirm, host } = {}) {
     return locked(id, async () => {
       const card = facts(id)
       if (!card.ok) return card
@@ -257,12 +299,19 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
       if (confirm !== true) return fail('confirm', 'Publishing waits for the confirm button.')
       const raw = service.raw(id)
       if (!raw.ok) return fail(raw.code, raw.message)
-      // 1. a space to publish into
+      // 1. the computer the person chose, among the ones they have now, and a space on it
+      if (typeof host !== 'string' || !SPACE_ID.test(host)) return fail('unknown-host', REASONS['unknown-host'])
+      const read = await listHosts()
+      if (!read.ok) return fail('hosts-unreachable', read.message)
+      const chosen = read.hosts.find((h) => h.id === host)
+      if (chosen === undefined) return fail('unknown-host', REASONS['unknown-host'])
       let given
-      try { given = await hosting.ensureSpace({ workspace: WORKSPACE }) } catch (e) { given = fail('hosting-failed', 'Publishing could not start.') }
+      try { given = await hosting.ensureSpace({ host: chosen.id }) } catch (e) { given = fail('hosting-failed', 'Publishing could not start.') }
       if (!plain(given) || given.ok !== true) return fail(plain(given) && typeof given.code === 'string' ? given.code : 'hosting-failed', plain(given) && typeof given.message === 'string' ? given.message.slice(0, 300) : 'Publishing could not start.')
       if (!validSpace(given.space)) return fail('hosting-failed', 'The hosting gave an address this computer cannot use.')
-      const added = registry.addSpace(given.space) // kept at once: a crash after the space exists must not lose its key
+      const held = registry.space(given.space.id)
+      if (held !== null && held.host !== undefined && held.host !== chosen.id) return fail('hosting-failed', 'The hosting gave a space that belongs to another computer.')
+      const added = registry.addSpace({ ...given.space, host: chosen.id }) // kept at once: a crash after the space exists must not lose its key
       if (!added.ok) return fail(added.code, added.message)
       const space = registry.space(given.space.id)
       const client = clientOf(space)
@@ -306,9 +355,10 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
         // 5. nothing changed here meanwhile (a change now would be lost to the mirror); then register, in the same synchronous stretch
         if (raw.db.fingerprint() !== snap.fingerprint) { await undo(); return fail('changed', 'The app changed while it was being published. Nothing was published: try again.') }
         const since = iso()
-        const reg = registry.addApp({ db: id, space: space.id, slug, since })
+        const reg = registry.addApp({ db: id, space: space.id, slug, since, host: { id: chosen.id, name: chosen.name, region: chosen.region } })
         if (!reg.ok) { await undo(); return fail(reg.code === 'registry' ? 'registry' : 'failed', 'The list of published apps could not be saved. Nothing was published.') }
         markOk(id)
+        registry.setLastHost(chosen.id) // only the default choice of the next card: a failure to write it costs nothing
         log('published ' + id + ' as ' + slug)
         return { ok: true, published: info(id), missing: packed.missing.length }
       } catch (e) {
@@ -336,6 +386,8 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
         if (confirm !== raw.db.info().name) return fail('confirm', 'Type the name of the app to confirm.')
         const gone = registry.removeApp(id)
         if (!gone.ok) return fail('registry', 'The list of published apps could not be saved.')
+        // a computer that no longer exists takes its space with it: nothing is kept of a key that opens nothing
+        if (stateOf(id).hostGone === true && registry.slugsIn(f.space.id).length === 0) registry.removeSpace(f.space.id)
         sync.delete(id)
         log('forgot the hosted copy of ' + id)
         return { ok: true, forgotten: true, left: { url: f.space.url, slug: f.app.slug } }
@@ -378,7 +430,7 @@ export function makePublisher ({ service, registry, hosting, tmpRoot, ports = {}
     archived: 'This app is archived: restore it first.',
     unavailable: 'Publishing is not available on this computer.',
     sensitive: 'This app has sensitive or secret fields, which cannot be published.',
-    budget: 'The budget for the web app is used up.',
+    'unknown-host': 'That is not one of your cloud computers any more. Pick another one.',
     'too-big': 'This app is too big to publish in one go.',
     busy: 'This app is being published or unpublished.',
   }

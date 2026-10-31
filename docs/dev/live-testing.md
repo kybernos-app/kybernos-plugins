@@ -1378,3 +1378,18 @@ back when it ends), then plays the alert: one banner, the cards marked « Failed
 nothing), the switch on (the roles are changed by themselves, the file shows it, the gear lists each change), Undo (old model and fallback back, not replaced again for that
 failure), Dismiss, and the figure on the team's card in the Agent Teams list. Exit 0 / 1 / 3. Not played: a team in the project folder, a refused key (both are in
 `packages/kybernos-plugin/test-role-replace.mjs`), the light scheme (the app's theme is its own setting, not `prefers-color-scheme`).
+
+## The Publish dialog: `scripts/check-publish-live.mjs` (sandbox only)
+
+```bash
+source scripts/sandbox/env.sh && node scripts/sandbox/space.mjs start    # a team space on localhost, in the sandbox's state folder (set TABLES_APP_NODE_MODULES to skip `npm ci`)
+source "$KB_SANDBOX_STATE/space.env" && bash scripts/sandbox/start.sh     # the sandbox DSH, with the dev hosting adapter pointing at that space
+node scripts/check-publish-live.mjs [--shots <dir>]
+node scripts/sandbox/space.mjs stop                                       # when done
+```
+
+Sandbox only (it publishes and unpublishes a seeded app for real, into the local space; it exits 3 against `:3080` or a DSH that has no hosting). It measures the dialog at 1400 and
+390 px, presses the order button (`window.open` is replaced by a recorder, nothing leaves the sandbox), walks the radiogroup with the keyboard, and renders the states the dev adapter
+cannot make (two computers, a sleeping one, always on, none, loading, unreachable, no order address, a failed Publish, a gone computer) by answering the page's own `fetch` with what
+a real hosting would say. The Apps page polls the state every 3 s, so a click aimed at a button that the poll can swap (Update and « Keep my local copy… » share a spot) is made in
+one step in the page. Exit 0 / 1 / 3. Not played: the light scheme, a real hosting, a real order address, a real phone.

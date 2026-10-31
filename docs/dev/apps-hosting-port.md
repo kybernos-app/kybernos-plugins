@@ -3,14 +3,15 @@
 What the `kybernos-db` plugin needs from the thing that runs team spaces, written for whoever builds that side (L6, the server) and for anyone who wants to point Publish at a
 space they run themselves. The plugin side is `packages/kybernos-db/remote/` (`hosting.mjs` is the port, `publisher.mjs` the one place that uses it); the hosted side is the
 template `packages/kybernos-webapp-creator/templates/tables` (its README is the contract of the http routes). The decisions behind both are in
-`docs/etudes/2026-10-31-share-as-app-cadrage.md`.
+`docs/etudes/2026-10-31-share-as-app-cadrage.md` (section 12 for the choice of the computer).
 
-## What Publish is, in four lines
+## What Publish is, in five lines
 
-- Publish puts an app (a `kybernos-db` database with its attachments) into a **team space**: one small web app per workspace, which holds any number of published apps.
+- Publish puts an app (a `kybernos-db` database with its attachments) into a **team space** on one of the person's own cloud computers: one small web app per computer, which holds any number of published apps.
+- **Publish never creates a computer.** The person chooses among the ones they have (`hosts()`), and a button opens their Kybernos server so they can order another (`orderUrl`).
 - From then on the hosted copy is the truth. The folder on the owner's computer is a read-only **mirror**, refreshed from it (a 30 s poll, after each write, on demand).
 - Rows are written on the hosted app (as the owner, with an API token); structure, views, profiles, archive and delete are refused with code `published` until the app is unpublished.
-- Unpublish pulls the hosted copy one last time, takes it out of the space, and the app is an ordinary local one again.
+- Unpublish pulls the hosted copy one last time, takes it out of the space, and the app is an ordinary local one again. Moving an app to another computer is Unpublish, then Publish.
 
 ## The port
 
@@ -19,14 +20,19 @@ The plugin never talks to a billing system, a cloud or an account. It asks an ob
 ```js
 hosting = {
   available(): boolean,                       // false: no Publish button, no card, no control that does nothing
-  describe(): { name, pricePerMonth?, currency?, alwaysOn?, region?, budget? },
-  ensureSpace({ workspace }): Promise<{ ok: true, space: { id, url, bootKey } } | { ok: false, code, message }>,
+  describe(): { name, orderUrl? },
+  hosts(): Promise<{ ok: true, hosts: Host[] } | { ok: false, code, message }>,
+  ensureSpace({ host }): Promise<{ ok: true, space: { id, url, bootKey } } | { ok: false, code, message }>,
   releaseSpace?(spaceId): Promise<{ ok: boolean }>,   // optional
 }
+Host = { id, name, state: 'running' | 'sleeping' | 'starting' | 'stopped', region?, alwaysOn?, shared? }
 ```
 
 It is handed over with `apply(ctx, { remote: { hosting } })` (`packages/kybernos-db/index.js`). A host that does not give one gets `envHosting(process.env)`, which is
 `unavailable` unless two environment variables are set (below). **The default is "not available": a product with no hosting shows no Publish button.**
+
+None of the methods may throw. If one does, or answers something that is not in the shape above, the plugin treats it as a failure and says so in plain words; it never stops DSH
+from starting and never shows what the port said except the `message` of a refusal.
 
 ### `available()`
 
@@ -35,32 +41,67 @@ while the feature is off; the plugin does not distinguish and shows nothing.
 
 ### `describe()`
 
-Plain data, no secret, read when the card is drawn. Unknown keys are dropped, values of the wrong type become "unknown" (never a claim), strings are cut at 80 characters.
+Plain data, no secret, read when the card is drawn. Unknown keys are dropped, a name is cut at 80 characters.
 
 | key | meaning |
 |---|---|
-| `name` | What the card calls the thing it publishes into ("Kybernos team space"). |
-| `pricePerMonth`, `currency` | A number and an ISO 4217 code. Shown as an estimate of the monthly cost, and only when both are given. |
-| `alwaysOn` | **`true` only if the space really stays up when the owner's computer is off.** The page says "always on" if and only if this is `true`; anything else says nothing about it. A space that sleeps, or that is a development process, must not claim it. |
-| `region` | Where it runs, shown as is. |
-| `budget` | `{ label, remaining, enough }`: the pot the space would be paid from. `enough: false` makes the card refuse Publish with its reason (`budget`); `remaining` is shown when it is a number. |
+| `name` | What the card calls the product that runs the computers ("Kybernos"). |
+| `orderUrl` | The `https://` address the Publish card opens in the person's browser ("Get another cloud computer"): the server's Computers page. **No credentials in it** (`user:password@`), no spaces; the plugin never builds it, completes it or adds anything to it. An address that is not `https`, or has credentials, is treated as no address. **No address, no button**: the page then shows none. |
 
-### `ensureSpace({ workspace })`
+There is no price, no budget and no region here any more: they belong to a computer (`hosts()`) or to the server's own page, not to the dialog.
 
-Called by Publish, after the owner pressed the confirm button, and never before. It returns the space this workspace publishes into, creating it if there is none; calling it again for
-the same workspace returns the same space (same `id`). The plugin currently passes `workspace: 'default'` (one workspace per computer); the host maps that to whatever it uses.
+### `hosts()`
 
-- `space.id`: `[A-Za-z0-9][A-Za-z0-9_-]{0,63}`, stable. It is the key of the plugin's registry.
+The person's own cloud computers, **read when the Publish dialog opens and again when the person presses Publish, never on a state read or a header draw**. Plain data, no secret.
+
+| key | meaning |
+|---|---|
+| `id` | Required. `[A-Za-z0-9][A-Za-z0-9_-]{0,63}`, stable, the same rule as `space.id`. A computer without a usable id, or whose id was already listed, is dropped. |
+| `name` | What the person calls it. Shown as is (whitespace folded, cut at 80 characters); the id is shown when it is missing. |
+| `state` | `running`, `sleeping`, `starting` or `stopped`: what the computer is now. Anything else is read as `stopped`. A sleeping one is woken by `ensureSpace`; the dialog says so. |
+| `region` | Where it runs ("Frankfurt, EU"), shown as is, cut at 80 characters. |
+| `alwaysOn` | **`true` only if the computer is really set to never sleep.** The dialog says "always on" if and only if this is `true`. |
+| `shared` | `true` when the computer also runs the person's own agents (every computer of ADR 0052 does), which makes the dialog suggest a separate one for an app the team uses daily. |
+
+- An **empty list is a valid answer** (the person has no computer): the dialog then shows only the order button. At most 50 computers are read.
+- A refusal is `{ ok: false, code, message }`. A port that throws, answers something else than this shape, or does not answer within 15 s is "the computers could not be listed"
+  (`hosts-unreachable`): the dialog keeps its facts and the order button and offers Try again. `hosts()` failing never makes Publish succeed and never changes anything already published.
+- The plugin remembers, with each published app, the id of its computer and the **last name and region it saw** for it, so the Apps page can say "on Studio · Frankfurt" without asking.
+
+### `ensureSpace({ host })`
+
+Called by Publish, after the person pressed the confirm button, and never before. `host` is the `id` of a computer **that the plugin has just read in `hosts()`**: an id that was not in
+that answer is refused by the plugin itself (`unknown-host`) without asking anything of the port. It returns the space on that computer, starting it if need be (waking the computer if
+it sleeps); calling it again for the same host returns the same space (same `id`, same key).
+
+- `space.id`: `[A-Za-z0-9][A-Za-z0-9_-]{0,63}`, stable. It is the key of the plugin's registry. A given `id` belongs to one computer for good: a different computer answering with the same `id` is refused.
 - `space.url`: the **origin** of the space, `https://…`, or `http://localhost…` / `http://127.0.0.1…` for a space run on the same machine. No credentials, path or query. Anything else is refused by the plugin.
 - `space.bootKey`: the space's boot key, hex, at least 32 characters. See below.
-- It may take time (the plugin awaits it with no timeout of its own: it is a button the person has pressed). Resolve it once the space **answers** `GET /health`; the first request after that is the bundle.
-- A refusal is `{ ok: false, code, message }`; `message` is shown to the person as it is (plain English, at most 300 characters, no secret). Use `budget` for a pot that is empty, `unavailable` for a feature that is off; any other code is passed through and treated as a failure to start.
+- It may take time (the plugin awaits it with no timeout of its own: it is a button the person has pressed, and the dialog says "This can take a minute"). Resolve it once the space **answers** `GET /health`; the first request after that is the bundle.
+- A refusal is `{ ok: false, code, message }`; `message` is shown to the person as it is (plain English, at most 300 characters, no secret) and the dialog stays open with the choice kept. Codes the page knows:
+  `unknown-host` (not one of the person's computers), `host-gone` (it was deleted), `host-unavailable` (it cannot be started now), `unavailable` (feature off), `budget` (the pot it is paid from is
+  empty, still mapped to a readable failure). Any other code is passed through and treated as a failure to start.
 - It must not throw; if it does the plugin answers `hosting-failed` with a generic message.
 
 ### `releaseSpace(spaceId)` (optional)
 
 Called when the last app of a space has been unpublished, so a hosting that bills a computer can give it back. The plugin forgets the space only if `{ ok: true }` comes back; on any
 other answer it keeps the space (and its key) and tries again at the next last-unpublish. Not implementing it means the space stays until the host removes it.
+
+## The registry, and what "its computer is gone" means
+
+The plugin's registry file records, with each space, the id of its computer, and with each published app the same id plus the name and region last seen for it. It also keeps `lastHost`,
+the computer the last Publish went to, only as the default choice of the next dialog (a choice that is no longer listed is not offered). A file written before computers were chosen has none
+of these and opens as it is: such an app shows its web address instead of a computer, and can never be "gone".
+
+An app is **gone** (the page says "Its computer is gone", keeps the local copy safe and offers only "Keep my local copy and forget the web app") when **both** hold:
+
+1. the app could not be reached (the pull failed with `unreachable` or `space`: a space that answers, even to refuse, is not gone), and
+2. a `hosts()` call that **succeeded** does not list its computer.
+
+A `hosts()` that failed, threw, lied or timed out proves nothing and changes nothing. To keep the server from being hammered by an app that fails every thirty seconds, the plugin asks
+`hosts()` for this at most **once a minute** in all, however many apps fail. An app that answers again is not gone, whatever a list said before. Forgetting an app whose computer is gone also drops
+its space from the registry when no other app lives there, so no key is kept for a computer that does not exist.
 
 ## The boot key
 
@@ -87,7 +128,8 @@ Exactly the routes in the template's README ("the owner's API token and the tran
 | `POST /api/apps/:slug/release` `{ confirm: slug }` | Unpublish, and the undo of a Publish that failed after the upload | `404 unknown` is accepted as "already gone". |
 
 Rates: the space limits bearer requests to 600 a minute per client address and 30 refused tokens in 15 minutes. The plugin makes one small request per published app every 30 seconds
-(longer, up to five minutes, after failures) plus one per row written.
+(longer, up to five minutes, after failures) plus one per row written. **A sleeping computer**: a pull that does not get an answer is "could not be reached" exactly as if the computer were
+off, with the same back-off; the server should count the hosted app's requests as activity so the computer is not put to sleep under the team.
 
 Every answer is judged by status and by a short `error` code in a JSON body; the plugin never shows a body. Statuses it distinguishes: `401` (key refused), `413`, `429`, `5xx`
 (the space has a problem), `3xx` (never followed), a network error or a timeout (20 s for a small call, 120 s for a database or a file) is "could not be reached".
@@ -99,48 +141,22 @@ Every answer is judged by status and by a short `error` code in a JSON body; the
 - An app with a `sensitive` or `secret` field is never sent. `personal` fields may go; the card lists them.
 - One publish or unpublish per app at a time. Nothing is deleted on the owner's computer by Publish; Unpublish deletes the hosted copy only after checking it is the state the owner's
   computer now holds.
+- Nothing is asked of a computer the person does not have: `ensureSpace` is only called with an id from a `hosts()` answer read for that Publish.
 
 ## The development / self-hosting adapter
 
 `remote/hosting.mjs` has `envHosting(env)`: with `KYBERNOS_DB_SPACE_URL` (the space's origin) and `KYBERNOS_DB_SPACE_KEY` (its boot key) set **in the environment of the DSH
-process**, Publish is available and points at that one space (`describe()` is `{ name: 'Your own team space' }`, so no "always on"). It is read once at start by the host process; no
-request, no page and no agent can set it, and it is not the default. It is how `scripts/check-publish.mjs` and the GUI checks run Publish against a space on `localhost`.
+process**, Publish is available and points at that one space: `hosts()` answers a single running computer called "Your own team space" (no region, no "always on", not shared), and
+`ensureSpace({ host })` hands the space back for that computer's id and refuses any other (`unknown-host`). `KYBERNOS_DB_ORDER_URL` may add an `https` order address (checked like any
+`orderUrl`), so the order button can be seen against `localhost`. It is read once at start by the host process; no request, no page and no agent can set it, and it is not the default. It is
+how `scripts/check-publish.mjs` and the GUI checks run Publish against a space on `localhost`.
 
 ## What is not here yet (open for L6 and for the owner)
 
-- A real `hosting` that provisions a computer per workspace, bills the Cloud pot and says `alwaysOn: true`. Until it exists nothing in the product offers Publish.
+- A real `hosting` that lists the person's cloud computers (ADR 0052), starts the hosted app on the chosen one, and says `alwaysOn`/`shared` truthfully. Until it exists nothing in the product offers Publish.
 - A way to freeze writes on the space for the instant between Unpublish's last check and `release`. Today a write that lands in that window is lost to the owner's computer (the
   window is the length of one request); a `POST …/freeze` on the space would close it.
 - Journal attribution of an agent's writes: the space's door journals owner bearer writes as `person`. If the journal should say `agent`, the door needs a header or a field for it.
 - The permission string. The plugin's `plugin.json` declares `net:*.kaby.app` and `net:localhost` for the one outgoing `fetch`; the vocabulary of `scripts/plugin-scan.mjs` has no way to say
   "the host the hosting gave", so the domain is a placeholder to correct when the real one is chosen.
-
-## Next version of the port: the person chooses the host (decided 2026-10-31, evening; not built yet)
-
-The owner decided that Publish does not create a computer: the person chooses one of their own cloud computers and can open their Kybernos server to order another
-(`docs/etudes/2026-10-31-share-as-app-cadrage.md`, section 12). The port above is what is built today; this is the shape both halves build next. Everything not named here stays as written above.
-
-```js
-hosting = {
-  available(): boolean,
-  describe(): { name, orderUrl? },            // `pricePerMonth`, `currency`, `budget` are no longer used by the dialog
-  hosts(): Promise<{ ok: true, hosts: Host[] } | { ok: false, code, message }>,
-  ensureSpace({ host }): Promise<{ ok: true, space: { id, url, bootKey } } | { ok: false, code, message }>,
-  releaseSpace?(spaceId): Promise<{ ok: boolean }>,
-}
-Host = { id, name, state: 'running' | 'sleeping' | 'starting' | 'stopped', region?, alwaysOn?, shared? }
-```
-
-- **`hosts()`** is read when the dialog opens (never on every state read). `id` follows the same rule as `space.id`. `state` is what the computer is now; `region` is shown as is;
-  `alwaysOn` is `true` only if the computer really is set to never sleep (the page says "always on" if and only if it is `true`, as before); `shared` is `true` when the computer also
-  runs the person's own DSH, which is the case of every computer of ADR 0052, and makes the dialog say so. An empty list is a valid answer: the dialog then shows only the order button.
-- **`describe().orderUrl`** is an `https://` address the plugin opens in the person's browser ("Get another cloud computer"): the server's Computers page. No address, no button. The plugin
-  never builds it and never adds anything to it.
-- **`ensureSpace({ host })`** replaces `{ workspace }`. It starts the hosted app on that computer (waking it if it sleeps) and resolves once the app answers `GET /health`; calling it
-  again for the same host returns the same space (same `id`, same key). Codes: `unknown-host` (not one of the person's computers), `host-gone` (it was deleted), `host-unavailable` (it
-  cannot be started now), `unavailable` (feature off); any other code is passed through as a failure to start. The message is shown as is, at most 300 characters, no secret.
-- **The registry** records the host id with each space, so the Apps page can say where an app lives and Unpublish can find it. A space whose host is no longer in `hosts()` is shown as
-  "its computer is gone"; Unpublish with the typed-name forget path stays available.
-- **A sleeping host**: the plugin awaits `ensureSpace` without a timeout of its own; the poll treats a host that does not answer as "could not be reached", exactly as today. The server
-  should count the hosted app's requests as activity so the computer is not put to sleep under the team.
-- **The development adapter** (`envHosting`) answers `hosts()` with the one space it points at, so the dialog can be checked against `localhost`.
+- Moving an app from one computer to another in one step. Today it is Unpublish, then Publish (the data comes back to this computer in between, so nothing can be lost).

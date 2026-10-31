@@ -2999,8 +2999,8 @@
             "en": "Open Apps: a card per app, its tables as tabs, the links under Relations. To change or find rows, ask Kaby."
           },
           {
-            "fr": "Si un espace d’app web t’est proposé, « Publier… » met une app en ligne pour ton équipe et « Arrêter la publication… » la ramène.",
-            "en": "Where a web app space is offered, “Publish…” puts an app online for your team and “Unpublish…” brings it back."
+            "fr": "« Publier… » met une app en ligne pour ton équipe sur l’un de tes ordinateurs cloud ; « Arrêter la publication… » la ramène chez toi.",
+            "en": "“Publish…” puts an app online for your team on one of your cloud computers; “Unpublish…” brings it back to you."
           }
         ],
         "where": {
