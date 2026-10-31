@@ -212,7 +212,7 @@ ok('bearer rules at the edge: who a request is, from its Authorization header, i
   assert.deepEqual(judge({ authorization: 'Basic dXNlcjpwYXNz' }), { who: 'none' }, 'another scheme is not ours to judge')
   assert.deepEqual(judge({}), { who: 'bearer' })
   assert.deepEqual(judge({ authorization: 'bearer   ' + good() + '  ' }), { who: 'bearer' }, 'the scheme is case-insensitive')
-  for (const path of ['/api/apps', '/api/apps/shop/records', '/api/apps/shop/write', '/api/apps/shop/bundle', '/api/me', '/health']) assert.equal(judge({ path }).who, 'bearer', path)
+  for (const path of ['/api/apps', '/api/apps/shop/records', '/api/apps/shop/write', '/api/apps/shop/bundle', '/api/me', '/api/freeze', '/health']) assert.equal(judge({ path }).who, 'bearer', path)
   // a bad bearer is a 401 and never falls back: with or without cookies
   for (const authorization of ['Bearer', 'Bearer ', 'Bearer x', 'Bearer ' + flip(good()), 'Bearer ' + good() + 'x', 'Bearer ' + signToken('open', { n: 'x' }, KEY, { now: c.now, ttlSec: 60 }), 'Bearer ' + mintOwnerApiToken({ key: Buffer.alloc(32, 9), now: c.now })]) {
     refused(judge({ authorization }), 401)
@@ -226,9 +226,10 @@ ok('bearer rules at the edge: who a request is, from its Authorization header, i
   assert.deepEqual(judge({ cookie: 'kb_session=abc', path: '/api/people' }), { who: 'cookie' })
   assert.deepEqual(judge({ cookie: '' }), { who: 'bearer' }, 'an empty Cookie header carries nothing')
   // a good bearer is for the apps routes only: not the people, not the password, not the pages
-  for (const path of ['/api/people', '/api/people/members/u1', '/api/me/password', '/people', '/invite', '/open', '/', '/api/csrf', '/api/auth/sign-out', '/api/applications', '/api/apps-evil', '/api/me/x']) refused(judge({ path }), 403, 'bearer-scope')
+  for (const path of ['/api/people', '/api/people/members/u1', '/api/me/password', '/people', '/invite', '/open', '/', '/api/csrf', '/api/auth/sign-out', '/api/applications', '/api/apps-evil', '/api/me/x', '/api/freeze/x', '/api/freezer', '/api/freeze/']) refused(judge({ path }), 403, 'bearer-scope')
   assert.equal(BEARER_SCOPE.test('/api/apps'), true)
   assert.equal(BEARER_SCOPE.test('/api/apps/'), true)
+  assert.equal(BEARER_SCOPE.test('/api/freeze'), true)
 })
 
 ok('KB_BUNDLE_MAX_BYTES: a default of 256 MiB, a whole number between 1 MiB and 2 GiB, nothing else', () => {

@@ -36,6 +36,7 @@ const group = (name) => console.log('\n' + name)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let server = null
 let serverB = null // the second instance, the one with a (fake) mail provider
+let serverC = null // the third, a bare one that a freeze is tried on across a restart
 let output = ''
 let outputB = ''
 const MAIL_KEY = 're_test_' + randomBytes(12).toString('hex') // never printed, searched for in everything the servers say
@@ -498,6 +499,92 @@ async function main () {
   check('a bearer reaches neither the files of the page nor the invitation page (403, no file in the answer); a bad one is 401', pageRefusals.every((r) => r.status === 403 && !(r.headers.get('content-type') ?? '').includes('javascript') && !(r.headers.get('content-type') ?? '').includes('css') && !(r.headers.get('content-type') ?? '').includes('html')) && pageBad.status === 401, pageRefusals.map((r) => r.status).join())
   check('and the same files stay public GETs for anyone who sends no token', (await Promise.all(['/', '/app.css', '/js/main.mjs'].map((a) => anon.fetch(a)))).every((r) => r.status === 200))
   check('and the owner’s password was not touched', (await signIn(new Browser('10.0.1.10'), 'olga@example.test', PW.owner2)).status === 200)
+
+  // ── 12a. what the server that hosts the space asks of it: when a member last used it, and a freeze ──
+  group('the hosting server: activity and freeze')
+  const lastSeen = async () => (await mj('/api/apps')).body?.last_request_at
+  const seen1 = await lastSeen()
+  check('the owner’s token is told when a member last used the space, as an ISO time', typeof seen1 === 'string' && new Date(seen1).toISOString() === seen1, String(seen1))
+  await sleep(40)
+  await Promise.all([mj('/api/me'), mj('/api/apps'), mj('/api/apps/shop/fingerprint')])
+  check('its own calls (the token) are not a member’s use: the time did not move', (await lastSeen()) === seen1)
+  await anon.fetch('/api/me')
+  await anon.fetch('/api/apps')
+  check('nor is a request with no session (a visitor, a scanner)', (await lastSeen()) === seen1)
+  check('a member’s request moves it', (await vera.j('/api/me')).status === 200 && (await lastSeen()) > seen1)
+  const viewOf = async (b) => (await b.j('/api/apps')).body
+  check('a person (a member, or the owner in a browser) is not told when the others last came', (await viewOf(vera))?.ok === true && (await viewOf(vera)).last_request_at === undefined && (await viewOf(owner)).last_request_at === undefined)
+
+  const writeNote = (via, body) => (via === 'token'
+    ? mj('/api/apps/shop/write', { method: 'POST', json: { object: 'note', op: 'create', values: { body } } })
+    : owner.j('/api/apps/shop/write', { method: 'POST', json: { object: 'note', op: 'create', values: { body } } }))
+  const noteCount = async () => (await records(owner, 'note')).records.length
+  const freezeCall = (json, o = {}) => mj('/api/freeze', { method: 'POST', json, ...o })
+  const asCookie = await owner.j('/api/freeze', { method: 'POST', json: { frozen: true } })
+  const asNobody = await machine('/api/freeze', { method: 'POST', token: null, json: { frozen: true } })
+  const asForged = await machine('/api/freeze', { method: 'POST', token: refusals.forged, json: { frozen: true } })
+  check('only the owner’s token can freeze: the owner’s own session (403), nobody (403) and a forged token (401) cannot', asCookie.status === 403 && asCookie.body?.reason === 'owner-api-only' && asNobody.status === 403 && asForged.status === 401, [asCookie.status, asNobody.status, asForged.status].join())
+  const malformed = [await freezeCall({}), await freezeCall({ frozen: 'yes' }), await freezeCall({ frozen: 1 }), await freezeCall([true]), await mj('/api/freeze', { method: 'POST', body: 'frozen', headers: { 'content-type': 'application/json' } })]
+  check('a body that is not { "frozen": true or false } is 400', malformed.every((r) => r.status === 400 && r.body?.ok === false), malformed.map((r) => r.status).join())
+  check('and none of those froze anything', (await writeNote('token', 'before the freeze')).status === 200)
+
+  const notes0 = await noteCount()
+  const on = await freezeCall({ frozen: true })
+  const onAgain = await freezeCall({ frozen: true })
+  check('the token freezes the space: 200 { ok, frozen: true }, and asking again says the same', on.status === 200 && on.body?.ok === true && on.body.frozen === true && onAgain.status === 200 && onAgain.body.frozen === true, JSON.stringify(on.body))
+  const refused = [
+    await writeNote('token', 'frozen, by the token'),
+    await writeNote('cookie', 'frozen, by the owner'),
+    await owner.j('/api/apps/shop/upload?object=contact&field=photo&name=a.png', { method: 'POST', body: Buffer.from('x'), headers: { 'content-type': 'image/png' } }),
+    await owner.j('/api/people/invitations', { method: 'POST', json: { email: 'late@example.test', role: 'member' } }),
+    await owner.j('/api/apps/nothere/release', { method: 'POST', json: { confirm: 'nothere' } }),
+    await put('frozen-app', Buffer.from('not a bundle')),
+    await new Browser('10.0.11.2').j('/api/auth/sign-in/email', { method: 'POST', json: { email: 'nobody@example.test', password: 'whatever-1234' } }),
+    await new Browser('10.0.11.3').j('/open?t=not-a-link'),
+  ]
+  check('while frozen every write is 503 “frozen”: rows, a file, a person, a release, a bundle, a sign-in and the owner’s link', refused.every((r) => r.status === 503 && r.body?.error === 'frozen' && r.body?.ok === false), refused.map((r) => r.status).join())
+  const readsOk = [await owner.j('/api/apps'), await owner.j('/api/me'), await owner.j('/api/apps/shop/records?object=note'), await mj('/api/apps/shop/fingerprint')]
+  const healthy = await anon.j('/health')
+  check('reads stay up while frozen: the apps, who I am, the rows, the fingerprint and the health check', readsOk.every((r) => r.status === 200) && healthy.status === 200 && healthy.body?.ok === true)
+  check('and so does the snapshot, how a restore or an Unpublish takes its last copy', (await machine('/api/apps/shop/snapshot')).status === 200)
+  check('nothing was written, and nothing was released or invited', (await noteCount()) === notes0 && (await slugsNow()) === 'ledger,shop' && !(await owner.j('/api/people')).body.invitations.some((i) => i.email === 'late@example.test'))
+  const off = await freezeCall({ frozen: false })
+  check('the same call lifts it: 200 { ok, frozen: false }', off.status === 200 && off.body?.ok === true && off.body.frozen === false, JSON.stringify(off.body))
+  check('writes go through again', (await writeNote('token', 'after the freeze')).status === 200 && (await noteCount()) === notes0 + 1)
+  const caller = new Browser('10.0.11.4')
+  check('and the owner’s link and sign-in answer for themselves again (a refused link is 403, a wrong password 401)', (await caller.fetch('/open?t=not-a-link')).status === 403 && (await caller.j('/api/auth/sign-in/email', { method: 'POST', json: { email: 'nobody@example.test', password: 'whatever-1234' } })).status === 401)
+
+  // the state lives in a file: a machine that restarts while frozen comes back frozen (a bare instance on a folder of its own, no sessions needed: a write is refused 403 when free, 503 when frozen)
+  const dataC = join(root, 'data-freeze')
+  const portC = await new Promise((resolve) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)) }) })
+  const BASE_C = 'http://127.0.0.1:' + portC
+  const bootC = async () => {
+    const child = spawn(process.execPath, ['--no-warnings', 'server.js'], { cwd: app, env: { PATH: process.env.PATH, PORT: String(portC), KB_AUTH_SECRET: authSecret, KB_BOOT_KEY: bootHex, KB_DATA_DIR: dataC, KB_TRUST_PROXY: '1' } })
+    let text = ''
+    child.stdout.on('data', (d) => { text += d })
+    child.stderr.on('data', (d) => { text += d })
+    for (let i = 0; i < 100 && !text.includes('listening ' + portC); i++) await sleep(100)
+    return { child, up: text.includes('listening ' + portC), text: () => text }
+  }
+  const stopC = (c) => new Promise((resolve) => { if (c.child.exitCode !== null) return resolve(); c.child.once('exit', resolve); c.child.kill('SIGTERM') })
+  const tryWrite = async () => (await fetch(BASE_C + '/api/apps/x/write', { method: 'POST', headers: { 'content-type': 'application/json', origin: BASE_C, 'x-forwarded-for': '10.0.12.2' }, body: '{}' })).status
+  const hostSays = (json) => fetch(BASE_C + '/api/freeze', { method: 'POST', headers: { authorization: 'Bearer ' + mint(), 'content-type': 'application/json', 'x-forwarded-for': '10.0.12.1' }, body: JSON.stringify(json) }).then((r) => r.status)
+  let inst = await bootC()
+  serverC = inst.child
+  check('a second instance starts on a folder of its own, not frozen', inst.up && (await tryWrite()) === 403, inst.text().slice(0, 160))
+  check('the token freezes it', (await hostSays({ frozen: true })) === 200 && (await tryWrite()) === 503)
+  check('the state is a private file in the data folder', existsSync(join(dataC, 'frozen.json')) && (statSync(join(dataC, 'frozen.json')).mode & 0o777) === 0o600)
+  await stopC(inst)
+  inst = await bootC()
+  serverC = inst.child
+  check('after a restart it is still frozen (a write is 503, the health check answers)', inst.up && (await tryWrite()) === 503 && (await fetch(BASE_C + '/health')).status === 200, inst.text().slice(0, 160))
+  check('lifting it removes the file, and the next restart is free', (await hostSays({ frozen: false })) === 200 && !existsSync(join(dataC, 'frozen.json')) && (await tryWrite()) === 403)
+  await stopC(inst)
+  inst = await bootC()
+  serverC = inst.child
+  check('(and it did start free)', inst.up && (await tryWrite()) === 403)
+  await stopC(inst)
+  serverC = null
 
   // ── 12b. L7: what the space holds about a person, the owner's export of an app, erasure ──
   group('privacy: the page, and a person’s own data')
@@ -967,6 +1054,7 @@ try {
     server.kill('SIGTERM')
   }
   if (serverB !== null) serverB.kill('SIGTERM')
+  if (serverC !== null) serverC.kill('SIGTERM')
   await sleep(400)
   // nothing secret may have reached the server's output: the secrets, a minted link or a password
   const leaked = ['owner-password-one', 'owner-password-two', 'member-password-1', 'session_token', '/open?t=', '/invite?t=', 'Bearer ', MAIL_KEY, 'PROVIDER-SECRET-BODY', 'zorica', 'vukovic', 'dario.ortiz', 'ema.ruiz', 'noel.park', 'mia@example', ...issued.filter((t) => t.length > 20)].filter((s) => (output + outputB).toLowerCase().includes(String(s).toLowerCase()))

@@ -11,8 +11,8 @@
 // cookies has nothing for a forged request to ride on. That is why `bearer` skips Origin and CSRF, and why a request with both does not.
 import { bearerOf, verifyOwnerApiToken } from './db.mjs'
 
-/** What a bearer request may reach: the apps routes, who it is, and the health check. */
-export const BEARER_SCOPE = /^\/(?:api\/(?:apps(?:\/|$)|me$)|health$)/
+/** What a bearer request may reach: the apps routes, who it is, the freeze the hosting server asks for, and the health check. */
+export const BEARER_SCOPE = /^\/(?:api\/(?:apps(?:\/|$)|me$|freeze$)|health$)/
 
 /** `{ who: 'none' | 'cookie' | 'bearer' }`, or `{ who: 'refused', status, error, reason? }`. `authorization` and `cookie` are the header values (or undefined). */
 export function judgeBearer ({ authorization, cookie, path, key, now = Date.now }) {

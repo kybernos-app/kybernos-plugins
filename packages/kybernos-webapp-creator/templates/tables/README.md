@@ -22,6 +22,7 @@ A member has one role, a **profile id** (`member`, `viewer`, …). Each app answ
 | `lib/db.mjs` | **The only place that imports kybernos-db.** Looks in `vendor/kybernos-db/` first, then in `packages/kybernos-db/` of this repository. |
 | `lib/bootstrap.mjs`, `lib/token.mjs` | The owner's one-time link and the signed tokens. `token.mjs` only re-exports kybernos-db's `remote/token.mjs`: one copy, shared with the side that mints the owner's API token. |
 | `lib/bearer.mjs`, `lib/transfer.mjs` | The owner's API token (what an `Authorization: Bearer` header means) and the transfer routes: import an app from a bundle, snapshot it back, release it. |
+| `lib/freeze.mjs` | « Refuse every write for now », asked by the server that hosts the space and kept in a file, so a restart keeps it (see *What the hosting server asks of the space*). |
 | `lib/invitation.mjs`, `lib/people.mjs`, `lib/store.mjs` | Invitations, the owner's people calls, what is kept in `auth.sqlite` beside Better-Auth's tables. |
 | `lib/safety.mjs`, `lib/ratelimit.mjs` | Origin, CSRF, headers, client address; the rate limiter. |
 | `lib/html.mjs` | The server-rendered pages (`/people`, `/activity`, `/account`, `/privacy`, `/invite`, the notices): plain HTML that links `/app.css`, no script, no style attribute. |
@@ -76,7 +77,7 @@ Link scanners that fetch URLs (mail gateways, chat previews) would spend a one-t
 
 The owner's own computer (DSH) talks to the space with no cookie: `Authorization: Bearer <token>`, where the token is a signed token of kind `owner-api` made with `KB_BOOT_KEY` (kybernos-db `remote/token.mjs`, `mintOwnerApiToken`). It carries its issue time and lives **five minutes at most** (the verifier checks the lifetime the token claims, so one minted for an hour is refused however fresh); the caller mints a new one for each request. A bearer request acts as the owner (`api.as({ kind: 'person', role: 'owner' })`), even before anybody has opened the first link: the first publish needs no browser.
 
-- **Where it works**: the apps routes (`/api/apps…`, so the records, the writes and the files an app has) and `GET /api/me`. Nowhere else: people, the password, the pages and sign-in answer a bearer `403 bearer-scope`.
+- **Where it works**: the apps routes (`/api/apps…`, so the records, the writes and the files an app has), `GET /api/me`, and `POST /api/freeze` (below). Nowhere else: people, the password, the pages and sign-in answer a bearer `403 bearer-scope`.
 - **What it skips**: Origin and the CSRF token, which defend a browser's ambient cookies; a bearer request has none. **What it does not skip**: the rate limit per client address (600 requests a minute, and 30 bad tokens in 15 minutes, then `429`), the body limits and the headers.
 - **Cookies win**: a request that carries a cookie *and* a bearer is cookie-authenticated (Origin and CSRF apply, the session says who it is, the bearer gives nothing on top). A bearer that does not verify is `401` with `WWW-Authenticate: Bearer`, with or without cookies, and never falls back to the session.
 
@@ -93,6 +94,15 @@ The transfer routes, **owner only** (a member session is `403`, anonymous `401`)
 | `POST release` | `{ "confirm": "<slug>" }` takes the app out of the space: its handles are closed and its folder deleted (renamed out of `apps/` first). Ends nothing else: no session, no member. |
 
 The bundle is kybernos-db's `remote/bundle.mjs` (a magic, a manifest, the SQLite file, then each attachment, checked at both ends); the same code reads it on the owner's side.
+
+## What the hosting server asks of the space
+
+When the space runs on a cloud computer, the Kybernos server that hosts it talks to it with the same owner's token (never a person's session) and needs two things:
+
+- **When a member last used it.** `GET /api/apps` with the token answers `{ ok, apps, last_request_at }`, the time (ISO 8601) of the last request made by a person with a session, so that the computer is not put to sleep in the middle of the team's work. The token's own calls, a request with no session and a page of the app that nobody signed in to do **not** count; a person asking for `/api/apps` is not told the time. It is kept in memory: a restart forgets it, and the field is absent until a member comes again.
+- **A freeze.** `POST /api/freeze { "frozen": true | false }`, the owner's token only (a session, the owner's included, is `403`; a body that is not that is `400`), answers `{ ok, frozen }`. While frozen, every write is `503 { ok: false, error: "frozen" }` before anything reads the request: rows, files, structure, people and invitations, a release or an import, a sign-in and sign-out, and the owner's link (`/open`, which makes a session). Reads, the health check, the snapshot routes (how a restore or an Unpublish takes a last copy) and the call that lifts the freeze stay up. The state is the file `frozen.json` in `KB_DATA_DIR` (mode 0600): **it survives a restart**, a file that cannot be written is `500 unsaved` with the state unchanged, and a leftover file of any content means frozen.
+
+The contract the server reads is in its own repository, `docs/contract/team-space-hosting.md`.
 
 ## People
 
@@ -168,6 +178,7 @@ An app answer is the door's, mapped to http: `forbidden` → 403, unknown app/ta
 ## Tests
 
 - `test-tables-pure.mjs`, `test-tables-team.mjs` (in `packages/kybernos-webapp-creator`): tokens, the owner's link, the bearer rule of the edge, the bundle cap, invitations, the limiter, CSRF/Origin, secrets, roles → actor, the store, people, the vendoring. No dependencies; they run in CI. The token, the bundle codec (with hostile input) and the snapshot code are tested where they live: `packages/kybernos-db/test-remote.mjs`.
+- `test-tables-freeze.mjs` (same folder): the freeze's state in its file (kept across a restart, never claimed when it cannot be saved) and which requests count as writes; the routes are in `scripts/check-tables-app.mjs`, group *the hosting server*.
 - `test-tables-mail.mjs` (same folder): the Resend adapter against a fake provider on a local port: the request (URL, bearer, JSON body), the text and the html (nothing remote, everything escaped), a refusal, a timeout, a dropped connection and a redirect, none of which shows the provider's words or the key; the settings from the environment; the people calls with a mailer that sends, fails or throws. No dependencies; runs in CI.
 - `test-tables-privacy.mjs` (same folder): the activity log (redaction with secrets planted in every argument, append-only, retention with a clock, the cap, paging, filters, the sentences), a person's export, the erasure of a person on a stand-in with Better-Auth's own columns (searched in every table and in the bytes of the file and its log, with a control showing that plain `DELETE`s leave the bytes), the owner's export of an app, and the privacy, activity and account pages. No dependencies; runs in CI.
 - `test-tables-front.mjs` (same folder): the client's pure part (`public/js/model.mjs`): rights, what is editable in place and what an edit sends, titles, sorting, board, form checks and wording, the relations layout, routes. No dependencies; runs in CI.

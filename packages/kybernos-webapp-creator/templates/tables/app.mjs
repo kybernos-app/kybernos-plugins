@@ -21,6 +21,7 @@ import { assetResponse, loadAssets } from './lib/assets.mjs'
 import { redeemOpenToken } from './lib/bootstrap.mjs'
 import { makeApps } from './lib/apps.mjs'
 import { userFileHeaders } from './lib/db.mjs'
+import { FREEZE_PATH, isWrite, makeFreeze } from './lib/freeze.mjs'
 import { invitationFault, normEmail, readInvitationToken } from './lib/invitation.mjs'
 import { invitePage, notice, peoplePage } from './lib/html.mjs'
 import { linkOnlyMailer, makeResendMailer } from './lib/mailer.mjs'
@@ -145,6 +146,10 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
 
   const transfer = makeTransfer({ apps, appsDir: join(dataDir, 'apps'), tmpDir: join(dataDir, 'tmp'), bootKey, store, now, ipOf, tooMany, bundleMaxBytes, log, audit: (kind, c, detail) => note(kind, c, { actor: c.get('bearer') === true ? 'owner-token' : c.get('me')?.user?.id, detail }) })
 
+  const freeze = makeFreeze({ dir: dataDir, now, log })
+  /** When a member (a person with a session, never the owner's computer with its token) last made a request; in memory, so a restart forgets it. */
+  let lastMemberRequest = null
+
   const app = new Hono()
   const edge = securityHeaders(https)
 
@@ -158,6 +163,11 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
 
   // who a request is when it carries the owner's API token (lib/transfer.mjs), settled before any body is read
   app.use('*', transfer.edge)
+
+  // while the server that hosts the space has frozen it (lib/freeze.mjs) every write is refused; reads, /health and the call that lifts the freeze stay up
+  app.use('*', (c, next) => (freeze.frozen() && isWrite(c.req.method, c.req.path) && c.req.path !== FREEZE_PATH
+    ? c.json({ ok: false, error: 'frozen', message: 'This web app is read-only for a moment. Try again in a minute.' }, 503)
+    : next()))
 
   const tooBig = (c) => c.json({ ok: false, error: 'too-large' }, 413)
   const small = bodyLimit({ maxSize: JSON_MAX, onError: tooBig })
@@ -193,7 +203,9 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
     if (s === null || s === undefined) return null
     const member = store.member(s.user.id)
     const actor = actorOf(member)
-    return actor === null ? null : { user: s.user, member, actor, sessionId: s.session?.id }
+    if (actor === null) return null
+    lastMemberRequest = now()
+    return { user: s.user, member, actor, sessionId: s.session?.id }
   }
   const needMember = async (c, next) => {
     const me = await session(c)
@@ -211,6 +223,16 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
   }
 
   app.get('/health', (c) => c.json({ ok: true }))
+
+  // the server that hosts the space asks for a freeze with the owner's API token and nothing else: a person's session, the owner's included, cannot
+  app.post(FREEZE_PATH, async (c) => {
+    if (c.get('bearer') !== true) return c.json({ ok: false, error: 'forbidden', reason: 'owner-api-only' }, 403)
+    const b = await c.req.json().catch(() => null)
+    if (b === null || typeof b !== 'object' || typeof b.frozen !== 'boolean') return c.json({ ok: false, error: 'invalid', message: 'a JSON object { "frozen": true or false }' }, 400)
+    const r = freeze.set(b.frozen)
+    if (!r.ok) return c.json({ ok: false, error: r.error, message: 'The state could not be saved, so nothing changed.' }, 500)
+    return c.json({ ok: true, frozen: r.frozen })
+  })
 
   app.get('/api/csrf', (c) => { c.header('cache-control', 'no-store'); return c.json({ ok: true, token: csrfFor(c) }) })
 
@@ -307,7 +329,8 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
       const s = apps.door(slug, c.get('me').actor).state()
       if (s.ok) for (const d of s.dbs) out.push({ slug, ...d })
     }
-    return c.json({ ok: true, apps: out })
+    // the server that hosts the space reads when a member last used it, to know whether the computer may sleep; a member is not told when others last came
+    return c.json({ ok: true, apps: out, ...(c.get('bearer') === true && lastMemberRequest !== null ? { last_request_at: new Date(lastMemberRequest).toISOString() } : {}) })
   })
   app.get('/api/apps/:slug/records', needMember, (c) => { const d = door(c); return d === null ? noApp(c) : reply(c, d.records(asks(c, 'object', 'deleted'))) })
   app.get('/api/apps/:slug/links', needMember, (c) => { const d = door(c); return d === null ? noApp(c) : reply(c, d.links(asks(c, 'object', 'id'))) })
