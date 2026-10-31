@@ -112,6 +112,31 @@ ok('a link must point at an object of the template and cannot be required', () =
   refused(req, /a link cannot be required/)
 })
 
+ok('profiles are optional, checked against the objects, and kept as plain strings in a language', () => {
+  const t = clone(TEMPLATE)
+  t.profiles = [{ id: 'member', label: L('Team member', 'Membre'), grants: [{ object: 'contact', do: ['read', 'update'], fields: { name: 'read' } }, { object: 'order', do: ['read'] }] }]
+  assert.equal(validateTemplate(t).ok, true, JSON.stringify(validateTemplate(t).errors))
+  const fr = buildStructure(t, 'fr')
+  assert.deepEqual(fr.errors, [])
+  assert.deepEqual(fr.profiles, [{ id: 'member', label: 'Membre', grants: [{ object: 'contact', do: ['read', 'update'], fields: { name: 'read' } }, { object: 'order', do: ['read'] }] }])
+  assert.equal(buildStructure(t, 'en').profiles[0].label, 'Team member')
+  assert.deepEqual(buildStructure(TEMPLATE, 'en').profiles, [], 'none shipped, none made')
+  const ghost = clone(t); ghost.profiles[0].grants[0].object = 'ghost'
+  refused(ghost, /profiles\.0\.grants\.0\.object: no such table in this app: ghost/)
+  const field = clone(t); field.profiles[0].grants[0].fields.nope = 'read'
+  refused(field, /no such field in this table/)
+  const del = clone(t); del.profiles[0].grants[0].do = ['read', 'delete']
+  refused(del, /a member never deletes/)
+  const owner = clone(t); owner.profiles[0].id = 'owner'
+  refused(owner, /built in/)
+  const unlabelled = clone(t); unlabelled.profiles[0].label = { fr: 'Membre' }
+  refused(unlabelled, /profiles\[0\]\.label/)
+  const loose = clone(t); loose.profiles[0].extra = 1
+  refused(loose, /unknown key|not a property here/)
+  const many = clone(t); many.profiles = Array.from({ length: 9 }, (_, i) => ({ id: 'p' + i, label: L('P'), grants: [] }))
+  refused(many, /profiles: a list of at most/)
+})
+
 ok('a view must belong to an object, be sound for it and have an id of its own', () => {
   const orphan = clone(TEMPLATE); orphan.views[0].object = 'ghost'
   refused(orphan, /views\[0\]\.object: not an object/)

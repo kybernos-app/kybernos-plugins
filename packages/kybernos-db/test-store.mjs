@@ -1069,5 +1069,56 @@ ok('putting the whole db away refuses every write and shows in the registry; onl
   assert.deepEqual(reg.list(), [])
 })
 
+// ---------------------------------------------------------------- profiles
+const PROFILES = [{ id: 'member', label: 'Team member', grants: [{ object: 'task', do: ['read', 'create', 'update'], fields: { title: 'read' } }, { object: 'note', do: ['read'] }] }]
+ok('a new app has no profile; profiles are set whole, validated against its tables, and a new version of the catalogue says who set them', () => {
+  const { db } = make()
+  assert.deepEqual(db.profiles(), [])
+  const v0 = db.info().version
+  const r = db.setProfiles(PROFILES, 'noor')
+  assert.ok(r.ok && r.applied, JSON.stringify(r))
+  assert.equal(r.version, v0 + 1)
+  assert.deepEqual(db.profiles(), PROFILES)
+  assert.equal(db.setProfiles(PROFILES, 'noor').applied, false, 'the same profiles again change nothing')
+  assert.equal(db.info().version, v0 + 1)
+  assert.equal(db.setProfiles([], 'noor').applied, true)
+  assert.deepEqual(db.profiles(), [])
+  const bad = (list, code) => { const e = db.setProfiles(list, 'noor'); assert.equal(e.ok, false); assert.ok(e.errors.some((x) => x.code === code), code + ' in ' + JSON.stringify(e.errors)) }
+  bad([{ id: 'member', label: 'M', grants: [{ object: 'nope', do: ['read'] }] }], 'unknown-object')
+  bad([{ id: 'member', label: 'M', grants: [{ object: 'task', do: ['read'], fields: { nope: 'read' } }] }], 'unknown-field')
+  bad([{ id: 'member', label: 'M', grants: [{ object: 'task', do: ['read', 'delete'] }] }], 'never-delete')
+  bad([{ id: 'owner', label: 'O', grants: [] }], 'reserved')
+  assert.equal(db.setProfiles(PROFILES, '').code, 'invalid')
+  assert.deepEqual(db.profiles(), [], 'a refusal changed nothing')
+})
+ok('profiles survive a reopen, and a profile is not lost when the structure changes', () => {
+  const { dir, db } = make()
+  db.addObject(PROJECT, 'noor')
+  assert.ok(db.setProfiles(PROFILES, 'noor').ok)
+  db.addObject({ key: 'extra', label: 'Extra', fields: [{ key: 'name', type: 'text', label: 'Name' }] }, 'noor')
+  assert.deepEqual(db.profiles(), PROFILES, 'adding a table keeps them')
+  db.close()
+  const again = open(dir)
+  assert.deepEqual(again.profiles(), PROFILES)
+  again.close()
+})
+ok('a table that goes takes its grants with it, and the fields that pointed at it; an archived table keeps them', () => {
+  const { db } = make({ objects: [PROJECT, TASK, NOTE] })
+  const list = [{ id: 'member', label: 'M', grants: [{ object: 'project', do: ['read'] }, { object: 'task', do: ['read'], fields: { project: 'read', title: 'read' } }] }]
+  assert.ok(db.setProfiles(list, 'noor').ok)
+  assert.ok(db.archiveObject('project', 'noor').ok)
+  assert.equal(db.profiles()[0].grants.length, 2, 'put away is not gone')
+  const gone = db.deleteObject('project', 'noor')
+  assert.ok(gone.ok, JSON.stringify(gone))
+  const after = db.profiles()[0].grants
+  assert.deepEqual(after.map((g) => g.object), ['task'], 'the grant on the deleted table is gone')
+  assert.deepEqual(after[0].fields, { title: 'read' }, 'the link field that pointed at it is no longer named')
+})
+ok('an archived app takes no profile change', () => {
+  const { db } = make()
+  db.archive('noor')
+  assert.equal(db.setProfiles(PROFILES, 'noor').code, 'archived')
+})
+
 rmSync(root, { recursive: true, force: true })
 console.log('\n' + count + ' checks passed')

@@ -17,7 +17,7 @@
 import { chmodSync, closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { MAX_ATTACHMENT_BYTES, applyOp, buildCreate, buildUpdate, checkView, isPlain, isUlid, normalizeField, normalizeValue, normalizeView, repairView, sameJson } from '../core/index.mjs'
+import { MAX_ATTACHMENT_BYTES, applyOp, buildCreate, buildUpdate, checkView, isPlain, isUlid, normalizeField, normalizeProfiles, normalizeValue, normalizeView, repairView, sameJson } from '../core/index.mjs'
 import { MAX_FIELDS, MAX_OBJECTS, changeField, changeObject, findObject, normalizeObject } from './catalog.mjs'
 import { fromColumn, toColumn } from './columns.mjs'
 import { hashOf, openBlobs } from './blobs.mjs'
@@ -51,7 +51,10 @@ function makeDb (handle, file, ports) {
   // The structure, re-read whenever another connection has changed it (inside a write that is inside the lock, so it cannot change under the write).
   const catalog = () => {
     const version = prepare('SELECT max(version) AS v FROM catalog').get().v
-    if (cat === null || cat.version !== version) cat = { version, objects: JSON.parse(prepare('SELECT json FROM catalog WHERE version = ?').get(version).json).objects }
+    if (cat === null || cat.version !== version) {
+      const json = JSON.parse(prepare('SELECT json FROM catalog WHERE version = ?').get(version).json)
+      cat = { version, objects: json.objects, profiles: Array.isArray(json.profiles) ? json.profiles : [] }
+    }
     return cat
   }
   const objOf = (key) => findObject(catalog().objects, key)
@@ -296,11 +299,39 @@ function makeDb (handle, file, ports) {
     return { ok: problems.length === 0, problems }
   }
 
-  const commitCatalog = (change, by, objects) => {
-    const version = catalog().version + 1
-    prepare('INSERT INTO catalog (version, change, actor, at, json) VALUES (?, ?, ?, ?, ?)').run(version, change, by, stamp().at, JSON.stringify({ objects }))
-    cat = { version, objects }
+  /** The profiles with every grant on a table or a field that is gone taken out, so a profile never names what the app no longer has. */
+  const pruneProfiles = (profiles, objects) => profiles.map((p) => ({
+    ...p,
+    grants: p.grants.filter((g) => findObject(objects, g.object) !== undefined).map((g) => {
+      if (g.fields === undefined) return g
+      const keys = new Set(findObject(objects, g.object).fields.map((f) => f.key))
+      const fields = Object.fromEntries(Object.entries(g.fields).filter(([k]) => keys.has(k)))
+      return Object.keys(fields).length === 0 ? { object: g.object, do: g.do } : { ...g, fields }
+    }),
+  }))
+
+  /** A new version of the catalog: the objects given and, unless `profiles` says otherwise, the profiles it already had (pruned to what is left). */
+  const commitCatalog = (change, by, objects, profiles) => {
+    const current = catalog()
+    const version = current.version + 1
+    const kept = pruneProfiles(profiles === undefined ? current.profiles : profiles, objects)
+    prepare('INSERT INTO catalog (version, change, actor, at, json) VALUES (?, ?, ?, ?, ?)').run(version, change, by, stamp().at, JSON.stringify(kept.length === 0 ? { objects } : { objects, profiles: kept }))
+    cat = { version, objects, profiles: kept }
     return version
+  }
+
+  /** Replaces the app's profiles (profiles.mjs): who may see and do what, as data. A refusal changes nothing; the same profiles again change nothing. */
+  const setProfiles = (list, by) => {
+    live()
+    if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
+    return write(() => {
+      const { objects, profiles } = catalog()
+      if (sealed()) return sealed()
+      const n = normalizeProfiles(list, objects)
+      if (!n.ok) return invalid(n.errors)
+      if (sameJson(n.profiles, profiles)) return { ok: true, applied: false, version: catalog().version, profiles: structuredClone(profiles) }
+      return { ok: true, applied: true, version: commitCatalog('set-profiles', by, objects, n.profiles), profiles: structuredClone(n.profiles) }
+    })
   }
 
   const addObject = (def, by) => {
@@ -594,6 +625,9 @@ function makeDb (handle, file, ports) {
     fingerprint,
     /** The live objects; `{ all: true }` adds the archived ones (they carry `archived: { by, at }`). */
     objects: (opts) => { live(); return structuredClone(isPlain(opts) && opts.all === true ? catalog().objects : catalog().objects.filter((o) => o.archived === undefined)) },
+    /** The profiles of this app, `[]` when it has none (only the owner then): `{ id, label, grants }`, see core/profiles.mjs. */
+    profiles: () => { live(); return structuredClone(catalog().profiles) },
+    setProfiles,
     addObject,
     archiveObject: (key, by) => setArchived(key, by, true),
     restoreObject: (key, by) => setArchived(key, by, false),

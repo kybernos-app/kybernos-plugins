@@ -895,5 +895,52 @@
       "kind": "table",
       "fav": true
     }
+  ],
+  "profiles": [
+    {
+      "id": "member",
+      "label": {
+        "en": "Team member",
+        "fr": "Membre de l’équipe"
+      },
+      "grants": [
+        {
+          "object": "orders",
+          "do": [
+            "read",
+            "create",
+            "update"
+          ]
+        },
+        {
+          "object": "note",
+          "do": [
+            "read",
+            "create",
+            "update"
+          ]
+        },
+        {
+          "object": "contact",
+          "do": [
+            "read",
+            "create",
+            "update"
+          ],
+          "fields": {
+            "email": "read"
+          }
+        },
+        {
+          "object": "product",
+          "do": [
+            "read"
+          ],
+          "fields": {
+            "stock": "write"
+          }
+        }
+      ]
+    }
   ]
 }
