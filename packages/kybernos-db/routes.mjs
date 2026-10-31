@@ -45,7 +45,7 @@ export const hostOk = (req) => {
   } catch (e) { return false }
 }
 
-const STATUS = { 'too-big': 413, unknown_db: 404, unknown_object: 404, no_db: 404, which_db: 400, missing: 404, deleted: 409, exists: 409, archived: 409, 'not-archived': 409, published: 409, confirm: 400, sqlite_unavailable: 503, db_newer: 503, not_a_db: 503, failed: 500 }
+const STATUS = { 'too-big': 413, unknown_db: 404, unknown_object: 404, no_db: 404, which_db: 400, missing: 404, deleted: 409, exists: 409, archived: 409, 'not-archived': 409, published: 409, confirm: 400, forbidden: 403, sqlite_unavailable: 503, db_newer: 503, not_a_db: 503, failed: 500 }
 const statusOf = (answer) => (answer.ok === true ? 200 : (STATUS[answer.error] || 400))
 
 const sendJson = (res, status, payload) => {

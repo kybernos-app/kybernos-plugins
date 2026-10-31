@@ -5,12 +5,15 @@
 //   - the owner's agent (Kaby) reads and writes records and views freely, but asks the person before it touches a field that is not `normal`
 //     or changes the structure (a card shows the change before and after) or puts a table or an app away, and it can raise a field's protection, never lower it;
 //     deleting a table or an app for good is the person's alone: the agent is refused, and says so;
-//   - anyone else is refused until team profiles bring their own rules (phase C): the answer is deny, never a guess.
+//   - a team member (`kind: 'member'`) is answered from their profile (profiles.mjs): additive and default-deny, a table only if it has a grant, a field only as its access says;
+//     a member never deletes a record and never changes the structure, whatever the profile says;
+//   - anyone else is refused: the answer is deny, never a guess.
 //
 // The answer is `{ effect: 'allow' | 'ask' | 'deny', reason?, mask? }`. `ask` means « only with the person's OK, now ».
 
 import { PROTECTION } from './types.mjs'
 import { isPlain } from './text.mjs'
+import { fieldAccess, grantOf, grantUpdates } from './profiles.mjs'
 
 export const ACTIONS = ['record.read', 'record.create', 'record.update', 'record.delete', 'field.read', 'field.write', 'view.edit', 'schema.change', 'schema.archive', 'schema.delete', 'field.protect']
 
@@ -24,11 +27,37 @@ const answer = (effect, reason, mask) => {
   return out
 }
 
+/** A team member: answered from the profile the actor carries (`actor.profile`, normalized by profiles.mjs); `resource.object` is the table's key. */
+function canMember (actor, action, resource) {
+  if (!ACTIONS.includes(action)) return answer('deny', 'unknown-action')
+  if (!isPlain(actor.profile)) return answer('deny', 'no-profile')
+  if (action === 'record.delete') return answer('deny', 'members-never-delete')
+  if (action === 'schema.change' || action === 'schema.archive' || action === 'schema.delete' || action === 'view.edit' || action === 'field.protect') return answer('deny', 'owner-only')
+  const object = isPlain(resource) ? resource.object : undefined
+  const grant = grantOf(actor.profile, object)
+  if (grant === undefined) return answer('deny', 'no-access')
+  switch (action) {
+    case 'record.read': return grant.do.includes('read') ? answer('allow') : answer('deny', 'no-access')
+    case 'record.create': return grant.do.includes('create') ? answer('allow') : answer('deny', 'no-access')
+    case 'record.update': return grantUpdates(grant) ? answer('allow') : answer('deny', 'no-access')
+    default: {
+      const field = isPlain(resource) && isPlain(resource.field) ? resource.field : null
+      if (field === null) return answer('deny', 'no-field')
+      const access = fieldAccess(actor.profile, object, field)
+      if (access === 'hidden') return answer('deny', 'hidden-field')
+      if (action === 'field.write' && access !== 'write') return answer('deny', 'read-only-field')
+      return answer('allow')
+    }
+  }
+}
+
 /**
- * `actor` is `{ kind: 'person' | 'agent', role: 'owner' }`, `action` one of ACTIONS, `resource` what it is about:
- * `{ field: { protection } }` for field.read and field.write, `{ field: { protection }, to }` for field.protect (`to` is the level asked for).
+ * `actor` is `{ kind: 'person' | 'agent', role: 'owner' }` or `{ kind: 'member', role: <profile id>, profile }`, `action` one of ACTIONS, `resource` what it is about:
+ * `{ field: { protection } }` for field.read and field.write, `{ field: { protection }, to }` for field.protect (`to` is the level asked for); for a member also `object`
+ * (the table's key) and `field: { key, protection }`.
  */
 export function can (actor, action, resource) {
+  if (isPlain(actor) && actor.kind === 'member') return canMember(actor, action, resource)
   if (!isPlain(actor) || actor.role !== 'owner') return answer('deny', 'not-owner')
   if (!ACTIONS.includes(action)) return answer('deny', 'unknown-action')
   const field = isPlain(resource) && isPlain(resource.field) ? resource.field : {}

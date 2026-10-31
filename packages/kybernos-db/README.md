@@ -97,7 +97,19 @@ column, their place in the views, their values in the journal; an update that on
 Rights: `can()` has `schema.archive` (Kaby asks the person, with a card) and `schema.delete` (the person's alone, Kaby is refused). The agent has `db_archive` and `db_restore` (restore is free); it has
 no tool to delete for good, by design.
 
+## Profiles and the door
+
+An app can carry **profiles**, the rules a team member works under once it is shared (`core/profiles.mjs`, kept in the app's own catalogue by `db.setProfiles(list, by)` / `db.profiles()`, so the page, the agent and the hosted app read the same data;
+a template ships them as `profiles` in `db/<id>.json`). A profile is `{ id, label, grants }` and a grant is `{ object, do, fields? }`: additive and **default-deny**, a table only where it has a grant, `do` a list of `read`, `create`, `update`
+(**`delete` is not a verb**: a member never deletes, restores or changes the structure, whatever a profile says), `fields` mapping a field to `hidden`, `read` or `write`. A `normal` field follows the grant, a `personal` one is hidden until
+named, a `sensitive` or `secret` one is always hidden. The owner is built in (`owner` is a reserved id). The e-commerce template ships **Team member**: reads and edits orders, notes and contacts (email read-only, nothing deleted), reads
+products and edits their stock.
+
+`can(actor, action, resource)` answers for a member too (`{ kind: 'member', role, profile }`, `resource.object`, `resource.field`); `api.as(actor)` is the door that asks it **on every call**: the owner gets the door the page uses, a member
+gets lists without the tables they have no grant for and without any hidden field, writes refused field by field (`forbidden`, with the reason) and journalled as `member:<id>`, no view, no archive, no delete; anything else gets a door that refuses
+everything. The profile is read from the app by the member's role, never from the request. `test-door.mjs` is the rights matrix over a real db built from the e-commerce template; `vectors/rights.json` holds the shared cases for any other implementation.
+
 ## What is not here yet
 
-Removing a single field or renaming an object or a field, and changing a field's type (only adding is possible), creating a row from a link picker, a preview bigger than a thumbnail, dropping a folder, sync with the server, and team rights
-(`can()` refuses everyone but the owner, and the store does not call it: the door that calls the store does).
+Removing a single field or renaming an object or a field, and changing a field's type (only adding is possible), creating a row from a link picker, a preview bigger than a thumbnail, dropping a folder, sync with the server, row rules
+(a member sees every row of a table they may read), a door for the owner's agent over the network, and a way to edit profiles from the page or from Kaby (a template ships them today). The store does not call `can()`: the door that calls the store does.

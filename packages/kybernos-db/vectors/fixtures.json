@@ -20,7 +20,9 @@
     "#X4": "01JBXACT000000000000000004",
     "#X5": "01JBXACT000000000000000005",
     "#X6": "01JBXACT000000000000000006",
-    "#X7": "01JBXACT000000000000000007"
+    "#X7": "01JBXACT000000000000000007",
+    "#PROFILE-SHOP": {"id": "member", "label": "Team member", "grants": [{"object": "orders", "do": ["read", "create", "update"]}, {"object": "note", "do": ["read", "create", "update"]}, {"object": "contact", "do": ["read", "create", "update"], "fields": {"email": "read", "iban": "write", "token": "write"}}, {"object": "product", "do": ["read"], "fields": {"stock": "write"}}]},
+    "#PROFILE-INTAKE": {"id": "intake", "label": "Intake", "grants": [{"object": "orders", "do": ["create"]}]}
   },
   "labels": {
     "noor": "Noor",

@@ -7,7 +7,9 @@
 //                   "fields": [{ "key": "name", "type": "text", "label": { "en": "Name", "fr": "Nom" } },
 //                              { "key": "status", "type": "choice", "label": {…}, "options": [{ "key": "sold", "label": {…}, "color": "gray" }] },
 //                              { "key": "owner", "type": "relation", "to": "contact", "label": {…}, "inverse": { "en": "Properties" } }] }],
-//     "views":   [{ "object": "property", "id": "by-status", "name": { "en": "By status" }, "kind": "board", "by": "status" }] }
+//     "views":   [{ "object": "property", "id": "by-status", "name": { "en": "By status" }, "kind": "board", "by": "status" }],
+//     "profiles": [{ "id": "member", "label": { "en": "Team member" }, "grants": [{ "object": "property", "do": ["read", "update"], "fields": { "owner": "read" } }] }] }
+// `profiles` say what a team member may do once the app is shared (core/profiles.mjs: additive, default-deny, a member never deletes or changes the structure); the owner needs none.
 // It is the same structure the Tables page and the agents build by hand (store/catalog.mjs, core/view.mjs), with every label a `{ en, fr? }` pair: the person's
 // language is picked when the database is made (`resolveTemplate`), and a database keeps plain strings from then on.
 //
@@ -17,7 +19,7 @@
 //
 // The check is pure and bounded: known keys only, every text and list has a limit, no code and no URL. The registry calls it with the file's name (without
 // `.json`) as `fileId`; `scripts/plugin-check.mjs` calls it on a theme's folder before anything is installed.
-import { isPlain, normalizeView } from './core/index.mjs'
+import { PROFILE_LIMITS, isPlain, normalizeProfiles, normalizeView } from './core/index.mjs'
 import { normalizeObject } from './store/catalog.mjs'
 
 export const OWNER = 'kybernos/db'
@@ -63,7 +65,7 @@ export function languagesOf (template) {
 }
 
 /**
- * The template in one language, as the store wants it: `{ name, objects, views }` with plain-string labels, options and inverse names.
+ * The template in one language, as the store wants it: `{ name, objects, views, profiles }` with plain-string labels, options and inverse names.
  * Pure; a pair that lacks `lang` gives its English text.
  */
 export function resolveTemplate (template, lang) {
@@ -79,16 +81,17 @@ export function resolveTemplate (template, lang) {
     }),
   }))
   const views = (template.views || []).map((v) => ({ ...v, name: pick(v.name, lang) }))
-  return { name: pick(template.name, lang), objects, views }
+  const profiles = (template.profiles || []).map((p) => ({ ...p, label: pick(p.label, lang) }))
+  return { name: pick(template.name, lang), objects, views, profiles }
 }
 
 /**
- * The template in one language as the store checks it: `{ name, objects, views, errors }` with `objects` normalized (defaults filled), `views` as given and
+ * The template in one language as the store checks it: `{ name, objects, views, profiles, errors }` with `objects` and `profiles` normalized (defaults filled), `views` as given and
  * `errors` every problem found (`[ 'where: what' ]`): a field the store refuses, a link to an object the template lacks, a view the store refuses.
  */
 export function buildStructure (template, lang) {
   const errors = []
-  const { name, objects, views } = resolveTemplate(template, lang)
+  const { name, objects, views, profiles } = resolveTemplate(template, lang)
   const normal = []
   objects.forEach((raw, i) => {
     const r = normalizeObject(raw)
@@ -115,14 +118,20 @@ export function buildStructure (template, lang) {
     const n = normalizeView(view, obj)
     if (!n.ok) for (const e of n.errors) errors.push(at + (e.path ? '.' + e.path : '') + ': ' + e.message)
   })
-  return { name, objects: normal, views, errors }
+  let kept = []
+  if (profiles.length > 0) {
+    const p = normalizeProfiles(profiles, normal)
+    if (p.ok) kept = p.profiles
+    else for (const e of p.errors) errors.push('profiles' + (e.path ? '.' + e.path : '') + ': ' + e.message)
+  }
+  return { name, objects: normal, views, profiles: kept, errors }
 }
 
 /** `{ ok: true, value }` (a copy of the template) or `{ ok: false, errors }`. Never throws. */
 export function validateTemplate (raw, fileId) {
   const errors = []
   if (!isPlain(raw)) return { ok: false, errors: ['a database template is a JSON object'] }
-  onlyKeys(raw, ['id', 'name', 'objects', 'views'], 'template', errors)
+  onlyKeys(raw, ['id', 'name', 'objects', 'views', 'profiles'], 'template', errors)
   if (typeof raw.id !== 'string' || !ID.test(raw.id)) errors.push('id: lower-case letters, digits, "-" or "_", 1 to 40')
   else if (typeof fileId === 'string' && fileId !== raw.id) errors.push('id "' + raw.id + '" must be the name of its file (' + fileId + '.json)')
   checkPair(raw.name, 'name', 80, errors)
@@ -151,6 +160,10 @@ export function validateTemplate (raw, fileId) {
   if (raw.views !== undefined) {
     if (!Array.isArray(raw.views) || raw.views.length > LIMITS.views) errors.push('views: a list of at most ' + LIMITS.views)
     else raw.views.forEach((v, i) => { if (!isPlain(v)) errors.push('views[' + i + ']: an object'); else checkPair(v.name, 'views[' + i + '].name', 60, errors) })
+  }
+  if (raw.profiles !== undefined) {
+    if (!Array.isArray(raw.profiles) || raw.profiles.length > PROFILE_LIMITS.profiles) errors.push('profiles: a list of at most ' + PROFILE_LIMITS.profiles)
+    else raw.profiles.forEach((p, i) => { if (!isPlain(p)) errors.push('profiles[' + i + ']: an object'); else checkPair(p.label, 'profiles[' + i + '].label', 60, errors) })
   }
   // The pairs are sound (or reported): the structure itself is checked as the store checks it, in each language the template speaks.
   if (errors.length === 0) {

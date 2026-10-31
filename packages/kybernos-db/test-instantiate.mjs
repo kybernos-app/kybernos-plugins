@@ -83,6 +83,21 @@ await ok('a template is made into a database: objects, views, rows, links (also 
   assert.equal(db.attach(PIXEL, { name: 'x.jpg', type: 'image/jpeg' }, 1000).file.hash, bo.values.photo[0].hash, 'the picture is a blob shared by hash')
 })
 
+await ok('the profiles a template ships are kept by the database it makes, in the person’s language', () => {
+  const { service } = freshService()
+  const template = JSON.parse(JSON.stringify(TEMPLATE))
+  template.profiles = [{ id: 'member', label: L('Team member', 'Membre'), grants: [{ object: 'order', do: ['read', 'create', 'update'] }, { object: 'contact', do: ['read'], fields: { photo: 'hidden' } }] }]
+  const r = installTemplate({ service, template, sample: SAMPLE, lang: 'fr', photo })
+  assert.equal(r.ok, true, JSON.stringify(r))
+  const profiles = service.byId(r.db).db.profiles()
+  assert.deepEqual(profiles.map((p) => p.label), ['Membre'])
+  assert.deepEqual(profiles[0].grants.map((g) => g.object), ['order', 'contact'])
+  const bare = freshService().service
+  const none = installTemplate({ service: bare, template: TEMPLATE, sample: SAMPLE, lang: 'en', photo })
+  assert.equal(none.ok, true)
+  assert.deepEqual(bare.byId(none.db).db.profiles(), [], 'a template with no profile makes an app with none')
+})
+
 await ok('the person’s language is used, English when the template does not speak it', () => {
   const fr = installTemplate({ ...freshService(), template: TEMPLATE, sample: SAMPLE, lang: 'fr', photo })
   assert.equal(fr.name, 'Jardinerie')

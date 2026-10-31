@@ -3,6 +3,11 @@
 // The page is the person: its writes are journalled as « person », never as what the request says, and it sees every field in clear (`can()` allows a person
 // everything). It reads whole tables and does its search, filter and sort in the browser with the same core the agent uses, so the two always agree.
 //
+// `api.as(actor)` is the same door for someone else. The owner (`{ kind: 'person', role: 'owner' }`) gets the door above. A team member (`{ kind: 'member', role: <profile id>, id }`)
+// gets a door that asks `can()` before every answer, from the profile the app itself holds (core/profiles.mjs): a table without a grant is not listed, a hidden field is not in
+// any answer, a write that touches a field the profile gives only to read is refused, a member never deletes, restores, changes a view or the structure, and their writes are
+// journalled as « member:<id> ». Anyone else gets a door that refuses everything (`forbidden`). The decision is made here, on every call, never in the page.
+//
 //   state()                              the dbs (apps) with their objects, fields and views, a fingerprint to poll, the archived apps, and « today »
 //   app({ db, object?, op, confirm? })   op: archive | restore | delete, for an app or (with `object`) one of its tables; delete only what is archived, and asks the name back
 //   impact({ db, object? })              what deleting an app or a table would take: tables, rows, links cut, files
@@ -13,11 +18,12 @@
 //   file({ db, object, id, field, hash })     one file a row holds, with its bytes
 //   view({ db, object, op, view?, id? })      op: save | remove
 
+import { can, fieldAccess, grantOf, grantUpdates, profileOf } from './core/index.mjs'
 import { findObject } from './store/catalog.mjs'
 
 export const RECORDS_MAX = 5000
 export const LINKS_MAX = 50
-const BY = 'person'
+const OWNER_BY = 'person'
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const fail = (error, message, extra) => ({ ok: false, error, message, ...(extra || {}) })
 const fromStore = (r) => fail(r.code || 'failed', r.message || 'the engine refused it', Array.isArray(r.errors) ? { errors: r.errors.slice(0, 8) } : undefined)
@@ -49,7 +55,8 @@ export function makeApi ({ service, ports = {} }) {
     return { db: r.db, obj, a }
   }
 
-  return {
+  /** The owner's door, writing as `by`. */
+  const ownerDoor = (by) => ({
     state () {
       const dbs = []
       const archived = []
@@ -80,7 +87,7 @@ export function makeApi ({ service, ports = {} }) {
       if (found === undefined) return fail('unknown_db', 'no such app')
       if (a.object === undefined) {
         if (a.op === 'delete' && a.confirm !== found.name) return fail('confirm', 'type the name of the app to confirm')
-        const r = a.op === 'archive' ? service.archive(a.db, BY) : a.op === 'restore' ? service.unarchive(a.db) : service.remove(a.db)
+        const r = a.op === 'archive' ? service.archive(a.db, by) : a.op === 'restore' ? service.unarchive(a.db) : service.remove(a.db)
         return r.ok ? { ok: true, applied: r.applied !== false } : fromStore(r)
       }
       const t = service.byId(a.db)
@@ -88,7 +95,7 @@ export function makeApi ({ service, ports = {} }) {
       const obj = findObject(t.db.objects({ all: true }), a.object)
       if (!obj) return fail('unknown_object', 'no such table in this app')
       if (a.op === 'delete' && a.confirm !== obj.label) return fail('confirm', 'type the name of the table to confirm')
-      const r = a.op === 'archive' ? t.db.archiveObject(obj.key, BY) : a.op === 'restore' ? t.db.restoreObject(obj.key, BY) : t.db.deleteObject(obj.key, BY)
+      const r = a.op === 'archive' ? t.db.archiveObject(obj.key, by) : a.op === 'restore' ? t.db.restoreObject(obj.key, by) : t.db.deleteObject(obj.key, by)
       return r.ok ? { ok: true, applied: r.applied !== false } : fromStore(r)
     },
 
@@ -177,9 +184,9 @@ export function makeApi ({ service, ports = {} }) {
       if (t.err) return t.err
       const { db, obj, a } = t
       switch (a.op) {
-        case 'create': { const r = db.create(obj.key, plain(a.values) ? a.values : {}, BY); return r.ok ? { ok: true, record: shape(r.record) } : fromStore(r) }
-        case 'update': { const r = db.update(obj.key, a.id, plain(a.values) ? a.values : {}, BY); return r.ok ? { ok: true, record: shape(r.record), applied: r.applied !== false } : fromStore(r) }
-        case 'delete': case 'restore': { const r = db[a.op === 'delete' ? 'remove' : 'restore'](obj.key, a.id, BY); return r.ok ? { ok: true, record: shape(r.record), applied: r.applied !== false } : fromStore(r) }
+        case 'create': { const r = db.create(obj.key, plain(a.values) ? a.values : {}, by); return r.ok ? { ok: true, record: shape(r.record) } : fromStore(r) }
+        case 'update': { const r = db.update(obj.key, a.id, plain(a.values) ? a.values : {}, by); return r.ok ? { ok: true, record: shape(r.record), applied: r.applied !== false } : fromStore(r) }
+        case 'delete': case 'restore': { const r = db[a.op === 'delete' ? 'remove' : 'restore'](obj.key, a.id, by); return r.ok ? { ok: true, record: shape(r.record), applied: r.applied !== false } : fromStore(r) }
         default: return fail('invalid', 'op is create, update, delete or restore')
       }
     },
@@ -188,9 +195,144 @@ export function makeApi ({ service, ports = {} }) {
       const t = aim(body)
       if (t.err) return t.err
       const { db, obj, a } = t
-      if (a.op === 'save') { const r = db.saveView(obj.key, a.view, BY); return r.ok ? { ok: true, view: r.view, created: r.created, applied: r.applied } : fromStore(r) }
+      if (a.op === 'save') { const r = db.saveView(obj.key, a.view, by); return r.ok ? { ok: true, view: r.view, created: r.created, applied: r.applied } : fromStore(r) }
       if (a.op === 'remove') { const r = db.removeView(obj.key, a.id); return r.ok ? { ok: true, removed: r.removed } : fromStore(r) }
       return fail('invalid', 'op is save or remove')
     },
+  })
+
+  const forbidden = (reason) => fail('forbidden', 'you may not do that here', { reason })
+  /** A door that refuses everything: for an actor that is neither the owner nor a member. */
+  const closedDoor = () => {
+    const no = () => forbidden('not-allowed')
+    return { state: no, app: no, impact: no, records: no, links: no, upload: no, file: no, write: no, view: no }
   }
+
+  /** The door of a team member: every call is asked of `can()`, from the profile the app holds for their role. */
+  const memberDoor = (actor) => {
+    const by = ('member:' + String(actor.id === undefined ? '' : actor.id)).slice(0, 64)
+    const owner = ownerDoor(by)
+    const who = { kind: 'member', role: actor.role }
+    /** `{ db, profile }` for the app a request means, or `{ err }`: no profile for this role in that app is a refusal, not a guess. */
+    const within = (q) => {
+      const t = aim(q)
+      if (t.err) return t
+      const profile = profileOf(t.db.profiles(), actor.role)
+      if (profile === undefined) return { err: forbidden('no-profile') }
+      return { ...t, who: { ...who, profile } }
+    }
+    const ask = (t, action, field) => can(t.who, action, { object: t.obj.key, ...(field === undefined ? {} : { field }) })
+    const denied = (verdict) => forbidden(verdict.reason)
+    /** The fields of an object this profile may see, with what each allows. */
+    const seen = (profile, obj) => obj.fields.map((f) => ({ field: f, access: fieldAccess(profile, obj.key, f) })).filter((x) => x.access !== 'hidden')
+    const values = (profile, obj, record) => { const out = {}; for (const { field } of seen(profile, obj)) out[field.key] = record.values[field.key]; return out }
+    const shapeFor = (profile, obj, rec) => ({ ...shape(rec), values: values(profile, obj, rec) })
+
+    return {
+      state () {
+        const dbs = []
+        const made = templates()
+        for (const d of service.list()) {
+          if (d.archived !== null) continue
+          const r = service.byId(d.id)
+          if (!r.ok) continue
+          const profile = profileOf(r.db.profiles(), actor.role)
+          if (profile === undefined) continue
+          const objects = r.db.objects().filter((o) => can({ ...who, profile }, 'record.read', { object: o.key }).effect === 'allow').map((o) => {
+            const grant = grantOf(profile, o.key)
+            return {
+              key: o.key, label: o.label, title: seen(profile, o).some((x) => x.field.key === o.title) ? o.title : null, count: r.db.count(o.key),
+              can: { create: grant.do.includes('create'), update: grantUpdates(grant) },
+              fields: seen(profile, o).map((x) => ({ ...x.field, access: x.access })),
+            }
+          })
+          dbs.push({ id: d.id, name: d.name, template: made.has(d.id) ? made.get(d.id) : null, fingerprint: r.db.fingerprint(), profile: { id: profile.id, label: profile.label }, objects })
+        }
+        return { ok: true, dbs, today: today() }
+      },
+
+      app: () => forbidden('owner-only'),
+      impact: () => forbidden('owner-only'),
+      view: () => forbidden('owner-only'),
+
+      records (q) {
+        const t = within(q)
+        if (t.err) return t.err
+        const v = ask(t, 'record.read')
+        if (v.effect !== 'allow') return denied(v)
+        const rows = t.db.list(t.obj.key, {})
+        return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > RECORDS_MAX, records: rows.slice(0, RECORDS_MAX).map((r) => shapeFor(t.who.profile, t.obj, r)), fingerprint: t.db.fingerprint() }
+      },
+
+      links (q) {
+        const t = within(q)
+        if (t.err) return t.err
+        const v = ask(t, 'record.read')
+        if (v.effect !== 'allow') return denied(v)
+        const r = owner.links(q)
+        if (!r.ok) return r
+        const objects = t.db.objects()
+        const groups = []
+        for (const g of r.groups) {
+          const from = findObject(objects, g.object)
+          const field = from.fields.find((f) => f.key === g.field)
+          if (can({ ...who, profile: t.who.profile }, 'record.read', { object: g.object }).effect !== 'allow' || fieldAccess(t.who.profile, g.object, field) === 'hidden') continue
+          const titleSeen = fieldAccess(t.who.profile, g.object, from.fields.find((f) => f.key === from.title)) !== 'hidden'
+          groups.push({ ...g, records: g.records.map((x) => (titleSeen ? x : { ...x, title: '' })) })
+        }
+        return { ...r, groups }
+      },
+
+      upload (q) {
+        const t = within(q)
+        if (t.err) return t.err
+        const field = t.obj.fields.find((f) => f.key === t.a.field)
+        if (field === undefined) return fail('invalid', 'there is no attachment field of that name in this table')
+        const v = ask(t, 'field.write', field)
+        if (v.effect !== 'allow') return denied(v)
+        return owner.upload(q)
+      },
+
+      file (q) {
+        const t = within(q)
+        if (t.err) return t.err
+        const field = t.obj.fields.find((f) => f.key === t.a.field)
+        if (field === undefined) return fail('missing', 'that row holds no such file')
+        const v = ask(t, 'field.read', field)
+        if (v.effect !== 'allow') return denied(v)
+        const row = ask(t, 'record.read')
+        if (row.effect !== 'allow') return denied(row)
+        return owner.file(q)
+      },
+
+      write (body) {
+        const t = within(body)
+        if (t.err) return t.err
+        const op = t.a.op
+        if (op !== 'create' && op !== 'update' && op !== 'delete' && op !== 'restore') return fail('invalid', 'op is create or update')
+        const v = ask(t, op === 'create' ? 'record.create' : op === 'update' ? 'record.update' : 'record.delete')
+        if (v.effect !== 'allow') return denied(v)
+        if (op === 'create' || op === 'update') {
+          const given = plain(t.a.values) ? t.a.values : {}
+          for (const key of Object.keys(given)) {
+            const field = t.obj.fields.find((f) => f.key === key)
+            if (field === undefined) return fail('invalid', 'no such field in this table: ' + key)
+            const f = ask(t, 'field.write', field)
+            if (f.effect !== 'allow') return denied(f)
+          }
+        }
+        const r = owner.write(body)
+        return r.ok && r.record !== undefined ? { ...r, record: { ...r.record, values: values(t.who.profile, t.obj, r.record) } } : r
+      },
+    }
+  }
+
+  const owners = ownerDoor(OWNER_BY)
+  /** The door for an actor: the owner's, a member's, or one that refuses everything. */
+  owners.as = (actor) => {
+    if (plain(actor) && actor.kind === 'person' && actor.role === 'owner') return owners
+    if (plain(actor) && actor.kind === 'member' && typeof actor.role === 'string' && actor.role !== '') return memberDoor(actor)
+    return closedDoor()
+  }
+  return owners
 }

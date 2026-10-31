@@ -36,6 +36,52 @@ if (report.failures.length) {
 }
 console.log('digest', report.digest, '(' + report.total + ' cases)')
 
+ok('profiles: a good list is copied whole, every refusal names its place, and the helpers answer from the grants', () => {
+  const objects = [{ key: 'order', fields: [{ key: 'title' }, { key: 'value' }] }, { key: 'contact', fields: [{ key: 'name' }, { key: 'email' }, { key: 'phone' }] }]
+  const good = [{ id: 'member', label: ' Team member ', grants: [{ object: 'order', do: ['update', 'read'] }, { object: 'contact', do: ['read'], fields: { email: 'read' } }] }]
+  const r = core.normalizeProfiles(good, objects)
+  assert.ok(r.ok, JSON.stringify(r.errors))
+  assert.deepEqual(r.profiles, [{ id: 'member', label: 'Team member', grants: [{ object: 'order', do: ['read', 'update'] }, { object: 'contact', do: ['read'], fields: { email: 'read' } }] }], 'verbs in their order, label trimmed')
+  assert.equal(core.normalizeProfiles([], objects).ok, true)
+  assert.equal(core.normalizeProfiles(good).ok, true, 'without the objects only the shape is checked')
+  const bad = (list, code) => { const e = core.normalizeProfiles(list, objects); assert.equal(e.ok, false); assert.ok(e.errors.some((x) => x.code === code), code + ' in ' + JSON.stringify(e.errors)) }
+  const one = (patch) => [{ id: 'member', label: 'M', grants: [{ object: 'order', do: ['read'] }], ...patch }]
+  bad('nope', 'shape')
+  bad([null], 'shape')
+  bad(one({ id: 'Member' }), 'id')
+  bad(one({ id: 'owner' }), 'reserved')
+  bad([...one({}), ...one({})], 'duplicate')
+  bad(one({ label: '' }), 'label')
+  bad(one({ grants: 'x' }), 'grants')
+  bad(one({ grants: [{ object: 'order', do: [] }] }), 'do')
+  bad(one({ grants: [{ object: 'order', do: ['read', 'delete'] }] }), 'never-delete')
+  bad(one({ grants: [{ object: 'order', do: ['read', 'fly'] }] }), 'do')
+  bad(one({ grants: [{ object: 'order', do: ['read'] }, { object: 'order', do: ['read'] }] }), 'duplicate')
+  bad(one({ grants: [{ object: 'order', do: ['read'], fields: { title: 'maybe' } }] }), 'access')
+  bad(one({ grants: [{ object: 'order', do: ['read'], fields: { nope: 'read' } }] }), 'unknown-field')
+  bad(one({ grants: [{ object: 'nope', do: ['read'] }] }), 'unknown-object')
+  bad(one({ extra: 1 }), 'unknown-key')
+  const profile = r.profiles[0]
+  assert.equal(core.profileOf(r.profiles, 'member'), profile)
+  assert.equal(core.profileOf(r.profiles, 'owner'), undefined)
+  assert.equal(core.grantOf(profile, 'order').object, 'order')
+  assert.equal(core.grantOf(profile, 'invoice'), undefined)
+  assert.equal(core.grantUpdates(core.grantOf(profile, 'order')), true)
+  assert.equal(core.grantUpdates(core.grantOf(profile, 'contact')), false)
+  assert.equal(core.grantUpdates({ do: ['read'], fields: { stock: 'write' } }), true, 'one writable field is enough to edit a row')
+  const access = (object, key, protection) => core.fieldAccess(profile, object, { key, protection })
+  assert.equal(access('order', 'title'), 'write')
+  assert.equal(access('contact', 'name'), 'read')
+  assert.equal(access('contact', 'email', 'personal'), 'read')
+  assert.equal(access('contact', 'phone', 'personal'), 'hidden')
+  assert.equal(access('contact', 'iban', 'sensitive'), 'hidden')
+  assert.equal(access('order', 'token', 'secret'), 'hidden')
+  assert.equal(access('invoice', 'total'), 'hidden')
+  const named = { ...profile, grants: [{ object: 'order', do: ['update'], fields: { token: 'write', iban: 'write' } }] }
+  assert.equal(core.fieldAccess(named, 'order', { key: 'token', protection: 'secret' }), 'hidden', 'a profile cannot give a secret field')
+  assert.equal(core.fieldAccess(named, 'order', { key: 'iban', protection: 'sensitive' }), 'hidden', 'nor a sensitive one')
+})
+
 ok('the same cases give the same digest twice, and with a different order of suites', () => {
   assert.equal(runVectors(core, data).digest, report.digest)
   const reversed = { fixtures: data.fixtures, suites: Object.fromEntries(SUITES.slice().reverse().map((s) => [s, data.suites[s]])) }
