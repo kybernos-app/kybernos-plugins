@@ -201,7 +201,7 @@ console.log('English')
   const en = await walk('en')
   ok('nothing French is shown (text, tooltips, labels), in any view', frenchIn(en).length === 0, JSON.stringify(frenchIn(en)))
   ok('the tab is « Databases », as the Suite names the module', /^Databases \| Databases \| Diagram, charts, data and SQL/.test(en.tab), en.tab)
-  ok('the title says « Agent Team database »', /Agent Team database/.test(en.diagram) && /Reload the database/.test(en.diagram), en.diagram)
+  ok('the title says « Database »', /^Database \| /.test(en.diagram) && /Reload the database/.test(en.diagram), en.diagram)
   ok('the four views are Diagram / Charts / Data / SQL', en.pills === 'Diagram | Charts | Data | SQL', en.pills)
   ok('the moved card offers « Reset the layout »', /Reset the layout/.test(en.diagram), en.diagram)
   ok('charts: counters and titles in English', /\btables\b/.test(en.charts) && /\brows\b/.test(en.charts) && /\bcolumns\b/.test(en.charts), en.charts)
@@ -218,7 +218,7 @@ console.log('French')
 {
   const fr = await walk('kybernos')
   ok('the tab is « Base de données »', /^Base de données \| Base de données \| Diagramme, graphiques, données et SQL/.test(fr.tab), fr.tab)
-  ok('the title and the views are French', /Base de l’Agent Team/.test(fr.diagram) && /Relire la base/.test(fr.diagram) && fr.pills === 'Diagramme | Graphiques | Données | SQL', fr.pills)
+  ok('the title and the views are French', /^Base de données \| /.test(fr.diagram) && /Relire la base/.test(fr.diagram) && fr.pills === 'Diagramme | Graphiques | Données | SQL', fr.pills)
   ok('the moved card offers « Réinitialiser la disposition »', /Réinitialiser la disposition/.test(fr.diagram))
   ok('charts: counters in French', /lignes/.test(fr.charts) && /colonnes/.test(fr.charts), fr.charts)
   ok('data: the cut line is French', /premières lignes sur 9999/.test(fr.data), fr.data)
@@ -249,8 +249,8 @@ console.log('every other language reads English')
 for (const lang of ['fr-CA', 'es', 'ar', 'zh', 'de', 'xx']) {
   const seen = await walk(lang)
   const french = lang === 'fr-CA'
-  if (french) ok('fr-CA is French', /Base de l’Agent Team/.test(seen.diagram), seen.diagram)
-  else ok(lang + ': English, nothing French', frenchIn(seen).length === 0 && /Agent Team database/.test(seen.diagram) && seen.pills === 'Diagram | Charts | Data | SQL', JSON.stringify(frenchIn(seen)))
+  if (french) ok('fr-CA is French', /^Base de données \| /.test(seen.diagram), seen.diagram)
+  else ok(lang + ': English, nothing French', frenchIn(seen).length === 0 && /^Database \| /.test(seen.diagram) && seen.pills === 'Diagram | Charts | Data | SQL', JSON.stringify(frenchIn(seen)))
 }
 
 console.log(ko === 0 ? '\nOK' : `\n${ko} failure(s)`)
