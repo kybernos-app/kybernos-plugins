@@ -181,6 +181,69 @@ try {
     assert.equal(monterRoutes({ register: (r) => { routes3[r.path] = r.handler } }, { kybersHome, silencieux: true }).kybernosHome, null)
     console.log('[test] second root through the routes OK — schema, rows, query, pack; hostile ids refused; still read-only')
 
+    // ── Tables (kybernos-db): <kybernosHome>/kybernos-db/dbs/<ULID>/db.sqlite, listed as tables-<ulid> under its own name ───────────────────
+    const ULID = '01M67P92BPAJQM82G3YHYQBR14'
+    const OTHER = '01M67P92DED0R2ZJMQRKMQRSAQ'
+    const tablesDir = join(kybernosHome, 'kybernos-db', 'dbs')
+    mkdirSync(join(tablesDir, ULID), { recursive: true })
+    mkdirSync(join(tablesDir, OTHER), { recursive: true })
+    mkdirSync(join(tablesDir, 'not-a-ulid'), { recursive: true })                // a folder that is no ULID: ignored
+    mkdirSync(join(tablesDir, '01M67P92BPAJQM82G3YHYQBR1'), { recursive: true }) // 25 characters: ignored
+    {
+      const shop = new DatabaseSync(join(tablesDir, ULID, 'db.sqlite'))
+      shop.exec(`
+        CREATE TABLE meta (k TEXT PRIMARY KEY NOT NULL, v TEXT NOT NULL) WITHOUT ROWID;
+        CREATE TABLE ctl (k TEXT PRIMARY KEY NOT NULL, v INTEGER NOT NULL) WITHOUT ROWID;
+        CREATE TABLE catalog (version INTEGER PRIMARY KEY, json TEXT NOT NULL);
+        CREATE TABLE ops (seq INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT);
+        CREATE TABLE views (id TEXT PRIMARY KEY NOT NULL, json TEXT NOT NULL);
+        CREATE TABLE r_contact (id TEXT PRIMARY KEY NOT NULL, name TEXT, company TEXT);
+        CREATE TABLE r_orders (id TEXT PRIMARY KEY NOT NULL, contact TEXT, total REAL);
+        INSERT INTO meta (k, v) VALUES ('id', '${ULID}'), ('name', 'Shop');
+        INSERT INTO r_contact (id, name) VALUES ('A', 'Ada'), ('B', 'Bob');
+        INSERT INTO r_orders (id, contact, total) VALUES ('O1', 'A', 12.5), ('O2', 'B', 40);
+      `)
+      const objects = [
+        { key: 'contact', fields: [{ key: 'name', type: 'text' }, { key: 'company', type: 'relation', to: 'contact' }] },
+        { key: 'orders', fields: [{ key: 'contact', type: 'relation', to: 'contact' }, { key: 'total', type: 'number' }, { key: 'ghost', type: 'relation', to: 'gone' }] },
+      ]
+      shop.prepare('INSERT INTO catalog (version, json) VALUES (?, ?)').run(1, JSON.stringify({ objects: [] }))
+      shop.prepare('INSERT INTO catalog (version, json) VALUES (?, ?)').run(2, JSON.stringify({ objects }))
+      shop.close()
+      const bare = new DatabaseSync(join(tablesDir, OTHER, 'db.sqlite'))   // no meta.name, no catalog: still listed, by its id
+      bare.exec('CREATE TABLE r_thing (id TEXT PRIMARY KEY NOT NULL)')
+      bare.close()
+    }
+    const listed = listerBases(kybersHome, kybernosHome)
+    const shop = listed.find((b) => b.id === 'tables-' + ULID.toLowerCase())
+    assert.ok(shop, 'a Tables database is listed as tables-<ulid in lower case>')
+    assert.equal(shop.label, 'Shop', 'under its own name')
+    assert.deepEqual(shop.tables.map((t) => t.nom), ['r_contact', 'r_orders', 'catalog', 'ctl', 'meta', 'ops', 'views'], 'its records come before its bookkeeping')
+    const nameless = listed.find((b) => b.id === 'tables-' + OTHER.toLowerCase())
+    assert.ok(nameless && !('label' in nameless), 'a database with no name has no label (the page falls back to the id)')
+    assert.equal(listed.filter((b) => b.id.startsWith('tables-')).length, 2, 'the two folders that are no ULID are ignored')
+    assert.ok(!listerBases(kybersHome, join(kybernosHome, 'absent')).some((b) => b.id.startsWith('tables-')), 'a missing root is no error')
+    assert.ok(!listerBases(kybersHome).some((b) => b.id.startsWith('tables-')), 'with no second root, no Tables database')
+
+    const tableId = 'tables-' + ULID.toLowerCase()
+    const tsch = await call('/dsh-db-viewer/schema', { base: tableId })
+    assert.equal(tsch.code, 200)
+    assert.deepEqual(tsch.json.relations, [{ parent: 'r_contact', enfant: 'r_orders', colonne: 'contact' }], 'the links come from the latest catalog; a self link and a link to a missing table are not drawn')
+    const col = (t, c) => tsch.json.tables.find((x) => x.nom === t).colonnes.find((x) => x.name === c)
+    assert.equal(col('r_orders', 'contact').fk, true)
+    assert.equal(col('r_orders', 'contact').fkVers, 'r_contact')
+    assert.equal(col('r_contact', 'company').fk, true, 'a self relation is marked on its column')
+    assert.equal(col('r_orders', 'total').fk, false)
+    assert.deepEqual((await call('/dsh-db-viewer/schema', { base: 'tables-' + OTHER.toLowerCase() })).json.relations, [], 'no catalog, no links')
+    assert.equal((await call('/dsh-db-viewer/rows', { base: tableId, table: 'r_contact', limit: 5 })).json.lignes.length, 2)
+    assert.equal((await call('/dsh-db-viewer/query', { base: tableId, sql: "SELECT v FROM meta WHERE k = 'name'" })).json.lignes[0].v, 'Shop')
+    assert.equal((await call('/dsh-db-viewer/query', { base: tableId, sql: 'DELETE FROM r_contact' })).code, 400, 'Tables stays read-only here')
+    assert.equal((await call('/dsh-db-viewer/query', { base: tableId, sql: "UPDATE meta SET v = 'x'" })).code, 400)
+    for (const bad of ['tables-', 'tables-..', 'tables-../kybernos-db', 'tables-' + ULID.toLowerCase() + 'x', 'tables-' + ULID, 'tables-01m67p92bpajqm82g3yhyqbr15', 'tables-not-a-ulid']) {
+      assert.equal((await call('/dsh-db-viewer/schema', { base: bad })).code, 400, bad + ' refused')
+    }
+    console.log('[test] Tables OK — listed by name, records first, links from the catalog, rows and SELECT readable, writes and hostile ids refused')
+
     // ── the door: read-only, and patient with a writer ───────────────────────────────────────────────────────────────────────────
     const door = ouvrirLecture(join(kybernosHome, 'business', 'donnees.sqlite'))
     try {

@@ -2306,17 +2306,17 @@
       },
       "aide": {
         "what": {
-          "fr": "Affiche en lecture seule la petite base SQLite que garde une Agent Team : schéma en diagramme, graphiques, tableaux et zone de requête.",
-          "en": "Shows, read-only, the small SQLite database an agent team keeps: schema as a diagram, charts, tables and a query box."
+          "fr": "Affiche en lecture seule les bases SQLite de tes données, celles de tes Tables et la petite base d'une Agent Team : schéma en diagramme, graphiques, tableaux et zone de requête.",
+          "en": "Shows, read-only, the SQLite databases behind your data, your Tables databases and the small one an agent team keeps: schema as a diagram, charts, tables and a query box."
         },
         "steps": [
           {
-            "fr": "Ouvre l'onglet « Base de données » dans la barre latérale droite : le titre « Base de l’Agent Team » et une liste de bases apparaissent.",
-            "en": "Open the “Databases” tab in the right sidebar: the title “Agent Team database” and a list of databases appear."
+            "fr": "Ouvre l'onglet « Base de données » dans la barre latérale droite : le titre « Base de données » et une liste de bases apparaissent.",
+            "en": "Open the “Databases” tab in the right sidebar: the title “Database” and a list of databases appear."
           },
           {
-            "fr": "Choisis la base d'une Agent Team dans la liste ; le bouton « ↻ » la relit si elle vient de changer.",
-            "en": "Pick an agent team's database in the list; the “↻” button reads it again if it just changed."
+            "fr": "Choisis une base dans la liste (Tables : son nom ; Agent Team : son identifiant) ; « ↻ » la relit si elle vient de changer.",
+            "en": "Pick a database in the list (Tables: its name; agent team: its identifier); “↻” reads it again if it just changed."
           },
           {
             "fr": "Passe d'une vue à l'autre : « Diagramme », « Graphiques », « Données » (un tableau à la fois) ou « SQL ».",
@@ -2333,8 +2333,8 @@
           "page": false
         },
         "good": {
-          "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans base d'Agent Team, l'onglet le dit.",
-          "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no agent team database, the tab says so."
+          "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans aucune base, l'onglet le dit.",
+          "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no database at all, the tab says so."
         },
         "url": "https://help.kybernos.app/{lang}/create-with-kybernos/diagrams-databases-and-media/"
       },

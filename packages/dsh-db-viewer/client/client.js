@@ -891,11 +891,11 @@ window.__ModuleLoader__.load({
 
           const kids = []
           kids.push(h('div', { className: 'dshdb-bar', key: 'bar' },
-            h('span', { className: 'dshdb-title' }, kt('Base de l’Agent Team', 'Agent Team database')),
+            h('span', { className: 'dshdb-title' }, kt('Base de données', 'Database')),
             h('select', {
               className: 'dshdb-select', value: baseId === null ? '' : baseId,
               onChange: (e) => setBaseId(e.target.value),
-            }, (bases || []).map((b) => h('option', { key: b.id, value: b.id }, b.id))),
+            }, (bases || []).map((b) => h('option', { key: b.id, value: b.id }, b.label || b.id))),
             h('button', { type: 'button', className: 'dshdb-hbtn', title: kt('Relire la base', 'Reload the database'), onClick: chargerBases }, '↻')))
 
           kids.push(h('div', { className: 'dshdb-pills', key: 'pills' },

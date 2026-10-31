@@ -1,12 +1,12 @@
 # `@local/dsh-db-viewer`
 
 A read-only SQLite viewer in DSH's right sidebar: it shows the small database an agent team keeps
-(`donnees.sqlite`) as a diagram, charts, tables and a SELECT box. Nothing can be written from the page.
+(`donnees.sqlite`) and the databases of Tables (`kybernos-db`) as a diagram, charts, tables and a SELECT box. Nothing can be written from the page.
 
 ## What the user sees
 
 A right-sidebar tab type titled "Databases" ("Base de données" in a French UI; kind `dsh-db-viewer`). It has a
-database picker (one entry per agent team that has a database), a refresh button and four views:
+database picker (one entry per agent team that has a database, and one per Tables database, shown under its own name), a refresh button and four views:
 
 - **Diagram** ("Diagramme" in French): entity cards with a coloured header, type / column / PK / KEY rows and crow's-foot links
   drawn from the foreign keys. Cards can be dragged; positions are not saved.
@@ -30,7 +30,7 @@ accepted).
 
 | Route | Returns |
 | --- | --- |
-| `/dsh-db-viewer/bases` | `{bases: [{id, tables: [{nom, compte}]}]}` |
+| `/dsh-db-viewer/bases` | `{bases: [{id, label?, tables: [{nom, compte}]}]}` (`label` is the name of a Tables database) |
 | `/dsh-db-viewer/schema?base=` | `{tables: [{nom, compte, colonnes}], relations: [{parent, enfant, colonne}]}` |
 | `/dsh-db-viewer/rows?base=&table=&limit=` | `{colonnes, lignes, compte}`; limit defaults to 50, capped at 500 |
 | `/dsh-db-viewer/query?base=&sql=&limit=` | `{colonnes, lignes, compte, total, tronque, borne}`; `lignes` holds the first `limit` rows (default 500, at most 5 000), `total` is the size of the whole result (counted up to 1 000 000, then `borne` is true), `tronque` says the rows were cut |
@@ -39,7 +39,12 @@ accepted).
 
 ## Files, settings, environment
 
-- Reads `$DSH_HOME/kybers/<id>/donnees.sqlite` (default `~/.dsh`), opened `readOnly` through the built-in
+- Reads `$DSH_HOME/kybers/<id>/donnees.sqlite` (default `~/.dsh`), the plugins' own `$DSH_HOME/kybernos/<dir>/donnees.sqlite`
+  (listed as `kybernos-<dir>`) and the databases of Tables, `$DSH_HOME/kybernos/kybernos-db/dbs/<ULID>/db.sqlite`
+  (listed as `tables-<ulid in lower case>`; the page never passes a path, the host matches the id against the folders that exist).
+  A Tables database lists its `r_<object>` record tables first, then its bookkeeping (`catalog`, `ctl`, `meta`, `ops`, `views`); it has no
+  REFERENCES, so the Diagram draws its links from the relation fields of the latest `catalog` row (a table that points at itself is not drawn).
+  Every file is opened `readOnly` through the built-in
   `node:sqlite` module. Writes nothing, has no settings and uses no browser storage. Env: `DSH_HOME`.
 - The code comments say `crm.cjs` creates these databases; that script is not in this repo (not verified).
 

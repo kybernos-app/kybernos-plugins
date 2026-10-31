@@ -3,11 +3,12 @@
 //
 // Serves the right sidebar panel a read of the small SQLite databases of the kybers
 // (`~/.dsh/kybers/<id>/donnees.sqlite`, checked by `crm.cjs`) and of the Kybernos plugins
-// (`<DSH home>/kybernos/<dir>/donnees.sqlite`, listed as `kybernos-<dir>`: the business base is `kybernos-business`). FOUR read-ONLY routes —
+// (`<DSH home>/kybernos/<dir>/donnees.sqlite`, listed as `kybernos-<dir>`) and of Tables (`<DSH home>/kybernos/kybernos-db/dbs/<ULID>/db.sqlite`, listed as
+// `tables-<ulid>` under the database's own name). FOUR read-ONLY routes —
 // no write exists here, by design: the database is filled by the kyber (crm.cjs exec),
 // not by the page.
 //
-//   GET /dsh-db-viewer/bases            → [{ id, tables: [{nom, compte}] }]
+//   GET /dsh-db-viewer/bases            → [{ id, label?, tables: [{nom, compte}] }]
 //   GET /dsh-db-viewer/schema?base=     → tables, columns, relations
 //   GET /dsh-db-viewer/rows?base=&table=&limit=
 //   GET /dsh-db-viewer/query?base=&sql=&limit= → SELECT/WITH/PRAGMA only, 500 rows (5 000 at most)
@@ -61,6 +62,11 @@ const TABLE_VALIDE = /^[A-Za-z_][A-Za-z0-9_]*$/
 const FICHIER = 'donnees.sqlite'
 /** The id a database of `<DSH home>/kybernos/<dir>/` is listed under: a kyber of the same id keeps it. */
 export const PREFIXE_KYBERNOS = 'kybernos-'
+/** The id a database of Tables is listed under: `tables-` and the ULID of its folder in lower case (an id of this page is lower case). */
+export const PREFIXE_TABLES = 'tables-'
+const DOSSIER_TABLES = join('kybernos-db', 'dbs')
+const FICHIER_TABLES = 'db.sqlite'
+const ULID_TABLES = /^[0-9A-Za-z]{26}$/
 /** How long a read waits for a writer that holds the file (the plugins write in WAL; measured: one `database is locked` in 680 reads without it). */
 export const ATTENTE_MS = 3000
 
@@ -101,8 +107,47 @@ function basesDe (racine, prefixe) {
 export function listerBases (kybersHome, kybernosHome = null) {
   const bases = basesDe(kybersHome, '')
   for (const b of basesDe(kybernosHome, PREFIXE_KYBERNOS)) if (!bases.some((x) => x.id === b.id)) bases.push(b)
+  for (const b of basesTables(kybernosHome)) if (!bases.some((x) => x.id === b.id)) bases.push(b)
   return bases.sort((a, b) => (a.id < b.id ? -1 : 1))
 }
+
+/** The folder of a Tables database, or null: `id` is `tables-<ulid in lower case>`, matched against the folders that exist (a path typed by the page is never built). */
+function dossierTables (kybernosHome, id) {
+  if (typeof kybernosHome !== 'string' || !id.startsWith(PREFIXE_TABLES)) return null
+  const ulid = id.slice(PREFIXE_TABLES.length)
+  const racine = join(kybernosHome, DOSSIER_TABLES)
+  if (!/^[0-9a-z]{26}$/.test(ulid) || !existsSync(racine)) return null
+  const dossier = readdirSync(racine, { withFileTypes: true }).find((e) => e.isDirectory() && ULID_TABLES.test(e.name) && e.name.toLowerCase() === ulid)
+  return dossier === undefined ? null : join(racine, dossier.name, FICHIER_TABLES)
+}
+
+/** The name a Tables database carries (`meta.name`), or null: the picker shows it instead of the id. */
+function nomDeTables (fichier) {
+  try {
+    const db = ouvrirLecture(fichier)
+    try { const ligne = db.prepare("SELECT v FROM meta WHERE k = 'name'").get(); return ligne !== undefined && typeof ligne.v === 'string' && ligne.v !== '' ? ligne.v : null } finally { db.close() }
+  } catch (e) { return null }
+}
+
+/** The databases of Tables: one folder of `<kybernosHome>/kybernos-db/dbs/` = one `db.sqlite`, listed as `tables-<ulid>` with its own name as `label`. */
+function basesTables (kybernosHome) {
+  const bases = []
+  const racine = typeof kybernosHome === 'string' ? join(kybernosHome, DOSSIER_TABLES) : null
+  if (racine === null || !existsSync(racine)) return bases
+  for (const entree of readdirSync(racine, { withFileTypes: true })) {
+    if (!entree.isDirectory() || !ULID_TABLES.test(entree.name)) continue
+    const fichier = join(racine, entree.name, FICHIER_TABLES)
+    if (!existsSync(fichier) || !statSync(fichier).isFile()) continue
+    let tables = []
+    try { tables = listerTables(fichier) } catch (e) { tables = [] }
+    const label = nomDeTables(fichier)
+    bases.push(label === null ? { id: PREFIXE_TABLES + entree.name.toLowerCase(), tables } : { id: PREFIXE_TABLES + entree.name.toLowerCase(), label, tables })
+  }
+  return bases
+}
+
+/** A Tables database keeps its records in `r_<object>` tables beside its bookkeeping (`catalog`, `meta`, `ops`, `views`, `ctl`): the records come first, so the charts read them. */
+const ordreTables = (noms) => (['catalog', 'meta', 'ops'].every((n) => noms.includes(n)) ? [...noms.filter((n) => n.startsWith('r_')), ...noms.filter((n) => !n.startsWith('r_'))] : noms)
 
 export function listerTables (dbPath) {
   const db = ouvrirLecture(dbPath)
@@ -110,7 +155,7 @@ export function listerTables (dbPath) {
     const noms = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
     ).all().map((r) => r.name)
-    return noms.map((nom) => ({
+    return ordreTables(noms).map((nom) => ({
       nom,
       compte: db.prepare(`SELECT count(*) n FROM "${nom}"`).get().n,
     }))
@@ -130,7 +175,30 @@ const corpsCreate = (sql) => {
   return parts.map((p) => p.trim()).filter(Boolean)
 }
 
-/** Live schema: the real columns + the relations read from the REFERENCES. */
+/**
+ * A Tables database has no REFERENCES (a relation field holds a 26-character id): its links come from the relation fields of the latest catalog.
+ * A table pointing at itself is marked on its column but not drawn as a link.
+ */
+function liensTables (db, tables) {
+  const liens = []
+  try {
+    const noms = new Set(tables.map((t) => t.nom))
+    if (!noms.has('catalog')) return liens
+    const ligne = db.prepare('SELECT json FROM catalog ORDER BY version DESC LIMIT 1').get()
+    const objets = ligne === undefined ? [] : (JSON.parse(ligne.json).objects || [])
+    for (const objet of objets) {
+      for (const champ of objet.fields || []) {
+        if (champ.type !== 'relation' || typeof champ.to !== 'string') continue
+        const enfant = 'r_' + objet.key
+        const parent = 'r_' + champ.to
+        if (noms.has(enfant) && noms.has(parent)) liens.push({ parent, enfant, colonne: champ.key })
+      }
+    }
+  } catch (e) { /* a catalog this viewer cannot read: no links */ }
+  return liens
+}
+
+/** Live schema: the real columns + the relations read from the REFERENCES (a Tables database: from its catalog). */
 export function lireSchema (dbPath) {
   const db = ouvrirLecture(dbPath)
   try {
@@ -156,6 +224,11 @@ export function lireSchema (dbPath) {
           notnull: !!c.notnull,
         })),
       })
+    }
+    for (const lien of liensTables(db, tables)) {
+      const colonne = tables.find((t) => t.nom === lien.enfant).colonnes.find((c) => c.name === lien.colonne)
+      if (colonne !== undefined) { colonne.fk = true; colonne.fkVers = lien.parent }
+      if (lien.parent !== lien.enfant) relations.push(lien)
     }
     return { tables, relations }
   } finally { db.close() }
@@ -253,7 +326,8 @@ function resoudreBase (kybersHome, id, kybernosHome = null) {
     const f = join(kybernosHome, dossier, FICHIER)
     return existsSync(f) && statSync(f).isFile() ? f : null
   }
-  return null
+  const tables = dossierTables(kybernosHome, id)
+  return tables !== null && existsSync(tables) && statSync(tables).isFile() ? tables : null
 }
 
 export function monterRoutes (webServerSvc, opts = {}) {
