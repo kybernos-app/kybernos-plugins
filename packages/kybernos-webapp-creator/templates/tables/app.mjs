@@ -14,11 +14,12 @@ import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { getCookie } from 'hono/cookie'
 import { actorOf, isSlug } from './lib/actor.mjs'
+import { assetResponse, loadAssets } from './lib/assets.mjs'
 import { redeemOpenToken } from './lib/bootstrap.mjs'
 import { makeApps } from './lib/apps.mjs'
 import { userFileHeaders } from './lib/db.mjs'
 import { invitationFault, normEmail, readInvitationToken } from './lib/invitation.mjs'
-import { esc, invitePage, notice, page, peoplePage } from './lib/html.mjs'
+import { invitePage, notice, peoplePage } from './lib/html.mjs'
 import { linkOnlyMailer } from './lib/mailer.mjs'
 import { makePeople } from './lib/people.mjs'
 import { makeLimiter } from './lib/ratelimit.mjs'
@@ -31,7 +32,7 @@ export const JSON_MAX = 1024 * 1024
 export const UPLOAD_MAX = 26 * 1024 * 1024
 const OWNER_FALLBACK_EMAIL = 'owner@app.invalid'
 const AUTH_OPEN = new Set(['POST /api/auth/sign-in/email', 'POST /api/auth/sign-out', 'GET /api/auth/get-session'])
-const STATUS = { forbidden: 403, owner: 403, unknown: 404, unknown_db: 404, unknown_object: 404, missing: 404, no_db: 404, which_db: 409, archived: 409, invalid: 400, confirm: 400 }
+const STATUS = { forbidden: 403, owner: 403, unknown: 404, unknown_db: 404, unknown_object: 404, missing: 404, no_db: 404, which_db: 409, archived: 409, invalid: 400, confirm: 400, conflict: 409 }
 const WINDOW = 15 * 60 * 1000
 
 /** What a door (or the people service) answered, as an http answer. */
@@ -211,11 +212,8 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
     return redirect('/', done.headers.getSetCookie())
   })
 
-  app.get('/', async (c) => {
-    const me = await session(c)
-    if (me === null) return c.html(page('Team space', '<p>You are not signed in.</p>'))
-    return c.html(page('Team space', '<p>Signed in as ' + esc(me.member.email) + ' (' + esc(me.actor.role) + ').</p>' + (me.actor.role === 'owner' ? '<p><a href="/people">People</a></p>' : '')))
-  })
+  // ── the page: the same files for everyone, held in memory; the page asks /api/me who is there and shows the sign-in when nobody is ──
+  for (const [address, asset] of loadAssets()) app.get(address, (c) => assetResponse(asset, c.req.header('if-none-match')))
 
   app.get('/api/me', needMember, (c) => {
     const { user, actor } = c.get('me')
@@ -253,6 +251,15 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
     if (d === null) return noApp(c)
     const b = await c.req.json().catch(() => null)
     if (b === null || typeof b !== 'object' || Array.isArray(b)) return c.json({ ok: false, error: 'invalid', message: 'a JSON object' }, 400)
+    // `rev` (optional, on an update): the revision the person last read. A row that has moved on since is refused as a conflict and nothing is written. The door has no such
+    // precondition of its own, so it is checked here: the read and the write below run in one tick of this single process, nothing else writes in between.
+    if (b.op === 'update' && b.rev !== undefined) {
+      if (!Number.isInteger(b.rev) || b.rev < 1) return c.json({ ok: false, error: 'invalid', message: 'rev is the revision you read, a whole number' }, 400)
+      const fresh = d.records({ object: b.object })
+      if (!fresh.ok) return reply(c, fresh)
+      const row = fresh.records.find((r) => r.id === b.id)
+      if (row !== undefined && row.rev !== b.rev) return c.json({ ok: false, error: 'conflict', message: 'this row was changed by someone else since you read it', rev: row.rev }, 409)
+    }
     return reply(c, d.write({ object: b.object, op: b.op, id: b.id, values: b.values }))
   })
   app.post('/api/apps/:slug/upload', needMember, async (c) => {
@@ -296,7 +303,7 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
   app.delete('/api/people/members/:uid', needMember, needOwner, async (c) => reply(c, await removeMember(c.get('me'), c.req.param('uid'))))
 
   const peopleView = (c, note, status = 200) => c.html(peoplePage({ ...people.list(), csrf: csrfFor(c), notice: note }), status)
-  const said = (r, text, who) => (r.ok ? { text, who, ...(r.link === undefined ? {} : { link: r.link }) } : { text: r.message ?? 'That did not work.' })
+  const said = (r, text, who) => (r.ok ? { text, who, ...(r.link === undefined ? {} : { link: r.link }) } : { text: r.message ?? 'That did not work.', bad: true })
   const html = needHtml(true)
   app.get('/people', html, (c) => peopleView(c))
   app.post('/people/invitations', html, async (c) => {

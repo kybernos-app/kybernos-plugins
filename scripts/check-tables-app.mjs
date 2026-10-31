@@ -4,12 +4,13 @@
 //   node scripts/check-tables-app.mjs        # a few seconds (the install is a few more when the npm cache is cold)
 //
 // It builds the app (vendoring kybernos-db), boots it on a free port (never :3080) with a trusted proxy header so each « browser » below has its own address for the rate
-// limits, and runs: the spike's checks, the e-commerce rights matrix for the owner and two members, the owner's link, invitations, removal, CSRF and Origin, cookie flags,
-// uploads, the body limit and the rate limits, then the owner's API token (a bearer, no cookie) and the transfer routes: import a bundle, snapshot it back, release it.
+// limits, and runs: the spike's checks, the page's files and policy (what is served and what is not, the headers, no inline script or style on any page), the e-commerce rights
+// matrix for the owner and two members, the owner's link, invitations, removal, CSRF and Origin, cookie flags, uploads, the body limit and the rate limits, then the owner's API
+// token (a bearer, no cookie) and the transfer routes: import a bundle, snapshot it back, release it.
 // No secret or token is printed, and the server's output is searched for them at the end.
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync } from 'node:fs'
 import { request as httpRequest } from 'node:http'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -142,6 +143,53 @@ async function main () {
   check('only sign-in, sign-out and get-session are open under /api/auth', (await anon.fetch('/api/auth/sign-up/email', { method: 'POST', json: { email: 'x@example.test', password: 'whatever-123456', name: 'X' } })).status === 404 && (await anon.fetch('/api/auth/list-sessions')).status === 404 && (await anon.fetch('/api/auth/reset-password', { method: 'POST', json: {} })).status === 404)
   check('public sign-up creates nobody', (await anon.j('/api/auth/sign-in/email', { method: 'POST', json: { email: 'x@example.test', password: 'whatever-123456' } })).status === 401)
 
+  // ── 4b. the page: its files, and the policy on every page ──
+  group('the page: files and policy')
+  const POLICY = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+  /** True when the html has no inline script, no <style>, no style attribute and no handler attribute: what the policy would refuse to run anyway. */
+  const noInline = (html) => !/<script(?![^>]*\ssrc=)/i.test(html) && !/<style[\s>]/i.test(html) && !/\sstyle\s*=/i.test(html) && !/\son[a-z]+\s*=/i.test(html) && !/javascript:/i.test(html)
+  /** A request with the path exactly as given (fetch would tidy `..` away). */
+  const rawGet = (path, { method = 'GET', headers = {} } = {}) => new Promise((resolve, reject) => {
+    const req = httpRequest({ host: '127.0.0.1', port, path, method, headers: { 'x-forwarded-for': '10.0.9.9', ...headers } }, (res) => { const chunks = []; res.on('data', (c) => chunks.push(c)); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) })) })
+    req.on('error', reject)
+    req.end()
+  })
+  const { ASSETS } = await import(pathToFileURL(join(app, 'lib', 'assets.mjs')).href)
+  const walk = (dir, base = '') => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n), base + n + '/') : [base + n]))
+  check('the served list and the public/ folder of the built app hold the same files', JSON.stringify(walk(join(app, 'public')).sort()) === JSON.stringify(Object.values(ASSETS).map(([f]) => f).sort()))
+  const bad = []
+  for (const [address, [file, type]] of Object.entries(ASSETS)) {
+    const r = await rawGet(address)
+    const ok = r.status === 200 && r.headers['content-type'] === type && r.headers['x-content-type-options'] === 'nosniff' && r.headers['content-security-policy'] === POLICY && r.headers['cache-control'] === 'no-cache' && /^"[A-Za-z0-9_-]{22}"$/.test(r.headers.etag ?? '') && r.body.equals(readFileSync(join(app, 'public', file)))
+    if (!ok) bad.push(address + ' ' + r.status + ' ' + r.headers['content-type'])
+  }
+  check('every file of the page is served with its own content type, nosniff, the policy exactly as before, no-cache and an ETag', bad.length === 0, bad.join('; '))
+  const first = await rawGet('/app.css')
+  const cached = await rawGet('/app.css', { headers: { 'if-none-match': first.headers.etag } })
+  const head = await rawGet('/js/main.mjs', { method: 'HEAD' })
+  check('a browser that holds the current version gets a 304 with no body; HEAD has none either', cached.status === 304 && cached.body.length === 0 && cached.headers.etag === first.headers.etag && head.status === 200 && head.body.length === 0)
+  const shell = await anon.fetch('/')
+  const shellHtml = await shell.text()
+  check('GET / is the same page for everyone, signed in or not: the shell with one module script and the stylesheet', shell.status === 200 && shellHtml === readFileSync(join(app, 'public', 'index.html'), 'utf8') && /<script type="module" src="\/js\/main\.mjs">/.test(shellHtml) && shellHtml.includes('href="/app.css"') && noInline(shellHtml))
+  const notListed = ['/index.html', '/js', '/js/', '/app.mjs', '/server.js', '/package.json', '/package-lock.json', '/lib/safety.mjs', '/lib/assets.mjs', '/public/app.css', '/public/', '/vendor/kybernos-db/api.mjs', '/node_modules/hono/package.json', '/.gitignore', '/README.md', '/scripts/build-tables-app.mjs', '/secrets.json', '/auth.sqlite', '/app.css/', '/APP.CSS', '/js/MAIN.MJS']
+  const exposed = []
+  for (const path of notListed) { const r = await rawGet(path); if (r.status !== 404) exposed.push(path + ' ' + r.status) }
+  check('anything that is not on the list is a 404: the source, the manifest, the vendored code, folders, other spellings', exposed.length === 0, exposed.join('; '))
+  const hops = ['/js/../app.mjs', '/js/..%2fapp.mjs', '/js/%2e%2e/app.mjs', '/%2e%2e/%2e%2e/etc/passwd', '/js/..%5capp.mjs', '/js/%2e%2e%2f%2e%2e%2fpackage.json', '/app.css%00.js', '/js/./main.mjs/../../app.mjs', '//etc/passwd', '/..%252fapp.mjs']
+  const hopped = []
+  for (const path of hops) { const r = await rawGet(path); const body = r.body.toString('utf8'); if (![400, 404].includes(r.status) || body.includes('buildApp') || body.includes('root:')) hopped.push(path + ' ' + r.status) }
+  check('a path that climbs out of the folder, however it is spelled, reaches nothing', hopped.length === 0, hopped.join('; '))
+  const stray = await rawGet('/js/main.mjs', { method: 'POST' })
+  check('a file of the page cannot be written or posted to', [403, 404].includes(stray.status))
+  const four04 = await rawGet('/nothing-here')
+  const api401 = await rawGet('/api/apps')
+  check('the policy is the same string on a 404 and on an API answer', four04.headers['content-security-policy'] === POLICY && api401.headers['content-security-policy'] === POLICY)
+  const scripts = Object.values(ASSETS).filter(([, type]) => type.startsWith('text/javascript')).map(([file]) => readFileSync(join(app, 'public', file), 'utf8'))
+  check('the page\'s own code builds nodes from text: no innerHTML, outerHTML, insertAdjacentHTML, eval, new Function, document.write, style attribute or data: address', scripts.length >= 7 && scripts.every((js) => !/innerHTML|outerHTML|insertAdjacentHTML|\beval\s*\(|new Function|document\.write|setAttribute\(\s*['"]style|['"`]data:[a-z]/.test(js.replace(/\/\/.*$/gm, ''))))
+  const needSignIn = await anon.fetch('/people')
+  const badOpen = await anon.fetch('/open?t=nope')
+  check('the notice pages (sign in first, link not valid) have no inline script, style or handler and use the stylesheet', noInline(await needSignIn.text()) && noInline(await badOpen.text()) && needSignIn.status === 401 && badOpen.status === 403)
+
   // ── 5. the owner's link ──
   group('owner bootstrap')
   const attacker = new Browser('10.0.9.2')
@@ -206,7 +254,7 @@ async function main () {
   const stranger = new Browser('10.0.9.3')
   const page = await stranger.fetch('/invite?t=' + encodeURIComponent(maxToken))
   const pageHtml = await page.text()
-  check('the invitation page is plain html with the address and no script', page.status === 200 && pageHtml.includes('max@example.test') && !pageHtml.includes('<script') && /name="_csrf"/.test(pageHtml))
+  check('the invitation page is plain html with the address, no inline script or style, and the stylesheet', page.status === 200 && pageHtml.includes('max@example.test') && noInline(pageHtml) && pageHtml.includes('href="/app.css"') && /name="_csrf"/.test(pageHtml))
   check('a tampered invitation is refused', (await stranger.j('/api/invitations/accept', { method: 'POST', json: { token: maxToken.slice(0, -3) + 'abc', password: PW.member } })).status === 400)
   check('a weak password is refused and does not spend the invitation', (await stranger.j('/api/invitations/accept', { method: 'POST', json: { token: maxToken, password: 'short' } })).status === 400)
   const m1 = new Browser('10.0.2.1')
@@ -235,7 +283,7 @@ async function main () {
   check('the invitation form posts (urlencoded + _csrf) and signs the person in', formPage.includes('fay@example.test') && posted.status === 303 && m3.has('session_token') && (await m3.j('/api/me')).body?.email === 'fay@example.test')
   const peoplePage = await owner.fetch('/people')
   const peopleHtml = await peoplePage.text()
-  check('the owner’s people page lists the team and offers the actions', peoplePage.status === 200 && peopleHtml.includes('max@example.test') && peopleHtml.includes('vera@example.test') && peopleHtml.includes('/remove') && !peopleHtml.includes('<script'))
+  check('the owner’s people page lists the team and offers the actions', peoplePage.status === 200 && peopleHtml.includes('max@example.test') && peopleHtml.includes('vera@example.test') && peopleHtml.includes('/remove') && noInline(peopleHtml) && peopleHtml.includes('href="/app.css"'))
   check('a member gets no people page and no people API', (await m1.fetch('/people')).status === 403 && (await m1.fetch('/api/people')).status === 403 && (await m1.j('/api/people/invitations', { method: 'POST', json: { role: 'member' } })).status === 403)
   const formRole = peopleHtml.match(/action="(\/people\/members\/[^"/]+\/role)"/)
   check('the page changes a profile through its form (owner stays owner)', formRole !== null && (await owner.fetch(formRole[1], { method: 'POST', form: { role: 'viewer' } })).status === 200 && (await owner.j('/api/people')).body.members.filter((m) => m.role === 'viewer').length === 2)
@@ -277,6 +325,25 @@ async function main () {
   const vOrders = await records(m2, 'orders')
   check('a viewer reads orders and products, no other table', vOrders.ok && (await records(m2, 'product')).ok && (await api(m2, 'shop', 'records?object=contact')).status === 403 && (await api(m2, 'shop', 'records?object=note')).status === 403)
   check('a viewer cannot create or update anything', (await write(m2, { title: 'x' }, 'orders', 'create')).status === 403 && (await write(m2, { title: 'x' }, 'orders', 'update', orderId)).status === 403 && (await write(m2, { stock: 1 }, 'product', 'update', candleId)).status === 403)
+
+  // in-place editing: an update may name the revision it read, and a row that has moved on is a conflict (the door has no such precondition; the edge checks it)
+  const withRev = (b, object, id, values, rev) => api(b, 'shop', 'write', { method: 'POST', json: { object, op: 'update', id, values, rev } })
+  const titleNow = async () => (await records(owner, 'orders')).records.find((r) => r.id === orderId)
+  const read0 = await titleNow()
+  const revOk = await withRev(m1, 'orders', orderId, { title: '#2001 by revision' }, read0.rev)
+  check('an update that names the revision it read is applied, and answers the next revision', revOk.status === 200 && revOk.body.record.values.title === '#2001 by revision' && revOk.body.record.rev === read0.rev + 1, revOk.status + ' ' + revOk.body?.record?.rev + '/' + read0.rev)
+  const revStale = await withRev(owner, 'orders', orderId, { title: '#2001 from a stale read' }, read0.rev)
+  const read1 = await titleNow()
+  check('the same revision again is a conflict (409, « conflict », the current revision) and nothing is written', revStale.status === 409 && revStale.body.ok === false && revStale.body.error === 'conflict' && revStale.body.rev === read1.rev && read1.values.title === '#2001 by revision' && read1.rev === read0.rev + 1, revStale.status + ' ' + JSON.stringify(revStale.body))
+  const revMixed = await withRev(m1, 'orders', orderId, { title: '#2001 mixed', status: read1.values.status }, read0.rev)
+  check('a member with a stale revision is refused the same way, whatever the fields', revMixed.status === 409 && (await titleNow()).values.title === '#2001 by revision')
+  const revNone = await write(owner, { title: '#2001 no revision' }, 'orders', 'update', orderId)
+  check('an update with no revision is last-writer-wins, as before', revNone.status === 200 && (await titleNow()).values.title === '#2001 no revision')
+  const revBad = await Promise.all([withRev(owner, 'orders', orderId, { title: 'x' }, '3'), withRev(owner, 'orders', orderId, { title: 'x' }, 0), withRev(owner, 'orders', orderId, { title: 'x' }, 1.5), withRev(owner, 'orders', orderId, { title: 'x' }, null)])
+  check('a revision that is not a whole number from 1 is refused (400) and nothing is written', revBad.every((r) => r.status === 400) && (await titleNow()).values.title === '#2001 no revision', revBad.map((r) => r.status).join())
+  const cur = await titleNow()
+  const revRights = [await withRev(m1, 'product', candleId, { price: 1 }, (await records(owner, 'product')).records[0].rev), await withRev(m2, 'orders', orderId, { title: 'x' }, cur.rev), await withRev(m1, 'orders', 'NOT-A-ROW', { title: 'x' }, 1)]
+  check('naming a current revision opens nothing: a field the profile refuses (403), a viewer (403), an unknown row (404)', revRights.map((r) => r.status).join() === '403,403,404' && (await titleNow()).values.title === '#2001 no revision', revRights.map((r) => r.status).join())
 
   // the journal says who: the owner as « person », a member as member:<id>
   const spy = makeService({ dir: join(data, 'apps', 'shop') })
@@ -421,6 +488,11 @@ async function main () {
   check('a member session with the owner’s bearer stays a member (the bearer gives nothing on top of a cookie)', veraMe.status === 200 && veraMe.body.role === 'viewer' && (await vera.fetch('/api/apps/shop/snapshot', { headers: { authorization: 'Bearer ' + mint() } })).status === 403)
   const scopeRefusals = [await machine('/api/people'), await machine('/api/people/invitations', { method: 'POST', json: { role: 'member' } }), await machine('/api/me/password', { method: 'POST', json: { password: 'owner-password-new1' } }), await machine('/people'), await machine('/api/csrf'), await machine('/api/auth/sign-out', { method: 'POST', json: {} })]
   check('a bearer is for the apps routes only: not the people, the password, the pages or sign-in (403)', scopeRefusals.every((r) => r.status === 403), scopeRefusals.map((r) => r.status).join())
+  const pageRefusals = []
+  for (const path of ['/', '/app.css', '/favicon.svg', '/js/main.mjs', '/invite']) pageRefusals.push(await machine(path))
+  const pageBad = await machine('/app.css', { token: 'not-a-token' })
+  check('a bearer reaches neither the files of the page nor the invitation page (403, no file in the answer); a bad one is 401', pageRefusals.every((r) => r.status === 403 && !(r.headers.get('content-type') ?? '').includes('javascript') && !(r.headers.get('content-type') ?? '').includes('css') && !(r.headers.get('content-type') ?? '').includes('html')) && pageBad.status === 401, pageRefusals.map((r) => r.status).join())
+  check('and the same files stay public GETs for anyone who sends no token', (await Promise.all(['/', '/app.css', '/js/main.mjs'].map((a) => anon.fetch(a)))).every((r) => r.status === 200))
   check('and the owner’s password was not touched', (await signIn(new Browser('10.0.1.10'), 'olga@example.test', PW.owner2)).status === 200)
 
   group('transfer routes: who may call them')
