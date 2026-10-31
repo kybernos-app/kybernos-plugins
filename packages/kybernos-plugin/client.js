@@ -29164,7 +29164,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
-    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []).concat(['themes']).concat(kbBizMenu.ids()) })
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []).concat(kbBizMenu.ids()) })
     // window.__KB_OPEN__.chat(text): a new chat with `text` already typed in the composer (the person reads it and presses send). The Plugins page uses it for
     // "Create with AI". False when no session has been mounted yet; the caller then shows the text so it can be pasted.
     kbOpenPage.chat = (text) => {
