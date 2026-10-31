@@ -4,23 +4,38 @@
 // space define (`roles()` gives them); `owner` is never one of them.
 import { assignable } from './actor.mjs'
 import { INVITE_TTL_SEC, mintInvitationToken, newInvitationId, newNonce, normEmail } from './invitation.mjs'
+import { MAIL_FAILED } from './mailer.mjs'
 
 const fail = (error, message) => ({ ok: false, error, message })
 
-/** `roles()` gives `[{ id, label, apps }]`, the profile ids the apps define; `publicUrl` is where the link points; `mailer` is the port of lib/mailer.mjs. */
-export function makePeople ({ store, secret, publicUrl, mailer, roles, now = Date.now }) {
+/**
+ * `roles()` gives `[{ id, label, apps }]`, the profile ids the apps define; `publicUrl` is where the link points; `mailer` is the port of lib/mailer.mjs. `inviter(userId)` gives the
+ * words the e-mail uses for whoever sends the invitation (or '' / null), `space()` the name of the space; both are optional and may be async.
+ */
+export function makePeople ({ store, secret, publicUrl, mailer, roles, now = Date.now, inviter = async () => '', space = () => '' }) {
   const link = (inv) => publicUrl.replace(/\/$/, '') + '/invite?t=' + encodeURIComponent(mintInvitationToken({ secret, id: inv.id, nonce: inv.nonce, now, ttlSec: Math.max(1, Math.floor((inv.exp - now()) / 1000)) }))
   const known = (role) => assignable(role) && roles().some((r) => r.id === role)
   const shape = (inv) => ({ id: inv.id, email: inv.email, role: inv.role, exp: inv.exp })
 
-  /** Sends the link by e-mail when there is an address and a mailer that sends; the link is given back whenever it was not sent. */
-  async function deliver (inv) {
+  /**
+   * Sends the link by e-mail when there is an address and a mailer that sends; the link is given back whenever it was not sent. When a mailer that was meant to send did not,
+   * the answer says so (`mailFailed`, and the fixed `message`) and still carries the link: the owner passes it on themselves. Nothing of the provider's answer is kept.
+   */
+  async function deliver (inv, by) {
     const url = link(inv)
     if (inv.email === null) return { ok: true, invitation: shape(inv), link: url, sent: false }
+    const meant = mailer.configured !== false
     let sent = false
-    try { sent = (await mailer.send({ to: inv.email, link: url, role: inv.role, expires: new Date(inv.exp).toISOString() })).sent === true } catch (e) { sent = false }
+    if (meant) {
+      try {
+        let who = ''
+        try { who = (await inviter(by)) || '' } catch (e) { who = '' }
+        const label = roles().find((r) => r.id === inv.role)?.label
+        sent = (await mailer.send({ to: inv.email, link: url, role: inv.role, roleLabel: label ?? '', expires: new Date(inv.exp).toISOString(), expiresInDays: Math.round(INVITE_TTL_SEC / 86400), inviter: who, space: space() })).sent === true
+      } catch (e) { sent = false }
+    }
     if (sent) store.markSent(inv.id)
-    return { ok: true, invitation: shape(inv), sent, ...(sent ? {} : { link: url }) }
+    return { ok: true, invitation: shape(inv), sent, ...(sent ? {} : { link: url }), ...(meant && !sent ? { mailFailed: true, message: MAIL_FAILED } : {}) }
   }
 
   return {
@@ -36,16 +51,16 @@ export function makePeople ({ store, secret, publicUrl, mailer, roles, now = Dat
       }
       const inv = { id: newInvitationId(), email: address, role, nonce: newNonce(), exp: now() + INVITE_TTL_SEC * 1000, by }
       store.invite(inv)
-      return deliver(inv)
+      return deliver(inv, by)
     },
 
-    async resend (id) {
+    async resend (id, by) {
       const row = store.invitation(id)
       if (row === null || row.accepted_at !== null) return fail('unknown', 'no such pending invitation')
       const nonce = newNonce()
       const exp = now() + INVITE_TTL_SEC * 1000
       store.renewInvitation(id, nonce, exp)
-      return deliver({ ...row, nonce, exp })
+      return deliver({ ...row, nonce, exp }, by)
     },
 
     setInvitationRole (id, role) {

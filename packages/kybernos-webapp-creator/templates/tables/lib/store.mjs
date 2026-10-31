@@ -38,6 +38,12 @@ export function makeStore (db, now = Date.now) {
     /** Takes the invitation for one person, once: true for the first caller with the right nonce, false for everyone else. */
     claimInvitation: (id, nonce) => run('UPDATE app_invitation SET accepted_at = ? WHERE id = ? AND nonce = ? AND accepted_at IS NULL AND exp > ?', now(), id, nonce, now()) === 1,
     releaseInvitation: (id) => run('UPDATE app_invitation SET accepted_at = NULL WHERE id = ?', id),
+    /** Forgets an invitation once it has done its work: the address it was made for goes with it. */
+    dropInvitation: (id) => run('DELETE FROM app_invitation WHERE id = ?', id),
+    /** Drops the invitations that were used and those that expired before `before` (ms), with the addresses they hold. */
+    purgeInvitations: (before) => run('DELETE FROM app_invitation WHERE accepted_at IS NOT NULL OR exp < ?', before),
+    /** The id of every invitation made for this address, in any state. */
+    invitationsFor: (email) => db.prepare('SELECT id FROM app_invitation WHERE email = ?').all(email).map((r) => r.id),
 
     /** The ledger of lib/bootstrap.mjs: true the first time a nonce is seen. `exp` is in seconds; spent links that would have expired are forgotten. */
     claim (nonce, exp) {

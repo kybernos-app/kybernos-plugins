@@ -7,13 +7,23 @@
 //   KB_DATA_DIR      where auth.sqlite, apps/ and secrets.json live (default: ./data)
 //   KB_TRUST_PROXY   1 when a reverse proxy sets x-forwarded-for
 //   KB_BUNDLE_MAX_BYTES   the most an app bundle may weigh when the owner's computer sends one (default 256 MiB, 1 MiB to 2 GiB)
+//   KB_MAIL_API_KEY, KB_MAIL_FROM, KB_MAIL_REPLY_TO, KB_MAIL_API_BASE   invitations by e-mail through Resend (lib/mailer.mjs); with no key nothing is sent and the owner gets the link
+//   KB_REGION_LABEL, KB_PRIVACY_CONTACT   what the privacy page says: where the space lives, and who to ask (when unset it says « ask the owner »; no address is ever made up)
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { DEFAULT_MAX_BYTES } from './db.mjs'
+import { mailConfig } from './mailer.mjs'
+import { DEFAULT_REGION } from './privacy.mjs'
 import { SECRETS_FILE, resolveSecrets } from './secrets.mjs'
 
 export const BUNDLE_MAX_FLOOR = 1024 * 1024
 export const BUNDLE_MAX_CEILING = 2 * 1024 * 1024 * 1024
+
+/** A line of text from the environment, cleaned of control characters and cut to `max`; null when nothing is left. */
+export const settingText = (text, max) => {
+  const t = typeof text === 'string' ? text.replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max) : ''
+  return t === '' ? null : t
+}
 
 /** The cap of a bundle from the environment's text (`KB_BUNDLE_MAX_BYTES`); the default when it is empty. Throws on anything else. */
 export function bundleCap (text) {
@@ -32,6 +42,7 @@ export function loadConfig (env, root, { needPort = true } = {}) {
     read: () => JSON.parse(readFileSync(file, 'utf8')),
     write: (obj) => { writeFileSync(file, JSON.stringify(obj, null, 2) + '\n', { mode: 0o600 }); chmodSync(file, 0o600) },
   })
+  const mail = mailConfig(env)
   const port = env.PORT === undefined || env.PORT === '' ? undefined : Number(env.PORT)
   if (needPort && !(Number.isInteger(port) && port >= 1 && port <= 65535)) throw new Error('PORT must be a port number')
   return {
@@ -43,5 +54,8 @@ export function loadConfig (env, root, { needPort = true } = {}) {
     publicUrl: env.KB_PUBLIC_URL || undefined,
     trustProxy: env.KB_TRUST_PROXY === '1',
     bundleMaxBytes: bundleCap(env.KB_BUNDLE_MAX_BYTES),
+    mail: mail.config ?? undefined,
+    mailProblem: mail.problem,
+    privacy: { region: settingText(env.KB_REGION_LABEL, 120) ?? DEFAULT_REGION, contact: settingText(env.KB_PRIVACY_CONTACT, 200) },
   }
 }
