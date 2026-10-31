@@ -151,9 +151,32 @@ process**, Publish is available and points at that one space: `hosts()` answers 
 `orderUrl`), so the order button can be seen against `localhost`. It is read once at start by the host process; no request, no page and no agent can set it, and it is not the default. It is
 how `scripts/check-publish.mjs` and the GUI checks run Publish against a space on `localhost`.
 
-## What is not here yet (open for L6 and for the owner)
+## The real adapter: the person's cloud computers through their Kybernos account
 
-- A real `hosting` that lists the person's cloud computers (ADR 0052), starts the hosted app on the chosen one, and says `alwaysOn`/`shared` truthfully. Until it exists nothing in the product offers Publish.
+`remote/cloud-hosting.mjs` (`cloudHosting()`) is what a signed-in DSH uses when the host process gave no hosting and no environment points at a space (`chooseHosting` in `index.js`: given, then
+`envHosting`, then this). It asks the server of the active workspace (kybernos-server, `team-space` routes, ADR 0061 section 12) and holds no secret: it reaches the server only through
+`globalThis[Symbol.for('kybernos.cloud')]`, which kybernos-cloud publishes (`call`, `workspace`). That seam adds the account token itself, and for this adapter it allows exactly three calls, only
+for the workspace the person has **active** now (any other workspace id is `workspace_refused`):
+
+| port | call | notes |
+|---|---|---|
+| `hosts()` | `GET /v1/workspaces/<ws>/team-space/hosts` | `region_label` (else `region`) is the region; `alwaysOn` and `shared` are `true` only when the server said `true`; `order_url` is kept for `describe()` (an `https` address or none). Owners and admins only: a member gets a refusal. |
+| `ensureSpace({ host })` | `POST /v1/workspaces/<ws>/team-space` `{ host }` | `200` and `ready` hands over `{ id, url, bootKey }` (`boot_key`); `202` or a not-ready `200` is asked again after `retry_after_seconds` (kept between 2 s and 30 s, 5 s when it does not say), for five minutes at most, then `host-unavailable`. A `frozen` space is not handed out (`host-unavailable`). |
+| `releaseSpace(id)` | `DELETE /v1/workspaces/<ws>/team-space?space=<id>` | `{ ok: true }` only when the server answered `released: true`. A `404` is **not** read as "already gone" (another workspace answers it too, and a space forgotten here is a lost key). |
+
+- **`available()` is synchronous, so it answers what the server last said.** True only after a read of the computers worked for the active workspace; a first look after a start is "no" and starts that read in the
+  background (one at a time). A server without the routes (`404`), with hosting switched off (`503 teamspace_disabled`) or a member who may not publish (`403`) is "no" for five minutes; an answer that proves
+  nothing (network, busy, signed-out account) keeps what was known and asks again after a minute. The verdict belongs to one workspace. Signed out, with no cloud bundle, or with a seam from before
+  `workspace()`: never available, and nothing is asked.
+- **Server refusals become the codes the page knows, with our own message** (the server's words are never passed on): `unknown_host` and `host_required` to `unknown-host`, `host_gone` to `host-gone`,
+  `host_unavailable` to `host-unavailable`, `budget_exhausted` to `budget`, `teamspace_disabled` and a server without the routes to `unavailable`, a `403` to `forbidden`; the rest, and every network failure, to `hosting-failed`.
+- **Known limit: one workspace at a time.** The registry does not record which workspace a space was made in. A person with several workspaces who switches the active one sees that workspace's computers; an
+  app published on a computer of the other workspace that cannot be reached at that moment is then judged "its computer is gone" (see above), and `releaseSpace` for it is refused. Nothing is deleted by that
+  (the page only offers to keep the local copy), but switching back brings the computer back. Recording the workspace in the registry is the cure, and is not done.
+- Tests: `packages/kybernos-db/test-cloud-hosting.mjs` (a fake seam for the server), `packages/kybernos-cloud/test-cloud-seam.mjs` (the seam against a fake API).
+
+## What is not here yet (open for the owner)
+
 - A way to freeze writes on the space for the instant between Unpublish's last check and `release`. Today a write that lands in that window is lost to the owner's computer (the
   window is the length of one request); a `POST …/freeze` on the space would close it.
 - Journal attribution of an agent's writes: the space's door journals owner bearer writes as `person`. If the journal should say `agent`, the door needs a header or a field for it.

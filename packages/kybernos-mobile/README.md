@@ -145,7 +145,7 @@ One screen, two blocks, shown in two places (decision of 2026-10-19; the old « 
 The full protocol, the server's contract and the security model are in [`docs/dev/mobile-remote.md`](../../docs/dev/mobile-remote.md).
 
 - No engine patch: the seams are `webserver/index-inject`, plugin routes, the `settings.section` slot and one narrow
-  seam of `kybernos-cloud` (`globalThis[Symbol.for('kybernos.cloud')]`, authenticated calls limited to `/v1/remote/`; the
+  seam of `kybernos-cloud` (`globalThis[Symbol.for('kybernos.cloud')]`, authenticated calls limited to `/v1/remote/` for this bundle; the
   account token never leaves `kybernos-cloud`).
 - Files, under `<DSH home>/kybernos/mobile-remote/` (mode 0600): `identity.json` (this computer's long-term key, which
   the QR code carries the public half of) and `devices.json` (the paired phones' public keys) and `settings.json` (`{ v: 1, enabled }`: the screen's one switch, written only when it is switched; a damaged file reads as the default, ON). Nothing is written until

@@ -26,6 +26,7 @@ import { approvalGate, tools as dbTools } from './agent/tools.mjs'
 import { MARKER_FILE, installTemplate, readMarkers } from './instantiate.mjs'
 import { mountRoutes } from './routes.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { cloudHosting } from './remote/cloud-hosting.mjs'
 import { envHosting, unavailableHosting } from './remote/hosting.mjs'
 import { makePublisher } from './remote/publisher.mjs'
 import { REGISTRY_FILE, openPublishedRegistry } from './remote/registry.mjs'
@@ -162,11 +163,15 @@ function mountPrompt (ctx, service) {
   return () => { for (const off of offs.splice(0)) { try { off() } catch (e) { /* already gone */ } } }
 }
 
-/** The hosting a host process uses: the one it was given, else one pointed at a space somebody runs (two environment variables, development and self-hosting), else none. Never throws. */
-export function chooseHosting (given, env = process.env) {
+/**
+ * The hosting a host process uses: the one it was given, else one pointed at a space somebody runs (two environment variables, development and self-hosting), else the person's own
+ * cloud computers through their Kybernos account (`cloudHosting`: it offers nothing while no account is signed in or the server cannot host). Never throws.
+ */
+export function chooseHosting (given, env = process.env, cloud = cloudHosting) {
   try {
     if (given !== undefined && given !== null && typeof given.available === 'function') return given
-    return envHosting(env)
+    const own = envHosting(env)
+    return own.available() ? own : cloud()
   } catch (e) { return unavailableHosting() }
 }
 

@@ -135,6 +135,9 @@ The decisions are in `docs/etudes/2026-10-31-share-as-app-cadrage.md`; what the 
   valid answer) and asks `ensureSpace({ host })` for the space on the one they chose (`{ id, url, bootKey }`). **The default is "not available"**: a product with no hosting shows no Publish button. `alwaysOn` is the only source of the
   words « always on », and only when it is `true`. `envHosting(env)` is a development adapter (`KYBERNOS_DB_SPACE_URL`, `KYBERNOS_DB_SPACE_KEY`, optionally `KYBERNOS_DB_ORDER_URL`, read once at start, never from a request) that lists
   that one space as the one computer; it is how the checks run.
+- **`remote/cloud-hosting.mjs`: the real hosting.** A DSH signed in to a Kybernos account lists the person's cloud computers of the active workspace and publishes onto the chosen one through the cloud bundle's seam
+  (the account token never reaches this bundle; manifest permission `account`). `available()` is « yes » only once the server answered the list, so a server that does not host web apps (or a member who may
+  not publish) shows no button. Details, codes and the one known limit (one workspace at a time) are in `docs/dev/apps-hosting-port.md`.
 - **`remote/registry.mjs`**: `<DSH home>/kybernos/kybernos-db/published.json` (mode 0600, written whole or not at all) holds each space (its id, origin, boot key and the id of its computer) and the apps published into it (with the computer's id and the last name and region seen for it), and the computer the last Publish used (only the default choice of the next dialog). The boot key is in no state, log, error or prompt.
 - **`remote/space.mjs`**: the owner's client of a space (bundle, fingerprint, snapshot, blobs, write, upload, release, the one-time link), authenticated with a five-minute owner token minted per request from the boot key.
   Every call answers `{ ok, … }` or `{ ok: false, code, message }` and never throws; a response body is never repeated in an error.

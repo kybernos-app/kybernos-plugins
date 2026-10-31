@@ -30,7 +30,7 @@ phone link is open to free accounts too), so the plugin's texts never say it is 
 
 Authenticated with the account's bearer token. The plugin reaches these routes only through
 `globalThis[Symbol.for('kybernos.cloud')].call(path, { method, body })` (kybernos-cloud adds the token, and refuses any
-path outside `/v1/remote/`).
+path outside `/v1/remote/` and the three team-space calls of Apps' Publish, see `packages/kybernos-cloud/README.md`).
 
 | Route | Answer |
 |---|---|

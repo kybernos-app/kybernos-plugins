@@ -216,6 +216,9 @@ to every new chat (user-global file first, then the project's):
   registry names another one. The footer's notice and kybernos-mobile's panel then say « the server “X” (host) does not answer » and, when `can_switch`,
   offer « Switch server »: Settings › Servers (the Servers module's page, cell key `kybernos-servers`; the phone link asks the footer for it with the window
   event `kybernos-cloud:servers`). Tests: `test-console-link.mjs`, `test-cloud-seam.mjs`, `test-cloud-client.mjs`; live: `scripts/check-footer-live.mjs`.
+- **What the seam reaches** (`cloudSeamCall`, `workspace()`): `/v1/remote/…` (the phone link) and three team-space calls for Apps' Publish, `GET …/team-space/hosts`, `POST …/team-space` and
+  `DELETE …/team-space?space=<id>`, under `/v1/workspaces/<id>/` and **only for the active workspace** (any other id is `workspace_refused`). `workspace()` is the active workspace's id (null when signed out).
+  Nothing else is reachable and the token is never handed over. Used by kybernos-mobile and kybernos-db (`remote/cloud-hosting.mjs`).
 
 ## Account memory (cloud feature no. 2)
 

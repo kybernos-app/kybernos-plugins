@@ -38,6 +38,7 @@
     "net:localhost",
     "fs.read:dsh-home",
     "fs.write:dsh-home",
+    "account",
     "agent.prompt",
     "agent.tools"
   ],
