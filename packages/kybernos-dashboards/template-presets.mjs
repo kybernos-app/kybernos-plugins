@@ -1,5 +1,5 @@
-// kybernos-dashboards: the presets the installed templates ship (the point `kybernos/dashboards#preset`, preset-point.mjs), as the Presets gallery and the
-// « Overview » row of the Business group read them. Pure: the registry comes in through a port and is asked when a request comes, never at boot.
+// kybernos-dashboards: the presets the installed templates ship (the point `kybernos/dashboards#preset`, preset-point.mjs), as the Presets gallery reads them
+// (the menu's Overview row is gone; the host's overview routes are kept, unused by the page). Pure: the registry comes in through a port and is asked when a request comes, never at boot.
 import { slug } from './model.mjs'
 import { LIMITS, POINT_REF, validateDashboardPreset } from './preset-point.mjs'
 

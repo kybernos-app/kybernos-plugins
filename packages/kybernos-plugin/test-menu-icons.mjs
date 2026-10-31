@@ -18,7 +18,8 @@ if (classicSrc !== null) for (const m of classicSrc[1].matchAll(/(\w+): ('?[\w]+
 
 ok('the row key → icon entry table exists with the nine entries', Object.keys(entry).length === 9 && new Set(Object.values(entry)).size === 9, entry)
 const rowIds = [...SRC.matchAll(/\brow\('(\w+)', Icon\(/g)].map((m) => m[1])
-ok('every menu row that has an icon-set entry is in the table', Object.keys(entry).every((k) => rowIds.indexOf(k) >= 0), { rows: rowIds, table: Object.keys(entry) })
+// `themes` keeps its entry: it is one of the nine icons the theme plugin draws in its icon sets, and the Templates page is still opened from Settings.
+ok('every menu row that has an icon-set entry is in the table (but the Templates one, which has no row any more)', Object.keys(entry).every((k) => k === 'themes' || rowIds.indexOf(k) >= 0), { rows: rowIds, table: Object.keys(entry) })
 ok('the rows that are not in the table are the ones with no entry (documents)', rowIds.filter((r) => entry[r] === undefined).every((r) => r === 'documents'), rowIds.filter((r) => entry[r] === undefined))
 ok('the row helper draws its icon through the registry (but for Kaby\'s own portrait)', /: kbMenuIcon\(id, ico, active === true\)/.test(SRC) && /h\('span', \{ className: 'kb4-ico' \}, iconNode\)/.test(SRC))
 ok('without a registry (or with the classic set) the line icon is returned as it was', /return fallback\n\}/.test(SRC) && /typeof svg === 'string'/.test(SRC))

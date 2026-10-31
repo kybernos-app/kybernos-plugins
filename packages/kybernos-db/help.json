@@ -13,8 +13,8 @@
       "en": "Kaby shows you a card before creating or changing a table: the fields, their type, what is protected. You accept or refuse."
     },
     {
-      "fr": "Ouvre Business › Apps : une carte par app, ses tables en onglets, les liens dans Relations. Pour changer une donnée, demande à Kaby.",
-      "en": "Open Business › Apps: a card per app, its tables as tabs, the links under Relations. To change a piece of data, ask Kaby."
+      "fr": "Ouvre Apps : une carte par app, ses tables en onglets, les liens dans Relations. Pour changer une donnée, demande à Kaby.",
+      "en": "Open Apps: a card per app, its tables as tabs, the links under Relations. To change a piece of data, ask Kaby."
     },
     {
       "fr": "Demande aussi à Kaby de trouver des lignes : « quelles commandes sont en retard ? ». Une app rangée est gardée : tu peux la rétablir.",
@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Business › Apps",
-    "en": "Business › Apps",
+    "fr": "Apps",
+    "en": "Apps",
     "page": true
   },
   "good": {

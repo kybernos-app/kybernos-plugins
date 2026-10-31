@@ -1,10 +1,9 @@
 # Business pages: the product's bar and the pictures of a template's database
 
-What the page of a table (`kybernos-db`, « Tables ») shares with the core so it looks like the rest of the product, and how a sector template brings pictures. Everything is drawn or served locally, with one exception: the
+What the page of a table (`kybernos-db`, « Apps ») shares with the core so it looks like the rest of the product, and how a sector template brings pictures. Everything is drawn or served locally, with one exception: the
 Map view fetches its map tiles from OpenFreeMap (see `packages/kybernos-db/README.md`, « Map »).
 
-There is no « active template » any more: several sector templates can be installed side by side, each one is a database of its own (the picker of the Tables page), and the Business group of the menu holds two rows,
-Tables and Overview (`docs/dev/business-menu.md`).
+There is no « active template » any more: several sector templates can be installed side by side, each one is an app of its own on the Apps page (`docs/dev/business-menu.md`).
 
 ## The product's bar
 
