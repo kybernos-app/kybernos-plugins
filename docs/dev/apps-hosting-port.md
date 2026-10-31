@@ -114,3 +114,33 @@ request, no page and no agent can set it, and it is not the default. It is how `
 - Journal attribution of an agent's writes: the space's door journals owner bearer writes as `person`. If the journal should say `agent`, the door needs a header or a field for it.
 - The permission string. The plugin's `plugin.json` declares `net:*.kaby.app` and `net:localhost` for the one outgoing `fetch`; the vocabulary of `scripts/plugin-scan.mjs` has no way to say
   "the host the hosting gave", so the domain is a placeholder to correct when the real one is chosen.
+
+## Next version of the port: the person chooses the host (decided 2026-10-31, evening; not built yet)
+
+The owner decided that Publish does not create a computer: the person chooses one of their own cloud computers and can open their Kybernos server to order another
+(`docs/etudes/2026-10-31-share-as-app-cadrage.md`, section 12). The port above is what is built today; this is the shape both halves build next. Everything not named here stays as written above.
+
+```js
+hosting = {
+  available(): boolean,
+  describe(): { name, orderUrl? },            // `pricePerMonth`, `currency`, `budget` are no longer used by the dialog
+  hosts(): Promise<{ ok: true, hosts: Host[] } | { ok: false, code, message }>,
+  ensureSpace({ host }): Promise<{ ok: true, space: { id, url, bootKey } } | { ok: false, code, message }>,
+  releaseSpace?(spaceId): Promise<{ ok: boolean }>,
+}
+Host = { id, name, state: 'running' | 'sleeping' | 'starting' | 'stopped', region?, alwaysOn?, shared? }
+```
+
+- **`hosts()`** is read when the dialog opens (never on every state read). `id` follows the same rule as `space.id`. `state` is what the computer is now; `region` is shown as is;
+  `alwaysOn` is `true` only if the computer really is set to never sleep (the page says "always on" if and only if it is `true`, as before); `shared` is `true` when the computer also
+  runs the person's own DSH, which is the case of every computer of ADR 0052, and makes the dialog say so. An empty list is a valid answer: the dialog then shows only the order button.
+- **`describe().orderUrl`** is an `https://` address the plugin opens in the person's browser ("Get another cloud computer"): the server's Computers page. No address, no button. The plugin
+  never builds it and never adds anything to it.
+- **`ensureSpace({ host })`** replaces `{ workspace }`. It starts the hosted app on that computer (waking it if it sleeps) and resolves once the app answers `GET /health`; calling it
+  again for the same host returns the same space (same `id`, same key). Codes: `unknown-host` (not one of the person's computers), `host-gone` (it was deleted), `host-unavailable` (it
+  cannot be started now), `unavailable` (feature off); any other code is passed through as a failure to start. The message is shown as is, at most 300 characters, no secret.
+- **The registry** records the host id with each space, so the Apps page can say where an app lives and Unpublish can find it. A space whose host is no longer in `hosts()` is shown as
+  "its computer is gone"; Unpublish with the typed-name forget path stays available.
+- **A sleeping host**: the plugin awaits `ensureSpace` without a timeout of its own; the poll treats a host that does not answer as "could not be reached", exactly as today. The server
+  should count the hosted app's requests as activity so the computer is not put to sleep under the team.
+- **The development adapter** (`envHosting`) answers `hosts()` with the one space it points at, so the dialog can be checked against `localhost`.

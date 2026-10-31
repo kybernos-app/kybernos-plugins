@@ -6,6 +6,10 @@ The owner's directions of the same day replace four things: the vocabulary (Publ
 computer per team space), the gate (the Cloud pot, no `apps` key) and where people are managed (in the hosted app). They also
 add the surface that goes with it: **Apps**, which replaces Tables in the menu. The measured facts of version 1 are kept.
 
+**Revision of the same evening (section 12):** for now, Publish does not create a computer. The person chooses one of their own cloud
+computers, and a button takes them to their Kybernos server to order another. Sections 5, 7 and 11 are read with that in mind; where
+they differ, section 12 wins.
+
 It refines the phases of `custom-objects-brainstorm` (kept in the maintainer's memory): phase C "team online-first" is delivered
 by the hosted app, without a sync engine. Phase B (one person, several devices) is a different problem and stays untouched.
 
@@ -83,6 +87,9 @@ Rules that come with A:
 - An app that is published is not archived and not deleted from DSH.
 
 ## 5. Hosting and cost
+
+*Superseded for now by section 12 (a person's own cloud computer, its own sleep and billing). Kept as the design of the dedicated,
+always-awake team-space computer, which may come back as a paid option.*
 
 - **One cloud computer per workspace, the team space.** The first Publish creates it (a Kybernos Computer, EU region); every
   further published app joins it at no extra cost and one account opens every app of the team space. Unpublishing the last app
@@ -190,7 +197,7 @@ Taken by the owner on 2026-10-31:
 | Decision | Outcome |
 |---|---|
 | Sharing in DSH | one Publish button; people are managed in the hosted app |
-| Where it runs | a new cloud computer, billed on the Cloud pot; always awake; one per workspace, shared by all its published apps |
+| Where it runs | **revised the same evening (section 12):** one of the person's own cloud computers, chosen at Publish; a button opens their Kybernos server to order another. Before: a new computer, always awake, one per workspace |
 | Gate | credit only, no `apps` plan key |
 | Kaby | one Ask Kaby button, a new chat with context; no hand editing in Kybernos |
 | Archive and delete | archive or delete an app or a table; a published app cannot be archived |
@@ -203,5 +210,51 @@ Still open:
 |---|---|---|
 | D3 | Member identity in v1 | accounts local to the team space, from an invitation; Kybernos sign-in later |
 | D4 | Front of the first slice | lean generated UI, not the extracted Tables page |
-| D6 | Price of always awake (about $7.30 a month against $3 and $6 included) | keep the card's wording honest first; decide the plans' budgets before L6 ships |
+| D6 | Price of always awake (about $7.30 a month against $3 and $6 included) | **parked by section 12:** the chosen computer's own sleep and billing apply, so the card makes no price or "always on" claim it cannot read from that computer; it returns if a dedicated team-space computer comes back |
 | D7 | What `kybernos-webapp-creator` becomes (three templates, `mini-app-pack`, its own `donnees.sqlite`) | read it before L1, then decide: kits on the Tables layer, or a separate path |
+
+## 12. Revision (2026-10-31, evening): Publish onto one of the person's own cloud computers
+
+**Decision (owner).** For now, when the person presses Publish, the only thing they choose is **which of their cloud computers receives
+the app**, and one button takes them to their Kybernos server (the console's Computers page) to **order another one**. Publish creates
+no computer, shows no price estimate, applies no budget gate of its own and promises no "always on". The owner also accepted that the
+hosted app runs **on the same machine as their own DSH**.
+
+A cloud computer here is the one of ADR 0052 of the server repository: a DSH with the Kybernos plugins, a volume at `/data`, the Gate as
+the only exposed port, sleeping (suspended with its memory) when idle. The person already orders and manages them on their server.
+
+### What the person sees
+
+- **Publish dialog**: a list of their cloud computers (name, state running or sleeping, region), one picked by default (the only one, or
+  the last used); the usual "what leaves, which fields are personal, what stays here" lines; a button "Get another cloud computer" that
+  opens the server's Computers page in the browser; Publish. With no computer at all, the dialog says so and shows only that button.
+- **Honest wording**: no price, no "always on" unless the computer itself is set always on. For a computer that sleeps: "This computer
+  sleeps when idle; your team waits about a second when it wakes." For the shared machine: "This computer also runs your agents. To keep
+  them apart, order another computer for your apps."
+- **After Publish**: the card and the header say which computer hosts the app. If that computer is deleted, the app shows "its computer is
+  gone"; the local copy stays, and Unpublish with the typed-name forget path brings the app back as a local one.
+- **Moving** an app from one computer to another is Unpublish then Publish in v1.
+
+### What it changes in the design
+
+| Piece | Before (section 5) | Now |
+|---|---|---|
+| Computer | created by the first Publish, one per workspace, EU, always awake | one the person already has, chosen at Publish |
+| Cost and gate | Cloud pot credit, estimate on the card, pause when the budget is out | whatever that computer already costs; no gate or estimate in the dialog |
+| Sleep | exempt from idle sleep | normal sleep; a member's request wakes it (about a second); hosted traffic must count as activity for the idle rule |
+| Exposure | its own origin | the Gate stays the only exposed port; the router sends `<slug>.kaby.app` to the hosted app on that computer, which has its own sign-in (members are not Kybernos users) |
+| Isolation | a machine of its own | same machine as the owner's DSH: the hosted app runs as another OS user in its own directory and port, never sees the DSH's volume, credentials or the computer's device token, and gets only its own boot key and auth secret |
+| Hosting port | `ensureSpace({ workspace })` | `hosts()` lists the person's computers, `orderUrl()` opens the server page, `ensureSpace({ host })` starts the hosted app on the chosen one; `describe()` is per host |
+
+Kept as they are: the DSH side (mirror, facade, `published` refusals, registry), the hosted app and its bundle API, the router and slug
+rules, the per-instance keys and their rotation, the backups with the restore drill and the retention sentence, the write-freeze route,
+the mail secrets and the privacy contact. Dropped for now: the dedicated team-space computer, the idle-sleep exemption, the price
+estimate, the budget pause and the "paused" page of a space. They return as a paid option if a dedicated always-awake computer comes back.
+
+### Open
+
+- How the hosted app gets onto an existing computer: baked into the computer image, or installed on the first Publish. The server and
+  the image owner decide; the plugin only needs `ensureSpace` to answer once the app answers `GET /health`.
+- Whether the idle rule can count the hosted app's requests as activity without a change to the computer image.
+- A person with several computers who published apps on two of them: the registry already keys a space by id, so each app records its
+  host; the Apps page shows it on the card.
