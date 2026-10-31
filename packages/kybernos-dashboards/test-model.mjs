@@ -329,69 +329,9 @@ ok('describeCatalogue names every provider and widget type', M.PROVIDER_IDS.ever
   ok('sankey: an empty cell is named', s.cols[1].some((n) => n.name === '(none)') && s.cols.every((c) => c.every((n) => n.name !== '')), s.cols)
 }
 
-// ── the Business providers: Catalog, Contacts and Pipeline, read page by page ─────────────────────────────────────────────
+// ── the second round of a provider ──────────────────────────────────────────────────────────────────────────────────────────
 {
-  const cat = (parts, params) => M.buildTable({ provider: 'catalog.items', params: params || {} }, parts, NOW)
-  const P = PARTS['catalog.items']
-  const day = (n) => M.dayKey(NOW + n * 86400000)
-  const t = cat(P)
-  const row = (title) => t.rows.find((r) => r.title === title)
-  ok('catalog.items: type and status are the words of the type, their keys beside', row('Stoneware mug, set of 2').type === 'Product' && row('Stoneware mug, set of 2').status === 'Live' && row('Stoneware mug, set of 2').status_key === 'live' && row('Beeswax taper candles').status === 'Out of stock')
-  ok('catalog.items: a price is a number, the text as written beside it', row('Linen napkins, 4-pack').price === 34 && row('Linen napkins, 4-pack').price_text === '€34')
-  ok('catalog.items: the item\'s own fields are columns, a picture reference is not', row('Stoneware mug, set of 2').supplier === 'Okafor Ceramics' && row('Stoneware mug, set of 2').stock === 42 && !('image' in row('Stoneware mug, set of 2')))
-  ok('catalog.items: stock above the reorder level, only for an item that carries both', row('Linen napkins, 4-pack').stock_gap === -4 && row('Beeswax taper candles').stock_gap === -12 && row('Wool throw').stock_gap === '')
-  ok('catalog.items: a field an item does not have is empty, not undefined', row('Wool throw').stock === '' && row('Wool throw').supplier === '' && row('Wool throw').surface === '')
-  ok('catalog.items: sample rows say so, and the days are local days', row('Wool throw').demo === 'yes' && row('Wool throw').created === day(-9) && row('Wool throw').updated === day(-2))
-  ok('catalog.items: a type the page does not know keeps its key as its word', cat({ page0: { rows: [{ id: 1, type: 'gadget', title: 'G', status: 'new', fields: {} }], total: 1 } }).rows[0].type === 'gadget')
-  const dated = cat({ page0: { rows: [{ id: 1, type: 'p', title: 'House', status: 's', fields: { mandate_until: day(40), opened: day(-36), image: 'photo:x/y', note: 'free text', big: 2, flag: true, nested: { a: 1 }, 'Bad Key': 3 } }, { id: 2, type: 'p', title: 'Gone', status: 's', archived_at: '2026-01-01T00:00:00.000Z', fields: {} }], total: 2 } }).rows
-  ok('catalog.items: a day field gives days until it and days since it', dated.length === 1 && dated[0].mandate_until === day(40) && dated[0].mandate_until_in === 40 && dated[0].mandate_until_ago === -40 && dated[0].opened_in === -36 && dated[0].opened_ago === 36, dated[0])
-  ok('catalog.items: flat text, numbers and flags are kept; objects and odd keys are not; an archived row is never one of them', dated[0].note === 'free text' && dated[0].big === 2 && dated[0].flag === 'yes' && !('nested' in dated[0]) && !('Bad Key' in dated[0]) && !('image' in dated[0]))
-  ok('catalog.items: an item field never overwrites a column of the row', cat({ page0: { rows: [{ id: 1, type: 'p', title: 'Real title', status: 's', price_num: 5, fields: { title: 'Fake', price: 99 } }], total: 1 } }).rows[0].title === 'Real title')
-  ok('catalog.items: a price falls back to the item\'s money field', cat({ page0: { rows: [{ id: 1, type: 'p', title: 'A', status: 's', price_num: null, fields: { price: 12 } }], total: 1 } }).rows[0].price === 12)
-  // pages: the first page says how many there are, the second round asks for the others (at most four pages, 2,000 rows)
-  const plan = M.planFor({ provider: 'catalog.items', params: {} }, NOW)
-  ok('catalog.items: the first round is the types (optional) and the first page of 500', plan.length === 2 && plan[0].path === '/kybernos-catalog/types' && plan[0].optional === true && plan[1].path === '/kybernos-catalog/list?limit=500&offset=0' && plan[1].optional !== true, plan)
-  ok('catalog.items: nothing more to ask when the first page holds everything', M.planNext({ provider: 'catalog.items', params: {} }, { page0: { total: 500, rows: [] } }, NOW).length === 0)
-  ok('catalog.items: the pages after the first, as many as the total needs', same(M.planNext({ provider: 'catalog.items', params: {} }, { page0: { total: 1200 } }, NOW).map((r) => r.path), ['/kybernos-catalog/list?limit=500&offset=500', '/kybernos-catalog/list?limit=500&offset=1000']))
-  ok('catalog.items: at most four pages, and a page that fails is optional', (() => { const n = M.planNext({ provider: 'catalog.items', params: {} }, { page0: { total: 90000 } }, NOW); return n.length === 3 && n.every((r) => r.optional === true) })())
-  const big = (n, off) => ({ rows: Array.from({ length: n }, (x, i) => ({ id: off + i, type: 'p', title: 'Item ' + (off + i), status: 's', fields: {} })), total: 1800 })
-  const paged = cat({ page0: big(500, 0), page1: big(500, 500), page2: big(500, 1000), page3: big(300, 1500) })
-  ok('catalog.items: every page read is in the table, in order', paged.rows.length === 1800 && paged.rows[1799].title === 'Item 1799' && paged.meta.note === '')
-  ok('catalog.items: a table that stops short says so', cat({ page0: big(500, 0), page1: big(500, 500) }).meta.note === 'The first 1,000 of 1,800 rows are read.')
-  ok('catalog.items: the type filter is a key or nothing', M.planFor({ provider: 'catalog.items', params: { type: 'product' } }, NOW)[1].path.endsWith('&type=product') && !M.planFor({ provider: 'catalog.items', params: { type: 'x&y=1' } }, NOW)[1].path.includes('type') && M.planNext({ provider: 'catalog.items', params: { type: 'product' } }, { page0: { total: 900 } }, NOW)[0].path.endsWith('&type=product'))
-
-  const people = M.buildTable({ provider: 'contacts.people', params: {} }, PARTS['contacts.people'], NOW)
-  const who = (n) => people.rows.find((r) => r.name === n)
-  ok('contacts.people: the type is the theme\'s word, the key beside it', who('Amelia Hart').type === 'Customer' && who('Amelia Hart').type_key === 'customer' && who('Okafor Ceramics').type === 'Supplier')
-  ok('contacts.people: tags are a line and a count, nobody without tags has none', who('Amelia Hart').tags === 'vip, repeat' && who('Amelia Hart').tag_count === 2 && who('Noah Bernard').tags === '' && who('Noah Bernard').tag_count === 0)
-  ok('contacts.people: fields are columns, a day also says how long ago', who('Amelia Hart').city === 'Lyon' && who('Amelia Hart').spent === 1240 && who('Amelia Hart').last_order === day(-3) && who('Amelia Hart').last_order_ago === 3 && who('Noah Bernard').spent === '')
-  ok('contacts.people: the company a person works for is named', M.buildTable({ provider: 'contacts.people', params: {} }, { page0: { rows: [{ id: 1, kind: 'person', type: 't', name: 'Ann', company: { id: 9, name: 'Acme' }, tags: [], fields: {} }], total: 1 } }, NOW).rows[0].company === 'Acme')
-  ok('contacts.people: the first round is the schema (optional) and the first page', (() => { const pl = M.planFor({ provider: 'contacts.people', params: {} }, NOW); return pl.length === 2 && pl[0].path === '/kybernos-contacts/schema' && pl[0].optional === true && pl[1].path === '/kybernos-contacts/list?limit=500&offset=0' })())
-
-  const cards = (parts, params) => M.buildTable({ provider: 'pipeline.cards', params: params || {} }, parts, NOW)
-  const all = PARTS['pipeline.cards']
-  ok('pipeline.cards: without a board, the boards come first', same(M.planFor({ provider: 'pipeline.cards', params: {} }, NOW), [{ key: 'flows', method: 'GET', path: '/kybernos-pipeline/flows' }]))
-  ok('pipeline.cards: then one request per board that has cards', same(M.planNext({ provider: 'pipeline.cards', params: {} }, { flows: { flows: [{ id: 'orders', cards: 4 }, { id: 'empty', cards: 0 }, { id: 'bad id', cards: 3 }, { id: 'sales', cards: 2 }] } }, NOW).map((r) => r.path), ['/kybernos-pipeline/board?flow=orders', '/kybernos-pipeline/board?flow=sales']))
-  ok('pipeline.cards: at most six boards', M.planNext({ provider: 'pipeline.cards', params: {} }, { flows: { flows: Array.from({ length: 9 }, (x, i) => ({ id: 'b' + i, cards: 1 })) } }, NOW).length === 6)
-  ok('pipeline.cards: a named board is one request, and nothing more', same(M.planFor({ provider: 'pipeline.cards', params: { flow: 'orders' } }, NOW).map((r) => r.path), ['/kybernos-pipeline/board?flow=orders']) && M.planNext({ provider: 'pipeline.cards', params: { flow: 'orders' } }, { 'board:orders': {} }, NOW).length === 0)
-  ok('pipeline.cards: a board name is a key or nothing (it is read as all of them)', M.planFor({ provider: 'pipeline.cards', params: { flow: '../x' } }, NOW)[0].path === '/kybernos-pipeline/flows')
-  const one = cards({ 'board:orders': all['board:orders'] }, { flow: 'orders' })
-  const c = (title) => one.rows.find((r) => r.title === title)
-  ok('pipeline.cards: stage is the board\'s word, its key and its place beside it', c('#1053 · Amelia Hart').stage === 'New' && c('#1053 · Amelia Hart').stage_key === 'new' && c('#1053 · Amelia Hart').stage_no === 1 && c('#1050 · Mateo Silva').stage_no === 5 && c('#1050 · Mateo Silva').flow === 'Orders' && c('#1050 · Mateo Silva').flow_key === 'orders')
-  ok('pipeline.cards: value, source, priority, tags, the person and the item are columns', c('#1053 · Amelia Hart').value === 89 && c('#1053 · Amelia Hart').source === 'Website' && c('#1053 · Amelia Hart').priority === 'high' && c('#1053 · Amelia Hart').tags === 'vip' && c('#1053 · Amelia Hart').contact === 'Amelia Hart' && c('#1053 · Amelia Hart').item === 'Wool throw')
-  ok('pipeline.cards: a due day also says in how many days (negative once late); none is empty', c('#1053 · Amelia Hart').due === day(2) && c('#1053 · Amelia Hart').due_in === 2 && c('#1051 · Yusuf Demir').due_in === -1 && c('#1050 · Mateo Silva').due === '' && c('#1050 · Mateo Silva').due_in === '')
-  ok('pipeline.cards: days in the stage count from the day it entered', c('#1053 · Amelia Hart').since === day(-1) && c('#1053 · Amelia Hart').days_in_stage === 1 && c('#1050 · Mateo Silva').days_in_stage === 4)
-  ok('pipeline.cards: one board keeps the board\'s order for a chart of its stages, all of them read together do not', same(one.meta.xDomain, { field: 'stage', values: ['New', 'Paid', 'Packed', 'Shipped', 'Delivered'] }) && cards(all).meta.xDomain === null)
-  ok('pipeline.cards: a stage with no card is still on the axis of a chart', M.chartData(one, M.validateDashboard({ widgets: [{ type: 'chart', title: 't', kind: 'columns', x: 'stage', source: { provider: 'pipeline.cards', params: { flow: 'orders' } } }] }).dashboard.widgets[0]).labels.map((l) => l.label).join() === 'New,Paid,Packed,Shipped,Delivered')
-  ok('pipeline.cards: a card with no value or no stage date has empty cells', (() => { const r = cards({ 'board:x': { flow: { id: 'x', label: { en: 'X' } }, columns: [{ stage: 'a', label: { en: 'A' }, cards: [{ title: 'T', value: null, since: 'nonsense', fields: {} }] }] } }).rows[0]; return r.value === '' && r.since === '' && r.days_in_stage === '' })())
-  ok('pipeline.cards: a board cut short says so', cards({ 'board:x': { truncated: true, columns: [] } }).meta.note.includes('2,000'))
-  // an open source takes a plausible field key; a closed one does not
-  const warn = (raw) => M.inspectDashboard(M.validateDashboard({ widgets: [raw] }).dashboard)
-  ok('inspect: an open source (Catalog, Contacts) accepts the item\'s own field', warn({ type: 'chart', title: 'a', kind: 'bars', x: 'bedrooms', source: { provider: 'catalog.items' } }).length === 0 && warn({ type: 'chart', title: 'a', kind: 'bars', x: 'Bed Rooms', source: { provider: 'catalog.items' } }).length === 1)
-  ok('inspect: a closed one (Pipeline) names what it does not have', warn({ type: 'chart', title: 'a', kind: 'bars', x: 'bedrooms', source: { provider: 'pipeline.cards' } }).length === 1)
-  ok('inspect: a text column is no number, a declared one is checked even on an open source', warn({ type: 'card', title: 'a', metric: { agg: 'sum', field: 'status' }, source: { provider: 'catalog.items' } }).length === 1)
-  ok('the catalogue text tells an agent a column can be empty and which fields come on top', (() => { const d = M.describeCatalogue().providers; return d.includes('catalog.items') && d.includes('The fields of the item\'s own type are columns too') && d.includes('add not_empty to where') })())
-  ok('a provider with nothing more to ask, and junk, plan no second round', M.planNext({ provider: 'usage.daily', params: {} }, {}, NOW).length === 0 && M.planNext({ provider: 'nope' }, {}, NOW).length === 0 && M.planNext({ provider: 'pipeline.cards', params: {} }, { flows: 7 }, NOW).length === 0 && M.planNext(null, null, NOW).length === 0)
+  ok('a provider with nothing more to ask, and junk, plan no second round', M.planNext({ provider: 'usage.daily', params: {} }, {}, NOW).length === 0 && M.planNext({ provider: 'nope' }, {}, NOW).length === 0 && M.planNext({ provider: 'db.rows', params: {} }, { state: 7 }, NOW).length === 0 && M.planNext(null, null, NOW).length === 0)
   ok('a second round is bounded', M.LIMITS.followUp >= 6 && M.LIMITS.followUp <= 24)
 }
 

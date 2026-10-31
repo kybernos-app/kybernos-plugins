@@ -11,7 +11,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { cookieDeSession } from './cdp-lib.mjs'
-import { clickText, openLivePage } from './live-page.mjs'
+import { openLivePage } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -73,17 +73,17 @@ try {
   const first = {}
   for (const dir of Object.keys(WANT)) {
     first[dir] = await post('/kybernos/themes', { action: 'seed', id: 'kybernos-themes/' + dir, lang: 'fr' })
-    const db = first[dir] && first[dir].json && first[dir].json.db
+    const db = first[dir] && first[dir].json
     check(dir + ': the seed answers with the database it made (or the one an earlier run made)', first[dir].status === 200 && db && db.ok === true && typeof db.db === 'string', first[dir])
     check(dir + ': the answer counts the objects, views, rows and pictures', db && (db.skipped === true || (db.counts && db.counts.rows === Object.values(WANT[dir].rows).reduce((a, b) => a + b, 0) && db.counts.photos > 0)), db && db.counts)
   }
   const again = await post('/kybernos/themes', { action: 'seed', id: 'kybernos-themes/ecommerce', lang: 'fr' })
-  check('a second seed of the same template changes nothing (skipped, same database)', again.json && again.json.db && again.json.db.skipped === true && again.json.db.db === first.ecommerce.json.db.db, again.json)
+  check('a second seed of the same template changes nothing (skipped, same database)', again.json && again.json.skipped === true && again.json.db === first.ecommerce.json.db, again.json)
 
   // 2. the host lists them, in the template's language, with the objects of the template
   const state = await get('/kybernos-db/state')
   for (const [dir, want] of Object.entries(WANT)) {
-    const db = state.dbs.find((d) => d.id === first[dir].json.db.db)
+    const db = state.dbs.find((d) => d.id === first[dir].json.db)
     check(dir + ': the host lists « ' + want.name + ' » with its objects', db !== undefined && db.name === want.name && db.objects.map((o) => o.label).join('|') === want.tabs.join('|'), db && { name: db.name, objects: db.objects.map((o) => o.label) })
     if (db === undefined) continue
     const counts = {}
@@ -99,9 +99,9 @@ try {
   }
 
   // 3. the real page opens each one
-  check('the page opens on the Tables row', (await clickText(page, 'Tables')) === true && (await until(() => ev(`document.querySelector('[data-kb="tables-bar"]') !== null`))) === true)
+  check('the page opens on the Tables row', (await click('.kb4-menu .kb4-item[aria-label="Tables"]')) === true && (await until(() => ev(`document.querySelector('[data-kb="tables-bar"]') !== null`))) === true)
   for (const [dir, want] of Object.entries(WANT)) {
-    const id = first[dir].json.db.db
+    const id = first[dir].json.db
     const chose = await until(() => ev(`(() => { const e = document.querySelector('[data-kb="tables-db"]'); if (e === null || ![...e.options].some((o) => o.value === ${JSON.stringify(id)})) return false; e.value = ${JSON.stringify(id)}; e.dispatchEvent(new Event('change', { bubbles: true })); return e.value === ${JSON.stringify(id)} })()`))
     check(dir + ': the picker chooses the database', chose === true)
     check(dir + ': the tabs are the objects of the template, in the template’s French', (await until(async () => JSON.stringify(await texts(kb('tables-tab'))) === JSON.stringify(want.tabs))) === true, await texts(kb('tables-tab')))

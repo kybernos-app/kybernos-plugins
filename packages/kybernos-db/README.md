@@ -1,12 +1,13 @@
 # kybernos-db
 
-The engine for user- and agent-defined databases: objects (Tasks, Orders, Contacts…), typed fields, relations and views. It replaces the three fixed
-engines (Contacts, Catalog, Pipeline) in phase A; "task management" is one more object, not a plugin.
+The engine for user- and agent-defined databases: objects (Tasks, Orders, Contacts…), typed fields, relations and views. It replaced the three fixed
+engines (Contacts, Catalog, Pipeline), which no longer exist; "task management" is one more object, not a plugin. A sector template ships its trade as a ready database
+(« Templates », below).
 
-This folder holds **lots 1 to 6: `core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
-attachments, `agent/` with `index.js`, the DSH bundle that gives the agents thirteen tools, a block of their system prompt and the `db-builder` skill, and the
-page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Tables » page), with the relations between tables and the files of a row edited from it.** The
-replacement of the old engines (lot 7) comes next and imports these.
+This folder holds **`core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
+attachments, `agent/` with `index.js`, the DSH bundle that gives the agents thirteen tools, a block of their system prompt and the `db-builder` skill, the
+page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Tables » page), with the relations between tables and the files of a row edited from it, and the
+templates (`template.mjs`, `instantiate.mjs`).**
 
 ```bash
 node packages/kybernos-db/test-agent.mjs && node packages/kybernos-db/test-host.mjs && node packages/kybernos-db/test-routes.mjs && node packages/kybernos-db/test-client.mjs

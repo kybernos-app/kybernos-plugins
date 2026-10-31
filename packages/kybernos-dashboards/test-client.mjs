@@ -167,7 +167,7 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const b = T.paintBars(model.chartData(t1, W({ type: 'chart', kind: 'bars', x: 'model', y: 'tokens', source: { provider: 'usage.daily' } })), 380, 160, {})
   {
     const stages = table([{ id: 'stage', type: 'string' }], ['Brief', 'Searching', 'Shortlist sent', 'Offer', 'Placed'].map((stage) => ({ stage })))
-    const spec = W({ type: 'chart', kind: 'columns', x: 'stage', source: { provider: 'pipeline.cards' } })
+    const spec = W({ type: 'chart', kind: 'columns', x: 'stage', source: { provider: 'db.rows' } })
     const phone = T.paintColumns(model.chartData(stages, spec), 230, 200, {})
     const desk = T.paintColumns(model.chartData(stages, spec), 520, 200, {})
     ok('columns: names that would touch are cut to their room (a phone), whole when there is room', !phone.includes('>Shortlist sent<') && /Shor[^<]*…</.test(phone) && desk.includes('>Shortlist sent<') && desk.includes('>Searching<') && finite(phone))
@@ -177,10 +177,10 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
     // the words of the rows get the room they need (a long product name is read whole), up to two fifths of the chart, then cut with an ellipsis
     const names = ['Hand-poured soy candle', 'Ceramic carafe', 'Wool throw, oatmeal', 'A name that is far too long to ever fit in a chart of this size, however wide']
     const tl = table([{ id: 'name', type: 'string' }], names.flatMap((n, i) => Array.from({ length: 4 - i }, () => ({ name: n }))))
-    const wide = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'catalog.items' } })), 520, 200, {})
+    const wide = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'db.rows' } })), 520, 200, {})
     ok('bars: a long label is written whole, not cut at 14 characters', wide.includes('>Hand-poured soy candle<') && wide.includes('>Wool throw, oatmeal<') && finite(wide))
     ok('bars: a label past two fifths of the chart is cut with an ellipsis, the tooltip has it whole', /A name that is far too long[^<]*…</.test(wide) && wide.includes('far too long to ever fit in a chart of this size, however wide'))
-    const narrow = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'catalog.items' } })), 300, 200, {})
+    const narrow = T.paintBars(model.chartData(tl, W({ type: 'chart', kind: 'bars', x: 'name', source: { provider: 'db.rows' } })), 300, 200, {})
     ok('bars: in a narrow chart the label area stays bounded and the bars keep their room', /<text x="(\d+(\.\d+)?)" y="[^"]*" text-anchor="end"/.test(narrow) && Number(/<text x="(\d+(\.\d+)?)" y="[^"]*" text-anchor="end"/.exec(narrow)[1]) <= 300 * 0.4 + 14 + 8)
   }
   const l = T.paintLine(model.chartData(t1, W({ type: 'chart', kind: 'area', x: 'day', y: 'tokens', source: { provider: 'usage.daily' } })), 400, 200, true, {})

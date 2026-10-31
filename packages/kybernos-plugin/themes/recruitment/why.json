@@ -1,15 +1,7 @@
 {
-  "kybernos/contacts": {
-    "en": "Candidates, client companies and their contacts.",
-    "fr": "Candidats, entreprises clientes et leurs contacts."
-  },
-  "kybernos/catalog": {
-    "en": "Your open jobs and their status.",
-    "fr": "Vos offres ouvertes et leur statut."
-  },
-  "kybernos/pipeline": {
-    "en": "Candidates by job, and your client missions.",
-    "fr": "Les candidats par offre, et vos missions clients."
+  "kybernos/db": {
+    "en": "Candidates, client companies, jobs and missions, as ready Tables.",
+    "fr": "Candidats, entreprises clientes, offres et missions, en Tables prêtes."
   },
   "kybernos/dashboards": {
     "en": "Open jobs, candidates by stage and placements at a glance.",

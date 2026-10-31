@@ -1755,10 +1755,7 @@ function apply (ctx) {
       if (!dead) { asked += 1; timer = setTimeout(sync, asked < 12 ? 1500 : 20000) }
     }
     sync()
-    // the person picked another template in the Business group: the row follows at once, not at the next question
-    const onScope = () => { if (dead) return; if (timer) { clearTimeout(timer); timer = 0 } asked = 0; sync() }
-    try { window.addEventListener('kb-business-scope-change', onScope) } catch (e) { /* no window events here */ }
-    return () => { dead = true; if (timer) clearTimeout(timer); try { window.removeEventListener('kb-business-scope-change', onScope) } catch (e) { /* gone */ } if (off !== null) { try { off() } catch (e) { /* already taken back */ } } }
+    return () => { dead = true; if (timer) clearTimeout(timer); if (off !== null) { try { off() } catch (e) { /* already taken back */ } } }
   }, 'kybernos-dashboards: overview row')
 
   // the right-pane tab

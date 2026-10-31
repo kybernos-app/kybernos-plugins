@@ -9,11 +9,8 @@
       "kybernos-theme"
     ],
     "kb6": [
-      "kybernos-catalog",
       "kybernos-composio",
-      "kybernos-contacts",
       "kybernos-db",
-      "kybernos-pipeline",
       "kybernos-plugin"
     ],
     "kb7": [
@@ -21,8 +18,6 @@
       "kybernos-plugin"
     ],
     "kb8": [
-      "kybernos-catalog",
-      "kybernos-contacts",
       "kybernos-dashboards",
       "kybernos-db",
       "kybernos-mobile",
@@ -92,10 +87,6 @@
     ],
     "kml": [
       "kybernos-modeles-locaux",
-      "kybernos-plugin"
-    ],
-    "kz": [
-      "kybernos-pipeline",
       "kybernos-plugin"
     ]
   },

@@ -8,8 +8,8 @@
     "fr": "Cabinet de recrutement"
   },
   "description": {
-    "en": "A recruitment firm: Candidates and clients, Jobs and Placements with sample data, a dark indigo style, a recruiting desk team, two skills and four automations that start switched off.",
-    "fr": "Un cabinet de recrutement : Candidats et clients, Offres et Placements avec des données d’exemple, un style sombre indigo, un bureau de recrutement, deux compétences et quatre automatisations créées désactivées."
+    "en": "A recruitment firm: ready Tables (Contacts, Jobs, Candidates, Client missions) with sample data, a dark indigo style, a recruiting desk team, two skills and four automations that start switched off.",
+    "fr": "Un cabinet de recrutement : des Tables prêtes (Contacts, Offres, Candidats, Missions clients) avec des données d’exemple, un style sombre indigo, un bureau de recrutement, deux compétences et quatre automatisations créées désactivées."
   },
   "keywords": [
     "people",
@@ -28,9 +28,7 @@
       "kybernos/core": "^1.0",
       "kybernos/theme": "^1.0",
       "kybernos/skills": "^1.0",
-      "kybernos/contacts": "^1.0",
-      "kybernos/catalog": "^1.0",
-      "kybernos/pipeline": "^1.0"
+      "kybernos/db": "^0.1"
     }
   },
   "extends": [
@@ -60,21 +58,6 @@
       "dir": "automations"
     },
     {
-      "point": "kybernos/contacts#schema",
-      "range": "^1.0",
-      "dir": "contacts"
-    },
-    {
-      "point": "kybernos/catalog#type",
-      "range": "^1.0",
-      "dir": "catalog"
-    },
-    {
-      "point": "kybernos/pipeline#flow",
-      "range": "^1.0",
-      "dir": "pipeline"
-    },
-    {
       "point": "kybernos/dashboards#preset",
       "range": "^1.0",
       "dir": "dashboards",
@@ -83,8 +66,7 @@
     {
       "point": "kybernos/db#template",
       "range": "^1.0",
-      "dir": "db",
-      "optional": true
+      "dir": "db"
     }
   ]
 }

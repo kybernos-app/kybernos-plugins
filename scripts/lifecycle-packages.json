@@ -198,18 +198,6 @@
       "nom": "@local/kybernos-webapp-creator"
     },
     {
-      "dir": "kybernos-contacts",
-      "nom": "@local/kybernos-contacts"
-    },
-    {
-      "dir": "kybernos-catalog",
-      "nom": "@local/kybernos-catalog"
-    },
-    {
-      "dir": "kybernos-pipeline",
-      "nom": "@local/kybernos-pipeline"
-    },
-    {
       "dir": "kybernos-db",
       "nom": "@local/kybernos-db"
     }

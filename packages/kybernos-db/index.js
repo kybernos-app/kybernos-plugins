@@ -53,7 +53,7 @@ export function lazyService (dir, ports) {
   }
 }
 
-// ── telling the registry (the SAME text in the three business plugins; scripts/test-business-points.mjs compares them) ────────────────────────
+// ── telling the registry ────────────────────────
 const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
 
 /** Tells the registry the point this plugin owns. `true` when the registry was there to hear it (telling it twice changes nothing). */

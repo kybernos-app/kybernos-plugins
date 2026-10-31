@@ -364,26 +364,20 @@ ok('a record is written, read back, and forgetting it twice is a no-op', () => {
     assert.equal(again.body.already, true)
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
-ok('recording an install makes the template the one the Business pages follow; a refusal, a throw or no hook never fails the record', () => {
+ok('recording an install writes it down and nothing else follows from it: the Business pages follow no template any more', () => {
   const dir = fresh('a6-rt-')
   try {
     const store = { dir }
-    const asked = []
-    const hook = (answer) => (id) => { asked.push(id); if (answer instanceof Error) throw answer; return answer }
     const record = (id, extra) => T.handleThemes(store, { method: 'POST', body: { action: 'record', id } }, { ...portsOK(), ...extra })
-    const made = record('acme/vet', { activate: hook({ ok: true, active: 'acme/vet' }) })
-    assert.equal(made.status, 200)
-    assert.deepEqual([made.body.ok, made.body.businessActive, asked], [true, 'acme/vet', ['acme/vet']])
-    const refused = record('acme/skills-only', { activate: hook({ ok: false, error: 'unknown_template' }) })
-    assert.deepEqual([refused.status, refused.body.ok, refused.body.businessActive], [200, true, null], 'a template that touches none of the three points is just recorded')
-    const threw = record('acme/garden', { activate: hook(new Error('boom')) })
-    assert.deepEqual([threw.status, threw.body.ok, threw.body.businessActive], [200, true, null])
-    const none = record('acme/shop', {})
-    assert.deepEqual([none.status, none.body.ok, none.body.businessActive], [200, true, null], 'no hook (an older core): the record is as it was')
-    assert.deepEqual(T.readThemes(dir).records.map((r) => r.id), ['acme/vet', 'acme/skills-only', 'acme/garden', 'acme/shop'])
-    const forget = T.handleThemes(store, { method: 'POST', body: { action: 'forget', id: 'acme/shop' } }, { ...portsOK(), activate: hook({ ok: true }) })
+    const stale = { activate: () => assert.fail('no hook is asked any more') }
+    const made = record('acme/vet', stale)
+    assert.deepEqual([made.status, made.body.ok, 'businessActive' in made.body], [200, true, false])
+    assert.equal(made.body.record.id, 'acme/vet')
+    record('acme/shop', {})
+    assert.deepEqual(T.readThemes(dir).records.map((r) => r.id), ['acme/vet', 'acme/shop'])
+    const forget = T.handleThemes(store, { method: 'POST', body: { action: 'forget', id: 'acme/shop' } }, { ...portsOK(), ...stale })
     assert.equal(forget.status, 200)
-    assert.deepEqual(asked, ['acme/vet', 'acme/skills-only', 'acme/garden'], 'forgetting a theme does not choose another: the choice falls back by itself')
+    assert.deepEqual(T.readThemes(dir).records.map((r) => r.id), ['acme/vet'])
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 ok('the sources are https only, at most three, and a source with no pinned key is refused as unverifiable', () => {

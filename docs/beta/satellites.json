@@ -479,35 +479,6 @@
         "lib_vendor": null
       },
       {
-        "dir": "kybernos-contacts",
-        "nom": "@local/kybernos-contacts",
-        "tier": 2,
-        "obligatoire": false,
-        "role": "people and companies, with the kinds and fields a theme defines; owns the point kybernos/contacts#schema (the page arrives in a later release)",
-        "poids_ko": 15,
-        "lib_vendor": null
-      },
-      {
-        "dir": "kybernos-catalog",
-        "nom": "@local/kybernos-catalog",
-        "tier": 2,
-        "obligatoire": false,
-        "role": "what you sell, rent or recruit for, as cards, a list or a real map, with the statuses and fields a theme defines; owns the point kybernos/catalog#type",
-        "poids_ko": 1304,
-        "lib_vendor": "maplibre-gl 5.24.0",
-        "lib_poids_ko": 1090,
-        "chargement": "paresseux"
-      },
-      {
-        "dir": "kybernos-pipeline",
-        "nom": "@local/kybernos-pipeline",
-        "tier": 2,
-        "obligatoire": false,
-        "role": "orders, deals or candidates as cards on a board, with the stages a theme defines; owns the point kybernos/pipeline#flow (the page arrives in a later release)",
-        "poids_ko": 12,
-        "lib_vendor": null
-      },
-      {
         "dir": "kybernos-db",
         "nom": "@local/kybernos-db",
         "tier": 2,
@@ -580,9 +551,6 @@
       "@local/kybernos-pulse",
       "@local/kybernos-log",
       "@local/kybernos-webapp-creator",
-      "@local/kybernos-contacts",
-      "@local/kybernos-catalog",
-      "@local/kybernos-pipeline",
       "@local/kybernos-db"
     ]
   }

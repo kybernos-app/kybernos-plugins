@@ -36,21 +36,15 @@ computer, read when the page opens or you refresh. Nothing leaves the machine.
 | `teams.lessons` | `GET /kybernos-sessions/state` | no |
 | `skills.list` | `GET /kybernos-skills/skills` | no |
 | `sessions.runs` | `GET /kybernos/runs-index` | no |
-| `catalog.items` | `GET /kybernos-catalog/list` (pages of 500) and `GET /kybernos-catalog/types` | no |
-| `contacts.people` | `GET /kybernos-contacts/list` (pages of 500) and `GET /kybernos-contacts/schema` | no |
-| `pipeline.cards` | `GET /kybernos-pipeline/flows`, then `GET /kybernos-pipeline/board?flow=` per board (or the one named by `flow`) | no |
 | `db.rows` | `GET /kybernos-db/state`, then `GET /kybernos-db/records?db=&object=` of the table and of the tables its relations point to (up to four) | no |
 
 `db.rows` reads one table of a database made on the Tables page: its fields are the columns under their key (a choice also gives `<key>_key`, a relation the titles it links to, a date `<key>_in` / `<key>_ago`; files and the fields kept back, `sensitive` and `secret`, are never columns). `db` is a database id or the id of the template it came from, so that a shipped dashboard can name its data; `order` and `diff` are described in the catalogue. It is the source the three sector templates' overviews use; the three Business sources below stay until the old Contacts, Catalog and Pipeline pages are removed.
 
-The three **Business sources** read the pages of Contacts, Catalog and Pipeline (the person's own items, people and cards, sample rows
-included: `demo` is `yes` on those). They are read page by page, so the model has a second round: `planNext(source, answers)` returns the
-requests the first answers call for (the pages after the first, up to 2,000 rows; one board per flow, up to six), and a table that stops short
-says so in its note. A column is always there, `''` when the row has no value (a source here is *sparse*: add `not_empty` to a `where` before an
-average, a minimum or a maximum), and the fields of an item's own type are columns under their key (an *open* source: `stock`, `surface`, `opened`…,
-beside the declared ones). A field that holds a day also gives `<key>_in` (days until it, negative once past) and `<key>_ago` (days since it), and a
-card gives `due_in` and `days_in_stage`, because a `where` compares numbers, not dates. Stages and statuses are in the words of the template
-(`stage`, `status`), their keys beside (`stage_key`, `status_key`); with `flow` set a chart of `stage` keeps the board's order and shows an empty stage.
+`db.rows` is read page by page too, so the model has a second round: `planNext(source, answers)` returns the requests the first answers call for (the rows of the table and of the
+tables its relations point to), and a table that stops short says so in its note. A column is always there, `''` when the row has no value (a source here is *sparse*: add
+`not_empty` to a `where` before an average, a minimum or a maximum), and the table's own fields are columns under their key (an *open* source: `stock`, `surface`, `opened`…,
+beside the declared ones). A field that holds a day also gives `<key>_in` (days until it, negative once past) and `<key>_ago` (days since it), because a `where` compares
+numbers, not dates. A choice is in the words of the template (`stage`), its key beside (`stage_key`); with `order` set a chart of that field keeps the options in order and shows an empty one.
 
 A source without a period shows the current state, and the widget does not pretend otherwise. Money is not stored, only
 tokens, so a dashboard shows tokens. Connected apps (Stripe, GitHub, …) are **not** sources yet: see "Not built".
@@ -66,8 +60,7 @@ each card. Using one gives the person their own copy, like any preset; the copy 
 While a template ships a dashboard marked `overview: true`, the *Business* group of the menu has a first row, **Overview** (the template's own `menu` word if it
 gives one), which opens the Dashboards page on the person's copy of that dashboard, made the first time, with a *All dashboards* button to the Dashboards page.
 The row is declared through `window.__KB_MENU__` and its page on the keyed slot `main.kybernos-business`: no core change. The contract is in
-`docs/dev/plugin-contract.md` (6.2b); `template-presets.mjs` holds `isOffered`, the one function that says whose presets are offered (the ACTIVE template's: the
-Business pages show one template at a time, and the row follows a switch at once). A template extends the point as an optional extension, so until the
+`docs/dev/plugin-contract.md` (6.2b); `template-presets.mjs` holds `isOffered`, the one function that says whose presets are offered (every installed template's, while it is enabled and valid). A template extends the point as an optional extension, so until the
 Dashboards plugin is on and has told its point the template stays whole and only its dashboard is missing.
 
 ## A dashboard is a file, never code

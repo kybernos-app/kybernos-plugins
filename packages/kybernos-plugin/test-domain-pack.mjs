@@ -32,13 +32,13 @@ ok('the format version is 1 and the menu rows are the sidebar\'s', () => {
   assert.deepEqual(ROW_IDS, ['kyber', 'dashboards', 'aiteams', 'projects', 'deliverables', 'tasks', 'skills', 'connectors', 'documents'])
   assert.deepEqual(HIDEABLE, ['documents'])
 })
-ok('a pack may also rename the three rows the business plugins declare, and still nothing that is not a row', () => {
-  assert.deepEqual(BUSINESS_ROW_IDS, ['contacts', 'catalog', 'pipeline'])
+ok('a pack may also rename the row the Tables plugin declares, and still nothing that is not a row', () => {
+  assert.deepEqual(BUSINESS_ROW_IDS, ['tables'])
   assert.equal(BUSINESS_ROW_IDS.filter((x) => ROW_IDS.indexOf(x) >= 0).length, 0, 'no id is both a core row and a business row')
-  const r = bad((p) => { p.menu.labels = { contacts: T('Clients', 'Clients'), catalog: T('Properties', 'Biens'), pipeline: T('Deals', 'Dossiers') } })
+  const r = bad((p) => { p.menu.labels = { tables: T('Properties', 'Biens') } })
   assert.equal(r.ok, true, JSON.stringify(r.errors))
-  assert.deepEqual(Object.keys(r.pack.menu.labels), ['contacts', 'catalog', 'pipeline'])
-  const no = bad((p) => { p.menu.labels = { contacts: T('Clients', 'Clients'), inbox: T('Inbox', 'Boîte') } })
+  assert.deepEqual(Object.keys(r.pack.menu.labels), ['tables'])
+  const no = bad((p) => { p.menu.labels = { tables: T('Clients', 'Clients'), inbox: T('Inbox', 'Boîte') } })
   assert.equal(no.ok, false)
   assert.ok(no.errors.some((e) => /menu\.labels: "inbox" is not a menu row/.test(e)), JSON.stringify(no.errors))
   assert.deepEqual(HIDEABLE.filter((x) => BUSINESS_ROW_IDS.indexOf(x) >= 0), [], 'a business row is renamed, never hidden by a pack: its plugin is the switch')

@@ -35,7 +35,7 @@ import { createHash, verify as verifySignature } from 'node:crypto'
 import { chmodSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { readDbTemplate, readSample } from './themes-shipped.mjs'
+import { readDbTemplate } from './themes-shipped.mjs'
 
 export const CATALOGUE_KIND = 'kybernos-plugin-catalogue'
 export const CATALOGUE_SCHEMA = 1
@@ -691,32 +691,22 @@ export function handleThemes (store, request, ports) {
       if (staged.ok !== true) return answer(500, { ok: false, error: staged.error })
       return answer(200, { ok: true, id, version: String(got.version), sha256: verdict.sha256, level: verdict.level, path: staged.path })
     }
-    // The sample rows of a SHIPPED theme go into the business base through its seam (`ports.business`): the host knows the folder, the page names the
-    // theme. The base checks every row and seeds one theme once (`skipped` the second time); a theme from elsewhere has no route here.
-    // A theme that also ships a database (`db/<id>.json`, kybernos-db's template) has it made through the db seam (`ports.db`) in the person's language (`body.lang`):
-    // the answer then carries `db` ({ ok, skipped?, db?, counts? } or { ok: false, error }); a theme that ships none, or a host without the seam, leaves `db` out.
+    // The database a SHIPPED theme ships (`db/<id>.json`, kybernos-db's template) is made through the db seam (`ports.db`): the host knows the folder, the page names the
+    // theme. It is made in the person's language (`body.lang`), once per template while it exists (`skipped` the second time); `body.sample === false` leaves the sample
+    // rows out and the structure in. `{ ok, skipped?, db, counts }`, or `{ ok: false, error }`: `no-db` (the theme ships none), `db_off` (kybernos-db is not running,
+    // so a restart is due first), `failed` (with a short `detail`, the owner's own words).
     if (action === 'seed') {
       const id = text(body.id) ?? ''
       if (OWNER.test(id) === false) return answer(400, { ok: false, error: 'id' })
       const hit = list(p.shipped).find((x) => plain(x) && typeof x.folder === 'string' && x.id === id)
-      const data = hit === undefined ? null : readSample(hit.folder)
       const shipped = hit === undefined ? null : readDbTemplate(hit.folder)
+      if (shipped === null) return answer(200, { ok: false, error: 'no-db' })
       const dbSeam = plain(p.db) && typeof p.db.install === 'function' ? p.db : null
-      let db
-      if (shipped !== null && dbSeam !== null) {
-        let r = null
-        try { r = dbSeam.install({ template: shipped.template, sample: shipped.sample, lang: LANGS.includes(body.lang) ? body.lang : 'en', photo: typeof p.photo === 'function' ? p.photo : undefined }) } catch (e) { r = null }
-        db = plain(r) && r.ok === true ? { ok: true, skipped: r.skipped === true, db: text(r.db), counts: plain(r.counts) ? r.counts : null } : { ok: false, error: plain(r) ? text(r.error) ?? 'failed' : 'failed', detail: plain(r) ? tidy(r.detail, 200) : undefined }
-      }
-      const reply = (status, b) => answer(status, db === undefined ? b : { ...b, db })
-      if (data === null && db === undefined) return answer(200, { ok: false, error: 'no-sample' })
-      if (data === null) return reply(200, { ok: true, skipped: true, counts: null })
-      const base = plain(p.business) && typeof p.business.seed === 'function' ? p.business : null
-      if (base === null) return reply(200, { ok: false, error: 'base_missing' })
+      if (dbSeam === null) return answer(200, { ok: false, error: 'db_off' })
       let r = null
-      try { r = base.seed(data, { theme: id, actor: 'theme' }) } catch (e) { r = null }
-      if (!plain(r)) return reply(200, { ok: false, error: 'failed' })
-      return reply(200, r.ok === true ? { ok: true, skipped: r.skipped === true, counts: plain(r.counts) ? r.counts : null } : { ok: false, error: text(r.error) ?? 'failed', detail: tidy(r.detail, 200) })
+      try { r = dbSeam.install({ template: shipped.template, sample: body.sample === false ? null : shipped.sample, lang: LANGS.includes(body.lang) ? body.lang : 'en', photo: typeof p.photo === 'function' ? p.photo : undefined }) } catch (e) { r = null }
+      if (!plain(r)) return answer(200, { ok: false, error: 'failed' })
+      return answer(200, r.ok === true ? { ok: true, skipped: r.skipped === true, db: text(r.db), counts: plain(r.counts) ? r.counts : null } : { ok: false, error: text(r.error) ?? 'failed', detail: tidy(r.detail, 200) })
     }
     // A skill the SHIPPED theme carries in its own folder (`skills/<name>/SKILL.md`): the host copies it into the person's skills with the careful
     // seeding every shipped skill goes through (`ports.skill`, injected by index.js); the page names the theme and the skill, never a path.
@@ -740,12 +730,7 @@ export function handleThemes (store, request, ports) {
       const records = store1.records.filter((r) => r.id !== id)
       records.push(rec)
       const written = writeThemes(dir, { active: body.active !== undefined ? body.active : id, records, sources: store1.sources })
-      // The Business pages show one template at a time: the one just installed is the one they follow. A template that brings none of their points is left alone.
-      let active = null
-      if (written.ok === true && typeof p.activate === 'function') {
-        try { const r = p.activate(id); active = plain(r) && r.ok === true ? id : null } catch (e) { active = null }
-      }
-      return written.ok === true ? answer(200, { ok: true, record: rec, records: records.length, businessActive: active }) : answer(500, { ok: false, error: written.error })
+      return written.ok === true ? answer(200, { ok: true, record: rec, records: records.length }) : answer(500, { ok: false, error: written.error })
     }
     if (action === 'forget') {
       const id = text(body.id) ?? ''

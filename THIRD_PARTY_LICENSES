@@ -5,7 +5,7 @@ Kybernos is licensed under the Apache License 2.0 (see LICENSE). This file gives
 licence texts for the third-party components that NOTICE credits. It covers only those
 components: other code vendored in this repository (for example under
 packages/kybernos-plugin/vendor, packages/kybernos-theme/vendor, packages/kybernos-slides/vendor or
-packages/kybernos-catalog/vendor)
+packages/kybernos-db/vendor)
 keeps its own licence files and notices in its own vendor/ folder. Component names, versions
 and copyright lines are the ones given in NOTICE and, for mermaid and its dependencies, in
 packages/dsh-mermaid/vendor/NOTICES.md.

@@ -40,18 +40,6 @@
       "tasks": {
         "en": "Follow-ups",
         "fr": "Relances"
-      },
-      "contacts": {
-        "en": "Candidates and clients",
-        "fr": "Candidats et clients"
-      },
-      "catalog": {
-        "en": "Jobs",
-        "fr": "Offres"
-      },
-      "pipeline": {
-        "en": "Placements",
-        "fr": "Placements"
       }
     }
   },
