@@ -92,15 +92,12 @@ const T = plugin.__test
   ok('the player registers on the door when it is there', reg !== null && reg[0] === 'dashboard')
 }
 
-// ── the « Overview » row of the Business group ───────────────────────────────
+// ── no menu row: the menu is fixed, a template's dashboard is a preset of the gallery ──
 {
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const realFetch = globalThis.fetch
-  let answer = { ok: true, overview: { preset: 'shop-overview', name: 'Shop overview', label: { en: 'Overview', fr: 'Vue d’ensemble' }, template: { id: 'acme/shop', name: 'Acme online shop' }, dashboardId: null } }
   let asked = 0
-  globalThis.fetch = async (url, init) => { if (String(url).includes('/kybernos-dashboards/overview')) { asked++; return { ok: true, status: 200, json: async () => answer } } return realFetch(url, init) }
+  globalThis.fetch = async (url, init) => { if (String(url).includes('/kybernos-dashboards/overview')) asked++; return realFetch(url, init) }
   const registered = []
-  const taken = []
   const injected = {}
   const cleanups = []
   const ctx = {
@@ -108,37 +105,15 @@ const T = plugin.__test
     effect: (fn, label) => { const c = fn(); cleanups.push({ label, c }); return c },
     slots: { inject: (name, make) => { injected[name] = make(); return () => {} }, register: (spec, comp) => ({ spec, comp }) },
   }
-  delete win.__KB_MENU__ // the core builds its menu after this plugin: nothing can be declared yet
+  win.__KB_MENU__ = { register: (row) => { registered.push(row); return () => {} } }
   plugin.apply(ctx)
-  await sleep(60)
-  const page = injected['main.kybernos-business']
-  ok('the Overview page is injected on the business pages\' own keyed slot', page !== undefined && page.spec.name === 'main.kybernos-business' && page.spec.key === 'overview' && typeof page.comp === 'function')
-  ok('the host is asked, and with no menu to declare on, nothing is declared and nothing throws', asked >= 1 && registered.length === 0)
-  win.__KB_MENU__ = { register: (row) => { registered.push(row); return () => { taken.push(row.id) } } }
-  await sleep(1700)
-  ok('the menu has come: the row is declared once, in the Business group, first, with the template\'s words', registered.length === 1 && registered[0].id === 'overview' && registered[0].group === 'business' && registered[0].order < 10 && registered[0].label.en === 'Overview' && registered[0].label.fr === 'Vue d’ensemble' && typeof registered[0].icon === 'string', registered)
-  await sleep(1700)
-  ok('asking again changes nothing while the host says the same', registered.length === 1 && taken.length === 0)
-  answer = { ok: true, overview: { preset: 'farm-overview', name: 'Stand overview', label: { en: 'Stand', fr: 'Stand' }, template: { id: 'acme/farm', name: 'Acme farm stand' }, dashboardId: 'farm-overview' } }
-  await sleep(1700)
-  ok('another template\'s word replaces the row', registered.length === 2 && registered[1].label.en === 'Stand' && taken.length === 1)
-  answer = { ok: true, overview: null }
-  await sleep(1700)
-  ok('the template removed, the row is taken back', taken.length === 2 && registered.length === 2)
-  answer = { ok: true, overview: { preset: 'shop-overview', name: 'Shop overview', label: { en: 'Overview', fr: 'Vue d’ensemble' }, template: { id: 'acme/shop', name: 'x' }, dashboardId: null } }
-  await sleep(1700)
-  ok('and back again when a template is installed', registered.length === 3 && taken.length === 2)
+  await new Promise((r) => setTimeout(r, 60))
+  ok('the plugin declares no row on the menu', registered.length === 0)
+  ok('it injects no page on the business pages\' keyed slot, only its own page and its pane', injected['main.kybernos-business'] === undefined && injected['main.kybernos-dashboards'] !== undefined)
+  ok('it does not ask the host for an Overview any more', asked === 0)
+  ok('every effect is labelled with the plugin\'s name', cleanups.every((e) => e.label.startsWith('kybernos-dashboards:')))
   for (const e of cleanups) if (typeof e.c === 'function') e.c()
-  ok('taking the plugin away takes the row back and stops asking', taken.length === 3)
-  const n = asked
-  await sleep(1700)
-  ok('nothing is asked after the plugin has gone', asked === n)
-  ok('every effect of the Overview is labelled', cleanups.filter((e) => /overview/.test(e.label)).length === 2 && cleanups.every((e) => e.label.startsWith('kybernos-dashboards:')))
-  // the page of the row is the Dashboards page in Overview mode
-  const el = T.OverviewPage()
-  ok('the row\'s page is the Dashboards page opened as the Overview', el.t === T.DashboardsPage && el.p.overview === true)
   ok('the dashboard view is keyed by the dashboard, on the page and in the pane (widgets of two dashboards share ids: a reused one kept its size)', (src.match(/h\(DashboardView, \{ key: dash\.id, /g) || []).length === 2)
-  ok('the Overview word is « Overview » until the host says another', T.overviewWord() === 'Overview' || T.overviewWord() === 'Stand' || T.overviewWord() === 'Vue d’ensemble')
   ok('a gallery card names its template', src.includes("'data-kb': 'preset-template'") && src.includes('.kbdb-pill.tpl{'))
   globalThis.fetch = realFetch
   delete win.__KB_MENU__
@@ -279,8 +254,8 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   ok('the core knows this bundle by its package name', core.includes("e.id === '" + pkg.name + "'"))
   ok('the core declares the child slot this bundle injects on', core.includes("'main.kybernos-dashboards': { kind: 'single', scope: 'root' }") && src.includes("'main.kybernos-dashboards'"))
   const row = core.indexOf("row('dashboards', Icon('layoutDashboard'")
-  const teams = core.indexOf("row('aiteams',")
-  ok('the Dashboards row sits right before Agent Teams in the menu', row > 0 && teams > row && core.slice(row, teams).split('\n').length <= 4, [row, teams])
+  const next = core.indexOf("row('tasks',")
+  ok('the Dashboards row is the first of the fixed rows, right before Automations', row > 0 && next > row && core.slice(row, next).split('\n').length <= 4, [row, next])
   ok('the row only shows when the bundle is booted', /\(KB_DB === true \? row\('dashboards'/.test(core))
   ok('the view is dispatched and openable from other bundles', core.includes("if (s.view === 'dashboards') return h(KbDashboardsView, props)") && core.includes(".concat(KB_DB === true ? ['dashboards'] : [])"))
   ok('the core renders the mount with a fallback when the slot is empty', core.includes('kbt(\'kbui.dashboards.off\')') && core.includes("slots.entriesOfSlot('main.kybernos-dashboards')"))

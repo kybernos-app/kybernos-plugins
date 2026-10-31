@@ -1,17 +1,12 @@
 #!/usr/bin/env node
-/** One icon column, one label column, in the sidebar menu — the group header and the workspace selector included.
+/** One icon column, one label column, in the sidebar menu — the workspace selector included.
  *
  *  The person, 2026-10-30: « dans le menu, il faudrait que les icônes et les titres soient alignés (collapsé ou non) ».
- *  Measured on a capture before the fix: the « Business » header label sat 34 px right of the items' (a chevron drawn
- *  before the icon, its own padding, and a `.95em` font that rescaled every `em` it used), and the workspace selector
- *  « Real estate agency » 8 px right (its own inset, plus a 1.65em tile where the items reserve 1.25em).
+ *  Measured on a capture before the fix: a header label sat 34 px right of the items' and the workspace selector
+ *  « Real estate agency » 8 px right (its own inset, plus a 1.65em tile where the items reserve 1.25em). The header (the
+ *  « Business » group) has since gone: the menu is fixed and the declared rows are drawn flat, as items.
  *
- *  After the fix, the same measurement on the live GUI (127.0.0.1:3080, CDP probe) reads icoX 16.4 / labX 40.9 for
- *  the 10 items, the group header and the selector alike.
- *
- *  This file keeps the invariants in the source (the live numbers are quoted in campagne-recette-2026-10-30):
- *  same inset, same gap, one icon box of 1.25em, the label voice carried by the label and not by the row, and the
- *  disclosure drawn AFTER the label so it cannot push the icon off the column.
+ *  This file keeps the invariants in the source: one inset, one gap, one icon box of 1.25em.
  *
  *  Usage: node packages/kybernos-plugin/test-menu-axis.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
@@ -34,25 +29,16 @@ const rule = (sel) => {
   return src.slice(open + 1, close)
 }
 
-// 1. the two row kinds share one inset and one gap
-for (const sel of ['.kb4-item{', '.kb4-grph{']) {
-  const body = rule(sel)
-  assert.ok(/padding:[^;]*\.6em/.test(body) || /padding-left:calc\(\.6em - 1px\)/.test(body), sel + ' starts its content at .6em (' + body.slice(0, 90) + ')')
-  assert.ok(/gap:\.5em/.test(body), sel + ' uses the items’ .5em gap')
+// 1. the item has one inset and one gap
+{
+  const body = rule('.kb4-item{')
+  assert.ok(/padding:[^;]*\.6em/.test(body) || /padding-left:calc\(\.6em - 1px\)/.test(body), '.kb4-item starts its content at .6em (' + body.slice(0, 90) + ')')
+  assert.ok(/gap:\.5em/.test(body), '.kb4-item uses the .5em gap')
 }
-ok('the item and the group header share one inset and one gap')
+ok('the item has one inset and one gap')
 
-// 2. one icon box, one label voice
+// 2. one icon box
 assert.ok(/\.kb4-ico\{[^}]*width:1\.25em/.test(src), 'the items’ icon sits in a fixed 1.25em box')
-assert.ok(/\.kb4-grph \.kb4-lab\{font-size:\.95em\}/.test(src), 'the header keeps the smaller voice on its label, not on the row (its `em` paddings stay the items’)')
-assert.ok(!/\.kb4-grph\{[^}]*font-size:\.95em/.test(src), 'the header row is back to 1em (a .95em row rescaled its own paddings)')
-ok('one icon column of 1.25em, and the smaller voice lives on the label')
-
-// 3. the disclosure is drawn after the label and pushed to the end, so it cannot shift the icon
-const labAt = src.indexOf("h('span', { className: 'kb4-lab' }, title)")
-const chevAt = src.indexOf("className: 'kb4-grpchev'", labAt >= 0 ? labAt : 0)
-assert.ok(labAt >= 0 && chevAt > labAt, 'the group header draws its label before its chevron')
-assert.ok(/\.kb4-grpchev\{[^}]*margin-left:auto/.test(src), 'the chevron is pushed to the end of the header')
-ok('the disclosure sits at the end of the header, after the label')
+ok('one icon column of 1.25em')
 
 console.log('\n' + pass + ' verifications OK')

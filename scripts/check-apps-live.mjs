@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The Apps page (kybernos-db) on the REAL GUI of a SANDBOX, over real databases: the gallery of cards, an app opening on its tables, the Relations tab, the view bar,
-// and the archive / restore / delete-forever round trip (each step read back from /kybernos-db/state). The page edits nothing by hand: every data change here is Kaby's, made through the
+// the template cards of « New app » (read through window.__KB_TEMPLATES__, one added), and the archive / restore / delete-forever round trip (each step read back from /kybernos-db/state). The page edits nothing by hand: every data change here is Kaby's, made through the
 // service the host uses.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh && node scripts/check-apps-live.mjs [--shots <dir>]
@@ -72,7 +72,7 @@ await ev(`window.__errs = []; window.addEventListener('error', (e) => window.__e
 try {
   console.log('── the gallery ──')
   await sleep(2500)
-  check('the Business group has an « Apps » row, and it opens the gallery', (await clickText(page, 'Apps')) === true && (await until(() => exists(kb('apps-gallery')), 8000)) === true)
+  check('the fixed menu has an « Apps » row, and it opens the gallery', (await clickText(page, 'Apps')) === true && (await until(() => exists(kb('apps-gallery')), 8000)) === true)
   await sleep(600)
   await shot('01-gallery')
   const cards = await ev(`[...document.querySelectorAll('[data-kb="apps-card"]')].map((e) => ({ id: e.getAttribute('data-db'), t: e.innerText.replace(/\\s+/g, ' ') }))`)
@@ -118,6 +118,28 @@ try {
   check('New app opens the screen where Kaby is asked', (await click(kb('apps-new'))) && (await until(() => exists(kb('tables-build-input')), 4000)) === true)
   await shot('07-new-app')
   check('the starting shapes are offered', (await count(kb('apps-start'))) === 3)
+
+  console.log('── a template ──')
+  const tpls = await ev(`[...document.querySelectorAll('[data-kb="apps-template"]')].map((e) => ({ id: e.getAttribute('data-id'), t: e.innerText.replace(/\\s+/g, ' ') }))`)
+  const seamIds = await ev(`window.__KB_TEMPLATES__.list().then((l) => l.map((t) => t.id))`)
+  check('Start from a template draws one card per template the door lists, each with its tables and a button', Array.isArray(tpls) && tpls.length >= 1 && JSON.stringify(tpls.map((c) => c.id)) === JSON.stringify(seamIds) && tpls.every((c) => /Use template|In your apps/.test(c.t)), { tpls, seamIds })
+  await shot('08-templates')
+  const tpl = (tpls || []).find((c) => /Use template/.test(c.t))
+  if (tpl === undefined) console.log('  ○ every template is already one of this sandbox\'s apps: the add steps are skipped (each run adds one; start a fresh sandbox to repeat them)')
+  else {
+    const marker = tpl.id.split('/').pop()
+    check('a card opens the dialog, with the sample rows and the kit offered', (await click(`${kb('apps-template')}[data-id="${tpl.id}"] button`)) && (await until(() => exists(kb('apps-opt-sample')), 4000)) === true)
+    await shot('09-template-dialog')
+    check('Add app makes the app: its database carries the template marker, its page opens on its tables', (await click(kb('apps-confirm'))) && (await until(async () => (await state()).dbs.some((d) => d.template === marker), 40000)) === true && (await until(() => exists(kb('tables-tab')), 10000)) === true)
+    await sleep(500)
+    await shot('10-template-app')
+    const made = (await state()).dbs.find((d) => d.template === marker)
+    const twice = await ev(`window.__KB_TEMPLATES__.add(${JSON.stringify(tpl.id)}, { sample: true, kit: false })`, 40000)
+    check('adding it again through the door finds the same app and makes no second one', twice !== null && twice.ok === true && made !== undefined && twice.appId === made.id && (await state()).dbs.filter((d) => d.template === marker).length === 1, { twice, made: made && made.id })
+    const refusal = await ev(`window.__KB_TEMPLATES__.add('nobody/nothing', {})`)
+    check('an unknown template is refused with a sentence, not thrown', refusal !== null && refusal.ok === false && typeof refusal.message === 'string' && refusal.message !== '', refusal)
+    check('back on the gallery, New app shows that template as « In your apps »', (await click(kb('apps-back'))) && (await until(() => exists(kb('apps-gallery')), 6000)) === true && (await click(kb('apps-new'))) && (await until(async () => /In your apps/.test((await ev(`(document.querySelector('[data-kb="apps-template"][data-id="${tpl.id}"]') || { innerText: '' }).innerText`)) || ''), 6000)) === true)
+  }
   const errs = await ev('window.__errs')
   check('no uncaught error on the page', Array.isArray(errs) && errs.length === 0, errs)
   check('the page text is free of leftovers (no raw keys, no undefined)', !/undefined|\[object|NaN/.test(await bodyText()))

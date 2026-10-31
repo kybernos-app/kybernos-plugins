@@ -57,9 +57,8 @@ and again until it is heard (`tellWhenReady`), checks every file with `preset-po
 no note, no flow, no address) and lists the dashboards of the **installed** templates in *Presets*, ahead of the built-in ones, with the template's name on
 each card. Using one gives the person their own copy, like any preset; the copy remembers its preset (in `index.json`).
 
-While a template ships a dashboard marked `overview: true`, the *Business* group of the menu has a first row, **Overview** (the template's own `menu` word if it
-gives one), which opens the Dashboards page on the person's copy of that dashboard, made the first time, with a *All dashboards* button to the Dashboards page.
-The row is declared through `window.__KB_MENU__` and its page on the keyed slot `main.kybernos-business`: no core change. The contract is in
+A dashboard a template ships is one of the presets of the gallery, and the menu is fixed: it has no row of its own (there was an *Overview* row of the former *Business* group; the
+Dashboards page replaces it). A dashboard marked `overview: true` is still the one `GET overview` names. The contract is in
 `docs/dev/plugin-contract.md` (6.2b); `template-presets.mjs` holds `isOffered`, the one function that says whose presets are offered (every installed template's, while it is enabled and valid). A template extends the point as an optional extension, so until the
 Dashboards plugin is on and has told its point the template stays whole and only its dashboard is missing.
 

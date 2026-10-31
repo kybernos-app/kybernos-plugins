@@ -177,7 +177,7 @@ export function mountRoutes (webServer, host) {
   get('list', async (req, res) => { send(res, 200, { ok: true, ...(await host.list()) }) })
   // the installed templates' presets first (they are what the person came for), then the built-in ones
   get('presets', (req, res) => { send(res, 200, { ok: true, presets: presetSummary(host.allPresets().filter((p) => p.template !== undefined)).concat(presetSummary()) }) })
-  // the « Overview » row of the Business group: which dashboard it opens (null: no installed template ships one), read-only
+  // which dashboard the installed templates' overview names (null: none ships one), read-only; the page no longer calls it (the menu has no Overview row)
   get('overview', async (req, res) => { send(res, 200, { ok: true, overview: await host.overviewInfo() }) })
   get('dashboard', async (req, res) => {
     const r = await host.readDoc(str(q(req).get('id')))

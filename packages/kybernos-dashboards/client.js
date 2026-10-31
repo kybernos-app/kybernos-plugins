@@ -2642,15 +2642,6 @@ window.__ModuleLoader__.load({
         // In scope: React, `model`, `chart`, the painters, data.js helpers and widgets.js components.
 
         let WANT_OPEN_ID = null // set by the pane ("Open full page") for the page to pick up
-        let OVERVIEW_LABEL = null // { en, fr }: the word of the « Overview » row of the Business group, as the host last said it (the template's own, else « Overview »)
-        /** The word of the Overview row in the page's language. */
-        const overviewWord = () => {
-          const l = OVERVIEW_LABEL
-          const w = l !== null && typeof l === 'object' ? String((langBase() === 'fr' ? l.fr : l.en) || l.en || '') : ''
-          return w !== '' ? w : kt('Vue d’ensemble', 'Overview')
-        }
-        /** Leaves the Overview for the Dashboards page, where every dashboard and the presets are. */
-        const openDashboardsPage = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'dashboards' }) } catch (e) { /* the page cannot be reached from here */ } }
 
         /** The last dashboard looked at, per browser (a convenience: the host stays the truth). */
         const lastOpened = {
@@ -2748,8 +2739,6 @@ window.__ModuleLoader__.load({
         }
 
         function DashboardsPage (props) {
-          // `overview`: this is the « Overview » row of the Business group, not the Dashboards page: it opens the person's copy of the installed template's overview and stays on it
-          const overview = props !== null && props !== undefined && props.overview === true
           const rootRef = useRef(null)
           const [list, setList] = useState(null)
           const [presets, setPresets] = useState([])
@@ -2808,13 +2797,6 @@ window.__ModuleLoader__.load({
             ;(async () => {
               const l = await refreshList()
               if (dead || l === null) { if (!dead) setScreen('gallery'); return }
-              if (overview) {
-                // the row opens the template's overview, made the first time; with none to open (the template was removed since the row was drawn) the gallery says so by being the gallery
-                const o = await api('POST', 'overview-copy', {})
-                if (dead) return
-                if (o.ok && typeof o.json.id === 'string') { await refreshList(); if (!dead) await open(o.json.id); return }
-                setScreen('gallery'); return
-              }
               // a suggestion of Kaby waits in its block of the gallery: it is never opened by itself, not even as the only dashboard
               const live = (l.dashboards || []).filter((d) => !d.archived && d.suggested !== true)
               const want = WANT_OPEN_ID; WANT_OPEN_ID = null
@@ -2904,8 +2886,8 @@ window.__ModuleLoader__.load({
           const header = screen === 'dash' && D !== null
             ? h('header', { className: 'kbdb-ph' },
               h('div', { className: 'kbdb-ph-l' },
-                h('div', { className: 'kbdb-crumb' }, overview ? h('span', { 'data-kb': 'crumb-overview' }, overviewWord()) : h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
-                overview ? h('h1', { className: 'kbdb-title', 'data-kb': 'overview-title' }, D.name) : h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
+                h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
+                h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
                   h('button', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': pop === 'switch', onClick: () => setPop(pop === 'switch' ? '' : 'switch') }, D.name, Ic('chev', 16)),
                   pop === 'switch' ? h('div', { className: 'kbdb-pop', role: 'listbox' },
                     h('span', { className: 'hd' }, kt('Tes dashboards', 'Your dashboards')),
@@ -2920,7 +2902,6 @@ window.__ModuleLoader__.load({
                     h('span', { className: 'hd' }, kt('Sources lues par ce dashboard', 'Sources this dashboard reads')),
                     sources.length === 0 ? h('span', { className: 'foot' }, kt('Aucune : ce dashboard ne contient que tes notes.', 'None: this dashboard only holds your notes.')) : sources.map((s) => h('div', { key: s.provider, className: 'src' }, h('span', { className: 'kbdb-dot', style: { marginTop: 6 } }), h('span', { className: 'tx' }, h('b', { style: { fontWeight: 500 } }, s.label), h('i', null, s.provider + ' · ' + s.widgets.length + ' widget' + (s.widgets.length > 1 ? 's' : ''))))),
                     h('span', { className: 'foot' }, kt('Les sources sont lues sur cet ordinateur. Un fichier dashboard ne peut lire que ces sources.', 'Sources are read on this computer. A dashboard file can only read these sources.'))) : null),
-                overview ? h('button', { type: 'button', className: 'kbdb-btn', 'data-act': 'all-dashboards', onClick: () => { flush(); openDashboardsPage() } }, kt('Tous les dashboards', 'All dashboards')) : null,
                 h('button', { type: 'button', className: 'kbdb-btn' + (busy ? ' busy' : ''), 'data-act': 'refresh', onClick: refresh }, h('span', { className: 'kbdb-spin' }, Ic('refresh', 14)), kt('Actualiser', 'Refresh')),
                 h('span', { className: 'kbdb-rel' },
                   h('button', { type: 'button', className: 'kbdb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': pop === 'history', onClick: async () => { if (pop === 'history') { setPop(''); return } await flush(); const r = await api('GET', 'revisions?id=' + encodeURIComponent(dash.id)); setRevs(r.ok ? r.json.revisions : []); setPop('history') } }, Ic('clock', 14), kt('Historique', 'History')),
@@ -3011,9 +2992,6 @@ window.__ModuleLoader__.load({
             header, body, fpop, toast !== '' ? h('div', { className: 'kbdb-toast', role: 'status' }, toast) : null)
         }
 
-        /** The page of the « Overview » row: the Dashboards page, opened on the installed template's overview and kept there. */
-        function OverviewPage () { return h(DashboardsPage, { overview: true }) }
-
         /* ── the right-pane tab ── */
         function DashboardsPane () {
           const rootRef = useRef(null)
@@ -3092,8 +3070,6 @@ window.__ModuleLoader__.load({
         const KIND = 'kybernos-dashboards'
         const SLOT_PANE = 'sidebar.right.pane.tab'
         const SLOT_PAGE = 'main.kybernos-dashboards'
-        const SLOT_BUSINESS = 'main.kybernos-business'
-        const OVERVIEW_ROW = 'overview'
         const STYLE_ID = 'kybernos-dashboards-styles'
 
         let CTX = null
@@ -3138,36 +3114,7 @@ window.__ModuleLoader__.load({
           // the page: the child slot the core's menu row opens
           ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, DashboardsPage)), 'kybernos-dashboards: page')
 
-          // The « Overview » row of the Business group: the dashboard an installed template ships (kybernos/dashboards#preset), on the business pages' own keyed slot. The row
-          // exists only while the host says a template ships one, so it follows an install and a removal without a reload: the host is asked now, quickly for the first
-          // seconds (the core builds window.__KB_MENU__ after this plugin), then every 20 s. It is taken back with the plugin.
-          ctx.effect(() => ctx.slots.inject(SLOT_BUSINESS, () => ctx.slots.register({ name: SLOT_BUSINESS, key: OVERVIEW_ROW }, OverviewPage)), 'kybernos-dashboards: overview page')
-          ctx.effect(() => {
-            let off = null
-            let shown = ''
-            let dead = false
-            let timer = 0
-            let asked = 0
-            const sync = async () => {
-              timer = 0
-              try {
-                const r = await api('GET', 'overview')
-                if (dead) return
-                const o = r.ok && r.json.overview ? r.json.overview : null
-                const want = o === null ? '' : JSON.stringify(o.label)
-                OVERVIEW_LABEL = o === null ? null : o.label
-                const menu = window.__KB_MENU__
-                if (want !== shown && menu !== undefined && menu !== null && typeof menu.register === 'function') {
-                  if (off !== null) { try { off() } catch (e) { /* already taken back */ } off = null }
-                  if (o !== null) off = menu.register({ id: OVERVIEW_ROW, group: 'business', icon: 'layoutDashboard', label: { en: String(o.label.en), fr: String(o.label.fr) }, order: 5 })
-                  shown = want
-                }
-              } catch (e) { /* the next question tries again */ }
-              if (!dead) { asked += 1; timer = setTimeout(sync, asked < 12 ? 1500 : 20000) }
-            }
-            sync()
-            return () => { dead = true; if (timer) clearTimeout(timer); if (off !== null) { try { off() } catch (e) { /* already taken back */ } } }
-          }, 'kybernos-dashboards: overview row')
+          // The dashboard an installed template ships (kybernos/dashboards#preset) is one of the presets of the gallery: no menu row of its own, the menu is fixed.
 
           // the right-pane tab
           // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
@@ -3255,7 +3202,7 @@ window.__ModuleLoader__.load({
           // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
           inject: ['slots', 'sidebarRightTabs'],
           apply,
-          __test: { OverviewPage, DashboardsPage, overviewWord, model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
+          __test: { DashboardsPage, model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
         }
       })(model, chart)
     } catch (error) {
