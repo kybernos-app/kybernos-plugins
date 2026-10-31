@@ -8,7 +8,8 @@
 // any answer, a write that touches a field the profile gives only to read is refused, a member never deletes, restores, changes a view or the structure, and their writes are
 // journalled as « member:<id> ». Anyone else gets a door that refuses everything (`forbidden`). The decision is made here, on every call, never in the page.
 //
-//   state()                              the dbs (apps) with their objects, fields and views, a fingerprint to poll, the archived apps, and « today »
+//   state()                              the dbs (apps) with their objects, fields and views, a fingerprint to poll, the archived apps, and « today »; on a host that can publish, each db also says
+//                                        `published` (null, or { slug, url, since, lastSync, syncError }) and the state says `hosting` ({ available, name, pricePerMonth, currency, alwaysOn }): no secret
 //   app({ db, object?, op, confirm? })   op: archive | restore | delete, for an app or (with `object`) one of its tables; delete only what is archived, and asks the name back
 //   impact({ db, object? })              what deleting an app or a table would take: tables, rows, links cut, files
 //   records({ db, object, deleted? })    the records of one object (5,000 at most)
@@ -35,9 +36,18 @@ const sumRows = (db) => db.objects({ all: true }).reduce((n, o) => n + db.list(o
 /** A record the way the page reads it. */
 const shape = (rec) => ({ id: rec.id, values: rec.values, rev: rec.rev, created: rec.created, modified: rec.modified, deleted: rec.deleted })
 
-/** `service` is agent/service.mjs; `ports.today()` gives « today » as YYYY-MM-DD, `ports.markers()` `{ <template id>: <db id> }` (which template made which database). */
+const PUBLISHED_MESSAGE = 'This app is published: its rows are written through the web app. Unpublish it first to change its structure or its views.'
+
+/**
+ * `service` is agent/service.mjs; `ports.today()` gives « today » as YYYY-MM-DD, `ports.markers()` `{ <template id>: <db id> }` (which template made which database).
+ * `ports.remote` (DSH only) is `{ info(dbId) → published | null, hosting() → { available, … } }`: the page learns from it which apps are published. A published app's rows are
+ * written through the host's forwarding (routes.mjs), never by this door: if a write or an upload reaches it for a published db, it is refused.
+ */
 export function makeApi ({ service, ports = {} }) {
   const today = typeof ports.today === 'function' ? ports.today : localDay
+  const remote = plain(ports.remote) ? ports.remote : null
+  const publishedOf = (id) => { try { const p = remote.info(id); return plain(p) ? p : null } catch (e) { return null } }
+  const hostingOf = () => { try { const h = remote.hosting(); return plain(h) ? h : { available: false } } catch (e) { return { available: false } } }
   /** `Map<db id, template id>`; empty when the markers cannot be read. */
   const templates = () => {
     const out = new Map()
@@ -72,12 +82,12 @@ export function makeApi ({ service, ports = {} }) {
         let fingerprint = ''
         try { fingerprint = r.db.fingerprint() } catch (e) { unreadable.push({ id: d.id, name: d.name, error: 'failed', message: 'the database could not be read' }); continue }
         dbs.push({
-          id: d.id, name: d.name, template: made.has(d.id) ? made.get(d.id) : null, version: r.db.info().version, fingerprint,
+          id: d.id, name: d.name, template: made.has(d.id) ? made.get(d.id) : null, version: r.db.info().version, fingerprint, ...(remote === null ? {} : { published: publishedOf(d.id) }),
           objects: r.db.objects().map((o) => ({ ...o, count: r.db.count(o.key), views: r.db.listViews(o.key), stamps: r.db.viewStamps(o.key) })),
           archivedObjects: r.db.objects({ all: true }).filter((o) => o.archived !== undefined).map((o) => ({ key: o.key, label: o.label, archived: o.archived, count: r.db.count(o.key) })),
         })
       }
-      return { ok: true, dbs, archived, unreadable, today: today() }
+      return { ok: true, dbs, archived, unreadable, today: today(), ...(remote === null ? {} : { hosting: hostingOf() }) }
     },
 
     app (body) {
@@ -159,6 +169,7 @@ export function makeApi ({ service, ports = {} }) {
     upload (q) {
       const t = aim(q)
       if (t.err) return t.err
+      if (t.db.published === true) return fail('published', PUBLISHED_MESSAGE)
       const field = t.obj.fields.find((f) => f.key === t.a.field)
       if (!field || field.type !== 'attachment') return fail('invalid', 'there is no attachment field of that name in this table')
       if (!(t.a.bytes instanceof Uint8Array)) return fail('invalid', 'a file is bytes')
@@ -183,6 +194,7 @@ export function makeApi ({ service, ports = {} }) {
       const t = aim(body)
       if (t.err) return t.err
       const { db, obj, a } = t
+      if (db.published === true) return fail('published', PUBLISHED_MESSAGE)
       switch (a.op) {
         case 'create': { const r = db.create(obj.key, plain(a.values) ? a.values : {}, by); return r.ok ? { ok: true, record: shape(r.record) } : fromStore(r) }
         case 'update': { const r = db.update(obj.key, a.id, plain(a.values) ? a.values : {}, by); return r.ok ? { ok: true, record: shape(r.record), applied: r.applied !== false } : fromStore(r) }

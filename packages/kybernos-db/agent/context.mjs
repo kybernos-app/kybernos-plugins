@@ -27,7 +27,7 @@ export function renderBlock (snapshot) {
       + 'Protected fields come back masked and secret ones not at all; a change of structure or a write to a protected field is approved by the person.',
   ]
   for (const db of snapshot) {
-    lines.push('Database “' + db.name + '” (db ' + db.id + '):')
+    lines.push('Database “' + db.name + '” (db ' + db.id + ')' + (db.published === true ? ', published as a web app (add and change rows with records_*; its structure and views cannot change until the person unpublishes it)' : '') + ':')
     if (db.objects.length === 0) lines.push('  no object yet')
     for (const o of db.objects) lines.push('  ' + o.key + ' “' + o.label + '” — ' + o.fields.map(fieldText).join(', '))
   }

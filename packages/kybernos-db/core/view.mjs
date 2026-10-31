@@ -20,8 +20,6 @@ export const OWNERS = ['kaby', 'me']
 const VIEW_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 const err = (path, code, message) => ({ path, code, message })
 
-export const blankState = () => ({ flt: blankFilter(), sorts: [], hidden: [] })
-
 /** Whether an object can be drawn as a kind: a board needs a choice field, a calendar a date field, a map two number fields. */
 export const kindAvailable = (fields, kind) => kind === 'table' || kind === 'cards' || (kind === 'board' && fields.some((f) => f.type === 'choice')) || (kind === 'calendar' && fields.some((f) => f.type === 'date')) || (kind === 'map' && fields.filter((f) => f.type === 'number').length >= 2)
 

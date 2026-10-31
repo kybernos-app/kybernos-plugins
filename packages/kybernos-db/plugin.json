@@ -34,6 +34,8 @@
     "ui.slot:main.kybernos-business",
     "host.routes:/kybernos-db:write",
     "net:tiles.openfreemap.org",
+    "net:*.kaby.app",
+    "net:localhost",
     "fs.read:dsh-home",
     "fs.write:dsh-home",
     "agent.prompt",
