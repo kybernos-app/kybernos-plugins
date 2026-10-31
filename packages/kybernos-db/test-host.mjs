@@ -142,7 +142,7 @@ await ok('a db that cannot be opened is a refusal with its own code, never a thr
   assert.equal(made.ok, false)
   assert.equal(made.error, 'sqlite_unavailable')
   const list = await ctx.registered.get('db_list').execute()
-  assert.deepEqual(list, { ok: true, dbs: [], unreadable: [] })
+  assert.deepEqual(list, { ok: true, dbs: [], archived: [], unreadable: [] })
   const gate = ctx.handlers.get('tools/pre-execute')
   assert.equal((await gate({ name: 'db_create', arguments: { name: 'Home' } }, async () => null)).kind, 'ask', 'the person is still asked, then told it cannot be done')
 })

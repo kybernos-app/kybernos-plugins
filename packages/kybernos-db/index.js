@@ -1,7 +1,7 @@
 // kybernos-db — host half.
 //
-// It gives the agents and the person their own databases: thirteen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
-// records_list, records_get, records_create, records_update, records_delete, records_restore), the short block of their system prompt that names the
+// It gives the agents and the person their own databases: fifteen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
+// records_list, records_get, records_create, records_update, records_delete, records_restore, db_archive, db_restore), the short block of their system prompt that names the
 // databases, the `db-builder` skill that says how to design one, and the routes the Tables page reads and writes through. The data is a SQLite file per database under `<DSH home>/kybernos/kybernos-db/dbs`
 // (store/), the rules are the pure ones of core/. Nothing here reaches the network.
 //

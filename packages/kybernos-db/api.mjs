@@ -50,6 +50,7 @@ export function makeApi ({ service, ports = {} }) {
       const unreadable = []
       const made = templates()
       for (const d of service.list()) {
+        if (d.archived !== null) continue // put away: the page lists it from the Apps page, not here
         const r = service.byId(d.id)
         if (!r.ok) { unreadable.push({ id: d.id, name: d.name, error: r.code, message: r.message }); continue }
         let fingerprint = ''

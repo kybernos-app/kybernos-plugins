@@ -10,6 +10,7 @@
 //   records_list|get        read records; a protected field comes back masked, a secret one not at all
 //   records_create|update   write records                                                (free, unless a protected field is written: the person approves)
 //   records_delete|restore  mark records deleted, or bring them back                     (free: nothing is lost, the journal keeps it)
+//   db_archive|db_restore   put a table or a whole database away, or bring it back        (archive: card; restore: free). Deleting one for good is the person's alone: no tool.
 //
 // Built by hand, like the other plugins that cannot import `defineTool`: `tools.register` only needs { name, description, parameters, output, execute }.
 // The approval is the engine's own: `approvalGate` answers the `tools/pre-execute` waterfall with `{ kind: 'ask' }` for the calls above that ask, so the person sees
@@ -21,7 +22,7 @@ import { findObject } from '../store/catalog.mjs'
 import { cardFor, protectedCard } from './cards.mjs'
 import { fieldLine, short } from './words.mjs'
 
-export const NAMES = ['db_list', 'db_create', 'object_define', 'field_add', 'relation_add', 'field_update', 'view_save', 'records_list', 'records_get', 'records_create', 'records_update', 'records_delete', 'records_restore']
+export const NAMES = ['db_list', 'db_create', 'object_define', 'field_add', 'relation_add', 'field_update', 'view_save', 'records_list', 'records_get', 'records_create', 'records_update', 'records_delete', 'records_restore', 'db_archive', 'db_restore']
 export const LIST_DEFAULT = 20
 export const LIST_MAX = 100
 export const BATCH_MAX = 50
@@ -112,7 +113,10 @@ export function tools (service, ports = {}) {
     if (!r.ok) return { err: failure(r) }
     if (!needObject) return { db: r.db }
     const obj = findObject(r.db.objects(), a.object)
-    if (!obj) return { err: problem('unknown_object', 'no object "' + String(a.object) + '" in this database: db_list shows the objects') }
+    if (!obj) {
+      const away = findObject(r.db.objects({ all: true }), a.object)
+      return { err: away ? problem('archived', 'the table "' + String(a.object) + '" is archived: bring it back with db_restore first') : problem('unknown_object', 'no object "' + String(a.object) + '" in this database: db_list shows the objects') }
+    }
     return { db: r.db, obj }
   }
 
@@ -121,16 +125,19 @@ export function tools (service, ports = {}) {
     description: 'Lists the databases of this computer with their objects (tables), fields and saved views. Read it first: it shows the exact keys every other db tool needs. A field marked protected has a protection level: personal, sensitive or secret.',
     parameters: { type: 'object', additionalProperties: false, properties: {} },
     output: {
-      schema: { type: 'object', properties: { ok: { type: 'boolean' }, dbs: { type: 'array' }, unreadable: { type: 'array' } }, required: ['ok'] },
-      render: (args, value) => TEXT(value.ok !== true ? 'Databases: ' + String(value.error) : (value.dbs.length === 0 && value.unreadable.length === 0 ? 'No database yet.' : value.dbs.map((d) => d.name + ' (' + d.id + '): '
-        + (d.objects.length === 0 ? 'no object yet' : d.objects.map((o) => o.key + ' [' + o.fields.length + ' fields]').join(', '))).concat(value.unreadable.map((u) => u.name + ': ' + u.error)).join('\n'))),
+      schema: { type: 'object', properties: { ok: { type: 'boolean' }, dbs: { type: 'array' }, archived: { type: 'array' }, unreadable: { type: 'array' } }, required: ['ok'] },
+      render: (args, value) => TEXT(value.ok !== true ? 'Databases: ' + String(value.error) : (value.dbs.length === 0 && value.archived.length === 0 && value.unreadable.length === 0 ? 'No database yet.' : value.dbs.map((d) => d.name + ' (' + d.id + '): '
+        + (d.objects.length === 0 ? 'no object yet' : d.objects.map((o) => o.key + ' [' + o.fields.length + ' fields]').join(', '))).concat(value.archived.map((x) => 'archived: ' + x.name + (x.object === undefined ? '' : ' / ' + x.object) + ' (' + x.db + ')'), value.unreadable.map((u) => u.name + ': ' + u.error)).join('\n'))),
     },
     async execute () {
       const dbs = []
+      const archived = []
       const unreadable = []
       for (const d of service.list()) {
+        if (d.archived !== null) { archived.push({ db: d.id, name: d.name }); continue }
         const r = service.byId(d.id)
         if (!r.ok) { unreadable.push({ id: d.id, name: d.name, error: r.code, detail: r.message }); continue }
+        for (const o of r.db.objects({ all: true })) if (o.archived !== undefined) archived.push({ db: d.id, name: d.name, object: o.key, label: o.label })
         const objects = r.db.objects().map((o) => ({
           key: o.key, label: o.label, title: o.title,
           fields: o.fields.map((f) => ({ key: f.key, type: f.type, label: f.label, required: f.required, protection: f.protection, ...(f.options ? { options: f.options.map((x) => ({ key: x.key, label: x.label })) } : {}), ...(f.to ? { to: f.to, many: f.many } : {}), ...(f.currency ? { currency: f.currency } : {}) })),
@@ -138,7 +145,7 @@ export function tools (service, ports = {}) {
         }))
         dbs.push({ id: d.id, name: d.name, objects })
       }
-      return { ok: true, dbs, unreadable }
+      return { ok: true, dbs, archived, unreadable }
     },
   }
 
@@ -453,6 +460,50 @@ export function tools (service, ports = {}) {
     },
   })
 
+  const archiveTool = {
+    name: 'db_archive',
+    description: 'Puts away a table (give `object`) or a whole database (leave `object` out): it leaves the lists and takes no more writes, but nothing is deleted and db_restore brings it back. The person approves a card. Use it instead of deleting. '
+      + 'You cannot delete a table or a database for good: only the person can, from the screen, after it has been archived.',
+    parameters: { type: 'object', additionalProperties: false, properties: { db: DB, object: { type: 'string', description: 'The key of the table to put away. Leave it out to put the whole database away.' } } },
+    output: {
+      schema: { type: 'object', properties: { ok: { type: 'boolean' }, archived: { type: 'object' } }, required: ['ok'] },
+      render: (args, value) => TEXT(value.ok === true ? (value.applied ? 'Archived: ' : 'Already archived: ') + value.archived.name : 'Not archived: ' + String(value.error) + (value.detail === undefined ? '' : ' — ' + String(value.detail))),
+    },
+    async execute (args) {
+      const a = plain(args) ? args : {}
+      const t = aim(a, false)
+      if (t.err) return t.err
+      if (a.object === undefined) {
+        const r = t.db.archive(BY)
+        return r.ok ? { ok: true, applied: r.applied, archived: { db: t.db.info().id, name: t.db.info().name } } : failure(r)
+      }
+      const r = t.db.archiveObject(String(a.object), BY)
+      return r.ok ? { ok: true, applied: r.applied, archived: { db: t.db.info().id, object: r.object.key, name: r.object.label } } : failure(r)
+    },
+  }
+
+  const restoreTool = {
+    name: 'db_restore',
+    description: 'Brings back a table (give `object`) or a whole database (give `db`, leave `object` out) that was archived. db_list shows what is archived.',
+    parameters: { type: 'object', additionalProperties: false, properties: { db: DB, object: { type: 'string', description: 'The key of the archived table. Leave it out to bring a whole database back.' } } },
+    output: {
+      schema: { type: 'object', properties: { ok: { type: 'boolean' }, restored: { type: 'object' } }, required: ['ok'] },
+      render: (args, value) => TEXT(value.ok === true ? (value.applied ? 'Restored: ' : 'Nothing to restore: ') + value.restored.name : 'Not restored: ' + String(value.error) + (value.detail === undefined ? '' : ' — ' + String(value.detail))),
+    },
+    async execute (args) {
+      const a = plain(args) ? args : {}
+      if (a.object === undefined) {
+        if (typeof a.db !== 'string') return problem('which_db', 'say which database to bring back: db_list shows the archived ones')
+        const r = service.unarchive(a.db)
+        return r.ok ? { ok: true, applied: r.applied, restored: { db: a.db, name: service.byId(a.db).db.info().name } } : failure(r)
+      }
+      const t = aim(a, false)
+      if (t.err) return t.err
+      const r = t.db.restoreObject(String(a.object), BY)
+      return r.ok ? { ok: true, applied: r.applied, restored: { db: t.db.info().id, object: r.object.key, name: r.object.label } } : failure(r)
+    },
+  }
+
   // A render is shown to the person after the call: it must never throw, whatever it is handed.
   const guarded = (tool) => ({
     ...tool,
@@ -463,11 +514,12 @@ export function tools (service, ports = {}) {
     listTool, createDbTool, objectTool, fieldTool, relationTool, updateTool, viewTool, listRecords, getRecord, createRecords, updateRecords,
     mark('records_delete', 'remove', 'deleted', 'Deletes records: they are marked deleted, hidden from lists, and can be brought back with records_restore (nothing is lost). `ids` is a list of record ids.'),
     mark('records_restore', 'restore', 'restored', 'Brings deleted records back. `ids` is a list of record ids.'),
+    archiveTool, restoreTool,
   ].map(guarded)
 }
 
 // ── the approval ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-const STRUCTURE = ['db_create', 'object_define', 'field_add', 'relation_add', 'field_update']
+const STRUCTURE = ['db_create', 'object_define', 'field_add', 'relation_add', 'field_update', 'db_archive']
 
 /**
  * The `tools/pre-execute` answer for a call: `{ kind: 'ask', reason, displayReason }` when the person must approve it, else `null`, so the next handler decides.

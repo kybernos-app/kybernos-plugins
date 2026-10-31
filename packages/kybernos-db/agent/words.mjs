@@ -44,6 +44,8 @@ const SAY = {
   choicesAdded: { en: 'choices added: ', fr: 'choix ajoutés : ' },
   changeField: { en: 'Change the field ', fr: 'Modifier le champ ' },
   createDb: { en: 'Create the ', fr: 'Créer la ' },
+  archive: { en: 'Archive the ', fr: 'Archiver la ' },
+  keepNote: { en: '. Nothing is deleted: it leaves the lists and can be brought back.', fr: '. Rien n’est supprimé : elle quitte les listes et peut être restaurée.' },
   emptyFile: { en: ': an empty file on this computer.', fr: ' : un fichier vide sur cet ordinateur.' },
   askWrite: { en: 'The agent wants to write protected fields (', fr: 'L’agent veut écrire dans des champs protégés (' },
   askRead: { en: 'The agent wants to read protected fields (', fr: 'L’agent veut lire en clair des champs protégés (' },

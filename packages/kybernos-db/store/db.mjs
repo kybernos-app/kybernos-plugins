@@ -9,12 +9,15 @@
 // judged, because another device's operations can arrive before the record they point at. A deleted record keeps the links that point at it (a restore brings them back).
 // An attachment is stored with `attach(bytes, { name, type }, cap)` (the cap of the field, at most the core's) and the record then holds `{ name, size, type, hash }`; `gc()` removes
 // the files no record holds (deleted records still hold theirs) once they are older than `GC_GRACE_MS`, and storing the same bytes again renews a file's age.
-// Not here yet: removing or renaming objects and fields, changing a field's type, rights (core/rights.mjs is asked by the caller), the sync with the server.
+// An object, or the whole db, is put away before it can go: `archiveObject`/`restoreObject` and `archive`/`unarchive` hide it and refuse every write until it is restored;
+// only an archived object can be deleted for good (`deleteObject`: its table, records, history, views and files go, the links that pointed at it are cut from the objects
+// that held them, and the journal is rewritten so that `verify()` stays true). Deleting the whole db is the registry's (store/root.mjs).
+// Not here yet: removing or renaming single fields, changing a field's type, rights (core/rights.mjs is asked by the caller), the sync with the server.
 
 import { chmodSync, closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { MAX_ATTACHMENT_BYTES, applyOp, buildCreate, buildUpdate, checkView, isPlain, isUlid, normalizeField, normalizeValue, normalizeView, sameJson } from '../core/index.mjs'
+import { MAX_ATTACHMENT_BYTES, applyOp, buildCreate, buildUpdate, checkView, isPlain, isUlid, normalizeField, normalizeValue, normalizeView, repairView, sameJson } from '../core/index.mjs'
 import { MAX_FIELDS, MAX_OBJECTS, changeField, changeObject, findObject, normalizeObject } from './catalog.mjs'
 import { fromColumn, toColumn } from './columns.mjs'
 import { hashOf, openBlobs } from './blobs.mjs'
@@ -53,6 +56,9 @@ function makeDb (handle, file, ports) {
   }
   const objOf = (key) => findObject(catalog().objects, key)
   const need = (key) => { const obj = objOf(key); if (!obj) throw new RangeError('no such object: ' + key); return obj }
+  const archivedAt = () => { const r = prepare("SELECT v FROM meta WHERE k = 'archived_at'").get(); return r === undefined ? null : r.v }
+  /** The refusal for a write on a db or an object that is put away, or null. */
+  const sealed = (obj) => (archivedAt() !== null ? refuse('archived', 'the app is archived: restore it first') : obj !== undefined && obj.archived !== undefined ? refuse('archived', 'the table is archived: restore it first') : null)
 
   const setQuiet = (on) => prepare("UPDATE ctl SET v = ? WHERE k = 'quiet'").run(on)
   /**
@@ -144,6 +150,7 @@ function makeDb (handle, file, ports) {
   const create = (objectKey, values, by) => write(() => {
     const obj = objOf(objectKey)
     if (!obj) return refuse('unknown-object', 'no such object')
+    if (sealed(obj)) return sealed(obj)
     const { t, at } = stamp()
     const built = buildCreate(obj, values, { id: nextId(t), record: nextId(t), by, at })
     if (!built.ok) return invalid(built.errors)
@@ -154,6 +161,7 @@ function makeDb (handle, file, ports) {
   const update = (objectKey, id, changes, by) => write(() => {
     const obj = objOf(objectKey)
     if (!obj) return refuse('unknown-object', 'no such object')
+    if (sealed(obj)) return sealed(obj)
     const before = isUlid(id) ? readRecord(obj, id) : null
     if (!before) return refuse('missing', 'no such record')
     if (before.deleted) return refuse('deleted', 'the record is deleted')
@@ -168,6 +176,7 @@ function makeDb (handle, file, ports) {
   const mark = (kind) => (objectKey, id, by) => write(() => {
     const obj = objOf(objectKey)
     if (!obj) return refuse('unknown-object', 'no such object')
+    if (sealed(obj)) return sealed(obj)
     const before = isUlid(id) ? readRecord(obj, id) : null
     if (!before) return refuse('missing', 'no such record')
     if ((kind === 'delete') === (before.deleted !== null)) return { ok: true, record: before, applied: false }
@@ -301,6 +310,7 @@ function makeDb (handle, file, ports) {
     if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
     return write(() => {
       const { objects } = catalog()
+      if (sealed()) return sealed()
       if (findObject(objects, n.object.key)) return refuse('exists', 'there is already an object with this key')
       if (objects.length >= MAX_OBJECTS) return refuse('too-many', 'a db has at most ' + MAX_OBJECTS + ' objects')
       handle.exec(createTableSql(n.object))
@@ -318,6 +328,7 @@ function makeDb (handle, file, ports) {
       const { objects } = catalog()
       const obj = findObject(objects, objectKey)
       if (!obj) return refuse('unknown-object', 'no such object')
+      if (sealed(obj)) return sealed(obj)
       const field = n.field
       if (obj.fields.some((f) => f.key === field.key)) return refuse('exists', 'the object already has a field with this key')
       if (obj.fields.length >= MAX_FIELDS) return refuse('too-many', 'an object has at most ' + MAX_FIELDS + ' fields')
@@ -339,6 +350,7 @@ function makeDb (handle, file, ports) {
       const { objects } = catalog()
       const obj = findObject(objects, objectKey)
       if (!obj) return refuse('unknown-object', 'no such object')
+      if (sealed(obj)) return sealed(obj)
       const n = changeObject(obj, changes)
       if (!n.ok) return invalid(n.errors)
       if (sameJson(n.object, obj)) return { ok: true, applied: false, object: structuredClone(obj) }
@@ -353,6 +365,7 @@ function makeDb (handle, file, ports) {
       const { objects } = catalog()
       const obj = findObject(objects, objectKey)
       if (!obj) return refuse('unknown-object', 'no such object')
+      if (sealed(obj)) return sealed(obj)
       const field = obj.fields.find((f) => f.key === fieldKey)
       if (!field) return refuse('unknown-field', 'no such field')
       const n = changeField(field, changes)
@@ -368,6 +381,7 @@ function makeDb (handle, file, ports) {
   const saveView = (objectKey, view, by) => write(() => {
     const obj = objOf(objectKey)
     if (!obj) return refuse('unknown-object', 'no such object')
+    if (sealed(obj)) return sealed(obj)
     if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
     const { t, at } = stamp()
     const given = isPlain(view) ? view : {}
@@ -402,10 +416,111 @@ function makeDb (handle, file, ports) {
     return { ok: true, removed: Number(prepare('DELETE FROM views WHERE object = ? AND id = ?').run(obj.key, String(id)).changes) > 0 }
   })
 
+  // Putting away: an archived object or db keeps everything and takes no write; it is the step before a deletion for good.
+  const setArchived = (objectKey, by, on) => {
+    live()
+    if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
+    return write(() => {
+      const { objects } = catalog()
+      const obj = findObject(objects, objectKey)
+      if (!obj) return refuse('unknown-object', 'no such object')
+      if (archivedAt() !== null) return refuse('archived', 'the app is archived: restore it first')
+      if (on === (obj.archived !== undefined)) return { ok: true, applied: false, object: structuredClone(obj) }
+      const { archived, ...rest } = obj
+      const next = on ? { ...rest, archived: { by, at: stamp().at } } : rest
+      return { ok: true, applied: true, version: commitCatalog((on ? 'archive-object:' : 'restore-object:') + obj.key, by, objects.map((o) => (o === obj ? next : o))), object: structuredClone(next) }
+    })
+  }
+
+  /** The replayed envelope of every record of an object, written back to its table (after a journal rewrite: an update that changed nothing any more is gone, so `rev` and the stamps follow). */
+  const resync = (obj) => {
+    const replayed = new Map()
+    const broken = new Set()
+    for (const row of prepare('SELECT * FROM ops WHERE object = ? ORDER BY seq').all(obj.key)) {
+      const op = toOp(row)
+      if (broken.has(op.record)) continue
+      const r = applyOp(replayed.get(op.record) || null, op, obj)
+      if (!r.ok) { broken.add(op.record); continue }
+      replayed.set(op.record, r.record)
+    }
+    const set = prepare(`UPDATE ${q(tableName(obj.key))} SET rev = ?, modified_by = ?, modified_at = ? WHERE id = ?`)
+    for (const [id, rec] of replayed) {
+      const row = prepare(`SELECT rev, modified_by, modified_at FROM ${q(tableName(obj.key))} WHERE id = ?`).get(id)
+      if (row !== undefined && (Number(row.rev) !== rec.rev || row.modified_by !== rec.modified.by || row.modified_at !== rec.modified.at)) set.run(rec.rev, rec.modified.by, rec.modified.at, id)
+    }
+  }
+
+  /**
+   * Deletes an archived object for good: `{ ok: true, version, records, files }`. Its table, its records with their history, its views and the files only it held go; the link
+   * fields that pointed at it are cut from the objects that had them (their column, their place in the views, their values in the journal), so the rest of the db stays sound.
+   * Codes: unknown-object, not-archived (put it away first), archived (the whole app is).
+   */
+  const deleteObject = (objectKey, by) => {
+    live()
+    if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
+    let dropped = []
+    const out = write(() => {
+      const { objects } = catalog()
+      const obj = findObject(objects, objectKey)
+      if (!obj) return refuse('unknown-object', 'no such object')
+      if (archivedAt() !== null) return refuse('archived', 'the app is archived: restore it first')
+      if (obj.archived === undefined) return refuse('not-archived', 'archive the table first: only an archived table can be deleted')
+      dropped = [...heldBy(obj, new Set())]
+      const records = Number(prepare(`SELECT count(*) AS n FROM ${q(tableName(obj.key))}`).get().n)
+      const { at } = stamp()
+      const next = []
+      for (const o of objects) {
+        if (o === obj) continue
+        const gone = o.fields.filter((f) => f.type === 'relation' && f.to === obj.key)
+        if (gone.length === 0) { next.push(o); continue }
+        const kept = { ...o, fields: o.fields.filter((f) => !gone.includes(f)) }
+        for (const sql of dropTriggersSql(o)) handle.exec(sql)
+        for (const f of gone) handle.exec(`ALTER TABLE ${q(tableName(o.key))} DROP COLUMN ${q(f.key)}`)
+        for (const sql of triggersSql(kept)) handle.exec(sql)
+        for (const f of gone) prepare('UPDATE ops SET set_json = json_remove(set_json, ?), prev_json = CASE WHEN prev_json IS NULL THEN NULL ELSE json_remove(prev_json, ?) END WHERE object = ? AND set_json IS NOT NULL').run('$."' + f.key + '"', '$."' + f.key + '"', o.key)
+        prepare("DELETE FROM ops WHERE object = ? AND kind = 'update' AND set_json = '{}'").run(o.key)
+        resync(kept)
+        for (const row of prepare('SELECT id, json FROM views WHERE object = ?').all(o.key)) {
+          const view = repairView(JSON.parse(row.json), kept.fields, kept.title)
+          if (!sameJson(view, JSON.parse(row.json))) prepare('UPDATE views SET json = ?, rev = rev + 1, modified_by = ?, modified_at = ? WHERE id = ?').run(JSON.stringify(view), by, at, row.id)
+        }
+        next.push(kept)
+      }
+      prepare('DELETE FROM ops WHERE object = ?').run(obj.key)
+      prepare('DELETE FROM views WHERE object = ?').run(obj.key)
+      for (const sql of dropTriggersSql(obj)) handle.exec(sql)
+      handle.exec(`DROP TABLE ${q(tableName(obj.key))}`)
+      return { ok: true, version: commitCatalog('delete-object:' + obj.key, by, next), records, files: 0 }
+    })
+    if (out.ok && dropped.length) {
+      const held = referenced()
+      out.files = dropped.filter((hash) => !held.has(hash) && blobs.remove(hash)).length
+    }
+    return out
+  }
+
+  /** Puts the whole db away (or brings it back): it is hidden from the lists and takes no write meanwhile. */
+  const archive = (by) => {
+    live()
+    if (!validBy(by)) return invalid([{ path: 'by', code: 'by', message: 'who did it: 1 to 64 characters' }])
+    return write(() => {
+      if (archivedAt() !== null) return { ok: true, applied: false }
+      const { at } = stamp()
+      const put = prepare('INSERT INTO meta (k, v) VALUES (?, ?)')
+      put.run('archived_by', by)
+      put.run('archived_at', at)
+      return { ok: true, applied: true }
+    })
+  }
+  const unarchive = () => {
+    live()
+    return write(() => ({ ok: true, applied: Number(prepare("DELETE FROM meta WHERE k IN ('archived_by', 'archived_at')").run().changes) > 0 }))
+  }
+
   const info = () => {
     live()
     const meta = Object.fromEntries(prepare('SELECT k, v FROM meta').all().map((r) => [r.k, r.v]))
-    return { id: meta.id, name: meta.name, format: FORMAT, version: catalog().version, created: { by: meta.created_by, at: meta.created_at } }
+    return { id: meta.id, name: meta.name, format: FORMAT, version: catalog().version, created: { by: meta.created_by, at: meta.created_at }, archived: meta.archived_at === undefined ? null : { by: meta.archived_by, at: meta.archived_at } }
   }
 
   /**
@@ -433,19 +548,21 @@ function makeDb (handle, file, ports) {
   }
 
   /** The hash of every file a record still holds, deleted records included (a deleted row can be restored, and its files with it). */
+  const heldBy = (obj, hashes) => {
+    for (const f of obj.fields) {
+      if (f.type !== 'attachment') continue
+      for (const row of prepare(`SELECT ${q(f.key)} AS v FROM ${q(tableName(obj.key))} WHERE ${q(f.key)} IS NOT NULL`).all()) {
+        let list = []
+        try { list = JSON.parse(row.v) } catch (e) { list = [] }
+        for (const file of Array.isArray(list) ? list : []) if (isPlain(file) && typeof file.hash === 'string') hashes.add(file.hash)
+      }
+    }
+    return hashes
+  }
   const referenced = () => {
     live()
     const hashes = new Set()
-    for (const obj of catalog().objects) {
-      for (const f of obj.fields) {
-        if (f.type !== 'attachment') continue
-        for (const row of prepare(`SELECT ${q(f.key)} AS v FROM ${q(tableName(obj.key))} WHERE ${q(f.key)} IS NOT NULL`).all()) {
-          let list = []
-          try { list = JSON.parse(row.v) } catch (e) { list = [] }
-          for (const file of Array.isArray(list) ? list : []) if (isPlain(file) && typeof file.hash === 'string') hashes.add(file.hash)
-        }
-      }
-    }
+    for (const obj of catalog().objects) heldBy(obj, hashes)
     return hashes
   }
 
@@ -475,8 +592,14 @@ function makeDb (handle, file, ports) {
     blobs,
     info,
     fingerprint,
-    objects: () => { live(); return structuredClone(catalog().objects) },
+    /** The live objects; `{ all: true }` adds the archived ones (they carry `archived: { by, at }`). */
+    objects: (opts) => { live(); return structuredClone(isPlain(opts) && opts.all === true ? catalog().objects : catalog().objects.filter((o) => o.archived === undefined)) },
     addObject,
+    archiveObject: (key, by) => setArchived(key, by, true),
+    restoreObject: (key, by) => setArchived(key, by, false),
+    deleteObject,
+    archive,
+    unarchive,
     addField,
     updateObject,
     updateField,
