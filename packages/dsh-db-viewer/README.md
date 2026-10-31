@@ -44,6 +44,7 @@ accepted).
   (listed as `tables-<ulid in lower case>`; the page never passes a path, the host matches the id against the folders that exist).
   A Tables database lists its `r_<object>` record tables first, then its bookkeeping (`catalog`, `ctl`, `meta`, `ops`, `views`); it has no
   REFERENCES, so the Diagram draws its links from the relation fields of the latest `catalog` row (a table that points at itself is not drawn).
+  A record table's columns read `id`, the object's own fields, then the envelope (`rev`, `created_*`, `modified_*`, `deleted_*`), and the Charts skip the envelope.
   Every file is opened `readOnly` through the built-in
   `node:sqlite` module. Writes nothing, has no settings and uses no browser storage. Env: `DSH_HOME`.
 - The code comments say `crm.cjs` creates these databases; that script is not in this repo (not verified).

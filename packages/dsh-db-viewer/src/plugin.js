@@ -587,10 +587,15 @@ function themeSombre () {
   } catch (e) { return false }
 }
 
+/** The columns every record table of Tables starts with: they say nothing about the data (a revision count, who and when), so the charts skip them. */
+const ENVELOPPE_TABLES = ['id', 'rev', 'created_by', 'created_at', 'modified_by', 'modified_at', 'deleted_by', 'deleted_at']
+const estEnveloppe = (table, nom) => nom !== 'id' && ENVELOPPE_TABLES.includes(nom) && table.nom.startsWith('r_') && ENVELOPPE_TABLES.every((n) => table.colonnes.some((c) => c.name === n))
+
 /** Profile of a table from its rows: categories, numbers, dates. */
 function profiler (table, lignes) {
   const prof = { cats: [], nums: [], dates: [] }
   for (const c of table.colonnes) {
+    if (estEnveloppe(table, c.name)) continue
     const valeurs = lignes.map((l) => l[c.name]).filter((v) => v !== null && v !== undefined)
     if (valeurs.length < 3) continue
     const estDate = valeurs.every((v) => typeof v === 'string' && /^\d{4}-\d{2}/.test(v))

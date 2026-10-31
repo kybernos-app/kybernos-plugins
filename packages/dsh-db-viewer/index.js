@@ -146,6 +146,16 @@ function basesTables (kybernosHome) {
   return bases
 }
 
+/** The columns every record table of Tables starts with (`id`, a revision count, who and when). */
+const ENVELOPPE_TABLES = ['id', 'rev', 'created_by', 'created_at', 'modified_by', 'modified_at', 'deleted_by', 'deleted_at']
+
+/** A record table of Tables (`r_<object>`, with the envelope): its columns read id, the object's own fields, then the rest of the envelope. Any other table is left as it is. */
+function colonnesTables (nomTable, colonnes) {
+  if (!nomTable.startsWith('r_') || !ENVELOPPE_TABLES.every((n) => colonnes.some((c) => c.name === n))) return colonnes
+  const de = (n) => colonnes.find((c) => c.name === n)
+  return [de('id'), ...colonnes.filter((c) => !ENVELOPPE_TABLES.includes(c.name)), ...ENVELOPPE_TABLES.slice(1).map(de)]
+}
+
 /** A Tables database keeps its records in `r_<object>` tables beside its bookkeeping (`catalog`, `meta`, `ops`, `views`, `ctl`): the records come first, so the charts read them. */
 const ordreTables = (noms) => (['catalog', 'meta', 'ops'].every((n) => noms.includes(n)) ? [...noms.filter((n) => n.startsWith('r_')), ...noms.filter((n) => !n.startsWith('r_'))] : noms)
 
@@ -215,14 +225,14 @@ export function lireSchema (dbPath) {
       tables.push({
         nom,
         compte,
-        colonnes: info.map((c) => ({
+        colonnes: colonnesTables(nom, info.map((c) => ({
           name: c.name,
           type: String(c.type || 'TEXT').toUpperCase(),
           pk: !!c.pk,
           fk: fkParColonne[c.name] !== undefined,
           fkVers: fkParColonne[c.name] || null,
           notnull: !!c.notnull,
-        })),
+        }))),
       })
     }
     for (const lien of liensTables(db, tables)) {
@@ -242,7 +252,7 @@ export function lireLignes (dbPath, table, limite) {
     const info = db.prepare(`PRAGMA table_info("${table}")`).all()
     if (info.length === 0) throw new Refus('unknown-table', 'Unknown table: ' + table)
     return {
-      colonnes: info.map((c) => ({ name: c.name, type: String(c.type || 'TEXT').toUpperCase() })),
+      colonnes: colonnesTables(table, info.map((c) => ({ name: c.name, type: String(c.type || 'TEXT').toUpperCase() }))),
       lignes: db.prepare(`SELECT * FROM "${table}" LIMIT ${max}`).all(),
       compte: db.prepare(`SELECT count(*) n FROM "${table}"`).get().n,
     }

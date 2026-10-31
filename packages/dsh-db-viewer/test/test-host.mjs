@@ -199,6 +199,8 @@ try {
         CREATE TABLE views (id TEXT PRIMARY KEY NOT NULL, json TEXT NOT NULL);
         CREATE TABLE r_contact (id TEXT PRIMARY KEY NOT NULL, name TEXT, company TEXT);
         CREATE TABLE r_orders (id TEXT PRIMARY KEY NOT NULL, contact TEXT, total REAL);
+        CREATE TABLE r_full (id TEXT PRIMARY KEY NOT NULL, rev INTEGER, created_by TEXT, created_at TEXT, modified_by TEXT, modified_at TEXT, deleted_by TEXT, deleted_at TEXT, title TEXT, stage TEXT);
+        INSERT INTO r_full (id, rev, title, stage) VALUES ('F1', 1, 'Mug', 'live');
         INSERT INTO meta (k, v) VALUES ('id', '${ULID}'), ('name', 'Shop');
         INSERT INTO r_contact (id, name) VALUES ('A', 'Ada'), ('B', 'Bob');
         INSERT INTO r_orders (id, contact, total) VALUES ('O1', 'A', 12.5), ('O2', 'B', 40);
@@ -218,7 +220,7 @@ try {
     const shop = listed.find((b) => b.id === 'tables-' + ULID.toLowerCase())
     assert.ok(shop, 'a Tables database is listed as tables-<ulid in lower case>')
     assert.equal(shop.label, 'Shop', 'under its own name')
-    assert.deepEqual(shop.tables.map((t) => t.nom), ['r_contact', 'r_orders', 'catalog', 'ctl', 'meta', 'ops', 'views'], 'its records come before its bookkeeping')
+    assert.deepEqual(shop.tables.map((t) => t.nom), ['r_contact', 'r_full', 'r_orders', 'catalog', 'ctl', 'meta', 'ops', 'views'], 'its records come before its bookkeeping')
     const nameless = listed.find((b) => b.id === 'tables-' + OTHER.toLowerCase())
     assert.ok(nameless && !('label' in nameless), 'a database with no name has no label (the page falls back to the id)')
     assert.equal(listed.filter((b) => b.id.startsWith('tables-')).length, 2, 'the two folders that are no ULID are ignored')
@@ -234,6 +236,10 @@ try {
     assert.equal(col('r_orders', 'contact').fkVers, 'r_contact')
     assert.equal(col('r_contact', 'company').fk, true, 'a self relation is marked on its column')
     assert.equal(col('r_orders', 'total').fk, false)
+    const full = tsch.json.tables.find((x) => x.nom === 'r_full').colonnes.map((c) => c.name)
+    assert.deepEqual(full, ['id', 'title', 'stage', 'rev', 'created_by', 'created_at', 'modified_by', 'modified_at', 'deleted_by', 'deleted_at'], 'a record table reads id, its own fields, then the envelope')
+    assert.deepEqual(tsch.json.tables.find((x) => x.nom === 'r_contact').colonnes.map((c) => c.name), ['id', 'name', 'company'], 'a table without the envelope is left as it is')
+    assert.deepEqual((await call('/dsh-db-viewer/rows', { base: tableId, table: 'r_full', limit: 5 })).json.colonnes.map((c) => c.name), full, 'the rows come in the same order')
     assert.deepEqual((await call('/dsh-db-viewer/schema', { base: 'tables-' + OTHER.toLowerCase() })).json.relations, [], 'no catalog, no links')
     assert.equal((await call('/dsh-db-viewer/rows', { base: tableId, table: 'r_contact', limit: 5 })).json.lignes.length, 2)
     assert.equal((await call('/dsh-db-viewer/query', { base: tableId, sql: "SELECT v FROM meta WHERE k = 'name'" })).json.lignes[0].v, 'Shop')
