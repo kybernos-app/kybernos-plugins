@@ -807,9 +807,80 @@ window.__ModuleLoader__.load({
           'not-archived': kt('Range-la d’abord : on ne supprime que ce qui est rangé.', 'Put it away first: only what is archived can be deleted.'),
           published: kt('Cette app est publiée : arrête sa publication d’abord.', 'This app is published: unpublish it first.'),
           confirm: kt('Le nom saisi n’est pas le bon.', 'The name typed is not the right one.'),
+          // Publish: the web app and the hosting behind it (a refusal always says what was left as it was)
+          unreachable: kt('L’app web ne répond pas. Rien n’a été perdu : réessaie dans un instant.', 'The web app is not answering. Nothing was lost: try again in a moment.'),
+          refused: kt('L’app web a refusé la clé de cet ordinateur.', 'The web app refused this computer’s key.'),
+          space: kt('L’app web a un problème de son côté. Réessaie plus tard.', 'The web app has a problem on its side. Try again later.'),
+          'rate-limited': kt('L’app web demande d’aller moins vite : réessaie dans une minute.', 'The web app asks to slow down: try again in a minute.'),
+          'hosting-failed': kt('L’hébergement n’a pas pu préparer l’app web. Rien n’a été publié.', 'The hosting could not set up the web app. Nothing was published.'),
+          mismatch: kt('Ce que contient l’app web n’est pas ce qui était attendu. Rien n’a été modifié ici.', 'What the web app holds is not what was expected. Nothing was changed here.'),
+          changed: kt('L’app a changé pendant la publication. Rien n’a été publié : réessaie.', 'The app changed while it was being published. Nothing was published: try again.'),
+          'db-exists': kt('Une copie de cette app est déjà dans l’app web.', 'A copy of this app is already in the web app.'),
+          sensitive: kt('Cette app a des champs sensibles ou secrets : elle ne peut pas être publiée.', 'This app has sensitive or secret fields, so it cannot be published.'),
+          budget: kt('Le budget prévu pour l’app web est épuisé.', 'The budget for the web app is used up.'),
+          busy: kt('Une publication ou un retrait est déjà en cours pour cette app : attends qu’il se termine.', 'This app is being published or unpublished: wait for that to end.'),
+          'not-published': kt('Cette app n’est pas publiée.', 'This app is not published.'),
+          registry: kt('La liste des apps publiées n’a pas pu être enregistrée sur cet ordinateur. Réessaie.', 'The list of published apps could not be saved on this computer. Try again.'),
+          'too-large': kt('Cette app est trop grosse pour l’app web.', 'This app is too large for the web app.'),
+          unavailable: kt('La publication n’est pas disponible sur cet ordinateur.', 'Publishing is not available on this computer.'),
+          failed: kt('Ça n’a pas marché. Réessaie.', 'That did not work. Try again.'),
+          popup: kt('Le navigateur a bloqué le nouvel onglet : autorise les fenêtres pour cette page, puis réessaie.', 'The browser blocked the new tab: allow pop-ups for this page, then try again.'),
         }
         if (known[code] !== undefined) return known[code]
         return typeof (r && r.message) === 'string' && r.message !== '' ? r.message : kt('Cette valeur n’est pas acceptée.', 'This value is not accepted.')
+      }
+
+      // ── Publish: an app that lives in a web app. The host decides what is possible; the page only draws what the state says ──────
+      /** The `published` object the state gives an app (`{ slug, url, since, lastSync, syncError }`), or null. */
+      const pubOf = (app) => (plain(app) && plain(app.published) && typeof app.published.url === 'string' ? app.published : null)
+      /** True when the host offers Publish at all: without it the page shows no Publish control. */
+      const canPublishVia = (hosting) => plain(hosting) && hosting.available === true
+      const hostWord = (url) => { try { return new URL(url).host } catch (e) { return '' } }
+      /** « just now », « 3 min ago »… for a moment in the past; an empty string when the moment is not a date. */
+      const agoWord = (iso, now) => {
+        const t = Date.parse(iso)
+        if (!Number.isFinite(t)) return ''
+        const s = Math.max(0, Math.round(((typeof now === 'number' ? now : Date.now()) - t) / 1000))
+        if (s < 60) return kt('à l’instant', 'just now')
+        const m = Math.floor(s / 60)
+        if (m < 60) return kt('il y a ' + m + ' min', m + ' min ago')
+        const hr = Math.floor(m / 60)
+        if (hr < 24) return kt('il y a ' + hr + ' h', hr + ' h ago')
+        const d = Math.floor(hr / 24)
+        return kt('il y a ' + d + ' j', d + ' d ago')
+      }
+      /** What the page says of the copy kept on this computer: when it was last brought up to date, or why it could not be. */
+      const syncLine = (pub, now) => {
+        const ago = typeof pub.lastSync === 'string' ? agoWord(pub.lastSync, now) : ''
+        if (plain(pub.syncError)) {
+          const code = pub.syncError.code
+          const why = code === 'refused' ? kt('L’app web a refusé la clé de cet ordinateur.', 'The web app refused this computer’s key.')
+            : code === 'unreachable' || code === 'space' || code === 'rate-limited' ? kt('L’app web ne répond pas.', 'The web app is not answering.')
+              : kt('La copie venue de l’app web n’a pas pu être vérifiée.', 'The copy from the web app could not be checked.')
+          return why + ' ' + (ago !== '' ? kt('Dernière mise à jour ' + ago + '.', 'Last synced ' + ago + '.') : kt('Tu vois la copie gardée sur cet ordinateur.', 'You are seeing the copy kept on this computer.'))
+        }
+        return ago !== '' ? kt('Synchronisée ' + ago, 'Synced ' + ago) : kt('Copie gardée sur cet ordinateur', 'Copy kept on this computer')
+      }
+      const priceWord = (n, cur) => { try { return new Intl.NumberFormat(lang(), { style: 'currency', currency: cur }).format(n) } catch (e) { return String(n) + ' ' + cur } }
+      /**
+       * Opens the web app of a published app in a new tab. The tab is opened FIRST, inside the click that asked for it, so a pop-up blocker lets it through, and is pointed at the
+       * host's one-time link once that is made. The link is a secret for ten minutes: it is never kept, shown or logged here. `ports` ({ open, call }) is for the tests.
+       */
+      const openWebApp = async (dbId, ports) => {
+        const open = (ports && ports.open) || ((...a) => window.open(...a))
+        const ask = (ports && ports.call) || call
+        let win = null
+        try { win = open('', '_blank') } catch (e) { win = null }
+        if (win === null || win === undefined) return { ok: false, error: 'popup' }
+        try { win.opener = null } catch (e) { /* the tab is ours alone until it is pointed away */ }
+        const shut = () => { try { win.close() } catch (e) { /* already closed */ } }
+        const r = await ask('POST', '/open-web', { db: dbId })
+        if (!r || r.ok !== true) { shut(); return r || { ok: false, error: 'failed' } }
+        let target = null
+        try { const u = new URL(r.url); if (u.protocol === 'https:' || u.protocol === 'http:') target = u.href } catch (e) { target = null }
+        if (target === null) { shut(); return { ok: false, error: 'failed' } }
+        try { win.location.href = target } catch (e) { shut(); return { ok: false, error: 'failed' } }
+        return { ok: true }
       }
 
       // ── files ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -1219,7 +1290,7 @@ window.__ModuleLoader__.load({
         .kbtb-tab.rel{display:inline-flex;align-items:center;gap:7px}
         .kbtb-tbrow{min-width:0}
 
-        .kbtb-gallery{display:flex;flex-direction:column;gap:22px}
+        .kbtb-gallery{display:flex;flex-direction:column;gap:22px;padding-bottom:72px} /* room under the last row for a card's menu, which hangs lower than the card */
         .kbtb-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
         .kbtb-appcard{position:relative;display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l1);border-radius:18px;background:var(--dsw-alias-bg-layer-1);transition:border-color .15s,box-shadow .15s}
         .kbtb-appcard:hover{border-color:var(--dsw-alias-border-l2);box-shadow:0 8px 24px color-mix(in srgb,var(--dsw-alias-label-primary) 9%,transparent)}
@@ -1299,6 +1370,23 @@ window.__ModuleLoader__.load({
           .kbtb-dlg{padding:20px}
         }
         @media (prefers-reduced-motion:reduce){.kbtb-scrim,.kbtb-dlg{animation:none}}
+        .kbtb .kb6-headrow .kbtb-btn{height:38px;padding:0 16px;border-radius:12px;white-space:nowrap}
+        .kbtb .kb6-headrow .kbtb-actions{flex-wrap:wrap}
+        @media (max-width:640px){.kbtb .kb6-headrow .kbtb-btn{padding:0 12px}}
+        .kbtb-pub{display:inline-flex;align-items:center;gap:6px;height:24px;max-width:100%;min-width:0;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}
+        .kbtb-pub svg{flex:none}
+        .kbtb-pub span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .kbtb-pub.bad{color:var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
+        .kbtb-pub.hd{height:22px}
+        .kbtb-pubnote > svg{flex:none;color:var(--dsw-alias-state-success-primary)}
+        .kbtb-pubnote.warn > svg{color:var(--dsw-alias-state-warn-primary)}
+        .kbtb-pubnote .sp{display:flex;flex-direction:column;gap:2px}
+        .kbtb-sync{color:var(--dsw-alias-label-tertiary);font-size:12px}
+        .kbtb-pubnote.warn .kbtb-sync{color:var(--dsw-alias-label-secondary)}
+        .kbtb-pubsent{font-size:12.5px}
+        .kbtb-mi2.dis{opacity:.55;cursor:not-allowed}
+        .kbtb-mi2.dis:hover{background:transparent}
+        .kbtb-mi2 .kbtb-why{margin-inline-start:auto;color:var(--dsw-alias-label-tertiary);font-size:11.5px;white-space:nowrap}
 `
 
       const ICONS = {
@@ -1338,6 +1426,9 @@ window.__ModuleLoader__.load({
         dots: ['M12 5h.01', 'M12 12h.01', 'M12 19h.01'],
         archive: ['M3 4h18v4H3z', 'M5 8v12h14V8', 'M10 12h4'],
         restore: ['M3 12a9 9 0 1 0 3-6.7L3 8', 'M3 3v5h5'],
+        globe: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M3 12h18', 'M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9z'],
+        external: ['M14 4h6v6', 'M20 4l-9 9', 'M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5'],
+        upload: ['M12 16V4', 'M6 10l6-6 6 6', 'M4 20h16'],
         apps: ['M4 4h6.5v6.5H4z', 'M13.5 4H20v6.5h-6.5z', 'M4 13.5h6.5V20H4z', 'M16.75 13.5v6.5', 'M13.5 16.75H20'],
         nodes: ['M12 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M18 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M10.5 8.5 7.5 15.5', 'M13.5 8.5l3 7'],
         db: ['M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z', 'M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6', 'M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'],
@@ -1609,7 +1700,8 @@ window.__ModuleLoader__.load({
               head || null,
               items.map((it) => (it.sep ? h('div', { key: it.id, className: 'kbtb-psep' })
                 : it.hint ? h('p', { key: it.id, className: 'kbtb-note faint' }, it.hint)
-                  : h('button', { key: it.id, type: 'button', role: 'menuitem', className: 'kbtb-mi2' + (it.danger ? ' bad' : ''), 'data-kb': hook + '-' + it.id, onClick: (e) => { stop(e); p.setMenu(null); onPick(it.id) } }, svg(it.icon, 15), it.label)))) : null)
+                  : it.locked ? h('button', { key: it.id, type: 'button', role: 'menuitem', 'aria-disabled': 'true', className: 'kbtb-mi2 dis', 'data-kb': hook + '-' + it.id, title: kt('Arrête la publication pour changer cela', 'Unpublish to change this'), onClick: stop }, svg(it.icon, 15), it.label, h('span', { className: 'kbtb-why' }, it.locked))
+                    : h('button', { key: it.id, type: 'button', role: 'menuitem', className: 'kbtb-mi2' + (it.danger ? ' bad' : ''), 'data-kb': hook + '-' + it.id, onClick: (e) => { stop(e); p.setMenu(null); onPick(it.id) } }, svg(it.icon, 15), it.label)))) : null)
         }
         const TableMenu = ({ p }) => h(ActionMenu, { p, id: 'topt', hook: 'tables-menu-topt', label: kt('Options de la table', 'Table options'), onPick: (id) => (id === 'ask' ? p.askKaby() : p.confirmArchive(p.db.id, p.obj.key)),
           items: [{ id: 'ask', icon: 'sparkle', label: kt('Demander à Kaby au sujet de cette table', 'Ask Kaby about this table') }, { id: 'sep', sep: true }, { id: 'archive', icon: 'archive', label: kt('Ranger la table…', 'Archive table…') }] })
@@ -2390,8 +2482,31 @@ window.__ModuleLoader__.load({
         const linksWord = (n) => n + ' ' + plural(n, 'lien', 'liens', 'link', 'links')
         /** The mark of an app that has no picture of its own: its first letter on a hue only it has. */
         const Tile = ({ app, size }) => h('span', { className: 'kbtb-apptile' + (size === 's' ? ' s' : ''), style: { '--kbtb-h': appHue(app.id) }, 'aria-hidden': 'true' }, monogram(app.name))
+        // ── Publish: what the page shows of an app that lives in a web app ──
+        /** The pill of a published app: on its card (with the web app's host) and next to its name. It turns to a warning, with another icon, when the copy cannot be refreshed. */
+        const PubPill = ({ pub, hd }) => {
+          const bad = plain(pub.syncError)
+          const host = hostWord(pub.url)
+          return h('span', { className: 'kbtb-pub' + (bad ? ' bad' : '') + (hd ? ' hd' : ''), 'data-kb': hd ? 'apps-published-pill' : 'apps-card-published', title: bad ? syncLine(pub) : host },
+            svg(bad ? 'alert' : 'globe', 12), h('span', null, kt('Publiée', 'Published') + (hd || host === '' ? '' : ' · ' + host)))
+        }
+        /** Under the tabs of a published app: where it lives, how fresh the copy is, why the structure is locked, and the two things that can be done about it. */
+        const PublishedNote = ({ p }) => {
+          const pub = pubOf(p.db)
+          if (pub === null) return null
+          const bad = plain(pub.syncError)
+          const update = kt('Mettre la copie à jour maintenant', 'Update the copy now')
+          return h('div', { className: 'kbtb-banner kbtb-pubnote' + (bad ? ' warn' : ''), 'data-kb': 'apps-published-note' },
+            svg(bad ? 'alert' : 'globe', 16),
+            h('span', { className: 'sp' },
+              h('span', null, h('b', null, hostWord(pub.url)), h('span', { className: 'kbtb-sync', 'data-kb': 'apps-sync' }, ' · ' + syncLine(pub))),
+              h('span', { className: 'kbtb-pubsent' }, kt('Les lignes s’écrivent dans l’app web et sont recopiées ici. La structure et les vues enregistrées ne changent plus tant que l’app est publiée ; les filtres et les tris marchent, pour cette visite seulement.', 'Rows are written in the web app and copied here. The structure and the saved views can’t change while the app is published; filters and sorting still work, for this visit only.'))),
+            h('button', { type: 'button', className: 'kbtb-ib', 'data-kb': 'apps-refresh', 'aria-label': update, title: update, disabled: p.syncBusy === p.db.id, onClick: () => p.refreshNow(p.db.id) }, svg('refresh', 16)),
+            h('button', { type: 'button', className: 'kbtb-btn sm', 'data-kb': 'apps-unpublish', onClick: () => p.openUnpublish(p.db.id) }, kt('Arrêter la publication…', 'Unpublish…')))
+        }
         const AppCard = ({ p, app }) => {
           const objs = app.objects
+          const pub = pubOf(app)
           return h('div', { className: 'kbtb-appcard', 'data-kb': 'apps-card', 'data-db': app.id },
             h('button', { type: 'button', className: 'kbtb-appopen', 'data-kb': 'apps-open', onClick: () => p.openApp(app.id) },
               h(Tile, { app }),
@@ -2400,10 +2515,12 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbtb-appline' }, objs.length === 0 ? kt('Aucune table pour l’instant', 'No table yet') : tablesWord(objs.length) + ' · ' + rowsWord(rowsIn(app)))),
               h('span', { className: 'kbtb-sects' }, objs.slice(0, 3).map((o) => h('span', { key: o.key, className: 'kbtb-sect' }, h('b', null, fmtNumber(Number.isInteger(o.count) ? o.count : 0)), ' ', o.label)),
                 objs.length > 3 ? h('span', { className: 'kbtb-sect' }, kt('+' + (objs.length - 3) + ' autres', '+' + (objs.length - 3) + ' more')) : null),
-              h('span', { className: 'kbtb-state' }, svg('lock', 12), kt('Privée, sur cet ordinateur', 'Private, on this computer'))),
+              pub !== null ? h(PubPill, { pub }) : h('span', { className: 'kbtb-state' }, svg('lock', 12), kt('Privée, sur cet ordinateur', 'Private, on this computer'))),
             h(ActionMenu, { p, id: 'card:' + app.id, hook: 'apps-card-menu', wrap: 'kbtb-appkeb', label: kt('Plus d’actions pour ', 'More actions for ') + app.name,
-              items: [{ id: 'open', icon: 'arrow', label: kt('Ouvrir', 'Open') }, { id: 'ask', icon: 'sparkle', label: kt('Demander à Kaby', 'Ask Kaby') }, { id: 'sep', sep: true }, { id: 'archive', icon: 'archive', label: kt('Ranger…', 'Archive…') }],
-              onPick: (id) => (id === 'open' ? p.openApp(app.id) : id === 'ask' ? p.askKaby(askAbout(app, null, null)) : p.confirmArchive(app.id, null)) }))
+              items: [{ id: 'open', icon: 'arrow', label: kt('Ouvrir', 'Open') }, { id: 'ask', icon: 'sparkle', label: kt('Demander à Kaby', 'Ask Kaby') }]
+                .concat(pub !== null ? [{ id: 'web', icon: 'external', label: kt('Ouvrir l’app web', 'Open web app') }] : canPublishVia(p.hosting) ? [{ id: 'publish', icon: 'upload', label: kt('Publier…', 'Publish…') }] : [])
+                .concat([{ id: 'sep', sep: true }], pub !== null ? [{ id: 'unpublish', icon: 'globe', label: kt('Arrêter la publication…', 'Unpublish…') }, { id: 'archive', icon: 'archive', label: kt('Ranger…', 'Archive…'), locked: kt('Arrête la publication d’abord', 'Unpublish first') }] : [{ id: 'archive', icon: 'archive', label: kt('Ranger…', 'Archive…') }]),
+              onPick: (id) => (id === 'open' ? p.openApp(app.id) : id === 'ask' ? p.askKaby(askAbout(app, null, null)) : id === 'web' ? p.openWeb(app.id) : id === 'publish' ? p.openPublish(app.id) : id === 'unpublish' ? p.openUnpublish(app.id) : p.confirmArchive(app.id, null)) }))
         }
         /** An app put away: kept, hidden from Kaby, and only here can it come back or go for good. */
         const ArchivedCard = ({ p, app }) => h('div', { className: 'kbtb-appcard arch', 'data-kb': 'apps-archived', 'data-db': app.id },
@@ -2460,6 +2577,7 @@ window.__ModuleLoader__.load({
         /** The ⋯ of an app: its archived tables, and putting the app away. */
         const AppMenu = ({ p }) => {
           const away = p.db.archivedObjects || []
+          const pub = pubOf(p.db)
           const open = p.menu === 'app' || p.menu === 'archt'
           const row = (t) => h('div', { key: t.key, className: 'kbtb-arow', 'data-kb': 'apps-archived-table', 'data-object': t.key },
             h('span', { className: 'kbtb-aname' }, h('b', null, t.label), h('small', null, (t.count || 0) + ' ' + rowWord(t.count || 0) + ' · ' + kt('gardée, cachée de Kaby', 'kept, hidden from Kaby'))),
@@ -2472,14 +2590,16 @@ window.__ModuleLoader__.load({
               away.length > 0 ? h('button', { type: 'button', role: 'menuitem', className: 'kbtb-mi2', 'data-kb': 'apps-menu-archt', onClick: () => p.setMenu('archt') }, svg('archive', 15), kt('Tables rangées · ', 'Archived tables · ') + away.length)
                 : h('p', { className: 'kbtb-note faint' }, kt('Aucune table rangée.', 'No archived table.')),
               h('div', { className: 'kbtb-psep' }),
-              h('button', { type: 'button', role: 'menuitem', className: 'kbtb-mi2', 'data-kb': 'apps-menu-archive', onClick: () => p.confirmArchive(p.db.id, null) }, svg('archive', 15), kt('Ranger l’app…', 'Archive app…'))) : null,
+              pub !== null ? h('button', { type: 'button', role: 'menuitem', className: 'kbtb-mi2', 'data-kb': 'apps-menu-unpublish', onClick: () => p.openUnpublish(p.db.id) }, svg('globe', 15), kt('Arrêter la publication…', 'Unpublish…')) : null,
+              pub !== null ? h('button', { type: 'button', role: 'menuitem', 'aria-disabled': 'true', className: 'kbtb-mi2 dis', 'data-kb': 'apps-menu-archive', title: kt('Arrête la publication pour changer cela', 'Unpublish to change this'), onClick: stop }, svg('archive', 15), kt('Ranger l’app…', 'Archive app…'), h('span', { className: 'kbtb-why' }, kt('Arrête la publication d’abord', 'Unpublish first')))
+                : h('button', { type: 'button', role: 'menuitem', className: 'kbtb-mi2', 'data-kb': 'apps-menu-archive', onClick: () => p.confirmArchive(p.db.id, null) }, svg('archive', 15), kt('Ranger l’app…', 'Archive app…'))) : null,
             p.menu === 'archt' ? h(Pop, { label: kt('Tables rangées', 'Archived tables'), cls: 'archt' }, h(PopHead, { title: kt('Tables rangées', 'Archived tables') }), h('div', { className: 'kbtb-alist' }, away.map(row))) : null)
         }
-        const AppHeader = ({ p, tile, title, sub, back, backLabel, actions }) => h('header', { className: 'kb6-headrow' },
+        const AppHeader = ({ p, tile, title, pill, sub, back, backLabel, actions }) => h('header', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow kbtb-titlerow' },
               back ? h('button', { type: 'button', className: 'kbtb-back', 'data-kb': 'apps-back', 'aria-label': backLabel, title: backLabel, onClick: back }, svg('chevL', 18)) : null,
-              tile || null, h('h1', { className: 'kb6-title' }, title), help()),
+              tile || null, h('h1', { className: 'kb6-title' }, title), pill || null, help()),
             sub ? h('p', { className: 'kb8-sub' }, sub) : null),
           actions || null)
         const Tabs = ({ p }) => h('div', { className: 'kbtb-tabs kbtb-tabs2', role: 'tablist', 'aria-label': kt('Tables', 'Tables'), 'data-kb': 'tables-tabs' },
@@ -2584,7 +2704,90 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-cancel', disabled: d.busy, onClick: () => p.closeDialog() }, kt('Annuler', 'Cancel')),
               h('button', { type: 'button', className: 'kbtb-btn primary', 'data-kb': 'apps-confirm', disabled: d.busy, onClick: () => p.runDialog('') }, d.busy ? kt('Ajout…', 'Adding…') : kt('Ajouter l’app', 'Add app'))))
         }
-        const Dialogs = ({ p }) => (p.dialog === null ? null : p.dialog.kind === 'template' ? h(TemplateDialog, { p }) : h(AppDialog, { p }))
+        const fieldList = (items, withProtection) => items.slice(0, 6).map((x) => x.objectLabel + ' › ' + x.fieldLabel + (withProtection ? ' (' + (x.protection === 'secret' ? 'secret' : kt('sensible', 'sensitive')) + ')' : '')).join(' ; ') + (items.length > 6 ? kt(' et ' + (items.length - 6) + ' autres', ' and ' + (items.length - 6) + ' more') : '')
+        /** The card of Publish: what goes, where, what it costs, what changes for the app while it is published. Nothing leaves before the confirm button. */
+        const PublishDialog = ({ p }) => {
+          const d = p.dialog
+          const app = p.dbs.find((x) => x.id === d.db) || null
+          const name = app === null ? '' : app.name
+          const card = d.card
+          const can = card !== null && card.can === true
+          const hosting = card !== null && plain(card.hosting) ? card.hosting : {}
+          const close = () => { if (!d.busy) p.closeDialog() }
+          const title = kt('Publier « ' + name + ' » ?', 'Publish “' + name + '”?')
+          let lead = ''
+          let rows = []
+          if (card === null) lead = d.error === null ? kt('Vérification en cours…', 'Checking…') : ''
+          else if (can) {
+            lead = kt('Une copie de l’app part dans une app web. Ensuite c’est l’app web qui tient les données ; cet ordinateur en garde une copie en lecture seule.', 'A copy of the app goes to a web app. From then on the web app holds the data, and this computer keeps a read-only copy of it.')
+            const price = Number.isFinite(hosting.pricePerMonth) && typeof hosting.currency === 'string' && hosting.currency !== ''
+            const budget = plain(hosting.budget) && typeof hosting.budget.label === 'string' && hosting.budget.label !== '' ? hosting.budget : null
+            rows = [
+              { k: kt('Ce qui part', 'What goes'), v: [tablesWord(card.tables), rowsWord(card.rows)].concat(card.files > 0 ? [card.files + ' ' + plural(card.files, 'fichier', 'fichiers', 'file', 'files')] : []).join(' · '), sm: fmtBytes(card.bytes) },
+              { k: kt('Où', 'Where'), v: (typeof hosting.name === 'string' && hosting.name !== '' ? hosting.name : kt('Une app web', 'A web app')) + (typeof hosting.region === 'string' && hosting.region !== '' ? ' · ' + hosting.region : ''),
+                sm: card.where === 'existing' ? kt('Dans l’app web que tu as déjà', 'Into the web app you already have') : kt('Une nouvelle app web est préparée', 'A new web app is set up') },
+            ]
+            if (price) rows.push({ k: kt('Coût estimé', 'Estimated cost'), v: priceWord(hosting.pricePerMonth, hosting.currency) + kt(' par mois', ' a month') })
+            if (budget !== null) rows.push({ k: kt('Budget', 'Budget'), v: budget.label, sm: Number.isFinite(budget.remaining) ? fmtNumber(budget.remaining) + kt(' restant', ' left') : '' })
+            if (hosting.alwaysOn === true) rows.push({ k: kt('Disponibilité', 'Availability'), v: kt('Reste disponible quand cet ordinateur est éteint', 'Stays available when this computer is off') })
+            if (Array.isArray(card.personal) && card.personal.length > 0) rows.push({ k: kt('Données personnelles', 'Personal data'), v: fieldList(card.personal, false), sm: kt('Ces champs partent dans l’app web avec le reste.', 'These fields go to the web app with the rest.') })
+            rows.push({ k: kt('Pendant la publication', 'While published'), v: kt('Les lignes s’écrivent dans l’app web. La structure et les vues ne changent plus ici ; arrête la publication pour les changer.', 'Rows are written in the web app. The structure and the views can’t change here; unpublish to change them.') })
+          } else {
+            const why = {
+              sensitive: kt('Cette app a des champs marqués sensibles ou secrets. Ils ne partent jamais dans une app web : elle ne peut pas être publiée telle quelle.', 'This app has fields marked sensitive or secret. They are never sent to a web app, so it can’t be published as it is.'),
+              budget: kt('Le budget prévu pour l’app web est épuisé.', 'The budget for the web app is used up.'),
+              'too-big': kt('Cette app est trop grosse pour être publiée d’un coup (' + fmtBytes(card.bytes) + ').', 'This app is too big to publish in one go (' + fmtBytes(card.bytes) + ').'),
+              archived: kt('Cette app est rangée : rétablis-la d’abord.', 'This app is archived: restore it first.'),
+              busy: kt('Une publication ou un retrait est déjà en cours pour cette app.', 'This app is already being published or unpublished.'),
+              published: kt('Cette app est déjà publiée.', 'This app is already published.'),
+              unavailable: kt('La publication n’est pas disponible sur cet ordinateur.', 'Publishing is not available on this computer.'),
+            }
+            lead = why[card.reason] || kt('Cette app ne peut pas être publiée pour l’instant.', 'This app can’t be published right now.')
+            if (card.reason === 'sensitive' && Array.isArray(card.blocked)) rows = [{ k: kt('Champs', 'Fields'), v: fieldList(card.blocked, true), sm: kt('Demande à Kaby de les retirer ou de changer leur protection, puis réessaie.', 'Ask Kaby to remove them or change their protection, then try again.') }]
+            if (card.reason === 'budget' && plain(hosting.budget) && typeof hosting.budget.label === 'string') rows = [{ k: kt('Budget', 'Budget'), v: hosting.budget.label, sm: Number.isFinite(hosting.budget.remaining) ? fmtNumber(hosting.budget.remaining) + kt(' restant', ' left') : '' }]
+          }
+          return h(Dialog, { label: title, onClose: close },
+            h('div', { className: 'kbtb-dlgh' }, app === null ? null : h(Tile, { app }), h('div', null, h('h3', null, title), lead !== '' ? h('p', { className: 'kbtb-lead' }, lead) : null)),
+            rows.length > 0 ? h(Facts, { rows }) : null,
+            d.busy ? h('p', { className: 'kbtb-note faint', role: 'status', 'data-kb': 'apps-publishing' }, kt('Cela peut prendre une minute.', 'This can take a minute.')) : null,
+            d.error ? h('p', { className: 'kbtb-ferr', role: 'alert', 'data-kb': 'apps-dialog-error' }, d.error) : null,
+            h('div', { className: 'kbtb-acts' },
+              h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-cancel', disabled: d.busy, onClick: close }, can || (card === null && d.error === null) ? kt('Annuler', 'Cancel') : kt('Fermer', 'Close')),
+              can ? h('button', { type: 'button', className: 'kbtb-btn primary', 'data-kb': 'apps-confirm', disabled: d.busy, onClick: () => p.runDialog('') }, d.busy ? kt('Publication…', 'Publishing…') : kt('Publier', 'Publish')) : null))
+        }
+        /** Unpublish: the app comes back as the web app holds it now. When the web app cannot be reached, the way out that keeps this computer's copy is offered, behind the app's typed name. */
+        const UnpublishDialog = ({ p }) => {
+          const d = p.dialog
+          const [typed, setTyped] = useState('')
+          const app = p.dbs.find((x) => x.id === d.db) || null
+          const name = app === null ? '' : app.name
+          const pub = pubOf(app)
+          const close = () => { if (!d.busy) p.closeDialog() }
+          const ago = pub !== null && typeof pub.lastSync === 'string' ? agoWord(pub.lastSync) : ''
+          const title = d.forget ? kt('Garder la copie locale de « ' + name + ' » ?', 'Keep the local copy of “' + name + '”?') : kt('Arrêter la publication de « ' + name + ' » ?', 'Unpublish “' + name + '”?')
+          const lead = d.forget
+            ? kt('À utiliser seulement si l’app web reste injoignable. Cet ordinateur garde sa copie et oublie l’app web, sans rien lui demander.', 'Use this only if the web app stays out of reach. This computer keeps its copy and forgets the web app, without asking it anything.')
+            : kt('L’app revient sur cet ordinateur telle qu’elle est dans l’app web à l’instant, puis l’app web est retirée.', 'The app comes back to this computer as it is in the web app right now, then the web app is taken down.')
+          const rows = d.forget
+            ? [{ k: kt('Gardé ici', 'Kept here'), v: kt('La copie de cet ordinateur', 'The copy on this computer'), sm: ago !== '' ? kt('Telle qu’elle était ' + ago, 'As it was ' + ago) : '' },
+              { k: kt('L’app web', 'The web app'), v: kt('Laissée telle quelle, en ligne. Cet ordinateur ne la suit plus, et ce qui y est écrit ensuite ne revient pas ici.', 'Left as it is, online. This computer stops following it, and what is written there afterwards does not come back here.'), warn: true }]
+            : [{ k: kt('Revient ici', 'Comes back'), v: kt('Toutes les lignes et tous les fichiers, tels qu’ils sont dans l’app web', 'Every row and file, as they are in the web app') },
+              { k: kt('L’app web', 'The web app'), v: kt('Est retirée : plus personne ne peut l’ouvrir', 'Is taken down: nobody can open it any more') },
+              { k: kt('Ensuite', 'Afterwards'), v: kt('L’app redevient privée : tu peux changer sa structure et ses vues, et la publier de nouveau plus tard.', 'The app is private again: you can change its structure and views, and publish it again later.') }]
+          const sure = !d.forget || confirmOk(typed, name)
+          return h(Dialog, { label: title, onClose: close },
+            h('div', { className: 'kbtb-dlgh' }, app === null ? null : h(Tile, { app }), h('div', null, h('h3', null, title), h('p', { className: 'kbtb-lead' }, lead))),
+            h(Facts, { rows }),
+            d.forget ? h('label', { className: 'kbtb-typed' }, h('span', null, kt('Tape le nom pour confirmer : ', 'Type the name to confirm: '), h('b', null, name)),
+              h('input', { className: 'kbtb-inp', type: 'text', autoComplete: 'off', autoFocus: true, 'data-kb': 'apps-typed', 'aria-label': kt('Tape le nom pour confirmer', 'Type the name to confirm'), value: typed, onChange: (e) => setTyped(e.target.value) })) : null,
+            d.busy && !d.forget ? h('p', { className: 'kbtb-note faint', role: 'status', 'data-kb': 'apps-unpublishing' }, kt('Cela peut prendre un moment.', 'This can take a moment.')) : null,
+            d.error ? h('p', { className: 'kbtb-ferr', role: 'alert', 'data-kb': 'apps-dialog-error' }, d.error) : null,
+            h('div', { className: 'kbtb-acts' },
+              h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-cancel', disabled: d.busy, onClick: close }, kt('Annuler', 'Cancel')),
+              d.canForget === true && !d.forget ? h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-forget', disabled: d.busy, onClick: () => p.startForget() }, kt('Garder ma copie locale…', 'Keep my local copy…')) : null,
+              h('button', { type: 'button', className: 'kbtb-btn danger', 'data-kb': 'apps-confirm', disabled: !sure || d.busy, onClick: () => p.runDialog(typed) }, d.forget ? kt('Garder ma copie et oublier l’app web', 'Keep my copy and forget the web app') : d.busy ? kt('Retrait…', 'Unpublishing…') : kt('Arrêter la publication', 'Unpublish'))))
+        }
+        const Dialogs = ({ p }) => (p.dialog === null ? null : p.dialog.kind === 'template' ? h(TemplateDialog, { p }) : p.dialog.kind === 'publish' ? h(PublishDialog, { p }) : p.dialog.kind === 'unpublish' ? h(UnpublishDialog, { p }) : h(AppDialog, { p }))
 
         // ── the page ─────────────────────────────────────────────────────────────────────────────────────────────────────────
         const EMPTY_SEL = { db: '', object: '', views: {} }
@@ -2600,7 +2803,7 @@ window.__ModuleLoader__.load({
         const Page = (props) => {
           const tb = props.toolbar !== null && props.toolbar !== undefined && typeof props.toolbar.KbToolbar === 'function' ? props.toolbar : null
           const [coreState, setCoreState] = useState(K !== null ? 'ok' : 'loading')
-          const [data, setData] = useState({ status: 'loading', dbs: [], archived: [], unreadable: [], today: '', error: null, stale: false })
+          const [data, setData] = useState({ status: 'loading', dbs: [], archived: [], unreadable: [], today: '', hosting: null, error: null, stale: false })
           const [sel, setSel] = useState(readSel)
           const [rec, setRec] = useState({ key: '', status: 'idle', rows: [], fingerprint: '', truncated: false, error: null })
           const [related, setRelated] = useState({})
@@ -2616,6 +2819,8 @@ window.__ModuleLoader__.load({
           const [templates, setTemplates] = useState(null)
           const [toast, setToast] = useState(null)
           const [months, setMonths] = useState({})
+          const [syncBusy, setSyncBusy] = useState('')
+          const [, setClock] = useState(0)
           const live = useRef({})
           const alive = useRef(true)
           const draftRef = useRef({})
@@ -2636,7 +2841,7 @@ window.__ModuleLoader__.load({
           const ready = coreState === 'ok' && db !== null && obj !== null
           const screen = newApp ? 'new' : db !== null ? 'app' : 'gallery'
           const serverViews = ready ? (obj.views.length > 0 ? obj.views : [defaultView(obj)]) : []
-          const views = serverViews.map((v) => (draftRef.current[v.id] !== undefined && draftRef.current[v.id].object === obj.key ? draftRef.current[v.id].view : v))
+          const views = serverViews.map((v) => (draftRef.current[v.id] !== undefined && draftRef.current[v.id].object === obj.key && draftRef.current[v.id].db === db.id ? draftRef.current[v.id].view : v))
           const wanted = ready ? sel.views[db.id + '/' + obj.key] : undefined
           const view = ready ? (views.find((v) => v.id === wanted) || views.find((v) => v.fav) || views[0]) : null
           const flt = ready ? (menu === 'filter' && work !== null && work.viewId === view.id ? work.flt : view.state.flt) : null
@@ -2680,7 +2885,7 @@ window.__ModuleLoader__.load({
                 if (seen.current[d.id] !== undefined) for (const e of agentViewEvents(seen.current[d.id], idx, pending)) events.push(Object.assign({ db: d.id }, e))
                 seen.current[d.id] = idx
               }
-              setData({ status: 'ok', dbs: r.dbs, archived: Array.isArray(r.archived) ? r.archived : [], unreadable: r.unreadable || [], today: r.today, error: null, stale: false })
+              setData({ status: 'ok', dbs: r.dbs, archived: Array.isArray(r.archived) ? r.archived : [], unreadable: r.unreadable || [], today: r.today, hosting: plain(r.hosting) ? r.hosting : null, error: null, stale: false })
               if (events.length > 0) announce(events)
             } finally { inflight.current = false }
           }, [])
@@ -2699,7 +2904,7 @@ window.__ModuleLoader__.load({
           const dropDraft = (id, entry) => { if (draftRef.current[id] !== entry) return; const next = Object.assign({}, draftRef.current); delete next[id]; draftRef.current = next; setDrafts(next) }
           const saveDraft = async (id) => {
             const entry = draftRef.current[id]
-            if (entry === undefined) return
+            if (entry === undefined || entry.local === true) return
             try { clearTimeout(saveTimers.current[id]) } catch (e) { /* no timer */ }
             delete saveTimers.current[id]
             const r = await call('POST', '/view', { db: entry.db, object: entry.object, op: 'save', view: savable(entry.view, entry.obj) })
@@ -2722,8 +2927,10 @@ window.__ModuleLoader__.load({
             if (!base) return
             const next = fn(copy(base))
             if (same(next, base)) return
-            putDraft(id, { view: next, db: L.db.id, object: L.obj.key, obj: L.obj })
-            schedule(id, now === true)
+            // a published app's saved views are the web app's: an edit lasts for this visit only and is never sent
+            const local = pubOf(L.db) !== null
+            putDraft(id, { view: next, db: L.db.id, object: L.obj.key, obj: L.obj, local })
+            if (!local) schedule(id, now === true)
           }
           const editView = (fn) => { const L = live.current; if (L.ready) updateView(L.view.id, fn, false) }
           const setFlt = (next) => {
@@ -2803,9 +3010,15 @@ window.__ModuleLoader__.load({
             say(kt('Table rétablie.', 'Table restored.'))
             refresh()
           }
-          const confirmArchive = (dbId, objKey) => { setMenu(null); setDialog({ kind: 'archive', db: dbId, table: objKey || null, impact: null, busy: false, error: null }) }
+          const isPublished = (dbId) => pubOf(data.dbs.find((x) => x.id === dbId)) !== null
+          const confirmArchive = (dbId, objKey) => {
+            setMenu(null)
+            if (isPublished(dbId)) { say(errorText({ error: 'published' })); return }
+            setDialog({ kind: 'archive', db: dbId, table: objKey || null, impact: null, busy: false, error: null })
+          }
           const confirmDelete = async (dbId, objKey) => {
             setMenu(null)
+            if (isPublished(dbId)) { say(errorText({ error: 'published' })); return }
             const target = objKey || null
             setDialog({ kind: 'delete', db: dbId, table: target, impact: null, busy: false, error: null })
             const r = await call('GET', '/impact' + qs({ db: dbId, object: target || '' }))
@@ -2828,6 +3041,26 @@ window.__ModuleLoader__.load({
               say(kt('App ajoutée.', 'App added.'))
               return
             }
+            if (d.kind === 'publish') {
+              const r = await call('POST', '/publish', { db: d.db, confirm: true })
+              if (!alive.current) return
+              if (!r.ok) { setDialog((cur) => (cur === null ? cur : Object.assign({}, cur, { busy: false, error: errorText(r) }))); return }
+              setDialog(null)
+              const host = plain(r.published) ? hostWord(r.published.url) : ''
+              say(host !== '' ? kt('Publiée sur ' + host + '.', 'Published at ' + host + '.') : kt('Publiée.', 'Published.'), { label: kt('Ouvrir l’app web', 'Open web app'), run: () => openWeb(d.db) })
+              refresh()
+              return
+            }
+            if (d.kind === 'unpublish') {
+              const r = await call('POST', '/unpublish', d.forget ? { db: d.db, forget: true, confirm: typed } : { db: d.db })
+              if (!alive.current) return
+              if (!r.ok) { setDialog((cur) => (cur === null ? cur : Object.assign({}, cur, { busy: false, error: errorText(r), canForget: r.canForget === true || cur.canForget === true }))); return }
+              setDialog(null)
+              dropLocalDrafts(d.db)
+              say(r.forgotten === true ? kt('Cet ordinateur ne suit plus l’app web. Ta copie est gardée.', 'This computer no longer follows the web app. Your copy is kept.') : kt('Publication arrêtée. L’app est de nouveau sur cet ordinateur seulement.', 'Unpublished. The app is back on this computer only.'))
+              refresh()
+              return
+            }
             const body = { db: d.db, op: d.kind, confirm: typed }
             if (d.table !== null) body.object = d.table
             const r = await appCall(body)
@@ -2843,6 +3076,37 @@ window.__ModuleLoader__.load({
             } else say(d.table === null ? kt('App supprimée pour de bon.', 'App deleted for good.') : kt('Table supprimée pour de bon.', 'Table deleted for good.'))
             refresh()
           }
+          // ── Publish: the card, the web app, the copy kept here ──
+          const openPublish = async (dbId) => {
+            setMenu(null)
+            setDialog({ kind: 'publish', db: dbId, card: null, busy: false, error: null })
+            const r = await call('GET', '/publish-check' + qs({ db: dbId }))
+            if (!alive.current) return
+            setDialog((d) => (d !== null && d.kind === 'publish' && d.db === dbId ? Object.assign({}, d, r.ok ? { card: r } : { error: errorText(r) }) : d))
+          }
+          const openUnpublish = (dbId) => { setMenu(null); setDialog({ kind: 'unpublish', db: dbId, forget: false, canForget: false, busy: false, error: null }) }
+          const startForget = () => setDialog((d) => (d !== null && d.kind === 'unpublish' ? Object.assign({}, d, { forget: true, error: null }) : d))
+          /** The edits a person made to the views of an app while it was published are gone with the publication. */
+          const dropLocalDrafts = (dbId) => {
+            const next = {}
+            for (const k of Object.keys(draftRef.current)) { const e = draftRef.current[k]; if (!(e.local === true && e.db === dbId)) next[k] = e }
+            draftRef.current = next
+            setDrafts(next)
+          }
+          const openWeb = async (dbId) => {
+            setMenu(null)
+            const r = await openWebApp(dbId)
+            if (!alive.current) return
+            if (!r.ok) say(errorText(r))
+          }
+          const refreshNow = async (dbId) => {
+            setSyncBusy(dbId)
+            const r = await call('POST', '/refresh', { db: dbId })
+            if (!alive.current) return
+            setSyncBusy('')
+            if (!r.ok) say(errorText(r))
+            await refresh()
+          }
           const openTemplate = (id) => {
             const t = templates !== null && templates.status === 'ok' ? templates.list.find((x) => x.id === id) : undefined
             if (t !== undefined) setDialog({ kind: 'template', template: t, opts: { sample: true, kit: true }, busy: false, error: null })
@@ -2857,7 +3121,7 @@ window.__ModuleLoader__.load({
               try { if (toastTimer.current !== null) clearTimeout(toastTimer.current) } catch (e) { /* no timers */ }
               for (const id of Object.keys(saveTimers.current)) { try { clearTimeout(saveTimers.current[id]) } catch (e) { /* no timer */ } }
               // an edit still waiting for its save is sent now: leaving the page must not lose the last click
-              for (const id of Object.keys(draftRef.current)) { const e = draftRef.current[id]; call('POST', '/view', { db: e.db, object: e.object, op: 'save', view: savable(e.view, e.obj) }) }
+              for (const id of Object.keys(draftRef.current)) { const e = draftRef.current[id]; if (e.local !== true) call('POST', '/view', { db: e.db, object: e.object, op: 'save', view: savable(e.view, e.obj) }) }
             }
           }, [])
           useEffect(() => {
@@ -2896,12 +3160,19 @@ window.__ModuleLoader__.load({
           }, [ready, ready ? db.id : '', ready ? obj.key : '', fingerprint, reload])
           // a table with no saved view gets a plain one, so the first change of what is shown has somewhere to live
           useEffect(() => {
-            if (!ready || obj.views.length > 0) return
+            if (!ready || obj.views.length > 0 || pubOf(db) !== null) return // a published app's views are not ours to save
             const key = db.id + '/' + obj.key
             if (triedDefault.current.has(key)) return
             triedDefault.current.add(key)
             call('POST', '/view', { db: db.id, object: obj.key, op: 'save', view: savable(defaultView(obj), obj) }).then(() => { if (alive.current) refresh() })
-          }, [ready, ready ? db.id : '', ready ? obj.key : '', ready ? obj.views.length : 0])
+          }, [ready, ready ? db.id : '', ready ? obj.key : '', ready ? obj.views.length : 0, ready ? pubOf(db) !== null : false])
+          // "Synced 3 min ago" moves on its own, between two changes of the state
+          const showsSync = db !== null && pubOf(db) !== null
+          useEffect(() => {
+            if (!showsSync) return undefined
+            const t = setInterval(() => setClock((n) => n + 1), 20000)
+            return () => clearInterval(t)
+          }, [showsSync])
           // the templates the core offers, read when the form for a new app opens (none, when the core does not offer any)
           useEffect(() => {
             if (!newApp) return undefined
@@ -2933,6 +3204,7 @@ window.__ModuleLoader__.load({
             favView: (id) => updateView(id, (v) => { v.fav = !v.fav; return v }, true),
             openRecord, openLinked, goBack, openTable, openApp, goGallery, newApp: startNew, closeDrawer: () => setDrawer(null),
             confirmArchive, confirmDelete, restoreApp, restoreTable, closeDialog: () => setDialog(null), runDialog, openTemplate, setTemplateOpt,
+            hosting: data.hosting, syncBusy, openPublish, openUnpublish, startForget, openWeb, refreshNow,
             setMonth: (id, ym) => setMonths((m) => Object.assign({}, m, { [id]: ym })),
           }
 
@@ -2962,8 +3234,11 @@ window.__ModuleLoader__.load({
               actions: h('button', { type: 'button', className: 'kb8-primary kbtb-new', 'data-kb': 'apps-new', onClick: startNew }, svg('plus', 15), kt('Nouvelle app', 'New app')) })
             body = h(Gallery, { p })
           } else {
-            head = h(AppHeader, { p, tile: h(Tile, { app: db, size: 's' }), title: db.name, back: goGallery, backLabel: kt('Toutes les apps', 'All apps'),
+            const pub = pubOf(db)
+            head = h(AppHeader, { p, tile: h(Tile, { app: db, size: 's' }), title: db.name, pill: pub !== null ? h(PubPill, { pub, hd: true }) : null, back: goGallery, backLabel: kt('Toutes les apps', 'All apps'),
               actions: h('div', { className: 'kbtb-actions' },
+                pub !== null ? h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-open-web', onClick: () => openWeb(db.id) }, svg('external', 15), kt('Ouvrir l’app web', 'Open web app'))
+                  : canPublishVia(data.hosting) ? h('button', { type: 'button', className: 'kbtb-btn', 'data-kb': 'apps-publish', onClick: () => openPublish(db.id) }, svg('upload', 15), kt('Publier…', 'Publish…')) : null,
                 h('button', { type: 'button', className: 'kb8-primary kbtb-new', 'data-kb': 'tables-ask-kaby', onClick: () => askKaby() }, svg('sparkle', 15), kt('Demander à Kaby', 'Ask Kaby')),
                 h(AppMenu, { p })) })
             if (db.objects.length === 0) {
@@ -2979,6 +3254,7 @@ window.__ModuleLoader__.load({
           }
 
           const banners = [].concat(
+            screen === 'app' && !loading && !failed && db !== null && pubOf(db) !== null ? [h(PublishedNote, { key: 'published', p })] : [],
             screen === 'gallery' ? data.unreadable.map((u) => h('div', { key: 'u' + u.id, className: 'kbtb-banner warn', role: 'alert', 'data-kb': 'tables-unreadable' }, svg('alert', 16), h('span', { className: 'sp' }, h('b', null, u.name + ' : '), errorText(u)))) : [],
             data.stale ? [h('div', { key: 'stale', className: 'kbtb-banner', role: 'status', 'data-kb': 'tables-stale' }, svg('alert', 16), h('span', { className: 'sp' }, kt('Le serveur local ne répond plus : ce que tu vois peut dater de quelques secondes.', 'The local server is not answering: what you see may be a few seconds old.')))] : [])
 
@@ -2998,7 +3274,7 @@ window.__ModuleLoader__.load({
             toast !== null ? h('div', { className: 'kbtb-toast', role: 'status', 'data-kb': 'tables-toast', key: toast.id }, svg('check', 15), h('span', null, toast.text), toast.action ? h('button', { type: 'button', className: 'kbtb-tact', 'data-kb': 'tables-toast-action', onClick: () => { const run = toast.action.run; setToast(null); run() } }, toast.action.label) : null) : null)
         }
         // the pieces, handed out for the tests (they render each one in a state the page takes a while to reach)
-        Page.parts = { Bar, MenuButton, ActionMenu, TableMenu, ViewsPop, FieldsPop, FilterPop, SortPop, ValueCell, TableView, BoardView, CardsView, CalendarView, GeoView, MapSwitch, RealMap, MapView, Chips, Drawer, FieldRow, Empty, Gallery, AppCard, ArchivedCard, NewApp, TemplateCard, AppHeader, AppMenu, Tabs, RelationsView, AppDialog, TemplateDialog, Dialogs, Cell, Opt, LinkChips, LinkedFrom, LinkedGroups, LinkMap, Thumb, FileChips }
+        Page.parts = { PubPill, PublishedNote, PublishDialog, UnpublishDialog, Bar, MenuButton, ActionMenu, TableMenu, ViewsPop, FieldsPop, FilterPop, SortPop, ValueCell, TableView, BoardView, CardsView, CalendarView, GeoView, MapSwitch, RealMap, MapView, Chips, Drawer, FieldRow, Empty, Gallery, AppCard, ArchivedCard, NewApp, TemplateCard, AppHeader, AppMenu, Tabs, RelationsView, AppDialog, TemplateDialog, Dialogs, Cell, Opt, LinkChips, LinkedFrom, LinkedGroups, LinkMap, Thumb, FileChips }
         return Page
       }
 
@@ -3040,7 +3316,7 @@ window.__ModuleLoader__.load({
         name: NAME,
         inject: ['slots'],
         apply: start,
-        __test: { useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, isImage, fileUrl, relationFields, seenAs, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, savable, barViews, viewIndex, agentViewEvents, boardColumns, pictureOf, totalField, columnTotal, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = {} }, MAP_STYLE_KEY, MAP_STYLE_URL, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_LIB, readMapStyle, saveMapStyle, flipColor, compactMoney, pinLabel, pinAmount, placedRecords, MAP_STYLES, mapStyleOf, mapStyleUrl, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, projectPins, parseColor, colorHex, paletteFrom, mapPalette, tweakStyle, flipTokens, monthOf, shiftMonth, monthGrid, monthLabel, askAbout, buildText, STARTS, appHue, monogram, confirmOk, rowsIn, tplSeam, templateOf, REL_TAB, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
+        __test: { pubOf, canPublishVia, hostWord, agoWord, syncLine, priceWord, openWebApp, useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, isImage, fileUrl, relationFields, seenAs, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, savable, barViews, viewIndex, agentViewEvents, boardColumns, pictureOf, totalField, columnTotal, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = {} }, MAP_STYLE_KEY, MAP_STYLE_URL, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_LIB, readMapStyle, saveMapStyle, flipColor, compactMoney, pinLabel, pinAmount, placedRecords, MAP_STYLES, mapStyleOf, mapStyleUrl, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, projectPins, parseColor, colorHex, paletteFrom, mapPalette, tweakStyle, flipTokens, monthOf, shiftMonth, monthGrid, monthLabel, askAbout, buildText, STARTS, appHue, monogram, confirmOk, rowsIn, tplSeam, templateOf, REL_TAB, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
       }
     } catch (e) {
       console.warn('[kybernos-db] disabled:', e)

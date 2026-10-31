@@ -26,8 +26,6 @@ export const q = (name) => '"' + String(name).replace(/"/g, '""') + '"'
 const lit = (text) => "'" + String(text).replace(/'/g, "''") + "'"
 
 export const tableName = (objectKey) => 'r_' + objectKey
-/** Fixed columns of every record table, before the object's own fields. */
-export const ENVELOPE = ['id', 'rev', 'created_by', 'created_at', 'modified_by', 'modified_at', 'deleted_by', 'deleted_at']
 
 export const BASE_DDL = [
   'CREATE TABLE meta (k TEXT PRIMARY KEY NOT NULL, v TEXT NOT NULL) WITHOUT ROWID',

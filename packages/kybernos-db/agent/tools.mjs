@@ -12,6 +12,9 @@
 //   records_delete|restore  mark records deleted, or bring them back                     (free: nothing is lost, the journal keeps it)
 //   db_archive|db_restore   put a table or a whole database away, or bring it back        (archive: card; restore: free). Deleting one for good is the person's alone: no tool.
 //
+// A PUBLISHED database answers through a facade (remote/facade.mjs): reads come from its read-only mirror, the writes of rows go to the hosted app and come back as promises (every
+// write below is awaited: awaiting a plain value from a local db changes nothing), and a change of structure or of a view is refused with `published` before any card is shown.
+//
 // Built by hand, like the other plugins that cannot import `defineTool`: `tools.register` only needs { name, description, parameters, output, execute }.
 // The approval is the engine's own: `approvalGate` answers the `tools/pre-execute` waterfall with `{ kind: 'ask' }` for the calls above that ask, so the person sees
 // the card before anything is written (a session that never asks refuses the call: a structure change is never silent). What asks and what does not is
@@ -143,7 +146,7 @@ export function tools (service, ports = {}) {
           fields: o.fields.map((f) => ({ key: f.key, type: f.type, label: f.label, required: f.required, protection: f.protection, ...(f.options ? { options: f.options.map((x) => ({ key: x.key, label: x.label })) } : {}), ...(f.to ? { to: f.to, many: f.many } : {}), ...(f.currency ? { currency: f.currency } : {}) })),
           views: r.db.listViews(o.key).map((v) => ({ id: v.id, name: v.name, kind: v.kind })),
         }))
-        dbs.push({ id: d.id, name: d.name, objects })
+        dbs.push({ id: d.id, name: d.name, objects, ...(r.db.published === true ? { published: true } : {}) })
       }
       return { ok: true, dbs, archived, unreadable }
     },
@@ -400,11 +403,11 @@ export function tools (service, ports = {}) {
       if (list === null) return tooMany('records')
       const created = []
       const failed = []
-      list.forEach((values, index) => {
-        const r = t.db.create(t.obj.key, values, BY)
+      for (const [index, values] of list.entries()) {
+        const r = await t.db.create(t.obj.key, values, BY)
         if (r.ok) created.push(shape(t.obj, r.record, new Set()))
         else failed.push({ index, error: r.code, detail: r.message })
-      })
+      }
       return { ok: failed.length === 0, created, failed }
     },
   }
@@ -426,12 +429,12 @@ export function tools (service, ports = {}) {
       if (list === null) return tooMany('updates')
       const updated = []
       const failed = []
-      list.forEach((u, index) => {
-        if (!plain(u)) { failed.push({ index, error: 'invalid', detail: 'an update is { id, values }' }); return }
-        const r = t.db.update(t.obj.key, u.id, u.values, BY)
+      for (const [index, u] of list.entries()) {
+        if (!plain(u)) { failed.push({ index, error: 'invalid', detail: 'an update is { id, values }' }); continue }
+        const r = await t.db.update(t.obj.key, u.id, u.values, BY)
         if (r.ok) updated.push(shape(t.obj, r.record, new Set()))
         else failed.push({ index, id: u.id, error: r.code, detail: r.message })
-      })
+      }
       return { ok: failed.length === 0, updated, failed }
     },
   }
@@ -452,10 +455,10 @@ export function tools (service, ports = {}) {
       if (ids === null) return tooMany('ids')
       let n = 0
       const failed = []
-      ids.forEach((id, index) => {
-        const r = t.db[method](t.obj.key, id, BY)
+      for (const [index, id] of ids.entries()) {
+        const r = await t.db[method](t.obj.key, id, BY)
         if (r.ok) { if (r.applied) n += 1 } else failed.push({ index, id, error: r.code, detail: r.message })
-      })
+      }
       return { ok: failed.length === 0, done: n, failed }
     },
   })
@@ -532,6 +535,8 @@ export function approvalGate (service, exec) {
   if (STRUCTURE.includes(exec.name)) {
     const r = exec.name === 'db_create' ? { ok: true } : service.resolve(a.db)
     if (!r.ok) return null
+    // a published app takes no change of structure: the tool answers `published` at once, and the person is not asked about something that cannot happen
+    if (r.db && r.db.published === true) return null
     const info = r.db ? r.db.info() : { name: '' }
     const objects = r.db ? r.db.objects() : []
     const field = exec.name === 'field_update' ? (findObject(objects, a.object) || { fields: [] }).fields.find((f) => f.key === a.key) : undefined

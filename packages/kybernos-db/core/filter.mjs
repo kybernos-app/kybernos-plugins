@@ -117,21 +117,6 @@ export function prepareFilter (flt, fields) {
 /** Every condition of a filter, groups flattened. */
 export const flatConditions = (flt) => (isGroup(flt) ? flt.items.flatMap(flatConditions) : [flt])
 
-/** The filter without any condition on `key`, and without the groups that leaves empty. */
-export function dropField (flt, key) {
-  const cut = (group) => {
-    const items = []
-    for (const item of group.items) {
-      if (isGroup(item)) {
-        const sub = cut(item)
-        if (sub.items.length) items.push(sub)
-      } else if (item.k !== key) items.push(item)
-    }
-    return { conj: group.conj, items }
-  }
-  return isGroup(flt) ? cut(flt) : blankFilter()
-}
-
 function holds (c, field, value, ctx) {
   if (problem(field, c)) return false
   const empty = blank(value)
