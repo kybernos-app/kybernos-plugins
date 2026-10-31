@@ -6040,18 +6040,28 @@ const mountWebRoutes = (ctx, webServer) => {
 }
 
 // ── A narrow seam for sibling bundles ─────────────────────────────────────────────────────────────────────────────────
-// A bundle that needs ONE authenticated call to the active server (kybernos-mobile: the phone link's pairing and relay
-// tickets) reaches it through `globalThis[Symbol.for('kybernos.cloud')].call(path, { method, body })`. It never receives
-// the account token: this file adds it. Only the path prefixes below are reachable, so the seam is not a general proxy.
+// A bundle that needs ONE authenticated call to the active server (kybernos-mobile: the phone link's pairing and relay tickets; kybernos-db: Publish onto the person's own cloud
+// computer) reaches it through `globalThis[Symbol.for('kybernos.cloud')].call(path, { method, body })`. It never receives the account token: this file adds it. Only the routes
+// below are reachable, so the seam is not a general proxy:
+//   · /v1/remote/…                                                        the phone link (GET, POST, DELETE)
+//   · /v1/workspaces/<the ACTIVE workspace>/team-space                    POST (publish onto a computer) and DELETE (give the space back, `?space=<id>` to name it)
+//   · /v1/workspaces/<the ACTIVE workspace>/team-space/hosts              GET (the person's computers)
+// A path naming any other workspace is refused (`workspace_refused`): the active one is what the person chose, so a bundle cannot reach into another team. `workspace()` answers
+// the id of that active workspace (an id, not a secret; null when signed out) so a caller can build the path.
 const SEAM_PREFIXES = ['/v1/remote/']
 const SEAM_METHODS = ['GET', 'POST', 'DELETE']
 const SEAM_PATH = /^\/v1\/remote\/[A-Za-z0-9_\-/]{0,200}$/u
+const TEAM_SPACE_PATH = /^\/v1\/workspaces\/([A-Za-z0-9_-]{1,64})\/team-space(\/hosts)?(\?space=[A-Za-z0-9][A-Za-z0-9_-]{0,63})?$/u
+/** Which methods the team-space routes take: the computers are read with GET, a space is made with POST (no query) and given back with DELETE (query allowed). */
+const teamSpaceMethodOk = (m, method) => (m[2] !== undefined ? method === 'GET' && m[3] === undefined : (method === 'POST' && m[3] === undefined) || method === 'DELETE')
 const cloudSeamCall = async (path, options) => {
   const p = typeof path === 'string' ? path : ''
-  if (SEAM_PREFIXES.some((prefix) => p.startsWith(prefix)) !== true || SEAM_PATH.test(p) !== true || p.includes('//') || p.includes('..')) return { status: 0, body: null, error: 'path_refused' }
+  const remote = SEAM_PREFIXES.some((prefix) => p.startsWith(prefix)) === true && SEAM_PATH.test(p) === true && p.includes('//') !== true && p.includes('..') !== true
+  const team = remote ? null : TEAM_SPACE_PATH.exec(p)
+  if (remote !== true && team === null) return { status: 0, body: null, error: 'path_refused' }
   const o = options !== null && typeof options === 'object' ? options : {}
   const method = typeof o.method === 'string' ? o.method.toUpperCase() : 'GET'
-  if (SEAM_METHODS.includes(method) !== true) return { status: 0, body: null, error: 'method_refused' }
+  if ((remote ? SEAM_METHODS.includes(method) : teamSpaceMethodOk(team, method)) !== true) return { status: 0, body: null, error: 'method_refused' }
   let body = null
   if (o.body !== undefined && o.body !== null) {
     if (typeof o.body !== 'object' || Array.isArray(o.body) || JSON.stringify(o.body).length > 8192) return { status: 0, body: null, error: 'body_refused' }
@@ -6059,11 +6069,18 @@ const cloudSeamCall = async (path, options) => {
   }
   const state = readState()
   if (!isConnected(state)) return { status: 0, body: null, error: 'not_connected' }
+  if (team !== null && team[1] !== espaceActif(state)) return { status: 0, body: null, error: 'workspace_refused' }
   const r = await apiCall(p, { method, body, token: state.token, timeoutMs: 15000 })
   return { status: r.status, body: r.body, ...(r.error !== undefined ? { error: r.error } : {}), ...(r.status === 0 ? { server: serverIdentity() } : {}) }
 }
+const cloudSeamWorkspace = () => {
+  try {
+    const state = readState()
+    return isConnected(state) ? espaceActif(state) : null
+  } catch (e) { return null }
+}
 const publishCloudSeam = (target = globalThis) => {
-  try { target[Symbol.for('kybernos.cloud')] = Object.freeze({ version: 1, call: cloudSeamCall }) } catch (e) { /* a frozen global: the other bundles degrade */ }
+  try { target[Symbol.for('kybernos.cloud')] = Object.freeze({ version: 1, call: cloudSeamCall, workspace: cloudSeamWorkspace }) } catch (e) { /* a frozen global: the other bundles degrade */ }
 }
 
 // ── The janitor seam: bounded, dirty-aware cleaning of the account memories ───────────────────────────────────────────
