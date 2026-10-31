@@ -14,11 +14,12 @@ import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { getCookie } from 'hono/cookie'
 import { actorOf, isSlug } from './lib/actor.mjs'
+import { assetResponse, loadAssets } from './lib/assets.mjs'
 import { redeemOpenToken } from './lib/bootstrap.mjs'
 import { makeApps } from './lib/apps.mjs'
 import { userFileHeaders } from './lib/db.mjs'
 import { invitationFault, normEmail, readInvitationToken } from './lib/invitation.mjs'
-import { esc, invitePage, notice, page, peoplePage } from './lib/html.mjs'
+import { invitePage, notice, peoplePage } from './lib/html.mjs'
 import { linkOnlyMailer } from './lib/mailer.mjs'
 import { makePeople } from './lib/people.mjs'
 import { makeLimiter } from './lib/ratelimit.mjs'
@@ -204,11 +205,8 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
     return redirect('/', done.headers.getSetCookie())
   })
 
-  app.get('/', async (c) => {
-    const me = await session(c)
-    if (me === null) return c.html(page('Team space', '<p>You are not signed in.</p>'))
-    return c.html(page('Team space', '<p>Signed in as ' + esc(me.member.email) + ' (' + esc(me.actor.role) + ').</p>' + (me.actor.role === 'owner' ? '<p><a href="/people">People</a></p>' : '')))
-  })
+  // ── the page: the same files for everyone, held in memory; the page asks /api/me who is there and shows the sign-in when nobody is ──
+  for (const [address, asset] of loadAssets()) app.get(address, (c) => assetResponse(asset, c.req.header('if-none-match')))
 
   app.get('/api/me', needMember, (c) => {
     const { user, actor } = c.get('me')
@@ -286,7 +284,7 @@ export async function buildApp ({ dataDir, authSecret, bootKey, publicUrl, port,
   app.delete('/api/people/members/:uid', needMember, needOwner, async (c) => reply(c, await removeMember(c.get('me'), c.req.param('uid'))))
 
   const peopleView = (c, note, status = 200) => c.html(peoplePage({ ...people.list(), csrf: csrfFor(c), notice: note }), status)
-  const said = (r, text, who) => (r.ok ? { text, who, ...(r.link === undefined ? {} : { link: r.link }) } : { text: r.message ?? 'That did not work.' })
+  const said = (r, text, who) => (r.ok ? { text, who, ...(r.link === undefined ? {} : { link: r.link }) } : { text: r.message ?? 'That did not work.', bad: true })
   const html = needHtml(true)
   app.get('/people', html, (c) => peopleView(c))
   app.post('/people/invitations', html, async (c) => {

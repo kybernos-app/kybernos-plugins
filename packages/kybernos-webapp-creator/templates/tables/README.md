@@ -17,11 +17,13 @@ A member has one role, a **profile id** (`member`, `viewer`, …). Each app answ
 | --- | --- |
 | `server.js` | The entry of the apps runtime: reads `PORT`, listens on `127.0.0.1`. |
 | `app.mjs` | The routes (`buildApp`), the edge (Origin, CSRF, headers, limits). |
+| `public/` | **The client**: `index.html`, `app.css`, `favicon.svg` and `js/*.mjs`. Plain files, no build step, no dependency (see *The client*). |
+| `lib/assets.mjs` | The list of what `public/` serves (an allow-list, read once at start), with content types and ETags. |
 | `lib/db.mjs` | **The only place that imports kybernos-db.** Looks in `vendor/kybernos-db/` first, then in `packages/kybernos-db/` of this repository. |
 | `lib/bootstrap.mjs`, `lib/token.mjs` | The owner's one-time link and the signed tokens. |
 | `lib/invitation.mjs`, `lib/people.mjs`, `lib/store.mjs` | Invitations, the owner's people calls, what is kept in `auth.sqlite` beside Better-Auth's tables. |
 | `lib/safety.mjs`, `lib/ratelimit.mjs` | Origin, CSRF, headers, client address; the rate limiter. |
-| `lib/html.mjs` | The few server-rendered pages (`/people`, `/invite`): plain HTML, no script, no style. L4 restyles. |
+| `lib/html.mjs` | The server-rendered pages (`/people`, `/invite`, the notices): plain HTML that links `/app.css`, no script, no style attribute. |
 | `scripts/build-tables-app.mjs` | Copies the template and vendors kybernos-db into `vendor/kybernos-db/`. |
 | `scripts/mint-link.mjs`, `scripts/add-app.mjs` | Mint the owner's link; put an app in the space (local run). |
 
@@ -70,9 +72,19 @@ Owner only, as JSON (`/api/people…`) and as a plain page (`/people`):
 
 The invitee opens `/invite?t=…`, picks a name and a password (`POST /invite`, or `POST /api/invitations/accept`), and is signed in with the invited profile.
 
+## The client
+
+The page a person uses is `public/`: `GET /` answers `index.html` to everyone, signed in or not; the page asks `/api/auth/get-session` and shows the sign-in form or the space.
+
+- **Screens**: sign-in, a rail of tables, per table a **Table** tab (search, a filter on the first choice field, a stated sort), a **Board** tab (cards by the first choice field: drag and drop, and a status select in the row detail as the keyboard way), a **Relations** tab (the links between the tables the person can see, drawn, with a sentence per link), a drawer to add a row (inline validation, the door's own messages), a row detail (real `created`/`modified` stamps only: the door keeps no journal) with the owner's archive behind an inline confirmation, then **People** and the invitation page, which the server renders. Empty, loading, no-match and error states are drawn; under 760 px the rail becomes a sheet and the tables become lists.
+- **Rights**: the page draws only what the door says the person may do (`can` on a table, `access` on a field), and a refused write is shown with the door's message and rolled back. Nothing is hidden by the page that the door would allow, nothing is shown that it would refuse; the server still decides every call.
+- **Code**: ES modules, no framework, no bundler. `js/model.mjs` is pure (rights, titles, sorting, board, forms, relations layout) and runs in Node; `js/dom.mjs` builds nodes from text (there is no `innerHTML`); `js/api.mjs` is the page's calls (CSRF token fetched and retried once); `values.mjs`, `forms.mjs`, `views.mjs` draw; `main.mjs` holds the state and the routes (`#/<app>/<table>/<view>`).
+- **Served** from the allow-list in `lib/assets.mjs`: each file with its own content type, `no-cache` and an ETag (`304` when the browser holds it). Anything else is `404` (no folder listing, no source, no `..`). Adding a file to `public/` means adding it to the list: a check fails if the two differ.
+- **Policy**: the Content-Security-Policy is unchanged (`script-src 'self'`, `style-src 'self'`). So there is no inline script, no `<style>`, no `style=""`, no `on…=` handler and no external font or CDN in any page, and a check fails if one appears. Pictures are inline `<svg><use href="#…">` from a sprite in `index.html`.
+
 ## Routes
 
-`/health` · `/api/csrf` · `/api/auth/sign-in/email`, `/api/auth/sign-out`, `/api/auth/get-session` (Better-Auth; everything else under `/api/auth/` is `404`) · `/open` · `/api/me` · `/api/me/password` · `/api/apps` · `/api/apps/:slug/records|links|write|upload|file` · `/api/people…` · `/people…` · `/invite` · `/api/invitations/accept`.
+`/` and the files of `public/` (the list in `lib/assets.mjs`) · `/health` · `/api/csrf` · `/api/auth/sign-in/email`, `/api/auth/sign-out`, `/api/auth/get-session` (Better-Auth; everything else under `/api/auth/` is `404`) · `/open` · `/api/me` · `/api/me/password` · `/api/apps` · `/api/apps/:slug/records|links|write|upload|file` · `/api/people…` · `/people…` · `/invite` · `/api/invitations/accept`.
 
 An app answer is the door's, mapped to http: `forbidden` → 403, unknown app/table/row → 404, `invalid` → 400. The request never names a database or a profile: the slug picks the app, the session picks the profile.
 
@@ -80,7 +92,7 @@ An app answer is the door's, mapped to http: `forbidden` → 403, unknown app/ta
 
 - Every request that changes anything needs a matching **Origin** *and* a **CSRF token** (signed double submit: `GET /api/csrf` sets an HttpOnly cookie and returns the token to send as `x-csrf-token`, or as the `_csrf` form field).
 - Cookies are `HttpOnly; SameSite=Lax`, and `Secure` on https (Better-Auth's, and the CSRF cookie with a `__Host-` prefix).
-- Headers on every answer: a Content-Security-Policy with no script and no inline style (`default-src 'self'`, `frame-ancestors 'none'`), `nosniff`, `no-referrer`, same-origin resource policy; HSTS on https.
+- Headers on every answer: a Content-Security-Policy with no inline script and no inline style (`default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `frame-ancestors 'none'`), `nosniff`, `no-referrer`, same-origin resource policy; HSTS on https.
 - Bodies: 1 MiB, uploads 26 MiB (the door still applies the field's own limit). An oversize body is refused before it is read, so some clients see the connection drop instead of the `413`. A person's file is answered by kybernos-db's `serve-user-file.mjs`: its type comes from its first bytes (never from what was said at upload), a picture is shown in place, anything else is a download, and the answer shuts the document (`default-src 'none'; sandbox`, `nosniff`, `no-store`).
 - Rate limits (in memory, per client address) on sign-in (per address+e-mail and per address), `/open`, invitation accept, and invitations sent. A restart resets them.
 - One process per team space. Sessions are Better-Auth's; secrets are never logged.
@@ -92,9 +104,11 @@ An app answer is the door's, mapped to http: `forbidden` → 403, unknown app/ta
 ## Tests
 
 - `test-tables-pure.mjs`, `test-tables-team.mjs` (in `packages/kybernos-webapp-creator`): tokens, the owner's link, invitations, the limiter, CSRF/Origin, secrets, roles → actor, the store, people, the vendoring. No dependencies; they run in CI.
-- `scripts/check-tables-app.mjs` (repo root): installs the three dependencies in a temporary folder (or reuses `TABLES_APP_NODE_MODULES`), boots the built app on a free port and runs the whole thing over http (a few seconds): the 16 checks of the spike, the e-commerce rights matrix for the owner and two members, the owner's link, invitations, removal, CSRF/Origin, cookie flags and the rate limit.
+- `test-tables-front.mjs` (same folder): the client's pure part (`public/js/model.mjs`): rights, titles, sorting, board, form checks and wording, the relations layout, routes. No dependencies; runs in CI.
+- `scripts/check-tables-app.mjs` (repo root): installs the three dependencies in a temporary folder (or reuses `TABLES_APP_NODE_MODULES`), boots the built app on a free port and runs the whole thing over http (a few seconds): the 16 checks of the spike, the files of the page and the policy (content types, headers, `304`, what is not served, traversal, no inline script or style on any page, no `innerHTML` in the client), the e-commerce rights matrix for the owner and two members, the owner's link, invitations, removal, CSRF/Origin, cookie flags and the rate limit.
+- `scripts/check-tables-front-live.mjs` (repo root): the same built app in a real headless Chrome (found on the machine, or `CHROME=<binary>`; exits 0 saying `skipped` when there is none): sign-in, search, sort, a row, board drag and drop and a refused move, relations, add a row, archive, the owner's and a member's view, the People and invitation pages, a 390 px phone, and no console error or policy violation across the run. `--shots <folder>` saves screenshots there (keep them out of git).
 - `test-templates.mjs` boots the stack through the real runtime when `TABLES_APP_NODE_MODULES` points at installed dependencies, and says `SKIPPED` otherwise.
 
 ## Out of scope here
 
-Publishing an app into a space and running the space on the Cloud pot (L5/L6), the restyled client (L4), password reset and e-mail verification, OAuth, several owners, backups of the space.
+Publishing an app into a space and running the space on the Cloud pot (L5/L6), editing a row in place and the table/board/relations designer (the client adds rows and changes a row's status; the rest is the owner's in the DSH), password reset and e-mail verification, OAuth, several owners, backups of the space.

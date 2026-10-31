@@ -8,5 +8,8 @@
   "kybernos-pulse": [
     { "file": "panel-page.mjs", "categories": ["net"], "why": "The `fetch(` calls are text inside the page script the host serves to the Mac app's web view; they run in that page, against its own host (connect-src 'self'). The host code makes no request." },
     { "file": "helper/gen-icon.mjs", "categories": ["exec"], "why": "A build-time script of the Mac menu-bar app: it paints the app icon and turns it into an .icns when the app is built. It is not an export of the bundle and never runs inside DSH." }
+  ],
+  "kybernos-webapp-creator": [
+    { "file": "templates/tables/public/js/api.mjs", "categories": ["net"], "why": "Browser code of the hosted team space: the `fetch(` calls run in the person's browser against the app's own origin (connect-src falls back to default-src 'self'). The host code makes no request." }
   ]
 }
