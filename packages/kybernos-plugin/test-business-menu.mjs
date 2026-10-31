@@ -127,7 +127,7 @@ console.log('where the core reads the registry (source level)')
   const order = ['dashboards', 'tasks', 'connectors', 'skills', 'aiteams'].map(at)
   check('the menu is fixed: Dashboards, Automations, Connectors, Skills, Agent Teams, the declared rows, then Creations', order.every((n) => n > 0) && order.every((n, k) => k === 0 || n > order[k - 1]) && count(/h\(KbMenuRows, \{ row, openPage, shown \}\)/g) === 1 && menu.indexOf('h(KbMenuRows') > order[4] && menu.indexOf('h(KbMenuRows') < at('deliverables') && at('deliverables') < menu.indexOf('h(KbProgressBar'), order)
   check('no Templates row and no group header any more', at('themes') < 0 && !/KbBusinessGroup|menu-business|toggle-business/.test(SRC))
-  check('the pages the store can hold include the rows that are declared', /\.concat\(\['themes'\]\)\.concat\(kbBizMenu\.ids\(\)\)/.test(SRC))
+  check('the pages the store can hold include the rows that are declared', /\.concat\(kbBizMenu\.ids\(\)\)/.test(SRC) && !/\.concat\(\['themes'\]\)/.test(SRC))
   const main = SRC.slice(SRC.indexOf('const KybersMain = '), SRC.indexOf('// ── colonne 1 : navigation Kybernos'))
   check('the page area opens a declared row on its view, after every page of the core, before the default', main.indexOf('kbBizMenu.has(s.view)') > main.indexOf("s.view === 'teaminfo'") && main.indexOf('kbBizMenu.has(s.view)') < main.indexOf('return h(KybersPanel, props)'))
   const coreViews = [...new Set([...main.matchAll(/s\.view === '([a-z]+)'/g)].map((m2) => m2[1]))]
