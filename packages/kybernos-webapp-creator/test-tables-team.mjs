@@ -189,14 +189,14 @@ try {
 
   await ok('the build follows the imports of the door, copies nothing else, and lists every file with its hash', () => {
     const closure = importClosure(join(here, '..', 'kybernos-db'), ENTRIES)
-    for (const must of ['api.mjs', 'agent/service.mjs', 'template.mjs', 'instantiate.mjs', 'serve-user-file.mjs', 'core/profiles.mjs', 'core/rights.mjs', 'store/db.mjs', 'store/root.mjs']) assert.ok(closure.includes(must), must)
+    for (const must of ['api.mjs', 'agent/service.mjs', 'template.mjs', 'instantiate.mjs', 'serve-user-file.mjs', 'core/profiles.mjs', 'core/rights.mjs', 'store/db.mjs', 'store/root.mjs', 'remote/token.mjs', 'remote/bundle.mjs', 'remote/snapshot.mjs']) assert.ok(closure.includes(must), must)
     assert.equal(closure.some((f) => /^test|client\.js|routes\.mjs|index\.js$|^vendor\//.test(f)), false, 'no test, no page code, no plugin entry')
     assert.throws(() => importClosure('/x', ['a.mjs'], () => "import '../out.mjs'"), /outside kybernos-db/)
 
     const out = join(root, 'built')
     const made = buildTablesApp({ out })
     assert.equal(made.files, closure.length)
-    assert.deepEqual(readdirSync(join(out, 'vendor', 'kybernos-db')).sort(), ['VENDORED.json', 'agent', 'api.mjs', 'core', 'instantiate.mjs', 'serve-user-file.mjs', 'store', 'template.mjs'])
+    assert.deepEqual(readdirSync(join(out, 'vendor', 'kybernos-db')).sort(), ['VENDORED.json', 'agent', 'api.mjs', 'core', 'instantiate.mjs', 'remote', 'serve-user-file.mjs', 'store', 'template.mjs'])
     const listed = JSON.parse(readFileSync(join(out, 'vendor', 'kybernos-db', 'VENDORED.json'), 'utf8')).files.map((f) => f.file)
     assert.deepEqual(listed, closure)
     assert.ok(existsSync(join(out, 'server.js')) && existsSync(join(out, 'app.mjs')) && existsSync(join(out, 'package-lock.json')))
@@ -209,15 +209,17 @@ try {
 
   await ok('the built copy finds its own vendored kybernos-db, not the repository', async () => {
     const probe = join(root, 'built', 'probe.mjs')
-    writeFileSync(probe, "import { DB_DIR, makeApi } from './lib/db.mjs'\nconsole.log(JSON.stringify({ dir: DB_DIR, api: typeof makeApi }))\n")
+    writeFileSync(probe, "import { DB_DIR, makeApi } from './lib/db.mjs'\nimport { mintOwnerApiToken, verifyOwnerApiToken } from './lib/token.mjs'\nconst key = Buffer.alloc(32, 1)\nconsole.log(JSON.stringify({ dir: DB_DIR, api: typeof makeApi, token: verifyOwnerApiToken(mintOwnerApiToken({ key }), key).ok }))\n")
     const { execFileSync } = await import('node:child_process')
     const out = JSON.parse(execFileSync(process.execPath, ['--no-warnings', probe], { encoding: 'utf8', cwd: join(root, 'built') }))
     assert.equal(realpathSync(out.dir), realpathSync(join(root, 'built', 'vendor', 'kybernos-db')))
     assert.equal(out.api, 'function')
+    assert.equal(out.token, true, 'the token code is the vendored copy, reached through lib/token.mjs')
+    assert.equal(/createHmac|timingSafeEqual/.test(readFileSync(join(tpl, 'lib', 'token.mjs'), 'utf8')), false, 'the template keeps no second copy of the token code: it only re-exports kybernos-db remote/token.mjs')
   })
 
   await ok('the template carries what a runnable app needs, pins its dependencies exactly, and names no personal path', () => {
-    for (const f of ['package.json', 'package-lock.json', 'server.js', 'app.mjs', 'README.md', 'lib/db.mjs', 'lib/bootstrap.mjs', 'lib/ratelimit.mjs', 'scripts/build-tables-app.mjs', 'scripts/mint-link.mjs']) assert.ok(existsSync(join(tpl, f)), f)
+    for (const f of ['package.json', 'package-lock.json', 'server.js', 'app.mjs', 'README.md', 'lib/db.mjs', 'lib/bootstrap.mjs', 'lib/ratelimit.mjs', 'lib/bearer.mjs', 'lib/transfer.mjs', 'scripts/build-tables-app.mjs', 'scripts/mint-link.mjs']) assert.ok(existsSync(join(tpl, f)), f)
     const pkg = JSON.parse(readFileSync(join(tpl, 'package.json'), 'utf8'))
     assert.deepEqual(Object.keys(pkg.dependencies).sort(), ['@hono/node-server', 'better-auth', 'hono'])
     for (const [name, version] of Object.entries(pkg.dependencies)) assert.match(version, /^\d+\.\d+\.\d+$/, name + ' is pinned to one version')

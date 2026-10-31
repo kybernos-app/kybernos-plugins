@@ -7,10 +7,10 @@ engines (Contacts, Catalog, Pipeline), which no longer exist; "task management" 
 This folder holds **`core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
 attachments, `agent/` with `index.js`, the DSH bundle that gives the agents fifteen tools, a block of their system prompt and the `db-builder` skill, the
 page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Apps » page), with the relations between tables and the files of a row shown on it, and the
-templates (`template.mjs`, `instantiate.mjs`).**
+templates (`template.mjs`, `instantiate.mjs`), and `remote/`, what moves an app between a computer and a team space (« Moving an app », below).**
 
 ```bash
-node packages/kybernos-db/test-agent.mjs && node packages/kybernos-db/test-host.mjs && node packages/kybernos-db/test-routes.mjs && node packages/kybernos-db/test-client.mjs
+node packages/kybernos-db/test-agent.mjs && node packages/kybernos-db/test-host.mjs && node packages/kybernos-db/test-routes.mjs && node packages/kybernos-db/test-client.mjs && node packages/kybernos-db/test-remote.mjs
 ```
 
 The agent tests were checked by 35 mutations (a secret field shown, a mask that leaks, a protected value that can be searched, a lowering allowed, a view that
@@ -109,7 +109,17 @@ products and edits their stock.
 gets lists without the tables they have no grant for and without any hidden field, writes refused field by field (`forbidden`, with the reason) and journalled as `member:<id>`, no view, no archive, no delete; anything else gets a door that refuses
 everything. The profile is read from the app by the member's role, never from the request. `test-door.mjs` is the rights matrix over a real db built from the e-commerce template; `vectors/rights.json` holds the shared cases for any other implementation.
 
+## Moving an app (`remote/`)
+
+The hosted team space (`packages/kybernos-webapp-creator/templates/tables`) and the computer that owns an app speak through three small modules that do not depend on either side. They are vendored into the hosted app with the door (`scripts/build-tables-app.mjs` lists them), and the DSH side reads the same files.
+
+- **`remote/token.mjs`** (pure, `node:crypto` only): signed, expiring tokens (`signToken`, `verifyToken`: the kind is inside the MAC, the signature is checked in constant time before the claims are read) and the **owner's API token**, `mintOwnerApiToken` / `verifyOwnerApiToken`: kind `owner-api`, signed with the space's boot key, issue time inside, five minutes at most (the verifier checks the lifetime the token claims, so a token minted for an hour is refused). `bearerOf(header)` reads an `Authorization` header. The team space used to carry its own copy; there is one now.
+- **`remote/bundle.mjs`** (pure: Buffers in and out): one binary container for a whole app. `encodeBundle({ db: { id, name, fingerprint, bytes }, blobs: [{ hash, bytes }] })` and `decodeBundle(bytes, { maxBytes })`, `checkManifest(manifest)` for the same rules on a manifest that arrives alone. Layout: the magic `KBAPPBND`, the format (1), the manifest's length, the manifest (JSON: `format`, `db: { id, name, size, sha256 }`, `fingerprint`, `blobs: [{ hash, size }]` in ascending order of hash), the SQLite file, then each attachment. The reader trusts nothing: every key of the manifest, the sizes against the bytes actually there (short and long are both refused), the SQLite header, every hash recomputed and compared, a cap on the whole (256 MiB unless the caller says otherwise); a name or a path never comes from the input (an attachment is named by the SHA-256 of what it holds, a db by its ULID). Answers are `{ ok: true, … }` or `{ ok: false, code, message }`.
+- **`remote/snapshot.mjs`** (disk, `node:sqlite`): `snapshotDb({ db, tmpDir })` takes a consistent copy of a **live** db with SQLite itself (`db.backup(file)` is `VACUUM INTO`: it reads through the WAL while writers carry on, and never copies a file that is being written) and, in the same synchronous stretch, the fingerprint and the list of attachments the rows hold, so they describe one moment; `manifestOf` and `bundleOf` make the manifest and the whole bundle of it. `stageBundle({ decoded, tmpRoot })` lays a decoded bundle out as `<tmpRoot>/in-xxxx/<db id>/{db.sqlite, blobs/}` and proves it (SQLite's quick check, it opens as a Kybernos db no newer than this one, and its id, name and fingerprint are the manifest's); the caller moves the folder into place with one `rename`.
+
+Two small additions to the store serve it: `db.backup(dest)` and `db.referenced()` (the hashes of every file a record still holds, deleted records included). `test-remote.mjs` covers the three modules, with hostile bundles (truncated, an oversize header, a duplicated or unordered blob, a hash that does not match, trailing bytes, a db that is not the one the manifest names).
+
 ## What is not here yet
 
 Removing a single field or renaming an object or a field, and changing a field's type (only adding is possible), creating a row from a link picker, a preview bigger than a thumbnail, dropping a folder, sync with the server, row rules
-(a member sees every row of a table they may read), a door for the owner's agent over the network, and a way to edit profiles from the page or from Kaby (a template ships them today). The store does not call `can()`: the door that calls the store does.
+(a member sees every row of a table they may read), the DSH side of the remote door (the Tables service against the team space's API, the mirror, Publish and Unpublish), and a way to edit profiles from the page or from Kaby (a template ships them today). The store does not call `can()`: the door that calls the store does.

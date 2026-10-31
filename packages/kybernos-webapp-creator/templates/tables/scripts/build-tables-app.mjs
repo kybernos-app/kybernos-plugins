@@ -3,15 +3,15 @@
 //   node scripts/build-tables-app.mjs <out dir> [--kybernos-db <dir>]
 //
 // The copy holds the template (without node_modules, data or an older vendor/) and `vendor/kybernos-db/`: the door (api.mjs), the service, the template and instantiate code, the
-// way a person's file is answered (serve-user-file.mjs) and core/ and store/, plus whatever those import, found by following their relative imports. `vendor/kybernos-db/VENDORED.json` lists every file with its hash. Run `npm ci` in the
-// copy to install the three dependencies.
+// way a person's file is answered (serve-user-file.mjs), core/ and store/, and the owner's transfer code (remote/: token, bundle, snapshot), plus whatever those import, found by
+// following their relative imports. `vendor/kybernos-db/VENDORED.json` lists every file with its hash. Run `npm ci` in the copy to install the three dependencies.
 import { createHash } from 'node:crypto'
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** The files lib/db.mjs loads, from the root of kybernos-db. */
-export const ENTRIES = ['api.mjs', 'agent/service.mjs', 'template.mjs', 'instantiate.mjs', 'serve-user-file.mjs', 'core/index.mjs', 'store/index.mjs']
+export const ENTRIES = ['api.mjs', 'agent/service.mjs', 'template.mjs', 'instantiate.mjs', 'serve-user-file.mjs', 'core/index.mjs', 'store/index.mjs', 'remote/token.mjs', 'remote/bundle.mjs', 'remote/snapshot.mjs']
 const IMPORT = /(?:import|export)\s[^'";]*?from\s*['"](\.{1,2}\/[^'"]+)['"]|import\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)|import\s*['"](\.{1,2}\/[^'"]+)['"]/g
 
 /** Every file reachable from `entries` by relative imports, as paths relative to `root`, sorted. `read(path)` gives a file's text. */

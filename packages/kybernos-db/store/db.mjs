@@ -598,6 +598,17 @@ function makeDb (handle, file, ports) {
   }
 
   /**
+   * A consistent copy of the whole db in one new file (SQLite's own `VACUUM INTO`): everything committed so far and nothing half-written, taken while the db stays in use (a reader
+   * of the WAL, writers are not held up). The file must not exist yet. The copy is a plain SQLite file in rollback-journal mode, with the same application id and format.
+   */
+  const backup = (dest) => {
+    live()
+    if (typeof dest !== 'string' || dest === '' || dest.includes('\0')) throw new RangeError('backup: a file path')
+    if (depth > 0) throw new Error('backup: not inside a write')
+    prepare('VACUUM INTO ?').run(dest)
+  }
+
+  /**
    * Takes the files no record holds any more: `{ removed, kept, bytes }`. A file younger than `graceMs` (a week by default) is kept even when nothing holds it: it may be
    * waiting for the write that attaches it, or be the one an Undo is about to put back. Never runs inside a write.
    */
@@ -623,6 +634,9 @@ function makeDb (handle, file, ports) {
     blobs,
     info,
     fingerprint,
+    backup,
+    /** The hash of every file a record still holds (deleted records included), as a Set. */
+    referenced,
     /** The live objects; `{ all: true }` adds the archived ones (they carry `archived: { by, at }`). */
     objects: (opts) => { live(); return structuredClone(isPlain(opts) && opts.all === true ? catalog().objects : catalog().objects.filter((o) => o.archived === undefined)) },
     /** The profiles of this app, `[]` when it has none (only the owner then): `{ id, label, grants }`, see core/profiles.mjs. */

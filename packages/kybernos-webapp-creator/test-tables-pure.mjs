@@ -1,12 +1,17 @@
 // test-tables-pure.mjs — the dependency-free logic of the tables template (templates/tables/lib): signed tokens, the owner's one-time link, invitations, the rate limiter, the
 // CSRF and Origin rules, the secrets. Runs anywhere Node runs: no Hono, no Better-Auth, no network.
 import assert from 'node:assert/strict'
+import { rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { OPEN_TTL_SEC, memoryLedger, mintOpenToken, redeemOpenToken } from './templates/tables/lib/bootstrap.mjs'
 import { INVITE_TTL_SEC, invitationFault, inviteKey, mintInvitationToken, newNonce, normEmail, readInvitationToken } from './templates/tables/lib/invitation.mjs'
 import { makeLimiter } from './templates/tables/lib/ratelimit.mjs'
 import { SECRETS_FILE, resolveSecrets } from './templates/tables/lib/secrets.mjs'
 import { allowedOrigins, clientIp, csrfCookie, csrfCookieName, csrfOk, csrfToken, isHttps, originOk, securityHeaders } from './templates/tables/lib/safety.mjs'
-import { signToken, verifyToken, hexKey } from './templates/tables/lib/token.mjs'
+import { signToken, verifyToken, hexKey, mintOwnerApiToken } from './templates/tables/lib/token.mjs'
+import { BEARER_SCOPE, judgeBearer } from './templates/tables/lib/bearer.mjs'
+import { BUNDLE_MAX_CEILING, BUNDLE_MAX_FLOOR, bundleCap, loadConfig } from './templates/tables/lib/boot.mjs'
 import { esc, invitePage, peoplePage } from './templates/tables/lib/html.mjs'
 
 let count = 0
@@ -186,6 +191,55 @@ ok('the pages escape what people type and carry no script, no inline style and n
   assert.ok(people.includes('Team &lt;member&gt;'))
   assert.ok(people.includes('(link only)'))
   assert.equal((people.match(/<form /g) ?? []).length, 6, 'the owner row has no actions; the member has two, the invitation three, plus the invite form')
+})
+
+ok('the owner API token is the shared copy: the template re-exports it and mints/verifies the same way', () => {
+  const c = clock()
+  const t = mintOwnerApiToken({ key: KEY, now: c.now })
+  assert.equal(verifyToken('owner-api', t, KEY, { now: c.now }).ok, true)
+  assert.equal(verifyToken('open', t, KEY, { now: c.now }).ok, false, 'not an owner link')
+  assert.equal(redeemOpenToken(t, { key: KEY, now: c.now, ledger: memoryLedger() }).ok, false, 'an API token cannot open the owner’s link')
+  assert.equal(verifyToken('owner-api', mintOpenToken({ key: KEY, now: c.now }), KEY, { now: c.now }).ok, false, 'and the owner’s link is not an API token')
+})
+
+ok('bearer rules at the edge: who a request is, from its Authorization header, its cookies and its path', () => {
+  const c = clock()
+  const good = () => mintOwnerApiToken({ key: KEY, now: c.now })
+  const judge = (over) => judgeBearer({ authorization: 'Bearer ' + good(), cookie: undefined, path: '/api/apps/shop/snapshot', key: KEY, now: c.now, ...over })
+  const refused = (v, status, reason) => { assert.equal(v.who, 'refused', JSON.stringify(v)); assert.equal(v.status, status); if (reason !== undefined) assert.equal(v.reason, reason) }
+
+  assert.deepEqual(judge({ authorization: undefined }), { who: 'none' })
+  assert.deepEqual(judge({ authorization: 'Basic dXNlcjpwYXNz' }), { who: 'none' }, 'another scheme is not ours to judge')
+  assert.deepEqual(judge({}), { who: 'bearer' })
+  assert.deepEqual(judge({ authorization: 'bearer   ' + good() + '  ' }), { who: 'bearer' }, 'the scheme is case-insensitive')
+  for (const path of ['/api/apps', '/api/apps/shop/records', '/api/apps/shop/write', '/api/apps/shop/bundle', '/api/me', '/health']) assert.equal(judge({ path }).who, 'bearer', path)
+  // a bad bearer is a 401 and never falls back: with or without cookies
+  for (const authorization of ['Bearer', 'Bearer ', 'Bearer x', 'Bearer ' + flip(good()), 'Bearer ' + good() + 'x', 'Bearer ' + signToken('open', { n: 'x' }, KEY, { now: c.now, ttlSec: 60 }), 'Bearer ' + mintOwnerApiToken({ key: Buffer.alloc(32, 9), now: c.now })]) {
+    refused(judge({ authorization }), 401)
+    refused(judge({ authorization, cookie: 'kb_session=abc' }), 401)
+  }
+  const old = mintOwnerApiToken({ key: KEY, now: () => c.t - 3600_000 })
+  refused(judge({ authorization: 'Bearer ' + old }), 401, 'expired')
+  refused(judge({ authorization: 'Bearer ' + signToken('owner-api', { n: 'x', i: Math.floor(c.t / 1000) }, KEY, { now: c.now, ttlSec: 3600 }) }), 401, 'lifetime')
+  // a good bearer with a cookie is a cookie request: Origin and CSRF stay in force, the bearer gives nothing
+  assert.deepEqual(judge({ cookie: 'kb_session=abc' }), { who: 'cookie' })
+  assert.deepEqual(judge({ cookie: 'kb_session=abc', path: '/api/people' }), { who: 'cookie' })
+  assert.deepEqual(judge({ cookie: '' }), { who: 'bearer' }, 'an empty Cookie header carries nothing')
+  // a good bearer is for the apps routes only: not the people, not the password, not the pages
+  for (const path of ['/api/people', '/api/people/members/u1', '/api/me/password', '/people', '/invite', '/open', '/', '/api/csrf', '/api/auth/sign-out', '/api/applications', '/api/apps-evil', '/api/me/x']) refused(judge({ path }), 403, 'bearer-scope')
+  assert.equal(BEARER_SCOPE.test('/api/apps'), true)
+  assert.equal(BEARER_SCOPE.test('/api/apps/'), true)
+})
+
+ok('KB_BUNDLE_MAX_BYTES: a default of 256 MiB, a whole number between 1 MiB and 2 GiB, nothing else', () => {
+  assert.equal(bundleCap(undefined), 256 * 1024 * 1024)
+  assert.equal(bundleCap(''), 256 * 1024 * 1024)
+  assert.equal(bundleCap(String(5 * 1024 * 1024)), 5 * 1024 * 1024)
+  assert.equal(bundleCap(String(BUNDLE_MAX_FLOOR)), BUNDLE_MAX_FLOOR)
+  assert.equal(bundleCap(String(BUNDLE_MAX_CEILING)), BUNDLE_MAX_CEILING)
+  for (const bad of ['0', '-5', '1.5', 'lots', String(BUNDLE_MAX_FLOOR - 1), String(BUNDLE_MAX_CEILING + 1), '1e9x', ' ']) assert.throws(() => bundleCap(bad), /KB_BUNDLE_MAX_BYTES/, bad)
+  assert.equal(loadConfig({ KB_AUTH_SECRET: 'e'.repeat(40), KB_BOOT_KEY: 'ab'.repeat(16), KB_DATA_DIR: join(tmpdir(), 'kb-boot-' + process.pid), KB_BUNDLE_MAX_BYTES: '3145728' }, tmpdir(), { needPort: false }).bundleMaxBytes, 3145728)
+  rmSync(join(tmpdir(), 'kb-boot-' + process.pid), { recursive: true, force: true })
 })
 
 console.log('\ntables template, pure logic: ' + count + ' checks passed')
