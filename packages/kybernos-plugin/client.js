@@ -9093,6 +9093,13 @@ const CSS = `
 .kb4-nct{flex:none;font-weight:700;font-size:1.05em;line-height:1.2;white-space:nowrap}
 .kb4-ncs{min-width:0;font-size:.9em;line-height:1.2;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kb4-ncs::before{content:"· "}
+/* « New chat » en un seul bouton (01/11/2026) : le bouton d'origine, la pastille du plus et le nom, sans rien à choisir. Les deux moitiés
+   masquées restent en place derrière KB_SHOW_NEWCHAT_SPLIT ; ces règles-ci ne touchent qu'au bouton seul. */
+.kb4-ncsolo{justify-content:flex-start;gap:.7em;padding:.55em .95em}
+.kb4-ncsolo .kb4-nct{font-size:1em;letter-spacing:.005em}
+.kb4-ncsolo:hover{filter:brightness(.965)}
+.kb4-ncsolo:active{filter:brightness(.93)}
+.kb4-ncsolo:focus-visible{outline:2px solid color-mix(in srgb,currentColor 55%,transparent);outline-offset:2px}
 .kb4-chev{margin-left:auto;opacity:.7;font-size:1em}
 /* Bouton partage : la zone principale demarre, le chevron choisit l'equipe.
    Couleurs prises au THEME (aucun rouge en dur) : brand-primary suit le theme
@@ -9685,6 +9692,10 @@ const kbProjectTabHidden = (name) => (KB_SHOW_PROJECT_BUDGET !== true && name ==
 // Entrée « Cloud Computer » du menu latéral : masquée pour le moment (demande produit, 15/10/2026). Le point d'état, la carte de
 // la nouvelle conversation et la page Kaby (qui porte les détails de l'ordinateur) restent en place. Passer à `true` la remet.
 const KB_SHOW_CLOUD_COMPUTER_ROW = false
+// « New chat » en deux moitiés (bouton + chevron « démarrer ce chat avec… ») : masqué pour le moment (demande du 01/11/2026 : un seul bouton
+// simple, plus de choix du kyber à la création). Le sélecteur d'équipe, son popover et son ancre restent en place, intacts : passer à `true`
+// rend la barre telle quelle. Le bouton seul démarre un chat simple (kbStartPlainChat), sans équipe et sans brouillon.
+const KB_SHOW_NEWCHAT_SPLIT = false
 // Resolu au rendu, pas a la definition : `kbt` est declare plus bas dans le
 // corps de la factory (l'appeler ici donnerait une erreur de zone morte).
 const kbStatusLabel = (k) => kbt('status.' + String(k))
@@ -29608,28 +29619,42 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // Le selecteur est rendu DANS cette enveloppe positionnee : c'est ce qui
         // le fait apparaitre sous le bouton au lieu de la racine de l'app.
         h('div', { className: 'kb4-ncwrap' },
-          h('div', { className: 'kb4-split' + (pickOpen === true ? ' open' : '') },
-            h('button', {
+          // The two halves (the button and the chevron « start this chat with… ») are hidden behind KB_SHOW_NEWCHAT_SPLIT (01/11/2026): one simple
+          // button now starts a plain chat, with no kyber to choose. Nothing of the picker is removed — the flag brings it back as it was.
+          KB_SHOW_NEWCHAT_SPLIT === true
+            ? h('div', { className: 'kb4-split' + (pickOpen === true ? ' open' : '') },
+              h('button', {
+                type: 'button',
+                className: 'kb4-newchat',
+                disabled: state.newChatBusy === true,
+                'aria-busy': state.newChatBusy === true ? 'true' : 'false',
+                title: sel === null ? kbt('menu.newchat') : kbt('menu.newchat') + ' — ' + sel.label,
+                onClick: () => kbStartChatWith(sel),
+              },
+              h('span', { className: 'kb4-plus' }, Icon('plus', 15)),
+              h('span', { className: 'kb4-ncol' },
+                h('span', { className: 'kb4-nct' }, kbt('menu.newchat')),
+                h('span', { className: 'kb4-ncs' }, sel === null ? kbt('menu.newchat.sub') : kbt('menu.newchat.with') + ' ' + sel.label))),
+              h('button', {
+                type: 'button',
+                className: 'kb4-chevbtn',
+                'aria-expanded': pickOpen === true ? 'true' : 'false',
+                'aria-label': kbt('menu.newchat.pick'),
+                title: kbt('menu.newchat.pick'),
+                onClick: (e) => { try { e.stopPropagation() } catch (e2) { /* pas d'evenement */ } set({ newChatOpen: pickOpen === true ? false : true }) },
+              }, h('span', { className: 'kb4-chev' }, Icon('chevronDown', 14))))
+            : h('button', {
               type: 'button',
-              className: 'kb4-newchat',
+              className: 'kb4-newchat kb4-ncsolo',
+              'data-kb': 'new-chat',
               disabled: state.newChatBusy === true,
               'aria-busy': state.newChatBusy === true ? 'true' : 'false',
-              title: sel === null ? kbt('menu.newchat') : kbt('menu.newchat') + ' — ' + sel.label,
-              onClick: () => kbStartChatWith(sel),
+              title: kbt('menu.newchat'),
+              onClick: () => kbStartPlainChat(),
             },
             h('span', { className: 'kb4-plus' }, Icon('plus', 15)),
-            h('span', { className: 'kb4-ncol' },
-              h('span', { className: 'kb4-nct' }, kbt('menu.newchat')),
-              h('span', { className: 'kb4-ncs' }, sel === null ? kbt('menu.newchat.sub') : kbt('menu.newchat.with') + ' ' + sel.label))),
-            h('button', {
-              type: 'button',
-              className: 'kb4-chevbtn',
-              'aria-expanded': pickOpen === true ? 'true' : 'false',
-              'aria-label': kbt('menu.newchat.pick'),
-              title: kbt('menu.newchat.pick'),
-              onClick: (e) => { try { e.stopPropagation() } catch (e2) { /* pas d'evenement */ } set({ newChatOpen: pickOpen === true ? false : true }) },
-            }, h('span', { className: 'kb4-chev' }, Icon('chevronDown', 14)))),
-          (pickOpen === true ? kbTeamPicker(teams, sel, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }), pickAnchor) : null)),
+            h('span', { className: 'kb4-nct' }, kbt('menu.newchat'))),
+          (KB_SHOW_NEWCHAT_SPLIT === true && pickOpen === true ? kbTeamPicker(teams, sel, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }), pickAnchor) : null)),
         // The Cloud Computer, right under « New chat »: its state is the dot. It opens the Kaby page, which holds the computer's details.
         // Hidden for now (KB_SHOW_CLOUD_COMPUTER_ROW): the page and the new-chat card still show the computer.
         (KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true ? row('cloudcomputer', Icon('monitor', 15), kbt('kbui.cloudcomputer'), null, false, () => openPage({ view: 'kyber' }),
