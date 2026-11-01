@@ -349,6 +349,14 @@ for (const line of src.split('\n')) {
   const radii = [...block.matchAll(/border-radius:([0-9]+)px/g)].map((m) => Number(m[1]))
   eq('every radius is 12, 16 or 999', radii.filter((n) => [12, 16, 999].indexOf(n) < 0), [])
   ok('the new surface folds at the same 640 px as its neighbour', /@media \(max-width:640px\)\{\.kbgate/.test(src))
+  // The weight of the rules: the idea block is inserted as a `.kba-card.kba-lcard`, whose reset (padding:0;gap:0;display:block) is two classes
+  // strong. A single-class geometry rule loses to it whatever its place in the sheet, and the card then draws flush against its border (the title
+  // clipped by the 16 px corner — measured on the live GUI, 2026-11-01). These two guards hold the fix at the cascade level, not at a pixel level.
+  ok('the idea block declares its geometry at the weight of the .kba-lcard reset', /\.kba-card\.kbgate-init\{display:flex;flex-direction:column;gap:8px;padding:12px 16px\}/.test(src))
+  ok('...and its 640 px fold keeps that weight', /@media \(max-width:640px\)\{\.kbgate,\.kba-card\.kbgate-init\{padding:10px 12px\}/.test(src))
+  // Same family of bug one level up: the sections of this page are flex items, and a card's overflow:hidden zeroes its automatic minimum size.
+  // Left free to shrink, every block was cut down to the viewport (idea cards losing a row, automation list bottom rows unreachable: nothing scrolled).
+  ok('the sections of the Automations page keep their height, and the page scrolls', /\.kba-root>\*\{flex:0 0 auto\}/.test(src))
   eq('the region writes no colour of its own', ['#', 'rgb('].filter((w) => ui.indexOf(w) >= 0), [])
 }
 

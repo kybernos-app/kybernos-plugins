@@ -35247,6 +35247,10 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 /* Portée du prototype validé (docs/handoff/automations/maquette-v3) aux jetons
    DSH : mêmes structures, matière exclusivement en --dsw-*. */
 .kba-root{display:flex;flex-direction:column;gap:18px;min-height:0;flex:1;box-sizing:border-box;padding:30px 28px 36px;padding-left:max(28px,calc((100% - 1084px) / 2));padding-right:max(28px,calc((100% - 1084px) / 2));max-height:100%;overflow-y:auto;overflow-x:hidden}
+/* The sections of the page keep their height and the page scrolls (the overflow above says so). A card carries overflow:hidden, which
+   zeroes its automatic minimum size: left to shrink, every block of the page got squashed and cut (the idea cards lost their last row,
+   the automation list its bottom rows, unreachable since nothing scrolled). */
+.kba-root>*{flex:0 0 auto}
 .kba-subtitle{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:62ch}
 /* (28/09, gabarit) Bouton primaire unifié : .kba-new-btn n'est plus qu'un
    alias de .kb8-primary — une seule implémentation. */
@@ -35443,14 +35447,16 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbgate-chip.warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}
 .kbgate-chip.bad{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
 .kbgate-chips{display:flex;gap:4px;flex-wrap:wrap}
-.kbgate-init{display:flex;flex-direction:column;gap:8px;padding:12px 16px}
+/* The initiative block is a .kba-card.kba-lcard shell, whose reset (padding:0;gap:0;display:block) is two classes strong: its own geometry
+   has to be declared at the same weight, or the card loses its padding and its rows sit against the border (title clipped by the 16px corner). */
+.kba-card.kbgate-init{display:flex;flex-direction:column;gap:8px;padding:12px 16px}
 .kbgate-init-head{display:flex;align-items:center;gap:8px}
 .kbgate-initcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 16px;border-top:1px dashed var(--dsw-alias-border-l1)}
 .kbgate-initmain{display:flex;flex-direction:column;gap:4px;min-width:0}
 .kbgate-inittitle{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbgate-nextsum{font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbgate-initacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-@media (max-width:640px){.kbgate,.kbgate-init{padding:10px 12px}.kbgate-initcard{grid-template-columns:minmax(0,1fr)}.kbgate-initacts{justify-content:flex-start}.kbgate-acts .kba-btn,.kbgate-initacts .kba-btn{flex:1 1 auto}.kbgate-inittitle{white-space:normal}}
+@media (max-width:640px){.kbgate,.kba-card.kbgate-init{padding:10px 12px}.kbgate-initcard{grid-template-columns:minmax(0,1fr)}.kbgate-initacts{justify-content:flex-start}.kbgate-acts .kba-btn,.kbgate-initacts .kba-btn{flex:1 1 auto}.kbgate-inittitle{white-space:normal}}
 .kbbd-emptycol{padding:14px 8px;text-align:center;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#777)}
 .kbbd-note{display:flex;gap:6px;align-items:flex-start;padding:6px 8px;font-size:12px;color:var(--dsw-alias-state-warn-primary,#b54708)}
 .kbbd-note span{color:var(--dsw-alias-label-secondary,#555);min-width:0;overflow-wrap:anywhere}
