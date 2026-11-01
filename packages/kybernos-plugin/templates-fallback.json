@@ -1,7 +1,7 @@
 {
  "schema": "kybernos.templates/1",
- "version": 2,
- "updatedAt": "2026-11-01",
+ "version": 3,
+ "updatedAt": "2026-11-01T12:56:24Z",
  "locale": "en",
  "imageBase": "shelf/",
  "groups": [
@@ -920,147 +920,147 @@
    }
   },
   {
-   "id": "video_film",
-   "type": "video",
-   "name": "Short film",
-   "tag": "Cinema",
-   "line": "A cinematic scene with a slow camera move.",
-   "meta": "10 s",
-   "prompt": "A 10-second cinematic clip of a paper boat on a glowing river at dusk.",
-   "image": {
-    "src": "video_film.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Short film template preview"
-   }
-  },
-  {
-   "id": "video_ad",
+   "id": "video_ad_bottle",
    "type": "video",
    "name": "Product ad",
    "tag": "Marketing",
-   "line": "A bright product shot with a splash.",
-   "meta": "6 s",
-   "prompt": "A 6-second ad for a bottle of sparkling water with a splash of lemon.",
+   "line": "Your product photo, set in motion with its own sound.",
+   "meta": "5 seconds · 16:9 · with sound",
+   "prompt": "Make a 5-second product ad video from my product photo. Ask me for the photo, the product name and a one-line tagline, and show me the first frame before you animate it.",
    "image": {
-    "src": "video_ad.webp",
+    "src": "video_ad_bottle.webp",
     "width": 720,
     "height": 450,
-    "alt": "Product ad template preview"
-   }
-  },
-  {
-   "id": "video_travel",
-   "type": "video",
-   "name": "Travel reel",
-   "tag": "Social",
-   "line": "A warm sunset walk, cut for a reel.",
-   "meta": "15 s",
-   "prompt": "A 15-second travel reel of a couple walking on a palm beach at sunset, in warm light.",
-   "image": {
-    "src": "video_travel.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Travel reel template preview"
-   }
-  },
-  {
-   "id": "video_explainer",
-   "type": "video",
-   "name": "Explainer",
-   "tag": "Business",
-   "line": "Three simple steps, animated and labelled.",
-   "meta": "30 s",
-   "prompt": "A 30-second explainer: a friendly character shows three ideas around a big lightbulb: a gear, a growth chart and a chat bubble.",
-   "image": {
-    "src": "video_explainer.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Explainer template preview",
-    "large": "large/video_explainer.webp",
+    "alt": "A teal water bottle on a mossy rock beside a forest stream, in soft mist.",
+    "large": "large/video_ad_bottle.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_social",
+   "id": "video_tryon_coat",
+   "type": "video",
+   "name": "Virtual try-on",
+   "tag": "Fashion",
+   "line": "The person wears the garment, turns and smiles to the camera.",
+   "meta": "5 seconds · 9:16 · with sound",
+   "prompt": "Make a 5-second virtual try-on video. Ask me for a photo of the person, a photo of the garment and the colour I want. Show me the still result first, then animate it.",
+   "image": {
+    "src": "video_tryon_coat.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A woman with dark curly hair in a mustard trench coat on a pale studio backdrop.",
+    "large": "large/video_tryon_coat.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_theme_90s",
+   "type": "video",
+   "name": "Photo in a theme",
+   "tag": "Creative",
+   "line": "Your photo in a 90s, manga or space-opera look, then animated.",
+   "meta": "5 seconds · 16:9 · with sound",
+   "prompt": "Turn my photo into a 5-second video in a theme I choose (the 90s, manga, space opera...). Ask me for the photo and the theme, show me the restyled still, then animate it.",
+   "image": {
+    "src": "video_theme_90s.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A young man in a denim jacket in front of a neon-lit 90s arcade at night.",
+    "large": "large/video_theme_90s.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_property_teaser",
+   "type": "video",
+   "name": "Property teaser",
+   "tag": "Real estate",
+   "line": "A listing photo with a slow camera glide and a short caption.",
+   "meta": "5 seconds · 16:9 · with sound",
+   "prompt": "Make a 5-second teaser video for a property listing. Ask me for the best photo of the property, the address and the price; add a slow camera glide and a short caption.",
+   "image": {
+    "src": "video_property_teaser.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A bright living room with a sofa and tall windows, seen from the doorway.",
+    "large": "large/video_property_teaser.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_clip_latte",
    "type": "video",
    "name": "Vertical clip",
    "tag": "Social",
-   "line": "A 9:16 clip made for stories and reels.",
-   "meta": "8 s",
-   "prompt": "An 8-second vertical clip of a street food cook grilling skewers, with the caption 'STREET FOOD'.",
+   "line": "A 9:16 clip made from an idea, ready for social media.",
+   "meta": "5 seconds · 9:16 · with sound",
+   "prompt": "Make a 5-second vertical clip for social media from my idea. Ask me for the idea and the mood, and add captions.",
    "image": {
-    "src": "video_social.webp",
+    "src": "video_clip_latte.webp",
     "width": 720,
     "height": 450,
-    "alt": "Vertical clip template preview",
-    "large": "large/video_social.webp",
+    "alt": "A barista pouring steamed milk into a latte in a bright cafe.",
+    "large": "large/video_clip_latte.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_logo",
+   "id": "video_logo_reveal",
    "type": "video",
    "name": "Logo reveal",
    "tag": "Branding",
-   "line": "A glowing letter mark rising out of sparkles.",
-   "meta": "4 s",
-   "prompt": "A 4-second logo reveal: a glowing letter K lights up with a light sweep on a dark ground.",
+   "line": "Your logo animated in five seconds, with its sound.",
+   "meta": "5 seconds · 16:9 · with sound",
+   "prompt": "Animate my logo as a 5-second reveal. Ask me for the logo image and my brand colours.",
    "image": {
-    "src": "video_logo.webp",
+    "src": "video_logo_reveal.webp",
     "width": 720,
     "height": 450,
-    "alt": "Logo reveal template preview"
-   }
-  },
-  {
-   "id": "video_timelapse",
-   "type": "video",
-   "name": "City timelapse",
-   "tag": "Cinema",
-   "line": "A skyline at night with light trails.",
-   "meta": "12 s",
-   "prompt": "A 12-second night timelapse of a city with light trails on the road.",
-   "image": {
-    "src": "video_timelapse.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "City timelapse template preview"
-   }
-  },
-  {
-   "id": "video_tutorial",
-   "type": "video",
-   "name": "Screen tutorial",
-   "tag": "Learning",
-   "line": "A screen recording with a numbered step.",
-   "meta": "45 s",
-   "prompt": "A 45-second screen tutorial: click the 'Add task' button in a project app, with a numbered step badge '1'.",
-   "image": {
-    "src": "video_tutorial.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Screen tutorial template preview",
-    "large": "large/video_tutorial.webp",
+    "alt": "An amber ring and dot above the word LUMO and a tagline, on a dark navy background.",
+    "large": "large/video_logo_reveal.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_event",
+   "id": "video_results_recap",
    "type": "video",
-   "name": "Event recap",
-   "tag": "Events",
-   "line": "The best moments of the night, with the music up.",
-   "meta": "20 s",
-   "prompt": "A 20-second recap of a concert night, with the crowd and the stage lights.",
+   "name": "Results recap",
+   "tag": "Business",
+   "line": "A table of figures turned into counting numbers and growing bars.",
+   "meta": "10 seconds · 16:9 · with sound",
+   "prompt": "Turn my table of figures into a 10-second animated results video. Ask me for the table and which figure to highlight.",
    "image": {
-    "src": "video_event.webp",
+    "src": "video_results_recap.webp",
     "width": 720,
     "height": 450,
-    "alt": "Event recap template preview"
+    "alt": "Three figure cards and a bar chart on a dark background, the last quarter highlighted.",
+    "large": "large/video_results_recap.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_lesson_percent",
+   "type": "video",
+   "name": "Animated lesson",
+   "tag": "Learning",
+   "line": "One idea explained with a diagram, ending on a question.",
+   "meta": "10 seconds · 16:9 · with sound",
+   "prompt": "Make a 10-second animated lesson that explains one idea with a diagram and ends with a question. Ask me for the topic and the level.",
+   "image": {
+    "src": "video_lesson_percent.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A bar split in four with one quarter highlighted, and the sum 80 divided by 4 equals 20.",
+    "large": "large/video_lesson_percent.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
    }
   },
   {

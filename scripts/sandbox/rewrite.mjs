@@ -61,8 +61,9 @@ if (Array.isArray(bundles)) {
   relanceDropped = kept.length !== bundles.length
   pkg.dsh.profile.bundles = kept
 }
-// 1b. New bundles of the worktree (never the relaunch tool, which does not belong in a sandbox).
-const SKIP = new Set(['@local/kybernos-relance'])
+// 1b. New bundles of the worktree (never the relaunch tool, which does not belong in a sandbox, nor the phone-only bundle that switches off the real program launcher:
+// with it the engine's `subprocess` never starts and no chat can be mounted).
+const SKIP = new Set(['@local/kybernos-relance', '@local/kybernos-no-process'])
 const bundlesAdded = []
 for (const dir of readdirSync(pkgsDir)) {
   let meta = null

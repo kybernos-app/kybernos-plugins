@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds the release of one lot of REAL shelf examples (the pictures a model made, with the prompt and the model that made them) from its plan.
+// Builds the release of one lot of REAL shelf examples (the pictures or clips a model made, with the prompt and the model that made them) from its plan.
 //
 //   node scripts/templates-lot.mjs <plan.json> [--from <dir>] [--base <catalogue.json>] [--fallback] [--install]
 //
@@ -7,15 +7,20 @@
 // catalogue needs to know about each cell (`entry`: name, tag, line, meta, alt), the type it fills (`type`) and the model (`model` id, `modelLabel` shown to the person).
 // The pictures are the product and stay outside git (AGENTS rule 4): `--from` is the folder `theme-photos.mjs` wrote them to, default ~/kybernos-archive/templates-catalogue/<plan name>.
 //
+// A VIDEO lot is a plan whose cells name a `clip` (an .mp4 in <from>/clips/): the clips are made elsewhere (a generation model through the AI gateway, or `scripts/motion-export.mjs` for
+// Kybernos Motion scenes), so the plan lists, for each one, the `request` (what the example's button puts in the composer: the request that starts the skill), `made` (model, label, the prompt the
+// model was given for the sample, seed) and where its poster comes from (`poster`: a still in <from>, else the clip's frame at `posterAt` seconds). The poster is the card and the dialog's first frame
+// (a landscape clip is cropped to 16:10, a portrait one is centred on a blurred copy of itself); the clip is copied as it is, made ready to start before it is fully loaded.
+//
 // A plan's cells REPLACE every example of its type in the base catalogue (`--base`, default the text shipped with the plugin), at the place the old ones held; the other types stay.
 // Each example's `prompt` is exactly what the model was given (the cell's prompt and the plan's style, as `theme-photos.mjs` joins them), and `made` keeps the model, its seed and its size,
 // so the dialog can offer « Use this prompt » and « Remix ».
 //
-// Out: <from>/release/{catalogue.json, shelf/<id>.webp (720x450, at most 300 KB), shelf/large/<id>.webp (1280x800, at most 900 KB)}: the folder the server publishes, byte for byte.
+// Out: <from>/release/{catalogue.json, shelf/<id>.webp (720x450, at most 300 KB), shelf/large/<id>.webp (1280x800, at most 900 KB), shelf/video/<id>.mp4 (video lots, at most 6 MB)}: the folder the server publishes, byte for byte.
 //   --fallback  also rewrites the text shipped with the plugin (the same examples, no picture and no `made`), so a machine that has never reached the server shows them too.
 //   --install   copies the release into this machine's disk copy (<DSH home>/kybernos/templates-catalogue), so the shelf shows it after the next DSH start without a server.
-// Needs `cwebp` (brew install webp).
-import { execFileSync } from 'node:child_process'
+// Needs `cwebp` (brew install webp), and `ffmpeg` for a video lot.
+import { execFileSync, spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -36,7 +41,8 @@ const CARD = { width: 720, height: 450, maxKb: 300 }
 const LARGE = { width: 1280, height: 800, maxKb: 900 }
 const fail = (m) => { console.error(m); process.exit(1) }
 
-if (typeof plan.type !== 'string' || typeof plan.model !== 'string' || !Array.isArray(plan.cells) || plan.cells.length < 1) fail('the plan needs a type, a model and cells')
+const clipLot = Array.isArray(plan.cells) && plan.cells.length > 0 && plan.cells.every((c) => typeof c.clip === 'string')
+if (typeof plan.type !== 'string' || !Array.isArray(plan.cells) || plan.cells.length < 1 || (!clipLot && (typeof plan.model !== 'string' || typeof plan.style !== 'string'))) fail('the plan needs a type and cells (a picture lot also a model and a style)')
 const ask = Object.assign({ width: 1280, height: 800, steps: 28 }, plan.ask || {})
 /** What the model was given, written the way `theme-photos.mjs` joins it. */
 const promptOf = (c) => c.prompt.trim().replace(/[.\s]+$/, '') + '. ' + plan.style.trim().replace(/[.\s]+$/, '') + '.'
@@ -44,6 +50,30 @@ const promptOf = (c) => c.prompt.trim().replace(/[.\s]+$/, '') + '. ' + plan.sty
 const release = join(from, 'release')
 rmSync(release, { recursive: true, force: true })
 mkdirSync(join(release, 'shelf', 'large'), { recursive: true })
+if (clipLot) mkdirSync(join(release, 'shelf', 'video'), { recursive: true })
+const CLIP_MAX_KB = 6 * 1024
+const ffmpeg = (a) => { const r = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...a], { encoding: 'utf8' }); if (r.status !== 0) fail('ffmpeg failed: ' + String(r.stderr).slice(0, 300)) }
+/** A clip's size and length, read from what ffmpeg prints for it. */
+const probe = (file) => {
+  const out = String(spawnSync('ffmpeg', ['-hide_banner', '-i', file], { encoding: 'utf8' }).stderr)
+  const d = /Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/.exec(out)
+  const v = /Video:.*?,\s(\d{2,5})x(\d{2,5})[\s,]/.exec(out)
+  if (d === null || v === null) fail(file + ' is not a clip ffmpeg can read')
+  return { width: Number(v[1]), height: Number(v[2]), seconds: Number(d[1]) * 3600 + Number(d[2]) * 60 + Number(d[3]) }
+}
+/** The 1280x800 still of a clip: its poster (or the frame at `posterAt`), cropped to fit a landscape clip, centred on a blurred copy of itself for a portrait one (or when the cell says `fit: "pad"`: a designed frame whose edges matter). */
+const posterJpg = (c, clipFile, dims) => {
+  const dest = join(from, 'posters', c.id + '.jpg')
+  mkdirSync(dirname(dest), { recursive: true })
+  let input = ['-ss', String(c.posterAt === undefined ? 1 : c.posterAt), '-i', clipFile]
+  if (c.poster !== undefined) { const still = join(from, c.poster); if (!existsSync(still)) fail('no poster ' + still); input = ['-i', still] }
+  const fit = 'scale=' + LARGE.width + ':' + LARGE.height + ':force_original_aspect_ratio='
+  const graph = dims.width / dims.height >= 1.5 && c.fit !== 'pad'
+    ? '[0:v]' + fit + 'increase,crop=' + LARGE.width + ':' + LARGE.height + '[o]'
+    : '[0:v]split[a][b];[a]' + fit + 'increase,crop=' + LARGE.width + ':' + LARGE.height + ',boxblur=40:6[bg];[b]' + fit + 'decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[o]'
+  ffmpeg([...input, '-filter_complex', graph, '-map', '[o]', '-frames:v', '1', '-q:v', '2', dest])
+  return dest
+}
 
 /** A WebP of the picture at the size and the weight of the shelf: the quality goes down from `q` until it fits. */
 const webp = (jpg, dest, size, q) => {
@@ -56,6 +86,29 @@ const webp = (jpg, dest, size, q) => {
 
 const entries = []
 for (const c of plan.cells) {
+  if (clipLot) {
+    const clipFile = join(from, 'clips', c.clip)
+    if (!existsSync(clipFile)) fail('no clip ' + clipFile)
+    if (!/^[a-z0-9][a-z0-9_]{0,63}$/.test(c.id)) fail(c.id + ' is not an example id')
+    const dims = probe(clipFile)
+    if (dims.seconds < 1 || dims.seconds > 60) fail(c.clip + ' is ' + dims.seconds + ' s long: a sample is 1 to 60 seconds')
+    const jpg = posterJpg(c, clipFile, dims)
+    const card = webp(jpg, join(release, 'shelf', c.id + '.webp'), CARD, 80)
+    const large = webp(jpg, join(release, 'shelf', 'large', c.id + '.webp'), LARGE, 84)
+    const mp4 = join(release, 'shelf', 'video', c.id + '.mp4')
+    ffmpeg(['-i', clipFile, '-c', 'copy', '-movflags', '+faststart', mp4])
+    const kb = Math.round(statSync(mp4).size / 1024)
+    if (kb > CLIP_MAX_KB) fail(c.id + ' is ' + kb + ' KB: a sample clip is at most ' + CLIP_MAX_KB + ' KB')
+    const e = c.entry || {}
+    entries.push({
+      id: c.id, type: plan.type, name: e.name, tag: e.tag, line: e.line, meta: e.meta, prompt: c.request,
+      image: { src: c.id + '.webp', width: CARD.width, height: CARD.height, alt: e.alt, large: 'large/' + c.id + '.webp', largeWidth: LARGE.width, largeHeight: LARGE.height },
+      video: { src: 'video/' + c.id + '.mp4', width: dims.width, height: dims.height, seconds: Math.round(dims.seconds * 10) / 10 },
+      made: Object.assign({ width: dims.width, height: dims.height }, c.made),
+    })
+    console.log('  ' + c.id + '  card ' + card + ' KB, large ' + large + ' KB, clip ' + kb + ' KB (' + dims.width + 'x' + dims.height + ', ' + dims.seconds.toFixed(1) + ' s)')
+    continue
+  }
   const jpg = join(from, c.name + '.jpg')
   if (!existsSync(jpg)) fail('no picture for ' + c.name + ' in ' + from + ': run scripts/theme-photos.mjs on the plan first')
   const id = c.name.replace(/-/g, '_')
@@ -89,25 +142,28 @@ if (checked.templates.filter((t) => t.type === plan.type).some((t) => t.made ===
 const json = JSON.stringify(out, null, 1) + '\n'
 if (json.length > 512 * 1024) fail('the catalogue is above 512 KB')
 writeFileSync(join(release, 'catalogue.json'), json)
-console.log('release: ' + release + ' (version ' + out.version + ', ' + out.templates.length + ' examples, ' + entries.length + ' of them made by ' + plan.model + ')')
+if (checked.templates.filter((t) => t.type === plan.type).some((t) => clipLot && t.video === undefined)) fail('a clip lost its « video » on the way: the host would not play it')
+console.log('release: ' + release + ' (version ' + out.version + ', ' + out.templates.length + ' examples, ' + entries.length + ' of them made by ' + (clipLot ? 'the models of the plan' : plan.model) + ')')
 
 if (args.includes('--fallback')) {
-  const text = merge(base, entries.map((e) => { const t = Object.assign({}, e); delete t.made; return t }))
+  const merged = merge(base, entries)
+  const text = Object.assign({}, merged, { templates: merged.templates.map((e) => { const t = Object.assign({}, e); delete t.made; delete t.video; return t }) })
   writeFileSync(fallbackFile, JSON.stringify(text, null, 1) + '\n')
   console.log('rewrote ' + fallbackFile + ' (text only: no picture, no « made »)')
 }
 
 if (args.includes('--install')) {
   const dest = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybernos', 'templates-catalogue')
-  for (const sub of ['shelf', join('shelf', 'large')]) {
+  for (const sub of ['shelf', join('shelf', 'large'), join('shelf', 'video')]) {
+    if (!existsSync(join(release, sub))) continue
     mkdirSync(join(dest, sub), { recursive: true })
     for (const f of readdirSync(join(release, sub))) {
-      if (!f.endsWith('.webp')) continue
+      if (!/\.(webp|mp4)$/.test(f)) continue
       copyFileSync(join(release, sub, f), join(dest, sub, f + '.tmp'))
       renameSync(join(dest, sub, f + '.tmp'), join(dest, sub, f))
     }
   }
   copyFileSync(join(release, 'catalogue.json'), join(dest, 'catalogue.json.tmp'))
   renameSync(join(dest, 'catalogue.json.tmp'), join(dest, 'catalogue.json'))
-  console.log('installed into ' + dest + ': restart DSH so the shelf sees the pictures')
+  console.log('installed into ' + dest + ': restart DSH so the shelf sees the pictures and the clips')
 }

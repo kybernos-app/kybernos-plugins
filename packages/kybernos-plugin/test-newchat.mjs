@@ -19,7 +19,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, kbNcCols, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, kbNcRemixText, kbNcMadeLine, KB_NC_DB_SEL })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, kbNcCols, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, kbNcRemixText, kbNcMadeLine, kbNcVideoUrl, kbNcPromptMode, KB_NC_DB_SEL })')
 
 // 1. the 16 types, in the four chapters of the shelf; each is offered only when the bundle it needs is installed
 {
@@ -383,6 +383,15 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.kbNcMadeLine({ model: 'a/b' }, 'Made with', 'seed'), 'Made with a/b', 'no label: the id; no size or seed: nothing more')
   assert.equal(api.kbNcMadeLine(undefined, 'Made with', 'seed'), '', 'an example that was not generated has no such line')
   assert.equal(api.kbNcMadeLine({ label: 'x' }, 'Made with', 'seed'), '')
+  // a video example: its clip is asked of the host by name; its prompt is a request (no « Use this prompt » / Remix), unlike a generated picture's
+  assert.equal(api.kbNcVideoUrl({ video: { src: 'video/video_a.mp4' } }), '/kybernos/templates-video?f=video%2Fvideo_a.mp4')
+  assert.equal(api.kbNcVideoUrl({ image: { src: 'a.webp' } }), '')
+  assert.equal(api.kbNcVideoUrl({ video: { src: '' } }), '')
+  assert.equal(api.kbNcVideoUrl(null), '')
+  assert.equal(api.kbNcPromptMode({ made: { model: 'a/b' } }), true, 'a generated picture: its prompt is what the model got')
+  assert.equal(api.kbNcPromptMode({ made: { model: 'a/b', prompt: 'p' }, video: { src: 'video/a.mp4' } }), false, 'a video: its prompt is the request, the sample prompt is made.prompt')
+  assert.equal(api.kbNcPromptMode({}), false)
+  assert.equal(api.kbNcPromptMode(null), false)
   assert.equal(api.KB_NC_DB_SEL, 'kybernos.db.selection')
   // the Apps page reads the very key we write
   const dbSrc = readFileSync(join(here, '..', 'kybernos-db', 'client.js'), 'utf8')
@@ -395,6 +404,8 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(/seam\.add\(kit\.id, \{ sample: true, kit: true \}\)/.test(d), 'a template with a kit is made through the Apps seam, with its sample rows and its kit, as the Apps page does')
   assert.ok(!/setDraft|submit/.test(d), 'the dialog never touches the composer or sends: the page does, through kbNcFill')
   assert.ok(/e\.kind === 'template'/.test(d) && /kit\.have === true/.test(d), 'an app that already exists is opened, not made twice')
+  assert.ok(/kbNcVideoUrl\(e\)/.test(d) && /'data-kb': 'newchat-example-play'/.test(d) && /playPair\[1\]\('playing'\)/.test(d), 'a clip is only asked of the host once someone presses Play')
+  assert.ok(/h\('video',/.test(d) && /onError: \(\) => playPair\[1\]\('failed'\)/.test(d) && /kbnc\.sh\.noclip/.test(d), 'a clip that cannot be read says so, and the first frame comes back')
   ok('the examples: only what this install can serve, pictures from the host, the structure of an App, the dialog is a modal that never sends and opens the Apps page on the app it made')
 }
 
