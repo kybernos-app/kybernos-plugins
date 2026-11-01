@@ -803,6 +803,32 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     }
   }
 
+  // ── where Kaby works, as data for Settings › Kaby: the same pick as the select, through the seam ──
+  {
+    reset()
+    ok('nothing read yet: no answer, not a crash', T.whereView() === null)
+    set({ home: { id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true }, computers: [{ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended' }, { id: 'bbbbbbbb-2222', name: 'Atelier', state: 'running' }] })
+    let w = T.whereView()
+    ok('a cloud computer already made: it is the one picked, with both offered and its state', w.signedIn === true && w.local === false && w.picked === 'aaaaaaaa-1111' && w.computers.length === 2 && w.state === 'suspended')
+    calls.length = 0
+    T.pickWhere('local')
+    w = T.whereView()
+    ok('picking this computer through the seam is the select’s own pick: remembered, no call', w.local === true && w.picked === 'local' && stored.get('kybernos-kyber.where') === 'local' && calls.length === 0)
+    let heard = 0
+    const hear = () => { heard += 1 }
+    T.listeners.add(hear)
+    T.pickWhere('aaaaaaaa-1111'); await flush()
+    ok('picking a cloud computer through the seam links it by the host, like the select', T.state.where === 'cloud' && calls[0].url === '/kybernos-cloud/kyby/computer' && calls[0].body.computer_id === 'aaaaaaaa-1111')
+    ok('a listener hears the change', heard >= 1)
+    T.listeners.delete(hear)
+    reset(); T.state.view = { kind: 'signedOut' }
+    w = T.whereView()
+    ok('no account: this computer only, and nothing to pick but it', w.signedIn === false && w.local === true && w.picked === 'local' && w.computers.length === 0)
+    reset(); set({ home: null })
+    ok('signed in with no cloud computer yet: one entry stands for the Home made at the first request', T.whereView().computers.length === 1 && T.whereView().computers[0].id === 'cloud' && T.whereView().local === true)
+    ok('the seam carries it: where, pickWhere and subscribe', /where \(\) \{ return whereView\(\) \}/.test(src) && /pickWhere \(value\)/.test(src) && /subscribe \(fn\)/.test(src))
+  }
+
   // ── what Kaby is (the page's intro), and one short line under the computer sub-block's title (V-02, V-03) ──
   {
     reset(); set({ home: { id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true } })

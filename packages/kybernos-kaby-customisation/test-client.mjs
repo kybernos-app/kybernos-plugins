@@ -121,6 +121,173 @@ console.log('── the page, rendered once ──')
   resolved = 'en'
 }
 
+console.log('── permissions and where Kaby works: the words, the draft ──')
+{
+  resolved = 'en'
+  const view = (o) => ({ ok: true, inForce: false, why: 'none', canSign: true, signedAt: null, preset: 'off', memory: false, computer: false, memoryPerDay: 40, computerPerDay: 40, paused: false, usedToday: { memory: 0, computer: 0 }, limits: { memoryPerDay: 500, computerPerDay: 500 },
+    presets: { off: { memory: false, computer: false, memoryPerDay: 40, computerPerDay: 40 }, prudent: { memory: true, computer: false, memoryPerDay: 40, computerPerDay: 40 }, standard: { memory: true, computer: true, memoryPerDay: 40, computerPerDay: 40 }, intensive: { memory: true, computer: true, memoryPerDay: 100, computerPerDay: 150 } }, ...o })
+  const FORCE = view({ inForce: true, why: 'in_force', signedAt: '2026-11-01T10:00:00.000Z', preset: 'standard', memory: true, computer: true })
+  const chipOf = (o, dirty) => T.mandateChip(view(o), dirty === true).code
+  ok('no permission yet, nothing on, or a signed record with everything off: none in force', chipOf({}) === 'none' && chipOf({ why: 'nothing_on', signedAt: '2026-11-01T10:00:00.000Z' }) === 'none')
+  ok('in force: the chip says since when, in the language', (() => { const c = T.mandateChip(FORCE, false); resolved = 'kybernos'; const f = T.mandateChip(FORCE, false).text; resolved = 'en'; return c.code === 'in_force' && c.cls === 'ok' && /^In force since .*2026/.test(c.text) && /^En vigueur depuis le /.test(f) })())
+  ok('a draft not signed yet says so, whatever the host says', chipOf({ inForce: true, why: 'in_force' }, true) === 'dirty' && chipOf({}, true) === 'dirty')
+  ok('paused, altered or unreadable (sign again), no key (cannot sign): each its own state', chipOf({ why: 'paused' }) === 'paused' && chipOf({ why: 'altered' }) === 'resign' && chipOf({ why: 'unreadable' }) === 'resign' && chipOf({ why: 'no_secret' }) === 'cannot_sign' && chipOf({ canSign: false }) === 'cannot_sign')
+  ok('no key wins over a draft: nothing can be signed', chipOf({ canSign: false }, true) === 'cannot_sign')
+  const dr = T.draftOf(view({ memory: true, memoryPerDay: 7 }))
+  ok('the draft holds the four fields the host signs, and no more', Object.keys(dr).sort().join() === 'computer,computerPerDay,memory,memoryPerDay' && dr.memory === true && dr.memoryPerDay === 7)
+  ok('a draft equal to a starting point is that point; any other is custom', T.draftPreset(T.draftOf(FORCE), FORCE.presets) === 'standard' && T.draftPreset({ ...T.draftOf(FORCE), memoryPerDay: 41 }, FORCE.presets) === 'custom' && T.draftPreset({ memory: true, computer: true, memoryPerDay: 100, computerPerDay: 150 }, FORCE.presets) === 'intensive' && T.draftPreset(dr, null) === 'custom')
+  ok('the starting points are named in both languages', T.PRESET_ORDER.every((p) => T.presetLabel(p).length > 2) && (() => { resolved = 'kybernos'; const f = T.presetLabel('off'); resolved = 'en'; return f === 'Arrêt' && T.presetLabel('off') === 'Off' })())
+  ok('every refusal of the host has a sentence, and an unknown one a plain fallback', ['cannot_sign', 'write_failed', 'session', 'down'].every((c) => T.mandateProblem(c).length > 20) && T.mandateProblem('?').length > 5)
+  ok('the cloud computer’s chip names its state, this computer is always ready', T.whereChip({ local: true }).text === 'Ready' && T.whereChip({ local: false, state: 'suspended' }).text === 'Asleep' && T.whereChip({ local: false, state: 'running' }).cls === 'ok' && T.whereChip({ local: false, state: 'failed' }).cls === 'err' && T.whereChip({ local: false, state: '' }).text === 'On request' && T.whereChip({ local: false, state: 'odd' }).text === 'odd')
+  ok('tokens are filled in, every occurrence', T.fill('{a} of {a} for {b}', { a: 1, b: 'x' }) === '1 of 1 for x')
+}
+
+console.log('── permissions and where Kaby works: the cards, rendered once ──')
+{
+  resolved = 'en'
+  const view = (o) => ({ ok: true, inForce: false, why: 'none', canSign: true, signedAt: null, preset: 'off', memory: false, computer: false, memoryPerDay: 40, computerPerDay: 40, paused: false, usedToday: { memory: 0, computer: 0 }, limits: { memoryPerDay: 500, computerPerDay: 500 },
+    presets: { off: { memory: false, computer: false, memoryPerDay: 40, computerPerDay: 40 }, prudent: { memory: true, computer: false, memoryPerDay: 40, computerPerDay: 40 }, standard: { memory: true, computer: true, memoryPerDay: 40, computerPerDay: 40 }, intensive: { memory: true, computer: true, memoryPerDay: 100, computerPerDay: 150 } }, ...o })
+  // A React whose hooks hand back what the test forces (by their order in the component) and note every set: Mandate = view, down, draft, busy, problem, logOpen, log.
+  const mount = (which, forced = {}) => {
+    const sets = []
+    let i = 0
+    const R = { ...React, useState: (v) => { const n = i++; return [n in forced ? forced[n] : (typeof v === 'function' ? v() : v), (x) => sets.push([n, x])] } }
+    const cards = T.buildCards(R)
+    return { tree: cards[which](), sets }
+  }
+  const only = (tree, kb) => byKb(tree, kb)[0]
+
+  const panelTree = T.buildPanel(React)
+  T.store.profile = publicProfile(emptyProfile())
+  const page = panelTree()
+  ok('the page draws both cards, after the three blocks', ['KabyWhereCard', 'KabyMandateCard'].every((n) => find(page, (x) => typeof x.type === 'function' && x.type.displayName === n).length === 1))
+
+  T.store.mandate = null
+  let m = mount('MandateCard')
+  ok('before the host answers, the card says it is reading', byKb(m.tree, 'kaby-custom-mandate-loading').length === 1 && byKb(m.tree, 'kaby-custom-mandate-sign').length === 0)
+  m = mount('MandateCard', { 1: true })
+  ok('when the host does not answer, it says so (and how to fix it)', byKb(m.tree, 'kaby-custom-mandate-down').length === 1 && /restart DSH/.test(text(m.tree)))
+
+  T.store.mandate = view({})
+  m = mount('MandateCard')
+  ok('nothing signed: four starting points, « Off » pressed, sign and pause off', byKb(m.tree, 'kaby-custom-mandate-preset').length === 4 && byKb(m.tree, 'kaby-custom-mandate-preset').filter((b) => b.props['aria-pressed'] === 'true').map((b) => b.props['data-preset']).join() === 'off' && only(m.tree, 'kaby-custom-mandate-sign').props.disabled === true && only(m.tree, 'kaby-custom-mandate-pause').props.disabled === true)
+  ok('with both classes off the limits are off, the switches are not', byKb(m.tree, 'kaby-custom-mandate-limit').every((i) => i.props.disabled === true) && byKb(m.tree, 'kaby-custom-mandate-switch').every((s) => s.props.disabled === false && s.props['aria-checked'] === 'false' && s.props.role === 'switch'))
+  ok('the switches and the number fields are named for a screen reader', byKb(m.tree, 'kaby-custom-mandate-switch').every((s) => /allow without asking/.test(s.props['aria-label'])) && find(m.tree, (n) => n.type === 'label' && /^kbkc-limit-/.test(n.props.htmlFor || '')).length === 2)
+  ok('the card says what is always asked, and that the limits count actions not euros', byKb(m.tree, 'kaby-custom-mandate-asked').length === 1 && /connected app/.test(text(only(m.tree, 'kaby-custom-mandate-asked'))) && /Restart DSH/.test(text(m.tree)) && /actions, not euros/.test(text(m.tree)))
+
+  T.store.mandate = view({ inForce: true, why: 'in_force', signedAt: '2026-11-01T10:00:00.000Z', preset: 'standard', memory: true, computer: true, usedToday: { memory: 12, computer: 40 } })
+  m = mount('MandateCard')
+  const useOf = (tree, k) => byKb(tree, 'kaby-custom-mandate-use').find((u) => u.props['data-class'] === k)
+  ok('in force: the chip is green and « Standard » is pressed', only(m.tree, 'kaby-custom-mandate-chip').props['data-state'] === 'in_force' && / ok$/.test(only(m.tree, 'kaby-custom-mandate-chip').props.className) && only(m.tree, 'kaby-custom-mandate-preset').props['aria-pressed'] === 'false' && byKb(m.tree, 'kaby-custom-mandate-preset').find((b) => b.props['data-preset'] === 'standard').props['aria-pressed'] === 'true')
+  ok('today’s use is shown for each class on, and a class at its limit says what comes next', text(useOf(m.tree, 'memory')) === '12 of 40 today ' && !/kbkc-warnline/.test(useOf(m.tree, 'memory').props.className) && /40 of 40 today/.test(text(useOf(m.tree, 'computer'))) && /will be asked/.test(text(useOf(m.tree, 'computer'))) && /kbkc-warnline/.test(useOf(m.tree, 'computer').props.className))
+  ok('a draft hides the count (it is not signed yet) and offers to sign', byKb(mount('MandateCard', { 2: { memory: true, computer: true, memoryPerDay: 41, computerPerDay: 40 } }).tree, 'kaby-custom-mandate-use').length === 0)
+  m = mount('MandateCard', { 2: { memory: true, computer: true, memoryPerDay: 41, computerPerDay: 40 } })
+  ok('a draft: « Changes to sign », « Custom » shown, no starting point pressed, sign on', only(m.tree, 'kaby-custom-mandate-chip').props['data-state'] === 'dirty' && byKb(m.tree, 'kaby-custom-mandate-custom').length === 1 && byKb(m.tree, 'kaby-custom-mandate-preset').every((b) => b.props['aria-pressed'] === 'false') && only(m.tree, 'kaby-custom-mandate-sign').props.disabled === false && /Sign the changes/.test(text(only(m.tree, 'kaby-custom-mandate-sign'))))
+
+  T.store.mandate = view({ why: 'paused', signedAt: '2026-11-01T10:00:00.000Z', paused: true, memory: true })
+  m = mount('MandateCard')
+  ok('paused: the chip, the sentence, and « Resume »', only(m.tree, 'kaby-custom-mandate-chip').props['data-state'] === 'paused' && /Nothing goes through without your answer/.test(text(only(m.tree, 'kaby-custom-mandate-note'))) && /Resume/.test(text(only(m.tree, 'kaby-custom-mandate-pause'))) && only(m.tree, 'kaby-custom-mandate-pause').props.disabled === false)
+  T.store.mandate = view({ why: 'altered' })
+  m = mount('MandateCard')
+  ok('altered or another key: red, an alert, nothing allowed, and a pick then offers « Sign again »', only(m.tree, 'kaby-custom-mandate-chip').props['data-state'] === 'resign' && only(m.tree, 'kaby-custom-mandate-note').props.role === 'alert' && only(m.tree, 'kaby-custom-mandate-pause').props.disabled === true && /Sign again/.test(text(only(m.tree, 'kaby-custom-mandate-sign'))))
+  T.store.mandate = view({ canSign: false, why: 'no_secret' })
+  m = mount('MandateCard')
+  ok('no key on this machine: every control is off and the card says why', only(m.tree, 'kaby-custom-mandate-chip').props['data-state'] === 'cannot_sign' && /cannot find this machine’s key/.test(text(only(m.tree, 'kaby-custom-mandate-note'))) && [...byKb(m.tree, 'kaby-custom-mandate-switch'), ...byKb(m.tree, 'kaby-custom-mandate-preset'), ...byKb(m.tree, 'kaby-custom-mandate-limit'), only(m.tree, 'kaby-custom-mandate-sign'), only(m.tree, 'kaby-custom-mandate-pause')].every((n) => n.props.disabled === true))
+
+  // what the buttons do
+  T.store.mandate = view({})
+  m = mount('MandateCard')
+  byKb(m.tree, 'kaby-custom-mandate-preset').find((b) => b.props['data-preset'] === 'intensive').props.onClick()
+  ok('a starting point fills the draft from the host’s own numbers', JSON.stringify(m.sets.find(([n]) => n === 2)[1]) === JSON.stringify({ memory: true, computer: true, memoryPerDay: 100, computerPerDay: 150 }))
+  m = mount('MandateCard')
+  byKb(m.tree, 'kaby-custom-mandate-switch').find((s) => s.props['data-class'] === 'memory').props.onClick()
+  ok('a switch changes that class only', JSON.stringify(m.sets.find(([n]) => n === 2)[1]) === JSON.stringify({ memory: true, computer: false, memoryPerDay: 40, computerPerDay: 40 }))
+  m = mount('MandateCard', { 2: { memory: true, computer: true, memoryPerDay: 40, computerPerDay: 40 } })
+  const limit = (k) => byKb(m.tree, 'kaby-custom-mandate-limit').find((i) => i.props['data-class'] === k)
+  limit('memory').props.onChange({ target: { value: '9999' } })
+  limit('computer').props.onChange({ target: { value: '0' } })
+  limit('memory').props.onChange({ target: { value: 'abc' } })
+  ok('a limit is kept within 1 and the host’s maximum, and a word is ignored', m.sets.length === 2 && m.sets[0][1].memoryPerDay === 500 && m.sets[1][1].computerPerDay === 1)
+
+  const asked = []
+  const answer = (status, json) => { globalThis.fetch = async (url, init) => { asked.push({ url, init }); return { status, json: async () => json } } }
+  T.store.mandate = view({})
+  m = mount('MandateCard', { 2: { memory: true, computer: false, memoryPerDay: 25, computerPerDay: 40 } })
+  answer(200, { ok: true, view: view({ inForce: true, why: 'in_force', signedAt: '2026-11-02T08:00:00.000Z', preset: 'custom', memory: true, memoryPerDay: 25 }) })
+  await only(m.tree, 'kaby-custom-mandate-sign').props.onClick()
+  const sent = JSON.parse(asked[0].init.body)
+  ok('signing posts the four fields to the host, never « paused », same origin, with the cookie', asked[0].url === '/kybernos-cloud/kyby/mandate/set' && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && JSON.stringify(sent) === JSON.stringify({ memory: true, computer: false, memoryPerDay: 25, computerPerDay: 40 }))
+  ok('the host’s answer replaces the card’s state and clears the draft', T.store.mandate.inForce === true && T.store.mandate.memoryPerDay === 25 && m.sets.some(([n, x]) => n === 2 && x === null) && m.sets.some(([n, x]) => n === 3 && x === true) && m.sets.some(([n, x]) => n === 3 && x === false))
+  asked.length = 0
+  T.store.mandate = view({ inForce: true, why: 'in_force', signedAt: '2026-11-01T10:00:00.000Z', memory: true })
+  m = mount('MandateCard')
+  answer(200, { ok: true, view: view({ why: 'paused', paused: true, signedAt: '2026-11-02T08:00:00.000Z' }) })
+  await only(m.tree, 'kaby-custom-mandate-pause').props.onClick()
+  ok('pausing posts only « paused: true »; the host keeps the rest', asked[0].url.endsWith('/set') && JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ paused: true }))
+  asked.length = 0
+  T.store.mandate = view({ why: 'paused', paused: true, signedAt: '2026-11-01T10:00:00.000Z' })
+  m = mount('MandateCard')
+  answer(200, { ok: true, view: view({ inForce: true, why: 'in_force' }) })
+  await only(m.tree, 'kaby-custom-mandate-pause').props.onClick()
+  ok('resuming posts « paused: false »', JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ paused: false }))
+  T.store.mandate = view({})
+  m = mount('MandateCard', { 2: { memory: true, computer: false, memoryPerDay: 40, computerPerDay: 40 } })
+  answer(401, { ok: false, error: 'session' })
+  await only(m.tree, 'kaby-custom-mandate-sign').props.onClick()
+  ok('a request without the page’s session is refused in words, the draft is kept', m.sets.some(([n, x]) => n === 4 && /reload it/.test(x)) && !m.sets.some(([n, x]) => n === 2 && x === null) && T.store.mandate.inForce === false)
+  m = mount('MandateCard', { 2: { memory: true, computer: false, memoryPerDay: 40, computerPerDay: 40 } })
+  answer(200, { ok: false, error: 'cannot_sign' })
+  await only(m.tree, 'kaby-custom-mandate-sign').props.onClick()
+  ok('a refusal of the host is shown as its sentence', m.sets.some(([n, x]) => n === 4 && /cannot find this computer’s key/.test(x)))
+  m = mount('MandateCard', { 2: { memory: true, computer: false, memoryPerDay: 40, computerPerDay: 40 } })
+  globalThis.fetch = async () => { throw new Error('offline') }
+  await only(m.tree, 'kaby-custom-mandate-sign').props.onClick()
+  ok('a host that does not answer is a sentence, not a crash', m.sets.some(([n, x]) => n === 4 && /do not answer/.test(x)) && m.sets.some(([n, x]) => n === 3 && x === false))
+
+  // the action log
+  m = mount('MandateCard')
+  answer(200, { ok: true, entries: [{ at: '2026-11-02T10:42:00.000Z', klass: 'memory', tool: 'memory_write' }, { at: '2026-11-02T10:17:00.000Z', klass: 'computer', tool: 'computer_start' }] })
+  asked.length = 0
+  await only(m.tree, 'kaby-custom-mandate-log-toggle').props.onClick()
+  await new Promise((r) => setTimeout(r, 0))
+  ok('opening the log reads it from the host', m.sets.some(([n, x]) => n === 5 && x === true) && asked.length === 1 && asked[0].url === '/kybernos-cloud/kyby/mandate/log' && m.sets.some(([n, x]) => n === 6 && Array.isArray(x) && x.length === 2))
+  m = mount('MandateCard', { 5: true, 6: [{ at: '2026-11-02T10:42:00.000Z', klass: 'memory', tool: 'memory_write' }, { at: '2026-11-02T10:17:00.000Z', klass: 'computer', tool: 'computer_start' }] })
+  ok('the log lists each action: time, class, tool', byKb(m.tree, 'kaby-custom-mandate-log-row').length === 2 && /memory_write/.test(text(byKb(m.tree, 'kaby-custom-mandate-log-row')[0])) && /Memory/.test(text(byKb(m.tree, 'kaby-custom-mandate-log-row')[0])) && /Cloud computer/.test(text(byKb(m.tree, 'kaby-custom-mandate-log-row')[1])) && only(m.tree, 'kaby-custom-mandate-log-toggle').props['aria-expanded'] === 'true')
+  ok('an empty log says so', byKb(mount('MandateCard', { 5: true, 6: [] }).tree, 'kaby-custom-mandate-log-empty').length === 1)
+
+  // where Kaby works
+  const seam = (w) => { const k = { where: () => w, picked: [], pickWhere (v) { k.picked.push(v) }, subscribe: () => () => {}, refresh () {} }; globalThis.window.__KB_KYBER__ = k; return k }
+  delete globalThis.window.__KB_KYBER__
+  ok('without kybernos-kyber there is no « Where Kaby works » card, and no crash', mount('WhereCard').tree === null)
+  seam(null)
+  ok('before that screen has read the account, no card yet', mount('WhereCard').tree === null)
+  let k = seam({ signedIn: true, local: true, computers: [{ id: 'aaaaaaaa-1111', name: 'Home' }, { id: 'bbbbbbbb-2222', name: 'Atelier' }], picked: 'local', state: 'suspended', paused: '' })
+  let w = mount('WhereCard')
+  const pick = only(w.tree, 'kaby-custom-where-pick')
+  ok('this computer: a labelled select, this computer first, then the cloud ones, ready', pick.type === 'select' && pick.props.value === 'local' && pick.children.length === 3 && text(pick.children[0]) === 'This computer ' && /Home \(cloud\)/.test(text(pick.children[1])) && find(w.tree, (n) => n.type === 'label' && n.props.htmlFor === 'kbkc-where').length === 1 && /Ready/.test(text(only(w.tree, 'kaby-custom-where-chip'))))
+  ok('this computer: it says to keep Kybernos open and no cloud hour is used, and there is no cloud warning', /keep Kybernos open/.test(text(only(w.tree, 'kaby-custom-where-help'))) && /No cloud computer hour/.test(text(only(w.tree, 'kaby-custom-where-help'))) && byKb(w.tree, 'kaby-custom-where-cloud-note').length === 0)
+  pick.props.onChange({ target: { value: 'bbbbbbbb-2222' } })
+  ok('a pick goes through kybernos-kyber’s own pick: the same setting as « Set up… »', k.picked.join() === 'bbbbbbbb-2222')
+  k = seam({ signedIn: true, local: false, computers: [{ id: 'aaaaaaaa-1111', name: 'Home' }], picked: 'aaaaaaaa-1111', state: 'suspended', paused: '' })
+  w = mount('WhereCard')
+  ok('a cloud computer: its state, how it wakes, the plan’s hours, and that the permissions below do not reach it', /Asleep/.test(text(only(w.tree, 'kaby-custom-where-chip'))) && /wakes when it has work/.test(text(only(w.tree, 'kaby-custom-where-help'))) && /run hours count/.test(text(only(w.tree, 'kaby-custom-where-help'))) && /On its cloud computer, Kaby asks as before/.test(text(only(w.tree, 'kaby-custom-where-cloud-note'))))
+  seam({ signedIn: false, local: true, computers: [], picked: 'local', state: '', paused: '' })
+  w = mount('WhereCard')
+  ok('no account: this computer is the only choice, so the select is off', only(w.tree, 'kaby-custom-where-pick').props.disabled === true && only(w.tree, 'kaby-custom-where-pick').children.length === 1)
+  store_reset: {
+    const name = T.store.profile.name
+    T.store.profile = { ...T.store.profile, name: 'Léa' }
+    seam({ signedIn: true, local: true, computers: [], picked: 'local', state: '', paused: '' })
+    ok('the cards speak of the assistant by its own name', /Où Léa travaille|Where Léa works/.test(text(mount('WhereCard').tree)))
+    T.store.profile = { ...T.store.profile, name }
+  }
+  resolved = 'kybernos'
+  ok('in French the same cards speak French', /Où Kaby travaille/.test(text(mount('WhereCard').tree)) && /Autorisations/.test(text(mount('MandateCard').tree)) && /Mémoire/.test(text(mount('MandateCard').tree)))
+  resolved = 'en'
+  delete globalThis.window.__KB_KYBER__
+  T.store.mandate = null
+}
+
 console.log('── the plugin ──')
 {
   const effects = []
@@ -170,6 +337,10 @@ console.log('── guards on the source ──')
   const calls = [...source.matchAll(/fetch\(\s*'([^']+)'/g)].map((m) => m[1])
   ok('the page only asks the core’s voice and image routes, apart from its own', calls.every((u) => u.startsWith('/kybernos/tts/') || u === '/kybernos/image/generate'), calls.join(' '))
   ok('its own host is reached through one base path that matches the host’s', source.includes("const BASE = '" + ROUTE + "'"))
+  const mandatePaths = [...source.matchAll(/mandateCall\(\s*'([^']*)'/g)].map((m) => m[1])
+  ok('the permissions are asked only of kybernos-cloud’s three routes: the view, the log and the signing', T.MANDATE === '/kybernos-cloud/kyby/mandate' && mandatePaths.length >= 3 && mandatePaths.every((p) => ['', '/log', '/set'].includes(p)), mandatePaths.join('|'))
+  ok('the where-card reaches kybernos-kyber only through its seam, never its files', ['where', 'pickWhere', 'subscribe', 'refresh'].every((m) => source.includes('k.' + m)) && !/kybernos-kyber\/|import .*kybernos-kyber/.test(source.replace(/\/\/.*$/gm, '').replace(/kybernos-kyber'?s? seam/g, '')))
+  ok('every hook the permission checks need is in the source', ['kaby-custom-where', 'kaby-custom-where-pick', 'kaby-custom-mandate', 'kaby-custom-mandate-preset', 'kaby-custom-mandate-switch', 'kaby-custom-mandate-limit', 'kaby-custom-mandate-sign', 'kaby-custom-mandate-pause', 'kaby-custom-mandate-log-toggle', 'kaby-custom-mandate-chip'].every((k) => source.includes("'" + k + "'")))
   ok('the section id is the one the nav key table will carry', /SECTION_ID = 'kybernos-kaby-customisation'/.test(source))
   ok('every hook the live checks need is in the source', ['kaby-custom-page', 'kaby-custom-name', 'kaby-custom-look', 'kaby-custom-generate', 'kaby-custom-import', 'kaby-custom-voice-pill', 'kaby-custom-preview', 'kaby-custom-custom-voice', 'kaby-custom-face-provider', 'kaby-custom-face-use'].every((k) => source.includes("'" + k + "'")))
   ok('a recording that ends after the window was closed cannot reopen it', /patchCv = \(patch\) => setCv\(\(c\) => \(c === null \? c :/.test(source))

@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "La page où tu donnes à Kaby son allure : un nom, un portrait et une voix. Elle règle aussi le visage qu'il montrera en appel vidéo, avec ses propres clés, à part des Appels.",
-    "en": "The page where you give Kaby its look: a name, a portrait and a voice. It also sets the face it will show on video calls, with its own keys, apart from Calls."
+    "fr": "La page où tu règles Kaby : son allure (un nom, un portrait, une voix, le visage des appels vidéo), l'ordinateur où il travaille, et ce qu'il peut faire sans te demander.",
+    "en": "The page where you set Kaby up: its look (a name, a portrait, a voice, the face on video calls), the computer it works on, and what it may do without asking."
   },
   "steps": [
     {
@@ -15,6 +15,10 @@
     {
       "fr": "Choisis une voix et écoute-la. Tu peux aussi enregistrer ou importer une voix perso, avec ton consentement.",
       "en": "Pick a voice and listen to it. You can also record or upload a custom voice, with your consent."
+    },
+    {
+      "fr": "Plus bas, choisis où Kaby travaille et ce qu'il peut faire sans te demander, avec une limite par jour. Signe pour que ça compte.",
+      "en": "Further down, pick where Kaby works and what it may do without asking, with a daily limit. Sign for it to count."
     }
   ],
   "where": {
@@ -23,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Rien ne change à ce que Kaby sait faire, à ses règles ni à sa mémoire. Le portrait reste sur cet ordinateur ; il ne part chez un fournisseur que si tu choisis un visage en appel vidéo.",
-    "en": "Nothing changes in what Kaby can do, its rules or its memory. The portrait stays on this computer; it goes to a provider only if you choose a face for video calls."
+    "fr": "Le portrait reste sur cet ordinateur. Les autorisations ne valent que signées par toi, dans leurs limites du jour ; une application connectée et le redémarrage de DSH te sont toujours demandés.",
+    "en": "The portrait stays on this computer. Permissions hold only once you sign them, within their daily limits; a connected app and restarting DSH are always asked of you."
   }
 }
