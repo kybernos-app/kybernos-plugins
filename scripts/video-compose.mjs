@@ -10,7 +10,7 @@
 //     "fps": 24, "fade": 0.4,                                      the cross-fade between two shots (0 = hard cut); a shot may carry its own "fade" (the one that LEADS INTO it)
 //     "shots":  [ { "file": "ad-1.mp4", "trim": [0, 4.6], "fade": 0.4, "transition": "fade" } ],     file names are read in --parts
 //     "grade":  "eq=contrast=1.05:saturation=1.1",                 optional ffmpeg video filter, applied before the texts
-//     "texts":  [ { "at": 0.6, "to": 3.8, "text": "ALDERINE", "style": "title|sub|lower|caption|label", "x": 0.5, "y": 0.45, "anim": "fade|rise|pop", "color": "#ffffff" } ],
+//     "texts":  [ { "at": 0.6, "to": 3.8, "text": "ALDERINE", "style": "title|sub|lower|pill|caption|label", "x": 0.5, "y": 0.45, "anim": "fade|rise|pop", "color": "#ffffff" } ],
 //               a text may hold \N for a line break, [#rrggbb] to colour a stretch, [s1.6] to enlarge it, and [/] to end either
 //     "voice":  [ { "file": "voice.mp3", "at": 1.2, "gain": 1.0 } ],
 //     "music":  { "file": "music.mp3", "start": 0, "gain": 0.5, "fadeIn": 0.6, "fadeOut": 1.8, "duck": true },
@@ -89,17 +89,18 @@ const bgr = (hex) => { const h = hex.replace('#', ''); return h.slice(4, 6) + h.
 const stamp = (t) => { const cs = Math.round(t * 100); return `${Math.floor(cs / 360000)}:${String(Math.floor(cs / 6000) % 60).padStart(2, '0')}:${String(Math.floor(cs / 100) % 60).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}` }
 const sz = (k) => Math.round(H * k)
 const STYLES = {
-  title:   { size: sz(0.085), bold: 1, spacing: 10, outline: 0, shadow: 3, color: '#ffffff' },
-  sub:     { size: sz(0.04), bold: 0, spacing: 6, outline: 0, shadow: 2, color: '#ffffff' },
+  title:   { size: sz(0.085), bold: 1, spacing: 10, outline: 1.5, shadow: 3, color: '#ffffff' },
+  sub:     { size: sz(0.04), bold: 1, spacing: 6, outline: 2.5, shadow: 2, color: '#ffffff' },
   lower:   { size: sz(0.04), bold: 1, spacing: 2, outline: 0, shadow: 0, color: '#ffffff', box: true },
-  caption: { size: sz(0.046), bold: 1, spacing: 0, outline: 3, shadow: 1, color: '#ffffff' },
-  label:   { size: sz(0.034), bold: 1, spacing: 4, outline: 0, shadow: 2, color: '#ffffff' }
+  caption: { size: sz(0.046), bold: 1, spacing: 0, outline: 3, shadow: 1, color: '#ffffff', outlineColor: '&H00000000' },
+  label:   { size: sz(0.034), bold: 1, spacing: 4, outline: 2, shadow: 2, color: '#ffffff' },
+  pill:    { size: sz(0.034), bold: 1, spacing: 2, outline: 0, shadow: 0, color: '#1d1d22', box: true, boxColor: '&H00EDEDF0' }
 }
 const markup = (t) => t.replace(/\[(#[0-9a-fA-F]{6})\]/g, (m, c) => `{\\c&H${bgr(c)}&}`).replace(/\[s([\d.]+)\]/g, (m, k) => `{\\fscx${Math.round(k * 100)}\\fscy${Math.round(k * 100)}}`).replace(/\[\/\]/g, '{\\r}')
 const ass = [
   '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${W}`, `PlayResY: ${H}`, 'WrapStyle: 2', 'ScaledBorderAndShadow: yes', '',
   '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-  ...Object.entries(STYLES).map(([n, s]) => `Style: ${n},${FONT},${s.size},&H00${bgr(s.color)},&H00FFFFFF,${s.box ? '&H8C000000' : '&H00000000'},&H99000000,${s.bold},0,0,0,100,100,${s.spacing},0,${s.box ? 3 : 1},${s.box ? Math.round(H * 0.012) : s.outline},${s.shadow},5,10,10,10,1`),
+  ...Object.entries(STYLES).map(([n, s]) => `Style: ${n},${FONT},${s.size},&H00${bgr(s.color)},&H00FFFFFF,${s.box ? (s.boxColor || '&H8C000000') : (s.outlineColor || '&H80000000')},&H99000000,${s.bold},0,0,0,100,100,${s.spacing},0,${s.box ? 3 : 1},${s.box ? Math.round(H * 0.012) : s.outline},${s.shadow},5,10,10,10,1`),
   '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
 ]
 for (const t of recipe.texts || []) {
@@ -160,7 +161,7 @@ if (recipe.music) {
   probe(join(parts, m.file))
   const out = m.fadeOut ?? 1.8
   filters.push(`[${at}:a]atrim=start=${f(m.start || 0)}:end=${f((m.start || 0) + T)},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:st=0:d=${f(m.fadeIn ?? 0.6)},afade=t=out:st=${f(T - out)}:d=${f(out)},volume=${f(m.gain ?? 0.5)}[mus]`)
-  if (voices.length > 0 && m.duck !== false) { filters.push('[mus][voiceKey]sidechaincompress=threshold=0.015:ratio=8:attack=20:release=500[musd]'); buses.push('musd') } else buses.push('mus')
+  if (voices.length > 0 && m.duck !== false) { filters.push('[mus][voiceKey]sidechaincompress=threshold=0.01:ratio=12:attack=15:release=450[musd]'); buses.push('musd') } else buses.push('mus')
 } else if (voices.length > 0) filters.push('[voiceKey]anullsink')
 filters.push(`${buses.map((b) => `[${b}]`).join('')}amix=inputs=${buses.length}:normalize=0:duration=longest,atrim=0:${f(T)},loudnorm=I=-16:TP=-1.5:LRA=9[aout]`)
 

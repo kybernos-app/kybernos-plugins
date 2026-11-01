@@ -22,18 +22,24 @@ Only what the example needs, nothing more:
 
 | Example | Ask for |
 | --- | --- |
-| Product ad | the product photo, the product name, a one-line tagline |
-| Virtual try-on | a photo of the person, a photo of the garment, the colour wanted |
+| Product ad | the product photo, the product name (or help to invent a brand), a tagline |
+| Virtual try-on | a photo of the person, the garments (photos) and the colours to compare |
 | Theme restyle | the photo, the theme (the 90s, manga, space opera...) |
-| Property teaser | the best photo, the address, the price |
-| Social clip | the idea, the mood |
+| Property film | the best exterior photo, the address, the price, three features to show |
+| Social clip | the idea, the mood; you write the three-line script |
+| Old photo, alive | the old photo, the place and the year, the story; you write the three-line script |
+| Workout with anatomy | the three exercises, the person (or an invented athlete) |
 | Logo reveal | the logo image, the brand colours |
-| Results recap | the table of figures, the figure to highlight |
-| Lesson | the topic, the level |
+| Figures recap, lesson | the table of figures and the figure to highlight, or the topic and the level |
 
 Also ask for the **shape**: vertical 9:16 for social media, 16:9 or 1:1 otherwise. Length: 5 seconds by default, 10 at most. A photo is a file in the project: ask for its path or have it attached.
 
 A photo of a person must be of the person themself or of someone who agreed. Say once, in a line, that the picture is sent to the video model's provider, and that this provider may keep it. Do not go on without a yes.
+
+## The shape of a good film
+
+A film of 15 to 20 seconds is three or four shots of 5 seconds, each with ONE movement. When a scene continues (a flight through a house, a photograph that comes to life), the next shot starts from the LAST FRAME of the one before, so the cut is invisible. Add, in this order: the texts you drew (name, price, labels: never asked of the video model), a short English voice-over of three lines (4 seconds each at most), music kept under the voice, captions that repeat the voice, and the kybernos mark at the bottom.
+
 
 ## 3. The first frame, before anything is animated
 

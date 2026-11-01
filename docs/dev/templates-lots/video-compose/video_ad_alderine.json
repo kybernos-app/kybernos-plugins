@@ -1,0 +1,109 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "fade": 0.45,
+  "shots": [
+    {
+      "file": "ad-1.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "ad-2.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    },
+    {
+      "file": "ad-3.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    }
+  ],
+  "grade": "eq=contrast=1.05:saturation=1.08",
+  "texts": [
+    {
+      "at": 0.8,
+      "to": 4.6,
+      "text": "ALDERINE",
+      "style": "title",
+      "y": 0.44,
+      "anim": "pop",
+      "size": 0.11
+    },
+    {
+      "at": 1.5,
+      "to": 4.6,
+      "text": "SPARKLING MOUNTAIN WATER",
+      "style": "sub",
+      "y": 0.56,
+      "anim": "rise"
+    },
+    {
+      "at": 5.4,
+      "to": 7.6,
+      "text": "Born in the mountains.",
+      "style": "sub",
+      "y": 0.5,
+      "anim": "rise",
+      "size": 0.06
+    },
+    {
+      "at": 7.7,
+      "to": 9.6,
+      "text": "Bottled at the source.",
+      "style": "sub",
+      "y": 0.5,
+      "anim": "rise",
+      "size": 0.06
+    },
+    {
+      "at": 10.3,
+      "to": 14.5,
+      "text": "ALDERINE",
+      "style": "title",
+      "y": 0.4,
+      "anim": "pop",
+      "size": 0.11
+    },
+    {
+      "at": 11.0,
+      "to": 14.5,
+      "text": "Taste the mountain.",
+      "style": "sub",
+      "y": 0.52,
+      "anim": "rise",
+      "size": 0.05
+    },
+    {
+      "at": 12.2,
+      "to": 14.5,
+      "text": "AVAILABLE NOW",
+      "style": "label",
+      "y": 0.62,
+      "anim": "fade"
+    }
+  ],
+  "voice": [
+    {
+      "file": "voice-ad-1.mp3",
+      "at": 11.1
+    }
+  ],
+  "music": {
+    "file": "music-ad.mp3",
+    "start": 0,
+    "gain": 0.6,
+    "fadeIn": 0.4,
+    "fadeOut": 1.8
+  },
+  "ambient": 0.45,
+  "id": "video_ad_alderine"
+}

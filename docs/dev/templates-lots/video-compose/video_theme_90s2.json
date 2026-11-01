@@ -1,0 +1,28 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "shots": [
+    {
+      "file": "theme-2.mp4",
+      "trim": [
+        0,
+        5.26
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": 0.5,
+      "to": 4.8,
+      "text": "1994  ·  ARCADE NIGHT",
+      "style": "label",
+      "y": 0.09,
+      "anim": "fade",
+      "color": "#7ff3ff"
+    }
+  ],
+  "ambient": 1.0,
+  "id": "video_theme_90s2"
+}

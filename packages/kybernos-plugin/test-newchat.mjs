@@ -512,7 +512,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   const tool = /export const TOOL = '([a-z_]+)'/.exec(motionSrc)
   assert.ok(tool !== null && skill.includes('`' + tool[1] + '`'), 'the skill names the Motion tool that really exists')
   assert.ok(skill.includes('/kybernos-cloud/models') && readFileSync(join(here, '..', 'kybernos-cloud', 'index.js'), 'utf8').includes('/kybernos-cloud/models'), 'the skill reads the models from a route that exists')
-  for (const word of ['product photo', 'garment', 'theme', 'best photo', 'logo', 'table of figures', 'topic']) assert.ok(skill.includes(word), 'the skill asks for the ' + word + ' that its example asks for')
+  for (const word of ['product photo', 'garment', 'theme', 'best exterior photo', 'old photo', 'exercises', 'logo']) assert.ok(skill.includes(word), 'the skill asks for the ' + word + ' that its example asks for')
   assert.ok(/clip cannot be made yet/.test(skill) && /Never ask for, print or store an API key/.test(skill), 'the skill says plainly that generation is not wired and never asks for a key')
   ok('the video examples start video-creator: shipped, seeded, and tied to a real tool and route')
 }

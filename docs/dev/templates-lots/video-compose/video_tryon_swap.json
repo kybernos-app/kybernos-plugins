@@ -1,98 +1,74 @@
 {
-  "id": "video_tryon_swap",
   "size": [
     720,
     1280
   ],
-  "fade": 0.5,
+  "fade": 0.25,
   "shots": [
     {
       "file": "tryon-1.mp4",
       "trim": [
         0,
-        10.2
+        10.21
+      ]
+    },
+    {
+      "file": "tryon-2.mp4",
+      "trim": [
+        0,
+        10.21
       ]
     }
   ],
   "texts": [
     {
-      "at": 0.4,
-      "to": 10.2,
-      "text": "THE ESSENTIAL COAT",
-      "style": "label",
-      "y": 0.075,
-      "anim": "fade",
-      "color": "#1d1d22",
-      "size": 0.03
-    },
-    {
       "at": 0.5,
       "to": 3.0,
-      "text": "Camel",
-      "style": "title",
-      "size": 0.06,
-      "y": 0.8,
-      "anim": "rise",
-      "color": "#1d1d22"
+      "text": "[#c19a6b]●[/]  Wool coat · Camel",
+      "style": "pill",
+      "y": 0.87,
+      "anim": "rise"
     },
     {
       "at": 3.2,
-      "to": 6.5,
-      "text": "Emerald",
-      "style": "title",
-      "size": 0.06,
-      "y": 0.8,
-      "anim": "rise",
-      "color": "#1d1d22"
+      "to": 6.6,
+      "text": "[#0f7a55]●[/]  Wool coat · Emerald",
+      "style": "pill",
+      "y": 0.87,
+      "anim": "rise"
     },
     {
-      "at": 6.7,
-      "to": 10.2,
-      "text": "Ink",
-      "style": "title",
-      "size": 0.06,
-      "y": 0.8,
-      "anim": "rise",
-      "color": "#1d1d22"
+      "at": 6.8,
+      "to": 12.4,
+      "text": "[#17171c]●[/]  Wool coat · Ink",
+      "style": "pill",
+      "y": 0.87,
+      "anim": "rise"
     },
     {
-      "at": 0.5,
-      "to": 3.0,
-      "text": "[s1.8][#c19a6b]\u25cf[/]   [#0f7a55]\u25cf[/]   [#17171c]\u25cf[/]",
-      "style": "sub",
-      "y": 0.86,
-      "fadeIn": 0.1,
-      "fadeOut": 0.1,
-      "color": "#1d1d22"
+      "at": 12.7,
+      "to": 16.4,
+      "text": "[#9a4f1c]●[/]  Leather jacket · Cognac",
+      "style": "pill",
+      "y": 0.87,
+      "anim": "rise"
     },
     {
-      "at": 3.2,
-      "to": 6.5,
-      "text": "[#c19a6b]\u25cf[/]   [s1.8][#0f7a55]\u25cf[/]   [#17171c]\u25cf[/]",
-      "style": "sub",
-      "y": 0.86,
-      "fadeIn": 0.1,
-      "fadeOut": 0.1,
-      "color": "#1d1d22"
-    },
-    {
-      "at": 6.7,
-      "to": 10.2,
-      "text": "[#c19a6b]\u25cf[/]   [#0f7a55]\u25cf[/]   [s1.8][#17171c]\u25cf[/]",
-      "style": "sub",
-      "y": 0.86,
-      "fadeIn": 0.1,
-      "fadeOut": 0.1,
-      "color": "#1d1d22"
+      "at": 16.7,
+      "to": 20.1,
+      "text": "[#d9c9a0]●[/]  Tailored blazer · Cream",
+      "style": "pill",
+      "y": 0.87,
+      "anim": "rise"
     }
   ],
   "music": {
     "file": "music-tryon.mp3",
     "start": 0,
-    "gain": 0.5,
+    "gain": 0.55,
     "fadeIn": 0.5,
-    "fadeOut": 1.8
+    "fadeOut": 2.0
   },
-  "ambient": 0.15,
-  "watermark": true
+  "ambient": 0.12,
+  "id": "video_tryon_swap"
 }
