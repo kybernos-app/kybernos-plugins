@@ -10,6 +10,7 @@ import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolu
 import { dshHomeSync } from './dsh-home.mjs'
 import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
+import { TEAMS_CHUNK_NAME, TEAMS_CHUNK_ORDER, createAgentTeamsPrompt } from './agent-teams-prompt.mjs'
 import { workspaceHealthRows, requestedWorkspaceId } from './workspace-health.mjs'
 import { SHELF_PUBLIC_BASE, createShelf, shelfVideoAnswer } from './templates-shelf.mjs'
 import { selectAfterConnect } from './default-model.mjs'
@@ -11814,6 +11815,26 @@ function boot(ctx) {
             text: (context) => { try { return wsInstructions.promptFor(context.agent.session.id) } catch (e) { return '' } }
           })
         } catch (e) { console.log('[kybernos] workspace instructions not injected: ' + String(e && e.message ? e.message : e)) }
+      })
+      // Several Agent Teams in one chat: the ids of the installed teams and the rule of the `kyber-selection` skill (section 6). The chat a person opened gets it;
+      // a child session (a sub-agent: `header.parentSession`, as the automation gate reads it) does not, since it never spawns a team.
+      const agentTeamsPrompt = createAgentTeamsPrompt()
+      const kbIsChildSession = (agent) => {
+        try {
+          const store = ctx.get('sessions')
+          const session = store !== undefined && store !== null && typeof store.get === 'function' ? store.get(kbAgentId(agent)) : undefined
+          return session !== undefined && session !== null && session.header !== undefined && session.header !== null && typeof session.header.parentSession === 'string' && session.header.parentSession !== ''
+        } catch (e) { return false }
+      }
+      ctx.inject(['systemPrompt'], (scope) => {
+        try {
+          scope.systemPrompt.context({
+            name: TEAMS_CHUNK_NAME,
+            order: TEAMS_CHUNK_ORDER,
+            interpolate: false,
+            text: (context) => { try { return kbIsChildSession(context.agent) ? '' : agentTeamsPrompt() } catch (e) { return '' } }
+          })
+        } catch (e) { console.log('[kybernos] agent teams block not injected: ' + String(e && e.message ? e.message : e)) }
       })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/pins', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, pins: pinsPayload(await readPins(), pinnedNatives()) })

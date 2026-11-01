@@ -579,6 +579,17 @@ section in `<workspace folder>/AGENTS.md` (the folder is that table's too; off o
 `GET|POST /kybernos/workspace-instructions` (strict same-origin on both; the POST also needs DSH's signed session cookie, `docs/dev/route-origin-rule.md`). Limit 4,000 characters. Host code: loads at the next DSH start.
 `node packages/kybernos-plugin/test-workspace-instructions.mjs`.
 
+## Several Agent Teams in one chat
+
+A plain chat (`cordis`, `standard`) never runs the Kyber preset, so nothing told it that more than one team can work at once. The protocol is the
+`kyber-selection` skill in `<DSH home>/skills` (section 6: one Team Lead spawns every crew from one shared roster, seats are never given back, members
+named `<team>-<role>`, board tasks `[<team>]`); `agent-teams-prompt.mjs` adds a short block to the system prompt that names the teams and points to it.
+Injected through `systemPrompt.context` (name `kybernos:agent-teams`, order 140, `interpolate: false`, about 600 characters). It lists ids only (a team's
+mission is the person's text and never goes in), at most 12, and says nothing with fewer than two teams (a `<DSH home>/kybers/<id>/kyber.yml` each, never
+`default`) or when the skill is not installed (it would point to nothing). The folders are read at most every 5 s, so the text is the same from one step to
+the next. A child session (a sub-agent, told by `header.parentSession`) does not get it. The block is code, not a file: the text is `renderTeamsBlock`, and
+DSH does not keep the assembled prompt anywhere. Host code: loads at the next DSH start. `node packages/kybernos-plugin/test-agent-teams-prompt.mjs`.
+
 ## Chat header toggle
 
 A chat's header is busy: tags (Agent Team, Teams), the call button, the **Chat tools** menu, Journal / Trajectory tabs and a
