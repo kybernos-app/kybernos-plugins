@@ -22,6 +22,23 @@ and code is written by a developer, not by this skill. If the person asks for on
 one sentence, offer the closest thing a pack can do (a field with the right skills, teams and
 first questions), and ask whether they want that.
 
+## Before the interview: is a plugin the answer?
+
+A plugin is data — a field of work. It is the answer only when all three questions pass, in
+this order:
+
+1. **Must this exist while no agent is awake?** A page, a panel, a tool the model calls, a rule
+   that refuses, something that runs on a schedule: that is a bundle, and this skill does not make
+   bundles. Say so in one sentence and stop.
+2. **Is it a job with steps, not a surface?** Then it is a skill: the notice of a script that
+   runs, not a folder of prose. Write the script, then the notice.
+3. **Is it only a new field of work** — a name, a tagline, goals, the skills and teams that already
+   exist? Then it is a plugin, and this skill makes it.
+
+"That nothing runs" is not a fault: it is the whole point of a plugin. The fault is writing a
+plugin for something that needed a script, or a notice for something that needed a bundle. The
+rule is written down in the plugins repo, `docs/dev/skills-vs-plugins.md`.
+
 ## 1. The interview
 
 Ask at most four short questions, one message each, and skip any the user already answered:
