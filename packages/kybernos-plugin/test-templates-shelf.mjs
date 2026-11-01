@@ -87,6 +87,11 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const app = shelfValidate(mini({ templates: [{ id: 'app_a', type: 'doc', name: 'A', prompt: 'p', tables: ['One', 'Two'], links: [[0, 1], [0, 5], [-1, 0], 'x'], layout: [[0], [1]] }] })).templates[0]
   assert.deepEqual(J(app.links), [[0, 1]])
   assert.deepEqual(J(app.layout), [[0], [1]])
+  // how an example was made: the model's id and the knobs are kept, anything that is not a plain id or a sensible number is dropped (the example stays)
+  const made = (m) => shelfValidate(mini({ templates: [{ id: 'image_a', type: 'doc', name: 'A', prompt: 'p', made: m }] })).templates[0].made
+  assert.deepEqual(J(made({ model: 'black-forest-labs/FLUX-2-dev', label: 'FLUX.2 dev', seed: 421, width: 1280, height: 800, steps: 28, extra: 1 })), { model: 'black-forest-labs/FLUX-2-dev', label: 'FLUX.2 dev', seed: 421, width: 1280, height: 800, steps: 28 })
+  assert.deepEqual(J(made({ model: 'a/b', seed: -1, width: 1280, steps: 0 })), { model: 'a/b' }, 'a seed, a size or steps out of range are left out; a width with no height is no size')
+  for (const bad of [{ model: '../x' }, { model: 'a b' }, { model: '' }, { model: 'x'.repeat(81) }, { model: 3 }, { label: 'no model' }, 'x', null, [1]]) assert.equal(made(bad), undefined, JSON.stringify(bad))
   assert.ok(shelfValidate(good) !== null)
   ok('what a server sends is checked: schema, ids, picture names, links; a bad entry costs only itself; text clipped')
 }

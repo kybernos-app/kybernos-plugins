@@ -1265,6 +1265,14 @@ let kbLocaleRead = () => 'en'
       'kbnc.sh.adapt': { kybernos: 'Adapter avec Kaby', en: 'Adapt with Kaby' },
       'kbnc.sh.adaptpre': { kybernos: 'Pars du modèle « ', en: 'Start from the “' },
       'kbnc.sh.adaptpost': { kybernos: ' » et adapte-le : ', en: '” template and adapt it: ' },
+      'kbnc.sh.prompt': { kybernos: 'Le prompt', en: 'The prompt' },
+      'kbnc.sh.useprompt': { kybernos: 'Utiliser ce prompt', en: 'Use this prompt' },
+      'kbnc.sh.remix': { kybernos: 'Remixer', en: 'Remix' },
+      'kbnc.sh.remixpre': { kybernos: 'Remixe cet exemple. Garde le prompt « ', en: 'Remix this example. Keep the prompt “' },
+      'kbnc.sh.remixpost': { kybernos: ' » mais change : ', en: '” but change: ' },
+      'kbnc.sh.madewith': { kybernos: 'Fait avec', en: 'Made with' },
+      'kbnc.sh.seed': { kybernos: 'graine', en: 'seed' },
+      'kbnc.sh.finemade': { kybernos: 'Généré à partir du prompt ci-contre. Chaque génération est différente.', en: 'Generated from the prompt beside it. Every generation comes out different.' },
       'kbnc.sh.open': { kybernos: 'Ouvrir mon app', en: 'Open my app' },
       'kbnc.sh.have': { kybernos: 'Déjà dans tes apps.', en: 'Already in your apps.' },
       'kbnc.sh.adding': { kybernos: 'Création de l’app…', en: 'Creating the app…' },
@@ -8807,6 +8815,15 @@ const kbNcPicUrl = (e, big) => {
 }
 /** The sentence « adapt this template » puts in the composer. */
 const kbNcAdaptText = (pre, e, post) => pre + String(e.name) + post
+/** The sentence « remix this example » puts in the composer: the example's prompt, kept, and the person says what to change after it. */
+const kbNcRemixText = (pre, e, post) => pre + String(e.prompt) + post
+/** The « made with » line of a generated example: the model's display name (else its id), the size and the seed when they are known. '' when the example is not a generated one. */
+const kbNcMadeLine = (made, madeWith, seedWord) => {
+  const m = kbNcObj(made)
+  if (m === null || typeof m.model !== 'string') return ''
+  const name = typeof m.label === 'string' && m.label !== '' ? m.label : m.model
+  return madeWith + ' ' + name + (Number.isInteger(m.width) && Number.isInteger(m.height) ? ' · ' + m.width + '×' + m.height : '') + (Number.isInteger(m.seed) ? ' · ' + seedWord + ' ' + m.seed : '')
+}
 /** Where the boxes and the lines of an App example go in a 320 x 200 frame: its tables in up to two rows, one line for each link. null when it has no tables. */
 const kbNcStructure = (e) => {
   const tables = Array.isArray(e.tables) ? e.tables : []
@@ -30088,7 +30105,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       }
       const inside = Array.isArray(e.inside) && e.inside.length > 0 ? e.inside : [{ t: kbt('kbnc.sh.in.format'), d: e.meta }, { t: kbt('kbnc.sh.in.change'), d: kbt('kbnc.sh.in.changed') }]
       const status = st.phase === 'busy' ? kbt('kbnc.sh.adding') : st.phase === 'done' ? kbt('kbnc.sh.added') : st.phase === 'fail' ? (st.msg !== '' ? st.msg : kbt('kbnc.sh.fail')) : (withKit && kit.have === true ? kbt('kbnc.sh.have') : '')
-      const label = withKit === false ? kbt('kbnc.sh.use') : have === true ? kbt('kbnc.sh.open') : st.phase === 'busy' ? kbt('kbnc.sh.adding') : kbt('kbnc.sh.usetpl')
+      const made = kbNcObj(e.made)
+      const madeLine = kbNcMadeLine(made, kbt('kbnc.sh.madewith'), kbt('kbnc.sh.seed'))
+      const label = withKit === false ? kbt(made !== null ? 'kbnc.sh.useprompt' : 'kbnc.sh.use') : have === true ? kbt('kbnc.sh.open') : st.phase === 'busy' ? kbt('kbnc.sh.adding') : kbt('kbnc.sh.usetpl')
       const picture = map !== null
         ? h('svg', { className: 'kb8-sh-map', viewBox: '0 0 320 200', role: 'img', 'aria-label': e.name },
           map.lines.map((l, i) => h('g', { key: 'l' + i }, h('line', { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, className: 'ln' }), h('circle', { cx: l.x2, cy: l.y2, r: 2.4, className: 'dot' }))),
@@ -30105,14 +30124,15 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               isApp ? h('div', { className: 'kb8-sh-tabs', role: 'group', 'aria-label': kbt('kbnc.sh.tabs') }, ['result', 'structure'].map((id) =>
                 h('button', { type: 'button', key: id, className: 'kb8-sh-tab' + (tab === id ? ' on' : ''), 'aria-pressed': tab === id ? 'true' : 'false', onClick: () => tabPair[1](id) }, kbt('kbnc.sh.tab.' + id)))) : null,
               h('div', { className: 'kb8-sh-big' }, picture, e.type === 'video' && map === null ? kbNcPlay() : null),
-              h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : 'kbnc.sh.fine')))),
+              h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : (made !== null ? 'kbnc.sh.finemade' : 'kbnc.sh.fine'))))),
             h('div', { className: 'kb8-sh-side' },
               h('div', { className: 'kb8-sh-title' }, h('h3', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
               h('p', { className: 'kb8-sh-lead' }, e.line),
-              h('div', { className: 'kb8-sh-req' }, h('b', null, kbt(withKit ? 'kbnc.sh.reqtpl' : 'kbnc.sh.req')), h('p', null, e.prompt)),
+              h('div', { className: 'kb8-sh-req' }, h('b', null, kbt(made !== null ? 'kbnc.sh.prompt' : (withKit ? 'kbnc.sh.reqtpl' : 'kbnc.sh.req'))), h('p', null, e.prompt), madeLine === '' ? null : h('span', { className: 'kb8-sh-made', title: made.model, 'data-kb': 'newchat-example-made' }, madeLine)),
               h('ul', { className: 'kb8-sh-list' }, inside.map((x, i) => h('li', { key: i }, h('b', null, x.t), h('span', null, x.d)))),
               h('div', { className: 'kb8-sh-acts' },
                 h('button', { type: 'button', className: 'kb8-sh-btn pri', 'data-kb': 'newchat-example-use', disabled: st.phase === 'busy', onClick: primary }, label),
+                made !== null && isApp === false ? h('button', { type: 'button', className: 'kb8-sh-btn', 'data-kb': 'newchat-example-remix', onClick: () => dp.onFill(e.type, kbNcRemixText(kbt('kbnc.sh.remixpre'), e, kbt('kbnc.sh.remixpost'))) }, kbt('kbnc.sh.remix')) : null,
                 isApp ? h('button', { type: 'button', className: 'kb8-sh-btn', 'data-kb': 'newchat-example-adapt', disabled: st.phase === 'busy', onClick: () => dp.onFill(e.type, kbNcAdaptText(kbt('kbnc.sh.adaptpre'), e, kbt('kbnc.sh.adaptpost'))) }, kbt('kbnc.sh.adapt')) : null),
               status === '' ? null : h('p', { className: 'kb8-sh-status' + (st.phase === 'fail' ? ' bad' : ''), role: st.phase === 'fail' ? 'alert' : 'status' }, status),
               h('p', { className: 'kb8-sh-note' }, kbt(withKit && have !== true ? 'kbnc.sh.notekit' : 'kbnc.sh.note')))))))
@@ -30175,6 +30195,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
         .concat(cat === null ? [] : cat.templates.map((e) => String(e.prompt)))
         .concat(cat === null ? [] : cat.templates.filter((e) => Array.isArray(e.tables)).map((e) => kbNcAdaptText(adaptPre, e, adaptPost)))
+        .concat(cat === null ? [] : cat.templates.filter((e) => kbNcObj(e.made) !== null).map((e) => kbNcRemixText(kbt('kbnc.sh.remixpre'), e, kbt('kbnc.sh.remixpost'))))
       // A template or an example fills the composer and never sends. The person's own words stay (see kbNcFill).
       const fillText = (type, tpl) => {
         setChosen(type)
@@ -30347,6 +30368,7 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-req{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-module-platform);box-shadow:0 0 0 1px var(--dsw-alias-border-l1)}
 .kb8-sh-req b{font-size:12px;font-weight:650;color:var(--dsw-alias-label-secondary)}
 .kb8-sh-req p{margin:0;font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.kb8-sh-req .kb8-sh-made{font-size:12px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
 .kb8-sh-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
 .kb8-sh-list li{display:flex;flex-direction:column;gap:1px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kb8-sh-list b{font-size:13px;color:var(--dsw-alias-label-primary)}
