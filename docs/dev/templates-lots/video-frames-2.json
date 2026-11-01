@@ -1,0 +1,31 @@
+{
+ "name": "video-frames-2",
+ "style": "No text, no lettering, no watermark",
+ "ask": {
+  "width": 1280,
+  "height": 720,
+  "steps": 4
+ },
+ "keep": {
+  "width": 1280,
+  "quality": 90,
+  "maxKb": 1500
+ },
+ "cells": [
+  {
+   "name": "v2-ad-hero",
+   "seed": 5101,
+   "prompt": "Cinematic advertising photograph of a tall frosted emerald-green glass bottle with a matte black cap and a clean embossed ring, no label, standing on wet black slate in drifting fog, dramatic rim light from behind, water droplets on the glass, deep teal shadows, luxurious and minimal, shallow depth of field"
+  },
+  {
+   "name": "v2-property-aerial",
+   "seed": 5102,
+   "prompt": "Aerial drone photograph at golden hour of a modern cliffside villa with white concrete terraces, floor-to-ceiling glass and an infinity pool, above a calm turquoise bay, warm sunset light, a winding private road lined with olive trees in the foreground, luxury real estate photography"
+  },
+  {
+   "name": "v2-old-photo",
+   "seed": 5103,
+   "prompt": "Antique black-and-white photograph from 1926 of a busy harbour market square: fishermen, women in long dresses and hats, children, a horse cart, a tram, flags and fishing boats behind, shot on a large-format plate camera, sepia tone, fine film grain, soft vignette, light scratches and a thin white border"
+  }
+ ]
+}
