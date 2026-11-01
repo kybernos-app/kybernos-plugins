@@ -2519,14 +2519,40 @@ const kbNotifyStart = (e) => {
   const KEY = 'kybernos.notifs.v1'
   const MAX = 30
   const KINDS = ['info', 'success', 'warn', 'error']
+  // 2026-11-01, the person's decision (asked in the chat): the notes of a translation run are muted. Nobody knew where they came
+  // from, the × was not the way out people expect, and the outcome of a run is already on the Settings › Language page.
+  // A muted id is never stored and never toasted; one an older version stored is dropped for good at load. Bringing them back is
+  // emptying this list.
+  const MUTED = ['lang:']
+  const muted = (n) => MUTED.some((p) => n.id.indexOf(p) === 0)
   const subs = new Set()
   const valid = (n) => n !== null && typeof n === 'object' && typeof n.id === 'string' && n.id !== '' && typeof n.title === 'string'
+  let dropped = false
   const load = () => {
-    try { const v = JSON.parse(store.getItem(KEY)); return Array.isArray(v) ? v.filter(valid).slice(0, MAX) : [] } catch (err) { return [] }
+    try {
+      const v = JSON.parse(store.getItem(KEY))
+      if (!Array.isArray(v)) return []
+      const kept = v.filter(valid)
+      const shown = kept.filter((n) => !muted(n))
+      if (shown.length !== kept.length) dropped = true
+      return shown.slice(0, MAX)
+    } catch (err) { return [] }
   }
   let list = load()
   const save = () => { try { store.setItem(KEY, JSON.stringify(list)) } catch (err) { /* storage unavailable: the note lives for this page only */ } }
+  // The muted notes of an older version leave the disk here, so the bell does not keep showing them until someone presses ×.
+  if (dropped) save()
   const emit = () => { for (const fn of Array.from(subs)) { try { fn(list.slice()) } catch (err) { /* one listener must not stop the others */ } } }
+  // Another tab of this GUI shares the key. Without hearing it, a tab that did not dismiss keeps its own copy in memory and writes
+  // it back at its next markRead/push: the note came back as if the × had done nothing (the complaint of 2026-11-01).
+  if (typeof win.addEventListener === 'function') {
+    win.addEventListener('storage', (ev) => {
+      if (ev === null || ev === undefined || ev.key !== KEY) return
+      if (ev.storageArea !== undefined && ev.storageArea !== null && ev.storageArea !== store) return
+      list = load()
+      emit()
+    })
+  }
   let toastEl = null
   let toastTimer = null
   const hideToast = () => {
@@ -2563,7 +2589,9 @@ const kbNotifyStart = (e) => {
     x.className = 'kbn-toast-x'
     x.setAttribute('aria-label', 'Close')
     x.textContent = '×'
-    x.addEventListener('click', hideToast)
+    // The × of the toast is the × of the note: it takes the note out of the bell too. It used to hide the toast only, so the note
+    // stayed in the bell and came back on the next opening — « the cross does nothing » (2026-11-01).
+    x.addEventListener('click', () => { api.dismiss(item.id); hideToast() })
     el.appendChild(x)
     doc.body.appendChild(el)
     toastEl = el
@@ -2571,9 +2599,10 @@ const kbNotifyStart = (e) => {
     return el
   }
   const api = {
-    /** Publish a note. `toast: false` keeps it to the bell. Returns the stored note, or null when it was not one. */
+    /** Publish a note. `toast: false` keeps it to the bell. Returns the stored note, or null when it was not one (or when its source is muted). */
     push(n) {
       if (!valid(n)) return null
+      if (muted(n)) return null
       const a = n.action
       const item = {
         id: n.id.slice(0, 120), at: clock(), kind: KINDS.indexOf(n.kind) >= 0 ? n.kind : 'info', title: n.title.slice(0, 120),

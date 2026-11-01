@@ -22,7 +22,16 @@ const mkDoc = () => {
   const mk = (tag) => { const el = { tag, children: [], attrs: {}, listeners: {}, textContent: '', className: '', removed: false, setAttribute(k, v) { this.attrs[k] = v }, appendChild(c) { this.children.push(c) }, addEventListener(t, fn) { this.listeners[t] = fn }, remove() { this.removed = true } }; made.push(el); return el }
   return { made, createElement: mk, body: { appendChild(el) { el.attached = true } } }
 }
-const mkWin = () => { const events = []; return { events, dispatchEvent: (e) => { events.push(e); return true }, CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init && init.detail } } } }
+const mkWin = () => {
+  const events = []
+  const listeners = {}
+  return {
+    events, listeners,
+    addEventListener: (t, fn) => { (listeners[t] = listeners[t] || []).push(fn) },
+    dispatchEvent: (e) => { events.push(e); return true },
+    CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init && init.detail } },
+  }
+}
 const make = (extra) => {
   const storage = mkStorage(); const win = mkWin(); const doc = mkDoc(); let t = 1000
   const api = kbNotifyStart(Object.assign({ storage, window: win, document: doc, now: () => ++t }, extra || {}))
@@ -34,11 +43,11 @@ console.log('publishing')
   const { api, win, doc } = make()
   check('the store is published for the other plugins', typeof win.__KB_NOTIFY__ === 'object' && win.__KB_NOTIFY__ === api)
   check('something that is not a note is refused (no id, no title, not an object)', api.push(null) === null && api.push({ title: 'x' }) === null && api.push({ id: 'a' }) === null && api.list().length === 0)
-  const n = api.push({ id: 'lang:es', kind: 'success', title: 'Español is ready', body: 'Switch to it any time.', action: { label: 'Use it', event: 'kb-lang-use', detail: { lang: 'es' } } })
+  const n = api.push({ id: 'team:es', kind: 'success', title: 'Español is ready', body: 'Switch to it any time.', action: { label: 'Use it', event: 'kb-lang-use', detail: { lang: 'es' } } })
   check('a note is kept with its time, kind and action', n.kind === 'success' && n.read === false && n.action.event === 'kb-lang-use' && api.list().length === 1 && api.unread() === 1)
   check('it is announced with a toast that carries the action', doc.made.some((el) => el.attrs['data-kb'] === 'notify-toast' && el.attached === true) && doc.made.some((el) => el.className === 'kbn-toast-act' && el.textContent === 'Use it'))
   check('an unknown kind is « info », and an action whose event is not an event name is dropped', api.push({ id: 'b', kind: 'weird', title: 't', action: { label: 'x', event: 'alert(1)' } }).kind === 'info' && api.list().find((x) => x.id === 'b').action === null)
-  check('the same id replaces the earlier note (one run, one note)', (() => { api.push({ id: 'lang:es', title: 'Español failed', kind: 'error' }); return api.list().filter((x) => x.id === 'lang:es').length === 1 && api.list()[0].id === 'lang:es' && api.list()[0].title === 'Español failed' })())
+  check('the same id replaces the earlier note (one run, one note)', (() => { api.push({ id: 'team:es', title: 'Español failed', kind: 'error' }); return api.list().filter((x) => x.id === 'team:es').length === 1 && api.list()[0].id === 'team:es' && api.list()[0].title === 'Español failed' })())
   check('toast: false keeps it to the bell', (() => { const before = doc.made.length; api.push({ id: 'quiet', title: 'q', toast: false }); return doc.made.length === before })())
   check('the list is bounded', (() => { for (let i = 0; i < 50; i += 1) api.push({ id: 'n' + i, title: 't', toast: false }); return api.list().length === 30 })())
 }
@@ -75,5 +84,43 @@ console.log('what goes wrong')
   const noDoc = kbNotifyStart({ storage: mkStorage(), window: mkWin(), document: null, now: () => 1 })
   check('without a document the toast is skipped and the bell has the note', noDoc.push({ id: 'x', title: 'X' }) !== null && noDoc.list().length === 1)
 }
+console.log('the × of the toast, and the bell')
+{
+  const { api, doc, storage } = make()
+  api.push({ id: 'plain', title: 'An automation ran', toast: true })
+  const x = doc.made.filter((el) => el.className === 'kbn-toast-x').pop()
+  check('the toast carries a ×', x !== undefined)
+  if (x !== undefined) x.listeners.click()
+  check('the × of the toast takes the note out of the bell too (it used to hide the toast only)', api.list().length === 0 && JSON.parse(storage.m.get('kybernos.notifs.v1')).length === 0)
+}
+
+console.log('a muted source (a translation run, the person’s decision of 2026-11-01)')
+{
+  const { api, doc } = make()
+  const before = doc.made.length
+  check('a note of a muted source is refused: no bell entry, no toast', api.push({ id: 'lang:zh', title: '中文: 150 texts stay in English.' }) === null && api.list().length === 0 && doc.made.length === before)
+  check('the notes of the other sources still go through', api.push({ id: 'auto:1', title: 'An automation ran' }) !== null && api.list().length === 1)
+  const raw = JSON.stringify([{ id: 'lang:zh', title: 'old', at: 1, kind: 'warn', read: false, action: null }, { id: 'auto:2', title: 'keep', at: 2, kind: 'info', read: false, action: null }])
+  const m = new Map([['kybernos.notifs.v1', raw]])
+  const again = kbNotifyStart({ storage: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)) } }, window: mkWin(), document: null, now: () => 1 })
+  check('a muted note an older version stored is dropped when the page loads', again.list().map((x) => x.id).join() === 'auto:2')
+  check('…and it leaves the storage, so it does not come back on the next load', JSON.parse(m.get('kybernos.notifs.v1')).map((x) => x.id).join() === 'auto:2')
+}
+
+console.log('two tabs share the bell')
+{
+  const { api, win, storage } = make()
+  api.push({ id: 'a', title: 'A', toast: false })
+  check('the page listens to the shared key', (win.listeners.storage || []).length === 1)
+  const signal = (key) => (win.listeners.storage || []).forEach((fn) => fn({ key, storageArea: storage }))
+  signal('another.key')
+  check('an event for another key changes nothing', api.list().map((x) => x.id).join() === 'a')
+  storage.setItem('kybernos.notifs.v1', '[]') // the other tab pressed ×
+  signal('kybernos.notifs.v1')
+  check('a note dismissed in another tab leaves this one too', api.list().length === 0)
+  api.push({ id: 'c', title: 'C', toast: false })
+  check('…and the tab that stays does not write the dismissed note back', JSON.parse(storage.m.get('kybernos.notifs.v1')).map((x) => x.id).join() === 'c')
+}
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)
