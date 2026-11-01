@@ -1,0 +1,13 @@
+{
+  "title": "Hand coffee grinder",
+  "build": ["py grinder.py"],
+  "checks": ["node test-bom.mjs", "py test_grinder.py"],
+  "page": {
+    "title": "Hand coffee grinder",
+    "lede": "A wooden box mill drawn as twelve solids in a CAD kernel. Explode it, play the assembly, click a part: mass is the exact volume times the density, and the cost by batch follows from assumptions that are shown, not hidden.",
+    "glb": { "grinder": "grinder.glb" },
+    "data": { "GRINDER_REPORT": "grinder-report.json" },
+    "modules": ["bom.mjs", "example.js"],
+    "examples": ["await grinderExample({ ...env, camera, controls, renderer, report: GRINDER_REPORT, bom: { ASSUMPTIONS, bom }, parts: await loadParts(GLB.grinder) })"]
+  }
+}

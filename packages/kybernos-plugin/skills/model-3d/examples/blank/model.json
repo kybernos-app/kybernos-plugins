@@ -1,0 +1,13 @@
+{
+  "title": "Three-legged stool",
+  "build": ["py model.py"],
+  "checks": ["py test_model.py"],
+  "page": {
+    "title": "Three-legged stool",
+    "lede": "Four solids built in a CAD kernel and checked before they ship: every part is a closed valid solid, the legs meet the seat without going through it, and the masses come from the exact volumes.",
+    "glb": { "model": "model.glb" },
+    "data": { "REPORT": "model-report.json" },
+    "modules": ["example.js"],
+    "examples": ["partsExample({ ...env, parts: await loadParts(GLB.model), report: REPORT })"]
+  }
+}

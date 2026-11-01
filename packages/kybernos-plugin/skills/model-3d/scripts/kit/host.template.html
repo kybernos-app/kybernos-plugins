@@ -1,0 +1,298 @@
+<meta charset="utf-8">
+<title>/*@@TITLE@@*/</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: left, the live scene; right, the legend with live values; under both, the command bar. A picker sits on top when the page
+   holds more than one example. */
+:root {
+  --bg: #e9e7e2; --panel: #f6f5f1; --panel-2: #efede8; --ink: #1c1b19; --muted: #66645d; --line: #d4d1c9;
+  --accent: #f2372a; --accent-ink: #ffffff; --stage-a: #f7f5f1; --stage-b: #d6d2c9; --ok: #2d7a57;
+  --font-display: "Avenir Next", "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-body: system-ui, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111214; --panel: #1a1b1e; --panel-2: #212226; --ink: #ecebe6; --muted: #9b9990; --line: #2f3034;
+    --accent: #ff5648; --accent-ink: #1a0504; --stage-a: #2c2e33; --stage-b: #131416; --ok: #55c28f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111214; --panel: #1a1b1e; --panel-2: #212226; --ink: #ecebe6; --muted: #9b9990; --line: #2f3034;
+  --accent: #ff5648; --accent-ink: #1a0504; --stage-a: #2c2e33; --stage-b: #131416; --ok: #55c28f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-body); padding-block: 22px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 16px; }
+h1 { font: 700 26px/1.1 var(--font-display); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.crumb { font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.lede { color: var(--muted); margin: 6px 0 0; max-width: 70ch; }
+.dialog { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; }
+.picker[hidden] { display: none; }
+.picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.picker button { all: unset; box-sizing: border-box; cursor: pointer; padding: 12px 16px; display: grid; gap: 2px; border-right: 1px solid var(--line); position: relative; }
+.picker button:last-child { border-right: 0; }
+.picker button b { font: 700 15px/1.2 var(--font-display); }
+.picker button span { font-size: 12px; color: var(--muted); }
+.picker button[aria-selected="true"] { background: var(--panel-2); }
+.picker button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent); }
+.picker button:focus-visible, .btn:focus-visible, .sw:focus-visible, .seg button:focus-visible, .rows button:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.picker .tag { font: 500 10.5px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) 330px; }
+.stage { position: relative; min-height: 460px; background: radial-gradient(120% 90% at 50% 25%, var(--stage-a), var(--stage-b)); touch-action: none; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.chip { position: absolute; left: 14px; top: 12px; font: 500 11px/1 var(--font-mono); color: var(--muted); background: color-mix(in srgb, var(--panel) 80%, transparent); border: 1px solid var(--line); padding: 7px 9px; border-radius: 999px; pointer-events: none; }
+.fail { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); text-align: center; padding: 24px; }
+.legend { border-left: 1px solid var(--line); padding: 16px 16px 18px; display: grid; gap: 14px; align-content: start; background: var(--panel); min-width: 0; }
+.legend h3 { font: 700 15px/1.2 var(--font-display); margin: 0; }
+.legend .sub { color: var(--muted); font-size: 12.5px; margin: 2px 0 0; }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.rows li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.rows li:first-child { border-top: 0; }
+.rows button { all: unset; box-sizing: border-box; display: contents; cursor: pointer; }
+.rows li.pick { cursor: pointer; }
+.rows li.on { background: color-mix(in srgb, var(--accent) 9%, transparent); margin-inline: -8px; padding-inline: 8px; border-radius: 8px; border-top-color: transparent; }
+.rows li.on + li { border-top-color: transparent; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c, var(--muted)); box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
+.rows b { font-weight: 600; display: block; }
+.rows small { color: var(--muted); font-size: 12px; }
+.v { font: 500 13px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.bar-cost { grid-column: 2 / 4; height: 3px; border-radius: 2px; background: var(--line); margin-top: -2px; overflow: hidden; }
+.bar-cost i { display: block; height: 100%; background: var(--ink); opacity: .55; }
+.total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--ink); padding-top: 10px; }
+.total span { color: var(--muted); }
+.big { font: 500 28px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 12.5px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; text-align: right; font: 500 12.5px/1.3 var(--font-mono); font-variant-numeric: tabular-nums; }
+.card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; display: grid; gap: 4px; }
+.card b { font: 700 14px/1.2 var(--font-display); }
+.card p { margin: 0; color: var(--muted); font-size: 12.5px; }
+.quote { display: grid; gap: 6px; }
+.quote h4 { margin: 0; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.quote li { list-style: none; display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.quote ul { margin: 0; padding: 0; display: grid; gap: 4px; }
+.cyc { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 6px; }
+.cyc i { display: block; height: 22px; border-radius: 4px; background: color-mix(in srgb, var(--c) 35%, transparent); font: 500 10px/22px var(--font-mono); font-style: normal; color: var(--ink); text-align: center; }
+.cyc i.on { background: var(--c); color: #fff; }
+.cyc .mark { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--ink); border-radius: 1px; left: 0; }
+.spark { width: 100%; height: 74px; display: block; }
+.spark path { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.spark line { stroke: var(--line); stroke-width: 1; }
+.spark circle { fill: var(--accent); }
+.bar { border-top: 1px solid var(--line); padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; justify-content: space-between; background: var(--panel); }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; min-width: 0; }
+.grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lab { font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg button { all: unset; box-sizing: border-box; cursor: pointer; padding: 8px 12px; font-weight: 500; font-size: 13px; background: var(--panel); border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.sw { all: unset; box-sizing: border-box; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); position: relative; }
+.sw[aria-pressed="true"]::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--ink); }
+.btn { all: unset; box-sizing: border-box; cursor: pointer; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; background: var(--panel); display: inline-flex; gap: 6px; align-items: center; }
+.btn:hover { border-color: var(--ink); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.06); }
+input[type=range] { accent-color: var(--accent); width: 150px; }
+.out { font: 500 12px/1 var(--font-mono); color: var(--muted); min-width: 92px; }
+.toast { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--ink); color: var(--panel); padding: 10px 14px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: min(92vw, 560px); z-index: 20; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.note { color: var(--muted); font-size: 12.5px; max-width: 80ch; margin: 0; }
+@media (max-width: 880px) {
+  .body { grid-template-columns: minmax(0, 1fr); }
+  .legend { border-left: 0; border-top: 1px solid var(--line); }
+  .stage { min-height: 360px; }
+  .picker { grid-template-columns: minmax(0, 1fr); }
+  .picker button { border-right: 0; border-bottom: 1px solid var(--line); }
+  .picker button[aria-selected="true"]::after { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+.scale { display: flex; align-items: center; gap: 8px; font: 500 11px/1 var(--font-mono); color: var(--muted); margin: -4px 0 0; }
+.scale i { flex: 1; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #2b86c5, #d99a1d 35%, #e2432b 65%, #ffe99c); }
+.pv { width: 100%; height: auto; display: block; }
+.pv line { stroke: var(--line); stroke-width: 1; }
+.pv path { fill: color-mix(in srgb, var(--accent) 14%, transparent); stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; }
+.pv circle { fill: var(--accent); }
+.pv text { fill: var(--muted); font: 500 9px var(--font-mono); }
+.facts.res { border-top: 1px solid var(--line); padding-top: 10px; }
+.checked { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+.checked summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+.checked p { margin: 8px 0 0; }
+</style>
+
+<div class="wrap">
+  <div>
+    /*@@CRUMB@@*/
+    <h1>/*@@TITLE@@*/</h1>
+    <p class="lede">/*@@LEDE@@*/</p>
+  </div>
+
+  <section class="dialog" aria-label="Example dialog">
+    <div class="picker" role="tablist" id="picker"></div>
+    <div class="body">
+      <div class="stage" id="stage">
+        <span class="chip">/*@@HINT@@*/</span>
+      </div>
+      <aside class="legend" id="legend" aria-live="polite"></aside>
+    </div>
+    <div class="bar">
+      <div class="ctl" id="ctl"></div>
+      <div class="grp">
+        <button class="btn" id="export" type="button">/*@@EXPORT@@*/</button>
+      </div>
+    </div>
+  </section>
+
+  /*@@NOTE@@*/
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const stage = $('#stage'), legend = $('#legend'), ctl = $('#ctl'), picker = $('#picker'), toastEl = $('#toast');
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+const eur = (n) => '€' + Math.round(n).toLocaleString('en-US');
+let toastTimer = 0;
+const toast = (msg) => { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3600); };
+
+// ── the renderer, one for the three examples ───────────────────────────────────────────────
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+} catch (e) {
+  stage.insertAdjacentHTML('beforeend', '<div class="fail"><p>This browser cannot draw 3D (WebGL is off).<br>The example would show here.</p></div>');
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.domElement.setAttribute('aria-label', '3D scene of the selected example');
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(34, 1, 0.01, 40);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.enablePan = false; controls.maxPolarAngle = Math.PI / 2 - 0.02; controls.minPolarAngle = 0.15;
+// the page must stay scrollable: a plain wheel scrolls the page, zoom needs ctrl/pinch; on a phone a vertical swipe scrolls too
+renderer.domElement.addEventListener('wheel', e => { if (!e.ctrlKey && !e.metaKey) e.stopImmediatePropagation(); }, { capture: true, passive: true });
+const narrow = matchMedia('(max-width: 880px)');
+const touchMode = () => { renderer.domElement.style.touchAction = narrow.matches ? 'pan-y' : 'none'; };
+touchMode(); narrow.addEventListener('change', touchMode);
+const key = new THREE.DirectionalLight(0xffffff, 2.0);
+key.position.set(1.4, 2.4, 1.6); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -1.6, right: 1.6, top: 1.6, bottom: -1.6, near: 0.5, far: 8 });
+key.shadow.bias = -0.0004; key.shadow.radius = 4;
+scene.add(key, new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 0.55));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: 0.24 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+const resize = () => {
+  const w = Math.max(1, stage.clientWidth), h = Math.max(1, stage.clientHeight);
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+};
+new ResizeObserver(resize).observe(stage); resize();
+
+// ── helpers ─────────────────────────────────────────────────────────────────────────────────
+const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0, ...o });
+const shadowed = (obj) => { obj.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); return obj; };
+const mesh = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; };
+const lathe = (pts, seg = 56) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg);
+const countTo = (el, to, fmt) => {
+  const from = Number(el.dataset.v || 0); el.dataset.v = to;
+  if (reduced) { el.textContent = fmt(to); return; }
+  const t0 = performance.now();
+  const step = (t) => { const k = ease((t - t0) / 380); el.textContent = fmt(from + (to - from) * k); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+};
+
+// parts made by the CAD kernel arrive as one .glb per example, embedded below; each node becomes a geometry with smooth normals
+const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0)).buffer;
+const loadParts = (s) => new Promise((ok, fail) => new GLTFLoader().parse(b64(s), '', (g) => {
+  const m = new Map(); g.scene.traverse((o) => { if (o.isMesh) m.set(o.name.replace(/_\d+$/, ''), toCreasedNormals(o.geometry, 0.6)); }); ok(m);
+}, fail));
+let camGoal = null;
+const flyTo = (pos, target) => { camGoal = { pos: new THREE.Vector3(...pos), target: new THREE.Vector3(...target), t: 0 }; };
+
+/*@@SIM@@*/
+
+/*@@DATA@@*/
+
+/*@@MODULES@@*/
+
+// ── the examples, the picker, the scene switch ──────────────────────────────────────────────
+const env = { THREE, std, mesh, lathe, shadowed, ease, $, ctl, legend, reduced };
+const EXAMPLES = [/*@@EXAMPLES@@*/];
+let cur = null;
+const mount = (i, instant) => {
+  if (cur) scene.remove(cur.group);
+  cur = EXAMPLES[i]; scene.add(cur.group); cur.enter();
+  controls.autoRotate = !!cur.autoRotate && !reduced; controls.autoRotateSpeed = 1.1;
+  if (instant) { camera.position.set(...cur.cam.pos); controls.target.set(...cur.cam.target); camGoal = null; } else flyTo(cur.cam.pos, cur.cam.target);
+  picker.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-selected', String(k === i)));
+  renderer.domElement.style.cursor = '';
+};
+picker.hidden = EXAMPLES.length < 2;
+picker.innerHTML = EXAMPLES.map((e, i) => `<button type="button" role="tab" data-i="${i}" aria-selected="false"><span class="tag">${e.tag}</span><b>${e.label}</b><span>${e.sub}</span></button>`).join('');
+picker.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) mount(Number(b.dataset.i)); });
+picker.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = (EXAMPLES.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : EXAMPLES.length - 1)) % EXAMPLES.length; mount(n); picker.children[n].focus(); } });
+const run = (e) => { const t = e.target.closest('[data-act]'); if (t && cur) cur.act(t.dataset.act, t.dataset.val !== undefined ? t.dataset.val : t.value); };
+ctl.addEventListener('click', run); legend.addEventListener('click', run);
+ctl.addEventListener('input', (e) => { if (e.target.matches('input[data-act]') && cur) cur.act(e.target.dataset.act, e.target.value); });
+controls.addEventListener('start', () => { controls.autoRotate = false; camGoal = null; });
+
+// picking (a click that is not a drag)
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const hit = (ev) => { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); const o = cur && cur.pickables ? ray.intersectObject(cur.pickables(), true)[0] : null; return o ? o.object : null; };
+let down = null;
+renderer.domElement.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', (e) => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5 && cur && cur.pointer) cur.pointer('click', hit(e)); down = null; });
+renderer.domElement.addEventListener('pointermove', (e) => { if (!down && cur && cur.pointer && e.pointerType === 'mouse') cur.pointer('move', hit(e)); });
+
+// export: the real glTF, built in the page (downloads are blocked in this preview, so the size is shown)
+$('#export').addEventListener('click', () => {
+  if (!cur) return;
+  const hidden = []; cur.group.traverse((o) => { if (o.userData.skipExport && o.visible) { o.visible = false; hidden.push(o); } });
+  new GLTFExporter().parse(cur.group, (buf) => {
+    hidden.forEach((o) => { o.visible = true; });
+    const kb = Math.max(1, Math.round(buf.byteLength / 1024));
+    // a normal browser saves the file; a sandboxed preview blocks the download, so the size is always shown as well
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' })); a.download = cur.file; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) { /* blocked: the toast below still says what the file is */ }
+    toast(STR.exported.replace('{file}', cur.file).replace('{kb}', kb));
+  }, (err) => { hidden.forEach((o) => { o.visible = true; }); toast(STR.exportFailed + (err && err.message ? ': ' + err.message : '')); }, { binary: true });
+});
+
+// ── the loop ────────────────────────────────────────────────────────────────────────────────
+let last = performance.now();
+renderer.setAnimationLoop((t) => {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  if (camGoal) { camGoal.t = Math.min(1, camGoal.t + dt / (reduced ? 0.01 : 0.9)); const k = ease(camGoal.t) * 0.12 + 0.02; camera.position.lerp(camGoal.pos, k); controls.target.lerp(camGoal.target, k); if (camGoal.t >= 1 && camera.position.distanceTo(camGoal.pos) < 0.003) camGoal = null; }
+  if (cur) cur.tick(dt);
+  controls.update(); renderer.render(scene, camera);
+});
+mount(0, true);
+window.__kb = { mount, EXAMPLES, camera, controls, get cur() { return cur; } };
+</script>

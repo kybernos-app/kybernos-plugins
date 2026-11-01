@@ -66,6 +66,7 @@ console.log('the third-party script hosts that are left run on demand, behind a 
   const ALLOWED = [
     { file: 'packages/kybernos-plugin/client.js', host: 'https://unpkg.com/@xyflow', count: 2, why: 'React Flow: tried only when the host\'s own /kybernos/vendor/xyflow.* answers 404 (an older host), when a diagram opens' },
     { file: 'packages/kybernos-plugin/kb-places.js', host: 'https://cdn.jsdelivr.net/npm/leaflet', count: 2, why: 'Leaflet: tried only when /kybernos/vendor/leaflet.* answers 404, when a map opens' },
+    { file: 'packages/kybernos-plugin/skills/model-3d/scripts/kit/host.template.html', host: 'https://cdn.jsdelivr.net/npm/three@', count: 2, why: 'three.js (pinned version) for the one-file 3D page the model-3d skill builds in the person\'s project: DSH never loads it, only the page the person opens (three alone is over the 256 KiB a skill file may hold)' },
   ]
   const found = new Map()
   for (const f of shipped) {
