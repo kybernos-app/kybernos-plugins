@@ -17,7 +17,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
-import { createShelf } from '../packages/kybernos-plugin/templates-shelf.mjs'
+import { createShelf, shelfVideoAnswer } from '../packages/kybernos-plugin/templates-shelf.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const arg = (name) => (process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : null)
@@ -36,7 +36,8 @@ const released = picsDir === null ? null : join(resolve(picsDir), 'catalogue.jso
 copyFileSync(released !== null && existsSync(released) ? released : join(REPO, 'packages/kybernos-plugin/templates-fallback.json'), join(folder, 'catalogue.json'))
 if (picsDir !== null) symlinkSync(resolve(picsDir, 'shelf'), join(folder, 'shelf'))
 const shelf = createShelf({ dir: () => folder, api: () => '', fetchFn: null })
-const asked = { catalogue: 0, images: [] }
+const asked = { catalogue: 0, images: [], videos: [] }
+let failClips = false   // set for one step: the host then has no clip, as a machine that cannot reach the server
 const cleanup = () => { try { rmSync(folder, { recursive: true, force: true }) } catch (e) { /* gone */ } }
 
 const live = await openLivePage({ width: 1400, height: 900 }).catch((e) => { cleanup(); console.error('○ not run: ' + e.message); process.exit(3) })
@@ -103,6 +104,16 @@ try {
         asked.images.push(f)
         const bytes = await shelf.image(f)
         await answer(bytes === null ? 404 : 200, 'image/webp', bytes === null ? '' : bytes)
+      } else if (url.indexOf('/kybernos/templates-video') >= 0) {
+        const f = new URL(url).searchParams.get('f')
+        const range = p.request.headers.Range || p.request.headers.range || ''
+        asked.videos.push({ f, range })
+        const bytes = failClips ? null : await shelf.video(f)
+        if (bytes === null) await answer(404, 'text/plain', '')
+        else {
+          const a = shelfVideoAnswer(bytes, range)
+          await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: a.status, responseHeaders: Object.entries(a.headers).map(([name, value]) => ({ name, value: String(value) })), body: Buffer.from(a.body).toString('base64') })
+        }
       } else await page.send('Fetch.continueRequest', { requestId: p.requestId })
     } catch (e) {
       try { await page.send('Fetch.continueRequest', { requestId: p.requestId }) } catch (e2) { /* gone */ }
@@ -256,6 +267,60 @@ try {
       const mixed = await draft()
       check('« Remix » puts the example\'s prompt in the composer, with room to say what to change, and closes the dialog', typeof mixed === 'string' && mixed.indexOf(g.prompt) > 0 && mixed.trim().length > g.prompt.length + 10 && (await ev(`!document.querySelector('[data-kb="newchat-example-dialog"]')`)) === true, mixed)
       await clearDraft()
+    }
+  }
+  await clearDraft()
+
+  // ── a video example: its first frame, Play, the clip asked of the host (with ranges), the sample's own prompt ──────────────────────
+  await clickType('video')
+  await sleep(700)
+  const vids = await ev(`[...document.querySelectorAll('[data-kb="newchat-examples"] .kb8-sh-card')].map((c) => c.dataset.id)`)
+  await ev(`(() => { const s = document.querySelector('[data-kb="newchat-examples"]'); if (s) s.scrollIntoView({ block: 'start', behavior: 'instant' }) })()`)
+  await sleep(600)
+  await shot('03b-video-grid')
+  if (!Array.isArray(vids) || !vids.includes('video_ad_bottle')) console.log('  (no sample clip here: the video-example checks are skipped)')
+  else {
+    await clickExample('video_ad_bottle')
+    await sleep(700)
+    const v0 = await ev(`(() => { const d = document.querySelector('[data-kb="newchat-example-dialog"]'); if (!d) return null; const s = d.querySelector('[data-kb="newchat-example-sample"]'); const big = d.querySelector('.kb8-sh-big').getBoundingClientRect(); return { play: !!d.querySelector('[data-kb="newchat-example-play"]'), video: !!d.querySelector('video'), img: !!d.querySelector('.kb8-sh-big img'), sample: s ? s.innerText : '', reqTitle: d.querySelector('.kb8-sh-req b').innerText, req: d.querySelector('.kb8-sh-req p').innerText, use: d.querySelector('[data-kb="newchat-example-use"]').innerText, remix: !!d.querySelector('[data-kb="newchat-example-remix"]'), ratio: Math.round(big.width / big.height * 100) / 100 } })()`)
+    await shot('04c-video-dialog')
+    check('a video example opens on its first frame with a Play button, and no clip is fetched yet', v0 !== null && v0.play === true && v0.video === false && v0.img === true && asked.videos.length === 0, v0)
+    check('its prompt is a request (Use this request, no Remix), and the sample\'s own prompt and model are shown apart', v0 !== null && /request/i.test(v0.reqTitle) && /request/i.test(v0.use) && v0.remix === false && /heygen|HeyGen/.test(v0.sample) && /\d+\u00d7\d+/.test(v0.sample) && /seed \d+/.test(v0.sample) && v0.sample.length > 120, v0)
+    await click('[data-kb="newchat-example-play"]')
+    const playing = await waitFor(page, `(() => { const v = document.querySelector('[data-kb="newchat-example-video"]'); return !!v && v.readyState >= 3 && v.currentTime > 0.2 })()`, 20000)
+    const vp = await ev(`(() => { const v = document.querySelector('[data-kb="newchat-example-video"]'); if (!v) return null; const b = v.getBoundingClientRect(), big = document.querySelector('.kb8-sh-big').getBoundingClientRect(); return { paused: v.paused, w: v.videoWidth, h: v.videoHeight, d: Math.round(v.duration * 10) / 10, controls: v.controls, inside: b.left >= big.left - 1 && b.right <= big.right + 1 && b.top >= big.top - 1 && b.bottom <= big.bottom + 1, playBtn: !!document.querySelector('[data-kb="newchat-example-play"]') } })()`)
+    await shot('04d-video-playing')
+    check('Play swaps the frame for the real clip, which plays, with its controls, inside the picture box', playing !== null && vp !== null && vp.paused === false && vp.w === 832 && vp.h === 480 && vp.d > 5 && vp.d < 6 && vp.controls === true && vp.inside === true && vp.playBtn === false, vp)
+    check('the clip was asked of the host once someone pressed Play, as a player does (a range)', asked.videos.length >= 1 && asked.videos.every((a) => a.f === 'video/video_ad_bottle.mp4') && asked.videos.some((a) => /^bytes=\d+-/.test(a.range)), asked.videos)
+    await ev(`(() => { document.querySelector('[data-kb="newchat-example-video"]').currentTime = 3.2 })()`)
+    const seeked = await waitFor(page, `(() => { const v = document.querySelector('[data-kb="newchat-example-video"]'); return !!v && v.currentTime >= 3 && !v.seeking })()`, 8000)
+    check('seeking inside the clip works (the host answers ranges)', seeked !== null)
+    await key('Escape', 'Escape', 27)
+    await sleep(400)
+    // a vertical clip stays whole inside the 16:10 box, and a Motion sample says what made it
+    await clickExample('video_tryon_coat')
+    await sleep(500)
+    await click('[data-kb="newchat-example-play"]')
+    await waitFor(page, `(() => { const v = document.querySelector('[data-kb="newchat-example-video"]'); return !!v && v.readyState >= 3 && v.currentTime > 0.2 })()`, 20000)
+    const vv = await ev(`(() => { const v = document.querySelector('[data-kb="newchat-example-video"]'); if (!v) return null; const big = document.querySelector('.kb8-sh-big').getBoundingClientRect(); return { w: v.videoWidth, h: v.videoHeight, fit: getComputedStyle(v).objectFit, boxW: Math.round(big.width), boxH: Math.round(big.height) } })()`)
+    check('a vertical clip is shown whole (contain) in the same box', vv !== null && vv.h > vv.w && vv.fit === 'contain', vv)
+    await shot('04e-video-vertical')
+    await key('Escape', 'Escape', 27)
+    await sleep(400)
+    if (vids.includes('video_logo_reveal')) {
+      await clickExample('video_logo_reveal')
+      await sleep(500)
+      const mo = await ev(`(() => { const s = document.querySelector('[data-kb="newchat-example-sample"]'); return s ? { text: s.innerText, hasPrompt: !!s.querySelector('p') } : null })()`)
+      check('a Motion sample names Kybernos Motion and has no model prompt of its own', mo !== null && /Kybernos Motion/.test(mo.text) && mo.hasPrompt === false, mo)
+      failClips = true
+      await click('[data-kb="newchat-example-play"]')
+      const failed = await waitFor(page, `!!document.querySelector('[data-kb="newchat-example-noclip"]')`, 8000)
+      failClips = false
+      const back = await ev(`({ play: !!document.querySelector('[data-kb="newchat-example-play"]'), video: !!document.querySelector('[data-kb="newchat-example-video"]'), img: !!document.querySelector('.kb8-sh-big img') })`)
+      await shot('04f-video-unavailable')
+      check('a clip the host cannot get says so, and the first frame and Play come back', failed !== null && back.play === true && back.video === false && back.img === true, back)
+      await key('Escape', 'Escape', 27)
+      await sleep(400)
     }
   }
   await clearDraft()

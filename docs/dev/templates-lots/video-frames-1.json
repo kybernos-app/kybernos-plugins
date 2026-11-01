@@ -1,0 +1,31 @@
+{
+  "name": "video-frames-1",
+  "style": "No text, no lettering, no watermark",
+  "ask": {
+    "width": 1280,
+    "height": 720,
+    "steps": 4
+  },
+  "keep": {
+    "width": 1280,
+    "quality": 90,
+    "maxKb": 1500
+  },
+  "cells": [
+    {
+      "name": "video-ad-bottle",
+      "seed": 4201,
+      "prompt": "Product photo of a teal insulated stainless-steel water bottle standing on a moss-covered rock beside a clear forest stream, soft morning light, light mist in the air, shallow depth of field, fresh and outdoorsy"
+    },
+    {
+      "name": "video-tryon-coat",
+      "seed": 4202,
+      "prompt": "Full-length fashion photo of a woman with dark curly hair wearing a mustard-yellow trench coat over a white shirt and black trousers, standing facing the camera in a bright minimal studio with a pale grey backdrop, soft studio light"
+    },
+    {
+      "name": "video-theme-90s",
+      "seed": 4203,
+      "prompt": "A young man in 1990s streetwear, an oversized denim jacket, a bucket hat and chunky sneakers, posing in front of a glowing neon arcade at night, VHS camcorder look with film grain and slightly soft focus"
+    }
+  ]
+}

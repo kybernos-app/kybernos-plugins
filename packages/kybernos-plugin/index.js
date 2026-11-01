@@ -11,7 +11,7 @@ import { dshHomeSync } from './dsh-home.mjs'
 import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { workspaceHealthRows, requestedWorkspaceId } from './workspace-health.mjs'
-import { createShelf } from './templates-shelf.mjs'
+import { SHELF_PUBLIC_BASE, createShelf, shelfVideoAnswer } from './templates-shelf.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, memoryUnreadable as autoLoadMemoryUnreadable,guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
@@ -11596,12 +11596,14 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route workspaces-health')
-      // ── The templates shelf of the new-chat page: GET /kybernos/templates-catalogue, GET /kybernos/templates-image?f= ──
+      // ── The templates shelf of the new-chat page: GET /kybernos/templates-catalogue, GET /kybernos/templates-image?f=, GET /kybernos/templates-video?f= ──
       // The public catalogue of examples (templates-shelf.mjs, docs/dev/templates-catalogue.md): the disk copy of the server's last answer, else the text shipped with the plugin.
-      // A picture comes from the disk or, once, from the server. Read only; nothing of the person is read, kept or sent, and a server that is silent changes nothing.
+      // A picture comes from the disk or, once, from the server; so does a sample clip, but only when someone presses Play (it is answered with ranges, as a player asks). Read only;
+      // nothing of the person is read, kept or sent, and a server that is silent changes nothing.
       const templatesShelf = createShelf({
         dir: () => nodePathJoin(dshHomeSync(), 'kybernos', 'templates-catalogue'),
         api: () => { const s = kbFeedbackCloudState(dshHomeSync()); return s !== null && typeof s.api === 'string' && s.api !== '' ? s.api : KB_FEEDBACK_API_DEFAULT },
+        publicBase: typeof process.env.KYBERNOS_TEMPLATES_BASE === 'string' ? process.env.KYBERNOS_TEMPLATES_BASE : SHELF_PUBLIC_BASE,
         log: (m) => { try { console.error('[kybers] templates shelf: ' + m) } catch (e) { /* console unavailable */ } },
       })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/templates-catalogue', handler: async (req, res) => {
@@ -11622,6 +11624,13 @@ function boot(ctx) {
         if (bytes === null) { res.writeHead(404); res.end(''); return }
         try { sendUserFile(res, bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route templates-image')
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/templates-video', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        let bytes = null
+        try { bytes = await templatesShelf.video(queryOf(req).get('f')) } catch (e) { bytes = null }
+        if (bytes === null) { res.writeHead(404); res.end(''); return }
+        try { const a = shelfVideoAnswer(bytes, req.headers !== undefined && req.headers !== null ? req.headers.range : undefined); res.writeHead(a.status, a.headers); res.end(a.body) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+      } }), 'kybernos: route templates-video')
       // The background cycle (a first load a little after the start, then a day-old check every hour). KYBERNOS_NO_TEMPLATES_LOAD=1 switches it off (tests, an offline machine).
       ctx.effect(() => (process.env.KYBERNOS_NO_TEMPLATES_LOAD === '1' ? () => {} : templatesShelf.start()), 'kybernos: templates shelf load')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──

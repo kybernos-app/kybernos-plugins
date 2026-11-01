@@ -1,0 +1,21 @@
+{
+  "name": "video-frames-1b",
+  "style": "No text, no lettering, no watermark",
+  "ask": {
+    "width": 720,
+    "height": 1280,
+    "steps": 4
+  },
+  "keep": {
+    "width": 720,
+    "quality": 90,
+    "maxKb": 1500
+  },
+  "cells": [
+    {
+      "name": "video-tryon-coat-v",
+      "seed": 4212,
+      "prompt": "Full-length vertical fashion photo of a woman with dark curly hair wearing a mustard-yellow trench coat over a white shirt and black trousers, standing facing the camera in a bright minimal studio with a pale grey backdrop, soft studio light, the whole body in frame"
+    }
+  ]
+}

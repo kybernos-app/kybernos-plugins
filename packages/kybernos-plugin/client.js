@@ -1272,6 +1272,11 @@ let kbLocaleRead = () => 'en'
       'kbnc.sh.remixpost': { kybernos: ' » mais change : ', en: '” but change: ' },
       'kbnc.sh.madewith': { kybernos: 'Fait avec', en: 'Made with' },
       'kbnc.sh.seed': { kybernos: 'graine', en: 'seed' },
+      'kbnc.sh.play': { kybernos: 'Lire l’exemple', en: 'Play the example' },
+      'kbnc.sh.noclip': { kybernos: 'Cet exemple ne peut pas être lu pour l’instant.', en: 'This example cannot be played right now.' },
+      'kbnc.sh.sample': { kybernos: 'Prompt de l’exemple', en: 'Prompt of the sample' },
+      'kbnc.sh.samplem': { kybernos: 'Comment l’exemple a été fait', en: 'How the sample was made' },
+      'kbnc.sh.finevideo': { kybernos: 'Un exemple fait une fois. Ta vidéo sera faite à partir de tes images et de tes mots.', en: 'A sample made once. Your video is made from your own pictures and words.' },
       'kbnc.sh.finemade': { kybernos: 'Généré à partir du prompt ci-contre. Chaque génération est différente.', en: 'Generated from the prompt beside it. Every generation comes out different.' },
       'kbnc.sh.open': { kybernos: 'Ouvrir mon app', en: 'Open my app' },
       'kbnc.sh.have': { kybernos: 'Déjà dans tes apps.', en: 'Already in your apps.' },
@@ -8813,6 +8818,14 @@ const kbNcPicUrl = (e, big) => {
   const name = big === true && typeof i.large === 'string' ? i.large : i.src
   return typeof name === 'string' && name !== '' ? '/kybernos/templates-image?f=' + encodeURIComponent(name) : ''
 }
+/** The address of a video example's sample clip on this machine (the host keeps it once someone has played it), or '' when the example has none. */
+const kbNcVideoUrl = (e) => {
+  const v = kbNcObj(e) === null ? null : kbNcObj(e.video)
+  return v !== null && typeof v.src === 'string' && v.src !== '' ? '/kybernos/templates-video?f=' + encodeURIComponent(v.src) : ''
+}
+/** A generated PICTURE example: its `prompt` is exactly what the model was given, so « Use this prompt » and « Remix » make sense. A video example's `prompt` is the request that
+ *  starts its skill (the sample's own prompt is `made.prompt`), so it keeps « Use this request ». */
+const kbNcPromptMode = (e) => kbNcObj(e) !== null && kbNcObj(e.made) !== null && kbNcObj(e.video) === null
 /** The sentence « adapt this template » puts in the composer. */
 const kbNcAdaptText = (pre, e, post) => pre + String(e.name) + post
 /** The sentence « remix this example » puts in the composer: the example's prompt, kept, and the person says what to change after it. */
@@ -30067,6 +30080,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const aliveRef = React.useRef(true)
       const tabPair = React.useState('result')
       const stPair = React.useState({ phase: 'idle', appId: '', msg: '' })
+      const playPair = React.useState('idle')   // a sample clip: 'idle' (its first frame), 'playing', 'failed'
+      const vidRef = React.useRef(null)
       const tab = tabPair[0]
       const st = stPair[0]
       React.useEffect(() => {
@@ -30074,6 +30089,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (closeRef.current !== null) closeRef.current.focus()
         return () => { aliveRef.current = false }
       }, [])
+      // Pressing Play removes the button that had the focus: the focus goes to the clip (its controls work from the keyboard), or back to Close when the clip cannot be read, so Escape keeps working.
+      React.useEffect(() => {
+        if (playPair[0] === 'playing' && vidRef.current !== null) vidRef.current.focus()
+        else if (playPair[0] === 'failed' && closeRef.current !== null) closeRef.current.focus()
+      }, [playPair[0]])
       const kit = typeof e.kit === 'string' && dp.kits !== null && dp.kits !== undefined ? dp.kits[e.kit] : undefined
       const withKit = kit !== undefined && e.kind === 'template'
       const isApp = Array.isArray(e.tables) && e.tables.length > 0
@@ -30107,12 +30127,22 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const status = st.phase === 'busy' ? kbt('kbnc.sh.adding') : st.phase === 'done' ? kbt('kbnc.sh.added') : st.phase === 'fail' ? (st.msg !== '' ? st.msg : kbt('kbnc.sh.fail')) : (withKit && kit.have === true ? kbt('kbnc.sh.have') : '')
       const made = kbNcObj(e.made)
       const madeLine = kbNcMadeLine(made, kbt('kbnc.sh.madewith'), kbt('kbnc.sh.seed'))
-      const label = withKit === false ? kbt(made !== null ? 'kbnc.sh.useprompt' : 'kbnc.sh.use') : have === true ? kbt('kbnc.sh.open') : st.phase === 'busy' ? kbt('kbnc.sh.adding') : kbt('kbnc.sh.usetpl')
+      const promptMode = kbNcPromptMode(e)
+      const clip = kbNcVideoUrl(e)
+      const madeEl = madeLine === '' ? null : h('span', { className: 'kb8-sh-made', title: made.model, 'data-kb': 'newchat-example-made' }, madeLine)
+      const samplePrompt = clip !== '' && made !== null && typeof made.prompt === 'string' ? made.prompt : ''
+      const label = withKit === false ? kbt(promptMode ? 'kbnc.sh.useprompt' : 'kbnc.sh.use') : have === true ? kbt('kbnc.sh.open') : st.phase === 'busy' ? kbt('kbnc.sh.adding') : kbt('kbnc.sh.usetpl')
       const picture = map !== null
         ? h('svg', { className: 'kb8-sh-map', viewBox: '0 0 320 200', role: 'img', 'aria-label': e.name },
           map.lines.map((l, i) => h('g', { key: 'l' + i }, h('line', { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, className: 'ln' }), h('circle', { cx: l.x2, cy: l.y2, r: 2.4, className: 'dot' }))),
           map.boxes.map((b, i) => h('g', { key: 'b' + i }, h('rect', { x: b.x - 43, y: b.y - 14, width: 86, height: 28, rx: 7, className: 'box' }), h('text', { x: b.x, y: b.y + 3.6, textAnchor: 'middle', className: 'lbl' }, b.label))))
         : h(KbNcPic, { key: e.id + ':big', e, big: true })
+      // A video example shows its first frame; Play replaces it with the clip (fetched by the host only then, once). A clip that cannot be read puts the frame back with a line saying so.
+      const stage = map === null && clip !== '' && playPair[0] === 'playing'
+        ? h('video', { className: 'kb8-sh-vid', ref: vidRef, tabIndex: 0, src: clip, poster: kbNcPicUrl(e, true), controls: true, autoPlay: true, loop: true, playsInline: true, 'aria-label': e.name, 'data-kb': 'newchat-example-video', onError: () => playPair[1]('failed') })
+        : h(React.Fragment, null, picture, map !== null ? null : clip !== ''
+          ? h('button', { type: 'button', className: 'kb8-sh-playbtn', 'aria-label': kbt('kbnc.sh.play'), 'data-kb': 'newchat-example-play', onClick: () => playPair[1]('playing') }, kbNcPlay())
+          : (e.type === 'video' ? kbNcPlay() : null))
       return kbPortalDe(h('div', { className: 'kb8-sh-layer', 'data-kb': 'newchat-example-layer' },
         h('div', { className: 'kb8-sh-scrim', onClick: dp.onClose }),
         h('div', { className: 'kb8-sh-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': e.name, 'data-kb': 'newchat-example-dialog', onKeyDown: trap },
@@ -30123,16 +30153,18 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('div', { className: 'kb8-sh-left' },
               isApp ? h('div', { className: 'kb8-sh-tabs', role: 'group', 'aria-label': kbt('kbnc.sh.tabs') }, ['result', 'structure'].map((id) =>
                 h('button', { type: 'button', key: id, className: 'kb8-sh-tab' + (tab === id ? ' on' : ''), 'aria-pressed': tab === id ? 'true' : 'false', onClick: () => tabPair[1](id) }, kbt('kbnc.sh.tab.' + id)))) : null,
-              h('div', { className: 'kb8-sh-big' }, picture, e.type === 'video' && map === null ? kbNcPlay() : null),
-              h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : (made !== null ? 'kbnc.sh.finemade' : 'kbnc.sh.fine'))))),
+              h('div', { className: 'kb8-sh-big' }, stage),
+              playPair[0] === 'failed' ? h('p', { className: 'kb8-sh-status bad', role: 'alert', 'data-kb': 'newchat-example-noclip' }, kbt('kbnc.sh.noclip')) : null,
+              h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : (clip !== '' ? 'kbnc.sh.finevideo' : (promptMode ? 'kbnc.sh.finemade' : 'kbnc.sh.fine')))))),
             h('div', { className: 'kb8-sh-side' },
               h('div', { className: 'kb8-sh-title' }, h('h3', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
               h('p', { className: 'kb8-sh-lead' }, e.line),
-              h('div', { className: 'kb8-sh-req' }, h('b', null, kbt(made !== null ? 'kbnc.sh.prompt' : (withKit ? 'kbnc.sh.reqtpl' : 'kbnc.sh.req'))), h('p', null, e.prompt), madeLine === '' ? null : h('span', { className: 'kb8-sh-made', title: made.model, 'data-kb': 'newchat-example-made' }, madeLine)),
+              h('div', { className: 'kb8-sh-req' }, h('b', null, kbt(promptMode ? 'kbnc.sh.prompt' : (withKit ? 'kbnc.sh.reqtpl' : 'kbnc.sh.req'))), h('p', null, e.prompt), promptMode ? madeEl : null),
+              clip !== '' && made !== null ? h('div', { className: 'kb8-sh-req', 'data-kb': 'newchat-example-sample' }, h('b', null, kbt(samplePrompt !== '' ? 'kbnc.sh.sample' : 'kbnc.sh.samplem')), samplePrompt === '' ? null : h('p', null, samplePrompt), madeEl) : null,
               h('ul', { className: 'kb8-sh-list' }, inside.map((x, i) => h('li', { key: i }, h('b', null, x.t), h('span', null, x.d)))),
               h('div', { className: 'kb8-sh-acts' },
                 h('button', { type: 'button', className: 'kb8-sh-btn pri', 'data-kb': 'newchat-example-use', disabled: st.phase === 'busy', onClick: primary }, label),
-                made !== null && isApp === false ? h('button', { type: 'button', className: 'kb8-sh-btn', 'data-kb': 'newchat-example-remix', onClick: () => dp.onFill(e.type, kbNcRemixText(kbt('kbnc.sh.remixpre'), e, kbt('kbnc.sh.remixpost'))) }, kbt('kbnc.sh.remix')) : null,
+                promptMode && isApp === false ? h('button', { type: 'button', className: 'kb8-sh-btn', 'data-kb': 'newchat-example-remix', onClick: () => dp.onFill(e.type, kbNcRemixText(kbt('kbnc.sh.remixpre'), e, kbt('kbnc.sh.remixpost'))) }, kbt('kbnc.sh.remix')) : null,
                 isApp ? h('button', { type: 'button', className: 'kb8-sh-btn', 'data-kb': 'newchat-example-adapt', disabled: st.phase === 'busy', onClick: () => dp.onFill(e.type, kbNcAdaptText(kbt('kbnc.sh.adaptpre'), e, kbt('kbnc.sh.adaptpost'))) }, kbt('kbnc.sh.adapt')) : null),
               status === '' ? null : h('p', { className: 'kb8-sh-status' + (st.phase === 'fail' ? ' bad' : ''), role: st.phase === 'fail' ? 'alert' : 'status' }, status),
               h('p', { className: 'kb8-sh-note' }, kbt(withKit && have !== true ? 'kbnc.sh.notekit' : 'kbnc.sh.note')))))))
@@ -30195,7 +30227,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
         .concat(cat === null ? [] : cat.templates.map((e) => String(e.prompt)))
         .concat(cat === null ? [] : cat.templates.filter((e) => Array.isArray(e.tables)).map((e) => kbNcAdaptText(adaptPre, e, adaptPost)))
-        .concat(cat === null ? [] : cat.templates.filter((e) => kbNcObj(e.made) !== null).map((e) => kbNcRemixText(kbt('kbnc.sh.remixpre'), e, kbt('kbnc.sh.remixpost'))))
+        .concat(cat === null ? [] : cat.templates.filter((e) => kbNcPromptMode(e)).map((e) => kbNcRemixText(kbt('kbnc.sh.remixpre'), e, kbt('kbnc.sh.remixpost'))))
       // A template or an example fills the composer and never sends. The person's own words stay (see kbNcFill).
       const fillText = (type, tpl) => {
         setChosen(type)
@@ -30356,6 +30388,11 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-tab{padding:4px 12px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12.5px;cursor:pointer;color:var(--dsw-alias-label-secondary)}
 .kb8-sh-tab.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
 .kb8-sh-big{position:relative;display:block;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-module-platform);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
+.kb8-sh-vid{display:block;width:100%;height:100%;object-fit:contain;background:rgb(0,0,0)}
+.kb8-sh-playbtn{position:absolute;inset:0;margin:0;padding:0;border:0;background:transparent;cursor:pointer}
+.kb8-sh-playbtn .kb8-sh-play>span{width:56px;height:56px;transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.kb8-sh-playbtn:hover .kb8-sh-play>span{transform:scale(1.1)}
+.kb8-sh-playbtn:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:-3px;border-radius:12px}
 .kb8-sh-map{display:block;width:100%;height:100%}
 .kb8-sh-map .box{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-border-l2)}
 .kb8-sh-map .lbl{font-size:10px;font-weight:700;fill:var(--dsw-alias-label-primary)}

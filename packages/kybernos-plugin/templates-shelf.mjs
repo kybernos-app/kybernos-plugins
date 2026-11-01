@@ -17,6 +17,9 @@ export const SHELF_CATALOGUE_PATH = '/v1/templates/catalogue.json'
 /** The pictures sit next to the catalogue, under `imageBase`. */
 export const SHELF_IMAGE_BASE = 'shelf/'
 const SERVER_BASE_PATH = '/v1/templates/'
+/** Where the examples are published: a public Tigris bucket on Fly.io (`scripts/templates-publish.mjs`), laid out like `{api}/v1/templates/` (catalogue.json, shelf/...). Asked first;
+ *  the Kybernos server is the second source. `KYBERNOS_TEMPLATES_BASE` replaces it (a test, a mirror); an empty value leaves the server only. */
+export const SHELF_PUBLIC_BASE = 'https://kybernos-templates.fly.storage.tigris.dev/'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 /** The first load waits a little after the start (DSH is not slowed down), then a check every hour says whether a day has passed. */
@@ -28,6 +31,8 @@ const TIMEOUT_MS = 8000
 const CATALOGUE_MAX = 512 * 1024
 const CARD_MAX = 300 * 1024
 const LARGE_MAX = 900 * 1024
+/** A sample clip: a few seconds at 480p to 720p, about 0.3 to 1 MB; this is the most the host keeps. */
+const VIDEO_MAX = 8 * 1024 * 1024
 /** The load asks a few pictures at once and at most about 6 a second. */
 const LOAD_PACE = Object.freeze({ batch: 3, everyMs: 500 })
 
@@ -36,6 +41,7 @@ const TEMPLATES_MAX = 600
 const ID = /^[a-z0-9][a-z0-9_]{0,63}$/
 const KIT = /^[a-z0-9][a-z0-9-]{0,39}$/
 const IMAGE = /^(?:large\/)?[a-z0-9][a-z0-9_-]{0,63}\.webp$/
+const VIDEO = /^video\/[a-z0-9][a-z0-9_-]{0,63}\.mp4$/
 const KINDS = ['template', 'start']
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,79}$/
 
@@ -46,6 +52,9 @@ const int = (v, lo, hi) => (Number.isInteger(v) && v >= lo && v <= hi ? v : null
 
 /** A picture name the catalogue may carry: `<id>.webp` or `large/<id>.webp`, nothing that climbs out of the folder. */
 export const shelfImageName = (v) => (typeof v === 'string' && IMAGE.test(v) ? v : '')
+
+/** A clip name the catalogue may carry: `video/<id>.mp4`, nothing that climbs out of the folder. */
+export const shelfVideoName = (v) => (typeof v === 'string' && VIDEO.test(v) ? v : '')
 
 const cleanImage = (v) => {
   const i = obj(v)
@@ -58,14 +67,27 @@ const cleanImage = (v) => {
   return out
 }
 
+/** The sample clip of a video example (the picture is its first frame): where it is, its size and its length in seconds. null when the name is not a clip name. */
+const cleanVideo = (v) => {
+  const i = obj(v)
+  if (i === null) return null
+  const src = shelfVideoName(i.src)
+  if (src === '') return null
+  const seconds = typeof i.seconds === 'number' && i.seconds >= 1 && i.seconds <= 60 ? Math.round(i.seconds * 10) / 10 : null
+  return { src, width: int(i.width, 16, 4096) || 832, height: int(i.height, 16, 4096) || 480, seconds: seconds === null ? 5 : seconds }
+}
+
 /** How a generated example was made, so the person can reproduce or remix it: the model (its id, as the provider names it, and an optional display name),
- *  and the knobs that were set. The prompt itself is the example's `prompt`. null (the example stays, with no « made with » line) when the model is not a plain id. */
+ *  and the knobs that were set. For a picture the prompt is the example's `prompt`; a video example's `prompt` is the request that starts its skill, so what the model
+ *  was given for the sample is `made.prompt`. null (the example stays, with no « made with » line) when the model is not a plain id. */
 const cleanMade = (v) => {
   const m = obj(v)
   if (m === null || typeof m.model !== 'string' || !MODEL.test(m.model)) return null
   const out = { model: m.model }
   const label = text(m.label, 40)
   if (label !== '') out.label = label
+  const prompt = text(m.prompt, 700)
+  if (prompt !== '') out.prompt = prompt
   const seed = int(m.seed, 0, 4294967295)
   if (seed !== null) out.seed = seed
   const width = int(m.width, 16, 8192)
@@ -86,6 +108,8 @@ const cleanTemplate = (t, typeIds) => {
   if (e.kit !== undefined) { if (typeof e.kit !== 'string' || !KIT.test(e.kit)) return null; out.kit = e.kit }
   const image = cleanImage(e.image)
   if (image !== null) out.image = image
+  const video = cleanVideo(e.video)
+  if (video !== null) out.video = video
   const made = cleanMade(e.made)
   if (made !== null) out.made = made
   if (Array.isArray(e.tables)) {
@@ -134,6 +158,21 @@ export const shelfValidate = (raw) => {
 }
 
 const isWebp = (b) => b.length > 12 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP'
+const isMp4 = (b) => b.length > 12 && b.toString('latin1', 4, 8) === 'ftyp'
+
+/** The answer to a request for a clip: 200 with the whole file, or 206 with the bytes of one `Range: bytes=a-b` (a browser's player asks that way to start and to seek, and Safari
+ *  plays nothing without it), 416 when the range is outside the file. The type is always video/mp4 and the document stays shut (nosniff, a sandbox CSP), as for every answer made of
+ *  bytes that came from outside. `range` is the request's Range header, or anything else for none. */
+export const shelfVideoAnswer = (bytes, range) => {
+  const size = bytes.length
+  const headers = { 'content-type': 'video/mp4', 'accept-ranges': 'bytes', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; sandbox" }
+  const m = typeof range === 'string' ? /^bytes=(\d{0,12})-(\d{0,12})$/.exec(range.trim()) : null
+  if (m === null || (m[1] === '' && m[2] === '')) return { status: 200, headers: Object.assign({}, headers, { 'content-length': String(size) }), body: bytes }
+  const last = m[1] === '' ? size - 1 : Math.min(m[2] === '' ? size - 1 : Number(m[2]), size - 1)
+  const first = m[1] === '' ? Math.max(0, size - Number(m[2])) : Number(m[1])
+  if (first > last || first >= size || (m[1] === '' && Number(m[2]) < 1)) return { status: 416, headers: Object.assign({}, headers, { 'content-range': 'bytes */' + size, 'content-length': '0' }), body: Buffer.alloc(0) }
+  return { status: 206, headers: Object.assign({}, headers, { 'content-range': 'bytes ' + first + '-' + last + '/' + size, 'content-length': String(last - first + 1) }), body: bytes.subarray(first, last + 1) }
+}
 
 /** The server's address, as the one this module may ask: https, or http on the loopback (tests, a local server). Else null. */
 const originOf = (api) => {
@@ -156,15 +195,17 @@ export const shelfBundled = () => {
 }
 
 /**
- * createShelf({ dir, api, fetchFn, now, pace, log })
- *   dir()     → the folder where the public catalogue and its pictures are kept, or null for memory only (tests)
- *   api()     → the server's address (`https://server.kybernos.app`), or '' when none is known
- *   fetchFn   → fetch (a test gives its own)
+ * createShelf({ dir, api, publicBase, fetchFn, now, pace, log })
+ *   dir()       → the folder where the public catalogue and its pictures are kept, or null for memory only (tests)
+ *   api()       → the server's address (`https://server.kybernos.app`), or '' when none is known
+ *   publicBase  → the address of the public bucket, asked before the server ('' for none)
+ *   fetchFn     → fetch (a test gives its own)
  */
-export const createShelf = ({ dir = () => null, api = () => '', fetchFn = globalThis.fetch, now = () => Date.now(), pace = LOAD_PACE, log = () => {} } = {}) => {
+export const createShelf = ({ dir = () => null, api = () => '', publicBase = '', fetchFn = globalThis.fetch, now = () => Date.now(), pace = LOAD_PACE, log = () => {} } = {}) => {
   let kept = null            // { at, catalogue } — the last valid answer, from disk or from the server
   let keptMtime = -1
   const pics = new Set()     // the pictures on disk: 'a.webp', 'large/a.webp'
+  const clips = new Set()    // the sample clips on disk: 'video/a.mp4'
   const inflight = new Map()
   let retryAt = 0
   let loading = null
@@ -198,6 +239,7 @@ export const createShelf = ({ dir = () => null, api = () => '', fetchFn = global
     for (const sub of ['', 'large']) {
       try { for (const f of await readdir(join(r, 'shelf', sub))) { const name = (sub === '' ? '' : sub + '/') + f; if (shelfImageName(name) !== '') pics.add(name) } } catch (e) { /* none yet */ }
     }
+    try { for (const f of await readdir(join(r, 'shelf', 'video'))) { if (shelfVideoName('video/' + f) !== '') clips.add('video/' + f) } } catch (e) { /* none yet */ }
   }
   let scanned = false
 
@@ -208,10 +250,14 @@ export const createShelf = ({ dir = () => null, api = () => '', fetchFn = global
     const base = k !== null ? k.catalogue : shelfBundled()
     if (base === null) return null
     const templates = base.templates.map((t) => {
-      if (t.image === undefined) return t
-      const image = Object.assign({}, t.image, { ready: pics.has(t.image.src) })
-      if (image.large !== undefined) image.readyLarge = pics.has(image.large)
-      return Object.assign({}, t, { image })
+      let out = t
+      if (t.image !== undefined) {
+        const image = Object.assign({}, t.image, { ready: pics.has(t.image.src) })
+        if (image.large !== undefined) image.readyLarge = pics.has(image.large)
+        out = Object.assign({}, out, { image })
+      }
+      if (t.video !== undefined) out = Object.assign({}, out, { video: Object.assign({}, t.video, { ready: clips.has(t.video.src) }) })
+      return out
     })
     return Object.assign({}, base, { templates, source: k !== null ? 'server' : 'bundled', loadedAt: k !== null ? k.at : 0 })
   }
@@ -234,26 +280,70 @@ export const createShelf = ({ dir = () => null, api = () => '', fetchFn = global
     const o = originOf(a)
     return o === null ? null : o + SERVER_BASE_PATH + rel
   }
+  /** Every address a file may be asked at, in order: the public bucket, then the server. Only https (or the loopback) is ever asked. */
+  const urlsFor = (rel) => {
+    const out = []
+    const o = typeof publicBase === 'string' && publicBase !== '' ? originOf(publicBase) : null
+    if (o !== null) out.push(o + new URL(publicBase).pathname.replace(/\/?$/, '/') + rel)
+    const u = serverUrl(rel)
+    if (u !== null) out.push(u)
+    return out
+  }
+  /** The first source that has the file. A miss keeps the most telling status (a 404 beats a silent network), so a caller can say « not published » rather than « network ». */
+  const fetchRel = async (rel, max, accept) => {
+    let miss = { status: 0, body: null }
+    for (const url of urlsFor(rel)) {
+      const got = await get(url, max, accept)
+      if (got.body !== null) return got
+      if (miss.status === 0 || got.status === 404) miss = got
+    }
+    return miss
+  }
 
   /** One picture: from the disk, else from the server (and kept). null when it is not there. A name outside the shape is never asked for. */
   const image = async (name) => {
     const rel = shelfImageName(name)
     if (rel === '') return null
+    if (scanned !== true) { scanned = true; await scan() }   // asked first after a restart: what is on disk must be known
     const r = root()
     if (r !== null && pics.has(rel)) {
       try { return await readFile(join(r, 'shelf', rel)) } catch (e) { pics.delete(rel) }
     }
     if (inflight.has(rel)) return inflight.get(rel)
     const job = (async () => {
-      const url = serverUrl(SHELF_IMAGE_BASE + rel)
-      if (url === null) return null
-      const got = await get(url, rel.startsWith('large/') ? LARGE_MAX : CARD_MAX, 'image/webp')
+      const got = await fetchRel(SHELF_IMAGE_BASE + rel, rel.startsWith('large/') ? LARGE_MAX : CARD_MAX, 'image/webp')
       if (got.body === null || !isWebp(got.body)) return null
       if (r !== null) {
         try {
           await mkdir(join(r, 'shelf', 'large'), { recursive: true })
           await writeAtomic(join(r, 'shelf', rel), got.body)
           pics.add(rel)
+        } catch (e) { /* served from memory this time */ }
+      }
+      return got.body
+    })().finally(() => { inflight.delete(rel) })
+    inflight.set(rel, job)
+    return job
+  }
+
+  /** One sample clip: from the disk, else from the server (and kept; the load never asks for clips, only a click on Play does). null when it is not there. */
+  const video = async (name) => {
+    const rel = shelfVideoName(name)
+    if (rel === '') return null
+    if (scanned !== true) { scanned = true; await scan() }
+    const r = root()
+    if (r !== null && clips.has(rel)) {
+      try { return await readFile(join(r, 'shelf', rel)) } catch (e) { clips.delete(rel) }
+    }
+    if (inflight.has(rel)) return inflight.get(rel)
+    const job = (async () => {
+      const got = await fetchRel(SHELF_IMAGE_BASE + rel, VIDEO_MAX, 'video/mp4')
+      if (got.body === null || !isMp4(got.body)) return null
+      if (r !== null) {
+        try {
+          await mkdir(join(r, 'shelf', 'video'), { recursive: true })
+          await writeAtomic(join(r, 'shelf', rel), got.body)
+          clips.add(rel)
         } catch (e) { /* served from memory this time */ }
       }
       return got.body
@@ -291,9 +381,8 @@ export const createShelf = ({ dir = () => null, api = () => '', fetchFn = global
     loading = (async () => {
       try {
         if (force !== true && (await due()) !== true) return { ok: true, skipped: true }
-        const url = serverUrl('catalogue.json')
-        if (url === null) return { ok: false, error: 'no_server' }
-        const got = await get(url, CATALOGUE_MAX, 'application/json')
+        if (urlsFor('catalogue.json').length === 0) return { ok: false, error: 'no_server' }
+        const got = await fetchRel('catalogue.json', CATALOGUE_MAX, 'application/json')
         let c = null
         try { c = got.body === null ? null : shelfValidate(JSON.parse(got.body.toString('utf8'))) } catch (e) { c = null }
         if (c === null) { retryAt = now() + RETRY_AFTER_MS; return { ok: false, error: got.status === 404 ? 'not_published' : (got.status === 0 ? 'network' : 'unreadable') } }
@@ -325,5 +414,5 @@ export const createShelf = ({ dir = () => null, api = () => '', fetchFn = global
     return () => { clearTimeout(first); clearInterval(hourly) }
   }
 
-  return { catalogue, image, load, due, start }
+  return { catalogue, image, video, load, due, start }
 }

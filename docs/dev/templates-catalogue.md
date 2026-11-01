@@ -1,7 +1,7 @@
 # The templates catalogue (the shelf of the new-chat page)
 
 The new-chat page shows, under its types, the **examples** of the type that is lit: a picture, a name, a line and the request each one starts from.
-Those examples are **data**: a public file of the Kybernos server that the plugin host keeps on disk. Nothing about the person is read, kept or sent.
+Those examples are **data**: a public catalogue (a public bucket on Fly.io, the Kybernos server as the second source) that the plugin host keeps on disk. Nothing about the person is read, kept or sent.
 
 - Host half: `packages/kybernos-plugin/templates-shelf.mjs` (cache, validation, load cycle), routes in `index.js`.
 - Page half: the `KB-NEWCHAT` block of `packages/kybernos-plugin/client.js` (`KbNcShelf`, `KbNcDialog`).
@@ -14,16 +14,22 @@ Those examples are **data**: a public file of the Kybernos server that the plugi
    DSH starts and the page works offline from it (AGENTS rule 2).
 3. **The type's own drawing** where a card has no picture on disk yet, so a card is never empty.
 
-## What the server publishes (contract for `kybernos-server`)
+## Where the files are published
 
-| Request | Answer |
+Two sources with the same layout, asked in this order; the first one that has a file wins, a 404 or a silent one falls through to the next.
+
+1. **The public bucket** (Tigris on Fly.io, org `personal`, bucket `kybernos-templates`, public read): `SHELF_PUBLIC_BASE` in `templates-shelf.mjs`, i.e. `https://kybernos-templates.fly.storage.tigris.dev/`. `KYBERNOS_TEMPLATES_BASE` replaces it (a mirror, a test); an empty value leaves the server only.
+   It costs nothing at this size (a few MB; Tigris keeps 5 GB free) and nothing runs: no machine, no volume. Built and filled by `scripts/templates-publish.mjs` (below).
+2. **The Kybernos server** (`{api}/v1/templates/...`, the address the host already uses: `kbFeedbackCloudState(...).api`, else `KB_FEEDBACK_API_DEFAULT`). Its routes are built but not deployed (deploys are frozen), so today it answers 404.
+
+| Request (relative to the base) | Answer |
 | --- | --- |
-| `GET {api}/v1/templates/catalogue.json` | the catalogue below, `application/json`, **public: no token, no cookie**, at most 512 KB |
-| `GET {api}/v1/templates/shelf/<id>.webp` | the card picture of an example (WebP, at most 300 KB) |
-| `GET {api}/v1/templates/shelf/large/<id>.webp` | the larger picture the dialog shows (WebP, at most 900 KB); a type may have none |
+| `catalogue.json` | the catalogue below, `application/json`, **public: no token, no cookie**, at most 512 KB |
+| `shelf/<id>.webp` | the card picture of an example (WebP, at most 300 KB) |
+| `shelf/large/<id>.webp` | the larger picture the dialog shows (WebP, at most 900 KB); a type may have none |
+| `shelf/video/<id>.mp4` | the sample clip of a video example (H.264 + AAC, at most 8 MB, served with ranges) |
 
-`{api}` is the address the host already uses for the Kybernos server (`kbFeedbackCloudState(...).api`, else `KB_FEEDBACK_API_DEFAULT`). https only
-(plain http only for a loopback address), redirects are not followed, an answer that takes more than 8 s is a miss.
+https only (plain http only for a loopback address), redirects are not followed, an answer that takes more than 8 s is a miss.
 
 ```jsonc
 {
@@ -45,6 +51,7 @@ Those examples are **data**: a public file of the Kybernos server that the plugi
     "kit": "ecommerce",               // App only: the kit this template creates, by the last segment of its id
     "tables": ["Contacts", "Products"], "links": [[0, 1]], "layout": [[0, 1]],   // App only: the Structure tab
     "inside": [{ "t": "Sample rows", "d": "64 rows, so you see it working." }]    // optional: the dialog's list
+    "video": { "src": "video/video_ad_bottle.mp4", "width": 832, "height": 480, "seconds": 5.3 },   // optional: the sample clip of a video example (the picture is its first frame)
     "made": { "model": "black-forest-labs/FLUX-2-dev", "label": "FLUX.2 dev", "seed": 421, "width": 1280, "height": 800, "steps": 28 }   // optional: how a generated example was made
   }]
 }
@@ -55,6 +62,13 @@ Those examples are **data**: a public file of the Kybernos server that the plugi
 An example whose picture (later: video, audio, 3D) was generated carries `made`: the model's id as the provider names it, an optional display name (`label`), and the seed, size and steps that were set.
 Its `prompt` is **exactly what the model was given**, so the dialog can offer *Use this prompt* (fills the composer with it) and *Remix* (fills the composer with « keep the prompt “…” but change: » and the person says what to change).
 The dialog shows « Made with <label> · <width>×<height> · seed <n> » under the prompt. A `made` whose model is not a plain id (`[A-Za-z0-9._/-]`, 80 characters at most) is dropped and the example stays; seed, size and steps outside their range are left out.
+### A video example: a request, a sample clip, and the sample's own prompt
+
+A video example's `prompt` is **the request that starts its skill** (« Make a 5-second product ad video from my product photo. Ask me for … »), so the dialog keeps « Use this request » and has no Remix. What the model was given for the sample is `made.prompt` (≤ 700 characters), shown apart as « Prompt of the sample » with the model, size and seed; a Kybernos Motion sample has no model prompt (« How the sample was made · Made with Kybernos Motion · 1280×720 »).
+`video` names the clip (`video/<id>.mp4`, nothing else), its size and its length (1 to 60 s). The card and the dialog show the first frame (the example's picture) with a Play button; **only pressing Play asks for the clip**:
+the host route `GET /kybernos/templates-video?f=video/<id>.mp4` serves it from `shelf/video/` on disk, else fetches it once (≤ 8 MB, must start with an MP4 `ftyp`) and keeps it. It answers `Range` requests (200, 206, 416), because a player cannot start or seek without them (Safari plays nothing).
+The background load never fetches clips; a machine that never presses Play never downloads one. A clip the host cannot get puts the frame back with « This example cannot be played right now. ».
+
 The raw model answers and the plan that made them stay outside git (`~/kybernos-archive/templates-catalogue/`), like the theme photographs (AGENTS rule 4).
 
 The host checks **everything again as if it came from outside** (`shelfValidate`): a wrong schema or version refuses the whole file; a bad entry is dropped
@@ -69,6 +83,7 @@ Read only, no origin guard needed (no write, nothing of the person's).
   / `readyLarge` once its file is on disk, and `source: "server" | "bundled"`. `404` when there is none.
 - `GET /kybernos/templates-image?f=<name>` → the picture, from disk, else fetched once from the server and kept (the larger pictures are fetched this way, on the
   first click). `404` otherwise. Served `no-store` with a sandbox CSP.
+- `GET /kybernos/templates-video?f=video/<id>.mp4` → the sample clip, from disk, else fetched once and kept (on a click on Play). `video/mp4`, `accept-ranges: bytes`, `206` for a range, `404` otherwise; same sandbox CSP.
 
 ## The load cycle
 
@@ -97,8 +112,22 @@ A lot is one plan per type, `docs/dev/templates-lots/<lot>.json` (text, in git):
 
 First lot: `images-business-1.json` (9 images, ads, social, branding, real estate, e-commerce, food, learning; `black-forest-labs/FLUX-2-klein-9b` on DeepInfra, about 1.5 cents and 1 second each).
 
+### A video lot
+
+`video-business-1.json` (8 examples: five clips by `heygen/heygen-video-1`, three by Kybernos Motion). A video plan lists, per example, the `clip` (an `.mp4` in `<from>/clips/`), the `request`, `made` and where the poster comes from (`poster`, a still, else the clip's frame at `posterAt`; `fit: "pad"` keeps the whole frame of a designed scene instead of cropping it to 16:10). `templates-lot.mjs` cuts the poster, copies the clip (`-c copy -movflags +faststart`) and writes `video` and `made`.
+
+- **HeyGen Video 1** (Vercel AI Gateway, key `VERCEL_AI_GATEWAY_API_KEY` in the credentials): text-to-video, image-to-video and reference-to-video in one model, with sound, 9:16 and 16:9. 5 seconds at 480p is about $0.10 (`providerOptions.heygen.resolution: '480p'`; a pixel size such as `832x480` is refused). Used with the AI SDK: `generateVideo({ model: gateway.video('heygen/heygen-video-1'), prompt: { image, text }, duration: 5, aspectRatio, seed, providerOptions: { heygen: { resolution: '480p' } } })`. Its listing says no zero-retention and no training opt-out, so a skill that takes a person's photo should say so.
+- **Kybernos Motion** samples are scenes (`docs/dev/templates-lots/motion/*.scene.json`, data, never code) exported by the real panel: `source scripts/sandbox/env.sh && node scripts/motion-export.mjs <scene.json>... --out <dir>` (needs the sandbox instance, which loads the bundle).
+- Stills for image-to-video are made like any picture (`theme-photos.mjs`, `video-frames-1.json`, `video-frames-1b.json`).
+
+### Publishing
+
+`node scripts/templates-publish.mjs <release dir> [--env <file>] [--dry-run]` uploads a release to the bucket (AWS Signature V4, no dependency) and reads every file back **without credentials**. The bucket holds the sum of the releases; publish the older lots' releases first, the newest last (the catalogue goes last in each run). `fly storage create -n kybernos-templates -o personal -p -y` made the bucket; its credentials are in `~/kybernos-archive/templates-catalogue/.tigris-create.log` (mode 600, outside git) and are never printed.
+A file already on a machine's disk is not fetched again: remaking an example under the same id needs a new id (or the file removed on that machine).
+
 ## Not done yet
 
-- Publishing: the routes and the publishing script of `kybernos-server` are built but not deployed (deploys are frozen), so the host gets a 404 and a card shows a picture only where this machine has one on disk (`--install`), else its type's drawing. The server's check does not know `made` yet.
-- Real examples for the other types (video, audio, 3D, slides, website, mini-app...), pictures per locale, kits for restaurant / fitness / salon.
-- Where the files are served from (the server's data directory, or a dedicated static host): the choice is the owner's.
+- The server half: the routes and the publishing script of `kybernos-server` are built but not deployed (deploys are frozen); its check does not know `made` or `video` yet. The shelf does not need it any more (the bucket is the first source).
+- The five generated video examples need what is not built: the skill that asks for the pictures, picks the model from the account's creation models and quotes the credits, and the generation tool. Until then their request reaches an agent that cannot make the video; a sensible gate is to show them only when the install has the skill.
+- Real examples for the other types (audio, 3D, slides, website, mini-app, game...), pictures per locale, kits for restaurant / fitness / salon.
+- Licences of the model outputs (FLUX.2 klein 9B, HeyGen) are not checked for a public, commercial showcase.
