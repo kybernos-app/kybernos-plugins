@@ -16,9 +16,9 @@
 //     "music":  { "file": "music.mp3", "start": 0, "gain": 0.5, "fadeIn": 0.6, "fadeOut": 1.8, "duck": true },
 //     "ambient": 0.3,                                              gain of the sound the clips came with (0 = none)
 //     "shade": 0.4,                                                darkening of the bottom 14% so the mark and the captions read on a pale picture (0 = none)
-//     "watermark": true }                                          or { "at": 1 }, or false
+//     "watermark": true }                                          or { "at": 1, "speed": 1 } (a film of 5 s: { "at": 0.5, "speed": 1.8 }), or false
 // The kybernos mark is drawn by scripts/kybernos-watermark.py, once per size and start, into --wm-dir (default <parts>/../watermarks): it comes in whole in the
-// bottom right corner at "watermark.at" seconds (1 by default), then only the K stays. "watermark": false for none, {"at": 0.5} to start earlier.
+// bottom right corner at "watermark.at" seconds (1 by default), then only the K stays. "watermark": false for none, {"at": 0.5, "speed": 1.8} for a short film.
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -129,9 +129,10 @@ if (recipe.watermark !== false) {
   // the mark: small, in the bottom right corner; it comes in whole, then only the K stays (scripts/kybernos-watermark.py draws it, once per size and start)
   const k = Math.round(Math.max(W, H) * 0.011)
   const start = typeof recipe.watermark === 'object' ? (recipe.watermark.at ?? 1) : 1
-  const wm = join(wmDir, `wm2-${k}-${f(start)}.mov`)
+  const speed = typeof recipe.watermark === 'object' ? (recipe.watermark.speed ?? 1) : 1
+  const wm = join(wmDir, `wm2-${k}-${f(start)}-${f(speed)}.mov`)
   if (!existsSync(wm)) {
-    const r = spawnSync('python3', [join(dirname(fileURLToPath(import.meta.url)), 'kybernos-watermark.py'), wm, '--k-height', String(k), '--delay', f(start)], { encoding: 'utf8' })
+    const r = spawnSync('python3', [join(dirname(fileURLToPath(import.meta.url)), 'kybernos-watermark.py'), wm, '--k-height', String(k), '--delay', f(start), '--speed', f(speed)], { encoding: 'utf8' })
     if (r.status !== 0) fail('the mark could not be drawn: ' + r.stderr.slice(0, 300))
   }
   const at = inputs.length

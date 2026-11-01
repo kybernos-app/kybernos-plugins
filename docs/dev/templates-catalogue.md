@@ -120,7 +120,7 @@ First lot: `images-business-1.json` (9 images, ads, social, branding, real estat
 - **Kybernos Motion** samples are scenes (`docs/dev/templates-lots/motion/*.scene.json`, data, never code) exported by the real panel: `source scripts/sandbox/env.sh && node scripts/motion-export.mjs <scene.json>... --out <dir>` (needs the sandbox instance, which loads the bundle).
 - Stills for image-to-video are made like any picture (`theme-photos.mjs`, `video-frames-1.json`, `video-frames-1b.json`).
 
-### Composed films (lot 2: `video-business-2.json`)
+### Composed films (lot 2: `video-business-2.json`, remade with the new mark as lot 3: `video-business-3.json`)
 
 Eight films of 5 to 20 seconds that replace the eight of lot 1 (new ids: a file already on a machine is never fetched again). A film is not one clip: it is parts, paid for one by one, then cut together.
 
@@ -128,7 +128,7 @@ Eight films of 5 to 20 seconds that replace the eight of lot 1 (new ids: a file 
 - **A scene that continues starts from the last frame of the shot before it** (`ffmpeg -sseof -0.15 -i shot.mp4 -frames:v 1 last.jpg`, then image-to-video): the property flight (road, door, living room, terrace), the old photograph (black and white, colour blooms, a child waves) and the try-on (coat colour, then leather jacket and blazer) are each ONE continuous gesture.
 - **Texts are never asked of the video model**: names, prices, labels, captions and colour dots are drawn over the film.
 - **Recipes** (`docs/dev/templates-lots/video-compose/<id>.json`, the edit) feed `node scripts/video-compose.mjs <recipe> --parts <dir> --out <file>`: cross-fades, animated ASS texts (libass, system font Avenir Next), voice over, music ducked under the voice, loudness `-16 LUFS`, a bottom shade so the mark reads on a pale picture, and the mark. A clip must stay under 6 MB (`crf` in the recipe).
-- **The mark** (`scripts/kybernos-watermark.py`, small, bottom right, played ONCE): the red K of `kbBrandArt` with its three typing dots and « ybernos » come in whole at 1 s (`watermark.at` in the recipe), the dots bounce, a light crosses the K, then the letters are drawn back into the K, which glides to the corner, lands with a small pulse and stays to the end (the clip is not looped: overlay repeats its last picture). The K is 1.1 % of the longer side (14 px at 720p); drawn in code, no picture file. The films of release v5 other than `video_ad_alderine` still carry the first version of the mark (centred, looped): they are recomposed from their parts when the new one is approved, under NEW ids.
+- **The mark** (`scripts/kybernos-watermark.py`, small, bottom right, played ONCE): the red K of `kbBrandArt` with its three typing dots and « ybernos » come in whole at 1 s (`watermark.at` in the recipe), the dots bounce, a light crosses the K, then the letters are drawn back into the K, which glides to the corner, lands with a small pulse and stays to the end (the clip is not looped: overlay repeats its last picture). The K is 1.1 % of the longer side (14 px at 720p); drawn in code, no picture file. Release v6 (`video-business-3.json`) holds the same eight films recomposed with it, under ids ending `_r2` (a remade file needs a new id: one already on a machine is never fetched again); the v5 files stay in the bucket, unused.
 - Spend of this lot: about $2.9 on the gateway (20 shots incl. retries) plus a few cents on DeepInfra.
 
 ### Publishing

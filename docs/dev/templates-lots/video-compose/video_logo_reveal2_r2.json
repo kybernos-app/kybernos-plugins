@@ -13,5 +13,9 @@
     }
   ],
   "ambient": 1.0,
-  "id": "video_logo_reveal2"
+  "id": "video_logo_reveal2",
+  "watermark": {
+    "at": 0.5,
+    "speed": 1.8
+  }
 }

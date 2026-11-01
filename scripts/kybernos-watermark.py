@@ -9,9 +9,9 @@ The play, once, then it stays:
   3. the letters are drawn back into the K, and the K slides to the corner;
   4. the K lands with a small pulse and stays still until the end of the film.
 
-    python3 scripts/kybernos-watermark.py <out.mov> [--k-height 14] [--fps 24] [--delay 1.0]
+    python3 scripts/kybernos-watermark.py <out.mov> [--k-height 14] [--fps 24] [--delay 1.0] [--speed 1.0]
 
-Out: a ProRes 4444 clip with alpha, DELAY seconds of nothing, then the play. The last picture is the K alone, at the right edge of the canvas: the composer
+Out: a ProRes 4444 clip with alpha, DELAY seconds of nothing, then the play (SPEED 1.8 plays it 1.8 times faster, for a film of 5 seconds). The last picture is the K alone, at the right edge of the canvas: the composer
 keeps showing it to the end of the film (overlay repeats the last frame), so the clip is NOT looped.
 The canvas is the size of the whole mark; its right edge and bottom edge are PAD pixels away from the K, which the composer takes into account.
 """
@@ -38,6 +38,7 @@ ap.add_argument('out')
 ap.add_argument('--k-height', type=int, default=14)
 ap.add_argument('--fps', type=int, default=24)
 ap.add_argument('--delay', type=float, default=1.0)
+ap.add_argument('--speed', type=float, default=1.0)
 a = ap.parse_args()
 
 kh = a.k_height * SS
@@ -183,13 +184,13 @@ def frame(t):
 tmp = tempfile.mkdtemp(prefix='kbwm-')
 try:
     n_delay = int(round(a.delay * a.fps))
-    n_play = int(round(T_END * a.fps))
+    n_play = int(round(T_END / a.speed * a.fps))
     blank = Image.new('RGBA', (W // SS, H // SS), (0, 0, 0, 0))
     for i in range(n_delay):
         blank.save(os.path.join(tmp, 'f%04d.png' % i))
     last = None
     for i in range(n_play):
-        last = frame(i / a.fps)
+        last = frame(i / a.fps * a.speed)
         last.save(os.path.join(tmp, 'f%04d.png' % (n_delay + i)))
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     subprocess.run(['/opt/homebrew/bin/ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-framerate', str(a.fps), '-i', os.path.join(tmp, 'f%04d.png'),
