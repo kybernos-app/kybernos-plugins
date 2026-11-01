@@ -1,0 +1,2985 @@
+{
+ "schema": "kybernos.templates/1",
+ "version": 2,
+ "updatedAt": "2026-11-01",
+ "locale": "en",
+ "imageBase": "shelf/",
+ "groups": [
+  "Documents",
+  "Media",
+  "Apps",
+  "Automate"
+ ],
+ "types": [
+  {
+   "id": "slides",
+   "name": "Slides",
+   "group": "Documents",
+   "blurb": "A deck you can present, with your own text and charts."
+  },
+  {
+   "id": "doc",
+   "name": "Document",
+   "group": "Documents",
+   "blurb": "A written document: a report, a brief, notes."
+  },
+  {
+   "id": "sheet",
+   "name": "Sheet",
+   "group": "Documents",
+   "blurb": "A spreadsheet with formulas and charts."
+  },
+  {
+   "id": "dashboard",
+   "name": "Dashboard",
+   "group": "Documents",
+   "blurb": "Live charts and numbers from your own data."
+  },
+  {
+   "id": "image",
+   "name": "Image",
+   "group": "Media",
+   "blurb": "A picture made from a description."
+  },
+  {
+   "id": "video",
+   "name": "Video",
+   "group": "Media",
+   "blurb": "A short clip made from a description."
+  },
+  {
+   "id": "audio",
+   "name": "Audio",
+   "group": "Media",
+   "blurb": "A song, a voice or a sound made from a description."
+  },
+  {
+   "id": "model3d",
+   "name": "3D model",
+   "group": "Media",
+   "blurb": "A 3D object you can turn around and export."
+  },
+  {
+   "id": "app",
+   "name": "App",
+   "group": "Apps",
+   "blurb": "Your own tables, built with Kaby."
+  },
+  {
+   "id": "game",
+   "name": "Game",
+   "group": "Apps",
+   "blurb": "A small game you can play right away."
+  },
+  {
+   "id": "website",
+   "name": "Website",
+   "group": "Apps",
+   "blurb": "A site you can publish."
+  },
+  {
+   "id": "miniapp",
+   "name": "Mini-app",
+   "group": "Apps",
+   "blurb": "A small tool for one job."
+  },
+  {
+   "id": "automation",
+   "name": "Automation",
+   "group": "Automate",
+   "blurb": "Something that runs by itself when an event happens."
+  },
+  {
+   "id": "team",
+   "name": "Agent Team",
+   "group": "Automate",
+   "blurb": "Several agents that work together on a job."
+  },
+  {
+   "id": "skill",
+   "name": "Skill",
+   "group": "Automate",
+   "blurb": "A way of working that Kaby can reuse."
+  },
+  {
+   "id": "plugin",
+   "name": "Plugin",
+   "group": "Automate",
+   "blurb": "Connect Kaby to another app."
+  }
+ ],
+ "templates": [
+  {
+   "id": "slides_plan",
+   "type": "slides",
+   "name": "Quarterly plan",
+   "tag": "Business",
+   "line": "One chart per section, a summary at the end.",
+   "meta": "10 slides",
+   "prompt": "Create a 10-slide deck for our Q3 growth plan: three goals (Expand retention, Launch new markets, Improve activation) and one chart per section.",
+   "image": {
+    "src": "slides_plan.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Quarterly plan template preview",
+    "large": "large/slides_plan.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_launch",
+   "type": "slides",
+   "name": "Product launch",
+   "tag": "Marketing",
+   "line": "A bold deck to announce a product.",
+   "meta": "8 slides",
+   "prompt": "Create an 8-slide launch deck for Nova, a smart home speaker: a bold title slide, three feature slides and a pricing slide.",
+   "image": {
+    "src": "slides_launch.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Product launch template preview",
+    "large": "large/slides_launch.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_training",
+   "type": "slides",
+   "name": "Training course",
+   "tag": "Learning",
+   "line": "Steps in order, one idea per slide.",
+   "meta": "12 slides",
+   "prompt": "Create a 12-slide onboarding course for new hires: a four-step agenda and one idea per slide.",
+   "image": {
+    "src": "slides_training.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Training course template preview",
+    "large": "large/slides_training.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_pitch",
+   "type": "slides",
+   "name": "Investor pitch",
+   "tag": "Startup",
+   "line": "The numbers first: traction, market, ask.",
+   "meta": "12 slides",
+   "prompt": "Create a 12-slide investor pitch for Nova: traction, a $4.2B market, the business model and the ask.",
+   "image": {
+    "src": "slides_pitch.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Investor pitch template preview",
+    "large": "large/slides_pitch.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_update",
+   "type": "slides",
+   "name": "Team update",
+   "tag": "Team",
+   "line": "Status in three columns: on track, needs review, blocked.",
+   "meta": "5 slides",
+   "prompt": "Create a 5-slide weekly team update with three columns, On track, Needs review and Blocked, one line and one owner each.",
+   "image": {
+    "src": "slides_update.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Team update template preview",
+    "large": "large/slides_update.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_case",
+   "type": "slides",
+   "name": "Case study",
+   "tag": "Sales",
+   "line": "A customer story with one strong quote.",
+   "meta": "6 slides",
+   "prompt": "Create a 6-slide case study of how Nova helped a customer: a portrait, one strong quote and the result, +38% sales.",
+   "image": {
+    "src": "slides_case.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Case study template preview",
+    "large": "large/slides_case.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_roadmap",
+   "type": "slides",
+   "name": "Roadmap",
+   "tag": "Product",
+   "line": "Four quarters on a single timeline.",
+   "meta": "6 slides",
+   "prompt": "Create a 6-slide product roadmap with four quarters on one timeline: Plan, Build, Launch, Grow.",
+   "image": {
+    "src": "slides_roadmap.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Roadmap template preview",
+    "large": "large/slides_roadmap.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_pricing",
+   "type": "slides",
+   "name": "Pricing",
+   "tag": "Sales",
+   "line": "Three plans side by side, one highlighted.",
+   "meta": "4 slides",
+   "prompt": "Create a 4-slide pricing section with three plans: Starter $12, Pro $29 and Team $59, the middle plan highlighted.",
+   "image": {
+    "src": "slides_pricing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Pricing template preview",
+    "large": "large/slides_pricing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "slides_review",
+   "type": "slides",
+   "name": "Year in review",
+   "tag": "Reporting",
+   "line": "Four big numbers, a photo strip and a thank-you.",
+   "meta": "8 slides",
+   "prompt": "Create an 8-slide year in review with four key numbers (12 launches, 48 markets, 72K users, 94% retention) and a photo strip.",
+   "image": {
+    "src": "slides_review.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Year in review template preview",
+    "large": "large/slides_review.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_report",
+   "type": "doc",
+   "name": "Quarterly report",
+   "tag": "Business",
+   "line": "Two columns, a chart and a pull quote.",
+   "meta": "4 pages",
+   "prompt": "Write a 4-page quarterly report titled 'Quarterly report' with a monthly revenue bar chart, two text columns and a pull quote.",
+   "image": {
+    "src": "doc_report.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Quarterly report template preview",
+    "large": "large/doc_report.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_brief",
+   "type": "doc",
+   "name": "Project brief",
+   "tag": "Team",
+   "line": "Goal, scope and timeline on one page.",
+   "meta": "1 page",
+   "prompt": "Write a one-page project brief titled 'Project brief' with the sections Goals, Scope and Timeline, three bullets each.",
+   "image": {
+    "src": "doc_brief.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Project brief template preview",
+    "large": "large/doc_brief.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_notes",
+   "type": "doc",
+   "name": "Meeting notes",
+   "tag": "Team",
+   "line": "Decisions, action items and owners.",
+   "meta": "1 page",
+   "prompt": "Write one page of meeting notes titled 'Meeting notes', dated 13 March 2025, with the attendees and the action items with an owner each.",
+   "image": {
+    "src": "doc_notes.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Meeting notes template preview",
+    "large": "large/doc_notes.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_letter",
+   "type": "doc",
+   "name": "Cover letter",
+   "tag": "Career",
+   "line": "A clean letter with your address and signature.",
+   "meta": "1 page",
+   "prompt": "Write a one-page cover letter to Ms Rivera for a product manager role, with my address at the top right and my signature.",
+   "image": {
+    "src": "doc_letter.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Cover letter template preview",
+    "large": "large/doc_letter.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_resume",
+   "type": "doc",
+   "name": "Resume",
+   "tag": "Career",
+   "line": "A sidebar for skills, a column for experience.",
+   "meta": "1 page",
+   "prompt": "Write a one-page resume for Alex Moreau, product designer, with a photo, a skills sidebar and a column of experience.",
+   "image": {
+    "src": "doc_resume.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Resume template preview",
+    "large": "large/doc_resume.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_proposal",
+   "type": "doc",
+   "name": "Proposal",
+   "tag": "Business",
+   "line": "A cover block, scope and a price box.",
+   "meta": "6 pages",
+   "prompt": "Write a 6-page proposal titled 'Website redesign proposal' with a cover, the scope and a price box.",
+   "image": {
+    "src": "doc_proposal.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Proposal template preview",
+    "large": "large/doc_proposal.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_newsletter",
+   "type": "doc",
+   "name": "Newsletter",
+   "tag": "Marketing",
+   "line": "A masthead, a hero picture, three columns.",
+   "meta": "2 pages",
+   "prompt": "Write a 2-page newsletter called 'The Weekly' with a hero picture and three short articles headed News, Team and Events.",
+   "image": {
+    "src": "doc_newsletter.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Newsletter template preview",
+    "large": "large/doc_newsletter.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_contract",
+   "type": "doc",
+   "name": "Service agreement",
+   "tag": "Legal",
+   "line": "Numbered clauses and two signature lines.",
+   "meta": "3 pages",
+   "prompt": "Write a 3-page service agreement with numbered clauses and two signature lines.",
+   "image": {
+    "src": "doc_contract.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Service agreement template preview",
+    "large": "large/doc_contract.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "doc_press",
+   "type": "doc",
+   "name": "Press release",
+   "tag": "Comms",
+   "line": "A headline, a quote and a contact block.",
+   "meta": "1 page",
+   "prompt": "Write a one-page press release headed 'For immediate release' with a headline, a quote and a contact block.",
+   "image": {
+    "src": "doc_press.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Press release template preview",
+    "large": "large/doc_press.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_summary",
+   "type": "sheet",
+   "name": "Monthly summary",
+   "tag": "Finance",
+   "line": "Totals per month, with a chart.",
+   "meta": "3 tabs",
+   "prompt": "Build a monthly summary sheet, January to June, with revenue, expenses and profit per month, a total row and a column chart.",
+   "image": {
+    "src": "sheet_summary.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Monthly summary template preview",
+    "large": "large/sheet_summary.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_budget",
+   "type": "sheet",
+   "name": "Budget tracker",
+   "tag": "Finance",
+   "line": "Planned against actual, with the gap in colour.",
+   "meta": "2 tabs",
+   "prompt": "Build a budget tracker with the categories Housing, Food, Transport, Utilities and Savings, planned against actual, and a progress bar for each.",
+   "image": {
+    "src": "sheet_budget.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Budget tracker template preview",
+    "large": "large/sheet_budget.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_invoices",
+   "type": "sheet",
+   "name": "Invoice list",
+   "tag": "Finance",
+   "line": "Who owes what, with a status on every line.",
+   "meta": "1 tab",
+   "prompt": "Build an invoice list with the invoice number, client, amount and a coloured status: Paid, Due or Overdue.",
+   "image": {
+    "src": "sheet_invoices.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Invoice list template preview",
+    "large": "large/sheet_invoices.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_inventory",
+   "type": "sheet",
+   "name": "Stock levels",
+   "tag": "Operations",
+   "line": "Quantities per product, low stock highlighted.",
+   "meta": "2 tabs",
+   "prompt": "Build a stock sheet with the product, SKU, quantity and reorder level, and highlight the products that are low.",
+   "image": {
+    "src": "sheet_inventory.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Stock levels template preview",
+    "large": "large/sheet_inventory.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_gantt",
+   "type": "sheet",
+   "name": "Project plan",
+   "tag": "Operations",
+   "line": "Tasks on a weekly grid, owners alongside.",
+   "meta": "1 tab",
+   "prompt": "Build a project plan with tasks and owners and a bar for each task across the weeks W1 to W8.",
+   "image": {
+    "src": "sheet_gantt.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Project plan template preview",
+    "large": "large/sheet_gantt.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_regions",
+   "type": "sheet",
+   "name": "Sales by region",
+   "tag": "Business",
+   "line": "A heat map: darker means stronger sales.",
+   "meta": "2 tabs",
+   "prompt": "Build a sales-by-region sheet with North, South, East and West by quarter, colour-scaled like a heat map.",
+   "image": {
+    "src": "sheet_regions.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Sales by region template preview",
+    "large": "large/sheet_regions.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_expenses",
+   "type": "sheet",
+   "name": "Expense report",
+   "tag": "Finance",
+   "line": "Receipts by date, sorted by category, summed at the bottom.",
+   "meta": "1 tab",
+   "prompt": "Build an expense report with the date, category, amount and receipt for each line, and the total at the bottom.",
+   "image": {
+    "src": "sheet_expenses.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Expense report template preview",
+    "large": "large/sheet_expenses.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_attendance",
+   "type": "sheet",
+   "name": "Attendance tracker",
+   "tag": "People",
+   "line": "Names down the side, days across, one tick each.",
+   "meta": "1 tab",
+   "prompt": "Build an attendance tracker with the names down the side, the days across, a tick for present and A for absent.",
+   "image": {
+    "src": "sheet_attendance.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Attendance tracker template preview",
+    "large": "large/sheet_attendance.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "sheet_timesheet",
+   "type": "sheet",
+   "name": "Timesheet",
+   "tag": "People",
+   "line": "Hours per person, per day, with weekly totals.",
+   "meta": "1 tab",
+   "prompt": "Build a weekly timesheet with the names, the hours from Monday to Friday and a total column.",
+   "image": {
+    "src": "sheet_timesheet.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Timesheet template preview",
+    "large": "large/sheet_timesheet.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_overview",
+   "type": "dashboard",
+   "name": "Business overview",
+   "tag": "Business",
+   "line": "KPI tiles, a trend line and the sales mix.",
+   "meta": "6 charts",
+   "prompt": "Build a business overview dashboard: four KPI tiles (Revenue $248K, Orders 3,842, Growth +12.4%, Returns 1.8%), a monthly revenue line chart and a sales-by-channel donut.",
+   "image": {
+    "src": "dash_overview.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Business overview template preview",
+    "large": "large/dash_overview.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_pipeline",
+   "type": "dashboard",
+   "name": "Sales pipeline",
+   "tag": "Sales",
+   "line": "Stages from lead to won, win rate and weekly sales.",
+   "meta": "5 charts",
+   "prompt": "Build a sales pipeline dashboard with the stages Lead, Qualified, Proposal and Won as columns of deal cards with amounts.",
+   "image": {
+    "src": "dash_pipeline.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Sales pipeline template preview",
+    "large": "large/dash_pipeline.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_marketing",
+   "type": "dashboard",
+   "name": "Marketing",
+   "tag": "Marketing",
+   "line": "Visits, channels and conversion in one view.",
+   "meta": "5 charts",
+   "prompt": "Build a marketing dashboard on a dark theme: visits by channel as bars, a conversion funnel and a campaign table.",
+   "image": {
+    "src": "dash_marketing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Marketing template preview",
+    "large": "large/dash_marketing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_finance",
+   "type": "dashboard",
+   "name": "Cash flow",
+   "tag": "Finance",
+   "line": "Money in and out by month, balance on top.",
+   "meta": "4 charts",
+   "prompt": "Build a cash flow dashboard: a balance of $184,260, money in and money out by month as two lines, and monthly totals as bars.",
+   "image": {
+    "src": "dash_finance.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Cash flow template preview",
+    "large": "large/dash_finance.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_support",
+   "type": "dashboard",
+   "name": "Support desk",
+   "tag": "Support",
+   "line": "Open tickets, satisfaction and response time.",
+   "meta": "5 charts",
+   "prompt": "Build a support desk dashboard: open tickets, a satisfaction score, a response time gauge and tickets by priority.",
+   "image": {
+    "src": "dash_support.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Support desk template preview",
+    "large": "large/dash_support.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_workload",
+   "type": "dashboard",
+   "name": "Team workload",
+   "tag": "People",
+   "line": "Who has how much on their plate this week.",
+   "meta": "3 charts",
+   "prompt": "Build a team workload dashboard with one bar per person showing the capacity used, with their portraits.",
+   "image": {
+    "src": "dash_workload.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Team workload template preview",
+    "large": "large/dash_workload.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_web",
+   "type": "dashboard",
+   "name": "Website analytics",
+   "tag": "Marketing",
+   "line": "Visitors against last period and the top pages.",
+   "meta": "4 charts",
+   "prompt": "Build a website analytics dashboard: 48.2K visitors, a visitors line against the last period, a world map and the top pages.",
+   "image": {
+    "src": "dash_web.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Website analytics template preview",
+    "large": "large/dash_web.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_ops",
+   "type": "dashboard",
+   "name": "Operations",
+   "tag": "Operations",
+   "line": "Uptime, latency and incidents at a glance.",
+   "meta": "5 charts",
+   "prompt": "Build an operations dashboard on a dark theme: uptime tiles at 99.9%, a latency chart and an incident list.",
+   "image": {
+    "src": "dash_ops.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Operations template preview",
+    "large": "large/dash_ops.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "dash_people",
+   "type": "dashboard",
+   "name": "People and hiring",
+   "tag": "People",
+   "line": "Headcount, open roles and hiring progress.",
+   "meta": "4 charts",
+   "prompt": "Build a people dashboard: a headcount of 128, hiring progress rings by team and a team donut.",
+   "image": {
+    "src": "dash_people.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "People and hiring template preview",
+    "large": "large/dash_people.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_watercolor",
+   "type": "image",
+   "name": "Watercolor landscape",
+   "tag": "Painting",
+   "line": "Soft washes of colour on textured paper.",
+   "meta": "1 image",
+   "prompt": "A watercolor painting of a misty mountain lake at dawn with a small wooden boat, soft bleeding washes, visible paper texture.",
+   "image": {
+    "src": "image_watercolor.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Watercolor landscape template preview",
+    "large": "large/image_watercolor.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_product",
+   "type": "image",
+   "name": "Product photo",
+   "tag": "Commerce",
+   "line": "A studio shot on a seamless coloured backdrop.",
+   "meta": "1 image",
+   "prompt": "A studio product photo of matte black wireless headphones on a pastel pink seamless background with a soft shadow.",
+   "image": {
+    "src": "image_product.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Product photo template preview",
+    "large": "large/image_product.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_anime",
+   "type": "image",
+   "name": "Anime scene",
+   "tag": "Illustration",
+   "line": "A cinematic frame in an anime style.",
+   "meta": "1 image",
+   "prompt": "An anime-style illustration of a girl with a red scarf on a rooftop at sunset, city skyline, warm cinematic light.",
+   "image": {
+    "src": "image_anime.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Anime scene template preview",
+    "large": "large/image_anime.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_isometric",
+   "type": "image",
+   "name": "Isometric miniature",
+   "tag": "3D",
+   "line": "A tiny world on a floating island.",
+   "meta": "1 image",
+   "prompt": "An isometric 3D miniature of a small coffee shop on a floating island, soft pastel colours, tiny details.",
+   "image": {
+    "src": "image_isometric.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Isometric miniature template preview",
+    "large": "large/image_isometric.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_logo",
+   "type": "image",
+   "name": "Logo mark",
+   "tag": "Brand",
+   "line": "A simple mark in two colours.",
+   "meta": "1 image",
+   "prompt": "A minimal vector logo for a coffee roaster called 'Ember': a flame inside a coffee bean, two colours, on white.",
+   "image": {
+    "src": "image_logo.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Logo mark template preview",
+    "large": "large/image_logo.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_poster",
+   "type": "image",
+   "name": "Movie poster",
+   "tag": "Poster",
+   "line": "Bold type and one strong picture.",
+   "meta": "1 image",
+   "prompt": "A retro sci-fi movie poster titled 'LAST SIGNAL' with an astronaut silhouette and a giant moon, bold typography, film grain, no small print and no credits line at the bottom.",
+   "image": {
+    "src": "image_poster.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Movie poster template preview",
+    "large": "large/image_poster.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_oil",
+   "type": "image",
+   "name": "Oil portrait",
+   "tag": "Painting",
+   "line": "Thick brush strokes and dramatic light.",
+   "meta": "1 image",
+   "prompt": "An oil painting portrait of an elderly fisherman in a yellow raincoat, thick brush strokes, dramatic window light.",
+   "image": {
+    "src": "image_oil.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Oil portrait template preview",
+    "large": "large/image_oil.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_pixel",
+   "type": "image",
+   "name": "Pixel art",
+   "tag": "Games",
+   "line": "A 16-bit scene with fireflies.",
+   "meta": "1 image",
+   "prompt": "A pixel art game scene of a forest village at night with fireflies and a river, 16-bit style.",
+   "image": {
+    "src": "image_pixel.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Pixel art template preview",
+    "large": "large/image_pixel.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "image_street",
+   "type": "image",
+   "name": "Street photo",
+   "tag": "Photography",
+   "line": "A candid moment in the rain, with film grain.",
+   "meta": "1 image",
+   "prompt": "A candid street photograph of a cyclist crossing a rainy Tokyo crosswalk at dusk, neon reflections, 35mm film grain.",
+   "image": {
+    "src": "image_street.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Street photo template preview",
+    "large": "large/image_street.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_film",
+   "type": "video",
+   "name": "Short film",
+   "tag": "Cinema",
+   "line": "A cinematic scene with a slow camera move.",
+   "meta": "10 s",
+   "prompt": "A 10-second cinematic clip of a paper boat on a glowing river at dusk.",
+   "image": {
+    "src": "video_film.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Short film template preview"
+   }
+  },
+  {
+   "id": "video_ad",
+   "type": "video",
+   "name": "Product ad",
+   "tag": "Marketing",
+   "line": "A bright product shot with a splash.",
+   "meta": "6 s",
+   "prompt": "A 6-second ad for a bottle of sparkling water with a splash of lemon.",
+   "image": {
+    "src": "video_ad.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Product ad template preview"
+   }
+  },
+  {
+   "id": "video_travel",
+   "type": "video",
+   "name": "Travel reel",
+   "tag": "Social",
+   "line": "A warm sunset walk, cut for a reel.",
+   "meta": "15 s",
+   "prompt": "A 15-second travel reel of a couple walking on a palm beach at sunset, in warm light.",
+   "image": {
+    "src": "video_travel.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Travel reel template preview"
+   }
+  },
+  {
+   "id": "video_explainer",
+   "type": "video",
+   "name": "Explainer",
+   "tag": "Business",
+   "line": "Three simple steps, animated and labelled.",
+   "meta": "30 s",
+   "prompt": "A 30-second explainer: a friendly character shows three ideas around a big lightbulb: a gear, a growth chart and a chat bubble.",
+   "image": {
+    "src": "video_explainer.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Explainer template preview",
+    "large": "large/video_explainer.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_social",
+   "type": "video",
+   "name": "Vertical clip",
+   "tag": "Social",
+   "line": "A 9:16 clip made for stories and reels.",
+   "meta": "8 s",
+   "prompt": "An 8-second vertical clip of a street food cook grilling skewers, with the caption 'STREET FOOD'.",
+   "image": {
+    "src": "video_social.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Vertical clip template preview",
+    "large": "large/video_social.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_logo",
+   "type": "video",
+   "name": "Logo reveal",
+   "tag": "Branding",
+   "line": "A glowing letter mark rising out of sparkles.",
+   "meta": "4 s",
+   "prompt": "A 4-second logo reveal: a glowing letter K lights up with a light sweep on a dark ground.",
+   "image": {
+    "src": "video_logo.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Logo reveal template preview"
+   }
+  },
+  {
+   "id": "video_timelapse",
+   "type": "video",
+   "name": "City timelapse",
+   "tag": "Cinema",
+   "line": "A skyline at night with light trails.",
+   "meta": "12 s",
+   "prompt": "A 12-second night timelapse of a city with light trails on the road.",
+   "image": {
+    "src": "video_timelapse.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "City timelapse template preview"
+   }
+  },
+  {
+   "id": "video_tutorial",
+   "type": "video",
+   "name": "Screen tutorial",
+   "tag": "Learning",
+   "line": "A screen recording with a numbered step.",
+   "meta": "45 s",
+   "prompt": "A 45-second screen tutorial: click the 'Add task' button in a project app, with a numbered step badge '1'.",
+   "image": {
+    "src": "video_tutorial.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Screen tutorial template preview",
+    "large": "large/video_tutorial.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "video_event",
+   "type": "video",
+   "name": "Event recap",
+   "tag": "Events",
+   "line": "The best moments of the night, with the music up.",
+   "meta": "20 s",
+   "prompt": "A 20-second recap of a concert night, with the crowd and the stage lights.",
+   "image": {
+    "src": "video_event.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Event recap template preview"
+   }
+  },
+  {
+   "id": "audio_lofi",
+   "type": "audio",
+   "name": "Lo-fi beat",
+   "tag": "Music",
+   "line": "A calm beat to work to, with vinyl crackle.",
+   "meta": "2:00",
+   "prompt": "Make a mellow lo-fi hip hop beat with soft piano and vinyl crackle, 2 minutes long.",
+   "image": {
+    "src": "audio_lofi.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Lo-fi beat template preview",
+    "large": "large/audio_lofi.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_podcast",
+   "type": "audio",
+   "name": "Podcast intro",
+   "tag": "Voice",
+   "line": "A short spoken intro with light music under it.",
+   "meta": "0:20",
+   "prompt": "Make a 20-second podcast intro with a warm male voice and light music: 'Welcome to The Daily Brew'.",
+   "image": {
+    "src": "audio_podcast.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Podcast intro template preview",
+    "large": "large/audio_podcast.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_voiceover",
+   "type": "audio",
+   "name": "Voice-over",
+   "tag": "Voice",
+   "line": "Your script, read by a calm voice.",
+   "meta": "0:30",
+   "prompt": "Make a 30-second voice-over for a product video, a calm female voice reading my script.",
+   "image": {
+    "src": "audio_voiceover.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Voice-over template preview",
+    "large": "large/audio_voiceover.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_jingle",
+   "type": "audio",
+   "name": "Jingle",
+   "tag": "Brand",
+   "line": "A short, catchy tune for your brand.",
+   "meta": "0:10",
+   "prompt": "Make a 10-second upbeat jingle for a bakery called Sunrise Bakes.",
+   "image": {
+    "src": "audio_jingle.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Jingle template preview",
+    "large": "large/audio_jingle.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_rain",
+   "type": "audio",
+   "name": "Rain ambience",
+   "tag": "Ambient",
+   "line": "A loop of rain on a window, for focus or sleep.",
+   "meta": "10:00 loop",
+   "prompt": "Make a 10-minute ambient loop of rain on a window with distant thunder.",
+   "image": {
+    "src": "audio_rain.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Rain ambience template preview",
+    "large": "large/audio_rain.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_sleep",
+   "type": "audio",
+   "name": "Sleep meditation",
+   "tag": "Wellness",
+   "line": "A gentle voice and soft pads to fall asleep to.",
+   "meta": "5:00",
+   "prompt": "Make a 5-minute guided meditation for sleep, with a gentle voice and soft synth pads.",
+   "image": {
+    "src": "audio_sleep.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Sleep meditation template preview",
+    "large": "large/audio_sleep.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_audiobook",
+   "type": "audio",
+   "name": "Audiobook chapter",
+   "tag": "Reading",
+   "line": "Your story read aloud in a warm storyteller voice.",
+   "meta": "8:30",
+   "prompt": "Read chapter one of my short story aloud in a warm storyteller voice.",
+   "image": {
+    "src": "audio_audiobook.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Audiobook chapter template preview",
+    "large": "large/audio_audiobook.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_sfx",
+   "type": "audio",
+   "name": "Sound effects",
+   "tag": "App sounds",
+   "line": "Five short sounds for your app.",
+   "meta": "5 sounds",
+   "prompt": "Make five short sound effects for my app: click, success, error, notification and whoosh.",
+   "image": {
+    "src": "audio_sfx.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Sound effects template preview",
+    "large": "large/audio_sfx.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_lesson",
+   "type": "audio",
+   "name": "Language lesson",
+   "tag": "Learning",
+   "line": "Phrases spoken slowly, then at normal speed.",
+   "meta": "3:00",
+   "prompt": "Make a 3-minute Spanish lesson with phrases for ordering coffee, spoken slowly and then at normal speed.",
+   "image": {
+    "src": "audio_lesson.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Language lesson template preview",
+    "large": "large/audio_lesson.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "model_box",
+   "type": "model3d",
+   "name": "Packaging box",
+   "tag": "Product",
+   "line": "A kraft cardboard box with tape, ready to print on.",
+   "meta": "1 model",
+   "prompt": "A kraft cardboard packaging box with tape, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_box.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Packaging box template preview"
+   }
+  },
+  {
+   "id": "model_ball",
+   "type": "model3d",
+   "name": "Sphere",
+   "tag": "Basics",
+   "line": "A glossy blue sphere with soft reflections.",
+   "meta": "1 model",
+   "prompt": "A glossy blue sphere with soft reflections, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_ball.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Sphere template preview"
+   }
+  },
+  {
+   "id": "model_vase",
+   "type": "model3d",
+   "name": "Ribbed vase",
+   "tag": "Home",
+   "line": "A turned shape with fine ribs, ready to export.",
+   "meta": "1 model",
+   "prompt": "A vase with a ribbed body on a round base, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_vase.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Ribbed vase template preview"
+   }
+  },
+  {
+   "id": "model_ring",
+   "type": "model3d",
+   "name": "Ring",
+   "tag": "Jewellery",
+   "line": "A gold band with a small diamond.",
+   "meta": "1 model",
+   "prompt": "A thick gold ring with a small diamond, seen at an angle, with a soft highlight, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_ring.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Ring template preview"
+   }
+  },
+  {
+   "id": "model_can",
+   "type": "model3d",
+   "name": "Soda can",
+   "tag": "Product",
+   "line": "A cold soda can with a red label.",
+   "meta": "1 model",
+   "prompt": "A 330 ml soda can with a red label band and a metal top, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_can.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Soda can template preview"
+   }
+  },
+  {
+   "id": "model_cone",
+   "type": "model3d",
+   "name": "Safety cone",
+   "tag": "Basics",
+   "line": "An orange cone with two reflective bands.",
+   "meta": "1 model",
+   "prompt": "A traffic safety cone with a white reflective stripe on a square base, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_cone.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Safety cone template preview"
+   }
+  },
+  {
+   "id": "model_table",
+   "type": "model3d",
+   "name": "Side table",
+   "tag": "Furniture",
+   "line": "A small wooden table you can place in a room.",
+   "meta": "1 model",
+   "prompt": "A small round wooden side table with three tapered legs, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_table.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Side table template preview"
+   }
+  },
+  {
+   "id": "model_stairs",
+   "type": "model3d",
+   "name": "Stairs",
+   "tag": "Architecture",
+   "line": "Concrete steps in soft studio light.",
+   "meta": "1 model",
+   "prompt": "A small flight of concrete steps lit from the side to show depth, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_stairs.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Stairs template preview"
+   }
+  },
+  {
+   "id": "model_chair",
+   "type": "model3d",
+   "name": "Lounge chair",
+   "tag": "Furniture",
+   "line": "Walnut frame, green velvet seat.",
+   "meta": "1 model",
+   "prompt": "A mid-century lounge chair in walnut and green velvet, on a light grey studio backdrop.",
+   "image": {
+    "src": "model_chair.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Lounge chair template preview"
+   }
+  },
+  {
+   "id": "app_ecommerce",
+   "type": "app",
+   "name": "E-commerce shop",
+   "tag": "Commerce",
+   "line": "Answer customers faster and never miss a low-stock day.",
+   "meta": "64 sample rows",
+   "prompt": "Build an app from the E-commerce shop template.",
+   "image": {
+    "src": "app_ecommerce.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "E-commerce shop template preview",
+    "large": "large/app_ecommerce.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Contacts",
+    "Products",
+    "Orders",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Contacts, Products, Orders and Notes. Orders point at a contact and a product."
+    },
+    {
+     "t": "Sample rows",
+     "d": "64 rows, so you see it working before you add your own."
+    },
+    {
+     "t": "The kit",
+     "d": "A dashboard, an agent team, skills and automations. The automations start switched off."
+    }
+   ],
+   "kit": "ecommerce"
+  },
+  {
+   "id": "app_realestate",
+   "type": "app",
+   "name": "Real estate agency",
+   "tag": "Property",
+   "line": "Listings written in minutes and every viewing followed up.",
+   "meta": "73 sample rows",
+   "prompt": "Build an app from the Real estate agency template.",
+   "image": {
+    "src": "app_realestate.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Real estate agency template preview",
+    "large": "large/app_realestate.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Contacts",
+    "Properties",
+    "Lettings",
+    "Sales",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     0,
+     4
+    ]
+   ],
+   "layout": [
+    [
+     0,
+     1
+    ],
+    [
+     2,
+     3,
+     4
+    ]
+   ],
+   "inside": [
+    {
+     "t": "5 tables, linked",
+     "d": "Contacts, Properties, Lettings, Sales and Notes. Lettings and Sales each point at a contact and a property."
+    },
+    {
+     "t": "Sample rows",
+     "d": "73 rows, so you see it working before you add your own."
+    },
+    {
+     "t": "The kit",
+     "d": "An Overview dashboard, the Agency desk team, 2 skills and 3 automations. The automations start switched off."
+    }
+   ],
+   "kit": "real-estate"
+  },
+  {
+   "id": "app_recruitment",
+   "type": "app",
+   "name": "Recruitment firm",
+   "tag": "People",
+   "line": "Candidate briefs in minutes and a pipeline that never goes quiet.",
+   "meta": "63 sample rows",
+   "prompt": "Build an app from the Recruitment firm template.",
+   "image": {
+    "src": "app_recruitment.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Recruitment firm template preview",
+    "large": "large/app_recruitment.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Contacts",
+    "Jobs",
+    "Candidates",
+    "Missions",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     0,
+     4
+    ]
+   ],
+   "inside": [
+    {
+     "t": "5 tables, linked",
+     "d": "Contacts, Jobs, Candidates, Client missions and Notes."
+    },
+    {
+     "t": "Sample rows",
+     "d": "63 rows, so you see it working before you add your own."
+    },
+    {
+     "t": "The kit",
+     "d": "A dashboard, an agent team, skills and automations. The automations start switched off."
+    }
+   ],
+   "kit": "recruitment"
+  },
+  {
+   "id": "app_restaurant",
+   "type": "app",
+   "name": "Restaurant bookings",
+   "tag": "Hospitality",
+   "line": "A week of tables and covers, guests remembered.",
+   "meta": "58 sample rows",
+   "prompt": "Build an app from the Restaurant bookings template.",
+   "image": {
+    "src": "app_restaurant.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Restaurant bookings template preview",
+    "large": "large/app_restaurant.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Bookings",
+    "Tables",
+    "Guests",
+    "Menu"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Bookings, Tables, Guests and Menu. Each booking points at a table and a guest."
+    },
+    {
+     "t": "Sample rows",
+     "d": "58 rows, a full week of bookings."
+    },
+    {
+     "t": "Not built yet",
+     "d": "A new template idea: it does not ship today."
+    }
+   ]
+  },
+  {
+   "id": "app_fitness",
+   "type": "app",
+   "name": "Fitness studio",
+   "tag": "Wellness",
+   "line": "Classes, members and attendance in one place.",
+   "meta": "61 sample rows",
+   "prompt": "Build an app from the Fitness studio template.",
+   "image": {
+    "src": "app_fitness.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Fitness studio template preview",
+    "large": "large/app_fitness.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Members",
+    "Classes",
+    "Bookings",
+    "Plans"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Members, Classes, Bookings and Plans. Each booking points at a member and a class."
+    },
+    {
+     "t": "Sample rows",
+     "d": "61 rows, a full week of classes."
+    },
+    {
+     "t": "Not built yet",
+     "d": "A new template idea: it does not ship today."
+    }
+   ]
+  },
+  {
+   "id": "app_contacts",
+   "type": "app",
+   "name": "Contacts",
+   "tag": "Starter",
+   "line": "The people and companies you deal with, and notes about each.",
+   "meta": "1 table",
+   "prompt": "Build an app that keeps my contacts and notes about each.",
+   "image": {
+    "src": "app_contacts.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Contacts template preview",
+    "large": "large/app_contacts.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "start",
+   "shelf": "B",
+   "tables": [
+    "Contacts",
+    "Companies",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "One table",
+     "d": "A single table that Kaby sets up with you in a chat."
+    },
+    {
+     "t": "No trade attached",
+     "d": "Add tables and links as you go."
+    }
+   ]
+  },
+  {
+   "id": "app_tasks",
+   "type": "app",
+   "name": "Tasks",
+   "tag": "Starter",
+   "line": "What to do today, this week and later, with a priority on each.",
+   "meta": "1 table",
+   "prompt": "Build an app that tracks my tasks with a due date and a priority.",
+   "image": {
+    "src": "app_tasks.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Tasks template preview",
+    "large": "large/app_tasks.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "start",
+   "shelf": "B",
+   "tables": [
+    "Tasks",
+    "Projects",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "One table",
+     "d": "A single table that Kaby sets up with you in a chat."
+    },
+    {
+     "t": "No trade attached",
+     "d": "Add tables and links as you go."
+    }
+   ]
+  },
+  {
+   "id": "app_collection",
+   "type": "app",
+   "name": "Collection",
+   "tag": "Starter",
+   "line": "Anything you collect, with a picture and your own fields.",
+   "meta": "1 table",
+   "prompt": "Build an app that catalogues my vinyl record collection with a cover picture, artist and genre.",
+   "image": {
+    "src": "app_collection.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Collection template preview",
+    "large": "large/app_collection.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "start",
+   "shelf": "B",
+   "tables": [
+    "Items",
+    "Tags",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ]
+   ],
+   "inside": [
+    {
+     "t": "One table",
+     "d": "A single table that Kaby sets up with you in a chat."
+    },
+    {
+     "t": "No trade attached",
+     "d": "Add tables and links as you go."
+    }
+   ]
+  },
+  {
+   "id": "app_salon",
+   "type": "app",
+   "name": "Salon bookings",
+   "tag": "Beauty",
+   "line": "Who is booked with whom, and who has not been back for a while.",
+   "meta": "52 sample rows",
+   "prompt": "Build an app for a hair salon: clients, services and appointments.",
+   "image": {
+    "src": "app_salon.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Salon bookings template preview",
+    "large": "large/app_salon.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   },
+   "kind": "template",
+   "shelf": "A",
+   "tables": [
+    "Clients",
+    "Services",
+    "Appointments",
+    "Notes"
+   ],
+   "links": [
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "inside": [
+    {
+     "t": "4 tables, linked",
+     "d": "Clients, Services, Appointments and Notes. Each appointment points at a client and a service."
+    },
+    {
+     "t": "Sample rows",
+     "d": "52 rows, a full week of appointments."
+    },
+    {
+     "t": "Not built yet",
+     "d": "A new template idea: it does not ship today."
+    }
+   ]
+  },
+  {
+   "id": "game_platformer",
+   "type": "game",
+   "name": "Pixel platformer",
+   "tag": "Arcade",
+   "line": "A fox jumps over spikes and collects stars.",
+   "meta": "Playable",
+   "prompt": "Make a pixel platformer where a fox collects stars and jumps over spikes.",
+   "image": {
+    "src": "game_platformer.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Pixel platformer template preview",
+    "large": "large/game_platformer.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_match3",
+   "type": "game",
+   "name": "Match-3 puzzle",
+   "tag": "Puzzle",
+   "line": "Swap gems to line up three, with 30 moves.",
+   "meta": "Playable",
+   "prompt": "Make a match-3 puzzle game with candy-coloured gems and a 30-move limit.",
+   "image": {
+    "src": "game_match3.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Match-3 puzzle template preview",
+    "large": "large/game_match3.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_word",
+   "type": "game",
+   "name": "Word guess",
+   "tag": "Words",
+   "line": "Five letters, six tries, colour clues.",
+   "meta": "Playable",
+   "prompt": "Make a word guessing game with five letters and six tries, like a daily puzzle.",
+   "image": {
+    "src": "game_word.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Word guess template preview",
+    "large": "large/game_word.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_memory",
+   "type": "game",
+   "name": "Memory cards",
+   "tag": "Casual",
+   "line": "Flip two cards to find the animal pairs.",
+   "meta": "Playable",
+   "prompt": "Make a memory card game with animal pairs and a move counter.",
+   "image": {
+    "src": "game_memory.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Memory cards template preview",
+    "large": "large/game_memory.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_runner",
+   "type": "game",
+   "name": "Endless runner",
+   "tag": "Arcade",
+   "line": "A robot runs and dodges, faster and faster.",
+   "meta": "Playable",
+   "prompt": "Make an endless runner where a robot dodges obstacles and the speed keeps rising.",
+   "image": {
+    "src": "game_runner.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Endless runner template preview",
+    "large": "large/game_runner.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_shooter",
+   "type": "game",
+   "name": "Space shooter",
+   "tag": "Arcade",
+   "line": "Waves of aliens, power-ups and a boss.",
+   "meta": "Playable",
+   "prompt": "Make a space shooter with waves of aliens and power-ups.",
+   "image": {
+    "src": "game_shooter.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Space shooter template preview",
+    "large": "large/game_shooter.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_trivia",
+   "type": "game",
+   "name": "Trivia show",
+   "tag": "Party",
+   "line": "Two players, a countdown and a scoreboard.",
+   "meta": "Playable",
+   "prompt": "Make a trivia game show for two players with a countdown and a scoreboard.",
+   "image": {
+    "src": "game_trivia.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Trivia show template preview",
+    "large": "large/game_trivia.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_checkers",
+   "type": "game",
+   "name": "Checkers",
+   "tag": "Board",
+   "line": "A two-player board game on a wooden board.",
+   "meta": "Playable",
+   "prompt": "Make a two-player checkers board game with a clean wooden board.",
+   "image": {
+    "src": "game_checkers.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Checkers template preview",
+    "large": "large/game_checkers.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "game_idle",
+   "type": "game",
+   "name": "Cookie baker",
+   "tag": "Casual",
+   "line": "Click to bake, buy upgrades, watch the numbers grow.",
+   "meta": "Playable",
+   "prompt": "Make an idle clicker where I bake cookies, buy upgrades and watch the numbers grow.",
+   "image": {
+    "src": "game_idle.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Cookie baker template preview",
+    "large": "large/game_idle.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_landing",
+   "type": "website",
+   "name": "Landing page",
+   "tag": "Marketing",
+   "line": "A hero, three features and a call to action.",
+   "meta": "1 page",
+   "prompt": "A landing page for my studio Flowdesk: a hero, three features and a call to action.",
+   "image": {
+    "src": "web_landing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Landing page template preview",
+    "large": "large/web_landing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_portfolio",
+   "type": "website",
+   "name": "Portfolio",
+   "tag": "Creative",
+   "line": "A black-and-white grid of your best work.",
+   "meta": "3 pages",
+   "prompt": "A portfolio site for a photographer: a big photo and a grid of work.",
+   "image": {
+    "src": "web_portfolio.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Portfolio template preview",
+    "large": "large/web_portfolio.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_restaurant",
+   "type": "website",
+   "name": "Restaurant",
+   "tag": "Hospitality",
+   "line": "A warm hero, a short menu and a booking button.",
+   "meta": "2 pages",
+   "prompt": "A website for my restaurant Casa Lume: a warm hero, a short menu and a booking button.",
+   "image": {
+    "src": "web_restaurant.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Restaurant template preview",
+    "large": "large/web_restaurant.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_blog",
+   "type": "website",
+   "name": "Blog",
+   "tag": "Media",
+   "line": "A featured story and a list of recent posts.",
+   "meta": "4 pages",
+   "prompt": "A blog called The Journal with a featured story and a list of recent posts.",
+   "image": {
+    "src": "web_blog.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Blog template preview",
+    "large": "large/web_blog.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_pricing",
+   "type": "website",
+   "name": "SaaS pricing",
+   "tag": "Marketing",
+   "line": "Three plans, a monthly and yearly switch.",
+   "meta": "1 page",
+   "prompt": "A SaaS pricing page with three plans (Starter, Team, Business) and a monthly and yearly switch.",
+   "image": {
+    "src": "web_pricing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "SaaS pricing template preview",
+    "large": "large/web_pricing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_shop",
+   "type": "website",
+   "name": "Online shop",
+   "tag": "Commerce",
+   "line": "A product grid with prices and a cart.",
+   "meta": "3 pages",
+   "prompt": "An online shop for sneakers with a product grid, prices and a cart.",
+   "image": {
+    "src": "web_shop.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Online shop template preview",
+    "large": "large/web_shop.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_event",
+   "type": "website",
+   "name": "Event page",
+   "tag": "Events",
+   "line": "A big date, the speakers and a ticket button.",
+   "meta": "1 page",
+   "prompt": "An event page for Summit 2026, June 12-13, with the speakers and a Register button.",
+   "image": {
+    "src": "web_event.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Event page template preview",
+    "large": "large/web_event.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_agency",
+   "type": "website",
+   "name": "Agency",
+   "tag": "Creative",
+   "line": "A huge headline on dark, with a strip of projects.",
+   "meta": "5 pages",
+   "prompt": "A site for a creative agency called Forma: a huge headline and a strip of projects.",
+   "image": {
+    "src": "web_agency.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Agency template preview",
+    "large": "large/web_agency.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "web_charity",
+   "type": "website",
+   "name": "Non-profit",
+   "tag": "Community",
+   "line": "A moving hero, a donate button and the impact in three numbers.",
+   "meta": "2 pages",
+   "prompt": "A website for a small charity with a donate button and three impact numbers.",
+   "image": {
+    "src": "web_charity.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Non-profit template preview",
+    "large": "large/web_charity.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_split",
+   "type": "miniapp",
+   "name": "Cost splitter",
+   "tag": "Utility",
+   "line": "Who paid what, and who owes whom.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that splits trip costs between friends.",
+   "image": {
+    "src": "mini_split.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Cost splitter template preview",
+    "large": "large/mini_split.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_convert",
+   "type": "miniapp",
+   "name": "Unit converter",
+   "tag": "Utility",
+   "line": "Two fields that stay in sync, with a swap button.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that converts miles to kilometres, with two fields and a swap button.",
+   "image": {
+    "src": "mini_convert.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Unit converter template preview",
+    "large": "large/mini_convert.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_habits",
+   "type": "miniapp",
+   "name": "Habit tracker",
+   "tag": "Wellness",
+   "line": "A streak flame and a week of ticks.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that tracks my daily habits with a streak.",
+   "image": {
+    "src": "mini_habits.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Habit tracker template preview",
+    "large": "large/mini_habits.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_timer",
+   "type": "miniapp",
+   "name": "Focus timer",
+   "tag": "Productivity",
+   "line": "A big countdown ring with session dots.",
+   "meta": "1 screen",
+   "prompt": "A mini-app with a 25-minute focus timer and session dots.",
+   "image": {
+    "src": "mini_timer.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Focus timer template preview",
+    "large": "large/mini_timer.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_packing",
+   "type": "miniapp",
+   "name": "Packing list",
+   "tag": "Travel",
+   "line": "A checklist you tick off, one bag at a time.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that keeps a packing list with checkboxes for my trip.",
+   "image": {
+    "src": "mini_packing.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Packing list template preview",
+    "large": "large/mini_packing.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_tip",
+   "type": "miniapp",
+   "name": "Tip calculator",
+   "tag": "Utility",
+   "line": "Bill, tip percentage and the split per person.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that calculates the tip and splits the bill per person.",
+   "image": {
+    "src": "mini_tip.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Tip calculator template preview",
+    "large": "large/mini_tip.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_quiz",
+   "type": "miniapp",
+   "name": "Quiz",
+   "tag": "Learning",
+   "line": "One question at a time, with instant feedback.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that runs a 10-question geography quiz with instant feedback.",
+   "image": {
+    "src": "mini_quiz.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Quiz template preview",
+    "large": "large/mini_quiz.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_clean",
+   "type": "miniapp",
+   "name": "Text cleaner",
+   "tag": "Utility",
+   "line": "Paste text, press a button, copy the clean result.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that cleans pasted text: extra spaces, line breaks and bad quotes.",
+   "image": {
+    "src": "mini_clean.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Text cleaner template preview",
+    "large": "large/mini_clean.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "mini_poll",
+   "type": "miniapp",
+   "name": "Poll maker",
+   "tag": "Social",
+   "line": "Ask a question, share a link, watch the bars grow.",
+   "meta": "1 screen",
+   "prompt": "A mini-app that makes a quick poll with three options and shows live results.",
+   "image": {
+    "src": "mini_poll.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Poll maker template preview",
+    "large": "large/mini_poll.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_welcome",
+   "type": "automation",
+   "name": "Welcome email",
+   "tag": "Sales",
+   "line": "When someone signs up, send them a welcome.",
+   "meta": "On sign-up",
+   "prompt": "When someone signs up, write a warm welcome email with the first steps and send it from Gmail, then add the person to the 'New users' list in Notion.",
+   "image": {
+    "src": "auto_welcome.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Welcome email template preview",
+    "large": "large/auto_welcome.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_digest",
+   "type": "automation",
+   "name": "Daily digest",
+   "tag": "Team",
+   "line": "Every morning, summarise what changed and post it.",
+   "meta": "Every day",
+   "prompt": "Every day at 8:30, summarise what changed in my projects since yesterday and post it in #team on Slack.",
+   "image": {
+    "src": "auto_digest.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Daily digest template preview",
+    "large": "large/auto_digest.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_invoice",
+   "type": "automation",
+   "name": "Invoice reminder",
+   "tag": "Finance",
+   "line": "When an invoice is a week late, email the client.",
+   "meta": "Every Monday",
+   "prompt": "Every Monday, look at the invoices in Gmail labelled 'To chase' that are more than 30 days old. For each one, write a short, polite reminder in the client's language and save it as a draft. Never send an e-mail yourself. Post the list of drafts in #finance.",
+   "image": {
+    "src": "auto_invoice.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Invoice reminder template preview",
+    "large": "large/auto_invoice.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_lead",
+   "type": "automation",
+   "name": "Lead to CRM",
+   "tag": "Sales",
+   "line": "A new form answer becomes a contact and pings sales.",
+   "meta": "Webhook",
+   "prompt": "When the contact form is submitted, add the person as a contact in HubSpot with their message and tell #sales on Slack.",
+   "image": {
+    "src": "auto_lead.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Lead to CRM template preview",
+    "large": "large/auto_lead.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_review",
+   "type": "automation",
+   "name": "Review responder",
+   "tag": "Support",
+   "line": "Drafts a reply to each new review and waits for your OK.",
+   "meta": "Every hour",
+   "prompt": "Every hour, check the new Google reviews, write a reply in our voice and save it as a draft for me to approve. Never post a reply yourself.",
+   "image": {
+    "src": "auto_review.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Review responder template preview",
+    "large": "large/auto_review.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_social",
+   "type": "automation",
+   "name": "Social scheduler",
+   "tag": "Marketing",
+   "line": "Every Monday, three posts written and scheduled.",
+   "meta": "Every Monday",
+   "prompt": "Every Monday at 10:00, pick three ideas from my Notion 'Ideas' page, write one post per idea and schedule them in Buffer for the week.",
+   "image": {
+    "src": "auto_social.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Social scheduler template preview",
+    "large": "large/auto_social.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_prep",
+   "type": "automation",
+   "name": "Meeting prep",
+   "tag": "Team",
+   "line": "A short brief lands in your inbox before each meeting.",
+   "meta": "Weekdays",
+   "prompt": "Every weekday at 7:30, read today's meetings in Google Calendar and email me a one-page brief with the notes from the last meeting with each person.",
+   "image": {
+    "src": "auto_prep.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Meeting prep template preview",
+    "large": "large/auto_prep.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_expense",
+   "type": "automation",
+   "name": "Expense collector",
+   "tag": "Finance",
+   "line": "Receipts by email become rows in your sheet.",
+   "meta": "Every hour",
+   "prompt": "Every hour, when a new email with a receipt arrives under the 'Receipts' label, read the amount and date and add a row to my 'Expenses' Google Sheet.",
+   "image": {
+    "src": "auto_expense.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Expense collector template preview",
+    "large": "large/auto_expense.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "auto_backup",
+   "type": "automation",
+   "name": "Backup check",
+   "tag": "Operations",
+   "line": "Every night, check the backups and shout if one failed.",
+   "meta": "Every night",
+   "prompt": "Every night at 2:00, check that last night's backup finished and, if it did not, alert me in #ops on Slack with the error.",
+   "image": {
+    "src": "auto_backup.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Backup check template preview",
+    "large": "large/auto_backup.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_content",
+   "type": "team",
+   "name": "Content team",
+   "tag": "Marketing",
+   "line": "A lead with a researcher, a writer and a designer.",
+   "meta": "4 agents",
+   "prompt": "Create a content team: a lead, a researcher, a writer and a designer.",
+   "image": {
+    "src": "team_content.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Content team template preview",
+    "large": "large/team_content.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_support",
+   "type": "team",
+   "name": "Support desk",
+   "tag": "Support",
+   "line": "A lead and five specialists: triage, billing, technical.",
+   "meta": "6 agents",
+   "prompt": "Create a support desk team: a lead, a triage agent, a billing agent, a technical agent and two back-ups.",
+   "image": {
+    "src": "team_support.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Support desk template preview",
+    "large": "large/team_support.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_sales",
+   "type": "team",
+   "name": "Sales desk",
+   "tag": "Sales",
+   "line": "A prospector, a qualifier and a closer under one lead.",
+   "meta": "4 agents",
+   "prompt": "Create a sales team: a lead, a prospector, a qualifier and a closer.",
+   "image": {
+    "src": "team_sales.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Sales desk template preview",
+    "large": "large/team_sales.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_research",
+   "type": "team",
+   "name": "Research lab",
+   "tag": "Research",
+   "line": "Finds sources, reads them, checks the facts.",
+   "meta": "4 agents",
+   "prompt": "Create a research team: a lead, a web scout, an analyst and a fact checker.",
+   "image": {
+    "src": "team_research.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Research lab template preview",
+    "large": "large/team_research.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_finance",
+   "type": "team",
+   "name": "Finance office",
+   "tag": "Finance",
+   "line": "Books, invoices and a forecast, reviewed by a lead.",
+   "meta": "4 agents",
+   "prompt": "Create a finance team: a lead, a bookkeeper, an invoicer and a forecaster.",
+   "image": {
+    "src": "team_finance.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Finance office template preview",
+    "large": "large/team_finance.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_eng",
+   "type": "team",
+   "name": "Engineering squad",
+   "tag": "Engineering",
+   "line": "One writes the code, one reviews it, one tests it.",
+   "meta": "4 agents",
+   "prompt": "Create an engineering team: a tech lead, a coder, a reviewer and a tester.",
+   "image": {
+    "src": "team_eng.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Engineering squad template preview",
+    "large": "large/team_eng.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_hiring",
+   "type": "team",
+   "name": "Hiring team",
+   "tag": "People",
+   "line": "Sources candidates, screens them, books the interviews.",
+   "meta": "4 agents",
+   "prompt": "Create a hiring team: a lead, a sourcer, a screener and a scheduler.",
+   "image": {
+    "src": "team_hiring.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Hiring team template preview",
+    "large": "large/team_hiring.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_studio",
+   "type": "team",
+   "name": "Creative studio",
+   "tag": "Marketing",
+   "line": "Words, pictures and a final edit.",
+   "meta": "4 agents",
+   "prompt": "Create a creative studio: a lead, a copywriter, an illustrator and an editor.",
+   "image": {
+    "src": "team_studio.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Creative studio template preview",
+    "large": "large/team_studio.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "team_office",
+   "type": "team",
+   "name": "Executive office",
+   "tag": "Assistant",
+   "line": "Inbox, calendar and travel handled for you.",
+   "meta": "3 agents",
+   "prompt": "Create an executive assistant team for my inbox, calendar and travel.",
+   "image": {
+    "src": "team_office.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Executive office template preview",
+    "large": "large/team_office.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_weekly",
+   "type": "skill",
+   "name": "Weekly report",
+   "tag": "Reporting",
+   "line": "Gathers updates, writes the summary, sends it on Friday.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that gathers my team's updates, summarises them and sends my weekly report on Friday.",
+   "image": {
+    "src": "skill_weekly.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Weekly report template preview",
+    "large": "large/skill_weekly.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_minutes",
+   "type": "skill",
+   "name": "Meeting minutes",
+   "tag": "Team",
+   "line": "Turns a recording into decisions and owners.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that turns a meeting recording into minutes: decisions, action items and owners.",
+   "image": {
+    "src": "skill_minutes.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Meeting minutes template preview",
+    "large": "large/skill_minutes.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_triage",
+   "type": "skill",
+   "name": "Email triage",
+   "tag": "Inbox",
+   "line": "Sorts the inbox, drafts replies, flags what is urgent.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that sorts my inbox, drafts replies and flags urgent mail.",
+   "image": {
+    "src": "skill_triage.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Email triage template preview",
+    "large": "large/skill_triage.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_contract",
+   "type": "skill",
+   "name": "Contract review",
+   "tag": "Legal",
+   "line": "Reads a contract and lists what to check before you sign.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that reads a contract and lists the risks and open questions before I sign.",
+   "image": {
+    "src": "skill_contract.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Contract review template preview",
+    "large": "large/skill_contract.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_notes",
+   "type": "skill",
+   "name": "Release notes",
+   "tag": "Product",
+   "line": "Turns merged changes into notes your users can read.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that turns the merged changes into release notes my users can read.",
+   "image": {
+    "src": "skill_notes.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Release notes template preview",
+    "large": "large/skill_notes.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_leads",
+   "type": "skill",
+   "name": "Lead research",
+   "tag": "Sales",
+   "line": "A short profile of a company before you call.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that researches a company and writes a short profile before a sales call.",
+   "image": {
+    "src": "skill_leads.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Lead research template preview",
+    "large": "large/skill_leads.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_translate",
+   "type": "skill",
+   "name": "Translation check",
+   "tag": "Language",
+   "line": "Compares a translation with the source and marks the gaps.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that checks a translation against its source and marks the gaps.",
+   "image": {
+    "src": "skill_translate.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Translation check template preview",
+    "large": "large/skill_translate.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_receipts",
+   "type": "skill",
+   "name": "Invoice extractor",
+   "tag": "Finance",
+   "line": "Reads an invoice and returns the amounts in a table.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that reads an invoice and returns the amounts in a table.",
+   "image": {
+    "src": "skill_receipts.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Invoice extractor template preview",
+    "large": "large/skill_receipts.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "skill_posts",
+   "type": "skill",
+   "name": "Social post writer",
+   "tag": "Marketing",
+   "line": "Three post options in your tone, from one idea.",
+   "meta": "3 steps",
+   "prompt": "Write a skill that writes three social posts in my tone from one idea.",
+   "image": {
+    "src": "skill_posts.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Social post writer template preview",
+    "large": "large/skill_posts.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_calendar",
+   "type": "plugin",
+   "name": "Calendar",
+   "tag": "Connect",
+   "line": "Plug Kaby into your calendar to read and plan events.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my calendar so it can read and plan my events.",
+   "image": {
+    "src": "plugin_calendar.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Calendar template preview",
+    "large": "large/plugin_calendar.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_chat",
+   "type": "plugin",
+   "name": "Team chat",
+   "tag": "Connect",
+   "line": "Plug Kaby into your team chat to read and post messages.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my team chat so it can read channels and post messages.",
+   "image": {
+    "src": "plugin_chat.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Team chat template preview",
+    "large": "large/plugin_chat.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_mail",
+   "type": "plugin",
+   "name": "Email",
+   "tag": "Connect",
+   "line": "Plug Kaby into your inbox to read, draft and sort mail.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my email so it can read, draft and sort mail.",
+   "image": {
+    "src": "plugin_mail.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Email template preview",
+    "large": "large/plugin_mail.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_files",
+   "type": "plugin",
+   "name": "Files",
+   "tag": "Connect",
+   "line": "Plug Kaby into your drive to find and organise files.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my files so it can find and organise documents.",
+   "image": {
+    "src": "plugin_files.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Files template preview",
+    "large": "large/plugin_files.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_crm",
+   "type": "plugin",
+   "name": "CRM",
+   "tag": "Connect",
+   "line": "Plug Kaby into your CRM to read and update contacts.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my CRM so it can read and update contacts and deals.",
+   "image": {
+    "src": "plugin_crm.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "CRM template preview",
+    "large": "large/plugin_crm.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_pay",
+   "type": "plugin",
+   "name": "Payments",
+   "tag": "Connect",
+   "line": "Plug Kaby into your payments to read invoices and charges.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my payments account so it can read invoices and charges.",
+   "image": {
+    "src": "plugin_pay.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Payments template preview",
+    "large": "large/plugin_pay.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_maps",
+   "type": "plugin",
+   "name": "Maps",
+   "tag": "Connect",
+   "line": "Plug Kaby into your maps to plan routes and places.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my maps so it can plan routes and find places.",
+   "image": {
+    "src": "plugin_maps.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Maps template preview",
+    "large": "large/plugin_maps.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_help",
+   "type": "plugin",
+   "name": "Support inbox",
+   "tag": "Connect",
+   "line": "Plug Kaby into your help desk to read and answer tickets.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my support inbox so it can read and answer tickets.",
+   "image": {
+    "src": "plugin_help.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Support inbox template preview",
+    "large": "large/plugin_help.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "plugin_notes",
+   "type": "plugin",
+   "name": "Notes",
+   "tag": "Connect",
+   "line": "Plug Kaby into your notes to search and write them.",
+   "meta": "3 permissions",
+   "prompt": "Connect Kaby to my notes so it can search and write them.",
+   "image": {
+    "src": "plugin_notes.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "Notes template preview",
+    "large": "large/plugin_notes.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  }
+ ]
+}

@@ -76,7 +76,7 @@ The kit is the union of the skills, teams and automations of the ticked goals. T
 4. **Saved choice**: `profil` (the field id), `goals`, `agents` (the preset) and `about` (what was typed, bounded, kept in this local file; the public GET never carries it, only a strict same-origin request from the page gets it back, so a replay shows it) in `~/.dsh/kybernos/onboarding.json` (the version stays `1`: older files read the new
    field as empty). `POST /kybernos/onboarding {action:"domain"}` records a choice without finishing the wizard (the starter kit opened on its own).
 5. **Wording and highlights, read from the saved field**: the menu rows take the pack's labels (only in a language the pack writes), and the
-   new-chat page lists the pack's `home` templates first (`kbNcSlider(bootIds, first)`).
+   new-chat page lists the pack's `home` templates first (`kbNcChapters(bootIds, first)`).
 
 ### On the pages
 
@@ -105,7 +105,7 @@ only** skills, teams and automations (never removed by a switch); **never touche
 | Teams | `kybers/create` | **wired** |
 | Automations (off) | `/kybernos/tasks` | **wired** |
 | Menu wording, hidden rows | `SalesMenu` rows (our own component, no engine patch) | **wired** |
-| Home order | `kbNcSlider(bootIds, first)` in `KbNewChatCards` | **wired** |
+| Home order | `kbNcChapters(bootIds, first)` in `KbNewChatCards` | **wired** |
 | Page titles, Creations tiles | `kbDomainTitle`, `kbObTileSort` (one subscription in `KybersMain`) | **wired** |
 | Skills and Connectors sections | `window.__KB_DOMAIN__` read by `kybernos-skills` and `kybernos-composio` | **wired** |
 | Saved choice | `onboarding.json` | **wired** |

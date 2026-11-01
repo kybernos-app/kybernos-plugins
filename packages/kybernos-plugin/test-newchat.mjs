@@ -19,35 +19,40 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, KB_NC_WORDS, kbNcTemplates, kbNcSlider, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, KB_NC_DB_SEL })')
 
-// 1. the 13 templates, in the four chapters of the slider; each is offered only when the bundle it needs is installed
+// 1. the 16 types, in the four chapters of the shelf; each is offered only when the bundle it needs is installed
 {
   const J = (v) => JSON.parse(JSON.stringify(v))   // the arrays come from another realm
   const all = api.KB_NC_TEMPLATES
-  assert.equal(all.length, 13, 'the 13 templates the product really has (not more: nothing is offered that does not exist)')
+  assert.equal(all.length, 16, 'the 16 types of the shelf (the ones with no bundle yet, audio and game, are hidden until one exists)')
   assert.deepEqual(J(api.KB_NC_GROUPS), ['docs', 'media', 'apps', 'auto'])
   assert.equal(new Set(all.map((t) => t.id)).size, all.length, 'ids are unique')
   for (const t of all) assert.ok(J(api.KB_NC_GROUPS).indexOf(t.group) >= 0, t.id + ' is in a known chapter')
-  const chapters = (boot) => J(api.kbNcSlider(boot).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
+  const chapters = (boot) => J(api.kbNcChapters(boot).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
   const core = ['docs:doc/sheet', 'media:image', 'apps:website', 'auto:automation/team/skill/plugin']
   assert.deepEqual(chapters([]), core, 'with no satellite only the core templates, the chapters in order')
   assert.deepEqual(chapters(null), core, 'no boot list reads as none')
-  assert.deepEqual(chapters(['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur']),
-    ['docs:slides/doc/sheet/dashboard', 'media:image/video', 'apps:website/miniapp/model3d', 'auto:automation/team/skill/plugin'], 'every satellite: all 13')
-  assert.ok(!api.kbNcSlider(['@local/kybernos-dashboards']).some((g) => g.templates.some((t) => t.id === 'slides')), 'a template of another bundle stays hidden')
+  const shipped = ['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur', '@local/kybernos-db']
+  assert.deepEqual(chapters(shipped),
+    ['docs:slides/doc/sheet/dashboard', 'media:image/video/model3d', 'apps:app/website/miniapp', 'auto:automation/team/skill/plugin'], 'every satellite the product ships: 14 types (Audio and Game wait for a bundle that makes them)')
+  assert.deepEqual(chapters(shipped.concat(['@local/kybernos-audio', '@local/kybernos-games'])),
+    ['docs:slides/doc/sheet/dashboard', 'media:image/video/audio/model3d', 'apps:app/game/website/miniapp', 'auto:automation/team/skill/plugin'], 'the day a bundle makes sound or games, the shelf already has the entry: all 16')
+  assert.ok(!chapters(shipped).join('|').includes('audio') && !chapters(shipped).join('|').includes('game'), 'no sound or game type is offered without its bundle')
+  assert.ok(!chapters([]).join('|').includes('app/') && !chapters([]).join('|').includes(':app'), 'the App type needs the Tables bundle (it is off by default)')
+  assert.ok(!api.kbNcChapters(['@local/kybernos-dashboards']).some((g) => g.templates.some((t) => t.id === 'slides')), 'a template of another bundle stays hidden')
   assert.ok(api.kbNcTemplates(api.KB_NC_TEMPLATES, ['@local/kybernos-modeleur']).some((t) => t.id === 'model3d'))
-  ok('the 13 templates follow the installed bundles, in four chapters (never offered dead)')
+  ok('the 16 types follow the installed bundles, in four chapters (never offered dead)')
   // The field of work asks for its own templates first: inside a chapter, then the chapters themselves; nothing is added and nothing hidden is shown.
-  const every = ['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur']
-  const first = (boot, want) => J(api.kbNcSlider(boot, want).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
+  const every = ['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur']   // the first five satellites; the Tables bundle is left out on purpose
+  const first = (boot, want) => J(api.kbNcChapters(boot, want).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
   assert.deepEqual(first([], undefined), core, 'no wish: the order of every day')
   assert.deepEqual(first([], []), core)
   assert.deepEqual(first([], ['automation', 'sheet']), ['auto:automation/team/skill/plugin', 'docs:sheet/doc', 'media:image', 'apps:website'], 'the chapter of the most wanted comes first, and so do the wanted inside a chapter')
-  assert.deepEqual(first(every, ['website', 'plugin', 'automation']), ['apps:website/miniapp/model3d', 'auto:plugin/automation/team/skill', 'docs:slides/doc/sheet/dashboard', 'media:image/video'])
+  assert.deepEqual(first(every, ['website', 'plugin', 'automation']), ['apps:website/miniapp', 'auto:plugin/automation/team/skill', 'docs:slides/doc/sheet/dashboard', 'media:image/video/model3d'])
   assert.deepEqual(first([], ['slides', 'dashboard', 'nope']), core, 'a template this install cannot serve, or that does not exist, changes nothing')
   assert.deepEqual(first(['@local/kybernos-slides'], ['slides']), ['docs:slides/doc/sheet', 'media:image', 'apps:website', 'auto:automation/team/skill/plugin'])
-  assert.equal(J(api.kbNcSlider(every, ['doc'])).flatMap((g) => g.templates).length, 13, 'the same thirteen, reordered')
+  assert.equal(J(api.kbNcChapters(every, ['doc'])).flatMap((g) => g.templates).length, 13, 'the same thirteen, reordered')   // 16 types less Audio, Game and App, whose bundles are not in this boot list
   ok('a field of work puts its templates first (the home page highlights what is its own)')
 }
 
@@ -61,10 +66,11 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
     assert.ok(typeof api.KB_NC_ART[t.id] === 'string' && api.KB_NC_ART[t.id].length > 150, t.id + ' has its drawing')
   }
   for (const g of api.KB_NC_GROUPS) assert.ok(new RegExp("'kbnc\\.g\\." + g + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'chapter ' + g + ' has a name in both languages')
-  for (const key of ['label', 'prev', 'next']) assert.ok(new RegExp("'kbnc\\.sl\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'slider sentence ' + key)
+  assert.ok(/'kbnc\.sl\.label': \{ kybernos: '[^']+', en: '[^']+' \}/.test(src), 'the shelf is named')
+  assert.ok(!/kbnc\.sl\.(prev|next)/.test(src), 'the slider\'s arrows left no sentence behind (dead code)')
   // the Build / Create cards are gone, and so are their sentences (dead code)
   for (const key of ['kbnc.build', 'kbnc.create', 'kbnc.close']) assert.ok(!src.includes("'" + key + "'"), key + ' is not left behind')
-  ok('every template has its label and prompt in both languages and a drawing; the chapters and the slider are named; no dead sentence')
+  ok('every template has its label and prompt in both languages and a drawing; the chapters and the shelf are named; no dead sentence')
 }
 
 // 2b. the page listens: what is typed lights the template it sounds like (offered ones only), in both languages
@@ -76,12 +82,16 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
     'a plugin that adds a button': 'plugin', 'crée un modèle 3D de vase': 'model3d', 'a dashboard of my monthly spend': 'dashboard',
     'un tableur pour mon budget': 'sheet', 'a report about Q3': 'doc', 'une vidéo de 30 secondes': 'video', 'a poster for a jazz night': 'image',
     'a mini-app that splits a bill': 'miniapp', 'Build me a website for ': 'website',
+    'a podcast intro with music': 'audio', 'un jingle de dix secondes': 'audio', 'a game where you catch stars': 'game', 'un jeu de mots': 'game',
+    'a CRM for my clients': 'app', 'une base de donnees de mon stock': 'app',
   }
   for (const [text, id] of Object.entries(want)) assert.equal(api.kbNcDetect(text, ids), id, text + ' → ' + id)
   assert.equal(api.kbNcDetect('hello there', ids), null, 'nothing sounds like a template')
   assert.equal(api.kbNcDetect('', ids), null); assert.equal(api.kbNcDetect('ab', ids), null, 'too short says nothing')
   assert.equal(api.kbNcDetect(null, ids), null); assert.equal(api.kbNcDetect('a website', null), null, 'no offered list, no match')
   assert.equal(api.kbNcDetect('a website for me', ['doc']), null, 'a template that is not offered is never lit')
+  assert.equal(api.kbNcDetect('a game for my kids', ids.filter((x) => x !== 'game')), null, 'Game is not lit while its bundle is missing')
+  assert.equal(api.kbNcDetect('a mini-app that tracks my habits', ids), 'miniapp', 'the App words did not take the mini-app\'s')
   assert.equal(api.kbNcDetect('a team of agents building an app', ids), 'team', 'the specific rule wins over « app »')
   for (const rule of api.KB_NC_WORDS) assert.ok(ids.indexOf(rule[0]) >= 0, rule[0] + ' is a real template')
   ok('what is typed lights the template it sounds like, in French and English, among the offered ones only')
@@ -209,9 +219,9 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
 //     wrappers of one flex column: no engine patch), and follows the width the dock really has
 {
   assert.ok(/\.kb8-nc\{[^}]*order:2;[^}]*container-type:inline-size;container-name:kbnc\}/.test(src), 'the block is ordered after the composer and is a size container')
-  assert.ok(/@container kbnc \(max-width:480px\)\{\.kb8-sl-nav\{display:none\}\}/.test(src), 'a narrow dock is swiped: no arrows')
+  assert.ok(!/kb8-sl-nav|kb8-sl-track|kb8-sl-prog|kb8-sl-thumb|kb8-sl-gh/.test(src), 'the slider\'s arrows, track and position line are gone with it (dead code)')
   assert.ok(/id: 'kybernos-newchat', order: 25 \}, KbNewChatCards\)/.test(src) && !/conversation\.composer\.dock[^\n]{0,80}kybernos-newchat/.test(src), 'still the input dock entry (composer.dock is not drawn on the hero)')
-  ok('the slider is drawn under the composer by CSS order, and drops its arrows in a narrow dock')
+  ok('the shelf is drawn under the composer by CSS order, as a size container')
 }
 
 // 6d. ONE colour: the theme's accent (owner, 2026-10-15 « pas de couleurs… » and 2026-10-18 « trop de couleurs »)
@@ -220,10 +230,10 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(/body\{--kb8-acc:var\(--dsw-alias-brand-primary\)\}/.test(src), 'the accent is the theme\'s (the token Settings > Theme drives)')
   assert.ok(/html\[data-kb-acc="engine"\] body\{--kb8-acc:var\(--dsw-alias-state-business-primary\)\}/.test(src), 'while the theme has no colour of its own, the accent is the engine\'s blue (the one on its send button)')
   const css = src.slice(src.indexOf('body{--kb8-acc:var(--dsw-alias-brand-primary)}'), src.indexOf("'kybers: styles of the new chat cards'"))
-  assert.ok(css.length > 4000, 'the slider CSS was found')
+  assert.ok(css.length > 4000, 'the shelf CSS was found')
   const hexes = css.match(/#[0-9a-f]{3,8}\b/gi) || []
-  assert.deepEqual(hexes.filter((x) => x.toLowerCase() !== '#000'), [], 'the slider CSS holds no colour of its own (only tokens, and black for shadows and masks)')
-  // the 13 templates' drawings and the eight the Creations page adds (cards, quiz, code, diagram, all, pdf, folder, file)
+  assert.deepEqual(hexes.filter((x) => x.toLowerCase() !== '#000'), [], 'the shelf CSS holds no colour of its own (only tokens, and black for shadows and masks)')
+  // the 16 types' drawings and the eight the Creations page adds (cards, quiz, code, diagram, all, pdf, folder, file)
   assert.deepEqual(Object.keys(api.KB_NC_ART).filter((id) => !api.KB_NC_TEMPLATES.some((t) => t.id === id)), ['cards', 'quiz', 'code', 'diagram', 'all', 'pdf', 'folder', 'file'], 'the extra drawings are exactly the ones the Creations page adds (tiles and file icons)')
   for (const t of Object.keys(api.KB_NC_ART).map((id) => ({ id }))) {
     const art = api.KB_NC_ART[t.id]
@@ -233,7 +243,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
     const classes = new Set([...art.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1].split(' ')))
     for (const c of classes) assert.ok(new RegExp('\\.kb8-sl-stage \\.' + c + '[{,]|' + '\\.kb8-sl-stage \\.' + c + ' ').test(css) || new RegExp('(?:^|[ ,])\\$\\{kbNcHot\\} \\.' + c + '[{,]').test(css) || ['gr', 'blk', 'pop', 'dr', 'play', 'sun', 'node'].indexOf(c) >= 0 && css.includes('} .' + c + '{') || css.includes('.' + c + '{') || css.includes('.' + c + ','), t.id + ': class « ' + c + ' » is styled')
   }
-  ok('one colour on the page (the theme\'s accent); the 21 drawings are classes on inline shapes, styled from tokens')
+  ok('one colour on the page (the theme\'s accent); the 24 drawings are classes on inline shapes, styled from tokens')
 }
 
 // 6e. the Creations page's type tiles wear the same drawings as the new chat cards (they used to be blue and amber line icons)
@@ -282,9 +292,9 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   // wiring: a pick keeps the type lit with a chip and suggestions; emptying the box or the chip\'s cross puts them away; hooks stay before the early returns
   const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf("id: 'kybernos-newchat'"))
   assert.ok(cards.indexOf('React.useState(null)') > 0 && cards.indexOf('React.useState(null)') < cards.indexOf("if (blank !== '1') return null"), 'the chosen type is a hook, set before the early return')
-  assert.ok(/setChosen\(id\)/.test(cards) && /choArmed/.test(cards) && /setChosen\(null\)/.test(cards), 'a pick sets it, an emptied box and the chip\'s cross clear it')
+  assert.ok(/setChosen\(type\)/.test(cards) && /choArmed/.test(cards) && /setChosen\(null\)/.test(cards), 'a pick sets it, an emptied box and the chip\'s cross clear it')
   assert.ok(/'data-kb': 'newchat-chosen'/.test(cards) && /'data-kb': 'newchat-suggestion'/.test(cards) && /kbNcSuggest\(draft, tpl, knownTpl, sug,/.test(cards), 'the row is there, and a suggestion goes through kbNcSuggest')
-  assert.ok(/chosen: picked/.test(cards) && /sp\.chosen === t\.id \? ' is-on'/.test(src), 'the chosen card is marked')
+  assert.ok(/chosen: picked/.test(cards) && /chosen === t\.id \? ' is-on'/.test(src), 'the chosen card is marked')
   // the page behind, the title, the halo: CSS on stable hooks, only where the block is
   const css2 = src.slice(src.indexOf('[data-phase="hero"]:has([data-kb="newchat"]){background-image'), src.indexOf("'kybers: styles of the new chat cards'"))
   assert.ok(css2.length > 1200, 'the backdrop rules were found')
@@ -298,25 +308,78 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   ok('the mockup\'s page: accent source, chosen type with its suggestions, backdrop, title and halo')
 }
 
-// 6e-pre. the slider: wiring pinned at source level
+// 6e-pre. the shelf: wiring pinned at source level
 {
-  const c = src.slice(src.indexOf('const KbNcSlider = (sp)'), src.indexOf('const KbNewChatCards = (props)'))
-  assert.ok(c.length > 3000, 'the slider component exists')
-  assert.ok(/dangerouslySetInnerHTML: \{ __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' \+ KB_NC_ART\[t\.id\]/.test(c), 'a card draws its template\'s inline drawing')
-  assert.ok(/scrollBy\(/.test(c) && /const bring = \(el, align\)/.test(c), 'arrows page the track, and a title or a lit card is brought in by scrolling the track')
-  // the browser's own scroll-into-view scrolls every scrollable ancestor: it pushed DSH's frame 462 px sideways and the composer out of the window
-  assert.ok(!/\.scrollIntoView\(/.test(c), 'the slider never calls scrollIntoView (it moves the engine\'s own containers, not only the track)')
-  assert.ok(/pointerType === 'mouse'/.test(c) && /quietRef/.test(c), 'a mouse drags the track and a drag is never a click')
-  assert.ok(/'aria-label': kbt\('kbnc\.sl\.prev'\)/.test(c) && /'aria-label': kbt\('kbnc\.sl\.next'\)/.test(c) && /role: 'group'/.test(c), 'the arrows and the track are named')
-  assert.ok(/direction === 'rtl'/.test(c) && /st\.rtl/.test(c), 'right-to-left is read (the arrows and the edge fades follow it)')
-  assert.ok(/kbNcCalm\(\) \? 'auto' : 'smooth'/.test(c), 'no smooth scrolling when the person asked for reduced motion')
-  const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 14000)
-  assert.ok(/p\.input\.draft/.test(cards) && /kbNcDetect\(draft, offered\)/.test(cards) && /h\(KbNcSlider, \{ groups, match, chosen: picked, onPick: prefill \}\)/.test(cards), 'the slider is lit by the draft the dock entry receives')
+  const c = src.slice(src.indexOf('const KbNcShelf = (sp)'), src.indexOf('const KbNcDialog = (dp)'))
+  assert.ok(c.length > 1500, 'the shelf component exists')
+  assert.ok(/dangerouslySetInnerHTML: \{ __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' \+ KB_NC_ART\[t\.id\]/.test(c), 'a type card draws its inline drawing')
+  assert.ok(!/\.scrollIntoView\(/.test(src.slice(src.indexOf('let kbNcCatData'), src.indexOf('const KbNewChatCards = (props)'))), 'the shelf never calls scrollIntoView (it moves the engine\'s own containers)')
+  assert.ok(/'aria-pressed': chosen === t\.id/.test(c) && /role: 'group', 'aria-label': kbt\('kbnc\.sl\.label'\)/.test(c), 'the lit type is announced and the group is named')
+  assert.ok(/'data-kb': 'newchat-example'/.test(c) && /kbNcExamples\(sp\.cat, chosen, sp\.kits\)/.test(c), 'the examples of the lit type are filtered by what this install has')
+  const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 16000)
+  assert.ok(/p\.input\.draft/.test(cards) && /kbNcDetect\(draft, offered\)/.test(cards) && /h\(KbNcShelf, \{ groups, match, chosen: picked, cat, kits: kitsPair\[0\], onPick: prefill/.test(cards), 'the shelf is lit by the draft the dock entry receives')
   assert.ok(/kbNcFill\(draft, tpl, knownTpl, ownRef\.current\)/.test(cards) && /kbNcSuggest\(draft, tpl, knownTpl, sug,/.test(cards) && /ownRef\.current = next === tpl \? next : ''/.test(cards), 'a click fills the composer through kbNcFill and remembers only what holds none of the person\'s words')
-  assert.ok(/React\.useEffect\(\(\) => \{ setChosen\(null\); ownRef\.current = ''; choArmed\.current = false \}, \[sid\]\)/.test(cards), 'a new blank chat starts clean')
+  assert.ok(/React\.useEffect\(\(\) => \{ setChosen\(null\); setOpen\(null\); ownRef\.current = ''; choArmed\.current = false \}, \[sid\]\)/.test(cards), 'a new blank chat starts clean')
   assert.ok(/'data-kb': 'newchat-cloud'/.test(cards) && /'data-kb': 'newchat-cloud-open'/.test(cards) && /'data-kb': 'newchat-cloud-' \+ verb/.test(cards), 'the Cloud Computer line keeps its hooks and its actions')
   assert.ok(/kbNcDot\(cloud\.kind\)/.test(cards) && /kbNcActions\(cloud\)/.test(cards), 'and its state dot and the actions its state allows')
-  ok('the slider: drawings, paging, drag, names, right-to-left, reduced motion; lit by the draft; the Cloud Computer line keeps its state and actions')
+  // every hook of the page is called before the early return (a hook after it changes the count when the first message is sent: React error #300)
+  const early = cards.indexOf("if (blank !== '1') return null")
+  for (const hook of ['useNcCatalogue()', 'useNcKits(chosen', 'React.useState(null)', 'useNcCloud()']) assert.ok(cards.indexOf(hook) > 0 && cards.indexOf(hook) < early, hook + ' is called before the early return')
+  ok('the shelf: drawings, names, lit by the draft; the Cloud Computer line keeps its state and actions; every hook sits before the early return')
+}
+
+// 6e-shelf. the examples: what is shown, what a click does, the dialog
+{
+  const J = (v) => JSON.parse(JSON.stringify(v))
+  const ex = (id, type, more) => Object.assign({ id, type, name: id, tag: 't', line: 'l', meta: 'm', prompt: 'Make ' + id, image: { src: id + '.webp', width: 720, height: 450 } }, more || {})
+  const cat = { schema: 'kybernos.templates/1', version: 2, types: [{ id: 'app', name: 'App' }], templates: [
+    ex('doc_a', 'doc'), ex('doc_b', 'doc'),
+    ex('app_shop', 'app', { kind: 'template', kit: 'ecommerce', tables: ['Contacts', 'Products', 'Orders', 'Notes'], links: [[0, 2], [1, 2], [0, 3]] }),
+    ex('app_hotel', 'app', { kind: 'template' }),                       // an idea the product ships no kit for
+    ex('app_other', 'app', { kind: 'template', kit: 'ghost' }),        // a kit this install does not have
+    ex('app_start', 'app', { kind: 'start', tables: ['Items', 'Tags'], links: [[0, 1]] }),
+  ] }
+  // the host's answer is read, or refused whole
+  assert.equal(api.kbNcCat(null), null); assert.equal(api.kbNcCat({ ok: false }), null); assert.equal(api.kbNcCat({ ok: true, catalogue: { templates: [], types: [] } }), null)
+  assert.equal(api.kbNcCat({ ok: true, catalogue: cat }).templates.length, 6)
+  // the kits the Apps seam lists, by the name the catalogue gives them
+  const kits = J(api.kbNcKits([{ id: 'kybernos-themes/ecommerce', have: false }, { id: 'kybernos-themes/real-estate', have: true, appId: 'db1' }, { id: 'plain' }, null, { id: '' }]))
+  assert.deepEqual(kits, { ecommerce: { id: 'kybernos-themes/ecommerce', have: false, appId: '' }, 'real-estate': { id: 'kybernos-themes/real-estate', have: true, appId: 'db1' }, plain: { id: 'plain', have: false, appId: '' } })
+  assert.equal(api.kbNcKits(undefined), null, 'the seam has not answered')
+  // the examples a type shows
+  const ids = (type, k) => J(api.kbNcExamples(cat, type, k)).map((e) => e.id)
+  assert.deepEqual(ids('doc', null), ['doc_a', 'doc_b'], 'any other type: every example')
+  assert.deepEqual(ids('app', kits), ['app_start', 'app_shop'].sort((a, b) => ['app_shop', 'app_hotel', 'app_other', 'app_start'].indexOf(a) - ['app_shop', 'app_hotel', 'app_other', 'app_start'].indexOf(b)), 'the template with its kit, the simple start; not the idea with no kit, not the kit this install lacks')
+  assert.deepEqual(ids('app', null), ['app_start'], 'before the seam answers only the simple starts show (a kit example never flashes in and out)')
+  assert.deepEqual(ids('app', {}), ['app_start'], 'no kit at all')
+  assert.deepEqual(ids('nope', kits), []); assert.deepEqual(J(api.kbNcExamples(null, 'doc', null)), [])
+  // pictures: an address on this machine, the dialog's larger one when there is one
+  assert.equal(api.kbNcPicUrl(ex('doc_a', 'doc'), false), '/kybernos/templates-image?f=doc_a.webp')
+  assert.equal(api.kbNcPicUrl(ex('doc_a', 'doc', { image: { src: 'doc_a.webp', large: 'large/doc_a.webp' } }), true), '/kybernos/templates-image?f=large%2Fdoc_a.webp')
+  assert.equal(api.kbNcPicUrl(ex('doc_a', 'doc', { image: { src: 'doc_a.webp' } }), true), '/kybernos/templates-image?f=doc_a.webp', 'no larger picture: the card\'s')
+  assert.equal(api.kbNcPicUrl({ id: 'x' }, false), ''); assert.equal(api.kbNcPicUrl(null, true), '')
+  // the structure of an App: its tables in two rows, one line a link
+  const s = J(api.kbNcStructure(cat.templates[2]))
+  assert.equal(s.boxes.length, 4); assert.equal(s.lines.length, 3)
+  assert.deepEqual(s.boxes.map((b) => b.label), ['Contacts', 'Products', 'Orders', 'Notes'])
+  assert.ok(s.boxes.every((b) => b.x >= 43 && b.x <= 277 && (b.y === 62 || b.y === 138)), 'every box is inside the 320 x 200 frame')
+  assert.ok(s.lines.every((l) => l.y1 < l.y2), 'a line runs from the lower edge of the upper box to the upper edge of the lower one')
+  assert.equal(api.kbNcStructure(cat.templates[0]), null, 'an example with no tables has no structure')
+  assert.deepEqual(J(api.kbNcStructure({ tables: ['A', 'B'], links: [[0, 9], 'x'] }).lines), [], 'a link to a table that is not there draws nothing')
+  assert.equal(api.kbNcAdaptText('Start from the \u201c', { name: 'Shop' }, '\u201d template and adapt it: '), 'Start from the \u201cShop\u201d template and adapt it: ')
+  assert.equal(api.KB_NC_DB_SEL, 'kybernos.db.selection')
+  // the Apps page reads the very key we write
+  const dbSrc = readFileSync(join(here, '..', 'kybernos-db', 'client.js'), 'utf8')
+  assert.ok(dbSrc.includes("const SEL_KEY = '" + api.KB_NC_DB_SEL + "'"), 'kybernos-db remembers its open app under the key the shelf writes')
+  assert.ok(/const ROW_ID = 'tables'/.test(dbSrc) && /window\.__KB_OPEN__\(\{ view: 'tables' \}\)/.test(src), 'and its page is the row the shelf opens')
+  // wiring of the dialog
+  const d = src.slice(src.indexOf('const KbNcDialog = (dp)'), src.indexOf('const KbNewChatCards = (props)'))
+  assert.ok(/kbPortalDe\(/.test(d) && /role: 'dialog', 'aria-modal': 'true'/.test(d), 'the dialog is a modal in the document body')
+  assert.ok(/ev\.key === 'Escape'/.test(d) && /ev\.key !== 'Tab'/.test(d) && /closeRef\.current\.focus\(\)/.test(d), 'Escape closes, Tab stays inside, the focus goes in')
+  assert.ok(/seam\.add\(kit\.id, \{ sample: true, kit: true \}\)/.test(d), 'a template with a kit is made through the Apps seam, with its sample rows and its kit, as the Apps page does')
+  assert.ok(!/setDraft|submit/.test(d), 'the dialog never touches the composer or sends: the page does, through kbNcFill')
+  assert.ok(/e\.kind === 'template'/.test(d) && /kit\.have === true/.test(d), 'an app that already exists is opened, not made twice')
+  ok('the examples: only what this install can serve, pictures from the host, the structure of an App, the dialog is a modal that never sends and opens the Apps page on the app it made')
 }
 
 {
