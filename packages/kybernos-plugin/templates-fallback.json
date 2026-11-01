@@ -1,7 +1,7 @@
 {
  "schema": "kybernos.templates/1",
- "version": 8,
- "updatedAt": "2026-11-01T20:44:32Z",
+ "version": 9,
+ "updatedAt": "2026-11-01T21:47:45Z",
  "locale": "en",
  "imageBase": "shelf/",
  "groups": [
@@ -938,19 +938,19 @@
    }
   },
   {
-   "id": "video_tryon_swap_r2",
+   "id": "video_tryon_swap_r3",
    "type": "video",
    "name": "Virtual try-on",
    "tag": "Fashion",
-   "line": "One person, one wardrobe: the colour and the garment change in a single film.",
-   "meta": "20 seconds · 9:16 · music",
-   "prompt": "Make a 20-second virtual try-on video. Ask me for a photo of the person, the garment and the colours or other garments I want to compare. Show me the still first, then animate the colour and garment changes in one video, with the name of each look on screen.",
+   "line": "A rail of coats, three looks tried on in one take, each named on screen.",
+   "meta": "15 seconds · 9:16 · voice and music",
+   "prompt": "Make a 15-second virtual try-on video in one take. Ask me for a photo of the person (or use an invented one), the room and up to three garments with their colours. Show me the first frame, then animate her trying each look on, with the name of each look on screen and a short spoken line for each.",
    "image": {
-    "src": "video_tryon_swap_r2.webp",
+    "src": "video_tryon_swap_r3.webp",
     "width": 720,
     "height": 450,
-    "alt": "A woman with a dark bob turning in a studio while her long coat changes from camel to emerald and then to black.",
-    "large": "large/video_tryon_swap_r2.webp",
+    "alt": "A young woman with a dark bob in a bright Paris living room, delighted in a cognac leather jacket, with a camel coat and an emerald coat on the rail behind her.",
+    "large": "large/video_tryon_swap_r3.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
@@ -974,19 +974,19 @@
    }
   },
   {
-   "id": "video_property_flythrough_r2",
+   "id": "video_property_flythrough_r3",
    "type": "video",
    "name": "Property film",
    "tag": "Real estate",
-   "line": "One continuous flight from the road to the terrace, with the price on screen.",
-   "meta": "20 seconds · 16:9 · music",
-   "prompt": "Make a 20-second immersive property film from my listing photos. Ask me for the best exterior photo, the address, the price and the three features to show. Fly in from the road, go through the front door to the terrace, and end on the price, with music and captions. Show me the first frame before you animate.",
+   "line": "A flight to the villa, then room by room, with a floor plan that follows the visit.",
+   "meta": "23 seconds · 16:9 · music",
+   "prompt": "Make a 20-second immersive property film from my listing photos. Ask me for the best exterior photo, the address, the price and the five features to show, and the rooms to visit. Fly in from the road, then go room by room, with a small floor plan that follows the visit and the features listed on screen, and end on the price, with music. Show me the first frame before you animate.",
    "image": {
-    "src": "video_property_flythrough_r2.webp",
+    "src": "video_property_flythrough_r3.webp",
     "width": 720,
     "height": 450,
-    "alt": "A modern white villa with an infinity pool above a turquoise bay at golden hour, seen from the air.",
-    "large": "large/video_property_flythrough_r2.webp",
+    "alt": "A white villa with an infinity pool above a bay at golden hour, the villa name over it, a small floor plan at the top left and a list of features at the bottom right.",
+    "large": "large/video_property_flythrough_r3.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }

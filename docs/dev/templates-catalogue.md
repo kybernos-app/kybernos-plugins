@@ -94,7 +94,7 @@ Read only, no origin guard needed (no write, nothing of the person's).
 
 ## What the page shows
 
-- Every type is shown, in one even grid. A type whose bundle this install does not load carries a small tag, « Not enabled »; **Audio** and **Game**, which no bundle makes yet, carry « Soon ». Their examples still open and *Use this request* still fills the composer.
+- Every type is shown, in one even grid. A type whose bundle this install does not load carries a small tag, « Not enabled »; **Game**, which no bundle makes yet, carries « Soon ». **Audio** has real examples and needs no bundle to look at them, so it carries no tag. Their examples still open and *Use this request* still fills the composer.
 - An example whose `kind` is `template` is shown only when its `kit` is one the Apps seam lists (`window.__KB_TEMPLATES__.list()`); `kind: "start"` is always
   shown. Ideas the product ships no kit for (restaurant, fitness, salon) are therefore never offered dead.
 - *Use this request* only fills the composer, like a type does. For an App template, *Use template* creates the app through the Apps seam
@@ -130,6 +130,14 @@ Eight films of 5 to 20 seconds that replace the eight of lot 1 (new ids: a file 
 - **Recipes** (`docs/dev/templates-lots/video-compose/<id>.json`, the edit) feed `node scripts/video-compose.mjs <recipe> --parts <dir> --out <file>`: cross-fades, animated ASS texts (libass, system font Avenir Next), voice over, music ducked under the voice, loudness `-16 LUFS`, a bottom shade so the mark reads on a pale picture, and the mark. A clip must stay under 6 MB (`crf` in the recipe).
 - **The mark** (`scripts/kybernos-watermark.py`, small, bottom right, played ONCE): the red K of `kbBrandArt` with its three typing dots and « ybernos » come in whole at 1 s (`watermark.at` in the recipe), the dots bounce, a light crosses the K, then the letters are drawn back into the K, which glides to the corner, lands with a small pulse and stays to the end (the clip is not looped: overlay repeats its last picture). The K is 1.1 % of the longer side (14 px at 720p); drawn in code, no picture file. Release v6 (`video-business-3.json`) holds the same eight films recomposed with it, under ids ending `_r2` (a remade file needs a new id: one already on a machine is never fetched again); the v5 files stay in the bucket, unused.
 - Spend of this lot: about $2.9 on the gateway (20 shots incl. retries) plus a few cents on DeepInfra.
+
+### Lot 5 (`video-business-5.json`): the two films of the previews
+
+The try-on and the property film are replaced by the films that had been made as previews, under new ids (`_r3`); the six other films are the lot-4 ones, unchanged.
+
+- **Virtual try-on** (`video_tryon_swap_r3`, 15 s, 9:16): ONE HeyGen shot in a single take in a Paris living room, three looks tried on in turn (camel coat, emerald coat, cognac leather jacket), the three look names and the three spoken lines asked in the prompt, the model's own light music. The recipe only grades it and adds the mark.
+- **Property film** (`video_property_flythrough_r3`, 23 s, 16:9): the flight in, then one shot per room chained by last frame, a floor plan that follows the visit and the features legend drawn in code (`scripts/video-overlays.py`), the villa name at the start and the price at the end, ACE-Step music.
+- The lot builds on the PUBLIC catalogue like every lot: `node scripts/templates-lot.mjs docs/dev/templates-lots/video-business-5.json --from <dir with the 8 clips and frames/picnic-restored.png> --base <public catalogue.json> --fallback --install`. The old `_r2` try-on and property ids leave the catalogue; their files stay in the bucket, unused.
 
 ### A still lot: the 3D examples (`model3d-1.json`)
 
