@@ -45,9 +45,17 @@ Those examples are **data**: a public file of the Kybernos server that the plugi
     "kit": "ecommerce",               // App only: the kit this template creates, by the last segment of its id
     "tables": ["Contacts", "Products"], "links": [[0, 1]], "layout": [[0, 1]],   // App only: the Structure tab
     "inside": [{ "t": "Sample rows", "d": "64 rows, so you see it working." }]    // optional: the dialog's list
+    "made": { "model": "black-forest-labs/FLUX-2-dev", "label": "FLUX.2 dev", "seed": 421, "width": 1280, "height": 800, "steps": 28 }   // optional: how a generated example was made
   }]
 }
 ```
+
+### A generated example keeps its prompt and its model
+
+An example whose picture (later: video, audio, 3D) was generated carries `made`: the model's id as the provider names it, an optional display name (`label`), and the seed, size and steps that were set.
+Its `prompt` is **exactly what the model was given**, so the dialog can offer *Use this prompt* (fills the composer with it) and *Remix* (fills the composer with « keep the prompt “…” but change: » and the person says what to change).
+The dialog shows « Made with <label> · <width>×<height> · seed <n> » under the prompt. A `made` whose model is not a plain id (`[A-Za-z0-9._/-]`, 80 characters at most) is dropped and the example stays; seed, size and steps outside their range are left out.
+The raw model answers and the plan that made them stay outside git (`~/kybernos-archive/templates-catalogue/`), like the theme photographs (AGENTS rule 4).
 
 The host checks **everything again as if it came from outside** (`shelfValidate`): a wrong schema or version refuses the whole file; a bad entry is dropped
 alone; texts are clipped and stripped of control and line-separator characters; picture names must match `^(?:large/)?[a-z0-9][a-z0-9_-]{0,63}\.webp$`; a
@@ -77,7 +85,20 @@ Read only, no origin guard needed (no write, nothing of the person's).
 - *Use this request* only fills the composer, like a type does. For an App template, *Use template* creates the app through the Apps seam
   (`__KB_TEMPLATES__.add(kit, { sample: true, kit: true })`), *Open my app* opens it when it is already there, *Adapt with Kaby* fills the composer.
 
+## Making a lot of real examples
+
+A lot is one plan per type, `docs/dev/templates-lots/<lot>.json` (text, in git): the prompt, seed and catalogue entry of each example, the type it fills and the model. The pictures are not in git.
+
+1. `node scripts/theme-photos.mjs <plan> --model <id> --out ~/kybernos-archive/templates-catalogue/<lot>`: one DeepInfra call per example (the raw answers and `cost.json` stay in that folder; `--only a,b` redoes some, `--dry-run` prints the prompts and spends nothing).
+2. Look at the contact sheet, change a seed or a prompt in the plan, redo that example only.
+3. `node scripts/templates-lot.mjs <plan> [--fallback] [--install]`: WebP cards and large pictures, the catalogue with `made` on each example, checked by the host's own `shelfValidate`, in `<from>/release/`. A plan's examples replace every example of its type; the other types stay.
+   `--fallback` also rewrites `templates-fallback.json` (prompts only), `--install` puts the release in this machine's disk copy.
+4. The `release/` folder is what the server publishes, byte for byte.
+
+First lot: `images-business-1.json` (9 images, ads, social, branding, real estate, e-commerce, food, learning; `black-forest-labs/FLUX-2-klein-9b` on DeepInfra, about 1.5 cents and 1 second each).
+
 ## Not done yet
 
-- The server routes and the publishing script (`kybernos-server`), so until they exist the host gets a 404 and cards show their type's drawing.
-- Pictures per locale, real captures per example, an Audio source, kits for restaurant / fitness / salon.
+- Publishing: the routes and the publishing script of `kybernos-server` are built but not deployed (deploys are frozen), so the host gets a 404 and a card shows a picture only where this machine has one on disk (`--install`), else its type's drawing. The server's check does not know `made` yet.
+- Real examples for the other types (video, audio, 3D, slides, website, mini-app...), pictures per locale, kits for restaurant / fitness / salon.
+- Where the files are served from (the server's data directory, or a dedicated static host): the choice is the owner's.

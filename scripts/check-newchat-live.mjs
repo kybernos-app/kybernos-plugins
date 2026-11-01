@@ -234,6 +234,27 @@ try {
   await clearDraft()
   check('the composer is empty again, and the lit type goes with the text', ((await draft()) || '').trim() === '' && (await ev(`document.querySelectorAll('.kb8-sl-card.is-on').length`)) === 0)
 
+  // ── a generated example: its prompt, the model that made it, « Use this prompt » and « Remix » ───────────────────────────────
+  await clickType('image')
+  await sleep(700)
+  const gen = await ev(`(() => { const c = document.querySelector('[data-kb="newchat-examples"] .kb8-sh-card'); return c ? c.dataset.id : null })()`)
+  if (gen === null) console.log('  (no image example here: the generated-example checks are skipped)')
+  else {
+    await clickExample(gen)
+    await sleep(700)
+    const g = await ev(`(() => { const d = document.querySelector('[data-kb="newchat-example-dialog"]'); if (!d) return null; const m = d.querySelector('[data-kb="newchat-example-made"]'); return { made: m ? m.innerText : '', model: m ? m.title : '', prompt: d.querySelector('.kb8-sh-req p').innerText, remix: !!d.querySelector('[data-kb="newchat-example-remix"]'), adapt: !!d.querySelector('[data-kb="newchat-example-adapt"]') } })()`)
+    if (g === null || g.made === '') console.log('  (the first image example was not generated here: the generated-example checks are skipped)')
+    else {
+      await shot('04b-generated-dialog')
+      check('a generated example names its model and size, and offers Remix next to Use (not the App\'s Adapt)', /\d+\u00d7\d+/.test(g.made) && g.model.indexOf('/') > 0 && g.remix === true && g.adapt === false && g.prompt.length > 40, g)
+      await click('[data-kb="newchat-example-remix"]')
+      await sleep(600)
+      const mixed = await draft()
+      check('« Remix » puts the example\'s prompt in the composer, with room to say what to change, and closes the dialog', typeof mixed === 'string' && mixed.indexOf(g.prompt) > 0 && mixed.trim().length > g.prompt.length + 10 && (await ev(`!document.querySelector('[data-kb="newchat-example-dialog"]')`)) === true, mixed)
+      await clearDraft()
+    }
+  }
+
   // ── the App type: only what this install can really start ───────────────────────────────────────────────────────────────
   const hasApp = cards.some((c) => c.id === 'app')
   if (hasApp) {

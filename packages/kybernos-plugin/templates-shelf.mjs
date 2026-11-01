@@ -37,6 +37,7 @@ const ID = /^[a-z0-9][a-z0-9_]{0,63}$/
 const KIT = /^[a-z0-9][a-z0-9-]{0,39}$/
 const IMAGE = /^(?:large\/)?[a-z0-9][a-z0-9_-]{0,63}\.webp$/
 const KINDS = ['template', 'start']
+const MODEL = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,79}$/
 
 const obj = (v) => (v !== null && v !== undefined && typeof v === 'object' && !Array.isArray(v) ? v : null)
 /** A short plain text: control characters and the line separators out, clipped. */
@@ -57,6 +58,24 @@ const cleanImage = (v) => {
   return out
 }
 
+/** How a generated example was made, so the person can reproduce or remix it: the model (its id, as the provider names it, and an optional display name),
+ *  and the knobs that were set. The prompt itself is the example's `prompt`. null (the example stays, with no « made with » line) when the model is not a plain id. */
+const cleanMade = (v) => {
+  const m = obj(v)
+  if (m === null || typeof m.model !== 'string' || !MODEL.test(m.model)) return null
+  const out = { model: m.model }
+  const label = text(m.label, 40)
+  if (label !== '') out.label = label
+  const seed = int(m.seed, 0, 4294967295)
+  if (seed !== null) out.seed = seed
+  const width = int(m.width, 16, 8192)
+  const height = int(m.height, 16, 8192)
+  if (width !== null && height !== null) { out.width = width; out.height = height }
+  const steps = int(m.steps, 1, 200)
+  if (steps !== null) out.steps = steps
+  return out
+}
+
 const cleanTemplate = (t, typeIds) => {
   const e = obj(t)
   if (e === null || typeof e.id !== 'string' || !ID.test(e.id) || typeof e.type !== 'string' || typeIds.indexOf(e.type) < 0) return null
@@ -67,6 +86,8 @@ const cleanTemplate = (t, typeIds) => {
   if (e.kit !== undefined) { if (typeof e.kit !== 'string' || !KIT.test(e.kit)) return null; out.kit = e.kit }
   const image = cleanImage(e.image)
   if (image !== null) out.image = image
+  const made = cleanMade(e.made)
+  if (made !== null) out.made = made
   if (Array.isArray(e.tables)) {
     const tables = e.tables.slice(0, 12).map((x) => text(x, 30)).filter((x) => x !== '')
     if (tables.length > 0) {

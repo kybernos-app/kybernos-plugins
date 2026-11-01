@@ -19,7 +19,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, kbNcCols, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, KB_NC_DB_SEL })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, kbNcCols, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, kbNcRemixText, kbNcMadeLine, KB_NC_DB_SEL })')
 
 // 1. the 16 types, in the four chapters of the shelf; each is offered only when the bundle it needs is installed
 {
@@ -378,6 +378,11 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.kbNcStructure(cat.templates[0]), null, 'an example with no tables has no structure')
   assert.deepEqual(J(api.kbNcStructure({ tables: ['A', 'B'], links: [[0, 9], 'x'] }).lines), [], 'a link to a table that is not there draws nothing')
   assert.equal(api.kbNcAdaptText('Start from the \u201c', { name: 'Shop' }, '\u201d template and adapt it: '), 'Start from the \u201cShop\u201d template and adapt it: ')
+  assert.equal(api.kbNcRemixText('Remix. Keep \u201c', { prompt: 'A red kettle' }, '\u201d but change: '), 'Remix. Keep \u201cA red kettle\u201d but change: ')
+  assert.equal(api.kbNcMadeLine({ model: 'black-forest-labs/FLUX-2-dev', label: 'FLUX.2 dev', width: 1280, height: 800, seed: 421 }, 'Made with', 'seed'), 'Made with FLUX.2 dev \u00b7 1280\u00d7800 \u00b7 seed 421')
+  assert.equal(api.kbNcMadeLine({ model: 'a/b' }, 'Made with', 'seed'), 'Made with a/b', 'no label: the id; no size or seed: nothing more')
+  assert.equal(api.kbNcMadeLine(undefined, 'Made with', 'seed'), '', 'an example that was not generated has no such line')
+  assert.equal(api.kbNcMadeLine({ label: 'x' }, 'Made with', 'seed'), '')
   assert.equal(api.KB_NC_DB_SEL, 'kybernos.db.selection')
   // the Apps page reads the very key we write
   const dbSrc = readFileSync(join(here, '..', 'kybernos-db', 'client.js'), 'utf8')
