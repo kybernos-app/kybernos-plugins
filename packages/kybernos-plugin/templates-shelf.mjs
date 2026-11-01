@@ -226,6 +226,7 @@ export const createShelf = ({ dir = () => null, api = () => '', publicBase = '',
     const m = mtimeOf(file)
     if (m < 0) { kept = null; keptMtime = -1; return null }
     if (m === keptMtime) return kept
+    scanned = false   // a catalogue that changed on disk (an install, a load) may have come with new pictures: look at the folder again
     try {
       const c = shelfValidate(JSON.parse(await readFile(file, 'utf8')))
       kept = c === null ? null : { at: m, catalogue: c }
@@ -245,8 +246,8 @@ export const createShelf = ({ dir = () => null, api = () => '', publicBase = '',
 
   /** What the page reads: the best catalogue there is, each picture marked `ready` once its file is here. `source` says where it came from. */
   const catalogue = async () => {
-    if (scanned !== true) { scanned = true; await scan() }
     const k = await readKept()
+    if (scanned !== true) { scanned = true; await scan() }
     const base = k !== null ? k.catalogue : shelfBundled()
     if (base === null) return null
     const templates = base.templates.map((t) => {
