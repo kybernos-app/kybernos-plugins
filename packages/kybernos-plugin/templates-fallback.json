@@ -1064,37 +1064,55 @@
    }
   },
   {
-   "id": "audio_voicemail_fr",
+   "id": "audio_business_en",
    "type": "audio",
-   "name": "Voicemail greeting, your voice",
+   "name": "Quarterly update, read aloud",
    "tag": "Business",
-   "line": "Send a short recording of yourself: the greeting is read in your own voice.",
-   "meta": "0:16 · French · your own voice",
-   "prompt": "Make a voicemail greeting for my workshop in MY OWN voice. I will send you a short recording of myself: ask for my consent to clone it, and delete the reference after the call. Then read, in French: « Bonjour, et bienvenue à l'atelier. Nous ne pouvons pas répondre pour le moment. Laissez votre nom et votre numéro, et nous vous rappelons avant midi demain. » Give me the audio and a video with the captions.",
+   "line": "A board update turned into a clear voice you can send to the team.",
+   "meta": "0:18 · English · AI voice",
+   "prompt": "Turn this quarterly update into a 20-second audio brief for my team, in a clear, confident English voice: revenue up 18 percent led by subscriptions, churn down to 2.1 percent, onboarding cut from nine days to three, support volume doubled. Give me the audio file and the text.",
    "image": {
-    "src": "audio_voicemail_fr.webp",
+    "src": "audio_business_en.webp",
     "width": 720,
     "height": 450,
-    "alt": "A waveform scrolling over a night-blue background while a French voicemail greeting plays, with its captions",
-    "large": "large/audio_voicemail_fr.webp",
+    "alt": "A modern wave player on a blue gradient, playing a spoken business update",
+    "large": "large/audio_business_en.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "audio_relativity_en",
+   "id": "audio_audiobook_es",
    "type": "audio",
-   "name": "Physics explainer, your voice",
-   "tag": "Learning",
-   "line": "A 20-second lesson read in your own voice, over a picture for each idea.",
-   "meta": "0:18 · English · your own voice",
-   "prompt": "Make a 20-second explainer about why time runs slower the faster you move, read in MY OWN voice (I will send a short recording, ask for my consent before you clone it, and delete the reference after the call). One picture for each idea, soft piano music, captions. Use plain words and keep the physics right.",
+   "name": "Audiobook page, in Spanish",
+   "tag": "Audiobook",
+   "line": "A page of fiction read like a narrator would, at an unhurried pace.",
+   "meta": "0:20 · Spanish · AI voice",
+   "prompt": "Make an audiobook sample from this page of my novel, in Spanish: a warm female narrator, an unhurried pace, a short pause at every full stop. I will paste the text; give me the audio file.",
    "image": {
-    "src": "audio_relativity_en.webp",
+    "src": "audio_audiobook_es.webp",
     "width": 720,
     "height": 450,
-    "alt": "A golden pocket watch melting in deep space, with the caption \"time has to bend\"",
-    "large": "large/audio_relativity_en.webp",
+    "alt": "A modern wave player on a warm amber gradient, playing a page of fiction read in Spanish",
+    "large": "large/audio_audiobook_es.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_techsummary_zh",
+   "type": "audio",
+   "name": "Technical doc summary, in Chinese",
+   "tag": "Documents",
+   "line": "A migration guide boiled down to three points and spoken in Mandarin.",
+   "meta": "0:23 · Chinese · AI voice",
+   "prompt": "Summarise this technical document in three points and read the summary aloud in Mandarin Chinese, in a clear, neutral voice. I will attach the document; give me the audio file and the text of the summary.",
+   "image": {
+    "src": "audio_techsummary_zh.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A modern wave player on a teal gradient, playing the summary of a technical document in Mandarin Chinese",
+    "large": "large/audio_techsummary_zh.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }

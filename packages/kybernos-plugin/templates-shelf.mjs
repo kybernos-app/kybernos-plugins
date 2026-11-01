@@ -41,7 +41,7 @@ const TEMPLATES_MAX = 600
 const ID = /^[a-z0-9][a-z0-9_]{0,63}$/
 const KIT = /^[a-z0-9][a-z0-9-]{0,39}$/
 const IMAGE = /^(?:large\/)?[a-z0-9][a-z0-9_-]{0,63}\.webp$/
-const VIDEO = /^video\/[a-z0-9][a-z0-9_-]{0,63}\.mp4$/
+const VIDEO = /^(?:video\/[a-z0-9][a-z0-9_-]{0,63}\.mp4|audio\/[a-z0-9][a-z0-9_-]{0,63}\.mp3)$/
 const KINDS = ['template', 'start']
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,79}$/
 
@@ -53,7 +53,7 @@ const int = (v, lo, hi) => (Number.isInteger(v) && v >= lo && v <= hi ? v : null
 /** A picture name the catalogue may carry: `<id>.webp` or `large/<id>.webp`, nothing that climbs out of the folder. */
 export const shelfImageName = (v) => (typeof v === 'string' && IMAGE.test(v) ? v : '')
 
-/** A clip name the catalogue may carry: `video/<id>.mp4`, nothing that climbs out of the folder. */
+/** A sample file name the catalogue may carry: `video/<id>.mp4` (a clip) or `audio/<id>.mp3` (a spoken or musical sample), nothing that climbs out of the folder. */
 export const shelfVideoName = (v) => (typeof v === 'string' && VIDEO.test(v) ? v : '')
 
 const cleanImage = (v) => {
@@ -75,6 +75,21 @@ const cleanVideo = (v) => {
   if (src === '') return null
   const seconds = typeof i.seconds === 'number' && i.seconds >= 1 && i.seconds <= 60 ? Math.round(i.seconds * 10) / 10 : null
   return { src, width: int(i.width, 16, 4096) || 832, height: int(i.height, 16, 4096) || 480, seconds: seconds === null ? 5 : seconds }
+}
+
+/** The sample of an audio example: its file, its length, the loudness of 16 to 128 slices of it (0 to 100, what the page draws as the wave: nothing is decoded in the browser) and a
+ *  colour (a hue, 0 to 359). null when the name is not an audio sample name or the wave is not a wave. */
+const cleanAudio = (v) => {
+  const i = obj(v)
+  if (i === null) return null
+  const src = shelfVideoName(i.src)
+  const seconds = typeof i.seconds === 'number' && i.seconds >= 1 && i.seconds <= 120 ? Math.round(i.seconds * 10) / 10 : null
+  const peaks = Array.isArray(i.peaks) ? i.peaks.slice(0, 128).map((p) => int(p, 0, 100)) : []
+  if (!src.startsWith('audio/') || seconds === null || peaks.length < 16 || peaks.some((p) => p === null)) return null
+  const out = { src, seconds, peaks }
+  const hue = int(i.hue, 0, 359)
+  if (hue !== null) out.hue = hue
+  return out
 }
 
 /** How a generated example was made, so the person can reproduce or remix it: the model (its id, as the provider names it, and an optional display name),
@@ -110,6 +125,8 @@ const cleanTemplate = (t, typeIds) => {
   if (image !== null) out.image = image
   const video = cleanVideo(e.video)
   if (video !== null) out.video = video
+  const audio = cleanAudio(e.audio)
+  if (audio !== null) out.audio = audio
   const made = cleanMade(e.made)
   if (made !== null) out.made = made
   if (Array.isArray(e.tables)) {
@@ -159,13 +176,14 @@ export const shelfValidate = (raw) => {
 
 const isWebp = (b) => b.length > 12 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP'
 const isMp4 = (b) => b.length > 12 && b.toString('latin1', 4, 8) === 'ftyp'
+const isMp3 = (b) => b.length > 12 && (b.toString('latin1', 0, 3) === 'ID3' || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0))
 
 /** The answer to a request for a clip: 200 with the whole file, or 206 with the bytes of one `Range: bytes=a-b` (a browser's player asks that way to start and to seek, and Safari
- *  plays nothing without it), 416 when the range is outside the file. The type is always video/mp4 and the document stays shut (nosniff, a sandbox CSP), as for every answer made of
+ *  plays nothing without it), 416 when the range is outside the file. The type is video/mp4, or audio/mpeg for an MP3, and the document stays shut (nosniff, a sandbox CSP), as for every answer made of
  *  bytes that came from outside. `range` is the request's Range header, or anything else for none. */
 export const shelfVideoAnswer = (bytes, range) => {
   const size = bytes.length
-  const headers = { 'content-type': 'video/mp4', 'accept-ranges': 'bytes', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; sandbox" }
+  const headers = { 'content-type': isMp3(bytes) && !isMp4(bytes) ? 'audio/mpeg' : 'video/mp4', 'accept-ranges': 'bytes', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; sandbox" }
   const m = typeof range === 'string' ? /^bytes=(\d{0,12})-(\d{0,12})$/.exec(range.trim()) : null
   if (m === null || (m[1] === '' && m[2] === '')) return { status: 200, headers: Object.assign({}, headers, { 'content-length': String(size) }), body: bytes }
   const last = m[1] === '' ? size - 1 : Math.min(m[2] === '' ? size - 1 : Number(m[2]), size - 1)
@@ -205,7 +223,7 @@ export const createShelf = ({ dir = () => null, api = () => '', publicBase = '',
   let kept = null            // { at, catalogue } — the last valid answer, from disk or from the server
   let keptMtime = -1
   const pics = new Set()     // the pictures on disk: 'a.webp', 'large/a.webp'
-  const clips = new Set()    // the sample clips on disk: 'video/a.mp4'
+  const clips = new Set()    // the sample clips and sounds on disk: 'video/a.mp4', 'audio/a.mp3'
   const inflight = new Map()
   let retryAt = 0
   let loading = null
@@ -240,7 +258,9 @@ export const createShelf = ({ dir = () => null, api = () => '', publicBase = '',
     for (const sub of ['', 'large']) {
       try { for (const f of await readdir(join(r, 'shelf', sub))) { const name = (sub === '' ? '' : sub + '/') + f; if (shelfImageName(name) !== '') pics.add(name) } } catch (e) { /* none yet */ }
     }
-    try { for (const f of await readdir(join(r, 'shelf', 'video'))) { if (shelfVideoName('video/' + f) !== '') clips.add('video/' + f) } } catch (e) { /* none yet */ }
+    for (const sub of ['video', 'audio']) {
+      try { for (const f of await readdir(join(r, 'shelf', sub))) { if (shelfVideoName(sub + '/' + f) !== '') clips.add(sub + '/' + f) } } catch (e) { /* none yet */ }
+    }
   }
   let scanned = false
 
@@ -258,6 +278,7 @@ export const createShelf = ({ dir = () => null, api = () => '', publicBase = '',
         out = Object.assign({}, out, { image })
       }
       if (t.video !== undefined) out = Object.assign({}, out, { video: Object.assign({}, t.video, { ready: clips.has(t.video.src) }) })
+      if (t.audio !== undefined) out = Object.assign({}, out, { audio: Object.assign({}, t.audio, { ready: clips.has(t.audio.src) }) })
       return out
     })
     return Object.assign({}, base, { templates, source: k !== null ? 'server' : 'bundled', loadedAt: k !== null ? k.at : 0 })
@@ -327,7 +348,7 @@ export const createShelf = ({ dir = () => null, api = () => '', publicBase = '',
     return job
   }
 
-  /** One sample clip: from the disk, else from the server (and kept; the load never asks for clips, only a click on Play does). null when it is not there. */
+  /** One sample clip or sound: from the disk, else from the server (and kept; the load never asks for clips, only a click on Play does). null when it is not there. */
   const video = async (name) => {
     const rel = shelfVideoName(name)
     if (rel === '') return null
@@ -338,11 +359,12 @@ export const createShelf = ({ dir = () => null, api = () => '', publicBase = '',
     }
     if (inflight.has(rel)) return inflight.get(rel)
     const job = (async () => {
-      const got = await fetchRel(SHELF_IMAGE_BASE + rel, VIDEO_MAX, 'video/mp4')
-      if (got.body === null || !isMp4(got.body)) return null
+      const sound = rel.startsWith('audio/')
+      const got = await fetchRel(SHELF_IMAGE_BASE + rel, VIDEO_MAX, sound ? 'audio/mpeg' : 'video/mp4')
+      if (got.body === null || !(sound ? isMp3(got.body) : isMp4(got.body))) return null
       if (r !== null) {
         try {
-          await mkdir(join(r, 'shelf', 'video'), { recursive: true })
+          await mkdir(join(r, 'shelf', sound ? 'audio' : 'video'), { recursive: true })
           await writeAtomic(join(r, 'shelf', rel), got.body)
           clips.add(rel)
         } catch (e) { /* served from memory this time */ }

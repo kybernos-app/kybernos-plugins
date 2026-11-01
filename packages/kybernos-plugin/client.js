@@ -1273,6 +1273,7 @@ let kbLocaleRead = () => 'en'
       'kbnc.sh.madewith': { kybernos: 'Fait avec', en: 'Made with' },
       'kbnc.sh.seed': { kybernos: 'graine', en: 'seed' },
       'kbnc.sh.play': { kybernos: 'Lire l’exemple', en: 'Play the example' },
+      'kbnc.sh.pause': { kybernos: 'Pause', en: 'Pause' },
       'kbnc.sh.noclip': { kybernos: 'Cet exemple ne peut pas être lu pour l’instant.', en: 'This example cannot be played right now.' },
       'kbnc.sh.sample': { kybernos: 'Prompt de l’exemple', en: 'Prompt of the sample' },
       'kbnc.sh.samplem': { kybernos: 'Comment l’exemple a été fait', en: 'How the sample was made' },
@@ -8863,9 +8864,16 @@ const kbNcVideoUrl = (e) => {
   const v = kbNcObj(e) === null ? null : kbNcObj(e.video)
   return v !== null && typeof v.src === 'string' && v.src !== '' ? '/kybernos/templates-video?f=' + encodeURIComponent(v.src) : ''
 }
+/** The sample sound of an audio example ({ src, seconds, peaks, hue }), or null when the example has none. */
+const kbNcAudio = (e) => {
+  const a = kbNcObj(e) === null ? null : kbNcObj(e.audio)
+  return a !== null && typeof a.src === 'string' && a.src !== '' && Array.isArray(a.peaks) && a.peaks.length > 0 ? a : null
+}
+/** The address of an audio example's sample sound on this machine: the host route that serves the clips serves it too, and keeps it once someone has played it. */
+const kbNcAudioUrl = (e) => { const a = kbNcAudio(e); return a === null ? '' : '/kybernos/templates-video?f=' + encodeURIComponent(a.src) }
 /** A generated PICTURE example: its `prompt` is exactly what the model was given, so « Use this prompt » and « Remix » make sense. A video example's `prompt` is the request that
  *  starts its skill (the sample's own prompt is `made.prompt`), so it keeps « Use this request ». */
-const kbNcPromptMode = (e) => kbNcObj(e) !== null && kbNcObj(e.made) !== null && kbNcObj(e.video) === null
+const kbNcPromptMode = (e) => kbNcObj(e) !== null && kbNcObj(e.made) !== null && kbNcObj(e.video) === null && kbNcObj(e.audio) === null
 /** The sentence « adapt this template » puts in the composer. */
 const kbNcAdaptText = (pre, e, post) => pre + String(e.name) + post
 /** The sentence « remix this example » puts in the composer: the example's prompt, kept, and the person says what to change after it. */
@@ -30124,6 +30132,63 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'tables' }) } catch (e) { /* no page to open */ }
     }
     const kbNcPlay = () => h('span', { className: 'kb8-sh-play', 'aria-hidden': 'true' }, h('span', null, h('svg', { viewBox: '0 0 24 24' }, h('path', { d: 'M7 4.5v15l13-7.5z' }))))
+    /** The player of an audio example: the wave (the slices of loudness the catalogue carries, nothing is decoded here), a Play button and the time. The sound is asked of the host at the
+     *  first Play only; a click on the wave starts it from there, and the arrows move it by 5 seconds. `onState('playing' | 'failed')` tells the dialog. */
+    const KbNcWave = (wp) => {
+      const a = wp.audio
+      const startedPair = React.useState(false)
+      const playingPair = React.useState(false)
+      const posPair = React.useState(0)
+      const durPair = React.useState(a.seconds)
+      const elRef = React.useRef(null)
+      const fromRef = React.useRef(0)
+      const dur = durPair[0] > 0 && Number.isFinite(durPair[0]) ? durPair[0] : a.seconds
+      const frac = Math.max(0, Math.min(1, posPair[0] / dur))
+      const upto = Math.round(frac * a.peaks.length)
+      const fmt = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0')
+      React.useEffect(() => {
+        if (playingPair[0] !== true) return undefined
+        let raf = 0
+        const tick = () => { const el = elRef.current; if (el !== null) posPair[1](el.currentTime); raf = window.requestAnimationFrame(tick) }
+        raf = window.requestAnimationFrame(tick)
+        return () => window.cancelAnimationFrame(raf)
+      }, [playingPair[0]])
+      const begin = (at) => { fromRef.current = at; posPair[1](at); startedPair[1](true); playingPair[1](true); if (typeof wp.onState === 'function') wp.onState('playing') }
+      const seek = (f) => {
+        const at = Math.max(0, Math.min(1, f)) * dur
+        if (startedPair[0] !== true) { begin(at); return }
+        const el = elRef.current
+        if (el !== null) { el.currentTime = at; posPair[1](at) }
+      }
+      const toggle = () => {
+        if (startedPair[0] !== true) { begin(0); return }
+        const el = elRef.current
+        if (el === null) return
+        if (el.paused) { const pr = el.play(); if (pr !== undefined && typeof pr.catch === 'function') pr.catch(() => {}) } else el.pause()
+      }
+      const fromEvent = (ev) => { const r = ev.currentTarget.getBoundingClientRect(); return r.width > 0 ? (ev.clientX - r.left) / r.width : 0 }
+      const onDown = (ev) => { try { ev.currentTarget.setPointerCapture(ev.pointerId) } catch (x) { /* no capture: the move still follows while over the wave */ } seek(fromEvent(ev)) }
+      const onMove = (ev) => { if (ev.buttons === 1) seek(fromEvent(ev)) }
+      const onKey = (ev) => {
+        if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight' && ev.key !== 'Home') return
+        ev.preventDefault()
+        seek((ev.key === 'Home' ? 0 : posPair[0] + (ev.key === 'ArrowLeft' ? -5 : 5)) / dur)
+      }
+      const playing = playingPair[0] === true
+      return h('div', { className: 'kb8-sh-wave' + (playing ? ' on' : ''), style: { '--kb-wh': String(typeof a.hue === 'number' ? a.hue : 215) }, 'data-kb': 'newchat-example-wave' },
+        h('div', { className: 'kb8-sh-wbars', role: 'slider', tabIndex: 0, 'aria-label': wp.e.name, 'aria-valuemin': 0, 'aria-valuemax': Math.round(dur), 'aria-valuenow': Math.round(posPair[0]), 'aria-valuetext': fmt(posPair[0]) + ' / ' + fmt(dur), onPointerDown: onDown, onPointerMove: onMove, onKeyDown: onKey },
+          a.peaks.map((pk, i) => h('span', { key: i, className: i < upto ? 'on' : '', style: { height: Math.max(7, pk) + '%' } }))),
+        h('div', { className: 'kb8-sh-wbar' },
+          h('button', { type: 'button', className: 'kb8-sh-wbtn', 'aria-label': kbt(playing ? 'kbnc.sh.pause' : 'kbnc.sh.play'), 'data-kb': 'newchat-example-play', onClick: toggle },
+            h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, playing ? h('path', { d: 'M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z' }) : h('path', { d: 'M7 4.5v15l13-7.5z' }))),
+          h('span', { className: 'kb8-sh-wtime', 'data-kb': 'newchat-example-time' }, fmt(posPair[0]) + ' / ' + fmt(dur))),
+        startedPair[0] === true ? h('audio', {
+          ref: elRef, src: wp.src, autoPlay: true, preload: 'auto', 'data-kb': 'newchat-example-audio',
+          onLoadedMetadata: (ev) => { const el = ev.currentTarget; if (Number.isFinite(el.duration) && el.duration > 0) durPair[1](el.duration); if (fromRef.current > 0) el.currentTime = fromRef.current },
+          onPlay: () => playingPair[1](true), onPause: () => playingPair[1](false),
+          onEnded: () => { playingPair[1](false); posPair[1](0); startedPair[1](false); fromRef.current = 0 },
+          onError: () => { playingPair[1](false); startedPair[1](false); if (typeof wp.onState === 'function') wp.onState('failed') } }) : null)
+    }
     const kbNcTile = (type) => h('span', { className: 'kb8-sl-stage kb8-sh-tile', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + (KB_NC_ART[type] === undefined ? KB_NC_ART.file : KB_NC_ART[type]) + '</svg>' } })
     /** An example's picture, from the host's disk copy. A card asks only for a picture the host already has; the dialog asks for the larger one (the host fetches it once) and falls
      *  back to the card's. Where there is none (not loaded yet, the server silent) it is the type's own tile, so a card is never empty. */
@@ -30156,7 +30221,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('div', { className: 'kb8-sh-h' }, h('h2', null, kbt('kbnc.sh.head')), info !== undefined && typeof info.blurb === 'string' && info.blurb !== '' ? h('span', null, info.blurb) : null),
           h('div', { className: 'kb8-sh-grid' }, list.map((e, i) =>
             h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, onClick: (ev) => sp.onOpen(e.id, ev.currentTarget) },
-              h('span', { className: 'kb8-sh-thumb' }, h(KbNcPic, { key: e.id, e }), e.type === 'video' ? kbNcPlay() : null),
+              h('span', { className: 'kb8-sh-thumb' }, h(KbNcPic, { key: e.id, e }), e.type === 'video' || kbNcObj(e.video) !== null || kbNcAudio(e) !== null ? kbNcPlay() : null),
               h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.preview')),
               h('span', { className: 'kb8-sh-name' }, h('span', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
               h('span', { className: 'kb8-sh-line' }, e.line))))))
@@ -30218,8 +30283,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const madeLine = kbNcMadeLine(made, kbt('kbnc.sh.madewith'), kbt('kbnc.sh.seed'))
       const promptMode = kbNcPromptMode(e)
       const clip = kbNcVideoUrl(e)
+      const wave = kbNcAudio(e)
+      const media = clip !== '' || wave !== null
       const madeEl = madeLine === '' ? null : h('span', { className: 'kb8-sh-made', title: made.model, 'data-kb': 'newchat-example-made' }, madeLine)
-      const samplePrompt = clip !== '' && made !== null && typeof made.prompt === 'string' ? made.prompt : ''
+      const samplePrompt = media && made !== null && typeof made.prompt === 'string' ? made.prompt : ''
       const label = withKit === false ? kbt(promptMode ? 'kbnc.sh.useprompt' : 'kbnc.sh.use') : have === true ? kbt('kbnc.sh.open') : st.phase === 'busy' ? kbt('kbnc.sh.adding') : kbt('kbnc.sh.usetpl')
       const picture = map !== null
         ? h('svg', { className: 'kb8-sh-map', viewBox: '0 0 320 200', role: 'img', 'aria-label': e.name },
@@ -30227,7 +30294,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           map.boxes.map((b, i) => h('g', { key: 'b' + i }, h('rect', { x: b.x - 43, y: b.y - 14, width: 86, height: 28, rx: 7, className: 'box' }), h('text', { x: b.x, y: b.y + 3.6, textAnchor: 'middle', className: 'lbl' }, b.label))))
         : h(KbNcPic, { key: e.id + ':big', e, big: true })
       // A video example shows its first frame; Play replaces it with the clip (fetched by the host only then, once). A clip that cannot be read puts the frame back with a line saying so.
-      const stage = map === null && clip !== '' && playPair[0] === 'playing'
+      const stage = wave !== null ? h(KbNcWave, { key: e.id + ':wave', e, audio: wave, src: kbNcAudioUrl(e), onState: (x) => playPair[1](x) }) : map === null && clip !== '' && playPair[0] === 'playing'
         ? h('video', { className: 'kb8-sh-vid', ref: vidRef, tabIndex: 0, src: clip, poster: kbNcPicUrl(e, true), controls: true, autoPlay: true, loop: true, playsInline: true, 'aria-label': e.name, 'data-kb': 'newchat-example-video', onError: () => playPair[1]('failed') })
         : h(React.Fragment, null, picture, map !== null ? null : clip !== ''
           ? h('button', { type: 'button', className: 'kb8-sh-playbtn', 'aria-label': kbt('kbnc.sh.play'), 'data-kb': 'newchat-example-play', onClick: () => playPair[1]('playing') }, kbNcPlay())
@@ -30244,12 +30311,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                 h('button', { type: 'button', key: id, className: 'kb8-sh-tab' + (tab === id ? ' on' : ''), 'aria-pressed': tab === id ? 'true' : 'false', onClick: () => tabPair[1](id) }, kbt('kbnc.sh.tab.' + id)))) : null,
               h('div', { className: 'kb8-sh-big' }, stage),
               playPair[0] === 'failed' ? h('p', { className: 'kb8-sh-status bad', role: 'alert', 'data-kb': 'newchat-example-noclip' }, kbt('kbnc.sh.noclip')) : null,
-              h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : (clip !== '' ? (e.type === 'audio' ? 'kbnc.sh.fineaudio' : 'kbnc.sh.finevideo') : (promptMode ? 'kbnc.sh.finemade' : 'kbnc.sh.fine')))))),
+              h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : (media ? (e.type === 'audio' ? 'kbnc.sh.fineaudio' : 'kbnc.sh.finevideo') : (promptMode ? 'kbnc.sh.finemade' : 'kbnc.sh.fine')))))),
             h('div', { className: 'kb8-sh-side' },
               h('div', { className: 'kb8-sh-title' }, h('h3', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
               h('p', { className: 'kb8-sh-lead' }, e.line),
               h('div', { className: 'kb8-sh-req' }, h('b', null, kbt(promptMode ? 'kbnc.sh.prompt' : (withKit ? 'kbnc.sh.reqtpl' : 'kbnc.sh.req'))), h('p', null, e.prompt), promptMode ? madeEl : null),
-              clip !== '' && made !== null ? h('div', { className: 'kb8-sh-req', 'data-kb': 'newchat-example-sample' }, h('b', null, kbt(samplePrompt !== '' ? 'kbnc.sh.sample' : 'kbnc.sh.samplem')), samplePrompt === '' ? null : h('p', null, samplePrompt), madeEl) : null,
+              media && made !== null ? h('div', { className: 'kb8-sh-req', 'data-kb': 'newchat-example-sample' }, h('b', null, kbt(samplePrompt !== '' ? 'kbnc.sh.sample' : 'kbnc.sh.samplem')), samplePrompt === '' ? null : h('p', null, samplePrompt), madeEl) : null,
               h('ul', { className: 'kb8-sh-list' }, inside.map((x, i) => h('li', { key: i }, h('b', null, x.t), h('span', null, x.d)))),
               h('div', { className: 'kb8-sh-acts' },
                 h('button', { type: 'button', className: 'kb8-sh-btn pri', 'data-kb': 'newchat-example-use', disabled: st.phase === 'busy', onClick: primary }, label),
@@ -30478,6 +30545,17 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-tab.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
 .kb8-sh-big{position:relative;display:block;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-module-platform);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
 .kb8-sh-vid{display:block;width:100%;height:100%;object-fit:contain;background:rgb(0,0,0)}
+.kb8-sh-wave{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:5%;padding:0 6%;color:rgb(255 255 255);background:linear-gradient(140deg,hsl(var(--kb-wh) 52% 14%),hsl(calc(var(--kb-wh) + 28) 56% 28%))}
+.kb8-sh-wbars{display:flex;align-items:center;gap:2px;height:44%;cursor:pointer;touch-action:none;border-radius:10px}
+.kb8-sh-wbars span{flex:1 1 0;min-width:2px;border-radius:99px;background:hsl(var(--kb-wh) 60% 90% / .3);transition:background .12s}
+.kb8-sh-wbars span.on{background:hsl(var(--kb-wh) 96% 92%)}
+.kb8-sh-wbars:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:6px}
+.kb8-sh-wbar{display:flex;align-items:center;gap:14px}
+.kb8-sh-wbtn{flex:none;width:52px;height:52px;margin:0;padding:0;border:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;background:rgb(255 255 255);color:hsl(var(--kb-wh) 55% 18%);box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.kb8-sh-wbtn:hover{transform:scale(1.08)}
+.kb8-sh-wbtn:focus-visible{outline:2px solid rgb(255 255 255);outline-offset:3px}
+.kb8-sh-wbtn svg{width:22px;height:22px;fill:currentColor}
+.kb8-sh-wtime{font-variant-numeric:tabular-nums;font-size:13px;opacity:.85}
 .kb8-sh-playbtn{position:absolute;inset:0;margin:0;padding:0;border:0;background:transparent;cursor:pointer}
 .kb8-sh-playbtn .kb8-sh-play>span{width:56px;height:56px;transition:transform .3s cubic-bezier(.16,1,.3,1)}
 .kb8-sh-playbtn:hover .kb8-sh-play>span{transform:scale(1.1)}
