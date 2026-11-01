@@ -1,0 +1,17 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "shots": [
+    {
+      "file": "logo-1.mp4",
+      "trim": [
+        0,
+        5.08
+      ]
+    }
+  ],
+  "ambient": 1.0,
+  "id": "video_logo_reveal2"
+}

@@ -1,0 +1,41 @@
+{
+ "name": "video-frames-2b",
+ "style": "No text, no lettering, no watermark",
+ "ask": {
+  "width": 720,
+  "height": 1280,
+  "steps": 4
+ },
+ "keep": {
+  "width": 720,
+  "quality": 90,
+  "maxKb": 1500
+ },
+ "cells": [
+  {
+   "name": "v2-tryon-model",
+   "seed": 5111,
+   "prompt": "Full-length vertical fashion photograph of a tall woman with a short dark bob wearing a long camel wool coat over a cream knit and black trousers, standing facing the camera in a bright minimal studio with a pale grey seamless backdrop, soft studio light, the whole body in frame from head to shoes"
+  },
+  {
+   "name": "v2-bakery-street",
+   "seed": 5112,
+   "prompt": "Vertical cinematic photograph of a quiet cobblestone street at 4 a.m. in blue pre-dawn light, a small bakery with a glowing warm yellow window and a flour-dusted counter visible inside, steam rising from a chimney, moody and cozy"
+  },
+  {
+   "name": "v2-squat",
+   "seed": 5113,
+   "prompt": "Vertical photograph of an athletic woman with a high ponytail in a black sports top and leggings, standing tall in a dark industrial gym with a barbell across her shoulders, dramatic rim lighting, full body in frame, cinematic"
+  },
+  {
+   "name": "v2-pushup",
+   "seed": 5114,
+   "prompt": "Vertical photograph of an athletic woman with a high ponytail in a black sports top and leggings, in a high plank position on the floor of a dark industrial gym, hands under her shoulders, full body in frame, dramatic rim lighting, cinematic"
+  },
+  {
+   "name": "v2-pullup",
+   "seed": 5115,
+   "prompt": "Vertical photograph of an athletic woman with a high ponytail in a black sports top and leggings, hanging from a pull-up bar with an overhand grip and straight arms in a dark industrial gym, seen from the front, full body in frame, dramatic rim lighting, cinematic"
+  }
+ ]
+}
