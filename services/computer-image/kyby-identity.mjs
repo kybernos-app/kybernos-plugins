@@ -82,7 +82,7 @@ const clip = (s, n) => dataLine(s, n)
 /**
  * The block for one turn.
  * @param opts { channel: 'telegram'|'phone'|'chat', body: 'computer'|'cloud', nowText: the time as a sentence, personName?, thread?: lines of the shared conversation,
- *   assistantName?: the name the person gave their assistant (see aliasOf; the product stays Kaby) }
+ *   assistantName?: the name the person gave their assistant (see aliasOf; the product stays Kaby), mandate?: the block of the person's standing permission, written by the host }
  */
 export function identityBlock (opts = {}) {
   const channel = CHANNELS[opts.channel] ?? CHANNELS.phone
@@ -93,5 +93,16 @@ export function identityBlock (opts = {}) {
   const alias = aliasOf(opts.assistantName)
   // With a name of its own the assistant introduces itself by it, and still knows what the product is called.
   const core = alias === null ? CORE : [CORE[0].replace('You are Kaby, ', 'You are ' + alias + ' (the product is called Kaby), '), ...CORE.slice(1)]
-  return [core.join('\n'), VOICE.join('\n'), situation, thread].filter((part) => part !== '').join('\n\n')
+  return [core.join('\n'), VOICE.join('\n'), situation, mandateBlock(opts.mandate), thread].filter((part) => part !== '').join('\n\n')
+}
+
+/**
+ * The mandate the host passes (kyby-mandate.mjs `mandateText`), or ''. It sits above the data, written by the host: only a text of exactly that shape is taken (a head, one body line of
+ * plain words and numbers, a tail), so nothing else can ride in under the marker. Anything else is no mandate.
+ */
+const mandateBlock = (text) => {
+  if (typeof text !== 'string' || text.length > 800) return ''
+  const lines = text.split('\n')
+  if (lines.length !== 3 || lines[0] !== '[MANDATE]' || lines[2] !== '[/MANDATE]') return ''
+  return /^[A-Za-z0-9 ;,.:()'-]+$/u.test(lines[1]) ? text : ''
 }

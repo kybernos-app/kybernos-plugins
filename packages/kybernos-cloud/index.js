@@ -56,7 +56,8 @@ import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { computersOf } from './computers-view.mjs'
 import { createPublish } from './computers-publish.mjs'
 import { identityOf } from './computer-identity.mjs'
-import { writeGuard } from './session-guard.mjs'
+import { lireSecretSession, writeGuard } from './session-guard.mjs'
+import { createMandateStore } from './kyby-mandate-store.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
 import { actionKey, readItems as askRead, writeItems as askWrite, verdict as askVerdict, denyReason as askDeny, continuationText as askContinuation, ofRun as askOfRun, toContinue as askToContinue } from './automation-approvals.mjs'
@@ -5391,11 +5392,20 @@ const nativeRootOf = (ctx, id) => {
   }
   return null
 }
+// A call that names the mandate's files, in Kaby's chat, is refused: the standing permission is the person's, not Kaby's to read or change. This is friction, not a wall (a command can hide
+// a name, and the chat is meant to run in a workspace-write sandbox that keeps it out of the file); the record is signed, so a file changed by anything but the Settings route is void.
+const mentionsMandate = (exec) => { try { return /kyby-mandate/i.test(JSON.stringify((exec && exec.arguments) ?? {})) } catch (e) { return false } }
 const nativeGate = (ctx) => async (exec, next) => {
   const name = String((exec && exec.name) || '')
+  if (mentionsMandate(exec)) {
+    const own = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
+    if (own !== null) { noteRefusal(own, name); return { kind: 'deny', reason: 'The standing permission belongs to the person: its files are not yours to read or change. Say so in your answer, do not try again.' } }
+  }
   if (!NATIVE_ASK_TOOLS.has(name)) return next()
   const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
   if (root === null) return next()
+  // The person's mandate covers some of our tools, inside daily limits: no question. Anything it does not cover, or past a limit, is asked as before.
+  if (mandateStore.allow(name, root).allow === true) return next()
   const refuse = (why) => { noteRefusal(root, name); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
   const approval = ctx.get('approval')
   if (approval === undefined || approval === null || typeof approval.request !== 'function') return refuse('it could not be asked')
@@ -5805,7 +5815,10 @@ const kybyPointerFile = () => join(dshHome(), 'kybernos-kyby.json')
 // The name the person gave Kaby: kybernos-kaby-customisation publishes its profile under this symbol (no bundle imports another). It is validated again
 // where it is used (aliasOf), because it ends up in a prompt.
 const kabyGivenName = () => { try { const read = globalThis[Symbol.for('kybernos.kabyProfile')]; const p = typeof read === 'function' ? read() : null; return p !== null && typeof p === 'object' ? p.name : null } catch (e) { return null } }
-const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall, assistantName: kabyGivenName })
+// The person's standing permission (kyby-mandate.mjs): three files of the DSH home written by the host only. The native gate reads it to let some of our tools run in Kaby's chat without a
+// question, and the prompt carries its block (kyby-identity.mjs) so Kaby knows what it may do. Nothing outside the Settings route writes it.
+const mandateStore = createMandateStore({ home: () => dshHome(), secret: () => lireSecretSession(dshHome()) })
+const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall, assistantName: kabyGivenName, mandate: () => mandateStore.text() })
 // Kaby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
 // blank, and a blank is taken back by the next new chat of its workspace) and it has a home on this machine.
 const kybyFolder = () => join(dshHome(), 'kybernos', 'kyby')
@@ -5859,6 +5872,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/whatsapp/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req, 'whatsapp') },
   { path: '/kybernos-cloud/whatsapp/pairing/cancel', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body, 'whatsapp') },
   { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
+  // Kaby's mandate: what the person lets it do without asking (kyby-mandate.mjs). Reading is open to the page; signing needs the strict Origin and the signed session, like every write here.
+  { path: '/kybernos-cloud/kyby/mandate', method: 'GET', guarded: true, run: () => ({ ok: true, ...mandateStore.view() }) },
+  { path: '/kybernos-cloud/kyby/mandate/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => mandateStore.set(body) },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('resume') },
