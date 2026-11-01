@@ -4,7 +4,7 @@
  *
  *  Usage: node packages/kybernos-plugin/test-templates-shelf.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -326,6 +326,21 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const s2 = createShelf({ dir: () => dir, api: () => '', fetchFn: () => { throw new Error('offline') } })
   assert.equal((await s2.video('video/video_a.mp4')).length, 1000, 'after a restart it is still there')
   assert.equal((await s2.catalogue()).templates.find((t) => t.id === 'video_a').video.ready, true)
+  // a catalogue and its pictures put on disk while the host runs (an install) are seen without a restart
+  const home = join(tmp, 'install-home')
+  mkdirSync(join(home, 'shelf', 'large'), { recursive: true })
+  writeFileSync(join(home, 'catalogue.json'), JSON.stringify(mini([ex('video_old')])))
+  writeFileSync(join(home, 'shelf', 'video_old.webp'), webp(60))
+  const running = createShelf({ dir: () => home, api: () => '', fetchFn: () => { throw new Error('offline') } })
+  assert.equal((await running.catalogue()).templates[0].image.ready, true)
+  writeFileSync(join(home, 'shelf', 'video_new.webp'), webp(60))
+  writeFileSync(join(home, 'catalogue.json'), JSON.stringify(mini([ex('video_new')])))
+  const later = new Date(Date.now() + 5000)
+  utimesSync(join(home, 'catalogue.json'), later, later)
+  const seen = await running.catalogue()
+  assert.equal(seen.templates[0].id, 'video_new')
+  assert.equal(seen.templates[0].image.ready, true, 'the picture installed with the new catalogue is shown, not the placeholder art')
+  ok('a catalogue installed on disk while the host runs brings its pictures in without a restart')
   ok('a clip name and length are checked, the sample prompt is kept; the load never asks for clips, Play asks once and the clip is kept; ranges are answered')
 }
 
