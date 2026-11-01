@@ -35,7 +35,7 @@ const endpoint = new URL(env.AWS_ENDPOINT_URL_S3 || 'https://fly.storage.tigris.
 if (endpoint.protocol !== 'https:') fail('the storage endpoint must be https')
 const bucket = env.BUCKET_NAME || 'kybernos-templates'
 
-const TYPES = { '.json': 'application/json', '.webp': 'image/webp', '.mp4': 'video/mp4' }
+const TYPES = { '.json': 'application/json', '.webp': 'image/webp', '.mp4': 'video/mp4', '.mp3': 'audio/mpeg' }
 const walk = (base, rel = '') => readdirSync(join(base, rel)).flatMap((f) => {
   const r = rel === '' ? f : rel + '/' + f
   return statSync(join(base, r)).isDirectory() ? walk(base, r) : [r]

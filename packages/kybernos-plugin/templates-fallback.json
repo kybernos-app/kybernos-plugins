@@ -1,7 +1,7 @@
 {
  "schema": "kybernos.templates/1",
- "version": 8,
- "updatedAt": "2026-11-01T20:44:32Z",
+ "version": 9,
+ "updatedAt": "2026-11-01T21:47:45Z",
  "locale": "en",
  "imageBase": "shelf/",
  "groups": [
@@ -938,19 +938,19 @@
    }
   },
   {
-   "id": "video_tryon_swap_r2",
+   "id": "video_tryon_swap_r3",
    "type": "video",
    "name": "Virtual try-on",
    "tag": "Fashion",
-   "line": "One person, one wardrobe: the colour and the garment change in a single film.",
-   "meta": "20 seconds · 9:16 · music",
-   "prompt": "Make a 20-second virtual try-on video. Ask me for a photo of the person, the garment and the colours or other garments I want to compare. Show me the still first, then animate the colour and garment changes in one video, with the name of each look on screen.",
+   "line": "A rail of coats, three looks tried on in one take, each named on screen.",
+   "meta": "15 seconds · 9:16 · voice and music",
+   "prompt": "Make a 15-second virtual try-on video in one take. Ask me for a photo of the person (or use an invented one), the room and up to three garments with their colours. Show me the first frame, then animate her trying each look on, with the name of each look on screen and a short spoken line for each.",
    "image": {
-    "src": "video_tryon_swap_r2.webp",
+    "src": "video_tryon_swap_r3.webp",
     "width": 720,
     "height": 450,
-    "alt": "A woman with a dark bob turning in a studio while her long coat changes from camel to emerald and then to black.",
-    "large": "large/video_tryon_swap_r2.webp",
+    "alt": "A young woman with a dark bob in a bright Paris living room, delighted in a cognac leather jacket, with a camel coat and an emerald coat on the rail behind her.",
+    "large": "large/video_tryon_swap_r3.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
@@ -974,19 +974,19 @@
    }
   },
   {
-   "id": "video_property_flythrough_r2",
+   "id": "video_property_flythrough_r3",
    "type": "video",
    "name": "Property film",
    "tag": "Real estate",
-   "line": "One continuous flight from the road to the terrace, with the price on screen.",
-   "meta": "20 seconds · 16:9 · music",
-   "prompt": "Make a 20-second immersive property film from my listing photos. Ask me for the best exterior photo, the address, the price and the three features to show. Fly in from the road, go through the front door to the terrace, and end on the price, with music and captions. Show me the first frame before you animate.",
+   "line": "A flight to the villa, then room by room, with a floor plan that follows the visit.",
+   "meta": "23 seconds · 16:9 · music",
+   "prompt": "Make a 20-second immersive property film from my listing photos. Ask me for the best exterior photo, the address, the price and the five features to show, and the rooms to visit. Fly in from the road, then go room by room, with a small floor plan that follows the visit and the features listed on screen, and end on the price, with music. Show me the first frame before you animate.",
    "image": {
-    "src": "video_property_flythrough_r2.webp",
+    "src": "video_property_flythrough_r3.webp",
     "width": 720,
     "height": 450,
-    "alt": "A modern white villa with an infinity pool above a turquoise bay at golden hour, seen from the air.",
-    "large": "large/video_property_flythrough_r2.webp",
+    "alt": "A white villa with an infinity pool above a bay at golden hour, the villa name over it, a small floor plan at the top left and a list of features at the bottom right.",
+    "large": "large/video_property_flythrough_r3.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
@@ -1064,37 +1064,55 @@
    }
   },
   {
-   "id": "audio_voicemail_fr",
+   "id": "audio_business_en",
    "type": "audio",
-   "name": "Voicemail greeting, your voice",
+   "name": "Quarterly update, read aloud",
    "tag": "Business",
-   "line": "Send a short recording of yourself: the greeting is read in your own voice.",
-   "meta": "0:16 · French · your own voice",
-   "prompt": "Make a voicemail greeting for my workshop in MY OWN voice. I will send you a short recording of myself: ask for my consent to clone it, and delete the reference after the call. Then read, in French: « Bonjour, et bienvenue à l'atelier. Nous ne pouvons pas répondre pour le moment. Laissez votre nom et votre numéro, et nous vous rappelons avant midi demain. » Give me the audio and a video with the captions.",
+   "line": "A board update turned into a clear voice you can send to the team.",
+   "meta": "0:18 · English · AI voice",
+   "prompt": "Turn this quarterly update into a 20-second audio brief for my team, in a clear, confident English voice: revenue up 18 percent led by subscriptions, churn down to 2.1 percent, onboarding cut from nine days to three, support volume doubled. Give me the audio file and the text.",
    "image": {
-    "src": "audio_voicemail_fr.webp",
+    "src": "audio_business_en.webp",
     "width": 720,
     "height": 450,
-    "alt": "A waveform scrolling over a night-blue background while a French voicemail greeting plays, with its captions",
-    "large": "large/audio_voicemail_fr.webp",
+    "alt": "A modern wave player on a blue gradient, playing a spoken business update",
+    "large": "large/audio_business_en.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "audio_relativity_en",
+   "id": "audio_audiobook_es",
    "type": "audio",
-   "name": "Physics explainer, your voice",
-   "tag": "Learning",
-   "line": "A 20-second lesson read in your own voice, over a picture for each idea.",
-   "meta": "0:18 · English · your own voice",
-   "prompt": "Make a 20-second explainer about why time runs slower the faster you move, read in MY OWN voice (I will send a short recording, ask for my consent before you clone it, and delete the reference after the call). One picture for each idea, soft piano music, captions. Use plain words and keep the physics right.",
+   "name": "Audiobook page, in Spanish",
+   "tag": "Audiobook",
+   "line": "A page of fiction read like a narrator would, at an unhurried pace.",
+   "meta": "0:20 · Spanish · AI voice",
+   "prompt": "Make an audiobook sample from this page of my novel, in Spanish: a warm female narrator, an unhurried pace, a short pause at every full stop. I will paste the text; give me the audio file.",
    "image": {
-    "src": "audio_relativity_en.webp",
+    "src": "audio_audiobook_es.webp",
     "width": 720,
     "height": 450,
-    "alt": "A golden pocket watch melting in deep space, with the caption \"time has to bend\"",
-    "large": "large/audio_relativity_en.webp",
+    "alt": "A modern wave player on a warm amber gradient, playing a page of fiction read in Spanish",
+    "large": "large/audio_audiobook_es.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_techsummary_zh",
+   "type": "audio",
+   "name": "Technical doc summary, in Chinese",
+   "tag": "Documents",
+   "line": "A migration guide boiled down to three points and spoken in Mandarin.",
+   "meta": "0:23 · Chinese · AI voice",
+   "prompt": "Summarise this technical document in three points and read the summary aloud in Mandarin Chinese, in a clear, neutral voice. I will attach the document; give me the audio file and the text of the summary.",
+   "image": {
+    "src": "audio_techsummary_zh.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A modern wave player on a teal gradient, playing the summary of a technical document in Mandarin Chinese",
+    "large": "large/audio_techsummary_zh.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
@@ -1134,6 +1152,16 @@
     "largeWidth": 1280,
     "largeHeight": 800
    }
+  },
+  {
+   "id": "audio_podcast_doc",
+   "type": "audio",
+   "kind": "prompt",
+   "name": "Two-host podcast from a document",
+   "tag": "Podcast",
+   "line": "Two hosts talk through your document: a hook, three key points with an example each, a short recap. About 3 minutes, in a natural voice.",
+   "meta": "Prompt",
+   "prompt": "Turn the document I attach into a 3-minute two-host podcast episode. Host A is curious and asks the questions, host B explains. Structure: a 15-second hook, three key points each with one concrete example, then a 20-second recap and one question for the listener. Natural spoken English, short sentences, light humour, no jargon. Warm studio voices, a different voice for each host, a soft intro and outro. Before generating, show me the script and the voices you picked; then give me the MP3 and the transcript."
   },
   {
    "id": "model3d_chair",

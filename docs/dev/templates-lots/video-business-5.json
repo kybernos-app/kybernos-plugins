@@ -1,0 +1,168 @@
+{
+  "name": "video-business-5",
+  "type": "video",
+  "note": "The fifth video lot: the two films of the previews are published. « Virtual try-on » is now one 15 s take in a Paris living room (three looks named on screen, a spoken line for each, light music from the model) and « Property film » a 23 s tour (the flight in, then room by room, a floor plan that follows the visit, the features legend, the price at the end). Both under new ids (suffix _r3: a file already on a machine is never fetched again); the six other films are the lot-4 ones, unchanged. `request` is what the example’s button puts in the composer; `made.prompt` is what the model was given for the clip of the sample.",
+  "cells": [
+    {
+      "id": "video_ad_alderine_r2",
+      "clip": "video_ad_alderine_r2.mp4",
+      "posterAt": 12.6,
+      "entry": {
+        "name": "Product ad",
+        "tag": "Marketing",
+        "line": "A brand, a bottle and a tagline: your product photo becomes a 15-second launch film.",
+        "meta": "15 seconds · 16:9 · music and voice-over",
+        "alt": "An emerald glass bottle rising out of fog on wet slate, the brand name Alderine in white capitals over it."
+      },
+      "request": "Make a 15-second product ad from my product photo. If I have no brand yet, invent one with me. Ask me for the photo, the product name and a tagline, show me the first frame, then add the brand text, music and a one-line voice-over.",
+      "made": {
+        "model": "heygen/heygen-video-1",
+        "label": "HeyGen Video 1",
+        "prompt": "Slow cinematic push-in on the emerald glass bottle emerging from thick drifting fog, a rim light sweeping across the glass, droplets of condensation sliding down the bottle, a deep cinematic whoosh and a soft shimmering synth pad",
+        "seed": 6101
+      },
+      "source": "3 HeyGen shots (image-to-video from frames/v2-ad-hero.jpg, a text-to-video macro of sparkling water, an orbit that starts from the last frame of shot 1), brand texts and tagline over them, ACE-Step music, Kokoro voice, the kybernos mark (scripts/video-compose.mjs)"
+    },
+    {
+      "id": "video_tryon_swap_r3",
+      "clip": "video_tryon_swap_r3.mp4",
+      "posterAt": 12.6,
+      "entry": {
+        "name": "Virtual try-on",
+        "tag": "Fashion",
+        "line": "A rail of coats, three looks tried on in one take, each named on screen.",
+        "meta": "15 seconds · 9:16 · voice and music",
+        "alt": "A young woman with a dark bob in a bright Paris living room, delighted in a cognac leather jacket, with a camel coat and an emerald coat on the rail behind her."
+      },
+      "request": "Make a 15-second virtual try-on video in one take. Ask me for a photo of the person (or use an invented one), the room and up to three garments with their colours. Show me the first frame, then animate her trying each look on, with the name of each look on screen and a short spoken line for each.",
+      "made": {
+        "model": "heygen/heygen-video-1",
+        "label": "HeyGen Video 1",
+        "prompt": "A 15-second fashion film shot in one continuous take in a bright, elegant Parisian living room: tall window with soft daylight, a cream sofa, a green plant, a wooden floor and a full-length mirror in a thin black frame. A young woman with a dark bob haircut and a white knit top stands beside a clothes rail that holds a camel wool coat, an emerald green wool coat and a cognac leather jacket. First five seconds: she runs her hand along the hangers, picks the camel wool coat, puts it on, buttons it and checks herself in the mirror; small clean white label text at the bottom center of the frame, spelled exactly: Wool coat · Camel. Next five seconds: she takes the coat off, chooses the emerald green wool coat, puts it on and turns to look over her shoulder in the mirror; label at the bottom center, spelled exactly: Wool coat · Emerald. Last five seconds: she swaps it for the cognac leather jacket, zips it up and strikes a relaxed confident pose, smiling at the camera; label at the bottom center, spelled exactly: Leather jacket · Cognac. She says softly in English, one short line per part: 'Let me try this one.' then 'Oh, even better.' then 'I will take it.' Soft warm lounge music at low volume, light sounds of hangers and fabric. No other text on screen.",
+        "seed": 7401
+      },
+      "source": "One 15 s HeyGen shot in a single take (the three look names and the three spoken lines asked in the prompt, with its own light music), a light grade, the kybernos mark"
+    },
+    {
+      "id": "video_theme_90s2_r2",
+      "clip": "video_theme_90s2_r2.mp4",
+      "posterAt": 3.6,
+      "entry": {
+        "name": "Photo in a theme",
+        "tag": "Creative",
+        "line": "Your photo in a 90s, manga or space-opera look, then animated.",
+        "meta": "5 seconds · 16:9 · with sound",
+        "alt": "A young man in a denim jacket in front of a neon-lit 90s arcade at night."
+      },
+      "request": "Turn my photo into a 5-second video in a theme I choose (the 90s, manga, space opera...). Ask me for the photo and the theme, show me the restyled still, then animate it.",
+      "made": {
+        "model": "heygen/heygen-video-1",
+        "label": "HeyGen Video 1",
+        "prompt": "The young man nods to the beat, neon sign flickering behind him with a subtle VHS glitch and scanlines, upbeat 90s synth music with a steady drum beat",
+        "seed": 4203
+      },
+      "source": "image-to-video from video-business-1/frames/video-theme-90s.jpg at 768p, a small title, the kybernos mark"
+    },
+    {
+      "id": "video_property_flythrough_r3",
+      "clip": "video_property_flythrough_r3.mp4",
+      "posterAt": 2,
+      "entry": {
+        "name": "Property film",
+        "tag": "Real estate",
+        "line": "A flight to the villa, then room by room, with a floor plan that follows the visit.",
+        "meta": "23 seconds · 16:9 · music",
+        "alt": "A white villa with an infinity pool above a bay at golden hour, the villa name over it, a small floor plan at the top left and a list of features at the bottom right."
+      },
+      "request": "Make a 20-second immersive property film from my listing photos. Ask me for the best exterior photo, the address, the price and the five features to show, and the rooms to visit. Fly in from the road, then go room by room, with a small floor plan that follows the visit and the features listed on screen, and end on the price, with music. Show me the first frame before you animate.",
+      "made": {
+        "model": "heygen/heygen-video-1",
+        "label": "HeyGen Video 1",
+        "prompt": "Smooth cinematic drone flight descending toward the modern villa along the winding coastal road, golden sun glinting on the bay, the infinity pool shimmering, soft airy music",
+        "seed": 6141
+      },
+      "source": "6 chained HeyGen shots (each starts from the last frame of the one before: the flight in, the living room, the kitchen, the bedroom, the bathroom, the terrace), the villa name, the price, a floor plan that follows the visit and the features legend drawn over them, ACE-Step music, the kybernos mark"
+    },
+    {
+      "id": "video_clip_firstloaf_r2",
+      "clip": "video_clip_firstloaf_r2.mp4",
+      "posterAt": 6.2,
+      "entry": {
+        "name": "Social clip",
+        "tag": "Social",
+        "line": "An idea becomes a vertical story with a voice-over, music and captions.",
+        "meta": "15 seconds · 9:16 · voice-over and music",
+        "alt": "Flour-dusted hands kneading dough in warm window light, with the caption: Flour, water, and a little patience."
+      },
+      "request": "Make a 15-second vertical clip for social media from my idea. Ask me for the idea and the mood, write a three-line script in English and show it to me, show me the first frame, then make the clip with the voice-over, music and captions.",
+      "made": {
+        "model": "heygen/heygen-video-1",
+        "label": "HeyGen Video 1",
+        "prompt": "Close-up slow motion of a baker with flour-covered hands kneading dough on a wooden table, a cloud of flour floating in warm window light, soft ambience",
+        "seed": 6122
+      },
+      "source": "3 HeyGen shots (a still of a street at 4 a.m. animated, then two text-to-video shots), Kokoro voice-over, ACE-Step music, captions, the kybernos mark"
+    },
+    {
+      "id": "video_logo_reveal2_r2",
+      "clip": "video_logo_reveal2_r2.mp4",
+      "posterAt": 4.4,
+      "entry": {
+        "name": "Logo reveal",
+        "tag": "Branding",
+        "line": "Your logo animated in five seconds, with its sound.",
+        "meta": "5 seconds · 16:9 · with sound",
+        "alt": "An amber ring and dot above the word LUMO and a tagline, on a dark navy background."
+      },
+      "request": "Animate my logo as a 5-second reveal. Ask me for the logo image and my brand colours.",
+      "made": {
+        "model": "kybernos-motion",
+        "label": "Kybernos Motion",
+        "prompt": "",
+        "seed": 0
+      },
+      "source": "motion/logo-reveal.scene.json, exported by scripts/motion-export.mjs, with the kybernos mark",
+      "fit": "pad"
+    },
+    {
+      "id": "video_old_photo_alive_r4",
+      "clip": "video_old_photo_alive_r4.mp4",
+      "entry": {
+        "name": "Old photo, alive",
+        "tag": "Storytelling",
+        "line": "A worn print is restored in sharp HD, then its people move and speak.",
+        "meta": "8 seconds · 16:9 · restored in HD, with a voice",
+        "alt": "An old sepia family picnic by a lake, restored sharp: grandparents on a blanket, two children and their father standing, a dog in the grass."
+      },
+      "request": "Bring my old photograph to life as a short film. Restore it in sharp high definition first and show me the restored picture next to the original; then animate it, with the people really moving (not just the face) and a voice line in my own language. Ask me for the photo, the place and the year and the story to tell; show me the lines before you animate.",
+      "made": {
+        "model": "heygen/heygen-video-1",
+        "label": "HeyGen Video 1",
+        "prompt": "The restored photograph of a family picnic on a lakeside meadow comes to life as a sharp, clean, high-definition film in black and white with a warm sepia tone, same scene, same six figures, same framing at first. Every fine detail stays crisp. The people really move across the meadow: after a heartbeat of holding the pose, the girl and the boy burst out laughing and run together across the grass toward the lake shore, the little dog leaps up and bounds after them, the father waves his straw hat and takes a few steps after the children, the grandfather turns to follow them with his eyes and gets up on one knee, the grandmother lifts the lid of the wicker basket. Faces keep their exact natural proportions, with gentle closed-lip smiles and small natural teeth, never exaggerated mouths. The grandmother calls out in French, clearly: 'Les enfants, le goûter est prêt !' Sound: birds, a soft breeze, children's footsteps in the grass, a dog barking. No music. No film grain, no flicker, no blur. Camera: locked, with a very slow push-in. No text on screen.",
+        "seed": 8801
+      },
+      "source": "an invented 1952 photograph aged into a worn print, restored by an image-edit model (FLUX Kontext Pro), then one HeyGen Video 1 shot at 1080p from the restored picture; the opening (print, light sweep, HD) and the join made with ffmpeg, French caption and label, the kybernos mark",
+      "poster": "frames/picnic-restored.png"
+    },
+    {
+      "id": "video_workout_anatomy_r2",
+      "clip": "video_workout_anatomy_r2.mp4",
+      "posterAt": 12.6,
+      "entry": {
+        "name": "Workout with anatomy",
+        "tag": "Fitness",
+        "line": "Three exercises, and the muscles each one works lit up like an anatomy chart.",
+        "meta": "15 seconds · 9:16 · voice-over and music",
+        "alt": "An athlete mid pull-up with her muscles glowing red like an anatomy chart."
+      },
+      "request": "Make a 15-second workout video with three exercises that shows the muscles each one works, lit up like an anatomy chart. Ask me for the three exercises and the person (or use an invented athlete), show me the first frame of each, then add the exercise names, the muscle labels, a voice-over and music.",
+      "made": {
+        "model": "heygen/heygen-video-1",
+        "label": "HeyGen Video 1",
+        "prompt": "The athlete performs slow controlled pull-ups. At the top of each rep her skin turns translucent like an anatomical hologram, revealing glowing red back and biceps muscles contracting, then returns to normal as she lowers. Dramatic gym ambience, heavy breathing",
+        "seed": 6153
+      },
+      "source": "3 HeyGen shots (a squat, push-ups, pull-ups, each from its own still), exercise names and muscle labels over them, Kokoro voice, ACE-Step music, the kybernos mark"
+    }
+  ]
+}

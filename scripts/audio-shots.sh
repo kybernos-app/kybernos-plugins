@@ -26,12 +26,8 @@ cover() {  # cover <voice> <out> <seconds> <c0> <c1> <wave colour> <lead seconds
    -map "[o]" -t $3 -c:v libx264 -crf 18 -preset medium "$2"
 }
 mkdir -p $A/shots
-kb $A/frames/audio-relativity-1.jpg $A/shots/relativity-1.mp4 5.6 zoom-in l
-kb $A/frames/audio-relativity-2.jpg $A/shots/relativity-2.mp4 7.2 zoom-in c
-kb $A/frames/audio-relativity-3.jpg $A/shots/relativity-3.mp4 7.2 zoom-out r
 kb $A/frames/audio-bedtime-1.jpg $A/shots/bedtime-1.mp4 7.4 zoom-in c
 kb $A/frames/audio-bedtime-2.jpg $A/shots/bedtime-2.mp4 7.8 zoom-in l
 kb $A/frames/audio-bedtime-3.jpg $A/shots/bedtime-3.mp4 7.8 zoom-out r
-cover $P/voice-voicemail-fr.mp3 $A/shots/cover-voicemail.mp4 16.4 0x0b1626 0x1f4a7a 0xa9d1ff 0.8
 cover $P/voice-ocean-en.mp3 $A/shots/cover-ocean.mp4 20.2 0x041a24 0x14707f 0xbfeef2 0.8
 ls -la $A/shots

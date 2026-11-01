@@ -26,17 +26,17 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   assert.equal(b.schema, SHELF_SCHEMA)
   assert.equal(b.types.length, 16, 'the 16 types of the shelf')
   assert.equal(b.templates.length, raw.templates.length, 'no entry is dropped by the check (a drop would be a typo in the file)')
-  assert.equal(b.templates.length, 133)
-  for (const t of b.types) assert.equal(b.templates.filter((x) => x.type === t.id).length, t.id === 'video' ? 8 : t.id === 'model3d' || t.id === 'audio' ? 4 : 9, t.id + ' has its examples')
+  assert.equal(b.templates.length, 135)
+  for (const t of b.types) assert.equal(b.templates.filter((x) => x.type === t.id).length, t.id === 'video' ? 8 : t.id === 'model3d' ? 4 : t.id === 'audio' ? 6 : 9, t.id + ' has its examples')
   assert.equal(new Set(b.templates.map((t) => t.id)).size, b.templates.length, 'ids are unique')
-  for (const t of b.templates) {
+  for (const t of b.templates.filter((x) => x.kind !== 'prompt')) {
     assert.ok(t.image !== undefined && shelfImageName(t.image.src) === t.image.src, t.id + ' names a card picture')
     assert.ok(t.image.src === t.id + '.webp' && (t.image.large === undefined || t.image.large === 'large/' + t.id + '.webp'), t.id + ': pictures are named after the template')
   }
   // every example has its larger picture, the one the dialog shows (the 3D ones are screenshots of the real pages: docs/dev/templates-lots/model3d-1.json)
-  assert.deepEqual([...new Set(b.templates.filter((t) => t.image.large === undefined).map((t) => t.type))].sort(), [])
+  assert.deepEqual([...new Set(b.templates.filter((t) => t.kind !== 'prompt' && t.image.large === undefined).map((t) => t.type))].sort(), [])
   // the text carries neither the model of a generated example nor its clip: those come with the server's catalogue
-  assert.ok(b.templates.every((t) => t.made === undefined && t.video === undefined), 'text only')
+  assert.ok(b.templates.every((t) => t.made === undefined && t.audio === undefined && t.video === undefined), 'text only')
   // no picture, no personal path, no line separator in git (AGENTS rules 4 and 7)
   const file = readFileSync(join(here, 'templates-fallback.json'), 'utf8')
   assert.ok(!/\/Users\/|[\u2028\u2029]|data:image/.test(file), 'text only')
@@ -46,7 +46,7 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   for (const t of kits) assert.ok(existsSync(join(here, 'themes', t.kit, 'plugin.json')), t.id + ' → themes/' + t.kit + ' exists')
   // the two kinds of App entry: a template (a kit, sample rows) and a simple start
   assert.deepEqual(J(b.templates.filter((t) => t.type === 'app').map((t) => t.kind).sort()), ['start', 'start', 'start', 'template', 'template', 'template', 'template', 'template', 'template'])
-  ok('the shipped catalogue is valid text: 16 types, 133 examples, 9 each (8 of video, 4 of 3D, 4 of audio), kits that exist, no picture in git')
+  ok('the shipped catalogue is valid text: 16 types, 135 examples, 9 each (8 of video, 4 of 3D, 6 of audio, one of them a card of text), kits that exist, no picture in git')
 }
 
 // 2. everything the server sends is checked again
@@ -103,8 +103,8 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const s = createShelf({ dir: () => null, api: () => '', fetchFn: () => { throw new Error('no network expected') } })
   const c = await s.catalogue()
   assert.equal(c.source, 'bundled')
-  assert.equal(c.templates.length, 133)
-  assert.ok(c.templates.every((t) => t.image.ready === false), 'no picture is claimed that is not there')
+  assert.equal(c.templates.length, 135)
+  assert.ok(c.templates.filter((t) => t.kind !== 'prompt').every((t) => t.image.ready === false), 'no picture is claimed that is not there')
   assert.equal(await s.image('doc_a.webp'), null, 'no server, no folder: no picture')
   assert.equal(await s.image('../../etc/passwd'), null)
   assert.deepEqual(J(await s.load({ force: true })), { ok: false, error: 'no_server' })
@@ -145,15 +145,15 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const r = await s.load()
   assert.equal(r.ok, true)
   assert.equal(r.version, 7)
-  assert.equal(r.images, 133, 'every card picture was asked once')
+  assert.equal(r.images, 134, 'every card picture was asked once')
   assert.ok(server.calls[0] === 'https://server.example.test/v1/templates/catalogue.json', server.calls[0])
   assert.ok(server.calls.some((u) => u === 'https://server.example.test/v1/templates/shelf/app_ecommerce.webp'))
   assert.ok(!server.calls.some((u) => u.includes('/large/')), 'dialog pictures wait for a person to open one')
   const c = await s.catalogue()
   assert.equal(c.source, 'server')
   assert.equal(c.version, 7)
-  assert.ok(c.templates.every((t) => t.image.ready === true && (t.image.large === undefined ? t.image.readyLarge === undefined : t.image.readyLarge === false)))
-  assert.equal(readdirSync(join(dir, 'shelf')).filter((f) => f.endsWith('.webp')).length, 133)
+  assert.ok(c.templates.filter((t) => t.kind !== 'prompt').every((t) => t.image.ready === true && (t.image.large === undefined ? t.image.readyLarge === undefined : t.image.readyLarge === false)))
+  assert.equal(readdirSync(join(dir, 'shelf')).filter((f) => f.endsWith('.webp')).length, 134)
   assert.ok(existsSync(join(dir, 'catalogue.json')))
   assert.equal(await s.due(), false, 'a copy under a day old is enough')
   const before = server.calls.length
@@ -342,6 +342,74 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   assert.equal(seen.templates[0].image.ready, true, 'the picture installed with the new catalogue is shown, not the placeholder art')
   ok('a catalogue installed on disk while the host runs brings its pictures in without a restart')
   ok('a clip name and length are checked, the sample prompt is kept; the load never asks for clips, Play asks once and the clip is kept; ranges are answered')
+}
+
+// 6b. audio examples: a sound name, a length and the wave are checked; the sound is asked of the server only when someone plays it, kept, and answered as audio/mpeg with ranges
+{
+  const mini = (templates) => ({ schema: SHELF_SCHEMA, version: 5, types: [{ id: 'audio', name: 'Audio', group: 'Media', blurb: 'b' }], templates })
+  const ex = (id, extra) => Object.assign({ id, type: 'audio', name: 'N', tag: 't', line: 'l', meta: 'm', prompt: 'Read this', image: { src: id + '.webp', width: 720, height: 450, alt: 'a', large: 'large/' + id + '.webp' } }, extra)
+  for (const bad of ['audio/a.mp4', 'video/a.mp3', 'audio/../a.mp3', 'a.mp3', 'audio/A.mp3', 'audio/a b.mp3', 'audio/audio/a.mp3', 'audio/.mp3', '/audio/a.mp3', 'audio/a.wav']) assert.equal(shelfVideoName(bad), '', bad)
+  for (const fine of ['audio/a.mp3', 'audio/audio_business_en.mp3']) assert.equal(shelfVideoName(fine), fine)
+  const wave = Array.from({ length: 96 }, (_, i) => (i * 7) % 101)
+  const au = (audio) => shelfValidate(mini([ex('audio_a', { audio })])).templates[0].audio
+  assert.deepEqual(J(au({ src: 'audio/audio_a.mp3', seconds: 17.68, peaks: wave, hue: 215, extra: 1 })), { src: 'audio/audio_a.mp3', seconds: 17.7, peaks: wave, hue: 215 })
+  assert.equal(au({ src: 'audio/audio_a.mp3', seconds: 5, peaks: wave }).hue, undefined, 'the colour is optional')
+  assert.equal(au({ src: 'audio/audio_a.mp3', seconds: 5, peaks: wave, hue: 400 }).hue, undefined, 'a hue outside 0 to 359 is dropped, the sound stays')
+  for (const bad of [{ src: 'video/a.mp4', seconds: 5, peaks: wave }, { src: 'audio/a.mp3', seconds: 600, peaks: wave }, { src: 'audio/a.mp3', seconds: 5 }, { src: 'audio/a.mp3', seconds: 5, peaks: wave.slice(0, 8) },
+    { src: 'audio/a.mp3', seconds: 5, peaks: wave.map((p, i) => (i === 3 ? 101 : p)) }, { src: 'audio/a.mp3', seconds: 5, peaks: wave.map((p, i) => (i === 3 ? 'x' : p)) }, 'x', null, [1]]) assert.equal(au(bad), undefined, JSON.stringify(bad).slice(0, 60))
+  assert.equal(au({ src: 'audio/a.mp3', seconds: 5, peaks: Array.from({ length: 300 }, () => 50) }).peaks.length, 128, 'a wave is at most 128 slices')
+  assert.equal(shelfValidate(mini([ex('audio_a', { audio: { src: '../x.mp3' } })])).templates.length, 1, 'a bad sound costs the sound, not the example')
+
+  const mp3 = (n) => Buffer.concat([Buffer.from('ID3'), Buffer.alloc(n - 3, 5)])
+  const sync = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x64]), Buffer.alloc(996, 9)])
+  assert.equal(shelfVideoAnswer(mp3(1000), undefined).headers['content-type'], 'audio/mpeg')
+  assert.equal(shelfVideoAnswer(sync, undefined).headers['content-type'], 'audio/mpeg', 'a file that starts on a frame, without a tag, is a sound too')
+  assert.equal(shelfVideoAnswer(Buffer.concat([Buffer.from([0, 0, 0, 32]), Buffer.from('ftypisom'), Buffer.alloc(988, 7)]), undefined).headers['content-type'], 'video/mp4', 'a clip stays a clip')
+  const part = shelfVideoAnswer(mp3(1000), 'bytes=100-199')
+  assert.ok(part.status === 206 && part.body.length === 100 && part.headers['content-range'] === 'bytes 100-199/1000' && part.headers['content-type'] === 'audio/mpeg')
+
+  const dir = join(tmp, 'sounds-home')
+  const cat = mini([ex('audio_a', { audio: { src: 'audio/audio_a.mp3', seconds: 17.7, peaks: wave } }), ex('audio_b', { audio: { src: 'audio/audio_b.mp3', seconds: 9, peaks: wave } })])
+  const server = { calls: [], sound: 'ok' }
+  const reply = (status, body) => ({ status, headers: { get: (k) => (k.toLowerCase() === 'content-length' && body !== null ? String(body.length) : null) }, arrayBuffer: async () => (body === null ? new ArrayBuffer(0) : body.buffer.slice(body.byteOffset, body.byteOffset + body.length)) })
+  const fetchFn = async (url) => {
+    server.calls.push(String(url))
+    const u = new URL(url)
+    if (u.pathname === '/v1/templates/catalogue.json') return reply(200, Buffer.from(JSON.stringify(cat)))
+    if (u.pathname.startsWith('/v1/templates/shelf/audio/')) {
+      if (server.sound === 'html') return reply(200, Buffer.from('<html>not a sound, but long enough</html>'))
+      if (server.sound === 'clip') return reply(200, Buffer.concat([Buffer.from([0, 0, 0, 32]), Buffer.from('ftypisom'), Buffer.alloc(988, 7)]))
+      return reply(200, mp3(1000))
+    }
+    return reply(200, webp(60))
+  }
+  const s = createShelf({ dir: () => dir, api: () => 'https://server.example.test', fetchFn, pace: { batch: 5, everyMs: 0 } })
+  assert.equal((await s.load({ force: true })).ok, true)
+  assert.ok(!server.calls.some((u) => u.includes('/audio/')), 'the load asks for pictures, never for sounds')
+  assert.equal((await s.catalogue()).templates.find((t) => t.id === 'audio_a').audio.ready, false)
+  server.sound = 'html'
+  assert.equal(await s.video('audio/audio_a.mp3'), null, 'a page is not a sound')
+  server.sound = 'clip'
+  assert.equal(await s.video('audio/audio_a.mp3'), null, 'a clip is not a sound')
+  assert.ok(!existsSync(join(dir, 'shelf', 'audio', 'audio_a.mp3')))
+  server.sound = 'ok'
+  const before = server.calls.length
+  for (const bad of ['audio_a.mp3', 'audio/AUDIO_A.mp3', 'audio/audio_a.wav', '../audio/audio_a.mp3']) assert.equal(await s.video(bad), null)
+  assert.equal(server.calls.length, before, 'a name outside the shape is never asked of the server')
+  assert.equal((await s.video('audio/audio_a.mp3')).length, 1000)
+  assert.equal((await s.catalogue()).templates.find((t) => t.id === 'audio_a').audio.ready, true)
+  assert.equal((await s.catalogue()).templates.find((t) => t.id === 'audio_b').audio.ready, false)
+  const again = server.calls.length
+  assert.equal((await s.video('audio/audio_a.mp3')).length, 1000)
+  assert.equal(server.calls.length, again, 'a sound on disk is served without the server')
+  const s2 = createShelf({ dir: () => dir, api: () => '', fetchFn: () => { throw new Error('offline') } })
+  assert.equal((await s2.video('audio/audio_a.mp3')).length, 1000, 'after a restart it is still there')
+  assert.equal((await s2.catalogue()).templates.find((t) => t.id === 'audio_a').audio.ready, true)
+  // a card of text: no picture, the summary in `line`, the prompt in `prompt`; an unknown kind still costs the example
+  const prompt = shelfValidate(mini([{ id: 'audio_p', type: 'audio', kind: 'prompt', name: 'N', tag: 'Podcast', line: 'The summary', meta: 'Prompt', prompt: 'The whole prompt' }])).templates[0]
+  assert.deepEqual(J(prompt), { id: 'audio_p', type: 'audio', name: 'N', tag: 'Podcast', line: 'The summary', meta: 'Prompt', prompt: 'The whole prompt', kind: 'prompt' })
+  assert.equal(shelfValidate(mini([ex('audio_a'), { id: 'audio_q', type: 'audio', kind: 'shout', name: 'N', tag: 't', line: 'l', meta: 'm', prompt: 'p' }])).templates.length, 1, 'an unknown kind is dropped')
+  ok('a sound name, length and wave are checked; the load never asks for sounds, Play asks once and the sound is kept; it is answered as audio/mpeg, with ranges')
 }
 
 // 7. the public bucket is asked first, the server second; only https (or the loopback) is ever asked
