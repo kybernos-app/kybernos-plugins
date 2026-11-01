@@ -1,0 +1,63 @@
+{
+ "size": [
+  1280,
+  720
+ ],
+ "fade": 0,
+ "shots": [
+  {
+   "file": "old-still.mp4",
+   "trim": [
+    0,
+    2.5
+   ]
+  },
+  {
+   "file": "old-alive.mp4",
+   "trim": [
+    0,
+    15.17
+   ],
+   "fade": 0
+  }
+ ],
+ "grade": "eq=contrast=1.03",
+ "texts": [
+  {
+   "at": 0.3,
+   "to": 2.6,
+   "text": "THE HARBOUR MARKET  ·  1912",
+   "style": "label",
+   "y": 0.09,
+   "anim": "rise",
+   "color": "#e9dcc3"
+  },
+  {
+   "at": 2.8,
+   "to": 6.3,
+   "text": "Fresh fish! Fresh fish this morning!",
+   "style": "caption",
+   "y": 0.86,
+   "anim": "rise"
+  },
+  {
+   "at": 10.5,
+   "to": 12.0,
+   "text": "How much for the sardines?",
+   "style": "caption",
+   "y": 0.86,
+   "anim": "rise"
+  },
+  {
+   "at": 12.2,
+   "to": 13.5,
+   "text": "Come along, children, quickly.",
+   "style": "caption",
+   "y": 0.86,
+   "anim": "rise"
+  }
+ ],
+ "ambient": 1,
+ "shade": 0.2,
+ "crf": 25
+}

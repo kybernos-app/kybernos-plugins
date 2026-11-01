@@ -5,7 +5,7 @@
 //   node scripts/video-parts.mjs clip   <out.mp4>   [--image in.jpg] [--aspect 16:9|9:16] [--seconds 5..15] [--res 480p|768p] [--seed N] "<prompt>"
 //   node scripts/video-parts.mjs music  <out.mp3>   [--seconds 30..500] [--lyrics "<text>"] "<style prompt>"
 //   node scripts/video-parts.mjs voice  <out.mp3>   [--voice af_heart] [--speed 1] "<text>"
-//   node scripts/video-parts.mjs listen <file.mp4|mp3|wav>                       prints what a speech model hears in the file (the only way to check a voice here)
+//   node scripts/video-parts.mjs listen <file.mp4|mp3|wav> [--segments 1]       prints what a speech model hears in the file (the only way to check a voice here); --segments adds when each line starts and ends
 //
 // clip:  HeyGen Video 1 on the Vercel AI Gateway (about $0.02 a second at 480p, $0.03 at 768p; it makes its own sound, and speaks a line written in the prompt).
 //        The AI SDK is not a dependency of this repository: it lives in the folder KB_GW_DIR (default ~/kybernos-archive/templates-catalogue/tools/gw,
@@ -87,9 +87,11 @@ if (cmd === 'clip') {
     ffmpeg('-i', resolve(out), '-vn', '-ac', '1', '-ar', '16000', join(dir, 'a.wav'))
     const form = new FormData()
     form.append('model', 'openai/whisper-large-v3')
+    if (flags.segments !== undefined) form.append('response_format', 'verbose_json')
     form.append('file', new Blob([readFileSync(join(dir, 'a.wav'))], { type: 'audio/wav' }), 'a.wav')
     const res = await fetch('https://api.deepinfra.com/v1/openai/audio/transcriptions', { method: 'POST', headers: { authorization: 'bearer ' + credential('DEEPINFRA_API_KEY') }, body: form })
     if (res.status !== 200) fail('whisper answered ' + res.status + ': ' + (await res.text()).slice(0, 200))
-    console.log(((await res.json()).text || '').trim() || '(nothing heard)')
+    const heard = await res.json()
+    if (flags.segments !== undefined && Array.isArray(heard.segments)) { for (const s of heard.segments) console.log('[' + s.start.toFixed(1) + ' - ' + s.end.toFixed(1) + '] ' + String(s.text).trim()) } else console.log((heard.text || '').trim() || '(nothing heard)')
   } finally { rmSync(dir, { recursive: true, force: true }) }
 }

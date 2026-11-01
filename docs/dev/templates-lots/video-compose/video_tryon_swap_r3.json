@@ -1,0 +1,20 @@
+{
+ "size": [
+  720,
+  1280
+ ],
+ "fade": 0,
+ "shots": [
+  {
+   "file": "tryon-room.mp4",
+   "trim": [
+    0,
+    15.17
+   ]
+  }
+ ],
+ "grade": "eq=contrast=1.02:saturation=1.04",
+ "ambient": 1,
+ "shade": 0.12,
+ "crf": 24
+}

@@ -8,7 +8,7 @@
 // recipe.json (docs/dev/templates-lots/video-compose/<id>.json; the recipe is the edit, the parts are the product):
 //   { "id": "video_ad_x", "size": [1366, 768],                     even sides; the shots are scaled to fill it and cropped
 //     "fps": 24, "fade": 0.4,                                      the cross-fade between two shots (0 = hard cut); a shot may carry its own "fade" (the one that LEADS INTO it)
-//     "shots":  [ { "file": "ad-1.mp4", "trim": [0, 4.6], "fade": 0.4, "transition": "fade" } ],     file names are read in --parts
+//     "shots":  [ { "file": "ad-1.mp4", "trim": [0, 4.6], "speed": 1, "fade": 0.4, "transition": "fade" } ],     file names are read in --parts; speed 1.35 plays the shot faster
 //     "grade":  "eq=contrast=1.05:saturation=1.1",                 optional ffmpeg video filter, applied before the texts
 //     "texts":  [ { "at": 0.6, "to": 3.8, "text": "ALDERINE", "style": "title|sub|lower|pill|caption|label", "x": 0.5, "y": 0.45, "anim": "fade|rise|pop", "color": "#ffffff" } ],
 //               a text may hold \N for a line break, [#rrggbb] to colour a stretch, [s1.6] to enlarge it, and [/] to end either
@@ -16,12 +16,13 @@
 //     "music":  { "file": "music.mp3", "start": 0, "gain": 0.5, "fadeIn": 0.6, "fadeOut": 1.8, "duck": true },
 //     "ambient": 0.3,                                              gain of the sound the clips came with (0 = none)
 //     "shade": 0.4,                                                darkening of the bottom 14% so the mark and the captions read on a pale picture (0 = none)
+//     "overlays": [ { "file": "minimap.mov", "anchor": "tl", "dx": 24, "dy": 24 } ],   pictures with their own timing (scripts/video-overlays.py); anchor tl|tr|bl|br
 //     "watermark": true }                                          or { "at": 1, "speed": 1 } (a film of 5 s: { "at": 0.5, "speed": 1.8 }), or false
 // The kybernos mark is drawn by scripts/kybernos-watermark.py, once per size and start, into --wm-dir (default <parts>/../watermarks): it comes in whole in the
 // bottom right corner at "watermark.at" seconds (1 by default), then only the K stays. "watermark": false for none, {"at": 0.5, "speed": 1.8} for a short film.
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const FFMPEG = '/opt/homebrew/bin/ffmpeg'
@@ -57,19 +58,20 @@ const shots = recipe.shots.map((s, i) => {
   const p = probe(file)
   const [a, b] = s.trim || [0, p.seconds]
   inputs.push(file)
-  return { i, a, b: Math.min(b, p.seconds), audio: p.audio, fade: i === 0 ? 0 : (s.fade !== undefined ? s.fade : (recipe.fade ?? 0.4)), transition: s.transition || 'fade' }
+  return { i, a, b: Math.min(b, p.seconds), speed: s.speed || 1, audio: p.audio, fade: i === 0 ? 0 : (s.fade !== undefined ? s.fade : (recipe.fade ?? 0.4)), transition: s.transition || 'fade' }
 })
 for (const s of shots) {
-  const len = s.b - s.a
-  filters.push(`[${s.i}:v]trim=start=${f(s.a)}:end=${f(s.b)},setpts=PTS-STARTPTS,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${FPS},format=yuv420p[v${s.i}]`)
-  if (s.audio) filters.push(`[${s.i}:a]atrim=start=${f(s.a)}:end=${f(s.b)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a${s.i}]`)
+  const len = (s.b - s.a) / s.speed
+  s.len = len
+  filters.push(`[${s.i}:v]trim=start=${f(s.a)}:end=${f(s.b)},setpts=(PTS-STARTPTS)/${f(s.speed)},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${FPS},format=yuv420p[v${s.i}]`)
+  if (s.audio) filters.push(`[${s.i}:a]atrim=start=${f(s.a)}:end=${f(s.b)},asetpts=PTS-STARTPTS,${s.speed !== 1 ? `atempo=${f(s.speed)},` : ''}aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a${s.i}]`)
   else filters.push(`anullsrc=r=48000:cl=stereo,atrim=0:${f(len)},asetpts=PTS-STARTPTS[a${s.i}]`)
 }
 let vCur = 'v0'
 let aCur = 'a0'
-let total = shots[0].b - shots[0].a
+let total = shots[0].len
 for (const s of shots.slice(1)) {
-  const len = s.b - s.a
+  const len = s.len
   if (s.fade > 0) {
     filters.push(`[${vCur}][v${s.i}]xfade=transition=${s.transition}:duration=${f(s.fade)}:offset=${f(total - s.fade)}[x${s.i}]`)
     filters.push(`[${aCur}][a${s.i}]acrossfade=d=${f(s.fade)}[ax${s.i}]`)
@@ -125,6 +127,17 @@ if (recipe.grade) { filters.push(`[${vLast}]${recipe.grade}[vg]`); vLast = 'vg' 
 const shade = recipe.shade ?? 0.4
 if (shade > 0) { filters.push(`[${vLast}]geq=lum='lum(X,Y)*(1-${shade}*pow(max(0,(Y/H-0.86)/0.14),1.6))':cb='cb(X,Y)':cr='cr(X,Y)'[vs]`); vLast = 'vs' }
 if ((recipe.texts || []).length > 0) { filters.push(`[${vLast}]subtitles=${assFile.replace(/[:\\']/g, '\\$&')}:fontsdir=/System/Library/Fonts[vt]`); vLast = 'vt' }
+// pictures with their own timing, drawn by scripts/video-overlays.py (a mini floor plan, a legend): { file, anchor: tl|tr|bl|br, dx, dy }, laid over the film in 4:4:4 before the mark
+const stack = (recipe.overlays || []).map((o) => {
+  const path = isAbsolute(o.file) ? o.file : join(parts, o.file)
+  if (!existsSync(path)) fail('missing overlay: ' + path)
+  const at = inputs.length
+  inputs.push(path)
+  const [ax, ay] = [o.anchor || 'tl'].map((a) => [a.includes('r') ? 'r' : 'l', a.includes('b') ? 'b' : 't'])[0]
+  const dx = o.dx ?? 24
+  const dy = o.dy ?? 24
+  return { at, x: ax === 'r' ? `W-w-${dx}` : String(dx), y: ay === 'b' ? `H-h-${dy}` : String(dy) }
+})
 if (recipe.watermark !== false) {
   // the mark: small, in the bottom right corner; it comes in whole, then only the K stays (scripts/kybernos-watermark.py draws it, once per size and start)
   const k = Math.round(Math.max(W, H) * 0.011)
@@ -139,8 +152,13 @@ if (recipe.watermark !== false) {
   inputs.push(wm)
   const mx = Math.max(0, Math.round(W * 0.02) - 6)   // 6 = the transparent border of the mark's canvas
   const my = Math.max(0, Math.round(H * 0.03) - 6)
-  filters.push(`[${vLast}]format=yuv444p[vb]`)
-  filters.push(`[vb][${at}:v]overlay=x=W-w-${mx}:y=H-h-${my}:format=yuv444,format=yuv420p[vout]`)
+  stack.push({ at, x: `W-w-${mx}`, y: `H-h-${my}` })
+}
+if (stack.length > 0) {
+  let cur = 'vb0'
+  filters.push(`[${vLast}]format=yuv444p[vb0]`)
+  stack.forEach((o, n) => { filters.push(`[${cur}][${o.at}:v]overlay=x=${o.x}:y=${o.y}:format=yuv444[vb${n + 1}]`); cur = `vb${n + 1}` })
+  filters.push(`[${cur}]format=yuv420p[vout]`)
 } else filters.push(`[${vLast}]format=yuv420p[vout]`)
 
 // ── sound: the clips' own, the voice, the music ducked under it ──────────────
