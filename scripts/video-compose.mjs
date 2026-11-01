@@ -16,8 +16,9 @@
 //     "music":  { "file": "music.mp3", "start": 0, "gain": 0.5, "fadeIn": 0.6, "fadeOut": 1.8, "duck": true },
 //     "ambient": 0.3,                                              gain of the sound the clips came with (0 = none)
 //     "shade": 0.4,                                                darkening of the bottom 14% so the mark and the captions read on a pale picture (0 = none)
-//     "watermark": true }
-// The kybernos mark is drawn by scripts/kybernos-watermark.py, once per size, into --wm-dir (default <parts>/../watermarks).
+//     "watermark": true }                                          or { "at": 1 }, or false
+// The kybernos mark is drawn by scripts/kybernos-watermark.py, once per size and start, into --wm-dir (default <parts>/../watermarks): it comes in whole in the
+// bottom right corner at "watermark.at" seconds (1 by default), then only the K stays. "watermark": false for none, {"at": 0.5} to start earlier.
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -125,16 +126,20 @@ const shade = recipe.shade ?? 0.4
 if (shade > 0) { filters.push(`[${vLast}]geq=lum='lum(X,Y)*(1-${shade}*pow(max(0,(Y/H-0.86)/0.14),1.6))':cb='cb(X,Y)':cr='cr(X,Y)'[vs]`); vLast = 'vs' }
 if ((recipe.texts || []).length > 0) { filters.push(`[${vLast}]subtitles=${assFile.replace(/[:\\']/g, '\\$&')}:fontsdir=/System/Library/Fonts[vt]`); vLast = 'vt' }
 if (recipe.watermark !== false) {
-  const k = Math.round(Math.max(W, H) * 0.021)
-  const wm = join(wmDir, `wm-${k}.mov`)
+  // the mark: small, in the bottom right corner; it comes in whole, then only the K stays (scripts/kybernos-watermark.py draws it, once per size and start)
+  const k = Math.round(Math.max(W, H) * 0.011)
+  const start = typeof recipe.watermark === 'object' ? (recipe.watermark.at ?? 1) : 1
+  const wm = join(wmDir, `wm2-${k}-${f(start)}.mov`)
   if (!existsSync(wm)) {
-    const r = spawnSync('python3', [join(dirname(fileURLToPath(import.meta.url)), 'kybernos-watermark.py'), wm, '--k-height', String(k)], { encoding: 'utf8' })
+    const r = spawnSync('python3', [join(dirname(fileURLToPath(import.meta.url)), 'kybernos-watermark.py'), wm, '--k-height', String(k), '--delay', f(start)], { encoding: 'utf8' })
     if (r.status !== 0) fail('the mark could not be drawn: ' + r.stderr.slice(0, 300))
   }
   const at = inputs.length
-  inputs.push({ loop: wm })
-  filters.push(`[${at}:v]fade=t=in:st=0.7:d=0.6:alpha=1[wm]`)
-  filters.push(`[${vLast}][wm]overlay=x=(W-w)/2:y=H-h-${Math.round(H * 0.035)}:shortest=1:format=auto,format=yuv420p[vout]`)
+  inputs.push(wm)
+  const mx = Math.max(0, Math.round(W * 0.02) - 6)   // 6 = the transparent border of the mark's canvas
+  const my = Math.max(0, Math.round(H * 0.03) - 6)
+  filters.push(`[${vLast}]format=yuv444p[vb]`)
+  filters.push(`[vb][${at}:v]overlay=x=W-w-${mx}:y=H-h-${my}:format=yuv444,format=yuv420p[vout]`)
 } else filters.push(`[${vLast}]format=yuv420p[vout]`)
 
 // ── sound: the clips' own, the voice, the music ducked under it ──────────────
@@ -166,7 +171,7 @@ if (recipe.music) {
 filters.push(`${buses.map((b) => `[${b}]`).join('')}amix=inputs=${buses.length}:normalize=0:duration=longest,atrim=0:${f(T)},loudnorm=I=-16:TP=-1.5:LRA=9[aout]`)
 
 const argv = ['-hide_banner', '-loglevel', 'error', '-y']
-for (const inp of inputs) { if (typeof inp === 'string') argv.push('-i', inp); else argv.push('-stream_loop', '-1', '-i', inp.loop) }
+for (const inp of inputs) argv.push('-i', inp)
 argv.push('-filter_complex', filters.join(';'), '-map', '[vout]', '-map', '[aout]', '-t', f(T),
   '-c:v', 'libx264', '-preset', 'slow', '-crf', String(recipe.crf ?? 22), '-maxrate', '3800k', '-bufsize', '7600k', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-r', String(FPS),
   '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-movflags', '+faststart', resolve(outFile))
