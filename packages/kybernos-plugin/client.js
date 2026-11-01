@@ -1252,8 +1252,33 @@ let kbLocaleRead = () => 'en'
       'kbnc.g.apps': { kybernos: 'Apps', en: 'Apps' },
       'kbnc.g.auto': { kybernos: 'Automatiser', en: 'Automate' },
       'kbnc.sl.label': { kybernos: 'Ce que tu peux créer', en: 'What you can make' },
-      'kbnc.sl.prev': { kybernos: 'Types précédents', en: 'Previous types' },
-      'kbnc.sl.next': { kybernos: 'Autres types', en: 'More types' },
+      'kbnc.sh.head': { kybernos: 'Pars d’un exemple', en: 'Start from an example' },
+      'kbnc.sh.preview': { kybernos: 'Aperçu', en: 'Preview' },
+      'kbnc.sh.close': { kybernos: 'Fermer', en: 'Close' },
+      'kbnc.sh.back': { kybernos: 'Retour', en: 'Back' },
+      'kbnc.sh.req': { kybernos: 'La demande', en: 'The request' },
+      'kbnc.sh.reqtpl': { kybernos: 'Part de', en: 'Starts from' },
+      'kbnc.sh.use': { kybernos: 'Utiliser cette demande', en: 'Use this request' },
+      'kbnc.sh.usetpl': { kybernos: 'Utiliser le modèle', en: 'Use template' },
+      'kbnc.sh.adapt': { kybernos: 'Adapter avec Kaby', en: 'Adapt with Kaby' },
+      'kbnc.sh.adaptpre': { kybernos: 'Pars du modèle « ', en: 'Start from the “' },
+      'kbnc.sh.adaptpost': { kybernos: ' » et adapte-le : ', en: '” template and adapt it: ' },
+      'kbnc.sh.open': { kybernos: 'Ouvrir mon app', en: 'Open my app' },
+      'kbnc.sh.have': { kybernos: 'Déjà dans tes apps.', en: 'Already in your apps.' },
+      'kbnc.sh.adding': { kybernos: 'Création de l’app…', en: 'Creating the app…' },
+      'kbnc.sh.added': { kybernos: 'App ajoutée.', en: 'App added.' },
+      'kbnc.sh.fail': { kybernos: 'L’app n’a pas pu être ajoutée.', en: 'The app could not be added.' },
+      'kbnc.sh.note': { kybernos: 'Remplit la zone de message avec cette demande. Rien n’est créé tant que tu n’envoies pas.', en: 'Fills the message box with this request. Nothing is created until you send it.' },
+      'kbnc.sh.notekit': { kybernos: 'Crée l’app tout de suite, avec des lignes d’exemple. Tu pourras l’adapter ensuite avec Kaby.', en: 'Creates the app right away, with sample rows. You can adapt it with Kaby afterwards.' },
+      'kbnc.sh.fine': { kybernos: 'Un exemple de résultat. Le tien suivra ta description.', en: 'An example of the result. Yours follows your description.' },
+      'kbnc.sh.fineapp': { kybernos: 'L’app sur ses lignes d’exemple.', en: 'How the app looks on the sample rows.' },
+      'kbnc.sh.finemap': { kybernos: 'Chaque boîte est une table, chaque trait un lien entre deux tables.', en: 'Each box is a table, each line a link between two tables.' },
+      'kbnc.sh.tabs': { kybernos: 'Vue', en: 'View' },
+      'kbnc.sh.tab.result': { kybernos: 'Résultat', en: 'Result' },
+      'kbnc.sh.tab.structure': { kybernos: 'Structure', en: 'Structure' },
+      'kbnc.sh.in.format': { kybernos: 'Format', en: 'Format' },
+      'kbnc.sh.in.change': { kybernos: 'À toi de modifier', en: 'Yours to change' },
+      'kbnc.sh.in.changed': { kybernos: 'Demande à Kaby d’ajuster ce que tu veux, une fois créé.', en: 'Ask Kaby to adjust anything once it is made.' },
       'kbnc.hero.0': { kybernos: 'On fabrique quoi aujourd\'hui ?', en: 'What are we making today?' },
       'kbnc.hero.1': { kybernos: 'Partons d\'une idée brouillonne', en: 'Start with a rough idea' },
       'kbnc.hero.2': { kybernos: 'Apporte la version brute', en: 'Bring the messy version' },
@@ -1349,6 +1374,21 @@ let kbLocaleRead = () => 'en'
       'kbnc.s.plugin.2': { kybernos: 'affiche ma consommation de tokens', en: 'shows my token usage' },
       'kbnc.try': { kybernos: 'Essaie', en: 'Try' },
       'kbnc.chip.remove': { kybernos: 'Retirer', en: 'Remove' },
+      'kbnc.t.app': { kybernos: 'App', en: 'App' },
+      'kbnc.t.audio': { kybernos: 'Audio', en: 'Audio' },
+      'kbnc.t.game': { kybernos: 'Jeu', en: 'Game' },
+      'kbnc.p.app': { kybernos: 'Crée une app pour gérer ', en: 'Build me an app to manage ' },
+      'kbnc.p.audio': { kybernos: 'Crée un audio : ', en: 'Make an audio piece: ' },
+      'kbnc.p.game': { kybernos: 'Crée un jeu où ', en: 'Build a game where ' },
+      'kbnc.s.app.0': { kybernos: 'mes clients', en: 'my clients' },
+      'kbnc.s.app.1': { kybernos: 'mon stock', en: 'my stock' },
+      'kbnc.s.app.2': { kybernos: 'mes réservations', en: 'my bookings' },
+      'kbnc.s.audio.0': { kybernos: 'une musique douce pour travailler', en: 'calm music to work to' },
+      'kbnc.s.audio.1': { kybernos: 'un jingle de dix secondes', en: 'a ten-second jingle' },
+      'kbnc.s.audio.2': { kybernos: 'la voix off d’une pub', en: 'a voice-over for an ad' },
+      'kbnc.s.game.0': { kybernos: 'on attrape des étoiles', en: 'you catch falling stars' },
+      'kbnc.s.game.1': { kybernos: 'on associe des paires', en: 'you match pairs' },
+      'kbnc.s.game.2': { kybernos: 'on devine un mot', en: 'you guess a word' },
       'kbnc.cc.awake': { kybernos: 'Éveillé', en: 'Awake' },
       'kbnc.cc.asleep': { kybernos: 'En veille', en: 'Asleep' },
       'kbnc.cc.starting': { kybernos: 'En création…', en: 'Being made…' },
@@ -8535,9 +8575,13 @@ const KB_NC_TEMPLATES = [
   { id: 'dashboard', group: 'docs', needs: '@local/kybernos-dashboards' },
   { id: 'image', group: 'media', needs: null },
   { id: 'video', group: 'media', needs: '@local/kybernos-motion' },
+  // No bundle makes sound or a game yet (a satellite that does is the day these appear): the entries are here so the shelf is ready, and hidden until then.
+  { id: 'audio', group: 'media', needs: '@local/kybernos-audio' },
+  { id: 'model3d', group: 'media', needs: '@local/kybernos-modeleur' },
+  { id: 'app', group: 'apps', needs: '@local/kybernos-db' },
+  { id: 'game', group: 'apps', needs: '@local/kybernos-games' },
   { id: 'website', group: 'apps', needs: null },
   { id: 'miniapp', group: 'apps', needs: '@local/kybernos-miniapps' },
-  { id: 'model3d', group: 'apps', needs: '@local/kybernos-modeleur' },
   { id: 'automation', group: 'auto', needs: null },
   { id: 'team', group: 'auto', needs: null },
   { id: 'skill', group: 'auto', needs: null },
@@ -8561,6 +8605,9 @@ const KB_NC_ART = {
   team: '<path class="ln dr" pathLength="1" d="M32 15V21H15V26"/><path class="ln dr" pathLength="1" d="M32 21H49V26"/><rect class="paper" x="22" y="3" width="20" height="12" rx="4"/><circle class="acc" cx="28.5" cy="9" r="3"/><rect class="ink2" x="33.5" y="7.2" width="6" height="1.8" rx=".9"/><rect class="ink2" x="33.5" y="10.8" width="4" height="1.8" rx=".9"/><rect class="paper" x="4" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="10.5" cy="32.5" r="3"/><rect class="ink2" x="15.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="15.5" y="34.3" width="4" height="1.8" rx=".9"/><rect class="paper" x="38" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="44.5" cy="32.5" r="3"/><rect class="ink2" x="49.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="49.5" y="34.3" width="4" height="1.8" rx=".9"/>',
   skill: '<rect class="paper" x="14" y="5" width="36" height="34" rx="3"/><path class="acc pop" style="--d:0s" d="M30 9L32.6 14.4L38 17L32.6 19.6L30 25L27.4 19.6L22 17L27.4 14.4Z"/><path class="acc2 pop" style="--d:.15s" d="M43 9L44.3 11.7L47 13L44.3 14.3L43 17L41.7 14.3L39 13L41.7 11.7Z"/><rect class="ink2 blk" style="--d:.1s" x="19" y="29" width="26" height="2" rx="1"/><rect class="ink2 blk" style="--d:.2s" x="19" y="33" width="16" height="2" rx="1"/>',
   plugin: '<path class="ln dr" pathLength="1" d="M32 35V39C32 41.5 35 42 39 42"/><rect class="ink" x="24" y="6" width="4" height="10" rx="1.5"/><rect class="ink" x="36" y="6" width="4" height="10" rx="1.5"/><rect class="paper" x="18" y="15" width="28" height="20" rx="5"/><circle class="acc node" cx="32" cy="25" r="4.5"/><rect class="oa" style="opacity:.9" x="30.2" y="23.2" width="3.6" height="3.6" rx="1"/>',
+  app: '<rect class="paper" x="5" y="7" width="27" height="21" rx="3"/><rect class="ink" x="9" y="11" width="11" height="2.4" rx="1.2"/><rect class="ink3" x="9" y="16" width="19" height="2" rx="1"/><rect class="ink3" x="9" y="20.5" width="15" height="2" rx="1"/><rect class="paper tint" x="36" y="18" width="23" height="21" rx="3"/><rect class="ink" x="40" y="22" width="9" height="2.4" rx="1.2"/><rect class="ink2" x="40" y="27" width="15" height="2" rx="1"/><rect class="ink2" x="40" y="31.5" width="11" height="2" rx="1"/><path class="ln" d="M32 14H34V28H36"/><circle class="acc" cx="32" cy="14" r="2.1"/><circle class="acc" cx="36" cy="28" r="2.1"/><path class="acc" d="M50 5L51.3 8.2L54.5 9.5L51.3 10.8L50 14L48.7 10.8L45.5 9.5L48.7 8.2Z"/>',
+  audio: '<rect class="paper" x="6" y="8" width="52" height="28" rx="5"/><circle class="acc play" cx="17" cy="22" r="6"/><path class="oa play" d="M15.3 19.2 20.4 22l-5.1 2.8z"/><rect class="acc pop" style="--d:0s" x="27" y="19" width="2.4" height="6" rx="1.2"/><rect class="acc pop" style="--d:.08s" x="31" y="16" width="2.4" height="12" rx="1.2"/><rect class="acc pop" style="--d:.16s" x="35" y="13" width="2.4" height="18" rx="1.2"/><rect class="acc2 pop" style="--d:.24s" x="39" y="17" width="2.4" height="10" rx="1.2"/><rect class="ink3 pop" style="--d:.32s" x="43" y="14" width="2.4" height="16" rx="1.2"/><rect class="ink3 pop" style="--d:.4s" x="47" y="18" width="2.4" height="8" rx="1.2"/><rect class="ink3 pop" style="--d:.48s" x="51" y="20" width="2.4" height="4" rx="1.2"/>',
+  game: '<rect class="paper" x="5" y="11" width="54" height="27" rx="13.5"/><rect class="ink" x="16.2" y="17" width="4" height="12" rx="1.2"/><rect class="ink" x="12.2" y="21" width="12" height="4" rx="1.2"/><circle class="acc pop" style="--d:0s" cx="46" cy="21" r="3.2"/><circle class="tint pop" style="--d:.1s" cx="40.5" cy="26.5" r="3.2"/><circle class="acc2 pop" style="--d:.2s" cx="51.5" cy="26.5" r="3.2"/><rect class="ink3" x="27" y="26" width="4" height="2" rx="1"/><rect class="ink3" x="33" y="26" width="4" height="2" rx="1"/>',
   cards: '<rect class="paper tint bk" style="--r:7deg" x="22" y="4" width="34" height="27" rx="3"/><rect class="paper" x="8" y="10" width="38" height="29" rx="3"/><rect class="ink" x="13" y="16" width="14" height="3.2" rx="1.6"/><rect class="ink2" x="13" y="22" width="24" height="2" rx="1"/><path class="grid" d="M13 28h28"/><rect class="acc blk" style="--d:.1s" x="13" y="31.5" width="16" height="2.6" rx="1.3"/>',
   quiz: '<rect class="paper" x="10" y="3" width="44" height="38" rx="3.5"/><circle class="acc pop" style="--d:0s" cx="19" cy="13" r="3.4"/><circle class="oa" cx="19" cy="13" r="1.2"/><rect class="ink2" x="26" y="11.8" width="20" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="22" r="3.4"/><rect class="ink2" x="26" y="20.8" width="15" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="31" r="3.4"/><rect class="ink2" x="26" y="29.8" width="18" height="2.4" rx="1.2"/>',
   code: '<rect class="paper" x="6" y="5" width="52" height="34" rx="3.5"/><rect class="scr" x="9" y="8" width="46" height="28" rx="2.5"/><path class="acc pop" d="M11.4 17.4L13 15.5L19.5 20L13 24.5L11.4 22.6L15.8 20Z"/><rect class="oa" style="opacity:.9" x="23" y="18.8" width="12" height="2.4" rx="1.2"/><rect class="oa" style="opacity:.5" x="14" y="27.5" width="20" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.5" x="37" y="27.5" width="12" height="2.2" rx="1.1"/>',
@@ -8587,7 +8634,7 @@ const kbNcTemplates = (group, bootIds) => group.filter((t) => t.needs === null |
  * of work asking for its own templates first (ids, most wanted first; the pack's `home`): inside a chapter they come first, and the chapter that
  * holds the most wanted one comes first. Everything else keeps its place, and a template the install cannot serve stays hidden.
  */
-const kbNcSlider = (bootIds, first) => {
+const kbNcChapters = (bootIds, first) => {
   const want = Array.isArray(first) ? first : []
   const rank = (id) => { const i = want.indexOf(id); return i < 0 ? 999 : i }
   const groups = KB_NC_GROUPS.map((g) => ({ id: g, templates: kbNcTemplates(KB_NC_TEMPLATES.filter((t) => t.group === g), bootIds) })).filter((g) => g.templates.length > 0)
@@ -8610,7 +8657,10 @@ const KB_NC_WORDS = [
   ['doc', /\b(documents?|reports?|rapports?|briefs?|letters?|lettres?|memos?|essays?|essais?)\b/],
   ['video', /\b(videos?|clips?|reels?|animations?)\b/],
   ['image', /\b(images?|logos?|posters?|affiches?|illustrations?|pictures?|photos?)\b/],
+  ['audio', /\b(audio|podcasts?|music|musique|jingles?|voice-?overs?|voix off|narrations?|sound effects?)\b/],
+  ['game', /\b(games?|jeux?|puzzles?|platformers?|arcade)\b/],
   ['website', /\b(web ?sites?|sites? web|sites?|landing|portfolio|blog)\b/],
+  ['app', /\b(crm|databases?|bases? de donnees|inventory|inventaire|bookings?|reservations?)\b/],
   ['miniapp', /\b(mini-?apps?|apps?|applications?|calculat\w+|trackers?|widgets?|quiz|outils?|tools?)\b/],
 ]
 /** The template a text sounds like, among `ids` (the ones offered), or null. Too short a text says nothing. */
@@ -8713,6 +8763,64 @@ const kbNcRefusalKey = (answer) => {
 const kbNcIsNativeSchedules = (key, label) => key === 'schedules' || (key === null && String(label === undefined || label === null ? '' : label).trim().toLowerCase() === 'automation tasks')
 /** Is that row hidden? Yes, unless the person asked for it back in Settings > Automations. */
 const kbNcHideNative = (prefs) => !(prefs !== null && typeof prefs === 'object' && prefs.showNativeTasks === true)
+// The shelf under the types: the examples of the type that is lit. The catalogue is DATA, a public file of the Kybernos server that the plugin host keeps on disk
+// (templates-shelf.mjs, docs/dev/templates-catalogue.md): examples with a picture, a name and the request each one starts from. It is read through
+// `GET /kybernos/templates-catalogue`; the pictures through `GET /kybernos/templates-image?f=`. Nothing here fetches.
+/** The catalogue as the host answered it, or null when that answer cannot be drawn. */
+const kbNcCat = (answer) => {
+  const a = kbNcObj(answer)
+  const c = a !== null && a.ok === true ? kbNcObj(a.catalogue) : null
+  return c !== null && Array.isArray(c.templates) && c.templates.length > 0 && Array.isArray(c.types) ? c : null
+}
+/** The kits the Apps seam lists (`window.__KB_TEMPLATES__.list()`), by the name the catalogue gives them: the last part of the id (`kybernos-themes/ecommerce` → `ecommerce`).
+ *  `{ <kit>: { id, have, appId } }`; null while the seam has not answered. */
+const kbNcKits = (list) => {
+  if (!Array.isArray(list)) return null
+  const out = {}
+  list.forEach((x) => {
+    const k = kbNcObj(x)
+    if (k !== null && typeof k.id === 'string' && k.id !== '') out[k.id.slice(k.id.lastIndexOf('/') + 1)] = { id: k.id, have: k.have === true, appId: typeof k.appId === 'string' ? k.appId : '' }
+  })
+  return out
+}
+/** The examples a type shows. An App example that starts from a kit (`kind: 'template'`) is shown only when this install really has that kit; the simple starts always are,
+ *  and so is every example of any other type. An idea whose kit the product does not ship (a restaurant, a studio) is never shown dead. */
+const kbNcExamples = (cat, type, kits) => {
+  const c = kbNcObj(cat)
+  if (c === null || !Array.isArray(c.templates)) return []
+  const has = (e) => typeof e.kit === 'string' && kits !== null && kits !== undefined && Object.prototype.hasOwnProperty.call(kits, e.kit)
+  return c.templates.filter((e) => e !== null && typeof e === 'object' && e.type === type && (e.kind !== 'template' || has(e))).slice(0, 24)
+}
+/** The address of an example's picture on this machine (the host serves it from its disk copy), or '' when it has none. `big`: the dialog's. */
+const kbNcPicUrl = (e, big) => {
+  const i = kbNcObj(e) === null ? null : kbNcObj(e.image)
+  if (i === null) return ''
+  const name = big === true && typeof i.large === 'string' ? i.large : i.src
+  return typeof name === 'string' && name !== '' ? '/kybernos/templates-image?f=' + encodeURIComponent(name) : ''
+}
+/** The sentence « adapt this template » puts in the composer. */
+const kbNcAdaptText = (pre, e, post) => pre + String(e.name) + post
+/** Where the boxes and the lines of an App example go in a 320 x 200 frame: its tables in up to two rows, one line for each link. null when it has no tables. */
+const kbNcStructure = (e) => {
+  const tables = Array.isArray(e.tables) ? e.tables : []
+  const n = tables.length
+  if (n === 0) return null
+  const top = Math.ceil(n / 2)
+  const rows = Array.isArray(e.layout) ? e.layout : [Array.from({ length: top }, (z, k) => k), Array.from({ length: n - top }, (z, k) => top + k)]
+  const pos = []
+  rows.forEach((row, ri) => row.forEach((ti, idx) => { pos[ti] = { x: 160 + (idx - (row.length - 1) / 2) * 100, y: ri === 0 ? 62 : 138 } }))
+  const boxes = tables.map((label, i) => ({ label: String(label), x: pos[i] === undefined ? 160 : pos[i].x, y: pos[i] === undefined ? 100 : pos[i].y }))
+  const lines = (Array.isArray(e.links) ? e.links : []).map((l) => {
+    let a = Array.isArray(l) ? pos[l[0]] : undefined
+    let b = Array.isArray(l) ? pos[l[1]] : undefined
+    if (a === undefined || b === undefined) return null
+    if (a.y > b.y) { const t = a; a = b; b = t }
+    return { x1: a.x, y1: a.y + 14, x2: b.x, y2: b.y - 14 }
+  }).filter((x) => x !== null)
+  return { boxes, lines }
+}
+/** The localStorage key under which the Apps page (kybernos-db, SEL_KEY) remembers what is open: `{ db, object }`. Writing the new app there before the page opens makes it the one shown. */
+const KB_NC_DB_SEL = 'kybernos.db.selection'
 // KB-NEWCHAT-END
 const kbApiBase = () => {
   try { return new URL('kybernos', document.baseURI).pathname.replace(/\/$/, '') } catch (e) { return '/kybernos' }
@@ -29847,108 +29955,159 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // (`p.input.draft`) and lights the template the text sounds like. One colour on the page: the theme's accent.
     const kbNcBootIds = () => { try { return (((window.__DSH_BOOT__ || {}).entries) || []).map((e) => (e !== null && e !== undefined ? e.id : '')) } catch (e) { return [] } }
     const kbNcCalm = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true } catch (e) { return false } }
-    const KbNcSlider = (sp) => {
-      const groups = sp.groups
-      const trackRef = React.useRef(null)
-      const dragRef = React.useRef(null)
-      const quietRef = React.useRef(false)
-      const stPair = React.useState({ prev: false, next: false, w: 100, x: 0, rtl: false })
-      const st = stPair[0]
-      const setSt = stPair[1]
-      // Where the track is: which arrows make sense, how far the position line goes, which edges fade (read again on scroll and on resize).
-      const measure = React.useCallback(() => {
-        const tr = trackRef.current
-        if (tr === null) return
-        const max = tr.scrollWidth - tr.clientWidth
-        const at = Math.abs(tr.scrollLeft)
-        const frac = max > 0 ? Math.max(0.18, tr.clientWidth / tr.scrollWidth) : 1
-        let rtl = false
-        try { rtl = window.getComputedStyle(tr).direction === 'rtl' } catch (e) { rtl = false }
-        const n = { prev: at > 2, next: max > 2 && at < max - 2, w: Math.round(frac * 1000) / 10, x: max > 0 ? Math.round((at / max) * (1 - frac) * 1000) / 10 : 0, rtl }
-        setSt((o) => (o.prev === n.prev && o.next === n.next && o.w === n.w && o.x === n.x && o.rtl === n.rtl ? o : n))
+    // The catalogue of examples, asked of the host once per page load (the last good answer is kept) and again each time a new chat appears, so a picture the host loaded
+    // meanwhile shows. The host answers from its disk copy, else from the text shipped with the plugin: this never waits on the network.
+    let kbNcCatData = null
+    let kbNcCatLoad = null
+    const kbNcCatFetch = () => {
+      if (kbNcCatLoad !== null) return kbNcCatLoad
+      kbNcCatLoad = fetch('/kybernos/templates-catalogue', { cache: 'no-store', credentials: 'same-origin' })
+        .then((r) => (r.ok === true ? r.json() : null))
+        .then((j) => { const c = kbNcCat(j); if (c !== null) kbNcCatData = c; kbNcCatLoad = null; return kbNcCatData })
+        .catch(() => { kbNcCatLoad = null; return kbNcCatData })
+      return kbNcCatLoad
+    }
+    const useNcCatalogue = () => {
+      const pair = React.useState(kbNcCatData)
+      React.useEffect(() => {
+        let alive = true
+        kbNcCatFetch().then((c) => { if (alive === true && c !== null) pair[1](c) })
+        return () => { alive = false }
       }, [])
+      return pair[0]
+    }
+    // The kits the Apps page can start from (the same door as its own « Start from a template »). Asked only when the App type is lit; null until it answers.
+    const useNcKits = (wanted) => {
+      const pair = React.useState(null)
+      const again = React.useState(0)
       React.useEffect(() => {
-        const tr = trackRef.current
-        if (tr === null) return undefined
-        measure()
-        let ro = null
-        try { ro = new ResizeObserver(measure); ro.observe(tr) } catch (e) { ro = null }
-        // A mouse drags the track (touch and trackpads scroll it natively); a drag never counts as a click.
-        const move = (e) => {
-          const d = dragRef.current
-          if (d === null || trackRef.current === null) return
-          const dx = e.clientX - d.x
-          if (d.moved !== true && Math.abs(dx) > 6) { d.moved = true; trackRef.current.classList.add('dragging') }
-          if (d.moved === true) trackRef.current.scrollLeft = d.l - dx
+        if (wanted !== true) return undefined
+        let alive = true
+        let seam = null
+        try { seam = window.__KB_TEMPLATES__ } catch (e) { seam = null }
+        if (seam !== null && seam !== undefined && typeof seam.list === 'function') {
+          Promise.resolve().then(() => seam.list()).then((l) => { if (alive === true) pair[1](kbNcKits(l)) }).catch(() => { /* the kit examples stay hidden */ })
         }
-        const up = () => {
-          const d = dragRef.current
-          if (d !== null && d.moved === true) { quietRef.current = true; setTimeout(() => { quietRef.current = false }, 0) }
-          dragRef.current = null
-          if (trackRef.current !== null) trackRef.current.classList.remove('dragging')
-        }
-        window.addEventListener('pointermove', move)
-        window.addEventListener('pointerup', up)
-        return () => { if (ro !== null) ro.disconnect(); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
-      }, [measure, groups.length])
-      // Bring an element into the track by scrolling THE TRACK ONLY. The browser's own « scroll into view » scrolls every scrollable
-      // ancestor too, and DSH's own frame (overflow hidden, but scrollable by script) was pushed 462 px sideways: the composer slid
-      // out of the window (measured on the real page). `scrollBy` on the track moves nothing else. `align`: 'start' puts the element
-      // at the start edge of the track (a snap point when it is a chapter), 'near' moves it just far enough to show.
-      const bring = (el, align) => {
-        const tr = trackRef.current
-        if (tr === null || el === null || typeof tr.scrollBy !== 'function') return
-        const er = el.getBoundingClientRect()
-        const vr = tr.getBoundingClientRect()
-        let delta = 0
-        if (align === 'start') delta = st.rtl ? er.right - vr.right + 4 : er.left - vr.left - 4
-        else if (er.left < vr.left) delta = er.left - vr.left - 4
-        else if (er.right > vr.right) delta = er.right - vr.right + 4
-        if (Math.abs(delta) > 1) tr.scrollBy({ left: delta, behavior: kbNcCalm() ? 'auto' : 'smooth' })
-      }
-      // What the person types lights a card: bring it into view.
-      React.useEffect(() => {
-        const tr = trackRef.current
-        if (tr === null || typeof sp.match !== 'string') return
-        const card = tr.querySelector('[data-id="' + sp.match + '"]')
-        if (card === null) return
-        const cr = card.getBoundingClientRect()
-        const vr = tr.getBoundingClientRect()
-        if (cr.left >= vr.left && cr.right <= vr.right) return
-        // The track snaps to the start of a chapter (`proximity`): a scroll that ends between two of them is pulled back to the
-        // first (measured on the real page). So bring the card's CHAPTER to the start, which is a snap point, when it fits.
-        const grp = card.closest('.kb8-sl-group')
-        if (grp !== null && grp.getBoundingClientRect().width <= vr.width) bring(grp, 'start')
-        else bring(card, 'near')
-      }, [sp.match])
-      const page = (dir) => {
-        const tr = trackRef.current
-        if (tr === null) return
-        tr.scrollBy({ left: dir * (st.rtl ? -1 : 1) * tr.clientWidth * 0.78, behavior: kbNcCalm() ? 'auto' : 'smooth' })
-      }
-      const goTo = (id) => {
-        const tr = trackRef.current
-        bring(tr === null ? null : tr.querySelector('[data-group="' + id + '"]'), 'start')
-      }
-      const fadeL = st.rtl ? st.next : st.prev
-      const fadeR = st.rtl ? st.prev : st.next
-      return h('div', { className: 'kb8-sl', 'data-kb': 'newchat-slider' },
-        h('button', { type: 'button', className: 'kb8-sl-nav prev' + (st.prev ? '' : ' off'), 'aria-label': kbt('kbnc.sl.prev'), tabIndex: st.prev ? 0 : -1, onClick: () => page(-1) }, Icon('chevronLeft', 16)),
-        h('div', {
-          className: 'kb8-sl-track', ref: trackRef, role: 'group', 'aria-label': kbt('kbnc.sl.label'), 'data-kb': 'newchat-visuals',
-          style: { '--kb8-ml': fadeL ? '36px' : '0px', '--kb8-mr': fadeR ? '36px' : '0px' },
-          onScroll: measure,
-          onPointerDown: (e) => { if (e.pointerType === 'mouse' && e.button === 0 && trackRef.current !== null) dragRef.current = { x: e.clientX, l: trackRef.current.scrollLeft, moved: false } },
-          onKeyDown: (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const vis = e.key === 'ArrowRight' ? 1 : -1; page(st.rtl ? -vis : vis) } },
-        },
-          groups.map((g) => h('div', { key: g.id, className: 'kb8-sl-group', 'data-group': g.id },
-            h('button', { type: 'button', className: 'kb8-sl-gh', onClick: () => goTo(g.id) }, kbt('kbnc.g.' + g.id), h('small', null, String(g.templates.length))),
+        return () => { alive = false }
+      }, [wanted, again[0]])
+      return [pair[0], () => again[1]((n) => n + 1)]
+    }
+    /** Opens the Apps page on the app that was just made (the page reads its last choice from storage when it mounts). */
+    const kbNcOpenApp = (appId) => {
+      try { if (typeof appId === 'string' && appId !== '') window.localStorage.setItem(KB_NC_DB_SEL, JSON.stringify({ db: appId, object: '' })) } catch (e) { /* no storage: the page opens on its own choice */ }
+      try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'tables' }) } catch (e) { /* no page to open */ }
+    }
+    const kbNcPlay = () => h('span', { className: 'kb8-sh-play', 'aria-hidden': 'true' }, h('span', null, h('svg', { viewBox: '0 0 24 24' }, h('path', { d: 'M7 4.5v15l13-7.5z' }))))
+    const kbNcTile = (type) => h('span', { className: 'kb8-sl-stage kb8-sh-tile', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + (KB_NC_ART[type] === undefined ? KB_NC_ART.file : KB_NC_ART[type]) + '</svg>' } })
+    /** An example's picture, from the host's disk copy. A card asks only for a picture the host already has; the dialog asks for the larger one (the host fetches it once) and falls
+     *  back to the card's. Where there is none (not loaded yet, the server silent) it is the type's own tile, so a card is never empty. */
+    const KbNcPic = (pp) => {
+      const e = pp.e
+      const big = pp.big === true
+      const failPair = React.useState(0)
+      const im = kbNcObj(e.image)
+      const urls = (big ? [kbNcPicUrl(e, true), kbNcPicUrl(e, false)] : [kbNcPicUrl(e, false)]).filter((u, i, a) => u !== '' && a.indexOf(u) === i)
+      const usable = big || (im !== null && im.ready === true) ? urls : []
+      const url = usable[failPair[0]]
+      if (url === undefined) return kbNcTile(e.type)
+      return h('img', { src: url, alt: big && im !== null && typeof im.alt === 'string' ? im.alt : '', width: im !== null && Number.isInteger(im.width) ? im.width : 720, height: im !== null && Number.isInteger(im.height) ? im.height : 450, decoding: 'async', loading: big ? 'eager' : 'lazy', onError: () => failPair[1]((n) => n + 1) })
+    }
+    /** The shelf: the types, all in view (the lit one larger, the others quiet), and under them the examples of the lit type. Pure view: the page decides what a click does. */
+    const KbNcShelf = (sp) => {
+      const groups = sp.groups
+      const chosen = sp.chosen
+      const list = chosen === null ? [] : kbNcExamples(sp.cat, chosen, sp.kits)
+      const info = chosen === null || sp.cat === null ? undefined : (sp.cat.types || []).filter((t) => t.id === chosen)[0]
+      return h('div', { className: 'kb8-sh', 'data-kb': 'newchat-shelf' },
+        h('div', { className: 'kb8-sh-types' + (chosen !== null ? ' has-sel' : ''), role: 'group', 'aria-label': kbt('kbnc.sl.label'), 'data-kb': 'newchat-visuals' },
+          groups.map((g) => h('div', { key: g.id, className: 'kb8-sl-group', 'data-group': g.id, role: 'group', 'aria-label': kbt('kbnc.g.' + g.id) },
             h('div', { className: 'kb8-sl-cards' }, g.templates.map((t) =>
-              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (sp.chosen === t.id ? ' is-on' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
+              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (chosen === t.id ? ' is-on' : ''), 'aria-pressed': chosen === t.id ? 'true' : 'false', 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => sp.onPick(t.id) },
                 h('span', { className: 'kb8-sl-stage', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[t.id] + '</svg>' } }),
                 h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
-        h('button', { type: 'button', className: 'kb8-sl-nav next' + (st.next ? '' : ' off'), 'aria-label': kbt('kbnc.sl.next'), tabIndex: st.next ? 0 : -1, onClick: () => page(1) }, Icon('chevronRight', 16)),
-        st.w < 100 ? h('span', { className: 'kb8-sl-prog', 'aria-hidden': 'true' }, h('span', { className: 'kb8-sl-thumb', style: { width: st.w + '%', insetInlineStart: st.x + '%' } })) : null)
+        list.length === 0 ? null : h('section', { className: 'kb8-sh-sec', 'data-kb': 'newchat-examples', 'aria-label': kbt('kbnc.sh.head') },
+          h('div', { className: 'kb8-sh-h' }, h('h2', null, kbt('kbnc.sh.head')), info !== undefined && typeof info.blurb === 'string' && info.blurb !== '' ? h('span', null, info.blurb) : null),
+          h('div', { className: 'kb8-sh-grid' }, list.map((e, i) =>
+            h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, onClick: (ev) => sp.onOpen(e.id, ev.currentTarget) },
+              h('span', { className: 'kb8-sh-thumb' }, h(KbNcPic, { key: e.id, e }), e.type === 'video' ? kbNcPlay() : null),
+              h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.preview')),
+              h('span', { className: 'kb8-sh-name' }, h('span', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
+              h('span', { className: 'kb8-sh-line' }, e.line))))))
+    }
+    /** The dialog of one example: its picture (an App also shows how its tables are linked), the request it starts from, and what to do with it. In the document body, so no
+     *  transformed ancestor of the page re-anchors it. Escape and the scrim close it; Tab stays inside; the focus goes back to the card. */
+    const KbNcDialog = (dp) => {
+      const e = dp.e
+      const closeRef = React.useRef(null)
+      const aliveRef = React.useRef(true)
+      const tabPair = React.useState('result')
+      const stPair = React.useState({ phase: 'idle', appId: '', msg: '' })
+      const tab = tabPair[0]
+      const st = stPair[0]
+      React.useEffect(() => {
+        aliveRef.current = true
+        if (closeRef.current !== null) closeRef.current.focus()
+        return () => { aliveRef.current = false }
+      }, [])
+      const kit = typeof e.kit === 'string' && dp.kits !== null && dp.kits !== undefined ? dp.kits[e.kit] : undefined
+      const withKit = kit !== undefined && e.kind === 'template'
+      const isApp = Array.isArray(e.tables) && e.tables.length > 0
+      const map = isApp && tab === 'structure' ? kbNcStructure(e) : null
+      const have = withKit && (kit.have === true || st.phase === 'done')
+      const addKit = () => {
+        if (st.phase === 'busy') return
+        stPair[1]({ phase: 'busy', appId: '', msg: '' })
+        let seam = null
+        try { seam = window.__KB_TEMPLATES__ } catch (x) { seam = null }
+        Promise.resolve().then(() => (seam !== null && seam !== undefined && typeof seam.add === 'function' ? seam.add(kit.id, { sample: true, kit: true }) : { ok: false })).catch(() => ({ ok: false })).then((r) => {
+          if (aliveRef.current !== true) return
+          if (r !== null && r !== undefined && r.ok === true) { stPair[1]({ phase: 'done', appId: typeof r.appId === 'string' ? r.appId : '', msg: '' }); dp.onAdded() }
+          else stPair[1]({ phase: 'fail', appId: '', msg: r !== null && r !== undefined && typeof r.message === 'string' ? r.message : '' })
+        })
+      }
+      const primary = () => {
+        if (withKit === false) { dp.onFill(e.type, e.prompt); return }
+        if (have === true) { kbNcOpenApp(st.appId !== '' ? st.appId : kit.appId); dp.onClose(); return }
+        addKit()
+      }
+      const trap = (ev) => {
+        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); try { ev.nativeEvent.stopImmediatePropagation() } catch (x) { /* synthetic only */ } dp.onClose(); return }
+        if (ev.key !== 'Tab') return
+        const f = Array.from(ev.currentTarget.querySelectorAll('button:not([disabled])'))
+        if (f.length === 0) return
+        if (ev.shiftKey === true && document.activeElement === f[0]) { ev.preventDefault(); f[f.length - 1].focus() }
+        else if (ev.shiftKey !== true && document.activeElement === f[f.length - 1]) { ev.preventDefault(); f[0].focus() }
+      }
+      const inside = Array.isArray(e.inside) && e.inside.length > 0 ? e.inside : [{ t: kbt('kbnc.sh.in.format'), d: e.meta }, { t: kbt('kbnc.sh.in.change'), d: kbt('kbnc.sh.in.changed') }]
+      const status = st.phase === 'busy' ? kbt('kbnc.sh.adding') : st.phase === 'done' ? kbt('kbnc.sh.added') : st.phase === 'fail' ? (st.msg !== '' ? st.msg : kbt('kbnc.sh.fail')) : (withKit && kit.have === true ? kbt('kbnc.sh.have') : '')
+      const label = withKit === false ? kbt('kbnc.sh.use') : have === true ? kbt('kbnc.sh.open') : st.phase === 'busy' ? kbt('kbnc.sh.adding') : kbt('kbnc.sh.usetpl')
+      const picture = map !== null
+        ? h('svg', { className: 'kb8-sh-map', viewBox: '0 0 320 200', role: 'img', 'aria-label': e.name },
+          map.lines.map((l, i) => h('g', { key: 'l' + i }, h('line', { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, className: 'ln' }), h('circle', { cx: l.x2, cy: l.y2, r: 2.4, className: 'dot' }))),
+          map.boxes.map((b, i) => h('g', { key: 'b' + i }, h('rect', { x: b.x - 43, y: b.y - 14, width: 86, height: 28, rx: 7, className: 'box' }), h('text', { x: b.x, y: b.y + 3.6, textAnchor: 'middle', className: 'lbl' }, b.label))))
+        : h(KbNcPic, { key: e.id + ':big', e, big: true })
+      return kbPortalDe(h('div', { className: 'kb8-sh-layer', 'data-kb': 'newchat-example-layer' },
+        h('div', { className: 'kb8-sh-scrim', onClick: dp.onClose }),
+        h('div', { className: 'kb8-sh-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': e.name, 'data-kb': 'newchat-example-dialog', onKeyDown: trap },
+          h('div', { className: 'kb8-sh-mhead' },
+            h('button', { type: 'button', className: 'kb8-sh-back', onClick: dp.onClose }, Icon('chevronLeft', 14), kbt('kbnc.t.' + e.type)),
+            h('button', { type: 'button', className: 'kb8-sh-x', ref: closeRef, 'aria-label': kbt('kbnc.sh.close'), 'data-kb': 'newchat-example-close', onClick: dp.onClose }, Icon('x', 14))),
+          h('div', { className: 'kb8-sh-detail' },
+            h('div', { className: 'kb8-sh-left' },
+              isApp ? h('div', { className: 'kb8-sh-tabs', role: 'group', 'aria-label': kbt('kbnc.sh.tabs') }, ['result', 'structure'].map((id) =>
+                h('button', { type: 'button', key: id, className: 'kb8-sh-tab' + (tab === id ? ' on' : ''), 'aria-pressed': tab === id ? 'true' : 'false', onClick: () => tabPair[1](id) }, kbt('kbnc.sh.tab.' + id)))) : null,
+              h('div', { className: 'kb8-sh-big' }, picture, e.type === 'video' && map === null ? kbNcPlay() : null),
+              h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : 'kbnc.sh.fine')))),
+            h('div', { className: 'kb8-sh-side' },
+              h('div', { className: 'kb8-sh-title' }, h('h3', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
+              h('p', { className: 'kb8-sh-lead' }, e.line),
+              h('div', { className: 'kb8-sh-req' }, h('b', null, kbt(withKit ? 'kbnc.sh.reqtpl' : 'kbnc.sh.req')), h('p', null, e.prompt)),
+              h('ul', { className: 'kb8-sh-list' }, inside.map((x, i) => h('li', { key: i }, h('b', null, x.t), h('span', null, x.d)))),
+              h('div', { className: 'kb8-sh-acts' },
+                h('button', { type: 'button', className: 'kb8-sh-btn pri', 'data-kb': 'newchat-example-use', disabled: st.phase === 'busy', onClick: primary }, label),
+                isApp ? h('button', { type: 'button', className: 'kb8-sh-btn', 'data-kb': 'newchat-example-adapt', disabled: st.phase === 'busy', onClick: () => dp.onFill(e.type, kbNcAdaptText(kbt('kbnc.sh.adaptpre'), e, kbt('kbnc.sh.adaptpost'))) }, kbt('kbnc.sh.adapt')) : null),
+              status === '' ? null : h('p', { className: 'kb8-sh-status' + (st.phase === 'fail' ? ' bad' : ''), role: st.phase === 'fail' ? 'alert' : 'status' }, status),
+              h('p', { className: 'kb8-sh-note' }, kbt(withKit && have !== true ? 'kbnc.sh.notekit' : 'kbnc.sh.note')))))))
     }
     const KbNewChatCards = (props) => {
       const p = (props !== null && props !== undefined) ? props : {}
@@ -29969,6 +30128,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const choPair = React.useState(null)
       const chosen = choPair[0]
       const setChosen = choPair[1]
+      // The examples of the lit type (the catalogue), the kits the Apps page can start from, and the example whose dialog is open: { id, from } (`from` is the card to give the focus back to).
+      const cat = useNcCatalogue()
+      const kitsPair = useNcKits(chosen === 'app')
+      const openPair = React.useState(null)
+      const open = openPair[0]
+      const setOpen = openPair[1]
       const choArmed = React.useRef(false)
       // The last text the page itself put in the composer, when it holds no word of the person's: switching type replaces it (see kbNcFill).
       const ownRef = React.useRef('')
@@ -29987,29 +30152,41 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         else if (choArmed.current === true) { choArmed.current = false; setChosen(null) }
       }, [draft])
       // A new blank chat starts clean: no chip, nothing the page wrote.
-      React.useEffect(() => { setChosen(null); ownRef.current = ''; choArmed.current = false }, [sid])
+      React.useEffect(() => { setChosen(null); setOpen(null); ownRef.current = ''; choArmed.current = false }, [sid])
       // Every hook is above this line: once the first message is sent the component is still mounted and must call the same hooks as before (React error #300).
       if (blank !== '1') return null
       // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
       try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
-      const groups = kbNcSlider(kbNcBootIds(), kbDomainHome())
+      const groups = kbNcChapters(kbNcBootIds(), kbDomainHome())
       const offered = []
       groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
       const match = kbNcDetect(draft, offered)
+      // Every sentence the page itself writes in the composer: a type's, an example's request, an App template's « adapt it ». Switching to another replaces it (see kbNcFill).
+      const adaptPre = kbt('kbnc.sh.adaptpre')
+      const adaptPost = kbt('kbnc.sh.adaptpost')
       const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
-      // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
-      const prefill = (id) => {
-        setChosen(id)
+        .concat(cat === null ? [] : cat.templates.map((e) => String(e.prompt)))
+        .concat(cat === null ? [] : cat.templates.filter((e) => Array.isArray(e.tables)).map((e) => kbNcAdaptText(adaptPre, e, adaptPost)))
+      // A template or an example fills the composer and never sends. The person's own words stay (see kbNcFill).
+      const fillText = (type, tpl) => {
+        setChosen(type)
         try {
           const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
           if (ia !== null && typeof ia.setDraft === 'function') {
-            const tpl = kbt('kbnc.p.' + id)
             const next = kbNcFill(draft, tpl, knownTpl, ownRef.current)
             ownRef.current = next === tpl ? next : ''
             ia.setDraft(next)
           }
         } catch (e) { /* the composer stays the person's */ }
       }
+      const prefill = (id) => fillText(id, kbt('kbnc.p.' + id))
+      const shown = open === null || cat === null ? undefined : cat.templates.filter((e) => e.id === open.id)[0]
+      const closeExample = () => {
+        const from = open === null ? null : open.from
+        setOpen(null)
+        setTimeout(() => { try { if (from !== null && from !== undefined && document.contains(from) === true) from.focus() } catch (e) { /* the card is gone */ } }, 0)
+      }
+      const useExample = (type, text) => { setOpen(null); fillText(type, text) }
       const suggest = (id, i) => {
         try {
           const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
@@ -30057,7 +30234,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('button', { type: 'button', className: 'kb8-nc-chip-x', 'data-kb': 'newchat-chip-x', 'aria-label': kbt('kbnc.chip.remove') + ' ' + kbt('kbnc.t.' + picked), onClick: () => setChosen(null) }, Icon('x', 11))),
           h('span', { className: 'kb8-nc-try' }, kbt('kbnc.try')),
           [0, 1, 2].map((i) => h('button', { type: 'button', key: i, className: 'kb8-nc-sug', 'data-kb': 'newchat-suggestion', onClick: () => suggest(picked, i) }, kbt('kbnc.s.' + picked + '.' + i)))),
-        groups.length === 0 ? null : h(KbNcSlider, { groups, match, chosen: picked, onPick: prefill }),
+        groups.length === 0 ? null : h(KbNcShelf, { groups, match, chosen: picked, cat, kits: kitsPair[0], onPick: prefill, onOpen: (id, from) => setOpen({ id, from }) }),
+        shown === undefined ? null : h(KbNcDialog, { key: shown.id, e: shown, kits: kitsPair[0], onClose: closeExample, onFill: useExample, onAdded: kitsPair[1] }),
         (cloud.kind === 'unknown' ? null
           : h('div', { className: 'kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
             h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
@@ -30077,21 +30255,98 @@ function renderScene(ctx, W, H, bricks, cam, opts){
 body{--kb8-acc:var(--dsw-alias-brand-primary)}
 html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary)}
 .kb8-nc{order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
-.kb8-sl{position:relative}
-.kb8-sl-track{position:relative;display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scroll-padding-inline:4px;scrollbar-width:none;padding:6px 4px 18px;margin:-6px -4px -18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%)}
-.kb8-sl-track::-webkit-scrollbar{display:none}
-.kb8-sl-track.dragging{scroll-snap-type:none;cursor:grabbing}
-.kb8-sl-group{flex:none;scroll-snap-align:start}
-.kb8-sl-group+.kb8-sl-group{margin-inline-start:22px;padding-inline-start:22px;border-inline-start:1px solid var(--dsw-alias-border-l1)}
-.kb8-sl-gh{display:inline-flex;align-items:baseline;gap:6px;margin:0 0 10px 2px;padding:0;border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:600;letter-spacing:.02em;color:var(--dsw-alias-label-secondary);cursor:pointer}
-.kb8-sl-gh:hover{color:var(--dsw-alias-label-primary)}
-.kb8-sl-gh small{font-size:11px;font-weight:500}
-.kb8-sl-cards{display:flex;gap:10px}
 .kb8-sl-card{position:relative;flex:none;width:120px;height:140px;display:flex;flex-direction:column;padding:0;border:0;border-radius:var(--dsw-radius-lg,16px);background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 1px var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:550;text-align:center;overflow:hidden;cursor:pointer;transition:box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1),color .2s}
 .kb8-sl-card:hover,.kb8-sl-card:focus-visible{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
 .kb8-sl-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
 .kb8-sl-card.is-match{color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kb8-acc) 70%,var(--dsw-alias-border-l2)),0 0 0 6px color-mix(in srgb,var(--kb8-acc) 10%,transparent)}
 .kb8-sl-card.is-on{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1.5px var(--dsw-alias-label-primary),0 12px 28px -14px rgba(0,0,0,.35)}
+.kb8-sl-group{flex:none;max-width:100%}
+.kb8-sl-cards{display:flex;gap:10px}
+/* The shelf: every type in view; once one is lit the others go quiet (smaller, dimmed, awake on hover), and under them its examples, each with a picture. */
+.kb8-sh{display:flex;flex-direction:column;gap:26px;min-width:0}
+/* The page's scroller centres the hero; once the examples make the content taller than the window, plain centring pushes the top (title, composer, types) above the
+   viewport where no scroll can reach it (measured: -684 px). « safe center » keeps the centring while it fits and starts at the top when it does not; !important because DSH's own hero rule is more specific. */
+[class*="scrollBody"]:has([data-kb="newchat-shelf"]){justify-content:safe center !important}
+.kb8-sh-types{display:flex;flex-wrap:wrap;gap:18px 30px;justify-content:center}
+.kb8-sh-types .kb8-sl-cards{flex-wrap:wrap;justify-content:center}
+.kb8-sh-types .kb8-sl-card{transition:width .45s cubic-bezier(.16,1,.3,1),height .45s cubic-bezier(.16,1,.3,1),opacity .35s,filter .35s,box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1),color .2s}
+.kb8-sh-types .kb8-sl-stage{transition:height .45s cubic-bezier(.16,1,.3,1)}
+.kb8-sh-types .kb8-sl-stage svg{transition:width .45s cubic-bezier(.16,1,.3,1),height .45s cubic-bezier(.16,1,.3,1),transform .45s cubic-bezier(.16,1,.3,1)}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on){width:90px;height:106px;opacity:.5;filter:saturate(.45);font-size:12px}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-label{padding:0 2px;overflow-wrap:normal}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage{height:76px}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage svg{width:68px;height:47px}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on):hover,.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on):focus-visible,.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on).is-match{opacity:.95;filter:none}
+.kb8-sh-types.has-sel .kb8-sl-card.is-on{width:132px;height:152px;font-size:14px;font-weight:650}
+.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage{height:112px}
+.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage svg{width:104px;height:71px}
+.kb8-sh-sec{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kb8-sh-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
+.kb8-sh-h h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kb8-sh-h span{font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kb8-sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+/* Only the picture is rounded and clipped; the name, the tag and the line sit free under it (a clipped card cut the first letter of the name). */
+.kb8-sh-card{position:relative;display:flex;flex-direction:column;gap:8px;min-width:0;padding:0 0 2px;border:0;border-radius:14px;background:none;font:inherit;color:inherit;text-align:start;cursor:pointer;animation:kb8-sh-in .5s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0)*35ms)}
+.kb8-sh-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:3px}
+@keyframes kb8-sh-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.kb8-sh-thumb{position:relative;display:block;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 1px var(--dsw-alias-border-l2);transition:transform .25s cubic-bezier(.16,1,.3,1),box-shadow .25s}
+.kb8-sh-thumb img,.kb8-sh-big img{display:block;width:100%;height:100%;object-fit:cover}
+.kb8-sh-thumb .kb8-sh-tile,.kb8-sh-big .kb8-sh-tile{position:absolute;inset:0;height:auto}
+.kb8-sh-thumb .kb8-sh-tile svg,.kb8-sh-big .kb8-sh-tile svg{width:46%;height:auto}
+.kb8-sh-card:hover .kb8-sh-thumb,.kb8-sh-card:focus-visible .kb8-sh-thumb{transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 16px 30px -16px rgba(0,0,0,.45)}
+.kb8-sh-prev{position:absolute;inset-inline-end:10px;inset-block-start:10px;opacity:0;transition:opacity .2s;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
+.kb8-sh-card:hover .kb8-sh-prev,.kb8-sh-card:focus-visible .kb8-sh-prev{opacity:1}
+.kb8-sh-play{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.kb8-sh-play>span{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(12,14,20,.55);box-shadow:0 0 0 1.5px rgba(255,255,255,.55);transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.kb8-sh-card:hover .kb8-sh-play>span{transform:scale(1.1)}
+.kb8-sh-play svg{width:16px;height:16px;margin-inline-start:2px;fill:rgb(255,255,255)}
+.kb8-sh-name{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-inline:2px;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kb8-sh-name>span:first-child{min-width:0;overflow-wrap:anywhere}
+.kb8-sh-tag{flex:none;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:color-mix(in srgb,var(--kb8-acc) 12%,transparent);color:var(--dsw-alias-label-secondary)}
+.kb8-sh-line{padding-inline:2px;font-size:12.5px;line-height:1.4;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* The dialog of one example. */
+.kb8-sh-layer{position:fixed;inset:0;z-index:90}
+.kb8-sh-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.kb8-sh-modal{box-sizing:border-box;position:absolute;inset-block-start:max(16px,5vh);inset-inline:0;margin-inline:auto;width:min(1040px,calc(100% - 32px));max-height:calc(100% - max(32px,10vh));overflow:auto;display:flex;flex-direction:column;gap:14px;padding:14px 20px 20px;border-radius:18px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 30px 80px -20px rgba(0,0,0,.5);animation:kb8-sh-in .3s cubic-bezier(.16,1,.3,1) both}
+.kb8-sh-mhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kb8-sh-back{display:inline-flex;align-items:center;gap:4px;padding:4px 8px 4px 4px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-sh-back:hover,.kb8-sh-x:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-sh-x{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-sh-back:focus-visible,.kb8-sh-x:focus-visible,.kb8-sh-tab:focus-visible,.kb8-sh-btn:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
+.kb8-sh-detail{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;align-items:start}
+.kb8-sh-left,.kb8-sh-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+.kb8-sh-side{gap:14px}
+.kb8-sh-tabs{display:inline-flex;align-self:flex-start;padding:2px;border-radius:10px;background:var(--dsw-alias-bg-module-platform);box-shadow:0 0 0 1px var(--dsw-alias-border-l1)}
+.kb8-sh-tab{padding:4px 12px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12.5px;cursor:pointer;color:var(--dsw-alias-label-secondary)}
+.kb8-sh-tab.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
+.kb8-sh-big{position:relative;display:block;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-module-platform);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
+.kb8-sh-map{display:block;width:100%;height:100%}
+.kb8-sh-map .box{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-border-l2)}
+.kb8-sh-map .lbl{font-size:10px;font-weight:700;fill:var(--dsw-alias-label-primary)}
+.kb8-sh-map .ln{stroke:color-mix(in srgb,var(--dsw-alias-label-primary) 40%,transparent);stroke-width:1.4;stroke-linecap:round}
+.kb8-sh-map .dot{fill:var(--kb8-acc)}
+.kb8-sh-fine{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kb8-sh-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kb8-sh-title h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.kb8-sh-lead{margin:-6px 0 0;font-size:13.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kb8-sh-req{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-module-platform);box-shadow:0 0 0 1px var(--dsw-alias-border-l1)}
+.kb8-sh-req b{font-size:12px;font-weight:650;color:var(--dsw-alias-label-secondary)}
+.kb8-sh-req p{margin:0;font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.kb8-sh-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.kb8-sh-list li{display:flex;flex-direction:column;gap:1px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kb8-sh-list b{font-size:13px;color:var(--dsw-alias-label-primary)}
+.kb8-sh-acts{display:flex;flex-wrap:wrap;gap:8px}
+.kb8-sh-btn{height:34px;padding:0 16px;border-radius:var(--dsw-radius-md,12px);border:1px solid var(--dsw-alias-border-l2);background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kb8-sh-btn:hover{background:var(--dsw-alias-bg-layer-3)}
+.kb8-sh-btn.pri{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
+.kb8-sh-btn.pri:hover{background:var(--dsw-alias-brand-primary);filter:brightness(1.08)}
+.kb8-sh-btn:disabled{opacity:.55;cursor:default}
+.kb8-sh-status{margin:0;font-size:12.5px;font-weight:600;color:var(--dsw-alias-label-secondary)}
+.kb8-sh-status.bad{color:var(--dsw-alias-state-error-primary)}
+.kb8-sh-note{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}
+@media (max-width:760px){.kb8-sh-detail{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.kb8-sh-grid{grid-template-columns:minmax(0,1fr)}.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on){width:74px;height:92px;font-size:10.5px}.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage{height:62px}.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage svg{width:56px;height:39px}.kb8-sh-types.has-sel .kb8-sl-card.is-on{width:112px;height:134px}.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage{height:94px}.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage svg{width:86px;height:59px}}
+@media (prefers-reduced-motion:reduce){.kb8-sh *,.kb8-sh-layer *{transition:none !important;animation:none !important}}
 /* What the person picked: its chip and a few ways to go on, in one line under the composer. */
 .kb8-nc-sel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 2px;font-size:12.5px;color:var(--dsw-alias-label-tertiary);animation:kb8-chip-in .3s cubic-bezier(.16,1,.3,1)}
 .kb8-nc-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 6px 0 5px;border-radius:var(--dsw-radius-md,12px);background:color-mix(in srgb,var(--kb8-acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--kb8-acc) 28%,transparent);font-size:12.5px;font-weight:550;color:var(--dsw-alias-label-primary)}
@@ -30145,15 +30400,6 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
 @keyframes kb8-pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes kb8-slide{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes kb8-pulse{0%{transform:scale(.8)}50%{transform:scale(1.14)}100%{transform:scale(1)}}
-.kb8-sl-nav{position:absolute;z-index:3;top:70px;width:34px;height:34px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 8px 20px -10px rgba(0,0,0,.35);cursor:pointer;transition:opacity .25s,transform .25s}
-.kb8-sl-nav:hover{transform:scale(1.08)}
-.kb8-sl-nav:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
-.kb8-sl-nav.prev{inset-inline-start:-14px}
-.kb8-sl-nav.next{inset-inline-end:-14px}
-.kb8-sl-nav.off{opacity:0;pointer-events:none}
-[dir="rtl"] .kb8-sl-nav svg{transform:scaleX(-1)}
-.kb8-sl-prog{position:relative;display:block;width:96px;height:3px;margin:14px auto 0;border-radius:3px;background:var(--dsw-alias-border-l1)}
-.kb8-sl-thumb{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--dsw-alias-label-secondary);transition:width .2s}
 /* The Cloud Computer: one quiet line (its state, and what can be done with it). */
 .kb8-nc-cloud{align-self:center;display:inline-flex;align-items:center;max-width:100%;border-radius:var(--dsw-radius-lg,16px);border:1px solid var(--dsw-alias-border-l1)}
 .kb8-nc-main{display:flex;align-items:center;gap:9px;min-width:0;padding:6px 14px;border:0;border-radius:inherit;background:transparent;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary);text-align:start;cursor:pointer}
@@ -30185,9 +30431,8 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
 [data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]:focus-within::before{animation:kb8-sweep 1.7s cubic-bezier(.16,1,.3,1) 1}
 @property --kb8-a{syntax:"<angle>";initial-value:0deg;inherits:false}
 @keyframes kb8-sweep{0%{--kb8-a:0deg;opacity:0}12%{opacity:1}100%{--kb8-a:360deg;opacity:0}}
-@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb,.kb8-nc-sel{transition:none!important;animation:none!important}[data-composer-card="true"]::before{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-nc-sel{transition:none!important;animation:none!important}[data-composer-card="true"]::before{animation:none!important}}
 /* What matters is the width the dock really has, not the window: arrows need a pointer, and a narrow dock is swiped. */
-@container kbnc (max-width:480px){.kb8-sl-nav{display:none}}
 `), 'kybers: styles of the new chat cards');
 
     // The page's one accent (see kbNcAccentSource): read again when the theme changes (its style tag, the attributes of html and body).

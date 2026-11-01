@@ -445,14 +445,14 @@ ok('the icons of the artifact menu read 3:1 in both schemes (A1-11)', () => {
     }
   }
 })
-ok('the new-chat slider and the Cloud Computer line read 4.5:1 in both schemes: the labels on their cards, the headings and the line on the page', () => {
+ok('the new-chat shelf and the Cloud Computer line read 4.5:1 in both schemes: the labels on their cards, the sentences of the examples and the line on the page', () => {
   const file = 'kybernos-plugin/client.js'
   const read = (selector, prop) => lastDecl(rule(file, selector).body, prop)
   for (const scheme of ['light', 'dark']) {
     const on = (expr, layer) => contrast(colour(expr, scheme), colour('var(--dsw-alias-' + layer + ')', scheme))
     atLeast('card label (' + scheme + ')', on(read('.kb8-sl-card', 'color'), 'bg-layer-1'), 4.5)
     for (const layer of (scheme === 'dark' ? ['bg-base', 'bg-layer-1', 'bg-layer-2'] : ['bg-base', 'bg-layer-1', 'bg-module-platform'])) {
-      atLeast('chapter heading on ' + layer + ' (' + scheme + ')', on(read('.kb8-sl-gh', 'color'), layer), 4.5)
+      for (const sel of ['.kb8-sh-h span', '.kb8-sh-line', '.kb8-sh-fine', '.kb8-sh-note']) atLeast(sel + ' on ' + layer + ' (' + scheme + ')', on(read(sel, 'color'), layer), 4.5)
       atLeast('Cloud Computer line on ' + layer + ' (' + scheme + ')', on(read('.kb8-nc-main', 'color'), layer), 4.5)
       atLeast('Cloud Computer title on ' + layer + ' (' + scheme + ')', on(read('.kb8-nc-t', 'color'), layer), 4.5)
     }

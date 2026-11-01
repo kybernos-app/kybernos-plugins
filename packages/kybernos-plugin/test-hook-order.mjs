@@ -69,16 +69,20 @@ const storeHook = (store) => (selector) => { React.useRef(null); return selector
   const a = src.indexOf('// KB-NEWCHAT-BEGIN')
   const b = src.indexOf('// KB-NEWCHAT-END')
   assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-  const pure = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_TEMPLATES, KB_NC_ART, kbNcSlider, kbNcDetect, kbNcFill, kbNcSuggest, kbNcActions, kbNcDot, kbNcRefusalKey })')
+  const pure = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_TEMPLATES, KB_NC_ART, kbNcChapters, kbNcAdaptText, kbNcDetect, kbNcFill, kbNcSuggest, kbNcActions, kbNcDot, kbNcRefusalKey })')
   const win = { addEventListener () {}, removeEventListener () {}, __KB_KYBER__: undefined }
   const Cards = make(cut('const KbNewChatCards = (props) => {', "\n    ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(\n      { name: 'conversation.input.dock', id: 'kybernos-newchat'"), {
     React, h, window: win, fetch: () => new Promise(() => {}), kbt: (k) => k, Icon: (n) => h('i', { 'data-icon': n }),
     ...pure,
     kbNcBootIds: () => [], kbDomainHome: () => undefined, kbFmtWhen: (s) => s, kbNcCloudBurst () {},
     useNcCloud: () => React.useState({ kind: 'awake', lastActive: '', pausedReason: '' })[0],
-    KbNcSlider: (sp) => h('div', { 'data-kb': 'newchat-slider' }, sp.groups.length + ' chapters'),
+    // the hooks of the shelf's data (one state each, as the real ones hold at least one) and the two views, stubbed
+    useNcCatalogue: () => React.useState(null)[0],
+    useNcKits: () => [React.useState(null)[0], () => {}],
+    KbNcShelf: (sp) => h('div', { 'data-kb': 'newchat-shelf' }, sp.groups.length + ' chapters'),
+    KbNcDialog: () => null,
   })
-  const tiles = (root) => lite.find(root.tree, (n) => n.props['data-kb'] === 'newchat-slider').length
+  const tiles = (root) => lite.find(root.tree, (n) => n.props['data-kb'] === 'newchat-shelf').length
   const cloud = (root) => lite.find(root.tree, (n) => n.props['data-kb'] === 'newchat-cloud').length
   const blank = { sessionId: 's1', session: { blank: true }, input: { draft: '' }, inputActions: { setDraft () {} } }
   const sent = { sessionId: 's1', session: { blank: false }, input: { draft: '' }, inputActions: { setDraft () {} } }

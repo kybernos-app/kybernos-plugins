@@ -432,26 +432,39 @@ code: it needs a DSH restart; until then the page says so and the native entry s
 
 ## The new-chat page
 
-On a blank chat, a dock entry (`kybernos-newchat`, order 25) shows a **slider of what can be made** and a one-line **Cloud Computer**,
-before the team's conversation starters (`kybernos-starters`, order 30), which are not touched. The slider holds the 13 templates in four
-chapters (Documents, Media, Apps, Automate; `KB_NC_TEMPLATES`, `KB_NC_GROUPS`). A template prefills the composer and never sends (a
-starter still sends); the person's own words are kept (`kbNcFill`). A template is offered only if the bundle it needs is installed. The
-Cloud Computer line and the menu row read `GET /kybernos-cloud/kyber` (read only) and open the Kyber page; the line keeps the state dot
-and the actions its state allows. The pure part is the `KB-NEWCHAT` block of `client.js`, tested by `test-newchat.mjs`.
+On a blank chat, a dock entry (`kybernos-newchat`, order 25) shows the **template shelf** and a one-line **Cloud Computer**,
+before the team's conversation starters (`kybernos-starters`, order 30), which are not touched. The shelf shows every type in view
+(up to 16 in four chapters: Documents, Media, Apps, Automate; `KB_NC_TEMPLATES`, `KB_NC_GROUPS`). A type is offered only if the bundle
+it needs is installed (Audio and Game stay hidden until a source exists). A click on a type prefills the composer and never sends
+(a starter still sends); the person's own words are kept (`kbNcFill`). The type stays lit and larger, the others go quiet, and under
+them come the **examples** of that type: a picture, a name and a line each (`kbNcExamples`). A click on an example opens a dialog with
+the picture and **the request** it starts from; *Use this request* fills the composer, again without sending. The Cloud Computer line
+and the menu row read `GET /kybernos-cloud/kyber` (read only) and open the Kyber page; the line keeps the state dot and the actions
+its state allows. The pure part is the `KB-NEWCHAT` block of `client.js`, tested by `test-newchat.mjs`; the host half is
+`templates-shelf.mjs`, tested by `test-templates-shelf.mjs`.
 
 - **Placement.** On the hero the block is drawn under the composer by CSS `order` on our own element: the dock and the composer bar are
   `display:contents` wrappers of one flex column. (`conversation.composer.dock`, "below the card", is not drawn on the hero: the engine
-  renders it for the `composer` variant only.) The DOM order stays dock first, so the keyboard reaches the slider before the editor.
+  renders it for the `composer` variant only.) The DOM order stays dock first, so the keyboard reaches the shelf before the editor.
+  The page's scroller centres the hero; with the examples the content is taller than the window, so the scroller gets
+  `justify-content: safe center` (`:has` on our own block) or its top would sit out of reach.
 - **One colour.** The page uses ink, greys and ONE accent: the theme's (`--dsw-alias-brand-primary`, the token Settings > Theme drives),
-  and `--dsw-radius-*` for the corners, so a theme changes the whole page. No hue table, no image, no gradient.
-- **Drawings.** Each template has a small model of its result (`KB_NC_ART`, viewBox 64 x 44): inline `rect` / `circle` / `path` carrying
-  classes (`paper`, `ink`, `acc`...) that the page's CSS fills from tokens; nothing fetched, no media in git. The little motion
-  (bars growing, lines drawing) plays on hover, focus, and when the template is lit.
-- **It listens.** The dock entry receives the composer's draft (`p.input.draft`); `kbNcDetect` lights the template the text sounds like
-  (French and English words, accents ignored, offered templates only) and the slider scrolls it into view.
-- **Slider.** Arrows (hidden in a narrow dock), mouse drag, native touch / trackpad scroll, a click on a chapter title, left / right keys,
-  a position line, right-to-left aware, no smooth scrolling under reduced motion.
-- **Not done on purpose** (no seam in the engine): an animated placeholder, a type chip, or Tab-to-adopt inside the composer.
+  and `--dsw-radius-*` for the corners, so a theme changes the whole page. No hue table, no gradient.
+- **Drawings and pictures.** Each type has a small model of its result (`KB_NC_ART`, viewBox 64 x 44): inline `rect` / `circle` / `path`
+  carrying classes (`paper`, `ink`, `acc`...) that the page's CSS fills from tokens. An example's picture is NOT in git: it comes
+  from the public catalogue (below), and a card whose picture is not on disk yet shows its type's drawing, so a card is never empty.
+- **The catalogue.** The examples are data, not code: a public file of the Kybernos server kept on disk by the host, with a text-only
+  copy shipped next to `index.js` (`templates-fallback.json`) so DSH starts and the page works offline. Contract, cache and limits:
+  [docs/dev/templates-catalogue.md](../../docs/dev/templates-catalogue.md).
+- **App templates.** An App example that starts from a kit (`kit`: `ecommerce`, `real-estate`, `recruitment`) is shown only when the
+  Apps seam (`window.__KB_TEMPLATES__`) lists that kit; its dialog also draws the tables and their links, and *Use template* creates
+  the app through the same door as the Apps page. Ideas the product does not ship a kit for are never shown.
+- **It listens.** The dock entry receives the composer's draft (`p.input.draft`); `kbNcDetect` lights the type the text sounds like
+  (French and English words, accents ignored, offered types only).
+- **Dialog.** In the page body (a portal), a named modal: Escape and the scrim close it, Tab stays inside, the focus goes back to the card.
+- **Live check.** `node scripts/check-newchat-live.mjs [--shots <dir>] [--pictures <dir>]` runs the page in a throw-away Chrome against
+  the real GUI; the host routes are answered there by the real `templates-shelf.mjs` (no restart of DSH needed).
+- **Not done on purpose** (no seam in the engine): an animated placeholder, or Tab-to-adopt inside the composer.
 
 The page headline is changed in place by a sweep on DSH's own hero (`titleGroup` / `previewBadge`; the two strings are locale keys with no
 slot, and `locale.register` throws on duplicates): a different line from a pool of 28 (`kbnc.hero.<n>`, FR/EN) each time a new chat
@@ -792,7 +805,8 @@ node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule,
 node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skills row of the menu
 node packages/kybernos-plugin/test-automation-workspace.mjs  # where a run lands: the rule, the real host with a fake registry (chosen, none, deleted, no create), the route, the form and the detail line
 node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the twelve templates in both languages, what they never promise, the filter, the chat text
-node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
+node packages/kybernos-plugin/test-newchat.mjs         # the shelf, the examples, the dialog, the cards, the Cloud Computer state, the hidden native entry, the starters pinned
+node packages/kybernos-plugin/test-templates-shelf.mjs # the shelf's host half: validation of the catalogue, the disk copy, the picture names and limits, the load cycle (run with KYBERNOS_NO_TEMPLATES_LOAD=1)
 node packages/kybernos-plugin/test-share-roles.mjs     # « Share this project »: the role selectors say Member / Administrator, the administrator role is confirmed in the dialog, the project's local Team access is left alone (the dialog rendered on a small React)
 node packages/kybernos-plugin/test-hook-order.mjs      # no hook after an early return in any bundle client (a scanner), and the new-chat dock + starters rendered blank → first message → new chat on a fake React that enforces the hook order
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
