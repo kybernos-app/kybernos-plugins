@@ -49,7 +49,7 @@ try {
   }
   assert.equal(store.addLesson('ghost', { text: 'x' }).error, 'kyber_inconnu', 'a typo must not invent a kyber')
   assert.equal(existsSync(join(kybers, 'ghost')), false)
-  assert.equal(store.activeKyber('../../etc/passwd'), null)
+  assert.deepEqual(store.activeKybers('../../etc/passwd'), [])
   ok('store: path-like or unknown kyber ids are refused and nothing is created')
 
   const first = store.addLesson('dev-team', { text: '  A GET and a POST on one path collide.  ', tags: ['Routes', 'web server', 'routes', 'ok-tag', 'a', 'b', 'c', 'd'] })
@@ -163,6 +163,49 @@ try {
   const lines = forA.split('\n').filter((l) => l.startsWith('- ['))
   assert.ok(lines.findIndex((l) => l.includes('dev-team: restart')) < lines.findIndex((l) => l.includes('general: say what')), 'the session\'s kyber comes first')
   ok('prompt: a session reads its own kyber plus default, never another kyber\'s lessons')
+
+  // Several teams in one chat: the registry the agent writes (`{ kybers: [...] }`) and the older `{ kyber }` both count.
+  const SESSION_C = 'sess-cccccccc-3333'
+  const active = (name, row) => writeFileSync(join(kybers, '.active', name), JSON.stringify(row))
+  active(SESSION_C, { kybers: [{ id: 'dev-team', scope: null, since: iso(5) }, { id: 'audit', scope: 'the repo', since: iso(2) }], ts: iso(2) })
+  assert.deepEqual(store.activeKybers(SESSION_C), ['dev-team', 'audit'], 'the list, in activation order')
+  const forC = mod.renderLessonsChunk(ctxFor(SESSION_C))
+  assert.ok(forC.includes('your agent teams: dev-team, audit'), 'the header names every team')
+  assert.ok(forC.includes('dev-team: restart expo after edits') && forC.includes('audit: confirm a finding twice') && forC.includes('general: say what you verified'), 'both teams and default')
+  active('sess-ffffffff-6666', { kybers: [{ id: 'audit' }], kyber: 'dev-team', ts: iso(1) })
+  assert.deepEqual(store.activeKybers('sess-ffffffff-6666'), ['audit', 'dev-team'], 'the list and the older entry together, none twice')
+  active('sess-gggggggg-7777', { kybers: [{ id: 'ghost' }, { id: '../x' }, { id: 'audit' }, null, { scope: 'no id' }] })
+  assert.deepEqual(store.activeKybers('sess-gggggggg-7777'), ['audit'], 'an unknown kyber, a path-like id and a row without id are dropped')
+  active('sess-hhhhhhhh-8888', { kybers: [], ts: iso(1) })
+  assert.deepEqual(store.activeKybers('sess-hhhhhhhh-8888'), [], 'a cleared chat runs no team')
+  writeFileSync(join(kybers, '.active', 'sess-iiiiiiii-9999'), '{ not json')
+  assert.deepEqual(store.activeKybers('sess-iiiiiiii-9999'), [], 'an unreadable file is no team, not an error')
+  active('session-dddddddd-4444', { kybers: [{ id: 'audit' }] })
+  assert.deepEqual(store.activeKybers('dddddddd-4444'), ['audit'], 'a file named session-<id> is found from the bare id')
+  active('eeeeeeee-5555', { kyber: 'dev-team', ts: iso(1) })
+  assert.deepEqual(store.activeKybers('session-eeeeeeee-5555'), ['dev-team'], 'and the bare-uuid file from the session-<id>')
+  const MANY = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6']
+  MANY.forEach(mkKyber)
+  active('sess-jjjjjjjj-0000', { kybers: MANY.map((id) => ({ id })) })
+  assert.deepEqual(store.activeKybers('sess-jjjjjjjj-0000'), MANY.slice(-store.ACTIVE_KYBERS_MAX), 'only the most recent teams are read')
+  MANY.forEach((id) => rmSync(join(kybers, id), { recursive: true, force: true }))
+
+  // The budget is shared between the teams that have lessons; a team with none leaves its share to the other.
+  const countOf = (text, kyber) => text.split('\n').filter((l) => l.startsWith('- [' + kyber + ']')).length
+  put('default', [L('general: say what you verified', { uses: 2 })])
+  put('dev-team', Array.from({ length: 50 }, (_, i) => L('t' + String(i) + ' ' + 'v'.repeat(180), { ts: iso(i + 1) })))
+  put('audit', Array.from({ length: 50 }, (_, i) => L('a' + String(i) + ' ' + 'u'.repeat(180), { ts: iso(i + 1) })))
+  const shared = mod.renderLessonsChunk(ctxFor(SESSION_C))
+  assert.ok(shared.length <= mod.CHUNK_MAX_CHARS, 'two full teams still fit the cap: ' + String(shared.length))
+  assert.ok(countOf(shared, 'dev-team') > 0 && countOf(shared, 'dev-team') === countOf(shared, 'audit'), 'each team gets the same share')
+  assert.ok(countOf(shared, 'default') > 0, 'and default keeps its place')
+  put('audit', [])
+  const alone = mod.renderLessonsChunk(ctxFor(SESSION_C))
+  assert.ok(countOf(alone, 'dev-team') > countOf(shared, 'dev-team'), 'a team with no lesson does not cut the other\'s share')
+  put('default', [L('general: say what you verified', { uses: 2, tags: ['style'] }), L('general: older, unused', { ts: iso(9000) })])
+  put('dev-team', [L('dev-team: restart expo after edits', { tags: ['expo'] })])
+  put('audit', [L('audit: confirm a finding twice')])
+  ok('prompt: several teams in one chat share the budget, whichever way the registry was written')
 
   // Bounded, and a hostile lesson cannot forge a chunk.
   put('default', Array.from({ length: 50 }, (_, i) => L('d' + String(i) + ' ' + 'w'.repeat(200), { uses: i % 3, ts: iso(i + 1) })))

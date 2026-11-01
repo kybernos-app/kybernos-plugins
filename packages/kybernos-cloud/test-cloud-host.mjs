@@ -3140,6 +3140,13 @@ try {
   assert.ok(tm_chunk.indexOf('[dev-team]') < tm_chunk.indexOf('[general]'), 'the lesson of the kyber comes before the general one')
   assert.ok(tm_chunk.length <= 760, 'the block fits its budget')
   assert.equal(tm_prompt(tm_sid), tm_chunk, 'stable between two assemblies')
+  // several teams in one chat: the registry the agent writes (`kybers: [...]`), found from either name of the session
+  writeFileSync(join(kybersFixture, '.active', 'session-sess-team-0002'), JSON.stringify({ kybers: [{ id: 'dev-team', scope: null, since: new Date().toISOString() }, { id: 'app-mobile' }], ts: new Date().toISOString() }))
+  const tm_duo = tm_prompt('sess-team-0002')
+  assert.ok(/lifecycle robot/.test(tm_duo) && /frozen bundle/.test(tm_duo) && /staging database/.test(tm_duo), 'the lessons of both teams and the general one: ' + tm_duo)
+  assert.ok(!/another kyber/.test(tm_duo), 'a team the chat does not run stays out')
+  assert.deepEqual(mod.teamSelection(readState(), 'session-sess-team-0002').kybers, ['dev-team', 'app-mobile'], 'the same list from the session-<id> form')
+  ok('team: a chat that runs several teams receives the lessons of each, whichever way the registry file is written')
   assert.ok(/frozen bundle/.test(tm_prompt(undefined)) === false && /staging database/.test(tm_prompt(undefined)), 'without a known kyber only the general lessons')
   assert.equal(promptContexts.get('kybernos:team-lessons').order, 136)
   assert.equal(promptContexts.get('kybernos:team-lessons').text({ agent: { session: { id: tm_sid } } }), tm_chunk, 'what is mounted is that block')
@@ -3155,7 +3162,7 @@ try {
   assert.ok(tm_prompt(tm_sid).length <= 760)
   assert.equal(mod.teamSelection(readState(), tm_sid).picked.length, 1)
   const tm_sent = (await hit('/kybernos-cloud/team/status?session=session-' + tm_sid, 'GET')).body.sent
-  assert.deepEqual([tm_sent.kyber, tm_sent.picked, tm_sent.count > 0], ['dev-team', 1, true], 'the page and the pill can say how many reached this chat')
+  assert.deepEqual([tm_sent.kybers, tm_sent.picked, tm_sent.count > 0], [['dev-team'], 1, true], 'the page and the pill can say how many reached this chat')
   await hit('/kybernos-cloud/memory/settings/set', 'POST', undefined, { relevant: false })
   mod.sessionQuery.clear(); mod.teamPickStore.clear()
   mod.noteUserTurn(tm_sid, { source: { kind: 'user' }, content: [{ type: 'text', text: 'how do I stop the tilemaker atlas from cropping my sprites?' }] }, 1)

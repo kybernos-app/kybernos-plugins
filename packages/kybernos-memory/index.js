@@ -23,7 +23,7 @@
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
-import { LESSONS_NEAR_COUNT, LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
+import { LESSONS_NEAR_COUNT, LESSON_MAX_CHARS, activeKybers, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { rank } from './relevance.mjs'
 import { writeGuard } from './session-guard.mjs'
@@ -166,14 +166,16 @@ export const pickRelevant = (sessionId, candidates) => {
 }
 
 /**
- * Which lessons a session reads. The kyber the session runs gets most of the budget, `default` (the general lessons)
- * the rest. Inside the budget the lessons that match the user's latest message come first (at most their own share),
- * then the most used, then the newest. A lesson too long for what is left is skipped, not a stopper.
+ * Which lessons a session reads. The kybers the session runs share most of the budget (the ones that hold no lesson do not
+ * count in the split), `default` (the general lessons) gets the rest. Inside the budget the lessons that match the user's
+ * latest message come first (at most their own share), then the most used, then the newest. A lesson too long for what is
+ * left is skipped, not a stopper.
  * `sessionId` also decides the relevance pick: the page (no session) shows the base selection, the prompt shows both.
  */
 export const planLessons = (sessionId, options = {}) => {
-  const active = activeKyber(sessionId)
-  const kybers = active !== null && active !== 'default' ? [active, 'default'] : ['default']
+  const running = activeKybers(sessionId)
+  const actives = running.filter((kyber) => kyber !== 'default')
+  const kybers = [...actives, 'default']
   const budget = Math.max(0, CHUNK_MAX_CHARS - CHUNK_FRAME_CHARS)
   const all = kybers.flatMap((kyber) => readLessons(kyber).map((l) => ({ ...l, kyber, id: lessonId(kyber, l) })))
   const wantRelevant = options.relevant === true && typeof sessionId === 'string'
@@ -184,12 +186,11 @@ export const planLessons = (sessionId, options = {}) => {
   let relevantUsed = 0
   let omitted = 0
   const relevantCap = Math.floor(budget * RELEVANCE_TUNING.share)
-  const firstCapOf = (i) => (i === 0 && kybers.length > 1 ? Math.floor(budget * ACTIVE_SHARE) : budget)
+  const activeCap = Math.floor(budget * ACTIVE_SHARE / Math.max(1, actives.filter((kyber) => all.some((l) => l.kyber === kyber)).length))
   const groupUsed = kybers.map(() => 0)
   const take = (lesson, i) => {
     const cost = lessonLine(lesson).length + 1
-    const cap = i === 0 && kybers.length > 1 ? firstCapOf(0) : budget
-    if (used + cost > budget || (i === 0 && kybers.length > 1 && groupUsed[0] + cost > cap)) return false
+    if (used + cost > budget || (i < actives.length && groupUsed[i] + cost > activeCap)) return false
     chosen.push(lesson)
     used += cost
     groupUsed[i] += cost
@@ -206,7 +207,7 @@ export const planLessons = (sessionId, options = {}) => {
     const lessons = all.filter((l) => l.kyber === kyber && !chosen.includes(l)).sort(usefulFirst)
     for (const lesson of lessons) { if (!take(lesson, i)) omitted += 1 }
   })
-  return { kyber: active, chosen, picked: picked.map((l) => l.id), used, omitted, cap: CHUNK_MAX_CHARS }
+  return { kybers: running, chosen, picked: picked.map((l) => l.id), used, omitted, cap: CHUNK_MAX_CHARS }
 }
 
 const sessionIdOf = (context) => {
@@ -225,7 +226,7 @@ export const renderLessonsChunk = (context) => {
     if (settings.context !== true) return ''
     const plan = planLessons(sessionIdOf(context), { relevant: settings.relevant === true })
     if (plan.chosen.length === 0) return ''
-    const lines = [CHUNK_HEAD + ' Lessons learned on this machine' + (plan.kyber === null ? '' : ' (your agent team: ' + plan.kyber + ')') + ':']
+    const lines = [CHUNK_HEAD + ' Lessons learned on this machine' + (plan.kybers.length === 0 ? '' : ' (your agent ' + (plan.kybers.length > 1 ? 'teams' : 'team') + ': ' + plan.kybers.join(', ') + ')') + ':']
     plan.chosen.forEach((l) => lines.push(lessonLine(l)))
     if (plan.omitted > 0) lines.push('- … (' + String(plan.omitted) + ' more not shown: lesson_search to look them up)')
     lines.push('', 'Record a new lesson with lesson_write only when an expectation was contradicted: one falsifiable sentence.')
@@ -1030,7 +1031,7 @@ const claudeImportScanRoute = async () => {
 }
 
 const claudeImportApplyRoute = async (req, body) => {
-  const existingLessons = readLessons(activeKyber())
+  const existingLessons = readLessons(activeKybers()[0])
   const result = importClaudeMemories({ existingLessons, now: new Date().toISOString() })
   return { ok: true, ...result }
 }

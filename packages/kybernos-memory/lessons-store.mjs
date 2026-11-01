@@ -288,13 +288,30 @@ export const searchLessons = (q, options = {}) => {
   return hits.slice(0, Number.isFinite(options.limit) ? options.limit : 10)
 }
 
-/** The kyber a session runs: `<kybers>/.active/<sessionId>` holds `{ kyber, ts }`. */
-export const activeKyber = (sessionId) => {
-  if (typeof sessionId !== 'string' || !SESSION_ID.test(sessionId)) return null
-  let row = null
-  try { row = JSON.parse(readFileSync(join(kybersRoot(), '.active', sessionId), 'utf8')) } catch (e) { return null }
-  const kyber = row !== null && typeof row === 'object' ? row.kyber : null
-  return isKyberId(kyber) && isDir(join(kybersRoot(), kyber)) ? kyber : null
+/** The registry keeps every team a chat ever ran: the prompt reads only the most recent ones, so the budget is never cut in slivers. */
+export const ACTIVE_KYBERS_MAX = 4
+
+/** The names a session's registry file goes by: DSH's `session-<uuid>`, the id as given, and the older bare uuid. */
+const activeFileNames = (sessionId) => {
+  if (typeof sessionId !== 'string') return []
+  const bare = sessionId.replace(/^session-/, '')
+  return [...new Set([sessionId, 'session-' + bare, bare])].filter((name) => SESSION_ID.test(name))
+}
+
+/**
+ * The kybers a session runs, in the order they were activated: `<kybers>/.active/<sessionId>` holds `{ kybers: [{ id, scope, since }] }`
+ * (what the agent writes) and/or the older `{ kyber, ts }`. Both count; a kyber whose folder is gone is dropped.
+ */
+export const activeKybers = (sessionId) => {
+  for (const name of activeFileNames(sessionId)) {
+    let row = null
+    try { row = JSON.parse(readFileSync(join(kybersRoot(), '.active', name), 'utf8')) } catch (e) { continue }
+    if (row === null || typeof row !== 'object') continue
+    const ids = (Array.isArray(row.kybers) ? row.kybers.map((entry) => (entry !== null && typeof entry === 'object' ? entry.id : null)) : []).concat(row.kyber)
+    const found = [...new Set(ids.filter((id) => isKyberId(id) && isDir(join(kybersRoot(), id))))]
+    if (found.length > 0) return found.slice(-ACTIVE_KYBERS_MAX)
+  }
+  return []
 }
 
 /**
