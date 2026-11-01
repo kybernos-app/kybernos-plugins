@@ -1,14 +1,31 @@
 {
   "name": "audio-frames-1",
   "style": "No text, no lettering, no watermark",
-  "ask": { "width": 1280, "height": 800, "steps": 4 },
-  "keep": { "width": 1280, "quality": 88, "maxKb": 1500 },
+  "ask": {
+    "width": 1280,
+    "height": 800,
+    "steps": 4
+  },
+  "keep": {
+    "width": 1280,
+    "quality": 88,
+    "maxKb": 1500
+  },
   "cells": [
-    { "name": "audio-relativity-1", "seed": 8101, "prompt": "A thin bright beam of light crossing a deep navy night sky full of faint stars from the left edge to the right edge, a distant glowing train on a hillside far below, clean modern explainer illustration with warm amber and soft white tones" },
-    { "name": "audio-relativity-2", "seed": 8102, "prompt": "A large brass pocket watch floating in a starry deep-space scene, its clock face stretched and warped like soft wax, warm golden light, clean modern explainer illustration on a deep navy background" },
-    { "name": "audio-relativity-3", "seed": 8103, "prompt": "A small navigation satellite with solar panels orbiting a blue Earth seen from space, sunlight on the panels, clean modern explainer illustration, deep navy space with a thin amber orbit line" },
-    { "name": "audio-bedtime-1", "seed": 8104, "prompt": "A small orange fox sitting at the edge of a calm lake at dusk, a soft pink and blue sky, tall reeds, a gentle children's book watercolor illustration" },
-    { "name": "audio-bedtime-2", "seed": 8105, "prompt": "A big friendly crescent moon with a gentle smiling face glowing above a quiet lake, its reflection on the water, a small orange fox watching from the shore, a children's book watercolor illustration" },
-    { "name": "audio-bedtime-3", "seed": 8106, "prompt": "A small orange fox walking along a lantern-lit path through tall grass toward a cosy little house with warm glowing windows, night, a children's book watercolor illustration" }
+    {
+      "name": "audio-bedtime-1",
+      "seed": 8104,
+      "prompt": "A small orange fox sitting at the edge of a calm lake at dusk, a soft pink and blue sky, tall reeds, a gentle children's book watercolor illustration"
+    },
+    {
+      "name": "audio-bedtime-2",
+      "seed": 8105,
+      "prompt": "A big friendly crescent moon with a gentle smiling face glowing above a quiet lake, its reflection on the water, a small orange fox watching from the shore, a children's book watercolor illustration"
+    },
+    {
+      "name": "audio-bedtime-3",
+      "seed": 8106,
+      "prompt": "A small orange fox walking along a lantern-lit path through tall grass toward a cosy little house with warm glowing windows, night, a children's book watercolor illustration"
+    }
   ]
 }
