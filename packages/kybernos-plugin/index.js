@@ -14073,9 +14073,9 @@ const kbFeedbackRetireLegacySkill = (dsh) => {
 }
 
 /** Skills this plugin ships under <dsh home>/skills (folders in ./skills): the Automations page
- *  sends its "Create" chat to `automation-creator`, so it must exist on a fresh home. Seeded by
- *  seed-skills.mjs, which never overwrites a skill the user wrote or edited. */
-const KB_SHIPPED_SKILLS = ['automation-creator']
+ *  sends its "Create" chat to `automation-creator`, so it must exist on a fresh home; the video examples of the new-chat shelf
+ *  start `video-creator`. Seeded by seed-skills.mjs, which never overwrites a skill the user wrote or edited. */
+const KB_SHIPPED_SKILLS = ['automation-creator', 'video-creator']
 const kbSeedShippedSkills = () => {
   const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
   const results = seedSkills({ home: dshHomeSync(), sourceDir, names: KB_SHIPPED_SKILLS })

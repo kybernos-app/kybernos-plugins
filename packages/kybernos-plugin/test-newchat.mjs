@@ -497,4 +497,24 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   ok('the new-chat cards are told when Kaby\'s chat becomes known')
 }
 
+// 9. the video examples start a skill that ships with the plugin and is seeded on a fresh home
+{
+  const fs = await import('node:fs')
+  const indexSrc = readFileSync(join(here, 'index.js'), 'utf8')
+  const listed = /const KB_SHIPPED_SKILLS = \[([^\]]*)\]/.exec(indexSrc)
+  assert.ok(listed !== null && /'video-creator'/.test(listed[1]), 'video-creator is in the list of skills the plugin seeds')
+  for (const name of listed[1].split(',').map((s) => s.trim().replace(/'/g, '')).filter((s) => s !== '')) {
+    const text = readFileSync(join(here, 'skills', name, 'SKILL.md'), 'utf8')
+    assert.ok(new RegExp('^---\\nname: ' + name + '\\ndescription: .+\\nwhenToUse: .+\\n---\\n').test(text), name + ' has its front matter (name, description, whenToUse)')
+  }
+  const skill = readFileSync(join(here, 'skills', 'video-creator', 'SKILL.md'), 'utf8')
+  const motionSrc = readFileSync(join(here, '..', 'kybernos-motion', 'motion-host.mjs'), 'utf8')
+  const tool = /export const TOOL = '([a-z_]+)'/.exec(motionSrc)
+  assert.ok(tool !== null && skill.includes('`' + tool[1] + '`'), 'the skill names the Motion tool that really exists')
+  assert.ok(skill.includes('/kybernos-cloud/models') && readFileSync(join(here, '..', 'kybernos-cloud', 'index.js'), 'utf8').includes('/kybernos-cloud/models'), 'the skill reads the models from a route that exists')
+  for (const word of ['product photo', 'garment', 'theme', 'best photo', 'logo', 'table of figures', 'topic']) assert.ok(skill.includes(word), 'the skill asks for the ' + word + ' that its example asks for')
+  assert.ok(/clip cannot be made yet/.test(skill) && /Never ask for, print or store an API key/.test(skill), 'the skill says plainly that generation is not wired and never asks for a key')
+  ok('the video examples start video-creator: shipped, seeded, and tied to a real tool and route')
+}
+
 console.log('\n' + pass + ' checks passed')
