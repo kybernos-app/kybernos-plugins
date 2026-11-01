@@ -1,7 +1,7 @@
 {
  "schema": "kybernos.templates/1",
- "version": 6,
- "updatedAt": "2026-11-01T15:36:54Z",
+ "version": 8,
+ "updatedAt": "2026-11-01T20:44:32Z",
  "locale": "en",
  "imageBase": "shelf/",
  "groups": [
@@ -1064,163 +1064,73 @@
    }
   },
   {
-   "id": "audio_lofi",
+   "id": "audio_voicemail_fr",
    "type": "audio",
-   "name": "Lo-fi beat",
-   "tag": "Music",
-   "line": "A calm beat to work to, with vinyl crackle.",
-   "meta": "2:00",
-   "prompt": "Make a mellow lo-fi hip hop beat with soft piano and vinyl crackle, 2 minutes long.",
+   "name": "Voicemail greeting, your voice",
+   "tag": "Business",
+   "line": "Send a short recording of yourself: the greeting is read in your own voice.",
+   "meta": "0:16 · French · your own voice",
+   "prompt": "Make a voicemail greeting for my workshop in MY OWN voice. I will send you a short recording of myself: ask for my consent to clone it, and delete the reference after the call. Then read, in French: « Bonjour, et bienvenue à l'atelier. Nous ne pouvons pas répondre pour le moment. Laissez votre nom et votre numéro, et nous vous rappelons avant midi demain. » Give me the audio and a video with the captions.",
    "image": {
-    "src": "audio_lofi.webp",
+    "src": "audio_voicemail_fr.webp",
     "width": 720,
     "height": 450,
-    "alt": "Lo-fi beat template preview",
-    "large": "large/audio_lofi.webp",
+    "alt": "A waveform scrolling over a night-blue background while a French voicemail greeting plays, with its captions",
+    "large": "large/audio_voicemail_fr.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "audio_podcast",
+   "id": "audio_relativity_en",
    "type": "audio",
-   "name": "Podcast intro",
-   "tag": "Voice",
-   "line": "A short spoken intro with light music under it.",
-   "meta": "0:20",
-   "prompt": "Make a 20-second podcast intro with a warm male voice and light music: 'Welcome to The Daily Brew'.",
-   "image": {
-    "src": "audio_podcast.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Podcast intro template preview",
-    "large": "large/audio_podcast.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "audio_voiceover",
-   "type": "audio",
-   "name": "Voice-over",
-   "tag": "Voice",
-   "line": "Your script, read by a calm voice.",
-   "meta": "0:30",
-   "prompt": "Make a 30-second voice-over for a product video, a calm female voice reading my script.",
-   "image": {
-    "src": "audio_voiceover.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Voice-over template preview",
-    "large": "large/audio_voiceover.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "audio_jingle",
-   "type": "audio",
-   "name": "Jingle",
-   "tag": "Brand",
-   "line": "A short, catchy tune for your brand.",
-   "meta": "0:10",
-   "prompt": "Make a 10-second upbeat jingle for a bakery called Sunrise Bakes.",
-   "image": {
-    "src": "audio_jingle.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Jingle template preview",
-    "large": "large/audio_jingle.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "audio_rain",
-   "type": "audio",
-   "name": "Rain ambience",
-   "tag": "Ambient",
-   "line": "A loop of rain on a window, for focus or sleep.",
-   "meta": "10:00 loop",
-   "prompt": "Make a 10-minute ambient loop of rain on a window with distant thunder.",
-   "image": {
-    "src": "audio_rain.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Rain ambience template preview",
-    "large": "large/audio_rain.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "audio_sleep",
-   "type": "audio",
-   "name": "Sleep meditation",
-   "tag": "Wellness",
-   "line": "A gentle voice and soft pads to fall asleep to.",
-   "meta": "5:00",
-   "prompt": "Make a 5-minute guided meditation for sleep, with a gentle voice and soft synth pads.",
-   "image": {
-    "src": "audio_sleep.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Sleep meditation template preview",
-    "large": "large/audio_sleep.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "audio_audiobook",
-   "type": "audio",
-   "name": "Audiobook chapter",
-   "tag": "Reading",
-   "line": "Your story read aloud in a warm storyteller voice.",
-   "meta": "8:30",
-   "prompt": "Read chapter one of my short story aloud in a warm storyteller voice.",
-   "image": {
-    "src": "audio_audiobook.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Audiobook chapter template preview",
-    "large": "large/audio_audiobook.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "audio_sfx",
-   "type": "audio",
-   "name": "Sound effects",
-   "tag": "App sounds",
-   "line": "Five short sounds for your app.",
-   "meta": "5 sounds",
-   "prompt": "Make five short sound effects for my app: click, success, error, notification and whoosh.",
-   "image": {
-    "src": "audio_sfx.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Sound effects template preview",
-    "large": "large/audio_sfx.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "audio_lesson",
-   "type": "audio",
-   "name": "Language lesson",
+   "name": "Physics explainer, your voice",
    "tag": "Learning",
-   "line": "Phrases spoken slowly, then at normal speed.",
-   "meta": "3:00",
-   "prompt": "Make a 3-minute Spanish lesson with phrases for ordering coffee, spoken slowly and then at normal speed.",
+   "line": "A 20-second lesson read in your own voice, over a picture for each idea.",
+   "meta": "0:18 · English · your own voice",
+   "prompt": "Make a 20-second explainer about why time runs slower the faster you move, read in MY OWN voice (I will send a short recording, ask for my consent before you clone it, and delete the reference after the call). One picture for each idea, soft piano music, captions. Use plain words and keep the physics right.",
    "image": {
-    "src": "audio_lesson.webp",
+    "src": "audio_relativity_en.webp",
     "width": 720,
     "height": 450,
-    "alt": "Language lesson template preview",
-    "large": "large/audio_lesson.webp",
+    "alt": "A golden pocket watch melting in deep space, with the caption \"time has to bend\"",
+    "large": "large/audio_relativity_en.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_ocean_calm_en",
+   "type": "audio",
+   "name": "Guided breathing",
+   "tag": "Wellness",
+   "line": "A calm voice, the sea and a slow breath: twenty seconds to let go.",
+   "meta": "0:20 · English · AI voice and music",
+   "prompt": "Make a 20-second guided breathing for the end of a work day: a calm, warm female voice in English over soft ambient music with the feel of the sea. Short sentences with room to breathe between them, captions on screen.",
+   "image": {
+    "src": "audio_ocean_calm_en.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A scrolling waveform on a deep teal background while a calm voice guides a breathing exercise, with its captions",
+    "large": "large/audio_ocean_calm_en.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "audio_bedtime_fr",
+   "type": "audio",
+   "name": "Bedtime story",
+   "tag": "Stories",
+   "line": "A short tale read softly in French, one watercolour for each page.",
+   "meta": "0:21 · French · AI voice and music",
+   "prompt": "Make a 20-second bedtime story in French for a child who is afraid of the dark: a gentle female voice, a music box, three watercolour pictures of a little fox, captions. A happy ending, no scary image.",
+   "image": {
+    "src": "audio_bedtime_fr.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A watercolour crescent moon smiling over a lake, with a small fox sitting on the shore and a French caption",
+    "large": "large/audio_bedtime_fr.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }

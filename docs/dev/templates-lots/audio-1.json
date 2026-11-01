@@ -1,0 +1,84 @@
+{
+  "name": "audio-1",
+  "type": "audio",
+  "note": "The first audio lot: four films of 16 to 21 seconds, each one a spoken piece with its captions, played by the Play button of the shelf. Two are read in the voice of the person who made the example (cloned from a short recording with Chatterbox Multilingual, with the reference voice created for the one call and deleted right after: scripts/video-parts.mjs voice --clone), two in an AI voice (ElevenLabs v4, one English, one French). Four domains: a business voicemail, a physics explainer, a guided breathing, a bedtime story. Music is ACE-Step. The films are cut by scripts/video-compose.mjs from docs/dev/templates-lots/video-compose/<id>.json (a scrolling waveform for the two without pictures, FLUX 2 klein pictures with a slow push for the two with). `request` is what the example's button puts in the composer; `made.prompt` is the text the voice read. The two own-voice films carry the maintainer's voice: they stay on this machine until he decides to publish them.",
+  "cells": [
+    {
+      "id": "audio_voicemail_fr",
+      "clip": "audio_voicemail_fr.mp4",
+      "posterAt": 6,
+      "entry": {
+        "name": "Voicemail greeting, your voice",
+        "tag": "Business",
+        "line": "Send a short recording of yourself: the greeting is read in your own voice.",
+        "meta": "0:16 · French · your own voice",
+        "alt": "A waveform scrolling over a night-blue background while a French voicemail greeting plays, with its captions"
+      },
+      "request": "Make a voicemail greeting for my workshop in MY OWN voice. I will send you a short recording of myself: ask for my consent to clone it, and delete the reference after the call. Then read, in French: « Bonjour, et bienvenue à l'atelier. Nous ne pouvons pas répondre pour le moment. Laissez votre nom et votre numéro, et nous vous rappelons avant midi demain. » Give me the audio and a video with the captions.",
+      "made": {
+        "model": "ResembleAI/chatterbox-multilingual",
+        "label": "Chatterbox Multilingual (your voice)",
+        "prompt": "Bonjour, et bienvenue à l'atelier. Nous ne pouvons pas répondre pour le moment. Laissez votre nom et votre numéro, et nous vous rappelons avant midi demain."
+      },
+      "source": "voice cloned from a 20-second voice note (Chatterbox Multilingual, language fr), no music, a scrolling waveform and the captions over a gradient (scripts/video-compose.mjs), the kybernos mark"
+    },
+    {
+      "id": "audio_relativity_en",
+      "clip": "audio_relativity_en.mp4",
+      "posterAt": 7.3,
+      "entry": {
+        "name": "Physics explainer, your voice",
+        "tag": "Learning",
+        "line": "A 20-second lesson read in your own voice, over a picture for each idea.",
+        "meta": "0:18 · English · your own voice",
+        "alt": "A golden pocket watch melting in deep space, with the caption \"time has to bend\""
+      },
+      "request": "Make a 20-second explainer about why time runs slower the faster you move, read in MY OWN voice (I will send a short recording, ask for my consent before you clone it, and delete the reference after the call). One picture for each idea, soft piano music, captions. Use plain words and keep the physics right.",
+      "made": {
+        "model": "ResembleAI/chatterbox-multilingual",
+        "label": "Chatterbox (your voice) · FLUX 2",
+        "prompt": "Light travels at the same speed for everyone. To keep that true, time has to bend. The faster you move, the slower your clock runs. The satellites that guide your phone correct for it every day.",
+        "seed": 1
+      },
+      "source": "voice cloned from a 20-second voice note (Chatterbox Multilingual, language en, best of 6 seeds by a Whisper check of the transcript), three pictures by FLUX 2 klein 9B with a slow push, ACE-Step piano, captions timed from the transcript, the kybernos mark"
+    },
+    {
+      "id": "audio_ocean_calm_en",
+      "clip": "audio_ocean_calm_en.mp4",
+      "posterAt": 9,
+      "entry": {
+        "name": "Guided breathing",
+        "tag": "Wellness",
+        "line": "A calm voice, the sea and a slow breath: twenty seconds to let go.",
+        "meta": "0:20 · English · AI voice and music",
+        "alt": "A scrolling waveform on a deep teal background while a calm voice guides a breathing exercise, with its captions"
+      },
+      "request": "Make a 20-second guided breathing for the end of a work day: a calm, warm female voice in English over soft ambient music with the feel of the sea. Short sentences with room to breathe between them, captions on screen.",
+      "made": {
+        "model": "elevenlabs/eleven-v4",
+        "label": "ElevenLabs v4 · ACE-Step",
+        "prompt": "Close your eyes. Take a slow breath in and let it go. Listen to the waves rolling in, and rolling out. With every wave, let one worry drift away. You're safe, and there is nowhere else to be."
+      },
+      "source": "voice ElevenLabs v4 through the AI gateway (Sarah), ACE-Step ambient music under the voice, a scrolling waveform and the captions over a gradient, the kybernos mark"
+    },
+    {
+      "id": "audio_bedtime_fr",
+      "clip": "audio_bedtime_fr.mp4",
+      "posterAt": 9,
+      "entry": {
+        "name": "Bedtime story",
+        "tag": "Stories",
+        "line": "A short tale read softly in French, one watercolour for each page.",
+        "meta": "0:21 · French · AI voice and music",
+        "alt": "A watercolour crescent moon smiling over a lake, with a small fox sitting on the shore and a French caption"
+      },
+      "request": "Make a 20-second bedtime story in French for a child who is afraid of the dark: a gentle female voice, a music box, three watercolour pictures of a little fox, captions. A happy ending, no scary image.",
+      "made": {
+        "model": "elevenlabs/eleven-v4",
+        "label": "ElevenLabs v4 · FLUX 2 · ACE-Step",
+        "prompt": "Il était une fois, au bord d'un lac tranquille, un petit renard qui avait peur du noir. Chaque soir, la lune lui souriait, et chaque soir, il osait faire un pas de plus. Alors, ce soir-là, il ferma les yeux, respira doucement et suivit la lumière jusqu'à sa maison."
+      },
+      "source": "voice ElevenLabs v4 through the AI gateway (Sarah, French), three watercolour pictures by FLUX 2 klein 9B with a slow push, ACE-Step music box, captions timed from the transcript, the kybernos mark"
+    }
+  ]
+}
