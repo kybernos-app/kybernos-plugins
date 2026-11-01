@@ -49,7 +49,10 @@ export const RULES = Object.freeze([
   'Speak the user’s language, whatever language this file is written in.',
   'Draft only: never send, publish, delete or pay for the user.',
   'Only what is in the sources. Never invent a fact, a number or a quote.',
-  'Verification is the user’s: end with what to read before relying on it.'
+  'Verification is the user’s: end with what to read before relying on it.',
+  // Doctrine 2026-11-01 (docs/dev/skills-vs-plugins.md): a learned skill is a notice, and a notice that
+  // names a harness-only tool stops being portable while nothing here tests it. Aim the procedure at the job.
+  'A notice, not a program: name the job and its steps, never a tool only one harness provides.'
 ])
 
 const plain = (v) => v !== null && typeof v === 'object' && Array.isArray(v) === false
