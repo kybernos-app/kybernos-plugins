@@ -135,7 +135,7 @@ try {
 
   assert.deepEqual(store.listKybers(), ['default', 'real-kyber'])
   assert.deepEqual(store.readLessons('default').map((l) => l.text), ['a real default lesson'])
-  assert.equal(store.activeKyber(SESSION), 'real-kyber')
+  assert.deepEqual(store.activeKybers(SESSION), ['real-kyber'])
   ok('the kybers, their lessons and the active kyber are read from $DSH_HOME/kybers')
 
   const set = await route(mod, '/kybernos-memory/settings/set').run(null, { lessons: false, context: true })

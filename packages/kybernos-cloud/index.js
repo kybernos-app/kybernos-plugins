@@ -4012,31 +4012,44 @@ const lessonsSwitches = () => {
   } catch (e) { return { lessons: true, context: true } }
 }
 
-/** The kyber a chat runs (`<kybers>/.active/<session>`, written by the lessons plugin); null when unknown. */
-const activeKyberOf = (sessionId) => {
-  if (typeof sessionId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{5,79}$/.test(sessionId)) return null
-  try {
-    const row = JSON.parse(readFileSync(join(kybersDir(), '.active', sessionId), 'utf8'))
-    return typeof row.kyber === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(row.kyber) && row.kyber.indexOf('..') < 0 ? row.kyber : null
-  } catch (e) { return null }
+/** The registry keeps every team a chat ever ran: the prompt reads the most recent ones only (as kybernos-memory does). */
+const ACTIVE_KYBERS_MAX = 4
+
+/**
+ * The kybers a chat runs, in the order they were activated (`<kybers>/.active/<session>`, which holds `{ kybers: [{ id, … }] }` and/or the
+ * older `{ kyber }`; the file goes by `session-<uuid>`, the id as given or the bare uuid); [] when unknown.
+ */
+const activeKybersOf = (sessionId) => {
+  if (typeof sessionId !== 'string') return []
+  const bare = sessionId.replace(/^session-/, '')
+  for (const name of new Set([sessionId, 'session-' + bare, bare])) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{5,79}$/.test(name)) continue
+    try {
+      const row = JSON.parse(readFileSync(join(kybersDir(), '.active', name), 'utf8'))
+      const ids = (Array.isArray(row.kybers) ? row.kybers.map((entry) => (entry !== null && typeof entry === 'object' ? entry.id : null)) : []).concat(row.kyber)
+      const found = [...new Set(ids.filter((id) => typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(id) && id.indexOf('..') < 0))]
+      if (found.length > 0) return found.slice(-ACTIVE_KYBERS_MAX)
+    } catch (e) { /* the next name */ }
+  }
+  return []
 }
 
 /** What a session receives: from the cache only (synchronous), and nothing unless every switch says so. */
 const teamSelection = (state, sessionId) => {
-  const none = { plan: { chosen: [], omitted: 0, used: 0 }, ws: teamNow(state), kyber: null, picked: [] }
+  const none = { plan: { chosen: [], omitted: 0, used: 0 }, ws: teamNow(state), kybers: [], picked: [] }
   if (state === null || state === undefined) return none
   const ws = none.ws
   const cfg = readMemorySettings()
   const sw = lessonsSwitches()
   if (ws.available !== true || cfg.team_use !== true || sw.lessons !== true || sw.context !== true || teamCache.workspaceId !== ws.workspaceId) return none
-  const kyber = activeKyberOf(sessionId)
-  const pool = applicable(teamCache.lessons, kyber)
+  const kybers = activeKybersOf(sessionId)
+  const pool = applicable(teamCache.lessons, kybers)
   let preferred = []
   if (cfg.relevant === true && typeof sessionId === 'string' && sessionId !== '') {
     const hits = pickRelevant(sessionId, pool.map((l) => ({ id: l.id, content: l.text + ' ' + l.tags.join(' '), createdAt: l.updatedAt })), teamPickStore, TEAM_RELEVANCE)
     preferred = hits.map((h) => pool.find((l) => l.id === h.id)).filter((l) => l !== undefined)
   }
-  return { plan: teamPlan(teamCache.lessons, kyber, preferred), ws, kyber, picked: preferred.map((l) => l.id) }
+  return { plan: teamPlan(teamCache.lessons, kybers, preferred), ws, kybers, picked: preferred.map((l) => l.id) }
 }
 
 /** The block of the system prompt. Synchronous and never throws: '' on any doubt. */
@@ -4074,7 +4087,7 @@ const teamStatusRoute = async (req) => {
     team: { available: ws.available, reason: ws.reason, plan: ws.plan === undefined ? null : ws.plan, workspaceId: ws.workspaceId === undefined ? null : ws.workspaceId, workspaceName: ws.workspaceName === undefined ? null : ws.workspaceName,
       role: mine ? teamCache.role : null, counts: mine ? teamCache.counts : { approved: 0, pending: 0 }, error: mine ? teamCache.error : null },
     settings: { use: cfg.team_use === true, share: cfg.team_share === true },
-    sent: sel === null ? null : { count: sel.plan.chosen.length, omitted: sel.plan.omitted, picked: sel.picked.length, kyber: sel.kyber },
+    sent: sel === null ? null : { count: sel.plan.chosen.length, omitted: sel.plan.omitted, picked: sel.picked.length, kybers: sel.kybers },
   }
 }
 
@@ -6334,7 +6347,7 @@ export {
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories, spaceOf, readStateForSpace, MEMORY_TEAM_NOTE, TEAM_SPACE_REFUSAL,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
-  teamCache, teamPickStore, refreshTeamCache, emptyTeamCache, teamSelection, renderTeamPrompt, activeKyberOf, lessonsSwitches, TEAM_RELEVANCE,
+  teamCache, teamPickStore, refreshTeamCache, emptyTeamCache, teamSelection, renderTeamPrompt, activeKybersOf, lessonsSwitches, TEAM_RELEVANCE,
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, localLessons, localKybers, stateKyberMap,
