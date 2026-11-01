@@ -583,8 +583,10 @@ section in `<workspace folder>/AGENTS.md` (the folder is that table's too; off o
 
 A plain chat (`cordis`, `standard`) never runs the Kyber preset, so nothing told it that more than one team can work at once. The protocol is the
 `kyber-selection` skill in `<DSH home>/skills` (section 6: one Team Lead spawns every crew from one shared roster, seats are never given back, members
-named `<team>-<role>`, board tasks `[<team>]`); `agent-teams-prompt.mjs` adds a short block to the system prompt that names the teams and points to it.
-Injected through `systemPrompt.context` (name `kybernos:agent-teams`, order 140, `interpolate: false`, about 600 characters). It lists ids only (a team's
+named `<team>-<role>`, board tasks `[<team>]`; and, from `kyber-topology`, each team keeps its own declared workflow: the Lead renders it, never invents or
+reorders a stage, and only the team's own triage may shorten it, never past its gate or its test); `agent-teams-prompt.mjs` adds a short block to the system
+prompt that names the teams and states both rules.
+Injected through `systemPrompt.context` (name `kybernos:agent-teams`, order 140, `interpolate: false`, about 900 characters). It lists ids only (a team's
 mission is the person's text and never goes in), at most 12, and says nothing with fewer than two teams (a `<DSH home>/kybers/<id>/kyber.yml` each, never
 `default`) or when the skill is not installed (it would point to nothing). The folders are read at most every 5 s, so the text is the same from one step to
 the next. A child session (a sub-agent, told by `header.parentSession`) does not get it. The block is code, not a file: the text is `renderTeamsBlock`, and

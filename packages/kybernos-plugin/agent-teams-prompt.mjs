@@ -33,6 +33,7 @@ export const renderTeamsBlock = (ids) => {
     HEAD + ' Agent Teams on this machine: ' + shown.join(', ') + (more > 0 ? ' and ' + String(more) + ' more' : '') + '.',
     'Several teams can work side by side in one chat. Only the Team Lead, the chat\'s own agent, spawns teammates, from one roster that every team shares; a teammate cannot spawn another.',
     'When you run more than one team: a seat is never given back, so count the seats before you spawn and say how many are left; name each member <team>-<role>; begin each board task with [<team>]. Load the kyber-selection skill (section 6) first.',
+    'Each team keeps its own declared workflow (its kyber.yml): render it, never invent or reorder a stage. Only the team\'s own triage stage, if it has one, may shorten it, never past its gate or its test. Say which stages ran.',
   ].join('\n')
 }
 
