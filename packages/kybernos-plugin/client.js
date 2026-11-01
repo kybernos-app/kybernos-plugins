@@ -1252,6 +1252,8 @@ let kbLocaleRead = () => 'en'
       'kbnc.g.apps': { kybernos: 'Apps', en: 'Apps' },
       'kbnc.g.auto': { kybernos: 'Automatiser', en: 'Automate' },
       'kbnc.sl.label': { kybernos: 'Ce que tu peux créer', en: 'What you can make' },
+      'kbnc.sl.soon': { kybernos: 'Bientôt', en: 'Soon' },
+      'kbnc.sl.off': { kybernos: 'Non activé', en: 'Not enabled' },
       'kbnc.sh.head': { kybernos: 'Pars d’un exemple', en: 'Start from an example' },
       'kbnc.sh.preview': { kybernos: 'Aperçu', en: 'Preview' },
       'kbnc.sh.close': { kybernos: 'Fermer', en: 'Close' },
@@ -8568,6 +8570,9 @@ const kbWsMissing = (workspaceId) => kbWsHealthMap !== null && typeof workspaceI
 //  - A template PREFILLS the composer (the person adds the details); the starters of the team keep SENDING.
 //  - `group` is the chapter of the slider (KB_NC_GROUPS gives their order). The page has ONE colour: the theme's accent.
 const KB_NC_GROUPS = ['docs', 'media', 'apps', 'auto']
+// Columns of the type cards, so the rows come out even: at most 5 to a row, then the fewest rows, then the fewest columns that hold them (10 -> 5+5, 12 -> 4x3, 16 -> 4x4).
+// The page narrows it by itself when the room is short.
+const kbNcCols = (n) => Math.max(1, Math.ceil(n / Math.max(1, Math.ceil(n / 5))))
 const KB_NC_TEMPLATES = [
   { id: 'slides', group: 'docs', needs: '@local/kybernos-slides' },
   { id: 'doc', group: 'docs', needs: null },
@@ -8575,11 +8580,11 @@ const KB_NC_TEMPLATES = [
   { id: 'dashboard', group: 'docs', needs: '@local/kybernos-dashboards' },
   { id: 'image', group: 'media', needs: null },
   { id: 'video', group: 'media', needs: '@local/kybernos-motion' },
-  // No bundle makes sound or a game yet (a satellite that does is the day these appear): the entries are here so the shelf is ready, and hidden until then.
-  { id: 'audio', group: 'media', needs: '@local/kybernos-audio' },
+  // No bundle makes sound or a game yet (`soon`): the shelf shows them anyway, tagged, so the person sees what is coming.
+  { id: 'audio', group: 'media', needs: '@local/kybernos-audio', soon: true },
   { id: 'model3d', group: 'media', needs: '@local/kybernos-modeleur' },
   { id: 'app', group: 'apps', needs: '@local/kybernos-db' },
-  { id: 'game', group: 'apps', needs: '@local/kybernos-games' },
+  { id: 'game', group: 'apps', needs: '@local/kybernos-games', soon: true },
   { id: 'website', group: 'apps', needs: null },
   { id: 'miniapp', group: 'apps', needs: '@local/kybernos-miniapps' },
   { id: 'automation', group: 'auto', needs: null },
@@ -8634,10 +8639,12 @@ const kbNcTemplates = (group, bootIds) => group.filter((t) => t.needs === null |
  * of work asking for its own templates first (ids, most wanted first; the pack's `home`): inside a chapter they come first, and the chapter that
  * holds the most wanted one comes first. Everything else keeps its place, and a template the install cannot serve stays hidden.
  */
-const kbNcChapters = (bootIds, first) => {
+const kbNcChapters = (bootIds, first, all) => {
   const want = Array.isArray(first) ? first : []
   const rank = (id) => { const i = want.indexOf(id); return i < 0 ? 999 : i }
-  const groups = KB_NC_GROUPS.map((g) => ({ id: g, templates: kbNcTemplates(KB_NC_TEMPLATES.filter((t) => t.group === g), bootIds) })).filter((g) => g.templates.length > 0)
+  // `all` (the shelf): a template this install cannot serve is kept and marked `off`, so the person sees the whole range; without it, it stays hidden.
+  const pick = (g) => all === true ? g.map((t) => kbNcTemplates([t], bootIds).length === 1 ? t : Object.assign({}, t, { off: true })) : kbNcTemplates(g, bootIds)
+  const groups = KB_NC_GROUPS.map((g) => ({ id: g, templates: pick(KB_NC_TEMPLATES.filter((t) => t.group === g)) })).filter((g) => g.templates.length > 0)
   if (want.length === 0) return groups
   const best = (g) => Math.min.apply(null, g.templates.map((t) => rank(t.id)))
   groups.forEach((g) => { g.templates = g.templates.map((t, i) => ({ t, i })).sort((a, b) => rank(a.t.id) - rank(b.t.id) || a.i - b.i).map((x) => x.t) })
@@ -30019,11 +30026,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const list = chosen === null ? [] : kbNcExamples(sp.cat, chosen, sp.kits)
       const info = chosen === null || sp.cat === null ? undefined : (sp.cat.types || []).filter((t) => t.id === chosen)[0]
       return h('div', { className: 'kb8-sh', 'data-kb': 'newchat-shelf' },
-        h('div', { className: 'kb8-sh-types' + (chosen !== null ? ' has-sel' : ''), role: 'group', 'aria-label': kbt('kbnc.sl.label'), 'data-kb': 'newchat-visuals' },
+        h('div', { className: 'kb8-sh-types' + (chosen !== null ? ' has-sel' : ''), role: 'group', 'aria-label': kbt('kbnc.sl.label'), 'data-kb': 'newchat-visuals', style: { '--kb-cols': kbNcCols(groups.reduce((n, g) => n + g.templates.length, 0)) } },
           groups.map((g) => h('div', { key: g.id, className: 'kb8-sl-group', 'data-group': g.id, role: 'group', 'aria-label': kbt('kbnc.g.' + g.id) },
             h('div', { className: 'kb8-sl-cards' }, g.templates.map((t) =>
-              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (chosen === t.id ? ' is-on' : ''), 'aria-pressed': chosen === t.id ? 'true' : 'false', 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => sp.onPick(t.id) },
+              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (chosen === t.id ? ' is-on' : '') + (t.off === true ? ' is-off' : ''), 'aria-pressed': chosen === t.id ? 'true' : 'false', 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => sp.onPick(t.id) },
                 h('span', { className: 'kb8-sl-stage', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[t.id] + '</svg>' } }),
+                t.off === true ? h('span', { className: 'kb8-sl-tag' }, kbt(t.soon === true ? 'kbnc.sl.soon' : 'kbnc.sl.off')) : null,
                 h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
         list.length === 0 ? null : h('section', { className: 'kb8-sh-sec', 'data-kb': 'newchat-examples', 'aria-label': kbt('kbnc.sh.head') },
           h('div', { className: 'kb8-sh-h' }, h('h2', null, kbt('kbnc.sh.head')), info !== undefined && typeof info.blurb === 'string' && info.blurb !== '' ? h('span', null, info.blurb) : null),
@@ -30157,7 +30165,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (blank !== '1') return null
       // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
       try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
-      const groups = kbNcChapters(kbNcBootIds(), kbDomainHome())
+      const groups = kbNcChapters(kbNcBootIds(), kbDomainHome(), true)
       const offered = []
       groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
       const match = kbNcDetect(draft, offered)
@@ -30267,8 +30275,15 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 /* The page's scroller centres the hero; once the examples make the content taller than the window, plain centring pushes the top (title, composer, types) above the
    viewport where no scroll can reach it (measured: -684 px). « safe center » keeps the centring while it fits and starts at the top when it does not; !important because DSH's own hero rule is more specific. */
 [class*="scrollBody"]:has([data-kb="newchat-shelf"]){justify-content:safe center !important}
-.kb8-sh-types{display:flex;flex-wrap:wrap;gap:18px 30px;justify-content:center}
-.kb8-sh-types .kb8-sl-cards{flex-wrap:wrap;justify-content:center}
+/* One even grid, whatever the chapters: every card in a cell of the same width, the same gap everywhere, at most --kb-cols to a row (the chapters wrapped on their own and
+   gave 4 + 2 + 4). The chapter boxes stay in the page for assistive tools but draw nothing. */
+.kb8-sh-types{--kb-cell:140px;display:grid;grid-template-columns:repeat(auto-fit,var(--kb-cell));gap:14px 0;justify-content:center;align-items:center;width:100%;max-width:calc(var(--kb-cols,5) * var(--kb-cell));margin:0 auto}
+.kb8-sh-types .kb8-sl-group,.kb8-sh-types .kb8-sl-cards{display:contents}
+.kb8-sh-types .kb8-sl-card{justify-self:center}
+/* A type this install cannot make yet: shown, a little quieter, with a small tag. */
+.kb8-sl-card.is-off:not(.is-on):not(:hover):not(:focus-visible){color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary))}
+.kb8-sl-tag{position:absolute;top:6px;right:6px;z-index:1;padding:1px 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1));box-shadow:0 0 0 1px var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font-size:11px;font-weight:550;line-height:16px;white-space:nowrap;pointer-events:none}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-tag{display:none}
 .kb8-sh-types .kb8-sl-card{transition:width .45s cubic-bezier(.16,1,.3,1),height .45s cubic-bezier(.16,1,.3,1),opacity .35s,filter .35s,box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1),color .2s}
 .kb8-sh-types .kb8-sl-stage{transition:height .45s cubic-bezier(.16,1,.3,1)}
 .kb8-sh-types .kb8-sl-stage svg{transition:width .45s cubic-bezier(.16,1,.3,1),height .45s cubic-bezier(.16,1,.3,1),transform .45s cubic-bezier(.16,1,.3,1)}

@@ -433,9 +433,11 @@ code: it needs a DSH restart; until then the page says so and the native entry s
 ## The new-chat page
 
 On a blank chat, a dock entry (`kybernos-newchat`, order 25) shows the **template shelf** and a one-line **Cloud Computer**,
-before the team's conversation starters (`kybernos-starters`, order 30), which are not touched. The shelf shows every type in view
-(up to 16 in four chapters: Documents, Media, Apps, Automate; `KB_NC_TEMPLATES`, `KB_NC_GROUPS`). A type is offered only if the bundle
-it needs is installed (Audio and Game stay hidden until a source exists). A click on a type prefills the composer and never sends
+before the team's conversation starters (`kybernos-starters`, order 30), which are not touched. The shelf shows every type in view,
+in one even grid (`kbNcCols`: at most five to a row, the fewest rows, so 16 types are 4 x 4), not in chapters that wrap on their own
+(16 types in four chapters: Documents, Media, Apps, Automate; `KB_NC_TEMPLATES`, `KB_NC_GROUPS`). A type whose bundle is not installed is
+still shown, with a small tag: « Not enabled » (the bundle exists but this install does not load it) or « Soon » (nothing makes it yet: Audio, Game).
+`kbNcChapters(boot, first, true)` returns them marked `off`; without the third argument they are left out, as before. A click on a type prefills the composer and never sends
 (a starter still sends); the person's own words are kept (`kbNcFill`). The type stays lit and larger, the others go quiet, and under
 them come the **examples** of that type: a picture, a name and a line each (`kbNcExamples`). A click on an example opens a dialog with
 the picture and **the request** it starts from; *Use this request* fills the composer, again without sending. The Cloud Computer line

@@ -19,7 +19,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, KB_NC_DB_SEL })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, kbNcCols, KB_NC_WORDS, kbNcTemplates, kbNcChapters, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine, kbNcCat, kbNcKits, kbNcExamples, kbNcPicUrl, kbNcStructure, kbNcAdaptText, KB_NC_DB_SEL })')
 
 // 1. the 16 types, in the four chapters of the shelf; each is offered only when the bundle it needs is installed
 {
@@ -54,6 +54,17 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.deepEqual(first(['@local/kybernos-slides'], ['slides']), ['docs:slides/doc/sheet', 'media:image', 'apps:website', 'auto:automation/team/skill/plugin'])
   assert.equal(J(api.kbNcChapters(every, ['doc'])).flatMap((g) => g.templates).length, 13, 'the same thirteen, reordered')   // 16 types less Audio, Game and App, whose bundles are not in this boot list
   ok('a field of work puts its templates first (the home page highlights what is its own)')
+}
+{
+  // The shelf shows the whole range: what the install cannot serve stays in, marked `off` (`soon` when no bundle makes it yet).
+  const J = (v) => JSON.parse(JSON.stringify(v))
+  const all = api.kbNcChapters(['@local/kybernos-dashboards'], undefined, true).flatMap((g) => g.templates)
+  assert.equal(all.length, 16, 'every type is in the shelf')
+  assert.deepEqual(J(all.filter((t) => t.off === true).map((t) => t.id + (t.soon === true ? '*' : ''))).sort(), J(['slides', 'video', 'audio*', 'model3d', 'app', 'game*', 'miniapp']).sort(), 'only the types this install cannot serve are off; audio and game are soon')
+  assert.ok(all.filter((t) => t.id === 'doc' || t.id === 'dashboard').every((t) => t.off === undefined), 'a served type carries no mark')
+  assert.equal(api.kbNcChapters(['@local/kybernos-dashboards']).flatMap((g) => g.templates).length, 9, 'without the flag the others stay hidden (the eight core types and Dashboards)')
+  assert.deepEqual(J([0, 1, 5, 6, 9, 10, 12, 13, 16].map(api.kbNcCols)), J([1, 1, 5, 3, 5, 5, 4, 5, 4]), 'rows come out even: 5 at most to a row, then the fewest columns that hold them')
+  ok('the shelf shows every type and marks the ones this install cannot make; the type cards form an even grid')
 }
 
 // 2. every template has its label and its prompt in French and English, a drawing, and the chapter has a name
