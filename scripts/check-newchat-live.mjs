@@ -6,12 +6,12 @@
 // What is real: the DSH page and its blank chat. What is swapped (scripts/lib-bundle-swap.mjs, in a throw-away Chrome): the kybernos-plugin client, from this checkout instead of
 // the shared tree. The two host routes of the shelf (`/kybernos/templates-catalogue`, `/kybernos/templates-image`) only exist once `dsh web` restarts with this checkout, so the browser
 // is answered for them by the REAL host module (templates-shelf.mjs) reading a throw-away folder: the catalogue shipped with the plugin and, with --pictures <dir> (a folder holding
-// `shelf/<id>.webp` and `shelf/large/<id>.webp`), the pictures. Without it every card shows its type's own tile, which is what a machine that has not loaded the pictures shows.
+// `shelf/<id>.webp` and `shelf/large/<id>.webp`; a `catalogue.json` beside them, as `scripts/templates-lot.mjs` writes it, replaces the shipped text, so the generated examples are checked too), the pictures. Without it every card shows its type's own tile, which is what a machine that has not loaded the pictures shows.
 // A draft is typed in the composer and cleared again; NOTHING is sent, no app is created (the « Use template » button is looked at, never pressed), and the draft lives in the
 // throw-away browser.
 //
 // Exit 0 all good, 1 a check failed, 3 not run (no GUI, or no blank chat on screen).
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,7 +32,8 @@ const check = (label, cond, detail) => {
 
 // ── the host's answers, from the real module ─────────────────────────────────────────────────────────────────────────
 const folder = mkdtempSync(join(tmpdir(), 'kb-shelf-live-'))
-copyFileSync(join(REPO, 'packages/kybernos-plugin/templates-fallback.json'), join(folder, 'catalogue.json'))
+const released = picsDir === null ? null : join(resolve(picsDir), 'catalogue.json')
+copyFileSync(released !== null && existsSync(released) ? released : join(REPO, 'packages/kybernos-plugin/templates-fallback.json'), join(folder, 'catalogue.json'))
 if (picsDir !== null) symlinkSync(resolve(picsDir, 'shelf'), join(folder, 'shelf'))
 const shelf = createShelf({ dir: () => folder, api: () => '', fetchFn: null })
 const asked = { catalogue: 0, images: [] }
@@ -188,9 +189,12 @@ try {
   if (picsDir === null) check('without pictures every card shows the type\'s own tile (never an empty box)', grid !== null && grid.imgs === 0 && grid.tiles === grid.n, grid)
   else {
     await sleep(1200)
-    const pics = await ev(`[...document.querySelectorAll('[data-kb="newchat-examples"] .kb8-sh-thumb img')].map((i) => ({ ok: i.complete && i.naturalWidth > 0, r: Math.round(i.getBoundingClientRect().width / Math.max(1, i.getBoundingClientRect().height) * 100) / 100 }))`)
-    check('with pictures every card shows its picture, drawn at the picture\'s own proportion', Array.isArray(pics) && pics.length >= 6 && pics.every((x) => x.ok && x.r > 1.2 && x.r < 2), pics)
-    check('only the card pictures were asked of the host (the larger ones wait for a click)', asked.images.length > 0 && asked.images.every((f) => f.indexOf('large/') !== 0), asked.images.slice(0, 4))
+    // A folder of pictures may hold only some examples' (a lot of one type): a card shows its picture where the folder has it, and the type's own tile everywhere else.
+    const held = new Set(readdirSync(join(resolve(picsDir), 'shelf')).filter((f) => f.endsWith('.webp')))
+    const cards = await ev(`[...document.querySelectorAll('[data-kb="newchat-examples"] .kb8-sh-card')].map((c) => { const i = c.querySelector('.kb8-sh-thumb img'); const r = i ? i.getBoundingClientRect() : null; return { id: c.dataset.id, img: !!i && i.complete && i.naturalWidth > 0, tile: !!c.querySelector('.kb8-sh-tile'), r: r ? Math.round(r.width / Math.max(1, r.height) * 100) / 100 : 0 } })`)
+    const want = Array.isArray(cards) ? cards.filter((c) => held.has(c.id + '.webp')) : []
+    check('with pictures every card that has one shows it at its own proportion, and the others show the type\'s tile', Array.isArray(cards) && cards.length > 0 && cards.every((c) => (held.has(c.id + '.webp') ? c.img && c.r > 1.2 && c.r < 2 : c.tile && !c.img)), cards)
+    check('only the card pictures were asked of the host (the larger ones wait for a click)', want.length === 0 ? asked.images.length === 0 : asked.images.length > 0 && asked.images.every((f) => f.indexOf('large/') !== 0), asked.images.slice(0, 4))
   }
   await shot('03-doc')
   check('picking a type moves nothing else', (await stillness()).moved.length === 0)
@@ -243,7 +247,7 @@ try {
     await clickExample(gen)
     await sleep(700)
     const g = await ev(`(() => { const d = document.querySelector('[data-kb="newchat-example-dialog"]'); if (!d) return null; const m = d.querySelector('[data-kb="newchat-example-made"]'); return { made: m ? m.innerText : '', model: m ? m.title : '', prompt: d.querySelector('.kb8-sh-req p').innerText, remix: !!d.querySelector('[data-kb="newchat-example-remix"]'), adapt: !!d.querySelector('[data-kb="newchat-example-adapt"]') } })()`)
-    if (g === null || g.made === '') console.log('  (the first image example was not generated here: the generated-example checks are skipped)')
+    if (g === null || g.made === '') { console.log('  (the first image example was not generated here: the generated-example checks are skipped)'); await key('Escape', 'Escape', 27); await sleep(400) }
     else {
       await shot('04b-generated-dialog')
       check('a generated example names its model and size, and offers Remix next to Use (not the App\'s Adapt)', /\d+\u00d7\d+/.test(g.made) && g.model.indexOf('/') > 0 && g.remix === true && g.adapt === false && g.prompt.length > 40, g)
@@ -254,6 +258,7 @@ try {
       await clearDraft()
     }
   }
+  await clearDraft()
 
   // ── the App type: only what this install can really start ───────────────────────────────────────────────────────────────
   const hasApp = cards.some((c) => c.id === 'app')
