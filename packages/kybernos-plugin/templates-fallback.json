@@ -1154,6 +1154,16 @@
    }
   },
   {
+   "id": "audio_podcast_doc",
+   "type": "audio",
+   "kind": "prompt",
+   "name": "Two-host podcast from a document",
+   "tag": "Podcast",
+   "line": "Two hosts talk through your document: a hook, three key points with an example each, a short recap. About 3 minutes, in a natural voice.",
+   "meta": "Prompt",
+   "prompt": "Turn the document I attach into a 3-minute two-host podcast episode. Host A is curious and asks the questions, host B explains. Structure: a 15-second hook, three key points each with one concrete example, then a 20-second recap and one question for the listener. Natural spoken English, short sentences, light humour, no jargon. Warm studio voices, a different voice for each host, a soft intro and outro. Before generating, show me the script and the voices you picked; then give me the MP3 and the transcript."
+  },
+  {
    "id": "model3d_chair",
    "type": "model3d",
    "name": "Armchair configurator",

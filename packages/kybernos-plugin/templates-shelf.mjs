@@ -42,7 +42,7 @@ const ID = /^[a-z0-9][a-z0-9_]{0,63}$/
 const KIT = /^[a-z0-9][a-z0-9-]{0,39}$/
 const IMAGE = /^(?:large\/)?[a-z0-9][a-z0-9_-]{0,63}\.webp$/
 const VIDEO = /^(?:video\/[a-z0-9][a-z0-9_-]{0,63}\.mp4|audio\/[a-z0-9][a-z0-9_-]{0,63}\.mp3)$/
-const KINDS = ['template', 'start']
+const KINDS = ['template', 'start', 'prompt']   // `prompt`: a card made of text only (the summary of a ready-made prompt in `line`, the prompt itself in `prompt`): a click puts the prompt in the composer
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,79}$/
 
 const obj = (v) => (v !== null && v !== undefined && typeof v === 'object' && !Array.isArray(v) ? v : null)
