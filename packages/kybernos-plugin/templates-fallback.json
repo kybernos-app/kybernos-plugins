@@ -1226,138 +1226,75 @@
    }
   },
   {
-   "id": "model_box",
+   "id": "model3d_chair",
    "type": "model3d",
-   "name": "Packaging box",
+   "name": "Armchair configurator",
+   "tag": "Shop",
+   "line": "Pick the fabric, the frame and the size: the price follows.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make an interactive 3D armchair configurator for my online shop: the customer turns it around, picks the fabric, the frame wood and the size, and the price follows. Ask me for my real options and prices first, or use sample ones labelled as sample.",
+   "image": {
+    "src": "model3d_chair.webp",
+    "width": 720,
+    "height": 450,
+    "alt": "A 3D armchair with a fabric, frame and size picker and a live price",
+    "large": "large/model3d_chair.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
+   }
+  },
+  {
+   "id": "model3d_grinder",
+   "type": "model3d",
+   "name": "Hand grinder, exploded",
    "tag": "Product",
-   "line": "A kraft cardboard box with tape, ready to print on.",
-   "meta": "1 model",
-   "prompt": "A kraft cardboard packaging box with tape, on a light grey studio backdrop.",
+   "line": "Twelve CAD solids, a bill of materials and a cost by batch.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make an interactive 3D exploded view of a hand coffee grinder with a bill of materials: real CAD solids, the mass of each part from its volume, and the cost by batch from assumptions shown on the page. Ask me for my own product and dimensions first, or use sample ones labelled as sample.",
    "image": {
-    "src": "model_box.webp",
+    "src": "model3d_grinder.webp",
     "width": 720,
     "height": 450,
-    "alt": "Packaging box template preview"
+    "alt": "An exploded 3D coffee grinder next to its bill of materials with mass and cost",
+    "large": "large/model3d_grinder.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
    }
   },
   {
-   "id": "model_ball",
+   "id": "model3d_engine",
    "type": "model3d",
-   "name": "Sphere",
-   "tag": "Basics",
-   "line": "A glossy blue sphere with soft reflections.",
-   "meta": "1 model",
-   "prompt": "A glossy blue sphere with soft reflections, on a light grey studio backdrop.",
+   "name": "Four-stroke engine",
+   "tag": "Mechanics",
+   "line": "A cutaway with a computed cycle: valves, pressure and power.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make a 3D cutaway of a four-stroke engine with a cycle that is computed, not animated by hand: the valves, the pressure curve and the power follow the throttle and the spark. Tell me what you checked and what is an assumption.",
    "image": {
-    "src": "model_ball.webp",
+    "src": "model3d_engine.webp",
     "width": 720,
     "height": 450,
-    "alt": "Sphere template preview"
+    "alt": "A cutaway 3D engine beside its computed pressure curve and figures",
+    "large": "large/model3d_engine.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
    }
   },
   {
-   "id": "model_vase",
+   "id": "model3d_stool",
    "type": "model3d",
-   "name": "Ribbed vase",
-   "tag": "Home",
-   "line": "A turned shape with fine ribs, ready to export.",
-   "meta": "1 model",
-   "prompt": "A vase with a ribbed body on a round base, on a light grey studio backdrop.",
-   "image": {
-    "src": "model_vase.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Ribbed vase template preview"
-   }
-  },
-  {
-   "id": "model_ring",
-   "type": "model3d",
-   "name": "Ring",
-   "tag": "Jewellery",
-   "line": "A gold band with a small diamond.",
-   "meta": "1 model",
-   "prompt": "A thick gold ring with a small diamond, seen at an angle, with a soft highlight, on a light grey studio backdrop.",
-   "image": {
-    "src": "model_ring.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Ring template preview"
-   }
-  },
-  {
-   "id": "model_can",
-   "type": "model3d",
-   "name": "Soda can",
-   "tag": "Product",
-   "line": "A cold soda can with a red label.",
-   "meta": "1 model",
-   "prompt": "A 330 ml soda can with a red label band and a metal top, on a light grey studio backdrop.",
-   "image": {
-    "src": "model_can.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Soda can template preview"
-   }
-  },
-  {
-   "id": "model_cone",
-   "type": "model3d",
-   "name": "Safety cone",
-   "tag": "Basics",
-   "line": "An orange cone with two reflective bands.",
-   "meta": "1 model",
-   "prompt": "A traffic safety cone with a white reflective stripe on a square base, on a light grey studio backdrop.",
-   "image": {
-    "src": "model_cone.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Safety cone template preview"
-   }
-  },
-  {
-   "id": "model_table",
-   "type": "model3d",
-   "name": "Side table",
+   "name": "Wooden stool",
    "tag": "Furniture",
-   "line": "A small wooden table you can place in a room.",
-   "meta": "1 model",
-   "prompt": "A small round wooden side table with three tapered legs, on a light grey studio backdrop.",
+   "line": "Four solids, checked to fit, with the mass of each part.",
+   "meta": "Interactive page + .glb",
+   "prompt": "Make a 3D product page for a three-legged wooden stool: turn it around, explode it, click a part for its material and mass, and export the .glb. Ask me for my real dimensions and wood first, or use sample ones labelled as sample.",
    "image": {
-    "src": "model_table.webp",
+    "src": "model3d_stool.webp",
     "width": 720,
     "height": 450,
-    "alt": "Side table template preview"
-   }
-  },
-  {
-   "id": "model_stairs",
-   "type": "model3d",
-   "name": "Stairs",
-   "tag": "Architecture",
-   "line": "Concrete steps in soft studio light.",
-   "meta": "1 model",
-   "prompt": "A small flight of concrete steps lit from the side to show depth, on a light grey studio backdrop.",
-   "image": {
-    "src": "model_stairs.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Stairs template preview"
-   }
-  },
-  {
-   "id": "model_chair",
-   "type": "model3d",
-   "name": "Lounge chair",
-   "tag": "Furniture",
-   "line": "Walnut frame, green velvet seat.",
-   "meta": "1 model",
-   "prompt": "A mid-century lounge chair in walnut and green velvet, on a light grey studio backdrop.",
-   "image": {
-    "src": "model_chair.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Lounge chair template preview"
+    "alt": "A three-legged wooden stool in 3D with its list of parts and masses",
+    "large": "large/model3d_stool.webp",
+    "largeWidth": 1280,
+    "largeHeight": 800
    }
   },
   {

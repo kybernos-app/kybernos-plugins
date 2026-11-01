@@ -32,6 +32,6 @@ Only plain files with safe names are copied (no symlink, no hidden name, no spac
 
 ## Not done
 
-- The shelf entries do not name the skill yet (the platform step « app » sample kind is not built).
+- The shelf entries (`docs/dev/templates-lots/model3d-1.json`, four examples with real screenshots, see `docs/dev/templates-catalogue.md`) start the skill with a request in the composer; a « sample kind » that opens the skill without the person pressing send is not built. The camshaft and followers of the engine are not drawn.
 - Strength, standards and manufacturability are out of scope and the skill says so.
 - The page loads three.js (0.160) from a public CDN: it needs internet.
