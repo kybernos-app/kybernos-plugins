@@ -26,8 +26,8 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   assert.equal(b.schema, SHELF_SCHEMA)
   assert.equal(b.types.length, 16, 'the 16 types of the shelf')
   assert.equal(b.templates.length, raw.templates.length, 'no entry is dropped by the check (a drop would be a typo in the file)')
-  assert.equal(b.templates.length, 138)
-  for (const t of b.types) assert.equal(b.templates.filter((x) => x.type === t.id).length, t.id === 'video' ? 8 : t.id === 'model3d' ? 4 : 9, t.id + ' has its examples')
+  assert.equal(b.templates.length, 133)
+  for (const t of b.types) assert.equal(b.templates.filter((x) => x.type === t.id).length, t.id === 'video' ? 8 : t.id === 'model3d' || t.id === 'audio' ? 4 : 9, t.id + ' has its examples')
   assert.equal(new Set(b.templates.map((t) => t.id)).size, b.templates.length, 'ids are unique')
   for (const t of b.templates) {
     assert.ok(t.image !== undefined && shelfImageName(t.image.src) === t.image.src, t.id + ' names a card picture')
@@ -46,7 +46,7 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   for (const t of kits) assert.ok(existsSync(join(here, 'themes', t.kit, 'plugin.json')), t.id + ' → themes/' + t.kit + ' exists')
   // the two kinds of App entry: a template (a kit, sample rows) and a simple start
   assert.deepEqual(J(b.templates.filter((t) => t.type === 'app').map((t) => t.kind).sort()), ['start', 'start', 'start', 'template', 'template', 'template', 'template', 'template', 'template'])
-  ok('the shipped catalogue is valid text: 16 types, 138 examples, 9 each (8 of video, 4 of 3D), kits that exist, no picture in git')
+  ok('the shipped catalogue is valid text: 16 types, 133 examples, 9 each (8 of video, 4 of 3D, 4 of audio), kits that exist, no picture in git')
 }
 
 // 2. everything the server sends is checked again
@@ -103,7 +103,7 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const s = createShelf({ dir: () => null, api: () => '', fetchFn: () => { throw new Error('no network expected') } })
   const c = await s.catalogue()
   assert.equal(c.source, 'bundled')
-  assert.equal(c.templates.length, 138)
+  assert.equal(c.templates.length, 133)
   assert.ok(c.templates.every((t) => t.image.ready === false), 'no picture is claimed that is not there')
   assert.equal(await s.image('doc_a.webp'), null, 'no server, no folder: no picture')
   assert.equal(await s.image('../../etc/passwd'), null)
@@ -145,7 +145,7 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const r = await s.load()
   assert.equal(r.ok, true)
   assert.equal(r.version, 7)
-  assert.equal(r.images, 138, 'every card picture was asked once')
+  assert.equal(r.images, 133, 'every card picture was asked once')
   assert.ok(server.calls[0] === 'https://server.example.test/v1/templates/catalogue.json', server.calls[0])
   assert.ok(server.calls.some((u) => u === 'https://server.example.test/v1/templates/shelf/app_ecommerce.webp'))
   assert.ok(!server.calls.some((u) => u.includes('/large/')), 'dialog pictures wait for a person to open one')
@@ -153,7 +153,7 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   assert.equal(c.source, 'server')
   assert.equal(c.version, 7)
   assert.ok(c.templates.every((t) => t.image.ready === true && (t.image.large === undefined ? t.image.readyLarge === undefined : t.image.readyLarge === false)))
-  assert.equal(readdirSync(join(dir, 'shelf')).filter((f) => f.endsWith('.webp')).length, 138)
+  assert.equal(readdirSync(join(dir, 'shelf')).filter((f) => f.endsWith('.webp')).length, 133)
   assert.ok(existsSync(join(dir, 'catalogue.json')))
   assert.equal(await s.due(), false, 'a copy under a day old is enough')
   const before = server.calls.length
