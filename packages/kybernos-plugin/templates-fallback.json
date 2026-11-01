@@ -1,7 +1,7 @@
 {
  "schema": "kybernos.templates/1",
- "version": 5,
- "updatedAt": "2026-11-01T15:06:50Z",
+ "version": 6,
+ "updatedAt": "2026-11-01T15:36:54Z",
  "locale": "en",
  "imageBase": "shelf/",
  "groups": [
@@ -1028,19 +1028,19 @@
    }
   },
   {
-   "id": "video_old_photo_alive_r2",
+   "id": "video_old_photo_alive_r4",
    "type": "video",
    "name": "Old photo, alive",
    "tag": "Storytelling",
-   "line": "A faded photograph moves, turns to colour and tells its story.",
-   "meta": "15 seconds · 16:9 · voice-over and music",
-   "prompt": "Bring my old photograph to life as a 15-second film with a narrated script. Ask me for the photo, the place and the year and the story to tell; write a three-line script and show it to me before you animate. The scene must move for real (people, vehicles, the camera), not just the face.",
+   "line": "A worn print is restored in sharp HD, then its people move and speak.",
+   "meta": "8 seconds · 16:9 · restored in HD, with a voice",
+   "prompt": "Bring my old photograph to life as a short film. Restore it in sharp high definition first and show me the restored picture next to the original; then animate it, with the people really moving (not just the face) and a voice line in my own language. Ask me for the photo, the place and the year and the story to tell; show me the lines before you animate.",
    "image": {
-    "src": "video_old_photo_alive_r2.webp",
+    "src": "video_old_photo_alive_r4.webp",
     "width": 720,
     "height": 450,
-    "alt": "An antique sepia photograph of a harbour market square, the crowd beginning to move.",
-    "large": "large/video_old_photo_alive_r2.webp",
+    "alt": "An old sepia family picnic by a lake, restored sharp: grandparents on a blanket, two children and their father standing, a dog in the grass.",
+    "large": "large/video_old_photo_alive_r4.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
