@@ -178,6 +178,7 @@ export const describe = (record, secret, usage, nowMs) => {
     preset: presetOf(fields),
     ...fields,
     usedToday: { memory: used.memory, computer: used.computer },
-    limits: LIMIT_MAX
+    limits: LIMIT_MAX,
+    presets: PRESETS
   }
 }

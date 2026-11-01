@@ -9,7 +9,11 @@
 // folder they write, the core's voice list. Faked, by replacing the page's `fetch` for those two paths only, before any script runs: the image
 // model's answer (`/kybernos/image/generate`: the sandbox has no model key; it answers a plain 512 px PNG) and the voice engine's audio
 // (`/kybernos/tts/speak`, recorded so the check can read what was asked). Exit code 0 / 1 / 3 (not run).
-import { mkdirSync } from 'node:fs'
+// The two cards about what Kaby does are real too: the permissions card signs and pauses through kybernos-cloud's real routes and the
+// sandbox's own key (the record is read back from disk), and « Where Kaby works » is drawn from kybernos-kyber's real seam. Faked there:
+// the account (kybernos-kyber's two reads, `/kybernos-cloud/kyber` and `/server`, and its link call `/kybernos-cloud/kyby/computer`, so no
+// account is ever touched and no computer is linked), and only once the check says so.
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { deflateSync } from 'node:zlib'
 import { openLivePage, waitFor } from './live-page.mjs'
@@ -38,9 +42,12 @@ const png = (() => {
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
 })()
 
+const CLOUD = [{ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended' }, { id: 'bbbbbbbb-2222', name: 'Atelier', state: 'running' }]
 const FAKE = `(() => {
   const real = window.fetch.bind(window)
-  window.__kc = { image: 0, speak: [] }
+  window.__kcCloud = false
+  window.__kcHome = 'aaaaaaaa-1111'
+  window.__kc = { image: 0, speak: [], linked: [] }
   window.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : (input && input.url) || ''
     if (url === '/kybernos/image/generate') {
@@ -50,6 +57,18 @@ const FAKE = `(() => {
     if (url === '/kybernos/tts/speak') {
       window.__kc.speak.push(JSON.parse(init.body))
       return new Response(JSON.stringify({ ok: false, error: 'faked: no audio in this check' }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
+    // kybernos-kyber's account: none in the sandbox. Off until the check turns it on; the link call is always faked, so no computer is ever linked.
+    if (url === '/kybernos-cloud/kyber' && window.__kcCloud === true) {
+      const cs = ${JSON.stringify(CLOUD)}
+      return new Response(JSON.stringify({ ok: true, connected: true, telegram: null, home: cs.find((c) => c.id === window.__kcHome), computers: cs }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
+    if (url === '/kybernos-cloud/server' && window.__kcCloud === true) return new Response(JSON.stringify({ ok: true, server: { api: 'https://example.invalid/', web: 'https://example.invalid' } }), { status: 200, headers: { 'content-type': 'application/json' } })
+    if (url === '/kybernos-cloud/kyby/computer' && init && init.method === 'POST') {
+      const id = JSON.parse(init.body).computer_id
+      window.__kc.linked.push(id)
+      if (id) window.__kcHome = id
+      return new Response(JSON.stringify({ ok: true, computer_id: id }), { status: 200, headers: { 'content-type': 'application/json' } })
     }
     return real(input, init)
   }
@@ -71,12 +90,15 @@ const type = async (sel, v) => {
   return ok
 }
 const api = (path, body) => js(`fetch('/kybernos-kaby-customisation${path}', ${body === undefined ? '{}' : `{ method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }`}).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
-const shot = async (name) => { if (shotDir !== null) { mkdirSync(shotDir, { recursive: true }); await page.shot(join(shotDir, name + '.png')) } }
+const mandateApi = (path, body) => js(`fetch('/kybernos-cloud/kyby/mandate${path}', ${body === undefined ? '{}' : `{ method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }`}).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
+const mandateFile = () => join(process.env.DSH_HOME || '', 'kybernos', 'kyby-mandate.json')
+const shot = async (name, sel) => { if (shotDir !== null) { mkdirSync(shotDir, { recursive: true }); if (sel !== undefined) { await js(`(() => { const e = document.querySelector(${q(sel)}); if (e) e.scrollIntoView({ block: 'start' }); return true })()`); await sleep(250) } await page.shot(join(shotDir, name + '.png')) } }
 
 try {
   // The sandbox keeps what an earlier run left: start from the defaults.
   await waitFor(page, 'document.body && document.body.innerText.length > 40', 30000)
   await api('/voice-sample/remove', {}); await api('/portrait/remove', {}); await api('/profile', { patch: { name: 'Kaby', look: '', voice: { pick: 'default' } } })
+  await mandateApi('/set', { preset: 'off', paused: false })
   console.log('── the seam and the page ──')
   check('the bundle published its seam', await waitFor(page, 'typeof window.__KB_KABY__ === "object" && typeof window.__KB_KABY__.open === "function"', 30000) === true)
   await sleep(500)
@@ -188,6 +210,64 @@ try {
   check('and the host refuses it too, as « soon »', refused.status === 400 && refused.json.refused.face === 'soon', refused)
   await shot('04-face')
 
+  console.log('── where Kaby works ──')
+  const whereChip = () => js('document.querySelector(\'[data-kb="kaby-custom-where-chip"]\').textContent')
+  check('the card is drawn once kybernos-kyber has read the account', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-where"]\') !== null', 30000) === true)
+  check('with no account the select offers this computer alone (so it is off) and the chip says Ready', (await js('(() => { const s = document.querySelector(\'[data-kb="kaby-custom-where-pick"]\'); return s.value === "local" && s.disabled === true && s.options.length === 1 })()')) === true && (await whereChip()).includes('Ready'))
+  check('and says to keep Kybernos open, with no cloud warning', (await js('(() => { const t = document.querySelector(\'[data-kb="kaby-custom-where-help"]\').textContent; return t.includes("keep Kybernos open") && document.querySelector(\'[data-kb="kaby-custom-where-cloud-note"]\') === null })()')) === true)
+  await shot('05-where-local', '[data-kb="kaby-custom-where"]')
+  await js('window.__kcCloud = true, window.__KB_KYBER__.refresh().then(() => true)', 20000)
+  check('with a cloud account (faked) the select lists this computer and the two cloud ones, and is on', await waitFor(page, '(() => { const s = document.querySelector(\'[data-kb="kaby-custom-where-pick"]\'); return !!s && s.options.length === 3 && s.disabled === false })()', 15000) === true)
+  check('the cloud computer already made is the one picked, and the chip says its state', (await js('document.querySelector(\'[data-kb="kaby-custom-where-pick"]\').value')) === 'aaaaaaaa-1111' && (await whereChip()).includes('Asleep'))
+  const pickWhere = (v) => js(`(() => { const s = document.querySelector('[data-kb="kaby-custom-where-pick"]'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, ${JSON.stringify(v)}); s.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
+  await pickWhere('bbbbbbbb-2222')
+  check('picking the other cloud computer links it through the host (faked here), shows its state and the warning that the permissions do not reach it', await waitFor(page, 'window.__kc.linked.includes("bbbbbbbb-2222") && document.querySelector(\'[data-kb="kaby-custom-where-pick"]\').value === "bbbbbbbb-2222" && document.querySelector(\'[data-kb="kaby-custom-where-cloud-note"]\') !== null', 15000) === true && (await whereChip()).includes('Awake'))
+  check('it is the setting of « Set up… »: the seam of kybernos-kyber says the same, and the browser remembered it', (await js('(() => { const w = window.__KB_KYBER__.where(); return w.local === false && w.picked === "bbbbbbbb-2222" && window.localStorage.getItem("kybernos-kyber.where") === "cloud" })()')) === true)
+  await shot('05b-where-cloud', '[data-kb="kaby-custom-where"]')
+  const linkedBefore = await js('window.__kc.linked.length')
+  await pickWhere('local')
+  check('going back to this computer calls nobody, drops the warning and is remembered', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-where-cloud-note"]\') === null && window.localStorage.getItem("kybernos-kyber.where") === "local"', 8000) === true && (await js('window.__kc.linked.length')) === linkedBefore && (await whereChip()).includes('Ready'))
+  await js('window.__kcCloud = false, window.__KB_KYBER__.refresh().then(() => true)', 20000)
+
+  console.log('── permissions ──')
+  const chipState = () => js('document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state')
+  check('the card is drawn, and nothing is in force at the start', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\') !== null', 15000) === true && (await chipState()) === 'none')
+  check('« Off » is the pressed starting point; sign is off (nothing to sign), the switches are on', (await js('(() => { const on = Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-mandate-preset"]\')).filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.dataset.preset); return on.join() === "off" && document.querySelector(\'[data-kb="kaby-custom-mandate-sign"]\').disabled === true && Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-mandate-switch"]\')).every((b) => b.disabled === false) })()')) === true)
+  await shot('06-permissions-none', '[data-kb="kaby-custom-mandate"]')
+  await click('[data-kb="kaby-custom-mandate-preset"][data-preset="standard"]')
+  await sleep(300)
+  check('a starting point is a draft: « Changes to sign », sign on, and nothing is written yet', (await chipState()) === 'dirty' && (await js('document.querySelector(\'[data-kb="kaby-custom-mandate-sign"]\').disabled')) === false && (await mandateApi('')).json.inForce === false)
+  await click('[data-kb="kaby-custom-mandate-sign"]')
+  check('signing puts it in force: the chip, the host’s view and the signed file agree', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state === "in_force"', 15000) === true)
+  const inForce = (await mandateApi('')).json
+  check('the host says standard, 40 and 40, and never sends the signature', inForce.inForce === true && inForce.preset === 'standard' && inForce.memoryPerDay === 40 && inForce.computerPerDay === 40 && !JSON.stringify(inForce).includes('"sig"'), inForce)
+  check('the record is on disk, private and signed', (() => { try { const st = statSync(mandateFile()); const rec = JSON.parse(readFileSync(mandateFile(), 'utf8')); return (st.mode & 0o777) === 0o600 && typeof rec.sig === 'string' && rec.sig.length === 64 && rec.memory === true && rec.computer === true } catch (e) { return false } })())
+  check('today’s use is shown for each class on', (await js('document.querySelectorAll(\'[data-kb="kaby-custom-mandate-use"]\').length')) === 2)
+  await shot('07-permissions-in-force', '[data-kb="kaby-custom-mandate"]')
+  await type('[data-kb="kaby-custom-mandate-limit"][data-class="memory"]', '10')
+  await sleep(300)
+  check('a limit changed is a draft again, shown as Custom', (await chipState()) === 'dirty' && (await exists('[data-kb="kaby-custom-mandate-custom"]')) === true)
+  await click('[data-kb="kaby-custom-mandate-sign"]')
+  await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state === "in_force"', 15000)
+  const custom = (await mandateApi('')).json
+  check('signed again with 10 a day for memory, the rest kept', custom.memoryPerDay === 10 && custom.computerPerDay === 40 && custom.preset === 'custom', custom)
+  await click('[data-kb="kaby-custom-mandate-switch"][data-class="computer"]')
+  await click('[data-kb="kaby-custom-mandate-sign"]')
+  await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state === "in_force"', 15000)
+  check('switching a class off and signing leaves it off in the host', (await mandateApi('')).json.computer === false)
+  await click('[data-kb="kaby-custom-mandate-pause"]')
+  check('pausing stops everything: the chip, the sentence, and the host says paused with the settings kept', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state === "paused"', 15000) === true && (await exists('[data-kb="kaby-custom-mandate-note"]')) === true)
+  const paused = (await mandateApi('')).json
+  check('the host keeps the numbers while paused, and covers nothing', paused.paused === true && paused.inForce === false && paused.memory === true && paused.memoryPerDay === 10, paused)
+  await shot('08-permissions-paused', '[data-kb="kaby-custom-mandate"]')
+  await click('[data-kb="kaby-custom-mandate-pause"]')
+  check('resuming puts it back in force', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state === "in_force"', 15000) === true && (await mandateApi('')).json.inForce === true)
+  await click('[data-kb="kaby-custom-mandate-log-toggle"]')
+  check('the log opens and says nothing ran without a question today', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-log-empty"]\') !== null', 8000) === true)
+  const refusedSet = await js(`fetch('/kybernos-cloud/kyby/mandate/set', { method: 'POST', credentials: 'omit', headers: { 'content-type': 'application/json' }, body: '{"preset":"intensive"}' }).then((r) => r.status)`)
+  check('a signing request without the page’s session is refused, and nothing changed', (refusedSet === 401 || refusedSet === 403) && (await mandateApi('')).json.preset === 'custom', refusedSet)
+  await shot('09-permissions-log', '[data-kb="kaby-custom-mandate"]')
+
   console.log('── the host guards ──')
   const badBody = await js(`fetch('/kybernos-kaby-customisation/profile', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{ nope' }).then((r) => r.status)`)
   check('a body that is not JSON is 400 (the origin guard itself is played by test-host.mjs: a page cannot forge an Origin)', badBody === 400, badBody)
@@ -195,9 +275,17 @@ try {
   await sleep(100)
   void reload
   check('the profile survives a reload (the file is on disk)', await waitFor(page, 'window.__KB_KABY__ && window.__KB_KABY__.profile() && window.__KB_KABY__.profile().name === "Léa"', 30000) === true)
+  check('the permissions survive it too: still in force after the reload', (await mandateApi('')).json.inForce === true)
+  // A record edited by hand is void: the card says so and asks for a new signature.
+  try { const rec = JSON.parse(readFileSync(mandateFile(), 'utf8')); writeFileSync(mandateFile(), JSON.stringify({ ...rec, memoryPerDay: 500 }) + '\n') } catch (e) { check('the record could be edited for the tamper check', false, String(e && e.message)) }
+  await sleep(300)
+  await js('window.__KB_KABY__.open()', 30000)
+  check('an edited record is void: the host says altered, the card says to sign again, with an alert', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\') && document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state === "resign"', 30000) === true && (await mandateApi('')).json.why === 'altered' && (await js('document.querySelector(\'[data-kb="kaby-custom-mandate-note"]\').getAttribute("role")')) === 'alert')
+  await shot('10-permissions-altered', '[data-kb="kaby-custom-mandate"]')
 } finally {
   try { await api('/profile', { patch: { name: 'Kaby', look: '', voice: { pick: 'default' } } }) } catch (e) { /* sandbox only */ }
   try { await api('/portrait/remove', {}) } catch (e) { /* sandbox only */ }
+  try { await mandateApi('/set', { preset: 'off', paused: false }) } catch (e) { /* sandbox only */ }
   await live.close()
 }
 
