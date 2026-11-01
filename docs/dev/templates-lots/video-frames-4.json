@@ -1,0 +1,13 @@
+{
+ "name": "video-frames-4",
+ "style": "Photographic, natural faces, no text, no lettering, no watermark",
+ "ask": { "width": 1344, "height": 768, "steps": 4 },
+ "keep": { "width": 1344, "quality": 88, "maxKb": 900 },
+ "cells": [
+  {
+   "name": "family-source",
+   "seed": 6101,
+   "prompt": "Antique black and white family portrait from 1936, a family of five posed on the front step of a small house with a flowering vine on the wall: a father in a waistcoat and flat cap, a mother in a floral dress holding a baby, a grandmother in a dark dress seated on a wooden chair, and a boy of about eight in short trousers and suspenders, all looking at the camera, a few of them smiling, plain studio-like daylight, shot on a box camera"
+  }
+ ]
+}

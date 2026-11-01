@@ -2,7 +2,8 @@
 // The raw parts of a shelf video (docs/dev/templates-catalogue.md): a clip, a voice, a piece of music, and a way to hear what was said.
 // Every part is paid for here, one call at a time, and written as a file OUTSIDE the repository; scripts/video-compose.mjs cuts them together.
 //
-//   node scripts/video-parts.mjs clip   <out.mp4>   [--image in.jpg] [--aspect 16:9|9:16] [--seconds 5..15] [--res 480p|768p] [--seed N] "<prompt>"
+//   node scripts/video-parts.mjs clip   <out.mp4>   [--image in.jpg] [--aspect 16:9|9:16] [--seconds 5..15] [--res 480p|768p|1080p|2k] [--enhance turbo|quality|ultraquality|disabled] [--seed N] "<prompt>"
+//   node scripts/video-parts.mjs restore <out.jpg>  --image old.jpg [--model bfl/flux-kontext-pro] [--aspect 16:9] [--seed N] "<what to restore>"      an old picture made clear and sharp by an image-edit model (about $0.04), the first frame of a clean film
 //   node scripts/video-parts.mjs music  <out.mp3>   [--seconds 30..500] [--lyrics "<text>"] "<style prompt>"
 //   node scripts/video-parts.mjs voice  <out.mp3>   [--voice af_heart] [--speed 1] "<text>"
 //   node scripts/video-parts.mjs listen <file.mp4|mp3|wav> [--segments 1]       prints what a speech model hears in the file (the only way to check a voice here); --segments adds when each line starts and ends
@@ -27,7 +28,7 @@ for (let i = 0; i < rest.length; i++) {
 const out = words[0]
 const text = words.slice(1).join(' ')
 const fail = (m) => { console.error(m); process.exit(1) }
-if (!['clip', 'music', 'voice', 'listen'].includes(cmd) || out === undefined) fail('usage: node scripts/video-parts.mjs clip|music|voice <out> [flags] "<text>"  |  listen <file>')
+if (!['clip', 'restore', 'music', 'voice', 'listen'].includes(cmd) || out === undefined) fail('usage: node scripts/video-parts.mjs clip|restore|music|voice <out> [flags] "<text>"  |  listen <file>')
 
 const credential = (name) => {
   if (process.env[name]) return process.env[name]
@@ -66,11 +67,24 @@ if (cmd === 'clip') {
     model: gateway.video('heygen/heygen-video-1'),
     prompt: flags.image !== undefined ? { image: readFileSync(resolve(flags.image)), text } : text,
     duration: Number(flags.seconds || 5), aspectRatio: flags.aspect || '16:9', seed: Number(flags.seed || 1),
-    providerOptions: { heygen: { resolution: flags.res || '768p' } },
+    providerOptions: { heygen: { resolution: flags.res || '768p', ...(flags.enhance !== undefined ? { promptEnhancement: flags.enhance } : {}) } },
     poll: { intervalMs: 5000, timeoutMs: 900000 }
   })
   save(out, result.videos[0].uint8Array)
   console.log(out + ': ' + Math.round((Date.now() - started) / 1000) + ' s, ' + result.videos[0].uint8Array.length + ' bytes ' + JSON.stringify(result.warnings || []).slice(0, 200))
+} else if (cmd === 'restore') {
+  const gw = resolve(process.env.KB_GW_DIR || join(homedir(), 'kybernos-archive', 'templates-catalogue', 'tools', 'gw'))
+  const { generateImage } = await import(pathToFileURL(join(gw, 'node_modules', 'ai', 'dist', 'index.js')).href)
+  const { createGateway } = await import(pathToFileURL(join(gw, 'node_modules', '@ai-sdk', 'gateway', 'dist', 'index.js')).href)
+  const gateway = createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY || credential('VERCEL_AI_GATEWAY_API_KEY') })
+  if (flags.image === undefined) fail('restore needs --image <the old picture>')
+  const result = await generateImage({
+    model: gateway.image(flags.model || 'bfl/flux-kontext-pro'),
+    prompt: { images: [readFileSync(resolve(flags.image))], text },
+    aspectRatio: flags.aspect || '16:9', seed: Number(flags.seed || 1)
+  })
+  save(out, result.images[0].uint8Array)
+  console.log(out + ': ' + result.images[0].uint8Array.length + ' bytes ' + JSON.stringify(result.warnings || []).slice(0, 200))
 } else if (cmd === 'music') {
   const body = { prompt: text, duration: Math.max(30, Number(flags.seconds || 30)), response_format: 'mp3' }
   if (flags.lyrics !== undefined) body.lyrics = flags.lyrics

@@ -515,6 +515,18 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   for (const word of ['product photo', 'garment', 'theme', 'best exterior photo', 'old photo', 'exercises', 'logo']) assert.ok(skill.includes(word), 'the skill asks for the ' + word + ' that its example asks for')
   assert.ok(/clip cannot be made yet/.test(skill) && /Never ask for, print or store an API key/.test(skill), 'the skill says plainly that generation is not wired and never asks for a key')
   ok('the video examples start video-creator: shipped, seeded, and tied to a real tool and route')
+
+  // the old-photo example has its own skill: restore first, show it, then animate; the film is in the person's language; it stops at a brief when nothing can be generated
+  assert.ok(/'photo-alive'/.test(listed[1]), 'photo-alive is in the list of skills the plugin seeds')
+  const alive = readFileSync(join(here, 'skills', 'photo-alive', 'SKILL.md'), 'utf8')
+  assert.ok(skill.includes('`photo-alive`'), 'video-creator sends the old-photo example to photo-alive')
+  assert.ok(alive.includes('/kybernos-cloud/models') && /Prices and model ids come from the models answer only/.test(alive), 'photo-alive reads the models and the prices from the models route')
+  assert.ok(alive.indexOf('## 3. Restore, then ask') > 0 && alive.indexOf('## 3. Restore, then ask') < alive.indexOf('## 4. The clip'), 'the restoration comes before the clip')
+  assert.ok(/wait for a yes/.test(alive) && /Never generate, spend or send the photograph before the person said yes/.test(alive), 'nothing is paid for before the person has seen the restored picture')
+  assert.ok(/in the language the person writes to you/.test(alive), 'the voice, the caption and the label follow the person\'s language')
+  assert.ok(/the film cannot be made yet/.test(alive) && /photo-alive-brief\.md/.test(alive) && /Never ask for, print or store an API key/.test(alive), 'photo-alive stops at a brief when nothing can be generated and never asks for a key')
+  assert.ok(/blend=all_expr/.test(alive) && /xfade=transition=fade/.test(alive) && /-pix_fmt yuv420p/.test(alive), 'photo-alive carries the ffmpeg commands of the opening and of the join (a player-safe pixel format)')
+  ok('the old-photo example has its own skill: restore, show, animate, join, in the person\'s language')
 }
 
 console.log('\n' + pass + ' checks passed')

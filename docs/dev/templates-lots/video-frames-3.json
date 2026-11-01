@@ -1,0 +1,13 @@
+{
+ "name": "video-frames-3",
+ "style": "Sharp focus, very high detail, clean image without film grain, no text, no lettering, no watermark",
+ "ask": { "width": 1920, "height": 1088, "steps": 4 },
+ "keep": { "width": 1920, "quality": 88, "maxKb": 900 },
+ "cells": [
+  {
+   "name": "v3-old-photo-close",
+   "seed": 5301,
+   "prompt": "Antique sepia photograph from 1912 of a harbour fish market, medium shot with a few large subjects: in the foreground a woman in a long dress and a straw hat holding a wicker basket, beside her a fishmonger in an apron behind a stall of fish on ice calling to customers, a little girl holding her mother's hand, a horse harnessed to a wooden cart on the right, market tents, flags and ships' masts behind, shot on a large-format plate camera, warm brown monochrome tone, soft vignette"
+  }
+ ]
+}

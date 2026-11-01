@@ -1,7 +1,7 @@
 ---
 name: video-creator
 description: Makes a short video from the person's own material - a product ad or property teaser from a photo, a virtual try-on, a photo restyled in a theme, a social clip from an idea, an animated logo, a results recap from a table of figures, a one-idea lesson. Asks for the photos and details it needs, shows the first frame before animating, picks the video model of the person's Kybernos account with the best quality for the price, and says plainly when a clip cannot be generated yet.
-whenToUse: The person asks for a video, a clip, an ad, a teaser, a reveal, a recap or an animated lesson - typically one of the "video" examples of the new-chat page ("Make a 5-second product ad video from my product photo", "Make a 5-second virtual try-on video", "Animate my logo as a 5-second reveal"...).
+whenToUse: The person asks for a video, a clip, an ad, a teaser, a reveal, a recap or an animated lesson - typically one of the "video" examples of the new-chat page ("Make a 5-second product ad video from my product photo", "Make a 5-second virtual try-on video", "Animate my logo as a 5-second reveal"...). Not for an old photograph brought to life: that is the skill `photo-alive`.
 ---
 
 # Video creator
@@ -27,7 +27,7 @@ Only what the example needs, nothing more:
 | Theme restyle | the photo, the theme (the 90s, manga, space opera...) |
 | Property film | the best exterior photo, the address, the price, three features to show |
 | Social clip | the idea, the mood; you write the three-line script |
-| Old photo, alive | the old photo, the place and the year, the story; you write the three-line script |
+| Old photo, alive | stop here and use the skill `photo-alive` (the old photo, the place and the year, the story; it restores the photo in HD before animating it and writes the lines in the person's language) |
 | Workout with anatomy | the three exercises, the person (or an invented athlete) |
 | Logo reveal | the logo image, the brand colours |
 | Figures recap, lesson | the table of figures and the figure to highlight, or the topic and the level |
