@@ -5,8 +5,9 @@
 // Every method is safe to call from a hook: none throws, and a file that cannot be read means no mandate, never a permissive one.
 import { appendFileSync, chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { countUse, decide, describe, mandateText, readRequest, sign, usageOf, verify } from './kyby-mandate.mjs'
+import { countUse, dayKey, decide, describe, mandateText, readRequest, sign, usageOf, verify } from './kyby-mandate.mjs'
 
+const LOG_MAX = 30
 const AUDIT_MAX_BYTES = 256 * 1024
 const AUDIT_KEEP_LINES = 500
 const TEXT_TTL_MS = 1000
@@ -94,6 +95,21 @@ export function createMandateStore (deps) {
     },
     /** Today's use, for tests and the page. */
     usage () { return usageOf(readJson(usageFile()), now()) },
+    /** What ran without a question today (the local day the limits count in), newest first: the audit's `ran` lines, each reduced to the time, the class and the tool's name. */
+    log (limit = LOG_MAX) {
+      try {
+        const today = dayKey(now())
+        const lines = readFileSync(auditFile(), 'utf8').split('\n')
+        const out = []
+        for (let i = lines.length - 1; i >= 0 && out.length < Math.min(LOG_MAX, Math.max(1, limit)); i -= 1) {
+          let e = null
+          try { e = JSON.parse(lines[i]) } catch (err) { continue }
+          if (e === null || typeof e !== 'object' || e.kind !== 'ran' || typeof e.at !== 'string' || dayKey(Date.parse(e.at)) !== today) continue
+          out.push({ at: e.at, klass: e.klass === 'computer' ? 'computer' : 'memory', tool: String(e.tool).slice(0, 60) })
+        }
+        return out
+      } catch (e) { return [] }
+    },
     files: { record: recordFile, usage: usageFile, audit: auditFile }
   }
 }

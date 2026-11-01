@@ -1,12 +1,12 @@
 # `@local/kybernos-kaby-customisation` (`packages/kybernos-kaby-customisation`)
 
-**Settings › Kaby**: how the person's assistant looks and sounds. Nothing here changes what Kaby can do, its rules or its memory.
+**Settings › Kaby**: how the person's assistant looks and sounds, where it works, and what it may do without asking. The first three blocks (identity, voice, face) change nothing about what Kaby can do, its rules or its memory; the last two (where it works, permissions) are about what it does, and are drawn from other bundles' answers (see below).
 
 ## Where to find it
 
 - **Settings › Kaby.** The same page opens from the portrait that heads the strip above Kaby's chat.
 
-## What it does, in three blocks (the way Agent Teams draws a member)
+## What it does, in five blocks (the first three the way Agent Teams draws a member)
 
 1. **Identity.** The name (an alias: the product stays Kaby elsewhere; 24 characters, letters, digits, spaces and apostrophes, no reserved word such
    as Kybernos or Claude), the words that describe the look, and a portrait: **Generate** (the image model of the person's Models, through the core's
@@ -17,6 +17,16 @@
 3. **Face on video calls.** Its own provider list, in the manner of Settings › Calls › Face, and its own keys: the two can use different accounts.
    Every provider but « No face » is listed as **soon** (`providers.mjs`): a provider becomes available in the same change that teaches the call worker
    to draw its face, and its key field appears then. Today a video call with Kaby is a voice call.
+4. **Where Kaby works** (2026-11-02). A select, « This computer » first, then the account's cloud computers, with a chip (Ready, Asleep, Awake…) and one line on what the pick
+   means (this computer: keep Kybernos open, no cloud hour used; a cloud computer: it wakes when it has work and its run hours count in the plan). It is **the same setting as
+   « Set up… » on the « Phone and channels » screen**: the card calls `window.__KB_KYBER__.where()`, `pickWhere(value)` and `subscribe(fn)` (kybernos-kyber), so one change shows in both.
+   Without that bundle, or before it has read the account, the card is not drawn. With a cloud computer picked, an amber line says the permissions below do not reach it.
+5. **Permissions** (2026-11-02). What Kaby may do **in its chat on this computer without asking**: a starting point (Off, Careful, Standard, Intensive), a switch for each class (its
+   memory; its cloud computer, commanded from here) with a daily limit of actions and today's use, the list of what is always asked (a connected app, restarting DSH, anything over a
+   limit), **Sign**, **Pause / Resume** and the **action log** (what ran today without a question). The card holds no rule, no signature and no count: they are kybernos-cloud's
+   (`kyby-mandate.mjs`; the starting points arrive with the view, so there is no copy here). Routes it calls: `GET /kybernos-cloud/kyby/mandate`, `GET …/log`, `POST …/set` (the page's
+   own session cookie and origin). Signing sends the four fields and never `paused`, so signing new numbers does not silently resume a paused mandate. States: none in force, changes
+   to sign, in force since, paused, to sign again (the file was altered or the key changed), cannot sign (no key on this machine: every control is off). Limits count actions, not euros.
 
 ## What it stores and where
 
@@ -44,6 +54,9 @@ portrait and the custom voice), `portrait.bin` (the picture), `voice-sample.bin`
 
 ## Not wired yet
 
+- **The permissions on a cloud computer.** They govern Kaby's chat on this computer (the native gate); a cloud computer's gate still asks the platform, so Telegram and WhatsApp
+  are not covered. They need an account-side record first. The card says so when a cloud computer is picked.
+
 - **The face.** Every face provider but « No face » is listed as soon: the call worker does not draw a face from the portrait yet, and a video call with Kaby uses the face
   of Settings › Calls.
 - **The cloud computer.** Kaby on Telegram or WhatsApp runs on a cloud computer whose image carries its own copy of the identity text and does not know the name: it needs the
@@ -51,4 +64,4 @@ portrait and the custom voice), `portrait.bin` (the picture), `voice-sample.bin`
 
 ## Tests
 
-`node test-host.mjs` (validation, store, routes, entry) and `node test-client.mjs` (pure parts, the page rendered once, guards on the source).
+`node test-host.mjs` (validation, store, routes, entry) and `node test-client.mjs` (pure parts, the page and the two cards rendered once with forced state, the requests the buttons send, guards on the source).

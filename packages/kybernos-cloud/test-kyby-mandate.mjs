@@ -71,6 +71,7 @@ ok('a corrupt count is read as zero', usageOf({ day: dayKey(T0), memory: -3, com
   ok('the view says whether it is in force, the numbers and today\'s use, never the signature', v.inForce === true && v.preset === 'standard' && v.memoryPerDay === 40 && v.usedToday.memory === 3 && v.usedToday.computer === 1 && v.canSign === true && v.signedAt === '2026-11-01T12:00:00.000Z' && !JSON.stringify(v).includes(standard.sig))
   const bad = describe({ ...standard, computer: false }, SECRET, null, T0)
   ok('an altered record is shown as off, with the reason', bad.inForce === false && bad.why === 'altered' && bad.preset === 'off' && bad.memory === false && bad.signedAt === null)
+  ok('the view carries the starting points, so the page has no copy of them', JSON.stringify(v.presets) === JSON.stringify(PRESETS) && presetOf(v.presets.standard) === 'standard')
   ok('without the machine secret nothing can be signed, and the page says so', describe(null, null, null, T0).canSign === false && describe(null, null, null, T0).why === 'none')
 }
 

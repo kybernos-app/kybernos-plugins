@@ -39,6 +39,8 @@ works on.
   upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page). The server has no way to name this
   computer yet (`PUT /v1/me/kyby/computer` takes a cloud computer's id): the local choice is Kaby's chat here, which already works on this
   machine; Telegram keeps using the cloud computer.
+- **Where Kaby works, for another page** (2026-11-02): `window.__KB_KYBER__.where()` (`{ signedIn, local, computers, picked, state, paused }`, null until the account answered), `pickWhere(value)`
+  (`local` or a cloud computer's id: exactly what the select does) and `subscribe(fn)`. Settings › Kaby draws its own select from them, so there is one setting, not two.
 - The same three lines are a tab of the right-hand panel (with « Manage in my account »), and the page the new-chat card opens (what Kaby is, the way into the chat, the strip).
 - **The right-hand block of « Phone and channels »** (`window.__KB_KYBER__.ChannelsColumn`, a component; `window.__KB_KYBER__.name` is the assistant's name). `kybernos-mobile`
   draws that screen (a window it opens itself, from the account menu's entry or from the strip's button, and Settings › Phone and channels) and asks this bundle for the block:

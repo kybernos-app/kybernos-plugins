@@ -730,7 +730,7 @@ try {
     '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/telegram/pairing/state', '/kybernos-cloud/telegram/pairing/cancel', '/kybernos-cloud/kyby/computer', '/kybernos-cloud/telegram/unlink',
     '/kybernos-cloud/kyby/native', '/kybernos-cloud/kyby/native/set',
     // Kaby's mandate (test-kyby-mandate.mjs holds its rules): what the person lets it do without asking.
-    '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/mandate/set',
+    '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/mandate/log', '/kybernos-cloud/kyby/mandate/set',
     // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls.
     '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
@@ -4081,6 +4081,13 @@ try {
       const audit = readFileSync(join(md_home, 'kybernos', 'kyby-mandate-audit.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
       assert.ok(audit.some((e) => e.kind === 'signed' && e.preset === 'standard') && audit.filter((e) => e.kind === 'ran').map((e) => e.tool).join() === 'memory_write,lesson_write,computer_exec,computer_start')
       assert.ok(!audit.some((e) => e.tool === 'connections_execute' || e.tool === 'relancer_dsh'), 'what asked is not in the list of what ran')
+      // The page reads the same thing back: today's `ran` lines only, newest first, reduced to time, class and tool, never a session or a signature.
+      const logged = (await hit('/kybernos-cloud/kyby/mandate/log', 'GET')).body
+      assert.equal(logged.ok, true)
+      assert.equal(logged.entries.map((e) => e.tool).join(), 'computer_start,computer_exec,lesson_write,memory_write')
+      assert.deepEqual(Object.keys(logged.entries[0]).sort(), ['at', 'klass', 'tool'])
+      assert.equal(logged.entries[0].klass, 'computer')
+      assert.deepEqual((await view()).presets.intensive, { memory: true, computer: true, memoryPerDay: 100, computerPerDay: 150 }, 'the page draws its starting points from the host')
     } finally {
       fakeApproval = undefined
       if (md_saved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = md_saved

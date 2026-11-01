@@ -6,8 +6,12 @@
 //   Voice      pills of voices with a Preview, and « Custom voice · record or upload » (a consent and a sample, kept on this computer)
 //   Face       the face of Kaby's video calls: its own provider list and its own keys, in the manner of Settings › Calls › Face — and
 //              separate from it, so the two can use different accounts. Providers that no call can use yet are listed as « soon ».
+// and two cards about what Kaby does, drawn from other bundles' answers (this bundle's host keeps neither):
+//   Where Kaby works   this computer or a cloud computer: the pick of the « Phone and channels » screen, through kybernos-kyber's seam (window.__KB_KYBER__.where / pickWhere)
+//   Permissions        what Kaby may do in its chat without asking, up to a daily limit: signed by the person here, counted and enforced by kybernos-cloud's host
+//                      (GET /kybernos-cloud/kyby/mandate, /log, POST /set). The card holds no rule, no signature and no count of its own.
 //
-// Nothing here changes what Kaby can do, its rules or its memory: only its name, its picture and its voice.
+// Nothing else here changes what Kaby can do, its rules or its memory: the first three blocks are only its name, its picture and its voice.
 //
 // The page also publishes a small seam for the other bundles (the strip above Kaby's chat, the call window):
 //   window.__KB_KABY__ = { profile(), subscribe(fn) → unsubscribe, refresh(), open() }
@@ -109,6 +113,64 @@ window.__ModuleLoader__.load({
       return { chip: kt('Prêt', 'Ready'), cls: 'ok', usable: !(profile && profile.face && profile.face.use === p.id) }
     }
 
+    // ── where Kaby works and what it may do without asking: the words of the two cards (the rules, the signature and the counts stay on the host) ────────────────
+    /** `{name}`-style tokens filled in: one sentence per language, the numbers and names put in afterwards. */
+    const fill = (s, vars) => Object.keys(vars).reduce((acc, k) => acc.split('{' + k + '}').join(String(vars[k])), s)
+    const PRESET_ORDER = ['off', 'prudent', 'standard', 'intensive']
+    const presetLabel = (name) => ({
+      off: kt('Arrêt', 'Off'),
+      prudent: kt('Prudent', 'Careful'),
+      standard: kt('Standard', 'Standard'),
+      intensive: kt('Intensif', 'Intensive')
+    }[name] || name)
+    /** The fields the page edits, read from the host's view. */
+    const draftOf = (view) => ({ memory: view.memory === true, computer: view.computer === true, memoryPerDay: view.memoryPerDay, computerPerDay: view.computerPerDay })
+    /** The starting point a draft equals (the host sends them), or `custom`. */
+    const draftPreset = (d, presets) => {
+      for (const name of PRESET_ORDER) {
+        const p = presets !== null && typeof presets === 'object' ? presets[name] : undefined
+        if (p !== undefined && p !== null && p.memory === d.memory && p.computer === d.computer && p.memoryPerDay === d.memoryPerDay && p.computerPerDay === d.computerPerDay) return name
+      }
+      return 'custom'
+    }
+    const dateText = (iso) => {
+      const t = Date.parse(String(iso || ''))
+      if (!Number.isFinite(t)) return ''
+      try { return new Date(t).toLocaleDateString(lang() === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) } catch (e) { return new Date(t).toISOString().slice(0, 10) }
+    }
+    /** The chip over the permissions card: what is true now. `dirty` is a draft that is not signed yet. */
+    const mandateChip = (view, dirty) => {
+      if (view.canSign !== true || view.why === 'no_secret') return { code: 'cannot_sign', text: kt('Signature impossible', 'Cannot sign'), cls: 'warn' }
+      if (dirty) return { code: 'dirty', text: kt('Modifications à signer', 'Changes to sign'), cls: 'warn' }
+      if (view.why === 'altered' || view.why === 'unreadable') return { code: 'resign', text: kt('À signer de nouveau', 'To sign again'), cls: 'err' }
+      if (view.why === 'paused') return { code: 'paused', text: kt('En pause', 'Paused'), cls: 'warn' }
+      if (view.inForce === true) return { code: 'in_force', text: kt('En vigueur depuis le {date}', 'In force since {date}').split('{date}').join(dateText(view.signedAt)), cls: 'ok' }
+      return { code: 'none', text: kt('Aucune autorisation en vigueur', 'No permission in force'), cls: '' }
+    }
+    const mandateProblem = (code) => ({
+      cannot_sign: kt('DSH ne trouve pas la clé de cet ordinateur : rien ne peut être signé.', 'DSH cannot find this computer’s key: nothing can be signed.'),
+      write_failed: kt('Le fichier des autorisations n’a pas pu être écrit.', 'The permissions file could not be written.'),
+      session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.'),
+      down: kt('Les autorisations ne répondent pas : relance DSH si ce plugin vient d’être activé.', 'The permissions do not answer: restart DSH if this plugin was just turned on.')
+    }[code] || kt('La demande n’a pas été gardée.', 'The request was not kept.'))
+    /** The chip of the « Where Kaby works » card: this computer is always ready; a cloud computer says its own state. */
+    const whereChip = (w) => {
+      if (w.local) return { text: kt('Prêt', 'Ready'), cls: 'ok' }
+      switch (w.state) {
+        case 'running': return { text: kt('Éveillé', 'Awake'), cls: 'ok' }
+        case 'suspended': return { text: kt('En veille', 'Asleep'), cls: '' }
+        case 'creating': return { text: kt('Initialisation', 'Setting up'), cls: 'warn' }
+        case 'resuming': return { text: kt('Se réveille', 'Waking up'), cls: 'warn' }
+        case 'suspending': return { text: kt('S’endort', 'Going to sleep'), cls: 'warn' }
+        case 'failed': return { text: kt('En échec', 'Failed'), cls: 'err' }
+        case '': return { text: kt('À la demande', 'On request'), cls: '' }
+        default: return { text: String(w.state).slice(0, 24), cls: '' }
+      }
+    }
+    /** The seam of kybernos-kyber, or null when that bundle is not there: the pick is its own, this page only draws it. */
+    const kyberSeam = () => { try { const k = window.__KB_KYBER__; return k !== undefined && k !== null && typeof k.where === 'function' ? k : null } catch (e) { return null } }
+    const readWhere = () => { const k = kyberSeam(); try { return k === null ? null : k.where() } catch (e) { return null } }
+
     const readAsDataUrl = (file) => new Promise((resolve, reject) => {
       const r = new FileReader()
       r.onload = () => resolve(String(r.result))
@@ -117,7 +179,7 @@ window.__ModuleLoader__.load({
     })
 
     // ── the profile, shared between the page and the seam ──────────────────────────────────────────────────────────────
-    const store = { profile: null, listeners: new Set(), failed: false }
+    const store = { profile: null, listeners: new Set(), failed: false, mandate: null }
     /** Consumers that render the name or the portrait (the sidebar row, the strip above Kaby's chat) re-read `window.__KB_KABY__.profile()` when told. */
     const announce = () => { try { window.dispatchEvent(new Event('kb-kaby-profile')) } catch (e) { /* no event target: nobody listens */ } }
     const publish = (profile) => {
@@ -139,6 +201,16 @@ window.__ModuleLoader__.load({
       if (r.status === 200 && r.json !== null && r.json.ok === true) { publish(r.json.profile); return r.json.profile }
       if (store.profile === null) publish(null)
       return null
+    }
+    /** The permissions live in kybernos-cloud, not in this bundle's host: its routes, the same origin, the page's own session for a change. `path` is '' (the view), '/log' or '/set'. */
+    const MANDATE = '/kybernos-cloud/kyby/mandate'
+    const mandateCall = async (path, body) => {
+      try {
+        const r = await fetch(MANDATE + path, body === undefined ? { credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } } : { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        let json = null
+        try { json = await r.json() } catch (e) { json = null }
+        return { status: r.status, json: json }
+      } catch (e) { return { status: 0, json: null } }
     }
     /** A change: the host answers with the whole profile, which is what everybody then shows. */
     const change = async (path, body) => {
@@ -217,6 +289,27 @@ window.__ModuleLoader__.load({
       '.kbkc-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 11px;border-radius:99px;font-size:12.5px;white-space:nowrap;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));color:var(--dsw-alias-label-secondary,#666)}',
       '.kbkc-chip.ok{border-color:var(--dsw-alias-state-success-primary,#22a55a);color:var(--dsw-alias-state-success-primary,#22a55a)}',
       '.kbkc-chip.warn{border-color:var(--dsw-alias-state-warn-primary,#d49a2a);color:var(--dsw-alias-state-warn-label,#a8530a)}',
+      '.kbkc-chip.err{border-color:var(--dsw-alias-state-error-primary,#c0392b);color:var(--dsw-alias-state-error-primary,#c0392b)}',
+      '.kbkc-notice.e{border-color:var(--dsw-alias-state-error-primary,#c0392b);color:var(--dsw-alias-state-error-primary,#c0392b)}',
+      '.kbkc-vp.custom{border-style:dashed;cursor:default;color:var(--dsw-alias-label-secondary,#666)}',
+      '.kbkc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
+      '.kbkc-num{width:76px;height:36px;padding:0 10px;border-radius:10px}',
+      '.kbkc-lines{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:12px;display:flex;flex-direction:column}',
+      '.kbkc-mrow{display:flex;align-items:center;gap:14px;padding:12px 14px;flex-wrap:wrap}',
+      '.kbkc-mrow+.kbkc-mrow{border-top:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35))}',
+      '.kbkc-mtext{flex:1 1 260px;min-width:0}',
+      '.kbkc-mtitle{font-weight:700}',
+      '.kbkc-sw{flex:none;width:38px;height:22px;padding:0;border-radius:99px;border:1.5px solid var(--dsw-alias-label-secondary,#888);background:transparent;cursor:pointer;display:inline-flex;align-items:center}',
+      '.kbkc-sw .kbkc-knob{display:block;width:16px;height:16px;border-radius:99px;margin-left:2px;background:var(--dsw-alias-label-secondary,#888)}',
+      '.kbkc-sw.on{border-color:var(--dsw-alias-label-primary,#222);background:var(--dsw-alias-label-primary,#222)}',
+      '.kbkc-sw.on .kbkc-knob{margin-left:18px;background:var(--dsw-alias-bg-layer-2,#fff)}',
+      '.kbkc-sw[disabled]{opacity:.45;cursor:not-allowed}',
+      '.kbkc-sw:focus-visible,.kbkc-num:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4a7bd0);outline-offset:2px}',
+      '.kbkc-ask{border:1px dashed var(--dsw-alias-border-l2,rgba(127,127,127,.45));border-radius:12px;padding:10px 14px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.08));display:flex;gap:10px;align-items:flex-start}',
+      '.kbkc-ask svg{flex:none;margin-top:2px;color:var(--dsw-alias-label-secondary,#666)}',
+      '.kbkc-ask ul{margin:4px 0 0;padding-left:18px}',
+      '.kbkc-warnline{color:var(--dsw-alias-state-warn-label,#a8530a)}',
+      '.kbkc-logrow{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}',
       '.kbkc-grid{display:flex;gap:18px}',
       '.kbkc-provnav{width:230px;flex:none;display:flex;flex-direction:column;gap:4px}',
       '.kbkc-provbtn{display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;border:1px solid transparent;border-radius:10px;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}',
@@ -244,13 +337,187 @@ window.__ModuleLoader__.load({
       spark: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
       mic: 'M9 5a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0zM5 11a7 7 0 0 0 14 0M12 18v4',
       play: 'M6 4l14 8-14 8z',
-      up: 'M12 16V4M7 9l5-5 5 5M4 20h16'
+      up: 'M12 16V4M7 9l5-5 5 5M4 20h16',
+      lock: 'M5 11h14v9H5zM8 11V8a4 4 0 0 1 8 0v3'
+    }
+
+    // ── the two cards that are about what Kaby does, not how it looks ──────────────────────────────────────────────────────
+    const buildCards = (React) => {
+      const h = React.createElement
+      const { useState, useEffect } = React
+      const nameNow = () => (store.profile !== null ? store.profile.name : 'Kaby')
+
+      /** « Where Kaby works »: the pick of the « Phone and channels » screen, drawn here through kybernos-kyber's seam, so the two are one setting. Nothing when that bundle is not there. */
+      const WhereCard = () => {
+        const [here, setHere] = useState(readWhere)
+        useEffect(() => {
+          let live = true
+          let off = null
+          let timer = null
+          let tries = 0
+          // The seam may appear a moment after this page: ask a few times, then give up quietly.
+          const attach = () => {
+            const k = kyberSeam()
+            if (k === null) { tries += 1; if (live && tries < 6) timer = setTimeout(attach, 1000); return }
+            const read = () => { if (live) setHere(readWhere()) }
+            read()
+            if (typeof k.subscribe === 'function') off = k.subscribe(read)
+            if (readWhere() === null && typeof k.refresh === 'function') { try { k.refresh() } catch (e) { /* the screen reads it again by itself */ } }
+          }
+          attach()
+          return () => { live = false; if (timer !== null) clearTimeout(timer); if (typeof off === 'function') off() }
+        }, [])
+        if (here === null) return null
+        const name = nameNow()
+        const ktn = (fr, en) => fill(kt(fr, en), { name: name })
+        const chip = whereChip(here)
+        const pick = (value) => { const k = kyberSeam(); if (k !== null && typeof k.pickWhere === 'function') { try { k.pickWhere(value) } catch (e) { /* the screen shows what it kept */ } } }
+        const options = [h('option', { key: 'local', value: 'local' }, kt('Cet ordinateur', 'This computer'))].concat(here.computers.map((c) => h('option', { key: c.id, value: c.id }, c.name + ' (cloud)')))
+        return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-where', 'aria-labelledby': 'kbkc-where-title' }, [
+          h('div', { key: 'hd', className: 'kbkc-head' }, [
+            h('div', { key: 'c', id: 'kbkc-where-title', className: 'kbkc-cap' }, ktn('Où {name} travaille', 'Where {name} works')),
+            h('span', { key: 's', className: 'kbkc-chip ' + chip.cls, 'data-kb': 'kaby-custom-where-chip' }, chip.text)
+          ]),
+          h('div', { key: 'p', className: 'kbkc-row', style: { gap: 10 } }, [
+            h('label', { key: 'l', className: 'kbkc-help', htmlFor: 'kbkc-where' }, kt('Ordinateur', 'Computer')),
+            h('select', { key: 's', id: 'kbkc-where', className: 'kbkc-in', style: { width: 280 }, 'data-kb': 'kaby-custom-where-pick', value: here.picked, disabled: here.computers.length === 0, onChange: (e) => pick(e.target.value) }, options)
+          ]),
+          h('div', { key: 'h', className: 'kbkc-help', 'data-kb': 'kaby-custom-where-help' }, here.local
+            ? ktn('{name} travaille sur cet ordinateur : garde Kybernos ouvert pour qu’il agisse. Aucune heure de cloud computer n’est consommée.', '{name} works on this computer: keep Kybernos open for it to act. No cloud computer hour is used.')
+            : ktn('{name} travaille sur son cloud computer : il se réveille quand il a du travail, puis se rendort. Ses heures d’exécution comptent dans ton offre du mois.', '{name} works on its cloud computer: it wakes when it has work, then goes back to sleep. Its run hours count in your plan for the month.')),
+          here.local ? null : h('div', { key: 'w', className: 'kbkc-notice w', 'data-kb': 'kaby-custom-where-cloud-note' }, ktn('Les autorisations ci-dessous valent pour le chat de {name} sur cet ordinateur. Sur son cloud computer, {name} demande comme avant.', 'The permissions below hold for {name}’s chat on this computer. On its cloud computer, {name} asks as before.')),
+          h('div', { key: 'same', className: 'kbkc-help' }, kt('C’est le même réglage que dans « Set up… » : l’un change l’autre.', 'It is the same setting as in “Set up…”: changing one changes the other.'))
+        ])
+      }
+      WhereCard.displayName = 'KabyWhereCard'
+
+      /** « Permissions »: what Kaby does in its chat without asking. The rules, the signature and the daily counts are the host's (kybernos-cloud); this card asks them to be written and shows what they say. */
+      const MandateCard = () => {
+        const [view, setView] = useState(store.mandate)
+        const [down, setDown] = useState(false)
+        const [draft, setDraft] = useState(null)
+        const [busy, setBusy] = useState(false)
+        const [problem, setProblem] = useState('')
+        const [logOpen, setLogOpen] = useState(false)
+        const [log, setLog] = useState(null)
+        useEffect(() => {
+          let live = true
+          mandateCall('').then((r) => {
+            if (!live) return
+            if (r.status === 200 && r.json !== null && r.json.ok === true) { store.mandate = r.json; setView(r.json); setDown(false) } else if (store.mandate === null) setDown(true)
+          })
+          return () => { live = false }
+        }, [])
+        const name = nameNow()
+        const cap = h('div', { key: 'c', id: 'kbkc-mandate-title', className: 'kbkc-cap' }, kt('Autorisations', 'Permissions'))
+        if (view === null) {
+          return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-mandate', 'aria-labelledby': 'kbkc-mandate-title' }, [
+            cap,
+            h('div', { key: 'm', className: down ? 'kbkc-notice w' : 'kbkc-help', 'data-kb': down ? 'kaby-custom-mandate-down' : 'kaby-custom-mandate-loading' },
+              down ? kt('La page ne peut pas lire les autorisations : relance DSH si ce plugin vient d’être activé.', 'The page cannot read the permissions: restart DSH if this plugin was just turned on.') : kt('Lecture des autorisations…', 'Reading the permissions…'))
+          ])
+        }
+        const d = draft !== null ? draft : draftOf(view)
+        const dirty = draft !== null
+        const chip = mandateChip(view, dirty)
+        const locked = view.canSign !== true || busy
+        const used = view.usedToday || { memory: 0, computer: 0 }
+        const showUse = view.inForce === true && !dirty
+        const preset = draftPreset(d, view.presets)
+        const edit = (patch) => setDraft(Object.assign({}, d, patch))
+        const pickPreset = (pname) => { const p = view.presets !== null && typeof view.presets === 'object' ? view.presets[pname] : undefined; if (p !== undefined) setDraft({ memory: p.memory, computer: p.computer, memoryPerDay: p.memoryPerDay, computerPerDay: p.computerPerDay }) }
+        const setLimit = (key, raw) => { const n = parseInt(raw, 10); const max = view.limits !== null && typeof view.limits === 'object' && Number.isInteger(view.limits[key]) ? view.limits[key] : 500; if (Number.isFinite(n)) edit({ [key]: Math.max(1, Math.min(max, n)) }) }
+        const send = async (body) => {
+          setBusy(true)
+          setProblem('')
+          const r = await mandateCall('/set', body)
+          setBusy(false)
+          if (r.status === 200 && r.json !== null && r.json.ok === true) { store.mandate = r.json.view; setView(r.json.view); setDraft(null); if (logOpen) loadLog(); return }
+          setProblem(mandateProblem(r.status === 401 || r.status === 403 ? 'session' : (r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'down')))
+        }
+        const sign = () => (draft !== null ? send({ memory: d.memory, computer: d.computer, memoryPerDay: d.memoryPerDay, computerPerDay: d.computerPerDay }) : undefined)
+        const pause = () => send({ paused: view.paused !== true })
+        const loadLog = async () => { const r = await mandateCall('/log'); setLog(r.status === 200 && r.json !== null && Array.isArray(r.json.entries) ? r.json.entries : []) }
+        const toggleLog = () => { const next = !logOpen; setLogOpen(next); if (next) loadLog() }
+        const useLine = (n, limit) => fill(kt('{n} sur {limit} aujourd’hui', '{n} of {limit} today'), { n: n, limit: limit }) + (n >= limit ? ' · ' + kt('la suite te sera demandée', 'what comes next will be asked') : '')
+        const timeOf = (iso) => { const t = new Date(Date.parse(String(iso))); return Number.isFinite(t.getTime()) ? String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') : '' }
+        const line = (key, title, help, unit, ariaLabel) => {
+          const on = d[key] === true
+          const perDay = key + 'PerDay'
+          const id = 'kbkc-limit-' + key
+          const n = used[key] || 0
+          return h('div', { key: key, className: 'kbkc-mrow', 'data-kb': 'kaby-custom-mandate-' + key }, [
+            h('button', { key: 's', type: 'button', role: 'switch', className: 'kbkc-sw' + (on ? ' on' : ''), 'aria-checked': on ? 'true' : 'false', 'aria-label': ariaLabel, 'data-kb': 'kaby-custom-mandate-switch', 'data-class': key, disabled: locked, onClick: () => edit({ [key]: !on }) }, h('span', { className: 'kbkc-knob' })),
+            h('div', { key: 't', className: 'kbkc-mtext' }, [
+              h('div', { key: 'a', className: 'kbkc-mtitle' }, title),
+              h('div', { key: 'b', className: 'kbkc-help' }, help),
+              showUse && on ? h('div', { key: 'u', className: 'kbkc-help' + (n >= d[perDay] ? ' kbkc-warnline' : ''), 'data-kb': 'kaby-custom-mandate-use', 'data-class': key }, useLine(n, d[perDay])) : null
+            ]),
+            h('div', { key: 'l', className: 'kbkc-row' }, [
+              h('label', { key: 'x', className: 'kbkc-help', htmlFor: id }, kt('jusqu’à', 'up to')),
+              h('input', { key: 'i', id: id, type: 'number', min: 1, max: view.limits && view.limits[perDay] ? view.limits[perDay] : 500, className: 'kbkc-in kbkc-num', 'data-kb': 'kaby-custom-mandate-limit', 'data-class': key, value: d[perDay], disabled: locked || !on, onChange: (e) => setLimit(perDay, e.target.value) }),
+              h('span', { key: 'y', className: 'kbkc-help' }, unit)
+            ])
+          ])
+        }
+        const signLabel = chip.code === 'resign' ? kt('Signer de nouveau', 'Sign again') : (view.signedAt !== null ? kt('Signer les modifications', 'Sign the changes') : kt('Signer l’autorisation', 'Sign the permission'))
+        return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-mandate', 'aria-labelledby': 'kbkc-mandate-title' }, [
+          h('div', { key: 'hd', className: 'kbkc-head' }, [cap, h('span', { key: 's', className: 'kbkc-chip ' + chip.cls, 'data-kb': 'kaby-custom-mandate-chip', 'data-state': chip.code }, chip.text)]),
+          h('div', { key: 'lead', className: 'kbkc-help' }, fill(kt('Ce que {name} fait sans te demander dans son chat sur cet ordinateur, tant que tu ne l’as pas mis en pause. Tout le reste, et tout ce qui dépasse une limite du jour, te revient en question comme avant.', 'What {name} does without asking, in its chat on this computer, until you pause it. Everything else, and anything over a daily limit, is asked of you as before.'), { name: name })),
+          chip.code === 'resign' ? h('div', { key: 'n', className: 'kbkc-notice e', role: 'alert', 'data-kb': 'kaby-custom-mandate-note' }, kt('L’autorisation ne vaut plus : le fichier a été modifié autrement que par cette page, ou la clé de cet ordinateur a changé. Rien n’est autorisé tant que tu n’as pas signé de nouveau.', 'The permission no longer holds: the file was changed other than by this page, or this computer’s key changed. Nothing is allowed until you sign again.'))
+            : chip.code === 'cannot_sign' ? h('div', { key: 'n', className: 'kbkc-notice w', role: 'alert', 'data-kb': 'kaby-custom-mandate-note' }, kt('DSH ne trouve pas la clé de cette machine : l’autorisation ne peut pas être signée, donc rien n’est autorisé. Les boutons de la carte sont grisés.', 'DSH cannot find this machine’s key: the permission cannot be signed, so nothing is allowed. The card’s controls are off.'))
+              : chip.code === 'paused' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-mandate-note' }, kt('Rien ne passe sans ta réponse. Les réglages et le compte du jour sont gardés.', 'Nothing goes through without your answer. The settings and today’s count are kept.'))
+                : null,
+          h('div', { key: 'pr', className: 'kbkc-col' }, [
+            h('div', { key: 'l', className: 'kbkc-lab' }, kt('Point de départ', 'Starting point')),
+            h('div', { key: 'r', className: 'kbkc-row', style: { gap: 8 } }, PRESET_ORDER.map((p) => h('button', { key: p, type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-mandate-preset', 'data-preset': p, 'aria-pressed': preset === p ? 'true' : 'false', disabled: locked, onClick: () => pickPreset(p) }, presetLabel(p)))
+              .concat(preset === 'custom' ? [h('span', { key: 'custom', className: 'kbkc-vp custom', 'data-kb': 'kaby-custom-mandate-custom' }, kt('Personnalisé', 'Custom'))] : []))
+          ]),
+          h('div', { key: 'lines', className: 'kbkc-lines' }, [
+            line('memory', kt('Mémoire', 'Memory'), kt('Écrire sa mémoire et ses leçons, sur cet ordinateur.', 'Write its memory and its lessons, on this computer.'), kt('par jour', 'a day'), kt('Mémoire : autoriser sans demander', 'Memory: allow without asking')),
+            line('computer', kt('Son cloud computer', 'Its cloud computer'), kt('Le commander depuis cet ordinateur : le démarrer, l’arrêter, y écrire, y exécuter.', 'Command it from this computer: start it, stop it, write to it, run things on it.'), kt('actions par jour', 'actions a day'), kt('Son cloud computer : autoriser sans demander', 'Its cloud computer: allow without asking'))
+          ]),
+          h('div', { key: 'ask', className: 'kbkc-ask', 'data-kb': 'kaby-custom-mandate-asked' }, [
+            svg(h, ICON.lock, 16),
+            h('div', { key: 'x' }, [
+              h('div', { key: 't', className: 'kbkc-cap' }, kt('Te revient toujours en question, quelle que soit l’autorisation', 'Always asked of you, whatever the permission')),
+              h('ul', { key: 'u' }, [
+                h('li', { key: '1' }, kt('Une application connectée : envoyer un message, publier, payer', 'A connected app: send a message, publish, pay')),
+                h('li', { key: '2' }, kt('Redémarrer DSH', 'Restart DSH')),
+                h('li', { key: '3' }, kt('Tout ce qui dépasse une limite du jour', 'Anything over a daily limit'))
+              ])
+            ])
+          ]),
+          h('div', { key: 'cost', className: 'kbkc-help' }, kt('Les limites comptent des actions, pas des euros : rien sur cet ordinateur ne mesure le coût d’un appel. Le compte repart à zéro chaque jour.', 'The limits count actions, not euros: nothing on this computer measures what a call costs. The count starts again each day.')),
+          problem !== '' ? h('div', { key: 'e', className: 'kbkc-err', role: 'alert', 'data-kb': 'kaby-custom-mandate-error' }, problem) : null,
+          h('div', { key: 'foot', className: 'kbkc-foot' }, [
+            h('button', { key: 'g', type: 'button', className: 'kbkc-btn pri', 'data-kb': 'kaby-custom-mandate-sign', disabled: locked || !dirty, onClick: sign }, signLabel),
+            h('button', { key: 'p', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-mandate-pause', disabled: locked || view.signedAt === null, onClick: pause }, view.paused === true ? kt('Reprendre', 'Resume') : kt('Mettre en pause', 'Pause')),
+            h('span', { key: 's', style: { flex: '1 1 auto' } }),
+            h('button', { key: 'j', type: 'button', className: 'kbkc-btn sm', 'data-kb': 'kaby-custom-mandate-log-toggle', 'aria-expanded': logOpen ? 'true' : 'false', onClick: toggleLog }, kt('Journal des actions', 'Action log'))
+          ]),
+          logOpen ? h('div', { key: 'log', className: 'kbkc-step', 'data-kb': 'kaby-custom-mandate-log' }, [
+            h('div', { key: 't', className: 'kbkc-lab' }, kt('Aujourd’hui, ce qui est passé sans question', 'Today, what ran without a question')),
+            log === null ? h('div', { key: 'w', className: 'kbkc-help' }, kt('Lecture…', 'Reading…'))
+              : log.length === 0 ? h('div', { key: 'z', className: 'kbkc-help', 'data-kb': 'kaby-custom-mandate-log-empty' }, kt('Rien n’est passé sans question aujourd’hui.', 'Nothing ran without a question today.'))
+                : log.map((e, i) => h('div', { key: i, className: 'kbkc-logrow', 'data-kb': 'kaby-custom-mandate-log-row' }, [
+                  h('span', { key: 'a', className: 'kbkc-help', style: { minWidth: 44 } }, timeOf(e.at)),
+                  h('b', { key: 'b', style: { minWidth: 110 } }, e.klass === 'computer' ? kt('Cloud computer', 'Cloud computer') : kt('Mémoire', 'Memory')),
+                  h('span', { key: 'c', className: 'kbkc-help' }, e.tool)
+                ]))
+          ]) : null
+        ])
+      }
+      MandateCard.displayName = 'KabyMandateCard'
+
+      return { WhereCard, MandateCard }
     }
 
     // ── the page ────────────────────────────────────────────────────────────────────────────────────────────────────────
     const buildPanel = (React) => {
       const h = React.createElement
       const { useState, useEffect, useRef } = React
+      const { WhereCard, MandateCard } = buildCards(React)
 
       const Panel = () => {
         const [profile, setProfile] = useState(store.profile)
@@ -516,9 +783,9 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbkc', 'data-kb': 'kaby-custom-page' }, h('div', { className: 'kbkc-page' }, [
           h('div', { key: 'hd' }, [
             h('div', { key: 't', className: 'kbkc-titlerow' }, [h('h4', { key: 'h' }, 'Kaby'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { key: 'help', id: 'kybernos-kaby-customisation', page: 'kaby' }) : null]),
-            h('p', { key: 'p', className: 'kbkc-lead' }, kt('Comment ton assistant est et parle. Ce qu’il sait faire, ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds. What it can do, its rules and its memory do not change here.'))
+            h('p', { key: 'p', className: 'kbkc-lead' }, kt('Comment ton assistant est et parle, où il travaille, et ce qu’il peut faire sans te demander. Ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds, where it works, and what it may do without asking. Its rules and its memory do not change here.'))
           ]),
-          identity, voiceBlock, faceBlock, customWindow
+          identity, voiceBlock, faceBlock, h(WhereCard, { key: 'where' }), h(MandateCard, { key: 'mandate' }), customWindow
         ]))
       }
       return Panel
@@ -556,7 +823,7 @@ window.__ModuleLoader__.load({
       name: NAME,
       inject: [],
       apply: start,
-      __test: { buildPanel, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN }
+      __test: { buildPanel, buildCards, fill, draftOf, draftPreset, mandateChip, mandateProblem, whereChip, dateText, presetLabel, PRESET_ORDER, MANDATE, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN }
     }
   }
 })

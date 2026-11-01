@@ -5874,6 +5874,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
   // Kaby's mandate: what the person lets it do without asking (kyby-mandate.mjs). Reading is open to the page; signing needs the strict Origin and the signed session, like every write here.
   { path: '/kybernos-cloud/kyby/mandate', method: 'GET', guarded: true, run: () => ({ ok: true, ...mandateStore.view() }) },
+  { path: '/kybernos-cloud/kyby/mandate/log', method: 'GET', guarded: true, run: () => ({ ok: true, entries: mandateStore.log() }) },
   { path: '/kybernos-cloud/kyby/mandate/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => mandateStore.set(body) },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
