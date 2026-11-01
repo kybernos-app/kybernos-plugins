@@ -1,6 +1,6 @@
 """Checks on the CAD-built hand grinder. Plain asserts, no pytest:
 
-    ~/kybernos-archive/3d-tools/.venv/bin/python cad/test_grinder.py
+    python test_grinder.py
 
 1. every part is a sound solid, its shipped mesh is closed and has the exact volume (0.3 %, thread parts 1.5-2 %);
 2. mass is volume x density, the total is a plausible hand mill, the proportions are those of a hand mill;
@@ -175,7 +175,7 @@ if os.path.exists(path):
     glb = os.path.join(G.OUT, 'grinder.glb')
     check(os.path.exists(glb) and os.path.getsize(glb) < 2.5e6, 'grinder.glb exists and is under 2.5 MB (%.0f KB)' % (os.path.getsize(glb) / 1024))
 else:
-    check(False, 'grinder-report.json is missing: run cad/grinder.py')
+    check(False, 'grinder-report.json is missing: run grinder.py')
 
 print('\n%s in %.0fs' % ('ALL PASSED' if not FAILS else '%d FAILED' % len(FAILS), time.time() - T0))
 sys.exit(1 if FAILS else 0)

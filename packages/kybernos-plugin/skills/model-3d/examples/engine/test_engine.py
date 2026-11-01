@@ -1,7 +1,7 @@
 """Checks on the CAD engine: the parts are sound, they fit, the compression ratio read from the geometry is the
 simulation's, and nothing in the moving assembly ever passes through anything else over the whole cycle.
 
-    ~/kybernos-archive/3d-tools/.venv/bin/python cad/test_engine.py
+    python test_engine.py
 """
 import json
 import math

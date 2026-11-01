@@ -7,7 +7,7 @@ What is real here (and checked in test_grinder.py): box-joint seams on the body,
 with slotted screws, an inner burr with helical flutes and an outer ring with grooves, a shaft with a true helical thread and a nut
 with the matching internal thread (0.15 mm clearance), turned hopper, lid and handle. Mass comes from the exact B-rep volume.
 
-    ~/kybernos-archive/3d-tools/.venv/bin/python cad/grinder.py     # writes ../grinder/grinder.glb and grinder-report.json
+    python grinder.py        # writes grinder.glb and grinder-report.json (`node model.mjs build .` runs it with the right python)
 """
 import math
 import os
@@ -22,7 +22,7 @@ import numpy as np
 import trimesh
 from kbcad import Kit, write_json, mesh_of, _TO_THREE  # noqa: E402
 
-OUT = os.path.normpath(os.path.join(HERE, '..', 'grinder'))
+OUT = HERE
 MIN = (Align.CENTER, Align.CENTER, Align.MIN)
 
 # ── the numbers the whole model hangs on (mm) ───────────────────────────────────────────────

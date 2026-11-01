@@ -82,6 +82,7 @@ import { installAppIdentity } from './app-identity.mjs'
 // ne sort de la machine — le local reste strictement celui d'aujourd'hui.
 import { createGatewayWatcher } from './gateway-watcher.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { seedSkillFiles } from './seed-skill-files.mjs'
 import { publishTrustedAuthority } from './trusted-authority.mjs'
 import { createPythonPicker } from './tts-python.mjs'
 import { audioKindOf, audioModelsOf, providerBase } from './audio-models.mjs'
@@ -14074,12 +14075,14 @@ const kbFeedbackRetireLegacySkill = (dsh) => {
 
 /** Skills this plugin ships under <dsh home>/skills (folders in ./skills): the Automations page
  *  sends its "Create" chat to `automation-creator`, so it must exist on a fresh home; the video examples of the new-chat shelf
- *  start `video-creator`, except « Old photo, alive », which starts `photo-alive` (restore, show, animate, join). Seeded by seed-skills.mjs, which never
- *  overwrites a skill the user wrote or edited. */
-const KB_SHIPPED_SKILLS = ['automation-creator', 'video-creator', 'photo-alive']
+ *  start `video-creator`, except « Old photo, alive », which starts `photo-alive` (restore, show, animate, join); the « 3D model » examples start `model-3d`,
+ *  a skill that carries scripts, examples and references beside its SKILL.md. Seeded by seed-skills.mjs (SKILL.md) and seed-skill-files.mjs (the files next to it),
+ *  which never overwrite what the user wrote or edited. */
+const KB_SHIPPED_SKILLS = ['automation-creator', 'video-creator', 'photo-alive', 'model-3d']
 const kbSeedShippedSkills = () => {
   const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
   const results = seedSkills({ home: dshHomeSync(), sourceDir, names: KB_SHIPPED_SKILLS })
+  results.push(...seedSkillFiles({ home: dshHomeSync(), sourceDir, names: KB_SHIPPED_SKILLS }).filter((r) => r.action === 'error' || r.action === 'invalid-name'))
   for (const r of results) {
     if (r.action === 'error' || r.action === 'no-source' || r.action === 'invalid-name') {
       try { console.error('[kybers] skill ' + r.name + ' not installed: ' + r.action + (r.error !== undefined ? ' (' + r.error + ')' : '')) } catch (e) { /* console unavailable */ }

@@ -1,18 +1,15 @@
 <meta charset="utf-8">
-<title>3D Shelf Examples</title>
+<title>/*@@TITLE@@*/</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout concept: the dialog a 3D example opens in on the new-chat shelf. Left, the live scene; right, the legend with live values;
-   under both, the command bar. A picker of three examples sits on top. */
+/* Layout: left, the live scene; right, the legend with live values; under both, the command bar. A picker sits on top when the page
+   holds more than one example. */
 :root {
   --bg: #e9e7e2; --panel: #f6f5f1; --panel-2: #efede8; --ink: #1c1b19; --muted: #66645d; --line: #d4d1c9;
   --accent: #f2372a; --accent-ink: #ffffff; --stage-a: #f7f5f1; --stage-b: #d6d2c9; --ok: #2d7a57;
-  --font-display: "Bricolage Grotesque", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Instrument Sans", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: "Avenir Next", "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-body: system-ui, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -32,6 +29,7 @@ h1 { font: 700 26px/1.1 var(--font-display); letter-spacing: -0.01em; margin: 0;
 .crumb { font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
 .lede { color: var(--muted); margin: 6px 0 0; max-width: 70ch; }
 .dialog { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; }
+.picker[hidden] { display: none; }
 .picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
 .picker button { all: unset; box-sizing: border-box; cursor: pointer; padding: 12px 16px; display: grid; gap: 2px; border-right: 1px solid var(--line); position: relative; }
 .picker button:last-child { border-right: 0; }
@@ -128,29 +126,28 @@ input[type=range] { accent-color: var(--accent); width: 150px; }
 
 <div class="wrap">
   <div>
-    <p class="crumb">New chat shelf &rsaquo; 3D model &rsaquo; examples</p>
-    <h1>Three 3D examples, each a small app</h1>
-    <p class="lede">Every example is one self-contained page: a live scene you can turn, a legend whose numbers follow what you do, command buttons, and an Export that gives a real .glb. The grinder and the engine are CAD solids, checked before they ship; their mass, cost and pressure are computed, not drawn.</p>
+    /*@@CRUMB@@*/
+    <h1>/*@@TITLE@@*/</h1>
+    <p class="lede">/*@@LEDE@@*/</p>
   </div>
 
   <section class="dialog" aria-label="Example dialog">
     <div class="picker" role="tablist" id="picker"></div>
     <div class="body">
       <div class="stage" id="stage">
-        <span class="chip">Drag to turn &middot; pinch or ctrl-scroll to zoom</span>
+        <span class="chip">/*@@HINT@@*/</span>
       </div>
       <aside class="legend" id="legend" aria-live="polite"></aside>
     </div>
     <div class="bar">
       <div class="ctl" id="ctl"></div>
       <div class="grp">
-        <button class="btn" id="export" type="button">Export .glb</button>
-        <button class="btn primary" id="use" type="button">Use this request</button>
+        <button class="btn" id="export" type="button">/*@@EXPORT@@*/</button>
       </div>
     </div>
   </section>
 
-  <p class="note">In the product, Export saves the .glb into the project and Use this request fills the composer with the example's request. Downloads are blocked inside this preview, so Export shows the real file size instead.</p>
+  /*@@NOTE@@*/
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -240,167 +237,6 @@ const loadParts = (s) => new Promise((ok, fail) => new GLTFLoader().parse(b64(s)
 let camGoal = null;
 const flyTo = (pos, target) => { camGoal = { pos: new THREE.Vector3(...pos), target: new THREE.Vector3(...target), t: 0 }; };
 
-// ═══ 1. Armchair configurator (business: e-commerce) ═════════════════════════════════════════
-function chairExample() {
-  const FABRICS = {
-    green:   { name: 'Green velvet', color: 0x2f6b4f, price: 260, sheen: 0x3f8764 },
-    mustard: { name: 'Mustard velvet', color: 0xc99524, price: 260, sheen: 0xd8ae4a },
-    ink:     { name: 'Ink wool', color: 0x25395e, price: 220, sheen: 0x486290 },
-    oat:     { name: 'Oat bouclé', color: 0xd9cdb6, price: 290, sheen: 0xe9dfc9 }
-  };
-  const WOODS = { oak: { name: 'Oak', color: 0xb98a55, price: 180, lead: 3 }, walnut: { name: 'Walnut', color: 0x5b3a26, price: 210, lead: 4 }, black: { name: 'Black ash', color: 0x1d1d1f, price: 170, lead: 3 } };
-  const st = { fabric: 'green', wood: 'oak', size: 'lounge', quote: [] };
-  const fabricMat = new THREE.MeshPhysicalMaterial({ color: FABRICS.green.color, roughness: 0.92, sheen: 0.55, sheenRoughness: 0.5, envMapIntensity: 0.65, sheenColor: new THREE.Color(FABRICS.green.sheen) });
-  const woodMat = std(WOODS.oak.color, { roughness: 0.5 });
-  const g = new THREE.Group();
-  g.add(mesh(new RoundedBoxGeometry(0.62, 0.12, 0.58, 5, 0.045), fabricMat, 0, 0.405, 0.02));       // seat cushion
-  const back = mesh(new RoundedBoxGeometry(0.62, 0.46, 0.11, 5, 0.05), fabricMat, 0, 0.675, -0.245); back.rotation.x = -0.2; g.add(back);
-  g.add(mesh(new RoundedBoxGeometry(0.67, 0.05, 0.6, 3, 0.012), woodMat, 0, 0.315, 0.02));           // seat rail
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const leg = mesh(new THREE.CylinderGeometry(0.026, 0.014, 0.29, 20), woodMat, sx * 0.28, 0.145, 0.02 + sz * 0.25);
-    leg.rotation.z = sx * 0.1; leg.rotation.x = -sz * 0.1; g.add(leg);
-  }
-  for (const sx of [-1, 1]) {
-    g.add(mesh(new RoundedBoxGeometry(0.07, 0.035, 0.5, 3, 0.012), woodMat, sx * 0.355, 0.555, 0.0));  // arm
-    g.add(mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.24, 16), woodMat, sx * 0.355, 0.44, 0.2));   // arm post
-    const post = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.5, 16), woodMat, sx * 0.325, 0.56, -0.28); post.rotation.x = -0.2; g.add(post);
-  }
-  shadowed(g);
-  const fabricGoal = new THREE.Color(FABRICS.green.color), woodGoal = new THREE.Color(WOODS.oak.color), sheenGoal = new THREE.Color(FABRICS.green.sheen);
-  const sizeK = () => (st.size === 'lounge' ? 1 : 0.86);
-  const price = () => {
-    const f = FABRICS[st.fabric], w = WOODS[st.wood], k = st.size === 'lounge' ? 1 : 0.85;
-    return { frame: w.price * k, seat: Math.round(f.price * 0.55) * k, back: Math.round(f.price * 0.45) * k, total: (w.price + f.price) * k, lead: w.lead + (st.fabric === 'oat' ? 1 : 0) };
-  };
-  let goalScale = 1;
-  const draw = () => {
-    const p = price(), f = FABRICS[st.fabric], w = WOODS[st.wood];
-    const dims = st.size === 'lounge' ? 'W 82 · D 74 · H 78 cm' : 'W 71 · D 64 · H 67 cm';
-    legend.innerHTML = `
-      <div><h3>Your configuration</h3><p class="sub">Price and lead time follow every choice.</p></div>
-      <ul class="rows">
-        <li><i class="dot" style="--c:#${f.color.toString(16).padStart(6, '0')}"></i><div><b>Seat cushion</b><small>${f.name}</small></div><span class="v">${eur(p.seat)}</span></li>
-        <li><i class="dot" style="--c:#${f.color.toString(16).padStart(6, '0')}"></i><div><b>Back cushion</b><small>${f.name}</small></div><span class="v">${eur(p.back)}</span></li>
-        <li><i class="dot" style="--c:#${w.color.toString(16).padStart(6, '0')}"></i><div><b>Frame and legs</b><small>${w.name}, oiled</small></div><span class="v">${eur(p.frame)}</span></li>
-      </ul>
-      <div class="total"><span>Total, VAT incl.</span><output class="big" id="total" data-v="${st.prevTotal || 0}">${eur(st.prevTotal || 0)}</output></div>
-      <dl class="facts"><dt>Lead time</dt><dd>${p.lead} weeks</dd><dt>Size</dt><dd>${dims}</dd></dl>
-      <div class="quote"><h4>Quote &middot; ${st.quote.length} ${st.quote.length === 1 ? 'item' : 'items'}</h4>
-        ${st.quote.length ? `<ul>${st.quote.map((q) => `<li><span>${q.label}</span><span class="v">${eur(q.total)}</span></li>`).join('')}</ul>
-        <div class="total"><span>Quote total</span><span class="v">${eur(st.quote.reduce((s, q) => s + q.total, 0))}</span></div>` : '<p class="sub">Nothing yet. Add this configuration to build a quote.</p>'}
-      </div>`;
-    countTo($('#total'), p.total, eur); st.prevTotal = p.total;
-    fabricGoal.set(f.color); sheenGoal.set(f.sheen); woodGoal.set(w.color); goalScale = sizeK();
-  };
-  const bar = () => {
-    ctl.innerHTML = `
-      <div class="grp"><span class="lab">Fabric</span>${Object.entries(FABRICS).map(([k, f]) => `<button class="sw" type="button" data-act="fabric" data-val="${k}" aria-label="${f.name}" title="${f.name}" aria-pressed="${st.fabric === k}" style="--c:#${f.color.toString(16).padStart(6, '0')}"></button>`).join('')}</div>
-      <div class="grp"><span class="lab">Frame</span><div class="seg">${Object.entries(WOODS).map(([k, w]) => `<button type="button" data-act="wood" data-val="${k}" aria-pressed="${st.wood === k}">${w.name}</button>`).join('')}</div></div>
-      <div class="grp"><span class="lab">Size</span><div class="seg">${[['lounge', 'Lounge'], ['compact', 'Compact']].map(([k, n]) => `<button type="button" data-act="size" data-val="${k}" aria-pressed="${st.size === k}">${n}</button>`).join('')}</div></div>
-      <button class="btn" type="button" data-act="quote">Add to quote</button>`;
-  };
-  return {
-    label: 'Armchair configurator', tag: 'Business', sub: 'E-commerce · fabric, frame, size, live price', group: g,
-    cam: { pos: [1.45, 1.0, 1.75], target: [0, 0.4, 0] }, autoRotate: true, file: 'armchair.glb',
-    request: 'Make a 3D configurator for my armchair: let the visitor pick the fabric, the wood and the size, show the price and the lead time live, let them add the configuration to a quote, and export the 3D model.',
-    enter() { st.prevTotal = 0; bar(); draw(); },
-    act(a, v) {
-      if (a === 'fabric') st.fabric = v; else if (a === 'wood') st.wood = v; else if (a === 'size') st.size = v;
-      else if (a === 'quote') {
-        const p = price(); st.quote.push({ label: `${st.size === 'lounge' ? 'Lounge' : 'Compact'} · ${FABRICS[st.fabric].name} · ${WOODS[st.wood].name}`, total: p.total });
-        toast('Added to the quote'); draw(); return;
-      }
-      bar(); draw();
-    },
-    tick() {
-      const k = 0.14;
-      fabricMat.color.lerp(fabricGoal, k); fabricMat.sheenColor.lerp(sheenGoal, k); woodMat.color.lerp(woodGoal, k);
-      const s = g.scale.x + (goalScale - g.scale.x) * 0.16; g.scale.setScalar(s);
-    }
-  };
-}
-
-function grinderExampleLegacy() {
-  const GAP = 0.07;
-  const mats = {
-    steel: () => std(0x9ea1a7, { metalness: 1, roughness: 0.3 }), beech: () => std(0xc79a62, { roughness: 0.6 }), walnut: () => std(0x5b3a26, { roughness: 0.5 }),
-    brass: () => std(0xc9a14a, { metalness: 1, roughness: 0.28 }), dark: () => std(0x2a2b2e, { metalness: 0.6, roughness: 0.4 })
-  };
-  const burrCone = () => { const pts = [[0, 0]]; const n = 14, h = 0.045; for (let i = 0; i < n; i++) { const y = (i / n) * h, y2 = ((i + 0.5) / n) * h; const r = (yy) => 0.013 + 0.014 * (yy / h); pts.push([r(y) + 0.0022, y], [r(y2) - 0.0012, y2]); } pts.push([0.027, h], [0, h]); return lathe(pts, 48); };
-  const burrRing = () => { const pts = []; const n = 10, h = 0.03; pts.push([0.0335, 0], [0.0335, h]); for (let i = n; i > 0; i--) { const y = (i / n) * h, y2 = ((i - 0.5) / n) * h; pts.push([0.0302, y], [0.0285, y2]); } pts.push([0.0302, 0], [0.0335, 0]); return lathe(pts, 48); };
-  const PARTS = [
-    { id: 'base', name: 'Base plate', material: 'Brushed steel', supplier: 'Atelier Morel, Saint-Étienne', cost: 6.8, y: 0, mat: 'steel', build: (m) => [mesh(new RoundedBoxGeometry(0.11, 0.02, 0.11, 3, 0.004), m, 0, 0.01, 0)] },
-    { id: 'drawer', name: 'Catch drawer', material: 'Walnut', supplier: 'Scierie du Jura', cost: 9.4, y: 0.02, mat: 'walnut', build: (m) => [mesh(new RoundedBoxGeometry(0.09, 0.045, 0.09, 3, 0.004), m, 0, 0.0225, 0), mesh(new THREE.SphereGeometry(0.009, 20, 14), m, 0, 0.0225, 0.052)] },
-    { id: 'body', name: 'Body', material: 'Beech, turned', supplier: 'Scierie du Jura', cost: 14.2, y: 0.07, mat: 'beech', side: true, build: (m) => [mesh(lathe([[0.034, 0], [0.046, 0], [0.046, 0.13], [0.034, 0.13], [0.034, 0]]), m)] },
-    { id: 'lower', name: 'Lower burr', material: 'Hardened steel', supplier: 'Atelier Morel, Saint-Étienne', cost: 11.5, y: 0.115, mat: 'steel', build: (m) => [mesh(burrCone(), m)] },
-    { id: 'upper', name: 'Upper burr', material: 'Hardened steel', supplier: 'Atelier Morel, Saint-Étienne', cost: 9.8, y: 0.15, mat: 'steel', side: true, build: (m) => [mesh(burrRing(), m)] },
-    { id: 'nut', name: 'Adjusting nut', material: 'Brass', supplier: 'Tournerie Baud, Cluses', cost: 3.1, y: 0.2, mat: 'brass', build: (m) => { const r = mesh(lathe([[0.01, 0], [0.026, 0], [0.026, 0.012], [0.01, 0.012], [0.01, 0]], 26), m); r.material.flatShading = true; return [r]; } },
-    { id: 'lid', name: 'Lid', material: 'Beech', supplier: 'Scierie du Jura', cost: 4.6, y: 0.212, mat: 'beech', build: (m) => [mesh(lathe([[0, 0], [0.047, 0], [0.047, 0.012], [0.02, 0.016], [0, 0.016]]), m)] },
-    { id: 'crank', name: 'Crank', material: 'Steel, walnut knob', supplier: 'Atelier Morel, Saint-Étienne', cost: 8.9, y: 0.228, mat: 'steel', build: (m, w) => [mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.034, 16), m, 0, 0.017, 0), mesh(new RoundedBoxGeometry(0.11, 0.012, 0.012, 2, 0.004), m, 0.05, 0.034, 0), mesh(new THREE.CylinderGeometry(0.011, 0.0095, 0.038, 24), w, 0.1, 0.057, 0)] }
-  ];
-  const g = new THREE.Group();
-  const total = PARTS.reduce((s, p) => s + p.cost, 0);
-  PARTS.forEach((p, i) => {
-    p.k = i; p.grp = new THREE.Group(); p.mats = [];
-    const m = mats[p.mat](); if (p.side) m.side = THREE.DoubleSide; p.mats.push(m);
-    const w = p.id === 'crank' ? mats.walnut() : null; if (w) p.mats.push(w);
-    p.build(m, w).forEach((o) => p.grp.add(o)); shadowed(p.grp); p.grp.userData.part = p.id; p.grp.position.y = p.y; g.add(p.grp);
-  });
-  const st = { E: 0, goal: 0, dur: 1.5, xray: false, sel: null, hover: null, playing: false, lastE: -1 };
-  const partOf = (obj) => { while (obj && !obj.userData.part) obj = obj.parent; return obj ? PARTS.find((p) => p.id === obj.userData.part) : null; };
-  const paint = () => PARTS.forEach((p) => p.mats.forEach((m) => { m.emissive.set(0xf2372a); m.emissiveIntensity = st.sel === p.id ? 0.42 : st.hover === p.id ? 0.14 : 0; }));
-  const drawLegend = () => {
-    const sel = PARTS.find((p) => p.id === st.sel);
-    const max = Math.max(...PARTS.map((p) => p.cost));
-    legend.innerHTML = `
-      <div><h3>Bill of materials</h3><p class="sub">Hand coffee grinder &middot; ${PARTS.length} parts. Click a part, or a row.</p></div>
-      <ul class="rows">${PARTS.map((p) => `<li class="pick ${st.sel === p.id ? 'on' : ''}" data-act="pick" data-val="${p.id}"><span class="dot" style="--c:${p.mat === 'steel' ? '#9ea1a7' : p.mat === 'brass' ? '#c9a14a' : p.mat === 'walnut' ? '#5b3a26' : '#c79a62'}"></span><div><b>${p.name}</b><small>${p.material}</small></div><span class="v">${p.cost.toFixed(2)}</span><div class="bar-cost"><i style="width:${(p.cost / max) * 100}%"></i></div></li>`).join('')}</ul>
-      <div class="total"><span>Cost per unit, EUR</span><output class="big">${total.toFixed(2)}</output></div>
-      ${sel ? `<div class="card"><b>${sel.name}</b><p>${sel.material}</p><p>Supplier: ${sel.supplier}</p><p>Unit cost: €${sel.cost.toFixed(2)} &middot; ${((sel.cost / total) * 100).toFixed(0)}% of the total</p></div>` : '<div class="card"><b>Nothing selected</b><p>Pick a part to see its material, supplier and share of the cost.</p></div>'}`;
-  };
-  const bar = () => {
-    ctl.innerHTML = `
-      <div class="grp"><button class="btn" type="button" data-act="toggle" aria-pressed="${st.goal === 1}">${st.goal === 1 ? 'Assemble' : 'Explode'}</button>
-      <button class="btn" type="button" data-act="play">${st.playing ? 'Assembling…' : 'Play assembly'}</button>
-      <button class="btn" type="button" data-act="xray" aria-pressed="${st.xray}">X-ray body</button></div>`;
-  };
-  const setE = (goal, dur) => { st.goal = goal; st.dur = reduced ? 0.01 : dur; };
-  return {
-    label: 'Hand grinder, exploded', tag: 'Business · Training', sub: 'Product · bill of materials, step by step assembly', group: g,
-    cam: { pos: [0.5, 0.34, 0.56], target: [0, 0.14, 0] }, autoRotate: false, file: 'hand-grinder.glb',
-    request: 'Make an exploded 3D view of my product: let me explode and re-assemble it, play the assembly step by step, click a part to see its material, supplier and cost, and add an x-ray view. Export the 3D model.',
-    enter() { st.E = 0; st.goal = 0; st.sel = null; st.playing = false; bar(); drawLegend(); paint(); },
-    act(a, v) {
-      if (a === 'toggle') { st.playing = false; setE(st.goal === 1 ? 0 : 1, 1.6); }
-      else if (a === 'play') { st.E = 1; st.playing = true; setE(0, 5.5); }
-      else if (a === 'xray') st.xray = !st.xray;
-      else if (a === 'pick') st.sel = st.sel === v ? null : v;
-      bar(); drawLegend(); paint();
-    },
-    pointer(kind, obj) {
-      const p = obj ? partOf(obj) : null;
-      if (kind === 'move') { const id = p ? p.id : null; if (id !== st.hover) { st.hover = id; paint(); renderer.domElement.style.cursor = id ? 'pointer' : ''; } }
-      else if (kind === 'click') { st.sel = p ? (st.sel === p.id ? null : p.id) : null; drawLegend(); paint(); }
-    },
-    pickables: () => g,
-    tick(dt) {
-      if (st.E !== st.goal) { const d = dt / st.dur; st.E = st.goal > st.E ? Math.min(st.goal, st.E + d) : Math.max(st.goal, st.E - d); if (st.E === st.goal && st.playing) { st.playing = false; bar(); } }
-      const s = 0.55;
-      PARTS.forEach((p) => { const pe = ease(st.E * (1 + s) - (s * (PARTS.length - 1 - p.k)) / (PARTS.length - 1)); p.grp.position.y = p.y + p.k * GAP * pe; p.pe = pe; });
-      const body = PARTS[2].mats[0]; body.transparent = st.xray; body.opacity = st.xray ? 0.2 : 1; body.depthWrite = !st.xray;
-      if (st.playing) { const moving = PARTS.filter((p) => p.pe > 0.04 && p.pe < 0.96).pop(); const id = moving ? moving.id : null; if (id && id !== st.sel) { st.sel = id; drawLegend(); paint(); } }
-      const e = ease(st.E);
-      if (e !== st.lastE) {          // while it explodes or assembles, the camera follows the stack and backs off
-        const off = camera.position.clone().sub(controls.target);
-        controls.target.y += ((0.14 + 0.26 * e) - controls.target.y) * 0.18;
-        off.setLength(off.length() + ((0.86 + 0.95 * e) - off.length()) * 0.12);
-        camera.position.copy(controls.target).add(off); st.lastE = e;
-      }
-    }
-  };
-}
-
-
 /*@@SIM@@*/
 
 /*@@DATA@@*/
@@ -409,7 +245,7 @@ function grinderExampleLegacy() {
 
 // ── the examples, the picker, the scene switch ──────────────────────────────────────────────
 const env = { THREE, std, mesh, lathe, shadowed, ease, $, ctl, legend, reduced };
-const EXAMPLES = [chairExample(), /*@@GRINDER@@*/, /*@@ENGINE@@*/];
+const EXAMPLES = [/*@@EXAMPLES@@*/];
 let cur = null;
 const mount = (i, instant) => {
   if (cur) scene.remove(cur.group);
@@ -419,6 +255,7 @@ const mount = (i, instant) => {
   picker.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-selected', String(k === i)));
   renderer.domElement.style.cursor = '';
 };
+picker.hidden = EXAMPLES.length < 2;
 picker.innerHTML = EXAMPLES.map((e, i) => `<button type="button" role="tab" data-i="${i}" aria-selected="false"><span class="tag">${e.tag}</span><b>${e.label}</b><span>${e.sub}</span></button>`).join('');
 picker.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) mount(Number(b.dataset.i)); });
 picker.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = (EXAMPLES.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : EXAMPLES.length - 1)) % EXAMPLES.length; mount(n); picker.children[n].focus(); } });
@@ -442,10 +279,11 @@ $('#export').addEventListener('click', () => {
   new GLTFExporter().parse(cur.group, (buf) => {
     hidden.forEach((o) => { o.visible = true; });
     const kb = Math.max(1, Math.round(buf.byteLength / 1024));
-    toast(`${cur.file} · ${kb} KB · a valid glTF binary. In the app it is saved into your project.`);
-  }, (err) => { hidden.forEach((o) => { o.visible = true; }); toast('Export failed: ' + (err && err.message ? err.message : 'unknown error')); }, { binary: true });
+    // a normal browser saves the file; a sandboxed preview blocks the download, so the size is always shown as well
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' })); a.download = cur.file; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) { /* blocked: the toast below still says what the file is */ }
+    toast(STR.exported.replace('{file}', cur.file).replace('{kb}', kb));
+  }, (err) => { hidden.forEach((o) => { o.visible = true; }); toast(STR.exportFailed + (err && err.message ? ': ' + err.message : '')); }, { binary: true });
 });
-$('#use').addEventListener('click', () => { if (cur) toast('Composer filled: “' + cur.request.slice(0, 92) + '…”'); });
 
 // ── the loop ────────────────────────────────────────────────────────────────────────────────
 let last = performance.now();

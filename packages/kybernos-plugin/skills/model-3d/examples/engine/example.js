@@ -1,4 +1,4 @@
-// The four-stroke engine example of the 3D shelf. The solids come from the CAD kernel (cad/engine.py, loaded from the
+// The four-stroke engine example of the 3D shelf. The solids come from the CAD kernel (engine.py, loaded from the
 // .glb as env.parts); every number and every movement comes from engine-sim.mjs, whose code the build puts in the same
 // page just above this one (simulate, at, geometry, valveLift, PARAMS ...), and from ENGINE_CAD / ENGINE_CHECKS, the
 // constants and the results of the checks written by the CAD scripts.

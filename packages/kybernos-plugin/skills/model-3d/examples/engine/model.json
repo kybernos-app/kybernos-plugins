@@ -1,0 +1,14 @@
+{
+  "title": "Four-stroke engine",
+  "build": ["node export-params.mjs", "py engine.py"],
+  "checks": ["node test-engine-sim.mjs", "py test_engine.py"],
+  "page": {
+    "title": "Four-stroke engine",
+    "lede": "A single-cylinder engine drawn as solids in a CAD kernel, cut away, with a cycle that is computed (mass and energy balance, valve flow, burn, heat loss), not animated by hand. Move the throttle and the spark and the pressure curve follows.",
+    "glb": { "engine": "engine.glb" },
+    "data": { "ENGINE_CAD": "engine-report.json#constants", "ENGINE_CHECKS": "engine-checks.json" },
+    "sim": "engine-sim.mjs",
+    "modules": ["example.js"],
+    "examples": ["await engineExample({ ...env, parts: await loadParts(GLB.engine) })"]
+  }
+}

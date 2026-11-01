@@ -6,7 +6,7 @@ A model is a `Kit`: named solids drawn at their reference pose, in millimetres, 
   - measure what the page will show (exact volume, mass from a density, bounding box);
   - test two parts against each other: the volume they share must be zero.
 
-Run with the isolated environment: ~/kybernos-archive/3d-tools/.venv/bin/python
+Run with the toolchain python that `node scripts/model.mjs doctor` prints (an isolated venv, never the system python).
 """
 import json
 import numpy as np
@@ -81,7 +81,8 @@ class Kit:
 
 
 def shared_volume(a, b):
-    """Volume (mm3) that two solids occupy together. Zero when they only touch."""
+    """Volume (mm3) that two solids occupy together: 0.0 when they only touch or do not meet, None when the kernel failed.
+    Treat None as a failure of the check, never as "no overlap"."""
     try:
         r = a & b
     except Exception:
@@ -91,7 +92,7 @@ def shared_volume(a, b):
     try:
         return float(r.volume)
     except Exception:
-        return 0.0
+        return None
 
 
 def write_json(path, obj):

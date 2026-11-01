@@ -1,14 +1,14 @@
 """The four-stroke engine of the 3D shelf, built with a CAD kernel (build123d / OpenCascade).
 
-Single cylinder, 56 x 50 mm, 90 mm rod, compression ratio 10: the numbers come from engine/engine-params.json,
-written by engine/export-params.mjs from the same module the page runs (engine-sim.mjs), so the model and the
+Single cylinder, 56 x 50 mm, 90 mm rod, compression ratio 10: the numbers come from engine-params.json,
+written by export-params.mjs from the same module the page runs (engine-sim.mjs), so the model and the
 simulation cannot drift apart. Parts are drawn at their reference pose (crank at top dead centre), mm, Z up:
 the cylinder axis is Z, the crankshaft axis is Y and goes through the origin.
 
 Cutaway: block, head, crankcase and pipes are cut in half (the half with y < 0 is removed) and the cut face is a
 separate thin slab, so the page can colour it. Moving parts are left whole.
 
-    ~/kybernos-archive/3d-tools/.venv/bin/python cad/engine.py        (writes engine/engine.glb + engine-report.json)
+    python engine.py        (writes engine.glb + engine-report.json; `node model.mjs build .` runs it with the right python)
 """
 import json
 import math
@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from kbcad import Kit, write_json
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, '..', 'engine')
+OUT = HERE
 J = json.load(open(os.path.join(OUT, 'engine-params.json')))
 P, LIFT = J['params'], J['lift']
 

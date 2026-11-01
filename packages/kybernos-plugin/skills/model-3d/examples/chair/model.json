@@ -1,0 +1,11 @@
+{
+  "title": "Armchair configurator",
+  "build": [],
+  "checks": [],
+  "page": {
+    "title": "Armchair configurator",
+    "lede": "A product page for an online shop, made of simple shapes: pick the fabric, the frame and the size, and the price follows. It needs no CAD toolchain.",
+    "modules": ["example.js"],
+    "examples": ["chairExample()"]
+  }
+}
