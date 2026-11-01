@@ -82,18 +82,24 @@ const sanitize = (text) => String(text)
 
 export const teamLine = (l) => '- [' + (l.kyber === null ? 'general' : l.kyber) + '] ' + sanitize(l.text) + (l.tags.length > 0 ? ' ' + l.tags.map((t) => '#' + t).join(' ') : '')
 
-/** Lessons that apply to a session: the general ones and the ones of its kyber, approved only. */
-export const applicable = (lessons, kyber) => lessons.filter((l) => l.status === 'approved' && (l.kyber === null || l.kyber === kyber))
+const kyberList = (kybers) => [...new Set(Array.isArray(kybers) ? kybers : typeof kybers === 'string' ? [kybers] : [])]
+
+/** Lessons that apply to a session: the general ones and the ones of the kybers it runs (a name or a list), approved only. */
+export const applicable = (lessons, kybers) => {
+  const mine = kyberList(kybers)
+  return lessons.filter((l) => l.status === 'approved' && (l.kyber === null || mine.indexOf(l.kyber) >= 0))
+}
 
 const newest = (a, b) => (Date.parse(b.updatedAt || b.createdAt || '') || 0) - (Date.parse(a.updatedAt || a.createdAt || '') || 0) || (Number(b.id) - Number(a.id))
 
 /**
  * What the block carries. The ones that match the user's latest message (`preferred`, already picked) come first within their own
- * share, then the ones of the session's kyber, then the general ones, the newest first. A lesson too long for what is left is skipped.
+ * share, then the ones of the session's kybers (one lane per kyber, the newest first, taken in turn so a busy team cannot crowd
+ * out another), then the general ones, the newest first. A lesson too long for what is left is skipped.
  * Returns { chosen, omitted, used }.
  */
-export const teamPlan = (lessons, kyber, preferred = []) => {
-  const pool = applicable(lessons, kyber)
+export const teamPlan = (lessons, kybers, preferred = []) => {
+  const pool = applicable(lessons, kybers)
   const budget = Math.max(0, TEAM_TUNING.chunkChars - TEAM_TUNING.frameChars)
   const chosen = []
   let used = 0
@@ -111,7 +117,11 @@ export const teamPlan = (lessons, kyber, preferred = []) => {
     if (relevantUsed + cost > relevantCap) continue
     if (take(l)) relevantUsed += cost
   }
-  const rest = pool.filter((l) => chosen.indexOf(l) < 0).sort((a, b) => (Number(b.kyber !== null) - Number(a.kyber !== null)) || newest(a, b))
+  const left = pool.filter((l) => chosen.indexOf(l) < 0)
+  const lanes = kyberList(kybers).map((k) => left.filter((l) => l.kyber === k).sort(newest)).filter((lane) => lane.length > 0)
+  const rest = []
+  for (let i = 0; lanes.some((lane) => i < lane.length); i += 1) for (const lane of lanes) if (i < lane.length) rest.push(lane[i])
+  rest.push(...left.filter((l) => l.kyber === null).sort(newest))
   let omitted = 0
   for (const l of rest) { if (!take(l)) omitted += 1 }
   return { chosen, omitted, used }

@@ -1849,6 +1849,11 @@ let kbLocaleRead = () => 'en'
       'kbsd.local.note': { kybernos: 'Enregistré seulement sur cet appareil : le serveur ne distingue pas encore équipe et privé.', en: 'Saved on this device only: the server does not distinguish team from private yet.' },
       'kbsd.nocloud': { kybernos: 'Connecte ton compte Kybernos pour partager : sans compte, rien ne sort de cet appareil.', en: 'Connect your Kybernos account to share: without an account, nothing leaves this device.' },
       'kbsd.ok.public': { kybernos: 'Lien public créé et confirmé par le Cloud', en: 'Public link created and confirmed by the Cloud' },
+      // 01/11/2026: the cloud's /v1/shares is paused server-side (ADR 0007 § 7), so the link of a share is served by THIS DSH:
+      // /kybernos/s/<token>, which needs no session. The wording says who serves it, because « public » now means « whoever opens
+      // this address ».
+      'kbsd.public.sub.local': { kybernos: 'Lien servi par cet ordinateur : toute personne qui l’ouvre voit ce fichier', en: 'Link served by this computer: anyone who opens it sees this file' },
+      'kbsd.ok.local': { kybernos: 'Lien créé — copié', en: 'Link created — copied' },
       'kbsd.ok.team': { kybernos: 'Accès équipe enregistré (local)', en: 'Team access saved (local)' },
       'kbsd.ok.private': { kybernos: 'Retour en privé', en: 'Back to private' },
       'kbsd.ok.revoked': { kybernos: 'Lien public révoqué', en: 'Public link revoked' },
@@ -12464,6 +12469,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const KB_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     const kbSpJson = (r) => r.json().catch(() => null)
     const kbSpPost = (url, corps) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corps) })
+    // The origin THIS page is served from: the host that serves a shared file locally (`/kybernos/s/<token>`).
+    const origineKb = () => {
+      try { return String(window.location.origin).replace(/\/+$/, '') } catch (e) { return '' }
+    }
     const KbShareDialog = (p0) => {
       const item = p0.item
       const onClose = p0.onClose
@@ -12530,7 +12539,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         fetch('/kybernos/share').then((r) => r.json()).then((j) => {
           if (vivant !== true || j === null || j.ok !== true || j.shares === null || typeof j.shares !== 'object') return
           const e = j.shares[item.kind + ':' + item.id]
-          if (e !== null && e !== undefined) setAcc({ access: e.access, role: e.role })
+          if (e !== null && e !== undefined) setAcc({ access: e.access, role: e.role, token: typeof e.token === 'string' ? e.token : null })
         }).catch(() => { /* fichier absent : accès privé par défaut */ })
         fetch('/kybernos-cloud/status').then((r) => r.json()).then((j) => {
           if (vivant !== true) return
@@ -12603,6 +12612,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const r = await kbSpPost('/kybernos/share', { kind: item.kind, id: item.id, access: access, role: role || 'view' })
           const j = await kbSpJson(r)
           if (j === null || j.ok !== true) { setAcc(avant); dire('err', T('kbsd.err.save', { m: (j !== null && j.error) ? j.error : '?' })); return false }
+          // The host mints the token of the link (and keeps it when the level changes): it is what /kybernos/s/<token> serves.
+          const tok = (j.partage !== null && j.partage !== undefined && typeof j.partage.token === 'string') ? j.partage.token : null
+          setAcc({ access: access, role: role || 'view', token: access === 'me' ? null : tok })
           return true
         } catch (e) { setAcc(avant); dire('err', T('kbsd.err.save', { m: String((e && e.message) || e) })); return false }
       }
@@ -12625,17 +12637,31 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // sha256) → audience 'link'. Rend le lien, ou null (le motif est affiché).
       const publier = async () => {
         if (typeof item.path !== 'string') { dire('err', T('kbsd.err.nopath')); return null }
-        const lu = await host.call('kybers/art-read', { path: item.path }).catch(() => null)
-        if (lu === null || lu === undefined || lu.ok !== true) { dire('err', T('kbsd.err.read', { m: (lu !== null && lu !== undefined && lu.error) ? lu.error : '?' })); return null }
-        const pousse = await kbSpPost('/kybernos-cloud/artifacts/push', { title: item.titre, filename: item.titre, kind: kindDe(item.titre), content_b64: b64Utf8(lu.text) }).then(kbSpJson)
-        const cle = (pousse !== null && pousse.ok === true && pousse.artifact !== null && pousse.artifact !== undefined) ? pousse.artifact.id : null
-        if (cle === null) { dire('err', T('kbsd.err.push', { m: (pousse !== null && pousse.error) ? pousse.error : '?' })); return null }
-        const pose = await kbSpPost('/kybernos-cloud/shares/set', { resource_type: 'artifact', resource_id: cle, audience: 'link' }).then(kbSpJson)
-        const slug = (pose !== null && pose.ok === true && pose.share !== null && pose.share !== undefined) ? pose.share.slug : null
-        if (pose !== null && pose.ok !== true && pose.error === 'not_on_this_server') { setSrv({ state: 'unavail', share: null, artId: null, error: null }); dire('err', T('kbsd.public.sub.unavail')); return null }
-        if (slug === null || slug === undefined) { dire('err', T('kbsd.err.share', { m: (pose !== null && pose.error) ? pose.error : '?' })); return null }
-        setSrv({ state: 'ok', share: { slug: slug, audience: 'link' }, artId: cle, error: null })
-        return kbServer.web.replace(/\/+$/, '') + '/s/' + slug
+        // 1) The cloud, when it has the route AND the account: the link is then served by the web app. The server's /v1/shares is
+        //    paused (ADR 0007 § 7), so an answer `not_on_this_server` is not a failure: the host below serves the file instead.
+        if (connecte === true && srv.state !== 'unavail') {
+          const lu = await host.call('kybers/art-read', { path: item.path }).catch(() => null)
+          if (lu !== null && lu !== undefined && lu.ok === true) {
+            const pousse = await kbSpPost('/kybernos-cloud/artifacts/push', { title: item.titre, filename: item.titre, kind: kindDe(item.titre), content_b64: b64Utf8(lu.text) }).then(kbSpJson)
+            const cle = (pousse !== null && pousse.ok === true && pousse.artifact !== null && pousse.artifact !== undefined) ? pousse.artifact.id : null
+            if (cle !== null) {
+              const pose = await kbSpPost('/kybernos-cloud/shares/set', { resource_type: 'artifact', resource_id: cle, audience: 'link' }).then(kbSpJson)
+              const slug = (pose !== null && pose.ok === true && pose.share !== null && pose.share !== undefined) ? pose.share.slug : null
+              if (slug !== null && slug !== undefined) {
+                setSrv({ state: 'ok', share: { slug: slug, audience: 'link' }, artId: cle, error: null })
+                return kbServer.web.replace(/\/+$/, '') + '/s/' + slug
+              }
+              if (pose !== null && pose.ok !== true && pose.error === 'not_on_this_server') setSrv({ state: 'unavail', share: null, artId: null, error: null })
+            }
+          }
+        }
+        // 2) This host: /kybernos/share mints the token, /kybernos/s/<token> serves the file to anyone holding it, with no session.
+        const j = await kbSpPost('/kybernos/share', { kind: item.kind, id: item.id, access: 'public', role: acc.role }).then(kbSpJson)
+        if (j === null || j.ok !== true) { dire('err', T('kbsd.err.save', { m: (j !== null && j.error) ? j.error : '?' })); return null }
+        const tok = (j.partage !== null && j.partage !== undefined && typeof j.partage.token === 'string') ? j.partage.token : null
+        if (tok === null) { dire('err', T('kbsd.err.share', { m: 'no token' })); return null }
+        setAcc({ access: 'public', role: acc.role, token: tok })
+        return origineKb() + '/kybernos/s/' + tok
       }
       const revoquer = async () => {
         if (srv.share === null || srv.artId === null) return true
@@ -12652,9 +12678,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (publicReel === true) niveau = 'public'
       else if (acc.access === 'public' && livrable === true && lectureOk !== true) niveau = 'public'
       const publicConfirme = publicReel === true
-      const peutPublic = connecte === true && livrable === true && srv.state !== 'unavail'
+      // A file can always be shared by a link of THIS host (the cloud's share route is paused server-side): the token is minted by
+      // /kybernos/share, kept across a change of level, and deleted when the sheet goes back to Private.
+      const lienLocal = livrable === true && acc.access !== 'me' && typeof acc.token === 'string' && acc.token !== '' ? origineKb() + '/kybernos/s/' + acc.token : null
+      const peutPublic = livrable === true
       const peutEquipe = equipe === true
       const lienPublic = publicReel === true ? kbServer.web.replace(/\/+$/, '') + '/s/' + srv.share.slug : null
+      const lienAffiche = lienPublic !== null ? lienPublic : lienLocal
 
       const poserNiveau = async (cible) => {
         const ECHEC = { ok: false, lien: null }
@@ -12666,8 +12696,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             if (peutPublic !== true) return ECHEC
             const lien = await publier()
             if (lien === null) return ECHEC
-            await poserLocal('public', acc.role)
-            dire('ok', T('kbsd.ok.public'))
+            dire('ok', lien.indexOf('/kybernos/s/') > 0 ? T('kbsd.ok.local') : T('kbsd.ok.public'))
             return { ok: true, lien: lien }
           }
           // Quitter le public : la révocation réelle d'abord ; sans elle, rien ne change.
@@ -12700,7 +12729,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           if (cible !== null) await copierTexte(cible)
           return
         }
-        const cible = lienPublic !== null ? lienPublic : webUrl
+        const cible = lienAffiche !== null ? lienAffiche : webUrl
         if (cible === null) { dire('err', T('kbsd.err.nolink')); return }
         await copierTexte(cible)
       }
@@ -12744,7 +12773,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           on === true ? h('span', { className: 'kbsp-chk' }, Icon('check', 16)) : null)
         const initiale = nomEspace.trim().slice(0, 1).toUpperCase()
         const teamSous = peutEquipe === true ? T('kbsd.team.sub', { team: nomEspace }) : (connecte === true ? T('kbsd.team.sub.personal') : T('kbsd.team.sub.off'))
-        const pubSous = livrable !== true ? T('kbsd.public.sub.soon') : (connecte !== true ? T('kbsd.public.sub.off') : (srv.state === 'unavail' ? T('kbsd.public.sub.unavail') : T('kbsd.public.sub')))
+        const pubSous = livrable !== true ? T('kbsd.public.sub.soon') : (publicReel === true ? T('kbsd.public.sub') : T('kbsd.public.sub.local'))
         const chargement = livrable === true && connecte === true && srv.state === 'loading'
         corps = h('div', { className: 'kbsp-body' },
           (info === 'help' ? h('div', { className: 'kbsp-box kbsp-help', 'data-kb': 'share-help-body' }, h('div', { className: 'kbsp-boxtxt' }, T(livrable === true ? 'kbsd.help.file' : 'kbsd.help.kyber'))) : null),
@@ -12758,11 +12787,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           (chargement === true ? h('div', { className: 'kbsp-hint', 'data-kb': 'share-loading' }, T('kbsd.loading')) : null),
           (livrable === true && connecte === true && srv.state === 'err' ? h('div', { className: 'kbsp-msg kbsp-msg-err', 'data-kb': 'share-readerr' }, T('kbsd.err.readstate', { m: srv.error })) : null),
           (niveau === 'team' ? h('div', { className: 'kbsp-hint' }, T('kbsd.local.note')) : null),
-          (lienPublic !== null ? h('div', { className: 'kbsp-link', 'data-kb': 'share-link', title: lienPublic }, lienPublic) : null),
+          (lienAffiche !== null ? h('div', { className: 'kbsp-link', 'data-kb': 'share-link', title: lienAffiche }, lienAffiche) : null),
           blocNote)
         const meilleurDispo = peutPublic === true || peutEquipe === true
         const libelle = niveau === 'me' ? T('kbsd.sharenow') : kbt('kbui.copylink')
-        const inactif = busy === true || cloud === null || (niveau === 'me' && meilleurDispo !== true) || (niveau !== 'me' && lienPublic === null && webUrl === null)
+        const inactif = busy === true || (niveau === 'me' && meilleurDispo !== true) || (niveau !== 'me' && lienAffiche === null && webUrl === null)
         pied = h('div', { className: 'kbsp-foot' },
           h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary kbsp-wide', 'data-kb': 'share-copy-link', disabled: inactif, onClick: actionPied }, niveau === 'me' ? Icon('share', 14) : Icon('link', 14), ' ', libelle),
           // V1-27: a disabled button that explains nothing. When the reason is « nothing to share yet », say it, once.

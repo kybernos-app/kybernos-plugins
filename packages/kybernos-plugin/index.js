@@ -10,6 +10,7 @@ import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolu
 import { dshHomeSync } from './dsh-home.mjs'
 import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
+import { TEAMS_CHUNK_NAME, TEAMS_CHUNK_ORDER, createAgentTeamsPrompt } from './agent-teams-prompt.mjs'
 import { workspaceHealthRows, requestedWorkspaceId } from './workspace-health.mjs'
 import { SHELF_PUBLIC_BASE, createShelf, shelfVideoAnswer } from './templates-shelf.mjs'
 import { selectAfterConnect } from './default-model.mjs'
@@ -8149,6 +8150,8 @@ function boot(ctx) {
           if (SHARE_KINDS.indexOf(morceaux[0]) === -1 || !morceaux[1]) continue
           if (SHARE_ACCES.indexOf(e.access) === -1) continue
           propre[cle] = { access: e.access, role: SHARE_ROLES.indexOf(e.role) !== -1 ? e.role : 'view', ts: String(e.ts || '') }
+          // The token of a public/team link lives here too (24 lowercase hex chars): it is what /kybernos/s/<token> serves.
+          if (typeof e.token === 'string' && /^[a-f0-9]{24}$/.test(e.token)) propre[cle].token = e.token
         }
         return propre
       } catch (e) { return sharesVides() }
@@ -8170,13 +8173,141 @@ function boot(ctx) {
           delete data[cle]
         } else {
           if (SHARE_ACCES.indexOf(req.access) === -1) return { ok: false, error: 'invalid access (me|team|public)' }
-          data[cle] = { access: req.access, role: SHARE_ROLES.indexOf(req.role) !== -1 ? req.role : 'view', ts: new Date().toISOString() }
+          // The cloud's /v1/shares is gone from the server (ADR 0007 § 7), so a public or team link is served by THIS host:
+          // /kybernos/s/<token>, no session needed. The token is the whole right, and it is kept across a change of level.
+          const avant = data[cle]
+          const token = (avant !== undefined && avant !== null && typeof avant.token === 'string' && /^[a-f0-9]{24}$/.test(avant.token))
+            ? avant.token
+            : randomBytes(12).toString('hex')
+          data[cle] = { access: req.access, role: SHARE_ROLES.indexOf(req.role) !== -1 ? req.role : 'view', ts: new Date().toISOString(), token: token }
         }
         await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
-        return { ok: true, cle: cle, partage: data[cle] === undefined ? { access: 'me', role: 'view' } : data[cle], shares: data }
+        return { ok: true, cle: cle, partage: data[cle] === undefined ? { access: 'me', role: 'view' } : data[cle], lien: data[cle] === undefined || data[cle].token === undefined ? null : '/kybernos/s/' + data[cle].token, shares: data }
       } catch (e) { return { ok: false, error: errText(e) } }
     }
 
+    // ── The link of a share, served by this host (`/kybernos/s/<token>`) ───────
+    // `GET /kybernos/share` gives the levels; this gives the FILE to whoever holds the token, with no session at all — that is
+    // what a public link is on a DSH. The cloud's `/v1/shares` is gone from the server (ADR 0007 § 7), so the host that owns
+    // the file serves it. Going back to private deletes the entry, hence the token: the link stops working at once. Only a
+    // deliverable of the whitelist, under a known workspace, is ever served (cheminAutorise, exactly as art-raw does), and an
+    // HTML artifact is shown inside a sandbox: it must not reach this origin's own routes from a stranger's browser.
+    const KB_SHARE_TOKEN_RE = /^[a-f0-9]{24}$/
+    const shareByToken = async (token) => {
+      if (typeof token !== 'string' || KB_SHARE_TOKEN_RE.test(token) !== true) return null
+      const data = await readShares()
+      for (const cle of Object.keys(data)) {
+        const e = data[cle]
+        if (e !== null && e !== undefined && e.token === token && (e.access === 'public' || e.access === 'team')) return { cle: cle, entry: e }
+      }
+      return null
+    }
+    const kbShareEsc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+    const KB_SHARE_CSS = 'body{margin:0;background:#111214;color:#e8e8ea;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'
+      + 'header{position:sticky;top:0;display:flex;align-items:center;gap:10px;padding:12px 20px;background:#1a1b1f;border-bottom:1px solid #2a2c31;font-size:13px;color:#a9abb3}'
+      + 'header b{color:#e8e8ea;font-weight:600}main{padding:20px 24px 48px}pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#dcdde1}'
+      + 'iframe{width:100%;height:calc(100vh - 96px);border:0;background:#fff;border-radius:10px}img{max-width:100%;height:auto;display:block;margin:0 auto;border-radius:10px}'
+      + 'footer{padding:10px 20px 24px;font-size:12px;color:#7c7e86}p{margin:0 0 12px}'
+    const kbSharePageHead = (res, status) => {
+      try {
+        res.writeHead(status, {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'no-store',
+          'x-content-type-options': 'nosniff',
+          'referrer-policy': 'no-referrer',
+          'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; frame-src 'self'; base-uri 'none'; form-action 'none'",
+        })
+      } catch (e) { /* socket ferme */ }
+    }
+    const kbSharePage = (titre, corps) => '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<title>' + kbShareEsc(titre) + '</title><style>' + KB_SHARE_CSS + '</style></head><body><header>Kybernos · <b>' + kbShareEsc(titre) + '</b></header>'
+      + '<main>' + corps + '</main><footer>Shared from Kybernos. The link stops working as soon as the owner turns sharing off.</footer></body></html>'
+    const kbShareRaw = async (req, res, token, name) => {
+      const p = typeof name === 'string' ? name : ''
+      if ((await cheminAutorise(p, { strict: true })) === false) return (res.writeHead(404), res.end(''))
+      if (kbReadableExt(p) === false) return (res.writeHead(415), res.end(''))
+      const target = await fs.resolve(p)
+      const info = await fs.stat(target).catch(() => null)
+      if (!isFile(info)) return (res.writeHead(404), res.end(''))
+      const size = typeof info.size === 'number' ? info.size : 0
+      if (size > 8388608) return (res.writeHead(413), res.end(''))
+      let real = null
+      try { real = fs.processPath(target) } catch (e) { real = null }
+      if (typeof real !== 'string' || real.length === 0) real = p
+      const ext = kbExtOf(p)
+      const bytes = readFileSync(real)
+      // An HTML artifact is shown in a sandbox (no allow-same-origin): it runs in an opaque origin and cannot reach this host's own
+      // routes, which answer without a session. Everything else is inline and inert (SVG stays a document, so it is sandboxed too).
+      const html = ext === 'html' || ext === 'htm' || ext === 'svg' || ext === 'svgz'
+      const heads = {
+        'content-type': mimeForExt(ext),
+        'cache-control': 'no-store',
+        'content-length': String(bytes.length),
+        'x-content-type-options': 'nosniff',
+        'referrer-policy': 'no-referrer',
+      }
+      if (html) heads['content-security-policy'] = "sandbox allow-scripts allow-popups allow-forms; default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src data:"
+      res.writeHead(200, heads)
+      res.end(bytes)
+      return true
+    }
+    const KB_SHARE_TEXT_EXTS = ['md', 'markdown', 'txt', 'csv', 'json', 'yaml', 'yml', 'log', 'js', 'ts', 'mjs', 'css', 'py', 'sh']
+    const kbShareServe = async (req, res) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return sendJsonPublic(res, 405, { ok: false, error: 'GET expected' })
+      const pathname = new URL(req.url ?? '/', 'http://x').pathname
+      const reste = pathname.slice('/kybernos/s/'.length)
+      const raw = /\/raw$/.test(reste)
+      const token = decodeURIComponent(raw ? reste.slice(0, -4) : reste).replace(/\/+$/, '')
+      const hit = await shareByToken(token)
+      if (hit === null) {
+        kbSharePageHead(res, 404)
+        return res.end(kbSharePage('Link not found', '<p>This link does not exist, or its owner turned sharing off.</p>'))
+      }
+      const cle = hit.cle
+      const morceaux = cle.split(':')
+      const kind = morceaux[0]
+      const id = cle.slice(kind.length + 1)
+      if (kind !== 'deliverable') {
+        kbSharePageHead(res, 404)
+        return res.end(kbSharePage('Not shareable', '<p>Only a file can be opened through a link on this server.</p>'))
+      }
+      const nom = id.split('/').pop()
+      const ext = kbExtOf(id)
+      if (raw === true) return kbShareRaw(req, res, token, id)
+      try {
+        if (kbReadableExt(id) !== true) {
+          kbSharePageHead(res, 415)
+          return res.end(kbSharePage('Unsupported file', '<p>This kind of file cannot be opened through a link.</p>'))
+        }
+        if (KB_SHARE_TEXT_EXTS.indexOf(ext) < 0 && ext !== 'html' && ext !== 'htm') {
+          // Images and PDFs are shown by the browser itself; everything else that is not text/markup keeps the download.
+          const target = await fs.resolve(id)
+          const info = await fs.stat(target).catch(() => null)
+          if (!isFile(info)) { kbSharePageHead(res, 404); return res.end(kbSharePage('File missing', '<p>The file is no longer on this computer.</p>')) }
+          return kbShareRaw(req, res, token, id)
+        }
+        if (ext === 'html' || ext === 'htm') {
+          kbSharePageHead(res, 200)
+          return res.end(kbSharePage(nom, '<iframe sandbox="allow-scripts allow-popups allow-forms" src="' + kbShareEsc(token) + '/raw" title="' + kbShareEsc(nom) + '"></iframe>'))
+        }
+        // Text of any kind: read, escape, show as one block. A stranger's browser never runs what the file holds.
+        if ((await cheminAutorise(id, { strict: true })) === false) { kbSharePageHead(res, 404); return res.end(kbSharePage('File missing', '<p>The file is no longer on this computer.</p>')) }
+        const target = await fs.resolve(id)
+        const info = await fs.stat(target).catch(() => null)
+        if (!isFile(info)) { kbSharePageHead(res, 404); return res.end(kbSharePage('File missing', '<p>The file is no longer on this computer.</p>')) }
+        const size = typeof info.size === 'number' ? info.size : 0
+        if (size > 8388608) { kbSharePageHead(res, 413); return res.end(kbSharePage('File too large', '<p>This file is too large to open through a link.</p>')) }
+        let real = null
+        try { real = fs.processPath(target) } catch (e) { real = null }
+        if (typeof real !== 'string' || real.length === 0) real = id
+        const texte = readFileSync(real, 'utf8')
+        kbSharePageHead(res, 200)
+        return res.end(kbSharePage(nom, '<pre>' + kbShareEsc(texte) + '</pre>'))
+      } catch (e) {
+        kbSharePageHead(res, 500)
+        return res.end(kbSharePage('Unreadable', '<p>This file could not be read.</p>'))
+      }
+    }
     // ── kyber actif d'une session (`~/.dsh/kybers/.active/<sessionId>`) ───────
     // Deux conventions coexistent dans ce dossier : `<uuid>` (historique) et le
     // sessionId complet `session-<uuid>` (recente). On accepte les deux en
@@ -11685,6 +11816,26 @@ function boot(ctx) {
           })
         } catch (e) { console.log('[kybernos] workspace instructions not injected: ' + String(e && e.message ? e.message : e)) }
       })
+      // Several Agent Teams in one chat: the ids of the installed teams and the rule of the `kyber-selection` skill (section 6). The chat a person opened gets it;
+      // a child session (a sub-agent: `header.parentSession`, as the automation gate reads it) does not, since it never spawns a team.
+      const agentTeamsPrompt = createAgentTeamsPrompt()
+      const kbIsChildSession = (agent) => {
+        try {
+          const store = ctx.get('sessions')
+          const session = store !== undefined && store !== null && typeof store.get === 'function' ? store.get(kbAgentId(agent)) : undefined
+          return session !== undefined && session !== null && session.header !== undefined && session.header !== null && typeof session.header.parentSession === 'string' && session.header.parentSession !== ''
+        } catch (e) { return false }
+      }
+      ctx.inject(['systemPrompt'], (scope) => {
+        try {
+          scope.systemPrompt.context({
+            name: TEAMS_CHUNK_NAME,
+            order: TEAMS_CHUNK_ORDER,
+            interpolate: false,
+            text: (context) => { try { return kbIsChildSession(context.agent) ? '' : agentTeamsPrompt() } catch (e) { return '' } }
+          })
+        } catch (e) { console.log('[kybernos] agent teams block not injected: ' + String(e && e.message ? e.message : e)) }
+      })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/pins', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, pins: pinsPayload(await readPins(), pinnedNatives()) })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
@@ -11703,6 +11854,9 @@ function boot(ctx) {
         if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveShare(await readJsonBody(req)))
       } }), 'kybernos: route share')
+      // The public link of a share: `/kybernos/s/<token>`. No session, no origin check — the token IS the right to read, and
+      // turning sharing off deletes it. This is the one address a stranger's browser (or a team member's) can open.
+      ctx.effect(() => webServerSvc.register({ kind: 'prefix', path: '/kybernos/s', handler: kbShareServe }), 'kybernos: route share link')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/active-set', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
                 if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
