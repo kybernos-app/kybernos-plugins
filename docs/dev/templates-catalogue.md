@@ -71,7 +71,7 @@ Read only, no origin guard needed (no write, nothing of the person's).
 
 ## What the page shows
 
-- A type is shown only when the bundle it needs is installed. **Audio** and **Game** stay hidden until a source exists.
+- Every type is shown, in one even grid. A type whose bundle this install does not load carries a small tag, « Not enabled »; **Audio** and **Game**, which no bundle makes yet, carry « Soon ». Their examples still open and *Use this request* still fills the composer.
 - An example whose `kind` is `template` is shown only when its `kit` is one the Apps seam lists (`window.__KB_TEMPLATES__.list()`); `kind: "start"` is always
   shown. Ideas the product ships no kit for (restaurant, fitness, salon) are therefore never offered dead.
 - *Use this request* only fills the composer, like a type does. For an App template, *Use template* creates the app through the Apps seam
