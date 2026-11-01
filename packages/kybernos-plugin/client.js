@@ -1274,6 +1274,7 @@ let kbLocaleRead = () => 'en'
       'kbnc.sh.seed': { kybernos: 'graine', en: 'seed' },
       'kbnc.sh.play': { kybernos: 'Lire l’exemple', en: 'Play the example' },
       'kbnc.sh.pause': { kybernos: 'Pause', en: 'Pause' },
+      'kbnc.sh.promptfine': { kybernos: 'Un prompt prêt à l’emploi : un clic le met dans le chat.', en: 'A ready-made prompt: one click puts it in the chat.' },
       'kbnc.sh.noclip': { kybernos: 'Cet exemple ne peut pas être lu pour l’instant.', en: 'This example cannot be played right now.' },
       'kbnc.sh.sample': { kybernos: 'Prompt de l’exemple', en: 'Prompt of the sample' },
       'kbnc.sh.samplem': { kybernos: 'Comment l’exemple a été fait', en: 'How the sample was made' },
@@ -30219,8 +30220,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                 h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
         list.length === 0 ? null : h('section', { className: 'kb8-sh-sec', 'data-kb': 'newchat-examples', 'aria-label': kbt('kbnc.sh.head') },
           h('div', { className: 'kb8-sh-h' }, h('h2', null, kbt('kbnc.sh.head')), info !== undefined && typeof info.blurb === 'string' && info.blurb !== '' ? h('span', null, info.blurb) : null),
-          h('div', { className: 'kb8-sh-grid' }, list.map((e, i) =>
-            h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, onClick: (ev) => sp.onOpen(e.id, ev.currentTarget) },
+          h('div', { className: 'kb8-sh-grid' }, list.map((e, i) => e.kind === 'prompt'
+            ? h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, 'data-kind': 'prompt', onClick: () => sp.onUse(e) },
+              h('span', { className: 'kb8-sh-thumb kb8-sh-ptext' }, h('span', { className: 'kb8-sh-quote', 'aria-hidden': 'true' }, '\u201c'), h('span', { className: 'kb8-sh-sum' }, e.line)),
+              h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.useprompt')),
+              h('span', { className: 'kb8-sh-name' }, h('span', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
+              h('span', { className: 'kb8-sh-line' }, kbt('kbnc.sh.promptfine')))
+            : h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, onClick: (ev) => sp.onOpen(e.id, ev.currentTarget) },
               h('span', { className: 'kb8-sh-thumb' }, h(KbNcPic, { key: e.id, e }), e.type === 'video' || kbNcObj(e.video) !== null || kbNcAudio(e) !== null ? kbNcPlay() : null),
               h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.preview')),
               h('span', { className: 'kb8-sh-name' }, h('span', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
@@ -30451,7 +30457,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('button', { type: 'button', className: 'kb8-nc-chip-x', 'data-kb': 'newchat-chip-x', 'aria-label': kbt('kbnc.chip.remove') + ' ' + kbt('kbnc.t.' + picked), onClick: () => setChosen(null) }, Icon('x', 11))),
           h('span', { className: 'kb8-nc-try' }, kbt('kbnc.try')),
           [0, 1, 2].map((i) => h('button', { type: 'button', key: i, className: 'kb8-nc-sug', 'data-kb': 'newchat-suggestion', onClick: () => suggest(picked, i) }, kbt('kbnc.s.' + picked + '.' + i)))),
-        groups.length === 0 ? null : h(KbNcShelf, { groups, match, chosen: picked, cat, kits: kitsPair[0], onPick: prefill, onOpen: (id, from) => setOpen({ id, from }) }),
+        groups.length === 0 ? null : h(KbNcShelf, { groups, match, chosen: picked, cat, kits: kitsPair[0], onPick: prefill, onOpen: (id, from) => setOpen({ id, from }), onUse: (e) => useExample(e.type, e.prompt) }),
         shown === undefined ? null : h(KbNcDialog, { key: shown.id, e: shown, kits: kitsPair[0], onClose: closeExample, onFill: useExample, onAdded: kitsPair[1] }),
         (cloud.kind === 'unknown' ? null
           : h('div', { className: 'kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
@@ -30518,6 +30524,9 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-thumb .kb8-sh-tile,.kb8-sh-big .kb8-sh-tile{position:absolute;inset:0;height:auto}
 .kb8-sh-thumb .kb8-sh-tile svg,.kb8-sh-big .kb8-sh-tile svg{width:46%;height:auto}
 .kb8-sh-card:hover .kb8-sh-thumb,.kb8-sh-card:focus-visible .kb8-sh-thumb{transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 16px 30px -16px rgba(0,0,0,.45)}
+.kb8-sh-ptext{display:flex;flex-direction:column;gap:6px;padding:16px 18px}
+.kb8-sh-quote{font-size:38px;line-height:.8;font-weight:800;color:var(--kb8-acc)}
+.kb8-sh-sum{font-size:14px;line-height:1.5;color:var(--dsw-alias-label-primary);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .kb8-sh-prev{position:absolute;inset-inline-end:10px;inset-block-start:10px;opacity:0;transition:opacity .2s;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
 .kb8-sh-card:hover .kb8-sh-prev,.kb8-sh-card:focus-visible .kb8-sh-prev{opacity:1}
 .kb8-sh-play{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}

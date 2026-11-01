@@ -1,7 +1,7 @@
 {
   "name": "audio-2",
   "type": "audio",
-  "note": "The audio examples of the shelf: three spoken pieces played by a wave player (no picture, no video: the sound is an MP3 and the page draws the wave from 96 slices of its loudness kept in the catalogue) in three domains and three languages (a business update in English, an audiobook page in Spanish, the summary of a technical document in Chinese), then the two films of the first audio lot that were kept (guided breathing, bedtime story). The voices are AI voices; the two examples in the maintainer's own cloned voice of lot 1 were dropped. `hue` is the colour of the wave. `request` is what the example's button puts in the composer; `made.prompt` is the text the voice read.",
+  "note": "The audio examples of the shelf: three spoken pieces played by a wave player (no picture, no video: the sound is an MP3 and the page draws the wave from 96 slices of its loudness kept in the catalogue) in three domains and three languages (a business update in English, an audiobook page in Spanish, the summary of a technical document in Chinese), then the two films of the first audio lot that were kept (guided breathing, bedtime story), then a card of text only (`card: \"prompt\"`): the summary of a ready-made prompt that a click puts straight into the composer, with no dialog. The voices are AI voices; the two examples in the maintainer's own cloned voice of lot 1 were dropped. `hue` is the colour of the wave. `request` is what the example's button puts in the composer; `made.prompt` is the text the voice read.",
   "cells": [
     {
       "id": "audio_business_en",
@@ -97,6 +97,17 @@
         "prompt": "Il était une fois, au bord d'un lac tranquille, un petit renard qui avait peur du noir. Chaque soir, la lune lui souriait, et chaque soir, il osait faire un pas de plus. Alors, ce soir-là, il ferma les yeux, respira doucement et suivit la lumière jusqu'à sa maison."
       },
       "source": "voice ElevenLabs v4 through the AI gateway (Sarah, French), three watercolour pictures by FLUX 2 klein 9B with a slow push, ACE-Step music box, captions timed from the transcript, the kybernos mark"
+    },
+    {
+      "id": "audio_podcast_doc",
+      "card": "prompt",
+      "entry": {
+        "name": "Two-host podcast from a document",
+        "tag": "Podcast",
+        "line": "Two hosts talk through your document: a hook, three key points with an example each, a short recap. About 3 minutes, in a natural voice.",
+        "meta": "Prompt"
+      },
+      "request": "Turn the document I attach into a 3-minute two-host podcast episode. Host A is curious and asks the questions, host B explains. Structure: a 15-second hook, three key points each with one concrete example, then a 20-second recap and one question for the listener. Natural spoken English, short sentences, light humour, no jargon. Warm studio voices, a different voice for each host, a soft intro and outro. Before generating, show me the script and the voices you picked; then give me the MP3 and the transcript."
     }
   ]
 }

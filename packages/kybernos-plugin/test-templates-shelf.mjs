@@ -26,15 +26,15 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   assert.equal(b.schema, SHELF_SCHEMA)
   assert.equal(b.types.length, 16, 'the 16 types of the shelf')
   assert.equal(b.templates.length, raw.templates.length, 'no entry is dropped by the check (a drop would be a typo in the file)')
-  assert.equal(b.templates.length, 134)
-  for (const t of b.types) assert.equal(b.templates.filter((x) => x.type === t.id).length, t.id === 'video' ? 8 : t.id === 'model3d' ? 4 : t.id === 'audio' ? 5 : 9, t.id + ' has its examples')
+  assert.equal(b.templates.length, 135)
+  for (const t of b.types) assert.equal(b.templates.filter((x) => x.type === t.id).length, t.id === 'video' ? 8 : t.id === 'model3d' ? 4 : t.id === 'audio' ? 6 : 9, t.id + ' has its examples')
   assert.equal(new Set(b.templates.map((t) => t.id)).size, b.templates.length, 'ids are unique')
-  for (const t of b.templates) {
+  for (const t of b.templates.filter((x) => x.kind !== 'prompt')) {
     assert.ok(t.image !== undefined && shelfImageName(t.image.src) === t.image.src, t.id + ' names a card picture')
     assert.ok(t.image.src === t.id + '.webp' && (t.image.large === undefined || t.image.large === 'large/' + t.id + '.webp'), t.id + ': pictures are named after the template')
   }
   // every example has its larger picture, the one the dialog shows (the 3D ones are screenshots of the real pages: docs/dev/templates-lots/model3d-1.json)
-  assert.deepEqual([...new Set(b.templates.filter((t) => t.image.large === undefined).map((t) => t.type))].sort(), [])
+  assert.deepEqual([...new Set(b.templates.filter((t) => t.kind !== 'prompt' && t.image.large === undefined).map((t) => t.type))].sort(), [])
   // the text carries neither the model of a generated example nor its clip: those come with the server's catalogue
   assert.ok(b.templates.every((t) => t.made === undefined && t.audio === undefined && t.video === undefined), 'text only')
   // no picture, no personal path, no line separator in git (AGENTS rules 4 and 7)
@@ -46,7 +46,7 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   for (const t of kits) assert.ok(existsSync(join(here, 'themes', t.kit, 'plugin.json')), t.id + ' → themes/' + t.kit + ' exists')
   // the two kinds of App entry: a template (a kit, sample rows) and a simple start
   assert.deepEqual(J(b.templates.filter((t) => t.type === 'app').map((t) => t.kind).sort()), ['start', 'start', 'start', 'template', 'template', 'template', 'template', 'template', 'template'])
-  ok('the shipped catalogue is valid text: 16 types, 134 examples, 9 each (8 of video, 4 of 3D, 5 of audio), kits that exist, no picture in git')
+  ok('the shipped catalogue is valid text: 16 types, 135 examples, 9 each (8 of video, 4 of 3D, 6 of audio, one of them a card of text), kits that exist, no picture in git')
 }
 
 // 2. everything the server sends is checked again
@@ -103,8 +103,8 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const s = createShelf({ dir: () => null, api: () => '', fetchFn: () => { throw new Error('no network expected') } })
   const c = await s.catalogue()
   assert.equal(c.source, 'bundled')
-  assert.equal(c.templates.length, 134)
-  assert.ok(c.templates.every((t) => t.image.ready === false), 'no picture is claimed that is not there')
+  assert.equal(c.templates.length, 135)
+  assert.ok(c.templates.filter((t) => t.kind !== 'prompt').every((t) => t.image.ready === false), 'no picture is claimed that is not there')
   assert.equal(await s.image('doc_a.webp'), null, 'no server, no folder: no picture')
   assert.equal(await s.image('../../etc/passwd'), null)
   assert.deepEqual(J(await s.load({ force: true })), { ok: false, error: 'no_server' })
@@ -152,7 +152,7 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const c = await s.catalogue()
   assert.equal(c.source, 'server')
   assert.equal(c.version, 7)
-  assert.ok(c.templates.every((t) => t.image.ready === true && (t.image.large === undefined ? t.image.readyLarge === undefined : t.image.readyLarge === false)))
+  assert.ok(c.templates.filter((t) => t.kind !== 'prompt').every((t) => t.image.ready === true && (t.image.large === undefined ? t.image.readyLarge === undefined : t.image.readyLarge === false)))
   assert.equal(readdirSync(join(dir, 'shelf')).filter((f) => f.endsWith('.webp')).length, 134)
   assert.ok(existsSync(join(dir, 'catalogue.json')))
   assert.equal(await s.due(), false, 'a copy under a day old is enough')
@@ -405,6 +405,10 @@ process.on('exit', () => { try { rmSync(tmp, { recursive: true, force: true }) }
   const s2 = createShelf({ dir: () => dir, api: () => '', fetchFn: () => { throw new Error('offline') } })
   assert.equal((await s2.video('audio/audio_a.mp3')).length, 1000, 'after a restart it is still there')
   assert.equal((await s2.catalogue()).templates.find((t) => t.id === 'audio_a').audio.ready, true)
+  // a card of text: no picture, the summary in `line`, the prompt in `prompt`; an unknown kind still costs the example
+  const prompt = shelfValidate(mini([{ id: 'audio_p', type: 'audio', kind: 'prompt', name: 'N', tag: 'Podcast', line: 'The summary', meta: 'Prompt', prompt: 'The whole prompt' }])).templates[0]
+  assert.deepEqual(J(prompt), { id: 'audio_p', type: 'audio', name: 'N', tag: 'Podcast', line: 'The summary', meta: 'Prompt', prompt: 'The whole prompt', kind: 'prompt' })
+  assert.equal(shelfValidate(mini([ex('audio_a'), { id: 'audio_q', type: 'audio', kind: 'shout', name: 'N', tag: 't', line: 'l', meta: 'm', prompt: 'p' }])).templates.length, 1, 'an unknown kind is dropped')
   ok('a sound name, length and wave are checked; the load never asks for sounds, Play asks once and the sound is kept; it is answered as audio/mpeg, with ranges')
 }
 
