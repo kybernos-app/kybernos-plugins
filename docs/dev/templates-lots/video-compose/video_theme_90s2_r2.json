@@ -16,7 +16,7 @@
     {
       "at": 0.5,
       "to": 4.8,
-      "text": "1994  ·  ARCADE NIGHT",
+      "text": "1994  \u00b7  ARCADE NIGHT",
       "style": "label",
       "y": 0.09,
       "anim": "fade",
@@ -24,5 +24,9 @@
     }
   ],
   "ambient": 1.0,
-  "id": "video_theme_90s2"
+  "id": "video_theme_90s2",
+  "watermark": {
+    "at": 0.5,
+    "speed": 1.8
+  }
 }

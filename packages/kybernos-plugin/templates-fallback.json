@@ -1,7 +1,7 @@
 {
  "schema": "kybernos.templates/1",
- "version": 4,
- "updatedAt": "2026-11-01T14:11:26Z",
+ "version": 5,
+ "updatedAt": "2026-11-01T15:06:50Z",
  "locale": "en",
  "imageBase": "shelf/",
  "groups": [
@@ -920,7 +920,7 @@
    }
   },
   {
-   "id": "video_ad_alderine",
+   "id": "video_ad_alderine_r2",
    "type": "video",
    "name": "Product ad",
    "tag": "Marketing",
@@ -928,17 +928,17 @@
    "meta": "15 seconds · 16:9 · music and voice-over",
    "prompt": "Make a 15-second product ad from my product photo. If I have no brand yet, invent one with me. Ask me for the photo, the product name and a tagline, show me the first frame, then add the brand text, music and a one-line voice-over.",
    "image": {
-    "src": "video_ad_alderine.webp",
+    "src": "video_ad_alderine_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "An emerald glass bottle rising out of fog on wet slate, the brand name Alderine in white capitals over it.",
-    "large": "large/video_ad_alderine.webp",
+    "large": "large/video_ad_alderine_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_tryon_swap",
+   "id": "video_tryon_swap_r2",
    "type": "video",
    "name": "Virtual try-on",
    "tag": "Fashion",
@@ -946,17 +946,17 @@
    "meta": "20 seconds · 9:16 · music",
    "prompt": "Make a 20-second virtual try-on video. Ask me for a photo of the person, the garment and the colours or other garments I want to compare. Show me the still first, then animate the colour and garment changes in one video, with the name of each look on screen.",
    "image": {
-    "src": "video_tryon_swap.webp",
+    "src": "video_tryon_swap_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "A woman with a dark bob turning in a studio while her long coat changes from camel to emerald and then to black.",
-    "large": "large/video_tryon_swap.webp",
+    "large": "large/video_tryon_swap_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_theme_90s2",
+   "id": "video_theme_90s2_r2",
    "type": "video",
    "name": "Photo in a theme",
    "tag": "Creative",
@@ -964,17 +964,17 @@
    "meta": "5 seconds · 16:9 · with sound",
    "prompt": "Turn my photo into a 5-second video in a theme I choose (the 90s, manga, space opera...). Ask me for the photo and the theme, show me the restyled still, then animate it.",
    "image": {
-    "src": "video_theme_90s2.webp",
+    "src": "video_theme_90s2_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "A young man in a denim jacket in front of a neon-lit 90s arcade at night.",
-    "large": "large/video_theme_90s2.webp",
+    "large": "large/video_theme_90s2_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_property_flythrough",
+   "id": "video_property_flythrough_r2",
    "type": "video",
    "name": "Property film",
    "tag": "Real estate",
@@ -982,17 +982,17 @@
    "meta": "20 seconds · 16:9 · music",
    "prompt": "Make a 20-second immersive property film from my listing photos. Ask me for the best exterior photo, the address, the price and the three features to show. Fly in from the road, go through the front door to the terrace, and end on the price, with music and captions. Show me the first frame before you animate.",
    "image": {
-    "src": "video_property_flythrough.webp",
+    "src": "video_property_flythrough_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "A modern white villa with an infinity pool above a turquoise bay at golden hour, seen from the air.",
-    "large": "large/video_property_flythrough.webp",
+    "large": "large/video_property_flythrough_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_clip_firstloaf",
+   "id": "video_clip_firstloaf_r2",
    "type": "video",
    "name": "Social clip",
    "tag": "Social",
@@ -1000,17 +1000,17 @@
    "meta": "15 seconds · 9:16 · voice-over and music",
    "prompt": "Make a 15-second vertical clip for social media from my idea. Ask me for the idea and the mood, write a three-line script in English and show it to me, show me the first frame, then make the clip with the voice-over, music and captions.",
    "image": {
-    "src": "video_clip_firstloaf.webp",
+    "src": "video_clip_firstloaf_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "Flour-dusted hands kneading dough in warm window light, with the caption: Flour, water, and a little patience.",
-    "large": "large/video_clip_firstloaf.webp",
+    "large": "large/video_clip_firstloaf_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_logo_reveal2",
+   "id": "video_logo_reveal2_r2",
    "type": "video",
    "name": "Logo reveal",
    "tag": "Branding",
@@ -1018,17 +1018,17 @@
    "meta": "5 seconds · 16:9 · with sound",
    "prompt": "Animate my logo as a 5-second reveal. Ask me for the logo image and my brand colours.",
    "image": {
-    "src": "video_logo_reveal2.webp",
+    "src": "video_logo_reveal2_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "An amber ring and dot above the word LUMO and a tagline, on a dark navy background.",
-    "large": "large/video_logo_reveal2.webp",
+    "large": "large/video_logo_reveal2_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_old_photo_alive",
+   "id": "video_old_photo_alive_r2",
    "type": "video",
    "name": "Old photo, alive",
    "tag": "Storytelling",
@@ -1036,17 +1036,17 @@
    "meta": "15 seconds · 16:9 · voice-over and music",
    "prompt": "Bring my old photograph to life as a 15-second film with a narrated script. Ask me for the photo, the place and the year and the story to tell; write a three-line script and show it to me before you animate. The scene must move for real (people, vehicles, the camera), not just the face.",
    "image": {
-    "src": "video_old_photo_alive.webp",
+    "src": "video_old_photo_alive_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "An antique sepia photograph of a harbour market square, the crowd beginning to move.",
-    "large": "large/video_old_photo_alive.webp",
+    "large": "large/video_old_photo_alive_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "video_workout_anatomy",
+   "id": "video_workout_anatomy_r2",
    "type": "video",
    "name": "Workout with anatomy",
    "tag": "Fitness",
@@ -1054,11 +1054,11 @@
    "meta": "15 seconds · 9:16 · voice-over and music",
    "prompt": "Make a 15-second workout video with three exercises that shows the muscles each one works, lit up like an anatomy chart. Ask me for the three exercises and the person (or use an invented athlete), show me the first frame of each, then add the exercise names, the muscle labels, a voice-over and music.",
    "image": {
-    "src": "video_workout_anatomy.webp",
+    "src": "video_workout_anatomy_r2.webp",
     "width": 720,
     "height": 450,
     "alt": "An athlete mid pull-up with her muscles glowing red like an anatomy chart.",
-    "large": "large/video_workout_anatomy.webp",
+    "large": "large/video_workout_anatomy_r2.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
