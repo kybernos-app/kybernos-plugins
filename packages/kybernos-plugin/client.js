@@ -8635,8 +8635,8 @@ const KB_NC_TEMPLATES = [
   { id: 'dashboard', group: 'docs', needs: '@local/kybernos-dashboards' },
   { id: 'image', group: 'media', needs: null },
   { id: 'video', group: 'media', needs: '@local/kybernos-motion' },
-  // No bundle makes sound or a game yet (`soon`): the shelf shows them anyway, tagged, so the person sees what is coming.
-  { id: 'audio', group: 'media', needs: '@local/kybernos-audio', soon: true },
+  // No bundle makes a game yet (`soon`): the shelf shows it anyway, tagged, so the person sees what is coming. Sound has real examples, so it is not tagged.
+  { id: 'audio', group: 'media', needs: null },
   { id: 'model3d', group: 'media', needs: '@local/kybernos-modeleur' },
   { id: 'app', group: 'apps', needs: '@local/kybernos-db' },
   { id: 'game', group: 'apps', needs: '@local/kybernos-games', soon: true },
