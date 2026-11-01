@@ -124,7 +124,7 @@ Turning that refusal into a list of writes the phone may make (decision DL-11 of
   `same-origin` / `none`. A page the person merely visits can no longer make their machine call opencode.ai. (A browser too old to send `Sec-Fetch-Site` looks like
   the engine for a no-cors GET: only `/health` and `/status` can be reached that way, and DNS rebinding is stopped by the Host fence.)
 - **Public by design:** `/kybernos/widget/api/message` and `/kybernos/widget/api/account` (a website's widget: the visitor is on another site, has no DSH
-  session, and their own message is the whole exchange) and `/kybernos/hooks` (the webhook receiver; each task's own secret is its fence). **A-15 fixed the
+  session, and their own message is the whole exchange) `/kybernos/hooks` (the webhook receiver; each task's own secret is its fence) and `/kybernos/s` (a share link: the token is the fence, the handler answers GET/HEAD only and refuses any other method with 405). **A-15 fixed the
   odd one out:** `POST /kybernos/widget/api/history-delete` used to delete a conversation file with no guard at all. The host now mints a per-conversation
   token when it creates the conversation, hands it back **once** in the answer to `/message`, stores it in the conversation's own record (never in the GET
   listing) and refuses a delete without it (**403**, nothing on disk moves). The token is the visitor's fence, not a session: the widget stays reachable

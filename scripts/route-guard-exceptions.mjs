@@ -28,6 +28,8 @@ export const EXCEPTIONS = [
     reason: 'A website\'s widget: the visitor is on another site and has no DSH session; their own message is the whole exchange (the conversation\'s history-delete token is its fence).' },
   { bundle: 'kybernos-plugin', path: '/kybernos/hooks', methods: ['POST'],
     reason: 'The webhook receiver: each automation\'s own secret is its fence, and the caller is the outside service that fires it.' },
+  { bundle: 'kybernos-plugin', path: '/kybernos/s',
+    reason: 'A share link (/kybernos/s/<token>): the person who opens it has no DSH session and the token is the whole fence. The handler answers GET and HEAD only and refuses every other method with 405 before it reads anything, so nothing is written behind it; creating or revoking a link is /kybernos/share, which is under the signed-session rule.' },
   // ── routes that answer every method alike and only read (the audit lists them apart as reads) ───────────────────
   { bundle: 'kybernos-auto', paths: ['/kybernos-auto/state', '/kybernos-auto/models'],
     reason: 'Reads that answer every method alike (the handler does not look at the method); nothing is written behind them. Documented in docs/dev/route-origin-rule.md.' },
