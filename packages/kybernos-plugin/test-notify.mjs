@@ -105,6 +105,22 @@ console.log('a muted source (a translation run, the person’s decision of 2026-
   const again = kbNotifyStart({ storage: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)) } }, window: mkWin(), document: null, now: () => 1 })
   check('a muted note an older version stored is dropped when the page loads', again.list().map((x) => x.id).join() === 'auto:2')
   check('…and it leaves the storage, so it does not come back on the next load', JSON.parse(m.get('kybernos.notifs.v1')).map((x) => x.id).join() === 'auto:2')
+
+  // The switch of Settings › Language writes the same key: '1' means « announce the end of a run » again.
+  const on = make()
+  on.storage.setItem('kybernos.notifs.announce', '1')
+  const onApi = kbNotifyStart({ storage: on.storage, window: mkWin(), document: null, now: () => 1 })
+  check('the switch turns the notes of a run back on', onApi.push({ id: 'lang:zh', title: '中文: 150 texts stay in English.' }) !== null && onApi.list().map((x) => x.id).join() === 'lang:zh')
+  const m2 = new Map([['kybernos.notifs.announce', '1'], ['kybernos.notifs.v1', raw]])
+  const kept = kbNotifyStart({ storage: { getItem: (k) => (m2.has(k) ? m2.get(k) : null), setItem: (k, v) => { m2.set(k, String(v)) } }, window: mkWin(), document: null, now: () => 1 })
+  check('…and it keeps a note a run stored, instead of purging it', kept.list().map((x) => x.id).join() === 'lang:zh,auto:2')
+  const back = make()
+  back.api.push({ id: 'auto:x', title: 'x', toast: false })
+  back.storage.setItem('kybernos.notifs.announce', '1')
+  back.api.push({ id: 'lang:zh', title: 'a run said so', toast: false })
+  back.storage.removeItem ? back.storage.removeItem('kybernos.notifs.announce') : back.storage.m.delete('kybernos.notifs.announce')
+  back.api.purgeQuiet()
+  check('switching quiet again takes the run’s notes out of the bell, and only those', back.api.list().map((x) => x.id).join() === 'auto:x')
 }
 
 console.log('two tabs share the bell')

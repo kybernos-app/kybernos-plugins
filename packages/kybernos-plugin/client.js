@@ -2519,12 +2519,15 @@ const kbNotifyStart = (e) => {
   const KEY = 'kybernos.notifs.v1'
   const MAX = 30
   const KINDS = ['info', 'success', 'warn', 'error']
-  // 2026-11-01, the person's decision (asked in the chat): the notes of a translation run are muted. Nobody knew where they came
-  // from, the × was not the way out people expect, and the outcome of a run is already on the Settings › Language page.
-  // A muted id is never stored and never toasted; one an older version stored is dropped for good at load. Bringing them back is
-  // emptying this list.
+  // 2026-11-01, the person's decision (asked in the chat): the notes of a translation run are quiet. Nobody knew where they came from,
+  // and the outcome of a run is already on the Settings › Language page. The switch that turns them back on is on that page (it writes
+  // ANNOUNCE_KEY: '1' = announce); this store reads the same key, so one click there decides here, without a reload.
+  // A quiet id is never stored nor toasted; one an older version stored is dropped for good at load.
   const MUTED = ['lang:']
-  const muted = (n) => MUTED.some((p) => n.id.indexOf(p) === 0)
+  const ANNOUNCE_KEY = 'kybernos.notifs.announce'
+  const quietOn = () => { try { return store.getItem(ANNOUNCE_KEY) !== '1' } catch (err) { return true } }
+  const mutedFamily = (n) => MUTED.some((p) => n.id.indexOf(p) === 0)
+  const muted = (n) => quietOn() && mutedFamily(n)
   const subs = new Set()
   const valid = (n) => n !== null && typeof n === 'object' && typeof n.id === 'string' && n.id !== '' && typeof n.title === 'string'
   let dropped = false
@@ -2619,6 +2622,8 @@ const kbNotifyStart = (e) => {
     unread: () => list.filter((x) => x.read !== true).length,
     markRead(id) { let any = false; list = list.map((x) => { if ((id === undefined || x.id === id) && x.read !== true) { any = true; return Object.assign({}, x, { read: true }) } return x }); if (any) { save(); emit() } },
     dismiss(id) { const n = list.length; list = list.filter((x) => x.id !== id); if (list.length !== n) { save(); emit() } },
+    /** The switch of Settings › Language just went quiet: what the muted sources left behind leaves the bell with it. */
+    purgeQuiet() { const n = list.length; list = list.filter((x) => !mutedFamily(x)); if (list.length !== n) { save(); emit() } },
     clear() { if (list.length > 0) { list = []; save(); emit() } },
     run,
     subscribe(fn) { subs.add(fn); return () => { subs.delete(fn) } },
