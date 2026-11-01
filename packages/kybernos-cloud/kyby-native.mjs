@@ -96,8 +96,8 @@ export const nowSentence = (d = new Date()) => {
 }
 
 /** The block of the system prompt, for Kaby's own chat: the identity text shared with the cloud computer's turns (kyby-identity.mjs). `lines` is what was said lately on the person's shared thread (Telegram's), given as data. */
-export const kybyPrompt = (lines, now = new Date(), assistantName) =>
-  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines, assistantName }), KYBY_TAIL].join('\n')
+export const kybyPrompt = (lines, now = new Date(), assistantName, mandate) =>
+  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines, assistantName, mandate }), KYBY_TAIL].join('\n')
 
 // ── the pointer file: which session is Kaby's ───────────────────────────────────────────────────────
 
@@ -122,7 +122,7 @@ export function writePointer (file, sessionId) {
 }
 
 /**
- * @param deps { pointerFile (a path, or a function giving it at each use), readState, isConnected, apiCall, now? } the helpers index.js already has.
+ * @param deps { pointerFile (a path, or a function giving it at each use), readState, isConnected, apiCall, now?, assistantName?, mandate? (a function giving the mandate block or '') } the helpers index.js already has.
  * Every method is safe to call from a hook: none throws.
  */
 export function createKybyNative (deps) {
@@ -134,6 +134,8 @@ export function createKybyNative (deps) {
   let context = { at: 0, rows: [], busy: false }
   /** The name the person gave their assistant, or null (a function of the caller: it can change at any time). */
   const assistantName = () => { try { return typeof deps.assistantName === 'function' ? aliasOf(deps.assistantName()) : null } catch (e) { return null } }
+  /** The block of the person's standing permission (kyby-mandate-store.mjs `text`), or '' (a function of the caller: it can change at any time). It never throws. */
+  const mandate = () => { try { return typeof deps.mandate === 'function' ? deps.mandate() : '' } catch (e) { return '' } }
   const mirrored = new Set()
 
   const sessionId = () => {
@@ -182,7 +184,7 @@ export function createKybyNative (deps) {
     promptFor (sid) {
       if (!this.isKyby(sid)) return ''
       const alias = assistantName()
-      return kybyPrompt(contextLines(context.rows, mirrored, alias), undefined, alias)
+      return kybyPrompt(contextLines(context.rows, mirrored, alias), undefined, alias, mandate())
     },
     /** A message of the person was taken in Kaby's session: the shared thread is read again, for the next request. */
     noteClaim (sid) {

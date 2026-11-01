@@ -620,7 +620,7 @@ const mod = await import('./index.js')
 // The routes that DELETE (session: true) need DSH's signed session cookie as well as the right Origin: the machine secret the guard checks it against
 // (test-write-guard.mjs reads it from the file; here the seam gives it).
 const { sessionSource } = await import('./session-guard.mjs')
-const { SESSION_SECRET, browserHeaders } = await import('./lib-session-test.mjs')
+const { SESSION_SECRET, browserHeaders, installSession } = await import('./lib-session-test.mjs')
 const { SESSION_WRITE_PATHS, STRICT_WRITE_PATHS, STRICT_ONLY_EXCEPTIONS } = await import('./lib-session-routes-test.mjs')
 sessionSource.secret = () => SESSION_SECRET
 // Aucun minuteur ne doit tirer sur le faux serveur en arriere-plan : un
@@ -729,6 +729,8 @@ try {
     // Kaby: the Telegram pairing by QR or link, where a message runs, and the person's conversation (test-kyby.mjs holds their rules).
     '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/telegram/pairing/state', '/kybernos-cloud/telegram/pairing/cancel', '/kybernos-cloud/kyby/computer', '/kybernos-cloud/telegram/unlink',
     '/kybernos-cloud/kyby/native', '/kybernos-cloud/kyby/native/set',
+    // Kaby's mandate (test-kyby-mandate.mjs holds its rules): what the person lets it do without asking.
+    '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/mandate/set',
     // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls.
     '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
@@ -3982,6 +3984,109 @@ try {
       if (ky_saved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = ky_saved
     }
     ok('Kaby natif : le pointeur de session, l\'identité pour cette session seule, rien ailleurs')
+  }
+
+  // 14. Kaby's mandate (kyby-mandate.mjs): what the person lets Kaby do without asking. The native gate lets a covered tool through and counts it, the rest asks as before, the prompt carries
+  // the block, only the person's page (strict Origin and the signed session) signs it, a file edited by hand is void, and Kaby's chat cannot name its files.
+  {
+    const md_home = join(stateDir, 'mandate-home')
+    installSession(md_home)
+    const md_saved = process.env.DSH_HOME
+    const md_computer = process.env.KYBERNOS_COMPUTER_ID
+    process.env.DSH_HOME = md_home
+    delete process.env.KYBERNOS_COMPUTER_ID
+    const { writePointer: md_pointer } = await import('./kyby-native.mjs')
+    const KABY = 'session-kaby-mandate-0001'
+    assert.equal(md_pointer(join(md_home, 'kybernos-kyby.json'), KABY).ok, true)
+    const sign_ = async (body, { origin = 'http://127.0.0.1:3080', cookie = true } = {}) => {
+      const req = fakeReq('POST', origin, body, '/kybernos-cloud/kyby/mandate/set')
+      req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      if (cookie) req.headers = { ...req.headers, cookie: browserHeaders().cookie }
+      const res = fakeRes()
+      await routes.get('/kybernos-cloud/kyby/mandate/set')(req, res)
+      return res
+    }
+    const view = async () => (await hit('/kybernos-cloud/kyby/mandate', 'GET')).body
+    const gate = agentHooks.get('tools/pre-execute')
+    const allowed = async () => ({ kind: 'allow' })
+    const asked = []
+    let outcome = 'denied'
+    fakeApproval = { request: async (req) => { asked.push(req.toolName); return outcome } }
+    const run = (name, args, session = KABY) => gate({ name, arguments: args, agent: { id: session }, signal: new AbortController().signal }, allowed)
+    const kyText = () => promptContexts.get('kybernos:kyby').text({ agent: { session: { id: KABY } } })
+    try {
+      // Before any signature: nothing is covered, so Kaby's tools ask exactly as they did.
+      assert.equal((await view()).inForce, false)
+      assert.equal((await view()).why, 'none')
+      assert.equal((await run('memory_write', { content: 'x' })).kind, 'deny', 'no mandate: it asks, and the answer here is no')
+      assert.deepEqual(asked, ['memory_write'])
+      await new Promise((r) => setTimeout(r, 1100))
+      assert.ok(!/^\[MANDATE\]/m.test(kyText()), 'no mandate block in the prompt')
+      // Only the person's page signs: no cookie, another origin, a bad request.
+      assert.equal((await sign_({ preset: 'standard' }, { cookie: false })).status, 401, 'a bare request (no session cookie) cannot sign')
+      assert.equal((await sign_({ preset: 'standard' }, { origin: 'https://evil.example' })).status, 403, 'a page of another origin cannot sign')
+      assert.equal((await sign_({ preset: 'everything' })).body.ok, false, 'an unknown preset is refused')
+      assert.equal((await view()).inForce, false, 'nothing was signed by those')
+      // The person signs.
+      const signed = await sign_({ preset: 'standard' })
+      assert.equal(signed.body.ok, true)
+      assert.equal(signed.body.view.inForce, true)
+      assert.equal(statSync(join(md_home, 'kybernos', 'kyby-mandate.json')).mode & 0o777, 0o600, 'the record is private')
+      assert.ok(!JSON.stringify(await view()).includes(JSON.parse(readFileSync(join(md_home, 'kybernos', 'kyby-mandate.json'), 'utf8')).sig), 'the page never gets the signature')
+      // Covered tools pass without a question and are counted; an app and a restart still ask.
+      asked.length = 0
+      assert.deepEqual(await run('memory_write', { content: 'x' }), { kind: 'allow' })
+      assert.deepEqual(await run('lesson_write', { text: 'y' }), { kind: 'allow' })
+      assert.deepEqual(await run('computer_exec', { command: 'ls' }), { kind: 'allow' })
+      assert.deepEqual(asked, [], 'no question for what the mandate covers')
+      assert.equal((await run('connections_execute', { tool: 'GMAIL_SEND_EMAIL' })).kind, 'deny', 'an app still asks (and the person said no)')
+      assert.equal((await run('relancer_dsh', {})).kind, 'deny', 'a restart of DSH still asks')
+      assert.deepEqual(asked, ['connections_execute', 'relancer_dsh'])
+      const v1 = await view()
+      assert.deepEqual([v1.usedToday.memory, v1.usedToday.computer], [2, 1], 'the host counts what ran')
+      // Another chat is none of its business, and the prompt carries the block for Kaby only.
+      assert.deepEqual(await run('memory_write', { content: 'x' }, 'session-someone-else'), { kind: 'allow' })
+      assert.equal((await view()).usedToday.memory, 2, 'another chat is not counted')
+      await new Promise((r) => setTimeout(r, 1100))
+      assert.match(kyText(), /\[MANDATE\]\nThe person signed this standing permission on \d{4}-\d{2}-\d{2}\. Without asking, you may: write your memory and your lessons \(up to 40 a day\); use your cloud computer/)
+      assert.equal(promptContexts.get('kybernos:kyby').text({ agent: { session: { id: 'session-someone-else' } } }), '', 'no block for a chat that is not Kaby\'s')
+      // Kaby\'s chat cannot name the mandate\'s files, whatever tool it uses; another chat is not touched.
+      const named = await run('bash', { command: 'cat ~/.dsh/kybernos/kyby-mandate.json' })
+      assert.equal(named.kind, 'deny')
+      assert.match(named.reason, /belongs to the person/)
+      assert.equal((await run('edit', { file_path: '/x/KYBY-MANDATE-usage.json' })).kind, 'deny')
+      assert.deepEqual(await run('bash', { command: 'cat ~/.dsh/kybernos/kyby-mandate.json' }, 'session-someone-else'), { kind: 'allow' })
+      // A daily limit: the second one asks.
+      assert.equal((await sign_({ memoryPerDay: 1 })).body.ok, true)
+      asked.length = 0
+      assert.equal((await run('memory_write', { content: 'x' })).kind, 'deny', 'the count is 2 already, over a limit of 1: it asks')
+      assert.deepEqual(asked, ['memory_write'])
+      // A file edited by hand is void at the next call.
+      const recordFile = join(md_home, 'kybernos', 'kyby-mandate.json')
+      writeFileSync(recordFile, JSON.stringify({ ...JSON.parse(readFileSync(recordFile, 'utf8')), memoryPerDay: 500, computerPerDay: 500 }))
+      asked.length = 0
+      assert.equal((await run('computer_start', {})).kind, 'deny')
+      assert.deepEqual(asked, ['computer_start'], 'an altered record covers nothing')
+      assert.equal((await view()).why, 'altered')
+      // The person signs again, then pauses: everything asks and the block leaves the prompt.
+      assert.equal((await sign_({ preset: 'standard' })).body.ok, true)
+      asked.length = 0
+      assert.deepEqual(await run('computer_start', {}), { kind: 'allow' })
+      assert.deepEqual(asked, [])
+      assert.equal((await sign_({ paused: true })).body.view.inForce, false)
+      assert.equal((await run('computer_start', {})).kind, 'deny')
+      await new Promise((r) => setTimeout(r, 1100))
+      assert.ok(!/^\[MANDATE\]/m.test(kyText()), 'a paused mandate leaves the prompt')
+      // The audit says what ran.
+      const audit = readFileSync(join(md_home, 'kybernos', 'kyby-mandate-audit.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+      assert.ok(audit.some((e) => e.kind === 'signed' && e.preset === 'standard') && audit.filter((e) => e.kind === 'ran').map((e) => e.tool).join() === 'memory_write,lesson_write,computer_exec,computer_start')
+      assert.ok(!audit.some((e) => e.tool === 'connections_execute' || e.tool === 'relancer_dsh'), 'what asked is not in the list of what ran')
+    } finally {
+      fakeApproval = undefined
+      if (md_saved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = md_saved
+      if (md_computer === undefined) delete process.env.KYBERNOS_COMPUTER_ID; else process.env.KYBERNOS_COMPUTER_ID = md_computer
+    }
+    ok('mandat de Kaby : signe par la page seule, les outils couverts passent sans question et sont comptes, le reste demande, limite du jour, fichier modifie nul, pause, jamais les fichiers du mandat')
   }
 
   console.log('\n' + pass + ' verifications OK')
