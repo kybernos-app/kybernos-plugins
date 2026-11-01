@@ -313,6 +313,10 @@ html[dir="rtl"] .kbln-page{direction:rtl}
       // `kybernos.i18n.<id>` key as a language, and `run` would show up as "Rundi".
       const I18N_RUN_KEY = 'kybernos.i18n.runstate' // { lang, model, beat } while a run goes on: lets a tab that was closed pick it up again
       const I18N_AUTO_KEY = 'kybernos.i18n.autoresume' // 'off' once the user switched automatic resume off
+      // The notes of a translation run (the bell of the sidebar footer) are QUIET by default: '1' here turns them back on. The store
+      // that draws them (kybernos-plugin, <kb-notify>) reads the same key, so one switch decides for both. Decided 01/11/2026, asked in
+      // the chat: the notes arrived without anyone knowing where they came from.
+      const I18N_ANNOUNCE_KEY = 'kybernos.notifs.announce'
       const RUN_BEAT_MS = 5000 // a live run writes its heartbeat this often…
       const RUN_STALE_MS = 20000 // …and a heartbeat older than this means no tab runs it any more
       // A language declares itself right-to-left here (any language added later
@@ -572,6 +576,9 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         rowOpen: ['Afficher les détails de {name}', 'Show details for {name}'],
         rowClose: ['Masquer les détails de {name}', 'Hide details for {name}'],
         autoHint: ['Si l’onglet est fermé pendant une traduction, elle reprend toute seule. Désactivé, il faut appuyer sur Reprendre.', 'If the tab is closed during a translation, it resumes by itself. Off, you press Resume.'],
+        announceLabel: ['Annoncer la fin d’une traduction', 'Announce when a translation run is done'],
+        announceHint: ['Une note dans la cloche, en bas de la barre latérale. Désactivé, le résultat reste sur cette page.', 'A note in the bell, at the bottom of the sidebar. Off, the outcome stays on this page.'],
+        tipAnnounce: ['La cloche du pied de la barre latérale. Rien n’est envoyé, rien n’est publié.', 'The bell in the sidebar footer. Nothing is sent, nothing is published.'],
         setDisk: ['Stockage', 'Storage'],
         searchModel: ['Rechercher un modèle', 'Search a model'],
         noModelMatch: ['Aucun modèle ne correspond.', 'No model matches.'],
@@ -1109,6 +1116,13 @@ html[dir="rtl"] .kbln-page{direction:rtl}
       const intentDrop = (lang) => { const left = intentRead(); if (left !== null && left.lang === lang) intentClear() }
       const autoResumeOn = () => { try { return localStorage.getItem(I18N_AUTO_KEY) !== 'off' } catch (e) { return true } }
       const setAutoResume = (on) => { try { if (on) localStorage.removeItem(I18N_AUTO_KEY); else localStorage.setItem(I18N_AUTO_KEY, 'off') } catch (e) { /* storage unavailable */ } }
+      // Quiet by default (nothing stored); only an explicit '1' asks for the note. The store reads the same key, so the two agree.
+      const announceWanted = () => { try { return localStorage.getItem(I18N_ANNOUNCE_KEY) === '1' } catch (e) { return false } }
+      const setAnnounce = (on) => {
+        try { if (on) localStorage.setItem(I18N_ANNOUNCE_KEY, '1'); else localStorage.removeItem(I18N_ANNOUNCE_KEY) } catch (e) { /* storage unavailable */ }
+        // Switched off: the note this page already left in the bell goes with the setting, so « off » really means nothing there.
+        if (on !== true) { try { const api = window.__KB_NOTIFY__; if (api !== undefined && api !== null && typeof api.purgeQuiet === 'function') api.purgeQuiet() } catch (e) { /* no bell on this host */ } }
+      }
       // Pure: should a tab that just opened take over the run `it` describes?
       const shouldTakeOver = (it, now, auto) => it !== null && auto === true && now - Number(it.beat) >= RUN_STALE_MS
       let beatTimer = null
@@ -1754,6 +1768,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         const modelRef = React.useRef(null)
         const [, setTick] = React.useState(0)
         const [autoOn, setAutoOn] = React.useState(autoResumeOn)
+        const [announceOn, setAnnounceOn] = React.useState(announceWanted)
         // Open the first time (nothing translated yet), then as the user left it.
         const [helpOpen, setHelpOpen] = React.useState(() => {
           try { const v = localStorage.getItem(I18N_HELP_KEY); if (v === 'open') return true; if (v === 'closed') return false } catch (e) { /* storage unavailable */ }
@@ -2091,6 +2106,13 @@ html[dir="rtl"] .kbln-page{direction:rtl}
             h('label', { className: 'kbln-sw', title: L('tipAuto') },
               h('input', { id: 'kbln-auto', type: 'checkbox', role: 'switch', 'data-act': 'autoresume', checked: autoOn, onChange: (e) => { setAutoResume(e.target.checked); setAutoOn(e.target.checked) } }),
               h('i', { 'aria-hidden': 'true' }))),
+          h('div', { className: 'kbln-set-row' },
+            h('div', { className: 'kbln-set-txt' },
+              h('label', { className: 'kbln-set-lb', htmlFor: 'kbln-announce', title: L('tipAnnounce') }, L('announceLabel')),
+              h('div', { className: 'kbln-hint' }, L('announceHint'))),
+            h('label', { className: 'kbln-sw', title: L('tipAnnounce') },
+              h('input', { id: 'kbln-announce', type: 'checkbox', role: 'switch', 'data-act': 'announce', checked: announceOn, onChange: (e) => { setAnnounce(e.target.checked); setAnnounceOn(e.target.checked) } }),
+              h('i', { 'aria-hidden': 'true' }))),
           disk === null ? null : h('div', { className: 'kbln-set-row' },
             h('div', { className: 'kbln-set-txt' },
               h('div', { className: 'kbln-set-lb' }, L('setDisk')),
@@ -2182,7 +2204,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         // Pure pieces, exposed for test-client.mjs.
         __test: {
           kbSources, dshSources, buildPlan, runTranslation, hostTranslate, planBatches, isComplete, metaRead, i18nRead, dshRead, liveRead,
-          isTestMark, holds, pseudoStats, repairPseudo, intentRead, intentWrite, intentClear, shouldTakeOver, autoResume, autoResumeOn, setAutoResume,
+          isTestMark, holds, pseudoStats, repairPseudo, intentRead, intentWrite, intentClear, shouldTakeOver, autoResume, autoResumeOn, setAutoResume, announceWanted, setAnnounce,
           resetRun: () => { stopBeat(); stopWatching(); run = { state: 'idle', lang: null, done: 0, total: 0, areas: null, model: null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 } },
           startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate, FLAG_REGION, flagEmoji, badgeFor, modelMatches,
           bootJobs, watchOnce, missingFor, stopWatching, hostStart, announceJob, JOB_LOST_AFTER, checkStale, staleOf, doubtful,

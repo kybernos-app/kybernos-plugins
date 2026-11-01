@@ -593,6 +593,13 @@ console.log('\n── a run left behind by a closed tab ──')
   T.setAutoResume(true)
   check('… and back on', T.autoResumeOn() === true && localStorage.getItem('kybernos.i18n.autoresume') === null)
   check('the keys do not look like a language id (the page would list "run" as a language)', ['kybernos.i18n.runstate', 'kybernos.i18n.autoresume'].every((k) => !/^kybernos\.i18n\.[a-z]{2,3}$/.test(k)))
+  // 01/11/2026: the notes of a run are quiet until the switch on the same page asks for them; the store of the bell reads this very
+  // key, so the page and the bell can never disagree.
+  check('a run is quiet by default: no note in the bell', T.announceWanted() === false && localStorage.getItem('kybernos.notifs.announce') === null)
+  T.setAnnounce(true)
+  check('… the switch turns the notes back on, under the key the bell reads', T.announceWanted() === true && localStorage.getItem('kybernos.notifs.announce') === '1')
+  T.setAnnounce(false)
+  check('… and off removes the key instead of writing a second value', T.announceWanted() === false && localStorage.getItem('kybernos.notifs.announce') === null)
 }
 {
   reset(); setSource(); T.resetRun()

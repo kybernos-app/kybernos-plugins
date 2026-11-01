@@ -27,6 +27,14 @@ check('New chat is one line: the name, then the agent it starts with, in a small
 check('touch screens keep a 44px target', /@media \(pointer:coarse\)\{\.kb4-item,\.kb4-newchat\{min-height:44px\}\}/.test(SRC))
 check('the collapsed rail keeps its own 36px sizes (its rules come after, and win)', /\[class\*="collapsed"\] \.kb4-menu \.kb4-item\{width:36px;height:36px/.test(SRC))
 
+// 01/11/2026: the sidebar shows ONE « New chat » button. The two halves (button + chevron « start this chat with… ») are hidden behind a
+// flag, never deleted: turning KB_SHOW_NEWCHAT_SPLIT back to true must still give the whole control back.
+console.log('one simple New chat button')
+check('the split control is behind its flag, and the flag is off', /const KB_SHOW_NEWCHAT_SPLIT = false/.test(SRC) && /KB_SHOW_NEWCHAT_SPLIT === true/.test(SRC))
+check('the split control is still whole behind it (button, chevron, team picker, geometry)', /className: 'kb4-chevbtn'/.test(SRC) && /kbTeamPicker\(teams, sel/.test(SRC) && rule(SRC, '.kb4-split') !== null && rule(SRC, '.kb4-split .kb4-chevbtn') !== null)
+check('the button alone starts a plain chat: no kyber to choose, no team bound', /onClick: \(\) => kbStartPlainChat\(\)/.test(SRC))
+check('…and it keeps the plus tile and the name (no « with … » line), with a styling rule of its own', /className: 'kb4-newchat kb4-ncsolo'/.test(SRC) && /'data-kb': 'new-chat'/.test(SRC) && rule(SRC, '.kb4-ncsolo') !== null)
+
 console.log('the blocks of the shell around it')
 check('one variable carries the size for them (--kb-u, from the same engine value)', /body\{--kb-u:var\(--dsh-content-font-size,13px\)\}/.test(SRC))
 const logo = /\[class\*="_logoRow"\]\{([^}]*)\}/.exec(SRC)
