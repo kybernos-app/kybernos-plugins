@@ -4825,8 +4825,12 @@ const KB_FR_EN = {
   'Rétabli': 'Recovered',
   'tokens': 'tokens',
   'Ordinateur': 'Computer',
-  'Signature électronique vérifiée': 'Electronic signature checked',
-  'Signé': 'Signed',
+  'Scellé': 'Sealed',
+  'Scellé sur cet ordinateur : le journal et la trace de cette décision n’ont pas changé depuis. Un sceau simple, pas une signature électronique qualifiée.': 'Sealed on this computer: the log and the record of this decision have not changed since. A simple seal, not a qualified electronic signature.',
+  'Sceau brisé': 'Seal broken',
+  'Le journal ou la trace de cette décision a changé après son scellé.': 'The log or the record of this decision changed after it was sealed.',
+  'Scellé ailleurs': 'Sealed elsewhere',
+  'Scellé avec une autre clé : on ne peut pas le vérifier ici.': 'Sealed with another key: it cannot be checked here.',
   'Pendant que': 'While',
   'tournait': 'was running',
   'Rien n’attend de réponse': 'Nothing is waiting',
@@ -40617,7 +40621,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
                 El('span', { className: 'wvs-av', 'aria-hidden': 'true' }, a.who ? String(a.who).charAt(0).toUpperCase() : Icon('idBadge', 12)),
                 El('span', { className: 'wvs-an' }, a.who || kbe('Approver')),
                 a.device ? El('span', { className: 'wvs-ad', title: kbe('Computer') }, Icon('monitor', 12), ' ', a.device) : null,
-                a.signed === true ? El('span', { className: 'wvs-sig', title: kbe('Electronic signature checked') }, Icon('fileCheck', 12), ' ', kbe('Signed')) : null,
+                a.seal === 'valid' ? El('span', { className: 'wvs-sig', title: kbe('Sealed on this computer: the log and the record of this decision have not changed since. A simple seal, not a qualified electronic signature.') }, Icon('fileCheck', 12), ' ', kbe('Sealed')) : null,
+                a.seal === 'broken' ? El('span', { className: 'wvs-sig bad', title: kbe('The log or the record of this decision changed after it was sealed.') }, Icon('triangleAlert', 12), ' ', kbe('Seal broken')) : null,
+                a.seal === 'foreign' ? El('span', { className: 'wvs-sig off', title: kbe('Sealed with another key: it cannot be checked here.') }, Icon('fileCheck', 12), ' ', kbe('Sealed elsewhere')) : null,
                 El('span', { className: 'wvs-as ' + o[1] }, o[0]),
                 a.at ? El('span', { className: 'wvs-at' }, wvsTime(a.at)) : null)
             })))
@@ -40981,7 +40987,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 .wvs-appr li{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;padding:7px 10px;border:1px solid var(--wv-line2);border-radius:8px;background:var(--wv-box)}
 .wvs-av{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--wv-idle-soft);color:var(--wv-ink);font-size:11px;font-weight:600;flex:none}
 .wvs-an{font-weight:600}.wvs-ad,.wvs-at{color:var(--wv-mut);display:inline-flex;align-items:center;gap:4px}.wvs-at{margin-inline-start:auto;font-variant-numeric:tabular-nums}
-.wvs-sig{display:inline-flex;align-items:center;gap:4px;color:var(--wv-ok)}
+.wvs-sig{display:inline-flex;align-items:center;gap:4px;color:var(--wv-ok)}.wvs-sig.bad{color:var(--wv-err-ink);font-weight:600}.wvs-sig.off{color:var(--wv-mut)}
 .wvs-as{font-weight:600}.wvs-as.ok{color:var(--wv-ok)}.wvs-as.wait{color:var(--wv-accent-ink)}.wvs-as.err{color:var(--wv-err-ink)}
 .wvs-showmore{align-self:center;margin-top:8px}
 /* détail et livrables */

@@ -10,10 +10,12 @@
 //
 // What it presses: the Journal tab, Story, Flow, Advanced, Story again, the filters, a crew card, a row, « Show more », the Insights switch, a node of the flow.
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readdirSync, statSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { deriveStory } from '../packages/kybernos-plugin/journal-story.mjs'
+import { createRecorder, readDecisions } from '../packages/kybernos-plugin/journal-decisions.mjs'
+import { loadSealKey, verifyDecisions } from '../packages/kybernos-plugin/journal-seal.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
@@ -117,13 +119,22 @@ const demoStory = () => {
     crew('r3', 'Follow-up calls', 33, null, [mem('caller', 'plan', 'running', 0, 'zai', 'glm-5.3', 2000, 0.01)], 0),
   ]
   const costOf = (provider, model, usage) => ((usage.input * 3 + usage.output * 15) / 1e6) * 0.92
-  // The host's record of who decided (journal-decisions.mjs): two people of the company on two computers; the second refusal and the first question are the same person.
-  const decisions = {
-    'a:ap1': { by: 'Amira Benali', device: 'MacBook Pro de Amira', at: T0 + 26 * MIN },
-    'a:ap2': { by: 'Karim Haddad', device: 'Mac mini du bureau', at: T0 + 27.5 * MIN },
-    'q:q1': { by: 'Amira Benali', device: 'MacBook Pro de Amira', at: T0 + 21 * MIN },
-  }
-  return deriveStory(events, { sessionId: 'session-demo-journal', runs, costOf, decisions })
+  // The host's record of who decided, made by the real recorder with a throw-away key: two people of the company on two computers. Afterwards someone edits the name on the refusal in
+  // the record: its seal breaks (the other two stay sealed).
+  const dir = mkdtempSync(join(tmpdir(), 'kb-journal-demo-'))
+  try {
+    const key = loadSealKey(join(dir, 'key.json'), { create: true })
+    let person = { by: 'Amira Benali', device: 'MacBook Pro de Amira' }
+    const recorder = createRecorder({ dir: join(dir, 'decisions'), who: () => person, seal: () => key })
+    for (const e of events) {
+      if (e.type === 'approval/decided' && e.data.id === 'ap2') person = { by: 'Karim Haddad', device: 'Mac mini du bureau' }
+      recorder.ingest('session-demo-journal', e)
+    }
+    const decisions = readDecisions(join(dir, 'decisions'), 'session-demo-journal')
+    decisions['a:ap2'].by = 'K. Haddad'
+    const seals = verifyDecisions(events, decisions, 'session-demo-journal', key)
+    return deriveStory(events, { sessionId: 'session-demo-journal', runs, costOf, decisions, seals })
+  } finally { rmSync(dir, { recursive: true, force: true }) }
 }
 
 const run = async () => {
@@ -223,7 +234,8 @@ const run = async () => {
         await click('[data-kb-check-row="1"]')
         await shot('2b-handovers')
         const handoverList = await text('.wvs-list')
-        ok('the handovers name who decided and on which computer (two people, two computers); the waiting one stays unnamed', /Amira Benali/.test(handoverList) && /Karim Haddad/.test(handoverList) && /MacBook Pro de Amira/.test(handoverList) && /Mac mini du bureau/.test(handoverList) && /Approver\s*Needs you/.test(handoverList.replace(/\n+/g, ' ')), handoverList.replace(/\n+/g, ' | ').slice(0, 300))
+        ok('the handovers name who decided and on which computer (two people, two computers); the waiting one stays unnamed', /Amira Benali/.test(handoverList) && /K\. Haddad/.test(handoverList) && /MacBook Pro de Amira/.test(handoverList) && /Mac mini du bureau/.test(handoverList) && /Approver\s*Needs you/.test(handoverList.replace(/\n+/g, ' ')), handoverList.replace(/\n+/g, ' | ').slice(0, 300))
+        ok('two decisions are sealed and the refusal whose record was edited shows a broken seal', (await count('.wvs-sig:not(.bad):not(.off)')) === 2 && (await count('.wvs-sig.bad')) === 1, (await count('.wvs-sig:not(.bad):not(.off)')) + ' sealed, ' + (await count('.wvs-sig.bad')) + ' broken')
         await clickLabel('All', '.wvs-filters')
       }
       // a row opens its detail

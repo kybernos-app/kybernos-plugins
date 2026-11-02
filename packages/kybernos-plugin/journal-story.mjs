@@ -2,7 +2,7 @@
 //
 // The Journal tab reads what a chat really did: the person's messages, the crews that ran, the connectors that were called, the handovers asked of a person and
 // what they answered, the files delivered, the models used and what they cost. Nothing is invented: a field the log does not carry stays null (the approver's
-// name and computer are in that case today: `approval/decided` only says « allowed-once »; the recorder that fills them is a later step).
+// name and computer are in that case today: `approval/decided` only says « allowed-once »; the host's record of the decision fills them, see journal-decisions.mjs).
 //
 // The function returns DATA, never sentences: counts, names, texts the person or a tool wrote. The client words them (and translates them), so the language of
 // the page never depends on this file.
@@ -26,7 +26,7 @@ const num = (v) => (typeof v === 'number' && Number.isFinite(v) === true ? v : n
 const isObj = (v) => v !== null && typeof v === 'object' && Array.isArray(v) === false
 const clip = (s, n) => (typeof s === 'string' && s.length > n ? s.slice(0, n) : s)
 
-const parseArgs = (raw) => {
+export const parseArgs = (raw) => {
   let a = raw
   for (let i = 0; i < 2; i += 1) {
     if (typeof a === 'string') { try { a = JSON.parse(a) } catch (e) { return null } }
@@ -35,7 +35,7 @@ const parseArgs = (raw) => {
 }
 
 // The text of a tool result lives in data.message.content[{type:'text', text}] (two shapes are measured in the logs: {callId,…} and {message:{toolCallId,…}}).
-const resultOf = (data) => {
+export const resultOf = (data) => {
   if (isObj(data) === false) return { callId: null, text: null, isError: false }
   const msg = isObj(data.message) === true ? data.message : null
   let callId = str(data.callId)
@@ -430,11 +430,16 @@ export function deriveStory(events, opts) {
     const m = moments[i]
     if (m.kind !== 'handover' || m.approvers.length === 0) continue
     const id = m.source === 'permission' ? m.approvalId : m.callId
-    const d = id !== null && id !== undefined ? decisions[decisionKey(m.source === 'permission' ? 'permission' : 'question', id)] : undefined
+    const key = id !== null && id !== undefined ? decisionKey(m.source === 'permission' ? 'permission' : 'question', id) : null
+    const d = key !== null ? decisions[key] : undefined
     if (isObj(d) === false) continue
     const a = m.approvers[0]
     if (a.who === null) a.who = str(d.by)
     if (a.device === null) a.device = str(d.device)
+    // The seal of the decision, as checked against the log by the host (journal-seal.mjs): 'valid', 'broken' or 'foreign' (made with another key).
+    const seal = isObj(o.seals) === true ? o.seals[key] : undefined
+    a.seal = seal === 'valid' || seal === 'broken' || seal === 'foreign' ? seal : null
+    a.signed = a.seal === 'valid'
   }
 
   // A connector call that failed and was later repeated with success is « recovered », not an open error.

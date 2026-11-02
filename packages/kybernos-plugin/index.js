@@ -25,6 +25,7 @@ import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mj
 import { writeGuard } from './session-guard.mjs'
 import { deriveStory } from './journal-story.mjs'
 import { createRecorder, readDecisions } from './journal-decisions.mjs'
+import { loadSealKey, verifyDecisions } from './journal-seal.mjs'
 import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
@@ -5157,10 +5158,15 @@ function boot(ctx) {
     // The engine's events do not name the person who approved or answered, so at that moment the host writes one line naming the person signed in (the person seam of the
     // cloud bundle, read at call time: the bundles do not import each other) and the computer. Signed out, nothing is recorded and the decision stays unnamed.
     const decisionsDir = () => nodePathJoin(dshHomeSync(), 'kybernos', 'journal-decisions')
+    // The key that seals each decision (journal-seal.mjs): made on the first decision, kept in a 0600 file, never sent anywhere.
+    const sealKeyFile = () => nodePathJoin(dshHomeSync(), 'kybernos', 'journal-seal-key.json')
+    let sealKeyCache = null
+    const sealKeyForWriting = () => { if (sealKeyCache === null) sealKeyCache = loadSealKey(sealKeyFile(), { create: true }); return sealKeyCache }
     try {
       if (typeof ctx.on === 'function') {
         const recorder = createRecorder({
           dir: decisionsDir(),
+          seal: sealKeyForWriting,
           who: () => {
             const seam = globalThis[Symbol.for('kybernos.person')]
             const p = seam !== undefined && seam !== null && typeof seam.read === 'function' ? seam.read() : null
@@ -5217,7 +5223,15 @@ function boot(ctx) {
       const costOf = (provider, model, usage) => costEurOfFact({ provider: provider, model: model, usage: usage })
       let decisions = {}
       try { decisions = readDecisions(decisionsDir(), sessionId) } catch (e) { out.notes.push('decisions: ' + errText(e)) }
-      try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, costOf: costOf, decisions: decisions }) } catch (e) {
+      // Each sealed decision is checked against the chat's own log (a log or a record edited afterwards breaks its seal).
+      let seals = {}
+      let sealKey = null
+      try {
+        sealKey = loadSealKey(sealKeyFile(), null)
+        seals = verifyDecisions(events, decisions, sessionId, sealKey)
+      } catch (e) { out.notes.push('seals: ' + errText(e)) }
+      out.seal = sealKey === null ? null : { alg: 'ed25519', keyId: sealKey.keyId, publicKey: sealKey.publicKey }
+      try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, costOf: costOf, decisions: decisions, seals: seals }) } catch (e) {
         out.ok = false
         out.notes.push('deriveStory: ' + errText(e))
       }
