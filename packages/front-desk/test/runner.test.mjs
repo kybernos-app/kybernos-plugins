@@ -95,7 +95,7 @@ test('consent card comes back to the page with the value to confirm', async () =
   });
   const out = await svc.runner.handleMessage(msg('I am Ann'));
   assert.equal(out.pendingConsents.length, 1);
-  assert.match(out.pendingConsents[0].text, /first name \(Ann\)/);
+  assert.match(out.pendingConsents[0].text, /your first name \(Ann\)/);
 });
 
 test('history is capped, and refused turns leave no trace in the conversation', async () => {
@@ -118,4 +118,14 @@ test('a language of the visitor changes the service\'s own messages, not the mod
   const svc = makeSvc({ guardrails: { limits: { maxInputChars: 5 } } });
   const out = await svc.runner.handleMessage(msg('too long for this', { lang: 'fr' }));
   assert.match(out.reply, /trop long/);
+});
+
+test('the consent question is fully in the visitor\'s language, field name included', async () => {
+  const svc = makeSvc({
+    guardrails: { actions: ALL },
+    handler: ({ messages }) => (stepOf(messages) === 0 ? { toolCalls: [{ name: 'note_visitor', args: { field: 'email', value: 'ann@example.com' } }] } : { text: 'ok' }),
+  });
+  const out = await svc.runner.handleMessage(msg('mon mail', { lang: 'fr' }));
+  assert.match(out.pendingConsents[0].text, /ton adresse e-mail \(ann@example\.com\)/);
+  assert.doesNotMatch(out.pendingConsents[0].text, /email address|first name/);
 });
