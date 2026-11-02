@@ -42,7 +42,8 @@ const walk = (base, rel = '') => readdirSync(join(base, rel)).flatMap((f) => {
 })
 const files = walk(release).filter((f) => TYPES[f.slice(f.lastIndexOf('.'))] !== undefined && !f.startsWith('.'))
 files.sort((a, b) => (a === 'catalogue.json') - (b === 'catalogue.json') || a.localeCompare(b))
-if (files.length < 2 || files[files.length - 1] !== 'catalogue.json') fail('a release has a catalogue and at least one file under shelf/')
+// A release of text only (cards of text, docs/dev/templates-catalogue.md) is the catalogue alone: the pictures of the earlier lots are already in the bucket.
+if (files.length < 1 || files[files.length - 1] !== 'catalogue.json') fail('a release has a catalogue.json (and the files under shelf/ it names that the bucket does not hold yet)')
 
 const sha = (d) => createHash('sha256').update(d).digest('hex')
 const hmac = (k, d) => createHmac('sha256', k).update(d).digest()
