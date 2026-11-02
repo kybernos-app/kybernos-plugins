@@ -5868,6 +5868,11 @@ const kybyWakeNow = async () => {
   r.finished.catch(() => null)
   return { ok: true }
 }
+// « Stop this wake-up »: the person's click cancels the turn that a wake-up started. It answers at once; the wake-up ends a moment later, as `stopped`.
+const kybyStopNow = async () => {
+  const r = await heartbeat.stopNow()
+  return r.ok === true ? { ok: true } : { ok: false, error: r.error }
+}
 // The timer: every minute on the person's computer, one step of the runner, which starts a wake-up only when one is due (and returns when it is over, so two never overlap).
 // Unref'd, so that it never keeps DSH alive; nothing here runs on a cloud computer.
 const HEARTBEAT_FIRST_MS = 30 * 1000
@@ -5931,6 +5936,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/kyby/heartbeat', method: 'GET', guarded: true, run: heartbeatView },
   { path: '/kybernos-cloud/kyby/heartbeat/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => { const r = heartbeatStore.set(body); return r.ok === true ? { ok: true, view: { ...r.view, desktop: computerSelf().id === '', running: heartbeat.runningSession() !== null } } : r } },
   { path: '/kybernos-cloud/kyby/heartbeat/wake', method: 'POST', guarded: true, strict: true, session: true, run: kybyWakeNow },
+  { path: '/kybernos-cloud/kyby/heartbeat/stop', method: 'POST', guarded: true, strict: true, session: true, run: kybyStopNow },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('resume') },

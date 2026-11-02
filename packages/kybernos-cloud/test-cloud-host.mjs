@@ -732,7 +732,7 @@ try {
     // Kaby's mandate (test-kyby-mandate.mjs holds its rules): what the person lets it do without asking.
     '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/mandate/log', '/kybernos-cloud/kyby/mandate/set',
     // Kaby's wake-ups: the rhythm, its signature, and « wake it now » (test-kyby-heartbeat.mjs holds the rules, the block around line 4000 the routes).
-    '/kybernos-cloud/kyby/heartbeat', '/kybernos-cloud/kyby/heartbeat/set', '/kybernos-cloud/kyby/heartbeat/wake',
+    '/kybernos-cloud/kyby/heartbeat', '/kybernos-cloud/kyby/heartbeat/set', '/kybernos-cloud/kyby/heartbeat/stop', '/kybernos-cloud/kyby/heartbeat/wake',
     // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls.
     '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
@@ -4210,6 +4210,29 @@ try {
       assert.deepEqual(await run('ask_user_question', {}), { kind: 'allow' })
       assert.equal((await run('computer_exec', { command: 'ls' })).kind, 'deny')
       assert.deepEqual(asked, ['computer_exec'], 'outside a wake-up it asks as before')
+      // « Stop this wake-up »: only the person's page, only while one runs; the turn is cancelled and the wake-up ends as « stopped ».
+      const stopHb = (o) => post('/kybernos-cloud/kyby/heartbeat/stop', {}, o)
+      let turnOn = false
+      let cancelled = 0
+      fakeSessionController = {
+        prompt: async (req) => { prompts.push(req); turnOn = true; return { accepted: true } },
+        state: async () => ({ cursor: 2, active: true, running: turnOn, queue: [], pendingInput: [] }),
+        wait: (req, signal) => new Promise((resolve, reject) => { signal.addEventListener('abort', () => reject(signal.reason ?? new Error('aborted')), { once: true }) }),
+        cancel: async () => { cancelled += 1; turnOn = false; return { accepted: true } }
+      }
+      assert.deepEqual((await stopHb()).body, { ok: false, error: 'not_running' }, 'nothing to stop')
+      assert.deepEqual((await wakeHb()).body, { ok: true })
+      assert.equal((await view()).running, true)
+      assert.equal((await stopHb({ cookie: false })).status, 401, 'a bare request cannot stop it')
+      assert.equal((await stopHb({ origin: 'https://evil.example' })).status, 403, 'a page of another origin cannot stop it')
+      assert.equal((await view()).running, true, 'those stopped nothing')
+      assert.deepEqual((await stopHb()).body, { ok: true })
+      for (let i = 0; i < 100 && (await view()).running === true; i += 1) await new Promise((r) => setTimeout(r, 50))
+      const stoppedView = await view()
+      assert.equal(stoppedView.running, false)
+      assert.equal(stoppedView.lastOutcome, 'stopped')
+      assert.ok(cancelled >= 1, 'the turn was cancelled')
+      assert.deepEqual((await stopHb()).body, { ok: false, error: 'not_running' }, 'and a second click finds nothing')
       // What ran in the wake-up is in the mandate's audit, tagged, and counted like any other action.
       const maudit = readFileSync(join(hb_home, 'kybernos', 'kyby-mandate-audit.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
       assert.ok(maudit.some((e) => e.kind === 'ran' && e.tool === 'memory_write' && e.source === 'heartbeat'))

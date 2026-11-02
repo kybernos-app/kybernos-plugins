@@ -195,6 +195,7 @@ window.__ModuleLoader__.load({
       time: kt('arrêté au bout du temps fixé', 'stopped when the time was up'),
       blocked: kt('arrêté devant une question', 'stopped at a question'),
       person: kt('arrêté parce que tu écrivais', 'stopped because you wrote'),
+      stopped: kt('arrêté par toi', 'stopped by you'),
       refused: kt('refusé', 'refused'),
       error: kt('en erreur', 'failed'),
       interrupted: kt('interrompu', 'interrupted')
@@ -213,6 +214,7 @@ window.__ModuleLoader__.load({
       sessions_unavailable: kt('Ce DSH ne sait pas encore réveiller une conversation : mets-le à jour.', 'This DSH cannot wake a conversation yet: update it.'),
       no_chat: kt('Le chat de l’assistant n’existe pas encore : ouvre-le une première fois.', 'The assistant’s chat does not exist yet: open it once.'),
       busy: kt('Le chat de l’assistant est occupé : réessaie quand il a fini.', 'The assistant’s chat is busy: try again when it is done.'),
+      not_running: kt('Aucun réveil n’est en cours : il vient de se terminer.', 'No wake-up is under way: it has just ended.'),
       session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.')
     }[code] || kt('Le réveil n’a pas pu démarrer.', 'The wake-up could not start.'))
     /** The chip of the « Where Kaby works » card: this computer is always ready; a cloud computer says its own state. */
@@ -641,6 +643,14 @@ window.__ModuleLoader__.load({
           else setProblem(wakeProblem(r.status === 401 || r.status === 403 ? 'session' : (r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'down')))
           setBusy(false)
         }
+        const stopWake = async () => {
+          setBusy(true)
+          setProblem('')
+          const r = await heartbeatCall('/stop', {})
+          if (r.status === 200 && r.json !== null && r.json.ok === true) await load()
+          else { setProblem(wakeProblem(r.status === 401 || r.status === 403 ? 'session' : (r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'down'))); await load() }
+          setBusy(false)
+        }
         const openChat = () => { const k = kyberSeam(); if (k !== null && typeof k.openChat === 'function') { try { k.openChat() } catch (e) { /* the sidebar row opens it too */ } } }
         const where = readWhere()
         const elsewhere = view.desktop === false || (where !== null && where.local === false)
@@ -702,6 +712,7 @@ window.__ModuleLoader__.load({
             h('button', { key: 'g', type: 'button', className: 'kbkc-btn pri', 'data-kb': 'kaby-custom-heartbeat-sign', disabled: locked || !dirty, onClick: sign }, signLabel),
             h('button', { key: 'p', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-heartbeat-pause', disabled: locked || view.signedAt === null || chip.code === 'resign', onClick: pause }, view.paused === true ? kt('Reprendre', 'Resume') : kt('Mettre en pause', 'Pause')),
             h('button', { key: 'w', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-heartbeat-wake', disabled: locked || dirty || view.inForce !== true || running || view.desktop === false, onClick: wake }, kt('Réveiller maintenant', 'Wake it now')),
+            running ? h('button', { key: 'x', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-heartbeat-stop', disabled: busy, onClick: stopWake }, kt('Arrêter ce réveil', 'Stop this wake-up')) : null,
             h('span', { key: 's', style: { flex: '1 1 auto' } }),
             canOpen ? h('button', { key: 'o', type: 'button', className: 'kbkc-btn sm', 'data-kb': 'kaby-custom-heartbeat-open', onClick: openChat }, fill(kt('Ouvrir le chat de {name}', 'Open {name}’s chat'), { name: name })) : null
           ])
