@@ -18,6 +18,8 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const ReactDOM = require('react-dom')
     const h = React.createElement
+    /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+    const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
     // Inside the Kybernos phone app (user agent `KybernosHost/<v> (ios|android)`) the app offers no sign-up (store rules, kybernos-host/STORES.md item 6): the footer says "Sign in" only.
     const inPhoneApp = typeof navigator !== 'undefined' && /\bKybernosHost\/\S+ \((ios|android)\)/.test(String(navigator.userAgent))
 
@@ -935,7 +937,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 .kbfp-cardwrap{position:relative;width:100%;min-width:0;display:flex;justify-content:flex-start}
 .kbl-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
 .kbl-head{margin:0 0 6px}
-.kbl-headrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .kbl-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
 .kbl-card.kbl-sug{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
 .kbl-sugh{display:flex;align-items:center;gap:6px;font-size:14px}.kbl-sugh .kbl-count{margin-inline-start:auto}
@@ -4211,9 +4212,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 
           return h('div', { className: 'kbl-page', 'data-kb': 'ky-section' },
             h('div', { className: 'kbl-head' },
-              h('div', { className: 'kbl-headrow' },
-                h('h2', { className: 'kb6-title' }, t('kyTitle')),
-                (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-cloud', page: 'kybernos', lead: t('kySub'), title: t('kyTitle') }) : null)),
+              pageHead({ id: 'kybernos-cloud', page: 'kybernos', lead: t('kySub'), title: t('kyTitle') }),
               // The description lives in the « ? » card (`lead`); it stays under the title only where the Suite's Help does not exist.
               helpAbsent ? h('p', { className: 'kb8-sub' }, t('kySub')) : null),
 

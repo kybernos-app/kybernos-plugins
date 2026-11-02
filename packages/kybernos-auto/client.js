@@ -32,6 +32,8 @@ window.__ModuleLoader__.load({
     const kt = (fr, en) => lang() === 'fr' ? fr : en
     // True where the Suite's « ? » card (window.__KB_HELP__.Help) does not exist: only then is the page's description drawn under its title (it lives in the card otherwise). Read at render time, never at load.
     const helpAbsent = () => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } }
+    /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+    const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
     // Why a model is skipped, in the words of the Models tab's health chip (the host keeps the cause with the outcome).
     const CAUSES_TXT = {
       key: ['clé refusée', 'key refused'], gone: ['retiré chez le fournisseur', 'gone from the provider'],
@@ -385,9 +387,7 @@ window.__ModuleLoader__.load({
           'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que tu autorises. Le modèle de ton chat n’est jamais changé.',
           'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.')
         return [
-          h('div', { key: 'h', className: 'kaa-titrerow' },
-            h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
-            typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-auto', lead: intro, title: kt('Routage Auto', 'Auto Routing') }) : null),
+          h('div', { key: 'h', className: 'kaa-titrerow' }, pageHead({ id: 'kybernos-auto', lead: intro, title: kt('Routage Auto', 'Auto Routing') })),
           helpAbsent() ? h('p', { key: 'i', className: 'kaa-intro' }, intro) : null
         ]
       }
@@ -618,8 +618,7 @@ window.__ModuleLoader__.load({
       '.kaa-page{padding:0;max-width:720px;font-size:14px;line-height:normal}',
       '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
       'body:not([data-ds-dark-theme]) :is(.kaa-page,.kaa-pop){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
-      '.kaa-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
-      '.kaa-titrerow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 10px}',
+      '.kaa-titrerow{margin:0 0 10px}',
       // The description sits in the « ? » card; this line is the fallback where there is no Suite: -10px cancels the title row's own 10px, so it stays right under the title as before.
       '.kaa-intro{margin:-10px 0 10px;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kaa-cache{display:flex;gap:8px;align-items:flex-start;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);',

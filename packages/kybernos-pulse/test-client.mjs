@@ -2,6 +2,7 @@
 // the floating window on a fake Document Picture-in-Picture, and the banners and the badge on a fake page.
 //   node packages/kybernos-pulse/test-client.mjs
 import { readFileSync } from 'node:fs'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 let failures = 0
 let total = 0
@@ -164,12 +165,17 @@ await T.refresh()
   const wordsNoSuite = lead(walk(Page()))
   ok('without the Suite the description is still drawn under the title', wordsNoSuite.length === 1 && /Tells you what your automations did/.test(wordsNoSuite[0].children.join('')))
   const FakeHelp = () => null
-  window.__KB_HELP__ = { Help: FakeHelp }
-  const withSuite = walk(Page())
+  window.__KB_HELP__ = fakeHelp(React, FakeHelp)
+  // The Suite's Title is a component: drawn here (heading, then the button) before the tree is walked.
+  const drawn = (n) => (n !== null && typeof n === 'object' && typeof n.type === 'function' && n.type !== FakeHelp ? { ...n, children: [drawn(n.type(n.props))] } : (n !== null && typeof n === 'object' ? { ...n, children: (n.children || []).map(drawn) } : n))
+  const withSuite = walk(drawn(Page()))
   const helpEl = withSuite.filter((n) => n.type === FakeHelp)
   ok('with the Suite the page passes its description to Help as `lead`, and its title', helpEl.length === 1 && helpEl[0].props.id === 'kybernos-pulse' && /^Tells you what your automations did/.test(helpEl[0].props.lead) && helpEl[0].props.title === 'Widget', JSON.stringify(helpEl.map((n) => n.props)))
   ok('...and no longer draws the same text under the title', lead(withSuite).length === 0)
+  ok('the title is the shared heading class with the page hook, and the « ? » follows it in the same head', withSuite.filter((n) => n.type === 'h2' && n.props.className === 'kbhp-title kbpu-title').length === 1 && withSuite.filter((n) => n.props && n.props.className === 'kbhp-head' && n.children[0].type === 'h2' && n.children[1].type === FakeHelp).length === 1)
   delete window.__KB_HELP__
+  ok('without the Suite the bare title is in the shared class', walk(Page()).filter((n) => n.type === 'h2' && n.props.className === 'kbhp-title kbpu-title').length === 1)
+  ok('the page title has no style of its own: the page draws it through pageHead, and no rule sizes or weighs it', /pageHead\(\{ id: 'kybernos-pulse', lead: lead, title: title, className: 'kbpu-title' \}\)/.test(source) && !/\.kbpu-title\s*[{,]/.test(source) && !/\.kbpu-page h2\s*\{/.test(source))
 }
 
 // ── the plugin, started on the fake page ────────────────────────────────────────────────────────────────────

@@ -27,6 +27,8 @@ window.__ModuleLoader__.load({
       const React = require('react')
       const h = React.createElement
       const { useState, useEffect, useRef, useCallback } = React
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
       // ── Language ─────────────────────────────────────────────────────────────────────────────────────
       // English is the base and the default. French is for the French of the product (« kybernos » or fr*); every other language
@@ -654,7 +656,6 @@ window.__ModuleLoader__.load({
 .kbmem-page :focus-visible{outline:2px solid var(--m-acc);outline-offset:1px}
 .kbmem-grow{flex:1}.kbmem-muted{color:var(--m-muted)}.kbmem-cap{color:var(--m-cap)}.kbmem-tiny{font-size:12px;color:var(--m-cap)}
 .kbmem-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.kbmem-h1{margin:0;font-size:18px;line-height:23.4px;font-weight:600;letter-spacing:-.18px}
 .kbmem-lead{margin:4px 0 22px;font-size:13px;color:var(--m-muted)}
 .kbmem-top{margin-bottom:8px}
 .kbmem-st{display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;min-height:30px;margin:0 0 14px;font-size:13px;color:var(--m-ink2)}
@@ -1484,7 +1485,7 @@ window.__ModuleLoader__.load({
         const options = [{ id: '', label: kt('Générale (chaque Agent Team)', 'General (every agent team)') }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
         return h('div', null,
           h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), pageTitle()),
-          h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, kt('Propositions de leçons d’équipe', 'Team lesson proposals')), h('span', { className: 'kbmem-grow' }), h('span', { className: 'kbmem-tiny' }, (team.workspaceName || kt('Ton équipe', 'Your team')) + kt(' · ' + String(waiting) + ' à examiner', ' · ' + String(waiting) + ' to review'))),
+          h('div', { className: 'kbmem-top' }, pageHead({ title: kt('Propositions de leçons d’équipe', 'Team lesson proposals'), as: 'h1', className: 'kbmem-h1' }), h('span', { className: 'kbmem-grow' }), h('span', { className: 'kbmem-tiny' }, (team.workspaceName || kt('Ton équipe', 'Your team')) + kt(' · ' + String(waiting) + ' à examiner', ' · ' + String(waiting) + ' to review'))),
           h('p', { className: 'kbmem-lead' }, kt('Une leçon que tu approuves est lue par les agents de chaque membre dès son prochain message. Les membres ne voient jamais une proposition en attente, sauf la leur.', 'A lesson you approve is read by every member’s agents from their next message. Members never see a proposal that is still waiting, except their own.')),
           d.loading ? h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
             : !d.ok ? h('div', { className: 'kbmem-empty' }, h('h3', null, kt('Impossible de charger les propositions', 'Could not load the proposals')), h('div', null, friendlyError(d.error)))
@@ -1775,7 +1776,7 @@ window.__ModuleLoader__.load({
           h(Pager, { total: list.total, page, size, onPage: setPage, onSize: (n) => { setSize(n); setPage(1) } }))
 
         return h('div', null,
-          h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, pageTitle()), h('span', { className: 'kbmem-grow' }), (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-memory' }) : null),
+          h('div', { className: 'kbmem-top' }, pageHead({ id: 'kybernos-memory', title: pageTitle(), as: 'h1', className: 'kbmem-h1' }), h('span', { className: 'kbmem-grow' }),
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'customize', title: kt('Ce qui est gardé, ce qui est envoyé au modèle, quand ça se range', 'What is kept, what is sent to the model, when it tidies up'), onClick: openOptions }, Ico('gear'), kt('Personnaliser', 'Customize'))),
           h('div', { className: 'kbmem-st', 'data-st': self.tone, 'aria-live': 'polite' },
             self.tone === 'wait' ? null : h('span', null, h('i'), self.text),
@@ -2001,7 +2002,7 @@ window.__ModuleLoader__.load({
           autoState === 'undone' ? null : h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-auto-undo', disabled: busy, onClick: async () => { setBusy(true); const r = await onUndoAuto(auto); setBusy(false); if (r.back === r.total) setAutoState('undone'); else notify(kt('Défait : ' + String(r.back) + ' sur ' + String(r.total) + ' ; ouvre Personnaliser pour réessayer le reste', 'Undid ' + String(r.back) + ' of ' + String(r.total) + ': open Customize to retry the rest')) } }, Ico('undo'), kt('Défaire', 'Undo'))) : null
         const head = h('div', null,
           h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), pageTitle()),
-          h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, kt('Suggestions de rangement', 'Tidy-up suggestions')), h('span', { className: 'kbmem-grow' }),
+          h('div', { className: 'kbmem-top' }, pageHead({ title: kt('Suggestions de rangement', 'Tidy-up suggestions'), as: 'h1', className: 'kbmem-h1' }), h('span', { className: 'kbmem-grow' }),
             at ? h('span', { className: 'kbmem-tiny' }, kt('Détecté ' + whenLabel(at), 'Found ' + whenLabel(at)) + (tidyBrain(tidy).model !== '' && tidySettingsOf(tidy).brain === true ? kt(' · analyse locale + modèle d’étude', ' · local scan + Study model') : kt(' · analyse locale', ' · local scan'))) : null,
             h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-rescan', disabled: scanning || busy, onClick: scan }, Ico('broom'), scanning ? kt('Analyse…', 'Looking…') : kt('Analyser à nouveau', 'Look again'))),
           autoBar, notes)
@@ -2140,7 +2141,7 @@ window.__ModuleLoader__.load({
         const lastCapture = settings.capture === null ? null : h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, kt('Dernière capture : ' + captureWords(settings.capture), 'Last capture: ' + captureWords(settings.capture)))
         return h('div', null,
           h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), pageTitle()),
-          h('h1', { className: 'kbmem-h1' }, kt('Personnaliser', 'Customize')),
+          pageHead({ title: kt('Personnaliser', 'Customize'), as: 'h1', className: 'kbmem-h1' }),
           h('p', { className: 'kbmem-lead' }, kt('Tout est déjà réglé ici et tourne tout seul. Ne change quelque chose que pour enregistrer moins, envoyer moins au modèle ou ranger autrement.', 'Everything here is already set up and runs by itself. Change it only to save less, send less to the model, or tidy up differently.')),
           note,
           h('section', { className: 'kbmem-sec' }, h('h2', null, kt('Souvenirs', 'Memories'), h('small', null, kt('à ton sujet', 'about you'))),

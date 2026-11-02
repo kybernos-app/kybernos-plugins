@@ -111,24 +111,28 @@ console.log('the « ? How it works » buttons')
     if (!existsSync(f)) continue
     const src = readFileSync(f, 'utf8')
     for (const m of src.matchAll(/window\.__KB_HELP__\.Help, \{ id: '([a-z0-9-]+)'/g)) { placed.push(d + '→' + m[1]); if (m[1] !== d) wrong.push(d + ' asks for ' + m[1]) }
+    // A page that draws its title through pageHead hands the id to the Suite's Title, which draws the button after the text.
+    for (const m of src.matchAll(/pageHead\(\{[^\n]*?id: '([a-z0-9-]+)'/g)) { placed.push(d + '→' + m[1]); if (m[1] !== d) wrong.push(d + ' asks for ' + m[1]) }
     // every use is guarded: a plugin must not depend on the Suite being there
     for (const m of src.matchAll(/__KB_HELP__\.Help, \{ id: '[a-z0-9-]+'/g)) {
       const before = src.slice(Math.max(0, m.index - 140), m.index)
       if (!/window\.__KB_HELP__ && window\.__KB_HELP__\.Help \?/.test(before)) wrong.push(d + ': an unguarded use')
     }
+    // ...and so is the title: the helper reads the Suite inside a try/catch and draws the bare heading without it.
+    if (/pageHead\(\{/.test(src.replace(/const pageHead = .*/, '')) && !/const pageHead = \(props\) => \{ try \{ if \(window\.__KB_HELP__ && window\.__KB_HELP__\.Title\) return h\(window\.__KB_HELP__\.Title, props\) \} catch/.test(src)) wrong.push(d + ': pageHead without its guard')
   }
   check('a page asks for the help of its own bundle, and always behind a guard', wrong.length === 0, wrong)
   check('the pages that carry the button', ['kybernos-theme', 'kybernos-models', 'kybernos-slash', 'kybernos-workers', 'kybernos-maintenance', 'kybernos-modeles-locaux', 'kybernos-memory', 'kybernos-skills', 'kybernos-sessions', 'kybernos-hub', 'kybernos-mobile'].every((d) => placed.includes(d + '→' + d)), placed)
   const hub = readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')
-  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /aide = construireAide\(React\); window\.__KB_HELP__ = aide/.test(hub) && /return \{ version: 1, actions: true, Help, Intro \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
+  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /aide = construireAide\(React\); window\.__KB_HELP__ = aide/.test(hub) && /return \{ version: 1, actions: true, Help, Intro, Title \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
   check('the host reads the shipped help of a module by its id', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('a page card that is not there draws nothing, unless the page gives its own description (never the bundle’s help on the wrong page)', /const card = page === undefined \? null/.test(hub) && /const full = aide !== null && card !== undefined/.test(hub) && /if \(!full && !hasLead\) return null/.test(hub))
   check('a page that gives its description (`lead`) gets it first in the card, once: never repeated by the card’s own sentence', /function Help \(\{ id, action, page, lead, title \}\)/.test(hub) && /leads\.map\(\(x, i\) => h\('p', \{ key: 'lead' \+ i, className: 'kbhp-lead'/.test(hub) && /leads\.indexOf\(kt\(a\.what\.fr, a\.what\.en\)\) < 0/.test(hub))
-  check('the Suite page hands its description to its own card (the loading skeleton, which has no button, keeps the line)', /Help, \{ id: 'kybernos-hub', lead: suiteLead, title: 'Kybernos Suite' \}/.test(hub))
+  check('the Suite page hands its description to its own card (the loading skeleton, which has no button, keeps the line)', /pageHead\(\{ id: 'kybernos-hub', lead: suiteLead, title: 'Kybernos Suite' \}\)/.test(hub))
   check('the button is a bare « ? »: the words are its name and tooltip, not text on the page', /'aria-label': kt\('Comment ça marche', 'How it works'\), title: kt\('Comment ça marche', 'How it works'\), onClick: \(\) => setOpen\(!open\) \},\n\s+h\('span', \{ className: 'kbhp-q', 'aria-hidden': 'true' \}, '\?'\)\),/.test(hub))
   check('the host shows the help that shipped (page cards included) for every module this copy holds, whatever the online catalogue says', /const aide = livree !== undefined \? livree : m\.aide/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('one « ? How it works » button on the Voice page: the hub pins no second one over it (it did, with a MutationObserver, and the two overlapped)', !/installerAideVoix|AIDE_VOIX|kbhp-voice/.test(hub))
-  check('the Voice page asks for its own card', /Help, \{ id: 'kybernos-plugin', page: 'voice', lead: kbt\('kbui\.tts\.sub'\), title: kbt\('kbui\.voice'\) \}/.test(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')))
+  check('the Voice page asks for its own card', /pageHead\(\{ id: 'kybernos-plugin', page: 'voice', lead: kbt\('kbui\.tts\.sub'\), title: kbt\('kbui\.voice'\) \}\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')))
   // One form of the button on every page (A5-19): the pages that draw it themselves (the core's Agent Teams / Automations, the
   // Calls tabs) copy the Suite's pill declaration for declaration, so the three cannot drift apart unnoticed.
   {
@@ -150,9 +154,9 @@ console.log('the « ? How it works » buttons')
   for (const d of dirs) {
     if (d === 'kybernos-hub') continue
     const f = join(REPO, 'packages', d, 'client.js')
-    if (existsSync(f) && /\.kbh[pi]-/.test(readFileSync(f, 'utf8'))) clash.push(d)
+    if (existsSync(f) && /\.kbh[pi]-(?!title\b)/.test(readFileSync(f, 'utf8'))) clash.push(d)
   }
-  check('the kbhp- and kbhi- class prefixes are the hub’s alone', css.length > 5 && clash.length === 0, clash)
+  check('the kbhp- and kbhi- class prefixes are the hub’s alone (the title class .kbhp-title is the one shared name: the Settings frame styles it, the pages\' bare headings wear it)', css.length > 5 && clash.length === 0, clash)
 }
 
 // ── Which text a live check compares a card with (audit 2026-10-16, A3-33) ──

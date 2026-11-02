@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 let fail = 0
 const ok = (name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  ' + (detail || ''))); if (!cond) fail++ }
@@ -201,6 +202,7 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   plugin.apply({ effect: (fn) => fn(), slots: { inject: (name, fn) => fn(), register: (meta, comp) => { regs.push({ meta, comp }) } } })
   const page = regs.find((r) => r.meta.name === 'settings.section')
   const Help = function Help () { return null }
+  const fake = fakeHelp(React, Help)
   const draw = (lang, hub) => {
     globalThis.window.__KB_LANG_RESOLVE__ = () => lang
     if (hub === undefined) delete globalThis.window.__KB_HELP__; else globalThis.window.__KB_HELP__ = hub
@@ -215,23 +217,24 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
     return out
   }
   const text = (n) => (n === null || n === undefined ? '' : typeof n !== 'object' ? String(n) : (n.kids || []).flat().map(text).join(' '))
-  const en = draw('en', { version: 1, Help })
+  const en = draw('en', { version: 1, ...fake })
   // With the Suite the two description paragraphs are the `lead` of its « ? » card ([what the page counts, what it covers]); they are no longer drawn under the title.
-  const helpEn = find(en, (n) => n.type === Help)[0]
+  const helpEn = find(en, (n) => n.type === fake.Title)[0]
   const forEn = Array.isArray(helpEn.props.lead) ? String(helpEn.props.lead[1]) : ''
   ok('a line says what the page covers: every model used here, in two kinds', /every model/i.test(forEn) && /Kybernos plan/i.test(forEn) && /key of your own/i.test(forEn) && /local model/i.test(forEn), forEn)
   // The lead says HOW each kind is counted, the next line only WHAT the page covers: the how was said twice, in two paragraphs one under the other.
   ok('how each kind is counted is said once (the lead), not again in the line that says what the page covers', /server counts/.test(T.S.pageLead[1]) && /worked out/.test(T.S.pageLead[1]) && !/counted (by|on)/i.test(T.S.pageFor[1]) && /le serveur compte/i.test(T.S.pageLead[0]) && !/compté (par|sur)/i.test(T.S.pageFor[0]), JSON.stringify([T.S.pageLead[1], T.S.pageFor[1]]))
   ok('…and how it differs from the console: the per-member and per-day detail of the plan stays there', /console/i.test(forEn) && /per member|by member/i.test(forEn) && /per day|by day/i.test(forEn), forEn)
-  const fr = draw('kybernos', { version: 1, Help })
-  const helpFr = find(fr, (n) => n.type === Help)[0]
+  const fr = draw('kybernos', { version: 1, ...fake })
+  const helpFr = find(fr, (n) => n.type === fake.Title)[0]
   const forFr = Array.isArray(helpFr.props.lead) ? String(helpFr.props.lead[1]) : ''
   ok('the French twin says the same, with « console »', /tous les modèles/i.test(forFr) && /console Kybernos/i.test(forFr), forFr)
-  ok('the page carries the Suite’s button, once, for this bundle', find(en, (n) => n.type === Help).length === 1 && find(en, (n) => n.type === Help)[0].props.id === 'kybernos-usage')
+  ok('the page draws its head through the Suite’s Title, once, for this bundle', find(en, (n) => n.type === fake.Title).length === 1 && find(en, (n) => n.type === fake.Title)[0].props.id === 'kybernos-usage')
   ok('with the Suite the page passes both description paragraphs to Help as `lead` (the plan sentence first), and its name as `title`, in English and in French', Array.isArray(helpEn.props.lead) && helpEn.props.lead.length === 2 && helpEn.props.lead[0] === T.S.pageLead[1] && helpEn.props.lead[1] === T.S.pageFor[1] && helpEn.props.title === T.S.pageName[1] && helpFr.props.lead[0] === T.S.pageLead[0] && helpFr.props.lead[1] === T.S.pageFor[0] && helpFr.props.title === T.S.pageName[0], JSON.stringify(helpEn.props))
+  ok('the page title has no style of its own: it comes through the shared head, with no rule on the page heading or its row', /const pageHead = \(props\) => \{ try \{ if \(window\.__KB_HELP__ && window\.__KB_HELP__\.Title\) return h\(window\.__KB_HELP__\.Title, props\)/.test(src) && /pageHead\(\{ id: 'kybernos-usage'/.test(src) && !/\.kbus-page h2\{/.test(src) && !/kbus-titlerow/.test(src))
   ok('...and it no longer draws those paragraphs under the title', find(en, (n) => n.props && /\bkbus-lead\b/.test(n.props.className)).length === 0 && find(fr, (n) => n.props && /\bkbus-lead\b/.test(n.props.className)).length === 0)
   ok('without the Suite the two paragraphs are still drawn under the title, in this order', (() => { const t = find(draw('en'), (n) => n.props && /\bkbus-lead\b/.test(n.props.className)); return t.length === 2 && text(t[0]) === T.S.pageLead[1] && text(t[1]) === T.S.pageFor[1] && /\bkbus-for\b/.test(t[1].props.className) })())
-  ok('without the Suite there is no button and the page still draws', (() => { const t = draw('en'); return t !== null && find(t, (n) => n.type === Help).length === 0 && find(t, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).length === 1 })())
+  ok('without the Suite there is no button and the page still draws', (() => { const t = draw('en'); return t !== null && find(t, (n) => n.type === fake.Title).length === 0 && find(t, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).length === 1 })())
 }
 // WP-07 (A2-25): the French of the page speaks « tu », like the first-run wizard.
 {

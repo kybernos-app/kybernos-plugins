@@ -467,6 +467,15 @@ console.log('Customize')
   check('and the Map the note used to deny is really there: the MapPane and its View switch', SOURCE.includes('const MapPane = (') && SOURCE.includes("{ v: 'map', l: [Ico('map')"))
 }
 
+console.log('the page title has no style of its own')
+{
+  check('the Memory & Lessons head is one pageHead: the h1, then the Suite\'s « ? » (the Customize button stays on the right of the row)', /pageHead\(\{ id: 'kybernos-memory', title: pageTitle\(\), as: 'h1', className: 'kbmem-h1' \}\), h\('span', \{ className: 'kbmem-grow' \}\),\s*\n\s*h\('button', \{ type: 'button', className: 'kbmem-btn ghost', 'data-act': 'customize'/.test(SOURCE))
+  check('its three sub-views (proposals, tidy-up, Customize) take the same title through pageHead, with no button', ['Propositions de leçons d’équipe', 'Suggestions de rangement', 'Personnaliser'].every((fr) => new RegExp("pageHead\\(\\{ title: kt\\('" + fr + "'").test(SOURCE)))
+  check('no heading of the page is built by hand any more (every kbmem-h1 goes through pageHead)', (SOURCE.match(/className: 'kbmem-h1'/g) || []).length === 4 && !/h\('h1', \{ className: 'kbmem-h1'/.test(SOURCE))
+  check('no rule of the bundle sizes or weighs the title (.kbmem-h1): the Settings frame sets it', !/\.kbmem-h1\s*[{,]/.test(SOURCE))
+  check('the old Help call beside the title is gone', !/id: 'kybernos-memory' \}\) : null/.test(SOURCE))
+}
+
 console.error = realError
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

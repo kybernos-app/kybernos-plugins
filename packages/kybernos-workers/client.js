@@ -244,10 +244,7 @@ window.__ModuleLoader__.load({
       '.kbwk p code{background:var(--dsw-alias-bg-layer-3);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}',
       // ── header ───────────────────────────────────────────────────────────
       '.kbwk-head{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:flex-start;min-width:0}',
-      '.kbwk-head h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
-      // the help pill sits at the top right of the page, on the title's row, like on every other page (A5-19)
       '.kbwk-hd{flex:1 1 100%;min-width:0}',
-      '.kbwk-titlerow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
       '.kbwk-head p{margin:0;color:var(--dsw-alias-label-secondary);max-width:60ch}',
       '.kbwk-hbtn{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}',
       '.kbwk-count{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}',
@@ -337,7 +334,6 @@ window.__ModuleLoader__.load({
       '.kbwk-main{grid-column:1 / -1;grid-row:1}.kbwk-chev{grid-column:3;grid-row:3}',
       '.kbwk-stc{grid-column:1;grid-row:2}.kbwk-steps{grid-column:2 / span 2;grid-row:2;justify-self:end}',
       '.kbwk-ctl{grid-column:1 / span 2;grid-row:3;justify-content:flex-start;flex-wrap:wrap}',
-      '.kbwk-head h4{font-size:22px}',
       '}',
       // ── the guide ─────────────────────────────────────────────────────────
       '.kbwk-scrim{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto}',
@@ -407,6 +403,8 @@ window.__ModuleLoader__.load({
       // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title.
       const pageLead = () => kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des capacités dans un profil (Browser Use, Computer Use…) ; ici tu installes chaque worker, tu coupes ou remets sa connexion, tu le vérifies et autorises ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts abilities in a profile (Browser Use, Computer Use…); here you install each worker, switch its connection off or on, check it and allow your agent to call it.')
       const leadFallback = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', null, pageLead()) } catch (e) { return h('p', null, pageLead()) } }
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
       const ic = (name, extra) => h('svg', { className: 'i' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: ICONS[name] || ICONS.alert }))
       const logo = (w, size) => h('span', { className: 'kbwk-logo' + (size ? ' ' + size : ''), 'aria-hidden': 'true' }, h('svg', { viewBox: '0 0 24 24' }, h('use', { href: '#kbwk-lg-' + (LOGO_OF[typeof w === 'string' ? w : w.id] || 'term') })))
       const cmdBox = (text) => h('div', { className: 'kbwk-cmd' }, h('code', null, text),
@@ -730,7 +728,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbwk' },
             h('div', { className: 'kbwk-page' },
               h('div', { className: 'kbwk-head' },
-                h('div', null, h('h4', null, 'Workers'), leadFallback()),
+                h('div', null, pageHead({ title: 'Workers' }), leadFallback()),
                 h('span', { className: 'kbwk-hbtn' }, k.bone(120, 36, null, 18), k.bone(104, 36, null, 18))),
               h('div', { className: 'kbwk-count' }, k.bone(64, 14), k.bone(78, 14)),
               k.wrap(kt('Chargement des workers…', 'Loading workers…'), 'kbwk-list', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbwk-item' },
@@ -741,7 +739,7 @@ window.__ModuleLoader__.load({
         }
         if (loaded.state === 'error') {
           return h('div', { className: 'kbwk' },
-            h('div', { className: 'kbwk-head' }, h('div', null, h('h4', null, 'Workers'))),
+            h('div', { className: 'kbwk-head' }, h('div', null, pageHead({ title: 'Workers' }))),
             h('div', { className: 'kbwk-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Les workers sont injoignables.', 'Workers cannot be reached.')),
               h('span', null, kt('Le serveur DSH ne répond pas. Les workers ne se chargent qu’au démarrage de DSH : relance DSH après l’installation.', 'The DSH server does not answer. Workers load when DSH starts: restart DSH after installing.'))),
             h('div', null, h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => { setLoaded({ state: 'loading', data: null }); reload() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
@@ -967,7 +965,8 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbwk' },
           h('div', { className: 'kbwk-page' },
             h('div', { className: 'kbwk-head' },
-              h('div', { className: 'kbwk-hd' }, h('div', { className: 'kbwk-titlerow' }, h('h4', null, 'Workers'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', lead: pageLead(), title: 'Workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null),
+              h('div', { className: 'kbwk-hd' },
+                pageHead({ id: 'kybernos-workers', lead: pageLead(), title: 'Workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }),
                 leadFallback()),
               h('span', { className: 'kbwk-hbtn' },
                 !helpHasAction ? h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide', onClick: () => setGuide(true) }, kt('Guide et démo', 'Guide and demo')) : null,

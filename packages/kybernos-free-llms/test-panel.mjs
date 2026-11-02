@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -88,7 +89,7 @@ const open = async (answer, suite) => {
   const r = makeRenderer()
   let def = null
   globalThis.window = { __ModuleLoader__: { load: (d) => { def = d } } }
-  if (suite === true) globalThis.window.__KB_HELP__ = { version: 1, Help }
+  if (suite === true) globalThis.window.__KB_HELP__ = { version: 1, ...fakeHelp(r.React, Help) }
   new Function('window', 'document', SOURCE)(globalThis.window, globalThis.document)
   const plugin = def.factory((name) => (name === 'react' ? r.React : undefined))
   let Panel = null
@@ -190,6 +191,8 @@ console.log('the page\'s description lives in the « ? » card, not under the ti
   const asked = helpAsked.filter((p) => p.id === 'kybernos-free-llms')
   check('with the Suite: one « ? » card, given the description as `lead` and the page name as `title`', asked.length >= 1 && asked.every((p) => p.lead === DESCRIPTION && p.title === 'Free LLMs'), asked)
   check('...and the description is no longer drawn under the title', withSuite.one((n) => n.props && n.props.className === 'kfl-soustitre') === null && !withSuite.text().includes(DESCRIPTION))
+  check('...the title and the « ? » are one head (the Suite\'s Title), the title in the shared class with no row of its own', withSuite.one((n) => n.props && n.props.className === 'kbhp-head') !== null && withSuite.one((n) => n.props && n.props.className === 'kbhp-title kfl-titre') !== null && !/kbhp-row/.test(SOURCE) && /pageHead\(\{ id: 'kybernos-free-llms'/.test(SOURCE))
+  check('...and the page title carries no size, weight or font of its own: the Settings frame sets them (no `.kfl-titre` declaration)', !/\.kfl-titre\s*\{/.test(SOURCE))
   check('...but the privacy warning stays on the page (it is not a description)', withSuite.one((n) => n.props && n.props.className === 'kfl-avertis') !== null)
   const without = await open({ ok: true, model: MODELS[0], code: 'ok' })
   const sub = without.one((n) => n.props && n.props.className === 'kfl-soustitre')

@@ -25,6 +25,9 @@ window.__ModuleLoader__.load({
       const h = React.createElement
       const NB = ' '
 
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
+
       // ── language: French is the source, English the pair; a translated language is looked up by its French text ──
       const lang = () => {
         try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
@@ -462,8 +465,6 @@ window.__ModuleLoader__.load({
 .kbus-page{padding:0 0 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
-.kbus-page h2{margin:0;font-size:22px;line-height:1.25;font-weight:700}
-.kbus-titlerow{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
 .kbus-lead{margin:6px 0 0;color:var(--dsw-alias-label-tertiary,#8a9096);max-width:62ch}
 .kbus-sec{margin:26px 0 0}
 .kbus-sec>h3{margin:0 0 10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:14px;font-weight:600}
@@ -871,10 +872,8 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         // The page's two description paragraphs live in the « ? » card (the Suite's Help takes them as `lead`); only without the Suite are they drawn under the title.
         const leadFallback = (cls, text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', { className: cls }, text) } catch (e) { return h('p', { className: cls }, text) } }
         return h('div', { className: 'kbus-page', 'data-kb': 'kybernos-usage-page' },
-          h('div', { className: 'kbus-titlerow' },
-            h('h2', null, L('pageName')),
-            // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
-            typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-usage', lead: [L('pageLead'), L('pageFor')], title: L('pageName') }) : null),
+          // The title and the Suite's « ? How it works » button (its card is help.json), in the one head every Settings page shares.
+          pageHead({ id: 'kybernos-usage', lead: [L('pageLead'), L('pageFor')], title: L('pageName') }),
           leadFallback('kbus-lead', L('pageLead')),
           leadFallback('kbus-lead kbus-for', L('pageFor')),
           overBanner,

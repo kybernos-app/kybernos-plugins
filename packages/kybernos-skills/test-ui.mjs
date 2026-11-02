@@ -11,6 +11,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 let pass = 0
 let fail = 0
@@ -485,7 +486,7 @@ console.log('The description of a page is the first line of the « ? » card, no
     check(tag + 'without the Suite, Yours keeps its count', subs(bare).length === 1 && /installed in this profile/.test(subs(bare)[0]), subs(bare))
   }
   // Settings › Skills
-  globalThis.window.__KB_HELP__ = { version: 1, Help }
+  globalThis.window.__KB_HELP__ = { version: 1, ...fakeHelp(React, Help) }
   try {
     globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
     const w = world()
@@ -493,6 +494,7 @@ console.log('The description of a page is the first line of the « ? » card, no
     const root = mount(React.createElement(SettingsScreen, {}))
     await root.settle()
     check('Settings › Skills gives its description to the card of its page as `lead`, with its title, and draws no line under it', last().id === 'kybernos-skills' && last().page === 'skills' && last().lead === 'Where this profile’s skills come from: the index source (Discover) and the folders installs are written to.' && last().title === 'Skills' && subs(root).length === 0, JSON.stringify({ asked: last(), subs: subs(root) }))
+    check('...its title and its « ? » are one head (the Suite\'s Title), the title in the shared class', all(root, (n) => hasClass(n, 'kbhp-head')).length === 1 && all(root, (n) => hasClass(n, 'kbhp-title') && hasClass(n, 'kbss-h1')).length === 1)
   } finally { delete globalThis.window.__KB_HELP__ }
   {
     const w = world()
@@ -1221,7 +1223,7 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
     const learnedLines = (r) => all(r, (n) => hasClass(n, 'kbss-lead')).map((n) => textOf(n).trim())
     const LEAD = 'Kaby suggests skills from your work. Here you choose what it may do on its own.'
     const askedL = []
-    globalThis.window.__KB_HELP__ = { version: 1, Help: (props) => { askedL.push({ id: props.id, page: props.page, lead: props.lead, title: props.title }); return React.createElement('span', { 'data-kb': 'stub-help' }) } }
+    globalThis.window.__KB_HELP__ = { version: 1, ...fakeHelp(React, (props) => { askedL.push({ id: props.id, page: props.page, lead: props.lead, title: props.title }); return React.createElement('span', { 'data-kb': 'stub-help' }) }) }
     try {
       const root = await mount2(setWorld(), LearnedSettingsScreen, {})
       const a = askedL[askedL.length - 1]
@@ -1229,6 +1231,7 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
     } finally { delete globalThis.window.__KB_HELP__ }
     const bare = await mount2(setWorld(), LearnedSettingsScreen, {})
     check('Settings › Learned skills without the Suite keeps the line under its title', learnedLines(bare).length === 1 && learnedLines(bare)[0] === LEAD, learnedLines(bare))
+    check('both Settings pages draw their head through the shared pageHead, and the Settings title class has no size, weight or font of its own (no `.kbss-h1` declaration, no `kbhp-row`, no `kbss-headrow`)', (SOURCE.match(/pageHead\(\{[^}]*className: 'kbss-h1'/g) || []).length === 3 && !/\.kbss-h1\s*\{/.test(SOURCE) && !/kbhp-row|kbss-headrow/.test(SOURCE))
   }
 }
 

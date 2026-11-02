@@ -1143,5 +1143,9 @@ console.log('\n── The provider sheet: key checked on paste, every model list
   ok('the sheet does not use the old fetch popup (it stays for the Add (custom) panel only)', !src.slice(src.indexOf('const renderEdit = () =>'), src.indexOf('const renderDsEdit = () =>')).includes('PvModels'))
 }
 
+console.log('\n── the page title: one head, no style of its own ──')
+ok('the « AI provider and models » page draws its title and its « ? » as one pageHead (h1, hook kbm-h1), not a button in the providers toolbar', /pageHead\(\{ id: 'kybernos-models', title: m\('kb\.models\.surface\.entry'\), as: 'h1', className: 'kbm-h1' \}\)/.test(src) && !/h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-models' \}\)/.test(src))
+ok('no rule of the bundle sizes or weighs the title (.kbm-h1): the Settings frame sets it', !/\.kbm-h1\s*[{,]/.test(src))
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)

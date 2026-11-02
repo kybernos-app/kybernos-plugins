@@ -532,7 +532,6 @@ window.__ModuleLoader__.load({
       }
       const CSS = `
 .kbcl-page{display:flex;flex-direction:column;gap:16px;max-width:780px;color:${T.text};font-size:14px}
-.kbcl-page h2{margin:0;font-size:20px;font-weight:700}
 .kbcl-sub{font-size:12.5px;line-height:1.5;color:${T.mute}}
 .kbcl-tabs{display:flex;gap:2px;border-bottom:1px solid ${T.line}}
 .kbcl-tab{appearance:none;border:0;background:transparent;color:${T.mute};font:inherit;font-size:13px;padding:9px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
@@ -617,7 +616,6 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 .kbcl-msep{height:1px;margin:5px 4px;background:${T.line}}
 .kbcl-flat{display:none}
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
-.kbcl-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .kbcl-prov a{color:${T.brand}}
 /* The page help: the « ? How it works » pill of every other page (the Suite's pill, in kybernos-hub). */
 .kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
@@ -784,8 +782,9 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           [kt('Quand.', 'When.'), kt('Après avoir changé de fournisseur, ou quand un appel reste muet. Chaque ligne en échec dit quoi faire.', 'After changing a provider, or when a call is silent. Each failing row says what to do.')]
         ]
       })
-      // The « ? How it works » pill sits at the top right of the page, on the title's row, like on every other page (A5-19); the text it opens
-      // sits under the tabs.
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
+      // The « ? How it works » pill sits on the title's row, right after the title (the title alone goes through pageHead: the pill opens the page's own text, which sits under the tabs, not the Suite's card).
       const HelpPill = (props) => h('button', { type: 'button', className: 'kbcl-hl', 'data-act': 'help-' + props.id, 'aria-label': kt('Comment ça marche', 'How it works'), title: kt('Comment ça marche', 'How it works'), 'aria-expanded': props.open === true ? 'true' : 'false', onClick: props.onToggle }, h('span', { className: 'kbcl-hq', 'aria-hidden': 'true' }, '?'))
       const HelpBox = (props) => (props.open === true ? h('div', { className: 'kbcl-helpbox', 'data-help': props.id }, (props.lead ? [h('div', { key: 'lead', className: 'kbcl-helplead' }, props.lead)] : []).concat(props.lines.map((l, i) => h('div', { key: i }, [h('b', { key: 'a' }, l[0] + ' '), l[1]])))) : null)
 
@@ -1220,7 +1219,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           : tab === 'providers' ? h(Providers, { calls: c, slot: slot, prov: prov, onSlot: (s) => { setSlot(s); setProv(null) }, onProv: setProv })
             : h(Health, { onFix: (id) => goProvider(id === 'line' ? 'line' : id, null) })
         return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, [
-          h('div', { key: 'top', className: 'kbcl-top' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h(HelpPill, { key: 'help', id: tab, open: open[tab] === true, onToggle: toggle(tab) })]),
+          pageHead({ key: 'top', title: kt('Appels', 'Calls'), className: 'kbcl-title', after: h(HelpPill, { id: tab, open: open[tab] === true, onToggle: toggle(tab) }) }),
           h('div', { key: 'tabs', className: 'kbcl-tabs', role: 'tablist' }, tabs.map((t) => h('button', { key: t[0], type: 'button', role: 'tab', className: 'kbcl-tab', 'data-act': 'tab-' + t[0], 'aria-selected': tab === t[0] ? 'true' : 'false', onClick: () => setTab(t[0]) }, t[1]))),
           open[tab] === true ? h(HelpBox, { key: 'helpbox', id: tab, lead: LEAD(), lines: helps[tab], open: true }) : null,
           c.notice !== null ? h('div', { key: 'n', className: 'kbcl-notice' + (c.notice.bad ? ' kbcl-bad' : ''), role: 'status', 'data-kb': 'kybernos-call-notice' }, c.notice.text) : null,

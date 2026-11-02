@@ -38,6 +38,8 @@ window.__ModuleLoader__.load({
       // A page's own description is the first line of the Suite's « ? » card (`lead`). Where the Suite is not there, it stays under the title, as it always was.
       const kbHelpHere = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? true : false } catch (e) { return false } }
       const kbSubFallback = (cls, text) => (kbHelpHere() || !text ? null : h('p', { className: cls }, text))
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
       // ── icons: Lucide paths verbatim from maquette.html:223-248 ─────────────
       const PATHS = {
@@ -1185,6 +1187,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex:0 0 auto}
 .kbs-root .kbs-top-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .kbs-root .kbs-h1{margin:0;font-size:20px;line-height:1.3;font-weight:700;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbs-titlerow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;min-width:0}
 .kbs-root .kbs-sub{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:720px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbs-root .kbs-ctlrow{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-height:44px;position:relative}
 .kbs-root .kbs-ctlrow .kb-toolbar{margin:0;flex:1 1 0;min-width:0;justify-content:flex-end}
@@ -1675,8 +1678,6 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
    here can reach the Skills panel; the shared input/link/note vocabulary is re-stated here because
    the kbs-* rules above are scoped to .kbs-root — */
 .kbss-page{display:flex;flex-direction:column;gap:22px;width:100%;max-width:720px;box-sizing:border-box}
-.kbss-page .kbss-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
-.kbss-headrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .kbss-page .kbss-lead{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-card{display:flex;flex-direction:column;gap:12px;padding:16px 18px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1)}
 .kbss-page .kbss-h2{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
@@ -3711,8 +3712,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
                 : h('div', { className: 'kb6-headacts' }, headAction))
             : h('div', { className: 'kbs-top' },
               h('div', { className: 'kbs-top-txt' },
-                h('div', { className: 'kbhp-row' }, helpBtn),
-                h('h2', { className: 'kbs-h1' }, pageTitle()),
+                h('div', { className: 'kbs-titlerow' }, h('h2', { className: 'kbs-h1' }, pageTitle()), helpBtn),
                 capTxt !== '' ? h('p', { className: 'kbs-sub', title: capTxt }, capTxt) : null),
               mode !== 'team' ? headAction : null),
           introNode,
@@ -4094,7 +4094,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         }
         const slide = (v) => { setTh(v); if (timer.current !== null) clearTimeout(timer.current); timer.current = setTimeout(() => save({ threshold: v }), 450) }
         if (data.phase === 'loading') return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' }, h('p', { className: 'kbss-sub' }, t('y.loading')))
-        if (data.phase === 'absent') return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' }, h('h2', { className: 'kbss-h1' }, t('ls.h1')), h('p', { className: 'kbss-err', role: 'alert' }, t('ls.absent')))
+        if (data.phase === 'absent') return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' }, pageHead({ title: t('ls.h1'), className: 'kbss-h1' }), h('p', { className: 'kbss-err', role: 'alert' }, t('ls.absent')))
         const s = data.settings
         const locked = data.sensitive === true && s.privOk !== true
         const lvl = (id) => h('button', { key: id, type: 'button', className: 'kbl-lv' + (s.mode === id ? ' on' : ''), 'aria-pressed': s.mode === id ? 'true' : 'false', 'data-kb': 'level-' + id, disabled: locked && id !== 'ask', onClick: () => save({ mode: id }) },
@@ -4114,9 +4114,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         const sel = (id, value, opts, onChange) => h('select', { id, className: 'kbl-sel', value: String(value), onChange: (e) => onChange(e.target.value) }, opts.map((o) => h('option', { key: o[0], value: String(o[0]) }, o[1])))
         const lessThan = (p) => (p.kind === 'improve' ? p.target : p.name)
         return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' },
-          h('div', { className: 'kbss-headrow' },
-            h('h2', { className: 'kbss-h1' }, t('ls.h1')),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'learned', lead: t('ls.lead'), title: t('ls.h1') }) : null)),
+          pageHead({ id: 'kybernos-skills', page: 'learned', lead: t('ls.lead'), title: t('ls.h1'), className: 'kbss-h1' }),
           kbSubFallback('kbss-lead', t('ls.lead')),
           h('p', { className: 'kbss-sub' }, h('button', { type: 'button', className: 'kbss-link', 'data-kb': 'settings-journal', onClick: () => kbOpenSkills('kybernos.skills.journal', '1') }, t('ls.audit.open'))),
           s.breaker !== null ? h('div', { className: 'kbl-lock', 'data-kb': 'learned-breaker' }, icon('alert', 14), h('span', null, t('ls.breaker'))) : null,
@@ -5143,9 +5141,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
                 counts.featured === null ? null : h('span', null, h('span', { className: 'n' }, nf(counts.featured)), ' ', t('set.featured'))))
 
         return h('div', { className: 'kbss-page', 'data-kb': 'kybernos-skills-settings' },
-          h('div', { className: 'kbss-headrow' },
-            h('h2', { className: 'kbss-h1' }, t('set.h1')),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'skills', lead: t('set.lead'), title: t('set.h1') }) : null)),
+          pageHead({ id: 'kybernos-skills', page: 'skills', lead: t('set.lead'), title: t('set.h1'), className: 'kbss-h1' }),
           kbSubFallback('kbss-lead', t('set.lead')),
           sourceCard(),
           rootsCard(),

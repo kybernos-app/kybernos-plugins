@@ -277,7 +277,6 @@ window.__ModuleLoader__.load({
       // ── styles: the Settings page, and the panel (shared with the Mac menu-bar app: see the PANEL-CORE block)
       const PAGE_CSS = [
         '.kbpu-page{display:flex;flex-direction:column;gap:16px;max-width:720px;padding:4px 2px 24px;color:var(--dsw-alias-label-primary,#e8eaec)}',
-        '.kbpu-page h2{margin:0;font-size:16px;font-weight:600}',
         '.kbpu-lead{margin:2px 0 0;color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:13px;line-height:1.5}',
         '.kbpu-block{border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.1));border-radius:14px;background:var(--dsw-alias-bg-layer-2,transparent);overflow:hidden}',
         '.kbpu-block>h3{margin:0;padding:12px 16px 6px;font-size:13px;font-weight:600}',
@@ -507,9 +506,11 @@ window.__ModuleLoader__.load({
           // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); without the Suite it is drawn under the title as before.
           const lead = kt('Dis-moi ce que tes automations ont fait et ramène-moi au bon endroit de Kybernos, sans garder Kybernos au premier plan.', 'Tells you what your automations did and brings you back to the right place in Kybernos, without keeping Kybernos in front.')
           const title = kt('Widget', 'Widget')
+          /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+          const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
           const leadFallback = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', { className: 'kbpu-lead' }, lead) } catch (e) { return h('p', { className: 'kbpu-lead' }, lead) } }
           return h('div', { className: 'kbpu-page', 'data-kb': 'pulse-page' },
-            h('div', null, h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } }, h('h2', null, title), (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-pulse', lead: lead, title: title }) : null)), leadFallback()),
+            h('div', null, pageHead({ id: 'kybernos-pulse', lead: lead, title: title, className: 'kbpu-title' }), leadFallback()),
             store.error && snap === null ? h('p', { className: 'kbpu-note', role: 'alert', 'data-kb': 'pulse-error' }, kt('Cette page n’a pas de réponse de son assistant. Si DSH vient d’être mis à jour, redémarre DSH.', 'This page\'s helper is not answering. If DSH was just updated, restart DSH.')) : null,
             h('div', { className: 'kbpu-block', 'data-kb': 'pulse-where' },
               h('h3', null, kt('Où il vit', 'Where it lives')),

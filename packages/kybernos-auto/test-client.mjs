@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const src = readFileSync(join(HERE, 'client.js'), 'utf8')
@@ -39,7 +40,7 @@ ok('un clic dans le panneau ne ferme pas le menu natif (pointerdown arrêté)', 
 // What a person reads on the page is a sentence (audit 2026-10-16): no HTTP route inside a paragraph, no debug « scope: session » line,
 // and one spelling of the page's name, the one of the Settings menu.
 ok('the page shows no HTTP route and no debug line (« POST /kybernos-auto/report », « scope: session »)', !/\(POST \/kybernos-auto/.test(src) && !/scope: session/.test(src) && src.indexOf('kaa-foot') === -1)
-ok('the page title is « Auto Routing », as the Settings menu says it', src.indexOf("}, kt('Routage Auto', 'Auto Routing')),") !== -1 && src.indexOf("}, 'Auto routing'),") === -1 && src.indexOf("label: kt('Routage Auto', 'Auto Routing') }") !== -1)
+ok('the page title is « Auto Routing », as the Settings menu says it', src.indexOf("title: kt('Routage Auto', 'Auto Routing') })") !== -1 && src.indexOf("}, 'Auto routing'),") === -1 && src.indexOf("label: kt('Routage Auto', 'Auto Routing') }") !== -1)
 
 // ── the page of V-30 / A3-24: one plain switch, three scopes, the rest under one fold ─────────────────────────────────
 ok('la page ouvre sur une phrase simple, UN interrupteur « Routage automatique » et le choix des modèles : tous / gratuits / ma liste',
@@ -103,27 +104,30 @@ ok('un champ de saisie a ses états ARIA (invalide, décrit par son message)', s
     const panel = walk(failed, (nd) => nd.props && nd.props['data-kb'] === 'auto-down')
     ok('state unreadable → a panel with the sentence (not a bare « … »)', panel.length === 1 && textOf(panel[0]).includes(SENTENCE), panel.length && textOf(panel[0]))
     ok('…and a Retry', walk(failed, (nd) => nd.type === 'button' && nd.props['data-kb'] === 'auto-retry' && textOf(nd) === 'Retry').length === 1)
-    ok('…under the page\'s own title; with no Suite the description stays under it (the fallback)', walk(failed, (nd) => nd.type === 'h4' && textOf(nd) === 'Auto Routing').length === 1 && walk(failed, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1)
+    ok('…under the page\'s own title; with no Suite the description stays under it (the fallback)', walk(failed, (nd) => nd.type === 'h2' && textOf(nd) === 'Auto Routing').length === 1 && walk(failed, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1)
     ok('…and the placeholder « … » is gone', textOf(failed).indexOf('…') === -1 || textOf(failed).indexOf('…') > 0)
   }
   const loading = renderSettings({})
   ok('first read still pending → « … », no failure panel yet', loading !== null && textOf(loading) === '…' && walk(loading, (nd) => nd.props && nd.props['data-kb'] === 'auto-down').length === 0)
   const fixture = { ok: true, global: false, whitelist: [], classifier: '', sessionOn: false, sante: [], total: 0, disponibles: 0, chaud: null, failover: { enabled: false, last: null }, sondeEnCours: false, plafond: 10, ttlSondeS: 60, checkedAt: 1792163152877, intervalS: 60 }
   const normal = renderSettings({ 0: fixture })
-  ok('a readable state still renders the whole page, head included (no Suite: the description under the title)', normal !== null && walk(normal, (nd) => nd.type === 'h4').length === 1 && walk(normal, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1 && walk(normal, (nd) => nd.props && nd.props['data-kb'] === 'auto-down').length === 0)
+  ok('a readable state still renders the whole page, head included (no Suite: the description under the title)', normal !== null && walk(normal, (nd) => nd.type === 'h2').length === 1 && walk(normal, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1 && walk(normal, (nd) => nd.props && nd.props['data-kb'] === 'auto-down').length === 0)
   ok('no Suite → no « ? » button at all', walk(normal, (nd) => nd.props && nd.props.lead !== undefined).length === 0)
 
   // With the Suite: the description moves into the « ? » card (`lead`) and is no longer drawn under the title, in the page and in its failure state.
   const Help = function Help () { return null }
-  sandbox.window.__KB_HELP__ = { version: 1, Help }
+  const fake = fakeHelp({ createElement: (type, props, ...children) => ({ type, props: props || {}, children }) }, Help)
+  sandbox.window.__KB_HELP__ = { version: 1, ...fake }
   const DESCRIPTION = 'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.'
   for (const [label, tree] of [['the page', renderSettings({ 0: fixture })], ['its failure state', renderSettings({ [echecIndex]: true })]]) {
-    const helps = tree === null ? [] : walk(tree, (nd) => nd.type === Help)
-    ok('with the Suite, ' + label + ' passes its description as `lead` and its name as `title` to the « ? » card', helps.length === 1 && helps[0].props.id === 'kybernos-auto' && helps[0].props.lead === DESCRIPTION && helps[0].props.title === 'Auto Routing', helps[0] && helps[0].props)
+    const helps = tree === null ? [] : walk(tree, (nd) => nd.type === fake.Title)
+    ok('with the Suite, ' + label + ' draws its head through Title and passes its description as `lead` and its name as `title`', helps.length === 1 && helps[0].props.id === 'kybernos-auto' && helps[0].props.lead === DESCRIPTION && helps[0].props.title === 'Auto Routing', helps[0] && helps[0].props)
     ok('…and no longer draws that description under the title', tree !== null && walk(tree, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 0 && textOf(tree).indexOf(DESCRIPTION) === -1)
   }
   delete sandbox.window.__KB_HELP__
 }
+
+ok('the page title has no style of its own: it comes through the shared head, with no rule or inline size on the old heading', /const pageHead = \(props\) => \{ try \{ if \(window\.__KB_HELP__ && window\.__KB_HELP__\.Title\) return h\(window\.__KB_HELP__\.Title, props\)/.test(src) && /pageHead\(\{ id: 'kybernos-auto', lead: intro, title: kt\('Routage Auto', 'Auto Routing'\) \}\)/.test(src) && !/\.kaa-page h4\{/.test(src) && !/fontSize: '26px'/.test(src))
 
 // Found by the dead-click probe (2026-10-23): « Add » of the allowed list did nothing, in silence, with an empty field.
 ok('Add is greyed with its reason while the field is empty (it used to look pressable and do nothing)', /className: 'kaa-ajout-btn', 'data-kb': 'auto-whitelist-add-btn', onClick: ajouterModele, disabled: ajouter\.trim\(\) === '',\s*title: ajouter\.trim\(\) === '' \? kt\('Choisis ou tape un modèle d’abord', 'Pick or type a model first'\) : undefined/.test(src) && src.indexOf("'.kaa-ajout-btn:disabled{opacity:.5;cursor:default}'") !== -1)

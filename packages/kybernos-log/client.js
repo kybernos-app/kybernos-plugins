@@ -72,6 +72,8 @@ window.__ModuleLoader__.load({
       const L = (k, p) => fill(kt(S[k][0], S[k][1]), p)
       // True where the Suite's « ? » card (window.__KB_HELP__.Help) does not exist: only then is the page's description drawn under its title (it lives in the card otherwise). Read at render time, never at load.
       const helpAbsent = () => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } }
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
       const TYPES = ['llm', 'connector', 'websearch', 'tool', 'title', 'compaction', 'probe', 'approval', 'job', 'sandbox', 'session']
       const FAM = { llm: 'famLlm', connector: 'famConnector', websearch: 'famWebsearch', tool: 'famTool', title: 'famTitle', compaction: 'famCompaction', probe: 'famProbe', approval: 'famApproval', job: 'famJob', sandbox: 'famSandbox', session: 'famSession' }
@@ -293,9 +295,7 @@ window.__ModuleLoader__.load({
         }
 
         return h('div', { className: 'kblg-page' },
-          h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } },
-            h('h2', { style: { margin: 0, fontSize: 17, fontWeight: 650 } }, L('title')),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-log', lead: L('lead'), title: L('title') }) : null)),
+          pageHead({ id: 'kybernos-log', lead: L('lead'), title: L('title'), className: 'kblg-title' }),
           // The description lives in the « ? » card (`lead`); it stays under the title only where the Suite's Help does not exist.
           helpAbsent() ? h('p', { className: 'kblg-lead' }, L('lead')) : null,
           // « Metadata only » is a privacy statement about what the log keeps, not a description of the page: it stays.

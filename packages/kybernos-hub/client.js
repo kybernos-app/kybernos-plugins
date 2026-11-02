@@ -169,7 +169,7 @@ window.__ModuleLoader__.load({
     // drawn into a host node made right after the page's introduction paragraph, through a portal, when the open Settings cell is that
     // page. The page is known by the React key of the cell (« agent-presets »), the same in every language, never by its words. Nothing
     // here may throw: a shell that no longer looks like this simply gets no animation.
-    const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', section: '[data-slot="settings.section"]', host: '[data-kb="native-intro-host"]' }
+    const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', section: '[data-slot="settings.section"]', host: '[data-kb="native-intro-host"]', title: '[data-slot="settings.section"] :is(h2[class*="_title"],h2[class*="_heading"])', head: '[data-kb="native-head-host"]' }
     // DSH's own Settings pages that carry the help. The key is the React key of the nav cell (the section id, the same in every
     // language), measured in the engine's client bundles on 2026-10-21: models, plugins (Built-in plugins), plus Agent presets,
     // which also has an animated introduction. A page whose markup changes simply gets no pill: never a broken button.
@@ -183,13 +183,40 @@ window.__ModuleLoader__.load({
         return typeof key === 'string' ? key : null
       } catch (e) { return null }
     }
-    /** The host of the animation on the open native page, made when it is not there yet: `{ el, key }`, or null (another page, or a page not drawn yet). */
+    /** The place of the « ? » on the open native page: a span put inside the page's own title, right after its text (made when it is not there yet), or null when the page has no title of that kind. */
+    const findNativeHead = (doc) => {
+      try {
+        const title = doc.querySelector(NATIVE_SEL.title)
+        if (title === null || title === undefined) return null
+        const have = title.querySelector(NATIVE_SEL.head)
+        if (have !== null && have !== undefined) return have
+        const el = doc.createElement('span')
+        el.setAttribute('data-kb', 'native-head-host')
+        el.className = 'kbhp-nhead'
+        title.appendChild(el)
+        return el
+      } catch (e) { return null }
+    }
+    /**
+     * The hosts on the open native page: `{ key, head, el }`, or null (another page, or a page not drawn yet). `head` is where the « ? » goes (findNativeHead); `el` is the host of the
+     * animation, a node made right after the page's introduction paragraph when the page has an animation, and kept as the place of the « ? » too when the page has no title to put it in
+     * (an older shell): the button is then on the right of its own row, as it was.
+     */
     const findNativeHost = (doc) => {
       try {
         const key = nativeKeyOf(doc.querySelector(NATIVE_SEL.cell))
         if (key === null || NATIVE_PAGES.indexOf(key) < 0) return null
+        const head = findNativeHead(doc)
+        const content = nativeContent(key)
+        const wantsHost = head === null || (content !== null && content.intro !== undefined)
+        if (!wantsHost) {
+          // A host made before the title was drawn would stay as an empty block: take it away.
+          const stale = doc.querySelector(NATIVE_SEL.host)
+          if (stale !== null && stale !== undefined && typeof stale.remove === 'function') stale.remove()
+          return { el: null, head, key }
+        }
         const have = doc.querySelector(NATIVE_SEL.host)
-        if (have !== null && have.getAttribute('data-native') === key) return { el: have, key }
+        if (have !== null && have.getAttribute('data-native') === key) return { el: have, head, key }
         const intro = doc.querySelector(NATIVE_SEL.intro)
         const el = doc.createElement('div')
         el.setAttribute('data-kb', 'native-intro-host')
@@ -202,7 +229,7 @@ window.__ModuleLoader__.load({
           if (section === null) return null
           section.insertBefore(el, section.firstChild)
         }
-        return { el, key }
+        return { el, head, key }
       } catch (e) { return null }
     }
     /** What the animation of a native page says: the card of its button (a page of the core bundle) and its own animation. */
@@ -647,7 +674,6 @@ window.__ModuleLoader__.load({
       '.kbsu button{font:inherit;cursor:pointer}',
       '.kbsu button:disabled{opacity:.5;cursor:default}',
       '.kbsu-head{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:flex-start}',
-      '.kbsu-head h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
       '.kbsu-head p{margin:0;color:var(--dsw-alias-label-secondary);max-width:56ch}',
       '.kbsu-headr{display:flex;flex-direction:column;align-items:flex-end;gap:6px}',
       '.kbsu-meta{font-size:12px;color:var(--dsw-alias-label-tertiary);display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:flex-end}',
@@ -735,14 +761,17 @@ window.__ModuleLoader__.load({
       '.kbsu-good{padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-border-l3)}',
       // The « ? How it works » button of any plugin page, and the card it opens (window.__KB_HELP__.Help).
       '.kbhp-wrap{position:relative;display:inline-block;max-width:100%}',
-      // The button's own row, put first in a page: it takes no height, so the page's title starts where it does on a page that holds the button in its title row (x 272, y 54). Narrow: back in the flow, above the title.
-      '.kbhp-row{display:flex;justify-content:flex-end;width:100%;height:0;overflow:visible;position:relative;z-index:1;margin-bottom:calc(-1 * var(--kbhp-gap,0px))}',
-      '@media (max-width:760px){.kbhp-row{height:auto;margin-bottom:6px}}',
+      // The head of a page (Title): the title and its « ? » on one line, the button right after the last word. The title is drawn inline so that a long title wraps and the button stays with its end. The title's size, weight and colour are NOT set here: the Settings frame (kybernos-plugin, « Gabarit unique ») gives every page title the same ones.
+      '.kbhp-head{display:block;min-width:0;margin:0;font-size:18px;line-height:1.3}',
+      '.kbhp-head>.kbhp-title{display:inline;margin:0;padding:0;overflow-wrap:anywhere}',
+      '.kbhp-head>.kbhp-wrap,.kbhp-tail,.kbhp-nhead{vertical-align:middle;margin-inline-start:8px}',
+      // The same place on a page of DSH itself: a span put inside the page's own title (see findNativeHead).
+      '.kbhp-tail,.kbhp-nhead{display:inline-block;font-size:12.5px;font-weight:400;letter-spacing:normal;line-height:normal}',
       '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
       '.kbhp-wrap .kbhp-btn:hover,.kbhp-wrap .kbhp-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}',
       '.kbhp-wrap .kbhp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
       '.kbhp-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
-      '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
+      '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;font-weight:400;letter-spacing:normal;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
       '.kbhp-pop h4{margin:0;font-size:17px;font-weight:700}',
       '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
       '.kbhp-pop p{margin:0;color:var(--dsw-alias-label-secondary)}',
@@ -1437,6 +1466,8 @@ window.__ModuleLoader__.load({
 
     const construirePanneau = (React, scope, ctx, ReactDOM) => {
       const h = React.createElement
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
       const ic = (nom, extra) => h('svg', { className: 'i' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: ICONES[nom] || ICONES.box }))
       // The module's artwork: its glyph on a tile coloured by its family. `taille` = '' | 'mid' | 'big'.
       const artwork = (m, fam, taille) => {
@@ -1593,7 +1624,7 @@ window.__ModuleLoader__.load({
           if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kbsu' }, h('div', { className: 'kbsu-empty' }, kt('Chargement de la suite…', 'Loading the suite…')))
           return h('div', { className: 'kbsu', 'data-kb': 'suite' },
             h('div', { className: 'kbsu-head' },
-              h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+              h('div', null, pageHead({ title: 'Kybernos Suite' }), h('p', null, kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
               h('div', { className: 'kbsu-headr' },
                 h('span', { className: 'kbsu-right' }, k.bone(150, 34, null, 10), k.bone(190, 34, null, 10)),
                 h('div', { className: 'kbsu-meta' }, k.bone(240, 12)))),
@@ -1612,7 +1643,7 @@ window.__ModuleLoader__.load({
         }
         if (charge.etat === 'error') {
           return h('div', { className: 'kbsu' },
-            h('div', { className: 'kbsu-head' }, h('div', null, h('h4', null, 'Kybernos Suite'))),
+            h('div', { className: 'kbsu-head' }, h('div', null, pageHead({ title: 'Kybernos Suite' }))),
             h('div', { className: 'kbsu-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Le catalogue de la suite est injoignable.', 'The suite catalogue cannot be reached.')),
               h('span', null, kt('Le serveur DSH ne répond pas. Relance DSH, ou utilise le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer. Restart DSH, or use DSH’s native plugin manager.'))),
             h('div', null, h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: () => { setCharge({ etat: 'loading', suite: null, bundles: null, maint: null, registre: null, brouillons: [] }); recharger() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
@@ -1908,10 +1939,9 @@ window.__ModuleLoader__.load({
         const suiteLead = kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.')
         return h('div', { className: 'kbsu', 'data-kb': 'suite', ref: rootRef },
           detail !== null ? null : h('div', { className: 'kbsu-head' },
-            h('div', null, h('h4', null, 'Kybernos Suite'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', null, suiteLead)),
+            h('div', null, pageHead({ id: 'kybernos-hub', lead: suiteLead, title: 'Kybernos Suite' }), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', null, suiteLead)),
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
-                typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-hub', lead: suiteLead, title: 'Kybernos Suite' }) : null,
                 enPlugins ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-add', onClick: () => setDlg({ type: 'ajout' }) }, ic('plug'), kt('Ajouter un plugin', 'Add a plugin'), h('span', { 'aria-hidden': 'true', style: { opacity: 0.6 } }, '▾')) : null,
                 ouvrirGestionnaire !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost', 'data-kb': 'suite-native', onClick: ouvrirGestionnaire }, ic('plug'), kt('Gestionnaire natif', 'Native manager')) : null,
                 h('button', { type: 'button', className: 'kbsu-btn', 'data-kb': 'suite-verifier', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Rechercher des mises à jour', 'Check for updates'))),
@@ -2120,7 +2150,18 @@ window.__ModuleLoader__.load({
               h('b', { 'aria-hidden': 'true' }, String(i + 1)), h('div', null, h('div', { className: 'kbhi-step-t' }, st.t), h('div', { className: 'kbhi-step-b' }, st.b)))))),
           h('button', { type: 'button', className: 'kbhi-x', 'data-kb': 'help-intro-close', 'aria-label': kt('Fermer', 'Close'), title: kt('Fermer', 'Close'), onClick: close }, '✕'))
       }
-      return { version: 1, actions: true, Help, Intro }
+      // The head of a page: its title in the one style of the page titles, and the page's « ? How it works » right after the text, on the same line
+      // (a title that wraps keeps the button at its end). Every Settings page draws its title through it, so none has a size or a weight of its own:
+      //   window.__KB_HELP__ && window.__KB_HELP__.Title ? h(window.__KB_HELP__.Title, { id: '<bundle folder>', page, lead, title: 'Theme' }) : h('h2', null, 'Theme')
+      // `title` is the words of the title (and the name of the card), `as` the heading element (h2 by default), `className` a hook of the page (never a style); the rest is
+      // what Help takes (`id`, `page`, `lead`, `action`). Without an `id` the title is drawn alone. `after` is a button of the page's own (the Language page opens its own panel)
+      // that takes the place of the Suite's « ? », in the same spot.
+      function Title ({ as, className, title, id, page, lead, action, after }) {
+        return h('div', { className: 'kbhp-head', 'data-kb': 'page-head' },
+          h(typeof as === 'string' && as !== '' ? as : 'h2', { className: 'kbhp-title' + (typeof className === 'string' && className !== '' ? ' ' + className : ''), 'data-kb': 'page-title' }, title),
+          id !== undefined ? h(Help, { id, page, lead, title, action }) : (after !== undefined && after !== null ? h('span', { className: 'kbhp-tail' }, after) : null))
+      }
+      return { version: 1, actions: true, Help, Intro, Title }
     }
 
     // The component that draws the animation into the host of a native page (see findNativeHost): always mounted (shell overlay slot),
@@ -2131,7 +2172,7 @@ window.__ModuleLoader__.load({
         const [host, setHost] = React.useState(null)
         React.useEffect(() => {
           let frame = 0
-          const look = () => { frame = 0; const next = findNativeHost(document); setHost((cur) => (cur !== null && next !== null && cur.el === next.el ? cur : next)) }
+          const look = () => { frame = 0; const next = findNativeHost(document); setHost((cur) => (cur !== null && next !== null && cur.el === next.el && cur.head === next.head && cur.key === next.key ? cur : next)) }
           const later = () => { if (frame === 0) frame = window.requestAnimationFrame(look) }
           look()
           let obs = null
@@ -2141,7 +2182,12 @@ window.__ModuleLoader__.load({
         if (host === null) return null
         const c = nativeContent(host.key)
         if (c === null) return null
-        return ReactDOM.createPortal(h('div', { className: 'kbni', 'data-kb': 'native-intro' }, h('div', { className: 'kbni-row' }, h(api.Help, c.help)), c.intro !== undefined && c.intro !== null ? h(api.Intro, c.intro) : null), host.el)
+        // The « ? » goes inside the page's own title; the animation, when the page has one, in its host after the introduction. With no title to put the button in, it keeps its own row there.
+        const button = h(api.Help, c.help)
+        const hasIntro = c.intro !== undefined && c.intro !== null
+        const inHead = host.head !== null && host.head !== undefined ? ReactDOM.createPortal(button, host.head, 'head') : null
+        const inHost = host.el !== null && host.el !== undefined ? ReactDOM.createPortal(h('div', { className: 'kbni', 'data-kb': 'native-intro' }, inHead === null ? h('div', { className: 'kbni-row' }, button) : null, hasIntro ? h(api.Intro, c.intro) : null), host.el, 'host') : null
+        return inHead !== null && inHost !== null ? [inHead, inHost] : (inHost !== null ? inHost : inHead)
       }
     }
 
@@ -2185,6 +2231,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, decalageDeLaCarte, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, suiviInstallation, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, decalageDeLaCarte, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, suiviInstallation, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, findNativeHead, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })

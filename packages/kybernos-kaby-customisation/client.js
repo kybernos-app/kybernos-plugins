@@ -333,8 +333,6 @@ const readWake = async () => {
       '.kbkc{box-sizing:border-box;padding:0 0 24px;color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.45}',
       '.kbkc *{box-sizing:border-box}',
       '.kbkc-page{display:flex;flex-direction:column;gap:16px;max-width:880px}',
-      '.kbkc-titlerow{display:flex;align-items:center;gap:12px}',
-      '.kbkc-titlerow h4{margin:0;font-size:22px;font-weight:700}',
       '.kbkc-lead{margin:4px 0 0;color:var(--dsw-alias-label-secondary,#666);max-width:62ch}',
       '.kbkc-tabs{display:flex;gap:4px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25));overflow-x:auto;scrollbar-width:none}',
       '.kbkc-tab{appearance:none;flex:none;height:40px;padding:0 14px;margin-bottom:-1px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--dsw-alias-label-secondary,#666);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}',
@@ -701,6 +699,8 @@ const readWake = async () => {
     const buildPanel = (React) => {
       const h = React.createElement
       const { useState, useEffect, useRef } = React
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
       const { WhereCard, MandateCard, WakeCard } = buildCards(React)
 
       const Panel = () => {
@@ -847,7 +847,7 @@ const readWake = async () => {
 
         if (profile === null) {
           return h('div', { className: 'kbkc', 'data-kb': 'kaby-custom-page' }, h('div', { className: 'kbkc-page' },
-            h('div', { className: 'kbkc-titlerow' }, h('h4', null, 'Kaby')),
+            pageHead({ title: 'Kaby' }),
             h('div', { className: failed ? 'kbkc-notice w' : 'kbkc-help', 'data-kb': failed ? 'kaby-custom-down' : 'kaby-custom-loading' },
               failed ? kt('La page ne peut pas lire ses réglages : relance DSH si ce plugin vient d’être activé.', 'The page cannot read its settings: restart DSH if this plugin was just turned on.') : kt('Lecture des réglages…', 'Reading the settings…'))))
         }
@@ -984,10 +984,9 @@ const readWake = async () => {
         // The page's description lives in the « ? » card of the Suite's Help (its `lead`); it is drawn under the title only where that Help does not exist (no Suite).
         const lead = kt('Comment ton assistant est et parle, où il travaille, ce qu’il peut faire sans te demander et quand il se réveille. Ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds, where it works, what it may do without asking and when it wakes up. Its rules and its memory do not change here.')
         return h('div', { className: 'kbkc', 'data-kb': 'kaby-custom-page' }, h('div', { className: 'kbkc-page' }, [
-          h('div', { key: 'hd' }, [
-            h('div', { key: 't', className: 'kbkc-titlerow' }, [h('h4', { key: 'h' }, 'Kaby'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-kaby-customisation', page: 'kaby', lead: lead, title: 'Kaby', key: 'help' }) : null]),
-            helpAbsent() ? h('p', { key: 'p', className: 'kbkc-lead' }, lead) : null
-          ]),
+          h('div', { key: 'hd' },
+            pageHead({ id: 'kybernos-kaby-customisation', page: 'kaby', lead: lead, title: 'Kaby' }),
+            helpAbsent() ? h('p', { className: 'kbkc-lead' }, lead) : null),
           h('div', { key: 'tabs', className: 'kbkc-tabs', role: 'tablist', 'aria-label': kt('Réglages de Kaby', 'Kaby settings'), 'data-kb': 'kaby-custom-tabs', onKeyDown: onTabKey }, TAB_IDS.map((id) => h('button', {
             key: id, id: 'kbkc-tab-' + id, type: 'button', role: 'tab', className: 'kbkc-tab', 'data-kb': 'kaby-custom-tab', 'data-tab': id, 'aria-selected': tab === id ? 'true' : 'false', 'aria-controls': 'kbkc-panel-' + id, tabIndex: tab === id ? 0 : -1, onClick: () => setTab(id)
           }, tabLabel(id)))),

@@ -43,7 +43,6 @@ window.__ModuleLoader__.load({
 .kbsv-page{max-width:720px;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary,inherit)}
 [data-slot="settings.section"]:has(.kbsv-page){width:100%;max-width:none}
 .kbsv-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.kbsv-title{margin:0;font-size:20px;line-height:1.3;font-weight:600;letter-spacing:-.01em}
 .kbsv-sub{margin:2px 0 0;font-size:13px;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .kbsv-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 16px;border-radius:18px;border:.5px solid var(--dsw-alias-border-l3,rgba(0,0,0,.12));background:transparent;color:inherit;font:inherit;font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none}
@@ -55,7 +54,6 @@ window.__ModuleLoader__.load({
 .kbsv-link{border:0;background:none;padding:0;color:var(--dsw-alias-brand-primary-new-colorprimary-new-color,#4176e6);font:inherit;font-size:12px;cursor:pointer}
 .kbsv-link:hover{text-decoration:underline}
 .kbsv-btn:focus-visible,.kbsv-input:focus-visible,.kbsv-link:focus-visible{outline:2px solid var(--dsw-alias-brand-primary-new-colorprimary-new-color,#4176e6);outline-offset:2px}
-.kbsv-help{display:inline-flex;align-items:center}
 .kbsv-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:var(--dsw-alias-state-warn-tertiary,rgba(245,158,11,.12));color:var(--dsw-alias-state-warn-label,inherit);font-size:13px}
 .kbsv-banner .kbsv-btn{margin-inline-start:auto;color:var(--dsw-alias-label-primary,inherit);background:var(--dsw-alias-bg-layer-1,transparent)}
 .kbsv-list{display:flex;flex-direction:column;gap:10px}
@@ -170,8 +168,9 @@ body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#35
         ICON[name].map((p, i) => h(p[0], Object.assign({ key: i }, p[1]))))
 
       // ── The view: everything on screen is a function of (data, ui). No state, no effect: testable as static markup. ──
-      // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title (`subFallback`).
-      const HelpButton = ({ lead, title }) => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h('span', { className: 'kbsv-help' }, h(window.__KB_HELP__.Help, { id: 'kybernos-servers', lead: lead, title: title })) : null)
+      // The page's description lives in the « ? » card (the Suite's Title hands it to Help as `lead`); only without the Suite is it drawn under the title (`subFallback`).
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
       const subFallback = (text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', { className: 'kbsv-sub' }, text) } catch (e) { return h('p', { className: 'kbsv-sub' }, text) } }
 
       const Steps = ({ steps }) => h('ul', { className: 'kbsv-steps' }, steps.map((s) => h('li', { key: s.id, 'data-ok': String(s.ok) },
@@ -314,8 +313,8 @@ body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#35
         const lead = kt('Là où vivent ton compte, ton équipe et tes modèles', 'Where your account, team and models live')
         return h('div', { className: 'kbsv-page', 'data-kb': 'servers-page' },
           h('div', { className: 'kbsv-head' },
-            h('div', null, h('h2', { className: 'kbsv-title' }, title), subFallback(lead)),
-            h('div', { className: 'kbsv-acts' }, h(HelpButton, { lead: lead, title: title }), h('button', { type: 'button', className: 'kbsv-btn', 'data-primary': 'true', 'data-kb': 'servers-add-open', onClick: act.openAdd }, '+ ' + kt('Ajouter un serveur', 'Add a server')))),
+            h('div', null, pageHead({ id: 'kybernos-servers', lead: lead, title: title, className: 'kbsv-title' }), subFallback(lead)),
+            h('div', { className: 'kbsv-acts' }, h('button', { type: 'button', className: 'kbsv-btn', 'data-primary': 'true', 'data-kb': 'servers-add-open', onClick: act.openAdd }, '+ ' + kt('Ajouter un serveur', 'Add a server')))),
           cloud === null ? h('div', { className: 'kbsv-banner', role: 'alert', 'data-kb': 'servers-missing' }, say('cloud_plugin_missing')) : null,
           away ? h('div', { className: 'kbsv-banner', role: 'status', 'data-kb': 'servers-banner' },
             h('span', null, h('b', null, kt('Tu es sur ', 'You are on ') + current.name), ' · ' + kt('pas sur Kybernos Cloud : ton compte, tes modèles et ton équipe viennent de ce serveur.', 'not on Kybernos Cloud: your account, models and team come from this server.')),

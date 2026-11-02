@@ -2616,7 +2616,6 @@ window.__ModuleLoader__.load({
             h('span', { className: 'kbm-in-wrap kbmp-search kbpv-search' }, Loupe(),
               h('input', { className: 'kbm-in-input', type: 'search', placeholder: m('kb.pv.search'), 'aria-label': m('kb.pv.search'), 'data-kbm': 'prov-search', value: UI.pq, onChange: (ev) => uiSet('pq', ev.target.value) })),
             h('span', { className: 'kbpv-grow' }),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-models' }) : null),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, title: ro ? m('kb.models.readonly') : undefined, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add')),
             h('span', { className: 'kbpv-menuwrap' },
               h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-head-more', 'aria-haspopup': 'menu', 'aria-expanded': ui.menu === '__head' ? 'true' : 'false', 'aria-label': m('kb.pv.more.page'), title: m('kb.pv.more.page'), onClick: (ev) => { ev.stopPropagation(); patch({ menu: ui.menu === '__head' ? null : '__head' }) } }, Ic('more', 16)),
@@ -2975,7 +2974,6 @@ window.__ModuleLoader__.load({
         '.kbm-page{box-sizing:border-box;width:100%;max-width:720px}',
         // The core plugin caps every child of a Settings section at 720 px; this page, with a table and a card grid, uses the room it has.
         '[class$="_options"] [data-slot="settings.section"]>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}',
-        '.kbm-h1{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}',
         '.kbm-pagehead{margin:0 0 20px}',
         '.kbm-pagehead .kbm-sub{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:none}',
         "[data-slot=\"settings.section\"]:has(.kbm-page){width:100%;max-width:none}",
@@ -5262,6 +5260,8 @@ window.__ModuleLoader__.load({
       // `dsh-client-ui-settings-models` occupies (`id: 'models'`, `order: 10`):
       // we take our own id and come after its.
       const SURFACE_ID = 'kybernos-models'
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
       const ModelsGlyph = (props) => Ic(
         'key',
         props !== null && typeof props === 'object' && typeof props.size === 'number' ? props.size : 18)
@@ -5270,7 +5270,7 @@ window.__ModuleLoader__.load({
         'data-kb': 'kybernos-models-page',
       },
       h('div', { className: 'kbm-pagehead' },
-        h('h1', { className: 'kbm-h1' }, m('kb.models.surface.entry')),
+        pageHead({ id: 'kybernos-models', title: m('kb.models.surface.entry'), as: 'h1', className: 'kbm-h1' }),
         h('div', { className: 'kbm-sub' }, m('kb.models.surface.hint'))),
       h(KbBoundary, null, h(Panel, null)))
       // (02/10) No more « Local models » mount point here: this panel

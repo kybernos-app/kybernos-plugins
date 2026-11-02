@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -104,7 +105,7 @@ console.log('the animated help of the Settings page (V-05, V-36)')
     }
     let def = null
     const win = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => lang }
-    if (hub !== undefined) win.__KB_HELP__ = hub
+    if (hub !== undefined) win.__KB_HELP__ = typeof hub === 'function' ? hub(fakeReact) : hub
     globalThis.window = win
     globalThis.document = { body: {}, head: { appendChild: (c) => c }, baseURI: 'http://127.0.0.1:3080/', createElement: () => ({ dataset: {}, remove () {} }), addEventListener () {}, removeEventListener () {} }
     new Function('window', 'document', SOURCE)(win, globalThis.document)
@@ -125,7 +126,7 @@ console.log('the animated help of the Settings page (V-05, V-36)')
     return out
   }
   const text = (n) => (n === null || typeof n !== 'object' ? String(n) : (n.children || []).map(text).join(' '))
-  const tree = draw({ lang: 'en', hub: { version: 1, actions: true, Help, Intro } })
+  const tree = draw({ lang: 'en', hub: (R) => ({ version: 1, actions: true, ...fakeHelp(R, Help), Intro }) })
   const intros = tree === null ? [] : find(tree, (n) => n.type === Intro)
   const p = intros.length === 1 ? intros[0].props : null
   check('the Settings page is drawn', tree !== null)
@@ -136,15 +137,22 @@ console.log('the animated help of the Settings page (V-05, V-36)')
   check('it sits after the title row and before the body', (() => { const order = find(tree, (n) => n.type === Intro || (n.props && (/\bkbpc-head\b/.test(String(n.props.className)) || n.type !== 'div' && typeof n.type === 'function' && n.type.name === 'Body'))).map((n) => (n.type === Intro ? 'intro' : /\bkbpc-head\b/.test(String(n.props.className)) ? 'head' : 'body')); return order.join() === 'head,intro,body' })())
   check('the title row still carries one « ? How it works » button, for this bundle', find(tree, (n) => n.type === Help).length === 1 && find(tree, (n) => n.type === Help)[0].props.id === 'kybernos-mobile')
   check('the Settings page gives its sentence and its name to that button (`lead`, `title`), and no longer draws the sentence under the title', (() => { const b = find(tree, (n) => n.type === Help)[0].props; return b.lead === 'Open this computer from your phone, and reach Kaby from your messaging apps.' && b.title === 'Phone and channels' && find(tree, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))).length === 0 })())
-  const fr = draw({ lang: 'kybernos', hub: { version: 1, Help, Intro } })
+  const fr = draw({ lang: 'kybernos', hub: (R) => ({ version: 1, ...fakeHelp(R, Help), Intro }) })
   const q = fr === null ? null : find(fr, (n) => n.type === Intro)[0]
   check('in French: the same animation, in French', q !== undefined && q !== null && /code/i.test(q.props.steps[0].t) && /Autoriser/.test(q.props.mock.actions[2]) && q.props.title !== p.title, q && q.props.title)
-  const older = draw({ lang: 'en', hub: { version: 1, Help } })
+  const older = draw({ lang: 'en', hub: (R) => ({ version: 1, ...fakeHelp(R, Help) }) })
   check('an older Suite without the animation: the page draws, with its button and no animation', older !== null && find(older, (n) => n.type === Intro).length === 0 && find(older, (n) => n.type === Help).length === 1)
   const none = draw({ lang: 'en' })
   check('no Suite at all: the page draws with neither', none !== null && find(none, (n) => n.type === Intro || n.type === Help).length === 0)
   check('...and its sentence stays under the title', find(none, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))).length === 1)
   check('in French the `lead` is the French sentence', (() => { const b = find(fr, (n) => n.type === Help)[0]; return b !== undefined && /^Ouvre cet ordinateur depuis ton téléphone/.test(b.props.lead) && b.props.title === 'Téléphone et canaux' })())
+}
+
+console.log('the Settings page title has no style of its own')
+{
+  check('the page draws its head through pageHead (the page title style and the button after the text), with the hook class kbpc-page-title', /page \? h\('div', \{ className: 'kbpc-ttl' \}, pageHead\(\{ id: 'kybernos-mobile', lead: LEAD\(\), title: TITLE\(\), as: 'h1', className: 'kbpc-page-title' \}\)\)/.test(SOURCE))
+  const rules = [...SOURCE.matchAll(/(^|\n)([^\n{]*\.kbpc-title[^\n{]*)\{([^}\n]*)\}/g)].map((m) => ({ sel: m[2].trim(), body: m[3] }))
+  check('every rule that sizes or weighs .kbpc-title is scoped to the window (.kbpc-dialog): the page takes the Settings frame\'s title', rules.filter((r) => /font-(size|weight)|line-height|letter-spacing/.test(r.body)).every((r) => /^\.kbpc-dialog /.test(r.sel)), rules)
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

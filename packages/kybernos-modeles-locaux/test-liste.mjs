@@ -79,9 +79,11 @@ check('the minority can be the fits too (six tight, one fits)', JSON.stringify(k
 check('an even split marks nothing (either side would be noise)', kbEtatsAmarques(['compatible', 'juste', 'compatible', 'juste']).every((x) => x === false) && kbEtatsAmarques([]).length === 0)
 
 console.log('\n── the page description lives in the « ? » card, not under the title ──')
-check('with the Suite the card gets the description as `lead` and the page name as `title`, behind a guard', has("window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux', lead: m('kml.soustitre'), title: m('kml.page.titre') }) : null"))
+check('with the Suite the head gets the description as `lead` and the page name as `title`, through the shared pageHead (no row of its own for the « ? »)', has("pageHead({ id: 'kybernos-modeles-locaux', lead: m('kml.soustitre'), title: m('kml.page.titre'), className: 'kml-titre' })") && !has('kbhp-row'))
+check('the shared head helper is the Suite\'s Title with a bare-title fallback', has("const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) }"))
 check('the line under the title is drawn only where the Suite\'s Help does not exist (the fallback)', has("helpAbsent ? h('p', { className: 'kml-soustitre' }, m('kml.soustitre')) : null") && (src.match(/m\('kml\.soustitre'\)/g) || []).length === 2)
-check('the title keeps a 20 px gap to the tiles with or without the line (the line pulls itself back under the title)', has('.kml-titre { margin: 0 0 20px;') && has('.kml-soustitre { margin: -14px 0 20px;'))
+check('the head keeps a 20 px gap to the tiles with or without the line (the line sits 6 px under the title)', has('.kml-head { margin: 0 0 20px; }') && has('.kml-soustitre { margin: 6px 0 0;'))
+check('the page title carries no size, weight or font of its own: the Settings frame sets them (no `.kml-titre` declaration)', !/\.kml-titre\s*\{/.test(src))
 
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

@@ -291,7 +291,7 @@ console.log('\n── the « ? » card opens with the page description (it no lo
   const lead = SOURCE.match(/h\('h2', \{ id: 'kbat-help-t' \}, tr\('How to read the Atlas'\)\),\s*h\('p', \{ className: 'kbat-lead' \}, tr\('([^']+)'\)\)/)
   check('the help card holds the page description as its first paragraph, a lead right under its heading', lead !== null && lead[1] === DESC, lead && lead[1])
   check('the description is used once, in that card; no line of it is left under the page title', (SOURCE.match(/tr\('Every project, agent team/g) || []).length === 1 && !/kbat-sub[^2]/.test(SOURCE))
-  check('the page head is the title and the buttons only', /h\('h1', \{ className: 'kbat-title' \}, 'Atlas'\),\s*h\('div', \{ className: 'kbat-headr' \}/.test(SOURCE))
+  check('the page head is the title and the buttons only', /pageHead\(\{ as: 'h1', className: 'kbat-title', title: 'Atlas' \}\),\s*h\('div', \{ className: 'kbat-headr' \}/.test(SOURCE) && !/\.kbat-title\s*\{/.test(SOURCE))
   check('the lead is primary text at 14 px; the French twin of the description is kept', /\.kbat-mcard \.kbat-lead\{color:var\(--dsw-alias-label-primary\);font-size:14px/.test(SOURCE) && SOURCE.includes("'" + DESC + "': 'Chaque projet"))
   check('the pill is a bare « ? » with its words as its accessible name and tooltip', /className: 'kbat-help'[^\n]*'aria-label': tr\('How it works'\), title: tr\('How it works'\) \}, h\('span', \{ className: 'kbat-helpq', 'aria-hidden': 'true' \}, '\?'\)\)/.test(SOURCE))
 }
@@ -367,7 +367,7 @@ check('POST only to the two read-only routes', posts.sort().join(',') === '/kybe
 check('tasks are only ever listed', /postJson\('\/kybernos\/tasks', \{ action: 'list' \}\)/.test(SOURCE) && !/action:\s*'(create|update|delete|run|toggle|remove|pause)/.test(SOURCE))
 check('its only storage is the one key of the last reading, in this browser', !/sessionStorage|indexedDB/.test(SOURCE) && (SOURCE.match(/localStorage/g) || []).length === 2 && (SOURCE.match(/'kybernos-atlas:last-reading'/g) || []).length === 1)
 check('no personal path in the source', !/\/Users\/(?!me\b|x\b)[A-Za-z0-9._-]+/.test(SOURCE))
-check('every class is prefixed kbat-', !/className:\s*'(?!kbat-)/.test(SOURCE))
+check('every class is prefixed kbat- (the shared title class kbhp-title, in the head helper\'s bare fallback, is the one exception)', !/className:\s*'(?!kbat-|kbhp-title')/.test(SOURCE))
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)
