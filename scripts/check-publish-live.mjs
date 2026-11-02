@@ -168,7 +168,7 @@ const checkWith = (hosts, { last = 'null', order } = {}) => `{ check: (c) => ({ 
 try {
   group('the app and its Publish button')
   await sleep(2500)
-  check('the fixed menu has an « Apps » row, and it opens the gallery', (await clickText(page, 'Apps')) === true && (await until(() => exists(kb('apps-gallery')), 8000)) === true)
+  check('the Apps page opens the gallery (reached from Creations: its menu row is folded into it)', (await page.evalJs("window.__KB_OPEN__({ view: 'tables' }) === true", 8000)).val === true && (await until(() => exists(kb('apps-gallery')), 8000)) === true)
   check('the Shop app opens on its tables', (await click(`${kb('apps-card')}[data-db="${shop.id}"] ${kb('apps-open')}`)) && (await until(() => exists(kb('tables-tab')), 6000)) === true)
   check('the header offers Publish… (the hosting is there)', await exists(kb('apps-publish')))
   await sleep(300)

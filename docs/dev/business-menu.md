@@ -58,6 +58,12 @@ A page that wants the person to ask Kaby something (« Modify view » and « Ask
 `kbStartChatText`, which opens a chat with `text` already written in the composer so the person reads it and sends it. It answers `false` when no chat can be
 opened; the page then offers the sentence to copy. The call is guarded (the seam is absent without the core) and nothing is sent by the page itself.
 
+## A row Creations took over
+
+A plugin whose things are also listed in Creations declares a source there (`window.__KB_CREATIONS__`, [creation-sources.md](creation-sources.md)) and names the row it replaces with `foldsRow`.
+The menu then leaves that row out **while the source is declared** (Apps is the row `tables`; Dashboards is a fixed row). The page stays reachable (Creations › the tile › a card, or
+« Open the … page »), `window.__KB_OPEN__({ view: id })` still opens it, and the row's states (Kaby's suggestions waiting, a connection to make) show on the Creations row.
+
 ## Tests
 
 `node packages/kybernos-plugin/test-business-menu.mjs` (the registry cut out of `client.js`, plus where the core reads it and the order of the fixed rows),
