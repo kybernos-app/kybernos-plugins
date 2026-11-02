@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CLIENT-BEGIN([\s\S]*?)\/\/ KB-TASKS-CLIENT-END/)
 if (m === null) { console.error('KB-TASKS-CLIENT block not found in client.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbCronMinuteHour, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -65,7 +65,7 @@ eq('...in French', cron('30 10 * * 2', fr, 'fr'), 'Chaque mardi, 10:30')
 eq('a wall-clock sentence names another zone', cron('0 8 * * *', en, 'en', 'Kolkata'), 'Every day, 08:00 (Kolkata)')
 eq('...an interval has no wall clock, so no zone', cron('0 */2 * * *', en, 'en', 'Kolkata') + '|' + cron('*/15 * * * *', en, 'en', 'Kolkata'), 'Every 2 hours|Every 15 minutes')
 // What a sentence cannot say exactly stays the expression (a wrong sentence is worse than the cron).
-for (const [c, why] of [['30 23 31 * *', 'the 31st: not every month has one'], ['0 8 29 * *', 'the 29th: not every February has one'], ['0 9 * 3 *', 'a month'], ['0 */5 * * *', 'every 5 hours: 0, 5, 10, 15, 20, then 0 again'], ['*/7 * * * *', 'every 7 minutes: 56 then 0 is 4 minutes'], ['0 8,17 * * *', 'an hour list'], ['0 8 * * 1,3', 'two weekdays'], ['0 8 1 * 1', 'a day of the month AND a weekday'], ['99 99 * * *', 'not a time'], ['60 8 * * *', 'minute 60'], ['*/15 9-17 * * 1-5', 'working hours']]) {
+for (const [c, why] of [['30 23 31 * *', 'the 31st: not every month has one'], ['0 8 29 * *', 'the 29th: not every February has one'], ['0 9 * 3 *', 'a month'], ['0 */5 * * *', 'every 5 hours: 0, 5, 10, 15, 20, then 0 again'], ['*/7 * * * *', 'every 7 minutes: 56 then 0 is 4 minutes'], ['0 17,8 * * *', 'an hour list out of order'], ['0 8,12,16,20,22,23,23 * * *', 'an hour list of seven'], ['0 8-8 * * *', 'a window that fires once'], ['0 8-20/13 * * *', 'a step wider than the window: it fires once'], ['0 8-24 * * *', 'hour 24'], ['0 8-20/4 * * 1-5', 'a window on weekdays only'], ['*/10 8-20/4 * * *', 'a window with no fixed minute'], ['0 8 * * 1,3', 'two weekdays'], ['0 8 1 * 1', 'a day of the month AND a weekday'], ['99 99 * * *', 'not a time'], ['60 8 * * *', 'minute 60'], ['*/15 9-17 * * 1-5', 'working hours']]) {
   eq('shown as the expression: ' + c + ' (' + why + ')', cron(c), 'Cron expression \u00b7 ' + c)
 }
 // A5-31: the time of day of a schedule, read and rewritten by the form's time field.
@@ -75,7 +75,20 @@ eq('...a monthly one has one', JSON.stringify(mod.kbCronTime('30 7 1 * *')), '{"
 eq('changing the time keeps the days (the presets used to overwrite 09:15 with 08:00)', mod.kbCronAt('15 9 * * 1-5', 7, 30), '30 7 * * 1-5')
 eq('...a bad time is refused', String(mod.kbCronAt('15 9 * * 1-5', 24, 0)) + '|' + String(mod.kbCronAt('0 */6 * * *', 7, 30)), 'null|null')
 eq('the days of a preset keep the time', mod.kbCronOnDays('15 9 * * 1-5', '*'), '15 9 * * *')
-eq('...and a custom expression becomes the preset at the default time', mod.kbCronOnDays('0 */6 * * *', '1'), '0 8 * * 1')
+// A window of hours, a list of hours: read as words (the Kaby wake-up is "0 8-20/4 * * *", which used to read as the expression).
+eq('a window of hours with a step', cron('0 8-20/4 * * *'), 'Every 4 hours, from 08:00 to 20:00')
+eq('...the last time is the last one the step reaches (8, 10, ... 22)', cron('0 8-22/2 * * *') + '|' + cron('0 8-21/4 * * *'), 'Every 2 hours, from 08:00 to 22:00|Every 4 hours, from 08:00 to 20:00')
+eq('...with no step it is every hour', cron('0 9-17 * * *'), 'Every hour, from 09:00 to 17:00')
+eq('...the minute is in both times', cron('30 8-20/4 * * *'), 'Every 4 hours, from 08:30 to 20:30')
+eq('...in French', cron('0 8-20/4 * * *', fr, 'fr'), 'Toutes les 4 heures, de 08:00 à 20:00')
+eq('...it has a wall clock, so it names another zone', cron('0 8-20/4 * * *', en, 'en', 'Kolkata'), 'Every 4 hours, from 08:00 to 20:00 (Kolkata)')
+eq('a list of hours', cron('0 8,12,16,20 * * *'), 'Every day at 08:00, 12:00, 16:00, 20:00')
+eq('...in French, with a minute', cron('15 8,17 * * *', fr, 'fr'), 'Chaque jour à 08:15, 17:15')
+eq('a preset keeps a window of hours and changes only the days', mod.kbCronOnDays('0 8-20/4 * * *', '1-5'), '0 8-20/4 * * 1-5')
+eq('...and a list, and an interval of hours', mod.kbCronOnDays('0 8,12,16,20 * * *', '1') + '|' + mod.kbCronOnDays('0 */6 * * *', '1'), '0 8,12,16,20 * * 1|0 */6 * * 1')
+eq('...the days of the month and the month go, as for any preset', mod.kbCronOnDays('0 8-20/4 15 3 *', '*'), '0 8-20/4 * * *')
+eq('...a schedule with no fixed minute (every 5 minutes) still becomes the preset at the default time, never a frequent one', mod.kbCronOnDays('*/5 * * * *', '1') + '|' + mod.kbCronOnDays('* 8-20 * * *', '*') + '|' + mod.kbCronOnDays('banana', '*'), '0 8 * * 1|0 8 * * *|0 8 * * *')
+eq('the fields a preset keeps: one time, a window, a list; not a free minute', ['15 9 * * 1-5', '0 8-20/4 * * *', '0 8,17 * * *', '*/5 * * * *', 'banana'].map((c) => JSON.stringify(mod.kbCronMinuteHour(c))).join('|'), '{"mi":"15","hh":"9"}|{"mi":"0","hh":"8-20/4"}|{"mi":"0","hh":"8,17"}|null|null')
 eq('not a cron: shown as written', cron('banana'), 'banana')
 eq('empty', cron(''), '')
 
