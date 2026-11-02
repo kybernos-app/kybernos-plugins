@@ -543,6 +543,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   const card = src.slice(src.indexOf("'data-kind': 'prompt'"), src.indexOf("'data-kind': 'prompt'") + 900)
   assert.ok(card.includes('kb8-sh-ico') && card.includes('kb8-sh-ptag') && !card.includes('e.tag') && !card.includes('kb8-sh-name') && !card.includes('kb8-sh-line'), 'the card carries the icon and the title tag, not the category tag nor a line under the box')
   assert.ok(!src.includes('kbnc.sh.promptfine') && !src.includes('kb8-sh-quote'), 'the old quote mark and the repeated sentence are gone')
+  assert.ok(!src.includes('kb8-sh-tag') && !/className: 'kb8-sh-(name|title)'[^\n]*e\.tag/.test(src), 'no example card nor its dialog draws the category tag (Business, Marketing...)')
   ok('a text example: its own icon, its title as the tag, the request; no category word, nothing under the box')
 }
 
