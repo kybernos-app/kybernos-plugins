@@ -150,6 +150,15 @@ A plan whose cells name a `still` (a JPEG in `<from>/stills/`) is a still lot: t
 
 The four examples (armchair configurator, hand grinder exploded, four-stroke engine, wooden stool) replace the nine pictureless placeholders of the type (box, sphere, vase, ring, can, cone, table, stairs, lounge chair), which showed the type's own drawing for lack of a picture.
 
+### A still lot: the dashboard examples (`dashboard-1.json`)
+
+Eight real dashboards replace the nine placeholders of the type (cash flow, support desk, website analytics...), which named sources the product does not have: a dashboard reads only what the plugin can read (usage, automations, Agent Teams, skills, sessions, and the Tables databases through `db.rows`), never Stripe, a CRM or a helpdesk.
+
+- **The picture is the real page.** `KB_NODE_MODULES=<a node_modules with react, react-dom, esbuild and playwright-core> node scripts/dashboards-stills.mjs <preset id>:auto ... --out <from>/stills` renders the built `client.js` of `@local/kybernos-dashboards` (real React, headless Chromium, the real host logic) on a temp profile and screenshots it at 1280x800 (a taller dashboard is drawn at a smaller scale, like a zoomed-out browser, up to 1200 px; `auto` takes the smallest window that holds the whole page). A `check-*`: CI does not run it. Nothing is generated, so the examples carry no `made` (no Remix), only « Use this request ».
+- **No machine's own numbers.** The three business ones (`real-estate-overview`, `ecommerce-overview`, `recruitment-overview`: the dashboards the shipped templates carry) read the SAMPLE rows of those templates through a real Tables service (`scripts/lib-template-world.mjs`); the five others (`usage-tokens`, `usage-overview`, `automations-health`, `automation-flow`, `agent-teams`) read the plugin's fixtures (`packages/kybernos-dashboards/lib-fixtures.mjs`: invented sessions, models and automations).
+- **The request starts the skill `dashboard-builder`** and names only what a widget can show; the template ones ask which table holds the data and fall back to the sample rows, said to be a sample.
+- Build: `node scripts/templates-lot.mjs docs/dev/templates-lots/dashboard-1.json --from <dir with stills/> --base <the public catalogue.json> --fallback --install` (public base, like every lot).
+
 ### The audio lot (`audio-2.json`): a wave player, and two films
 
 Six cards fill the type: **three sounds** played by a wave player (no picture, no video), **two films** that were kept from the first audio lot (guided breathing, bedtime story: a voice and music over a scrolling wave or watercolours, played by the Play button like any clip) and **a card of text**.
