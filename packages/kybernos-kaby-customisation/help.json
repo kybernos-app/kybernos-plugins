@@ -17,8 +17,8 @@
       "en": "Further down, pick where Kaby works and what it may do without asking, with a daily limit. Sign for it to count."
     },
     {
-      "fr": "Crée son réveil : c'est une automation comme les autres, éteinte tant que tu ne l'as pas approuvée dans la page Automations (rythme, durée maximale, bouton Arrêter). « Réveiller maintenant » l'essaie.",
-      "en": "Create its wake-up: an automation like any other, off until you approve it on the Automations page (schedule, time limit, Stop button). « Wake it now » tries it."
+      "fr": "Crée son réveil : une automation comme les autres, éteinte jusqu'à ton approbation dans la page Automations.",
+      "en": "Create its wake-up: an automation like any other, off until you approve it on the Automations page."
     }
   ],
   "where": {
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Le portrait reste sur cet ordinateur. Les autorisations ne valent que signées par toi, et le réveil que si tu l'as approuvé ; une application connectée et le redémarrage de DSH te sont toujours demandés, même pendant un réveil.",
-    "en": "The portrait stays on this computer. Permissions hold only once you sign them, and the wake-up only once you approve it; a connected app and restarting DSH are always asked of you, even during a wake-up."
+    "fr": "Le portrait reste sur cet ordinateur. Autorisations signées par toi, réveil approuvé par toi ; une application connectée et le redémarrage de DSH te sont toujours demandés, même pendant un réveil.",
+    "en": "The portrait stays on this computer. Permissions are signed by you, the wake-up approved by you; a connected app and restarting DSH are always asked of you, even during a wake-up."
   }
 }
