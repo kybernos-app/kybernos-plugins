@@ -57,6 +57,22 @@ ok('a member may ask for fewer records too, and still reads only what their prof
   assert.equal(member.records(q('product', { limit: 'x' })).records.length, all.records.length)
 })
 
+ok('a member searches what their profile shows and nothing else: a hidden field cannot be found, filtered on or sorted by', () => {
+  const seenBy = member.records(q('contact'))
+  assert.ok(seenBy.ok && seenBy.records.length >= 1)
+  const hidden = ['phone', 'iban'].filter((k) => seenBy.records.every((r) => !(k in r.values)))
+  assert.ok(hidden.length >= 1, 'the member profile hides at least one of the personal fields')
+  const text = { phone: '0102030405', iban: 'FR7612345' }
+  for (const k of hidden) {
+    assert.equal(owner.records(q('contact', { q: text[k] })).matched, 1, k + ': the owner finds it')
+    assert.equal(member.records(q('contact', { q: text[k] })).matched, 0, k + ': a search does not find it for a member')
+    const flt = JSON.stringify({ conj: 'and', items: [{ k, op: 'contains', v: text[k] }] })
+    assert.equal(member.records(q('contact', { flt })).matched, 0, k + ': nor does a filter')
+  }
+  assert.equal(member.records(q('product', { q: 'candle' })).matched, 1, 'what they see is found')
+  assert.equal(member.records(q('product', { q: 'candle' })).total, member.records(q('product')).total, '`total` stays the table')
+})
+
 ok('the owner is unchanged: every field in clear, every table, the structure', () => {
   const r = owner.records(q('contact'))
   assert.ok(r.ok)

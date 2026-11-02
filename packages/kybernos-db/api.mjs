@@ -12,20 +12,38 @@
 //                                        `published` (null, or { slug, url, since, lastSync, syncError, host: { id, name, region } | null, hostGone }) and the state says `hosting` ({ available, name }): no secret
 //   app({ db, object?, op, confirm? })   op: archive | restore | delete, for an app or (with `object`) one of its tables; delete only what is archived, and asks the name back
 //   impact({ db, object? })              what deleting an app or a table would take: tables, rows, links cut, files
-//   records({ db, object, deleted?, limit? })   the records of one object: up to `limit` (default and ceiling 50,000, the most an import loads; the Tables page asks for 5,000)
+//   records({ db, object, deleted?, limit?, q?, flt?, sorts? })   the records of one object: up to `limit` (default and ceiling 50,000, the most an import loads; the Tables page asks for 5,000),
+//                                       narrowed first by a search `q`, a filter `flt` and `sorts` (JSON, a view's) when given, so a big table is searched whole; `total` is the table, `matched` what the query keeps
 //   links({ db, object, id })            what points at a record, from the other tables: one group per link field, with the first records of each
 //   write({ db, object, op, id?, values? })   op: create | update | delete | restore
 //   upload({ db, object, field, name, type, bytes })   stores a file for an attachment field and gives the value to write (the file waits, unheld, until a row holds it)
 //   file({ db, object, id, field, hash })     one file a row holds, with its bytes
 //   view({ db, object, op, view?, id? })      op: save | remove
 
-import { can, fieldAccess, grantOf, grantUpdates, profileOf } from './core/index.mjs'
+import { can, fieldAccess, grantOf, grantUpdates, isGroup, profileOf, queryRecords } from './core/index.mjs'
 import { findObject } from './store/catalog.mjs'
 
 /** The most records one answer holds, and what it holds when the caller does not say (a dashboard reads a whole sales file: 50,000 is what an import may load). A caller may ask for fewer with `limit`. */
 export const RECORDS_MAX = 50000
 /** How many records a call asks for: `limit`, a whole number from 1 to RECORDS_MAX, else RECORDS_MAX. */
 const limitOf = (a) => { const n = typeof a.limit === 'number' ? a.limit : (typeof a.limit === 'string' && /^\d{1,6}$/.test(a.limit) ? Number(a.limit) : NaN); return Number.isInteger(n) && n >= 1 ? Math.min(n, RECORDS_MAX) : RECORDS_MAX }
+/** The longest search text, and the longest filter or sorts (JSON), a `records` call takes. */
+const SEARCH_MAX = 200
+const QUERY_JSON_MAX = 20000
+/** What narrows a `records` call before the cut: `{ q, flt, sorts }` from the search text and the two JSON texts, null when none is given, `{ err }` when one is not understood. */
+const narrowing = (a) => {
+  const q = typeof a.q === 'string' ? a.q.slice(0, SEARCH_MAX) : ''
+  const parse = (text, ok) => {
+    if (typeof text !== 'string' || text === '') return undefined
+    const v = text.length <= QUERY_JSON_MAX ? JSON.parse(text) : null
+    if (!ok(v)) throw new Error('shape')
+    return v
+  }
+  let flt
+  let sorts
+  try { flt = parse(a.flt, isGroup); sorts = parse(a.sorts, Array.isArray) } catch (e) { return { err: fail('bad_query', 'the filter or the sorts could not be read') } }
+  return q.trim() === '' && flt === undefined && sorts === undefined ? null : { q, flt, sorts }
+}
 export const LINKS_MAX = 50
 const OWNER_BY = 'person'
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -150,9 +168,13 @@ export function makeApi ({ service, ports = {} }) {
     records (q) {
       const t = aim(q)
       if (t.err) return t.err
-      const rows = t.db.list(t.obj.key, t.a.deleted === true || t.a.deleted === '1' ? { deleted: true } : {})
+      const deleted = t.a.deleted === true || t.a.deleted === '1'
+      const all = t.db.list(t.obj.key, deleted ? { deleted: true } : {})
       const limit = limitOf(t.a)
-      return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > limit, records: rows.slice(0, limit).map(shape), fingerprint: t.db.fingerprint() }
+      const n = deleted ? null : narrowing(t.a)
+      if (n !== null && n.err) return n.err
+      const rows = n === null ? all : queryRecords(all, { fields: t.obj.fields, ...n }, { today: today() })
+      return { ok: true, object: t.obj.key, total: all.length, matched: rows.length, truncated: rows.length > limit, records: rows.slice(0, limit).map(shape), fingerprint: t.db.fingerprint() }
     },
 
     links (q) {
@@ -276,9 +298,14 @@ export function makeApi ({ service, ports = {} }) {
         if (t.err) return t.err
         const v = ask(t, 'record.read')
         if (v.effect !== 'allow') return denied(v)
-        const rows = t.db.list(t.obj.key, {})
+        const all = t.db.list(t.obj.key, {})
         const limit = limitOf(plain(q) ? q : {})
-        return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > limit, records: rows.slice(0, limit).map((r) => shapeFor(t.who.profile, t.obj, r)), fingerprint: t.db.fingerprint() }
+        const n = narrowing(plain(q) ? q : {})
+        if (n !== null && n.err) return n.err
+        const seenBy = (r) => shapeFor(t.who.profile, t.obj, r)
+        // the query runs on what this profile sees, so a search or a sort cannot tell anything about a field it may not read
+        const rows = n === null ? all : queryRecords(all.map(seenBy), { fields: t.obj.fields, ...n }, { today: today() })
+        return { ok: true, object: t.obj.key, total: all.length, matched: rows.length, truncated: rows.length > limit, records: n === null ? rows.slice(0, limit).map(seenBy) : rows.slice(0, limit), fingerprint: t.db.fingerprint() }
       },
 
       links (q) {
