@@ -62,6 +62,11 @@ npm test        # node --test test/*.test.mjs
 They prove: concurrent turns cannot pass the cap, a visitor cannot leave the menu (a hostile scripted model), actions are
 idempotent where they create something, an erased visitor is really erased, and the five scenarios pass on their own.
 
+Those tests use a scripted model and a fake model server. To check the one thing they cannot (a real model: it answers from the
+facts, invents nothing, leaves a message, asks consent, resists an injection, speaks the visitor's language, cannot pass a tiny cap),
+run `MODEL_BASE_URL=… MODEL_API_KEY=… MODEL_NAME=… node bin/live-check.mjs` by hand after a change to the runner, the prompt or the
+model. It costs a few cents, is not part of `npm test`, and never prints the key.
+
 ## Not in this lot
 
 WhatsApp, Telegram, phone and voice adapters, the embeddable site script, the full CRM view (Gravatar, automations done, skills
