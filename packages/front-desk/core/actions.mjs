@@ -6,11 +6,13 @@
 //   - who it concerns always comes from the CHANNEL (ctx), never from a parameter or from the visitor's words;
 //   - a call that creates something outside (a message, a callback, a booking) runs once per conversation (idempotency key), so a
 //     retry never books twice; reads, erasure and "ask to remember" always run fresh, so they are never stale or skipped;
-//   - `approve` parks the call until the owner decides in the Boîte.
+//   - `approve` parks the call until the owner decides in the Boîte;
+//   - what a call created is written to a `done` list (what the Boîte shows as "what the assistant did") with an Undo for each kind;
+//   - `report_unanswered` is the one internal tool: it only records a question the assistant could not answer (never configurable).
 
 import crypto from 'node:crypto';
 import { validate } from './schema.mjs';
-import { idFor } from './store.mjs';
+import { convIdForKey, idFor } from './store.mjs';
 import { lookupKey } from './identity.mjs';
 
 const IDEM_TTL_MS = 24 * 3600 * 1000;
@@ -66,7 +68,18 @@ const CATALOGUE = {
     needs: 'orders',
     params: { type: 'object', required: ['orderRef'], properties: { orderRef: { type: 'string', pattern: '^[A-Za-z0-9-]{3,30}$' } } },
   },
+  report_unanswered: {
+    description: 'Record a visitor question you could not answer from the shop facts, so the owner can add the answer. It tells the visitor nothing by itself.',
+    minLevel: 1,
+    once: true,
+    internal: true,
+    params: { type: 'object', required: ['question'], properties: { question: { type: 'string', minLength: 1, maxLength: 300 } } },
+  },
 };
+
+/** What the owner's capability sheet needs to know about each action, without the schemas. */
+export const ACTION_INFO = Object.freeze(Object.fromEntries(Object.entries(CATALOGUE).filter(([, d]) => !d.internal).map(([name, d]) => [name, { minLevel: d.minLevel, needs: d.needs || null }])));
+export const MEMORY_FIELDS = Object.freeze(Object.keys(FIELDS));
 
 /** The JSON schema a model is shown: the same schema, with unknown keys refused. */
 function toJsonSchema(s) {
@@ -78,10 +91,12 @@ function toJsonSchema(s) {
 
 export function createActions({ store, guardrails, ports = {}, now = Date.now }) {
   const G = () => (typeof guardrails === 'function' ? guardrails() : guardrails);
-  const mode = (name) => G().actions[name] || 'off';
+  // An internal tool is always on and never parks for approval: the fiche cannot configure it.
+  const mode = (name) => (CATALOGUE[name] && CATALOGUE[name].internal ? 'auto' : G().actions[name] || 'off');
+  const portReady = (needs) => !!ports[needs] && (typeof ports[needs].enabled !== 'function' || ports[needs].enabled());
   const exposed = (name, level) => {
     const def = CATALOGUE[name];
-    return !!def && mode(name) !== 'off' && level >= def.minLevel && (!def.needs || !!ports[def.needs]);
+    return !!def && mode(name) !== 'off' && level >= def.minLevel && (!def.needs || portReady(def.needs));
   };
   const audit = (entry) => store.appendLog('events', { ts: now(), ...entry });
 
@@ -89,19 +104,29 @@ export function createActions({ store, guardrails, ports = {}, now = Date.now })
   const recordByKey = (key) => store.getDoc('visitors', key);
   const visitorOf = (ctx) => recordByKey(idFor(lookupKey(ctx)));
 
+  /**
+   * Everything the assistant holds about a visitor: their record, the notes waiting for their consent, their conversation and what hangs from it (messages, callbacks,
+   * the done list, unanswered questions, bookings, the calls parked for the owner's approval with their parameters), and the retry memory of those calls.
+   * The conversation id comes from the key, so a visitor erased in the very turn that created them (nothing written yet) is erased too.
+   */
   function eraseKey(key) {
     const had = store.delDoc('visitors', key);
     let notes = 0;
     for (const { id, value } of store.listDocs('pending_notes')) if (value.key === key) { store.delDoc('pending_notes', id); notes += 1; }
+    const convIds = new Set([convIdForKey(key)]);
+    for (const { id, value } of store.listDocs('conversations')) if (value.key === key) convIds.add(id);
     let convs = 0;
-    for (const { id, value } of store.listDocs('conversations')) {
-      if (value.key !== key) continue;
+    for (const id of convIds) {
       store.deleteLog(`conv_${id.slice(2)}`);
-      store.delDoc('conversations', id);
-      for (const col of ['messages', 'callbacks']) {
-        for (const m of store.listDocs(col)) if (m.value.convId === id) store.delDoc(col, m.id);
+      if (store.delDoc('conversations', id)) convs += 1;
+      for (const col of ['messages', 'callbacks', 'done', 'unanswered', 'approvals']) {
+        for (const m of store.listDocs(col)) {
+          const at = col === 'approvals' ? (m.value.ctx && m.value.ctx.convId) : m.value.convId;
+          if (at === id) store.delDoc(col, m.id);
+        }
       }
-      convs += 1;
+      for (const m of store.listDocs('idem')) if (m.value.convId === id) store.delDoc('idem', m.id);
+      for (const b of store.listDocs('bookings')) if (b.value.convId === id && ports.calendar && ports.calendar.cancel) ports.calendar.cancel(b.id);
     }
     store.appendLog('erasures', { ts: now(), key, record: had, notes, conversations: convs });
     return { record: had, notes, conversations: convs };
@@ -111,12 +136,18 @@ export function createActions({ store, guardrails, ports = {}, now = Date.now })
     leave_message(p, ctx) {
       const id = rid('m');
       store.putDoc('messages', id, { id, ts: now(), convId: ctx.convId, channel: ctx.channel, message: p.message, contact: p.contact || '' });
-      return { saved: true };
+      return { saved: true, done: { kind: 'message', ref: id, detail: p.message.slice(0, 80) } };
     },
     request_callback(p, ctx) {
       const id = rid('cb');
       store.putDoc('callbacks', id, { id, ts: now(), convId: ctx.convId, channel: ctx.channel, phone: p.phone, when: p.when || '' });
-      return { saved: true };
+      return { saved: true, done: { kind: 'callback', ref: id, detail: p.when || '' } };
+    },
+    report_unanswered(p, ctx) {
+      const q = p.question.trim();
+      const same = store.listDocs('unanswered').some((u) => u.value.convId === ctx.convId && u.value.status === 'open' && u.value.question.toLowerCase() === q.toLowerCase());
+      if (!same) { const id = rid('u'); store.putDoc('unanswered', id, { id, ts: now(), convId: ctx.convId, question: q, status: 'open' }); }
+      return { recorded: true };
     },
     note_visitor(p, ctx) {
       const f = FIELDS[p.field];
@@ -134,7 +165,7 @@ export function createActions({ store, guardrails, ports = {}, now = Date.now })
     },
     book_appointment(p, ctx, idemKey) {
       const r = ports.calendar.book({ slotId: p.slotId, name: p.name, key: idemKey, convId: ctx.convId });
-      return r && r.ok ? { booked: true, slot: r.slot } : { booked: false, error: (r && r.error) || 'unavailable' };
+      return r && r.ok ? { booked: true, slot: r.slot, done: { kind: 'booking', ref: r.slot.id, detail: `${r.slot.date} ${r.slot.time}` } } : { booked: false, error: (r && r.error) || 'unavailable' };
     },
     order_status(p, ctx) {
       // `senderKey` is the channel's own id for this person: it is never taken from the parameters.
@@ -143,8 +174,16 @@ export function createActions({ store, guardrails, ports = {}, now = Date.now })
     },
   };
 
+  /** Records what a call created, for the Boîte's "what the assistant did" and its Undo. */
+  function logDone(name, ctx, done) {
+    const id = rid('d');
+    store.putDoc('done', id, { id, ts: now(), convId: ctx.convId, name, status: 'done', ...done });
+    return id;
+  }
+
   function run(name, params, ctx, idemKey) {
-    const result = runners[name](params, ctx, idemKey);
+    const { done, ...result } = runners[name](params, ctx, idemKey);
+    if (done) logDone(name, ctx, { ...done, idemKey });
     audit({ convId: ctx.convId, name, status: 'done', channel: ctx.channel });
     return result;
   }
@@ -179,7 +218,7 @@ export function createActions({ store, guardrails, ports = {}, now = Date.now })
       } else {
         try { outcome = { ok: true, result: run(name, v.value, ctx, idemKey) }; } catch (e) { audit({ convId: ctx.convId, name, status: 'failed' }); return { ok: false, error: 'failed' }; }
       }
-      if (once) store.putDoc('idem', idFor(idemKey), { ts: now(), outcome });
+      if (once) store.putDoc('idem', idFor(idemKey), { ts: now(), convId: ctx.convId, outcome });
       return outcome;
     },
 
@@ -206,9 +245,32 @@ export function createActions({ store, guardrails, ports = {}, now = Date.now })
       const rec = store.getDoc('visitors', n.key) || { createdAt: now(), fields: {} };
       rec.fields[n.field] = { value: n.value, consentAt: now() };
       store.putDoc('visitors', n.key, rec);
+      logDone('note_visitor', { convId: n.convId }, { kind: 'note', ref: n.field, key: n.key, detail: n.field });
       audit({ convId: n.convId, name: 'note_visitor', status: 'consented', field: n.field });
       return { ok: true, saved: true };
     },
+
+    /** The owner undoes something the assistant did. Runs once: a second call says so. */
+    undo(doneId) {
+      const d = store.getDoc('done', doneId);
+      if (!d) return { ok: false, error: 'not_found' };
+      if (d.status !== 'done') return { ok: false, error: 'already_undone' };
+      if (d.kind === 'message') store.delDoc('messages', d.ref);
+      else if (d.kind === 'callback') store.delDoc('callbacks', d.ref);
+      else if (d.kind === 'booking') { if (!ports.calendar || !ports.calendar.cancel) return { ok: false, error: 'not_undoable' }; ports.calendar.cancel(d.ref); }
+      else if (d.kind === 'note') {
+        const rec = store.getDoc('visitors', d.key);
+        if (rec) { delete rec.fields[d.ref]; if (Object.keys(rec.fields).length) store.putDoc('visitors', d.key, rec); else store.delDoc('visitors', d.key); }
+      } else return { ok: false, error: 'not_undoable' };
+      // The retry memory of that call goes too, so the same call later is a new one and not a stale "done".
+      if (d.idemKey) store.delDoc('idem', idFor(d.idemKey));
+      d.status = 'undone'; d.undoneAt = now();
+      store.putDoc('done', doneId, d);
+      audit({ convId: d.convId, name: d.name, status: 'undone', doneId });
+      return { ok: true };
+    },
+
+    doneFor: (convId) => store.listDocs('done').map((x) => x.value).filter((x) => x.convId === convId).sort((a, b) => a.ts - b.ts),
 
     visitorOf,
     recordByKey,

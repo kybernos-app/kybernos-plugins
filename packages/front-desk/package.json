@@ -1,5 +1,5 @@
 {
-  "name": "@local/kybernos-front-desk",
+  "name": "@kybernos/front-desk-service",
   "private": true,
   "version": "0.1.0",
   "type": "module",
