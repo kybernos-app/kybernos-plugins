@@ -10,8 +10,9 @@ dashboard shown live in the right sidebar like a mini app.
 - **Create a dashboard with AI** / **Improve with AI**: open a normal DSH chat with a ready message that names the
   `dashboard-builder` skill. The agent interviews the person (what to follow, how far back), shows a plan with the widget
   it chose for each piece of data and why, then builds it with the `kybernos_dashboard` tool.
-- **The right sidebar › Dashboard** tab opens by itself when the agent writes, and updates live: new or changed widgets
-  flash. *Open full page* goes to the Dashboards page.
+- **The right sidebar › Dashboard** tab opens by itself when the agent writes a dashboard in THAT chat, and updates live: new or
+  changed widgets flash. Opening or editing a dashboard yourself (the Creations page, the Dashboards page), or going to another chat,
+  never opens it; a panel you closed stays closed until the agent writes again. *Open full page* goes to the Dashboards page.
 - **Edit layout** moves (grip), resizes (− / +) and removes widgets. Notes, checklists and the cards of a manual kanban
   are edited in place. Every change is a revision (the History menu restores one).
 - **Widgets**: card (count-up, sparkline, or a name: the favourite model), chart (columns, stacked, bars, line, area, donut, a calendar heatmap, each with a table view), table (rows and columns, with a colour swatch and share bars),

@@ -3079,15 +3079,33 @@ window.__ModuleLoader__.load({
             if (sb && typeof sb.openTab === 'function') sb.openTab(KIND, {})
           } catch (e) { /* no chat on screen */ }
         }
-        // The tab can only show inside a chat: keep trying for a minute after a dashboard arrives, so it appears as soon as one is on screen.
-        let WANT_OPEN_UNTIL = 0
-        /** The dashboard write the person closed the panel on: it is never reopened for that one (person, 2026-10-30). */
-        let PANEL_DISMISSED_AT = 0
         // <kb-open-guard>
         /** A dashboard arrived? The first reading only opens for a fresh write, a reload must not reopen an old one. */
         const kbDashArrival = (seenAt, at, now) => seenAt !== at && (seenAt === null ? now - at < 15000 : true)
         /** May the panel be (re)opened? Not once the person closed it on this very write. */
         const kbDashMayOpen = (wantUntil, dismissedAt, at, now) => wantUntil > now && at > dismissedAt
+        /** What the open-on-arrival probe remembers. The write it has seen and the write the person closed the panel on are kept PER CHAT: one shared value
+         *  made every switch to a chat with an older dashboard look like an arrival, and a close in one chat spoke for the next (person, 2026-11-02).
+         *  `wantUntil` is the minute an arrival keeps trying (the tab can only show inside a chat); it belongs to the chat that opened it. */
+        const kbDashMemo = () => ({ seen: new Map(), dismissed: new Map(), wantUntil: 0, chat: '' })
+        /** One reading of /state for the chat on screen: open the panel now? `at` is the time of the agent's write in that chat (0: none). */
+        const kbDashDecide = (memo, chat, at, now, shown) => {
+          if (memo.chat !== chat) { memo.chat = chat; memo.wantUntil = 0 }
+          if (at === 0) return false
+          if (kbDashArrival(memo.seen.has(chat) ? memo.seen.get(chat) : null, at, now)) {
+            memo.seen.set(chat, at)
+            memo.wantUntil = now + 60000
+            return true
+          }
+          if (!kbDashMayOpen(memo.wantUntil, memo.dismissed.get(chat) || 0, at, now)) return false
+          if (shown) { memo.wantUntil = 0; return false }
+          return true
+        }
+        /** The panel opened and is not on screen a moment later: the person closed it. That write is not reopened. */
+        const kbDashDismiss = (memo, chat, at) => {
+          memo.dismissed.set(chat, Math.max(memo.dismissed.get(chat) || 0, Number(at) || 0))
+          memo.wantUntil = 0
+        }
         // </kb-open-guard>
         const panelShown = () => { const p = document.querySelector('[data-kb="dashboards-pane"]'); return !!p && p.getClientRects().length > 0 }
 
@@ -3146,35 +3164,29 @@ window.__ModuleLoader__.load({
             return () => clearInterval(t)
           }, 'kybernos-dashboards: session key')
 
-          // open the tab when the agent writes a dashboard (strict: only this chat's own dashboard, never a page edit)
-          let seen = null
+          // open the tab when the agent writes a dashboard (strict: only this chat's own dashboard; the host moves `at` for the agent's writes only,
+          // so opening or editing a dashboard on the page never opens it)
+          const memo = kbDashMemo()
           ctx.effect(() => {
             // A close is a close: after opening the panel we look once, shortly after, and if it is not on screen the person
             // closed it — that write is then excluded until the next one (see kbDashMayOpen).
             let closeTimer = 0
-            const armCloseCheck = (at) => {
+            const armCloseCheck = (chat, at) => {
               if (closeTimer) return
               closeTimer = setTimeout(() => {
                 closeTimer = 0
-                if (panelShown() === true) return
-                PANEL_DISMISSED_AT = Math.max(PANEL_DISMISSED_AT, Number(at) || 0)
-                WANT_OPEN_UNTIL = 0
+                // the person went to another chat meanwhile: the panel not being on screen says nothing about this one
+                if (panelShown() === true || sessionId() !== chat) return
+                kbDashDismiss(memo, chat, at)
               }, 1600)
             }
             const probe = async () => {
+              const chat = sessionId()
               const s = await api('GET', 'state?strict=1')
               if (s.ok) publishWaiting(s.json.suggested)
+              if (sessionId() !== chat) return // the answer is for the chat that was on screen a moment ago
               const at = s.ok && s.json.current ? Number(s.json.current.at) || 0 : 0
-              if (at !== 0 && kbDashArrival(seen, at, Date.now())) {
-                seen = at
-                WANT_OPEN_UNTIL = Date.now() + 60000
-                openTab()
-                armCloseCheck(at)
-              }
-              if (at !== 0 && kbDashMayOpen(WANT_OPEN_UNTIL, PANEL_DISMISSED_AT, at, Date.now())) {
-                if (panelShown()) WANT_OPEN_UNTIL = 0
-                else { openTab(); armCloseCheck(at) }
-              }
+              if (kbDashDecide(memo, chat, at, Date.now(), panelShown())) { openTab(); armCloseCheck(chat, at) }
             }
             probe()
             const t = setInterval(probe, 1500)
