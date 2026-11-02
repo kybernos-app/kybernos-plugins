@@ -267,7 +267,8 @@ const run = async () => {
       ok('the story lists moments', (await count('.wvs-list > li')) > 0, String(await count('.wvs-list > li')))
       // filters
       const chips = await count('.wvs-filters button')
-      ok('the filters are there', chips >= 3, String(chips))
+      // A filter exists only for a kind of moment the chat holds (plus « All »): a real chat that holds one kind has two.
+      ok('the filters are there', chips >= (REAL ? 2 : 3), String(chips))
       if (chips >= 3) {
         const before = await count('.wvs-list > li')
         await clickLabel('Connectors', '.wvs-filters')
