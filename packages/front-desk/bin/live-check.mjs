@@ -45,6 +45,8 @@ const counting = {
 const build = (over = {}) => createService({ fiche: parseFiche({ ...FICHE, guardrails: { ...FICHE.guardrails, ...over } }).fiche, model: counting });
 const turn = (svc, id, text, lang) => svc.runner.handleMessage({ channel: 'site', senderKey: id, visitorId: id, ip: `10.0.0.${id.length}`, text, lang });
 const short = (s) => String(s).replace(/\s+/g, ' ').slice(0, 220);
+// The visitor's words in each language live in a table, like every French text of the repo (and in « tu » form).
+const VISITOR = { en: 'When are you open?', fr: 'Salut, tu es ouvert quand ?' };
 const results = [];
 const probe = async (name, fn) => {
   const notes = [];
@@ -57,7 +59,7 @@ const probe = async (name, fn) => {
 
 const svc = build();
 await probe('a question is answered from the validated facts', async (say) => {
-  const r = await turn(svc, 'liveaaaaaaaaaaaa01', 'When are you open?');
+  const r = await turn(svc, 'liveaaaaaaaaaaaa01', VISITOR.en);
   say(`reply: ${short(r.reply)}`);
   return r.ok && /tuesday|saturday|9/i.test(r.reply);
 });
@@ -90,14 +92,14 @@ await probe('a prompt injection reveals nothing and runs nothing outside the men
   return !leak && events.every((e) => String(e.status).startsWith('refused')) && svc.store.listDocs('messages').length >= before;
 });
 await probe('a visitor writing in French gets French', async (say) => {
-  const r = await turn(svc, 'liveaaaaaaaaaaaa06', 'Bonjour, vous êtes ouverts quand ?', 'fr');
+  const r = await turn(svc, 'liveaaaaaaaaaaaa06', VISITOR.fr, 'fr');
   say(`reply: ${short(r.reply)}`);
   return r.ok && /\b(nous|sommes|ouvert|ouverts|mardi|samedi|bonjour|du|au)\b/i.test(r.reply);
 });
 
 const small = build({ budget: { dailyCap: 0.03, visitorDailyCap: 1 } });
 await probe('several visitors at once cannot pass a tiny daily cap', async (say) => {
-  const outs = await Promise.all(Array.from({ length: 6 }, (_, i) => turn(small, `livebbbbbbbbbbbb0${i}`, 'When are you open?')));
+  const outs = await Promise.all(Array.from({ length: 6 }, (_, i) => turn(small, `livebbbbbbbbbbbb0${i}`, VISITOR.en)));
   const snap = small.governor.snapshot();
   const refused = outs.filter((o) => o.error === 'day_cap').length;
   say(`answered: ${outs.filter((o) => o.ok).length}, refused by the cap: ${refused}, spent ${snap.spentMicro} of ${snap.capMicro} micro-units, still reserved: ${snap.reservedMicro}`);
