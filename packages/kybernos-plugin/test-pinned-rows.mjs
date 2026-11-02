@@ -100,8 +100,8 @@ const rule = (sel) => {
   const b = plugin.indexOf('// <pins-status:end>')
   assert.ok(a >= 0 && b > a, 'the pure block of the status dots was found')
   const ctx = vm.createContext({})
-  vm.runInContext(plugin.slice(a, b) + '\n;globalThis.kbPinsStateOf = kbPinsStateOf; globalThis.kbPinsSubagentsRunning = kbPinsSubagentsRunning; globalThis.kbPinsPick = kbPinsPick', ctx)
-  const { kbPinsStateOf, kbPinsSubagentsRunning, kbPinsPick } = ctx
+  vm.runInContext(plugin.slice(a, b) + '\n;globalThis.kbPinsStateOf = kbPinsStateOf; globalThis.kbPinsSubagentsRunning = kbPinsSubagentsRunning; globalThis.kbPinsPick = kbPinsPick; globalThis.kbPinsWorkspaceStates = kbPinsWorkspaceStates', ctx)
+  const { kbPinsStateOf, kbPinsSubagentsRunning, kbPinsPick, kbPinsWorkspaceStates } = ctx
   const state = (...args) => { const r = kbPinsStateOf(...args); return r === null ? null : r.state + ':' + r.label }
   assert.equal(state(undefined, undefined, 0), null, 'an idle chat shows nothing')
   assert.equal(state({ running: false }, true, 0), null, 'the status Map wins over the sessions store')
@@ -129,6 +129,43 @@ const rule = (sel) => {
   assert.equal(kbPinsSubagentsRunning(list, statuses, 'session-none'), 0, 'no catalogue, none running')
   assert.equal(kbPinsSubagentsRunning(null, statuses, 'x'), 0, 'a missing store is zero, never a throw')
   ok('the status dot of a pinned row follows DSH\'s own order (pending, running or sub-agents, completed, idle) and finds the session under either id form')
+
+  // The folder row of a workspace (2026-11-02): a chat that runs or has delivered must be visible in the menu even while its folder is folded.
+  const items = [
+    { workspaceId: 'w-idle', sessionIds: ['s1', 's2'] },
+    { workspaceId: 'w-run', sessionIds: ['s1', 'session-s3'] },
+    { workspaceId: 'w-done', sessionIds: ['s4'] },
+    { workspaceId: 'w-ask', sessionIds: ['s5', 's6', 's7'] },
+    { workspaceId: 'w-arch', sessionIds: ['s8'] },
+    { workspaceId: 'w-store', sessionIds: ['s9'] },
+    { workspaceId: 'w-sub', sessionIds: ['p'] },
+    null, { workspaceId: 7, sessionIds: [] }, { workspaceId: 'w-nolist' },
+  ]
+  const live = new Map([['s3', { running: true }], ['session-s4', { completionUnread: true }], ['s5', { running: true }], ['s6', { pendingInteraction: { kind: 'approval' } }], ['s7', { completionUnread: true }], ['s8', { completionUnread: true }]])
+  const store = { byId: { s9: { running: true } }, projectionsBySession: { p: { values: { subagentCatalog: [{ id: 'kid' }] } } } }
+  const states = kbPinsWorkspaceStates(items, new Map([...live, ['kid', { running: true }]]), store, new Set(['s8']))
+  assert.equal(states.get('w-idle'), undefined, 'a workspace of idle chats has no dot')
+  assert.equal(states.get('w-run'), 'ongoing', 'a running chat lights its folder, whichever id form the registry holds')
+  assert.equal(states.get('w-done'), 'done', 'a chat that delivered and was not read: the green dot')
+  assert.equal(states.get('w-ask'), 'warning', 'a chat waiting for the person outranks a running one and a delivered one in the same folder')
+  assert.equal(states.get('w-arch'), undefined, 'an archived chat is out of the menu and lights nothing')
+  assert.equal(states.get('w-store'), 'ongoing', 'a chat only the sessions store knows as running still counts')
+  assert.equal(states.get('w-sub'), 'ongoing', 'a chat idle itself with a sub-agent running counts')
+  assert.equal(states.size, 5, 'the null item, the item with a numeric id and the one without sessions are skipped')
+  assert.equal(kbPinsWorkspaceStates(items, null, null, null).size, 0, 'no status service, no dot, no throw')
+  assert.equal(kbPinsWorkspaceStates(null, live, store, null).size, 0)
+  ok('a workspace folder shows the most pressing dot among its chats (waiting, running, delivered), counts neither idle nor archived chats, and never throws')
+}
+{
+  assert.ok(/row\.setAttribute\('data-kb-live', liveState\)/.test(plugin) && /row\.removeAttribute\('data-kb-live'\)/.test(plugin), 'the folder row carries the state as an attribute (React never rewrites it) and loses it when the chats go idle')
+  assert.ok(/rowKey\.indexOf\('workspace:'\) === 0/.test(plugin), 'the row is matched to its workspace by DSH\'s own row key, not by the folder\'s name')
+  const css = /const KB_SIDEBAR_LIVE_CSS = ([^\n]*\n[^\n]*\n[^\n]*)\n/.exec(plugin)
+  assert.ok(css !== null, 'the dot has its own rule')
+  assert.ok(/::after\{content:"";position:absolute/.test(css[1]) && /pointer-events:none/.test(css[1]), 'a pseudo-element that takes no click, so the folder keeps its own gestures')
+  assert.ok(/state-success-primary/.test(css[1]) && /state-warning-primary/.test(css[1]), 'green for running and delivered, amber for waiting, from the design tokens')
+  assert.ok(/src\.subscribe\(\(\) => \{ kbDecorLast = 0; tick\(\) \}\)/.test(plugin), 'a status change repaints the folder dot at once, past the 400 ms throttle')
+  assert.ok(/styles\.insert\(KB_SIDEBAR_LIVE_CSS\)/.test(plugin) && /killLiveCss\(\)/.test(plugin), 'the rule is injected with the effect and removed with it')
+  ok('the folder dot is wired: attribute from DSH\'s row key, token-coloured pseudo-element, repaint on every status change, cleaned up with the effect')
 }
 {
   assert.ok(/kbPinsCtx\.get\('uiSession'\)/.test(plugin) && /svc\.sessionStatus/.test(plugin), 'the source is DSH\'s session-status service')
