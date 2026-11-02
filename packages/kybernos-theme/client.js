@@ -2099,7 +2099,9 @@ window.__ModuleLoader__.load({
         crepuscule: ['Crépuscule', 'Twilight'], egaliseur: ['Égaliseur', 'Equalizer'], 'encre-papier': ['Encre & papier', 'Ink & paper'],
         graphite: ['Graphite', 'Graphite'], kawaii: ['Kawaii', 'Kawaii'], 'lavande-brumeuse': ['Lavande brumeuse', 'Misty lavender'],
         maquette: ['Maquette', 'Mock-up'], 'ocean-nuit': ['Océan nuit', 'Night ocean'], orbite: ['Orbite', 'Orbit'],
-        panneau: ['Panneau', 'LED panel'], sakura: ['Sakura', 'Sakura'], 'neutre-violet': ['Neutre violet', 'Neutral violet']
+        panneau: ['Panneau', 'LED panel'], sakura: ['Sakura', 'Sakura'], 'neutre-violet': ['Neutre violet', 'Neutral violet'],
+        'cabinet-avocats': ['Cabinet d’avocats', 'Law firm'], 'cabinet-medical': ['Cabinet médical', 'Medical practice'], 'e-commerce': ['E-commerce', 'E-commerce'],
+        education: ['Éducation', 'Education'], 'immobilier-locatif': ['Immobilier locatif', 'Rental property'], 'recrutement-ssii': ['Recrutement SSII', 'IT recruitment']
       }
       const galTheme = (raw) => {
         if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
