@@ -55,13 +55,8 @@ if (isMain) {
       if (t !== null) {
         const end = Date.now() + 40000
         while (Date.now() < end) { sum = summarise(readProxy(proxyLog, t)); if (sum.agent200 > 0) break; await sleep(500) }
-        // let the reply finish: the journeys must not start on a chat that is still running
-        const ck = cookieDeSession(host)
-        const busyEnd = Date.now() + 15000
-        while (ck !== null && Date.now() < busyEnd) {
-          try { const b = await (await fetch('http://' + host + '/kybernos-cloud/space/busy', { headers: { cookie: ck.nom + '=' + ck.valeur } })).json(); if (b.busy !== true) break } catch { break }
-          await sleep(500)
-        }
+        // let the reply finish: the journeys must not start on a chat that is still running (the host no longer says whether a reply runs: there is no switch to refuse)
+        await sleep(4000)
       }
       text = (await g.body()) || ''
     } finally { await g.close() }

@@ -30,6 +30,11 @@ export const signedAddressOf = (logText, port) => {
 /** What a team's DSH must not inherit from the DSH that starts it: those would point it back at the personal home or the personal port. */
 const NOT_INHERITED = ['KYBERNOS_CLOUD_STATE', 'DSH_WEB_PORT', 'DSH_WEB_URL']
 
+/** The person's own provider keys, channel passwords and bot tokens stay personal: they live in the personal home's credential store, which a team's home does not copy, and the same rule is kept
+ *  for the environment the team's DSH is started with (a key exported in the shell that started the personal DSH is not handed down either). The team's models come from its own Kybernos route,
+ *  imported from the copied session when it starts; a key the person wants in a team, they enter in that team's own Settings. */
+const PERSONAL_SECRET_ENV = /(?:_API_KEY|_BOT_TOKEN|_PASSWORD)$/u
+
 /** Bundles that belong to the computer or to the account and not to a team, so a team's DSH does not load them: the tool that restarts the personal DSH on :3080, the one that installs apps
  *  and LaunchAgents under the person's own folders, Kaby (its page, with the Telegram and WhatsApp doors and the Home computer, and its Settings pages) and the phone link. The others were read
  *  on 2026-11-02 (docs/dev/team-profiles-cadrage.md, step 1b): none starts a machine-level service by itself, each keeps its state in its own DSH home, and none binds a fixed port. Add one
@@ -115,7 +120,7 @@ export const answers = (port) => new Promise((done) => {
 /** The command, arguments and environment that start a team's DSH. */
 export const spawnSpec = ({ node, dshBin, port, teamId, teamHome, personalHome, env }) => {
   const childEnv = {}
-  for (const [key, value] of Object.entries(env)) if (typeof value === 'string' && !NOT_INHERITED.includes(key)) childEnv[key] = value
+  for (const [key, value] of Object.entries(env)) if (typeof value === 'string' && !NOT_INHERITED.includes(key) && !PERSONAL_SECRET_ENV.test(key)) childEnv[key] = value
   Object.assign(childEnv, { DSH_HOME: teamHome, DSH_WEB_PORT: String(port), KYBERNOS_PERSONAL_HOME: personalHome, KYBERNOS_TEAM_ID: teamId })
   return { command: node, args: [dshBin, 'web', '--no-open', '--host', '127.0.0.1', '--port', String(port)], env: childEnv }
 }

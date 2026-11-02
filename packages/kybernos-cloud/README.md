@@ -81,17 +81,14 @@ full ids stay in the detail route.
   (the server hands the token to the first asker), and a refusal or an expiry reaches both.
 - **A team with no plan** answers `/quota` with `no_plan: true` (the plan route says `plan: null`): the notice and the plan slot say « No plan » and offer the plan page. `POST
   /space/create` does not make such a team active: the answer carries `created: { id, name, plan_key, activated }` and the footer tells the person where they are.
-- **Several spaces: the menu, the plan card, the wait on a switch, the cues** (plan « Équipes », steps 1, 2, 3 and 7; the pure rules are the `teams-menu` block of the client, played by
+- **Several spaces: the menu, the plan card, opening a team, the cues** (plan « Équipes », steps 1, 2, 3 and 7; the pure rules are the `teams-menu` block of the client, played by
   `test-teams-menu.mjs`). Up to `INLINE_SPACES_MAX` (3: Personal + 2 teams) spaces the account menu lists them at its top (tile in the team's colour, name, « Admin · 6 members » or
   « you · plan », the usage percent and its bar, a check on the active one, « Create a team »); from four the top row stays « Switch team » and opens the full list next to the menu.
   The rows' usage and head counts come from `GET /spaces/summary` (read when the menu opens, kept 15 s: per space the budget windows as percents, a team's member count, the personal
   space's plan name; never an amount of money). The plan card follows the role: a team shows « Team » (its pool, the 30-day window) and « You » (the person's 5 hours and 7 days, plus any
   other window of theirs that is used up); an owner or admin also gets « Manage » (the web Team settings, through the console link) and, once the pool is used up, « Add credits »;
   a member gets neither; a personal space shows no allowance (no row in the card, no gauge on the footer card: it is the Kybernos plan's number, meaningless to a person on a key of their own, and the composer's chip from kybernos-usage shows it on a Kybernos model) and, on Free, « Upgrade ». The menu's blocks are Teams · Account (Account, Referral) · Appearance, Phone and channels, Settings · Links · Sign out, each pair separated by a rule. A window that has room says how long it is (« Last 7 days »); only a window that is used up
-  says « Back in about 3 h » (the windows are rolling: the server gives `resets_at` only then). **A switch waits on DSH:** `POST /space/active` answers `route` (`written`, `current`,
-  `none`, `not_written`, `failed`), and `POST /space/applied { workspace_id }` says whether the RUNNING model route (`settings.describe()`, not the file) names the space; the footer says
-  « Switching… » until it does (at least 3.5 s when it cannot tell, at most 15 s), and a route that could not be rewritten is said at once (messages may still be billed to the previous
-  team). **The host then mends it for the person** (recette L3-76, decision DL-20): it tries again by itself at 10 s, 30 s and 2 min after the failure (`ROUTE_REPAIR_TUNING`; it stops as soon as the RUNNING route names the active team, and never rewrites it under a running reply), and the first request of a turn of a chat the page reported (the `agent/pre-step` hold of « The active team follows the chat », below) re-aligns the route first, bounded by 10 s, and is REFUSED when it cannot: the turn fails with « Your messages would be billed to <team>. Try again. » (worded by the failure row of the page, in the person's language) instead of going to the previous team. An automation, Kaby's chat, a Telegram turn, or a turn started while ANOTHER reply runs is not held (the exposure the claim-time switch has too). **The composer's cues in a team space** (none in the personal one): a pill on memory in the team's colour, in the composer's dock and the new chat's options row (a pill on the
+  says « Back in about 3 h » (the windows are rolling: the server gives `resets_at` only then). **Choosing a team opens its own DSH:** the footer asks `POST /team-dsh/open` (started when it is not running, so the card says « Starting… » for a few seconds), opens the answer's signed address in a window named after the team and leaves this DSH where it is. The host keeps the one model route of a DSH on its space: `POST /space/applied { workspace_id }` says whether the RUNNING route (`settings.describe()`, not the file) names the space, and a route that moved (a profile refresh, a hand edit) is mended by the host by itself at 10 s, 30 s and 2 min (`ROUTE_REPAIR_TUNING`; it stops as soon as the RUNNING route names the space, and never rewrites it under a running reply). The first request of every turn re-aligns the route first, bounded by 10 s, and is REFUSED when it cannot: the turn fails with « Your messages would be billed to <team>. Try again. » (worded by the failure row of the page, in the person's language) instead of going to the previous team (`holdForStaleRoute`, below). **The composer's cues in a team space** (none in the personal one): a pill on memory in the team's colour, in the composer's dock and the new chat's options row (a pill on the
   working folder only when `state.space_folder` names one: the host names the team's folder, see « One working folder per team » below), « Message <Team>… » in the box (DSH's own placeholder node, put back when the person leaves
   the team; a disabled box keeps DSH's words, but DSH's plan hint and queue hint are replaced too: nothing on the page tells the placeholder's states apart) and « What is <Team> working on? » over a new chat (the core plugin reads `window.__KB_SPACE_CUE__`). The memory pill says « personal off » only when
   `PERSONAL_MEMORY_CUT` is `true` in the client: it is `false` until the memory work (`feat/teams-memory-cut`) lands, so the pill does not promise what is not true yet.
@@ -107,54 +104,27 @@ full ids stay in the detail route.
   session (it makes the person a member). The server answers ONE 404 for an unknown, used, withdrawn, expired or someone else's invitation (`invitation_unusable`: one sentence names
   all of them), 409 `seat_limit` for a full team (`seat_limit`: the link stays valid, nothing is written), 429 (`rate_limited`) and a network failure (`unreachable`); anything else is
   `refused` and the dialog offers « Open in the browser »: the server's own page for the same invitation, on the ACTIVE server's web address. After an accepted invitation the host reads
-  the list of teams again and the new team's plan (`joined: { id, name, role, plan_key }`) and does NOT activate it: the footer switches through the ordinary path (`space/active`, with
-  the wait on the model route), except for a team that has no plan (`plan_key: 'none'`, as for a team the person just created): they stay where they are and are told.
+  the list of teams again and the new team's plan (`joined: { id, name, role, plan_key }`) and does NOT activate it: the footer opens the team's own DSH (`team-dsh/open`, a window named after the
+  team), except for a team that has no plan (`plan_key: 'none'`, as for a team the person just created): they stay where they are and are told.
 
-- **One working folder per team** (plan « Équipes », step 6; the host half is `team-folder.mjs`, played by `test-team-folder.mjs` and `test-team-folder-host.mjs`; the client rules are the
-  `team-folder` block, played by `test-team-folder-nav.mjs`; the rendered footer by `test-cloud-client.mjs`; the real DSH, its workspaces and a fake Kybernos by
-  `scripts/check-team-folder-live.mjs`). A chat's working folder is fixed when the chat starts, so a team switch cannot move an open chat: it opens a NEW one in the team's folder.
+- **One working folder per team** (plan « Équipes », step 6; the host half is `team-folder.mjs`, played by `test-team-folder.mjs` and `test-team-folder-host.mjs`; the rendered footer by
+  `test-cloud-client.mjs`). Since a team has a DSH of its own (below) nothing switches a DSH onto a team's folder any more: the folder is a place the team's files live, named by the pill of
+  the composer in that DSH. Opening a new chat in it by itself is not built.
   **The folder:** `<Documents>/Kybernos/<Team>` (the root kybernos-multi-device's private folders share: `scripts/test-team-folder-rule.mjs` keeps the two « where is Documents » rules
-  equal; `KYBERNOS_DOCUMENTS_DIR` moves it for tests and the sandbox), made by the host when a team is switched to, created (with or without a plan: it is a place to work either way),
-  joined, or found active with none (`POST /space/folder { workspace_id }`, asked once per team and page: a team joined before this existed). **The name is hostile input** (a team lead
+  equal; `KYBERNOS_DOCUMENTS_DIR` moves it for tests and the sandbox), made by the host when a team is created (with or without a plan: it is a place to work either way),
+  joined, or found active with none (`POST /space/folder { workspace_id }`, asked once per team and page by the team's own DSH: a team joined before this existed). **The name is hostile input** (a team lead
   or a colleague wrote it): it is cut down to ONE segment (no separator, drive colon, wildcard, control or invisible character, `..`, leading or trailing dot; 60 characters; a name that
   leaves nothing or that Windows reserves becomes « Team <id> »), the folder is made as a direct child of the root with a `mkdir` that is NOT recursive, and a name already on the disk
   (another team's, the person's own, a file) is never taken over: the team gets « <Name> (<last 8 letters and digits of its id>) » (the TAIL: the server's ids are UUIDv7, whose head is the clock, so two teams made in the same minute share their first 8). **Where it is recorded:** `kybernos-cloud-folders.json` beside the
   state file (`{ <workspace id>: <path> }`), not in it: a sign-out wipes the state, and the team's folder must still be the team's at the next sign-in. Only a direct child of the root
   is followed or listed. The public state names the ACTIVE team's folder (`space_folder`: the composer's folder pill reads it) and every team's (`team_folders`), never the file. The page names a team,
-  never a path. A disk that refuses (`not_allowed`, `mkdir_failed`) leaves the team without a folder, never without a switch. **The page** (DSH's own services, read with `ctx.get`):
-  `workspaces.create({ path })` registers the folder as a DSH workspace (idempotent: a registered one is resolved) and answers its id, `uiWorkspace.startSession(id)` opens a new chat in
-  it, once DSH runs the team's model route (the same wait as a switch). A switch back to Personal opens a new chat in the workspace the person was in before the team (the folder of the chat on
-  screen at the moment of the switch, kept in this browser; else the first workspace that is no team's), never by inheritance: `startSession()` with no id would land in the workspace on
-  screen, which is the team's. A team created with a plan, or joined, does the same; one created without a plan opens nothing. A DSH that is missing, or refuses, changes nothing.
-  A chat already started keeps its folder (DSH's rule).
+  never a path. A disk that refuses (`not_allowed`, `mkdir_failed`) leaves the team without a folder.
 - **DSH follows a role changed, a removal or a team joined within about 30 s** (recette L2-05): the host reads the server by itself only every 5 minutes (`PROFILE_REFRESH_TUNING.tickMs`), so the footer now asks it: `POST /refresh { max_age_ms }` when the window comes back into view, every 30 s while it is visible, and after the team actions it makes itself (create, join, switch by hand), at most one read in flight, no two within 25 s (3 s after an action), never while hidden or signed out. `max_age_ms` is the age of a read the host may skip (`skipped: true`, no call to the server), capped at 10 minutes, so several windows cost the server one read; a call without it (the open Cloud window, after a payment) always reads. A person removed from a team (or who left it) who sends a message before then gets the server's 404 `workspace_not_found`: the failure row of the page words it (« You are no longer in the team this chat was billed to… DSH is now in <space>: send it again »), asks the host to read the account at once (it falls back to a space the person is in) and tells the footer; an old row of a chat's history is worded, never acted on.
-- **The active team follows the chat** (plan « Équipes », option 2; `chat-space.mjs`, the `follow-chat` block of `client.js`, tests `test-chat-space.mjs`, `test-chat-space-host.mjs`,
-  `test-follow-chat.mjs`, live `scripts/check-follow-chat-live.mjs`). DSH has ONE model route per instance and its `x-kybernos-workspace` header names the ACTIVE team, so a chat is billed
-  to whoever is active. The rule: **a chat in a team's folder bills that team, every other chat bills Personal** (Kaby's folder included); the team folders are the ones the host recorded
-  (step 6). So the active team follows the chat the person is looking at, and personal memory follows the active team as before. **The page** reports the chat on screen (the main view's
-  selection of `uiWorkspace`, the session's own `cwd` from `sessions`, else its workspace's path) with `POST /space/for-folder { path, session_id }` when it opens, when the page loads on
-  it and every ten seconds; the host answers which space owns that folder (the team folder or anything under it, not a sibling such as `Acme-2`; symbolic links followed; a deleted folder
-  placed by its deepest existing ancestor; case folded on macOS and Windows) and whether it is the active one, and the page switches through the ordinary path (`pickSpace`: « Switching… »,
-  the route-applied wait) WITHOUT opening a chat. It acts when the chat on screen changes, never against a switch the person just made by hand: a choice by hand (a click, a team just created or joined) is told to the follower
-  (`follower.chose()` from the first moment of the click to the end of the switch), and every chat on screen then, even one DSH has not listed yet (it lists the chat a switch opens about half
-  a second later), is the person's to leave; a chat they open afterwards is followed, and a choice that failed hands the chats back. **The host is the safety net**: a turn of a
-  chat the page reported in the last two minutes, claimed while the active space is not the chat's, writes the right space at once (the system prompt of that step is assembled right
-  after the claim and reads it: the personal-memory cut) and the `agent/pre-step` listener holds the first model request until the switch (plan, folder, model route) is through, at most
-  10 s. A switch can land between the claim and that request (a click or a script already on its way), so when the claim found the chat's team already active the team is decided again just before
-  the first request. A chat the page never reported (an automation, Kaby's chat, a Telegram turn, a subagent) changes nothing and is billed to whichever team is active.
-  **No switch under a running reply** (part B; `createTurnWatch` in `chat-space.mjs`, test `test-turn-guard-host.mjs`): a reply sends several requests and the model route is one per
-  instance, so a switch while a reply runs bills it to two teams. The host REFUSES a switch while any reply is running (`space/active` answers `{ ok: false, error: 'turn_running',
-  running: { count, since, space_id, space_name } }`, writes nothing and asks the server nothing), whoever asks: a click, the page following a chat, a script, a second window. A reply is
-  counted from `agent/status` `running` (it comes before the claim and the first request) to `idle` or the chat's disposal, and the engine's own registry (`ctx.agents`, each agent's
-  `status`) corrects the events: a missed `idle` cannot leave a reply stuck, a missed start is found at the next look. Past 30 minutes a reply no longer blocks (it FAILS OPEN on purpose:
-  a person held for good by a wrong counter is worse than one long reply billed to two teams, which is what happened before the guard); a restart empties the table and the registry brings
-  back what is really running. Choosing the space that is already active is not a switch; the claim-time switch does not count the claiming turn and does not happen at all while ANOTHER
-  reply runs; a team created while a reply runs is created and listed but does not take over (`created.activated: false`, `created.busy`). `GET /space/busy` says whether a reply runs.
-  **The page** tells the person, for a click, `A reply is still running in <Team>. Switching waits for it or stop it first.`; for a switch that follows a chat it shows, where the person
-  types (the composer's pills), `This chat belongs to <Team>; <Active> stays active until the reply ends.` and makes the switch by itself when `space/busy` says no reply runs (polled every
-  1.5 s; dropped when the person opens another chat). **The exposure that remains, said plainly:** while a switch is deferred a message typed in the chat now on screen is billed to the team
-  still active (measured by `check-follow-chat-live.mjs`), and every turn nobody looks at is billed to whichever team is active: Kaby's own chat (a native DSH conversation on the same model
-  route), a Telegram turn relayed to this computer (`/turn`), an automation, a subagent.
+- **A turn is held to the model route** (`holdForStaleRoute`, test `test-route-hold.mjs`). The follow-the-chat switch, the claim-time switch, the turn guard (`turn_running`, `space/busy`)
+  and the deferred switch of option 2 are retired (2026-11-02, `docs/dev/team-profiles-cadrage.md` step 5): a DSH answers one space for good, so a reply can never be billed to two teams.
+  What remains is the safety net of the one route: before a turn (`agent/pre-step`, once per turn) the host reads whether the DSH's route still names the DSH's space (a profile
+  refresh or a hand-edited route can move it); a stale one is rewritten at once, bounded to 10 s, and if it still does not name the space the turn is REFUSED with one sentence that names
+  the team the route points at (`StaleRouteRefusal`: better a refused message than one billed to the wrong team), while the mend is tried again after 10 s, 30 s and 2 min.
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
   are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,
@@ -384,10 +354,10 @@ door from personal to team is the explicit « Propose to team » action (below, 
 - **Test**: `node scripts/test-team-memory-cut.mjs` (a canary word in a personal memory and a personal lesson, both bundles mounted, the
   switch both ways, every fail-closed case).
 
-## A DSH of its own for each team (`team-instances.mjs`, in progress)
+## A DSH of its own for each team (`team-instances.mjs`)
 
 The plan is in `docs/dev/team-profiles-cadrage.md`: a team gets a whole second DSH (own home, own port) instead of a switch inside one DSH. This
-file is its launcher; nothing in the menu calls it yet.
+file is its launcher; the account menu calls it (`openOwnDsh` in `client.js`), and the single-instance switch it replaces is retired.
 
 - **Home.** `<personal home>/teams/<team id>`: a copy of the personal profile (APFS `cp -c`, `--reflink` on Linux), its relative links out of
   the profile made absolute, the paths that name the personal home pointed at the team's home, plus the MCP folder. Built aside and renamed,
@@ -403,8 +373,8 @@ file is its launcher; nothing in the menu calls it yet.
   running and no active automation (`status: 'active'` rows of the engine's `storages/schedule.json`, engine 0.2.2-alpha.2: re-check on an
   engine bump). Anything it cannot read keeps it alive. The personal DSH never stops.
 - **Its team, and its sign-in (step 2, done):** a team's DSH (`KYBERNOS_TEAM_ID`) has that team as its active space for good (`pinnedSpace`): `space/active` answers `espace_fixe`
-  for another space, `space/for-folder` says `follow: false`, the claim-time switch decides nothing, so the model route names the team from the first mount. At every opening the host
-  (`seedTeamHome`) gives a home that holds no connection a copy of the personal session (token, user, server, device label; not the list of teams, the plan or the model-route record, which
+  for another space and nothing follows a chat, so the model route names the team from the first mount. At every opening the host
+  (`seedTeamHome`) gives a home that holds no connection a copy of the personal session (token, user, server, device label, and the list of teams as the personal DSH last read it, so that the card names the team from the first paint: without it a new team DSH showed the person's own name for about 3 s; not the plan or the model-route record, which
   the team DSH reads itself) and the server registry. One session, two DSH: signing out of a team's DSH does not revoke it. The record of the team folders is the personal home's.
   The account's memory on the server stays cut there; the local lessons work (`seam.ownHome()`, read by `kybernos-memory`).
 - **What belongs to the account stays out (step 3b, done):** in a team's DSH the routes `kyber`, `kyby/*`, `telegram/*`, `whatsapp/*` and `computer/*` answer `403 personal_only`

@@ -70,7 +70,7 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
 // The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
 const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
   devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
-const fake = { quota: null, summary: null, active: null, appliedFn: null, status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, start: null, remote: REMOTE_OFFERED, sync: null, push: null }
+const fake = { quota: null, summary: null, teamOpen: null, status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, start: null, remote: REMOTE_OFFERED, sync: null, push: null }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
 const agentsBefore = existsSync(join(DSH_HOME, 'AGENTS.md')) ? readFileSync(join(DSH_HOME, 'AGENTS.md'), 'utf8') : null
@@ -151,10 +151,9 @@ const answerFor = (path, req) => {
   // The team menu's reads and the choice of a team (the Teams menu scenes): answered here when a scene gives them, by the sandbox's own host otherwise.
   if (path === '/kybernos-cloud/quota' && fake.quota !== null) { fake.calls.push('quota'); return { body: fake.quota } }
   if (path === '/kybernos-cloud/spaces/summary' && fake.summary !== null) { fake.calls.push('summary'); return { body: fake.summary } }
-  if (path === '/kybernos-cloud/space/active' && fake.active !== null) { fake.calls.push('active'); fake.bodies.push({ path, body: sent() }); return fake.active(sent().workspace_id) }
-  if (path === '/kybernos-cloud/space/applied' && fake.appliedFn !== null) { fake.calls.push('applied'); return { body: fake.appliedFn(sent().workspace_id) } }
+  if (path === '/kybernos-cloud/team-dsh/open' && fake.teamOpen !== null) { fake.calls.push('team-open'); fake.bodies.push({ path, body: sent() }); return fake.teamOpen(sent().workspace_id) }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
-  // A team that is active with no folder asks the host to make one (scripts/check-team-folder-live.mjs plays that): here the host is never reached.
+  // A team that is active with no folder asks the host to make one (packages/kybernos-cloud/test-cloud-client.mjs plays that): here the host is never reached.
   if (path === '/kybernos-cloud/space/folder') { fake.calls.push('folder'); return { body: { ok: false, error: 'non_connecte' } } }
   if (path === '/kybernos-cloud/models/sync' && fake.sync !== null) { fake.calls.push('models-sync'); return { body: fake.sync } }
   if (path === '/kybernos-cloud/chats/push' && fake.push !== null) { fake.calls.push('chats-push'); return { body: fake.push } }
@@ -629,8 +628,8 @@ try {
     await press('[data-kb="foot-switch-server"]')
     check('« Switch server » opens Settings and takes the notice away', (await settingsOpen()) && !(await exists('[data-kb="foot-flash"]')))
     if (await serversCell()) {
-      await until(async () => /where your account/i.test(await settingsText()), 15000)
-      check('on the Servers page (Settings › Servers)', /where your account/i.test(await settingsText()), (await settingsText()).slice(0, 120))
+      await until(async () => /Add a server/i.test(await settingsText()), 15000)
+      check('on the Servers page (Settings › Servers)', /Add a server/i.test(await settingsText()), (await settingsText()).slice(0, 120))
       await shot('v41-switch-server-settings')
     } else console.log('  ○ skipped: this sandbox has no Servers module (cell kybernos-servers): the click was checked up to Settings opening')
     await clean()
@@ -658,8 +657,8 @@ try {
     await press('[data-kb="mobile-switch-server"]')
     check('« Switch server » closes the window and opens Settings', (await settingsOpen()) && !(await exists('[data-kb="phone-channels"]')))
     if (await serversCell()) {
-      await until(async () => /where your account/i.test(await settingsText()), 15000)
-      check('on the Servers page', /where your account/i.test(await settingsText()), (await settingsText()).slice(0, 120))
+      await until(async () => /Add a server/i.test(await settingsText()), 15000)
+      check('on the Servers page', /Add a server/i.test(await settingsText()), (await settingsText()).slice(0, 120))
     }
     fake.pair = null
     await clean()
@@ -1010,10 +1009,9 @@ try {
     check('and the scheme is put back', (await schemeNow()) === startScheme, { startScheme, now: await schemeNow() })
     // ── Teams menu (plan « Équipes », steps 1, 2, 3 and 7) ────────────────────────────────────────────────────────────────────────────────────────────
     // The account menu lists the person's spaces while there are at most three of them (Personal + 2 teams), the plan card follows the role and shows percent and bars only, a switch
-    // waits on DSH (the card says « Switching… »), and a team space has its cues where the person writes. The host's answers are given in the page (the account, the usage, the
-    // choice of a team and the « is the route applied » question); every click is real. The real wait of a switch, with the real host, is measured by the sandbox run in
-    // docs/dev/live-testing.md (« The delay of a team switch »).
-    console.log('\nTeams menu — the list of spaces, the plan card by role, the wait on a switch, the cues of a team space')
+    // opens its own DSH (the card says « Starting… »), and a team space has its cues where the person writes. The host's answers are given in the page (the account, the usage, the
+    // choice of a team); every click is real. A team's real DSH, started by the real host, is scripts/check-team-dsh-live.mjs's.
+    console.log('\nTeams menu — the list of spaces, the plan card by role, a team opening its own DSH, the cues of a team space')
     const T_IDS = [W_PERSONAL, W_TEAM, '33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555', '66666666-6666-4666-8666-666666666666']
     const T_NAMES = ['Personal', 'Acme', 'Studio B', 'Nova Labs', 'Delta Co', 'Orbit']
     const T_MEMBERS = [0, 6, 3, 12, 8, 4]
@@ -1175,39 +1173,42 @@ try {
     await shot('t-plan-personal-free-' + (await schemeNow2()))
     await clean()
 
-    // 3. A switch waits on DSH: « Switching… » on the card, the menu shut, until the host says the running route names the new team. Real clicks, the host answered in the page.
-    const switchRun = { calls: [], appliedAfter: 2, applied: 0, asked: [], doneAt: null }
-    const wireSwitch = (route, delay) => {
-      switchRun.calls.length = 0; switchRun.applied = 0; switchRun.asked.length = 0
-      fake.active = (id) => { switchRun.calls.push(id); fake.status = teamsStatus(3, 'admin', id); return { body: { ok: true, route, state: {} }, delay } }
-      fake.appliedFn = (id) => { switchRun.applied += 1; switchRun.asked.push(id); return { ok: true, applied: switchRun.applied > switchRun.appliedAfter } }
+    // 3. Choosing a team opens that team's own DSH (docs/dev/team-profiles-cadrage.md): « Starting… » on the card while the host starts it, the menu shut, then a window of its own;
+    // this DSH is not moved (the card keeps the space it serves). Real clicks, the host answered in the page, `window.open` recorded and never followed.
+    const openRun = { asked: [], doneAt: null }
+    const wireOpen = (answer, delay) => {
+      openRun.asked.length = 0
+      fake.teamOpen = (id) => { openRun.asked.push(id); return { body: typeof answer === 'function' ? answer(id) : answer, delay } }
     }
+    await val(`(() => { window.__kbOpened = []; window.open = (u, n) => { window.__kbOpened.push({ u: String(u), n: String(n) }); return {} } })()`)
     setWorld(3, 'admin', W_PERSONAL, [win('member', 2592000, 3)])
-    wireSwitch('written', 600)
+    wireOpen({ ok: true, url: 'http://127.0.0.1:3301/', signed_url: 'http://127.0.0.1:3301/?token=NOT-A-REAL-TOKEN', port: 3301 }, 600)
     await reload()
+    await val(`(() => { window.__kbOpened = []; window.open = (u, n) => { window.__kbOpened.push({ u: String(u), n: String(n) }); return {} } })()`)
     await openProfileMenu()
     const t0 = Date.now()
     await press('.kbfp-menu [data-kb="space-row"][data-space="' + W_TEAM + '"]')
     await until(() => exists('[data-kb="workspace-card-switching"]'), 3000)
     const early = await val(`(() => { const c = document.querySelector('[data-kb="workspace-card"]'); const s = document.querySelector('[data-kb="workspace-card-switching"]'); return { text: s ? s.innerText : null, name: (c.querySelector('.kbfp-cardname') || { innerText: '' }).innerText, busy: c.querySelector('.kbfp-cardmain').getAttribute('aria-busy'), disabled: c.querySelector('.kbfp-cardmain').disabled, meter: !!c.querySelector('[data-kb="workspace-card-usage"]'), menu: !!document.querySelector('.kbfp-menu') } })()`)
-    check('after the click the card says « Switching… » with the team that was chosen, busy and not pressable, no meter, the menu shut', early.text === 'Switching…' && early.name === 'Acme' && early.busy === 'true' && early.disabled === true && early.meter === false && early.menu === false, early)
-    await shot('t-switching-' + (await schemeNow2()))
+    check('after the click the card says « Starting… » while the team\'s DSH starts, busy and not pressable, no meter, the menu shut', early.text === 'Starting…' && early.busy === 'true' && early.disabled === true && early.meter === false && early.menu === false, early)
+    await shot('t-starting-' + (await schemeNow2()))
     await until(async () => !(await exists('[data-kb="workspace-card-switching"]')), 12000)
     const took = Date.now() - t0
-    check('it clears once the host reported the route applied: after the host\'s own wait (600 ms here) and the questions it asked (' + switchRun.asked.length + ')', took >= 600 + 2 * 200 && switchRun.asked.length === 3 && JSON.stringify(switchRun.calls) === JSON.stringify([W_TEAM]), { took, asked: switchRun.asked, calls: switchRun.calls })
-    check('and the card is back with the team, its meter and its role', (await val(`document.querySelector('[data-kb="workspace-card"] .kbfp-cardname').innerText`)) === 'Acme' && (await until(() => exists('[data-kb="workspace-card-usage"]'), 6000)) !== false)
-    // A route the host could not rewrite: the choice is kept, and the person is told that messages may still be billed to the previous team (no waiting for a route that will not change).
-    wireSwitch('failed', 100)
+    const windows = (await val('window.__kbOpened')) || []
+    check('it clears once the host answered (after its own wait, 600 ms here), having been asked once, for the team chosen', took >= 600 && JSON.stringify(openRun.asked) === JSON.stringify([W_TEAM]), { took, asked: openRun.asked })
+    check('the signed address of the team\'s DSH is opened in a window named after the team', windows.length === 1 && windows[0].u === 'http://127.0.0.1:3301/?token=NOT-A-REAL-TOKEN' && windows[0].n === 'kybernos-team-' + W_TEAM, windows)
+    check('and this DSH is not moved: the card keeps Personal', (await val(`document.querySelector('[data-kb="workspace-card"] .kbfp-cardname').innerText`)) === 'Personal')
+    // A DSH that could not be started: the person is told, and nothing stays « starting ».
+    wireOpen({ ok: false, error: 'start_failed' }, 100)
     await reload()
     await openProfileMenu()
-    await press('.kbfp-menu [data-kb="space-row"][data-space="' + W_PERSONAL + '"]')
+    await press('.kbfp-menu [data-kb="space-row"][data-space="' + W_TEAM + '"]')
     await until(() => exists('[data-kb="foot-flash"]'), 5000)
     const notice = await text('[data-kb="foot-flash"]')
-    check('a route that could not be rewritten is said in the footer\'s notice, at once', /may still be billed to the previous team/.test(notice || '') && switchRun.asked.length === 0, { notice, asked: switchRun.asked })
-    check('and nothing is left « switching »', !(await exists('[data-kb="workspace-card-switching"]')))
-    await shot('t-switch-failed-' + (await schemeNow2()))
-    fake.active = null
-    fake.appliedFn = null
+    check('a DSH that could not be started is said in the footer\'s notice', /Could not open Acme right now/.test(notice || '') && openRun.asked.length === 1, { notice, asked: openRun.asked })
+    check('and nothing is left « starting »', !(await exists('[data-kb="workspace-card-switching"]')))
+    await shot('t-start-failed-' + (await schemeNow2()))
+    fake.teamOpen = null
     await clean()
 
     // 4. The cues of a team space, in a real chat: the pill beside the other pills, « Message Acme… », the heading; none in the personal space.
@@ -1265,7 +1266,7 @@ try {
     await sleep(500) // the rows' head counts come from the summary the menu reads when it opens
     const frCard = await cardOf()
     const frRows = await rowsOf('.kbfp-menu')
-    check('French: the card says « Équipe », « Toi », « Sur 5 heures », « Revient dans environ 3 h » and has « Gérer » and « Ajouter des crédits »', frCard !== null && frCard.rows[0].label === 'Équipe' && frCard.rows[1].label === 'Toi' && /Sur 5 heures/.test(frCard.rows[1].note) && /Revient dans environ 3.h/.test(frCard.rows[0].note) && /Gérer/.test(frCard.text) && /Ajouter des crédits/.test(frCard.text), frCard)
+    check('French: the card says « Équipe », « Toi », « Sur 5 heures », « Revient dans environ 3 h » and has « Gérer » and « Recharger »', frCard !== null && frCard.rows[0].label === 'Équipe' && frCard.rows[1].label === 'Toi' && /Sur 5 heures/.test(frCard.rows[1].note) && /Revient dans environ 3.h/.test(frCard.rows[0].note) && /Gérer/.test(frCard.text) && /Recharger/.test(frCard.text), frCard)
     check('French: the rows say « Équipe · Admin · 6 membres »', frRows.some((r) => r.sub === 'Équipe · Admin · 6 membres'), frRows)
     await shot('t-fr-plan-full')
     await val(`(() => { window.__KB_LANG_RESOLVE__ = window.__kbLangBefore; delete window.__kbLangBefore })()`)

@@ -628,7 +628,7 @@ sessionSource.secret = () => SESSION_SECRET
 mod.MEMORY_TUNING.writeRefreshMs = -1
 mod.MEMORY_TUNING.tickMs = 3600000
 // A route the test breaks on purpose is mended by itself 10 s, 30 s and 2 min later (L3-76): this file runs longer than that and counts the server's calls, so the tries are off here
-// (test-chat-space-host.mjs plays them).
+// (test-route-hold.mjs plays them).
 mod.ROUTE_REPAIR_TUNING.delaysMs = []
 mod.apply(ctx)
 
@@ -699,7 +699,7 @@ try {
     '/kybernos-cloud/referral',
     // Espace actif : la rangée du pied de sidebar est un sélecteur, il lui faut
     // une route qui enregistre le choix (et refuse un id inconnu).
-    '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/space/for-folder', '/kybernos-cloud/space/busy', '/kybernos-cloud/space/folder', '/kybernos-cloud/spaces/summary',
+    '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/space/folder', '/kybernos-cloud/spaces/summary',
     // Création d'espace (bouton « + » de la rangée) : transmet au serveur,
     // refuse proprement en renvoyant l'URL hébergée.
     '/kybernos-cloud/space/create',

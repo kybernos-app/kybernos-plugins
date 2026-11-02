@@ -3,7 +3,8 @@
 //   source scripts/sandbox/env.sh && node scripts/check-join-live.mjs [--shots /tmp/shots]
 //
 // What is real: the DSH page, the sidebar footer and its menu, the dialog, every click and key (CDP input events), the host routes of kybernos-cloud
-// (`/kybernos-cloud/invitation/preview`, `/accept`, `space/active`, `space/applied`), the state file, the model route DSH rewrites on a switch.
+// (`/kybernos-cloud/invitation/preview`, `/accept`), the state file. A team's own DSH is NOT started: the page's `team-dsh/open` is answered in the page (a started DSH is
+// scripts/check-team-dsh-live.mjs's) and `window.open` is recorded, never followed.
 // What is answered by this script: the Kybernos API, a fake started here on a local port (the sandbox is restarted with KYBERNOS_CLOUD_API and
 // KYBERNOS_CLOUD_STATE pointing at it, and a connected state file written in a throw-away name). It answers each invitation the way the real server's contract
 // does (docs: POST /v1/invitations/preview and /accept): a good one, a team without a plan, ONE 404 for used / expired / withdrawn / someone else's, a full team
@@ -78,6 +79,17 @@ try {
   live = await openLivePage({ width: 1400, height: 860 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
   const { page } = live
   const val = async (js) => { const r = await page.evalJs(js, 9000); return r.err !== undefined ? { err: r.err } : r.val }
+  // The page asks the host to open the joined team's DSH: answered here after a short wait (nothing is started), and the window it opens is recorded.
+  const teamOpen = { asked: [], delayMs: 500 }
+  await page.send('Fetch.enable', { patterns: [{ urlPattern: '*kybernos-cloud/team-dsh/open*' }] })
+  page.on('Fetch.requestPaused', (p) => {
+    let sent = {}
+    try { sent = JSON.parse(p.request.postData || '{}') } catch (e) { sent = {} }
+    teamOpen.asked.push(sent.workspace_id)
+    const answer = { ok: true, url: 'http://127.0.0.1:3301/', signed_url: 'http://127.0.0.1:3301/?token=NOT-A-REAL-TOKEN', port: 3301 }
+    setTimeout(() => page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify(answer)).toString('base64') }), teamOpen.delayMs)
+  })
+  await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__kbOpened = []; window.open = (u, n) => { window.__kbOpened.push({ u: String(u), n: String(n) }); return {} }` })
   const mouse = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 }) }
   const KEY_CODES = { Escape: 27, Enter: 13, Tab: 9 }
   const pressKey = async (k) => {
@@ -187,24 +199,25 @@ try {
   for (const [name, sel] of [['sentence', '[data-kb="join-who"]'], ['note', '[data-kb="join-sent-to"]'], ['title', '.kbc-title']]) ratios[name] = await contrastOf('[data-kb="join-team"] ' + sel)
   check('the dialog\'s text reads on its surface (contrast at least 4.5, ' + startScheme + ')', Object.values(ratios).every((v) => v !== null && v >= 4.5), ratios)
 
-  // 4. Join: accepted with the device token, the list read again, the plan read, then the ORDINARY switch (route rewritten, « Switching… » until DSH applies it).
+  // 4. Join: accepted with the device token, the list read again, the plan read, then the team's own DSH is opened (« Starting… » until the host answers); this DSH is not moved.
   fake.calls.length = 0
+  await val(`window.__kbOpened = []`)
   await press('[data-kb="join-accept"]')
   await until(() => exists('[data-kb="workspace-card-switching"]'), 8000)
   const early = await val(`(() => { const s = document.querySelector('[data-kb="workspace-card-switching"]'); const c = document.querySelector('[data-kb="workspace-card"] .kbfp-cardname'); return { text: s ? s.innerText : null, name: c ? c.innerText : null, dialog: !!document.querySelector('[data-kb="join-team"]') } })()`)
-  check('the dialog closes and the card says « Switching… » with the team just joined', early.text === 'Switching…' && early.name === 'Studio B' && early.dialog === false, early)
-  await shot('j-switching-' + startScheme)
+  check('the dialog closes and the card says « Starting… » while the joined team\'s DSH starts', early.text === 'Starting…' && early.dialog === false, early)
+  await shot('j-starting-' + startScheme)
   await until(gone('[data-kb="workspace-card-switching"]'), 15000)
   const accept = callsTo('/v1/invitations/accept')
   check('the acceptance went to the fake Kybernos once, with the device token as proof and the invitation token in the body only', accept.length === 1 && accept[0].auth === 'Bearer ' + DEVICE_TOKEN && JSON.stringify(JSON.parse(accept[0].body)) === JSON.stringify({ token: T.ok }) && accept[0].url === '/v1/invitations/accept', accept)
   const seq = fake.calls.map((c) => c.method + ' ' + c.path.replace(STUDIO.id, '{studio}'))
   const iAccept = seq.indexOf('POST /v1/invitations/accept')
-  check('then the list of teams and the new team\'s plan were read again, before the switch', iAccept >= 0 && seq.indexOf('GET /v1/workspaces') > iAccept && seq.indexOf('GET /v1/workspaces/{studio}/plan') > iAccept, seq.slice(0, 12))
-  const models = callsTo('/v1/models').filter((c) => c.ws === STUDIO.id)
-  check('the model route was rewritten for the new team (the catalogue was read in its name), so the next message is billed to it', models.length >= 1, fake.calls.filter((c) => c.path === '/v1/models').map((c) => c.ws))
+  check('then the list of teams and the new team\'s plan were read again, before the team was opened', iAccept >= 0 && seq.indexOf('GET /v1/workspaces') > iAccept && seq.indexOf('GET /v1/workspaces/{studio}/plan') > iAccept, seq.slice(0, 12))
+  const windows = (await val('window.__kbOpened')) || []
+  check('the team\'s own DSH was asked for once, by team, and its signed address opened in a window named after it', JSON.stringify(teamOpen.asked) === JSON.stringify([STUDIO.id]) && windows.length === 1 && windows[0].u === 'http://127.0.0.1:3301/?token=NOT-A-REAL-TOKEN' && windows[0].n === 'kybernos-team-' + STUDIO.id, { asked: teamOpen.asked, windows })
   const st = await status()
-  check('the host\'s state: Studio B is in the list and is the active team', st !== null && st.state.active_workspace_id === STUDIO.id && st.state.workspaces.map((w) => w.id).includes(STUDIO.id), st && st.state && st.state.active_workspace_id)
-  check('the card is back to normal with the new team', (await text('[data-kb="workspace-card"] .kbfp-cardname')) === 'Studio B' && !(await exists('[data-kb="workspace-card-switching"]')))
+  check('the host\'s state: Studio B is in the list and this DSH did not move onto it', st !== null && st.state.active_workspace_id !== STUDIO.id && st.state.workspaces.map((w) => w.id).includes(STUDIO.id), st && st.state && st.state.active_workspace_id)
+  check('the card is back to normal, still on the space this DSH serves', (await text('[data-kb="workspace-card"] .kbfp-cardname')) !== 'Studio B' && !(await exists('[data-kb="workspace-card-switching"]')))
   check('the invitation\'s token was in no address sent to the server', fake.calls.every((c) => !c.url.includes(T.ok)))
 
   // 5. A team that has no plan: joined, listed, and the person stays where they are, told.
@@ -216,10 +229,10 @@ try {
   await press('[data-kb="join-accept"]')
   await until(() => exists('[data-kb="foot-flash"]'), 8000)
   const flash = await text('[data-kb="foot-flash"]')
-  check('a team without a plan: the person is told it has none and where they still are', /You joined “Nova Labs”, which has no plan yet\. You are still in “Studio B”\./.test(flash || ''), flash)
+  check('a team without a plan: the person is told it has none and where they still are', /You joined “Nova Labs”, which has no plan yet\. You are still in “[^”]+”\./.test(flash || ''), flash)
   await sleep(800)
   const st2 = await status()
-  check('they stay in Studio B, the new team is in the list, and no switch was made (no catalogue read in its name)', st2.state.active_workspace_id === STUDIO.id && st2.state.workspaces.map((w) => w.id).includes(NOVA.id) && callsTo('/v1/models').every((c) => c.ws !== NOVA.id), { active: st2.state.active_workspace_id })
+  check('they stay where they were, the new team is in the list, and its DSH was not opened', st2.state.active_workspace_id === st.state.active_workspace_id && st2.state.workspaces.map((w) => w.id).includes(NOVA.id) && teamOpen.asked.every((id) => id !== NOVA.id), { active: st2.state.active_workspace_id, asked: teamOpen.asked })
   check('a member has no plan to choose: the notice offers no action', !(await exists('[data-kb="foot-flash-action"]')))
   await shot('j-noplan-' + startScheme)
 

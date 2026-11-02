@@ -273,18 +273,18 @@ try {
     assert.deepEqual(made.body.created, { id: NEWTEAM, name: 'Alpha crew', plan_key: 'none', activated: false }, JSON.stringify(made.body.created))
     ok('a new team with no plan is created but does not take over: the answer says it has no plan and was not activated')
   }
-  // 10. A team created with a plan (the server attached one) is activated, as before.
+  // 10. A team created with a plan (the server attached one) can answer: `activated` says so, and the page opens its own DSH. This DSH stays on the space it serves.
   {
     fake.workspaces = [{ id: PERSONAL, name: 'My workspace', personal: true, role: 'owner' }]
     await connect()
     fake.newTeamPlan = 'team'
     const made = await hit('/kybernos-cloud/space/create', 'POST', { name: 'Beta crew' })
     assert.equal(made.body.ok, true)
-    assert.equal(made.body.state.active_workspace_id, NEWTEAM, 'a team that has a plan becomes the active one')
+    assert.equal(made.body.state.active_workspace_id, PERSONAL, 'this DSH stays on its own space: the team has a DSH of its own')
     assert.equal(made.body.created.activated, true)
     assert.equal(made.body.created.plan_key, 'team')
     fake.newTeamPlan = null
-    ok('a new team that already has a plan becomes active, as before')
+    ok('a new team that already has a plan is marked as able to answer, and this DSH is not moved onto it')
   }
 
   // ── AC-15: two DSH of one computer ───────────────────────────────────────────────────────────────────

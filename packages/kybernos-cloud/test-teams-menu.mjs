@@ -27,7 +27,7 @@ const quotaSrc = block('// <quota-notice-text>', '// </quota-notice-text>')
 const teamsSrc = block('// <teams-menu:begin>', '// <teams-menu:end>')
 check('the three blocks are where the test expects them', faceSrc !== null && quotaSrc !== null && teamsSrc !== null)
 const lib = new Function(faceSrc + '\n' + quotaSrc + '\n' + teamsSrc + `
-return { INLINE_SPACES_MAX, spacesMenuMode, spaceIsPersonal, spaceIsAdmin, spaceHue, SPACE_HUES, SWITCH_WAIT_MIN_MS, SWITCH_WAIT_MAX_MS, switchPlan, switchState,
+return { INLINE_SPACES_MAX, spacesMenuMode, spaceIsPersonal, spaceIsAdmin, spaceHue, SPACE_HUES,
   planCardModel, spaceRowOf, spaceCueOf, PERSONAL_MEMORY_CUT, placeholderNext, quotaMeterOf, planDeEspace, subPanelBox, SUB_PANEL_WIDTH, railMenuBox, RAIL_MENU_WIDTH }`)()
 
 // The dictionary of one language, read from the source (the strings the page uses): French is the first block of client.js, English the last.
@@ -168,18 +168,6 @@ console.log('percent and bars only: the sentence of a window')
   void f
 }
 
-console.log('the wait on a switch: the footer says « switching » until DSH runs the new route')
-{
-  check('a route that already names the team, or a server with no model service: nothing to wait for', lib.switchPlan('current') === 'done' && lib.switchPlan('none') === 'done')
-  check('a route the host could not rewrite: said at once (the choice is kept, the billing is not)', lib.switchPlan('failed') === 'stale' && lib.switchPlan('not_written') === 'stale')
-  check('a route that was written (or an answer from an older host that says nothing): wait', lib.switchPlan('written') === 'wait' && lib.switchPlan(undefined) === 'wait')
-  check('applied: done, whatever the time', lib.switchState(true, 0) === 'done' && lib.switchState(true, 60000) === 'done')
-  check('not applied yet: wait, until the maximum', lib.switchState(false, 0) === 'wait' && lib.switchState(false, lib.SWITCH_WAIT_MAX_MS - 1) === 'wait')
-  check('not applied at the maximum: slow (the person is told to wait before sending)', lib.switchState(false, lib.SWITCH_WAIT_MAX_MS) === 'slow' && lib.switchState(null, lib.SWITCH_WAIT_MAX_MS) === 'slow')
-  check('DSH cannot say (null): a fixed minimum, then done', lib.switchState(null, 0) === 'wait' && lib.switchState(null, lib.SWITCH_WAIT_MIN_MS - 1) === 'wait' && lib.switchState(null, lib.SWITCH_WAIT_MIN_MS) === 'done')
-  check('the minimum is above the 2-3 s DSH takes to reload (measured in October), the maximum well above it', lib.SWITCH_WAIT_MIN_MS >= 3000 && lib.SWITCH_WAIT_MAX_MS >= 10000)
-}
-
 console.log('the composer\'s cues in a team space')
 {
   check('the personal space has none', lib.spaceCueOf(personalSpace, null, t) === null && lib.spaceCueOf(null, null, t) === null && lib.spaceCueOf(undefined, null, t) === null)
@@ -225,7 +213,6 @@ console.log('wiring in the source')
   must('the heading is read by the core plugin through window.__KB_SPACE_CUE__ (an accessor, null while a switch waits)', /Object\.defineProperty\(window, '__KB_SPACE_CUE__', \{ configurable: true, get: cueNow \}\)/ )
   check('no money in the strings of the bars', !/(winTeam|winYou|winAllowance|winLast|winBack|winFull|winPayment|winUsed): '[^']*[$€]/.test(source))
   must('the menu asks the host once when it opens, for the summary of its spaces', /callLocal\('\/spaces\/summary', 'GET'\)/)
-  must('the footer asks whether the route is applied, by the host\'s route, not by a fixed delay alone', /callLocal\('\/space\/applied', 'POST', \{ workspace_id: id \}\)/)
   must('the card cannot be opened while a switch waits, and says so', /disabled: switching !== null, 'aria-busy'/)
   const coreSrc = readFileSync(join(here, '..', 'kybernos-plugin', 'client.js'), 'utf8')
   check('the core plugin\'s new-chat heading takes the team\'s line and listens for a change of cue', /window\.__KB_SPACE_CUE__/.test(coreSrc) && /addEventListener\('kybernos:space-cue', later\)/.test(coreSrc))
@@ -233,7 +220,7 @@ console.log('wiring in the source')
 
 console.log('the words, in both languages')
 {
-  const keys = ['roleOwner', 'roleAdmin', 'roleMember', 'spaceMembers', 'spaceMembers1', 'spaceSwitching', 'spaceSwitchSlow', 'spaceRouteStale', 'winTeam', 'winYou', 'winAllowance', 'winLast', 'winBack', 'winFull',
+  const keys = ['roleOwner', 'roleAdmin', 'roleMember', 'spaceMembers', 'spaceMembers1', 'spaceSwitching', 'winTeam', 'winYou', 'winAllowance', 'winLast', 'winBack', 'winFull',
     'winPayment', 'winUsed', 'planManage', 'planAddCredits', 'cueMemory', 'cueMemoryOff', 'cueMemoryTip', 'cueMemoryOffTip', 'cueFolder', 'cuePlaceholder', 'cueHeading']
   const frStart = source.indexOf('      fr: {')
   const enStart = source.indexOf('      en: {')

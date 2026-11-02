@@ -1008,8 +1008,8 @@ clicks:
   « Create a team »), with 4 and 6 the top row stays « Switch team » and opens the full list next to the menu; the plan card by role and by state (member / admin ×
   normal / 75 % / used up with its time of return / a cap set by an admin: the Team bar for 30 days and the person's own 5 hours and 7 days, « Manage » for an owner or
   admin and « Add credits » only once the pool is used up, both through the console link, never a dollar, euro or credit amount, never a time of return for a window that
-  has room); the personal free card; a switch (real click on a row: the card says « Switching… » with the chosen team, busy and not pressable, no meter, until the host
-  has been asked and said the route is applied; a route the host could not rewrite is said at once); the cues of a team space (the memory pill in the team's colour, none
+  has room); the personal free card; a click on a team (real click on a row: the card says « Starting… », busy and not pressable, no meter, until the host has answered with the team's address,
+  which is opened in a window named after the team; this DSH keeps its own space; a DSH that could not be started is said in the notice); the cues of a team space (the memory pill in the team's colour, none
   in the personal space, a folder pill only when `state.space_folder` names a folder, « Message Acme… », « What is Acme working on? », in a conversation's dock too);
   the same in French (the page's language function is overridden for the check, DSH's stored language is never touched); the contrast of the small text and of the
   pill in both schemes, measured on what is really drawn (`data-ds-dark-theme` on the body is the truth, not the attribute the core plugin keeps); a phone at 390 px.
@@ -1036,7 +1036,7 @@ then Account, Upgrade and Subscribe return the replica's real answers (the stand
 payment and console-link POSTs (CDP `Fetch.continueRequest`) so that the host does not open a browser on your machine; do not press the
 stand-in's « Pay »: it changes the shared demo account's plan. « Disconnect » when done (it revokes the device on the server).
 
-### The delay of a team switch (measured on a sandbox, 2026-10-18)
+### The delay of a team switch (measured on a sandbox, 2026-10-18; historical: the switch is retired, a team has a DSH of its own)
 
 `setActiveSpace` rewrites the model route (`settings.mutate('llm-pi-ai', …)`) and a message sent before DSH runs the new route still carries the PREVIOUS team's
 `x-kybernos-workspace`. The host's `POST /kybernos-cloud/space/applied { workspace_id }` answers whether the RUNNING route names the space (it reads `settings.describe()`,
@@ -1050,8 +1050,8 @@ So `settings.mutate` returns once DSH has reloaded, and the window in which a me
 **Measured since** (two real accounts on a replica, a recording proxy in front of it, see « Two real accounts, end to end » below): every model request sent after a switch carried
 the NEW team's header, including one sent 1 ms after the host call started (it left 244 ms later, after the call answered) and one typed 80 ms after a click on a row; the host's
 `space/active` answered in about 0.2 s there. No request ever carried the previous team. What a switch did not stop then: a message typed in the OLD chat before the new chat opens
-(about 0.8 s after the click) is billed to the NEW team, and so is a turn already waiting for its model (its second request carries the new header). **Since** (« The active team follows the
-chat » below): the host refuses a switch while a reply is running, and the active team follows the chat on screen, so a chat is billed to the team of its folder.
+(about 0.8 s after the click) is billed to the NEW team, and so is a turn already waiting for its model (its second request carries the new header). **Since**: a DSH answers one space for good,
+so none of this can happen (the follow-the-chat switch and the turn guard that were added in between are retired too).
 
 ## Joining a team with an invitation link: `scripts/check-join-live.mjs`
 
@@ -1065,55 +1065,17 @@ The real DSH page, the real host routes of `kybernos-cloud` and a **fake Kyberno
 one, a full team (409 `seat_limit`: the link must stay valid), 429, an unexpected 500 and a server that hangs up; it records every request, so the checks say where the token went:
 only to the fake (the active server), in the body of a POST, never in an address, never in the sandbox's log, no device token on the public preview. Real clicks and keys: the
 row under « Create a team » (inline for 2 spaces, in the « Switch team » panel for 4), nothing sent before the click, junk and a non-invitation link refused in words, the preview card,
-« Join the team » then the ordinary switch (the card says « Switching… », the model route is rewritten in the new team's name), a team without a plan (the person stays, told),
+« Join the team » then the team's own DSH opens (the card says « Starting… », a window named after the team; nothing is switched in this DSH), a team without a plan (the person stays, told),
 every refusal with its sentence, the server's own page offered for the unexpected one, the guard of the routes with the sandbox's own session cookie (no Origin 403, foreign Origin 403,
 no cookie 401), both colour schemes (contrast), a phone at 390 px, French. Exit 0 / 1 / 3.
 
-## One working folder per team: `scripts/check-team-folder-live.mjs`
+## Retired live checks (2026-11-02)
 
-```bash
-source scripts/sandbox/env.sh && node scripts/check-team-folder-live.mjs [--shots <dir>]
-```
-
-The real DSH (its workspaces, its sidebar, its « New chat »), the real host routes of `kybernos-cloud` and the same fake Kybernos as the join check (`scripts/fake-kybernos.mjs`); the
-folders are made in the SANDBOX's own `~/Documents/Kybernos` (it refuses a `HOME` that is not the sandbox's). It restarts the sandbox pointed at the fake and restarts it signed out when
-it ends. On real clicks it proves: switching to a team makes `<Documents>/Kybernos/<Team>`, DSH has a workspace for it (the sidebar's « Workspaces N » grows) and a NEW chat is open in it
-(the new chat's workspace pill says the team's name, and the composer's folder pill appears by itself); **the control**: DSH's own « New chat », pressed in the team's chat, stays in the
-team's folder, which is what a switch back to Personal must not do; the switch back opens a new chat in the workspace the person had; two teams, two folders, two workspaces; a folder
-the person removed is made again at the same path; a team called `../../etc/passwd` gets ONE folder under the root (`etc passwd`) and nothing is made outside it; two teams called « Acme »
-get two folders; a team created without a plan has its folder and opens nothing, one created with a plan takes over and its chat opens; a team joined with an invitation link; an active
-team with no recorded folder gets one at the next page load and no chat opens; a disk that refuses (the root made read-only) leaves the switch working with no folder, no pill, no error, and
-the next page load makes the folder once the disk allows it. Not proven here: a chat that was already started keeping its folder (no model answers in the sandbox, so no message is
-sent: a session's folder is DSH's own rule). Exit 0 / 1 / 3.
-
-Since the active team follows the chat on screen, this check reads **facts that do not depend on which team is active a moment later**: the page reloads on the chat DSH reopens, and the
-follower then moves the active team to that chat's team, so a step that reloads reads the folder on disk and the host's `team_folders`, never « the active folder ». Two earlier failures
-that looked like flakiness were product bugs it found, and their tests are in `test-follow-chat.mjs` / `test-cloud-client.mjs` (a click inside the ~0.5 s before DSH lists the chat a switch
-opened was undone by the follower's first look at that chat) and `test-chat-space-host.mjs` (a catalogue import that outlived a profile refresh wrote back the list of teams it had read before,
-so a team added meanwhile vanished from the menu). The hero waits (`heroIs`) answer `true` / `false`: compare them with `=== true`.
-
-## The active team follows the chat: `scripts/check-follow-chat-live.mjs`
-
-```bash
-source scripts/sandbox/env.sh && node scripts/check-follow-chat-live.mjs [--shots <dir>]
-```
-
-The real DSH, the real host routes of `kybernos-cloud` and the fake Kybernos of the other team checks, which here ALSO plays the model (`POST /v1/chat/completions` on `scripts/fake-kybernos.mjs`: it
-records, for every model request, the team it was billed to (`x-kybernos-workspace`) and when it arrived and left, and `fake.model.delayMs` holds the agent's own request, not the title call).
-Real messages are sent, so each chat is a real one in the sidebar (its row carries the title DSH made from the model's REPLY: each chat gets a reply of its own; the model is `Kybernos Glm` in the
-picker). A page request is counted through a CDP `Fetch` interception of `space/for-folder` that stays on for the whole run; `blind.on` rewrites the host's answer to « nothing to follow », which is
-how the host's own safety net is tried alone. It proves: a chat opened from the sidebar switches the active team to the one that owns its folder (the card says « Switching… », ~0.4-1.1 s,
-the chat stays on screen and no new chat is created), a team to another team with no stop at Personal, a personal chat back to Personal, the page loaded on a team chat does the same, and
-opening the chat that is already on screen asks the host nothing; **the host alone** (the page told there is nothing to follow): a message typed in a team chat while Personal is active has its
-first model request billed to the team (the switch is made at claim time and the request waits for it), a message in a personal chat while a team is active is billed to Personal, and the first
-message of a NEW chat in a team's folder is billed to the team; the footer card catches up within the page's report interval (10 s). The blank Personal chat DSH keeps for a workspace vanishes from
-the sidebar when it is left, so « no new chat » is checked on the set of sessions, never their count. **No switch under a running reply**: the fake model holds the agent's request for 9 s
-(`fake.model.delayMs`), the host says a reply runs (`space/busy`), a click on another team in the menu is refused with the one sentence naming the team the reply runs in (Personal still
-active, no « Switching… »), the same refusal reaches a script that calls `space/active` with the page's cookie, every request of that reply carries the one team's header, and the same click
-switches once the reply ended; a chat of another team opened while a reply runs shows the notice where the person types (`[data-kb="cue-mismatch"]`), the switch happens by itself ~0.3 s
-after the last reply ends, and the message typed in the chat during the deferral is **billed to the team still active** (the exposure the report names, measured here). Not proven here:
-the memory cut of that first request (the end-to-end journeys carry the canary word), the real server's usage read (the e2e journeys), a missed `idle` event or a restart in the engine
-(`test-turn-guard-host.mjs` plays them with a fake registry). Exit 0 / 1 / 3.
+`scripts/check-team-folder-live.mjs` (a switch to a team registered its folder as a DSH workspace and opened a new chat in it) and `scripts/check-follow-chat-live.mjs` (the active
+team followed the chat on screen; no switch under a running reply) played behaviour that no longer exists: a team has a DSH of its own and nothing switches a DSH between spaces
+(`docs/dev/team-profiles-cadrage.md`, step 5). What they proved that still holds is played elsewhere: the folder rules (one safe segment, never outside the root, two teams of one name,
+a refusing disk) by `test-team-folder.mjs` and `test-team-folder-host.mjs`; the page asking for a team's folder once by `test-cloud-client.mjs`; the billing of a team's DSH by the
+two-account journey `j9` of `scripts/e2e-teams-run.sh`; a team's DSH opening from the menu by `check-team-switch-live.mjs` and `check-team-dsh-live.mjs`.
 
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 

@@ -128,15 +128,14 @@ export const run = async (ctx) => {
     await ctx.shot(g, 'j4-preview')
     await g.press('[data-kb="join-accept"]')
     await g.until(async () => !(await g.exists('[data-kb="join-team"]')), 15000)
-    await g.until(async () => { const c = await g.card(); return c && !c.switching && /E2E Alpha/.test(c.text.slice(0, 60)) }, 20000)
+    await g.until(async () => { const c = await g.card(); return c && !c.switching }, 60000) // « Starting… » while the team's own DSH starts
     await sleep(2500)
     const joined = (await S.call('GET', '/v1/workspaces', { cookie: B.cookie })).body
     const jl = Array.isArray(joined) ? joined : joined.workspaces
     check('B is a member of T1 on the server', jl.some((w) => w.id === t1 && w.role === 'member'), jl.map((w) => w.name + ':' + w.role))
-    check('DSH switched into the team (the card names it)', /E2E Alpha/.test(((await g.card()) || {}).text || ''), (await g.card()))
+    check('this DSH did not move (the card still names Personal) and the team has a DSH of its own, started', /Personal/.test(((await g.card()) || {}).text || '') && JSON.stringify(await ctx.hostOf('b')('GET', '/kybernos-cloud/team-dsh/list')).includes(t1), await g.card())
     const kyb = join(homeB, 'Documents', 'Kybernos')
     check('the team\'s folder exists in B\'s Documents/Kybernos', existsSync(join(kyb, 'E2E Alpha')), existsSync(kyb) ? readdirSync(kyb) : 'no Kybernos folder')
-    check('a folder pill is shown for the team', /Alpha/.test((await g.text('[data-kb="cue-folder"]')) || ''), await g.text('[data-kb="cue-folder"]'))
     await ctx.shot(g, 'j4-joined')
 
     // 4. the same link twice
@@ -181,7 +180,7 @@ export const run = async (ctx) => {
     await sleep(1000)
     await g.press('[data-kb="join-accept"]')
     await g.until(async () => !(await g.exists('[data-kb="join-team"]')), 15000)
-    await g.until(async () => { const c = await g.card(); return c && !c.switching && /E2E Beta/.test(c.text.slice(0, 60)) }, 20000)
+    await g.until(async () => { const c = await g.card(); return c && !c.switching }, 60000)
     const after = (await S.call('GET', '/v1/workspaces', { cookie: B.cookie })).body
     check('with a seat free again the same link works (B is in T2)', (Array.isArray(after) ? after : after.workspaces).some((w) => w.id === t2 && w.role === 'member'))
     await ctx.shot(g, 'j4-second-team')
