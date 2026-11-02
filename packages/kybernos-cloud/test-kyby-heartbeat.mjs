@@ -94,8 +94,10 @@ function fake (over = {}) {
       sc.st.running = false
       return { reason: 'idle', state: { ...sc.st }, output: [] }
     },
-    async cancel (req) { sc.calls.push(['cancel', req]); sc.st.running = false; return { accepted: true } }
+    async cancel (req) { sc.calls.push(['cancel', req]); sc.st.running = false; return { accepted: true } },
+    async updateQueue (req) { sc.calls.push(['updateQueue', req]); return { accepted: true } }
   }
+  if (over.noUpdateQueue === true) delete sc.updateQueue
   return sc
 }
 function rig (scOver, opts = {}) {
@@ -207,6 +209,37 @@ function rig (scOver, opts = {}) {
   })
   const out = await r.hb.tick()
   ok('the person\'s message waiting behind it cancels the wake-up, and wins', out === 'person' && r.sc.calls.some((c) => c[0] === 'cancel') && r.st.view().lastOutcome === 'person')
+  const names = r.sc.calls.map((c) => c[0])
+  ok('the cancelled turn keeps the person\'s message, which is steered right after the cancel so that its turn starts', names.indexOf('updateQueue') > names.indexOf('cancel') && r.sc.calls.some((c) => c[0] === 'updateQueue' && c[1].sessionId === SID && c[1].itemId === 'm9' && c[1].action.kind === 'steer'))
+}
+{
+  // An engine without `updateQueue` still ends the wake-up as « person » (the message then waits in the queue, as before).
+  let calls = 0
+  const r = rig({
+    noUpdateQueue: true,
+    state: (sc) => { calls += 1; return calls <= 3 ? { ...sc.st } : { ...sc.st, queue: [{ id: 'm9', placement: 'queued', rpcId: 'rpc-person-9', content: 'hi' }] } },
+    wait: (req, signal, sc) => new Promise((resolve, reject) => { signal.addEventListener('abort', () => reject(signal.reason ?? new Error('aborted')), { once: true }) })
+  })
+  ok('no updateQueue on this engine: the wake-up still ends as « person »', (await r.hb.tick()) === 'person' && r.sc.calls.some((c) => c[0] === 'cancel'))
+}
+{
+  // The person's turn starts behind the cancelled one: the first claim after the start is the wake-up's own, a claim by a later turn says it is over (the person's turn is not under its rules),
+  // and the wait for the cancelled turn to stop does not wait for the person's turn.
+  let calls = 0
+  let r = null
+  r = rig({
+    state: (sc) => {
+      calls += 1
+      if (calls === 2) r.hb.noteClaim(SID, 4)
+      if (calls > 60) return { ...sc.st, running: false }
+      if (calls <= 3) return { ...sc.st }
+      if (calls === 7) { r.hb.noteClaim(SID, 4); r.over1 = r.hb.isWake(SID); r.hb.noteClaim(SID, 5); r.over2 = r.hb.isWake(SID) }
+      return { ...sc.st, running: true, queue: [{ id: 'm9', placement: 'queued', rpcId: 'rpc-person-9', content: 'hi' }] }
+    },
+    wait: (req, signal, sc) => new Promise((resolve, reject) => { signal.addEventListener('abort', () => reject(signal.reason ?? new Error('aborted')), { once: true }) })
+  })
+  const out = await r.hb.tick()
+  ok('a claim by the wake-up\'s own turn changes nothing, a claim by a later turn ends its rules', out === 'person' && r.over1 === true && r.over2 === false && calls < 40)
 }
 {
   // Our own queued message does not count as the person's.
@@ -230,6 +263,15 @@ function rig (scOver, opts = {}) {
   const started = await r.hb.start({ manual: true })
   const stopped = await r.hb.stopNow()
   ok('a click during the start is honoured too', stopped.ok === true && (await started.finished) === 'stopped' && r.sc.calls.some((c) => c[0] === 'cancel'))
+}
+{
+  // The wake-up's own note, never read, is removed with the cancel so that it does not run at the next turn.
+  let sent = false
+  const r = rig({ prompt: async () => { sent = true; return { accepted: true } }, state: (sc) => ({ ...sc.st, running: false, queue: sent ? [{ id: 'o1', placement: 'queued', rpcId: REQUEST_PREFIX + 'z', content: TRIGGER_TEXT }] : [] }), wait: async () => { throw new Error('the watch must not begin') } })
+  const started = await r.hb.start({ manual: true })
+  await r.hb.stopNow()
+  await started.finished
+  ok('a stop removes the wake-up\'s own unread note from the queue', r.sc.calls.some((c) => c[0] === 'updateQueue' && c[1].itemId === 'o1' && c[1].action.kind === 'remove'))
 }
 {
   const r = rig({ prompt: async () => ({ ok: false, error: 'refused' }) })

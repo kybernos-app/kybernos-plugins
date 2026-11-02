@@ -3,6 +3,7 @@
 //
 // The chat is the person's, so the person always wins: their message waiting in the queue cancels the wake-up's turn (the engine keeps the inbox, their message then runs), and no
 // wake-up starts while a turn runs, a question is open, a message waits, or within half an hour of their last words.
+// After a cancel the person's queued messages are steered so that their turn really starts (`cancelKeeping`); `updateQueue` is optional, an engine without it just keeps them queued.
 // A factory over injected helpers, so it is tested without DSH. Nothing here throws into a turn.
 import { REQUEST_PREFIX, TRIGGER_TEXT } from './kyby-heartbeat.mjs'
 
@@ -45,14 +46,36 @@ export function createHeartbeat (deps) {
     return { running: st.running === true, queue: Array.isArray(st.queue) ? st.queue : [], pendingInput: Array.isArray(st.pendingInput) ? st.pendingInput : [] }
   }
   const personQueued = (st) => st.queue.some((q) => !isOurs(q))
-  /** Cancels the turn (the engine keeps the inbox) and waits until it has really stopped, so that the turn's end hooks run while the wake-up is still marked. */
-  const stop = async (sc, sid) => {
+  /**
+   * Cancels the turn. The engine keeps the inbox but does not run it by itself once the turn is cancelled (measured on the real engine: the person's message stayed queued, nothing ran),
+   * so, while the cancelled turn still unwinds, the person's queued messages are steered (the engine then starts their turn behind the cancelled one: its own latch) and the
+   * wake-up's own note, if it was never read, is removed so that it does not run later.
+   */
+  const cancelKeeping = async (sc, sid) => {
+    let items = []
+    try { const st = await readState(sc, sid); if (st !== null) items = st.queue } catch (e) { items = [] }
     try { await sc.cancel({ sessionId: sid }) } catch (e) { /* already over */ }
+    if (typeof sc.updateQueue !== 'function') return
+    for (const q of items) {
+      if (q === null || typeof q !== 'object' || typeof q.id !== 'string') continue
+      try { await sc.updateQueue({ sessionId: sid, itemId: q.id, action: { kind: isOurs(q) ? 'remove' : 'steer' } }, new AbortController().signal) } catch (e) { /* read meanwhile, or the turn is already over */ }
+    }
+  }
+  /**
+   * Waits until the cancelled turn has really stopped, so that its end hooks run while the wake-up is still marked. It also ends when a later turn has claimed its inbox (`mine.over`:
+   * the person's message, started behind the cancelled turn, is not the wake-up's and must not wait for it).
+   */
+  const settleTurn = async (sc, sid, mine) => {
     const until = now() + settleMs
     while (now() < until) {
       await sleep(Math.min(500, pollMs))
+      if (mine.over === true) return
       try { const st = await readState(sc, sid); if (st === null || st.running !== true) return } catch (e) { return }
     }
+  }
+  const stop = async (sc, sid, mine) => {
+    await cancelKeeping(sc, sid)
+    await settleTurn(sc, sid, mine)
   }
 
   /** Watches one wake-up's turn (`mine` is its entry in `active`); returns the word that says how it ended. */
@@ -67,7 +90,7 @@ export function createHeartbeat (deps) {
         if (finished === true) return
         let st = null
         try { st = await readState(sc, sid) } catch (e) { st = null }
-        if (st !== null && personQueued(st)) { person = true; await stop(sc, sid); quit.abort(); return }
+        if (st !== null && personQueued(st)) { person = true; await stop(sc, sid, mine); quit.abort(); return }
       }
     })()
     let reason = 'error'
@@ -78,10 +101,10 @@ export function createHeartbeat (deps) {
     finished = true
     await polling.catch(() => null)
     if (person === true) return 'person'
-    if (mine.stopped === true) { await stop(sc, sid); return 'stopped' }
+    if (mine.stopped === true) { await settleTurn(sc, sid, mine); return 'stopped' }
     if (reason === 'idle') return 'done'
-    if (reason === 'input-required') { await stop(sc, sid); return 'blocked' }
-    if (reason === 'timeout') { await stop(sc, sid); return 'time' }
+    if (reason === 'input-required') { await stop(sc, sid, mine); return 'blocked' }
+    if (reason === 'timeout') { await stop(sc, sid, mine); return 'time' }
     return 'error'
   }
 
@@ -127,7 +150,7 @@ export function createHeartbeat (deps) {
             await sleep(Math.min(300, pollMs))
           }
           // « Stop » clicked before the watch began: the turn that just started is cancelled, there is nothing to watch.
-          if (mine.stopped === true) { await stop(sc, sid); outcome = 'stopped'; return outcome }
+          if (mine.stopped === true) { await stop(sc, sid, mine); outcome = 'stopped'; return outcome }
           outcome = await watch(sc, sid, record.boxMin * 60 * 1000, mine)
           return outcome
         } catch (e) { return 'error' } finally {
@@ -157,19 +180,23 @@ export function createHeartbeat (deps) {
         const sc = controller()
         if (sc === null) return { ok: false, error: 'sessions_unavailable' }
         mine.stopped = true
-        try { await sc.cancel({ sessionId: mine.sessionId }) } catch (e) { /* already over */ }
+        await cancelKeeping(sc, mine.sessionId)
         if (mine.quit !== undefined) mine.quit.abort()
         return { ok: true }
       } catch (e) { return { ok: false, error: 'error' } }
     },
     /** Kaby's session id while one of its wake-ups is running, else null. The gate and the prompt ask this. */
     runningSession () { return active !== null ? active.sessionId : null },
-    isWake (sid) { return active !== null && typeof sid === 'string' && sid === active.sessionId },
-    /** A turn of Kaby's chat claimed its inbox: the first claim after the wake-up started is the wake-up's own, any other is the person's words (or DSH's notes: the cost of a doubt is half an hour of calm). */
-    noteClaim (sid) {
+    isWake (sid) { return active !== null && active.over !== true && typeof sid === 'string' && sid === active.sessionId },
+    /**
+     * A turn of Kaby's chat claimed its inbox: the first claim after the wake-up started is the wake-up's own (its turn number is kept), any other is the person's words (or DSH's notes: the
+     * cost of a doubt is half an hour of calm). A claim by a LATER turn says the wake-up's own is over: the person's message started behind it, and it is not under the wake-up's rules.
+     */
+    noteClaim (sid, turn) {
       try {
         if (typeof sid !== 'string' || sid !== deps.pointer()) return
-        if (active !== null && active.claimed === false) { active.claimed = true; return }
+        if (active !== null && active.claimed === false) { active.claimed = true; active.turn = turn; return }
+        if (active !== null && Number.isFinite(turn) && Number.isFinite(active.turn) && turn > active.turn) active.over = true
         store.personSpoke(now())
       } catch (e) { /* a note is never worth a turn */ }
     },
