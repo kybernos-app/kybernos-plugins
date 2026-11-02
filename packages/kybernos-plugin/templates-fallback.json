@@ -1,7 +1,7 @@
 {
  "schema": "kybernos.templates/1",
- "version": 9,
- "updatedAt": "2026-11-01T21:47:45Z",
+ "version": 16,
+ "updatedAt": "2026-11-02T00:06:50Z",
  "locale": "en",
  "imageBase": "shelf/",
  "groups": [
@@ -272,487 +272,265 @@
    }
   },
   {
-   "id": "doc_report",
-   "type": "doc",
-   "name": "Quarterly report",
-   "tag": "Business",
-   "line": "Two columns, a chart and a pull quote.",
-   "meta": "4 pages",
-   "prompt": "Write a 4-page quarterly report titled 'Quarterly report' with a monthly revenue bar chart, two text columns and a pull quote.",
-   "image": {
-    "src": "doc_report.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Quarterly report template preview",
-    "large": "large/doc_report.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "doc_brief",
-   "type": "doc",
-   "name": "Project brief",
-   "tag": "Team",
-   "line": "Goal, scope and timeline on one page.",
-   "meta": "1 page",
-   "prompt": "Write a one-page project brief titled 'Project brief' with the sections Goals, Scope and Timeline, three bullets each.",
-   "image": {
-    "src": "doc_brief.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Project brief template preview",
-    "large": "large/doc_brief.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "doc_notes",
-   "type": "doc",
-   "name": "Meeting notes",
-   "tag": "Team",
-   "line": "Decisions, action items and owners.",
-   "meta": "1 page",
-   "prompt": "Write one page of meeting notes titled 'Meeting notes', dated 13 March 2025, with the attendees and the action items with an owner each.",
-   "image": {
-    "src": "doc_notes.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Meeting notes template preview",
-    "large": "large/doc_notes.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "doc_letter",
-   "type": "doc",
-   "name": "Cover letter",
-   "tag": "Career",
-   "line": "A clean letter with your address and signature.",
-   "meta": "1 page",
-   "prompt": "Write a one-page cover letter to Ms Rivera for a product manager role, with my address at the top right and my signature.",
-   "image": {
-    "src": "doc_letter.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Cover letter template preview",
-    "large": "large/doc_letter.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "doc_resume",
-   "type": "doc",
-   "name": "Resume",
-   "tag": "Career",
-   "line": "A sidebar for skills, a column for experience.",
-   "meta": "1 page",
-   "prompt": "Write a one-page resume for Alex Moreau, product designer, with a photo, a skills sidebar and a column of experience.",
-   "image": {
-    "src": "doc_resume.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Resume template preview",
-    "large": "large/doc_resume.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
    "id": "doc_proposal",
    "type": "doc",
-   "name": "Proposal",
+   "kind": "prompt",
+   "name": "Client proposal",
    "tag": "Business",
-   "line": "A cover block, scope and a price box.",
-   "meta": "6 pages",
-   "prompt": "Write a 6-page proposal titled 'Website redesign proposal' with a cover, the scope and a price box.",
-   "image": {
-    "src": "doc_proposal.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Proposal template preview",
-    "large": "large/doc_proposal.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "line": "Write a client proposal with scope, timeline and three price options",
+   "meta": "Prompt",
+   "prompt": "Write a client proposal as a .docx file. First ask me about the client, the problem to solve, the deliverables, the timeline and my rates; if I have none, use an invented client and label the figures as sample. Structure: a cover, a one-paragraph summary, the scope with what is not included, a timeline table, three price options (essential, standard, premium) in a table, terms and next steps. About 4 pages. Check that the totals add up and that names and dates match throughout, then give me the .docx."
   },
   {
-   "id": "doc_newsletter",
+   "id": "doc_onboarding",
    "type": "doc",
-   "name": "Newsletter",
-   "tag": "Marketing",
-   "line": "A masthead, a hero picture, three columns.",
-   "meta": "2 pages",
-   "prompt": "Write a 2-page newsletter called 'The Weekly' with a hero picture and three short articles headed News, Team and Events.",
-   "image": {
-    "src": "doc_newsletter.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Newsletter template preview",
-    "large": "large/doc_newsletter.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "doc_contract",
-   "type": "doc",
-   "name": "Service agreement",
-   "tag": "Legal",
-   "line": "Numbered clauses and two signature lines.",
-   "meta": "3 pages",
-   "prompt": "Write a 3-page service agreement with numbered clauses and two signature lines.",
-   "image": {
-    "src": "doc_contract.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Service agreement template preview",
-    "large": "large/doc_contract.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "doc_press",
-   "type": "doc",
-   "name": "Press release",
-   "tag": "Comms",
-   "line": "A headline, a quote and a contact block.",
-   "meta": "1 page",
-   "prompt": "Write a one-page press release headed 'For immediate release' with a headline, a quote and a contact block.",
-   "image": {
-    "src": "doc_press.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Press release template preview",
-    "large": "large/doc_press.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_summary",
-   "type": "sheet",
-   "name": "Monthly summary",
-   "tag": "Finance",
-   "line": "Totals per month, with a chart.",
-   "meta": "3 tabs",
-   "prompt": "Build a monthly summary sheet, January to June, with revenue, expenses and profit per month, a total row and a column chart.",
-   "image": {
-    "src": "sheet_summary.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Monthly summary template preview",
-    "large": "large/sheet_summary.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_budget",
-   "type": "sheet",
-   "name": "Budget tracker",
-   "tag": "Finance",
-   "line": "Planned against actual, with the gap in colour.",
-   "meta": "2 tabs",
-   "prompt": "Build a budget tracker with the categories Housing, Food, Transport, Utilities and Savings, planned against actual, and a progress bar for each.",
-   "image": {
-    "src": "sheet_budget.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Budget tracker template preview",
-    "large": "large/sheet_budget.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_invoices",
-   "type": "sheet",
-   "name": "Invoice list",
-   "tag": "Finance",
-   "line": "Who owes what, with a status on every line.",
-   "meta": "1 tab",
-   "prompt": "Build an invoice list with the invoice number, client, amount and a coloured status: Paid, Due or Overdue.",
-   "image": {
-    "src": "sheet_invoices.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Invoice list template preview",
-    "large": "large/sheet_invoices.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_inventory",
-   "type": "sheet",
-   "name": "Stock levels",
-   "tag": "Operations",
-   "line": "Quantities per product, low stock highlighted.",
-   "meta": "2 tabs",
-   "prompt": "Build a stock sheet with the product, SKU, quantity and reorder level, and highlight the products that are low.",
-   "image": {
-    "src": "sheet_inventory.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Stock levels template preview",
-    "large": "large/sheet_inventory.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_gantt",
-   "type": "sheet",
-   "name": "Project plan",
-   "tag": "Operations",
-   "line": "Tasks on a weekly grid, owners alongside.",
-   "meta": "1 tab",
-   "prompt": "Build a project plan with tasks and owners and a bar for each task across the weeks W1 to W8.",
-   "image": {
-    "src": "sheet_gantt.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Project plan template preview",
-    "large": "large/sheet_gantt.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_regions",
-   "type": "sheet",
-   "name": "Sales by region",
+   "kind": "prompt",
+   "name": "Onboarding guide",
    "tag": "Business",
-   "line": "A heat map: darker means stronger sales.",
-   "meta": "2 tabs",
-   "prompt": "Build a sales-by-region sheet with North, South, East and West by quarter, colour-scaled like a heat map.",
-   "image": {
-    "src": "sheet_regions.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Sales by region template preview",
-    "large": "large/sheet_regions.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "line": "Prepare a 30-day onboarding guide for a new hire",
+   "meta": "Prompt",
+   "prompt": "Write a 30-day onboarding guide as a .docx file. First ask me for the role, the team, the tools they will use and the people they will meet; if I have none, use an invented role and company and label them as sample. Structure: a welcome page, week-by-week goals, a first-day checklist, a who-to-ask table, a glossary and a 30-day check-in with three questions for the manager. Plain, friendly language, about 5 pages, headings and page numbers, then give me the .docx."
   },
   {
-   "id": "sheet_expenses",
+   "id": "doc_lesson",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Lesson plan",
+   "tag": "Education",
+   "line": "Write a 45-minute lesson plan with an activity and a quick quiz",
+   "meta": "Prompt",
+   "prompt": "Write a lesson plan as a .docx file. First ask me for the subject, the age or level, the learning objective and the time available; if I have none, use a sample topic and label it as sample. Structure: objectives written as what students will be able to do, materials, a timed sequence (hook, teaching, guided practice, independent task), differentiation for struggling and advanced students, a 5-question exit ticket with answers, and homework. Check that the timings add up to the lesson length. About 2 pages, then give me the .docx."
+  },
+  {
+   "id": "doc_studyguide",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Study guide",
+   "tag": "Education",
+   "line": "Turn my course notes into a study guide with practice questions",
+   "meta": "Prompt",
+   "prompt": "Turn my notes into a study guide as a .docx file. First ask me to attach or paste the notes and tell me the exam format. Use only what the notes say, and flag anything missing or unclear instead of filling it in. Structure: a one-page summary, a table of key terms with definitions, the main ideas as short sections, 10 practice questions of mixed difficulty, then an answer key on the last page. Check every answer against the notes, then give me the .docx."
+  },
+  {
+   "id": "doc_researchproposal",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Research proposal",
+   "tag": "Research",
+   "line": "Draft a research proposal with question, method and timeline",
+   "meta": "Prompt",
+   "prompt": "Draft a research proposal as a .docx file. First ask me for my field, the question I want to answer, the data or participants I could use and my deadline; if I have none, use a sample question and label it as sample. Structure: title, a 150-word abstract, background, research question and hypotheses, method, ethics and risks, a timeline table by month and expected results. Cite nothing you cannot name: mark every reference still to find as [to add]. About 4 pages, then give me the .docx."
+  },
+  {
+   "id": "doc_litreview",
+   "type": "doc",
+   "kind": "prompt",
+   "name": "Literature review",
+   "tag": "Research",
+   "line": "Write a literature review using only the sources I give you",
+   "meta": "Prompt",
+   "prompt": "Write a literature review section as a .docx file. First ask me for the topic, the sources (attach them or paste their abstracts) and the citation style. Use only those sources and never invent a reference. Group them by theme rather than one by one, compare their methods and findings, point out agreements and contradictions, and end with the gap my work addresses. Add the reference list in my style and a table of sources by theme. Check every claim against its source, then give me the .docx and a list of anything you could not verify."
+  },
+  {
+   "id": "sheet_irr",
    "type": "sheet",
-   "name": "Expense report",
-   "tag": "Finance",
-   "line": "Receipts by date, sorted by category, summed at the bottom.",
-   "meta": "1 tab",
-   "prompt": "Build an expense report with the date, category, amount and receipt for each line, and the total at the bottom.",
-   "image": {
-    "src": "sheet_expenses.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Expense report template preview",
-    "large": "large/sheet_expenses.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_attendance",
-   "type": "sheet",
-   "name": "Attendance tracker",
-   "tag": "People",
-   "line": "Names down the side, days across, one tick each.",
-   "meta": "1 tab",
-   "prompt": "Build an attendance tracker with the names down the side, the days across, a tick for present and A for absent.",
-   "image": {
-    "src": "sheet_attendance.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Attendance tracker template preview",
-    "large": "large/sheet_attendance.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "sheet_timesheet",
-   "type": "sheet",
-   "name": "Timesheet",
-   "tag": "People",
-   "line": "Hours per person, per day, with weekly totals.",
-   "meta": "1 tab",
-   "prompt": "Build a weekly timesheet with the names, the hours from Monday to Friday and a total column.",
-   "image": {
-    "src": "sheet_timesheet.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Timesheet template preview",
-    "large": "large/sheet_timesheet.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "dash_overview",
-   "type": "dashboard",
-   "name": "Business overview",
+   "kind": "prompt",
+   "name": "Investment return calculator",
    "tag": "Business",
-   "line": "KPI tiles, a trend line and the sales mix.",
-   "meta": "6 charts",
-   "prompt": "Build a business overview dashboard: four KPI tiles (Revenue $248K, Orders 3,842, Growth +12.4%, Returns 1.8%), a monthly revenue line chart and a sales-by-channel donut.",
+   "line": "Calculate IRR and payback for a project's cash flows",
+   "meta": "Prompt",
+   "prompt": "Build an investment return spreadsheet. First ask me for the upfront cost, the expected cash flow of each year (up to 10) and my discount rate; if I have none, use sample figures and label them as sample. Make one inputs tab and one results tab with live formulas for IRR, NPV, simple and discounted payback, and a chart of cumulative cash flow. Add a scenario cell that scales every cash flow by -20%, 0% or +20%. Cross-check the key results with an independent calculation, tell me what you could not verify, and say in two lines whether the project clears my rate."
+  },
+  {
+   "id": "sheet_runway",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Cash runway forecast",
+   "tag": "Business",
+   "line": "Forecast 12 months of cash with best and worst cases",
+   "meta": "Prompt",
+   "prompt": "Build a 12-month cash forecast. First ask me for the opening balance, monthly revenue, fixed and variable costs and any one-off payments; if I have none, use sample figures and label them as sample. Put the inputs in one tab, with a dropdown that switches between base, best and worst case, and the monthly balance in another, with live formulas. Add a chart of the balance, highlight in red any month below zero, and show how many months of runway remain. Cross-check the key results with an independent calculation, tell me what you could not verify, and summarise the three cases in three lines."
+  },
+  {
+   "id": "sheet_gradebook",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Weighted gradebook",
+   "tag": "Education",
+   "line": "Track class grades with weighted categories and letter marks",
+   "meta": "Prompt",
+   "prompt": "Build a gradebook for one class. First ask me for the categories and their weights (for example homework, quizzes, exam), the number of assignments and the grade scale; if I have none, use five students with invented names and label them as sample. One row per student, one column per assignment, live formulas for each category average, the weighted final grade and the letter mark from a lookup table. Colour grades below the pass mark, add the class average and a distribution chart. Check that the weights add up to 100%, cross-check the final grades with an independent calculation and tell me what you could not verify."
+  },
+  {
+   "id": "sheet_study_week",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Study-week planner",
+   "tag": "Education",
+   "line": "Split my weekly study hours across courses by exam date and difficulty",
+   "meta": "Prompt",
+   "prompt": "Build a study planner spreadsheet. First ask me for my courses, each exam date, how hard I find each one (1 to 5) and how many hours I can study per week; if I have none, use five courses and label them as sample. With formulas, work out how many hours each course gets per week, weighted by difficulty and by how close its exam is, and lay them out on a Monday to Sunday grid. Check that the grid never exceeds my weekly hours, add a countdown in days to each exam and a chart of hours per course, and cross-check the totals independently."
+  },
+  {
+   "id": "sheet_survey",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Survey results analysis",
+   "tag": "Research",
+   "line": "Summarise survey answers with statistics and charts",
+   "meta": "Prompt",
+   "prompt": "Analyse survey results in a spreadsheet. First ask me to attach or paste the responses (CSV or table) and tell me which questions are scales and which are choices; if I have none, create 40 invented responses and label them as sample. Keep the raw data on one tab, untouched. On another tab use formulas for response counts, mean, median and standard deviation per scale question, the share of each choice, and a comparison between two groups I name. Add one chart per question, list the data issues you found (blanks, outliers) and write three plain-language findings. Cross-check the statistics with an independent calculation."
+  },
+  {
+   "id": "sheet_litmatrix",
+   "type": "sheet",
+   "kind": "prompt",
+   "name": "Literature matrix",
+   "tag": "Research",
+   "line": "Compare the papers I read in one literature matrix",
+   "meta": "Prompt",
+   "prompt": "Build a literature review matrix. First ask me for my research question and the papers to include (titles, DOIs or text I paste); never invent a paper or a figure, and write 'not stated' where a paper does not say. One row per paper: year, method, sample, main finding, limitation and a relevance score from 1 to 5. Add filters, a count per method with formulas, a chart of papers per year and a gap tab listing what none of the papers covers. Check that every row is filled and tell me anything you could not verify."
+  },
+  {
+   "id": "dashboard_agency",
+   "type": "dashboard",
+   "name": "Agency overview",
+   "tag": "Real estate",
+   "line": "Listings, the sales pipeline, viewings and mandates, from your own table.",
+   "meta": "9 widgets · your Tables data",
+   "prompt": "Make a dashboard for my real-estate agency from my own table in Tables (the Real estate template makes one, with sample rows). Ask me which table holds my listings and which one my sales, then show me the plan before you write it: active listings, open sales value, viewings to run, mandates ending soon, properties by status, the sales pipeline by stage, leads by source and the next follow-ups. If I have no data yet, use the sample rows and say they are a sample.",
    "image": {
-    "src": "dash_overview.webp",
+    "src": "dashboard_agency.webp",
     "width": 720,
     "height": 450,
-    "alt": "Business overview template preview",
-    "large": "large/dash_overview.webp",
+    "alt": "A real-estate dashboard: four figure cards, a donut of properties by status, the sales pipeline by stage, leads by source and the next viewings and mandates.",
+    "large": "large/dashboard_agency.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "dash_pipeline",
+   "id": "dashboard_shop",
    "type": "dashboard",
-   "name": "Sales pipeline",
-   "tag": "Sales",
-   "line": "Stages from lead to won, win rate and weekly sales.",
-   "meta": "5 charts",
-   "prompt": "Build a sales pipeline dashboard with the stages Lead, Qualified, Proposal and Won as columns of deal cards with amounts.",
+   "name": "Shop overview",
+   "tag": "E-commerce",
+   "line": "Paid revenue, orders to ship, low stock and customers at a glance.",
+   "meta": "10 widgets · your Tables data",
+   "prompt": "Make a dashboard for my online shop from my own tables in Tables (the E-commerce template makes them, with sample rows). Ask me which tables hold my orders, my products and my customers, then show me the plan before you write it: revenue from paid orders, orders to ship, low stock, repeat customers, orders by status, products by category, the next orders to ship, the stock to reorder, top products and orders by source. If I have no data yet, use the sample rows and say they are a sample.",
    "image": {
-    "src": "dash_pipeline.webp",
+    "src": "dashboard_shop.webp",
     "width": 720,
     "height": 450,
-    "alt": "Sales pipeline template preview",
-    "large": "large/dash_pipeline.webp",
+    "alt": "An online-shop dashboard: revenue, orders to ship, low stock and customers as cards, orders by status, products by category, the next orders to ship and the stock to reorder.",
+    "large": "large/dashboard_shop.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "dash_marketing",
+   "id": "dashboard_hiring",
    "type": "dashboard",
-   "name": "Marketing",
-   "tag": "Marketing",
-   "line": "Visits, channels and conversion in one view.",
-   "meta": "5 charts",
-   "prompt": "Build a marketing dashboard on a dark theme: visits by channel as bars, a conversion funnel and a campaign table.",
+   "name": "Hiring desk overview",
+   "tag": "Recruitment",
+   "line": "Open jobs, candidates in play, placements and client missions.",
+   "meta": "9 widgets · your Tables data",
+   "prompt": "Make a dashboard for my recruitment desk from my own tables in Tables (the Recruitment template makes them, with sample rows). Ask me which tables hold my jobs, my candidates and my client missions, then show me the plan before you write it: open jobs, candidates in play, candidates placed, the oldest open job, candidates by stage, missions by stage, where candidates come from, the next interviews and the jobs open the longest. If I have no data yet, use the sample rows and say they are a sample.",
    "image": {
-    "src": "dash_marketing.webp",
+    "src": "dashboard_hiring.webp",
     "width": 720,
     "height": 450,
-    "alt": "Marketing template preview",
-    "large": "large/dash_marketing.webp",
+    "alt": "A recruitment dashboard: open jobs, candidates in play and placed, the oldest open job, candidates and missions by stage, where candidates come from and the next interviews.",
+    "large": "large/dashboard_hiring.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "dash_finance",
+   "id": "dashboard_usage",
    "type": "dashboard",
-   "name": "Cash flow",
-   "tag": "Finance",
-   "line": "Money in and out by month, balance on top.",
-   "meta": "4 charts",
-   "prompt": "Build a cash flow dashboard: a balance of $184,260, money in and money out by month as two lines, and monthly totals as bars.",
+   "name": "AI usage and tokens",
+   "tag": "Usage",
+   "line": "Tokens per day, per model and per provider, and your busiest sessions.",
+   "meta": "8 widgets · your own usage",
+   "prompt": "Make a dashboard of my own AI usage: tokens per day stacked by model, the share of each provider, the tokens served from cache, tokens by model and my busiest sessions. Ask me how far back to look (14 days by default). Only tokens are stored, no money, so show tokens and say so. Show me the plan before you write it.",
    "image": {
-    "src": "dash_finance.webp",
+    "src": "dashboard_usage.webp",
     "width": 720,
     "height": 450,
-    "alt": "Cash flow template preview",
-    "large": "large/dash_finance.webp",
+    "alt": "A usage dashboard: tokens over 14 days, models used, cache read and sessions as cards, a stacked chart of tokens per day by model, a donut by provider, tokens by model and the busiest sessions.",
+    "large": "large/dashboard_usage.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "dash_support",
+   "id": "dashboard_heatmap",
    "type": "dashboard",
-   "name": "Support desk",
-   "tag": "Support",
-   "line": "Open tickets, satisfaction and response time.",
-   "meta": "5 charts",
-   "prompt": "Build a support desk dashboard: open tickets, a satisfaction score, a response time gauge and tickets by priority.",
+   "name": "Usage heatmap",
+   "tag": "Usage",
+   "line": "Four months of tokens as a heatmap, with sessions, active days and a favourite model.",
+   "meta": "8 widgets · your own usage",
+   "prompt": "Make a dashboard that tells me how I use my agents over the last 120 days: sessions, total tokens, active days, the models I use, the tokens served from cache, my favourite model, and a calendar heatmap of the tokens per day. Add one playful comparison of the total with a short novel. Show me the plan before you write it.",
    "image": {
-    "src": "dash_support.webp",
+    "src": "dashboard_heatmap.webp",
     "width": 720,
     "height": 450,
-    "alt": "Support desk template preview",
-    "large": "large/dash_support.webp",
+    "alt": "A usage overview: sessions, total tokens, active days, models used, tokens served from cache and the favourite model as cards, a calendar heatmap of 120 days of tokens, and a comparison with a short novel.",
+    "large": "large/dashboard_heatmap.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "dash_workload",
+   "id": "dashboard_automations",
    "type": "dashboard",
-   "name": "Team workload",
-   "tag": "People",
-   "line": "Who has how much on their plate this week.",
-   "meta": "3 charts",
-   "prompt": "Build a team workload dashboard with one bar per person showing the capacity used, with their portraits.",
+   "name": "Automations health",
+   "tag": "Automations",
+   "line": "Runs and failures per day, this week’s calendar and the latest runs.",
+   "meta": "9 widgets · your automations",
+   "prompt": "Make a dashboard of my automations: runs over the last 14 days with the failed ones in red, which automations run the most, what is planned this week as a calendar, the latest runs with a filter for the failed ones, and a list of the ones that failed last, never ran or are paused. Show me the plan before you write it.",
    "image": {
-    "src": "dash_workload.webp",
+    "src": "dashboard_automations.webp",
     "width": 720,
     "height": 450,
-    "alt": "Team workload template preview",
-    "large": "large/dash_workload.webp",
+    "alt": "An automations dashboard: runs in 14 days, automations, failing now and never run as cards, runs per day with the failed ones in red, a donut of runs by automation, the week as a calendar and the latest runs.",
+    "large": "large/dashboard_automations.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "dash_web",
+   "id": "dashboard_pipeline",
    "type": "dashboard",
-   "name": "Website analytics",
-   "tag": "Marketing",
-   "line": "Visitors against last period and the top pages.",
-   "meta": "4 charts",
-   "prompt": "Build a website analytics dashboard: 48.2K visitors, a visitors line against the last period, a world map and the top pages.",
+   "name": "Automation pipeline",
+   "tag": "Automations",
+   "line": "How a scheduled run travels to its files, with a live number on every step.",
+   "meta": "8 widgets · your automations",
+   "prompt": "Make a flow dashboard of my automations: a diagram from the schedule to the run, then succeeded or failed, then the files it made, with a live number on every step read from my automations; add a diagram of which automations fail, a chart of the hours they run, and cards for the active ones, the runs of the last 14 days and the ones planned this week. Show me the plan before you write it.",
    "image": {
-    "src": "dash_web.webp",
+    "src": "dashboard_pipeline.webp",
     "width": 720,
     "height": 450,
-    "alt": "Website analytics template preview",
-    "large": "large/dash_web.webp",
+    "alt": "A flow dashboard: a diagram from the schedule to the run, its success or failure and the files made, a live number on every step, a diagram of which automations fail and a chart of the hours they run.",
+    "large": "large/dashboard_pipeline.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
   },
   {
-   "id": "dash_ops",
+   "id": "dashboard_teams",
    "type": "dashboard",
-   "name": "Operations",
-   "tag": "Operations",
-   "line": "Uptime, latency and incidents at a glance.",
-   "meta": "5 charts",
-   "prompt": "Build an operations dashboard on a dark theme: uptime tiles at 99.9%, a latency chart and an incident list.",
+   "name": "Agent Teams",
+   "tag": "Teams",
+   "line": "My teams, the lessons they recorded and the skills they declare.",
+   "meta": "7 widgets · your Agent Teams",
+   "prompt": "Make a dashboard of my Agent Teams: how many teams and roles I have, the lessons each team has recorded, the skills each one declares, the skills installed, and a list of my teams with what each does. Show me the plan before you write it.",
    "image": {
-    "src": "dash_ops.webp",
+    "src": "dashboard_teams.webp",
     "width": 720,
     "height": 450,
-    "alt": "Operations template preview",
-    "large": "large/dash_ops.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "dash_people",
-   "type": "dashboard",
-   "name": "People and hiring",
-   "tag": "People",
-   "line": "Headcount, open roles and hiring progress.",
-   "meta": "4 charts",
-   "prompt": "Build a people dashboard: a headcount of 128, hiring progress rings by team and a team donut.",
-   "image": {
-    "src": "dash_people.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "People and hiring template preview",
-    "large": "large/dash_people.webp",
+    "alt": "An Agent Teams dashboard: teams defined, lessons recorded, skills installed and roles as cards, lessons per team and declared skills per team as bar charts, and the list of teams with what each does.",
+    "large": "large/dashboard_teams.webp",
     "largeWidth": 1280,
     "largeHeight": 800
    }
@@ -2209,652 +1987,244 @@
    }
   },
   {
-   "id": "auto_welcome",
+   "id": "auto_sales_monday",
    "type": "automation",
-   "name": "Welcome email",
-   "tag": "Sales",
-   "line": "When someone signs up, send them a welcome.",
-   "meta": "On sign-up",
-   "prompt": "When someone signs up, write a warm welcome email with the first steps and send it from Gmail, then add the person to the 'New users' list in Notion.",
-   "image": {
-    "src": "auto_welcome.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Welcome email template preview",
-    "large": "large/auto_welcome.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Weekly sales summary",
+   "tag": "Business",
+   "line": "Every Monday, summarise last week's sales in one page",
+   "meta": "Prompt",
+   "prompt": "Create an automation that summarises last week's sales every Monday at 8:00. First ask me where the numbers live (a file in my workspace or a connected app), who should get the summary and which figures matter. Steps: read last week's figures, compare them with the week before, write one page with the three biggest changes and a short explanation of each, save it as a file and notify me. Read-only: it never sends, changes or deletes anything. Show me the draft, wait for my yes, save it, then offer to run it once now."
   },
   {
-   "id": "auto_digest",
+   "id": "auto_invoice_chase",
    "type": "automation",
-   "name": "Daily digest",
-   "tag": "Team",
-   "line": "Every morning, summarise what changed and post it.",
-   "meta": "Every day",
-   "prompt": "Every day at 8:30, summarise what changed in my projects since yesterday and post it in #team on Slack.",
-   "image": {
-    "src": "auto_digest.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Daily digest template preview",
-    "large": "large/auto_digest.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Overdue invoice drafts",
+   "tag": "Business",
+   "line": "Draft a reminder for every overdue invoice, once a week",
+   "meta": "Prompt",
+   "prompt": "Create an automation that drafts payment reminders every Monday at 9:00. First ask me where my invoices are listed (a file or a connected app), how many days late counts as overdue and the tone I want. Steps: find the overdue invoices, write one polite reminder per client with the amount and the due date, and save them as drafts in one file. It must never send anything: approval stays on 'ask me first'. Show me the draft, wait for my yes, save it, then offer to run it once now."
   },
   {
-   "id": "auto_invoice",
+   "id": "auto_study_sunday",
    "type": "automation",
-   "name": "Invoice reminder",
-   "tag": "Finance",
-   "line": "When an invoice is a week late, email the client.",
-   "meta": "Every Monday",
-   "prompt": "Every Monday, look at the invoices in Gmail labelled 'To chase' that are more than 30 days old. For each one, write a short, polite reminder in the client's language and save it as a draft. Never send an e-mail yourself. Post the list of drafts in #finance.",
-   "image": {
-    "src": "auto_invoice.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Invoice reminder template preview",
-    "large": "large/auto_invoice.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Weekly study plan",
+   "tag": "Education",
+   "line": "Every Sunday evening, plan my study week from my deadlines",
+   "meta": "Prompt",
+   "prompt": "Create an automation that plans my study week every Sunday at 18:00. First ask me where my deadlines and exams are listed (a file or my calendar), how many hours I can study each day and which evenings are free. Steps: read the deadlines for the next 14 days, rank what is most urgent, write a day-by-day plan that fits my hours, save it as a file and notify me. Read-only: it never changes my calendar. Show me the draft, wait for my yes, save it, then offer to run it once now."
   },
   {
-   "id": "auto_lead",
+   "id": "auto_quiz_morning",
    "type": "automation",
-   "name": "Lead to CRM",
-   "tag": "Sales",
-   "line": "A new form answer becomes a contact and pings sales.",
-   "meta": "Webhook",
-   "prompt": "When the contact form is submitted, add the person as a contact in HubSpot with their message and tell #sales on Slack.",
-   "image": {
-    "src": "auto_lead.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Lead to CRM template preview",
-    "large": "large/auto_lead.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Morning quiz",
+   "tag": "Education",
+   "line": "Every weekday morning, quiz me on my notes",
+   "meta": "Prompt",
+   "prompt": "Create an automation that quizzes me every weekday at 7:30. First ask me which folder holds my notes and how many questions I want. Steps: pick the topics I was quizzed on least recently (keep a small log file), write 5 questions of mixed difficulty from my notes only, save the questions and the answers in separate files and notify me with the questions. Never state a fact that is not in my notes. Show me the draft, wait for my yes, save it, then offer to run it once now."
   },
   {
-   "id": "auto_review",
+   "id": "auto_papers_friday",
    "type": "automation",
-   "name": "Review responder",
-   "tag": "Support",
-   "line": "Drafts a reply to each new review and waits for your OK.",
-   "meta": "Every hour",
-   "prompt": "Every hour, check the new Google reviews, write a reply in our voice and save it as a draft for me to approve. Never post a reply yourself.",
-   "image": {
-    "src": "auto_review.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Review responder template preview",
-    "large": "large/auto_review.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "auto_social",
-   "type": "automation",
-   "name": "Social scheduler",
-   "tag": "Marketing",
-   "line": "Every Monday, three posts written and scheduled.",
-   "meta": "Every Monday",
-   "prompt": "Every Monday at 10:00, pick three ideas from my Notion 'Ideas' page, write one post per idea and schedule them in Buffer for the week.",
-   "image": {
-    "src": "auto_social.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Social scheduler template preview",
-    "large": "large/auto_social.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "auto_prep",
-   "type": "automation",
-   "name": "Meeting prep",
-   "tag": "Team",
-   "line": "A short brief lands in your inbox before each meeting.",
-   "meta": "Weekdays",
-   "prompt": "Every weekday at 7:30, read today's meetings in Google Calendar and email me a one-page brief with the notes from the last meeting with each person.",
-   "image": {
-    "src": "auto_prep.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Meeting prep template preview",
-    "large": "large/auto_prep.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "auto_expense",
-   "type": "automation",
-   "name": "Expense collector",
-   "tag": "Finance",
-   "line": "Receipts by email become rows in your sheet.",
-   "meta": "Every hour",
-   "prompt": "Every hour, when a new email with a receipt arrives under the 'Receipts' label, read the amount and date and add a row to my 'Expenses' Google Sheet.",
-   "image": {
-    "src": "auto_expense.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Expense collector template preview",
-    "large": "large/auto_expense.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "auto_backup",
-   "type": "automation",
-   "name": "Backup check",
-   "tag": "Operations",
-   "line": "Every night, check the backups and shout if one failed.",
-   "meta": "Every night",
-   "prompt": "Every night at 2:00, check that last night's backup finished and, if it did not, alert me in #ops on Slack with the error.",
-   "image": {
-    "src": "auto_backup.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Backup check template preview",
-    "large": "large/auto_backup.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "team_content",
-   "type": "team",
-   "name": "Content team",
-   "tag": "Marketing",
-   "line": "A lead with a researcher, a writer and a designer.",
-   "meta": "4 agents",
-   "prompt": "Create a content team: a lead, a researcher, a writer and a designer.",
-   "image": {
-    "src": "team_content.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Content team template preview",
-    "large": "large/team_content.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "team_support",
-   "type": "team",
-   "name": "Support desk",
-   "tag": "Support",
-   "line": "A lead and five specialists: triage, billing, technical.",
-   "meta": "6 agents",
-   "prompt": "Create a support desk team: a lead, a triage agent, a billing agent, a technical agent and two back-ups.",
-   "image": {
-    "src": "team_support.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Support desk template preview",
-    "large": "large/team_support.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "team_sales",
-   "type": "team",
-   "name": "Sales desk",
-   "tag": "Sales",
-   "line": "A prospector, a qualifier and a closer under one lead.",
-   "meta": "4 agents",
-   "prompt": "Create a sales team: a lead, a prospector, a qualifier and a closer.",
-   "image": {
-    "src": "team_sales.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Sales desk template preview",
-    "large": "large/team_sales.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "team_research",
-   "type": "team",
-   "name": "Research lab",
+   "kind": "prompt",
+   "name": "New papers digest",
    "tag": "Research",
-   "line": "Finds sources, reads them, checks the facts.",
-   "meta": "4 agents",
-   "prompt": "Create a research team: a lead, a web scout, an analyst and a fact checker.",
-   "image": {
-    "src": "team_research.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Research lab template preview",
-    "large": "large/team_research.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "line": "Every Friday, list new papers on my topic with a two-line summary",
+   "meta": "Prompt",
+   "prompt": "Create an automation that lists new papers on my topic every Friday at 16:00. First ask me for the topic, a few keywords, how far back to look and where to look (for example public preprint servers and journal pages). Steps: search the web, keep only items from the last 7 days, give each a title, link, date and a two-line summary of what its abstract says, mark any you could not open, save the list as a file and notify me. Read-only: it downloads and installs nothing. Show me the draft, wait for my yes, save it, then offer to run it once now."
   },
   {
-   "id": "team_finance",
+   "id": "auto_page_watch",
+   "type": "automation",
+   "kind": "prompt",
+   "name": "Page change watch",
+   "tag": "Research",
+   "line": "Check a web page every day and tell me when it changes",
+   "meta": "Prompt",
+   "prompt": "Create an automation that watches a web page and tells me when it changes. First ask me for the page address, what counts as a change that matters (a new date, a new row, a number) and when to check (by default every day at 9:00). Steps: read the page, compare it with the copy saved last time in a file and, if something that matters changed, write what changed in two lines with the old and new values and notify me. Otherwise stay silent. Read-only. Show me the draft, wait for my yes, save it, then offer to run it once now."
+  },
+  {
+   "id": "team_weekly_review",
    "type": "team",
-   "name": "Finance office",
-   "tag": "Finance",
-   "line": "Books, invoices and a forecast, reviewed by a lead.",
-   "meta": "4 agents",
-   "prompt": "Create a finance team: a lead, a bookkeeper, an invoicer and a forecaster.",
-   "image": {
-    "src": "team_finance.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Finance office template preview",
-    "large": "large/team_finance.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Weekly review team",
+   "tag": "Business",
+   "line": "A team that prepares my weekly business review",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that prepares my weekly business review. First interview me: which numbers matter, where they live (a file or a connected app), who reads the review and what 'done' looks like. Propose the roles, each owning a distinct part (for example a data reader, an analyst, a writer and a checker who verifies every number against its source), with the model for each. Wait for my yes, create the team in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job."
   },
   {
-   "id": "team_eng",
+   "id": "team_feedback",
    "type": "team",
-   "name": "Engineering squad",
-   "tag": "Engineering",
-   "line": "One writes the code, one reviews it, one tests it.",
-   "meta": "4 agents",
-   "prompt": "Create an engineering team: a tech lead, a coder, a reviewer and a tester.",
-   "image": {
-    "src": "team_eng.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Engineering squad template preview",
-    "large": "large/team_eng.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Customer feedback team",
+   "tag": "Business",
+   "line": "A team that turns customer feedback into a ranked fix list",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that turns customer feedback into a ranked list of fixes. First interview me: where the feedback comes from (a file or an export), what a good result looks like and who decides. Propose the roles (for example a reader that tags each comment, an analyst that groups themes and counts them, a prioritiser that ranks by impact and effort, a checker that samples comments against the tags), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job on invented comments labelled as sample."
   },
   {
-   "id": "team_hiring",
+   "id": "team_tutor",
    "type": "team",
-   "name": "Hiring team",
-   "tag": "People",
-   "line": "Sources candidates, screens them, books the interviews.",
-   "meta": "4 agents",
-   "prompt": "Create a hiring team: a lead, a sourcer, a screener and a scheduler.",
-   "image": {
-    "src": "team_hiring.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Hiring team template preview",
-    "large": "large/team_hiring.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Exam tutoring team",
+   "tag": "Education",
+   "line": "A team that tutors me for an exam: explain, quiz, verify",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that tutors me for an exam. First interview me: the subject, the exam date, what I find hard and how I like to learn. Propose the roles (for example a tutor that explains one idea at a time, a quiz-maker that asks questions from my notes, a checker that verifies every explanation and answer before I see it), each with its model. Wait for my yes, create the team in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first short session."
   },
   {
-   "id": "team_studio",
+   "id": "team_lessons",
    "type": "team",
-   "name": "Creative studio",
-   "tag": "Marketing",
-   "line": "Words, pictures and a final edit.",
-   "meta": "4 agents",
-   "prompt": "Create a creative studio: a lead, a copywriter, an illustrator and an editor.",
-   "image": {
-    "src": "team_studio.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Creative studio template preview",
-    "large": "large/team_studio.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Lesson-prep team",
+   "tag": "Education",
+   "line": "A team that prepares my lessons for the week",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that prepares my lessons for the week. First interview me: the subject, the level, the curriculum goals and the lessons I teach each day. Propose the roles (for example a planner that sequences the week, a writer that drafts activities and handouts, an assessor that makes the quizzes, a checker that confirms each lesson meets its stated goal), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job."
   },
   {
-   "id": "team_office",
+   "id": "team_research_check",
    "type": "team",
-   "name": "Executive office",
-   "tag": "Assistant",
-   "line": "Inbox, calendar and travel handled for you.",
-   "meta": "3 agents",
-   "prompt": "Create an executive assistant team for my inbox, calendar and travel.",
-   "image": {
-    "src": "team_office.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Executive office template preview",
-    "large": "large/team_office.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Research and fact-check team",
+   "tag": "Research",
+   "line": "A team that answers a research question and checks its sources",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that answers a research question and checks its sources. First interview me: the question, the depth I want, which sources count and what 'done' looks like. Propose the roles (for example a scout that finds sources, a reader that extracts the evidence, a fact-checker that confirms each claim against its source, a writer that drafts the answer with links), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small question."
   },
   {
-   "id": "skill_weekly",
-   "type": "skill",
-   "name": "Weekly report",
-   "tag": "Reporting",
-   "line": "Gathers updates, writes the summary, sends it on Friday.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that gathers my team's updates, summarises them and sends my weekly report on Friday.",
-   "image": {
-    "src": "skill_weekly.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Weekly report template preview",
-    "large": "large/skill_weekly.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "id": "team_peer_review",
+   "type": "team",
+   "kind": "prompt",
+   "name": "Peer-review team",
+   "tag": "Research",
+   "line": "A team of reviewers that critiques my draft paper before I submit",
+   "meta": "Prompt",
+   "prompt": "Create an Agent Team that reviews my draft paper the way a journal would. First interview me: my field, the target venue and which parts worry me. Propose the roles (for example a methods reviewer, a statistics reviewer, a writing reviewer and an editor who merges the three into one report ranked by severity), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it. It reports, it never rewrites my text."
   },
   {
    "id": "skill_minutes",
    "type": "skill",
-   "name": "Meeting minutes",
-   "tag": "Team",
-   "line": "Turns a recording into decisions and owners.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that turns a meeting recording into minutes: decisions, action items and owners.",
-   "image": {
-    "src": "skill_minutes.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Meeting minutes template preview",
-    "large": "large/skill_minutes.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Meeting minutes skill",
+   "tag": "Business",
+   "line": "A skill that turns meeting notes into decisions and owners",
+   "meta": "Prompt",
+   "prompt": "Create a skill called meeting-minutes. First ask me what good minutes look like for my team (sections, length, language). The skill takes pasted notes or a transcript and returns the decisions, the action items (owner, due date) and the open questions as a table, and writes 'owner missing' instead of guessing a name. Write SKILL.md with a clear description and when to use it, test it on an invented meeting, show me the result, then save it in my skills folder."
   },
   {
-   "id": "skill_triage",
+   "id": "skill_invoice_check",
    "type": "skill",
-   "name": "Email triage",
-   "tag": "Inbox",
-   "line": "Sorts the inbox, drafts replies, flags what is urgent.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that sorts my inbox, drafts replies and flags urgent mail.",
-   "image": {
-    "src": "skill_triage.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Email triage template preview",
-    "large": "large/skill_triage.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Invoice check skill",
+   "tag": "Business",
+   "line": "A skill that checks an invoice against its purchase order",
+   "meta": "Prompt",
+   "prompt": "Create a skill called invoice-check. First ask me which fields matter (supplier, lines, quantities, unit prices, tax rate) and what gap is acceptable. The skill compares an invoice with its purchase order (CSV or pasted lines) using a small script and lists every difference: missing line, wrong price, wrong total, wrong tax. It never approves a payment. Write SKILL.md and the script, test them on two invented documents with one planted error, show me the output, then save it in my skills folder."
   },
   {
-   "id": "skill_contract",
+   "id": "skill_rubric",
    "type": "skill",
-   "name": "Contract review",
-   "tag": "Legal",
-   "line": "Reads a contract and lists what to check before you sign.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that reads a contract and lists the risks and open questions before I sign.",
-   "image": {
-    "src": "skill_contract.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Contract review template preview",
-    "large": "large/skill_contract.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Rubric marking skill",
+   "tag": "Education",
+   "line": "A skill that marks short answers against my rubric",
+   "meta": "Prompt",
+   "prompt": "Create a skill called rubric-marking. First ask me for my rubric (criteria, points, what earns each level) and the question. The skill reads a student's answer and returns, for each criterion, the points and one sentence quoting the answer that justifies them, plus one comment for the student. It flags uncertain cases for me to decide and never gives a final grade alone. Write SKILL.md, test it on three invented answers (strong, average, weak), show me the output, then save it in my skills folder."
   },
   {
-   "id": "skill_notes",
+   "id": "skill_vocab",
    "type": "skill",
-   "name": "Release notes",
-   "tag": "Product",
-   "line": "Turns merged changes into notes your users can read.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that turns the merged changes into release notes my users can read.",
-   "image": {
-    "src": "skill_notes.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Release notes template preview",
-    "large": "large/skill_notes.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Vocabulary drill skill",
+   "tag": "Education",
+   "line": "A skill that drills a word list with spaced repetition",
+   "meta": "Prompt",
+   "prompt": "Create a skill called vocab-drill. First ask me which language I am learning, my level and where to keep my word list. The skill reads the list, picks the next 10 words with a small script that follows spaced-repetition boxes (a wrong answer comes back tomorrow, a right one in 2, 4, then 8 days), asks them one at a time and saves the results in a JSON file. Write SKILL.md and the script, test two sessions on an invented list of 15 words, show me the file, then save it in my skills folder."
   },
   {
-   "id": "skill_leads",
+   "id": "skill_paper_card",
    "type": "skill",
-   "name": "Lead research",
-   "tag": "Sales",
-   "line": "A short profile of a company before you call.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that researches a company and writes a short profile before a sales call.",
-   "image": {
-    "src": "skill_leads.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Lead research template preview",
-    "large": "large/skill_leads.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Paper card skill",
+   "tag": "Research",
+   "line": "A skill that turns a paper into a one-page summary card",
+   "meta": "Prompt",
+   "prompt": "Create a skill called paper-card. First ask me what I want on the card (for example question, method, sample, result, limits, relevance). The skill reads a paper (a PDF or pasted text) and fills the card, quoting a short passage and its page for each result, and writes 'not stated' rather than guessing a number. Write SKILL.md with a clear description and when to use it, test it on a short invented abstract, show me the card, then save it in my skills folder."
   },
   {
-   "id": "skill_translate",
+   "id": "skill_citations",
    "type": "skill",
-   "name": "Translation check",
-   "tag": "Language",
-   "line": "Compares a translation with the source and marks the gaps.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that checks a translation against its source and marks the gaps.",
-   "image": {
-    "src": "skill_translate.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Translation check template preview",
-    "large": "large/skill_translate.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Citation check skill",
+   "tag": "Research",
+   "line": "A skill that finds citations missing from a draft's references",
+   "meta": "Prompt",
+   "prompt": "Create a skill called citation-check. First ask me for my citation style (author-year or numbered). The skill takes a draft and its reference list, matches them with a small script, and lists citations with no reference, references never cited and inconsistent years or spellings. It reports; it never edits my text. Write SKILL.md and the script, test them on an invented draft with three planted errors, show me the report, then save it in my skills folder."
   },
   {
-   "id": "skill_receipts",
-   "type": "skill",
-   "name": "Invoice extractor",
-   "tag": "Finance",
-   "line": "Reads an invoice and returns the amounts in a table.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that reads an invoice and returns the amounts in a table.",
-   "image": {
-    "src": "skill_receipts.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Invoice extractor template preview",
-    "large": "large/skill_receipts.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "skill_posts",
-   "type": "skill",
-   "name": "Social post writer",
-   "tag": "Marketing",
-   "line": "Three post options in your tone, from one idea.",
-   "meta": "3 steps",
-   "prompt": "Write a skill that writes three social posts in my tone from one idea.",
-   "image": {
-    "src": "skill_posts.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Social post writer template preview",
-    "large": "large/skill_posts.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "plugin_calendar",
+   "id": "plugin_cafe",
    "type": "plugin",
-   "name": "Calendar",
-   "tag": "Connect",
-   "line": "Plug Kaby into your calendar to read and plan events.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my calendar so it can read and plan my events.",
-   "image": {
-    "src": "plugin_calendar.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Calendar template preview",
-    "large": "large/plugin_calendar.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Café field pack",
+   "tag": "Business",
+   "line": "A plugin for a small café: stock, rota and customer messages",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a small café owner: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example keeping stock right, planning the weekly rota, answering customers) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
   },
   {
-   "id": "plugin_chat",
+   "id": "plugin_freelance",
    "type": "plugin",
-   "name": "Team chat",
-   "tag": "Connect",
-   "line": "Plug Kaby into your team chat to read and post messages.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my team chat so it can read channels and post messages.",
-   "image": {
-    "src": "plugin_chat.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Team chat template preview",
-    "large": "large/plugin_chat.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Freelance field pack",
+   "tag": "Business",
+   "line": "A plugin for a freelance consultant: proposals, invoices, follow-ups",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a freelance consultant: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example writing proposals, chasing invoices, following up with leads) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
   },
   {
-   "id": "plugin_mail",
+   "id": "plugin_teacher",
    "type": "plugin",
-   "name": "Email",
-   "tag": "Connect",
-   "line": "Plug Kaby into your inbox to read, draft and sort mail.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my email so it can read, draft and sort mail.",
-   "image": {
-    "src": "plugin_mail.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Email template preview",
-    "large": "large/plugin_mail.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Teacher field pack",
+   "tag": "Education",
+   "line": "A plugin for a secondary-school teacher: lessons, quizzes, feedback",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a secondary-school teacher: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example preparing lessons, making quizzes, giving feedback on work) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
   },
   {
-   "id": "plugin_files",
+   "id": "plugin_student",
    "type": "plugin",
-   "name": "Files",
-   "tag": "Connect",
-   "line": "Plug Kaby into your drive to find and organise files.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my files so it can find and organise documents.",
-   "image": {
-    "src": "plugin_files.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Files template preview",
-    "large": "large/plugin_files.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Student field pack",
+   "tag": "Education",
+   "line": "A plugin for a university student: revision, deadlines, notes",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a university student: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example revising for exams, tracking deadlines, turning lectures into notes) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
   },
   {
-   "id": "plugin_crm",
+   "id": "plugin_lab",
    "type": "plugin",
-   "name": "CRM",
-   "tag": "Connect",
-   "line": "Plug Kaby into your CRM to read and update contacts.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my CRM so it can read and update contacts and deals.",
-   "image": {
-    "src": "plugin_crm.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "CRM template preview",
-    "large": "large/plugin_crm.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Lab group field pack",
+   "tag": "Research",
+   "line": "A plugin for a lab group: papers, data checks, write-ups",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a research lab group: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example keeping up with papers, checking data and statistics, writing up results) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
   },
   {
-   "id": "plugin_pay",
+   "id": "plugin_market_research",
    "type": "plugin",
-   "name": "Payments",
-   "tag": "Connect",
-   "line": "Plug Kaby into your payments to read invoices and charges.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my payments account so it can read invoices and charges.",
-   "image": {
-    "src": "plugin_pay.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Payments template preview",
-    "large": "large/plugin_pay.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "plugin_maps",
-   "type": "plugin",
-   "name": "Maps",
-   "tag": "Connect",
-   "line": "Plug Kaby into your maps to plan routes and places.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my maps so it can plan routes and find places.",
-   "image": {
-    "src": "plugin_maps.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Maps template preview",
-    "large": "large/plugin_maps.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "plugin_help",
-   "type": "plugin",
-   "name": "Support inbox",
-   "tag": "Connect",
-   "line": "Plug Kaby into your help desk to read and answer tickets.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my support inbox so it can read and answer tickets.",
-   "image": {
-    "src": "plugin_help.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Support inbox template preview",
-    "large": "large/plugin_help.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
-  },
-  {
-   "id": "plugin_notes",
-   "type": "plugin",
-   "name": "Notes",
-   "tag": "Connect",
-   "line": "Plug Kaby into your notes to search and write them.",
-   "meta": "3 permissions",
-   "prompt": "Connect Kaby to my notes so it can search and write them.",
-   "image": {
-    "src": "plugin_notes.webp",
-    "width": 720,
-    "height": 450,
-    "alt": "Notes template preview",
-    "large": "large/plugin_notes.webp",
-    "largeWidth": 1280,
-    "largeHeight": 800
-   }
+   "kind": "prompt",
+   "name": "Market research field pack",
+   "tag": "Research",
+   "line": "A plugin for a market-research analyst: sources, surveys, reports",
+   "meta": "Prompt",
+   "prompt": "Create a plugin for a market-research analyst: a field of work for the setup wizard, with nothing to run. First ask me for two to five goals (for example gathering sources, analysing survey data, writing the report) and the languages to add. For each goal propose, from what really exists, the skills, teams and connectors that fit, and let me cut. A goal with nothing real behind it gets a 'soon' line, never an invented skill. Show me the pack in plain words, wait for my yes, write the draft, then tell me where to install it."
   }
  ]
 }
