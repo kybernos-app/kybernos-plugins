@@ -29,7 +29,7 @@ const from = src.indexOf(BEGIN)
 const to = src.indexOf(END)
 assert.ok(from >= 0 && to > from, 'client.js carries the <kb-open-guard> block')
 const block = src.slice(from + BEGIN.length, to)
-const { kbDashArrival, kbDashMayOpen } = new Function(block + '\nreturn { kbDashArrival, kbDashMayOpen }')()
+const { kbDashArrival, kbDashMayOpen, kbDashMemo, kbDashDecide, kbDashDismiss } = new Function(block + '\nreturn { kbDashArrival, kbDashMayOpen, kbDashMemo, kbDashDecide, kbDashDismiss }')()
 
 // ── A. arrival: the first reading opens only for a fresh write ───────────────────────────────────────────────────
 const NOW = 1000000
@@ -54,10 +54,50 @@ assert.ok(/setDash\(\(old\) => \(old === null \? old : null\)\)/.test(src), 'the
 ok('the pane never borrows another chat’s dashboard (strict + an explicit empty state)')
 
 // ── D. a close is seen, and the session key is cleared when the chat changes ────────────────────────────────────
-assert.ok(src.includes('PANEL_DISMISSED_AT'), 'the close is remembered (PANEL_DISMISSED_AT)')
+assert.ok(/kbDashDismiss\(memo, chat, at\)/.test(src), 'the close is remembered, per chat')
 assert.ok(/armCloseCheck\(/.test(src), 'the panel is checked shortly after opening, to see whether the person closed it')
-assert.ok(src.includes('kbDashMayOpen(WANT_OPEN_UNTIL, PANEL_DISMISSED_AT, at, Date.now())'), 'the open loop goes through the guard')
+assert.ok(src.includes('kbDashDecide(memo, chat, at, Date.now(), panelShown())'), 'the open loop goes through the guard')
 assert.ok(/const setSession = \(id\) => \{ SESSION_ID = typeof id === 'string' \? id : '' \}/.test(src), 'the session key is cleared, so the previous chat cannot be served')
 ok('a close is recorded, the timer respects it, and the session key is cleared')
+
+// ── E. the memory is per chat: going to another chat is not an arrival (person, 2026-11-02: it opened « tout le temps, quelle que soit la session ») ──
+{
+  const memo = kbDashMemo()
+  const T = 5_000_000
+  // chat A: the agent wrote 5 s ago and the panel is not on screen
+  assert.equal(kbDashDecide(memo, 'A', T - 5000, T, false), true, 'A: a fresh write opens the panel')
+  assert.equal(kbDashDecide(memo, 'A', T - 5000, T + 1500, true), false, 'A: once on screen it stays as it is')
+  // the person goes to chat B, whose dashboard was written last week
+  assert.equal(kbDashDecide(memo, 'B', T - 7 * 86400000, T + 6000, false), false, 'B: an old dashboard seen for the first time does not open the panel (it used to: the memory was one value for all chats)')
+  assert.equal(kbDashDecide(memo, 'B', T - 7 * 86400000, T + 7500, false), false, 'B: nor on the next reading')
+  // back to A, same write
+  assert.equal(kbDashDecide(memo, 'A', T - 5000, T + 12000, false), false, 'A again: the write was already seen, the panel the person left closed stays closed')
+  // the agent writes in A again
+  assert.equal(kbDashDecide(memo, 'A', T + 13000, T + 14000, false), true, 'A: a NEW write opens it')
+  // the person closes it: that write never comes back, in A
+  kbDashDismiss(memo, 'A', T + 13000)
+  assert.equal(kbDashDecide(memo, 'A', T + 13000, T + 16000, false), false, 'A: a close stays a close')
+  // … and the close in A says nothing about B
+  assert.equal(kbDashDecide(memo, 'B', T + 17000, T + 18000, false), true, 'B: its own new write opens the panel although A was closed')
+  ok('a switch of chat is not an arrival; a seen write and a close are remembered per chat')
+}
+{
+  // the minute an arrival keeps trying belongs to the chat that opened it
+  const memo = kbDashMemo()
+  const T = 9_000_000
+  assert.equal(kbDashDecide(memo, 'A', T - 1000, T, false), true)
+  assert.equal(kbDashDecide(memo, 'A', T - 1000, T + 1500, false), true, 'A: still not on screen inside the minute: tried again')
+  assert.equal(kbDashDecide(memo, 'B', T - 40000, T + 3000, false), false, 'B within the minute: A\'s window is not B\'s')
+  assert.equal(kbDashDecide(memo, 'A', T - 1000, T + 4500, false), false, 'back in A: the window died with the switch, the person left it')
+  // a dashboard the person only pointed at (no agent write in this chat: at 0) never opens anything
+  const page = kbDashMemo()
+  assert.equal(kbDashDecide(page, 'A', 0, T, false), false, 'at 0: nothing was written by the agent in this chat')
+  ok('the one-minute window is not carried to another chat, and a dashboard nobody wrote in this chat opens nothing')
+}
+
+// ── F. the probe answers for the chat it asked about, and the close check too ───────────────────────────────────
+assert.ok(/if \(sessionId\(\) !== chat\) return \/\/ the answer is for the chat/.test(src), 'an answer that arrives after a switch of chat is dropped')
+assert.ok(/panelShown\(\) === true \|\| sessionId\(\) !== chat/.test(src), 'a panel not on screen because the person left the chat is not a close')
+ok('a late answer and a late close check are ignored once the chat has changed')
 
 console.log('\n' + pass + ' verifications OK')

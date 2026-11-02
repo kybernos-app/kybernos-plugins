@@ -363,7 +363,14 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {}, 
   // ── per-session state: which dashboard the pane shows ──────────────────────
   const current = new Map()
   let lastSession = null
-  function setCurrent (sessionId, id, name) { current.set(sessionId, { id, name, at: now() }); lastSession = sessionId }
+  /** Point a chat's pane at a dashboard. `at` is the time of the AGENT's own write in that chat, and the pane opens by itself on a new one: so only
+   *  `by === 'agent'` moves it. The person opening or editing a dashboard on the page (the Creations page, a reload of it) moves the pointer and leaves
+   *  `at` alone, or the panel popped open in whatever chat was on screen each time (person, 2026-11-02). */
+  function setCurrent (sessionId, id, name, by) {
+    const before = current.get(sessionId)
+    current.set(sessionId, { id, name, at: by === 'agent' ? now() : (before ? before.at : 0) })
+    lastSession = sessionId
+  }
   function getCurrent (sessionId, strict) {
     if (typeof sessionId === 'string' && current.has(sessionId)) return current.get(sessionId)
     if (strict === true) return null
@@ -430,7 +437,7 @@ export async function runTool (host, sessionId, a) {
       return { ok: true, id: saved.id, name: saved.dashboard.name, suggested: true, widgets: saved.dashboard.widgets.map((w) => ({ id: w.id, type: w.type, title: w.title })), dropped: saved.errors.slice(0, 15),
         message: 'Suggested: “' + saved.dashboard.name + '” waits for the person\'s Add on the Dashboards page. It is not opened for them.' }
     }
-    host.setCurrent(sessionId, saved.id, saved.dashboard.name)
+    host.setCurrent(sessionId, saved.id, saved.dashboard.name, 'agent')
     const warnings = inspectDashboard(saved.dashboard)
     return {
       ok: true, id: saved.id, name: saved.dashboard.name, rev: saved.rev, widgets: saved.dashboard.widgets.map((w) => ({ id: w.id, type: w.type, title: w.title })),
@@ -472,7 +479,7 @@ export async function runTool (host, sessionId, a) {
     if (saved.ok) saved.errors = o.errors.concat(saved.errors)
     return finish(saved, 'Saved.')
   }
-  host.setCurrent(sessionId, id, r.dashboard.name)
+  host.setCurrent(sessionId, id, r.dashboard.name, 'agent')
   return {
     ok: true, read: true, ...brief(r), dashboard: r.dashboard, warnings: inspectDashboard(r.dashboard), dropped: r.errors.slice(0, 15),
     changes_by_user: host.userEditsSince(r.history),
