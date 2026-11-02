@@ -22,6 +22,16 @@ const EN = {
   'approval.wait': 'I have passed your request to the shop. They will confirm it.',
   'level.needed': 'I cannot do this on this channel. The shop will help you directly.',
   'unknown.action': 'I cannot do that. The shop will help you directly.',
+  'human.queued': 'Your message was passed on. A person from the shop will answer you here.',
+  'human.joined': 'A person from the shop has joined the conversation.',
+  'tg.start': 'Hello! Ask me anything about the shop. I am an AI assistant, and a person can take over if needed.',
+  'tg.private_only': 'I only answer in private chats. Please write to me directly.',
+  'tg.yes': 'Yes, remember',
+  'tg.no': 'No thanks',
+  'tg.error': 'Something went wrong on our side. Please try again in a moment.',
+  'tg.unsupported': 'I can only read text messages for now.',
+  'widget.open': 'Chat with us',
+  'widget.close': 'Close the chat',
 };
 
 const FR = {
@@ -45,6 +55,16 @@ const FR = {
   'approval.wait': 'J’ai transmis ta demande à la boutique. Elle la confirmera.',
   'level.needed': 'Je ne peux pas faire cela sur ce canal. La boutique t’aidera directement.',
   'unknown.action': 'Je ne peux pas faire cela. La boutique t’aidera directement.',
+  'human.queued': 'Ton message a été transmis. Une personne de la boutique te répondra ici.',
+  'human.joined': 'Une personne de la boutique a rejoint la conversation.',
+  'tg.start': 'Bonjour ! Pose-moi tes questions sur la boutique. Je suis un assistant IA, et une personne peut prendre le relais si besoin.',
+  'tg.private_only': 'Je ne réponds qu’en conversation privée. Écris-moi directement.',
+  'tg.yes': 'Oui, retenir',
+  'tg.no': 'Non merci',
+  'tg.error': 'Un problème est survenu de notre côté. Réessaie dans un instant.',
+  'tg.unsupported': 'Je ne sais lire que les messages texte pour l’instant.',
+  'widget.open': 'Discuter avec nous',
+  'widget.close': 'Fermer la discussion',
 };
 
 const DICT = { en: EN, fr: FR };

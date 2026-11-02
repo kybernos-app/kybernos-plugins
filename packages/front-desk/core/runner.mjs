@@ -7,7 +7,7 @@
 import crypto from 'node:crypto';
 import { buildSystemPrompt, wrapVisitor } from './fiche.mjs';
 import { identityLevel, lookupKey } from './identity.mjs';
-import { idFor } from './store.mjs';
+import { convIdForKey, idFor } from './store.mjs';
 import { costOf, worstCaseMicro } from './budget.mjs';
 import { t } from './text.mjs';
 
@@ -20,20 +20,26 @@ const MAX_REPLY_CHARS = 2000;
 export function createRunner({ fiche, getGuardrails, model, store, governor, actions, now = Date.now }) {
   const G = getGuardrails || (() => fiche.guardrails);
 
-  const convIdOf = (ctx) => `c_${idFor(lookupKey(ctx)).slice(2, 26)}`;
+  const convIdOf = (ctx) => convIdForKey(idFor(lookupKey(ctx)));
   const logName = (convId) => `conv_${convId.slice(2)}`;
 
-  function touchConversation(ctx, preview) {
-    const meta = store.getDoc('conversations', ctx.convId) || { id: ctx.convId, key: idFor(lookupKey(ctx)), channel: ctx.channel, level: ctx.level, createdAt: now() };
+  /** `reach` is where the owner's reply goes on a channel that is not the site (a Telegram chat id): it comes from the channel, never from a message. */
+  function touchConversation(ctx, preview, reach) {
+    const meta = store.getDoc('conversations', ctx.convId) || { id: ctx.convId, key: idFor(lookupKey(ctx)), channel: ctx.channel, level: ctx.level, createdAt: now(), mode: 'agent', unread: 0 };
     meta.lastAt = now();
     meta.level = ctx.level;
+    meta.lang = ctx.lang;
+    meta.unread = (meta.unread || 0) + 1;
+    if (reach) meta.reach = String(reach).slice(0, 64);
     if (preview) meta.preview = preview.slice(0, 80);
     store.putDoc('conversations', ctx.convId, meta);
   }
 
   return {
     /** `{ ok, reply, pendingConsents, convId }` or `{ ok: false, error, reply }` (the reply is always safe to show). */
-    async handleMessage({ channel, senderKey, visitorId, ip, text, lang }) {
+    convIdFor: (ctx) => convIdOf(ctx),
+
+    async handleMessage({ channel, senderKey, visitorId, ip, text, lang, reach }) {
       const g = G();
       const L = lang || fiche.language;
       const fail = (error, key) => ({ ok: false, error, reply: t(L, key) });
@@ -46,14 +52,26 @@ export function createRunner({ fiche, getGuardrails, model, store, governor, act
       ctx.convId = convIdOf(ctx);
       const log = logName(ctx.convId);
 
+      // A person from the shop took over: the message is kept for them, the model is not called and nothing is spent.
+      const current = store.getDoc('conversations', ctx.convId);
+      if (current && current.mode === 'human') {
+        const held = governor.reserve({ visitorId: visitorId || senderKey, ip, estimateMicro: 0 });
+        if (!held.ok) return fail(held.reason, REFUSALS[held.reason] || 'error');
+        governor.settle(held.ticket, 0);
+        const at = now();
+        store.appendLog(log, { ts: at, role: 'user', text: clean });
+        touchConversation(ctx, clean, reach);
+        return { ok: true, human: true, reply: t(L, 'human.queued'), pendingConsents: [], convId: ctx.convId, costMicro: 0, at };
+      }
+
       const memory = {};
       const rec = actions.visitorOf(ctx);
       if (rec) for (const [k, v] of Object.entries(rec.fields)) memory[k] = v.value;
       const system = buildSystemPrompt(fiche, { memory });
       const tools = actions.describe({ level });
       const history = store.readLog(log, g.limits.maxHistoryTurns * 4)
-        .filter((e) => e.role === 'user' || e.role === 'assistant').slice(-g.limits.maxHistoryTurns * 2)
-        .map((e) => ({ role: e.role, content: e.role === 'user' ? wrapVisitor(e.text) : e.text }));
+        .filter((e) => e.role === 'user' || e.role === 'assistant' || e.role === 'owner').slice(-g.limits.maxHistoryTurns * 2)
+        .map((e) => ({ role: e.role === 'owner' ? 'assistant' : e.role, content: e.role === 'user' ? wrapVisitor(e.text) : e.text }));
       const userMsg = { role: 'user', content: wrapVisitor(clean) };
 
       const inputChars = system.length + JSON.stringify(tools).length + history.reduce((n, m) => n + m.content.length, 0) + userMsg.content.length;
@@ -66,6 +84,7 @@ export function createRunner({ fiche, getGuardrails, model, store, governor, act
       const pendingConsents = [];
       const events = [];
       let reply = '';
+      let erased = false;
       try {
         const ac = new AbortController();
         const timer = setTimeout(() => ac.abort(), g.limits.turnTimeoutMs);
@@ -91,6 +110,7 @@ export function createRunner({ fiche, getGuardrails, model, store, governor, act
               else {
                 result = actions.execute({ name: call.name, args: call.args === null ? {} : call.args, ctx });
                 events.push({ name: call.name, ok: result.ok, pending: !!result.pending });
+                if (call.name === 'forget_visitor' && result.ok) erased = true;
                 if (result.ok && result.result && result.result.asked) {
                   const value = pendingValue(store, result.result.noteId);
                   const what = `${t(L, `field.${result.result.field}`)} (${value})`;
@@ -108,12 +128,16 @@ export function createRunner({ fiche, getGuardrails, model, store, governor, act
       governor.settle(ticket, spent);
 
       reply = String(reply || '').trim().slice(0, MAX_REPLY_CHARS);
+      // The visitor asked to be forgotten and the assistant did it: nothing of this turn (their words, the reply) is written back.
+      if (erased) return { ok: true, reply: reply || t(L, 'forgotten'), pendingConsents: [], convId: ctx.convId, costMicro: spent, at: now(), erased: true };
       if (!reply) reply = events.some((e) => e.pending) ? t(L, 'approval.wait') : t(L, 'error');
       store.appendLog(log, { ts: now(), role: 'user', text: clean });
       for (const ev of events) store.appendLog(log, { ts: now(), type: 'event', ...ev });
-      store.appendLog(log, { ts: now(), role: 'assistant', text: reply });
-      touchConversation(ctx, clean);
-      return { ok: true, reply, pendingConsents, convId: ctx.convId, costMicro: spent };
+      const at = now();
+      store.appendLog(log, { ts: at, role: 'assistant', text: reply });
+      touchConversation(ctx, clean, reach);
+      // `at` is the time of the assistant's line: a page that polls for the owner's words asks for what came after it.
+      return { ok: true, reply, pendingConsents, convId: ctx.convId, costMicro: spent, at };
     },
   };
 }

@@ -13,6 +13,8 @@ const need = (s, what) => { if (typeof s !== 'string' || !NAME.test(s)) throw ne
 
 /** A stable, path-safe id for any string (a channel sender, a visitor id). */
 export const idFor = (s) => `h_${crypto.createHash('sha256').update(String(s)).digest('hex').slice(0, 32)}`;
+/** The id of a visitor's conversation, from their key (`idFor(lookupKey(ctx))`): one place, so the runner and the erasure agree on it. */
+export const convIdForKey = (key) => `c_${String(key).slice(2, 26)}`;
 
 export function createStore({ dir = null } = {}) {
   const docs = new Map();   // `${collection}/${id}` -> value (memory mode)
