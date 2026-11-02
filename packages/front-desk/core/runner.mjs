@@ -93,7 +93,7 @@ export function createRunner({ fiche, getGuardrails, model, store, governor, act
                 events.push({ name: call.name, ok: result.ok, pending: !!result.pending });
                 if (result.ok && result.result && result.result.asked) {
                   const value = pendingValue(store, result.result.noteId);
-                  const what = `${result.result.field.replace('_', ' ')} (${value})`;
+                  const what = `${t(L, `field.${result.result.field}`)} (${value})`;
                   pendingConsents.push({ noteId: result.result.noteId, field: result.result.field, value, text: t(L, 'consent.ask', { what }) });
                 }
               }
