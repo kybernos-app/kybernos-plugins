@@ -30,6 +30,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkKey } from './key-check.mjs'
 import { liveModels, probeModel } from './live-models.mjs'
+import { healImages } from './image-heal.mjs'
 import { origineOK, writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -199,6 +200,24 @@ const kbMaWrite = (key, fields) => {
   writeJsonAtomic(ANNOTATIONS_FILE, next)
   annotationsCache = next
   return next
+}
+
+// ── Pictures: a model that sees but whose route never says so ────
+// First pass shortly after the start (the settings service and the models.dev disk cache are there by then), then every 6 h.
+// Timers are unref'd and every step is guarded: this never keeps DSH from starting or from stopping.
+const IMAGE_HEAL_FIRST_MS = 20 * 1000
+const IMAGE_HEAL_EVERY_MS = 6 * 60 * 60 * 1000
+const kbImageHealStart = ({ settings, index, journal }) => {
+  const pass = async () => {
+    try {
+      const out = await healImages({ settings: settings(), index: await index(), journal })
+      if (out.healed.length > 0) console.log('[kybernos-models] picture input added: ' + out.healed.map((h) => h.route + ' (' + h.ids.join(', ') + ')').join('; '))
+    } catch (e) { /* a lost pass is tried again at the next one */ }
+  }
+  const first = setTimeout(pass, IMAGE_HEAL_FIRST_MS)
+  const every = setInterval(pass, IMAGE_HEAL_EVERY_MS)
+  if (typeof first.unref === 'function') first.unref()
+  if (typeof every.unref === 'function') every.unref()
 }
 
 // ── Journal: one JSON line per write attempt (local proof) ───────
@@ -1221,6 +1240,8 @@ export function apply(ctx) {
           job: scoresJob,
         })
       }}), 'kybernos-models: notes externes (statut)')
+
+      kbImageHealStart({ settings: () => hostCtx.get('settings'), index: () => kbMdLoad(web, false), journal: kbJournalAppend })
     })
   } catch (kbBootError) {
     try { console.error('[kybernos-models] montage des routes impossible', kbBootError) } catch (e2) { /* console indisponible */ }
