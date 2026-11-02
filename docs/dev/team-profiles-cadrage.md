@@ -70,11 +70,19 @@ each bundle to the active team by hand; a second instance per team separates eve
 5. Retire the single-instance switch code (follow-the-chat, turn guard, deferred switch, claim-time switch). Dead-code rider.
 6. Two-account live test on the existing `scripts/e2e-teams-run.sh` harness.
 
-The phone runs one engine: one home at a time with a restart, later.
+The phone (`kybernos-mobile`, `PLAN.md`) embeds one Node engine in the app, started once per process ("a crash needs a relaunch"), about 200 to
+460 MB resident: it cannot hold several DSH. Later, and not yet checked on a device: one home at a time, a team switch relaunching the app on
+the other `DSH_HOME` (step 0 is what makes that possible). The other road is the phone as a remote of the DSH running on the computer, one
+connection per team (`PLAN.md` section 9, a proposal, nothing built).
 
 ## Decisions for the owner
 
 1. **Decided 2026-11-02: all teams alive at once.**
 2. A new team's first setup: language and theme copied from Personal; model keys asked once per team, or shared from Personal. A shared
    key means the team's DSH can read the person's own key.
-3. Where a team opens: its own window, or the same window pointed at the team's address (the desktop app's wiring was not checked).
+3. **Decided 2026-11-02: a team opens in its own window.** Desktop app (`kybernos-desktop`, read 2026-11-02): it is built for one engine. One
+   window with the DSH in a view fenced to `127.0.0.1:<one port>` (`KYBERNOS_PORT`, 3080 by default), no preload in that view, and any
+   `window.open` to a loopback address goes to the system browser. So a team's click would today open the browser, not an app window.
+   Needed there, in its own repository: a second window per team on its port (3300-3399) when the page opens such an address, with a cookie
+   jar of its own per team (an Electron partition), which also keeps the shared-secret problem of step 4 out of the app's windows. The page
+   still gets no app API: its only channel stays `window.open` to a loopback port.
