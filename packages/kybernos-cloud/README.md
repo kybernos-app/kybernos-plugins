@@ -402,8 +402,9 @@ file is its launcher; nothing in the menu calls it yet.
   engine bump). Anything it cannot read keeps it alive. The personal DSH never stops.
 - **Not done yet:** the account menu opening it, the team DSH's own sign-in and route (it starts unconnected), what is seeded into a new home
   (a new home makes its own `.credentials.yaml`, so its own browser-session secret: the cookie of one DSH is not valid on another and, cookies
-  ignoring the port, two DSH would sign each other out until the secret is shared), and a sort of the other bundles for what belongs to the
-  computer (phone pairing, calls, multi-device, janitor, sessions watch) before a team DSH reaches a person.
+  ignoring the port, two DSH would sign each other out until the secret is shared), and hiding in a team's DSH what belongs to the account or
+  the computer (Kaby, Telegram and WhatsApp, the Home computer). The other bundles were sorted: only the two of `PERSONAL_ONLY_BUNDLES`
+  start something machine-level.
 - **Tests:** `node packages/kybernos-cloud/test-team-instances.mjs` (a stand-in script plays `dsh`; no real DSH starts) and, on a sandbox,
   `source scripts/sandbox/env.sh && node scripts/check-team-dsh-live.mjs` (a real `dsh web` on a copied profile: 12 s to mounted on a
   developer's Mac, the cloud plugin answers from it, it stops cleanly).

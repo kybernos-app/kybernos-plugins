@@ -21,7 +21,8 @@ const READY_LINE = 'dsh web: http'
 const NOT_INHERITED = ['KYBERNOS_CLOUD_STATE', 'DSH_WEB_PORT', 'DSH_WEB_URL']
 
 /** Bundles that belong to the computer and not to a team: the tool that restarts the personal DSH on :3080, and the one that installs apps and LaunchAgents under the person's own
- *  folders. A team's DSH does not load them. The other bundles are not sorted yet (docs/dev/team-profiles-cadrage.md, step 1b). */
+ *  folders. A team's DSH does not load them. The others were read on 2026-11-02 (docs/dev/team-profiles-cadrage.md, step 1b): none starts a machine-level service by itself,
+ *  each keeps its state in its own DSH home, and none binds a fixed port. Add one here only when it does. */
 export const PERSONAL_ONLY_BUNDLES = ['@local/kybernos-relance', '@local/kybernos-miniapps']
 
 const TEAM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u

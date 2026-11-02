@@ -45,10 +45,23 @@ each bundle to the active team by hand; a second instance per team separates eve
    Played with a stand-in `dsh` (unit) and with a real one on a sandbox (`scripts/check-team-dsh-live.mjs`: 12 s to mounted, own `DSH_HOME`,
    cloud plugin answers, clean stop). No supervisor is needed: nothing starts at boot. Nothing in the menu calls it yet.
    Found on the way:
-   - **1b, a sort of the bundles.** A copy of the personal profile loads everything the personal DSH loads. Two bundles belong to the computer
-     and are already left out (`PERSONAL_ONLY_BUNDLES`: the restart tool aimed at :3080, the apps and LaunchAgents installer). The other 54
-     are not sorted: phone pairing, calls, multi-device, the janitor, the sessions watch need a look so that two DSH do not both run one
-     machine-level service. This must be done before a team DSH reaches a person.
+   - **1b, the bundles: sorted (2026-11-02).** A copy of the personal profile loads everything the personal DSH loads, so the bundles were
+     checked for a service two DSH could not both run. Method: a pattern scan of every bundle in the profile (fixed ports, `listen`, timers,
+     LaunchAgents, `launchctl`, pid files), then the code around each hit read in sessions, mobile, free-llms, memory, call, multi-device,
+     skills, workers, maintenance, computers, pulse, models and cloud, plus the core plugin's timers (record load, widget bridge tick,
+     gateway watcher, templates shelf). Result: only two belong to the computer and are left out of a team's profile
+     (`PERSONAL_ONLY_BUNDLES`: the restart tool aimed at :3080, the apps and LaunchAgents installer). None of the others starts a
+     machine-level service by itself: no fixed port (the `3080` in the code is always the default of `DSH_WEB_PORT`, which a team DSH sets),
+     no MCP server binds a port, the sessions watch (a LaunchAgent) is installed on demand and not at mount, the phone link reconnects only
+     the phones paired in its own home (none, in a new one), and the timers (memory tidy, janitor, E2B sweeper, pulse, image heal,
+     connections sync) all work on their own home. One real finding, fixed: the model-routing command of `kybernos-auto` always aimed at
+     :3080 and would have asked the personal DSH from inside a team's (`hoteOf` in `cli/auto-router.mjs` now follows `DSH_WEB_PORT`).
+     Limits: the engine's own `@deepseek-ai/*` bundles were not audited, and two DSH running together on a real machine (not a sandbox) were
+     not played.
+   - **What a team DSH should not offer is a menu question, not a loading one** (step 3). They belong to the account or the computer, not to
+     a team: Settings › Kaby, the Telegram and WhatsApp doors and the Home computer (`/kybernos-cloud/telegram|whatsapp|computer/*`,
+     `kyby/*`), Phone and channels. Connectors are the one case in between: which apps are switched on is per home, so per team, but the
+     OAuth connections behind them belong to the account (decision 2 below).
    - **One secret per home.** A new home makes its own `.credentials.yaml`, hence its own browser-session secret. Cookies ignore the port, so
      two DSH on `127.0.0.1` would sign each other out. Step 4 shares that one secret across the homes (single sign-in everywhere).
 2. The team instance's cloud state is bound to its team (fixed route).

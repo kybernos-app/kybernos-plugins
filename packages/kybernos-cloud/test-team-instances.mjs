@@ -9,7 +9,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  TEAM_IDLE_MS, activeAutomationsIn, createTeamInstances, ensureTeamHome, pickPort, readRegistry, retarget, shouldExit, spawnSpec, teamHomeOf, teamOfEnv, personalHomeOf
+  PERSONAL_ONLY_BUNDLES, TEAM_IDLE_MS, activeAutomationsIn, createTeamInstances, ensureTeamHome, pickPort, readRegistry, retarget, shouldExit, spawnSpec, teamHomeOf, teamOfEnv, personalHomeOf
 } from './team-instances.mjs'
 
 let pass = 0
@@ -77,6 +77,13 @@ try {
   assert.equal(retarget(text, '/p', '/p/teams/t1'), 'a: /p/teams/t1/mcp/x\nb: /px/keep\nc: /p/teams/t1/mcp/x\nd: /p')
   assert.equal(retarget(retarget(text, '/p', '/p/teams/t1'), '/p', '/p/teams/t1'), retarget(text, '/p', '/p/teams/t1'))
   ok('the personal home becomes the team home in a text, a similar prefix is left alone and a second pass changes nothing')
+
+  // A name with a typo would leave a bundle of the computer in every team's profile without anyone noticing.
+  for (const id of PERSONAL_ONLY_BUNDLES) {
+    const dir = join(import.meta.dirname, '..', id.replace('@local/', ''))
+    assert.equal(JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name, id, id + ' must name a bundle of this repository')
+  }
+  ok('every bundle kept out of a team\'s profile is a real bundle of this repository (' + PERSONAL_ONLY_BUNDLES.length + ')')
 
   // ── the rule that stops an idle DSH ──
   const base = { now: 10 * TEAM_IDLE_MS, lastSeenAt: 0, runningReplies: 0, activeAutomations: 0 }
