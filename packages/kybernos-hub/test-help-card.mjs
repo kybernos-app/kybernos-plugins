@@ -75,6 +75,20 @@ console.log('which edge of the button the card hangs from (coteDeLaCarte)')
   check('the margin from the window or the box is 16 px, as it was', T.coteDeLaCarte({ left: 400, right: 436 }, win, W, false) === 'end' && T.coteDeLaCarte({ left: 400, right: 435 }, win, W, false) === 'start' && T.coteDeLaCarte({ left: 0, right: 436 }, { left: 0, right: 1500 }, W, false) === 'end')
 }
 
+console.log('a card that fits neither edge is pulled back into the window (decalageDeLaCarte)')
+{
+  const W = 420
+  const phone = { left: 0, right: 560 }
+  check('a card that fits from its start edge is not moved', T.decalageDeLaCarte({ left: 100, right: 130 }, { left: 0, right: 1500 }, W, false) === 0)
+  // Measured on the real page at 560 px: the « ? » of Creations sat at x=157..189, and the 420 px card ran to 577, its ✕ cut off.
+  const d = T.decalageDeLaCarte({ left: 157, right: 189 }, phone, W, false)
+  check('a phone-width window with the button in the middle: the card is pulled back so its end edge keeps 16 px of margin', d === -33 && 157 + d + W === 560 - 16, d)
+  check('it never goes past the start edge of the box (16 px of margin there too)', T.decalageDeLaCarte({ left: 300, right: 330 }, { left: 0, right: 500 }, W, false) === -236 && 300 - 236 >= 16)
+  check('a box narrower than the card: no pull past the box’s start edge (the card starts where it did)', T.decalageDeLaCarte({ left: 100, right: 130 }, { left: 90, right: 330 }, W, false) === 0)
+  check('right to left: the same pull, on the other side', T.decalageDeLaCarte({ left: 20, right: 50 }, phone, W, true) === -386 && 50 + 386 - W === 16)
+  check('the card is placed with that offset when it hangs from its start edge, and re-measured on resize', /setShift\(cote === 'start' \? decalageDeLaCarte\(r, box, w, rtl\) : 0\)/.test(SOURCE) && /side === 'start' && shift !== 0 \? \{ insetInlineStart: shift \+ 'px' \}/.test(SOURCE))
+}
+
 console.log('docked in the margin beside the page (V1-23: carteAmarree)')
 {
   // A Settings page at 1400 px: its column is 720 px wide (x 272 to 992), the visible box runs from the sidebar's edge to the window's; 992 + 28 + 340 = 1360, 16 px short of the edge.

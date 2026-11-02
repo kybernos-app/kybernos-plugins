@@ -127,6 +127,15 @@ window.__ModuleLoader__.load({
      */
     const coteDeLaCarte = (r, box, w, rtl) => ((rtl ? r.left + w <= box.right - 16 : r.right - w >= box.left + 16) ? 'end' : 'start')
     /**
+     * Pure. How far a card that hangs from its start edge is pulled back so it stays in the visible box when neither edge has room (a narrow window, the button in
+     * the middle of the page): 0 when it fits, else a negative offset of its start edge, never past the box's own start edge (16 px of margin, as everywhere).
+     */
+    const decalageDeLaCarte = (r, box, w, rtl) => {
+      const sortie = rtl ? (r.right - w) - (box.left + 16) : (box.right - 16) - (r.left + w)
+      const borne = rtl ? r.right - box.right + 16 : box.left + 16 - r.left
+      return Math.round(Math.max(Math.min(0, borne), Math.min(0, sortie)))
+    }
+    /**
      * Pure. Whether the card is DOCKED in the free margin beside the page instead of hanging from its button (V1-23: the popover lay on the very controls it explains).
      * `col` is the rectangle of the page's own column (the Settings pages are 720 px wide and leave a margin on their right, whatever the place of the button in them), or
      * null for a button that is not on a Settings page (a title row of the main views: its margin is the page, it hangs as before). Docked only in a window of 1400 px or
@@ -1990,6 +1999,7 @@ window.__ModuleLoader__.load({
         const [mod, setMod] = React.useState(null)
         const [side, setSide] = React.useState('end') // which edge of the button the card hangs from, so it stays on screen
         const wrap = React.useRef(null)
+        const [shift, setShift] = React.useState(0) // how far a card hanging from the start edge is pulled back when the window is too narrow for either edge
         const dockX = React.useRef(0) // where a docked card starts, measured when it opens or when the window changes
         React.useEffect(() => {
           let off = false
@@ -2015,7 +2025,9 @@ window.__ModuleLoader__.load({
               setSide('dock')
             } else {
               // Hang from the end edge (toward the right) unless the card would run out of the window, or of the page that clips it, there.
-              setSide(coteDeLaCarte(r, box, w, rtl))
+              const cote = coteDeLaCarte(r, box, w, rtl)
+              setShift(cote === 'start' ? decalageDeLaCarte(r, box, w, rtl) : 0)
+              setSide(cote)
             }
           }
           place()
@@ -2047,7 +2059,7 @@ window.__ModuleLoader__.load({
         return h('span', { className: 'kbhp-wrap', ref: wrap, 'data-kb': 'help', 'data-id': id, 'data-page': page },
           h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'data-page': page, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + key, 'aria-label': kt('Comment ça marche', 'How it works'), title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
             h('span', { className: 'kbhp-q', 'aria-hidden': 'true' }, '?')),
-          open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : '') + (side === 'dock' ? ' dock' : ''), style: side === 'dock' ? { insetInlineStart: dockX.current + 'px' } : undefined, id: 'kbhp-' + key, role: 'dialog', 'aria-label': titre + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
+          open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : '') + (side === 'dock' ? ' dock' : ''), style: side === 'dock' ? { insetInlineStart: dockX.current + 'px' } : (side === 'start' && shift !== 0 ? { insetInlineStart: shift + 'px' } : undefined), id: 'kbhp-' + key, role: 'dialog', 'aria-label': titre + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
             h('button', { type: 'button', className: 'kbhp-x', 'aria-label': kt('Fermer', 'Close'), onClick: () => setOpen(false) }, '✕'),
             h('h4', null, titre),
             leads.map((x, i) => h('p', { key: 'lead' + i, className: 'kbhp-lead', 'data-kb': 'help-lead' }, x)),
@@ -2173,6 +2185,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, suiviInstallation, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, decalageDeLaCarte, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, suiviInstallation, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })
