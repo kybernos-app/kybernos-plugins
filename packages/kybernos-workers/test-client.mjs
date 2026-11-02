@@ -99,6 +99,41 @@ console.log('── the sentences ──')
   ok('the policy of a row: the profile line, or off when there is none', T.currentPolicy({ ligne: null }).expose === false && T.currentPolicy({ ligne: { expose: true, arrierePlan: true } }).background === true && T.currentPolicy({ ligne: { expose: false, arrierePlan: true } }).expose === false)
 }
 
+console.log('── the connection of Claude Code, Codex and ZCode (the controls Settings › Tools used to carry) ──')
+{
+  const tools = {
+    ok: true,
+    entries: [
+      { id: 'codex', mounted: true, disabled: false, canSwitch: true, switchWhy: null },
+      { id: 'claude-code', mounted: true, disabled: true, canSwitch: true, switchWhy: null },
+      { id: 'zcode', mounted: true, disabled: false, canSwitch: false, switchWhy: 'expression' },
+      { id: 'browser-use', mounted: true, disabled: false, canSwitch: true, switchWhy: null }
+    ],
+    backups: ['cordis.patch.yml.bak-outils-codex-20261003-190501', 'cordis.patch.yml.bak-outils-onoff-claude-code-20261102-101010']
+  }
+  const of = (id, activation = 'outils') => T.connectionOf(tools, { id, activation })
+  ok('a worker mounted by Settings › Tools gets its switch state from the Tools route', of('codex').disabled === false && of('codex').canSwitch === true && of('claude-code').disabled === true)
+  ok('« Remove » needs the add-time backup: the backup of a switch is never offered for restore', of('codex').revertable === true && of('claude-code').revertable === false && of('zcode').revertable === false)
+  ok('a line the page cannot edit safely (an expression) keeps its switch greyed, with the reason', of('zcode').canSwitch === false && of('zcode').why === 'expression')
+  ok('no connection controls for a worker this page mounts itself, for an unknown one, or when the Tools route did not answer', of('gemini', 'workers') === null && of('nobody') === null && T.connectionOf(null, { id: 'codex', activation: 'outils' }) === null && T.connectionOf({ ok: true }, { id: 'codex', activation: 'outils' }) === null)
+  resolved = 'en'
+  ok('the answers: switched off keeps the line and installs nothing, back on, already, removed names the backup', /nothing is uninstalled/.test(T.linkMessage('disable', { ok: true })) && /Back on/.test(T.linkMessage('enable', { ok: true })) && /nothing to do/.test(T.linkMessage('disable', { ok: true, already: true })) && /bak-outils-codex-1/.test(T.linkMessage('revert', { ok: true, backup: 'bak-outils-codex-1' })))
+  ok('a connection switched off reads as a state of its own, never as something to do in Settings › Tools', !/Tools/.test(T.sublineOf({ id: 'codex', nom: 'Codex', genre: 'connexion', desactivee: true }, 'inactive')) && /switched off/i.test(T.sublineOf({ id: 'codex', nom: 'Codex', genre: 'connexion', desactivee: true }, 'inactive')))
+  resolved = 'kybernos'
+  ok('…and in French', /désactivée/i.test(T.sublineOf({ id: 'codex', nom: 'Codex', genre: 'connexion', desactivee: true }, 'inactive')) && !/Outils/.test(T.sublineOf({ id: 'codex', nom: 'Codex', genre: 'connexion', desactivee: true }, 'inactive')))
+  const block = source.slice(source.indexOf('const connectionBlock = (w) =>'), source.indexOf('const policyBlock = ('))
+  ok('the detail of a row draws the connection block between the checklist and the permissions', /detail\(w, status, job\),\s*connectionBlock\(w\),\s*policyBlock\(w, draft, current, changed\)/.test(source))
+  ok('the block has the switch, Remove and nothing else of Tools: it writes through the Tools route only (switch off, on, revert)', /kb: 'wk-' \+ w\.id \+ '-link'/.test(block) && /link\(w, on \? 'disable' : 'enable'\)/.test(block) && /link\(w, 'revert'\)/.test(block) && /post\('\/kybernos\/tools\/apply', \{ family: w\.id, profile: profileRef\.current, action \}\)/.test(source))
+  ok('Remove asks first: the whole file goes back, so what was written since is lost too, and the box says so', /'data-kb': 'wk-remove-confirm-' \+ w\.id/.test(block) && /perdu aussi/.test(block) && /lost too/.test(block) && /setRemoving\(\(o\) => Object\.assign\(\{\}, o, \{ \[w\.id\]: true \}\)\)/.test(block))
+  ok('Remove is greyed with the reason when there is no add-time backup, and so is the switch when the line is an expression', /disabled: occ !== undefined \|\| !c\.revertable \|\| asking/.test(block) && /disabled: occ !== undefined \|\| !c\.canSwitch/.test(block))
+  ok('ZCode has no « Allowed » switch: the permissions block is for connections only, and the block says why in one plain line', /if \(w\.genre !== 'connexion' \|\| w\.connexion !== true\) return null/.test(source) && /w\.genre === 'mcp' \? h\('p', \{ className: 'kbwk-note', 'data-kb': 'wk-nopolicy-' \+ w\.id \}/.test(block) && /No "Allowed" switch for/.test(block))
+  ok('the block only shows for a connection that is in the file (switched on or off)', /w\.connexion !== true && w\.desactivee !== true\)\) return null/.test(block))
+  const dry = source.slice(source.indexOf('const preview = async (w) =>'), source.indexOf('const apply = async (w, wanted)'))
+  ok('the dry run asks the host to preview the install and writes nothing; its box offers Turn on and Close', /action: 'install', dry: true/.test(dry) && /'data-kb': 'wk-preview-' \+ w\.id/.test(source) && /'data-kb': 'wk-preview-apply-' \+ w\.id/.test(source) && /'data-kb': 'wk-preview-close-' \+ w\.id/.test(source))
+  ok('the dry-run button only exists before the connection is in the file (the three Tools-mounted workers), next to Turn on', /const outils = w\.activation === 'outils' && w\.connexion !== true && w\.desactivee !== true/.test(source) && /outils \? h\('button', \{ type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'wk-dry-' \+ w\.id/.test(source))
+  ok('a missing package is said with the command that adds it, as the Tools card did', /dsh plugin --profile ' \+ String\(profileRef\.current\) \+ ' add ' \+ w\.paquet/.test(source) && /w\.installe !== true && typeof w\.paquet === 'string'/.test(source))
+}
+
 console.log('── every worker the host knows is dressed ──')
 {
   const known = []
@@ -149,7 +184,7 @@ console.log('── what the page may talk to ──')
   ok('the description is written once; the only lines that draw it are the guarded fallback, in the loading skeleton and in the page', (source.match(/Les workers sont les assistants de code/g) || []).length === 1 && (source.match(/leadFallback\(\)/g) || []).length === 2 && !/h\('p', null, kt\('Les workers sont/.test(source), (source.match(/leadFallback\(\)/g) || []).length)
   ok('the fallback draws nothing when the Suite\'s Help is there, and the description when it is not', /window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? null : h\('p', null, pageLead\(\)\)/.test(fallback))
   ok('the guide button of an older Suite (no help action) is untouched', /!helpHasAction \? h\('button', \{ type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide'/.test(source))
-  ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Outils/.test(lead) && /mounts tools in a profile/.test(lead) && /monte des outils dans un profil/.test(lead), lead.slice(0, 300))
+  ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Outils/.test(lead) && /mounts abilities in a profile/.test(lead) && /monte des capacités dans un profil/.test(lead), lead.slice(0, 300))
 }
 
 // The French of the page speaks « tu » (WP-07, A2-25), the row words are objects with a French and an English word, and

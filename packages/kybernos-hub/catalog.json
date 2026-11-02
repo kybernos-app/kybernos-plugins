@@ -236,8 +236,8 @@
                 "en": "Install and configure: a dated backup is made first, and Remove restores it."
               },
               {
-                "fr": "Relance DSH pour appliquer le changement : rien n’est rechargé à chaud.",
-                "en": "Restart DSH to apply the change: nothing is hot-reloaded."
+                "fr": "DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage.",
+                "en": "DSH applies the change by itself a few seconds after it is written: no restart."
               }
             ],
             "where": {
@@ -246,8 +246,8 @@
               "page": true
             },
             "good": {
-              "fr": "Les assistants de code (Codex, Claude Code…) ont leur propre page, Workers.",
-              "en": "The coding assistants (Codex, Claude Code…) have their own page, Workers."
+              "fr": "Les assistants de code (Codex, Claude Code, ZCode) se gèrent uniquement dans Workers.",
+              "en": "The coding assistants (Codex, Claude Code, ZCode) are managed only in Workers."
             }
           },
           "automation-settings": {
@@ -1772,8 +1772,8 @@
           "page": true
         },
         "good": {
-          "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Chaque assistant utilise son propre abonnement ou sa propre clé. « Essayer la démo » montre le parcours pas à pas.",
-          "en": "Checking calls no model, so nothing is spent. Each assistant uses its own subscription or key. “Try the demo” walks through the whole path step by step."
+          "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Claude Code, Codex et ZCode ont aussi, dans leur ligne, l'interrupteur de connexion et « Retirer ». « Essayer la démo » montre le parcours.",
+          "en": "Checking calls no model, so nothing is spent. Claude Code, Codex and ZCode also have the connection switch and “Remove” in their row. “Try the demo” walks through the path."
         },
         "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
       }

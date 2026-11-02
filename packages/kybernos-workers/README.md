@@ -54,10 +54,15 @@ POSTs need `application/json`, an `Origin`/`Referer` on `127.0.0.1`, `localhost`
 not the one the host would run), `busy`, `already-installed`, `missing-tool` (`npm`, `curl` or `bash` is not on the `PATH`),
 `unsupported-platform` (only macOS and Linux for now), `not-installable` (ZCode), `install-unavailable`.
 
-Claude Code, Codex and ZCode are turned on through the main plugin's Tools screen (`/kybernos/tools/apply`, same patch, same
-backup); the four home-made connections are turned on here, because the Tools screen does not know them. The Tools screen can also switch a
-connection off without removing it (`disabled: true`, in its row or in a patch entry aimed at its id): the row then reads « Not turned on · Switched off in Tools »
-(`desactivee` in the state) and its *Turn on* asks `tools/apply` for `enable`. A home-made connection switched off by hand is refused (`ligne-desactivee`):
+Claude Code, Codex and ZCode are mounted through the main plugin's host route `/kybernos/tools/apply` (same patch, same backup); the four home-made
+connections are turned on here, through `/kybernos-workers/activate`, because that route does not know them. Settings › Tools no longer draws the three
+(it keeps Browser Use, Computer Use and the others and points here), so their row carries everything that was on their cards, in its detail:
+- **Dry run** next to *Turn on* while the connection is not in the file: `tools/apply` with `install` and `dry`, the exact block that would be written, nothing written; its box offers *Turn on* and *Close*.
+- **Connection in the profile** (between the checklist and *Permissions*), once the connection is in the file: a switch (`disable` / `enable`: `disabled: true` in its row or in a patch entry aimed at its id, nothing uninstalled, no restart, greyed with the reason when the line is a `!!js` expression) and *Remove (restore the backup)* (`revert`), which asks first because the whole file goes back and what was written since is lost too, and is greyed when no add-time `bak-outils-<tool>-*` backup exists (the backup of a switch is never offered).
+- ZCode has no *Allowed* switch (`non-supporte`: it is an MCP server, its tools are exposed while the connection is on): the block says so in one line.
+- A missing package is said with the `dsh plugin --profile <profile> add <package>` command, as the card did.
+The state (`desactivee` here, `disabled` / `canSwitch` / backups in the Tools route's `tools/state`) is read once per reload; if the Tools route does not answer, these controls are simply not drawn. A switched-off
+connection reads « Not turned on · Connection switched off » and its *Turn on* asks `tools/apply` for `enable`. A home-made connection switched off by hand is refused (`ligne-desactivee`):
 a second line would register the provider twice.
 
 ## Files, settings, processes
@@ -101,7 +106,7 @@ a second line would register the provider twice.
 
 ```bash
 node packages/kybernos-workers/test-host.mjs     # 199 checks: patch parsing, policy, activation, check scenarios per CLI, routes, install job, real I/O
-node packages/kybernos-workers/test-client.mjs   # 61 checks: row status, dots, sentences, language rule, every worker has its logo, every French text has its English
+node packages/kybernos-workers/test-client.mjs   # 80 checks: row status, dots, sentences, language rule, every worker has its logo, every French text has its English
 node scripts/test-workers-gui.mjs                # the real client in Chromium against the real routes; exits 0 "SKIPPED" without playwright + react@18
 source scripts/sandbox/env.sh && node scripts/check-workers-live.mjs   # the real DSH GUI of a sandbox instance: the page, the checks, the guide (never installs, never saves)
 ```
