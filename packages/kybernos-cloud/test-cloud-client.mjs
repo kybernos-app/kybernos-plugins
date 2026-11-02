@@ -566,7 +566,22 @@ ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jam
   assert.equal(html.includes('Re-reads the active server'), false, 'the button\'s sentence is not on the page as it opens')
   assert.equal(html.includes('kybernos-account') || html.includes('Referral') || html.includes('Security'), false, 'rien du compte dans la section')
   assert.ok(calls.includes('GET /instructions') && !calls.some((c) => c.startsWith('POST /models/sync') || c.startsWith('POST /chats/push')), 'rien n est envoye a la lecture')
+  // The page's description: no Suite → under the title (the fallback, as it always was); with the Suite's Help it moves into the « ? » card (`lead`) and is not drawn under the title.
+  assert.ok(html.includes('class="kb8-sub">What Kybernos keeps on this computer.<'), 'no Suite: the description stays under the title')
   r.unmount()
+  {
+    const asked = []
+    globalThis.window.__KB_HELP__ = { version: 1, Help: (props) => { asked.push(props); return createElement('span', { 'data-fake-help': props.id }) } }
+    const rootHelp = element(doc)
+    const rHelp = ReactClient.createRoot(rootHelp)
+    await act(async () => { rHelp.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
+    const htmlHelp = htmlDe(rootHelp)
+    const last = asked[asked.length - 1]
+    assert.ok(last !== undefined && last.id === 'kybernos-cloud' && last.page === 'kybernos' && last.lead === 'What Kybernos keeps on this computer.' && last.title === 'Kybernos', 'with the Suite: the page hands its description to the « ? » card as `lead`, and its title as `title`')
+    assert.ok(htmlHelp.includes('data-fake-help="kybernos-cloud"') && !htmlHelp.includes('What Kybernos keeps on this computer.') && !htmlHelp.includes('kb8-sub'), 'with the Suite: the description is no longer drawn under the title')
+    rHelp.unmount()
+    delete globalThis.window.__KB_HELP__
+  }
   // Unfolded (the page can start open): the two actions, their sentences, and disabled while signed out.
   const rootAdv = element(doc)
   const rAdv = ReactClient.createRoot(rootAdv)

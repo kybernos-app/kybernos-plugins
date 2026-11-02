@@ -21,10 +21,10 @@ const check = (name, ok, detail) => {
 console.log('the core plugin: the pill on Creations, Workspaces, Tools and Settings › Automations')
 {
   const src = read('kybernos-plugin', 'client.js')
-  check('a helper draws the Suite\'s pill for a page card of the bundle', /const kbPagePill = \(page\) => \{[^\n]*window\.__KB_HELP__\.Help[^\n]*id: 'kybernos-plugin', page: page/.test(src))
-  check('Creations: on the title row', /h\('div', \{ className: 'kb6-titlerow' \}, h\('div', \{ className: 'kb6-title' \}, kbDomainTitle\('deliverables', kbt\('deliverables\.title'\)\)\), kbPagePill\('creations'\)\)/.test(src))
-  check('Workspaces: on the title row', /h\('div', \{ className: 'kb6-titlerow' \}, h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('projects', kbt\('kbui\.projects'\)\)\), kbPagePill\('workspaces'\)\)/.test(src))
-  check('Tools: in the page head, next to the text', /kbPagePill\('tools'\)\)\n\s+const colonne/.test(src))
+  check('a helper draws the Suite\'s pill for a page card of the bundle', /const kbPagePill = \(page, lead, title\) => \{[^\n]*window\.__KB_HELP__\.Help[^\n]*id: 'kybernos-plugin', page: page/.test(src))
+  check('Creations: on the title row', /h\('div', \{ className: 'kb6-titlerow' \}, h\('div', \{ className: 'kb6-title' \}, kbDomainTitle\('deliverables', kbt\('deliverables\.title'\)\)\), kbPagePill\('creations', kbt\('deliverables\.desc'\)/.test(src))
+  check('Workspaces: on the title row', /h\('div', \{ className: 'kb6-titlerow' \}, h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('projects', kbt\('kbui\.projects'\)\)\), kbPagePill\('workspaces', kbt\('kbui\.project\.holds'\)/.test(src))
+  check('Tools: in the page head, next to the text', /kbPagePill\('tools', leadTools, kbt\('kbui\.tools'\)\)\)\n\s+const colonne/.test(src))
   check('Settings › Automations: in the head of the page, at the right of the title', /help: 'automation-settings' \}\)/.test(src) && /kbac-titlerow\{justify-content:space-between\}/.test(src))
   const help = JSON.parse(read('kybernos-plugin', 'help.json'))
   const catalogue = JSON.parse(read('kybernos-hub', 'catalog.json'))
@@ -39,10 +39,10 @@ console.log('the core plugin: the pill on Creations, Workspaces, Tools and Setti
 console.log('the pill is on the title row of the other pages too')
 {
   const dash = read('kybernos-dashboards', 'src', 'plugin.js')
-  check('Dashboards: the pill beside the title (card of the bundle)', /h\('h1', \{ className: 'kb6-title' \}, pageName\(\)\), typeof window !== 'undefined' && window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-dashboards' \}\)/.test(dash))
+  check('Dashboards: the pill beside the title (card of the bundle)', /h\('h1', \{ className: 'kb6-title' \}, pageName\(\)\), typeof window !== 'undefined' && window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-dashboards', lead: galleryLead\(\), title: pageName\(\) \}\)/.test(dash))
   check('Dashboards: the built client holds it', read('kybernos-dashboards', 'client.js').includes("{ id: 'kybernos-dashboards' }"))
   const auto = read('kybernos-auto', 'client.js')
-  check('Auto Routing: the pill at the right of the title', /className: 'kaa-titrerow'[\s\S]{0,400}h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-auto' \}\)/.test(auto) && /\.kaa-titrerow\{display:flex;[^}]*justify-content:space-between/.test(auto))
+  check('Auto Routing: the pill at the right of the title', /className: 'kaa-titrerow'[\s\S]{0,400}h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-auto', lead: intro, title: /.test(auto) && /\.kaa-titrerow\{display:flex;[^}]*justify-content:space-between/.test(auto))
 }
 
 console.log('Workers and Calls: the pill left its own row')

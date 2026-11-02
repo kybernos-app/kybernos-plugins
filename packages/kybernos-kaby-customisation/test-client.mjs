@@ -119,6 +119,27 @@ console.log('── the page, rendered once ──')
   tree = Panel()
   ok('in French the same page speaks French', /Identité/.test(text(tree)) && /Voix/.test(text(tree)) && /Visage en appel vidéo/.test(text(tree)))
   resolved = 'en'
+
+  // The page's description lives in the « ? » card (`lead`); under the title only where the Suite's Help does not exist.
+  const LEAD_EN = 'How your assistant looks and sounds, where it works, what it may do without asking and when it wakes up. Its rules and its memory do not change here.'
+  tree = Panel()
+  ok('no Suite: the description stays under the title, and there is no « ? » card', byKb(tree, 'kaby-custom-page').length === 1 && find(tree, (n) => n.props.className === 'kbkc-lead').length === 1 && text(find(tree, (n) => n.props.className === 'kbkc-lead')[0]).trim() === LEAD_EN)
+  const Help = function Help () { return null }
+  globalThis.window.__KB_HELP__ = { version: 1, Help }
+  tree = Panel()
+  const cards = find(tree, (n) => n.type === Help)
+  ok('with the Suite: one « ? » card, given the description as `lead` and the page name as `title`', cards.length === 1 && cards[0].props.id === 'kybernos-kaby-customisation' && cards[0].props.lead === LEAD_EN && cards[0].props.title === 'Kaby', cards[0] && JSON.stringify(cards[0].props).slice(0, 120))
+  ok('…it is the page "kaby" of the bundle (help.json has no card for it: the card shows the lead alone)', cards.length === 1 && cards[0].props.page === 'kaby')
+  ok('…and the description is no longer drawn under the title', find(tree, (n) => n.props.className === 'kbkc-lead').length === 0 && !text(tree).includes(LEAD_EN))
+  resolved = 'kybernos'
+  tree = Panel()
+  ok('in French the `lead` is the French description', find(tree, (n) => n.type === Help).length === 1 && /^Comment ton assistant est et parle/.test(find(tree, (n) => n.type === Help)[0].props.lead))
+  resolved = 'en'
+  T.store.profile = null
+  tree = Panel()
+  ok('while the page is loading, only the title shows: no card and no description', find(tree, (n) => n.type === Help).length === 0 && find(tree, (n) => n.props.className === 'kbkc-lead').length === 0)
+  T.store.profile = publicProfile(emptyProfile())
+  delete globalThis.window.__KB_HELP__
 }
 
 console.log('── the tabs ──')

@@ -24,6 +24,12 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
+    // The page's own description lives in the Suite's « ? » card (`lead`); where the Suite is not there, it stays under the title, as it always was.
+    const kbSubFallback = (cls, text, attrs) => {
+      try { if (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) return null } catch (e) { /* draw it */ }
+      return h('p', Object.assign({ className: cls }, attrs || {}), text)
+    }
+
     // ── Composio catalog: loaded on demand from the host ──────────────────────
     // The 412 KB of the catalog are no longer inlined in this bundle: the browser only
     // downloads them when Composio is opened. catalog.js stays the source of
@@ -2901,6 +2907,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           mock: { bar: kbt('kb.cp.title'), rows: [kbt('kb.cp.intro.m.row')], hot: kbt('kb.cp.intro.m.hot'), states: [kbt('kb.cp.intro.m.st1'), kbt('kb.cp.pend'), kbt('kb.cp.connected')], actions: [kbt('kb.cp.addconn'), kbt('kb.cp.intro.m.wait'), kbt('kb.cp.intro.m.allow')] }
         })
         : null)
+      const kbPageTitle = (() => { try { const l = fieldSeam !== null ? fieldSeam.label('connectors') : null; return typeof l === 'string' && l.trim() !== '' ? l : kbt('kb.cp.title') } catch (e) { return kbt('kb.cp.title') } })()
       return h('div', { className: 'kb7-root' },
         // ── Header: Agent Teams gabarit (kb6-headrow / kb6-headcol / kb6-titlerow).
         // Same structure as the Kybers page: title + "?" help glued to it, subtitle
@@ -2910,10 +2917,10 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
-              h('h1', { className: 'kb6-title' }, (() => { try { const l = fieldSeam !== null ? fieldSeam.label('connectors') : null; return typeof l === 'string' && l.trim() !== '' ? l : kbt('kb.cp.title') } catch (e) { return kbt('kb.cp.title') } })()),
-              // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
-              typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio' }) : null),
-            h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
+              h('h1', { className: 'kb6-title' }, kbPageTitle),
+              // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json); the page's description is the first line of that card.
+              typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio', lead: kbt('kb.cp.sub'), title: kbPageTitle }) : null),
+            kbSubFallback('kb8-sub', kbt('kb.cp.sub'), { title: kbt('kb.cp.sub') })),
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
           // The bar sits in the header row with the primary action as its trailing item (the template of Agent Teams, Creations, Automations and
@@ -3450,8 +3457,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       return h('div', { className: 'kbcp-set-page', 'data-kb': 'kybernos-composio-settings' },
         h('div', { className: 'kbcp-set-headrow' },
           h('h2', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.h1')),
-          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio', page: 'connectors' }) : null)),
-        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.pv.lead')),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio', page: 'connectors', lead: kbt('kb.cp.pv.lead'), title: kbt('kb.cp.set.h1') }) : null)),
+        kbSubFallback('kbcp-set-sub', kbt('kb.cp.pv.lead')),
         composioCard(),
         kybernosCard(),
         saveErr === true ? h('div', { className: 'kbcp-note bad', role: 'alert' }, kbt('kb.cp.pv.err')) : null,

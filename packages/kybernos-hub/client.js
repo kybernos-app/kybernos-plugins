@@ -729,7 +729,7 @@ window.__ModuleLoader__.load({
       // The button's own row, put first in a page: it takes no height, so the page's title starts where it does on a page that holds the button in its title row (x 272, y 54). Narrow: back in the flow, above the title.
       '.kbhp-row{display:flex;justify-content:flex-end;width:100%;height:0;overflow:visible;position:relative;z-index:1;margin-bottom:calc(-1 * var(--kbhp-gap,0px))}',
       '@media (max-width:760px){.kbhp-row{height:auto;margin-bottom:6px}}',
-      '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
+      '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
       '.kbhp-wrap .kbhp-btn:hover,.kbhp-wrap .kbhp-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}',
       '.kbhp-wrap .kbhp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
       '.kbhp-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
@@ -737,6 +737,7 @@ window.__ModuleLoader__.load({
       '.kbhp-pop h4{margin:0;font-size:17px;font-weight:700}',
       '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
       '.kbhp-pop p{margin:0;color:var(--dsw-alias-label-secondary)}',
+      '.kbhp-pop p.kbhp-lead{color:var(--dsw-alias-label-primary)}',
       '.kbhp-pop.start{inset-inline-end:auto;inset-inline-start:0}',
       // Docked (V1-23): in the free margin beside the page column (its start is set from the column, inline), level with the button, flat (nothing covered, nothing moves, no popover shadow).
       '.kbhp-pop.dock{inset-inline-end:auto;top:0;width:340px;max-height:min(80vh,560px);box-shadow:none;background:var(--dsw-alias-bg-layer-1,#151517)}',
@@ -1894,12 +1895,14 @@ window.__ModuleLoader__.load({
         const aucun = h('div', { className: 'kbsu-empty' }, kt('Aucun module ne correspond.', 'No module matches.'))
         const orderLine = custom ? (orderSaved ? kt('Ordre personnalisé, enregistré dans ce navigateur', 'Custom order, saved in this browser') : kt('Ordre personnalisé, non enregistré (stockage du navigateur indisponible)', 'Custom order, not saved (browser storage unavailable)')) : kt('Ordre par défaut', 'Default order')
 
+        // The page's description lives in its « ? » card (the loading skeleton above has no button, so it keeps the line).
+        const suiteLead = kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.')
         return h('div', { className: 'kbsu', 'data-kb': 'suite', ref: rootRef },
           detail !== null ? null : h('div', { className: 'kbsu-head' },
-            h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+            h('div', null, h('h4', null, 'Kybernos Suite'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', null, suiteLead)),
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
-                typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-hub' }) : null,
+                typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-hub', lead: suiteLead, title: 'Kybernos Suite' }) : null,
                 enPlugins ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-add', onClick: () => setDlg({ type: 'ajout' }) }, ic('plug'), kt('Ajouter un plugin', 'Add a plugin'), h('span', { 'aria-hidden': 'true', style: { opacity: 0.6 } }, '▾')) : null,
                 ouvrirGestionnaire !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost', 'data-kb': 'suite-native', onClick: ouvrirGestionnaire }, ic('plug'), kt('Gestionnaire natif', 'Native manager')) : null,
                 h('button', { type: 'button', className: 'kbsu-btn', 'data-kb': 'suite-verifier', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Rechercher des mises à jour', 'Check for updates'))),
@@ -1981,7 +1984,8 @@ window.__ModuleLoader__.load({
       // `page` ({ id: 'kybernos-plugin', page: 'voice' }) asks for the card of one page of a bundle that owns several: the
       // card is `aide.pages[page]`, and when it is not there (an older catalogue) nothing is drawn rather than the bundle's
       // general help on the wrong page.
-      function Help ({ id, action, page }) {
+      // `lead` (optional; a string, or an array of strings for several paragraphs) is the page's own description, shown first in the card; `title` names the card when the bundle has none for the page.
+      function Help ({ id, action, page, lead, title }) {
         const [open, setOpen] = React.useState(false)
         const [mod, setMod] = React.useState(null)
         const [side, setSide] = React.useState('end') // which edge of the button the card hangs from, so it stays on screen
@@ -2023,11 +2027,16 @@ window.__ModuleLoader__.load({
           document.addEventListener('mousedown', away)
           return () => { window.removeEventListener('keydown', esc, true); window.removeEventListener('resize', place); document.removeEventListener('mousedown', away) }
         }, [open])
-        if (mod === null || mod.aide === undefined || mod.aide === null) return null
-        const card = page === undefined ? null : (mod.aide.pages != null && mod.aide.pages[page] != null ? mod.aide.pages[page] : undefined)
-        if (card === undefined) return null
-        const a = card === null ? mod.aide : card
-        const titre = card === null ? (mod.titre || id) : kt(card.title.fr, card.title.en)
+        // A card of the bundle is shown whole. A page that gives a `lead` (its own one-line description, which it no longer draws under its title) gets its button and a card with that
+        // line even when the bundle has no card for it, so the description never disappears; with neither, nothing is drawn (never the bundle's help on the wrong page).
+        const leads = (Array.isArray(lead) ? lead : [lead]).filter((x) => typeof x === 'string' && x !== '')
+        const hasLead = leads.length > 0
+        const aide = mod !== null && mod.aide !== undefined && mod.aide !== null ? mod.aide : null
+        const card = page === undefined ? null : (aide !== null && aide.pages != null && aide.pages[page] != null ? aide.pages[page] : undefined)
+        const full = aide !== null && card !== undefined
+        if (!full && !hasLead) return null
+        const a = full ? (card === null ? aide : card) : { steps: [] }
+        const titre = !full ? (typeof title === 'string' && title !== '' ? title : id) : (card === null ? (mod.titre || id) : kt(card.title.fr, card.title.en))
         const key = page === undefined ? id : id + '-' + page
         // The foot of the card: the article of the help site (when the card has one), and the animation of the page (when it has one).
         const href = adresseAide(a.url, rawLang())
@@ -2036,14 +2045,15 @@ window.__ModuleLoader__.load({
         if (href !== null) foot.push(h('a', { key: 'l', className: 'kbhp-link', 'data-kb': 'help-link', href, target: '_blank', rel: 'noopener noreferrer' }, kt('Lire l’article', 'Read the article'), ' ↗'))
         if (typeof replay === 'function') foot.push(h('button', { key: 'r', type: 'button', className: 'kbhp-replay', 'data-kb': 'help-replay', onClick: () => { setOpen(false); replay() } }, kt('Revoir l’animation', 'Watch the animation')))
         return h('span', { className: 'kbhp-wrap', ref: wrap, 'data-kb': 'help', 'data-id': id, 'data-page': page },
-          h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'data-page': page, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + key, title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
-            h('span', { className: 'kbhp-q', 'aria-hidden': 'true' }, '?'), kt('Comment ça marche', 'How it works')),
+          h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'data-page': page, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + key, 'aria-label': kt('Comment ça marche', 'How it works'), title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
+            h('span', { className: 'kbhp-q', 'aria-hidden': 'true' }, '?')),
           open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : '') + (side === 'dock' ? ' dock' : ''), style: side === 'dock' ? { insetInlineStart: dockX.current + 'px' } : undefined, id: 'kbhp-' + key, role: 'dialog', 'aria-label': titre + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
             h('button', { type: 'button', className: 'kbhp-x', 'aria-label': kt('Fermer', 'Close'), onClick: () => setOpen(false) }, '✕'),
             h('h4', null, titre),
-            h('p', null, kt(a.what.fr, a.what.en)),
-            h('div', null, h('h5', null, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, a.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
-            h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(a.where.fr, a.where.en)),
+            leads.map((x, i) => h('p', { key: 'lead' + i, className: 'kbhp-lead', 'data-kb': 'help-lead' }, x)),
+            a.what != null && leads.indexOf(kt(a.what.fr, a.what.en)) < 0 ? h('p', null, kt(a.what.fr, a.what.en)) : null,
+            Array.isArray(a.steps) && a.steps.length > 0 ? h('div', null, h('h5', null, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, a.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))) : null,
+            a.where != null ? h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(a.where.fr, a.where.en)) : null,
             a.good ? h('p', { className: 'kbsu-good' }, kt(a.good.fr, a.good.en)) : null,
             action != null && typeof action.onClick === 'function' ? h('button', { type: 'button', className: 'kbhp-act', 'data-kb': 'help-action', onClick: () => { setOpen(false); action.onClick() } }, action.label) : null,
             foot.length > 0 ? h('div', { className: 'kbhp-foot' }, foot) : null) : null)

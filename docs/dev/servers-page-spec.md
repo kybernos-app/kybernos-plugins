@@ -4,7 +4,7 @@ Status: **partially built — see the correction below before reading this as a 
 its visual part. This file is what gets built, in this order, and how it is proved.
 
 > **Correction (2026-10-20, recette).** The line above said « nothing built »; that is no longer true and it misleads anyone preparing a test.
-> The page ships: `packages/kybernos-servers/client.js` renders « Where your account, team and models live », the server list (Kybernos Cloud,
+> The page ships: `packages/kybernos-servers/client.js` renders its description « Where your account, team and models live » (in the card of its « ? », not under the title), the server list (Kybernos Cloud,
 > local, dev), the Enterprise block and « + Add a server ». Seen live in the isolated sandbox on 2026-10-20 (29 pages Réglages opened, capture in
 > the recette capture `pages-pass/servers.png` (video review dossier, outside the repo)).
 > What is NOT built from this spec must be listed here explicitly before the next reader trusts the sections below; the recette found one concrete

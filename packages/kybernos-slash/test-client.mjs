@@ -160,6 +160,20 @@ console.log('the Commands page and its editor (owner\'s redesign, 2026-10-22)')
   check('Ctrl/Cmd + S saves the open editor', /String\(ev\.key\)\.toLowerCase\(\) === 's' && ui\.editor !== null/.test(src) && /kbSaveEditor\(\)/.test(src))
 }
 
+console.log('the page description lives in the « ? » card')
+{
+  // The Commands page passes its description to the Suite's Help as `lead` (and its title as `title`) and no longer draws it under the title; without the Suite a guarded fallback draws it as before.
+  const from = src.indexOf("const pageLead = L({ fr: 'Des prompts")
+  const page = src.slice(from, src.indexOf('introNode,', from))
+  check('the page keeps its description wording, in both languages, in one place', /const pageLead = L\(\{ fr: 'Des prompts enregistrés[^']*', en: 'Saved prompts\.[^']*' \}\)/.test(page) && (src.match(/Saved prompts\. Type \/ in the message box/g) || []).length === 1)
+  check('the Help of the page gets that description as `lead` and the title as `title`', /h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-slash', lead: pageLead, title: L\(\{ fr: 'Commandes', en: 'Commands' \}\) \}\)/.test(page) && /className: 'kbsl-h1' \}, L\(\{ fr: 'Commandes', en: 'Commands' \}\)\)/.test(page))
+  check('the description is no longer a line under the title: only the guarded fallback draws it', !/h\('span', \{ className: 'kbsl-sub' \}, L\(/.test(page) && /kbslLeadFallback\(pageLead\)/.test(page))
+  const at = src.indexOf('const kbslLeadFallback = ')
+  const fb = src.slice(at, src.indexOf('\n', at))
+  check('the fallback draws nothing when the Suite\'s Help is there, and the description when it is not', at > 0 && /window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? null : h\('span', \{ className: 'kbsl-sub' \}, text\)/.test(fb))
+  check('the description class is still styled (the fallback uses it)', /\.kbsl-sub\{/.test(src))
+}
+
 {
   // UX audit 2026-10-20: the icon search split the query on the LETTER s (`/s+/`, the backslash lost), so « sport » looked for « port ».
   const at = src.indexOf('const kbIconSearch = (q) => {')

@@ -53,7 +53,7 @@ console.log('SRV-14 the help card')
   const both = (v) => typeof v.fr === 'string' && v.fr.trim() !== '' && typeof v.en === 'string' && v.en.trim() !== ''
   check('what, 2 to 4 steps, where and good, each in French and in English (the catalogue build checks lengths and words)', both(help.what) && help.steps.length >= 2 && help.steps.length <= 4 && help.steps.every(both) && both(help.where) && both(help.good) && help.where.page === true)
   check('it says what to do: paste the address, sign in with the account, switch, remove', /adresse/i.test(help.steps[0].fr) && /address/i.test(help.steps[0].en) && /compte/i.test(help.steps[1].fr) && /account/i.test(help.steps[1].en))
-  check('the page asks for it behind a guard (nothing breaks when the Suite is absent)', /typeof window !== 'undefined' && window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\('span', \{ className: 'kbsv-help' \}, h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-servers' \}\)\) : null/.test(SOURCE))
+  check('the page asks for it behind a guard (nothing breaks when the Suite is absent)', /typeof window !== 'undefined' && window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\('span', \{ className: 'kbsv-help' \}, h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-servers', lead: lead, title: title \}\)\) : null/.test(SOURCE))
 }
 
 // ── The render half ──
@@ -110,6 +110,18 @@ console.log('the list')
   check('without a published web address the app is at the api host + /account', detPlain.includes('https://kb.acme.corp/account'))
   const detCloud = render({ cloud: cloudOf([BUILTIN, ACME]) }, { details: { 'kybernos-cloud': true } })
   check('the built-in server\'s Details have no Rename', detCloud.includes('servers-det') && !detCloud.includes('data-kb="servers-rename"'))
+  {
+    // The page's description lives in the « ? » card: with the Suite it is passed to Help as `lead` (and the title as `title`) and not drawn under the title; without the Suite it is drawn as before.
+    const SUB_EN = 'Where your account, team and models live'
+    const SUB_FR = 'Là où vivent ton compte, ton équipe et tes modèles'
+    const bare = both(() => render({ cloud: cloudOf([BUILTIN]) }))
+    check('without the Suite the description is still drawn under the title, in both languages', bare.en.includes('class="kbsv-sub">' + SUB_EN + '<') && bare.fr.includes('class="kbsv-sub">' + SUB_FR + '<') && !bare.en.includes('data-lead='))
+    WIN.__KB_HELP__ = { Help: ({ id, lead, title }) => React.createElement('i', { 'data-help-id': id, 'data-lead': lead, 'data-title': title }) }
+    const suite = both(() => render({ cloud: cloudOf([BUILTIN]) }))
+    delete WIN.__KB_HELP__
+    check('with the Suite the page passes its description to Help as `lead`, and its title, in both languages', suite.en.includes('data-help-id="kybernos-servers"') && suite.en.includes('data-lead="' + SUB_EN + '"') && suite.en.includes('data-title="Servers"') && suite.fr.includes('data-lead="' + SUB_FR + '"') && suite.fr.includes('data-title="Serveurs"'))
+    check('...and no longer draws the same text under the title', !suite.en.includes('class="kbsv-sub"') && !suite.fr.includes('class="kbsv-sub"'))
+  }
   const missing = render({ cloud: null })
   check('without the cloud half: one sentence, no list', missing.includes('servers-missing') && missing.includes('The Cloud module does not answer') && !missing.includes('servers-row'))
 }

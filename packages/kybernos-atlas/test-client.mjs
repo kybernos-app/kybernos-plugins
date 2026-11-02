@@ -285,6 +285,17 @@ console.log('\n── nothing is read until the user asks ──')
   check('readAgo: just now, minutes, hours, days', T.readAgo(1000, 1000 + 20000) === 'just now' && T.readAgo(0, 5 * 60000) === '5 min ago' && T.readAgo(0, 3 * 3600000) === '3 h ago' && T.readAgo(0, 86400000) === '1 day ago' && T.readAgo(0, 4 * 86400000) === '4 days ago')
 }
 
+console.log('\n── the « ? » card opens with the page description (it no longer sits under the title) ──')
+{
+  const DESC = 'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.'
+  const lead = SOURCE.match(/h\('h2', \{ id: 'kbat-help-t' \}, tr\('How to read the Atlas'\)\),\s*h\('p', \{ className: 'kbat-lead' \}, tr\('([^']+)'\)\)/)
+  check('the help card holds the page description as its first paragraph, a lead right under its heading', lead !== null && lead[1] === DESC, lead && lead[1])
+  check('the description is used once, in that card; no line of it is left under the page title', (SOURCE.match(/tr\('Every project, agent team/g) || []).length === 1 && !/kbat-sub[^2]/.test(SOURCE))
+  check('the page head is the title and the buttons only', /h\('h1', \{ className: 'kbat-title' \}, 'Atlas'\),\s*h\('div', \{ className: 'kbat-headr' \}/.test(SOURCE))
+  check('the lead is primary text at 14 px; the French twin of the description is kept', /\.kbat-mcard \.kbat-lead\{color:var\(--dsw-alias-label-primary\);font-size:14px/.test(SOURCE) && SOURCE.includes("'" + DESC + "': 'Chaque projet"))
+  check('the pill is a bare « ? » with its words as its accessible name and tooltip', /className: 'kbat-help'[^\n]*'aria-label': tr\('How it works'\), title: tr\('How it works'\) \}, h\('span', \{ className: 'kbat-helpq', 'aria-hidden': 'true' \}, '\?'\)\)/.test(SOURCE))
+}
+
 console.log('\n── language (A2-19): English is the base, French is the twin, every other language reads English ──')
 {
   const setLang = (l) => { globalThis.window.__KB_LANG_RESOLVE__ = () => { if (l === 'throws') throw new Error('not ready'); return l } }
