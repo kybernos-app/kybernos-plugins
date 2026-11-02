@@ -160,7 +160,7 @@ console.log('── permissions and where Kaby works: the cards, rendered once �
   const panelTree = T.buildPanel(React)
   T.store.profile = publicProfile(emptyProfile())
   const page = panelTree()
-  ok('the page draws both cards, after the three blocks', ['KabyWhereCard', 'KabyMandateCard'].every((n) => find(page, (x) => typeof x.type === 'function' && x.type.displayName === n).length === 1))
+  ok('the page draws the three cards, after the three blocks', ['KabyWhereCard', 'KabyMandateCard', 'KabyHeartbeatCard'].every((n) => find(page, (x) => typeof x.type === 'function' && x.type.displayName === n).length === 1))
 
   T.store.mandate = null
   let m = mount('MandateCard')
@@ -288,6 +288,179 @@ console.log('── permissions and where Kaby works: the cards, rendered once �
   T.store.mandate = null
 }
 
+console.log('── wake-ups: the words, the draft ──')
+{
+  resolved = 'en'
+  const PRESETS = { off: { on: false, everyHours: 4, boxMin: 10, items: 2 }, light: { on: true, everyHours: 8, boxMin: 5, items: 1 }, regular: { on: true, everyHours: 4, boxMin: 10, items: 2 }, steady: { on: true, everyHours: 2, boxMin: 20, items: 3 } }
+  const view = (o) => ({ ok: true, inForce: false, why: 'none', canSign: true, signedAt: null, preset: 'off', on: false, everyHours: 4, boxMin: 10, items: 2, quiet: true, quietFrom: '22:00', quietTo: '08:00', paused: false, quietNow: false, nextAt: null, lastAt: null, lastOutcome: null, running: false, desktop: true,
+    choices: { everyHours: [2, 4, 8, 24], boxMin: [5, 10, 20], items: [1, 2, 3] }, presets: PRESETS, ...o })
+  const chipOf = (o, dirty) => T.heartbeatChip(view(o), dirty === true).code
+  const SIGNED = '2026-11-02T08:00:00.000Z'
+  const ON = { inForce: true, why: 'in_force', signedAt: SIGNED, on: true, preset: 'regular' }
+  ok('nothing signed: no wake-ups; signed but off: the same words, another state', chipOf({}) === 'none' && chipOf({ why: 'off', signedAt: SIGNED }) === 'off' && T.heartbeatChip(view({}), false).text === 'No wake-ups')
+  ok('on: the chip says when the next one is due, in the language; with no date it just says on', (() => { const n = new Date(2026, 10, 2, 14, 30).toISOString(); const c = T.heartbeatChip(view({ ...ON, nextAt: n }), false); resolved = 'kybernos'; const f = T.heartbeatChip(view({ ...ON, nextAt: n }), false).text; resolved = 'en'; return c.code === 'on' && c.cls === 'ok' && c.text === 'On · next around 14:30' && f === 'Actifs · prochain vers 14:30' && T.heartbeatChip(view(ON), false).text === 'On' })())
+  ok('in the quiet hours the chip says when they end', (() => { const c = T.heartbeatChip(view({ ...ON, quietNow: true, quietTo: '07:30' }), false); return c.code === 'quiet' && c.text === 'Quiet · resumes at 07:30' })())
+  ok('a wake-up under way names the longest it can take, and wins over the next date', (() => { const c = T.heartbeatChip(view({ ...ON, running: true, boxMin: 20 }), false); return c.code === 'running' && c.text === 'Working · 20 min at most' })())
+  ok('a draft not signed yet says so, whatever the host says', chipOf(ON, true) === 'dirty' && chipOf({}, true) === 'dirty')
+  ok('paused, altered or unreadable (sign again), no key (cannot sign): each its own state', chipOf({ why: 'paused', signedAt: SIGNED }) === 'paused' && chipOf({ why: 'altered' }) === 'resign' && chipOf({ why: 'unreadable' }) === 'resign' && chipOf({ why: 'no_secret' }) === 'cannot_sign' && chipOf({ canSign: false }) === 'cannot_sign' && chipOf({ canSign: false }, true) === 'cannot_sign')
+  const dr = T.heartbeatDraftOf(view({ on: true, everyHours: 8, quiet: false }))
+  ok('the draft holds the seven fields the host signs besides « paused », and no more', Object.keys(dr).sort().join() === 'boxMin,everyHours,items,on,quiet,quietFrom,quietTo' && dr.on === true && dr.everyHours === 8 && dr.quiet === false)
+  ok('a draft equal to a starting point is that point whatever the quiet hours; any other is custom', T.heartbeatPreset({ ...T.heartbeatDraftOf(view(ON)), quiet: false }, PRESETS) === 'regular' && T.heartbeatPreset({ on: true, everyHours: 2, boxMin: 20, items: 3 }, PRESETS) === 'steady' && T.heartbeatPreset({ on: true, everyHours: 24, boxMin: 20, items: 3 }, PRESETS) === 'custom' && T.heartbeatPreset(dr, null) === 'custom' && T.heartbeatPreset(T.heartbeatDraftOf(view({})), PRESETS) === 'off')
+  ok('the starting points are named in both languages', T.HEARTBEAT_PRESETS.every((p) => T.heartbeatPresetLabel(p).length > 2) && (() => { resolved = 'kybernos'; const f = T.heartbeatPresetLabel('light'); resolved = 'en'; return f === 'Léger' && T.heartbeatPresetLabel('light') === 'Light' })())
+  ok('every outcome word of the runner has a phrase, and an unknown one none', ['running', 'done', 'time', 'blocked', 'person', 'refused', 'error', 'interrupted'].every((w) => T.wakeOutcome(w).length > 3) && T.wakeOutcome('?') === '' && T.wakeOutcome(null) === '')
+  ok('every refusal of the host has a sentence, and an unknown one a plain fallback', ['cannot_sign', 'write_failed', 'session', 'down'].every((c) => T.heartbeatProblem(c).length > 20) && T.heartbeatProblem('?').length > 5)
+  ok('every reason a wake-up cannot start has a sentence, and an unknown one a plain fallback', ['running', 'not_desktop', 'not_in_force', 'sessions_unavailable', 'no_chat', 'busy', 'session'].every((c) => T.wakeProblem(c).length > 20) && T.wakeProblem('?').length > 5)
+  ok('the clock shows hours and minutes, from a date or from milliseconds, and nothing for a date it cannot read', T.clockOf(new Date(2026, 10, 2, 7, 5).toISOString()) === '07:05' && T.clockOf(new Date(2026, 10, 2, 7, 5).getTime()) === '07:05' && T.clockOf('nope') === '' && T.clockOf(null) === '')
+}
+
+console.log('── wake-ups: the card, rendered once ──')
+{
+  resolved = 'en'
+  const PRESETS = { off: { on: false, everyHours: 4, boxMin: 10, items: 2 }, light: { on: true, everyHours: 8, boxMin: 5, items: 1 }, regular: { on: true, everyHours: 4, boxMin: 10, items: 2 }, steady: { on: true, everyHours: 2, boxMin: 20, items: 3 } }
+  const view = (o) => ({ ok: true, inForce: false, why: 'none', canSign: true, signedAt: null, preset: 'off', on: false, everyHours: 4, boxMin: 10, items: 2, quiet: true, quietFrom: '22:00', quietTo: '08:00', paused: false, quietNow: false, nextAt: null, lastAt: null, lastOutcome: null, running: false, desktop: true,
+    choices: { everyHours: [2, 4, 8, 24], boxMin: [5, 10, 20], items: [1, 2, 3] }, presets: PRESETS, ...o })
+  const SIGNED = '2026-11-02T08:00:00.000Z'
+  const ON = { inForce: true, why: 'in_force', signedAt: SIGNED, on: true, preset: 'regular' }
+  // Heartbeat = view 0, down 1, draft 2, busy 3, problem 4.
+  const mount = (forced = {}) => {
+    const sets = []
+    let i = 0
+    const R = { ...React, useState: (v) => { const n = i++; return [n in forced ? forced[n] : (typeof v === 'function' ? v() : v), (x) => sets.push([n, x])] } }
+    return { tree: T.buildCards(R).HeartbeatCard(), sets }
+  }
+  const only = (tree, kb) => byKb(tree, kb)[0]
+  const label = (tree, kb) => text(only(tree, kb))
+  delete globalThis.window.__KB_KYBER__
+
+  T.store.heartbeat = null
+  let m = mount()
+  ok('before the host answers, the card says it is reading', byKb(m.tree, 'kaby-custom-heartbeat-loading').length === 1 && byKb(m.tree, 'kaby-custom-heartbeat-sign').length === 0)
+  m = mount({ 1: true })
+  ok('when the host does not answer, it says so (and how to fix it)', byKb(m.tree, 'kaby-custom-heartbeat-down').length === 1 && /restart DSH/.test(text(m.tree)))
+
+  T.store.heartbeat = view({})
+  m = mount()
+  ok('nothing signed: four starting points, « Off » pressed, sign, pause and wake off', byKb(m.tree, 'kaby-custom-heartbeat-preset').length === 4 && byKb(m.tree, 'kaby-custom-heartbeat-preset').filter((b) => b.props['aria-pressed'] === 'true').map((b) => b.props['data-preset']).join() === 'off' && only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
+  ok('three labelled selects with the host’s choices, and the quiet hours as a switch and two times', ['everyHours', 'boxMin', 'items'].every((k) => { const s = only(m.tree, 'kaby-custom-heartbeat-' + k); return s.type === 'select' && s.props['aria-label'].length > 10 && find(m.tree, (n) => n.type === 'label' && n.props.htmlFor === s.props.id).length === 1 }) && only(m.tree, 'kaby-custom-heartbeat-everyHours').children.map((o) => text(o).trim()).join() === '2 h,4 h,8 h,24 h' && only(m.tree, 'kaby-custom-heartbeat-items').children.length === 3 && only(m.tree, 'kaby-custom-heartbeat-quiet-switch').props.role === 'switch' && only(m.tree, 'kaby-custom-heartbeat-from').props.type === 'time' && only(m.tree, 'kaby-custom-heartbeat-to').props.value === '08:00')
+  ok('the card holds parameters only: no list, no report, and it says where those are', !byKb(m.tree, 'kaby-custom-heartbeat-last').length && /in its chat, not here/.test(text(m.tree)))
+  ok('the card says what is never different during a wake-up, and that nothing is measured in euros', byKb(m.tree, 'kaby-custom-heartbeat-rules').length === 1 && /nobody can answer a question/.test(text(only(m.tree, 'kaby-custom-heartbeat-rules'))) && /connected app, restarting DSH: never/.test(text(only(m.tree, 'kaby-custom-heartbeat-rules'))) && /half an hour/.test(text(only(m.tree, 'kaby-custom-heartbeat-rules'))) && /No budget in euros/.test(text(m.tree)))
+  ok('no cloud warning on the person’s own computer', byKb(m.tree, 'kaby-custom-heartbeat-cloud-note').length === 0 && byKb(m.tree, 'kaby-custom-heartbeat-open').length === 0)
+
+  T.store.heartbeat = view({ ...ON, nextAt: new Date(2026, 10, 2, 16, 0).toISOString(), lastAt: new Date(2026, 10, 2, 12, 5).toISOString(), lastOutcome: 'done' })
+  m = mount()
+  ok('on: the chip is green with the next time, « Regular » is pressed, and the last wake-up is one line', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'on' && / ok$/.test(only(m.tree, 'kaby-custom-heartbeat-chip').props.className) && byKb(m.tree, 'kaby-custom-heartbeat-preset').find((b) => b.props['data-preset'] === 'regular').props['aria-pressed'] === 'true' && /next around 16:00/.test(label(m.tree, 'kaby-custom-heartbeat-chip')) && label(m.tree, 'kaby-custom-heartbeat-last').trim() === 'Last wake-up at 12:05: finished.')
+  ok('on and nothing changed: sign is off, pause and « Wake it now » are on', only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === false && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === false && /Pause/.test(label(m.tree, 'kaby-custom-heartbeat-pause')))
+  m = mount({ 2: { on: true, everyHours: 8, boxMin: 5, items: 1, quiet: true, quietFrom: '22:00', quietTo: '08:00' } })
+  ok('a draft: « Changes to sign », « Light » pressed, the last wake-up hidden, sign on and « Wake it now » off until it is signed', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'dirty' && byKb(m.tree, 'kaby-custom-heartbeat-preset').find((b) => b.props['data-preset'] === 'light').props['aria-pressed'] === 'true' && byKb(m.tree, 'kaby-custom-heartbeat-last').length === 0 && only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === false && /Sign the changes/.test(label(m.tree, 'kaby-custom-heartbeat-sign')) && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
+  m = mount({ 2: { on: true, everyHours: 24, boxMin: 5, items: 1, quiet: true, quietFrom: '22:00', quietTo: '08:00' } })
+  ok('numbers that match no starting point show « Custom », none pressed', byKb(m.tree, 'kaby-custom-heartbeat-custom').length === 1 && byKb(m.tree, 'kaby-custom-heartbeat-preset').every((b) => b.props['aria-pressed'] === 'false'))
+  T.store.heartbeat = view({})
+  m = mount({ 2: { on: true, everyHours: 4, boxMin: 10, items: 2, quiet: true, quietFrom: '22:00', quietTo: '08:00' } })
+  ok('turning on for the first time says « Turn the wake-ups on »', /Turn the wake-ups on/.test(label(m.tree, 'kaby-custom-heartbeat-sign')))
+  T.store.heartbeat = view({ ...ON, running: true, lastAt: SIGNED, lastOutcome: 'running' })
+  m = mount()
+  ok('a wake-up under way: the chip says so, « Wake it now » is off, and the last-wake-up line waits for its end', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'running' && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true && byKb(m.tree, 'kaby-custom-heartbeat-last').length === 0)
+  T.store.heartbeat = view({ why: 'paused', signedAt: SIGNED, on: true, paused: true })
+  m = mount()
+  ok('paused: the chip, the sentence, « Resume », and no wake-up', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'paused' && /No wake-up until you resume/.test(label(m.tree, 'kaby-custom-heartbeat-note')) && /Resume/.test(label(m.tree, 'kaby-custom-heartbeat-pause')) && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === false && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
+  T.store.heartbeat = view({ why: 'altered' })
+  m = mount()
+  ok('altered or another key: red, an alert, pause and wake off, « Sign again » waits for a pick', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'resign' && only(m.tree, 'kaby-custom-heartbeat-note').props.role === 'alert' && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true && /Sign again/.test(label(m.tree, 'kaby-custom-heartbeat-sign')) && only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === true)
+  T.store.heartbeat = view({ canSign: false, why: 'no_secret' })
+  m = mount()
+  ok('no key on this machine: every control is off and the card says why', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'cannot_sign' && /cannot find this machine’s key/.test(label(m.tree, 'kaby-custom-heartbeat-note')) && [...byKb(m.tree, 'kaby-custom-heartbeat-preset'), ...['everyHours', 'boxMin', 'items'].map((k) => only(m.tree, 'kaby-custom-heartbeat-' + k)), only(m.tree, 'kaby-custom-heartbeat-quiet-switch'), only(m.tree, 'kaby-custom-heartbeat-sign'), only(m.tree, 'kaby-custom-heartbeat-pause'), only(m.tree, 'kaby-custom-heartbeat-wake')].every((n) => n.props.disabled === true))
+  T.store.heartbeat = view({ ...ON, desktop: false })
+  m = mount()
+  ok('on a cloud computer the card warns that wake-ups happen on the person’s own computer, and « Wake it now » is off', /do not cover Kaby’s cloud computer/.test(label(m.tree, 'kaby-custom-heartbeat-cloud-note')) && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
+  T.store.heartbeat = view({ ...ON })
+  globalThis.window.__KB_KYBER__ = { where: () => ({ local: false, computers: [], picked: 'x', state: 'suspended' }), openChat: () => true }
+  m = mount()
+  ok('when Kaby works on a cloud computer the same warning shows, and « Open Kaby’s chat » is offered', byKb(m.tree, 'kaby-custom-heartbeat-cloud-note').length === 1 && /Open Kaby’s chat/.test(label(m.tree, 'kaby-custom-heartbeat-open')))
+  let opened = 0
+  globalThis.window.__KB_KYBER__ = { where: () => null, openChat: () => { opened += 1; return true } }
+  m = mount()
+  only(m.tree, 'kaby-custom-heartbeat-open').props.onClick()
+  ok('« Open Kaby’s chat » goes through kybernos-kyber’s seam', opened === 1 && byKb(m.tree, 'kaby-custom-heartbeat-cloud-note').length === 0)
+  globalThis.window.__KB_KYBER__ = { where: () => null, openChat: () => { throw new Error('no chat on screen') } }
+  m = mount()
+  ok('a seam that throws never breaks the card', (() => { only(m.tree, 'kaby-custom-heartbeat-open').props.onClick(); return true })())
+  delete globalThis.window.__KB_KYBER__
+
+  // what the controls do
+  T.store.heartbeat = view({})
+  m = mount()
+  byKb(m.tree, 'kaby-custom-heartbeat-preset').find((b) => b.props['data-preset'] === 'steady').props.onClick()
+  ok('a starting point fills the draft from the host’s own numbers and keeps the quiet hours', JSON.stringify(m.sets.find(([n]) => n === 2)[1]) === JSON.stringify({ on: true, everyHours: 2, boxMin: 20, items: 3, quiet: true, quietFrom: '22:00', quietTo: '08:00' }))
+  m = mount()
+  only(m.tree, 'kaby-custom-heartbeat-everyHours').props.onChange({ target: { value: '24' } })
+  only(m.tree, 'kaby-custom-heartbeat-boxMin').props.onChange({ target: { value: 'abc' } })
+  only(m.tree, 'kaby-custom-heartbeat-items').props.onChange({ target: { value: '3' } })
+  ok('a select changes that field only, and a word is ignored', m.sets.length === 2 && m.sets[0][1].everyHours === 24 && m.sets[0][1].boxMin === 10 && m.sets[1][1].items === 3 && m.sets[1][1].everyHours === 4)
+  m = mount()
+  only(m.tree, 'kaby-custom-heartbeat-quiet-switch').props.onClick()
+  only(m.tree, 'kaby-custom-heartbeat-from').props.onChange({ target: { value: '23:30' } })
+  only(m.tree, 'kaby-custom-heartbeat-to').props.onChange({ target: { value: '25:00' } })
+  only(m.tree, 'kaby-custom-heartbeat-to').props.onChange({ target: { value: '' } })
+  ok('the quiet switch and the start time change the draft; a time that is not one is ignored', m.sets.length === 2 && m.sets[0][1].quiet === false && m.sets[1][1].quietFrom === '23:30')
+  ok('the two times are off while the quiet hours are off', (() => { const d = { on: false, everyHours: 4, boxMin: 10, items: 2, quiet: false, quietFrom: '22:00', quietTo: '08:00' }; const x = mount({ 2: d }); return only(x.tree, 'kaby-custom-heartbeat-from').props.disabled === true && only(x.tree, 'kaby-custom-heartbeat-to').props.disabled === true })())
+
+  const asked = []
+  const answer = (status, json) => { globalThis.fetch = async (url, init) => { asked.push({ url, init }); return { status, json: async () => json } } }
+  const DRAFT = { on: true, everyHours: 8, boxMin: 5, items: 1, quiet: false, quietFrom: '21:00', quietTo: '07:00' }
+  T.store.heartbeat = view({})
+  m = mount({ 2: DRAFT })
+  answer(200, { ok: true, view: view({ ...ON, preset: 'light', everyHours: 8, boxMin: 5, items: 1, quiet: false, quietFrom: '21:00', quietTo: '07:00' }) })
+  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
+  ok('signing posts the seven fields to the host, never « paused », same origin, with the cookie', asked[0].url === '/kybernos-cloud/kyby/heartbeat/set' && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify(DRAFT))
+  ok('the host’s answer replaces the card’s state and clears the draft', T.store.heartbeat.inForce === true && T.store.heartbeat.everyHours === 8 && T.store.heartbeat.desktop === true && m.sets.some(([n, x]) => n === 2 && x === null) && m.sets.some(([n, x]) => n === 3 && x === true) && m.sets.some(([n, x]) => n === 3 && x === false))
+  asked.length = 0
+  T.store.heartbeat = view(ON)
+  m = mount()
+  answer(200, { ok: true, view: view({ why: 'paused', paused: true, signedAt: SIGNED, on: true }) })
+  await only(m.tree, 'kaby-custom-heartbeat-pause').props.onClick()
+  ok('pausing posts only « paused: true »; the host keeps the rest', asked[0].url.endsWith('/heartbeat/set') && JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ paused: true }))
+  asked.length = 0
+  T.store.heartbeat = view({ why: 'paused', paused: true, signedAt: SIGNED, on: true })
+  m = mount()
+  answer(200, { ok: true, view: view(ON) })
+  await only(m.tree, 'kaby-custom-heartbeat-pause').props.onClick()
+  ok('resuming posts « paused: false »', JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ paused: false }))
+  T.store.heartbeat = view({})
+  m = mount({ 2: DRAFT })
+  answer(401, { ok: false, error: 'session' })
+  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
+  ok('a request without the page’s session is refused in words, the draft is kept', m.sets.some(([n, x]) => n === 4 && /reload it/.test(x)) && !m.sets.some(([n, x]) => n === 2 && x === null) && T.store.heartbeat.inForce === false)
+  m = mount({ 2: DRAFT })
+  answer(200, { ok: false, error: 'cannot_sign' })
+  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
+  ok('a refusal of the host is shown as its sentence', m.sets.some(([n, x]) => n === 4 && /cannot find this computer’s key/.test(x)))
+  m = mount({ 2: DRAFT })
+  globalThis.fetch = async () => { throw new Error('offline') }
+  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
+  ok('a host that does not answer is a sentence, not a crash', m.sets.some(([n, x]) => n === 4 && /do not answer/.test(x)) && m.sets.some(([n, x]) => n === 3 && x === false))
+
+  // « Wake it now »
+  asked.length = 0
+  T.store.heartbeat = view(ON)
+  m = mount()
+  globalThis.fetch = async (url, init) => { asked.push({ url, init }); return init !== undefined && init.method === 'POST' ? { status: 200, json: async () => ({ ok: true }) } : { status: 200, json: async () => view({ ...ON, running: true }) } }
+  await only(m.tree, 'kaby-custom-heartbeat-wake').props.onClick()
+  ok('« Wake it now » posts to the wake route, then reads the view again so the chip follows it', asked[0].url === '/kybernos-cloud/kyby/heartbeat/wake' && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && asked[1].url === '/kybernos-cloud/kyby/heartbeat' && T.store.heartbeat.running === true)
+  m = mount()
+  answer(200, { ok: false, error: 'busy' })
+  await only(m.tree, 'kaby-custom-heartbeat-wake').props.onClick()
+  ok('a wake-up that cannot start says why, in words', m.sets.some(([n, x]) => n === 4 && /busy/.test(x)) && m.sets.some(([n, x]) => n === 3 && x === false))
+  m = mount()
+  answer(401, { ok: false, error: 'session' })
+  await only(m.tree, 'kaby-custom-heartbeat-wake').props.onClick()
+  ok('a wake-up asked without the page’s session is refused in words', m.sets.some(([n, x]) => n === 4 && /reload it/.test(x)))
+  resolved = 'kybernos'
+  T.store.heartbeat = view(ON)
+  ok('in French the same card speaks French', /Réveils/.test(text(mount().tree)) && /Réveiller maintenant/.test(text(mount().tree)) && /Silence la nuit/.test(text(mount().tree)))
+  resolved = 'en'
+  T.store.heartbeat = null
+}
+
 console.log('── the plugin ──')
 {
   const effects = []
@@ -339,6 +512,9 @@ console.log('── guards on the source ──')
   ok('its own host is reached through one base path that matches the host’s', source.includes("const BASE = '" + ROUTE + "'"))
   const mandatePaths = [...source.matchAll(/mandateCall\(\s*'([^']*)'/g)].map((m) => m[1])
   ok('the permissions are asked only of kybernos-cloud’s three routes: the view, the log and the signing', T.MANDATE === '/kybernos-cloud/kyby/mandate' && mandatePaths.length >= 3 && mandatePaths.every((p) => ['', '/log', '/set'].includes(p)), mandatePaths.join('|'))
+  const heartbeatPaths = [...source.matchAll(/heartbeatCall\(\s*'([^']*)'/g)].map((m) => m[1])
+  ok('the wake-ups are asked only of kybernos-cloud’s three routes: the view, the signing and the wake', T.HEARTBEAT === '/kybernos-cloud/kyby/heartbeat' && heartbeatPaths.length >= 3 && heartbeatPaths.every((p) => ['', '/set', '/wake'].includes(p)) && ['', '/set', '/wake'].every((p) => heartbeatPaths.includes(p)), heartbeatPaths.join('|'))
+  ok('every hook the wake-up checks need is in the source', ['kaby-custom-heartbeat', 'kaby-custom-heartbeat-chip', 'kaby-custom-heartbeat-preset', 'kaby-custom-heartbeat-quiet-switch', 'kaby-custom-heartbeat-from', 'kaby-custom-heartbeat-to', 'kaby-custom-heartbeat-sign', 'kaby-custom-heartbeat-pause', 'kaby-custom-heartbeat-wake', 'kaby-custom-heartbeat-open'].every((k) => source.includes("'" + k + "'")) && source.includes("'kaby-custom-heartbeat-' + key"))
   ok('the where-card reaches kybernos-kyber only through its seam, never its files', ['where', 'pickWhere', 'subscribe', 'refresh'].every((m) => source.includes('k.' + m)) && !/kybernos-kyber\/|import .*kybernos-kyber/.test(source.replace(/\/\/.*$/gm, '').replace(/kybernos-kyber'?s? seam/g, '')))
   ok('every hook the permission checks need is in the source', ['kaby-custom-where', 'kaby-custom-where-pick', 'kaby-custom-mandate', 'kaby-custom-mandate-preset', 'kaby-custom-mandate-switch', 'kaby-custom-mandate-limit', 'kaby-custom-mandate-sign', 'kaby-custom-mandate-pause', 'kaby-custom-mandate-log-toggle', 'kaby-custom-mandate-chip'].every((k) => source.includes("'" + k + "'")))
   ok('the section id is the one the nav key table will carry', /SECTION_ID = 'kybernos-kaby-customisation'/.test(source))

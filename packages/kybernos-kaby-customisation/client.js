@@ -6,10 +6,12 @@
 //   Voice      pills of voices with a Preview, and « Custom voice · record or upload » (a consent and a sample, kept on this computer)
 //   Face       the face of Kaby's video calls: its own provider list and its own keys, in the manner of Settings › Calls › Face — and
 //              separate from it, so the two can use different accounts. Providers that no call can use yet are listed as « soon ».
-// and two cards about what Kaby does, drawn from other bundles' answers (this bundle's host keeps neither):
+// and three cards about what Kaby does, drawn from other bundles' answers (this bundle's host keeps none of them):
 //   Where Kaby works   this computer or a cloud computer: the pick of the « Phone and channels » screen, through kybernos-kyber's seam (window.__KB_KYBER__.where / pickWhere)
 //   Permissions        what Kaby may do in its chat without asking, up to a daily limit: signed by the person here, counted and enforced by kybernos-cloud's host
 //                      (GET /kybernos-cloud/kyby/mandate, /log, POST /set). The card holds no rule, no signature and no count of its own.
+//   Wake-ups           how often Kaby wakes by itself on this computer, for how long, on how many points, and its quiet hours: signed here, kept and run by the
+//                      same host (GET /kybernos-cloud/kyby/heartbeat, POST /set, /wake). Parameters only: Kaby's list and its reports are in its chat.
 //
 // Nothing else here changes what Kaby can do, its rules or its memory: the first three blocks are only its name, its picture and its voice.
 //
@@ -153,6 +155,66 @@ window.__ModuleLoader__.load({
       session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.'),
       down: kt('Les autorisations ne répondent pas : relance DSH si ce plugin vient d’être activé.', 'The permissions do not answer: restart DSH if this plugin was just turned on.')
     }[code] || kt('La demande n’a pas été gardée.', 'The request was not kept.'))
+    // ── wake-ups: the words of the third card (the schedule, the signature, the clock and the runs are the host's; the list and the reports are in Kaby's chat) ──
+    const HEARTBEAT_PRESETS = ['off', 'light', 'regular', 'steady']
+    const heartbeatPresetLabel = (name) => ({
+      off: kt('Arrêt', 'Off'),
+      light: kt('Léger', 'Light'),
+      regular: kt('Régulier', 'Regular'),
+      steady: kt('Soutenu', 'Steady')
+    }[name] || name)
+    /** The fields the page edits, read from the host's view. */
+    const heartbeatDraftOf = (view) => ({ on: view.on === true, everyHours: view.everyHours, boxMin: view.boxMin, items: view.items, quiet: view.quiet === true, quietFrom: view.quietFrom, quietTo: view.quietTo })
+    /** The starting point a draft equals (the quiet hours are not part of it; the host sends them), or `custom`. */
+    const heartbeatPreset = (d, presets) => {
+      for (const name of HEARTBEAT_PRESETS) {
+        const p = presets !== null && typeof presets === 'object' ? presets[name] : undefined
+        if (p !== undefined && p !== null && p.on === d.on && p.everyHours === d.everyHours && p.boxMin === d.boxMin && p.items === d.items) return name
+      }
+      return 'custom'
+    }
+    const clockOf = (iso) => { const t = new Date(typeof iso === 'number' ? iso : Date.parse(String(iso || ''))); return Number.isFinite(t.getTime()) ? String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') : '' }
+    /** The chip over the wake-ups card: what is true now. `dirty` is a draft that is not signed yet. */
+    const heartbeatChip = (view, dirty) => {
+      if (view.canSign !== true || view.why === 'no_secret') return { code: 'cannot_sign', text: kt('Signature impossible', 'Cannot sign'), cls: 'warn' }
+      if (dirty) return { code: 'dirty', text: kt('Modifications à signer', 'Changes to sign'), cls: 'warn' }
+      if (view.why === 'altered' || view.why === 'unreadable') return { code: 'resign', text: kt('À signer de nouveau', 'To sign again'), cls: 'err' }
+      if (view.why === 'paused') return { code: 'paused', text: kt('En pause', 'Paused'), cls: 'warn' }
+      if (view.running === true) return { code: 'running', text: kt('Travaille · {n} min au plus', 'Working · {n} min at most').split('{n}').join(String(view.boxMin)), cls: 'ok' }
+      if (view.inForce === true) {
+        const at = clockOf(view.nextAt)
+        if (view.quietNow === true) return { code: 'quiet', text: kt('Silence · reprend à {at}', 'Quiet · resumes at {at}').split('{at}').join(view.quietTo), cls: 'ok' }
+        return { code: 'on', text: at !== '' ? kt('Actifs · prochain vers {at}', 'On · next around {at}').split('{at}').join(at) : kt('Actifs', 'On'), cls: 'ok' }
+      }
+      return { code: view.signedAt !== null ? 'off' : 'none', text: kt('Pas de réveils', 'No wake-ups'), cls: '' }
+    }
+    /** How the last wake-up ended, in the host's closed words. */
+    const wakeOutcome = (word) => ({
+      running: kt('en cours', 'under way'),
+      done: kt('terminé', 'finished'),
+      time: kt('arrêté au bout du temps fixé', 'stopped when the time was up'),
+      blocked: kt('arrêté devant une question', 'stopped at a question'),
+      person: kt('arrêté parce que tu écrivais', 'stopped because you wrote'),
+      refused: kt('refusé', 'refused'),
+      error: kt('en erreur', 'failed'),
+      interrupted: kt('interrompu', 'interrupted')
+    }[word] || '')
+    const heartbeatProblem = (code) => ({
+      cannot_sign: kt('DSH ne trouve pas la clé de cet ordinateur : rien ne peut être signé.', 'DSH cannot find this computer’s key: nothing can be signed.'),
+      write_failed: kt('Le fichier des réveils n’a pas pu être écrit.', 'The wake-ups file could not be written.'),
+      session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.'),
+      down: kt('Les réveils ne répondent pas : relance DSH si ce plugin vient d’être activé.', 'The wake-ups do not answer: restart DSH if this plugin was just turned on.')
+    }[code] || kt('La demande n’a pas été gardée.', 'The request was not kept.'))
+    /** Why « Wake it now » did not start one (the runner's closed words). */
+    const wakeProblem = (code) => ({
+      running: kt('Un réveil est déjà en cours.', 'A wake-up is already under way.'),
+      not_desktop: kt('Les réveils n’ont lieu que sur ton ordinateur, pas sur un cloud computer.', 'Wake-ups only happen on your own computer, not on a cloud computer.'),
+      not_in_force: kt('Les réveils ne sont pas en vigueur : signe-les d’abord.', 'The wake-ups are not in force: sign them first.'),
+      sessions_unavailable: kt('Ce DSH ne sait pas encore réveiller une conversation : mets-le à jour.', 'This DSH cannot wake a conversation yet: update it.'),
+      no_chat: kt('Le chat de l’assistant n’existe pas encore : ouvre-le une première fois.', 'The assistant’s chat does not exist yet: open it once.'),
+      busy: kt('Le chat de l’assistant est occupé : réessaie quand il a fini.', 'The assistant’s chat is busy: try again when it is done.'),
+      session: kt('La page n’a pas pu prouver que la demande vient de toi : recharge-la et réessaie.', 'The page could not prove the request comes from you: reload it and try again.')
+    }[code] || kt('Le réveil n’a pas pu démarrer.', 'The wake-up could not start.'))
     /** The chip of the « Where Kaby works » card: this computer is always ready; a cloud computer says its own state. */
     const whereChip = (w) => {
       if (w.local) return { text: kt('Prêt', 'Ready'), cls: 'ok' }
@@ -179,7 +241,7 @@ window.__ModuleLoader__.load({
     })
 
     // ── the profile, shared between the page and the seam ──────────────────────────────────────────────────────────────
-    const store = { profile: null, listeners: new Set(), failed: false, mandate: null }
+    const store = { profile: null, listeners: new Set(), failed: false, mandate: null, heartbeat: null }
     /** Consumers that render the name or the portrait (the sidebar row, the strip above Kaby's chat) re-read `window.__KB_KABY__.profile()` when told. */
     const announce = () => { try { window.dispatchEvent(new Event('kb-kaby-profile')) } catch (e) { /* no event target: nobody listens */ } }
     const publish = (profile) => {
@@ -202,16 +264,20 @@ window.__ModuleLoader__.load({
       if (store.profile === null) publish(null)
       return null
     }
-    /** The permissions live in kybernos-cloud, not in this bundle's host: its routes, the same origin, the page's own session for a change. `path` is '' (the view), '/log' or '/set'. */
+    /** The permissions and the wake-ups live in kybernos-cloud, not in this bundle's host: its routes, the same origin, the page's own session for a change.
+     *  `path` is '' (the view), '/log' or '/set' for the permissions; '' , '/set' or '/wake' for the wake-ups. */
     const MANDATE = '/kybernos-cloud/kyby/mandate'
-    const mandateCall = async (path, body) => {
+    const HEARTBEAT = '/kybernos-cloud/kyby/heartbeat'
+    const cloudCall = async (base, path, body) => {
       try {
-        const r = await fetch(MANDATE + path, body === undefined ? { credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } } : { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        const r = await fetch(base + path, body === undefined ? { credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } } : { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
         let json = null
         try { json = await r.json() } catch (e) { json = null }
         return { status: r.status, json: json }
       } catch (e) { return { status: 0, json: null } }
     }
+    const mandateCall = (path, body) => cloudCall(MANDATE, path, body)
+    const heartbeatCall = (path, body) => cloudCall(HEARTBEAT, path, body)
     /** A change: the host answers with the whole profile, which is what everybody then shows. */
     const change = async (path, body) => {
       const r = await call(path, body)
@@ -510,14 +576,147 @@ window.__ModuleLoader__.load({
       }
       MandateCard.displayName = 'KabyMandateCard'
 
-      return { WhereCard, MandateCard }
+      /** « Wake-ups »: how often Kaby wakes by itself on this computer, for how long, on how many points, and when it stays quiet. Parameters only: its list and its reports are in its chat.
+       *  The schedule, the signature, the clock and the runs are the host's (kybernos-cloud); this card asks them to be written and shows what they say. */
+      const HeartbeatCard = () => {
+        const [view, setView] = useState(store.heartbeat)
+        const [down, setDown] = useState(false)
+        const [draft, setDraft] = useState(null)
+        const [busy, setBusy] = useState(false)
+        const [problem, setProblem] = useState('')
+        const running = view !== null && view.running === true
+        const load = async () => {
+          const r = await heartbeatCall('')
+          if (r.status === 200 && r.json !== null && r.json.ok === true) { store.heartbeat = r.json; setView(r.json); setDown(false); return r.json }
+          if (store.heartbeat === null) setDown(true)
+          return null
+        }
+        useEffect(() => {
+          let live = true
+          heartbeatCall('').then((r) => {
+            if (!live) return
+            if (r.status === 200 && r.json !== null && r.json.ok === true) { store.heartbeat = r.json; setView(r.json); setDown(false) } else if (store.heartbeat === null) setDown(true)
+          })
+          return () => { live = false }
+        }, [])
+        // While a wake-up runs, the chip follows it: ask again every few seconds until it is over.
+        useEffect(() => {
+          if (!running) return undefined
+          const timer = setInterval(() => { load() }, 5000)
+          return () => clearInterval(timer)
+        }, [running])
+        const name = nameNow()
+        const cap = h('div', { key: 'c', id: 'kbkc-heartbeat-title', className: 'kbkc-cap' }, kt('Réveils', 'Wake-ups'))
+        if (view === null) {
+          return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-heartbeat', 'aria-labelledby': 'kbkc-heartbeat-title' }, [
+            cap,
+            h('div', { key: 'm', className: down ? 'kbkc-notice w' : 'kbkc-help', 'data-kb': down ? 'kaby-custom-heartbeat-down' : 'kaby-custom-heartbeat-loading' },
+              down ? kt('La page ne peut pas lire les réveils : relance DSH si ce plugin vient d’être activé.', 'The page cannot read the wake-ups: restart DSH if this plugin was just turned on.') : kt('Lecture des réveils…', 'Reading the wake-ups…'))
+          ])
+        }
+        const d = draft !== null ? draft : heartbeatDraftOf(view)
+        const dirty = draft !== null
+        const chip = heartbeatChip(view, dirty)
+        const locked = view.canSign !== true || busy
+        const preset = heartbeatPreset(d, view.presets)
+        const choices = view.choices !== null && typeof view.choices === 'object' ? view.choices : { everyHours: [2, 4, 8, 24], boxMin: [5, 10, 20], items: [1, 2, 3] }
+        const edit = (patch) => setDraft(Object.assign({}, d, patch))
+        const pickPreset = (pname) => { const p = view.presets !== null && typeof view.presets === 'object' ? view.presets[pname] : undefined; if (p !== undefined) edit({ on: p.on, everyHours: p.everyHours, boxMin: p.boxMin, items: p.items }) }
+        const setTime = (key, raw) => { if (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(raw))) edit({ [key]: String(raw) }) }
+        const send = async (body) => {
+          setBusy(true)
+          setProblem('')
+          const r = await heartbeatCall('/set', body)
+          setBusy(false)
+          if (r.status === 200 && r.json !== null && r.json.ok === true) { store.heartbeat = Object.assign({ ok: true }, r.json.view); setView(store.heartbeat); setDraft(null); return }
+          setProblem(heartbeatProblem(r.status === 401 || r.status === 403 ? 'session' : (r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'down')))
+        }
+        const sign = () => send({ on: d.on, everyHours: d.everyHours, boxMin: d.boxMin, items: d.items, quiet: d.quiet, quietFrom: d.quietFrom, quietTo: d.quietTo })
+        const pause = () => send({ paused: view.paused !== true })
+        const wake = async () => {
+          setBusy(true)
+          setProblem('')
+          const r = await heartbeatCall('/wake', {})
+          if (r.status === 200 && r.json !== null && r.json.ok === true) await load()
+          else setProblem(wakeProblem(r.status === 401 || r.status === 403 ? 'session' : (r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'down')))
+          setBusy(false)
+        }
+        const openChat = () => { const k = kyberSeam(); if (k !== null && typeof k.openChat === 'function') { try { k.openChat() } catch (e) { /* the sidebar row opens it too */ } } }
+        const where = readWhere()
+        const elsewhere = view.desktop === false || (where !== null && where.local === false)
+        const canOpen = kyberSeam() !== null && typeof kyberSeam().openChat === 'function'
+        const signLabel = chip.code === 'resign' ? kt('Signer de nouveau', 'Sign again') : (!view.on && d.on ? kt('Activer les réveils', 'Turn the wake-ups on') : (view.signedAt !== null ? kt('Signer les modifications', 'Sign the changes') : kt('Signer', 'Sign')))
+        const select = (key, id, label, unit, ariaLabel) => h('div', { key: key, className: 'kbkc-row', style: { gap: 10 } }, [
+          h('label', { key: 'l', className: 'kbkc-help', htmlFor: id, style: { minWidth: 150 } }, label),
+          h('select', { key: 's', id: id, className: 'kbkc-in', style: { width: 120 }, 'data-kb': 'kaby-custom-heartbeat-' + key, 'aria-label': ariaLabel, value: d[key], disabled: locked, onChange: (e) => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) edit({ [key]: n }) } },
+            choices[key].map((n) => h('option', { key: n, value: n }, String(n) + (unit !== '' ? ' ' + unit : '')))),
+          key === 'items' ? h('span', { key: 'u', className: 'kbkc-help' }, kt('de sa liste', 'from its list')) : null
+        ])
+        const last = view.lastAt !== null && !running && wakeOutcome(view.lastOutcome) !== '' ? fill(kt('Dernier réveil à {at} : {how}.', 'Last wake-up at {at}: {how}.'), { at: clockOf(view.lastAt), how: wakeOutcome(view.lastOutcome) }) : ''
+        return h('section', { className: 'kbkc-card', 'data-kb': 'kaby-custom-heartbeat', 'aria-labelledby': 'kbkc-heartbeat-title' }, [
+          h('div', { key: 'hd', className: 'kbkc-head' }, [cap, h('span', { key: 's', className: 'kbkc-chip ' + chip.cls, 'data-kb': 'kaby-custom-heartbeat-chip', 'data-state': chip.code }, chip.text)]),
+          h('div', { key: 'lead', className: 'kbkc-help' }, fill(kt('{name} se réveille de lui-même, à intervalle régulier, sur cet ordinateur tant que DSH est ouvert. Il prend quelques points de sa liste, s’arrête au bout du temps fixé et laisse une ligne dans son chat. Sa liste et ses comptes rendus sont dans son chat, pas ici.', '{name} wakes by itself at a regular interval, on this computer while DSH is open. It takes a few points from its list, stops when the time is up and leaves one line in its chat. Its list and its reports are in its chat, not here.'), { name: name })),
+          elsewhere ? h('div', { key: 'cl', className: 'kbkc-notice w', 'data-kb': 'kaby-custom-heartbeat-cloud-note' }, fill(kt('Les réveils ne couvrent pas le cloud computer de {name} : ils ont lieu sur ton ordinateur, quand DSH y est ouvert.', 'Wake-ups do not cover {name}’s cloud computer: they happen on your own computer, while DSH is open there.'), { name: name })) : null,
+          chip.code === 'resign' ? h('div', { key: 'n', className: 'kbkc-notice e', role: 'alert', 'data-kb': 'kaby-custom-heartbeat-note' }, kt('Les réveils ne valent plus : le fichier a été modifié autrement que par cette page, ou la clé de cet ordinateur a changé. Aucun réveil n’a lieu tant que tu n’as pas signé de nouveau.', 'The wake-ups no longer hold: the file was changed other than by this page, or this computer’s key changed. None happens until you sign again.'))
+            : chip.code === 'cannot_sign' ? h('div', { key: 'n', className: 'kbkc-notice w', role: 'alert', 'data-kb': 'kaby-custom-heartbeat-note' }, kt('DSH ne trouve pas la clé de cette machine : les réveils ne peuvent pas être signés, donc aucun n’a lieu. Les boutons de la carte sont grisés.', 'DSH cannot find this machine’s key: the wake-ups cannot be signed, so none happens. The card’s controls are off.'))
+              : chip.code === 'paused' ? h('div', { key: 'n', className: 'kbkc-help', 'data-kb': 'kaby-custom-heartbeat-note' }, kt('Aucun réveil tant que tu ne reprends pas. Les réglages sont gardés.', 'No wake-up until you resume. The settings are kept.'))
+                : null,
+          h('div', { key: 'pr', className: 'kbkc-col' }, [
+            h('div', { key: 'l', className: 'kbkc-lab' }, kt('Point de départ', 'Starting point')),
+            h('div', { key: 'r', className: 'kbkc-row', style: { gap: 8 } }, HEARTBEAT_PRESETS.map((p) => h('button', { key: p, type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-heartbeat-preset', 'data-preset': p, 'aria-pressed': preset === p ? 'true' : 'false', disabled: locked, onClick: () => pickPreset(p) }, heartbeatPresetLabel(p)))
+              .concat(preset === 'custom' ? [h('span', { key: 'custom', className: 'kbkc-vp custom', 'data-kb': 'kaby-custom-heartbeat-custom' }, kt('Personnalisé', 'Custom'))] : []))
+          ]),
+          h('div', { key: 'sel', className: 'kbkc-col', style: { gap: 8 } }, [
+            select('everyHours', 'kbkc-hb-every', kt('Se réveille toutes les', 'Wakes up every'), 'h', kt('Intervalle entre deux réveils, en heures', 'Hours between two wake-ups')),
+            select('boxMin', 'kbkc-hb-box', kt('Travaille au plus', 'Works at most'), 'min', kt('Durée d’un réveil, en minutes', 'Length of a wake-up, in minutes')),
+            select('items', 'kbkc-hb-items', kt('Prend au plus', 'Takes at most'), '', kt('Nombre de points par réveil', 'Points per wake-up'))
+          ]),
+          h('div', { key: 'quiet', className: 'kbkc-mrow', 'data-kb': 'kaby-custom-heartbeat-quiet' }, [
+            h('button', { key: 's', type: 'button', role: 'switch', className: 'kbkc-sw' + (d.quiet ? ' on' : ''), 'aria-checked': d.quiet ? 'true' : 'false', 'aria-label': kt('Silence la nuit', 'Quiet hours'), 'data-kb': 'kaby-custom-heartbeat-quiet-switch', disabled: locked, onClick: () => edit({ quiet: !d.quiet }) }, h('span', { className: 'kbkc-knob' })),
+            h('div', { key: 't', className: 'kbkc-mtext' }, [
+              h('div', { key: 'a', className: 'kbkc-mtitle' }, kt('Silence la nuit', 'Quiet hours')),
+              h('div', { key: 'b', className: 'kbkc-help' }, kt('Aucun réveil dans cette plage, à l’heure de cet ordinateur.', 'No wake-up in this window, by this computer’s clock.'))
+            ]),
+            h('div', { key: 'l', className: 'kbkc-row' }, [
+              h('label', { key: 'x', className: 'kbkc-help', htmlFor: 'kbkc-hb-from' }, kt('de', 'from')),
+              h('input', { key: 'f', id: 'kbkc-hb-from', type: 'time', className: 'kbkc-in kbkc-num', style: { width: 118 }, 'data-kb': 'kaby-custom-heartbeat-from', value: d.quietFrom, disabled: locked || !d.quiet, onChange: (e) => setTime('quietFrom', e.target.value) }),
+              h('label', { key: 'y', className: 'kbkc-help', htmlFor: 'kbkc-hb-to' }, kt('à', 'to')),
+              h('input', { key: 't', id: 'kbkc-hb-to', type: 'time', className: 'kbkc-in kbkc-num', style: { width: 118 }, 'data-kb': 'kaby-custom-heartbeat-to', value: d.quietTo, disabled: locked || !d.quiet, onChange: (e) => setTime('quietTo', e.target.value) })
+            ])
+          ]),
+          h('div', { key: 'ask', className: 'kbkc-ask', 'data-kb': 'kaby-custom-heartbeat-rules' }, [
+            svg(h, ICON.lock, 16),
+            h('div', { key: 'x' }, [
+              h('div', { key: 't', className: 'kbkc-cap' }, kt('Pendant un réveil, comme toujours', 'During a wake-up, as always')),
+              h('ul', { key: 'u' }, [
+                h('li', { key: '1' }, kt('Seules passent les actions couvertes par tes Autorisations : personne ne peut répondre à une question, le reste est refusé', 'Only the actions your Permissions cover go through: nobody can answer a question, so the rest is refused')),
+                h('li', { key: '2' }, kt('Une application connectée, redémarrer DSH : jamais', 'A connected app, restarting DSH: never')),
+                h('li', { key: '3' }, kt('Il s’arrête dès que tu lui écris, et ne se réveille pas dans la demi-heure qui suit ton dernier message', 'It stops as soon as you write to it, and does not wake within half an hour of your last message'))
+              ])
+            ])
+          ]),
+          h('div', { key: 'cost', className: 'kbkc-help' }, kt('Après une mise en veille de l’ordinateur, un seul réveil a lieu, jamais plusieurs d’affilée. Aucun budget en euros : rien sur cet ordinateur ne mesure le coût d’un appel.', 'After the computer sleeps, one wake-up happens, never several in a row. No budget in euros: nothing on this computer measures what a call costs.')),
+          last !== '' && !dirty ? h('div', { key: 'last', className: 'kbkc-help', 'data-kb': 'kaby-custom-heartbeat-last' }, last) : null,
+          problem !== '' ? h('div', { key: 'e', className: 'kbkc-err', role: 'alert', 'data-kb': 'kaby-custom-heartbeat-error' }, problem) : null,
+          h('div', { key: 'foot', className: 'kbkc-foot' }, [
+            h('button', { key: 'g', type: 'button', className: 'kbkc-btn pri', 'data-kb': 'kaby-custom-heartbeat-sign', disabled: locked || !dirty, onClick: sign }, signLabel),
+            h('button', { key: 'p', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-heartbeat-pause', disabled: locked || view.signedAt === null || chip.code === 'resign', onClick: pause }, view.paused === true ? kt('Reprendre', 'Resume') : kt('Mettre en pause', 'Pause')),
+            h('button', { key: 'w', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-heartbeat-wake', disabled: locked || dirty || view.inForce !== true || running || view.desktop === false, onClick: wake }, kt('Réveiller maintenant', 'Wake it now')),
+            h('span', { key: 's', style: { flex: '1 1 auto' } }),
+            canOpen ? h('button', { key: 'o', type: 'button', className: 'kbkc-btn sm', 'data-kb': 'kaby-custom-heartbeat-open', onClick: openChat }, fill(kt('Ouvrir le chat de {name}', 'Open {name}’s chat'), { name: name })) : null
+          ])
+        ])
+      }
+      HeartbeatCard.displayName = 'KabyHeartbeatCard'
+
+      return { WhereCard, MandateCard, HeartbeatCard }
     }
 
     // ── the page ────────────────────────────────────────────────────────────────────────────────────────────────────────
     const buildPanel = (React) => {
       const h = React.createElement
       const { useState, useEffect, useRef } = React
-      const { WhereCard, MandateCard } = buildCards(React)
+      const { WhereCard, MandateCard, HeartbeatCard } = buildCards(React)
 
       const Panel = () => {
         const [profile, setProfile] = useState(store.profile)
@@ -783,9 +982,9 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbkc', 'data-kb': 'kaby-custom-page' }, h('div', { className: 'kbkc-page' }, [
           h('div', { key: 'hd' }, [
             h('div', { key: 't', className: 'kbkc-titlerow' }, [h('h4', { key: 'h' }, 'Kaby'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { key: 'help', id: 'kybernos-kaby-customisation', page: 'kaby' }) : null]),
-            h('p', { key: 'p', className: 'kbkc-lead' }, kt('Comment ton assistant est et parle, où il travaille, et ce qu’il peut faire sans te demander. Ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds, where it works, and what it may do without asking. Its rules and its memory do not change here.'))
+            h('p', { key: 'p', className: 'kbkc-lead' }, kt('Comment ton assistant est et parle, où il travaille, ce qu’il peut faire sans te demander et quand il se réveille. Ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds, where it works, what it may do without asking and when it wakes up. Its rules and its memory do not change here.'))
           ]),
-          identity, voiceBlock, faceBlock, h(WhereCard, { key: 'where' }), h(MandateCard, { key: 'mandate' }), customWindow
+          identity, voiceBlock, faceBlock, h(WhereCard, { key: 'where' }), h(MandateCard, { key: 'mandate' }), h(HeartbeatCard, { key: 'heartbeat' }), customWindow
         ]))
       }
       return Panel
@@ -823,7 +1022,7 @@ window.__ModuleLoader__.load({
       name: NAME,
       inject: [],
       apply: start,
-      __test: { buildPanel, buildCards, fill, draftOf, draftPreset, mandateChip, mandateProblem, whereChip, dateText, presetLabel, PRESET_ORDER, MANDATE, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN }
+      __test: { buildPanel, buildCards, fill, draftOf, draftPreset, mandateChip, mandateProblem, whereChip, dateText, presetLabel, PRESET_ORDER, MANDATE, HEARTBEAT, heartbeatChip, heartbeatDraftOf, heartbeatPreset, heartbeatProblem, heartbeatPresetLabel, wakeOutcome, wakeProblem, clockOf, HEARTBEAT_PRESETS, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN }
     }
   }
 })
