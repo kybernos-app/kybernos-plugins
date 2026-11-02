@@ -16,6 +16,6 @@ if (existsSync(script)) {
   ok('the service copy is identical to packages/front-desk (run: node scripts/sync-front-desk-service.mjs)', d.length === 0, d.slice(0, 5).join('; '))
 } else {
   // An installed bundle has no repository around it: only the entry has to be there.
-  console.log('  skip  not inside the repository: the drift check is a repository test')
+  console.log('  SKIPPED: the drift check, not inside the repository (it is a repository test)')
 }
 process.exit(failed ? 1 : 0)

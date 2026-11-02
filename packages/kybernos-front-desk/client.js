@@ -158,7 +158,7 @@ window.__ModuleLoader__.load({
         const { useState, useEffect, useRef } = React
 
         // The Suite's « ? » button; where it is not there the description stays under the title.
-        const help = (extra) => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, Object.assign({ id: NAME }, extra || {})) : null)
+        const help = (extra) => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, Object.assign({ id: 'kybernos-front-desk' }, extra || {})) : null)
         const subFallback = (text) => {
           try { if (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) return null } catch (e) { /* draw it */ }
           return h('p', { className: 'kbfd-muted' }, text)

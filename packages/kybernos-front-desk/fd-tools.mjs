@@ -47,6 +47,9 @@ export function createServiceCall ({ getTarget, fetchImpl = globalThis.fetch, ti
 
 // ── the words of the approval card ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 const riskWord = (r, fr) => (fr ? { low: 'apparence', medium: 'prudence', high: 'argent ou portes' }[r] : { low: 'look', medium: 'careful', high: 'money or doors' }[r]) || r
+/** One sentence in both languages: `both` keeps the two, `pick` takes the one asked for (both sides are plain strings, nothing here has a side effect). */
+const both = (fr, en) => ({ en, fr })
+const pick = (fr, en, french) => (french ? fr : en)
 const showVal = (v) => (v === undefined ? '—' : typeof v === 'object' && v !== null ? clip(v.text !== undefined ? v.text : JSON.stringify(v), 90) : clip(String(v), 90))
 
 function changeLines (diff, fr) {
@@ -63,9 +66,9 @@ function sheetLines (sheet, fr) {
   const approve = live('approve')
   const out = []
   out.push(fr ? `  Tout seul : ${auto.length ? auto.join(', ') : 'rien'}` : `  On its own: ${auto.length ? auto.join(', ') : 'nothing'}`)
-  out.push(fr ? `  Avec ton accord : ${approve.length ? approve.join(', ') : 'rien'}` : `  With your approval: ${approve.length ? approve.join(', ') : 'nothing'}`)
-  out.push(fr ? `  Il dépense au plus ${money(sheet.budget.dailyCapMicro, sheet.budget.currency)} par jour, ${money(sheet.budget.visitorDailyCapMicro, sheet.budget.currency)} par visiteur.` : `  It spends at most ${money(sheet.budget.dailyCapMicro, sheet.budget.currency)} a day, ${money(sheet.budget.visitorDailyCapMicro, sheet.budget.currency)} per visitor.`)
-  out.push(sheet.origins.length ? (fr ? `  Le chat peut apparaître sur : ${sheet.origins.join(', ')}` : `  The chat can appear on: ${sheet.origins.join(', ')}`) : (fr ? '  Le chat ne marche que sur son propre lien.' : '  The chat only works on its own link.'))
+  out.push(pick(`  Avec ton accord : ${approve.length ? approve.join(', ') : 'rien'}`, `  With your approval: ${approve.length ? approve.join(', ') : 'nothing'}`, fr))
+  out.push(pick(`  Il dépense au plus ${money(sheet.budget.dailyCapMicro, sheet.budget.currency)} par jour, ${money(sheet.budget.visitorDailyCapMicro, sheet.budget.currency)} par visiteur.`, `  It spends at most ${money(sheet.budget.dailyCapMicro, sheet.budget.currency)} a day, ${money(sheet.budget.visitorDailyCapMicro, sheet.budget.currency)} per visitor.`, fr))
+  out.push(sheet.origins.length ? pick(`  Le chat peut apparaître sur : ${sheet.origins.join(', ')}`, `  The chat can appear on: ${sheet.origins.join(', ')}`, fr) : pick('  Le chat ne marche que sur son propre lien.', '  The chat only works on its own link.', fr))
   return out
 }
 
@@ -83,17 +86,11 @@ export function cardFor (action, args, studio) {
   if (action === 'rollback') {
     const n = Number.isInteger(args.version) ? args.version : null
     if (n === null || n === pub || !(studio.versions || []).some((v) => v.n === n)) return null
-    return {
-      en: `Put version ${n} of the front desk “${name}” back live (instead of version ${pub})? Visitors see it at once.`,
-      fr: `Remettre en ligne la version ${n} de l’accueil client « ${name} » (au lieu de la version ${pub}) ? Les visiteurs la voient tout de suite.`,
-    }
+    return both(`Remettre en ligne la version ${n} de l’accueil client « ${name} » (au lieu de la version ${pub}) ? Les visiteurs la voient tout de suite.`, `Put version ${n} of the front desk “${name}” back live (instead of version ${pub})? Visitors see it at once.`)
   }
   if (action === 'discard') {
     if (!studio.dirty) return null
-    return {
-      en: `Throw away the front desk draft of “${name}”? ${(studio.diff || []).length} change(s) are lost, including any you made yourself in the Atelier.`,
-      fr: `Jeter le brouillon de l’accueil client « ${name} » ? ${(studio.diff || []).length} changement(s) seront perdus, y compris ceux que tu as faits toi-même dans l’Atelier.`,
-    }
+    return both(`Jeter le brouillon de l’accueil client « ${name} » ? ${(studio.diff || []).length} changement(s) seront perdus, y compris ceux que tu as faits toi-même dans l’Atelier.`, `Throw away the front desk draft of “${name}”? ${(studio.diff || []).length} change(s) are lost, including any you made yourself in the Atelier.`)
   }
   return null
 }

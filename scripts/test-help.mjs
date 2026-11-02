@@ -61,8 +61,8 @@ check('the catalogue builds: every bundle of the lifecycle list has a valid help
 if (catalogue !== null) {
   check('the catalogue carries the help of every module', catalogue.modules.length === lifecycle.length && catalogue.modules.every((m) => m.aide !== undefined && m.aide.steps.length >= 2))
   // V-06: every card links to its article. These have none because the help site has no article that is theirs yet (the Suite panel, the core's several
-  // pages, the restart helper, the search, the Servers page, the plugin registry, the notification widget, the phone-only runtime): writing one on the site is the way to remove a name from this list, never an address that does not exist.
-  const NO_ARTICLE_YET = ['kybernos-db', 'kybernos-hub', 'kybernos-kaby-customisation', 'kybernos-log', 'kybernos-no-process', 'kybernos-plugin', 'kybernos-pulse', 'kybernos-registry', 'kybernos-relance', 'kybernos-search', 'kybernos-servers', 'kybernos-session-msg', 'kybernos-webapp-creator']
+  // pages, the restart helper, the search, the Servers page, the plugin registry, the notification widget, the phone-only runtime, the front desk): writing one on the site is the way to remove a name from this list, never an address that does not exist.
+  const NO_ARTICLE_YET = ['kybernos-db', 'kybernos-front-desk', 'kybernos-hub', 'kybernos-kaby-customisation', 'kybernos-log', 'kybernos-no-process', 'kybernos-plugin', 'kybernos-pulse', 'kybernos-registry', 'kybernos-relance', 'kybernos-search', 'kybernos-servers', 'kybernos-session-msg', 'kybernos-webapp-creator']
   const without = catalogue.modules.filter((m) => m.aide.url === undefined).map((m) => m.id).sort()
   check('every module links to an article of the help site, but the ones that have none yet (their card in the product carries the words)', JSON.stringify(without) === JSON.stringify(NO_ARTICLE_YET), without)
   // Where the site's own build is at hand (KB_HELP_SITE=<kybernos-help>/dist-site), each link is an article that exists there, in English.

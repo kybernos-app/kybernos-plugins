@@ -68,7 +68,7 @@ try {
   let env = ''
   try { env = execFileSync('ps', ['eww', '-p', String(pid)], { encoding: 'utf8' }) } catch (e) { env = '' }
   if (env.includes('FRONT_DESK_PORT')) ok('the child has none of the owner\'s DSH keys, and the ones it needs', !env.includes('leak-check-DSH-key') && env.includes('FRONT_DESK_OWNER_TOKEN') && env.includes('MODEL_API_KEY'))
-  else console.log('  skip the child environment check: this system does not show a process environment')
+  else console.log('  SKIPPED: the child environment check, this system does not show a process environment')
   ok('the service listens on the loopback only', (await fetch(`http://127.0.0.1:${supervisor.target().port}/api/status`, { headers: { authorization: 'Bearer wrong' } })).status === 401)
   ok('the pid file and the log are there, owner-only', existsSync(config.pidFile) && existsSync(config.logFile) && (readFileSync(config.logFile, 'utf8').match(/front-desk:/g) || []).length >= 1)
   ok('the log never holds a key or the token', !supervisor.logs(200).includes(KEY) && !supervisor.logs(200).includes(config.ownerToken()) && !readFileSync(config.logFile, 'utf8').includes(KEY))

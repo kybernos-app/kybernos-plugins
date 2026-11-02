@@ -72,10 +72,16 @@ export const rulesOf = (text) => {
   return out
 }
 
-/** The style sources of a bundle folder: client.js and its .css files (not the generated shared-ui.css, not vendored code). */
+// Pages a process of their own serves, each in its own document (framed in DSH, never part of its stylesheet): the front desk's service and the copy of it the plugin carries.
+// The rule above is about DSH's global stylesheet, so a class of these pages cannot restyle a bundle's page.
+const STANDALONE = [join('front-desk'), join('kybernos-front-desk', 'service')]
+const standalone = (dir) => STANDALONE.includes(relative(PACKAGES, dir))
+
+/** The style sources of a bundle folder: client.js and its .css files (not the generated shared-ui.css, not vendored code, not the standalone pages). */
 export const sourceFiles = (bundleDir) => {
   const files = []
   const walk = (dir) => {
+    if (standalone(dir)) return
     for (const name of readdirSync(dir)) {
       if (name === 'node_modules' || name === 'vendor' || name === 'skills' || name === 'technique' || name === 'tools') continue
       const path = join(dir, name)
