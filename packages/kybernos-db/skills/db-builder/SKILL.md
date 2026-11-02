@@ -57,7 +57,8 @@ If the person asks for something the engine refuses (a retype, a delete), say so
 - The answer lists what was created and what was refused with the reason: fix the refused ones and send them again, do not retry the ones that worked.
 - `records_get` reads one record by id (to check it before changing it).
 - `records_update` changes only the fields named. `records_delete` hides a record and `records_restore` brings it back: nothing is lost, so delete when asked without a long warning, and say it can be undone.
-- Importing many rows: batch by 50, tell the person how many went in and how many were refused.
+- A few rows typed by the person: batch by 50, tell the person how many went in and how many were refused.
+- A file (CSV, Excel, a text table, the JSON of an API) or more than a few dozen rows: do not copy the rows through the conversation. Load the `data-feed` skill: it prepares the file, then `records_import` writes it with `dryRun` first, and `key` makes a second load update instead of duplicate.
 
 ## 5b. Put a table or an app away
 

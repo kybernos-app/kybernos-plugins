@@ -14230,9 +14230,10 @@ const kbFeedbackRetireLegacySkill = (dsh) => {
 /** Skills this plugin ships under <dsh home>/skills (folders in ./skills): the Automations page
  *  sends its "Create" chat to `automation-creator`, so it must exist on a fresh home; the video examples of the new-chat shelf
  *  start `video-creator`, except « Old photo, alive », which starts `photo-alive` (restore, show, animate, join); the « 3D model » examples start `model-3d`,
- *  a skill that carries scripts, examples and references beside its SKILL.md. Seeded by seed-skills.mjs (SKILL.md) and seed-skill-files.mjs (the files next to it),
+ *  a skill that carries scripts, examples and references beside its SKILL.md; `data-feed` carries the script that turns a CSV, an Excel sheet or an API's JSON into the file
+ *  the Tables tool `records_import` writes. Seeded by seed-skills.mjs (SKILL.md) and seed-skill-files.mjs (the files next to it),
  *  which never overwrite what the user wrote or edited. */
-const KB_SHIPPED_SKILLS = ['automation-creator', 'video-creator', 'photo-alive', 'model-3d']
+const KB_SHIPPED_SKILLS = ['automation-creator', 'video-creator', 'photo-alive', 'model-3d', 'data-feed']
 const kbSeedShippedSkills = () => {
   const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
   const results = seedSkills({ home: dshHomeSync(), sourceDir, names: KB_SHIPPED_SKILLS })

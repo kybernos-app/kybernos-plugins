@@ -9,6 +9,7 @@
 //   view_save               create or change a saved view (filter, sorts, hidden fields) (free: a view is a way of looking, not data)
 //   records_list|get        read records; a protected field comes back masked, a secret one not at all
 //   records_create|update   write records                                                (free, unless a protected field is written: the person approves)
+//   records_import          write the rows of a prepared file (data-feed skill)          (free, unless a protected field is filled: the person approves; `dryRun` writes nothing)
 //   records_delete|restore  mark records deleted, or bring them back                     (free: nothing is lost, the journal keeps it)
 //   db_archive|db_restore   put a table or a whole database away, or bring it back        (archive: card; restore: free). Deleting one for good is the person's alone: no tool.
 //
@@ -20,12 +21,15 @@
 // the card before anything is written (a session that never asks refuses the call: a structure change is never silent). What asks and what does not is
 // `can()` in core/rights.mjs, the one function every door of the engine asks.
 
+import { readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import { COLORS, FIELD_TYPES, PROTECTION, can, checkFilter, checkSorts, prepareFilter, queryRecords } from '../core/index.mjs'
 import { findObject } from '../store/catalog.mjs'
 import { cardFor, protectedCard } from './cards.mjs'
+import { IMPORT_ID, MAX_IMPORT_BYTES, coerceRows, parseImport, planColumns } from './import.mjs'
 import { fieldLine, short } from './words.mjs'
 
-export const NAMES = ['db_list', 'db_create', 'object_define', 'field_add', 'relation_add', 'field_update', 'view_save', 'records_list', 'records_get', 'records_create', 'records_update', 'records_delete', 'records_restore', 'db_archive', 'db_restore']
+export const NAMES = ['db_list', 'db_create', 'object_define', 'field_add', 'relation_add', 'field_update', 'view_save', 'records_list', 'records_get', 'records_create', 'records_update', 'records_import', 'records_delete', 'records_restore', 'db_archive', 'db_restore']
 export const LIST_DEFAULT = 20
 export const LIST_MAX = 100
 export const BATCH_MAX = 50
@@ -439,6 +443,123 @@ export function tools (service, ports = {}) {
     },
   }
 
+  // The rows of a file the `data-feed` skill prepared (feed.mjs parse): each cell is put in the form of its field by agent/import.mjs, then the engine has the last word on every record.
+  // The file stays on disk and is read by id only, from the imports folder of this computer: the agent names a column, never a path.
+  const importsDir = () => (typeof ports.importsDir === 'function' ? ports.importsDir() : typeof ports.importsDir === 'string' ? ports.importsDir : null)
+  const KEYABLE = ['text', 'email', 'phone', 'url', 'number', 'money', 'date', 'choice']
+  const IMPORT_SHOWN = 20
+  const importRecords = {
+    name: 'records_import',
+    description: 'Loads the rows of a file prepared by the data-feed skill (a CSV, an Excel sheet, a text table or the JSON of an API) into an object, up to 50000 rows in one call, without the rows going through the conversation. '
+      + '`import` is the id feed.mjs printed; `columns` maps the title of each column of the file to a field key (or { "field": key, "decimal": ",", "dateOrder": "dmy" } when a column needs telling). '
+      + 'Cells are converted for you: "1 234,50" or "$12.50" become numbers, "05/01/2026" a date (give `dateOrder` "dmy" or "mdy" when the file does not settle it), "Yes" or "oui" a checkbox, an option\'s label its key. A cell that fits nothing is refused with the reason. '
+      + 'ALWAYS call it first with `dryRun: true`: nothing is written and the answer says how many rows are valid, which are refused and why, and which choice values are not options yet (add them with field_update, or map the column to a text field). '
+      + 'Give `key` (a field key from `columns`, for example an order number) to make it repeatable: a row whose key is already in the object updates that record instead of adding a second one. '
+      + 'If any row is refused nothing is written, unless you give `skipRefused: true`. Filling a protected field asks the person. Only the columns you map are read; person, relation and attachment fields cannot be filled from a column.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        db: DB,
+        object: OBJECT,
+        import: { type: 'string', description: 'The id of the prepared file, printed by feed.mjs parse.' },
+        columns: { type: 'object', description: 'Column title → field key, or column title → { "field": key, "decimal": "." or ",", "dateOrder": "dmy" or "mdy" }.' },
+        decimal: { type: 'string', enum: ['.', ','], description: 'The decimal mark of every number column that does not say its own (default: deduced from each cell).' },
+        dateOrder: { type: 'string', enum: ['dmy', 'mdy'], description: 'The order of 05/01/2026-style dates for every date column that does not say its own.' },
+        key: { type: 'string', description: 'A field key (from `columns`, not protected) that identifies a row: existing records with the same value are updated, new values are added.' },
+        dryRun: { type: 'boolean', description: 'Check and count, write nothing.' },
+        skipRefused: { type: 'boolean', description: 'Write the valid rows and leave the refused ones out (default: write nothing when any row is refused).' },
+      },
+      required: ['object', 'import', 'columns'],
+    },
+    output: {
+      schema: { type: 'object', properties: { ok: { type: 'boolean' }, dryRun: { type: 'boolean' }, rows: { type: 'integer' }, created: { type: 'integer' }, updated: { type: 'integer' }, refused: { type: 'integer' } }, required: ['ok'] },
+      render: (args, value) => TEXT(value.rows === undefined ? 'Import not done: ' + String(value.error) + (value.detail === undefined ? '' : ' — ' + String(value.detail))
+        : (value.dryRun ? 'Import checked, nothing written: ' : value.ok ? 'Import done: ' : 'Import stopped: ') + value.rows + ' row(s), ' + value.valid + ' valid'
+          + (value.dryRun ? '' : ', ' + value.created + ' created, ' + value.updated + ' updated, ' + value.unchanged + ' unchanged') + (value.refused ? ', ' + value.refused + ' refused' : '')
+          + (value.ok === false && value.detail ? ' — ' + String(value.detail) : '')),
+    },
+    async execute (args) {
+      const a = plain(args) ? args : {}
+      const t = aim(a)
+      if (t.err) return t.err
+      const dir = importsDir()
+      if (dir === null) return problem('unavailable', 'imports are not set up on this computer')
+      if (typeof a.import !== 'string' || !IMPORT_ID.test(a.import)) return problem('invalid', '`import` is the id feed.mjs parse printed')
+      let text
+      try {
+        const file = join(dir, a.import + '.jsonl')
+        if (statSync(file).size > MAX_IMPORT_BYTES) return problem('too-big', 'the prepared file is over ' + Math.round(MAX_IMPORT_BYTES / 1048576) + ' MB')
+        text = readFileSync(file, 'utf8')
+      } catch (e) { return problem('unknown_import', 'no prepared file "' + a.import + '": run feed.mjs parse on the file first') }
+      const read = parseImport(text)
+      if (!read.ok) return problem(read.code, read.message)
+      const planned = planColumns(read.head, t.obj, a.columns, { decimal: a.decimal, dateOrder: a.dateOrder })
+      if (!planned.ok) return problem(planned.code, planned.message)
+      const mapped = planned.plan.map((p) => p.field.key)
+      const lacking = t.obj.fields.filter((f) => f.required && f.type !== 'checkbox' && !mapped.includes(f.key)).map((f) => f.key)
+      if (lacking.length) return problem('missing_required', 'the required field(s) ' + lacking.join(', ') + ' have no column: map one, or the engine refuses every row')
+      let keyField = null
+      if (a.key !== undefined) {
+        keyField = planned.plan.map((p) => p.field).find((f) => f.key === a.key) || null
+        if (keyField === null) return problem('invalid_key', '`key` must be the key of a field that `columns` fills')
+        if (keyField.protection !== 'normal' || !KEYABLE.includes(keyField.type)) return problem('invalid_key', 'a key is a plain text, number, date or choice field that is not protected')
+      }
+      const coerced = coerceRows(read.rows, planned.plan)
+      const refusedRows = []
+      const ops = []
+      const index = new Map()
+      if (keyField !== null) for (const rec of t.db.list(t.obj.key)) { const v = rec.values[keyField.key]; if (v !== null && v !== undefined && !index.has(String(v))) index.set(String(v), { id: rec.id, values: rec.values }) }
+      let unchanged = 0
+      for (const row of coerced.rows) {
+        if (row.error) { refusedRows.push(row.error); continue }
+        if (keyField === null) { ops.push({ kind: 'create', r: row.r, values: row.values }); continue }
+        const k = row.values[keyField.key]
+        if (k === null || k === undefined) { refusedRows.push({ row: row.r, column: planned.plan.find((p) => p.field.key === keyField.key).column, field: keyField.key, code: 'key_empty', message: 'the key is empty' }); continue }
+        const known = index.get(String(k))
+        if (!known) { const op = { kind: 'create', r: row.r, values: row.values }; ops.push(op); index.set(String(k), op); continue }
+        const changes = {}
+        for (const f of mapped) if (JSON.stringify(known.values[f] === undefined ? null : known.values[f]) !== JSON.stringify(row.values[f])) changes[f] = row.values[f]
+        if (Object.keys(changes).length === 0) { unchanged += 1; continue }
+        if (known.id === undefined) { Object.assign(known.values, row.values); continue } // a second row of the file for a record it is about to add: the last one wins
+        ops.push({ kind: 'update', r: row.r, id: known.id, changes })
+        known.values = { ...known.values, ...changes }
+      }
+      const report = {
+        dryRun: a.dryRun === true,
+        object: t.obj.key,
+        import: a.import,
+        source: read.head.source,
+        rows: read.rows.length,
+        valid: read.rows.length - refusedRows.length,
+        refused: refusedRows.length,
+        refusedRows: refusedRows.slice(0, IMPORT_SHOWN),
+        reasons: coerced.reasons,
+        unknownChoices: coerced.unknownChoices,
+        ignoredColumns: read.head.columns.filter((c) => !planned.plan.some((p) => p.column === c)),
+        preview: coerced.rows.filter((r) => !r.error).slice(0, 3).map((r) => r.values),
+        created: 0,
+        updated: 0,
+        unchanged,
+      }
+      if (a.dryRun === true) {
+        report.created = ops.filter((o) => o.kind === 'create').length
+        report.updated = ops.filter((o) => o.kind === 'update').length
+        return { ok: true, ...report }
+      }
+      if (refusedRows.length && a.skipRefused !== true) return { ok: false, error: 'rows_refused', detail: refusedRows.length + ' row(s) are refused and nothing was written: fix the mapping, or give skipRefused to write the others', ...report }
+      const failed = []
+      for (const [n, op] of ops.entries()) {
+        if (n % 200 === 199) await new Promise((resolve) => setImmediate(resolve))
+        const r = op.kind === 'create' ? await t.db.create(t.obj.key, op.values, BY) : await t.db.update(t.obj.key, op.id, op.changes, BY)
+        if (!r.ok) { failed.push({ row: op.r, error: r.code, detail: r.message }); continue }
+        if (op.kind === 'create') report.created += 1
+        else report.updated += 1
+      }
+      return { ok: failed.length === 0, ...report, failed: failed.slice(0, IMPORT_SHOWN), failedCount: failed.length }
+    },
+  }
+
   const mark = (name, method, done, description) => ({
     name,
     description,
@@ -514,7 +635,7 @@ export function tools (service, ports = {}) {
   })
 
   return [
-    listTool, createDbTool, objectTool, fieldTool, relationTool, updateTool, viewTool, listRecords, getRecord, createRecords, updateRecords,
+    listTool, createDbTool, objectTool, fieldTool, relationTool, updateTool, viewTool, listRecords, getRecord, createRecords, updateRecords, importRecords,
     mark('records_delete', 'remove', 'deleted', 'Deletes records: they are marked deleted, hidden from lists, and can be brought back with records_restore (nothing is lost). `ids` is a list of record ids.'),
     mark('records_restore', 'restore', 'restored', 'Brings deleted records back. `ids` is a list of record ids.'),
     archiveTool, restoreTool,
@@ -543,7 +664,7 @@ export function approvalGate (service, exec) {
     // A call the engine will refuse (the agent lowering a protection) is never put to the person: they get the refusal, not a question.
     if (field !== undefined && a.protection !== undefined && can(AGENT, 'field.protect', { field, to: a.protection }).effect === 'deny') return null
     card = cardFor(exec.name, a, objects, info.name)
-  } else if (exec.name === 'records_create' || exec.name === 'records_update' || exec.name === 'records_list' || exec.name === 'records_get') {
+  } else if (exec.name === 'records_create' || exec.name === 'records_update' || exec.name === 'records_import' || exec.name === 'records_list' || exec.name === 'records_get') {
     const r = service.resolve(a.db)
     if (!r.ok) return null
     const obj = findObject(r.db.objects(), a.object)
@@ -553,6 +674,11 @@ export function approvalGate (service, exec) {
       if (fields.length) card = protectedCard('write', fields, obj)
     } else if (exec.name === 'records_update' && Array.isArray(a.updates)) {
       const fields = protectedWritten(obj, a.updates.map((u) => (plain(u) ? u.values : null)))
+      if (fields.length) card = protectedCard('write', fields, obj)
+    } else if (exec.name === 'records_import' && a.dryRun !== true && plain(a.columns)) {
+      // the values are in the file, not in the call: the columns say which fields they fill
+      const filled = Object.values(a.columns).map((v) => (typeof v === 'string' ? v : plain(v) ? v.field : null)).filter((k) => typeof k === 'string')
+      const fields = protectedWritten(obj, [Object.fromEntries(filled.map((k) => [k, 1]))])
       if (fields.length) card = protectedCard('write', fields, obj)
     } else if (Array.isArray(a.reveal)) {
       const keys = revealedOf(obj, a)
