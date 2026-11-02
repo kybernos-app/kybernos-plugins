@@ -24,7 +24,7 @@ try {
   // A permission decided: one line, joined on the approval id.
   assert.equal(rec.ingest('session-s1', decided('a1')), true)
   let got = readDecisions(dir, 's1')
-  assert.deepEqual(got[decisionKey('permission', 'a1')], { by: 'Amira Benali', device: 'MacBook Pro', at: T0 + 2000 })
+  assert.deepEqual(got[decisionKey('permission', 'a1')], { by: 'Amira Benali', device: 'MacBook Pro', at: T0 + 2000, kid: null, sig: null })
   assert.deepEqual(readDecisions(dir, 'session-s1'), got)
   ok('a permission decided is recorded with the person signed in and the computer; `session-<id>` and `<id>` are the same chat')
 
@@ -55,7 +55,7 @@ try {
   assert.equal(existsSync(decisionsFile(dir, 's3')), false)
   person = { by: null, device: 'Mac mini' }
   assert.equal(rec.ingest('s3', decided('a3')), true)
-  assert.deepEqual(readDecisions(dir, 's3')[decisionKey('permission', 'a3')], { by: null, device: 'Mac mini', at: T0 + 2000 })
+  assert.deepEqual(readDecisions(dir, 's3')[decisionKey('permission', 'a3')], { by: null, device: 'Mac mini', at: T0 + 2000, kid: null, sig: null })
   ok('with nobody signed in and no computer name nothing is written; the computer alone is kept')
 
   // The person seam throwing or answering rubbish never breaks the caller.
@@ -82,7 +82,7 @@ try {
   // Owner-only files; a damaged file reads as what can be read.
   assert.equal(statSync(decisionsFile(dir, 's1')).mode & 0o077, 0)
   writeFileSync(decisionsFile(dir, 's7'), 'not json\n{"key":"a:z","by":"Zed","device":"Pi","at":5}\n[1]\n{"key":7}\n')
-  assert.deepEqual(readDecisions(dir, 's7'), { 'a:z': { by: 'Zed', device: 'Pi', at: 5 } })
+  assert.deepEqual(readDecisions(dir, 's7'), { 'a:z': { by: 'Zed', device: 'Pi', at: 5, kid: null, sig: null } })
   assert.deepEqual(readDecisions(dir, 'never-seen'), {})
   assert.deepEqual(readDecisions(join(root, 'no-such-dir'), 's1'), {})
   ok('the files are private to the owner; a damaged line is skipped; no file is no decision')
