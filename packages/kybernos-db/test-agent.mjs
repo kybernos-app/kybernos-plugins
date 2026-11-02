@@ -99,10 +99,10 @@ await ok('a db that is already open is the same object, and a new service over t
 })
 
 // ---------------------------------------------------------------- the tools: structure
-await ok('the tools are the sixteen named, each with strict parameters and a render that never throws', async () => {
+await ok('the tools are the seventeen named, each with strict parameters and a render that never throws', async () => {
   const T = toolbox(service())
   assert.deepEqual(Object.keys(T), NAMES)
-  assert.equal(new Set(Object.keys(T)).size, 16)
+  assert.equal(new Set(Object.keys(T)).size, 17)
   for (const t of Object.values(T)) {
     assert.equal(typeof t.description, 'string')
     assert.ok(t.description.length > 40, t.name + ' describes itself')

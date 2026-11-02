@@ -59,6 +59,7 @@ If the person asks for something the engine refuses (a retype, a delete), say so
 - `records_update` changes only the fields named. `records_delete` hides a record and `records_restore` brings it back: nothing is lost, so delete when asked without a long warning, and say it can be undone.
 - A few rows typed by the person: batch by 50, tell the person how many went in and how many were refused.
 - A file (CSV, Excel, a text table, the JSON of an API) or more than a few dozen rows: do not copy the rows through the conversation. Load the `data-feed` skill: it prepares the file, then `records_import` writes it with `dryRun` first, and `key` makes a second load update instead of duplicate.
+- Sharing a dashboard that shows a table (a link, a password, a page to send): `dashboard_share`. Call it with `check` first (nothing is written): it says what a share holds, what it leaves out and why. It shares a snapshot of what the widgets show, never the rows; a link needs a connected Kybernos account, otherwise `file` makes one page to keep or send. A password is made for you and shown once: give it to the person, never invent one.
 
 ## 5b. Put a table or an app away
 
