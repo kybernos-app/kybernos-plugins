@@ -46,9 +46,10 @@ await ok('models.dev answers by the exact key, then by the bare id when every en
   assert.equal(visionOf(null, 'x', 'y'), null)
 })
 
-// The route as the person's settings hold it: a declared route with its own `models` list.
+// The route as the settings service gives it (measured on the real one, 2026-11-02): the RESOLVED layer carries the schema's defaults on every
+// route (`defaultInput: ['text']`) and on every model with no choice (`input: []`); the USER layer holds only what the person wrote.
 const declared = {
-  value: { providers: { 'kimi-code-plan-global': { models: [{ id: 'k3.1-pro', name: 'K3.1 Pro', contextWindow: 1048576 }, { id: 'old-text', name: 'Old' }] } } },
+  value: { providers: { 'kimi-code-plan-global': { defaultInput: ['text'], models: [{ id: 'k3.1-pro', name: 'K3.1 Pro', contextWindow: 1048576, input: [] }, { id: 'old-text', name: 'Old', input: [] }] } } },
   user: { providers: { 'kimi-code-plan-global': { api: 'openai-completions', models: [{ id: 'k3.1-pro', name: 'K3.1 Pro', contextWindow: 1048576 }, { id: 'old-text', name: 'Old' }] } } },
 }
 
@@ -63,17 +64,25 @@ await ok('a declared route is rewritten whole from the user layer, only the mode
   assert.equal(declared.user.providers['kimi-code-plan-global'].models[0].input, undefined, 'the settings read is not mutated')
 })
 
-await ok('an explicit input is never touched, text-only included, nor a route that has a defaultInput', () => {
+await ok('the schema\'s defaults are not choices: defaultInput [\'text\'] on the route and input [] on the model still heal', () => {
+  const plan = healPlan(declared, vision)
+  assert.equal(plan.length, 1, 'the resolved layer says [text] everywhere, and that is what the engine refuses pictures for')
+  const empty = structuredClone(declared)
+  empty.user.providers['kimi-code-plan-global'].models[0].input = []
+  assert.equal(healPlan(empty, vision).length, 1, 'an empty list written by hand is no choice either')
+})
+
+await ok('an explicit input is never touched, text-only included, nor a route whose own defaultInput the person wrote', () => {
   const explicit = structuredClone(declared)
   explicit.user.providers['kimi-code-plan-global'].models[0].input = ['text']
   assert.deepEqual(healPlan(explicit, vision), [])
   const routed = structuredClone(declared)
-  routed.value.providers['kimi-code-plan-global'].defaultInput = ['text']
+  routed.user.providers['kimi-code-plan-global'].defaultInput = ['text']
   assert.deepEqual(healPlan(routed, vision), [])
 })
 
 await ok('the route another feature rewrites on every sync is left alone', () => {
-  const managed = { value: { providers: { kybernos: { models: [{ id: 'gpt-5' }] } } }, user: { providers: { kybernos: { models: [{ id: 'gpt-5' }] } } } }
+  const managed = { value: { providers: { kybernos: { defaultInput: ['text'], models: [{ id: 'gpt-5', input: [] }] } } }, user: { providers: { kybernos: { models: [{ id: 'gpt-5' }] } } } }
   assert.deepEqual(healPlan(managed, vision), [])
 })
 
@@ -84,7 +93,7 @@ await ok('a model that only the base layer lists cannot be rewritten from here a
 
 await ok('a catalogue route completes only the overrides the person already has', () => {
   const view = {
-    value: { providers: { moonshot: {} } },
+    value: { providers: { moonshot: { defaultInput: ['text'] } } },
     user: { providers: { moonshot: { modelOverrides: { 'kimi-k3': { contextWindow: 256000 }, 'kimi-k2': { input: ['text'] }, 'deepseek-chat': { name: 'x' } } } } },
   }
   const plan = healPlan(view, vision)
@@ -129,7 +138,7 @@ await ok('a pass writes each route in its own mutation and journals it', async (
 })
 
 await ok('a refused write is reported and does not stop the other routes', async () => {
-  const view = { value: { providers: { ...declared.value.providers, other: { models: [{ id: 'gpt-5' }] } } }, user: { providers: { ...declared.user.providers, other: { models: [{ id: 'gpt-5' }] } } } }
+  const view = { value: { providers: { ...declared.value.providers, other: { defaultInput: ['text'], models: [{ id: 'gpt-5', input: [] }] } } }, user: { providers: { ...declared.user.providers, other: { models: [{ id: 'gpt-5' }] } } } }
   const settings = fakeSettings(view, { failOn: 'kimi-code-plan-global' })
   const out = await healImages({ settings, index: index() })
   assert.deepEqual(out.failed, [{ route: 'kimi-code-plan-global', error: 'refused' }])
