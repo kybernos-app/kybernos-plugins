@@ -33,7 +33,7 @@ console.log('the Tools page says what it is for (in the card of its « ? »)')
   check('the card’s lead says what Tools adds and where the coding assistants are managed', /kbToolsTxt\(\{ fr: 'Les outils ajoutent des capacités à un profil DSH/.test(lead) && /en: 'Tools add abilities to a DSH profile/.test(lead), lead.slice(0, 300))
   check('it names Workers, in both languages', /Workers/.test(lead.slice(lead.indexOf('Les outils ajoutent'), lead.indexOf('Les outils ajoutent') + 700)) && /own page, Workers/.test(lead))
   check('the pill hands both sentences to the card, and the page no longer draws them under its title unless the help cannot be drawn', /kbPagePill\('tools', leadTools, kbt\('kbui\.tools'\)\)/.test(head) && /leadTools\.map\(\(x, i\) => kbSubFallback\('kbt2-sub', x, 'p', 'lead' \+ i\)\)/.test(head))
-  check('the restart caveat is a warning, not a description: it stays on the page', /Nothing is hot-reloaded/.test(head))
+  check('how a change applies (no restart, a dry run first, a backup) is a note, not a description: it stays on the page', /DSH applies the change by itself a few seconds after it is written: no restart/.test(head) && !/Nothing is hot-reloaded/.test(head))
 }
 
 console.log('the pages of this bundle hand their description to the card of their « ? »')
