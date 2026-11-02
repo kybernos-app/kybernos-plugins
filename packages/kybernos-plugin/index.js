@@ -27,6 +27,7 @@ import { deriveStory } from './journal-story.mjs'
 import { createRecorder, readDecisions } from './journal-decisions.mjs'
 import { loadSealKey, sealEvidence, verifyDecisions } from './journal-seal.mjs'
 import { journalDocument, journalPageHtml, pageFileName } from './journal-page.mjs'
+import { createJournalLinks } from './journal-link.mjs'
 import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
@@ -5161,6 +5162,8 @@ function boot(ctx) {
     const decisionsDir = () => nodePathJoin(dshHomeSync(), 'kybernos', 'journal-decisions')
     // The key that seals each decision (journal-seal.mjs): made on the first decision, kept in a 0600 file, never sent anywhere.
     const sealKeyFile = () => nodePathJoin(dshHomeSync(), 'kybernos', 'journal-seal-key.json')
+    // The Journal as a link: talks to the server only through the cloud bundle's `snapshots` seam (read at each call: the cloud bundle may load after this one).
+    const journalLinks = createJournalLinks({ dir: () => nodePathJoin(dshHomeSync(), 'kybernos', 'journal-links'), seam: () => globalThis[Symbol.for('kybernos.snapshots')] })
     let sealKeyCache = null
     const sealKeyForWriting = () => { if (sealKeyCache === null) sealKeyCache = loadSealKey(sealKeyFile(), { create: true }); return sealKeyCache }
     try {
@@ -12408,6 +12411,25 @@ function boot(ctx) {
         if (doc === null) return sendJson(res, 500, { ok: false, error: 'the page could not be built' })
         sendJson(res, 200, { ok: true, name: pageFileName(doc), html: journalPageHtml(doc).html })
       } }), 'kybernos: route journal page')
+      // The Journal as a link on the Kybernos server (journal-link.mjs): one route, `action` = state | publish | remove. A POST with the signed session (it can carry the logos and it
+      // answers the link's password, which is read only by the page of this host).
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/journal/link', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        let body = null
+        try { body = await readJsonBody(req, 2097152) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        if (body === null || typeof body !== 'object') return sendJson(res, 400, { ok: false, error: 'bad request' })
+        if (body.action === 'state') return sendJson(res, 200, await journalLinks.state(body.sessionId))
+        if (body.action === 'remove') return sendJson(res, 200, await journalLinks.remove({ sessionId: body.sessionId }))
+        if (body.action !== 'publish') return sendJson(res, 400, { ok: false, error: 'bad request' })
+        const j = await readJournal({ sessionId: body.sessionId, evidence: true })
+        if (j.ok !== true || j.story === undefined) return sendJson(res, 404, { ok: false, error: 'no readable journal', notes: j.notes })
+        const doc = journalDocument({ story: j.story, include: body.include, lang: body.lang, logos: body.logos, seal: j.seal, evidence: j.evidence, made: new Date().toLocaleDateString('en-CA') })
+        if (doc === null) return sendJson(res, 500, { ok: false, error: 'the page could not be built' })
+        sendJson(res, 200, await journalLinks.publish({ sessionId: body.sessionId, doc: doc, protect: body.protect !== false, fresh: body.fresh === true }))
+      } }), 'kybernos: route journal link')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/runs-index', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
