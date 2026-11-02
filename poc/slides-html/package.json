@@ -1,0 +1,14 @@
+{
+  "name": "poc-slides-html",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PoC: slides as one HTML page each, editable in place, exported to PDF and PPTX. Not shipped.",
+  "license": "Apache-2.0",
+  "scripts": { "start": "node server.mjs", "check": "node check.mjs" },
+  "devDependencies": {
+    "chart.js": "4.6.1",
+    "dom-to-pptx": "2.1.2",
+    "puppeteer-core": "25.16.0"
+  }
+}
