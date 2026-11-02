@@ -1,7 +1,7 @@
 // kybernos-db — host half.
 //
-// It gives the agents and the person their own databases: fifteen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
-// records_list, records_get, records_create, records_update, records_delete, records_restore, db_archive, db_restore), the short block of their system prompt that names the
+// It gives the agents and the person their own databases: sixteen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
+// records_list, records_get, records_create, records_update, records_import, records_delete, records_restore, db_archive, db_restore), the short block of their system prompt that names the
 // databases, the `db-builder` skill that says how to design one, and the routes the Tables page reads and writes through. The data is a SQLite file per database under `<DSH home>/kybernos/kybernos-db/dbs`
 // (store/), the rules are the pure ones of core/. Nothing here reaches the network.
 //
@@ -237,7 +237,7 @@ export function apply (ctx, options = {}) {
       try {
         const registry = c.get('tools')
         if (registry === undefined) return
-        for (const tool of dbTools(service, options.toolPorts)) { const retrait = registry.register(tool); if (typeof retrait === 'function') retraits.push(retrait) }
+        for (const tool of dbTools(service, { importsDir: join(home, 'kybernos', 'imports'), ...options.toolPorts })) { const retrait = registry.register(tool); if (typeof retrait === 'function') retraits.push(retrait) }
       } catch (e) { say('tools not registered: ' + why(e)) }
     }
     if (ctx.get('tools') !== undefined) mountTools(ctx)

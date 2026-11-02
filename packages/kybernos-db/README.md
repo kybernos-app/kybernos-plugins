@@ -5,7 +5,7 @@ engines (Contacts, Catalog, Pipeline), which no longer exist; "task management" 
 (« Templates », below).
 
 This folder holds **`core/`, the rules (no disk, no network, no clock), `store/`, the SQLite file with its journal, its saved views and its
-attachments, `agent/` with `index.js`, the DSH bundle that gives the agents fifteen tools, a block of their system prompt and the `db-builder` skill, the
+attachments, `agent/` with `index.js`, the DSH bundle that gives the agents sixteen tools, a block of their system prompt and the `db-builder` skill, the
 page: `api.mjs` + `routes.mjs` (the host's door for it) and `client.js` (the « Apps » page), with the relations between tables and the files of a row shown on it, and the
 templates (`template.mjs`, `instantiate.mjs`), and `remote/`, what moves an app between a computer and a team space and keeps it there (« Moving an app » and « Publish », below).**
 
