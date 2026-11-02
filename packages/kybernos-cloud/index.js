@@ -5896,9 +5896,9 @@ const mountKybyNative = (ctx) => {
       text: (context) => kybyNative.promptFor(sessionIdOfContext(context)),
     })
   })
-  ctx.on('agent/inbox/claimed', ({ agent }) => {
+  ctx.on('agent/inbox/claimed', ({ agent, turn }) => {
     try { kybyNative.noteClaim(agent.session.id) } catch (e) { /* never break a turn */ }
-    try { heartbeat.noteClaim(agent.session.id) } catch (e) { /* never break a turn */ }
+    try { heartbeat.noteClaim(agent.session.id, turn) } catch (e) { /* never break a turn */ }
   })
   ctx.on('agent/turn-stopping', ({ agent, signal }) => {
     void kybyNative.mirrorTurn(agent, signal)
