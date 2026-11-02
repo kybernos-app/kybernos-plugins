@@ -1288,7 +1288,6 @@ let kbLocaleRead = () => 'en'
       'kbnc.g.apps': { kybernos: 'Apps', en: 'Apps' },
       'kbnc.g.auto': { kybernos: 'Automatiser', en: 'Automate' },
       'kbnc.sl.label': { kybernos: 'Ce que tu peux créer', en: 'What you can make' },
-      'kbnc.sl.soon': { kybernos: 'Bientôt', en: 'Soon' },
       'kbnc.sl.off': { kybernos: 'Non activé', en: 'Not enabled' },
       'kbnc.sh.head': { kybernos: 'Pars d’un exemple', en: 'Start from an example' },
       'kbnc.sh.preview': { kybernos: 'Aperçu', en: 'Preview' },
@@ -1310,7 +1309,6 @@ let kbLocaleRead = () => 'en'
       'kbnc.sh.seed': { kybernos: 'graine', en: 'seed' },
       'kbnc.sh.play': { kybernos: 'Lire l’exemple', en: 'Play the example' },
       'kbnc.sh.pause': { kybernos: 'Pause', en: 'Pause' },
-      'kbnc.sh.promptfine': { kybernos: 'Un prompt prêt à l’emploi : un clic le met dans le chat.', en: 'A ready-made prompt: one click puts it in the chat.' },
       'kbnc.sh.noclip': { kybernos: 'Cet exemple ne peut pas être lu pour l’instant.', en: 'This example cannot be played right now.' },
       'kbnc.sh.sample': { kybernos: 'Prompt de l’exemple', en: 'Prompt of the sample' },
       'kbnc.sh.samplem': { kybernos: 'Comment l’exemple a été fait', en: 'How the sample was made' },
@@ -8902,9 +8900,9 @@ const kbWsMissing = (workspaceId) => kbWsHealthMap !== null && typeof workspaceI
 //  - A template PREFILLS the composer (the person adds the details); the starters of the team keep SENDING.
 //  - `group` is the chapter of the slider (KB_NC_GROUPS gives their order). The page has ONE colour: the theme's accent.
 const KB_NC_GROUPS = ['docs', 'media', 'apps', 'auto']
-// Columns of the type cards, so the rows come out even: at most 5 to a row, then the fewest rows, then the fewest columns that hold them (10 -> 5+5, 12 -> 4x3, 16 -> 4x4).
-// The page narrows it by itself when the room is short.
-const kbNcCols = (n) => Math.max(1, Math.ceil(n / Math.max(1, Math.ceil(n / 5))))
+// Columns of the type cards, so the rows come out even: at most 8 to a row, then the fewest rows, then the fewest columns that hold them (10 -> 5+5, 12 -> 6+6, 16 -> 8+8).
+// The cards shrink with the room (see .kb8-sh-types) and the page drops to fewer columns by itself when even the smallest card no longer fits.
+const kbNcCols = (n) => Math.max(1, Math.ceil(n / Math.max(1, Math.ceil(n / 8))))
 const KB_NC_TEMPLATES = [
   { id: 'slides', group: 'docs', needs: '@local/kybernos-slides' },
   { id: 'doc', group: 'docs', needs: null },
@@ -8912,11 +8910,11 @@ const KB_NC_TEMPLATES = [
   { id: 'dashboard', group: 'docs', needs: '@local/kybernos-dashboards' },
   { id: 'image', group: 'media', needs: null },
   { id: 'video', group: 'media', needs: '@local/kybernos-motion' },
-  // No bundle makes a game yet (`soon`): the shelf shows it anyway, tagged, so the person sees what is coming. Sound has real examples, so it is not tagged.
   { id: 'audio', group: 'media', needs: null },
   { id: 'model3d', group: 'media', needs: '@local/kybernos-modeleur' },
   { id: 'app', group: 'apps', needs: '@local/kybernos-db' },
-  { id: 'game', group: 'apps', needs: '@local/kybernos-games', soon: true },
+  // Game, like Sound, has real examples (text prompts that prefill the composer): no bundle is needed to look at them, so it carries no tag.
+  { id: 'game', group: 'apps', needs: null },
   { id: 'website', group: 'apps', needs: null },
   { id: 'miniapp', group: 'apps', needs: '@local/kybernos-miniapps' },
   { id: 'automation', group: 'auto', needs: null },
@@ -9121,6 +9119,55 @@ const kbNcKits = (list) => {
     if (k !== null && typeof k.id === 'string' && k.id !== '') out[k.id.slice(k.id.lastIndexOf('/') + 1)] = { id: k.id, have: k.have === true, appId: typeof k.appId === 'string' ? k.appId : '' }
   })
   return out
+}
+/** One small line icon (24 x 24) for each ready-made text example of the shelf, drawn here so no file is needed; an example the table does not know takes its type's. */
+const KB_NC_GLYPH = {
+  doc_proposal: '<path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/><path d="m9.2 14.2 2 2 3.8-4"/>',
+  doc_onboarding: '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16"/>',
+  doc_lesson: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="m8 20 4-4 4 4"/><path d="M7.5 9h6M7.5 12h3.5"/>',
+  doc_studyguide: '<path d="M12 6.5C10 5 7 4.5 4 4.5V18c3 0 6 .5 8 2 2-1.5 5-2 8-2V4.5c-3 0-6 .5-8 2z"/><path d="M12 6.5V20"/>',
+  doc_researchproposal: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20.5 20.5-5.4-5.4"/><path d="M10.5 7.5v6M7.5 10.5h6"/>',
+  doc_litreview: '<rect x="3" y="5" width="4.5" height="15" rx="1.2"/><rect x="9" y="3" width="4.5" height="17" rx="1.2"/><path d="m15.3 7.8 3.4-.9 3 11.4-3.4.9z"/>',
+  sheet_irr: '<path d="M3.5 17.5 9 12l3.5 3.5L20.5 7"/><path d="M15 7h5.5v5.5"/>',
+  sheet_runway: '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 3.8-5"/><circle cx="12" cy="17" r="1.3"/><path d="M3.5 20.5h17M6.3 10.4l1.1 1.2M12 6.5v1.7M17.7 10.4l-1.1 1.2"/>',
+  sheet_gradebook: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8.8 16 3.2-8.2 3.2 8.2M9.9 13.4h4.2"/>',
+  sheet_study_week: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h3M13.5 14h3M7.5 17.2h3"/>',
+  sheet_survey: '<path d="M11 4.5a8.5 8.5 0 1 0 8.5 8.5H11z"/><path d="M14 3.5A6.5 6.5 0 0 1 20.5 10H14z"/>',
+  sheet_litmatrix: '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/>',
+  audio_podcast_doc: '<rect x="9" y="3" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7"/>',
+  auto_sales_monday: '<path d="M3.5 20.5h17"/><rect x="5" y="12" width="3.5" height="6.5" rx="1"/><rect x="10.2" y="8" width="3.5" height="10.5" rx="1"/><rect x="15.5" y="4" width="3.5" height="14.5" rx="1"/>',
+  auto_invoice_chase: '<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9.5 8.5h5M9.5 12h5"/>',
+  auto_study_sunday: '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/><path d="M17.5 3.5v3M16 5h3"/>',
+  auto_quiz_morning: '<path d="M5.5 17a6.5 6.5 0 0 1 13 0"/><path d="M3 20.5h18M12 4v2.5M4.6 9.6l1.7 1.7M19.4 9.6l-1.7 1.7"/>',
+  auto_papers_friday: '<path d="m3.5 13.5 2.5-8h12l2.5 8v5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 13.5h5a3.5 3.5 0 0 0 7 0h5"/>',
+  auto_page_watch: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  team_weekly_review: '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.5 3.5V8H16"/><path d="m8.8 12.2 2.2 2.2 4-4.4"/>',
+  team_feedback: '<path d="M6 4.5h12A2.5 2.5 0 0 1 20.5 7v7a2.5 2.5 0 0 1-2.5 2.5h-6.5L7 20.5v-4H6A2.5 2.5 0 0 1 3.5 14V7A2.5 2.5 0 0 1 6 4.5z"/><path d="M8 9h8M8 12.2h5"/>',
+  team_tutor: '<path d="M2.5 9.5 12 5l9.5 4.5L12 14z"/><path d="M6.5 11.8V16c0 1.4 2.5 2.7 5.5 2.7s5.5-1.3 5.5-2.7v-4.2"/><path d="M21.5 9.5V15"/>',
+  team_lessons: '<path d="m4 20 1.2-4.6L16.4 4.2a2.2 2.2 0 0 1 3.1 3.1L8.3 18.5z"/><path d="m14.6 6 3.4 3.4"/>',
+  team_research_check: '<path d="M12 3.2 19 6v5.6c0 4.2-2.9 7.6-7 9.4-4.1-1.8-7-5.2-7-9.4V6z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/>',
+  team_peer_review: '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>',
+  skill_minutes: '<path d="M10 6.5h10.5M10 12h10.5M10 17.5h10.5"/><path d="m3.5 6.5 1.4 1.4 2.4-2.6M3.5 12l1.4 1.4 2.4-2.6M3.5 17.5l1.4 1.4 2.4-2.6"/>',
+  skill_invoice_check: '<rect x="3" y="4" width="7.5" height="16" rx="1.8"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.8"/><path d="M5.8 9h2M5.8 12.5h2M16.3 9h2M16.3 12.5h2"/>',
+  skill_rubric: '<path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.2-4.1 5.8-.8z"/>',
+  skill_vocab: '<rect x="3.5" y="8.5" width="14" height="11" rx="2.2"/><path d="M7 5h11.5A2.5 2.5 0 0 1 21 7.5V15"/><path d="M7.2 14h7"/>',
+  skill_paper_card: '<rect x="3.5" y="5" width="17" height="14" rx="2.8"/><circle cx="8.5" cy="10.5" r="1.6"/><path d="M12.5 9.5h5M6.5 15.5h11"/>',
+  skill_citations: '<path d="M8.5 4h-3v16h3M15.5 4h3v16h-3"/><path d="m10.3 9.6 1.8-1.4v7.6"/>',
+  plugin_cafe: '<path d="M4.5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M15.5 10H17a2.5 2.5 0 0 1 0 5h-1.5"/><path d="M8 3.5v2M11.5 3.5v2"/>',
+  plugin_freelance: '<rect x="5" y="4.5" width="14" height="10.5" rx="2"/><path d="M3 19.5h18"/>',
+  plugin_teacher: '<path d="M6 17.5V11a6 6 0 0 1 12 0v6.5l1.5 1.5h-15z"/><path d="M10 21.5h4"/>',
+  plugin_student: '<rect x="5.5" y="7" width="13" height="13.5" rx="4"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M5.5 13h13M10 16.5h4"/>',
+  plugin_lab: '<path d="M9.5 3.5h5M10.5 3.5v5.3L5.3 17.6A2 2 0 0 0 7 20.5h10a2 2 0 0 0 1.7-2.9L13.5 8.8V3.5"/><path d="M8 14.5h8"/>',
+  plugin_market_research: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.3 3.5 5.1 3.5 8.5s-1.2 6.2-3.5 8.5M12 3.5C9.7 5.8 8.5 8.6 8.5 12s1.2 6.2 3.5 8.5"/>',
+}
+const KB_NC_GLYPH_OF_TYPE = { doc: 'doc_proposal', sheet: 'sheet_litmatrix', audio: 'audio_podcast_doc', automation: 'auto_sales_monday', team: 'team_peer_review', skill: 'skill_minutes', plugin: 'plugin_market_research' }
+/** The icon markup of a text example (its own, else its type's, else the document's). */
+const kbNcGlyph = (e) => {
+  const o = kbNcObj(e)
+  const id = o === null ? '' : String(o.id)
+  if (Object.prototype.hasOwnProperty.call(KB_NC_GLYPH, id)) return KB_NC_GLYPH[id]
+  const t = o === null ? '' : String(o.type)
+  return KB_NC_GLYPH[Object.prototype.hasOwnProperty.call(KB_NC_GLYPH_OF_TYPE, t) ? KB_NC_GLYPH_OF_TYPE[t] : 'doc_proposal']
 }
 /** The examples a type shows. An App example that starts from a kit (`kind: 'template'`) is shown only when this install really has that kit; the simple starts always are,
  *  and so is every example of any other type. An idea whose kit the product does not ship (a restaurant, a studio) is never shown dead. */
@@ -30761,16 +30808,18 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('div', { className: 'kb8-sl-cards' }, g.templates.map((t) =>
               h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (chosen === t.id ? ' is-on' : '') + (t.off === true ? ' is-off' : ''), 'aria-pressed': chosen === t.id ? 'true' : 'false', 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => sp.onPick(t.id) },
                 h('span', { className: 'kb8-sl-stage', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[t.id] + '</svg>' } }),
-                t.off === true ? h('span', { className: 'kb8-sl-tag' }, kbt(t.soon === true ? 'kbnc.sl.soon' : 'kbnc.sl.off')) : null,
+                t.off === true ? h('span', { className: 'kb8-sl-tag' }, kbt('kbnc.sl.off')) : null,
                 h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
         list.length === 0 ? null : h('section', { className: 'kb8-sh-sec', 'data-kb': 'newchat-examples', 'aria-label': kbt('kbnc.sh.head') },
           h('div', { className: 'kb8-sh-h' }, h('h2', null, kbt('kbnc.sh.head')), info !== undefined && typeof info.blurb === 'string' && info.blurb !== '' ? h('span', null, info.blurb) : null),
           h('div', { className: 'kb8-sh-grid' }, list.map((e, i) => e.kind === 'prompt'
             ? h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, 'data-kind': 'prompt', onClick: () => sp.onUse(e) },
-              h('span', { className: 'kb8-sh-thumb kb8-sh-ptext' }, h('span', { className: 'kb8-sh-quote', 'aria-hidden': 'true' }, '\u201c'), h('span', { className: 'kb8-sh-sum' }, e.line)),
-              h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.useprompt')),
-              h('span', { className: 'kb8-sh-name' }, h('span', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
-              h('span', { className: 'kb8-sh-line' }, kbt('kbnc.sh.promptfine')))
+              h('span', { className: 'kb8-sh-thumb kb8-sh-ptext' },
+                h('span', { className: 'kb8-sh-phead' },
+                  h('span', { className: 'kb8-sh-ico', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 24 24" aria-hidden="true">' + kbNcGlyph(e) + '</svg>' } }),
+                  h('span', { className: 'kb8-sh-ptag' }, e.name)),
+                h('span', { className: 'kb8-sh-sum' }, e.line)),
+              h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.useprompt')))
             : h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, onClick: (ev) => sp.onOpen(e.id, ev.currentTarget) },
               h('span', { className: 'kb8-sh-thumb' }, h(KbNcPic, { key: e.id, e }), e.type === 'video' || kbNcObj(e.video) !== null || kbNcAudio(e) !== null ? kbNcPlay() : null),
               h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.preview')),
@@ -31037,9 +31086,15 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 [class*="scrollBody"]:has([data-kb="newchat-shelf"]){justify-content:safe center !important}
 /* One even grid, whatever the chapters: every card in a cell of the same width, the same gap everywhere, at most --kb-cols to a row (the chapters wrapped on their own and
    gave 4 + 2 + 4). The chapter boxes stay in the page for assistive tools but draw nothing. */
-.kb8-sh-types{--kb-cell:140px;display:grid;grid-template-columns:repeat(auto-fit,var(--kb-cell));gap:14px 0;justify-content:center;align-items:center;width:100%;max-width:calc(var(--kb-cols,5) * var(--kb-cell));margin:0 auto}
+/* The card shrinks with the room: --kb-cols cells share the page's width (the cell never goes under 80 px nor over 112 px), the card is a cell less a 10 px gap, and its picture and
+   height follow the card's width. Under 80 px per cell the grid drops to fewer columns by itself (auto-fit); the quiet cards never get narrower than their label (70 px). */
+.kb8-sh-types{--kb-cell:clamp(80px,calc((100cqw - 32px) / var(--kb-cols,8)),112px);--kb-w:calc(var(--kb-cell) - 10px);display:grid;grid-template-columns:repeat(auto-fit,var(--kb-cell));gap:12px 0;justify-content:center;align-items:center;width:100%;max-width:calc(var(--kb-cols,8) * var(--kb-cell));margin:0 auto}
 .kb8-sh-types .kb8-sl-group,.kb8-sh-types .kb8-sl-cards{display:contents}
-.kb8-sh-types .kb8-sl-card{justify-self:center}
+.kb8-sh-types .kb8-sl-card{justify-self:center;width:var(--kb-w);height:calc(var(--kb-w) * 1.17);font-size:12px}
+.kb8-sh-types .kb8-sl-stage{height:calc(var(--kb-w) * .72)}
+.kb8-sh-types .kb8-sl-stage svg{width:calc(var(--kb-w) * .77);height:calc(var(--kb-w) * .53)}
+.kb8-sh-types .kb8-sl-label{padding:0 3px}
+@container kbnc (max-width:820px){.kb8-sh-types .kb8-sl-card{font-size:11px}.kb8-sh-types.has-sel .kb8-sl-card.is-on{font-size:12px}}
 /* A type this install cannot make yet: shown, a little quieter, with a small tag. */
 .kb8-sl-card.is-off:not(.is-on):not(:hover):not(:focus-visible){color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary))}
 .kb8-sl-tag{position:absolute;top:6px;right:6px;z-index:1;padding:1px 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1));box-shadow:0 0 0 1px var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font-size:11px;font-weight:550;line-height:16px;white-space:nowrap;pointer-events:none}
@@ -31047,14 +31102,14 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-types .kb8-sl-card{transition:width .45s cubic-bezier(.16,1,.3,1),height .45s cubic-bezier(.16,1,.3,1),opacity .35s,filter .35s,box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1),color .2s}
 .kb8-sh-types .kb8-sl-stage{transition:height .45s cubic-bezier(.16,1,.3,1)}
 .kb8-sh-types .kb8-sl-stage svg{transition:width .45s cubic-bezier(.16,1,.3,1),height .45s cubic-bezier(.16,1,.3,1),transform .45s cubic-bezier(.16,1,.3,1)}
-.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on){width:90px;height:106px;opacity:.5;filter:saturate(.45);font-size:12px}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on){width:max(calc(var(--kb-w) * .78),70px);height:max(calc(var(--kb-w) * .92),82px);opacity:.5;filter:saturate(.45);font-size:11px}
 .kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-label{padding:0 2px;overflow-wrap:normal}
-.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage{height:76px}
-.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage svg{width:68px;height:47px}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage{height:calc(var(--kb-w) * .58)}
+.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage svg{width:calc(var(--kb-w) * .58);height:calc(var(--kb-w) * .4)}
 .kb8-sh-types.has-sel .kb8-sl-card:not(.is-on):hover,.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on):focus-visible,.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on).is-match{opacity:.95;filter:none}
-.kb8-sh-types.has-sel .kb8-sl-card.is-on{width:132px;height:152px;font-size:14px;font-weight:650}
-.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage{height:112px}
-.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage svg{width:104px;height:71px}
+.kb8-sh-types.has-sel .kb8-sl-card.is-on{width:calc(var(--kb-w) * 1.08);height:calc(var(--kb-w) * 1.24);font-size:13px;font-weight:650}
+.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage{height:calc(var(--kb-w) * .9)}
+.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage svg{width:calc(var(--kb-w) * .84);height:calc(var(--kb-w) * .58)}
 .kb8-sh-sec{display:flex;flex-direction:column;gap:14px;min-width:0}
 .kb8-sh-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
 .kb8-sh-h h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
@@ -31069,8 +31124,12 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-thumb .kb8-sh-tile,.kb8-sh-big .kb8-sh-tile{position:absolute;inset:0;height:auto}
 .kb8-sh-thumb .kb8-sh-tile svg,.kb8-sh-big .kb8-sh-tile svg{width:46%;height:auto}
 .kb8-sh-card:hover .kb8-sh-thumb,.kb8-sh-card:focus-visible .kb8-sh-thumb{transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 16px 30px -16px rgba(0,0,0,.45)}
-.kb8-sh-ptext{display:flex;flex-direction:column;gap:6px;padding:16px 18px}
-.kb8-sh-quote{font-size:38px;line-height:.8;font-weight:800;color:var(--kb8-acc)}
+/* A text card is one quiet box: an icon of its own, its title as a tag, the request under it. As tall as its text (a picture card keeps the 16:10 frame); next to others in a row it stretches to the row. */
+.kb8-sh-ptext{display:flex;flex-direction:column;gap:10px;padding:14px 16px 16px;aspect-ratio:auto;flex:1 1 auto}
+.kb8-sh-phead{display:flex;align-items:center;gap:10px;min-width:0}
+.kb8-sh-ico{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--kb8-acc) 12%,transparent);color:var(--kb8-acc)}
+.kb8-sh-ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.kb8-sh-ptag{min-width:0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:650;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:color-mix(in srgb,var(--kb8-acc) 10%,transparent);color:var(--dsw-alias-label-primary)}
 .kb8-sh-sum{font-size:14px;line-height:1.5;color:var(--dsw-alias-label-primary);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .kb8-sh-prev{position:absolute;inset-inline-end:10px;inset-block-start:10px;opacity:0;transition:opacity .2s;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
 .kb8-sh-card:hover .kb8-sh-prev,.kb8-sh-card:focus-visible .kb8-sh-prev{opacity:1}
@@ -31140,7 +31199,7 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-status.bad{color:var(--dsw-alias-state-error-primary)}
 .kb8-sh-note{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}
 @media (max-width:760px){.kb8-sh-detail{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:520px){.kb8-sh-grid{grid-template-columns:minmax(0,1fr)}.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on){width:74px;height:92px;font-size:10.5px}.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage{height:62px}.kb8-sh-types.has-sel .kb8-sl-card:not(.is-on) .kb8-sl-stage svg{width:56px;height:39px}.kb8-sh-types.has-sel .kb8-sl-card.is-on{width:112px;height:134px}.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage{height:94px}.kb8-sh-types.has-sel .kb8-sl-card.is-on .kb8-sl-stage svg{width:86px;height:59px}}
+@media (max-width:520px){.kb8-sh-grid{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.kb8-sh *,.kb8-sh-layer *{transition:none !important;animation:none !important}}
 /* What the person picked: its chip and a few ways to go on, in one line under the composer. */
 .kb8-nc-sel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 2px;font-size:12.5px;color:var(--dsw-alias-label-tertiary);animation:kb8-chip-in .3s cubic-bezier(.16,1,.3,1)}
