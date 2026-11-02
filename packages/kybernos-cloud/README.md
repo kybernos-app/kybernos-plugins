@@ -396,7 +396,8 @@ file is its launcher; nothing in the menu calls it yet.
 - **Start.** `POST /kybernos-cloud/team-dsh/open {workspace_id}` (strict same-origin, signed session) starts `dsh web` on loopback with
   `DSH_HOME`, `DSH_WEB_PORT`, `KYBERNOS_PERSONAL_HOME` and `KYBERNOS_TEAM_ID` set, on a port of 3300-3399 that the team keeps, and answers
   its address once the engine says it is mounted. The keys of the DSH that starts it are passed on. Two calls at once start one DSH.
-  `GET .../team-dsh/list`, `POST .../team-dsh/stop`. The registry is `<personal home>/kybernos/team-instances.json` (0600).
+  `GET .../team-dsh/list`, `POST .../team-dsh/stop`, `GET .../team-dsh/personal` (the address of the personal DSH, which writes its port in `<personal home>/kybernos/personal-dsh.json`).
+  `open` answers `url` and `signed_url` (the address `dsh web` printed, which signs a browser in: it goes only to the page that asked). The account menu (`openOwnDsh` in `client.js`) opens it in a window named after the team. The registry is `<personal home>/kybernos/team-instances.json` (0600).
 - **Stop.** A team's DSH (the one started with `KYBERNOS_TEAM_ID`) stops itself, as a normal shutdown, after 30 minutes with no request, no reply
   running and no active automation (`status: 'active'` rows of the engine's `storages/schedule.json`, engine 0.2.2-alpha.2: re-check on an
   engine bump). Anything it cannot read keeps it alive. The personal DSH never stops.
@@ -405,7 +406,7 @@ file is its launcher; nothing in the menu calls it yet.
   (`seedTeamHome`) gives a home that holds no connection a copy of the personal session (token, user, server, device label; not the list of teams, the plan or the model-route record, which
   the team DSH reads itself) and the server registry. One session, two DSH: signing out of a team's DSH does not revoke it. The record of the team folders is the personal home's.
   The account's memory on the server stays cut there; the local lessons work (`seam.ownHome()`, read by `kybernos-memory`).
-- **Not done yet:** the account menu opening it (and hiding in a team's DSH what belongs to the account or the computer: Kaby, Telegram and WhatsApp, the Home computer), the language and theme
+- **Not done yet:** hiding in a team's DSH what belongs to the account or the computer (Kaby, Telegram and WhatsApp, the Home computer), a window of its own in the desktop app (another repository), the language and theme
   of a new home (and whether the person's own provider keys go with it), the signed address of the team's DSH handed to the page (the session cookie's name comes from host and port, so two DSH in one browser each keep their own). The other bundles were sorted: only the two of `PERSONAL_ONLY_BUNDLES`
   start something machine-level.
 - **Tests:** `node packages/kybernos-cloud/test-team-instances.mjs` (a stand-in script plays `dsh`; no real DSH starts) and, on a sandbox,

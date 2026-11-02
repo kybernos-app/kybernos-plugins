@@ -310,6 +310,10 @@ const publicState = (state) => ({
   // first space (the personal one, created at sign-in) without writing anything: a derived default
   // is not a choice, and writing it would suggest a decision.
   active_workspace_id: espaceActif(state),
+  // The team this DSH was started for, null in the personal DSH: the page sends "Personal" to the personal DSH and keeps to the team's own business there.
+  team_dsh: pinnedSpace() !== '' ? pinnedSpace() : null,
+  // Every DSH of this version opens a team in a DSH of its own. The page keeps the single-instance switch below this flag only until step 5 of docs/dev/team-profiles-cadrage.md removes it (the live checks that play it stub a status without the flag).
+  own_dsh: true,
   ...(spacePlanView(state) !== null ? { space_plan: spacePlanView(state) } : {}),
   // The working folder of the ACTIVE team (the composer's pill reads it) and of every team (the page tells a team's folder from the person's own when it picks a workspace for Personal).
   ...(spaceFolderOf(espaceActif(state)) !== null ? { space_folder: spaceFolderOf(espaceActif(state)) } : {}),
@@ -688,6 +692,28 @@ const teamDshStop = async (req, body) => {
 }
 /** Route: the teams that have a DSH, and whether it runs. */
 const teamDshList = async () => ({ ok: true, teams: await teamDsh.list() })
+
+// Where the personal DSH answers, for a team's DSH that has to send the person back to it ("Personal" in the menu): the personal DSH writes its port in its own home once, a team's DSH reads it there.
+const PERSONAL_PORT_FILE = () => join(personalHomeOf(dshHome()), 'kybernos', 'personal-dsh.json')
+let personalPortWritten = null
+const notePersonalPort = () => {
+  if (pinnedSpace() !== '' || !Number.isInteger(listenPort) || listenPort === personalPortWritten) return
+  personalPortWritten = listenPort
+  try {
+    const file = PERSONAL_PORT_FILE()
+    mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+    writeAtomic(file, JSON.stringify({ port: listenPort }) + '\n', false)
+  } catch (e) { personalPortWritten = null }
+}
+/** Route: the address of the personal DSH (the page of a team's DSH opens it for "Personal"). The default port when the personal DSH never said which. */
+const personalDshAddress = async () => {
+  let port = pinnedSpace() === '' ? listenPort : null
+  if (port === null) {
+    const written = readObjectFile(PERSONAL_PORT_FILE())
+    if (written !== null && Number.isInteger(written.port)) port = written.port
+  }
+  return { ok: true, url: 'http://127.0.0.1:' + (Number.isInteger(port) && port > 0 && port < 65536 ? port : DEFAULT_DSH_PORT) + '/' }
+}
 
 /** The last time a page or a call reached this DSH: what tells a team's DSH that nobody is there. */
 let lastRequestAt = Date.now()
@@ -6000,6 +6026,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/team-dsh/open', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: teamDshOpen },
   { path: '/kybernos-cloud/team-dsh/stop', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: teamDshStop },
   { path: '/kybernos-cloud/team-dsh/list', method: 'GET', guarded: true, run: teamDshList },
+  { path: '/kybernos-cloud/team-dsh/personal', method: 'GET', guarded: true, run: personalDshAddress },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, session: true, body: true, run: createSpace },
   // Joining with an invitation link: the token is the credential. Both are strict same-origin and need the signed session: `accept` makes the person a member of a team, `preview` only reads one
   // invitation at the server for the token it is given, but a page is its only caller, so it follows the same rule (L3-04).
@@ -6143,6 +6170,7 @@ const mountWebRoutes = (ctx, webServer) => {
       // A Host that is not this listener's is a rebound page: refused before anything is read, whatever the route (the open ones included).
       if (hostAllowed(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       noteListenPort(req)
+      notePersonalPort()
       lastRequestAt = Date.now()
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })

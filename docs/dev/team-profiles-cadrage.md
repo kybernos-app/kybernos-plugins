@@ -81,7 +81,19 @@ each bundle to the active team by hand; a second instance per team separates eve
    a team's DSH (the existing team-space cut, unchanged). The local lessons are different: the home is the team's alone, so the memory bundle
    uses them there (`seam.ownHome()`, `lessonsCut` in `kybernos-memory/team-space.mjs`); the side doors that name the personal memory stay
    refused. A bundle without the new seam field keeps the old, closed behaviour.
-3. The account menu opens the team's DSH; "Personal" returns to :3080.
+3. **Done for the menu (3a); hiding (3b) and the desktop window are not.** Choosing a team in the account menu asks the host (`team-dsh/open`, which
+   now also answers the team's signed address, the one its log printed) and opens that address with `window.open` in a window named after the
+   team (`kybernos-team-<id>`), so a second choice finds the same window. The card says "Starting…" meanwhile (not "Switching…": nothing is billed
+   differently in the DSH that shows the menu). From a team's DSH, "Personal" opens the personal DSH (`team-dsh/personal`: the personal DSH writes
+   its port in its home, a team's DSH reads it; default 3080), and another team opens its own. A browser that refuses a window opened this long after
+   the click gets a notice with an "Open" action. The page knows it is in a team's DSH from `state.team_dsh`. The old switch stays behind a flag
+   the host always sends (`own_dsh`) until step 5, so the live checks that play it still stand; what still moves the personal DSH to a team is
+   only what follows a chat on screen, a team just created, and the claim-time switch: all of step 5. Played on the real page of a sandbox with the
+   host's answers stubbed (`scripts/check-team-switch-live.mjs`, 14 checks) and, for the host, on a real `dsh web` (`check-team-dsh-live.mjs`).
+   **3b, hiding in a team's DSH what belongs to the account or the computer (Kaby, Telegram and WhatsApp, the Home computer, Phone and
+   channels): not done.** Nothing there is configured in a new home, so nothing runs by itself; it is a menu question. Two ways: leave those
+   bundles out of the team's profile (like `PERSONAL_ONLY_BUNDLES`, if no other bundle needs them to mount), or let each page read `state.team_dsh`.
+   **Desktop app: not done** (its own repository, see decision 3).
 4. Seed rules: what else is copied from Personal when a team home is created (language and theme; the person's own provider keys, decision 2). The Kybernos session is already seeded (step 2).
 5. Retire the single-instance switch code (follow-the-chat, turn guard, deferred switch, claim-time switch). Dead-code rider.
 6. Two-account live test on the existing `scripts/e2e-teams-run.sh` harness.

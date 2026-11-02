@@ -10,8 +10,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  PERSONAL_ONLY_BUNDLES, TEAM_IDLE_MS, activeAutomationsIn, createTeamInstances, ensureTeamHome, pickPort, readRegistry, retarget, shouldExit, spawnSpec, teamHomeOf, teamOfEnv, personalHomeOf
-} from './team-instances.mjs'
+  PERSONAL_ONLY_BUNDLES, TEAM_IDLE_MS, activeAutomationsIn, createTeamInstances, ensureTeamHome, pickPort, readRegistry, retarget, shouldExit, spawnSpec, teamHomeOf, teamOfEnv, personalHomeOf, signedAddressOf } from './team-instances.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -198,6 +197,8 @@ try {
 
   const again = await teams.open('t1')
   assert.deepEqual([again.started, again.pid, again.port], [false, first.pid, first.port])
+  assert.equal(first.signed_url, 'http://127.0.0.1:' + first.port + '/?token=SECRET', 'a team that starts hands over its signed address')
+  assert.equal(again.signed_url, first.signed_url, 'and so does one that was already running')
   assert.equal(spawned.length, 1)
   ok('opening a team that is running starts nothing')
 
@@ -255,6 +256,14 @@ try {
   assert.equal(spawned.length, before, 'a refused seed starts nothing')
   assert.equal(readRegistry(registryFile).teams.t7, undefined)
   ok('a seed runs before the start and at every opening, and a refusal or a failure of it starts nothing')
+
+  const log = 'noise\ndsh web: http://127.0.0.1:3301/?token=old\nmore\ndsh web: http://127.0.0.1:3301/?token=new  \n'
+  assert.equal(signedAddressOf(log, 3301), 'http://127.0.0.1:3301/?token=new', 'the last address of the log')
+  assert.equal(signedAddressOf(log, 3302), null, 'an address of another port is never handed out')
+  assert.equal(signedAddressOf('dsh web: http://evil.test:3301/?token=x\n', 3301), null)
+  assert.equal(signedAddressOf('', 3301), null)
+  assert.equal(signedAddressOf(undefined, 3301), null)
+  ok('the signed address is the last one the log printed for this port, and nothing else')
 
   // ── the routes of the plugin, on a made-up account ──
   for (const key of ENV_KEYS) savedEnv[key] = process.env[key]
@@ -317,6 +326,10 @@ try {
   assert.deepEqual([asked.ok, asked.space_id, asked.follow], [true, 't2', true], 'in the personal DSH the active space follows the folder of the chat')
   // The record of the folders is the personal home's, whichever DSH reads it (here the personal connection file is elsewhere, so the two places differ).
   writeFileSync(join(personal, 'kybernos-cloud-folders.json'), JSON.stringify({ t2: t2dir }))
+  assert.equal((await route('/kybernos-cloud/status').run({ headers: {} })).state.team_dsh, null, 'the personal DSH is no team\'s')
+  assert.equal((await call('/kybernos-cloud/team-dsh/personal')).url, 'http://127.0.0.1:3080/', 'the default port while the personal DSH has not said which')
+  mkdirSync(join(personal, 'kybernos'), { recursive: true })
+  writeFileSync(join(personal, 'kybernos', 'personal-dsh.json'), JSON.stringify({ port: 3091 }))
   process.env.KYBERNOS_TEAM_ID = 't1'
   process.env.KYBERNOS_PERSONAL_HOME = personal
   const fixed = await call('/kybernos-cloud/space/for-folder', { path: t2dir })
@@ -324,6 +337,10 @@ try {
   for (const other of ['w-personal', 't2', 'nope']) assert.equal((await call('/kybernos-cloud/space/active', { workspace_id: other })).error, 'espace_fixe', other)
   const status = await route('/kybernos-cloud/status').run({ headers: {} })
   assert.equal(status.state.active_workspace_id, 't1', 'the footer and the plan card read the team')
+  assert.equal(status.state.team_dsh, 't1', 'and the page learns it is in a team\'s own DSH')
+  assert.equal((await call('/kybernos-cloud/team-dsh/personal')).url, 'http://127.0.0.1:3091/', 'a team\'s DSH sends "Personal" to the personal DSH, where it said it answers')
+  writeFileSync(join(personal, 'kybernos', 'personal-dsh.json'), JSON.stringify({ port: 'x' }))
+  assert.equal((await call('/kybernos-cloud/team-dsh/personal')).url, 'http://127.0.0.1:3080/', 'a record that is not a port is ignored')
   ok('in a team\'s own DSH the active space is the team: no switch, no follow-the-chat')
 
   // Leaving a team's DSH must not revoke the session it shares with the personal one.

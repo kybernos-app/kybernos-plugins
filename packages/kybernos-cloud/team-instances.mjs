@@ -17,6 +17,16 @@ export const TEAM_IDLE_MS = 30 * 60 * 1000
 const START_TIMEOUT_MS = 90 * 1000
 const STOP_GRACE_MS = 10 * 1000
 const READY_LINE = 'dsh web: http'
+
+/** The address `dsh web` printed for its last run (`dsh web: http://127.0.0.1:PORT/?token=…`), the one that signs a browser in; null when the log has none for this port. It is the person's alone: it goes to
+ *  the page that asked for the team, never to a log or a file of ours. */
+export const signedAddressOf = (logText, port) => {
+  const lines = String(logText === undefined || logText === null ? '' : logText).split('\n').filter((line) => line.includes(READY_LINE))
+  if (lines.length === 0) return null
+  const last = lines[lines.length - 1]
+  const found = last.slice(last.indexOf('http')).trim().split(/\s+/u)[0]
+  return found.startsWith('http://127.0.0.1:' + port + '/') ? found : null
+}
 /** What a team's DSH must not inherit from the DSH that starts it: those would point it back at the personal home or the personal port. */
 const NOT_INHERITED = ['KYBERNOS_CLOUD_STATE', 'DSH_WEB_PORT', 'DSH_WEB_URL']
 
@@ -232,6 +242,7 @@ export const createTeamInstances = (deps) => {
   const ready = deps.ready || ((logFile) => { try { return readFileSync(logFile, 'utf8').includes(READY_LINE) } catch (e) { return false } })
   const registryFile = () => join(deps.personalHome(), 'kybernos', 'team-instances.json')
   const urlOf = (port) => 'http://127.0.0.1:' + port + '/'
+  const signedOf = (home, port) => { try { return signedAddressOf(readFileSync(logOf(home), 'utf8'), port) } catch (e) { return null } }
   const logOf = (home) => join(home, 'logs', 'team-dsh.log')
   const opening = new Map()
 
@@ -274,7 +285,7 @@ export const createTeamInstances = (deps) => {
     if (known !== undefined && alive(known.pid) && now() - known.started_at < timeoutMs) {
       const deadline = now() + timeoutMs
       while (now() < deadline && alive(known.pid)) {
-        if (ready(logFile) && (await probe(known.port)) === true) return { ok: true, started: false, port: known.port, pid: known.pid, url: urlOf(known.port) }
+        if (ready(logFile) && (await probe(known.port)) === true) return { ok: true, started: false, port: known.port, pid: known.pid, url: urlOf(known.port), signed_url: signedOf(made.home, known.port) }
         await sleep(250)
       }
       return { ok: false, error: 'start_timeout', log: logFile }
@@ -301,7 +312,7 @@ export const createTeamInstances = (deps) => {
     writeRegistry(registryFile(), written)
     const deadline = now() + timeoutMs
     while (now() < deadline && exited === null) {
-      if (ready(logFile) && (await probe(port)) === true) return { ok: true, started: true, port, pid: child.pid, url: urlOf(port) }
+      if (ready(logFile) && (await probe(port)) === true) return { ok: true, started: true, port, pid: child.pid, url: urlOf(port), signed_url: signedOf(made.home, port) }
       await sleep(250)
     }
     if (exited === null) { try { kill(child.pid, 'SIGTERM') } catch (e) { /* already gone */ } }
@@ -318,7 +329,7 @@ export const createTeamInstances = (deps) => {
     if (current.running) {
       // A DSH that is already up reads its state at each use: a fresh copy of the sign-in (after a sign-out there) reaches it without a restart. A refusal here does not stop it being opened.
       seeded(teamId, teamHomeOf(deps.personalHome(), teamId))
-      return { ok: true, started: false, port: current.port, pid: current.pid, url: current.url }
+      return { ok: true, started: false, port: current.port, pid: current.pid, url: current.url, signed_url: signedOf(teamHomeOf(deps.personalHome(), teamId), current.port) }
     }
     if (!opening.has(teamId)) opening.set(teamId, start(teamId).finally(() => opening.delete(teamId)))
     return opening.get(teamId)
