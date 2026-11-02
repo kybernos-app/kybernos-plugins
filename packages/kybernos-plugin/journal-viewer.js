@@ -4,11 +4,12 @@
 (function () {
   'use strict'
   var NS = 'http://www.w3.org/2000/svg'
-  var doc = JSON.parse(document.getElementById('kj-doc').textContent)
-  var L = doc.labels || {}
-  var inc = doc.include || {}
-  var lang = typeof doc.lang === 'string' ? doc.lang : 'en'
+  var doc = null
+  var L = {}
+  var inc = {}
+  var lang = 'en'
   var root = document.getElementById('kj-root')
+  // @@SEAL@@
 
   function num (v) { return typeof v === 'number' && isFinite(v) ? v : null }
   function add (e, k) {
@@ -350,7 +351,6 @@
   }
 
   function draw () {
-    if (!doc || doc.kind !== 'kybernos-journal') { root.appendChild(h('p', 'kj-sub', 'This page cannot be shown.')); return }
     document.title = (doc.title || word('pageTitle', 'Chat journal'))
     var side = h('aside', 'kj-side', connectors(), deliverables())
     root.appendChild(h('div', 'kj-wrap', hero(), kpis(), insights(), crews(), h('div', 'kj-cols', story(), side), footer()))
@@ -360,5 +360,58 @@
       if (line && checks.length > 0) line.textContent = ok + ' / ' + checks.length + ' ' + word('sealsOk', 'seals checked in this browser')
     })
   }
-  draw()
+  // ── start: the document is in the page (a file) or loaded from the address that served the page (a link), possibly sealed under a password ─────────────────────────────
+  var LOCK = (function () {
+    var el = document.getElementById('kj-lock')
+    var all = {}
+    try { all = el ? JSON.parse(el.textContent) : {} } catch (e) { all = {} }
+    var tag = String(navigator.language || 'en').slice(0, 2)
+    return all[tag] || all.en || {}
+  })()
+  function lw (key, fallback) { return typeof LOCK[key] === 'string' ? LOCK[key] : fallback }
+  function clear () { while (root.firstChild) root.removeChild(root.firstChild) }
+  function message (title, text) {
+    clear()
+    root.appendChild(h('div', 'kj-wrap', h('div', 'kj-card kj-lock', h('h1', '', title), h('p', 'kj-sub', text))))
+  }
+  function show (d) {
+    if (!d || typeof d !== 'object' || d.kind !== 'kybernos-journal') { message(lw('nope', 'This page cannot be shown.'), ''); return }
+    doc = d
+    L = d.labels || {}
+    inc = d.include || {}
+    lang = typeof d.lang === 'string' ? d.lang : 'en'
+    document.documentElement.lang = lang
+    clear()
+    draw()
+  }
+  function ask (envelope, error) {
+    clear()
+    document.title = lw('title', 'Protected journal')
+    var input = h('input', 'kj-pw')
+    input.setAttribute('type', 'password')
+    input.setAttribute('autocomplete', 'off')
+    input.setAttribute('aria-label', lw('password', 'Password'))
+    var go = h('button', 'kj-more', lw('open', 'Open'))
+    go.setAttribute('type', 'submit')
+    var form = h('form', 'kj-lockform', input, go)
+    var note = h('p', 'kj-lockerr', error || '')
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault()
+      go.disabled = true
+      input.disabled = true
+      go.textContent = lw('busy', 'Opening…')
+      openSealed(envelope, input.value).then(function (text) { show(JSON.parse(text)) }, function (e) {
+        ask(envelope, e && e.code === 'password' ? lw('wrong', 'Wrong password, or this page was changed.') : (e && e.code === 'unsupported' ? e.message : lw('cannot', 'This protected page cannot be opened.')))
+      })
+    })
+    root.appendChild(h('div', 'kj-wrap', h('div', 'kj-card kj-lock', h('h1', '', lw('title', 'Protected journal')), h('p', 'kj-sub', lw('hint', 'Enter the password you were given. It opens this page in your browser; the server never sees it.')), form, note)))
+    input.focus()
+  }
+  function load () {
+    var el = document.getElementById('kj-doc')
+    if (el) return Promise.resolve(JSON.parse(el.textContent))
+    var url = root.getAttribute('data-doc') || (location.pathname.replace(/\/+$/, '') + '.json')
+    return fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
+  }
+  load().then(function (d) { if (isSealed(d)) ask(d, ''); else show(d) }, function () { message(lw('gone', 'This page could not be loaded'), lw('goneHint', 'The link may have been removed, or it has expired.')) })
 })()
