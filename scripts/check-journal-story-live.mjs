@@ -10,12 +10,13 @@
 //
 // What it presses: the Journal tab, Story, Flow, Advanced, Story again, the filters, a crew card, a row, « Show more », the Insights switch, a node of the flow.
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { deriveStory } from '../packages/kybernos-plugin/journal-story.mjs'
 import { createRecorder, readDecisions } from '../packages/kybernos-plugin/journal-decisions.mjs'
-import { loadSealKey, verifyDecisions } from '../packages/kybernos-plugin/journal-seal.mjs'
+import { loadSealKey, sealEvidence, verifyDecisions } from '../packages/kybernos-plugin/journal-seal.mjs'
+import { journalDocument, journalPageHtml, pageFileName } from '../packages/kybernos-plugin/journal-page.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
@@ -133,14 +134,19 @@ const demoStory = () => {
     const decisions = readDecisions(join(dir, 'decisions'), 'session-demo-journal')
     decisions['a:ap2'].by = 'K. Haddad'
     const seals = verifyDecisions(events, decisions, 'session-demo-journal', key)
-    return deriveStory(events, { sessionId: 'session-demo-journal', runs, costOf, decisions, seals })
+    return {
+      story: deriveStory(events, { sessionId: 'session-demo-journal', runs, costOf, decisions, seals }),
+      seal: { alg: 'ed25519', keyId: key.keyId, publicKey: key.publicKey },
+      evidence: sealEvidence(events, decisions, 'session-demo-journal', key),
+    }
   } finally { rmSync(dir, { recursive: true, force: true }) }
 }
 
 const run = async () => {
   let fake = null
   if (DEMO) {
-    fake = { ok: true, notes: [], story: demoStory() }
+    const demo = demoStory()
+    fake = { ok: true, notes: [], story: demo.story, seal: demo.seal, evidence: demo.evidence }
     console.log('story: the made-up chat, ' + fake.story.moments.length + ' moments')
   } else if (REAL === false) {
     const picked = opt('--log') ? { f: resolve(opt('--log')), events: readLog(resolve(opt('--log'))) } : pickLog()
@@ -155,10 +161,20 @@ const run = async () => {
       page.on('Fetch.requestPaused', async (p) => {
         if (p.responseStatusCode !== undefined || String(p.request.url).indexOf('/kybernos/journal') < 0) return
         try {
-          await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify(fake)).toString('base64') })
+          let payload = fake
+          if (String(p.request.url).indexOf('/kybernos/journal/page') >= 0) {
+            // The page route of the host, answered here with the same builder (journal-page.mjs): what the browser sends is what the document is made from.
+            let body = {}
+            try { body = JSON.parse(p.request.postData || '{}') } catch (e) { body = {} }
+            const doc = journalDocument({ story: fake.story, include: body.include, lang: body.lang, logos: body.logos, seal: fake.seal, evidence: fake.evidence, made: '2026-11-02' })
+            payload = doc === null ? { ok: false } : { ok: true, name: pageFileName(doc), html: journalPageHtml(doc).html }
+          }
+          await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify(payload)).toString('base64') })
         } catch (e) { /* page gone */ }
       })
     }
+    let pageOne = null
+    let pageTwo = null
     const swap = await swapBundles(page, [{ name: 'kybernos-plugin' }], { extraPatterns: fake !== null ? [{ urlPattern: '*/kybernos/journal*', requestStage: 'Request' }] : [] })
     // The chat header is folded by default and hides the Journal tab: unfold it (this throw-away browser's own storage), then reload.
     await page.evalJs(`localStorage.setItem('kybernos.chat-tools', 'open')`, 3000)
@@ -287,6 +303,32 @@ const run = async () => {
       await clickLabel('Story', '.wvs-seg')
       await sleep(500)
       ok('back to Story', (await count('[data-kb="wvs-feed"]')) > 0, seg)
+      // share: the sheet, its switches, and the page that is saved
+      if (DEMO) {
+        const checked = async () => JSON.parse((await page.evalJs(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb="wvs-share"] input[type=checkbox]')).map((i) => [i.getAttribute('data-kb').replace('wvs-sw-', ''), i.checked]))`, 4000)).val || '[]')
+        const hookDownload = async () => page.evalJs(`(() => { window.__kbPage = null; window.__kbName = null; if (!window.__kbHooked) { window.__kbHooked = true; const orig = URL.createObjectURL.bind(URL); URL.createObjectURL = (b) => { try { b.text().then((t) => { window.__kbPage = t }) } catch (e) { /* none */ } return orig(b) }; const click = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { if (this.download) { window.__kbName = this.download; return } return click.call(this) } } })()`, 3000)
+        const saved = async () => { await click('[data-kb="wvs-share-save"]'); await waitFor(page, `window.__kbPage !== null && window.__kbPage !== undefined`, 12000); return { html: (await page.evalJs(`window.__kbPage`, 6000)).val || '', name: (await page.evalJs(`window.__kbName`, 3000)).val || '' } }
+        ok('the Share button opens the sheet', await click('[data-kb="wvs-share-btn"]') && (await count('[data-kb="wvs-share"]')) === 1)
+        const first = await checked()
+        ok('the sheet has its eight switches; decisions, durations and deliverables are on, the words, names, computers, chat number and the seal check are off', first.length === 8 && first.filter((x) => x[1]).map((x) => x[0]).sort().join() === 'approvers,deliverables,timing', JSON.stringify(first))
+        await shot('9-share-sheet')
+        await hookDownload()
+        const one = await saved()
+        pageOne = one
+        ok('« Save the page » hands the browser one .html file', one.html.indexOf('<!doctype html>') === 0 && /^journal-2026-11-02\.html$/.test(one.name) && (await count('[data-kb="wvs-share-done"]')) === 1, one.name + ' ' + one.html.length)
+        ok('the default page holds none of the names, computers or the chat number', !/Amira|Haddad|MacBook|Mac mini|demo-journal/.test(one.html))
+        await click('[data-kb="wvs-sw-verify"]')
+        const second = await checked()
+        ok('turning on « Let readers check the seals » turns on names, computers and the chat number', second.filter((x) => x[1]).map((x) => x[0]).sort().join() === 'approvers,chatId,computers,deliverables,names,timing,verify', JSON.stringify(second))
+        await click('[data-kb="wvs-sw-names"]')
+        ok('turning names off turns the seal check off again', (await checked()).filter((x) => x[0] === 'verify')[0][1] === false)
+        await click('[data-kb="wvs-sw-names"]')
+        await click('[data-kb="wvs-sw-verify"]')
+        await hookDownload()
+        pageTwo = await saved()
+        ok('the page that can be checked carries the names, the key and the signed facts', /Amira Benali/.test(pageTwo.html) && /BEGIN PUBLIC KEY/.test(pageTwo.html) && /"evidence"/.test(pageTwo.html) && /journal-demojour-2026-11-02\.html/.test(pageTwo.name), pageTwo.name)
+        await click('[data-kb="wvs-share-btn"]')
+      }
       // a narrow window must not scroll sideways
       await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 800, deviceScaleFactor: 1, mobile: false })
       await sleep(700)
@@ -294,6 +336,46 @@ const run = async () => {
       ok('a narrow window does not scroll sideways', wide <= 1, 'overflow ' + wide + ' px')
       await shot('8-narrow')
       await page.send('Emulation.clearDeviceMetricsOverride', {})
+      // the saved pages, opened as files in the same browser: drawn, offline, no policy violation, seals checked by WebCrypto
+      if (DEMO && pageOne !== null && pageTwo !== null) {
+        const dir = mkdtempSync(join(tmpdir(), 'kb-journal-page-'))
+        const logs = []
+        await page.send('Log.enable', {})
+        page.on('Log.entryAdded', (e) => { try { if (e.entry && e.entry.level === 'error') logs.push(String(e.entry.text)) } catch (err) { /* none */ } })
+        const open = async (name, html) => {
+          const f = join(dir, name)
+          writeFileSync(f, html)
+          await page.send('Page.navigate', { url: 'file://' + f })
+          return waitFor(page, `document.querySelector('.kj-foot') !== null`, 15000)
+        }
+        try {
+          await page.send('Emulation.setDeviceMetricsOverride', { width: 1180, height: 1500, deviceScaleFactor: 1, mobile: false })
+          ok('the default page opens as a file and draws', (await open('one.html', pageOne.html)) !== null)
+          await sleep(500)
+          await shot('10-page-default')
+          ok('it shows the story, the crews and the deliverables', (await count('.kj-row')) >= 10 && (await count('.kj-crew')) === 3 && (await count('.kj-dl li')) >= 3, (await count('.kj-row')) + ' rows')
+          ok('the connector logos travelled inside the page', (await count('.kj-tile.logo img')) >= 3, String(await count('.kj-tile.logo img')))
+          ok('the words of the person are marked as not included', /Text not included/.test(await text('.kj-wrap')))
+          ok('no name, computer or chat number is on the page', !/Amira|Haddad|MacBook|Mac mini|demo-journal/.test(await text('.kj-wrap')))
+          ok('the sealed decisions say « Sealed »', (await count('.kj-pill.ok')) >= 2)
+          ok('a narrow window does not scroll sideways', (await page.evalJs(`document.documentElement.scrollWidth - document.documentElement.clientWidth`, 3000)).val <= 1)
+          ok('the page is its own: no request left the page, no policy violation', logs.filter((l) => /Content Security Policy|Refused|violat/i.test(l)).length === 0, logs.join(' | ').slice(0, 300))
+          ok('the page that can be checked opens and draws', (await open('two.html', pageTwo.html)) !== null)
+          await waitFor(page, `Array.from(document.querySelectorAll('.kj-pill')).filter((p) => /Checking/.test(p.innerText)).length === 0`, 8000)
+          const pills = JSON.parse((await page.evalJs(`JSON.stringify(Array.from(document.querySelectorAll('.kj-pill')).map((p) => p.innerText.trim()))`, 3000)).val || '[]')
+          ok('the reader\'s browser checks the two intact seals with the key in the page', pills.filter((x) => x === 'Checked in this browser').length === 2, pills.join(' | '))
+          ok('the decision whose record was edited is shown broken, not checked', pills.filter((x) => x === 'Seal broken').length === 1, pills.join(' | '))
+          ok('the footer counts the seals it checked', /2 \/ 2/.test(await text('.kj-foot')), await text('.kj-foot'))
+          await page.send('Emulation.setDeviceMetricsOverride', { width: 1180, height: 2600, deviceScaleFactor: 1, mobile: false })
+          await sleep(400)
+          await shot('11-page-verified')
+          await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 900, deviceScaleFactor: 1, mobile: false })
+          await sleep(400)
+          ok('on a phone the page does not scroll sideways', (await page.evalJs(`document.documentElement.scrollWidth - document.documentElement.clientWidth`, 3000)).val <= 1)
+          await shot('12-page-phone')
+          await page.send('Emulation.clearDeviceMetricsOverride', {})
+        } finally { rmSync(dir, { recursive: true, force: true }) }
+      }
     }
     const errs = (await page.evalJs(`(window.__kbErrors || []).length`, 3000)).val
     if (errs) console.log('  note: the page recorded ' + errs + ' script errors')

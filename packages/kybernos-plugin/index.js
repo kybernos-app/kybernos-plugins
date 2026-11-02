@@ -25,7 +25,8 @@ import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mj
 import { writeGuard } from './session-guard.mjs'
 import { deriveStory } from './journal-story.mjs'
 import { createRecorder, readDecisions } from './journal-decisions.mjs'
-import { loadSealKey, verifyDecisions } from './journal-seal.mjs'
+import { loadSealKey, sealEvidence, verifyDecisions } from './journal-seal.mjs'
+import { journalDocument, journalPageHtml, pageFileName } from './journal-page.mjs'
 import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
@@ -5231,6 +5232,8 @@ function boot(ctx) {
         seals = verifyDecisions(events, decisions, sessionId, sealKey)
       } catch (e) { out.notes.push('seals: ' + errText(e)) }
       out.seal = sealKey === null ? null : { alg: 'ed25519', keyId: sealKey.keyId, publicKey: sealKey.publicKey }
+      // The page that is shared asks for what a reader needs to check the seals alone; the Journal itself does not.
+      if (query.evidence === true) { try { out.evidence = sealEvidence(events, decisions, sessionId, sealKey) } catch (e) { out.notes.push('evidence: ' + errText(e)) } }
       try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, costOf: costOf, decisions: decisions, seals: seals }) } catch (e) {
         out.ok = false
         out.notes.push('deriveStory: ' + errText(e))
@@ -12390,6 +12393,21 @@ function boot(ctx) {
         const query = queryOf(req)
         sendJson(res, 200, await readJournal({ sessionId: query.get('sessionId') }))
       } }), 'kybernos: route journal')
+      // The Journal as one page the person keeps or sends (journal-page.mjs): built here from what they agreed to share, handed back to the browser, which saves it. Nothing is uploaded.
+      // A POST with the signed session, like a write: it carries the connector logos the browser holds and it reads a chat.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/journal/page', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        let body = null
+        try { body = await readJsonBody(req, 2097152) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        const j = await readJournal({ sessionId: body !== null && typeof body === 'object' ? body.sessionId : null, evidence: true })
+        if (j.ok !== true || j.story === undefined) return sendJson(res, 404, { ok: false, error: 'no readable journal', notes: j.notes })
+        const doc = journalDocument({ story: j.story, include: body.include, lang: body.lang, logos: body.logos, seal: j.seal, evidence: j.evidence, made: new Date().toLocaleDateString('en-CA') })
+        if (doc === null) return sendJson(res, 500, { ok: false, error: 'the page could not be built' })
+        sendJson(res, 200, { ok: true, name: pageFileName(doc), html: journalPageHtml(doc).html })
+      } }), 'kybernos: route journal page')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/runs-index', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
