@@ -416,15 +416,17 @@ console.log('── permissions and where Kaby works: the cards, rendered once �
   T.store.wake = state({})
   m = mount()
   serve(world({ tasks: [task({})], act: () => [200, { ok: true, task: task({}) }] }))
+  const openedBefore = opened.length
   await only(m.tree, 'kaby-custom-wake-create').props.onClick()
   const made = asked[0] !== undefined && asked[0].init !== undefined && typeof asked[0].init.body === 'string' ? JSON.parse(asked[0].init.body) : {}
   ok('« Create the wake-up » posts the automation to the Automations route, same origin, with the cookie', asked[0].url === TASKS && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && made.action === 'create' && JSON.stringify(made.task) === JSON.stringify(T.wakeInput(SID, 'Kaby')))
   ok('then it reads again, so the chip and the buttons follow, and the note knows it was just created', asked.slice(1).some((a) => a.url === TASKS) && T.store.wake.task.id === 't1' && m.sets.some(([n, x]) => n === 4 && x === true) && m.sets.some(([n, x]) => n === 0 && x !== null && x.task !== null) && m.sets.some(([n, x]) => n === 2 && x === true) && m.sets.some(([n, x]) => n === 2 && x === false))
+  ok('once created, the person is taken to the Automations page (the shell closes Settings by itself when an automation appears), to approve it there', opened.length === openedBefore + 1 && JSON.stringify(opened[opened.length - 1]) === JSON.stringify({ view: 'tasks' }))
   T.store.wake = state({})
   m = mount()
   serve(world({ act: () => [401, { ok: false, error: 'session' }] }))
   await only(m.tree, 'kaby-custom-wake-create').props.onClick()
-  ok('a request without the page’s session is refused in words, and nothing is marked as created', m.sets.some(([n, x]) => n === 3 && /reload it/.test(x)) && !m.sets.some(([n, x]) => n === 4 && x === true) && m.sets.some(([n, x]) => n === 2 && x === false))
+  ok('a request without the page’s session is refused in words, and nothing is marked as created', m.sets.some(([n, x]) => n === 3 && /reload it/.test(x)) && !m.sets.some(([n, x]) => n === 4 && x === true) && m.sets.some(([n, x]) => n === 2 && x === false) && opened.length === openedBefore + 1)
   m = mount()
   globalThis.fetch = async () => { throw new Error('offline') }
   await only(m.tree, 'kaby-custom-wake-create').props.onClick()
