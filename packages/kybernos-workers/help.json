@@ -27,8 +27,8 @@
     "page": true
   },
   "good": {
-    "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Chaque assistant utilise son propre abonnement ou sa propre clé. « Essayer la démo » montre le parcours pas à pas.",
-    "en": "Checking calls no model, so nothing is spent. Each assistant uses its own subscription or key. “Try the demo” walks through the whole path step by step."
+    "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Claude Code, Codex et ZCode ont aussi, dans leur ligne, l'interrupteur de connexion et « Retirer ». « Essayer la démo » montre le parcours.",
+    "en": "Checking calls no model, so nothing is spent. Claude Code, Codex and ZCode also have the connection switch and “Remove” in their row. “Try the demo” walks through the path."
   },
   "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
 }

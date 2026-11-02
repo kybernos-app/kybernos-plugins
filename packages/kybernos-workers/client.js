@@ -124,6 +124,26 @@ window.__ModuleLoader__.load({
     /** Pure. The current policy of a row (what is in the profile), to initialise the switches. */
     const currentPolicy = (w) => ({ expose: w.ligne != null ? w.ligne.expose === true : false, background: w.ligne != null ? w.ligne.arrierePlan === true : false })
 
+    /** Pure. What the Tools route knows about a worker whose connection Settings › Tools writes (activation 'outils': Claude Code, Codex, ZCode):
+     *  is it in the file, switched off, can this page switch it (not when its "disabled" line is an expression), is there a backup of the mount to
+     *  restore. null for any other worker, or when the route did not answer: the connection controls are then simply not drawn. */
+    const BACKUP_PREFIX = 'cordis.patch.yml.bak-outils-'
+    const connectionOf = (tools, w) => {
+      if (w.activation !== 'outils' || tools == null || !Array.isArray(tools.entries)) return null
+      const e = tools.entries.find((x) => x.id === w.id)
+      if (e === undefined) return null
+      const backups = Array.isArray(tools.backups) ? tools.backups : []
+      return { mounted: e.mounted === true, disabled: e.disabled === true, canSwitch: e.canSwitch === true, why: typeof e.switchWhy === 'string' ? e.switchWhy : null, revertable: backups.some((n) => n.indexOf(BACKUP_PREFIX + w.id + '-') === 0) }
+    }
+
+    /** Pure. The sentence that answers a write of the connection (switch off / on, remove), from the host's answer. */
+    const linkMessage = (action, r) => {
+      if (r.already === true) return kt('Déjà dans cet état : rien à faire.', 'Already in that state: nothing to do.')
+      if (action === 'disable') return kt('Désactivée : rien n’est désinstallé, la ligne reste dans la config (sauvegarde créée). DSH l’applique dans quelques secondes.', 'Switched off: nothing is uninstalled, the line stays in the config (backup created). DSH applies it in a few seconds.')
+      if (action === 'enable') return kt('Remise en service : la connexion n’est plus désactivée (sauvegarde créée). DSH la charge dans quelques secondes.', 'Back on: the connection is no longer switched off (backup created). DSH loads it in a few seconds.')
+      return kt('Retirée : le profil est revenu à la sauvegarde ' + String(r.backup) + '. DSH l’applique dans quelques secondes.', 'Removed: the profile went back to its backup ' + String(r.backup) + '. DSH applies it in a few seconds.')
+    }
+
     /** Pure. Who a worker is, in a few words (vendor · what it signs in with). */
     const IDENTITY = {
       'claude-code': [['Anthropic', 'Anthropic'], ['abonnement Claude', 'Claude subscription']],
@@ -144,7 +164,7 @@ window.__ModuleLoader__.load({
      *  takes an API key says « Add the key » (Gemini CLI, Qwen Code), so the same word never names two actions (A3-48). */
     const authLabel = (w) => (w !== null && w !== undefined && w.connect != null && w.connect.mode === 'key' ? kt('Ajouter la clé', 'Add the key') : kt('Se connecter', 'Sign in'))
     const sublineOf = (w, status) => {
-      if (status === 'inactive' && w.desactivee === true) return kt('Désactivé dans Outils', 'Switched off in Tools')
+      if (status === 'inactive' && w.desactivee === true) return kt('Connexion désactivée', 'Connection switched off')
       if (status === 'binaire-absent') return kt('Le programme n’est pas encore sur cet ordinateur.', 'The program is not on this computer yet.')
       if (status === 'non-connecte') {
         return w.connect != null && w.connect.mode === 'key'
@@ -385,7 +405,7 @@ window.__ModuleLoader__.load({
     const buildPanel = (React, creds) => {
       const h = React.createElement
       // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title.
-      const pageLead = () => kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des outils dans un profil ; ici tu vérifies chaque worker et autorise ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each worker and allow your agent to call it.')
+      const pageLead = () => kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des capacités dans un profil (Browser Use, Computer Use…) ; ici tu installes chaque worker, tu coupes ou remets sa connexion, tu le vérifies et autorises ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts abilities in a profile (Browser Use, Computer Use…); here you install each worker, switch its connection off or on, check it and allow your agent to call it.')
       const leadFallback = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', null, pageLead()) } catch (e) { return h('p', null, pageLead()) } }
       const ic = (name, extra) => h('svg', { className: 'i' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: ICONS[name] || ICONS.alert }))
       const logo = (w, size) => h('span', { className: 'kbwk-logo' + (size ? ' ' + size : ''), 'aria-hidden': 'true' }, h('svg', { viewBox: '0 0 24 24' }, h('use', { href: '#kbwk-lg-' + (LOGO_OF[typeof w === 'string' ? w : w.id] || 'term') })))
@@ -544,12 +564,16 @@ window.__ModuleLoader__.load({
         const [stored, setStored] = React.useState({})
         const [typed, setTyped] = React.useState({})
         const [replacing, setReplacing] = React.useState({})
+        const [toolsState, setToolsState] = React.useState(null)
+        const [previews, setPreviews] = React.useState({})
+        const [removing, setRemoving] = React.useState({})
         const [guide, setGuide] = React.useState(false)
         const profileRef = React.useRef(null)
         const handled = React.useRef({})
 
         const reload = React.useCallback(async () => {
           const tools = await lireJson('/kybernos/tools/state')
+          setToolsState(tools != null && tools.ok === true ? tools : null)
           let profile = tools != null && typeof tools.profile === 'string' ? tools.profile : null
           let d = await lireJson('/kybernos-workers/state' + (profile !== null ? '?profile=' + encodeURIComponent(profile) : ''))
           if ((d === null || d.ok !== true) && profile !== null) { profile = null; d = await lireJson('/kybernos-workers/state') }
@@ -597,9 +621,30 @@ window.__ModuleLoader__.load({
             : await post('/kybernos/tools/apply', { family: w.id, profile: profileRef.current, action: w.desactivee === true ? 'enable' : 'install' })
           occupy(w.id, null)
           if (r.ok !== true) { say(w.id, 'bad', refusalText(r, 'Activation impossible : ', 'Could not turn it on: ')); show(w.id); return }
+          setPreviews((p) => { const n = Object.assign({}, p); delete n[w.id]; return n })
           say(w.id, 'ok', r.already === true ? kt('Déjà activé.', 'Already turned on.') : r.action === 'enable' ? kt('Remis en service : la connexion n’est plus désactivée (sauvegarde créée). DSH la charge dans quelques secondes.', 'Back on: the connection is no longer switched off (backup created). DSH loads it in a few seconds.') : kt('Activé : connexion ajoutée au profil (sauvegarde créée). DSH la charge dans quelques secondes.', 'Turned on: connection added to the profile (backup created). DSH loads it in a few seconds.'))
           show(w.id)
           await reload()
+        }
+        // The connection of Claude Code, Codex and ZCode, written by Settings › Tools' route: switched off or on (`disabled: true`, nothing is
+        // uninstalled, no restart), removed (the dated backup of the mount is put back), or previewed (what turning it on would write).
+        const link = async (w, action) => {
+          occupy(w.id, 'link'); say(w.id, 'ok', '')
+          setRemoving((o) => { const n = Object.assign({}, o); delete n[w.id]; return n })
+          const r = await post('/kybernos/tools/apply', { family: w.id, profile: profileRef.current, action })
+          occupy(w.id, null)
+          if (r.ok !== true) { say(w.id, 'bad', refusalText(r, 'Changement impossible : ', 'Could not change it: ')); return }
+          say(w.id, 'ok', linkMessage(action, r))
+          await reload()
+        }
+        const preview = async (w) => {
+          occupy(w.id, 'link'); say(w.id, 'ok', '')
+          const r = await post('/kybernos/tools/apply', { family: w.id, profile: profileRef.current, action: 'install', dry: true })
+          occupy(w.id, null)
+          if (r.ok !== true) { say(w.id, 'bad', refusalText(r, 'Aperçu impossible : ', 'Preview failed: ')); return }
+          if (r.already === true) { say(w.id, 'ok', kt('Déjà monté dans ce profil : rien à faire.', 'Already mounted in this profile: nothing to do.')); await reload(); return }
+          setPreviews((p) => Object.assign({}, p, { [w.id]: { path: String(r.path), block: String(r.block) } }))
+          say(w.id, 'ok', kt('Aperçu à blanc : rien n’a été écrit.', 'Dry run: nothing was written.'))
         }
         const apply = async (w, wanted) => {
           occupy(w.id, 'apply'); say(w.id, 'ok', '')
@@ -723,10 +768,25 @@ window.__ModuleLoader__.load({
           const items = []
           const running = job != null && job.phase === 'running'
           const ask = asks[w.id]
+          // Claude Code, Codex and ZCode are mounted by Settings › Tools' route: their step also carries what that screen offered before the
+          // mount: the command that adds a missing package, and the dry run that shows what turning on would write.
+          const outils = w.activation === 'outils' && w.connexion !== true && w.desactivee !== true
+          const pkgHint = outils && w.genre === 'connexion' && w.installe !== true && typeof w.paquet === 'string'
+            ? h(React.Fragment, null, h('p', { className: 'kbwk-alt' }, kt('Le paquet de cette connexion n’est pas encore dans ce profil. Étape 1 : ajoute-le avec cette commande, puis active.', 'This connection’s package is not in this profile yet. Step 1: add it with this command, then turn it on.')), cmdBox('dsh plugin --profile ' + String(profileRef.current) + ' add ' + w.paquet))
+            : null
+          const pv = previews[w.id]
+          const pvBox = pv !== undefined
+            ? h('div', { className: 'kbwk-box', 'data-kb': 'wk-preview-' + w.id }, h('p', null, h('b', null, kt('Aperçu à blanc · ', 'Dry-run preview · ') + w.nom)), h('pre', { className: 'kbwk-log' }, pv.path + '\n' + pv.block),
+              h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'wk-preview-apply-' + w.id, disabled: busy[w.id] !== undefined, onClick: () => activate(w) }, ic('plug'), kt('Activer', 'Turn on')),
+                h('button', { type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'wk-preview-close-' + w.id, onClick: () => setPreviews((p) => { const n = Object.assign({}, p); delete n[w.id]; return n }) }, kt('Fermer', 'Close'))))
+            : null
           items.push({
             done: w.connexion === true, t: kt('Activer dans DSH', 'Turn on in DSH'),
-            d: w.connexion === true ? kt('L’agent est dans ta configuration.', 'The agent is in your configuration.') : kt('DSH doit d’abord connaître cet agent. Une copie de sauvegarde de ta configuration est faite.', 'DSH has to know this agent first. A backup copy of your configuration is made.'),
-            btn: w.connexion !== true ? h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'wk-activate-' + w.id, disabled: busy[w.id] !== undefined, onClick: () => activate(w) }, ic('plug'), busy[w.id] === 'activate' ? kt('Activation…', 'Turning on…') : kt('Activer', 'Turn on')) : null
+            d: w.connexion === true ? kt('L’agent est dans ta configuration.', 'The agent is in your configuration.') : (w.desactivee === true ? kt('L’agent est dans ta configuration, mais sa connexion est désactivée : active-la.', 'The agent is in your configuration, but its connection is switched off: turn it on.') : kt('DSH doit d’abord connaître cet agent. Une copie de sauvegarde de ta configuration est faite.', 'DSH has to know this agent first. A backup copy of your configuration is made.')),
+            extra: pkgHint !== null || pvBox !== null ? h(React.Fragment, null, pkgHint, pvBox) : null,
+            btn: w.connexion !== true ? h(React.Fragment, null,
+              h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'wk-activate-' + w.id, disabled: busy[w.id] !== undefined, onClick: () => activate(w) }, ic('plug'), busy[w.id] === 'activate' ? kt('Activation…', 'Turning on…') : kt('Activer', 'Turn on')),
+              outils ? h('button', { type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'wk-dry-' + w.id, disabled: busy[w.id] !== undefined, title: kt('Montre ce qui serait écrit, sans rien écrire.', 'Shows what would be written, without writing anything.'), onClick: () => preview(w) }, kt('Aperçu à blanc', 'Dry run')) : null) : null
           })
           if (mcp) {
             items.push({ warn: true, t: kt('Connexion gérée par ZCode', 'Sign-in handled by ZCode'), d: kt('ZCode garde sa connexion dans son propre coffre : DSH ne peut pas la lire. Seule une vraie délégation prouve qu’il répond.', 'ZCode keeps its sign-in in its own vault: DSH cannot read it. Only a real delegation proves it answers.') })
@@ -814,6 +874,33 @@ window.__ModuleLoader__.load({
             h('div', null, h('b', null, x.t), x.d ? h('p', null, x.d) : null, x.extra || null, x.btn ? h('div', { className: 'kbwk-acts', style: { marginTop: 7 } }, x.btn) : null)))))
         }
 
+        // The connection of Claude Code, Codex and ZCode in the profile: switched off or on without uninstalling, or removed. These controls lived on
+        // their Settings › Tools cards; the card is gone, the page that checks and installs them now carries them.
+        const connectionBlock = (w) => {
+          const c = connectionOf(toolsState, w)
+          if (c === null || (w.connexion !== true && w.desactivee !== true)) return null
+          const occ = busy[w.id]
+          const on = w.desactivee !== true
+          const why = c.canSwitch ? null : (c.why === 'expression'
+            ? kt('Sa ligne « disabled » est une expression dans le fichier de config : modifie-la à la main.', 'Its "disabled" line is an expression in the config file: edit it by hand.')
+            : kt('Cette page ne sait pas modifier la ligne de cet agent.', 'This page cannot edit this agent’s line.'))
+          const asking = removing[w.id] === true
+          return h('div', { className: 'kbwk-pol', 'data-kb': 'wk-link-' + w.id },
+            h('h5', null, kt('Connexion dans le profil', 'Connection in the profile')),
+            h('div', { className: 'kbwk-prow' }, h('div', null, h('b', null, kt('Connexion activée', 'Connection on')),
+              h('p', null, why !== null ? why : kt('Désactiver garde ' + w.nom + ' installé et sa ligne dans la config : DSH ne la charge simplement plus. Pas de redémarrage.', 'Switching off keeps ' + w.nom + ' installed and its line in the config: DSH just stops loading it. No restart.'))),
+              swtch({ on, label: kt('Connexion activée', 'Connection on'), title: why !== null ? why : (on ? kt('Désactiver sans désinstaller : DSH ne la charge plus, la ligne reste dans la config.', 'Switch off without uninstalling: DSH stops loading it, the line stays in the config.') : kt('Réactiver : DSH la charge de nouveau.', 'Switch back on: DSH loads it again.')), disabled: occ !== undefined || !c.canSwitch, kb: 'wk-' + w.id + '-link', onClick: () => link(w, on ? 'disable' : 'enable') })),
+            w.genre === 'mcp' ? h('p', { className: 'kbwk-note', 'data-kb': 'wk-nopolicy-' + w.id }, kt('Pas d’interrupteur « Autorisé » pour ' + w.nom + ' : c’est un serveur MCP local, ses outils sont exposés à ton agent principal tant que la connexion est activée. Pour qu’il ne l’appelle plus, désactive la connexion.', 'No "Allowed" switch for ' + w.nom + ': it is a local MCP server, its tools are exposed to your main agent as long as the connection is on. To stop your agent calling it, switch the connection off.')) : null,
+            h('div', { className: 'kbwk-prow' }, h('div', null, h('b', null, kt('Retirer (restaurer la sauvegarde)', 'Remove (restore the backup)')),
+              h('p', null, c.revertable ? kt('Remet le fichier de config comme il était juste avant l’ajout de ' + w.nom + '.', 'Puts the config file back as it was just before ' + w.nom + ' was added.') : kt('Pas de sauvegarde d’ajout pour ' + w.nom + ' dans ce profil : rien à restaurer.', 'There is no add-time backup for ' + w.nom + ' in this profile: nothing to restore.'))),
+              h('button', { type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'wk-remove-' + w.id, disabled: occ !== undefined || !c.revertable || asking, onClick: () => setRemoving((o) => Object.assign({}, o, { [w.id]: true })) }, kt('Retirer', 'Remove'))),
+            asking ? h('div', { className: 'kbwk-box', 'data-kb': 'wk-remove-confirm-' + w.id, role: 'alert' },
+              h('p', null, h('b', null, kt('Remettre le fichier de config comme avant l’ajout de ' + w.nom + ' ?', 'Put the config file back as it was before ' + w.nom + ' was added?'))),
+              h('p', { className: 'kbwk-alt' }, kt('Tout ce qui a été écrit dans ce fichier depuis (autres outils, interrupteurs, autorisations) est perdu aussi. DSH l’applique dans quelques secondes.', 'Everything written to that file since (other tools, switches, permissions) is lost too. DSH applies it in a few seconds.')),
+              h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'wk-remove-go-' + w.id, onClick: () => link(w, 'revert') }, kt('Retirer', 'Remove')),
+                h('button', { type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'wk-remove-cancel-' + w.id, onClick: () => setRemoving((o) => { const n = Object.assign({}, o); delete n[w.id]; return n }) }, kt('Annuler', 'Cancel')))) : null)
+        }
+
         const policyBlock = (w, draft, current, changed) => {
           if (w.genre !== 'connexion' || w.connexion !== true) return null
           if (w.ligne != null && w.ligne.nous !== true) {
@@ -866,6 +953,7 @@ window.__ModuleLoader__.load({
             // the detail is ALWAYS in the DOM (folded by CSS), so its text and buttons exist for tests and screen readers
             h('div', { className: 'kbwk-detail' },
               detail(w, status, job),
+              connectionBlock(w),
               policyBlock(w, draft, current, changed),
               h('details', { className: 'kbwk-tech' }, h('summary', null, kt('Détails techniques', 'Technical details')),
                 w.dernier != null && Array.isArray(w.dernier.controles)
@@ -933,6 +1021,6 @@ window.__ModuleLoader__.load({
       } catch (e) { /* optional */ }
     }
 
-    return { name: NAME, inject: [], apply: start, __test: { STATUS, statusOf, stepsOf, controlLabel, currentPolicy, sublineOf, authLabel, failureText, refusalText, identityLine, PACK_STRINGS, kt } }
+    return { name: NAME, inject: [], apply: start, __test: { STATUS, statusOf, stepsOf, controlLabel, currentPolicy, connectionOf, linkMessage, sublineOf, authLabel, failureText, refusalText, identityLine, PACK_STRINGS, kt } }
   }
 })
