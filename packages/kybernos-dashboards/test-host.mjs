@@ -219,6 +219,18 @@ const webServer = { register: (r) => { routes.set(r.path, r) } }
   ok('POST clone', (await call('POST', 'clone', { body: { id: 'teams' }, headers: page })).body.id === 'teams-copy')
   ok('POST open sets the current dashboard for the session', (await call('POST', 'open', { body: { id: 'teams', session: 'sx' }, headers: page })).status === 200 && host.getCurrent('sx').id === 'teams')
   ok('GET state: the current dashboard of a session', (await call('GET', 'state', { query: '?session=sx' })).body.current.id === 'teams')
+  // The panel opens by itself on a new `at`, and `at` is the AGENT's write: the person opening or editing a dashboard on the page (Creations) must not move it.
+  {
+    const at = async (sid) => (await call('GET', 'state', { query: '?strict=1&session=' + sid })).body.current.at
+    ok('POST open / save from the page: the pane follows, `at` stays 0 (nothing the agent wrote, nothing opens by itself)', (await at('sx')) === 0 && (await at('s9')) === 0)
+    await call('POST', 'open', { body: { id: 'teams-copy', session: 'sx' }, headers: page })
+    ok('POST open again: the pointer moves, `at` stays', (await call('GET', 'state', { query: '?strict=1&session=sx' })).body.current.id === 'teams-copy' && (await at('sx')) === 0)
+    const agent = await runTool(host, 'sx', { id: 'teams-copy', ops: [{ op: 'add', widget: { type: 'note', text: 'agent' } }] })
+    const written = await at('sx')
+    ok('the agent writing in that chat moves `at`', agent.ok === true && written > 0, agent)
+    await call('POST', 'open', { body: { id: 'teams', session: 'sx' }, headers: page })
+    ok('and a later open on the page leaves the agent\'s `at` as it was', (await at('sx')) === written)
+  }
   ok('GET state strict: another chat never borrows a dashboard (so a page edit never opens its tab)', (await call('GET', 'state', { query: '?session=nobody&strict=1' })).body.current === null && (await call('GET', 'state', { query: '?session=nobody' })).body.current !== null)
   ok('GET revisions and POST restore', (await call('GET', 'revisions', { query: '?id=teams' })).body.revisions.length === 2 && (await call('POST', 'restore', { body: { id: 'teams', rev: 1 }, headers: page })).body.rev === 3)
 

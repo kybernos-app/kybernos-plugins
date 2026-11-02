@@ -95,3 +95,27 @@ export function protectedCard (verb, fields, obj) {
   const write = verb === 'write'
   return both((lang) => say(write ? 'askWrite' : 'askRead', lang) + names + say('closeOf', lang) + word('object', lang) + ' ' + quote(obj.label) + say(write ? 'allowWrite' : 'allowRead', lang))
 }
+
+/**
+ * The card of `dashboard_share`: a link leaves this computer (a snapshot of the widgets' results, on the Kybernos server), and a personal field in it is something the person must have chosen.
+ * `file` asks nothing unless it prints personal fields (the page can then be sent anywhere); `check`, `list` and `revoke` ask nothing. Null when there is nothing to ask.
+ */
+export function shareCard (args) {
+  const a = args !== null && typeof args === 'object' && !Array.isArray(args) ? args : {}
+  const action = a.action === undefined ? 'check' : a.action
+  const personal = a.includePersonal === true
+  if (action !== 'publish' && !(action === 'file' && personal)) return null
+  const name = typeof a.dashboard === 'string' && a.dashboard !== '' ? quote(a.dashboard) : ''
+  const protect = a.protect === true
+  const update = typeof a.share === 'string' && a.share !== ''
+  return both((lang) => {
+    const of = name !== '' ? say('shareOfNamed', lang) + name : say('shareOfThis', lang)
+    const ask = action === 'file' ? 'shareFile' : update ? 'shareUpdate' : 'sharePublish'
+    const out = say(ask, lang) + of + say('shareNoRows', lang) + say(action === 'file' ? 'shareToKeep' : 'shareOnServer', lang)
+    const lines = [
+      say(protect ? 'shareSealed' : action === 'file' ? 'sharePageOpen' : 'shareLinkOpen', lang),
+      say(personal ? 'sharePersonalOn' : 'sharePersonalOff', lang),
+    ]
+    return out + say('allowWrite', lang) + '\n' + bullets(lines)
+  })
+}

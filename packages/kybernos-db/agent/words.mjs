@@ -53,6 +53,19 @@ const SAY = {
   allowRead: { en: ' in clear. Allow it?', fr: '. Autoriser ?' },
   required: { en: 'required', fr: 'obligatoire' },
   many: { en: ' (many)', fr: ' (plusieurs)' },
+  shareFile: { en: 'The agent wants to write a page with a snapshot of ', fr: 'L’agent veut écrire une page avec un instantané ' },
+  sharePublish: { en: 'The agent wants to publish a snapshot of ', fr: 'L’agent veut publier un instantané ' },
+  shareUpdate: { en: 'The agent wants to update a link with a snapshot of ', fr: 'L’agent veut mettre à jour un lien avec un instantané ' },
+  shareOfNamed: { en: 'the dashboard ', fr: 'du tableau de bord ' },
+  shareOfThis: { en: 'this dashboard', fr: 'de ce tableau de bord' },
+  shareNoRows: { en: ' (what its widgets show, never the rows)', fr: ' (ce que montrent ses widgets, jamais les lignes)' },
+  shareToKeep: { en: ', to keep or send by hand', fr: ', à garder ou à envoyer à la main' },
+  shareOnServer: { en: ' on the Kybernos server', fr: ' sur le serveur Kybernos' },
+  shareSealed: { en: 'Protected by a password it cannot read: readers type it to open the page.', fr: 'Protégé par un mot de passe que le serveur ne peut pas lire : les lecteurs le saisissent pour ouvrir la page.' },
+  sharePageOpen: { en: 'Not protected: anyone who gets the page can read it.', fr: 'Non protégé : quiconque reçoit la page peut la lire.' },
+  shareLinkOpen: { en: 'Not protected: anyone who has the link can read it.', fr: 'Non protégé : quiconque a le lien peut le lire.' },
+  sharePersonalOn: { en: 'It MAY PRINT PERSONAL FIELDS (names, e-mails…).', fr: 'Il PEUT AFFICHER DES CHAMPS PERSONNELS (noms, e-mails…).' },
+  sharePersonalOff: { en: 'Personal fields are left out.', fr: 'Les champs personnels sont laissés de côté.' },
 }
 /** A piece of a card in a language. */
 export const say = (key, lang) => SAY[key][lang]

@@ -1,9 +1,10 @@
 // kybernos-db — host half.
 //
-// It gives the agents and the person their own databases: sixteen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
-// records_list, records_get, records_create, records_update, records_import, records_delete, records_restore, db_archive, db_restore), the short block of their system prompt that names the
+// It gives the agents and the person their own databases: seventeen tools (db_list, db_create, object_define, field_add, relation_add, field_update, view_save,
+// records_list, records_get, records_create, records_update, records_import, dashboard_share, records_delete, records_restore, db_archive, db_restore), the short block of their system prompt that names the
 // databases, the `db-builder` skill that says how to design one, and the routes the Tables page reads and writes through. The data is a SQLite file per database under `<DSH home>/kybernos/kybernos-db/dbs`
-// (store/), the rules are the pure ones of core/. Nothing here reaches the network.
+// (store/), the rules are the pure ones of core/. Nothing here reaches the network by itself: the one thing that leaves, a shared dashboard (share/), goes through the `snapshots` port that
+// the Kybernos account gives (`options.snapshots`), after a card, and without that port only a page to keep is made.
 //
 // The approval is the engine's own (`tools/pre-execute`): a change of structure, a write to a protected field and the reading of one in clear are put to the
 // person on a card before they run; a session that never asks refuses them. A database that does not open (a newer Kybernos wrote it, `node:sqlite` is
@@ -24,6 +25,7 @@ import { SECTION_NAME, SECTION_ORDER, renderBlock } from './agent/context.mjs'
 import { makeService } from './agent/service.mjs'
 import { approvalGate, tools as dbTools } from './agent/tools.mjs'
 import { MARKER_FILE, installTemplate, readMarkers } from './instantiate.mjs'
+import { makeSharing } from './share/service.mjs'
 import { mountRoutes } from './routes.mjs'
 import { seedSkills } from './seed-skills.mjs'
 import { cloudHosting } from './remote/cloud-hosting.mjs'
@@ -220,6 +222,8 @@ export function apply (ctx, options = {}) {
     // The routes of the Tables page (routes.mjs): every data route needs DSH's signed session.
     const remote = publisher === null ? undefined : { info: (id) => publisher.info(id), hosting: () => publisher.hostingState() }
     const api = makeApi({ service, ports: { markers: () => readMarkers(join(dirname(dbsDir(home)), MARKER_FILE)), remote, ...options.toolPorts } })
+    // A dashboard shared as a snapshot (share/): it reads the same two routes the Dashboards page reads, through this door, and publishes through `options.snapshots` when the account gives one.
+    const share = makeSharing({ api, dashboardsDir: join(home, 'kybernos', 'dashboards', 'files'), sharesDir: join(home, 'kybernos', 'shares'), snapshots: options.snapshots })
     const mountWeb = (c) => {
       try {
         const webServer = c.get('webServer')
@@ -237,7 +241,7 @@ export function apply (ctx, options = {}) {
       try {
         const registry = c.get('tools')
         if (registry === undefined) return
-        for (const tool of dbTools(service, { importsDir: join(home, 'kybernos', 'imports'), ...options.toolPorts })) { const retrait = registry.register(tool); if (typeof retrait === 'function') retraits.push(retrait) }
+        for (const tool of dbTools(service, { importsDir: join(home, 'kybernos', 'imports'), share, ...options.toolPorts })) { const retrait = registry.register(tool); if (typeof retrait === 'function') retraits.push(retrait) }
       } catch (e) { say('tools not registered: ' + why(e)) }
     }
     if (ctx.get('tools') !== undefined) mountTools(ctx)
