@@ -15,6 +15,7 @@ import { workspaceHealthRows, requestedWorkspaceId } from './workspace-health.mj
 import { SHELF_PUBLIC_BASE, createShelf, shelfVideoAnswer } from './templates-shelf.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
+import { createRunGuard as autoRunGuardCreate, RUN_REQUEST_PREFIX } from './automation-run-guard.mjs'
 import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, memoryUnreadable as autoLoadMemoryUnreadable,guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
 import { applyOp as autoApplyPublished } from './automation-published.mjs'
 import { validateDefinition as teamValidate, versionOf as teamVersionOf, packOf as teamPackOf, teamInfoOf, copyRowOf as teamCopyRow, missingAppsOf as teamMissingApps, markOf as teamMarkOf, planUpdate as teamPlanUpdate, replaceTask as teamReplaceTask, mineOf as teamMineOf, WORKSPACE_ID_RE as TEAM_WORKSPACE_ID_RE } from './automation-team.mjs'
@@ -484,6 +485,14 @@ const kbSanitizeTaskInput = (raw) => {
     else if (typeof r.homeSessionId === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.homeSessionId) === true) out.homeSessionId = r.homeSessionId
     else return { ok: false, error: 'invalid session' }
   }
+  // What the person wants over a run (automation-run-guard.mjs): a time box in minutes (`null`, 0 or '' = none), and what a message of theirs in the run's chat does
+  // (`stop` = the run stops and they are answered; anything else = it finishes). Left out, an edit keeps what the automation has.
+  if (r.maxMinutes !== undefined) {
+    if (r.maxMinutes === null || r.maxMinutes === 0 || r.maxMinutes === '') out.maxMinutes = null
+    else if (typeof r.maxMinutes === 'number' && Number.isInteger(r.maxMinutes) === true && r.maxMinutes >= 1 && r.maxMinutes <= 240) out.maxMinutes = r.maxMinutes
+    else return { ok: false, error: 'invalid duration' }
+  }
+  if (r.onPersonWrites !== undefined) out.onPersonWrites = r.onPersonWrites === 'stop' ? 'stop' : 'finish'
   // The apps the automation asks for (Composio toolkit slugs): the Connectors row and page put the ones that are not connected first. Left out, an edit keeps what it has.
   if (Array.isArray(r.needs) === true) out.needs = Array.from(new Set(r.needs.filter((x) => typeof x === 'string' && /^[a-z0-9_-]{2,40}$/.test(x) === true))).slice(0, 6)
   // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
@@ -3327,6 +3336,8 @@ function boot(ctx) {
     // own `agent/status`. Memory is "still available to programs", never `os.freemem()` on macOS (it reads ~10 % on a healthy Mac
     // because it leaves out inactive pages; `kern.memorystatus_level` is the system's own figure), and unknown on iOS (see memoryUnreadable).
     const kbLoadInflight = autoLoadInflight()
+    // The person's rules over a run (time box, their own message, Stop): automation-run-guard.mjs, on the engine's own session controller.
+    const kbRunGuard = autoRunGuardCreate({ controller: () => ctx.get('sessionController') })
     const kbLoadMaxParallel = (() => {
       let mb = null
       try { mb = Math.round(osTotalmem() / 1048576) } catch (e) { mb = null }
@@ -3556,6 +3567,20 @@ function boot(ctx) {
         runs: Array.from(byTask.values()),
       })
     }
+    // How a watched run was cut short (`time` = the time box, `person` = their message came first, `stopped` = the Stop button) is kept on the run's line in the history, so the
+    // page can say it. A run that ended by itself leaves nothing. The newest line of that session is the run: a home chat holds one line per run.
+    const kbNoteRunStop = async (taskId, sessionId, why) => {
+      if (why !== 'time' && why !== 'person' && why !== 'stopped') return
+      await kbTasksMutate(async (tasks) => {
+        for (const t of tasks) {
+          if (t === null || typeof t !== 'object' || t.id !== taskId || Array.isArray(t.history) !== true) continue
+          for (let i = t.history.length - 1; i >= 0; i -= 1) {
+            const h = t.history[i]
+            if (h !== null && typeof h === 'object' && h.sessionId === sessionId) { h.stop = why; break }
+          }
+        }
+      }).catch(() => null)
+    }
     const kbFireTask = async (task, fire) => {
       const fireOpts = fire !== null && typeof fire === 'object' ? fire : {}
       // The single masked run of the lot, and it is set by `trial-start` only — never read from a wire body.
@@ -3588,7 +3613,7 @@ function boot(ctx) {
         const v = res.value !== undefined && res.value !== null ? res.value : res
         return typeof v[field] === 'string' ? v[field] : null
       }
-      const requestId = 'kb-task-' + String(task.id) + '-' + Date.now().toString(36)
+      const requestId = RUN_REQUEST_PREFIX + String(task.id) + '-' + Date.now().toString(36)
       // `sessionMode: 'home'`: the runs happen in ONE session, posted as messages: the chat the automation was made in, or the session its first run created. A
       // session that is gone (the person deleted it) is replaced by a new one, which becomes the home from then on.
       const homeMode = task.sessionMode === 'home'
@@ -3684,6 +3709,12 @@ function boot(ctx) {
         content: [{ type: 'text', text: (homeMode === true ? autoRunFrame(task.name, new Date().toISOString()) + '\n\n' : '') + String(task.prompt || '') }],
       }, controller.signal)
       if (ack !== null && typeof ack === 'object' && ack.ok === false) throw new Error(ack.error !== null && ack.error !== undefined && ack.error.message !== undefined ? String(ack.error.message) : 'prompt refused')
+      // The person's rules over this run, only when the automation has one (a run with neither option is not watched, as before). A trial has its own supervision.
+      const boxMin = Number.isInteger(task.maxMinutes) === true && task.maxMinutes > 0 ? task.maxMinutes : 0
+      if (trialRun !== true && (boxMin > 0 || task.onPersonWrites === 'stop')) {
+        kbRunGuard.begin({ sessionId, taskId: String(task.id), requestId, maxMinutes: boxMin, stopOnPerson: task.onPersonWrites === 'stop' })
+          .then((why) => kbNoteRunStop(String(task.id), sessionId, why)).catch(() => null)
+      }
       return { sessionId }
     }
     // The tick itself (claim, fire, record) is the tested core; this only gives it the real
@@ -4129,6 +4160,19 @@ function boot(ctx) {
           })
           return { ok: false, error: msg }
         }
+      }
+      // « Stop this run »: the turn of every run of this automation that is going is cancelled; the person's own queued messages are kept and steered (automation-run-guard.mjs).
+      if (action === 'stop') {
+        const id = str(body.id)
+        if (id === null) return { ok: false, error: 'id required' }
+        const going = kbLoadInflight.ids().filter((sid) => { const info = kbRunInfo.get(sid); return info !== undefined && info.taskId === id })
+        if (going.length === 0) return { ok: false, error: 'not running' }
+        let stopped = 0
+        for (const sid of going) {
+          const r = await kbRunGuard.stop(sid)
+          if (r.ok === true) { stopped += 1; await kbNoteRunStop(id, sid, 'stopped') }
+        }
+        return stopped > 0 ? { ok: true, stopped } : { ok: false, error: 'could not stop' }
       }
       if (action === 'hook-generate') {
         // Crée ou régénère le webhook d'une automation : hookId court + secret

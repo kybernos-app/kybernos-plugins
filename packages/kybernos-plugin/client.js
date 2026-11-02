@@ -413,6 +413,30 @@ let kbLocaleRead = () => 'en'
       'tasks.every.month': { kybernos: 'Chaque mois le {day}, {time}', en: 'Every month on the {day}, {time}' },
       'tasks.every.window': { kybernos: '{every}, de {from} à {to}', en: '{every}, from {from} to {to}' },
       'tasks.every.times': { kybernos: 'Chaque jour à {times}', en: 'Every day at {times}' },
+      // The form's time row (a fixed time, or every N hours between two times) and what the person asks over a run (maximum duration, their own message, Stop).
+      'tasks.hours.fixed': { kybernos: 'À une heure fixe', en: 'At a set time' },
+      'tasks.hours.every': { kybernos: 'Toutes les N heures', en: 'Every N hours' },
+      'tasks.hours.all': { kybernos: 'Toutes les', en: 'Every' },
+      'tasks.hours.from': { kybernos: 'de', en: 'from' },
+      'tasks.hours.to': { kybernos: 'à', en: 'to' },
+      'tasks.hours.one': { kybernos: '1 heure', en: '1 hour' },
+      'tasks.hours.n': { kybernos: '{n} heures', en: '{n} hours' },
+      'tasks.hours.bad': { kybernos: 'Choisis une fin plus tardive que le début, avec au moins deux heures dans la plage.', en: 'Pick an end later than the start, with at least two hours in the window.' },
+      'tasks.during': { kybernos: 'Pendant un run', en: 'During a run' },
+      'tasks.maxmin': { kybernos: 'Durée maximale', en: 'Maximum duration' },
+      'tasks.maxmin.hint': { kybernos: 'Passé ce temps, le run s’arrête et reprend au prochain déclenchement.', en: 'Past this time the run stops and starts again at the next trigger.' },
+      'tasks.maxmin.none': { kybernos: 'Aucune', en: 'None' },
+      'tasks.maxmin.min': { kybernos: '{n} minutes', en: '{n} minutes' },
+      'tasks.maxmin.hour': { kybernos: '1 heure', en: '1 hour' },
+      'tasks.onwrite': { kybernos: 'Quand j’écris dans son chat', en: 'When I write in its chat' },
+      'tasks.onwrite.hint': { kybernos: 'Le run peut s’arrêter : mon message passe d’abord et on me répond.', en: 'The run may stop: my message goes first and I get an answer.' },
+      'tasks.onwrite.stop': { kybernos: 'S’arrêter et me répondre', en: 'Stop and answer me' },
+      'tasks.onwrite.finish': { kybernos: 'Laisser finir', en: 'Let it finish' },
+      'tasks.stoprun': { kybernos: 'Arrêter ce run', en: 'Stop this run' },
+      'tasks.stop.asked': { kybernos: 'Arrêt demandé.', en: 'Stop requested.' },
+      'tasks.err.notrunning': { kybernos: 'Aucun run en cours pour cette automation.', en: 'No run is going for this automation.' },
+      'tasks.err.stopfail': { kybernos: 'Le run n’a pas pu être arrêté.', en: 'The run could not be stopped.' },
+      'tasks.err.duration': { kybernos: 'Durée invalide : de 1 à 240 minutes.', en: 'Invalid duration: 1 to 240 minutes.' },
       'tasks.onetime': { kybernos: 'Une seule fois', en: 'One time' },
       'tasks.cron': { kybernos: 'Expression cron', en: 'Cron expression' },
       'tasks.timezone': { kybernos: 'Fuseau', en: 'Time zone' },
@@ -6592,12 +6616,11 @@ const kbCronHuman = (cron, tr, locale, zoneName) => {
   // part the weekday templates put where they have a time ("Weekdays, <when>").
   let daily = null
   let when = null
-  const win = /^(\d{1,2})-(\d{1,2})(?:\/(\d{1,2}))?$/.exec(hh)
-  if (win !== null && whole(mi, 59) === true) {
-    const from = Number(win[1]); const to = Number(win[2]); const n = win[3] === undefined ? 1 : Number(win[3])
-    const last = n > 0 ? from + Math.floor((to - from) / n) * n : from
-    if (to <= 23 && from < last) {
-      daily = tr('tasks.every.window').replace('{every}', () => tr(n === 1 ? 'tasks.every.hour' : 'tasks.every.hours').replace('{n}', String(n))).replace('{from}', () => two(from) + ':' + two(mi)).replace('{to}', () => two(last) + ':' + two(mi))
+  const win = kbCronWindow(raw)
+  if (win !== null) {
+    if (win.ok === true) {
+      const last = win.from + Math.floor((win.to - win.from) / win.step) * win.step
+      daily = tr('tasks.every.window').replace('{every}', () => tr(win.step === 1 ? 'tasks.every.hour' : 'tasks.every.hours').replace('{n}', String(win.step))).replace('{from}', () => two(win.from) + ':' + two(mi)).replace('{to}', () => two(last) + ':' + two(mi))
       when = daily.charAt(0).toLowerCase() + daily.slice(1)
     }
   } else if (/^\d{1,2}(,\d{1,2}){1,5}$/.test(hh) === true && whole(mi, 59) === true) {
@@ -6652,6 +6675,19 @@ const kbCronOnDays = (cron, days) => {
   const t = kbCronMinuteHour(cron)
   return t === null ? '0 8 * * ' + days : t.mi + ' ' + t.hh + ' * * ' + days
 }
+// An hour window at a fixed minute ("0 8-20/4 * * 1-5"), as the form's « Every N hours » row edits it: `{ mi, from, to, step, days, ok }`, else null. `ok` says the window
+// fires at least twice (the steps start at `from` and stop at the last hour they reach), the rule the sentence uses too. `days` is the weekday field as written.
+const kbCronWindow = (cron) => {
+  const c = String(cron || '').trim().split(/\s+/)
+  if (c.length !== 5 || c[2] !== '*' || c[3] !== '*' || /^\d{1,2}$/.test(c[0]) === false || Number(c[0]) > 59) return null
+  const m = /^(\d{1,2})-(\d{1,2})(?:\/(\d{1,2}))?$/.exec(c[1])
+  if (m === null) return null
+  const from = Number(m[1]); const to = Number(m[2]); const step = m[3] === undefined ? 1 : Number(m[3])
+  const last = step > 0 ? from + Math.floor((to - from) / step) * step : from
+  return { mi: Number(c[0]), from, to, step, days: c[4], ok: step > 0 && to <= 23 && from < last }
+}
+// The window as a schedule (a step of 1 is written "8-20"): the minute and the weekdays are the ones given.
+const kbCronWindowOf = (mi, from, to, step, days) => String(mi) + ' ' + String(from) + '-' + String(to) + (step > 1 ? '/' + String(step) : '') + ' * * ' + days
 // A one-time date as written in the automation's own zone: "One time · Sat, Oct 17 · 10:00".
 const kbOnceLabel = (at, tr, nowYear, locale, zoneName) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/.exec(String(at || ''))
@@ -7413,6 +7449,7 @@ const KB_TASK_ERRORS = {
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
   'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
   'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace', 'runs in the cloud': 'tasks.err.cloud',
+  'not running': 'tasks.err.notrunning', 'could not stop': 'tasks.err.stopfail', 'invalid duration': 'tasks.err.duration',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -21264,6 +21301,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const mode = modePair[0]; const setMode = modePair[1]
       const cronPair = React.useState(typeof sc0.cron === 'string' && once0 === false ? sc0.cron : '0 8 * * 1')
       const cron = cronPair[0]; const setCron = cronPair[1]
+      // « Every N hours »: the schedule is an hour window at a fixed minute (kbCronWindow); null for a time of day or any other expression.
+      const win = mode === 'cron' ? kbCronWindow(cron) : null
       const atPair = React.useState(at0)
       const at = atPair[0]; const setAt = atPair[1]
       const activePair = React.useState(t0.active !== false)
@@ -21271,6 +21310,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const approvalsPair = React.useState(t0.approvals === 'auto' ? 'auto' : 'ask')
       const approvals = approvalsPair[0]; const setApprovals = approvalsPair[1]
       const notifyPair = React.useState(Array.isArray(t0.notify) === true ? t0.notify : [])
+      // What the person asks over a run (the host's automation-run-guard.mjs): a time box in minutes (0 = none) and what their own message in the run's chat does.
+      const maxPair = React.useState(Number.isInteger(t0.maxMinutes) === true && t0.maxMinutes > 0 ? t0.maxMinutes : 0)
+      const maxMin = maxPair[0]; const setMaxMin = maxPair[1]
+      const onWritePair = React.useState(t0.onPersonWrites === 'stop' ? 'stop' : 'finish')
+      const onWrite = onWritePair[0]; const setOnWrite = onWritePair[1]
       // Where the runs land: '' is the dedicated workspace (the host makes it), else the id of one of the person's workspaces.
       const wsPair = React.useState(() => { const c = kbWsChoice(t0.workspaceHint, kbPinsSnapshots().items); return c.kind === 'dedicated' ? '' : (typeof t0.workspaceHint === 'string' ? t0.workspaceHint : '') })
       const wsHint = wsPair[0]; const setWsHint = wsPair[1]
@@ -21304,12 +21348,15 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (busy === true) return
         if (name.trim().length === 0) { setErr(kbt('tasks.needname')); return }
         if (prompt.trim().length === 0) { setErr(kbt('tasks.needprompt')); return }
+        if (mode === 'cron' && win !== null && win.ok !== true) { setErr(kbt('tasks.hours.bad')); return }
         const task = {
           name: name.trim(),
           prompt: prompt.trim(),
           active: active === true,
           approvals,
           notify,
+          maxMinutes: maxMin === 0 ? null : maxMin,
+          onPersonWrites: onWrite,
           workspaceHint: wsHint === '' ? null : wsHint,
           runsOn: 'local',
           schedule: mode === 'webhook' ? { mode: 'webhook', tz: tz0 } : (mode === 'once' ? { mode: 'once', at: (atTouched === true || typeof sc0.at !== 'string') ? at : sc0.at, tz: tz0 } : { mode: 'cron', cron: cron.trim(), tz: tz0 }),
@@ -21333,6 +21380,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && kbCronMinuteHour(cron) !== null && cron.trim().split(/\s+/).slice(2).join(' ') === '* * ' + pr.days)))
       // The time field edits a schedule that has ONE time of day; a custom expression (every 6 hours, a list) has none.
       const timeOf = mode === 'cron' ? kbCronTime(cron) : null
+      const hm = (hh, mi) => String(hh).padStart(2, '0') + ':' + String(mi).padStart(2, '0')
+      const pickFixed = () => { if (win !== null) setCron(String(win.mi) + ' ' + String(win.from) + ' * * ' + win.days) }
+      // From a time of day: that hour and 12 later (the window of the day), every 4 hours; a late hour starts the day over at 08:00.
+      const pickEvery = () => { if (timeOf !== null) setCron(kbCronWindowOf(timeOf.mi, timeOf.hh <= 19 ? timeOf.hh : 8, timeOf.hh <= 19 ? Math.min(23, timeOf.hh + 12) : 20, 4, cron.trim().split(/\s+/)[4])) }
+      const setWin = (patch) => { if (win !== null) { const n = Object.assign({}, win, patch); setCron(kbCronWindowOf(n.mi, n.from, n.to, n.step, n.days)) } }
+      const timeParts = (value) => { const m = /^(\d{2}):(\d{2})$/.exec(String(value)); return m === null ? null : { hh: Number(m[1]), mi: Number(m[2]) } }
+      const maxOptions = Array.from(new Set([0, 5, 10, 20, 60, maxMin])).sort((a, b) => a - b)
+      const maxLabel = (n) => (n === 0 ? kbt('tasks.maxmin.none') : (n === 60 ? kbt('tasks.maxmin.hour') : kbt('tasks.maxmin.min').replace('{n}', String(n))))
       return h('div', { className: 'kb-task-modal-scrim', onMouseDown: (e) => { if (e !== null && e.target === e.currentTarget && typeof propsM.onClose === 'function') propsM.onClose() } },
         h('div', { className: 'kb-task-modal', role: 'dialog', 'aria-modal': 'true' },
           h('h3', null, Icon('calendar-clock', 16), t0.id !== null && t0.id !== undefined ? kbt('tasks.edit') : kbt('tasks.form.title')),
@@ -21350,14 +21405,31 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           (mode === 'webhook'
             ? h('div', { className: 'kb-task-hint' }, kbt('tasks.webhook.hint'))
             : mode === 'cron'
-            ? h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'flex-end' } },
-                (timeOf !== null ? h('span', { className: 'kb-task-f' },
+            ? h(React.Fragment, null,
+                // One time of day, or every N hours between two times: both are a schedule at a fixed minute, which keeps two runs at least an hour apart.
+                (timeOf !== null || win !== null ? h('div', { className: 'kb-task-f' },
                   h('label', null, kbt('tasks.time')),
-                  h('input', { type: 'time', 'data-kb': 'task-time', value: String(timeOf.hh).padStart(2, '0') + ':' + String(timeOf.mi).padStart(2, '0'),
-                    onChange: (e) => { const m = /^(\d{2}):(\d{2})$/.exec(String(e.target.value)); const next = m === null ? null : kbCronAt(cron, Number(m[1]), Number(m[2])); if (next !== null) setCron(next) } })) : null),
-                h('span', { className: 'kb-task-muted', title: cron.trim() }, kbCronHuman(cron, kbt, kbBoardLocale())),
-                h('span', { className: 'grow' }),
-                h('span', { className: 'kb-task-muted' }, kbt('tasks.timezone') + ' · ' + tz0))
+                  h('div', { className: 'kb-task-chips' },
+                    h('button', { type: 'button', 'data-kb': 'task-hours-fixed', className: 'kb-task-chip' + (win === null ? ' on' : ''), onClick: pickFixed }, kbt('tasks.hours.fixed')),
+                    h('button', { type: 'button', 'data-kb': 'task-hours-every', className: 'kb-task-chip' + (win !== null ? ' on' : ''), onClick: pickEvery }, kbt('tasks.hours.every')))) : null),
+                h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'center', gap: '8px 10px' } },
+                  (timeOf !== null ? h('input', { type: 'time', 'aria-label': kbt('tasks.time'), 'data-kb': 'task-time', value: hm(timeOf.hh, timeOf.mi),
+                    onChange: (e) => { const m = /^(\d{2}):(\d{2})$/.exec(String(e.target.value)); const next = m === null ? null : kbCronAt(cron, Number(m[1]), Number(m[2])); if (next !== null) setCron(next) } }) : null),
+                  (win !== null ? h('span', { className: 'kb-task-muted' }, kbt('tasks.hours.all')) : null),
+                  (win !== null ? h('select', { className: 'kb-task-select', 'data-kb': 'task-hours-step', value: String(win.step), onChange: (e) => setWin({ step: Number(e.target.value) }) },
+                    Array.from(new Set([1, 2, 3, 4, 6, 8, 12, win.step])).sort((a, b) => a - b).map((n) => h('option', { key: n, value: String(n) }, n === 1 ? kbt('tasks.hours.one') : kbt('tasks.hours.n').replace('{n}', String(n))))) : null),
+                  (win !== null ? h('span', { className: 'kb-task-muted' }, kbt('tasks.hours.from')) : null),
+                  (win !== null ? h('input', { type: 'time', 'aria-label': kbt('tasks.hours.from'), 'data-kb': 'task-hours-from', value: hm(win.from, win.mi),
+                    onChange: (e) => { const p = timeParts(e.target.value); if (p !== null) setWin({ from: p.hh, mi: p.mi }) } }) : null),
+                  (win !== null ? h('span', { className: 'kb-task-muted' }, kbt('tasks.hours.to')) : null),
+                  (win !== null ? h('input', { type: 'time', 'aria-label': kbt('tasks.hours.to'), 'data-kb': 'task-hours-to', value: hm(win.to, win.mi),
+                    onChange: (e) => { const p = timeParts(e.target.value); if (p !== null) setWin({ to: p.hh }) } }) : null)),
+                h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'baseline' } },
+                  (win !== null && win.ok !== true
+                    ? h('span', { className: 'kb-task-err', 'data-kb': 'task-hours-bad' }, kbt('tasks.hours.bad'))
+                    : h('span', { className: 'kb-task-muted', title: cron.trim() }, kbCronHuman(cron, kbt, kbBoardLocale()))),
+                  h('span', { className: 'grow' }),
+                  h('span', { className: 'kb-task-muted' }, kbt('tasks.timezone') + ' · ' + tz0)))
             : h('div', { className: 'kb-task-f' },
                 h('label', null, kbt('tasks.preset.once')),
                 h('input', { type: 'datetime-local', value: at, onChange: (e) => { setAtTouched(true); setAt(e.target.value) } }),
@@ -21379,6 +21451,20 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                 h('button', { type: 'button', className: 'kb-task-chip' + (active === true ? ' on' : ''), onClick: () => setActive(true) }, kbt('tasks.yes')),
                 h('button', { type: 'button', className: 'kb-task-chip' + (active === false ? ' on' : ''), onClick: () => setActive(false) }, kbt('tasks.no')))),
             h('span', { className: 'grow' })),
+          // What the person asks over a run, for any automation: a time box, and (for one that works in a chat) what their own message there does.
+          h('div', { className: 'kb-task-f', 'data-kb': 'task-run-options' },
+            h('label', null, kbt('tasks.during')),
+            h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' } },
+              h('span', { style: { flex: '1 1 220px', minWidth: 0 } }, h('b', null, kbt('tasks.maxmin')), h('br'), h('span', { className: 'kb-task-muted' }, kbt('tasks.maxmin.hint'))),
+              h('select', { className: 'kb-task-select', 'data-kb': 'task-maxmin', 'aria-label': kbt('tasks.maxmin'), value: String(maxMin), onChange: (e) => setMaxMin(Number(e.target.value)) },
+                maxOptions.map((n) => h('option', { key: n, value: String(n) }, maxLabel(n))))),
+            (t0.sessionMode === 'home'
+              ? h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' } },
+                  h('span', { style: { flex: '1 1 220px', minWidth: 0 } }, h('b', null, kbt('tasks.onwrite')), h('br'), h('span', { className: 'kb-task-muted' }, kbt('tasks.onwrite.hint'))),
+                  h('select', { className: 'kb-task-select', 'data-kb': 'task-onwrite', 'aria-label': kbt('tasks.onwrite'), value: onWrite, onChange: (e) => setOnWrite(e.target.value === 'stop' ? 'stop' : 'finish') },
+                    h('option', { value: 'stop' }, kbt('tasks.onwrite.stop')),
+                    h('option', { value: 'finish' }, kbt('tasks.onwrite.finish'))))
+              : null)),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.details')),
             h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', gap: '10px 18px' } },
@@ -23891,6 +23977,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           const r = await host.call('kybers/tasks', Object.assign({ action: action, id: id }, (extra !== null && extra !== undefined) ? extra : {}))
           if (r !== null && r !== undefined && r.ok === true) {
             if (action === 'run-now') toast(r.queued === true ? kbt('tasks.queued') : kbt('tasks.ran'))
+            if (action === 'stop') toast(kbt('tasks.stop.asked'))
             if (action === 'delete') toast(kbt('tasks.deleted'))
             if (action === 'accept') toast(kbt('tasks.sug.added'))
             if (action === 'update') toast(kbt('tasks.interpreted'))
@@ -24406,7 +24493,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h(KbGateBadge, { gate: kbGateOf(t), hidden: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' }),
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') gateReview(t); else gateToggle(t) } }, onClick: () => { if (kbGateToggleIntent(kbGateOf(t), t) === 'review') gateReview(t); else gateToggle(t) } },
               h('span', { className: 'kba-toggle-knob' })),
-            h('button', { type: 'button', className: 'kba-btn', onClick: () => act('run-now', t.id) }, Icon('play', 13), ' ', kbt('tasks.runnow')),
+            // While a run of it is going, the button that starts one gives way to the one that stops it (cancels the turn; the person's own messages in that chat are kept).
+            (runIds.indexOf(t.id) >= 0
+              ? h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'detail-stop', style: { color: 'var(--dsw-alias-state-error-primary)' }, onClick: () => act('stop', t.id) }, Icon('square', 12), ' ', kbt('tasks.stoprun'))
+              : h('button', { type: 'button', className: 'kba-btn', onClick: () => act('run-now', t.id) }, Icon('play', 13), ' ', kbt('tasks.runnow'))),
             h(KbMoreMenu, { label: kbt('tasks.more'), items: [
               { kb: 'detail-edit-chat', icon: Icon('messageSquare', 14), label: kbt('tasks.edit.chat.act'), run: () => editInChat(t) },
               { kb: 'detail-schedule', icon: Icon('clock', 14), label: kbt('tasks.editsched'), run: () => setModal(t) },
