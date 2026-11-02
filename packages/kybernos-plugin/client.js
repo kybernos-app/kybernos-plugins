@@ -411,6 +411,8 @@ let kbLocaleRead = () => 'en'
       'tasks.every.hours.at': { kybernos: 'Toutes les {n} heures à :{minute}', en: 'Every {n} hours at :{minute}' },
       'tasks.every.dow': { kybernos: 'Chaque {day}, {time}', en: 'Every {day}, {time}' },
       'tasks.every.month': { kybernos: 'Chaque mois le {day}, {time}', en: 'Every month on the {day}, {time}' },
+      'tasks.every.window': { kybernos: '{every}, de {from} à {to}', en: '{every}, from {from} to {to}' },
+      'tasks.every.times': { kybernos: 'Chaque jour à {times}', en: 'Every day at {times}' },
       'tasks.onetime': { kybernos: 'Une seule fois', en: 'One time' },
       'tasks.cron': { kybernos: 'Expression cron', en: 'Cron expression' },
       'tasks.timezone': { kybernos: 'Fuseau', en: 'Time zone' },
@@ -6583,6 +6585,25 @@ const kbCronHuman = (cron, tr, locale, zoneName) => {
     if (hh === '*' && step(mi) > 0) return step(mi) === 1 ? tr('tasks.every.minute') : (step(mi) < 60 && 60 % step(mi) === 0 ? tr('tasks.every.minutes').replace('{n}', String(step(mi))) : fallback)
     if (hh === '*' && whole(mi, 59) === true) return hourly(1)
     if (step(hh) > 0 && whole(mi, 59) === true) return step(hh) === 1 || (step(hh) < 24 && 24 % step(hh) === 0) ? hourly(step(hh)) : fallback
+    // A window of hours at a fixed minute ("0 8-20/4 * * *"): the steps start at the first hour and stop at the last one they reach,
+    // so the sentence names exactly those two times. A window that fires only once is left to the expression.
+    const win = /^(\d{1,2})-(\d{1,2})(?:\/(\d{1,2}))?$/.exec(hh)
+    if (win !== null && whole(mi, 59) === true) {
+      const from = Number(win[1]); const to = Number(win[2]); const n = win[3] === undefined ? 1 : Number(win[3])
+      const last = n > 0 ? from + Math.floor((to - from) / n) * n : from
+      if (to <= 23 && from < last) {
+        const words = tr('tasks.every.window').replace('{every}', tr(n === 1 ? 'tasks.every.hour' : 'tasks.every.hours').replace('{n}', String(n))).replace('{from}', two(from) + ':' + two(mi)).replace('{to}', two(last) + ':' + two(mi))
+        return typeof zoneName === 'string' && zoneName.length > 0 ? words + ' (' + zoneName + ')' : words
+      }
+    }
+    // A short list of hours at a fixed minute ("0 8,12,16,20 * * *"): the times themselves.
+    if (/^\d{1,2}(,\d{1,2}){1,5}$/.test(hh) === true && whole(mi, 59) === true) {
+      const hours = hh.split(',').map(Number)
+      if (hours.every((x, i) => x <= 23 && (i === 0 || x > hours[i - 1])) === true) {
+        const words = tr('tasks.every.times').replace('{times}', hours.map((x) => two(x) + ':' + two(mi)).join(', '))
+        return typeof zoneName === 'string' && zoneName.length > 0 ? words + ' (' + zoneName + ')' : words
+      }
+    }
   }
   if (whole(mi, 59) === false || whole(hh, 23) === false) return fallback
   const hm = two(hh) + ':' + two(mi)
@@ -6607,11 +6628,19 @@ const kbCronAt = (cron, hh, mi) => {
   if (kbCronTime(cron) === null || Number.isInteger(hh) === false || Number.isInteger(mi) === false || hh < 0 || hh > 23 || mi < 0 || mi > 59) return null
   return String(mi) + ' ' + String(hh) + ' ' + c.slice(2).join(' ')
 }
-// The same time of day on other days (`days` is the weekday field: '*', '1-5', '1'...): what a preset does. A schedule with
-// no single time of day (every 6 hours, a list) becomes the preset at 08:00.
+// The minute and hour fields of a schedule that runs at a FIXED minute (one time of day, an hour window, a list of hours), as
+// written, else null. A fixed minute keeps two runs at least an hour apart, so keeping these fields can never make the schedule
+// the host refuses below five minutes.
+const kbCronMinuteHour = (cron) => {
+  const c = String(cron || '').trim().split(/\s+/)
+  if (c.length !== 5 || /^\d{1,2}$/.test(c[0]) === false || Number(c[0]) > 59 || /^[0-9*,/-]+$/.test(c[1]) === false) return null
+  return { mi: String(Number(c[0])), hh: /^\d{1,2}$/.test(c[1]) === true ? String(Number(c[1])) : c[1] }
+}
+// The same time of day on other days (`days` is the weekday field: '*', '1-5', '1'...): what a preset does. The hours stay as
+// they are, a window ("8-20/4") or a list included; a schedule with no fixed minute (every 5 minutes) becomes the preset at 08:00.
 const kbCronOnDays = (cron, days) => {
-  const t = kbCronTime(cron)
-  return String(t === null ? 0 : t.mi) + ' ' + String(t === null ? 8 : t.hh) + ' * * ' + days
+  const t = kbCronMinuteHour(cron)
+  return t === null ? '0 8 * * ' + days : t.mi + ' ' + t.hh + ' * * ' + days
 }
 // A one-time date as written in the automation's own zone: "One time · Sat, Oct 17 · 10:00".
 const kbOnceLabel = (at, tr, nowYear, locale, zoneName) => {
@@ -21291,7 +21320,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           } else { setBusy(false); setErr((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : 'error') }
         } catch (e) { setBusy(false); setErr(String((e !== null && typeof e === 'object' && e.message !== undefined) ? e.message : e)) }
       }
-      const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && kbCronTime(cron) !== null && cron.trim().split(/\s+/).slice(2).join(' ') === '* * ' + pr.days)))
+      const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && kbCronMinuteHour(cron) !== null && cron.trim().split(/\s+/).slice(2).join(' ') === '* * ' + pr.days)))
       // The time field edits a schedule that has ONE time of day; a custom expression (every 6 hours, a list) has none.
       const timeOf = mode === 'cron' ? kbCronTime(cron) : null
       return h('div', { className: 'kb-task-modal-scrim', onMouseDown: (e) => { if (e !== null && e.target === e.currentTarget && typeof propsM.onClose === 'function') propsM.onClose() } },
