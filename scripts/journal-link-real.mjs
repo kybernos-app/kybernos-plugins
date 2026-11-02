@@ -2,7 +2,7 @@
 // journal-link-real.mjs — make (or show, or delete) the link of ONE real chat's Journal on the running DSH, through the real Share sheet, in a throw-away signed-in Chrome.
 //
 //   KB_NODE_MODULES=<node_modules with playwright-core> node scripts/journal-link-real.mjs --list            the chats of the sidebar, numbered
-//   KB_NODE_MODULES=… node scripts/journal-link-real.mjs --index <n> [--open]                                 make the link of chat n (protected by default), print it; --open also opens it from outside with its password
+//   KB_NODE_MODULES=… node scripts/journal-link-real.mjs --index <n> [--update] [--open]                    make the link of chat n (protected by default), print it; --update remakes the page of an existing link (same link, same password); --open also opens it from outside with its password
 //   KB_NODE_MODULES=… node scripts/journal-link-real.mjs --index <n> --delete                                 take the link of chat n down
 //
 // This PUBLISHES the chat's Journal on the Kybernos account (the sheet's defaults: decisions, durations and errors, deliverables, messages and replies; names and computers off): run it only on the owner's word.
@@ -56,6 +56,11 @@ try {
     if (await has('[data-kb="wvs-link-make"]') === 0) throw new Error('the sheet offers no link: ' + (await page.evalJs(`document.querySelector('[data-kb="wvs-link"]').innerText`, 3000)).val)
     await click('[data-kb="wvs-link-make"]')
     await waitFor(page, `document.querySelector('[data-kb="wvs-link-url"]') !== null`, 30000)
+  }
+  if (flag('--update') && await has('[data-kb="wvs-link-update"]') > 0) {
+    // the same link and password, the document made again from the chat as it is now, the address the server gives today
+    await click('[data-kb="wvs-link-update"]')
+    await sleep(6000)
   }
   const url = (await page.evalJs(`document.querySelector('[data-kb="wvs-link-url"]').value`, 3000)).val
   const pwEl = await has('[data-kb="wvs-link-pw"]')
