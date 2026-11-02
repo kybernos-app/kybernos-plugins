@@ -1,0 +1,73 @@
+{
+  "name": "text-team-1",
+  "type": "team",
+  "note": "Six prompts that create an Agent Team through the ai-team-creator interview (job, roles that each own a distinct part, a model per role, a yes before anything is written, a read-back and a first small test run): two for business, two for education, two for research.",
+  "cells": [
+    {
+      "id": "team_weekly_review",
+      "card": "prompt",
+      "entry": {
+        "name": "Weekly review team",
+        "tag": "Business",
+        "line": "A team that prepares my weekly business review",
+        "meta": "Prompt"
+      },
+      "request": "Create an Agent Team that prepares my weekly business review. First interview me: which numbers matter, where they live (a file or a connected app), who reads the review and what 'done' looks like. Propose the roles, each owning a distinct part (for example a data reader, an analyst, a writer and a checker who verifies every number against its source), with the model for each. Wait for my yes, create the team in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job."
+    },
+    {
+      "id": "team_feedback",
+      "card": "prompt",
+      "entry": {
+        "name": "Customer feedback team",
+        "tag": "Business",
+        "line": "A team that turns customer feedback into a ranked fix list",
+        "meta": "Prompt"
+      },
+      "request": "Create an Agent Team that turns customer feedback into a ranked list of fixes. First interview me: where the feedback comes from (a file or an export), what a good result looks like and who decides. Propose the roles (for example a reader that tags each comment, an analyst that groups themes and counts them, a prioritiser that ranks by impact and effort, a checker that samples comments against the tags), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job on invented comments labelled as sample."
+    },
+    {
+      "id": "team_tutor",
+      "card": "prompt",
+      "entry": {
+        "name": "Exam tutoring team",
+        "tag": "Education",
+        "line": "A team that tutors me for an exam: explain, quiz, verify",
+        "meta": "Prompt"
+      },
+      "request": "Create an Agent Team that tutors me for an exam. First interview me: the subject, the exam date, what I find hard and how I like to learn. Propose the roles (for example a tutor that explains one idea at a time, a quiz-maker that asks questions from my notes, a checker that verifies every explanation and answer before I see it), each with its model. Wait for my yes, create the team in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first short session."
+    },
+    {
+      "id": "team_lessons",
+      "card": "prompt",
+      "entry": {
+        "name": "Lesson-prep team",
+        "tag": "Education",
+        "line": "A team that prepares my lessons for the week",
+        "meta": "Prompt"
+      },
+      "request": "Create an Agent Team that prepares my lessons for the week. First interview me: the subject, the level, the curriculum goals and the lessons I teach each day. Propose the roles (for example a planner that sequences the week, a writer that drafts activities and handouts, an assessor that makes the quizzes, a checker that confirms each lesson meets its stated goal), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small job."
+    },
+    {
+      "id": "team_research_check",
+      "card": "prompt",
+      "entry": {
+        "name": "Research and fact-check team",
+        "tag": "Research",
+        "line": "A team that answers a research question and checks its sources",
+        "meta": "Prompt"
+      },
+      "request": "Create an Agent Team that answers a research question and checks its sources. First interview me: the question, the depth I want, which sources count and what 'done' looks like. Propose the roles (for example a scout that finds sources, a reader that extracts the evidence, a fact-checker that confirms each claim against its source, a writer that drafts the answer with links), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it and suggest a first small question."
+    },
+    {
+      "id": "team_peer_review",
+      "card": "prompt",
+      "entry": {
+        "name": "Peer-review team",
+        "tag": "Research",
+        "line": "A team of reviewers that critiques my draft paper before I submit",
+        "meta": "Prompt"
+      },
+      "request": "Create an Agent Team that reviews my draft paper the way a journal would. First interview me: my field, the target venue and which parts worry me. Propose the roles (for example a methods reviewer, a statistics reviewer, a writing reviewer and an editor who merges the three into one report ranked by severity), each with its model. Wait for my yes, create it in my workspace, check that it loads, then tell me how to start a chat with it. It reports, it never rewrites my text."
+    }
+  ]
+}
