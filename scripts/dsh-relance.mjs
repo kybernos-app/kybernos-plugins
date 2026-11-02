@@ -48,6 +48,11 @@
  * one comes back. The "plain network cut" case is already covered natively by
  * `dsh-client-connection` (backoff reconnection) and `dsh-llm-retry` (retries
  * at the agent's pace); supervision is the safety net for what really failed.
+ *
+ * STOPPING A TASK THAT GOES ROUND IN CIRCLES (2026-11-02): the supervisor wakes a session on its own at most
+ * AUTO_RESUME_MAX times in AUTO_RESUME_WINDOW_MS; the next time it puts the session on the stop list and leaves it
+ * alone. By hand: press Stop on the chat (it stops running, so the next sample drops it and it is never resumed),
+ * `supervise stop <id>` for good, `supervise allow <id>` to give it back, `supervise pause` for every session.
  */
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, openSync, statSync, rmSync } from 'node:fs'
 import { createHash, createHmac, randomUUID } from 'node:crypto'
@@ -69,6 +74,7 @@ const JOURNAL_FILE = join(LOGS, 'dsh-relance-journal.json')
 const CLAIMS_FILE = join(LOGS, 'dsh-relance-claims.json')
 const SUPERVISE_STATE = join(LOGS, 'dsh-relance-supervise.json')
 const SUPERVISE_PAUSE = join(LOGS, 'dsh-relance-supervise.pause')
+const STOPPED_FILE = join(LOGS, 'dsh-relance-stopped.json')
 const SUPERVISE_LABEL = 'com.kybernos.dsh-relance'
 const CLAIM_WINDOW_MS = 180_000
 const CREDENTIALS = join(HOME, '.credentials.yaml')
@@ -278,10 +284,65 @@ function readJournal() {
   return readJson(JOURNAL_FILE, undefined)
 }
 
-function claim(sessionId, reason) {
+// <garde:begin> the rules of the automatic resume, pure (test-relance-garde.mjs plays this block on its own)
+const SAMPLE_MAX_AGE_MS = 15 * 60_000
+const AUTO_RESUME_MAX = 3
+const AUTO_RESUME_WINDOW_MS = 30 * 60_000
+const CLAIM_KEEP_MS = 24 * 3_600_000
+
+/** A supervision sample is a resume list only while it is fresh: one from last month would wake a chat nobody works on any more. */
+const freshSample = (sample, now = Date.now(), maxAgeMs = SAMPLE_MAX_AGE_MS) => {
+  const at = sample && typeof sample.at === 'string' ? Date.parse(sample.at) : NaN
+  return Number.isFinite(at) && now - at < maxAgeMs && Array.isArray(sample.running) ? sample : undefined
+}
+
+/** The times a session was woken by the supervisor, those of the guard window only. */
+const recentAuto = (row, now = Date.now()) =>
+  (row && Array.isArray(row.auto) ? row.auto : []).filter((t) => typeof t === 'number' && now - t < AUTO_RESUME_WINDOW_MS)
+
+/** May the supervisor wake this session on its own? `row` is its reservation, `stopped` the stop list. */
+const autoResumeVerdict = (row, stopped, id, now = Date.now()) => {
+  if (stopped && Object.prototype.hasOwnProperty.call(stopped, id)) return { ok: false, why: 'stopped' }
+  const count = recentAuto(row, now).length
+  return count >= AUTO_RESUME_MAX ? { ok: false, why: 'loop', count } : { ok: true }
+}
+
+/** The reservations after a wake-up: this session's row refreshed (the automatic ones also keep their time), the rows older than a day dropped. */
+const claimsAfter = (claims, id, reason, auto, now = Date.now()) => {
+  const out = {}
+  for (const [key, row] of Object.entries(claims ?? {})) if (typeof row?.at === 'number' && now - row.at < CLAIM_KEEP_MS) out[key] = row
+  const before = out[id]
+  const kept = recentAuto(before, now)
+  out[id] = { at: now, reason: reason ?? null, ...(auto ? { auto: [...kept, now] } : (kept.length > 0 ? { auto: kept } : {})) }
+  return out
+}
+// <garde:end>
+
+function claim(sessionId, reason, { auto = false } = {}) {
+  writeJson(CLAIMS_FILE, claimsAfter(readJson(CLAIMS_FILE, {}), sessionId, reason, auto))
+}
+
+/** The sessions the supervisor must leave alone: `{ <id>: { at, why } }`. */
+function readStopped() {
+  const stopped = readJson(STOPPED_FILE, {})
+  return stopped && typeof stopped === 'object' && !Array.isArray(stopped) ? stopped : {}
+}
+
+function stopSession(sessionId, why) {
+  const stopped = readStopped()
+  stopped[sessionId] = { at: new Date().toISOString(), why }
+  writeJson(STOPPED_FILE, stopped)
+}
+
+function allowSession(sessionId) {
+  const stopped = readStopped()
+  const was = Object.prototype.hasOwnProperty.call(stopped, sessionId)
+  delete stopped[sessionId]
+  writeJson(STOPPED_FILE, stopped)
+  // Its guard history goes too: a session given back starts from zero.
   const claims = readJson(CLAIMS_FILE, {})
-  claims[sessionId] = { at: Date.now(), reason: reason ?? null }
-  writeJson(CLAIMS_FILE, claims)
+  if (claims?.[sessionId]?.auto) { delete claims[sessionId].auto; writeJson(CLAIMS_FILE, claims) }
+  return was
 }
 
 function claimedRecently(sessionId, windowMs = CLAIM_WINDOW_MS) {
@@ -301,10 +362,10 @@ function claimedRecently(sessionId, windowMs = CLAIM_WINDOW_MS) {
  *   kept in memory); otherwise the recent journal and the last sample.
  * @returns counters: `kicked` (messages sent), `skipped` (already reserved or still active), `failed` (definitive refusal).
  */
-async function resumeActives({ reason, sessionId, message, targets: explicitTargets } = {}) {
+async function resumeActives({ reason, sessionId, message, targets: explicitTargets, auto = false } = {}) {
   const journal = readJournal()
   const frais = journal && Date.parse(journal.at) > Date.now() - 3_600_000 ? journal : undefined
-  const samples = readJson(SUPERVISE_STATE, undefined)
+  const samples = freshSample(readJson(SUPERVISE_STATE, undefined))
   const primary = sessionId ?? frais?.primary ?? sessionIdFromArgs()
 
   const targets = new Map()
@@ -325,6 +386,8 @@ async function resumeActives({ reason, sessionId, message, targets: explicitTarg
   let live = new Set()
   try { live = new Set((await runningSessions()).map((row) => row.sessionId)) } catch {}
 
+  const stopped = readStopped()
+  const claims = readJson(CLAIMS_FILE, {})
   let kicked = 0
   let skipped = 0
   let failed = 0
@@ -332,11 +395,24 @@ async function resumeActives({ reason, sessionId, message, targets: explicitTarg
     const id = target.id
     if (claimedRecently(id)) { log(`resume: ${id} was already woken recently — skipped`); skipped++; continue }
     if (live.has(id)) { log(`resume: ${id} is still running — no need to wake it`); skipped++; continue }
+    // The session that asked for the relaunch is woken whatever the list says; the others are left alone when stopped, and, on the supervisor's own
+    // initiative, when they have already been woken AUTO_RESUME_MAX times lately (a task that goes round in circles, or that takes DSH down each time).
+    if (!target.primary) {
+      const verdict = auto ? autoResumeVerdict(claims[id], stopped, id) : (Object.prototype.hasOwnProperty.call(stopped, id) ? { ok: false, why: 'stopped' } : { ok: true })
+      if (verdict.ok !== true) {
+        if (verdict.why === 'loop') {
+          stopSession(id, `${verdict.count} automatic resumes in ${AUTO_RESUME_WINDOW_MS / 60_000} min`)
+          log(`resume: ${id} woken ${verdict.count} times in ${AUTO_RESUME_WINDOW_MS / 60_000} min — put on the stop list (give it back with: supervise allow ${id})`)
+        } else log(`resume: ${id} is on the stop list — left alone`)
+        skipped++
+        continue
+      }
+    }
     const text = target.primary
       ? (message && message !== true ? String(message) : composeMessage(message))
       : DEFAULT_MESSAGE_AUTRES
     if (await kickSession(id, text, 6)) {
-      claim(id, reason ?? 'resume')
+      claim(id, reason ?? 'resume', { auto })
       kicked++
       log(`resume: sent to ${id}${target.primary ? ' (current session)' : ''}`)
     } else {
@@ -968,7 +1044,7 @@ async function superviseLoop() {
         log(`supervise: ${why} — grace wait (${graceMs} ms) before resuming ${plural(dernieres.length, 'session')}`)
         await waitForApiReady(serverBack ? 30_000 : 10_000)
         await sleep(graceMs)
-        await resumeActives({ reason: why, targets: dernieres })
+        await resumeActives({ reason: why, targets: dernieres, auto: true })
       }
     }
     prev = { server, net }
@@ -1060,6 +1136,9 @@ function cmdSuperviseStatus() {
   const claims = readJson(CLAIMS_FILE, {})
   const recent = Object.entries(claims).filter(([, v]) => typeof v?.at === 'number' && Date.now() - v.at < 3_600_000)
   say(`resumes < 1 h : ${recent.length === 0 ? 'none' : recent.map(([id, v]) => `${id}@${new Date(v.at).toISOString().slice(11, 19)}`).join(', ')}`)
+  const stopped = Object.entries(readStopped())
+  say(`stop list   : ${stopped.length === 0 ? 'empty' : `${plural(stopped.length, 'session')} left alone (supervise allow <id> gives one back)`}`)
+  for (const [id, row] of stopped) say(`  · ${id}  since ${row?.at ?? '?'} — ${row?.why ?? ''}`)
   return 0
 }
 
@@ -1076,6 +1155,15 @@ async function cmdSupervise() {
   if (action === 'resume') {
     rmSync(SUPERVISE_PAUSE, { force: true })
     say('✓ automatic resume re-armed')
+    return 0
+  }
+  if (action === 'stop' || action === 'allow') {
+    const id = args._[2]
+    if (typeof id !== 'string' || id.length === 0) { say(`usage: supervise ${action} <session id>`); return 2 }
+    if (action === 'stop') {
+      stopSession(id, 'stopped by hand')
+      say(`✓ ${id} will never be resumed on its own (give it back with: supervise allow ${id})`)
+    } else say(allowSession(id) ? `✓ ${id} given back: it can be resumed again` : `(${id} was not on the stop list)`)
     return 0
   }
   return superviseLoop()
@@ -1103,7 +1191,7 @@ try {
     say(`unknown command: ${cmd}`)
     say('usage: status | url [--open] | actives [--json] | titre "…" --cat <slug> | rpc <method> [json] | kick | intent')
     say('       relance [--run] [--avec-autres] [--dry]')
-    say('       supervise [--once] [--interval 15] | supervise install|uninstall|status|pause|resume | install | uninstall')
+    say('       supervise [--once] [--interval 15] | supervise install|uninstall|status|pause|resume | supervise stop|allow <id> | install | uninstall')
     process.exit(64)
   }
   const code = await run()
