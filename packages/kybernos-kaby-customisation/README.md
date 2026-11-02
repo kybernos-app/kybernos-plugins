@@ -6,6 +6,13 @@
 
 - **Settings › Kaby.** The same page opens from the portrait that heads the strip above Kaby's chat.
 
+## Four tabs, so the page is never long
+
+The six blocks below are grouped in four tabs under the title and the lead (`TAB_IDS` in `client.js`): **Identity & voice** (blocks 1 and 2), **Video calls** (block 3),
+**Work** (blocks 4 and 6: where Kaby works, wake-ups) and **Permissions** (block 5). The first tab opens by default, arrow keys, Home and End move between tabs (tab role,
+`aria-selected`, `aria-controls`). Every card stays mounted and only the open panel is shown (`hidden`), so a draft in Permissions or a half-typed name is still there when the
+person comes back. Nothing is stored about the open tab. The live check (`scripts/check-kaby-customisation-live.mjs`) opens the tab each section works in.
+
 ## What it does, in six blocks (the first three the way Agent Teams draws a member)
 
 1. **Identity.** The name (an alias: the product stays Kaby elsewhere; 24 characters, letters, digits, spaces and apostrophes, no reserved word such

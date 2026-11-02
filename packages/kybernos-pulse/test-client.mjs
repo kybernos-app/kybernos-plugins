@@ -158,6 +158,19 @@ const hooksOn = walk(Page()).map((n) => n.props && n.props['data-kb']).filter(Bo
 ok('and that it runs when the host heard it', hooksOn.includes('pulse-menubar-on') && !hooksOn.includes('pulse-menubar-off'))
 state = mkSnap({})
 await T.refresh()
+{
+  // The page's description lives in the « ? » card: with the Suite it is passed to Help as `lead` and not drawn under the title; without the Suite it is drawn as before.
+  const lead = (t) => t.filter((n) => n.props && n.props.className === 'kbpu-lead')
+  const wordsNoSuite = lead(walk(Page()))
+  ok('without the Suite the description is still drawn under the title', wordsNoSuite.length === 1 && /Tells you what your automations did/.test(wordsNoSuite[0].children.join('')))
+  const FakeHelp = () => null
+  window.__KB_HELP__ = { Help: FakeHelp }
+  const withSuite = walk(Page())
+  const helpEl = withSuite.filter((n) => n.type === FakeHelp)
+  ok('with the Suite the page passes its description to Help as `lead`, and its title', helpEl.length === 1 && helpEl[0].props.id === 'kybernos-pulse' && /^Tells you what your automations did/.test(helpEl[0].props.lead) && helpEl[0].props.title === 'Widget', JSON.stringify(helpEl.map((n) => n.props)))
+  ok('...and no longer draws the same text under the title', lead(withSuite).length === 0)
+  delete window.__KB_HELP__
+}
 
 // ── the plugin, started on the fake page ────────────────────────────────────────────────────────────────────
 console.log('── following the runs ──')

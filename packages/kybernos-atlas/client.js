@@ -1011,9 +1011,8 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 [data-slot="settings.section"] > .kbat-page.kbat-page{width:100%;max-width:1240px}
 .kbat-page *{box-sizing:border-box}
 .kbat-page button{font:inherit;color:inherit;cursor:pointer}
-.kbat-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+.kbat-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px}
 .kbat-title{margin:0;font-size:18px;line-height:26px;font-weight:600;letter-spacing:-.01em}
-.kbat-sub{margin:2px 0 0;max-width:62ch;color:var(--dsw-alias-label-secondary)}
 .kbat-headr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kbat-built{display:inline-flex;align-items:center;gap:8px;color:var(--dsw-alias-label-secondary);font-size:12px}
 .kbat-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--dsw-alias-state-success-primary,#22c55e)}
@@ -1023,7 +1022,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-dot[data-t="busy"]{background:transparent;border:2px solid var(--dsw-alias-border-l3);border-top-color:var(--dsw-alias-label-primary);animation:kbat-spin .8s linear infinite}
 @keyframes kbat-spin{to{transform:rotate(360deg)}}
 /* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button. Under the page class: the page's own button rule (font:inherit) would win otherwise. */
-.kbat-page .kbat-help{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbat-page .kbat-help{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kbat-page .kbat-help:hover{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
 .kbat-page .kbat-help:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbat-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
@@ -1144,7 +1143,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-mcard h2{margin:0;font-size:18px;line-height:26px;font-weight:600;padding-right:32px}
 .kbat-mcard h3{margin:0 0 4px;font-size:13px;font-weight:600}
 .kbat-mcard p,.kbat-mcard li,.kbat-mcard dd{margin:0;color:var(--dsw-alias-label-secondary)}
-.kbat-mcard .kbat-lead{color:var(--dsw-alias-label-primary)}
+.kbat-mcard .kbat-lead{color:var(--dsw-alias-label-primary);font-size:14px;line-height:1.5}
 .kbat-mcard b{color:var(--dsw-alias-label-primary);font-weight:600}
 .kbat-mcard ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 .kbat-mcard ul.kbat-key{list-style:none;padding:0;gap:8px}
@@ -1248,7 +1247,8 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         h('div', { className: 'kbat-mcard', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbat-help-t', ref, tabIndex: -1 },
           h('button', { type: 'button', className: 'kbat-x', 'aria-label': tr('Close help'), onClick: p.onClose }, '×'),
           h('h2', { id: 'kbat-help-t' }, tr('How to read the Atlas')),
-          h('p', { className: 'kbat-lead' }, tr('The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.')),
+          h('p', { className: 'kbat-lead' }, tr('Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.')),
+          h('p', null, tr('The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.')),
           h('section', null, h('h3', null, tr('The views')),
             h('dl', null,
               h('dt', null, tr('Around')), h('dd', null, tr('Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.')),
@@ -1755,10 +1755,10 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       }
       return h('div', { className: 'kbat-page', 'data-kb': 'atlas', 'data-size': size, ref: rootRef },
         h('header', { className: 'kbat-head' },
-          h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, tr('Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.'))),
+          h('h1', { className: 'kbat-title' }, 'Atlas'),
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
-            h('button', { type: 'button', className: 'kbat-help', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, h('span', { className: 'kbat-helpq', 'aria-hidden': 'true' }, '?'), tr('How it works')),
+            h('button', { type: 'button', className: 'kbat-help', onClick: () => setHelp(true), 'aria-haspopup': 'dialog', 'aria-label': tr('How it works'), title: tr('How it works') }, h('span', { className: 'kbat-helpq', 'aria-hidden': 'true' }, '?')),
             h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, tr('Update')))),
         partial ? h('div', { className: 'kbat-banner', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': 'warn' }), h('span', { className: 'kbat-sp' },
           skippedMemory && failedNames.length === 0 ? h(React.Fragment, null, h('b', null, tr('Memories were skipped. ')), tr('They live in your kybernos.app account, which is not linked. The other sources were read.'))

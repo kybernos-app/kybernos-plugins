@@ -2725,8 +2725,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow kbtb-titlerow' },
               back ? h('button', { type: 'button', className: 'kbtb-back', 'data-kb': 'apps-back', 'aria-label': backLabel, title: backLabel, onClick: back }, svg('chevL', 18)) : null,
-              tile || null, h('h1', { className: 'kb6-title' }, title), pill || null, help()),
-            sub ? h('p', { className: 'kb8-sub' }, sub) : null),
+              tile || null, h('h1', { className: 'kb6-title' }, title), pill || null, help(sub ? { lead: sub, title } : null)),
+            subFallback('kb8-sub', sub)),
           actions || null)
         const Tabs = ({ p }) => h('div', { className: 'kbtb-tabs kbtb-tabs2', role: 'tablist', 'aria-label': kt('Tables', 'Tables'), 'data-kb': 'tables-tabs' },
           p.db.objects.map((o) => h('button', { key: o.key, type: 'button', role: 'tab', className: 'kbtb-tab', 'aria-selected': !p.relTab && p.obj !== null && o.key === p.obj.key ? 'true' : 'false', 'data-kb': 'tables-tab', 'data-object': o.key, onClick: () => p.openTable(o.key) }, o.label)),
@@ -2991,7 +2991,13 @@ window.__ModuleLoader__.load({
           } catch (e) { return EMPTY_SEL }
         }
         const writeSel = (s) => { try { localStorage.setItem(SEL_KEY, JSON.stringify(s)) } catch (e) { /* private mode: the choice lasts until the page closes */ } return s }
-        const help = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-db' }) : null)
+        // The Suite's « ? » button. A page that has a description gives it as `extra.lead` (with its `title`): it is the first line of the card, and the page does not draw it under its title.
+        const help = (extra) => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, Object.assign({ id: 'kybernos-db' }, extra || {})) : null)
+        // Where the Suite's Help is not there, the description stays under the title, as it always was.
+        const subFallback = (cls, text) => {
+          try { if (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) return null } catch (e) { /* draw it */ }
+          return text ? h('p', { className: cls }, text) : null
+        }
 
         const Page = (props) => {
           const tb = props.toolbar !== null && props.toolbar !== undefined && typeof props.toolbar.KbToolbar === 'function' ? props.toolbar : null

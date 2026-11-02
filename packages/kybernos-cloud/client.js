@@ -4206,13 +4206,16 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const when = models !== null ? fmtDate(models.imported_at) : null
           const signedOut = conn === 'out'
           const needSignIn = signedOut ? h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-signed-out' }, t('kyNeedServer')) : null
+          // True where the Suite's « ? » card does not exist (read at render time): only then is the page's description drawn under its title.
+          const helpAbsent = (() => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } })()
 
           return h('div', { className: 'kbl-page', 'data-kb': 'ky-section' },
             h('div', { className: 'kbl-head' },
               h('div', { className: 'kbl-headrow' },
                 h('h2', { className: 'kb6-title' }, t('kyTitle')),
-                (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-cloud', page: 'kybernos' }) : null)),
-              h('p', { className: 'kb8-sub' }, t('kySub'))),
+                (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-cloud', page: 'kybernos', lead: t('kySub'), title: t('kyTitle') }) : null)),
+              // The description lives in the « ? » card (`lead`); it stays under the title only where the Suite's Help does not exist.
+              helpAbsent ? h('p', { className: 'kb8-sub' }, t('kySub')) : null),
 
             h('div', { className: 'kbl-card', 'data-kb': 'ky-instructions' },
               h('div', { className: 'kbl-sect' }, t('kyInstrTitle')),

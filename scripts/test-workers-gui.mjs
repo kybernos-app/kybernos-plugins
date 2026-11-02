@@ -143,7 +143,7 @@ window.__ModuleLoader__ = { load: (def) => { window.__def = def } }
 ${opts.oldSuite ? 'window.__KB_HELP__ = { version: 1, Help: () => null }' : `window.__KB_HELP__ = { version: 1, actions: true, Help: function Help (p) {
   const [o, setO] = React.useState(false)
   return React.createElement('span', null, React.createElement('button', { 'data-kb': 'help-button', 'data-id': p.id, onClick: () => setO(!o) }, 'How it works'),
-    o ? React.createElement('section', { 'data-kb': 'help-panel' }, p.action ? React.createElement('button', { 'data-kb': 'help-action', onClick: () => { setO(false); p.action.onClick() } }, p.action.label) : null) : null)
+    o ? React.createElement('section', { 'data-kb': 'help-panel' }, p.lead ? React.createElement('p', { 'data-kb': 'help-lead' }, p.lead) : null, p.action ? React.createElement('button', { 'data-kb': 'help-action', onClick: () => { setO(false); p.action.onClick() } }, p.action.label) : null) : null)
 } }`}
 window.__credentialSets = []
 window.__stored = new Set()
@@ -467,6 +467,7 @@ try {
     const p = await open('en')
     ok('the shared help card is on the page, and nothing else is a second help button', (await p.$('[data-kb="help-button"][data-id="kybernos-workers"]')) !== null && (await p.$('[data-kb="wk-guide"]')) === null)
     await click(p, 'help-button')
+    ok('the card opens with the description of the page (no longer drawn under the title)', /coding assistants installed on your computer/.test(await p.textContent('[data-kb="help-lead"]')) && !/coding assistants installed on your computer/.test(await p.textContent('.kbwk-hd')))
     ok('the card carries the action that opens the guide', /Try the demo/.test(await p.textContent('[data-kb="help-action"]')))
     await click(p, 'help-action')
     await p.waitForSelector('[data-kb="workers-guide"]', { timeout: 3000 })
@@ -524,7 +525,7 @@ try {
     await click(p, 'wk-check-row-codex')
     await waitStatus(p, 'codex', /Prêt/)
     const t = await p.textContent('.kbwk')
-    ok('French labels', t.includes('Des assistants de code installés') && t.includes('Tout vérifier') && t.includes('Pas activé') && t.includes('Autorisé'))
+    ok('French labels', t.includes('Tout vérifier') && t.includes('Pas activé') && t.includes('Autorisé'))
     await click(p, 'wk-toggle-codex')
     ok('French evidence lines', (await card(p, 'codex')).includes('Programme trouvé dans le PATH de DSH'))
     ok('no horizontal scroll at 390 px', await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), String(await p.evaluate(() => document.documentElement.scrollWidth)))

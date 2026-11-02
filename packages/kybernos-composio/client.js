@@ -24,6 +24,12 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
+    // The page's own description lives in the Suite's « ? » card (`lead`); where the Suite is not there, it stays under the title, as it always was.
+    const kbSubFallback = (cls, text, attrs) => {
+      try { if (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) return null } catch (e) { /* draw it */ }
+      return h('p', Object.assign({ className: cls }, attrs || {}), text)
+    }
+
     // ── Composio catalog: loaded on demand from the host ──────────────────────
     // The 412 KB of the catalog are no longer inlined in this bundle: the browser only
     // downloads them when Composio is opened. catalog.js stays the source of
@@ -238,8 +244,6 @@ window.__ModuleLoader__.load({
       // ── Settings page (Settings ▸ Connectors) ──
       'kb.cp.set.nav': { fr: 'Connecteurs', en: 'Connectors' },
       'kb.cp.set.h1': { fr: 'Connecteurs', en: 'Connectors' },
-      'kb.cp.set.lead': { fr: 'Clé Composio, connexions actives et mode de composition — la page Connectors reste l’endroit où brancher une app.', en: 'Composio key, active connections and compose mode — the Connectors page is still where you link an app.' },
-      'kb.cp.set.keyH': { fr: 'Clé Composio', en: 'Composio key' },
       'kb.cp.set.key.on': { fr: 'Configurée', en: 'Configured' },
       'kb.cp.set.key.off': { fr: 'Non configurée', en: 'Not configured' },
       'kb.cp.set.key.src.env': { fr: 'fournie par l’environnement', en: 'provided by the environment' },
@@ -248,10 +252,6 @@ window.__ModuleLoader__.load({
       'kb.cp.set.connH': { fr: 'Connexions', en: 'Connections' },
       'kb.cp.set.connSub': { fr: 'Les apps reliées à ta clé, avec leurs comptes.', en: 'The apps linked to your key, with their accounts.' },
       'kb.cp.set.connNone': { fr: 'Aucune connexion active pour l’instant.', en: 'No active connection yet.' },
-      'kb.cp.set.modeH': { fr: 'Mode de composition', en: 'Compose mode' },
-      'kb.cp.set.mode.personal': { fr: 'Ta propre clé', en: 'Your own key' },
-      'kb.cp.set.mode.kybernos': { fr: 'Kybernos Cloud', en: 'Kybernos Cloud' },
-      'kb.cp.set.modeSub': { fr: 'Vu en lecture seule : le choix se fait depuis la page Connectors, onglet « Tes connexions ».', en: 'Read-only here: the choice is made on the Connectors page, in the “Yours” tab.' },
       'kb.cp.set.open': { fr: 'Ouvrir Connectors', en: 'Open Connectors' },
       // (POC) "Kybernos" pill of the engine's Plugins page.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
@@ -515,6 +515,7 @@ window.__ModuleLoader__.load({
       'kb.cp.pv.connectedOf': { fr: 'Connecté · {n} sur {limit} apps', en: 'Connected · {n} of {limit} apps' },
       'kb.cp.pv.manage': { fr: 'Gérer les connexions', en: 'Manage connections' },
       'kb.cp.pv.foot': { fr: 'Changer de service ne supprime rien et ne déconnecte rien chez l’autre. Les outils Kybernos Cloud ne sont proposés aux agents que lorsque Kybernos Cloud est choisi ; ceux de Composio suivent la clé enregistrée.', en: 'Switching deletes nothing and disconnects nothing at the other one. Kybernos Cloud tools are offered to agents only while Kybernos Cloud is selected; Composio’s follow the saved key.' },
+      'kb.cp.pv.details': { fr: 'Détails', en: 'Details' },
       'kb.cp.pv.err': { fr: 'Le choix n’a pas pu être enregistré.', en: 'The choice could not be saved.' },
       // Add menu: an API from an OpenAPI spec, and Add with AI.
       'kb.cp.add.api': { fr: 'API depuis une spec OpenAPI', en: 'API from an OpenAPI spec' },
@@ -1279,10 +1280,20 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kbcp-pv.off .kbcp-pv-h{cursor:default}
 .kbcp-pv-p{margin:0 0 10px;font-size:13px;opacity:.85}
 .kbcp-pv-state{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:8px}
-.kbcp-pv-dot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary,#2fbf71)}
+.kbcp-pv-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary,#2fbf71)}
 .kbcp-pv-dot.w{background:var(--dsw-static-amber-500,#f59e0b)}
 .kbcp-pv-dot.n{background:rgba(128,128,128,.6)}
 .kbcp-pv-foot{margin:4px 0 0;font-size:12.5px;opacity:.7}
+/* a card folds to its header row and its one-line status; the toggle sits beside the body, outside the header that selects */
+.kbcp-pv-tog{order:3;flex:none;align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin:-4px -6px 0 0;padding:0;border:0;border-radius:8px;background:transparent;color:inherit;opacity:.75;cursor:pointer}
+.kbcp-pv-tog:hover{opacity:1;background:var(--dsw-alias-border-l1,rgba(128,128,128,.15))}
+.kbcp-pv-tog:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#6c8cff);outline-offset:2px;opacity:1}
+.kbcp-pv-tog svg{transition:transform .15s}
+.kbcp-pv-tog[aria-expanded="true"] svg{transform:rotate(180deg)}
+.kbcp-pv-more[hidden]{display:none}
+.kbcp-pv-more[hidden]+.kbcp-pv-state{margin-top:0}
+.kbcp-pv-more[hidden]+.kbcp-pv-state .kbcp-pv-stx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.kbcp-pv-tog svg{transition:none}}
 .kbcp-new{margin-inline-start:auto;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--dsw-alias-brand-primary,#6c8cff);color:var(--dsw-alias-label-primary-foreground,#fff)}
 .kbcp-menu hr{width:100%;border:0;border-top:1px solid rgba(128,128,128,.25);margin:4px 0}
 .kbcp-ops{border:1px solid rgba(128,128,128,.25);border-radius:12px;overflow:hidden;margin:6px 0 4px;max-height:280px;overflow-y:auto}
@@ -1345,7 +1356,6 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kbcp-set-h2{margin:0;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary)}
 .kbcp-set-headrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .kbcp-set-sub{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbcp-set-kpis{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:13px;color:var(--dsw-alias-label-secondary)}
 .kbcp-set-app{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.15))}
 .kbcp-set-appname{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);min-width:120px}
 .kbcp-set-accl{display:flex;flex-wrap:wrap;gap:6px}
@@ -2901,6 +2911,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           mock: { bar: kbt('kb.cp.title'), rows: [kbt('kb.cp.intro.m.row')], hot: kbt('kb.cp.intro.m.hot'), states: [kbt('kb.cp.intro.m.st1'), kbt('kb.cp.pend'), kbt('kb.cp.connected')], actions: [kbt('kb.cp.addconn'), kbt('kb.cp.intro.m.wait'), kbt('kb.cp.intro.m.allow')] }
         })
         : null)
+      const kbPageTitle = (() => { try { const l = fieldSeam !== null ? fieldSeam.label('connectors') : null; return typeof l === 'string' && l.trim() !== '' ? l : kbt('kb.cp.title') } catch (e) { return kbt('kb.cp.title') } })()
       return h('div', { className: 'kb7-root' },
         // ── Header: Agent Teams gabarit (kb6-headrow / kb6-headcol / kb6-titlerow).
         // Same structure as the Kybers page: title + "?" help glued to it, subtitle
@@ -2910,10 +2921,10 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
-              h('h1', { className: 'kb6-title' }, (() => { try { const l = fieldSeam !== null ? fieldSeam.label('connectors') : null; return typeof l === 'string' && l.trim() !== '' ? l : kbt('kb.cp.title') } catch (e) { return kbt('kb.cp.title') } })()),
-              // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
-              typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio' }) : null),
-            h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
+              h('h1', { className: 'kb6-title' }, kbPageTitle),
+              // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json); the page's description is the first line of that card.
+              typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio', lead: kbt('kb.cp.sub'), title: kbPageTitle }) : null),
+            kbSubFallback('kb8-sub', kbt('kb.cp.sub'), { title: kbt('kb.cp.sub') })),
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
           // The bar sits in the header row with the primary action as its trailing item (the template of Agent Teams, Creations, Automations and
@@ -3330,6 +3341,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const [provider, setProvider] = React.useState(undefined) // GET /provider: 'composio' | 'kybernos' | null (nothing chosen); undefined = loading
       const [kc, setKc] = React.useState(undefined)         // the Kybernos Cloud half, as the page reads it; undefined = loading, null = does not answer
       const [saveErr, setSaveErr] = React.useState(false)
+      const [unfolded, setUnfolded] = React.useState({ composio: false, kybernos: false }) // a card shows its header row and one status line until it is unfolded; nothing is kept
       const alive = React.useRef(true)
       React.useEffect(() => () => { alive.current = false }, [])
       const loadKey = React.useCallback(() => {
@@ -3374,7 +3386,6 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const signedIn = offered && kc.connected !== false
       const inPlan = signedIn && kc.entitled !== false
       const keyOn = key !== null && key.configured === true
-      // Nothing chosen yet: what is in use today is what shows as selected (a saved key first), so the page never claims a change.
       // Nothing chosen yet: Kybernos Cloud, the default, unless a key of their own is saved (then what is in use today shows as selected).
       const effective = kbCpProviderEffective(provider, offered, key === null ? null : keyOn)
       const choose = (next) => {
@@ -3406,15 +3417,21 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
                       h('span', { className: 'kbcp-set-dot' + (a.status === 'ACTIVE' ? '' : ' pend') }),
                       a.label || kbt('kb.cp.account'))))))))
       const radio = (id, on, enabled) => h('button', { type: 'button', className: 'kbcp-pv-rad', role: 'radio', 'aria-checked': on ? 'true' : 'false', 'aria-label': kbt(id === 'kybernos' ? 'kb.cp.pv.kybernos' : 'kb.cp.pv.composio'), disabled: !enabled, 'data-kb': 'provider-' + id, onClick: () => choose(id) })
+      // The toggle is a sibling of the header (which selects), so unfolding can never change the choice; it follows the radio in the tab order and is drawn at the right edge.
+      // The folded part stays mounted: what is typed in it is kept.
+      const toggle = (id) => h('button', { type: 'button', className: 'kbcp-pv-tog', 'data-kb': 'provider-toggle-' + id, 'aria-expanded': unfolded[id] === true ? 'true' : 'false', 'aria-controls': 'kbcp-pv-more-' + id, 'aria-label': kbt('kb.cp.pv.details') + ' — ' + kbt(id === 'kybernos' ? 'kb.cp.pv.kybernos' : 'kb.cp.pv.composio'), title: kbt('kb.cp.pv.details'), onClick: () => setUnfolded((u) => Object.assign({}, u, { [id]: u[id] !== true })) },
+        h('svg', { viewBox: '0 0 16 16', width: 14, height: 14, fill: 'none', 'aria-hidden': 'true' }, h('path', { d: 'M4 6l4 4 4-4', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' })))
+      const more = (id, ...rest) => h('div', { id: 'kbcp-pv-more-' + id, className: 'kbcp-pv-more', 'data-kb': 'provider-more-' + id, hidden: unfolded[id] !== true }, ...rest)
+      const status = (id, dot, text) => h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot' + dot }), h('span', { className: 'kbcp-pv-stx', title: unfolded[id] === true ? undefined : text }, text))
       const composioCard = () => h('div', { className: 'kbcp-pv' + (effective === 'composio' ? ' sel' : ''), 'data-kb': 'provider-card-composio' },
         radio('composio', effective === 'composio', true),
+        toggle('composio'),
         h('div', { className: 'kbcp-pv-b' },
           h('div', { className: 'kbcp-pv-h', onClick: () => choose('composio') }, kbt('kb.cp.pv.composio'), h('span', { className: 'kb7-pill' }, kbt('kb.cp.pv.you'))),
-          h('p', { className: 'kbcp-pv-p' }, kbt('kb.cp.pv.composio.sub')),
-          h(ComposioKeyConfig, null),
-          h('div', { className: 'kbcp-pv-state' },
-            h('span', { className: 'kbcp-pv-dot' + (keyOn ? '' : ' n') }),
-            key === null ? kbt('kb.cp.loading') : (keyOn ? kbt('kb.cp.set.key.on') + ' · ' + srcText() : kbt('kb.cp.set.key.off')))))
+          more('composio',
+            h('p', { className: 'kbcp-pv-p' }, kbt('kb.cp.pv.composio.sub')),
+            h(ComposioKeyConfig, null)),
+          status('composio', keyOn ? '' : ' n', key === null ? kbt('kb.cp.loading') : (keyOn ? kbt('kb.cp.set.key.on') + ' · ' + srcText() : kbt('kb.cp.set.key.off')))))
       const srcText = () => {
         if (key === null) return ''
         const sv = String(key.source || '')
@@ -3422,36 +3439,40 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         if (sv === 'setting') return kbt('kb.cp.set.key.src.setting')
         return kbt('kb.cp.set.key.src.none')
       }
+      // The actions (if any) go in the folded part; the status line stays under the header.
       const kybernosBody = () => {
-        if (kc === undefined) return h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot n' }), kbt('kb.cp.loading'))
-        if (offered !== true) return h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot n' }), kbt('kb.cp.pv.notoffered'))
+        if (kc === undefined) return { actions: null, dot: ' n', text: kbt('kb.cp.loading') }
+        if (offered !== true) return { actions: null, dot: ' n', text: kbt('kb.cp.pv.notoffered') }
         if (signedIn !== true) {
-          return h('div', null,
-            h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'provider-signin', onClick: openPage }, kbt('kb.cp.pv.signin'))),
-            h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot n' }), kbt('kb.cp.pv.signedout')))
+          return { actions: h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'provider-signin', onClick: openPage }, kbt('kb.cp.pv.signin'))), dot: ' n', text: kbt('kb.cp.pv.signedout') }
         }
         if (inPlan !== true) {
-          return h('div', null,
-            kc.web !== null ? h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'provider-plans', onClick: () => { const u = kbCpWebUrl(kc.web); if (u !== null) { try { window.open(u, '_blank', 'noopener') } catch (e) { /* cannot open */ } } } }, kbt('kb.cp.pv.plans'))) : null,
-            h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot w' }), kbt('kb.cp.pv.notplan')))
+          return { actions: kc.web !== null ? h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'provider-plans', onClick: () => { const u = kbCpWebUrl(kc.web); if (u !== null) { try { window.open(u, '_blank', 'noopener') } catch (e) { /* cannot open */ } } } }, kbt('kb.cp.pv.plans'))) : null, dot: ' w', text: kbt('kb.cp.pv.notplan') }
         }
-        return h('div', null,
-          h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'provider-manage', onClick: openPage }, kbt('kb.cp.pv.manage'))),
-          h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot' }),
-            Number.isFinite(kc.limit) && kc.limit > 0 ? kbt('kb.cp.pv.connectedOf').replace('{n}', String(kc.count)).replace('{limit}', String(kc.limit)) : kbt('kb.cp.pv.connected').replace('{n}', String(kc.count))))
+        return {
+          actions: h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'provider-manage', onClick: openPage }, kbt('kb.cp.pv.manage'))),
+          dot: '',
+          text: Number.isFinite(kc.limit) && kc.limit > 0 ? kbt('kb.cp.pv.connectedOf').replace('{n}', String(kc.count)).replace('{limit}', String(kc.limit)) : kbt('kb.cp.pv.connected').replace('{n}', String(kc.count)),
+        }
       }
-      const kybernosCard = () => h('div', { className: 'kbcp-pv' + (effective === 'kybernos' ? ' sel' : '') + (inPlan === true ? '' : ' off'), 'data-kb': 'provider-card-kybernos' },
-        radio('kybernos', effective === 'kybernos', inPlan === true),
-        h('div', { className: 'kbcp-pv-b' },
-          h('div', { className: 'kbcp-pv-h', onClick: () => choose('kybernos') }, kbt('kb.cp.pv.kybernos'),
-            h('span', { className: 'kb7-pill' + (inPlan === true ? '' : ' pop') }, inPlan === true ? kbt('kb.cp.pv.included') : kbt('kb.cp.pv.paid'))),
-          h('p', { className: 'kbcp-pv-p' }, kbt('kb.cp.pv.kybernos.sub')),
-          kybernosBody()))
+      const kybernosCard = () => {
+        const body = kybernosBody()
+        return h('div', { className: 'kbcp-pv' + (effective === 'kybernos' ? ' sel' : '') + (inPlan === true ? '' : ' off'), 'data-kb': 'provider-card-kybernos' },
+          radio('kybernos', effective === 'kybernos', inPlan === true),
+          toggle('kybernos'),
+          h('div', { className: 'kbcp-pv-b' },
+            h('div', { className: 'kbcp-pv-h', onClick: () => choose('kybernos') }, kbt('kb.cp.pv.kybernos'),
+              h('span', { className: 'kb7-pill' + (inPlan === true ? '' : ' pop') }, inPlan === true ? kbt('kb.cp.pv.included') : kbt('kb.cp.pv.paid'))),
+            more('kybernos',
+              h('p', { className: 'kbcp-pv-p' }, kbt('kb.cp.pv.kybernos.sub')),
+              body.actions),
+            status('kybernos', body.dot, body.text)))
+      }
       return h('div', { className: 'kbcp-set-page', 'data-kb': 'kybernos-composio-settings' },
         h('div', { className: 'kbcp-set-headrow' },
           h('h2', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.h1')),
-          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio', page: 'connectors' }) : null)),
-        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.pv.lead')),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio', page: 'connectors', lead: kbt('kb.cp.pv.lead'), title: kbt('kb.cp.set.h1') }) : null)),
+        kbSubFallback('kbcp-set-sub', kbt('kb.cp.pv.lead')),
         composioCard(),
         kybernosCard(),
         saveErr === true ? h('div', { className: 'kbcp-note bad', role: 'alert' }, kbt('kb.cp.pv.err')) : null,
@@ -3506,7 +3527,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { needView: kbCpNeedView, modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, fullRows: kbCpFullRows, topCats: kbCpTopCats, logoUrl: kbCpLogoUrl, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { needView: kbCpNeedView, modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, fullRows: kbCpFullRows, topCats: kbCpTopCats, logoUrl: kbCpLogoUrl, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, settingsPage: ComposioSettingsPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

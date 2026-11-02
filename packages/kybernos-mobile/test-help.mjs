@@ -34,8 +34,8 @@ console.log('what the card says')
 
 console.log('where the button is')
 {
-  const guarded = "typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null"
-  check('the help button is always asked behind a guard, for the bundle’s own help', SOURCE.includes(guarded))
+  const guarded = "typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile', lead: LEAD(), title: TITLE() }) : null"
+  check('the help button is always asked behind a guard, for the bundle’s own help, with the screen\'s sentence as `lead` and its name as `title`', SOURCE.includes(guarded))
 
   // The window the account menu opens (« Phone and channels »), rendered on a fake React that only builds a tree.
   const Help = function Help () { return null }
@@ -79,9 +79,17 @@ console.log('where the button is')
   check('the « Phone and channels » window is published', typeof withHelp.Panel === 'function')
   check('the window is titled « Phone and channels »', title.length === 1 && /Phone and channels/.test(JSON.stringify(title[0])), title.length)
   check('the window carries one « ? How it works » button, for this bundle’s help', buttons.length === 1 && buttons[0].props.id === 'kybernos-mobile', buttons.map((b) => b.props))
+  // The one sentence the screen says about itself lives in the card (`lead`), not under the title; the row is then one line high.
+  const SENTENCE = 'Open this computer from your phone, and reach Kaby from your messaging apps.'
+  const lead = (tree) => (tree === null ? [] : find(tree, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))))
+  const headOf = (tree) => (tree === null ? [] : find(tree, (n) => n.props && /\bkbpc-head\b/.test(String(n.props.className))))
+  check('window with the Suite: the card gets the sentence as `lead` and the screen name as `title`', buttons.length === 1 && buttons[0].props.lead === SENTENCE && buttons[0].props.title === 'Phone and channels', buttons.map((b) => b.props))
+  check('...and the sentence is no longer drawn under the title (the title row is one line)', lead(withHelp.tree).length === 0 && headOf(withHelp.tree).length === 1 && /\bkbpc-head-solo\b/.test(headOf(withHelp.tree)[0].props.className))
   const without = run({ withHelp: false })
   const none = without.tree === null ? [] : find(without.tree, (n) => n.type === Help)
   check('without the Suite there is no button and the window still draws', without.tree !== null && none.length === 0 && find(without.tree, (n) => n.props && n.props.className === 'kbpc-title').length === 1)
+  check('...and the sentence stays under the title, in the two-row header', lead(without.tree).length === 1 && JSON.stringify(lead(without.tree)[0]).includes(SENTENCE) && headOf(without.tree).length === 1 && !/kbpc-head-solo/.test(headOf(without.tree)[0].props.className))
+  check('the one-line header rules (wide and narrow) outrank the two-row ones', /\.kbpc-head\.kbpc-head-solo\{grid-template-areas:"ic ttl chip help x"/.test(SOURCE) && /@media \(max-width:520px\)\{\.kbpc-head\.kbpc-head-solo\{grid-template-areas:"ic ttl help x";row-gap:0\}\}/.test(SOURCE))
 }
 
 console.log('the animated help of the Settings page (V-05, V-36)')
@@ -127,6 +135,7 @@ console.log('the animated help of the Settings page (V-05, V-36)')
   check('the mock names the page, the phone, its three states and three labels', p !== null && p.mock.bar === 'Phone and channels' && p.mock.hot.length > 2 && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.actions[2] === 'Allow', p && p.mock)
   check('it sits after the title row and before the body', (() => { const order = find(tree, (n) => n.type === Intro || (n.props && (/\bkbpc-head\b/.test(String(n.props.className)) || n.type !== 'div' && typeof n.type === 'function' && n.type.name === 'Body'))).map((n) => (n.type === Intro ? 'intro' : /\bkbpc-head\b/.test(String(n.props.className)) ? 'head' : 'body')); return order.join() === 'head,intro,body' })())
   check('the title row still carries one « ? How it works » button, for this bundle', find(tree, (n) => n.type === Help).length === 1 && find(tree, (n) => n.type === Help)[0].props.id === 'kybernos-mobile')
+  check('the Settings page gives its sentence and its name to that button (`lead`, `title`), and no longer draws the sentence under the title', (() => { const b = find(tree, (n) => n.type === Help)[0].props; return b.lead === 'Open this computer from your phone, and reach Kaby from your messaging apps.' && b.title === 'Phone and channels' && find(tree, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))).length === 0 })())
   const fr = draw({ lang: 'kybernos', hub: { version: 1, Help, Intro } })
   const q = fr === null ? null : find(fr, (n) => n.type === Intro)[0]
   check('in French: the same animation, in French', q !== undefined && q !== null && /code/i.test(q.props.steps[0].t) && /Autoriser/.test(q.props.mock.actions[2]) && q.props.title !== p.title, q && q.props.title)
@@ -134,6 +143,8 @@ console.log('the animated help of the Settings page (V-05, V-36)')
   check('an older Suite without the animation: the page draws, with its button and no animation', older !== null && find(older, (n) => n.type === Intro).length === 0 && find(older, (n) => n.type === Help).length === 1)
   const none = draw({ lang: 'en' })
   check('no Suite at all: the page draws with neither', none !== null && find(none, (n) => n.type === Intro || n.type === Help).length === 0)
+  check('...and its sentence stays under the title', find(none, (n) => n.props && /\bkbpc-lead\b/.test(String(n.props.className))).length === 1)
+  check('in French the `lead` is the French sentence', (() => { const b = find(fr, (n) => n.type === Help)[0]; return b !== undefined && /^Ouvre cet ordinateur depuis ton téléphone/.test(b.props.lead) && b.props.title === 'Téléphone et canaux' })())
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

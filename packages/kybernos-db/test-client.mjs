@@ -815,6 +815,30 @@ ok('an app opens on its tables with Relations after them, only when there is mor
   assert.equal(kb(head, 'apps-back')[0].props['aria-label'], 'All apps'); click(kb(head, 'apps-back')[0]); assert.deepEqual(calls.splice(0), [['back']])
   assert.ok(text(head).includes('Shop'))
 })
+ok('the Apps gallery passes its description to the « ? » card as `lead` (with its title) and does not draw it under the title; the other headers stay bare; no Suite: the line stays under the title', () => {
+  const sub = 'Your data, kept on this computer. Each app has its tables, rows and views.'
+  const lines = (t) => all(t, (n) => n.props.className === 'kb8-sub')
+  // without the Suite (as in this test file): the description stays under the title
+  const bare = tree(React.createElement(P.AppHeader, { p: pageApi(), title: 'Apps', sub }))
+  assert.equal(lines(bare).length, 1); assert.equal(text(lines(bare)[0]), sub)
+  const Help = (props) => el('span', { 'data-kb': 'help-stub', 'data-id': props.id, 'data-lead': props.lead === undefined ? '' : props.lead, 'data-title': props.title === undefined ? '' : props.title })
+  window.__KB_HELP__ = { Help }
+  try {
+    const gallery = tree(React.createElement(P.AppHeader, { p: pageApi(), title: 'Apps', sub }))
+    assert.equal(lines(gallery).length, 0, 'the description is no longer under the title')
+    const pill = kb(gallery, 'help-stub')
+    assert.equal(pill.length, 1); assert.equal(pill[0].props['data-id'], 'kybernos-db'); assert.equal(pill[0].props['data-lead'], sub); assert.equal(pill[0].props['data-title'], 'Apps')
+    // loading, error, New app and an app's own page have no description: a bare « ? », no lead, no line
+    const noSub = tree(React.createElement(P.AppHeader, { p: pageApi(), title: 'Shop' }))
+    assert.equal(lines(noSub).length, 0); assert.equal(kb(noSub, 'help-stub').length, 1); assert.equal(kb(noSub, 'help-stub')[0].props['data-lead'], '')
+  } finally { delete window.__KB_HELP__ }
+})
+ok('the Apps gallery header is the only one given a description, and the line cannot come back as a plain paragraph', () => {
+  const given = [...source.matchAll(/h\(AppHeader, \{ p,[^\n]*?sub: /g)]
+  assert.equal(given.length, 1)
+  assert.ok(!/sub \? h\('p', \{ className: 'kb8-sub' \}, sub\)/.test(source))
+  assert.ok(/subFallback\('kb8-sub', sub\)/.test(source) && /help\(sub \? \{ lead: sub, title \} : null\)/.test(source))
+})
 ok('the ⋯ of an app lists its archived tables with Restore and Delete forever, and puts the app away', () => {
   const p = (menu) => pageApi({ db: APP_SHOP, obj: APP_SHOP.objects[0], menu })
   const closed = tree(React.createElement(P.AppMenu, { p: p(null) }))

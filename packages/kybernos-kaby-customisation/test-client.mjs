@@ -119,6 +119,74 @@ console.log('── the page, rendered once ──')
   tree = Panel()
   ok('in French the same page speaks French', /Identité/.test(text(tree)) && /Voix/.test(text(tree)) && /Visage en appel vidéo/.test(text(tree)))
   resolved = 'en'
+
+  // The page's description lives in the « ? » card (`lead`); under the title only where the Suite's Help does not exist.
+  const LEAD_EN = 'How your assistant looks and sounds, where it works, what it may do without asking and when it wakes up. Its rules and its memory do not change here.'
+  tree = Panel()
+  ok('no Suite: the description stays under the title, and there is no « ? » card', byKb(tree, 'kaby-custom-page').length === 1 && find(tree, (n) => n.props.className === 'kbkc-lead').length === 1 && text(find(tree, (n) => n.props.className === 'kbkc-lead')[0]).trim() === LEAD_EN)
+  const Help = function Help () { return null }
+  globalThis.window.__KB_HELP__ = { version: 1, Help }
+  tree = Panel()
+  const cards = find(tree, (n) => n.type === Help)
+  ok('with the Suite: one « ? » card, given the description as `lead` and the page name as `title`', cards.length === 1 && cards[0].props.id === 'kybernos-kaby-customisation' && cards[0].props.lead === LEAD_EN && cards[0].props.title === 'Kaby', cards[0] && JSON.stringify(cards[0].props).slice(0, 120))
+  ok('…it is the page "kaby" of the bundle (help.json has no card for it: the card shows the lead alone)', cards.length === 1 && cards[0].props.page === 'kaby')
+  ok('…and the description is no longer drawn under the title', find(tree, (n) => n.props.className === 'kbkc-lead').length === 0 && !text(tree).includes(LEAD_EN))
+  resolved = 'kybernos'
+  tree = Panel()
+  ok('in French the `lead` is the French description', find(tree, (n) => n.type === Help).length === 1 && /^Comment ton assistant est et parle/.test(find(tree, (n) => n.type === Help)[0].props.lead))
+  resolved = 'en'
+  T.store.profile = null
+  tree = Panel()
+  ok('while the page is loading, only the title shows: no card and no description', find(tree, (n) => n.type === Help).length === 0 && find(tree, (n) => n.props.className === 'kbkc-lead').length === 0)
+  T.store.profile = publicProfile(emptyProfile())
+  delete globalThis.window.__KB_HELP__
+}
+
+console.log('── the tabs ──')
+{
+  resolved = 'en'
+  // A React whose state persists between renders, so a click can be followed by the next draw of the page.
+  const kept = []
+  let at = 0
+  const R = { ...React, useState: (v) => { const n = at++; if (!(n in kept)) kept[n] = typeof v === 'function' ? v() : v; return [kept[n], (x) => { kept[n] = x }] } }
+  const P = T.buildPanel(R)
+  const draw = () => { at = 0; return P() }
+  const tabsOf = (tree) => byKb(tree, 'kaby-custom-tab')
+  const panelsOf = (tree) => find(tree, (n) => n.props && n.props.role === 'tabpanel')
+  const openPanels = (tree) => panelsOf(tree).filter((p) => p.props.hidden !== true).map((p) => p.props['data-kb'])
+  const card = (name) => (x) => typeof x.type === 'function' && x.type.displayName === name
+
+  T.store.profile = null
+  ok('while the profile is not read there are no tabs to choose from', byKb(draw(), 'kaby-custom-tabs').length === 0)
+  kept.length = 0
+  T.store.profile = publicProfile(emptyProfile())
+  let tree = draw()
+  ok('four tabs, in the order of T.TAB_IDS, each a button with the tab role', tabsOf(tree).map((t) => t.props['data-tab']).join() === T.TAB_IDS.join() && T.TAB_IDS.length === 4 && tabsOf(tree).every((t) => t.type === 'button' && t.props.role === 'tab') && byKb(tree, 'kaby-custom-tabs')[0].props.role === 'tablist')
+  ok('the first tab is open: it is selected and reachable by Tab, the others are not', tabsOf(tree).map((t) => t.props['aria-selected']).join() === 'true,false,false,false' && tabsOf(tree).map((t) => t.props.tabIndex).join() === '0,-1,-1,-1')
+  ok('there is one panel per tab and only the open one is shown', panelsOf(tree).length === 4 && openPanels(tree).join() === 'kaby-custom-panel-look')
+  ok('each tab controls a panel that points back at it', tabsOf(tree).every((t) => { const p = panelsOf(tree).find((x) => x.props.id === t.props['aria-controls']); return p !== undefined && p.props['aria-labelledby'] === t.props.id }))
+  const within = (id) => panelsOf(tree).find((p) => p.props['data-kb'] === 'kaby-custom-panel-' + id)
+  ok('Identity and Voice share the first tab', byKb(within('look'), 'kaby-custom-identity').length === 1 && byKb(within('look'), 'kaby-custom-voice').length === 1 && byKb(within('look'), 'kaby-custom-face').length === 0)
+  ok('the face of video calls has its own tab', byKb(within('face'), 'kaby-custom-face').length === 1 && byKb(within('face'), 'kaby-custom-identity').length === 0)
+  ok('where Kaby works and its wake-ups share the Work tab', find(within('work'), card('KabyWhereCard')).length === 1 && find(within('work'), card('KabyWakeCard')).length === 1 && find(within('work'), card('KabyMandateCard')).length === 0)
+  ok('the permissions have their own tab', find(within('permissions'), card('KabyMandateCard')).length === 1 && find(within('permissions'), card('KabyWakeCard')).length === 0)
+  ok('no card was lost or drawn twice', ['kaby-custom-identity', 'kaby-custom-voice', 'kaby-custom-face'].every((k) => byKb(tree, k).length === 1) && ['KabyWhereCard', 'KabyMandateCard', 'KabyWakeCard'].every((n) => find(tree, card(n)).length === 1))
+  ok('the title and the lead stay above the tabs, for every tab', byKb(tree, 'kaby-custom-page').length === 1 && /How your assistant looks and sounds/.test(text(tree)))
+
+  tabsOf(tree)[3].props.onClick()
+  tree = draw()
+  ok('a click opens that tab and hides the others', openPanels(tree).join() === 'kaby-custom-panel-permissions' && tabsOf(tree).map((t) => t.props['aria-selected']).join() === 'false,false,false,true' && tabsOf(tree).map((t) => t.props.tabIndex).join() === '-1,-1,-1,0')
+  const keyed = (key) => { let stopped = 0; byKb(tree, 'kaby-custom-tabs')[0].props.onKeyDown({ key: key, preventDefault: () => { stopped += 1 } }); tree = draw(); return stopped }
+  ok('Arrow right goes on to the next tab and wraps around to the first', keyed('ArrowRight') === 1 && openPanels(tree).join() === 'kaby-custom-panel-look')
+  ok('Arrow left goes back and wraps around to the last', keyed('ArrowLeft') === 1 && openPanels(tree).join() === 'kaby-custom-panel-permissions')
+  ok('Home and End jump to the first and the last', keyed('Home') === 1 && openPanels(tree).join() === 'kaby-custom-panel-look' && keyed('End') === 1 && openPanels(tree).join() === 'kaby-custom-panel-permissions')
+  ok('any other key is left alone', keyed('a') === 0 && keyed('Tab') === 0 && keyed('Enter') === 0 && openPanels(tree).join() === 'kaby-custom-panel-permissions')
+
+  resolved = 'kybernos'
+  ok('in French the tabs read Identité et voix, Appels vidéo, Travail and Autorisations', tabsOf(draw()).map((t) => text(t).trim()).join() === 'Identité et voix,Appels vidéo,Travail,Autorisations')
+  resolved = 'en'
+  ok('in English they read Identity & voice, Video calls, Work and Permissions', tabsOf(draw()).map((t) => text(t).trim()).join() === 'Identity & voice,Video calls,Work,Permissions')
+  ok('a closed panel is really hidden: the style carries a rule for [hidden]', /\.kbkc-panel\[hidden\]\{display:none\}/.test(T.CSS))
 }
 
 console.log('── permissions and where Kaby works: the words, the draft ──')

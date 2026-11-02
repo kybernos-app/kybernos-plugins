@@ -9627,7 +9627,7 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kb6-utab:hover{color:var(--dsw-alias-label-primary)}
 .kb6-utab.on{font-weight:600;color:var(--dsw-alias-label-primary);border-bottom-color:var(--dsw-alias-label-primary)}
 /* (28/09, audit) Sous-titre unifié : même corps 13px que .kb8-sub /
-   .kba-subtitle — une seule taille de sous-titre par page. */
+   (le sous-titre des Automations vit maintenant dans son guide « ? ») — une seule taille de sous-titre par page. */
 .kb6-desc{margin-top:6px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:62ch}
 /* (28/09, template) The « Connections » title lives in the composio bundle, which defines .kb7-h1 its own way: this scoped rule
    (specificity 0-2-0) fixes the heading whatever the injection order. The core no longer carries a copy of the .kb7-* sheet (audit A1-04):
@@ -12337,12 +12337,16 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         className: 'kb6-helpbtn' + (p.open === true ? ' on' : ''),
         'data-kb': p.dataKb === undefined ? 'page-help' : p.dataKb,
         title: label,
+        'aria-label': kbt('kbui.howitworks'),
         'aria-expanded': p.open === true ? 'true' : 'false',
         onClick: typeof p.onClick === 'function' ? p.onClick : (() => {}),
-      }, h('span', { className: 'kb6-helpq', 'aria-hidden': 'true' }, '?'), kbt('kbui.howitworks'))
+      }, h('span', { className: 'kb6-helpq', 'aria-hidden': 'true' }, '?'))
     }
     // The same pill for a page card of this bundle (help.json `pages`): the Suite draws it; nothing when the Suite is not there or the card is not (A5-19).
-    const kbPagePill = (page) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: page }) : null } catch (e) { return null } }
+    // `lead` is the page's own description and `title` its name: the card shows the description first, and the page no longer draws it under its title.
+    const kbPagePill = (page, lead, title) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: page, lead: lead, title: title }) : null } catch (e) { return null } }
+    // Where the help cannot be drawn (no Suite), the description stays under the title, as it always was.
+    const kbSubFallback = (cls, text, tag, key) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h(tag === undefined ? 'p' : tag, { key: key, className: cls }, text) } catch (e) { return h(tag === undefined ? 'p' : tag, { key: key, className: cls }, text) } }
     // Menu « Nouveau Kyber » (le bouton et ses quatre entrées) : défini ici pour
     // que l'action primaire de la page Kybers vive en `trailing` de la barre,
     // comme « Create with AI » des Livrables.
@@ -13614,6 +13618,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('div', { className: 'kb8-help-head' },
           h('h2', { className: 'kb8-help-h' }, kbt('kbui.kybers.vs.at')),
           h('button', { type: 'button', className: 'kb8-help-close', title: kbt('kbui.close'), 'aria-label': kbt('kbui.close'), onClick: () => setHelpOpen(false) }, '✕')),
+        h('p', { className: 'kb8-help-lead', 'data-kb': 'kybers-help-lead' }, kbt('kbui.kybers.about')),
         h('table', null,
           h('thead', null, h('tr', null, h('th', null, ''), h('th', null, kbt('kbat.col.def')), h('th', null, kbt('kbat.col.runtime')))),
           h('tbody', null, helpRows.map((r) => h('tr', { key: r[0] }, h('td', null, r[0]), h('td', null, r[1]), h('td', null, r[2]))))),
@@ -13642,8 +13647,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
               h('h1', { className: 'kb6-title' }, kbDomainTitle('aiteams', kbt('kbui.kybers'))),
-              h(KbHelpButton, { open: helpOpen === true, dataKb: 'kybers-help', title: kbt('kbui.kybers.vs.at'), onClick: () => setHelpOpen(helpOpen !== true) })),
-            h('p', { className: 'kb8-sub' }, kbt('kbui.kybers.about'))),
+              h(KbHelpButton, { open: helpOpen === true, dataKb: 'kybers-help', title: kbt('kbui.kybers.vs.at'), onClick: () => setHelpOpen(helpOpen !== true) }))),
           // Barre « épurée » (maquette v2) : dans la rangée d'en-tête, à droite
           // du titre+sous-titre — même position que Projets et Livrables.
           (hubTab === 'marketplace'
@@ -17184,8 +17188,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
-            h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbDomainTitle('projects', kbt('kbui.projects'))), kbPagePill('workspaces')),
-            h('p', { className: 'kb8-sub' }, kbt('kbui.project.holds'))),
+            h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbDomainTitle('projects', kbt('kbui.projects'))), kbPagePill('workspaces', kbt('kbui.project.holds'), kbDomainTitle('projects', kbt('kbui.projects')))),
+            kbSubFallback('kb8-sub', kbt('kbui.project.holds'))),
           (items.length > 0
             ? h(KbToolbar, { state: tbProjectsView, onUpdate: onProjectsUpdate, searchPlaceholder: kbt('kbui.search.project'), sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }, { id: 'threads', label: kbt('kbui.sort.mostthreads') }, { id: 'deliverables', label: kbt('kbui.sort.mostdeliverables') }], total: items.length, shown: projectsVisible.length, trailing: projCreateBtn })
             : h('div', { className: 'kb6-headacts' }, projCreateBtn))),
@@ -21171,8 +21175,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       })()
       const headRow = h('div', { className: 'kb6-headrow' },
         h('div', { className: 'kb6-headcol' },
-          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations')),
-          h('div', { className: 'kb6-desc' }, kbt('deliverables.desc'))),
+          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations', kbt('deliverables.desc'), kbDomainTitle('deliverables', kbt('deliverables.title')))),
+          kbSubFallback('kb6-desc', kbt('deliverables.desc'), 'div')),
         h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length : 0, shown: hasPayload === true ? sorted.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
       // Nothing has been read yet. The page used to draw seven invented files (a mock-up) until the host answered; it now
       // draws bones the size of the real tiles and rows, and — if the read failed — says so, with a way to try again.
@@ -24591,6 +24595,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const kbaOnboard = (avecFermeture) => h('section', { className: 'kba-onboard', 'data-kb': 'automations-onboarding', 'aria-label': kbe('Create your first automation') },
         (avecFermeture === true ? h('button', { type: 'button', className: 'kba-ob-close', 'data-kb': 'automation-help-close', 'aria-label': kbt('tasks.help.close'), title: kbt('tasks.help.close'), onClick: () => setGuide(false) }, '\u2715') : null),
         h('h2', { className: 'kba-ob-title' }, kbe('Create your first automation')),
+        (avecFermeture === true ? h('p', { className: 'kba-ob-sub kba-ob-lead', 'data-kb': 'automation-help-lead' }, kbt('tasks.subtitle')) : null),
         h('p', { className: 'kba-ob-sub' }, kbe('Schedule recurring work, trigger on a specific event, or describe in words when your teams should act.')),
         h('div', { className: 'kba-ob-grid' },
           h('button', { type: 'button', className: 'kba-ob-card', 'data-kb': 'onboard-schedule', onClick: debuterAutomation },
@@ -24631,8 +24636,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
               h('h1', { className: 'kb6-title' }, kbDomainTitle('tasks', kbt('tasks.title'))),
-              h(KbHelpButton, { open: guide === true, dataKb: 'automation-help', title: kbt('tasks.help'), onClick: () => setGuide(guide === false) })),
-            h('p', { className: 'kba-subtitle' }, kbt('tasks.subtitle'))),
+              h(KbHelpButton, { open: guide === true, dataKb: 'automation-help', title: kbt('tasks.help'), onClick: () => setGuide(guide === false) }))),
           (list.length > 0 && section === 'yours'
             ? h(KbToolbar, {
               state: tbAutoView,
@@ -32220,6 +32224,11 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
           for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
             if (kbSsNorm(n.nodeValue) === want && n.parentElement !== null && n.parentElement.getClientRects().length > 0) { hit = n.parentElement; break }
           }
+          if (hit === null) {
+            // Connectors: the provider cards fold to a header and a status line. A label not on screen may sit in a folded card: open the next one and look again.
+            const folded = pane.querySelector('[data-kb^="provider-toggle-"][aria-expanded="false"]')
+            if (folded !== null && tries < 20) { try { folded.click() } catch (er) { /* gone */ } setTimeout(walk, 150); return }
+          }
           if (hit !== null) {
             let row = hit
             for (let i = 0; i < 4 && row.parentElement !== null && row.parentElement !== pane; i += 1) {
@@ -33109,7 +33118,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
     // pour tous : les pages natives (Models, Agent presets, Built-in plugins) et les pages Kybernos.
     ctx.effect(() => styles.insert(`
 [class$="_options"] :is(h2[class*="_title"],h2[class*="_heading"],.kb6-title,.kbsl-h1,.kbth-title,.kbln-title,.kbt2-h1,.kbmz-titre,.kbm-h1){font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;margin:0}
-[class$="_options"] :is(p[class*="_intro"],.kbsl-sub,.kbth-sub,.kbln-sub,.kb8-sub,.kbt2-sub,.kbm-pagehead .kbm-sub){font-size:13px;font-weight:400;line-height:1.5;color:var(--dsw-alias-label-secondary);margin:6px 0 0;max-width:none}
+[class$="_options"] :is(p[class*="_intro"],.kbsl-sub,.kbth-sub,.kb8-sub,.kbt2-sub,.kbm-pagehead .kbm-sub){font-size:13px;font-weight:400;line-height:1.5;color:var(--dsw-alias-label-secondary);margin:6px 0 0;max-width:none}
 /* ── Gabarit unique des pages Réglages (02/10) ──────────────────────────────
    · Largeur : toute section = colonne de 720 px MAX, alignée à gauche (avant : 606 / 680 / 794 / 960).
    · En-tête : titre 18/600, sous-titre 13 à 6 px du titre, premier bloc à 20 px du sous-titre.
@@ -33124,10 +33133,10 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 html [class$="_options"] :is(.kbth-seg,.kbth-btn,.kbln-btn,.kbth-hex,.kbth-select,.kbln-select,.kbth-fsbtn,.kbfp-sw,.kbm-setfield-input,.kbm-setform-save,.kbm-in-wrap,.kbsl-tab,.kbsl-search,.kbsl-tile,.kbsl-ibtn,.kbsl-btn,.kbsl-chip,.kbo-btn,.kb8-primary,.kbt2-seg-btn,.kbt2-part,.kbt2-cmd-copy,.kb6-search-inline,.kbf-avatar,.kbmp-card-logo,.kbmh-hero-logo,.kbmp-logo-chip,.kbth-seg button,.kbth-ramp,.kbth-tok,.kbth-adv-preview,.kml-mod-chip,.kml-rangee-init,.kbth-adv-tab){border-radius:10px}
 html [class$="_options"] :is(.kbth-skin,.kbp-card,.kbsl-lrow,.kb8-tile,.kbth-adv-editor,.kml-rangee){border-radius:14px}
 /* En-têtes Thème / Commandes : le gap flex s'ajoutait à la marge du sous-titre (12 / 11 px au lieu de 6). Titre -> sous-titre 6, sous-titre -> premier bloc 20. */
-html [class$="_options"] :is(.kbsl-head,.kbth-head,.kbln-head){gap:0}
-html [class$="_options"] :is(.kbth-head,.kbln-head)>*+*{margin-top:8px}
-html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub){margin-top:6px}
-html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin-top:20px}
+html [class$="_options"] :is(.kbsl-head,.kbth-head){gap:0}
+html [class$="_options"] :is(.kbth-head)>*+*{margin-top:8px}
+html [class$="_options"] :is(.kbth-head>.kbth-sub){margin-top:6px}
+html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
 `), 'kybers: settings header styles')
 
 
@@ -33370,13 +33379,13 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
         h('div', { className: 'kbt2-l-action' }, kbt2Actes(e, true)))
       // En-tête commun aux trois états (lecture, erreur, prêt) : la page garde son
       // titre et son explication même quand la lecture échoue (02/10).
+      // What this page is for, next to the one it is mistaken for: Tools mounts abilities in a profile, Workers runs the coding assistants. Both sentences are the card's lead (the « ? »).
+      const leadTools = [kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' }), kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à ton agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })]
       const entete = () => h('header', { className: 'kbt2-entete' },
         h('div', { className: 'kbt2-entete-txt' },
           h('h1', { className: 'kbt2-h1' }, kbt('kbui.tools')),
-          h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' })),
-          // What this page is for, next to the one it is mistaken for: Tools mounts abilities in a profile, Workers runs the coding assistants.
-          h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à ton agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })),
-          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbToolsTxt({ fr: 'DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.', en: 'DSH applies the change by itself a few seconds after it is written: no restart. A dry run first, then the write — a dated backup before, a rollback after.' }))), kbPagePill('tools'))
+          leadTools.map((x, i) => kbSubFallback('kbt2-sub', x, 'p', 'lead' + i)),
+          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbToolsTxt({ fr: 'DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.', en: 'DSH applies the change by itself a few seconds after it is written: no restart. A dry run first, then the write — a dated backup before, a rollback after.' }))), kbPagePill('tools', leadTools, kbt('kbui.tools')))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
       // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
       if (st.state === 'loading' && st.data === null) {
@@ -34740,11 +34749,11 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           h('span', null, kbt('kbui.read.aloud'))),
         pied)
       return h('div', { className: 'kbt-page' },
-        h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '20px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice' }) : null)),
+        h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '20px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice', lead: kbt('kbui.tts.sub'), title: kbt('kbui.voice') }) : null)),
         h('div', { className: 'kbt-tete' },
           // Gabarit Réglages 29/09 : titre 26px comme Outils/Maintenance.
           h('span', { className: 'kb6-title' }, kbt('kbui.voice')),
-          h('span', { className: 'kb8-sub' }, kbt('kbui.tts.sub'))),
+          kbSubFallback('kb8-sub', kbt('kbui.tts.sub'), 'span')),
         (vue.etat === 'erreur' ? h('div', { className: 'kbt-msg err' }, kbt('kbui.tts.unavailable') + String(vue.erreur)) : null),
         h('div', { className: 'kbt-micro' },
           h('div', { className: 'kbt-micro-txt' },
@@ -35526,7 +35535,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    exactement sa place : le bouton ne saute jamais d'un côté à l'autre. */
 .kb6-titlerow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
 /* The « ? How it works » pill: the same look as the Suite's pill (kybernos-hub), so every page has one form of the button. */
-.kb6-helpbtn{flex:0 0 auto;appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kb6-helpbtn{flex:0 0 auto;appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
 .kb6-helpbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kb6-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
@@ -35700,7 +35709,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    zeroes its automatic minimum size: left to shrink, every block of the page got squashed and cut (the idea cards lost their last row,
    the automation list its bottom rows, unreachable since nothing scrolled). */
 .kba-root>*{flex:0 0 auto}
-.kba-subtitle{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:62ch}
 /* (28/09, gabarit) Bouton primaire unifié : .kba-new-btn n'est plus qu'un
    alias de .kb8-primary — une seule implémentation. */
 .kb8-primary,.kba-new-btn{display:inline-flex;align-items:center;gap:9px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);border-radius:12px;padding:13px 20px;font-size:14px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
@@ -36319,6 +36327,7 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
 .kb8-help{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px;max-width:860px}
 .kb8-help-head{display:flex;align-items:center;gap:10px}
 .kb8-help-h{margin:0;font-size:16px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kb8-help-lead{margin:0;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-primary)}
 .kb8-help-close{margin-left:auto;flex:0 0 auto;width:28px;height:28px;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:15px;cursor:pointer}
 .kb8-help-close:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb8-help table{width:100%;border-collapse:collapse;font-size:13px}
@@ -38014,8 +38023,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     // The pages of the ACCOUNT (Account, Referral, Security, Account data, Support & legal) are not in DSH's Settings any more: they are
     // the server's app and its embedded console (footer menu: Account, Referral).
     const KbacHead = (props) => h('div', { className: 'kbac-head' },
-      h('div', { className: 'kb6-titlerow kbac-titlerow' }, h('h2', { className: 'kb6-title' }, props.title), props.help === undefined ? null : kbPagePill(props.help)),
-      h('p', { className: 'kb8-sub' }, props.sub))
+      h('div', { className: 'kb6-titlerow kbac-titlerow' }, h('h2', { className: 'kb6-title' }, props.title), props.help === undefined ? null : kbPagePill(props.help, props.sub, props.title)),
+      props.help === undefined ? h('p', { className: 'kb8-sub' }, props.sub) : kbSubFallback('kb8-sub', props.sub))
     // Settings > Automations: where automations live, and two switches (the rules are in automation-settings.mjs).
     // How many runs in a row without a failure make an automation stable (the same choices as automation-settings.mjs).
     const KB_STABLE_CHOICES = [3, 5, 10, 20]
