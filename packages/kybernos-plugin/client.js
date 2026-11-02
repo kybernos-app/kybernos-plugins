@@ -4782,6 +4782,114 @@ const KB_FR_EN = {
   ' blocs': ' blocks',
   'Δ 7 j : ': 'Δ 7d: ',
   ' j': ' d',
+  // ── Journal tab: Story and Flow views (GET /kybernos/journal) ──
+  'Autorisé': 'Allowed',
+  'Répondu': 'Answered',
+  'Refusé': 'Declined',
+  'À toi de jouer': 'Needs you',
+  'Équipe': 'Crew',
+  'Automatisation': 'Automation',
+  'Toi': 'You',
+  'Réponse': 'Reply',
+  'terminée': 'finished',
+  'est en cours': 'is running',
+  'Membres': 'Members',
+  'Rétabli à un appel suivant': 'Recovered on a later call',
+  'appel en échec': 'call failed',
+  'Compétence': 'Skill',
+  'Mémoire': 'Memory',
+  'a consulté la mémoire': 'looked something up',
+  'a enregistré une note': 'saved a note',
+  'Autorisation demandée': 'Permission asked',
+  'Question posée': 'Question asked',
+  'Livré': 'Delivered',
+  'démarre sur': 'starts on',
+  'passe sur': 'switched to',
+  'Actions': 'Actions',
+  'Commandes': 'Commands',
+  'Fichiers modifiés': 'Files edited',
+  'Fichiers lus': 'Files read',
+  'Autres actions': 'Other actions',
+  'Coéquipiers et sous-agents': 'Teammates and sub-agents',
+  'Recherches web': 'Web lookups',
+  'Voir moins': 'Show less',
+  'Voir plus': 'Show more',
+  'Attente': 'Waited',
+  'Outil': 'Tool',
+  'Appels en échec': 'Failed calls',
+  'Erreur': 'Error',
+  'Membre': 'Member',
+  'Affichage des premiers': 'Showing the first',
+  'Texte': 'Text',
+  'En échec, puis réussi à un appel suivant': 'Failed, then worked on a later call',
+  'Rétabli': 'Recovered',
+  'tokens': 'tokens',
+  'Ordinateur': 'Computer',
+  'Signature électronique vérifiée': 'Electronic signature checked',
+  'Signé': 'Signed',
+  'Pendant que': 'While',
+  'tournait': 'was running',
+  'Rien n’attend de réponse': 'Nothing is waiting',
+  'Aucune attente de personne': 'No waiting on people',
+  'dont': 'of which',
+  'à attendre des personnes': 'waiting for people',
+  'Aucun appel de modèle': 'No model call',
+  'certains sans tarif': 'some not priced',
+  'Erreurs': 'Errors',
+  'Toujours ouverte': 'Still open',
+  'rétablies': 'recovered',
+  'Livrables': 'Deliverables',
+  'Rien de livré pour l’instant': 'Nothing delivered yet',
+  'Équipes au travail': 'Crews working',
+  'La conversation elle-même': 'The chat itself',
+  'Attente de personnes': 'Waiting for people',
+  'Passages de main': 'Handovers',
+  'Sorties': 'Outputs',
+  'Compétences': 'Skills',
+  'Modèles': 'Models',
+  'Coût au fil de la conversation': 'Cost as the chat went on',
+  'Tokens au fil de la conversation': 'Tokens as the chat went on',
+  'Pas assez d’appels de modèle pour tracer une courbe.': 'Not enough model calls to draw a curve yet.',
+  'Où est passé le temps': 'Where the time went',
+  'Pas encore de temps à répartir.': 'No time to split yet.',
+  'Moments par type': 'Moments by type',
+  'Équipes dans le temps': 'Crews on the clock',
+  'Toutes les équipes': 'All crews',
+  'Équipes': 'Crews',
+  'Filtrer le récit': 'Filter the story',
+  'Aucun livrable pour l’instant.': 'Nothing delivered yet.',
+  'Fichier': 'File',
+  'Lien': 'Link',
+  'Ouvrir': 'Open',
+  'Copier le chemin de': 'Copy the path of',
+  'Copier le chemin': 'Copy the path',
+  'Message de la conversation': 'Chat message',
+  'Choisissez une équipe ci-dessus pour mettre ses étapes en avant.': 'Pick a crew above to highlight its steps.',
+  'Validateur': 'Approver',
+  'Détails sur les blocs': 'Details on nodes',
+  'Ajuster à la fenêtre': 'Fit to the window',
+  'Appels dans cette étape': 'Calls in this step',
+  'Choisis une étape': 'Pick a step',
+  'Sélectionne un bloc pour voir ses faits, son entrée et sa sortie.': 'Select a box to see its facts, its input and its output.',
+  'Le flux montre les premiers': 'The flow shows the first',
+  'autres sont dans la vue Histoire.': 'more are in the Story view.',
+  'Comment lire le Journal': 'How to read the Journal',
+  'Avancé': 'Advanced',
+  'Flux': 'Flow',
+  'Histoire': 'Story',
+  'Les nouvelles vues du Journal ne sont pas encore disponibles : redémarre Kybernos une fois. Les sections du Journal sont plus bas.': 'The new Journal views are not available yet: restart Kybernos once. The sections of the Journal are below.',
+  'Copié': 'Copied',
+  'Copier l’ID du chat': 'Copy the chat ID',
+  'Lancé par une automatisation': 'Started by an automation',
+  'Lancé par toi': 'Started by you',
+  'Moments plus anciens laissés de côté': 'Older moments left out',
+  'Journal': 'Journal',
+  'Éclairages': 'Insights',
+  'Actualiser': 'Refresh',
+  'Rien à montrer pour l’instant. Le Journal se remplit au fil du travail de la conversation.': 'Nothing to show yet. The Journal fills in as the chat works.',
+  'Histoire de cette conversation': 'Story of this chat',
+  'moments': 'moments',
+  'Rien ne correspond à ce filtre.': 'Nothing matches this filter.',
 }
 // kbe(en[, fr]) — text whose BASE is English (decision D1). The call site holds the ENGLISH text; its French twin is the KB_FR_EN key whose value it is
 // (two keys that share one English text are told apart by the explicit `fr` argument: `kbe(' answered', ' répondues')`). Rendering follows kbt:
@@ -40187,10 +40295,744 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           return El('div', { className: 'wv2-root' }, head, expBox, periode, chrono, graphe, lower, analyse)
         }
 
+        /* ═══ Story and Flow: the first views of the Journal (GET /kybernos/journal) ════════════════════════════════════
+           One vertical story of the chat: what the person asked, which crews ran, which connectors were called, what was asked of a person and what they
+           answered, what was delivered, which models ran and what they cost. The old sections (Timeline, Graph, Cascade, Step detail, Analysis) stay one
+           click away under « Advanced ». Nothing here is invented: a field the chat's log does not carry (the approver's name and computer today) is left
+           out, never faked. The model below is pure (no React, no DOM): test-journal-story-view.mjs plays it as it is. */
+        // KB-STORY-VIEW-BEGIN
+        const WVS_INK = ['var(--wv-act-orch)', 'var(--wv-act-doer)', 'var(--wv-act-checker)', 'var(--wv-act-connector)', 'var(--wv-brand)', 'var(--wv-act-human)']
+        const WVS_MAX_NODES = 30
+        const WVS_NW = 244
+        const WVS_GX = 84
+        const WVS_GY = 56
+        const wvsNum = (v) => (typeof v === 'number' && Number.isFinite(v) === true ? v : null)
+        const wvsDur = (ms) => {
+          const n = wvsNum(ms)
+          if (n === null || n < 0) return '—'
+          if (n < 1000) return Math.round(n) + ' ms'
+          const s = n / 1000
+          if (s < 10) return kbFmtNum(s, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' s'
+          if (s < 60) return Math.round(s) + ' s'
+          const m = Math.floor(s / 60)
+          if (m < 10) return m + ' min ' + String(Math.round(s % 60)).padStart(2, '0') + ' s'
+          if (m < 60) return m + ' min'
+          const h = Math.floor(m / 60)
+          if (h < 48) return h + ' h ' + String(m % 60).padStart(2, '0') + ' min'
+          return Math.round(h / 24) + ' d'
+        }
+        const wvsTime = (ms) => {
+          const n = wvsNum(ms)
+          if (n === null) return ''
+          const d = new Date(n)
+          return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+        }
+        const wvsDayKey = (ms) => {
+          const n = wvsNum(ms)
+          if (n === null) return ''
+          const d = new Date(n)
+          return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate()
+        }
+        const wvsDay = (ms) => { try { return new Date(ms).toLocaleDateString(kbLocaleTag(), { weekday: 'short', day: 'numeric', month: 'short' }) } catch (e) { return wvsDayKey(ms) } }
+        /** An error the person still has to care about: a connector call that failed and was never repeated with success, a crew that failed. */
+        const wvsIsErr = (m) => (m.kind === 'connector' && m.status === 'error' && m.recovered !== true) || (m.kind === 'crew' && m.status === 'failed') || (m.kind === 'handover' && m.outcome === 'error')
+        /** The crew whose window holds a moment (the earliest to have started): « during », never « by », since a crew's own tool calls live in its own logs. */
+        const wvsCrewAt = (crews, at) => {
+          const t = wvsNum(at)
+          if (t === null) return null
+          for (let i = 0; i < crews.length; i += 1) {
+            const c = crews[i]
+            if (wvsNum(c.startedAt) !== null && t >= c.startedAt && (wvsNum(c.endedAt) === null || t <= c.endedAt)) return i
+          }
+          return null
+        }
+        const wvsPass = (m, f) => {
+          if (f === 'all') return true
+          if (f === 'needs') return m.kind === 'handover' && m.outcome === 'waiting'
+          if (f === 'errors') return wvsIsErr(m) || (m.kind === 'connector' && m.status === 'error')
+          if (f === 'handovers') return m.kind === 'handover'
+          if (f === 'connectors') return m.kind === 'connector'
+          if (f === 'skills') return m.kind === 'skill'
+          if (f === 'memory') return m.kind === 'memory'
+          if (f === 'outputs') return m.kind === 'output'
+          if (f === 'models') return m.kind === 'model'
+          return true
+        }
+        const wvsCounts = (moments) => {
+          const c = { all: moments.length, needs: 0, errors: 0, handovers: 0, connectors: 0, skills: 0, memory: 0, outputs: 0, models: 0 }
+          for (let i = 0; i < moments.length; i += 1) {
+            const m = moments[i]
+            if (wvsPass(m, 'needs')) c.needs += 1
+            if (wvsPass(m, 'errors')) c.errors += 1
+            if (m.kind === 'handover') c.handovers += 1
+            else if (m.kind === 'connector') c.connectors += 1
+            else if (m.kind === 'skill') c.skills += 1
+            else if (m.kind === 'memory') c.memory += 1
+            else if (m.kind === 'output') c.outputs += 1
+            else if (m.kind === 'model') c.models += 1
+          }
+          return c
+        }
+        /** The rows of the story: the filter and the crew window applied, runs of automation ticks folded into one row, a divider where the day changes. */
+        const wvsFeed = (story, filter, crewId) => {
+          const crews = Array.isArray(story.crews) ? story.crews : []
+          const win = crewId === 'all' ? null : crews.filter((c) => c.id === crewId)[0] || null
+          const list = story.moments.filter((m) => {
+            if (wvsPass(m, filter) === false) return false
+            if (win === null) return true
+            if (m.kind === 'crew') return m.crewId === crewId
+            const at = wvsNum(m.at)
+            return at !== null && wvsNum(win.startedAt) !== null && at >= win.startedAt && (wvsNum(win.endedAt) === null || at <= win.endedAt)
+          })
+          const rows = []
+          let day = ''
+          const add = (r) => {
+            const k = wvsDayKey(r.at)
+            if (k !== '' && k !== day) { rows.push({ kind: 'day', id: 'd' + rows.length, at: r.at }); day = k }
+            rows.push(r)
+          }
+          for (let i = 0; i < list.length; i += 1) {
+            const m = list[i]
+            if (m.kind === 'message' && m.automation === true) {
+              let j = i
+              while (j + 1 < list.length && list[j + 1].kind === 'message' && list[j + 1].automation === true) j += 1
+              if (j - i + 1 >= 3) { add({ kind: 'ticks', id: 't' + m.id, n: j - i + 1, at: m.at, endAt: list[j].at, text: m.text }); i = j; continue }
+            }
+            add(m)
+          }
+          return rows
+        }
+        /** The nodes of the flow: the key moments in order, consecutive calls of one connector (or one skill, one memory operation) merged into one node. */
+        const wvsGraph = (story) => {
+          const nodes = []
+          const first = story.moments.filter((m) => m.kind === 'message')[0] || null
+          const auto = story.trigger !== null && story.trigger !== undefined && story.trigger.kind === 'automation'
+          nodes.push({ id: 'n0', kind: 'trigger', auto: auto, refs: first !== null ? [first.id] : [], count: 1, at: first !== null ? first.at : story.chat.startedAt, endAt: null, durMs: 0, errors: 0, open: 0, status: 'ok', ckey: null, m: first })
+          const KEY = { crew: 1, connector: 1, handover: 1, output: 1, skill: 1, memory: 1 }
+          let prev = null
+          let dropped = 0
+          for (let i = 0; i < story.moments.length; i += 1) {
+            const m = story.moments[i]
+            if (KEY[m.kind] !== 1) continue
+            const ck = m.kind === 'connector' ? 'c:' + m.connector.id : ((m.kind === 'skill' || m.kind === 'memory') ? m.kind + ':' + m.op : null)
+            const bad = m.kind === 'connector' && m.status === 'error'
+            const live = wvsIsErr(m)
+            if (prev !== null && ck !== null && prev.ckey === ck) {
+              prev.count += 1
+              prev.refs.push(m.id)
+              prev.durMs += wvsNum(m.durMs) || 0
+              prev.endAt = wvsNum(m.endAt) !== null ? m.endAt : m.at
+              if (bad) prev.errors += 1
+              if (live) prev.open += 1
+              prev.status = prev.open > 0 ? 'err' : 'ok'
+              continue
+            }
+            if (nodes.length >= WVS_MAX_NODES) { dropped += 1; continue }
+            const wait = (m.kind === 'handover' && m.outcome === 'waiting') || (m.kind === 'crew' && m.status === 'running')
+            prev = { id: 'n' + nodes.length, kind: m.kind, auto: false, refs: [m.id], count: 1, at: m.at, endAt: wvsNum(m.endAt) !== null ? m.endAt : m.at, durMs: wvsNum(m.durMs) || 0, errors: bad ? 1 : 0, open: live ? 1 : 0, status: live ? 'err' : (wait ? 'wait' : 'ok'), ckey: ck, m: m }
+            nodes.push(prev)
+          }
+          return { nodes: nodes, dropped: dropped }
+        }
+        /** Boxes on a snake of `cols` columns (left to right, then right to left): neighbours in the list are neighbours on the page, so a line never crosses another. */
+        const wvsLayout = (nodes, cols, nh) => {
+          const pos = nodes.map((n, i) => {
+            const row = Math.floor(i / cols)
+            const k = i % cols
+            const col = row % 2 === 0 ? k : cols - 1 - k
+            return { x: 20 + col * (WVS_NW + WVS_GX), y: 20 + row * (nh + WVS_GY), row: row, col: col }
+          })
+          const edges = []
+          for (let i = 1; i < nodes.length; i += 1) {
+            const a = pos[i - 1]
+            const b = pos[i]
+            let d
+            if (a.row === b.row) {
+              const ltr = b.col > a.col
+              d = 'M' + (ltr ? a.x + WVS_NW : a.x) + ' ' + (a.y + nh / 2) + ' L' + (ltr ? b.x : b.x + WVS_NW) + ' ' + (b.y + nh / 2)
+            } else d = 'M' + (a.x + WVS_NW / 2) + ' ' + (a.y + nh) + ' L' + (b.x + WVS_NW / 2) + ' ' + b.y
+            edges.push({ id: 'e' + i, d: d, status: nodes[i].status })
+          }
+          const rows = Math.ceil(nodes.length / cols)
+          return { pos: pos, edges: edges, w: 20 + cols * WVS_NW + (cols - 1) * WVS_GX + 20, h: 20 + rows * nh + (rows - 1) * WVS_GY + 20 }
+        }
+        /** The cumulative cost (or tokens when nothing is priced) as one line and its area, in a w x h box; x is the call number, not the clock (a chat left alone for a day would be flat). */
+        const wvsArea = (series, w, h) => {
+          const pts = Array.isArray(series) ? series : []
+          const priced = pts.some((p) => wvsNum(p.costEur) !== null)
+          const vals = pts.map((p) => (priced ? wvsNum(p.costEur) : wvsNum(p.tokens)))
+          const max = Math.max.apply(null, vals.map((v) => (v === null ? 0 : v)).concat([0]))
+          if (pts.length < 2 || max <= 0) return { ok: false, priced: priced, max: max, line: '', area: '', last: null }
+          const xy = vals.map((v, i) => [(i / (pts.length - 1)) * w, h - 4 - ((v === null ? 0 : v) / max) * (h - 12)])
+          let line = 'M' + xy[0][0].toFixed(1) + ' ' + xy[0][1].toFixed(1)
+          for (let i = 1; i < xy.length; i += 1) {
+            const mx = (xy[i - 1][0] + xy[i][0]) / 2
+            line += ' C' + mx.toFixed(1) + ' ' + xy[i - 1][1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + xy[i][1].toFixed(1) + ' ' + xy[i][0].toFixed(1) + ' ' + xy[i][1].toFixed(1)
+          }
+          return { ok: true, priced: priced, max: max, line: line, area: line + ' L' + w + ' ' + h + ' L0 ' + h + ' Z', last: xy[xy.length - 1] }
+        }
+        /** The share of the active time spent waiting for people, running crews, or on the chat itself (the parts may overlap in the log: they are scaled to fit). */
+        const wvsSplit = (stats) => {
+          const active = wvsNum(stats.activeMs) || 0
+          let wait = Math.min(active, wvsNum(stats.waitingMs) || 0)
+          let crew = Math.min(active, wvsNum(stats.crewMs) || 0)
+          if (wait + crew > active) { const f = active / (wait + crew); wait *= f; crew *= f }
+          return { total: active, parts: [{ key: 'crew', ms: crew }, { key: 'wait', ms: wait }, { key: 'chat', ms: Math.max(0, active - wait - crew) }] }
+        }
+        const wvsHost = (u) => { try { return new URL(u).hostname.replace(/^www\./, '') } catch (e) { return null } }
+        // KB-STORY-VIEW-END
+
+        const WVS_ICON = { message: 'messageSquare', reply: 'sparkles', crew: 'users', skill: 'star', memory: 'layers', handover: 'idBadge', output: 'file', model: 'cpu', goal: 'target', work: 'terminal', automation: 'clock', connector: 'plug', trigger: 'messageSquare', ticks: 'clock' }
+        const wvsName = (s) => (typeof s === 'string' && s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '')
+        /** The logo of an app from the connectors catalogue (the same one the Connections page shows); its initial in a round tile when the catalogue has none. */
+        const wvsConnTile = (conn, logos, cls) => {
+          const svg = conn !== null && conn !== undefined && logos !== null && logos !== undefined ? logos[kbTplSlug(conn.name)] : undefined
+          if (typeof svg === 'string') return El('span', { className: 'wvs-tile logo' + (cls || ''), title: wvsName(conn.name), dangerouslySetInnerHTML: { __html: svg } })
+          return El('span', { className: 'wvs-tile' + (cls || ''), title: conn !== null && conn !== undefined ? wvsName(conn.name) : '' }, El('b', null, conn !== null && conn !== undefined ? String(conn.name).charAt(0).toUpperCase() : '?'))
+        }
+        const wvsTile = (m, logos, cls) => {
+          if (m.kind === 'connector' && m.connector) return wvsConnTile(m.connector, logos, cls)
+          return El('span', { className: 'wvs-tile k-' + m.kind + (cls || '') }, Icon(WVS_ICON[m.kind] || 'zap', 16))
+        }
+        const wvsOutcome = (o) => ({ waiting: [kbe('Needs you'), 'wait'], answered: [kbe('Answered'), 'ok'], allowed: [kbe('Allowed'), 'ok'], denied: [kbe('Declined'), 'err'], error: [kbe('Failed'), 'err'] }[o] || [kbe('Answered'), 'ok'])
+        const wvsClip = (s, n) => (typeof s === 'string' && s.length > n ? s.slice(0, n).trimEnd() + '…' : (s || ''))
+        const wvsModelName = (m) => (m && m.model ? String(m.model) : '')
+        const wvsCrewName = (c) => (c && c.name ? c.name : kbe('Crew'))
+        /** What a row says: who, what, and a quiet second line. The facts are the log's; only the wording is ours. */
+        const wvsWords = (m, story) => {
+          if (m.kind === 'message') return { actor: m.automation === true ? kbe('Automation') : kbe('You'), text: m.text, sub: '' }
+          if (m.kind === 'ticks') return { actor: kbe('Automation'), text: kbe('Executions') + ' · ' + m.n, sub: wvsTime(m.at) + ' – ' + wvsTime(m.endAt) }
+          if (m.kind === 'reply') return { actor: kbe('Reply'), text: m.text, sub: wvsModelName(m) }
+          if (m.kind === 'crew') {
+            const c = story.crews.filter((x) => x.id === m.crewId)[0] || null
+            const st = m.status === 'running' ? kbe('is running') : (m.status === 'failed' ? kbe('failed') : kbe('finished'))
+            const mem = c !== null ? c.members.length : 0
+            return { actor: wvsCrewName(c), text: st, sub: kbe('Members') + ' · ' + mem + (c !== null && c.members[0] && c.members[0].model ? ' · ' + c.members[0].model : '') }
+          }
+          if (m.kind === 'connector') return { actor: wvsName(m.connector.name), text: m.status === 'error' ? kbe('call failed') + ' · ' + m.connector.action : m.connector.action, sub: m.status === 'error' && m.recovered === true ? kbe('Recovered on a later call') : '' }
+          if (m.kind === 'skill') return { actor: kbe('Skill'), text: m.subject || m.op || '', sub: '' }
+          if (m.kind === 'memory') return { actor: kbe('Memory'), text: m.op === 'write' ? kbe('saved a note') : kbe('looked something up'), sub: wvsClip(m.subject, 140) }
+          if (m.kind === 'handover') return { actor: m.source === 'permission' ? kbe('Permission asked') : kbe('Question asked'), text: m.text || m.tool || '', sub: '' }
+          if (m.kind === 'output') return { actor: kbe('Delivered'), text: m.files.map((f) => f.name).join(', '), sub: '' }
+          if (m.kind === 'model') return { actor: kbe('Model'), text: (m.initial === true ? kbe('starts on') : kbe('switched to')) + ' ' + m.model, sub: m.provider || '' }
+          if (m.kind === 'goal') return { actor: kbe('Objective'), text: m.text || '', sub: m.op || '' }
+          if (m.kind === 'work') return { actor: kbe('Actions'), text: String(m.total), sub: '' }
+          if (m.kind === 'automation') return { actor: kbe('Scheduling'), text: m.subject || m.tool || '', sub: '' }
+          return { actor: '', text: m.kind, sub: '' }
+        }
+        const WVS_WORK = [['command', 'terminal', kbe('Commands')], ['edit', 'pencil', kbe('Files edited')], ['read', 'eye', kbe('Files read')], ['web', 'globe', kbe('Web lookups')], ['crew', 'users', kbe('Teammates and sub-agents')], ['other', 'wrench', kbe('Other actions')]]
+
+        function WVSMore(props) {
+          // Long texts show five lines, then « Show more »: the whole text is one press away, never in the way.
+          const txt = typeof props.text === 'string' ? props.text : ''
+          const open = props.ui.more[props.k] === true
+          return El('div', { className: 'wvs-io' },
+            El('div', { className: 'wvs-iol' }, props.label),
+            El('pre', { className: 'wvs-pre' + (open ? ' open' : '') }, txt),
+            txt.length > 220 || txt.split('\n').length > 5
+              ? El('button', { type: 'button', className: 'wvs-link', 'aria-expanded': open, onClick: () => props.set({ more: Object.assign({}, props.ui.more, { [props.k]: !open }) }) }, open ? kbe('Show less') : kbe('Show more'))
+              : null)
+        }
+
+        function WVSDetail(props) {
+          const m = props.m
+          const st = props.story
+          const W = wvsWords(m, st)
+          const bad = wvsIsErr(m) || (m.kind === 'connector' && m.status === 'error')
+          const facts = []
+          if (wvsNum(m.at) !== null) facts.push([kbe('Start'), wvsTime(m.at) + (m.at ? ' · ' + wvsDay(m.at) : '')])
+          if (wvsNum(m.durMs) !== null) facts.push([kbe('Duration'), wvsDur(m.durMs)])
+          if (m.kind === 'handover' && wvsNum(m.waitMs) !== null) facts.push([kbe('Waited'), wvsDur(m.waitMs)])
+          if (m.tool) facts.push([kbe('Tool'), m.tool])
+          if (m.kind === 'connector') facts.push([kbe('Connector'), wvsName(m.connector.name) + (m.connector.via === 'mcp' ? ' · MCP' : '')])
+          if (m.kind === 'work') facts.push([kbe('Failed calls'), String(m.failed)])
+          const out = [
+            El('div', { key: 'h', className: 'wvs-dh' }, wvsTile(m, props.logos),
+              El('div', { className: 'wvs-dt' }, El('span', { className: 'wvs-dk' }, W.actor), El('span', { className: 'wvs-dn' }, wvsClip(W.text, 90)))),
+            El('dl', { key: 'f', className: 'wvs-facts' }, facts.map((f, i) => El('div', { key: i }, El('dt', null, f[0]), El('dd', null, f[1])))),
+          ]
+          if (bad && m.error) out.push(El('div', { key: 'e', className: 'wvs-err' }, El('b', null, kbe('Error')), El('span', null, m.error)))
+          if (m.kind === 'handover') {
+            out.push(El('div', { key: 'q', className: 'wvs-q' }, m.text || m.tool || ''))
+            if (m.options.length > 0) out.push(El('div', { key: 'o', className: 'wvs-chips' }, m.options.map((o, i) => El('span', { key: i, className: 'wvs-chip' }, o))))
+            if (m.answers) out.push(El('div', { key: 'a', className: 'wvs-ans' }, m.answers.map((a, i) => El('div', { key: i }, a.selected.concat(a.custom ? [a.custom] : []).join(' · ') || '—'))))
+            else if (m.rawAnswer) out.push(El('div', { key: 'a', className: 'wvs-ans' }, m.rawAnswer))
+          }
+          if (m.kind === 'crew') {
+            const c = st.crews.filter((x) => x.id === m.crewId)[0] || null
+            if (c !== null) out.push(El('ul', { key: 'm', className: 'wvs-mem' }, c.members.map((x, i) => El('li', { key: i },
+              El('span', { className: 'wvs-mn' }, x.label || x.phase || kbe('Member')),
+              El('span', { className: 'wvs-mm' }, [x.model, wvsDur(x.durMs), x.costEur !== null && x.costEur !== undefined ? wvEur(x.costEur, 2) : null].filter((v) => v && v !== '—').join(' · '))))))
+          }
+          if (m.kind === 'work') {
+            out.push(El('ul', { key: 'w', className: 'wvs-mem' }, m.items.map((x, i) => El('li', { key: i, className: x.error ? 'bad' : '' },
+              El('span', { className: 'wvs-mn' }, x.name),
+              El('span', { className: 'wvs-mm' }, [x.target, wvsDur(x.durMs)].filter((v) => v && v !== '—').join(' · '))))))
+            if (m.total > m.items.length) out.push(El('div', { key: 'wm', className: 'wvs-muted' }, kbe('Showing the first') + ' ' + m.items.length + ' / ' + m.total))
+          }
+          if (typeof m.input === 'string' && m.input.length > 0) out.push(El(WVSMore, { key: 'i', label: kbe('Input'), text: m.input, k: m.id + ':i', ui: props.ui, set: props.set }))
+          if (typeof m.output === 'string' && m.output.length > 0) out.push(El(WVSMore, { key: 'x', label: kbe('Output'), text: m.output, k: m.id + ':o', ui: props.ui, set: props.set }))
+          if ((m.kind === 'message' || m.kind === 'reply') && m.text) out.push(El(WVSMore, { key: 't', label: kbe('Text'), text: m.text, k: m.id + ':t', ui: props.ui, set: props.set }))
+          if (Array.isArray(m.links) && m.links.length > 0) out.push(El('div', { key: 'l', className: 'wvs-links' }, m.links.map((u, i) => El('a', { key: i, href: u, target: '_blank', rel: 'noopener noreferrer', className: 'wvs-link' }, u.replace(/^https?:\/\//, '')))))
+          if (m.kind === 'output') out.push(El('ul', { key: 'of', className: 'wvs-mem' }, m.files.map((f, i) => El('li', { key: i }, El('span', { className: 'wvs-mn' }, f.name), El('span', { className: 'wvs-mm' }, f.description || '')))))
+          return El('section', { className: 'wv2-panel wvs-detail', 'data-kb': 'wvs-detail' }, out)
+        }
+
+        function WVSRow(props) {
+          const m = props.m
+          const st = props.story
+          if (m.kind === 'day') return El('li', { className: 'wvs-day' }, wvsDay(m.at))
+          const W = wvsWords(m, st)
+          const sel = props.ui.sel === m.id
+          const bad = m.kind !== 'ticks' && (wvsIsErr(m) || (m.kind === 'connector' && m.status === 'error'))
+          const ho = m.kind === 'handover' ? wvsOutcome(m.outcome) : null
+          const ci = wvsCrewAt(st.crews, m.at)
+          const ink = ci === null || m.kind === 'crew' || m.kind === 'ticks' ? null : WVS_INK[ci % WVS_INK.length]
+          const clamp = m.kind === 'message' || m.kind === 'reply' || m.kind === 'goal'
+          const right = []
+          if (ho !== null) right.push(El('span', { key: 'p', className: 'wvs-pill ' + ho[1] }, ho[0]))
+          else if (m.kind === 'connector' && m.status === 'error') right.push(El('span', { key: 'p', className: 'wvs-pill ' + (m.recovered === true ? 'wait' : 'err'), title: m.recovered === true ? kbe('Failed, then worked on a later call') : '' }, m.recovered === true ? kbe('Recovered') : kbe('Error')))
+          else if (m.kind === 'crew' && m.status !== 'done') right.push(El('span', { key: 'p', className: 'wvs-pill ' + (m.status === 'failed' ? 'err' : 'wait') }, m.status === 'failed' ? kbe('Failed') : kbe('Running')))
+          const dur = m.kind === 'crew' ? (wvsNum(m.endAt) !== null ? m.endAt - m.at : null) : (m.kind === 'handover' ? m.waitMs : m.durMs)
+          if (wvsNum(dur) !== null && m.kind !== 'work') right.push(El('span', { key: 'd', className: 'wvs-dur' }, wvsDur(dur)))
+          if (m.kind === 'work') right.push(El('span', { key: 'd', className: 'wvs-dur' }, wvsDur(wvsNum(m.endAt) !== null ? m.endAt - m.at : null)))
+          const extra = []
+          if (m.kind === 'work') {
+            extra.push(El('div', { key: 'w', className: 'wvs-chips' }, WVS_WORK.filter((w) => m.counts[w[0]] > 0).map((w) => El('span', { key: w[0], className: 'wvs-chip', title: w[2] }, Icon(w[1], 12), ' ', m.counts[w[0]])),
+              m.failed > 0 ? El('span', { key: 'f', className: 'wvs-chip warn', title: kbe('Failed calls') }, Icon('triangleAlert', 12), ' ', m.failed) : null))
+          }
+          if (m.kind === 'crew') {
+            const c = st.crews.filter((x) => x.id === m.crewId)[0] || null
+            if (c !== null) extra.push(El('div', { key: 'c', className: 'wvs-chips' },
+              c.tokens !== null && c.tokens !== undefined ? El('span', { key: 't', className: 'wvs-chip' }, wvTok(c.tokens) + ' ' + kbe('tokens')) : null,
+              c.costEur !== null && c.costEur !== undefined ? El('span', { key: 'e', className: 'wvs-chip' }, wvEur(c.costEur, 2)) : null))
+          }
+          if (m.kind === 'connector' && Array.isArray(m.links) && m.links.length > 0) extra.push(El('div', { key: 'l', className: 'wvs-chips' }, m.links.slice(0, 2).map((u, i) => El('a', { key: i, href: u, target: '_blank', rel: 'noopener noreferrer', className: 'wvs-chip lnk', title: u }, Icon('link', 12), ' ', (wvsHost(u) || u)))))
+          if (m.kind === 'handover') {
+            if (m.options.length > 0) extra.push(El('div', { key: 'o', className: 'wvs-chips' }, m.options.map((o, i) => El('span', { key: i, className: 'wvs-chip' }, o))))
+            extra.push(El('ul', { key: 'a', className: 'wvs-appr' }, (m.approvers.length > 0 ? m.approvers : [{ who: null, device: null, state: 'waiting', at: null, signed: false }]).map((a, i) => {
+              const o = wvsOutcome(a.state)
+              return El('li', { key: i },
+                El('span', { className: 'wvs-av', 'aria-hidden': 'true' }, a.who ? String(a.who).charAt(0).toUpperCase() : Icon('idBadge', 12)),
+                El('span', { className: 'wvs-an' }, a.who || kbe('Approver')),
+                a.device ? El('span', { className: 'wvs-ad', title: kbe('Computer') }, Icon('monitor', 12), ' ', a.device) : null,
+                a.signed === true ? El('span', { className: 'wvs-sig', title: kbe('Electronic signature checked') }, Icon('fileCheck', 12), ' ', kbe('Signed')) : null,
+                El('span', { className: 'wvs-as ' + o[1] }, o[0]),
+                a.at ? El('span', { className: 'wvs-at' }, wvsTime(a.at)) : null)
+            })))
+          }
+          return El('li', { className: 'wvs-row' + (sel ? ' sel' : '') + (bad ? ' bad' : '') + (clamp ? ' say' : '') },
+            El('span', { className: 'wvs-time' }, wvsTime(m.at)),
+            wvsTile(m.kind === 'ticks' ? { kind: 'ticks' } : m, props.logos),
+            El('div', { className: 'wvs-body' },
+              El('button', { type: 'button', className: 'wvs-head', 'aria-expanded': sel, onClick: () => props.set({ sel: sel ? null : m.id }) },
+                El('span', { className: 'wvs-actor' }, W.actor),
+                ink !== null ? El('span', { className: 'wvs-dot', style: { background: ink }, title: kbe('While') + ' ' + wvsCrewName(st.crews[ci]) + ' ' + kbe('was running') }) : null,
+                El('span', { className: 'wvs-text' + (clamp ? ' clamp' : '') }, m.kind === 'handover' && m.text ? '“' + m.text + '”' : W.text)),
+              W.sub ? El('div', { className: 'wvs-sub' }, W.sub) : null,
+              extra),
+            El('div', { className: 'wvs-right' }, right))
+        }
+
+        function WVSKpis(props) {
+          const s = props.story.stats
+          const waiting = props.story.moments.filter((m) => wvsPass(m, 'needs'))
+          const tile = (key, lab, val, sub, tone) => El('div', { key: key, className: 'wvs-kpi ' + (tone || '') },
+            El('span', { className: 'wvs-kl' }, lab), El('span', { className: 'wvs-kv' }, val), El('span', { className: 'wvs-ks' }, sub))
+          const tk = s.tokens.input + s.tokens.output + (s.tokens.crews || 0)
+          return El('div', { className: 'wvs-kpis' },
+            tile('n', kbe('Needs you'), String(s.handoversWaiting), waiting.length > 0 ? wvsClip(waiting[0].text || waiting[0].tool || '', 48) : kbe('Nothing is waiting'), s.handoversWaiting > 0 ? 'wait' : ''),
+            tile('d', kbe('Duration'), wvsDur(s.activeMs), s.waitingMs > 0 ? kbe('of which') + ' ' + wvsDur(s.waitingMs) + ' ' + kbe('waiting for people') : kbe('No waiting on people'), ''),
+            tile('c', kbe('Cost'), s.costEur === null || s.costEur === undefined ? '—' : wvEur(s.costEur, 2), (tk > 0 ? wvTok(tk) + ' ' + kbe('tokens') : kbe('No model call')) + (s.unpriced > 0 ? ' · ' + kbe('some not priced') : ''), ''),
+            tile('e', kbe('Errors'), String(s.openErrors), s.errors > s.openErrors ? (s.errors - s.openErrors) + ' ' + kbe('recovered') : (s.errors === 0 ? kbe('None') : kbe('Still open')), s.openErrors > 0 ? 'err' : ''),
+            tile('o', kbe('Deliverables'), String(s.deliverables), props.story.deliverables.length > 0 ? wvsClip(props.story.deliverables[0].name, 30) : kbe('Nothing delivered yet'), ''))
+        }
+
+        function WVSInsights(props) {
+          const st = props.story
+          const s = st.stats
+          const area = wvsArea(st.series, 300, 96)
+          const split = wvsSplit(s)
+          const R = 36
+          const C = 2 * Math.PI * R
+          const INK = { crew: 'var(--wv-act-orch)', wait: 'var(--wv-warn)', chat: 'var(--wv-act-connector)' }
+          const LAB = { crew: kbe('Crews working'), wait: kbe('Waiting for people'), chat: kbe('The chat itself') }
+          let off = 0
+          const arcs = split.total > 0 ? split.parts.filter((p) => p.ms > 0).map((p) => {
+            const len = (p.ms / split.total) * C
+            const el = El('circle', { key: p.key, cx: 50, cy: 50, r: R, fill: 'none', stroke: INK[p.key], strokeWidth: 12, strokeDasharray: len.toFixed(2) + ' ' + (C - len).toFixed(2), strokeDashoffset: (-off).toFixed(2), transform: 'rotate(-90 50 50)' })
+            off += len
+            return el
+          }) : []
+          const work = st.moments.filter((m) => m.kind === 'work').reduce((a, m) => a + m.total, 0)
+          const bars = [[kbe('Actions'), work, 'var(--wv-idle)'], [kbe('Connectors'), s.counts.connector || 0, 'var(--wv-act-connector)'], [kbe('Skills'), s.counts.skill || 0, 'var(--wv-act-human)'], [kbe('Memory'), s.counts.memory || 0, 'var(--wv-act-checker)'], [kbe('Outputs'), s.counts.output || 0, 'var(--wv-act-orch)'], [kbe('Handovers'), s.counts.handover || 0, 'var(--wv-warn)']]
+          const bmax = Math.max.apply(null, bars.map((b) => b[1]).concat([1]))
+          const crews = st.crews.filter((c) => wvsNum(c.startedAt) !== null)
+          const t0 = Math.min.apply(null, crews.map((c) => c.startedAt).concat([st.chat.startedAt || Infinity]))
+          const t1 = Math.max.apply(null, crews.map((c) => (wvsNum(c.endedAt) !== null ? c.endedAt : c.startedAt)).concat([st.chat.endedAt || 0]))
+          const spanMs = Math.max(1, t1 - t0)
+          return El('section', { className: 'wvs-ins', 'data-kb': 'wvs-insights' },
+            El('div', { className: 'wvs-card' },
+              El('div', { className: 'wvs-ch' }, area.priced ? kbe('Cost as the chat went on') : kbe('Tokens as the chat went on'), El('b', null, area.priced ? wvEur(s.costEur, 2) : wvTok(s.tokens.input + s.tokens.output))),
+              area.ok
+                ? El('svg', { className: 'wvs-area', viewBox: '0 0 300 96', preserveAspectRatio: 'none', role: 'img', 'aria-label': kbe('Cost as the chat went on') },
+                  El('path', { d: area.area, fill: 'var(--wv-act-orch)', opacity: 0.18 }),
+                  El('path', { d: area.line, fill: 'none', stroke: 'var(--wv-act-orch)', strokeWidth: 2, vectorEffect: 'non-scaling-stroke' }))
+                : El('div', { className: 'wvs-muted' }, kbe('Not enough model calls to draw a curve yet.'))),
+            El('div', { className: 'wvs-card' },
+              El('div', { className: 'wvs-ch' }, kbe('Where the time went'), El('b', null, wvsDur(split.total))),
+              split.total > 0
+                ? El('div', { className: 'wvs-donutrow' },
+                  El('svg', { className: 'wvs-donut', viewBox: '0 0 100 100', role: 'img', 'aria-label': kbe('Where the time went') }, El('circle', { cx: 50, cy: 50, r: R, fill: 'none', stroke: 'var(--wv-line2)', strokeWidth: 12 }), arcs),
+                  El('ul', { className: 'wvs-leg' }, split.parts.map((p) => El('li', { key: p.key }, El('i', { style: { background: INK[p.key] } }), El('span', null, LAB[p.key]), El('b', null, wvsDur(p.ms))))))
+                : El('div', { className: 'wvs-muted' }, kbe('No time to split yet.'))),
+            El('div', { className: 'wvs-card' },
+              El('div', { className: 'wvs-ch' }, kbe('Moments by type')),
+              El('ul', { className: 'wvs-bars' }, bars.map((b, i) => El('li', { key: i }, El('span', null, b[0]), El('div', { className: 'wvs-bt' }, El('div', { className: 'wvs-bf', style: { width: (b[1] / bmax) * 100 + '%', background: b[2] } })), El('b', null, b[1]))))),
+            crews.length > 0 ? El('div', { className: 'wvs-card wide' },
+              El('div', { className: 'wvs-ch' }, kbe('Crews on the clock')),
+              El('div', { className: 'wvs-gantt' }, crews.map((c, i) => {
+                const l = ((c.startedAt - t0) / spanMs) * 100
+                const w = Math.max(1.5, (((wvsNum(c.endedAt) !== null ? c.endedAt : t1) - c.startedAt) / spanMs) * 100)
+                return El('div', { key: c.id || i, className: 'wvs-gr' }, El('span', null, wvsCrewName(c)),
+                  El('div', { className: 'wvs-gt' }, El('div', { className: 'wvs-gb' + (c.state === 'failed' ? ' bad' : ''), style: { left: l + '%', width: w + '%', background: c.state === 'failed' ? 'var(--wv-err)' : WVS_INK[i % WVS_INK.length] } })))
+              }))) : null)
+        }
+
+        function WVSCrews(props) {
+          const st = props.story
+          if (st.crews.length === 0) return null
+          const card = (id, name, note, tone, sub) => El('button', { key: id, type: 'button', className: 'wvs-crew' + (props.ui.crew === id ? ' on' : ''), 'aria-pressed': props.ui.crew === id, onClick: () => props.set({ crew: props.ui.crew === id ? 'all' : id, sel: null }) },
+            El('span', { className: 'wvs-cn' }, name, note ? El('span', { className: 'wvs-pill ' + tone }, note) : null), El('span', { className: 'wvs-cs' }, sub))
+          return El('div', { className: 'wvs-crews', 'data-kb': 'wvs-crews' },
+            card('all', kbe('All crews'), st.stats.openErrors > 0 ? kbe('Errors') + ' ' + st.stats.openErrors : (st.stats.handoversWaiting > 0 ? kbe('Needs you') : ''), st.stats.openErrors > 0 ? 'err' : 'wait', kbe('Crews') + ' · ' + st.crews.length),
+            st.crews.map((c, i) => card(c.id, wvsCrewName(c), c.state === 'running' ? kbe('Running') : (c.state === 'failed' ? kbe('Failed') : kbe('Done')), c.state === 'failed' ? 'err' : (c.state === 'running' ? 'wait' : 'ok'),
+              [kbe('Members') + ' · ' + c.members.length, wvsDur(c.durMs), c.costEur !== null && c.costEur !== undefined ? wvEur(c.costEur, 2) : null].filter((v) => v && v !== '—').join(' · '))))
+        }
+
+        function WVSFilters(props) {
+          const c = wvsCounts(props.story.moments)
+          const defs = [['all', kbe('All', 'Tous')], ['needs', kbe('Needs you')], ['errors', kbe('Errors')], ['handovers', kbe('Handovers')], ['connectors', kbe('Connectors')], ['skills', kbe('Skills')], ['memory', kbe('Memory')], ['outputs', kbe('Outputs')], ['models', kbe('Models')]]
+          return El('div', { className: 'wvs-filters', role: 'group', 'aria-label': kbe('Filter the story') },
+            defs.filter((d) => d[0] === 'all' || c[d[0]] > 0 || props.ui.filter === d[0]).map((d) => El('button', { key: d[0], type: 'button', className: 'wv2-chip' + (props.ui.filter === d[0] ? ' on' : ''), 'aria-pressed': props.ui.filter === d[0], onClick: () => props.set({ filter: d[0], sel: null }) },
+              d[1], El('span', { className: 'wvs-n' }, c[d[0]]))))
+        }
+
+        function WVSDeliverables(props) {
+          const list = props.story.deliverables
+          return El('section', { className: 'wv2-panel wvs-deliv', 'data-kb': 'wvs-deliverables' },
+            El('h3', { className: 'wv2-h3' }, kbe('Deliverables')),
+            list.length === 0 ? El('div', { className: 'wvs-muted' }, kbe('Nothing delivered yet.')) : El('ul', { className: 'wvs-mem' }, list.slice(0, 8).map((d, i) => El('li', { key: i },
+              d.kind === 'link' ? wvsConnTile({ name: d.description || d.name }, props.logos, ' sm') : El('span', { className: 'wvs-tile sm k-output' }, Icon('file', 14)),
+              El('span', { className: 'wvs-dc' }, El('span', { className: 'wvs-mn' }, d.name), El('span', { className: 'wvs-mm' }, d.description || (d.kind === 'file' ? kbe('File') : kbe('Link')))),
+              d.kind === 'link'
+                ? El('a', { href: d.url, target: '_blank', rel: 'noopener noreferrer', className: 'wvs-ib', 'aria-label': kbe('Open') + ' ' + d.name, title: kbe('Open') }, Icon('link', 14))
+                : El('button', { type: 'button', className: 'wvs-ib', 'aria-label': kbe('Copy the path of') + ' ' + d.name, title: kbe('Copy the path'), onClick: () => { try { navigator.clipboard.writeText(d.path) } catch (e) { /* no clipboard */ } } }, Icon('copy', 14))))),
+            list.length > 8 ? El('div', { className: 'wvs-muted' }, kbe('Showing the first') + ' 8 / ' + list.length) : null)
+        }
+
+        function WVSFlow(props) {
+          const st = props.story
+          const G = wvsGraph(st)
+          const detail = props.ui.nd === true
+          const nh = detail ? 96 : 66
+          const L = wvsLayout(G.nodes, 3, nh)
+          const zoom = props.ui.zoom !== null ? props.ui.zoom : Math.max(0.4, Math.min(1, (props.ui.stageW - 12) / L.w))
+          const crews = st.crews
+          const hi = props.ui.crew
+          const selNode = G.nodes.filter((n) => n.refs.indexOf(props.ui.sel) >= 0)[0] || null
+          const inCrew = (n) => {
+            if (hi === 'all') return true
+            if (n.kind === 'crew') return n.m.crewId === hi
+            const c = crews.filter((x) => x.id === hi)[0] || null
+            return c !== null && wvsNum(n.at) !== null && wvsNum(c.startedAt) !== null && n.at >= c.startedAt && (wvsNum(c.endedAt) === null || n.at <= c.endedAt)
+          }
+          const nodeWords = (n) => {
+            if (n.kind === 'trigger') return { k: n.auto ? kbe('Automation') : kbe('Chat message'), t: n.m !== null ? wvsClip(n.m.text, 60) : kbe('Start'), s: wvsTime(n.at) }
+            const W = wvsWords(n.m, st)
+            return { k: W.actor, t: n.kind === 'connector' ? n.m.connector.action : wvsClip(W.text, 52), s: n.count > 1 ? '× ' + n.count + (n.durMs > 0 ? ' · ' + wvsDur(n.durMs) : '') : [wvsTime(n.at), wvsNum(n.m && n.m.durMs) !== null ? wvsDur(n.m.durMs) : null].filter((v) => v).join(' · ') }
+          }
+          const nodes = G.nodes.map((n, i) => {
+            const p = L.pos[i]
+            const w = nodeWords(n)
+            const o = n.kind === 'handover' ? wvsOutcome(n.m.outcome) : null
+            return El('button', { key: n.id, type: 'button', className: 'wvs-node s-' + n.status + (props.ui.sel !== null && n.refs.indexOf(props.ui.sel) >= 0 ? ' on' : '') + (inCrew(n) ? '' : ' dim'), style: { left: p.x, top: p.y, width: WVS_NW, height: nh }, onClick: () => props.set({ sel: n.refs[0] }) },
+              n.kind === 'trigger' ? El('span', { className: 'wvs-tile k-trigger' }, Icon(n.auto ? 'clock' : 'messageSquare', 16)) : wvsTile(n.m, props.logos),
+              El('span', { className: 'wvs-nb' }, El('span', { className: 'wvs-nk' }, w.k), El('span', { className: 'wvs-nt' }, w.t), detail ? El('span', { className: 'wvs-ns' }, w.s) : null,
+                detail && (n.errors > 0 || o !== null || n.status === 'wait') ? El('span', { className: 'wvs-nchips' }, n.errors > 0 ? El('span', { className: 'wvs-pill ' + (n.open > 0 ? 'err' : 'wait') }, n.open > 0 ? kbe('Error') : kbe('Recovered')) : null, o !== null ? El('span', { className: 'wvs-pill ' + o[1] }, o[0]) : null) : null),
+              El('span', { className: 'wv2-led t-' + (n.status === 'err' ? 'err' : (n.status === 'wait' ? 'wait' : 'ok')) }))
+          })
+          return El('div', { className: 'wvs-flow' },
+            El('div', { className: 'wvs-ftools' },
+              El('span', { className: 'wvs-muted' }, crews.length > 0 ? kbe('Pick a crew above to highlight its steps.') : ''),
+              El('button', { type: 'button', className: 'wv2-chip' + (detail ? ' on' : ''), 'aria-pressed': detail, onClick: () => props.set({ nd: !detail }) }, kbe('Details on nodes'))),
+            El('div', { className: 'wvs-fgrid' },
+              El('div', { className: 'wvs-fstage', ref: props.stageRef },
+                El('div', { className: 'wvs-fsize', style: { width: L.w * zoom, height: L.h * zoom } },
+                  El('div', { className: 'wvs-fcanvas', style: { width: L.w, height: L.h, transform: 'scale(' + zoom + ')' } },
+                    El('svg', { className: 'wvs-fedges', width: L.w, height: L.h, 'aria-hidden': 'true' },
+                      El('defs', null, ['ok', 'wait', 'err'].map((k) => El('marker', { key: k, id: 'wvs-arr-' + k, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, El('path', { d: 'M0 0L10 5L0 10z', fill: k === 'ok' ? 'var(--wv-mut)' : (k === 'wait' ? 'var(--wv-warn)' : 'var(--wv-err)') })))),
+                      L.edges.map((e) => El('path', { key: e.id, d: e.d, fill: 'none', className: 'wvs-edge s-' + e.status, markerEnd: 'url(#wvs-arr-' + e.status + ')' }))),
+                    nodes)),
+                El('div', { className: 'wvs-zoom' },
+                  El('button', { type: 'button', 'aria-label': kbe('Zoom in'), onClick: () => props.set({ zoom: Math.min(1.4, +(zoom + 0.1).toFixed(2)) }) }, '+'),
+                  El('button', { type: 'button', 'aria-label': kbe('Zoom out'), onClick: () => props.set({ zoom: Math.max(0.4, +(zoom - 0.1).toFixed(2)) }) }, '−'),
+                  El('button', { type: 'button', 'aria-label': kbe('Fit to the window'), title: kbe('Fit to the window'), onClick: () => props.set({ zoom: null }) }, Icon('maximize2', 14))),
+                El('div', { className: 'wvs-legend' }, El('span', null, El('i', { className: 'ok' }), kbe('Done')), El('span', null, El('i', { className: 'wait' }), kbe('Waiting', 'En attente')), El('span', null, El('i', { className: 'err' }), kbe('Error')))),
+              El('aside', { className: 'wvs-finsp' },
+                selNode !== null && props.ui.sel !== null
+                  ? [El(WVSDetail, { key: 'd', m: st.moments.filter((m) => m.id === props.ui.sel)[0] || selNode.m, story: st, logos: props.logos, ui: props.ui, set: props.set }),
+                    selNode.refs.length > 1 ? El('section', { key: 'c', className: 'wv2-panel' }, El('h3', { className: 'wv2-h3' }, kbe('Calls in this step') + ' · ' + selNode.refs.length),
+                      El('ul', { className: 'wvs-mem' }, selNode.refs.slice(0, 20).map((rid) => {
+                        const mm = st.moments.filter((m) => m.id === rid)[0]
+                        return mm ? El('li', { key: rid }, El('button', { type: 'button', className: 'wvs-link', onClick: () => props.set({ sel: rid }) }, wvsTime(mm.at) + ' · ' + wvsDur(mm.durMs) + (mm.status === 'error' ? ' · ' + kbe('Error') : ''))) : null
+                      }))) : null]
+                  : El('section', { className: 'wv2-panel' }, El('h3', { className: 'wv2-h3' }, kbe('Pick a step')), El('div', { className: 'wvs-muted' }, kbe('Select a box to see its facts, its input and its output.'))))),
+            G.dropped > 0 ? El('div', { className: 'wvs-muted' }, kbe('The flow shows the first') + ' ' + WVS_MAX_NODES + '. ' + G.dropped + ' ' + kbe('more are in the Story view.')) : null)
+        }
+
+        function WV2Shell(props) {
+          const sessionId = (props && (props.sessionId || (props.session && props.session.id))) || null
+          const modePair = React.useState('story')
+          const mode = modePair[0]
+          const dPair = React.useState({ state: sessionId ? 'loading' : 'empty', story: null, nonce: 0 })
+          const D = dPair[0]
+          const uiPair = React.useState({ filter: 'all', crew: 'all', sel: null, ins: true, more: {}, nd: false, zoom: null, stageW: 900, copied: false, limit: 60 })
+          const ui = uiPair[0]
+          const set = (p) => uiPair[1]((u) => Object.assign({}, u, p))
+          const logos = kbUseAppLogos()
+          const stageRef = React.useRef(null)
+          // Like the classic tab, the Journal takes the height the chat's input bar uses; it comes back with the next chat tab.
+          React.useEffect(() => {
+            const root = document.documentElement
+            root.classList.add('wv2-actif')
+            return () => { root.classList.remove('wv2-actif') }
+          }, [mode])
+          // The chat keeps its scroll position when a tab opens (DSH): a long chat would open the Journal in the middle of the story. It starts at its own top.
+          React.useEffect(() => {
+            try {
+              for (let e = document.querySelector('.wvs-root, .wvs-classic'); e !== null && e !== document.body; e = e.parentElement) { if (e.scrollTop > 0) e.scrollTop = 0 }
+            } catch (err) { /* nothing to scroll */ }
+          }, [mode, D.story === null])
+          const running = D.story !== null && D.story.chat.running === true
+          React.useEffect(() => {
+            if (!sessionId) return undefined
+            let cancel = false
+            const fail = () => { if (!cancel) dPair[1]((d) => Object.assign({}, d, { state: d.story !== null ? 'ready' : 'error' })) }
+            const load = () => fetch('/kybernos/journal?sessionId=' + encodeURIComponent(sessionId))
+              .then((r) => r.json())
+              .then((j) => { if (cancel) return; if (j !== null && j !== undefined && j.ok === true && j.story) dPair[1]((d) => Object.assign({}, d, { state: 'ready', story: j.story })); else fail() })
+              .catch(fail)
+            load()
+            const id = running ? setInterval(load, 8000) : null
+            return () => { cancel = true; if (id !== null) clearInterval(id) }
+          }, [sessionId, running, D.nonce])
+          React.useEffect(() => {
+            const measure = () => { const el = stageRef.current; if (el) uiPair[1]((u) => (u.stageW === el.clientWidth ? u : Object.assign({}, u, { stageW: el.clientWidth }))) }
+            measure()
+            window.addEventListener('resize', measure)
+            return () => window.removeEventListener('resize', measure)
+          }, [mode, D.state])
+
+          const seg = El('div', { className: 'wvs-seg', role: 'group', 'aria-label': kbe('How to read the Journal') },
+            [['story', kbe('Story')], ['flow', kbe('Flow')], ['classic', kbe('Advanced')]].map((d) => El('button', { key: d[0], type: 'button', 'aria-pressed': mode === d[0], className: mode === d[0] ? 'on' : '', onClick: () => modePair[1](d[0]) }, d[1])))
+          // Advanced = the sections of the Journal as they were (Timeline, Graph, Cascade, Step detail, Analysis).
+          if (mode === 'classic' || D.state === 'error' || D.state === 'empty') {
+            return El('div', { className: 'wvs-classic' },
+              El('div', { className: 'wv2-root wvs-barwrap' },
+                El('div', { className: 'wvs-bar' }, seg),
+                D.state === 'error' ? El('section', { className: 'wv2-panel', 'data-kb': 'wvs-unavailable' }, El('p', { className: 'wvs-muted' }, kbe('The new Journal views are not available yet: restart Kybernos once. The sections of the Journal are below.'))) : null),
+              El(WorkflowsV2Tab, props))
+          }
+          if (D.story === null) {
+            return El('div', { className: 'wv2-root wvs-root' }, El('div', { className: 'wvs-bar' }, seg),
+              El('section', { className: 'wv2-panel', 'data-kb': 'wvs-loading' }, El('p', { className: 'wvs-muted' }, kbe('Reading the journal…'))))
+          }
+          const st = D.story
+          const shortId = String(st.chat.id || sessionId || '').replace(/^session-/, '').slice(0, 8)
+          const model = st.models.length > 0 ? st.models[0] : null
+          const copy = () => { try { navigator.clipboard.writeText(String(st.chat.id || sessionId)) } catch (e) { /* no clipboard */ } set({ copied: true }); setTimeout(() => set({ copied: false }), 1600) }
+          const chips = El('div', { className: 'wvs-chips top', 'data-kb': 'wvs-context' },
+            running ? El('span', { className: 'wvs-chip run' }, WV2Led('wait', true), kbe('Running')) : null,
+            El('button', { type: 'button', className: 'wvs-chip btn', onClick: copy, title: kbe('Copy the chat ID') }, Icon(ui.copied ? 'check' : 'copy', 12), ' ', ui.copied ? kbe('Copied') : kbe('Chat') + ' · ' + shortId),
+            El('span', { className: 'wvs-chip', title: st.trigger.rpcId || '' }, Icon(st.trigger.kind === 'automation' ? 'clock' : 'messageSquare', 12), ' ', st.trigger.kind === 'automation' ? kbe('Started by an automation') : kbe('Started by you') + (wvsNum(st.chat.startedAt) !== null ? ' · ' + wvsTime(st.chat.startedAt) : '')),
+            model !== null ? El('span', { className: 'wvs-chip', title: model.provider || '' }, Icon('cpu', 12), ' ', wvsModelName(model) + (st.models.length > 1 ? ' +' + (st.models.length - 1) : '')) : null,
+            st.droppedMoments > 0 ? El('span', { className: 'wvs-chip warn' }, kbe('Older moments left out') + ' · ' + st.droppedMoments) : null)
+          const head = El('header', { className: 'wvs-top' },
+            El('div', { className: 'wvs-title' },
+              El('div', { className: 'wv2-idline' }, kbe('Chat') + (st.chat.title ? ' · ' + st.chat.title : '')),
+              El('h1', { className: 'wv2-h1' }, kbe('Journal'))),
+            El('div', { className: 'wvs-bar' }, seg,
+              mode === 'story' ? El('button', { type: 'button', className: 'wv2-chip' + (ui.ins ? ' on' : ''), 'aria-pressed': ui.ins, onClick: () => set({ ins: !ui.ins }) }, kbe('Insights')) : null,
+              El('button', { type: 'button', className: 'wv2-ghost wvs-refresh', 'aria-label': kbe('Refresh'), title: kbe('Refresh'), onClick: () => dPair[1]((d) => Object.assign({}, d, { nonce: d.nonce + 1 })) }, Icon('refresh', 14))))
+          if (st.moments.length === 0) {
+            return El('div', { className: 'wv2-root wvs-root' }, head, chips, El('section', { className: 'wv2-panel', 'data-kb': 'wvs-empty' }, El('p', { className: 'wvs-muted' }, kbe('Nothing to show yet. The Journal fills in as the chat works.'))))
+          }
+          const kpis = El(WVSKpis, { story: st })
+          if (mode === 'flow') {
+            return El('div', { className: 'wv2-root wvs-root' }, head, chips, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos, stageRef: stageRef }))
+          }
+          const rows = wvsFeed(st, ui.filter, ui.crew)
+          const shown = rows.slice(0, ui.limit)
+          const selM = ui.sel !== null ? st.moments.filter((m) => m.id === ui.sel)[0] || null : null
+          return El('div', { className: 'wv2-root wvs-root' }, head, chips, kpis,
+            ui.ins ? El(WVSInsights, { story: st, ui: ui, set: set }) : null,
+            El(WVSCrews, { story: st, ui: ui, set: set }),
+            El(WVSFilters, { story: st, ui: ui, set: set }),
+            El('div', { className: 'wvs-cols' },
+              El('section', { className: 'wv2-panel wvs-feed', 'data-kb': 'wvs-feed' },
+                El('div', { className: 'wvs-feedh' }, El('h3', { className: 'wv2-h3' }, kbe('Story of this chat')), El('span', { className: 'wv2-hint' }, rows.filter((r) => r.kind !== 'day').length + ' ' + kbe('moments'))),
+                rows.length === 0 ? El('p', { className: 'wvs-muted' }, kbe('Nothing matches this filter.')) : El('ul', { className: 'wvs-list' }, shown.map((r) => El(WVSRow, { key: r.id, m: r, story: st, ui: ui, set: set, logos: logos }))),
+                rows.length > shown.length ? El('button', { type: 'button', className: 'wv2-ghost wvs-showmore', onClick: () => set({ limit: ui.limit + 60 }) }, kbe('Show more') + ' · ' + (rows.length - shown.length)) : null),
+              El('aside', { className: 'wvs-side' },
+                El(WVSDeliverables, { story: st, logos: logos }),
+                selM !== null ? El(WVSDetail, { m: selM, story: st, logos: logos, ui: ui, set: set }) : null)))
+        }
+
+        const WVS_CSS = `
+.wvs-classic{display:flex;flex-direction:column;min-height:100%}
+.wvs-classic > .wvs-barwrap{flex:0 0 auto;min-height:0;padding:16px 24px 0;gap:8px}
+.wvs-classic > .wv2-root:not(.wvs-barwrap){flex:1 1 auto}
+.wvs-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media (max-width:720px){.wvs-root{padding-top:44px}.wvs-classic > .wvs-barwrap{padding-top:44px}}
+.wvs-title{display:flex;flex-direction:column;gap:3px;min-width:0}
+.wvs-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wvs-seg{display:inline-flex;border:1px solid var(--wv-line3);border-radius:8px;overflow:hidden}
+.wvs-seg button{height:36px;padding:0 14px;border:0;background:transparent;color:var(--wv-mut);font:inherit;font-size:13px;cursor:pointer}
+.wvs-seg button:hover{background:var(--wv-hover)}
+.wvs-seg button.on{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font-weight:600}
+.wvs-refresh{width:36px;padding:0}
+.wvs-muted{font-size:12px;color:var(--wv-mut)}
+.wvs-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.wvs-chips.top{gap:8px}
+.wvs-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:2px 9px;border-radius:999px;border:1px solid var(--wv-line3);background:transparent;color:var(--wv-mut);font:inherit;font-size:12px;max-width:100%;text-decoration:none}
+.wvs-chip.btn{cursor:pointer}.wvs-chip.btn:hover,.wvs-chip.lnk:hover{background:var(--wv-hover)}
+.wvs-chip.warn{border-color:var(--wv-warn);color:var(--wv-warn-ink)}
+.wvs-chip.run{border-color:var(--wv-accent);color:var(--wv-accent-ink);background:var(--wv-accent-soft)}
+.wvs-chip.lnk{color:var(--wv-ink)}
+.wvs-n{margin-inline-start:2px;color:var(--wv-faint);font-variant-numeric:tabular-nums}
+.wv2-chip.on .wvs-n{color:inherit}
+/* indicateurs */
+.wvs-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.wvs-kpi{display:flex;flex-direction:column;gap:2px;padding:12px 14px;background:var(--wv-panel);border:1px solid var(--wv-line);border-radius:10px;min-width:0}
+.wvs-kpi.wait{border-color:var(--wv-warn)}.wvs-kpi.err{border-color:var(--wv-err)}
+.wvs-kl{font-size:11px;color:var(--wv-mut)}
+.wvs-kv{font-size:22px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
+.wvs-ks{font-size:12px;color:var(--wv-mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wvs-kpi.wait .wvs-kv{color:var(--wv-warn-ink)}.wvs-kpi.err .wvs-kv{color:var(--wv-err-ink)}
+/* éclairages */
+.wvs-ins{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.wvs-card{display:flex;flex-direction:column;gap:10px;padding:14px 16px;background:var(--wv-panel);border:1px solid var(--wv-line);border-radius:10px;min-width:0}
+.wvs-card.wide{grid-column:1/-1}
+.wvs-ch{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;font-weight:600}
+.wvs-ch b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--wv-mut)}
+.wvs-area{width:100%;height:96px;display:block}
+.wvs-donutrow{display:flex;align-items:center;gap:14px}
+.wvs-donut{width:92px;height:92px;flex:none}
+.wvs-leg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:12px;min-width:0;flex:1}
+.wvs-leg li{display:flex;align-items:center;gap:7px}.wvs-leg i{width:9px;height:9px;border-radius:3px;flex:none}
+.wvs-leg span{flex:1;min-width:0;color:var(--wv-mut)}.wvs-leg b{font-weight:500;font-variant-numeric:tabular-nums}
+.wvs-bars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:12px}
+.wvs-bars li{display:grid;grid-template-columns:84px 1fr 28px;align-items:center;gap:8px}
+.wvs-bars span{color:var(--wv-mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wvs-bars b{text-align:end;font-weight:500;font-variant-numeric:tabular-nums}
+.wvs-bt{height:6px;border-radius:3px;background:var(--wv-line2);overflow:hidden}.wvs-bf{height:100%;border-radius:3px;min-width:2px}
+.wvs-gantt{display:flex;flex-direction:column;gap:8px}
+.wvs-gr{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center;font-size:12px}
+.wvs-gr > span{color:var(--wv-mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wvs-gt{position:relative;height:16px;border-radius:5px;background:var(--wv-line2)}.wvs-gb{position:absolute;top:2px;height:12px;border-radius:4px;opacity:.9}
+/* équipes */
+.wvs-crews{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.wvs-crew{display:flex;flex-direction:column;gap:4px;text-align:start;padding:12px 14px;background:var(--wv-panel);border:1px solid var(--wv-line);border-radius:10px;color:var(--wv-ink);font:inherit;cursor:pointer;min-width:0}
+.wvs-crew:hover{background:var(--wv-hover)}.wvs-crew.on{border-color:var(--wv-accent);background:var(--wv-accent-soft)}
+.wvs-cn{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;font-weight:600}
+.wvs-cs{font-size:12px;color:var(--wv-mut)}
+.wvs-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--wv-idle-soft);color:var(--wv-mut)}
+.wvs-pill.ok{background:var(--wv-ok-soft);color:var(--wv-ok)}.wvs-pill.wait{background:var(--wv-accent-soft);color:var(--wv-accent-ink)}.wvs-pill.err{background:var(--wv-err-soft);color:var(--wv-err-ink)}
+.wvs-filters{display:flex;flex-wrap:wrap;gap:6px}
+/* récit */
+.wvs-cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start}
+@media (max-width:980px){.wvs-cols{grid-template-columns:1fr}}
+.wvs-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.wvs-feedh{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.wvs-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.wvs-day{padding:10px 0 4px;font-size:12px;font-weight:600;color:var(--wv-faint)}
+.wvs-row{display:grid;grid-template-columns:42px 32px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 8px;border-top:1px solid var(--wv-line);border-radius:6px}
+.wvs-day + .wvs-row{border-top:0}
+.wvs-row.sel{background:var(--wv-hover)}.wvs-row.bad{background:var(--wv-err-soft)}
+.wvs-time{padding-top:7px;font-size:12px;color:var(--wv-mut);font-variant-numeric:tabular-nums}
+.wvs-tile{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;flex:none;border-radius:9px;background:var(--wv-box);border:1px solid var(--wv-line2);color:var(--wv-mut);font-size:13px;overflow:hidden}
+.wvs-tile.logo{background:#fff;padding:5px}.wvs-tile.logo svg{width:100%;height:100%;display:block}
+.wvs-tile.sm{width:26px;height:26px;border-radius:7px}.wvs-tile.sm.logo{padding:4px}
+.wvs-tile.k-connector,.wvs-tile.k-crew{color:var(--wv-act-connector)}.wvs-tile.k-skill{color:var(--wv-act-human)}.wvs-tile.k-memory{color:var(--wv-act-checker)}
+.wvs-tile.k-handover{color:var(--wv-warn-ink)}.wvs-tile.k-output{color:var(--wv-act-orch)}.wvs-tile.k-message,.wvs-tile.k-trigger{color:var(--wv-ink)}
+.wvs-body{display:flex;flex-direction:column;gap:5px;min-width:0}
+.wvs-head{display:flex;align-items:baseline;gap:6px;width:100%;padding:0;border:0;background:transparent;color:var(--wv-ink);font:inherit;text-align:start;cursor:pointer;min-height:32px;align-self:stretch}
+.wvs-head:focus-visible,.wvs-link:focus-visible,.wvs-crew:focus-visible,.wvs-node:focus-visible,.wvs-seg button:focus-visible,.wvs-ib:focus-visible{outline:2px solid var(--wv-accent);outline-offset:2px}
+.wvs-actor{font-weight:600;flex:none}
+.wvs-dot{width:7px;height:7px;border-radius:50%;flex:none;align-self:center}
+.wvs-text{color:var(--wv-ink);min-width:0;overflow-wrap:anywhere}
+.wvs-text.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wvs-row.sel .wvs-text.clamp{-webkit-line-clamp:unset;display:block}
+.wvs-sub{font-size:12px;color:var(--wv-mut);overflow-wrap:anywhere}
+.wvs-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding-top:6px;font-size:12px;color:var(--wv-mut);font-variant-numeric:tabular-nums}
+.wvs-dur{white-space:nowrap}
+.wvs-appr{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.wvs-appr li{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;padding:7px 10px;border:1px solid var(--wv-line2);border-radius:8px;background:var(--wv-box)}
+.wvs-av{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--wv-idle-soft);color:var(--wv-ink);font-size:11px;font-weight:600;flex:none}
+.wvs-an{font-weight:600}.wvs-ad,.wvs-at{color:var(--wv-mut);display:inline-flex;align-items:center;gap:4px}.wvs-at{margin-inline-start:auto;font-variant-numeric:tabular-nums}
+.wvs-sig{display:inline-flex;align-items:center;gap:4px;color:var(--wv-ok)}
+.wvs-as{font-weight:600}.wvs-as.ok{color:var(--wv-ok)}.wvs-as.wait{color:var(--wv-accent-ink)}.wvs-as.err{color:var(--wv-err-ink)}
+.wvs-showmore{align-self:center;margin-top:8px}
+/* détail et livrables */
+.wvs-dh{display:flex;align-items:center;gap:10px}
+.wvs-dt{display:flex;flex-direction:column;min-width:0}.wvs-dk{font-size:11px;color:var(--wv-mut)}.wvs-dn{font-weight:600;overflow-wrap:anywhere}
+.wvs-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:0}
+.wvs-facts > div{padding:8px 10px;background:var(--wv-box);border:1px solid var(--wv-line2);border-radius:8px;min-width:0}
+.wvs-facts dt{font-size:11px;color:var(--wv-mut)}.wvs-facts dd{margin:0;font-weight:600;font-size:13px;overflow-wrap:anywhere}
+.wvs-err{display:flex;flex-direction:column;gap:3px;padding:9px 11px;border:1px solid var(--wv-err);border-radius:8px;background:var(--wv-err-soft);font-size:12px;overflow-wrap:anywhere}.wvs-err b{color:var(--wv-err-ink)}
+.wvs-q{font-size:14px;font-weight:500}.wvs-ans{padding:9px 11px;border-radius:8px;background:var(--wv-box);border:1px solid var(--wv-line2);font-size:13px}
+.wvs-io{display:flex;flex-direction:column;gap:4px}.wvs-iol{font-size:11px;color:var(--wv-mut)}
+.wvs-pre{margin:0;padding:9px 11px;border:1px solid var(--wv-line2);border-radius:8px;background:var(--wv-box);font-family:var(--wv-mono);font-size:11.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;max-height:7.6em;overflow:hidden}
+.wvs-pre.open{max-height:none}
+.wvs-link{align-self:flex-start;padding:2px 0;border:0;background:transparent;color:var(--wv-brand);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;text-align:start}
+.wvs-links{display:flex;flex-direction:column;gap:3px}
+.wvs-mem{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.wvs-mem li{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--wv-line);font-size:12px;min-width:0}
+.wvs-mem li:first-child{border-top:0}.wvs-mem li.bad .wvs-mn{color:var(--wv-err-ink)}
+.wvs-mn{font-weight:500;overflow-wrap:anywhere;min-width:0;flex:none;max-width:48%}.wvs-mm{color:var(--wv-mut);overflow-wrap:anywhere;min-width:0;flex:1}
+.wvs-dc{display:flex;flex-direction:column;min-width:0;flex:1}.wvs-dc .wvs-mn{max-width:none}
+.wvs-ib{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;flex:none;border:1px solid var(--wv-line3);border-radius:8px;background:transparent;color:var(--wv-ink);cursor:pointer;text-decoration:none}
+.wvs-ib:hover{background:var(--wv-hover)}
+/* flux */
+.wvs-flow{display:flex;flex-direction:column;gap:10px}
+.wvs-ftools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.wvs-fgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start}
+@media (max-width:980px){.wvs-fgrid{grid-template-columns:1fr}}
+.wvs-fstage{position:relative;overflow:auto;min-height:420px;max-height:640px;background:var(--wv-panel);border:1px solid var(--wv-line);border-radius:10px;background-image:radial-gradient(var(--wv-line2) 1px,transparent 1px);background-size:18px 18px}
+.wvs-fcanvas{position:relative;transform-origin:0 0}
+.wvs-fedges{position:absolute;left:0;top:0;pointer-events:none}
+.wvs-edge{stroke:var(--wv-mut);stroke-width:1.6}.wvs-edge.s-wait{stroke:var(--wv-warn);stroke-dasharray:6 5}.wvs-edge.s-err{stroke:var(--wv-err)}
+.wvs-node{position:absolute;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;text-align:start;background:var(--wv-panel);border:1px solid var(--wv-line3);border-radius:12px;color:var(--wv-ink);font:inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.wvs-node:hover{background:var(--wv-hover)}.wvs-node.on{border-color:var(--wv-brand);box-shadow:0 0 0 2px var(--wv-brand)}
+.wvs-node.s-wait{border-color:var(--wv-warn);background:var(--wv-accent-soft)}.wvs-node.s-err{border-color:var(--wv-err)}
+.wvs-node.dim{opacity:.35}
+.wvs-node .wv2-led{position:absolute;top:10px;right:10px}
+.wvs-nb{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;padding-inline-end:12px}
+.wvs-nk{font-size:11px;color:var(--wv-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wvs-nt{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wvs-ns{font-size:11px;color:var(--wv-mut)}.wvs-nchips{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.wvs-zoom{position:sticky;left:10px;bottom:10px;display:inline-flex;flex-direction:column;border:1px solid var(--wv-line3);border-radius:8px;background:var(--wv-panel);overflow:hidden;margin:0 0 10px 10px}
+.wvs-zoom button{width:34px;height:34px;border:0;background:transparent;color:var(--wv-ink);font:inherit;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}.wvs-zoom button:hover{background:var(--wv-hover)}
+.wvs-legend{position:sticky;left:50%;bottom:10px;display:inline-flex;gap:14px;padding:5px 12px;border:1px solid var(--wv-line3);border-radius:999px;background:var(--wv-panel);font-size:11px;color:var(--wv-mut);transform:translateX(-30%)}
+.wvs-legend span{display:inline-flex;align-items:center;gap:6px}.wvs-legend i{width:16px;height:0;border-top:2px solid var(--wv-mut)}.wvs-legend i.wait{border-top:2px dashed var(--wv-warn)}.wvs-legend i.err{border-top-color:var(--wv-err)}
+.wvs-finsp{display:flex;flex-direction:column;gap:12px;min-width:0}
+`
+
         /* ── enregistrement : onglet du chat ── */
         ctx.effect(() => styles.insert(WV2_CSS), 'workflows-v2: journal styles')
+        ctx.effect(() => styles.insert(WVS_CSS), 'workflows-v2: story styles')
         ctx.effect(() => slots.inject('conversation.view', () => slots.register(
-          { name: 'conversation.view', id: WV2_TYPE, order: 6, label: kbt('wv2.tab') }, WorkflowsV2Tab)), kbe('workflows-v2: execution journal tab'))
+          { name: 'conversation.view', id: WV2_TYPE, order: 6, label: kbt('wv2.tab') }, WV2Shell)), kbe('workflows-v2: execution journal tab'))
       } catch (wv2Error) {
         try { console.error(kbe('[workflows-v2] tab disabled'), wv2Error) } catch (e2) { /* console indisponible */ }
       }
