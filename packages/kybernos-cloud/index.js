@@ -37,7 +37,7 @@
 // applied by the proxy on every request — this plugin filters nothing.
 import { execFileSync, spawn } from 'node:child_process'
 import { createHash, timingSafeEqual } from 'node:crypto'
-import { appendFileSync, chmodSync, closeSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
+import { appendFileSync, chmodSync, closeSync, copyFileSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
@@ -324,9 +324,15 @@ const publicState = (state) => ({
   chats_last_push: state.chats_last_push !== undefined ? state.chats_last_push : null,
 })
 
+/** The team a DSH was started for (team-instances.mjs), '' in the personal DSH. In a team's own DSH the active space IS that team, for good: nothing switches it, nothing follows a chat
+ *  (docs/dev/team-profiles-cadrage.md, step 2). The team is named even when the list no longer holds it (the person left): the model route then names a space the server refuses, which
+ *  stops the turn, instead of billing Personal. */
+const pinnedSpace = () => teamOfEnv()
+
 /** Id of the active space: the explicit choice if it is still valid, else the
- *  first known space. Never an id that is no longer in the list. */
+ *  first known space. Never an id that is no longer in the list. A team's own DSH answers its team. */
 const espaceActif = (state) => {
+  if (pinnedSpace() !== '') return pinnedSpace()
   const espaces = state !== null && state !== undefined && Array.isArray(state.workspaces) ? state.workspaces : []
   const ids = espaces.map((w) => (w !== null && typeof w.id === 'string' ? w.id : null)).filter((id) => id !== null)
   const choisi = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
@@ -358,7 +364,8 @@ const folderRoot = () => {
   if (rootMemo.key !== key) rootMemo = { key, root: rootOf(folderDeps.documents()) }
   return rootMemo.root
 }
-const foldersFile = () => join(dirname(stateFile()), 'kybernos-cloud-folders.json')
+// A team's own DSH reads and writes the PERSONAL home's record: the folders are the computer's, and a second record would make `<Documents>/Kybernos/<Team>` look taken (a second folder per team).
+const foldersFile = () => join(pinnedSpace() !== '' ? personalHomeOf(dshHome()) : dirname(stateFile()), 'kybernos-cloud-folders.json')
 /** The recorded folders, `{ <workspace id>: <path> }`: only entries that are a DIRECT child of the root (a record edited by hand to point elsewhere is not followed or listed). */
 const readFolders = () => {
   const parsed = readObjectFile(foldersFile())
@@ -449,6 +456,8 @@ const switchSpaceNow = async (voulu, turnOf, options) => {
   const state = readState()
   if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
   if (typeof voulu !== 'string' || voulu === '') return { ok: false, error: 'espace_absent' }
+  // A team's own DSH keeps its team: choosing it again (to mend the model route) is the only switch there.
+  if (pinnedSpace() !== '' && voulu !== pinnedSpace()) return { ok: false, error: 'espace_fixe' }
   const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
   if (espaces.some((w) => w !== null && w.id === voulu) !== true) return { ok: false, error: 'espace_inconnu' }
   if (voulu !== espaceActif(state)) {
@@ -632,7 +641,31 @@ const busyView = (running, state) => {
 }
 // ── a team's own DSH (team-instances.mjs, docs/dev/team-profiles-cadrage.md) ──────────────────────────────────────────────────
 // Any DSH of this person can open any of their teams: the registry lives in the personal home (`personalHomeOf` reads where a team's DSH was told it is).
-const teamDsh = createTeamInstances({ personalHome: () => personalHomeOf(dshHome()) })
+// What a team's DSH starts from, once: the person's session (the same device token, which is also the key of the Kybernos model route: both DSH are the person's, on their computer), the
+// server it talks to, and the team as its active space. Not copied: the list of teams, the plan and the record of the model route (the team's DSH reads them itself at its first mount),
+// and the person's own provider keys. Seeded only while the team's DSH holds no connection of its own, so a sign-out there is followed by a fresh copy at the next opening.
+const SEED_KEYS = ['token', 'user', 'expires_at', 'connected_at', 'api', 'device_label']
+const seedTeamHome = ({ teamId, teamHome }) => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const target = join(teamHome, stateFileName(server().profile))
+  if (!existsSync(target)) {
+    const seed = {}
+    for (const key of SEED_KEYS) if (state[key] !== undefined) seed[key] = state[key]
+    seed.active_workspace_id = teamId
+    mkdirSync(dirname(target), { recursive: true, mode: 0o700 })
+    writeAtomic(target, JSON.stringify(seed, null, 2) + '\n', false)
+  }
+  // The server registry (a person on a server other than Kybernos Cloud) goes with it, unless an environment variable names the file for every DSH.
+  const given = typeof process.env.KYBERNOS_SERVERS_FILE === 'string' ? process.env.KYBERNOS_SERVERS_FILE.trim() : ''
+  const registryTarget = join(teamHome, 'kybernos', 'servers.json')
+  if (given === '' && existsSync(serversFile()) && !existsSync(registryTarget)) {
+    mkdirSync(dirname(registryTarget), { recursive: true, mode: 0o700 })
+    copyFileSync(serversFile(), registryTarget)
+  }
+  return { ok: true }
+}
+const teamDsh = createTeamInstances({ personalHome: () => personalHomeOf(dshHome()), seed: seedTeamHome })
 /** The team a request names: one of the teams the person is in, never their personal space (that one is the personal DSH itself). */
 const teamNamed = (body) => {
   const state = readState()
@@ -698,7 +731,7 @@ const spaceForFolder = async (req, body) => {
     space_id: owner.id,
     space_name: space !== undefined && typeof space.name === 'string' ? space.name : null,
     active_id: active,
-    follow: owner.id !== null && owner.id !== active,
+    follow: pinnedSpace() === '' && owner.id !== null && owner.id !== active,
   }
 }
 
@@ -709,6 +742,7 @@ const claimIntents = new Map()
 /** The team a turn of this chat must be billed to when that is not the active one, else null. Only for a chat the page reported lately (the person is looking at it), whose folder is a
  *  team's or no team's (Personal), and only while no OTHER reply runs: switching under it would bill it to two teams. Read at the claim and again just before the first request. */
 const claimTarget = (agent) => {
+  if (pinnedSpace() !== '') return null
   const id = agent.session.id
   if (sightings.isFresh(id) !== true) return null
   const state = readState()
@@ -1288,7 +1322,8 @@ const disconnect = async () => {
   // The previous account's cache must never survive the sign-out: after
   // a re-connection to ANOTHER account, it would have been served in the prompt.
   emptyMemoryCache()
-  if (token === null) return { ok: true, revoked: false, status: 0 }
+  // A team's own DSH holds a copy of the personal DSH's session (seedTeamHome): leaving it must not revoke the one the personal DSH is still using.
+  if (token === null || pinnedSpace() !== '') return { ok: true, revoked: false, status: 0 }
   const res = await apiCall('/v1/session', { method: 'DELETE', token })
   return { ok: true, revoked: res.status === 204 || res.status === 200, status: res.status }
 }
@@ -6481,7 +6516,7 @@ export function apply(ctx) {
   try { publishPersonSeam() } catch (e) { console.error('[kybernos-cloud] person seam: ' + String((e && e.message) || e)) }
   try { publishSnapshotsSeam() } catch (e) { console.error('[kybernos-cloud] snapshots seam: ' + String((e && e.message) || e)) }
   // The other bundles ask here whether the active space is a team (kybernos-memory cuts its lessons there).
-  try { publishSpaceSeam(() => spaceOf(readStateForSpace())) } catch (e) { console.error('[kybernos-cloud] space seam: ' + String((e && e.message) || e)) }
+  try { publishSpaceSeam(() => spaceOf(readStateForSpace()), globalThis, () => pinnedSpace() !== '') } catch (e) { console.error('[kybernos-cloud] space seam: ' + String((e && e.message) || e)) }
   // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
   const aside = setAsideForeignConnection()
   if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx, ctx.get('webServer'))

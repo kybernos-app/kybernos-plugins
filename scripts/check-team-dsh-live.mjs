@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Live check of the team DSH launcher (packages/kybernos-cloud/team-instances.mjs) on the SANDBOX: a made-up team gets a home copied from the sandbox's profile, a REAL
-// `dsh web` starts on it, answers, serves this worktree's cloud plugin from its own home, and stops. It never touches the real ~/.dsh or :3080.
+// `dsh web` starts on it through the host's own route, comes up signed in with a made-up session and its team as active space, serves this worktree's cloud plugin from
+// its own home, and stops. It never touches the real ~/.dsh or :3080, and the made-up session can reach no server (the API is a closed port).
 //
 //   bash scripts/sandbox/setup.sh && source scripts/sandbox/env.sh && node scripts/check-team-dsh-live.mjs
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, realpathSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createTeamInstances, answers } from '../packages/kybernos-cloud/team-instances.mjs'
+import { answers } from '../packages/kybernos-cloud/team-instances.mjs'
 
 const home = process.env.DSH_HOME || ''
 if (!home.includes('/.kybernos-sandbox/') || process.env.HOME === process.env.KB_REAL_HOME) {
@@ -21,7 +22,23 @@ const dshBin = realpathSync(execFileSync('which', ['dsh'], { encoding: 'utf8' })
 const teamHome = join(home, 'teams', TEAM)
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
-const teams = createTeamInstances({ personalHome: () => home, dshBin: () => dshBin, startTimeoutMs: 180000 })
+const personalState = join(home, 'kybernos-cloud.json')
+const FAKE_TOKEN = 'kys-' + 'l'.repeat(43)
+
+// The host of the plugin, on the sandbox's home, signed in as a made-up person who belongs to a made-up team; its server is a closed port.
+Object.assign(process.env, { KYBERNOS_CLOUD_API: 'http://127.0.0.1:9', KYBERNOS_TEAM_DSH_BIN: dshBin })
+delete process.env.KYBERNOS_CLOUD_STATE
+delete process.env.KYBERNOS_TEAM_ID
+const stateBefore = existsSync(personalState) ? readFileSync(personalState) : null
+writeFileSync(personalState, JSON.stringify({
+  token: FAKE_TOKEN,
+  api: 'http://127.0.0.1:9',
+  user: { id: 'u-live', name: 'Live', email: 'live@example.test' },
+  workspaces: [{ id: 'w-live-personal', name: 'Live', personal: true }, { id: TEAM, name: 'Live check team', personal: false }]
+}), { mode: 0o600 })
+const mod = await import('../packages/kybernos-cloud/index.js')
+const hostCall = (path, body) => mod.ROUTES.find((r) => r.path === '/kybernos-cloud/team-dsh/' + path).run({ headers: {} }, body)
+const teams = { open: () => hostCall('open', { workspace_id: TEAM }), stop: () => hostCall('stop', { workspace_id: TEAM }) }
 
 try {
   console.log('team DSH — live, on the sandbox')
@@ -44,7 +61,16 @@ try {
   assert.equal(status.status, 200, 'the cloud plugin answers')
   const body = await status.json()
   assert.equal(typeof body, 'object')
-  ok('the cloud plugin of this worktree answers from the team DSH (' + JSON.stringify(body).slice(0, 80) + ')')
+  assert.equal(body.connected, true, 'the team DSH is signed in: ' + JSON.stringify(body).slice(0, 120))
+  assert.equal(body.state.active_workspace_id, TEAM, 'with its team as the active space')
+  assert.equal(JSON.stringify(body).includes(FAKE_TOKEN), false, 'the session never shows in a page')
+  const seededFile = readdirSync(teamHome).filter((n) => /^kybernos-cloud.*\.json$/u.test(n))[0]
+  assert.equal(JSON.parse(readFileSync(join(teamHome, seededFile), 'utf8')).token, FAKE_TOKEN, 'it holds the copy of the personal session')
+  const personalNow = JSON.parse(readFileSync(personalState, 'utf8'))
+  assert.equal(personalNow.active_workspace_id, undefined, 'the personal connection did not move')
+  const refused = await fetch(opened.url + 'kybernos-cloud/space/active', { method: 'POST', headers: { 'content-type': 'application/json', origin: opened.url.replace(/\/$/u, '') }, body: JSON.stringify({ workspace_id: 'w-live-personal' }) })
+  assert.ok(refused.status === 401 || refused.status === 403 || (await refused.json()).error === 'espace_fixe', 'the team DSH does not switch to Personal (' + refused.status + ')')
+  ok('the cloud plugin of this worktree answers from the team DSH, signed in with the copied session, its team as the active space (' + JSON.stringify(body).slice(0, 60) + '…)')
 
   const log = readFileSync(join(teamHome, 'logs', 'team-dsh.log'), 'utf8')
   assert.equal(/kybernos-relance|kybernos-miniapps/u.test(log.replace(/token=[^\s]+/gu, '')), false, 'the bundles of the computer are not loaded')
@@ -78,7 +104,13 @@ try {
   ok('it stops, and the port is free again')
 
   console.log('\n' + pass + ' verifications OK')
+} catch (e) {
+  console.error('  ✗ ' + (e !== null && typeof e === 'object' && e.stack ? e.stack : e))
+  process.exitCode = 1
 } finally {
   try { await teams.stop(TEAM) } catch (e) { /* nothing left to stop */ }
   rmSync(teamHome, { recursive: true, force: true })
+  if (stateBefore === null) rmSync(personalState, { force: true }); else writeFileSync(personalState, stateBefore, { mode: 0o600 })
 }
+// The plugin host keeps timers of its own; the check is over.
+process.exit(process.exitCode === undefined ? 0 : process.exitCode)

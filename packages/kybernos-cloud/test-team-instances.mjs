@@ -4,7 +4,8 @@
 //   node kybernos-cloud/test-team-instances.mjs
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { createServer as createHttpServer } from 'node:http'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -57,7 +58,7 @@ const seedPersonal = () => {
 const freeBase = await new Promise((done) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => done(p)) }) })
 const instances = []
 const spawned = []
-const ENV_KEYS = ['DSH_HOME', 'KYBERNOS_CLOUD_STATE', 'KYBERNOS_SERVERS_FILE', 'KYBERNOS_CLOUD_API', 'KYBERNOS_TEAM_DSH_BIN', 'KYBERNOS_PERSONAL_HOME', 'KYBERNOS_TEAM_ID']
+const ENV_KEYS = ['KYBERNOS_DOCUMENTS_DIR', 'DSH_HOME', 'KYBERNOS_CLOUD_STATE', 'KYBERNOS_SERVERS_FILE', 'KYBERNOS_CLOUD_API', 'KYBERNOS_TEAM_DSH_BIN', 'KYBERNOS_PERSONAL_HOME', 'KYBERNOS_TEAM_ID']
 const savedEnv = {}
 
 try {
@@ -163,6 +164,7 @@ try {
       env: { PATH: process.env.PATH, SOME_KEY: 'k', KYBERNOS_CLOUD_STATE: '/x/state.json', DSH_WEB_PORT: '3080', ...(extra.env || {}) },
       dshBin: extra.dshBin || (() => standin),
       copy,
+      ...(extra.seed !== undefined ? { seed: extra.seed } : {}),
       spawnFn: (...args) => { const child = spawn(...args); spawned.push(child); return child },
       portFirst: freeBase + 1,
       portLast: freeBase + 40,
@@ -237,6 +239,23 @@ try {
   for (const id of ['t1', 't2']) await teams.stop(id)
   assert.equal((await teams.list()).length, 0)
 
+  // ── the seed: what a new home starts from ──
+  const seeds = []
+  const seeding = make({ seed: (args) => { seeds.push(args); return { ok: true } } })
+  const seededOpen = await seeding.open('t6')
+  assert.equal(seededOpen.ok, true, JSON.stringify(seededOpen))
+  assert.deepEqual(seeds.map((s) => [s.teamId, s.teamHome, s.personalHome]), [['t6', join(personal, 'teams', 't6'), personal]], 'the seed runs once, on the home, before the start')
+  assert.equal((await seeding.open('t6')).started, false)
+  assert.equal(seeds.length, 2, 'it runs again when the DSH is already up (a sign-out there is followed by a fresh copy)')
+  await seeding.stop('t6')
+  const before = spawned.length
+  const refused = await make({ seed: () => ({ ok: false, error: 'non_connecte' }) }).open('t7')
+  assert.equal(refused.error, 'non_connecte')
+  assert.equal((await make({ seed: () => { throw new Error('disk') } }).open('t8')).error, 'seed_failed')
+  assert.equal(spawned.length, before, 'a refused seed starts nothing')
+  assert.equal(readRegistry(registryFile).teams.t7, undefined)
+  ok('a seed runs before the start and at every opening, and a refusal or a failure of it starts nothing')
+
   // ── the routes of the plugin, on a made-up account ──
   for (const key of ENV_KEYS) savedEnv[key] = process.env[key]
   const statePath = join(root, 'kybernos-cloud.json')
@@ -266,9 +285,64 @@ try {
   assert.equal(opened.started, true)
   assert.deepEqual((await call('/kybernos-cloud/team-dsh/list')).teams.map((row) => [row.team_id, row.running]), [['t1', true]])
   assert.equal(existsSync(join(personal, 'teams', 't1', 'team-home.json')), true)
+  const stateOf = (team) => readdirSync(join(personal, 'teams', team)).filter((n) => /^kybernos-cloud.*\.json$/u.test(n))
+  const seededFile = join(personal, 'teams', 't1', stateOf('t1')[0])
+  const seededState = JSON.parse(readFileSync(seededFile, 'utf8'))
+  assert.equal(stateOf('t1').length, 1, 'one connection file in the team home')
+  assert.equal(seededState.token, 'kys-' + 'o'.repeat(43), 'the team starts signed in as the person')
+  assert.equal(seededState.active_workspace_id, 't1', 'and with its team as the active space')
+  assert.deepEqual(Object.keys(seededState).filter((k) => ['workspaces', 'models', 'space_plan', 'device_secret'].includes(k)), [], 'the list of teams, the model record and the plan are read by the team DSH itself')
+  assert.equal(statSync(seededFile).mode & 0o777, 0o600)
+  assert.equal(JSON.parse(readFileSync(statePath, 'utf8')).active_workspace_id, undefined, 'the personal connection is not touched')
+  writeFileSync(seededFile, JSON.stringify({ ...seededState, marker: 'kept' }))
+  await call('/kybernos-cloud/team-dsh/open', { workspace_id: 't1' })
+  assert.equal(JSON.parse(readFileSync(seededFile, 'utf8')).marker, 'kept', 'a connection the team DSH already has is never overwritten')
+  rmSync(seededFile)
+  await call('/kybernos-cloud/team-dsh/open', { workspace_id: 't1' })
+  assert.equal(JSON.parse(readFileSync(seededFile, 'utf8')).token, seededState.token, 'after a sign-out there, the next opening copies it again')
+  ok('a team home starts signed in with the person\'s session and its team as active space, once, and never touches the personal connection')
   assert.deepEqual(await call('/kybernos-cloud/team-dsh/stop', { workspace_id: 't1' }), { ok: true, stopped: true })
   assert.deepEqual((await call('/kybernos-cloud/team-dsh/list')).teams, [])
   ok('the routes refuse what is not a team of this account, open and stop one, and are guarded like the other writes')
+
+  // ── in a team's own DSH the team is fixed ──
+  savedEnv.KYBERNOS_DOCUMENTS_DIR = process.env.KYBERNOS_DOCUMENTS_DIR
+  process.env.KYBERNOS_DOCUMENTS_DIR = join(root, 'Docs')
+  const t2dir = join(root, 'Docs', 'Kybernos', 'T2')
+  mkdirSync(t2dir, { recursive: true })
+  const stateNow = JSON.parse(readFileSync(statePath, 'utf8'))
+  writeFileSync(statePath, JSON.stringify({ ...stateNow, workspaces: [...stateNow.workspaces, { id: 't2', name: 'Other', personal: false }] }))
+  writeFileSync(join(root, 'kybernos-cloud-folders.json'), JSON.stringify({ t2: t2dir }))
+  const asked = await call('/kybernos-cloud/space/for-folder', { path: t2dir })
+  assert.deepEqual([asked.ok, asked.space_id, asked.follow], [true, 't2', true], 'in the personal DSH the active space follows the folder of the chat')
+  // The record of the folders is the personal home's, whichever DSH reads it (here the personal connection file is elsewhere, so the two places differ).
+  writeFileSync(join(personal, 'kybernos-cloud-folders.json'), JSON.stringify({ t2: t2dir }))
+  process.env.KYBERNOS_TEAM_ID = 't1'
+  process.env.KYBERNOS_PERSONAL_HOME = personal
+  const fixed = await call('/kybernos-cloud/space/for-folder', { path: t2dir })
+  assert.deepEqual([fixed.ok, fixed.space_id, fixed.active_id, fixed.follow], [true, 't2', 't1', false], 'in a team DSH nothing follows a chat: its active space is its team')
+  for (const other of ['w-personal', 't2', 'nope']) assert.equal((await call('/kybernos-cloud/space/active', { workspace_id: other })).error, 'espace_fixe', other)
+  const status = await route('/kybernos-cloud/status').run({ headers: {} })
+  assert.equal(status.state.active_workspace_id, 't1', 'the footer and the plan card read the team')
+  ok('in a team\'s own DSH the active space is the team: no switch, no follow-the-chat')
+
+  // Leaving a team's DSH must not revoke the session it shares with the personal one.
+  let revokes = 0
+  const api = createHttpServer((req, res) => { if (req.method === 'DELETE' && req.url === '/v1/session') revokes += 1; res.writeHead(204); res.end() })
+  await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + api.address().port
+  const connected = readFileSync(statePath, 'utf8')
+  assert.equal((await call('/kybernos-cloud/disconnect', {})).ok, true)
+  assert.equal(revokes, 0, 'a team DSH signs itself out without revoking the shared session')
+  assert.equal(existsSync(statePath), false)
+  delete process.env.KYBERNOS_TEAM_ID
+  writeFileSync(statePath, connected)
+  assert.equal((await call('/kybernos-cloud/disconnect', {})).revoked, true)
+  assert.equal(revokes, 1, 'the personal DSH revokes it')
+  api.close()
+  ok('signing out of a team\'s DSH does not revoke the session the personal DSH uses')
+  delete process.env.KYBERNOS_TEAM_ID
+  delete process.env.KYBERNOS_PERSONAL_HOME
 
   console.log('\n' + pass + ' verifications OK')
 } finally {

@@ -27,7 +27,7 @@ each bundle to the active team by hand; a second instance per team separates eve
 - The switch in the account menu becomes "open that team's DSH" (started if it is not running). Nothing restarts: chats and automations of
   every team keep running.
 - What follows from it: billing is fixed per instance; the team's own memory, written freely by the agent, lives in its home; personal
-  memory is simply absent (no cut to maintain); connectors, skills, agents, automations, settings are the team's own. Kaby, Telegram and
+  memory is absent from its home (the account's memory on the server stays cut, see step 2); connectors, skills, agents, automations, settings are the team's own. Kaby, Telegram and
   personal scheduled work stay in Personal.
 - Cost: about 0.7 GB of memory per running team; the profile clone is cheap at first and grows apart; a plugin update must reach every
   home; a new team needs a first setup (see decision 2).
@@ -64,7 +64,19 @@ each bundle to the active team by hand; a second instance per team separates eve
      OAuth connections behind them belong to the account (decision 2 below).
    - **One secret per home.** A new home makes its own `.credentials.yaml`, hence its own browser-session secret. Cookies ignore the port, so
      two DSH on `127.0.0.1` would sign each other out. Step 4 shares that one secret across the homes (single sign-in everywhere).
-2. The team instance's cloud state is bound to its team (fixed route).
+2. **Done** (`index.js` of the cloud bundle, `pinnedSpace`): a team's own DSH answers its team as the active space, for good. Nothing switches
+   it (`space/active` answers `espace_fixe` for any other space), nothing follows a chat (`space/for-folder` says `follow: false`, the
+   claim-time switch decides nothing), so the model route names that team from the first mount. A team the person has since left is still
+   named, so the server refuses the turn instead of billing Personal. The home starts signed in: at every opening the host copies the
+   personal session (token, user, server; not the list of teams, the plan or the model-route record, which the team DSH reads itself) into
+   the team home if it holds no connection, and the server registry with it. One session, two DSH: signing out of a team's DSH does not
+   revoke it, and signing out of the personal one ends both (the team DSH clears itself at its next call). The record of the team folders
+   is the personal home's, read by every DSH (a second record would make `<Documents>/Kybernos/<Team>` look taken). Played on a sandbox with
+   a real `dsh web` and a made-up session (`scripts/check-team-dsh-live.mjs`: signed in, team active, refuses to switch).
+   **Memory (2b), decided while doing it:** the copied session also opens the person's account memory on the server, so that stays cut in
+   a team's DSH (the existing team-space cut, unchanged). The local lessons are different: the home is the team's alone, so the memory bundle
+   uses them there (`seam.ownHome()`, `lessonsCut` in `kybernos-memory/team-space.mjs`); the side doors that name the personal memory stay
+   refused. A bundle without the new seam field keeps the old, closed behaviour.
 3. The account menu opens the team's DSH; "Personal" returns to :3080.
 4. Seed rules: what is copied from Personal when a team home is created.
 5. Retire the single-instance switch code (follow-the-chat, turn guard, deferred switch, claim-time switch). Dead-code rider.

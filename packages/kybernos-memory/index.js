@@ -28,7 +28,7 @@ import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { rank } from './relevance.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups, askModel, brainPrompt, parseVerdicts, BRAIN_BATCH, BRAIN_TIMEOUT_MS } from './tidy.mjs'
-import { TEAM_SPACE_REFUSAL, inTeamSpace, touchesPersonalMemory } from './team-space.mjs'
+import { TEAM_SPACE_REFUSAL, inTeamSpace, lessonsCut, touchesPersonalMemory } from './team-space.mjs'
 import { importClaudeMemories, readStaging, writeStaging, setEntryStatus, statusCounts, scanClaudeMemory } from './claude-import.mjs'
 
 export const name = 'kybernos-memory'
@@ -218,7 +218,7 @@ const sessionIdOf = (context) => {
 export const renderLessonsChunk = (context) => {
   try {
     // A team space: no lesson goes in, and the agent is told why — a global rule or the memory.cjs habit would otherwise go on recording them.
-    if (inTeamSpace()) return CHUNK_HEAD + ' This is a team space: the person\'s own lessons are not available here and none can be recorded (no lesson_write, no lesson_search, no memory.cjs lesson). To share a lesson with the team, the person uses "Propose to team".'
+    if (lessonsCut()) return CHUNK_HEAD + ' This is a team space: the person\'s own lessons are not available here and none can be recorded (no lesson_write, no lesson_search, no memory.cjs lesson). To share a lesson with the team, the person uses "Propose to team".'
     const settings = readSettings()
     // Switched off: say so in one line, so an agent that was told elsewhere to record
     // lessons (a global rule, the memory.cjs habit) knows the user has turned it off.
@@ -265,7 +265,7 @@ const lessonWriteTool = () => ({
     render: (args, value) => TEXT(value.ok === true ? (value.duplicate === true ? 'Lesson already recorded.' : 'Lesson recorded.') : 'Lesson not recorded: ' + String(value.error) + (value.kybers === undefined ? '' : ' (kybers: ' + value.kybers + ')')),
   },
   async execute(args) {
-    if (inTeamSpace()) return { ok: false, error: TEAM_SPACE_REFUSAL }
+    if (lessonsCut()) return { ok: false, error: TEAM_SPACE_REFUSAL }
     if (readSettings().lessons !== true) return { ok: false, error: 'lecons_desactivees' }
     const made = addLesson(typeof args.kyber === 'string' && args.kyber !== '' ? args.kyber : DEFAULT_KYBER, { text: args.text, tags: args.tags, from: 'lesson_write' })
     if (made.ok !== true) return { ok: false, error: made.error, ...(made.kybers === undefined ? {} : { kybers: made.kybers.join(', ') }) }
@@ -295,7 +295,7 @@ const lessonSearchTool = () => ({
     render: (args, value) => TEXT(value.ok === true ? (value.count === 0 ? 'No lesson for "' + String(args.q) + '".' : String(value.found)) : 'Search impossible: ' + String(value.error)),
   },
   async execute(args) {
-    if (inTeamSpace()) return { ok: false, error: TEAM_SPACE_REFUSAL }
+    if (lessonsCut()) return { ok: false, error: TEAM_SPACE_REFUSAL }
     if (readSettings().lessons !== true) return { ok: false, error: 'lecons_desactivees' }
     const hits = searchLessons(args.q, { kyber: args.kyber, limit: 8 })
     // Retrieving a lesson is the only use this module can see: it feeds the cap.
@@ -407,7 +407,7 @@ const lessonsListRoute = async (req) => {
   // What a session reads depends on the kyber it runs; with no session in hand, the
   // page reports the `default` kyber's share and says what the scope is.
   const plan = planLessons(undefined)
-  const team = inTeamSpace()
+  const team = lessonsCut()
   return {
     ok: true, ...listed,
     filters: { kyber: isKyberId(kyber) ? kyber : null, used: params.get('used') === '1', added: params.get('added') === null ? 'any' : params.get('added'), q: params.get('q') === null ? '' : params.get('q') },
@@ -578,7 +578,7 @@ const tidyRun = async (trigger, now = Date.now()) => {
     let unclear = 0
     const brain = { asked: 0, error: null, detail: null, model: '' }
     // In a team space the Study model is on the team's route: the person's lessons are looked at on this machine only.
-    if (t.settings.brain === true && !inTeamSpace()) {
+    if (t.settings.brain === true && !lessonsCut()) {
       brain.model = studyModel()
       const llm = tidyLlm()
       const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: LESSON_MAX_CHARS, noun: 'lessons' })
@@ -627,7 +627,7 @@ export const tidyTick = async (now = Date.now()) => {
   try {
     if (readSettings().lessons !== true) return { ran: false, why: 'lecons_desactivees' }
     // The scheduled run may ask the Study model: in a team space that is the team's route, and the person's lessons would leave under its bill.
-    if (inTeamSpace()) return { ran: false, why: 'espace_equipe' }
+    if (lessonsCut()) return { ran: false, why: 'espace_equipe' }
     const t = tidyState()
     const live = liveLessons()
     const count = live.size
@@ -845,7 +845,7 @@ const janitorLessonsRevision = () => {
 
 /** enabled(): lessons are recorded, and this is not a team space. Never throws. */
 const janitorLessonsEnabled = () => {
-  try { return readSettings().lessons === true && !inTeamSpace() } catch (e) { return false }
+  try { return readSettings().lessons === true && !lessonsCut() } catch (e) { return false }
 }
 
 /** The backup file, written atomically, where the janitor asked for it. */
@@ -891,7 +891,7 @@ const janitorLessonsScanAndClean = async (options = {}) => {
     const apply = opts.apply === true
     const now = Date.now()
     if (readSettings().lessons !== true) return { ok: false, unavailable: true, error: 'lecons_desactivees' }
-    if (inTeamSpace()) return { ok: false, unavailable: true, error: 'espace_equipe' }
+    if (lessonsCut()) return { ok: false, unavailable: true, error: 'espace_equipe' }
     const all = janitorLessonItems()
     const inspectedItems = all.slice(0, bounds.maxInspected)
     const before = { items: all.length, chars: all.reduce((n, it) => n + String(it.content).length, 0) }
@@ -1222,7 +1222,7 @@ export function apply(ctx) {
   try { mountTeamGate(ctx) } catch (e) { say('team gate not mounted: ' + String((e && e.message) || e)) }
   // the human's message of each turn, to pick the lessons that match it (see « The lessons that matter to THIS question »)
   try {
-    if (typeof ctx.on === 'function') ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => { try { if (!inTeamSpace()) noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ } })
+    if (typeof ctx.on === 'function') ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => { try { if (!lessonsCut()) noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ } })
   } catch (e) { say('turn listener not mounted: ' + String((e && e.message) || e)) }
   hostCtx = ctx
   try { publishJanitorSeam() } catch (e) { say('janitor seam not published: ' + String((e && e.message) || e)) }

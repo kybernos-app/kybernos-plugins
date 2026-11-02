@@ -214,7 +214,8 @@ export const dshBinOf = (env = process.env, argv = process.argv) => {
   return typeof argv[1] === 'string' && basename(argv[1]) === 'dsh' && existsSync(argv[1]) ? argv[1] : null
 }
 
-/** `deps`: `{ personalHome(), env, node, dshBin(), now, sleep, spawnFn, alive, kill, probe, free, copy, ready(logFile), portFirst, portLast, startTimeoutMs }`, all optional but `personalHome`. */
+/** `deps`: `{ personalHome(), env, node, dshBin(), now, sleep, spawnFn, alive, kill, probe, free, copy, seed({ teamId, teamHome, personalHome }), ready(logFile), portFirst, portLast, startTimeoutMs }`,
+ *  all optional but `personalHome`. `seed` gives a new home what it starts from (the host's sign-in copy); it runs at every opening, before the start, and answers `{ ok: false, error }` to refuse it. */
 export const createTeamInstances = (deps) => {
   const env = deps.env || process.env
   const now = deps.now || Date.now
@@ -225,6 +226,7 @@ export const createTeamInstances = (deps) => {
   const probe = deps.probe || answers
   const free = deps.free || portIsFree
   const copy = deps.copy || copyTree
+  const seed = deps.seed || (() => ({ ok: true }))
   const node = deps.node || process.execPath
   const dshBin = deps.dshBin || (() => dshBinOf(env))
   const ready = deps.ready || ((logFile) => { try { return readFileSync(logFile, 'utf8').includes(READY_LINE) } catch (e) { return false } })
@@ -234,6 +236,14 @@ export const createTeamInstances = (deps) => {
   const opening = new Map()
 
   const running = async (row) => row !== undefined && alive(row.pid) && (await probe(row.port)) === true
+
+  /** Runs the host's seed on a team's home; a seed that throws refuses like one that says no. */
+  const seeded = (teamId, home) => {
+    try {
+      const out = seed({ teamId, teamHome: home, personalHome: deps.personalHome() })
+      return out !== undefined && out !== null && out.ok === false ? { ok: false, error: typeof out.error === 'string' ? out.error : 'seed_failed' } : { ok: true }
+    } catch (e) { return { ok: false, error: 'seed_failed' } }
+  }
 
   const status = async (teamId) => {
     const row = readRegistry(registryFile()).teams[teamId]
@@ -254,6 +264,8 @@ export const createTeamInstances = (deps) => {
     if (bin === null || bin === undefined) return { ok: false, error: 'dsh_not_found' }
     const made = ensureTeamHome({ personalHome: personal, teamId, copy })
     if (made.ok !== true) return made
+    const given = seeded(teamId, made.home)
+    if (given.ok !== true) return given
     const logFile = logOf(made.home)
     const timeoutMs = deps.startTimeoutMs || START_TIMEOUT_MS
     const registry = readRegistry(registryFile())
@@ -303,7 +315,11 @@ export const createTeamInstances = (deps) => {
   const open = async (teamId) => {
     if (teamHomeOf(deps.personalHome(), teamId) === null) return { ok: false, error: 'invalid_team' }
     const current = await status(teamId)
-    if (current.running) return { ok: true, started: false, port: current.port, pid: current.pid, url: current.url }
+    if (current.running) {
+      // A DSH that is already up reads its state at each use: a fresh copy of the sign-in (after a sign-out there) reaches it without a restart. A refusal here does not stop it being opened.
+      seeded(teamId, teamHomeOf(deps.personalHome(), teamId))
+      return { ok: true, started: false, port: current.port, pid: current.pid, url: current.url }
+    }
     if (!opening.has(teamId)) opening.set(teamId, start(teamId).finally(() => opening.delete(teamId)))
     return opening.get(teamId)
   }

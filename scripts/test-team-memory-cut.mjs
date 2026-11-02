@@ -341,6 +341,14 @@ try {
   const toolsWith = async (value) => { globalThis[Symbol.for('kybernos.space')] = value; return tool('lesson_search').execute({ q: 'codename' }) }
   check('the seam in doubt → lesson_search and lesson_write refuse', (await toolsWith({ isTeam() { throw new Error('boom') } })).ok === false && (await tool('lesson_write').execute({ text: 'x lesson, seam in doubt' })).ok === false)
   check('the seam says false → the lessons are back', lessonsWith({ isTeam: () => false }).includes(LESSON) && (await toolsWith({ isTeam: () => false })).ok === true)
+  // A team's own DSH (seam.ownHome): its home holds that team's lessons alone, so they work there; the account's memory and the side doors stay cut.
+  check('a team space in a team\'s own DSH → the local lessons work', lessonsWith({ isTeam: () => true, ownHome: () => true }).includes(LESSON) && (await toolsWith({ isTeam: () => true, ownHome: () => true })).ok === true)
+  check('ownHome in doubt (throws, odd answer, absent) → still cut', lessonsWith({ isTeam: () => true, ownHome() { throw new Error('boom') } }).includes(LESSON) === false && lessonsWith({ isTeam: () => true, ownHome: () => 'yes' }).includes(LESSON) === false && lessonsWith({ isTeam: () => true }).includes(LESSON) === false)
+  globalThis[Symbol.for('kybernos.space')] = { isTeam: () => true, ownHome: () => true }
+  const ownDoors = await Promise.all(doors.map((d) => chain(bash(d))))
+  check('a team\'s own DSH: the side doors to the personal memory stay refused', ownDoors.every((r) => r.kind === 'deny'), JSON.stringify(ownDoors))
+  globalThis[Symbol.for('kybernos.space')] = goodSeam
+  check('the real seam: ownHome is false outside a team\'s own DSH', typeof goodSeam.ownHome === 'function' && goodSeam.ownHome() === false)
   delete globalThis[Symbol.for('kybernos.space')]
   check('no seam at all (no cloud bundle): behaviour unchanged', blocks.get('kybernos:lessons').text(context).includes(LESSON) && (await tool('lesson_search').execute({ q: 'codename' })).ok === true)
   globalThis[Symbol.for('kybernos.space')] = goodSeam
