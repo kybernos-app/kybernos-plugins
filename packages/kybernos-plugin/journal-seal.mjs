@@ -11,7 +11,7 @@
 import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign as nodeSign, verify as nodeVerify } from 'node:crypto'
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { classifyTool, decisionKey, parseArgs, resultOf } from './journal-story.mjs'
+import { answersOf, classifyTool, decisionKey, parseArgs, permissionOutcome, rejectedAnswer, resultOf } from './journal-story.mjs'
 
 const VERSION = 'kybernos-journal-seal/1'
 const TEXT_MAX = 2000
@@ -94,7 +94,8 @@ export function createDecisionTracker () {
           const id = str(data.id)
           if (id === null) return null
           const subject = asked.has(id) ? asked.get(id) : null
-          return { key: decisionKey('permission', id), subject: subject, outcome: typeof data.outcome === 'string' ? data.outcome : '', at: at, named: str(data.by) !== null }
+          // The outcome is « <state>:<detail> »: the state the Journal shows (allowed, denied, answered, error) is sealed with the rest, so a page that shows it can be checked.
+          return { key: decisionKey('permission', id), subject: subject, outcome: permissionOutcome(data.outcome) + ':' + (typeof data.outcome === 'string' ? data.outcome : ''), at: at, named: str(data.by) !== null }
         }
         if (type === 'tool/call') {
           const id = str(data.callId)
@@ -112,7 +113,8 @@ export function createDecisionTracker () {
           if (r.callId === null || calls.has(r.callId) === false) return null
           const subject = calls.get(r.callId)
           calls.delete(r.callId)
-          return { key: decisionKey('question', r.callId), subject: subject, outcome: (r.isError ? 'error:' : 'answer:') + sha(r.text === null ? '' : r.text), at: at, named: false }
+          const state = r.isError ? 'error' : (rejectedAnswer(answersOf(r.text), r.text) ? 'denied' : 'answered')
+          return { key: decisionKey('question', r.callId), subject: subject, outcome: state + ':' + sha(r.text === null ? '' : r.text), at: at, named: false }
         }
       } catch (e) { /* a tracker never breaks its caller */ }
       return null
@@ -120,15 +122,13 @@ export function createDecisionTracker () {
   }
 }
 
-/**
- * Check every sealed decision of a chat against its log. `decisions` is what the recorder wrote (`readDecisions`), `key` the key of this computer (or null).
- * Returns `{ [decisionKey]: 'valid' | 'broken' | 'foreign' }`; a decision with no seal is not in it.
- */
-export function verifyDecisions (events, decisions, sessionId, key) {
+// One pass over the log: the state of every sealed decision and, for the valid ones, what a reader needs to check the seal alone (the signed text and the signature).
+function check (events, decisions, sessionId, key) {
   const states = {}
+  const evidence = {}
   const list = isObj(decisions) ? decisions : {}
   const sealed = Object.keys(list).filter((k) => isObj(list[k]) && typeof list[k].sig === 'string')
-  if (sealed.length === 0) return states
+  if (sealed.length === 0) return { states: states, evidence: evidence }
   const facts = {}
   const tracker = createDecisionTracker()
   const evs = Array.isArray(events) ? events : []
@@ -142,7 +142,17 @@ export function verifyDecisions (events, decisions, sessionId, key) {
     if (key === null || key === undefined || rec.kid !== key.keyId) { states[k] = 'foreign'; continue }
     const f = facts[k]
     if (f === undefined || f.subject === null) { states[k] = 'broken'; continue }
-    states[k] = verifySeal(key.publicKey, sealPayload({ session: sessionId, key: k, subject: f.subject, outcome: f.outcome, by: rec.by, device: rec.device, at: f.at }), rec.sig) ? 'valid' : 'broken'
+    const payload = sealPayload({ session: sessionId, key: k, subject: f.subject, outcome: f.outcome, by: rec.by, device: rec.device, at: f.at })
+    if (verifySeal(key.publicKey, payload, rec.sig)) { states[k] = 'valid'; evidence[k] = { payload: payload, sig: rec.sig } } else states[k] = 'broken'
   }
-  return states
+  return { states: states, evidence: evidence }
 }
+
+/**
+ * Check every sealed decision of a chat against its log. `decisions` is what the recorder wrote (`readDecisions`), `key` the key of this computer (or null).
+ * Returns `{ [decisionKey]: 'valid' | 'broken' | 'foreign' }`; a decision with no seal is not in it.
+ */
+export const verifyDecisions = (events, decisions, sessionId, key) => check(events, decisions, sessionId, key).states
+
+/** What a reader needs to check the valid seals without this computer: `{ [decisionKey]: { payload, sig } }`. */
+export const sealEvidence = (events, decisions, sessionId, key) => check(events, decisions, sessionId, key).evidence

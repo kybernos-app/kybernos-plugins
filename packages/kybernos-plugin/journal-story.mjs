@@ -102,7 +102,7 @@ export function classifyTool(name) {
   return { kind: 'work', group: 'other' }
 }
 
-const permissionOutcome = (o) => {
+export const permissionOutcome = (o) => {
   const s = typeof o === 'string' ? o.toLowerCase() : ''
   if (s.length === 0) return 'answered'
   if (/den|reject|refus|block/.test(s) === true) return 'denied'
@@ -111,7 +111,7 @@ const permissionOutcome = (o) => {
 }
 
 // The answer of ask_user_question is {"answers":[{id, selected:[…], custom}]}.
-const answersOf = (text) => {
+export const answersOf = (text) => {
   if (typeof text !== 'string') return null
   try {
     const j = JSON.parse(text)
@@ -126,7 +126,7 @@ const answersOf = (text) => {
   return null
 }
 
-const rejectedAnswer = (answers, raw) => /(rejet|refus|annul|reject|deny|denied|cancel)/i.test(JSON.stringify(answers !== null ? answers : (raw === null ? '' : raw))) === true
+export const rejectedAnswer = (answers, raw) => /(rejet|refus|annul|reject|deny|denied|cancel)/i.test(JSON.stringify(answers !== null ? answers : (raw === null ? '' : raw))) === true
 
 // Union length of [start, end] intervals: two crews running at once count once.
 const unionMs = (spans) => {
