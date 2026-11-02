@@ -586,6 +586,30 @@ window.__ModuleLoader__.load({
 
       /** The sub-block « {NAME}'s computer » of the « Phone and channels » screen: the computer {NAME} works on, as a select. « This computer » is always there (it needs no account and no
        *  server); next to it the cloud computers of the account, with the state of the chosen one and the one thing the plan lets the person do. The choice is remembered. */
+      /** The cloud computers the select offers: those of the account (the one linked to {NAME} is `home`); with none yet, one entry stands for the Home made at the first request. None without an account. */
+      const cloudChoices = (v) => {
+        const signed = v.kind === 'ok'
+        const hm = signed ? v.home : null
+        const name = hm !== null && hm.name !== '' ? hm.name : HOME_NAME
+        const cloud = signed ? v.computers.slice() : []
+        if (hm !== null && hm.id !== '' && !cloud.some((c) => c.id === hm.id)) cloud.push({ id: hm.id, name })
+        return !signed ? [] : (cloud.length > 0 ? cloud : [{ id: 'cloud', name }])
+      }
+      /** A pick of the select: « local » is remembered by the browser; a cloud computer is remembered too and linked to {NAME} by the host. Settings › Kaby calls it through the seam. */
+      const pickWhere = (val) => {
+        if (val === 'local') { setWhere('local'); return }
+        setWhere('cloud')
+        if (val !== 'cloud') void setComputer(val)
+      }
+      /** The pick as data (the seam's `where()`): `local` or not, the cloud computers offered, the one picked, and the state of the linked one. Null until the account has answered. */
+      const whereView = () => {
+        const v = state.view
+        if (v === null) return null
+        const hm = v.kind === 'ok' ? v.home : null
+        const local = whereOf(state.where, v) === 'local'
+        const clouds = cloudChoices(v)
+        return { signedIn: v.kind === 'ok', local, computers: clouds.map((c) => ({ id: c.id, name: c.name })), picked: local ? 'local' : (hm !== null && clouds.some((c) => c.id === hm.id) ? hm.id : clouds[0].id), state: hm === null ? '' : hm.state, paused: hm === null ? '' : hm.paused }
+      }
       const ComputerBlock = (props) => {
         const v = props.view
         const signed = v.kind === 'ok'
@@ -594,19 +618,10 @@ window.__ModuleLoader__.load({
         const free = !local && hm !== null && hm.manualControl === false
         const st = hm === null ? '' : hm.state
         const busy = state.busy !== ''
-        const name = hm !== null && hm.name !== '' ? hm.name : HOME_NAME
-        // The cloud computers of the account (the one linked to {NAME} is `home`); with none yet, one entry stands for the Home made at the first request.
-        const cloud = signed ? v.computers.slice() : []
-        if (hm !== null && hm.id !== '' && !cloud.some((c) => c.id === hm.id)) cloud.push({ id: hm.id, name })
-        const clouds = !signed ? [] : (cloud.length > 0 ? cloud : [{ id: 'cloud', name }])
+        const clouds = cloudChoices(v)
         const options = [h('option', { key: 'local', value: 'local' }, L('thisComputer'))].concat(clouds.map((c) => h('option', { key: c.id, value: c.id }, L('cloudName', { name: c.name }))))
         const picked = local ? 'local' : (hm !== null && clouds.some((c) => c.id === hm.id) ? hm.id : clouds[0].id)
-        const onPick = (e) => {
-          const val = e.target.value
-          if (val === 'local') { setWhere('local'); return }
-          setWhere('cloud')
-          if (val !== 'cloud') void setComputer(val)
-        }
+        const onPick = (e) => pickWhere(e.target.value)
         const field = h('label', { className: 'kbky-field', 'data-kb': 'kybernos-kyber-field' }, h(Mark, null, Ic(local ? 'monitor' : 'cloud', 18)),
           h('select', { className: 'kbky-fsel', 'aria-label': L('pickLead'), 'data-kb': 'kybernos-kyber-pick', value: picked, disabled: options.length < 2, onChange: onPick }, options),
           local ? h('span', { className: 'kbky-chip ok', 'data-kb': 'kybernos-kyber-computer-state' }, L('ready')) : computerChip(hm, 'kybernos-kyber-computer-state'))
@@ -1163,7 +1178,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { inKabyApp, KABY_APP_PATH, askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, whereOf, remoteFace, computerFace, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, StatusList, Pane, ChannelsColumn, ComputerBlock, TelegramPanel, ChannelPanel, KybyDock, Page }, actions: { load, pairStart, pairPoll, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, whatsappSwitch, channelSwitch, telegramRow, whatsappRow, settle, readSessionPointer }, listeners },
+        __test: { inKabyApp, KABY_APP_PATH, askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, whereOf, whereView, cloudChoices, pickWhere, remoteFace, computerFace, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, StatusList, Pane, ChannelsColumn, ComputerBlock, TelegramPanel, ChannelPanel, KybyDock, Page }, actions: { load, pairStart, pairPoll, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, whatsappSwitch, channelSwitch, telegramRow, whatsappRow, settle, readSessionPointer }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's
@@ -1224,6 +1239,12 @@ window.__ModuleLoader__.load({
               name: NAME,
               /** Reads the state again (live checks drive the page's answers; a person has the refresh button of the tab). */
               refresh () { return load() },
+              /** Where {NAME} works, as data for another page (Settings › Kaby draws its own select): `local` or not, the cloud computers offered, the one picked, the state of the linked one. Null until the account has answered. */
+              where () { return whereView() },
+              /** Picks a computer the way the select of the « Phone and channels » screen does: `local`, or the id of a cloud computer. */
+              pickWhere (value) { pickWhere(String(value)) },
+              /** Hears every change of the state; returns the function that stops listening. */
+              subscribe (fn) { if (typeof fn !== 'function') return () => {}; listeners.add(fn); return () => { listeners.delete(fn) } },
               /** Opens the tab, the same call the sidebar's « + » guide makes. False when no chat is on screen. */
               open () {
                 try {
