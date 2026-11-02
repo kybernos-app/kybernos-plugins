@@ -6,7 +6,9 @@
 // route is the case that showed it: the listing of its endpoint carries no modalities, so the entry was saved with a name and a window.
 //
 // This module only ADDS `input: ['text', 'image']`, and only when all of these hold:
-//   · the entry has no `input` of its own and its route has no `defaultInput` (an explicit choice, even text-only, is never touched);
+//   · the PERSON's own layer gives the entry no `input` and its route no `defaultInput` (an explicit choice, even text-only, is never touched).
+//     The resolved layer cannot say: it carries the schema's defaults on every route (`defaultInput: ['text']`, `input: []` on a model with no
+//     choice), measured on the real settings service 2026-11-02;
 //   · models.dev knows the model as a chat model that sees (picture in, text out: a generator or a speech model is not one), by its exact
 //     key or, failing that, by its bare id with every match agreeing;
 //   · its route is not one that another feature rewrites on every sync (`kybernos`, written by kybernos-cloud).
@@ -14,6 +16,8 @@
 // (a `models` list) is rewritten whole from the USER layer, as the Models page does; a catalogue route gets a `modelOverrides` entry.
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+/** An input list somebody wrote: a non-empty array. `[]` is the schema's default for « no choice » and counts as none. */
+const chosen = (list) => Array.isArray(list) && list.length > 0
 /** Routes another Kybernos feature writes itself: a heal here would be undone by its next sync. Same list as KB_MANAGED_ROUTES in client.js. */
 const MANAGED_ROUTES = ['kybernos']
 /** The bare-id table of an index, built once per index object (the index itself is left as it is). */
@@ -71,8 +75,8 @@ export const healPlan = (view, vision) => {
   const plan = []
   for (const route of Object.keys(value)) {
     const profile = isObj(value[route]) ? value[route] : {}
-    if (Array.isArray(profile.defaultInput) || MANAGED_ROUTES.indexOf(route) >= 0) continue
     const mine = isObj(user[route]) ? user[route] : {}
+    if (chosen(mine.defaultInput) || MANAGED_ROUTES.indexOf(route) >= 0) continue
     const models = Array.isArray(profile.models) ? profile.models : []
     if (models.length > 0) {
       // Declared route: only the models the person's own list holds can be rewritten; an inherited one is left alone.
@@ -80,7 +84,7 @@ export const healPlan = (view, vision) => {
       const list = mine.models.map((e) => (isObj(e) ? { ...e } : e))
       const ids = []
       for (const entry of list) {
-        if (!isObj(entry) || typeof entry.id !== 'string' || Array.isArray(entry.input)) continue
+        if (!isObj(entry) || typeof entry.id !== 'string' || chosen(entry.input)) continue
         if (vision(route, entry.id) !== true) continue
         entry.input = withImage.slice()
         ids.push(entry.id)
@@ -92,7 +96,7 @@ export const healPlan = (view, vision) => {
       const ids = []
       const ops = []
       for (const id of Object.keys(overrides)) {
-        if (!isObj(overrides[id]) || Array.isArray(overrides[id].input) || vision(route, id) !== true) continue
+        if (!isObj(overrides[id]) || chosen(overrides[id].input) || vision(route, id) !== true) continue
         ids.push(id)
         ops.push({ op: 'set', path: ['providers', route, 'modelOverrides', id, 'input'], value: withImage.slice() })
       }
