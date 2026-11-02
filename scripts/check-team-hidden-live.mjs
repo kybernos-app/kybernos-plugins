@@ -101,6 +101,16 @@ try {
   const log = readFileSync(join(teamHome, 'logs', 'team-dsh.log'), 'utf8').replace(/token=[^\s]+/gu, '')
   check('and its log shows none of them mounted', !/kybernos-kyber|kybernos-kaby|kybernos-mobile/u.test(log))
 
+  // The person's own secrets stay in Personal: the team's DSH made its own credential store, with its own browser-session secret and none of the personal provider keys or bot tokens.
+  const credsOf = (dir) => { try { return readFileSync(join(dir, '.credentials.yaml'), 'utf8') } catch (e) { return '' } }
+  const refsOf = (text) => new Set(Array.from(text.matchAll(/^ {2}([A-Z][A-Z0-9_]+):/gmu)).map((m) => m[1]))
+  const secretOf = (text) => { const m = text.match(/^ {6}secret: *(\S+)/mu); return m === null ? null : m[1] }
+  const personalCreds = credsOf(home)
+  const teamCreds = credsOf(teamHome)
+  const shared = Array.from(refsOf(teamCreds)).filter((name) => refsOf(personalCreds).has(name))
+  check('the team\'s DSH has its own credential store, not a copy of the personal one: it holds none of the personal references', teamCreds !== '' && shared.length === 0, shared)
+  check('and its browser-session secret is its own', secretOf(teamCreds) !== null && secretOf(personalCreds) !== null && secretOf(teamCreds) !== secretOf(personalCreds))
+
   // The server half.
   const origin = opened.url.replace(/\/$/u, '')
   const asked = await fetch(opened.url + 'kybernos-cloud/kyber', { headers: { origin } })

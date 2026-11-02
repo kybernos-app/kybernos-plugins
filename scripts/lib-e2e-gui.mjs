@@ -143,14 +143,24 @@ export const openGui = async (host, opts = {}) => {
     return g.press('.kbfp-sub ' + sel)
   }
 
-  /** Picks a space, waits for the card to stop saying « Switching… » and to carry the label, shuts the menu, lets the new chat settle. */
+  /** Goes to a space the way the account menu does now (docs/dev/team-profiles-cadrage.md): a team has a DSH of its own, which the menu opens in a window of its own and « Personal » is the
+   *  personal DSH. A journey drives ONE tab, so the tab follows: it asks the host of the page it is on (`team-dsh/open`, or `team-dsh/personal`), goes to the address it gets and waits
+   *  for the card to carry the label. */
   g.goTo = async (id, label) => {
-    const pressed = await g.pickSpace(id)
-    await g.until(async () => { const c = await g.card(); return c && !c.switching && label.test(c.text.slice(0, 60)) }, 15000)
+    const ask = `(async () => { const st = await (await fetch('/kybernos-cloud/status')).json(); const w = ((st.state || {}).workspaces || []).find((x) => x.id === ${JSON.stringify(id)}); const personal = !!(w && w.personal); const r = personal ? await fetch('/kybernos-cloud/team-dsh/personal') : await fetch('/kybernos-cloud/team-dsh/open', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ workspace_id: ${JSON.stringify(id)} }) }); return JSON.stringify(await r.json()) })()`
+    const asked = await page.evalJs(ask, 90000)
+    let answer = null
+    try { answer = JSON.parse(asked.val) } catch (e) { answer = null }
+    const address = answer !== null && answer.ok === true ? (answer.signed_url || answer.url) : null
+    if (typeof address !== 'string' || address === '') throw new Error('goTo(' + id + '): the host gave no address: ' + JSON.stringify(answer !== null ? answer : asked))
+    await g.val('window.__kbStale = true')
+    await page.send('Page.navigate', { url: address })
+    await g.waitFor(`window.__kbStale === undefined && document.readyState === 'complete' && document.querySelector('[data-kb="workspace-card"]') !== null`, 60000)
+    await g.dismissGetStarted()
+    const there = await g.until(async () => { const c = await g.card(); return c && label.test(c.text.slice(0, 60)) }, 20000)
+    if (!there) throw new Error('goTo(' + id + '): the card does not carry ' + label + ': ' + JSON.stringify(await g.card()))
     await sleep(900)
-    await g.closeMenu()
-    await sleep(1200)
-    return pressed
+    return true
   }
 
   // ── the composer ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

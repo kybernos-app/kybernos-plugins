@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends nftables \
 COPY packages/kybernos-gate/ /opt/kybernos-plugins/packages/kybernos-gate/
 
 # The cloud plugin of THIS checkout too, the whole folder: its index.js imports sibling files that the release the base was cloned at does not have
-# (kyby.mjs, kyby-native.mjs, chat-space.mjs...), so the index alone cannot load ("kybernos-cloud: failed to import", every turn answered "dsh_failed";
+# (kyby.mjs, kyby-native.mjs, team-folder.mjs...), so the index alone cannot load ("kybernos-cloud: failed to import", every turn answered "dsh_failed";
 # measured on dev with image p13). It fills a computer's account (e-mail) from the server and tells the page it is on a computer. The page bundle
 # of kybernos-plugin is patched, not replaced (it differs by hundreds of lines): see patch-console.mjs, which fails the build when its anchors are not found.
 COPY packages/kybernos-cloud/ /opt/kybernos-plugins/packages/kybernos-cloud/

@@ -4,6 +4,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeServer, env, readAccounts } from '../lib-e2e-server.mjs'
+import { cookieDeSession } from '../cdp-lib.mjs'
 import { openGui, readProxy, mainCalls, chatCalls, flatten, cwdOf, cwdOrWhy, bodyOf, sleep } from '../lib-e2e-gui.mjs'
 
 export { sleep, openGui, readProxy, mainCalls, chatCalls, flatten, cwdOf, cwdOrWhy, bodyOf }
@@ -34,6 +35,28 @@ export const makeContext = async () => {
       process.env.DSH_HOME = join(home, '.dsh')
       return who === 'a' ? ctx.hostA : ctx.hostB
     },
+  }
+  /** The host routes of the personal DSH of account a|b, called from Node as the person (the signed cookie of that DSH, the page's Origin). */
+  ctx.hostOf = (who) => {
+    const h = ctx.as(who)
+    const c = cookieDeSession(h)
+    return (method, path, body) => fetch('http://' + h + path, { method, headers: { 'content-type': 'application/json', cookie: c.nom + '=' + c.valeur, origin: 'http://' + h }, body: body === undefined ? undefined : JSON.stringify(body) }).then((r) => r.json())
+  }
+  /** The DSH_HOME of a team's own DSH: the personal home's `teams/<id>` (where its browser-session secret lives). */
+  ctx.homeOfTeam = (who, teamId) => join(process.env[who === 'a' ? 'KB_E2E_HOME_A' : 'KB_E2E_HOME_B'], '.dsh', 'teams', teamId)
+  /** Starts (or finds) the own DSH of a team through the personal DSH of account a|b, as the account menu does (`team-dsh/open`), and points DSH_HOME at that DSH's home (the personal
+   *  home's `teams/<id>`, where its browser-session secret is) so that a page can be opened on it (`openGui(team.host)`) and its host routes called (`team.call`). Resolves
+   *  `{ open, host, call }`; `open` is the host's own answer (`ok`, `url`, `signed_url`, `port`, `started`, `error`). */
+  ctx.teamOf = async (who, teamId) => {
+    const personal = ctx.hostOf(who)
+    const home = process.env.DSH_HOME
+    const open = await personal('POST', '/kybernos-cloud/team-dsh/open', { workspace_id: teamId })
+    if (open.ok !== true) return { open, host: null, call: null }
+    const host = new URL(open.url).host
+    process.env.DSH_HOME = join(home, 'teams', teamId)
+    const c = cookieDeSession(host)
+    const call = (method, path, body) => fetch('http://' + host + path, { method, headers: { 'content-type': 'application/json', cookie: c.nom + '=' + c.valeur, origin: 'http://' + host }, body: body === undefined ? undefined : JSON.stringify(body) }).then(async (r) => ({ status: r.status, ...(await r.json().catch(() => ({}))) }))
+    return { open, host, call }
   }
   /** Which space owns a chat that works in `cwd`, by the rule the plugin applies (« a chat in a team's folder bills that team, every other chat bills Personal »): 't1', 't2', 'P', or null when
    *  there is no folder to read. The teams' folders are `<Documents>/Kybernos/<Team name>` (with « (<id>) » after the name when the name was taken). */

@@ -132,6 +132,11 @@ try {
   assert.deepEqual(spec.args, ['/b/dsh', 'web', '--no-open', '--host', '127.0.0.1', '--port', '3301'])
   assert.deepEqual(spec.env, { PATH: '/bin', DSH_HOME: '/p/teams/t1', DSH_WEB_PORT: '3301', KYBERNOS_PERSONAL_HOME: '/p', KYBERNOS_TEAM_ID: 't1' })
   ok('a team DSH starts on loopback with its own home and port, and does not inherit the personal state or port')
+  const keyed = spawnSpec({ node: '/n', dshBin: '/b/dsh', port: 3301, teamId: 't1', teamHome: '/p/teams/t1', personalHome: '/p', env: {
+    PATH: '/bin', LANG: 'fr_FR.UTF-8', SOME_KEY: 'kept', DEEPSEEK_API_KEY: 'a', KYBERNOS_API_KEY: 'b', DSH_TELEGRAM_BOT_TOKEN: 'c', KYBERNOS_GATE_PASSWORD: 'd', DASHSCOPE_API_KEY: 'e',
+  } })
+  assert.deepEqual(Object.keys(keyed.env).sort(), ['DSH_HOME', 'DSH_WEB_PORT', 'KYBERNOS_PERSONAL_HOME', 'KYBERNOS_TEAM_ID', 'LANG', 'PATH', 'SOME_KEY'], 'provider keys, bot tokens and passwords of the person are not handed down')
+  ok('the person\'s provider keys, bot tokens and passwords, exported in the shell that started the personal DSH, are not handed down to a team\'s DSH')
 
   // ── the home of a team ──
   seedPersonal()
@@ -142,9 +147,26 @@ try {
     version: 1, completed: true, installedAt: '2026-01-01T00:00:00.000Z', completedAt: '2026-01-02T00:00:00.000Z', profil: 'lawyer', uiMode: 'simple', model: 'key', lang: 'fr', memoryId: 'mem-1',
     goals: ['draft'], customGoals: ['my own goal'], agents: 'auto', theme: 'paper', about: { site: 'https://me.example.test', profile: null, words: 'private words' },
   }))
+  // The person's own secrets sit in the personal home (the credential store, the .env, the notes of a shell). None of them may reach a team's home.
+  const CANARY = 'canary-secret-' + 'z'.repeat(20)
+  writeFileSync(join(personal, '.credentials.yaml'), 'version: 1\nrefs:\n  DEEPSEEK_API_KEY: ' + CANARY + '\n  DSH_TELEGRAM_BOT_TOKEN_AB12: ' + CANARY + '\nrecords:\n  client-connection/browser-session:\n    payload:\n      secret: ' + CANARY + '\n', { mode: 0o600 })
+  writeFileSync(join(personal, '.env'), 'COMPOSIO_API_KEY=' + CANARY + '\n', { mode: 0o600 })
+  writeFileSync(join(personal, 'env'), 'OPENROUTER_API_KEY=' + CANARY + '\n', { mode: 0o600 })
   const made = ensureTeamHome({ personalHome: personal, teamId: 't1', copy })
   assert.equal(made.ok, true)
   assert.equal(made.created, true)
+  const carrying = []
+  const sweep = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) sweep(path)
+      else if (entry.isFile() && readFileSync(path, 'utf8').includes(CANARY)) carrying.push(path)
+    }
+  }
+  sweep(made.home)
+  assert.deepEqual(carrying, [], 'no secret of the personal home is copied into a team\'s home')
+  for (const name of ['.credentials.yaml', '.env', 'env']) assert.equal(existsSync(join(made.home, name)), false, name + ' is the person\'s: the team DSH makes its own')
+  ok('a team home carries none of the person\'s secrets: not the credential store (provider keys, bot tokens, browser-session secret), not the .env files')
   const teamProfile = join(made.home, 'profiles', 'web')
   const link = join(teamProfile, 'node_modules', '@local', 'pkg')
   assert.equal(lstatSync(link).isSymbolicLink(), true)
@@ -341,7 +363,8 @@ try {
   assert.equal(stateOf('t1').length, 1, 'one connection file in the team home')
   assert.equal(seededState.token, 'kys-' + 'o'.repeat(43), 'the team starts signed in as the person')
   assert.equal(seededState.active_workspace_id, 't1', 'and with its team as the active space')
-  assert.deepEqual(Object.keys(seededState).filter((k) => ['workspaces', 'models', 'space_plan', 'device_secret'].includes(k)), [], 'the list of teams, the model record and the plan are read by the team DSH itself')
+  assert.deepEqual(Object.keys(seededState).filter((k) => ['models', 'space_plan', 'device_secret'].includes(k)), [], 'the model record and the plan are read by the team DSH itself')
+  assert.deepEqual(seededState.workspaces.map((w) => w.id), ['w-personal', 't1'], 'the list of teams goes with it, so the card names the team from the first paint (a brand-new team DSH showed the person\'s name for ~3 s without it)')
   assert.equal(statSync(seededFile).mode & 0o777, 0o600)
   assert.equal(JSON.parse(readFileSync(statePath, 'utf8')).active_workspace_id, undefined, 'the personal connection is not touched')
   writeFileSync(seededFile, JSON.stringify({ ...seededState, marker: 'kept' }))
@@ -363,8 +386,6 @@ try {
   const stateNow = JSON.parse(readFileSync(statePath, 'utf8'))
   writeFileSync(statePath, JSON.stringify({ ...stateNow, workspaces: [...stateNow.workspaces, { id: 't2', name: 'Other', personal: false }] }))
   writeFileSync(join(root, 'kybernos-cloud-folders.json'), JSON.stringify({ t2: t2dir }))
-  const asked = await call('/kybernos-cloud/space/for-folder', { path: t2dir })
-  assert.deepEqual([asked.ok, asked.space_id, asked.follow], [true, 't2', true], 'in the personal DSH the active space follows the folder of the chat')
   // The record of the folders is the personal home's, whichever DSH reads it (here the personal connection file is elsewhere, so the two places differ).
   writeFileSync(join(personal, 'kybernos-cloud-folders.json'), JSON.stringify({ t2: t2dir }))
   assert.equal((await route('/kybernos-cloud/status').run({ headers: {} })).state.team_dsh, null, 'the personal DSH is no team\'s')
@@ -373,8 +394,6 @@ try {
   writeFileSync(join(personal, 'kybernos', 'personal-dsh.json'), JSON.stringify({ port: 3091 }))
   process.env.KYBERNOS_TEAM_ID = 't1'
   process.env.KYBERNOS_PERSONAL_HOME = personal
-  const fixed = await call('/kybernos-cloud/space/for-folder', { path: t2dir })
-  assert.deepEqual([fixed.ok, fixed.space_id, fixed.active_id, fixed.follow], [true, 't2', 't1', false], 'in a team DSH nothing follows a chat: its active space is its team')
   for (const other of ['w-personal', 't2', 'nope']) assert.equal((await call('/kybernos-cloud/space/active', { workspace_id: other })).error, 'espace_fixe', other)
   const status = await route('/kybernos-cloud/status').run({ headers: {} })
   assert.equal(status.state.active_workspace_id, 't1', 'the footer and the plan card read the team')
@@ -382,7 +401,7 @@ try {
   assert.equal((await call('/kybernos-cloud/team-dsh/personal')).url, 'http://127.0.0.1:3091/', 'a team\'s DSH sends "Personal" to the personal DSH, where it said it answers')
   writeFileSync(join(personal, 'kybernos', 'personal-dsh.json'), JSON.stringify({ port: 'x' }))
   assert.equal((await call('/kybernos-cloud/team-dsh/personal')).url, 'http://127.0.0.1:3080/', 'a record that is not a port is ignored')
-  ok('in a team\'s own DSH the active space is the team: no switch, no follow-the-chat')
+  ok('in a team\'s own DSH the active space is the team: no switch to another space')
 
   // Leaving a team's DSH must not revoke the session it shares with the personal one.
   let revokes = 0

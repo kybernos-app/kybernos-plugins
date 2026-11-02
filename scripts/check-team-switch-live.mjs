@@ -37,7 +37,7 @@ const PERSONAL_URL = 'http://127.0.0.1:3098/'
 const fake = { active: W_PERSONAL, teamDsh: null, open: null, calls: [], asked: [] }
 const status = () => ({ ok: true, connected: true, state: {
   user: { email: 'dev@example.test', name: 'Dev Person', plan: 'team' },
-  workspaces: SPACES, active_workspace_id: fake.active, team_dsh: fake.teamDsh, own_dsh: true,
+  workspaces: SPACES, active_workspace_id: fake.active, team_dsh: fake.teamDsh,
   space_plan: { key: 'team', label: 'Team', workspace_id: fake.active }, web_url: 'https://dev.kybernos.app', device_label: 'This computer' } })
 
 const live = await openLivePage({ width: 1400, height: 860 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })

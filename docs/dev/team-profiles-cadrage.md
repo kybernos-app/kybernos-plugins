@@ -1,4 +1,4 @@
-# One DSH per team: cadrage (2026-11-02, nothing built)
+# One DSH per team: cadrage (2026-11-02, built)
 
 The owner chose the **complete profile** for a team: memory, connectors, skills, agents, automations and settings follow the team, not only
 the model route, billing and work folder (`docs/dev/teams.md` says what the space model covers today).
@@ -87,8 +87,7 @@ each bundle to the active team by hand; a second instance per team separates eve
    differently in the DSH that shows the menu). From a team's DSH, "Personal" opens the personal DSH (`team-dsh/personal`: the personal DSH writes
    its port in its home, a team's DSH reads it; default 3080), and another team opens its own. A browser that refuses a window opened this long after
    the click gets a notice with an "Open" action. The page knows it is in a team's DSH from `state.team_dsh`. The old switch stays behind a flag
-   the host always sends (`own_dsh`) until step 5, so the live checks that play it still stand; what still moves the personal DSH to a team is
-   only what follows a chat on screen, a team just created, and the claim-time switch: all of step 5. Played on the real page of a sandbox with the
+   the host always sent (`own_dsh`) until step 5, which retired it with everything that moved the personal DSH to a team. Played on the real page of a sandbox with the
    host's answers stubbed (`scripts/check-team-switch-live.mjs`, 14 checks) and, for the host, on a real `dsh web` (`check-team-dsh-live.mjs`).
    **3b, done (2026-11-02): what belongs to the account stays out of a team's DSH (Kaby, the Telegram and WhatsApp doors, the Home computer, Phone and
    channels).** Three parts, none of them a page reading `state.team_dsh` (the other bundles cannot read the cloud bundle's state before they draw):
@@ -107,14 +106,42 @@ each bundle to the active team by hand; a second instance per team separates eve
    computer line, no wizard; the personal page has all of them).
    **Desktop app: built, 2026-11-02, on the branch `feature/team-windows` of `kybernos-desktop` (local, not pushed, not merged; see decision 3).** Not tried
    against a real team engine nor in a packaged build.
-4. Seed rules: what else is copied from Personal when a team home is created (the interface language; the person's own provider keys, decision 2). The Kybernos session is already seeded (step 2), and the first-run wizard's tastes (language, interface mode, style preset) with it (step 3b).
-5. Retire the single-instance switch code (follow-the-chat, turn guard, deferred switch, claim-time switch). Dead-code rider.
-6. Two-account live test on the existing `scripts/e2e-teams-run.sh` harness.
+4. **Done (2026-11-02): seed rules.** The Kybernos session (step 2) and the first-run tastes (step 3b) are copied; **the person's own provider keys are NOT**, and that is a choice,
+   not a gap. The keys of the profile live in the DSH home's credential store (`.credentials.yaml`), which a new home makes for itself and nobody copies; the profile config
+   holds only the names of the environment variables (`apiKeyEnv`). The one road by which a personal key could reach a team's DSH was the environment it inherits from the
+   personal DSH, so `spawnSpec` now drops every `*_API_KEY`, `*_BOT_TOKEN` and `*_PASSWORD` variable (`PERSONAL_SECRET_ENV`). A team's DSH answers with the team's models (the
+   copied session imports the catalogue at start-up, under the team's billing header). A team that wants a key of its own puts it in that DSH. Copying the person's keys on request is
+   not built (it would be one explicit action in the menu, not a default). Played by `test-team-instances.mjs` (the spawn environment, and a sweep with a canary secret over the whole
+   home) and, on a real team DSH, by `scripts/check-team-hidden-live.mjs` (credential-store checks).
+5. **Done (2026-11-02): the single-instance switch is retired.** Deleted: `chat-space.mjs` (which team a chat belongs to, the in-flight reply counter), the follow-the-chat block of the page, the claim-time
+   switch, the turn guard (`turn_running`, `space/busy`), the deferred switch, `space/for-folder`, the `own_dsh` flag, the new-chat-in-the-team-folder navigation, and their tests
+   (`test-chat-space*.mjs`, `test-follow-chat.mjs`, `test-turn-guard-host.mjs`, `test-team-folder-nav.mjs`, `check-follow-chat-live.mjs`, `check-team-folder-live.mjs`). What stays is
+   what a DSH that answers one space still needs: `switchSpace` (to mend the route), the stale-route hold before each turn (`holdForStaleRoute`: re-align or refuse naming the team,
+   `test-route-hold.mjs`) and the repair timers. In the page, choosing a team, creating one with a plan and joining one all open the team's own DSH (`pickSpace`); a team without a plan
+   opens nothing and the person is told. `created.activated` now means « can answer a model call ». **Known loss, for the owner:** switching to a team used to open a new chat in the
+   team's folder; a team's DSH does not do that by itself (its composer shows the folder pill, nothing opens a chat there).
+6. **Done (2026-11-02): two-account live test.** See « Step 6 result » below.
 
 The phone (`kybernos-mobile`, `PLAN.md`) embeds one Node engine in the app, started once per process ("a crash needs a relaunch"), about 200 to
 460 MB resident: it cannot hold several DSH. Later, and not yet checked on a device: one home at a time, a team switch relaunching the app on
 the other `DSH_HOME` (step 0 is what makes that possible). The other road is the phone as a remote of the DSH running on the computer, one
 connection per team (`PLAN.md` section 9, a proposal, nothing built).
+
+## Step 6 result (2026-11-02): two accounts, the real engine, the server replica
+
+Played with `scripts/e2e-teams-run.sh` (replica, recording proxy, sandboxes A on :3098 and B on :3110, one team DSH per team on 3300-3399).
+
+| Journey | Result | What it proves |
+| --- | --- | --- |
+| J9 (new, `j9-team-dsh.mjs`, replaces the follow-the-chat journey) | 21/21 | the personal DSH starts the DSH of two teams, three processes alive on three ports; each names its own space and refuses another (`espace_fixe`); Kaby answers `personal_only` in a team; a non-member cannot open a team's DSH; each message is billed to its own space from its first request and the server's usage read agrees; stopping one leaves the others running |
+| J1 billing | 15/15 | a team chat bills the team, a personal chat bills Personal, with both DSH alive |
+| J4 invitation | 27/27 | invite, accept, the new member's team DSH opens on the team |
+| J2 memory | 11/14 | memory tools refuse in a team DSH, lesson tools work on the team DSH's own home, the lesson written by A reaches B's team DSH (B's team DSH holds it: 2 approved, 2 ready to send) |
+
+- **A defect found by the run and fixed:** a new team DSH showed the person's name on the account card for about 3 s (an empty workspace list). `seedTeamHome` now copies `workspaces`; checked live.
+- **J2 reds (3), not caused by this branch and ticketed:** « the personal canary is in the request », « the team OFF marker leads the request » and « B's team chat carries the approved lesson ». All three look for text a plugin puts in the system prompt, and in this sandbox the model request has the engine's one-line prompt (« You are a helpful software engineer assistant. ») and none of the plugin blocks, in the personal DSH too, where this branch changes nothing. The diff does not touch `mountAgentSections`. Not proven against a `dev` tip baseline (a second pair of sandboxes did not fit on the disk that day); first thing to check when it is picked up: does the stand-in model (`glm` through the replica) get a prompt without sections.
+- **Not re-run after the move:** J3 (deleted with the folder switch), J5, J6, J7, J8. They only use `goTo` (now « open the team's own DSH »), covered by J9 and by `check-team-switch-live.mjs`.
+- **Not tried:** the desktop window against a real team engine; a team whose owner has no plan; the 30-minute idle stop itself (the launcher's stop and reopen are covered by `test-team-instances.mjs`, not by waiting 30 minutes).
 
 ## Decisions for the owner
 
