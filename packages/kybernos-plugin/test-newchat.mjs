@@ -528,4 +528,22 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   ok('the old-photo example has its own skill: restore, show, animate, join, in the person\'s language')
 }
 
+// 14. a text example is one quiet box: its own icon, its title as the tag, the request; no category word, no line under the box
+{
+  const g0 = src.indexOf('const KB_NC_GLYPH = {')
+  const g1 = src.indexOf('\n}\n', g0)
+  assert.ok(g0 > 0 && g1 > g0, 'the glyph table exists')
+  const glyphs = vm.runInNewContext('(' + src.slice(g0 + 'const KB_NC_GLYPH = '.length, g1 + 2) + ')')
+  const fallback = JSON.parse(readFileSync(join(here, 'templates-fallback.json'), 'utf8'))
+  const cards = fallback.templates.filter((e) => e.kind === 'prompt')
+  assert.ok(cards.length >= 37, 'the shipped catalogue has its text examples')
+  for (const e of cards) assert.ok(typeof glyphs[e.id] === 'string' && /^<(path|rect|circle)/.test(glyphs[e.id]), e.id + ' has an icon of its own')
+  assert.equal(new Set(cards.map((e) => glyphs[e.id])).size, cards.length, 'no two text examples share an icon')
+  assert.ok(Object.keys(glyphs).every((k) => cards.some((e) => e.id === k)), 'no icon is left for an example that is gone')
+  const card = src.slice(src.indexOf("'data-kind': 'prompt'"), src.indexOf("'data-kind': 'prompt'") + 900)
+  assert.ok(card.includes('kb8-sh-ico') && card.includes('kb8-sh-ptag') && !card.includes('e.tag') && !card.includes('kb8-sh-name') && !card.includes('kb8-sh-line'), 'the card carries the icon and the title tag, not the category tag nor a line under the box')
+  assert.ok(!src.includes('kbnc.sh.promptfine') && !src.includes('kb8-sh-quote'), 'the old quote mark and the repeated sentence are gone')
+  ok('a text example: its own icon, its title as the tag, the request; no category word, nothing under the box')
+}
+
 console.log('\n' + pass + ' checks passed')
