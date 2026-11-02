@@ -14,7 +14,7 @@
 // Exit 0 when nothing is red, 1 otherwise.
 import { spawn } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
-import { basename, dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')

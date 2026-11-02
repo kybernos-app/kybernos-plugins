@@ -138,7 +138,7 @@ try {
   check('the core types are always there', core.every((id) => cards.some((c) => c.id === id)), cards.map((c) => c.id))
   const tagged = await ev(`[...document.querySelectorAll('.kb8-sl-card')].map((c) => { const t = c.querySelector('.kb8-sl-tag'); return { id: c.dataset.id, tag: t === null ? '' : t.textContent.trim() } })`)
   check('the whole range is shown, Audio and Game included', ['slides', 'doc', 'sheet', 'dashboard', 'image', 'video', 'audio', 'model3d', 'app', 'game', 'website', 'miniapp', 'automation', 'team', 'skill', 'plugin'].every((id) => cards.some((c) => c.id === id)), cards.map((c) => c.id))
-  check('Audio and Game say they are coming, and a type the install can make carries no tag', ['audio', 'game'].every((id) => (tagged.find((c) => c.id === id) || {}).tag === 'Soon') && core.every((id) => (tagged.find((c) => c.id === id) || {}).tag === ''), tagged)
+  check('Game says it is coming, and a type the install can make (Audio included) carries no tag', ['game'].every((id) => (tagged.find((c) => c.id === id) || {}).tag === 'Soon') && core.concat(['audio']).every((id) => (tagged.find((c) => c.id === id) || {}).tag === ''), tagged)
   const typeGrid = await ev(`(() => { const r = [...document.querySelectorAll('.kb8-sl-card')].map((c) => { const b = c.getBoundingClientRect(); return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top) } }); const rows = {}; r.forEach((p) => { (rows[p.y] = rows[p.y] || []).push(p.x) }); const ys = Object.keys(rows).map(Number).sort((a, b) => a - b); return { rows: ys.map((y) => rows[y].length), columns: new Set(r.map((p) => p.x)).size } })()`)
   check('the type cards sit in an even grid: the same count on every row but the last, one column line each', typeGrid !== null && typeGrid.rows.length >= 1 && typeGrid.rows.slice(0, -1).every((n) => n === typeGrid.rows[0]) && typeGrid.rows[typeGrid.rows.length - 1] <= typeGrid.rows[0] && typeGrid.columns === typeGrid.rows[0], typeGrid)
   check('no slider is left: no track, no arrows, no chapter heads', (await ev(`document.querySelectorAll('.kb8-sl-track,.kb8-sl-nav,.kb8-sl-gh,[data-kb="newchat-slider"]').length`)) === 0)
@@ -202,16 +202,18 @@ try {
     await sleep(1200)
     // A folder of pictures may hold only some examples' (a lot of one type): a card shows its picture where the folder has it, and the type's own tile everywhere else.
     const held = new Set(readdirSync(join(resolve(picsDir), 'shelf')).filter((f) => f.endsWith('.webp')))
-    const cards = await ev(`[...document.querySelectorAll('[data-kb="newchat-examples"] .kb8-sh-card')].map((c) => { const i = c.querySelector('.kb8-sh-thumb img'); const r = i ? i.getBoundingClientRect() : null; return { id: c.dataset.id, img: !!i && i.complete && i.naturalWidth > 0, tile: !!c.querySelector('.kb8-sh-tile'), r: r ? Math.round(r.width / Math.max(1, r.height) * 100) / 100 : 0 } })`)
-    const want = Array.isArray(cards) ? cards.filter((c) => held.has(c.id + '.webp')) : []
-    check('with pictures every card that has one shows it at its own proportion, and the others show the type\'s tile', Array.isArray(cards) && cards.length > 0 && cards.every((c) => (held.has(c.id + '.webp') ? c.img && c.r > 1.2 && c.r < 2 : c.tile && !c.img)), cards)
+    const cards = await ev(`[...document.querySelectorAll('[data-kb="newchat-examples"] .kb8-sh-card')].map((c) => { const i = c.querySelector('.kb8-sh-thumb img'); const r = i ? i.getBoundingClientRect() : null; return { id: c.dataset.id, text: c.dataset.kind === 'prompt', img: !!i && i.complete && i.naturalWidth > 0, tile: !!c.querySelector('.kb8-sh-tile'), r: r ? Math.round(r.width / Math.max(1, r.height) * 100) / 100 : 0 } })`)
+    const want = Array.isArray(cards) ? cards.filter((c) => !c.text && held.has(c.id + '.webp')) : []
+    check('with pictures every card that has one shows it at its own proportion, and the others show the type\'s tile', Array.isArray(cards) && cards.length > 0 && cards.every((c) => (c.text ? !c.img && !c.tile : held.has(c.id + '.webp') ? c.img && c.r > 1.2 && c.r < 2 : c.tile && !c.img)), cards)
     check('only the card pictures were asked of the host (the larger ones wait for a click)', want.length === 0 ? asked.images.length === 0 : asked.images.length > 0 && asked.images.every((f) => f.indexOf('large/') !== 0), asked.images.slice(0, 4))
   }
   await shot('03-doc')
   check('picking a type moves nothing else', (await stillness()).moved.length === 0)
 
   // ── the dialog ───────────────────────────────────────────────────────────────────────────────────────────────────────
-  const first = await ev(`document.querySelector('.kb8-sh-card').dataset.id`)
+  await clickType('slides')
+  await sleep(700)
+  const first = await ev(`document.querySelector('.kb8-sh-card:not([data-kind="prompt"])').dataset.id`)
   const before = await draft()
   await clickExample(first)
   await sleep(700)
@@ -248,6 +250,24 @@ try {
   check('a type keeps the words already typed (after the sentence)', typeof kept === 'string' && kept.indexOf('my own words') > 0, kept)
   await clearDraft()
   check('the composer is empty again, and the lit type goes with the text', ((await draft()) || '').trim() === '' && (await ev(`document.querySelectorAll('.kb8-sl-card.is-on').length`)) === 0)
+
+  // ── the six types of cards of text (docs/dev/templates-lots/text-*-1.json): a short summary in the card, the long prompt behind it; one click fills the composer, no dialog ──
+  for (const type of ['sheet', 'doc', 'skill', 'team', 'plugin', 'automation']) {
+    await clearDraft()
+    await clickType(type)
+    await sleep(700)
+    const cardsOfText = await ev(`[...document.querySelectorAll('[data-kb="newchat-examples"] .kb8-sh-card')].map((c) => ({ id: c.dataset.id, kind: c.dataset.kind, sum: (c.querySelector('.kb8-sh-sum') || {}).innerText || '', name: (c.querySelector('.kb8-sh-name span') || {}).innerText || '', img: !!c.querySelector('img') }))`)
+    check(type + ': six cards of text, each with its summary and its name, no picture', Array.isArray(cardsOfText) && cardsOfText.length === 6 && cardsOfText.every((c) => c.kind === 'prompt' && c.sum.length > 10 && c.sum.length <= 80 && c.name.length > 0 && c.img === false), cardsOfText)
+    await shot('10-text-' + type)
+    const one = cardsOfText[1].id
+    const prevDraft = await draft()
+    await clickExample(one)
+    await sleep(600)
+    const filled = await draft()
+    check(type + ': a click puts the long prompt in the composer (not the summary), opens no dialog, sends nothing', typeof filled === 'string' && filled !== prevDraft && filled.length > 300 && filled.length <= 700 && filled.indexOf(cardsOfText[1].sum) < 0 && (await ev(`!document.querySelector('[data-kb="newchat-example-dialog"]') && !!document.querySelector('[data-kb="newchat-shelf"]')`)) === true, { len: (filled || '').length })
+    await shot('11-text-' + type + '-filled')
+  }
+  await clearDraft()
 
   // ── a generated example: its prompt, the model that made it, « Use this prompt » and « Remix » ───────────────────────────────
   await clickType('image')
@@ -298,7 +318,7 @@ try {
     await key('Escape', 'Escape', 27)
     await sleep(400)
     // a vertical clip stays whole inside the 16:10 box, and a Motion sample says what made it
-    await clickExample('video_tryon_swap_r2')
+    await clickExample('video_tryon_swap_r3')
     await sleep(500)
     await click('[data-kb="newchat-example-play"]')
     await waitFor(page, `(() => { const v = document.querySelector('[data-kb="newchat-example-video"]'); return !!v && v.readyState >= 3 && v.currentTime > 0.2 })()`, 20000)
@@ -352,7 +372,7 @@ try {
   } else console.log('  ○ no App type here (the Tables bundle is off): the App checks are skipped')
 
   // ── the other ends: a phone, the dark look ──────────────────────────────────────────────────────────────────────────────
-  await clickType('doc')
+  await clickType('slides')   // a type whose examples have pictures and a dialog (the Document type holds cards of text)
   await sleep(500)
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] })
   await sleep(600)

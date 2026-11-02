@@ -1,6 +1,6 @@
 // J5 — usage states. The owner (A) sets a tiny cap on every member of T1 (PUT .../llm/member-limits) and drives B (a member), then A, through normal, 75 % and full with
 // the stand-in model (it bills the tokens it is told to). What DSH shows (the footer card, the menu rows, the plan card, the notice) is compared with what the server says.
-import { openGui, recorder, sleep, mainCalls, chatCalls } from './common.mjs'
+import { openGui, recorder, sleep, chatCalls } from './common.mjs'
 
 const CAP_USD = 0.04
 const WINDOW = 18000 // 5 hours

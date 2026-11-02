@@ -50,7 +50,22 @@ pid=$!
 echo "$pid" > "$KB_SANDBOX_STATE/sandbox.pid"
 disown "$pid" 2>/dev/null || true
 
+# Garde-fou TTL : un minuteur détaché arrête ce bac à sable même si l'appelant oublie stop.sh.
+# Mesuré : un bac démarré à vide est resté 4 h ouvert (port 3098, 0 client), un autre 10 h.
+# Le minuteur ne tire QUE si sandbox.pid porte encore CE pid : le bac à sable suivant, qui aura
+# réécrit le fichier, ne sera jamais tué par le minuteur d'un ancien. KB_SANDBOX_TTL en
+# secondes (défaut 1800 = 30 min) ; 0 = pas de minuteur.
+ttl="${KB_SANDBOX_TTL:-1800}"
+if [ "$ttl" != "0" ]; then
+  nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' -- \
+    bash -c 'sleep "$1"; [ "$(cat "$2" 2>/dev/null)" = "$3" ] || exit 0; exec bash "$4"' \
+    _ "$ttl" "$KB_SANDBOX_STATE/sandbox.pid" "$pid" "$HERE/stop.sh" \
+    >/dev/null 2>&1 < /dev/null &
+  disown $! 2>/dev/null || true
+fi
+
 echo "started pid $pid on 127.0.0.1:$port, waiting for it to answer..."
+[ "$ttl" != "0" ] && echo "auto-stop dans ${ttl}s (KB_SANDBOX_TTL)"
 for i in $(seq 1 240); do
   if ! kill -0 "$pid" 2>/dev/null; then
     echo "dsh exited early; last log lines:" >&2

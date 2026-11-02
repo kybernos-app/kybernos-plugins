@@ -172,18 +172,6 @@ export function listerTables (dbPath) {
   } finally { db.close() }
 }
 
-const corpsCreate = (sql) => {
-  const debut = sql.indexOf('(')
-  if (debut < 0) return []
-  const parts = []
-  let niveau = 0, courant = ''
-  for (const c of sql.slice(debut + 1)) {
-    if (c === '(') niveau++
-    if (c === ')') { if (niveau === 0) { parts.push(courant); break } niveau-- }
-    if (c === ',' && niveau === 0) { parts.push(courant); courant = '' } else courant += c
-  }
-  return parts.map((p) => p.trim()).filter(Boolean)
-}
 
 /**
  * A Tables database has no REFERENCES (a relation field holds a 26-character id): its links come from the relation fields of the latest catalog.

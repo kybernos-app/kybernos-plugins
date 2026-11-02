@@ -41,7 +41,7 @@
 //              nettoyage · question   (l'ancien emoji est accepté comme alias)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { CATEGORIES, ALIAS, slugDe, emojiDansTitre, normaliserTitre, decouperArgs, recapAutorise, verdictCategorie } from './titre-session.mjs'
+import { CATEGORIES, emojiDansTitre, normaliserTitre, decouperArgs, recapAutorise, verdictCategorie } from './titre-session.mjs'
 
 const args = process.argv.slice(2)
 const VALEURS = ['match', 'id', 'cdp', 'host', 'cat']

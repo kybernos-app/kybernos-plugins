@@ -155,11 +155,6 @@ function openRelay (sid, handlers) {
   ws.onerror = () => {}
   return ws
 }
-const waitFor = (box, ms) => new Promise((resolve, reject) => {
-  const t = setTimeout(() => reject(new Error('timeout')), ms)
-  box.resolve = (v) => { clearTimeout(t); resolve(v) }
-  box.reject = (err) => { clearTimeout(t); reject(err) }
-})
 
 function deviceLabel () {
   const ua = navigator.userAgent || ''

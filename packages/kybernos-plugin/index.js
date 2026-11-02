@@ -86,7 +86,7 @@ import { seedSkills } from './seed-skills.mjs'
 import { seedSkillFiles } from './seed-skill-files.mjs'
 import { publishTrustedAuthority } from './trusted-authority.mjs'
 import { createPythonPicker } from './tts-python.mjs'
-import { audioKindOf, audioModelsOf, providerBase } from './audio-models.mjs'
+import { audioModelsOf } from './audio-models.mjs'
 import { createProbe } from './audio-probe.mjs'
 import { createModelsAudio } from './models-audio.mjs'
 import { expandOccurrences, parseOccurrenceRange } from './automation-occurrences.mjs'
@@ -8239,8 +8239,10 @@ function boot(ctx) {
       // An HTML artifact is shown in a sandbox (no allow-same-origin): it runs in an opaque origin and cannot reach this host's own
       // routes, which answer without a session. Everything else is inline and inert (SVG stays a document, so it is sandboxed too).
       const html = ext === 'html' || ext === 'htm' || ext === 'svg' || ext === 'svgz'
+      // `mimeForExt` only names the pictures (it was written for art-raw): an HTML artifact must still say HTML.
+      const type = ext === 'html' || ext === 'htm' ? 'text/html; charset=utf-8' : (ext === 'svg' || ext === 'svgz' ? 'image/svg+xml' : mimeForExt(ext))
       const heads = {
-        'content-type': mimeForExt(ext),
+        'content-type': type,
         'cache-control': 'no-store',
         'content-length': String(bytes.length),
         'x-content-type-options': 'nosniff',
