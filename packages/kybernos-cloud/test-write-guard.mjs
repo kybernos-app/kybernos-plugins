@@ -105,6 +105,9 @@ const WRITES = [
   ['/kybernos-cloud/kyby/mandate/set', { preset: 'intensive' }],
   // A team's working folder is made on the person's disk (test-team-folder-host.mjs holds its rules).
   ['/kybernos-cloud/space/folder', { workspace_id: WS }],
+  // A team's own DSH starts a process and copies a profile (test-team-instances.mjs holds its rules; here no `dsh` is found, so nothing starts).
+  ['/kybernos-cloud/team-dsh/open', { workspace_id: WS }],
+  ['/kybernos-cloud/team-dsh/stop', { workspace_id: WS }],
   // Joining a team: the invitation's token makes the person a member (test-join-host.mjs plays the answers of the server).
   ['/kybernos-cloud/invitation/accept', { token: 'k3Zp9-Qw_7Lm2XvB0cR8sTnYh4JdUeA6oGfIiNaPqMc' }],
 ]

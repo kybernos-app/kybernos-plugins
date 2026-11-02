@@ -196,6 +196,10 @@ window.__ModuleLoader__.load({
         spacePrivate: 'privé',
         spaceShared: 'partagé',
         spaceSwitching: 'Changement en cours…',
+        teamDshStarting: 'Démarrage…',
+        teamDshFailed: 'Impossible d\'ouvrir {name} pour le moment. Réessaie dans un instant.',
+        teamDshReady: '{name} est prête dans sa propre fenêtre.',
+        teamDshOpen: 'Ouvrir',
         spaceSwitchSlow: 'Le passage à {name} prend plus de temps que d\'habitude. Attends un instant avant d\'envoyer un message : il pourrait encore être facturé à l\'équipe précédente.',
         spaceRouteStale: 'Tu es dans {name}, mais la route des modèles n\'a pas pu être mise à jour : tes messages pourraient encore être facturés à l\'équipe précédente. Réessaie.',
         spaceBusy: 'Une réponse est encore en cours dans {name}. Le changement attend sa fin, ou arrête-la d\'abord.',
@@ -489,6 +493,10 @@ window.__ModuleLoader__.load({
         spacePrivate: 'private',
         spaceShared: 'shared',
         spaceSwitching: 'Switching…',
+        teamDshStarting: 'Starting…',
+        teamDshFailed: 'Could not open {name} right now. Try again in a moment.',
+        teamDshReady: '{name} is ready in its own window.',
+        teamDshOpen: 'Open',
         spaceSwitchSlow: 'The switch to {name} is taking longer than usual. Wait a moment before sending a message: it may still be billed to the previous team.',
         spaceRouteStale: 'You are in {name}, but the model route could not be updated: your messages may still be billed to the previous team. Try again.',
         spaceBusy: 'A reply is still running in {name}. Switching waits for it or stop it first.',
@@ -3375,6 +3383,33 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             try { out = await pickSpaceNow(id, nameHint, opts) } finally { if (end !== null) end(out !== null && out !== undefined && out.ok === true) }
             return out
           }
+          // Opens the DSH of a team (started when it is not running, a few seconds), or the personal DSH, in a window named after it so that a second choice finds it again. The card says « Starting… » meanwhile.
+          // A browser may refuse a window opened this long after the click: the person is told and offers the click that opens it.
+          const openOwnDsh = async (id, name, personal) => {
+            if (switchingRef.current !== null) return { ok: false, error: 'busy_switching' }
+            switchingRef.current = { id: id, name: name }
+            setSwitching({ id: id, name: name, dsh: true })
+            const end = () => { switchingRef.current = null; if (liveRef.current === true) setSwitching(null) }
+            let res = null
+            try { res = personal === true ? await callLocal('/team-dsh/personal', 'GET') : await callLocal('/team-dsh/open', 'POST', { workspace_id: id }) } catch (e) { res = null }
+            end()
+            const address = res !== null && res.ok === true ? (typeof res.signed_url === 'string' && res.signed_url !== '' ? res.signed_url : res.url) : null
+            if (typeof address !== 'string' || address === '') {
+              setFlashSwitch(false)
+              setFlash(quotaFill(t('teamDshFailed'), { name: name }))
+              return { ok: false, error: res !== null && typeof res.error === 'string' ? res.error : 'failed' }
+            }
+            const windowName = personal === true ? 'kybernos-personal' : 'kybernos-team-' + id
+            let opened = null
+            try { opened = window.open(address, windowName) } catch (e) { opened = null }
+            if (opened === null || opened === undefined) {
+              const text = quotaFill(t('teamDshReady'), { name: name })
+              setFlashSwitch(false)
+              setFlashAct({ for: text, label: t('teamDshOpen'), run: () => { try { window.open(address, windowName) } catch (e) { /* the person opens it by hand */ } } })
+              setFlash(text)
+            }
+            return { ok: true, opened: true }
+          }
           const pickSpaceNow = async (id, nameHint, opts) => {
             const keepChat = opts !== undefined && opts !== null && opts.keepChat === true
             if (switchingRef.current !== null || typeof id !== 'string') return { ok: false, error: 'busy_switching' }
@@ -3382,6 +3417,11 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             // `nameHint`: a team the person has just joined is not in this render's list yet (the list is read again in the same breath).
             const name = known !== undefined ? espaceVue(known, t).name : (typeof nameHint === 'string' ? nameHint : '')
             if (switchIsMoot(id, state.active_workspace_id, keepChat) === true) return { ok: true, same: true }
+            // Each team has a DSH of its own (docs/dev/team-profiles-cadrage.md): choosing a team opens its DSH in a window of its own, and from a team's DSH « Personal » goes back to the personal one.
+            // The switch below is left to what still follows a chat (`keepChat`) and to Personal in the personal DSH.
+            const target = known !== undefined ? known : null
+            const inTeamDsh = typeof state.team_dsh === 'string' && state.team_dsh !== ''
+            if (state.own_dsh === true && keepChat !== true && target !== null && (inTeamDsh === true || spaceIsPersonal(target) !== true)) return openOwnDsh(id, name, spaceIsPersonal(target) === true)
             switchingRef.current = { id: id, name: name }
             setSwitching({ id: id, name: name })
             // Where Personal goes back to: the folder of the chat on screen, read before the switch moves anything (never a team's folder).
@@ -3585,7 +3625,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           React.useEffect(() => {
             if (phase !== 'connected') { cueSet(null, null, false); return }
             const chosen = switching !== null ? (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === switching.id)[0] : undefined
-            cueSet(chosen !== undefined ? chosen : espaceActifEntry(state), state.space_folder, switching !== null)
+            // « Starting… » of a team's own DSH changes nothing about who is billed here: the pill (« Switching… ») is for a switch of the billed team only.
+            const starting = switching !== null && switching.dsh === true
+            cueSet(chosen !== undefined && starting !== true ? chosen : espaceActifEntry(state), state.space_folder, switching !== null && starting !== true)
           }, [phase, state, switching])
 
           // The active team has no folder yet (it was joined before folders existed): the host makes it, once per team and page. It opens no chat: only a switch does.
@@ -3756,7 +3798,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 // V1-05: the name is ellipsised by CSS; without a title a long name is unreadable everywhere it appears.
                 h('span', { className: 'kbfp-cardname', title: nomEspace }, nomEspace),
                 switching !== null
-                  ? h('span', { className: 'kbfp-cardsub', 'data-kb': 'workspace-card-switching' }, t('spaceSwitching'))
+                  ? h('span', { className: 'kbfp-cardsub', 'data-kb': 'workspace-card-switching' }, t(switching.dsh === true ? 'teamDshStarting' : 'spaceSwitching'))
                   : h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + ' · ' + (spaceIsPersonal(shownEntry) ? t('spacePrivate') : t('spaceShared')) + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
                 meter !== null
                   ? h('span', { className: 'kbfp-use', 'data-kb': 'workspace-card-usage', 'data-level': meter.level, 'data-percent': String(meter.percent), title: meter.title },

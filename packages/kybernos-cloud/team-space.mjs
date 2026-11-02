@@ -42,12 +42,14 @@ export const spaceKind = (state, activeId) => {
 /**
  * Publishes the seam: `isTeam()` is true in a team space and in doubt, false in a personal space and when not connected.
  * `readKind` is the host's own reader (it reads the state file each time, so a switch is seen at the very next assembly).
+ * `ownHome()` is true in a team's own DSH, whose home is that team's alone: the readers keep the account's memory cut there and may use the local lessons (they are the team's).
  */
-export const publishSpaceSeam = (readKind, target = globalThis) => {
+export const publishSpaceSeam = (readKind, target = globalThis, ownHome = () => false) => {
   try {
     target[SPACE_SEAM] = Object.freeze({
-      version: 1,
+      version: 2,
       isTeam: () => { try { const kind = readKind(); return kind !== 'personal' && kind !== 'none' } catch (e) { return true } },
+      ownHome: () => { try { return ownHome() === true } catch (e) { return false } },
     })
   } catch (e) { /* a frozen global: the other bundles read "no seam" as "no teams" */ }
 }
