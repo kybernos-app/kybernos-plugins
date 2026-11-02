@@ -8,7 +8,7 @@
 // --demo plays a made-up chat instead (two crews, connectors with an error, a waiting question, approvals, links): what a real chat rarely holds all at once.
 // So the page can be seen BEFORE the host restarts. With --real the route of the running DSH answers (the check after a restart). Nothing is written to the DSH.
 //
-// What it presses: the Journal tab, Story, Flow, Advanced, Story again, the filters, a crew card, a row, « Show more », the Insights switch, a node of the flow.
+// What it presses: the Journal tab, Story, Flow, Advanced, Story again, the filters, a crew card, a row, the pager (next, previous, a page size), the Insights switch, a node of the flow.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -317,11 +317,35 @@ const run = async () => {
         await click('.wvs-crews .wvs-crew:nth-child(2)')
         ok('pressing it again brings the whole story back', (await count('.wvs-list > li:not(.wvs-day)')) === all)
       }
-      // show more
-      if ((await count('.wvs-showmore')) > 0) {
-        const b = await count('.wvs-list > li')
-        await click('.wvs-showmore')
-        ok('« Show more » adds rows', (await count('.wvs-list > li')) > b)
+      // the story a page at a time: a pager when there are more than 10 moments, 25 a page to begin with, a size of 10, 25, 50 or 100
+      const pagerSeen = (await count('[data-kb="wvs-pager"]')) > 0
+      const nMoments = DEMO ? fake.story.moments.length : null
+      if (DEMO) ok('a story of more than 10 moments has a pager', (nMoments > 10) === pagerSeen, nMoments + ' moments')
+      if (pagerSeen) {
+        const rowsNow = async () => count('.wvs-list > li:not(.wvs-day)')
+        const range = async () => (await text('[data-kb="wvs-pager-range"]')).replace(/\s+/g, ' ')
+        const total = Number((await range()).split(' ').pop())
+        ok('the first page holds at most 25 moments and says which', (await rowsNow()) <= 25 && /^1[–-]/.test(await range()), await range())
+        const seePager = async () => { await page.evalJs(`document.querySelector('[data-kb="wvs-pager"]').scrollIntoView({ block: 'center' })`, 3000); await sleep(250) }
+        const pickSize = async (n) => { await page.evalJs(`(() => { const s = document.querySelector('[data-kb="wvs-size"]'); s.value = ${JSON.stringify(String(n))}; s.dispatchEvent(new Event('change', { bubbles: true })) })()`, 3000); await sleep(350) }
+        await pickSize(10)
+        ok('a page of 10 holds at most 10 moments', (await rowsNow()) <= 10 && (await range()).startsWith('1–10 of ' + total), await range())
+        await seePager()
+        await shot('4c-page-of-10')
+        if (total > 10) {
+          ok('the first page has no previous page', (await page.evalJs(`document.querySelector('[data-kb="wvs-prev"]').disabled`, 3000)).val === true)
+          await click('[data-kb="wvs-next"]')
+          await sleep(300)
+          ok('« Next » shows the next moments', /^11[–-]/.test(await range()), await range())
+          await seePager()
+          await shot('4b-page-2')
+          await click('[data-kb="wvs-prev"]')
+          await sleep(300)
+          ok('« Previous » comes back', /^1[–-]/.test(await range()), await range())
+        }
+        await pickSize(100)
+        ok('a page of 100 holds the whole story when it has fewer', total > 100 || (await rowsNow()) === total, (await rowsNow()) + ' of ' + total)
+        await pickSize(25)
       }
       // flow
       await clickLabel('Flow', '.wvs-seg')
