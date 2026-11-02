@@ -62,3 +62,54 @@ The request and the neutral answers stay as in `snapshots.md`; the differences a
 
 Not here: the server work above; the dashboards (`kybernos-db`) still do not read the seam (a one-line change once the server is deployed); the domain of the link (`SNAPSHOT_LINK_BASE`) is the
 server owner's.
+
+## Checking it against a real server
+
+`node scripts/check-journal-link-e2e.mjs` (11 checks, not part of `run-all-tests`: it needs a server and a Chrome) drives the real `journal-link.mjs` and the cloud bundle's seam against a running
+kybernos-server: make a link, open the protected page in headless Chrome with a wrong then the right password, update (same link, same password), delete, the neutral 404, `gone`. Seen green on
+2026-11-02 against the server branch `claude/journal-link-server-6e8795` (17138513) on a throw-away database.
+
+The server's own test helpers can serve its real app on a port. Put this file in the server's `test/` folder as `zz-e2e-runner.test.ts` (do not commit it), then in two terminals:
+
+```
+E2E_INFO=/tmp/e2e-info.json pnpm vitest run test/zz-e2e-runner.test.ts          # in the server folder; waits for /tmp/e2e-info.json.done
+KB_NODE_MODULES=<a node_modules with playwright-core> node scripts/check-journal-link-e2e.mjs --info /tmp/e2e-info.json   # here; then: touch /tmp/e2e-info.json.done
+```
+
+```ts
+// TEMPORARY, never committed to the server: serves this branch's real app over HTTP on a throw-away database so that the plugins repository's scripts/check-journal-link-e2e.mjs can run against it.
+import { existsSync, writeFileSync } from "node:fs"
+import { createServer as netServer, type AddressInfo } from "node:net"
+import { serve } from "@hono/node-server"
+import { afterAll, beforeAll, expect, it } from "vitest"
+import { createHarness, type Harness } from "./helpers/app.ts"
+import { createTestDb, type TestDb } from "./helpers/db.ts"
+
+const INFO = process.env.E2E_INFO ?? ""
+let db: TestDb
+let h: Harness
+let port = 0
+
+beforeAll(async () => {
+  const probe = netServer()
+  await new Promise<void>((r) => probe.listen(0, "127.0.0.1", r))
+  port = (probe.address() as AddressInfo).port
+  await new Promise<void>((r) => probe.close(() => r()))
+  db = await createTestDb()
+  h = createHarness(db, { SNAPSHOT_LINK_BASE: `http://127.0.0.1:${port}` })
+})
+afterAll(async () => {
+  await db.drop()
+})
+
+it("serves the plugin's end-to-end check", async () => {
+  const user = await h.signUp("e2e@example.test", "E2E Tester")
+  const { token } = await h.pairDevice(user, "E2E Mac")
+  const server = serve({ fetch: h.app.fetch, port, hostname: "127.0.0.1" })
+  await new Promise<void>((r) => server.on("listening", () => r()))
+  writeFileSync(INFO, JSON.stringify({ base: `http://127.0.0.1:${port}`, token }))
+  for (let i = 0; i < 2400 && !existsSync(`${INFO}.done`); i += 1) await new Promise((r) => setTimeout(r, 100))
+  server.close()
+  expect(existsSync(`${INFO}.done`)).toBe(true)
+}, 300000)
+```
