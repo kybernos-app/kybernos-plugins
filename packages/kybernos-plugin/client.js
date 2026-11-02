@@ -40459,7 +40459,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         /** The cumulative cost (or tokens when nothing is priced) as one line and its area, in a w x h box; x is the call number, not the clock (a chat left alone for a day would be flat). */
         const wvsArea = (series, w, h) => {
           const pts = Array.isArray(series) ? series : []
-          const priced = pts.some((p) => wvsNum(p.costEur) !== null)
+          // A model that is free prices every call at €0: that is no curve, so the tokens are drawn instead.
+          const priced = pts.some((p) => wvsNum(p.costEur) !== null && p.costEur > 0)
           const vals = pts.map((p) => (priced ? wvsNum(p.costEur) : wvsNum(p.tokens)))
           const max = Math.max.apply(null, vals.map((v) => (v === null ? 0 : v)).concat([0]))
           if (pts.length < 2 || max <= 0) return { ok: false, priced: priced, max: max, line: '', area: '', last: null }
