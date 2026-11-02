@@ -414,6 +414,16 @@ const run = async () => {
         ok('deleting takes the link down on the server and the sheet offers to make one again', onServer().length === 0 && (await count('[data-kb="wvs-link-url"]')) === 0)
         await click('[data-kb="wvs-share-btn"]')
       }
+      // the running DSH: the Share sheet opens and its link part answers from the real host (offers the link or says why not); nothing is made
+      if (REAL) {
+        ok('the Share button opens the sheet', await click('[data-kb="wvs-share-btn"]') && (await count('[data-kb="wvs-share"]')) === 1)
+        const settled = await waitFor(page, `document.querySelector('[data-kb="wvs-link"]') && !/Looking for/.test(document.querySelector('[data-kb="wvs-link"]').innerText)`, 15000)
+        const linkText = await text('[data-kb="wvs-link"]')
+        ok('the link part answers from the real host: a button to make the link, the link of this chat, or the reason why not', settled !== null && ((await count('[data-kb="wvs-link-make"]')) === 1 || (await count('[data-kb="wvs-link-url"]')) === 1 || (await count('[data-kb="wvs-link-why"]')) === 1), linkText.replace(/\s+/g, ' ').slice(0, 200))
+        console.log('     link part says: ' + linkText.replace(/\s+/g, ' ').slice(0, 220))
+        await shot('18-real-share')
+        await click('[data-kb="wvs-share-btn"]')
+      }
       // a narrow window must not scroll sideways
       await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 800, deviceScaleFactor: 1, mobile: false })
       await sleep(700)
