@@ -297,10 +297,12 @@ try {
   check('with a chat and no automation: « No wake-up », « Create the wake-up » is on, and nothing to wake or stop', await wkSettled(['none']) === true && (await wkDisabled('create')) === false && (await exists('[data-kb="kaby-custom-wake-now"]')) === false && (await exists('[data-kb="kaby-custom-wake-stop"]')) === false && (await exists('[data-kb="kaby-custom-wake-automation"]')) === false)
   await shot('12-wakeups-none', '[data-kb="kaby-custom-wake"]')
   await click('[data-kb="kaby-custom-wake-create"]')
-  check('creating adds the automation: the chip says it waits for approval and the note says it was just created', await wkSettled(['draft']) === true && /Created, and off/.test(await js('document.querySelector(\'[data-kb="kaby-custom-wake-note"]\').textContent')))
+  check('creating adds the automation, and the person is taken to the Automations page (the shell closes Settings when an automation appears)', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-page"]\') === null', 15000) === true)
   const mine = await wakeTasks()
   check('the Automations page holds exactly one, off, in Kaby’s own chat, every 4 hours from 08:00 to 20:00, 10 minutes at most, stopping when the person writes, and not approved', mine.length === 1 && mine[0].active === false && mine[0].sessionMode === 'home' && mine[0].maxMinutes === 10 && mine[0].onPersonWrites === 'stop' && mine[0].schedule.cron === '0 8-20/4 * * *' && mine[0].gate !== null && mine[0].gate.status === 'draft', mine)
   check('its prompt is plain text that names the list (todo.md)', mine.length === 1 && typeof mine[0].prompt === 'string' && mine[0].prompt.includes('todo.md'))
+  await js('window.__KB_KABY__.open()', 30000)
+  check('back in Settings the card says the automation waits for the approval', await wkSettled(['draft']) === true && /waits for your approval/.test(await js('document.querySelector(\'[data-kb="kaby-custom-wake-note"]\').textContent')))
   check('« Create » is gone, « Open the automation » is on, « Wake it now » is off until the approval', (await exists('[data-kb="kaby-custom-wake-create"]')) === false && (await wkDisabled('automation')) === false && (await wkDisabled('now')) === true)
   const refusedRun = (await tasksApi({ action: 'run-now', id: mine[0].id })).json
   check('a run asked before the approval is refused by the Automations page itself', refusedRun !== null && refusedRun.ok === false && /approval/.test(String(refusedRun.error)), refusedRun)

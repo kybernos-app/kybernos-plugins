@@ -626,7 +626,8 @@ const readWake = async () => {
           setBusy(true)
           setProblem('')
           const r = await tasksCall({ action: 'create', task: wakeInput(state.sid, name) })
-          if (r.status === 200 && r.json !== null && r.json.ok === true) { setMade(true); await load() } else fail(r)
+          // The shell closes Settings when an automation appears (seen on the real GUI, for any automation), so the person is taken to the page where it is approved rather than left on the empty home.
+          if (r.status === 200 && r.json !== null && r.json.ok === true) { setMade(true); await load(); openAutomations() } else fail(r)
           setBusy(false)
         }
         const wake = async () => {

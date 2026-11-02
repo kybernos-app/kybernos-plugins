@@ -33,7 +33,7 @@
    10 minutes at most, stopping when the person writes; its prompt is plain text, readable and editable there: take the two oldest open points of `todo.md` (Kaby's list, in its
    workspace), work only with what may be done without asking, tick only what is finished, never send, publish, pay, install, schedule or switch anything on, and end with one short
    message. The card **finds** that automation (the one whose runs land in Kaby's chat), says its state in a chip (no chat yet, no wake-up, to approve, off, on, working), and offers:
-   **Create the wake-up** (only when there is none), **Open the automation** (`window.__KB_OPEN__({ view: 'tasks' })`: the schedule, the time limit, « when I write in its chat »,
+   **Create the wake-up** (only when there is none; the shell closes Settings whenever an automation appears, so the card then opens the Automations page, where it is approved), **Open the automation** (`window.__KB_OPEN__({ view: 'tasks' })`: the schedule, the time limit, « when I write in its chat »,
    the approval and the Stop button are that page's), **Wake it now** (`run-now`; off until the automation is approved and while a run is under way), **Stop this wake-up** (only while
    one runs) and **Open Kaby's chat** (through kybernos-kyber's `openChat()`). An amber line says wake-ups do not cover a cloud computer. Routes it calls, all same origin with the page's own
    session: `POST /kybernos/tasks` (`list`, `create`, `run-now`, `stop`), `GET /kybernos-cloud/kyby/native` (Kaby's chat id) and `GET /kybernos/automation-load` (the runs going; the
