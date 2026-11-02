@@ -133,6 +133,27 @@ const whatApiSays = async (fetchImpl) => {
   ok('…and no bare red line any more', walk(failed, (nd) => nd.props && nd.props.className === 'kwse-err').length === 0)
   const loading = renderPage({})
   ok('while it loads (no error yet) there is no failure panel', walk(loading, (nd) => nd.props && nd.props['data-kb'] === 'websearch-down').length === 0)
+
+  // The page's explanation lives in the « ? » card: with the Suite it is passed to Help as `lead` (and the title as `title`) and not drawn under the title;
+  // without the Suite it is drawn as before. Same in the three states of the page (first read failed, loading, loaded).
+  const LEAD = 'Agents search the web with the first engine in this list that answers. “No key” engines work right away; add a key so a keyed engine goes first. An engine that fails is paused and the next one takes over.'
+  const FakeHelp = function Help () { return null }
+  const states = { 'first read failed': { 1: SENTENCE }, 'loading': {}, 'loaded': { 0: { ok: true, engines: [], domains: {}, settings: {} } } }
+  // the loading state draws the head only with the core's skeleton helper (a bare « … » without it)
+  sandbox.window.__KB_SKEL__ = { bone: () => null, wrap: (label, cls, kids) => ({ type: 'div', props: { className: cls }, children: kids }) }
+  for (const [name, over] of Object.entries(states)) {
+    const bare = renderPage(over)
+    const intro = walk(bare, (nd) => nd.props && nd.props.className === 'kwse-intro')
+    ok('without the Suite (' + name + ') the explanation is still drawn under the title, and the head takes no extra gap', intro.length === 1 && textOf(intro[0]) === LEAD && walk(bare, (nd) => nd.props && nd.props.className === 'kwse-head').length === 1)
+    sandbox.window.__KB_HELP__ = { Help: FakeHelp }
+    let suite
+    try { suite = renderPage(over) } finally { delete sandbox.window.__KB_HELP__ }
+    const help = walk(suite, (nd) => nd.type === FakeHelp)
+    ok('with the Suite (' + name + ') the page passes its explanation to Help as `lead`, and its title', help.length === 1 && help[0].props.id === 'kybernos-websearch' && help[0].props.lead === LEAD && help[0].props.title === 'Web Search', help.length && JSON.stringify(help[0].props))
+    ok('...and no longer draws it under the title; the head keeps the gap the paragraph left', walk(suite, (nd) => nd.props && nd.props.className === 'kwse-intro').length === 0 && walk(suite, (nd) => nd.props && nd.props.className === 'kwse-head solo').length === 1)
+  }
+  delete sandbox.window.__KB_SKEL__
+  ok('the head\'s gap exists in the style, and the fallback paragraph keeps its own', /\.kwse-head\.solo\{margin-bottom:12px\}/.test(src) && /\.kwse-intro\{margin:0 0 14px/.test(src))
 }
 
 // ── hygiene (same rules as the other bundles) ───────────────────────────────────────────────────────

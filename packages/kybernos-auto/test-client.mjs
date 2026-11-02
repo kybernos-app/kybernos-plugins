@@ -103,14 +103,26 @@ ok('un champ de saisie a ses états ARIA (invalide, décrit par son message)', s
     const panel = walk(failed, (nd) => nd.props && nd.props['data-kb'] === 'auto-down')
     ok('state unreadable → a panel with the sentence (not a bare « … »)', panel.length === 1 && textOf(panel[0]).includes(SENTENCE), panel.length && textOf(panel[0]))
     ok('…and a Retry', walk(failed, (nd) => nd.type === 'button' && nd.props['data-kb'] === 'auto-retry' && textOf(nd) === 'Retry').length === 1)
-    ok('…under the page\'s own title and intro, which stay', walk(failed, (nd) => nd.type === 'h4' && textOf(nd) === 'Auto Routing').length === 1 && walk(failed, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1)
+    ok('…under the page\'s own title; with no Suite the description stays under it (the fallback)', walk(failed, (nd) => nd.type === 'h4' && textOf(nd) === 'Auto Routing').length === 1 && walk(failed, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1)
     ok('…and the placeholder « … » is gone', textOf(failed).indexOf('…') === -1 || textOf(failed).indexOf('…') > 0)
   }
   const loading = renderSettings({})
   ok('first read still pending → « … », no failure panel yet', loading !== null && textOf(loading) === '…' && walk(loading, (nd) => nd.props && nd.props['data-kb'] === 'auto-down').length === 0)
   const fixture = { ok: true, global: false, whitelist: [], classifier: '', sessionOn: false, sante: [], total: 0, disponibles: 0, chaud: null, failover: { enabled: false, last: null }, sondeEnCours: false, plafond: 10, ttlSondeS: 60, checkedAt: 1792163152877, intervalS: 60 }
   const normal = renderSettings({ 0: fixture })
-  ok('a readable state still renders the whole page, head included', normal !== null && walk(normal, (nd) => nd.type === 'h4').length === 1 && walk(normal, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1 && walk(normal, (nd) => nd.props && nd.props['data-kb'] === 'auto-down').length === 0)
+  ok('a readable state still renders the whole page, head included (no Suite: the description under the title)', normal !== null && walk(normal, (nd) => nd.type === 'h4').length === 1 && walk(normal, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1 && walk(normal, (nd) => nd.props && nd.props['data-kb'] === 'auto-down').length === 0)
+  ok('no Suite → no « ? » button at all', walk(normal, (nd) => nd.props && nd.props.lead !== undefined).length === 0)
+
+  // With the Suite: the description moves into the « ? » card (`lead`) and is no longer drawn under the title, in the page and in its failure state.
+  const Help = function Help () { return null }
+  sandbox.window.__KB_HELP__ = { version: 1, Help }
+  const DESCRIPTION = 'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.'
+  for (const [label, tree] of [['the page', renderSettings({ 0: fixture })], ['its failure state', renderSettings({ [echecIndex]: true })]]) {
+    const helps = tree === null ? [] : walk(tree, (nd) => nd.type === Help)
+    ok('with the Suite, ' + label + ' passes its description as `lead` and its name as `title` to the « ? » card', helps.length === 1 && helps[0].props.id === 'kybernos-auto' && helps[0].props.lead === DESCRIPTION && helps[0].props.title === 'Auto Routing', helps[0] && helps[0].props)
+    ok('…and no longer draws that description under the title', tree !== null && walk(tree, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 0 && textOf(tree).indexOf(DESCRIPTION) === -1)
+  }
+  delete sandbox.window.__KB_HELP__
 }
 
 // Found by the dead-click probe (2026-10-23): « Add » of the allowed list did nothing, in silence, with an empty field.

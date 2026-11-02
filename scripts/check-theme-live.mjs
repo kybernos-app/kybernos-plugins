@@ -506,7 +506,6 @@ try {
     const j = JSON.parse(await val(`JSON.stringify({
       title: (document.querySelector('.kbth-title') || { textContent: '' }).textContent.trim(),
       switchLike: !!document.querySelector('.kbth-head .kbth-seg') || Array.from(document.querySelectorAll('.kbth-page button')).some((b) => /^(simple|avanc[ée]e?|advanced)$/i.test(b.textContent.trim())),
-      sub: (document.querySelector('.kbth-sub') || { textContent: '' }).textContent.trim(),
       tabs: Array.from(document.querySelectorAll('.kbth-adv-tab')).map((b) => { const r = b.getBoundingClientRect(); return { text: b.textContent.trim(), on: b.classList.contains('on'), pressed: b.getAttribute('aria-pressed'), x: Math.round(r.left), y: Math.round(r.top) } }),
       mode: { cards: Array.from(document.querySelectorAll('.kbth-mode')).map((c) => c.getAttribute('data-mode')).join(), checked: Array.from(document.querySelectorAll('.kbth-mode[aria-checked="true"]')).map((c) => c.getAttribute('data-mode')).join(), openButton: !!document.querySelector('[data-kb="theme-mode-open"]'), selector: !!(${Q.modeSeg}) },
       skins: document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length,
@@ -524,7 +523,13 @@ try {
     check('Settings › Theme opens on the real GUI (title « Theme »)', /^(theme|thème)$/i.test(j.title), j.title)
     check('there is no Simple / Advanced switch any more (no button of that name, no segment in the header)', j.switchLike === false, j.switchLike)
     check('the tabs are stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === TAB_IDS.length && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
-    check('the header sends to the window below, and says every setting stays in the advanced editor', /advanced editor|éditeur avancé/i.test(j.sub), j.sub)
+    // The description of the page lives in the card of its « ? »: open it, read it, close it.
+    const themeBtn = `document.querySelector('[data-kb="help-button"][data-id="kybernos-theme"]')`
+    await val(`(() => { const b = ${themeBtn}; if (b !== null && b.getAttribute('aria-expanded') !== 'true') b.click(); return b !== null })()`)
+    await sleep(500)
+    const sub = await val(`(document.querySelector('[data-kb="help-lead"]') || { textContent: '' }).textContent.trim()`)
+    await val(`(() => { const b = ${themeBtn}; if (b !== null && b.getAttribute('aria-expanded') === 'true') b.click(); return true })()`)
+    check('the card of the « ? » sends to the window below, and says every setting stays in the advanced editor', /advanced editor|éditeur avancé/i.test(sub), sub)
     // The mode is set on the Theme page, on three cards (Light, Dark, System), the native one checked; no segmented selector and no button to another page.
     check('Mode cards: Light, Dark, System, the native mode (' + startMode + ') checked, no selector and no button to another page', j.mode.cards === 'light,dark,system' && j.mode.checked === startMode && j.mode.selector === false && j.mode.openButton === false, j.mode)
     check('18 shipped theme dots (and the add button next to « My themes »), each with a coloured disc, a name and « name — mode · accent » as label', j.skins === 18 && j.skinNamed === true, { n: j.skins, named: j.skinNamed })

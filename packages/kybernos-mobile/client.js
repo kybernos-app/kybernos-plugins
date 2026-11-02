@@ -895,20 +895,28 @@ window.__ModuleLoader__.load({
         }
         const columns = (r, web, onSwitchServer) => h('div', { className: 'kbpc-cols', 'data-kb': 'phone-channels-cols' }, h(RemoteCard, { r, web, onSwitchServer }), h(ChannelsCard))
 
-        // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is
-        // help.json: the same text in the window and on the Settings page.
-        const helpButton = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null)
         const TITLE = () => kt('Téléphone et canaux', 'Phone and channels')
+        // The one sentence the screen says about itself. It lives in the « ? » card (`lead`); it is drawn under the title only where the Suite's Help does not exist.
+        const LEAD = () => kt('Ouvre cet ordinateur depuis ton téléphone, et joins ' + assistantName() + ' depuis tes messageries.', 'Open this computer from your phone, and reach ' + assistantName() + ' from your messaging apps.')
+        // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is
+        // help.json, with the screen's own sentence first: the same card in the window and on the Settings page.
+        const helpButton = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile', lead: LEAD(), title: TITLE() }) : null)
+        // True where that button does not exist (no Suite): only then is the sentence drawn under the title. Read at render time, never at load.
+        const helpAbsent = () => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } }
         const PhoneIcon = () => h('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
           h('rect', { x: 3, y: 4, width: 12, height: 9, rx: 1.5 }), h('path', { d: 'M6 17h6' }), h('rect', { x: 16, y: 9, width: 5, height: 10, rx: 1.2 }))
-        /** The title row, the same in both places: the mark, the name, one sentence, and (window) the cross or (page) the plan chip; the help button in both. */
-        const head = (o) => h('div', { className: 'kbpc-head' },
-          h('span', { className: 'kbpc-ic' }, h(PhoneIcon)),
-          h('h1', { className: 'kbpc-title', id: o.titleId }, TITLE()),
-          h('p', { className: 'kbmr-sub kbpc-lead' }, kt('Ouvre cet ordinateur depuis ton téléphone, et joins ' + assistantName() + ' depuis tes messageries.', 'Open this computer from your phone, and reach ' + assistantName() + ' from your messaging apps.')),
-          o.chip ? h('span', { className: 'kbmr-chip kbpc-chip2' }, o.chip) : null,
-          h('span', { className: 'kbpc-help' }, helpButton()),
-          typeof o.onClose === 'function' ? h('button', { type: 'button', className: 'kbpc-x', 'data-kb': 'phone-channels-close', 'aria-label': kt('Fermer', 'Close'), onClick: o.onClose }, '×') : null)
+        /** The title row, the same in both places: the mark, the name, and (window) the cross or (page) the plan chip; the help button in both, which carries the one sentence the
+         *  screen says about itself. Only without the Suite is that sentence drawn under the title (a second grid row), so the row is one line high when the card has it. */
+        const head = (o) => {
+          const card = !helpAbsent()
+          return h('div', { className: 'kbpc-head' + (card ? ' kbpc-head-solo' : '') },
+            h('span', { className: 'kbpc-ic' }, h(PhoneIcon)),
+            h('h1', { className: 'kbpc-title', id: o.titleId }, TITLE()),
+            card ? null : h('p', { className: 'kbmr-sub kbpc-lead' }, LEAD()),
+            o.chip ? h('span', { className: 'kbmr-chip kbpc-chip2' }, o.chip) : null,
+            h('span', { className: 'kbpc-help' }, helpButton()),
+            typeof o.onClose === 'function' ? h('button', { type: 'button', className: 'kbpc-x', 'data-kb': 'phone-channels-close', 'aria-label': kt('Fermer', 'Close'), onClick: o.onClose }, '×') : null)
+        }
 
         /** The window the account menu opens (kybernos-cloud mounts it). Closing it withdraws a code nobody scanned; it does not withdraw one a phone is waiting on. */
         const Dialog = (props) => {
@@ -1011,6 +1019,10 @@ window.__ModuleLoader__.load({
 .kbpc-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbpc-ic{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-1, rgb(27,27,31));color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbpc-head .kbmr-sub{margin-top:2px}
+/* The sentence is in the « ? » card (Suite present): the row is one line, no empty second grid row (and no row-gap under it on a phone). The doubled class outranks the narrow rule below. */
+.kbpc-head.kbpc-head-solo{grid-template-areas:"ic ttl chip help x";align-items:center}
+.kbpc-head.kbpc-head-solo .kbpc-title{align-self:center}
+@media (max-width:520px){.kbpc-head.kbpc-head-solo{grid-template-areas:"ic ttl help x";row-gap:0}}
 .kbpc-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}
 @media (max-width:760px){.kbpc-cols{grid-template-columns:minmax(0,1fr)}}
 .kbpc-card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}

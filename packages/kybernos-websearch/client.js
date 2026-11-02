@@ -217,14 +217,21 @@ window.__ModuleLoader__.load({
       }
 
       // The page's head and its explanation: static text, so the skeleton draws the same (nothing moves when the engines arrive).
-      const pageHead = () => h(React.Fragment, null,
-        h('div', { className: 'kwse-head' },
-          h('h4', null, kt('Recherche web', 'Web Search')),
-          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-websearch' }) : null)),
-        h('p', { className: 'kwse-intro' }, kt(
+      // The explanation lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title, and the head takes the gap the paragraph used to leave.
+      const suiteHelp = () => { try { return typeof window !== 'undefined' && !!window.__KB_HELP__ && !!window.__KB_HELP__.Help } catch (e) { return false } }
+      const pageHead = () => {
+        const title = kt('Recherche web', 'Web Search')
+        const lead = kt(
           'Les agents cherchent sur le web avec le premier moteur de cette liste qui répond. Les moteurs « sans clé » marchent tout de suite ; ajoute une clé pour qu’un moteur à clé passe en premier. Un moteur qui échoue est mis en pause, le suivant prend le relais.',
-          'Agents search the web with the first engine in this list that answers. “No key” engines work right away; add a key so a keyed engine goes first. An engine that fails is paused and the next one takes over.'))
-      )
+          'Agents search the web with the first engine in this list that answers. “No key” engines work right away; add a key so a keyed engine goes first. An engine that fails is paused and the next one takes over.')
+        const suite = suiteHelp()
+        return h(React.Fragment, null,
+          h('div', { className: 'kwse-head' + (suite ? ' solo' : '') },
+            h('h4', null, title),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-websearch', lead: lead, title: title }) : null)),
+          suite ? null : h('p', { className: 'kwse-intro' }, lead)
+        )
+      }
 
       const Page = () => {
         const [state, setState] = React.useState(null)
@@ -358,6 +365,7 @@ window.__ModuleLoader__.load({
         '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
         'body:not([data-ds-dark-theme]) .kwse-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
         '.kwse-head{display:flex;align-items:center;gap:10px}',
+        '.kwse-head.solo{margin-bottom:12px}',
         '.kwse-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
         '.kwse-intro{margin:0 0 14px;color:var(--dsw-alias-label-secondary,#666);font-size:13px;line-height:1.45}',
         '.kwse-banner{margin:0 0 12px;padding:9px 12px;border-radius:10px;font-size:12.5px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#c80) 16%,transparent);color:var(--dsw-alias-label-primary,inherit)}',

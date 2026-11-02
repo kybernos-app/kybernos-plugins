@@ -402,8 +402,9 @@ window.__ModuleLoader__.load({
         ".kml-root { max-width: 720px; margin-bottom: 16px; }\n" +
         "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
         "body:not([data-ds-dark-theme]) .kml-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
-        ".kml-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
-        ".kml-soustitre { margin: 6px 0 20px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
+        ".kml-titre { margin: 0 0 20px; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
+        // The description sits in the « ? » card; this line is the fallback where there is no Suite: -14px pulls it back to 6px under the title.
+        ".kml-soustitre { margin: -14px 0 20px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kml-tuiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }\n" +
         ".kml-tuile { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 10px 12px; min-width: 0; }\n" +
         ".kml-tuile-legend { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }\n" +
@@ -879,10 +880,12 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kml-tuile-legend' }, legende),
           h('span', { className: 'kml-tuile-valeur' }, contenu))
 
+        // True where the Suite's « ? » card does not exist (read at render time). The page's description lives in the card (`lead`); it stays under the title only without it.
+        const helpAbsent = (() => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } })()
         return h('div', { className: 'kml-root', 'data-kml': 'panneau' },
-          h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux' }) : null)),
+          h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux', lead: m('kml.soustitre'), title: m('kml.page.titre') }) : null)),
           h('h2', { className: 'kml-titre' }, m('kml.page.titre')),
-          h('p', { className: 'kml-soustitre' }, m('kml.soustitre')),
+          helpAbsent ? h('p', { className: 'kml-soustitre' }, m('kml.soustitre')) : null,
           h('div', { className: 'kml-tuiles' },
             machine === null
               ? tuile(m('kml.tuile.machine'),

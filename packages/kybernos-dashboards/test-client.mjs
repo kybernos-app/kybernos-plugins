@@ -286,6 +286,12 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const plugin = text('./src/plugin.js')
   ok('gallery header: the template classes of the core plugin and the primary action at the same place', /className: 'kbdb-gal-head kb6-headrow'/.test(plugin) && /className: 'kb6-headacts'/.test(plugin) && /className: 'kb8-primary', 'data-act': 'create'/.test(plugin))
   ok('gallery header: the core plugin\'s primary button keeps its colours inside the page', /\.kbdb \.kb8-primary\{color:var\(--dsw-alias-label-primary-foreground\)\}/.test(plugin))
+  // the description of the gallery is the first line of the « ? » card, not a line under the title
+  ok('gallery header: the « ? » button passes the description as `lead` and the page name as `title`', /h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-dashboards', lead: galleryLead\(\), title: pageName\(\) \}\)/.test(plugin))
+  ok('gallery header: the description is drawn under the title only through the fallback (no Suite), never as a plain line', /subFallback\('kb8-sub', galleryLead\(\)\)/.test(plugin) && !/h\('p', \{ className: 'kb8-sub' \}/.test(plugin))
+  ok('gallery header: the description keeps its words (French and English)', /const galleryLead = \(\) => kt\('Tes dashboards sont des fichiers\. Pars d’un preset, ou demande à l’IA d’en construire un\.', 'Your dashboards are files\. Start from a preset, or ask the AI to build one\.'\)/.test(plugin))
+  ok('gallery header: the loading and empty states keep a bare « ? » (no description there)', (plugin.match(/h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-dashboards' \}\)/g) || []).length === 2)
+  ok('gallery header: the fallback line is drawn only where the Suite\'s Help does not exist', /const subFallback = \(cls, text\) => \{\s*try \{ if \(typeof window !== 'undefined' && window\.__KB_HELP__ && window\.__KB_HELP__\.Help\) return null \}/.test(plugin))
 }
 
 {

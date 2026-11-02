@@ -504,8 +504,12 @@ window.__ModuleLoader__.load({
           const sw = (key, label, desc) => h('div', { className: 'kbpu-line' },
             h('div', null, h('b', null, label), desc ? h('small', null, desc) : null),
             h('span', { className: 'kbpu-ctl' }, h('button', { type: 'button', className: 'kbpu-sw', role: 'switch', 'aria-checked': s !== null && s[key] === true ? 'true' : 'false', 'aria-label': label, disabled: s === null, 'data-kb': 'pulse-sw-' + key, onClick: () => set({ [key]: !(s !== null && s[key] === true) }) })))
+          // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); without the Suite it is drawn under the title as before.
+          const lead = kt('Dis-moi ce que tes automations ont fait et ramène-moi au bon endroit de Kybernos, sans garder Kybernos au premier plan.', 'Tells you what your automations did and brings you back to the right place in Kybernos, without keeping Kybernos in front.')
+          const title = kt('Widget', 'Widget')
+          const leadFallback = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', { className: 'kbpu-lead' }, lead) } catch (e) { return h('p', { className: 'kbpu-lead' }, lead) } }
           return h('div', { className: 'kbpu-page', 'data-kb': 'pulse-page' },
-            h('div', null, h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } }, h('h2', null, kt('Widget', 'Widget')), (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-pulse' }) : null)), h('p', { className: 'kbpu-lead' }, kt('Dis-moi ce que tes automations ont fait et ramène-moi au bon endroit de Kybernos, sans garder Kybernos au premier plan.', 'Tells you what your automations did and brings you back to the right place in Kybernos, without keeping Kybernos in front.'))),
+            h('div', null, h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } }, h('h2', null, title), (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-pulse', lead: lead, title: title }) : null)), leadFallback()),
             store.error && snap === null ? h('p', { className: 'kbpu-note', role: 'alert', 'data-kb': 'pulse-error' }, kt('Cette page n’a pas de réponse de son assistant. Si DSH vient d’être mis à jour, redémarre DSH.', 'This page\'s helper is not answering. If DSH was just updated, restart DSH.')) : null,
             h('div', { className: 'kbpu-block', 'data-kb': 'pulse-where' },
               h('h3', null, kt('Où il vit', 'Where it lives')),

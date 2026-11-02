@@ -382,6 +382,9 @@ window.__ModuleLoader__.load({
 
     const buildPanel = (React, creds) => {
       const h = React.createElement
+      // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title.
+      const pageLead = () => kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des outils dans un profil ; ici tu vérifies chaque worker et autorise ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each worker and allow your agent to call it.')
+      const leadFallback = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', null, pageLead()) } catch (e) { return h('p', null, pageLead()) } }
       const ic = (name, extra) => h('svg', { className: 'i' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: ICONS[name] || ICONS.alert }))
       const logo = (w, size) => h('span', { className: 'kbwk-logo' + (size ? ' ' + size : ''), 'aria-hidden': 'true' }, h('svg', { viewBox: '0 0 24 24' }, h('use', { href: '#kbwk-lg-' + (LOGO_OF[typeof w === 'string' ? w : w.id] || 'term') })))
       const cmdBox = (text) => h('div', { className: 'kbwk-cmd' }, h('code', null, text),
@@ -680,8 +683,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbwk' },
             h('div', { className: 'kbwk-page' },
               h('div', { className: 'kbwk-head' },
-                h('div', null, h('h4', null, 'Workers'),
-                  h('p', null, kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des outils dans un profil ; ici tu vérifies chaque worker et autorise ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each worker and allow your agent to call it.'))),
+                h('div', null, h('h4', null, 'Workers'), leadFallback()),
                 h('span', { className: 'kbwk-hbtn' }, k.bone(120, 36, null, 18), k.bone(104, 36, null, 18))),
               h('div', { className: 'kbwk-count' }, k.bone(64, 14), k.bone(78, 14)),
               k.wrap(kt('Chargement des workers…', 'Loading workers…'), 'kbwk-list', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbwk-item' },
@@ -875,8 +877,8 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbwk' },
           h('div', { className: 'kbwk-page' },
             h('div', { className: 'kbwk-head' },
-              h('div', { className: 'kbwk-hd' }, h('div', { className: 'kbwk-titlerow' }, h('h4', null, 'Workers'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null),
-                h('p', null, kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des outils dans un profil ; ici tu vérifies chaque worker et autorise ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each worker and allow your agent to call it.'))),
+              h('div', { className: 'kbwk-hd' }, h('div', { className: 'kbwk-titlerow' }, h('h4', null, 'Workers'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', lead: pageLead(), title: 'Workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null),
+                leadFallback()),
               h('span', { className: 'kbwk-hbtn' },
                 !helpHasAction ? h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide', onClick: () => setGuide(true) }, kt('Guide et démo', 'Guide and demo')) : null,
                 h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-all', disabled: anyBusy, onClick: checkAll }, ic('refresh', anyBusy ? 'spin' : ''), kt('Tout vérifier', 'Check all')))),
