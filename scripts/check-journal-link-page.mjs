@@ -15,31 +15,15 @@ const NM = process.env.KB_NODE_MODULES
 if (!NM) { console.log('skipped: set KB_NODE_MODULES to a node_modules folder with playwright-core'); process.exit(0) }
 const { chromium } = createRequire(NM.endsWith('/') ? NM : NM + '/')('playwright-core')
 const root = new URL('..', import.meta.url).pathname
-const { journalDocument, journalViewerHtml } = await import(root + 'packages/kybernos-plugin/journal-page.mjs')
-const { deriveStory } = await import(root + 'packages/kybernos-plugin/journal-story.mjs')
+const { journalViewerHtml } = await import(root + 'packages/kybernos-plugin/journal-page.mjs')
+const { sampleJournalDoc } = await import(root + 'scripts/lib-journal-sample.mjs')
 const { sealText } = await import(root + 'packages/kybernos-plugin/vendored-share-seal.mjs')
 
 const cache = join(process.env.HOME || '', 'Library', 'Caches', 'ms-playwright')
 const exe = process.env.PW_BIN || (existsSync(cache) ? (() => { const d = readdirSync(cache).filter((x) => x.startsWith('chromium_headless_shell-')).sort().pop(); if (!d) return undefined; const sub = readdirSync(join(cache, d)).find((x) => x.startsWith('chrome-')); const bin = sub ? join(cache, d, sub, 'chrome-headless-shell') : ''; return existsSync(bin) ? bin : undefined })() : undefined)
 const browser = await chromium.launch(exe ? { executablePath: exe } : {})
 
-// a small chat: one connector call, one permission asked and allowed, one reply
-const T0 = 1_800_000_000_000
-const MIN = 60_000
-let seq = 0
-const ev = (type, at, data) => { seq += 1; return { type, seq, time: T0 + at, data } }
-const events = [
-  ev('turn/start', 0, { turn: 1 }),
-  ev('user/message', 1, { role: 'user', content: [{ type: 'text', text: 'Send the offer' }], source: { kind: 'user' } }),
-  ev('tool/call', MIN, { turn: 1, step: 1, callId: 'g1', name: 'GMAIL_SEND_EMAIL', arguments: '{}' }),
-  ev('tool/result', MIN + 500, { turn: 1, step: 1, message: { role: 'tool', toolCallId: 'g1', source: { kind: 'tool', callId: 'g1' }, content: [{ type: 'text', text: 'sent' }] } }),
-  ev('approval/asked', 2 * MIN, { id: 'ap1', toolName: 'bash', callId: 'b1', reason: 'delete the folder' }),
-  ev('approval/decided', 2 * MIN + 2000, { id: 'ap1', outcome: 'allowed-once' }),
-  ev('assistant/message', 3 * MIN, { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'done' }], source: { kind: 'model', provider: 'zai', model: 'glm' } } }),
-  ev('turn/end', 3 * MIN + 10, { turn: 1 }),
-]
-const story = deriveStory(events, { sessionId: 'session-LINKCHAT1', runs: [], costOf: () => null, decisions: {}, seals: {} })
-const doc = journalDocument({ story, include: { approvers: true, timing: true, deliverables: true }, lang: 'en', logos: {}, made: '2026-11-02' })
+const doc = sampleJournalDoc({ sessionId: 'session-LINKCHAT1' })
 assert.ok(doc !== null)
 const PASSWORD = 'correct horse battery'
 const envelope = await sealText(JSON.stringify(doc), PASSWORD, { iterations: 100000 })
