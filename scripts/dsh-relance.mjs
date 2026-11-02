@@ -54,7 +54,7 @@
  * alone. By hand: press Stop on the chat (it stops running, so the next sample drops it and it is never resumed),
  * `supervise stop <id>` for good, `supervise allow <id>` to give it back, `supervise pause` for every session.
  */
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, openSync, statSync, rmSync } from 'node:fs'
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, openSync, statSync, rmSync, realpathSync } from 'node:fs'
 import { createHash, createHmac, randomUUID } from 'node:crypto'
 import { spawn, execFileSync } from 'node:child_process'
 import { connect } from 'node:net'
@@ -315,6 +315,16 @@ const claimsAfter = (claims, id, reason, auto, now = Date.now()) => {
   const kept = recentAuto(before, now)
   out[id] = { at: now, reason: reason ?? null, ...(auto ? { auto: [...kept, now] } : (kept.length > 0 ? { auto: kept } : {})) }
   return out
+}
+
+/** The node a LaunchAgent should hold: the Homebrew link that `brew upgrade` moves to the new version, not the versioned Cellar path it deletes
+ *  (a service pinned to `Cellar/node/26.7.0/bin/node` stops starting, silently, at the next upgrade). `resolve` is `realpathSync`; a link that
+ *  does not lead to the node that runs now is not taken. */
+const stableNode = (execPath, candidates, resolve) => {
+  for (const candidate of candidates) {
+    try { if (resolve(candidate) === resolve(execPath)) return candidate } catch { /* absent: next one */ }
+  }
+  return execPath
 }
 // <garde:end>
 
@@ -1055,7 +1065,7 @@ async function superviseLoop() {
 }
 
 function supervisePlistContent() {
-  const node = process.execPath
+  const node = stableNode(process.execPath, ['/opt/homebrew/bin/node', '/usr/local/bin/node'], realpathSync)
   const logs = LOGS
   const extra = port === '3080' ? '' : `
     <string>--port</string>
