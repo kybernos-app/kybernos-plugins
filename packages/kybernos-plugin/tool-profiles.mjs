@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url'
 // Everything here is guarded: an absent service, an unreadable agent, a refused filter
 // leaves the session on `full`, and the boot never depends on it.
 //
-// Rollback: delete the `monterProfilsOutils` call in index.js (or set
+// Rollback: delete the `mountToolProfiles` call in index.js (or set
 // KYBERNOS_TOOL_PROFILES=full) and every session is back to the full tool set.
 
 /** Environment switch: `full`/`off` disables restriction, `code`/`office`/`automation` forces one profile. */
@@ -167,6 +167,9 @@ export const profileFor = (input = {}) => {
   }
 }
 
+/** A filter that keeps fewer tools than this is a bug, not an economy. */
+const MIN_ALLOWED = 5
+
 /**
  * The restriction filter for one profile over the tools the agent can actually see.
  * Intersecting with the visible names is what keeps `tools.restrict` from throwing on an
@@ -185,8 +188,41 @@ export const filterFor = (profile, visibleNames) => {
   const allow = []
   for (const name of wanted) if (visible.has(name) && allow.indexOf(name) < 0) allow.push(name)
   // A filter that keeps almost nothing is a bug, not an economy: fall back to full.
-  if (allow.length < 5) return null
+  if (allow.length < MIN_ALLOWED) return null
   return { allow }
+}
+
+/**
+ * The tool names the engine refused as "unknown global" in a `tools.restrict()` error.
+ *
+ * `restrict` only accepts tools the agent INHERITS (the global layer and its ancestors). A tool registered in the
+ * agent's own layer (`subagent` on the 0.2.2 engine) is visible to the agent but is not restrictable, so a filter
+ * naming it is refused whole: `names unknown global tool "subagent"; known global tools: ...`.
+ *
+ * @param {unknown} error what `tools.restrict()` threw
+ * @returns {string[]} the refused names, or [] when the error is not that refusal
+ */
+export const unknownGlobalNames = (error) => {
+  try {
+    const text = String(error !== null && typeof error === 'object' && error.message !== undefined ? error.message : error)
+    const quoted = /names unknown global tools? ((?:"[^"]*"(?:, )?)+);/.exec(text)
+    if (quoted === null) return []
+    return [...quoted[1].matchAll(/"([^"]*)"/g)].map((m) => m[1])
+  } catch (e) { return [] }
+}
+
+/**
+ * A filter without the given names. Those names are not lost: a tool the engine does not let us name is exempt from
+ * the restriction and stays visible anyway.
+ *
+ * @param {{allow: string[]}} filter a filter built by {@link filterFor}
+ * @param {string[]} names the names to drop
+ * @returns {{allow: string[]}|null} the narrowed filter, or null when what is left is too small
+ */
+export const withoutNames = (filter, names) => {
+  const dropped = new Set(names)
+  const allow = filter.allow.filter((name) => !dropped.has(name))
+  return allow.length < MIN_ALLOWED ? null : { allow }
 }
 
 const readMode = (env) => {
@@ -244,15 +280,14 @@ const alreadyRequested = (agent) => {
  *
  * @param {object} ctx the plugin's cordis host context
  * @param {{env?: object, exists?: (path: string) => boolean}} [options] injected for tests
- * @returns {{mode: string, profiles: Map<string, string>, unseen: () => number}} a small diagnostic handle
+ * @returns {{mode: string, profiles: Map<string, string>}} a small diagnostic handle
  */
 export function mountToolProfiles(ctx, options = {}) {
   const mode = readMode(options.env === undefined ? process.env : options.env)
   const profiles = new Map()
   const decided = new WeakSet()
-  const sessions = new WeakSet()
-  if (mode === 'off') return { mode, profiles, unseen: () => 0 }
-  if (ctx === null || ctx === undefined || typeof ctx.on !== 'function') return { mode: 'unavailable', profiles, unseen: () => 0 }
+  if (mode === 'off') return { mode, profiles }
+  if (ctx === null || ctx === undefined || typeof ctx.on !== 'function') return { mode: 'unavailable', profiles }
 
   const serviceOf = (agent, name) => {
     try { return agent.ctx.get(name) } catch (e) { return undefined }
@@ -267,19 +302,31 @@ export function mountToolProfiles(ctx, options = {}) {
     if (tools === undefined || tools === null || typeof tools.restrict !== 'function') return false
     if (alreadyRequested(agent) === true) return false
     const visible = visibleNamesOf(tools, agent)
-    const filter = filterFor(profile, visible)
+    let filter = filterFor(profile, visible)
     if (filter === null) return false
     // Prove the filter is scoped BEFORE trusting it: a global leak would copy this economy
     // rule onto every chat. Undo it and keep the full surface when the global count moves.
     const before = globalCount(tools)
     let undo
+    let exempt = 0
     try {
       undo = tools.restrict(filter)
     } catch (e) {
-      // A refused filter (an unknown or scope-local name in another deployment) means the
-      // session keeps its full surface: the safe fallback.
-      console.error('[kybernos] tool profile "' + profile + '" not applied: ' + String((e && e.message) || e))
-      return false
+      // The engine refuses the WHOLE filter when it names a tool of the agent's own layer. Those tools are exempt
+      // from any restriction anyway, so name only the others and ask once more.
+      const refused = unknownGlobalNames(e)
+      const narrowed = refused.length === 0 ? null : withoutNames(filter, refused)
+      try {
+        if (narrowed === null) throw e
+        undo = tools.restrict(narrowed)
+        exempt = filter.allow.length - narrowed.allow.length
+        filter = narrowed
+      } catch (retryError) {
+        // Still refused (an unknown or scope-local name in another deployment): the session keeps its
+        // full surface, the safe fallback.
+        console.error('[kybernos] tool profile "' + profile + '" not applied: ' + String((retryError && retryError.message) || retryError))
+        return false
+      }
     }
     const after = globalCount(tools)
     if (before >= 0 && after >= 0 && after !== before) {
@@ -289,7 +336,7 @@ export function mountToolProfiles(ctx, options = {}) {
     }
     profiles.set(String(agent.id === undefined ? '' : agent.id), profile)
     const sid = (() => { try { return String(agent.session.id || '') } catch (e) { return '' } })()
-    console.log('[kybernos] tool profile "' + profile + '" on ' + (sid === '' ? 'an agent' : sid) + ': ' + String(filter.allow.length) + ' of ' + String(visible.length) + ' tools kept')
+    console.log('[kybernos] tool profile "' + profile + '" on ' + (sid === '' ? 'an agent' : sid) + ': ' + String(filter.allow.length + exempt) + ' of ' + String(visible.length) + ' tools kept')
     // The stable note that tells the agent its own profile (and how to recover). Same
     // synchronous scoped path, so it is present from the first request too.
     try {
@@ -322,7 +369,6 @@ export function mountToolProfiles(ctx, options = {}) {
     try {
       const agent = payload === null || payload === undefined ? undefined : payload.agent
       if (agent === null || agent === undefined || decided.has(agent)) return
-      sessions.add(agent)
       if (payload.source !== undefined && payload.source !== 'fresh') { decided.add(agent); return }
       if (alreadyRequested(agent) === true) { decided.add(agent); return }
       const profile = classify(agent, '')
@@ -338,11 +384,10 @@ export function mountToolProfiles(ctx, options = {}) {
       const text = claimedText(payload.message)
       if (text === '') return
       decided.add(agent)
-      if (sessions.has(agent) === false) sessions.add(agent)
       install(agent, classify(agent, text))
     } catch (e) { /* never break a turn */ }
   }
   try { ctx.on('agent/created', onCreated) } catch (e) { /* optional seam */ }
   try { ctx.on('agent/inbox/claimed', onClaimed) } catch (e) { /* optional seam */ }
-  return { mode, profiles, unseen: () => profiles.size }
+  return { mode, profiles }
 }
