@@ -3492,6 +3492,40 @@ window.__ModuleLoader__.load({
       }
 
       // ── the plugin ──────────────────────────────────────────────────────────────────────────────────────────────────────
+      // The apps as a source of Creations (the core's registry, window.__KB_CREATIONS__): one item per app, opened on the Apps page on that app. While this is declared
+      // the core takes the « Apps » row out of the menu (`foldsRow`); `home` is the way into the page (the gallery, « New app ») when there is no app yet.
+      const creationSource = () => {
+        const openPage = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: ROW_ID }) } catch (e) { /* the page cannot be reached */ } }
+        return {
+          id: 'apps',
+          label: { en: 'Apps', fr: 'Apps' },
+          desc: { en: 'Your own data apps: tables, rows and views, kept on this computer.', fr: 'Tes propres apps de données : tables, lignes et vues, gardées sur cet ordinateur.' },
+          art: 'app',
+          order: 20,
+          foldsRow: ROW_ID,
+          load: async () => {
+            const r = await call('GET', '/state')
+            const dbs = r.ok && Array.isArray(r.dbs) ? r.dbs : []
+            return dbs.filter((d) => plain(d) && typeof d.id === 'string' && Array.isArray(d.objects)).map((d) => ({
+              id: d.id,
+              title: String(d.name || d.id),
+              sub: d.objects.length === 0 ? kt('Aucune table pour l’instant', 'No table yet') : d.objects.length + ' ' + plural(d.objects.length, 'table', 'tables', 'table', 'tables') + ' · ' + rowsIn(d) + ' ' + plural(rowsIn(d), 'ligne', 'lignes', 'row', 'rows'),
+              mtimeMs: null,
+            }))
+          },
+          open: (item) => {
+            // The page reads its selection when it mounts: write the app there, then open the page.
+            try {
+              let cur = null
+              try { cur = JSON.parse(localStorage.getItem(SEL_KEY) || 'null') } catch (e) { cur = null }
+              localStorage.setItem(SEL_KEY, JSON.stringify({ db: item.id, object: '', views: plain(cur) && plain(cur.views) ? cur.views : {} }))
+            } catch (e) { /* private mode: the page opens on the gallery */ }
+            openPage()
+          },
+          home: openPage,
+        }
+      }
+
       const start = (ctx) => {
         try {
           const React = require('react')
@@ -3522,6 +3556,28 @@ window.__ModuleLoader__.load({
             }
           }, 'kybernos-db: menu row')
           ctx.effect(() => slots.inject(SLOT, () => slots.register({ name: SLOT, key: ROW_ID }, Page)), 'kybernos-db: page')
+          // Creations lists the apps and the menu row steps aside while it does (the registry is waited for, as the menu's is).
+          ctx.effect(() => {
+            let off = null
+            let timer = null
+            let tries = 0
+            const declare = () => {
+              timer = null
+              try {
+                if (window.__KB_CREATIONS__ && typeof window.__KB_CREATIONS__.register === 'function') { off = window.__KB_CREATIONS__.register(creationSource()); return }
+              } catch (e) { return }
+              tries += 1
+              if (tries < MENU_TRIES) timer = setTimeout(declare, MENU_WAIT_MS)
+            }
+            declare()
+            return () => {
+              try { if (timer !== null) clearTimeout(timer) } catch (e) { /* no timers */ }
+              timer = null
+              tries = MENU_TRIES
+              try { if (typeof off === 'function') off() } catch (e) { /* already taken back */ }
+              off = null
+            }
+          }, 'kybernos-db: Creations source')
         } catch (e) { console.warn('[kybernos-db] page not mounted:', e) }
       }
 
@@ -3529,7 +3585,7 @@ window.__ModuleLoader__.load({
         name: NAME,
         inject: ['slots'],
         apply: start,
-        __test: { pubOf, canPublishVia, hostWord, agoWord, syncLine, openWebApp, hostsOf, defaultHost, orderHref, openOrderPage, hostState, availability, publishingLine, hostNameOf, useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, isImage, fileUrl, relationFields, seenAs, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, savable, barViews, viewIndex, agentViewEvents, boardColumns, pictureOf, totalField, columnTotal, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = {} }, MAP_STYLE_KEY, MAP_STYLE_URL, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_LIB, readMapStyle, saveMapStyle, flipColor, compactMoney, pinLabel, pinAmount, placedRecords, MAP_STYLES, mapStyleOf, mapStyleUrl, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, projectPins, parseColor, colorHex, paletteFrom, mapPalette, tweakStyle, flipTokens, monthOf, shiftMonth, monthGrid, monthLabel, askAbout, buildText, STARTS, appHue, monogram, confirmOk, rowsIn, tplSeam, templateOf, REL_TAB, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
+        __test: { creationSource, pubOf, canPublishVia, hostWord, agoWord, syncLine, openWebApp, hostsOf, defaultHost, orderHref, openOrderPage, hostState, availability, publishingLine, hostNameOf, useCore, loadCore, kt, lang, plural, plain, copy, same, hueOfColor, optionOf, fmtNumber, fmtMoney, fmtDate, fmtBytes, MASK, titleOf, makeCtx, isImage, fileUrl, relationFields, seenAs, mapLayout, TYPE_NAME, cellText, opLabel, relDay, fieldOf, valueText, conditionText, itemText, valueKind, defaultOp, defaultValueFor, newCondition, withOp, filterable, pathIdx, nodeAt, mapAt, removeAt, addItem, countConditions, liveFilter, dirLabels, sortableFields, nextSorts, defaultView, savable, barViews, viewIndex, agentViewEvents, boardColumns, pictureOf, totalField, columnTotal, resetMapState: () => { mapFailure = null; webglKnown = null; mapLibPromise = null; mapStyleCache = {} }, MAP_STYLE_KEY, MAP_STYLE_URL, MAP_BUDGET_MS, MAP_RETRY_MS, MAP_LIB, readMapStyle, saveMapStyle, flipColor, compactMoney, pinLabel, pinAmount, placedRecords, MAP_STYLES, mapStyleOf, mapStyleUrl, worldPx, clusterPins, aloneZoom, boundsOf, clusterAction, mapGate, startVerdict, projectPins, parseColor, colorHex, paletteFrom, mapPalette, tweakStyle, flipTokens, monthOf, shiftMonth, monthGrid, monthLabel, askAbout, buildText, STARTS, appHue, monogram, confirmOk, rowsIn, tplSeam, templateOf, REL_TAB, errorText, qs, call, build, CSS, ICONS, ROW_ID, SLOT, SEL_KEY, DATE_PRESETS },
       }
     } catch (e) {
       console.warn('[kybernos-db] disabled:', e)

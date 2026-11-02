@@ -71,7 +71,12 @@ const T = plugin.__test
     effect: (fn, label) => { const c = fn(); cleanups.push({ label, c }); return c },
     slots: { inject: (name, make) => { const r = make(); injected[name] = r; return () => {} }, register: (spec, comp) => ({ spec, comp }) },
   }
+  const creationCalls = []
+  win.__KB_CREATIONS__ = { register: (e) => { creationCalls.push(e); return () => { creationCalls.push('off') } } }
   plugin.apply(ctx)
+  ok('it declares its Creations source once, and takes it back with the cleanup', creationCalls.length === 1 && creationCalls[0].id === 'dashboards' && cleanups.some((x) => x.label === 'kybernos-dashboards: Creations source' && typeof x.c === 'function'))
+  cleanups.find((x) => x.label === 'kybernos-dashboards: Creations source').c()
+  ok('the cleanup gives the source back', creationCalls[1] === 'off')
   ok('the stylesheet is inserted once, tagged with the plugin', styles.length === 1 && styles[0].textContent === T.CSS && styles[0].attrs['data-plugin'] === '@local/kybernos-dashboards')
   const page = injected['main.kybernos-dashboards']
   ok('the page is injected on the child slot of the core menu', page !== undefined && page.spec.name === 'main.kybernos-dashboards' && typeof page.comp === 'function')
@@ -256,7 +261,7 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const row = core.indexOf("row('dashboards', Icon('layoutDashboard'")
   const next = core.indexOf("row('tasks',")
   ok('the Dashboards row is the first of the fixed rows, right before Automations', row > 0 && next > row && core.slice(row, next).split('\n').length <= 4, [row, next])
-  ok('the row only shows when the bundle is booted', /\(KB_DB === true \? row\('dashboards'/.test(core))
+  ok('the row only shows when the bundle is booted, and steps aside while its Creations source is declared', /\(KB_DB === true && kbCreationSources\.folds\('dashboards'\) !== true \? row\('dashboards'/.test(core))
   ok('the view is dispatched and openable from other bundles', core.includes("if (s.view === 'dashboards') return h(KbDashboardsView, props)") && core.includes(".concat(KB_DB === true ? ['dashboards'] : [])"))
   ok('the core renders the mount with a fallback when the slot is empty', core.includes('kbt(\'kbui.dashboards.off\')') && core.includes("slots.entriesOfSlot('main.kybernos-dashboards')"))
   ok('the menu label and the icon exist in the core tables', core.includes("'kbui.dashboards': { kybernos: 'Dashboards', en: 'Dashboards' }") && /^\s*layoutDashboard: \[/m.test(core))
@@ -310,6 +315,36 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   ok('suggested dashboards: a waiting suggestion keeps the only dashboard from opening by itself, and the way back to the gallery pulses', plugin.includes("live.length === 1 && !(l.dashboards || []).some((d) => d.suggested === true && !d.archived)") && plugin.includes("'data-kb': 'crumb-gallery'") && plugin.includes('sug.length > 0 ? h(\'i\', { className: \'kb-ping\''))
   ok('suggested dashboards: Add clears the flag, Discard asks the discard route, Preview opens it', plugin.includes("act('flags', { id: d.id, suggested: false }") && plugin.includes("act('discard', { id: d.id }") && plugin.includes("'data-kb': 'suggested-view', onClick: () => open(d.id)"))
   ok('suggested dashboards: the menu row is told how many wait, from the list and from the 1.5 s probe', plugin.includes("set('dashboards', { review:") && plugin.includes('publishWaiting((l.json.dashboards') && plugin.includes('publishWaiting(s.json.suggested)'))
+}
+
+// ── the Creations source: the dashboards listed next to the files ─────────────────────────────────────────────
+{
+  const { loadCreationSources } = await import('../kybernos-plugin/lib-creation-sources-test.mjs')
+  const L = loadCreationSources()
+  const sx = T.creationSource()
+  ok('the core\'s registry accepts the source as it is written', L.check(sx).ok === true, L.check(sx).errors)
+  ok('it stands in for the Dashboards row, with the dashboard drawing the tiles have', sx.foldsRow === 'dashboards' && sx.art === 'dashboard' && sx.id === 'dashboards')
+  const seen = []
+  const keep = globalThis.fetch
+  globalThis.fetch = async (url) => { seen.push(url); return { ok: true, status: 200, json: async () => ({ ok: true, dashboards: [{ id: 'd1', name: 'Shop overview', desc: 'Revenue and orders', widgets: 10, updatedAt: 1700000000000 }, { id: 'd2', name: 'Pulse', widgets: 3 }, null, { id: 'd3', desc: 'no name', widgets: 'x' }] }) } }
+  const items = L.items(await sx.load())
+  globalThis.fetch = keep
+  ok('it reads the list route of its own host and gives one item per dashboard (name, what it says, how many widgets, when it changed)', /^\/kybernos-dashboards\/list/.test(seen[0]) && items.length === 3 && items[0].title === 'Shop overview' && items[0].sub === 'Revenue and orders · 10 widgets' && items[0].mtimeMs === 1700000000000 && items[1].sub === '3 widgets' && items[1].mtimeMs === null && items[2].title === 'd3', items)
+  globalThis.fetch = async () => ({ ok: false, status: 500, json: async () => ({ ok: false }) })
+  ok('a host that does not answer gives no item (the tile counts 0, the page stays reachable)', (await sx.load()).length === 0)
+  globalThis.fetch = keep
+  const opened = []
+  const pages = []
+  win.__KB_DASHBOARDS__ = { open: (id) => { opened.push(id); return true } }
+  win.__KB_OPEN__ = (p) => { pages.push(p); return true }
+  sx.open({ id: 'd1' })
+  sx.home()
+  ok('an item opens the Dashboards page on that dashboard; the way in opens the page itself', opened.join() === 'd1' && pages.length === 1 && pages[0].view === 'dashboards')
+  delete win.__KB_DASHBOARDS__
+  delete win.__KB_OPEN__
+  let threw = false
+  try { sx.open({ id: 'd1' }); sx.home() } catch (e) { threw = true }
+  ok('without the page\'s hooks nothing throws', threw === false)
 }
 
 console.log(fail === 0 ? 'client: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))

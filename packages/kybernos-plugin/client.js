@@ -100,6 +100,7 @@ let kbLocaleRead = () => 'en'
       'tasks.sort.recent': { kybernos: 'Activité la plus récente', en: 'Most recent activity' },
       // ── Deliverables : tuiles de type, bandeau, actions rapides, Create with AI ──
       'deliv.createAI': { kybernos: 'Créer avec l\'IA', en: 'Create with AI' },
+      'deliv.src.open': { kybernos: 'Ouvrir la page {name}', en: 'Open the {name} page' },
       'deliv.create.prompt': { kybernos: 'Imagine une création de type « {type} » à partir du contexte de cette conversation. Propose-la-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Come up with a "{type}" creation from this conversation\'s context. Show me a draft before writing it to the workspace.' },
       'deliv.schedule.cta': { kybernos: 'Planifier une tâche', en: 'Schedule task' },
       'deliv.tasks.desc': { kybernos: 'Sessions qui partent toutes seules à l\'heure choisie.', en: 'Sessions that start on their own at the chosen time.' },
@@ -9703,6 +9704,11 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kb6-arc-ico{width:56px;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--dsw-alias-border-l1)}
 .kb6-arc-ico.kb8-sl-stage svg{width:46px;height:32px}
 .kb6-prev-mini{padding:0}
+.kb-srcblock{display:flex;flex-direction:column;gap:12px;margin:4px 0 14px}
+.kb-srchome{align-self:flex-start}
+.kb6-prev-src{justify-content:flex-start}
+.kb-src-sub{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.kb-src-when{font-size:12px;color:var(--dsw-alias-label-tertiary)}
 /* Les aperçus VIVANTS (iframe html/md, visuel miniapp) occupent le média
    PLEIN CADRE : le padding du conteneur faisait une margine autour du contenu
    (demande du 27/09). :has cible le porteur sans toucher au repli « code ». */
@@ -20884,6 +20890,116 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         return this.props.children
       }
     }
+    // <kb-creation-sources>
+    // The things a plugin keeps that are not files (the Dashboards, the Apps) and that the person finds in Creations next to the files: a plugin declares a source here
+    // and the page draws a tile and one card per item (docs/dev/creation-sources.md). The core knows no such plugin by name.
+    //   window.__KB_CREATIONS__.register({ id, label: { en, fr }, desc: { en, fr }, art, order, foldsRow, load: () => Promise<items>, open: (item) => void, home: () => void })
+    // An item is { id, title, sub, mtimeMs }. `foldsRow` names the menu row the source replaces: that row is hidden only while the source is declared, so the page never
+    // becomes unreachable; `home` opens the plugin's own page (the way in when there is no item yet). Pure: nothing here reads the page except the guarded window.
+    const KB_SRC_MAX = 6
+    const KB_SRC_ID = /^[a-z][a-z0-9-]{1,23}$/
+    const kbSrcText = (v, max) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= max && !/[<>]/.test(v)
+    /** `{ ok: true, entry }` (the source as the page keeps it) or `{ ok: false, errors }`. Never throws. */
+    const kbSrcCheck = (e, taken) => {
+      const errors = []
+      if (e === null || typeof e !== 'object' || Array.isArray(e)) return { ok: false, errors: ['a source is an object'] }
+      for (const k of Object.keys(e)) if (['id', 'label', 'desc', 'art', 'order', 'foldsRow', 'load', 'open', 'home'].indexOf(k) < 0) errors.push('unknown key "' + k + '"')
+      const id = typeof e.id === 'string' && KB_SRC_ID.test(e.id) ? e.id : null
+      if (id === null) errors.push('id: 2 to 24 lower-case letters, digits or dashes, starting with a letter')
+      else if (KB_ART_FAMILIES.some((f) => f.id === id) || KB_ART_TYPES.some((t) => t.id === id)) errors.push('id: "' + id + '" is a type of the core')
+      else if (taken.indexOf(id) >= 0) errors.push('id: "' + id + '" is already a source')
+      if (id !== null && taken.length >= KB_SRC_MAX && taken.indexOf(id) < 0) errors.push('at most ' + KB_SRC_MAX + ' sources')
+      const words = (o, name, max, need) => {
+        if (o === undefined && need !== true) return null
+        if (o === null || typeof o !== 'object' || Array.isArray(o)) { errors.push(name + ': an object { en, fr, … }'); return null }
+        const out = {}
+        for (const l of Object.keys(o)) {
+          if (['en', 'fr', 'es', 'ar'].indexOf(l) < 0) errors.push(name + ': "' + l + '" is not a language')
+          else if (!kbSrcText(o[l], max)) errors.push(name + '.' + l + ': a text of 1 to ' + max + ' characters, no < >')
+          else out[l] = o[l].trim()
+        }
+        if (out.en === undefined) errors.push(name + '.en: the English words are needed')
+        return Object.freeze(out)
+      }
+      const label = words(e.label, 'label', 40, true)
+      const desc = words(e.desc, 'desc', 160, false)
+      const art = e.art === undefined ? 'file' : (typeof e.art === 'string' && KB_NC_ART[e.art] !== undefined ? e.art : null)
+      if (art === null) errors.push('art: the name of a drawing the tiles have')
+      const order = e.order === undefined ? 100 : e.order
+      if (typeof order !== 'number' || !Number.isFinite(order) || Math.abs(order) > 1000) errors.push('order: a number between -1000 and 1000')
+      const foldsRow = e.foldsRow === undefined || e.foldsRow === null ? null : (typeof e.foldsRow === 'string' && KB_SRC_ID.test(e.foldsRow) ? e.foldsRow : undefined)
+      if (foldsRow === undefined) errors.push('foldsRow: the id of a menu row')
+      if (typeof e.load !== 'function') errors.push('load: a function that returns the items')
+      if (typeof e.open !== 'function') errors.push('open: a function that opens one item')
+      if (e.home !== undefined && typeof e.home !== 'function') errors.push('home: a function that opens the plugin\'s own page')
+      if (errors.length > 0) return { ok: false, errors }
+      return { ok: true, entry: Object.freeze({ id, label, desc, art, order, foldsRow, load: e.load, open: e.open, home: typeof e.home === 'function' ? e.home : null }) }
+    }
+    /** The items a source's `load` gives, as the page keeps them: at most 200, each { id, title, sub, mtimeMs }; anything else is dropped. */
+    const kbSrcItems = (list) => (Array.isArray(list) ? list : [])
+      .filter((x) => x !== null && typeof x === 'object' && (typeof x.id === 'string' || typeof x.id === 'number') && typeof x.title === 'string' && x.title !== '')
+      .slice(0, 200)
+      .map((x) => ({ id: String(x.id), title: x.title.slice(0, 120), sub: typeof x.sub === 'string' ? x.sub.slice(0, 200) : '', mtimeMs: typeof x.mtimeMs === 'number' && Number.isFinite(x.mtimeMs) ? x.mtimeMs : null }))
+    /** The words of a source for the language, else its English. */
+    const kbSrcWord = (o, lang) => (o !== null && o !== undefined && typeof o === 'object' ? (typeof o[lang] === 'string' ? o[lang] : (typeof o.en === 'string' ? o.en : '')) : '')
+    const kbCreationSources = (() => {
+      const rows = []
+      const subs = new Set()
+      let seq = 0
+      const fire = () => {
+        subs.forEach((f) => { try { f() } catch (e) { /* a listener that is gone */ } })
+        try { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('kb-creations-change')) } catch (e) { /* no events */ }
+      }
+      const api = {
+        v: 1,
+        /** Says why an entry would be refused, without declaring it. */
+        check: (entry) => kbSrcCheck(entry, rows.map((r) => r.entry.id)),
+        /** Declares a source; returns the function that takes it back, or `null` when the entry is refused (nothing is drawn then). */
+        register: (entry) => {
+          const c = kbSrcCheck(entry, rows.map((r) => r.entry.id))
+          if (c.ok !== true) { try { console.warn('[kybernos] creation source refused: ' + c.errors.join('; ')) } catch (e) { /* no console */ } return null }
+          const mine = { entry: c.entry, seq: seq++ }
+          rows.push(mine)
+          rows.sort((a, b) => a.entry.order - b.entry.order || a.seq - b.seq)
+          fire()
+          let live = true
+          return () => { if (!live) return; live = false; const i = rows.indexOf(mine); if (i >= 0) { rows.splice(i, 1); fire() } }
+        },
+        list: () => rows.map((r) => r.entry),
+        has: (id) => rows.some((r) => r.entry.id === id),
+        /** Whether a declared source stands in for the menu row `rowId` (the row then stays out of the menu). */
+        folds: (rowId) => rows.some((r) => r.entry.foldsRow === rowId),
+        subscribe: (f) => { subs.add(f); return () => { subs.delete(f) } },
+      }
+      try { if (typeof window !== 'undefined') window.__KB_CREATIONS__ = api } catch (e) { /* outside a browser */ }
+      return api
+    })()
+    // One item of a source, drawn as the files are: a card (the grid) or a row (the list). It opens the item in the plugin's own page.
+    const KbSrcItem = (p) => {
+      const sx = p.sx
+      const it = p.it
+      const open = () => { try { sx.open(it) } catch (e) { /* the page cannot be reached: nothing opens */ } }
+      const onKey = (e2) => { if (e2.target === e2.currentTarget && (e2.key === 'Enter' || e2.key === ' ')) { e2.preventDefault(); open() } }
+      const lang = kbDomainLang()
+      const badge = h('span', { className: 'kb6-type', style: { background: 'rgba(85,99,214,0.16)', '--kb6-ink': '#8f9cf0' } }, kbSrcWord(sx.label, lang))
+      const when = it.mtimeMs !== null ? fmtAge(it.mtimeMs) : ''
+      if (p.list === true) {
+        return h('div', { className: 'kb6-lrow' + (p.appear || ''), title: it.title, role: 'button', tabIndex: 0, 'data-kb': 'src-row', 'data-src': sx.id, onClick: open, onKeyDown: onKey },
+          h('span', { className: 'kb6-lthumb kb8-sl-stage' }, kbArtDraw(sx.art)),
+          h('div', { className: 'kb6-lmain' },
+            h('div', { className: 'kb6-ltop' }, h('div', { className: 'kb6-lrowname' }, it.title), badge),
+            h('div', { className: 'kb6-lrowsub' }, [it.sub, when].filter((x) => x !== '').join(' · '))))
+      }
+      return h('div', { className: 'kb6-card' + (p.appear || ''), title: it.title, 'data-kb': 'src-card', 'data-src': sx.id },
+        h('div', { className: 'kb6-cardrow' },
+          h('div', { className: 'kb6-ico kb6-ico-ti kb8-sl-stage' }, kbArtDraw(sx.art)),
+          h('div', { className: 'kb6-cname' }, h('div', { className: 'kbg-name' }, it.title)),
+          badge),
+        h('div', { className: 'kb6-prev kb6-prev-src', 'data-kb': 'src-prev', role: 'button', tabIndex: 0, onClick: open, onKeyDown: onKey },
+          (it.sub !== '' ? h('div', { className: 'kb-src-sub' }, it.sub) : null),
+          (when !== '' ? h('div', { className: 'kb-src-when' }, when) : null)))
+    }
+    // </kb-creation-sources>
     const ArtifactsPage = () => {
       const s = useStore()
       const hasPayload = (s.data !== null && s.data !== undefined && Array.isArray(s.data.artifacts) === true)
@@ -20906,12 +21022,31 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const artsCut = hasPayload === true && s.data.artifactsCut === true
       // Barre unifiee Deliverables : recherche, filtre type, tri persistes.
       const tbArts = useToolbarState('deliverables', { sort: 'modified', viewMode: 'cards' })
+      // The sources the plugins declare (Dashboards, Apps): one tile each, their items read again each time the page opens and when a source appears.
+      const srcTick = React.useState(0)
+      const srcItemsPair = React.useState({})
+      React.useEffect(() => kbCreationSources.subscribe(() => srcTick[1]((n) => n + 1)), [])
+      const sources = kbCreationSources.list()
+      const srcIds = sources.map((x) => x.id)
+      const srcKey = srcIds.join(',')
+      React.useEffect(() => {
+        let dead = false
+        sources.forEach((sx) => {
+          let p = null
+          try { p = sx.load() } catch (e) { p = null }
+          Promise.resolve(p).then((list) => { if (dead === false) srcItemsPair[1]((old) => Object.assign({}, old, { [sx.id]: kbSrcItems(list) })) })
+            .catch(() => { if (dead === false) srcItemsPair[1]((old) => Object.assign({}, old, { [sx.id]: [] })) })
+        })
+        return () => { dead = true }
+      }, [srcKey])
+      const srcItems = srcItemsPair[0]
+      const srcLang = kbDomainLang()
       // Sélection MULTI-types (maquette « sélection multi-types », 29/09) : chaque
       // tuile bascule son type et les filtres se combinent. Les ids hérités
       // d'anciens états (« pinned », « all ») sont ignorés ici : « pinned » vit
       // dans `fav` depuis la barre, « all » = aucune sélection.
       const delivRawTypes = (Array.isArray(tbArts[0].types) === true) ? tbArts[0].types : []
-      const delivAllIds = KB_ART_FAMILIES.map((f) => f.id).concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => t.id))
+      const delivAllIds = KB_ART_FAMILIES.map((f) => f.id).concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => t.id)).concat(srcIds)
       const selTypes = delivAllIds.filter((id) => delivRawTypes.indexOf(id) >= 0)
       const typesKey = selTypes.join(',')
       // Mono-compat : la description et « Créer avec l'IA » parlent du type
@@ -21019,7 +21154,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const isRenderedMiniApp = (a) => (/\.miniapp\.json$/i).test(String(a.name || ''))
       // The field's own types come first (kbObTileOrder: its new-chat templates), the others keep their order; the Customize panel lists the same order.
       const tileDefs = kbObTileSort(KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, art: kbArtDraw(KB_ART_DRAW.fam[f.id]) }))
-        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, art: kbArtDraw(KB_ART_DRAW.type[t.id]) }))), kbObTileOrder(kbDomainPack))
+        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, art: kbArtDraw(KB_ART_DRAW.type[t.id]) })))
+        .concat(sources.map((sx) => ({ kind: 'source', id: sx.id, label: kbSrcWord(sx.label, srcLang), desc: kbSrcWord(sx.desc, srcLang), count: (srcItems[sx.id] || []).length, art: kbArtDraw(sx.art) }))), kbObTileOrder(kbDomainPack))
       // (02/10) `vis` devient une liste de types MASQUÉS : mémoriser les
       // affichés figeait la rangée à l'instant de la sauvegarde — un type
       // devenu présent plus tard (ex. miniapp) n'apparaissait jamais (constaté
@@ -21036,7 +21172,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         : tileDefs.filter((d) => visSaved.indexOf(d.id) < 0).map((d) => d.id)
       const isTileVisible = (id) => (masques !== null)
         ? masques.indexOf(id) < 0
-        : (KB_ART_FAMILIES.some((f) => f.id === id) || fineTiles.some((t) => t.id === id))
+        : (KB_ART_FAMILIES.some((f) => f.id === id) || fineTiles.some((t) => t.id === id) || srcIds.indexOf(id) >= 0)
       const tilesShown = tileDefs.filter((d) => isTileVisible(d.id) === true)
       const setTileVisible = (id, on) => {
         const cur = (masques !== null) ? masques.slice() : tileDefs.filter((d) => isTileVisible(d.id) === false).map((d) => d.id)
@@ -21069,6 +21205,16 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (sort === 'size') return ((typeof b.size === 'number' ? b.size : 0) - (typeof a.size === 'number' ? a.size : 0))
         return ((typeof b.mtimeMs === 'number' ? b.mtimeMs : 0) - (typeof a.mtimeMs === 'number' ? a.mtimeMs : 0))
       })
+      // The items of the selected sources (none while « All » is on: the tiles carry their counts there). The search and the period follow them; a pin does not
+      // apply (they are not files), so the favourites filter leaves them out.
+      const srcOn = sources.filter((sx) => selTypes.indexOf(sx.id) >= 0)
+      const srcAll = []
+      srcOn.forEach((sx) => { (srcItems[sx.id] || []).forEach((it) => srcAll.push({ sx: sx, it: it })) })
+      const srcShown = srcAll
+        .filter((c) => q.trim() === '' || (c.it.title + ' ' + c.it.sub).toLowerCase().indexOf(q.trim().toLowerCase()) >= 0)
+        .filter((c) => tbArts[0].fav !== true)
+        .filter((c) => kbArtInPeriod(c.it.mtimeMs, tbArts[0].period, nowMs))
+        .sort((a, b) => (sort === 'name' ? a.it.title.localeCompare(b.it.title) : ((b.it.mtimeMs === null ? 0 : b.it.mtimeMs) - (a.it.mtimeMs === null ? 0 : a.it.mtimeMs))))
       const vp = usePagedView(sorted.length, 12, tbArts[0].viewMode, (m) => tbArts[1]({ viewMode: m }))
       // « x more files » : la grille démarre allégée (6 cartes) et se déplie
       // par lots de 12 — le pager par pages faisait perdre la grille de vue à
@@ -21160,14 +21306,15 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const introNodes = (() => {
         const selT = kbTypeById(filter)
         const selF = KB_ART_FAMILIES.filter((f) => f.id === filter)[0] || null
+        const selS = sources.filter((sx) => sx.id === filter)[0] || null
         const known = selF !== null || (selT !== null && selT !== undefined)
-        const selLabel = (selF !== null) ? kbt('deliv.fam.' + selF.id) : ((selT !== null && selT !== undefined) ? selT.label : kbt('deliverables.all'))
-        const selDesc = (selF !== null) ? kbt('deliv.fam.' + selF.id + '.desc') : ((selT !== null && selT !== undefined) ? kbt('deliv.type.' + selT.id + '.desc') : kbt('deliverables.desc'))
+        const selLabel = (selF !== null) ? kbt('deliv.fam.' + selF.id) : ((selT !== null && selT !== undefined) ? selT.label : (selS !== null ? kbSrcWord(selS.label, srcLang) : kbt('deliverables.all')))
+        const selDesc = (selF !== null) ? kbt('deliv.fam.' + selF.id + '.desc') : ((selT !== null && selT !== undefined) ? kbt('deliv.type.' + selT.id + '.desc') : (selS !== null ? kbSrcWord(selS.desc, srcLang) : kbt('deliverables.desc')))
         const selLow = (selF !== null) ? kbt('deliv.fam.' + selF.id).toLowerCase() : ((selT !== null && selT !== undefined) ? String(selT.label).toLowerCase() : '')
         const qaKey = (i) => 'deliv.qa.' + i + (known === false ? '.any' : '')
         return {
           // La description ne parle que du cas « Tous »/mono : en sélection multiple, les chips de la barre portent déjà la sélection.
-          desc: (selTypes.length <= 1 ? h('div', { key: 'desc', className: 'kb-typedesc' }, h('b', null, selLabel), known === true ? ' — ' : null, known === true ? selDesc : null) : null),
+          desc: (selTypes.length <= 1 ? h('div', { key: 'desc', className: 'kb-typedesc' }, h('b', null, selLabel), (known === true || (selS !== null && selDesc !== '')) ? ' — ' : null, (known === true || selS !== null) ? selDesc : null) : null),
           qa: h('div', { key: 'qa', className: 'kb-qa-row' }, ['1', '2', '3'].map((i) => h('button', { type: 'button', key: i, className: 'kb-qa', title: kbt(qaKey(i)).replace('{type}', selLow), onClick: () => { try { kbStartChatText(kbt(qaKey(i)).replace('{type}', selLow)) } catch (e) { /* composer unavailable */ } } },
             h('span', { className: 'kb-qa-ico' }, Icon('sparkles', 13)),
             h('span', { className: 'kb-qa-txt' }, kbt(qaKey(i)).replace('{type}', selLow))))),
@@ -21177,7 +21324,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         h('div', { className: 'kb6-headcol' },
           h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations', kbt('deliverables.desc'), kbDomainTitle('deliverables', kbt('deliverables.title')))),
           kbSubFallback('kb6-desc', kbt('deliverables.desc'), 'div')),
-        h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length : 0, shown: hasPayload === true ? sorted.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
+        h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length + srcAll.length : 0, shown: hasPayload === true ? sorted.length + srcShown.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
       // Nothing has been read yet. The page used to draw seven invented files (a mock-up) until the host answered; it now
       // draws bones the size of the real tiles and rows, and — if the read failed — says so, with a way to try again.
       if (hasPayload === false) {
@@ -21263,6 +21410,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             introNodes.qa)
         })(),
         (note !== null ? h('div', { className: 'kb8-sub', style: { padding: '4px 2px' } }, note) : null),
+        // The selected sources (Dashboards, Apps): the way into the plugin's own page, then one card (or row) per item. Always there, even with no item, so the page stays reachable.
+        (srcOn.length > 0 ? h('div', { className: 'kb-srcblock', 'data-kb': 'src-block' },
+          srcOn.filter((sx) => sx.home !== null).map((sx) => h('button', { key: 'home-' + sx.id, type: 'button', className: 'kb6-btn kb-srchome', 'data-kb': 'src-home', 'data-src': sx.id, onClick: () => { try { sx.home() } catch (e) { /* the page cannot be reached */ } } }, kbt('deliv.src.open').replace('{name}', kbSrcWord(sx.label, srcLang)), ' ↗')),
+          (srcShown.length > 0
+            ? (vp.mode === 'list'
+              ? h('div', { className: 'kb6-lrows', 'data-kb': 'src-list' }, srcShown.map((c, i) => h(KbSrcItem, { key: c.sx.id + ':' + c.it.id, sx: c.sx, it: c.it, list: true, appear: kbIn(i) })))
+              : h('div', { className: 'kb6-grid', 'data-kb': 'src-grid' }, srcShown.map((c, i) => h(KbSrcItem, { key: c.sx.id + ':' + c.it.id, sx: c.sx, it: c.it, list: false, appear: kbIn(i) }))))
+            : null)) : null),
         // List view. ONE way to open: the row itself (click, or Enter / Space on the focused row). The « View » and « expand »
         // buttons did exactly that, so they are gone; what is left are distinct actions — locate, pin, the ⋯ menu — which show
         // on hover and on keyboard focus (always, where there is no hover: touch). The name takes the width the buttons gave up.
@@ -21291,7 +21446,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h(KbArtMenu, { a: a, hosted: false, onAction: doAction, pinned: pinned, onPin: togglePin })))
         })) : null),
         (vp.mode === 'cards' && shown.length > 0 ? h('div', { className: 'kb6-grid' }, shown.map((a, i) => h(KbArtCard, { key: a.path, a: a, appear: kbIn(i), onOpen: () => openArtifact(a), preview: (prev[a.path] !== null && prev[a.path] !== undefined) ? prev[a.path] : null, onAction: doAction, pinned: pins[a.path] === true, onPin: togglePin, read: (p) => host.call('kybers/art-read', { path: p }) }))) : null),
-        (shown.length === 0 ? h('div', { className: 'kbg-empty' }, kbt('deliverables.empty')) : null),
+        (shown.length === 0 && srcShown.length === 0 ? h('div', { className: 'kbg-empty' }, kbt('deliverables.empty')) : null),
         (reste > 0 ? h('button', { type: 'button', className: 'kb6-more', 'data-kb': 'art-more', title: kbt('deliverables.more').replace('{n}', String(reste)), onClick: () => setReveal(reveal + KB_ART_STEP) },
           kbt('deliverables.more').replace('{n}', String(reste)),
           h('span', { className: 'kb6-morechev', 'aria-hidden': 'true' }, '⌄')) : null),
@@ -29574,7 +29729,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         return () => { offRows(); offState() }
       }, [])
       const lang = kbDomainLang()
-      return h(React.Fragment, null, kbBizMenu.list().map((r) => props.row(r.id, Icon(r.icon, 15) || Icon('layers', 15), kbBizLabel(r, kbt, lang), 0, props.shown === r.id, () => props.openPage({ view: r.id }), h(KbRowState, { k: r.id }), true)))
+      React.useEffect(() => kbCreationSources.subscribe(() => bump((n) => n + 1)), [])
+      return h(React.Fragment, null, kbBizMenu.list().filter((r) => kbCreationSources.folds(r.id) !== true).map((r) => props.row(r.id, Icon(r.icon, 15) || Icon('layers', 15), kbBizLabel(r, kbt, lang), 0, props.shown === r.id, () => props.openPage({ view: r.id }), h(KbRowState, { k: r.id }), true)))
     }
     const KbBusinessMount = (props) => {
       const pair = React.useState(0)
@@ -29747,6 +29903,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         return () => { window.removeEventListener('kb-icons-change', onSet); window.removeEventListener('kb-domain-change', onSet) }
       }, [])
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
+      // A row that a Creations source stands in for (Dashboards, Apps) leaves the menu while that source is declared: the menu redraws when one appears or goes.
+      React.useEffect(() => kbCreationSources.subscribe(() => icoSetter((n) => n + 1)), [])
       const c = navCounts(s.data)
       const arts = (s.data !== null && s.data !== undefined && Array.isArray(s.data.artifacts) === true) ? s.data.artifacts : []
       // The host lists at most 500 files and flags a cut list: the badge then reads « 500+ » (kbArtCountLabel).
@@ -29920,7 +30078,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }
           opened.then((ok) => { if (ok !== true) openPage({ view: 'kyber' }) }).catch(() => openPage({ view: 'kyber' }))
         }) : null),
-        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' }), h(KbRowState, { k: 'dashboards' })) : null),
+        // Dashboards is a Creations source (kybernos-dashboards declares it): its row goes while that source is there. The page is still reachable from Creations.
+        (KB_DB === true && kbCreationSources.folds('dashboards') !== true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' }), h(KbRowState, { k: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
@@ -29928,7 +30087,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // The rows plugins declare (Apps): flat, after Agent Teams. The menu is fixed: no pack renames them (docs/dev/business-menu.md).
         h(KbMenuRows, { row, openPage, shown }),
-        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
+        // The states of the rows Creations took over (Kaby's suggestions waiting on Dashboards, an app that needs a connection) show on this row now.
+        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview' || (typeof shown === 'string' && kbCreationSources.folds(shown) === true), () => openPage({ view: 'artifacts' }),
+          kbCreationSources.list().filter((sx) => sx.foldsRow !== null).map((sx) => h(KbRowState, { key: sx.id, k: sx.foldsRow }))),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
