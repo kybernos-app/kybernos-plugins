@@ -32218,6 +32218,11 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
           for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
             if (kbSsNorm(n.nodeValue) === want && n.parentElement !== null && n.parentElement.getClientRects().length > 0) { hit = n.parentElement; break }
           }
+          if (hit === null) {
+            // Connectors: the provider cards fold to a header and a status line. A label not on screen may sit in a folded card: open the next one and look again.
+            const folded = pane.querySelector('[data-kb^="provider-toggle-"][aria-expanded="false"]')
+            if (folded !== null && tries < 20) { try { folded.click() } catch (er) { /* gone */ } setTimeout(walk, 150); return }
+          }
           if (hit !== null) {
             let row = hit
             for (let i = 0; i < 4 && row.parentElement !== null && row.parentElement !== pane; i += 1) {

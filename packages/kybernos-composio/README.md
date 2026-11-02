@@ -82,7 +82,10 @@ switch off, delete.
     (0600) and goes only to the API's own address; responses are cut at 100 KB, redirects are not followed, https only (plain http for
     this computer). The test button only ever runs a read.
   - Add with AI: opens a new chat through `kb-open-chat-text` with the request written (skill `connecteur-personnalise`); nothing is sent.
-- Tests: `node test-openapi.mjs`, `node test-connectors-ui.mjs`.
+- Settings › Connectors: the two provider cards (Composio — your own key, Kybernos Cloud) are folded by default to their header row and one status line;
+  the chevron (`data-kb="provider-toggle-<id>"`, `aria-expanded`, `aria-controls`) shows the rest and never changes the choice (the radio and the name choose). Nothing is
+  remembered between visits. The settings search presses a folded toggle when the label it is looking for is not on screen.
+- Tests: `node test-openapi.mjs`, `node test-connectors-ui.mjs`, `node test-provider-cards.mjs` (renders the real page and clicks it); live: `node scripts/check-connectors-fold-live.mjs` on a sandbox.
 
 ## What a server's row says
 
