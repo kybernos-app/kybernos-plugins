@@ -27,7 +27,9 @@ the link AND the password the readers were given. With a sealed link the seals o
 `packages/kybernos-plugin/journal-viewer.js` + `journal-viewer.css`, assembled by `journal-page.mjs` (`journalViewerHtml()`): one script, one style sheet, an empty root, the lock-screen words
 in both languages as inert JSON. The same bytes for every link. Content policy: `default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-src data:; connect-src 'self'; base-uri
 'none'; form-action 'none'` (the server adds `frame-ancestors 'none'`). It loads `<its own address>.json`, asks for the password when that is an envelope, and draws the document as text
-nodes and SVG shapes, never as HTML. Build for the server:
+nodes and SVG shapes, never as HTML. The story is read a page at a time (10, 25, 50 or 100 moments, 25 to begin with, the reader's choice for as long as the page is open; every moment when
+printing; no pager for 10 moments or fewer), drawn in the browser from the same document: the pinned copy of the viewer on the server (`viewer:sync`) is what a link serves, so a viewer change
+reaches the links already made only with the next server deploy. Build for the server:
 
 ```bash
 node scripts/journal-viewer-build.mjs --out <folder>     # viewer.html (same bytes every run) + policy.txt (the policy to send as a header)
