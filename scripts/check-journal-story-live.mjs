@@ -17,6 +17,8 @@ import { deriveStory } from '../packages/kybernos-plugin/journal-story.mjs'
 import { createRecorder, readDecisions } from '../packages/kybernos-plugin/journal-decisions.mjs'
 import { loadSealKey, sealEvidence, verifyDecisions } from '../packages/kybernos-plugin/journal-seal.mjs'
 import { journalDocument, journalPageHtml, pageFileName } from '../packages/kybernos-plugin/journal-page.mjs'
+import { createJournalLinks } from '../packages/kybernos-plugin/journal-link.mjs'
+import { openSealed } from '../packages/kybernos-plugin/vendored-share-seal.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
@@ -142,8 +144,37 @@ const demoStory = () => {
   } finally { rmSync(dir, { recursive: true, force: true }) }
 }
 
+// The server half of the Journal link, in memory, behind the real verbs of journal-link.mjs: what the host does, with a stand-in for the cloud bundle's `snapshots` seam.
+const makeLinkServer = () => {
+  const dir = mkdtempSync(join(tmpdir(), 'kb-journal-links-'))
+  const server = { mode: 'absent', links: new Map(), n: 0 }
+  const seam = {
+    status: async () => (server.mode === 'absent'
+      ? { ok: false, available: false, error: 'not_on_this_server' }
+      : { ok: true, available: true, allowed: true, maxBytes: 1000000, maxCount: 20, ttlDays: 90, count: server.links.size, links: [...server.links.values()].map((l) => ({ id: l.id, url: l.url, expires: l.expires, sealed: l.sealed, doc: l.doc })) }),
+    put: async (input) => {
+      if (input.id !== undefined) {
+        const l = server.links.get(input.id)
+        if (l === undefined) return { ok: false, error: 'not_found', message: '' }
+        Object.assign(l, { text: input.text, sealed: input.sealed })
+        return { ok: true, id: l.id, url: l.url, expires: l.expires, bytes: input.text.length }
+      }
+      server.n += 1
+      const id = 'kjlinkcheck' + String.fromCharCode(96 + server.n).repeat(5)
+      const l = { id: id, url: 'https://kaby.app/s/' + id, expires: '2027-01-30T00:00:00.000Z', sealed: input.sealed, doc: input.doc, text: input.text }
+      server.links.set(id, l)
+      return { ok: true, id: id, url: l.url, expires: l.expires, bytes: input.text.length }
+    },
+    remove: async (id) => (server.links.delete(id) ? { ok: true } : { ok: false, error: 'not_found', message: '' }),
+  }
+  server.verbs = createJournalLinks({ dir: dir, seam: () => seam })
+  server.done = () => rmSync(dir, { recursive: true, force: true })
+  return server
+}
+
 const run = async () => {
   let fake = null
+  const linkServer = DEMO ? makeLinkServer() : null
   if (DEMO) {
     const demo = demoStory()
     fake = { ok: true, notes: [], story: demo.story, seal: demo.seal, evidence: demo.evidence }
@@ -162,7 +193,16 @@ const run = async () => {
         if (p.responseStatusCode !== undefined || String(p.request.url).indexOf('/kybernos/journal') < 0) return
         try {
           let payload = fake
-          if (String(p.request.url).indexOf('/kybernos/journal/page') >= 0) {
+          if (linkServer !== null && String(p.request.url).indexOf('/kybernos/journal/link') >= 0) {
+            let body = {}
+            try { body = JSON.parse(p.request.postData || '{}') } catch (e) { body = {} }
+            if (body.action === 'state') payload = await linkServer.verbs.state(body.sessionId)
+            else if (body.action === 'remove') payload = await linkServer.verbs.remove({ sessionId: body.sessionId })
+            else {
+              const doc = journalDocument({ story: fake.story, include: body.include, lang: body.lang, logos: body.logos, seal: fake.seal, evidence: fake.evidence, made: '2026-11-02' })
+              payload = await linkServer.verbs.publish({ sessionId: body.sessionId, doc: doc, protect: body.protect !== false, fresh: body.fresh === true })
+            }
+          } else if (String(p.request.url).indexOf('/kybernos/journal/page') >= 0) {
             // The page route of the host, answered here with the same builder (journal-page.mjs): what the browser sends is what the document is made from.
             let body = {}
             try { body = JSON.parse(p.request.postData || '{}') } catch (e) { body = {} }
@@ -327,6 +367,61 @@ const run = async () => {
         await hookDownload()
         pageTwo = await saved()
         ok('the page that can be checked carries the names, the key and the signed facts', /Amira Benali/.test(pageTwo.html) && /BEGIN PUBLIC KEY/.test(pageTwo.html) && /"evidence"/.test(pageTwo.html) && /journal-demojour-2026-11-02\.html/.test(pageTwo.name), pageTwo.name)
+        // the link: the part of the sheet that talks to the Kybernos account
+        await click('[data-kb="wvs-sw-verify"]')
+        const reopen = async () => { await click('[data-kb="wvs-share-btn"]'); await click('[data-kb="wvs-share-btn"]'); await waitFor(page, `document.querySelector('[data-kb="wvs-link"]') && !/Looking for/.test(document.querySelector('[data-kb="wvs-link"]').innerText)`, 8000) }
+        const onServer = () => [...linkServer.links.values()]
+        await reopen()
+        ok('on a server without links the sheet says so and offers no button', /not available on your Kybernos server yet/.test(await text('[data-kb="wvs-link-why"]')) && (await count('[data-kb="wvs-link-make"]')) === 0, await text('[data-kb="wvs-link"]'))
+        await shot('13-link-unavailable')
+        linkServer.mode = 'ok'
+        await reopen()
+        ok('with links available the sheet offers « Create the link », password on', (await count('[data-kb="wvs-link-make"]')) === 1 && (await page.evalJs(`document.querySelector('[data-kb="wvs-link-protect"]').checked`, 3000)).val === true)
+        await shot('14-link-make')
+        await click('[data-kb="wvs-link-make"]')
+        await waitFor(page, `document.querySelector('[data-kb="wvs-link-url"]') !== null`, 8000)
+        const url1 = (await page.evalJs(`document.querySelector('[data-kb="wvs-link-url"]').value`, 3000)).val
+        const pw1 = await text('[data-kb="wvs-link-pw"]')
+        ok('the link and its password are shown', /^https:\/\/kaby\.app\/s\//.test(url1) && /^[A-Z2-9]{5}(-[A-Z2-9]{5}){3}$/.test(pw1), url1 + ' ' + pw1)
+        ok('the server holds one locked copy, no word of the Journal in it', onServer().length === 1 && onServer()[0].sealed === true && onServer()[0].doc === 'journal' && !/Amira|Recruiter|kybernos-journal/.test(onServer()[0].text))
+        const opened1 = JSON.parse(await openSealed(JSON.parse(onServer()[0].text), pw1))
+        ok('the password opens exactly the Journal that was chosen', opened1.kind === 'kybernos-journal' && opened1.include.verify === false && opened1.moments.length > 5 && opened1.include.names === true, JSON.stringify(opened1.include))
+        ok('the sheet shows until when the link lives and offers update and delete', /Valid until/.test(await text('[data-kb="wvs-link-until"]')) && (await count('[data-kb="wvs-link-update"]')) === 1 && (await count('[data-kb="wvs-link-remove"]')) === 1)
+        await shot('15-link-made')
+        await click('[data-kb="wvs-sw-prompts"]')
+        await click('[data-kb="wvs-link-update"]')
+        await waitFor(page, `!/Updating/.test(document.querySelector('[data-kb="wvs-link"]').innerText)`, 8000)
+        await sleep(400)
+        const opened2 = JSON.parse(await openSealed(JSON.parse(onServer()[0].text), pw1))
+        ok('an update keeps the link and the password and brings in the new choice', onServer().length === 1 && (await page.evalJs(`document.querySelector('[data-kb="wvs-link-url"]').value`, 3000)).val === url1 && await text('[data-kb="wvs-link-pw"]') === pw1 && opened2.include.prompts === true, JSON.stringify(opened2.include))
+        onServer().forEach((l) => linkServer.links.delete(l.id))
+        await click('[data-kb="wvs-link-update"]')
+        await waitFor(page, `document.querySelector('[data-kb="wvs-link-gone"]') !== null`, 8000)
+        ok('a link the server forgot says it has ended and offers a new one, not a quiet replacement', (await count('[data-kb="wvs-link-fresh"]')) === 1 && onServer().length === 0)
+        await shot('16-link-gone')
+        await click('[data-kb="wvs-link-fresh"]')
+        await waitFor(page, `document.querySelector('[data-kb="wvs-link-url"]') !== null`, 8000)
+        ok('a new link has its own address and its own password', (await page.evalJs(`document.querySelector('[data-kb="wvs-link-url"]').value`, 3000)).val !== url1 && await text('[data-kb="wvs-link-pw"]') !== pw1 && onServer().length === 1)
+        await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 1100, deviceScaleFactor: 1, mobile: false })
+        await sleep(600)
+        const wideSheet = (await page.evalJs(`(() => { const r = document.querySelector('.wvs-root'); return r ? r.scrollWidth - r.clientWidth : -1 })()`, 4000)).val
+        ok('the sheet with a link fits a narrow window', wideSheet <= 1, 'overflow ' + wideSheet + ' px')
+        await shot('17-link-phone')
+        await page.send('Emulation.clearDeviceMetricsOverride', {})
+        await sleep(400)
+        await click('[data-kb="wvs-link-remove"]')
+        await waitFor(page, `document.querySelector('[data-kb="wvs-link-make"]') !== null`, 8000)
+        ok('deleting takes the link down on the server and the sheet offers to make one again', onServer().length === 0 && (await count('[data-kb="wvs-link-url"]')) === 0)
+        await click('[data-kb="wvs-share-btn"]')
+      }
+      // the running DSH: the Share sheet opens and its link part answers from the real host (offers the link or says why not); nothing is made
+      if (REAL) {
+        ok('the Share button opens the sheet', await click('[data-kb="wvs-share-btn"]') && (await count('[data-kb="wvs-share"]')) === 1)
+        const settled = await waitFor(page, `document.querySelector('[data-kb="wvs-link"]') && !/Looking for/.test(document.querySelector('[data-kb="wvs-link"]').innerText)`, 15000)
+        const linkText = await text('[data-kb="wvs-link"]')
+        ok('the link part answers from the real host: a button to make the link, the link of this chat, or the reason why not', settled !== null && ((await count('[data-kb="wvs-link-make"]')) === 1 || (await count('[data-kb="wvs-link-url"]')) === 1 || (await count('[data-kb="wvs-link-why"]')) === 1), linkText.replace(/\s+/g, ' ').slice(0, 200))
+        console.log('     link part says: ' + linkText.replace(/\s+/g, ' ').slice(0, 220))
+        await shot('18-real-share')
         await click('[data-kb="wvs-share-btn"]')
       }
       // a narrow window must not scroll sideways
@@ -380,6 +475,7 @@ const run = async () => {
     const errs = (await page.evalJs(`(window.__kbErrors || []).length`, 3000)).val
     if (errs) console.log('  note: the page recorded ' + errs + ' script errors')
   } finally {
+    if (linkServer !== null) linkServer.done()
     await live.close()
   }
   console.log(failed === 0 ? '\nJournal tab: all checks passed' : '\nJournal tab: ' + failed + ' failed')

@@ -181,9 +181,13 @@ const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 /** JSON that sits in a `<script type="application/json">`: no `<` can end the element or open a comment. */
 const inertJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c')
 
-/** The script of the page, from journal-viewer.js; refuses text that would end or hide itself in HTML. */
+const SEAL_SOURCE = 'vendored-share-seal.mjs'
+// The password-seal code of the shared dashboard (a vendored copy, kept equal by scripts/vendor-share.mjs), as plain script: no import or export, no whole-line comment.
+const sealSource = () => readFileSync(here(SEAL_SOURCE), 'utf8').split('\n').filter((line) => /^import\s.*from\s+'[^']+'\s*$/u.test(line) === false).map((line) => line.replace(/^export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)/u, '')).join('\n')
+
+/** The script of the page, from journal-viewer.js with the seal code where it marks it; refuses text that would end or hide itself in HTML. */
 export function viewerScript () {
-  const text = readFileSync(here('journal-viewer.js'), 'utf8')
+  const text = readFileSync(here('journal-viewer.js'), 'utf8').replace(/^[ \t]*\/\/ @@SEAL@@[ \t]*$/mu, () => sealSource())
   const lines = []
   let inBlock = false
   for (const line of text.split('\n')) {
@@ -195,19 +199,27 @@ export function viewerScript () {
   }
   const body = lines.join('\n')
   if (/<\/script|<!--/iu.test(body)) throw new Error('the page script holds text that would end or hide itself in HTML')
+  if (/^(?:import|export)\b/mu.test(body)) throw new Error('the page script holds a line the page build does not handle')
   return body
 }
 export const viewerCss = () => readFileSync(here('journal-viewer.css'), 'utf8')
 
-/** The page. One script, one style sheet, the document inside: it opens offline in any browser. The policy allows that script and that style (by hash), images that are data, and nothing else. */
-export function journalPageHtml (doc) {
+// What the lock screen of a protected link says. The document is not readable yet when it shows, so these words travel with the page itself, in both languages.
+export const LOCK_LABELS = {
+  en: { title: 'Protected journal', hint: 'Enter the password you were given. It opens this page in your browser; the server never sees it.', password: 'Password', open: 'Open', busy: 'Opening…', wrong: 'Wrong password, or this page was changed.', cannot: 'This protected page cannot be opened.', gone: 'This page could not be loaded', goneHint: 'The link may have been removed, or it has expired.', nope: 'This page cannot be shown.' },
+  fr: { title: 'Journal protégé', hint: 'Entre le mot de passe reçu. Il ouvre cette page dans ton navigateur ; le serveur ne le voit jamais.', password: 'Mot de passe', open: 'Ouvrir', busy: 'Ouverture…', wrong: 'Mot de passe incorrect, ou la page a été modifiée.', cannot: 'Cette page protégée ne peut pas être ouverte.', gone: 'Cette page n’a pas pu être chargée', goneHint: 'Le lien a peut-être été supprimé, ou il a expiré.', nope: 'Cette page ne peut pas être affichée.' },
+}
+
+// One script, one style sheet, an empty root. `embedded`: the document is inside the page (a file: it opens offline and loads nothing). Otherwise the page is the one a server serves at a
+// link, the same bytes for every link: it loads the document (or its password-sealed envelope) from the same site, and the policy allows that one fetch.
+function buildPage ({ embedded, doc, docPath }) {
   const script = viewerScript()
   const css = viewerCss()
-  const policy = ["default-src 'none'", 'script-src ' + sha(script), 'style-src ' + sha(css), 'img-src data:', "connect-src 'none'", "base-uri 'none'", "form-action 'none'"].join('; ')
-  const title = isObj(doc) && typeof doc.title === 'string' && doc.title !== '' ? doc.title : (isObj(doc) && isObj(doc.labels) && typeof doc.labels.pageTitle === 'string' ? doc.labels.pageTitle : 'Chat journal')
+  const policy = ["default-src 'none'", 'script-src ' + sha(script), 'style-src ' + sha(css), 'img-src data:', 'connect-src ' + (embedded ? "'none'" : "'self'"), "base-uri 'none'", "form-action 'none'"].join('; ')
+  const title = embedded && isObj(doc) && typeof doc.title === 'string' && doc.title !== '' ? doc.title : (embedded && isObj(doc) && isObj(doc.labels) && typeof doc.labels.pageTitle === 'string' ? doc.labels.pageTitle : 'Chat journal')
   const html = [
     '<!doctype html>',
-    '<html lang="' + (isObj(doc) && doc.lang === 'fr' ? 'fr' : 'en') + '">',
+    '<html lang="' + (embedded && isObj(doc) && doc.lang === 'fr' ? 'fr' : 'en') + '">',
     '<head>',
     '<meta charset="utf-8">',
     '<meta http-equiv="Content-Security-Policy" content="' + escapeText(policy) + '">',
@@ -219,8 +231,8 @@ export function journalPageHtml (doc) {
     '<style>' + css + '</style>',
     '</head>',
     '<body>',
-    '<div id="kj-root"></div>',
-    '<script type="application/json" id="kj-doc">' + inertJson(doc) + '</script>',
+    '<div id="kj-root"' + (!embedded && typeof docPath === 'string' ? ' data-doc="' + escapeText(docPath) + '"' : '') + '></div>',
+    embedded ? '<script type="application/json" id="kj-doc">' + inertJson(doc) + '</script>' : '<script type="application/json" id="kj-lock">' + inertJson(LOCK_LABELS) + '</script>',
     '<script>' + script + '</script>',
     '</body>',
     '</html>',
@@ -228,6 +240,12 @@ export function journalPageHtml (doc) {
   ].join('\n')
   return { html: html, policy: policy }
 }
+
+/** The page of a Journal as one file: the document inside, nothing to load. The policy allows that script and that style (by hash), images that are data, and nothing else. */
+export const journalPageHtml = (doc) => buildPage({ embedded: true, doc: doc })
+
+/** The page a server serves at a link: no document inside, it loads `<this address>.json` (or `docPath`) and asks for the password when that is sealed. Returns { html, policy }. */
+export const journalViewerHtml = ({ docPath } = {}) => buildPage({ embedded: false, docPath: docPath })
 
 /** A readable file name for the page: `journal-<day>.html`, or with the chat's number when it is shared. */
 export const pageFileName = (doc) => {

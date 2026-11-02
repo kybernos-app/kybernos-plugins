@@ -8,7 +8,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import vm from 'node:vm'
 import { createRecorder, readDecisions } from './journal-decisions.mjs'
-import { DEFAULT_INCLUDE, journalDocument, journalPageHtml, logoUri, pageFileName, resolveInclude, viewerCss, viewerScript } from './journal-page.mjs'
+import { DEFAULT_INCLUDE, LOCK_LABELS, journalDocument, journalPageHtml, journalViewerHtml, logoUri, pageFileName, resolveInclude, viewerCss, viewerScript } from './journal-page.mjs'
+import { sealText } from './vendored-share-seal.mjs'
 import { loadSealKey, sealEvidence, verifyDecisions } from './journal-seal.mjs'
 import { deriveStory } from './journal-story.mjs'
 
@@ -137,18 +138,23 @@ try {
   assert.equal(/unsafe-inline|unsafe-eval|\*/.test(page.policy), false)
   for (const d of ["default-src 'none'", "connect-src 'none'", 'img-src data:', "base-uri 'none'", "form-action 'none'"]) assert.ok(page.policy.includes(d), d)
   assert.ok(page.html.includes('http-equiv="Content-Security-Policy"'))
-  assert.equal(/\binnerHTML\b|\binsertAdjacentHTML\b|\bdocument\.write\b|\beval\(|new Function|\bfetch\(|XMLHttpRequest|\.src\s*=|location\s*=|\bimport\(/.test(script), false, 'the viewer builds text nodes and shapes only')
+  assert.equal(/\binnerHTML\b|\binsertAdjacentHTML\b|\bdocument\.write\b|\beval\(|new Function|XMLHttpRequest|\.src\s*=|location\s*=|\bimport\(/.test(script), false, 'the viewer builds text nodes and shapes only')
+  assert.equal(script.split('fetch(').length - 1, 1, 'one request only: the document of a link, from the same site')
+  assert.ok(/fetch\(url, \{ credentials: 'omit', referrerPolicy: 'no-referrer'/.test(script), 'sent with no credentials and no referrer')
   assert.equal(/https?:\/\/(?!www\.w3\.org)/.test(script + css), false, 'nothing is loaded from anywhere')
   ok('a hostile title or message cannot end the data block or start a script; the policy pins the script and the style by hash, allows no inline code and no request; the viewer holds no way to make HTML')
 
   // ── the viewer, run on a minimal DOM ─────────────────────────────────────────────────
-  const run = async (doc) => {
+  const run = async (doc, opts = {}) => {
     class Txt { constructor (t) { this.t = t; this.parent = null } }
     class Node {
       constructor (tag) { this.tag = tag; this.kids = []; this.attrs = {}; this.parent = null; this.on = {} }
       get className () { return this.attrs.class || '' }
       set className (v) { this.attrs.class = String(v) }
       appendChild (k) { k.parent = this; this.kids.push(k); return k }
+      removeChild (k) { this.kids = this.kids.filter((x) => x !== k); k.parent = null; return k }
+      get firstChild () { return this.kids.length > 0 ? this.kids[0] : null }
+      focus () {}
       setAttribute (k, val) { this.attrs[k] = String(val) }
       getAttribute (k) { return Object.prototype.hasOwnProperty.call(this.attrs, k) ? this.attrs[k] : null }
       addEventListener (t, f) { this.on[t] = f }
@@ -171,13 +177,24 @@ try {
     const all = (n, out = []) => { if (n instanceof Node) { out.push(n); n.kids.forEach((k) => all(k, out)) } return out }
     const root = new Node('div')
     const fake = {
-      getElementById: (id) => (id === 'kj-doc' ? { textContent: JSON.stringify(doc) } : (id === 'kj-root' ? root : null)),
-      createElement: (t) => new Node(t), createElementNS: (ns, t) => new Node(t), createTextNode: (t) => new Txt(String(t)), title: '',
+      getElementById: (id) => (id === 'kj-doc' && opts.served === undefined ? { textContent: JSON.stringify(doc) } : (id === 'kj-root' ? root : (id === 'kj-lock' && opts.served !== undefined ? { textContent: JSON.stringify(LOCK_LABELS) } : null))),
+      createElement: (t) => new Node(t), createElementNS: (ns, t) => new Node(t), createTextNode: (t) => new Txt(String(t)), title: '', documentElement: { lang: '' },
     }
-    const sandbox = { document: fake, window: { crypto: webcrypto }, atob: (t) => Buffer.from(t, 'base64').toString('binary'), TextEncoder: TextEncoder, URL: URL, Uint8Array: Uint8Array, Intl: Intl, Promise: Promise }
+    const asked = []
+    const served = opts.served
+    const fetchFake = served === undefined ? undefined : async (url, init) => { asked.push([url, init]); const r = served(url); return { ok: r !== null, status: r === null ? 404 : 200, json: async () => JSON.parse(r) } }
+    const sandbox = { document: fake, window: { crypto: webcrypto }, crypto: webcrypto, atob: (t) => Buffer.from(t, 'base64').toString('binary'), btoa: (t) => Buffer.from(t, 'binary').toString('base64'), TextEncoder: TextEncoder, TextDecoder: TextDecoder, URL: URL, Uint8Array: Uint8Array, Intl: Intl, Promise: Promise, Error: Error, JSON: JSON, String: String, navigator: { language: opts.language || 'en' }, location: { pathname: '/s/abc/' }, fetch: fetchFake }
     vm.runInNewContext(viewerScript(), sandbox)
     await new Promise((r) => setTimeout(r, 120))
-    return { root: root, text: textOf(root), nodes: all(root), pills: all(root).filter((n) => classes(n).includes('kj-pill')).map((n) => textOf(n)), find: (sel) => root.querySelector(sel) }
+    const submit = async (password) => {
+      const form = all(root).find((n) => n.tag === 'form')
+      const input = all(root).find((n) => n.tag === 'input')
+      input.value = password
+      form.on.submit({ preventDefault () {} })
+      for (let i = 0; i < 60; i += 1) { await new Promise((r) => setTimeout(r, 100)); if (all(root).some((n) => n.tag === 'form') === false || /Wrong password|Mot de passe incorrect|cannot be opened/.test(textOf(root))) break }
+      return { text: textOf(root), nodes: all(root), pills: all(root).filter((n) => classes(n).includes('kj-pill')).map((n) => textOf(n)) }
+    }
+    return { asked: asked, doc: fake, submit: submit, root: root, text: textOf(root), nodes: all(root), pills: all(root).filter((n) => classes(n).includes('kj-pill')).map((n) => textOf(n)), find: (sel) => root.querySelector(sel) }
   }
 
   const shown = await run(make({}))
@@ -213,6 +230,44 @@ try {
   assert.match(pageFileName(verifiable), /^journal-ZXCHATID-2026-11-02\.html$/)
   assert.equal(pageFileName(plain), 'journal-2026-11-02.html')
   ok('the file is named journal-<day>.html, with the chat number only when it is shared')
+
+  // ── the page a server serves at a link ───────────────────────────────────────────────
+  const served = journalViewerHtml()
+  const again = journalViewerHtml()
+  assert.equal(served.html, again.html, 'the same bytes every time: the server pins them')
+  assert.ok(served.policy.includes("connect-src 'self'") && served.policy.includes('img-src data:') && served.policy.includes("default-src 'none'"))
+  assert.equal(/unsafe-inline|unsafe-eval|\*/.test(served.policy), false)
+  assert.ok(served.policy.includes("script-src 'sha256-" + createHash('sha256').update(viewerScript(), 'utf8').digest('base64')) && served.html.includes('<script>' + viewerScript() + '</script>'))
+  assert.equal(served.html.includes('id="kj-doc"'), false, 'no document inside a page that is served for every link')
+  assert.equal(served.html.split('<script').length - 1, 2, 'the words of the lock screen, and the viewer')
+  assert.equal(journalViewerHtml({ docPath: '/s/abc.json' }).html.includes('data-doc="/s/abc.json"'), true)
+  const mine = (name) => new RegExp('^(?:async\\s+)?(?:function\\*?|class|const|let|var)\\s+' + name + '\\b', 'mu')
+  for (const name of ['SealError', 'openSealed', 'toB64u', 'fromB64u', 'isSealed']) assert.equal((viewerScript().match(mine(name)) || []).length + (viewerScript().match(new RegExp('^\\s+function\\s+' + name + '\\b', 'mu')) || []).length, 1, name + ' is declared once in the page script')
+  ok('the served page is the same bytes every time, holds no document, allows one request to its own site and data images, and declares the seal code once')
+
+  const doc = make({})
+  const envelope = await sealText(JSON.stringify(doc), 'correct horse battery', { iterations: 100000 })
+  const link = await run(null, { served: (url) => (url === '/s/abc.json' ? JSON.stringify(doc) : null) })
+  assert.deepEqual(link.asked.map((a) => a[0]), ['/s/abc.json'], 'it asks for the address of the page plus .json')
+  assert.equal(link.asked[0][1].credentials, 'omit')
+  assert.ok(link.text.includes('Story of this chat') && link.text.includes('Recruiter research'), 'an open link draws the Journal')
+  assert.equal(link.doc.documentElement.lang, 'en')
+  const lock = await run(null, { served: () => JSON.stringify(envelope) })
+  assert.ok(lock.text.includes('Protected journal'), 'the lock screen')
+  assert.equal(lock.text.includes('Story of this chat'), false, 'nothing of the Journal before the password')
+  assert.equal(lock.text.includes('Recruiter research') || lock.text.includes('Gmail'), false)
+  const wrong = await lock.submit('not the password at all')
+  assert.ok(wrong.text.includes('Wrong password'), 'a wrong password asks again')
+  assert.equal(wrong.text.includes('Story of this chat'), false)
+  const right = await (await run(null, { served: () => JSON.stringify(envelope) })).submit('correct horse battery')
+  assert.ok(right.text.includes('Story of this chat') && right.text.includes('Recruiter research'), 'the right password opens it')
+  const lockFr = await run(null, { served: () => JSON.stringify(envelope), language: 'fr-FR' })
+  assert.ok(lockFr.text.includes('Journal protégé'), 'the lock screen follows the browser language')
+  const gone = await run(null, { served: () => null })
+  assert.ok(gone.text.includes('could not be loaded') && gone.text.includes('removed') && gone.text.includes('Story of this chat') === false, 'a link that is gone says so')
+  const alien = await run(null, { served: () => JSON.stringify({ kind: 'kybernos-snapshot', version: 1, widgets: [] }) })
+  assert.ok(alien.text.includes('cannot be shown'), 'a document this page does not know is not drawn')
+  ok('a link: an open one draws, a protected one shows only a lock until the right password, a wrong one asks again, a gone one and a foreign document say so, French when the browser is')
 } finally {
   rmSync(dir, { recursive: true, force: true })
 }
