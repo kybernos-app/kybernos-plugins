@@ -94,7 +94,7 @@ Read only, no origin guard needed (no write, nothing of the person's).
 
 ## What the page shows
 
-- Every type is shown, in one even grid. A type whose bundle this install does not load carries a small tag, « Not enabled »; **Game**, which no bundle makes yet, carries « Soon ». **Audio** has real examples and needs no bundle to look at them, so it carries no tag. Their examples still open and *Use this request* still fills the composer.
+- Every type is shown, in one even grid of at most 8 cards to a row (16 types: 8+8), the cards shrinking with the room. A type whose bundle this install does not load carries a small tag, « Not enabled ». **Audio** and **Game** have real examples and need no bundle to look at them, so they carry no tag. Their examples still open and *Use this request* still fills the composer.
 - An example whose `kind` is `template` is shown only when its `kit` is one the Apps seam lists (`window.__KB_TEMPLATES__.list()`); `kind: "start"` is always
   shown. Ideas the product ships no kit for (restaurant, fitness, salon) are therefore never offered dead.
 - *Use this request* only fills the composer, like a type does. For an App template, *Use template* creates the app through the Apps seam

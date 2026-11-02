@@ -25,20 +25,18 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
 {
   const J = (v) => JSON.parse(JSON.stringify(v))   // the arrays come from another realm
   const all = api.KB_NC_TEMPLATES
-  assert.equal(all.length, 16, 'the 16 types of the shelf (the one with no bundle yet, game, is hidden until one exists)')
+  assert.equal(all.length, 16, 'the 16 types of the shelf')
   assert.deepEqual(J(api.KB_NC_GROUPS), ['docs', 'media', 'apps', 'auto'])
   assert.equal(new Set(all.map((t) => t.id)).size, all.length, 'ids are unique')
   for (const t of all) assert.ok(J(api.KB_NC_GROUPS).indexOf(t.group) >= 0, t.id + ' is in a known chapter')
   const chapters = (boot) => J(api.kbNcChapters(boot).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
-  const core = ['docs:doc/sheet', 'media:image/audio', 'apps:website', 'auto:automation/team/skill/plugin']   // Audio is core: its examples are real and open, no bundle is needed to look at them
+  const core = ['docs:doc/sheet', 'media:image/audio', 'apps:game/website', 'auto:automation/team/skill/plugin']   // Audio and Game are core: their examples are real and open, no bundle is needed to look at them
   assert.deepEqual(chapters([]), core, 'with no satellite only the core templates, the chapters in order')
   assert.deepEqual(chapters(null), core, 'no boot list reads as none')
   const shipped = ['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur', '@local/kybernos-db']
   assert.deepEqual(chapters(shipped),
-    ['docs:slides/doc/sheet/dashboard', 'media:image/video/audio/model3d', 'apps:app/website/miniapp', 'auto:automation/team/skill/plugin'], 'every satellite the product ships: 15 types (Game waits for a bundle that makes it)')
-  assert.deepEqual(chapters(shipped.concat(['@local/kybernos-games'])),
-    ['docs:slides/doc/sheet/dashboard', 'media:image/video/audio/model3d', 'apps:app/game/website/miniapp', 'auto:automation/team/skill/plugin'], 'the day a bundle makes games, the shelf already has the entry: all 16')
-  assert.ok(!chapters(shipped).join('|').includes('game'), 'no game type is offered without its bundle')
+    ['docs:slides/doc/sheet/dashboard', 'media:image/video/audio/model3d', 'apps:app/game/website/miniapp', 'auto:automation/team/skill/plugin'], 'every satellite the product ships: all 16 types')
+  assert.ok(chapters([]).join('|').includes('game'), 'Game needs no bundle: its examples are text prompts')
   assert.ok(!chapters([]).join('|').includes('app/') && !chapters([]).join('|').includes(':app'), 'the App type needs the Tables bundle (it is off by default)')
   assert.ok(!api.kbNcChapters(['@local/kybernos-dashboards']).some((g) => g.templates.some((t) => t.id === 'slides')), 'a template of another bundle stays hidden')
   assert.ok(api.kbNcTemplates(api.KB_NC_TEMPLATES, ['@local/kybernos-modeleur']).some((t) => t.id === 'model3d'))
@@ -48,22 +46,23 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   const first = (boot, want) => J(api.kbNcChapters(boot, want).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
   assert.deepEqual(first([], undefined), core, 'no wish: the order of every day')
   assert.deepEqual(first([], []), core)
-  assert.deepEqual(first([], ['automation', 'sheet']), ['auto:automation/team/skill/plugin', 'docs:sheet/doc', 'media:image/audio', 'apps:website'], 'the chapter of the most wanted comes first, and so do the wanted inside a chapter')
-  assert.deepEqual(first(every, ['website', 'plugin', 'automation']), ['apps:website/miniapp', 'auto:plugin/automation/team/skill', 'docs:slides/doc/sheet/dashboard', 'media:image/video/audio/model3d'])
+  assert.deepEqual(first([], ['automation', 'sheet']), ['auto:automation/team/skill/plugin', 'docs:sheet/doc', 'media:image/audio', 'apps:game/website'], 'the chapter of the most wanted comes first, and so do the wanted inside a chapter')
+  assert.deepEqual(first(every, ['website', 'plugin', 'automation']), ['apps:website/game/miniapp', 'auto:plugin/automation/team/skill', 'docs:slides/doc/sheet/dashboard', 'media:image/video/audio/model3d'])
   assert.deepEqual(first([], ['slides', 'dashboard', 'nope']), core, 'a template this install cannot serve, or that does not exist, changes nothing')
-  assert.deepEqual(first(['@local/kybernos-slides'], ['slides']), ['docs:slides/doc/sheet', 'media:image/audio', 'apps:website', 'auto:automation/team/skill/plugin'])
-  assert.equal(J(api.kbNcChapters(every, ['doc'])).flatMap((g) => g.templates).length, 14, 'the same fourteen, reordered')   // 16 types less Game and App, whose bundles are not in this boot list
+  assert.deepEqual(first(['@local/kybernos-slides'], ['slides']), ['docs:slides/doc/sheet', 'media:image/audio', 'apps:game/website', 'auto:automation/team/skill/plugin'])
+  assert.equal(J(api.kbNcChapters(every, ['doc'])).flatMap((g) => g.templates).length, 15, 'the same fifteen, reordered')   // 16 types less App, whose bundle is not in this boot list
   ok('a field of work puts its templates first (the home page highlights what is its own)')
 }
 {
-  // The shelf shows the whole range: what the install cannot serve stays in, marked `off` (`soon` when no bundle makes it yet).
+  // The shelf shows the whole range: what the install cannot serve stays in, marked `off`.
   const J = (v) => JSON.parse(JSON.stringify(v))
   const all = api.kbNcChapters(['@local/kybernos-dashboards'], undefined, true).flatMap((g) => g.templates)
   assert.equal(all.length, 16, 'every type is in the shelf')
-  assert.deepEqual(J(all.filter((t) => t.off === true).map((t) => t.id + (t.soon === true ? '*' : ''))).sort(), J(['slides', 'video', 'model3d', 'app', 'game*', 'miniapp']).sort(), 'only the types this install cannot serve are off; game is soon, audio is not tagged')
+  assert.deepEqual(J(all.filter((t) => t.off === true).map((t) => t.id)).sort(), J(['slides', 'video', 'model3d', 'app', 'miniapp']).sort(), 'only the types this install cannot serve are off; game and audio are not tagged')
+  assert.ok(all.every((t) => t.soon === undefined), 'no type is « soon » any more')
   assert.ok(all.filter((t) => t.id === 'doc' || t.id === 'dashboard').every((t) => t.off === undefined), 'a served type carries no mark')
-  assert.equal(api.kbNcChapters(['@local/kybernos-dashboards']).flatMap((g) => g.templates).length, 10, 'without the flag the others stay hidden (the nine core types and Dashboards)')
-  assert.deepEqual(J([0, 1, 5, 6, 9, 10, 12, 13, 16].map(api.kbNcCols)), J([1, 1, 5, 3, 5, 5, 4, 5, 4]), 'rows come out even: 5 at most to a row, then the fewest columns that hold them')
+  assert.equal(api.kbNcChapters(['@local/kybernos-dashboards']).flatMap((g) => g.templates).length, 11, 'without the flag the others stay hidden (the ten core types and Dashboards)')
+  assert.deepEqual(J([0, 1, 5, 6, 9, 10, 12, 13, 16].map(api.kbNcCols)), J([1, 1, 5, 6, 5, 5, 6, 7, 8]), 'rows come out even: 8 at most to a row, then the fewest columns that hold them (16 -> 8+8)')
   ok('the shelf shows every type and marks the ones this install cannot make; the type cards form an even grid')
 }
 
