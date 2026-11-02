@@ -193,6 +193,36 @@ assert.deepEqual(said.map((m) => m.automation), [false, false, true])
 assert.equal(ctx.chat.messages, 3)
 ok('the runtime context, the time sample, a finished job and a crew report are not the person\'s messages; a scheduled reminder is an automation tick')
 
+// ── who decided: the host's record is joined to the handovers, never invented ────────────
+const joinedEvents = [
+  ev('approval/asked', 0, { id: 'a1', toolName: 'x', callId: 'k1', reason: 'r' }),
+  ev('approval/decided', 2000, { id: 'a1', outcome: 'allowed-once' }),
+  ev('approval/asked', 3000, { id: 'a2', toolName: 'y', callId: 'k2', reason: 'r' }),
+  ev('approval/decided', 4000, { id: 'a2', outcome: 'allowed-once', by: 'Engine Name' }),
+  ev('approval/asked', 5000, { id: 'a3', toolName: 'z', callId: 'k3', reason: 'r' }),
+  call(6000, 'q1', 'ask_user_question', { questions: [{ question: 'Which one?', options: [{ label: 'A' }] }] }),
+  result(7000, 'q1', 'A'),
+  call(8000, 'q2', 'ask_user_question', { questions: [{ question: 'And now?', options: [{ label: 'B' }] }] }),
+  result(9000, 'q2', 'B'),
+]
+const decisionsIn = {
+  'a:a1': { by: 'Amira Benali', device: 'MacBook Pro', at: T0 + 2000 },
+  'a:a2': { by: 'Someone Else', device: 'Mac mini', at: T0 + 4000 },
+  'a:a3': { by: 'Early Bird', device: 'iMac', at: T0 + 5500 },
+  'q:q1': { by: 'Amira Benali', device: 'MacBook Pro', at: T0 + 7000 },
+}
+const joined = deriveStory(joinedEvents, { sessionId: 's', runs: [], decisions: decisionsIn }).moments.filter((m) => m.kind === 'handover')
+assert.deepEqual([joined[0].approvers[0].who, joined[0].approvers[0].device], ['Amira Benali', 'MacBook Pro'])
+assert.deepEqual([joined[1].approvers[0].who, joined[1].approvers[0].device], ['Engine Name', 'Mac mini'])
+assert.deepEqual(joined[2].approvers, [])
+assert.deepEqual([joined[3].approvers[0].who, joined[3].approvers[0].device], ['Amira Benali', 'MacBook Pro'])
+assert.deepEqual([joined[4].approvers[0].who, joined[4].approvers[0].device], [null, null])
+const unjoined = deriveStory(joinedEvents, { sessionId: 's', runs: [] }).moments.filter((m) => m.kind === 'handover')
+assert.deepEqual(unjoined.map((m) => m.approvers.length === 0 ? null : m.approvers[0].who), [null, 'Engine Name', null, null, null])
+const hostile = deriveStory(joinedEvents, { sessionId: 's', runs: [], decisions: { 'a:a1': 'nope', 'q:q1': { by: 42, device: ['x'] } } }).moments.filter((m) => m.kind === 'handover')
+assert.deepEqual([hostile[0].approvers[0].who, hostile[3].approvers[0].who], [null, null])
+ok('a recorded decision names who approved and on which computer; a name the engine gave wins; a waiting handover and a decision never recorded stay unnamed; a malformed record is ignored')
+
 // ── size: long texts are cut, a huge chat is capped ─────────────────────────────────────
 const big = deriveStory([call(0, 'b', 'GMAIL_SEND_EMAIL', { body: 'x'.repeat(5000) }), result(1, 'b', 'y'.repeat(5000))], { sessionId: 's', runs: [] })
 assert.ok(big.moments[0].input.length <= 800 && big.moments[0].output.length <= 800)

@@ -6133,6 +6133,31 @@ const publishCloudSeam = (target = globalThis) => {
   try { target[Symbol.for('kybernos.cloud')] = Object.freeze({ version: 1, call: cloudSeamCall, workspace: cloudSeamWorkspace }) } catch (e) { /* a frozen global: the other bundles degrade */ }
 }
 
+// ── The person seam: who is signed in on this computer (the chat Journal records who decided) ──────────────────────────────────────────────────────
+// `globalThis[Symbol.for('kybernos.person')].read()` answers `{ name, device }`, or null when nobody is signed in. `name` is how the account knows the person (the name they gave, else the
+// address they signed up with); `device` is the label they gave THIS computer when they paired it. Never the id, the plan or the token. Both are flattened and cut: they go into a record
+// that is read back later, and one day onto a page.
+const PERSON_TEXT_MAX = 80
+const personText = (value) => {
+  if (typeof value !== 'string') return null
+  const flat = value.replace(/[\p{Cc}\p{Zl}\p{Zp}]+/gu, ' ').replace(/\s+/gu, ' ').trim()
+  return flat === '' ? null : flat.slice(0, PERSON_TEXT_MAX)
+}
+const personSeamRead = () => {
+  try {
+    const state = readState()
+    if (!isConnected(state)) return null
+    const user = state.user !== null && typeof state.user === 'object' ? state.user : {}
+    const name = personText(user.name) !== null ? personText(user.name) : personText(user.email)
+    const device = personText(state.device_label)
+    return name === null && device === null ? null : { name: name, device: device }
+  } catch (e) { return null }
+}
+const PERSON_SEAM = Symbol.for('kybernos.person')
+const publishPersonSeam = (target = globalThis) => {
+  try { target[PERSON_SEAM] = Object.freeze({ version: 1, read: personSeamRead }) } catch (e) { /* a frozen global: the Journal records no name */ }
+}
+
 // ── The janitor seam: bounded, dirty-aware cleaning of the account memories ───────────────────────────────────────────
 // kybernos-maintenance owns ONE host-level scheduler (janitor.mjs) and reaches this store through
 // globalThis[Symbol.for('kybernos.janitor.memory')], a frozen { version: 1, enabled(), revision(), scanAndClean() }.
@@ -6345,6 +6370,7 @@ export function apply(ctx) {
   hostCtx = ctx
   try { publishCloudSeam() } catch (e) { console.error('[kybernos-cloud] seam: ' + String((e && e.message) || e)) }
   try { publishJanitorSeam() } catch (e) { console.error('[kybernos-cloud] janitor seam: ' + String((e && e.message) || e)) }
+  try { publishPersonSeam() } catch (e) { console.error('[kybernos-cloud] person seam: ' + String((e && e.message) || e)) }
   // The other bundles ask here whether the active space is a team (kybernos-memory cuts its lessons there).
   try { publishSpaceSeam(() => spaceOf(readStateForSpace())) } catch (e) { console.error('[kybernos-cloud] space seam: ' + String((e && e.message) || e)) }
   // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
@@ -6373,7 +6399,7 @@ export function apply(ctx) {
 // Exported for the out-of-DSH test (scripts/test-cloud-host.mjs): no other
 // public surface is promised.
 export {
-  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES, publishJanitorSeam, JANITOR_MEMORY_SEAM,
+  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES, publishJanitorSeam, JANITOR_MEMORY_SEAM, publishPersonSeam, PERSON_SEAM, personSeamRead,
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
   profileRefreshTick, PROFILE_REFRESH_TUNING, ROUTE_REPAIR_TUNING, sameOrigin, hostAllowed,

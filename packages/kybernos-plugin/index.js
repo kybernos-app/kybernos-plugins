@@ -24,6 +24,7 @@ import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { deriveStory } from './journal-story.mjs'
+import { createRecorder, readDecisions } from './journal-decisions.mjs'
 import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
@@ -5152,6 +5153,23 @@ function boot(ctx) {
       out.runs = runs
       return out
     }
+    // ── who decided, and on which computer (journal-decisions.mjs) ────
+    // The engine's events do not name the person who approved or answered, so at that moment the host writes one line naming the person signed in (the person seam of the
+    // cloud bundle, read at call time: the bundles do not import each other) and the computer. Signed out, nothing is recorded and the decision stays unnamed.
+    const decisionsDir = () => nodePathJoin(dshHomeSync(), 'kybernos', 'journal-decisions')
+    try {
+      if (typeof ctx.on === 'function') {
+        const recorder = createRecorder({
+          dir: decisionsDir(),
+          who: () => {
+            const seam = globalThis[Symbol.for('kybernos.person')]
+            const p = seam !== undefined && seam !== null && typeof seam.read === 'function' ? seam.read() : null
+            return p !== null && p !== undefined ? { by: p.name, device: p.device } : { by: null, device: null }
+          },
+        })
+        ctx.on('session/event', (session, event) => { try { recorder.ingest(session !== null && session !== undefined ? session.id : null, event) } catch (e) { /* never break a session */ } })
+      }
+    } catch (e) { try { console.log('[kybers] journal decisions not recorded: ' + errText(e)) } catch (e2) { /* console indisponible */ } }
     // ── GET /kybernos/journal: the story of one chat (journal-story.mjs) ────
     // What the Journal tab shows first: the person's messages, the crews, the connectors, the handovers, the deliverables, the models and what they cost,
     // derived from the chat's own durable events. The crews come from `readRuns` (the same derivation the old sections use, with the real route facts of
@@ -5197,7 +5215,9 @@ function boot(ctx) {
       } catch (e) { out.notes.push('runs: ' + errText(e)) }
       try { await refreshPrices() } catch (e) { /* tarifs indisponibles: coûts laissés nuls */ }
       const costOf = (provider, model, usage) => costEurOfFact({ provider: provider, model: model, usage: usage })
-      try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, costOf: costOf }) } catch (e) {
+      let decisions = {}
+      try { decisions = readDecisions(decisionsDir(), sessionId) } catch (e) { out.notes.push('decisions: ' + errText(e)) }
+      try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, costOf: costOf, decisions: decisions }) } catch (e) {
         out.ok = false
         out.notes.push('deriveStory: ' + errText(e))
       }

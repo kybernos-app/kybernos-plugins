@@ -145,6 +145,9 @@ const unionMs = (spans) => {
   return total
 }
 
+/** The key a recorded decision is joined on: the id of a permission, the call id of a question. */
+export const decisionKey = (kind, id) => (kind === 'permission' ? 'a:' : 'q:') + id
+
 export function deriveStory(events, opts) {
   const o = isObj(opts) === true ? opts : {}
   const list = Array.isArray(events) === true ? events : []
@@ -300,7 +303,7 @@ export function deriveStory(events, opts) {
       closeWork()
       const id = str(data.id)
       const m = push({
-        kind: 'handover', at: at, seq: seq, source: 'permission', tool: str(data.toolName), callId: str(data.callId), text: clip(str(data.reason), 500),
+        kind: 'handover', at: at, seq: seq, source: 'permission', tool: str(data.toolName), callId: str(data.callId), approvalId: id, text: clip(str(data.reason), 500),
         options: [], outcome: 'waiting', decidedAt: null, waitMs: null, answers: null,
         approvers: [],
       })
@@ -420,6 +423,19 @@ export function deriveStory(events, opts) {
     if (items.length > 0) push({ kind: 'output', at: pc.at, seq: pc.seq, callId: stray[i], files: items.map((d) => ({ path: d.path, name: d.name, description: d.description })) })
   }
   moments.sort((a, b) => (a.seq === null ? 0 : a.seq) - (b.seq === null ? 0 : b.seq))
+
+  // Who decided, and on which computer: the engine's events do not say, so the host's record (journal-decisions.mjs) is joined here. A name the engine gave is kept.
+  const decisions = isObj(o.decisions) === true ? o.decisions : {}
+  for (let i = 0; i < moments.length; i += 1) {
+    const m = moments[i]
+    if (m.kind !== 'handover' || m.approvers.length === 0) continue
+    const id = m.source === 'permission' ? m.approvalId : m.callId
+    const d = id !== null && id !== undefined ? decisions[decisionKey(m.source === 'permission' ? 'permission' : 'question', id)] : undefined
+    if (isObj(d) === false) continue
+    const a = m.approvers[0]
+    if (a.who === null) a.who = str(d.by)
+    if (a.device === null) a.device = str(d.device)
+  }
 
   // A connector call that failed and was later repeated with success is « recovered », not an open error.
   for (let i = 0; i < moments.length; i += 1) {
