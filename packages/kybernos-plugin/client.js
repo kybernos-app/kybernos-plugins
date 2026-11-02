@@ -4825,6 +4825,64 @@ const KB_FR_EN = {
   'Rétabli': 'Recovered',
   'tokens': 'tokens',
   'Ordinateur': 'Computer',
+  'Partager': 'Share',
+  'Partager ce Journal': 'Share this Journal',
+  'Choisis ce que contient la page, puis enregistre-la en fichier ou crée un lien.': 'Choose what the page holds, then save it as a file or make a link.',
+  'En fichier': 'As a file',
+  'En lien': 'As a link',
+  'Un lien sur ton compte Kybernos. Quiconque l’a peut lire cette page.': 'A link on your Kybernos account. Whoever has it can read this page.',
+  'Recherche de ton lien…': 'Looking for your link…',
+  'Connecte-toi à Kybernos pour avoir un lien.': 'Sign in to Kybernos to get a link.',
+  'Les liens ne sont pas encore disponibles sur ton serveur Kybernos. Tu peux toujours enregistrer la page en fichier.': 'Links are not available on your Kybernos server yet. You can still save the page as a file.',
+  'Les liens ne font pas partie de ton offre.': 'Links are not part of your plan.',
+  'Les liens ne sont pas disponibles pour le moment.': 'Links are not available right now.',
+  'Protéger par un mot de passe': 'Protect with a password',
+  'Recommandé. Le serveur ne garde alors qu’une copie verrouillée, et les lecteurs ont besoin du mot de passe.': 'Recommended. The server then keeps only a locked copy, and readers need the password.',
+  'Sans mot de passe, quiconque a le lien peut le lire.': 'Without a password, anyone who has the link can read it.',
+  'Créer le lien': 'Create the link',
+  'Création du lien…': 'Making the link…',
+  'Copier le lien': 'Copy link',
+  'Copier le mot de passe': 'Copy password',
+  'Mot de passe': 'Password',
+  'Envoie le mot de passe séparément du lien.': 'Send the password separately from the link.',
+  'Valable jusqu’au': 'Valid until',
+  'Mettre le lien à jour': 'Update the link',
+  'Mise à jour…': 'Updating…',
+  'Même lien et même mot de passe, avec le Journal tel qu’il est maintenant et les choix ci-dessus.': 'Same link and same password, with the Journal as it is now and the choices above.',
+  'Supprimer le lien': 'Delete the link',
+  'Suppression…': 'Deleting…',
+  'Le lien': 'The link',
+  'Ce lien est terminé. Crées-en un nouveau.': 'This link has ended. Make a new one.',
+  'Créer un nouveau lien': 'Make a new link',
+  'Cette page est trop grosse pour un lien. Désactive quelques choix ci-dessus, ou enregistre-la en fichier.': 'This page is too big for a link. Turn off some choices above, or save it as a file.',
+  'Tu as atteint le nombre de liens permis par ton compte. Supprime-en un d’abord.': 'You have reached the number of links your account allows. Delete one first.',
+  'Le serveur n’a pas répondu. Réessaie dans un instant.': 'The server did not answer. Try again in a moment.',
+  'Trop de demandes. Réessaie dans un instant.': 'Too many requests. Try again in a moment.',
+  'Le lien n’a pas pu être supprimé.': 'The link could not be deleted.',
+  'Le lien n’a pas pu être mis à jour.': 'The link could not be updated.',
+  'Le lien n’a pas pu être créé.': 'The link could not be made.',
+  'Un seul fichier à garder ou à envoyer. Rien n’est envoyé en ligne : il s’ouvre hors ligne dans n’importe quel navigateur.': 'One file to keep or send. Nothing is uploaded: it opens offline in any browser.',
+  'Décisions': 'Decisions',
+  'Qui a été sollicité et comment ça s’est terminé (répondu, autorisé, refusé), avec les sceaux.': 'Who was asked and how it ended (answered, allowed, declined), with the seals.',
+  'Durées et erreurs': 'Durations and errors',
+  'Combien de temps les choses ont pris et ce qui a échoué.': 'How long things took and what failed.',
+  'Livrables et liens': 'Deliverables and links',
+  'Les fichiers livrés (leur nom seulement, jamais leur chemin) et les liens.': 'The files delivered (names only, never paths) and the links.',
+  'Messages et réponses': 'Messages and replies',
+  'Les mots de la personne, les réponses et les questions posées.': 'The words of the person, the replies and the questions asked.',
+  'Noms de ceux qui ont décidé': 'Names of who decided',
+  'Le nom du compte qui a répondu.': 'The name of the account that answered.',
+  'Ordinateurs': 'Computers',
+  'Le nom de l’ordinateur où chaque décision a été prise.': 'The name of the computer where each decision was made.',
+  'Numéro du chat': 'Chat number',
+  'L’identifiant de ce chat.': 'The identifier of this chat.',
+  'Laisser les lecteurs vérifier les sceaux': 'Let readers check the seals',
+  'Ajoute la clé et les faits signés pour que la page vérifie chaque sceau elle-même. Montre les noms, les ordinateurs et le numéro du chat, car le sceau les couvre.': 'Adds the key and the signed facts so the page checks each seal itself. Shows names, computers and the chat number, because the seal covers them.',
+  'Les entrées et sorties des outils, les chemins de fichiers et les prompts du moteur ne sont jamais inclus.': 'Tool inputs and outputs, file paths and prompts of the engine are never included.',
+  'Enregistrer la page': 'Save the page',
+  'Fabrication de la page…': 'Making the page…',
+  'Enregistré': 'Saved',
+  'La page n’a pas pu être faite : redémarre Kybernos une fois.': 'The page could not be made: restart Kybernos once.',
   'Scellé': 'Sealed',
   'Scellé sur cet ordinateur : le journal et la trace de cette décision n’ont pas changé depuis. Un sceau simple, pas une signature électronique qualifiée.': 'Sealed on this computer: the log and the record of this decision have not changed since. A simple seal, not a qualified electronic signature.',
   'Sceau brisé': 'Seal broken',
@@ -40798,13 +40856,152 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             G.dropped > 0 ? El('div', { className: 'wvs-muted' }, kbe('The flow shows the first') + ' ' + WVS_MAX_NODES + '. ' + G.dropped + ' ' + kbe('more are in the Story view.')) : null)
         }
 
+        // What a shared page may hold (journal-page.mjs resolves the same switches): the person's words, who decided and the computers stay out unless asked.
+        const WVS_INC0 = { approvers: true, timing: true, deliverables: true, prompts: false, names: false, computers: false, chatId: false, verify: false }
+        const wvsSwitches = () => [
+          ['approvers', kbe('Decisions'), kbe('Who was asked and how it ended (answered, allowed, declined), with the seals.')],
+          ['timing', kbe('Durations and errors'), kbe('How long things took and what failed.')],
+          ['deliverables', kbe('Deliverables and links'), kbe('The files delivered (names only, never paths) and the links.')],
+          ['prompts', kbe('Messages and replies'), kbe('The words of the person, the replies and the questions asked.')],
+          ['names', kbe('Names of who decided'), kbe('The name of the account that answered.')],
+          ['computers', kbe('Computers'), kbe('The name of the computer where each decision was made.')],
+          ['chatId', kbe('Chat number'), kbe('The identifier of this chat.')],
+          ['verify', kbe('Let readers check the seals'), kbe('Adds the key and the signed facts so the page checks each seal itself. Shows names, computers and the chat number, because the seal covers them.')],
+        ]
+        function WVSShare(props) {
+          const ui = props.ui
+          const inc = ui.inc
+          const flip = (k) => {
+            const next = Object.assign({}, inc, { [k]: !inc[k] })
+            // « Let readers check the seals » needs what the seal covers; turning those off turns it off.
+            if (next.verify === true && (k === 'verify')) { next.approvers = true; next.names = true; next.computers = true; next.chatId = true }
+            if (k !== 'verify' && next.verify === true && (next.names !== true || next.computers !== true || next.chatId !== true || next.approvers !== true)) next.verify = false
+            props.set({ inc: next, shareState: 'idle' })
+          }
+          const save = () => {
+            props.set({ shareState: 'busy', shareMsg: '' })
+            const logoMap = {}
+            props.story.connectors.forEach((c) => { const svg = props.logos !== null && props.logos !== undefined ? props.logos[kbTplSlug(c.name)] : undefined; if (typeof svg === 'string') logoMap[c.id] = svg })
+            fetch('/kybernos/journal/page', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: props.sessionId, include: inc, lang: String(kbLocaleTag()).slice(0, 2) === 'fr' ? 'fr' : 'en', logos: logoMap }) })
+              .then((r) => r.json())
+              .then((j) => {
+                if (j === null || j === undefined || j.ok !== true || typeof j.html !== 'string') throw new Error('page')
+                const url = URL.createObjectURL(new Blob([j.html], { type: 'text/html' }))
+                const a = document.createElement('a')
+                a.href = url
+                a.download = j.name
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                setTimeout(() => URL.revokeObjectURL(url), 4000)
+                props.set({ shareState: 'done', shareMsg: j.name })
+              })
+              .catch(() => props.set({ shareState: 'error', shareMsg: '' }))
+          }
+          return El('section', { className: 'wv2-panel wvs-share', 'data-kb': 'wvs-share' },
+            El('div', { className: 'wvs-feedh' }, El('h3', { className: 'wv2-h3' }, kbe('Share this Journal')), El('span', { className: 'wv2-hint' }, kbe('Choose what the page holds, then save it as a file or make a link.'))),
+            El('ul', { className: 'wvs-sws' }, wvsSwitches().map((w) => El('li', { key: w[0] },
+              El('label', { className: 'wvs-sw' },
+                El('input', { type: 'checkbox', checked: inc[w[0]] === true, onChange: () => flip(w[0]), 'data-kb': 'wvs-sw-' + w[0] }),
+                El('span', { className: 'wvs-swt' }, El('b', null, w[1]), El('span', { className: 'wvs-muted' }, w[2])))))),
+            El('p', { className: 'wvs-muted' }, kbe('Tool inputs and outputs, file paths and prompts of the engine are never included.')),
+            El('div', { className: 'wvs-part' },
+              El('div', { className: 'wvs-feedh' }, El('h4', { className: 'wvs-h4' }, kbe('As a file')), El('span', { className: 'wv2-hint' }, kbe('One file to keep or send. Nothing is uploaded: it opens offline in any browser.'))),
+              El('div', { className: 'wvs-sharego' },
+                El('button', { type: 'button', className: 'wv2-ghost wvs-primary', disabled: ui.shareState === 'busy', onClick: save, 'data-kb': 'wvs-share-save' }, Icon('download', 14), ' ', ui.shareState === 'busy' ? kbe('Making the page…') : kbe('Save the page')),
+                ui.shareState === 'done' ? El('span', { className: 'wvs-ok', 'data-kb': 'wvs-share-done' }, Icon('check', 12), ' ', kbe('Saved') + ' · ' + ui.shareMsg) : null,
+                ui.shareState === 'error' ? El('span', { className: 'wvs-bad', 'data-kb': 'wvs-share-error' }, kbe('The page could not be made: restart Kybernos once.')) : null)),
+            El(WVSLink, { story: props.story, inc: inc, logos: props.logos, sessionId: props.sessionId }))
+        }
+
+        // The Journal as a link on the Kybernos account (journal-link.mjs behind /kybernos/journal/link): what the account allows, the link this chat already has, and the three things to do with it.
+        const wvsLinkError = (code, action) => {
+          if (code === 'too_big') return kbe('This page is too big for a link. Turn off some choices above, or save it as a file.')
+          if (code === 'snapshot_limit') return kbe('You have reached the number of links your account allows. Delete one first.')
+          if (code === 'network') return kbe('The server did not answer. Try again in a moment.')
+          if (code === 'rate_limited' || code === 'busy') return kbe('Too many requests. Try again in a moment.')
+          if (code === 'gone') return kbe('This link has ended. Make a new one.')
+          return action === 'remove' ? kbe('The link could not be deleted.') : (action === 'update' ? kbe('The link could not be updated.') : kbe('The link could not be made.'))
+        }
+        const wvsLinkWhy = (reason) => {
+          if (reason === 'no_account' || reason === 'not_connected') return kbe('Sign in to Kybernos to get a link.')
+          if (reason === 'not_on_this_server') return kbe('Links are not available on your Kybernos server yet. You can still save the page as a file.')
+          if (reason === 'snapshots_not_in_plan') return kbe('Links are not part of your plan.')
+          return kbe('Links are not available right now.')
+        }
+        function WVSLink(props) {
+          const sPair = React.useState({ phase: 'loading', av: false, reason: null, link: null, busy: null, error: null, protect: true, copied: null })
+          const st = sPair[0]
+          const patch = (p) => sPair[1]((u) => Object.assign({}, u, p))
+          const call = (payload) => fetch('/kybernos/journal/link', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign({ sessionId: props.sessionId }, payload)) }).then((r) => r.json())
+          const refresh = () => call({ action: 'state' })
+            .then((j) => { if (j === null || j === undefined || j.ok !== true) throw new Error('state'); patch({ phase: 'ready', av: j.available === true, reason: j.reason || null, link: j.link || null }) })
+            .catch(() => patch({ phase: 'ready', av: false, reason: 'unavailable' }))
+          React.useEffect(() => { refresh() }, [props.sessionId])
+          const publish = (action, fresh) => {
+            patch({ busy: action, error: null })
+            const logoMap = {}
+            props.story.connectors.forEach((c) => { const svg = props.logos !== null && props.logos !== undefined ? props.logos[kbTplSlug(c.name)] : undefined; if (typeof svg === 'string') logoMap[c.id] = svg })
+            const protect = st.link !== null && fresh !== true ? st.link.protected === true : st.protect
+            call({ action: 'publish', include: props.inc, lang: String(kbLocaleTag()).slice(0, 2) === 'fr' ? 'fr' : 'en', logos: logoMap, protect: protect, fresh: fresh === true })
+              .then((j) => {
+                if (j === null || j === undefined || j.ok !== true) { patch({ busy: null, error: [j && typeof j.error === 'string' ? j.error : 'internal', action] }); if (j && j.error === 'gone') refresh(); return }
+                patch({ busy: null, error: null, link: j.link })
+              })
+              .catch(() => patch({ busy: null, error: ['network', action] }))
+          }
+          const remove = () => {
+            patch({ busy: 'remove', error: null })
+            call({ action: 'remove' })
+              .then((j) => { if (j === null || j === undefined || j.ok !== true) { patch({ busy: null, error: [j && typeof j.error === 'string' ? j.error : 'internal', 'remove'] }); return } patch({ busy: null, link: null }) })
+              .catch(() => patch({ busy: null, error: ['network', 'remove'] }))
+          }
+          const copy = (key, text) => {
+            try { navigator.clipboard.writeText(text).then(() => { patch({ copied: key }); setTimeout(() => patch({ copied: null }), 2000) }, () => {}) } catch (e) { /* no clipboard: the text is selectable */ }
+          }
+          const L = st.link
+          const until = L !== null && L.expires ? new Date(L.expires) : null
+          const untilText = until !== null && !isNaN(until.getTime()) ? until.toLocaleDateString(kbLocaleTag(), { year: 'numeric', month: 'short', day: 'numeric' }) : null
+          const busy = st.busy !== null
+          const copyBtn = (key, label, text) => El('button', { type: 'button', className: 'wv2-ghost', onClick: () => copy(key, text), 'data-kb': 'wvs-link-copy-' + key }, Icon(st.copied === key ? 'check' : 'copy', 12), ' ', st.copied === key ? kbe('Copied') : label)
+          return El('div', { className: 'wvs-part', 'data-kb': 'wvs-link' },
+            El('div', { className: 'wvs-feedh' }, El('h4', { className: 'wvs-h4' }, kbe('As a link')), El('span', { className: 'wv2-hint' }, kbe('A link on your Kybernos account. Whoever has it can read this page.'))),
+            st.phase === 'loading' ? El('p', { className: 'wvs-muted' }, kbe('Looking for your link…')) : null,
+            st.phase === 'ready' && !st.av ? El('p', { className: 'wvs-muted', 'data-kb': 'wvs-link-why' }, Icon('lock', 12), ' ', wvsLinkWhy(st.reason)) : null,
+            st.phase === 'ready' && L === null && st.av ? El('div', { className: 'wvs-linkmake' },
+              El('label', { className: 'wvs-sw' },
+                El('input', { type: 'checkbox', checked: st.protect, onChange: () => patch({ protect: !st.protect }), 'data-kb': 'wvs-link-protect' }),
+                El('span', { className: 'wvs-swt' }, El('b', null, kbe('Protect with a password')), El('span', { className: 'wvs-muted' }, st.protect ? kbe('Recommended. The server then keeps only a locked copy, and readers need the password.') : kbe('Without a password, anyone who has the link can read it.')))),
+              El('div', { className: 'wvs-sharego' },
+                El('button', { type: 'button', className: 'wv2-ghost wvs-primary', disabled: busy, onClick: () => publish('make', false), 'data-kb': 'wvs-link-make' }, Icon('link', 14), ' ', st.busy === 'make' ? kbe('Making the link…') : kbe('Create the link')))) : null,
+            L !== null && L.gone ? El('div', { className: 'wvs-linkbox' },
+              El('p', { className: 'wvs-bad', 'data-kb': 'wvs-link-gone' }, kbe('This link has ended. Make a new one.')),
+              El('div', { className: 'wvs-sharego' },
+                El('button', { type: 'button', className: 'wv2-ghost wvs-primary', disabled: busy || !st.av, onClick: () => publish('make', true), 'data-kb': 'wvs-link-fresh' }, Icon('link', 14), ' ', st.busy === 'make' ? kbe('Making the link…') : kbe('Make a new link')),
+                El('button', { type: 'button', className: 'wv2-ghost', disabled: busy || !st.av, onClick: remove, 'data-kb': 'wvs-link-forget' }, Icon('trash', 12), ' ', kbe('Delete the link')))) : null,
+            L !== null && !L.gone ? El('div', { className: 'wvs-linkbox' },
+              El('div', { className: 'wvs-linkrow' },
+                El('input', { className: 'wvs-url', readOnly: true, value: L.url, 'aria-label': kbe('The link'), onFocus: (e) => { try { e.target.select() } catch (x) { /* nothing to select */ } }, 'data-kb': 'wvs-link-url' }),
+                copyBtn('url', kbe('Copy link'), L.url)),
+              L.protected ? El('div', { className: 'wvs-linkrow' },
+                El('span', { className: 'wvs-muted' }, Icon('lock', 12), ' ', kbe('Password')),
+                El('code', { className: 'wvs-pw', 'data-kb': 'wvs-link-pw' }, L.password),
+                copyBtn('pw', kbe('Copy password'), L.password)) : null,
+              L.protected ? El('p', { className: 'wvs-muted' }, kbe('Send the password separately from the link.')) : El('p', { className: 'wvs-muted' }, kbe('Without a password, anyone who has the link can read it.')),
+              untilText !== null ? El('p', { className: 'wvs-muted', 'data-kb': 'wvs-link-until' }, kbe('Valid until') + ' ' + untilText) : null,
+              El('div', { className: 'wvs-sharego' },
+                El('button', { type: 'button', className: 'wv2-ghost wvs-primary', disabled: busy || !st.av, onClick: () => publish('update', false), title: kbe('Same link and same password, with the Journal as it is now and the choices above.'), 'data-kb': 'wvs-link-update' }, Icon('refresh', 12), ' ', st.busy === 'update' ? kbe('Updating…') : kbe('Update the link')),
+                El('button', { type: 'button', className: 'wv2-ghost', disabled: busy || !st.av, onClick: remove, 'data-kb': 'wvs-link-remove' }, Icon('trash', 12), ' ', st.busy === 'remove' ? kbe('Deleting…') : kbe('Delete the link')))) : null,
+            st.error !== null && st.error[0] !== 'gone' ? El('p', { className: 'wvs-bad', 'data-kb': 'wvs-link-error' }, wvsLinkError(st.error[0], st.error[1])) : null)
+        }
+
         function WV2Shell(props) {
           const sessionId = (props && (props.sessionId || (props.session && props.session.id))) || null
           const modePair = React.useState('story')
           const mode = modePair[0]
           const dPair = React.useState({ state: sessionId ? 'loading' : 'empty', story: null, nonce: 0 })
           const D = dPair[0]
-          const uiPair = React.useState({ filter: 'all', crew: 'all', sel: null, ins: true, more: {}, nd: false, zoom: null, stageW: 900, copied: false, limit: 60 })
+          const uiPair = React.useState({ filter: 'all', crew: 'all', sel: null, ins: true, more: {}, nd: false, zoom: null, stageW: 900, copied: false, limit: 60, share: false, inc: WVS_INC0, shareState: 'idle', shareMsg: '' })
           const ui = uiPair[0]
           const set = (p) => uiPair[1]((u) => Object.assign({}, u, p))
           const logos = kbUseAppLogos()
@@ -40871,18 +41068,20 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               El('h1', { className: 'wv2-h1' }, kbe('Journal'))),
             El('div', { className: 'wvs-bar' }, seg,
               mode === 'story' ? El('button', { type: 'button', className: 'wv2-chip' + (ui.ins ? ' on' : ''), 'aria-pressed': ui.ins, onClick: () => set({ ins: !ui.ins }) }, kbe('Insights')) : null,
+              El('button', { type: 'button', className: 'wv2-chip' + (ui.share ? ' on' : ''), 'aria-pressed': ui.share, 'data-kb': 'wvs-share-btn', onClick: () => set({ share: !ui.share, shareState: 'idle' }) }, Icon('link', 12), ' ', kbe('Share')),
               El('button', { type: 'button', className: 'wv2-ghost wvs-refresh', 'aria-label': kbe('Refresh'), title: kbe('Refresh'), onClick: () => dPair[1]((d) => Object.assign({}, d, { nonce: d.nonce + 1 })) }, Icon('refresh', 14))))
           if (st.moments.length === 0) {
             return El('div', { className: 'wv2-root wvs-root' }, head, chips, El('section', { className: 'wv2-panel', 'data-kb': 'wvs-empty' }, El('p', { className: 'wvs-muted' }, kbe('Nothing to show yet. The Journal fills in as the chat works.'))))
           }
           const kpis = El(WVSKpis, { story: st })
+          const shareSheet = ui.share ? El(WVSShare, { story: st, ui: ui, set: set, logos: logos, sessionId: sessionId }) : null
           if (mode === 'flow') {
-            return El('div', { className: 'wv2-root wvs-root' }, head, chips, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos, stageRef: stageRef }))
+            return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos, stageRef: stageRef }))
           }
           const rows = wvsFeed(st, ui.filter, ui.crew)
           const shown = rows.slice(0, ui.limit)
           const selM = ui.sel !== null ? st.moments.filter((m) => m.id === ui.sel)[0] || null : null
-          return El('div', { className: 'wv2-root wvs-root' }, head, chips, kpis,
+          return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis,
             ui.ins ? El(WVSInsights, { story: st, ui: ui, set: set }) : null,
             El(WVSCrews, { story: st, ui: ui, set: set }),
             El(WVSFilters, { story: st, ui: ui, set: set }),
@@ -40988,6 +41187,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 .wvs-av{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--wv-idle-soft);color:var(--wv-ink);font-size:11px;font-weight:600;flex:none}
 .wvs-an{font-weight:600}.wvs-ad,.wvs-at{color:var(--wv-mut);display:inline-flex;align-items:center;gap:4px}.wvs-at{margin-inline-start:auto;font-variant-numeric:tabular-nums}
 .wvs-sig{display:inline-flex;align-items:center;gap:4px;color:var(--wv-ok)}.wvs-sig.bad{color:var(--wv-err-ink);font-weight:600}.wvs-sig.off{color:var(--wv-mut)}
+.wvs-share{display:flex;flex-direction:column;gap:12px}
+.wvs-sws{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.wvs-sw{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--wv-line2);border-radius:8px;background:var(--wv-box);cursor:pointer}
+.wvs-sw input{margin-top:3px;flex:none}.wvs-swt{display:flex;flex-direction:column;gap:2px;min-width:0}.wvs-swt .wvs-muted{font-size:12px}
+.wvs-sharego{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.wvs-ok{display:inline-flex;align-items:center;gap:4px;color:var(--wv-ok);font-size:13px}.wvs-bad{color:var(--wv-err-ink);font-size:13px}
+.wvs-part{display:flex;flex-direction:column;gap:10px;padding-top:12px;border-top:1px solid var(--wv-line2)}.wvs-h4{margin:0;font-size:13px;font-weight:650;white-space:nowrap}.wvs-part .wvs-feedh{flex-wrap:wrap}
+.wvs-linkmake p,.wvs-linkbox p{margin:0}
+.wvs-linkmake,.wvs-linkbox{display:flex;flex-direction:column;gap:8px}.wvs-linkrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wvs-url{flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--wv-line2);border-radius:8px;background:var(--wv-box);color:inherit;font:inherit;font-size:13px}
+.wvs-pw{padding:3px 8px;border:1px solid var(--wv-line2);border-radius:6px;background:var(--wv-box);font-size:13px;letter-spacing:.02em;user-select:all}
 .wvs-as{font-weight:600}.wvs-as.ok{color:var(--wv-ok)}.wvs-as.wait{color:var(--wv-accent-ink)}.wvs-as.err{color:var(--wv-err-ink)}
 .wvs-showmore{align-self:center;margin-top:8px}
 /* détail et livrables */

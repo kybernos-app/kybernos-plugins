@@ -70,4 +70,5 @@ Who may publish (free accounts?), the numbers (my default: 1 MB per snapshot, 20
 
 `node packages/kybernos-db/test-share.mjs`, `test-share-page.mjs`, `test-share-service.mjs` (part of `npm test` of the package and of `run-all-tests.mjs`);
 `KB_NODE_MODULES=<node_modules with playwright-core> node scripts/check-share-page.mjs` opens the page in a real headless Chrome (file, protected file, served flavour, phone width, a hostile snapshot, the content policy).
-Not built yet: the adapter that implements the port against the Kybernos server (waits for the server routes), the dynamic level, a kanban/calendar renderer.
+The adapter now exists: the cloud bundle publishes it as the `kybernos.snapshots` seam (`status`, `put`, `remove` over `/v1/snapshots`, the account token added there; `packages/kybernos-cloud/test-snapshots-seam.mjs`), and the chat Journal already uses it (`docs/dev/journal-link.md`, which also adds a second kind of document, `doc: 'journal'`, to the server). `kybernos-db` still takes its port from `options.snapshots` and does not read the seam yet: wiring it is one line once the server is deployed.
+Not built yet: that wiring, the dynamic level, a kanban/calendar renderer.

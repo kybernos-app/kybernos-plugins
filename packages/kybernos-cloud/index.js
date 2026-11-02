@@ -6206,6 +6206,66 @@ const publishPersonSeam = (target = globalThis) => {
   try { target[PERSON_SEAM] = Object.freeze({ version: 1, read: personSeamRead }) } catch (e) { /* a frozen global: the Journal records no name */ }
 }
 
+// ── The snapshots seam: a page that is shared as a link (the chat Journal; the shared dashboards later) ──────────────────────────────────────
+// `globalThis[Symbol.for('kybernos.snapshots')]` gives a sibling bundle the three verbs of the server's `/v1/snapshots` (kybernos-server `docs/contract/snapshots.md`) and nothing else; the
+// account token is added here and never handed over. Every verb answers `{ ok: true, … }` or `{ ok: false, error, message }`, never throws:
+//   · status()                              what this account may do: `{ ok, available, allowed, maxBytes, maxCount, ttlDays, count, links: [{ id, url, expires, sealed, doc }] }`
+//   · put({ id?, sealed, text, doc })       a new link (no `id`) or the replacement of one (`id`): `{ ok, id, url, expires, bytes }`; `doc` is `'dashboard'` or `'journal'`
+//   · remove(id)                            takes a link down: `{ ok: true }`, or `error: 'not_found'` when it is already gone
+// `error` is the server's own word (`invalid_snapshot`, `too_big`, `snapshot_limit`, `snapshots_not_in_plan`, `not_found`, `rate_limited`, …) or ours: `not_connected` (nobody is signed in:
+// no network call), `not_on_this_server` (the server has no such route yet), `network` (it did not answer), `bad_request` (what was asked is not a link).
+const SNAPSHOTS_SEAM = Symbol.for('kybernos.snapshots')
+const SNAPSHOT_ID = /^[a-z2-7]{16}$/u
+const SNAPSHOT_DOCS = ['dashboard', 'journal']
+const SNAPSHOT_TIMEOUT_MS = 30000
+const snapshotFailure = (res) => {
+  if (res.status === 0) return { ok: false, error: 'network', message: String(res.error === undefined ? '' : res.error).slice(0, 200) }
+  if (routeAbsent(res)) return { ok: false, error: 'not_on_this_server', message: 'This server has no shared links yet.' }
+  const b = res.body !== null && typeof res.body === 'object' ? res.body : {}
+  return { ok: false, error: typeof b.error === 'string' && b.error !== '' ? b.error.slice(0, 60) : 'http_' + res.status, message: typeof b.message === 'string' ? b.message.slice(0, 300) : '' }
+}
+const snapshotLink = (b) => ({ id: typeof b.id === 'string' ? b.id : null, url: typeof b.url === 'string' ? b.url : null, expires: typeof b.expires === 'string' ? b.expires : null, bytes: typeof b.bytes === 'number' ? b.bytes : null })
+const snapshotsSeamStatus = async () => {
+  try {
+    const state = readState()
+    if (!isConnected(state)) return { ok: false, available: false, error: 'not_connected', message: '' }
+    const res = await apiCall('/v1/snapshots', { token: state.token, timeoutMs: 15000 })
+    if (res.status !== 200) return { ...snapshotFailure(res), available: false }
+    const b = res.body !== null && typeof res.body === 'object' ? res.body : {}
+    const l = b.limits !== null && typeof b.limits === 'object' ? b.limits : {}
+    const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+    const links = (Array.isArray(b.snapshots) ? b.snapshots : []).slice(0, 200).map((x) => (x !== null && typeof x === 'object' ? { ...snapshotLink(x), sealed: x.sealed === true, doc: typeof x.doc === 'string' ? x.doc : 'dashboard' } : null)).filter((x) => x !== null && x.id !== null)
+    const allowed = b.allowed !== false
+    return { ok: true, available: allowed, allowed: allowed, maxBytes: num(l.max_bytes), maxCount: num(l.max_count), ttlDays: num(l.ttl_days), count: num(l.count), links: links, ...(allowed ? {} : { error: 'snapshots_not_in_plan' }) }
+  } catch (e) { return { ok: false, available: false, error: 'network', message: '' } }
+}
+const snapshotsSeamPut = async (input) => {
+  try {
+    const o = input !== null && typeof input === 'object' ? input : {}
+    const doc = o.doc === undefined ? 'dashboard' : o.doc
+    if (typeof o.sealed !== 'boolean' || typeof o.text !== 'string' || o.text === '' || SNAPSHOT_DOCS.includes(doc) !== true || (o.id !== undefined && (typeof o.id !== 'string' || SNAPSHOT_ID.test(o.id) !== true))) return { ok: false, error: 'bad_request', message: '' }
+    const state = readState()
+    if (!isConnected(state)) return { ok: false, error: 'not_connected', message: '' }
+    const body = { sealed: o.sealed, text: o.text, doc: doc }
+    const res = await apiCall('/v1/snapshots' + (o.id === undefined ? '' : '/' + o.id), { method: o.id === undefined ? 'POST' : 'PUT', token: state.token, body: body, timeoutMs: SNAPSHOT_TIMEOUT_MS })
+    if (res.status !== 200 && res.status !== 201) return snapshotFailure(res)
+    const link = snapshotLink(res.body !== null && typeof res.body === 'object' ? res.body : {})
+    return link.id === null || link.url === null ? { ok: false, error: 'invalid_response', message: '' } : { ok: true, ...link }
+  } catch (e) { return { ok: false, error: 'network', message: '' } }
+}
+const snapshotsSeamRemove = async (id) => {
+  try {
+    if (typeof id !== 'string' || SNAPSHOT_ID.test(id) !== true) return { ok: false, error: 'bad_request', message: '' }
+    const state = readState()
+    if (!isConnected(state)) return { ok: false, error: 'not_connected', message: '' }
+    const res = await apiCall('/v1/snapshots/' + id, { method: 'DELETE', token: state.token, timeoutMs: 15000 })
+    return res.status === 200 ? { ok: true } : snapshotFailure(res)
+  } catch (e) { return { ok: false, error: 'network', message: '' } }
+}
+const publishSnapshotsSeam = (target = globalThis) => {
+  try { target[SNAPSHOTS_SEAM] = Object.freeze({ version: 1, status: snapshotsSeamStatus, put: snapshotsSeamPut, remove: snapshotsSeamRemove }) } catch (e) { /* a frozen global: the Journal offers no link */ }
+}
+
 // ── The janitor seam: bounded, dirty-aware cleaning of the account memories ───────────────────────────────────────────
 // kybernos-maintenance owns ONE host-level scheduler (janitor.mjs) and reaches this store through
 // globalThis[Symbol.for('kybernos.janitor.memory')], a frozen { version: 1, enabled(), revision(), scanAndClean() }.
@@ -6419,6 +6479,7 @@ export function apply(ctx) {
   try { publishCloudSeam() } catch (e) { console.error('[kybernos-cloud] seam: ' + String((e && e.message) || e)) }
   try { publishJanitorSeam() } catch (e) { console.error('[kybernos-cloud] janitor seam: ' + String((e && e.message) || e)) }
   try { publishPersonSeam() } catch (e) { console.error('[kybernos-cloud] person seam: ' + String((e && e.message) || e)) }
+  try { publishSnapshotsSeam() } catch (e) { console.error('[kybernos-cloud] snapshots seam: ' + String((e && e.message) || e)) }
   // The other bundles ask here whether the active space is a team (kybernos-memory cuts its lessons there).
   try { publishSpaceSeam(() => spaceOf(readStateForSpace())) } catch (e) { console.error('[kybernos-cloud] space seam: ' + String((e && e.message) || e)) }
   // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
@@ -6448,7 +6509,7 @@ export function apply(ctx) {
 // Exported for the out-of-DSH test (scripts/test-cloud-host.mjs): no other
 // public surface is promised.
 export {
-  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES, publishJanitorSeam, JANITOR_MEMORY_SEAM, publishPersonSeam, PERSON_SEAM, personSeamRead,
+  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES, publishJanitorSeam, JANITOR_MEMORY_SEAM, publishPersonSeam, PERSON_SEAM, personSeamRead, publishSnapshotsSeam, SNAPSHOTS_SEAM,
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
   profileRefreshTick, PROFILE_REFRESH_TUNING, ROUTE_REPAIR_TUNING, sameOrigin, hostAllowed,

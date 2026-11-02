@@ -118,11 +118,12 @@ node scripts/smoke-gui.mjs --token <token>                                      
 
 ## Standalone tools
 
-None of these is a DSH bundle. The first two are separate processes, with their own tests (`node --test test/*.test.mjs` in their folder); the third is a library for now.
+None of these is a DSH bundle. All but the first are separate processes, with their own tests (`node --test test/*.test.mjs` in their folder); the first is a library for now.
 
 - [`packages/kybernos-db`](packages/kybernos-db): user- and agent-defined databases: the rules (field types, filter, sort, views, rights, operations; pure, shared with the server), the SQLite file with its journal and attachments, and the agent's tools, prompt block and `db-builder` skill. Test them with `node packages/kybernos-db/test-core.mjs`, `test-store.mjs`, `test-agent.mjs` and `test-host.mjs`.
 - [`packages/messaging`](packages/messaging): a daemon bridging DSH and messaging apps (Telegram first). Run it with `npm run daemon` in that folder.
 - [`packages/kybernos-gate`](packages/kybernos-gate): the sign-in gate for a hosted DSH (see [Install on a server or with Docker](#install-on-a-server-or-with-docker)). Run it with `node bin/kybernos-gate.mjs`; it refuses to start without a password.
+- [`packages/front-desk`](packages/front-desk): "Accueil client", the public assistant of one shop on a public link (closed action menu, budget caps, anonymous chat, text inbox for the owner); running it on the cloud computer needs a Kybernos Computer Cloud subscription. Try it with `node bin/front-desk.mjs --dry-run --fiche examples/atelier-lune.json` in that folder.
 
 ## Contributing
 
