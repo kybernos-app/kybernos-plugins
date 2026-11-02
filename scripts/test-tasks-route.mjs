@@ -43,7 +43,7 @@ const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; 
 process.env.KYBERNOS_AUTOMATION_LOAD_GUARD = 'off' // the box running this test must not decide what the tick does
 const mod = await import(root + 'packages/kybernos-plugin/index.js')
 const routes = {}
-const sessions = { created: 0, prompts: [], failCreate: false, holdOpen: false }
+const sessions = { created: 0, prompts: [], cancels: [], failCreate: false, holdOpen: false }
 const listeners = {}
 // The two engine services the fire path uses to make "Ask me first" real. `log` is the order of events
 // across the session service and the permission service, to prove the preset lands BEFORE the prompt.
@@ -70,6 +70,10 @@ const services = {
       return { ok: true }
     },
     async selectModel() { return { ok: true } },
+    // What the person's rules over a run (automation-run-guard.mjs) read and do: the turn runs while `holdOpen` is on, `cancel` ends it, nothing ever answers `wait` by itself.
+    async state() { return { ok: true, value: { running: sessions.holdOpen === true, queue: [], pendingInput: [] } } },
+    wait(o, signal) { return new Promise((resolve, reject) => { if (signal !== undefined) signal.addEventListener('abort', () => reject(new Error('aborted'))) }) },
+    async cancel(a) { sessions.cancels.push(a.sessionId); for (const fn of listeners['agent/status'] || []) fn({ agent: { session: { id: a.sessionId } }, status: 'idle' }); return { ok: true } },
   },
 }
 const quiet = []
@@ -273,6 +277,40 @@ writeFileSync(file, good)
   await api({ action: 'run-now', id: own.id })
   eq('a home session the automation made keeps the asking preset on every run', perm.log.filter((l) => l.indexOf('set:sess-own') === 0).length === 1, true)
   for (const id of [plain.id, home.id, chat.id, own.id]) await api({ action: 'delete', id })
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  writeFileSync(file, good)
+}
+
+/* ── What the person asks over a run: a time box, their own message, and Stop ───── */
+{
+  const mk = async (name, extra) => (await api({ action: 'create', task: task({ name, active: false, ...(extra || {}) }) })).json
+  const kept = (await mk('Boxed', { maxMinutes: 10, onPersonWrites: 'stop' })).task
+  eq('the time box and the message rule are kept by the sanitizer', kept.maxMinutes + ':' + kept.onPersonWrites, '10:stop')
+  const bare = (await mk('Bare')).task
+  eq('an automation that does not say keeps neither: today\'s behaviour', String(bare.maxMinutes) + ':' + String(bare.onPersonWrites), 'undefined:undefined')
+  eq('a duration that is not a whole number of minutes from 1 to 240 is refused', (await Promise.all(['10', 1.5, -3, 241, {}].map((v) => mk('Bad ' + String(v), { maxMinutes: v })))).map((r) => r.error).join('|'), 'invalid duration|invalid duration|invalid duration|invalid duration|invalid duration')
+  eq('0, null and an empty string mean no time box', (await Promise.all([0, null, ''].map((v) => mk('None ' + String(v), { maxMinutes: v })))).map((r) => String(r.task.maxMinutes)).join('|'), 'null|null|null')
+  eq('a message rule that is not « stop » is « finish »', (await mk('Fin', { onPersonWrites: 'whatever' })).task.onPersonWrites, 'finish')
+  const upd = (await api({ action: 'update', id: kept.id, task: task({ name: 'Boxed', active: false }) })).json.task
+  eq('an edit that does not send them keeps them', upd.maxMinutes + ':' + upd.onPersonWrites, '10:stop')
+  const cleared = (await api({ action: 'update', id: kept.id, task: task({ name: 'Boxed', active: false, maxMinutes: null, onPersonWrites: 'finish' }) })).json.task
+  eq('...and an edit that sends them changes them', String(cleared.maxMinutes) + ':' + cleared.onPersonWrites, 'null:finish')
+  eq('Stop on an automation nothing runs: refused', (await api({ action: 'stop', id: kept.id })).json.error, 'not running')
+  eq('Stop without an id: refused', (await api({ action: 'stop' })).json.error, 'id required')
+  // a run that is going, watched (it has a rule) and not
+  sessions.holdOpen = true; sessions.cancels.length = 0
+  await api({ action: 'update', id: kept.id, task: task({ name: 'Boxed', active: false, maxMinutes: 10, onPersonWrites: 'stop' }) })
+  const run = (await api({ action: 'run-now', id: kept.id })).json
+  eq('a run with a rule is going', run.ok, true)
+  const stopped = (await api({ action: 'stop', id: kept.id })).json
+  eq('Stop cancels the turn of that run', stopped.ok + ':' + stopped.stopped + ':' + sessions.cancels.join(','), 'true:1:' + run.sessionId)
+  eq('...and the history says the person stopped it', onDisk().find((x) => x.id === kept.id).history.filter((h) => h.sessionId === run.sessionId).map((h) => h.stop).join(','), 'stopped')
+  eq('...once it is over, a second Stop has nothing to stop', (await api({ action: 'stop', id: kept.id })).json.error, 'not running')
+  const plainRun = (await api({ action: 'run-now', id: bare.id })).json
+  const plainStop = (await api({ action: 'stop', id: bare.id })).json
+  eq('a run nobody watches is stopped too', plainStop.ok + ':' + sessions.cancels.slice(-1)[0], 'true:' + plainRun.sessionId)
+  sessions.holdOpen = false
+  for (const t of (await api({ action: 'list' })).json.tasks) if (/^(Boxed|Bare|Bad|None|Fin)/.test(t.name)) await api({ action: 'delete', id: t.id })
   sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
   writeFileSync(file, good)
 }

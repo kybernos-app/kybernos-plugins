@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CLIENT-BEGIN([\s\S]*?)\/\/ KB-TASKS-CLIENT-END/)
 if (m === null) { console.error('KB-TASKS-CLIENT block not found in client.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbCronMinuteHour, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbCronMinuteHour, kbCronWindow, kbCronWindowOf, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -92,6 +92,13 @@ eq('...and a list, and an interval of hours', mod.kbCronOnDays('0 8,12,16,20 * *
 eq('...the days of the month and the month go, as for any preset', mod.kbCronOnDays('0 8-20/4 15 3 *', '*'), '0 8-20/4 * * *')
 eq('...a schedule with no fixed minute (every 5 minutes) still becomes the preset at the default time, never a frequent one', mod.kbCronOnDays('*/5 * * * *', '1') + '|' + mod.kbCronOnDays('* 8-20 * * *', '*') + '|' + mod.kbCronOnDays('banana', '*'), '0 8 * * 1|0 8 * * *|0 8 * * *')
 eq('the fields a preset keeps: one time, a window, a list; not a free minute', ['15 9 * * 1-5', '0 8-20/4 * * *', '0 8,17 * * *', '*/5 * * * *', 'banana'].map((c) => JSON.stringify(mod.kbCronMinuteHour(c))).join('|'), '{"mi":"15","hh":"9"}|{"mi":"0","hh":"8-20/4"}|{"mi":"0","hh":"8,17"}|null|null')
+// The form's « Every N hours » row reads and writes the window with these two.
+eq('an hour window is read as its fields', JSON.stringify(mod.kbCronWindow('0 8-20/4 * * *')), '{"mi":0,"from":8,"to":20,"step":4,"days":"*","ok":true}')
+eq('...on weekdays, with a minute, a step of one written without the step', JSON.stringify(mod.kbCronWindow('30 9-17 * * 1-5')), '{"mi":30,"from":9,"to":17,"step":1,"days":"1-5","ok":true}')
+eq('...a window that cannot fire twice is read but not ok (the form says so)', ['0 8-8 * * *', '0 20-8/4 * * *', '0 8-20/13 * * *', '0 8-24 * * *', '0 8-20/0 * * *'].map((c) => mod.kbCronWindow(c).ok).join(','), 'false,false,false,false,false')
+eq('...a time of day, a list, an interval, a day of the month, a month are not windows', ['0 8 * * *', '0 8,12 * * *', '0 */4 * * *', '0 8-20/4 15 * *', '0 8-20/4 * 3 *', '*/10 8-20/4 * * *', 'banana'].map((c) => mod.kbCronWindow(c)).join(','), ',,,,,,')
+eq('the window is written back, a step of one without the step', mod.kbCronWindowOf(0, 8, 20, 4, '*') + '|' + mod.kbCronWindowOf(30, 9, 17, 1, '1-5'), '0 8-20/4 * * *|30 9-17 * * 1-5')
+eq('a written window reads back to the same fields', JSON.stringify(mod.kbCronWindow(mod.kbCronWindowOf(15, 7, 19, 3, '5'))), '{"mi":15,"from":7,"to":19,"step":3,"days":"5","ok":true}')
 eq('not a cron: shown as written', cron('banana'), 'banana')
 eq('empty', cron(''), '')
 
