@@ -117,7 +117,13 @@ const demoStory = () => {
     crew('r3', 'Follow-up calls', 33, null, [mem('caller', 'plan', 'running', 0, 'zai', 'glm-5.3', 2000, 0.01)], 0),
   ]
   const costOf = (provider, model, usage) => ((usage.input * 3 + usage.output * 15) / 1e6) * 0.92
-  return deriveStory(events, { sessionId: 'session-demo-journal', runs, costOf })
+  // The host's record of who decided (journal-decisions.mjs): two people of the company on two computers; the second refusal and the first question are the same person.
+  const decisions = {
+    'a:ap1': { by: 'Amira Benali', device: 'MacBook Pro de Amira', at: T0 + 26 * MIN },
+    'a:ap2': { by: 'Karim Haddad', device: 'Mac mini du bureau', at: T0 + 27.5 * MIN },
+    'q:q1': { by: 'Amira Benali', device: 'MacBook Pro de Amira', at: T0 + 21 * MIN },
+  }
+  return deriveStory(events, { sessionId: 'session-demo-journal', runs, costOf, decisions })
 }
 
 const run = async () => {
@@ -216,7 +222,8 @@ const run = async () => {
         await page.evalJs(`(() => { const r = Array.from(document.querySelectorAll('.wvs-row')).find((x) => /Delete the draft/.test(x.innerText)); const h = r && r.querySelector('.wvs-head'); if (h) h.setAttribute('data-kb-check-row', '1') })()`, 3000)
         await click('[data-kb-check-row="1"]')
         await shot('2b-handovers')
-        ok('a handover shows who answered, honestly unnamed when the log does not say', /Not recorded|not recorded|Unknown|unknown/.test(await text('[data-kb="wvs-detail"]')) || (await text('[data-kb="wvs-detail"]')).length > 0)
+        const handoverList = await text('.wvs-list')
+        ok('the handovers name who decided and on which computer (two people, two computers); the waiting one stays unnamed', /Amira Benali/.test(handoverList) && /Karim Haddad/.test(handoverList) && /MacBook Pro de Amira/.test(handoverList) && /Mac mini du bureau/.test(handoverList) && /Approver\s*Needs you/.test(handoverList.replace(/\n+/g, ' ')), handoverList.replace(/\n+/g, ' | ').slice(0, 300))
         await clickLabel('All', '.wvs-filters')
       }
       // a row opens its detail
