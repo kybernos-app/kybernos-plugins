@@ -69,9 +69,7 @@ window.__ModuleLoader__.load({
 /* Light schemes: the muted sentences of the help steps are label-tertiary (3.7:1 on white); inside the page they read label-secondary (5.8:1). */
 body:not([data-ds-dark-theme]) .kbln-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbln-main{display:flex;flex-direction:column;gap:22px;min-width:0}
-.kbln-head{display:flex;flex-direction:column;gap:6px}
 .kbln-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
-.kbln-sub{font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary);max-width:640px}
 .kbln-sec{display:flex;flex-direction:column;gap:10px}
 .kbln-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .kbln-lb{font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);width:160px;flex:none}
@@ -199,7 +197,7 @@ html[dir="rtl"] .kbln-sw input:checked+i::after{transform:translateX(-16px)}
    final state (language ready and in use), which is also what reduced motion shows. */
 .kbln-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 /* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button; the panel it opens is this page's own. */
-.kbln-help-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbln-help-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kbln-help-btn:hover,.kbln-help-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
 .kbln-help-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbln-help-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
@@ -207,6 +205,7 @@ html[dir="rtl"] .kbln-sw input:checked+i::after{transform:translateX(-16px)}
 @media (max-width:700px){.kbln-help{grid-template-columns:minmax(0,1fr)}}
 .kbln-help-text{display:flex;flex-direction:column;gap:12px;min-width:0}
 .kbln-help-h{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbln-help-lead{margin:0;font-size:14px;line-height:1.55;color:var(--dsw-alias-label-primary)}
 .kbln-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
 .kbln-step{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start}
 .kbln-step>b{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
@@ -1691,6 +1690,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
             h('div', { className: 'kbln-mm-cur' })),
           h('div', { className: 'kbln-help-text' },
             h('div', { className: 'kbln-help-h' }, L('helpTitle')),
+            h('p', { className: 'kbln-help-lead' }, L('sub')),
             h('ol', { className: 'kbln-steps' }, step(1, L('addLang'), L('step1Body')), step(2, L('start'), L('step2Body')), step(3, L('use'), L('step3Body'))),
             h('div', { className: 'kbln-note' }, L('helpNote'))))
       }
@@ -2120,12 +2120,10 @@ html[dir="rtl"] .kbln-page{direction:rtl}
 
         return h('div', { className: 'kbln-page', 'data-kb': 'language-page' },
           h('div', { className: 'kbln-main' },
-            h('div', { className: 'kbln-head' },
-              h('div', { className: 'kbln-head-row' },
-                h('div', { className: 'kbln-title' }, L('title')),
-                h('button', { className: 'kbln-help-btn', type: 'button', 'data-act': 'help', 'aria-expanded': helpOpen ? 'true' : 'false', 'aria-controls': 'kbln-help', title: L('tipHelp'), onClick: toggleHelp },
-                  h('span', { className: 'kbln-help-q', 'aria-hidden': 'true' }, '?'), L('helpBtn'))),
-              h('div', { className: 'kbln-sub' }, L('sub'))),
+            h('div', { className: 'kbln-head-row' },
+              h('div', { className: 'kbln-title' }, L('title')),
+              h('button', { className: 'kbln-help-btn', type: 'button', 'data-act': 'help', 'aria-expanded': helpOpen ? 'true' : 'false', 'aria-controls': 'kbln-help', 'aria-label': L('helpBtn'), title: L('tipHelp'), onClick: toggleHelp },
+                h('span', { className: 'kbln-help-q', 'aria-hidden': 'true' }, '?'))),
             helpOpen ? h(HelpPanel, null) : null,
             h('div', { className: 'kbln-bar-row' },
               h('div', { className: 'kbln-tabs', role: 'tablist', 'aria-label': L('title'), onKeyDown: onTabKey }, tabBtn('langs', L('tabLangs')), tabBtn('settings', L('tabSettings'))),

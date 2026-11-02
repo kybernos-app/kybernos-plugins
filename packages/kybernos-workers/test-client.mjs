@@ -136,13 +136,18 @@ console.log('── what the page may talk to ──')
   ok('the only external addresses in the file are links to the vendors’ own guides and the demo command', [...source.matchAll(/https?:\/\/[^\s'"`)]+/g)].map((m) => m[0]).every((u) => /claude\.ai\/install\.sh$|^http:\/\/www\.w3\.org/.test(u)), [...source.matchAll(/https?:\/\/[^\s'"`)]+/g)].map((m) => m[0]).join())
   ok('an API key is read from an input and handed to the credentials service, nowhere else (never logged, never fetched)', !/console\.\w+\([^)]*typed/.test(source) && !/fetch\([^)]*typed/.test(source) && /creds\.get\(\)\.set\(w\.connect\.env, value\)/.test(source))
   ok('the section asks for the Settings slots only; the credentials service is asked for on its own and is optional', /ctx\.inject\(\['slots'\]/.test(source) && /ctx\.inject\(\['remote', 'remote\.credentials'\]/.test(source))
-  ok('the shared help card is used behind a guard, with an action for the guide', /window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-workers', action:/.test(source))
+  ok('the shared help card is used behind a guard, with the page description as its lead, the title, and an action for the guide', /window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-workers', lead: pageLead\(\), title: 'Workers', action: \{ label: kt\('Essayer la démo', 'Try the demo'\), onClick: \(\) => setGuide\(true\) \} \}\) : null/.test(source))
 }
 
 // Tools and Workers list some of the same assistants (V-32): each page says what it is for and names the other.
 {
-  const lead = source.slice(source.indexOf("h('h4', null, 'Workers')"), source.indexOf("h('h4', null, 'Workers')") + 1800)
+  const lead = source.slice(source.indexOf('const pageLead = () =>'), source.indexOf('const pageLead = () =>') + 1500)
   ok('the lead says what the page is for, with the one noun: workers are the coding assistants the main agent can hand tasks to', /Workers are the coding assistants installed on your computer/.test(lead) && /Les workers sont les assistants de code installés/.test(lead))
+  // The description lives in the « ? » card (the Suite's Help takes it as `lead`): the page no longer draws it under the title, and without the Suite a guarded fallback does (the loading skeleton and the loaded page alike).
+  const fallback = source.slice(source.indexOf('const leadFallback = () =>'), source.indexOf('\n', source.indexOf('const leadFallback = () =>')))
+  ok('the description is written once; the only lines that draw it are the guarded fallback, in the loading skeleton and in the page', (source.match(/Les workers sont les assistants de code/g) || []).length === 1 && (source.match(/leadFallback\(\)/g) || []).length === 2 && !/h\('p', null, kt\('Les workers sont/.test(source), (source.match(/leadFallback\(\)/g) || []).length)
+  ok('the fallback draws nothing when the Suite\'s Help is there, and the description when it is not', /window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? null : h\('p', null, pageLead\(\)\)/.test(fallback))
+  ok('the guide button of an older Suite (no help action) is untouched', /!helpHasAction \? h\('button', \{ type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide'/.test(source))
   ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Outils/.test(lead) && /mounts tools in a profile/.test(lead) && /monte des outils dans un profil/.test(lead), lead.slice(0, 300))
 }
 

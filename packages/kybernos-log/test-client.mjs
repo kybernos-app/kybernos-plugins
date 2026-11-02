@@ -88,6 +88,37 @@ ok('a « load more » button exists and calls the paging helper', src.includes("
 ok('the next page is asked with the oldest row seq (keyset, not an offset)', src.includes("before: String(oldest.seq)"))
 ok('the page says how many it shows out of the ring', src.includes("moreOf: ['{n} sur {total}', '{n} of {total}']"))
 ok('the button is outside the table element', /kblg-list[\s\S]{0,600}kblg-more/.test(src))
+
+// ── the page's description lives in the « ? » card, not under the title (2026-11-02) ────────────────────────────────
+// The real client runs on a fake React that only builds a tree; the Suite's Help is a stand-in that records what it was asked for.
+{
+  const noop = () => {}
+  const Help = function Help () { return null }
+  const draw = (suite) => {
+    let def = null
+    const win = { __ModuleLoader__: { load: (d) => { def = d } }, __KB_LANG_RESOLVE__: () => 'en' }
+    if (suite) win.__KB_HELP__ = { version: 1, Help }
+    const doc = { documentElement: { lang: 'en' }, createElement: () => ({ setAttribute: noop }), head: { appendChild: noop } }
+    new Function('window', 'document', src)(win, doc)
+    const React = {
+      createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat(Infinity) }),
+      useState: (v) => [typeof v === 'function' ? v() : v, noop], useCallback: (f) => f, useEffect: noop
+    }
+    const plugin = def.factory((name) => (name === 'react' ? React : undefined))
+    let comp = null
+    plugin.apply({ effect: (fn) => fn(), slots: { inject: (n, make) => { make(); return noop }, register: (spec, c) => { comp = c; return noop } } })
+    const el = comp()
+    return { tree: typeof el.type === 'function' ? el.type(el.props) : el, S: plugin.__test.S }
+  }
+  const find = (node, test, out = []) => { if (node === null || typeof node !== 'object') return out; if (test(node)) out.push(node); for (const c of node.children || []) find(c, test, out); return out }
+  const withSuite = draw(true)
+  const cards = find(withSuite.tree, (n) => n.type === Help)
+  ok('with the Suite: one « ? » card, given the description as `lead` and the page name as `title`', cards.length === 1 && cards[0].props.id === 'kybernos-log' && cards[0].props.lead === withSuite.S.lead[1] && cards[0].props.title === 'Activity log')
+  ok('…and the description is no longer drawn under the title', find(withSuite.tree, (n) => n.props && n.props.className === 'kblg-lead').length === 0)
+  ok('…while « Metadata only » (a privacy statement, not a description) stays on the page', find(withSuite.tree, (n) => n.props && n.props.className === 'kblg-priv').length === 1)
+  const without = draw(false)
+  ok('without the Suite: no card, and the description stays under the title', find(without.tree, (n) => n.type === Help).length === 0 && find(without.tree, (n) => n.props && n.props.className === 'kblg-lead').length === 1)
+}
 console.log((fails.length === 0 ? '✓ ' : '✗ ') + pass + ' passed' + (fails.length === 0 ? '' : ', ' + fails.length + ' failed'))
 for (const f of fails) console.log('   ✗ ' + f)
 process.exit(fails.length === 0 ? 0 : 1)

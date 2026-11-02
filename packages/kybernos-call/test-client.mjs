@@ -99,6 +99,28 @@ const fakeSdk = (rooms) => {
   return { Room, RoomEvent: { TrackSubscribed: 'trackSubscribed', TranscriptionReceived: 'transcriptionReceived', ParticipantDisconnected: 'participantDisconnected', ParticipantConnected: 'participantConnected', ParticipantAttributesChanged: 'participantAttributesChanged', Disconnected: 'disconnected' } }
 }
 
+console.log('kybernos-call: the « ? » card opens with the page description')
+{
+  // The page description used to sit under the title; it is now the first paragraph of the « ? » card, and the card follows the tab but the lead does not.
+  assert.ok(/className: 'kbcl-top' \}, \[h\('h2', \{ key: 'h' \}, kt\('Appels', 'Calls'\)\), h\(HelpPill/.test(source), 'the top row is the title and the pill only')
+  assert.equal((source.match(/kt\('Parler en direct/g) || []).length, 1, 'the description is written once')
+  assert.ok(!/kbcl-sub' \}, kt\('Parler en direct/.test(source) && !source.includes('kbcl-tt'), 'nothing of it is left under the title')
+  assert.ok(/h\(HelpBox, \{ key: 'helpbox', id: tab, lead: LEAD\(\), lines: helps\[tab\], open: true \}\)/.test(source), 'the page hands the lead to the card of the active tab')
+  assert.ok(/\.kbcl-helplead\{font-size:14px;[^}]*color:\$\{T\.text\}/.test(source))
+  const en = makeEnv().run().__test
+  const fr = makeEnv({ lang: 'fr' }).run().__test
+  assert.ok(en.LEAD().startsWith('Talk live to your assistant') && en.LEAD().endsWith('see Voice.'))
+  assert.ok(fr.LEAD().startsWith('Parler en direct à ton assistant') && fr.LEAD().endsWith('voir Voix.'))
+  for (const id of ['overview', 'providers', 'health']) {
+    const card = en.HelpBox({ open: true, id, lead: en.LEAD(), lines: en.HELP()[id] })
+    const first = card.children[0]
+    assert.ok(card.props['data-help'] === id && first.props.className === 'kbcl-helplead' && first.children === en.LEAD(), 'the « ' + id + ' » card opens with the description')
+    assert.equal(card.children.length, 1 + en.HELP()[id].length, 'and keeps its own lines after it')
+  }
+  assert.equal(en.HelpBox({ open: false, id: 'overview', lead: en.LEAD(), lines: en.HELP().overview }), null, 'closed: nothing is drawn')
+  ok('the « ? » card of every tab opens with the page description (same lead on each tab, French twin kept), and the title row no longer carries it')
+}
+
 console.log('kybernos-call: the plugin object and the seam')
 {
   const e = makeEnv()

@@ -1618,6 +1618,23 @@ if (React === null) {
   const text = (html) => html.replace(/<[^>]+>/g, '|').replace(/\|+/g, '|')
 
   const simple = render({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
+  {
+    // The page's description lives in the « ? » card: with the Suite it is passed to Help as `lead` (and the title as `title`) and not drawn under the title; without the Suite it is drawn as before.
+    const LEAD_FR = 'Personnalise l’apparence de Kybernos : clique sur ce que tu veux changer dans la fenêtre ci-dessous. Tous les réglages restent dans l’éditeur avancé.'
+    const LEAD_EN = 'Customize the look of Kybernos: click what you want to change in the window below. Every setting stays in the advanced editor.'
+    check('without the Suite the description is still drawn under the title', simple.includes('<div class="kbth-title">Thème</div><div class="kbth-sub">' + LEAD_FR + '</div>'))
+    let def3
+    const suiteWin = { __ModuleLoader__: { load: (d) => { def3 = d } }, __KB_LANG_RESOLVE__: () => LANG, __KB_HELP__: { Help: (p) => React.createElement('i', { 'data-help-id': p.id, 'data-lead': p.lead, 'data-title': p.title }) } }
+    new Function('window', SOURCE)(suiteWin)
+    const withSuite = (state) => { reset(); steer.essentiel = 'essentiel'; store.set(real.STORE_KEY, JSON.stringify(state)); return renderToStaticMarkup(React.createElement(def3.factory(() => reactFor).__test.Page, { ctx: mkCtx({ pref: state.mode }).ctx })) }
+    const suite = withSuite({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
+    check('with the Suite the page passes its description to Help as `lead`, and its title', suite.includes('data-help-id="kybernos-theme"') && suite.includes('data-lead="' + LEAD_FR + '"') && suite.includes('data-title="Thème"'), suite.slice(0, 400))
+    check('...and no longer draws the same text under the title', !suite.includes('class="kbth-sub"') && suite.includes('<div class="kbth-title">Thème</div>'))
+    LANG = 'en'
+    const suiteEn = withSuite({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
+    LANG = 'kybernos'
+    check('...in English too (lead and title)', suiteEn.includes('data-lead="' + LEAD_EN + '"') && suiteEn.includes('data-title="Theme"'))
+  }
   check('the page opens on Essentiel and renders the 18 shipped theme dots', (simple.match(/class="kbth-skin"/g) || []).length === 18, (simple.match(/class="kbth-skin"/g) || []).length)
   check('...marks exactly the current theme as pressed', (simple.match(/class="kbth-skin" aria-pressed="true"/g) || []).length === 1 && /aria-pressed="true"[^>]*title="Bleu profond/.test(simple))
   // The mode is set HERE, on three cards (the Appearance page that held them is gone): Light, Dark, System; the current one is checked and says so.

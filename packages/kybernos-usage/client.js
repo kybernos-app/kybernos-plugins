@@ -868,13 +868,15 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           ? h('div', { className: 'kbus-banner', role: 'status' }, h('span', null, L('budgetOver', { spent: fmtMoney(monthSpent), b: fmtMoney(b) })))
           : (b !== null && b > 0 && budget.alert && used >= 0.8 ? h('div', { className: 'kbus-banner', role: 'status' }, h('span', null, L('budgetNear', { pct: fmtPct(used) }))) : null)
 
+        // The page's two description paragraphs live in the « ? » card (the Suite's Help takes them as `lead`); only without the Suite are they drawn under the title.
+        const leadFallback = (cls, text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', { className: cls }, text) } catch (e) { return h('p', { className: cls }, text) } }
         return h('div', { className: 'kbus-page', 'data-kb': 'kybernos-usage-page' },
           h('div', { className: 'kbus-titlerow' },
             h('h2', null, L('pageName')),
             // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
-            typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-usage' }) : null),
-          h('p', { className: 'kbus-lead' }, L('pageLead')),
-          h('p', { className: 'kbus-lead kbus-for' }, L('pageFor')),
+            typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-usage', lead: [L('pageLead'), L('pageFor')], title: L('pageName') }) : null),
+          leadFallback('kbus-lead', L('pageLead')),
+          leadFallback('kbus-lead kbus-for', L('pageFor')),
           overBanner,
           h('div', { className: 'kbus-sec' }, h('h3', null, L('planSec'), h('small', null, L('planSecSub'))), planCard()),
           h('div', { className: 'kbus-sec' },

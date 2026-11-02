@@ -207,11 +207,11 @@ plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name
 } } : undefined) })
 if (Screen === null) { console.log('  ✗ the screen was not registered'); process.exit(1) }
 
-const open = async (w, lang) => {
+const open = async (w, lang, extra) => {
   // the page reads the language Kybernos resolved (window.__KB_LANG_RESOLVE__), not a storage key
   globalThis.window.__KB_LANG_RESOLVE__ = () => lang || 'en'
   globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
-  const root = mount(React.createElement(Screen, { sessionId: '' }))
+  const root = mount(React.createElement(Screen, Object.assign({ sessionId: '' }, extra || {})))
   await root.settle()
   return root
 }
@@ -443,6 +443,65 @@ console.log('The first-visit animation and the help button (V-05, V-33)')
   } finally { delete globalThis.window.__KB_HELP__ }
 }
 
+
+console.log('The description of a page is the first line of the « ? » card, not a line under the title')
+{
+  const asked = []
+  const Help = (props) => { asked.push({ id: props.id, page: props.page, lead: props.lead, title: props.title }); return React.createElement('span', { 'data-kb': 'stub-help', 'data-id': props.id }) }
+  const last = () => asked[asked.length - 1]
+  const subs = (root) => all(root, (n) => hasClass(n, 'kb8-sub') || hasClass(n, 'kbs-sub') || hasClass(n, 'kbss-lead')).map((n) => textOf(n).trim())
+  const FEATURED = 'Picked by Kybernos: each one installs in one click and shows what its security audits said.'
+  const TEAM = 'Skills your team approved, shared with every member of Team Alpha.'
+  const pick = (id) => ({ id, source: 'anthropics/skills', category: 'Data', title: { en: 'Title of ' + id, fr: 'Titre de ' + id }, outcome: { en: 'Outcome of ' + id, fr: 'Résultat de ' + id }, prompt: { en: 'Try ' + id, fr: 'Essaie ' + id }, needs: null, installs: 10, audits: [['Socket', 'pass', 'SAFE']], cover: null })
+  const richWorld = () => {
+    const w = world()
+    w.answers['GET /kybernos-skills/picks'] = { ok: true, asOf: '2026-10-15', categories: ['Data'], items: [pick('sql-queries')] }
+    w.answers['GET /kybernos-cloud/team/skills'] = { ok: true, role: 'admin', view: 'approved', counts: { approved: 0, pending: 0 }, workspaceName: 'Team Alpha', skills: [] }
+    return w
+  }
+  // the header of the Kybernos shell (the shared bar: `kb8-sub`) and the bundle on its own (`kbs-sub`) both follow the same rule
+  for (const withBar of [true, false]) {
+    const tag = withBar ? 'with the shared bar: ' : 'on its own: '
+    const extra = withBar ? { toolbar: { KbToolbar: () => null } } : undefined
+    globalThis.window.__KB_HELP__ = { version: 1, Help }
+    try {
+      const root = await open(richWorld(), 'en', extra)
+      check(tag + 'Featured gives its description to the « ? » card as `lead`, with the page name as `title`, and draws no line under the title', last().id === 'kybernos-skills' && last().lead === FEATURED && last().title === 'Skills' && subs(root).length === 0, JSON.stringify({ asked: last(), subs: subs(root) }))
+      await tab(root, 'Yours')
+      check(tag + 'Yours keeps its live count on the page (it is a status, not a description) and has no lead', last().lead === undefined && subs(root).length === 1 && /installed in this profile · \d+ of \d+ active/.test(subs(root)[0]), JSON.stringify({ asked: last(), subs: subs(root) }))
+      await tab(root, 'Discover')
+      check(tag + 'Discover keeps its ranking sentence on the page and has no lead', last().lead === undefined && subs(root).length === 1 && subs(root)[0].startsWith('skills.sh index'), JSON.stringify({ asked: last(), subs: subs(root) }))
+      await tab(root, 'Team')
+      check(tag + 'Team gives what it is for to the card as `lead` and draws no line under the title', last().lead === TEAM && subs(root).length === 0, JSON.stringify({ asked: last(), subs: subs(root) }))
+      await tab(root, 'Featured')
+      check(tag + 'and the lead follows the tab back to Featured', last().lead === FEATURED && subs(root).length === 0, JSON.stringify({ asked: last(), subs: subs(root) }))
+    } finally { delete globalThis.window.__KB_HELP__ }
+    // no Suite: no « ? » card, so the description stays under the title, tab by tab, as it always was
+    const bare = await open(richWorld(), 'en', extra)
+    check(tag + 'without the Suite, Featured keeps its description under the title', subs(bare).length === 1 && subs(bare)[0] === FEATURED, subs(bare))
+    await tab(bare, 'Team')
+    check(tag + 'without the Suite, Team keeps its description under the title', subs(bare).length === 1 && subs(bare)[0] === TEAM, subs(bare))
+    await tab(bare, 'Yours')
+    check(tag + 'without the Suite, Yours keeps its count', subs(bare).length === 1 && /installed in this profile/.test(subs(bare)[0]), subs(bare))
+  }
+  // Settings › Skills
+  globalThis.window.__KB_HELP__ = { version: 1, Help }
+  try {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+    const w = world()
+    globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
+    const root = mount(React.createElement(SettingsScreen, {}))
+    await root.settle()
+    check('Settings › Skills gives its description to the card of its page as `lead`, with its title, and draws no line under it', last().id === 'kybernos-skills' && last().page === 'skills' && last().lead === 'Where this profile’s skills come from: the index source (Discover) and the folders installs are written to.' && last().title === 'Skills' && subs(root).length === 0, JSON.stringify({ asked: last(), subs: subs(root) }))
+  } finally { delete globalThis.window.__KB_HELP__ }
+  {
+    const w = world()
+    globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
+    const root = mount(React.createElement(SettingsScreen, {}))
+    await root.settle()
+    check('Settings › Skills without the Suite keeps the line under its title', subs(root).length === 1 && subs(root)[0].startsWith('Where this profile’s skills come from'), subs(root))
+  }
+}
 
 console.log('The help mock is an example, not a real skill (C-05)')
 {
@@ -1156,6 +1215,20 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
     check('without Search everywhere the page says Kaby cannot notice anything, and the list says it has nothing', part(root, 'learned-noindex').includes('Search everywhere is not loaded') && part(root, 'learned-patterns').includes('Nothing yet'))
     const fr = await mount2(setWorld(), LearnedSettingsScreen, {}, 'fr')
     check('in French', part(fr, 'learned-repeat-card').includes('Tâches que tu répètes') && part(fr, 'learned-week-card').includes('Carte hebdomadaire') && part(fr, 'learned-team-card').includes('Partage avec l’équipe'))
+  }
+  // Settings › Learned skills: the description is the first line of the « ? » card of its page
+  {
+    const learnedLines = (r) => all(r, (n) => hasClass(n, 'kbss-lead')).map((n) => textOf(n).trim())
+    const LEAD = 'Kaby suggests skills from your work. Here you choose what it may do on its own.'
+    const askedL = []
+    globalThis.window.__KB_HELP__ = { version: 1, Help: (props) => { askedL.push({ id: props.id, page: props.page, lead: props.lead, title: props.title }); return React.createElement('span', { 'data-kb': 'stub-help' }) } }
+    try {
+      const root = await mount2(setWorld(), LearnedSettingsScreen, {})
+      const a = askedL[askedL.length - 1]
+      check('Settings › Learned skills gives its description to the card of its page as `lead`, with its title, and draws no line under the title', a !== undefined && a.id === 'kybernos-skills' && a.page === 'learned' && a.lead === LEAD && a.title === 'Learned skills' && learnedLines(root).length === 0, JSON.stringify({ a, lines: learnedLines(root) }))
+    } finally { delete globalThis.window.__KB_HELP__ }
+    const bare = await mount2(setWorld(), LearnedSettingsScreen, {})
+    check('Settings › Learned skills without the Suite keeps the line under its title', learnedLines(bare).length === 1 && learnedLines(bare)[0] === LEAD, learnedLines(bare))
   }
 }
 

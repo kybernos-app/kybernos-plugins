@@ -40,6 +40,8 @@ window.__ModuleLoader__.load({
         } catch (e) { /* no dictionary: English */ }
         return en
       }
+      /** The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title. */
+      const subFallback = (text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('div', { className: 'kbth-sub' }, text) } catch (e) { return h('div', { className: 'kbth-sub' }, text) } }
       /** A decimal number in the number format of the page: a comma for French, a point for every other language. */
       const frPage = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' }
       const knum = (x, digits) => { const s = Number(x).toFixed(digits); return frPage() ? s.replace('.', ',') : s }
@@ -4877,16 +4879,17 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         const studioEl = StBoundary !== null ? h(StBoundary, { onFail: () => setClassicOpen(true) }, h(Studio, studioProps)) : h(Studio, studioProps)
 
         // ── assembly — a single column (the side preview has been removed) ────────
+        const pageTitle = kt('Thème', 'Theme')
+        const pageLead = kt('Personnalise l’apparence de Kybernos : clique sur ce que tu veux changer dans la fenêtre ci-dessous. Tous les réglages restent dans l’éditeur avancé.', 'Customize the look of Kybernos: click what you want to change in the window below. Every setting stays in the advanced editor.')
         return h(React.Fragment, null,
           saveModal,
           h('div', { className: 'kbth-page' },
             // Colonne principale
             h('div', { className: 'kbth-main' },
               h('div', { className: 'kbth-head' },
-                h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '6px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme' }) : null)),
-                h('div', { className: 'kbth-title' }, kt('Thème', 'Theme')),
-                h('div', { className: 'kbth-sub' },
-                  kt('Personnalise l’apparence de Kybernos : clique sur ce que tu veux changer dans la fenêtre ci-dessous. Tous les réglages restent dans l’éditeur avancé.', 'Customize the look of Kybernos: click what you want to change in the window below. Every setting stays in the advanced editor.'))),
+                h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '6px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme', lead: pageLead, title: pageTitle }) : null)),
+                h('div', { className: 'kbth-title' }, pageTitle),
+                subFallback(pageLead)),
               conflictNote,
               studioEl,
               h('details', { className: 'kbth-st-classic', 'data-kb': 'theme-classic', open: classicOpen, onToggle: (e) => { const open = e.currentTarget.open; setClassicOpen((was) => (was === open ? was : open)) } },

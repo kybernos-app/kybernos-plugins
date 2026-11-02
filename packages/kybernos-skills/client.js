@@ -35,6 +35,9 @@ window.__ModuleLoader__.load({
       const h = React.createElement
       // createPortal lives in react-dom (a window drawn ahead of the Settings dialog); without it the window is drawn where it is asked for.
       const ReactDOM = (() => { try { return require('react-dom') } catch (e) { return null } })()
+      // A page's own description is the first line of the Suite's « ? » card (`lead`). Where the Suite is not there, it stays under the title, as it always was.
+      const kbHelpHere = () => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? true : false } catch (e) { return false } }
+      const kbSubFallback = (cls, text) => (kbHelpHere() || !text ? null : h('p', { className: cls }, text))
 
       // ── icons: Lucide paths verbatim from maquette.html:223-248 ─────────────
       const PATHS = {
@@ -3575,11 +3578,15 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
 
         // (1 Oct) Same header as "Connections": title + subtitle on the left, main action on the right, then a
         // control row (sub-tabs on the left, search / filter / sort on the right).
-        const capTxt = mode === 'featured'
+        // What a tab is for (Featured, Team) is the first line of the « ? » card (`capLead`); the live lines stay on the page (`capLive`: the counts of Yours, the search / ranking sentence of Discover).
+        const capLead = mode === 'featured'
           ? t('cap.featured')
-          : mode === 'yours'
+          : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : '')
+        const capLive = mode === 'yours'
           ? t('cap.yours', { a: activeCount, n: skills.length }) + (learned.proposals.length > 0 ? ' · ' + t('ln.cap', { n: learned.proposals.length }) : '')
-          : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank')))
+          : (mode === 'discover' ? (discKind === 'search' ? t('cap.search') : t('cap.rank')) : '')
+        // Under the title: only the live line; with no Suite (no « ? » card) the whole old line, as it always was.
+        const capTxt = kbHelpHere() ? capLive : (capLead !== '' ? capLead : capLive)
         // The shared bar (search, filter, order, and the primary action as its trailing item) sits in the header row, where Agent
         // Teams, Creations, Automations, Workspaces and Connectors put it. The page receives it as props from kybernos-plugin (a
         // bundle cannot see KbToolbar); mounted alone, it keeps its own controls on the tabs' row, as before.
@@ -3669,7 +3676,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         const teamAction = primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus')
         const journalBtn = mode === 'yours' && learned.phase === 'ready' ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-journal-btn', 'aria-pressed': journalOpen ? 'true' : 'false', onClick: () => { setJournalOpen((v) => !v); setReview(null); setLocal(null) } }, icon('file', 15), h('span', null, t('ln.j.btn'))) : null
         const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : (journalBtn === null ? renderAdd() : h(React.Fragment, null, journalBtn, renderAdd()))
-        const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)
+        const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', lead: capLead !== '' ? capLead : undefined, title: pageTitle() }) : null)
         // The animated help: opens the first time the page is visited (the hub remembers it was closed), and the card of the button above can bring it back.
         const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
           ? h(window.__KB_HELP__.Intro, {
@@ -3685,7 +3692,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             ? h('div', { className: 'kb6-headrow' },
               h('div', { className: 'kb6-headcol' },
                 h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, pageTitle()), helpBtn),
-                h('p', { className: 'kb8-sub', title: capTxt }, capTxt)),
+                capTxt !== '' ? h('p', { className: 'kb8-sub', title: capTxt }, capTxt) : null),
               barShown === true
                 ? h(KbBar, {
                   state: barState(),
@@ -3706,7 +3713,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               h('div', { className: 'kbs-top-txt' },
                 h('div', { className: 'kbhp-row' }, helpBtn),
                 h('h2', { className: 'kbs-h1' }, pageTitle()),
-                h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
+                capTxt !== '' ? h('p', { className: 'kbs-sub', title: capTxt }, capTxt) : null),
               mode !== 'team' ? headAction : null),
           introNode,
           h('div', { className: 'kbs-ctlrow' },
@@ -4109,8 +4116,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' },
           h('div', { className: 'kbss-headrow' },
             h('h2', { className: 'kbss-h1' }, t('ls.h1')),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'learned' }) : null)),
-          h('p', { className: 'kbss-lead' }, t('ls.lead')),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'learned', lead: t('ls.lead'), title: t('ls.h1') }) : null)),
+          kbSubFallback('kbss-lead', t('ls.lead')),
           h('p', { className: 'kbss-sub' }, h('button', { type: 'button', className: 'kbss-link', 'data-kb': 'settings-journal', onClick: () => kbOpenSkills('kybernos.skills.journal', '1') }, t('ls.audit.open'))),
           s.breaker !== null ? h('div', { className: 'kbl-lock', 'data-kb': 'learned-breaker' }, icon('alert', 14), h('span', null, t('ls.breaker'))) : null,
           h('div', { className: 'kbss-card' },
@@ -5138,8 +5145,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         return h('div', { className: 'kbss-page', 'data-kb': 'kybernos-skills-settings' },
           h('div', { className: 'kbss-headrow' },
             h('h2', { className: 'kbss-h1' }, t('set.h1')),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'skills' }) : null)),
-          h('p', { className: 'kbss-lead' }, t('set.lead')),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'skills', lead: t('set.lead'), title: t('set.h1') }) : null)),
+          kbSubFallback('kbss-lead', t('set.lead')),
           sourceCard(),
           rootsCard(),
           countsCard())

@@ -48,6 +48,8 @@ window.__ModuleLoader__.load({
       return (lang() === 'fr' ? fr : en)
     }
     const tx = (pair) => (pair !== null && typeof pair === 'object' ? (pair[lang()] || pair.en || '') : String(pair ?? ''))
+    // True where the Suite's « ? » card (window.__KB_HELP__.Help) does not exist: only then is the page's description drawn under its title (it lives in the card otherwise). Read at render time, never at load.
+    const helpAbsent = () => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } }
 
     // ── pure helpers (tested without a browser) ─────────────────────────────────────────────────────────────────────────
     const nameText = (code) => ({
@@ -953,10 +955,12 @@ const readWake = async () => {
           ])
         ]))
 
+        // The page's description lives in the « ? » card of the Suite's Help (its `lead`); it is drawn under the title only where that Help does not exist (no Suite).
+        const lead = kt('Comment ton assistant est et parle, où il travaille, ce qu’il peut faire sans te demander et quand il se réveille. Ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds, where it works, what it may do without asking and when it wakes up. Its rules and its memory do not change here.')
         return h('div', { className: 'kbkc', 'data-kb': 'kaby-custom-page' }, h('div', { className: 'kbkc-page' }, [
           h('div', { key: 'hd' }, [
-            h('div', { key: 't', className: 'kbkc-titlerow' }, [h('h4', { key: 'h' }, 'Kaby'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { key: 'help', id: 'kybernos-kaby-customisation', page: 'kaby' }) : null]),
-            h('p', { key: 'p', className: 'kbkc-lead' }, kt('Comment ton assistant est et parle, où il travaille, ce qu’il peut faire sans te demander et quand il se réveille. Ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds, where it works, what it may do without asking and when it wakes up. Its rules and its memory do not change here.'))
+            h('div', { key: 't', className: 'kbkc-titlerow' }, [h('h4', { key: 'h' }, 'Kaby'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-kaby-customisation', page: 'kaby', lead: lead, title: 'Kaby', key: 'help' }) : null]),
+            helpAbsent() ? h('p', { key: 'p', className: 'kbkc-lead' }, lead) : null
           ]),
           identity, voiceBlock, faceBlock, h(WhereCard, { key: 'where' }), h(MandateCard, { key: 'mandate' }), h(WakeCard, { key: 'wake' }), customWindow
         ]))
