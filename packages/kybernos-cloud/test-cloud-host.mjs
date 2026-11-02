@@ -741,6 +741,8 @@ try {
     '/kybernos-cloud/computer/claimed', '/kybernos-cloud/computer/route',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
     '/kybernos-cloud/plans', '/kybernos-cloud/plans/quote', '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal',
+    // A team's own DSH (team-instances.mjs; test-team-instances.mjs holds its rules).
+    '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/team-dsh/stop', '/kybernos-cloud/team-dsh/list', '/kybernos-cloud/team-dsh/personal',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)

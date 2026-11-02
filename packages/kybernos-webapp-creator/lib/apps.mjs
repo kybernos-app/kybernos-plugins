@@ -4,8 +4,8 @@
 // `webapp.json` brief. The folder name IS the slug. Discovery is tolerant by design: a folder
 // without a brief is not an app, and a broken brief is skipped and reported, never thrown.
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { dshHome } from '../session-guard.mjs'
 
 export const WEBAPP_JSON_MAX = 64 * 1024
 export const RESERVED_SLUGS = ['www', 'api', 'app', 'kaby', 'admin', 'mail', 'static', 'help', 'skills', 'me', 'dashboard', 'login']
@@ -20,7 +20,7 @@ export function validateSlug (slug) {
   return { ok: true }
 }
 
-export const appsRoot = () => join(homedir(), '.dsh', 'kybers')
+export const appsRoot = () => join(dshHome(), 'kybers')
 
 /** Bounded read of one webapp.json. Returns { ok, app } or { ok: false, error }. */
 export function readWebappJson (dir) {

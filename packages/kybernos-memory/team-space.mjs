@@ -24,6 +24,20 @@ export const inTeamSpace = (host = globalThis) => {
   }
 }
 
+/** Are the person's LOCAL lessons cut? In a team space, yes, except in a team's own DSH (`seam.ownHome()`): its home was made for that team and holds that team's lessons alone, and its model
+ *  route is the team's, so nothing of the person's own is there to protect. The account's memory and the side doors (`inTeamSpace`) stay cut there. Same fail-closed rule as above. */
+export const lessonsCut = (host = globalThis) => {
+  try {
+    const seam = host[SPACE_SEAM]
+    if (seam === undefined || seam === null) return false
+    if (typeof seam.isTeam === 'function' && seam.isTeam() === false) return false
+    if (typeof seam.ownHome === 'function' && seam.ownHome() === true) return false
+    return true
+  } catch (e) {
+    return true
+  }
+}
+
 // What a call names when it reaches the person's memory by the side door. Matched against the call's arguments as text, whatever the tool (a shell
 // command, a file path, a URL): the lessons CLI, the lessons files, the account's state and settings files, and the loopback routes of the pages.
 const SIDE_DOORS = [

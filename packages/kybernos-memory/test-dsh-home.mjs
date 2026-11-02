@@ -149,6 +149,12 @@ try {
   assert.equal(readFileSync(join(iso.dshHome, 'kybers', 'real-kyber', 'memory', 'lessons.jsonl'), 'utf8').includes('a new real lesson'), true)
   ok('a new lesson is written under $DSH_HOME/kybers')
 
+  const claudeImport = await import('./claude-import.mjs')
+  claudeImport.writeStaging({ version: 1, entries: [{ status: 'active', content: 'x' }] })
+  assert.equal(existsSync(join(iso.dshHome, 'kybernos', 'claude-import-staging.json')), true, 'the import staging file must be written under DSH_HOME')
+  assert.equal(claudeImport.readStaging().entries.length, 1)
+  ok('the Claude import staging file lives under $DSH_HOME/kybernos')
+
   iso.assertDecoyUntouched('the memory bundle')
   ok('nothing was read or written under <HOME>/.dsh (canaries and listing unchanged)')
 

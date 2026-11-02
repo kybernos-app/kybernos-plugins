@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { monterRoutes } from './index.js'
+import { hoteOf } from './cli/auto-router.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 let pass = 0
@@ -55,6 +56,16 @@ j = JSON.parse(r.out)
 check('host unreachable: "Auto off", delegate as usual, and it says why', r.code === 0 && j.actif === false && j.sonde === 'hote-injoignable', j)
 r = await cli([])
 check('no request: no output, no crash', r.code === 0 && r.out === '')
+
+// Which DSH the command talks to: a team's own DSH has another port than 3080.
+check('host: nothing set, the default DSH', hoteOf({}) === 'http://127.0.0.1:3080')
+check('host: DSH_WEB_PORT, the DSH the command runs under', hoteOf({ DSH_WEB_PORT: '3301' }) === 'http://127.0.0.1:3301')
+check('host: KB_AUTO_HOST wins, a trailing slash is dropped', hoteOf({ KB_AUTO_HOST: 'http://127.0.0.1:9000/', DSH_WEB_PORT: '3301' }) === 'http://127.0.0.1:9000')
+check('host: an invalid port falls back to the default', ['', 'abc', '0', '70000', '33.5', '-1'].every((p) => hoteOf({ DSH_WEB_PORT: p }) === 'http://127.0.0.1:3080'))
+check('host: an empty KB_AUTO_HOST does not count', hoteOf({ KB_AUTO_HOST: '  ', DSH_WEB_PORT: '3302' }) === 'http://127.0.0.1:3302')
+r = await cli([DEMANDE], { KB_AUTO_HOST: '', DSH_WEB_PORT: String(server.address().port) })
+j = JSON.parse(r.out)
+check('the command, run under a DSH on another port, asks that DSH', j.actif === true && j.modele !== undefined, j)
 server.close()
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
