@@ -76,20 +76,6 @@ const kbFenced = (service) => {
   return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
-const sameOrigin = (req) => {
-  try {
-    const origin = req.headers && typeof req.headers.origin === 'string' ? req.headers.origin : ''
-    if (origin === '') return true
-    const u = new URL(origin)
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
-    // A real connection: the origin is compared with what THIS listener really is (the socket's port), never with the client-supplied Host header
-    // alone (a page that rebinds its own name sends the same authority as Host and as Origin). No socket = a synthetic caller (a test).
-    if (sock === null || typeof sock.localPort !== 'number') return typeof req.headers.host === 'string' && u.host === req.headers.host
-    const port = ':' + sock.localPort
-    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
-  } catch (e) { return false }
-}
 
 const readJsonBody = async (req, maxBytes) => {
   const cap = typeof maxBytes === 'number' ? maxBytes : 262144

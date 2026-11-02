@@ -9,7 +9,6 @@
 import { encodeQr } from './qr.mjs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const BOT = /^[A-Za-z0-9_]{3,64}$/
 const START = /^https:\/\/t\.me\/([A-Za-z0-9_]{3,64})\?start=pair_[a-z0-9]{8,64}$/
 /** WhatsApp's pairing link (ADR 0053 § 13.8): the Kybernos number's wa.me address with the pairing message already typed. */
 const WA_START = /^https:\/\/wa\.me\/(\d{5,20})\?text=pair_[a-z0-9]{8,64}$/

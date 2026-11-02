@@ -2,9 +2,8 @@
 // store.) A ledger file of the DSH home, written atomically with mode 0600, one writer at a time. Nothing here applies anything: the page reads the ledger, shows a dashed
 // card with Add / Edit / Discard, and Add goes through the page's own save (the memory route, the instructions' Save). The text is written by a model that read e-mail, so a
 // text with an address, a phone number or a secret-looking link is refused here, at the door.
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
 import { randomBytes } from 'node:crypto'
+import { makeLedgerFile } from './ledger-file.mjs'
 
 export const KINDS = ['instructions', 'memory']
 /** The longest text of a suggestion, and how many of a kind wait at once (a new instruction suggestion replaces the older one). */
@@ -31,17 +30,7 @@ const valid = (i) => i !== null && typeof i === 'object' && typeof i.id === 'str
 
 /** The ledger of one DSH home. `file` is the whole path; `now` and `newId` are injected for the tests. */
 export const makeLedger = ({ file, now = () => new Date().toISOString(), newId = () => 's_' + randomBytes(5).toString('hex') }) => {
-  let chain = Promise.resolve()
-  const read = () => {
-    try { const j = JSON.parse(readFileSync(file, 'utf8')); return Array.isArray(j.items) ? j.items.filter(valid) : [] } catch (e) { return [] }
-  }
-  const write = (items) => {
-    mkdirSync(dirname(file), { recursive: true })
-    const tmp = file + '.tmp-' + process.pid
-    writeFileSync(tmp, JSON.stringify({ version: 1, items }, null, 2), { mode: 0o600 })
-    renameSync(tmp, file)
-  }
-  const serial = (fn) => { const run = chain.then(fn, fn); chain = run.then(() => null, () => null); return run }
+  const { read, write, serial } = makeLedgerFile({ file, valid })
   return {
     list: (kind) => read().filter((i) => kind === undefined || kind === null || i.kind === kind),
     add: (kind, raw) => serial(async () => {

@@ -63,7 +63,7 @@
 //   each frozen { version: 1, enabled(), revision(), scanAndClean(options) }.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { closeSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'

@@ -2,7 +2,7 @@
 // built WITHOUT secrets. This is the locally provable half of the cloud batch (the Fly provisioning
 // consumes it later): what goes in, what must never go in, and that the copy is faithful.
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { cpSync } from 'node:fs'
 

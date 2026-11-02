@@ -52,7 +52,6 @@ export const skillSlug = (name, taken) => {
   return null
 }
 
-const yamlText = (s) => JSON.stringify(String(s))
 
 /**
  * The parts of the skill of an automation: its text as the procedure, with where it came from. The webhook, the history and the

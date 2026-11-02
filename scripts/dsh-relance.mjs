@@ -58,7 +58,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 // The portable layer: finding the server and reading its command line no
 // longer go through hard-coded `lsof`/`ps` (absent on Windows).
-import { pidSurPortSync, commandeProcessusSync, demarrageProcessusSync, famille, nomSuperviseur } from './plateforme.mjs'
+import { pidSurPortSync, commandeProcessusSync } from './plateforme.mjs'
 
 const SELF = fileURLToPath(import.meta.url)
 const HOME = process.env.DSH_HOME || join(homedir(), '.dsh')

@@ -349,32 +349,6 @@ export const construireManifestSatellite = ({ liste, lire, version, plateforme, 
   return m
 }
 
-/**
- * Activation verdict: what is shipped vs. what is activated.
- * A satellite `obligatoire: true` that is absent = ERROR (the master needs it).
- * A satellite `obligatoire: false` that is absent = WARNING (switched off, normal).
- */
-export const verifierSatellite = ({ manifeste, actives = [] }) => {
-  const problemes = []
-  const avertissements = []
-  const actifs = new Set(actives)
-  for (const s of (manifeste.socle?.bundles ?? [])) {
-    if (s.obligatoire !== true) continue
-    if (!actifs.has(s.nom)) {
-      problemes.push({ type: 'socle_absent', nom: s.nom, raison: 'mandatory but missing from the activation' })
-    }
-  }
-  for (const s of (manifeste.satellites?.bundles ?? [])) {
-    if (!actifs.has(s.nom)) {
-      if (s.obligatoire === true) {
-        problemes.push({ type: 'satellite_obligatoire_absent', nom: s.nom, raison: 'mandatory but missing' })
-      } else {
-        avertissements.push({ type: 'satellite_desactive', nom: s.nom, raison: 'switched off — normal for an optional satellite' })
-      }
-    }
-  }
-  return { ok: problemes.length === 0, problemes, avertissements, actives: [...actifs] }
-}
 // Importing it from a test must NOT trigger the CLI. We compare the ABSOLUTE
 // path of the running script with that of THIS module — not just its base name,
 // otherwise a test named paquet.mjs would trigger the CLI too.

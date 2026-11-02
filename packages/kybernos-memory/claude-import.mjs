@@ -3,7 +3,7 @@
 // Kybernos memory entries in staging, deduplicates against existing lessons.
 // Source Claude files are NEVER modified.
 
-import { readdirSync, readFileSync, statSync, existsSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
 import { homedir } from 'node:os'
 

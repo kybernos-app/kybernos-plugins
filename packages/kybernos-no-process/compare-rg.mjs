@@ -1,6 +1,6 @@
 // Runs the argv shapes of dsh-tool-fs-search through the real ripgrep and through rg.mjs on one fixture tree and compares the results.
-import { mkdtempSync, mkdirSync, writeFileSync, utimesSync, symlinkSync } from 'node:fs'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, writeFileSync, utimesSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import assert from 'node:assert/strict'
