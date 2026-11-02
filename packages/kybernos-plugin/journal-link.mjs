@@ -9,7 +9,7 @@
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { sessionKey } from './journal-seal.mjs'
-import { newPassword, sealText } from './vendor/share-seal.mjs'
+import { newPassword, sealText } from './vendored-share-seal.mjs'
 
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/u
 const MAX_LINKS = 500

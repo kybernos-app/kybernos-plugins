@@ -17,7 +17,7 @@ const { chromium } = createRequire(NM.endsWith('/') ? NM : NM + '/')('playwright
 const root = new URL('..', import.meta.url).pathname
 const { journalDocument, journalViewerHtml } = await import(root + 'packages/kybernos-plugin/journal-page.mjs')
 const { deriveStory } = await import(root + 'packages/kybernos-plugin/journal-story.mjs')
-const { sealText } = await import(root + 'packages/kybernos-plugin/vendor/share-seal.mjs')
+const { sealText } = await import(root + 'packages/kybernos-plugin/vendored-share-seal.mjs')
 
 const cache = join(process.env.HOME || '', 'Library', 'Caches', 'ms-playwright')
 const exe = process.env.PW_BIN || (existsSync(cache) ? (() => { const d = readdirSync(cache).filter((x) => x.startsWith('chromium_headless_shell-')).sort().pop(); if (!d) return undefined; const sub = readdirSync(join(cache, d)).find((x) => x.startsWith('chrome-')); const bin = sub ? join(cache, d, sub, 'chrome-headless-shell') : ''; return existsSync(bin) ? bin : undefined })() : undefined)

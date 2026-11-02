@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createJournalLinks, linksFile } from './journal-link.mjs'
-import { openSealed } from './vendor/share-seal.mjs'
+import { openSealed } from './vendored-share-seal.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }

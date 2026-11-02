@@ -17,7 +17,7 @@ server's `max_bytes` (1 000 000 by default) is refused by the plugin before send
 ## Protected links (password)
 
 Optional, and **on by default**. The document is sealed in the plugin with the code of the shared dashboards (`kybernos-db/share/seal.mjs`, vendored as
-`packages/kybernos-plugin/vendor/share-seal.mjs`, kept equal by `scripts/vendor-share.mjs`): PBKDF2-SHA256 (600 000 rounds) → AES-256-GCM. The server only ever holds the envelope
+`packages/kybernos-plugin/vendored-share-seal.mjs`, kept equal by `scripts/vendor-share.mjs`): PBKDF2-SHA256 (600 000 rounds) → AES-256-GCM. The server only ever holds the envelope
 `{ kind: "kybernos-snapshot", version: 1, sealed: true, kdf, cipher, data }` (the envelope's `kind` stays `kybernos-snapshot`, it is the same envelope as a dashboard's) and the page asks
 the reader for the password and opens it in their browser. The plugin makes the password (100 bits, shown once in the sheet) and keeps it only in its local record so that an update keeps
 the link AND the password the readers were given. With a sealed link the seals of the decisions are still checked in the reader's browser, after it opens.

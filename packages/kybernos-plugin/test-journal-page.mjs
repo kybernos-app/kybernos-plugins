@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import vm from 'node:vm'
 import { createRecorder, readDecisions } from './journal-decisions.mjs'
 import { DEFAULT_INCLUDE, LOCK_LABELS, journalDocument, journalPageHtml, journalViewerHtml, logoUri, pageFileName, resolveInclude, viewerCss, viewerScript } from './journal-page.mjs'
-import { sealText } from './vendor/share-seal.mjs'
+import { sealText } from './vendored-share-seal.mjs'
 import { loadSealKey, sealEvidence, verifyDecisions } from './journal-seal.mjs'
 import { deriveStory } from './journal-story.mjs'
 

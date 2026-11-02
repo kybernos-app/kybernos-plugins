@@ -18,7 +18,7 @@ import { createRecorder, readDecisions } from '../packages/kybernos-plugin/journ
 import { loadSealKey, sealEvidence, verifyDecisions } from '../packages/kybernos-plugin/journal-seal.mjs'
 import { journalDocument, journalPageHtml, pageFileName } from '../packages/kybernos-plugin/journal-page.mjs'
 import { createJournalLinks } from '../packages/kybernos-plugin/journal-link.mjs'
-import { openSealed } from '../packages/kybernos-plugin/vendor/share-seal.mjs'
+import { openSealed } from '../packages/kybernos-plugin/vendored-share-seal.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 

@@ -181,7 +181,7 @@ const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 /** JSON that sits in a `<script type="application/json">`: no `<` can end the element or open a comment. */
 const inertJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c')
 
-const SEAL_SOURCE = 'vendor/share-seal.mjs'
+const SEAL_SOURCE = 'vendored-share-seal.mjs'
 // The password-seal code of the shared dashboard (a vendored copy, kept equal by scripts/vendor-share.mjs), as plain script: no import or export, no whole-line comment.
 const sealSource = () => readFileSync(here(SEAL_SOURCE), 'utf8').split('\n').filter((line) => /^import\s.*from\s+'[^']+'\s*$/u.test(line) === false).map((line) => line.replace(/^export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)/u, '')).join('\n')
 
