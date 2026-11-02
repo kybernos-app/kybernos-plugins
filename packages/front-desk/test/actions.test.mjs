@@ -11,12 +11,14 @@ const calendar = () => createMemoryCalendar([{ id: 's1', date: '2026-11-10', tim
 
 test('the menu shows only what is on, at the visitor\'s level, with its port present', () => {
   const none = makeSvc({ guardrails: { actions: ALL } });
-  assert.deepEqual(none.actions.describe({ level: 1 }).map((t) => t.function.name).sort(), ['forget_visitor', 'leave_message', 'note_visitor', 'request_callback']);
+  assert.deepEqual(none.actions.describe({ level: 1 }).map((t) => t.function.name).sort(), ['forget_visitor', 'leave_message', 'note_visitor', 'report_unanswered', 'request_callback']);
   const full = makeSvc({ guardrails: { actions: ALL }, ports: { calendar: calendar(), orders: { lookup: () => null } } });
   assert.ok(full.actions.describe({ level: 1 }).every((t) => t.function.name !== 'order_status'));
   assert.ok(full.actions.describe({ level: 2 }).some((t) => t.function.name === 'order_status'));
   const off = makeSvc({ guardrails: { actions: { leave_message: 'off' } } });
   assert.ok(off.actions.describe({ level: 3 }).every((t) => t.function.name !== 'leave_message'));
+  // The internal tool cannot be switched off by a fiche, and it is not in the menu a fiche can configure.
+  assert.ok(off.actions.describe({ level: 1 }).some((t) => t.function.name === 'report_unanswered'));
 });
 
 test('every tool schema refuses unknown parameters', () => {

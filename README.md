@@ -81,6 +81,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-pulse`](packages/kybernos-pulse/README.md) | Pulse: tells you when an automation finished, failed or waits for you, in a floating window, a system banner and a badge, each with a link back to Kybernos; its own Settings page "Widget" |
 | [`kybernos-log`](packages/kybernos-log/README.md) | The activity log: what this machine sends out — model calls with their tokens, connectors, web search, tools and the calls nobody asked for — with family filters and a live tail, on its own Settings page "Activity log" |
 | [`kybernos-db`](packages/kybernos-db/README.md) | Tables: your own tables (tasks, customers, orders…) that Kaby builds, fills and queries from a sentence, and a page to see them as a table, a board, cards or a calendar |
+| [`kybernos-front-desk`](packages/kybernos-front-desk/README.md) | Front desk: the public assistant of a shop (a chat page, a site widget, Telegram) that runs as its own service on this computer; one page to set it up and run it, and a tool for Kaby to draft its fiche, with every change to what visitors see waiting for your approval |
 | [`kybernos-kaby-customisation`](packages/kybernos-kaby-customisation/README.md) | The Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys (face providers listed as soon) |
 | [`kybernos-kyber`](packages/kybernos-kyber/README.md) | Kaby: your assistant as a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on |
 | [`kybernos-multi-device`](packages/kybernos-multi-device/README.md) | Workspaces with or without a folder: Create offers a private folder in Documents/Kybernos, and Details shows where a workspace works, with a greyed preview of execution and devices |
@@ -124,6 +125,7 @@ None of these is a DSH bundle. All but the first are separate processes, with th
 - [`packages/messaging`](packages/messaging): a daemon bridging DSH and messaging apps (Telegram first). Run it with `npm run daemon` in that folder.
 - [`packages/kybernos-gate`](packages/kybernos-gate): the sign-in gate for a hosted DSH (see [Install on a server or with Docker](#install-on-a-server-or-with-docker)). Run it with `node bin/kybernos-gate.mjs`; it refuses to start without a password.
 - [`packages/front-desk`](packages/front-desk): "Accueil client", the public assistant of one shop on a public link (closed action menu, budget caps, anonymous chat, text inbox for the owner); running it on the cloud computer needs a Kybernos Computer Cloud subscription. Try it with `node bin/front-desk.mjs --dry-run --fiche examples/atelier-lune.json` in that folder.
+- [`packages/kybernos-front-desk`](packages/kybernos-front-desk): the DSH side of the front desk: starts and watches that service on the owner's computer, shows its Atelier and Inbox pages in a « Front desk » page, and gives Kaby a `front_desk` tool (draft, check, publish behind an approval card). Test it with `npm test` in that folder.
 
 ## Contributing
 

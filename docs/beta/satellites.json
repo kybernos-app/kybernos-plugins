@@ -495,6 +495,15 @@
         "role": "activity log: what this machine sent out (model calls, connectors, web search, tools and their results), filterable, with its cost",
         "poids_ko": 92,
         "defaut": "actif"
+      },
+      {
+        "dir": "kybernos-front-desk",
+        "nom": "@local/kybernos-front-desk",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "the public assistant of a shop (a chat page, a site widget, Telegram) that runs as its own service on this computer: you set it up and run it from one page, and Kaby drafts its fiche through a tool; every change to what visitors see waits for your approval",
+        "poids_ko": 900,
+        "lib_vendor": null
       }
     ]
   },
@@ -551,7 +560,8 @@
       "@local/kybernos-pulse",
       "@local/kybernos-log",
       "@local/kybernos-webapp-creator",
-      "@local/kybernos-db"
+      "@local/kybernos-db",
+      "@local/kybernos-front-desk"
     ]
   }
 }

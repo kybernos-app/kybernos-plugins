@@ -3017,6 +3017,55 @@
           "en": "Names, emails and phone numbers are protected: Kaby only sees a masked version and asks you before reading or writing them. A secret field is never shown to it."
         }
       }
+    },
+    {
+      "id": "kybernos-front-desk",
+      "nom": "@local/kybernos-front-desk",
+      "titre": "Front desk",
+      "glyphe": "desk",
+      "famille": "connect",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 900,
+      "promesse": {
+        "fr": "L’assistant public de ta boutique : page de chat, bulle pour ton site et Telegram, il répond avec ce que tu as validé. Il tourne sur cet ordinateur sous un plafond de dépense ; Kaby prépare, tu valides.",
+        "en": "The public assistant of your shop: a chat page, a widget for your site and Telegram, answering with what you checked. It runs on this computer under a spending cap; Kaby drafts, you approve."
+      },
+      "aide": {
+        "what": {
+          "fr": "Un assistant public pour ta boutique : tes visiteurs lui parlent sur un lien, sur ton site ou sur Telegram. Il répond avec ce que tu as validé, et tu peux prendre la main à tout moment.",
+          "en": "A public assistant for your shop: your visitors talk to it on a link, on your site or on Telegram. It answers with what you have checked, and you can step in at any time."
+        },
+        "steps": [
+          {
+            "fr": "Dans Réglages, donne-lui un modèle (adresse, nom, clé : la sienne, Kaby ne la voit pas), puis appuie sur Démarrer.",
+            "en": "In Setup, give it a model (address, name, key: its own, Kaby never sees it), then press Start."
+          },
+          {
+            "fr": "Dans Atelier, dis-lui ce qu’il sait et ce qu’il peut faire, ou demande à Kaby : rien ne change pour tes visiteurs avant ta validation.",
+            "en": "In Atelier, tell it what it knows and may do, or ask Kaby: nothing changes for your visitors before you approve."
+          },
+          {
+            "fr": "Copie le lien ou la bulle de chat pour ton site. Pour que tes visiteurs y accèdent, donne une adresse publique (domaine ou tunnel).",
+            "en": "Copy the link or the chat bubble for your site. For visitors to reach it, give a public address (a domain or a tunnel)."
+          },
+          {
+            "fr": "Dans Boîte, lis les conversations, réponds toi-même quand tu veux, et valide ce que l’assistant demande avant de le faire.",
+            "en": "In Inbox, read the conversations, answer yourself whenever you want, and approve what the assistant asks before it does it."
+          }
+        ],
+        "where": {
+          "fr": "Accueil client",
+          "en": "Front desk",
+          "page": true
+        },
+        "good": {
+          "fr": "Il ne fait que ce que tu as autorisé, sous un plafond de dépense. Kaby ne peut changer ni l’argent ni les limites : c’est toi. Il tourne sur cet ordinateur : DSH fermé, il ne répond pas.",
+          "en": "It only does what you allowed, under a spending cap. Kaby cannot change the money or the limits: that is you. It runs on this computer: with DSH closed, it does not answer."
+        }
+      }
     }
   ]
 }

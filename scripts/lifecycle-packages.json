@@ -200,6 +200,10 @@
     {
       "dir": "kybernos-db",
       "nom": "@local/kybernos-db"
+    },
+    {
+      "dir": "kybernos-front-desk",
+      "nom": "@local/kybernos-front-desk"
     }
   ]
 }

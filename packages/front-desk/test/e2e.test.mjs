@@ -95,7 +95,7 @@ test('the real command, a model over HTTP, a data folder and two restarts', asyn
   assert.match(first.body.messages[0].content, /Open every day/);
   assert.doesNotMatch(first.body.messages[0].content, /secret unvalidated|dailyCap|guardrails/i);
   assert.equal(first.body.messages.at(-1).content, '<visitor>When are you open?</visitor>');
-  assert.deepEqual(first.body.tools.map((t) => t.function.name).sort(), ['forget_visitor', 'leave_message', 'note_visitor']);
+  assert.deepEqual(first.body.tools.map((t) => t.function.name).sort(), ['forget_visitor', 'leave_message', 'note_visitor', 'report_unanswered']);
 
   // 2. a tool call goes through the closed menu and lands in the data folder
   const m = await (await svc.post('/c/e2e-shop/messages', { visitorId: VID, text: 'I have a message for the shop' })).json();

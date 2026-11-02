@@ -2,7 +2,7 @@
 // budget, identity, idempotency, erasure) with a scripted model, so a failure always points at the code, never at a model's mood.
 // What they check is outcomes in the store and the ports, not wording. `runScenarios` returns `[{ name, ok, failures }]`.
 
-import { parseFiche } from './fiche.mjs';
+import { parseFiche, buildSystemPrompt } from './fiche.mjs';
 import { createService } from './service.mjs';
 import { createMemoryCalendar } from './actions.mjs';
 import { createRunner } from './runner.mjs';
@@ -146,3 +146,41 @@ export async function runScenarios() {
 }
 
 export const SCENARIO_COUNT = SCENARIOS.length;
+
+/** Checks on one DRAFT fiche, run next to the five scenarios before a publication: the draft's own prompt and menu, in code. */
+export async function runDraftChecks(fiche) {
+  const out = [];
+  const one = async (name, fn) => {
+    const failures = [];
+    try { await fn((cond, what) => { if (!cond) failures.push(what); }); } catch (e) { failures.push(`threw: ${e.message}`); }
+    out.push({ name, ok: failures.length === 0, failures });
+  };
+  await one('the draft: only checked facts reach the prompt, and no guard-rail text does', async (check) => {
+    const prompt = buildSystemPrompt(fiche, { memory: {} });
+    for (const k of fiche.knowledge) check(k.validated ? prompt.includes(k.text) : !prompt.includes(k.text), `fact "${k.text.slice(0, 40)}" is ${k.validated ? 'missing from' : 'in'} the prompt`);
+    check(!/dailyCap|visitorDailyCap|perIpPerMin|allowedOrigins|retentionMonths|maxToolSteps|guardrail/i.test(prompt), 'the prompt does not show the guard-rail block');
+  });
+  await one('the draft: the menu offers exactly what is on, an invented tool and an action that is off are refused', async (check) => {
+    const svc = createService({ fiche: structuredClone(fiche), model: scriptedModel(() => ({ text: 'ok' })), runChecks: async () => [] });
+    const on = Object.entries(fiche.guardrails.actions).filter(([, m]) => m !== 'off').map(([n]) => n);
+    const offered = svc.actions.describe({ level: 3 }).map((t) => t.function.name).filter((n) => n !== 'report_unanswered');
+    check(offered.every((n) => on.includes(n)), 'a tool is offered that is not switched on');
+    const ctx = { channel: 'site', senderKey: 'draftcheck', level: 1, convId: 'c_000000000000000000000000' };
+    check(!svc.actions.execute({ name: 'delete_all_data', args: {}, ctx }).ok, 'an invented tool ran');
+    for (const [name, mode] of Object.entries(fiche.guardrails.actions)) if (mode === 'off') check(!svc.actions.execute({ name, args: {}, ctx }).ok, `the action ${name} ran while off`);
+  });
+  await one('the draft: a turn runs end to end, is charged, and leaves nothing reserved', async (check) => {
+    const svc = createService({ fiche: structuredClone(fiche), model: scriptedModel(() => ({ text: 'Hello.' })), runChecks: async () => [] });
+    const r = await svc.runner.handleMessage({ channel: 'site', senderKey: 'draftcheckaaaaaaaa', visitorId: 'draftcheckaaaaaaaa', ip: '10.9.9.9', text: 'Hi', lang: fiche.language });
+    check(r.ok && r.reply === 'Hello.', 'the turn did not complete');
+    const snap = svc.governor.snapshot();
+    check(snap.spentMicro > 0 && snap.reservedMicro === 0 && snap.inflight === 0, 'the cost was not settled');
+  });
+  return out;
+}
+
+/** What the publish gate runs: the five scenarios (the rules layer) and the draft checks. */
+export async function runPublishChecks(fiche) {
+  return [...(await runScenarios()), ...(await runDraftChecks(fiche))];
+}
+
