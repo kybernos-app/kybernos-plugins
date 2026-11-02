@@ -14,6 +14,23 @@ browser half reloads the page once when the host restarts, instead of leaving th
 - After the restart, DSH sends each resumed session a "resume where you stopped" message, and the open page reloads
   itself once.
 
+## When DSH restarts without anyone asking (crash, update, manual restart)
+
+That case is not this bundle's: the tool above only covers a restart the agent asks for. The one nobody asked for is covered by the
+supervisor of `scripts/dsh-relance.mjs` (`supervise install` loads a LaunchAgent on macOS; `supervise status` says whether it is
+loaded). It samples the running chats every 15 s and, once the server answers again, wakes the ones that were running. The sample
+counts for 15 minutes only, so a chat that was active last month is never woken.
+
+**Stopping a task that goes round in circles:**
+
+- press **Stop** on the chat: it stops running, the next sample drops it, and nothing resumes it;
+- the supervisor wakes a chat on its own **3 times in 30 minutes at most**; the next time it puts the chat on the stop list
+  and leaves it alone (`supervise status` names it, the log says how to give it back);
+- `supervise stop <id>` keeps one chat from ever being resumed on its own, `supervise allow <id>` gives it back;
+- `supervise pause` suspends every automatic resume, `supervise resume` re-arms them.
+
+A restart the agent asked for (`relancer_dsh`) always wakes the chat that asked for it, whatever the list says.
+
 ## Host tool
 
 | Tool | Parameters | Result |

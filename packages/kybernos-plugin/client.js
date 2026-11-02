@@ -10569,6 +10569,26 @@ const kbPinsStateOf = (status, running, subagents) => {
   if (s.completionUnread === true) return { state: 'done', label: 'Completed' }
   return null
 }
+/** The most pressing dot among the chats of each workspace, for its folder row: a Map workspaceId → 'warning' | 'ongoing' | 'done'. `items` are the
+ *  workspaces (`workspaceId`, `sessionIds`), `statuses` DSH's status Map, `list` the sessions store, `archived` the bare ids that are out of the menu.
+ *  Same choice as the native row (`kbPinsStateOf`); an idle chat costs a few hash lookups, so a workspace with hundreds of them stays cheap. */
+const kbPinsWorkspaceStates = (items, statuses, list, archived) => {
+  const rank = { warning: 3, ongoing: 2, done: 1 }
+  const out = new Map()
+  for (const it of Array.isArray(items) ? items : []) {
+    if (it === null || typeof it !== 'object' || typeof it.workspaceId !== 'string' || Array.isArray(it.sessionIds) !== true) continue
+    let best = null
+    for (const sid of it.sessionIds) {
+      if (archived !== null && archived !== undefined && archived.has(String(sid).replace(/^session-/, '')) === true) continue
+      const entry = kbPinsPick(statuses, sid)
+      const own = list !== null && typeof list === 'object' ? kbPinsPick(list.byId, sid) : undefined
+      const st = kbPinsStateOf(entry, own !== undefined && own !== null ? own.running : undefined, list !== null && typeof list === 'object' ? kbPinsSubagentsRunning(list, statuses, sid) : 0)
+      if (st !== null && (best === null || rank[st.state] > rank[best])) best = st.state
+    }
+    if (best !== null) out.set(it.workspaceId, best)
+  }
+  return out
+}
 // <pins-status:end>
 /** DSH's session-status source (`getSnapshot` + `subscribe`), or null while the service is not there yet or this engine has none. */
 const kbPinsStatusSource = () => {
@@ -10578,6 +10598,17 @@ const kbPinsStatusSource = () => {
     const src = svc !== null && svc !== undefined ? svc.sessionStatus : null
     return src !== null && src !== undefined && typeof src.getSnapshot === 'function' && typeof src.subscribe === 'function' ? src : null
   } catch (e) { return null }
+}
+/** The dot of each workspace folder row of the menu (a Map workspaceId → state); empty while DSH's services are not there, and on any failure. */
+const kbLiveWorkspaces = () => {
+  try {
+    const src = kbPinsStatusSource()
+    if (src === null) return new Map()
+    const { items, archived } = kbPinsSnapshots()
+    const svc = kbPinsSvc()
+    const list = svc !== null && svc !== undefined && svc.sessions !== undefined && svc.sessions !== null ? svc.sessions.list.getSnapshot() : null
+    return kbPinsWorkspaceStates(items, src.getSnapshot(), list, new Set(archived.map((id) => String(id).replace(/^session-/, ''))))
+  } catch (e) { return new Map() }
 }
 /** The dot as the native row draws it: a 14 px spinner while the chat runs, otherwise a 10 px dot (amber waiting, green done), with the state said to a screen reader. */
 const kbPinsDot = (st) => {
@@ -31686,12 +31717,12 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
       return null
     }
 
-    // ── décoration du menu latéral natif ─────────────────────────────────────
-    // Le modèle de workspace de DSH ne porte ni icône ni couleur (registre
-    // `~/.dsh/storages/workspace.json` : path, title, sessionIds, dates) et la
-    // ligne du menu dessine un dossier SVG codé en dur. Le plugin écrit ses
-    // réglages dans `.kyber-workspaces.json`, que ce menu ne lit pas : cette
-    // greffe DOM est la seule voie, sans modifier DSH lui-même.
+    // ── decoration of the native side menu ───────────────────────────────────
+    // DSH's workspace model carries neither an icon nor a colour (registry
+    // `~/.dsh/storages/workspace.json`: path, title, sessionIds, dates) and the
+    // menu row draws a hard-coded SVG folder. The plugin writes its settings
+    // to `.kyber-workspaces.json`, which this menu does not read: this DOM
+    // graft is the only way, without changing DSH itself.
     const kbKebab = (k) => String(k).replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())
     const kbWsUiByName = () => {
       const out = {}
@@ -31704,20 +31735,24 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
       return out
     }
     let kbDecorLast = 0
-    // Les lignes du menu latéral natif appartiennent au reconciler React.
-    // Remplacer leurs enfants (innerHTML / replaceChildren) faisait lever
-    // « Failed to execute 'removeChild' … not a child of this node » au rendu
-    // suivant de la ligne : React démontait alors l'arbre et la liste des
-    // workspaces disparaissait jusqu'au rechargement de la page. Cette greffe
-    // ne touche donc plus JAMAIS aux enfants :
-    //   - la teinte passe par `style.color` — le dossier natif est dessiné en
-    //     fill="currentColor", il suit donc la couleur du slot ;
-    //   - l'icône personnalisée est peinte en `background-image` (data-URI SVG)
-    //     et le dossier natif est masqué par une règle CSS posée une fois,
-    //     déclenchée par l'attribut `data-kb-glyph` du slot.
-    // `data-kb-paint` et `data-kb-glyph` sont nos attributs : React ne les écrit
-    // ni ne les efface, ils survivent donc à ses rendus.
+    // The rows of the native side menu belong to the React reconciler.
+    // Replacing their children (innerHTML / replaceChildren) made the next render
+    // of the row throw « Failed to execute 'removeChild' … not a child of this
+    // node »: React then unmounted the tree and the list of workspaces vanished
+    // until the page was reloaded. This graft therefore NEVER touches the children:
+    //   - the tint goes through `style.color` — the native folder is drawn with
+    //     fill="currentColor", so it follows the slot's colour;
+    //   - the custom icon is painted as a `background-image` (SVG data URI) and
+    //     the native folder is hidden by a CSS rule set once, triggered by the
+    //     slot's `data-kb-glyph` attribute.
+    // `data-kb-paint`, `data-kb-glyph` and `data-kb-live` are our attributes: React
+    // neither writes nor clears them, so they survive its renders.
     const KB_SIDEBAR_GLYPH_CSS = '[data-kb-glyph="1"]>svg{display:none!important}'
+    // The dot of a folder row whose chats run or have delivered (green; amber when one waits for the person), on the folder icon's corner. Set by ATTRIBUTE
+    // (`data-kb-live`), which React never rewrites, like the glyph above.
+    const KB_SIDEBAR_LIVE_CSS = '[data-kb-live]>[class*="folder"]{position:relative}' +
+      '[data-kb-live]>[class*="folder"]::after{content:"";position:absolute;top:0;inset-inline-end:-3px;width:8px;height:8px;border-radius:50%;pointer-events:none;background:var(--dsw-alias-state-success-primary,#22c55e)}' +
+      '[data-kb-live="warning"]>[class*="folder"]::after{background:var(--dsw-alias-state-warning-primary,#f59e0b)}'
     const kbCssToken = (v) => String(v).replace(/[^A-Za-z0-9#%.,()\- ]/g, '')
     const kbSlotInk = (el) => {
       try {
@@ -31759,17 +31794,22 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
         const rows = document.querySelectorAll('[class*="projectRow"]')
         if (rows.length === 0) return
         const map = kbWsUiByName()
+        const live = kbLiveWorkspaces()
         for (const row of rows) {
+          // A chat that works or has delivered: its folder says so, folded or not (the chat rows are not in the DOM while it is folded).
+          const rowKey = String(row.getAttribute('data-row-key') || '')
+          const liveState = rowKey.indexOf('workspace:') === 0 ? live.get(rowKey.slice('workspace:'.length)) : undefined
+          if (liveState === undefined) { if (row.hasAttribute('data-kb-live') === true) row.removeAttribute('data-kb-live') }
+          else if (row.getAttribute('data-kb-live') !== liveState) row.setAttribute('data-kb-live', liveState)
           const slot = row.querySelector('[class*="folder"]')
           if (slot === null || slot === undefined) continue
           const label = String(row.textContent === null || row.textContent === undefined ? '' : row.textContent).trim().toLowerCase()
           const u = map[label]
           const icon = (u !== undefined && typeof u.icon === 'string' && u.icon.length > 0) ? u.icon : null
           const color = (u !== undefined && typeof u.color === 'string' && u.color.length > 0) ? u.color : null
-          // On indexe ce qui EST peint, pas ce qui est souhaité : le catalogue
-          // d'icônes arrive en différé, donc une clé fondée sur le seul souhait
-          // figeait le dossier natif et l'icône personnalisée n'apparaissait
-          // jamais.
+          // We key on what IS painted, not on what is wanted: the icon catalogue
+          // arrives late, so a key based on the wish alone froze the native folder
+          // and the custom icon never appeared.
           const nodes = (icon !== null && Array.isArray(kbIconCache[icon]) === true) ? kbIconCache[icon] : null
           const want = (color === null ? '' : color) + '|' + (nodes === null ? '' : icon)
           if (slot.getAttribute('data-kb-paint') === want) continue
@@ -31785,16 +31825,24 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
           slot.style.backgroundSize = '16px 16px'
           slot.setAttribute('data-kb-glyph', '1')
         }
-      } catch (e) { /* menu natif absent ou refondu */ }
+      } catch (e) { /* native menu absent or rebuilt */ }
     }
     ctx.effect(() => {
       let stopped = false
       let obs = null
-      const tick = () => { if (stopped !== true) kbDecorateSidebar() }
-      // Une seule règle, globale : elle masque le dossier SVG natif de la ligne
-      // dont on peint l'icône personnalisée. Le svg reste dans le DOM, donc
-      // React continue de le gérer normalement.
+      let offStatus = null
+      // A chat starts, stops, asks or finishes: the folder dot follows at once (no wait for the 1.5 s pass). Subscribed on the first pass that finds the service.
+      const watchStatus = () => {
+        if (offStatus !== null) return
+        const src = kbPinsStatusSource()
+        if (src === null) return
+        try { const off = src.subscribe(() => { kbDecorLast = 0; tick() }); offStatus = typeof off === 'function' ? off : () => {} } catch (e) { offStatus = null }
+      }
+      const tick = () => { if (stopped !== true) { watchStatus(); kbDecorateSidebar() } }
+      // One global rule: it hides the native SVG folder of the row whose custom
+      // icon we paint. The svg stays in the DOM, so React keeps managing it normally.
       const killGlyphCss = styles.insert(KB_SIDEBAR_GLYPH_CSS)
+      const killLiveCss = styles.insert(KB_SIDEBAR_LIVE_CSS)
       kbLoadIconNodes()
       tick()
       let iv = null
@@ -31802,9 +31850,11 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
       try { obs = new MutationObserver(tick); obs.observe(document.body, { childList: true, subtree: true }) } catch (e) { obs = null }
       return () => {
         stopped = true
-        try { killGlyphCss() } catch (e) { /* deja retire */ }
-        try { if (iv !== null) clearInterval(iv) } catch (e) { /* deja nettoye */ }
-        try { if (obs !== null) obs.disconnect() } catch (e) { /* deja deconnecte */ }
+        try { killGlyphCss() } catch (e) { /* already removed */ }
+        try { killLiveCss() } catch (e) { /* already removed */ }
+        try { if (offStatus !== null) offStatus() } catch (e) { /* already unsubscribed */ }
+        try { if (iv !== null) clearInterval(iv) } catch (e) { /* already cleared */ }
+        try { if (obs !== null) obs.disconnect() } catch (e) { /* already disconnected */ }
       }
     }, 'kybernos: side menu decoration (icons)');
 

@@ -1015,7 +1015,8 @@ window.__ModuleLoader__.load({
     // Rule decided on 2026-09-21: by default the chat menu only shows
     // the chats whose work is NOT committed (the grey icon), capped at
     // 6 rows; never fewer than 2 rows, and the open row always stays
-    // visible. Expanding the group (« Show N more sessions ») lifts the filter:
+    // visible, and (2026-11-02) so does every chat that runs, waits for the
+    // person or has delivered something not read yet. Expanding the group (« Show N more sessions ») lifts the filter:
     // it is the only gesture that shows everything.
     const LIGNES_MAX = 6
     const LIGNES_MIN = 2
@@ -1028,17 +1029,20 @@ window.__ModuleLoader__.load({
     // GESTURE on the section itself (`data-kbs-tout`), set by the click.
     const CLE_TOUT = 'data-kbs-tout'
 
-    // A pure function — tested outside the browser (check-kybernos-session-icones).
-    // Input: the rows of ONE group, in rendered order, `{ fait, ouvert }`.
+    // A pure function — tested outside the browser (test-active-rows.mjs).
+    // Input: the rows of ONE group, in rendered order, `{ fait, ouvert, vivant }`.
     // `fait` = work committed; `null` = state not known yet, and we never
     // hide on ignorance (the row stays visible).
+    // `vivant` = the chat works, waits for the person or has delivered something
+    // not read yet (2026-11-02): it is never hidden, whatever the cap — a chat that
+    // runs or has just answered must be found where the person looks for it.
     // Output: the indexes to keep, in rendered order.
     const choisirLignes = (lignes) => {
       const n = lignes.length
       const garder = []
       const dedans = new Set()
       const ajouter = (i) => { if (i >= 0 && i < n && dedans.has(i) === false) { dedans.add(i); garder.push(i) } }
-      for (let i = 0; i < n; i++) if (lignes[i].ouvert === true) ajouter(i)
+      for (let i = 0; i < n; i++) if (lignes[i].ouvert === true || lignes[i].vivant === true) ajouter(i)
       for (let i = 0; i < n && garder.length < LIGNES_MAX; i++) if (lignes[i].fait !== true) ajouter(i)
       for (let i = 0; i < n && garder.length < Math.min(LIGNES_MIN, n); i++) ajouter(i)
       garder.sort((a, b) => a - b)
@@ -1074,6 +1078,35 @@ window.__ModuleLoader__.load({
 
     const ligneOuverte = (ligne) => String(ligne.className || '').indexOf('selected') !== -1
 
+    // Does DSH's status of a chat (`uiSession.sessionStatus`: `{ running, pendingInteraction, completionUnread }`) make it « alive »?
+    // The same three facts the native dot is drawn from: working, waiting for the person, delivered and not read.
+    const estVivant = (statut) => {
+      if (statut === null || statut === undefined || typeof statut !== 'object') return false
+      return statut.running === true || statut.completionUnread === true ||
+        (statut.pendingInteraction !== null && typeof statut.pendingInteraction === 'object')
+    }
+
+    // The status Map of DSH, once per pass: a Map or plain object keyed by the bare uuid or by `session-<uuid>` (the stores hold both).
+    // `null` when the service is not there (yet) — then no row is alive, which is today's behaviour.
+    const lireStatuts = () => {
+      try {
+        if (kbCtx === null || typeof kbCtx.get !== 'function') return null
+        const ui = kbCtx.get('uiSession')
+        const src = ui !== null && ui !== undefined ? ui.sessionStatus : null
+        return src !== null && src !== undefined && typeof src.getSnapshot === 'function' ? src.getSnapshot() : null
+      } catch (e) { return null }
+    }
+
+    const statutDe = (statuts, id) => {
+      if (statuts === null || statuts === undefined || typeof statuts !== 'object' || id === '') return undefined
+      const nu = String(id).replace(/^session-/, '')
+      for (const cle of [id, nu, 'session-' + nu]) {
+        const v = typeof statuts.get === 'function' ? statuts.get(cle) : statuts[cle]
+        if (v !== undefined) return v
+      }
+      return undefined
+    }
+
     // Applies the rule to every rendered section. Returns the number of
     // rows whose visibility changed (0 = nothing to do, no write).
     const filtrerListe = () => {
@@ -1091,6 +1124,7 @@ window.__ModuleLoader__.load({
       }
       const sections = []
       groupes.forEach((rows, section) => sections.push([section, rows]))
+      let statuts // read on the first group that is filtered, once for the pass
       let n = 0
       for (let s = 0; s < sections.length; s++) {
         const section = sections[s][0]
@@ -1104,8 +1138,9 @@ window.__ModuleLoader__.load({
           section.getAttribute(CLE_TOUT) === '1'
         let garder = null
         if (deplie === false) {
+          if (statuts === undefined) statuts = lireStatuts()
           const etats = []
-          for (let i = 0; i < rows.length; i++) etats.push({ fait: etatDeLigne(rows[i]), ouvert: ligneOuverte(rows[i]) })
+          for (let i = 0; i < rows.length; i++) etats.push({ fait: etatDeLigne(rows[i]), ouvert: ligneOuverte(rows[i]), vivant: estVivant(statutDe(statuts, idDeLigne(rows[i]))) })
           garder = choisirLignes(etats)
         }
         for (let i = 0; i < rows.length; i++) {
@@ -3072,7 +3107,7 @@ window.__ModuleLoader__.load({
       // the entry stays « loading » (the same contract as kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs, test-sante.mjs and test-language.mjs.
-      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, choixCorrespondants, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
+      __test: { choisirLignes, estVivant, statutDe, memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, choixCorrespondants, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
       apply
     }
   }
