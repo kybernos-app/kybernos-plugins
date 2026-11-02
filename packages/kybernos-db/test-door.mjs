@@ -47,6 +47,16 @@ ok('the template carries the member profile and the db keeps it', () => {
   assert.deepEqual(app.db.profiles().map((p) => p.id), ['member'])
 })
 
+ok('a member may ask for fewer records too, and still reads only what their profile shows', () => {
+  for (let i = 0; i < 4; i += 1) app.db.create('product', { title: 'P' + i, price: 1, stock: 1 }, 'agent')
+  const all = member.records(q('product'))
+  assert.ok(all.ok && all.records.length >= 5 && all.truncated === false)
+  const two = member.records(q('product', { limit: '2' }))
+  assert.deepEqual([two.records.length, two.truncated, two.total], [2, true, all.total])
+  assert.deepEqual(two.records.map((r) => r.id), all.records.slice(0, 2).map((r) => r.id))
+  assert.equal(member.records(q('product', { limit: 'x' })).records.length, all.records.length)
+})
+
 ok('the owner is unchanged: every field in clear, every table, the structure', () => {
   const r = owner.records(q('contact'))
   assert.ok(r.ok)

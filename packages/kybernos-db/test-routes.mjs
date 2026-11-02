@@ -166,7 +166,37 @@ await ok('a table is read whole up to the cap, and says when it was cut', () => 
   const r = api.records({ object: 'task' })
   assert.equal(r.total, 3)
   assert.equal(r.truncated, false)
-  assert.equal(RECORDS_MAX, 5000)
+  assert.equal(RECORDS_MAX, 50000, 'the default and the ceiling: what an import may load, a dashboard reads')
+})
+
+await ok('a caller may ask for fewer records, and a cut says so; a limit that makes no sense is the default, one above the ceiling is the ceiling', () => {
+  const { api, db } = seeded()
+  for (let i = 0; i < 7; i += 1) db.create('task', { name: 'n' + i }, 'agent')
+  const cut = api.records({ object: 'task', limit: 3 })
+  assert.deepEqual([cut.total, cut.records.length, cut.truncated], [7, 3, true])
+  assert.deepEqual(cut.records.map((r) => r.values.name), ['n0', 'n1', 'n2'], 'the first ones, in the order of the table')
+  const asString = api.records({ object: 'task', limit: '5' })
+  assert.deepEqual([asString.records.length, asString.truncated], [5, true], 'a query string carries text')
+  const exact = api.records({ object: 'task', limit: 7 })
+  assert.deepEqual([exact.records.length, exact.truncated], [7, false])
+  for (const bad of ['0', '-1', 'abc', '2.5', '', '1e3', 0, -4, 2.5, null, true, [], {}]) assert.equal(api.records({ object: 'task', limit: bad }).records.length, 7, 'limit ' + JSON.stringify(bad) + ' is no limit')
+  assert.equal(api.records({ object: 'task', limit: 10 ** 9 }).records.length, 7)
+  assert.equal(api.records({ object: 'task', limit: '999999' }).truncated, false)
+})
+
+await ok('more than the old cap of 5,000 comes whole by default, the ceiling cuts at 50,000', () => {
+  const { api, db } = seeded()
+  for (let i = 0; i < 5100; i += 1) db.create('task', { name: 'n' + i }, 'agent')
+  const whole = api.records({ object: 'task' })
+  assert.deepEqual([whole.total, whole.records.length, whole.truncated], [5100, 5100, false])
+  assert.deepEqual([api.records({ object: 'task', limit: 5000 }).records.length, api.records({ object: 'task', limit: 5000 }).truncated], [5000, true], 'the Tables page keeps asking for 5,000')
+})
+
+await ok('the Tables page asks for 5,000 records itself, so a bigger default only reaches the readers that want it all (the dashboards)', () => {
+  const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  assert.match(client, /const PAGE_ROWS = 5000\b/)
+  assert.equal([...client.matchAll(/'\/records' \+ qs\(\{[^}]*limit: PAGE_ROWS \}\)/g)].length, 2, 'the table and the tables it links to')
+  assert.equal([...client.matchAll(/'\/records' \+ qs\(/g)].length, 2, 'no other read of the records without a limit')
 })
 
 await ok('several databases need the db named; one is found by itself', () => {

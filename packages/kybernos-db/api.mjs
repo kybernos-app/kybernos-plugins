@@ -12,7 +12,7 @@
 //                                        `published` (null, or { slug, url, since, lastSync, syncError, host: { id, name, region } | null, hostGone }) and the state says `hosting` ({ available, name }): no secret
 //   app({ db, object?, op, confirm? })   op: archive | restore | delete, for an app or (with `object`) one of its tables; delete only what is archived, and asks the name back
 //   impact({ db, object? })              what deleting an app or a table would take: tables, rows, links cut, files
-//   records({ db, object, deleted? })    the records of one object (5,000 at most)
+//   records({ db, object, deleted?, limit? })   the records of one object: up to `limit` (default and ceiling 50,000, the most an import loads; the Tables page asks for 5,000)
 //   links({ db, object, id })            what points at a record, from the other tables: one group per link field, with the first records of each
 //   write({ db, object, op, id?, values? })   op: create | update | delete | restore
 //   upload({ db, object, field, name, type, bytes })   stores a file for an attachment field and gives the value to write (the file waits, unheld, until a row holds it)
@@ -22,7 +22,10 @@
 import { can, fieldAccess, grantOf, grantUpdates, profileOf } from './core/index.mjs'
 import { findObject } from './store/catalog.mjs'
 
-export const RECORDS_MAX = 5000
+/** The most records one answer holds, and what it holds when the caller does not say (a dashboard reads a whole sales file: 50,000 is what an import may load). A caller may ask for fewer with `limit`. */
+export const RECORDS_MAX = 50000
+/** How many records a call asks for: `limit`, a whole number from 1 to RECORDS_MAX, else RECORDS_MAX. */
+const limitOf = (a) => { const n = typeof a.limit === 'number' ? a.limit : (typeof a.limit === 'string' && /^\d{1,6}$/.test(a.limit) ? Number(a.limit) : NaN); return Number.isInteger(n) && n >= 1 ? Math.min(n, RECORDS_MAX) : RECORDS_MAX }
 export const LINKS_MAX = 50
 const OWNER_BY = 'person'
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -148,7 +151,8 @@ export function makeApi ({ service, ports = {} }) {
       const t = aim(q)
       if (t.err) return t.err
       const rows = t.db.list(t.obj.key, t.a.deleted === true || t.a.deleted === '1' ? { deleted: true } : {})
-      return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > RECORDS_MAX, records: rows.slice(0, RECORDS_MAX).map(shape), fingerprint: t.db.fingerprint() }
+      const limit = limitOf(t.a)
+      return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > limit, records: rows.slice(0, limit).map(shape), fingerprint: t.db.fingerprint() }
     },
 
     links (q) {
@@ -273,7 +277,8 @@ export function makeApi ({ service, ports = {} }) {
         const v = ask(t, 'record.read')
         if (v.effect !== 'allow') return denied(v)
         const rows = t.db.list(t.obj.key, {})
-        return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > RECORDS_MAX, records: rows.slice(0, RECORDS_MAX).map((r) => shapeFor(t.who.profile, t.obj, r)), fingerprint: t.db.fingerprint() }
+        const limit = limitOf(plain(q) ? q : {})
+        return { ok: true, object: t.obj.key, total: rows.length, truncated: rows.length > limit, records: rows.slice(0, limit).map((r) => shapeFor(t.who.profile, t.obj, r)), fingerprint: t.db.fingerprint() }
       },
 
       links (q) {
