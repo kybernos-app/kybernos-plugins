@@ -22,8 +22,8 @@ const a = source.indexOf('// <garde:begin>')
 const b = source.indexOf('// <garde:end>')
 assert.ok(a >= 0 && b > a, 'the pure block of the guard was found')
 const ctx = vm.createContext({})
-vm.runInContext(source.slice(a, b) + '\n;Object.assign(globalThis, { freshSample, recentAuto, autoResumeVerdict, claimsAfter, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS })', ctx)
-const { freshSample, recentAuto, claimsAfter, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS } = ctx
+vm.runInContext(source.slice(a, b) + '\n;Object.assign(globalThis, { freshSample, recentAuto, autoResumeVerdict, claimsAfter, stableNode, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS })', ctx)
+const { freshSample, recentAuto, claimsAfter, stableNode, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS } = ctx
 // Objects made inside the vm context have another Object prototype: compare them by value.
 const autoResumeVerdict = (...args) => JSON.parse(JSON.stringify(ctx.autoResumeVerdict(...args)))
 
@@ -73,6 +73,19 @@ const MIN = 60_000
   const old = claimsAfter({ gone: { at: NOW - 25 * 3_600_000 }, kept: { at: NOW - 3_600_000 } }, 'n', 'x', false, NOW)
   assert.deepEqual(Object.keys(old).sort(), ['kept', 'n'], 'rows older than a day are dropped (the file only ever grew)')
   ok('the reservations remember each automatic wake-up, keep it through a manual one, and drop what is a day old')
+}
+
+// 3b. the service must survive `brew upgrade node`: it holds the Homebrew link, never the versioned Cellar path.
+{
+  const cellar = '/opt/homebrew/Cellar/node/26.7.0/bin/node'
+  const link = '/opt/homebrew/bin/node'
+  const real = (map) => (p) => { if (map[p] === undefined) throw new Error('ENOENT ' + p); return map[p] }
+  assert.equal(stableNode(cellar, [link, '/usr/local/bin/node'], real({ [link]: cellar, [cellar]: cellar })), link, 'the link that leads to the running node is held')
+  assert.equal(stableNode(cellar, [link], real({ [link]: '/opt/homebrew/Cellar/node/25.0.0/bin/node', [cellar]: cellar })), cellar, 'a link to another node is not taken')
+  assert.equal(stableNode(cellar, [link, '/usr/local/bin/node'], real({ [cellar]: cellar })), cellar, 'no link on this machine: the running node, as before')
+  assert.equal(stableNode(cellar, ['/a', link], real({ [link]: cellar, [cellar]: cellar })), link, 'an absent candidate is skipped, never a throw')
+  assert.ok(/const node = stableNode\(process\.execPath, \['\/opt\/homebrew\/bin\/node', '\/usr\/local\/bin\/node'\], realpathSync\)/.test(source), 'the plist is written with it')
+  ok('the supervisor service holds the Homebrew node link that follows an upgrade, and falls back to the running node')
 }
 
 // 4. wired: only the supervisor's own wake-ups are guarded, the relaunch child still wakes what it journalled.
