@@ -62,8 +62,12 @@ each bundle to the active team by hand; a second instance per team separates eve
      a team: Settings › Kaby, the Telegram and WhatsApp doors and the Home computer (`/kybernos-cloud/telegram|whatsapp|computer/*`,
      `kyby/*`), Phone and channels. Connectors are the one case in between: which apps are switched on is per home, so per team, but the
      OAuth connections behind them belong to the account (decision 2 below).
-   - **One secret per home.** A new home makes its own `.credentials.yaml`, hence its own browser-session secret. Cookies ignore the port, so
-     two DSH on `127.0.0.1` would sign each other out. Step 4 shares that one secret across the homes (single sign-in everywhere).
+   - **One secret per home, and what that does to sign-in (corrected 2026-11-02).** A new home makes its own `.credentials.yaml`, hence its
+     own browser-session secret. Earlier text here feared that two DSH on `127.0.0.1` would sign each other out because cookies ignore the
+     port. The session cookie's NAME is derived from host and port (`dsh-auth-<hash of 127.0.0.1:PORT>`, `docs/dev/live-testing.md`,
+     `scripts/cdp-lib.mjs`), so each DSH has its own cookie and they coexist. A person signs in to each DSH once, through its signed
+     address (`dsh web: http…?token=…` in its log), which `team-dsh/open` will hand to the page. Not yet seen with two DSH in one browser.
+     Step 4 no longer shares the secret.
 2. **Done** (`index.js` of the cloud bundle, `pinnedSpace`): a team's own DSH answers its team as the active space, for good. Nothing switches
    it (`space/active` answers `espace_fixe` for any other space), nothing follows a chat (`space/for-folder` says `follow: false`, the
    claim-time switch decides nothing), so the model route names that team from the first mount. A team the person has since left is still
@@ -78,7 +82,7 @@ each bundle to the active team by hand; a second instance per team separates eve
    uses them there (`seam.ownHome()`, `lessonsCut` in `kybernos-memory/team-space.mjs`); the side doors that name the personal memory stay
    refused. A bundle without the new seam field keeps the old, closed behaviour.
 3. The account menu opens the team's DSH; "Personal" returns to :3080.
-4. Seed rules: what is copied from Personal when a team home is created.
+4. Seed rules: what else is copied from Personal when a team home is created (language and theme; the person's own provider keys, decision 2). The Kybernos session is already seeded (step 2).
 5. Retire the single-instance switch code (follow-the-chat, turn guard, deferred switch, claim-time switch). Dead-code rider.
 6. Two-account live test on the existing `scripts/e2e-teams-run.sh` harness.
 
@@ -95,6 +99,6 @@ connection per team (`PLAN.md` section 9, a proposal, nothing built).
 3. **Decided 2026-11-02: a team opens in its own window.** Desktop app (`kybernos-desktop`, read 2026-11-02): it is built for one engine. One
    window with the DSH in a view fenced to `127.0.0.1:<one port>` (`KYBERNOS_PORT`, 3080 by default), no preload in that view, and any
    `window.open` to a loopback address goes to the system browser. So a team's click would today open the browser, not an app window.
-   Needed there, in its own repository: a second window per team on its port (3300-3399) when the page opens such an address, with a cookie
-   jar of its own per team (an Electron partition), which also keeps the shared-secret problem of step 4 out of the app's windows. The page
-   still gets no app API: its only channel stays `window.open` to a loopback port.
+   Needed there, in its own repository: a second window per team on its port (3300-3399) when the page opens such an address (the signed one that
+   `team-dsh/open` will hand over; the cookie name comes from host and port, so no separate cookie jar is needed). The page still gets no app API: its
+   only channel stays `window.open` to a loopback port.

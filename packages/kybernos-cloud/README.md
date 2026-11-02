@@ -406,8 +406,7 @@ file is its launcher; nothing in the menu calls it yet.
   the team DSH reads itself) and the server registry. One session, two DSH: signing out of a team's DSH does not revoke it. The record of the team folders is the personal home's.
   The account's memory on the server stays cut there; the local lessons work (`seam.ownHome()`, read by `kybernos-memory`).
 - **Not done yet:** the account menu opening it (and hiding in a team's DSH what belongs to the account or the computer: Kaby, Telegram and WhatsApp, the Home computer), the language and theme
-  of a new home (and whether the person's own provider keys go with it), and, cookies ignoring the port, a browser-session secret shared by the homes (two DSH in one browser would sign each other
-  out; the desktop app will give each team window its own cookie jar). The other bundles were sorted: only the two of `PERSONAL_ONLY_BUNDLES`
+  of a new home (and whether the person's own provider keys go with it), the signed address of the team's DSH handed to the page (the session cookie's name comes from host and port, so two DSH in one browser each keep their own). The other bundles were sorted: only the two of `PERSONAL_ONLY_BUNDLES`
   start something machine-level.
 - **Tests:** `node packages/kybernos-cloud/test-team-instances.mjs` (a stand-in script plays `dsh`; no real DSH starts) and, on a sandbox,
   `source scripts/sandbox/env.sh && node scripts/check-team-dsh-live.mjs` (a real `dsh web` on a copied profile: 12 s to mounted on a
