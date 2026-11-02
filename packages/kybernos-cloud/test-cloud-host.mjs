@@ -731,6 +731,8 @@ try {
     '/kybernos-cloud/kyby/native', '/kybernos-cloud/kyby/native/set',
     // Kaby's mandate (test-kyby-mandate.mjs holds its rules): what the person lets it do without asking.
     '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/mandate/log', '/kybernos-cloud/kyby/mandate/set',
+    // Kaby's wake-ups: the rhythm, its signature, and « wake it now » (test-kyby-heartbeat.mjs holds the rules, the block around line 4000 the routes).
+    '/kybernos-cloud/kyby/heartbeat', '/kybernos-cloud/kyby/heartbeat/set', '/kybernos-cloud/kyby/heartbeat/wake',
     // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls.
     '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
@@ -4094,6 +4096,152 @@ try {
       if (md_computer === undefined) delete process.env.KYBERNOS_COMPUTER_ID; else process.env.KYBERNOS_COMPUTER_ID = md_computer
     }
     ok('mandat de Kaby : signe par la page seule, les outils couverts passent sans question et sont comptes, le reste demande, limite du jour, fichier modifie nul, pause, jamais les fichiers du mandat')
+  }
+
+  // 15. Kaby's wake-ups (kyby-heartbeat*.mjs): the rhythm is signed by the person's page only; « wake it now » starts one turn of Kaby's own chat through the engine's session controller;
+  // during that turn nobody can answer, so what the mandate does not cover is refused outright and a question or a schedule is never offered; outside it, everything asks as before.
+  {
+    const hb_home = join(stateDir, 'heartbeat-home')
+    installSession(hb_home)
+    const hb_saved = process.env.DSH_HOME
+    const hb_computer = process.env.KYBERNOS_COMPUTER_ID
+    const hb_token = process.env.KYBERNOS_COMPUTER_TOKEN
+    process.env.DSH_HOME = hb_home
+    delete process.env.KYBERNOS_COMPUTER_ID
+    delete process.env.KYBERNOS_COMPUTER_TOKEN
+    const { writePointer: hb_pointer } = await import('./kyby-native.mjs')
+    const KABY = 'session-kaby-heartbeat-0001'
+    assert.equal(hb_pointer(join(hb_home, 'kybernos-kyby.json'), KABY).ok, true)
+    const post = async (path, body, { origin = 'http://127.0.0.1:3080', cookie = true } = {}) => {
+      const req = fakeReq('POST', origin, body, path)
+      req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      if (cookie) req.headers = { ...req.headers, cookie: browserHeaders().cookie }
+      const res = fakeRes()
+      await routes.get(path)(req, res)
+      return res
+    }
+    const setHb = (body, o) => post('/kybernos-cloud/kyby/heartbeat/set', body, o)
+    const wakeHb = (o) => post('/kybernos-cloud/kyby/heartbeat/wake', {}, o)
+    const view = async () => (await hit('/kybernos-cloud/kyby/heartbeat', 'GET')).body
+    const gate = agentHooks.get('tools/pre-execute')
+    const stopping = agentHooks.get('agent/turn-stopping')
+    const allowed = async () => ({ kind: 'allow' })
+    const asked = []
+    fakeApproval = { request: async (req) => { asked.push(req.toolName); return 'denied' } }
+    const run = (name, args, session = KABY) => gate({ name, arguments: args, agent: { id: session }, signal: new AbortController().signal }, allowed)
+    const kyText = () => promptContexts.get('kybernos:kyby').text({ agent: { session: { id: KABY } } })
+    const prompts = []
+    let release
+    const released = new Promise((resolve) => { release = resolve })
+    let over = false
+    fakeSessionController = {
+      prompt: async (req) => { prompts.push(req); return { accepted: true } },
+      state: async () => ({ cursor: 1, active: true, running: prompts.length > 0 && over === false, queue: [], pendingInput: [] }),
+      wait: async () => { await released; over = true; return { reason: 'idle', state: {}, output: [] } },
+      cancel: async () => ({ accepted: true })
+    }
+    try {
+      // Before any signature nothing wakes, and Kaby is told nothing.
+      assert.equal((await view()).inForce, false)
+      assert.equal((await view()).desktop, true)
+      assert.equal((await wakeHb({ cookie: false })).status, 401, 'a bare request cannot wake Kaby')
+      assert.deepEqual((await wakeHb()).body, { ok: false, error: 'not_in_force' })
+      await new Promise((r) => setTimeout(r, 1100))
+      assert.ok(!/^\[WAKE-UP\]/m.test(kyText()), 'no wake-up block before the rhythm is signed')
+      assert.equal(prompts.length, 0)
+      // Only the person's page signs.
+      assert.equal((await setHb({ preset: 'regular' }, { cookie: false })).status, 401, 'a bare request (no session cookie) cannot sign')
+      assert.equal((await setHb({ preset: 'regular' }, { origin: 'https://evil.example' })).status, 403, 'a page of another origin cannot sign')
+      assert.equal((await setHb({ everyHours: 3 })).body.ok, false, 'a choice that is not offered is refused')
+      assert.equal((await view()).inForce, false, 'nothing was signed by those')
+      const signed = await setHb({ preset: 'regular' })
+      assert.equal(signed.body.ok, true)
+      assert.equal(signed.body.view.inForce, true)
+      assert.equal(signed.body.view.desktop, true)
+      const record = join(hb_home, 'kybernos', 'kyby-heartbeat.json')
+      assert.equal(statSync(record).mode & 0o777, 0o600, 'the record is private')
+      assert.ok(!JSON.stringify(await view()).includes(JSON.parse(readFileSync(record, 'utf8')).sig), 'the page never gets the signature')
+      assert.ok((await view()).nextAt !== null, 'the page is told when the next one is due')
+      // Kaby is told, in two lines, that it wakes and where its list is; another chat is told nothing.
+      await new Promise((r) => setTimeout(r, 1100))
+      assert.match(kyText(), /\[WAKE-UP\]\nYou wake by yourself about every 4 hours[^\n]*todo\.md/)
+      assert.equal(promptContexts.get('kybernos:kyby').text({ agent: { session: { id: 'session-someone-else' } } }), '')
+      // Outside a wake-up everything asks as before: a question is possible, and a covered tool needs the mandate.
+      assert.deepEqual(await run('ask_user_question', {}), { kind: 'allow' })
+      assert.equal((await run('memory_write', { content: 'x' })).kind, 'deny')
+      assert.deepEqual(asked, ['memory_write'], 'no mandate: it asks (and the answer here is no)')
+      assert.equal((await post('/kybernos-cloud/kyby/mandate/set', { preset: 'prudent' })).body.ok, true)
+      asked.length = 0
+      // « Wake it now »: one turn of Kaby's own chat, queued, with the fixed trigger.
+      assert.deepEqual((await wakeHb()).body, { ok: true })
+      assert.equal(prompts.length, 1)
+      assert.equal(prompts[0].sessionId, KABY)
+      assert.equal(prompts[0].mode, 'queue')
+      assert.match(prompts[0].requestId, /^kb-heartbeat-/)
+      assert.equal(prompts[0].content[0].text, 'Scheduled wake-up (set in Settings › Kaby). The person is not writing to you.')
+      assert.equal((await view()).running, true)
+      assert.deepEqual((await wakeHb()).body, { ok: false, error: 'running' }, 'two wake-ups never run at once')
+      assert.match(kyText(), /scheduled wake-up that the person set in Settings[\s\S]*about 10 minutes[\s\S]*2 oldest points/, 'during a wake-up Kaby is given its instructions, in the system prompt')
+      // During it: nobody can answer, so no question and no schedule; what the mandate covers runs, the rest is refused without being asked.
+      const q = await run('ask_user_question', {})
+      assert.equal(q.kind, 'deny')
+      assert.match(q.reason, /scheduled wake-up/)
+      assert.equal((await run('schedule_create', { every_seconds: 60 })).kind, 'deny')
+      assert.deepEqual(await run('memory_write', { content: 'x' }), { kind: 'allow' }, 'covered by the prudent mandate')
+      const refusedWake = await run('computer_exec', { command: 'ls' })
+      assert.equal(refusedWake.kind, 'deny')
+      assert.match(refusedWake.reason, /nobody can answer during a scheduled wake-up/)
+      assert.equal((await run('connections_execute', { tool: 'GMAIL_SEND_EMAIL' })).kind, 'deny')
+      assert.deepEqual(asked, [], 'a wake-up never puts a question to the person')
+      assert.deepEqual(await run('ask_user_question', {}, 'session-someone-else'), { kind: 'allow' }, 'another chat is untouched')
+      assert.deepEqual(await run('bash', { command: 'ls' }), { kind: 'allow' }, 'the engine\'s own tools keep DSH\'s policy')
+      // The journal: its own channel, and no word of the trigger as if the person had said it.
+      stopping({ agent: { session: { id: KABY, deriveMessages: () => [{ role: 'user', content: [{ type: 'text', text: 'Scheduled wake-up' }] }, { role: 'assistant', content: [{ type: 'text', text: 'Done.' }] }] }, options: {} }, signal: undefined })
+      const jdir = join(hb_home, 'kybernos', 'kaby-journal')
+      const jlines = readdirSync(jdir).flatMap((f) => readFileSync(join(jdir, f), 'utf8').trim().split('\n')).map((l) => JSON.parse(l))
+      assert.deepEqual([jlines.at(-1).channel, jlines.at(-1).asked], ['wake', 'Scheduled wake-up'])
+      // It ends, and everything asks again.
+      release()
+      for (let i = 0; i < 100 && (await view()).running === true; i += 1) await new Promise((r) => setTimeout(r, 50))
+      const after = await view()
+      assert.equal(after.running, false)
+      assert.equal(after.lastOutcome, 'done')
+      assert.ok(after.lastAt !== null)
+      assert.deepEqual(await run('ask_user_question', {}), { kind: 'allow' })
+      assert.equal((await run('computer_exec', { command: 'ls' })).kind, 'deny')
+      assert.deepEqual(asked, ['computer_exec'], 'outside a wake-up it asks as before')
+      // What ran in the wake-up is in the mandate's audit, tagged, and counted like any other action.
+      const maudit = readFileSync(join(hb_home, 'kybernos', 'kyby-mandate-audit.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+      assert.ok(maudit.some((e) => e.kind === 'ran' && e.tool === 'memory_write' && e.source === 'heartbeat'))
+      assert.equal((await hit('/kybernos-cloud/kyby/mandate', 'GET')).body.usedToday.memory, 1)
+      // The rhythm's files are the person's: Kaby's chat cannot name them.
+      const named = await run('bash', { command: 'cat ~/.dsh/kybernos/kyby-heartbeat.json' })
+      assert.equal(named.kind, 'deny')
+      assert.match(named.reason, /belongs to the person/)
+      // Pause, and a file edited by hand: nothing starts, the block leaves the prompt.
+      assert.equal((await setHb({ paused: true })).body.view.inForce, false)
+      assert.deepEqual((await wakeHb()).body, { ok: false, error: 'not_in_force' })
+      await new Promise((r) => setTimeout(r, 1100))
+      assert.ok(!/^\[WAKE-UP\]/m.test(kyText()), 'a paused rhythm leaves the prompt')
+      assert.equal((await setHb({ paused: false })).body.view.inForce, true)
+      writeFileSync(record, JSON.stringify({ ...JSON.parse(readFileSync(record, 'utf8')), everyHours: 2 }))
+      assert.equal((await view()).why, 'altered')
+      assert.deepEqual((await wakeHb()).body, { ok: false, error: 'not_in_force' })
+      // A cloud computer has its own scheduler: nothing is started from here.
+      assert.equal((await setHb({ preset: 'regular' })).body.view.inForce, true)
+      process.env.KYBERNOS_COMPUTER_ID = 'computer-test-1'
+      process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_computer_test'
+      assert.deepEqual((await wakeHb()).body, { ok: false, error: 'not_desktop' })
+      assert.equal((await view()).desktop, false)
+    } finally {
+      release()
+      fakeApproval = undefined
+      fakeSessionController = undefined
+      if (hb_saved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = hb_saved
+      if (hb_computer === undefined) delete process.env.KYBERNOS_COMPUTER_ID; else process.env.KYBERNOS_COMPUTER_ID = hb_computer
+      if (hb_token === undefined) delete process.env.KYBERNOS_COMPUTER_TOKEN; else process.env.KYBERNOS_COMPUTER_TOKEN = hb_token
+    }
+    ok('reveils de Kaby : signes par la page seule, « reveiller maintenant » lance un tour de son chat, pendant lequel rien ne demande rien (question et planning refuses, le mandat passe, le reste est refuse), journal, audit, fichiers du rythme interdits, pause et fichier modifie nuls')
   }
 
   console.log('\n' + pass + ' verifications OK')

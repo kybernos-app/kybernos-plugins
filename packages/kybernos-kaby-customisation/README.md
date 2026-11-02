@@ -1,12 +1,12 @@
 # `@local/kybernos-kaby-customisation` (`packages/kybernos-kaby-customisation`)
 
-**Settings › Kaby**: how the person's assistant looks and sounds, where it works, and what it may do without asking. The first three blocks (identity, voice, face) change nothing about what Kaby can do, its rules or its memory; the last two (where it works, permissions) are about what it does, and are drawn from other bundles' answers (see below).
+**Settings › Kaby**: how the person's assistant looks and sounds, where it works, what it may do without asking, and when it wakes by itself. The first three blocks (identity, voice, face) change nothing about what Kaby can do, its rules or its memory; the last three (where it works, permissions, wake-ups) are about what it does, and are drawn from other bundles' answers (see below).
 
 ## Where to find it
 
 - **Settings › Kaby.** The same page opens from the portrait that heads the strip above Kaby's chat.
 
-## What it does, in five blocks (the first three the way Agent Teams draws a member)
+## What it does, in six blocks (the first three the way Agent Teams draws a member)
 
 1. **Identity.** The name (an alias: the product stays Kaby elsewhere; 24 characters, letters, digits, spaces and apostrophes, no reserved word such
    as Kybernos or Claude), the words that describe the look, and a portrait: **Generate** (the image model of the person's Models, through the core's
@@ -27,6 +27,14 @@
    (`kyby-mandate.mjs`; the starting points arrive with the view, so there is no copy here). Routes it calls: `GET /kybernos-cloud/kyby/mandate`, `GET …/log`, `POST …/set` (the page's
    own session cookie and origin). Signing sends the four fields and never `paused`, so signing new numbers does not silently resume a paused mandate. States: none in force, changes
    to sign, in force since, paused, to sign again (the file was altered or the key changed), cannot sign (no key on this machine: every control is off). Limits count actions, not euros.
+
+6. **Wake-ups** (2026-11-02). How often Kaby wakes **by itself on this computer** (every 2, 4, 8 or 24 h), for how long (5, 10 or 20 min), on how many points of its list (1, 2 or 3),
+   and its quiet hours (a switch and two times, 22:00–08:00 by default), with four starting points (Off, Light, Regular, Steady). **Parameters only**: Kaby's list (`todo.md` in its
+   workspace) and its per-wake summaries live in its chat, never here. Buttons: **Sign** (« Turn the wake-ups on » the first time), **Pause / Resume**, **Wake it now** (one wake-up at once,
+   off until the settings are signed and while one runs) and **Open Kaby's chat** (through kybernos-kyber's `openChat()`). The chip says what is true now (none, changes to sign, on with the next
+   time, quiet until, working for at most N min, paused, to sign again, cannot sign) and one line gives the last wake-up and how it ended. An amber line says wake-ups do not cover a cloud
+   computer. The card holds no schedule, no signature and no clock: they are kybernos-cloud's (`kyby-heartbeat*.mjs`; the choices and starting points arrive with the view). Routes it calls:
+   `GET /kybernos-cloud/kyby/heartbeat`, `POST …/set` (the fields, or `{ paused }` alone), `POST …/wake` (the page's own session cookie and origin). While a wake-up runs the card asks again every 5 s.
 
 ## What it stores and where
 
@@ -64,4 +72,4 @@ portrait and the custom voice), `portrait.bin` (the picture), `voice-sample.bin`
 
 ## Tests
 
-`node test-host.mjs` (validation, store, routes, entry) and `node test-client.mjs` (pure parts, the page and the two cards rendered once with forced state, the requests the buttons send, guards on the source).
+`node test-host.mjs` (validation, store, routes, entry) and `node test-client.mjs` (pure parts, the page and the three cards rendered once with forced state, the requests the buttons send, guards on the source).
