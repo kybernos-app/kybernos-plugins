@@ -19,10 +19,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeGuard } from './session-guard.mjs'
+import { dshHome, writeGuard } from './session-guard.mjs'
 import { appsRoot, discoverApps, findApp, scaffoldApp } from './lib/apps.mjs'
 import { scaffoldFromTemplate } from './lib/templates.mjs'
 import { readLogs, startApp, statusApp, stopApp } from './lib/runtime.mjs'
@@ -134,7 +133,7 @@ export function seedSkills () {
   try {
     for (const nom of readdirSync(SKILLS_SRC)) {
       const src = join(SKILLS_SRC, nom, 'SKILL.md')
-      const dst = join(homedir(), '.dsh', 'skills', nom, 'SKILL.md')
+      const dst = join(dshHome(), 'skills', nom, 'SKILL.md')
       if (existsSync(src) !== true || existsSync(dst) === true) continue
       mkdirSync(dirname(dst), { recursive: true })
       writeFileSync(dst, readFileSync(src))
@@ -148,7 +147,7 @@ export function seedSkills () {
 }
 
 // ── settings: one namespaced block in the shared settings.json, keys filtered here ──
-const REGLAGES_FICHIER = join(homedir(), '.dsh', 'kybernos', 'settings.json')
+const reglagesFichier = () => join(dshHome(), 'kybernos', 'settings.json')
 export const REGLAGES_DEFAUT = {
   deployTarget: 'computer', // computer | fly | cloud-computer
   linkPolicy: 'cle', // cle | public
@@ -168,7 +167,7 @@ const VALIDER = {
   quotaProduits: (v) => Number.isInteger(v) === true && v >= 1 && v <= 5000,
 }
 
-export function lireReglages (fichier = REGLAGES_FICHIER) {
+export function lireReglages (fichier = reglagesFichier()) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch (e) { /* absent or broken: defaults */ }
   const bloc = brut !== null && typeof brut === 'object' && brut.webappCreator !== null && typeof brut.webappCreator === 'object' ? brut.webappCreator : {}
@@ -265,7 +264,7 @@ export function apply (ctx) {
         if (jsonSeulement(req) !== true) { res.writeHead(415, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'application/json content-type expected' })); return }
         const corps = await lireCorps(req, res, CORPS_MAX)
         if (corps === null) return
-        await repondreJson(res, async () => ecrireReglages(REGLAGES_FICHIER, corps))
+        await repondreJson(res, async () => ecrireReglages(reglagesFichier(), corps))
       } })
       dire('routes state / create / start / stop / logs / settings mounted')
     } catch (e) {

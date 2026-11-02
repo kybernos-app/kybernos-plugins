@@ -97,6 +97,22 @@ try {
   }
   ok('every bundle test carries the canonical harness block (' + copies.length + ' copies, none imports scripts/)')
 
+  // A team gets its own DSH home (docs/dev/team-profiles-cadrage.md): a bundle that builds <os home>/.dsh itself, without ever
+  // looking at DSH_HOME, would write the team's data into the personal home. Tests and their libraries are exempt.
+  const sourcesOf = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : sourcesOf(full)
+    return /\.(?:m?js)$/u.test(entry.name) && !/(?:^test-|-test\b|\.test\.|^lib-.*test)/u.test(entry.name) ? [full] : []
+  })
+  const BUILDS_THE_HOME = /homedir\(\)\s*,\s*['"]\.dsh['"]/u
+  const strays = sourcesOf(packages).filter((file) => {
+    const text = readFileSync(file, 'utf8')
+    return BUILDS_THE_HOME.test(text) && !/DSH_HOME/u.test(text)
+  })
+  assert.deepEqual(strays, [], 'these files build <os home>/.dsh without reading DSH_HOME (use the bundle\'s dshHome()):\n  ' + strays.join('\n  '))
+  assert.ok(BUILDS_THE_HOME.test("join(os.homedir(), '.dsh', 'kybers')") && BUILDS_THE_HOME.test('join(homedir(), ".dsh")'), 'the scan must see both spellings')
+  ok('no runtime file under packages/ builds <os home>/.dsh without reading DSH_HOME (' + sourcesOf(packages).length + ' files scanned)')
+
   iso.assertDecoyUntouched('the dev scripts')
   ok('nothing was read or written under <HOME>/.dsh (canaries and listing unchanged)')
 
