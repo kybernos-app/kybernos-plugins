@@ -100,15 +100,15 @@ const SERVER = {
   ok('isKyby follows the pointer', n.isKyby(SID) && !n.isKyby(OTHER))
 }
 {
-  const WAKE = '[WAKE-UP]\nwoken\n[/WAKE-UP]'
-  ok('a wake-ups block rides inside the Kaby block, after the identity, and nothing is added when it is empty', kybyPrompt([], new Date(), undefined, undefined, WAKE).endsWith(WAKE + '\n[/KYBY]') && kybyPrompt([], new Date(), undefined, undefined, '') === kybyPrompt([]) && kybyPrompt([], new Date(), undefined, undefined, 5) === kybyPrompt([]))
+  const LIST = '[YOUR LIST]\nthe file\n[/YOUR LIST]'
+  ok('a list block rides inside the Kaby block, after the identity, and nothing is added when it is empty', kybyPrompt([], new Date(), undefined, undefined, LIST).endsWith(LIST + '\n[/KYBY]') && kybyPrompt([], new Date(), undefined, undefined, '') === kybyPrompt([]) && kybyPrompt([], new Date(), undefined, undefined, 5) === kybyPrompt([]))
   const calls = []
   const mk = (extra) => createKybyNative({ pointerFile: file, readState: () => ({ token: TOKEN }), isConnected: () => true, apiCall: async (p) => { calls.push(p); return { status: 404, body: {} } }, ...extra })
-  const n = mk({ wake: (sid) => (sid === SID ? WAKE : 'elsewhere'), isWake: (sid) => sid === SID })
-  ok('the wake-ups block is in Kaby\'s prompt only', n.promptFor(SID).includes(WAKE) && n.promptFor(OTHER) === '')
-  ok('a turn of a scheduled wake-up is not written on the shared thread', (await n.mirrorTurn(agent(SID, TURN))) === 'wake' && calls.length === 0)
-  const bad = mk({ wake: () => { throw new Error('x') }, isWake: () => { throw new Error('y') } })
-  ok('a wake helper that throws never breaks the prompt or the mirror', bad.promptFor(SID).startsWith('[KYBY]') && !bad.promptFor(SID).includes('[WAKE-UP]') && (await bad.mirrorTurn(agent(SID, TURN))) !== 'wake')
+  const n = mk({ list: (sid) => (sid === SID ? LIST : 'elsewhere'), isUnattended: (sid) => sid === SID })
+  ok('the list block is in Kaby\'s prompt only', n.promptFor(SID).includes(LIST) && n.promptFor(OTHER) === '')
+  ok('a turn an automation started is not written on the shared thread', (await n.mirrorTurn(agent(SID, TURN))) === 'unattended' && calls.length === 0)
+  const bad = mk({ list: () => { throw new Error('x') }, isUnattended: () => { throw new Error('y') } })
+  ok('a helper that throws never breaks the prompt or the mirror', bad.promptFor(SID).startsWith('[KYBY]') && !bad.promptFor(SID).includes('[YOUR LIST]') && (await bad.mirrorTurn(agent(SID, TURN))) !== 'unattended')
 }
 {
   const { n, calls } = make(SERVER)

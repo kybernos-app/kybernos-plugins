@@ -1,4 +1,4 @@
-// The small file helpers of Kaby's host-written records (kyby-mandate-store.mjs, kyby-heartbeat-store.mjs): a JSON file read without throwing, written private (0600) and replaced
+// The small file helpers of Kaby's host-written records (kyby-mandate-store.mjs): a JSON file read without throwing, written private (0600) and replaced
 // atomically, and an audit line appended and trimmed when the file grows. None of them throws: a file that cannot be read is no record, never a permissive one.
 import { appendFileSync, chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'

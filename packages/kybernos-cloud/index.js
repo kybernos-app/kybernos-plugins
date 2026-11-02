@@ -58,9 +58,7 @@ import { createPublish } from './computers-publish.mjs'
 import { identityOf } from './computer-identity.mjs'
 import { lireSecretSession, writeGuard } from './session-guard.mjs'
 import { createMandateStore } from './kyby-mandate-store.mjs'
-import { WAKE_NEVER } from './kyby-heartbeat.mjs'
-import { createHeartbeatStore } from './kyby-heartbeat-store.mjs'
-import { createHeartbeat } from './kyby-heartbeat-run.mjs'
+import { LIST_TEXT, UNATTENDED_NEVER, createUnattended } from './kyby-unattended.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
 import { actionKey, readItems as askRead, writeItems as askWrite, verdict as askVerdict, denyReason as askDeny, continuationText as askContinuation, ofRun as askOfRun, toContinue as askToContinue } from './automation-approvals.mjs'
@@ -5238,10 +5236,10 @@ const journalTurn = (agent) => {
   const mine = onComputer ? turnSessions.has(sid) : readPointer(kybyPointerFile()) === sid
   if (!mine) return
   const messages = typeof agent.session.deriveMessages === 'function' ? agent.session.deriveMessages() : []
-  // A scheduled wake-up is in the journal too, as its own channel: what Kaby did while the person was away is the first thing they will ask it.
-  const waking = !onComputer && heartbeat.isWake(sid)
+  // An automation's run in Kaby's chat is in the journal too, as its own channel: what Kaby did while the person was away is the first thing they will ask it.
+  const waking = !onComputer && unattended.isRun(sid)
   const entry = journalEntry({
-    asked: waking ? 'Scheduled wake-up' : lastUserWords(messages),
+    asked: waking ? 'Scheduled automation' : lastUserWords(messages),
     tools: toolsOfTurn(messages),
     channel: onComputer ? (turnChannels.get(sid) || 'phone') : (waking ? 'wake' : 'chat'),
     body: onComputer ? 'cloud' : 'computer',
@@ -5397,31 +5395,31 @@ const nativeRootOf = (ctx, id) => {
   }
   return null
 }
-// A call that names the mandate's or the wake-ups' files, in Kaby's chat, is refused: the standing permission and the rhythm are the person's, not Kaby's to read or change. This is friction,
+// A call that names the mandate's files, in Kaby's chat, is refused: the standing permission is the person's, not Kaby's to read or change. This is friction,
 // not a wall (a command can hide a name, and the chat is meant to run in a workspace-write sandbox that keeps it out of the files); the records are signed, so a file changed by anything but the
 // Settings route is void.
-const mentionsMandate = (exec) => { try { return /kyby-(mandate|heartbeat)/i.test(JSON.stringify((exec && exec.arguments) ?? {})) } catch (e) { return false } }
+const mentionsMandate = (exec) => { try { return /kyby-mandate/i.test(JSON.stringify((exec && exec.arguments) ?? {})) } catch (e) { return false } }
 const nativeGate = (ctx) => async (exec, next) => {
   const name = String((exec && exec.name) || '')
   if (mentionsMandate(exec)) {
     const own = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
-    if (own !== null) { noteRefusal(own, name); return { kind: 'deny', reason: 'The standing permission belongs to the person, and so do the wake-up settings: their files are not yours to read or change. Say so in your answer, do not try again.' } }
+    if (own !== null) { noteRefusal(own, name); return { kind: 'deny', reason: 'The standing permission belongs to the person: its files are not yours to read or change. Say so in your answer, do not try again.' } }
   }
   if (!NATIVE_ASK_TOOLS.has(name)) {
-    // During one of its scheduled wake-ups nobody can answer a question, and a schedule would be a standing action the person did not sign: refused outright.
-    if (WAKE_NEVER.includes(name)) {
+    // During a turn an automation started nobody can answer a question, and a schedule would be a standing action the person did not sign: refused outright.
+    if (UNATTENDED_NEVER.includes(name)) {
       const own = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
-      if (own !== null && heartbeat.isWake(own)) { noteRefusal(own, name); return { kind: 'deny', reason: 'This is a scheduled wake-up: the person is not here to answer, and nothing may be scheduled. Leave it, and say in your last message what needs them.' } }
+      if (own !== null && unattended.isRun(own)) { noteRefusal(own, name); return { kind: 'deny', reason: 'This is a scheduled run: the person is not here to answer, and nothing may be scheduled. Leave it, and say in your last message what needs them.' } }
     }
     return next()
   }
   const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
   if (root === null) return next()
-  // The person's mandate covers some of our tools, inside daily limits: no question. Anything it does not cover, or past a limit, is asked as before, except during a wake-up (nobody answers).
-  const waking = heartbeat.isWake(root)
-  if (mandateStore.allow(name, root, waking ? 'heartbeat' : undefined).allow === true) return next()
+  // The person's mandate covers some of our tools, inside daily limits: no question. Anything it does not cover, or past a limit, is asked as before, except during a scheduled run (nobody answers).
+  const waking = unattended.isRun(root)
+  if (mandateStore.allow(name, root, waking ? 'automation' : undefined).allow === true) return next()
   const refuse = (why) => { noteRefusal(root, name); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
-  if (waking) return refuse('it needs a question, and nobody can answer during a scheduled wake-up')
+  if (waking) return refuse('it needs a question, and nobody can answer during a scheduled run')
   const approval = ctx.get('approval')
   if (approval === undefined || approval === null || typeof approval.request !== 'function') return refuse('it could not be asked')
   let outcome = 'unavailable'
@@ -5833,19 +5831,12 @@ const kabyGivenName = () => { try { const read = globalThis[Symbol.for('kybernos
 // The person's standing permission (kyby-mandate.mjs): three files of the DSH home written by the host only. The native gate reads it to let some of our tools run in Kaby's chat without a
 // question, and the prompt carries its block (kyby-identity.mjs) so Kaby knows what it may do. Nothing outside the Settings route writes it.
 const mandateStore = createMandateStore({ home: () => dshHome(), secret: () => lireSecretSession(dshHome()) })
-// The person's wake-ups for Kaby (kyby-heartbeat*.mjs): the signed rhythm, and the one-at-a-time runner that starts a turn in Kaby's own chat and watches it. Desktop only: a cloud computer
-// has its own scheduler. The runner needs the engine's session controller, which only exists once the bundle is applied (hostCtx).
-const heartbeatStore = createHeartbeatStore({ home: () => dshHome(), secret: () => lireSecretSession(dshHome()) })
-const heartbeat = createHeartbeat({
-  store: heartbeatStore,
-  controller: () => (hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined),
-  pointer: () => readPointer(kybyPointerFile()),
-  isDesktop: () => computerSelf().id === ''
-})
-const heartbeatView = () => ({ ok: true, desktop: computerSelf().id === '', ...heartbeatStore.view(), running: heartbeat.runningSession() !== null })
+// Kaby wakes by itself through an ordinary automation (kybernos-plugin): the rhythm, the time box, « when I write in its chat » and the Stop button are its own. What this package keeps is the
+// gate: a turn that an automation started has nobody to answer (kyby-unattended.mjs). Desktop only: a cloud computer has its own scheduler.
+const unattended = createUnattended()
 const kybyNative = createKybyNative({
   pointerFile: kybyPointerFile, readState, isConnected, apiCall, assistantName: kabyGivenName, mandate: () => mandateStore.text(),
-  wake: (sid) => heartbeatStore.text(heartbeat.isWake(sid)), isWake: (sid) => heartbeat.isWake(sid)
+  list: () => LIST_TEXT, isUnattended: (sid) => unattended.isRun(sid)
 })
 // Kaby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
 // blank, and a blank is taken back by the next new chat of its workspace) and it has a home on this machine.
@@ -5861,33 +5852,6 @@ const kybySessionSet = (req, body) => {
   const r = writePointer(kybyPointerFile(), id)
   return r.ok === true ? { ok: true, sessionId: id } : { ok: false, error: r.error }
 }
-// « Wake it now »: the person's click starts one wake-up at once. The route answers when it has started (or why not); the wake-up goes on in the background.
-const kybyWakeNow = async () => {
-  const r = await heartbeat.start({ manual: true })
-  if (r.ok !== true) return { ok: false, error: r.error }
-  r.finished.catch(() => null)
-  return { ok: true }
-}
-// « Stop this wake-up »: the person's click cancels the turn that a wake-up started. It answers at once; the wake-up ends a moment later, as `stopped`.
-const kybyStopNow = async () => {
-  const r = await heartbeat.stopNow()
-  return r.ok === true ? { ok: true } : { ok: false, error: r.error }
-}
-// The timer: every minute on the person's computer, one step of the runner, which starts a wake-up only when one is due (and returns when it is over, so two never overlap).
-// Unref'd, so that it never keeps DSH alive; nothing here runs on a cloud computer.
-const HEARTBEAT_FIRST_MS = 30 * 1000
-let heartbeatTimer = null
-const heartbeatTick = async () => {
-  try { if (computerSelf().id === '') await heartbeat.tick() } catch (e) { /* the next tick tries again */ }
-  heartbeatTimer = setTimeout(() => { void heartbeatTick() }, heartbeat.TICK_MS)
-  if (typeof heartbeatTimer.unref === 'function') heartbeatTimer.unref()
-}
-const mountKybyHeartbeat = () => {
-  if (heartbeatTimer !== null) return
-  heartbeat.settle()
-  heartbeatTimer = setTimeout(() => { void heartbeatTick() }, HEARTBEAT_FIRST_MS)
-  if (typeof heartbeatTimer.unref === 'function') heartbeatTimer.unref()
-}
 const mountKybyNative = (ctx) => {
   ctx.inject(['systemPrompt'], (scope) => {
     scope.systemPrompt.context({
@@ -5896,9 +5860,9 @@ const mountKybyNative = (ctx) => {
       text: (context) => kybyNative.promptFor(sessionIdOfContext(context)),
     })
   })
-  ctx.on('agent/inbox/claimed', ({ agent, turn }) => {
+  ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => {
     try { kybyNative.noteClaim(agent.session.id) } catch (e) { /* never break a turn */ }
-    try { heartbeat.noteClaim(agent.session.id, turn) } catch (e) { /* never break a turn */ }
+    try { unattended.noteClaim(agent.session.id, turn, message) } catch (e) { /* never break a turn */ }
   })
   ctx.on('agent/turn-stopping', ({ agent, signal }) => {
     void kybyNative.mirrorTurn(agent, signal)
@@ -5932,11 +5896,6 @@ const ROUTES = [
   { path: '/kybernos-cloud/kyby/mandate', method: 'GET', guarded: true, run: () => ({ ok: true, ...mandateStore.view() }) },
   { path: '/kybernos-cloud/kyby/mandate/log', method: 'GET', guarded: true, run: () => ({ ok: true, entries: mandateStore.log() }) },
   { path: '/kybernos-cloud/kyby/mandate/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => mandateStore.set(body) },
-  // Kaby's wake-ups (kyby-heartbeat.mjs): the rhythm it wakes at on this computer. Reading is open to the page; signing and waking it now are the person's, so the strict Origin and the signed session.
-  { path: '/kybernos-cloud/kyby/heartbeat', method: 'GET', guarded: true, run: heartbeatView },
-  { path: '/kybernos-cloud/kyby/heartbeat/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => { const r = heartbeatStore.set(body); return r.ok === true ? { ok: true, view: { ...r.view, desktop: computerSelf().id === '', running: heartbeat.runningSession() !== null } } : r } },
-  { path: '/kybernos-cloud/kyby/heartbeat/wake', method: 'POST', guarded: true, strict: true, session: true, run: kybyWakeNow },
-  { path: '/kybernos-cloud/kyby/heartbeat/stop', method: 'POST', guarded: true, strict: true, session: true, run: kybyStopNow },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('resume') },
@@ -6399,7 +6358,6 @@ export function apply(ctx) {
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] memory prompt: ' + String((e && e.message) || e)) }
   try { mountChatSpace(ctx) } catch (e) { console.error('[kybernos-cloud] active team follows the chat: ' + String((e && e.message) || e)) }
   try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] native Kaby: ' + String((e && e.message) || e)) }
-  try { mountKybyHeartbeat() } catch (e) { console.error('[kybernos-cloud] Kaby wake-ups: ' + String((e && e.message) || e)) }
   try { mountKabyJournal(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby journal: ' + String((e && e.message) || e)) }
   try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
   try { mountKabyAccount(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby account: ' + String((e && e.message) || e)) }

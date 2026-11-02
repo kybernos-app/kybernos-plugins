@@ -160,7 +160,7 @@ console.log('── permissions and where Kaby works: the cards, rendered once �
   const panelTree = T.buildPanel(React)
   T.store.profile = publicProfile(emptyProfile())
   const page = panelTree()
-  ok('the page draws the three cards, after the three blocks', ['KabyWhereCard', 'KabyMandateCard', 'KabyHeartbeatCard'].every((n) => find(page, (x) => typeof x.type === 'function' && x.type.displayName === n).length === 1))
+  ok('the page draws the three cards, after the three blocks', ['KabyWhereCard', 'KabyMandateCard', 'KabyWakeCard'].every((n) => find(page, (x) => typeof x.type === 'function' && x.type.displayName === n).length === 1))
 
   T.store.mandate = null
   let m = mount('MandateCard')
@@ -288,197 +288,192 @@ console.log('── permissions and where Kaby works: the cards, rendered once �
   T.store.mandate = null
 }
 
-console.log('── wake-ups: the words, the draft ──')
 {
-  resolved = 'en'
-  const PRESETS = { off: { on: false, everyHours: 4, boxMin: 10, items: 2 }, light: { on: true, everyHours: 8, boxMin: 5, items: 1 }, regular: { on: true, everyHours: 4, boxMin: 10, items: 2 }, steady: { on: true, everyHours: 2, boxMin: 20, items: 3 } }
-  const view = (o) => ({ ok: true, inForce: false, why: 'none', canSign: true, signedAt: null, preset: 'off', on: false, everyHours: 4, boxMin: 10, items: 2, quiet: true, quietFrom: '22:00', quietTo: '08:00', paused: false, quietNow: false, nextAt: null, lastAt: null, lastOutcome: null, running: false, desktop: true,
-    choices: { everyHours: [2, 4, 8, 24], boxMin: [5, 10, 20], items: [1, 2, 3] }, presets: PRESETS, ...o })
-  const chipOf = (o, dirty) => T.heartbeatChip(view(o), dirty === true).code
-  const SIGNED = '2026-11-02T08:00:00.000Z'
-  const ON = { inForce: true, why: 'in_force', signedAt: SIGNED, on: true, preset: 'regular' }
-  ok('nothing signed: no wake-ups; signed but off: the same words, another state', chipOf({}) === 'none' && chipOf({ why: 'off', signedAt: SIGNED }) === 'off' && T.heartbeatChip(view({}), false).text === 'No wake-ups')
-  ok('on: the chip says when the next one is due, in the language; with no date it just says on', (() => { const n = new Date(2026, 10, 2, 14, 30).toISOString(); const c = T.heartbeatChip(view({ ...ON, nextAt: n }), false); resolved = 'kybernos'; const f = T.heartbeatChip(view({ ...ON, nextAt: n }), false).text; resolved = 'en'; return c.code === 'on' && c.cls === 'ok' && c.text === 'On · next around 14:30' && f === 'Actifs · prochain vers 14:30' && T.heartbeatChip(view(ON), false).text === 'On' })())
-  ok('in the quiet hours the chip says when they end', (() => { const c = T.heartbeatChip(view({ ...ON, quietNow: true, quietTo: '07:30' }), false); return c.code === 'quiet' && c.text === 'Quiet · resumes at 07:30' })())
-  ok('a wake-up under way names the longest it can take, and wins over the next date', (() => { const c = T.heartbeatChip(view({ ...ON, running: true, boxMin: 20 }), false); return c.code === 'running' && c.text === 'Working · 20 min at most' })())
-  ok('a draft not signed yet says so, whatever the host says', chipOf(ON, true) === 'dirty' && chipOf({}, true) === 'dirty')
-  ok('paused, altered or unreadable (sign again), no key (cannot sign): each its own state', chipOf({ why: 'paused', signedAt: SIGNED }) === 'paused' && chipOf({ why: 'altered' }) === 'resign' && chipOf({ why: 'unreadable' }) === 'resign' && chipOf({ why: 'no_secret' }) === 'cannot_sign' && chipOf({ canSign: false }) === 'cannot_sign' && chipOf({ canSign: false }, true) === 'cannot_sign')
-  const dr = T.heartbeatDraftOf(view({ on: true, everyHours: 8, quiet: false }))
-  ok('the draft holds the seven fields the host signs besides « paused », and no more', Object.keys(dr).sort().join() === 'boxMin,everyHours,items,on,quiet,quietFrom,quietTo' && dr.on === true && dr.everyHours === 8 && dr.quiet === false)
-  ok('a draft equal to a starting point is that point whatever the quiet hours; any other is custom', T.heartbeatPreset({ ...T.heartbeatDraftOf(view(ON)), quiet: false }, PRESETS) === 'regular' && T.heartbeatPreset({ on: true, everyHours: 2, boxMin: 20, items: 3 }, PRESETS) === 'steady' && T.heartbeatPreset({ on: true, everyHours: 24, boxMin: 20, items: 3 }, PRESETS) === 'custom' && T.heartbeatPreset(dr, null) === 'custom' && T.heartbeatPreset(T.heartbeatDraftOf(view({})), PRESETS) === 'off')
-  ok('the starting points are named in both languages', T.HEARTBEAT_PRESETS.every((p) => T.heartbeatPresetLabel(p).length > 2) && (() => { resolved = 'kybernos'; const f = T.heartbeatPresetLabel('light'); resolved = 'en'; return f === 'Léger' && T.heartbeatPresetLabel('light') === 'Light' })())
-  ok('every outcome word of the runner has a phrase, and an unknown one none', ['running', 'done', 'time', 'blocked', 'person', 'stopped', 'refused', 'error', 'interrupted'].every((w) => T.wakeOutcome(w).length > 3) && T.wakeOutcome('?') === '' && T.wakeOutcome(null) === '')
-  ok('every refusal of the host has a sentence, and an unknown one a plain fallback', ['cannot_sign', 'write_failed', 'session', 'down'].every((c) => T.heartbeatProblem(c).length > 20) && T.heartbeatProblem('?').length > 5)
-  ok('every reason a wake-up cannot start has a sentence, and an unknown one a plain fallback', ['running', 'not_desktop', 'not_in_force', 'sessions_unavailable', 'no_chat', 'busy', 'not_running', 'session'].every((c) => T.wakeProblem(c).length > 20) && T.wakeProblem('?').length > 5)
-  ok('the clock shows hours and minutes, from a date or from milliseconds, and nothing for a date it cannot read', T.clockOf(new Date(2026, 10, 2, 7, 5).toISOString()) === '07:05' && T.clockOf(new Date(2026, 10, 2, 7, 5).getTime()) === '07:05' && T.clockOf('nope') === '' && T.clockOf(null) === '')
-}
+  const SID = 'session-kaby-1'
+  const TASKS = '/kybernos/tasks'
+  const NATIVE = '/kybernos-cloud/kyby/native'
+  const LOAD = '/kybernos/automation-load'
+  const APPROVED = { gate: { status: 'approved' } }
+  const task = (o) => ({ id: 't1', name: 'Kaby’s wake-up', active: false, sessionMode: 'home', homeSessionId: SID, gate: { status: 'draft' }, ...o })
+  const state = (o) => ({ sid: SID, task: null, running: false, ...o })
+  const asked = []
+  // A fake world for the three routes the card reads and the one it posts to: `act` answers create, run-now and stop.
+  const serve = (route) => { globalThis.fetch = async (url, init) => { asked.push({ url, init }); const body = init !== undefined && typeof init.body === 'string' ? JSON.parse(init.body) : null; const [status, json] = route(url, body); return { status, json: async () => json } } }
+  const world = (o = {}) => (url, body) => {
+    const w = { sid: SID, tasks: [], runs: [], act: () => [200, { ok: true }], ...o }
+    if (url === NATIVE) return [200, { ok: true, sessionId: w.sid, cwd: '/x' }]
+    if (url === TASKS) return body.action === 'list' ? [200, { ok: true, tasks: w.tasks }] : w.act(body)
+    if (url === LOAD) return [200, { ok: true, runs: w.runs }]
+    return [404, null]
+  }
 
-console.log('── wake-ups: the card, rendered once ──')
-{
+  console.log('── wake-ups: the words, the draft ──')
   resolved = 'en'
-  const PRESETS = { off: { on: false, everyHours: 4, boxMin: 10, items: 2 }, light: { on: true, everyHours: 8, boxMin: 5, items: 1 }, regular: { on: true, everyHours: 4, boxMin: 10, items: 2 }, steady: { on: true, everyHours: 2, boxMin: 20, items: 3 } }
-  const view = (o) => ({ ok: true, inForce: false, why: 'none', canSign: true, signedAt: null, preset: 'off', on: false, everyHours: 4, boxMin: 10, items: 2, quiet: true, quietFrom: '22:00', quietTo: '08:00', paused: false, quietNow: false, nextAt: null, lastAt: null, lastOutcome: null, running: false, desktop: true,
-    choices: { everyHours: [2, 4, 8, 24], boxMin: [5, 10, 20], items: [1, 2, 3] }, presets: PRESETS, ...o })
-  const SIGNED = '2026-11-02T08:00:00.000Z'
-  const ON = { inForce: true, why: 'in_force', signedAt: SIGNED, on: true, preset: 'regular' }
-  // Heartbeat = view 0, down 1, draft 2, busy 3, problem 4.
+  const chipOf = (o) => T.wakeChip(state(o)).code
+  ok('no chat yet: the chip says so (a warning); no automation: « No wake-up »', chipOf({ sid: null }) === 'nochat' && T.wakeChip(state({ sid: null })).cls === 'warn' && T.wakeChip(state({})).code === 'none' && T.wakeChip(state({})).text === 'No wake-up')
+  ok('an automation not approved is « To approve »; approved and off is « Off »; on is « On », green', chipOf({ task: task({}) }) === 'draft' && T.wakeChip(state({ task: task({}) })).text === 'To approve' && chipOf({ task: task(APPROVED) }) === 'off' && chipOf({ task: task({ gate: { status: 'activated' } }) }) === 'off' && T.wakeChip(state({ task: task({ ...APPROVED, active: true }) })).text === 'On' && T.wakeChip(state({ task: task({ ...APPROVED, active: true }) })).cls === 'ok')
+  ok('a run under way is « Working » and wins over the rest; a missing chat wins over everything', T.wakeChip(state({ task: task({ ...APPROVED, active: true }), running: true })).text === 'Working' && chipOf({ task: task({}), running: true }) === 'running' && chipOf({ sid: null, task: task({}), running: true }) === 'nochat')
+  ok('the chip speaks French in French', (() => { resolved = 'kybernos'; const f = [T.wakeChip(state({})).text, T.wakeChip(state({ task: task({}) })).text, T.wakeChip(state({ sid: null })).text]; resolved = 'en'; return f.join() === 'Pas de réveil,À approuver,Chat pas encore ouvert' })())
+  const input = T.wakeInput(SID, 'Kaby')
+  ok('the automation it makes is off, in Kaby’s own chat, every 4 hours from 08:00 to 20:00, 10 minutes at most, stopping when the person writes, and asks before anything', input.active === false && input.sessionMode === 'home' && input.homeSessionId === SID && input.maxMinutes === 10 && input.onPersonWrites === 'stop' && input.schedule.mode === 'cron' && input.schedule.cron === '0 8-20/4 * * *' && T.WAKE_CRON === input.schedule.cron && input.runsOn === 'local' && input.approvals === 'ask' && Array.isArray(input.notify) && input.notify.length === 0 && input.name === 'Kaby’s wake-up')
+  ok('its name follows the assistant’s name and the language', T.wakeInput(SID, 'Nova').name === 'Nova’s wake-up' && (() => { resolved = 'kybernos'; const f = T.wakeInput(SID, 'Nova').name; resolved = 'en'; return f === 'Réveil de Nova' })())
+  ok('its prompt is plain text the person can read and change: the list is todo.md, the two oldest points, nothing sent, published, paid, installed or switched on, one short message at the end', /todo\.md/.test(input.prompt) && /2 oldest/.test(input.prompt) && /Never send, publish, pay, install, schedule or switch/.test(input.prompt) && /ONE short message/.test(input.prompt) && input.prompt === T.wakePrompt())
+  ok('the wake-up is the automation whose runs land in Kaby’s own chat, and no other', T.wakeTaskOf([task({ id: 'a', homeSessionId: 'other' }), { id: 'b', sessionMode: 'new', homeSessionId: SID }, task({ id: 'c' })], SID).id === 'c' && T.wakeTaskOf([], SID) === null && T.wakeTaskOf([task({})], null) === null && T.wakeTaskOf([task({})], '') === null && T.wakeTaskOf(null, SID) === null && T.wakeTaskOf([null, 3, task({})], SID).id === 't1')
+  ok('only an approved or activated automation can run', T.wakeApproved(task({})) === false && T.wakeApproved(task(APPROVED)) === true && T.wakeApproved(task({ gate: { status: 'activated' } })) === true && T.wakeApproved(task({ gate: null })) === false && T.wakeApproved(null) === false && T.wakeApproved({}) === false)
+  ok('every refusal has a sentence, and an unknown one a plain fallback', ['approval required', 'not running', 'no_chat', 'session', 'down'].every((c) => T.wakeProblem(c).length > 20) && T.wakeProblem('?').length > 5 && /approve it on the Automations page/.test(T.wakeProblem('approval required')))
+  ok('the card asks three routes that are not this bundle’s: Kaby’s chat, the automations and the runs going', T.TASKS === TASKS && T.NATIVE === NATIVE && T.LOAD === LOAD)
+
+  serve(world({ tasks: [task({})] }))
+  let s = await T.readWake()
+  ok('reading gives Kaby’s chat, its automation and whether it runs, from the three routes', s.sid === SID && s.task.id === 't1' && s.running === false && asked.some((a) => a.url === LOAD) && asked.some((a) => a.url === NATIVE) && asked.some((a) => a.url === TASKS))
+  asked.length = 0
+  serve(world({ tasks: [] }))
+  s = await T.readWake()
+  ok('no automation of Kaby’s: no task, and the runs are not asked for', s.task === null && s.running === false && !asked.some((a) => a.url === LOAD))
+  serve(world({ sid: null, tasks: [task({})] }))
+  s = await T.readWake()
+  ok('no chat yet: the id is null and no automation is taken for Kaby’s', s.sid === null && s.task === null)
+  serve(world({ tasks: [task({})], runs: [{ taskId: 'someone-else' }] }))
+  ok('a run of another automation is not Kaby’s', (await T.readWake()).running === false)
+  serve(world({ tasks: [task({})], runs: [{ taskId: 'someone-else' }, { taskId: 't1' }] }))
+  ok('a run of its automation makes it « running »', (await T.readWake()).running === true)
+  serve(() => [200, { ok: false, error: 'x' }])
+  ok('automations that do not answer give nothing, never a half state', (await T.readWake()) === null)
+  globalThis.fetch = async () => { throw new Error('offline') }
+  ok('a network failure gives nothing too', (await T.readWake()) === null)
+
+  console.log('── wake-ups: the card, rendered once ──')
+  // Wake = state 0, down 1, busy 2, problem 3, made 4.
   const mount = (forced = {}) => {
     const sets = []
     let i = 0
     const R = { ...React, useState: (v) => { const n = i++; return [n in forced ? forced[n] : (typeof v === 'function' ? v() : v), (x) => sets.push([n, x])] } }
-    return { tree: T.buildCards(R).HeartbeatCard(), sets }
+    return { tree: T.buildCards(R).WakeCard(), sets }
   }
   const only = (tree, kb) => byKb(tree, kb)[0]
   const label = (tree, kb) => text(only(tree, kb))
   delete globalThis.window.__KB_KYBER__
+  delete globalThis.window.__KB_OPEN__
 
-  T.store.heartbeat = null
+  T.store.wake = null
   let m = mount()
-  ok('before the host answers, the card says it is reading', byKb(m.tree, 'kaby-custom-heartbeat-loading').length === 1 && byKb(m.tree, 'kaby-custom-heartbeat-sign').length === 0)
+  ok('before the automations answer, the card says it is reading', byKb(m.tree, 'kaby-custom-wake-loading').length === 1 && byKb(m.tree, 'kaby-custom-wake-create').length === 0)
   m = mount({ 1: true })
-  ok('when the host does not answer, it says so (and how to fix it)', byKb(m.tree, 'kaby-custom-heartbeat-down').length === 1 && /restart DSH/.test(text(m.tree)))
+  ok('when they do not answer, it says so (and how to fix it)', byKb(m.tree, 'kaby-custom-wake-down').length === 1 && /restart DSH/.test(text(m.tree)))
 
-  T.store.heartbeat = view({})
+  T.store.wake = state({ sid: null })
   m = mount()
-  ok('nothing signed: four starting points, « Off » pressed, sign, pause and wake off', byKb(m.tree, 'kaby-custom-heartbeat-preset').length === 4 && byKb(m.tree, 'kaby-custom-heartbeat-preset').filter((b) => b.props['aria-pressed'] === 'true').map((b) => b.props['data-preset']).join() === 'off' && only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
-  ok('three labelled selects with the host’s choices, and the quiet hours as a switch and two times', ['everyHours', 'boxMin', 'items'].every((k) => { const s = only(m.tree, 'kaby-custom-heartbeat-' + k); return s.type === 'select' && s.props['aria-label'].length > 10 && find(m.tree, (n) => n.type === 'label' && n.props.htmlFor === s.props.id).length === 1 }) && only(m.tree, 'kaby-custom-heartbeat-everyHours').children.map((o) => text(o).trim()).join() === '2 h,4 h,8 h,24 h' && only(m.tree, 'kaby-custom-heartbeat-items').children.length === 3 && only(m.tree, 'kaby-custom-heartbeat-quiet-switch').props.role === 'switch' && only(m.tree, 'kaby-custom-heartbeat-from').props.type === 'time' && only(m.tree, 'kaby-custom-heartbeat-to').props.value === '08:00')
-  ok('the card holds parameters only: no list, no report, and it says where those are', !byKb(m.tree, 'kaby-custom-heartbeat-last').length && /in its chat, not here/.test(text(m.tree)))
-  ok('the card says what is never different during a wake-up, and that nothing is measured in euros', byKb(m.tree, 'kaby-custom-heartbeat-rules').length === 1 && /nobody can answer a question/.test(text(only(m.tree, 'kaby-custom-heartbeat-rules'))) && /connected app, restarting DSH: never/.test(text(only(m.tree, 'kaby-custom-heartbeat-rules'))) && /half an hour/.test(text(only(m.tree, 'kaby-custom-heartbeat-rules'))) && /No budget in euros/.test(text(m.tree)))
-  ok('no cloud warning on the person’s own computer', byKb(m.tree, 'kaby-custom-heartbeat-cloud-note').length === 0 && byKb(m.tree, 'kaby-custom-heartbeat-open').length === 0)
+  ok('no chat yet: a warning chip, a note that asks to open the chat once, and « Create » waits', only(m.tree, 'kaby-custom-wake-chip').props['data-state'] === 'nochat' && /Open the assistant’s chat once/.test(label(m.tree, 'kaby-custom-wake-note')) && only(m.tree, 'kaby-custom-wake-create').props.disabled === true)
 
-  T.store.heartbeat = view({ ...ON, nextAt: new Date(2026, 10, 2, 16, 0).toISOString(), lastAt: new Date(2026, 10, 2, 12, 5).toISOString(), lastOutcome: 'done' })
+  T.store.wake = state({})
   m = mount()
-  ok('on: the chip is green with the next time, « Regular » is pressed, and the last wake-up is one line', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'on' && / ok$/.test(only(m.tree, 'kaby-custom-heartbeat-chip').props.className) && byKb(m.tree, 'kaby-custom-heartbeat-preset').find((b) => b.props['data-preset'] === 'regular').props['aria-pressed'] === 'true' && /next around 16:00/.test(label(m.tree, 'kaby-custom-heartbeat-chip')) && label(m.tree, 'kaby-custom-heartbeat-last').trim() === 'Last wake-up at 12:05: finished.')
-  ok('on and nothing changed: sign is off, pause and « Wake it now » are on', only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === false && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === false && /Pause/.test(label(m.tree, 'kaby-custom-heartbeat-pause')))
-  m = mount({ 2: { on: true, everyHours: 8, boxMin: 5, items: 1, quiet: true, quietFrom: '22:00', quietTo: '08:00' } })
-  ok('a draft: « Changes to sign », « Light » pressed, the last wake-up hidden, sign on and « Wake it now » off until it is signed', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'dirty' && byKb(m.tree, 'kaby-custom-heartbeat-preset').find((b) => b.props['data-preset'] === 'light').props['aria-pressed'] === 'true' && byKb(m.tree, 'kaby-custom-heartbeat-last').length === 0 && only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === false && /Sign the changes/.test(label(m.tree, 'kaby-custom-heartbeat-sign')) && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
-  m = mount({ 2: { on: true, everyHours: 24, boxMin: 5, items: 1, quiet: true, quietFrom: '22:00', quietTo: '08:00' } })
-  ok('numbers that match no starting point show « Custom », none pressed', byKb(m.tree, 'kaby-custom-heartbeat-custom').length === 1 && byKb(m.tree, 'kaby-custom-heartbeat-preset').every((b) => b.props['aria-pressed'] === 'false'))
-  T.store.heartbeat = view({})
-  m = mount({ 2: { on: true, everyHours: 4, boxMin: 10, items: 2, quiet: true, quietFrom: '22:00', quietTo: '08:00' } })
-  ok('turning on for the first time says « Turn the wake-ups on »', /Turn the wake-ups on/.test(label(m.tree, 'kaby-custom-heartbeat-sign')))
-  T.store.heartbeat = view({ ...ON, running: true, lastAt: SIGNED, lastOutcome: 'running' })
+  ok('no wake-up yet: « Create the wake-up » is the one action, and the note says what it will add', only(m.tree, 'kaby-custom-wake-chip').props['data-state'] === 'none' && only(m.tree, 'kaby-custom-wake-create').props.disabled === false && /Create the wake-up/.test(label(m.tree, 'kaby-custom-wake-create')) && /every 4 hours from 08:00 to 20:00, 10 minutes at most/.test(label(m.tree, 'kaby-custom-wake-note')) && byKb(m.tree, 'kaby-custom-wake-automation').length === 0 && byKb(m.tree, 'kaby-custom-wake-now').length === 0 && byKb(m.tree, 'kaby-custom-wake-stop').length === 0)
+  ok('the card keeps no setting: it says the schedule, the limit and Stop are on the Automations page, and where the list and reports are', /Automations page/.test(text(m.tree)) && /in its chat, not here/.test(text(m.tree)) && byKb(m.tree, 'kaby-custom-wake-sign').length === 0 && find(m.tree, (n) => n.type === 'select').length === 0)
+  ok('the card says what is never different during a wake-up, and where the list is', byKb(m.tree, 'kaby-custom-wake-rules').length === 1 && /nobody can answer a question/.test(label(m.tree, 'kaby-custom-wake-rules')) && /todo\.md/.test(label(m.tree, 'kaby-custom-wake-rules')) && /Automations page › Edit/.test(label(m.tree, 'kaby-custom-wake-rules')))
+  ok('no cloud warning on the person’s own computer', byKb(m.tree, 'kaby-custom-wake-cloud-note').length === 0 && byKb(m.tree, 'kaby-custom-wake-open').length === 0)
+
+  T.store.wake = state({ task: task({}) })
   m = mount()
-  ok('a wake-up under way: the chip says so, « Wake it now » is off, « Stop this wake-up » is there, and the last-wake-up line waits for its end', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'running' && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-stop').props.disabled === false && /Stop this wake-up/.test(label(m.tree, 'kaby-custom-heartbeat-stop')) && byKb(m.tree, 'kaby-custom-heartbeat-last').length === 0)
-  T.store.heartbeat = view(ON)
+  ok('an automation waiting for approval: « To approve », a note, no « Create », « Wake it now » off, « Open the automation » off while the page cannot be opened', only(m.tree, 'kaby-custom-wake-chip').props['data-state'] === 'draft' && / warn$/.test(only(m.tree, 'kaby-custom-wake-chip').props.className) && /waits for your approval/.test(label(m.tree, 'kaby-custom-wake-note')) && byKb(m.tree, 'kaby-custom-wake-create').length === 0 && only(m.tree, 'kaby-custom-wake-now').props.disabled === true && only(m.tree, 'kaby-custom-wake-automation').props.disabled === true)
+  m = mount({ 4: true })
+  ok('just created: the note says it is off and that nothing happens before the approval', /Created, and off/.test(label(m.tree, 'kaby-custom-wake-note')) && /no wake-up happens until it is approved/.test(label(m.tree, 'kaby-custom-wake-note')))
+  const opened = []
+  globalThis.window.__KB_OPEN__ = (target) => { opened.push(target) }
   m = mount()
-  ok('no wake-up under way: no « Stop this wake-up »', byKb(m.tree, 'kaby-custom-heartbeat-stop').length === 0)
-  T.store.heartbeat = view({ why: 'paused', signedAt: SIGNED, on: true, paused: true })
+  only(m.tree, 'kaby-custom-wake-automation').props.onClick()
+  ok('« Open the automation » goes to the Automations page through the shell’s own opener', only(m.tree, 'kaby-custom-wake-automation').props.disabled === false && opened.length === 1 && JSON.stringify(opened[0]) === JSON.stringify({ view: 'tasks' }))
+  globalThis.window.__KB_OPEN__ = () => { throw new Error('no page') }
   m = mount()
-  ok('paused: the chip, the sentence, « Resume », and no wake-up', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'paused' && /No wake-up until you resume/.test(label(m.tree, 'kaby-custom-heartbeat-note')) && /Resume/.test(label(m.tree, 'kaby-custom-heartbeat-pause')) && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === false && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
-  T.store.heartbeat = view({ why: 'altered' })
+  ok('an opener that throws never breaks the card', (() => { only(m.tree, 'kaby-custom-wake-automation').props.onClick(); return true })())
+  globalThis.window.__KB_OPEN__ = (target) => { opened.push(target) }
+
+  T.store.wake = state({ task: task(APPROVED) })
   m = mount()
-  ok('altered or another key: red, an alert, pause and wake off, « Sign again » waits for a pick', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'resign' && only(m.tree, 'kaby-custom-heartbeat-note').props.role === 'alert' && only(m.tree, 'kaby-custom-heartbeat-pause').props.disabled === true && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true && /Sign again/.test(label(m.tree, 'kaby-custom-heartbeat-sign')) && only(m.tree, 'kaby-custom-heartbeat-sign').props.disabled === true)
-  T.store.heartbeat = view({ canSign: false, why: 'no_secret' })
+  ok('approved and off: « Off », the note says it is off, « Wake it now » is on', only(m.tree, 'kaby-custom-wake-chip').props['data-state'] === 'off' && /automation is off/.test(label(m.tree, 'kaby-custom-wake-note')) && only(m.tree, 'kaby-custom-wake-now').props.disabled === false && byKb(m.tree, 'kaby-custom-wake-stop').length === 0)
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }) })
   m = mount()
-  ok('no key on this machine: every control is off and the card says why', only(m.tree, 'kaby-custom-heartbeat-chip').props['data-state'] === 'cannot_sign' && /cannot find this machine’s key/.test(label(m.tree, 'kaby-custom-heartbeat-note')) && [...byKb(m.tree, 'kaby-custom-heartbeat-preset'), ...['everyHours', 'boxMin', 'items'].map((k) => only(m.tree, 'kaby-custom-heartbeat-' + k)), only(m.tree, 'kaby-custom-heartbeat-quiet-switch'), only(m.tree, 'kaby-custom-heartbeat-sign'), only(m.tree, 'kaby-custom-heartbeat-pause'), only(m.tree, 'kaby-custom-heartbeat-wake')].every((n) => n.props.disabled === true))
-  T.store.heartbeat = view({ ...ON, desktop: false })
+  ok('on: the chip is green, no note, « Wake it now » is on, no Stop', only(m.tree, 'kaby-custom-wake-chip').props['data-state'] === 'on' && / ok$/.test(only(m.tree, 'kaby-custom-wake-chip').props.className) && byKb(m.tree, 'kaby-custom-wake-note').length === 0 && only(m.tree, 'kaby-custom-wake-now').props.disabled === false && byKb(m.tree, 'kaby-custom-wake-stop').length === 0)
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }), running: true })
   m = mount()
-  ok('on a cloud computer the card warns that wake-ups happen on the person’s own computer, and « Wake it now » is off', /do not cover Kaby’s cloud computer/.test(label(m.tree, 'kaby-custom-heartbeat-cloud-note')) && only(m.tree, 'kaby-custom-heartbeat-wake').props.disabled === true)
-  T.store.heartbeat = view({ ...ON })
+  ok('a run under way: « Working », « Wake it now » is off, « Stop this wake-up » is there', only(m.tree, 'kaby-custom-wake-chip').props['data-state'] === 'running' && only(m.tree, 'kaby-custom-wake-now').props.disabled === true && only(m.tree, 'kaby-custom-wake-stop').props.disabled === false && /Stop this wake-up/.test(label(m.tree, 'kaby-custom-wake-stop')))
+
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }) })
   globalThis.window.__KB_KYBER__ = { where: () => ({ local: false, computers: [], picked: 'x', state: 'suspended' }), openChat: () => true }
   m = mount()
-  ok('when Kaby works on a cloud computer the same warning shows, and « Open Kaby’s chat » is offered', byKb(m.tree, 'kaby-custom-heartbeat-cloud-note').length === 1 && /Open Kaby’s chat/.test(label(m.tree, 'kaby-custom-heartbeat-open')))
-  let opened = 0
-  globalThis.window.__KB_KYBER__ = { where: () => null, openChat: () => { opened += 1; return true } }
+  ok('when Kaby works on a cloud computer the card warns that wake-ups happen on the person’s own computer, and « Open Kaby’s chat » is offered', /do not cover Kaby’s cloud computer/.test(label(m.tree, 'kaby-custom-wake-cloud-note')) && /Open Kaby’s chat/.test(label(m.tree, 'kaby-custom-wake-open')))
+  let chats = 0
+  globalThis.window.__KB_KYBER__ = { where: () => null, openChat: () => { chats += 1; return true } }
   m = mount()
-  only(m.tree, 'kaby-custom-heartbeat-open').props.onClick()
-  ok('« Open Kaby’s chat » goes through kybernos-kyber’s seam', opened === 1 && byKb(m.tree, 'kaby-custom-heartbeat-cloud-note').length === 0)
+  only(m.tree, 'kaby-custom-wake-open').props.onClick()
+  ok('« Open Kaby’s chat » goes through kybernos-kyber’s seam, and there is no warning on this computer', chats === 1 && byKb(m.tree, 'kaby-custom-wake-cloud-note').length === 0)
   globalThis.window.__KB_KYBER__ = { where: () => null, openChat: () => { throw new Error('no chat on screen') } }
   m = mount()
-  ok('a seam that throws never breaks the card', (() => { only(m.tree, 'kaby-custom-heartbeat-open').props.onClick(); return true })())
+  ok('a seam that throws never breaks the card', (() => { only(m.tree, 'kaby-custom-wake-open').props.onClick(); return true })())
   delete globalThis.window.__KB_KYBER__
 
   // what the controls do
-  T.store.heartbeat = view({})
-  m = mount()
-  byKb(m.tree, 'kaby-custom-heartbeat-preset').find((b) => b.props['data-preset'] === 'steady').props.onClick()
-  ok('a starting point fills the draft from the host’s own numbers and keeps the quiet hours', JSON.stringify(m.sets.find(([n]) => n === 2)[1]) === JSON.stringify({ on: true, everyHours: 2, boxMin: 20, items: 3, quiet: true, quietFrom: '22:00', quietTo: '08:00' }))
-  m = mount()
-  only(m.tree, 'kaby-custom-heartbeat-everyHours').props.onChange({ target: { value: '24' } })
-  only(m.tree, 'kaby-custom-heartbeat-boxMin').props.onChange({ target: { value: 'abc' } })
-  only(m.tree, 'kaby-custom-heartbeat-items').props.onChange({ target: { value: '3' } })
-  ok('a select changes that field only, and a word is ignored', m.sets.length === 2 && m.sets[0][1].everyHours === 24 && m.sets[0][1].boxMin === 10 && m.sets[1][1].items === 3 && m.sets[1][1].everyHours === 4)
-  m = mount()
-  only(m.tree, 'kaby-custom-heartbeat-quiet-switch').props.onClick()
-  only(m.tree, 'kaby-custom-heartbeat-from').props.onChange({ target: { value: '23:30' } })
-  only(m.tree, 'kaby-custom-heartbeat-to').props.onChange({ target: { value: '25:00' } })
-  only(m.tree, 'kaby-custom-heartbeat-to').props.onChange({ target: { value: '' } })
-  ok('the quiet switch and the start time change the draft; a time that is not one is ignored', m.sets.length === 2 && m.sets[0][1].quiet === false && m.sets[1][1].quietFrom === '23:30')
-  ok('the two times are off while the quiet hours are off', (() => { const d = { on: false, everyHours: 4, boxMin: 10, items: 2, quiet: false, quietFrom: '22:00', quietTo: '08:00' }; const x = mount({ 2: d }); return only(x.tree, 'kaby-custom-heartbeat-from').props.disabled === true && only(x.tree, 'kaby-custom-heartbeat-to').props.disabled === true })())
-
-  const asked = []
-  const answer = (status, json) => { globalThis.fetch = async (url, init) => { asked.push({ url, init }); return { status, json: async () => json } } }
-  const DRAFT = { on: true, everyHours: 8, boxMin: 5, items: 1, quiet: false, quietFrom: '21:00', quietTo: '07:00' }
-  T.store.heartbeat = view({})
-  m = mount({ 2: DRAFT })
-  answer(200, { ok: true, view: view({ ...ON, preset: 'light', everyHours: 8, boxMin: 5, items: 1, quiet: false, quietFrom: '21:00', quietTo: '07:00' }) })
-  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
-  ok('signing posts the seven fields to the host, never « paused », same origin, with the cookie', asked[0].url === '/kybernos-cloud/kyby/heartbeat/set' && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify(DRAFT))
-  ok('the host’s answer replaces the card’s state and clears the draft', T.store.heartbeat.inForce === true && T.store.heartbeat.everyHours === 8 && T.store.heartbeat.desktop === true && m.sets.some(([n, x]) => n === 2 && x === null) && m.sets.some(([n, x]) => n === 3 && x === true) && m.sets.some(([n, x]) => n === 3 && x === false))
   asked.length = 0
-  T.store.heartbeat = view(ON)
+  T.store.wake = state({})
   m = mount()
-  answer(200, { ok: true, view: view({ why: 'paused', paused: true, signedAt: SIGNED, on: true }) })
-  await only(m.tree, 'kaby-custom-heartbeat-pause').props.onClick()
-  ok('pausing posts only « paused: true »; the host keeps the rest', asked[0].url.endsWith('/heartbeat/set') && JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ paused: true }))
-  asked.length = 0
-  T.store.heartbeat = view({ why: 'paused', paused: true, signedAt: SIGNED, on: true })
+  serve(world({ tasks: [task({})], act: () => [200, { ok: true, task: task({}) }] }))
+  await only(m.tree, 'kaby-custom-wake-create').props.onClick()
+  const made = asked[0] !== undefined && asked[0].init !== undefined && typeof asked[0].init.body === 'string' ? JSON.parse(asked[0].init.body) : {}
+  ok('« Create the wake-up » posts the automation to the Automations route, same origin, with the cookie', asked[0].url === TASKS && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && made.action === 'create' && JSON.stringify(made.task) === JSON.stringify(T.wakeInput(SID, 'Kaby')))
+  ok('then it reads again, so the chip and the buttons follow, and the note knows it was just created', asked.slice(1).some((a) => a.url === TASKS) && T.store.wake.task.id === 't1' && m.sets.some(([n, x]) => n === 4 && x === true) && m.sets.some(([n, x]) => n === 0 && x !== null && x.task !== null) && m.sets.some(([n, x]) => n === 2 && x === true) && m.sets.some(([n, x]) => n === 2 && x === false))
+  T.store.wake = state({})
   m = mount()
-  answer(200, { ok: true, view: view(ON) })
-  await only(m.tree, 'kaby-custom-heartbeat-pause').props.onClick()
-  ok('resuming posts « paused: false »', JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ paused: false }))
-  T.store.heartbeat = view({})
-  m = mount({ 2: DRAFT })
-  answer(401, { ok: false, error: 'session' })
-  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
-  ok('a request without the page’s session is refused in words, the draft is kept', m.sets.some(([n, x]) => n === 4 && /reload it/.test(x)) && !m.sets.some(([n, x]) => n === 2 && x === null) && T.store.heartbeat.inForce === false)
-  m = mount({ 2: DRAFT })
-  answer(200, { ok: false, error: 'cannot_sign' })
-  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
-  ok('a refusal of the host is shown as its sentence', m.sets.some(([n, x]) => n === 4 && /cannot find this computer’s key/.test(x)))
-  m = mount({ 2: DRAFT })
+  serve(world({ act: () => [401, { ok: false, error: 'session' }] }))
+  await only(m.tree, 'kaby-custom-wake-create').props.onClick()
+  ok('a request without the page’s session is refused in words, and nothing is marked as created', m.sets.some(([n, x]) => n === 3 && /reload it/.test(x)) && !m.sets.some(([n, x]) => n === 4 && x === true) && m.sets.some(([n, x]) => n === 2 && x === false))
+  m = mount()
   globalThis.fetch = async () => { throw new Error('offline') }
-  await only(m.tree, 'kaby-custom-heartbeat-sign').props.onClick()
-  ok('a host that does not answer is a sentence, not a crash', m.sets.some(([n, x]) => n === 4 && /do not answer/.test(x)) && m.sets.some(([n, x]) => n === 3 && x === false))
+  await only(m.tree, 'kaby-custom-wake-create').props.onClick()
+  ok('automations that do not answer are a sentence, not a crash', m.sets.some(([n, x]) => n === 3 && /do not answer/.test(x)) && m.sets.some(([n, x]) => n === 2 && x === false))
 
   // « Wake it now »
   asked.length = 0
-  T.store.heartbeat = view(ON)
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }) })
   m = mount()
-  globalThis.fetch = async (url, init) => { asked.push({ url, init }); return init !== undefined && init.method === 'POST' ? { status: 200, json: async () => ({ ok: true }) } : { status: 200, json: async () => view({ ...ON, running: true }) } }
-  await only(m.tree, 'kaby-custom-heartbeat-wake').props.onClick()
-  ok('« Wake it now » posts to the wake route, then reads the view again so the chip follows it', asked[0].url === '/kybernos-cloud/kyby/heartbeat/wake' && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && asked[1].url === '/kybernos-cloud/kyby/heartbeat' && T.store.heartbeat.running === true)
+  serve(world({ tasks: [task({ ...APPROVED, active: true })], runs: [{ taskId: 't1' }] }))
+  await only(m.tree, 'kaby-custom-wake-now').props.onClick()
+  ok('« Wake it now » posts « run-now » with the automation’s id, then reads again so the chip follows it', asked[0].url === TASKS && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ action: 'run-now', id: 't1' }) && asked.some((a) => a.url === LOAD) && T.store.wake.running === true)
   m = mount()
-  answer(200, { ok: false, error: 'busy' })
-  await only(m.tree, 'kaby-custom-heartbeat-wake').props.onClick()
-  ok('a wake-up that cannot start says why, in words', m.sets.some(([n, x]) => n === 4 && /busy/.test(x)) && m.sets.some(([n, x]) => n === 3 && x === false))
+  serve(world({ act: () => [200, { ok: false, error: 'approval required' }] }))
+  await only(m.tree, 'kaby-custom-wake-now').props.onClick()
+  ok('a run the Automations page refuses for lack of approval says why, in words', m.sets.some(([n, x]) => n === 3 && /not approved yet/.test(x)) && m.sets.some(([n, x]) => n === 2 && x === false))
   m = mount()
-  answer(401, { ok: false, error: 'session' })
-  await only(m.tree, 'kaby-custom-heartbeat-wake').props.onClick()
-  ok('a wake-up asked without the page’s session is refused in words', m.sets.some(([n, x]) => n === 4 && /reload it/.test(x)))
+  serve(world({ act: () => [401, { ok: false, error: 'session' }] }))
+  await only(m.tree, 'kaby-custom-wake-now').props.onClick()
+  ok('a wake-up asked without the page’s session is refused in words', m.sets.some(([n, x]) => n === 3 && /reload it/.test(x)))
+
   // « Stop this wake-up »
   asked.length = 0
-  T.store.heartbeat = view({ ...ON, running: true })
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }), running: true })
   m = mount()
-  globalThis.fetch = async (url, init) => { asked.push({ url, init }); return init !== undefined && init.method === 'POST' ? { status: 200, json: async () => ({ ok: true }) } : { status: 200, json: async () => view({ ...ON, running: false, lastAt: SIGNED, lastOutcome: 'stopped' }) } }
-  await only(m.tree, 'kaby-custom-heartbeat-stop').props.onClick()
-  ok('« Stop this wake-up » posts to the stop route, then reads the view again so the chip follows it', asked[0].url === '/kybernos-cloud/kyby/heartbeat/stop' && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && asked[1].url === '/kybernos-cloud/kyby/heartbeat' && T.store.heartbeat.running === false && m.sets.some(([n, x]) => n === 3 && x === false))
-  T.store.heartbeat = view({ ...ON, running: true })
+  serve(world({ tasks: [task({ ...APPROVED, active: true })], runs: [] }))
+  await only(m.tree, 'kaby-custom-wake-stop').props.onClick()
+  ok('« Stop this wake-up » posts « stop » with the automation’s id, then reads again so the chip follows it', asked[0].url === TASKS && asked[0].init.method === 'POST' && asked[0].init.credentials === 'same-origin' && JSON.stringify(JSON.parse(asked[0].init.body)) === JSON.stringify({ action: 'stop', id: 't1' }) && T.store.wake.running === false && m.sets.some(([n, x]) => n === 2 && x === false))
+  asked.length = 0
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }), running: true })
   m = mount()
-  answer(200, { ok: false, error: 'not_running' })
-  await only(m.tree, 'kaby-custom-heartbeat-stop').props.onClick()
-  ok('a stop that finds nothing running says so, in words', m.sets.some(([n, x]) => n === 4 && /just ended/.test(x)) && m.sets.some(([n, x]) => n === 3 && x === false))
+  serve(world({ tasks: [task({ ...APPROVED, active: true })], act: () => [200, { ok: false, error: 'not running' }] }))
+  await only(m.tree, 'kaby-custom-wake-stop').props.onClick()
+  ok('a stop that finds nothing running says so, in words, and the card reads again', m.sets.some(([n, x]) => n === 3 && /just ended/.test(x)) && asked.slice(1).some((a) => a.url === TASKS) && m.sets.some(([n, x]) => n === 2 && x === false))
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }), running: true })
   m = mount()
-  answer(401, { ok: false, error: 'session' })
-  await only(m.tree, 'kaby-custom-heartbeat-stop').props.onClick()
-  ok('a stop asked without the page’s session is refused in words', m.sets.some(([n, x]) => n === 4 && /reload it/.test(x)))
-  T.store.heartbeat = view(ON)
+  serve(world({ act: () => [401, { ok: false, error: 'session' }] }))
+  await only(m.tree, 'kaby-custom-wake-stop').props.onClick()
+  ok('a stop asked without the page’s session is refused in words', m.sets.some(([n, x]) => n === 3 && /reload it/.test(x)))
+
   resolved = 'kybernos'
-  T.store.heartbeat = view(ON)
-  ok('in French the same card speaks French', /Réveils/.test(text(mount().tree)) && /Réveiller maintenant/.test(text(mount().tree)) && /Silence la nuit/.test(text(mount().tree)))
+  T.store.wake = state({})
+  const fr = text(mount().tree)
+  T.store.wake = state({ task: task({ ...APPROVED, active: true }), running: true })
+  const fr2 = text(mount().tree)
+  ok('in French the same card speaks French', /Réveils/.test(fr) && /Créer le réveil/.test(fr) && /Pas de réveil/.test(fr) && /Ouvrir l’automation/.test(fr2) && /Réveiller maintenant/.test(fr2) && /Arrêter ce réveil/.test(fr2) && /Travaille/.test(fr2))
   resolved = 'en'
-  T.store.heartbeat = null
+  T.store.wake = null
+  delete globalThis.window.__KB_OPEN__
 }
 
 console.log('── the plugin ──')
@@ -532,9 +527,10 @@ console.log('── guards on the source ──')
   ok('its own host is reached through one base path that matches the host’s', source.includes("const BASE = '" + ROUTE + "'"))
   const mandatePaths = [...source.matchAll(/mandateCall\(\s*'([^']*)'/g)].map((m) => m[1])
   ok('the permissions are asked only of kybernos-cloud’s three routes: the view, the log and the signing', T.MANDATE === '/kybernos-cloud/kyby/mandate' && mandatePaths.length >= 3 && mandatePaths.every((p) => ['', '/log', '/set'].includes(p)), mandatePaths.join('|'))
-  const heartbeatPaths = [...source.matchAll(/heartbeatCall\(\s*'([^']*)'/g)].map((m) => m[1])
-  ok('the wake-ups are asked only of kybernos-cloud’s four routes: the view, the signing, the wake and the stop', T.HEARTBEAT === '/kybernos-cloud/kyby/heartbeat' && heartbeatPaths.length >= 4 && heartbeatPaths.every((p) => ['', '/set', '/wake', '/stop'].includes(p)) && ['', '/set', '/wake', '/stop'].every((p) => heartbeatPaths.includes(p)), heartbeatPaths.join('|'))
-  ok('every hook the wake-up checks need is in the source', ['kaby-custom-heartbeat', 'kaby-custom-heartbeat-chip', 'kaby-custom-heartbeat-preset', 'kaby-custom-heartbeat-quiet-switch', 'kaby-custom-heartbeat-from', 'kaby-custom-heartbeat-to', 'kaby-custom-heartbeat-sign', 'kaby-custom-heartbeat-pause', 'kaby-custom-heartbeat-wake', 'kaby-custom-heartbeat-stop', 'kaby-custom-heartbeat-open'].every((k) => source.includes("'" + k + "'")) && source.includes("'kaby-custom-heartbeat-' + key"))
+  const taskActions = [...source.matchAll(/tasksCall\(\s*\{\s*action:\s*'([a-z-]+)'/g)].map((m) => m[1])
+  ok('the wake-ups are asked only of the Automations route, in four actions: list, create, run-now and stop', T.TASKS === '/kybernos/tasks' && taskActions.length >= 4 && taskActions.every((a) => ['list', 'create', 'run-now', 'stop'].includes(a)) && ['list', 'create', 'run-now', 'stop'].every((a) => taskActions.includes(a)), taskActions.join('|'))
+  ok('no route of the old signed rhythm is called any more', !/heartbeat/i.test(source))
+  ok('every hook the wake-up checks need is in the source', ['kaby-custom-wake', 'kaby-custom-wake-chip', 'kaby-custom-wake-note', 'kaby-custom-wake-rules', 'kaby-custom-wake-create', 'kaby-custom-wake-automation', 'kaby-custom-wake-now', 'kaby-custom-wake-stop', 'kaby-custom-wake-open'].every((k) => source.includes("'" + k + "'")))
   ok('the where-card reaches kybernos-kyber only through its seam, never its files', ['where', 'pickWhere', 'subscribe', 'refresh'].every((m) => source.includes('k.' + m)) && !/kybernos-kyber\/|import .*kybernos-kyber/.test(source.replace(/\/\/.*$/gm, '').replace(/kybernos-kyber'?s? seam/g, '')))
   ok('every hook the permission checks need is in the source', ['kaby-custom-where', 'kaby-custom-where-pick', 'kaby-custom-mandate', 'kaby-custom-mandate-preset', 'kaby-custom-mandate-switch', 'kaby-custom-mandate-limit', 'kaby-custom-mandate-sign', 'kaby-custom-mandate-pause', 'kaby-custom-mandate-log-toggle', 'kaby-custom-mandate-chip'].every((k) => source.includes("'" + k + "'")))
   ok('the section id is the one the nav key table will carry', /SECTION_ID = 'kybernos-kaby-customisation'/.test(source))

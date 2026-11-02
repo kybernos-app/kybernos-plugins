@@ -52,7 +52,7 @@ export function createMandateStore (deps) {
     },
     /**
      * Called by the native gate for a tool of ours in Kaby's chat: true when the mandate covers it right now, in which case the use is counted and written down.
-     * A false is the old behaviour (the question).
+     * A false is the old behaviour (the question). `source` is 'automation' for a turn an automation started: the audit line says so.
      */
     allow (toolName, sessionId, source) {
       try {
@@ -60,7 +60,7 @@ export function createMandateStore (deps) {
         const verdict = decide(readJson(recordFile()), secret(), readJson(usageFile()), toolName, t)
         if (verdict.allow !== true) return { allow: false, why: verdict.why }
         writeJson(usageFile(), countUse(readJson(usageFile()), verdict.klass, t))
-        audit({ kind: 'ran', tool: toolName, klass: verdict.klass, session: typeof sessionId === 'string' && SAFE_ID.test(sessionId) ? sessionId : null, ...(source === 'heartbeat' ? { source } : {}) })
+        audit({ kind: 'ran', tool: toolName, klass: verdict.klass, session: typeof sessionId === 'string' && SAFE_ID.test(sessionId) ? sessionId : null, ...(source === 'automation' ? { source } : {}) })
         return { allow: true, why: 'covered' }
       } catch (e) { return { allow: false, why: 'error' } }
     },

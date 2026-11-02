@@ -9,12 +9,12 @@
 // folder they write, the core's voice list. Faked, by replacing the page's `fetch` for those two paths only, before any script runs: the image
 // model's answer (`/kybernos/image/generate`: the sandbox has no model key; it answers a plain 512 px PNG) and the voice engine's audio
 // (`/kybernos/tts/speak`, recorded so the check can read what was asked). Exit code 0 / 1 / 3 (not run).
-// The three cards about what Kaby does are real too: the permissions card and the wake-ups card sign, pause and (wake-ups) ask for a wake-up
-// through kybernos-cloud's real routes and the sandbox's own key (the records are read back from disk; no Kaby chat exists in the sandbox, so
-// « Wake it now » is checked for its refusal, not for a run), and « Where Kaby works » is drawn from kybernos-kyber's real seam. Faked there:
-// the account (kybernos-kyber's two reads, `/kybernos-cloud/kyber` and `/server`, and its link call `/kybernos-cloud/kyby/computer`, so no
-// account is ever touched and no computer is linked), and only once the check says so.
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+// The three cards about what Kaby does are real too: the permissions card signs and pauses through kybernos-cloud’s real routes and the sandbox’s own key (the record is read
+// back from disk); the wake-ups card makes Kaby’s automation through the Automations page’s real route (the sandbox has no Kaby chat and no model key: the check gives the chat
+// an id, reads the automation back and checks that a run before the approval is refused; it never approves it); « Where Kaby works » is drawn from kybernos-kyber’s real seam.
+// Faked there: the account (kybernos-kyber’s two reads, `/kybernos-cloud/kyber` and `/server`, and its link call `/kybernos-cloud/kyby/computer`, so no account is ever touched
+// and no computer is linked), and only once the check says so.
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { deflateSync } from 'node:zlib'
 import { openLivePage, waitFor } from './live-page.mjs'
@@ -93,8 +93,11 @@ const type = async (sel, v) => {
 const api = (path, body) => js(`fetch('/kybernos-kaby-customisation${path}', ${body === undefined ? '{}' : `{ method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }`}).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
 const mandateApi = (path, body) => js(`fetch('/kybernos-cloud/kyby/mandate${path}', ${body === undefined ? '{}' : `{ method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }`}).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
 const mandateFile = () => join(process.env.DSH_HOME || '', 'kybernos', 'kyby-mandate.json')
-const heartbeatApi = (path, body) => js(`fetch('/kybernos-cloud/kyby/heartbeat${path}', ${body === undefined ? '{}' : `{ method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }`}).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
-const heartbeatFile = () => join(process.env.DSH_HOME || '', 'kybernos', 'kyby-heartbeat.json')
+const tasksApi = (body) => js(`fetch('/kybernos/tasks', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
+const WAKE_CHAT = 'session-live-check-0001'
+const chatApi = (id) => js(`fetch('/kybernos-cloud/kyby/native/set', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify({ sessionId: id }))} }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`)
+const wakeTasks = async () => { const r = await tasksApi({ action: 'list' }); return r.json !== null && Array.isArray(r.json.tasks) ? r.json.tasks.filter((t) => t.homeSessionId === WAKE_CHAT) : [] }
+const wakeCleanup = async () => { for (const t of await wakeTasks()) await tasksApi({ action: 'delete', id: t.id }); await chatApi(null) }
 const shot = async (name, sel) => { if (shotDir !== null) { mkdirSync(shotDir, { recursive: true }); if (sel !== undefined) { await js(`(() => { const e = document.querySelector(${q(sel)}); if (e) e.scrollIntoView({ block: 'start' }); return true })()`); await sleep(250) } await page.shot(join(shotDir, name + '.png')) } }
 
 try {
@@ -102,8 +105,8 @@ try {
   await waitFor(page, 'document.body && document.body.innerText.length > 40', 30000)
   await api('/voice-sample/remove', {}); await api('/portrait/remove', {}); await api('/profile', { patch: { name: 'Kaby', look: '', voice: { pick: 'default' } } })
   await mandateApi('/set', { preset: 'off', paused: false })
-  // Wake-ups: nothing signed at the start (the record is the sandbox's own file; this check never runs on the real :3080).
-  for (const f of ['kyby-heartbeat.json', 'kyby-heartbeat-state.json', 'kyby-heartbeat-audit.jsonl']) rmSync(join(process.env.DSH_HOME || '', 'kybernos', f), { force: true })
+  // Wake-ups: no automation in the check’s chat and no chat id at the start (this check never runs on the real :3080).
+  await wakeCleanup()
   console.log('── the seam and the page ──')
   check('the bundle published its seam', await waitFor(page, 'typeof window.__KB_KABY__ === "object" && typeof window.__KB_KABY__.open === "function"', 30000) === true)
   await sleep(500)
@@ -274,84 +277,38 @@ try {
   await shot('09-permissions-log', '[data-kb="kaby-custom-mandate"]')
 
   console.log('── wake-ups ──')
-  const hbChip = () => js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').dataset.state')
-  const hbDisabled = (k) => js(`document.querySelector('[data-kb="kaby-custom-heartbeat-${k}"]').disabled`)
-  const hbSettled = (states) => waitFor(page, `${JSON.stringify(states)}.includes(document.querySelector('[data-kb="kaby-custom-heartbeat-chip"]').dataset.state)`, 15000)
-  const setSelect = (sel, v) => js(`(() => { const s = document.querySelector(${q(sel)}); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, ${JSON.stringify(v)}); s.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
-  check('the card is drawn, and nothing is signed at the start', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\') !== null', 15000) === true && (await hbChip()) === 'none')
-  check('« Off » is the pressed starting point; sign, pause and « Wake it now » are off (nothing signed)', (await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-heartbeat-preset"]\')).filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.dataset.preset).join()')) === 'off' && (await hbDisabled('sign')) === true && (await hbDisabled('pause')) === true && (await hbDisabled('wake')) === true)
-  check('three selects with the host’s choices, the quiet hours at 22:00 to 08:00, and no cloud warning on this computer', (await js('(() => { const o = (k) => Array.from(document.querySelector(`[data-kb="kaby-custom-heartbeat-${k}"]`).options).map((x) => x.value).join(); return o("everyHours") === "2,4,8,24" && o("boxMin") === "5,10,20" && o("items") === "1,2,3" && document.querySelector(\'[data-kb="kaby-custom-heartbeat-from"]\').value === "22:00" && document.querySelector(\'[data-kb="kaby-custom-heartbeat-to"]\').value === "08:00" && document.querySelector(\'[data-kb="kaby-custom-heartbeat-cloud-note"]\') === null })()')) === true)
-  check('« Open Kaby’s chat » is there, through kybernos-kyber’s seam', (await exists('[data-kb="kaby-custom-heartbeat-open"]')) === true)
-  check('the card holds parameters only: no list, no report, no last wake-up line', (await exists('[data-kb="kaby-custom-heartbeat-last"]')) === false && (await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat"]\').textContent.includes("in its chat, not here")')) === true)
-  await shot('11-wakeups-none', '[data-kb="kaby-custom-heartbeat"]')
-  await click('[data-kb="kaby-custom-heartbeat-preset"][data-preset="regular"]')
-  await sleep(300)
-  check('a starting point is a draft: « Changes to sign », « Turn the wake-ups on », nothing written yet', (await hbChip()) === 'dirty' && (await hbDisabled('sign')) === false && (await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-sign"]\').textContent')).includes('Turn the wake-ups on') && (await heartbeatApi('')).json.inForce === false && (await hbDisabled('wake')) === true)
-  await click('[data-kb="kaby-custom-heartbeat-sign"]')
-  check('signing puts it in force: the chip is « on » (or « quiet » in the night hours)', await hbSettled(['on', 'quiet']) === true)
-  const hbOn = (await heartbeatApi('')).json
-  check('the host says regular, every 4 h, 10 min, 2 points, quiet 22:00 to 08:00, desktop, and never sends the signature', hbOn.inForce === true && hbOn.preset === 'regular' && hbOn.everyHours === 4 && hbOn.boxMin === 10 && hbOn.items === 2 && hbOn.quiet === true && hbOn.quietFrom === '22:00' && hbOn.quietTo === '08:00' && hbOn.desktop === true && hbOn.running === false && !JSON.stringify(hbOn).includes('"sig"'), hbOn)
-  check('the record is on disk, private and signed', (() => { try { const st = statSync(heartbeatFile()); const rec = JSON.parse(readFileSync(heartbeatFile(), 'utf8')); return (st.mode & 0o777) === 0o600 && typeof rec.sig === 'string' && rec.sig.length === 64 && rec.on === true && rec.everyHours === 4 } catch (e) { return false } })())
-  check('the chip names the next time (or the end of the quiet hours), and « Wake it now » and pause are on', /\d\d:\d\d/.test(await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').textContent')) && (await hbDisabled('wake')) === false && (await hbDisabled('pause')) === false && (await hbDisabled('sign')) === true)
-  await shot('12-wakeups-on', '[data-kb="kaby-custom-heartbeat"]')
-  await setSelect('[data-kb="kaby-custom-heartbeat-everyHours"]', '8')
-  await sleep(300)
-  check('another interval is a draft again, shown as Custom, and « Wake it now » waits for the signature', (await hbChip()) === 'dirty' && (await exists('[data-kb="kaby-custom-heartbeat-custom"]')) === true && (await hbDisabled('wake')) === true)
-  await click('[data-kb="kaby-custom-heartbeat-sign"]')
-  await hbSettled(['on', 'quiet'])
-  const hbEight = (await heartbeatApi('')).json
-  check('signed again every 8 h, the rest kept', hbEight.everyHours === 8 && hbEight.boxMin === 10 && hbEight.items === 2 && hbEight.preset === 'custom', hbEight)
-  await click('[data-kb="kaby-custom-heartbeat-quiet-switch"]')
-  await sleep(200)
-  check('the quiet switch off turns the two times off', (await hbDisabled('from')) === true && (await hbDisabled('to')) === true)
-  await click('[data-kb="kaby-custom-heartbeat-sign"]')
-  await hbSettled(['on', 'quiet'])
-  check('signed with no quiet hours: the host says so, and the chip is « on » whatever the hour, with the time of the next wake-up', (await heartbeatApi('')).json.quiet === false && (await hbChip()) === 'on' && /next around \d\d:\d\d/.test(await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').textContent')))
-  await shot('12b-wakeups-on-no-quiet', '[data-kb="kaby-custom-heartbeat"]')
-  check('the two time fields are wide enough to show the whole time', (await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-heartbeat-from"], [data-kb="kaby-custom-heartbeat-to"]\')).every((i) => i.scrollWidth <= i.clientWidth + 1)')) === true)
-  await click('[data-kb="kaby-custom-heartbeat-quiet-switch"]')
-  await type('[data-kb="kaby-custom-heartbeat-from"]', '23:00')
-  await type('[data-kb="kaby-custom-heartbeat-to"]', '07:00')
-  await sleep(200)
-  await click('[data-kb="kaby-custom-heartbeat-sign"]')
-  await hbSettled(['on', 'quiet'])
-  const hbQuiet = (await heartbeatApi('')).json
-  check('quiet hours back on, 23:00 to 07:00, kept by the host', hbQuiet.quiet === true && hbQuiet.quietFrom === '23:00' && hbQuiet.quietTo === '07:00', hbQuiet)
-  // « Wake it now »: the sandbox has no model key, so a wake-up that starts ends at once. Either the host says why it cannot start (the chat is busy, or does not exist) and the card says it in
-  // words, or a real turn of the chat's session starts, the chip follows it and the card then gives its last wake-up as one line.
-  await click('[data-kb="kaby-custom-heartbeat-wake"]')
-  const woke = await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-heartbeat-error"]\') !== null || document.querySelector(\'[data-kb="kaby-custom-heartbeat-last"]\') !== null || document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').dataset.state === "running"', 40000) === true
-  if (await exists('[data-kb="kaby-custom-heartbeat-error"]')) {
-    check('« Wake it now » that cannot start says why, in a sentence, and no wake-up starts', woke && (await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-error"]\').textContent.length')) > 20 && (await hbChip()) !== 'running' && (await heartbeatApi('')).json.lastAt === null)
-    await shot('13-wakeups-cannot-start', '[data-kb="kaby-custom-heartbeat"]')
-  } else if ((await hbChip()) === 'running') {
-    const under = (await heartbeatApi('')).json
-    check('« Wake it now » starts one wake-up of the chat’s session: the chip says « Working · 10 min at most », the button is off, and the host says so', woke && under.running === true && under.lastOutcome === 'running' && /^Working · 10 min at most$/.test(await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').textContent')) && (await hbDisabled('wake')) === true && (await exists('[data-kb="kaby-custom-heartbeat-last"]')) === false, under)
-    await shot('13-wakeups-running', '[data-kb="kaby-custom-heartbeat"]')
-    check('« Stop this wake-up » is on the card while it runs, and pressing it ends the wake-up as « stopped by you »', (await exists('[data-kb="kaby-custom-heartbeat-stop"]')) === true && (await hbDisabled('stop')) === false)
-    await click('[data-kb="kaby-custom-heartbeat-stop"]')
-    check('the stopped wake-up leaves the chip, the stop button goes and the last line says it', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').dataset.state !== "running"', 30000) === true && (await exists('[data-kb="kaby-custom-heartbeat-stop"]')) === false && ['stopped', 'done', 'person'].includes((await heartbeatApi('')).json.lastOutcome))
-  } else {
-    const done = (await heartbeatApi('')).json
-    check('« Wake it now » starts one wake-up of the chat’s session: it ends with a closed word, and the card gives it as one line', woke && done.running === false && ['done', 'time', 'blocked', 'person', 'stopped', 'refused', 'error', 'interrupted'].includes(done.lastOutcome) && /^Last wake-up at \d\d:\d\d: .+\.$/.test((await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-last"]\').textContent')).trim()), done)
-    await shot('13-wakeups-last', '[data-kb="kaby-custom-heartbeat"]')
+  // Kaby wakes through an ordinary automation. The sandbox has no Kaby chat and no model key: the check gives the chat an id (the host's own pointer, a name no real chat
+  // has), lets the card make the automation through the real Automations route, and reads it back. It never approves it: a run before the approval must be refused.
+  const wkDisabled = (k) => js(`document.querySelector('[data-kb="kaby-custom-wake-${k}"]').disabled`)
+  const wkSettled = (states) => waitFor(page, `${JSON.stringify(states)}.includes((document.querySelector('[data-kb="kaby-custom-wake-chip"]') || { dataset: {} }).dataset.state)`, 15000)
+  const reopen = async () => {
+    await js('location.reload(), true')
+    await sleep(100)
+    await waitFor(page, 'window.__KB_KABY__ && window.__KB_KABY__.profile() !== null', 30000)
+    await js('window.__KB_KABY__.open()', 30000)
   }
-  const stopIdle = await heartbeatApi('/stop', {})
-  check('a stop asked while nothing runs is answered « not_running », and the card has no stop button', stopIdle.json !== null && stopIdle.json.ok === false && stopIdle.json.error === 'not_running' && (await exists('[data-kb="kaby-custom-heartbeat-stop"]')) === false, stopIdle)
-  await click('[data-kb="kaby-custom-heartbeat-pause"]')
-  check('pausing stops the wake-ups: the chip, the sentence, « Wake it now » off, and the host says paused with the settings kept', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').dataset.state === "paused"', 15000) === true && (await exists('[data-kb="kaby-custom-heartbeat-note"]')) === true && (await hbDisabled('wake')) === true)
-  const hbPaused = (await heartbeatApi('')).json
-  check('the host keeps the numbers while paused, and nothing is in force', hbPaused.paused === true && hbPaused.inForce === false && hbPaused.on === true && hbPaused.everyHours === 8, hbPaused)
-  await shot('14-wakeups-paused', '[data-kb="kaby-custom-heartbeat"]')
-  await click('[data-kb="kaby-custom-heartbeat-pause"]')
-  check('resuming puts it back in force', await hbSettled(['on', 'quiet']) === true && (await heartbeatApi('')).json.inForce === true)
-  const refusedHb = await js(`Promise.all(['/set', '/wake', '/stop'].map((p) => fetch('/kybernos-cloud/kyby/heartbeat' + p, { method: 'POST', credentials: 'omit', headers: { 'content-type': 'application/json' }, body: '{"preset":"steady"}' }).then((r) => r.status)))`)
-  check('a signing, a wake or a stop request without the page’s session is refused, and nothing changed', Array.isArray(refusedHb) && refusedHb.every((s) => s === 401 || s === 403) && (await heartbeatApi('')).json.preset === 'custom', refusedHb)
-  await click('[data-kb="kaby-custom-heartbeat-preset"][data-preset="off"]')
-  await click('[data-kb="kaby-custom-heartbeat-sign"]')
-  check('« Off » signed: the host says off and the chip says no wake-ups', await hbSettled(['off']) === true && (await heartbeatApi('')).json.why === 'off')
-  await shot('15-wakeups-off', '[data-kb="kaby-custom-heartbeat"]')
-  await heartbeatApi('/set', { preset: 'light' })
+  check('the card is drawn; with no Kaby chat the chip says so, a note asks to open it once, and « Create » waits', await wkSettled(['nochat']) === true && (await wkDisabled('create')) === true && (await exists('[data-kb="kaby-custom-wake-note"]')) === true)
+  check('the card holds no setting: no select, no field, and it says where the list and the reports are', (await js('document.querySelectorAll(\'[data-kb="kaby-custom-wake"] select, [data-kb="kaby-custom-wake"] input\').length')) === 0 && (await js('document.querySelector(\'[data-kb="kaby-custom-wake"]\').textContent.includes("in its chat, not here")')) === true && (await exists('[data-kb="kaby-custom-wake-rules"]')) === true)
+  check('« Open Kaby’s chat » is there, through kybernos-kyber’s seam', (await exists('[data-kb="kaby-custom-wake-open"]')) === true && (await exists('[data-kb="kaby-custom-wake-cloud-note"]')) === false)
+  await shot('11-wakeups-nochat', '[data-kb="kaby-custom-wake"]')
+  const chatSet = await chatApi(WAKE_CHAT)
+  check('Kaby’s chat gets an id through the host’s own route', chatSet.json !== null && chatSet.json.ok === true, chatSet)
+  await reopen()
+  check('with a chat and no automation: « No wake-up », « Create the wake-up » is on, and nothing to wake or stop', await wkSettled(['none']) === true && (await wkDisabled('create')) === false && (await exists('[data-kb="kaby-custom-wake-now"]')) === false && (await exists('[data-kb="kaby-custom-wake-stop"]')) === false && (await exists('[data-kb="kaby-custom-wake-automation"]')) === false)
+  await shot('12-wakeups-none', '[data-kb="kaby-custom-wake"]')
+  await click('[data-kb="kaby-custom-wake-create"]')
+  check('creating adds the automation: the chip says it waits for approval and the note says it was just created', await wkSettled(['draft']) === true && /Created, and off/.test(await js('document.querySelector(\'[data-kb="kaby-custom-wake-note"]\').textContent')))
+  const mine = await wakeTasks()
+  check('the Automations page holds exactly one, off, in Kaby’s own chat, every 4 hours from 08:00 to 20:00, 10 minutes at most, stopping when the person writes, and not approved', mine.length === 1 && mine[0].active === false && mine[0].sessionMode === 'home' && mine[0].maxMinutes === 10 && mine[0].onPersonWrites === 'stop' && mine[0].schedule.cron === '0 8-20/4 * * *' && mine[0].gate !== null && mine[0].gate.status === 'draft', mine)
+  check('its prompt is plain text that names the list (todo.md)', mine.length === 1 && typeof mine[0].prompt === 'string' && mine[0].prompt.includes('todo.md'))
+  check('« Create » is gone, « Open the automation » is on, « Wake it now » is off until the approval', (await exists('[data-kb="kaby-custom-wake-create"]')) === false && (await wkDisabled('automation')) === false && (await wkDisabled('now')) === true)
+  const refusedRun = (await tasksApi({ action: 'run-now', id: mine[0].id })).json
+  check('a run asked before the approval is refused by the Automations page itself', refusedRun !== null && refusedRun.ok === false && /approval/.test(String(refusedRun.error)), refusedRun)
+  await shot('13-wakeups-draft', '[data-kb="kaby-custom-wake"]')
+  await click('[data-kb="kaby-custom-wake-automation"]')
+  check('« Open the automation » leaves Settings for the Automations page', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-page"]\') === null', 15000) === true)
+  await js('window.__KB_KABY__.open()', 30000)
+  check('back in Settings the card still shows the same automation', await wkSettled(['draft']) === true)
 
   console.log('── the host guards ──')
   const badBody = await js(`fetch('/kybernos-kaby-customisation/profile', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{ nope' }).then((r) => r.status)`)
@@ -361,30 +318,22 @@ try {
   void reload
   check('the profile survives a reload (the file is on disk)', await waitFor(page, 'window.__KB_KABY__ && window.__KB_KABY__.profile() && window.__KB_KABY__.profile().name === "Léa"', 30000) === true)
   check('the permissions survive it too: still in force after the reload', (await mandateApi('')).json.inForce === true)
-  check('and so do the wake-ups', (await heartbeatApi('')).json.inForce === true)
+  check('and so does the wake-up automation, still one, in Kaby’s own chat', (await wakeTasks()).length === 1)
   // A record edited by hand is void: the card says so and asks for a new signature.
   try { const rec = JSON.parse(readFileSync(mandateFile(), 'utf8')); writeFileSync(mandateFile(), JSON.stringify({ ...rec, memoryPerDay: 500 }) + '\n') } catch (e) { check('the record could be edited for the tamper check', false, String(e && e.message)) }
   await sleep(300)
   await js('window.__KB_KABY__.open()', 30000)
   check('an edited record is void: the host says altered, the card says to sign again, with an alert', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\') && document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state === "resign"', 30000) === true && (await mandateApi('')).json.why === 'altered' && (await js('document.querySelector(\'[data-kb="kaby-custom-mandate-note"]\').getAttribute("role")')) === 'alert')
   await shot('10-permissions-altered', '[data-kb="kaby-custom-mandate"]')
-  // The same for the wake-ups: a file edited by hand is void, and « Sign again » is on without a draft.
-  try { const rec = JSON.parse(readFileSync(heartbeatFile(), 'utf8')); writeFileSync(heartbeatFile(), JSON.stringify({ ...rec, items: 3 }) + '\n') } catch (e) { check('the wake-ups record could be edited for the tamper check', false, String(e && e.message)) }
-  await sleep(300)
-  await js('location.reload(), true')
-  await sleep(100)
-  await waitFor(page, 'window.__KB_KABY__ && window.__KB_KABY__.profile() !== null', 30000)
-  await js('window.__KB_KABY__.open()', 30000)
-  check('an edited wake-ups record is void: the host says altered, the card says to sign again, with an alert, and pause, wake and sign are off', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\') && document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').dataset.state === "resign"', 30000) === true && (await heartbeatApi('')).json.why === 'altered' && (await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-note"]\').getAttribute("role")')) === 'alert' && (await hbDisabled('sign')) === true && (await hbDisabled('pause')) === true && (await hbDisabled('wake')) === true)
-  await shot('16-wakeups-altered', '[data-kb="kaby-custom-heartbeat"]')
-  await click('[data-kb="kaby-custom-heartbeat-preset"][data-preset="light"]')
-  await click('[data-kb="kaby-custom-heartbeat-sign"]')
-  check('a pick, then « Sign again »: the wake-ups are back in force, as the person chose', await hbSettled(['on', 'quiet']) === true && (await heartbeatApi('')).json.inForce === true && (await heartbeatApi('')).json.preset === 'light')
+  // The check’s own automation and chat id go away; the card goes back to « no chat ».
+  await wakeCleanup()
+  await reopen()
+  check('with the automation and the chat id gone, the card is back to « Chat not opened yet »', await wkSettled(['nochat']) === true && (await wakeTasks()).length === 0)
 } finally {
   try { await api('/profile', { patch: { name: 'Kaby', look: '', voice: { pick: 'default' } } }) } catch (e) { /* sandbox only */ }
   try { await api('/portrait/remove', {}) } catch (e) { /* sandbox only */ }
   try { await mandateApi('/set', { preset: 'off', paused: false }) } catch (e) { /* sandbox only */ }
-  try { await heartbeatApi('/set', { preset: 'off', paused: false }) } catch (e) { /* sandbox only */ }
+  try { await wakeCleanup() } catch (e) { /* sandbox only */ }
   await live.close()
 }
 

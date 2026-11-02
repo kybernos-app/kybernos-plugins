@@ -96,8 +96,8 @@ export const nowSentence = (d = new Date()) => {
 }
 
 /** The block of the system prompt, for Kaby's own chat: the identity text shared with the cloud computer's turns (kyby-identity.mjs). `lines` is what was said lately on the person's shared thread (Telegram's), given as data. */
-export const kybyPrompt = (lines, now = new Date(), assistantName, mandate, wake) =>
-  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines, assistantName, mandate }), ...(typeof wake === 'string' && wake !== '' ? [wake] : []), KYBY_TAIL].join('\n')
+export const kybyPrompt = (lines, now = new Date(), assistantName, mandate, list) =>
+  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines, assistantName, mandate }), ...(typeof list === 'string' && list !== '' ? [list] : []), KYBY_TAIL].join('\n')
 
 // ── the pointer file: which session is Kaby's ───────────────────────────────────────────────────────
 
@@ -123,7 +123,7 @@ export function writePointer (file, sessionId) {
 
 /**
  * @param deps { pointerFile (a path, or a function giving it at each use), readState, isConnected, apiCall, now?, assistantName?, mandate? (a function giving the mandate block or ''),
- *   wake? (a function of the session id giving the wake-ups block of kyby-heartbeat.mjs or ''), isWake? (a function of the session id: is one of Kaby's wake-ups running in it) } the helpers index.js already has.
+ *   list? (a function of the session id giving the block about Kaby's list, kyby-unattended.mjs `LIST_TEXT`, or ''), isUnattended? (a function of the session id: is a turn an automation started running in it) } the helpers index.js already has.
  * Every method is safe to call from a hook: none throws.
  */
 export function createKybyNative (deps) {
@@ -137,9 +137,9 @@ export function createKybyNative (deps) {
   const assistantName = () => { try { return typeof deps.assistantName === 'function' ? aliasOf(deps.assistantName()) : null } catch (e) { return null } }
   /** The block of the person's standing permission (kyby-mandate-store.mjs `text`), or '' (a function of the caller: it can change at any time). It never throws. */
   const mandate = () => { try { return typeof deps.mandate === 'function' ? deps.mandate() : '' } catch (e) { return '' } }
-  /** The block about the person's wake-ups (kyby-heartbeat.mjs `wakeText`), or '': two lines in any turn, the instructions during a wake-up. It never throws. */
-  const wake = (sid) => { try { const t = typeof deps.wake === 'function' ? deps.wake(sid) : ''; return typeof t === 'string' ? t : '' } catch (e) { return '' } }
-  const isWake = (sid) => { try { return typeof deps.isWake === 'function' && deps.isWake(sid) === true } catch (e) { return false } }
+  /** The block about Kaby's list (kyby-unattended.mjs `LIST_TEXT`), or '': two lines in any turn of its own chat. It never throws. */
+  const list = (sid) => { try { const t = typeof deps.list === 'function' ? deps.list(sid) : ''; return typeof t === 'string' ? t : '' } catch (e) { return '' } }
+  const isUnattended = (sid) => { try { return typeof deps.isUnattended === 'function' && deps.isUnattended(sid) === true } catch (e) { return false } }
   const mirrored = new Set()
 
   const sessionId = () => {
@@ -188,7 +188,7 @@ export function createKybyNative (deps) {
     promptFor (sid) {
       if (!this.isKyby(sid)) return ''
       const alias = assistantName()
-      return kybyPrompt(contextLines(context.rows, mirrored, alias), undefined, alias, mandate(), wake(sid))
+      return kybyPrompt(contextLines(context.rows, mirrored, alias), undefined, alias, mandate(), list(sid))
     },
     /** A message of the person was taken in Kaby's session: the shared thread is read again, for the next request. */
     noteClaim (sid) {
@@ -201,8 +201,8 @@ export function createKybyNative (deps) {
       try {
         const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
         if (!this.isKyby(sid)) return 'not_kyby'
-        // A scheduled wake-up is not a conversation: its trigger is not the person's, and its note is for the chat only, never the shared thread (Telegram's).
-        if (isWake(sid)) return 'wake'
+        // A turn an automation started is not a conversation: its trigger is not the person's, and its note is for the chat only, never the shared thread (Telegram's).
+        if (isUnattended(sid)) return 'unattended'
         if (signal !== undefined && signal !== null && signal.aborted === true) return 'aborted'
         const t = token()
         if (t === null) return 'signed_out'
