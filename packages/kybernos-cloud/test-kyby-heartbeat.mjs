@@ -215,6 +215,23 @@ function rig (scOver, opts = {}) {
   ok('the wake-up\'s own queued message is not taken for the person\'s', out === 'done' && !r.sc.calls.some((c) => c[0] === 'cancel'))
 }
 {
+  // The person's « Stop »: the turn is cancelled, the watch is cut, the wake-up ends as « stopped » (and the turn's end hooks still find it marked).
+  const r = rig({ wait: (req, signal, sc) => new Promise((resolve, reject) => { signal.addEventListener('abort', () => reject(signal.reason ?? new Error('aborted')), { once: true }) }) })
+  ok('nothing runs: nothing to stop', (await r.hb.stopNow()).error === 'not_running')
+  const started = await r.hb.start({ manual: true })
+  await macro(); await macro()
+  const stopped = await r.hb.stopNow()
+  ok('a click stops the running wake-up: the turn is cancelled and the word is « stopped »', stopped.ok === true && (await started.finished) === 'stopped' && r.sc.calls.some((c) => c[0] === 'cancel') && r.st.view().lastOutcome === 'stopped' && r.hb.runningSession() === null)
+  ok('a second click finds nothing', (await r.hb.stopNow()).error === 'not_running')
+}
+{
+  // A click before the watch has begun (the grace for the turn to show): the turn that appears is cancelled at once.
+  const r = rig({ state: (sc) => ({ ...sc.st, running: false }), wait: async () => { throw new Error('the watch must not begin') } })
+  const started = await r.hb.start({ manual: true })
+  const stopped = await r.hb.stopNow()
+  ok('a click during the start is honoured too', stopped.ok === true && (await started.finished) === 'stopped' && r.sc.calls.some((c) => c[0] === 'cancel'))
+}
+{
   const r = rig({ prompt: async () => ({ ok: false, error: 'refused' }) })
   ok('a prompt the engine refuses ends as « refused », marked off', (await r.hb.tick()) === 'refused' && r.hb.runningSession() === null)
 }

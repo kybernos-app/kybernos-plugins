@@ -6,7 +6,7 @@
 //   node scripts/test-relance-garde.mjs
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,8 +22,8 @@ const a = source.indexOf('// <garde:begin>')
 const b = source.indexOf('// <garde:end>')
 assert.ok(a >= 0 && b > a, 'the pure block of the guard was found')
 const ctx = vm.createContext({})
-vm.runInContext(source.slice(a, b) + '\n;Object.assign(globalThis, { freshSample, recentAuto, autoResumeVerdict, claimsAfter, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS })', ctx)
-const { freshSample, recentAuto, claimsAfter, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS } = ctx
+vm.runInContext(source.slice(a, b) + '\n;Object.assign(globalThis, { freshSample, recentAuto, autoResumeVerdict, claimsAfter, stableNode, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS })', ctx)
+const { freshSample, recentAuto, claimsAfter, stableNode, AUTO_RESUME_MAX, AUTO_RESUME_WINDOW_MS } = ctx
 // Objects made inside the vm context have another Object prototype: compare them by value.
 const autoResumeVerdict = (...args) => JSON.parse(JSON.stringify(ctx.autoResumeVerdict(...args)))
 
@@ -75,6 +75,19 @@ const MIN = 60_000
   ok('the reservations remember each automatic wake-up, keep it through a manual one, and drop what is a day old')
 }
 
+// 3b. the service must survive `brew upgrade node`: it holds the Homebrew link, never the versioned Cellar path.
+{
+  const cellar = '/opt/homebrew/Cellar/node/26.7.0/bin/node'
+  const link = '/opt/homebrew/bin/node'
+  const real = (map) => (p) => { if (map[p] === undefined) throw new Error('ENOENT ' + p); return map[p] }
+  assert.equal(stableNode(cellar, [link, '/usr/local/bin/node'], real({ [link]: cellar, [cellar]: cellar })), link, 'the link that leads to the running node is held')
+  assert.equal(stableNode(cellar, [link], real({ [link]: '/opt/homebrew/Cellar/node/25.0.0/bin/node', [cellar]: cellar })), cellar, 'a link to another node is not taken')
+  assert.equal(stableNode(cellar, [link, '/usr/local/bin/node'], real({ [cellar]: cellar })), cellar, 'no link on this machine: the running node, as before')
+  assert.equal(stableNode(cellar, ['/a', link], real({ [link]: cellar, [cellar]: cellar })), link, 'an absent candidate is skipped, never a throw')
+  assert.ok(/const node = stableNode\(process\.execPath, \['\/opt\/homebrew\/bin\/node', '\/usr\/local\/bin\/node'\], realpathSync\)/.test(source), 'the plist is written with it')
+  ok('the supervisor service holds the Homebrew node link that follows an upgrade, and falls back to the running node')
+}
+
 // 4. wired: only the supervisor's own wake-ups are guarded, the relaunch child still wakes what it journalled.
 {
   assert.ok(/resumeActives\(\{ reason: why, targets: dernieres, auto: true \}\)/.test(source), 'the supervisor asks for the guarded resume')
@@ -99,6 +112,23 @@ const MIN = 60_000
     assert.match(run('supervise', 'allow', 'session-loopy'), /was not on the stop list/, 'giving back twice is harmless')
     assert.throws(() => run('supervise', 'stop'), (e) => e.status === 2 && /usage: supervise stop/.test(String(e.stdout)), 'a missing id is refused with the usage')
     ok('supervise stop / allow / status work on the stop list and refuse a missing id')
+  } finally { rmSync(home, { recursive: true, force: true }) }
+}
+
+// 6. re-installing the service while it is loaded: launchd may still hold the label right after the bootout, so the bootstrap is tried again.
+{
+  const home = mkdtempSync(join(tmpdir(), 'relance-install-'))
+  try {
+    mkdirSync(join(home, 'bin'))
+    const fake = join(home, 'bin', 'launchctl')
+    writeFileSync(fake, '#!/bin/sh\necho "$@" >> "$HOME/calls"\nif [ "$1" = bootstrap ]; then\n  n=$(cat "$HOME/boots" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$HOME/boots"\n  [ "$n" -lt 3 ] && exit 5\nfi\nexit 0\n')
+    chmodSync(fake, 0o755)
+    const out = execFileSync(process.execPath, [SCRIPT, 'supervise', 'install'], { encoding: 'utf8', env: { PATH: join(home, 'bin') + ':' + process.env.PATH, HOME: home, DSH_HOME: home }, timeout: 30_000 })
+    assert.match(out, /permanent supervision installed/)
+    const calls = readFileSync(join(home, 'calls'), 'utf8').trim().split('\n')
+    assert.equal(calls.filter((c) => c.startsWith('bootstrap')).length, 3, 'two refused bootstraps, the third loads it')
+    assert.ok(calls[calls.length - 1].startsWith('kickstart'), 'and only then is it started')
+    ok('re-installing the supervisor service survives a bootstrap that launchd refuses right after the bootout')
   } finally { rmSync(home, { recursive: true, force: true }) }
 }
 
