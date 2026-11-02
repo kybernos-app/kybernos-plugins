@@ -384,6 +384,30 @@ door from personal to team is the explicit « Propose to team » action (below, 
 - **Test**: `node scripts/test-team-memory-cut.mjs` (a canary word in a personal memory and a personal lesson, both bundles mounted, the
   switch both ways, every fail-closed case).
 
+## A DSH of its own for each team (`team-instances.mjs`, in progress)
+
+The plan is in `docs/dev/team-profiles-cadrage.md`: a team gets a whole second DSH (own home, own port) instead of a switch inside one DSH. This
+file is its launcher; nothing in the menu calls it yet.
+
+- **Home.** `<personal home>/teams/<team id>`: a copy of the personal profile (APFS `cp -c`, `--reflink` on Linux), its relative links out of
+  the profile made absolute, the paths that name the personal home pointed at the team's home, plus the MCP folder. Built aside and renamed,
+  so a home is whole or absent; a folder with no `team-home.json` is never replaced. The bundles that belong to the computer
+  (`PERSONAL_ONLY_BUNDLES`: the restart tool that targets :3080, the apps and LaunchAgents installer) are taken out of the copy's profile.
+- **Start.** `POST /kybernos-cloud/team-dsh/open {workspace_id}` (strict same-origin, signed session) starts `dsh web` on loopback with
+  `DSH_HOME`, `DSH_WEB_PORT`, `KYBERNOS_PERSONAL_HOME` and `KYBERNOS_TEAM_ID` set, on a port of 3300-3399 that the team keeps, and answers
+  its address once the engine says it is mounted. The keys of the DSH that starts it are passed on. Two calls at once start one DSH.
+  `GET .../team-dsh/list`, `POST .../team-dsh/stop`. The registry is `<personal home>/kybernos/team-instances.json` (0600).
+- **Stop.** A team's DSH (the one started with `KYBERNOS_TEAM_ID`) stops itself, as a normal shutdown, after 30 minutes with no request, no reply
+  running and no active automation (`status: 'active'` rows of the engine's `storages/schedule.json`, engine 0.2.2-alpha.2: re-check on an
+  engine bump). Anything it cannot read keeps it alive. The personal DSH never stops.
+- **Not done yet:** the account menu opening it, the team DSH's own sign-in and route (it starts unconnected), what is seeded into a new home
+  (a new home makes its own `.credentials.yaml`, so its own browser-session secret: the cookie of one DSH is not valid on another and, cookies
+  ignoring the port, two DSH would sign each other out until the secret is shared), and a sort of the other bundles for what belongs to the
+  computer (phone pairing, calls, multi-device, janitor, sessions watch) before a team DSH reaches a person.
+- **Tests:** `node packages/kybernos-cloud/test-team-instances.mjs` (a stand-in script plays `dsh`; no real DSH starts) and, on a sandbox,
+  `source scripts/sandbox/env.sh && node scripts/check-team-dsh-live.mjs` (a real `dsh web` on a copied profile: 12 s to mounted on a
+  developer's Mac, the cloud plugin answers from it, it stops cleanly).
+
 ## Team skills (server half)
 
 A Team's private catalogue of skills: any member proposes one, an owner or admin approves it, every member can install it. This

@@ -39,7 +39,18 @@ each bundle to the active team by hand; a second instance per team separates eve
 0. **Done.** Every server-side bundle honours `DSH_HOME`: the three strays are fixed, each with a behavioural test (`kybernos-memory`,
    `kybernos-webapp-creator`), and `scripts/test-dsh-home.mjs` now scans every runtime file under `packages/` and fails on one that builds
    `<os home>/.dsh` without reading `DSH_HOME`. No change of behaviour when `DSH_HOME` is unset.
-1. Team home creation and a launcher (start, stop, port, health), reusing the sandbox recipe, known to the supervisor.
+1. **Done** (`packages/kybernos-cloud/team-instances.mjs`, three routes `/kybernos-cloud/team-dsh/{open,stop,list}`, README section of the
+   bundle): the home is a copy-on-write copy of the personal profile, re-pointed at itself; a team DSH starts on first open on a port it keeps
+   (3300-3399), stops itself after 30 minutes with no page, no reply running and no active automation, and the personal DSH never stops.
+   Played with a stand-in `dsh` (unit) and with a real one on a sandbox (`scripts/check-team-dsh-live.mjs`: 12 s to mounted, own `DSH_HOME`,
+   cloud plugin answers, clean stop). No supervisor is needed: nothing starts at boot. Nothing in the menu calls it yet.
+   Found on the way:
+   - **1b, a sort of the bundles.** A copy of the personal profile loads everything the personal DSH loads. Two bundles belong to the computer
+     and are already left out (`PERSONAL_ONLY_BUNDLES`: the restart tool aimed at :3080, the apps and LaunchAgents installer). The other 54
+     are not sorted: phone pairing, calls, multi-device, the janitor, the sessions watch need a look so that two DSH do not both run one
+     machine-level service. This must be done before a team DSH reaches a person.
+   - **One secret per home.** A new home makes its own `.credentials.yaml`, hence its own browser-session secret. Cookies ignore the port, so
+     two DSH on `127.0.0.1` would sign each other out. Step 4 shares that one secret across the homes (single sign-in everywhere).
 2. The team instance's cloud state is bound to its team (fixed route).
 3. The account menu opens the team's DSH; "Personal" returns to :3080.
 4. Seed rules: what is copied from Personal when a team home is created.

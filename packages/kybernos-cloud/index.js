@@ -67,6 +67,7 @@ import { accountTool } from './kyby-account.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { createSightings, createTurnWatch, spaceOfFolder } from './chat-space.mjs'
+import { activeAutomationsIn, createTeamInstances, personalHomeOf, shouldExit, teamOfEnv } from './team-instances.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -629,6 +630,48 @@ const busyView = (running, state) => {
   const space = first.space === null ? undefined : spaces.filter((w) => w !== null && typeof w === 'object' && w.id === first.space)[0]
   return { count: running.length, since: first.since, space_id: first.space, space_name: space !== undefined && typeof space.name === 'string' ? space.name : null }
 }
+// ── a team's own DSH (team-instances.mjs, docs/dev/team-profiles-cadrage.md) ──────────────────────────────────────────────────
+// Any DSH of this person can open any of their teams: the registry lives in the personal home (`personalHomeOf` reads where a team's DSH was told it is).
+const teamDsh = createTeamInstances({ personalHome: () => personalHomeOf(dshHome()) })
+/** The team a request names: one of the teams the person is in, never their personal space (that one is the personal DSH itself). */
+const teamNamed = (body) => {
+  const state = readState()
+  if (!isConnected(state)) return { error: 'non_connecte' }
+  const id = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id : ''
+  const space = (Array.isArray(state.workspaces) ? state.workspaces : []).find((w) => w !== null && typeof w === 'object' && w.id === id)
+  if (id === '' || space === undefined) return { error: 'espace_inconnu' }
+  if (space.personal === true) return { error: 'espace_personnel' }
+  return { id }
+}
+/** Route: opens a team's DSH (copies the profile the first time, starts it when it is not running) and answers its address. */
+const teamDshOpen = async (req, body) => {
+  const team = teamNamed(body)
+  return team.error !== undefined ? { ok: false, error: team.error } : teamDsh.open(team.id)
+}
+/** Route: stops a team's DSH. */
+const teamDshStop = async (req, body) => {
+  const team = teamNamed(body)
+  return team.error !== undefined ? { ok: false, error: team.error } : teamDsh.stop(team.id)
+}
+/** Route: the teams that have a DSH, and whether it runs. */
+const teamDshList = async () => ({ ok: true, teams: await teamDsh.list() })
+
+/** The last time a page or a call reached this DSH: what tells a team's DSH that nobody is there. */
+let lastRequestAt = Date.now()
+const TEAM_IDLE_TICK_MS = 60 * 1000
+/** In a team's own DSH only: stops it (a normal shutdown) when nothing needs it. The personal DSH never stops. */
+const mountTeamIdle = () => {
+  if (teamOfEnv() === '') return
+  const timer = setInterval(() => {
+    const replies = runningAgentIds()
+    if (shouldExit({ now: Date.now(), lastSeenAt: lastRequestAt, runningReplies: replies === null ? null : replies.length, activeAutomations: activeAutomationsIn(dshHome()) })) {
+      console.error('[kybernos-cloud] this team DSH has been idle with nothing to run: stopping')
+      process.kill(process.pid, 'SIGTERM')
+    }
+  }, TEAM_IDLE_TICK_MS)
+  if (typeof timer.unref === 'function') timer.unref()
+}
+
 /** Route: is a reply running (so that a switch would be refused)? The page that deferred a switch asks this until the answer is no. */
 const spaceBusy = () => {
   const state = readState()
@@ -5918,6 +5961,10 @@ const ROUTES = [
   // The folder of a team: makes a directory on the person's disk, so strict same-origin and the signed session.
   { path: '/kybernos-cloud/space/folder', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: spaceFolder },
   { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },
+  // A team's own DSH: starting a process and copying the profile write on the person's behalf, so strict same-origin and the signed session.
+  { path: '/kybernos-cloud/team-dsh/open', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: teamDshOpen },
+  { path: '/kybernos-cloud/team-dsh/stop', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: teamDshStop },
+  { path: '/kybernos-cloud/team-dsh/list', method: 'GET', guarded: true, run: teamDshList },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, session: true, body: true, run: createSpace },
   // Joining with an invitation link: the token is the credential. Both are strict same-origin and need the signed session: `accept` makes the person a member of a team, `preview` only reads one
   // invitation at the server for the token it is given, but a page is its only caller, so it follows the same rule (L3-04).
@@ -6061,6 +6108,7 @@ const mountWebRoutes = (ctx, webServer) => {
       // A Host that is not this listener's is a rebound page: refused before anything is read, whatever the route (the open ones included).
       if (hostAllowed(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       noteListenPort(req)
+      lastRequestAt = Date.now()
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
@@ -6393,6 +6441,7 @@ export function apply(ctx) {
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] memory refresh: ' + String((e && e.message) || e)) }
   try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] scheduled tidy-up: ' + String((e && e.message) || e)) }
   try { mountProfileRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] periodic profile read: ' + String((e && e.message) || e)) }
+  try { mountTeamIdle() } catch (e) { console.error('[kybernos-cloud] team DSH idle stop: ' + String((e && e.message) || e)) }
   autoImportAtBoot(ctx, aside)
 }
 

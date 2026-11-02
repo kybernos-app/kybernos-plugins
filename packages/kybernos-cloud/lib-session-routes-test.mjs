@@ -32,6 +32,8 @@ export const SESSION_WRITE_PATHS = new Set([
   '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink', '/kybernos-cloud/kyby/computer',
   '/kybernos-cloud/computer/open', '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/console/link',
   '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal', '/kybernos-cloud/invitation/preview',
+  // A team's own DSH: starting a process and copying a profile.
+  '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/team-dsh/stop',
 ])
 
 /** The write routes that need a strict same-origin request but not the cookie, because a caller that is not a browser reaches them too, and that a test
