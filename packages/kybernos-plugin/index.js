@@ -13137,7 +13137,7 @@ function boot(ctx) {
         if (list.indexOf('web') !== -1) return { profile: 'web', source: 'default' }
         return { profile: list.length > 0 ? list[0] : null, source: 'fallback' }
       }
-      // Catalogue verifie. `workers` = l outil a aussi sa rangee dans la page Workers.
+      // Catalogue verifie. `workers` = l outil se gere dans la page Workers (la page Outils ne le dessine pas : elle lit ce meme etat, via cette route).
       // `drivers` = les pilotes connus d'un registre a place
       // unique ; `known: false` = paquet inconnu, on le DIT au lieu de peindre
       // un bouton qui echouerait.
@@ -13160,19 +13160,14 @@ function boot(ctx) {
             { id: 'computer-use-cua-mcp', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp', label: 'Cua Driver MCP' } ] },
         { id: 'auto-review', group: 'exp', label: 'Auto review', known: false,
           why: 'An engine capability (the current model reviews its own work): no package to mount from this plugin.' },
-        { id: 'codex', group: 'ext', label: 'Codex', workers: true, connection: '@deepseek-ai/dsh-subagent-codex',
-          why: 'Official connection: Codex subagent through the app-server protocol.' },
-        { id: 'claude-code', group: 'ext', label: 'Claude Code', workers: true, connection: '@deepseek-ai/dsh-subagent-claude-code',
-          why: 'Official connection: Claude Code subagent through the native SDK. Requires a CLI login — the desktop app is not enough.' },
+        { id: 'codex', group: 'ext', label: 'Codex', workers: true, connection: '@deepseek-ai/dsh-subagent-codex' },
+        { id: 'claude-code', group: 'ext', label: 'Claude Code', workers: true, connection: '@deepseek-ai/dsh-subagent-claude-code' },
         // ZCode n’est pas un paquet npm : c’est un connecteur MCP personnalisé
         // (dsh-mcp-client + un serveur local). `mcp` porte donc de quoi écrire le
         // bloc ET reconnaître qu’il est déjà monté — sinon la page proposerait de
         // l’installer une seconde fois et le profil porterait deux entrées.
         { id: 'zcode', group: 'ext', label: 'ZCode', workers: true, mcp: { id: 'mcp-client-zcode', serverName: 'zcode',
-            file: nodePathJoin(dshHomeSync(), 'mcp', 'zcode-mcp-server.mjs'), command: process.execPath, toolCallTimeoutMs: 600000 },
-          prefix: 'mcp__zcode__', toolCount: 3,
-          needs: 'The ZCode app installed and signed in to a Z.ai account — the connector reads its own credential store, no key is copied into the patch.',
-          why: 'Custom connector (MCP): drives the Z.ai code agent — the plan\'s GLM-5.3 / GLM-5.3-Flash — through its app-server, the “-p” path failing in 0.16.9.' },
+            file: nodePathJoin(dshHomeSync(), 'mcp', 'zcode-mcp-server.mjs'), command: process.execPath, toolCallTimeoutMs: 600000 } },
         { id: 'workbuddy', group: 'ext', label: 'WorkBuddy', known: false,
           why: 'Community plugin: no package verified on our side, so no installation is offered here.' }
       ]

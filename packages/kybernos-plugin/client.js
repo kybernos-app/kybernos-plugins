@@ -4853,10 +4853,8 @@ const LUCIDE = {
   // absentes de la table — cercle et rects réécrits en chemins.
   globe: ['M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z', 'M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20', 'M2 12h20'],
   terminal: ['M12 19h8', 'm4 17 6-6-6-6'],
-  // The Tools cards: one glyph per tool (Codex and Claude Code both wore `terminal`).
+  // The Tools cards: one glyph per tool.
   fileCheck: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z', 'M14 2v4a2 2 0 0 0 2 2h4', 'm9 15 2 2 4-4'],
-  squareTerminal: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'm7 11 2-2-2-2', 'M11 13h4'],
-  codeXml: ['m18 16 4-4-4-4', 'm6 8-4 4 4 4', 'm14.5 4-5 16'],
   cpu: ['M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z', 'M8 9a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z', 'M12 20v2', 'M12 2v2', 'M17 20v2', 'M17 2v2', 'M2 12h2', 'M2 17h2', 'M2 7h2', 'M20 12h2', 'M20 17h2', 'M20 7h2', 'M7 20v2', 'M7 2v2'],
   puzzle: ['M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z'],
   panelRight: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z', 'M15 3v18'],
@@ -33408,7 +33406,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
       // ── Rendu (maquette du 28/09, tokens DSW) ───────────────────────────
       // One glyph per tool, all from the same table (Icon: 24 grid, stroke in currentColor, so the tile's token colours it). A tool this table does
       // not know wears the neutral package, never a letter.
-      const kbt2IconOf = (e) => ({ 'browser-use': 'globe', 'computer-use': 'monitor', 'auto-review': 'fileCheck', codex: 'squareTerminal', 'claude-code': 'bot', zcode: 'codeXml', workbuddy: 'puzzle' }[e.id] || 'package')
+      const kbt2IconOf = (e) => ({ 'browser-use': 'globe', 'computer-use': 'monitor', 'auto-review': 'fileCheck', workbuddy: 'puzzle' }[e.id] || 'package')
       // Chaque état porte son explication (infobulle du badge) : le libellé seul
       // ne disait pas quoi faire d un « À installer » ou d un « Installé, non monté ».
       const kbt2Statut = (e) => {
@@ -33504,11 +33502,11 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
         const txt = (e.why !== null && e.why !== undefined) ? String(e.why) : ((e.needs !== null && e.needs !== undefined) ? String(e.needs) : '')
         return txt.length === 0 ? null : kbe(txt)
       }
-      // Codex, Claude Code and ZCode are also rows of Workers, which checks they are installed and signed in and lets the main agent call them.
-      // The status above and the mount/remove controls are Tools'; the rest lives there, so the card says so instead of repeating it.
-      const kbt2Workers = (e) => (e.worker !== true ? null : h('p', { className: 'kbt2-workers', 'data-kb': 'tool-workers' },
-        kbToolsTxt({ fr: 'Installation du programme, connexion à ton compte et droit de l’appeler : ', en: 'Installing the program, signing in and letting your agent call it: ' }),
-        h('button', { type: 'button', className: 'kbt2-link', 'data-kb': 'tool-open-workers', onClick: () => kbOpenSettingsPage(['kybernos-workers', 'workers']) }, kbToolsTxt({ fr: 'Réglages › Workers', en: 'Settings › Workers' }))))
+      // Codex, Claude Code and ZCode are managed on one page only, Workers: install, sign-in, connection on/off, remove, and the right for the
+      // main agent to call them. Tools keeps the capabilities it mounts itself, and says where the assistants went.
+      const kbt2Assistants = () => h('p', { className: 'kbt2-workers', 'data-kb': 'tool-workers' },
+        kbToolsTxt({ fr: 'Les assistants de code (Codex, Claude Code, ZCode) se gèrent dans ', en: 'The coding assistants (Codex, Claude Code, ZCode) are managed in ' }),
+        h('button', { type: 'button', className: 'kbt2-link', 'data-kb': 'tool-open-workers', onClick: () => kbOpenSettingsPage(['kybernos-workers', 'workers']) }, kbToolsTxt({ fr: 'Réglages › Workers', en: 'Settings › Workers' })), '.')
       const kbt2Card = (e, profile, total) => h('article', { className: 'kbt2-card', key: e.id, 'data-kb': 'tool-card' },
         h('div', { className: 'kbt2-card-tete' },
           kbt2Tile(e, false),
@@ -33518,8 +33516,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
           kbt2Pill(e)),
         h('div', { className: 'kbt2-card-desc' },
           h('span', { className: 'kbt2-card-type' }, kbt2Type(e)),
-          h('p', { className: 'kbt2-card-txt' }, kbt2Desc(e)),
-          kbt2Workers(e)),
+          h('p', { className: 'kbt2-card-txt' }, kbt2Desc(e))),
         (e.known !== false && e.supported !== false && e.installed !== true && e.mounted !== true ? kbt2CmdBlock(e, profile) : null),
         kbt2Part(e, total),
         // Un pied de carte sans action (outil sans paquet connu, non supporté)
@@ -33541,7 +33538,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
       // En-tête commun aux trois états (lecture, erreur, prêt) : la page garde son
       // titre et son explication même quand la lecture échoue (02/10).
       // What this page is for, next to the one it is mistaken for: Tools mounts abilities in a profile, Workers runs the coding assistants. Both sentences are the card's lead (the « ? »).
-      const leadTools = [kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' }), kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à ton agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })]
+      const leadTools = [kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' }), kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code, ZCode) se gèrent uniquement dans Workers : installation, connexion, interrupteur, retrait, droit de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code, ZCode) are managed only in Workers: install, sign-in, on/off switch, removal, and the right to call them.' })]
       const entete = () => h('header', { className: 'kbt2-entete' },
         h('div', { className: 'kbt2-entete-txt' },
           h('h1', { className: 'kbt2-h1' }, kbt('kbui.tools')),
@@ -33577,7 +33574,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
           h('span', null, kbt('kbui.error') + String(st.error)),
           h('button', { type: 'button', className: 'kbo-btn', 'data-kb': 'tool-retry', onClick: () => load(prof) }, kbToolsTxt({ fr: 'Réessayer', en: 'Retry' }))))
       const data = st.data
-      const entries = Array.isArray(data.entries) ? data.entries : []
+      // The coding assistants (`worker`) are managed in Workers: not drawn, not counted here.
+      const entries = (Array.isArray(data.entries) ? data.entries : []).filter((e) => e.worker !== true)
       const liste = Array.isArray(data.profiles) ? data.profiles : []
       const montes = entries.filter((e) => e.mounted === true && e.disabled !== true && e.toolCount > 0)
       const coupes = entries.filter((e) => e.mounted === true && e.disabled === true)
@@ -33614,6 +33612,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
             h('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
               h('h2', { className: 'kbo-groupe', style: { margin: 0, display: 'flex', alignItems: 'center', gap: 8 } }, g.label, h('span', { className: 'kbt2-seg-n' }, String(lot.length))),
               h('span', { style: legende }, g.aide)),
+            g.id === 'ext' ? kbt2Assistants() : null,
             grille(lot))
         }),
         (autres.length > 0 ? h('section', { key: 'other', 'data-kb': 'tool-group-other' }, grille(autres)) : null))
@@ -33679,8 +33678,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
             h('button', { type: 'button', className: 'kbt2-seg-btn' + (vueCartes === true ? ' on' : ''), 'aria-pressed': vueCartes === true, onClick: () => tbTools[1]({ viewMode: 'cards' }) }, Icon('grid', 15), ' ' + kbt('kbui.cards')),
             h('button', { type: 'button', className: 'kbt2-seg-btn' + (vueCartes === true ? '' : ' on'), 'aria-pressed': vueCartes !== true, onClick: () => tbTools[1]({ viewMode: 'list' }) }, Icon('list', 15), ' ' + kbt('kbui.list')))),
         (visibles.length === 0 ? vide : (vueCartes === true
-          ? (filtre === 'all' ? vueGroupee() : grille(visibles))
-          : h('div', { className: 'kbt2-liste' },
+          ? (filtre === 'all' ? vueGroupee() : h(React.Fragment, null, filtre === 'ext' ? kbt2Assistants() : null, grille(visibles)))
+          : h(React.Fragment, null, filtre !== 'exp' ? kbt2Assistants() : null, h('div', { className: 'kbt2-liste' },
             h('div', { className: 'kbt2-lhead' },
               h('span', null, kbt('kbui.col.name')),
               h('span', null, kbe('Type').toUpperCase()),
@@ -33695,7 +33694,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
               h('span', null),
               h('span', { className: 'kbt2-l-note' }, plusLourd !== null ? String(plusLourd.label) + ' ' + kbe('weighs') + ' ' + String(Math.round((plusLourd.toolCount / totalOutils) * 100)) + ' % ' + kbe('of the tools context') : ''),
               h('span', { className: 'kbt2-l-total' }, String(visibles.reduce((n, e) => n + (e.mounted === true && e.disabled !== true && e.toolCount > 0 ? e.toolCount : 0), 0))),
-              h('span', null))))))
+              h('span', null)))))))
     }
     // KB-MARKET-PURE-BEGIN
     // The listing's pure helpers (A7-theme-marketplace): the cards A6's catalogue route answers, the four levels it computed, the kit

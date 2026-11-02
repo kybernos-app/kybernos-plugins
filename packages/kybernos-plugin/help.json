@@ -174,8 +174,8 @@
           "en": "Install and configure: a dated backup is made first, and Remove restores it."
         },
         {
-          "fr": "Relance DSH pour appliquer le changement : rien n’est rechargé à chaud.",
-          "en": "Restart DSH to apply the change: nothing is hot-reloaded."
+          "fr": "DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage.",
+          "en": "DSH applies the change by itself a few seconds after it is written: no restart."
         }
       ],
       "where": {
@@ -184,8 +184,8 @@
         "page": true
       },
       "good": {
-        "fr": "Les assistants de code (Codex, Claude Code…) ont leur propre page, Workers.",
-        "en": "The coding assistants (Codex, Claude Code…) have their own page, Workers."
+        "fr": "Les assistants de code (Codex, Claude Code, ZCode) se gèrent uniquement dans Workers.",
+        "en": "The coding assistants (Codex, Claude Code, ZCode) are managed only in Workers."
       }
     },
     "automation-settings": {

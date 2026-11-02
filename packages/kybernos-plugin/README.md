@@ -647,7 +647,7 @@ The form keeps a link to the older interview (the seeded skill `report-feedback`
 
 ## Settings › Tools: on/off without uninstalling
 
-Each mounted tool card has a switch. Off writes `disabled: true` on the tool's row of `profiles/<profile>/cordis.patch.yml`: the loader's own entry option, so the
+Each mounted tool card (Browser Use, Computer Use) has a switch. Off writes `disabled: true` on the tool's row of `profiles/<profile>/cordis.patch.yml`: the loader's own entry option, so the
 entry is stopped and not started while the package, the row and its config stay (zero engine patch). DSH reloads that file by itself a few seconds after the write
 (the profile's `hmr` entry watches it, measured 2026-10-06 and again on 0.2.2-alpha.2), so **no restart**: the page says so. On removes the line again. The state is
 read the way the loader reads it: the last entry of the file that names the row and carries `disabled` wins, whether it is the row itself or a patch entry aimed at its
@@ -657,8 +657,9 @@ the row that publishes tools (the driver; its registry "publishes nothing by its
 dated `cordis.patch.yml.bak-outils-onoff-<tool>-<stamp>` is kept (its own name, so « Remove (restore the backup) » never restores a switch), the rewrite is atomic and keeps the file's
 mode, and off-then-on gives the original file back byte for byte (`test-tools-patch.mjs`, and a sandbox round trip). A switched-off tool counts for nothing in « tools exposed to
 the model » and the Workers page reads it as « not turned on » (its « Turn on » asks `tools/apply` for `enable`).
-Codex, Claude Code and ZCode are also rows of the Workers page: their cards keep the mount/remove/switch controls and point to Settings › Workers for the install, the sign-in and the
-« allowed » switch. Code: `tools-patch.mjs` (pure), `test-tools-patch.mjs`, `kbToolsState` / `kbToolsApply` in `index.js`, `KbToolsPage` in `client.js`.
+Codex, Claude Code and ZCode (`workers: true` in `KB_TOOLS_CATALOG`) have no card here any more: the page filters them out of the cards, the list and every counter, and the External
+tools group carries one line that opens Settings › Workers. The same host route serves them there: the Workers page reads `tools/state` for their switch state and their add-time backup
+and calls `tools/apply` for the dry run (`install` with `dry`), *Turn on*, the switch (`disable` / `enable`) and *Remove* (`revert`). Code: `tools-patch.mjs` (pure), `test-tools-patch.mjs`, `kbToolsState` / `kbToolsApply` in `index.js`, `KbToolsPage` in `client.js`.
 
 ## Files, settings, env
 
