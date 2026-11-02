@@ -1,8 +1,8 @@
 // The suggested automations on a real GUI: Kaby proposes, the person adds or discards. SANDBOX ONLY (`source scripts/sandbox/env.sh`): it writes three automations to the
 // sandbox's own tasks.json and removes them at the end; the user's own `dsh web` is never the target (exit 3).
 //
-// Plays: a suggestion posted to the host appears in a dashed card above the list, not in the list and not in the menu count; the Automations menu row pulses; the card says where
-// the suggestion comes from and its proof; Add moves it into the list, switched off, and the pulse stops; Discard removes it; a suggestion is never started by Run now / toggle.
+// Plays: a suggestion posted to the host appears in a dashed card above the list, not in the list and not in the menu count; the Automations menu row pulses; each row says in plain lines
+// what it does, why Kaby proposes it and when, and unfolds its steps in place; Add moves it into the list, switched off, and the pulse stops; Discard removes it; a suggestion is never started by Run now / toggle.
 //
 // Named check-* on purpose: it needs a running sandbox and Chrome, so CI must not run it.
 //   source scripts/sandbox/env.sh && node scripts/check-suggested-live.mjs     (KB_SHOT_DIR=/some/dir keeps screenshots)
@@ -45,8 +45,18 @@ try {
   const listed = () => q(`[...document.querySelectorAll('.kba-rowline .kba-name')].map((e) => e.textContent)`)
   const sameNames = (a, b) => Array.isArray(a) && a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|')
   check('the list holds the real automations only (the ones already there and the one made here), no suggestion', sameNames(await listed(), others.concat(['Check real automation'])), { listed: await listed(), others })
-  check('a row says where the suggestion comes from and its proof', /Suggested by Kaby.*14×.*60 days.*Gmail/.test(String(await q(`document.querySelector('[data-kb="suggested-row"] .kba-sugmeta').textContent`))))
-  check('each row has Add, Edit and Discard', (await q(`['suggested-add','suggested-edit','suggested-discard'].every((k) => document.querySelectorAll('[data-kb="' + k + '"]').length === 2)`)) === true)
+  const rowText = String(await q(`document.querySelector('[data-kb="suggested-row"]').textContent`))
+  check('a row says its job, why Kaby proposes it and when, in plain lines', /Its job.*List the deadlines/.test(rowText) && /Why Kaby suggests it.*11 of the 14 got the same request/.test(rowText) && /When.*Monday/.test(rowText), rowText)
+  check('the cryptic proof line is not in the row any more', !/14×/.test(rowText))
+  check('each row has Add, See details and Discard, and the full editor is not a button of the row', (await q(`['suggested-add','suggested-more','suggested-discard'].every((k) => document.querySelectorAll('[data-kb="' + k + '"]').length === 2) && document.querySelectorAll('[data-kb="suggested-edit"]').length === 0`)) === true)
+  await q(`document.querySelector('[data-kb="suggested-more"]').click()`); await sleep(400)
+  const detail = String(await q(`(document.querySelector('[data-kb="suggested-detail"]') || {}).textContent || ''`))
+  check('See details unfolds the steps, what was seen, the approval and the promise that it stays off, in the row', /step by step/.test(detail) && /List the deadlines/.test(detail) && /Seen.*14×.*60 days.*Gmail/.test(detail) && /Approval.*Ask me first/.test(detail) && /stays off/.test(detail), detail)
+  check('the button says it can fold again and the detail is linked to it', (await q(`(() => { const b = document.querySelector('[data-kb="suggested-more"]'); return b.getAttribute('aria-expanded') === 'true' && /Hide details/.test(b.textContent) && !!document.getElementById(b.getAttribute('aria-controls')) })()`)) === true)
+  check('the full editor is one link inside the detail', (await q(`document.querySelectorAll('[data-kb="suggested-detail"] [data-kb="suggested-edit"]').length`)) === 1)
+  await page.shot(join(shotDir, 'suggested-detail.png')).catch(() => null)
+  await q(`document.querySelector('[data-kb="suggested-more"]').click()`); await sleep(300)
+  check('...and the detail folds back', (await q(`!document.querySelector('[data-kb="suggested-detail"]')`)) === true)
   check('the menu count does not include the suggestions', String(await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => /Automations|Deadlines|Automations/i.test(e.textContent) && e.querySelector('.kb4-badge')); return r ? r.querySelector('.kb4-badge').textContent : 'none' })()`)).trim() === String(others.length + 1), await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => /Automations/i.test(e.textContent)); return r ? r.textContent : 'none' })()`))
   check('the menu row pulses while suggestions wait', (await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => e.querySelector('.kb4-badge') && /Automation|Deadline/i.test(e.textContent)); return !!r && !!r.querySelector('.kb-ping') })()`)) === true)
   check('the ping animates (or is static under reduced motion)', (await q(`getComputedStyle(document.querySelector('.kba-sugname .kb-ping'), '::after').animationName`)) !== undefined)

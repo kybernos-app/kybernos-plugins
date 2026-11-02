@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CLIENT-BEGIN([\s\S]*?)\/\/ KB-TASKS-CLIENT-END/)
 if (m === null) { console.error('KB-TASKS-CLIENT block not found in client.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbCronMinuteHour, kbCronWindow, kbCronWindowOf, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, kbSuggestionSummary, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbCronMinuteHour, kbCronWindow, kbCronWindowOf, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -132,6 +132,27 @@ eq('a suggestion shows its proof: count, period, place', mod.kbSuggestionMeta({ 
 eq('...and its note as the tooltip', mod.kbSuggestionMeta({ origin: { proof: { n: 14, note: 'same request' } } }).note, 'same request')
 eq('the apps asked for come from the suggestions and the automations that are on, with who asks', JSON.stringify(mod.kbTasksNeeds([{ name: 'A', suggested: true, needs: ['gmail', 'googlecalendar'] }, { name: 'B', active: true, needs: ['gmail'] }, { name: 'C', active: false, needs: ['slack'] }, { name: 'D', active: true }, null])), '{"gmail":["A","B"],"googlecalendar":["A"]}')
 eq('a suggestion with no proof shows nothing', JSON.stringify(mod.kbSuggestionMeta({ name: 'x' })), '{"line":"","note":""}')
+{
+  // The plain summary of a suggestion: job = first line of the prompt, steps = the other lines without their numbers, why = the note of the proof.
+  const s = mod.kbSuggestionSummary({ prompt: 'Prepare a changelog, never publish.\n\n1. Read the git log.\n2. Write the entry.\n3. Stop there.', origin: { proof: { n: 2, span: '2 days', where: 'Coach', note: 'Same gap in two runs.' } } })
+  eq('the job is the first line of the prompt', s.what, 'Prepare a changelog, never publish.')
+  eq('the steps are the other lines, their numbers dropped', s.steps.join('|'), 'Read the git log.|Write the entry.|Stop there.')
+  eq('numbered steps are drawn as an ordered list', s.numbered, true)
+  eq('why is the note of the proof, what was seen stays for the detail', s.why + ' / ' + s.seen, 'Same gap in two runs. / 2× · 2 days · Coach')
+  eq('without a note, the count and period say why', mod.kbSuggestionSummary({ prompt: 'x', origin: { proof: { n: 4, span: '11 days' } } }).why, '4× · 11 days')
+  eq('...and then nothing is repeated in the detail', mod.kbSuggestionSummary({ prompt: 'x', origin: { proof: { n: 4, span: '11 days' } } }).seen, '')
+  eq('a prompt that opens with a numbered step has no intro: that step is the job and stays a step', JSON.stringify(mod.kbSuggestionSummary({ prompt: '1. Read the log\n2. Write it' }).steps) + mod.kbSuggestionSummary({ prompt: '1. Read the log\n2. Write it' }).what, '["Read the log","Write it"]Read the log')
+  eq('a one-line prompt has a job and no steps', JSON.stringify(mod.kbSuggestionSummary({ prompt: 'Do one thing.' })), '{"what":"Do one thing.","why":"","seen":"","steps":[],"numbered":false,"extra":0}')
+  eq('unnumbered lines are a plain list', mod.kbSuggestionSummary({ prompt: 'Intro\nfirst\nsecond' }).numbered, false)
+  eq('no prompt, no proof: an empty summary, never a throw', JSON.stringify(mod.kbSuggestionSummary({ name: 'x' })) + JSON.stringify(mod.kbSuggestionSummary(null)), '{"what":"","why":"","seen":"","steps":[],"numbered":false,"extra":0}'.repeat(2))
+  const long = mod.kbSuggestionSummary({ prompt: 'A'.repeat(300) + '\n' + Array.from({ length: 20 }, (_, i) => (i + 1) + '. step ' + (i + 1)).join('\n') })
+  eq('a very long job is cut with an ellipsis', Array.from(long.what).length + long.what.slice(-1), '200…')
+  eq('twelve steps at most, the others are counted', long.steps.length + '/' + long.extra, '12/8')
+}
+for (const k of ['chip', 'add', 'discard', 'what', 'why', 'when', 'more', 'less', 'steps', 'extra', 'seen', 'how', 'safe', 'editfull', 'added', 'title']) {
+  eq('suggestion string tasks.sug.' + k + ' exists in English and in French', typeof table['tasks.sug.' + k] === 'object' && table['tasks.sug.' + k].en.length > 0 && table['tasks.sug.' + k].kybernos.length > 0, true)
+}
+eq('the old row strings are gone (nothing reads them)', table['tasks.sug.by'] === undefined && table['tasks.sug.edit'] === undefined, true)
 {
   const t = { id: 'st-1', name: 'N', prompt: 'P', schedule: { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' }, runsOn: 'local', active: true, approvals: 'auto', notify: ['push'], nextRun: 'x', lastRun: 'y', history: [{ at: 'z' }], trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 'SECRET0123456789' }, pendingFires: ['an event'] }
   const exported = JSON.stringify(mod.kbExportTask(t))

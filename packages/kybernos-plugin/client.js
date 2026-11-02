@@ -495,11 +495,20 @@ let kbLocaleRead = () => 'en'
       'tasks.board.chip.failed': { kybernos: 'Échec', en: 'Failed' },
       'tasks.board.chip.ended': { kybernos: 'Terminée', en: 'Finished' },
       'tasks.board.chip.started': { kybernos: 'Lancée', en: 'Started' },
-      'tasks.sug.by': { kybernos: 'Suggérée par Kaby', en: 'Suggested by Kaby' },
       'tasks.sug.chip': { kybernos: 'Suggérée', en: 'Suggested' },
       'tasks.sug.add': { kybernos: 'Ajouter', en: 'Add' },
-      'tasks.sug.edit': { kybernos: 'Modifier', en: 'Edit' },
       'tasks.sug.discard': { kybernos: 'Écarter', en: 'Discard' },
+      'tasks.sug.what': { kybernos: 'Sa mission', en: 'Its job' },
+      'tasks.sug.why': { kybernos: 'Pourquoi Kaby la propose', en: 'Why Kaby suggests it' },
+      'tasks.sug.when': { kybernos: 'Quand', en: 'When' },
+      'tasks.sug.more': { kybernos: 'Voir le détail', en: 'See details' },
+      'tasks.sug.less': { kybernos: 'Masquer le détail', en: 'Hide details' },
+      'tasks.sug.steps': { kybernos: 'Ce qu’elle ferait, étape par étape', en: 'What it would do, step by step' },
+      'tasks.sug.extra': { kybernos: '… et {n} lignes de plus dans l’éditeur complet.', en: '… and {n} more lines in the full editor.' },
+      'tasks.sug.seen': { kybernos: 'Observé', en: 'Seen' },
+      'tasks.sug.how': { kybernos: 'Validation', en: 'Approval' },
+      'tasks.sug.safe': { kybernos: 'Si tu l’ajoutes, elle reste éteinte : rien ne tourne tant que tu ne l’as pas approuvée et allumée.', en: 'If you add it, it stays off: nothing runs until you approve it and switch it on.' },
+      'tasks.sug.editfull': { kybernos: 'Modifier dans l’éditeur complet', en: 'Edit in the full editor' },
       'tasks.sug.added': { kybernos: 'Ajoutée, éteinte. Tu l’allumes quand tu veux.', en: 'Added, switched off. Switch it on when you want.' },
       'tasks.sug.title': { kybernos: 'Automations suggérées', en: 'Suggested automations' },
       // ── the certification gate and the initiative queue (the Automations page) ──
@@ -6748,6 +6757,27 @@ const kbSuggestionMeta = (t) => {
   if (typeof pr.span === 'string' && pr.span !== '') parts.push(pr.span)
   if (typeof pr.where === 'string' && pr.where !== '') parts.push(pr.where)
   return { line: parts.join(' \u00b7 '), note: typeof pr.note === 'string' ? pr.note : '' }
+}
+// What a suggestion says in plain words, for the person who has to decide on it: its job (the first line of its prompt), why Kaby proposes it
+// (the note of its proof, else the count and period), the steps (the other lines, numbers dropped) and what was seen. Nothing is invented:
+// every part is the stored text, shortened. A prompt whose first line is already a numbered step has no intro: that step is the job.
+const KB_SUG_STEPS_MAX = 12
+const kbSuggestionSummary = (t) => {
+  const meta = kbSuggestionMeta(t)
+  const raw = t !== null && typeof t === 'object' && typeof t.prompt === 'string' ? t.prompt : ''
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '')
+  const num = /^\d+[.)]\s+/
+  const cut = (s, n) => (Array.from(s).length > n ? Array.from(s).slice(0, n - 1).join('') + '…' : s)
+  const from = lines.length > 0 && num.test(lines[0]) === true ? 0 : 1
+  const rest = lines.slice(from)
+  return {
+    what: lines.length > 0 ? cut(lines[0].replace(num, ''), 200) : '',
+    why: meta.note !== '' ? meta.note : meta.line,
+    seen: meta.note !== '' ? meta.line : '',
+    steps: rest.slice(0, KB_SUG_STEPS_MAX).map((l) => cut(l.replace(num, ''), 300)),
+    numbered: rest.some((l) => num.test(l) === true),
+    extra: Math.max(0, rest.length - KB_SUG_STEPS_MAX),
+  }
 }
 // What an exported file holds: the definition of the automation, never its webhook secret or its history.
 const kbExportTask = (t) => {
@@ -23819,6 +23849,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const detailPair = React.useState(null)
       const detail = detailPair[0]
       const setDetail = detailPair[1]
+      // The suggestions whose detail is unfolded in their row, by id.
+      const sugOpenPair = React.useState({})
+      const sugOpen = sugOpenPair[0]
+      const setSugOpen = sugOpenPair[1]
       const confirmPair = React.useState(null)
       const confirmAsk = confirmPair[0]
       const setConfirm = confirmPair[1]
@@ -24250,17 +24284,31 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         }
       })
       // The suggestions waiting for Add, in a dashed card above the list, in every view: the same look as the suggested skills.
+      // Each row says, in three short lines, what the automation does, why Kaby proposes it and when; \u00ab See details \u00bb unfolds the steps in the row, and the full editor is one link inside it.
       const sugRow = (t) => {
-        const meta = kbSuggestionMeta(t)
+        const sum = kbSuggestionSummary(t)
         const trig = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
+        const open = sugOpen[t.id] === true
+        const detailId = 'kba-sugd-' + String(t.id)
+        const line = (key, label, text) => h('div', { className: 'kba-sugline', 'data-kb': 'suggested-' + key }, h('span', { className: 'kba-suglab' }, label), text)
         return h('div', { key: t.id, className: 'kba-sugrow', 'data-kb': 'suggested-row' },
           h('div', { className: 'kba-sugmain' },
             h('div', { className: 'kba-sugname' }, h('span', { className: 'kb-ping', 'aria-hidden': 'true' }), h('span', { className: 'kba-ell', title: t.name }, t.name), h('span', { className: 'kba-sugchip' }, kbt('tasks.sug.chip'))),
-            h('span', { className: 'kba-sugmeta', title: meta.note !== '' ? meta.note : undefined }, kbt('tasks.sug.by') + (meta.line !== '' ? ' \u00b7 ' + meta.line : '') + ' \u00b7 ' + trig.label)),
+            sum.what !== '' ? line('what', kbt('tasks.sug.what'), sum.what) : null,
+            sum.why !== '' ? line('why', kbt('tasks.sug.why'), sum.why) : null,
+            line('when', kbt('tasks.sug.when'), trig.label)),
           h('div', { className: 'kba-sugacts' },
-            h('button', { type: 'button', className: 'kb8-primary kba-sugbtn', 'data-kb': 'suggested-add', onClick: () => act('accept', t.id) }, kbt('tasks.sug.add')),
-            h('button', { type: 'button', className: 'kb-task-btn kba-sugbtn', 'data-kb': 'suggested-edit', onClick: () => { setDetail(t.id); setTab('flow'); setNodeSel(null) } }, kbt('tasks.sug.edit')),
-            h('button', { type: 'button', className: 'kb-task-btn kba-sugbtn', 'data-kb': 'suggested-discard', onClick: () => act('delete', t.id) }, kbt('tasks.sug.discard'))))
+            h('button', { type: 'button', className: 'kb8-primary kba-sugbtn', 'data-kb': 'suggested-add', title: kbt('tasks.sug.safe'), onClick: () => act('accept', t.id) }, kbt('tasks.sug.add')),
+            h('button', { type: 'button', className: 'kb-task-btn kba-sugbtn', 'data-kb': 'suggested-more', 'aria-expanded': open ? 'true' : 'false', 'aria-controls': detailId, onClick: () => setSugOpen((cur) => Object.assign({}, cur, { [t.id]: !open })) }, kbt(open ? 'tasks.sug.less' : 'tasks.sug.more')),
+            h('button', { type: 'button', className: 'kb-task-btn kba-sugbtn', 'data-kb': 'suggested-discard', onClick: () => act('delete', t.id) }, kbt('tasks.sug.discard'))),
+          open ? h('div', { id: detailId, className: 'kba-sugdetail', role: 'region', 'aria-label': t.name, 'data-kb': 'suggested-detail' },
+            sum.steps.length > 0 ? h('div', { className: 'kba-suglab' }, kbt('tasks.sug.steps')) : null,
+            sum.steps.length > 0 ? h(sum.numbered === true ? 'ol' : 'ul', { className: 'kba-sugsteps' }, sum.steps.map((s, i) => h('li', { key: i }, s))) : null,
+            sum.extra > 0 ? h('div', { className: 'kba-sugline' }, kbt('tasks.sug.extra').replace('{n}', () => String(sum.extra))) : null,
+            sum.seen !== '' ? line('seen', kbt('tasks.sug.seen'), sum.seen) : null,
+            line('how', kbt('tasks.sug.how'), kbTaskWho(t, kbt)),
+            h('div', { className: 'kba-sugsafe' }, kbt('tasks.sug.safe')),
+            h('button', { type: 'button', className: 'kba-suglink', 'data-kb': 'suggested-edit', onClick: () => { setDetail(t.id); setTab('flow'); setNodeSel(null) } }, kbt('tasks.sug.editfull'))) : null)
       }
       const sugEl = (section === 'yours' && sug.length > 0) ? h('div', { className: 'kba-card kba-lcard kba-sugcard', 'data-kb': 'suggested-block', role: 'region', 'aria-label': kbt('tasks.sug.title') }, sug.map(sugRow)) : null
       // The initiative cards of Yours, right under the suggested card: Kaby's bounded queue of drafts, each with the proof it came
@@ -35747,10 +35795,17 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-sugname{display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px;min-width:0}
 .kba-sugname .kb-ping{margin:0 8px 0 2px}
 .kba-sugchip{font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,transparent);color:var(--dsw-alias-brand-primary);white-space:nowrap}
-.kba-sugmeta{display:block;margin-top:2px;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kba-sugline{margin-top:3px;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kba-suglab{display:inline-block;margin-inline-end:6px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
+.kba-sugdetail{grid-column:1/-1;margin-top:2px;padding:10px 14px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:4px;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kba-sugdetail .kba-sugline{margin-top:0}
+.kba-sugsteps{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:3px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kba-sugsafe{margin-top:4px;color:var(--dsw-alias-label-primary)}
+.kba-suglink{align-self:flex-start;margin-top:2px;background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--dsw-alias-label-link,var(--dsw-alias-label-primary));text-decoration:underline}
+.kba-suglink:focus-visible,.kba-sugbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kba-sugacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .kba-sugbtn{height:30px;padding:0 12px;font-size:12.5px;border-radius:9px}
-@media (max-width:640px){.kba-sugrow{grid-template-columns:minmax(0,1fr)}.kba-sugacts{justify-content:flex-start}.kba-sugmeta{white-space:normal}}
+@media (max-width:640px){.kba-sugrow{grid-template-columns:minmax(0,1fr)}.kba-sugacts{justify-content:flex-start}}
 /* The certification gate and the initiative cards: the same geometry as the suggested card above (radius 16, 12px 16px rows, dashed-free
    solid border), tokens only — no colour is written here, so the dark theme follows the host's aliases. The fold is the sibling's 640 px. */
 .kbgate{display:flex;flex-direction:column;gap:8px;padding:12px 16px;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1)}
