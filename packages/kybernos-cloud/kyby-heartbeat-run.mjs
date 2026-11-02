@@ -1,5 +1,5 @@
 // Starting and watching one wake-up of Kaby (kyby-heartbeat.mjs): one message into Kaby's own chat, then a watch that ends it at the first of: the turn is over, a question is open,
-// the person's message is waiting behind it, the time box is spent. Only the engine's own session controller is used (`prompt`, `state`, `wait`, `cancel`): no new seam.
+// the person's message is waiting behind it, the person pressed « Stop », the time box is spent. Only the engine's own session controller is used (`prompt`, `state`, `wait`, `cancel`): no new seam.
 //
 // The chat is the person's, so the person always wins: their message waiting in the queue cancels the wake-up's turn (the engine keeps the inbox, their message then runs), and no
 // wake-up starts while a turn runs, a question is open, a message waits, or within half an hour of their last words.
@@ -55,9 +55,10 @@ export function createHeartbeat (deps) {
     }
   }
 
-  /** Watches one wake-up's turn; returns the word that says how it ended. */
-  const watch = async (sc, sid, boxMs) => {
+  /** Watches one wake-up's turn (`mine` is its entry in `active`); returns the word that says how it ended. */
+  const watch = async (sc, sid, boxMs, mine) => {
     const quit = new AbortController()
+    mine.quit = quit
     let finished = false
     let person = false
     const polling = (async () => {
@@ -77,6 +78,7 @@ export function createHeartbeat (deps) {
     finished = true
     await polling.catch(() => null)
     if (person === true) return 'person'
+    if (mine.stopped === true) { await stop(sc, sid); return 'stopped' }
     if (reason === 'idle') return 'done'
     if (reason === 'input-required') { await stop(sc, sid); return 'blocked' }
     if (reason === 'timeout') { await stop(sc, sid); return 'time' }
@@ -117,13 +119,16 @@ export function createHeartbeat (deps) {
           // The turn starts at once on an idle chat: wait for it to show before waiting for its end (an idle chat would answer « idle » at once).
           const until = now() + graceMs
           for (;;) {
+            if (mine.stopped === true) break
             let seen = null
             try { seen = await readState(sc, sid) } catch (e) { seen = null }
             if (seen !== null && (seen.running === true || seen.queue.some(isOurs) || seen.pendingInput.length > 0)) break
             if (now() >= until) break
             await sleep(Math.min(300, pollMs))
           }
-          outcome = await watch(sc, sid, record.boxMin * 60 * 1000)
+          // « Stop » clicked before the watch began: the turn that just started is cancelled, there is nothing to watch.
+          if (mine.stopped === true) { await stop(sc, sid); outcome = 'stopped'; return outcome }
+          outcome = await watch(sc, sid, record.boxMin * 60 * 1000, mine)
           return outcome
         } catch (e) { return 'error' } finally {
           if (active === mine) active = null
@@ -140,6 +145,22 @@ export function createHeartbeat (deps) {
     async tick () {
       const r = await start({ manual: false })
       return r.ok === true ? r.finished : r.error
+    },
+    /**
+     * The person's « Stop this wake-up »: the turn is cancelled (the engine keeps the inbox) and the watch ends as `stopped`. Answers at once; the wake-up ends a moment later, once the turn has really stopped.
+     * @returns { ok: true } or { ok: false, error: 'not_running' | 'sessions_unavailable' | 'error' }
+     */
+    async stopNow () {
+      try {
+        const mine = active
+        if (mine === null) return { ok: false, error: 'not_running' }
+        const sc = controller()
+        if (sc === null) return { ok: false, error: 'sessions_unavailable' }
+        mine.stopped = true
+        try { await sc.cancel({ sessionId: mine.sessionId }) } catch (e) { /* already over */ }
+        if (mine.quit !== undefined) mine.quit.abort()
+        return { ok: true }
+      } catch (e) { return { ok: false, error: 'error' } }
     },
     /** Kaby's session id while one of its wake-ups is running, else null. The gate and the prompt ask this. */
     runningSession () { return active !== null ? active.sessionId : null },

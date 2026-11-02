@@ -8,7 +8,7 @@ import { appendAudit, readJson, writeJson } from './kyby-files.mjs'
 import { describe, dueNow, inForce, nextDueAt, readRequest, sign, verify, wakeText } from './kyby-heartbeat.mjs'
 
 const TEXT_TTL_MS = 1000
-const OUTCOMES = new Set(['running', 'done', 'time', 'blocked', 'person', 'refused', 'error', 'interrupted'])
+const OUTCOMES = new Set(['running', 'done', 'time', 'blocked', 'person', 'stopped', 'refused', 'error', 'interrupted'])
 
 /**
  * @param deps { home: () => string (the DSH home), secret: () => Buffer | null (the machine secret), now?: () => number }

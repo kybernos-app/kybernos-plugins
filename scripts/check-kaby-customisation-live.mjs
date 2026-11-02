@@ -328,11 +328,16 @@ try {
     const under = (await heartbeatApi('')).json
     check('« Wake it now » starts one wake-up of the chat’s session: the chip says « Working · 10 min at most », the button is off, and the host says so', woke && under.running === true && under.lastOutcome === 'running' && /^Working · 10 min at most$/.test(await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').textContent')) && (await hbDisabled('wake')) === true && (await exists('[data-kb="kaby-custom-heartbeat-last"]')) === false, under)
     await shot('13-wakeups-running', '[data-kb="kaby-custom-heartbeat"]')
+    check('« Stop this wake-up » is on the card while it runs, and pressing it ends the wake-up as « stopped by you »', (await exists('[data-kb="kaby-custom-heartbeat-stop"]')) === true && (await hbDisabled('stop')) === false)
+    await click('[data-kb="kaby-custom-heartbeat-stop"]')
+    check('the stopped wake-up leaves the chip, the stop button goes and the last line says it', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').dataset.state !== "running"', 30000) === true && (await exists('[data-kb="kaby-custom-heartbeat-stop"]')) === false && ['stopped', 'done', 'person'].includes((await heartbeatApi('')).json.lastOutcome))
   } else {
     const done = (await heartbeatApi('')).json
-    check('« Wake it now » starts one wake-up of the chat’s session: it ends with a closed word, and the card gives it as one line', woke && done.running === false && ['done', 'time', 'blocked', 'person', 'refused', 'error', 'interrupted'].includes(done.lastOutcome) && /^Last wake-up at \d\d:\d\d: .+\.$/.test((await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-last"]\').textContent')).trim()), done)
+    check('« Wake it now » starts one wake-up of the chat’s session: it ends with a closed word, and the card gives it as one line', woke && done.running === false && ['done', 'time', 'blocked', 'person', 'stopped', 'refused', 'error', 'interrupted'].includes(done.lastOutcome) && /^Last wake-up at \d\d:\d\d: .+\.$/.test((await js('document.querySelector(\'[data-kb="kaby-custom-heartbeat-last"]\').textContent')).trim()), done)
     await shot('13-wakeups-last', '[data-kb="kaby-custom-heartbeat"]')
   }
+  const stopIdle = await heartbeatApi('/stop', {})
+  check('a stop asked while nothing runs is answered « not_running », and the card has no stop button', stopIdle.json !== null && stopIdle.json.ok === false && stopIdle.json.error === 'not_running' && (await exists('[data-kb="kaby-custom-heartbeat-stop"]')) === false, stopIdle)
   await click('[data-kb="kaby-custom-heartbeat-pause"]')
   check('pausing stops the wake-ups: the chip, the sentence, « Wake it now » off, and the host says paused with the settings kept', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-heartbeat-chip"]\').dataset.state === "paused"', 15000) === true && (await exists('[data-kb="kaby-custom-heartbeat-note"]')) === true && (await hbDisabled('wake')) === true)
   const hbPaused = (await heartbeatApi('')).json
@@ -340,8 +345,8 @@ try {
   await shot('14-wakeups-paused', '[data-kb="kaby-custom-heartbeat"]')
   await click('[data-kb="kaby-custom-heartbeat-pause"]')
   check('resuming puts it back in force', await hbSettled(['on', 'quiet']) === true && (await heartbeatApi('')).json.inForce === true)
-  const refusedHb = await js(`Promise.all(['/set', '/wake'].map((p) => fetch('/kybernos-cloud/kyby/heartbeat' + p, { method: 'POST', credentials: 'omit', headers: { 'content-type': 'application/json' }, body: '{"preset":"steady"}' }).then((r) => r.status)))`)
-  check('a signing or a wake request without the page’s session is refused, and nothing changed', Array.isArray(refusedHb) && refusedHb.every((s) => s === 401 || s === 403) && (await heartbeatApi('')).json.preset === 'custom', refusedHb)
+  const refusedHb = await js(`Promise.all(['/set', '/wake', '/stop'].map((p) => fetch('/kybernos-cloud/kyby/heartbeat' + p, { method: 'POST', credentials: 'omit', headers: { 'content-type': 'application/json' }, body: '{"preset":"steady"}' }).then((r) => r.status)))`)
+  check('a signing, a wake or a stop request without the page’s session is refused, and nothing changed', Array.isArray(refusedHb) && refusedHb.every((s) => s === 401 || s === 403) && (await heartbeatApi('')).json.preset === 'custom', refusedHb)
   await click('[data-kb="kaby-custom-heartbeat-preset"][data-preset="off"]')
   await click('[data-kb="kaby-custom-heartbeat-sign"]')
   check('« Off » signed: the host says off and the chip says no wake-ups', await hbSettled(['off']) === true && (await heartbeatApi('')).json.why === 'off')

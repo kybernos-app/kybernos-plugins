@@ -31,10 +31,10 @@
 6. **Wake-ups** (2026-11-02). How often Kaby wakes **by itself on this computer** (every 2, 4, 8 or 24 h), for how long (5, 10 or 20 min), on how many points of its list (1, 2 or 3),
    and its quiet hours (a switch and two times, 22:00–08:00 by default), with four starting points (Off, Light, Regular, Steady). **Parameters only**: Kaby's list (`todo.md` in its
    workspace) and its per-wake summaries live in its chat, never here. Buttons: **Sign** (« Turn the wake-ups on » the first time), **Pause / Resume**, **Wake it now** (one wake-up at once,
-   off until the settings are signed and while one runs) and **Open Kaby's chat** (through kybernos-kyber's `openChat()`). The chip says what is true now (none, changes to sign, on with the next
+   off until the settings are signed and while one runs), **Stop this wake-up** (only while one runs: the turn is cancelled and the last line says « stopped by you ») and **Open Kaby's chat** (through kybernos-kyber's `openChat()`). The chip says what is true now (none, changes to sign, on with the next
    time, quiet until, working for at most N min, paused, to sign again, cannot sign) and one line gives the last wake-up and how it ended. An amber line says wake-ups do not cover a cloud
    computer. The card holds no schedule, no signature and no clock: they are kybernos-cloud's (`kyby-heartbeat*.mjs`; the choices and starting points arrive with the view). Routes it calls:
-   `GET /kybernos-cloud/kyby/heartbeat`, `POST …/set` (the fields, or `{ paused }` alone), `POST …/wake` (the page's own session cookie and origin). While a wake-up runs the card asks again every 5 s.
+   `GET /kybernos-cloud/kyby/heartbeat`, `POST …/set` (the fields, or `{ paused }` alone), `POST …/wake`, `POST …/stop` (the page's own session cookie and origin). While a wake-up runs the card asks again every 5 s.
 
 ## What it stores and where
 
