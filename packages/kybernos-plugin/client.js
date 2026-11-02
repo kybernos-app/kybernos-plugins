@@ -4864,7 +4864,7 @@ const KB_FR_EN = {
   'Copier le chemin de': 'Copy the path of',
   'Copier le chemin': 'Copy the path',
   'Message de la conversation': 'Chat message',
-  'Choisissez une équipe ci-dessus pour mettre ses étapes en avant.': 'Pick a crew above to highlight its steps.',
+  'Choisis une équipe ci-dessus pour mettre ses étapes en avant.': 'Pick a crew above to highlight its steps.',
   'Validateur': 'Approver',
   'Détails sur les blocs': 'Details on nodes',
   'Ajuster à la fenêtre': 'Fit to the window',
