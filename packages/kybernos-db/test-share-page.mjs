@@ -4,8 +4,8 @@
 //   node packages/kybernos-db/test-share-page.mjs
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import { Script } from 'node:vm'
-import { drifted } from '../../scripts/vendor-share.mjs'
 import { DASHBOARD, salesWorld } from './lib-share-test.mjs'
 import { kvCheck, kvLock, kvMessage, kvMount, kvPage, kvShort, kvTick, kvh } from './share/render.mjs'
 import { SEAL_ITERATIONS_MIN, sealText } from './share/seal.mjs'
@@ -33,7 +33,12 @@ const nodes = (tree) => { const out = []; walk(tree, (n) => { if (n !== null && 
 const texts = (tree) => { const out = []; walk(tree, (n) => { if (typeof n === 'string' || typeof n === 'number') out.push(String(n)) }); return out }
 
 await ok('the copies of the Dashboards plugin\'s model and chart geometry are the originals (node scripts/vendor-share.mjs refreshes them)', () => {
-  assert.deepEqual(drifted(), [])
+  const copies = [['../kybernos-dashboards/model.mjs', './share/vendor/dashboards-model.mjs'], ['../kybernos-dashboards/chart-core.mjs', './share/vendor/chart-core.mjs']]
+  for (const [from, to] of copies) {
+    const source = new URL(from, import.meta.url)
+    if (!existsSync(source)) { console.log('     (the Dashboards plugin is not beside this one: ' + from + ' not compared)'); continue }
+    assert.ok(readFileSync(source).equals(readFileSync(new URL(to, import.meta.url))), to + ' differs from ' + from + ': run node scripts/vendor-share.mjs')
+  }
 })
 
 await ok('the page of the fixture shop has a title, nine widgets in order, and the numbers of the snapshot', () => {
