@@ -268,6 +268,45 @@ try {
   const alien = await run(null, { served: () => JSON.stringify({ kind: 'kybernos-snapshot', version: 1, widgets: [] }) })
   assert.ok(alien.text.includes('cannot be shown'), 'a document this page does not know is not drawn')
   ok('a link: an open one draws, a protected one shows only a lock until the right password, a wrong one asks again, a gone one and a foreign document say so, French when the browser is')
+
+  // ── the story a page at a time ───────────────────────────────────────────────────────
+  const flat = (n) => (n.t !== undefined ? n.t : n.kids.map(flat).join(' '))
+  const nodesOf = (n, out = []) => { if (n.kids !== undefined) { out.push(n); n.kids.forEach((k) => nodesOf(k, out)) } return out }
+  const byClass = (root, cls) => nodesOf(root).filter((n) => (n.attrs.class || '').split(/\s+/).includes(cls))
+  const big = make({})
+  big.moments = Array.from({ length: 60 }, (_, i) => Object.assign({}, big.moments[0], { id: 'p' + i, at: T0 + i * MIN }))
+  const paged = await run(big)
+  const rowsNow = () => byClass(paged.root, 'kj-row').length
+  const pagerText = () => flat(byClass(paged.root, 'kj-pager')[0])
+  const button = (label) => byClass(paged.root, 'kj-more').find((b) => flat(b).includes(label))
+  assert.equal(rowsNow(), 25, 'the first page holds 25 moments')
+  assert.ok(pagerText().includes('1–25 of 60') && pagerText().includes('Page 1 / 3'), pagerText())
+  assert.equal(button('Previous').getAttribute('disabled'), 'disabled', 'no previous page on the first one')
+  assert.equal(button('Next').getAttribute('disabled'), null)
+  assert.equal(byClass(paged.root, 'kj-list')[0].kids[0].className, 'kj-day', 'a page begins with its day header')
+  button('Next').on.click()
+  assert.ok(rowsNow() === 25 && pagerText().includes('26–50 of 60') && pagerText().includes('Page 2 / 3'), pagerText())
+  button('Next').on.click()
+  assert.ok(rowsNow() === 10 && pagerText().includes('51–60 of 60'), pagerText())
+  assert.equal(button('Next').getAttribute('disabled'), 'disabled', 'no next page on the last one')
+  assert.equal(byClass(paged.root, 'kj-list')[0].kids[0].className, 'kj-day', 'every page begins with its day header')
+  const sizeSel = byClass(paged.root, 'kj-psel')[0]
+  assert.deepEqual(sizeSel.kids.map((o) => flat(o)), ['10', '25', '50', '100'], 'the page size is one of 10, 25, 50, 100')
+  sizeSel.value = '50'
+  sizeSel.on.change()
+  assert.ok(rowsNow() === 50 && pagerText().includes('1–50 of 60') && pagerText().includes('Page 1 / 2'), 'a new size starts again at the first page: ' + pagerText())
+  byClass(paged.root, 'kj-psel')[0].value = '7'
+  byClass(paged.root, 'kj-psel')[0].on.change()
+  assert.equal(rowsNow(), 50, 'a size that is not offered is ignored')
+  const smallDoc = make({})
+  smallDoc.moments = big.moments.slice(0, 10)
+  const small = await run(smallDoc)
+  assert.equal(byClass(small.root, 'kj-pager')[0].kids.length, 0, 'a story of 10 moments or fewer has no pager')
+  const bigFr = make({}, { lang: 'fr' })
+  bigFr.moments = big.moments
+  const pagedFr = await run(bigFr)
+  assert.ok(flat(byClass(pagedFr.root, 'kj-pager')[0]).includes('1–25 sur 60') && flat(byClass(pagedFr.root, 'kj-pager')[0]).includes('Par page'), 'French')
+  ok('the story is read a page at a time: 25 to begin with, previous and next with the ends disabled, the day header on each page, a size of 10, 25, 50 or 100 that starts again at page 1, nothing for 10 moments or fewer, French')
 } finally {
   rmSync(dir, { recursive: true, force: true })
 }

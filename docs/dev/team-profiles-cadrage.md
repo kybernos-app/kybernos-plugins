@@ -81,7 +81,7 @@ each bundle to the active team by hand; a second instance per team separates eve
    a team's DSH (the existing team-space cut, unchanged). The local lessons are different: the home is the team's alone, so the memory bundle
    uses them there (`seam.ownHome()`, `lessonsCut` in `kybernos-memory/team-space.mjs`); the side doors that name the personal memory stay
    refused. A bundle without the new seam field keeps the old, closed behaviour.
-3. **Done for the menu (3a); hiding (3b) and the desktop window are not.** Choosing a team in the account menu asks the host (`team-dsh/open`, which
+3. **Done: the menu (3a) and the hiding (3b). The desktop window is not.** Choosing a team in the account menu asks the host (`team-dsh/open`, which
    now also answers the team's signed address, the one its log printed) and opens that address with `window.open` in a window named after the
    team (`kybernos-team-<id>`), so a second choice finds the same window. The card says "Starting…" meanwhile (not "Switching…": nothing is billed
    differently in the DSH that shows the menu). From a team's DSH, "Personal" opens the personal DSH (`team-dsh/personal`: the personal DSH writes
@@ -90,11 +90,23 @@ each bundle to the active team by hand; a second instance per team separates eve
    the host always sends (`own_dsh`) until step 5, so the live checks that play it still stand; what still moves the personal DSH to a team is
    only what follows a chat on screen, a team just created, and the claim-time switch: all of step 5. Played on the real page of a sandbox with the
    host's answers stubbed (`scripts/check-team-switch-live.mjs`, 14 checks) and, for the host, on a real `dsh web` (`check-team-dsh-live.mjs`).
-   **3b, hiding in a team's DSH what belongs to the account or the computer (Kaby, Telegram and WhatsApp, the Home computer, Phone and
-   channels): not done.** Nothing there is configured in a new home, so nothing runs by itself; it is a menu question. Two ways: leave those
-   bundles out of the team's profile (like `PERSONAL_ONLY_BUNDLES`, if no other bundle needs them to mount), or let each page read `state.team_dsh`.
+   **3b, done (2026-11-02): what belongs to the account stays out of a team's DSH (Kaby, the Telegram and WhatsApp doors, the Home computer, Phone and
+   channels).** Three parts, none of them a page reading `state.team_dsh` (the other bundles cannot read the cloud bundle's state before they draw):
+   - *The pages are not loaded.* `PERSONAL_ONLY_BUNDLES` now also holds `kybernos-kyber` (Kaby's page, the doors, the Home computer), `kybernos-kaby-customisation`
+     (Settings › Kaby) and `kybernos-mobile` (the phone link: its Settings page and the account-menu row, which only exists while the bundle publishes `__KB_MOBILE__`).
+     A home made before the list grew is brought up to date when its DSH next starts (`leaveOutPersonalBundles`; never while it runs, the manifest is hot-loaded).
+     Price: the phone bundle also lays the page out on a narrow screen, so a team's DSH has no such layout until the phone has its own road (below).
+   - *The server refuses them.* In a team's DSH the cloud bundle answers `403 personal_only` on `kyber`, `kyby/*`, `telegram/*`, `whatsapp/*` and `computer/*`
+     (`personalOnlyRoute`, applied by the route wrapper) and closes the seam to the phone link (`/v1/remote/`). The new-chat page's Home computer line reads
+     `kyber` and goes quiet on a refusal, so it needed no change. The cloud computers of the agents (`computers*`, plural) are not the Home computer and stay.
+   - *The first-run wizard.* Found by looking at the real page: a new home opened on « Welcome to Kybernos ». A team's home now starts with the wizard done
+     (`seedOnboarding`), carrying over only tastes (language, interface mode, style preset), never who the person is or what they said about themselves.
+   Left as it is, and inert in a team's DSH: the host half of Kaby in the cloud bundle (its prompt block, the unattended gate), which acts on a Kaby chat a team home does not
+   have. Played in `packages/kybernos-cloud/test-team-personal-only.mjs` (a real HTTP server, the wrapper itself), `test-team-instances.mjs` and, on real pages of the sandbox
+   side by side with the personal DSH, `scripts/check-team-hidden-live.mjs` (14 checks: no Kaby in the sidebar nor in Settings, no « Phone and channels », no Home
+   computer line, no wizard; the personal page has all of them).
    **Desktop app: not done** (its own repository, see decision 3).
-4. Seed rules: what else is copied from Personal when a team home is created (language and theme; the person's own provider keys, decision 2). The Kybernos session is already seeded (step 2).
+4. Seed rules: what else is copied from Personal when a team home is created (the interface language; the person's own provider keys, decision 2). The Kybernos session is already seeded (step 2), and the first-run wizard's tastes (language, interface mode, style preset) with it (step 3b).
 5. Retire the single-instance switch code (follow-the-chat, turn guard, deferred switch, claim-time switch). Dead-code rider.
 6. Two-account live test on the existing `scripts/e2e-teams-run.sh` harness.
 

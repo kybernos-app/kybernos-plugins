@@ -10,7 +10,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  PERSONAL_ONLY_BUNDLES, TEAM_IDLE_MS, activeAutomationsIn, createTeamInstances, ensureTeamHome, pickPort, readRegistry, retarget, shouldExit, spawnSpec, teamHomeOf, teamOfEnv, personalHomeOf, signedAddressOf } from './team-instances.mjs'
+  PERSONAL_ONLY_BUNDLES, TEAM_IDLE_MS, activeAutomationsIn, createTeamInstances, ensureTeamHome, leaveOutPersonalBundles, personalOnlyRoute, pickPort, seedOnboarding, readRegistry, retarget, shouldExit, spawnSpec, teamHomeOf, teamOfEnv, personalHomeOf, signedAddressOf } from './team-instances.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -44,7 +44,7 @@ const seedPersonal = () => {
   mkdirSync(join(profile, 'node_modules', '@local'), { recursive: true })
   mkdirSync(join(profile, 'node_modules', '.pnpm', 'inner@1'), { recursive: true })
   mkdirSync(join(profile, '.plugin-manager'), { recursive: true })
-  writeFileSync(join(profile, 'package.json'), JSON.stringify({ name: 'web', dsh: { profile: { bundles: ['@local/kybernos-cloud', '@local/kybernos-relance', '@local/kybernos-miniapps', '@local/kybernos-memory'] } } }, null, 2) + '\n')
+  writeFileSync(join(profile, 'package.json'), JSON.stringify({ name: 'web', dsh: { profile: { bundles: ['@local/kybernos-cloud', '@local/kybernos-relance', '@local/kybernos-miniapps', '@local/kybernos-kyber', '@local/kybernos-kaby-customisation', '@local/kybernos-mobile', '@local/kybernos-memory'] } } }, null, 2) + '\n')
   writeFileSync(join(profile, 'cordis.patch.yml'), 'mcp: ' + personal + '/mcp/horloge.mjs\nother: ' + personal + 'x/keep\n')
   writeFileSync(join(profile, 'cordis.patch.yml.bak-old'), 'old\n')
   writeFileSync(join(profile, 'node_modules', '.pnpm-workspace-state-v1.json'), JSON.stringify({ projects: { [profile]: {} } }))
@@ -84,6 +84,14 @@ try {
     assert.equal(JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name, id, id + ' must name a bundle of this repository')
   }
   ok('every bundle kept out of a team\'s profile is a real bundle of this repository (' + PERSONAL_ONLY_BUNDLES.length + ')')
+
+  for (const path of ['/kybernos-cloud/kyber', '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/native/set', '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/whatsapp/unlink', '/kybernos-cloud/computer/open', '/kybernos-cloud/computer/claimed']) {
+    assert.equal(personalOnlyRoute(path), true, path + ' belongs to the account')
+  }
+  for (const path of ['/kybernos-cloud/status', '/kybernos-cloud/computers', '/kybernos-cloud/computers/publish', '/kybernos-cloud/kyberx', '/kybernos-cloud/space/active', '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/memory/list', '/other/kybernos-cloud/kyber', undefined, 7]) {
+    assert.equal(personalOnlyRoute(path), false, String(path) + ' stays')
+  }
+  ok('the routes of Kaby, its Telegram and WhatsApp doors and the Home computer are told apart from the others')
 
   // ── the rule that stops an idle DSH ──
   const base = { now: 10 * TEAM_IDLE_MS, lastSeenAt: 0, runningReplies: 0, activeAutomations: 0 }
@@ -129,6 +137,11 @@ try {
   seedPersonal()
   assert.deepEqual(ensureTeamHome({ personalHome: personal, teamId: '../x', copy }), { ok: false, error: 'invalid_team' })
   assert.equal(ensureTeamHome({ personalHome: join(root, 'nowhere'), teamId: 't1', copy }).error, 'profile_missing')
+  mkdirSync(join(personal, 'kybernos'), { recursive: true })
+  writeFileSync(join(personal, 'kybernos', 'onboarding.json'), JSON.stringify({
+    version: 1, completed: true, installedAt: '2026-01-01T00:00:00.000Z', completedAt: '2026-01-02T00:00:00.000Z', profil: 'lawyer', uiMode: 'simple', model: 'key', lang: 'fr', memoryId: 'mem-1',
+    goals: ['draft'], customGoals: ['my own goal'], agents: 'auto', theme: 'paper', about: { site: 'https://me.example.test', profile: null, words: 'private words' },
+  }))
   const made = ensureTeamHome({ personalHome: personal, teamId: 't1', copy })
   assert.equal(made.ok, true)
   assert.equal(made.created, true)
@@ -143,13 +156,41 @@ try {
   assert.match(readFileSync(join(teamProfile, 'cordis.patch.yml'), 'utf8'), new RegExp('other: ' + personal.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&') + 'x/keep'))
   assert.equal(JSON.parse(readFileSync(join(teamProfile, 'node_modules', '.pnpm-workspace-state-v1.json'), 'utf8')).projects[teamProfile] !== undefined, true)
   assert.equal(existsSync(join(made.home, 'mcp', 'horloge.mjs')), true)
-  assert.deepEqual(JSON.parse(readFileSync(join(teamProfile, 'package.json'), 'utf8')).dsh.profile.bundles, ['@local/kybernos-cloud', '@local/kybernos-memory'], 'the bundles of the computer are not loaded by a team')
-  assert.equal(JSON.parse(readFileSync(join(personal, 'profiles', 'web', 'package.json'), 'utf8')).dsh.profile.bundles.length, 4, 'the personal profile keeps them')
+  const wizard = JSON.parse(readFileSync(join(made.home, 'kybernos', 'onboarding.json'), 'utf8'))
+  assert.deepEqual([wizard.version, wizard.completed], [1, true], 'a team\'s home opens on its work, not on the first-run wizard')
+  assert.deepEqual([wizard.lang, wizard.uiMode, wizard.theme], ['fr', 'simple', 'paper'], 'the tastes of the person follow')
+  assert.deepEqual([wizard.profil, wizard.memoryId, wizard.about, wizard.goals, wizard.customGoals, wizard.agents, wizard.model], [null, null, null, [], [], null, null], 'who they are and what they said about themselves stay in Personal')
+  assert.equal(statSync(join(made.home, 'kybernos', 'onboarding.json')).mode & 0o777, 0o600)
+  assert.equal(JSON.parse(readFileSync(join(personal, 'kybernos', 'onboarding.json'), 'utf8')).about.words, 'private words', 'the personal record is not touched')
+  assert.deepEqual(JSON.parse(readFileSync(join(teamProfile, 'package.json'), 'utf8')).dsh.profile.bundles, ['@local/kybernos-cloud', '@local/kybernos-memory'], 'the bundles of the computer and of the account are not loaded by a team')
+  assert.equal(JSON.parse(readFileSync(join(personal, 'profiles', 'web', 'package.json'), 'utf8')).dsh.profile.bundles.length, 7, 'the personal profile keeps them')
   assert.equal(existsSync(join(teamProfile, 'cordis.patch.yml.bak-old')), false)
   assert.equal(existsSync(join(teamProfile, '.plugin-manager')), false)
   assert.equal(existsSync(join(personal, 'profiles', 'web', 'cordis.patch.yml.bak-old')), true, 'the personal profile is left as it was')
   assert.match(readFileSync(join(personal, 'profiles', 'web', 'cordis.patch.yml'), 'utf8'), new RegExp(personal.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&') + '/mcp/horloge.mjs'))
   assert.equal(ensureTeamHome({ personalHome: personal, teamId: 't1', copy }).created, false)
+  // A home made before the list grew is brought up to date the next time it is opened; the personal profile is not touched.
+  const teamManifest = join(teamProfile, 'package.json')
+  const older = JSON.parse(readFileSync(teamManifest, 'utf8'))
+  older.dsh.profile.bundles.push('@local/kybernos-kyber', '@local/kybernos-mobile')
+  writeFileSync(teamManifest, JSON.stringify(older))
+  assert.equal(ensureTeamHome({ personalHome: personal, teamId: 't1', copy }).created, false)
+  assert.deepEqual(JSON.parse(readFileSync(teamManifest, 'utf8')).dsh.profile.bundles, ['@local/kybernos-cloud', '@local/kybernos-memory'])
+  writeFileSync(join(made.home, 'kybernos', 'onboarding.json'), JSON.stringify({ version: 1, completed: false, lang: 'de' }))
+  assert.equal(ensureTeamHome({ personalHome: personal, teamId: 't1', copy }).created, false)
+  assert.equal(JSON.parse(readFileSync(join(made.home, 'kybernos', 'onboarding.json'), 'utf8')).lang, 'de', 'a record the team DSH already has is never replaced')
+  rmSync(join(made.home, 'kybernos', 'onboarding.json'))
+  assert.equal(seedOnboarding(personal, made.home), true, 'a home that has none gets one')
+  assert.equal(seedOnboarding(personal, made.home), false, 'and only once')
+  rmSync(join(personal, 'kybernos', 'onboarding.json'))
+  rmSync(join(made.home, 'kybernos', 'onboarding.json'))
+  assert.equal(seedOnboarding(personal, made.home), true)
+  assert.deepEqual([JSON.parse(readFileSync(join(made.home, 'kybernos', 'onboarding.json'), 'utf8')).completed, JSON.parse(readFileSync(join(made.home, 'kybernos', 'onboarding.json'), 'utf8')).lang], [true, null], 'with no personal record, the wizard is still done, with no taste')
+  assert.equal(leaveOutPersonalBundles(teamProfile), 0, 'a second pass finds nothing to take out')
+  assert.equal(leaveOutPersonalBundles(join(root, 'nowhere')), 0, 'no manifest: nothing happens')
+  writeFileSync(teamManifest, '{not json')
+  assert.equal(leaveOutPersonalBundles(teamProfile), 0, 'an unreadable manifest is left as it is')
+  assert.equal(readFileSync(teamManifest, 'utf8'), '{not json')
   mkdirSync(join(personal, 'teams', 'stranger'), { recursive: true })
   assert.equal(ensureTeamHome({ personalHome: personal, teamId: 'stranger', copy }).error, 'home_unmarked')
   assert.equal(existsSync(join(personal, 'teams', 'stranger')), true, 'a folder the launcher did not make is never replaced')
