@@ -54,8 +54,11 @@ POSTs need `application/json`, an `Origin`/`Referer` on `127.0.0.1`, `localhost`
 not the one the host would run), `busy`, `already-installed`, `missing-tool` (`npm`, `curl` or `bash` is not on the `PATH`),
 `unsupported-platform` (only macOS and Linux for now), `not-installable` (ZCode), `install-unavailable`.
 
-Claude Code and Codex are turned on through the main plugin's Tools screen (`/kybernos/tools/apply`, same patch, same
-backup); the four home-made connections are turned on here, because the Tools screen does not know them.
+Claude Code, Codex and ZCode are turned on through the main plugin's Tools screen (`/kybernos/tools/apply`, same patch, same
+backup); the four home-made connections are turned on here, because the Tools screen does not know them. The Tools screen can also switch a
+connection off without removing it (`disabled: true`, in its row or in a patch entry aimed at its id): the row then reads « Not turned on · Switched off in Tools »
+(`desactivee` in the state) and its *Turn on* asks `tools/apply` for `enable`. A home-made connection switched off by hand is refused (`ligne-desactivee`):
+a second line would register the provider twice.
 
 ## Files, settings, processes
 
@@ -97,7 +100,7 @@ backup); the four home-made connections are turned on here, because the Tools sc
 ## Tests
 
 ```bash
-node packages/kybernos-workers/test-host.mjs     # 194 checks: patch parsing, policy, activation, check scenarios per CLI, routes, install job, real I/O
+node packages/kybernos-workers/test-host.mjs     # 199 checks: patch parsing, policy, activation, check scenarios per CLI, routes, install job, real I/O
 node packages/kybernos-workers/test-client.mjs   # 61 checks: row status, dots, sentences, language rule, every worker has its logo, every French text has its English
 node scripts/test-workers-gui.mjs                # the real client in Chromium against the real routes; exits 0 "SKIPPED" without playwright + react@18
 source scripts/sandbox/env.sh && node scripts/check-workers-live.mjs   # the real DSH GUI of a sandbox instance: the page, the checks, the guide (never installs, never saves)

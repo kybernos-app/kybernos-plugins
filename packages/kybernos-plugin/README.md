@@ -71,7 +71,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
 | Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/apply` (POST, a cloud computer's reporter only: applies one automation published from the person's laptop, with a token kept in the profile and no signed session; `automation-published.mjs`, `docs/dev/computers.md`), `automation-load` (GET: how loaded the machine is and how many runs may start, see "The cap on runs started at once"), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `tasks/runs` (GET `?ids=&detail=1`, read-only: what each run did, read from the engine's session journals, see "The runs of an automation"), `automation-skills` (GET `?id=`: how far an automation is from becoming a skill; POST `{id}`: write it, see "Stable automations become skills"), `hooks` (public webhook: secret + 60/h default limit) |
-| Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
+| Tools catalog | `tools/state` (per tool: mounted, `disabled`, `canSwitch`), `tools/apply` (`install` with dry run, `revert`, `disable` / `enable`; dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
 | Feedback box | `feedback` (POST: one line appended to `kybernos/feedback.jsonl`), `feedback/export` (GET: the file's content), `feedback/send` (POST: the same form posted to the linked server's relay with the device token). Strict write guard on all three (same-origin AND DSH's signed session, `session-guard.mjs`); Save and Copy send nothing, see "The feedback box" below |
@@ -645,6 +645,21 @@ The form keeps a link to the older interview (the seeded skill `report-feedback`
 `kybernos_report_feedback`). No screenshot: a page cannot be captured without the screen-capture permission prompt. Code: `feedback-box.mjs`
 (the file, and the form-to-report mapping), the three routes in `index.js`, `test-feedback-box.mjs`, `test-feedback-form.mjs`.
 
+## Settings › Tools: on/off without uninstalling
+
+Each mounted tool card has a switch. Off writes `disabled: true` on the tool's row of `profiles/<profile>/cordis.patch.yml`: the loader's own entry option, so the
+entry is stopped and not started while the package, the row and its config stay (zero engine patch). DSH reloads that file by itself a few seconds after the write
+(the profile's `hmr` entry watches it, measured 2026-10-06 and again on 0.2.2-alpha.2), so **no restart**: the page says so. On removes the line again. The state is
+read the way the loader reads it: the last entry of the file that names the row and carries `disabled` wins, whether it is the row itself or a patch entry aimed at its
+id (the « light mode » block of the real profile switches the Browser Use and Computer Use drivers that way; ZCode has `disabled: true` in its own row). A family is switched at
+the row that publishes tools (the driver; its registry "publishes nothing by itself" and stays), a connection at its package row, ZCode at `mcp-client-zcode`. A
+`disabled: !!js …` expression, or a tool whose row is not in the file, is named and refused: the switch is greyed with the reason, nothing is written. Before each write a
+dated `cordis.patch.yml.bak-outils-onoff-<tool>-<stamp>` is kept (its own name, so « Remove (restore the backup) » never restores a switch), the rewrite is atomic and keeps the file's
+mode, and off-then-on gives the original file back byte for byte (`test-tools-patch.mjs`, and a sandbox round trip). A switched-off tool counts for nothing in « tools exposed to
+the model » and the Workers page reads it as « not turned on » (its « Turn on » asks `tools/apply` for `enable`).
+Codex, Claude Code and ZCode are also rows of the Workers page: their cards keep the mount/remove/switch controls and point to Settings › Workers for the install, the sign-in and the
+« allowed » switch. Code: `tools-patch.mjs` (pure), `test-tools-patch.mjs`, `kbToolsState` / `kbToolsApply` in `index.js`, `KbToolsPage` in `client.js`.
+
 ## Files, settings, env
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,
@@ -652,7 +667,7 @@ Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber
 `kybernos/{i18n/jobs/<lang>.{plan,state}.json (the host-side translation run: what to translate, and where it is; deleted when the language is removed),tasks.json (0600), tasks.json.lock (a directory, held while a writer changes the file: the scheduler and the automation-creator skill both take it),settings.json,onboarding.json,gateway-sync-state.json,seeded-skills.json,quality/*.jsonl,i18n/<lang>.json}`,
 `skills/automation-creator/SKILL.md`,
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
-`profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
+`profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only; `.bak-outils-onoff-<tool>-*` for its on/off switch) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
 base) and `.credentials.yaml` (browser-session secret). The quiz and cards score registry is `kybernos/progress.json`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
 `KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`, `KYBERNOS_AUTOMATION_MAX_PARALLEL`, `KYBERNOS_AUTOMATION_LOAD_GUARD`, `KYBERNOS_AUTOMATION_LOAD_FORCE`.
 
