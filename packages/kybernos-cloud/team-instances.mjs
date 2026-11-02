@@ -30,10 +30,18 @@ export const signedAddressOf = (logText, port) => {
 /** What a team's DSH must not inherit from the DSH that starts it: those would point it back at the personal home or the personal port. */
 const NOT_INHERITED = ['KYBERNOS_CLOUD_STATE', 'DSH_WEB_PORT', 'DSH_WEB_URL']
 
-/** Bundles that belong to the computer and not to a team: the tool that restarts the personal DSH on :3080, and the one that installs apps and LaunchAgents under the person's own
- *  folders. A team's DSH does not load them. The others were read on 2026-11-02 (docs/dev/team-profiles-cadrage.md, step 1b): none starts a machine-level service by itself,
- *  each keeps its state in its own DSH home, and none binds a fixed port. Add one here only when it does. */
-export const PERSONAL_ONLY_BUNDLES = ['@local/kybernos-relance', '@local/kybernos-miniapps']
+/** Bundles that belong to the computer or to the account and not to a team, so a team's DSH does not load them: the tool that restarts the personal DSH on :3080, the one that installs apps
+ *  and LaunchAgents under the person's own folders, Kaby (its page, with the Telegram and WhatsApp doors and the Home computer, and its Settings pages) and the phone link. The others were read
+ *  on 2026-11-02 (docs/dev/team-profiles-cadrage.md, step 1b): none starts a machine-level service by itself, each keeps its state in its own DSH home, and none binds a fixed port. Add one
+ *  here only when it does, or when everything it draws belongs to the account. The phone bundle also lays the page out on a narrow screen: a team's DSH has no such layout until the phone has
+ *  its own road (cadrage, « The phone »). */
+export const PERSONAL_ONLY_BUNDLES = [
+  '@local/kybernos-relance', '@local/kybernos-miniapps',
+  '@local/kybernos-kyber', '@local/kybernos-kaby-customisation', '@local/kybernos-mobile',
+]
+
+/** The routes of the cloud bundle that act on the account's Kaby, its messaging doors or its Home computer: a team's DSH answers them `personal_only`, whatever page asks. */
+export const personalOnlyRoute = (path) => typeof path === 'string' && /^\/kybernos-cloud\/(?:kyber$|kyby\/|telegram\/|whatsapp\/|computer\/)/u.test(path)
 
 const TEAM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u
 
@@ -171,13 +179,58 @@ const relinkEscaping = (fromProfile, toProfile) => {
   return relinked
 }
 
+/** Takes the bundles of PERSONAL_ONLY_BUNDLES out of a profile's manifest, writing it only when something goes. A home made before the list grew is brought up to date the next time its DSH
+ *  starts (never while it runs: the manifest is hot-loaded). Returns how many bundles it took out; an unreadable manifest is left as it is. */
+export const leaveOutPersonalBundles = (profileDir) => {
+  const manifest = join(profileDir, 'package.json')
+  try {
+    const pkg = JSON.parse(readFileSync(manifest, 'utf8'))
+    const bundles = pkg.dsh !== undefined && pkg.dsh !== null && pkg.dsh.profile !== undefined && pkg.dsh.profile !== null ? pkg.dsh.profile.bundles : undefined
+    if (!Array.isArray(bundles)) return 0
+    const kept = bundles.filter((id) => !PERSONAL_ONLY_BUNDLES.includes(id))
+    if (kept.length === bundles.length) return 0
+    pkg.dsh.profile.bundles = kept
+    writeFileSync(manifest, JSON.stringify(pkg, null, 2) + '\n')
+    return bundles.length - kept.length
+  } catch (e) {
+    return 0
+  }
+}
+
+/** The first-run wizard is the person's, not a team's: a team's home starts with it done, so its page opens on the work and not on « Welcome ». Only what is a taste is carried over from the
+ *  person's own record (the language, the interface mode and the style preset the wizard recorded); who they are, what they do, their goals and what they said about themselves stay in
+ *  Personal. Written only where the home has no record yet (a DSH that has already run made its own). The version is the wizard's (kybernos-plugin/onboarding-state.mjs keeps it at 1 on purpose).
+ *  Returns whether it wrote one. */
+export const seedOnboarding = (personalHome, home) => {
+  const target = join(home, 'kybernos', 'onboarding.json')
+  try {
+    if (existsSync(target)) return false
+    let mine = {}
+    try { mine = JSON.parse(readFileSync(join(personalHome, 'kybernos', 'onboarding.json'), 'utf8')) } catch (e) { mine = {} }
+    const taste = (key) => (mine !== null && typeof mine === 'object' && typeof mine[key] === 'string' && mine[key].length <= 80 ? mine[key] : null)
+    const now = new Date().toISOString()
+    mkdirSync(dirname(target), { recursive: true, mode: 0o700 })
+    writeFileSync(target, JSON.stringify({
+      version: 1, completed: true, installedAt: now, completedAt: now,
+      profil: null, uiMode: taste('uiMode'), model: null, lang: taste('lang'), memoryId: null, goals: [], customGoals: [], agents: null, theme: taste('theme'), about: null,
+    }, null, 2) + '\n', { mode: 0o600 })
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
 /** Makes the home of a team: a copy of the personal profile and of the MCP folder, re-pointed at the team's own folders. Done in a temporary folder and renamed, so a home is either whole or absent.
  *  `{ ok: true, created }`, or `{ ok: false, error }` (`profile_missing`, `home_failed`). */
 export const ensureTeamHome = ({ personalHome, teamId, profile = TEAM_PROFILE, copy = copyTree }) => {
   const home = teamHomeOf(personalHome, teamId)
   if (home === null) return { ok: false, error: 'invalid_team' }
   const marker = join(home, 'team-home.json')
-  if (existsSync(marker)) return { ok: true, created: false, home }
+  if (existsSync(marker)) {
+    leaveOutPersonalBundles(join(home, 'profiles', profile))
+    seedOnboarding(personalHome, home)
+    return { ok: true, created: false, home }
+  }
   // A folder with no marker is not one this made: it is never replaced.
   if (existsSync(home)) return { ok: false, error: 'home_unmarked' }
   const fromProfile = join(personalHome, 'profiles', profile)
@@ -192,18 +245,13 @@ export const ensureTeamHome = ({ personalHome, teamId, profile = TEAM_PROFILE, c
     rmSync(join(profileCopy, '.plugin-manager'), { recursive: true, force: true })
     if (existsSync(join(personalHome, 'mcp'))) copy(join(personalHome, 'mcp'), join(building, 'mcp'))
     relinkEscaping(fromProfile, profileCopy)
-    const manifest = join(profileCopy, 'package.json')
-    const pkg = JSON.parse(readFileSync(manifest, 'utf8'))
-    const bundles = pkg.dsh !== undefined && pkg.dsh !== null && pkg.dsh.profile !== undefined && pkg.dsh.profile !== null ? pkg.dsh.profile.bundles : undefined
-    if (Array.isArray(bundles)) {
-      pkg.dsh.profile.bundles = bundles.filter((id) => !PERSONAL_ONLY_BUNDLES.includes(id))
-      writeFileSync(manifest, JSON.stringify(pkg, null, 2) + '\n')
-    }
+    leaveOutPersonalBundles(profileCopy)
     // What names the personal home inside the copy is made to name the team's home. The folder is still called `building` until the rename below, so the text is written with its final name.
     for (const file of [join(profileCopy, 'cordis.patch.yml'), join(profileCopy, 'node_modules', '.pnpm-workspace-state-v1.json')]) {
       if (existsSync(file)) writeFileSync(file, retarget(readFileSync(file, 'utf8'), personalHome, home))
     }
     writeFileSync(join(building, 'team-home.json'), JSON.stringify({ version: 1, team_id: teamId, created_at: new Date().toISOString() }, null, 2) + '\n', { mode: 0o600 })
+    seedOnboarding(personalHome, building)
     renameSync(building, home)
     return { ok: true, created: true, home }
   } catch (e) {

@@ -391,8 +391,9 @@ file is its launcher; nothing in the menu calls it yet.
 
 - **Home.** `<personal home>/teams/<team id>`: a copy of the personal profile (APFS `cp -c`, `--reflink` on Linux), its relative links out of
   the profile made absolute, the paths that name the personal home pointed at the team's home, plus the MCP folder. Built aside and renamed,
-  so a home is whole or absent; a folder with no `team-home.json` is never replaced. The bundles that belong to the computer
-  (`PERSONAL_ONLY_BUNDLES`: the restart tool that targets :3080, the apps and LaunchAgents installer) are taken out of the copy's profile.
+  so a home is whole or absent; a folder with no `team-home.json` is never replaced. The bundles that belong to the computer or to the account
+  (`PERSONAL_ONLY_BUNDLES`: the restart tool that targets :3080, the apps and LaunchAgents installer, Kaby with its Settings pages, the phone link) are taken out of the copy's profile,
+  and out of an older home when its DSH next starts. The home starts with the first-run wizard done (`seedOnboarding`: tastes only, never who the person is).
 - **Start.** `POST /kybernos-cloud/team-dsh/open {workspace_id}` (strict same-origin, signed session) starts `dsh web` on loopback with
   `DSH_HOME`, `DSH_WEB_PORT`, `KYBERNOS_PERSONAL_HOME` and `KYBERNOS_TEAM_ID` set, on a port of 3300-3399 that the team keeps, and answers
   its address once the engine says it is mounted. The keys of the DSH that starts it are passed on. Two calls at once start one DSH.
@@ -406,12 +407,16 @@ file is its launcher; nothing in the menu calls it yet.
   (`seedTeamHome`) gives a home that holds no connection a copy of the personal session (token, user, server, device label; not the list of teams, the plan or the model-route record, which
   the team DSH reads itself) and the server registry. One session, two DSH: signing out of a team's DSH does not revoke it. The record of the team folders is the personal home's.
   The account's memory on the server stays cut there; the local lessons work (`seam.ownHome()`, read by `kybernos-memory`).
-- **Not done yet:** hiding in a team's DSH what belongs to the account or the computer (Kaby, Telegram and WhatsApp, the Home computer), a window of its own in the desktop app (another repository), the language and theme
-  of a new home (and whether the person's own provider keys go with it), the signed address of the team's DSH handed to the page (the session cookie's name comes from host and port, so two DSH in one browser each keep their own). The other bundles were sorted: only the two of `PERSONAL_ONLY_BUNDLES`
+- **What belongs to the account stays out (step 3b, done):** in a team's DSH the routes `kyber`, `kyby/*`, `telegram/*`, `whatsapp/*` and `computer/*` answer `403 personal_only`
+  (`personalOnlyRoute`, in the route wrapper) and the seam to the phone link (`/v1/remote/`) is closed; the pages that draw them (Kaby, its Settings, the phone link) are not loaded.
+  The cloud computers of the agents (`computers*`) stay.
+- **Not done yet:** a window of its own in the desktop app (another repository), the rest of the new home's first setup: the language of the interface and whether the person's own provider keys go with it, the signed address of the team's DSH handed to the page (the session cookie's name comes from host and port, so two DSH in one browser each keep their own). The other bundles were sorted: only the two of `PERSONAL_ONLY_BUNDLES`
   start something machine-level.
 - **Tests:** `node packages/kybernos-cloud/test-team-instances.mjs` (a stand-in script plays `dsh`; no real DSH starts) and, on a sandbox,
   `source scripts/sandbox/env.sh && node scripts/check-team-dsh-live.mjs` (a real `dsh web` on a copied profile: 12 s to mounted on a
   developer's Mac, the cloud plugin answers from it, it stops cleanly).
+  `packages/kybernos-cloud/test-team-personal-only.mjs` plays the refusals through the route wrapper on a real HTTP server, and `scripts/check-team-hidden-live.mjs` opens the real page of a team's DSH
+  next to the personal one on the sandbox and compares them.
 
 ## Team skills (server half)
 

@@ -67,7 +67,7 @@ import { accountTool } from './kyby-account.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { createSightings, createTurnWatch, spaceOfFolder } from './chat-space.mjs'
-import { activeAutomationsIn, createTeamInstances, personalHomeOf, shouldExit, teamOfEnv } from './team-instances.mjs'
+import { activeAutomationsIn, createTeamInstances, personalHomeOf, personalOnlyRoute, shouldExit, teamOfEnv } from './team-instances.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -6173,6 +6173,8 @@ const mountWebRoutes = (ctx, webServer) => {
       notePersonalPort()
       lastRequestAt = Date.now()
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
+      // Kaby, its Telegram and WhatsApp doors and the Home computer belong to the account, not to a team: a team's own DSH does not serve them (the pages that draw them are left out of its profile too).
+      if (pinnedSpace() !== '' && personalOnlyRoute(route.path) === true) return sendJson(res, 403, { ok: false, error: 'personal_only' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.session === true) {
@@ -6220,6 +6222,8 @@ const cloudSeamCall = async (path, options) => {
   const remote = SEAM_PREFIXES.some((prefix) => p.startsWith(prefix)) === true && SEAM_PATH.test(p) === true && p.includes('//') !== true && p.includes('..') !== true
   const team = remote ? null : TEAM_SPACE_PATH.exec(p)
   if (remote !== true && team === null) return { status: 0, body: null, error: 'path_refused' }
+  // The phone link pairs the account's phone with the DSH that asks: a team's own DSH has none.
+  if (remote && pinnedSpace() !== '') return { status: 0, body: null, error: 'personal_only' }
   const o = options !== null && typeof options === 'object' ? options : {}
   const method = typeof o.method === 'string' ? o.method.toUpperCase() : 'GET'
   if ((remote ? SEAM_METHODS.includes(method) : teamSpaceMethodOk(team, method)) !== true) return { status: 0, body: null, error: 'method_refused' }
