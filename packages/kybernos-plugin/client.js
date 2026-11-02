@@ -21455,13 +21455,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('div', { className: 'kb-task-f', 'data-kb': 'task-run-options' },
             h('label', null, kbt('tasks.during')),
             h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' } },
-              h('span', { style: { flex: '1 1 220px', minWidth: 0 } }, h('b', null, kbt('tasks.maxmin')), h('br'), h('span', { className: 'kb-task-muted' }, kbt('tasks.maxmin.hint'))),
-              h('select', { className: 'kb-task-select', 'data-kb': 'task-maxmin', 'aria-label': kbt('tasks.maxmin'), value: String(maxMin), onChange: (e) => setMaxMin(Number(e.target.value)) },
+              h('span', { style: { flex: '1 1 220px', minWidth: 0 } }, h('span', { style: { display: 'block', fontSize: 13, fontWeight: 600 } }, kbt('tasks.maxmin')), h('span', { className: 'kb-task-muted' }, kbt('tasks.maxmin.hint'))),
+              h('select', { className: 'kb-task-select', 'data-kb': 'task-maxmin', 'aria-label': kbt('tasks.maxmin'), style: { width: 'auto', minWidth: 190, flex: '0 0 auto' }, value: String(maxMin), onChange: (e) => setMaxMin(Number(e.target.value)) },
                 maxOptions.map((n) => h('option', { key: n, value: String(n) }, maxLabel(n))))),
             (t0.sessionMode === 'home'
               ? h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' } },
-                  h('span', { style: { flex: '1 1 220px', minWidth: 0 } }, h('b', null, kbt('tasks.onwrite')), h('br'), h('span', { className: 'kb-task-muted' }, kbt('tasks.onwrite.hint'))),
-                  h('select', { className: 'kb-task-select', 'data-kb': 'task-onwrite', 'aria-label': kbt('tasks.onwrite'), value: onWrite, onChange: (e) => setOnWrite(e.target.value === 'stop' ? 'stop' : 'finish') },
+                  h('span', { style: { flex: '1 1 220px', minWidth: 0 } }, h('span', { style: { display: 'block', fontSize: 13, fontWeight: 600 } }, kbt('tasks.onwrite')), h('span', { className: 'kb-task-muted' }, kbt('tasks.onwrite.hint'))),
+                  h('select', { className: 'kb-task-select', 'data-kb': 'task-onwrite', 'aria-label': kbt('tasks.onwrite'), style: { width: 'auto', minWidth: 190, flex: '0 0 auto' }, value: onWrite, onChange: (e) => setOnWrite(e.target.value === 'stop' ? 'stop' : 'finish') },
                     h('option', { value: 'stop' }, kbt('tasks.onwrite.stop')),
                     h('option', { value: 'finish' }, kbt('tasks.onwrite.finish'))))
               : null)),
