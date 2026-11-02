@@ -81,7 +81,7 @@ each bundle to the active team by hand; a second instance per team separates eve
    a team's DSH (the existing team-space cut, unchanged). The local lessons are different: the home is the team's alone, so the memory bundle
    uses them there (`seam.ownHome()`, `lessonsCut` in `kybernos-memory/team-space.mjs`); the side doors that name the personal memory stay
    refused. A bundle without the new seam field keeps the old, closed behaviour.
-3. **Done: the menu (3a) and the hiding (3b). The desktop window is not.** Choosing a team in the account menu asks the host (`team-dsh/open`, which
+3. **Done: the menu (3a), the hiding (3b), and the desktop window (built in the desktop repository, not merged there yet).** Choosing a team in the account menu asks the host (`team-dsh/open`, which
    now also answers the team's signed address, the one its log printed) and opens that address with `window.open` in a window named after the
    team (`kybernos-team-<id>`), so a second choice finds the same window. The card says "Starting…" meanwhile (not "Switching…": nothing is billed
    differently in the DSH that shows the menu). From a team's DSH, "Personal" opens the personal DSH (`team-dsh/personal`: the personal DSH writes
@@ -105,7 +105,8 @@ each bundle to the active team by hand; a second instance per team separates eve
    have. Played in `packages/kybernos-cloud/test-team-personal-only.mjs` (a real HTTP server, the wrapper itself), `test-team-instances.mjs` and, on real pages of the sandbox
    side by side with the personal DSH, `scripts/check-team-hidden-live.mjs` (14 checks: no Kaby in the sidebar nor in Settings, no « Phone and channels », no Home
    computer line, no wizard; the personal page has all of them).
-   **Desktop app: not done** (its own repository, see decision 3).
+   **Desktop app: built, 2026-11-02, on the branch `feature/team-windows` of `kybernos-desktop` (local, not pushed, not merged; see decision 3).** Not tried
+   against a real team engine nor in a packaged build.
 4. Seed rules: what else is copied from Personal when a team home is created (the interface language; the person's own provider keys, decision 2). The Kybernos session is already seeded (step 2), and the first-run wizard's tastes (language, interface mode, style preset) with it (step 3b).
 5. Retire the single-instance switch code (follow-the-chat, turn guard, deferred switch, claim-time switch). Dead-code rider.
 6. Two-account live test on the existing `scripts/e2e-teams-run.sh` harness.
@@ -123,6 +124,8 @@ connection per team (`PLAN.md` section 9, a proposal, nothing built).
 3. **Decided 2026-11-02: a team opens in its own window.** Desktop app (`kybernos-desktop`, read 2026-11-02): it is built for one engine. One
    window with the DSH in a view fenced to `127.0.0.1:<one port>` (`KYBERNOS_PORT`, 3080 by default), no preload in that view, and any
    `window.open` to a loopback address goes to the system browser. So a team's click would today open the browser, not an app window.
-   Needed there, in its own repository: a second window per team on its port (3300-3399) when the page opens such an address (the signed one that
-   `team-dsh/open` will hand over; the cookie name comes from host and port, so no separate cookie jar is needed). The page still gets no app API: its
-   only channel stays `window.open` to a loopback port.
+   Built there (branch `feature/team-windows`, `src/main/windows.mjs`, `dshTargetOf`): a window of the app per team on its port (3300-3399) when the page opens such
+   an address (the bare one or the signed one `team-dsh/open` hands over; the cookie name comes from host and port, so no separate cookie jar is needed). The window
+   is allowed rather than denied, so the page gets a window back and does not show its « blocked popup » notice; it has no preload and is fenced to its own port,
+   and "Personal" asked from a team's window closes that window and brings the main one forward. The page still gets no app API: its only channel stays `window.open`
+   to a loopback port. Played by 7 unit tests and `scripts/smoke-team-windows.mjs` (real Electron, fake engines, 12 checks).
