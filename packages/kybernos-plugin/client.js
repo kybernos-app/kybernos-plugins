@@ -3862,8 +3862,6 @@ const KB_FR_EN = {
   'Retirer (restaurer la sauvegarde)': 'Remove (restore the backup)',
   'Retrait…': 'Removing…',
   'Rien côté système — le navigateur est lancé par le pilote, dans un profil temporaire.': 'Nothing at the system level — the browser is launched by the driver, in a temporary profile.',
-  'Rien n’est à chaud : la relance applique. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.': 'Nothing is hot-reloaded: a restart applies it. A dry run first, then the write — a dated backup before, a rollback after.',
-  'Écrit. Redémarre DSH pour que ce soit pris en compte.': 'Written. Restart DSH for it to take effect.',
   'outils': 'tools',
   'outils exposés': 'tools exposed',
   'paquet absent': 'package missing',
@@ -4854,6 +4852,10 @@ const LUCIDE = {
   // absentes de la table — cercle et rects réécrits en chemins.
   globe: ['M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z', 'M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20', 'M2 12h20'],
   terminal: ['M12 19h8', 'm4 17 6-6-6-6'],
+  // The Tools cards: one glyph per tool (Codex and Claude Code both wore `terminal`).
+  fileCheck: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z', 'M14 2v4a2 2 0 0 0 2 2h4', 'm9 15 2 2 4-4'],
+  squareTerminal: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'm7 11 2-2-2-2', 'M11 13h4'],
+  codeXml: ['m18 16 4-4-4-4', 'm6 8-4 4 4 4', 'm14.5 4-5 16'],
   cpu: ['M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z', 'M8 9a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z', 'M12 20v2', 'M12 2v2', 'M17 20v2', 'M17 2v2', 'M2 12h2', 'M2 17h2', 'M2 7h2', 'M20 12h2', 'M20 17h2', 'M20 7h2', 'M7 20v2', 'M7 2v2'],
   puzzle: ['M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z'],
   panelRight: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z', 'M15 3v18'],
@@ -33213,8 +33215,19 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
           const js = await res.json()
           if (js !== null && js !== undefined && js.ok === true) {
             if (dry === true) { setApercu({ family: family, js: js }); setNote({ tone: 'ok', texte: kbe('Dry run — nothing was written.') }) }
-            else if (js.already === true) setNote({ tone: 'ok', texte: kbe('Already mounted in this profile — nothing to do.') })
-            else { setNote({ tone: 'ok', texte: kbe('Written. Restart DSH for it to take effect.') }); setApercu(null); await load(prof) }
+            else if (js.already === true) {
+              const entree = ((st.data !== null && Array.isArray(st.data.entries)) ? st.data.entries : []).filter((x) => x.id === family)[0]
+              setNote({ tone: 'ok', texte: action !== 'install' ? kbToolsTxt({ fr: 'Déjà dans cet état — rien à faire.', en: 'Already in that state — nothing to do.' })
+                : ((entree !== undefined && entree.disabled === true) ? kbToolsTxt({ fr: 'Déjà monté, mais désactivé : utilise son interrupteur pour le réactiver.', en: 'Already mounted, but switched off: use its toggle to switch it back on.' }) : kbe('Already mounted in this profile — nothing to do.')) })
+            }
+            else {
+              setNote({ tone: 'ok', texte: action === 'disable'
+                ? kbToolsTxt({ fr: 'Désactivé : rien n’est désinstallé, la ligne reste dans la config. DSH l’applique dans quelques secondes.', en: 'Switched off: nothing is uninstalled, the line stays in the config. DSH applies it in a few seconds.' })
+                : (action === 'enable'
+                  ? kbToolsTxt({ fr: 'Réactivé. DSH l’applique dans quelques secondes.', en: 'Switched back on. DSH applies it in a few seconds.' })
+                  : kbToolsTxt({ fr: 'Écrit. DSH l’applique dans quelques secondes.', en: 'Written. DSH applies it in a few seconds.' })) })
+              setApercu(null); await load(prof)
+            }
           } else setNote({ tone: 'err', texte: (js !== null && js !== undefined && js.error !== undefined) ? String(js.error) : kbe('write refused') })
         } catch (e) { setNote({ tone: 'err', texte: String(e && e.message ? e.message : e) }) }
         setBusy(null)
@@ -33227,19 +33240,14 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
         try { navigator.clipboard.writeText(String(txt)) } catch (e) { /* presse-papiers indisponible */ }
         setNote({ tone: 'ok', texte: kbe('Command copied.') })
       }
-      const etiquette = (e) => {
-        if (e.supported === false) return kbToolsBadge(kbe('Not supported'), 'off')
-        if (e.known === false) return kbToolsBadge(kbe('No known package'), 'off')
-        if (e.mounted === true) return kbToolsBadge(kbe('Mounted'), 'on')
-        if (e.installed === true) return kbToolsBadge(kbe('Installed, not mounted'), 'warn')
-        return kbToolsBadge(kbe('Not installed'), 'off')
-      }
       const commande = (e, profile) => {
         const pk = Array.isArray(e.packages) ? e.packages : []
         return pk.length === 0 ? '' : 'dsh plugin --profile ' + String(profile) + ' add ' + pk.join(' ')
       }
       // ── Rendu (maquette du 28/09, tokens DSW) ───────────────────────────
-      const kbt2IconOf = (e) => ({ 'browser-use': 'globe', 'computer-use': 'monitor', 'auto-review': 'eye', codex: 'terminal', 'claude-code': 'terminal', zcode: 'cpu', workbuddy: 'puzzle', hermes: 'puzzle' }[e.id])
+      // One glyph per tool, all from the same table (Icon: 24 grid, stroke in currentColor, so the tile's token colours it). A tool this table does
+      // not know wears the neutral package, never a letter.
+      const kbt2IconOf = (e) => ({ 'browser-use': 'globe', 'computer-use': 'monitor', 'auto-review': 'fileCheck', codex: 'squareTerminal', 'claude-code': 'bot', zcode: 'codeXml', workbuddy: 'puzzle' }[e.id] || 'package')
       // Chaque état porte son explication (infobulle du badge) : le libellé seul
       // ne disait pas quoi faire d un « À installer » ou d un « Installé, non monté ».
       const kbt2Statut = (e) => {
@@ -33247,6 +33255,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
           aide: kbToolsTxt({ fr: 'Indisponible sur cette plateforme.', en: 'Not available on this platform.' }) }
         if (e.known === false) return { tone: 'off', label: kbe('No known package'),
           aide: kbToolsTxt({ fr: 'Aucun paquet connu pour cet outil : rien à installer d’ici.', en: 'No known package for this tool: nothing to install from here.' }) }
+        if (e.mounted === true && e.disabled === true) return { tone: 'off', label: kbToolsTxt({ fr: 'Désactivé', en: 'Disabled' }),
+          aide: kbToolsTxt({ fr: 'Dans le profil mais désactivé : DSH ne le charge pas, et rien n’est désinstallé. Réactive-le avec l’interrupteur.', en: 'In the profile but switched off: DSH does not load it, and nothing is uninstalled. Switch it back on with the toggle.' }) }
         if (e.mounted === true) return { tone: 'ok', label: kbe('Active', 'Actif'),
           aide: kbToolsTxt({ fr: 'Monté dans ce profil : ses outils sont exposés au modèle.', en: 'Mounted in this profile: its tools are exposed to the model.' }) }
         if (e.installed === true) return { tone: 'warn', label: kbe('Installed, not mounted'),
@@ -33259,11 +33269,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
         return kbToolsBadge(s2.label, s2.tone, s2.aide)
       }
       const kbt2Type = (e) => (e.group === 'exp' ? kbe('Experimental capability') : kbe('External tool'))
-      const kbt2Tile = (e, small) => {
-        const ic = kbt2IconOf(e)
-        return h('span', { className: 'kbt2-tile' + (small === true ? ' sm' : '') },
-          ic !== undefined ? Icon(ic, small === true ? 16 : 20) : String(String(e.label).charAt(0)))
-      }
+      const kbt2Tile = (e, small) => h('span', { className: 'kbt2-tile' + (e.mounted === true && e.disabled === true ? ' off' : '') + (small === true ? ' sm' : ''), 'aria-hidden': 'true' },
+        Icon(kbt2IconOf(e), small === true ? 16 : 20))
       const kbt2CmdBlock = (e, profile) => {
         const cmd = commande(e, profile)
         if (cmd.length === 0) return null
@@ -33276,7 +33283,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
             h('button', { type: 'button', className: 'kbt2-cmd-copy', 'data-kb': 'tool-copy-cmd', 'aria-label': kbe('Copy the command'), title: kbe('Copy the command'), onClick: () => copier(cmd) }, Icon('copy', 14))))
       }
       const kbt2Part = (e, total) => {
-        if (e.mounted !== true || !(e.toolCount > 0) || total === 0) return null
+        if (e.mounted !== true || e.disabled === true || !(e.toolCount > 0) || total === 0) return null
         const part = Math.round((e.toolCount / total) * 100)
         return h('div', { className: 'kbt2-part', 'data-kb': 'tool-share' },
           h('div', { className: 'kbt2-part-ligne' },
@@ -33284,10 +33291,28 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
             h('span', { className: 'kbt2-part-n' }, String(e.toolCount) + ' ' + kbe('tools') + ' · ' + String(part) + '%')),
           h('div', { className: 'kbt2-part-bar' }, h('span', { style: { width: Math.max(part, 3) + '%' } })))
       }
+      // On/off without uninstalling: `disabled: true` in the profile's config (the loader's own option), written with a dated backup. A tool whose
+      // line this page cannot edit safely (an expression, a line it does not know) shows the switch greyed, with the reason.
+      const kbt2Switch = (e, compact) => {
+        const on = e.disabled !== true
+        const why = e.canSwitch === true ? null : (e.switchWhy === 'expression'
+          ? kbToolsTxt({ fr: 'Sa ligne « disabled » est une expression dans le fichier de config : modifie-la à la main.', en: 'Its "disabled" line is an expression in the config file: edit it by hand.' })
+          : kbToolsTxt({ fr: 'Cette page ne sait pas modifier la ligne de cet outil.', en: 'This page cannot edit this tool’s line.' }))
+        const label = on ? kbToolsTxt({ fr: 'Activé', en: 'On' }) : kbToolsTxt({ fr: 'Désactivé', en: 'Off' })
+        const title = why !== null ? why : (on
+          ? kbToolsTxt({ fr: 'Désactiver sans désinstaller : DSH ne le charge plus, la ligne reste dans la config.', en: 'Switch off without uninstalling: DSH stops loading it, the line stays in the config.' })
+          : kbToolsTxt({ fr: 'Réactiver : DSH le charge de nouveau.', en: 'Switch back on: DSH loads it again.' }))
+        return h('button', { type: 'button', key: 'sw', className: 'kbt2-sw' + (on ? ' on' : ''), role: 'switch', 'aria-checked': on ? 'true' : 'false', 'data-kb': 'tool-switch',
+          'aria-label': kbToolsTxt({ fr: 'Activé : ', en: 'Enabled: ' }) + String(e.label), title: title, disabled: busy !== null || e.canSwitch !== true,
+          onClick: () => envoyer(e.id, on ? 'disable' : 'enable', false) },
+        h('span', { className: 'kbt2-sw-track', 'aria-hidden': 'true' }, h('span', { className: 'kbt2-sw-knob' })),
+        compact === true ? null : h('span', { className: 'kbt2-sw-txt' }, busy === e.id + ':' + (on ? 'disable' : 'enable') ? '…' : label))
+      }
       const kbt2Actes = (e, primaryOnly) => {
         if (e.known === false || e.supported === false) return []
         const out = []
         if (e.mounted === true) {
+          out.push(kbt2Switch(e, primaryOnly === true))
           if (e.driver !== null && e.driver !== undefined) {
             const actifs = Array.isArray(e.drivers) ? e.drivers : []
             const actif = actifs.filter((d) => d.id === e.driver)[0]
@@ -33318,6 +33343,11 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
         const txt = (e.why !== null && e.why !== undefined) ? String(e.why) : ((e.needs !== null && e.needs !== undefined) ? String(e.needs) : '')
         return txt.length === 0 ? null : kbe(txt)
       }
+      // Codex, Claude Code and ZCode are also rows of Workers, which checks they are installed and signed in and lets the main agent call them.
+      // The status above and the mount/remove controls are Tools'; the rest lives there, so the card says so instead of repeating it.
+      const kbt2Workers = (e) => (e.worker !== true ? null : h('p', { className: 'kbt2-workers', 'data-kb': 'tool-workers' },
+        kbToolsTxt({ fr: 'Installation du programme, connexion à ton compte et droit de l’appeler : ', en: 'Installing the program, signing in and letting your agent call it: ' }),
+        h('button', { type: 'button', className: 'kbt2-link', 'data-kb': 'tool-open-workers', onClick: () => kbOpenSettingsPage(['kybernos-workers', 'workers']) }, kbToolsTxt({ fr: 'Réglages › Workers', en: 'Settings › Workers' }))))
       const kbt2Card = (e, profile, total) => h('article', { className: 'kbt2-card', key: e.id, 'data-kb': 'tool-card' },
         h('div', { className: 'kbt2-card-tete' },
           kbt2Tile(e, false),
@@ -33327,7 +33357,8 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
           kbt2Pill(e)),
         h('div', { className: 'kbt2-card-desc' },
           h('span', { className: 'kbt2-card-type' }, kbt2Type(e)),
-          h('p', { className: 'kbt2-card-txt' }, kbt2Desc(e))),
+          h('p', { className: 'kbt2-card-txt' }, kbt2Desc(e)),
+          kbt2Workers(e)),
         (e.known !== false && e.supported !== false && e.installed !== true && e.mounted !== true ? kbt2CmdBlock(e, profile) : null),
         kbt2Part(e, total),
         // Un pied de carte sans action (outil sans paquet connu, non supporté)
@@ -33341,10 +33372,10 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
             h('code', { className: 'kbt2-l-ns' }, String(e.prefix !== null && e.prefix !== undefined ? e.prefix : e.id)))),
         h('span', { className: 'kbt2-l-type' }, kbt2Type(e)),
         h('span', { className: 'kbt2-l-statut' }, kbt2Pill(e)),
-        (e.mounted === true && e.toolCount > 0 && total > 0
+        (e.mounted === true && e.disabled !== true && e.toolCount > 0 && total > 0
           ? h('div', { className: 'kbt2-l-barre' }, h('span', { style: { width: Math.max(Math.round((e.toolCount / total) * 100), 3) + '%' } }))
           : h('div', { className: 'kbt2-l-barre empty' })),
-        h('span', { className: 'kbt2-l-n' }, (e.toolCount > 0 && e.mounted === true) ? String(e.toolCount) : '—'),
+        h('span', { className: 'kbt2-l-n' }, (e.toolCount > 0 && e.mounted === true && e.disabled !== true) ? String(e.toolCount) : '—'),
         h('div', { className: 'kbt2-l-action' }, kbt2Actes(e, true)))
       // En-tête commun aux trois états (lecture, erreur, prêt) : la page garde son
       // titre et son explication même quand la lecture échoue (02/10).
@@ -33354,7 +33385,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
         h('div', { className: 'kbt2-entete-txt' },
           h('h1', { className: 'kbt2-h1' }, kbt('kbui.tools')),
           leadTools.map((x, i) => kbSubFallback('kbt2-sub', x, 'p', 'lead' + i)),
-                              h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbe('Nothing is hot-reloaded: a restart applies it. A dry run first, then the write — a dated backup before, a rollback after.'))), kbPagePill('tools', leadTools, kbt('kbui.tools')))
+          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbToolsTxt({ fr: 'DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.', en: 'DSH applies the change by itself a few seconds after it is written: no restart. A dry run first, then the write — a dated backup before, a rollback after.' }))), kbPagePill('tools', leadTools, kbt('kbui.tools')))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
       // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
       if (st.state === 'loading' && st.data === null) {
@@ -33387,7 +33418,9 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
       const data = st.data
       const entries = Array.isArray(data.entries) ? data.entries : []
       const liste = Array.isArray(data.profiles) ? data.profiles : []
-      const montes = entries.filter((e) => e.mounted === true && e.toolCount > 0)
+      const montes = entries.filter((e) => e.mounted === true && e.disabled !== true && e.toolCount > 0)
+      const coupes = entries.filter((e) => e.mounted === true && e.disabled === true)
+      const actifs = entries.filter((e) => e.mounted === true && e.disabled !== true)
       const totalOutils = montes.reduce((n, e) => n + (e.toolCount > 0 ? e.toolCount : 0), 0)
       const aInstaller = entries.filter((e) => e.known === true && e.supported === true && e.mounted !== true)
       const visibles = filtre === 'all' ? entries : entries.filter((e) => e.group === filtre)
@@ -33448,7 +33481,9 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
             h('button', { type: 'button', className: 'kbo-btn', 'data-kb': 'tool-copy-patch', disabled: patch.length === 0, 'aria-label': kbe('Copy the config file path'), title: kbe('Copy the config file path'), onClick: () => copier(patch) }, Icon('copy', 14))),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid var(--dsw-alias-border-l1)' } },
             h('span', { className: 'kbt2-chip ok', 'data-kb': 'tool-count-active',
-              title: kbToolsTxt({ fr: 'Outils montés dont les fonctions sont exposées au modèle.', en: 'Mounted tools whose functions are exposed to the model.' }) }, h('span', { className: 'kbt2-dot' }), kbe('Active', 'Actifs') + ' ' + String(montes.length)),
+              title: kbToolsTxt({ fr: 'Outils montés dont les fonctions sont exposées au modèle.', en: 'Mounted tools whose functions are exposed to the model.' }) }, h('span', { className: 'kbt2-dot' }), kbe('Active', 'Actifs') + ' ' + String(actifs.length)),
+            (coupes.length > 0 ? h('span', { className: 'kbt2-chip', 'data-kb': 'tool-count-off',
+              title: kbToolsTxt({ fr: 'Dans le profil mais désactivés : DSH ne les charge pas, rien n’est désinstallé.', en: 'In the profile but switched off: DSH does not load them, nothing is uninstalled.' }) }, h('span', { className: 'kbt2-dot' }), kbToolsTxt({ fr: 'Désactivés ', en: 'Disabled ' }) + String(coupes.length)) : null),
             h('span', { className: 'kbt2-chip warn', 'data-kb': 'tool-count-todo',
               title: kbToolsTxt({ fr: 'Outils connus et supportés, pas encore montés dans ce profil.', en: 'Known, supported tools not mounted in this profile yet.' }) }, h('span', { className: 'kbt2-dot' }), kbe('To install') + ' ' + String(aInstaller.length)),
             h('span', { className: 'kbt2-chip', 'data-kb': 'tool-count-tools',
@@ -33498,7 +33533,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
               h('span', null),
               h('span', null),
               h('span', { className: 'kbt2-l-note' }, plusLourd !== null ? String(plusLourd.label) + ' ' + kbe('weighs') + ' ' + String(Math.round((plusLourd.toolCount / totalOutils) * 100)) + ' % ' + kbe('of the tools context') : ''),
-              h('span', { className: 'kbt2-l-total' }, String(visibles.reduce((n, e) => n + (e.mounted === true && e.toolCount > 0 ? e.toolCount : 0), 0))),
+              h('span', { className: 'kbt2-l-total' }, String(visibles.reduce((n, e) => n + (e.mounted === true && e.disabled !== true && e.toolCount > 0 ? e.toolCount : 0), 0))),
               h('span', null))))))
     }
     // KB-MARKET-PURE-BEGIN
@@ -34187,6 +34222,17 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
 .kbt2-card-sous{font-size:12px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbt2-tile{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-brand-primary);flex:0 0 auto;font-weight:700;font-size:16px}
 .kbt2-tile.sm{width:30px;height:30px;border-radius:9px;font-size:13px}
+.kbt2-tile.off{color:var(--dsw-alias-label-tertiary)}
+.kbt2-sw{display:inline-flex;align-items:center;gap:8px;padding:0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}
+.kbt2-sw:disabled{opacity:.5;cursor:default}
+.kbt2-sw-track{position:relative;width:34px;height:20px;border-radius:10px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);flex:none;box-sizing:border-box}
+.kbt2-sw.on .kbt2-sw-track{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
+.kbt2-sw-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:7px;background:var(--dsw-alias-label-secondary);transition:left .12s}
+.kbt2-sw.on .kbt2-sw-knob{left:16px;background:var(--dsw-alias-label-primary-foreground)}
+.kbt2-sw-txt{min-width:2.4em;text-align:start}
+.kbt2-sw:focus-visible .kbt2-sw-track{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbt2-workers{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
+.kbt2-link{padding:0;border:none;background:transparent;color:var(--dsw-alias-brand-primary);font:inherit;cursor:pointer;text-decoration:underline}
 .kbt2-card-desc{display:flex;flex-direction:column;gap:6px}
 .kbt2-card-type{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--dsw-alias-label-tertiary)}
 .kbt2-card-txt{margin:0;min-height:38px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
@@ -34217,7 +34263,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
 .kbt2-l-barre span{display:block;height:100%;border-radius:3px;background:var(--dsw-alias-brand-primary)}
 .kbt2-l-n{text-align:end;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbt2-l-droite{text-align:end}
-.kbt2-l-action{display:flex;justify-content:flex-end}
+.kbt2-l-action{display:flex;align-items:center;justify-content:flex-end;gap:10px}
 .kbt2-l-titre{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbt2-l-note{font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kbt2-l-total{text-align:end;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary)}

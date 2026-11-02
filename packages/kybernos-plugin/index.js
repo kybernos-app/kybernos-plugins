@@ -55,6 +55,7 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './preset-legacy.mjs'
 import { poserEconomieContexte } from './economie-contexte.mjs'
 import { mountToolProfiles } from './tool-profiles.mjs'
+import { setSwitch as toolsSetSwitch, switchOf as toolsSwitchOf } from './tools-patch.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
 import { createI18nStore, serveI18nStore } from './i18n-store.mjs'
@@ -13136,7 +13137,8 @@ function boot(ctx) {
         if (list.indexOf('web') !== -1) return { profile: 'web', source: 'default' }
         return { profile: list.length > 0 ? list[0] : null, source: 'fallback' }
       }
-      // Catalogue verifie. `drivers` = les pilotes connus d'un registre a place
+      // Catalogue verifie. `workers` = l outil a aussi sa rangee dans la page Workers.
+      // `drivers` = les pilotes connus d'un registre a place
       // unique ; `known: false` = paquet inconnu, on le DIT au lieu de peindre
       // un bouton qui echouerait.
       const KB_TOOLS_CATALOG = [
@@ -13158,15 +13160,15 @@ function boot(ctx) {
             { id: 'computer-use-cua-mcp', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp', label: 'Cua Driver MCP' } ] },
         { id: 'auto-review', group: 'exp', label: 'Auto review', known: false,
           why: 'An engine capability (the current model reviews its own work): no package to mount from this plugin.' },
-        { id: 'codex', group: 'ext', label: 'Codex', connection: '@deepseek-ai/dsh-subagent-codex',
+        { id: 'codex', group: 'ext', label: 'Codex', workers: true, connection: '@deepseek-ai/dsh-subagent-codex',
           why: 'Official connection: Codex subagent through the app-server protocol.' },
-        { id: 'claude-code', group: 'ext', label: 'Claude Code', connection: '@deepseek-ai/dsh-subagent-claude-code',
+        { id: 'claude-code', group: 'ext', label: 'Claude Code', workers: true, connection: '@deepseek-ai/dsh-subagent-claude-code',
           why: 'Official connection: Claude Code subagent through the native SDK. Requires a CLI login — the desktop app is not enough.' },
         // ZCode n’est pas un paquet npm : c’est un connecteur MCP personnalisé
         // (dsh-mcp-client + un serveur local). `mcp` porte donc de quoi écrire le
         // bloc ET reconnaître qu’il est déjà monté — sinon la page proposerait de
         // l’installer une seconde fois et le profil porterait deux entrées.
-        { id: 'zcode', group: 'ext', label: 'ZCode', mcp: { id: 'mcp-client-zcode', serverName: 'zcode',
+        { id: 'zcode', group: 'ext', label: 'ZCode', workers: true, mcp: { id: 'mcp-client-zcode', serverName: 'zcode',
             file: nodePathJoin(dshHomeSync(), 'mcp', 'zcode-mcp-server.mjs'), command: process.execPath, toolCallTimeoutMs: 600000 },
           prefix: 'mcp__zcode__', toolCount: 3,
           needs: 'The ZCode app installed and signed in to a Z.ai account — the connector reads its own credential store, no key is copied into the patch.',
@@ -13200,6 +13202,44 @@ function boot(ctx) {
           return readdirSync(dir).filter((n) => n.indexOf('cordis.patch.yml.bak-outils-') === 0).sort().reverse()
         } catch (e) { return [] }
       }
+      // The rows that mount a tool, for tools-patch.mjs: a driver family is switched at its driver (the registry publishes nothing by itself),
+      // a connection by its package, a connector without a package by its row id.
+      const kbToolsSwitchTarget = (e) => ({
+        names: e.connection !== undefined ? [e.connection] : (Array.isArray(e.drivers) ? e.drivers.map((d) => d.name) : []),
+        fallbackNames: e.registry !== undefined ? [e.registry.name] : [],
+        ids: e.mcp !== undefined ? [e.mcp.id] : []
+      })
+      const kbToolsSwitchRefusal = (why, label) => (why === 'no-row' ? label + ' is not mounted in this profile: nothing to switch.'
+        : (why === 'expression' ? 'The "disabled" line of ' + label + ' is an expression (!!js) in the config file: only its owner can change it, edit it by hand.'
+          : 'Could not check the change before writing it: nothing was written.'))
+      // Switch a mounted tool off or on: `disabled: true` is the loader's own option, so nothing is uninstalled and the package, the row and its
+      // config stay. Dated backup first (its own name, so "Remove (restore the backup)" never restores a switch), then an atomic rewrite that keeps
+      // the file's mode. DSH reloads the file by itself a few seconds later.
+      const kbToolsSwitchWrite = (cur, entry, raw, off, dry) => {
+        if (raw === null) return { ok: false, error: 'no config file in ' + cur.profile }
+        const res = toolsSetSwitch(raw, kbToolsSwitchTarget(entry), off)
+        if (res.ok !== true) return { ok: false, error: kbToolsSwitchRefusal(res.error, entry.label) }
+        const action = off ? 'disable' : 'enable'
+        const path = kbToolsPatchPath(cur.profile)
+        if (res.changed !== true) return { ok: true, action, already: true, profile: cur.profile, path }
+        if (dry === true) return { ok: true, dry: true, action, profile: cur.profile, path, lines: res.lines }
+        const bkDir = kbToolsProfilesDir()
+        if (bkDir === null) return { ok: false, error: 'unreadable profile' }
+        const backupName = 'cordis.patch.yml.bak-outils-onoff-' + entry.id + '-' + kbToolsStamp()
+        const temp = path + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+        try {
+          writeFileSync(joinPath(joinPath(bkDir, cur.profile), backupName), raw, 'utf8')
+          let mode = null
+          try { mode = statSync(path).mode & 0o777 } catch (e) { mode = null }
+          writeFileSync(temp, res.after, 'utf8')
+          if (mode !== null) { try { chmodSync(temp, mode) } catch (e) { /* best effort */ } }
+          renameSync(temp, path)
+        } catch (e) {
+          try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+          return { ok: false, error: 'write refused: ' + errText(e) }
+        }
+        return { ok: true, action, profile: cur.profile, path, backup: backupName, lines: res.lines, restart: false }
+      }
       const kbToolsState = async (asked) => {
         await kbToolsHome()
         const cur = kbToolsCurrent(asked)
@@ -13211,8 +13251,12 @@ function boot(ctx) {
           const mounted = e.registry !== undefined ? (txt.indexOf(e.registry.name) !== -1) : (isConn ? (txt.indexOf(e.connection) !== -1) : (isMcp ? (txt.indexOf(e.mcp.id) !== -1) : null))
           let driver = null
           if (Array.isArray(e.drivers)) for (let i = 0; i < e.drivers.length; i++) if (txt.indexOf(e.drivers[i].name) !== -1) { driver = e.drivers[i].id; break }
+          // On/off, read the way the loader reads the file (the row's own `disabled`, or a patch entry aimed at its id): `disabled` is
+          // true when the row stays in the file but DSH does not load it; `canSwitch` false says why not in `switchWhy`.
+          const sw = mounted === true ? toolsSwitchOf(txt, kbToolsSwitchTarget(e)) : { disabled: null, can: false, why: 'no-row' }
           return {
             id: e.id, group: e.group, label: e.label,
+            disabled: sw.disabled, canSwitch: sw.can, switchWhy: sw.why, worker: e.workers === true,
             known: e.known !== false, supported: e.supported !== false,
             slot: e.slot !== undefined ? e.slot : null,
             prefix: e.prefix !== undefined ? e.prefix : null,
@@ -13290,6 +13334,10 @@ function boot(ctx) {
         const entry = KB_TOOLS_CATALOG.filter((e) => e.id === family)[0]
         if (entry === undefined) return { ok: false, error: 'unknown family: ' + family }
         const path = kbToolsPatchPath(cur.profile)
+        if (b.action === 'disable' || b.action === 'enable') {
+          if (entry.known === false || entry.supported === false) return { ok: false, error: entry.why !== undefined ? entry.why : 'unsupported tool' }
+          return kbToolsSwitchWrite(cur, entry, kbToolsReadPatch(cur.profile), b.action === 'disable', b.dry === true)
+        }
         if (b.action === 'revert') {
           const want = 'cordis.patch.yml.bak-outils-' + entry.id + '-'
           const list = kbToolsBackups(cur.profile).filter((n) => n.indexOf(want) === 0)
