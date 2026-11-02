@@ -788,8 +788,19 @@ window.__ModuleLoader__.load({
           return { ok: false, error: res.status === 401 ? 'sign-in required' : (res.status === 403 ? 'origin refused' : 'network') }
         } catch (e) { return { ok: false, error: 'network' } }
       }
-      /** The records the Tables page asks the host for: a table is drawn 200 rows at a time and its views (board, map, calendar) walk what was sent. The host would send up to 50,000 (a dashboard reads them all). */
+      /**
+       * The records the Tables page asks the host for: a table is drawn 200 rows at a time and its views (board, map, calendar) walk what was sent. The host would send up to 50,000
+       * (a dashboard reads them all). A table bigger than this is searched, filtered and sorted by the host, whole, and the page holds the first PAGE_ROWS that match (`hostQuery`).
+       */
       const PAGE_ROWS = 5000
+      /** What the host is asked to search, filter and sort by: the query parameters as a JSON text, '' when the person asks for nothing. */
+      const hostQueryOf = (q, flt, sorts) => {
+        const params = {}
+        if (q.trim() !== '') params.q = q.trim().slice(0, 200)
+        if (flt.items.length > 0) params.flt = JSON.stringify(flt)
+        if (sorts.length > 0) params.sorts = JSON.stringify(sorts)
+        return Object.keys(params).length === 0 ? '' : JSON.stringify(params)
+      }
       const qs = (params) => '?' + Object.keys(params).filter((k) => params[k] !== '' && params[k] !== undefined && params[k] !== false).map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(params[k] === true ? '1' : params[k])).join('&')
       /** One sentence for each answer the host can give. */
       const errorText = (r) => {
@@ -2494,11 +2505,13 @@ window.__ModuleLoader__.load({
             ? [chip('or', items.map((it) => itemText(p.obj, it, p.ctx)).join(' ' + conjText('or') + ' '), kt('Retirer le filtre', 'Remove the filter'), () => p.setFlt(K.blankFilter()))]
             : items.map((it, i) => chip('f' + i, itemText(p.obj, it, p.ctx), kt('Retirer : ', 'Remove: ') + itemText(p.obj, it, p.ctx), () => p.setFlt(removeAt(flt, String(i)))))
           const ochip = sorts.length ? [chip('sort', kt('Tri : ', 'Sort: ') + sorts.map((s) => fieldOf(p.obj, s.k).label + ' ' + (s.dir === 'asc' ? '↑' : '↓')).join(', '), kt('Retirer le tri', 'Remove the sort'), () => p.editView((v) => { v.state.sorts = []; return v }), true)] : []
-          const all = p.all.length
-          const n = p.rows.length
+          // a table bigger than a page is counted by the host: what matches out of the whole table, and how many of those the page holds
+          const big = p.rec.status === 'ok' && p.rec.total > PAGE_ROWS
+          const all = big ? p.rec.total : p.all.length
+          const n = big ? p.rec.matched : p.rows.length
           return h('div', { className: 'kbtb-chips', 'data-kb': 'tables-chips' }, fchips, ochip,
             items.length > 1 && flt.conj !== 'or' ? h('button', { type: 'button', className: 'kbtb-lnk', onClick: () => p.setFlt(K.blankFilter()) }, kt('Effacer les filtres', 'Clear filters')) : null,
-            h('span', { className: 'kbtb-count', 'data-kb': 'tables-count', role: 'status' }, p.rec.status === 'ok' ? (n === all ? all + ' ' + rowWord(all) : n + kt(' sur ', ' of ') + all) + (p.rec.truncated ? ' +' : '') : ''))
+            h('span', { className: 'kbtb-count', 'data-kb': 'tables-count', role: 'status' }, p.rec.status === 'ok' ? (n === all ? fmtNumber(all) + ' ' + rowWord(all) : fmtNumber(n) + kt(' sur ', ' of ') + fmtNumber(all)) + (n > p.all.length ? kt(' · les ', ' · the first ') + fmtNumber(p.all.length) + kt(' premières', '') : '') : ''))
         }
 
         /** « Linked from »: the rows of other tables that point at this one, one group per link field, read from the host (the links are kept on their own side, this side is computed). */
@@ -2985,7 +2998,7 @@ window.__ModuleLoader__.load({
           const [coreState, setCoreState] = useState(K !== null ? 'ok' : 'loading')
           const [data, setData] = useState({ status: 'loading', dbs: [], archived: [], unreadable: [], today: '', hosting: null, error: null, stale: false })
           const [sel, setSel] = useState(readSel)
-          const [rec, setRec] = useState({ key: '', status: 'idle', rows: [], fingerprint: '', truncated: false, error: null })
+          const [rec, setRec] = useState({ key: '', status: 'idle', rows: [], fingerprint: '', total: 0, matched: 0, asked: '', error: null })
           const [related, setRelated] = useState({})
           const [reload, setReload] = useState(0)
           const [query, setQuery] = useState('')
@@ -3032,7 +3045,7 @@ window.__ModuleLoader__.load({
             c.fileUrl = (field, r, f) => fileUrl(live.current.db.id, live.current.obj.key, r.id, field, f)
             return c
           }, [ready, data.today, db, related])
-          const mine = rec.key === (ready ? db.id + '/' + obj.key : '') ? rec : { rows: [], status: 'loading', truncated: false }
+          const mine = rec.key === (ready ? db.id + '/' + obj.key : '') ? rec : { rows: [], status: 'loading', total: 0, matched: 0 }
           const rows = useMemo(() => (ready && mine.status === 'ok' ? K.queryRecords(mine.rows, { fields: obj.fields, q: query, flt, sorts: view.state.sorts }, ctx) : []), [ready, mine, obj, query, flt, view, ctx])
           live.current = { db, obj, view, views, ready, sel: sel.views, all: mine.rows, openLinked: () => {} }
           dialogRef.current = dialog
@@ -3326,26 +3339,32 @@ window.__ModuleLoader__.load({
             try { document.addEventListener('visibilitychange', vis) } catch (e) { /* no document */ }
             return () => { clearInterval(t); try { document.removeEventListener('visibilitychange', vis) } catch (e) { /* no document */ } }
           }, [coreState])
-          // the records of the table on screen: read again when the host's fingerprint of the app moves
+          // the records of the table on screen: read again when the host's fingerprint of the app moves, or, for a table bigger than a page, when what is searched, filtered or sorted changes
           const fingerprint = db !== null ? db.fingerprint : ''
+          const hostQuery = ready && mine.status === 'ok' && mine.total > PAGE_ROWS ? hostQueryOf(query, flt, view.state.sorts) : ''
           useEffect(() => {
             if (!ready) return undefined
             const key = db.id + '/' + obj.key
-            if (rec.key === key && rec.fingerprint === fingerprint && rec.status === 'ok') return undefined
+            if (rec.key === key && rec.fingerprint === fingerprint && rec.status === 'ok' && rec.asked === hostQuery) return undefined
+            const moved = rec.key !== key || rec.fingerprint !== fingerprint
             let cancelled = false
             ;(async () => {
-              if (rec.key !== key) setRec({ key, status: 'loading', rows: [], fingerprint: '', truncated: false, error: null })
-              const r = await call('GET', '/records' + qs({ db: db.id, object: obj.key, limit: PAGE_ROWS }))
+              if (rec.key !== key) setRec({ key, status: 'loading', rows: [], fingerprint: '', total: 0, matched: 0, asked: '', error: null })
+              else if (!moved && hostQuery !== '') await new Promise((done) => setTimeout(done, 300)) // the person is still typing: ask once they pause
               if (cancelled || !alive.current) return
-              const targets = Array.from(new Set(obj.fields.filter((f) => f.type === 'relation').map((f) => f.to))).filter((t) => db.objects.some((o) => o.key === t))
-              const rel = {}
-              await Promise.all(targets.map(async (t) => { const x = await call('GET', '/records' + qs({ db: db.id, object: t, limit: PAGE_ROWS })); if (x.ok) rel[t] = x.records }))
+              const r = await call('GET', '/records' + qs({ db: db.id, object: obj.key, limit: PAGE_ROWS, ...(hostQuery === '' ? {} : JSON.parse(hostQuery)) }))
               if (cancelled || !alive.current) return
-              setRelated(rel)
-              setRec(r.ok ? { key, status: 'ok', rows: r.records, fingerprint: r.fingerprint, truncated: r.truncated === true, error: null } : { key, status: 'error', rows: [], fingerprint: '', truncated: false, error: r })
+              if (moved) {
+                const targets = Array.from(new Set(obj.fields.filter((f) => f.type === 'relation').map((f) => f.to))).filter((t) => db.objects.some((o) => o.key === t))
+                const rel = {}
+                await Promise.all(targets.map(async (t) => { const x = await call('GET', '/records' + qs({ db: db.id, object: t, limit: PAGE_ROWS })); if (x.ok) rel[t] = x.records }))
+                if (cancelled || !alive.current) return
+                setRelated(rel)
+              }
+              setRec(r.ok ? { key, status: 'ok', rows: r.records, fingerprint: r.fingerprint, total: r.total, matched: r.matched, asked: hostQuery, error: null } : { key, status: 'error', rows: [], fingerprint: '', total: 0, matched: 0, asked: '', error: r })
             })()
             return () => { cancelled = true }
-          }, [ready, ready ? db.id : '', ready ? obj.key : '', fingerprint, reload])
+          }, [ready, ready ? db.id : '', ready ? obj.key : '', fingerprint, reload, hostQuery])
           // a table with no saved view gets a plain one, so the first change of what is shown has somewhere to live
           useEffect(() => {
             if (!ready || obj.views.length > 0 || pubOf(db) !== null) return // a published app's views are not ours to save

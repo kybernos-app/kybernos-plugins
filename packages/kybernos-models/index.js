@@ -211,7 +211,8 @@ const kbImageHealStart = ({ settings, index, journal }) => {
   const pass = async () => {
     try {
       const out = await healImages({ settings: settings(), index: await index(), journal })
-      if (out.healed.length > 0) console.log('[kybernos-models] picture input added: ' + out.healed.map((h) => h.route + ' (' + h.ids.join(', ') + ')').join('; '))
+      if (out.healed.length > 0) console.log('[kybernos-models] picture input added: ' + out.healed.map((h) => h.route + ' (' + h.ids.length + ' model' + (h.ids.length === 1 ? '' : 's') + ')').join('; '))
+      if (out.failed.length > 0) console.error('[kybernos-models] picture input refused: ' + out.failed.map((f) => f.route + ' — ' + f.error).join('; '))
     } catch (e) { /* a lost pass is tried again at the next one */ }
   }
   const first = setTimeout(pass, IMAGE_HEAL_FIRST_MS)
