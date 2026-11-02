@@ -1,0 +1,22 @@
+{
+  "name": "@local/kybernos-refs",
+  "version": "0.1.0",
+  "description": "Turns markdown links in messages into compact end-of-sentence reference chips.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

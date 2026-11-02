@@ -1,0 +1,22 @@
+{
+  "id": "graphite",
+  "v": 1,
+  "name": "Graphite",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Gris neutres et accent acier : rien ne dépasse.",
+    "en": "Neutral greys and a steel accent: nothing sticks out."
+  },
+  "settings": {
+    "mode": "dark",
+    "acc": "#94a3b8",
+    "ov": {
+      "dark:base": "#121315",
+      "dark:l1": "#1a1b1e",
+      "dark:l2": "#232428",
+      "dark:side": "#16171a",
+      "dark:input": "#1e1f23"
+    },
+    "radius": "sharp"
+  }
+}

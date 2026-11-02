@@ -1,0 +1,155 @@
+{
+  "commentaire": "@local/* packages of the repository that the lifecycle links to the profile. Order = order of the bundles.",
+  "packages": [
+    {
+      "dir": "kybernos-plugin",
+      "nom": "@local/kybernos"
+    },
+    {
+      "dir": "kybernos-hub",
+      "nom": "@local/kybernos-hub"
+    },
+    {
+      "dir": "kybernos-theme",
+      "nom": "@local/kybernos-theme"
+    },
+    {
+      "dir": "kybernos-language",
+      "nom": "@local/kybernos-language"
+    },
+    {
+      "dir": "kybernos-models",
+      "nom": "@local/kybernos-models"
+    },
+    {
+      "dir": "kybernos-skills",
+      "nom": "@local/kybernos-skills"
+    },
+    {
+      "dir": "kybernos-slash",
+      "nom": "@local/kybernos-slash"
+    },
+    {
+      "dir": "kybernos-sessions",
+      "nom": "@local/kybernos-sessions"
+    },
+    {
+      "dir": "kybernos-auto",
+      "nom": "@local/kybernos-auto"
+    },
+    {
+      "dir": "kybernos-relance",
+      "nom": "@local/kybernos-relance"
+    },
+    {
+      "dir": "kybernos-flow",
+      "nom": "@local/kybernos-flow"
+    },
+    {
+      "dir": "kybernos-free-llms",
+      "nom": "@local/kybernos-free-llms"
+    },
+    {
+      "dir": "kybernos-composio",
+      "nom": "@local/kybernos-composio"
+    },
+    {
+      "dir": "kybernos-cloud",
+      "nom": "@local/kybernos-cloud"
+    },
+    {
+      "dir": "kybernos-maintenance",
+      "nom": "@local/kybernos-maintenance"
+    },
+    {
+      "dir": "kybernos-bricks",
+      "nom": "@local/kybernos-bricks"
+    },
+    {
+      "dir": "kybernos-slides",
+      "nom": "@local/kybernos-slides"
+    },
+    {
+      "dir": "kybernos-modeleur",
+      "nom": "@local/kybernos-modeleur"
+    },
+    {
+      "dir": "kybernos-motion",
+      "nom": "@local/kybernos-motion"
+    },
+    {
+      "dir": "kybernos-miniapps",
+      "nom": "@local/kybernos-miniapps"
+    },
+    {
+      "dir": "kybernos-computers",
+      "nom": "@local/kybernos-computers"
+    },
+    {
+      "dir": "dsh-subagent-maison",
+      "nom": "@local/dsh-subagent-maison"
+    },
+    {
+      "dir": "kybernos-workers",
+      "nom": "@local/kybernos-workers"
+    },
+    {
+      "dir": "kybernos-modeles-locaux",
+      "nom": "@local/kybernos-modeles-locaux"
+    },
+    {
+      "dir": "kybernos-refs",
+      "nom": "@local/kybernos-refs"
+    },
+    {
+      "dir": "kybernos-mobile",
+      "nom": "@local/kybernos-mobile"
+    },
+    {
+      "dir": "kybernos-websearch",
+      "nom": "@local/kybernos-websearch"
+    },
+    {
+      "dir": "kybernos-memory",
+      "nom": "@local/kybernos-memory"
+    },
+    {
+      "dir": "kybernos-atlas",
+      "nom": "@local/kybernos-atlas"
+    },
+    {
+      "dir": "kybernos-changes",
+      "nom": "@local/kybernos-changes"
+    },
+    {
+      "dir": "kybernos-call",
+      "nom": "@local/kybernos-call"
+    },
+    {
+      "dir": "dsh-media-player",
+      "nom": "@local/dsh-media-player"
+    },
+    {
+      "dir": "dsh-mermaid",
+      "nom": "@local/dsh-mermaid"
+    },
+    {
+      "dir": "dsh-db-viewer",
+      "nom": "@local/dsh-db-viewer"
+    },
+    {
+      "dir": "kybernos-terminal",
+      "nom": "@local/kybernos-terminal"
+    },
+    {
+      "dir": "kybernos-usage",
+      "nom": "@local/kybernos-usage"
+    },
+    { "dir": "kybernos-multi-device", "nom": "@local/kybernos-multi-device" },
+    { "dir": "kybernos-dashboards", "nom": "@local/kybernos-dashboards" },
+    { "dir": "kybernos-summary", "nom": "@local/kybernos-summary" },
+    { "dir": "kybernos-kyber", "nom": "@local/kybernos-kyber" },
+    { "dir": "kybernos-search", "nom": "@local/kybernos-search" },
+    { "dir": "kybernos-servers", "nom": "@local/kybernos-servers" }
+  ]
+}

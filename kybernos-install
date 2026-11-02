@@ -1,0 +1,34 @@
+#!/bin/sh
+# ── Kybernos: installation ──────────────────────────────────────────────────
+#
+# Run it FROM the folder where you extracted the archive:
+#
+#   ./kybernos-install              # everything: checks, puts DSH in place if it is missing, grafts the plugin
+#   ./kybernos-install --dry        # shows what would be done, touches NOTHING
+#   ./kybernos-install --restart --force   # also restarts the DSH that is running, so the plugin's host code loads
+#
+# What the robot does, in this order: it checks the fingerprints of the archive, looks whether DSH is
+# there (scenario A) or not (scenario B), takes a safety photo of your profile, writes, checks that DSH
+# restarts, and if the start fails it PUTS THE PHOTO BACK. Nothing is done silently.
+set -e
+ici=$(cd "$(dirname "$0")" && pwd)
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js is missing. Kybernos runs on Node:"
+  echo "  https://nodejs.org/en/download            (or: brew install node)"
+  exit 1
+fi
+
+# No invented minimum version is imposed: DSH declares none (`engines: undefined`, measured on
+# 0.1.7-alpha.1). So we test what the robot really needs (ES modules) and DISPLAY the version.
+version_noeud=$(node --version 2>/dev/null || echo '?')
+if ! node --input-type=module -e "await import('node:child_process')" >/dev/null 2>&1; then
+  echo "Node $version_noeud cannot run the robot (ES modules unavailable)."
+  echo "Install a recent version: https://nodejs.org/en/download"
+  exit 1
+fi
+echo "Node $version_noeud"
+
+# `--source` is added AFTER your arguments: if you pass one, yours wins (the robot takes the first
+# occurrence).
+exec node "$ici/scripts/dsh-lifecycle.mjs" bootstrap "$@" --source "$ici"

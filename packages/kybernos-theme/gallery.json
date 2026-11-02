@@ -1,0 +1,327 @@
+{
+  "schema": 1,
+  "kind": "kybernos-themes",
+  "publishedAt": "2026-10-15T00:00:00.000Z",
+  "seq": 2,
+  "themes": [
+    {
+      "id": "calcaire",
+      "v": 1,
+      "name": "Calcaire",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Gris pierre et vert mousse, calme.",
+        "en": "Stone grey and moss green, calm."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#4d7c0f",
+        "ov": {
+          "light:base": "#f5f6f4",
+          "light:l1": "#ffffff",
+          "light:l2": "#eceeea",
+          "light:side": "#eff1ed",
+          "light:input": "#ffffff"
+        },
+        "radius": "standard"
+      }
+    },
+    {
+      "id": "composition",
+      "v": 1,
+      "name": "Composition",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Blocs francs et un seul rouge, coins nets, icônes en blocs.",
+        "en": "Plain blocks and a single red, sharp corners, block icons."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#d7263d",
+        "ov": {
+          "light:base": "#f7f6f1",
+          "light:l1": "#ffffff",
+          "light:l2": "#efeee7",
+          "light:side": "#f1f0e9",
+          "light:input": "#ffffff"
+        },
+        "radius": "sharp",
+        "iconSet": "mondrian"
+      }
+    },
+    {
+      "id": "console-verte",
+      "v": 1,
+      "name": "Console verte",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Fond vert très sombre, accent de terminal, coins nets.",
+        "en": "Very dark green ground, terminal accent, sharp corners."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#22c55e",
+        "ov": {
+          "dark:base": "#0b120e",
+          "dark:l1": "#101a14",
+          "dark:l2": "#16231b",
+          "dark:side": "#0d1610",
+          "dark:input": "#16231b"
+        },
+        "radius": "sharp"
+      }
+    },
+    {
+      "id": "crepuscule",
+      "v": 1,
+      "name": "Crépuscule",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Prune profond et orange doux, coins arrondis.",
+        "en": "Deep plum and soft orange, rounded corners."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#fb923c",
+        "ov": {
+          "dark:base": "#1a1220",
+          "dark:l1": "#241a2c",
+          "dark:l2": "#2e2238",
+          "dark:side": "#1e1626",
+          "dark:input": "#2e2238"
+        },
+        "radius": "soft"
+      }
+    },
+    {
+      "id": "egaliseur",
+      "v": 1,
+      "name": "Égaliseur",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Gris très sombre et rose vif, icônes en lamelles.",
+        "en": "Very dark grey and bright rose, slatted icons."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#f43f5e",
+        "ov": {
+          "dark:base": "#101012",
+          "dark:l1": "#18181b",
+          "dark:l2": "#212126",
+          "dark:side": "#131315",
+          "dark:input": "#212126"
+        },
+        "radius": "standard",
+        "iconSet": "barres"
+      }
+    },
+    {
+      "id": "encre-papier",
+      "v": 1,
+      "name": "Encre & papier",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Sobre et éditorial : coins nets, texte à empattements, un seul accent d’encre.",
+        "en": "Plain and editorial: sharp corners, serif text, a single ink accent."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#1f2937",
+        "ov": {
+          "light:base": "#f6f7f8",
+          "light:l1": "#ffffff",
+          "light:l2": "#eef0f2",
+          "light:side": "#f1f3f5",
+          "light:input": "#ffffff"
+        },
+        "fontText": "georgia",
+        "radius": "sharp"
+      }
+    },
+    {
+      "id": "graphite",
+      "v": 1,
+      "name": "Graphite",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Gris neutres et accent acier : rien ne dépasse.",
+        "en": "Neutral greys and a steel accent: nothing sticks out."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#94a3b8",
+        "ov": {
+          "dark:base": "#121315",
+          "dark:l1": "#1a1b1e",
+          "dark:l2": "#232428",
+          "dark:side": "#16171a",
+          "dark:input": "#1e1f23"
+        },
+        "radius": "sharp"
+      }
+    },
+    {
+      "id": "kawaii",
+      "v": 1,
+      "name": "Kawaii",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Crème chaude et orange, coins doux, objets kawaii à deux yeux.",
+        "en": "Warm cream and orange, soft corners, kawaii objects with two eyes."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#ea580c",
+        "ov": {
+          "light:base": "#fff8f1",
+          "light:l1": "#ffffff",
+          "light:l2": "#fdeee0",
+          "light:side": "#fdf1e6",
+          "light:input": "#ffffff"
+        },
+        "radius": "soft",
+        "iconSet": "kawaii"
+      }
+    },
+    {
+      "id": "lavande-brumeuse",
+      "v": 1,
+      "name": "Lavande brumeuse",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Clair, violet léger, très lisible.",
+        "en": "Light, a gentle violet, very readable."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#7c3aed",
+        "ov": {
+          "light:base": "#f8f6fd",
+          "light:l1": "#ffffff",
+          "light:l2": "#efebfa",
+          "light:side": "#f3f0fb",
+          "light:input": "#ffffff"
+        },
+        "fontText": "inter",
+        "radius": "soft"
+      }
+    },
+    {
+      "id": "maquette",
+      "v": 1,
+      "name": "Maquette",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Bleu nuit d’atelier d’architecte, icônes en volumes.",
+        "en": "Architect’s-studio night blue, volume icons."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#60a5fa",
+        "ov": {
+          "dark:base": "#0b1220",
+          "dark:l1": "#111b2e",
+          "dark:l2": "#18253d",
+          "dark:side": "#0d1628",
+          "dark:input": "#18253d"
+        },
+        "fontText": "inter",
+        "radius": "standard",
+        "iconSet": "iso"
+      }
+    },
+    {
+      "id": "ocean-nuit",
+      "v": 1,
+      "name": "Océan nuit",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Bleu marine profond et accent ciel.",
+        "en": "Deep navy with a sky-blue accent."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#0ea5e9",
+        "ov": {
+          "dark:base": "#0a1622",
+          "dark:l1": "#0f1e2e",
+          "dark:l2": "#152a3f",
+          "dark:side": "#0c1a28",
+          "dark:input": "#152a3f"
+        },
+        "fontText": "inter",
+        "radius": "standard"
+      }
+    },
+    {
+      "id": "orbite",
+      "v": 1,
+      "name": "Orbite",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Clair et aéré, un seul cyan, icônes en anneaux et en bandes.",
+        "en": "Light and airy, a single cyan, ring and band icons."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#0891b2",
+        "ov": {
+          "light:base": "#f4f8fa",
+          "light:l1": "#ffffff",
+          "light:l2": "#e9f1f4",
+          "light:side": "#eef4f7",
+          "light:input": "#ffffff"
+        },
+        "radius": "soft",
+        "iconSet": "anneaux"
+      }
+    },
+    {
+      "id": "panneau",
+      "v": 1,
+      "name": "Panneau",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Fond noir, ambre de panneau lumineux, icônes en points.",
+        "en": "Black ground, LED-panel amber, dot-matrix icons."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#f59e0b",
+        "ov": {
+          "dark:base": "#0a0b0e",
+          "dark:l1": "#111318",
+          "dark:l2": "#191c23",
+          "dark:side": "#0c0d11",
+          "dark:input": "#191c23"
+        },
+        "radius": "sharp",
+        "iconSet": "matrice"
+      }
+    },
+    {
+      "id": "sakura",
+      "v": 1,
+      "name": "Sakura",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Rose pâle, texte à empattements, coins très doux.",
+        "en": "Pale pink, serif text, very soft corners."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#db2777",
+        "ov": {
+          "light:base": "#fff7fa",
+          "light:l1": "#ffffff",
+          "light:l2": "#fdebf2",
+          "light:side": "#fceff5",
+          "light:input": "#ffffff"
+        },
+        "fontText": "georgia",
+        "radius": "soft"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1122 @@
+// src/plugin.js — corps de la fabrique du panneau (assemblé par scripts/build.mjs).
+// `TipTap` est injecté par l'assemblage (vendor/tiptap.iife.js) ; absent,
+// l'édition riche retombe sur la boîte texte simple.
+    const React = require('react')
+    const h = React.createElement
+
+    // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+    // French text (the dictionary the Language page keeps), and every other language (and a language not known yet) reads English ──
+    const lang = () => {
+      try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+    }
+    const kt = (fr, en) => {
+      const l = lang()
+      if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+      if (l === 'en') return en
+      try {
+        const a = window.__KB_I18N_ACTIVE__
+        if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+      } catch (e) { /* no dictionary: English */ }
+      return en
+    }
+    /** 'fr' for a French UI, 'en' for every other language: what a number format is keyed by. */
+    const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
+
+    const TT = TipTap !== null && typeof TipTap === 'object' && typeof TipTap.Editor === 'function' ? TipTap : null
+    /** Texte brut d'une valeur de champ (qui peut porter du HTML riche). */
+    const plainDe = (t) => String(t ?? '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+    /** HTML compact : sans enveloppes <p> de ProseMirror, \n entre paragraphes. */
+    const htmlCompacte = (t) => String(t ?? '').trim().replace(/^<p[^>]*>/, '').replace(/<\/p>$/, '').replace(/<\/p>\s*<p[^>]*>/g, '\n')
+
+    const TYPE_ID = 'kybernos-slides'
+    const KIND = 'kybernos-slides'
+    const SLOT = 'sidebar.right.pane.tab'
+    const STYLE_ID = 'kybernos-slides-styles'
+    const ROUTE_STATE = '/kybernos-slides/state'
+    const ROUTE_PUSH = '/kybernos-slides/push'
+    const CADENCE_MS = 500
+    const L = 1600
+    const H = 900
+
+    /* ══════════════════════ utilitaires ══════════════════════ */
+
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+
+    /* ══════════════════════ 1. THÈMES ══════════════════════ */
+
+    const THEMES = {
+      sombre: { bg: '#10201F', ink: '#F4F1EA', muted: 'rgba(244,241,234,.55)', accent: '#37B5C4', trait: '#F2C31A' },
+      clair: { bg: '#F7F5F0', ink: '#1E2422', muted: 'rgba(30,36,34,.55)', accent: '#0E7C86', trait: '#C98A12' },
+      corail: { bg: '#2A1512', ink: '#FBEEE8', muted: 'rgba(251,238,232,.55)', accent: '#E1502A', trait: '#F2C31A' },
+      papier: { bg: '#F3EDDE', ink: '#33301F', muted: 'rgba(51,48,31,.55)', accent: '#8E1B14', trait: '#B37D1E' },
+    }
+    const themeDe = (v) => (THEMES[v] ? v : 'sombre')
+
+    const CSS = `
+.kbsd-root{display:flex;flex-direction:column;height:100%;min-height:0;font-size:12px;
+  color:var(--dsw-alias-label-primary,#1a1a1a);background:var(--dsw-alias-bg-layer-2,#fff)}
+.kbsd-head{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
+.kbsd-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbsd-badge{margin-left:auto;flex:none;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;
+  background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));color:var(--dsw-alias-label-secondary,#6b6b68)}
+.kbsd-badge.run{background:#37B5C4;color:#08262a}
+/* white on #1f9d57 is 3.5:1 for 10.5px text; #0f1115 is 5.4:1 */
+.kbsd-badge.ia{background:#1f9d57;color:#0f1115}
+.kbsd-scene{flex:1;min-height:120px;display:flex;align-items:center;justify-content:center;
+  background:#e9e7e2;padding:10px;position:relative;overflow:hidden}
+.kbsd-wrap{position:relative}
+.kbsd-stage{position:absolute;top:0;left:0;width:${L}px;height:${H}px;transform-origin:top left;
+  border-radius:6px;overflow:hidden;box-shadow:0 6px 24px rgba(20,28,26,.18)}
+.kbsd-slide{position:absolute;inset:0;padding:96px 110px;box-sizing:border-box;
+  font-family:ui-sans-serif,-apple-system,'Segoe UI',system-ui,sans-serif}
+.kbsd-kicker{position:absolute;top:78px;left:110px;font-size:21px;font-weight:650;letter-spacing:.42em;
+  text-transform:uppercase;opacity:.85}
+.kbsd-foot{position:absolute;bottom:52px;right:110px;font-size:17px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;opacity:.5}
+.kbsd-note{position:absolute;bottom:52px;left:110px;font-size:17px;opacity:.55;max-width:900px}
+.kbsd-titre{font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:0}
+.kbsd-champ{position:relative;white-space:pre-wrap}
+.kbsd-outil-texte .kbsd-champ{cursor:text;border-bottom:1.5px dashed transparent}
+.kbsd-outil-texte .kbsd-champ:hover{border-bottom-color:currentColor}
+.kbsd-cor{animation:kbsd-cor 5s ease-out 1}
+@keyframes kbsd-cor{0%{box-shadow:0 0 0 8px rgba(31,157,87,.45);background:rgba(31,157,87,.22)}
+  70%{box-shadow:0 0 0 4px rgba(31,157,87,.25);background:rgba(31,157,87,.10)}100%{box-shadow:none;background:transparent}}
+.kbsd-caret{display:inline-block;width:.08em;min-width:3px;height:.9em;margin-left:.06em;vertical-align:-.08em;
+  background:currentColor;animation:kbsd-clign 1s steps(2) infinite}
+@keyframes kbsd-clign{0%,49%{opacity:1}50%,100%{opacity:0}}
+.kbsd-puces{list-style:none;margin:0;padding:0}
+.kbsd-puces li{position:relative;padding-left:44px;margin-bottom:.55em;line-height:1.4}
+.kbsd-puces li::before{content:'';position:absolute;left:0;top:.52em;width:18px;height:6px;border-radius:3px;background:var(--kbsd-accent)}
+.kbsd-champ.kbsd-sel{outline:2px solid var(--kbsd-accent);outline-offset:5px;border-radius:2px}
+.kbsd-ebox{position:absolute;z-index:30;margin:0;border:1.5px solid #37B5C4;border-radius:4px;padding:0;
+  background:rgba(255,255,255,.92);color:#111;resize:none;overflow:hidden;outline:none;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.kbsd-trait{position:absolute;inset:0;z-index:20;touch-action:none}
+.kbsd-trait.off{pointer-events:none}
+.kbsd-vignettes{flex:none;display:flex;gap:10px;padding:10px 14px;overflow-x:auto;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07));scrollbar-width:thin}
+.kbsd-vignettes::-webkit-scrollbar{height:6px}
+.kbsd-vignettes::-webkit-scrollbar-thumb{background:var(--dsw-alias-border-l1,rgba(0,0,0,.14));border-radius:3px}
+.kbsd-vign{position:relative;flex:none;width:132px;height:75px;padding:0;border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.16));
+  border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-layer-2,#fff);cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.kbsd-vign:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.10)}
+.kbsd-vign.on{border-color:#4C8DFF;box-shadow:0 0 0 2px #4C8DFF}
+.kbsd-vign i{position:absolute;left:5px;bottom:5px;z-index:2;font-style:normal;font-weight:700;font-size:9px;
+  width:15px;height:15px;border-radius:4px;display:grid;place-items:center;background:rgba(0,0,0,.72);color:#fff}
+.kbsd-mini{position:absolute;top:0;left:0;width:1600px;height:900px;transform-origin:top left;pointer-events:none;overflow:hidden}
+.kbsd-bar{flex:none;padding:7px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
+.kbsd-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.kbsd-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#c94522;color:#fff;cursor:pointer;
+  display:grid;place-items:center;font-size:10px;line-height:1}
+.kbsd-play:hover{background:#b43f1e}
+.kbsd-step{flex:none;width:22px;height:22px;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#6b6b68);cursor:pointer;border-radius:6px;font-size:11px}
+.kbsd-step:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05))}
+.kbsd-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:var(--dsw-alias-label-secondary,#6b6b68);padding:3px 5px;border-radius:5px;cursor:pointer}
+.kbsd-sp.on{background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 12%,transparent);color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:650}
+.kbsd-track{display:flex;flex-direction:column;gap:2px;margin-top:7px}
+.kbsd-lab{font-size:10.5px;color:var(--dsw-alias-label-secondary,#6b6b68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbsd-lab b{color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:600}
+.kbsd-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 22%,transparent);outline:0}
+.kbsd-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.kbsd-outils{position:absolute;top:10px;left:10px;z-index:25;display:flex;gap:2px;background:rgba(255,255,255,.94);
+  border-radius:9px;padding:3px;box-shadow:0 3px 12px rgba(28,42,28,.16)}
+.kbsd-outils-idle{opacity:.85;transition:opacity .15s}
+.kbsd-outils-idle:hover,.kbsd-outils-idle:focus-within{opacity:1}
+.kbsd-outil{border:0;background:transparent;font:inherit;font-size:10.5px;color:#4a4a47;padding:3px 8px;border-radius:6px;cursor:pointer}
+.kbsd-outil:hover{background:rgba(0,0,0,.05)}
+.kbsd-outil.on{background:#efefec;color:#1a1a1a;font-weight:650}
+.kbsd-coul{width:15px;height:15px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.kbsd-coul.on{border-color:#1a1a1a}
+.kbsd-note-bas{flex:none;padding:4px 12px 8px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#6b6b68);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbsd-note-bas b{color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:600}
+.kbsd-empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
+  padding:24px;text-align:center;color:#4a4a47;font-size:12px;line-height:1.55;z-index:5}
+.kbsd-empty b{color:#1a1a1a;font-weight:600}
+.kbsd-empty code{font-size:11px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px}
+.kbsd-demo{border:1px solid rgba(0,0,0,.45);background:transparent;font:inherit;font-size:11px;
+  padding:5px 12px;border-radius:99px;cursor:pointer;color:#1a1a1a}
+.kbsd-demo:hover{background:rgba(0,0,0,.05)}
+/* Reduced motion (audit A1-15): the writing caret, the correction flash and the editor's gap cursor (its blink comes from TipTap's own sheet, hence the extra specificity) stop. */
+@media (prefers-reduced-motion:reduce){.kbsd-cor,.kbsd-caret,html .ProseMirror-gapcursor:after{animation:none}}
+`
+
+    /* ═══════════════ 2. MOTEUR DE FRAPPE ═══════════════
+     * Chaque slide pèse ses caractères ; la frappe globale (p ∈ 0..1) se
+     * répartit par poids. Dans une slide, les champs se tapent en séquence
+     * (kicker → titre → sous → puces…), chaque segment recevant sa part. */
+
+    const CHAMPS_TEXTE = ['kicker', 'titre', 'sous', 'grand', 'legende', 'citation', 'auteur', 'note']
+
+    function normaliserSlide (brut, k) {
+      if (brut === null || typeof brut !== 'object' || Array.isArray(brut)) return null
+      const s = brut
+      const slide = { layout: String(s.layout || 'puces'), accent: typeof s.accent === 'string' ? s.accent : null }
+      for (const c of CHAMPS_TEXTE) slide[c] = typeof s[c] === 'string' ? s[c] : ''
+      slide.points = Array.isArray(s.points) ? s.points.map((p) => (typeof p === 'string' ? p : '')) : []
+      slide.k = k
+      return slide
+    }
+
+    function normaliserDeck (slides) {
+      return (Array.isArray(slides) ? slides : [])
+        .slice(0, 60)
+        .map(normaliserSlide)
+        .filter(Boolean)
+    }
+
+    /** Miniature d'une slide pour le filmstrip du bas : le même gabarit que
+     * la scène, rendu en 1600×900 puis réduit par transform — le texte reste
+     * vectoriel et lisible en tout petit. Aucun champ éditable ici. */
+    function miniature (s, th) {
+      const ac = s.accent || th.accent
+      const T = (txt, x, y, fs, o) => h('div', {
+        key: o.k,
+        style: {
+          position: 'absolute', left: x, top: y, fontSize: fs,
+          lineHeight: o.lh || 1.2, color: o.coul || th.ink,
+          fontWeight: o.gras || 600, letterSpacing: o.esp || 'normal',
+          maxWidth: o.larg || 1380, whiteSpace: 'nowrap', overflow: 'hidden',
+        },
+      }, txt)
+      const noeuds = []
+      if (s.kicker !== '') noeuds.push(T(s.kicker, 110, 84, 30, { coul: ac, esp: '4px', k: 'k' }))
+      if (s.layout === 'titre') {
+        if (s.titre !== '') noeuds.push(T(s.titre, 110, 320, 92, { gras: 750, k: 't' }))
+        if (s.sous !== '') noeuds.push(T(s.sous, 110, 500, 40, { coul: th.muted, gras: 500, k: 's' }))
+      } else if (s.layout === 'statement') {
+        // Same fields as the stage: the statement is the TITLE (in the accent colour), with an optional line under it.
+        if (s.titre !== '') noeuds.push(T(s.titre, 110, 300, 88, { coul: ac, gras: 780, lh: 1.1, k: 't' }))
+        if (s.sous !== '') noeuds.push(T(s.sous, 110, 620, 30, { gras: 500, k: 's' }))
+      } else if (s.layout === 'puces') {
+        if (s.titre !== '') noeuds.push(T(s.titre, 110, 150, 58, { gras: 700, k: 't' }))
+        s.points.slice(0, 5).forEach((p, j) =>
+          noeuds.push(T('— ' + p, 110, 330 + j * 82, 36, { coul: th.muted, gras: 500, k: 'p' + j })))
+      } else if (s.layout === 'chiffre') {
+        if (s.titre !== '') noeuds.push(T(s.titre, 110, 150, 44, { k: 't' }))
+        if (s.grand !== '') noeuds.push(T(s.grand, 110, 290, 186, { coul: ac, gras: 800, k: 'g' }))
+        if (s.legende !== '') noeuds.push(T(s.legende, 110, 610, 34, { coul: th.muted, gras: 500, k: 'l' }))
+      } else if (s.layout === 'citation') {
+        noeuds.push(T('«', 88, 90, 150, { coul: ac, gras: 700, k: 'q' }))
+        if (s.citation !== '') noeuds.push(T(s.citation, 110, 290, 52, { gras: 650, k: 'c' }))
+        if (s.auteur !== '') noeuds.push(T(s.auteur, 110, 620, 30, { coul: ac, k: 'a' }))
+      } else { // fin
+        if (s.titre !== '') noeuds.push(T(s.titre, 380, 380, 92, { gras: 750, k: 't' }))
+      }
+      return h('div', { className: 'kbsd-mini', style: { background: th.bg, transform: 'scale(0.0825)' } }, noeuds)
+    }
+
+    function poidsSlide (s) {
+      let c = 50
+      for (const f of CHAMPS_TEXTE) c += (s[f] || '').length * 2
+      for (const p of s.points) c += p.length * 2 + 40
+      return c
+    }
+
+    /** Intervalles [start, start+weight] normalisés, un par slide. */
+    function budget (slides) {
+      const poids = slides.map(poidsSlide)
+      const total = poids.reduce((a, b) => a + b, 0) || 1
+      let acc = 0
+      return poids.map((w) => {
+        const o = { start: acc / total, weight: w / total }
+        acc += w
+        return o
+      })
+    }
+
+    /** Segments de frappe d'une slide, dans l'ordre de lecture. */
+    function segments (s) {
+      const segs = []
+      const aj = (champ, idx, v) => {
+        if (typeof v === 'string' && v !== '') segs.push({ champ, idx, len: v.length, source: v })
+      }
+      aj('kicker', -1, s.kicker)
+      if (s.layout === 'puces') {
+        aj('titre', -1, s.titre); aj('sous', -1, s.sous)
+        s.points.forEach((p, i) => aj('points', i, p))
+      } else if (s.layout === 'chiffre') {
+        aj('titre', -1, s.titre); aj('grand', -1, s.grand); aj('legende', -1, s.legende)
+      } else if (s.layout === 'citation') {
+        aj('citation', -1, s.citation); aj('auteur', -1, s.auteur)
+      } else {
+        aj('titre', -1, s.titre); aj('sous', -1, s.sous)
+      }
+      aj('note', -1, s.note)
+      const total = segs.reduce((a, g) => a + g.len, 0) || 1
+      let acc = 0
+      for (const g of segs) { g.start = acc / total; g.part = g.len / total; acc += g.len }
+      return segs
+    }
+
+    /** Texte tapé d'un segment à la progression q (0..1) de sa slide. */
+    function texteVisible (seg, q) {
+      const local = clamp((q - seg.start) / (seg.part || 1), 0, 1)
+      return seg.source.slice(0, Math.ceil(local * seg.len))
+    }
+
+    /** Slide courante à la progression p, ou -1. */
+    function slideActive (intervals, p) {
+      for (let i = 0; i < intervals.length; i++) {
+        const iv = intervals[i]
+        if (p >= iv.start && (p < iv.start + iv.weight || i === intervals.length - 1)) return i
+      }
+      return -1
+    }
+
+    const cleChamp = (k, champ, idx) => `${k}:${champ}:${idx}`
+
+    /* ═══════════════ 3. DIFF (correction IA) ═══════════════ */
+
+    /** Passage d'un deck à l'autre : liste des champs modifiés. */
+    function diffSlides (avant, apres) {
+      const out = []
+      const n = Math.max(avant.length, apres.length)
+      for (let k = 0; k < n; k++) {
+        const a = avant[k] || normaliserSlide({}, k)
+        const b = apres[k] || normaliserSlide({}, k)
+        for (const c of CHAMPS_TEXTE) {
+          if ((a[c] || '') !== (b[c] || '')) out.push({ slide: k, champ: c, idx: -1, avant: a[c] || '', apres: b[c] || '' })
+        }
+        const m = Math.max(a.points.length, b.points.length)
+        for (let i = 0; i < m; i++) {
+          if ((a.points[i] || '') !== (b.points[i] || '')) out.push({ slide: k, champ: 'points', idx: i, avant: a.points[i] || '', apres: b.points[i] || '' })
+        }
+      }
+      return out
+    }
+
+    /* ═══════════════ 4. OUTILS UTILISATEUR ═══════════════ */
+
+    /**
+     * Where the floating text editor (format bar + edit box) goes, in the pixels of the stage wrapper: next to the field being edited,
+     * below it if there is room, else above it, and NEVER on top of the tool bar (it used to be docked at a fixed corner, over the
+     * Text / Brush / Eraser / Clear all buttons, which stayed unreachable until Escape). All the rects are {x, y, w, h}; `outils` is
+     * the tool bar's rect or null.
+     */
+    function placerEditeur ({ champ, outils, scene, boite }) {
+      const marge = 8
+      const ecart = 6
+      const coupe = (a, b) => a.x < b.x + b.w + ecart && a.x + a.w + ecart > b.x && a.y < b.y + b.h + ecart && a.y + a.h + ecart > b.y
+      const x = clamp(champ.x, marge, Math.max(marge, scene.w - boite.w - marge))
+      const libre = (y) => y >= marge && y + boite.h <= scene.h - marge && (outils === null || !coupe({ x, y, w: boite.w, h: boite.h }, outils))
+      const dessous = champ.y + champ.h + ecart
+      if (libre(dessous)) return { x, y: dessous }
+      const dessus = champ.y - boite.h - ecart
+      if (libre(dessus)) return { x, y: dessus }
+      // Neither side is free (a tall field, a narrow pane): just under the tool bar, at the left edge.
+      const bas = outils !== null ? outils.y + outils.h + ecart : marge
+      return { x: marge, y: clamp(bas, marge, Math.max(marge, scene.h - boite.h - marge)) }
+    }
+
+    /** Distance point→polyligne ; sert à la gomme. */
+    function hitStroke (strokes, x, y, rayon) {
+      const d2 = (px, py, ax, ay, bx, by) => {
+        const vx = bx - ax; const vy = by - ay
+        const wx = px - ax; const wy = py - ay
+        const t = clamp((vx * wx + vy * wy) / ((vx * vx + vy * vy) || 1), 0, 1)
+        const dx = px - (ax + t * vx); const dy = py - (ay + t * vy)
+        return dx * dx + dy * dy
+      }
+      for (let i = strokes.length - 1; i >= 0; i--) {
+        const pts = strokes[i].points
+        for (let j = 1; j < pts.length; j++) {
+          if (d2(x, y, pts[j - 1][0], pts[j - 1][1], pts[j][0], pts[j][1]) <= rayon * rayon) return i
+        }
+      }
+      return -1
+    }
+
+    /** Tracé lissé d'une liste de traits sur un contexte 2D (repère 1600×900). */
+    function dessinerTraits (ctx, strokes) {
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      for (const t of strokes) {
+        ctx.strokeStyle = t.color
+        ctx.lineWidth = t.width
+        ctx.beginPath()
+        const pts = t.points
+        ctx.moveTo(pts[0][0], pts[0][1])
+        for (let i = 1; i < pts.length - 1; i++) {
+          const mx = (pts[i][0] + pts[i + 1][0]) / 2
+          const my = (pts[i][1] + pts[i + 1][1]) / 2
+          ctx.quadraticCurveTo(pts[i][0], pts[i][1], mx, my)
+        }
+        const dern = pts[pts.length - 1]
+        ctx.lineTo(dern[0], dern[1])
+        ctx.stroke()
+      }
+    }
+
+    // The demo deck is read when it is pushed (getters), in the language of the page.
+    const DEMOS = [{
+      get titre () { return kt('Varde 2.0 — démo', 'Varde 2.0 — demo') },
+      theme: 'sombre',
+      dureeMs: 9000,
+      get prompt () { return kt("Deck de démonstration : essaie l'outil Texte, l'outil Pinceau, puis demande une correction au chat.", 'Demo deck: try the Text tool, the Brush tool, then ask the chat for a correction.') },
+      get slides () {
+        return [
+          { layout: 'titre', kicker: kt('La démo', 'The demo'), titre: 'Rain is a given.', sous: kt('Slides écrites en direct par le chat — modifie-les pendant qu\'il tape.', 'Slides written live by the chat — edit them while it types.') },
+          { layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.' },
+          { layout: 'puces', kicker: 'How it works', titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Tu corriges : retape un texte, dessine au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : tes annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
+          { layout: 'chiffre', kicker: 'Tempo', grand: '12 s', legende: kt('pour un deck complet, tempo réglable', 'for a whole deck, adjustable pace') },
+          { layout: 'fin', titre: kt('À toi.', 'Your turn.'), sous: kt('Demande une correction : l\'agent relit tes retouches et les intègre.', 'Ask for a correction: the agent reads your edits back and works them in.') },
+        ]
+      },
+    }]
+
+    /* ═══════════════ 5. PANNEAU ═══════════════ */
+
+    let CTX = null
+    let SERVICE_SIDEBAR = null
+    let SESSION_ID = ''
+    let TICK = null // local replay clock: { t0, vitesse, fige } or null; `fige` is the position (0..1) it is held at, null while it runs
+
+    /** Ouvre l'onglet « Slides » quand un deck arrive (motif kybernos-modeleur :
+     * `sidebarRight` lu À L'APPEL — un service manquant ne bloque rien). */
+    function ouvrirOnglet () {
+      if (CTX !== null && SERVICE_SIDEBAR === null) {
+        try { SERVICE_SIDEBAR = CTX.get('sidebarRight') } catch { SERVICE_SIDEBAR = null }
+      }
+      if (!SERVICE_SIDEBAR || typeof SERVICE_SIDEBAR.openTab !== 'function') return false
+      try { SERVICE_SIDEBAR.openTab(KIND, {}); return true } catch { return false /* no session mounted */ }
+    }
+
+    /** One step of the opening probe: `etat` = { versionVue, dejaOuvert }, `data` = the host's answer (null when
+     * unreachable), `ouvrir` = a function that opens the tab and says whether it did. Returns the new `etat`.
+     * A version is only remembered once its tab is really open: right after a page reload the sidebar service
+     * is not always there yet, and a failed attempt used to be swallowed (the flag was set before trying), so the
+     * tab then never opened by itself for the following decks. */
+    function pasSonde (etat, data, ouvrir) {
+      if (data === null || data === undefined) return etat
+      if (data.vide) return { versionVue: etat.versionVue, dejaOuvert: false }
+      if (etat.versionVue === data.version) return etat
+      if (etat.dejaOuvert || ouvrir() === true) return { versionVue: data.version, dejaOuvert: true }
+      return etat
+    }
+
+    function PanneauSlides () {
+      const [, force] = React.useReducer((x) => x + 1, 0)
+      const S = React.useRef({
+        deck: null, ann: { version: 0, edits: [], strokes: [] },
+        overrides: new Map(), traits: new Map(),
+        corrections: [], corInstant: 0,
+        outil: 'voir', couleur: '#F2C31A',
+        vue: 0, suivre: true, edition: null, editionRect: null, editeurRiche: null, selection: null,
+        echelle: 0.2, encours: false,
+      }).current
+      const sceneRef = React.useRef(null)
+      const racineRef = React.useRef(null)
+      const wrapRef = React.useRef(null)
+      const canvasRef = React.useRef(null)
+      const traitLive = React.useRef(null)
+
+      const reveiller = () => force()
+
+      React.useEffect(() => {
+        if (TICK !== null) { S.deck = null; TICK = null }
+      }, [])
+      React.useEffect(() => { S.echelle = 0.2; reveiller() }, [])
+
+      // ── sonde de l'hôte ────────────────────────────────────────────────
+      React.useEffect(() => {
+        let vivant = true
+        const interroger = async () => {
+          let data = null
+          try {
+            const url = ROUTE_STATE + (SESSION_ID ? `?session=${encodeURIComponent(SESSION_ID)}` : '')
+            const r = await fetch(url)
+            if (r.ok) data = await r.json()
+          } catch { /* l'hôte reviendra */ }
+          if (!vivant || data === null || data.vide) return
+          const d = S.deck
+          if (d === null || data.version !== d.version) {
+            // L'« avant » du diff vient de l'hôte (deck précédent poussé avec
+            // la correction) : le soulignement survit à un rechargement.
+            const avant = Array.isArray(data.precedent) && data.precedent.length > 0
+              ? normaliserDeck(data.precedent)
+              : (d !== null ? d.slides : [])
+            const deck = {
+              version: data.version,
+              t0: data.t0, dureeMs: data.dureeMs,
+              titre: data.titre, theme: themeDe(data.theme), prompt: data.prompt,
+              mode: data.mode, slides: normaliserDeck(data.slides),
+            }
+            const corriger = deck.mode === 'corriger' && avant.length > 0
+            S.corrections = corriger ? diffSlides(avant, deck.slides) : []
+            S.corInstant = Date.now()
+            if (!corriger) S.overrides = new Map()
+            else {
+              const touche = new Set(S.corrections.map((c) => cleChamp(c.slide, c.champ, c.idx)))
+              for (const cle of [...S.overrides.keys()]) if (touche.has(cle)) S.overrides.delete(cle)
+            }
+            if (data.annotations && data.annotations.version !== S.ann.version) appliquerAnnotations(S, data.annotations)
+            S.deck = deck
+            S.vue = 0
+            S.suivre = true
+            TICK = null
+            // NB : pas d'ouvrirOnglet() ici — un openTab déclenché pendant le
+            // commit du panneau lève « React error #60 » (mise à jour d'un
+            // composant pendant le rendu d'un autre). L'ouverture automatique
+            // est du ressort de la sonde au niveau module, différée hors rendu.
+            reveiller()
+          } else if (S.deck !== null && progression(S) < 1) {
+            // Onglet masqué : rAF est mis en pause par Chrome, l'horloge de
+            // frappe (t0 de l'hôte) reste juste mais plus personne ne repeint —
+            // le sondage (intervalle, jamais asphyxié) prend le relais.
+            reveiller()
+          }
+        }
+        interroger()
+        const t = setInterval(interroger, CADENCE_MS)
+        return () => { vivant = false; clearInterval(t) }
+      }, [])
+
+      // ── horloge de frappe : rattrape t0 de l'hôte, puis stoppe ─────────
+      React.useEffect(() => {
+        let raf = 0
+        const boucle = () => {
+          if (S.deck !== null && progression(S) < 1 && !(TICK !== null && TICK.fige !== null && TICK.fige !== undefined)) reveiller()
+          else if (S.corrections.length > 0 && Date.now() - S.corInstant < 9000) reveiller()
+          raf = requestAnimationFrame(boucle)
+        }
+        raf = requestAnimationFrame(boucle)
+        return () => cancelAnimationFrame(raf)
+      }, [])
+
+      // ── calage de l'échelle de la scène ────────────────────────────────
+      React.useEffect(() => {
+        const el = sceneRef.current
+        if (el === null) return
+        // La chaîne de hauteurs casse au parent `display:contents` du slot
+        // (boîte 0×0 : `height:100%` du root ne résout pas) — on mesure le
+        // corps du pane et on fixe la hauteur du root en pixels.
+        const corps = racineRef.current?.parentElement?.parentElement ?? null
+        const calerHauteur = () => {
+          const dispo = corps?.clientHeight ?? 0
+          if (dispo >= 300) racineRef.current.style.height = dispo + 'px'
+        }
+        const caler = () => {
+          calerHauteur()
+          const w = el.clientWidth - 20
+          const hh = el.clientHeight - 20
+          const k = Math.max(0.05, Math.min(w / L, hh / H))
+          if (Math.abs(k - S.echelle) > 0.001) { S.echelle = k; reveiller() }
+        }
+        caler()
+        const ro = new ResizeObserver(caler)
+        ro.observe(el)
+        if (corps !== null) ro.observe(corps)
+        return () => ro.disconnect()
+      }, [])
+
+      // ── rendu du calque de traits ──────────────────────────────────────
+      React.useEffect(() => {
+        const cv = canvasRef.current
+        if (cv === null) return
+        const ctx = cv.getContext('2d')
+        ctx.setTransform(2, 0, 0, 2, 0, 0)
+        ctx.clearRect(0, 0, L, H)
+        const liste = traitLive.current !== null
+          ? [...(S.traits.get(S.vue) || []), traitLive.current]
+          : (S.traits.get(S.vue) || [])
+        if (liste.length > 0) dessinerTraits(ctx, liste)
+      })
+
+      const p = S.deck !== null ? progression(S) : 1
+      const theme = THEMES[S.deck !== null ? S.deck.theme : 'sombre']
+      const intervals = S.deck !== null ? budget(S.deck.slides) : []
+      const enEcriture = S.deck !== null && p < 1
+      const kVue = S.deck !== null
+        ? (S.suivre || enEcriture ? Math.max(0, slideActive(intervals, p)) : clamp(S.vue, 0, S.deck.slides.length - 1))
+        : 0
+      if (kVue !== S.vue) S.vue = kVue
+      const slide = S.deck !== null && S.deck.slides[kVue] ? S.deck.slides[kVue] : null
+      const qSlide = slide !== null && intervals[kVue]
+        ? clamp((p - intervals[kVue].start) / (intervals[kVue].weight || 1), 0, 1)
+        : 1
+      const segs = slide !== null ? segments(slide) : []
+      const texteDe = (champ, idx) => {
+        const cle = cleChamp(kVue, champ, idx)
+        const survol = S.overrides.get(cle)
+        if (survol !== undefined) return survol
+        if (champ === 'points') return slide.points[idx] || ''
+        return slide[champ] || ''
+      }
+      const segDe = (champ, idx) => segs.find((g) => g.champ === champ && g.idx === idx) || null
+      const frappe = (champ, idx) => {
+        const seg = segDe(champ, idx)
+        if (seg === null || !enEcriture) return { texte: texteDe(champ, idx), tape: false }
+        const t = texteDe(champ, idx)
+        const source = S.overrides.has(cleChamp(kVue, champ, idx)) ? t : seg.source
+        const vu = texteVisible({ ...seg, source }, qSlide)
+        return { texte: vu, tape: vu.length < source.length }
+      }
+
+      const corrigeIci = (champ, idx) => S.corrections.some((c) => c.slide === kVue && c.champ === champ && c.idx === idx)
+
+      // ── édition : ouvrir la boîte de saisie sur un champ ───────────────
+      // Clic (outil ✎ Texte) ou double-clic direct, à la Google Slides.
+      const ouvrirEdition = (e, champ, idx, force) => {
+        if ((!force && S.outil !== 'texte') || S.deck === null) return
+        const noeud = e.currentTarget
+        const wrap = wrapRef.current
+        if (noeud === null || wrap === null) return
+        // One editor at a time: the one that is open is committed and closed before another is mounted (a second
+        // double-click used to stack a second editor, which nothing could close and which hid the tool bar).
+        if (S.edition !== null || S.editeurRiche !== null) fermerEdition(true, null)
+        const r = noeud.getBoundingClientRect()
+        const w = wrap.getBoundingClientRect()
+        const k = S.echelle
+        S.edition = { slide: kVue, champ, idx, avant: texteDe(champ, idx), couleur: S.overrides.get(cleChamp(kVue, champ, idx) + ':couleur') ?? null }
+        S.editionRect = {
+          x: (r.left - w.left) / k, y: (r.top - w.top) / k,
+          w: r.width / k, h: r.height / k,
+          font: getComputedStyle(noeud).font, lh: getComputedStyle(noeud).lineHeight,
+          ta: getComputedStyle(noeud).textAlign, color: getComputedStyle(noeud).color,
+        }
+        if (TT !== null) S.editeurRiche = monterEditeurRiche(S.edition, noeud)
+        reveiller()
+      }
+      const fermerEdition = (valider, valeur) => {
+        const ed = S.edition
+        let riche = null
+        if (S.editeurRiche !== null) {
+          riche = valider ? htmlCompacte(S.editeurRiche.editeur.getHTML()) : null
+          try { S.editeurRiche.editeur.destroy() } catch { /* déjà parti */ }
+          S.editeurRiche.host.remove()
+          S.editeurRiche = null
+        }
+        S.edition = null
+        S.editionRect = null
+        const final = riche !== null ? riche : valeur
+        if (ed !== null && valider && final !== null && final !== ed.avant) {
+          S.overrides.set(cleChamp(ed.slide, ed.champ, ed.idx), final)
+          pousserAnnotations({ edits: [{ slide: ed.slide, champ: ed.champ, idx: ed.idx, avant: ed.avant, apres: final, couleur: ed.couleur }] })
+        }
+        reveiller()
+      }
+      // Couleur du texte du champ en cours d'édition — pousse tout de suite
+      // une retouche `couleur`, que l'agent relit comme les autres.
+      const PALETTE = ['#F2C31A', '#E1502A', '#37B5C4', '#1F9D57', '#B78BF9', '#111111']
+      const choisirCouleur = (c) => {
+        const ed = S.edition
+        if (ed === null) return
+        ed.couleur = c
+        S.overrides.set(cleChamp(ed.slide, ed.champ, ed.idx) + ':couleur', c)
+        pousserAnnotations({ edits: [{ slide: ed.slide, champ: ed.champ, idx: ed.idx, avant: ed.avant, apres: ed.avant, couleur: c }] })
+        reveiller()
+      }
+      // Édition riche (TipTap vendoré) : barre G/I/S + couleurs, montée en
+      // impératif à côté de React — ProseMirror possède son propre DOM.
+      const monterEditeurRiche = (ed, noeud) => {
+        const wrap = wrapRef.current
+        if (wrap === null || document === undefined) return null
+        const host = document.createElement('div')
+        // The format bar and the edit box float next to the field (see placerEditeur), clear of the tool bar; the first position is only
+        // a place to measure from.
+        host.style.cssText = 'position:absolute;z-index:30;display:flex;flex-direction:column;gap:5px;align-items:flex-start;left:8px;top:8px'
+        const barre = document.createElement('div')
+        barre.style.cssText = 'display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.18);border-radius:6px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18)'
+        const zone = document.createElement('div')
+        zone.className = 'kbsd-ebox'
+        zone.style.cssText = 'position:static;border:none;min-width:200px;max-width:520px;min-height:1.2em;padding:0'
+        host.appendChild(barre)
+        host.appendChild(zone)
+        const bouton = (label, cmd, style) => {
+          const btn = document.createElement('button')
+          btn.type = 'button'
+          btn.textContent = label
+          btn.style.cssText = (style || '') + ';font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid rgba(0,0,0,.25);background:#fff;color:#111;cursor:pointer'
+          btn.onmousedown = (e) => { e.preventDefault(); cmd() }
+          return btn
+        }
+        const ch = (f) => () => editeur.chain().focus()[f]().run()
+        barre.appendChild(bouton('G', ch('toggleBold'), 'font-weight:800'))
+        barre.appendChild(bouton('I', ch('toggleItalic'), 'font-style:italic'))
+        barre.appendChild(bouton('S', ch('toggleUnderline'), 'text-decoration:underline'))
+        for (const c of PALETTE) {
+          const p = document.createElement('button')
+          p.type = 'button'
+          p.title = kt('Couleur du texte', 'Text colour')
+          p.style.cssText = 'width:18px;height:18px;border-radius:9px;border:2px solid rgba(255,255,255,.8);background:' + c + ';cursor:pointer;padding:0'
+          p.onmousedown = (e) => { e.preventDefault(); editeur.chain().focus().setColor(c).run() }
+          barre.appendChild(p)
+        }
+        wrap.appendChild(host)
+        const editeur = new TT.Editor({
+          element: zone,
+          extensions: [
+            TT.StarterKit.configure({ heading: false, blockquote: false, codeBlock: false, code: false, horizontalRule: false, bulletList: false, orderedList: false, listItem: false }),
+            TT.Underline, TT.TextStyle, TT.Color,
+          ],
+          content: ed.avant.includes('<')
+            ? ed.avant
+            : '<p>' + ed.avant.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</p>',
+          // Clicking away commits the text, as the plain box does (the format buttons swallow their mousedown, so using
+          // them does not blur). Deferred: the editor must not be destroyed from inside its own blur.
+          onBlur: () => { setTimeout(() => { if (S.editeurRiche !== null && S.editeurRiche.editeur === editeur) fermerEdition(true, null) }, 0) },
+          editorProps: {
+            attributes: { style: 'outline:none;font:inherit;color:inherit' },
+            handleKeyDown: (view, event) => {
+              if (event.key === 'Escape') { fermerEdition(false, null); return true }
+              if (event.key === 'Enter' && !event.shiftKey) { fermerEdition(true, null); return true }
+              return false
+            },
+          },
+        })
+        // A double-click leaves the focus on the slide: without this the first keystrokes go nowhere until the
+        // user clicks into the small box. TipTap defers the focus itself, past the click that opened the box.
+        try { editeur.commands.focus('end') } catch { /* the editor is already gone */ }
+        // Placed once the editor is mounted, so the box has its real size.
+        try {
+          const wr = wrap.getBoundingClientRect()
+          const rel = (r) => ({ x: r.left - wr.left, y: r.top - wr.top, w: r.width, h: r.height })
+          const barreOutils = wrap.querySelector('.kbsd-outils')
+          const hr = host.getBoundingClientRect()
+          host.style.maxWidth = Math.max(160, wr.width - 16) + 'px'
+          const lieu = placerEditeur({
+            champ: rel(noeud.getBoundingClientRect()),
+            outils: barreOutils !== null ? rel(barreOutils.getBoundingClientRect()) : null,
+            scene: { w: wr.width, h: wr.height },
+            boite: { w: hr.width, h: hr.height },
+          })
+          host.style.left = lieu.x + 'px'
+          host.style.top = lieu.y + 'px'
+        } catch { /* a layout that cannot be measured keeps the first position */ }
+        return { host, editeur }
+      }
+
+      // ── pinceau / gomme ────────────────────────────────────────────────
+      const posTrait = (e) => {
+        const r = e.currentTarget.getBoundingClientRect()
+        return [clamp((e.clientX - r.left) / S.echelle, 0, L), clamp((e.clientY - r.top) / S.echelle, 0, H)]
+      }
+      const traitDebut = (e) => {
+        if (S.outil !== 'pinceau' && S.outil !== 'gomme') return
+        if (S.outil === 'gomme') {
+          const [x, y] = posTrait(e)
+          const liste = S.traits.get(S.vue) || []
+          const i = hitStroke(liste, x, y, 18)
+          if (i >= 0) {
+            const reste = liste.slice(0, i).concat(liste.slice(i + 1))
+            S.traits.set(S.vue, reste)
+            pousserTraits(S, S.vue)
+            reveiller()
+          }
+          return
+        }
+        e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId)
+        traitLive.current = { points: [posTrait(e)], color: S.couleur, width: 5 }
+        reveiller()
+      }
+      const traitBouge = (e) => {
+        if (traitLive.current === null) return
+        traitLive.current.points.push(posTrait(e))
+        reveiller()
+      }
+      const traitFin = () => {
+        if (traitLive.current === null) return
+        if (traitLive.current.points.length >= 2) {
+          const liste = S.traits.get(S.vue) || []
+          S.traits.set(S.vue, [...liste, traitLive.current])
+          pousserTraits(S, S.vue)
+        }
+        traitLive.current = null
+        reveiller()
+      }
+
+      // ── lecture ────────────────────────────────────────────────────────
+      // The same transport as the Modeleur and Bricks panels (audit A4-26): Start / Play-Pause / End, the same four speeds written the same
+      // way (0.5×), the state at the right end of the row (NN% while it writes, Done when it has), the position under it.
+      const vitesseCourante = TICK !== null ? TICK.vitesse : 1
+      const figee = TICK !== null && TICK.fige !== null && TICK.fige !== undefined
+      const enCours = S.deck !== null && enEcriture && !figee
+      const caler = (pos, vitesse, fige) => {
+        TICK = { t0: Date.now() - (pos * S.deck.dureeMs) / vitesse, vitesse, fige }
+        S.suivre = true
+        reveiller()
+      }
+      const rejouer = () => { if (S.deck !== null) caler(0, vitesseCourante, null) }
+      const lire = () => {
+        if (S.deck === null) return
+        if (enCours) caler(p, vitesseCourante, p) // pause
+        else if (p < 1) caler(p, vitesseCourante, null) // resume
+        else rejouer()
+      }
+      const vitesses = [0.5, 1, 2, 4]
+      const changerVitesse = (v) => { if (S.deck !== null) caler(p, v, figee ? p : null) }
+
+      // ── construction de la slide ───────────────────────────────────────
+      // M-01 (sécurité) : le HTML riche n'est plus rendu tel quel. Un champ
+      // n'est considéré riche QUE si TOUTES ses balises appartiennent à la
+      // liste blanche TipTap (gras, italique, listes…) ; tout le reste —
+      // `<img onerror=…>`, texte littéral `Map<String, Integer>` — retombe en
+      // TEXTE PUR échappé par React. Et même le HTML admis passe par un
+      // assainissement DOMParser : attributs on*/javascript: supprimés.
+      const RICHE_BALISES = /^(?:p|strong|em|u|s|code|br|ul|ol|li|b|i|span|mark)$/
+      const estRicheTipTap = (t) => {
+        const balises = [...String(t).matchAll(/<\/?([a-zA-Z][a-zA-Z0-9-]*)/g)].map((m) => m[1].toLowerCase())
+        return balises.length > 0 && balises.every((b) => RICHE_BALISES.test(b))
+      }
+      const assainirRiche = (html) => {
+        try {
+          const doc = new DOMParser().parseFromString(String(html), 'text/html')
+          const parcourir = (n) => {
+            for (const enfant of [...n.children]) {
+              parcourir(enfant)
+              for (const attr of [...enfant.attributes]) {
+                const nom = attr.name.toLowerCase()
+                if (nom !== 'style' || /url\(|expression\(|javascript:/i.test(attr.value)) enfant.removeAttribute(attr.name)
+              }
+            }
+          }
+          parcourir(doc.body)
+          return doc.body.innerHTML
+        } catch { return '' }
+      }
+      const A = (champ, idx, props, ...enfants) => {
+        const f = frappe(champ, idx)
+        const { style: styleProps, className: classeProps, ...reste } = props
+        const coul = S.overrides.get(cleChamp(kVue, champ, idx) + ':couleur') ?? null
+        const source = texteDe(champ, idx)
+        // Valeur riche (HTML TipTap whitelisté + assaini) rendue en HTML une
+        // fois la frappe du champ terminée ; pendant la frappe, le texte
+        // dénudé défile. Tout le reste est du texte pur (échappé par React).
+        const richeVue = !f.tape && estRicheTipTap(source)
+        return h('div', {
+          'data-kbs': cleChamp(kVue, champ, idx),
+          className: 'kbsd-champ'
+            + (corrigeIci(champ, idx) ? ' kbsd-cor' : '')
+            + (S.selection === cleChamp(kVue, champ, idx) ? ' kbsd-sel' : '')
+            + (classeProps ? ' ' + classeProps : ''),
+          style: coul !== null ? { ...(styleProps ?? {}), color: coul } : styleProps,
+          // Le HTML passe par un ref callback (post-commit) : un
+          // dangerouslySetInnerHTML au milieu du rendu du slot levait
+          // « React error #60 » côté hôte.
+          ...(richeVue ? { ref: (el) => { if (el !== null && el.__kbsHtml !== source) { el.__kbsHtml = source; el.innerHTML = assainirRiche(source) } } } : null),
+          onMouseDown: (e) => { S.selection = cleChamp(kVue, champ, idx); ouvrirEdition(e, champ, idx) },
+          onDoubleClick: (e) => ouvrirEdition(e, champ, idx, true),
+          ...reste,
+        }, richeVue ? null : f.texte, richeVue ? null : (f.tape ? h('span', { className: 'kbsd-caret' }) : null), ...enfants)
+      }
+
+      const ac = slide !== null && slide.accent ? slide.accent : theme.accent
+      const styleSlide = { background: theme.bg, color: theme.ink, '--kbsd-accent': ac }
+      const contenu = () => {
+        if (slide === null) return null
+        const n = S.deck.slides.length
+        const noeuds = []
+        if (slide.kicker !== '') noeuds.push(A('kicker', -1, { className: 'kbsd-kicker', key: 'k', style: { color: ac } }))
+        if (slide.layout === 'statement') {
+          noeuds.push(A('titre', -1, {
+            key: 't', className: 'kbsd-titre',
+            style: { fontSize: 88, color: ac, position: 'absolute', top: 300, left: 110, right: 110 },
+          }))
+          if (slide.sous !== '') noeuds.push(A('sous', -1, { key: 's', style: { position: 'absolute', top: 620, left: 110, fontSize: 30, color: theme.ink } }))
+        } else if (slide.layout === 'puces') {
+          if (slide.titre !== '') noeuds.push(A('titre', -1, { key: 't', className: 'kbsd-titre', style: { position: 'absolute', top: 150, left: 110, fontSize: 58 } }))
+          if (slide.sous !== '') noeuds.push(A('sous', -1, { key: 's', style: { position: 'absolute', top: 246, left: 110, fontSize: 24, color: theme.muted } }))
+          noeuds.push(h('ul', { key: 'l', className: 'kbsd-puces', style: { position: 'absolute', top: 320, left: 110, right: 130, fontSize: 31 } },
+            slide.points.map((_, i) => {
+              const sg = segDe('points', i)
+              const visible = !enEcriture || (sg !== null && qSlide >= sg.start)
+              return h('li', { key: i, style: { opacity: visible ? 1 : 0.15, transition: 'opacity .3s' } },
+                A('points', i, { style: { fontSize: 'inherit' } }))
+            })))
+        } else if (slide.layout === 'chiffre') {
+          if (slide.titre !== '') noeuds.push(A('titre', -1, { key: 't', className: 'kbsd-titre', style: { position: 'absolute', top: 150, left: 110, fontSize: 44 } }))
+          noeuds.push(A('grand', -1, { key: 'g', className: 'kbsd-titre', style: { position: 'absolute', top: 300, left: 110, fontSize: 190, color: ac } }))
+          if (slide.legende !== '') noeuds.push(A('legende', -1, { key: 'l', style: { position: 'absolute', top: 590, left: 110, fontSize: 30, color: theme.muted } }))
+        } else if (slide.layout === 'citation') {
+          noeuds.push(h('div', { key: 'q', style: { position: 'absolute', top: 130, left: 100, fontSize: 150, color: ac, fontFamily: 'Georgia,serif', lineHeight: 1 } }, '«'))
+          noeuds.push(A('citation', -1, { key: 'c', className: 'kbsd-titre', style: { position: 'absolute', top: 270, left: 110, right: 150, fontSize: 52, fontWeight: 650 } }))
+          if (slide.auteur !== '') noeuds.push(A('auteur', -1, { key: 'a', style: { position: 'absolute', top: 640, left: 110, fontSize: 26, color: theme.muted } }))
+        } else { // titre / fin
+          const centre = slide.layout === 'fin'
+          noeuds.push(A('titre', -1, {
+            key: 't', className: 'kbsd-titre',
+            style: {
+              position: 'absolute', left: 110, right: 110, top: centre ? 340 : 330,
+              fontSize: 92, textAlign: centre ? 'center' : 'left',
+            },
+          }))
+          if (slide.sous !== '') {
+            noeuds.push(A('sous', -1, { key: 's', style: { position: 'absolute', left: 110, right: 110, top: centre ? 560 : 550, fontSize: 31, color: theme.muted, textAlign: centre ? 'center' : 'left' } }))
+          }
+          if (!centre) noeuds.push(h('div', { key: 'r', style: { position: 'absolute', top: 290, left: 112, width: 110, height: 5, background: ac } }))
+        }
+        if (slide.note !== '') noeuds.push(A('note', -1, { key: 'n', className: 'kbsd-note' }))
+        noeuds.push(h('div', { key: 'f', className: 'kbsd-foot' }, `${S.deck.titre} · ${kVue + 1}/${n}`))
+        return noeuds
+      }
+
+      const correctionsRecentes = S.corrections.length > 0 && Date.now() - S.corInstant < 8000
+      const outils = [
+        ['voir', kt('Voir', 'View')], ['texte', kt('✎ Texte', '✎ Text')], ['pinceau', kt('✎ Pinceau', '✎ Brush')], ['gomme', kt('Gomme', 'Eraser')],
+      ]
+
+      return h('div', { className: 'kbsd-root', ref: racineRef },
+        h('div', { className: 'kbsd-head' },
+          h('div', { className: 'kbsd-title' }, S.deck !== null ? S.deck.titre : 'Slides'),
+          correctionsRecentes ? h('div', { className: 'kbsd-badge ia' }, kt(`IA · ${S.corrections.length} correction${S.corrections.length > 1 ? 's' : ''}`, `AI · ${S.corrections.length} correction${S.corrections.length === 1 ? '' : 's'}`)) : null,
+          S.deck === null ? h('div', { className: 'kbsd-badge' }, kt('vide', 'empty')) : null,
+        ),
+        h('div', { className: 'kbsd-scene', ref: sceneRef },
+          S.deck === null
+            ? h('div', { className: 'kbsd-empty' },
+                h('b', null, kt('Demande un deck au chat', 'Ask the chat for a deck')),
+                h('div', null, kt('l\'agent l\'écrit ici même, slide après slide — tu peux retaper un texte ou peindre par-dessus pendant qu\'il écrit.', 'the agent writes it right here, slide after slide — you can retype a text or paint over it while it writes.')),
+                h('button', {
+                  className: 'kbsd-demo',
+                  onClick: () => pousserDeck(DEMOS[0]),
+                }, kt('Voir la démo', 'See the demo')))
+            : h('div', { className: 'kbsd-wrap', ref: wrapRef, style: { width: L * S.echelle, height: H * S.echelle } },
+                h('div', {
+                  className: 'kbsd-stage kbsd-outil-' + S.outil,
+                  style: { transform: `scale(${S.echelle})`, background: theme.bg },
+                },
+                  h('div', { className: 'kbsd-slide', style: styleSlide }, contenu()),
+                  h('canvas', {
+                    ref: canvasRef,
+                    className: 'kbsd-trait' + (S.outil === 'pinceau' || S.outil === 'gomme' ? '' : ' off'),
+                    width: L * 2, height: H * 2,
+                    style: { width: L, height: H, cursor: S.outil === 'gomme' ? 'not-allowed' : 'crosshair' },
+                    onPointerDown: traitDebut, onPointerMove: traitBouge,
+                    onPointerUp: traitFin, onPointerLeave: traitFin,
+                  }),
+                  S.edition !== null && S.editionRect !== null && S.editeurRiche === null
+                    ? [
+                        h('textarea', {
+                          className: 'kbsd-ebox',
+                          autoFocus: true,
+                          style: {
+                            left: S.editionRect.x, top: S.editionRect.y,
+                            width: Math.max(160, S.editionRect.w), height: Math.max(40, S.editionRect.h + 14),
+                            font: S.editionRect.font, lineHeight: S.editionRect.lh,
+                            textAlign: S.editionRect.ta, color: S.editionRect.color,
+                          },
+                          defaultValue: S.edition.avant,
+                          onBlur: (e) => fermerEdition(true, e.currentTarget.value),
+                          onKeyDown: (e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fermerEdition(true, e.currentTarget.value) }
+                            if (e.key === 'Escape') fermerEdition(false, null)
+                          },
+                        }),
+                        // Palette Google-Slides : la couleur part aussitôt,
+                        // sans fermer la boîte de texte.
+                        h('div', {
+                          key: 'palette',
+                          style: {
+                            position: 'absolute', zIndex: 31,
+                            left: S.editionRect.x, top: S.editionRect.y + Math.max(40, S.editionRect.h + 14) + 6,
+                            display: 'flex', gap: 6,
+                          },
+                        }, PALETTE.map((c) => h('button', {
+                          key: c,
+                          title: kt('Couleur du texte', 'Text colour'),
+                          className: 'kbsd-coul' + (S.edition.couleur === c ? ' on' : ''),
+                          style: { background: c, width: 22, height: 22, borderRadius: 11, border: '2px solid rgba(255,255,255,.75)', cursor: 'pointer', padding: 0 },
+                          onClick: () => choisirCouleur(c),
+                        }))),
+                      ]
+                    : null,
+                ),
+                h('div', { className: 'kbsd-outils' + (S.outil === 'voir' ? ' kbsd-outils-idle' : '') },
+                      outils.map(([cle, label]) => h('button', {
+                        key: cle, className: 'kbsd-outil' + (S.outil === cle ? ' on' : ''),
+                        onClick: () => { S.outil = cle; S.edition = null; S.editionRect = null; reveiller() },
+                      }, label)),
+                      S.outil === 'pinceau'
+                        ? ['#F2C31A', '#E1502A', theme.accent, theme.ink].map((c) => h('button', {
+                            key: c, className: 'kbsd-coul' + (S.couleur === c ? ' on' : ''),
+                            style: { background: c, margin: '2px 2px' },
+                            onClick: () => { S.couleur = c; reveiller() },
+                          }))
+                        : null,
+                      h('button', {
+                        className: 'kbsd-outil',
+                        onClick: () => { S.traits.set(S.vue, []); pousserTraits(S, S.vue); reveiller() },
+                      }, kt('Tout effacer', 'Clear all'))),
+              ),
+        ),
+        h('div', { className: 'kbsd-vignettes' },
+          S.deck !== null
+            ? S.deck.slides.map((s, i) => h('button', {
+                key: i,
+                className: 'kbsd-vign' + (i === kVue ? ' on' : ''),
+                title: s.titre || s.grand || s.citation || s.layout,
+                onClick: () => { S.vue = i; S.suivre = false; reveiller() },
+              }, miniature(s, theme), h('i', null, String(i + 1))))
+            : null,
+        ),
+        h('div', { className: 'kbsd-bar' },
+          h('div', { className: 'kbsd-line' },
+            h('button', { className: 'kbsd-step', title: kt('Début', 'Start'), onClick: () => { if (S.deck !== null) caler(0, vitesseCourante, 0) } }, '\u25C0\u25C0'),
+            h('button', { className: 'kbsd-play', title: enCours ? 'Pause' : kt('Rejouer l\'écriture', 'Replay the writing'), onClick: lire }, enCours ? '\u23F8' : '\u25B6'),
+            h('button', { className: 'kbsd-step', title: kt('Fin', 'End'), onClick: () => { if (S.deck !== null) caler(1, vitesseCourante, 1) } }, '\u25B6\u25B6'),
+            vitesses.map((v) => h('button', {
+              key: v, className: 'kbsd-sp' + (vitesseCourante === v ? ' on' : ''),
+              onClick: () => changerVitesse(v),
+            }, `${v}×`)),
+            h('span', { className: 'kbsd-badge' + (enCours ? ' run' : '') }, S.deck === null ? '\u2014' : (enEcriture ? kt(`${Math.round(p * 100)} %`, `${Math.round(p * 100)}%`) : kt('Fini', 'Done')))),
+          h('div', { className: 'kbsd-track' },
+            h('div', { className: 'kbsd-lab' }, h('b', null, String(S.deck !== null ? kVue + 1 : 0)), ' / ' + (S.deck !== null ? S.deck.slides.length : 0) + ' slides'),
+            h('input', {
+              type: 'range', className: 'kbsd-range', min: 0, max: 1000, value: Math.round(p * 1000),
+              onChange: (e) => {
+                if (S.deck === null) return
+                const pos = Number(e.currentTarget.value) / 1000
+                caler(pos, vitesseCourante, figee ? pos : null)
+              },
+            }))),
+        h('div', { className: 'kbsd-note-bas' },
+          S.deck === null
+            ? h('b', null, kt('Panneau « Slides » — le chat écrit, tu modifies, il corrige.', 'Slides panel — the chat writes, you edit, it corrects.'))
+            : h('span', null,
+                h('b', null, S.deck.prompt !== '' ? S.deck.prompt : S.deck.titre),
+                S.ann.edits.length > 0 || S.ann.strokes.length > 0
+                  ? kt(` — tes retouches : ${S.ann.edits.length} texte${S.ann.edits.length > 1 ? 's' : ''}, ${S.ann.strokes.length} trait${S.ann.strokes.length > 1 ? 's' : ''} (relues par l'agent)`, ` — your edits: ${S.ann.edits.length} text${S.ann.edits.length === 1 ? '' : 's'}, ${S.ann.strokes.length} stroke${S.ann.strokes.length === 1 ? '' : 's'} (read back by the agent)`)
+                  : ''),
+        ),
+      )
+    }
+
+    /* ── progression et annotations (hors composant, testables) ─────────── */
+
+    function progression (S) {
+      if (S.deck === null) return 1
+      if (TICK !== null && TICK.fige !== null && TICK.fige !== undefined) return TICK.fige
+      const t0 = TICK !== null ? TICK.t0 : S.deck.t0
+      const vitesse = TICK !== null ? TICK.vitesse : 1
+      return clamp(((Date.now() - t0) * vitesse) / (S.deck.dureeMs || 1), 0, 1)
+    }
+
+    /** Rejoue les annotations du serveur dans l'état local du panneau. */
+    function appliquerAnnotations (S, ann) {
+      S.ann = { version: ann.version, edits: ann.edits || [], strokes: ann.strokes || [] }
+      for (const e of S.ann.edits) {
+        S.overrides.set(cleChamp(e.slide, e.champ, e.idx), e.apres)
+        if (typeof e.couleur === 'string' && e.couleur.startsWith('#')) {
+          S.overrides.set(cleChamp(e.slide, e.champ, e.idx) + ':couleur', e.couleur)
+        }
+      }
+      const parSlide = new Map()
+      for (const t of S.ann.strokes) {
+        const liste = parSlide.get(t.slide) || []
+        liste.push(t)
+        parSlide.set(t.slide, liste)
+      }
+      S.traits = parSlide
+    }
+
+    async function pousserAnnotations (payload) {
+      try {
+        await fetch(ROUTE_PUSH, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: SESSION_ID, ...payload }),
+        })
+      } catch { /* l'hôte relira au prochain passage */ }
+    }
+
+    function pousserTraits (S, slide) {
+      const liste = S.traits.get(slide) || []
+      pousserAnnotations({ strokes: { [String(slide)]: liste } })
+    }
+
+    /** Dépose un deck de démo par la route push (sans passer par l'agent). */
+    async function pousserDeck (demo) {
+      try {
+        await fetch(ROUTE_PUSH, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: SESSION_ID, ...demo, mode: 'nouveau' }),
+        })
+      } catch { /* rien */ }
+    }
+
+    /* ═══════════════ montage ═══════════════ */
+
+    function apply (ctx) {
+      CTX = ctx
+      ctx.effect(() => {
+        if (document.getElementById(STYLE_ID) === null) {
+          const s = document.createElement('style')
+          s.id = STYLE_ID
+          s.textContent = CSS
+          document.head.appendChild(s)
+        }
+      }, 'kybernos-slides: styles')
+
+      try { SERVICE_SIDEBAR = ctx.get('sidebarRight') } catch { SERVICE_SIDEBAR = null }
+      try {
+        const ui = ctx.get('uiSession')
+        const cle = ui && ui.adapter && ui.adapter.current ? ui.adapter.current.getSnapshot().key : ''
+        if (typeof cle === 'string' && cle.length > 0) SESSION_ID = cle
+      } catch { /* la route retombe sur la dernière commande déposée */ }
+
+      // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+      // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+      // KB-TABICON-BEGIN
+      const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M2 3h20', 'M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3', 'm7 21 5-5 5 5'].map((d, i) => React.createElement('path', { key: i, d }))) }
+      // KB-TABICON-END
+      let registre = null
+      try { registre = ctx.get('sidebarRightTabs') } catch { registre = null }
+      if (registre && typeof registre.register === 'function') {
+        ctx.effect(() => registre.register({
+          id: TYPE_ID,
+          kind: KIND,
+          title: () => 'Slides',
+          guide: [{ title: () => 'Slides', description: () => kt('Decks écrits en temps réel par le chat : frappe live, retouche et pinceau pour l\'utilisateur, corrections soulignées.', 'Decks written in real time by the chat: live typing, text edits and a brush for the user, corrections underlined.'), icon: KB_TAB_ICON }],
+        }), 'kybernos-slides: right sidebar tab type')
+      }
+
+      ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register(
+        { name: SLOT, key: TYPE_ID }, PanneauSlides)), 'kybernos-slides: panel body')
+
+      ctx.effect(() => {
+        const t = setInterval(() => {
+          try {
+            const ui = ctx.get('uiSession')
+            const cle = ui && ui.adapter && ui.adapter.current ? ui.adapter.current.getSnapshot().key : ''
+            if (typeof cle === 'string' && cle.length > 0) SESSION_ID = cle
+          } catch { /* garde la dernière clé connue */ }
+        }, 4000)
+        return () => clearInterval(t)
+      }, 'kybernos-slides: session key')
+
+      // Sonde AU NIVEAU MODULE (motif kybernos-modeleur) : elle ouvre l'onglet
+      // quand un deck arrive — le panneau ne peut pas le faire lui-même, son
+      // propre sondage ne tourne qu'une fois monté.
+      let sonde = { versionVue: null, dejaOuvert: false }
+      ctx.effect(() => {
+        const sonder = async () => {
+          let data = null
+          try {
+            const url = ROUTE_STATE + (SESSION_ID ? `?session=${encodeURIComponent(SESSION_ID)}` : '')
+            const r = await fetch(url)
+            if (r.ok) data = await r.json()
+          } catch { /* l'hôte reviendra */ }
+          sonde = pasSonde(sonde, data, ouvrirOnglet)
+        }
+        sonder()
+        const t = setInterval(sonder, 1200)
+        return () => clearInterval(t)
+      }, 'kybernos-slides: opening probe')
+    }
+
+    return {
+      // `sidebarRightTabs` DOIT être déclaré : fourni par ui-sidebar-right,
+      // sans cette déclaration notre `apply` tournerait AVANT le provide.
+      inject: ['slots', 'sidebarRightTabs'],
+      apply,
+      // Surface de test : moteurs de frappe, diff, pinceau — sans navigateur.
+      __test: {
+        normaliserDeck, normaliserSlide, budget, segments, texteVisible,
+        slideActive, diffSlides, hitStroke, dessinerTraits, cleChamp,
+        progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature, placerEditeur,
+      },
+    }

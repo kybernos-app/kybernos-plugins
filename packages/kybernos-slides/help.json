@@ -1,0 +1,34 @@
+{
+  "what": {
+    "fr": "Le chat écrit un deck de slides en direct dans la barre latérale droite. Tu retapes un texte à la main, puis il relit tes retouches et corrige.",
+    "en": "The chat writes a slide deck live in the right sidebar. You retype any text by hand, then it reads your edits back and corrects the deck."
+  },
+  "steps": [
+    {
+      "fr": "Demande un deck au chat : l’onglet « Slides » s’ouvre seul à droite et le texte se tape slide après slide.",
+      "en": "Ask the chat for a deck: the “Slides” tab opens by itself on the right and the text is typed out slide after slide."
+    },
+    {
+      "fr": "Revois-le avec ▶ (rejouer l’écriture), ×0.5 / ×1 / ×2 (vitesse) et les vignettes pour changer de slide.",
+      "en": "Look back with ▶ (replay the writing), ×0.5 / ×1 / ×2 (speed) and the thumbnails to jump between slides."
+    },
+    {
+      "fr": "Double-clique sur un texte pour le retaper : barre G / I / S et couleurs, Entrée valide, Échap annule.",
+      "en": "Double-click a text to retype it: a G / I / S bar and colours, Enter confirms, Esc cancels."
+    },
+    {
+      "fr": "Dis au chat de relire tes retouches : il corrige, et les passages corrigés s’illuminent en vert quelques secondes.",
+      "en": "Tell the chat to read your edits back: it corrects the deck, and the corrected passages glow green for a few seconds."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale droite, onglet « Slides » (il s’ouvre seul quand un deck arrive)",
+    "en": "Right sidebar, “Slides” tab (opens by itself when a deck arrives)",
+    "page": false
+  },
+  "good": {
+    "fr": "Le deck n’est pas enregistré : il disparaît quand DSH redémarre, et chaque conversation a le sien.",
+    "en": "The deck is not saved: it disappears when DSH restarts, and each chat has its own."
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-a-slide-deck/"
+}

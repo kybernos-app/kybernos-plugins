@@ -1,0 +1,6 @@
+# dsh bundle patch — insère le plugin dans la pile de calques du profil.
+# Le profil doit aussi lister le paquet dans `dsh.profile.bundles`
+# (~/.dsh/profiles/web/package.json).
+- insert:
+    - id: dsh-db-viewer
+      name: '@local/dsh-db-viewer'

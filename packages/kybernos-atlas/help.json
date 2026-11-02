@@ -1,0 +1,34 @@
+{
+  "what": {
+    "fr": "Une carte en lecture seule de ton espace : projets, Agent Teams, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
+    "en": "A read-only map of your workspace: projects, agent teams, skills, memory, lessons, automations and apps, how they connect, and what is broken."
+  },
+  "steps": [
+    {
+      "fr": "Active Atlas dans Réglages › Kybernos Suite (désactivé par défaut), puis ouvre Réglages › Atlas.",
+      "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
+    },
+    {
+      "fr": "Clique « Mettre à jour » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
+      "en": "Click “Update”: nothing is read before you do. Next time the page opens on the last reading, and the header says how long ago it was read."
+    },
+    {
+      "fr": "Dans « Autour », choisis un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+      "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
+    },
+    {
+      "fr": "Les autres onglets montrent la même carte autrement ; « À vérifier » liste ce qui est cassé, « Aide » explique les traits.",
+      "en": "The other tabs show the same map in other ways; “To check” lists what is broken, “Help” explains the lines."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Atlas",
+    "en": "Settings › Atlas",
+    "page": true
+  },
+  "good": {
+    "fr": "Atlas ne fait que lire : rien n’est modifié. Sa dernière lecture est gardée dans ce navigateur, la page s’ouvre donc dessus.",
+    "en": "Atlas only reads: nothing is changed. Its last reading is kept in this browser so the page opens on it."
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
+}

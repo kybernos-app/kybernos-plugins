@@ -1,0 +1,21 @@
+{
+  "id": "qwen3:8b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 5.2,
+  "ramMin": 16,
+  "score": "Ollama library · 5.2 GB · 40K ctx",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Qwen 3, version 8B : outils et réflexion. Génération précédente.",
+    "en": "Qwen 3, 8B version: tools and thinking. Previous generation."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 94
+}

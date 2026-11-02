@@ -1,0 +1,26 @@
+#!/bin/sh
+# ── Kybernos: update ────────────────────────────────────────────────────────
+#
+# Run it FROM the folder of the NEW archive, extracted:
+#
+#   ./kybernos-update                     # updates the plugin (and the engine if needed)
+#   ./kybernos-update 0.1.7-alpha.2       # also pins a version of the engine
+#   ./kybernos-update --dry               # shows the plan, touches NOTHING
+#
+# Same contract as the installation: fingerprints verified, photo before writing, start
+# verified, and back to the photo if anything fails.
+set -e
+ici=$(cd "$(dirname "$0")" && pwd)
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js is missing — see https://nodejs.org/en/download"
+  exit 1
+fi
+version_noeud=$(node --version 2>/dev/null || echo '?')
+if ! node --input-type=module -e "await import('node:child_process')" >/dev/null 2>&1; then
+  echo "Node $version_noeud cannot run the robot (ES modules unavailable)."
+  exit 1
+fi
+echo "Node $version_noeud"
+
+exec node "$ici/scripts/dsh-lifecycle.mjs" upgrade "$@" --source "$ici"

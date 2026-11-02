@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-mobile
+      name: '@local/kybernos-mobile'

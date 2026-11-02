@@ -1,0 +1,38 @@
+{
+  "name": "@local/kybernos-relance",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Restarts DSH without losing work: the host tool `relancer_dsh` (native approval panel when other sessions are running, then a detached restart that wakes every session) and a client that reloads the DSH page once when the host restarts, instead of leaving the interface black until F5.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "test-client.mjs",
+    "test-host.mjs"
+  ],
+  "scripts": {
+    "check": "node --check client.js && node --check index.js",
+    "test": "node test-client.mjs && node test-host.mjs",
+    "test:host": "node test-host.mjs",
+    "test:client": "node test-client.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

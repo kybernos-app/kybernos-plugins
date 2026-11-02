@@ -1,0 +1,13 @@
+# dsh bundle patch: inserts the plugin in the profile's layer stack, and points DSH's web seam at it.
+#
+# The base composition pins `searchProvider: deepseek-official`, which only works with a DeepSeek key or account.
+# This plugin registers its own provider ("kybernos-search": free engines out of the box, keyed engines when a key is
+# set) and a pin is what makes the seam use it. A patch REPLACES the row's whole config, so `fetchProvider` is restated.
+# Switch the plugin off and the bundle layer goes with it: the base pin comes back, nothing else to undo.
+- insert:
+    - id: kybernos-websearch
+      name: '@local/kybernos-websearch'
+- id: web
+  config:
+    searchProvider: kybernos-search
+    fetchProvider: http

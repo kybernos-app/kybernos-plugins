@@ -1,0 +1,30 @@
+{
+  "what": {
+    "fr": "Les quatre petits connecteurs de workers qui permettent à ton agent principal de confier une tâche à OpenCode, Gemini, Qwen ou Hermes. Ils ne font rien tant que tu ne les allumes pas.",
+    "en": "The four small Workers connectors that let your main agent hand a task to OpenCode, Gemini, Qwen or Hermes. They do nothing until you turn them on."
+  },
+  "steps": [
+    {
+      "fr": "Laisse ce module actif : il n'a pas de page, la page Workers s'en sert.",
+      "en": "Leave this module on: it has no page of its own, the Workers page uses it."
+    },
+    {
+      "fr": "Ouvre Réglages › Workers et clique « Activer » sur la ligne de l'agent voulu.",
+      "en": "Open Settings › Workers and click “Turn on” on the row of the agent you want."
+    },
+    {
+      "fr": "Installe le programme de l'agent et connecte-toi, toujours depuis la page Workers.",
+      "en": "Install the agent's program and sign in, still from the Workers page."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Workers (pas de page propre)",
+    "en": "Settings › Workers (no page of its own)",
+    "page": false
+  },
+  "good": {
+    "fr": "Désactiver ce module retire les quatre connecteurs : la page Workers le dira au lieu d'allumer quelque chose qui ne se charge pas.",
+    "en": "Turning this module off removes the four connectors: the Workers page will say so instead of turning on something that cannot load."
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
+}

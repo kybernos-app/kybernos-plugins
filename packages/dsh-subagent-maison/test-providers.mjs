@@ -1,0 +1,25 @@
+// Test des fabriques d'argv des providers maison — sans DSH (argv.js est pur).
+//   node test-providers.mjs
+import { argv as gemini } from './dsh-subagent-gemini/argv.js'
+import { argv as qwen } from './dsh-subagent-qwen/argv.js'
+import { argv as opencode } from './dsh-subagent-opencode/argv.js'
+import { argv as hermes } from './dsh-subagent-hermes/argv.js'
+
+let echecs = 0
+const ok = (nom, cond, detail) => { if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + detail : '')) } }
+const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+
+try {
+  console.log('── argv par CLI ──')
+  ok('gemini --skip-trust -y -p (clé API, pas de compte)', (() => { const a = gemini('gemini', undefined, ['t']); return a[1] === '--skip-trust' && a[2] === '-y' && a.includes('-p') && a[a.length - 1] === 't' })())
+  ok('gemini -m quand fourni', gemini('gemini', 'm', ['t']).includes('m'))
+  ok('qwen -y --auth-type openai + endpoint token plan', (() => { const a = qwen('qwen', undefined, ['t'], { apiKey: 'K', baseUrl: 'https://x/v1' }); return a[1] === '-y' && a[2] === '--auth-type' && a[3] === 'openai' && a.includes('https://x/v1') && a.includes('K') })())
+  ok('opencode run + skip-permissions', eq(opencode('opencode', undefined, ['t']), ['opencode', 'run', '--dangerously-skip-permissions', 't']))
+  ok('opencode joint les tâches', opencode('opencode', undefined, ['a', 'b']).pop() === 'a\n\nb')
+  ok('aucun modèle en dur (defaut = pas de -m)', !gemini('gemini', undefined, ['t']).includes('-m'))
+  ok('hermes -z (modèle découvert à l\'exécution, -m si fourni)', eq(hermes('hermes', undefined, ['t']), ['hermes', '-z', 't']))
+  ok('hermes -m quand fourni, avant -z', (() => { const a = hermes('hermes', 'x/y', ['t']); return a[1] === '-m' && a[2] === 'x/y' && a[3] === '-z' })())
+} finally {
+  console.log('\nPROVIDERS — ' + echecs + ' échec(s)')
+  process.exit(echecs === 0 ? 0 : 1)
+}

@@ -1,0 +1,119 @@
+// Suite panel as a store, lot 1: the catalogue says what the page draws (title, glyph, family colour, featured sheets), and the
+// pure helpers (title, compatibility verdict, Featured/family filters). Played without DSH, React or a browser; the rendered page is
+// checked on the real GUI.
+//   node packages/kybernos-hub/test-suite-store.mjs
+import { readFileSync } from 'node:fs'
+
+const catalogue = JSON.parse(readFileSync(new URL('./catalog.json', import.meta.url), 'utf8'))
+const source = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+let echecs = 0
+let total = 0
+const ok = (nom, cond, detail) => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + JSON.stringify(detail).slice(0, 200) : '')) } }
+
+let def
+new Function('window', source)({ __ModuleLoader__: { load: (d) => { def = d } } })
+const T = def.factory().__test
+const bil = (o) => o !== null && typeof o === 'object' && typeof o.fr === 'string' && o.fr.length > 8 && typeof o.en === 'string' && o.en.length > 8
+
+console.log('the catalogue says what the page draws')
+ok('every module has a human title and a glyph the client knows', catalogue.modules.every((m) => typeof m.titre === 'string' && m.titre.length > 1 && typeof m.glyphe === 'string' && Object.prototype.hasOwnProperty.call(T.GLYPHES, m.glyphe)), catalogue.modules.filter((m) => !(m.titre && T.GLYPHES[m.glyphe])).map((m) => m.id))
+ok('titles are unique, so two cards are never confused', new Set(catalogue.modules.map((m) => m.titre)).size === catalogue.modules.length)
+ok('every family has a colour (the tile and the chip) and no unused fields', catalogue.familles.every((f) => /^#[0-9a-f]{6}$/i.test(f.couleur) && f.icone === undefined && f.ligne === undefined), catalogue.familles)
+const vedettes = catalogue.modules.filter((m) => m.vedette !== undefined)
+ok('six featured modules, ranked 1 to 6 with no gap or duplicate', vedettes.length === 6 && vedettes.map((m) => m.vedette).sort().join() === '1,2,3,4,5,6', vedettes.map((m) => [m.id, m.vedette]))
+ok('a featured sheet has a tagline, a description and points, in French and English', vedettes.every((m) => bil(m.accroche) && bil(m.description) && Array.isArray(m.points) && m.points.length >= 3 && m.points.every(bil)))
+ok('a module that is not featured carries none of it', catalogue.modules.filter((m) => m.vedette === undefined).every((m) => m.accroche === undefined && m.description === undefined && m.points === undefined))
+ok('Databases is in its own family and featured', catalogue.modules.find((m) => m.id === 'dsh-db-viewer').famille === 'data' && catalogue.modules.find((m) => m.id === 'dsh-db-viewer').vedette > 0)
+ok('the Databases sheet says SQLite and read-only — never Postgres, which the module does not read', /SQLite/.test(catalogue.modules.find((m) => m.id === 'dsh-db-viewer').description.en) && !/postgres/i.test(JSON.stringify(catalogue.modules.find((m) => m.id === 'dsh-db-viewer'))))
+
+console.log('the pure helpers')
+const mods = catalogue.modules
+const installes = new Map(mods.slice(0, 20).map((m) => [m.nom, { name: m.nom, version: m.version, enabled: true }]))
+ok('titreDe: the human name, the id when there is none', T.titreDe({ id: 'x', titre: 'Fancy' }) === 'Fancy' && T.titreDe({ id: 'x' }) === 'x' && T.titreDe({ id: 'x', titre: '' }) === 'x')
+ok('the switch of a module is announced with its title (« Turn off Slides »), never the package id (R-A6-02)', T.libelleInterrupteur(true, { id: 'kybernos-slides', titre: 'Slides' }) === 'Turn off Slides' && T.libelleInterrupteur(false, { id: 'kybernos-slides', titre: 'Slides' }) === 'Turn on Slides' && T.libelleInterrupteur(true, { id: 'x' }) === 'Turn off x' && !/aria-label': \(actif[^\n]*\+ m\.id/.test(source))
+ok('...for every module of the catalogue the label carries the title and not the id', mods.every((m) => T.libelleInterrupteur(true, m) === 'Turn off ' + m.titre && !T.libelleInterrupteur(true, m).includes(m.id)))
+ok('verdictCompat: inside the range, outside it, unknown', T.verdictCompat({ min: 'a', max: 'b', horsZone: false }) === 'ok' && T.verdictCompat({ horsZone: true }) === 'hors' && T.verdictCompat(null) === 'inconnu' && T.verdictCompat(undefined) === 'inconnu')
+const feat = T.filtrer({ modules: mods.slice().reverse(), filtre: 'featured', requete: '', installes })
+ok('Featured lists the featured modules in the catalogue’s rank, whatever order they come in', feat.map((m) => m.id).join() === 'kybernos-models,kybernos-auto,kybernos-memory,dsh-db-viewer,kybernos-slides,kybernos-modeleur', feat.map((m) => m.id))
+ok('every other filter still keeps the order it is given', T.filtrer({ modules: mods.slice().reverse(), filtre: 'all', requete: '', installes }).map((m) => m.id).join() === mods.slice().reverse().map((m) => m.id).join())
+ok('the family filter keeps one family', T.filtrer({ modules: mods, filtre: 'all', requete: '', installes, famille: 'data' }).map((m) => m.id).join() === 'dsh-db-viewer' && T.filtrer({ modules: mods, filtre: 'all', requete: '', installes, famille: '' }).length === mods.length && T.filtrer({ modules: mods, filtre: 'all', requete: '', installes }).length === mods.length)
+ok('a family and Featured combine; a family with no featured module is empty', T.filtrer({ modules: mods, filtre: 'featured', requete: '', installes, famille: 'models' }).map((m) => m.id).join() === 'kybernos-models,kybernos-auto' && T.filtrer({ modules: mods, filtre: 'featured', requete: '', installes, famille: 'cloud' }).map((m) => m.id).join() === 'kybernos-memory' && T.filtrer({ modules: mods, filtre: 'featured', requete: '', installes, famille: 'base' }).length === 0)
+ok('search finds a module by its human title, not only by its id', T.filtrer({ modules: mods, filtre: 'all', requete: 'Auto routing', installes }).map((m) => m.id).join() === 'kybernos-auto' && T.filtrer({ modules: mods, filtre: 'all', requete: '3d modeller', installes }).map((m) => m.id).join() === 'kybernos-modeleur')
+ok('Installed and Available still split the catalogue', T.filtrer({ modules: mods, filtre: 'installed', requete: '', installes }).length === 20 && T.filtrer({ modules: mods, filtre: 'available', requete: '', installes }).length === mods.length - 20)
+
+console.log('the words of the online catalogue and of the update')
+{
+  const mc = T.messageCatalogue
+  ok('a new signed release, an up-to-date one, in both languages', /1\.1\.0/.test(mc({ ok: true, etat: 'nouveau', suite: '1.1.0', publieLe: '2026-10-05T12:00:00Z' })[0]) && /2026-10-05/.test(mc({ ok: true, etat: 'nouveau', suite: '1.1.0', publieLe: '2026-10-05T12:00:00Z' })[1]) && /à jour/.test(mc({ ok: true, etat: 'a-jour', suite: '1.1.0' })[0]) && /up to date/.test(mc({ ok: true, etat: 'a-jour', suite: '1.1.0' })[1]))
+  ok('every refusal the host can give has its own sentence, in French and English', ['pas-de-cle', 'url', 'reseau', 'signature', 'plus-ancien', 'forme', 'taille', 'cache', 'busy'].every((e) => { const m = mc({ ok: false, erreur: e }); return m.length === 2 && m[0].length > 15 && m[1].length > 15 && !m[0].includes('refusé (') && m[0] !== m[1] }))
+  ok('a DSH that predates the online catalogue (404, not JSON) is told to restart, not shown an undefined refusal', /redémarre-le/.test(mc({ ok: false, error: 'bad-response' })[0]) && /restart/.test(mc({ ok: false, error: 'bad-response' })[1]) && !/undefined/.test(mc({ ok: false, error: 'network' }).join()))
+  ok('an unknown refusal still says something; an unreadable answer does not throw', /zzz/.test(mc({ ok: false, erreur: 'zzz' })[1]) && mc(null).length === 2 && mc(undefined).length === 2)
+  const rm = T.raisonMiseAJour
+  ok('an update that can be applied has no reason; one that cannot says why', rm({ miseAJour: { possible: true } }) === null && rm(null) === null && rm({}) === null && /git/.test(rm({ miseAJour: { possible: false, raison: 'development-checkout' } })[1]) && /archive/.test(rm({ miseAJour: { possible: false, raison: 'no-archive-for-platform' } })[1]) && rm({ miseAJour: { possible: false, raison: 'odd' } })[0] === 'odd')
+  const mm = T.messageMiseAJour
+  ok('each step of the update has a line; the end says to restart; a failure says nothing was installed or that it was rolled back', ['telechargement', 'extraction', 'installation'].every((e) => mm({ etat: e }).length === 2) && /Relance DSH/.test(mm({ etat: 'termine', version: '1.1.0' })[0]) && /Restart/.test(mm({ etat: 'termine', version: '1.1.0' })[1]) && /rien n’a été installé/.test(mm({ etat: 'echec', erreur: 'digest-mismatch' })[0]) && /rolled back/.test(mm({ etat: 'echec', erreur: 'robot-refused' })[1]) && mm({ etat: 'idle' }) === null && mm(null) === null)
+  // A code in a sentence is a developer's line on a person's page (audit 2026-10-16: « Suite 1.0.0-beta.10 is available. hosted-instance »,
+  // « Update failed (robot-failed) »). The codes are read from the host sources, so a code added there without a sentence fails here.
+  const hostSrc = readFileSync(new URL('./suite-host.mjs', import.meta.url), 'utf8')
+  const hubHostSrc = readFileSync(new URL('./hub-host.mjs', import.meta.url), 'utf8')
+  const downloadSrc = readFileSync(new URL('./telechargement.mjs', import.meta.url), 'utf8')
+  const reasons = [...hostSrc.matchAll(/raison = '([a-z-]+)'/g)].map((m) => m[1])
+  const unspoken = reasons.filter((r) => { const x = rm({ miseAJour: { possible: false, raison: r } }); return x === null || x[0] === r || x[1] === r })
+  ok('every reason the host gives for « cannot update from here » has a sentence, in French and English', reasons.length >= 6 && unspoken.length === 0, { reasons, unspoken })
+  const from = hostSrc.indexOf('export async function mettreAJour')
+  const updateSrc = hostSrc.slice(from, hostSrc.indexOf('\n}\n', from))
+  const failures = new Set([].concat(
+    [...updateSrc.matchAll(/error: '([a-z-]+)'/g)].map((m) => m[1]),
+    [...downloadSrc.matchAll(/erreur\('([a-z-]+)'/g)].map((m) => m[1]),
+    [...hostSrc.matchAll(/error: '(robot-failed)'/g)].map((m) => m[1]),
+    [...hubHostSrc.matchAll(/erreur: '(engine-update-failed)'/g)].map((m) => m[1]),
+    ['busy', 'update-failed']))
+  const raw = [...failures].filter((c) => { const x = mm({ etat: 'echec', erreur: c }); return !Array.isArray(x) || x.length !== 2 || x[0].includes('(' + c + ')') || x[1].includes('(' + c + ')') })
+  ok('every way an update can fail has a sentence of its own, with no code in brackets', failures.size >= 12 && raw.length === 0, { failures: [...failures], raw })
+  ok('a failure the table does not know still says something, with its code for the support', /zzz/.test(mm({ etat: 'echec', erreur: 'zzz' })[1]))
+  ok('the restart that cannot run gives a next step a person can do alone, not « ask the agent »', !/ask the agent|demandez à l’agent/.test(source) && /stop “dsh web” in your terminal/.test(source))
+}
+
+console.log('wiring')
+const has = (f) => source.includes(f)
+ok('a catalogue with no featured module opens on All, not on an empty page', has("filtreChoisi === 'featured' && !modules.some((m) => typeof m.vedette === 'number') ? 'all' : filtreChoisi"))
+ok('the page opens on All (V-42): Featured stays the first tab, it is not the one the page opens on', has("React.useState('all')") && !has("React.useState('featured')") && has("segment('featured', kt('À la une', 'Featured'), nbVedettes), segment('all'"))
+ok('a module’s name keeps the page typeface in the List view as in the cards (A1-27): the ids may be monospace, the title is not', !/\.kbsu-rowname b\{[^}]*monospace/.test(source) && /\.kbsu-rowname b\{[^}]*font-weight:600/.test(source) && /\.kbsu-name b\{[^}]*font-weight:600/.test(source))
+ok('one flat grid, no family heading any more: the chips filter', !has('kbsu-fam h5') && !has('const familles =') && has("'data-kb': 'suite-grid'") && has("'kbsu-fams'"))
+ok('every card and row opens the module’s page on a click, Enter or Space; a control inside it does not', has('onClick: ouvrirFiche(m.id), onKeyDown: clavierFiche(m.id)') && (source.match(/onClick: ouvrirFiche\(m\.id\)/g) || []).length === 2 && has("closest('button,a,input,select,textarea,[role=\"switch\"],.kbsu-cfg')"))
+ok('the module’s page: back link, header with its actions, Description and Compatibility tabs, a details column', has("'data-kb': 'suite-retour'") && has("onglet('description'") && has("onglet('compat'") && has("'data-kb': 'suite-fiche'") && has('kbsu-side'))
+ok('the page shows nothing the catalogue does not say: no screenshots, no banner, no changelog tab', !/screenshot|capture d.écran|changelog|journal des changements/i.test(source.slice(source.indexOf('const fiche = '), source.indexOf('// ── Reordering'))))
+ok('the artwork is the glyph on a family-coloured tile, in cards and rows', has('const artwork = ') && (source.match(/artwork\(m, p\.fam/g) || []).length === 3 && !has('ic(p.fam.icone)'))
+ok('Check for updates asks the online catalogue first, then reloads', has("post('/kybernos-hub/catalogue/refresh', {})") && has("kt('Rechercher des mises à jour', 'Check for updates')"))
+ok('the update banner shows only for a verified newer suite, explains when it cannot apply, asks once more before it starts', has("suite.distant && suite.distant.plusRecent === true") && has("'data-kb': 'suite-maj-ask'") && has("'data-kb': 'suite-maj-go'") && has("post('/kybernos-hub/update', { confirm: true })") && has("lireJson('/kybernos-hub/update/status')"))
+ok('a module’s Update button opens that confirmation when a verified newer suite exists, and keeps the old install otherwise', has("suite.distant && suite.distant.plusRecent === true ? setConfirmerMaj(true) : installer(m)"))
+ok('a finished update becomes a pending restart (the existing banner), the catalogue source and release notes are shown', has('__suite: true') && has("'data-kb': 'suite-source'") && has("Array.isArray(m.notes) && m.notes.length > 0"))
+ok('compatibility only speaks up on a card when something is wrong', has("chipCompat(false)") && has("verdict === 'hors'"))
+ok('the family icons nothing draws any more are gone', !/\n      (cpu|users|layout|cloud|database): '/.test(source.slice(source.indexOf('const ICONES = {'), source.indexOf('const construirePanneau'))))
+ok('no hard-coded colour in the new styles except the DSH orange the page already uses', !/kbsu-(fb|chip|hero|panel|ticks|dl|side|vedette)[^']*#[0-9a-fA-F]{3,8}\b/.test(source))
+
+console.log('the language: French only for French, English for everything else, and when the resolver fails (decision D1)')
+{
+  const dans = (win) => { let d; new Function('window', source)({ __ModuleLoader__: { load: (x) => { d = x } }, ...win }); const t = d.factory().__test; return t.kt('FR', 'EN') + '/' + t.lang() }
+  const avec = (l) => dans({ __KB_LANG_RESOLVE__: () => l })
+  ok('« kybernos » and every fr tag read French', ['kybernos', 'fr', 'fr-CA', 'fr_FR'].every((l) => avec(l) === 'FR/fr'), ['kybernos', 'fr', 'fr-CA', 'fr_FR'].map(avec))
+  ok('English and every other language read English', ['en', 'es', 'ar', 'zh', 'de'].every((l) => avec(l) === 'EN/en'), ['en', 'es', 'ar', 'zh', 'de'].map(avec))
+  ok('a resolver that throws reads English, never French', dans({ __KB_LANG_RESOLVE__: () => { throw new Error('not ready') } }) === 'EN/en')
+  ok('no resolver at all reads English', dans({}) === 'EN/en' && dans({ __KB_LANG_RESOLVE__: () => undefined }) === 'EN/en')
+  ok('the rows built from a value are pairs with the French first', T.pair('a', 'b').join() === 'a,b' && T.messageMiseAJour({ etat: 'termine', version: '1.1.0' })[0].startsWith('Suite 1.1.0 installée') && T.messageMiseAJour({ etat: 'echec', erreur: 'zzz' })[0] === 'Mise à jour échouée (zzz).' && T.messageCatalogue({ ok: false, erreur: 'zzz' })[1] === 'Online catalogue refused (zzz).')
+  ok('the French of the panel is in « tu »: no « vous », no imperative in -ez', !/\b(?:vous|votre|vos)\b/i.test(source) && !/Relancez|Redémarrez|redémarrez|Activez|Réessayez|mettez-la|cherchez|attendez|arrêtez/.test(source))
+}
+
+console.log('the names of the catalogue (A1-28 / A2-27)')
+{
+  const maison = catalogue.modules.find((m) => m.id === 'dsh-subagent-maison')
+  const connexions = catalogue.familles.find((f) => f.id === 'connect')
+  ok('the module the Workers page turns on is titled « Workers connectors » and its description says Workers', maison.titre === 'Workers connectors' && /Workers/.test(maison.promesse.en) && /workers|Workers/.test(maison.promesse.fr) && /Workers connectors/.test(maison.aide.what.en))
+  ok('nothing in the catalogue still calls it « Agent connectors »', !/Agent connectors/.test(JSON.stringify(catalogue)))
+  const maisonPkg = JSON.parse(readFileSync(new URL('../dsh-subagent-maison/package.json', import.meta.url), 'utf8'))
+  ok('...and neither does the bundle\'s own package.json (R3-05: the signed remote catalogue still does until the next release)', /Workers connectors/.test(maisonPkg.description) && !/agent connectors/i.test(maisonPkg.description), maisonPkg.description)
+  ok('the family is « Connections » (fr « Connexions »), no longer confused with the Connectors page', connexions.en === 'Connections' && connexions.fr === 'Connexions' && !/Connectors and machines|Connecteurs et machines/.test(JSON.stringify(catalogue)), connexions)
+}
+
+console.log('\n' + (total - echecs) + '/' + total + ' passed')
+process.exit(echecs === 0 ? 0 : 1)

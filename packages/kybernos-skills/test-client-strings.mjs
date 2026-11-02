@@ -1,0 +1,104 @@
+#!/usr/bin/env node
+/** The words of the Skills screen: every string the client asks for exists in French AND English, and every word the Team routes can
+ *  answer with has a sentence. No browser: the client is read as text (it is a browser bundle, not importable).
+ *
+ *  A missing key would not crash anything: `t()` returns the key itself, so the user would read "tm.e.write_failed" on screen. This
+ *  is the test that says it before they do.
+ *
+ *  Usage: node packages/kybernos-skills/test-client-strings.mjs   (exit 0 = all pass) */
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+let pass = 0
+const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
+
+const here = dirname(fileURLToPath(import.meta.url))
+const src = readFileSync(join(here, 'client.js'), 'utf8')
+
+// The dictionary: one entry per line, `'key': { fr: '…', en: '…' },`.
+const dict = new Map()
+for (const m of src.matchAll(/^\s+'([A-Za-z0-9_.]+)': \{ fr: (.+), en: (.+) \},?\s*$/gm)) dict.set(m[1], { fr: m[2], en: m[3] })
+assert.ok(dict.size > 150, 'the dictionary was read (' + dict.size + ' entries)')
+
+// 1. both languages, and no placeholder the other language lacks
+for (const [key, row] of dict) {
+  assert.ok(row.fr.length > 2 && row.en.length > 2, key + ' has an empty side')
+  const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join()
+  assert.equal(vars(row.fr), vars(row.en), key + ': the French and English sentences must use the same {variables}')
+}
+ok('every entry has a French and an English sentence with the same {variables} (' + dict.size + ' entries)')
+
+// 2. every literal t('key') of the client exists
+const used = new Set([...src.matchAll(/\bt\('([A-Za-z0-9_.]+)'\s*[,)]/g)].map((m) => m[1]))
+const missing = [...used].filter((k) => !dict.has(k))
+assert.deepEqual(missing, [], 'keys asked for and not defined: ' + missing.join(', '))
+ok('every t(\'…\') of the client names a defined key (' + used.size + ' used)')
+
+// 2b. the create dialog says a bad name while it is typed (A3-27): the same rule as the host, a sentence for each refusal
+assert.ok(dict.has('he.name_too_long') && dict.has('he.invalid_name'), 'the two name refusals have a sentence')
+assert.ok(/const nameRule = name === '' \? null : \(\/\^\[a-z0-9\]\+\(\?:-\[a-z0-9\]\+\)\*\$\/\.test\(name\) \? \(name\.length > 64 \? 'name_too_long' : null\) : 'invalid_name'\)/.test(src), 'the dialog applies the host rule')
+assert.ok(src.includes("t('he.' + nameRule, { max: 64 })") && src.includes("disabled: props.busy.__modal === true || nameRule !== null"), 'the message is shown under the field and Create waits for a valid name')
+assert.ok(src.includes("t('m.quiet', { n: name !== '' && nameRule === null ? name : t('m.nameWord') })"), 'the « /name » line shows the typed name only when it can be a command')
+ok('the create dialog: the name rule is said while typing, the « /name » hint waits for a valid name')
+
+// 3. the families built at run time: t('tm.lock.' + kind + '.t'), t('tm.st.' + status), t('tm.empty.' + view), t('tm.e.' + word)
+const need = []
+for (const kind of ['plan', 'signin', 'space', 'server', 'reconnect', 'net']) need.push('tm.lock.' + kind + '.t', 'tm.lock.' + kind + '.b')
+need.push('tm.lock.other.t')
+for (const st of ['proposed', 'approved', 'rejected', 'retired']) need.push('tm.st.' + st)
+for (const v of ['approved', 'mine', 'review', 'retired']) need.push('tm.empty.' + v, 'tm.empty.' + v + 'Hint')
+for (const v of ['approved', 'mine', 'review', 'retired']) assert.ok(src.includes("'tm.v." + v + "'"), 'the sub-view ' + v)
+assert.deepEqual(need.filter((k) => !dict.has(k)), [])
+ok('the lock reasons, the statuses and the empty states all have their sentences')
+
+// 4. every word the Team routes (kybernos-cloud/team-skills.mjs) and the disk half (index.js) can answer with has a sentence
+const cloud = readFileSync(join(here, '..', 'kybernos-cloud', 'team-skills.mjs'), 'utf8')
+const host = readFileSync(join(here, 'index.js'), 'utf8')
+const words = new Set()
+for (const m of cloud.matchAll(/error: '([a-z_]+)'/g)) words.add(m[1])
+for (const body of host.slice(host.indexOf('const packSkill'), host.indexOf('// ── CREATION')).matchAll(/error: '([a-z_]+)'/g)) words.add(body[1])
+// What a reviewer or the user can meet: every word, except the generic ones that fall back to "Failed ({code})" on purpose.
+// `refused_<status>` is the server's answer to a status nobody planned; `skill_disabled` has its own sentence in the propose sheet.
+const generic = new Set(['refused_', 'skill_disabled'])
+const noSentence = [...words].filter((w) => !generic.has(w) && !dict.has('tm.e.' + w) && !dict.has('tm.p.bad.' + w))
+assert.deepEqual(noSentence, [], 'answers with no sentence: ' + noSentence.join(', '))
+assert.ok(words.size > 15, 'the answer words were read (' + words.size + ')')
+ok('every answer of the Team routes and of pack/install has a sentence (' + words.size + ' words, ' + generic.size + ' deliberately generic)')
+
+// 5. the ways a skill can fail to be packed each have a sentence
+for (const reason of ['binary', 'file_too_large', 'too_many_files', 'too_large', 'bad_path', 'frontmatter', 'name', 'description', 'no_skill_md']) {
+  assert.ok(src.includes(reason + ": 'tm.p.bad."), 'no sentence for the pack reason ' + reason)
+}
+ok('each reason a skill cannot be shared (picture, size, count, name, path, frontmatter, missing SKILL.md) has a sentence')
+
+// 6. the older routes (list, toggle, install, create, discover, audit) answer in CODES, and the screen words each one in both languages
+//    (`he.<code>`). Before, the host wrote French sentences, which an English user read as they were.
+const outsideTeam = host.slice(0, host.indexOf('// ── TEAM SKILLS')) + host.slice(host.indexOf('// ── CREATION'))
+const literal = [...outsideTeam.matchAll(/\berror: ('(?:[^'\\\n]|\\.)*')/g)].map((m) => m[1].slice(1, -1))
+assert.ok(literal.length > 25, 'the codes of the older routes were read (' + literal.length + ')')
+const notCodes = literal.filter((w) => /^[a-z][a-z0-9_]*$/.test(w) === false)
+assert.deepEqual(notCodes, [], 'an answer that is a sentence, not a code: ' + notCodes.join(' | '))
+assert.deepEqual([...outsideTeam.matchAll(/\berror: '[a-z_]+' \+/g)].map((m) => m[0]), [], 'a code with text glued to it')
+// Codes the host builds without writing `error: '…'` (a ternary, a thrown word): named here, and checked to be in the source.
+const built = ['timeout', 'network_unavailable', 'not_github', 'body_too_large']
+for (const w of built) assert.ok(host.includes("'" + w + "'"), w + ' is no longer in the host: drop it from this list')
+const codes = new Set([...literal, ...built])
+// Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
+const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable', 'bad_name', 'bad_root', 'bad_path', 'bad_target'])
+const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))
+assert.deepEqual(noHe, [], 'host codes with no sentence on the screen: ' + noHe.join(', '))
+const orphan = [...dict.keys()].filter((k) => k.startsWith('he.') && !codes.has(k.slice(3)))
+assert.deepEqual(orphan, [], 'sentences for a code the host never sends: ' + orphan.join(', '))
+ok('the older routes answer in codes (' + codes.size + '), and every one the page can show has a French and an English sentence')
+
+// 2. The "Yours" card opens its local sheet (UB-13) without hijacking its inner buttons:
+//    the switch and the star must stop propagation, and the keyboard handler must ignore keys
+//    that come from those inner buttons.
+assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggle\(s\) \}/.test(src), 'the active switch stops propagation before toggling')
+assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggleFeatured\(s\.name\) \}/.test(src), 'the Featured star stops propagation before toggling')
+assert.ok(/onKeyDown: \(e\) => \{ if \(e\.target !== e\.currentTarget\) return;/.test(src), 'the card keyboard handler ignores keys from inner buttons')
+ok('the Yours card opens its sheet without hijacking the inner switch/star (mouse + keyboard)')
+
+console.log('\n' + pass + ' verifications OK')

@@ -1,0 +1,8 @@
+{
+  "name": "dsh-subagent-opencode",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "DSH subagent provider for the OpenCode CLI (opencode run)",
+  "main": "index.js",
+  "exports": { ".": "./index.js" }
+}

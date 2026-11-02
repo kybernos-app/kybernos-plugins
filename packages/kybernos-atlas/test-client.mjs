@@ -1,0 +1,362 @@
+#!/usr/bin/env node
+/**
+ * Harness for the client half of `kybernos-atlas`.
+ *
+ *   1. always: the pure model (normalisers written against route shapes measured on a running DSH,
+ *      the graph builder, the checks, the Map view columns, the list and picker helpers) with no
+ *      browser and no dependency;
+ *   2. the registration contract: the entry declares the services it needs, registers one
+ *      `settings.section`, and never throws when a service is missing (a bundle must never stop
+ *      DSH from starting);
+ *   3. what the page may NOT do: no write verb except the two read-only POSTs, no secret copied
+ *      from the task store.
+ *
+ * Usage: node kybernos-atlas/test-client.mjs
+ */
+import { readFileSync } from 'node:fs'
+
+let pass = 0
+let fail = 0
+const check = (name, condition, detail) => {
+  if (condition === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
+}
+
+const SOURCE = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+let definition
+globalThis.window = { __ModuleLoader__: { load: (def) => { definition = def } } }
+new Function('window', SOURCE)(globalThis.window)
+const model = definition.factory() // no `require`: the pure part must not need React
+const T = model.__test
+const NOW = Date.UTC(2026, 9, 5)
+const iso = (daysAgo) => new Date(NOW - daysAgo * 86400000).toISOString()
+
+console.log('\n── loader and registration ──')
+check('id = @local/kybernos-atlas/client', definition.id === '@local/kybernos-atlas/client')
+check('declares slots and uiWorkspace', Array.isArray(model.inject) && model.inject.includes('slots') && model.inject.includes('uiWorkspace'))
+{
+  let threw = false
+  try { model.apply({ get: () => undefined }) } catch (e) { threw = true }
+  check('apply without slots: no throw', threw === false)
+  threw = false
+  try { model.apply({ get () { throw new Error('boom') } }) } catch (e) { threw = true }
+  check('apply when a service lookup throws: no throw', threw === false)
+  threw = false
+  try { model.apply(null) } catch (e) { threw = true }
+  check('apply with no context at all: no throw', threw === false)
+}
+
+// Real shapes, trimmed. Names are invented.
+const rawSkills = { ok: true, skills: [
+  { name: 'code-review', root: '/h/.dsh/skills', source: 'user-dsh', rank: 1, writable: true, active: true, description: 'Review a diff.', whenToUse: '', modifiedAt: iso(20), collision: false },
+  { name: 'pdf', root: '/h/.dsh/skills', source: 'user-dsh', rank: 1, writable: true, active: true, description: 'PDF files.', whenToUse: '', modifiedAt: iso(44), collision: true },
+  { name: 'pdf', root: '/h/.agents/skills', source: 'user-agents', rank: 2, writable: true, active: true, description: 'PDF files.', whenToUse: '', modifiedAt: iso(50), collision: true },
+  { name: 'old-skill', root: '/h/.dsh/skills', source: 'user-dsh', rank: 1, writable: true, active: false, description: '', whenToUse: '', modifiedAt: iso(300), collision: false },
+  { name: 'never-declared', root: '/h/.dsh/skills', source: 'user-dsh', rank: 1, writable: true, active: true, description: 'Used by name only.', whenToUse: '', modifiedAt: iso(9), collision: false }
+], roots: [], complete: true }
+const rawLoad = { ok: true, roots: [
+  { id: 'installed', label: 'Installed', path: '/h/.dsh/kybers', kybers: [
+    { id: 'Reviewer', file: '/h/.dsh/kybers/reviewer/kyber.yml', mission: 'Review changes before they ship. Then report.', roles: [{ id: 'lead', tools: ['GITHUB_LIST_PRS'] }, { id: 'tester', tools: [] }], skillsDeclared: ['code-review', 'brand-voice', 'old-skill'], skills: [], ui: { name: 'Reviewer', color: '#fff', category: 'dev' } },
+    { id: 'writer', mission: '', roles: [], skillsDeclared: ['voice-local'], skills: ['voice-local'], ui: null }
+  ] },
+  { id: 'workspace', label: 'Repo', path: '/r/kybers', kybers: [{ id: 'reviewer', mission: 'dup', roles: [], skillsDeclared: [], skills: [] }] }
+], workspaceUi: {
+  w1: { name: 'Plugins repo', icon: 'x', color: 'y', skills: ['code-review', 'pitch-deck'] },
+  w2: { name: 'Website', icon: null, color: null }
+}, catalog: { providers: {} } }
+const rawState = { session: null, kybers: [
+  { id: 'reviewer', lecons: [{ ts: iso(2), texte: 'Restart dsh after a host change.', tags: ['dsh'] }, { ts: iso(30), texte: 'Prefix every CSS class.', tags: [] }], totalLecons: 12, totalRuns: 7, derniereActivite: iso(1), dernierOutcome: 'ok', membres: [] },
+  { id: 'ghost-kyber', lecons: [{ ts: iso(400), texte: 'Old lesson.', tags: [] }], totalLecons: 1, totalRuns: 0, derniereActivite: null, dernierOutcome: null, membres: [] }
+] }
+const rawMemory = { ok: true, connected: true, account: [{ id: 1, scope: 'account', kyberId: null, kind: 'fact', content: 'secret-ish fact', pinned: true }, { id: 2, scope: 'account', kyberId: null, kind: 'fact', content: 'another', pinned: false }],
+  kyber: {}, map: {}, locals: [], cloud: [{ id: 'c1', name: 'Site kyber', glyph: 'x', color: 'y', workspaceId: 'w2', workspaceName: 'Website', memoryCount: 4 }] }
+const rawTasks = { ok: true, tasks: [
+  { id: 'digest', name: 'Morning digest', prompt: 'PRIVATE PROMPT', schedule: { mode: 'cron', tz: 'UTC', cron: '30 7 * * 1-5' }, active: true, trigger: { type: 'webhook', hookId: 'h', secret: 'TOP-SECRET' },
+    history: [{ at: iso(1), sessionId: 's1', status: 'error', error: 'Gmail token expired' }, { at: iso(2), sessionId: 's2', status: 'fired' }] },
+  { id: 'backup', name: 'Back up', schedule: { mode: 'at', at: '2026-10-10T03:00:00Z' }, active: true, history: [] }
+] }
+const rawConn = { ok: true, connections: [{ toolkit: 'github', status: 'active', accounts: [{ id: 'a' }] }, { toolkit: 'gmail', status: 'active', accounts: [{ id: 'b' }] }, { toolkit: 'empty', status: 'x', accounts: [] }] }
+const rawMini = { ok: true, items: [{ id: 'Telegram', chemin: '~/Applications/Kybernos/Telegram.app', auto: false }] }
+
+{
+  let threw = false
+  let m2 = null
+  try { m2 = definition.factory(() => { throw new Error('no react here') }) } catch (e) { threw = true }
+  check('factory when require(\'react\') throws: no throw, nothing registered', threw === false && m2 !== null)
+  let registered = 0
+  m2.apply({ get: (n) => (n === 'slots' ? { inject: () => { registered += 1 } } : undefined) })
+  check('…and apply registers nothing instead of failing', registered === 0)
+}
+
+console.log('\n── normalisers ──')
+const skills = T.normSkills(rawSkills)
+check('skills: 5 entries kept, fields mapped', skills.length === 5 && skills[0].name === 'code-review' && skills[3].active === false && skills[1].collision === true)
+check('skills: garbage input gives []', T.normSkills(null).length === 0 && T.normSkills({ skills: [1, null, {}] }).length === 0)
+const load = T.normLoad(rawLoad)
+check('load: kybers deduplicated across roots (lower-cased id)', load.kybers.length === 2 && load.kybers[0].id === 'reviewer')
+check('load: display name from ui.name, falls back to id', load.kybers[0].name === 'Reviewer' && load.kybers[1].name === 'writer')
+check('load: tools collected from every role', load.kybers[0].tools.length === 1 && load.kybers[0].tools[0] === 'GITHUB_LIST_PRS')
+check('load: local skill folders kept', load.kybers[1].localSkills[0] === 'voice-local')
+check('load: workspace names and skills', load.ui.w1.name === 'Plugins repo' && load.ui.w1.skills.length === 2 && load.ui.w2.skills.length === 0)
+const state = T.normState(rawState)
+check('state: lessons and totals', state.length === 2 && state[0].total === 12 && state[0].lessons.length === 2 && state[0].lessons[0].text.startsWith('Restart'))
+const mem = T.normMemory(rawMemory)
+check('memory: account is a COUNT, never one entry per fact', mem.connected && mem.accountCount === 2 && mem.pinned === 1 && mem.cloud.length === 1 && !('account' in mem))
+check('memory: not linked → connected false, not a failure', T.normMemory({ ok: false, connected: false, error: 'non connecte' }).connected === false && T.normMemory({ ok: false, connected: false }).failed === '')
+check('memory: linked but the read failed → a failure with the reason', T.normMemory({ ok: false, connected: true, error: 'timeout' }).failed === 'timeout')
+const tasks = T.normTasks(rawTasks)
+check('tasks: schedule object turned into text', tasks[0].schedule.startsWith('Cron 30 7') && tasks[1].schedule.startsWith('Once'))
+check('tasks: history newest first', tasks[0].history[0].status === 'error')
+check('tasks: the prompt and the webhook secret are NEVER copied', !JSON.stringify(tasks).includes('TOP-SECRET') && !JSON.stringify(tasks).includes('PRIVATE PROMPT'))
+const apps = T.normApps(rawConn, rawMini)
+check('apps: only toolkits with an account, plus mini apps', apps.length === 3 && apps.some((a) => a.label === 'Telegram') && !apps.some((a) => a.label === 'empty'))
+const ws = T.normWorkspaces([{ workspaceId: 'w1', title: '', sessionIds: ['s1', 's2'], createdAt: iso(100) }, { workspaceId: 'w2', title: 'x', sessionIds: [] }], { s1: { updatedAt: NOW - 86400000 }, s2: { updatedAt: NOW - 5 * 86400000 } }, load.ui)
+check('workspaces: workspaceUi name wins over the store title', ws.find((w) => w.id === 'w1').name === 'Plugins repo' && ws.find((w) => w.id === 'w2').name === 'Website')
+check('workspaces: updatedAt = newest session', ws.find((w) => w.id === 'w1').updatedAt === NOW - 86400000)
+check('workspaces: a workspaceUi entry the store does not know is dropped (stale)', !T.normWorkspaces([{ workspaceId: 'w1', title: 'A', sessionIds: [] }], {}, { w1: { name: 'A', skills: [] }, gone: { name: 'Gone', skills: [] } }).some((w) => w.id === 'gone'))
+check('workspaces: with no store (not ready), workspaceUi alone still gives projects', T.normWorkspaces([], {}, { w1: { name: 'A', skills: ['x'] } }).length === 1)
+check('workspaces: a bare uuid is shortened', T.normWorkspaces([{ workspaceId: '863b38e2-1e81-4681-8fbf-785251e5708f', sessionIds: [] }], {}, {})[0].name === '863b38e2')
+
+console.log('\n── graph ──')
+const src = { workspaces: ws, kybers: load.kybers, skills, state, memory: mem, tasks, apps, active: { s1: ['reviewer'], s2: ['reviewer'] } }
+const g = T.buildGraph(src, NOW)
+const kind = (k) => g.nodes.filter((n) => n.kind === k)
+check('projects: one node per workspace', kind('area').length === 2)
+check('kybers: definitions + a ledger-only kyber', kind('kyber').length === 3 && g.byId['k:ghost-kyber'].note.includes('No agent team definition'))
+check('kyber is tied to the project of its active sessions (derived)', g.adj['k:reviewer'].has('p:w1') && g.byId['k:reviewer'].area === 'p:w1')
+check('skills: duplicate names collapse to one node', kind('skill').filter((n) => n.label === 'pdf').length === 1)
+check('skill declared by a kyber is linked (declared)', g.adj['k:reviewer'].has('s:code-review') && g.adj['p:w1'].has('s:code-review'))
+check('a skill nobody declares is NOT a problem', g.byId['s:never-declared'].problem === null && g.byId['s:never-declared'].deg === 0)
+check('a kyber-local skill is valid, not "not installed"', g.byId['k:writer'].problem === null && g.nodes.some((n) => n.id === 's:local:writer:voice-local'))
+check('lessons: one node each, linked to their kyber', kind('lesson').length === 3 && g.adj['k:reviewer'].has('l:reviewer:0'))
+check('kyber says how many older lessons exist', g.byId['k:reviewer'].olderLessons === 10)
+check('memory: ONE account node (not one per fact) and a cloud memory tied to its project', kind('memory').length === 2 && g.byId['m:account'].note.includes('2 facts') && g.adj['m:cloud:c1'].has('p:w2'))
+check('automation tied to a project through its runs\' sessions', g.adj['t:digest'].has('p:w1') && g.byId['t:digest'].area === 'p:w1')
+check('automation with no run has no project', g.byId['t:backup'].area === 'none' && g.byId['t:backup'].deg === 0)
+check('app ↔ kyber is INFERRED from a tool-name match only', g.links.some((l) => l.s === 'a:toolkit:github' && l.t === 'k:reviewer' && l.kind === 'inferred') && !g.adj['a:toolkit:gmail'].size)
+
+console.log('\n── checks (To check) ──')
+const probs = Object.fromEntries(g.problems.map((n) => [n.id, n.problem]))
+check('missing skill declared by a kyber → error + a ghost', probs['k:reviewer'] && probs['k:reviewer'].sev === 'err' && g.ghosts.some((x) => x.src === 'k:reviewer' && x.label === 'brand-voice'))
+check('missing skill declared by a project → error + a ghost', probs['p:w1'] && probs['p:w1'].sev === 'err' && g.ghosts.some((x) => x.src === 'p:w1' && x.label === 'pitch-deck'))
+check('same-name skills in two folders → warning', probs['s:pdf'] && probs['s:pdf'].sev === 'warn')
+check('inactive but declared skill → warning naming its owner', probs['s:old-skill'] && probs['s:old-skill'].text.includes('Reviewer'))
+check('automation whose last run failed → warning with the reason', probs['t:digest'] && probs['t:digest'].text.includes('Gmail token expired'))
+check('errors are listed before warnings', g.problems[0].problem.sev === 'err' && g.problems.findIndex((n) => n.problem.sev === 'warn') > g.problems.map((n) => n.problem.sev).lastIndexOf('err'))
+const clean = T.buildGraph({ workspaces: [], kybers: [], skills: [], state: [], memory: null, tasks: [], apps: [], active: {} }, NOW)
+check('nothing read → an empty graph, no throw, no problem', clean.nodes.length === 0 && clean.problems.length === 0)
+check('sources that were not read (null) do not throw', T.buildGraph({ workspaces: null, kybers: null, skills: null, state: null, memory: null, tasks: null, apps: null, active: null }, NOW).nodes.length === 0)
+
+console.log('\n── Map view ──')
+check('hub of a skill = the kyber that declares it', T.hubOf(g, g.byId['s:code-review']) === 'k:reviewer')
+check('hub of a project/kyber = itself', T.hubOf(g, g.byId['p:w1']) === 'p:w1' && T.hubOf(g, g.byId['k:writer']) === 'k:writer')
+check('hub of an orphan = null', T.hubOf(g, g.byId['s:never-declared']) === null)
+const set = T.aroundSet(g, 'p:w1')
+check('around a project: its kybers and what they use, not other projects', set.has('k:reviewer') && set.has('s:code-review') && set.has('l:reviewer:0') && !set.has('p:w2'))
+const am = T.aroundModel(g, 'p:w1', {})
+check('four columns, in order', am.cols.map((c) => c.title).join('|') === 'Project|Agent Teams & automations|Skills & apps|Memory & lessons')
+check('around a kyber, the first column is "Projects"', T.aroundModel(g, 'k:reviewer', {}).cols[0].title === 'Projects')
+check('ghost pills are placed in the skills group', am.cols[2].groups[0].ghosts.length === 2 || am.cols[2].groups[0].ghosts.some((x) => x.label === 'pitch-deck'))
+check('a line is drawn for each link inside the set, plus one per ghost', am.lines.some((l) => l.s === 'k:reviewer' && l.t === 's:code-review') && am.lines.some((l) => l.t.startsWith('ghost:')))
+{
+  const big = { workspaces: [{ id: 'w', name: 'P', sessionIds: [], skills: [] }], kybers: [{ id: 'k', name: 'K', mission: '', category: '', skillsDeclared: ['s0', 's1', 's2', 's3', 's4', 's5', 's6'], localSkills: [], tools: [], roles: [] }], skills: Array.from({ length: 7 }, (_, i) => ({ name: 's' + i, description: '', root: '', source: '', active: true, collision: false, modifiedAt: null })), state: [], memory: null, tasks: [], apps: [], active: {} }
+  const gb = T.buildGraph(big, NOW)
+  const g0 = T.aroundModel(gb, 'k:k', {}).cols[2].groups[0]
+  check('a long group shows 5 and says how many are hidden', g0.items.length === 5 && g0.hidden === 2 && g0.total === 7)
+  check('expanding shows all of them', T.aroundModel(gb, 'k:k', { ['k:k/skill']: true }).cols[2].groups[0].items.length === 7)
+}
+
+console.log('\n── whole-workspace views (model) ──')
+check('graph keeps the recent automation runs (last 14 days) and the clock', Array.isArray(g.runs) && g.runs.length === 2 && g.runs.every((r) => r.days <= 13) && typeof g.now === 'number')
+const cm = T.canvasModel(g, {})
+const cmL = T.canvasModel(g, { lessons: true })
+check('canvas: a root node, copies of every node but the lessons, and the runs', cm.byId.root && cm.nodes.filter((n) => n.kind === 'lesson').length === 0 && cm.nodes.filter((n) => n.kind === 'run').length === 2)
+check('canvas: lessons come back when asked for', cmL.nodes.filter((n) => n.kind === 'lesson').length === 3)
+check('canvas nodes are copies (the engine moves them, the graph must not move)', g.nodes[0].x === undefined && cm.byId['p:w1'] !== g.byId['p:w1'])
+check('canvas: the root is linked to every project and to account memory', cm.adj.root.has('p:w1') && cm.adj.root.has('p:w2') && cm.adj.root.has('m:account') && cm.byId.root.deg === 3)
+check('canvas: a run is linked to its automation and takes its project', cm.adj['x:digest:0'].has('t:digest') && cm.byId['x:digest:0'].area === 'p:w1' && cm.byId['x:digest:0'].run.ok === false)
+check('canvas: one red stub per broken reference, no target', cm.links.filter((l) => l.bad).length === g.ghosts.length && cm.links.filter((l) => l.bad).every((l) => l.t === null))
+check('canvas: inferred links keep their flag, declared ones do not', cm.links.some((l) => l.inf && l.s === 'a:toolkit:github') && cm.links.some((l) => !l.inf && l.s === 'k:reviewer' && l.t === 's:code-review'))
+check('canvas: counts per project and per kind add up', Object.keys(cm.areaCount).reduce((a, k) => a + cm.areaCount[k], 0) === cm.nodes.length - 1 && cm.kindCount.run === 2 && cm.problemCount === g.problems.length)
+
+console.log('\n── whole-workspace views (layouts) ──')
+const lay = T.canvasLayouts(cm)
+const finite = (pos, ids) => ids.every((id) => Array.isArray(pos[id]) && pos[id].length >= 2 && pos[id].every((v) => Number.isFinite(v)))
+const ids = cm.nodes.map((n) => n.id)
+for (const v of ['rings', 'circle', 'areas', 'links', 'timeline']) check('layout "' + v + '": every node gets a finite position', finite(lay[v], ids))
+check('orbit: every node gets finite 3D coordinates', ids.every((id) => Array.isArray(lay.L3[id]) && lay.L3[id].length === 3 && lay.L3[id].every((x) => Number.isFinite(x))))
+check('rings: the root is in the middle and each node sits on the ring of its layer', lay.rings.root[0] === 0 && lay.rings.root[1] === 0 && cm.nodes.filter((n) => n.id !== 'root').every((n) => Math.abs(Math.hypot(lay.rings[n.id][0], lay.rings[n.id][1]) - T.RING_R[T.LAYERS.indexOf(n.layer)]) < 0.01))
+{
+  // every project keeps ONE wedge on every ring
+  const ang = (id) => Math.atan2(lay.rings[id][1], lay.rings[id][0])
+  const norm = (a) => (a + 2.5 * Math.PI) % (2 * Math.PI) // 0 at the top, increasing clockwise
+  const ranges = {}
+  for (const n of cm.nodes) { if (n.id === 'root' || n.area === null) continue; const a = norm(ang(n.id)); const r = ranges[n.area] || (ranges[n.area] = [9, -9]); r[0] = Math.min(r[0], a); r[1] = Math.max(r[1], a) }
+  const keys = Object.keys(ranges).filter((k) => cm.areaCount[k] > 0).sort((a, b) => ranges[a][0] - ranges[b][0])
+  let overlap = false
+  for (let i = 1; i < keys.length; i++) if (ranges[keys[i]][0] < ranges[keys[i - 1]][1] - 1e-9) overlap = true
+  check('rings: wedges of two projects never overlap', overlap === false, ranges)
+}
+check('circle: everything but the root sits on the same circle', cm.nodes.filter((n) => n.id !== 'root').every((n) => Math.abs(Math.hypot(lay.circle[n.id][0], lay.circle[n.id][1]) - 330) < 0.01))
+{
+  const hs = Object.keys(lay.halos).map((k) => lay.halos[k]); let clash = false
+  for (let i = 0; i < hs.length; i++) for (let j = i + 1; j < hs.length; j++) if (Math.hypot(hs[i].x - hs[j].x, hs[i].y - hs[j].y) < hs[i].r + hs[j].r - 1) clash = true
+  check('areas: the cluster halos do not overlap', clash === false)
+  check('areas: a project sits at the centre of its own halo', Math.abs(lay.areas['p:w1'][0] - lay.halos['p:w1'].x) < 0.01 && Math.abs(lay.areas['p:w1'][1] - lay.halos['p:w1'].y) < 0.01)
+}
+{
+  const again = T.canvasLayouts(T.canvasModel(g, {}))
+  check('links: the force layout gives the same picture every time', JSON.stringify(again.links) === JSON.stringify(lay.links))
+  const linked = lay.links['k:reviewer']; const near = lay.links['s:code-review']
+  check('links: two linked nodes end up closer than two unrelated ones', Math.hypot(linked[0] - near[0], linked[1] - near[1]) < Math.hypot(lay.links['k:reviewer'][0] - lay.links['m:cloud:c1'][0], lay.links['k:reviewer'][1] - lay.links['m:cloud:c1'][1]) + 400)
+}
+check('timeline: runs are above the axis, everything else below', cm.nodes.filter((n) => n.kind === 'run').every((n) => lay.timeline[n.id][1] < -40) && cm.nodes.filter((n) => n.kind !== 'run').every((n) => lay.timeline[n.id][1] > 60))
+check('timeline: the more recent run is further right', lay.timeline['x:digest:0'][0] > lay.timeline['x:digest:1'][0])
+check('timeline: things with no date sit left of the dated ones', cm.nodes.filter((n) => n.days === null && n.kind !== 'run').every((n) => lay.timeline[n.id][0] < T.TL.x0) && cm.nodes.filter((n) => n.days !== null && n.kind !== 'run').every((n) => lay.timeline[n.id][0] >= T.TL.x0 - 1))
+check('timeline: the scale grows with recency (square root)', T.tlx(0) > T.tlx(1) && T.tlx(1) > T.tlx(30) && T.tlx(220) === T.TL.x0 && T.tlx(5000) === T.TL.x0)
+check('every view has a finite bounding box', ['rings', 'circle', 'areas', 'links', 'timeline', 'orbit'].every((v) => lay.boxes[v].length === 4 && lay.boxes[v].every((x) => Number.isFinite(x))))
+{
+  const lone = T.canvasLayouts(T.canvasModel(T.buildGraph({ workspaces: [], kybers: [], skills: [], state: [], memory: null, tasks: [], apps: [], active: {} }, NOW), {}))
+  check('an empty workspace still lays out (just the root), no NaN', Object.keys(lone.rings).length === 1 && lone.boxes.areas.every((x) => Number.isFinite(x)) && lone.boxes.links.every((x) => Number.isFinite(x)))
+}
+{
+  const many = { workspaces: [{ id: 'w', name: 'P', sessionIds: [], skills: [] }], kybers: Array.from({ length: 30 }, (_, i) => ({ id: 'k' + i, name: 'K' + i, mission: '', category: '', skillsDeclared: [], localSkills: [], tools: [], roles: [] })), skills: Array.from({ length: 120 }, (_, i) => ({ name: 's' + i, description: '', root: '', source: '', active: true, collision: false, modifiedAt: iso(i) })), state: [], memory: null, tasks: [], apps: [], active: {} }
+  const bm = T.canvasModel(T.buildGraph(many, NOW), {})
+  const t0 = Date.now(); const big = T.canvasLayouts(bm); const ms = Date.now() - t0
+  check('150 nodes lay out in well under a second, every one placed', bm.nodes.length === 152 && Object.keys(big.links).length === 152 && ms < 2000, [bm.nodes.length, ms])
+  check('timeline: a more recent change is further right', big.timeline['s:s0'][0] > big.timeline['s:s50'][0] && big.timeline['s:s50'][0] > big.timeline['s:s119'][0])
+}
+check('six drawing views are declared', T.CANVAS_VIEWS.join() === 'rings,circle,areas,links,timeline,orbit')
+
+console.log('\n── list, picker, default focus ──')
+check('list: problems first', T.listRows(g, '')[0].problem !== null)
+check('list: filter matches name, note or path', T.listRows(g, 'pdf').some((n) => n.label === 'pdf') && T.listRows(g, 'zzzz').length === 0)
+const pk = T.pickerItems(g, '')
+check('picker: Projects then Agent Teams, no skills in the default list', pk[0].head === 'Projects' && pk.some((x) => x.head === 'Agent Teams') && !pk.some((x) => x.label === 'pdf'))
+check('picker: a search finds any kind', T.pickerItems(g, 'pdf').some((x) => x.sub === 'Skill'))
+{
+  const best = g.nodes.filter((n) => n.kind === 'area' || n.kind === 'kyber').reduce((m, n) => (n.deg > m.deg ? n : m))
+  check('default focus: the best-connected project or kyber', T.defaultFocus(g) === best.id && best.deg > 0, [T.defaultFocus(g), best.id, best.deg])
+}
+check('default focus on an empty graph is null', T.defaultFocus(clean) === null)
+
+console.log('\n── dates and text helpers ──')
+check('daysSince: ISO string and ms number', T.daysSince(iso(3), NOW) === 3 && T.daysSince(NOW - 86400000, NOW) === 1 && T.daysSince(null, NOW) === null && T.daysSince('nope', NOW) === null)
+check('ago wording', T.ago(0) === 'today' && T.ago(1) === 'yesterday' && T.ago(12) === '12 days ago' && T.ago(90) === '3 months ago' && T.ago(null) === 'not recorded')
+check('cut adds an ellipsis only when needed', T.cut('short', 10) === 'short' && T.cut('x'.repeat(20), 10).length === 10)
+check('firstSentence', T.firstSentence('Roles: lead. Then more.') === 'Roles: lead')
+
+console.log('\n── opening a node in DSH ──')
+const NEW_SIDEBAR = ['teaminfo', 'project', 'tasks', 'skills', 'connectors']
+const OLD_SIDEBAR = ['teaminfo', 'project', 'tasks', 'resources']
+const ot = (n, v) => T.openTarget(n, v)
+check('normLoad keeps the kyber file and the root it lives in', load.kybers[0].file === '/h/.dsh/kybers/reviewer/kyber.yml' && load.kybers[0].rootId === 'installed' && load.kybers[1].file === '')
+check('new sidebar: skill → Skills, automation → Automations, toolkit app → Connectors', ot(g.byId['s:code-review'], NEW_SIDEBAR).patch.view === 'skills' && ot(g.byId['t:digest'], NEW_SIDEBAR).patch.view === 'tasks' && ot(g.byId['a:toolkit:github'], NEW_SIDEBAR).patch.view === 'connectors')
+check('old sidebar: a skill opens the single Resources page, an app has no page', ot(g.byId['s:code-review'], OLD_SIDEBAR).patch.view === 'resources' && ot(g.byId['s:code-review'], OLD_SIDEBAR).label === 'Resources' && ot(g.byId['a:toolkit:github'], OLD_SIDEBAR) === null)
+check('project → its page by workspace id', JSON.stringify(ot(g.byId['p:w1'], NEW_SIDEBAR).patch) === JSON.stringify({ view: 'project', projectId: 'w1' }))
+check('kyber with a definition → its page by file and root', JSON.stringify(ot(g.byId['k:reviewer'], NEW_SIDEBAR).patch) === JSON.stringify({ view: 'teaminfo', detailPath: '/h/.dsh/kybers/reviewer/kyber.yml', detailRoot: 'installed' }))
+check('a kyber known only by its lessons has no page to open', ot(g.byId['k:ghost-kyber'], NEW_SIDEBAR) === null)
+check('mini apps, memory and lessons have no page of their own', ot({ kind: 'app', id: 'a:mini:Telegram' }, NEW_SIDEBAR) === null && ot(g.byId['m:account'], NEW_SIDEBAR) === null && ot(g.byId['l:reviewer:0'], NEW_SIDEBAR) === null && ot({ kind: 'root', id: 'root' }, NEW_SIDEBAR) === null)
+check('a run opens its session, and only when it has one', ot({ kind: 'run', run: { sessionId: 's1' } }, []).session === 's1' && ot({ kind: 'run', run: { sessionId: '' } }, NEW_SIDEBAR) === null)
+check('a page the sidebar does not advertise gets no button (no list, or an empty one)', ot(g.byId['s:code-review'], undefined) === null && ot(g.byId['t:digest'], []) === null && ot(g.byId['k:reviewer'], ['tasks']) === null)
+check('canvas runs keep their session id', cm.byId['x:digest:0'].run.sessionId === 's1')
+check('the page degrades when the main plugin does not expose the seam', /typeof seam !== 'function'\) return null/.test(SOURCE) && /seam\.views/.test(SOURCE))
+{
+  // contract with the main plugin: the seam exists, and every page it advertises is a page its sidebar can open
+  let master = null
+  try { master = readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8') } catch (e) { master = null }
+  if (master === null) console.log('SKIPPED: the contract checks with the main plugin — its source (../kybernos-plugin/client.js) was not found')
+  else {
+    check('main plugin exposes window.__KB_OPEN__ and says which pages it has', /window\.__KB_OPEN__ = kbOpenPage/.test(master) && /Object\.defineProperty\(kbOpenPage, 'views'/.test(master))
+    const adv = (master.match(/Object\.defineProperty\(kbOpenPage, 'views', \{ get: \(\) => ([^\n]*)\}\)\n/) || [null, ''])[1]
+    const names = (adv.match(/'[a-z]+'/g) || []).map((x) => x.slice(1, -1))
+    check('every advertised page is one the sidebar opens, with the same patch shape', names.length >= 3 && names.every((v) => new RegExp("(openPage|set)\\(\\{ view: '" + v + "'").test(master)), names)
+    const sent = ['skills', 'resources', 'connectors', 'tasks', 'project', 'teaminfo'].filter((v) => SOURCE.includes("view: '" + v + "'"))
+    check('every page Atlas can ask for is a page some sidebar opens (this one or a newer one)', sent.length === 6 && sent.every((v) => names.indexOf(v) >= 0 || ['skills', 'resources', 'connectors'].indexOf(v) >= 0), sent)
+  }
+}
+
+console.log('\n── nothing is read until the user asks ──')
+{
+  const mount = SOURCE.split('\n').filter((l) => l.includes('poserCss()') && l.includes('React.useEffect'))
+  check('the mount effect exists and never calls load()', mount.length === 1 && !/\bload\(/.test(mount[0]), mount)
+  check('readAll is only called from load, and load only from buttons', (SOURCE.match(/readAll\(/g) || []).length === 1 && !/useEffect\([^)]*load\(\)/.test(SOURCE))
+  check('a first visit starts idle, not loading', /\{ phase: 'idle', status: \{\}, result: null \}/.test(SOURCE) && !/useState\(\{ phase: 'loading'/.test(SOURCE))
+  check('the header button says Update, the first screen offers Update', SOURCE.includes("}, tr('Update')))),") && SOURCE.includes("onClick: load }, tr('Update')"))
+  check('readAgo: just now, minutes, hours, days', T.readAgo(1000, 1000 + 20000) === 'just now' && T.readAgo(0, 5 * 60000) === '5 min ago' && T.readAgo(0, 3 * 3600000) === '3 h ago' && T.readAgo(0, 86400000) === '1 day ago' && T.readAgo(0, 4 * 86400000) === '4 days ago')
+}
+
+console.log('\n── language (A2-19): English is the base, French is the twin, every other language reads English ──')
+{
+  const setLang = (l) => { globalThis.window.__KB_LANG_RESOLVE__ = () => { if (l === 'throws') throw new Error('not ready'); return l } }
+  const keysUsed = new Set([...SOURCE.matchAll(/\btr\('((?:[^'\\]|\\.)*)'\)/g)].map((m) => m[1].replace(/\\'/g, "'")))
+  const SAME = new Set(['Agent Team', 'Agent Teams', 'Automation', 'Automations', 'Skill', 'Skills', 'App', 'Apps', 'Source', 'Rechercher'])
+  check('the French table has an entry for every tr(...) the page uses', [...keysUsed].every((k) => T.FR[k] !== undefined), [...keysUsed].filter((k) => T.FR[k] === undefined))
+  check('…and no dead entry', Object.keys(T.FR).every((k) => keysUsed.has(k)), Object.keys(T.FR).filter((k) => !keysUsed.has(k)))
+  check('every French text is a text of its own (empty or identical only for words that are the same in both languages)', Object.entries(T.FR).every(([en, fr]) => fr.length > 0 && (fr !== en || SAME.has(en))), Object.entries(T.FR).filter(([en, fr]) => fr === en && !SAME.has(en)).map((x) => x[0]))
+  check('no English word is left in a French sentence of three words or more', Object.values(T.FR).filter((fr) => fr.split(' ').length >= 3).every((fr) => !/\b(the|and|your|with|from|this|that|are|is not)\b/i.test(fr)), Object.values(T.FR).filter((fr) => fr.split(' ').length >= 3 && /\b(the|and|your|with|from|this|that|are|is not)\b/i.test(fr)))
+
+  setLang('en')
+  const en = T.buildGraph(src, NOW)
+  check('English: the graph reads as before', en.byId['k:ghost-kyber'].note.includes('No agent team definition') && T.ago(12) === '12 days ago' && T.ago(0) === 'today')
+  for (const lg of ['es', 'ar', 'zh', 'throws']) {
+    setLang(lg)
+    const other = T.buildGraph(src, NOW)
+    check(`language « ${lg} »: the graph is the English one (never French)`, JSON.stringify(other.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) === JSON.stringify(en.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) && T.ago(12) === '12 days ago' && T.tr('Update') === 'Update' && T.KIND_NAME_ALL.kyber === 'Agent Team')
+  }
+
+  setLang('kybernos')
+  const fr = T.buildGraph(src, NOW)
+  const texts = fr.nodes.flatMap((n) => [n.note, n.sub, n.problem ? n.problem.text : '']).join(' | ')
+  check('French: the notes, the subtitles and the problems of the graph are French', /Aucune définition d’Agent Team/.test(texts) && /Déclare la skill « /.test(texts) && /Dernière exécution/.test(texts) && /leçon/.test(texts), texts.slice(0, 300))
+  check('French: no English sentence is left in a note', !/\b(No description|Last run|Declares the skill|facts? kept|Inactive, but|Another skill has|The last run failed|No agent team)\b/.test(texts), texts.slice(0, 300))
+  check('French: dates', T.ago(null) === 'non enregistré' && T.ago(0) === 'aujourd’hui' && T.ago(1) === 'hier' && T.ago(12) === 'il y a 12 jours' && T.ago(90) === 'il y a 3 mois')
+  check('French: how long ago it was read', T.readAgo(1000, 21000) === 'à l’instant' && T.readAgo(0, 5 * 60000) === 'il y a 5 min' && T.readAgo(0, 3 * 3600000) === 'il y a 3 h' && T.readAgo(0, 86400000) === 'il y a 1 jour' && T.readAgo(0, 3 * 86400000) === 'il y a 3 jours')
+  check('French: the names of the kinds, the layers, the columns and the picker', T.KIND_NAME_ALL.kyber === 'Agent Team' && T.KIND_NAME_ALL.lesson === 'Leçon' && T.KIND_NAME_ALL.root === 'Espace de travail' && T.LAYER_NAME.knowledge === 'Mémoire et leçons' && T.COLS[3].title === 'Mémoire et leçons' && T.pickerItems(fr, '')[0].head === 'Projets')
+  check('French: a count of links has its singular', T.linkCount(1) === '1 lien' && T.linkCount(3) === '3 liens')
+  check('French: the places a node opens are named in French', T.openTarget({ kind: 'skill' }, ['skills']).label === 'Skills' && T.openTarget({ kind: 'app', id: 'a:toolkit:x' }, ['connectors']).label === 'Connecteurs')
+  setLang('en')
+  check('English: a count of links has its singular too', T.linkCount(1) === '1 link' && T.linkCount(3) === '3 links' && T.linkCount(0) === '0 links')
+  check('English: the lazy tables read the language when they are read, not when the file loads', (() => { setLang('kybernos'); const a = T.KIND_NAME_ALL.skill; const l1 = T.LAYER_NAME.core; setLang('en'); return a === 'Skill' && l1 === 'Espace de travail' && T.LAYER_NAME.core === 'Workspace' })())
+}
+
+console.log('\n── the page opens on the last reading (V-22) ──')
+{
+  const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)) }, removeItem: (k) => { m.delete(k) }, m } }
+  const status = { projects: { state: 'ok', count: 2, note: '' }, memory: { state: 'skipped', count: null, note: 'Account not linked' } }
+  const store = memory()
+  const wrote = T.saveReading(store, { at: NOW, failed: 0, status, src })
+  check('an Update writes the reading to the page\'s own store', wrote === true && store.m.size === 1)
+  const back = T.restoreReading(store)
+  check('the next visit gets the same reading back: date, sources status, failures', back !== null && back.result.at === NOW && back.result.failed === 0 && back.status.memory.state === 'skipped')
+  check('...with the graph rebuilt from the sources, as of the day it was read', back.result.graph.nodes.length === g.nodes.length && back.result.graph.byId['t:digest'].days === g.byId['t:digest'].days && back.result.graph.now === NOW)
+  check('...and it holds no prompt and no webhook secret (they never reach the sources)', !Array.from(store.m.values()).join('').match(/TOP-SECRET|PRIVATE PROMPT/))
+  check('nothing stored → nothing restored (a first visit stays on « Nothing read yet »)', T.restoreReading(memory()) === null)
+  check('no storage at all → no throw, nothing restored, nothing written', T.restoreReading(null) === null && T.saveReading(null, { at: NOW, failed: 0, status, src }) === false)
+  const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError') } }
+  check('a full or blocked store never breaks the page', T.saveReading(full, { at: NOW, failed: 0, status, src }) === false)
+  const bad = memory(); bad.setItem(T.READING_KEY, '{not json')
+  check('a damaged entry is ignored', T.restoreReading(bad) === null)
+  const old = memory(); old.setItem(T.READING_KEY, JSON.stringify({ v: 0, at: NOW, failed: 0, status, src }))
+  check('an entry of another version is ignored', T.restoreReading(old) === null)
+  const odd = memory(); odd.setItem(T.READING_KEY, JSON.stringify({ v: 1, at: 'yesterday', failed: 0, status, src }))
+  check('an entry with no valid date is ignored', T.restoreReading(odd) === null)
+  const huge = memory()
+  const giant = Object.assign({}, src, { skills: Array.from({ length: 20000 }, (_, i) => ({ name: 's' + i, description: 'x'.repeat(100), root: '', source: '', active: true, collision: false, modifiedAt: null })) })
+  check('a reading too big for a shared browser store is not kept (the old one stays)', T.saveReading(huge, { at: NOW, failed: 0, status, src: giant }) === false && huge.m.size === 0)
+  check('a reading where every source failed is never stored over a good one', (() => { const s = memory(); T.saveReading(s, { at: NOW, failed: 0, status, src }); T.saveReading(s, { at: NOW + 1, failed: 7, status, src: {} }); return T.restoreReading(s).result.at === NOW })())
+  check('the page still opens idle when nothing was stored, and never reads on open', /lastReading\(\)/.test(SOURCE) && (SOURCE.match(/readAll\(/g) || []).length === 1 && !/useEffect\([^)]*\bload\(\)/.test(SOURCE))
+  check('the header of a restored reading says how long ago it was read (the existing « Read … ago »)', /'Read ' \+ when/.test(SOURCE))
+}
+
+console.log('\n── what the page may not do ──')
+const verbs = SOURCE.match(/method:\s*'([A-Z]+)'/g) || []
+check('the only explicit non-GET verb is POST', verbs.every((v) => v.includes("'POST'")))
+const posts = (SOURCE.match(/postJson\('([^']+)'/g) || []).map((s) => s.replace(/postJson\('/, '').replace(/'$/, ''))
+check('POST only to the two read-only routes', posts.sort().join(',') === '/kybernos/project-data,/kybernos/tasks', posts)
+check('tasks are only ever listed', /postJson\('\/kybernos\/tasks', \{ action: 'list' \}\)/.test(SOURCE) && !/action:\s*'(create|update|delete|run|toggle|remove|pause)/.test(SOURCE))
+check('its only storage is the one key of the last reading, in this browser', !/sessionStorage|indexedDB/.test(SOURCE) && (SOURCE.match(/localStorage/g) || []).length === 2 && (SOURCE.match(/'kybernos-atlas:last-reading'/g) || []).length === 1)
+check('no personal path in the source', !/\/Users\/(?!me\b|x\b)[A-Za-z0-9._-]+/.test(SOURCE))
+check('every class is prefixed kbat-', !/className:\s*'(?!kbat-)/.test(SOURCE))
+
+console.log('\n' + pass + ' passed, ' + fail + ' failed')
+process.exit(fail === 0 ? 0 : 1)

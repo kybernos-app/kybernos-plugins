@@ -1,0 +1,51 @@
+// Suite « Restart DSH » restarts the instance that asked, not whatever listens on 3080 (audit A6-19).
+//   node packages/kybernos-hub/test-relaunch-port.mjs
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { apply as appliquer } from './index.js'
+
+let total = 0; let echecs = 0
+const ok = (nom, cond, detail = '') => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail ? ' — ' + detail : '')) } }
+
+// A DSH home whose relaunch tool only records the arguments it was given.
+const home = mkdtempSync(join(tmpdir(), 'kb-hub-relance-'))
+mkdirSync(join(home, 'tools'), { recursive: true })
+const trace = join(home, 'argv.json')
+writeFileSync(join(home, 'tools', 'dsh-relance.mjs'),
+  "import { writeFileSync } from 'node:fs'\nwriteFileSync(" + JSON.stringify(trace) + ", JSON.stringify(process.argv.slice(2)))\n")
+process.env.DSH_HOME = home
+delete process.env.DSH_PORT
+
+const routes = {}
+const ctx = { get: (n) => (n === 'webServer' ? { register: (r) => { routes[r.path] = r.handler } } : undefined), effect: (fn) => fn(), inject: () => {} }
+appliquer(ctx)
+
+const demande = async (port) => {
+  rmSync(trace, { force: true })
+  const authority = '127.0.0.1:' + port
+  const req = Object.assign((async function * () { yield Buffer.from(JSON.stringify({ confirm: true })) })(), {
+    method: 'POST',
+    headers: { host: authority, origin: 'http://' + authority, 'content-type': 'application/json' },
+    socket: { localPort: port },
+  })
+  const res = { code: null, body: null, writeHead (c) { this.code = c }, end (b) { this.body = b === undefined ? null : JSON.parse(b) } }
+  await routes['/kybernos-hub/relaunch'](req, res)
+  for (let n = 0; n < 60 && !existsSync(trace); n += 1) await new Promise((r) => setTimeout(r, 50))
+  await new Promise((r) => setTimeout(r, 50))
+  return { res, argv: existsSync(trace) ? JSON.parse(readFileSync(trace, 'utf8')) : null }
+}
+
+console.log('── the relaunch tool is told which instance to restart ──')
+{
+  const a = await demande(3141)
+  ok('the route answers 200', a.res.code === 200 && a.res.body.ok === true, JSON.stringify(a.res))
+  ok('the tool runs the relaunch command', a.argv !== null && a.argv[0] === 'relance' && a.argv.includes('--avec-autres'), JSON.stringify(a.argv))
+  ok('it gets --port with the port of the page that asked (not the 3080 default)', a.argv !== null && a.argv.join(' ').includes('--port 3141'), JSON.stringify(a.argv))
+  const b = await demande(3080)
+  ok('on 3080 it says 3080 (explicit, same as before)', b.argv !== null && b.argv.join(' ').includes('--port 3080'), JSON.stringify(b.argv))
+}
+
+rmSync(home, { recursive: true, force: true })
+console.log(echecs === 0 ? `\nOK (${total})` : `\n${echecs} failure(s) of ${total}`)
+process.exit(echecs === 0 ? 0 : 1)

@@ -1,0 +1,23 @@
+{
+  "id": "encre-papier",
+  "v": 1,
+  "name": "Encre & papier",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Sobre et éditorial : coins nets, texte à empattements, un seul accent d’encre.",
+    "en": "Plain and editorial: sharp corners, serif text, a single ink accent."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#1f2937",
+    "ov": {
+      "light:base": "#f6f7f8",
+      "light:l1": "#ffffff",
+      "light:l2": "#eef0f2",
+      "light:side": "#f1f3f5",
+      "light:input": "#ffffff"
+    },
+    "fontText": "georgia",
+    "radius": "sharp"
+  }
+}

@@ -1,0 +1,14 @@
+# dsh bundle patch — inserts the plugin into the profile's layer stack. The profile
+# must also list the package in `dsh.profile.bundles` (~/.dsh/profiles/web/package.json).
+#
+# The bundle adds NO configuration row of its own: the "Free LLMs" panel writes the
+# `opencode-free` route into the `llm-pi-ai` namespace THROUGH the GUI
+# (remote.settings.mutate), exactly as the native Models page does — the profile patch
+# stays the only trace, readable and reversible. The local gateway it points at is
+# mounted by the host half of this same bundle.
+#
+# (Measured 27/09: an empty `[]` patch makes the bundle get skipped at boot — routes
+# never mounted. The insert below is the minimum that works.)
+- insert:
+    - id: kybernos-free-llms
+      name: '@local/kybernos-free-llms'

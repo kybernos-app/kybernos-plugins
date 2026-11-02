@@ -1,0 +1,23 @@
+{
+  "id": "gemma4:26b",
+  "famille": "g",
+  "initiale": "Gm",
+  "tailleGo": 16,
+  "ramMin": 32,
+  "score": "Ollama library · 16–19 GB · 256K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Gemma 4 (Google), version 26B : vision, outils et réflexion, contexte 256K. Pour 32 Go.",
+    "en": "Gemma 4 (Google), 26B version: vision, tools and thinking, 256K context. For 32 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 78
+}

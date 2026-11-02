@@ -1,0 +1,6 @@
+# dsh bundle patch: inserts the plugin in the profile's layer stack.
+# The profile must also list the package in `dsh.profile.bundles`
+# (~/.dsh/profiles/web/package.json).
+- insert:
+    - id: kybernos-call
+      name: '@local/kybernos-call'

@@ -1,0 +1,23 @@
+{
+  "id": "qwen3.6:35b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 23,
+  "ramMin": 32,
+  "score": "Ollama library · 23–24 GB · 256K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Qwen 3.6, version 35B : le plus gros du catalogue qui tienne dans 32 Go, de justesse.",
+    "en": "Qwen 3.6, 35B version: the largest of the catalogue that fits 32 GB, just."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 74
+}

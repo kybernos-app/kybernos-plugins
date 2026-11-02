@@ -1,0 +1,11 @@
+{
+  "name": "Kybernos",
+  "short_name": "Kybernos",
+  "description": "Your computer's Kybernos, on your phone.",
+  "start_url": "/__kb/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#141416",
+  "theme_color": "#141416",
+  "icons": [{ "src": "/__kb/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

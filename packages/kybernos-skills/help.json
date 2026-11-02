@@ -1,0 +1,34 @@
+{
+  "what": {
+    "fr": "Tes compétences (skills) : des consignes réutilisables que tes agents chargent. Crée-en, installe-en, ou partage-les avec ton équipe.",
+    "en": "Your skills: reusable instructions your agents load. Create some, install some, or share them with your team."
+  },
+  "steps": [
+    {
+      "fr": "« Featured » propose nos choix à installer en un clic ; « Yours » liste tes skills (recherche, filtres, interrupteur).",
+      "en": "“Featured” offers our picks to install in one click; “Yours” lists your skills (search, filters, a switch)."
+    },
+    {
+      "fr": "« Créer un skill » (nom, description, contenu) ou « Importer depuis GitHub » (owner/repo et nom du skill).",
+      "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
+    },
+    {
+      "fr": "« Discover » classe les skills publics : ouvre une ligne (dépôt, dossier, texte, audits), puis « Installer » demande confirmation.",
+      "en": "“Discover” ranks the public skills: open a row (repository, folder, text, audits), then “Install” asks you to confirm."
+    },
+    {
+      "fr": "« Team » : le catalogue de ton équipe. Propose un de tes skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
+      "en": "“Team”: your team’s catalogue. Propose one of your skills, an admin approves it, everyone installs it. Needs the Team plan."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale › Compétences",
+    "en": "Sidebar › Skills",
+    "page": true
+  },
+  "good": {
+    "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
+    "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
+  },
+  "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
+}

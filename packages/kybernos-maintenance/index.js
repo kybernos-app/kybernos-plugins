@@ -1,0 +1,453 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// kybernos-maintenance — host. Measures; its only write is the one switch above.
+//
+// Routes exposed (webServer):
+//   GET  /kybernos-maintenance/state
+//   GET  /kybernos-maintenance/update   (?auto=1 = the scheduled check: it asks nothing while the switch below is off)
+//   GET|POST /kybernos-maintenance/settings   the switch « Check for updates automatically »: { autoCheck }, nothing else
+//
+// Answers the lifecycle state — the SAME reads as `doctor`: versions (engine,
+// plugin), pin alignment, missing links/bundles, applied patches,
+// compatibility, update journal. The GUI invents nothing, it shows what the
+// robot measures. The sentences and the level words that reach the client are
+// ENGLISH (decision D1: English is the base); a French page shows them through
+// the client's French tables (FR_HOST / FR_HOST_RX / FR_LEVEL). The levels are
+// Perfect, Compatible, Partial, Out of range, Unknown (compatibility) and
+// None, Possible, Recommended, Required, Unknown (advised update).
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { execFile } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join, dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { auditerSurfaces } from './surfaces.mjs'
+import { lireVersion } from './version.mjs'
+import { manifesteDuCatalogue, manquants, nomsVoulus } from './voulus.mjs'
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
+// Host fence (scripts/test-route-hosts.mjs). DSH serves plugin routes BEFORE its own authentication, and a page that rebinds its own name to this machine
+// (DNS rebinding) reaches them with its own name as Host, no cookie and, on a same-origin GET, no Origin (a browser sends none): a guard that looks at the
+// Origin alone lets every read through. Every route of this bundle refuses a Host that is not this listener's (the port the socket is bound to, on
+// 127.0.0.1 / localhost / [::1], or an authority declared with --trusted-host) before its own guard runs. A request with no socket (a test) is not judged.
+const kbHostOK = (req) => {
+  try {
+    const host = req.headers !== null && req.headers !== undefined && typeof req.headers.host === 'string' ? req.headers.host : null
+    const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
+    if (host === null || sock === null || typeof sock.localPort !== 'number') return true
+    const port = ':' + sock.localPort
+    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
+  } catch (e) { return false }
+}
+const kbFenced = (service) => {
+  if (service === null || service === undefined || typeof service.register !== 'function') return service
+  const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
+    ? Object.assign({}, route, {
+      handler: (req, res, ...rest) => {
+        if (kbHostOK(req) !== true) {
+          try { res.writeHead(403, { 'content-type': 'application/json; charset=utf-8' }); res.end('{"ok":false,"error":"origin refused"}') } catch (e) { /* closed */ }
+          return undefined
+        }
+        return route.handler(req, res, ...rest)
+      },
+    })
+    : route)
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+}
+
+const ICI = dirname(fileURLToPath(import.meta.url))
+// bundles live in <repo>/packages/<name>: the repo root is two levels up
+const REPO = resolve(ICI, '..', '..')
+const DSH_HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
+const PROFIL_DIR = join(DSH_HOME, 'profiles', 'web')
+const CYCLE_DIR = join(DSH_HOME, 'lifecycle')
+const JOURNAL = join(CYCLE_DIR, 'journal.jsonl')
+const PACKAGES = (() => { try { return JSON.parse(readFileSync(join(REPO, 'scripts', 'lifecycle-packages.json'), 'utf8')).packages } catch (e) { return [] } })()
+const COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
+// Written at the archive root by scripts/paquet.mjs, so it ships with the plugin.
+const VERSION_CHEMIN = join(REPO, 'VERSION')
+
+const run = (cmd, cwd) => new Promise((res) => {
+  execFile(cmd[0], cmd.slice(1), { cwd, encoding: 'utf8', timeout: 60000 }, (err, stdout) =>
+    res({ ok: !err, sortie: String(stdout || '') }))
+})
+
+// The same rule as the robot's gate (`scripts/lifecycle-engine.mjs`): an
+// alphabetical comparison would make the Settings page say "inside the range"
+// for a version the robot refuses (0.1.10 is later than 0.1.7, not the other
+// way round). Duplicated on purpose: this plugin reads on its own, with no
+// cross import.
+export function comparerVersions (a, b) {
+  const decouper = (v) => {
+    const [noyau, ...reste] = String(v).split('-')
+    return { nombres: noyau.split('.').map((x) => parseInt(x, 10) || 0), pre: reste.join('-') }
+  }
+  const x = decouper(a)
+  const y = decouper(b)
+  const n = Math.max(x.nombres.length, y.nombres.length)
+  for (let i = 0; i < n; i += 1) {
+    const dx = x.nombres[i] ?? 0
+    const dy = y.nombres[i] ?? 0
+    if (dx !== dy) return dx < dy ? -1 : 1
+  }
+  if (x.pre === y.pre) return 0
+  if (x.pre === '') return 1
+  if (y.pre === '') return -1
+  const px = x.pre.split('.')
+  const py = y.pre.split('.')
+  const m = Math.max(px.length, py.length)
+  for (let i = 0; i < m; i += 1) {
+    if (px[i] === undefined) return -1
+    if (py[i] === undefined) return 1
+    const nx = /^\d+$/.test(px[i])
+    const ny = /^\d+$/.test(py[i])
+    if (nx && ny) { if (Number(px[i]) !== Number(py[i])) return Number(px[i]) < Number(py[i]) ? -1 : 1; continue }
+    if (nx !== ny) return nx ? -1 : 1
+    if (px[i] !== py[i]) return px[i] < py[i] ? -1 : 1
+  }
+  return 0
+}
+
+// ── published versions: the npm registry says what exists BEYOND the ────────
+// installed one (request of 30/09: "the system should detect the latest
+// harness versions and the compatibility"). Best effort with a 10 min cache:
+// the Settings page must not run an `npm view` every time it opens.
+let CACHE_REGISTRE = null
+async function lireRegistre () {
+  if (CACHE_REGISTRE !== null && Date.now() - CACHE_REGISTRE.quand < 600000) return CACHE_REGISTRE.valeur
+  const r = await run(['npm', 'view', '@deepseek-ai/dsh', 'version', 'dist-tags', '--json'], REPO)
+  let valeur
+  try {
+    const j = JSON.parse(r.sortie)
+    const tags = j['dist-tags'] || j
+    // The "latest version" reference = the newest across ALL CHANNELS
+    // (latest, next, alpha) — the `latest` tag alone misses 0.2.0-rc.2
+    // published under `next` (seen 30/09: the page said "up to date" wrongly).
+    const paires = [['latest', tags.latest], ['next', tags.next], ['alpha', tags.alpha]].filter(([, v]) => Boolean(v))
+    paires.sort((a, b) => comparerVersions(b[1], a[1]))
+    valeur = {
+      ok: r.ok && Boolean(tags.latest),
+      latest: tags.latest || null,
+      alpha: tags.alpha || null,
+      next: tags.next || null,
+      derniere: paires.length > 0 ? paires[0][1] : null,
+      canal: paires.length > 0 ? paires[0][0] : null,
+      erreur: null
+    }
+  } catch (e) {
+    valeur = { ok: false, latest: null, alpha: null, next: null, derniere: null, canal: null, erreur: 'npm registry unreachable' }
+  }
+  CACHE_REGISTRE = { quand: Date.now(), valeur }
+  return valeur
+}
+
+// ── update available? (04/10) ────────────────────────────────────────────────
+// Two sources, a single answer for the GUI:
+//   · the Kybernos PACK: installed `VERSION` against the `VERSION` published on
+//     the public repo's main branch (no release is tagged, the branch is
+//     authoritative) — cached for 1 h, never blocking;
+//   · the DSH ENGINE: the same measure as the Maintenance page (`maj`).
+// The client decides when to ask (at launch, then regularly) and how to
+// notify; the host only measures, read-only.
+const VERSION_DISTANTE = process.env.KYBERNOS_VERSION_URL || 'https://raw.githubusercontent.com/kybernos-app/kybernos-plugins/main/VERSION'
+const DEPOT_URL = process.env.KYBERNOS_REPO_URL || 'https://github.com/kybernos-app/kybernos-plugins'
+const FORME_VERSION = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/
+let CACHE_PACK = null
+export async function lirePackDistant (force) {
+  if (force !== true && CACHE_PACK !== null && Date.now() - CACHE_PACK.quand < 3600000) return CACHE_PACK.valeur
+  let valeur
+  const ctl = new AbortController()
+  const minuteur = setTimeout(() => ctl.abort(), 6000)
+  try {
+    const res = await fetch(VERSION_DISTANTE, { signal: ctl.signal, headers: { 'cache-control': 'no-cache' } })
+    const texte = String(await res.text()).trim()
+    valeur = res.ok && FORME_VERSION.test(texte) ? { joignable: true, latest: texte } : { joignable: false, latest: null }
+  } catch (e) { valeur = { joignable: false, latest: null } } finally { clearTimeout(minuteur) }
+  CACHE_PACK = { quand: Date.now(), valeur }
+  return valeur
+}
+function lireVersionPack () {
+  try {
+    const v = readFileSync(join(REPO, 'VERSION'), 'utf8').trim()
+    return FORME_VERSION.test(v) ? v : null
+  } catch (e) { return null }
+}
+// ── the switch « Check for updates automatically » (A6-14, A6-26) ────────────
+// The page asks for an update ~15 s after it opens, then every 6 h: the published VERSION on GitHub (raw.githubusercontent.com), the
+// latest DSH on the npm registry (`npm view`), and the signed catalogue of the Suite (github.com release asset, asked through the hub).
+// Nothing about the person's work goes with those requests, but their address and the standard headers of a web request do: so there
+// is a switch, ON by default (a security fix has to be announced), kept next to the other Kybernos state. OFF, the scheduled check
+// answers at once and asks nobody; « Check now » and the Suite's own button are the person's action and always ask. See docs/privacy.md.
+const FICHIER_REGLAGE = join(DSH_HOME, 'kybernos', 'update-check.json')
+export function lireReglage (fichier = FICHIER_REGLAGE) {
+  try { return { autoCheck: JSON.parse(readFileSync(fichier, 'utf8')).autoCheck !== false } } catch (e) { return { autoCheck: true } }
+}
+export function ecrireReglage (autoCheck, fichier = FICHIER_REGLAGE) {
+  mkdirSync(dirname(fichier), { recursive: true })
+  const tmp = fichier + '.tmp-' + process.pid
+  writeFileSync(tmp, JSON.stringify({ autoCheck: autoCheck === true }, null, 2) + '\n')
+  renameSync(tmp, fichier)
+  return { autoCheck: autoCheck === true }
+}
+/** The answer of GET /update, from its query. `dep` lets a test stand in for the switch and the measure. A scheduled check (`auto=1`)
+ *  never reaches the network while the switch is off; a manual one (no `auto`) always does. */
+export async function repondreMaj (url, dep = {}) {
+  const requete = String(url || '')
+  const auto = /[?&]auto=1(?:&|$)/.test(requete)
+  const force = /[?&]force=1(?:&|$)/.test(requete)
+  if (auto && (dep.reglage ?? lireReglage)().autoCheck !== true) return { ok: true, desactive: true }
+  return (dep.mesurer ?? mesurerMaj)(force)
+}
+/** Builds the response: pure, so testable without network or DSH. `pending` =
+ *  what the GUI must announce (null = nothing to do): a new pack version
+ *  first, otherwise a RECOMMENDED engine upgrade (never a version outside the
+ *  supported range: the robot's gate would refuse it). */
+export function composerMaj ({ pack, installee, etat, git, quand }) {
+  const dispo = installee !== null && pack.latest !== null && comparerVersions(installee, pack.latest) < 0
+  const maj = (etat && etat.maj) || { niveau: 'Unknown', cible: null, note: '' }
+  let pending = null
+  if (dispo) pending = { kind: 'kybernos', cible: pack.latest, installee, requis: false, note: '' }
+  else if (maj.cible && ['Required', 'Recommended', 'Possible'].indexOf(maj.niveau) >= 0) {
+    pending = { kind: 'moteur', cible: maj.cible, installee: etat.global, requis: maj.niveau === 'Required', note: maj.note || '' }
+  }
+  return {
+    ok: true,
+    checkedAt: quand,
+    pack: { installee, latest: pack.latest, disponible: dispo, joignable: pack.joignable, depot: DEPOT_URL, git: git === true },
+    moteur: { installee: etat ? etat.global : null, latest: etat && etat.distant ? etat.distant.derniere : null, niveau: maj.niveau, cible: maj.cible || null, note: maj.note || '' },
+    pending
+  }
+}
+/** `dep.etat` lets a test stand in for the engine measure (it runs `dsh` and asks npm); everything else is the real path. */
+export async function mesurerMaj (force, dep = {}) {
+  if (force === true) CACHE_REGISTRE = null
+  const [pack, etat] = await Promise.all([lirePackDistant(force), (dep.etat ?? mesurerEtat)()])
+  return composerMaj({ pack, installee: lireVersionPack(), etat, git: existsSync(join(REPO, '.git')), quand: new Date().toISOString() })
+}
+
+async function mesurerEtat () {
+  const global = (await run(['dsh', '--version'])).sortie.trim().split('\n').pop() || 'unknown'
+  const plugin = (await run(['git', 'rev-parse', '--short', 'HEAD'], REPO)).sortie.trim() || 'unknown'
+  // The shipped semver (null when VERSION is missing or not a semver). `plugin`
+  // stays the git hash: a tester who unpacked an archive has no checkout, so
+  // there it reads 'unknown' and the semver is what the page shows instead.
+  const version = lireVersion(VERSION_CHEMIN)
+  const compat = (() => { try { return JSON.parse(readFileSync(COMPAT_CHEMIN, 'utf8')) } catch (e) { return null } })()
+  const distant = await lireRegistre()
+  let pkg = null
+  try { pkg = JSON.parse(readFileSync(join(PROFIL_DIR, 'package.json'), 'utf8')) } catch (e) { /* unreadable profile */ }
+  const deps = pkg?.dependencies || {}
+  const bundles = pkg?.dsh?.profile?.bundles || []
+  const pins = Object.entries(deps).filter(([k]) => k.startsWith('@deepseek-ai/'))
+  const pinsDivergents = pins.filter(([, v]) => v !== global).map(([k, v]) => `${k} ${v}`)
+  // Only what this machine is MEANT to have (voulus.mjs): a module switched off in the Suite, or a package that is no bundle, is not a problem.
+  const lireJson = (chemin) => { try { return JSON.parse(readFileSync(chemin, 'utf8')) } catch (e) { return null } }
+  const voulus = nomsVoulus({ noms: PACKAGES.map((p) => p.nom), manifeste: manifesteDuCatalogue(lireJson(join(REPO, 'packages', 'kybernos-hub', 'catalog.json'))), brut: lireJson(join(DSH_HOME, 'kybernos', 'satellites-actives.json')) })
+  const { liens: liensManquants, bundles: bundlesManquants } = manquants({ packages: PACKAGES, voulus, deps, bundles, lirePackage: (dir) => lireJson(join(REPO, 'packages', dir, 'package.json')) })
+  const horsZone = compat !== null && compat.dsh !== undefined && (
+    (compat.dsh.min !== undefined && comparerVersions(global, compat.dsh.min) < 0) ||
+    (compat.dsh.max !== undefined && comparerVersions(global, compat.dsh.max) > 0))
+  const problemes = []
+  if (pinsDivergents.length === 1) problemes.push('A DSH package of the profile is pinned to a different version than the engine.')
+  else if (pinsDivergents.length > 1) problemes.push(`${pinsDivergents.length} DSH packages of the profile are pinned to a different version than the engine.`)
+  for (const l of liensManquants) problemes.push(`Package ${l} is not linked to the profile.`)
+  for (const b of bundlesManquants) problemes.push(`Bundle ${b} is not declared.`)
+  if (horsZone) problemes.push(`Engine version (${global}) has never been tested with this plugin.`)
+  const journal = (() => {
+    try {
+      return readFileSync(JOURNAL, 'utf8').split('\n').filter((l) => l.trim() !== '')
+        .map((l) => JSON.parse(l)).reverse().slice(0, 12)
+    } catch (e) { return [] }
+  })()
+  // ── is the server serving the engine that is ON DISK? ───────────────────
+  // On 22/09, a server started 4 h before the 0.1.7 upgrade kept serving the
+  // old engine from memory: "Failed to load plugins — 1 entry did not
+  // activate · …-jobs: waiting for service: jobs". We compare the age of the
+  // current process (it knows it, no subprocess) with the last write of the
+  // installation. Same rule as the robot's gate.
+  const mtime = (chemin) => { try { return statSync(chemin).mtimeMs } catch (e) { return null } }
+  const demarrageServeur = Date.now() - Math.round(process.uptime() * 1000)
+  // `npm root -g` says where the installed engine is: that is the package
+  // `npm i -g` rewrites on a version upgrade.
+  const racineGlobale = (await run(['npm', 'root', '-g'], REPO)).sortie.trim()
+  const dates = [
+    racineGlobale === '' ? null : mtime(join(racineGlobale, '@deepseek-ai', 'dsh', 'package.json')),
+    mtime(join(PROFIL_DIR, 'node_modules', '.modules.yaml')),
+    mtime(join(PROFIL_DIR, 'pnpm-lock.yaml'))
+  ].filter((d) => d !== null)
+  const installation = dates.length === 0 ? null : Math.max(...dates)
+  const serveurPerime = installation !== null && installation - demarrageServeur > 10000
+  if (serveurPerime) {
+    problemes.push('The server started before the last update: it is still serving the old engine. Restart DSH.')
+  }
+  // ── the engine SURFACES: what the installed version breaks or takes over ──
+  // Same lesson as the 0.1.6 → 0.1.7 upgrade: "applied" patches do not say
+  // their anchors still exist. We audit the contracts our patches and plugins
+  // read, and flag native capabilities that overlap one of our features. A
+  // failing audit does not take the page down: the error is returned apart.
+  let surfaces = null
+  try {
+    const a = auditerSurfaces(racineGlobale)
+    surfaces = {
+      conformes: a.sondes.filter((s) => s.ok).length,
+      total: a.sondes.length,
+      mesureesSurVierge: a.sondes.filter((s) => s.sur === 'vierge').length,
+      ruptures: a.ruptures,
+      aVerifier: a.aVerifier,
+      doublons: a.doublons,
+      natifs: a.natifs
+    }
+    for (const r of a.ruptures) problemes.push(r)
+  } catch (e) {
+    surfaces = { erreur: String(e && e.message ? e.message : e), ruptures: [], aVerifier: [], doublons: [], natifs: [] }
+  }
+  // ── compatibility LEVEL of the plugin with the INSTALLED engine ──────────
+  // The contract (dsh-compat.json) declares the supported range (min/max) and
+  // the TESTED versions. Same reading rule as the robot's gate:
+  //   Perfect      = engine = the highest tested version;
+  //   Compatible   = inside the range, NEWER than the tested one (untested);
+  //   Partial      = inside the range, OLDER than the tested one (fewer
+  //                  patches — the validated 0.1.7-alpha.1 scenario);
+  //   Out of range = below min or above max: must not run.
+  const testee = compat !== null && Array.isArray(compat.dsh?.testees) && compat.dsh.testees.length > 0
+    ? [...compat.dsh.testees].sort((a, b) => comparerVersions(a, b)).pop()
+    : null
+  let niveau = 'Unknown'
+  if (compat === null || compat.dsh === undefined) niveau = 'Unknown'
+  else if (horsZone) niveau = 'Out of range'
+  else if (testee !== null && comparerVersions(global, testee) === 0) niveau = 'Perfect'
+  else if (testee !== null && comparerVersions(global, testee) > 0) niveau = 'Compatible'
+  else niveau = 'Partial'
+  // Compatibility range of any version (to talk about channels).
+  const horsZoneV = (v) => compat !== null && compat.dsh !== undefined && (
+    (compat.dsh.min !== undefined && comparerVersions(v, compat.dsh.min) < 0) ||
+    (compat.dsh.max !== undefined && comparerVersions(v, compat.dsh.max) > 0))
+  // Direction of the installed engine vs the NEWEST published across all
+  // channels: up = the installed one is newer (local checkout), down = a newer
+  // one exists (even under `next`), same = aligned.
+  const direction = !distant.ok || distant.derniere === null || global === 'unknown'
+    ? 'same'
+    : (comparerVersions(global, distant.derniere) > 0 ? 'up' : comparerVersions(global, distant.derniere) < 0 ? 'down' : 'same')
+  // Note of the Engine card: what the registry says, channel included.
+  distant.note = (() => {
+    if (!distant.ok || distant.derniere === null) return null
+    const c = comparerVersions(global, distant.derniere)
+    if (c === 0) return distant.canal === 'latest'
+      ? `up to date — latest published: ${distant.derniere}`
+      : `up to date with the newest published (${distant.canal} ${distant.derniere})`
+    if (c < 0) return `newest published: ${distant.derniere} (channel ${distant.canal} — ${horsZoneV(distant.derniere) ? 'outside the supported range' : 'within the range'})`
+    return `ahead of the newest published (${distant.derniere})`
+  })()
+  // Advised UPDATE level, target and note — computed host side.
+  const maj = (() => {
+    if (compat !== null && compat.dsh?.min !== undefined && comparerVersions(global, compat.dsh.min) < 0) {
+      return { niveau: 'Required', cible: testee, note: `Minimum required by the plugin: ${compat.dsh.min}.` }
+    }
+    if (horsZone) return { niveau: 'Recommended', cible: testee, note: 'Engine outside the supported range — go back to the tested version or wait for a matching plugin.' }
+    if (!distant.ok || distant.derniere === null) return { niveau: 'Unknown', cible: null, note: 'npm registry unreachable — cannot tell whether an update exists.' }
+    const c = comparerVersions(global, distant.derniere)
+    if (c < 0) {
+      // A newer version exists: advise it ONLY if it is inside the supported
+      // range — otherwise the robot's gate refuses it.
+      if (horsZoneV(distant.derniere)) {
+        return { niveau: 'None', cible: null, note: `A newer version exists (${distant.derniere}, channel ${distant.canal}) but it is outside the supported range — wait for a matching plugin.` }
+      }
+      if (niveau === 'Partial') return { niveau: 'Recommended', cible: distant.derniere, note: 'A newer engine version would re-enable the patches that are not applied.' }
+      if (niveau === 'Compatible') return { niveau: 'Possible', cible: distant.derniere, note: 'Published version ready; within the supported range, no rush.' }
+      return { niveau: 'Possible', cible: distant.derniere, note: 'Published version within the supported range, same contract.' }
+    }
+    if (c > 0) return { niveau: 'None', cible: null, note: 'Engine newer than the newest published version (local install).' }
+    if (niveau === 'Compatible') return { niveau: 'Possible', cible: testee, note: 'Engine newer than the tested version — the next test run will validate it.' }
+    return { niveau: 'None', cible: null, note: 'Installed engine = newest published version, all channels.' }
+  })()
+  // ── compatibility MATRIX: the known markers (tested, installed, registry ──
+  // releases), sorted newest first, with a level per row.
+  const reperes = []
+  const pousser = (v, niv, detail, repere) => {
+    const deja = reperes.find((r) => r.v === v)
+    if (deja !== undefined) { if (deja.repere.indexOf(repere) === -1) deja.repere += ' · ' + repere; return }
+    if (v && v !== 'unknown') reperes.push({ v, niveau: niv, detail, repere })
+  }
+  for (const v of (compat?.dsh?.testees || [])) pousser(v, 'Perfect', 'Tested together, patches applied.', 'tested')
+  pousser(global, null, '', 'installed')
+  pousser(distant.latest, null, '', 'npm latest')
+  pousser(distant.alpha, null, '', 'npm alpha')
+  pousser(distant.next, null, '', 'npm next')
+  for (const r of reperes) {
+    if (r.niveau !== null) continue
+    if (compat === null || compat.dsh === undefined) { r.niveau = 'Unknown'; r.detail = 'Compatibility range missing from the repository.'; continue }
+    const infMin = compat.dsh.min !== undefined && comparerVersions(r.v, compat.dsh.min) < 0
+    const supMax = compat.dsh.max !== undefined && comparerVersions(r.v, compat.dsh.max) > 0
+    if (infMin || supMax) { r.niveau = 'Out of range'; r.detail = infMin ? 'Older than the supported minimum.' : 'Newer than the supported maximum — must not run.' }
+    else if (testee !== null && comparerVersions(r.v, testee) > 0) { r.niveau = 'Compatible'; r.detail = 'Within range, not yet tested with this plugin.' }
+    else { r.niveau = 'Partial'; r.detail = 'Would start, with fewer patches.' }
+  }
+  reperes.sort((a, b) => comparerVersions(b.v, a.v))
+  return {
+    global, plugin, version, problemes, surfaces,
+    couleur: problemes.length === 0 ? 'verte' : 'orange',
+    compat: compat !== null ? { min: compat.dsh?.min ?? null, max: compat.dsh?.max ?? null, horsZone: Boolean(horsZone) } : null,
+    testee,
+    niveau,
+    direction,
+    maj,
+    distant,
+    versions: reperes.slice(0, 7).map((r) => ({ ...r, ici: r.v === global })),
+    serveur: { perime: serveurPerime, demarrageServeur, installation },
+    journal
+  }
+}
+
+const envoyer = (res, code, obj) => {
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
+  res.end(JSON.stringify(obj))
+}
+
+const origineOK = (req) => {
+  // 2026-10 review (M-02/S-03): EXACT host of the socket's real listening
+  // address, never a prefix ("localhost.evil.example" used to pass).
+  const o = String(req.headers.origin || '')
+  if (o === '') return true
+  try {
+    const u = new URL(o)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
+    const port = (req.socket && typeof req.socket.localPort === 'number') ? ':' + req.socket.localPort : ''
+    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
+  } catch { return false }
+}
+
+export function apply (ctx) {
+  const demarrer = (hostCtx) => {
+    const webServer = kbFenced(hostCtx.webServer)
+    webServer.register({ kind: 'exact', path: '/kybernos-maintenance/state', handler: async (req, res) => {
+      if (req.method !== 'GET') { res.writeHead(405); res.end(); return }
+      if (!origineOK(req)) { res.writeHead(403); res.end(); return }
+      try { envoyer(res, 200, await mesurerEtat()) }
+      catch (e) { envoyer(res, 500, { erreur: String(e && e.message ? e.message : e) }) }
+    } })
+    webServer.register({ kind: 'exact', path: '/kybernos-maintenance/update', handler: async (req, res) => {
+      if (req.method !== 'GET') { res.writeHead(405); res.end(); return }
+      if (!origineOK(req)) { res.writeHead(403); res.end(); return }
+      try { envoyer(res, 200, await repondreMaj(req.url)) } catch (e) { envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) }) }
+    } })
+    webServer.register({ kind: 'exact', path: '/kybernos-maintenance/settings', handler: async (req, res) => {
+      if (!origineOK(req)) { res.writeHead(403); res.end(); return }
+      try {
+        if (req.method === 'GET') { envoyer(res, 200, { ok: true, ...lireReglage() }); return }
+        if (req.method !== 'POST') { res.writeHead(405); res.end(); return }
+        // A write needs a browser's Origin (already checked above when there is one): a bare request from another program is refused.
+        if (String(req.headers.origin || '') === '') { envoyer(res, 403, { ok: false, erreur: 'origin required' }); return }
+        let corps = ''
+        for await (const morceau of req) { corps += morceau; if (corps.length > 2000) { envoyer(res, 413, { ok: false, erreur: 'too large' }); return } }
+        let demande = null
+        try { demande = JSON.parse(corps) } catch (e) { demande = null }
+        if (demande === null || typeof demande !== 'object' || typeof demande.autoCheck !== 'boolean') { envoyer(res, 400, { ok: false, erreur: '{ autoCheck: boolean } expected' }); return }
+        envoyer(res, 200, { ok: true, ...ecrireReglage(demande.autoCheck) })
+      } catch (e) { envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) }) }
+    } })
+    console.log('[kybernos-maintenance] webServer routes /kybernos-maintenance/state, /update and /settings registered')
+  }
+  if (ctx.get('webServer') !== undefined) demarrer(ctx)
+  else ctx.inject(['webServer'], demarrer)
+}

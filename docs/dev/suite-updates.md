@@ -1,0 +1,130 @@
+# Suite updates: a signed catalogue and a whole-suite update
+
+The Suite panel can ask an online catalogue whether a newer suite exists, show what changed per module, and install it. Three decisions
+shape it: the unit of update is the **whole suite** (the lifecycle robot already installs a complete, hash-verified archive with a safety
+snapshot, a boot check and a rollback; there is no second, riskier install path), the catalogue and archives are **GitHub Releases** of
+the open-core repo (a normal release, not a pre-release: `releases/latest/download/` skips pre-releases), and the catalogue is **signed with Ed25519**, the private key kept off the repo by the maintainer.
+
+## The trust chain
+
+```
+public key in the bundle (catalog-pubkey.json) ── verifies ──▶ catalog.release.json.sig
+catalog.release.json (signed bytes) ── names ──▶ the archive: SHA-256 and size
+the archive's own manifest.json ── lists ──▶ every file's hash, checked by the lifecycle robot inside it
+```
+
+A release is refused when it is unsigned, signed by a key nobody trusts, malformed, or **older than the suite already installed** (a replayed
+old release is a rollback). Nothing is parsed before the signature verifies. No trusted key installed means the network is never asked.
+`packages/kybernos-hub/catalogue-distant.mjs` is the pure logic; `telechargement.mjs` the bounded downloads (https only, size caps, the
+archive streamed to a temp file while hashed, a tar listing that may not leave its folder); `suite-host.mjs` the refresh and the update.
+
+The pure half of the publishing CLI (`catalogue-publication.mjs`: key pair, release document, signature) lives in the bundle, so the tests that play it ship with it.
+
+## Publishing a release (the maintainer)
+
+```bash
+node scripts/catalog-release.mjs keygen --out ~/keys/kybernos-catalog.key --embed   # once: the private key stays OUTSIDE the repo
+node scripts/paquet.mjs --construire --plateforme mac                               # the archive(s); repeat for linux and windows
+node scripts/catalog-release.mjs build --key ~/keys/kybernos-catalog.key --out dist/release \
+  --archive mac=dist/kybernos-1.1.0-mac.tar.gz=https://github.com/<org>/<repo>/releases/download/v1.1.0/kybernos-1.1.0-mac.tar.gz
+```
+
+Upload `catalog.release.json`, `catalog.release.json.sig` and the archives to one GitHub release. `build` replays the panel's own check with the
+embedded key and refuses to call a release good when the key would not accept it. `--notes <file.json>` (`{ "<module id>": [{ "fr", "en" }] }`)
+adds per-module release notes, shown as "What's new" on the module's page; there is no changelog tab until there are real notes.
+
+`keygen` refuses to overwrite a key and refuses a path inside this repo. Commit `packages/kybernos-hub/catalog-pubkey.json` (public) and nothing else.
+Rotation: the file holds a list of keys; any of them verifies.
+
+## What the user sees
+
+*Check for updates* asks `catalogueUrl` (the setting of `~/.dsh/kybernos/settings.json`; default `releases/latest/download/catalog.release.json`; an
+empty string turns it off), verifies, caches the verified bytes (re-verified on every use) and says what it found. A newer suite shows a banner
+(*Update the suite*, then one more confirmation naming what protects the install), the Updates tab, per-module notes, and the source line
+"Signed catalogue · suite X". The update runs on the host (download, SHA-256 and size against the signed document, extraction, then the robot **inside**
+the archive: the same contract as `./kybernos-update`), the panel polls `GET /kybernos-hub/update/status`, and the end is the existing "restart DSH" banner.
+DSH is not restarted by the update itself.
+
+**A development checkout is never updated this way**: a git working tree (`.git` at the repo root) answers 409 `development-checkout` and the panel says to use git.
+
+## One click, and what "one click" means where
+
+*Update now* does the whole job: download, verify, install, then **restart DSH** (the hub's `POST /kybernos-hub/relaunch`, which starts `~/.dsh/tools/dsh-relance.mjs` detached; sessions that were running are woken up again afterwards). The dialog says so before the click. If the machine has no relaunch tool the dialog ends on "Restart DSH to finish", as before. Three kinds of install are told apart (`modeMiseAJour` in the maintenance client):
+
+| Install | What the dialog offers |
+|---|---|
+| an unpacked suite the Suite can update (no `.git`, not hosted) | *Update now*: install + restart |
+| a development checkout (a git working tree) | the git steps, unchanged: it is never replaced by an archive |
+| a **hosted instance** (a server or container: Coolify, Docker, a VPS template) | no install in place. It says the instance is rebuilt: redeploy or restart it so it starts from the latest version of the Dockerfile, force a build without cache if the build reuses it (a cached `git clone` layer keeps the old version), and keep the data volume attached |
+
+Hosted is decided by the hub (`detecterHebergement` in `suite-host.mjs`), and wins over "development checkout" because the image of a hosted instance is often built from a git clone. `KYBERNOS_HOSTED=1` forces it on and `=0` forces it off (a local DSH that happens to run in a container); otherwise the Kybernos gate's variables (`KYBERNOS_PUBLIC_HOST`, `KYBERNOS_GATE_PASSWORD`), the `COOLIFY_*` variables and Docker's `/.dockerenv` decide. A hosted instance answers 409 `hosted-instance` to `POST /kybernos-hub/update`, before anything is downloaded.
+
+## The notification
+
+Nothing is installed without the user, but the user must hear about it. The Maintenance bundle (`packages/kybernos-maintenance`) owns the
+notification: a check about 15 s after launch, then every 6 h and on returning to the tab; a discreet card once per version and session ("Later"
+postpones it 24 h, "Skip this version" silences it); the account menu keeps an "Update available" line until it is applied.
+
+The **signed release decides**: each check also asks the Suite's `POST /kybernos-hub/catalogue/refresh`, and a suite newer than the installed one is announced
+as the Kybernos update (`fusionnerSigne`). When this install can apply it (not a git checkout) the dialog offers **Update now**, which starts
+`POST /kybernos-hub/update`, follows `/update/status` and ends on "Restart DSH to finish". A development checkout keeps the git steps. When there is no
+key, no release or nothing newer, the host's own answer stands (the `VERSION` published on `main`).
+
+A dismissed card is not the end of the reminder: the line stays until the update is applied. Signed in, it is in the account menu (with an amber dot on the profile tile). **Signed out there is no account menu**, so the same line lives in the sidebar footer, above "Sign in" (in the pairing state too); it opens the same dialog. "Skip this version" silences all of it.
+
+A bug hid all of this until 2026-10-05: `GET /kybernos-maintenance/update` answered 500 on every machine (`existsSync` was not imported), so no update
+was ever announced. `test-update.mjs` now runs the route's measure for real. **Installs of 1.0.0-beta.2 carry that bug**: they only learn of a newer suite
+through *Check for updates* in the Suite panel, once; `1.0.0-beta.3` is the first release that carries the fix and announces the next ones by itself.
+
+How it was checked on the real GUI, with nothing of the user's touched: a throwaway DSH home (APFS clone of the profile, bundles linked to an extracted
+archive, `DSH_HOME` and `HOME` isolated, own port) running the suite from the archive, the signed release served by a local https server (self-signed
+certificate, `NODE_EXTRA_CA_CERTS` for that process only, `catalogueUrl` pointing at it), and the update archive built with the robot forced to dry-run so the
+engine is never patched. The release is "published" by copying a newer signed document into the served folder; then: no card before, the card at the next
+launch, the dialog, Update now, the steps, the end.
+
+## Where an installed suite lives
+
+The profile's `@local/*` links point into the folder the robot installed from. Since 2026-10-08 that folder is checked against its own
+`manifest.json` before anything is touched (a changed or missing file refuses the install; a file the manifest does not know is only
+reported), an archive file is extracted into a staging folder, verified, and only then swapped into `DSH_HOME/kybernos/paquets/<name>`, and
+a release unpacked under the system temp folder (what the panel's « Update now » does, and deletes afterwards) is first copied there.
+`install` and `upgrade` re-point the links that still lead into an earlier archive's folder (or into a folder that is gone); a developer
+checkout (a git tree) is never re-pointed. Installing an older suite over a newer one works but says it is a version step back.
+`paquets/` is not pruned: old copies stay until someone removes them. `scripts/test-lifecycle-archive.mjs` (hermetic) covers all of it and
+`scripts/check-suite-update-tls.mjs` (live, needs `openssl`) replays the refused catalogues over a local https server.
+
+## What the robot refuses, and what it does not charge to the suite
+
+`./kybernos-install` and `./kybernos-update` (and the panel's « Update now », which runs the robot inside the archive) end with a boot check: a DSH
+is started on the new profile and its output is read. Two rules keep that check honest:
+
+- **Only what is new counts.** The same check is made once *before* the first write; a failure line that was already there (a third-party
+  plugin, a provider registered twice: the owner's own profile prints `dsh: warning: 1 entry did not activate` at every start) is shown as
+  « already there before the install, not charged to the plugin » and does not roll the install back. Before 2026-10-10 every `did not activate`
+  or `Error:` line was charged to the suite, so such a machine could never be installed or updated, and the robot did not even say which line.
+- **A failing step puts everything back.** The profile install (pnpm: no network, a registry that is down, a full disk) goes through the same way
+  out as an engine patch that cannot be applied: the photo is restored, the journal gets a line, the person reads a sentence, not a stack trace.
+
+## Routes
+
+| Route | |
+|---|---|
+| `POST /kybernos-hub/catalogue/refresh` | ask, verify, cache; 200 `{ etat: nouveau \| a-jour }`, 400 with the reason (`pas-de-cle`, `signature`, `plus-ancien`, `forme`, `url`…), 502 offline, 409 busy |
+| `POST /kybernos-hub/update` `{ confirm: true }` | 202 and starts; 409 with the reason when it cannot (`development-checkout`, `no-release`, `up-to-date`, `no-archive-for-platform`, `busy`) |
+| `GET /kybernos-hub/update/status` | `{ etat: idle \| telechargement \| extraction \| installation \| termine \| echec, version?, erreur?, detail? }` |
+| `GET /kybernos-hub/suite` | now also `catalogue.source` (`signe` or `embarque`), `catalogue.suite` and `distant` (key, release, whether an update can be applied and why not) |
+
+All POSTs are strict same-origin JSON. One operation at a time: while the update runs, a second update, a refresh and a module install answer 409.
+
+## Not done
+
+- The key pair exists (id `e69d1ec06bf2`, public half in `catalog-pubkey.json`); the first real release is `1.0.0-beta.2` (and `1.0.0-beta.3` the first whose notification works). The update was exercised end to end
+  with a real archive, a signed release and a local server in a throwaway DSH home, with the robot in `--dry`; see the release notes for what ran on a real install.
+- Per-module DSH ranges (the verdict still comes from the suite-wide `dsh-compat.json`).
+
+## Tests
+
+`packages/kybernos-hub/test-catalogue-distant.mjs` (document shape, signature, rollback guard, the publishing CLI), `test-telechargement.mjs`
+(local server, real tar), `test-suite-update.mjs` (refresh, cached verdict, status, the update, every route), `test-suite-store.mjs` (the words and the
+wiring in the panel). On the real GUI, read-only, with the host routes faked: the check, a development checkout's reason, the confirmation, the steps, the
+restart banner, a refused catalogue, the release notes.

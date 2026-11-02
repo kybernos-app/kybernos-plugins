@@ -1,0 +1,18 @@
+{
+  "_doc": "The French sections this plugin laid into <DSH home>/AGENTS.md before the English one (v3). They are DATA: a section is replaced in place by the current text only when it is byte for byte one of these, and the title is how a hand-written variant on the author's machine is recognised. Never edit them: a change here would make an installed section look like the person's own.",
+  "title": "Force de proposition dès l'ouverture d'un chat",
+  "sections": [
+    {
+      "version": 2,
+      "marker": "<!-- kybernos:force-proposition v2 -->",
+      "state": "v2-modifiee",
+      "text": "<!-- kybernos:force-proposition v2 -->\n## Force de proposition — matching systématique Agent Team/skill (posée par le plugin Kybernos)\n\nÀ chaque demande (et à chaque changement de sujet), AVANT de proposer une\nressource, passer la demande dans le double étage — jamais au flair :\n\n1. **Score lexical en front** : confronter les 1-2 phrases de la demande aux\n   missions des Agent Teams installées (`~/.dsh/kybers/`) et aux descriptions\n   des skills du catalogue ; garder les 2 meilleurs de chaque.\n2. **Arbitre** si le lexical hésite (scores proches ou aucun net) : une\n   question fermée au Study model (le modèle d'étude de Kybernos Settings,\n   choisi automatiquement par défaut) : « demande X → Agent Team/skill parmi\n   A, B, aucun ? réponds un seul mot ».\n\nNe proposer QUE les gagnants — nommés, en une phrase de mission, avec une\nquestion fermée (« je le lance ? »). Une skill se propose, elle ne se charge\nqu'après un oui. Rien de ce qui n'existe pas ne se propose.\n\n<!-- /kybernos:force-proposition -->"
+    },
+    {
+      "version": 1,
+      "marker": "<!-- kybernos:force-proposition v1 -->",
+      "state": "v1-modifiee",
+      "text": "<!-- kybernos:force-proposition v1 -->\n## Force de proposition — matching systématique Agent Team/skill (posée par le plugin Kybernos)\n\nÀ chaque demande (et à chaque changement de sujet), AVANT de proposer une\nressource, passer la demande dans le double étage — jamais au flair :\n\n1. **Score lexical en front** : confronter les 1-2 phrases de la demande aux\n   missions des Agent Teams installées (`~/.dsh/kybers/`) et aux descriptions\n   des skills du catalogue ; garder les 2 meilleurs de chaque.\n2. **Arbitre** si le lexical hésite (scores proches ou aucun net) : une\n   question fermée au Decision Brain (réglage `decisionBrain`, défaut\n   typesafe-ai/jev) : « demande X → Agent Team/skill parmi A, B, aucun ?\n   réponds un seul mot ».\n\nNe proposer QUE les gagnants — nommés, en une phrase de mission, avec une\nquestion fermée (« je le lance ? »). Une skill se propose, elle ne se charge\nqu'après un oui. Rien de ce qui n'existe pas ne se propose.\n\n<!-- /kybernos:force-proposition -->"
+    }
+  ]
+}

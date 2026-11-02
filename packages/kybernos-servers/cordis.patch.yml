@@ -1,0 +1,4 @@
+# dsh bundle patch: inserts the plugin in the layer stack of the profile.
+- insert:
+    - id: kybernos-servers
+      name: '@local/kybernos-servers'

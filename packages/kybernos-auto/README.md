@@ -1,0 +1,137 @@
+# `@local/kybernos-auto`
+
+Auto mode: a per-session switch, the models it may use (every connected model by default, the free ones, or a list the person
+types) and a router that picks one of them for each
+delegated request by class (`chat`, `code`, `vision`, `media`, `design`, `agent-task`). The router is **resilient**: it probes
+the candidates before it answers, keeps a circuit breaker per model, and hands back an ordered fallback chain (see
+`docs/dev/auto-resilience.md`). The session's own model is never changed; only the routing decision is served.
+
+## What the user sees
+
+- **Composer**: an "Auto" row appended to the native model menu (the one with Model and Effort): a
+  "This session only" switch, an "N of M models available" pill and a small health table (model, latency,
+  errors). While Auto is on, Model and Effort are greyed out and the model chip reads "Auto".
+- **Settings**: a section "Auto routing" (order 14), simple first. It opens on one plain sentence, one switch ("Automatic
+  routing": on forces Auto in every session, off leaves it to the composer's per-session switch) and the choice of the models Auto
+  may use: **All models** (the default: every model of the providers that are connected, the Kybernos Cloud first, cheap ones before
+  costly ones, a local model last, so a model connected tomorrow is included by itself), **Free models** (the Free LLMs route, ids
+  marked `:free` or `-free`, local models) or **My list** (`provider/model` chips, max 64, typed with a picker fed by the profile; an
+  entry that is not a configured model is refused with the reason under the field). Everything else is under one fold, "Advanced
+  settings": the chat fallback, the classifier model (placeholder `ollama-local/tev1:0.8b`) and the local health table (latency,
+  errors, cache hit, "warm cache" badge; eight rows, the rest one click away). Each model says WHY it is skipped (cause, retry time,
+  last error). It refreshes every 60 s; "Check now" probes the first 20 models of the list for real. If the state cannot be read (the host
+  half does not answer) the page keeps its title and says "This page's helper is not answering. If DSH was just updated, restart
+  DSH, then press Retry." with a Retry button, instead of staying on a bare "…".
+
+## Chat fallback (main-session failover, opt-in)
+
+Auto protects delegations; this protects the person's own chat. With `autoFailover` on (the "Chat fallback" switch of
+the Auto routing page, off by default), a step whose model cannot answer is served by the next healthy whitelist model
+instead of ending the turn on an error. No engine patch: it uses DSH's own `agent/request` and `agent/request-error`
+waterfalls (`failover.mjs`).
+
+- **When**: a failure retrying cannot fix (`AUTH`, `UNKNOWN_MODEL`, `INVALID_MODEL`, `NO_ADAPTER`) moves on at once. A
+  transient one (`RATE_LIMIT`, `QUOTA`, `OVERLOADED`, `SERVER`, `TIMEOUT`, `TRANSPORT`, `NETWORK`) first goes through the
+  engine's own retries and moves on only when those gave up. A cancelled turn, a context-window or invalid-request
+  failure, and anything else are never failed over.
+- **Which model**: the chosen model stays the primary; then the whitelist in its order, minus the models whose breaker
+  is open. The breaker is the SAME as the delegations' (`auto-health.json`): a refused key opens it for 10 minutes, a
+  model that could not serve just now for 1, 2, 4, 8 then 10 minutes, then one trial decides. A model that failed is
+  never asked twice for the same step, so the chain is finite, and the primary comes back as soon as its pause ends.
+- **What does not carry over**: the reasoning effort and the output cap of the primary (both are model-specific).
+- **Scope**: every agent of this DSH, delegations' children included. The fallback is always a model of YOUR whitelist,
+  and the switch is the opt-in.
+- **Seen**: the page shows the last move ("Last fallback: a → b (CODE)"), the health table shows why a model is
+  skipped, and the log has one line per move.
+
+## Host routes
+
+JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` routes answer `405` otherwise. `/session`, `/settings` and `/probe` also need DSH's signed session cookie (`session-guard.mjs`, `test-write-guard.mjs`: a 401 without it). `/router` and `/report` do not: `cli/auto-router.mjs`, which the agent runs, sends no Origin and has no browser session.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /kybernos-auto/models` | the configured models, read-only: `{ok, models:[{cle, route, id, connecte, locale}]}` (feeds the picker of « My list ») |
+| `GET /kybernos-auto/state?sessionId=` | `{global, whitelist, scope, explicite, sondeMax, classifier, sessionOn, sante[], total, disponibles, chaud, failover:{enabled,last}, sondeEnCours, plafond, ttlSondeS, checkedAt, intervalS}`; each `sante` entry: `{modele, etat (jamais\|ok\|degrade\|down), disjoncteur (closed\|open\|half-open), jusqua, cause, consecutive, calls, errors, erreurPct, lastLatencyMs, cacheHitPct, lastError, sonde}` |
+| `POST /kybernos-auto/session` | `{sessionId, on}` turns Auto on or off for one session |
+| `POST /kybernos-auto/settings` | any of `autoWhitelist` (unique `provider/model` strings, 64 max; when the host can read the profile each must be a configured model, otherwise only the form is judged; a refusal answers `400` with a `code` — `liste-forme`, `liste-inconnu`, `liste` — and the entries at fault in `cles`), `autoScope` (`all`, `free` or `custom`), `autoRouting` (boolean), `autoFailover` (boolean), `autoClassifier` |
+| `POST /kybernos-auto/report` | `{modele, latenceMs?, erreur?, code?, message?, inputTokens?, cacheReadTokens?}` outcome of one delegation; an error keeps its reason and feeds the breaker |
+| `POST /kybernos-auto/router` | `{demande, sessionId?, exclure?[], sonde?}` returns `{actif, classe, via, modele, verifie, candidats[], chaine[], ecartes[], sondes, sonde, delai, plafond, raison}` |
+| `POST /kybernos-auto/probe` | `{models?[]}` probes the whitelist (or the whitelist models named; any other is ignored) for real, ignoring the verdict cache; a run that ended under 5 s ago is not repeated; 503 when the llm service is absent |
+
+## Files, settings, environment
+
+All under `$DSH_HOME/kybernos/` (default `~/.dsh/kybernos/`):
+
+- `settings.json`: keys `autoRouting`, `autoFailover`, `autoScope`, `autoWhitelist`, `autoClassifier`. `autoScope` absent means « all
+  models », unless a list was typed before scopes existed (then it stays « my list »); `whitelist` in `/state` is always the list Auto
+  really uses, `explicite` the typed one, kept when the person goes back to « all models ». The file is shared (the core reads
+  `pairingToken`, `gatewayBase`, `wsAdminKey`; `kybernos-sessions` writes its own keys): a save here merges into what is on
+  disk, writes atomically, keeps the file's permissions, and refuses to overwrite a file that is unreadable or not a JSON
+  object (a copy of a corrupt one is kept as `settings.json.corrupt-<time>`, and the route answers 500 with the reason).
+- `auto-sessions.json`: `{"<sessionId>": true}`. `auto-health.json`: per model `calls`, `errors`, `probes`,
+  `lastLatencyMs`, `cacheInput`, `cacheRead`, and the breaker: `consecutive`, `openUntil`, `openReason`, `lastError`,
+  `recent` (the last five errors), `lastOkAt`, `lastProbe`, `updatedAt`. A file written before the breaker existed reads as
+  "all closed".
+- Env: `DSH_HOME`, `AUTO_ROUTER_OLLAMA` (default `http://127.0.0.1:11434`), `KB_RETRY_PLAFOND` (the chain cap, default 10, the
+  same variable the plugin's retry cap uses), `KB_AUTO_DELAI` (probe timeout per model, default 8000 ms).
+- Browser: reads `localStorage['dsh.sessions.current']` (session id) and `window.__KB_LANG_RESOLVE__` (from
+  `@local/kybernos`; French when absent or not `en`). Writes no browser storage.
+
+## DSH seams and network
+
+- Host: `webServer` (`ctx.get`, else `ctx.inject(['webServer'])`), plus the `llm` service read **at call time** through a getter
+  (DSH may publish it after this plugin; with it absent nothing is probed and the answer says so), and the `settings` and
+  `credentials` services, read at call time and cached 15 s, to know the configured models (`modeles.mjs`; only the existence of a
+  key is asked, never its value; with no service the « all » and « free » lists are empty, never made up). No `remote.*`.
+- Client: `inject: ['slots']`, slot `settings.section`. The composer part has no seam: it finds the model menu
+  (`[role="menu"]` containing the text "Effort") and the model chip (a button whose text contains "Default") in
+  the DOM, polling every 300 ms. `package.json` declares `@deepseek-ai/dsh-client-ui-conversation`.
+- Network: the router calls Ollama (`/api/generate`, 20 s timeout) only when the rules do not match and a
+  classifier is set; it sends the first 400 characters of the request. Probes go through DSH's `llm` service: one real call
+  with one output token (`ping`) per candidate that has no verdict younger than a minute.
+
+## Routing, as coded
+
+Rules first (media, vision, design, code; mostly French wording), then the classifier, else `chat`. Candidates are whitelist
+entries whose id matches a per-class pattern (for example `wan|image|video|tts` for media), else any non-media text model, in
+whitelist order. Then, in `resilience.mjs`:
+
+1. **Triage**: models whose breaker is open (or that the caller names in `exclure`) are skipped, each with its reason; at most
+   10 are kept (the retry cap).
+2. **Probe first**: candidates are probed three at a time, in order, until one answers; a healthy verdict is trusted for 60 s, a
+   failed one for 10 s; after 12 s the rest is handed over unprobed (`verifie: false`).
+3. **The chain**: the models that answered come first (`verifie: true`), the unprobed ones follow. `modele` is the head,
+   `candidats` the whole ordered list; none left means `modele: null` (keep the session model).
+4. **The breaker** (per model, fed by probes and by `/report`): a failure retrying cannot fix (`AUTH`, `UNKNOWN_MODEL`,
+   `INVALID_REQUEST`, `PI_AI_ERROR`, `CONTEXT_WINDOW_EXCEEDED`) opens it for 10 minutes at once; a silent or flaky one after
+   three in a row, for 1 minute doubling up to 10; a rate limit for 1 minute; a model that refused to be a language model for an
+   hour; a transport failure does not count against the model. After the pause it is half-open: the next probe decides
+   (success closes it, failure reopens it for longer). "Check now" ignores the cache, so a fixed key comes back at once.
+
+The agent's command is `cli/auto-router.mjs` (a thin client of `/router` and `/report`; install it as
+`~/.dsh/tools/auto-router.mjs`). `AGENTS.md` tells the agent to call it before a delegation.
+
+## Tests
+
+```bash
+node test-host.mjs       # 33 checks: routes on a fake webServer, temp home, no network
+node test-resilience.mjs # 70 checks: breaker, triage, probe-first, router, routes with a fake llm; the probe copy matches sessions'
+node test-cli.mjs        # 10 checks: cli/auto-router.mjs against the real host module over HTTP
+node test-client.mjs     # 13 checks: static greps on client.js (data-kb hooks, tokens, menu wiring); it is not executed
+```
+
+`npm test` runs them. The "classifier offline" case does not exercise the Ollama failure: the classifier was cleared earlier in
+the same test. `sonde.mjs` holds a verbatim copy of the Study-model health probe (`kybernos-sessions/brain-health.mjs`);
+`test-resilience.mjs` fails if the two differ.
+
+## Known limits
+
+- The composer row depends on the native menu's text and structure, and two intervals (300 ms DOM poll,
+  5 s state fetch) are never cleared.
+- `auto-sessions.json` is only pruned when a session is switched off.
+- Nothing in DSH calls `/router` by itself: the agent calls it (through the CLI) because `AGENTS.md` says so, and the delegation
+  is made by the caller with the `{provider, model}` override. A delegation that fails is only learned from if the caller
+  reports it (`--report`); the probe covers the rest.
+- A probe is a real call. A route that answers through a CLI or a subscription (`claude-code`) is probed like any other; what
+  that costs there has not been measured.
+- The classes and their id patterns are rules read on the model id (no metadata per model), as before.

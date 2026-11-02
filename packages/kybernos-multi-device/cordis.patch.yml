@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-multi-device
+      name: '@local/kybernos-multi-device'

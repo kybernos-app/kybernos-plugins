@@ -1,0 +1,23 @@
+{
+  "id": "sakura",
+  "v": 1,
+  "name": "Sakura",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Rose pâle, texte à empattements, coins très doux.",
+    "en": "Pale pink, serif text, very soft corners."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#db2777",
+    "ov": {
+      "light:base": "#fff7fa",
+      "light:l1": "#ffffff",
+      "light:l2": "#fdebf2",
+      "light:side": "#fceff5",
+      "light:input": "#ffffff"
+    },
+    "fontText": "georgia",
+    "radius": "soft"
+  }
+}
