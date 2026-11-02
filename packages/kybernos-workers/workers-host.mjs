@@ -169,18 +169,31 @@ export function analyserPatch (texte) {
 const estLigneOutil = (it, worker) => it.champs.name === PAQUET_OUTIL && it.config.provider === worker.outil?.provider
 
 /**
- * What the profile says about a worker: is the connection mounted? is there a tool line?
+ * Is the entry `id` switched off? The loader ends up with the value of the LAST entry of the file that names the id and carries `disabled`,
+ * whether that is the connection's own row or a patch entry aimed at its id (Settings › Tools writes both shapes).
+ */
+const estCoupee = (items, id) => items.reduce((v, it) => (it.id === id && it.champs.disabled !== undefined ? it.champs.disabled === 'true' : v), false)
+
+/**
+ * What the profile says about a worker: is the connection mounted (and not switched off)? is there a tool line?
+ * `desactivee` = the connection is in the file but switched off (`disabled: true`): DSH does not load it, so it reads as not turned on.
  * `nous` = the line carries the id THIS module writes (so it may be edited here).
  */
 export function etatProfil (texte, worker) {
   const items = analyserPatch(texte)
   let connexion = false
+  let desactivee = false
   let nomMonte = null
   if (worker.genre === 'connexion') {
     const ligneConnexion = items.find((it) => nomsDeConnexion(worker).includes(it.champs.name))
-    connexion = ligneConnexion !== undefined
+    desactivee = ligneConnexion !== undefined && estCoupee(items, ligneConnexion.id)
+    connexion = ligneConnexion !== undefined && !desactivee
     nomMonte = connexion ? ligneConnexion.champs.name : null
-  } else if (worker.genre === 'mcp') connexion = items.some((it) => it.id === worker.mcpId || (it.champs.name === PAQUET_MCP && it.config.serverName === worker.serverName))
+  } else if (worker.genre === 'mcp') {
+    const ligneMcp = items.find((it) => it.id === worker.mcpId || (it.champs.name === PAQUET_MCP && it.config.serverName === worker.serverName))
+    desactivee = ligneMcp !== undefined && estCoupee(items, ligneMcp.id)
+    connexion = ligneMcp !== undefined && !desactivee
+  }
   let ligne = null
   if (worker.genre === 'connexion') {
     const it = items.find((x) => estLigneOutil(x, worker))
@@ -195,7 +208,7 @@ export function etatProfil (texte, worker) {
       }
     }
   }
-  return { connexion, nomMonte, ligne }
+  return { connexion, desactivee, nomMonte, ligne }
 }
 
 // ── writing the policy ──────────────────────────────────────────────────────
@@ -291,7 +304,10 @@ export function calculerActivation ({ worker, texte, horodatage }) {
   if (worker === undefined) return { ok: false, error: 'worker-inconnu' }
   if (worker.genre !== 'connexion' || worker.activation !== 'workers') return { ok: false, error: 'non-supporte' }
   const avant = String(texte ?? '')
-  if (etatProfil(avant, worker).connexion) return { ok: false, error: 'deja-montee' }
+  const etat = etatProfil(avant, worker)
+  if (etat.connexion) return { ok: false, error: 'deja-montee' }
+  // The line is there but switched off: a second one would register the same provider twice. Settings › Tools owns that switch.
+  if (etat.desactivee) return { ok: false, error: 'ligne-desactivee' }
   const apres = (avant === '' || avant.endsWith('\n') ? avant : avant + '\n') + blocActivation(worker, horodatage)
   if (!etatProfil(apres, worker).connexion) return { ok: false, error: 'auto-controle' }
   return { ok: true, apres }
@@ -565,7 +581,7 @@ export function monterWorkers (webServer, deps, liens = {}) {
       return {
         id: w.id, nom: w.nom, genre: w.genre, via: w.via, paquet: w.paquet ?? null, binaire: w.binaire ?? null, activation: w.activation,
         connect: w.connect, install: w.install == null ? null : { ...w.install, possible: installable(w) },
-        connexion: e.connexion, installe, ligne: e.ligne, dernier: dernier.get(cle(p.profil, w.id)) ?? null, job: vueJob(jobs.get(w.id))
+        connexion: e.connexion, desactivee: e.desactivee, installe, ligne: e.ligne, dernier: dernier.get(cle(p.profil, w.id)) ?? null, job: vueJob(jobs.get(w.id))
       }
     })
     return envoyer(res, 200, { ok: true, profil: p.profil, profils: deps.profils(), patch: deps.cheminPatch(p.profil), patchExiste: texte !== null, workers })

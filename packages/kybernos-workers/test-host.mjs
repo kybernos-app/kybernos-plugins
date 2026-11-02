@@ -86,6 +86,12 @@ console.log('── profile state ──')
   ok('ZCode also recognised by serverName when the id differs', etatProfil(PATCH.replace('mcp-client-zcode', 'other-id'), zcode).connexion === true)
   ok('a home-made provider is mounted when its package name is in the patch', etatProfil(PATCH_AVEC_GEMINI, gemini).connexion === true && etatProfil(PATCH, gemini).connexion === false)
   ok('no tool line when there is none', etatProfil(PATCH, codex).ligne === null)
+  // Settings › Tools can switch a connection off (`disabled: true`, in its row or in a patch entry aimed at its id): DSH does not load it.
+  const CODEX_COUPE = PATCH.replace("      name: '@deepseek-ai/dsh-subagent-codex'", "      name: '@deepseek-ai/dsh-subagent-codex'\n      disabled: true")
+  ok('a connection switched off in its own row is in the file but not turned on', etatProfil(CODEX_COUPE, codex).connexion === false && etatProfil(CODEX_COUPE, codex).desactivee === true)
+  ok('... also when a patch entry aimed at its id switches it off, and back on when a later one says false', etatProfil(PATCH + '\n- id: codex\n  disabled: true\n', codex).desactivee === true && etatProfil(PATCH + '\n- id: codex\n  disabled: true\n- id: codex\n  disabled: false\n', codex).connexion === true)
+  ok('ZCode switched off in its row reads as not turned on (the real profile has it so)', etatProfil(PATCH.replace('    - id: mcp-client-zcode\n', '    - id: mcp-client-zcode\n      disabled: true\n'), zcode).connexion === false)
+  ok('a mounted connection is not "switched off"', etatProfil(PATCH, codex).desactivee === false && etatProfil(PATCH, claude).desactivee === false)
   const foreign = PATCH + `
 - insert:
     - id: my-tool-codex
@@ -146,6 +152,7 @@ console.log('── activation: mounting a connection of ours ──')
   ok('the block names its rollback backup', r.apres.includes('bak-workers-activate-gemini-20261008-120000'))
   ok('text without a final newline: the block is not glued to the last line', /maxAttempts: 10\n\n# ── Workers/.test(A({ texte: PATCH.trimEnd() }).apres))
   ok('already mounted: refused, nothing to write', A({ texte: PATCH_AVEC_GEMINI }).error === 'deja-montee')
+  ok('present but switched off by hand: refused, no second line that would register the provider twice', A({ texte: PATCH_GEMINI_MAISON.replace('name: "@local/dsh-subagent-maison/gemini"', 'name: "@local/dsh-subagent-maison/gemini"\n      disabled: true') }).error === 'ligne-desactivee')
   ok('Claude Code and Codex are mounted by the Tools screen, not here', calculerActivation({ worker: claude, texte: PATCH, horodatage: 'x' }).error === 'non-supporte' && calculerActivation({ worker: zcode, texte: PATCH, horodatage: 'x' }).error === 'non-supporte')
   ok('unknown worker', calculerActivation({ worker: undefined, texte: PATCH, horodatage: 'x' }).error === 'worker-inconnu')
   ok('blocActivation is parsable on an empty patch', etatProfil(blocActivation(opencode, 'x'), opencode).connexion === true)

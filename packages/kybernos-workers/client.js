@@ -144,6 +144,7 @@ window.__ModuleLoader__.load({
      *  takes an API key says « Add the key » (Gemini CLI, Qwen Code), so the same word never names two actions (A3-48). */
     const authLabel = (w) => (w !== null && w !== undefined && w.connect != null && w.connect.mode === 'key' ? kt('Ajouter la clé', 'Add the key') : kt('Se connecter', 'Sign in'))
     const sublineOf = (w, status) => {
+      if (status === 'inactive' && w.desactivee === true) return kt('Désactivé dans Outils', 'Switched off in Tools')
       if (status === 'binaire-absent') return kt('Le programme n’est pas encore sur cet ordinateur.', 'The program is not on this computer yet.')
       if (status === 'non-connecte') {
         return w.connect != null && w.connect.mode === 'key'
@@ -173,7 +174,8 @@ window.__ModuleLoader__.load({
       'install-unavailable': ['L’installation automatique n’est pas disponible : redémarre DSH.', 'Automatic install is not available: restart DSH.'],
       'ligne-existante': ['Une ligne d’outil existe déjà dans ton profil et n’a pas été écrite ici : modifie-la à la main.', 'A tool line already exists in your profile and was not written here: edit it by hand.'],
       'ligne-modifiee-a-la-main': ['La ligne a été modifiée à la main : je ne la réécris pas.', 'The line was edited by hand: I will not rewrite it.'],
-      'connexion-absente': ['Active d’abord l’agent.', 'Turn the agent on first.']
+      'connexion-absente': ['Active d’abord l’agent.', 'Turn the agent on first.'],
+      'ligne-desactivee': ['La connexion est désactivée dans ton profil à la main : retire sa ligne « disabled » du fichier de config.', 'The connection is switched off by hand in your profile: remove its "disabled" line from the config file.']
     }
     const refusalText = (r, fr, en) => {
       const known = r != null && REFUSALS[r.error]
@@ -589,10 +591,10 @@ window.__ModuleLoader__.load({
           occupy(w.id, 'activate'); say(w.id, 'ok', '')
           const r = w.activation === 'workers'
             ? await post('/kybernos-workers/activate', { worker: w.id, profile: profileRef.current })
-            : await post('/kybernos/tools/apply', { family: w.id, profile: profileRef.current })
+            : await post('/kybernos/tools/apply', { family: w.id, profile: profileRef.current, action: w.desactivee === true ? 'enable' : 'install' })
           occupy(w.id, null)
           if (r.ok !== true) { say(w.id, 'bad', refusalText(r, 'Activation impossible : ', 'Could not turn it on: ')); show(w.id); return }
-          say(w.id, 'ok', r.already === true ? kt('Déjà activé.', 'Already turned on.') : kt('Activé : connexion ajoutée au profil (sauvegarde créée). DSH la charge dans quelques secondes.', 'Turned on: connection added to the profile (backup created). DSH loads it in a few seconds.'))
+          say(w.id, 'ok', r.already === true ? kt('Déjà activé.', 'Already turned on.') : r.action === 'enable' ? kt('Remis en service : la connexion n’est plus désactivée (sauvegarde créée). DSH la charge dans quelques secondes.', 'Back on: the connection is no longer switched off (backup created). DSH loads it in a few seconds.') : kt('Activé : connexion ajoutée au profil (sauvegarde créée). DSH la charge dans quelques secondes.', 'Turned on: connection added to the profile (backup created). DSH loads it in a few seconds.'))
           show(w.id)
           await reload()
         }
