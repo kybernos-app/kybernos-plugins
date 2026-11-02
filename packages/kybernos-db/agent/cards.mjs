@@ -95,3 +95,31 @@ export function protectedCard (verb, fields, obj) {
   const write = verb === 'write'
   return both((lang) => say(write ? 'askWrite' : 'askRead', lang) + names + say('closeOf', lang) + word('object', lang) + ' ' + quote(obj.label) + say(write ? 'allowWrite' : 'allowRead', lang))
 }
+
+/**
+ * The card of `dashboard_share`: a link leaves this computer (a snapshot of the widgets' results, on the Kybernos server), and a personal field in it is something the person must have chosen.
+ * `file` asks nothing unless it prints personal fields (the page can then be sent anywhere); `check`, `list` and `revoke` ask nothing. Null when there is nothing to ask.
+ */
+export function shareCard (args) {
+  const a = args !== null && typeof args === 'object' && !Array.isArray(args) ? args : {}
+  const action = a.action === undefined ? 'check' : a.action
+  const personal = a.includePersonal === true
+  if (action !== 'publish' && !(action === 'file' && personal)) return null
+  const name = typeof a.dashboard === 'string' && a.dashboard !== '' ? quote(a.dashboard) : ''
+  const protect = a.protect === true
+  const update = typeof a.share === 'string' && a.share !== ''
+  return both((lang) => {
+    const en = lang === 'en'
+    const of = en ? (name !== '' ? 'the dashboard ' + name : 'this dashboard') : (name !== '' ? 'du tableau de bord ' + name : 'de ce tableau de bord')
+    const snap = (en ? 'a snapshot of ' : 'un instantané ') + of + (en ? ' (what its widgets show, never the rows)' : ' (ce que montrent ses widgets, jamais les lignes)')
+    const out = action === 'file'
+      ? (en ? 'The agent wants to write a page with ' : 'L’agent veut écrire une page avec ') + snap + (en ? ', to keep or send by hand' : ', à garder ou à envoyer à la main')
+      : (en ? (update ? 'The agent wants to update a link with ' : 'The agent wants to publish ') : (update ? 'L’agent veut mettre à jour un lien avec ' : 'L’agent veut publier ')) + snap + (en ? ' on the Kybernos server' : ' sur le serveur Kybernos')
+    const lines = [
+      protect ? (en ? 'Protected by a password it cannot read: readers type it to open the page.' : 'Protégé par un mot de passe que le serveur ne peut pas lire : les lecteurs le saisissent pour ouvrir la page.')
+        : (action === 'file' ? (en ? 'Not protected: anyone who gets the page can read it.' : 'Non protégé : quiconque reçoit la page peut la lire.') : (en ? 'Not protected: anyone who has the link can read it.' : 'Non protégé : quiconque a le lien peut le lire.')),
+      personal ? (en ? 'It MAY PRINT PERSONAL FIELDS (names, e-mails…).' : 'Il PEUT AFFICHER DES CHAMPS PERSONNELS (noms, e-mails…).') : (en ? 'Personal fields are left out.' : 'Les champs personnels sont laissés de côté.'),
+    ]
+    return out + (en ? '. Allow it?' : '. Autoriser ?') + '\n' + bullets(lines)
+  })
+}

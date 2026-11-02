@@ -10,6 +10,7 @@
 //   records_list|get        read records; a protected field comes back masked, a secret one not at all
 //   records_create|update   write records                                                (free, unless a protected field is written: the person approves)
 //   records_import          write the rows of a prepared file (data-feed skill)          (free, unless a protected field is filled: the person approves; `dryRun` writes nothing)
+//   dashboard_share         share a dashboard over a table as a snapshot: check, one page, a link, take the link down (share-dashboard skill)  (a link, or a personal field in it: card)
 //   records_delete|restore  mark records deleted, or bring them back                     (free: nothing is lost, the journal keeps it)
 //   db_archive|db_restore   put a table or a whole database away, or bring it back        (archive: card; restore: free). Deleting one for good is the person's alone: no tool.
 //
@@ -25,11 +26,11 @@ import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { COLORS, FIELD_TYPES, PROTECTION, can, checkFilter, checkSorts, prepareFilter, queryRecords } from '../core/index.mjs'
 import { findObject } from '../store/catalog.mjs'
-import { cardFor, protectedCard } from './cards.mjs'
+import { cardFor, protectedCard, shareCard } from './cards.mjs'
 import { IMPORT_ID, MAX_IMPORT_BYTES, coerceRows, parseImport, planColumns } from './import.mjs'
 import { fieldLine, short } from './words.mjs'
 
-export const NAMES = ['db_list', 'db_create', 'object_define', 'field_add', 'relation_add', 'field_update', 'view_save', 'records_list', 'records_get', 'records_create', 'records_update', 'records_import', 'records_delete', 'records_restore', 'db_archive', 'db_restore']
+export const NAMES = ['db_list', 'db_create', 'object_define', 'field_add', 'relation_add', 'field_update', 'view_save', 'records_list', 'records_get', 'records_create', 'records_update', 'records_import', 'dashboard_share', 'records_delete', 'records_restore', 'db_archive', 'db_restore']
 export const LIST_DEFAULT = 20
 export const LIST_MAX = 100
 export const BATCH_MAX = 50
@@ -560,6 +561,53 @@ export function tools (service, ports = {}) {
     },
   }
 
+  // A dashboard over a table, shared as a snapshot of its widgets' results (share/service.mjs): never the table. `ports.share` is that service; without it the tool says so.
+  const sharing = () => (ports.share !== null && typeof ports.share === 'object' ? ports.share : null)
+  const shareDashboard = {
+    name: 'dashboard_share',
+    description: 'Shares a dashboard (one of the kybernos_dashboard tool) that shows a Tables object, as a SNAPSHOT: what its widgets show today, never the rows. Actions: '
+      + '`check` (default) says what would be shared, what is left out and why (a widget about this computer rather than a table, a kind the shared page does not draw yet, a widget that would print a personal field such as a name), and whether a link can be made; it writes and sends nothing, so call it first. '
+      + '`file` writes one page the person keeps or sends by hand (opens in any browser, offline). `publish` makes a short link on the Kybernos server (needs a connected account; the person approves a card first); with `share` it updates that link with today\'s numbers, keeping the link and the password. '
+      + '`revoke` takes a link down. `list` shows this computer\'s links. `protect: true` asks for a password to open the page: it is made for you, shown ONCE in the answer (give it to the person, never invent or store one), and the server cannot read the snapshot. '
+      + '`includePersonal: true` lets widgets print personal fields (names, e-mails); ask the person first, the card repeats it. A snapshot is a photograph: it does not follow the table, so publish again (or an automation does) to refresh it.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        action: { type: 'string', enum: ['check', 'file', 'publish', 'revoke', 'list'], description: 'Default check.' },
+        dashboard: { type: 'string', description: 'The id of the dashboard (see the dashboard tool). Leave it out when there is only one, or to update a link.' },
+        protect: { type: 'boolean', description: 'file or publish: ask for a made-for-you password to open the page.' },
+        includePersonal: { type: 'boolean', description: 'file or publish: let widgets print personal fields. Only when the person said so.' },
+        share: { type: 'string', description: 'publish: the id of a link of this computer to update. revoke: the link to take down. `list` gives the ids.' },
+      },
+    },
+    output: {
+      schema: { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'] },
+      render: (args, value) => TEXT(value.ok !== true ? 'Not shared: ' + String(value.error) + (value.message === undefined ? '' : ' — ' + String(value.message))
+        : value.url !== undefined ? (value.renewed ? 'Link updated: ' : 'Link made: ') + value.url + (value.password === undefined ? '' : '\nPassword (shown once): ' + value.password)
+          : value.path !== undefined ? 'Page written: ' + value.path + (value.password === undefined ? '' : '\nPassword (shown once): ' + value.password)
+            : value.revoked !== undefined ? 'Link taken down: ' + String(value.revoked.url)
+              : value.shares !== undefined ? value.shares.length + ' link(s)' : 'Checked: ' + value.included.length + ' widget(s) can be shared, ' + (value.left.length + value.withheld.length) + ' left out'),
+    },
+    async execute (args) {
+      const a = plain(args) ? args : {}
+      const svc = sharing()
+      if (svc === null) return problem('unavailable', 'sharing is not set up on this computer')
+      const action = a.action === undefined ? 'check' : String(a.action)
+      const dashboard = typeof a.dashboard === 'string' ? a.dashboard : undefined
+      try {
+        switch (action) {
+          case 'check': return svc.check({ dashboard, includePersonal: a.includePersonal === true })
+          case 'file': return await svc.file({ dashboard, protect: a.protect === true, includePersonal: a.includePersonal === true })
+          case 'publish': return await svc.publish({ dashboard, protect: a.protect === true, includePersonal: a.includePersonal === true, share: typeof a.share === 'string' ? a.share : undefined })
+          case 'revoke': return await svc.revoke({ share: typeof a.share === 'string' ? a.share : undefined })
+          case 'list': return svc.list()
+          default: return problem('invalid', 'action is check, file, publish, revoke or list')
+        }
+      } catch (e) { return problem('failed', e instanceof Error ? e.message : String(e)) }
+    },
+  }
+
   const mark = (name, method, done, description) => ({
     name,
     description,
@@ -635,7 +683,7 @@ export function tools (service, ports = {}) {
   })
 
   return [
-    listTool, createDbTool, objectTool, fieldTool, relationTool, updateTool, viewTool, listRecords, getRecord, createRecords, updateRecords, importRecords,
+    listTool, createDbTool, objectTool, fieldTool, relationTool, updateTool, viewTool, listRecords, getRecord, createRecords, updateRecords, importRecords, shareDashboard,
     mark('records_delete', 'remove', 'deleted', 'Deletes records: they are marked deleted, hidden from lists, and can be brought back with records_restore (nothing is lost). `ids` is a list of record ids.'),
     mark('records_restore', 'restore', 'restored', 'Brings deleted records back. `ids` is a list of record ids.'),
     archiveTool, restoreTool,
@@ -685,6 +733,7 @@ export function approvalGate (service, exec) {
       if (keys.size) card = protectedCard('reveal', obj.fields.filter((f) => keys.has(f.key)), obj)
     }
   }
+  else if (exec.name === 'dashboard_share') card = shareCard(a)
   if (card === null) return null
   return { kind: 'ask', reason: card.en, displayReason: { en: card.en, fr: card.fr } }
 }
