@@ -195,8 +195,34 @@ await ok('more than the old cap of 5,000 comes whole by default, the ceiling cut
 await ok('the Tables page asks for 5,000 records itself, so a bigger default only reaches the readers that want it all (the dashboards)', () => {
   const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
   assert.match(client, /const PAGE_ROWS = 5000\b/)
-  assert.equal([...client.matchAll(/'\/records' \+ qs\(\{[^}]*limit: PAGE_ROWS \}\)/g)].length, 2, 'the table and the tables it links to')
+  assert.equal([...client.matchAll(/'\/records' \+ qs\(\{[^}]*limit: PAGE_ROWS\b/g)].length, 2, 'the table and the tables it links to')
   assert.equal([...client.matchAll(/'\/records' \+ qs\(/g)].length, 2, 'no other read of the records without a limit')
+})
+
+await ok('a search, a filter and sorts narrow the records before the cut: a big table is searched whole, and `total` stays the table', () => {
+  const { api, db } = seeded()
+  for (let i = 0; i < 120; i += 1) db.create('task', { name: 'n' + i, status: i % 4 === 0 ? 'done' : 'todo', token: 'k' + i }, 'agent')
+  const flt = JSON.stringify({ conj: 'and', items: [{ k: 'status', op: 'is', v: 'done' }] })
+  const sorts = JSON.stringify([{ k: 'name', dir: 'desc' }])
+  const q = api.records({ object: 'task', q: 'n11', limit: 5 })
+  assert.deepEqual([q.total, q.matched, q.records.length, q.truncated], [120, 11, 5, true], 'n11, n110 to n119')
+  const f = api.records({ object: 'task', flt })
+  assert.deepEqual([f.total, f.matched, f.records.length, f.truncated], [120, 30, 30, false])
+  assert.ok(f.records.every((r) => r.values.status === 'done'))
+  const s = api.records({ object: 'task', sorts, limit: 3 })
+  assert.deepEqual(s.records.map((r) => r.values.name), ['n99', 'n98', 'n97'], 'sorted before the cut, not after')
+  const all = api.records({ object: 'task' })
+  assert.deepEqual([all.total, all.matched, all.records.length], [120, 120, 120], 'no query: the whole table')
+  const both = api.records({ object: 'task', q: 'n1', flt, sorts, limit: 2 })
+  const want = api.records({ object: 'task', sorts }).records.filter((r) => r.values.status === 'done' && r.values.name.includes('n1')).slice(0, 2).map((r) => r.id)
+  assert.deepEqual([both.matched > 2, both.records.map((r) => r.id)], [true, want], 'all three at once: the first two of the sorted matches')
+  assert.equal(api.records({ object: 'task', q: 'k5' }).matched, 0, 'a secret is never searched')
+  assert.equal(api.records({ object: 'task', q: '  ' }).matched, 120, 'a blank search is no search')
+  for (const bad of [{ flt: '{nope' }, { flt: '[]' }, { flt: '{"items":3}' }, { sorts: '{}' }, { sorts: 'x'.repeat(20001) }]) {
+    assert.equal(api.records({ object: 'task', ...bad }).error, 'bad_query', JSON.stringify(bad).slice(0, 40))
+  }
+  assert.equal(api.records({ object: 'task', flt: JSON.stringify({ conj: 'and', items: [{ k: 'nope', op: 'is', v: 1 }, { k: 'status', op: 'bogus' }] }) }).matched, 120, 'what cannot apply is dropped, not an error')
+  assert.equal(api.records({ object: 'task', q: 'n11', deleted: true }).matched, 0, 'the deleted list is not queried')
 })
 
 await ok('several databases need the db named; one is found by itself', () => {

@@ -17,7 +17,6 @@ export const TIDY_MODES = ['auto', 'ask']
 export const TIDY_SCHEDULES = ['off', 'start', 'daily', 'weekly', 'n50']
 export const TIDY_START_AFTER_DAYS = 3
 export const TIDY_N_NEW = 50
-export const TIDY_RETRY_MS = 3600000
 
 export const normalizeTidySettings = (raw) => {
   const r = raw !== null && typeof raw === 'object' ? raw : {}

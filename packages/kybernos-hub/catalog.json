@@ -2708,8 +2708,8 @@
       },
       "aide": {
         "what": {
-          "fr": "La page où tu règles Kaby : son allure (un nom, un portrait, une voix, le visage des appels vidéo), l'ordinateur où il travaille, et ce qu'il peut faire sans te demander.",
-          "en": "The page where you set Kaby up: its look (a name, a portrait, a voice, the face on video calls), the computer it works on, and what it may do without asking."
+          "fr": "La page où tu règles Kaby : son allure (nom, portrait, voix, visage), l'ordinateur où il travaille, ce qu'il peut faire sans te demander, et quand il se réveille tout seul.",
+          "en": "The page where you set Kaby up: its look (name, portrait, voice, face), the computer it works on, what it may do without asking, and when it wakes up by itself."
         },
         "steps": [
           {
@@ -2717,16 +2717,16 @@
             "en": "Open Settings › Kaby, or click Kaby's portrait above its conversation."
           },
           {
-            "fr": "Choisis un nom, décris son allure et génère un portrait, ou importe une image dont tu as le droit.",
-            "en": "Pick a name, describe how it looks and generate a portrait, or import a picture you have the right to use."
-          },
-          {
-            "fr": "Choisis une voix et écoute-la. Tu peux aussi enregistrer ou importer une voix perso, avec ton consentement.",
-            "en": "Pick a voice and listen to it. You can also record or upload a custom voice, with your consent."
+            "fr": "Choisis un nom, un portrait (généré, ou importé si tu en as le droit) et une voix. Une voix perso demande ton consentement.",
+            "en": "Pick a name, a portrait (generated, or imported if you have the right to use it) and a voice. A custom voice needs your consent."
           },
           {
             "fr": "Plus bas, choisis où Kaby travaille et ce qu'il peut faire sans te demander, avec une limite par jour. Signe pour que ça compte.",
             "en": "Further down, pick where Kaby works and what it may do without asking, with a daily limit. Sign for it to count."
+          },
+          {
+            "fr": "Règle ses réveils : un rythme, un temps limité, des heures de silence. Signe, puis « Réveiller maintenant » pour l'essayer.",
+            "en": "Set its wake-ups: a rhythm, a time limit, quiet hours. Sign, then press « Wake it now » to try one."
           }
         ],
         "where": {
@@ -2735,8 +2735,8 @@
           "page": true
         },
         "good": {
-          "fr": "Le portrait reste sur cet ordinateur. Les autorisations ne valent que signées par toi, dans leurs limites du jour ; une application connectée et le redémarrage de DSH te sont toujours demandés.",
-          "en": "The portrait stays on this computer. Permissions hold only once you sign them, within their daily limits; a connected app and restarting DSH are always asked of you."
+          "fr": "Le portrait reste sur cet ordinateur. Autorisations et réveils ne valent que signés par toi ; une application connectée et le redémarrage de DSH te sont toujours demandés, même pendant un réveil.",
+          "en": "The portrait stays on this computer. Permissions and wake-ups hold only once you sign them; a connected app and restarting DSH are always asked of you, even during a wake-up."
         }
       }
     },

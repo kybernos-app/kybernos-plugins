@@ -3,24 +3,14 @@
 //   kyby-mandate-usage.json  the day's count of what ran without a question, counted here and not by Kaby.
 //   kyby-mandate-audit.jsonl one line per signature and per action that ran under it, so « what did you let it do » has an answer. Trimmed when it grows.
 // Every method is safe to call from a hook: none throws, and a file that cannot be read means no mandate, never a permissive one.
-import { appendFileSync, chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { appendAudit, readJson, writeJson } from './kyby-files.mjs'
 import { countUse, dayKey, decide, describe, mandateText, readRequest, sign, usageOf, verify } from './kyby-mandate.mjs'
 
 const LOG_MAX = 30
-const AUDIT_MAX_BYTES = 256 * 1024
-const AUDIT_KEEP_LINES = 500
 const TEXT_TTL_MS = 1000
 const SAFE_ID = /^[A-Za-z0-9_.:-]{1,80}$/u
-
-const readJson = (file) => { try { return JSON.parse(readFileSync(file, 'utf8')) } catch (e) { return null } }
-const writeJson = (file, value) => {
-  mkdirSync(dirname(file), { recursive: true })
-  const tmp = file + '.' + process.pid + '.tmp'
-  writeFileSync(tmp, JSON.stringify(value) + '\n', { mode: 0o600 })
-  try { chmodSync(tmp, 0o600) } catch (e) { /* a filesystem with no modes */ }
-  renameSync(tmp, file)
-}
 
 /**
  * @param deps { home: () => string (the DSH home), secret: () => Buffer | null (the machine secret), now?: () => number }
@@ -34,17 +24,7 @@ export function createMandateStore (deps) {
   const secret = () => { try { return deps.secret() } catch (e) { return null } }
   let cached = { at: 0, text: '' }
 
-  const audit = (event) => {
-    try {
-      const file = auditFile()
-      mkdirSync(dirname(file), { recursive: true })
-      appendFileSync(file, JSON.stringify({ at: new Date(now()).toISOString(), ...event }) + '\n', { mode: 0o600 })
-      if (statSync(file).size > AUDIT_MAX_BYTES) {
-        const lines = readFileSync(file, 'utf8').split('\n').filter((l) => l !== '')
-        writeFileSync(file, lines.slice(-AUDIT_KEEP_LINES).join('\n') + '\n', { mode: 0o600 })
-      }
-    } catch (e) { /* the audit never stops a turn */ }
-  }
+  const audit = (event) => appendAudit(auditFile(), now(), event)
 
   return {
     /** What the Settings page shows. */
@@ -74,13 +54,13 @@ export function createMandateStore (deps) {
      * Called by the native gate for a tool of ours in Kaby's chat: true when the mandate covers it right now, in which case the use is counted and written down.
      * A false is the old behaviour (the question).
      */
-    allow (toolName, sessionId) {
+    allow (toolName, sessionId, source) {
       try {
         const t = now()
         const verdict = decide(readJson(recordFile()), secret(), readJson(usageFile()), toolName, t)
         if (verdict.allow !== true) return { allow: false, why: verdict.why }
         writeJson(usageFile(), countUse(readJson(usageFile()), verdict.klass, t))
-        audit({ kind: 'ran', tool: toolName, klass: verdict.klass, session: typeof sessionId === 'string' && SAFE_ID.test(sessionId) ? sessionId : null })
+        audit({ kind: 'ran', tool: toolName, klass: verdict.klass, session: typeof sessionId === 'string' && SAFE_ID.test(sessionId) ? sessionId : null, ...(source === 'heartbeat' ? { source } : {}) })
         return { allow: true, why: 'covered' }
       } catch (e) { return { allow: false, why: 'error' } }
     },
