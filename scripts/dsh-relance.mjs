@@ -1119,7 +1119,13 @@ function cmdSuperviseInstall() {
   mkdirSync(join(homedir(), 'Library', 'LaunchAgents'), { recursive: true })
   writeFileSync(supervisePlistPath(), supervisePlistContent())
   try { execFileSync('launchctl', ['bootout', `${DOMAIN}/${SUPERVISE_LABEL}`], { stdio: 'ignore' }) } catch {}
-  execFileSync('launchctl', ['bootstrap', DOMAIN, supervisePlistPath()], { stdio: 'ignore' })
+  // bootout returns before launchd has let go of the label: a bootstrap right after it can fail, and the service would stay unloaded.
+  for (let attempt = 1; ; attempt += 1) {
+    try { execFileSync('launchctl', ['bootstrap', DOMAIN, supervisePlistPath()], { stdio: 'ignore' }); break } catch (e) {
+      if (attempt >= 5) throw e
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+    }
+  }
   execFileSync('launchctl', ['kickstart', '-k', `${DOMAIN}/${SUPERVISE_LABEL}`], { stdio: 'ignore' })
   log(`supervise: installed (${SUPERVISE_LABEL})`)
   say(`✓ permanent supervision installed (${SUPERVISE_LABEL})`)
