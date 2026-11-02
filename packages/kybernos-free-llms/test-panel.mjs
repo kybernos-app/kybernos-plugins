@@ -78,12 +78,17 @@ globalThis.fetch = async (url) => {
   return { json: async () => ({ ok: true }) }
 }
 globalThis.document = { documentElement: { lang: 'en' }, head: { append () {} }, createElement: () => ({ dataset: {}, remove () {} }) }
-const open = async (answer) => {
+// The Suite's « ? » card, as a stand-in that records what the page asks of it (it draws nothing).
+const helpAsked = []
+const Help = function Help (props) { helpAsked.push(props); return null }
+const open = async (answer, suite) => {
   healthAnswer = answer
   calls.length = 0
+  helpAsked.length = 0
   const r = makeRenderer()
   let def = null
   globalThis.window = { __ModuleLoader__: { load: (d) => { def = d } } }
+  if (suite === true) globalThis.window.__KB_HELP__ = { version: 1, Help }
   new Function('window', 'document', SOURCE)(globalThis.window, globalThis.document)
   const plugin = def.factory((name) => (name === 'react' ? r.React : undefined))
   let Panel = null
@@ -176,6 +181,19 @@ console.log('the host could not keep the choice (state-not-saved): the page says
   await wired.settle()
   check('Remove: the same sentence (the disable answer was ignored before)', /could not be saved on this disk/.test(wired.text()) && !/state-not-saved/.test(wired.text()), wired.text().slice(0, 300))
   postAnswer = { ok: true }; statusState = { wired: false, acknowledged: false }
+}
+
+console.log('the page\'s description lives in the « ? » card, not under the title')
+{
+  const DESCRIPTION = 'Free models, no account or API key.'
+  const withSuite = await open({ ok: true, model: MODELS[0], code: 'ok' }, true)
+  const asked = helpAsked.filter((p) => p.id === 'kybernos-free-llms')
+  check('with the Suite: one « ? » card, given the description as `lead` and the page name as `title`', asked.length >= 1 && asked.every((p) => p.lead === DESCRIPTION && p.title === 'Free LLMs'), asked)
+  check('...and the description is no longer drawn under the title', withSuite.one((n) => n.props && n.props.className === 'kfl-soustitre') === null && !withSuite.text().includes(DESCRIPTION))
+  check('...but the privacy warning stays on the page (it is not a description)', withSuite.one((n) => n.props && n.props.className === 'kfl-avertis') !== null)
+  const without = await open({ ok: true, model: MODELS[0], code: 'ok' })
+  const sub = without.one((n) => n.props && n.props.className === 'kfl-soustitre')
+  check('without the Suite: no card is asked for, and the description stays under the title', helpAsked.length === 0 && sub !== null && without.text().includes(DESCRIPTION))
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

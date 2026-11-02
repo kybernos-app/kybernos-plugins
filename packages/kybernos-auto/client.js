@@ -30,6 +30,8 @@ window.__ModuleLoader__.load({
       } catch { return 'en' }
     }
     const kt = (fr, en) => lang() === 'fr' ? fr : en
+    // True where the Suite's « ? » card (window.__KB_HELP__.Help) does not exist: only then is the page's description drawn under its title (it lives in the card otherwise). Read at render time, never at load.
+    const helpAbsent = () => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } }
     // Why a model is skipped, in the words of the Models tab's health chip (the host keeps the cause with the outcome).
     const CAUSES_TXT = {
       key: ['clé refusée', 'key refused'], gone: ['retiré chez le fournisseur', 'gone from the provider'],
@@ -377,14 +379,18 @@ window.__ModuleLoader__.load({
       }, [])
 
       // The page's head, the same on the page and on its failure state (the title stays: only the body is missing).
-      const entete = () => [
-        h('div', { key: 'h', className: 'kaa-titrerow' },
-          h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
-          typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-auto' }) : null),
-        h('p', { key: 'i', className: 'kaa-intro' }, kt(
+      // The page's description lives in the « ? » card of the Suite's Help (its `lead`); it is drawn under the title only where that Help does not exist (no Suite).
+      const entete = () => {
+        const intro = kt(
           'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que tu autorises. Le modèle de ton chat n’est jamais changé.',
-          'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.'))
-      ]
+          'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.')
+        return [
+          h('div', { key: 'h', className: 'kaa-titrerow' },
+            h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
+            typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-auto', lead: intro, title: kt('Routage Auto', 'Auto Routing') }) : null),
+          helpAbsent() ? h('p', { key: 'i', className: 'kaa-intro' }, intro) : null
+        ]
+      }
       if (etat === null && echec === true) {
         return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
           ...entete(),
@@ -613,8 +619,9 @@ window.__ModuleLoader__.load({
       '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
       'body:not([data-ds-dark-theme]) :is(.kaa-page,.kaa-pop){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kaa-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
-      '.kaa-titrerow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
-      '.kaa-intro{margin:0 0 10px;color:var(--dsw-alias-label-secondary);font-size:13px}',
+      '.kaa-titrerow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 10px}',
+      // The description sits in the « ? » card; this line is the fallback where there is no Suite: -10px cancels the title row's own 10px, so it stays right under the title as before.
+      '.kaa-intro{margin:-10px 0 10px;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kaa-cache{display:flex;gap:8px;align-items:flex-start;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);',
       'border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}',
       '.kaa-ligne{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-bottom:0.5px solid var(--dsw-alias-border-l2)}',

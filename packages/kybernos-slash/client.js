@@ -159,6 +159,8 @@ window.__ModuleLoader__.load({
       const L = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? (v[kbslLang()] || v.en || v.fr || '') : String(v)))
       // A count with its noun, one or many: « 1 field », « 2 fields » (`one` and `many` are { fr, en } labels).
       const kbslCount = (n, one, many) => String(n) + ' ' + L(n === 1 ? one : many)
+      // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title.
+      const kbslLeadFallback = (text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('span', { className: 'kbsl-sub' }, text) } catch (e) { return h('span', { className: 'kbsl-sub' }, text) } }
 
       // ── Access to the host's entries ──────────────────────────────────────
       const API = '/kybernos/slash/entries'
@@ -2218,11 +2220,12 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           needle !== ''
             ? h('button', { type: 'button', className: 'kbsl-btn kbsl-outline sm', onClick: () => setQ('') }, L({ fr: 'Effacer la recherche', en: 'Clear the search' }))
             : h('button', { type: 'button', className: 'kbsl-btn kbsl-primary sm', onClick: () => kbOpenEditor('create', tab === 'action' ? 'action' : 'slash', null, {}) }, h(KbIcon, { name: 'plus', size: 15, weight: 2.2 }), newLabel))
+        const pageLead = L({ fr: 'Des prompts enregistrés. Tape / dans la zone de message pour en lancer un, ou utilise le bouton sous une réponse.', en: 'Saved prompts. Type / in the message box to run one, or use the button under a reply.' })
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
-            h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
+            h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash', lead: pageLead, title: L({ fr: 'Commandes', en: 'Commands' }) }) : null)),
             h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes', en: 'Commands' })),
-            h('span', { className: 'kbsl-sub' }, L({ fr: 'Des prompts enregistrés. Tape / dans la zone de message pour en lancer un, ou utilise le bouton sous une réponse.', en: 'Saved prompts. Type / in the message box to run one, or use the button under a reply.' }))),
+            kbslLeadFallback(pageLead)),
           introNode,
           h('div', { className: 'kbsl-tabs' },
             h('div', { className: 'kbsl-segtabs', role: 'group', 'aria-label': L({ fr: 'Type de commande', en: 'Kind of command' }) },

@@ -83,6 +83,9 @@ const js = async (expr, ms = 8000) => { const r = await page.evalJs(expr, ms); r
 const q = (sel) => JSON.stringify(sel)
 const exists = (sel) => js(`document.querySelector(${q(sel)}) !== null`)
 const click = (sel) => js(`(() => { const e = document.querySelector(${q(sel)}); if (!e) return false; e.click(); return true })()`)
+// The page shows one tab at a time (every card stays mounted, the closed panels are hidden): open the tab a section works in before it clicks or shoots.
+const openTab = async (id) => { const hit = await click(`[data-kb="kaby-custom-tab"][data-tab="${id}"]`); await sleep(200); return hit }
+const shownPanels = () => js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-page"] [role="tabpanel"]\')).filter((p) => p.getClientRects().length > 0).map((p) => p.getAttribute("data-kb"))')
 const type = async (sel, v) => {
   const ok = await js(`(() => { const el = document.querySelector(${q(sel)}); if (!el) return false; el.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(v)}); el.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
   await sleep(150) // React renders the new value before the field loses focus, as it does for a person
@@ -120,6 +123,19 @@ try {
   check('« Kaby » is in the Settings menu, next to the agents', Array.isArray(cells) && cells.includes('Kaby') && Math.abs(cells.indexOf('Kaby') - cells.indexOf('Workers')) <= 3, cells)
   check('its menu entry has an icon of its own, not the shell’s gear', (await js('(() => { const c = Array.from(document.querySelectorAll(\'[class*="navCell"]\')).find((e) => e.textContent.trim() === "Kaby"); return !!c && c.querySelector("svg") !== null })()')) === true)
   check('the help card of the Suite is in the header when the Suite is there', (await js('document.querySelector(\'[data-kb="kaby-custom-page"] h4\') !== null')) === true)
+
+  console.log('── the tabs ──')
+  const tabNames = await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-tab"]\')).map((t) => t.textContent.trim())')
+  check('four tabs: Identity & voice, Video calls, Work, Permissions', Array.isArray(tabNames) && tabNames.join('|') === 'Identity & voice|Video calls|Work|Permissions', tabNames)
+  check('the first tab is open and it is the only panel on screen', (await js('document.querySelector(\'[data-kb="kaby-custom-tab"][aria-selected="true"]\').getAttribute("data-tab")')) === 'look' && JSON.stringify(await shownPanels()) === '["kaby-custom-panel-look"]')
+  for (const [id, hooks] of [['face', ['kaby-custom-face']], ['work', ['kaby-custom-where', 'kaby-custom-wake']], ['permissions', ['kaby-custom-mandate']], ['look', ['kaby-custom-identity', 'kaby-custom-voice']]]) {
+    await openTab(id)
+    await shot('01b-tab-' + id)
+    const open = await shownPanels()
+    check('the « ' + id + ' » tab shows its own panel only, with its cards on screen', JSON.stringify(open) === JSON.stringify(['kaby-custom-panel-' + id]) && (await js(`${JSON.stringify(hooks)}.every((k) => { const e = document.querySelector('[data-kb="' + k + '"]'); return e !== null && e.getClientRects().length > 0 })`)) === true, open)
+  }
+  check('the arrow keys move between tabs and keep the focus on the tab', (await js('(() => { const bar = document.querySelector(\'[data-kb="kaby-custom-tabs"]\'); const first = bar.querySelector(\'[data-tab="look"]\'); first.focus(); first.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); return true })()')) === true && await waitFor(page, 'document.activeElement && document.activeElement.getAttribute("data-tab") === "face"', 3000) === true)
+  await openTab('look')
 
   console.log('── identity ──')
   check('the default name is Kaby', (await js('document.querySelector(\'[data-kb="kaby-custom-name"]\').value')) === 'Kaby')
@@ -170,6 +186,7 @@ try {
   check('and takes the file once it is ticked', (await js('document.querySelector(\'[data-kb="kaby-custom-file"]\').disabled')) === false)
 
   console.log('── voice ──')
+  await openTab('look')
   const pills = await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-voice-pill"]\')).map((e) => e.dataset.voice)')
   check('the app voice pill is there and pressed', Array.isArray(pills) && pills[0] === 'default' && (await js('document.querySelector(\'[data-kb="kaby-custom-voice-pill"]\').getAttribute("aria-pressed")')) === 'true', pills)
   check('the core’s voices are offered as pills (the machine has at least one ready engine)', Array.isArray(pills) && pills.length > 1, pills)
@@ -208,6 +225,7 @@ try {
   check('removing the sample puts the voice back to the app’s', (await api('/profile')).json.profile.voice.pick === 'default')
 
   console.log('── face ──')
+  await openTab('face')
   const provs = await js('Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-face-provider"]\')).map((e) => e.dataset.provider)')
   check('six face providers are listed', Array.isArray(provs) && provs.length === 6 && provs[0] === 'none', provs)
   check('« No face » is in use, and its button says so', (await js('(() => { const b = document.querySelector(\'[data-kb="kaby-custom-face-use"]\'); return b.disabled === true && b.textContent.includes("In use") })()')) === true)
@@ -219,6 +237,7 @@ try {
   await shot('04-face')
 
   console.log('── where Kaby works ──')
+  await openTab('work')
   const whereChip = () => js('document.querySelector(\'[data-kb="kaby-custom-where-chip"]\').textContent')
   check('the card is drawn once kybernos-kyber has read the account', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-where"]\') !== null', 30000) === true)
   check('with no account the select offers this computer alone (so it is off) and the chip says Ready', (await js('(() => { const s = document.querySelector(\'[data-kb="kaby-custom-where-pick"]\'); return s.value === "local" && s.disabled === true && s.options.length === 1 })()')) === true && (await whereChip()).includes('Ready'))
@@ -238,6 +257,7 @@ try {
   await js('window.__kcCloud = false, window.__KB_KYBER__.refresh().then(() => true)', 20000)
 
   console.log('── permissions ──')
+  await openTab('permissions')
   const chipState = () => js('document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\').dataset.state')
   check('the card is drawn, and nothing is in force at the start', await waitFor(page, 'document.querySelector(\'[data-kb="kaby-custom-mandate-chip"]\') !== null', 15000) === true && (await chipState()) === 'none')
   check('« Off » is the pressed starting point; sign is off (nothing to sign), the switches are on', (await js('(() => { const on = Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-mandate-preset"]\')).filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.dataset.preset); return on.join() === "off" && document.querySelector(\'[data-kb="kaby-custom-mandate-sign"]\').disabled === true && Array.from(document.querySelectorAll(\'[data-kb="kaby-custom-mandate-switch"]\')).every((b) => b.disabled === false) })()')) === true)
@@ -277,16 +297,23 @@ try {
   await shot('09-permissions-log', '[data-kb="kaby-custom-mandate"]')
 
   console.log('── wake-ups ──')
+  await openTab('work')
   // Kaby wakes through an ordinary automation. The sandbox has no Kaby chat and no model key: the check gives the chat an id (the host's own pointer, a name no real chat
   // has), lets the card make the automation through the real Automations route, and reads it back. It never approves it: a run before the approval must be refused.
   const wkDisabled = (k) => js(`document.querySelector('[data-kb="kaby-custom-wake-${k}"]').disabled`)
   const wkSettled = (states) => waitFor(page, `${JSON.stringify(states)}.includes((document.querySelector('[data-kb="kaby-custom-wake-chip"]') || { dataset: {} }).dataset.state)`, 15000)
   const reopen = async () => {
-    await js('location.reload(), true')
-    await sleep(100)
-    await waitFor(page, 'window.__KB_KABY__ && window.__KB_KABY__.profile() !== null', 30000)
-    await js('window.__KB_KABY__.open()', 30000)
+    // The mark lives on the old document only: waiting for it to be gone is waiting for the new page, not for the old one that is still being torn down.
+    await js('window.__kbBeforeReload = true, location.reload(), true')
+    await waitFor(page, 'window.__kbBeforeReload !== true && window.__KB_KABY__ && window.__KB_KABY__.profile() !== null', 30000)
+    // Settings cannot be opened before the shell has drawn its own button: wait as the first opening does, and ask again if it answered « not yet ».
+    await sleep(800)
+    for (let i = 0; i < 5; i += 1) { if ((await js('window.__KB_KABY__.open()', 30000)) === true) break; await sleep(700) }
   }
+  // The sidebar-row check above opened Kaby’s real chat, which gave it an id: put the card back at « no chat yet » before it is read.
+  await chatApi(null)
+  await reopen()
+  await openTab('work')
   check('the card is drawn; with no Kaby chat the chip says so, a note asks to open it once, and « Create » waits', await wkSettled(['nochat']) === true && (await wkDisabled('create')) === true && (await exists('[data-kb="kaby-custom-wake-note"]')) === true)
   check('the card holds no setting: no select, no field, and it says where the list and the reports are', (await js('document.querySelectorAll(\'[data-kb="kaby-custom-wake"] select, [data-kb="kaby-custom-wake"] input\').length')) === 0 && (await js('document.querySelector(\'[data-kb="kaby-custom-wake"]\').textContent.includes("in its chat, not here")')) === true && (await exists('[data-kb="kaby-custom-wake-rules"]')) === true)
   check('« Open Kaby’s chat » is there, through kybernos-kyber’s seam', (await exists('[data-kb="kaby-custom-wake-open"]')) === true && (await exists('[data-kb="kaby-custom-wake-cloud-note"]')) === false)

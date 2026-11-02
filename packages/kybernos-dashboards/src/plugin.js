@@ -411,6 +411,13 @@ const pageName = () => {
   } catch (e) { /* no such seam: the default name */ }
   return kt('Dashboards', 'Dashboards')
 }
+/** What the gallery is for. It is the first line of the « ? » card (`lead`), not a line under the title. */
+const galleryLead = () => kt('Tes dashboards sont des fichiers. Pars d’un preset, ou demande à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.')
+/** Where the Suite's Help is not there, the description stays under the title, as it always was. */
+const subFallback = (cls, text) => {
+  try { if (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) return null } catch (e) { /* draw it */ }
+  return h('p', { className: cls }, text)
+}
 /** Redraws the page when the saved field changes (the title above follows it). */
 const useDomainTick = () => {
   const set = React.useState(0)[1]
@@ -1506,8 +1513,8 @@ function DashboardsPage (props) {
     // bar's trailing action does elsewhere.
     : h('header', { className: 'kbdb-gal-head kb6-headrow' },
       h('div', { className: 'kb6-headcol' },
-        h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, pageName()), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards' }) : null),
-        h('p', { className: 'kb8-sub' }, kt('Tes dashboards sont des fichiers. Pars d’un preset, ou demande à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
+        h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, pageName()), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards', lead: galleryLead(), title: pageName() }) : null),
+        subFallback('kb8-sub', galleryLead())),
       h('div', { className: 'kb6-headacts' },
         hiddenCount > 0 ? h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': showHidden, onClick: () => setShowHidden((v) => !v) }, Ic('eyeoff', 14), kt('Masqués', 'Hidden'), h('span', { style: { color: 'var(--kbdb-t3)' } }, hiddenCount)) : null,
         h('button', { type: 'button', className: 'kb8-primary', 'data-act': 'create', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI'))))

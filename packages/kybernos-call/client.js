@@ -617,11 +617,10 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 .kbcl-msep{height:1px;margin:5px 4px;background:${T.line}}
 .kbcl-flat{display:none}
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
-.kbcl-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.kbcl-tt{min-width:0}
+.kbcl-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .kbcl-prov a{color:${T.brand}}
 /* The page help: the « ? How it works » pill of every other page (the Suite's pill, in kybernos-hub). */
-.kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kbcl-hl:hover,.kbcl-hl[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
 .kbcl-hl:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbcl-hq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
@@ -629,6 +628,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 .kbcl-q:hover{background:${T.hover};color:${T.text}}
 .kbcl-q:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
 .kbcl-helpbox{display:flex;flex-direction:column;gap:4px;font-size:12.5px;line-height:1.5;color:${T.text};background:${T.hover};border-radius:10px;padding:10px 14px}
+.kbcl-helplead{font-size:14px;line-height:1.5;color:${T.text};margin-bottom:4px}
 .kbcl-slots{display:flex;flex-direction:column;gap:8px}
 .kbcl-slot{border:1px solid ${T.line};border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
 .kbcl-preset{appearance:none;text-align:left;border:1px solid ${T.line};border-radius:12px;background:transparent;color:${T.text};font:inherit;font-size:13px;padding:8px 12px;cursor:pointer}
@@ -765,6 +765,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       // A text of the catalogue is { fr, en }.
       const tx = (o) => ((o !== null && o !== undefined && typeof o === 'object') ? kt(o.fr, o.en) : String(o === undefined || o === null ? '' : o))
 
+      // The page's one-line description: the first paragraph of the help card, the same on every tab (it used to sit under the title).
+      const LEAD = () => kt('Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session. Pour faire lire une réponse ou dicter un message, voir Voix.', 'Talk live to your assistant, or to a team member, out loud, from any session. To have a reply read aloud or to dictate a message, see Voice.')
       // What the page says in its "?" helps: what it is, what it is for. One place, so the help and the page cannot drift apart.
       const HELP = () => ({
         overview: [
@@ -784,8 +786,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       })
       // The « ? How it works » pill sits at the top right of the page, on the title's row, like on every other page (A5-19); the text it opens
       // sits under the tabs.
-      const HelpPill = (props) => h('button', { type: 'button', className: 'kbcl-hl', 'data-act': 'help-' + props.id, 'aria-expanded': props.open === true ? 'true' : 'false', onClick: props.onToggle }, [h('span', { key: 'q', className: 'kbcl-hq', 'aria-hidden': 'true' }, '?'), h('span', { key: 't' }, kt('Comment ça marche', 'How it works'))])
-      const HelpBox = (props) => (props.open === true ? h('div', { className: 'kbcl-helpbox', 'data-help': props.id }, props.lines.map((l, i) => h('div', { key: i }, [h('b', { key: 'a' }, l[0] + ' '), l[1]]))) : null)
+      const HelpPill = (props) => h('button', { type: 'button', className: 'kbcl-hl', 'data-act': 'help-' + props.id, 'aria-label': kt('Comment ça marche', 'How it works'), title: kt('Comment ça marche', 'How it works'), 'aria-expanded': props.open === true ? 'true' : 'false', onClick: props.onToggle }, h('span', { className: 'kbcl-hq', 'aria-hidden': 'true' }, '?'))
+      const HelpBox = (props) => (props.open === true ? h('div', { className: 'kbcl-helpbox', 'data-help': props.id }, (props.lead ? [h('div', { key: 'lead', className: 'kbcl-helplead' }, props.lead)] : []).concat(props.lines.map((l, i) => h('div', { key: i }, [h('b', { key: 'a' }, l[0] + ' '), l[1]])))) : null)
 
       // The settings, loaded once and changed through the host: all-or-nothing, the host's reasons shown as they are.
       const useCalls = () => {
@@ -1218,9 +1220,9 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           : tab === 'providers' ? h(Providers, { calls: c, slot: slot, prov: prov, onSlot: (s) => { setSlot(s); setProv(null) }, onProv: setProv })
             : h(Health, { onFix: (id) => goProvider(id === 'line' ? 'line' : id, null) })
         return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, [
-          h('div', { key: 'top', className: 'kbcl-top' }, [h('div', { key: 'tt', className: 'kbcl-tt' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h('div', { key: 's', className: 'kbcl-sub' }, kt('Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session. Pour faire lire une réponse ou dicter un message, voir Voix.', 'Talk live to your assistant, or to a team member, out loud, from any session. To have a reply read aloud or to dictate a message, see Voice.'))]), h(HelpPill, { key: 'help', id: tab, open: open[tab] === true, onToggle: toggle(tab) })]),
+          h('div', { key: 'top', className: 'kbcl-top' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h(HelpPill, { key: 'help', id: tab, open: open[tab] === true, onToggle: toggle(tab) })]),
           h('div', { key: 'tabs', className: 'kbcl-tabs', role: 'tablist' }, tabs.map((t) => h('button', { key: t[0], type: 'button', role: 'tab', className: 'kbcl-tab', 'data-act': 'tab-' + t[0], 'aria-selected': tab === t[0] ? 'true' : 'false', onClick: () => setTab(t[0]) }, t[1]))),
-          open[tab] === true ? h(HelpBox, { key: 'helpbox', id: tab, lines: helps[tab], open: true }) : null,
+          open[tab] === true ? h(HelpBox, { key: 'helpbox', id: tab, lead: LEAD(), lines: helps[tab], open: true }) : null,
           c.notice !== null ? h('div', { key: 'n', className: 'kbcl-notice' + (c.notice.bad ? ' kbcl-bad' : ''), role: 'status', 'data-kb': 'kybernos-call-notice' }, c.notice.text) : null,
           body
         ])
@@ -1232,7 +1234,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       return {
         name: 'kybernos-call',
         inject: ['slots'],
-        __test: { kabyCallOf, getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote, sampleFor: sampleFor, kt: kt },
+        __test: { kabyCallOf, getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote, sampleFor: sampleFor, kt: kt, HelpBox: HelpBox, LEAD: LEAD, HELP: HELP },
         apply (ctx) {
           try {
             const slots = ctx.slots

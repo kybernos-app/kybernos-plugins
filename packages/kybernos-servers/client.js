@@ -42,7 +42,7 @@ window.__ModuleLoader__.load({
 .kbsv-page,.kbsv-page *,.kbsv-veil,.kbsv-veil *{box-sizing:border-box}
 .kbsv-page{max-width:720px;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary,inherit)}
 [data-slot="settings.section"]:has(.kbsv-page){width:100%;max-width:none}
-.kbsv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.kbsv-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .kbsv-title{margin:0;font-size:20px;line-height:1.3;font-weight:600;letter-spacing:-.01em}
 .kbsv-sub{margin:2px 0 0;font-size:13px;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -170,7 +170,9 @@ body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#35
         ICON[name].map((p, i) => h(p[0], Object.assign({ key: i }, p[1]))))
 
       // ── The view: everything on screen is a function of (data, ui). No state, no effect: testable as static markup. ──
-      const HelpButton = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h('span', { className: 'kbsv-help' }, h(window.__KB_HELP__.Help, { id: 'kybernos-servers' })) : null)
+      // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title (`subFallback`).
+      const HelpButton = ({ lead, title }) => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h('span', { className: 'kbsv-help' }, h(window.__KB_HELP__.Help, { id: 'kybernos-servers', lead: lead, title: title })) : null)
+      const subFallback = (text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('p', { className: 'kbsv-sub' }, text) } catch (e) { return h('p', { className: 'kbsv-sub' }, text) } }
 
       const Steps = ({ steps }) => h('ul', { className: 'kbsv-steps' }, steps.map((s) => h('li', { key: s.id, 'data-ok': String(s.ok) },
         h('span', { 'aria-hidden': 'true' }, s.ok ? '✓' : '✗'), kt(STEP[s.id][0], STEP[s.id][1]))))
@@ -308,10 +310,12 @@ body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#35
         const servers = cloud === null ? [] : cloud.servers
         const current = servers.find((s) => s.active === true)
         const away = current !== undefined && current.id !== BUILTIN_ID
+        const title = kt('Serveurs', 'Servers')
+        const lead = kt('Là où vivent ton compte, ton équipe et tes modèles', 'Where your account, team and models live')
         return h('div', { className: 'kbsv-page', 'data-kb': 'servers-page' },
           h('div', { className: 'kbsv-head' },
-            h('div', null, h('h2', { className: 'kbsv-title' }, kt('Serveurs', 'Servers')), h('p', { className: 'kbsv-sub' }, kt('Là où vivent ton compte, ton équipe et tes modèles', 'Where your account, team and models live'))),
-            h('div', { className: 'kbsv-acts' }, h(HelpButton), h('button', { type: 'button', className: 'kbsv-btn', 'data-primary': 'true', 'data-kb': 'servers-add-open', onClick: act.openAdd }, '+ ' + kt('Ajouter un serveur', 'Add a server')))),
+            h('div', null, h('h2', { className: 'kbsv-title' }, title), subFallback(lead)),
+            h('div', { className: 'kbsv-acts' }, h(HelpButton, { lead: lead, title: title }), h('button', { type: 'button', className: 'kbsv-btn', 'data-primary': 'true', 'data-kb': 'servers-add-open', onClick: act.openAdd }, '+ ' + kt('Ajouter un serveur', 'Add a server')))),
           cloud === null ? h('div', { className: 'kbsv-banner', role: 'alert', 'data-kb': 'servers-missing' }, say('cloud_plugin_missing')) : null,
           away ? h('div', { className: 'kbsv-banner', role: 'status', 'data-kb': 'servers-banner' },
             h('span', null, h('b', null, kt('Tu es sur ', 'You are on ') + current.name), ' · ' + kt('pas sur Kybernos Cloud : ton compte, tes modèles et ton équipe viennent de ce serveur.', 'not on Kybernos Cloud: your account, models and team come from this server.')),
