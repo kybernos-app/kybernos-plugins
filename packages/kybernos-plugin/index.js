@@ -23,6 +23,7 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
+import { deriveStory } from './journal-story.mjs'
 import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
@@ -5149,6 +5150,58 @@ function boot(ctx) {
         defaultUsdEur: DEFAULT_USD_EUR,
       }
       out.runs = runs
+      return out
+    }
+    // ── GET /kybernos/journal: the story of one chat (journal-story.mjs) ────
+    // What the Journal tab shows first: the person's messages, the crews, the connectors, the handovers, the deliverables, the models and what they cost,
+    // derived from the chat's own durable events. The crews come from `readRuns` (the same derivation the old sections use, with the real route facts of
+    // each member), so the two views can never disagree about a crew.
+    const readJournal = async (args) => {
+      const query = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+      const sessionId = str(query.sessionId)
+      const out = { ok: true, sessionId: sessionId, notes: [] }
+      if (sessionId === null || sessionId.length === 0) {
+        out.ok = false
+        out.notes.push('sessionId required')
+        return out
+      }
+      if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') {
+        out.ok = false
+        out.notes.push('sessionPersistence service unavailable: no readable journal')
+        return out
+      }
+      let handle = null
+      let events = null
+      try {
+        handle = await persistence.open(sessionId, 'read')
+        const read = await handle.read()
+        events = read !== null && read !== undefined && Array.isArray(read.events) === true ? read.events : null
+      } catch (e) {
+        out.notes.push('session ' + sessionId + ': ' + errText(e))
+      } finally {
+        try {
+          if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close()
+        } catch (e) { /* handle deja ferme */ }
+      }
+      if (events === null) {
+        out.ok = false
+        out.notes.push('no readable event for ' + sessionId)
+        return out
+      }
+      let runs = []
+      try {
+        const base = await readRuns({ sessionId: sessionId })
+        runs = Array.isArray(base.runs) === true ? base.runs : []
+        out.lineage = base.lineage !== undefined ? base.lineage : null
+        if (Array.isArray(base.notes) === true) for (let i = 0; i < base.notes.length; i += 1) out.notes.push(base.notes[i])
+      } catch (e) { out.notes.push('runs: ' + errText(e)) }
+      try { await refreshPrices() } catch (e) { /* tarifs indisponibles: coûts laissés nuls */ }
+      const costOf = (provider, model, usage) => costEurOfFact({ provider: provider, model: model, usage: usage })
+      try { out.story = deriveStory(events, { sessionId: sessionId, runs: runs, costOf: costOf }) } catch (e) {
+        out.ok = false
+        out.notes.push('deriveStory: ' + errText(e))
+      }
+      out.pricing = { source: 'https://models.dev/api.json', fetchedAt: priceFetchedAt === null ? null : new Date(priceFetchedAt).toISOString(), error: priceError, defaultUsdEur: DEFAULT_USD_EUR }
       return out
     }
     // ── GET /kybernos/calls: appels d'équipe dérivés du journal (plan Crew v2) ──
@@ -12296,6 +12349,13 @@ function boot(ctx) {
         const query = queryOf(req)
         sendJson(res, 200, await readRuns({ sessionId: query.get('sessionId'), limit: query.get('limit') }))
       } }), 'kybernos: route runs')
+      // The story of a chat carries tool inputs and results (commands, file paths, mails): a sensitive GET, so a foreign Origin is refused (H-01/H-02).
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/journal', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        const query = queryOf(req)
+        sendJson(res, 200, await readJournal({ sessionId: query.get('sessionId') }))
+      } }), 'kybernos: route journal')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/runs-index', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
