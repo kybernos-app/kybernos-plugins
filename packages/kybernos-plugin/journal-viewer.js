@@ -290,28 +290,65 @@
     c.appendChild(h('div', 'kj-conns', list.map(function (x) { return h('div', 'kj-conn', connTile(x, true), h('div', '', h('b', '', nice(x.name)), h('div', 'kj-sub', x.calls + ' ' + word('calls', 'calls') + (inc.timing === true && x.errors > 0 ? ' · ' + x.errors + ' ' + word('errorsN', 'errors') : '')))) })))
     return c
   }
-  var LIMIT = 80
+  var SIZES = [10, 25, 50, 100]
+  // The story, a page at a time: 10, 25, 50 or 100 moments (the reader's choice for as long as the page is open), 25 to begin with. Printing draws every moment.
   function story () {
     var moments = doc.moments || []
     var c = card(word('storyTitle', 'Story of this chat'), moments.length + ' ' + word('moments', 'moments'))
     var list = h('ul', 'kj-list')
-    var day = ''
-    var drawn = 0
-    function draw (upTo) {
-      for (; drawn < upTo && drawn < moments.length; drawn += 1) {
-        var m = moments[drawn]
+    var pager = h('div', 'kj-pager')
+    var size = 25
+    var page = 1
+    var saved = null
+    function empty (e) { while (e.firstChild) e.removeChild(e.firstChild) }
+    function go (n) {
+      page = n
+      draw()
+      if (typeof c.scrollIntoView === 'function') c.scrollIntoView({ block: 'start' })
+    }
+    function draw () {
+      var pages = Math.max(1, Math.ceil(moments.length / size))
+      if (page > pages) page = pages
+      var from = (page - 1) * size
+      var to = Math.min(from + size, moments.length)
+      empty(list)
+      empty(pager)
+      var day = ''
+      for (var i = from; i < to; i += 1) {
+        var m = moments[i]
         var k = dayKey(m.at)
         if (k !== '' && k !== day) { list.appendChild(h('li', 'kj-day', dayName(m.at))); day = k }
         list.appendChild(row(m))
       }
+      if (moments.length <= SIZES[0]) return
+      pager.appendChild(h('span', 'kj-pn', (from + 1) + '–' + to + ' ' + word('of', 'of') + ' ' + moments.length))
+      if (pages > 1) {
+        var prev = h('button', 'kj-more', '‹ ' + word('prev', 'Previous'))
+        prev.setAttribute('type', 'button')
+        if (page <= 1) prev.setAttribute('disabled', 'disabled')
+        prev.addEventListener('click', function () { go(page - 1) })
+        var next = h('button', 'kj-more', word('next', 'Next') + ' ›')
+        next.setAttribute('type', 'button')
+        if (page >= pages) next.setAttribute('disabled', 'disabled')
+        next.addEventListener('click', function () { go(page + 1) })
+        pager.appendChild(h('div', 'kj-pbtns', prev, h('span', 'kj-pn', word('page', 'Page') + ' ' + page + ' / ' + pages), next))
+      }
+      var sel = h('select', 'kj-psel')
+      sel.setAttribute('aria-label', word('perPage', 'Per page'))
+      for (var j = 0; j < SIZES.length; j += 1) { var o = h('option', '', String(SIZES[j])); o.setAttribute('value', String(SIZES[j])); sel.appendChild(o) }
+      sel.value = String(size)
+      sel.addEventListener('change', function () {
+        var n = Number(sel.value)
+        if (SIZES.indexOf(n) >= 0) { size = n; page = 1; draw() }
+      })
+      pager.appendChild(h('label', 'kj-pz', word('perPage', 'Per page'), sel))
     }
-    draw(LIMIT)
+    draw()
     c.appendChild(list)
-    if (moments.length > LIMIT) {
-      var btn = h('button', 'kj-more', word('showAll', 'Show all') + ' · ' + (moments.length - LIMIT))
-      btn.setAttribute('type', 'button')
-      btn.addEventListener('click', function () { draw(moments.length); btn.remove() })
-      c.appendChild(btn)
+    c.appendChild(pager)
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('beforeprint', function () { saved = [size, page]; size = Math.max(moments.length, 1); page = 1; draw() })
+      window.addEventListener('afterprint', function () { if (saved !== null) { size = saved[0]; page = saved[1]; saved = null; draw() } })
     }
     return c
   }

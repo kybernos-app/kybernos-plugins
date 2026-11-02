@@ -40494,6 +40494,23 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           return c
         }
         /** The rows of the story: the filter and the crew window applied, runs of automation ticks folded into one row, a divider where the day changes. */
+        // The story is read a page at a time: 10, 25, 50 or 100 moments (the reader's choice, kept in this browser), 25 to begin with.
+        const WVS_SIZES = [10, 25, 50, 100]
+        const wvsSizeNow = () => { try { const n = Number(localStorage.getItem('kybernos.journal-page-size')); if (WVS_SIZES.indexOf(n) >= 0) return n } catch (e) { /* storage blocked: the default */ } return 25 }
+        // One page of the feed: its moments (a collapsed run of automation ticks is one), the day headers put back for this page, and the numbers the pager shows.
+        const wvsPage = (rows, page, size) => {
+          const items = rows.filter((r) => r.kind !== 'day')
+          const pages = Math.max(1, Math.ceil(items.length / size))
+          const at = Math.min(Math.max(1, page), pages)
+          const out = []
+          let day = ''
+          items.slice((at - 1) * size, at * size).forEach((r) => {
+            const k = wvsDayKey(r.at)
+            if (k !== '' && k !== day) { out.push({ kind: 'day', id: 'd' + r.id, at: r.at }); day = k }
+            out.push(r)
+          })
+          return { rows: out, page: at, pages: pages, total: items.length, from: items.length === 0 ? 0 : (at - 1) * size + 1, to: Math.min(at * size, items.length) }
+        }
         const wvsFeed = (story, filter, crewId) => {
           const crews = Array.isArray(story.crews) ? story.crews : []
           const win = crewId === 'all' ? null : crews.filter((c) => c.id === crewId)[0] || null
@@ -40841,6 +40858,32 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               d[1], El('span', { className: 'wvs-n' }, c[d[0]]))))
         }
 
+        // « 26–50 of 132 · ‹ Previous · Page 2 / 6 · Next › · Per page [25] »: nothing when the story fits the smallest page.
+        function WVSPager(props) {
+          const pg = props.pg
+          if (pg.total <= WVS_SIZES[0]) return null
+          const go = (n) => {
+            props.set({ page: n })
+            window.requestAnimationFrame(() => { const e = document.querySelector('[data-kb="wvs-feed"]'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'start' }) })
+          }
+          return El('div', { className: 'wvs-pager', 'data-kb': 'wvs-pager' },
+            El('span', { className: 'wvs-pn', 'data-kb': 'wvs-pager-range' }, pg.from + '–' + pg.to + ' ' + kbe('of', 'sur') + ' ' + pg.total),
+            pg.pages > 1 ? El('div', { className: 'wvs-pbtns' },
+              El('button', { type: 'button', className: 'wv2-ghost', 'data-kb': 'wvs-prev', disabled: pg.page <= 1, onClick: () => go(pg.page - 1) }, '‹ ' + kbe('Previous', 'Précédent')),
+              El('span', { className: 'wvs-pn', 'data-kb': 'wvs-pager-page' }, kbe('Page', 'Page') + ' ' + pg.page + ' / ' + pg.pages),
+              El('button', { type: 'button', className: 'wv2-ghost', 'data-kb': 'wvs-next', disabled: pg.page >= pg.pages, onClick: () => go(pg.page + 1) }, kbe('Next', 'Suivant') + ' ›')) : null,
+            El('label', { className: 'wvs-psize' }, kbe('Per page', 'Par page'),
+              El('select', {
+                className: 'wv2-sel', 'data-kb': 'wvs-size', value: props.size, 'aria-label': kbe('Per page', 'Par page'),
+                onChange: (e) => {
+                  const n = Number(e.target.value)
+                  if (WVS_SIZES.indexOf(n) < 0) return
+                  try { localStorage.setItem('kybernos.journal-page-size', String(n)) } catch (err) { /* storage blocked: kept for this visit only */ }
+                  props.set({ size: n, page: 1 })
+                },
+              }, WVS_SIZES.map((n) => El('option', { key: n, value: n }, String(n))))))
+        }
+
         function WVSDeliverables(props) {
           const list = props.story.deliverables
           return El('section', { className: 'wv2-panel wvs-deliv', 'data-kb': 'wvs-deliverables' },
@@ -41059,9 +41102,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const mode = modePair[0]
           const dPair = React.useState({ state: sessionId ? 'loading' : 'empty', story: null, nonce: 0 })
           const D = dPair[0]
-          const uiPair = React.useState({ filter: 'all', crew: 'all', sel: null, ins: true, more: {}, nd: false, zoom: null, stageW: 900, copied: false, limit: 60, share: false, inc: WVS_INC0, shareState: 'idle', shareMsg: '' })
+          const uiPair = React.useState(() => ({ filter: 'all', crew: 'all', sel: null, ins: true, more: {}, nd: false, zoom: null, stageW: 900, copied: false, page: 1, size: wvsSizeNow(), share: false, inc: WVS_INC0, shareState: 'idle', shareMsg: '' }))
           const ui = uiPair[0]
-          const set = (p) => uiPair[1]((u) => Object.assign({}, u, p))
+          // A new filter or crew starts again at the first page.
+          const set = (p) => uiPair[1]((u) => Object.assign({}, u, p, ('filter' in p || 'crew' in p) && !('page' in p) ? { page: 1 } : {}))
           const logos = kbUseAppLogos()
           const stageRef = React.useRef(null)
           // Like the classic tab, the Journal takes the height the chat's input bar uses; it comes back with the next chat tab.
@@ -41137,7 +41181,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos, stageRef: stageRef }))
           }
           const rows = wvsFeed(st, ui.filter, ui.crew)
-          const shown = rows.slice(0, ui.limit)
+          const pg = wvsPage(rows, ui.page, ui.size)
           const selM = ui.sel !== null ? st.moments.filter((m) => m.id === ui.sel)[0] || null : null
           return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis,
             ui.ins ? El(WVSInsights, { story: st, ui: ui, set: set }) : null,
@@ -41146,8 +41190,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             El('div', { className: 'wvs-cols' },
               El('section', { className: 'wv2-panel wvs-feed', 'data-kb': 'wvs-feed' },
                 El('div', { className: 'wvs-feedh' }, El('h3', { className: 'wv2-h3' }, kbe('Story of this chat')), El('span', { className: 'wv2-hint' }, rows.filter((r) => r.kind !== 'day').length + ' ' + kbe('moments'))),
-                rows.length === 0 ? El('p', { className: 'wvs-muted' }, kbe('Nothing matches this filter.')) : El('ul', { className: 'wvs-list' }, shown.map((r) => El(WVSRow, { key: r.id, m: r, story: st, ui: ui, set: set, logos: logos }))),
-                rows.length > shown.length ? El('button', { type: 'button', className: 'wv2-ghost wvs-showmore', onClick: () => set({ limit: ui.limit + 60 }) }, kbe('Show more') + ' · ' + (rows.length - shown.length)) : null),
+                rows.length === 0 ? El('p', { className: 'wvs-muted' }, kbe('Nothing matches this filter.')) : El('ul', { className: 'wvs-list' }, pg.rows.map((r) => El(WVSRow, { key: r.id, m: r, story: st, ui: ui, set: set, logos: logos }))),
+                El(WVSPager, { pg: pg, size: ui.size, set: set })),
               El('aside', { className: 'wvs-side' },
                 El(WVSDeliverables, { story: st, logos: logos }),
                 selM !== null ? El(WVSDetail, { m: selM, story: st, logos: logos, ui: ui, set: set }) : null)))
@@ -41257,7 +41301,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 .wvs-url{flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--wv-line2);border-radius:8px;background:var(--wv-box);color:inherit;font:inherit;font-size:13px}
 .wvs-pw{padding:3px 8px;border:1px solid var(--wv-line2);border-radius:6px;background:var(--wv-box);font-size:13px;letter-spacing:.02em;user-select:all}
 .wvs-as{font-weight:600}.wvs-as.ok{color:var(--wv-ok)}.wvs-as.wait{color:var(--wv-accent-ink)}.wvs-as.err{color:var(--wv-err-ink)}
-.wvs-showmore{align-self:center;margin-top:8px}
+.wvs-pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--wv-line2);font-size:12px;color:var(--wv-mut)}.wvs-pn{font-variant-numeric:tabular-nums}.wvs-pbtns{display:flex;align-items:center;gap:10px}.wvs-pbtns .wv2-ghost{height:30px;padding:0 12px}.wvs-pager button:disabled{opacity:.4;cursor:default}.wvs-psize{display:inline-flex;align-items:center;gap:8px}
 /* détail et livrables */
 .wvs-dh{display:flex;align-items:center;gap:10px}
 .wvs-dt{display:flex;flex-direction:column;min-width:0}.wvs-dk{font-size:11px;color:var(--wv-mut)}.wvs-dn{font-weight:600;overflow-wrap:anywhere}
