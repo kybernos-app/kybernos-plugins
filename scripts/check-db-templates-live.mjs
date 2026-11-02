@@ -99,7 +99,7 @@ try {
   }
 
   // 3. the real page opens each one
-  check('the page opens on the Apps row', (await click('.kb4-menu .kb4-item[aria-label="Apps"]')) === true && (await until(() => ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`))) === true)
+  check('the Apps page is opened (reached from Creations: its menu row is folded into it)', (await ev(`window.__KB_OPEN__({ view: 'tables' }) === true`)) === true && (await until(() => ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`))) === true)
   for (const [dir, want] of Object.entries(WANT)) {
     const id = first[dir].json.db
     if ((await ev(`document.querySelector('[data-kb="apps-back"]') !== null`)) === true) await click('[data-kb="apps-back"]')
