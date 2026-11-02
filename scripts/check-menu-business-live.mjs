@@ -47,7 +47,8 @@ const ROWS = `[...document.querySelectorAll('.kb4-menu .kb4-item')]`
 const labels = () => ev(`${ROWS}.map((e) => e.getAttribute('aria-label'))`)
 const selected = () => ev(`${ROWS}.filter((e) => e.classList.contains('on')).map((e) => e.getAttribute('aria-label'))`)
 const row = (label) => `.kb4-menu .kb4-item[aria-label="${label}"]`
-const FIXED = ['Dashboards', 'Automations', 'Connectors', 'Skills', 'Agent Teams', 'Apps', 'Creations']
+// Dashboards and Apps are Creations sources now (docs/dev/creation-sources.md): their rows leave the menu while the sources are declared.
+const FIXED = ['Automations', 'Connectors', 'Skills', 'Agent Teams', 'Creations']
 const A = { id: 'checka', group: 'business', icon: 'users', labelKey: 'check.a', label: { en: 'Check Alpha', fr: 'Contrôle Alpha' } }
 const B = { id: 'checkb', group: 'business', icon: 'package', labelKey: 'check.b', label: { en: 'Check Beta', fr: 'Contrôle Bêta' } }
 
@@ -59,7 +60,7 @@ try {
 
   console.log('the fixed menu')
   const l0 = await labels()
-  check('the rows are Dashboards, Automations, Connectors, Skills, Agent Teams, Apps, Creations, in that order', JSON.stringify(l0) === JSON.stringify(FIXED), l0)
+  check('the rows are Automations, Connectors, Skills, Agent Teams, Creations, in that order (Dashboards and Apps are in Creations)', JSON.stringify(l0) === JSON.stringify(FIXED), l0)
   check('no Business header, no fold, no Templates row, no Overview row', (await ev(`document.querySelector('[data-kb="menu-business"], .kb4-grph, #kb4-biz-rows') === null`)) === true && !l0.some((l) => /^(Templates|Overview|Business)$/i.test(l)), l0)
   const rects = await ev(`${ROWS}.map((e) => { const r = e.getBoundingClientRect(); const i = e.querySelector('.kb4-ico').getBoundingClientRect(); const l = e.querySelector('.kb4-lab'); return { y: r.top, w: r.width, h: r.height, icoX: i.left, lab: l.scrollWidth <= l.clientWidth + 1 } })`)
   check('every row is as tall and as wide as its neighbours, its icon is aligned and its label is not cut', rects.every((r) => Math.abs(r.h - rects[0].h) <= 1 && Math.abs(r.w - rects[0].w) <= 1 && Math.abs(r.icoX - rects[0].icoX) <= 1 && r.lab === true), rects)
@@ -68,12 +69,12 @@ try {
   await shot('01-fixed-menu')
 
   console.log('Apps opens the gallery')
-  check('the Apps row is clicked with the mouse', (await click(row('Apps'))) === true)
+  check('the Apps page is opened (it is reached from Creations now)', (await ev(`window.__KB_OPEN__({ view: 'tables' }) === true`)) === true)
   await waitFor(page, `document.querySelector('[data-kb="apps-gallery"]') !== null`, 8000).catch(() => null)
-  check('the gallery is on screen and Apps is the one selected row', (await ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`)) === true && JSON.stringify(await selected()) === JSON.stringify(['Apps']), await selected())
+  check('the gallery is on screen and Creations is the one selected row', (await ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`)) === true && JSON.stringify(await selected()) === JSON.stringify(['Creations']), await selected())
   await shot('02-apps')
 
-  console.log('rows a plugin declares sit flat after Apps')
+  console.log('rows a plugin declares sit flat after Agent Teams')
   const refused = await ev(`(() => window.__KB_MENU__.register({ id: 'themes', group: 'business', icon: 'users', labelKey: 'x' }) === null)()`)
   check('a row that takes the id of a core page is refused and nothing appears', refused === true && JSON.stringify(await labels()) === JSON.stringify(FIXED))
   const declared = await ev(`(() => { window.__chk.off.push(window.__KB_MENU__.register(${JSON.stringify(A)})); window.__chk.off.push(window.__KB_MENU__.register(${JSON.stringify(B)})); return window.__chk.off.every((f) => typeof f === 'function') })()`)
@@ -81,7 +82,7 @@ try {
   await waitFor(page, `${ROWS}.some((e) => /Alpha/.test(e.getAttribute('aria-label') || ''))`, 6000)
   await sleep(300)
   const l1 = await labels()
-  check('they follow Apps, in the order declared, before Creations, and no header came with them', JSON.stringify(l1) === JSON.stringify(['Dashboards', 'Automations', 'Connectors', 'Skills', 'Agent Teams', 'Apps', 'Check Alpha', 'Check Beta', 'Creations']) && (await ev(`document.querySelector('[data-kb="menu-business"], .kb4-grph') === null`)) === true, l1)
+  check('they follow Agent Teams, in the order declared, before Creations, and no header came with them', JSON.stringify(l1) === JSON.stringify(['Automations', 'Connectors', 'Skills', 'Agent Teams', 'Check Alpha', 'Check Beta', 'Creations']) && (await ev(`document.querySelector('[data-kb="menu-business"], .kb4-grph') === null`)) === true, l1)
   await shot('03-declared')
   check('the first declared row is clicked', (await click(row('Check Alpha'))) === true)
   check('its page is on screen (no plugin here, so the honest line)', (await ev(`(() => { const p = document.querySelector('[data-kb-page="checka"]'); return p !== null && /not available|pas disponible/.test(p.textContent) })()`)) === true)

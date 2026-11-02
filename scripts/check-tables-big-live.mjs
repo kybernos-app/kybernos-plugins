@@ -103,7 +103,7 @@ try {
   check('a row exists that the first 5,000 do not hold', typeof last === 'string' && Number(last.slice(9)) > 5000 - 20, last)
 
   // the page
-  check('the Apps row opens the gallery', (await click('.kb4-menu .kb4-item[aria-label="Apps"]')) === true && (await until(() => ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`))) === true)
+  check('the Apps page opens the gallery (reached from Creations: its menu row is folded into it)', (await ev(`window.__KB_OPEN__({ view: 'tables' }) === true`)) === true && (await until(() => ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`))) === true)
   check('the real-estate app\'s card opens its tables', (await click(`${kb('apps-card')}[data-db="${dbId}"] ${kb('apps-open')}`)) === true && (await until(() => count(kb('tables-tab')).then((n) => n > 0))) === true)
   await ev(`(() => { const t = [...document.querySelectorAll('[data-kb="tables-tab"]')].find((e) => e.getAttribute('data-object') === 'property'); if (t) t.setAttribute('data-chk', 'tab'); return 1 })()`)
   check('the Properties tab opens', (await click('[data-chk="tab"]')) === true && (await until(() => count(kb('tables-row') + ', ' + kb('tables-card')).then((n) => n > 0))) === true)

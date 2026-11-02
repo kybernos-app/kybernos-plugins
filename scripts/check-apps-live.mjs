@@ -72,7 +72,7 @@ await ev(`window.__errs = []; window.addEventListener('error', (e) => window.__e
 try {
   console.log('── the gallery ──')
   await sleep(2500)
-  check('the fixed menu has an « Apps » row, and it opens the gallery', (await clickText(page, 'Apps')) === true && (await until(() => exists(kb('apps-gallery')), 8000)) === true)
+  check('the Apps page opens the gallery (reached from Creations: its menu row is folded into it)', (await page.evalJs("window.__KB_OPEN__({ view: 'tables' }) === true", 8000)).val === true && (await until(() => exists(kb('apps-gallery')), 8000)) === true)
   await sleep(600)
   await shot('01-gallery')
   const cards = await ev(`[...document.querySelectorAll('[data-kb="apps-card"]')].map((e) => ({ id: e.getAttribute('data-db'), t: e.innerText.replace(/\\s+/g, ' ') }))`)

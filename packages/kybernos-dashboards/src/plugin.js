@@ -1713,6 +1713,29 @@ function registerPlayer () {
   } catch (e) { /* the player is optional */ }
 }
 
+// The dashboards as a source of Creations (the core's registry, window.__KB_CREATIONS__): one item per dashboard, opened on the Dashboards page. While this is
+// declared the core takes the « Dashboards » row out of the menu (`foldsRow`); `home` is the way into the page when there is no dashboard yet.
+const creationSource = () => ({
+  id: 'dashboards',
+  label: { en: 'Dashboards', fr: 'Dashboards' },
+  desc: { en: 'Boards that read your data and stay up to date, built by the chat.', fr: 'Des tableaux de bord qui lisent tes données et restent à jour, construits par le chat.' },
+  art: 'dashboard',
+  order: 10,
+  foldsRow: 'dashboards',
+  load: async () => {
+    const r = await api('GET', 'list')
+    const list = r.ok && Array.isArray(r.json.dashboards) ? r.json.dashboards : []
+    return list.filter((d) => d !== null && typeof d === 'object').map((d) => ({
+      id: d.id,
+      title: String(d.name || d.id),
+      sub: [typeof d.desc === 'string' ? d.desc : '', Number.isFinite(d.widgets) ? d.widgets + ' widgets' : ''].filter((x) => x !== '').join(' · '),
+      mtimeMs: Number.isFinite(d.updatedAt) ? d.updatedAt : null,
+    }))
+  },
+  open: (item) => { if (window.__KB_DASHBOARDS__ && typeof window.__KB_DASHBOARDS__.open === 'function') window.__KB_DASHBOARDS__.open(item.id) },
+  home: () => { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'dashboards' }) },
+})
+
 function apply (ctx) {
   CTX = ctx
   ctx.effect(() => {
@@ -1727,6 +1750,29 @@ function apply (ctx) {
 
   // the page: the child slot the core's menu row opens
   ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, DashboardsPage)), 'kybernos-dashboards: page')
+
+  // Creations lists the dashboards. The registry is the core's and may not be there yet when this plugin is applied (the order is DSH's): asked again until it is.
+  ctx.effect(() => {
+    let off = null
+    let timer = null
+    let tries = 0
+    const declare = () => {
+      timer = null
+      try {
+        if (window.__KB_CREATIONS__ && typeof window.__KB_CREATIONS__.register === 'function') { off = window.__KB_CREATIONS__.register(creationSource()); return }
+      } catch (e) { return }
+      tries += 1
+      if (tries < 40) timer = setTimeout(declare, 250)
+    }
+    declare()
+    return () => {
+      try { if (timer !== null) clearTimeout(timer) } catch (e) { /* no timers */ }
+      timer = null
+      tries = 40
+      try { if (typeof off === 'function') off() } catch (e) { /* already taken back */ }
+      off = null
+    }
+  }, 'kybernos-dashboards: Creations source')
 
   // The dashboard an installed template ships (kybernos/dashboards#preset) is one of the presets of the gallery: no menu row of its own, the menu is fixed.
 
@@ -1810,5 +1856,5 @@ return {
   // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
   inject: ['slots', 'sidebarRightTabs'],
   apply,
-  __test: { DashboardsPage, model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
+  __test: { creationSource, DashboardsPage, model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
 }

@@ -159,6 +159,75 @@ ok('the menu row waits for the registry when it is not there yet, and gives up c
   } finally { globalThis.setTimeout = realSet; window.__KB_MENU__ = saved }
 })
 
+console.log('── Creations source ──')
+ok('apply declares the Creations source inside an effect, and the cleanup takes it back once', () => {
+  const calls = []
+  let off = 0
+  window.__KB_CREATIONS__ = { register: (entry) => { calls.push(entry); return () => { off += 1 } } }
+  try {
+    const { effects } = mount()
+    assert.equal(calls.length, 0, 'nothing is declared outside an effect')
+    const eff = effects.find((e) => /Creations source/.test(e.label))
+    assert.ok(eff !== undefined)
+    const cleanup = eff.fn()
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].id, 'apps')
+    cleanup(); cleanup()
+    assert.equal(off, 1)
+  } finally { delete window.__KB_CREATIONS__ }
+})
+ok('the source waits for the core’s registry and gives up cleanly', () => {
+  const timers = []
+  const realSet = globalThis.setTimeout
+  globalThis.setTimeout = (fn) => { timers.push(fn); return timers.length }
+  const calls = []
+  try {
+    const { effects } = mount()
+    const cleanup = effects.find((e) => /Creations source/.test(e.label)).fn()
+    assert.equal(timers.length, 1, 'one retry is planned')
+    window.__KB_CREATIONS__ = { register: (entry) => { calls.push(entry); return () => {} } }
+    timers[0]()
+    assert.equal(calls.length, 1, 'declared as soon as the registry shows')
+    cleanup()
+  } finally { globalThis.setTimeout = realSet; delete window.__KB_CREATIONS__ }
+})
+await okAsync('the source is one the core’s registry accepts: Apps, standing in for the « tables » row, one item per app', async () => {
+  const { loadCreationSources } = await import('../kybernos-plugin/lib-creation-sources-test.mjs')
+  const L = loadCreationSources()
+  const sx = T.creationSource()
+  assert.equal(L.check(sx).ok, true, JSON.stringify(L.check(sx).errors))
+  assert.equal(sx.foldsRow, 'tables')
+  assert.equal(sx.art, 'app')
+  const real = globalThis.fetch
+  const asked = []
+  globalThis.fetch = async (url) => { asked.push(url); return { status: 200, json: async () => ({ ok: true, dbs: [{ id: 'db1', name: 'E-commerce shop', objects: [{ key: 'a', count: 22 }, { key: 'b', count: 42 }] }, { id: 'db2', name: 'Empty', objects: [] }, { id: 'db3', objects: [{ key: 'a', count: 1 }] }, null, { name: 'no id', objects: [] }] }) } }
+  try {
+    resolved = 'en'
+    const items = L.items(await sx.load())
+    assert.ok(/^\/kybernos-db\/state/.test(asked[0]), asked[0])
+    assert.deepEqual(items.map((x) => [x.id, x.title, x.sub]), [['db1', 'E-commerce shop', '2 tables · 64 rows'], ['db2', 'Empty', 'No table yet'], ['db3', 'db3', '1 table · 1 row']])
+    globalThis.fetch = async () => ({ status: 500, json: async () => ({ ok: false }) })
+    assert.equal((await sx.load()).length, 0, 'a host that does not answer gives no item')
+  } finally { globalThis.fetch = real }
+})
+ok('an item opens the page on that app (the selection the page reads at mount), the way in opens the page itself', () => {
+  const store = {}
+  const keep = globalThis.localStorage
+  globalThis.localStorage = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v) } }
+  const pages = []
+  window.__KB_OPEN__ = (p) => { pages.push(p); return true }
+  try {
+    const sx = T.creationSource()
+    store['kybernos.db.selection'] = JSON.stringify({ db: 'old', object: 'x', views: { 'old/x': 'v1' } })
+    sx.open({ id: 'db1' })
+    assert.deepEqual(JSON.parse(store['kybernos.db.selection']), { db: 'db1', object: '', views: { 'old/x': 'v1' } }, 'the saved views are kept')
+    sx.home()
+    assert.deepEqual(pages, [{ view: 'tables' }, { view: 'tables' }])
+    delete window.__KB_OPEN__
+    assert.doesNotThrow(() => { sx.open({ id: 'db1' }); sx.home() })
+  } finally { globalThis.localStorage = keep; delete window.__KB_OPEN__ }
+})
+
 console.log('── words ──')
 ok('every operator has words in both languages, and the numbers read as signs', () => {
   for (const [lang, expect] of [['en', 'is not empty'], ['fr', 'n’est pas vide']]) {
