@@ -28,13 +28,17 @@
    own session cookie and origin). Signing sends the four fields and never `paused`, so signing new numbers does not silently resume a paused mandate. States: none in force, changes
    to sign, in force since, paused, to sign again (the file was altered or the key changed), cannot sign (no key on this machine: every control is off). Limits count actions, not euros.
 
-6. **Wake-ups** (2026-11-02). How often Kaby wakes **by itself on this computer** (every 2, 4, 8 or 24 h), for how long (5, 10 or 20 min), on how many points of its list (1, 2 or 3),
-   and its quiet hours (a switch and two times, 22:00–08:00 by default), with four starting points (Off, Light, Regular, Steady). **Parameters only**: Kaby's list (`todo.md` in its
-   workspace) and its per-wake summaries live in its chat, never here. Buttons: **Sign** (« Turn the wake-ups on » the first time), **Pause / Resume**, **Wake it now** (one wake-up at once,
-   off until the settings are signed and while one runs), **Stop this wake-up** (only while one runs: the turn is cancelled and the last line says « stopped by you ») and **Open Kaby's chat** (through kybernos-kyber's `openChat()`). The chip says what is true now (none, changes to sign, on with the next
-   time, quiet until, working for at most N min, paused, to sign again, cannot sign) and one line gives the last wake-up and how it ended. An amber line says wake-ups do not cover a cloud
-   computer. The card holds no schedule, no signature and no clock: they are kybernos-cloud's (`kyby-heartbeat*.mjs`; the choices and starting points arrive with the view). Routes it calls:
-   `GET /kybernos-cloud/kyby/heartbeat`, `POST …/set` (the fields, or `{ paused }` alone), `POST …/wake`, `POST …/stop` (the page's own session cookie and origin). While a wake-up runs the card asks again every 5 s.
+6. **Wake-ups** (2026-11-02). Kaby wakes **by itself through an ordinary automation** of the Automations page: nothing here is signed or kept. The automation runs in Kaby's own chat
+   (`sessionMode: 'home'`, `homeSessionId` = Kaby's chat), off until the person approves it (every new automation enters the certification gate), every 4 hours from 08:00 to 20:00,
+   10 minutes at most, stopping when the person writes; its prompt is plain text, readable and editable there: take the two oldest open points of `todo.md` (Kaby's list, in its
+   workspace), work only with what may be done without asking, tick only what is finished, never send, publish, pay, install, schedule or switch anything on, and end with one short
+   message. The card **finds** that automation (the one whose runs land in Kaby's chat), says its state in a chip (no chat yet, no wake-up, to approve, off, on, working), and offers:
+   **Create the wake-up** (only when there is none), **Open the automation** (`window.__KB_OPEN__({ view: 'tasks' })`: the schedule, the time limit, « when I write in its chat »,
+   the approval and the Stop button are that page's), **Wake it now** (`run-now`; off until the automation is approved and while a run is under way), **Stop this wake-up** (only while
+   one runs) and **Open Kaby's chat** (through kybernos-kyber's `openChat()`). An amber line says wake-ups do not cover a cloud computer. Routes it calls, all same origin with the page's own
+   session: `POST /kybernos/tasks` (`list`, `create`, `run-now`, `stop`), `GET /kybernos-cloud/kyby/native` (Kaby's chat id) and `GET /kybernos/automation-load` (the runs going; the
+   card asks again every 5 s while one runs). During a scheduled run kybernos-cloud's host refuses what the permissions above do not cover (nobody can answer a question): the gate is
+   `kyby-unattended.mjs`, keyed on the `kb-task-` request id of an automation's turn.
 
 ## What it stores and where
 
