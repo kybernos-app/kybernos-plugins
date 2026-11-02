@@ -23,7 +23,11 @@ The prepared file is one header line (`kind: "kybernos-import"`, `version: 1`, t
 
 ## What a dashboard shows of it
 
-A dashboard over a Tables object reads **at most 5 000 rows** of it (`RECORDS_MAX` in `kybernos-db/api.mjs`; the table says « Only the first 5 000 rows are read »). A sales file bigger than that loads fully but its totals are wrong until that limit is lifted or the dashboard reads an aggregate: not done, deliberately outside this step.
+A dashboard over a Tables object reads **all of it, up to 50 000 rows**, the most one import loads (`RECORDS_MAX` in `kybernos-db/api.mjs`, the default and the ceiling of `GET /kybernos-db/records`). It was 5 000 until 2026-11-02, which made a bigger sales file's totals wrong. Nothing changed in the Dashboards plugin: the route answers more, and the plugin's own « Only the first N rows are read » note shows only above 50 000.
+
+The route takes `limit` (1 to 50 000; anything else is the default). **The Tables page asks for 5 000** (`PAGE_ROWS` in `kybernos-db/client.js`): it draws 200 rows at a time but its board, map and calendar views walk everything it was sent, so a table of 50 000 rows lists its first 5 000 there until the page gets server-side paging and search (not done). `test-routes.mjs` fails if the page stops saying it.
+
+Cost at 50 000 rows of eight fields, measured on this machine: the answer is about 16 MB of JSON, built in 0.12 s; the page parses it, builds the table in about 0.13 s and draws a dashboard of eight widgets; the widgets of one dashboard share the one fetch (20 s cache). A table of thirty fields is three times heavier; the page gives up a fetch after 9 s.
 
 ## Tests
 

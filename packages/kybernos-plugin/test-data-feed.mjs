@@ -362,6 +362,31 @@ console.log('a sales CSV, all the way')
   check('the personal columns (name, e-mail) are marked, and masked when the agent reads them back', eq(personal, ['customer', 'email']) && /^••••/.test((await T.records_list.execute({ object: 'sale', limit: 1 })).records[0].values.email))
 }
 
+// ── more rows than the old limit of the dashboards ──────────────────────────────────────────────────────────
+console.log('a file bigger than 5 000 rows')
+{
+  const N = 5300
+  const lines = Array.from({ length: N }, (_, i) => 'O-' + i + ',' + (i % 7 === 0 ? 'refunded' : 'paid') + ',' + (10 + (i % 90)) + '.50')
+  const big = feed(['parse', put('big-sales.csv', 'Order,Status,Total\n' + lines.join('\n') + '\n')])
+  const svc = makeService({ dir: join(root, 'big-db') })
+  const B = Object.fromEntries(tools(svc, { importsDir: join(home, 'kybernos', 'imports') }).map((t) => [t.name, t]))
+  await B.db_create.execute({ name: 'Big' })
+  await B.object_define.execute({ key: 'sale', label: 'Sales', title: 'ref', fields: [{ key: 'ref', type: 'text', label: 'Order', required: true }, { key: 'status', type: 'choice', label: 'Status', options: [{ key: 'paid', label: 'paid' }, { key: 'refunded', label: 'refunded' }] }, { key: 'total', type: 'money', label: 'Total', currency: 'EUR' }] })
+  const done = await B.records_import.execute({ object: 'sale', import: big.id, columns: { Order: 'ref', Status: 'status', Total: 'total' }, decimal: '.', key: 'ref' })
+  check('an import of 5 300 rows writes them all', done.ok === true && done.created === N, { ...done, preview: undefined })
+  const api = makeApi({ service: svc, ports: { today: () => '2026-11-02' } })
+  const src = { provider: 'db.rows', params: { db: api.state().dbs[0].id, object: 'sale' } }
+  const NOW = Date.UTC(2026, 10, 2)
+  const route = (path) => { const [p, q] = path.split('?'); const a = Object.fromEntries(new URLSearchParams(q || '')); return p === '/kybernos-db/state' ? api.state() : api.records(a) }
+  const parts = {}
+  for (const req of M.planFor(src, NOW)) parts[req.key] = route(req.path)
+  for (const req of M.planNext(src, parts, NOW)) parts[req.key] = route(req.path)
+  const table = M.buildTable(src, parts, NOW)
+  check('a dashboard reads all of them, with no « only the first » note', table.rows.length === N && !table.meta.note, { rows: table.rows.length, note: table.meta.note })
+  const want = lines.reduce((a, l) => a + Number(l.split(',')[2]), 0)
+  check('and its total is the whole file\'s', Math.abs(M.cardData(table, { type: 'card', metric: { agg: 'sum', field: 'total' } }).value - want) < 0.01)
+}
+
 rmSync(root, { recursive: true, force: true })
 console.log('\n' + (failed === 0 ? 'ALL PASS' : failed + ' FAILED') + ' (' + total + ' checks)')
 process.exit(failed === 0 ? 0 : 1)

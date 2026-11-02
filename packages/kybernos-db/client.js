@@ -788,6 +788,8 @@ window.__ModuleLoader__.load({
           return { ok: false, error: res.status === 401 ? 'sign-in required' : (res.status === 403 ? 'origin refused' : 'network') }
         } catch (e) { return { ok: false, error: 'network' } }
       }
+      /** The records the Tables page asks the host for: a table is drawn 200 rows at a time and its views (board, map, calendar) walk what was sent. The host would send up to 50,000 (a dashboard reads them all). */
+      const PAGE_ROWS = 5000
       const qs = (params) => '?' + Object.keys(params).filter((k) => params[k] !== '' && params[k] !== undefined && params[k] !== false).map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(params[k] === true ? '1' : params[k])).join('&')
       /** One sentence for each answer the host can give. */
       const errorText = (r) => {
@@ -1813,7 +1815,7 @@ window.__ModuleLoader__.load({
         }
 
         // ── the four views ──────────────────────────────────────────────────────────────────────────────────────────────────
-        const PAGE_STEP = 200 // rows drawn at a time: the host sends up to 5,000, the DOM does not need them all at once
+        const PAGE_STEP = 200 // rows drawn at a time: the host sends up to PAGE_ROWS, the DOM does not need them all at once
         const rowWord = (n) => plural(n, 'ligne', 'lignes', 'row', 'rows')
         const MoreRows = ({ shown, total, onMore }) => (shown >= total ? null : h('div', { className: 'kbtb-pager' }, h('span', null, shown + ' / ' + total),
           h('button', { type: 'button', className: 'kbtb-btn sm', 'data-kb': 'tables-more', onClick: onMore }, kt('Afficher la suite', 'Show more'))))
@@ -3333,11 +3335,11 @@ window.__ModuleLoader__.load({
             let cancelled = false
             ;(async () => {
               if (rec.key !== key) setRec({ key, status: 'loading', rows: [], fingerprint: '', truncated: false, error: null })
-              const r = await call('GET', '/records' + qs({ db: db.id, object: obj.key }))
+              const r = await call('GET', '/records' + qs({ db: db.id, object: obj.key, limit: PAGE_ROWS }))
               if (cancelled || !alive.current) return
               const targets = Array.from(new Set(obj.fields.filter((f) => f.type === 'relation').map((f) => f.to))).filter((t) => db.objects.some((o) => o.key === t))
               const rel = {}
-              await Promise.all(targets.map(async (t) => { const x = await call('GET', '/records' + qs({ db: db.id, object: t })); if (x.ok) rel[t] = x.records }))
+              await Promise.all(targets.map(async (t) => { const x = await call('GET', '/records' + qs({ db: db.id, object: t, limit: PAGE_ROWS })); if (x.ok) rel[t] = x.records }))
               if (cancelled || !alive.current) return
               setRelated(rel)
               setRec(r.ok ? { key, status: 'ok', rows: r.records, fingerprint: r.fingerprint, truncated: r.truncated === true, error: null } : { key, status: 'error', rows: [], fingerprint: '', truncated: false, error: r })

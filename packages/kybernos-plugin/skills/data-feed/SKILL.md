@@ -56,7 +56,7 @@ The rows are in the object: the person sees them in Tables at once. For charts a
 
 ## Limits, said plainly
 
-- A dashboard reads at most the first 5 000 rows of a table (the table says so): for a bigger file, load it all but tell the person the dashboard totals cover only the first 5 000, or load a summary (one row per day, per product) for the dashboard.
+- A dashboard reads up to 50 000 rows of a table, the most one import loads, so its totals cover the whole file. The Tables page lists the first 5 000 rows of a table (search and filters work on those): say so when a file is bigger.
 - 50 000 rows and 64 MB per file; person, relation and attachment fields cannot be filled from a column (load names as text, link later with `records_update`).
 - Prepared files stay 14 days in `<DSH home>/kybernos/imports/` and hold the data as it was in the file.
 - A second import without `key` adds the rows again.
