@@ -23,7 +23,10 @@ const q = async (js, ms = 20000) => { const r = await page.evalJs(js, ms); retur
 const clickMenu = (name) => q(`(() => { const e = [...document.querySelectorAll('.kb4-menu .kb4-item')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)})); if (e) e.click(); return !!e })()`)
 const tile = (name) => `[...document.querySelectorAll('[data-kb="type-tiles"] .kb-type')].find((x) => (x.querySelector('.kb-type-lab') || {}).textContent === ${JSON.stringify(name)})`
 const tileCount = (name) => q(`(() => { const t = ${tile(name)}; return t ? Number((t.querySelector('.kb-type-cnt') || {}).textContent) : null })()`)
-const pageTitle = () => q(`(() => { const t = document.querySelector('.kb6-title'); return t ? t.textContent.trim() : null })()`)
+// What tells each plugin's own page from the Creations page: a hook only that page draws. `item` = an item is open (not the gallery / the home of the plugin).
+const pageHook = (id, item) => q(id === 'dashboards'
+  ? `(() => { const e = document.querySelector('[data-kb="dashboards-page"]'); return e ? (${item} ? e.getAttribute('data-screen') === 'dash' : true) : false })()`
+  : `(() => ${item} ? !!document.querySelector('[data-kb="apps-back"]') : !!(document.querySelector('[data-kb="apps-gallery"]') || document.querySelector('[data-kb="apps-back"]')))()`)
 try {
   await page.send('Page.navigate', { url: 'http://' + authority + '/' })
   await waitFor(page, 'document.body && document.body.innerText.length > 40', 30000)
@@ -51,9 +54,9 @@ try {
     if (cards > 0) {
       await q(`document.querySelector('[data-kb="src-card"][data-src="${id}"] [data-kb="src-prev"]').click()`)
       await sleep(3500)
-      const t = await pageTitle()
+      const opened = await pageHook(id, true)
       const lit = await q(`(() => { const e = document.querySelector('.kb4-menu .kb4-item.on'); return e ? e.textContent.trim().replace(/[0-9+]+$/, '') : null })()`)
-      check(name + ': a card opens the plugin\'s own page', typeof t === 'string' && t.indexOf(name) >= 0, JSON.stringify(t))
+      check(name + ': a card opens that item in the plugin\'s own page', opened === true, JSON.stringify(opened))
       check(name + ': the Creations row is the lit one while that page is open', lit === 'Creations', JSON.stringify(lit))
       await page.shot(join(shotDir, 'opened-' + id + '.png'))
       await clickMenu('Creations')
@@ -62,8 +65,8 @@ try {
     // the way in from the tile (the selection is kept when the page comes back)
     await q(`document.querySelector('[data-kb="src-home"][data-src="${id}"]').click()`)
     await sleep(3000)
-    const t2 = await pageTitle()
-    check(name + ': the way in opens the plugin\'s page', typeof t2 === 'string' && t2.indexOf(name) >= 0, JSON.stringify(t2))
+    const home2 = await pageHook(id, false)
+    check(name + ': the way in opens the plugin\'s page', home2 === true, JSON.stringify(home2))
     await clickMenu('Creations')
     await sleep(3000)
     await q(`${tile(name)}.click()`)
