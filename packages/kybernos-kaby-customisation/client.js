@@ -33,6 +33,7 @@ window.__ModuleLoader__.load({
     const PORTRAIT_MAX_BYTES = 4.5 * 1024 * 1024
     const SAMPLE_MAX_BYTES = 10 * 1024 * 1024
     const PILLS_SHOWN = 7
+    const TAB_IDS = ['look', 'face', 'work', 'permissions']
 
     const lang = () => {
       try {
@@ -333,6 +334,13 @@ const readWake = async () => {
       '.kbkc-titlerow{display:flex;align-items:center;gap:12px}',
       '.kbkc-titlerow h4{margin:0;font-size:22px;font-weight:700}',
       '.kbkc-lead{margin:4px 0 0;color:var(--dsw-alias-label-secondary,#666);max-width:62ch}',
+      '.kbkc-tabs{display:flex;gap:4px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25));overflow-x:auto;scrollbar-width:none}',
+      '.kbkc-tab{appearance:none;flex:none;height:40px;padding:0 14px;margin-bottom:-1px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--dsw-alias-label-secondary,#666);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}',
+      '.kbkc-tab:hover{color:var(--dsw-alias-label-primary,#222)}',
+      '.kbkc-tab[aria-selected="true"]{color:var(--dsw-alias-label-primary,#222);border-bottom-color:var(--dsw-alias-brand-primary,#4a7bd0);font-weight:600}',
+      '.kbkc-tab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4a7bd0);outline-offset:-2px}',
+      '.kbkc-panel{display:flex;flex-direction:column;gap:16px}',
+      '.kbkc-panel[hidden]{display:none}',
       '.kbkc-card{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:14px}',
       '.kbkc-cap{font-size:12px;font-weight:700;color:var(--dsw-alias-label-secondary,#666)}',
       '.kbkc-id{display:flex;gap:20px;align-items:flex-start}',
@@ -398,7 +406,8 @@ const readWake = async () => {
       '.kbkc-spin{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--dsw-alias-border-l2,rgba(127,127,127,.4));border-top-color:var(--dsw-alias-brand-primary,#4a7bd0);animation:kbkc-spin .8s linear infinite;flex:none}',
       '@keyframes kbkc-spin{to{transform:rotate(360deg)}}',
       '@media (prefers-reduced-motion:reduce){.kbkc-spin{animation:none}}',
-      '@media (max-width:760px){.kbkc-id,.kbkc-grid{flex-direction:column}.kbkc-provnav{width:auto}}'
+      '@media (max-width:760px){.kbkc-id,.kbkc-grid{flex-direction:column}.kbkc-provnav{width:auto}}',
+      '@media (max-width:560px){.kbkc-tabs{gap:0}.kbkc-tab{padding:0 6px;font-size:12.5px}}'
     ].join('\n')
 
     // ── icons (inline, current colour) ─────────────────────────────────────────────────────────────────────────────────
@@ -708,6 +717,7 @@ const readWake = async () => {
         const [cv, setCv] = useState(null)
         const patchCv = (patch) => setCv((c) => (c === null ? c : Object.assign({}, c, patch)))
         const [faceView, setFaceView] = useState('none')
+        const [tab, setTab] = useState(TAB_IDS[0])
         const touched = useRef({ name: false, look: false })
         const rec = useRef(null)
 
@@ -953,12 +963,36 @@ const readWake = async () => {
           ])
         ]))
 
+        const tabLabel = (id) => ({
+          look: kt('Identité et voix', 'Identity & voice'),
+          face: kt('Appels vidéo', 'Video calls'),
+          work: kt('Travail', 'Work'),
+          permissions: kt('Autorisations', 'Permissions')
+        })[id]
+        const onTabKey = (e) => {
+          const at = TAB_IDS.indexOf(tab)
+          const next = e.key === 'ArrowRight' ? (at + 1) % TAB_IDS.length : e.key === 'ArrowLeft' ? (at + TAB_IDS.length - 1) % TAB_IDS.length : e.key === 'Home' ? 0 : e.key === 'End' ? TAB_IDS.length - 1 : -1
+          if (next < 0) return
+          e.preventDefault()
+          setTab(TAB_IDS[next])
+          try { const btn = document.getElementById('kbkc-tab-' + TAB_IDS[next]); if (btn !== null) btn.focus() } catch (e2) { /* no layout */ }
+        }
+        const panel = (id, ...cards) => h('div', { key: 'panel-' + id, id: 'kbkc-panel-' + id, className: 'kbkc-panel', role: 'tabpanel', 'aria-labelledby': 'kbkc-tab-' + id, 'data-kb': 'kaby-custom-panel-' + id, hidden: tab !== id }, ...cards)
+
         return h('div', { className: 'kbkc', 'data-kb': 'kaby-custom-page' }, h('div', { className: 'kbkc-page' }, [
           h('div', { key: 'hd' }, [
             h('div', { key: 't', className: 'kbkc-titlerow' }, [h('h4', { key: 'h' }, 'Kaby'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { key: 'help', id: 'kybernos-kaby-customisation', page: 'kaby' }) : null]),
             h('p', { key: 'p', className: 'kbkc-lead' }, kt('Comment ton assistant est et parle, où il travaille, ce qu’il peut faire sans te demander et quand il se réveille. Ses règles et sa mémoire ne changent pas ici.', 'How your assistant looks and sounds, where it works, what it may do without asking and when it wakes up. Its rules and its memory do not change here.'))
           ]),
-          identity, voiceBlock, faceBlock, h(WhereCard, { key: 'where' }), h(MandateCard, { key: 'mandate' }), h(WakeCard, { key: 'wake' }), customWindow
+          h('div', { key: 'tabs', className: 'kbkc-tabs', role: 'tablist', 'aria-label': kt('Réglages de Kaby', 'Kaby settings'), 'data-kb': 'kaby-custom-tabs', onKeyDown: onTabKey }, TAB_IDS.map((id) => h('button', {
+            key: id, id: 'kbkc-tab-' + id, type: 'button', role: 'tab', className: 'kbkc-tab', 'data-kb': 'kaby-custom-tab', 'data-tab': id, 'aria-selected': tab === id ? 'true' : 'false', 'aria-controls': 'kbkc-panel-' + id, tabIndex: tab === id ? 0 : -1, onClick: () => setTab(id)
+          }, tabLabel(id)))),
+          // Every card stays mounted and only the open tab is shown: a draft in Permissions or a half-typed name is still there when the person comes back.
+          panel('look', identity, voiceBlock),
+          panel('face', faceBlock),
+          panel('work', h(WhereCard, { key: 'where' }), h(WakeCard, { key: 'wake' })),
+          panel('permissions', h(MandateCard, { key: 'mandate' })),
+          customWindow
         ]))
       }
       return Panel
@@ -996,7 +1030,7 @@ const readWake = async () => {
       name: NAME,
       inject: [],
       apply: start,
-      __test: { buildPanel, buildCards, fill, draftOf, draftPreset, mandateChip, mandateProblem, whereChip, dateText, presetLabel, PRESET_ORDER, MANDATE, TASKS, NATIVE, LOAD, WAKE_CRON, wakePrompt, wakeInput, wakeTaskOf, wakeApproved, wakeChip, wakeProblem, readWake, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN }
+      __test: { buildPanel, buildCards, fill, draftOf, draftPreset, mandateChip, mandateProblem, whereChip, dateText, presetLabel, PRESET_ORDER, MANDATE, TASKS, NATIVE, LOAD, WAKE_CRON, wakePrompt, wakeInput, wakeTaskOf, wakeApproved, wakeChip, wakeProblem, readWake, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN, TAB_IDS }
     }
   }
 })
