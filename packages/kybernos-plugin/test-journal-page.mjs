@@ -32,8 +32,8 @@ const events = [
   ev('approval/asked', 4 * MIN, { id: 'ap1', toolName: 'bash', callId: 'b1', reason: 'MARK-REASON delete the folder' }),
   ev('approval/decided', 4 * MIN + 2000, { id: 'ap1', outcome: 'allowed-once' }),
   call(5 * MIN, 'q1', 'ask_user_question', { questions: [{ question: 'MARK-QUESTION send it?', options: [{ label: 'MARK-OPTION Send' }, { label: 'Wait' }] }] }), result(5 * MIN + 3000, 'q1', JSON.stringify({ answers: [{ id: 'a', selected: ['MARK-OPTION Send'] }] })),
-  call(6 * MIN, 'pr', 'present', { files: [{ path: '/Users/someone/MARK-PATH/offer.pdf', description: 'The offer letter' }] }), result(6 * MIN + 100, 'pr', 'Presented'),
-  ev('deliverables/presented', 6 * MIN + 100, { turn: 1, callId: 'pr', files: [{ path: '/Users/someone/MARK-PATH/offer.pdf', description: 'The offer letter' }] }),
+  call(6 * MIN, 'pr', 'present', { files: [{ path: '/srv/projects/MARK-PATH/offer.pdf', description: 'The offer letter' }] }), result(6 * MIN + 100, 'pr', 'Presented'),
+  ev('deliverables/presented', 6 * MIN + 100, { turn: 1, callId: 'pr', files: [{ path: '/srv/projects/MARK-PATH/offer.pdf', description: 'The offer letter' }] }),
   ev('assistant/message', 7 * MIN, { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'MARK-REPLY done' }], source: { kind: 'model', provider: 'zai', model: 'glm-5.3' } }, usage: { input: 1200, output: 300, cacheRead: 0, cacheWrite: 0 } }),
   ev('turn/end', 7 * MIN + 10, { turn: 1 }),
 ]
@@ -64,7 +64,7 @@ try {
   // ── what is kept back by default stays back ──────────────────────────────────────────
   const plain = make({})
   const plainText = text(plain)
-  for (const m of ['MARK-PROMPT', 'MARK-REPLY', 'MARK-QUESTION', 'MARK-OPTION', 'MARK-REASON', 'MARK-MEMORY', 'MARK-NAME', 'MARK-DEVICE', 'ZXCHATID', 'MARK-TOOL-INPUT', 'MARK-TOOL-OUTPUT', 'MARK-PATH', '/Users/']) assert.equal(plainText.includes(m), false, m + ' is in the default page')
+  for (const m of ['MARK-PROMPT', 'MARK-REPLY', 'MARK-QUESTION', 'MARK-OPTION', 'MARK-REASON', 'MARK-MEMORY', 'MARK-NAME', 'MARK-DEVICE', 'ZXCHATID', 'MARK-TOOL-INPUT', 'MARK-TOOL-OUTPUT', 'MARK-PATH', '/srv/projects']) assert.equal(plainText.includes(m), false, m + ' is in the default page')
   assert.equal(plain.title, null)
   assert.equal(plain.chat.id, null)
   assert.equal(plainText.includes('MARK-LINK'), true, 'the link is a deliverable: on by default')
