@@ -30823,7 +30823,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             : h('button', { type: 'button', key: e.id, className: 'kb8-sh-card', style: { '--i': i }, 'data-kb': 'newchat-example', 'data-id': e.id, onClick: (ev) => sp.onOpen(e.id, ev.currentTarget) },
               h('span', { className: 'kb8-sh-thumb' }, h(KbNcPic, { key: e.id, e }), e.type === 'video' || kbNcObj(e.video) !== null || kbNcAudio(e) !== null ? kbNcPlay() : null),
               h('span', { className: 'kb8-sh-prev', 'aria-hidden': 'true' }, kbt('kbnc.sh.preview')),
-              h('span', { className: 'kb8-sh-name' }, h('span', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
+              h('span', { className: 'kb8-sh-name' }, h('span', null, e.name)),
               h('span', { className: 'kb8-sh-line' }, e.line))))))
     }
     /** The dialog of one example: its picture (an App also shows how its tables are linked), the request it starts from, and what to do with it. In the document body, so no
@@ -30913,7 +30913,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               playPair[0] === 'failed' ? h('p', { className: 'kb8-sh-status bad', role: 'alert', 'data-kb': 'newchat-example-noclip' }, kbt('kbnc.sh.noclip')) : null,
               h('p', { className: 'kb8-sh-fine' }, kbt(map !== null ? 'kbnc.sh.finemap' : (isApp ? 'kbnc.sh.fineapp' : (media ? (e.type === 'audio' ? 'kbnc.sh.fineaudio' : 'kbnc.sh.finevideo') : (promptMode ? 'kbnc.sh.finemade' : 'kbnc.sh.fine')))))),
             h('div', { className: 'kb8-sh-side' },
-              h('div', { className: 'kb8-sh-title' }, h('h3', null, e.name), e.tag === '' ? null : h('span', { className: 'kb8-sh-tag' }, e.tag)),
+              h('div', { className: 'kb8-sh-title' }, h('h3', null, e.name)),
               h('p', { className: 'kb8-sh-lead' }, e.line),
               h('div', { className: 'kb8-sh-req' }, h('b', null, kbt(promptMode ? 'kbnc.sh.prompt' : (withKit ? 'kbnc.sh.reqtpl' : 'kbnc.sh.req'))), h('p', null, e.prompt), promptMode ? madeEl : null),
               media && made !== null ? h('div', { className: 'kb8-sh-req', 'data-kb': 'newchat-example-sample' }, h('b', null, kbt(samplePrompt !== '' ? 'kbnc.sh.sample' : 'kbnc.sh.samplem')), samplePrompt === '' ? null : h('p', null, samplePrompt), madeEl) : null,
@@ -31139,7 +31139,6 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-play svg{width:16px;height:16px;margin-inline-start:2px;fill:rgb(255,255,255)}
 .kb8-sh-name{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-inline:2px;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary)}
 .kb8-sh-name>span:first-child{min-width:0;overflow-wrap:anywhere}
-.kb8-sh-tag{flex:none;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:color-mix(in srgb,var(--kb8-acc) 12%,transparent);color:var(--dsw-alias-label-secondary)}
 .kb8-sh-line{padding-inline:2px;font-size:12.5px;line-height:1.4;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* The dialog of one example. */
 .kb8-sh-layer{position:fixed;inset:0;z-index:90}
