@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
   CORE_TOOLS, PROFILE_TOOLS, PROFILE_NAMES, TOOL_PROFILES_ENV, claimedText, filterFor, looksLikeCodeWorkspace,
-  mountToolProfiles, profileFor, profileNote,
+  mountToolProfiles, profileFor, profileNote, unknownGlobalNames, withoutNames,
 } from './tool-profiles.mjs'
 
 let pass = 0
@@ -46,21 +46,26 @@ const LIVE_TOOL_UNIVERSE = [
 
 // ── A fake native tool registry: a global layer, per-scope `restrict({allow})` views, and
 // a `leak` mode that shrinks the global layer instead (an engine without the caller-context
-// shadow) so the guard can be proven.
-const makeRegistry = (names) => {
+// shadow) so the guard can be proven. `own` names are registered in the agent's OWN layer, like
+// `subagent` on the 0.2.2 engine: visible to the agent, exempt from any restriction, and NOT
+// restrictable — `restrict` refuses a filter that names them, with the engine's own wording.
+const makeRegistry = (names, { own = [] } = {}) => {
   const global = new Map(names.map((name) => [name, { name, description: 'fake ' + name, parameters: { type: 'object', properties: {} } }]))
+  const ownDefinitions = own.map((name) => ({ name, description: 'fake ' + name, parameters: { type: 'object', properties: {} } }))
   const scoped = new Map()
   const state = { global, scoped, leak: false, calls: [] }
   state.facadeFor = (agent) => ({
     schemas: (scope) => {
       if (scope === undefined) return [...global.values()]
       const allow = scoped.get(scope)
-      return allow === undefined ? [...global.values()] : [...allow].map((name) => global.get(name)).filter((d) => d !== undefined)
+      const inherited = allow === undefined ? [...global.values()] : [...allow].map((name) => global.get(name)).filter((d) => d !== undefined)
+      return inherited.concat(ownDefinitions)
     },
     restrict: (filter) => {
       state.calls.push(filter)
       if (filter === null || typeof filter !== 'object' || Array.isArray(filter.allow) === false) throw new Error('tools.restrict(): allow required')
-      for (const name of filter.allow) if (global.has(name) === false) throw new Error('tools.restrict() names unknown global tool "' + name + '"')
+      const unknown = filter.allow.filter((name) => global.has(name) === false)
+      if (unknown.length > 0) throw new Error('tools.restrict() names unknown global tool' + (unknown.length > 1 ? 's' : '') + ' ' + unknown.map((n) => '"' + n + '"').join(', ') + '; known global tools: ' + [...global.keys()].sort().join(', '))
       if (state.leak === true) {
         const removed = []
         for (const name of [...global.keys()]) if (filter.allow.indexOf(name) < 0) { removed.push([name, global.get(name)]); global.delete(name) }
@@ -147,6 +152,13 @@ console.log('filter')
   const partial = filterFor('code', ['read', 'write', 'edit', 'glob', 'grep', 'bash', 'job_list', 'todo_write', 'ask_user_question', 'present', 'skill', 'working_directory', 'subagent'])
   assert.ok(partial !== null)
   assert.deepEqual(partial.allow, ['read', 'write', 'edit', 'glob', 'grep', 'bash', 'job_list', 'todo_write', 'ask_user_question', 'present', 'skill', 'working_directory', 'subagent'])
+  // The engine's refusal of a name it does not treat as global is machine-readable: the names come back quoted.
+  assert.deepEqual(unknownGlobalNames(new Error('tools.restrict() names unknown global tool "subagent"; known global tools: bash, read')), ['subagent'])
+  assert.deepEqual(unknownGlobalNames(new Error('tools.restrict() names unknown global tools "subagent", "x y"; known global tools: bash')), ['subagent', 'x y'])
+  assert.deepEqual(unknownGlobalNames(new Error('scope-local name in filter')), [])
+  assert.deepEqual(unknownGlobalNames(undefined), [])
+  assert.deepEqual(withoutNames({ allow: ['a', 'b', 'c', 'd', 'e', 'f'] }, ['a', 'zz']), { allow: ['b', 'c', 'd', 'e', 'f'] })
+  assert.equal(withoutNames({ allow: ['a', 'b', 'c', 'd', 'e', 'f'] }, ['a', 'b']), null, 'a narrowed filter that keeps too little is no filter')
   assert.equal(profileNote('full'), '')
   assert.match(profileNote('code'), /tool profile chosen at session start/)
   ok('intersection with visible tools, core kept, other-task tools hidden, full/short-universe fallback')
@@ -230,6 +242,44 @@ console.log('mount')
   const { agent } = makeAgent({ id: 'a6', cwd: join(here, '..', '..'), requestHeader: () => undefined, registry: undefined })
   host.emit('agent/created', { agent, source: 'fresh' })
   ok('no tools service: the session keeps every tool, nothing throws')
+}
+{
+  // 2026-11-02 regression (dsh-web.err.log): on the 0.2.2 engine `subagent` lives in the agent's own layer. It is in
+  // CORE_TOOLS and visible to the agent, so it went into the allow list, and `tools.restrict()` refused the WHOLE filter
+  // ("names unknown global tool subagent"): the `code` profile never applied. The profiler must drop the names the
+  // engine calls unknown and ask again, and the own-layer tool stays visible (exempt from restriction).
+  const host = makeHost()
+  const universe = LIVE_TOOL_UNIVERSE.filter((name) => name !== 'subagent')
+  const registry = makeRegistry(universe, { own: ['subagent'] })
+  mountToolProfiles(host.ctx, { env: {}, exists: (p) => existsSync(p) })
+  const { agent, sections } = makeAgent({ id: 'a10', cwd: join(here, '..', '..'), requestHeader: () => undefined, registry })
+  host.emit('agent/created', { agent, source: 'fresh' })
+  assert.ok(registry.scoped.has(agent), 'the profile applies although subagent is not restrictable')
+  const allow = [...registry.scoped.get(agent)]
+  assert.equal(allow.indexOf('subagent'), -1, 'the own-layer name is not passed to restrict')
+  for (const name of ['web_search', 'web_fetch', 'read', 'write', 'edit', 'glob', 'grep', 'bash', 'skill', 'subagent_fork']) assert.ok(allow.indexOf(name) >= 0, 'kept: ' + name)
+  assert.equal(allow.indexOf('memory_write'), -1, 'the other-task tools are hidden again')
+  const seen = registry.facadeFor(agent).schemas(agent).map((d) => d.name)
+  assert.ok(seen.indexOf('subagent') >= 0, 'subagent stays visible to the agent (own layer)')
+  assert.equal(registry.calls.length, 2, 'refused once, accepted on the narrowed retry')
+  assert.equal(sections.length, 1)
+  host.emit('agent/inbox/claimed', { agent, message: userMsg('fix the failing test'), turn: 1 })
+  assert.equal(registry.calls.length, 2, 'still decided once')
+  ok('own-layer tool in the allow list: the filter is narrowed and re-sent, the profile applies')
+}
+{
+  // A refusal that names nothing we can drop (or that keeps failing) still ends on the full surface.
+  const host = makeHost()
+  const registry = makeRegistry(LIVE_TOOL_UNIVERSE)
+  const real = registry.facadeFor
+  let attempts = 0
+  registry.facadeFor = (agent) => ({ ...real(agent), restrict: () => { attempts += 1; throw new Error('tools.restrict() names unknown global tool "subagent"; known global tools: bash') } })
+  mountToolProfiles(host.ctx, { env: {}, exists: () => false })
+  const { agent, sections } = makeAgent({ id: 'a11', cwd: '/tmp', requestHeader: () => undefined, registry })
+  host.emit('agent/inbox/claimed', { agent, message: userMsg('fix the failing test'), turn: 1 })
+  assert.equal(attempts, 2, 'one retry, no loop')
+  assert.equal(sections.length, 0)
+  ok('a refusal that survives the retry: full surface kept, no loop, no note')
 }
 {
   const host = makeHost()
