@@ -28,8 +28,8 @@ export function discover (root) {
     const dir = join(root, 'packages', d)
     for (const f of ls(dir)) if (/^test.*\.mjs$/.test(f)) out.push({ rel: 'packages/' + d + '/' + f, cwd: dir, args: [f] })
   }
-  // The two standalone daemons keep their tests in a `test/` folder, run by the node test runner (as CI does).
-  for (const d of ['messaging', 'kybernos-gate']) {
+  // The standalone services (messaging, the sign-in gate, the public front desk) keep their tests in a `test/` folder, run by the node test runner (as CI does).
+  for (const d of ['messaging', 'kybernos-gate', 'front-desk']) {
     const dir = join(root, 'packages', d)
     const files = ls(join(dir, 'test')).filter((f) => /\.test\.mjs$/.test(f))
     if (files.length > 0) out.push({ rel: 'packages/' + d + '/test/*.test.mjs', cwd: dir, args: ['--test'].concat(files.map((f) => join('test', f))) })

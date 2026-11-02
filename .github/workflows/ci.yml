@@ -34,6 +34,8 @@ jobs:
           done
       - name: messaging tests (standalone daemon)
         run: cd packages/messaging && node --test test/*.test.mjs
+      - name: front-desk tests (standalone public service)
+        run: cd packages/front-desk && node --test test/*.test.mjs
       - name: gate tests (standalone sign-in gate)
         run: cd packages/kybernos-gate && node --test test/*.test.mjs
       - name: service tests (the cloud computer image, the skills relay)
