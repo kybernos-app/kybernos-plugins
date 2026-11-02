@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slides PoC</title>
+<link rel="stylesheet" href="/studio.css">
+</head>
+<body>
+<header>
+  <div class="title"><b id="title">Slides</b><span id="ver" class="pill" title="Deck version (each agent write adds one)"></span></div>
+  <div class="tools">
+    <span class="nav"><button id="prev" aria-label="Previous slide">‹</button><span id="pos" aria-live="polite"></span><button id="next" aria-label="Next slide">›</button></span>
+    <button id="edit" aria-pressed="false" title="Click a text on the slide to change it">✎ Edit text</button>
+    <label class="sel">Theme
+      <select id="theme"><option value="dark">Dark</option><option value="paper">Paper</option><option value="light">Light</option></select>
+    </label>
+    <button id="present" title="Full screen, arrow keys to move">▶ Present</button>
+    <a id="pdf" class="btn" href="/api/export/pdf" download>⬇ PDF</a>
+    <a id="pptx" class="btn" href="/api/export/pptx" download>⬇ PPTX</a>
+    <button id="agent" aria-pressed="false" title="What the agent reads back from your edits">Agent view</button>
+  </div>
+</header>
+<main>
+  <nav id="rail" aria-label="Slides"></nav>
+  <section id="wrap">
+    <p id="empty" hidden>No slides yet. Ask the agent for a deck and it appears here.</p>
+    <div id="stage"><iframe id="main" title="Current slide" sandbox="allow-scripts"></iframe></div>
+  </section>
+  <aside id="agentbox" hidden>
+    <h3>Edits the agent reads back</h3>
+    <pre id="edits">none yet</pre>
+    <button id="clear">Clear edits</button>
+    <h3>Versions</h3>
+    <ol id="hist"></ol>
+  </aside>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/studio.js"></script>
+</body>
+</html>
