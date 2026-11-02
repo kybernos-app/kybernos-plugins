@@ -219,16 +219,16 @@ window.__ModuleLoader__.load({
       // The page's head and its explanation: static text, so the skeleton draws the same (nothing moves when the engines arrive).
       // The explanation lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title, and the head takes the gap the paragraph used to leave.
       const suiteHelp = () => { try { return typeof window !== 'undefined' && !!window.__KB_HELP__ && !!window.__KB_HELP__.Help } catch (e) { return false } }
-      const pageHead = () => {
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
+      const pageHeadBlock = () => {
         const title = kt('Recherche web', 'Web Search')
         const lead = kt(
           'Les agents cherchent sur le web avec le premier moteur de cette liste qui répond. Les moteurs « sans clé » marchent tout de suite ; ajoute une clé pour qu’un moteur à clé passe en premier. Un moteur qui échoue est mis en pause, le suivant prend le relais.',
           'Agents search the web with the first engine in this list that answers. “No key” engines work right away; add a key so a keyed engine goes first. An engine that fails is paused and the next one takes over.')
         const suite = suiteHelp()
         return h(React.Fragment, null,
-          h('div', { className: 'kwse-head' + (suite ? ' solo' : '') },
-            h('h4', null, title),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-websearch', lead: lead, title: title }) : null)),
+          h('div', { className: 'kwse-head' + (suite ? ' solo' : '') }, pageHead({ id: 'kybernos-websearch', lead: lead, title: title })),
           suite ? null : h('p', { className: 'kwse-intro' }, lead)
         )
       }
@@ -252,7 +252,7 @@ window.__ModuleLoader__.load({
           // First read failed: the page's own head stays, then the reason and a Retry (it used to be one bare red line).
           if (msg !== '') {
             return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
-              pageHead(),
+              pageHeadBlock(),
               h('div', { className: 'kwse-down', 'data-kb': 'websearch-down', role: 'alert' },
                 h('span', null, msg),
                 h('button', { type: 'button', className: 'kwse-btn', 'data-act': 'retry', onClick: () => { setMsg(''); read() } }, kt('Réessayer', 'Retry'))))
@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
           try { k = window.__KB_SKEL__ } catch (e) { k = null }
           if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' }, '…')
           return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
-            pageHead(),
+            pageHeadBlock(),
             k.wrap(kt('Chargement…', 'Loading…'), 'kwse-list', [0, 1, 2, 3].map((i) => h('div', { key: 'sk' + i, className: 'kwse-row kb-sk-row' },
               h('div', { className: 'kwse-row-main' },
                 k.bone(22, 40, null, 6),
@@ -309,7 +309,7 @@ window.__ModuleLoader__.load({
         const last = state.last
 
         return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
-          pageHead(),
+          pageHeadBlock(),
           h('p', { className: 'kwse-default', 'data-kb': 'websearch-default-line' }, defaultId === null
             ? kt('Aucun moteur n’est activé : les agents ne peuvent pas chercher sur le web.', 'No engine is switched on: agents cannot search the web.')
             : kt('Moteur par défaut : ', 'Default engine: ') + nameOf(defaultId) + kt(' — les agents l’essaient en premier.', ' — agents try it first.')),
@@ -364,9 +364,7 @@ window.__ModuleLoader__.load({
         '.kwse-page{max-width:720px;font-size:14px;line-height:normal}',
         '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
         'body:not([data-ds-dark-theme]) .kwse-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
-        '.kwse-head{display:flex;align-items:center;gap:10px}',
         '.kwse-head.solo{margin-bottom:12px}',
-        '.kwse-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
         '.kwse-intro{margin:0 0 14px;color:var(--dsw-alias-label-secondary,#666);font-size:13px;line-height:1.45}',
         '.kwse-banner{margin:0 0 12px;padding:9px 12px;border-radius:10px;font-size:12.5px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#c80) 16%,transparent);color:var(--dsw-alias-label-primary,inherit)}',
         // The page cannot reach its host half: one sentence and a Retry, under the page's own head.

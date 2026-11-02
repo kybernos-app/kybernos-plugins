@@ -444,6 +444,8 @@ window.__ModuleLoader__.load({
       } catch (e) { /* no dictionary: English */ }
       return en
     }
+    /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+    const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
     const MOTS_FR = {
       Uncategorised: 'Non classé', Feature: 'Fonctionnalité', Fix: 'Correctif', 'UI/design': 'UI/design', Documentation: 'Documentation',
       Integration: 'Intégration', Data: 'Données', Cleanup: 'Nettoyage', Question: 'Question', Category: 'Catégorie'
@@ -2787,10 +2789,7 @@ window.__ModuleLoader__.load({
       }
       choixEtude.push({ value: 'none', label: kt('Aucun', 'None') })
       return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' },
-        // (28/09, audit) 26px page title like Theme/Maintenance/Tools —
-        // the native h4 (16px) was the only small page title of the dialog.
-        h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
-        h('h4', { className: 'kb6-title', style: { fontSize: natif ? undefined : '26px' } }, kt('Réglages Kybernos', 'Kybernos Settings')),
+        pageHead({ id: 'kybernos-sessions', title: kt('Réglages Kybernos', 'Kybernos Settings') }),
         // ── at the very top: replay the onboarding ───────────────────────────
         // The wizard lives in the @local/kybernos bundle: we only emit the
         // window event it listens to — it POSTs {action:'replay'} to the host

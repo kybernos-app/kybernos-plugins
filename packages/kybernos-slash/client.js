@@ -161,6 +161,8 @@ window.__ModuleLoader__.load({
       const kbslCount = (n, one, many) => String(n) + ' ' + L(n === 1 ? one : many)
       // The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title.
       const kbslLeadFallback = (text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('span', { className: 'kbsl-sub' }, text) } catch (e) { return h('span', { className: 'kbsl-sub' }, text) } }
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
       // ── Access to the host's entries ──────────────────────────────────────
       const API = '/kybernos/slash/entries'
@@ -936,7 +938,6 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 /* réglages */
 .kbsl-page{display:flex;flex-direction:column;gap:16px;max-width:720px;min-width:0;color:var(--kb-ink)}
 .kbsl-head{display:flex;flex-direction:column;gap:5px}
-.kbsl-h1{margin:0;font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em}
 .kbsl-sub{font-size:14px;line-height:1.55;color:var(--kb-muted);max-width:640px}
 .kbsl-tabs{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .kbsl-segtabs{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:var(--kb-surface2)}
@@ -2223,8 +2224,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const pageLead = L({ fr: 'Des prompts enregistrés. Tape / dans la zone de message pour en lancer un, ou utilise le bouton sous une réponse.', en: 'Saved prompts. Type / in the message box to run one, or use the button under a reply.' })
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
-            h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash', lead: pageLead, title: L({ fr: 'Commandes', en: 'Commands' }) }) : null)),
-            h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes', en: 'Commands' })),
+            pageHead({ id: 'kybernos-slash', lead: pageLead, title: L({ fr: 'Commandes', en: 'Commands' }), className: 'kbsl-h1' }),
             kbslLeadFallback(pageLead)),
           introNode,
           h('div', { className: 'kbsl-tabs' },

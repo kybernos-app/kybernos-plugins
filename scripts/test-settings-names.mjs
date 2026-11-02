@@ -46,7 +46,7 @@ check('the list of names here and the menu\'s KB_NAV_KEYS say the same pages (a 
 console.log('the title of each page is its nav entry')
 const memory = read('packages', 'kybernos-memory', 'client.js')
 const memShown = memory.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
-check('Memory & Lessons: the title and the « back » links of its sub-pages say « Memory & Lessons », not « … learned »', !/'Memory & Lessons learned'/.test(memShown) && /const PAGE_TITLE = 'Memory & Lessons'/.test(memory) && /h1', \{ className: 'kbmem-h1' \}, (?:PAGE_TITLE|pageTitle\(\))\)/.test(memory) && /const pageTitle = \(\) => kt\('Mémoire & Leçons', PAGE_TITLE\)/.test(memory), memShown.match(/'Memory & Lessons learned'/g))
+check('Memory & Lessons: the title and the « back » links of its sub-pages say « Memory & Lessons », not « … learned »', !/'Memory & Lessons learned'/.test(memShown) && /const PAGE_TITLE = 'Memory & Lessons'/.test(memory) && /pageHead\(\{ id: 'kybernos-memory', title: (?:PAGE_TITLE|pageTitle\(\)), as: 'h1', className: 'kbmem-h1' \}\)/.test(memory) && /const pageTitle = \(\) => kt\('Mémoire & Leçons', PAGE_TITLE\)/.test(memory), memShown.match(/'Memory & Lessons learned'/g))
 
 const skills = read('packages', 'kybernos-skills', 'client.js')
 const skH1 = /'set\.h1': \{ fr: '([^']+)', en: '([^']+)' \}/.exec(skills)
@@ -54,12 +54,12 @@ const skNav = /'set\.nav': \{ fr: '([^']+)', en: '([^']+)' \}/.exec(skills)
 check('Skills: the title of its settings page is the nav entry, in both languages (not « Skills — catalogue »)', skH1 !== null && skNav !== null && skH1[1] === skNav[1] && skH1[2] === skNav[2] && skH1[2] === NAV['kybernos-skills'], [skH1 && skH1[0], skNav && skNav[0]])
 
 const slash = read('packages', 'kybernos-slash', 'client.js')
-const slTitle = /className: 'kbsl-h1' \}, L\(\{ fr: '([^']+)', en: '([^']+)' \}\)/.exec(slash)
+const slTitle = /pageHead\(\{ id: 'kybernos-slash', lead: pageLead, title: L\(\{ fr: '([^']+)', en: '([^']+)' \}\), className: 'kbsl-h1' \}\)/.exec(slash)
 const slNav = /label: kbslLabel\('([^']+)', '([^']+)'\)/.exec(slash)
 check('Commands: the title of its page is the nav entry, in both languages (not « Commands & actions »)', slTitle !== null && slNav !== null && slTitle[1] === slNav[1] && slTitle[2] === slNav[2] && slTitle[2] === NAV['kybernos-slash'], [slTitle && slTitle[0], slNav && slNav[0]])
 
 const ollama = read('packages', 'kybernos-modeles-locaux', 'client.js')
-check('Ollama local models: the page draws its heading from the key the nav label comes from (not from « Local models »)', /h\('h2', \{ className: 'kml-titre' \}, m\('kml\.page\.titre'\)\)/.test(ollama) && /label: m\('kml\.page\.titre'\)/.test(ollama) && !/'kml\.titre'/.test(ollama))
+check('Ollama local models: the page draws its heading from the key the nav label comes from (not from « Local models »)', /pageHead\(\{ id: 'kybernos-modeles-locaux', lead: m\('kml\.soustitre'\), title: m\('kml\.page\.titre'\), className: 'kml-titre' \}\)/.test(ollama) && /label: m\('kml\.page\.titre'\)/.test(ollama) && !/'kml\.titre'/.test(ollama))
 const ollamaEn = /'kml\.page\.titre': \{ fr: '[^']+', en: '([^']+)' \}/.exec(ollama)
 check('and that string is the nav entry', ollamaEn !== null && ollamaEn[1] === NAV['kybernos-ollama'], ollamaEn && ollamaEn[1])
 

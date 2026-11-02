@@ -19,22 +19,19 @@ const check = (name, ok, detail) => {
 const PACKAGES = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages')
 const read = (b) => readFileSync(join(PACKAGES, b, 'client.js'), 'utf8')
 
-console.log('the help button')
+console.log('the title and its help button')
 {
   const left = []
   for (const b of readdirSync(PACKAGES)) {
     let s = null
     try { s = read(b) } catch (e) { continue }
-    if (/justifyContent: 'flex-end', width: '100%', marginBottom: 6 \}/.test(s)) left.push(b)
+    if (/justifyContent: 'flex-end', width: '100%', marginBottom: 6 \}/.test(s) || /kbhp-row/.test(s)) left.push(b)
   }
-  check('no page gives the button a row of its own with an inline style (it pushed the title down by 36 px)', left.length === 0, left)
+  check('no page gives the button a row of its own, with an inline style or with the old shared row (it pushed the title down, or sat at the far right of the column)', left.length === 0, left)
   const hub = read('kybernos-hub')
-  check('the shared row takes no height, so the title starts where the button\'s row starts', /\.kbhp-row\{display:flex;justify-content:flex-end;width:100%;height:0;overflow:visible;position:relative;z-index:1;margin-bottom:calc\(-1 \* var\(--kbhp-gap,0px\)\)\}/.test(hub))
-  check('on a narrow screen it goes back in the flow, above the title (no overlap)', /@media \(max-width:760px\)\{\.kbhp-row\{height:auto;margin-bottom:6px\}\}/.test(hub))
-  for (const b of ['kybernos-free-llms', 'kybernos-modeles-locaux', 'kybernos-plugin', 'kybernos-sessions', 'kybernos-skills', 'kybernos-slash', 'kybernos-theme']) check(b + ' uses the shared row', /h\('div', \{ className: 'kbhp-row'/.test(read(b)))
-  check('the class prefix stays the hub\'s alone: no other bundle declares a .kbhp- rule', readdirSync(PACKAGES).filter((b) => b !== 'kybernos-hub').every((b) => { try { return !/\.kbhp-/.test(read(b)) } catch (e) { return true } }))
-  check('Theme tells the row the 6 px gap of its header (the title starts at the top, not 6 px below)', read('kybernos-theme').includes("className: 'kbhp-row', style: { '--kbhp-gap': '6px' }"))
-  check('Voice tells the row the 20 px gap of its page', read('kybernos-plugin').includes("className: 'kbhp-row', style: { '--kbhp-gap': '20px' }"))
+  check('the hub draws the title and the button as one head: the title inline, the button after its last word (a long title wraps, the button stays with it)', /\.kbhp-head>\.kbhp-title\{display:inline;/.test(hub) && /\.kbhp-head>\.kbhp-wrap,\.kbhp-tail,\.kbhp-nhead\{vertical-align:middle;margin-inline-start:8px\}/.test(hub))
+  for (const b of ['kybernos-free-llms', 'kybernos-modeles-locaux', 'kybernos-plugin', 'kybernos-sessions', 'kybernos-skills', 'kybernos-slash', 'kybernos-theme']) check(b + ' draws its head through pageHead', /\bpageHead\(\{/.test(read(b)))
+  check('the class prefix stays the hub\'s alone: no other bundle declares a .kbhp- rule (the core frame names .kbhp-title once, to size it; the phone page places .kbhp-head in its grid)', readdirSync(PACKAGES).filter((b) => b !== 'kybernos-hub' && b !== 'kybernos-plugin' && b !== 'kybernos-mobile').every((b) => { try { return !/\.kbhp-/.test(read(b)) } catch (e) { return true } }))
 }
 
 console.log('the page boxes')

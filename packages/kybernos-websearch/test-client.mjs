@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const src = readFileSync(join(HERE, 'client.js'), 'utf8')
@@ -129,7 +130,7 @@ const whatApiSays = async (fetchImpl) => {
   const panel = walk(failed, (nd) => nd.props && nd.props['data-kb'] === 'websearch-down')
   ok('first read failed: a panel with the sentence', panel.length === 1 && textOf(panel[0]).includes(SENTENCE), panel.length && textOf(panel[0]))
   ok('…and a Retry button', walk(failed, (nd) => nd.type === 'button' && nd.props['data-act'] === 'retry' && textOf(nd) === 'Retry').length === 1)
-  ok('…under the page\'s own title, which stays', walk(failed, (nd) => nd.type === 'h4' && textOf(nd) === 'Web Search').length === 1)
+  ok('…under the page\'s own title, which stays', walk(failed, (nd) => nd.type === 'h2' && textOf(nd) === 'Web Search').length === 1)
   ok('…and no bare red line any more', walk(failed, (nd) => nd.props && nd.props.className === 'kwse-err').length === 0)
   const loading = renderPage({})
   ok('while it loads (no error yet) there is no failure panel', walk(loading, (nd) => nd.props && nd.props['data-kb'] === 'websearch-down').length === 0)
@@ -145,14 +146,16 @@ const whatApiSays = async (fetchImpl) => {
     const bare = renderPage(over)
     const intro = walk(bare, (nd) => nd.props && nd.props.className === 'kwse-intro')
     ok('without the Suite (' + name + ') the explanation is still drawn under the title, and the head takes no extra gap', intro.length === 1 && textOf(intro[0]) === LEAD && walk(bare, (nd) => nd.props && nd.props.className === 'kwse-head').length === 1)
-    sandbox.window.__KB_HELP__ = { Help: FakeHelp }
+    const fake = fakeHelp(React, FakeHelp)
+    sandbox.window.__KB_HELP__ = fake
     let suite
     try { suite = renderPage(over) } finally { delete sandbox.window.__KB_HELP__ }
-    const help = walk(suite, (nd) => nd.type === FakeHelp)
-    ok('with the Suite (' + name + ') the page passes its explanation to Help as `lead`, and its title', help.length === 1 && help[0].props.id === 'kybernos-websearch' && help[0].props.lead === LEAD && help[0].props.title === 'Web Search', help.length && JSON.stringify(help[0].props))
+    const help = walk(suite, (nd) => nd.type === fake.Title)
+    ok('with the Suite (' + name + ') the page draws its head through Title and passes its explanation as `lead`, and its title', help.length === 1 && help[0].props.id === 'kybernos-websearch' && help[0].props.lead === LEAD && help[0].props.title === 'Web Search', help.length && JSON.stringify(help[0].props))
     ok('...and no longer draws it under the title; the head keeps the gap the paragraph left', walk(suite, (nd) => nd.props && nd.props.className === 'kwse-intro').length === 0 && walk(suite, (nd) => nd.props && nd.props.className === 'kwse-head solo').length === 1)
   }
   delete sandbox.window.__KB_SKEL__
+  ok('the page\'s title has no style of its own: it comes through the shared head, and no rule sizes a heading of the page', /const pageHead = \(props\) => \{ try \{ if \(window\.__KB_HELP__ && window\.__KB_HELP__\.Title\) return h\(window\.__KB_HELP__\.Title, props\)/.test(src) && !/\.kwse-page h4\{/.test(src) && !/h\('h4', null, title\)/.test(src))
   ok('the head\'s gap exists in the style, and the fallback paragraph keeps its own', /\.kwse-head\.solo\{margin-bottom:12px\}/.test(src) && /\.kwse-intro\{margin:0 0 14px/.test(src))
 }
 

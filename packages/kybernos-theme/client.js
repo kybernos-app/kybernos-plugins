@@ -42,6 +42,8 @@ window.__ModuleLoader__.load({
       }
       /** The page's description lives in the « ? » card (the Suite's Help takes it as `lead`); only without the Suite is it drawn under the title. */
       const subFallback = (text) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h('div', { className: 'kbth-sub' }, text) } catch (e) { return h('div', { className: 'kbth-sub' }, text) } }
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
       /** A decimal number in the number format of the page: a comma for French, a point for every other language. */
       const frPage = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' }
       const knum = (x, digits) => { const s = Number(x).toFixed(digits); return frPage() ? s.replace('.', ',') : s }
@@ -2315,7 +2317,6 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-page{display:grid;grid-template-columns:1fr;gap:22px;max-width:720px;align-items:start}
 .kbth-main{display:flex;flex-direction:column;gap:22px;min-width:0}
 .kbth-head{display:flex;flex-direction:column;gap:6px}
-.kbth-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kbth-sub{font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary);max-width:640px}
 .kbth-seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--dsw-alias-bg-layer-2);width:max-content}
 /* (29/09, on request) Simple/Advanced selector (and Mode) CLEARER: 14px,
@@ -4887,8 +4888,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             // Colonne principale
             h('div', { className: 'kbth-main' },
               h('div', { className: 'kbth-head' },
-                h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '6px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme', lead: pageLead, title: pageTitle }) : null)),
-                h('div', { className: 'kbth-title' }, pageTitle),
+                pageHead({ id: 'kybernos-theme', lead: pageLead, title: pageTitle, className: 'kbth-title' }),
                 subFallback(pageLead)),
               conflictNote,
               studioEl,

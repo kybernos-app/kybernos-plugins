@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { KINDS, toolKind } from './index.js'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 let pass = 0
 const fails = []
@@ -96,29 +97,32 @@ ok('the button is outside the table element', /kblg-list[\s\S]{0,600}kblg-more/.
   const Help = function Help () { return null }
   const draw = (suite) => {
     let def = null
-    const win = { __ModuleLoader__: { load: (d) => { def = d } }, __KB_LANG_RESOLVE__: () => 'en' }
-    if (suite) win.__KB_HELP__ = { version: 1, Help }
-    const doc = { documentElement: { lang: 'en' }, createElement: () => ({ setAttribute: noop }), head: { appendChild: noop } }
-    new Function('window', 'document', src)(win, doc)
     const React = {
       createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat(Infinity) }),
       useState: (v) => [typeof v === 'function' ? v() : v, noop], useCallback: (f) => f, useEffect: noop
     }
+    const win = { __ModuleLoader__: { load: (d) => { def = d } }, __KB_LANG_RESOLVE__: () => 'en' }
+    if (suite) win.__KB_HELP__ = { version: 1, ...fakeHelp(React, Help) }
+    const doc = { documentElement: { lang: 'en' }, createElement: () => ({ setAttribute: noop }), head: { appendChild: noop } }
+    new Function('window', 'document', src)(win, doc)
     const plugin = def.factory((name) => (name === 'react' ? React : undefined))
     let comp = null
     plugin.apply({ effect: (fn) => fn(), slots: { inject: (n, make) => { make(); return noop }, register: (spec, c) => { comp = c; return noop } } })
     const el = comp()
-    return { tree: typeof el.type === 'function' ? el.type(el.props) : el, S: plugin.__test.S }
+    return { tree: typeof el.type === 'function' ? el.type(el.props) : el, S: plugin.__test.S, Title: win.__KB_HELP__ === undefined ? null : win.__KB_HELP__.Title }
   }
   const find = (node, test, out = []) => { if (node === null || typeof node !== 'object') return out; if (test(node)) out.push(node); for (const c of node.children || []) find(c, test, out); return out }
   const withSuite = draw(true)
-  const cards = find(withSuite.tree, (n) => n.type === Help)
-  ok('with the Suite: one « ? » card, given the description as `lead` and the page name as `title`', cards.length === 1 && cards[0].props.id === 'kybernos-log' && cards[0].props.lead === withSuite.S.lead[1] && cards[0].props.title === 'Activity log')
+  const cards = find(withSuite.tree, (n) => n.type === withSuite.Title)
+  ok('with the Suite: one head (title + « ? » card), given the description as `lead` and the page name as `title`', cards.length === 1 && cards[0].props.id === 'kybernos-log' && cards[0].props.lead === withSuite.S.lead[1] && cards[0].props.title === 'Activity log')
   ok('…and the description is no longer drawn under the title', find(withSuite.tree, (n) => n.props && n.props.className === 'kblg-lead').length === 0)
   ok('…while « Metadata only » (a privacy statement, not a description) stays on the page', find(withSuite.tree, (n) => n.props && n.props.className === 'kblg-priv').length === 1)
   const without = draw(false)
-  ok('without the Suite: no card, and the description stays under the title', find(without.tree, (n) => n.type === Help).length === 0 && find(without.tree, (n) => n.props && n.props.className === 'kblg-lead').length === 1)
+  ok('without the Suite: no card, the bare title in the shared class, and the description stays under the title', find(without.tree, (n) => n.type === Help).length === 0 && find(without.tree, (n) => n.type === 'h2' && n.props.className === 'kbhp-title kblg-title').length === 1 && find(without.tree, (n) => n.props && n.props.className === 'kblg-lead').length === 1)
 }
+// ── the page title has no style of its own: the Settings frame sets it (`.kbhp-title`), the page only keeps a hook class ──
+ok('the page draws its head through pageHead, with the hook class kblg-title', /pageHead\(\{ id: 'kybernos-log', lead: L\('lead'\), title: L\('title'\), className: 'kblg-title' \}\)/.test(src))
+ok('no rule of the bundle sizes or weighs the title (kblg-title)', !/\.kblg-title\s*[{,]/.test(src) && !/<h2[^>]*fontSize/.test(src))
 console.log((fails.length === 0 ? '✓ ' : '✗ ') + pass + ' passed' + (fails.length === 0 ? '' : ', ' + fails.length + ' failed'))
 for (const f of fails) console.log('   ✗ ' + f)
 process.exit(fails.length === 0 ? 0 : 1)

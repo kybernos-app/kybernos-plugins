@@ -10,9 +10,10 @@
 // it: the cards were written, shipped and unreachable. This is that test.
 //
 // Two rules, on `packages/<bundle>/client.js` (the file the GUI serves):
-//   1. PRESENCE — a bundle with a `help.json` renders `window.__KB_HELP__.Help`
-//      (id = the bundle folder, or the folder plus a `page:` for a bundle that
-//      owns several settings pages).
+//   1. PRESENCE — a bundle with a `help.json` renders `window.__KB_HELP__.Help`,
+//      or draws its page title through `window.__KB_HELP__.Title` (which puts the
+//      « ? » after the title: pageHead), id = the bundle folder, or the folder plus
+//      a `page:` for a bundle that owns several settings pages.
 //   2. GATING — the mount sits behind the guard expression
 //      `typeof window !== 'undefined' && window.__KB_HELP__ …`, so the factory
 //      still evaluates when the help host is absent: a bundle must never stop DSH
@@ -34,8 +35,8 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const packages = join(root, 'packages')
 
-// The guard, whatever the quote style and the spacing.
-const GATED = /typeof window !==\s*['"]undefined['"]\s*&&\s*window\.__KB_HELP__/
+// The guard, whatever the quote style and the spacing: either the `typeof window` test, or the page-head helper (pageHead), which reads the host inside a try/catch.
+const GATED = /typeof window !==\s*['"]undefined['"]\s*&&\s*!{0,2}window\.__KB_HELP__|try \{ if \(window\.__KB_HELP__ && window\.__KB_HELP__\.Title\)/
 
 // Bundles whose help is already on screen without the shared component, or that
 // cannot draw it at all. Each line carries its own CHECK, run against the file:
@@ -99,10 +100,11 @@ for (const name of readdirSync(packages).sort()) {
   const uses = code.filter((line) => line.includes('window.__KB_HELP__'))
   // Two accepted forms. React pages render the shared component; a page with no React tree draws the SAME card from
   // GET /kybernos-hub/suite, and says which folder it speaks for (`KB_HELP_ID`). It is gated on the host's presence too.
-  const renders = code.some((line) => line.includes('window.__KB_HELP__.Help'))
+  const renders = code.some((line) => line.includes('window.__KB_HELP__.Help') || line.includes('window.__KB_HELP__.Title'))
   const domForm = code.some((line) => line.includes("KB_HELP_ID = '")) && code.some((line) => line.includes("'/kybernos-hub/suite'"))
 
-  if (uses.length === 0) {
+  // A bundle that draws its page title through pageHead (the Suite's Title puts a button after the text) but keeps its own help is still exempt, on the same check.
+  if (uses.length === 0 || EXEMPT.has(name)) {
     const ex = EXEMPT.get(name)
     if (ex !== undefined) {
       // The reason is checked, not trusted: a bundle whose own help disappears, or that starts drawing a DOM, must come back

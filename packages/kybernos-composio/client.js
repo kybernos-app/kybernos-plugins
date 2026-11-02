@@ -30,6 +30,9 @@ window.__ModuleLoader__.load({
       return h('p', Object.assign({ className: cls }, attrs || {}), text)
     }
 
+    /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+    const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
+
     // ── Composio catalog: loaded on demand from the host ──────────────────────
     // The 412 KB of the catalog are no longer inlined in this bundle: the browser only
     // downloads them when Composio is opened. catalog.js stays the source of
@@ -1354,7 +1357,6 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kbcp-set-page{display:flex;flex-direction:column;gap:14px;max-width:760px}
 .kbcp-set-card{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.25));border-radius:14px;background:var(--dsw-alias-bg-layer-2,transparent)}
 .kbcp-set-h2{margin:0;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary)}
-.kbcp-set-headrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .kbcp-set-sub{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbcp-set-app{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.15))}
 .kbcp-set-appname{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);min-width:120px}
@@ -3469,9 +3471,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             status('kybernos', body.dot, body.text)))
       }
       return h('div', { className: 'kbcp-set-page', 'data-kb': 'kybernos-composio-settings' },
-        h('div', { className: 'kbcp-set-headrow' },
-          h('h2', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.h1')),
-          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio', page: 'connectors', lead: kbt('kb.cp.pv.lead'), title: kbt('kb.cp.set.h1') }) : null)),
+        pageHead({ id: 'kybernos-composio', page: 'connectors', lead: kbt('kb.cp.pv.lead'), title: kbt('kb.cp.set.h1'), className: 'kbcp-set-title' }),
         kbSubFallback('kbcp-set-sub', kbt('kb.cp.pv.lead')),
         composioCard(),
         kybernosCard(),

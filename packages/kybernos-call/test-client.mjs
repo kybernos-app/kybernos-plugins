@@ -102,7 +102,8 @@ const fakeSdk = (rooms) => {
 console.log('kybernos-call: the « ? » card opens with the page description')
 {
   // The page description used to sit under the title; it is now the first paragraph of the « ? » card, and the card follows the tab but the lead does not.
-  assert.ok(/className: 'kbcl-top' \}, \[h\('h2', \{ key: 'h' \}, kt\('Appels', 'Calls'\)\), h\(HelpPill/.test(source), 'the top row is the title and the pill only')
+  assert.ok(/pageHead\(\{ key: 'top', title: kt\('Appels', 'Calls'\), className: 'kbcl-title', after: h\(HelpPill/.test(source) && !source.includes('kbcl-top'), 'the top of the page is the title (through pageHead) with the pill right after its text, and nothing else')
+  assert.ok(!/\.kbcl-title\s*[{,]/.test(source) && !/\.kbcl-page h2\s*\{/.test(source), 'no rule of the bundle sizes or weighs the page title: the Settings frame sets it')
   assert.equal((source.match(/kt\('Parler en direct/g) || []).length, 1, 'the description is written once')
   assert.ok(!/kbcl-sub' \}, kt\('Parler en direct/.test(source) && !source.includes('kbcl-tt'), 'nothing of it is left under the title')
   assert.ok(/h\(HelpBox, \{ key: 'helpbox', id: tab, lead: LEAD\(\), lines: helps\[tab\], open: true \}\)/.test(source), 'the page hands the lead to the card of the active tab')

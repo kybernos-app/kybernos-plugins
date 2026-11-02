@@ -135,9 +135,9 @@ window.__ModuleLoader__.load({
         ".kfl-root { max-width: 720px; margin-bottom: 16px; }\n" +
         "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
         "body:not([data-ds-dark-theme]) .kfl-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
-        ".kfl-titre { margin: 0 0 14px; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
-        // The description sits in the « ? » card; this line is the fallback where there is no Suite: -8px pulls it back to 6px under the title.
-        ".kfl-soustitre { margin: -8px 0 14px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
+        ".kfl-head { margin: 0 0 14px; }\n" +
+        // The description sits in the « ? » card; this line is the fallback where there is no Suite: 6px under the title.
+        ".kfl-soustitre { margin: 6px 0 0; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kfl-avertis { margin: 0 0 14px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); font-size: 13px; line-height: 1.5; }\n" +
         "body:not([data-ds-dark-theme]) .kfl-avertis { color: color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary)); }\n" +
         "body[data-ds-dark-theme] .kfl-avertis { color: var(--dsw-alias-state-warn-primary); }\n" +
@@ -189,6 +189,8 @@ window.__ModuleLoader__.load({
 
       // True where the Suite's « ? » card (window.__KB_HELP__.Help) does not exist: only then is the page's description drawn under its title (it lives in the card otherwise). Read at render time, never at load.
       const helpAbsent = () => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } }
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
       // What a failed probe means, in a sentence: the codes of the gateway are for the host, not for a person.
       const KFL_REASONS = { free_tier_locked: 'kfl.tier.locked', rate_limited: 'kfl.tier.rate', network: 'kfl.tier.network', model_unknown: 'kfl.tier.model', model_protocol_unsupported: 'kfl.tier.model', no_model: 'kfl.vide' }
@@ -263,11 +265,10 @@ window.__ModuleLoader__.load({
         const checkedTime = tier !== null && typeof tier.checkedAt === 'string' ? timeOf(tier.checkedAt) : null
 
         return h('div', { className: 'kfl-root', 'data-kfl': 'panneau' },
-          h('div', { className: 'kbhp-row' },
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-free-llms', lead: m('kfl.soustitre'), title: m('kfl.titre') }) : null)),
-          h('h2', { className: 'kfl-titre' }, m('kfl.titre')),
-          // The description lives in the « ? » card (`lead`); it stays under the title only where the Suite's Help does not exist.
-          helpAbsent() ? h('p', { className: 'kfl-soustitre' }, m('kfl.soustitre')) : null,
+          h('div', { className: 'kfl-head' },
+            pageHead({ id: 'kybernos-free-llms', lead: m('kfl.soustitre'), title: m('kfl.titre'), className: 'kfl-titre' }),
+            // The description lives in the « ? » card (`lead`); it stays under the title only where the Suite's Help does not exist.
+            helpAbsent() ? h('p', { className: 'kfl-soustitre' }, m('kfl.soustitre')) : null),
           // A warning about what is kept, not a description of the page: it stays on the page.
           h('p', { className: 'kfl-avertis' }, m('kfl.avertis')),
 

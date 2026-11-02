@@ -496,6 +496,27 @@ anything that handles Escape inside it must listen in capture and stop the event
 rewrites French phrases to English on Settings pages while the document language is English (a French test must set
 `document.documentElement.lang` too, or compare without quotation marks).
 
+### The title of every Settings page and its « ? »: `scripts/check-page-titles-live.mjs`
+
+Every Settings page draws its title through the Suite's `Title` (`window.__KB_HELP__.Title`, a `pageHead({ id, page, lead, title, className })` call in the bundle): one
+heading in the class `.kbhp-title`, then the page's « ? » **right after the text, on the same line** (a title that wraps keeps the button at the end of its last
+line). The size (18 px), weight (600), colour, line height and letter spacing of that class are set once, in the Settings frame of the core plugin; a page's own class on
+its title is a hook for scripts, never a style. DSH's own pages (Models, Built-in plugins, Agent presets) get the button inside their own title, put there by the hub.
+
+```bash
+node scripts/test-page-titles.mjs                    # no GUI: one helper text, every Settings bundle uses it, no page declares a font on its title class, one frame rule
+source scripts/sandbox/env.sh && node scripts/check-page-titles-live.mjs --width 1400 --scheme dark --lang en --shots /tmp/shots
+source scripts/sandbox/env.sh && node scripts/check-page-titles-live.mjs --width 390 --scheme light --lang fr
+```
+
+The live check opens each page of the Settings menu and reads the computed style of its title (family, size, weight, colour, line height, letter spacing: all the same), then
+the position of the button against the last line of the title text (2 to 14 px after it, centres within 5 px, inside the window, no sideways scroll), then presses every
+« ? » with a real mouse event: the card opens with its text and stays in the window **and leaves the head where it was** (the phone's fit script re-lays out a grid that the
+open card overflows), Escape closes it and leaves Settings open, the focus is on the button. A width under 700 px is a phone (mobile emulation: touch on, so the touch-target
+rules of `kybernos-mobile/mobile.css` apply). `--lang fr` forces French in the page only (DSH's stored language is not touched). `--scheme light` cannot be a browser
+colour scheme (DSH takes its mode from the Theme skin): the run picks the « Clean light » skin on the Theme page and puts « DSH default » back, and refuses to do it on port
+3080 (the real DSH): use the sandbox.
+
 ### The article link, the animation of the first visit, one button: `scripts/check-help-intro-live.mjs`
 
 Three things ride on the same hub seam (`window.__KB_HELP__`):

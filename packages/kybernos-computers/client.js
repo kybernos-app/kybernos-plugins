@@ -139,8 +139,7 @@ window.__ModuleLoader__.load({
 .kcc-root{max-width:720px;padding:0 0 24px}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
-.kcc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px}
-.kcc-title{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kcc-head{margin:0 0 16px}
 /* The description sits in the « ? » card; this line is the fallback where there is no Suite: -10px pulls it back to 6px under the title (the head's 16px is the gap to the page body). */
 .kcc-sub{margin:-10px 0 16px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kcc-state{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
@@ -390,6 +389,9 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
           return off
         })
 
+        /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+        const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
+
         // The Settings page « Code sandbox (E2B) »: the E2B key, in a place a person can find (the card above is drawn only by
         // builds of DSH that still draw the `plugins.item` slot). It talks to the same host routes as the composer menu.
         const KeyPage = () => {
@@ -422,8 +424,7 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
           const helpAbsent = (() => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } })()
           return h('div', { className: 'kcc-root', 'data-kb': 'computers-page' },
             h('div', { className: 'kcc-head' },
-              h('h2', { className: 'kcc-title' }, t('title')),
-              (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-computers', lead: t('pageIntro'), title: t('title') }) : null)),
+              pageHead({ id: 'kybernos-computers', lead: t('pageIntro'), title: t('title'), className: 'kcc-title' })),
             // The description lives in the « ? » card (`lead`); it stays under the title only where the Suite's Help does not exist.
             helpAbsent ? h('p', { className: 'kcc-sub' }, t('pageIntro')) : null,
             present === null ? null : h('p', { className: 'kcc-state', 'data-on': present === true ? 'true' : 'false' }, present === true ? t('apiKeySet') : t('apiKeyUnset')),

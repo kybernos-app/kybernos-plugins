@@ -903,18 +903,25 @@ window.__ModuleLoader__.load({
         const helpButton = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile', lead: LEAD(), title: TITLE() }) : null)
         // True where that button does not exist (no Suite): only then is the sentence drawn under the title. Read at render time, never at load.
         const helpAbsent = () => { try { return !(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help) } catch (e) { return true } }
+        /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+        const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
         const PhoneIcon = () => h('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
           h('rect', { x: 3, y: 4, width: 12, height: 9, rx: 1.5 }), h('path', { d: 'M6 17h6' }), h('rect', { x: 16, y: 9, width: 5, height: 10, rx: 1.2 }))
-        /** The title row, the same in both places: the mark, the name, and (window) the cross or (page) the plan chip; the help button in both, which carries the one sentence the
-         *  screen says about itself. Only without the Suite is that sentence drawn under the title (a second grid row), so the row is one line high when the card has it. */
+        /** The title row, the same in both places: the mark, the name, and (window) the cross or (page) the plan chip, with the help button which carries the one sentence the
+         *  screen says about itself. On the Settings page the name and the button are one head (pageHead: the page title style, the button right after the text); the window,
+         *  which is no page of Settings, keeps its own title and its button in a column of the row. Only without the Suite is that sentence drawn under the title (a second
+         *  grid row), so the row is one line high when the card has it. */
         const head = (o) => {
           const card = !helpAbsent()
-          return h('div', { className: 'kbpc-head' + (card ? ' kbpc-head-solo' : '') },
+          const page = o.page === true
+          // `data-kbmob-fit` is the phone's fit script's own mark (it skips a box that already has one): the open « ? » card hangs from this grid and runs past its box, which the
+          // script would read as a grid too wide for the phone and re-lay out (the title one word per line) while the card is open. The head is built for the phone already.
+          return h('div', { className: 'kbpc-head' + (card ? ' kbpc-head-solo' : '') + (page ? ' kbpc-head-page' : ''), 'data-kbmob-fit': '' },
             h('span', { className: 'kbpc-ic' }, h(PhoneIcon)),
-            h('h1', { className: 'kbpc-title', id: o.titleId }, TITLE()),
+            page ? h('div', { className: 'kbpc-ttl' }, pageHead({ id: 'kybernos-mobile', lead: LEAD(), title: TITLE(), as: 'h1', className: 'kbpc-page-title' })) : h('h1', { className: 'kbpc-title', id: o.titleId }, TITLE()),
             card ? null : h('p', { className: 'kbmr-sub kbpc-lead' }, LEAD()),
             o.chip ? h('span', { className: 'kbmr-chip kbpc-chip2' }, o.chip) : null,
-            h('span', { className: 'kbpc-help' }, helpButton()),
+            page ? null : h('span', { className: 'kbpc-help' }, helpButton()),
             typeof o.onClose === 'function' ? h('button', { type: 'button', className: 'kbpc-x', 'data-kb': 'phone-channels-close', 'aria-label': kt('Fermer', 'Close'), onClick: o.onClose }, '×') : null)
         }
 
@@ -1000,7 +1007,7 @@ window.__ModuleLoader__.load({
           const web = useWeb('')
           const planChip = r.s !== null && r.s.entitled === true ? kt('Inclus dans ton offre', 'Included in your plan') : null
           return h('div', { className: 'kbmr-page kbpc-page', 'data-kb': 'mobile-page' },
-            head({ titleId: 'kbpc-page-title', chip: planChip }),
+            head({ page: true, chip: planChip }),
             introNode(),
             columns(r, web, switchServer))
         }
@@ -1011,17 +1018,23 @@ window.__ModuleLoader__.load({
 /* The title row is a grid so that on a phone the sentence drops under the title and takes the whole width, instead of a column of five words. */
 .kbpc-head{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;grid-template-areas:"ic ttl chip help x" "ic lead chip help x";column-gap:12px;align-items:start}
 .kbpc-ic{grid-area:ic}
-.kbpc-title{grid-area:ttl;align-self:end}
+.kbpc-dialog .kbpc-title{grid-area:ttl;align-self:end}
+.kbpc-ttl{grid-area:ttl;align-self:end;min-width:0}
 .kbpc-lead{grid-area:lead}
 .kbpc-chip2{grid-area:chip}
 .kbpc-help{grid-area:help;display:flex}
 .kbpc-x{grid-area:x}
-.kbpc-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+/* The window is no page of Settings: its title keeps its own size. The page's title takes the Settings frame's (kbhp-title). */
+.kbpc-dialog .kbpc-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbpc-ic{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-1, rgb(27,27,31));color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbpc-head .kbmr-sub{margin-top:2px}
 /* The sentence is in the « ? » card (Suite present): the row is one line, no empty second grid row (and no row-gap under it on a phone). The doubled class outranks the narrow rule below. */
 .kbpc-head.kbpc-head-solo{grid-template-areas:"ic ttl chip help x";align-items:center}
-.kbpc-head.kbpc-head-solo .kbpc-title{align-self:center}
+.kbpc-head.kbpc-head-solo .kbpc-title,.kbpc-head.kbpc-head-solo .kbpc-ttl{align-self:center}
+/* The page has no help column and no cross: the « ? » is inside its title. */
+.kbpc-head.kbpc-head-page{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"ic ttl chip" "ic lead chip"}
+.kbpc-head.kbpc-head-page.kbpc-head-solo{grid-template-areas:"ic ttl chip"}
+@media (max-width:520px){.kbpc-head.kbpc-head-page{grid-template-columns:44px minmax(0,1fr);grid-template-areas:"ic ttl" "lead lead"}.kbpc-head.kbpc-head-page.kbpc-head-solo{grid-template-areas:"ic ttl"}}
 @media (max-width:520px){.kbpc-head.kbpc-head-solo{grid-template-areas:"ic ttl help x";row-gap:0}}
 .kbpc-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}
 @media (max-width:760px){.kbpc-cols{grid-template-columns:minmax(0,1fr)}}

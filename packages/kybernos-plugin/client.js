@@ -12351,6 +12351,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // The same pill for a page card of this bundle (help.json `pages`): the Suite draws it; nothing when the Suite is not there or the card is not (A5-19).
     // `lead` is the page's own description and `title` its name: the card shows the description first, and the page no longer draws it under its title.
     const kbPagePill = (page, lead, title) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: page, lead: lead, title: title }) : null } catch (e) { return null } }
+    // The head of a Settings page: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there.
+    const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
     // Where the help cannot be drawn (no Suite), the description stays under the title, as it always was.
     const kbSubFallback = (cls, text, tag, key) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? null : h(tag === undefined ? 'p' : tag, { key: key, className: cls }, text) } catch (e) { return h(tag === undefined ? 'p' : tag, { key: key, className: cls }, text) } }
     // Menu « Nouveau Kyber » (le bouton et ses quatre entrées) : défini ici pour
@@ -33278,7 +33280,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
     // sous-titres 13/14 px de deux gris, 5 à 18 px entre titre et sous-titre). On fixe ici l'échelle
     // pour tous : les pages natives (Models, Agent presets, Built-in plugins) et les pages Kybernos.
     ctx.effect(() => styles.insert(`
-[class$="_options"] :is(h2[class*="_title"],h2[class*="_heading"],.kb6-title,.kbsl-h1,.kbth-title,.kbln-title,.kbt2-h1,.kbmz-titre,.kbm-h1){font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;margin:0}
+[class$="_options"] :is(h2[class*="_title"],h2[class*="_heading"],.kbhp-title){font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;margin:0}
 [class$="_options"] :is(p[class*="_intro"],.kbsl-sub,.kbth-sub,.kb8-sub,.kbt2-sub,.kbm-pagehead .kbm-sub){font-size:13px;font-weight:400;line-height:1.5;color:var(--dsw-alias-label-secondary);margin:6px 0 0;max-width:none}
 /* ── Gabarit unique des pages Réglages (02/10) ──────────────────────────────
    · Largeur : toute section = colonne de 720 px MAX, alignée à gauche (avant : 606 / 680 / 794 / 960).
@@ -33544,9 +33546,9 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
       const leadTools = [kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' }), kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à ton agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })]
       const entete = () => h('header', { className: 'kbt2-entete' },
         h('div', { className: 'kbt2-entete-txt' },
-          h('h1', { className: 'kbt2-h1' }, kbt('kbui.tools')),
+          pageHead({ as: 'h1', className: 'kbt2-h1', id: 'kybernos-plugin', page: 'tools', lead: leadTools, title: kbt('kbui.tools') }),
           leadTools.map((x, i) => kbSubFallback('kbt2-sub', x, 'p', 'lead' + i)),
-          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbToolsTxt({ fr: 'DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.', en: 'DSH applies the change by itself a few seconds after it is written: no restart. A dry run first, then the write — a dated backup before, a rollback after.' }))), kbPagePill('tools', leadTools, kbt('kbui.tools')))
+          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbToolsTxt({ fr: 'DSH applique le changement tout seul, quelques secondes après l’écriture : pas de redémarrage. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.', en: 'DSH applies the change by itself a few seconds after it is written: no restart. A dry run first, then the write — a dated backup before, a rollback after.' }))))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
       // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
       if (st.state === 'loading' && st.data === null) {
@@ -34247,7 +34249,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
       return h('div', { className: 'kbtm-page', 'data-kb': 'kb-market', 'aria-busy': etat.phase === 'loading' ? 'true' : 'false' },
         h('div', { className: 'kbtm-head' },
           h('div', { className: 'kbtm-headrow' },
-            h('h2', { className: 'kbtm-h1' }, say(['Modèles', 'Templates'])),
+            pageHead({ className: 'kbtm-h1', title: say(['Modèles', 'Templates']) }),
             h('button', { type: 'button', className: 'kbm-btn kbtm-open kbtm-secondary', 'data-kb': 'kb-tpl-open-gallery', onClick: () => { try { window.__KB_OPEN__({ view: 'themes' }) } catch (e) { /* the page is not there */ } } }, say(['Ouvrir les modèles', 'Open Templates']))),
           h('p', { className: 'kbtm-sub' }, say(['Ajoute des modèles à Kybernos, depuis un dossier de cet ordinateur ou depuis un catalogue. Pour en choisir un pour ton travail, ouvre les modèles ici, ou crée une app depuis la page Apps.', 'Add templates to Kybernos, from a folder on this computer or from a catalogue. To pick one for your work, open the templates here, or start an app from the Apps page.']))),
         h('div', { className: 'kbtm-tabs', role: 'tablist', 'aria-label': say(['Ajouter un modèle', 'Add a template']) },
@@ -34259,7 +34261,6 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
     const KB_MARKET_CSS = [
       '.kbtm-page{display:flex;flex-direction:column;gap:14px;padding:4px 2px 24px;max-width:720px;box-sizing:border-box}',
       '.kbtm-head{display:flex;flex-direction:column;gap:6px}',
-      '.kbtm-h1{margin:0;font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary)}',
       '.kbtm-sub{margin:0;font-size:13px;color:var(--dsw-alias-label-secondary)}',
       '.kbtm-note,.kbtm-why{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
       '.kbtm-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}',
@@ -34339,7 +34340,6 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
 body:not([data-ds-dark-theme]) :is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbt2-entete{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .kbt2-entete-txt{display:flex;flex-direction:column;gap:0;min-width:0;flex:1 1 280px}
-.kbt2-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kbt2-sub{margin:6px 0 0;max-width:640px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbt2-entete-outils{display:flex;align-items:center;gap:8px;min-width:0}
 /* Tools page: the caption token is 3.8:1 on the dark cards and 2.1:1 on white; tertiary is 5.9:1 and 3.7:1. */
@@ -34384,7 +34384,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
 .kbt2-tile{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-brand-primary);flex:0 0 auto;font-weight:700;font-size:16px}
 .kbt2-tile.sm{width:30px;height:30px;border-radius:9px;font-size:13px}
 .kbt2-tile.off{color:var(--dsw-alias-label-tertiary)}
-.kbt2-sw{display:inline-flex;align-items:center;gap:8px;padding:0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}
+.kbt2-sw{position:relative;display:inline-flex;align-items:center;gap:8px;padding:0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}
 .kbt2-sw:disabled{opacity:.5;cursor:default}
 .kbt2-sw-track{position:relative;width:34px;height:20px;border-radius:10px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);flex:none;box-sizing:border-box}
 .kbt2-sw.on .kbt2-sw-track{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
@@ -34910,10 +34910,8 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           h('span', null, kbt('kbui.read.aloud'))),
         pied)
       return h('div', { className: 'kbt-page' },
-        h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '20px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice', lead: kbt('kbui.tts.sub'), title: kbt('kbui.voice') }) : null)),
         h('div', { className: 'kbt-tete' },
-          // Gabarit Réglages 29/09 : titre 26px comme Outils/Maintenance.
-          h('span', { className: 'kb6-title' }, kbt('kbui.voice')),
+          pageHead({ id: 'kybernos-plugin', page: 'voice', lead: kbt('kbui.tts.sub'), title: kbt('kbui.voice') }),
           kbSubFallback('kb8-sub', kbt('kbui.tts.sub'), 'span')),
         (vue.etat === 'erreur' ? h('div', { className: 'kbt-msg err' }, kbt('kbui.tts.unavailable') + String(vue.erreur)) : null),
         h('div', { className: 'kbt-micro' },
@@ -38184,7 +38182,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     // The pages of the ACCOUNT (Account, Referral, Security, Account data, Support & legal) are not in DSH's Settings any more: they are
     // the server's app and its embedded console (footer menu: Account, Referral).
     const KbacHead = (props) => h('div', { className: 'kbac-head' },
-      h('div', { className: 'kb6-titlerow kbac-titlerow' }, h('h2', { className: 'kb6-title' }, props.title), props.help === undefined ? null : kbPagePill(props.help, props.sub, props.title)),
+      props.help === undefined ? pageHead({ title: props.title }) : pageHead({ id: 'kybernos-plugin', page: props.help, lead: props.sub, title: props.title }),
       props.help === undefined ? h('p', { className: 'kb8-sub' }, props.sub) : kbSubFallback('kb8-sub', props.sub))
     // Settings > Automations: where automations live, and two switches (the rules are in automation-settings.mjs).
     // How many runs in a row without a failure make an automation stable (the same choices as automation-settings.mjs).
@@ -38265,7 +38263,6 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 [data-slot="settings.section"]:has(.kbac-page){width:100%;max-width:none}
 .kbac-page{display:flex;flex-direction:column;gap:20px;max-width:720px;min-width:0;margin-inline:0}
 .kbac-head{display:flex;flex-direction:column;min-width:0}
-.kbac-titlerow{justify-content:space-between}
 .kbac-list{display:flex;flex-direction:column}
 .kbac-row{display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid var(--dsw-alias-border-l1)}
 .kbac-row-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}

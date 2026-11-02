@@ -36,6 +36,10 @@
       "kybernos-cloud",
       "kybernos-plugin"
     ],
+    "kbhp": [
+      "kybernos-hub",
+      "kybernos-plugin"
+    ],
     "kbl": [
       "kybernos-cloud",
       "kybernos-skills"
@@ -56,10 +60,6 @@
     ],
     "kbmp": [
       "kybernos-models",
-      "kybernos-plugin"
-    ],
-    "kbmz": [
-      "kybernos-maintenance",
       "kybernos-plugin"
     ],
     "kbq": [

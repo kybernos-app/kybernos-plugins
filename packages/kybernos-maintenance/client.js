@@ -27,6 +27,8 @@ window.__ModuleLoader__.load({
   factory (require) {
     const React = require('react')
     const h = React.createElement
+    /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+    const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
     // Language: French ONLY when the resolved language is French (« kybernos », the product's own French, or an fr tag). Every other
     // language, translated or not, gets English, and so does a page whose resolver is absent or throws (the same rule as kbt in the
@@ -126,7 +128,6 @@ window.__ModuleLoader__.load({
 .kbmz-page{padding:0;max-width:720px;font-size:14px;line-height:normal;display:flex;flex-direction:column;gap:18px}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbmz-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
-.kbmz-titre{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 [data-slot="settings.section"]:has(.kbmz-page){width:100%;max-width:none}
 /* Identity: wordmark + version on the left, « Check now » on the right */
 .kbmz-haut{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -604,9 +605,8 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         blocSurfaces)
 
       return h('div', { className: 'kbmz-page' },
-        // The help button sits IN the title row: the page's children keep the order the About tests pin.
-        h('h1', { className: 'kbmz-titre', style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 } }, t('titre'),
-          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-maintenance' }) : null)),
+        // The help button is IN the title's head (pageHead): the page's children keep the order the About tests pin.
+        pageHead({ id: 'kybernos-maintenance', title: t('titre'), as: 'h1' }),
         entete,
         statut,
         tuiles,
@@ -664,7 +664,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       }, [])
       if (etat === null && echec) {
         return h('div', { className: 'kbmz-page' },
-          h('h1', { className: 'kbmz-titre' }, t('titre')),
+          pageHead({ title: t('titre'), as: 'h1' }),
           h('div', { className: 'kbmz-status', 'data-tone': 'warn', 'data-kb': 'maintenance-status' },
             h('span', { className: 'kbmz-dot', 'aria-hidden': 'true' }),
             h('div', { className: 'kbmz-status-txt', role: 'status' }, h('span', { className: 'kbmz-verdict' }, t('indispo'))),

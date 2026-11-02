@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
@@ -571,7 +572,7 @@ ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jam
   r.unmount()
   {
     const asked = []
-    globalThis.window.__KB_HELP__ = { version: 1, Help: (props) => { asked.push(props); return createElement('span', { 'data-fake-help': props.id }) } }
+    globalThis.window.__KB_HELP__ = { version: 1, ...fakeHelp({ createElement }, (props) => { asked.push(props); return createElement('span', { 'data-fake-help': props.id }) }) }
     const rootHelp = element(doc)
     const rHelp = ReactClient.createRoot(rootHelp)
     await act(async () => { rHelp.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
@@ -579,6 +580,7 @@ ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jam
     const last = asked[asked.length - 1]
     assert.ok(last !== undefined && last.id === 'kybernos-cloud' && last.page === 'kybernos' && last.lead === 'What Kybernos keeps on this computer.' && last.title === 'Kybernos', 'with the Suite: the page hands its description to the « ? » card as `lead`, and its title as `title`')
     assert.ok(htmlHelp.includes('data-fake-help="kybernos-cloud"') && !htmlHelp.includes('What Kybernos keeps on this computer.') && !htmlHelp.includes('kb8-sub'), 'with the Suite: the description is no longer drawn under the title')
+    assert.ok(/class="kbhp-title"[^>]*>Kybernos<\/\w+><\w+ data-fake-help="kybernos-cloud">/.test(htmlHelp), 'with the Suite: the title and its « ? » are one head (the Suite\'s Title), the button right after the text: ' + htmlHelp.slice(htmlHelp.indexOf('kbl-head'), htmlHelp.indexOf('kbl-head') + 300))
     rHelp.unmount()
     delete globalThis.window.__KB_HELP__
   }

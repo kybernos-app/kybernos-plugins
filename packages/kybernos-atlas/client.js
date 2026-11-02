@@ -1003,6 +1003,8 @@ window.__ModuleLoader__.load({
     let React = null
     try { React = typeof require === 'function' ? require('react') : null } catch (e) { React = null }
     const h = React ? React.createElement : null
+    /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+    const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
     const CSS = `
 .kbat-page{--kbat-p0:#2a78d6;--kbat-p1:#eb6834;--kbat-p2:#1baf7a;--kbat-p3:#eda100;--kbat-p4:#e87ba4;--kbat-p5:#4a3aa7;--kbat-p6:var(--dsw-alias-label-tertiary);display:flex;flex-direction:column;gap:14px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary)}
@@ -1012,7 +1014,6 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-page *{box-sizing:border-box}
 .kbat-page button{font:inherit;color:inherit;cursor:pointer}
 .kbat-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px}
-.kbat-title{margin:0;font-size:18px;line-height:26px;font-weight:600;letter-spacing:-.01em}
 .kbat-headr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kbat-built{display:inline-flex;align-items:center;gap:8px;color:var(--dsw-alias-label-secondary);font-size:12px}
 .kbat-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--dsw-alias-state-success-primary,#22c55e)}
@@ -1755,7 +1756,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       }
       return h('div', { className: 'kbat-page', 'data-kb': 'atlas', 'data-size': size, ref: rootRef },
         h('header', { className: 'kbat-head' },
-          h('h1', { className: 'kbat-title' }, 'Atlas'),
+          pageHead({ as: 'h1', className: 'kbat-title', title: 'Atlas' }),
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
             h('button', { type: 'button', className: 'kbat-help', onClick: () => setHelp(true), 'aria-haspopup': 'dialog', 'aria-label': tr('How it works'), title: tr('How it works') }, h('span', { className: 'kbat-helpq', 'aria-hidden': 'true' }, '?')),

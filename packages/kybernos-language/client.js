@@ -42,6 +42,8 @@ window.__ModuleLoader__.load({
 
       const React = require('react')
       const h = React.createElement
+      /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
+      const pageHead = (props) => { try { if (window.__KB_HELP__ && window.__KB_HELP__.Title) return h(window.__KB_HELP__.Title, props) } catch (e) { /* the bare title below */ } return h(props.as || 'h2', { className: 'kbhp-title' + (props.className ? ' ' + props.className : '') }, props.title, props.after) }
 
       // `styles` follows the dynamic cordis runner contract: insert(css) returns
       // a disposer.
@@ -69,7 +71,6 @@ window.__ModuleLoader__.load({
 /* Light schemes: the muted sentences of the help steps are label-tertiary (3.7:1 on white); inside the page they read label-secondary (5.8:1). */
 body:not([data-ds-dark-theme]) .kbln-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbln-main{display:flex;flex-direction:column;gap:22px;min-width:0}
-.kbln-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kbln-sec{display:flex;flex-direction:column;gap:10px}
 .kbln-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .kbln-lb{font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);width:160px;flex:none}
@@ -195,7 +196,6 @@ html[dir="rtl"] .kbln-sw input:checked+i::after{transform:translateX(-16px)}
 /* ── Help: a small animated walkthrough ──────────────────────────────────────
    The mock is pure CSS on a 12 s loop; the BASE style of every animated part is the
    final state (language ready and in use), which is also what reduced motion shows. */
-.kbln-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 /* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button; the panel it opens is this page's own. */
 .kbln-help-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kbln-help-btn:hover,.kbln-help-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
@@ -2120,10 +2120,8 @@ html[dir="rtl"] .kbln-page{direction:rtl}
 
         return h('div', { className: 'kbln-page', 'data-kb': 'language-page' },
           h('div', { className: 'kbln-main' },
-            h('div', { className: 'kbln-head-row' },
-              h('div', { className: 'kbln-title' }, L('title')),
-              h('button', { className: 'kbln-help-btn', type: 'button', 'data-act': 'help', 'aria-expanded': helpOpen ? 'true' : 'false', 'aria-controls': 'kbln-help', 'aria-label': L('helpBtn'), title: L('tipHelp'), onClick: toggleHelp },
-                h('span', { className: 'kbln-help-q', 'aria-hidden': 'true' }, '?'))),
+            pageHead({ className: 'kbln-title', title: L('title'), after: h('button', { className: 'kbln-help-btn', type: 'button', 'data-act': 'help', 'aria-expanded': helpOpen ? 'true' : 'false', 'aria-controls': 'kbln-help', 'aria-label': L('helpBtn'), title: L('tipHelp'), onClick: toggleHelp },
+              h('span', { className: 'kbln-help-q', 'aria-hidden': 'true' }, '?')) }),
             helpOpen ? h(HelpPanel, null) : null,
             h('div', { className: 'kbln-bar-row' },
               h('div', { className: 'kbln-tabs', role: 'tablist', 'aria-label': L('title'), onKeyDown: onTabKey }, tabBtn('langs', L('tabLangs')), tabBtn('settings', L('tabSettings'))),

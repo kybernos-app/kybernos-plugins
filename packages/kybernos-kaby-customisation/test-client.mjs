@@ -5,6 +5,7 @@
 // the page is then rendered to a plain tree and read by its `data-kb` hooks. Static checks guard what a browser would only find late:
 // no colour outside DSH's tokens, every French text has an English one, the page asks only its own host and the core's routes.
 import { readFileSync } from 'node:fs'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 import { FACE_PROVIDERS } from './providers.mjs'
 import { publicProfile, emptyProfile, ROUTE } from './kaby-host.mjs'
 
@@ -125,19 +126,20 @@ console.log('── the page, rendered once ──')
   tree = Panel()
   ok('no Suite: the description stays under the title, and there is no « ? » card', byKb(tree, 'kaby-custom-page').length === 1 && find(tree, (n) => n.props.className === 'kbkc-lead').length === 1 && text(find(tree, (n) => n.props.className === 'kbkc-lead')[0]).trim() === LEAD_EN)
   const Help = function Help () { return null }
-  globalThis.window.__KB_HELP__ = { version: 1, Help }
+  const fake = fakeHelp(React, Help)
+  globalThis.window.__KB_HELP__ = { version: 1, ...fake }
   tree = Panel()
-  const cards = find(tree, (n) => n.type === Help)
-  ok('with the Suite: one « ? » card, given the description as `lead` and the page name as `title`', cards.length === 1 && cards[0].props.id === 'kybernos-kaby-customisation' && cards[0].props.lead === LEAD_EN && cards[0].props.title === 'Kaby', cards[0] && JSON.stringify(cards[0].props).slice(0, 120))
+  const cards = find(tree, (n) => n.type === fake.Title)
+  ok('with the Suite: the head is drawn through Title, given the description as `lead` and the page name as `title`', cards.length === 1 && cards[0].props.id === 'kybernos-kaby-customisation' && cards[0].props.lead === LEAD_EN && cards[0].props.title === 'Kaby', cards[0] && JSON.stringify(cards[0].props).slice(0, 120))
   ok('…it is the page "kaby" of the bundle (help.json has no card for it: the card shows the lead alone)', cards.length === 1 && cards[0].props.page === 'kaby')
   ok('…and the description is no longer drawn under the title', find(tree, (n) => n.props.className === 'kbkc-lead').length === 0 && !text(tree).includes(LEAD_EN))
   resolved = 'kybernos'
   tree = Panel()
-  ok('in French the `lead` is the French description', find(tree, (n) => n.type === Help).length === 1 && /^Comment ton assistant est et parle/.test(find(tree, (n) => n.type === Help)[0].props.lead))
+  ok('in French the `lead` is the French description', find(tree, (n) => n.type === fake.Title).length === 1 && /^Comment ton assistant est et parle/.test(find(tree, (n) => n.type === fake.Title)[0].props.lead))
   resolved = 'en'
   T.store.profile = null
   tree = Panel()
-  ok('while the page is loading, only the title shows: no card and no description', find(tree, (n) => n.type === Help).length === 0 && find(tree, (n) => n.props.className === 'kbkc-lead').length === 0)
+  ok('while the page is loading, only the title shows: no card and no description', find(tree, (n) => n.type === fake.Title && n.props.id !== undefined).length === 0 && find(tree, (n) => n.type === fake.Title && n.props.title === 'Kaby').length === 1 && find(tree, (n) => n.props.className === 'kbkc-lead').length === 0)
   T.store.profile = publicProfile(emptyProfile())
   delete globalThis.window.__KB_HELP__
 }
@@ -607,6 +609,7 @@ console.log('── guards on the source ──')
   ok('every hook the live checks need is in the source', ['kaby-custom-page', 'kaby-custom-name', 'kaby-custom-look', 'kaby-custom-generate', 'kaby-custom-import', 'kaby-custom-voice-pill', 'kaby-custom-preview', 'kaby-custom-custom-voice', 'kaby-custom-face-provider', 'kaby-custom-face-use'].every((k) => source.includes("'" + k + "'")))
   ok('a recording that ends after the window was closed cannot reopen it', /patchCv = \(patch\) => setCv\(\(c\) => \(c === null \? c :/.test(source))
   ok('the help card is wired the guarded way', /window\.__KB_HELP__ && window\.__KB_HELP__\.Help/.test(source))
+  ok('the page title has no style of its own: the head comes through the shared Title, with no rule on the old heading or its row', /const pageHead = \(props\) => \{ try \{ if \(window\.__KB_HELP__ && window\.__KB_HELP__\.Title\) return h\(window\.__KB_HELP__\.Title, props\)/.test(source) && /pageHead\(\{ id: 'kybernos-kaby-customisation', page: 'kaby', lead: lead, title: 'Kaby' \}\)/.test(source) && !/kbkc-titlerow/.test(source) && !/h\('h4'/.test(source))
 }
 
 console.log(failures === 0 ? '\nall passed' : '\n' + failures + ' FAILED')

@@ -32,7 +32,7 @@ console.log('the Tools page says what it is for (in the card of its « ? »)')
   const head = from('const entete = () => h(\'header\', { className: \'kbt2-entete\' }', 1400)
   check('the card’s lead says what Tools adds and where the coding assistants are managed', /kbToolsTxt\(\{ fr: 'Les outils ajoutent des capacités à un profil DSH/.test(lead) && /en: 'Tools add abilities to a DSH profile/.test(lead), lead.slice(0, 300))
   check('it names Workers, in both languages', /Workers/.test(lead.slice(lead.indexOf('Les outils ajoutent'), lead.indexOf('Les outils ajoutent') + 700)) && /own page, Workers/.test(lead))
-  check('the pill hands both sentences to the card, and the page no longer draws them under its title unless the help cannot be drawn', /kbPagePill\('tools', leadTools, kbt\('kbui\.tools'\)\)/.test(head) && /leadTools\.map\(\(x, i\) => kbSubFallback\('kbt2-sub', x, 'p', 'lead' \+ i\)\)/.test(head))
+  check('the pill hands both sentences to the card, and the page no longer draws them under its title unless the help cannot be drawn', /pageHead\(\{ as: 'h1', className: 'kbt2-h1', id: 'kybernos-plugin', page: 'tools', lead: leadTools, title: kbt\('kbui\.tools'\) \}\)/.test(head) && /leadTools\.map\(\(x, i\) => kbSubFallback\('kbt2-sub', x, 'p', 'lead' \+ i\)\)/.test(head))
   check('how a change applies (no restart, a dry run first, a backup) is a note, not a description: it stays on the page', /DSH applies the change by itself a few seconds after it is written: no restart/.test(head) && !/Nothing is hot-reloaded/.test(head))
 }
 
@@ -40,7 +40,7 @@ console.log('the pages of this bundle hand their description to the card of thei
 {
   check('the pill takes the description and the title, and the fallback only draws it when there is no Suite', /const kbPagePill = \(page, lead, title\) =>/.test(src) && /lead: lead, title: title/.test(src) && /const kbSubFallback = \(cls, text, tag, key\)/.test(src))
   check('Workspaces and Creations', /kbPagePill\('workspaces', kbt\('kbui\.project\.holds'\)/.test(src) && /kbPagePill\('creations', kbt\('deliverables\.desc'\)/.test(src))
-  check('Settings › Automations, Voice', /kbPagePill\(props\.help, props\.sub, props\.title\)/.test(src) && /page: 'voice', lead: kbt\('kbui\.tts\.sub'\)/.test(src))
+  check('Settings › Automations, Voice', /pageHead\(\{ id: 'kybernos-plugin', page: props\.help, lead: props\.sub, title: props\.title \}\)/.test(src) && /page: 'voice', lead: kbt\('kbui\.tts\.sub'\)/.test(src))
   check('Agent Teams: the description opens the panel of its « ? »; Automations: it opens the guide', /className: 'kb8-help-lead'[^\n]*kbt\('kbui\.kybers\.about'\)/.test(src) && /'kba-ob-sub kba-ob-lead'[^\n]*kbt\('tasks\.subtitle'\)/.test(src))
   check('none of them draws the description under its title any more', !/className: 'kba-subtitle'/.test(src) && !/h\('p', \{ className: 'kb8-sub' \}, kbt\('kbui\.kybers\.about'\)\)/.test(src))
 }

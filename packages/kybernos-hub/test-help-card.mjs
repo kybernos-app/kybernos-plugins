@@ -153,6 +153,26 @@ console.log('the card of a page: the link at its foot')
   })())
 }
 
+console.log('the head of a page (Title): the title in the shared class, the button right after it')
+{
+  const { React } = fakeReact()
+  const api = T.construireAide(React)
+  const head = api.Title({ title: 'Theme', id: 'kybernos-x', lead: 'Look.', className: 'kbth-title' })
+  check('one head: the heading first, then the button of the card (the Suite’s Help), on the same line', head.type === 'div' && head.props.className === 'kbhp-head' && head.children.length === 2 && head.children[0].type === 'h2' && head.children[1].type === api.Help)
+  check('the heading carries the shared class and the page’s hook, and the words of the title', head.children[0].props.className === 'kbhp-title kbth-title' && text(head.children[0]) === 'Theme')
+  check('the button gets what the page gave: id, lead, and the title as the name of the card', head.children[1].props.id === 'kybernos-x' && head.children[1].props.lead === 'Look.' && head.children[1].props.title === 'Theme')
+  check('`as` picks the heading element, h2 by default', api.Title({ title: 'T', as: 'h1' }).children[0].type === 'h1' && api.Title({ title: 'T' }).children[0].type === 'h2')
+  const alone = api.Title({ title: 'Theme' })
+  check('without an id the title is drawn alone (no button)', alone.children.length === 2 && alone.children[1] === null)
+  const own = api.Title({ title: 'Language', after: { type: 'button', props: {}, children: [] } })
+  check('a page that opens its own panel hands its button as `after`: it takes the same place, in a tail span', own.children[1] !== null && own.children[1].type === 'span' && own.children[1].props.className === 'kbhp-tail' && own.children[1].children[0].type === 'button')
+  check('the hub’s API offers it next to Help and Intro', typeof api.Title === 'function' && typeof api.Help === 'function' && typeof api.Intro === 'function')
+  const css = SOURCE.slice(SOURCE.indexOf('.kbhp-head{'), SOURCE.indexOf('.kbhp-head{') + 700)
+  check('the title is drawn inline so a long title wraps and the button stays at its end', /\.kbhp-head>\.kbhp-title\{display:inline;/.test(css) && /\.kbhp-head>\.kbhp-wrap,\.kbhp-tail,\.kbhp-nhead\{vertical-align:middle;margin-inline-start:8px\}/.test(css))
+  check('the hub gives the title NO size, weight or colour: the Settings frame (kybernos-plugin) does, once, for every title', !/\.kbhp-title\{[^}]*(font-size|font-weight|letter-spacing|color)/.test(SOURCE) && !/\.kbhp-head>\.kbhp-title\{[^}]*(font-size|font-weight|letter-spacing|color)/.test(SOURCE))
+  check('the old row of the button (a zero-height row before the title) is gone', !SOURCE.includes('.kbhp-row'))
+}
+
 console.log('the animated help of a page (Intro)')
 {
   const steps = [{ t: 'Pick', b: 'Choose one.' }, { t: 'Install', b: 'One click.' }, { t: 'Use', b: 'Ask for it.' }]
@@ -294,6 +314,26 @@ console.log('a page of DSH itself: the animation on the native Agent presets pag
   check('in French: the same, in French', fr !== null && /trois étapes/.test(fr.intro.title) && /modes/i.test(fr.intro.steps[0].t) && fr.intro.title !== en.intro.title)
   check('a page that is not listed has no content', T.nativeContent('general') === null && T.nativeContent(null) === null)
 
+  // The « ? » of a native page sits inside the page's own title, right after its text (no row of its own).
+  {
+    const titleNode = () => { const t = node(); t.children = []; t.appendChild = (e) => { t.children.push(e); return e }; t.querySelector = (sel) => (sel === T.NATIVE_SEL.head ? (t.children[0] || null) : null); return t }
+    const withTitle = (title, extra = {}) => { const d = docWith({ active: cell('models'), ...extra }); const q = d.querySelector; d.querySelector = (sel) => (sel === T.NATIVE_SEL.title ? title : q(sel)); d.createElement = (tag) => { const e = node(); e.tag = tag; e.className = ''; d.made.push(e); return e }; return d }
+    const title = titleNode()
+    const d = withTitle(title)
+    const got = T.findNativeHost(d)
+    check('Models: the button goes in a span put inside the page’s own title, and no host row is made after the introduction', got !== null && got.key === 'models' && got.head !== null && got.el === null && title.children.length === 1 && title.children[0].tag === 'span' && title.children[0].attrs['data-kb'] === 'native-head-host' && title.children[0].className === 'kbhp-nhead' && d.made.length === 1)
+    const d2 = withTitle(title)
+    const again = T.findNativeHost(d2)
+    check('a second look finds the same span and makes none', again !== null && again.head === title.children[0] && d2.made.length === 0)
+    const staleNode = Object.assign(node({ 'data-native': 'models' }), { remove () { this.removed = true } })
+    const d3 = withTitle(titleNode(), { host: staleNode })
+    check('a host row made before the title was drawn is taken away when the title is there', T.findNativeHost(d3) !== null && staleNode.removed === true)
+    const dPresets = withTitle(titleNode()); const q0 = dPresets.querySelector; dPresets.querySelector = (sel) => (sel === T.NATIVE_SEL.cell ? cell('agent-presets') : q0(sel))
+    const gp = T.findNativeHost(dPresets)
+    check('Agent presets: the button is in the title and the animation still has its host after the introduction', gp !== null && gp.head !== null && gp.el !== null && gp.el.attrs['data-kb'] === 'native-intro-host')
+    check('no title of that kind (an older shell): the button keeps its own row in the host, as before', T.findNativeHead(docWith({ active: cell('models') })) === null)
+    check('a title that throws never throws here', T.findNativeHead({ querySelector: () => { throw new Error('hostile') } }) === null)
+  }
   // The component: a portal into the host, the shared button and the animation inside.
   const portals = []
   const ReactDOM = { createPortal: (child, el) => { const p = { portal: true, child, el }; portals.push(p); return p } }
@@ -308,6 +348,13 @@ console.log('a page of DSH itself: the animation on the native Agent presets pag
   const helpProps = find(out.child, (n) => n.type === api.Help)[0].props
   const introProps = find(out.child, (n) => n.type === api.Intro)[0].props
   check('the button asks for the card « presets » of the core bundle, and the animation is keyed the same way (so the card can bring it back)', helpProps.id === 'kybernos-plugin' && helpProps.page === 'presets' && introProps.id === 'kybernos-plugin-presets')
+  const headEl = node()
+  hubReact.next([{ el: null, head: headEl, key: 'models' }])
+  const outHead = Natives()
+  check('with a title to sit in and no animation, only the button is drawn, into the title, with no row', outHead !== null && outHead.portal === true && outHead.el === headEl && find(outHead.child, (n) => n.type === api.Help).length === 1 && find(outHead.child, (n) => n.type === api.Intro).length === 0)
+  hubReact.next([{ el: hostEl, head: headEl, key: 'agent-presets' }])
+  const outBoth = Natives()
+  check('a page with both: the button goes into the title and the animation into the host, and the host has no row for the button', Array.isArray(outBoth) && outBoth.length === 2 && outBoth[0].el === headEl && outBoth[1].el === hostEl && find(outBoth[1].child, (n) => n.type === api.Help).length === 0 && find(outBoth[1].child, (n) => n.type === api.Intro).length === 1 && find(outBoth[1].child, attr('className', 'kbni-row')).length === 0)
   hubReact.next([null])
   check('without a host (another page): nothing is drawn', Natives() === null)
   hubReact.next([{ el: hostEl, key: 'general' }])

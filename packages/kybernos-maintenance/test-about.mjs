@@ -25,6 +25,7 @@ import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lireVersion } from './version.mjs'
+import { fakeHelp } from '../kybernos-hub/fake-help.mjs'
 
 let pass = 0
 let fail = 0
@@ -258,13 +259,24 @@ console.log('── the section ──')
   check('the full-width rule of the page is still there', /\[data-slot="settings\.section"\]:has\(\.kbmz-page\)\{width:100%;max-width:none\}/.test(SOURCE))
 }
 
+console.log('── the page title: one head with the Suite, and no style of its own ──')
+{
+  win.__KB_HELP__ = { version: 1, ...fakeHelp(FAKE_REACT, (p) => createElement('i', { 'data-help-id': p.id })) }
+  const withSuite = rendrePage(ETAT, 'en')
+  delete win.__KB_HELP__
+  const first = withSuite.kids.find((k) => typeof k !== 'string')
+  check('with the Suite the first child is the head: the h1 in the shared class, then the « ? » of this bundle, in one line', first.props.className === 'kbhp-head' && first.kids[0].tag === 'h1' && first.kids[0].props.className === 'kbhp-title' && texte(first.kids[0]) === 'About' && first.kids[1].props['data-help-id'] === 'kybernos-maintenance')
+  check('the page draws its head through pageHead, and no rule of the bundle sizes or weighs the title (the Settings frame sets it)', /pageHead\(\{ id: 'kybernos-maintenance', title: t\('titre'\), as: 'h1' \}\)/.test(SOURCE) && !/kbmz-titre/.test(SOURCE))
+  check('the page that could not read its state keeps the same title (through pageHead, without the button)', /pageHead\(\{ title: t\('titre'\), as: 'h1' \}\)/.test(SOURCE))
+}
+
 console.log('── above the fold ──')
 {
   const tree = rendrePage(ETAT, 'en')
   const horsPanneau = (kb) => parKb(tree, kb).filter((n) => parKb(panneau(tree), kb).indexOf(n) === -1)
   check('the page is the .kbmz-page root', tree.props.className === 'kbmz-page')
   const direct = tree.kids.filter((k) => typeof k !== 'string').map((k) => k.props.className || '')
-  check('top level: title, identity, status, tiles, links, disclosure — in that order', JSON.stringify(direct) === JSON.stringify(['kbmz-titre', 'kbmz-haut', 'kbmz-status', 'kbmz-tuiles', 'kbmz-liens', '']), direct)
+  check('top level: title, identity, status, tiles, links, disclosure — in that order', JSON.stringify(direct) === JSON.stringify(['kbhp-title', 'kbmz-haut', 'kbmz-status', 'kbmz-tuiles', 'kbmz-liens', '']), direct)
   const marque = texte(parKb(tree, 'maintenance-brand')[0])
   check('without the brand component the wordmark is a plain « Kybernos » (30 px, bold)', marque === 'Kybernos' && parKb(tree, 'maintenance-brand')[0].kids[0].props.style.fontSize === 30 && parKb(tree, 'maintenance-brand')[0].kids[0].props.style.fontWeight === 700)
   check('version line under the wordmark: the exact version, the same string as the Kybernos tile', texte(parKb(tree, 'maintenance-version')[0]) === 'Version 1.0.0-beta.1' && texte(parClasse(tree, 'kbmz-tuile-v').find((t) => texte(t) === '1.0.0-beta.1') || '') === '1.0.0-beta.1')
