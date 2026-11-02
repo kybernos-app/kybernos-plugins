@@ -7,7 +7,7 @@ import {
   OPENCODE_USER_AGENT, SESSION_PATTERN, REQUEST_PATTERN,
   userAgentOk, canonicalId, applyContract, contractHeaders, classifyError,
 } from './gateway-contract.mjs'
-import { PROVIDER_ID, BASE_URL, buildProfile, profileSummary } from './profile.mjs'
+import { PROVIDER_ID, BASE_URL, buildProfile } from './profile.mjs'
 import {
   defaultFreeLlmState, shouldAutoEnable, recordEnable, recordDisable, publicView,
 } from './free-llm-state.mjs'
@@ -101,13 +101,6 @@ ok('an existing profile keeps its non-model fields on rebuild', () => {
   const p = buildProfile({ models: ['x-free'], existing: { displayName: 'Custom', retryPolicy: { mode: 'normal' } } })
   assert.equal(p.displayName, 'Free LLMs', 'display name is ours')
   assert.deepEqual(p.retryPolicy, { mode: 'normal' }, 'unrelated field survives')
-})
-
-ok('profile summary reports only what the panel shows', () => {
-  const s = profileSummary(buildProfile({ models: ['a-free'] }))
-  assert.equal(s.baseURL, BASE_URL)
-  assert.deepEqual(s.models, ['a-free'])
-  assert.deepEqual(profileSummary(null), { baseURL: null, models: [] })
 })
 
 ok('the provider id and namespace are the ones settings.mutate uses', () => {

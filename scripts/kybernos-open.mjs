@@ -12,7 +12,7 @@
 // The sign-in address (it carries a one-time token) is read from DSH's own output log and never printed. It is used only if the server accepts
 // it; otherwise the bare address is opened, which works as long as the browser still holds its cookie (30 days).
 import { spawn, execFile } from 'node:child_process'
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { pathToFileURL } from 'node:url'

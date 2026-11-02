@@ -8,9 +8,8 @@
 // One ledger file of the DSH home (kybernos/initiatives.json next to suggestions.json), written atomically with mode 0600,
 // one writer at a time: same pattern as the suggestions ledger. The serial chain is per process, as the rest of the home
 // already assumes. No route, no network, no model, no automation module: this file knows only its own ledger.
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
 import { randomBytes } from 'node:crypto'
+import { makeLedgerFile } from './ledger-file.mjs'
 import { hasPersonalData } from './suggestions.mjs'
 
 /** Pending entries at once (mirrors SUGGESTED_MAX of the automation proposals). */
@@ -67,17 +66,7 @@ const valid = (i) => plain(i) && typeof i.id === 'string' && i.id !== '' && type
 
 /** The ledger of one DSH home. `file` is the whole path; `now` and `newId` are injected for the tests. */
 export const makeInitiativeQueue = ({ file, now = () => new Date().toISOString(), newId = () => 'i_' + randomBytes(5).toString('hex') }) => {
-  let chain = Promise.resolve()
-  const read = () => {
-    try { const j = JSON.parse(readFileSync(file, 'utf8')); return Array.isArray(j.items) ? j.items.filter(valid) : [] } catch (e) { return [] }
-  }
-  const write = (items) => {
-    mkdirSync(dirname(file), { recursive: true })
-    const tmp = file + '.tmp-' + process.pid
-    writeFileSync(tmp, JSON.stringify({ version: 1, items }, null, 2), { mode: 0o600 })
-    renameSync(tmp, file)
-  }
-  const serial = (fn) => { const run = chain.then(fn, fn); chain = run.then(() => null, () => null); return run }
+  const { read, write, serial } = makeLedgerFile({ file, valid })
   /** Only resolved entries are evicted, and the oldest of them first: a pending decision is never thrown away. */
   const keep = (items) => {
     const done = items.filter((i) => waiting(i) === false)

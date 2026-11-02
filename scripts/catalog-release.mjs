@@ -10,7 +10,7 @@
 //   node scripts/catalog-release.mjs verify <catalog.release.json> <catalog.release.json.sig> [--pub <catalog-pubkey.json>]
 //       Replays what the panel does with a downloaded release. Exit 0 = accepted.
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { catalogueDuDepot } from './build-catalog.mjs'
 import { evaluer } from '../packages/kybernos-hub/catalogue-distant.mjs'

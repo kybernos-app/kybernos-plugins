@@ -53,11 +53,3 @@ export const buildProfile = ({ models, baseURL, existing }) => {
   }
 }
 
-/** Public summary of a profile for the panel: just what the UI shows. */
-export const profileSummary = (profile) => {
-  const p = profile !== null && typeof profile === 'object' ? profile : {}
-  return {
-    baseURL: typeof p.baseURL === 'string' ? p.baseURL : null,
-    models: Array.isArray(p.models) ? p.models.map((m) => (m && typeof m.id === 'string' ? m.id : null)).filter(Boolean) : [],
-  }
-}

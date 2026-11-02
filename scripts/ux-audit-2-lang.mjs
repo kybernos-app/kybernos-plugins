@@ -12,7 +12,7 @@
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage, waitFor, clickText } from './live-page.mjs'
+import { openLivePage } from './live-page.mjs'
 import { createFlow } from './lib-language-flow.mjs'
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')

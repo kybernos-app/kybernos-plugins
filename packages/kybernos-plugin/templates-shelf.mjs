@@ -13,7 +13,6 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const SHELF_SCHEMA = 'kybernos.templates/1'
-export const SHELF_CATALOGUE_PATH = '/v1/templates/catalogue.json'
 /** The pictures sit next to the catalogue, under `imageBase`. */
 export const SHELF_IMAGE_BASE = 'shelf/'
 const SERVER_BASE_PATH = '/v1/templates/'

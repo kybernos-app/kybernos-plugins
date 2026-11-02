@@ -7,7 +7,7 @@
 // Per page it records: the tab order (what is reached, in what sequence), whether
 // focus is VISIBLE on each stop, that Escape closes what opened, and that Enter
 // activates the focused control (measured on a control that only opens something).
-import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, openSettings, waitFor } from './live-page.mjs'
 

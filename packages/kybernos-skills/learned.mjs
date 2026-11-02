@@ -17,7 +17,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync, appendFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { defaults as settingsDefaults, normalize as normalizeSettings, publicView as settingsView, apply as applySettings, MODES, THRESHOLD, CAPS, NOTIFY } from './learned-settings.mjs'
-import { scoreOf, stopsOf, isRisky, AGENT_KINDS, SCORE_MAX } from './learned-score.mjs'
+import { scoreOf, stopsOf, SCORE_MAX } from './learned-score.mjs'
 import { sourceOf } from './learned-taint.mjs'
 
 export const SKILL_NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

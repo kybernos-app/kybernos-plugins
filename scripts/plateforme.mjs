@@ -466,8 +466,6 @@ export const demarrageProcessus = async (pid, fam = famille()) => mesurer(planDe
 
 export const pidSurPortSync = (port, fam = famille()) => mesurerSync(planPid(fam, port))
 
-export const demarrageProcessusSync = (pid, fam = famille()) => mesurerSync(planDemarrage(fam, pid))
-
 export const commandeProcessusSync = (pid, fam = famille()) => mesurerSync(planCommande(fam, pid))
 
 // ── 5. Command-line probe ───────────────────────────────────────────────────

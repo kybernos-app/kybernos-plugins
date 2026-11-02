@@ -2,7 +2,7 @@
 // Personal opens one in the previous workspace; a chat already started keeps its folder after a switch. (Joining a team is played in J4.)
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openGui, recorder, sleep, mainCalls, chatCalls, cwdOf, cwdOrWhy, bodyOf } from './common.mjs'
+import { openGui, recorder, sleep, mainCalls, chatCalls, cwdOf, cwdOrWhy } from './common.mjs'
 
 export const run = async (ctx) => {
   const tag = Math.random().toString(36).slice(2, 6).toUpperCase()

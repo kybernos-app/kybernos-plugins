@@ -19,7 +19,7 @@ import { writeGuard } from './session-guard.mjs'
 import {
   OPENCODE_USER_AGENT, applyContract, contractHeaders, classifyError,
 } from './gateway-contract.mjs'
-import { PROVIDER_ID, CREDENTIAL_REF, buildProfile, profileSummary } from './profile.mjs'
+import { PROVIDER_ID, CREDENTIAL_REF, buildProfile } from './profile.mjs'
 import { gatewayBase, routeNeedsRepair, ensureFreeKey } from './wiring.mjs'
 import { createProbeCache } from './probe-cache.mjs'
 import {
@@ -36,6 +36,26 @@ const sendJson = (res, status, body) => {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
     res.end(JSON.stringify(body))
   } catch (e) { try { res.end('{}') } catch (e2) { /* socket closed */ } }
+}
+
+/** The `data:` payloads of an upstream SSE body, one by one (`[DONE]` included, as the string it is). */
+async function * ssePayloads (body) {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return
+    buffer += decoder.decode(value, { stream: true })
+    let idx
+    while ((idx = buffer.indexOf('\n\n')) >= 0) {
+      const frame = buffer.slice(0, idx)
+      buffer = buffer.slice(idx + 2)
+      for (const line of frame.split('\n')) {
+        if (line.startsWith('data:')) yield line.slice(5).trim()
+      }
+    }
+  }
 }
 
 const readBody = (req) => new Promise((resolve) => {
@@ -211,37 +231,15 @@ const gatewayChat = async (req, res, incoming) => {
     return
   }
 
-  // Stream path: pipe upstream SSE through, renaming reasoning deltas to the OpenAI
-  // `reasoning` field DSH understands. Text deltas pass through untouched.
+  // Stream path: pipe the upstream SSE through, chunk by chunk (pi-ai already surfaces reasoning as `reasoning`).
   if (wantStream) {
     res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive' })
-    const reader = upstream.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
     try {
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        let idx
-        while ((idx = buffer.indexOf('\n\n')) >= 0) {
-          const frame = buffer.slice(0, idx)
-          buffer = buffer.slice(idx + 2)
-          for (const line of frame.split('\n')) {
-            if (!line.startsWith('data:')) continue
-            const payload = line.slice(5).trim()
-            if (payload === '[DONE]') { res.write('data: [DONE]\n\n'); continue }
-            let chunk = null
-            try { chunk = JSON.parse(payload) } catch (e) { continue }
-            const delta = chunk && chunk.choices && chunk.choices[0] && chunk.choices[0].delta
-            if (delta && typeof delta.reasoning === 'string') {
-              // pi-ai surfaces reasoning as `reasoning`; keep it in that field.
-              res.write('data: ' + JSON.stringify(chunk) + '\n\n')
-            } else {
-              res.write('data: ' + JSON.stringify(chunk) + '\n\n')
-            }
-          }
-        }
+      for await (const payload of ssePayloads(upstream.body)) {
+        if (payload === '[DONE]') { res.write('data: [DONE]\n\n'); continue }
+        let chunk = null
+        try { chunk = JSON.parse(payload) } catch (e) { continue }
+        res.write('data: ' + JSON.stringify(chunk) + '\n\n')
       }
       res.write('data: [DONE]\n\n')
     } catch (e) { /* client went away */ }
@@ -253,33 +251,18 @@ const gatewayChat = async (req, res, incoming) => {
   let text = ''
   let reasoning = ''
   let finish = 'stop'
-  const decoder = new TextDecoder()
-  let buffer = ''
-  const reader = upstream.body.getReader()
   try {
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
-      let idx
-      while ((idx = buffer.indexOf('\n\n')) >= 0) {
-        const frame = buffer.slice(0, idx)
-        buffer = buffer.slice(idx + 2)
-        for (const line of frame.split('\n')) {
-          if (!line.startsWith('data:')) continue
-          const payload = line.slice(5).trim()
-          if (payload === '[DONE]') continue
-          let chunk = null
-          try { chunk = JSON.parse(payload) } catch (e) { continue }
-          const choice = chunk && chunk.choices && chunk.choices[0]
-          const delta = choice && choice.delta
-          if (delta) {
-            if (typeof delta.content === 'string') text += delta.content
-            if (typeof delta.reasoning === 'string') reasoning += delta.reasoning
-          }
-          if (choice && typeof choice.finish_reason === 'string' && choice.finish_reason) finish = choice.finish_reason
-        }
+    for await (const payload of ssePayloads(upstream.body)) {
+      if (payload === '[DONE]') continue
+      let chunk = null
+      try { chunk = JSON.parse(payload) } catch (e) { continue }
+      const choice = chunk && chunk.choices && chunk.choices[0]
+      const delta = choice && choice.delta
+      if (delta) {
+        if (typeof delta.content === 'string') text += delta.content
+        if (typeof delta.reasoning === 'string') reasoning += delta.reasoning
       }
+      if (choice && typeof choice.finish_reason === 'string' && choice.finish_reason) finish = choice.finish_reason
     }
   } catch (e) { /* ignore */ }
   sendJson(res, 200, {
