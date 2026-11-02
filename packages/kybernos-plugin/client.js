@@ -6585,25 +6585,35 @@ const kbCronHuman = (cron, tr, locale, zoneName) => {
     if (hh === '*' && step(mi) > 0) return step(mi) === 1 ? tr('tasks.every.minute') : (step(mi) < 60 && 60 % step(mi) === 0 ? tr('tasks.every.minutes').replace('{n}', String(step(mi))) : fallback)
     if (hh === '*' && whole(mi, 59) === true) return hourly(1)
     if (step(hh) > 0 && whole(mi, 59) === true) return step(hh) === 1 || (step(hh) < 24 && 24 % step(hh) === 0) ? hourly(step(hh)) : fallback
-    // A window of hours at a fixed minute ("0 8-20/4 * * *"): the steps start at the first hour and stop at the last one they reach,
-    // so the sentence names exactly those two times. A window that fires only once is left to the expression.
-    const win = /^(\d{1,2})-(\d{1,2})(?:\/(\d{1,2}))?$/.exec(hh)
-    if (win !== null && whole(mi, 59) === true) {
-      const from = Number(win[1]); const to = Number(win[2]); const n = win[3] === undefined ? 1 : Number(win[3])
-      const last = n > 0 ? from + Math.floor((to - from) / n) * n : from
-      if (to <= 23 && from < last) {
-        const words = tr('tasks.every.window').replace('{every}', tr(n === 1 ? 'tasks.every.hour' : 'tasks.every.hours').replace('{n}', String(n))).replace('{from}', two(from) + ':' + two(mi)).replace('{to}', two(last) + ':' + two(mi))
-        return typeof zoneName === 'string' && zoneName.length > 0 ? words + ' (' + zoneName + ')' : words
-      }
+  }
+  // Hours that are not one time of day, at a fixed minute: a window ("0 8-20/4 * * *": the steps start at the first hour and stop
+  // at the last one they reach, so the sentence names exactly those two times; a window that fires only once is left to the
+  // expression) or a short list ("0 8,12,16,20 * * *": the times themselves). `daily` is the sentence for every day, `when` the
+  // part the weekday templates put where they have a time ("Weekdays, <when>").
+  let daily = null
+  let when = null
+  const win = /^(\d{1,2})-(\d{1,2})(?:\/(\d{1,2}))?$/.exec(hh)
+  if (win !== null && whole(mi, 59) === true) {
+    const from = Number(win[1]); const to = Number(win[2]); const n = win[3] === undefined ? 1 : Number(win[3])
+    const last = n > 0 ? from + Math.floor((to - from) / n) * n : from
+    if (to <= 23 && from < last) {
+      daily = tr('tasks.every.window').replace('{every}', () => tr(n === 1 ? 'tasks.every.hour' : 'tasks.every.hours').replace('{n}', String(n))).replace('{from}', () => two(from) + ':' + two(mi)).replace('{to}', () => two(last) + ':' + two(mi))
+      when = daily.charAt(0).toLowerCase() + daily.slice(1)
     }
-    // A short list of hours at a fixed minute ("0 8,12,16,20 * * *"): the times themselves.
-    if (/^\d{1,2}(,\d{1,2}){1,5}$/.test(hh) === true && whole(mi, 59) === true) {
-      const hours = hh.split(',').map(Number)
-      if (hours.every((x, i) => x <= 23 && (i === 0 || x > hours[i - 1])) === true) {
-        const words = tr('tasks.every.times').replace('{times}', hours.map((x) => two(x) + ':' + two(mi)).join(', '))
-        return typeof zoneName === 'string' && zoneName.length > 0 ? words + ' (' + zoneName + ')' : words
-      }
+  } else if (/^\d{1,2}(,\d{1,2}){1,5}$/.test(hh) === true && whole(mi, 59) === true) {
+    const hours = hh.split(',').map(Number)
+    if (hours.every((x, i) => x <= 23 && (i === 0 || x > hours[i - 1])) === true) {
+      when = hours.map((x) => two(x) + ':' + two(mi)).join(', ')
+      daily = tr('tasks.every.times').replace('{times}', () => when)
     }
+  }
+  if (daily !== null && dom === '*') {
+    let w = null
+    if (dow === '*') w = daily
+    else if (dow === '1-5') w = tr('tasks.weekdays8').replace(/\d{1,2}:\d{2}( [AP]M)?/, () => when)
+    else if (/^[0-7]$/.test(dow) === true) w = tr('tasks.every.dow').replace('{day}', () => kbDayName(Number(dow), locale)).replace('{time}', () => when)
+    if (w === null) return fallback
+    return typeof zoneName === 'string' && zoneName.length > 0 ? w + ' (' + zoneName + ')' : w
   }
   if (whole(mi, 59) === false || whole(hh, 23) === false) return fallback
   const hm = two(hh) + ':' + two(mi)
