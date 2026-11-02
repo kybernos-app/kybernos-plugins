@@ -74,7 +74,7 @@ const buildLab = () => {
 const listBundles = () => {
   const out = []
   for (const d of readdirSync(PRISTINE)) {
-    if (d === 'messaging') continue // a standalone daemon, DSH never loads it
+    if (d === 'messaging' || d === 'front-desk') continue // standalone services, DSH never loads them
     if (d === 'dsh-subagent-maison') { for (const s of readdirSync(join(PRISTINE, d))) if (existsSync(join(PRISTINE, d, s, 'package.json'))) out.push(d + '/' + s); continue }
     if (existsSync(join(PRISTINE, d, 'package.json'))) out.push(d)
   }
