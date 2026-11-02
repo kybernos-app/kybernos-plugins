@@ -19,7 +19,7 @@
  *   It worked? Say so too (latency and cache feed the circuit breaker and the Settings page):
  *     node auto-router.mjs --report deepseek-official/deepseek-chat --ok --latency 4200
  *
- *   Options: --no-probe (answer at once, the chain is not verified) · env KB_AUTO_HOST (default http://127.0.0.1:3080).
+ *   Options: --no-probe (answer at once, the chain is not verified) · env KB_AUTO_HOST (default: the DSH it runs under, DSH_WEB_PORT, else http://127.0.0.1:3080).
  *
  * The session's own model is NEVER changed (that is what keeps its cache warm): only delegated work is routed. Plugin routes
  * are served before DSH's own authentication and accept a request with no Origin, so a local process with no cookie can call
@@ -27,7 +27,13 @@
  */
 import { fileURLToPath } from 'node:url'
 
-const HOTE = (process.env.KB_AUTO_HOST || 'http://127.0.0.1:3080').replace(/\/+$/, '')
+/** The DSH this command talks to: KB_AUTO_HOST, else the DSH it runs under (its DSH_WEB_PORT: a team's own DSH has another port than 3080), else the default one. */
+export const hoteOf = (env = process.env) => {
+  const own = typeof env.KB_AUTO_HOST === 'string' ? env.KB_AUTO_HOST.trim() : ''
+  const port = Number(env.DSH_WEB_PORT)
+  return (own !== '' ? own : 'http://127.0.0.1:' + (Number.isInteger(port) && port > 0 && port < 65536 ? port : 3080)).replace(/\/+$/, '')
+}
+const HOTE = hoteOf()
 
 async function appelerHote (chemin, corps, delaiMs) {
   const reponse = await fetch(HOTE + chemin, {

@@ -6,6 +6,7 @@
 import { readdirSync, readFileSync, statSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
 import { homedir } from 'node:os'
+import { dshHome } from './lessons-store.mjs'
 
 // ── Frozen shapes ─────────────────────────────────────────────────────────────
 
@@ -179,7 +180,7 @@ export const deduplicate = (entries, existingLessons = [], threshold = DEDUP_THR
 export const importClaudeMemories = (opts = {}) => {
   const {
     claudeRoot = join(homedir(), '.claude'),
-    outputPath = join(homedir(), '.dsh', 'kybernos', 'claude-import-staging.json'),
+    outputPath = join(dshHome(), 'kybernos', 'claude-import-staging.json'),
     existingLessons = [],
     now = new Date().toISOString(),
     dryRun = false,
@@ -227,7 +228,7 @@ export const setEntryStatus = (entry, status) => {
 }
 
 /** Read the staging file and return its entries. */
-export const readStaging = (path = join(homedir(), '.dsh', 'kybernos', 'claude-import-staging.json')) => {
+export const readStaging = (path = join(dshHome(), 'kybernos', 'claude-import-staging.json')) => {
   if (!existsSync(path)) return { version: 1, entries: [], total: 0, imported: 0, duplicates: 0, skipped: 0 }
   try {
     const data = JSON.parse(readFileSync(path, 'utf-8'))
@@ -238,7 +239,7 @@ export const readStaging = (path = join(homedir(), '.dsh', 'kybernos', 'claude-i
 }
 
 /** Write updated staging file. */
-export const writeStaging = (data, path = join(homedir(), '.dsh', 'kybernos', 'claude-import-staging.json')) => {
+export const writeStaging = (data, path = join(dshHome(), 'kybernos', 'claude-import-staging.json')) => {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, JSON.stringify(data, null, 2), { mode: 0o600 })
   return path
