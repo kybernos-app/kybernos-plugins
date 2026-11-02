@@ -180,6 +180,9 @@ const run = async () => {
     ok('the Journal draws (Story shell or the classic fallback)', painted !== null)
     await sleep(900)
     await shot('1-story')
+    // the story is read from the host a moment after the tab opens
+    await waitFor(page, `document.querySelector('.wvs-top') !== null`, 15000)
+    await shot('1-story')
     const onStory = (await count('.wvs-root')) > 0
     ok('Story is the first thing seen', onStory, REAL ? 'the running DSH does not know /kybernos/journal yet: restart it once' : undefined)
     if (onStory) {
