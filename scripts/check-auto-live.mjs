@@ -57,7 +57,14 @@ try {
 
   console.log('the first view')
   const text = await val(`document.querySelector('[data-kb="auto-settings"]').innerText`)
-  check('one plain sentence, one switch, the choice of models', /best-fit model among the ones you allow/.test(text) && /Automatic routing/.test(text) && /Models Auto may use/.test(text), text.slice(0, 200))
+  check('one switch, the choice of models', /Automatic routing/.test(text) && /Models Auto may use/.test(text), text.slice(0, 200))
+  // The page's plain sentence lives in the « ? » card of the Suite's Help, not under the title (80eb14d5).
+  await click('[data-kb="help-button"][data-id="kybernos-auto"]')
+  await sleep(500)
+  const card = await val(`(() => { const p = document.querySelector('[data-kb="help-panel"]'); return p ? p.innerText.replace(/\\s+/g, ' ') : '' })()`)
+  check('one plain sentence, in the « ? » card', /best-fit model among the ones you allow/.test(card), card.slice(0, 200))
+  for (const t of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type: t, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+  await sleep(300)
   check('« All models » is what is chosen to begin with', (await val(`(document.querySelector('[data-kb^="auto-scope-"][aria-checked="true"]') || {}).innerText`)) === 'All models')
   check('no developer wording: no « scope: session », no « Whitelist », no « Classifier » in view', !/scope: session|Whitelist|Classifier/.test(text), text)
   check('the chat fallback, the classifier and the health are folded', (await val(`!document.querySelector('[data-kb="auto-failover-toggle"]') && !document.querySelector('[data-kb="auto-classifier-input"]') && !document.querySelector('[data-kb="auto-health"]')`)) === true)

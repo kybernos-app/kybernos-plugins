@@ -5303,17 +5303,26 @@ const mountKabyAccount = (ctx) => {
   })
 }
 
+/** What the person reads when the gate asks: the model's own plain sentence first, the command after it for whoever wants to check. `summary` stays the action itself (it is what an « allow once » is matched on). */
+export const approvalShown = (summary, description) => {
+  const flat = (v, max) => { const s = String(v ?? '').replace(/\s+/gu, ' ').trim(); return s.length > max ? s.slice(0, max - 1) + '…' : s }
+  const lead = flat(description, 140)
+  if (lead === '') return flat(summary, 380)
+  const detail = flat(summary, 150)
+  return detail === '' ? lead : lead + ' (' + detail + ')'
+}
 const turnApprovalSubject = (exec) => {
   const name = String((exec && exec.name) || '')
   const args = exec && exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
   const text = (v) => (typeof v === 'string' ? v : '')
-  if (name === 'bash') return { kind: 'shell', summary: text(args.command) || text(args.description) || 'bash' }
-  if (name === 'write') return { kind: 'write', summary: text(args.file_path) || 'write' }
-  if (name === 'edit') return { kind: 'edit', summary: text(args.file_path) || 'edit' }
+  // The engine makes the model write what every command does in 5 to 10 words (`description`, « shown in the UI »): that sentence, in the person's language, is the question; the raw command was the whole of it before, and measured on WhatsApp (2026-11-03) it was what a person was asked to approve four times for a pizzeria's page.
+  if (name === 'bash') { const summary = text(args.command) || text(args.description) || 'bash'; return { kind: 'shell', summary, shown: approvalShown(summary, text(args.command) !== '' ? text(args.description) : '') } }
+  if (name === 'write') { const summary = text(args.file_path) || 'write'; return { kind: 'write', summary, shown: summary } }
+  if (name === 'edit') { const summary = text(args.file_path) || 'edit'; return { kind: 'edit', summary, shown: summary } }
   let shown = ''
   try { shown = JSON.stringify(args) } catch (e) { shown = '' }
   const summary = (name + ' ' + shown).trim()
-  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary }
+  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary, shown: summary }
 }
 const turnPlatform = async (method, path, body) => {
   const { api, token } = computerSelf()
@@ -5344,15 +5353,16 @@ const turnGate = (ctx) => async (exec, next) => {
   const asked = turnAsks.get(root) || 0
   if (asked >= TURN_GATE_MAX_ASKS) {
     noteRefusal(root, name, false)
-    return { kind: 'deny', reason: `You have already asked the person ${TURN_GATE_MAX_ASKS} times in this task. Do not ask again: say what you could not do and what you would need them to allow (they can tap "Allow for this task").` }
+    // No question is pending any more, so there is no « Allow for this task » button left to tap (measured on WhatsApp, 2026-11-03: Kaby told the person to tap one that was gone): the way on is a new message.
+    return { kind: 'deny', reason: `You have already asked the person ${TURN_GATE_MAX_ASKS} times in this task. Do not ask again and do not tell them to tap a button: say in plain words what is done, what is left, and that they can write "go on" to let you continue.` }
   }
   // Never wait past the turn's own end: the model needs the time after a refusal to answer.
   const budget = turnBudgets.get(root)
   const stop = Math.min(Date.now() + turnGateWaitMs(), budget === undefined ? Infinity : budget.at + budget.ms - turnGateGraceMs())
   if (stop <= Date.now()) return refuse('there was no time left to ask', false)
   const subject = turnApprovalSubject(exec)
-  const summary = (asked === 0 ? '' : `Question ${asked + 1} in this task: `) + subject.summary
-  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: summary.slice(0, 2000) })
+  const summary = (asked === 0 ? '' : `(${asked + 1}/${TURN_GATE_MAX_ASKS}) `) + subject.shown
+  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: summary.slice(0, 400) })
   if (made.status !== 200 || made.json === null || typeof made.json.id !== 'string') return refuse('it could not be asked')
   turnAsks.set(root, asked + 1)
   if (turnAsks.size > 200) turnAsks.delete(turnAsks.keys().next().value)
@@ -5416,7 +5426,7 @@ const nativeGate = (ctx) => async (exec, next) => {
   if (approval === undefined || approval === null || typeof approval.request !== 'function') return refuse('it could not be asked')
   let outcome = 'unavailable'
   try {
-    outcome = await approval.request({ agent: exec.agent, toolName: name, reason: turnApprovalSubject(exec).summary.slice(0, 500), signal: exec.signal })
+    outcome = await approval.request({ agent: exec.agent, toolName: name, reason: turnApprovalSubject(exec).shown.slice(0, 500), signal: exec.signal })
   } catch (e) { outcome = 'unavailable' }
   return outcome === 'allowed-once' ? next() : refuse(outcome === 'denied' ? 'they refused it' : 'it could not be asked')
 }
@@ -5460,7 +5470,7 @@ const automationGate = () => async (exec, next) => {
       if (rec !== undefined) { rec.used = true; askWrite(approvalsFile(), items) }
     }
     if (v.kind !== 'ask') return v
-    const made = await turnPlatform('POST', '/v1/computer/approvals', { task_ref: run.ref, run_key: run.root, kind: subject.kind, summary: subject.summary.slice(0, 2000) })
+    const made = await turnPlatform('POST', '/v1/computer/approvals', { task_ref: run.ref, run_key: run.root, kind: subject.kind, summary: subject.shown.slice(0, 400) })
     if (made.status !== 200 || made.json === null || typeof made.json.id !== 'string') return { kind: 'deny', why: 'failed' }
     items.push({ id: made.json.id, sessionId: run.root, taskId: run.taskId, ref: run.ref, kind: subject.kind, summary: subject.summary.slice(0, 400), key, askedAt: new Date().toISOString(), state: 'pending' })
     askWrite(approvalsFile(), items)

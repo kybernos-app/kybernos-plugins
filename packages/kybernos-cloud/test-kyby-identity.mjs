@@ -7,8 +7,8 @@ import { BODIES, CHANNELS, CORE, VOICE, aliasOf, dataBlock, dataLine, identityBl
 import { QUESTIONS, countEmoji, score } from './test-kyby-eval.mjs'
 import { kybyPrompt, nowSentence } from './kyby-native.mjs'
 
-// The text Kaby always carries (the rules, the voice, the situation) stays under this many characters. 3,000 until 2026-11-01, then 3,250 for the mandate rule (about 240 characters, 60 tokens).
-const CORE_BUDGET = 3250
+// The text Kaby always carries (the rules, the voice, the situation) stays under this many characters. 3,000 until 2026-11-01, then 3,250 for the mandate rule (about 240 characters, 60 tokens), then 3,650 on 2026-11-03 for two lines measured on a pizzeria task (what the person reads when asked to approve a command, and what Kaby says when asked to put a page online: about 110 tokens).
+const CORE_BUDGET = 3650
 
 let fail = 0
 const ok =(name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  ' + JSON.stringify(detail))); if (!cond) fail++ }
@@ -65,7 +65,7 @@ const VOICE_TRAITS = [
   ['dry, rare humour, none on failure, cost or security', /Humour is dry and rare; none when something failed, cost money or touches security/]
 ]
 for (const [name, re] of VOICE_TRAITS) ok('voice: ' + name, re.test(NATIVE) && re.test(CLOUD), name)
-ok('the voice stays under the 1,500-character cap', VOICE.join('\n').length <= 1500, VOICE.join('\n').length)
+ok('the voice stays under the 1,650-character cap (1,500 until 2026-11-03: the line on hosting)', VOICE.join('\n').length <= 1650, VOICE.join('\n').length)
 
 // ── where and when ───────────────────────────────────────────────────────────
 ok('the channel line comes from the channel table', NATIVE.includes(CHANNELS.chat) && CLOUD.includes(CHANNELS.telegram))
