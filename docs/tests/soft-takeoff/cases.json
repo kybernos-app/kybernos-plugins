@@ -766,7 +766,7 @@
       "area": "computer",
       "title": "Account B: create a Cloud Computer, wake it, open its page by ticket; it is signed in and shows no first-run wizard",
       "runner": "owner",
-      "note": "Needs a staging server and a Fly machine (cost). Server-side play script: computers-play.ts in the server repo.",
+      "note": "Needs a staging server and a Fly machine (cost). Server-side play script: computers-play.ts in the server repo. It needs the owner's Fly organisation token (image push and `computers-play.ts`); whether the image is already on the registry cannot be seen without it.",
       "env": "staging",
       "personas": [
         "B"
@@ -825,7 +825,7 @@
       "area": "security",
       "title": "Only the owner (and whoever the access setting allows) can open a computer; a removed member cannot",
       "runner": "owner",
-      "note": "Ticket route; try with a member, a removed member, a stranger.",
+      "note": "Ticket route; try with a member, a removed member, a stranger. The rules are covered at server level (kybernos-server `test/computers.test.ts`, with the meter, Fly, console and Kyby files: 125 tests pass, 2026-11-03); the play on a real machine waits for the Fly access.",
       "env": "staging",
       "personas": [
         "A",
@@ -855,7 +855,7 @@
       "area": "computer",
       "title": "A sleeping Free computer with no credit left is deleted after free_idle_delete_days",
       "runner": "owner",
-      "note": "Set the owner setting to a short value on staging.",
+      "note": "Set the owner setting to a short value on staging. The deletion rule and the setting are covered at server level (`test/computers-meter.test.ts`, 125 tests pass with the other computers files, 2026-11-03); the play on a real server waits for the Fly access.",
       "env": "staging",
       "personas": [
         "B"
@@ -905,13 +905,13 @@
       "area": "budget",
       "title": "Account menu of the Cloud card on a signed-in account (Cloud Computer line, plan, budget)",
       "runner": "script",
-      "cmd": "source \"$KB_E2E_DIR/env.sh\" && KB_HOST=\"$KB_E2E_HOST_A\" node scripts/check-cloud-menu-live.mjs",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && DSH_HOME=\"$KB_E2E_HOME_A/.dsh\" KB_HOST=\"$KB_E2E_HOST_A\" node scripts/check-cloud-menu-live.mjs",
       "env": "replica",
       "personas": [
         "A"
       ],
-      "status": "to-verify",
-      "note": "Exits 3 on a sandbox with no signed-in account: run it on account A of the replica. Confirm it accepts a sandbox host before the first run.",
+      "status": "ready",
+      "note": "Run on account A of the replica (a sandbox with no signed-in account exits 3). The check signs in through DSH_HOME, so the command sets it to the sandbox's own: without it the page says « dsh web authentication required » and the check reports « not connected ». Run on 2026-11-03: 6 checks pass.",
       "watch": [
         "cloud-budget"
       ]
@@ -923,12 +923,13 @@
       "area": "phone",
       "title": "Remote control from the phone",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-mobile-remote-live.mjs",
+      "cmd": "(export KB_SANDBOX_ROOT=\"$HOME/.kybernos-sandbox/$(basename \"$PWD\")-c\" KB_SANDBOX_PORT=3120; unset KYBERNOS_CLOUD_API KB_HOST; bash scripts/sandbox/stop.sh >/dev/null 2>&1; bash scripts/sandbox/start.sh >/dev/null 2>&1; sleep 3; source scripts/sandbox/env.sh && node scripts/check-mobile-remote-live.mjs)",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Persona C's sandbox (3120), restarted here WITHOUT KYBERNOS_CLOUD_API. The check points the sandbox at its own stand-in relay through `servers.json`; a sandbox started with the replica's address (the recette default of `soft-takeoff-sandbox-up.sh`), or one that is paired with the replica (A, B), sends the stand-in's token to the replica, which refuses it: « Sign in needed », no « Add a phone » button, 14 reds. A killed run leaves `kybernos/servers.json` and `kybernos-cloud-live-mobile.json*` in the sandbox's `.dsh`: delete them before a rerun. Run on 2026-11-03: 37 checks pass."
     },
     {
       "id": "W4-01",

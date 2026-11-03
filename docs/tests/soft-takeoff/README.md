@@ -33,7 +33,7 @@ The owner's order: what is visible first, then models, the cloud computer, billi
 | W0 | Gates and environment | none / replica | 9 (8) | gates green, preflight proves a request reaches the server for both accounts, canaries behave |
 | W1 | What a person sees: first run, new chat, every page, Settings, languages, phone, five walkthroughs | sandbox + replica | 23 (21) | all P0 pass, ledger has no P0/P1 |
 | W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 14 (9) | same |
-| W3 | Cloud computer, account B | staging | 13 (5) | same, plus egress played on a real Linux machine |
+| W3 | Cloud computer, account B | staging | 13 (6) | same, plus egress played on a real Linux machine |
 | W4 | Subscription, billing, team sharing | replica, then staging | 20 (10) | same, plus Stripe test-mode paths |
 | W5 | Regression, upgrade and rollback, fresh install, go / no-go | all | 7 (4) | the verdict rule above |
 

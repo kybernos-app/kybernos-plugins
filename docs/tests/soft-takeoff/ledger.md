@@ -104,6 +104,21 @@ Run by scripts, on the tip of `dev` (41c531a1) plus the journey fixes below. The
 | W4-08 server acceptance plan | fail, environment and test side | harness replica: 443 ok, 41 fail, 5 skipped; dedicated replica: 459 ok, 30 fail, 0 skipped; read by code: 0 product defects (T-027) |
 | W4-16, W4-20 (agent) | not run | W4-16's removal path is what J7 plays (T-028); W4-20 needs the walk driver on two sandboxes |
 
+## Wave W3 (2026-11-03): what runs without a real machine
+
+Six of the thirteen cases run by script; the other seven need a real Cloud Computer and wait for the Fly access (README § 9, question 4). No spend, no network beyond the loopback. Evidence: `w3/`, `w3-final/` in the archive.
+
+| Case | Verdict | Notes |
+|---|---|---|
+| W3-01 computer image unit tests | pass | 8 s |
+| W3-02 computer turn approvals | pass | 1 s |
+| W3-11 Kybernos Cloud plugin unit tests | pass | 20 s |
+| W3-12 automation sent to a computer | pass | under 1 s |
+| W3-13 account menu of the Cloud card | pass after fix | 6 checks. First « blocked » (« not connected »): the check signs in through `DSH_HOME`, which the case's command did not set, so the page said « dsh web authentication required ». Test side |
+| W3-10 remote control from the phone | pass after fix | 37/37. First 14 reds, environment: the sandbox had the replica's address (the recette default) or a pairing with the replica, so the stand-in relay's token was sent to the replica, which refused it (« Sign in needed », no « Add a phone »). Run on persona C's sandbox restarted without `KYBERNOS_CLOUD_API`, and with the leftovers of a killed run removed (`servers.json`, `kybernos-cloud-live-mobile.json*`) |
+| W3-03, W3-04, W3-05, W3-06, W3-08 | blocked | a real machine: wake, billing of the hour, the volume, the egress rules on Linux, A on the desktop with B on the computer. It needs the owner's Fly organisation token (the image push, `docker login registry.fly.io`, and `computers-play.ts`); whether the image is already on the registry cannot be seen from here |
+| W3-07, W3-09 | blocked | the rules (ticket access, idle deletion) are covered by the server's own tests (125 pass across the five computers files); the play on a real server waits for the Fly access |
+
 ## Defects
 
 | Defect | Case | Sev | Symptom (what the person sees) | Cause | Fix (commit) | Attempts | State |
@@ -175,3 +190,5 @@ State: `open` | `fixed` (case and ring green) | `closed` (not a product defect, 
 30. **Read the whole repair output before a replay.** The first replay of J7 on the fixed client ran on a stopped sandbox A and an unpaired B (16 reds, « Sign in again » on every screen); the preflight had said `PREFLIGHT FAILED` and the command cut the output with `tail`. A journey run is only valid after a line `preflight ok` for both accounts.
 31. **A sandbox cloned from the owner's profile inherits his default agent preset.** His is `minimal`, whose system prompt is one line and has no plugin sections: every check that looks for what a plugin puts in the prompt (memory, team lessons, the memory-off marker) reads « absent » and looks like a product defect (J2, 13/16 ticketed for a day). The harness now pins `standard` next to the model (`pin-model.mjs --preset`). Before ticketing a missing prompt block, read the system prompt of the request: a one-line prompt is the preset, not the plugin.
 32. **A test that sends right after another member's change must wait for the other side's cache, or restart it.** A team DSH re-reads the approved lessons every 5 minutes at most; a check of « the member sees what the owner approved » is either a 5-minute wait or a start of the member's DSH after the approval (J2 does the second).
+33. **A check that points a sandbox at its own stand-in server needs a sandbox the recette has not pointed at the replica.** The recette keeps A, B and C on the replica's address (`KYBERNOS_CLOUD_API`, the default of `soft-takeoff-sandbox-up.sh`): the phone check wrote its stand-in into `servers.json`, the plugin kept talking to the replica, the replica refused the stand-in's token and the DSH ended the session (« Sign in again », a `.ended` file). 14 reds that looked like a broken phone page. And do not stop a sandbox while a background check of it is still running: two runs on one home leave each other's files behind.
+34. **A live check that signs in through the cookie needs `DSH_HOME` of the sandbox it targets.** `KB_HOST` alone opens the right port and an unauthenticated page; the card the check looks for is then « missing », which reads as « not connected ».
