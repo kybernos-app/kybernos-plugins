@@ -152,6 +152,12 @@
       "why": "About page, update log and DSH compatibility.",
       "unit": 6
     },
+    "kybernos-maquettes": {
+      "state": "off",
+      "call": "recommended",
+      "why": "Mockup editor: an optional creation tool, off by default; it edits files in folders the person registered.",
+      "unit": 6
+    },
     "kybernos-memory": {
       "state": "on",
       "call": "recommended",
