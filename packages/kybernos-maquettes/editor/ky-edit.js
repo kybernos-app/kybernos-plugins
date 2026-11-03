@@ -2,13 +2,15 @@
 // lives in a shadow root, so the maquette's own CSS cannot touch it and it cannot touch the maquette's.
 // Nothing here writes to the file by itself: changes are staged in the page, then sent in one go by the Save button.
 // The page runs in a sandbox (no origin, no cookie): every call to the host goes through the DSH page around it (see `bridge`).
-// The words are French in the source and the English ones live in EN (see `t` and `i18n`).
+// The words are English in the source; the French of each sentence lives in ROWS (see `tx` and `i18n`).
 (() => {
   if (window.__kyEdit) return; window.__kyEdit = true;
   const SCRIPT = document.currentScript;
   const FILE = (SCRIPT && SCRIPT.dataset.file) || 'index.html';
   const LANG = SCRIPT && SCRIPT.dataset.lang === 'fr' ? 'fr' : 'en';
-  const F = LANG === 'fr', LQ = F ? '« ' : '“', RQ = F ? ' »' : '”', COL = F ? ' : ' : ': ';
+  const F = LANG === 'fr';
+  const kt = (fr, en) => (F ? fr : en);   // a sentence that needs more than a word-for-word lookup (plurals, quotes), French then English
+  const LQ = kt('« ', '“'), RQ = kt(' »', '”'), COL = kt(' : ', ': ');
   if (window.parent === window) return;   // opened on its own, outside the Maquettes page: no bridge, so no editor
 
   let palette = [];   // the blocks offered under « Insérer »: the server owns the list (/api/blocks), so it exists in one place
@@ -16,314 +18,318 @@
   const fill = (html, { src = '', alt = '' }) => html.replace(/\{\{src\}\}/g, attr(src)).replace(/\{\{alt\}\}/g, attr(alt));
   const IMG_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
   const isImg = (f) => IMG_TYPES.includes(f.type);
-  // ---- words: French is the source, English is looked up here (`tx` for a string, `i18n` for what is drawn); a missing entry shows the French ----
-  const EN = {
-    'Glisser pour déplacer ce bloc': 'Drag to move this block',
-    'Choisir le bloc qui contient celui-ci': 'Choose the block that contains this one',
-    'Taille, graisse et alignement du texte': 'Size, weight and alignment of the text',
-    'Couleur du texte': 'Text colour',
-    'Couleur de fond': 'Background colour',
-    'Réglages : texte, couleurs, police, bordure, marges, taille…': 'Settings: text, colours, font, border, margins, size…',
-    'Réglages': 'Settings',
-    'Dupliquer (Cmd/Ctrl + D)': 'Duplicate (Cmd/Ctrl + D)',
-    'Supprimer, après confirmation (Suppr)': 'Delete, after confirmation (Del)',
-    'Ajouter un bloc ou une image': 'Add a block or a picture',
-    'Ajouter': 'Add',
-    'Aucun changement': 'No change',
-    'Voir la liste des changements en attente': 'See the list of waiting changes',
-    'Abandonner tous les changements en attente (le fichier n\'est pas touché)': 'Give up all waiting changes (the file is not touched)',
-    'Annuler tout': 'Cancel all',
-    'Écrire les changements dans le fichier (une copie de sécurité est gardée)': 'Write the changes into the file (a safety copy is kept)',
-    'Enregistrer': 'Save',
-    'Quitter le mode modification (les changements en attente sont gardés)': 'Leave edit mode (waiting changes are kept)',
-    'Quitter': 'Leave',
-    'Modifier cette page': 'Edit this page',
-    'Modifier': 'Edit',
-    'Annuler tous les changements ?': 'Cancel all changes?',
-    'Tout annuler': 'Cancel all',
-    'Ne rien faire (Échap)': 'Do nothing (Esc)',
-    'Annuler': 'Cancel',
-    'Supprimer cet élément ?': 'Delete this element?',
-    'Supprimer': 'Delete',
-    'Taille': 'Size',
-    'Taille du texte, en pixels': 'Text size, in pixels',
-    'Plus petit': 'Smaller',
-    'Plus grand': 'Larger',
-    'Graisse': 'Weight',
-    'Épaisseur des traits du texte': 'Thickness of the letter strokes',
-    'Épaisseur normale': 'Normal weight',
-    'Texte en gras': 'Bold text',
-    'Gras': 'Bold',
-    'Alignement': 'Alignment',
-    'Alignement du texte dans son bloc': 'Alignment of the text in its block',
-    'À gauche': 'Left',
-    'Centré': 'Centred',
-    'À droite': 'Right',
-    'À insérer par rapport à': 'Insert relative to',
-    'À insérer': 'Insert',
-    'à la fin de la page': 'at the end of the page',
-    'la fin de la page': 'the end of the page',
-    'la page': 'the page',
-    'Rien ne permet d\'insérer ici.': 'Nothing can be inserted here.',
-    'Après': 'After',
-    'Avant': 'Before',
-    'Dedans': 'Inside',
-    'Placer le bloc après celui qui est choisi': 'Put the block after the chosen one',
-    'Placer le bloc avant celui qui est choisi': 'Put the block before the chosen one',
-    'Placer le bloc à l\'intérieur de celui qui est choisi': 'Put the block inside the chosen one',
-    'ou l\'adresse d\'une image : https://…': 'or the address of a picture: https://…',
-    'Cliquez sur un bloc, ou glissez-le sur la page. Une image déposée ou collée devient aussi un bloc.': 'Click a block, or drag it onto the page. A picture dropped or pasted also becomes a block.',
-    'Collez une adresse d\'image qui commence par https://': 'Paste a picture address that starts with https://',
-    'Rien ne permet d\'insérer ici : choisissez un bloc de la page.': 'Nothing can be inserted here: choose a block of the page.',
-    'Seules les images PNG, JPEG, GIF et WebP sont acceptées.': 'Only PNG, JPEG, GIF and WebP pictures are accepted.',
-    'Seules les images PNG, JPEG, GIF et WebP peuvent être déposées.': 'Only PNG, JPEG, GIF and WebP pictures can be dropped.',
-    'Cette image dépasse 8 Mo.': 'This picture is larger than 8 MB.',
-    'Image refusée : ': 'Picture refused: ',
-    'Image remplacée': 'Picture replaced',
-    'Rien en attente.': 'Nothing waiting.',
-    'Retirer ce changement de la liste': 'Remove this change from the list',
-    'Remet le fichier tel qu\'il était avant votre dernier enregistrement': 'Puts the file back as it was before your last save',
-    'Revenir avant le dernier enregistrement': 'Go back to before the last save',
-    'Remet la page comme elle était avant le premier enregistrement de l\'éditeur': 'Puts the page back as it was before the editor\'s first save',
-    'Remettre la page d\'origine': 'Put the original page back',
-    'Revenir avant le dernier enregistrement ?': 'Go back to before the last save?',
-    'Le fichier reprend son contenu d\'avant. Les changements en attente sont abandonnés.': 'The file gets its previous content back. Waiting changes are given up.',
-    'Revenir en arrière': 'Go back',
-    'Remettre la page d\'origine ?': 'Put the original page back?',
-    'La page reprend son contenu d\'avant le premier enregistrement de l\'éditeur : tous ses enregistrements sont perdus.': 'The page gets its content from before the editor\'s first save back: all its saves are lost.',
-    'Page d\'origine remise': 'Original page put back',
-    'Rien n\'a été enregistré par l\'éditeur : rien à remettre': 'The editor has saved nothing: nothing to put back',
-    'Impossible de remettre l\'original : ': 'Could not put the original back: ',
-    'Impossible de revenir en arrière : ': 'Could not go back: ',
-    'Rien à annuler': 'Nothing to undo',
-    'Fichier remis comme avant le dernier enregistrement': 'File put back as it was before the last save',
-    'Rien à enregistrer': 'Nothing to save',
-    'La page a changé depuis son ouverture (Kaby ou vous). Rien n\'a été écrit : rechargez la maquette.': 'The page changed since it was opened (Kaby or you). Nothing was written: reload the maquette.',
-    'Refusé : ': 'Refused: ',
-    ' Rien n\'a été écrit.': ' Nothing was written.',
-    ' · identifiant(s) renommé(s) dans la copie (elle n\'est pas reliée au script de la page)': ' · id(s) renamed in the copy (it is not wired to the page script)',
-    'Demande envoyée à Kaby : relisez-la dans la conversation': 'Request sent to Kaby: read it in the chat',
-    'Le fichier a changé depuis : vos changements en attente ont été abandonnés.': 'The file changed since: your waiting changes were given up.',
-    'le serveur ne répond pas': 'the server does not answer',
-    'Supprimé. Ce changement est dans la liste : vous pouvez le retirer avant d\'enregistrer.': 'Deleted. This change is in the list: you can remove it before saving.',
-    'Enregistrez d\'abord cette copie pour pouvoir changer son style.': 'Save this copy first to be able to change its style.',
-    'Aucune règle partagée pour ça : choisissez « Cet élément » dans Réglages.': 'No shared rule for that: choose “This element” in Settings.',
-    'Cet élément est généré par la page et n\'a pas de règle partagée : décrivez le changement à Kaby (Réglages).': 'This element is generated by the page and has no shared rule: describe the change to Kaby (Settings).',
-    'Ce texte est composé par la page : ici, on change ses couleurs et sa taille. Pour le texte, décrivez le changement à Kaby (Réglages).': 'This text is composed by the page: here you change its colours and size. For the text itself, describe the change to Kaby (Settings).',
-    'Ce texte est composé par la page : il ne se change pas ici. Les couleurs, la taille et la mise en page, oui ; pour le texte, décrivez le changement à Kaby ci-dessus.': 'This text is composed by the page: it cannot be changed here. Colours, size and layout can; for the text, describe the change to Kaby above.',
-    'Ajoutée à la liste. Elle part vers Kaby avec « Enregistrer ».': 'Added to the list. It goes to Kaby with “Save”.',
-    'Dites en une phrase ce que vous voulez changer, puis Entrée : la demande va dans la liste et part vers Kaby avec « Enregistrer ».': 'Say in one sentence what you want to change, then Enter: the request goes into the list and is sent to Kaby with “Save”.',
-    'Je cherche d\'où vient ce texte…': 'Looking for where this text comes from…',
-    'Ajouté pendant cette session : tout se modifie.': 'Added in this session: everything can be changed.',
-    'Cet élément est fabriqué par la page : un changement de style vaut pour les': 'This element is built by the page: a style change applies to the',
-    'éléments du même type.': 'elements of the same type.',
-    'Élément fabriqué par la page : un changement de style vaut pour tous les éléments pareils.': 'Element built by the page: a style change applies to all similar elements.',
-    'Ce bloc contient plusieurs textes : cliquez dans le texte, sur la page, pour les changer.': 'This block holds several texts: click in the text, on the page, to change them.',
-    'Cet élément seulement, ou tous ceux qui partagent le même style dans le fichier': 'This element only, or all those sharing the same style in the file',
-    'Seul cet élément change (le style est écrit sur lui)': 'Only this element changes (the style is written on it)',
-    'Tous les éléments qui ont le même style changent (la règle partagée est modifiée)': 'All elements with the same style change (the shared rule is edited)',
-    'Cet élément': 'This element',
-    'Tous': 'All',
-    'Appliquer les changements à': 'Apply changes to',
-    'Contenu du texte': 'Text content',
-    'Les mots de cet élément. Ce que vous écrivez ici apparaît aussitôt sur la page.': 'The words of this element. What you write here shows on the page at once.',
-    'Remplacer…': 'Replace…',
-    'Choisir une autre image dans vos fichiers': 'Choose another picture from your files',
-    'Largeur': 'Width',
-    'Largeur de l\'image : automatique ou une part de la largeur du bloc': 'Picture width: automatic or a share of the block width',
-    'Description (pour qui ne voit pas l\'image)': 'Description (for who cannot see the picture)',
-    'Lue par les lecteurs d\'écran, affichée si l\'image ne charge pas': 'Read by screen readers, shown if the picture does not load',
-    'Adresse du lien': 'Link address',
-    'Où mène le lien : https://…, mailto:… ou #ancre': 'Where the link goes: https://…, mailto:… or #anchor',
-    'Décrire un changement (pour Kaby)': 'Describe a change (for Kaby)',
-    'Fermer les réglages': 'Close settings',
-    'Mise en page': 'Layout',
-    'Mise en forme': 'Formatting',
-    'Couleurs': 'Colours',
-    'Couleur': 'Colour',
-    'Typographie': 'Typography',
-    'Bordure': 'Border',
-    'Affichage': 'Display',
-    'Marge intérieure': 'Padding',
-    'Marge extérieure': 'Margin',
-    'Disposition': 'Arrangement',
-    'Couleurs, texte, bordure, affichage': 'Colours, text, border, display',
-    'Couleur du texte et du fond': 'Colour of the text and the background',
-    'Texte': 'Text',
-    'Fond': 'Background',
-    'Sans couleur de fond': 'No background colour',
-    'Retire la couleur de fond : on voit ce qu\'il y a derrière': 'Removes the background colour: what is behind shows',
-    'Police': 'Font',
-    'Police de caractères : celle de la page, sans empattement, avec empattement ou à chasse fixe': 'Typeface: the page\'s own, sans serif, serif or monospace',
-    'Actuelle': 'Current',
-    'Sans empattement': 'Sans serif',
-    'Avec empattement': 'Serif',
-    'Chasse fixe': 'Monospace',
-    'Interligne': 'Line height',
-    'Interligne, en multiple de la taille du texte : 1,5 = une fois et demie': 'Line height, as a multiple of the text size: 1.5 = one and a half times',
-    'Espace entre les lettres': 'Letter spacing',
-    'Espace entre les lettres, en pixels (0 = normal)': 'Space between letters, in pixels (0 = normal)',
-    'Justifié': 'Justified',
-    'Italique': 'Italic',
-    'Souligné': 'Underline',
-    'Tout en majuscules': 'All capitals',
-    'Épaisseur des traits : Normal = 400, Gras = 700': 'Stroke thickness: Normal = 400, Bold = 700',
-    'Mince': 'Thin',
-    'Moyen': 'Medium',
-    'Demi-gras': 'Semi-bold',
-    'Très gras': 'Extra bold',
-    'Trait': 'Line',
-    'Trait autour du bloc et coins arrondis': 'Line around the block and rounded corners',
-    'Épaisseur du trait autour du bloc, en pixels (0 = pas de trait)': 'Thickness of the line around the block, in pixels (0 = no line)',
-    'Style du trait : plein, tirets ou points': 'Line style: solid, dashed or dotted',
-    'Couleur du trait autour du bloc': 'Colour of the line around the block',
-    'Coins': 'Corners',
-    'Arrondi des coins, en pixels (50% = rond)': 'Corner rounding, in pixels (50% = round)',
-    'Plein': 'Solid',
-    'Tirets': 'Dashed',
-    'Points': 'Dotted',
-    'Aucun': 'None',
-    'Aucune': 'None',
-    'Façon de ranger le bloc, transparence, ombre': 'How the block is laid out, opacity, shadow',
-    'Façon dont le bloc se range : bloc, ligne, flex (souple) ou grille': 'How the block is laid out: block, inline, flex or grid',
-    'Opacité': 'Opacity',
-    'Opacité : 100 % = plein, 0 % = invisible': 'Opacity: 100 % = solid, 0 % = invisible',
-    'Ombre': 'Shadow',
-    'Ombre portée du bloc': 'The block\'s drop shadow',
-    'Légère': 'Light',
-    'Moyenne': 'Medium',
-    'Forte': 'Strong',
-    'Grille': 'Grid',
-    'Bloc en ligne': 'Inline block',
-    'En ligne': 'Inline',
-    'Largeur et hauteur du bloc': 'Width and height of the block',
-    'Hauteur': 'Height',
-    'Largeur, en pixels ou avec une unité (%, rem…). « auto » = automatique': 'Width, in pixels or with a unit (%, rem…). “auto” = automatic',
-    'Hauteur, en pixels ou avec une unité. « auto » = selon le contenu': 'Height, in pixels or with a unit. “auto” = from the content',
-    'Largeur maximale, en pixels ou avec une unité. « none » = sans limite': 'Maximum width, in pixels or with a unit. “none” = no limit',
-    'Monter ou descendre le bloc parmi ses voisins': 'Move the block up or down among its neighbours',
-    'Monter': 'Move up',
-    'Descendre': 'Move down',
-    'Passer avant le bloc précédent': 'Go before the previous block',
-    'Passer après le bloc suivant': 'Go after the next block',
-    'Marge intérieure : l\'espace entre le bord du bloc et son contenu, en pixels': 'Padding: the space between the edge of the block and its content, in pixels',
-    'Marge extérieure : l\'espace autour du bloc, en pixels': 'Margin: the space around the block, in pixels',
-    'Les quatre côtés ensemble': 'All four sides together',
-    'Chaque côté séparément': 'Each side separately',
-    'Séparer : un réglage par côté': 'Separate: one setting per side',
-    'Lier : un seul réglage pour les quatre côtés': 'Link: one setting for all four sides',
-    'Haut': 'Top',
-    'Droite': 'Right',
-    'Bas': 'Bottom',
-    'Gauche': 'Left',
-    'Sens': 'Direction',
-    'Sens de rangement : côte à côte (ligne) ou l\'un sous l\'autre (colonne)': 'Direction: side by side (row) or one under the other (column)',
-    'Ligne': 'Row',
-    'Colonne': 'Column',
-    'Côte à côte': 'Side by side',
-    'L\'un sous l\'autre': 'One under the other',
-    'Alignement des éléments sur l\'autre axe': 'Alignment of the items on the other axis',
-    'Répartition': 'Distribution',
-    'Répartition des éléments le long du sens de rangement': 'Distribution of the items along the direction',
-    'Comment les éléments contenus se rangent': 'How the contained items are arranged',
-    'Espace entre les éléments rangés, en pixels': 'Space between the arranged items, in pixels',
-    'Espace': 'Gap',
-    'Étirer': 'Stretch',
-    'Début': 'Start',
-    'Fin': 'End',
-    'Ligne de base': 'Baseline',
-    'Espacé': 'Space between',
-    'Réparti': 'Space around',
-    'Égal': 'Space evenly',
-    'nouveau': 'new',
-    'données': 'data',
-    'composé': 'composed',
-    'généré': 'generated',
-    'pour Kaby': 'for Kaby',
-    '(élément généré)': '(generated element)',
-    '(hérité)': '(inherited)',
-    'texte modifié': 'text changed',
-    'déplacé': 'moved',
-    'dupliqué': 'duplicated',
-    'supprimé': 'deleted',
-    'avant': 'before',
-    'après': 'after',
-    'dans': 'in',
-    'copie': 'copy',
-    'Titre': 'Title',
-    'Citation': 'Quote',
-    'Légende': 'Caption',
-    'Séparateur': 'Divider',
-    'Bouton': 'Button',
-    'Sélectionnez un seul morceau de texte à la fois (pas les icônes ni les liens)': 'Select one piece of text at a time (not the icons or links)',
-    'Image': 'Picture',
-    'Icône': 'Icon',
-    'Liste': 'List',
-    'Élément de liste': 'List item',
-    'Champ': 'Field',
-    'Étiquette': 'Label',
-    'Tableau': 'Table',
-    'Formulaire': 'Form',
-    'En-tête': 'Header',
-    'Pied de page': 'Footer',
-    'Panneau': 'Panel',
-    'Contenu': 'Content',
-    'Bloc': 'Block',
-    'Lien': 'Link',
-    'image': 'picture',
-    'adresse du lien': 'link address',
-    'couleur du texte': 'text colour',
-    'fond': 'background',
-    'police': 'font',
-    'taille': 'size',
-    'interligne': 'line height',
-    'espacement des lettres': 'letter spacing',
-    'graisse': 'weight',
-    'italique': 'italic',
-    'souligné': 'underline',
-    'majuscules': 'capitals',
-    'alignement': 'alignment',
-    'épaisseur du trait': 'line thickness',
-    'style du trait': 'line style',
-    'couleur du trait': 'line colour',
-    'arrondi': 'rounding',
-    'opacité': 'opacity',
-    'ombre': 'shadow',
-    'affichage': 'display',
-    'marge intérieure': 'padding',
-    'marge extérieure': 'margin',
-    'largeur': 'width',
-    'hauteur': 'height',
-    'largeur max': 'max width',
-    'hauteur min': 'min height',
-    'sens de rangement': 'direction',
-    'espace entre éléments': 'gap',
-    'répartition': 'distribution',
-    'haut': 'top',
-    'droite': 'right',
-    'bas': 'bottom',
-    'gauche': 'left',
-  };
-  const tx = (fr) => (LANG === 'fr' || EN[fr] === undefined ? fr : EN[fr]);
-  // Translates the text nodes and the title / placeholder / aria-label of `node` (the UI is built from French strings, so this is the one place that
-  // knows English). A value with no entry is left alone, which also ends the loop of the observer below.
+  // ---- words: English is the source; ROWS holds the French of each sentence as [fr, en], shown only when the DSH speaks French (`tx` for a string, `i18n` for what is drawn); a missing row shows the English ----
+  const ROWS = [
+    ['Glisser pour déplacer ce bloc', 'Drag to move this block'],
+    ['Choisir le bloc qui contient celui-ci', 'Choose the block that contains this one'],
+    ['Taille, graisse et alignement du texte', 'Size, weight and alignment of the text'],
+    ['Couleur du texte', 'Text colour'],
+    ['Couleur de fond', 'Background colour'],
+    ['Réglages : texte, couleurs, police, bordure, marges, taille…', 'Settings: text, colours, font, border, margins, size…'],
+    ['Réglages', 'Settings'],
+    ['Dupliquer (Cmd/Ctrl + D)', 'Duplicate (Cmd/Ctrl + D)'],
+    ['Supprimer, après confirmation (Suppr)', 'Delete, after confirmation (Del)'],
+    ['Ajouter un bloc ou une image', 'Add a block or a picture'],
+    ['Ajouter', 'Add'],
+    ['Aucun changement', 'No change'],
+    ['Voir la liste des changements en attente', 'See the list of waiting changes'],
+    ['Abandonner tous les changements en attente (le fichier n\'est pas touché)', 'Give up all waiting changes (the file is not touched)'],
+    ['Annuler tout', 'Cancel all'],
+    ['Écrire les changements dans le fichier (une copie de sécurité est gardée)', 'Write the changes into the file (a safety copy is kept)'],
+    ['Enregistrer', 'Save'],
+    ['Quitter le mode modification (les changements en attente sont gardés)', 'Leave edit mode (waiting changes are kept)'],
+    ['Quitter', 'Leave'],
+    ['Modifier cette page', 'Edit this page'],
+    ['Modifier', 'Edit'],
+    ['Annuler tous les changements ?', 'Cancel all changes?'],
+    ['Ne rien faire (Échap)', 'Do nothing (Esc)'],
+    ['Annuler', 'Cancel'],
+    ['Supprimer cet élément ?', 'Delete this element?'],
+    ['Supprimer', 'Delete'],
+    ['Taille', 'Size'],
+    ['Taille du texte, en pixels', 'Text size, in pixels'],
+    ['Plus petit', 'Smaller'],
+    ['Plus grand', 'Larger'],
+    ['Graisse', 'Weight'],
+    ['Épaisseur des traits du texte', 'Thickness of the letter strokes'],
+    ['Épaisseur normale', 'Normal weight'],
+    ['Texte en gras', 'Bold text'],
+    ['Gras', 'Bold'],
+    ['Alignement', 'Alignment'],
+    ['Alignement du texte dans son bloc', 'Alignment of the text in its block'],
+    ['À gauche', 'Align left'],
+    ['Centré', 'Centred'],
+    ['À droite', 'Align right'],
+    ['À insérer par rapport à', 'Insert relative to'],
+    ['À insérer', 'Insert'],
+    ['à la fin de la page', 'at the end of the page'],
+    ['la fin de la page', 'the end of the page'],
+    ['la page', 'the page'],
+    ['Rien ne permet d\'insérer ici.', 'Nothing can be inserted here.'],
+    ['Après', 'After'],
+    ['Avant', 'Before'],
+    ['Dedans', 'Inside'],
+    ['Placer le bloc après celui qui est choisi', 'Put the block after the chosen one'],
+    ['Placer le bloc avant celui qui est choisi', 'Put the block before the chosen one'],
+    ['Placer le bloc à l\'intérieur de celui qui est choisi', 'Put the block inside the chosen one'],
+    ['ou l\'adresse d\'une image : https://…', 'or the address of a picture: https://…'],
+    ['Clique sur un bloc, ou glisse-le sur la page. Une image déposée ou collée devient aussi un bloc.', 'Click a block, or drag it onto the page. A picture dropped or pasted also becomes a block.'],
+    ['Colle une adresse d\'image qui commence par https://', 'Paste a picture address that starts with https://'],
+    ['Rien ne permet d\'insérer ici : choisis un bloc de la page.', 'Nothing can be inserted here: choose a block of the page.'],
+    ['Seules les images PNG, JPEG, GIF et WebP sont acceptées.', 'Only PNG, JPEG, GIF and WebP pictures are accepted.'],
+    ['Seules les images PNG, JPEG, GIF et WebP peuvent être déposées.', 'Only PNG, JPEG, GIF and WebP pictures can be dropped.'],
+    ['Cette image dépasse 8 Mo.', 'This picture is larger than 8 MB.'],
+    ['Image refusée : ', 'Picture refused: '],
+    ['Image remplacée', 'Picture replaced'],
+    ['Rien en attente.', 'Nothing waiting.'],
+    ['Retirer ce changement de la liste', 'Remove this change from the list'],
+    ['Remet le fichier tel qu\'il était avant ton dernier enregistrement', 'Puts the file back as it was before your last save'],
+    ['Revenir avant le dernier enregistrement', 'Go back to before the last save'],
+    ['Remet la page comme elle était avant le premier enregistrement de l\'éditeur', 'Puts the page back as it was before the editor\'s first save'],
+    ['Remettre la page d\'origine', 'Put the original page back'],
+    ['Revenir avant le dernier enregistrement ?', 'Go back to before the last save?'],
+    ['Le fichier reprend son contenu d\'avant. Les changements en attente sont abandonnés.', 'The file gets its previous content back. Waiting changes are given up.'],
+    ['Revenir en arrière', 'Go back'],
+    ['Remettre la page d\'origine ?', 'Put the original page back?'],
+    ['La page reprend son contenu d\'avant le premier enregistrement de l\'éditeur : tous ses enregistrements sont perdus.', 'The page gets its content from before the editor\'s first save back: all its saves are lost.'],
+    ['Page d\'origine remise', 'Original page put back'],
+    ['Rien n\'a été enregistré par l\'éditeur : rien à remettre', 'The editor has saved nothing: nothing to put back'],
+    ['Impossible de remettre l\'original : ', 'Could not put the original back: '],
+    ['Impossible de revenir en arrière : ', 'Could not go back: '],
+    ['Rien à annuler', 'Nothing to undo'],
+    ['Fichier remis comme avant le dernier enregistrement', 'File put back as it was before the last save'],
+    ['Rien à enregistrer', 'Nothing to save'],
+    ['La page a changé depuis son ouverture (Kaby ou toi). Rien n\'a été écrit : recharge la maquette.', 'The page changed since it was opened (Kaby or you). Nothing was written: reload the mockup.'],
+    ['Refusé : ', 'Refused: '],
+    [' Rien n\'a été écrit.', ' Nothing was written.'],
+    [' · identifiant(s) renommé(s) dans la copie (elle n\'est pas reliée au script de la page)', ' · id(s) renamed in the copy (it is not wired to the page script)'],
+    ['Demande envoyée à Kaby : relis-la dans la conversation', 'Request sent to Kaby: read it in the chat'],
+    ['Le fichier a changé depuis : tes changements en attente ont été abandonnés.', 'The file changed since: your waiting changes were given up.'],
+    ['le serveur ne répond pas', 'the server does not answer'],
+    ['Supprimé. Ce changement est dans la liste : tu peux le retirer avant d\'enregistrer.', 'Deleted. This change is in the list: you can remove it before saving.'],
+    ['Enregistre d\'abord cette copie pour pouvoir changer son style.', 'Save this copy first to be able to change its style.'],
+    ['Aucune règle partagée pour ça : choisis « Cet élément » dans Réglages.', 'No shared rule for that: choose “This element” in Settings.'],
+    ['Cet élément est généré par la page et n\'a pas de règle partagée : décris le changement à Kaby (Réglages).', 'This element is generated by the page and has no shared rule: describe the change to Kaby (Settings).'],
+    ['Ce texte est composé par la page : ici, on change ses couleurs et sa taille. Pour le texte, décris le changement à Kaby (Réglages).', 'This text is composed by the page: here you change its colours and size. For the text itself, describe the change to Kaby (Settings).'],
+    ['Ce texte est composé par la page : il ne se change pas ici. Les couleurs, la taille et la mise en page, oui ; pour le texte, décris le changement à Kaby ci-dessus.', 'This text is composed by the page: it cannot be changed here. Colours, size and layout can; for the text, describe the change to Kaby above.'],
+    ['Ajoutée à la liste. Elle part vers Kaby avec « Enregistrer ».', 'Added to the list. It goes to Kaby with “Save”.'],
+    ['Dis en une phrase ce que tu veux changer, puis Entrée : la demande va dans la liste et part vers Kaby avec « Enregistrer ».', 'Say in one sentence what you want to change, then Enter: the request goes into the list and is sent to Kaby with “Save”.'],
+    ['Je cherche d\'où vient ce texte…', 'Looking for where this text comes from…'],
+    ['Ajouté pendant cette session : tout se modifie.', 'Added in this session: everything can be changed.'],
+    ['Cet élément est fabriqué par la page : un changement de style vaut pour les', 'This element is built by the page: a style change applies to the'],
+    ['éléments du même type.', 'elements of the same type.'],
+    ['Élément fabriqué par la page : un changement de style vaut pour tous les éléments pareils.', 'Element built by the page: a style change applies to all similar elements.'],
+    ['Ce bloc contient plusieurs textes : clique dans le texte, sur la page, pour les changer.', 'This block holds several texts: click in the text, on the page, to change them.'],
+    ['Cet élément seulement, ou tous ceux qui partagent le même style dans le fichier', 'This element only, or all those sharing the same style in the file'],
+    ['Seul cet élément change (le style est écrit sur lui)', 'Only this element changes (the style is written on it)'],
+    ['Tous les éléments qui ont le même style changent (la règle partagée est modifiée)', 'All elements with the same style change (the shared rule is edited)'],
+    ['Cet élément', 'This element'],
+    ['Tous', 'All'],
+    ['Appliquer les changements à', 'Apply changes to'],
+    ['Contenu du texte', 'Text content'],
+    ['Les mots de cet élément. Ce que tu écris ici apparaît aussitôt sur la page.', 'The words of this element. What you write here shows on the page at once.'],
+    ['Remplacer…', 'Replace…'],
+    ['Choisir une autre image dans tes fichiers', 'Choose another picture from your files'],
+    ['Largeur', 'Width'],
+    ['Largeur de l\'image : automatique ou une part de la largeur du bloc', 'Picture width: automatic or a share of the block width'],
+    ['Description (pour qui ne voit pas l\'image)', 'Description (for who cannot see the picture)'],
+    ['Lue par les lecteurs d\'écran, affichée si l\'image ne charge pas', 'Read by screen readers, shown if the picture does not load'],
+    ['Adresse du lien', 'Link address'],
+    ['Où mène le lien : https://…, mailto:… ou #ancre', 'Where the link goes: https://…, mailto:… or #anchor'],
+    ['Décrire un changement (pour Kaby)', 'Describe a change (for Kaby)'],
+    ['Fermer les réglages', 'Close settings'],
+    ['Mise en page', 'Layout'],
+    ['Mise en forme', 'Formatting'],
+    ['Couleurs', 'Colours'],
+    ['Couleur', 'Colour'],
+    ['Typographie', 'Typography'],
+    ['Bordure', 'Border'],
+    ['Affichage', 'Display'],
+    ['Marge intérieure', 'Padding'],
+    ['Marge extérieure', 'Margin'],
+    ['Disposition', 'Arrangement'],
+    ['Couleurs, texte, bordure, affichage', 'Colours, text, border, display'],
+    ['Couleur du texte et du fond', 'Colour of the text and the background'],
+    ['Texte', 'Text'],
+    ['choisir une image', 'choose a picture'],
+    ['Tous les pareils', 'All similar'],
+    ['Couleur de fond du bloc', 'Block background colour'],
+    ['Police du système', 'System font'],
+    ['Fond', 'Background'],
+    ['Sans couleur de fond', 'No background colour'],
+    ['Retire la couleur de fond : on voit ce qu\'il y a derrière', 'Removes the background colour: what is behind shows'],
+    ['Police', 'Font'],
+    ['Police de caractères : celle de la page, sans empattement, avec empattement ou à chasse fixe', 'Typeface: the page\'s own, sans serif, serif or monospace'],
+    ['Actuelle', 'Current'],
+    ['Sans empattement', 'Sans serif'],
+    ['Avec empattement', 'Serif'],
+    ['Chasse fixe', 'Monospace'],
+    ['Interligne', 'Line height'],
+    ['Interligne, en multiple de la taille du texte : 1,5 = une fois et demie', 'Line height, as a multiple of the text size: 1.5 = one and a half times'],
+    ['Espace entre les lettres', 'Letter spacing'],
+    ['Espace entre les lettres, en pixels (0 = normal)', 'Space between letters, in pixels (0 = normal)'],
+    ['Justifié', 'Justified'],
+    ['Italique', 'Italic'],
+    ['Souligné', 'Underline'],
+    ['Tout en majuscules', 'All capitals'],
+    ['Épaisseur des traits : Normal = 400, Gras = 700', 'Stroke thickness: Normal = 400, Bold = 700'],
+    ['Mince', 'Thin'],
+    ['Moyen', 'Medium'],
+    ['Demi-gras', 'Semi-bold'],
+    ['Très gras', 'Extra bold'],
+    ['Trait', 'Line'],
+    ['Trait autour du bloc et coins arrondis', 'Line around the block and rounded corners'],
+    ['Épaisseur du trait autour du bloc, en pixels (0 = pas de trait)', 'Thickness of the line around the block, in pixels (0 = no line)'],
+    ['Style du trait : plein, tirets ou points', 'Line style: solid, dashed or dotted'],
+    ['Couleur du trait autour du bloc', 'Colour of the line around the block'],
+    ['Coins', 'Corners'],
+    ['Arrondi des coins, en pixels (50% = rond)', 'Corner rounding, in pixels (50% = round)'],
+    ['Plein', 'Solid'],
+    ['Tirets', 'Dashed'],
+    ['Points', 'Dotted'],
+    ['Aucun', 'None'],
+    ['Aucune', 'No shadow'],
+    ['Façon de ranger le bloc, transparence, ombre', 'How the block is laid out, opacity, shadow'],
+    ['Façon dont le bloc se range : bloc, ligne, flex (souple) ou grille', 'How the block is laid out: block, inline, flex or grid'],
+    ['Opacité', 'Opacity'],
+    ['Opacité : 100 % = plein, 0 % = invisible', 'Opacity: 100 % = solid, 0 % = invisible'],
+    ['Ombre', 'Shadow'],
+    ['Ombre portée du bloc', 'The block\'s drop shadow'],
+    ['Légère', 'Light'],
+    ['Moyenne', 'Medium shadow'],
+    ['Forte', 'Strong'],
+    ['Grille', 'Grid'],
+    ['Bloc en ligne', 'Inline block'],
+    ['En ligne', 'Inline'],
+    ['Largeur et hauteur du bloc', 'Width and height of the block'],
+    ['Hauteur', 'Height'],
+    ['Largeur, en pixels ou avec une unité (%, rem…). « auto » = automatique', 'Width, in pixels or with a unit (%, rem…). “auto” = automatic'],
+    ['Hauteur, en pixels ou avec une unité. « auto » = selon le contenu', 'Height, in pixels or with a unit. “auto” = from the content'],
+    ['Largeur maximale, en pixels ou avec une unité. « none » = sans limite', 'Maximum width, in pixels or with a unit. “none” = no limit'],
+    ['Monter ou descendre le bloc parmi ses voisins', 'Move the block up or down among its neighbours'],
+    ['Monter', 'Move up'],
+    ['Descendre', 'Move down'],
+    ['Passer avant le bloc précédent', 'Go before the previous block'],
+    ['Passer après le bloc suivant', 'Go after the next block'],
+    ['Marge intérieure : l\'espace entre le bord du bloc et son contenu, en pixels', 'Padding: the space between the edge of the block and its content, in pixels'],
+    ['Marge extérieure : l\'espace autour du bloc, en pixels', 'Margin: the space around the block, in pixels'],
+    ['Les quatre côtés ensemble', 'All four sides together'],
+    ['Chaque côté séparément', 'Each side separately'],
+    ['Séparer : un réglage par côté', 'Separate: one setting per side'],
+    ['Lier : un seul réglage pour les quatre côtés', 'Link: one setting for all four sides'],
+    ['Haut', 'Top'],
+    ['Droite', 'Right'],
+    ['Bas', 'Bottom'],
+    ['Gauche', 'Left'],
+    ['Sens', 'Direction'],
+    ['Sens de rangement : côte à côte (ligne) ou l\'un sous l\'autre (colonne)', 'Direction: side by side (row) or one under the other (column)'],
+    ['Ligne', 'Row'],
+    ['Colonne', 'Column'],
+    ['Côte à côte', 'Side by side'],
+    ['L\'un sous l\'autre', 'One under the other'],
+    ['Alignement des éléments sur l\'autre axe', 'Alignment of the items on the other axis'],
+    ['Répartition', 'Distribution'],
+    ['Répartition des éléments le long du sens de rangement', 'Distribution of the items along the direction'],
+    ['Comment les éléments contenus se rangent', 'How the contained items are arranged'],
+    ['Espace entre les éléments rangés, en pixels', 'Space between the arranged items, in pixels'],
+    ['Espace', 'Gap'],
+    ['Étirer', 'Stretch'],
+    ['Début', 'Start'],
+    ['Fin', 'End'],
+    ['Ligne de base', 'Baseline'],
+    ['Espacé', 'Space between'],
+    ['Réparti', 'Space around'],
+    ['Égal', 'Space evenly'],
+    ['nouveau', 'new'],
+    ['données', 'data'],
+    ['composé', 'composed'],
+    ['généré', 'generated'],
+    ['pour Kaby', 'for Kaby'],
+    ['(élément généré)', '(generated element)'],
+    ['(hérité)', '(inherited)'],
+    ['texte modifié', 'text changed'],
+    ['déplacé', 'moved'],
+    ['dupliqué', 'duplicated'],
+    ['supprimé', 'deleted'],
+    ['avant', 'before'],
+    ['après', 'after'],
+    ['dans', 'in'],
+    ['copie', 'copy'],
+    ['Titre', 'Title'],
+    ['Citation', 'Quote'],
+    ['Légende', 'Caption'],
+    ['Séparateur', 'Divider'],
+    ['Bouton', 'Button'],
+    ['Sélectionne un seul morceau de texte à la fois (pas les icônes ni les liens)', 'Select one piece of text at a time (not the icons or links)'],
+    ['Image', 'Picture'],
+    ['Icône', 'Icon'],
+    ['Liste', 'List'],
+    ['Élément de liste', 'List item'],
+    ['Champ', 'Field'],
+    ['Étiquette', 'Label'],
+    ['Tableau', 'Table'],
+    ['Formulaire', 'Form'],
+    ['En-tête', 'Header'],
+    ['Pied de page', 'Footer'],
+    ['Panneau', 'Panel'],
+    ['Contenu', 'Content'],
+    ['Bloc', 'Block'],
+    ['Lien', 'Link'],
+    ['image', 'picture'],
+    ['adresse du lien', 'link address'],
+    ['couleur du texte', 'text colour'],
+    ['fond', 'background'],
+    ['police', 'font'],
+    ['taille', 'size'],
+    ['interligne', 'line height'],
+    ['espacement des lettres', 'letter spacing'],
+    ['graisse', 'weight'],
+    ['italique', 'italic'],
+    ['souligné', 'underline'],
+    ['majuscules', 'capitals'],
+    ['alignement', 'alignment'],
+    ['épaisseur du trait', 'line thickness'],
+    ['style du trait', 'line style'],
+    ['couleur du trait', 'line colour'],
+    ['arrondi', 'rounding'],
+    ['opacité', 'opacity'],
+    ['ombre', 'shadow'],
+    ['affichage', 'display'],
+    ['marge intérieure', 'padding'],
+    ['marge extérieure', 'margin'],
+    ['largeur', 'width'],
+    ['hauteur', 'height'],
+    ['largeur max', 'max width'],
+    ['hauteur min', 'min height'],
+    ['sens de rangement', 'direction'],
+    ['espace entre éléments', 'gap'],
+    ['répartition', 'distribution'],
+    ['haut', 'top'],
+    ['droite', 'right'],
+    ['bas', 'bottom'],
+    ['gauche', 'left'],
+  ];
+  const FR = new Map(ROWS.map(([fr, en]) => [en, fr]));
+  const tx = (en) => (F && FR.has(en) ? FR.get(en) : en);
+  // Translates the text nodes and the title / placeholder / aria-label of `node` (the UI is built from English strings, so this is the one place that
+  // knows French). A value with no entry is left alone, which also ends the loop of the observer below.
   function i18n(node) {
-    if (LANG === 'fr') return;
+    if (!F) return;
     const one = (n) => {
-      if (n.nodeType === 3) { const v = n.nodeValue, k = v.trim(); if (k && EN[k] !== undefined && EN[k] !== k) n.nodeValue = v.replace(k, EN[k]); return; }
+      if (n.nodeType === 3) { const v = n.nodeValue, k = v.trim(); if (k && FR.has(k) && FR.get(k) !== k) n.nodeValue = v.replace(k, FR.get(k)); return; }
       if (n.nodeType !== 1) return;
-      for (const a of ['title', 'placeholder', 'aria-label']) { const v = n.getAttribute(a); if (v && EN[v] !== undefined && EN[v] !== v) n.setAttribute(a, EN[v]); }
+      for (const a of ['title', 'placeholder', 'aria-label']) { const v = n.getAttribute(a); if (v && FR.has(v) && FR.get(v) !== v) n.setAttribute(a, FR.get(v)); }
     };
     const walk = (n) => { one(n); for (const c of n.childNodes) walk(c); };
     walk(node);
   }
   function startI18n() {
-    if (LANG === 'fr') return;
+    if (!F) return;
     i18n(root);
     new MutationObserver((ms) => { for (const m of ms) { if (m.type === 'childList') m.addedNodes.forEach(i18n); else if (m.type === 'characterData') i18n(m.target); else i18n(m.target); } })
       .observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'placeholder', 'aria-label'] });
   }
-  const ATTR_LABEL = { src: 'image', alt: 'description', href: 'adresse du lien' };
+  const ATTR_LABEL = { src: 'picture', alt: 'description', href: 'link address' };
   const svg = (d) => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
   const TILE = {
     title: svg('<path d="M6 7V5h12v2M12 5v14M9 19h6"/>'), subtitle: svg('<path d="M7 8V6h10v2M12 6v12M9.5 18h5"/>'), text: svg('<path d="M4 7h16M4 12h16M4 17h10"/>'),
@@ -345,14 +351,14 @@
   const SKIP = new Set(['script', 'style', 'link', 'meta', 'template']);
   const VOIDS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
   const NOEDIT = new Set(['script', 'style', 'textarea', 'template', 'button', 'input', 'select', 'option', 'svg', 'img']);
-  const NAMES = { h1: 'Titre', h2: 'Titre', h3: 'Titre', h4: 'Titre', h5: 'Titre', h6: 'Titre', p: 'Texte', span: 'Texte', small: 'Texte', strong: 'Texte', b: 'Texte', em: 'Texte', i: 'Texte', u: 'Texte', code: 'Code', blockquote: 'Citation', figcaption: 'Légende', figure: 'Figure', hr: 'Séparateur', a: 'Lien', button: 'Bouton', img: 'Image', svg: 'Icône', ul: 'Liste', ol: 'Liste', li: 'Élément de liste', input: 'Champ', textarea: 'Champ', select: 'Menu', label: 'Étiquette', table: 'Tableau', form: 'Formulaire', section: 'Section', header: 'En-tête', footer: 'Pied de page', nav: 'Navigation', main: 'Contenu', aside: 'Panneau', article: 'Article', body: 'Page', div: 'Bloc' };
+  const NAMES = { h1: 'Title', h2: 'Title', h3: 'Title', h4: 'Title', h5: 'Title', h6: 'Title', p: 'Text', span: 'Text', small: 'Text', strong: 'Text', b: 'Text', em: 'Text', i: 'Text', u: 'Text', code: 'Code', blockquote: 'Quote', figcaption: 'Caption', figure: 'Figure', hr: 'Divider', a: 'Link', button: 'Button', img: 'Picture', svg: 'Icon', ul: 'List', ol: 'List', li: 'List item', input: 'Field', textarea: 'Field', select: 'Menu', label: 'Label', table: 'Table', form: 'Form', section: 'Section', header: 'Header', footer: 'Footer', nav: 'Navigation', main: 'Content', aside: 'Panel', article: 'Article', body: 'Page', div: 'Block' };
   for (const k of Object.keys(NAMES)) NAMES[k] = tx(NAMES[k]);
 
   // ---- the bridge: every call to the host goes through the DSH page around this sandboxed one ----
   const calls = new Map(); let callSeq = 0;
   addEventListener('message', (e) => { const m = e.data; if (e.source !== parent || !m || m.kyEdit !== 1 || !calls.has(m.id)) return; const f = calls.get(m.id); calls.delete(m.id); f(m.reply); });
   const bridge = (type, payload = {}, transfer = []) => new Promise((resolve) => {
-    const id = ++callSeq, timer = setTimeout(() => { calls.delete(id); resolve({ ok: false, error: 'timeout', why: tx('le serveur ne répond pas') }); }, 30000);
+    const id = ++callSeq, timer = setTimeout(() => { calls.delete(id); resolve({ ok: false, error: 'timeout', why: tx('the server does not answer') }); }, 30000);
     calls.set(id, (reply) => { clearTimeout(timer); resolve(reply || { ok: false, why: '' }); });
     parent.postMessage({ kyEdit: 1, id, type, file: FILE, ...payload }, '*', transfer);
   });
@@ -379,7 +385,7 @@
     const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
     return { hex: '#' + hex2(p[0]) + hex2(p[1]) + hex2(p[2]), a: p.length > 3 ? p[3] : 1 };
   }
-  const nice = (el) => { const t = el.tagName.toLowerCase(); return t === 'div' && !el.children.length && el.textContent.trim() ? tx('Texte') : NAMES[t] || t; };
+  const nice = (el) => { const t = el.tagName.toLowerCase(); return t === 'div' && !el.children.length && el.textContent.trim() ? tx('Text') : NAMES[t] || t; };
   function desc(el) {
     const own1 = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join(' ').trim() || el.textContent.trim();
     return nice(el) + (own1 ? ` ${LQ}${own1.length > 26 ? own1.slice(0, 26) + '…' : own1}${RQ}` : '');
@@ -544,17 +550,17 @@
     root.innerHTML = `<style>${CSS}</style><div class="root">
       <div id="hov" class="box"><span></span></div><div id="drop" class="box"></div><div id="selb" class="box"><span class="chip"></span></div>
       <div id="tb" class="panel">
-        <button id="b-grip" title="Glisser pour déplacer ce bloc">${IC.grip}</button>
-        <button id="b-par" title="Choisir le bloc qui contient celui-ci">${IC.parent}</button>
+        <button id="b-grip" title="Drag to move this block">${IC.grip}</button>
+        <button id="b-par" title="Choose the block that contains this one">${IC.parent}</button>
         <i class="sep"></i>
-        <button id="b-txt" title="Taille, graisse et alignement du texte"><span class="aa">Aa</span></button>
-        <label class="sw" id="sw-color" title="Couleur du texte"><span class="ico">${IC.tcol}<i class="bar"></i></span><input type="color" id="b-color"></label>
-        <label class="sw" id="sw-bg" title="Couleur de fond"><span class="ico">${IC.fill}<i class="bar"></i></span><input type="color" id="b-bg"></label>
+        <button id="b-txt" title="Size, weight and alignment of the text"><span class="aa">Aa</span></button>
+        <label class="sw" id="sw-color" title="Text colour"><span class="ico">${IC.tcol}<i class="bar"></i></span><input type="color" id="b-color"></label>
+        <label class="sw" id="sw-bg" title="Background colour"><span class="ico">${IC.fill}<i class="bar"></i></span><input type="color" id="b-bg"></label>
         <i class="sep"></i>
-        <button id="b-more" title="Réglages : texte, couleurs, police, bordure, marges, taille…">${IC.sliders}<span>Réglages</span></button>
-        <button id="b-dup" title="Dupliquer (Cmd/Ctrl + D)">${IC.dup}</button><button id="b-del" title="Supprimer, après confirmation (Suppr)">${IC.del}</button>
+        <button id="b-more" title="Settings: text, colours, font, border, margins, size…">${IC.sliders}<span>Settings</span></button>
+        <button id="b-dup" title="Duplicate (Cmd/Ctrl + D)">${IC.dup}</button><button id="b-del" title="Delete, after confirmation (Del)">${IC.del}</button>
         <i class="sep"></i>
-        <button id="b-add" title="Ajouter un bloc ou une image">${IC.plus}<span>Ajouter</span></button>
+        <button id="b-add" title="Add a block or a picture">${IC.plus}<span>Add</span></button>
       </div>
       <div id="txtpop" class="panel" hidden></div>
       <div id="pop" class="panel" hidden></div>
@@ -562,8 +568,8 @@
       <input type="file" id="i-file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
       <div id="list" class="panel" hidden></div>
       <div id="cfm" class="panel" hidden></div>
-      <div id="bar" class="panel"><button id="ins" title="Ajouter un bloc ou une image">${IC.plus}<span>Ajouter</span></button><i class="sep"></i><button id="cnt" title="Voir la liste des changements en attente"><span>Aucun changement</span>${IC.chev}</button><button id="discard" title="Abandonner tous les changements en attente (le fichier n'est pas touché)">Annuler tout</button><button id="save" class="primary" title="Écrire les changements dans le fichier (une copie de sécurité est gardée)">Enregistrer</button><i class="sep"></i><button id="quit" title="Quitter le mode modification (les changements en attente sont gardés)">Quitter</button></div>
-      <button id="pill" class="panel" title="Modifier cette page">${IC.pencil}<span>Modifier</span></button>
+      <div id="bar" class="panel"><button id="ins" title="Add a block or a picture">${IC.plus}<span>Add</span></button><i class="sep"></i><button id="cnt" title="See the list of waiting changes"><span>No change</span>${IC.chev}</button><button id="discard" title="Give up all waiting changes (the file is not touched)">Cancel all</button><button id="save" class="primary" title="Write the changes into the file (a safety copy is kept)">Save</button><i class="sep"></i><button id="quit" title="Leave edit mode (waiting changes are kept)">Leave</button></div>
+      <button id="pill" class="panel" title="Edit this page">${IC.pencil}<span>Edit</span></button>
       <div id="toast" class="panel" hidden></div></div>`;
     document.documentElement.appendChild(host);
     $ = (s) => root.querySelector(s);
@@ -576,7 +582,7 @@
     themeSync();
     pill.onclick = () => setOn(true);
     $('#quit').onclick = () => setOn(false);
-    $('#discard').onclick = () => confirmBox({ anchor: bar, above: true, title: 'Annuler tous les changements ?', detail: F ? `${pending.length} changement${pending.length > 1 ? 's' : ''} en attente ${pending.length > 1 ? 'seront perdus' : 'sera perdu'}. Le fichier n'est pas touché.` : `${pending.length} waiting change${pending.length > 1 ? 's' : ''} will be lost. The file is not touched.`, ok: 'Tout annuler', danger: true, onOk: async () => { await dropUploads(pending, []); pending = []; await persist(); location.reload(); } });
+    $('#discard').onclick = () => confirmBox({ anchor: bar, above: true, title: 'Cancel all changes?', detail: kt(`${pending.length} changement${pending.length > 1 ? 's' : ''} en attente ${pending.length > 1 ? 'seront perdus' : 'sera perdu'}. Le fichier n'est pas touché.`, `${pending.length} waiting change${pending.length > 1 ? 's' : ''} will be lost. The file is not touched.`), ok: 'Cancel all', danger: true, onOk: async () => { await dropUploads(pending, []); pending = []; await persist(); location.reload(); } });
     $('#save').onclick = save;
     $('#cnt').onclick = () => { closePops('list'); list.hidden = !list.hidden; renderList(); placeBelow(list, bar, true); };
     wirePop();
@@ -604,9 +610,9 @@
   function fillTxt() {
     const cs = getComputedStyle(sel.el), size = Math.round(parseFloat(cs.fontSize)), bold = parseInt(cs.fontWeight, 10) >= 600, al = /^(center|right)$/.test(cs.textAlign) ? cs.textAlign : 'left';
     txtpop.innerHTML = `
-      <div class="row"><label title="Taille du texte, en pixels">Taille</label><span class="stepper"><button id="t-sm" title="Plus petit">−</button><output id="t-size">${size} px</output><button id="t-lg" title="Plus grand">+</button></span></div>
-      <div class="row"><label title="Épaisseur des traits du texte">Graisse</label><span class="seg" id="t-w"><button data-w="400" title="Épaisseur normale"${bold ? '' : ' class="on"'}>Normal</button><button data-w="700" title="Texte en gras"${bold ? ' class="on"' : ''}>Gras</button></span></div>
-      <div class="row"><label title="Alignement du texte dans son bloc">Alignement</label><span class="seg" id="t-a">${['left', 'center', 'right'].map((a) => `<button data-a="${a}" title="${{ left: 'À gauche', center: 'Centré', right: 'À droite' }[a]}"${al === a ? ' class="on"' : ''}>${IC[a]}</button>`).join('')}</span></div>`;
+      <div class="row"><label title="Text size, in pixels">Size</label><span class="stepper"><button id="t-sm" title="Smaller">−</button><output id="t-size">${size} px</output><button id="t-lg" title="Larger">+</button></span></div>
+      <div class="row"><label title="Thickness of the letter strokes">Weight</label><span class="seg" id="t-w"><button data-w="400" title="Normal weight"${bold ? '' : ' class="on"'}>Normal</button><button data-w="700" title="Bold text"${bold ? ' class="on"' : ''}>Bold</button></span></div>
+      <div class="row"><label title="Alignment of the text in its block">Alignment</label><span class="seg" id="t-a">${['left', 'center', 'right'].map((a) => `<button data-a="${a}" title="${{ left: 'Align left', center: 'Centred', right: 'Align right' }[a]}"${al === a ? ' class="on"' : ''}>${IC[a]}</button>`).join('')}</span></div>`;
     const out = txtpop.querySelector('#t-size'), step = (d) => { const n = Math.max(6, Math.min(160, Math.round(parseFloat(getComputedStyle(sel.el).fontSize)) + d)); sty('font-size', n + 'px'); out.textContent = n + ' px'; };
     txtpop.querySelector('#t-sm').onclick = () => step(-1); txtpop.querySelector('#t-lg').onclick = () => step(1);
     txtpop.querySelectorAll('#t-w button').forEach((b) => (b.onclick = () => { sty('font-weight', b.dataset.w); txtpop.querySelectorAll('#t-w button').forEach((x) => x.classList.toggle('on', x === b)); }));
@@ -632,7 +638,7 @@
   // Asks before anything a click cannot take back. The safe button has the focus; Esc cancels.
   function confirmBox({ anchor, above, keepList, title, detail, ok, danger, kind, onOk }) {
     closePops(keepList ? 'list' : undefined);
-    cfm.innerHTML = `<div class="msg"><b>${esc(title)}</b>${detail ? `<span>${esc(detail)}</span>` : ''}</div><div class="acts"><button id="c-no" class="line" title="Ne rien faire (Échap)">Annuler</button><button id="c-ok" class="${danger ? 'danger' : 'primary'}">${esc(ok)}</button></div>`;
+    cfm.innerHTML = `<div class="msg"><b>${esc(title)}</b>${detail ? `<span>${esc(detail)}</span>` : ''}</div><div class="acts"><button id="c-no" class="line" title="Do nothing (Esc)">Cancel</button><button id="c-ok" class="${danger ? 'danger' : 'primary'}">${esc(ok)}</button></div>`;
     cfm.dataset.kind = kind || ''; cfm.hidden = false; placeBelow(cfm, anchor, above);
     $('#c-no').onclick = () => { cfm.hidden = true; };
     $('#c-ok').onclick = () => { cfm.hidden = true; onOk(); };
@@ -640,7 +646,7 @@
   }
   function askDelete() {
     if (!sel || sel.sid == null) return;
-    confirmBox({ anchor: tb, title: 'Supprimer cet élément ?', detail: F ? `${desc(sel.el)}. Rien n'est écrit avant « Enregistrer » : vous pouvez encore retirer ce changement de la liste.` : `${desc(sel.el)}. Nothing is written before “Save”: you can still remove this change from the list.`, ok: 'Supprimer', danger: true, kind: 'del', onOk: removeSel });
+    confirmBox({ anchor: tb, title: 'Delete this element?', detail: kt(`${desc(sel.el)}. Rien n'est écrit avant « Enregistrer » : tu peux encore retirer ce changement de la liste.`, `${desc(sel.el)}. Nothing is written before “Save”: you can still remove this change from the list.`), ok: 'Delete', danger: true, kind: 'del', onOk: removeSel });
   }
   // The « Modifier » button sits at the top right, and steps aside when the page has a control of its own there.
   const INTERACTIVE = 'a,button,input,select,textarea,summary,label,[role=button],[role=link],[onclick]';
@@ -678,18 +684,18 @@
     pill.hidden = on; bar.style.display = on ? 'flex' : 'none';
     if (!on) { deselect(); hov.style.display = 'none'; closePops(); }
     refreshBar();
-    pill.querySelector('span').textContent = 'Modifier' + (pending.length ? ` (${pending.length})` : '');
+    pill.querySelector('span').textContent = 'Edit' + (pending.length ? ` (${pending.length})` : '');
     placePill();
   }
   function deselect() { stopEdit(); sel = null; selb.style.display = 'none'; tb.style.display = 'none'; closePops(); }
   function refreshBar() {
     const n = pending.length, files = pending.filter((p) => p.type !== 'intent').length;
-    $('#cnt span').textContent = n ? (F ? `${n} changement${n > 1 ? 's' : ''}` : `${n} change${n > 1 ? 's' : ''}`) : tx('Aucun changement');
+    $('#cnt span').textContent = n ? kt(`${n} changement${n > 1 ? 's' : ''}`, `${n} change${n > 1 ? 's' : ''}`) : tx('No change');
     $('#discard').disabled = !n; $('#save').disabled = !files;
     if (!list.hidden) renderList();
   }
 
-  // ---- what the page shows at once; the file changes only at "Enregistrer". Replayed after every reload. ----
+  // ---- what the page shows at once; the file changes only at "Save". Replayed after every reload. ----
   function liveStruct(p) {
     const get = (id) => document.querySelector(`[data-ky-i="${id}"]`);
     const el = p.id !== undefined ? get(p.id) : null, ref = p.ref !== undefined ? get(p.ref) : null;
@@ -745,7 +751,7 @@
     return el;
   }
   function keep(el) { if (el) select(el); else deselect(); }
-  function removeSel() { if (!sel || sel.sid == null) return; stage({ op: 'del', id: sel.sid, tag: desc(sel.el) }); deselect(); toast('Supprimé. Ce changement est dans la liste : vous pouvez le retirer avant d\'enregistrer.'); }
+  function removeSel() { if (!sel || sel.sid == null) return; stage({ op: 'del', id: sel.sid, tag: desc(sel.el) }); deselect(); toast('Deleted. This change is in the list: you can remove it before saving.'); }
   const movable = (n) => n && n.nodeType === 1 && own(n) && !SKIP.has(n.tagName.toLowerCase());
   function sibling(el, dir) { for (let n = dir < 0 ? el.previousElementSibling : el.nextElementSibling; n; n = dir < 0 ? n.previousElementSibling : n.nextElementSibling) if (movable(n)) return n; return null; }
 
@@ -756,8 +762,8 @@
     if (a && own(a) && !NOSTRUCT.has(a.tagName.toLowerCase())) return { el: a, ref: idOf(a), where: addWhere, refTag: desc(a), chosen: true };
     const holder = document.body;   // the end of the page is the end of the body, whatever the maquette calls its main frame
     const last = [...holder.children].filter(movable).pop();
-    if (last) return { el: last, ref: idOf(last), where: 'after', refTag: tx('la fin de la page') };
-    return own(holder) ? { el: holder, ref: idOf(holder), where: 'inside', refTag: tx('la page') } : null;
+    if (last) return { el: last, ref: idOf(last), where: 'after', refTag: tx('the end of the page') };
+    return own(holder) ? { el: holder, ref: idOf(holder), where: 'inside', refTag: tx('the page') } : null;
   }
   function openInsert(anchor, above) {
     const was = !insm.hidden; closePops(); if (was) return;
@@ -766,10 +772,10 @@
   function renderInsert() {
     const t = target(), groups = [...new Set(palette.map((b) => b.group))], gl = (g) => (palette.find((b) => b.group === g) || {}).groupLabel || g;
     insm.innerHTML = `
-      <div class="where"><span>${t ? (t.chosen ? `À insérer par rapport à <b>${esc(t.refTag)}</b>` : 'À insérer <b>à la fin de la page</b>') : 'Rien ne permet d\'insérer ici.'}</span>
-      ${t && t.chosen ? `<div class="seg" id="a-where">${[['after', 'Après', 'Placer le bloc après celui qui est choisi'], ['before', 'Avant', 'Placer le bloc avant celui qui est choisi'], ['inside', 'Dedans', 'Placer le bloc à l\'intérieur de celui qui est choisi']].map(([w, l, t]) => `<button data-w="${w}" title="${t}"${addWhere === w ? ' class="on"' : ''}>${l}</button>`).join('')}</div>` : ''}</div>
-      ${groups.map((g) => `<h4>${esc(gl(g))}</h4><div class="tiles">${palette.filter((b) => b.group === g).map((b) => `<button class="tile" data-k="${b.kind}" title="${esc(b.label)}${b.needs ? (F ? ' : choisir une image' : ': choose a picture') : ''}">${TILE[b.kind] || ''}<span>${esc(b.label)}</span></button>`).join('')}</div>${g === 'images' ? '<div class="urlrow"><input type="text" id="i-url" placeholder="ou l\'adresse d\'une image : https://…"><button id="i-url-go" class="primary">Ajouter</button></div>' : ''}`).join('')}
-      <div class="hint">Cliquez sur un bloc, ou glissez-le sur la page. Une image déposée ou collée devient aussi un bloc.</div>`;
+      <div class="where"><span>${t ? (t.chosen ? `Insert relative to <b>${esc(t.refTag)}</b>` : 'Insert <b>at the end of the page</b>') : 'Nothing can be inserted here.'}</span>
+      ${t && t.chosen ? `<div class="seg" id="a-where">${[['after', 'After', 'Put the block after the chosen one'], ['before', 'Before', 'Put the block before the chosen one'], ['inside', 'Inside', 'Put the block inside the chosen one']].map(([w, l, t]) => `<button data-w="${w}" title="${t}"${addWhere === w ? ' class="on"' : ''}>${l}</button>`).join('')}</div>` : ''}</div>
+      ${groups.map((g) => `<h4>${esc(gl(g))}</h4><div class="tiles">${palette.filter((b) => b.group === g).map((b) => `<button class="tile" data-k="${b.kind}" title="${esc(b.label)}${b.needs ? COL + tx('choose a picture') : ''}">${TILE[b.kind] || ''}<span>${esc(b.label)}</span></button>`).join('')}</div>${g === 'images' ? '<div class="urlrow"><input type="text" id="i-url" placeholder="or the address of a picture: https://…"><button id="i-url-go" class="primary">Add</button></div>' : ''}`).join('')}
+      <div class="hint">Click a block, or drag it onto the page. A picture dropped or pasted also becomes a block.</div>`;
     insm.querySelectorAll('#a-where button').forEach((b) => (b.onclick = () => { addWhere = b.dataset.w; renderInsert(); }));
     insm.querySelectorAll('.tile').forEach((b) => {
       b.onclick = () => insert(b.dataset.k, target());
@@ -777,7 +783,7 @@
     });
     const url = insm.querySelector('#i-url'), go = () => {
       const v = url.value.trim();
-      if (!/^https?:\/\/[^\s"'<>]+$/i.test(v)) { toast('Collez une adresse d\'image qui commence par https://'); return; }
+      if (!/^https?:\/\/[^\s"'<>]+$/i.test(v)) { toast('Paste a picture address that starts with https://'); return; }
       const t2 = target(); if (!t2) return; closePops();
       afterAdd(addBlock(palette.find((b) => b.kind === 'image'), t2, { src: v, alt: '' }));
     };
@@ -791,12 +797,12 @@
     });
   }
   async function uploadFile(file) {
-    if (!isImg(file)) { toast('Seules les images PNG, JPEG, GIF et WebP sont acceptées.'); return null; }
-    if (file.size > 8 * 1048576) { toast('Cette image dépasse 8 Mo.'); return null; }
+    if (!isImg(file)) { toast('Only PNG, JPEG, GIF and WebP pictures are accepted.'); return null; }
+    if (file.size > 8 * 1048576) { toast('This picture is larger than 8 MB.'); return null; }
     let r;
     try { const bytes = await file.arrayBuffer(); r = await bridge('upload', { filename: file.name, bytes }, [bytes]); }
     catch (e) { r = { ok: false, why: String(e && e.message || e) }; }
-    if (!r || !r.ok) { toast(tx('Image refusée : ') + (r && r.why || '')); return null; }
+    if (!r || !r.ok) { toast(tx('Picture refused: ') + (r && r.why || '')); return null; }
     return { src: r.src, alt: file.name.replace(/\.[^.]*$/, '').replace(/[-_]+/g, ' ').trim(), uploaded: !r.existed };
   }
   // Pictures sent for changes that are given up are removed again (the server keeps any a saved page uses).
@@ -811,8 +817,8 @@
   async function insert(kind, tgt) {
     closePops();
     const b = palette.find((x) => x.kind === kind);
-    if (!b || !tgt) { if (b) toast('Rien ne permet d\'insérer ici : choisissez un bloc de la page.'); return; }
-    if (tgt.where === 'inside' && tgt.el && VOIDS.has(tgt.el.tagName.toLowerCase())) { toast(F ? `${nice(tgt.el)} ne peut rien contenir : choisissez « Après » ou « Avant ».` : `${nice(tgt.el)} cannot hold anything: choose “After” or “Before”.`); return; }
+    if (!b || !tgt) { if (b) toast('Nothing can be inserted here: choose a block of the page.'); return; }
+    if (tgt.where === 'inside' && tgt.el && VOIDS.has(tgt.el.tagName.toLowerCase())) { toast(kt(`${nice(tgt.el)} ne peut rien contenir : choisis « Après » ou « Avant ».`, `${nice(tgt.el)} cannot hold anything: choose “After” or “Before”.`)); return; }
     let img = null; if (b.needs) { img = await pickImage(); if (!img) return; }
     afterAdd(addBlock(b, tgt, img));
   }
@@ -864,9 +870,9 @@
     const p = sel.el.getAttribute('data-ky-new') === 'add' && addOp(sel.el);
     if (p) return keep(stage({ op: 'add', kind: p.kind, label: p.label, html: cleanHtml(sel.el), ref: sel.sid, where: 'after', newId: newId(), tag: desc(sel.el), uploads: p.uploads || [] }));
     const { html, ids } = copyHtml(sel.el);
-    const c = stage({ op: 'add', kind: 'copy', label: tx('copie'), lenient: true, html, ref: sel.sid, where: 'after', newId: newId(), tag: desc(sel.el), uploads: [] });
+    const c = stage({ op: 'add', kind: 'copy', label: tx('copy'), lenient: true, html, ref: sel.sid, where: 'after', newId: newId(), tag: desc(sel.el), uploads: [] });
     if (c && snapText(c).length) afterAdd(c); else keep(c);   // a copy of a text: its words are chosen, so typing replaces them
-    if (ids) toast(F ? `Copie faite. ${ids} identifiant${ids > 1 ? 's' : ''} renommé${ids > 1 ? 's' : ''} (« -copy ») : la copie n'est pas reliée au script de la page.` : `Copy made. ${ids} id${ids > 1 ? 's' : ''} renamed (“-copy”): the copy is not wired to the page script.`, 6000);
+    if (ids) toast(kt(`Copie faite. ${ids} identifiant${ids > 1 ? 's' : ''} renommé${ids > 1 ? 's' : ''} (« -copy ») : la copie n'est pas reliée au script de la page.`, `Copy made. ${ids} id${ids > 1 ? 's' : ''} renamed (“-copy”): the copy is not wired to the page script.`), 6000);
   }
   // one attribute (picture file, description, link address)
   function setAttr(name, value) {
@@ -922,7 +928,7 @@
     if (s.src === 'ok') { s.gsnap = found; s.srcN = Math.max(...found.map((f) => f.hits)); s.srcFiles = [...new Set(found.flatMap((f) => f.files))]; }
     syncUi(true);
     if (s.src === 'ok') startEdit(s.ev);
-    else if (s.hasText && !lockedTold.has(s.el)) { lockedTold.add(s.el); toast('Ce texte est composé par la page : ici, on change ses couleurs et sa taille. Pour le texte, décrivez le changement à Kaby (Réglages).', 6000); }
+    else if (s.hasText && !lockedTold.has(s.el)) { lockedTold.add(s.el); toast('This text is composed by the page: here you change its colours and size. For the text itself, describe the change to Kaby (Settings).', 6000); }
     if (!pop.hidden) fillPop();
   }
   const lockedTold = new WeakSet();
@@ -1004,16 +1010,16 @@
   function sty(prop, after) {
     if (!sel) return;
     if (sel.fresh) { sel.el.style.setProperty(prop, after); syncFresh(sel.el); syncUi(true); return; }   // a new block carries its own style
-    if (sel.isNew || sel.inNew) { toast('Enregistrez d\'abord cette copie pour pouvoir changer son style.'); return; }
+    if (sel.isNew || sel.inNew) { toast('Save this copy first to be able to change its style.'); return; }
     const el = sel.el, cs = getComputedStyle(el), beforeText = (prop === 'text-decoration' ? cs.textDecorationLine : cs.getPropertyValue(prop)) || '';
     if (scope === 'rule' || !sel.own) {
       const h = findRule(el, prop);
-      if (!h) { toast(sel.own ? 'Aucune règle partagée pour ça : choisissez « Cet élément » dans Réglages.' : 'Cet élément est généré par la page et n\'a pas de règle partagée : décrivez le changement à Kaby (Réglages).'); return; }
-      const s = h.rule.selectorText.trim(), key = `rule|${h.file || h.styleId}|${s}|${prop}`, was = (pending.find((p) => p.key === key) || {}).beforeText ?? (h.add ? beforeText + ' ' + tx('(hérité)') : h.rule.style.getPropertyValue(prop));
+      if (!h) { toast(sel.own ? 'No shared rule for that: choose “This element” in Settings.' : 'This element is generated by the page and has no shared rule: describe the change to Kaby (Settings).'); return; }
+      const s = h.rule.selectorText.trim(), key = `rule|${h.file || h.styleId}|${s}|${prop}`, was = (pending.find((p) => p.key === key) || {}).beforeText ?? (h.add ? beforeText + ' ' + tx('(inherited)') : h.rule.style.getPropertyValue(prop));
       h.rule.style.setProperty(prop, after);
       const count = document.querySelectorAll(s).length;
       upsert(key, { type: 'rule', file: h.file, styleId: h.styleId, selector: s, prop, after, add: h.add, beforeText: was, tag: desc(el), count });
-      if (!sel.told && count > 1) { sel.told = true; toast(F ? `Appliqué aux ${count} éléments « ${s} » : ils partagent le même style.` : `Applied to the ${count} “${s}” elements: they share the same style.`); }
+      if (!sel.told && count > 1) { sel.told = true; toast(kt(`Appliqué aux ${count} éléments « ${s} » : ils partagent le même style.`, `Applied to the ${count} “${s}” elements: they share the same style.`)); }
     } else {
       const key = `${sel.id}|${prop}`, was = (pending.find((p) => p.key === key) || {}).beforeText ?? beforeText;
       el.style.setProperty(prop, after);
@@ -1022,34 +1028,34 @@
     syncUi(true);
   }
   // ---- « Réglages »: the inspector. The content first (words, picture, link), then two tabs of folding sections. ----
-  // Every field writes through sty(): on the element itself, or on the shared rule when « Tous les pareils » is chosen.
+  // Every field writes through sty(): on the element itself, or on the shared rule when “All similar” is chosen.
   const insp = { tab: 'style', open: new Set(['colors', 'pad']), link: {} };
-  const SIDES = [['top', 'Haut'], ['right', 'Droite'], ['bottom', 'Bas'], ['left', 'Gauche']];
+  const SIDES = [['top', 'Top'], ['right', 'Right'], ['bottom', 'Bottom'], ['left', 'Left']];
   const CHECK = 'repeating-conic-gradient(#bbb 0 25%, #fff 0 50%) 0 0/8px 8px';
   const LEN = /^-?(\d+\.?\d*|\.\d+)(px|%|rem|em|vw|vh)?$/i;
   const TIP = {
-    color: 'Couleur du texte', 'background-color': 'Couleur de fond du bloc', 'border-color': 'Couleur du trait autour du bloc',
-    'font-family': 'Police de caractères : celle de la page, sans empattement, avec empattement ou à chasse fixe',
-    'font-size': 'Taille du texte, en pixels', 'line-height': 'Interligne, en multiple de la taille du texte : 1,5 = une fois et demie',
-    'letter-spacing': 'Espace entre les lettres, en pixels (0 = normal)', 'font-weight': 'Épaisseur des traits : Normal = 400, Gras = 700',
-    'text-align': 'Alignement du texte dans son bloc', 'font-style': 'Italique', 'text-decoration': 'Souligné', 'text-transform': 'Tout en majuscules',
-    'border-width': 'Épaisseur du trait autour du bloc, en pixels (0 = pas de trait)', 'border-radius': 'Arrondi des coins, en pixels (50% = rond)', 'border-style': 'Style du trait : plein, tirets ou points',
-    display: 'Façon dont le bloc se range : bloc, ligne, flex (souple) ou grille', opacity: 'Opacité : 100 % = plein, 0 % = invisible', 'box-shadow': 'Ombre portée du bloc',
-    padding: 'Marge intérieure : l\'espace entre le bord du bloc et son contenu, en pixels', margin: 'Marge extérieure : l\'espace autour du bloc, en pixels',
-    width: 'Largeur, en pixels ou avec une unité (%, rem…). « auto » = automatique', height: 'Hauteur, en pixels ou avec une unité. « auto » = selon le contenu',
-    'max-width': 'Largeur maximale, en pixels ou avec une unité. « none » = sans limite', 'min-height': 'Hauteur minimale, en pixels',
-    'flex-direction': 'Sens de rangement : côte à côte (ligne) ou l\'un sous l\'autre (colonne)', gap: 'Espace entre les éléments rangés, en pixels',
-    'align-items': 'Alignement des éléments sur l\'autre axe', 'justify-content': 'Répartition des éléments le long du sens de rangement',
+    color: 'Text colour', 'background-color': 'Block background colour', 'border-color': 'Colour of the line around the block',
+    'font-family': 'Typeface: the page\'s own, sans serif, serif or monospace',
+    'font-size': 'Text size, in pixels', 'line-height': 'Line height, as a multiple of the text size: 1.5 = one and a half times',
+    'letter-spacing': 'Space between letters, in pixels (0 = normal)', 'font-weight': 'Stroke thickness: Normal = 400, Bold = 700',
+    'text-align': 'Alignment of the text in its block', 'font-style': 'Italic', 'text-decoration': 'Underline', 'text-transform': 'All capitals',
+    'border-width': 'Thickness of the line around the block, in pixels (0 = no line)', 'border-radius': 'Corner rounding, in pixels (50% = round)', 'border-style': 'Line style: solid, dashed or dotted',
+    display: 'How the block is laid out: block, inline, flex or grid', opacity: 'Opacity: 100 % = solid, 0 % = invisible', 'box-shadow': 'The block\'s drop shadow',
+    padding: 'Padding: the space between the edge of the block and its content, in pixels', margin: 'Margin: the space around the block, in pixels',
+    width: 'Width, in pixels or with a unit (%, rem…). “auto” = automatic', height: 'Height, in pixels or with a unit. “auto” = from the content',
+    'max-width': 'Maximum width, in pixels or with a unit. “none” = no limit', 'min-height': 'Hauteur minimale, en pixels',
+    'flex-direction': 'Direction: side by side (row) or one under the other (column)', gap: 'Space between the arranged items, in pixels',
+    'align-items': 'Alignment of the items on the other axis', 'justify-content': 'Distribution of the items along the direction',
   };
-  const FAMILIES = [['system-ui, -apple-system, "Segoe UI", sans-serif', 'Sans empattement'], ['Georgia, "Times New Roman", serif', 'Avec empattement'], ['ui-monospace, "SF Mono", Menlo, Consolas, monospace', 'Chasse fixe']];
-  const WEIGHTS = [['300', 'Mince'], ['400', 'Normal'], ['500', 'Moyen'], ['600', 'Demi-gras'], ['700', 'Gras'], ['800', 'Très gras']];
-  const SHADOWS = [['none', 'Aucune'], ['0 1px 3px rgba(0,0,0,.15)', 'Légère'], ['0 4px 12px rgba(0,0,0,.18)', 'Moyenne'], ['0 12px 28px rgba(0,0,0,.28)', 'Forte']];
-  const DISPLAYS = [['block', 'Bloc'], ['flex', 'Flex'], ['grid', 'Grille'], ['inline-block', 'Bloc en ligne'], ['inline', 'En ligne']];
-  const BORDERS = [['none', 'Aucun'], ['solid', 'Plein'], ['dashed', 'Tirets'], ['dotted', 'Points']];
-  const ALIGNS = [['stretch', 'Étirer'], ['flex-start', 'Début'], ['center', 'Centre'], ['flex-end', 'Fin'], ['baseline', 'Ligne de base']];
-  const JUSTS = [['flex-start', 'Début'], ['center', 'Centre'], ['flex-end', 'Fin'], ['space-between', 'Espacé'], ['space-around', 'Réparti'], ['space-evenly', 'Égal']];
+  const FAMILIES = [['system-ui, -apple-system, "Segoe UI", sans-serif', 'Sans serif'], ['Georgia, "Times New Roman", serif', 'Serif'], ['ui-monospace, "SF Mono", Menlo, Consolas, monospace', 'Monospace']];
+  const WEIGHTS = [['300', 'Thin'], ['400', 'Normal'], ['500', 'Medium'], ['600', 'Semi-bold'], ['700', 'Bold'], ['800', 'Extra bold']];
+  const SHADOWS = [['none', 'No shadow'], ['0 1px 3px rgba(0,0,0,.15)', 'Light'], ['0 4px 12px rgba(0,0,0,.18)', 'Medium shadow'], ['0 12px 28px rgba(0,0,0,.28)', 'Strong']];
+  const DISPLAYS = [['block', 'Block'], ['flex', 'Flex'], ['grid', 'Grid'], ['inline-block', 'Inline block'], ['inline', 'Inline']];
+  const BORDERS = [['none', 'None'], ['solid', 'Solid'], ['dashed', 'Dashed'], ['dotted', 'Dotted']];
+  const ALIGNS = [['stretch', 'Stretch'], ['flex-start', 'Start'], ['center', 'Centre'], ['flex-end', 'End'], ['baseline', 'Baseline']];
+  const JUSTS = [['flex-start', 'Start'], ['center', 'Centre'], ['flex-end', 'End'], ['space-between', 'Space between'], ['space-around', 'Space around'], ['space-evenly', 'Space evenly']];
   const rnd = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
-  const fam = (s) => { const n = (s.split(',')[0] || '').replace(/["']/g, '').trim(); return /^(-apple-system|system-ui|BlinkMacSystemFont|ui-sans-serif)$/i.test(n) ? 'Police du système' : n; };   // first name of a font stack
+  const fam = (s) => { const n = (s.split(',')[0] || '').replace(/["']/g, '').trim(); return /^(-apple-system|system-ui|BlinkMacSystemFont|ui-sans-serif)$/i.test(n) ? 'System font' : n; };   // first name of a font stack
   const withCur = (opts, cur) => (!cur || opts.some(([v]) => v === cur) ? opts : [...opts, [cur, cur]]);
   // what was typed, as a CSS value (null = not valid, nothing is applied)
   function parseVal(kind, raw, d) {
@@ -1076,7 +1082,7 @@
       if (!sel.fresh) { const k = `${sel.id}|attr|src`, p = pending.find((x) => x.key === k); if (p) p.uploads = [...new Set([...(was ? was.uploads || [] : []), ...(img.uploaded ? [img.src] : [])])]; persist(); }
       else { const op = addOp(sel.el.closest('[data-ky-new="add"]')); if (op && img.uploaded) { op.uploads = [...(op.uploads || []), img.src]; persist(); } }
       if (!(sel.el.getAttribute('alt') || '').trim() && img.alt) setAttr('alt', img.alt);
-      fillPop(); toast('Image remplacée');
+      fillPop(); toast('Picture replaced');
     });
   }
   function fillPop() {
@@ -1094,27 +1100,27 @@
     const acc = (key, title, tip, body) => `<div class="acc${insp.open.has(key) ? ' open' : ''}"><button class="acc-h" data-acc="${key}" title="${attr(tip)}"><span>${title}</span>${IC.chev}</button><div class="acc-b">${body}</div></div>`;
     const sides = (base) => {
       const linked = insp.link[base] ?? SIDES.every(([s]) => px(`${base}-${s}`) === px(`${base}-top`)), o = base === 'margin' ? { neg: true, kw: 'auto' } : {};
-      return `<div class="sub"><span>${linked ? 'Les quatre côtés ensemble' : 'Chaque côté séparément'}</span><button class="sm${linked ? ' on' : ''}" data-link="${base}" title="${linked ? 'Séparer : un réglage par côté' : 'Lier : un seul réglage pour les quatre côtés'}">${IC.link}</button></div>`
-        + (linked ? `<div class="g2 one">${len(base, 'Tous', { ...o, val: px(`${base}-top`) })}</div>` : `<div class="g2">${SIDES.map(([s, l]) => len(`${base}-${s}`, l, { ...o, title: `${TIP[base]} (${l.toLowerCase()})` })).join('')}</div>`);
+      return `<div class="sub"><span>${linked ? 'All four sides together' : 'Each side separately'}</span><button class="sm${linked ? ' on' : ''}" data-link="${base}" title="${linked ? 'Separate: one setting per side' : 'Link: one setting for all four sides'}">${IC.link}</button></div>`
+        + (linked ? `<div class="g2 one">${len(base, 'All', { ...o, val: px(`${base}-top`) })}</div>` : `<div class="g2">${SIDES.map(([s, l]) => len(`${base}-${s}`, l, { ...o, title: `${TIP[base]} (${l.toLowerCase()})` })).join('')}</div>`);
     };
 
     // -- content: the words, the picture, the link --
     const nodes = sel.gen && sel.src !== 'ok' ? [] : (sel.snap || []);
     const textUi = nodes.length === 1
-      ? `<div class="blk"><span class="cl">Contenu du texte</span><textarea id="p-text" title="Les mots de cet élément. Ce que vous écrivez ici apparaît aussitôt sur la page." rows="2">${esc(nodes[0].n.nodeValue.trim())}</textarea></div>`
-      : nodes.length > 1 ? '<div class="note">Ce bloc contient plusieurs textes : cliquez dans le texte, sur la page, pour les changer.</div>' : '';
-    const imgUi = tag === 'img' && editable ? `<div class="blk"><div class="row" style="margin:0 0 6px"><button id="p-swap" class="primary" title="Choisir une autre image dans vos fichiers">Remplacer…</button><label class="fld" style="width:132px" title="Largeur de l'image : automatique ou une part de la largeur du bloc"><span class="pt">Largeur</span><select id="p-width" data-kind="width">${['auto', '25%', '50%', '75%', '100%'].map((w) => `<option value="${w}"${(el.style.width || 'auto') === w ? ' selected' : ''}>${w === 'auto' ? 'Auto' : w}</option>`).join('')}</select></label></div><span class="cl">Description (pour qui ne voit pas l'image)</span><input type="text" id="p-alt" value="${attr(el.getAttribute('alt') || '')}" title="Lue par les lecteurs d'écran, affichée si l'image ne charge pas"></div>` : '';
-    const linkUi = tag === 'a' && editable ? `<div class="blk"><span class="cl">Adresse du lien</span><input type="text" id="p-href" value="${attr(el.getAttribute('href') || '')}" placeholder="https://…" title="Où mène le lien : https://…, mailto:… ou #ancre"></div>` : '';
-    const note = sel.fresh || sel.isNew ? 'Ajouté pendant cette session : tout se modifie.'
+      ? `<div class="blk"><span class="cl">Text content</span><textarea id="p-text" title="The words of this element. What you write here shows on the page at once." rows="2">${esc(nodes[0].n.nodeValue.trim())}</textarea></div>`
+      : nodes.length > 1 ? '<div class="note">This block holds several texts: click in the text, on the page, to change them.</div>' : '';
+    const imgUi = tag === 'img' && editable ? `<div class="blk"><div class="row" style="margin:0 0 6px"><button id="p-swap" class="primary" title="Choose another picture from your files">Replace…</button><label class="fld" style="width:132px" title="Picture width: automatic or a share of the block width"><span class="pt">Width</span><select id="p-width" data-kind="width">${['auto', '25%', '50%', '75%', '100%'].map((w) => `<option value="${w}"${(el.style.width || 'auto') === w ? ' selected' : ''}>${w === 'auto' ? 'Auto' : w}</option>`).join('')}</select></label></div><span class="cl">Description (for who cannot see the picture)</span><input type="text" id="p-alt" value="${attr(el.getAttribute('alt') || '')}" title="Read by screen readers, shown if the picture does not load"></div>` : '';
+    const linkUi = tag === 'a' && editable ? `<div class="blk"><span class="cl">Link address</span><input type="text" id="p-href" value="${attr(el.getAttribute('href') || '')}" placeholder="https://…" title="Where the link goes: https://…, mailto:… or #anchor"></div>` : '';
+    const note = sel.fresh || sel.isNew ? 'Added in this session: everything can be changed.'
       : !sel.gen ? ''
-      : sel.src === 'checking' ? 'Je cherche d\'où vient ce texte…'
-      : sel.src === 'ok' ? (F ? `Ce texte est écrit dans ${sel.srcFiles.join(', ')} (${sel.srcN} endroit${sel.srcN > 1 ? 's' : ''}) : le changer change ce fichier.` : `This text is written in ${sel.srcFiles.join(', ')} (${sel.srcN} place${sel.srcN > 1 ? 's' : ''}): changing it changes that file.`)
-      : sel.hasText ? 'Ce texte est composé par la page : il ne se change pas ici. Les couleurs, la taille et la mise en page, oui ; pour le texte, décrivez le changement à Kaby ci-dessus.'
-      : 'Élément fabriqué par la page : un changement de style vaut pour tous les éléments pareils.';
-    const scopeUi = !canStyle ? '<div class="note">Enregistrez d\'abord cette copie pour pouvoir changer son style.</div>'
+      : sel.src === 'checking' ? 'Looking for where this text comes from…'
+      : sel.src === 'ok' ? kt(`Ce texte est écrit dans ${sel.srcFiles.join(', ')} (${sel.srcN} endroit${sel.srcN > 1 ? 's' : ''}) : le changer change ce fichier.`, `This text is written in ${sel.srcFiles.join(', ')} (${sel.srcN} place${sel.srcN > 1 ? 's' : ''}): changing it changes that file.`)
+      : sel.hasText ? 'This text is composed by the page: it cannot be changed here. Colours, size and layout can; for the text, describe the change to Kaby above.'
+      : 'Element built by the page: a style change applies to all similar elements.';
+    const scopeUi = !canStyle ? '<div class="note">Save this copy first to be able to change its style.</div>'
       : !h ? '' : sel.own
-        ? `<div class="blk"><span class="cl">Appliquer les changements à</span><span class="seg full" id="p-scope" title="Cet élément seulement, ou tous ceux qui partagent le même style dans le fichier">${[['element', 'Cet élément'], ['rule', `Tous les pareils (${count})`]].map(([k, l]) => `<button data-s="${k}" title="${k === 'element' ? 'Seul cet élément change (le style est écrit sur lui)' : 'Tous les éléments qui ont le même style changent (la règle partagée est modifiée)'}"${scope === k ? ' class="on"' : ''}>${l}</button>`).join('')}</span></div>`
-        : `<div class="note">Cet élément est fabriqué par la page : un changement de style vaut pour les <b>${count}</b> éléments du même type.</div>`;
+        ? `<div class="blk"><span class="cl">Apply changes to</span><span class="seg full" id="p-scope" title="This element only, or all those sharing the same style in the file">${[['element', 'This element'], ['rule', `${tx('All similar')} (${count})`]].map(([k, l]) => `<button data-s="${k}" title="${k === 'element' ? 'Only this element changes (the style is written on it)' : 'All elements with the same style change (the shared rule is edited)'}"${scope === k ? ' class="on"' : ''}>${l}</button>`).join('')}</span></div>`
+        : `<div class="note">This element is built by the page: a style change applies to the <b>${count}</b> elements of the same type.</div>`;
 
     // -- the Style tab --
     const bgClear = parseColor(cs.backgroundColor).a === 0, fs = parseFloat(cs.fontSize), fw = String(parseInt(cs.fontWeight, 10));
@@ -1122,42 +1128,42 @@
     let lh = raw('line-height'); lh = /^[\d.]+$/.test(lh) ? lh : lh === 'normal' ? '' : String(rnd(parseFloat(lh) / (fs || 16)));
     const bw = parseFloat(cs.borderTopWidth) || 0, bs = cs.borderTopStyle, br = parseFloat(cs.borderTopLeftRadius) || 0, dsp = cs.display, op = Math.round((parseFloat(cs.opacity) || 0) * 100);
     const styleTab = [
-      acc('colors', 'Couleurs', 'Couleur du texte et du fond', `<div class="g2">${col('color', 'Texte')}${col('background-color', 'Fond')}</div><label class="chk" title="Retire la couleur de fond : on voit ce qu'il y a derrière"><input type="checkbox" data-nobg="1"${bgClear ? ' checked' : ''}> Sans couleur de fond</label>`),
-      acc('typo', 'Typographie', 'Police, taille, interligne, graisse, alignement', `
-        <div class="fldr">${menu('font-family', 'Police', [['', fam(cs.fontFamily) + ' (actuelle)'], ...FAMILIES], '')}</div>
-        <div class="fldr">${menu('font-weight', 'Graisse', withCur(WEIGHTS, fw), fw)}</div>
-        <div class="g2">${len('font-size', 'Taille', { val: String(rnd(fs, 1)) })}<label class="pill" title="${T('line-height')}"><span class="pt">Interligne</span><input type="text" data-css="line-height" data-kind="num" value="${attr(lh)}" placeholder="auto" spellcheck="false" autocomplete="off"></label></div>
-        <div class="g2 one">${len('letter-spacing', 'Espace entre les lettres', { neg: true, kw: 'normal', val: cs.letterSpacing === 'normal' ? '0' : px('letter-spacing') })}</div>
-        <div class="srow"><span class="pt">Alignement</span>${seg('text-align', [['left', IC.left, 'À gauche'], ['center', IC.center, 'Centré'], ['right', IC.right, 'À droite'], ['justify', IC.justify, 'Justifié']], al)}</div>
-        <div class="srow"><span class="pt">Mise en forme</span><span class="tgs">${tog('font-style', 'italic', 'normal', cs.fontStyle === 'italic', '<i style="font-family:Georgia,serif">I</i>', 'Italique')}${tog('text-decoration', 'underline', 'none', (cs.textDecorationLine || '').includes('underline'), '<u>S</u>', 'Souligné')}${tog('text-transform', 'uppercase', 'none', cs.textTransform === 'uppercase', 'AA', 'Tout en majuscules')}</span></div>`),
-      acc('border', 'Bordure', 'Trait autour du bloc et coins arrondis', `
-        <div class="g2">${len('border-width', 'Trait', { val: String(bw) })}${len('border-radius', 'Coins', { val: String(br) })}</div>
+      acc('colors', 'Colours', 'Colour of the text and the background', `<div class="g2">${col('color', 'Text')}${col('background-color', 'Background')}</div><label class="chk" title="Removes the background colour: what is behind shows"><input type="checkbox" data-nobg="1"${bgClear ? ' checked' : ''}> No background colour</label>`),
+      acc('typo', 'Typography', 'Police, taille, interligne, graisse, alignement', `
+        <div class="fldr">${menu('font-family', 'Font', [['', fam(cs.fontFamily) + ' (actuelle)'], ...FAMILIES], '')}</div>
+        <div class="fldr">${menu('font-weight', 'Weight', withCur(WEIGHTS, fw), fw)}</div>
+        <div class="g2">${len('font-size', 'Size', { val: String(rnd(fs, 1)) })}<label class="pill" title="${T('line-height')}"><span class="pt">Line height</span><input type="text" data-css="line-height" data-kind="num" value="${attr(lh)}" placeholder="auto" spellcheck="false" autocomplete="off"></label></div>
+        <div class="g2 one">${len('letter-spacing', 'Letter spacing', { neg: true, kw: 'normal', val: cs.letterSpacing === 'normal' ? '0' : px('letter-spacing') })}</div>
+        <div class="srow"><span class="pt">Alignment</span>${seg('text-align', [['left', IC.left, 'Align left'], ['center', IC.center, 'Centred'], ['right', IC.right, 'Align right'], ['justify', IC.justify, 'Justified']], al)}</div>
+        <div class="srow"><span class="pt">Formatting</span><span class="tgs">${tog('font-style', 'italic', 'normal', cs.fontStyle === 'italic', '<i style="font-family:Georgia,serif">I</i>', 'Italic')}${tog('text-decoration', 'underline', 'none', (cs.textDecorationLine || '').includes('underline'), '<u>S</u>', 'Underline')}${tog('text-transform', 'uppercase', 'none', cs.textTransform === 'uppercase', 'AA', 'All capitals')}</span></div>`),
+      acc('border', 'Border', 'Line around the block and rounded corners', `
+        <div class="g2">${len('border-width', 'Line', { val: String(bw) })}${len('border-radius', 'Corners', { val: String(br) })}</div>
         <div class="fldr">${menu('border-style', 'Style', withCur(BORDERS, bs), bs)}</div>
-        <div class="g2 one">${col('border-color', 'Couleur', 'border-top-color')}</div>`),
-      acc('disp', 'Affichage', 'Façon de ranger le bloc, transparence, ombre', `
-        <div class="fldr">${menu('display', 'Affichage', withCur(DISPLAYS, dsp), dsp)}</div>
-        <div class="fldr rng" title="${T('opacity')}"><span class="pt">Opacité</span><input type="range" min="0" max="100" step="1" value="${op}" data-css="opacity" data-kind="range"><output>${op}%</output></div>
-        <div class="fldr">${menu('box-shadow', 'Ombre', cs.boxShadow === 'none' ? SHADOWS : [['', 'Actuelle'], ...SHADOWS], cs.boxShadow === 'none' ? 'none' : '')}</div>`),
+        <div class="g2 one">${col('border-color', 'Colour', 'border-top-color')}</div>`),
+      acc('disp', 'Display', 'How the block is laid out, opacity, shadow', `
+        <div class="fldr">${menu('display', 'Display', withCur(DISPLAYS, dsp), dsp)}</div>
+        <div class="fldr rng" title="${T('opacity')}"><span class="pt">Opacity</span><input type="range" min="0" max="100" step="1" value="${op}" data-css="opacity" data-kind="range"><output>${op}%</output></div>
+        <div class="fldr">${menu('box-shadow', 'Shadow', cs.boxShadow === 'none' ? SHADOWS : [['', 'Current'], ...SHADOWS], cs.boxShadow === 'none' ? 'none' : '')}</div>`),
     ].join('');
 
     // -- the Mise en page tab --
     const flexy = /flex|grid/.test(dsp), ai = cs.alignItems === 'normal' ? 'stretch' : cs.alignItems, jc = cs.justifyContent === 'normal' ? 'flex-start' : cs.justifyContent;
     const layoutTab = [
-      canM ? acc('pos', 'Position', 'Monter ou descendre le bloc parmi ses voisins', `<div class="row" style="margin:0"><button class="line" id="p-up" title="Passer avant le bloc précédent">${IC.up}Monter</button><button class="line" id="p-down" title="Passer après le bloc suivant">${IC.down}Descendre</button></div>`) : '',
-      acc('pad', 'Marge intérieure', TIP.padding, sides('padding')),
-      acc('mar', 'Marge extérieure', TIP.margin, sides('margin')),
-      acc('dim', 'Dimensions', 'Largeur et hauteur du bloc', `<div class="g2">${len('width', 'Largeur', { kw: 'auto' })}${len('height', 'Hauteur', { kw: 'auto' })}</div><div class="g2">${len('max-width', 'Larg. max', { kw: 'none' })}${len('min-height', 'Haut. min')}</div>`),
-      flexy ? acc('flex', 'Disposition', 'Comment les éléments contenus se rangent', `
-        ${/flex/.test(dsp) ? `<div class="srow"><span class="pt">Sens</span>${seg('flex-direction', [['row', 'Ligne', 'Côte à côte'], ['column', 'Colonne', 'L\'un sous l\'autre']], cs.flexDirection.startsWith('column') ? 'column' : 'row')}</div>` : ''}
-        <div class="g2 one">${len('gap', 'Espace', { kw: 'normal', val: /normal/.test(cs.rowGap) ? '0' : String(rnd(parseFloat(cs.rowGap), 1)) })}</div>
-        <div class="fldr">${menu('align-items', 'Alignement', withCur(ALIGNS, ai), ai)}</div>
-        <div class="fldr">${menu('justify-content', 'Répartition', withCur(JUSTS, jc), jc)}</div>`) : '',
+      canM ? acc('pos', 'Position', 'Move the block up or down among its neighbours', `<div class="row" style="margin:0"><button class="line" id="p-up" title="Go before the previous block">${IC.up}Move up</button><button class="line" id="p-down" title="Go after the next block">${IC.down}Move down</button></div>`) : '',
+      acc('pad', 'Padding', TIP.padding, sides('padding')),
+      acc('mar', 'Margin', TIP.margin, sides('margin')),
+      acc('dim', 'Dimensions', 'Width and height of the block', `<div class="g2">${len('width', 'Width', { kw: 'auto' })}${len('height', 'Height', { kw: 'auto' })}</div><div class="g2">${len('max-width', 'Larg. max', { kw: 'none' })}${len('min-height', 'Haut. min')}</div>`),
+      flexy ? acc('flex', 'Arrangement', 'How the contained items are arranged', `
+        ${/flex/.test(dsp) ? `<div class="srow"><span class="pt">Direction</span>${seg('flex-direction', [['row', 'Row', 'Side by side'], ['column', 'Column', 'One under the other']], cs.flexDirection.startsWith('column') ? 'column' : 'row')}</div>` : ''}
+        <div class="g2 one">${len('gap', 'Gap', { kw: 'normal', val: /normal/.test(cs.rowGap) ? '0' : String(rnd(parseFloat(cs.rowGap), 1)) })}</div>
+        <div class="fldr">${menu('align-items', 'Alignment', withCur(ALIGNS, ai), ai)}</div>
+        <div class="fldr">${menu('justify-content', 'Distribution', withCur(JUSTS, jc), jc)}</div>`) : '',
     ].join('');
 
     pop.innerHTML = `
-      <div class="ihead"><input type="text" id="p-intent" placeholder="Décrire un changement (pour Kaby)" title="Dites en une phrase ce que vous voulez changer, puis Entrée : la demande va dans la liste et part vers Kaby avec « Enregistrer »." autocomplete="off"><button id="p-x" class="sm" title="Fermer les réglages">${IC.close}</button></div>
+      <div class="ihead"><input type="text" id="p-intent" placeholder="Describe a change (for Kaby)" title="Say in one sentence what you want to change, then Enter: the request goes into the list and is sent to Kaby with “Save”." autocomplete="off"><button id="p-x" class="sm" title="Close settings">${IC.close}</button></div>
       <div class="pbody">${textUi}${imgUi}${linkUi}${note ? `<div class="note blk">${esc(note)}</div>` : ''}
-        <div class="tabs">${[['style', 'Style', 'Couleurs, texte, bordure, affichage'], ['layout', 'Mise en page', 'Marges, taille, position, disposition']].map(([k, l, t]) => `<button data-tab="${k}" title="${t}"${insp.tab === k ? ' class="on"' : ''}>${l}</button>`).join('')}</div>
+        <div class="tabs">${[['style', 'Style', 'Colours, text, border, display'], ['layout', 'Layout', 'Marges, taille, position, disposition']].map(([k, l, t]) => `<button data-tab="${k}" title="${t}"${insp.tab === k ? ' class="on"' : ''}>${l}</button>`).join('')}</div>
         ${scopeUi}${insp.tab === 'style' ? styleTab : layoutTab}</div>`;
     const up = pop.querySelector('#p-up'), down = pop.querySelector('#p-down');
     if (up) { up.disabled = !sibling(el, -1); down.disabled = !sibling(el, 1); }
@@ -1202,7 +1208,7 @@
       if (e.target.id !== 'p-intent' || e.key !== 'Enter') return;
       const t = e.target.value.trim(); if (!t || !sel) return;
       upsert('i' + Date.now(), { type: 'intent', id: sel.own ? sel.id : sel.ancId, locked: !sel.own, tag: desc(sel.el), text: t }); e.target.value = '';
-      toast('Ajoutée à la liste. Elle part vers Kaby avec « Enregistrer ».');
+      toast('Added to the list. It goes to Kaby with “Save”.');
     });
     pop.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b || !sel) return;
@@ -1250,7 +1256,7 @@
     boxAt(selb, el);
     tb.style.display = 'flex';
     // What it is, and where its words come from, is a tag on the frame, not a label in the toolbar (it would look like a field to type in).
-    const status = sel.fresh || sel.isNew ? 'nouveau' : !sel.gen ? '' : sel.src === 'checking' ? '…' : sel.src === 'ok' ? 'données' : sel.hasText ? 'composé' : 'généré', nm = nice(el);
+    const status = sel.fresh || sel.isNew ? 'new' : !sel.gen ? '' : sel.src === 'checking' ? '…' : sel.src === 'ok' ? 'data' : sel.hasText ? 'composed' : 'generated', nm = nice(el);
     if (chip.dataset.t !== nm + '|' + status) { chip.dataset.t = nm + '|' + status; chip.innerHTML = `<b>${esc(nm)}</b>${status ? `<i>${status}</i>` : ''}`; }
     $('#b-more').classList.toggle('on', !pop.hidden);
     const canM = sel.sid != null;
@@ -1313,7 +1319,7 @@
       if (!on || e.target === host) return;
       const t = e.target; if (t.nodeType !== 1 || t === document.body || t === document.documentElement) { hov.style.display = 'none'; return; }
       if (sel && t === sel.el) { hov.style.display = 'none'; return; }   // the chosen one already has its frame and its toolbar
-      boxAt(hov, t); hovTag.textContent = nice(t) + (own(t) ? '' : ' · ' + tx('généré'));
+      boxAt(hov, t); hovTag.textContent = nice(t) + (own(t) ? '' : ' · ' + tx('generated'));
     }, true);
     document.addEventListener('mouseleave', () => { if (hov) hov.style.display = 'none'; }, true);
     document.addEventListener('mouseup', () => {
@@ -1345,7 +1351,7 @@
       if (!on || !hasFiles(e)) return;
       e.preventDefault(); e.stopPropagation(); showDrop(null);
       const files = [...e.dataTransfer.files].filter(isImg);
-      if (!files.length) { toast('Seules les images PNG, JPEG, GIF et WebP peuvent être déposées.'); return; }
+      if (!files.length) { toast('Only PNG, JPEG, GIF and WebP pictures can be dropped.'); return; }
       const d = dropAt(e), t = d ? { el: d.refEl, ref: d.ref, where: d.where, refTag: desc(d.refEl) } : target();
       if (t) insertFiles(files, t);
     }, true);
@@ -1364,7 +1370,7 @@
       for (const t of ranges.length ? ranges : (sr.rangeCount ? [sr.getRangeAt(0)] : [])) {
         const r = document.createRange(); r.setStart(t.startContainer, t.startOffset); r.setEnd(t.endContainer, t.endOffset);
         const past = [...sel.el.childNodes].some((c) => !own.has(c) && !(c.nodeType === 3 && !c.nodeValue.trim()) && r.intersectsNode(c));
-        if (past || sel.snap.filter((x) => r.intersectsNode(x.n)).length > 1) { e.preventDefault(); toast(tx('Sélectionnez un seul morceau de texte à la fois (pas les icônes ni les liens)')); return; }
+        if (past || sel.snap.filter((x) => r.intersectsNode(x.n)).length > 1) { e.preventDefault(); toast(tx('Select one piece of text at a time (not the icons or links)')); return; }
       }
     }, true);
     document.addEventListener('input', (e) => { if (on && sel && sel.editing && sel.el.contains(e.target)) syncText(); }, true);
@@ -1381,57 +1387,57 @@
 
   // ---- list of what is waiting, save ----
   const FIELD = {
-    color: 'couleur du texte', 'background-color': 'fond', 'font-family': 'police', 'font-size': 'taille', 'line-height': 'interligne', 'letter-spacing': 'espacement des lettres', 'font-weight': 'graisse',
-    'font-style': 'italique', 'text-decoration': 'souligné', 'text-transform': 'majuscules', 'text-align': 'alignement', 'border-width': 'épaisseur du trait', 'border-style': 'style du trait',
-    'border-color': 'couleur du trait', 'border-radius': 'arrondi', opacity: 'opacité', 'box-shadow': 'ombre', display: 'affichage', padding: 'marge intérieure', margin: 'marge extérieure',
-    width: 'largeur', height: 'hauteur', 'max-width': 'largeur max', 'min-height': 'hauteur min', 'flex-direction': 'sens de rangement', gap: 'espace entre éléments', 'align-items': 'alignement', 'justify-content': 'répartition',
+    color: 'text colour', 'background-color': 'background', 'font-family': 'font', 'font-size': 'size', 'line-height': 'line height', 'letter-spacing': 'letter spacing', 'font-weight': 'weight',
+    'font-style': 'italic', 'text-decoration': 'underline', 'text-transform': 'capitals', 'text-align': 'alignment', 'border-width': 'line thickness', 'border-style': 'line style',
+    'border-color': 'line colour', 'border-radius': 'rounding', opacity: 'opacity', 'box-shadow': 'shadow', display: 'display', padding: 'padding', margin: 'margin',
+    width: 'width', height: 'height', 'max-width': 'max width', 'min-height': 'min height', 'flex-direction': 'direction', gap: 'gap', 'align-items': 'alignment', 'justify-content': 'distribution',
   };
-  for (const [b, l] of [['padding', 'marge intérieure'], ['margin', 'marge extérieure']]) for (const [s, n] of [['top', 'haut'], ['right', 'droite'], ['bottom', 'bas'], ['left', 'gauche']]) FIELD[`${b}-${s}`] = `${tx(l)} ${tx(n)}`;
+  for (const [b, l] of [['padding', 'padding'], ['margin', 'margin']]) for (const [s, n] of [['top', 'top'], ['right', 'right'], ['bottom', 'bottom'], ['left', 'left']]) FIELD[`${b}-${s}`] = `${tx(l)} ${tx(n)}`;
   for (const k of Object.keys(FIELD)) if (!/-(top|right|bottom|left)$/.test(k)) FIELD[k] = tx(FIELD[k]);
   function describe(p) {
-    if (p.type === 'text') return `<b>${esc(p.tag)}</b>${COL}${tx('texte modifié')}`;
-    if (p.type === 'srctext') return F ? `<b>${esc(p.tag)}</b>${COL}texte modifié dans les données (${esc((p.files || []).join(', '))}, ${p.places || 1} endroit${p.places > 1 ? 's' : ''})` : `<b>${esc(p.tag)}</b>: text changed in the data (${esc((p.files || []).join(', '))}, ${p.places || 1} place${p.places > 1 ? 's' : ''})`;
+    if (p.type === 'text') return `<b>${esc(p.tag)}</b>${COL}${tx('text changed')}`;
+    if (p.type === 'srctext') return kt(`<b>${esc(p.tag)}</b> : texte modifié dans les données (${esc((p.files || []).join(', '))}, ${p.places || 1} endroit${p.places > 1 ? 's' : ''})`, `<b>${esc(p.tag)}</b>: text changed in the data (${esc((p.files || []).join(', '))}, ${p.places || 1} place${p.places > 1 ? 's' : ''})`);
     if (p.type === 'style') return `<b>${esc(p.tag)}</b>${COL}${FIELD[p.prop] || esc(p.prop)} ${esc(p.beforeText || '?')} → ${esc(p.after)}`;
-    if (p.type === 'rule') return `<b>${F ? 'Tous les « ' : 'All “'}${esc(p.selector)}${F ? ' »' : '”'}</b> (${p.count})${COL}${FIELD[p.prop] || esc(p.prop)} → ${esc(p.after)}`;
+    if (p.type === 'rule') return `<b>${kt('Tous les « ', 'All “')}${esc(p.selector)}${RQ}</b> (${p.count})${COL}${FIELD[p.prop] || esc(p.prop)} → ${esc(p.after)}`;
     if (p.type === 'struct') {
-      const w = tx({ before: 'avant', after: 'après', inside: 'dans' }[p.where]);
-      if (p.op === 'move') return `<b>${esc(p.tag)}</b> ${tx('déplacé')} ${w} <b>${esc(p.refTag)}</b>`;
-      if (p.op === 'dup') return `<b>${esc(p.tag)}</b> ${tx('dupliqué')}`;
-      if (p.op === 'del') return `<b>${esc(p.tag)}</b> ${tx('supprimé')}`;
-      return `${F ? 'Ajout : ' : 'Added: '}${esc(String(p.label || p.kind).toLowerCase())}, ${w} <b>${esc(p.tag)}</b>`;
+      const w = tx({ before: 'before', after: 'after', inside: 'in' }[p.where]);
+      if (p.op === 'move') return `<b>${esc(p.tag)}</b> ${tx('moved')} ${w} <b>${esc(p.refTag)}</b>`;
+      if (p.op === 'dup') return `<b>${esc(p.tag)}</b> ${tx('duplicated')}`;
+      if (p.op === 'del') return `<b>${esc(p.tag)}</b> ${tx('deleted')}`;
+      return `${kt('Ajout : ', 'Added: ')}${esc(String(p.label || p.kind).toLowerCase())}, ${w} <b>${esc(p.tag)}</b>`;
     }
     if (p.type === 'attr') return `<b>${esc(p.tag)}</b>${COL}${ATTR_LABEL[p.name] || esc(p.name)} → ${esc(p.after)}`;
-    return `<b>${esc(p.tag)}</b> ${tx('pour Kaby')}${p.locked ? ' ' + tx('(élément généré)') : ''}${COL}${LQ}${esc(p.text)}${RQ}`;
+    return `<b>${esc(p.tag)}</b> ${tx('for Kaby')}${p.locked ? ' ' + tx('(generated element)') : ''}${COL}${LQ}${esc(p.text)}${RQ}`;
   }
   function renderList() {
-    list.innerHTML = (pending.length ? pending.map((p, i) => `<div class="it"><span>${describe(p)}</span><button data-i="${i}" title="Retirer ce changement de la liste">${IC.close}</button></div>`).join('') : '<div class="it k">Rien en attente.</div>')
-      + `<div class="foot"><button id="l-undo" title="Remet le fichier tel qu'il était avant votre dernier enregistrement">Revenir avant le dernier enregistrement</button><button id="l-reset" title="Remet la page comme elle était avant le premier enregistrement de l'éditeur">Remettre la page d'origine</button></div>`;
+    list.innerHTML = (pending.length ? pending.map((p, i) => `<div class="it"><span>${describe(p)}</span><button data-i="${i}" title="Remove this change from the list">${IC.close}</button></div>`).join('') : '<div class="it k">Nothing waiting.</div>')
+      + `<div class="foot"><button id="l-undo" title="Puts the file back as it was before your last save">Go back to before the last save</button><button id="l-reset" title="Puts the page back as it was before the editor\'s first save">Put the original page back</button></div>`;
     list.querySelectorAll('.it button').forEach((b) => (b.onclick = async () => { const [gone] = pending.splice(+b.dataset.i, 1); await dropUploads([gone], pending); await persist(); location.reload(); }));
-    list.querySelector('#l-undo').onclick = () => confirmBox({ anchor: list, keepList: true, title: 'Revenir avant le dernier enregistrement ?', detail: 'Le fichier reprend son contenu d\'avant. Les changements en attente sont abandonnés.', ok: 'Revenir en arrière', danger: true, onOk: async () => {
+    list.querySelector('#l-undo').onclick = () => confirmBox({ anchor: list, keepList: true, title: 'Go back to before the last save?', detail: 'The file gets its previous content back. Waiting changes are given up.', ok: 'Go back', danger: true, onOk: async () => {
       await dropUploads(pending, []); const r = await api('undo', {}); pending = [];
-      await kv.set('toast', r.ok ? tx('Fichier remis comme avant le dernier enregistrement') : (r.error === 'no-snapshot' ? tx('Rien à annuler') : tx('Impossible de revenir en arrière : ') + (r.why || '')));
+      await kv.set('toast', r.ok ? tx('File put back as it was before the last save') : (r.error === 'no-snapshot' ? tx('Nothing to undo') : tx('Could not go back: ') + (r.why || '')));
       await persist(); location.reload(); } });
-    list.querySelector('#l-reset').onclick = () => confirmBox({ anchor: list, keepList: true, title: 'Remettre la page d\'origine ?', detail: 'La page reprend son contenu d\'avant le premier enregistrement de l\'éditeur : tous ses enregistrements sont perdus.', ok: 'Remettre la page d\'origine', danger: true, onOk: async () => {
+    list.querySelector('#l-reset').onclick = () => confirmBox({ anchor: list, keepList: true, title: 'Put the original page back?', detail: 'The page gets its content from before the editor\'s first save back: all its saves are lost.', ok: 'Put the original page back', danger: true, onOk: async () => {
       const r = await api('reset', {}); pending = [];
-      await kv.set('toast', r.ok ? tx('Page d\'origine remise') : (r.error === 'no-snapshot' ? tx('Rien n\'a été enregistré par l\'éditeur : rien à remettre') : tx('Impossible de remettre l\'original : ') + (r.why || '')));
+      await kv.set('toast', r.ok ? tx('Original page put back') : (r.error === 'no-snapshot' ? tx('The editor has saved nothing: nothing to put back') : tx('Could not put the original back: ') + (r.why || '')));
       await persist(); location.reload(); } });
   }
   async function save() {
     const patches = pending.filter((p) => p.type !== 'intent').map(({ key, beforeText, tag, refTag, count, label, uploads, places, files, ...rest }) => rest);
     const intents = pending.filter((p) => p.type === 'intent');
-    if (!patches.length && !intents.length) { toast(tx('Rien à enregistrer')); return; }
+    if (!patches.length && !intents.length) { toast(tx('Nothing to save')); return; }
     let r = { ok: true, applied: 0, errors: [], notes: [] };
     if (patches.length) {
       r = await api('apply', { body: { baseHash, baseFiles, patches } });
-      if (!r.ok) { toast(r.error === 'stale' ? tx('La page a changé depuis son ouverture (Kaby ou vous). Rien n\'a été écrit : rechargez la maquette.') : tx('Refusé : ') + (r.why || '') + tx(' Rien n\'a été écrit.')); return; }
+      if (!r.ok) { toast(r.error === 'stale' ? tx('The page changed since it was opened (Kaby or you). Nothing was written: reload the mockup.') : tx('Refused: ') + (r.why || '') + tx(' Nothing was written.')); return; }
     }
     // what the person asked Kaby to do goes to the chat (written for them to read and send), never sent by itself
     if (intents.length) await bridge('ask', { items: intents.map((p) => ({ tag: p.tag, text: p.text, locked: !!p.locked })) });
     const bad = r.errors.length, ids = r.notes && r.notes.length;
-    const msg = (patches.length ? (LANG === 'fr' ? `Enregistré : ${r.applied} changement${r.applied > 1 ? 's' : ''}` : `Saved: ${r.applied} change${r.applied > 1 ? 's' : ''}`) : '')
-      + (bad ? (LANG === 'fr' ? ` · ${bad} refusé${bad > 1 ? 's' : ''} (${r.errors[0].why})` : ` · ${bad} refused (${r.errors[0].why})`) : '')
-      + (ids ? tx(' · identifiant(s) renommé(s) dans la copie (elle n\'est pas reliée au script de la page)') : '')
-      + (intents.length ? (patches.length ? ' · ' : '') + tx('Demande envoyée à Kaby : relisez-la dans la conversation') : '');
+    const msg = (patches.length ? kt(`Enregistré : ${r.applied} changement${r.applied > 1 ? 's' : ''}`, `Saved: ${r.applied} change${r.applied > 1 ? 's' : ''}`) : '')
+      + (bad ? kt(` · ${bad} refusé${bad > 1 ? 's' : ''} (${r.errors[0].why})`, ` · ${bad} refused (${r.errors[0].why})`) : '')
+      + (ids ? tx(' · id(s) renamed in the copy (it is not wired to the page script)') : '')
+      + (intents.length ? (patches.length ? ' · ' : '') + tx('Request sent to Kaby: read it in the chat') : '');
     await kv.set('toast', msg);
     await dropUploads(pending, []);   // pictures replaced before saving: the host removes the ones the saved page does not use
     pending = []; await persist(); location.reload();
@@ -1445,7 +1451,7 @@
     const pal = await bridge('api', { op: 'blocks', lang: LANG }); palette = pal && pal.ok ? pal.blocks : [];
     const saved = store.get(); let msg = kv.get('toast');
     if (saved && saved.hash === baseHash) { pending = saved.pending || []; on = !!saved.on; }
-    else if (saved) { on = !!saved.on; if (saved.pending && saved.pending.length) msg = tx('Le fichier a changé depuis : vos changements en attente ont été abandonnés.'); }
+    else if (saved) { on = !!saved.on; if (saved.pending && saved.pending.length) msg = tx('The file changed since: your waiting changes were given up.'); }
     kv.set('toast', null);
     buildUi(); wirePage(); replay(); setOn(on);
     addEventListener('resize', placePill); setTimeout(placePill, 700);   // the page may build its own top-right controls after load
