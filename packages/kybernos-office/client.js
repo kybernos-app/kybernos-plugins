@@ -134,6 +134,7 @@ window.__ModuleLoader__.load({
 .kyo-card p{margin:0 0 8px}
 .kyo-card .kyo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .kyo-sub{color:var(--dsw-alias-label-secondary,#666);font-size:12px}
+.kyo-wrap.kyo-embed{position:relative;inset:auto;z-index:auto;width:100%;height:100%;min-height:420px}
 .kyo-q{width:30px;padding:0;text-align:center;font-weight:600}
 .kyo-help{position:absolute;z-index:2;top:12px;right:12px;max-width:420px;max-height:calc(100% - 24px);overflow:auto;padding:16px 18px;border:1px solid var(--dsw-alias-border-l2,#ddd);border-radius:12px;background:var(--dsw-alias-bg-layer-2,#f8f8f8);box-shadow:0 8px 24px var(--dsw-alias-shadow-l3,rgba(0,0,0,.18))}
 .kyo-help[hidden]{display:none}
@@ -210,14 +211,20 @@ window.__ModuleLoader__.load({
         return null
       }
 
-      let current = null // the one open window: { close() }
+      let current = null // the one open full-screen window: { close() }
+      const embeds = new Set() // the windows shown inside the viewer of Creations: { close() }
 
-      /** Opens the editor window on a file. One at a time: asking again while one is open does nothing. */
-      const openFile = (path, name) => {
-        if (current !== null) return
-        if (typeof path !== 'string' || path === '' || !canEdit(typeof name === 'string' ? name : path)) return
+      /**
+       * Builds an editor window on a file. In the full-screen form (`into` is null) one at a time: asking again while one is open does nothing. In the embedded form
+       * (`into` is the box the viewer of Creations gives) it opens READ-ONLY, so a file can be looked at with nothing to decide, and « Edit » turns the same box into the
+       * editor (the guard speaks first when the file has things the light editor would lose). Returns `{ close, dirty }`, or null when nothing was opened.
+       */
+      const openWindow = (path, name, into) => {
+        const embedded = into !== null && into !== undefined
+        if (!embedded && current !== null) return null
+        if (typeof path !== 'string' || path === '' || !canEdit(typeof name === 'string' ? name : path)) return null
         ensureStyle()
-        let state = { token: null, hash: null, dirty: false, saved: false, undo: false, readOnly: false, busy: false, editor: null, url: null }
+        let state = { token: null, hash: null, dirty: false, saved: false, undo: false, readOnly: false, busy: false, editor: null, url: null, losses: null, block: false }
         let frame = null
         let alive = true
         let seq = 0
@@ -234,8 +241,14 @@ window.__ModuleLoader__.load({
         const copyBtn = btn(kt('Enregistrer une copie', 'Save a copy'), 'office-copy', () => save('copy'))
         const undoBtn = btn(kt('Annuler l’enregistrement', 'Undo last save'), 'office-undo', () => undo(false))
         const closeBtn = el('button', { type: 'button', class: 'kyo-btn', 'data-kb': 'office-close', text: kt('Fermer', 'Close'), onclick: () => requestClose() })
-        const bar = el('div', { class: 'kyo-bar' }, nameEl, statusEl, saveBtn, copyBtn, undoBtn, helpButton(stage), closeBtn)
-        const wrap = el('div', { class: 'kyo-wrap', 'data-kb': 'office-window', role: 'dialog', 'aria-modal': 'true', 'aria-label': String(name || path) }, bar, noteEl, stage)
+        const editBtn = el('button', { type: 'button', class: 'kyo-btn kyo-primary', 'data-kb': 'office-edit', text: kt('Modifier', 'Edit'), onclick: () => startEditing(), disabled: true })
+        // Embedded: the viewer already says the file's name and closes itself, so the bar has the status, « Edit » and the save buttons only.
+        const bar = embedded
+          ? el('div', { class: 'kyo-bar' }, statusEl, editBtn, saveBtn, copyBtn, undoBtn, helpButton(stage))
+          : el('div', { class: 'kyo-bar' }, nameEl, statusEl, saveBtn, copyBtn, undoBtn, helpButton(stage), closeBtn)
+        const wrap = embedded
+          ? el('div', { class: 'kyo-wrap kyo-embed', 'data-kb': 'office-embed', 'aria-label': String(name || path) }, bar, noteEl, stage)
+          : el('div', { class: 'kyo-wrap', 'data-kb': 'office-window', role: 'dialog', 'aria-modal': 'true', 'aria-label': String(name || path) }, bar, noteEl, stage)
 
         const status = (text, bad) => { statusEl.textContent = text; statusEl.className = 'kyo-status' + (bad ? ' kyo-bad' : '') }
         const refresh = () => {
@@ -243,12 +256,16 @@ window.__ModuleLoader__.load({
           saveBtn.disabled = !(editing && !state.readOnly && state.dirty)
           copyBtn.disabled = !(editing && !state.readOnly && state.dirty)
           undoBtn.disabled = !(editing && state.undo)
+          editBtn.hidden = !(embedded && state.readOnly)
+          editBtn.disabled = !(editing && state.readOnly)
         }
         const note = (text) => { noteEl.textContent = text; noteEl.hidden = text === '' }
         const card = (key, lines, buttons) => {
           layer.replaceChildren(el('div', { class: 'kyo-card', 'data-kb': key }, ...lines.map((l) => el('p', { class: l.sub ? 'kyo-sub' : '', text: l.text })), el('div', { class: 'kyo-row' }, ...buttons)))
           layer.hidden = false
         }
+        // The full-screen window can be closed from a card; the embedded box is closed by the viewer that holds it.
+        const closer = () => (embedded ? [] : [cardBtn(kt('Fermer', 'Close'), () => finish(), true)])
         const cardBtn = (label, run, primary) => el('button', { type: 'button', class: 'kyo-btn' + (primary ? ' kyo-primary' : ''), text: label, onclick: run })
         const toFrame = (msg) => { try { frame.contentWindow.postMessage(Object.assign({ ky: 'office' }, msg), '*') } catch (e) { /* the frame is gone */ } }
 
@@ -260,6 +277,25 @@ window.__ModuleLoader__.load({
           layer.hidden = true
           status(kt('Ouverture…', 'Opening…'))
           refresh()
+        }
+        // Embedded: « Edit » replaces the read-only frame by the editor (nothing was typed in a read-only frame, so nothing is lost by the swap).
+        const swapFrame = (readOnly) => {
+          try { if (frame !== null) frame.remove() } catch (e) { /* already gone */ }
+          frame = null
+          mountFrame(readOnly)
+        }
+        const startEditing = () => {
+          if (!embedded || state.token === null || state.busy || !state.readOnly) return
+          const n = notices(state.losses)
+          if (state.block) {
+            card('office-gate', [{ text: n.loss }, { text: kt('Tu peux continuer à regarder le fichier : rien n’est écrit.', 'You can keep looking at the file: nothing is written.'), sub: true }], [
+              cardBtn(kt('Modifier quand même', 'Edit anyway'), () => { note(n.loss); swapFrame(false) }, true),
+              cardBtn(kt('Annuler', 'Cancel'), () => mountBack()),
+            ])
+            return
+          }
+          note([n.review, n.untested].filter((x) => x !== '').join(' '))
+          swapFrame(false)
         }
         const exportBytes = () => new Promise((resolve, reject) => {
           const id = ++seq
@@ -340,7 +376,8 @@ window.__ModuleLoader__.load({
           for (const p of pending.values()) p.reject(new Error('closed'))
           pending.clear()
           try { wrap.remove() } catch (e) { /* already gone */ }
-          current = null
+          if (embedded) embeds.delete(handle)
+          else current = null
         }
         const requestClose = () => {
           if (!state.dirty) { finish(); return }
@@ -357,27 +394,34 @@ window.__ModuleLoader__.load({
         }
 
         // ── open ───────────────────────────────────────────────────────────────────
-        document.body.appendChild(wrap)
+        const handle = { close: finish, dirty: () => state.dirty === true, state: () => state, wrap }
         window.addEventListener('message', onMessage)
-        window.addEventListener('keydown', onKey, true)
-        current = { close: finish, state: () => state, wrap }
+        if (embedded) {
+          into.appendChild(wrap)
+          embeds.add(handle)
+        } else {
+          document.body.appendChild(wrap)
+          window.addEventListener('keydown', onKey, true)
+          current = handle
+        }
         status(kt('Ouverture…', 'Opening…'))
-        closeBtn.focus()
+        if (!embedded) closeBtn.focus()
         ;(async () => {
           const r = await postJson('/open', { path })
           if (!alive) return
-          if (!r.ok) { status(errorText(r), true); card('office-error', [{ text: errorText(r) }], [cardBtn(kt('Fermer', 'Close'), () => finish(), true)]); return }
-          state = Object.assign(state, { token: r.token, hash: HASH.test(String(r.hash)) ? r.hash : null, undo: r.undo === true, editor: r.editor, url: typeof r.url === 'string' && r.url.startsWith(BASE + '/v/') ? r.url : null })
+          if (!r.ok) { status(errorText(r), true); card('office-error', [{ text: errorText(r) }], closer()); return }
+          state = Object.assign(state, { token: r.token, hash: HASH.test(String(r.hash)) ? r.hash : null, undo: r.undo === true, editor: r.editor, url: typeof r.url === 'string' && r.url.startsWith(BASE + '/v/') ? r.url : null, losses: r.losses, block: r.block === true })
           const n = notices(r.losses)
-          note([n.review, n.untested].filter((s) => s !== '').join(' '))
+          if (!embedded) note([n.review, n.untested].filter((s) => s !== '').join(' '))
           if (r.installed !== true || state.url === null) {
             status(errorText({ error: 'not-installed' }), true)
             card('office-not-installed', [
               { text: errorText({ error: 'not-installed' }) },
               { text: kt('Demande à Kaby de les installer, ou construis-les avec « node packages/kybernos-office/build-editors.mjs ».', 'Ask Kaby to install them, or build them with “node packages/kybernos-office/build-editors.mjs”.'), sub: true },
-            ], [cardBtn(kt('Fermer', 'Close'), () => finish(), true)])
+            ], closer())
             return
           }
+          if (embedded) { mountFrame(true); return }
           if (r.block === true) {
             status(kt('À toi de choisir', 'Your choice'))
             card('office-gate', [{ text: n.loss }, { text: kt('Tu peux l’ouvrir en lecture seule : rien n’est écrit.', 'You can open it read-only: nothing is written.'), sub: true }], [
@@ -389,7 +433,11 @@ window.__ModuleLoader__.load({
           }
           mountFrame(false)
         })().catch((e) => { try { status(String(e && e.message ? e.message : e), true) } catch (e2) { /* window gone */ } })
+        return handle
       }
+      const openFile = (path, name) => { openWindow(path, name, null) }
+      /** The viewer of Creations shows the file in this box, read-only, with « Edit » in its bar. Returns `{ close, dirty }`, or null. */
+      const embedFile = (box, path, name) => openWindow(path, name, box)
 
       // ── declared to the core ─────────────────────────────────────────────────────
       // The order in which two plugins are applied is DSH's, so the core's registry is waited for, not assumed.
@@ -414,20 +462,21 @@ window.__ModuleLoader__.load({
           try { if (typeof off === 'function') off() } catch (e) { /* already taken back */ }
           off = null
           if (current !== null) current.close()
+          for (const w of [...embeds]) w.close()
           dropStyle()
         }
       }, label)
 
       const start = (ctx) => {
         try {
-          declareWhenReady(ctx, 'kybernos-office: file editor', () => ({ id: 'office', canEdit, open: openFile }))
+          declareWhenReady(ctx, 'kybernos-office: file editor', () => ({ id: 'office', canEdit, open: openFile, embed: embedFile }))
         } catch (e) { console.warn('[kybernos-office] editor not declared:', e) }
       }
 
       return {
         name: NAME,
         apply: start,
-        __test: { canEdit, errorText, notices, thing, openFile, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
+        __test: { canEdit, errorText, notices, thing, openFile, embedFile, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
       }
     } catch (e) {
       console.warn('[kybernos-office] disabled:', e)

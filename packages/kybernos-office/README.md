@@ -7,7 +7,7 @@ PowerPoint (`.pptx`), PDF and Markdown are not built yet; `.pptx` has no light e
 
 ## Where to find it
 
-Creations › open a `.docx` or `.xlsx` › the pencil in the viewer's bar. It is off by default (switch it on in the Suite), and its editors are built on the computer, not shipped:
+Creations › open a `.docx` or `.xlsx`: the viewer draws the file itself, read-only, with **Edit** in the editor's own bar (a file with things the light editor would lose asks first); the pencil in the viewer's bar opens the same editor full size. Leaving the viewer over unsaved changes asks first. It is off by default (switch it on in the Suite), and its editors are built on the computer, not shipped:
 
 ```bash
 node packages/kybernos-office/build-editors.mjs        # writes <DSH home>/kybernos/kybernos-office/editors/ (17 MB, never in git)
@@ -38,7 +38,7 @@ Versions are pinned in `editors/package.json` and locked, with integrity hashes,
 | `office-guard.mjs`, `zip-lite.mjs` | The pure side: the zip reader and what each format would lose. |
 | `routes.mjs` | The routes `/kybernos-office/*` with the Host fence, the signed-session write guard and the sandboxed `v/<token>/…` route. |
 | `index.js` | Host entry (`apply`), routes taken back when the plugin is switched off. |
-| `client.js` | The window (bar, cards, frame) and its declaration to the core's `window.__KB_EDITORS__`. |
+| `client.js` | The window (bar, cards, frame), full size or embedded in the viewer (`embed`), and its declaration to the core's `window.__KB_EDITORS__`. |
 | `editor-src/` | The two frames (`sheet.jsx`, `doc.jsx`) and the envelope they speak (`envelope.js`), built by `build.mjs`. |
 | `session-guard.mjs`, `lib-session-test.mjs` | Copies of the same files of `kybernos-maquettes` (the terminal's own session guard); keep them identical. |
 

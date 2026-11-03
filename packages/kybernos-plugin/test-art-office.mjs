@@ -53,4 +53,36 @@ assert.ok(/const fileEditor = kbFileEditors\.forName\(name\)/.test(client) && /f
 assert.ok(/'Modifier ce fichier': 'Edit this file'/.test(client) && /'Modifier': 'Edit'/.test(client), 'the French words of the pencil')
 ok('the viewer offers Edit to a declared editor only, and the core names none')
 
+// A file a declared editor can draw is drawn by it INSIDE the viewer (read-only, with its own « Edit »), never read as text: the sidebar shows the document, not « file is binary ».
+assert.ok(/embed: typeof entry\.embed === 'function' \? entry\.embed : null/.test(reg), 'the registry keeps the optional embed of an editor')
+assert.ok(/const embedEditor = kbFileEditors\.forName\(name\)\s*\n\s*if \(embedEditor !== null && embedEditor\.embed !== null\) return h\(KbFileEmbed/.test(client), 'ArtBody hands such a file to the editor before it looks at the text')
+assert.ok(client.indexOf('const embedEditor = kbFileEditors.forName(name)') < client.indexOf("if (load.state === 'error') return h('div', { className: 'kbg-empty' }, kbt('deliverables.notfound')"), 'and before the « preview unavailable » of a binary file')
+// Leaving the viewer with changes the editor still holds asks first (the popup: Esc, the scrim, the cross; the page: Back).
+assert.ok(/const leave = \(\) => \{ if \(kbEmbedCanLeave\(\) === true\) onClose\(\) \}/.test(client) && /onClick: leave \}, '✕'/.test(client) && /className: 'kb6-popscrim', onClick: leave/.test(client) && /if \(ev\.key === 'Escape'\) leave\(\)/.test(client), 'the popup asks before it closes')
+assert.ok(/className: 'kbg-back', onClick: \(\) => \{ if \(kbEmbedCanLeave\(\) === true\) onBack\(\) \}/.test(client), 'the page of a file asks before Back')
+// The guard itself, run: nothing asks while nothing is dirty; a dirty editor asks, and « no » keeps the viewer.
+const guardSrc = client.slice(client.indexOf('const kbEmbedDirty = new Set()'), client.indexOf('const KbFileEmbed = '))
+const kbe = (t) => t
+let asked = 0
+let answer = true
+globalThis.window = { confirm: () => { asked += 1; return answer } }
+const guard = new Function('kbe', 'window', guardSrc + '\nreturn { kbEmbedDirty, kbEmbedCanLeave }')(kbe, globalThis.window)
+assert.equal(guard.kbEmbedCanLeave(), true, 'no editor: leave')
+let dirty = false
+guard.kbEmbedDirty.add(() => dirty)
+assert.equal(guard.kbEmbedCanLeave(), true, 'a clean editor: leave, nothing asked')
+assert.equal(asked, 0)
+dirty = true
+answer = false
+assert.equal(guard.kbEmbedCanLeave(), false, 'unsaved changes and « no »: stay')
+answer = true
+assert.equal(guard.kbEmbedCanLeave(), true, 'unsaved changes and « yes »: leave')
+assert.equal(asked, 2, 'asked once each time')
+dirty = false
+guard.kbEmbedDirty.add(() => { throw new Error('an editor that cannot say') })
+asked = 0
+assert.equal(guard.kbEmbedCanLeave(), true, 'an editor that throws never keeps the person in the viewer')
+assert.equal(asked, 0, 'and asks nothing')
+ok('the viewer draws a file an editor takes inside itself, and asks before it is closed over unsaved changes')
+
 console.log('\n' + pass + ' passed')
