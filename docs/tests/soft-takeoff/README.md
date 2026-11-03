@@ -33,7 +33,7 @@ The owner's order: what is visible first, then models, the cloud computer, billi
 | W0 | Gates and environment | none / replica | 9 (8) | gates green, preflight proves a request reaches the server for both accounts, canaries behave |
 | W1 | What a person sees: first run, new chat, every page, Settings, languages, phone, five walkthroughs | sandbox + replica | 23 (21) | all P0 pass, ledger has no P0/P1 |
 | W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 14 (9) | same |
-| W3 | Cloud computer, account B | staging | 13 (6) | same, plus egress played on a real Linux machine |
+| W3 | Cloud computer, account B | the server repo's play server + real Fly machines | 13 (6) | same, plus egress played on a real Linux machine (done 2026-11-03: `played` = played by hand on real resources, the kit is in the archive) |
 | W4 | Subscription, billing, team sharing | replica, then staging | 20 (10) | same, plus Stripe test-mode paths |
 | W5 | Regression, upgrade and rollback, fresh install, go / no-go | all | 7 (4) | the verdict rule above |
 
@@ -166,7 +166,7 @@ Defaults are what I will do unless told otherwise.
 1. « Widget » is `kybernos-pulse` and « Kaby » is `kybernos-kyber` plus its customisation. Right? *(default: yes)*
 2. Accept the 14 judgement calls in `plugins.json`? The ones that matter: Motion, Slides, Calls, Reference chips. *(default: as marked)*
 3. What does the several-accounts switch forbid: (a) two Kybernos accounts in one DSH, (b) two keys for one provider, (c) one account on several devices? *(default: a and b forbidden by an owner switch; c out of scope)*
-4. Which staging hosts may the testers sign in to with test accounts, is Stripe test mode already wired there, and is about one Fly computer-day of spend fine? *(no default: W3 and the staging half of W4 wait)*
+4. Which staging hosts may the testers sign in to with test accounts, is Stripe test mode already wired there? *(no default: the staging half of W4 waits)* The Fly spend half is answered (« Oui, W3 », « lances le toi », 2026-11-03): W3 was played on a play server of the server repo with a 4-hour org token, under one dollar.
 5. Pictures: Haiku collects and measures, Sonnet reads the decisive images. *(default: yes)*
 6. Can people manage plugins in the takeoff? `kybernos-registry` is frozen, so the Plugins page (W1-11) is not there. *(default: frozen, W1-11 blocked)*
 7. Which server line does the replica run for the connectors catalogue (W1-14 needs the public catalogue route)? *(no default: W1-14 waits)*
