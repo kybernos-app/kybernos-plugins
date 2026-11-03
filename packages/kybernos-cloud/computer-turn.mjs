@@ -25,8 +25,9 @@ const REFUSALS = {
   payment_past_due: 'The last payment of this workspace failed: hosted turns are paused until it is settled.',
   feature_not_in_plan: 'The plan of this workspace does not include running a task on a cloud computer.',
   model_not_in_plan: 'The plan of this workspace does not include the model this computer would answer with.',
+  model_required: 'The server has no model to run this task with: none of the account\'s models could be picked.',
   computer_unavailable: 'That cloud computer cannot take a task right now (it is not yours, or it is being set up or paused).',
-  turn_pending: 'The cloud computer is still busy with the previous task: try again when it has answered.',
+  turn_pending: 'The person\'s Kaby conversation already has a task waiting for its answer (sent from here or from a messenger): try again when it has been answered.',
   no_runner: 'No cloud computer is ready to run this.',
   personal_workspace: 'Hosted turns are not offered in a personal workspace.',
   rate_limited: 'Too many tasks were sent in a minute: wait a moment.',
@@ -42,7 +43,7 @@ const refusal = (res) => {
 
 /**
  * deps: `apiCall(path, { method, token, body, timeoutMs })` → `{ status, body }` (never throws), `token()` → string | null, `target()` → the computer id the person chose (or null),
- * `sleep(ms)`, `now()` → ms, `turnId()` → a fresh id matching `[A-Za-z0-9_-]{8,64}`.
+ * `sleep(ms)`, `now()` → ms, `turnId()` → a fresh id matching `[A-Za-z0-9_-]{8,64}`, `model()` → the model route the task runs with (the server asks for one when Kaby's crew names none), or null.
  */
 export function createComputerTurn(deps) {
   let identity = { at: 0, token: '', value: null }
@@ -76,11 +77,13 @@ export function createComputerTurn(deps) {
         if (mission.length > MISSION_MAX) return { ok: false, error: 'mission_trop_longue', hint: 'The mission is too long: send the essentials, under ' + String(MISSION_MAX) + ' characters.' }
         const computer = deps.target()
         if (typeof computer !== 'string' || !UUID.test(computer)) return { ok: false, error: 'aucun_ordinateur_choisi', hint: 'No cloud computer is chosen: the person picks one in the composer\'s menu.' }
+        const picked = typeof deps.model === 'function' ? deps.model() : null
+        const model = typeof picked === 'string' && /^[A-Za-z0-9._:/-]{1,100}$/.test(picked) ? picked : null
         const th = await thread(token)
         if (th === null) return { ok: false, error: 'assistant_indisponible', hint: 'This server has no assistant conversation to run the task in (an older server, or none made yet).' }
         const sent = await deps.apiCall('/v1/kybers/' + encodeURIComponent(th.kyber) + '/threads/dispatch', {
           method: 'POST', token, timeoutMs: 30000,
-          body: { thread_id: th.thread, message: mission, client_turn_id: deps.turnId(), computer_id: computer },
+          body: { thread_id: th.thread, message: mission, client_turn_id: deps.turnId(), computer_id: computer, ...(model !== null ? { model } : {}) },
         })
         if (sent === null || sent === undefined || (sent.status !== 202 && sent.status !== 200)) {
           if (sent !== null && sent !== undefined && sent.status === 404) identity = { at: 0, token: '', value: null }

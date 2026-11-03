@@ -26,6 +26,7 @@ const world = (routes, opts = {}) => {
     },
     token: () => (opts.signedOut === true ? null : 'tok-secret'),
     target: () => (opts.target === undefined ? COMPUTER : opts.target),
+    ...(opts.model !== undefined ? { model: () => opts.model } : {}),
     sleep: async (ms) => { clock += ms },
     now: () => clock,
     turnId: () => 'dshct_test' + String((turns += 1)),
@@ -54,6 +55,22 @@ const ACCEPTED = { status: 202, body: { job: { id: 'j1' }, thread_id: THREAD, me
   assert.equal(reads, 3, 'it asks again every few seconds until the answer is there')
   assert.equal(w.clock() - 1_000_000, 3 * POLL_MS, 'the wait is the polls, nothing else')
   ok('the mission goes to the chosen computer and the answer is read back after it')
+}
+
+{
+  // The model: sent when the host picked one (the server asks for it when Kaby's crew names none), never a malformed one; its refusal is in words.
+  const routes = { 'GET /v1/me/kyby': IDENTITY, 'POST /v1/kybers/': ACCEPTED, 'GET /v1/threads/': { status: 200, body: { messages: [{ role: 'assistant', content: 'ok' }] } } }
+  const withModel = world(routes, { model: 'deepseek-v4.1-flash' })
+  await withModel.turn.run({ mission: 'go' })
+  assert.equal(withModel.calls.find((c) => c.method === 'POST').body.model, 'deepseek-v4.1-flash')
+  for (const bad of ['', 'a b', '<x>', 5, null]) {
+    const w = world(routes, { model: bad })
+    await w.turn.run({ mission: 'go' })
+    assert.equal('model' in w.calls.find((c) => c.method === 'POST').body, false, 'no model sent for ' + JSON.stringify(bad))
+  }
+  const none = world({ 'GET /v1/me/kyby': IDENTITY, 'POST /v1/kybers/': { status: 400, body: { error: 'model_required' } } }, { model: null })
+  assert.ok(/no model/.test((await none.turn.run({ mission: 'go' })).hint))
+  ok('the model is sent when the host picked a good one, left out otherwise, and its refusal is in words')
 }
 
 {
@@ -88,7 +105,7 @@ const ACCEPTED = { status: 202, body: { job: { id: 'j1' }, thread_id: THREAD, me
     [402, 'insufficient_quota', /budget of this workspace is used up/],
     [403, 'feature_not_in_plan', /does not include running a task/],
     [409, 'computer_unavailable', /cannot take a task/],
-    [409, 'turn_pending', /still busy/],
+    [409, 'turn_pending', /already has a task waiting/],
     [409, 'personal_workspace', /not offered in a personal workspace/],
     [429, 'rate_limited', /Too many tasks/],
     [500, 'weird_new_code', /weird_new_code/],

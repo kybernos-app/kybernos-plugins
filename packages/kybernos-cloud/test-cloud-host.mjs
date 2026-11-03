@@ -2131,6 +2131,19 @@ try {
       assert.equal(existsSync(join(targetHome, 'kybernos-cloud-computer.json')), false)
       const noSession = await hit('/kybernos-cloud/computer/target/set', 'POST', 'https://evil.example', { computer_id: COMPUTER_ID, name: 'x' })
       assert.notEqual(noSession.body && noSession.body.ok, true, 'a foreign origin cannot choose the computer that spends the budget')
+      // The model a task runs with (the server asks for one): a fast one of the account's own list, never a premium one by default.
+      const savedState = readFileSync(statePath, 'utf8')
+      try {
+        const withIds = (ids) => writeFileSync(statePath, JSON.stringify({ ...JSON.parse(savedState), models: { ...(JSON.parse(savedState).models || {}), ids } }), { mode: 0o600 })
+        withIds(['claude-opus-5', 'claude-haiku-5.5', 'deepseek-v4.1-flash'])
+        assert.equal(mod.computerTaskModel(), 'deepseek-v4.1-flash', 'the usual fast model first')
+        withIds(['claude-opus-5', 'claude-haiku-5.5'])
+        assert.equal(mod.computerTaskModel(), 'claude-haiku-5.5', 'then the next usual one')
+        withIds(['zeta-1', 'alpha-2'])
+        assert.equal(mod.computerTaskModel(), 'zeta-1', 'none of the usual: the first of the list')
+        withIds([])
+        assert.equal(mod.computerTaskModel(), null, 'an account that lists none: no model, the server says so')
+      } finally { writeFileSync(statePath, savedState, { mode: 0o600 }) }
       ok('ordinateur cloud : l\'outil et la section de prompt sont montes, le choix se pose, se lit et se retire par l\'hote, sans rien ecrire hors d\'un DSH_HOME jetable')
     } finally {
       if (savedHome === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = savedHome
