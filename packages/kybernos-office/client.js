@@ -134,6 +134,13 @@ window.__ModuleLoader__.load({
 .kyo-card p{margin:0 0 8px}
 .kyo-card .kyo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .kyo-sub{color:var(--dsw-alias-label-secondary,#666);font-size:12px}
+.kyo-q{width:30px;padding:0;text-align:center;font-weight:600}
+.kyo-help{position:absolute;z-index:2;top:12px;right:12px;max-width:420px;max-height:calc(100% - 24px);overflow:auto;padding:16px 18px;border:1px solid var(--dsw-alias-border-l2,#ddd);border-radius:12px;background:var(--dsw-alias-bg-layer-2,#f8f8f8);box-shadow:0 8px 24px var(--dsw-alias-shadow-l3,rgba(0,0,0,.18))}
+.kyo-help[hidden]{display:none}
+.kyo-help h4{margin:0 0 6px;font-size:14px}
+.kyo-help h5{margin:10px 0 4px;font-size:12px;color:var(--dsw-alias-label-secondary,#666)}
+.kyo-help p,.kyo-help ol{margin:0 0 8px}
+.kyo-help ol{padding-left:18px}
 `
       let styleEl = null
       const ensureStyle = () => {
@@ -155,6 +162,52 @@ window.__ModuleLoader__.load({
         }
         for (const kid of kids) if (kid !== null && kid !== undefined && kid !== false) n.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid)
         return n
+      }
+
+      // ── « ? How it works » ───────────────────────────────────────────────────────────────────────────────────
+      // The window is plain DOM, so the SAME card the Suite shows is drawn here from the same data: GET /kybernos-hub/suite publishes every module's help
+      // (what / steps / where / good). A host without the help draws no button; a failed fetch draws no card, never a broken one, and is tried again next time.
+      const KB_HELP_ID = 'kybernos-office'
+      let helpPending = null
+      const helpFetch = () => {
+        if (helpPending === null) {
+          helpPending = fetch('/kybernos-hub/suite', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => {
+            const mods = plain(j) && Array.isArray(j.modules) ? j.modules : []
+            const m = mods.find((x) => plain(x) && x.id === KB_HELP_ID)
+            return m !== undefined && plain(m.aide) ? m : null
+          }).catch(() => null).then((m) => { if (m === null) helpPending = null; return m })
+        }
+        return helpPending
+      }
+      /** The « ? » button of the bar; the card it opens is added to the stage. Null when the host has no help. */
+      const helpButton = (stage) => {
+        if (typeof window !== 'undefined' && window.__KB_HELP__) {
+          const txt = (pair) => (plain(pair) ? String((lang() === 'fr' ? pair.fr : pair.en) || '') : '')
+          const label = kt('Comment ça marche', 'How it works')
+          const box = el('div', { class: 'kyo-help', 'data-kb': 'office-help-card', role: 'dialog', hidden: true })
+          const q = el('button', { type: 'button', class: 'kyo-btn kyo-q', 'data-kb': 'office-help', 'aria-expanded': 'false', title: label, 'aria-label': label, text: '?' })
+          const shut = () => { box.hidden = true; q.setAttribute('aria-expanded', 'false') }
+          q.addEventListener('click', () => {
+            if (!box.hidden) { shut(); return }
+            helpFetch().then((m) => {
+              if (m === null) return
+              const a = m.aide
+              box.setAttribute('aria-label', String(m.titre || KB_HELP_ID))
+              box.replaceChildren(
+                el('h4', { text: String(m.titre || KB_HELP_ID) }),
+                el('p', { text: txt(a.what) }),
+                el('h5', { text: kt('Comment l’utiliser', 'How to use it') }),
+                el('ol', {}, ...(Array.isArray(a.steps) ? a.steps : []).map((st) => el('li', { text: txt(st) }))),
+                plain(a.where) ? el('p', { text: kt('Où le trouver : ', 'Where to find it: ') + txt(a.where) }) : null,
+                plain(a.good) ? el('p', { class: 'kyo-sub', text: txt(a.good) }) : null)
+              box.hidden = false
+              q.setAttribute('aria-expanded', 'true')
+            })
+          })
+          stage.appendChild(box)
+          return q
+        }
+        return null
       }
 
       let current = null // the one open window: { close() }
@@ -181,7 +234,7 @@ window.__ModuleLoader__.load({
         const copyBtn = btn(kt('Enregistrer une copie', 'Save a copy'), 'office-copy', () => save('copy'))
         const undoBtn = btn(kt('Annuler l’enregistrement', 'Undo last save'), 'office-undo', () => undo(false))
         const closeBtn = el('button', { type: 'button', class: 'kyo-btn', 'data-kb': 'office-close', text: kt('Fermer', 'Close'), onclick: () => requestClose() })
-        const bar = el('div', { class: 'kyo-bar' }, nameEl, statusEl, saveBtn, copyBtn, undoBtn, closeBtn)
+        const bar = el('div', { class: 'kyo-bar' }, nameEl, statusEl, saveBtn, copyBtn, undoBtn, helpButton(stage), closeBtn)
         const wrap = el('div', { class: 'kyo-wrap', 'data-kb': 'office-window', role: 'dialog', 'aria-modal': 'true', 'aria-label': String(name || path) }, bar, noteEl, stage)
 
         const status = (text, bad) => { statusEl.textContent = text; statusEl.className = 'kyo-status' + (bad ? ' kyo-bad' : '') }
@@ -321,7 +374,7 @@ window.__ModuleLoader__.load({
             status(errorText({ error: 'not-installed' }), true)
             card('office-not-installed', [
               { text: errorText({ error: 'not-installed' }) },
-              { text: kt('Demande à Kaby de les installer, ou construis-les avec « node scripts/build-office-editors.mjs ».', 'Ask Kaby to install them, or build them with “node scripts/build-office-editors.mjs”.'), sub: true },
+              { text: kt('Demande à Kaby de les installer, ou construis-les avec « node packages/kybernos-office/build-editors.mjs ».', 'Ask Kaby to install them, or build them with “node packages/kybernos-office/build-editors.mjs”.'), sub: true },
             ], [cardBtn(kt('Fermer', 'Close'), () => finish(), true)])
             return
           }

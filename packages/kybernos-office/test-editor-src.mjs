@@ -1,4 +1,4 @@
-// The editor frames are built on the person's computer (scripts/build-office-editors.mjs), so what CI can check is what makes that build safe and the two halves
+// The editor frames are built on the person's computer (build-editors.mjs), so what CI can check is what makes that build safe and the two halves
 // agree: the pins are exact and locked with integrity hashes, the sources import only what is pinned, the envelope the frames speak is the one the page listens to, and the
 // manifest the build writes covers every file the host will serve. The built editors themselves are exercised on the sandbox (scripts/check-kybernos-office-live.mjs).
 //
@@ -8,7 +8,7 @@ import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { manifestOf, EDITORS, SHARED } from '../../scripts/build-office-editors.mjs'
+import { manifestOf, EDITORS, SHARED } from './build-editors.mjs'
 import { createHost } from './office-host.mjs'
 import * as fsp from 'node:fs/promises'
 
@@ -39,7 +39,7 @@ ok('the lockfile covers every package with an integrity hash, from the npm regis
 ok('only esbuild declares an install script (it only checks its binary), and the build runs with --ignore-scripts', () => {
   const needing = Object.entries(lock.packages).filter(([, e]) => e.hasInstallScript === true).map(([k]) => k)
   must(needing.length === 1 && needing[0] === 'node_modules/esbuild', 'install scripts: ' + needing.join(', '))
-  must(/'--ignore-scripts'/.test(readFileSync(join(here, '../../scripts/build-office-editors.mjs'), 'utf8')), 'the build must not run install scripts')
+  must(/'--ignore-scripts'/.test(readFileSync(join(here, 'build-editors.mjs'), 'utf8')), 'the build must not run install scripts')
 })
 ok('the frame sources import only the pinned editors, React and each other; no network address, no eval', () => {
   const allowed = new Set([...Object.keys(pkg.dependencies)])

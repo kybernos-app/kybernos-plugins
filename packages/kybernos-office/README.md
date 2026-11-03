@@ -7,10 +7,10 @@ PowerPoint (`.pptx`), PDF and Markdown are not built yet; `.pptx` has no light e
 
 ## Where to find it
 
-Creations › open a `.docx` or `.xlsx` › the pencil in the viewer's bar. It is off by default (Settings › Plugins), and its editors are built on the computer, not shipped:
+Creations › open a `.docx` or `.xlsx` › the pencil in the viewer's bar. It is off by default (switch it on in the Suite), and its editors are built on the computer, not shipped:
 
 ```bash
-node scripts/build-office-editors.mjs        # writes <DSH home>/kybernos/kybernos-office/editors/ (17 MB, never in git)
+node packages/kybernos-office/build-editors.mjs        # writes <DSH home>/kybernos/kybernos-office/editors/ (17 MB, never in git)
 ```
 
 Without them the pencil opens a card saying the editors are not installed. A prebuilt, hash-pinned download is the open item.

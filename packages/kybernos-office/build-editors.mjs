@@ -1,8 +1,8 @@
-// Builds the light Office editors (spreadsheet and document) from the versions pinned in packages/kybernos-office/editors/ and writes them where the
+// Builds the light Office editors (spreadsheet and document) from the versions pinned in editors/ (next to this file) and writes them where the
 // kybernos-office plugin serves them from: <DSH home>/kybernos/kybernos-office/editors/{sheet,doc}/… plus manifest.json with the sha256 of every file.
 // They are heavy (about 8 MB with the fonts and the spreadsheet engine), so they are never in git (AGENTS.md rule 4): this script makes them on demand.
 //
-//   node scripts/build-office-editors.mjs [--home <DSH home>] [--work <folder>]
+//   node packages/kybernos-office/build-editors.mjs [--home <DSH home>] [--work <folder>]
 //
 // `npm ci --ignore-scripts` installs exactly what package-lock.json says (integrity hashes included); the work folder is kept, so a second run is quick.
 import { execFileSync } from 'node:child_process'
@@ -12,8 +12,7 @@ import { homedir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const repo = join(dirname(fileURLToPath(import.meta.url)), '..')
-const pkg = join(repo, 'packages', 'kybernos-office')
+const pkg = dirname(fileURLToPath(import.meta.url))
 
 export const EDITORS = ['sheet', 'doc']
 // Folders served next to the editors: the fonts the document editor loads as `../assets/<name>.ttf` from its own address.

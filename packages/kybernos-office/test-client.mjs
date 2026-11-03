@@ -272,7 +272,7 @@ await okAsync('notices for what is kept or unverified show above the editor with
 await okAsync('editors not installed, a refusal from the host, and an address that is not ours each end in a card, never a blank frame', async () => {
   answers = { 'POST /kybernos-office/open': openAnswer({ installed: false }) }
   T.openFile('/home/x/a.xlsx', 'a.xlsx'); await tick(); await tick()
-  must(visible('office-not-installed') && find(body, 'office-frame').length === 0 && /build-office-editors/.test(one('office-not-installed').textContent), 'not installed')
+  must(visible('office-not-installed') && find(body, 'office-frame').length === 0 && /build-editors/.test(one('office-not-installed').textContent), 'not installed')
   closeAll()
   answers = { 'POST /kybernos-office/open': { ok: false, error: 'not-found' } }
   T.openFile('/home/x/a.xlsx', 'a.xlsx'); await tick(); await tick()
@@ -292,6 +292,31 @@ await okAsync('the window speaks French when the language is French', async () =
   must(one('office-save').textContent === 'Enregistrer' && one('office-close').textContent === 'Fermer' && frameOf().getAttribute('src').endsWith('?lang=fr'), 'french')
   closeAll()
   resolved = 'en'
+})
+
+await okAsync('the « ? » of the bar draws the Suite\'s help card for this module, only when the host has the help, and a failed fetch draws nothing', async () => {
+  answers = { 'POST /kybernos-office/open': openAnswer() }
+  T.openFile('/home/x/a.xlsx', 'a.xlsx'); await tick(); await tick()
+  must(find(body, 'office-help').length === 0, 'no button when the host has no help')
+  closeAll()
+  window.__KB_HELP__ = {}
+  answers = { 'POST /kybernos-office/open': openAnswer() }
+  T.openFile('/home/x/a.xlsx', 'a.xlsx'); await tick(); await tick()
+  one('office-help').click(); await tick(); await tick()
+  must(one('office-help-card').hidden, 'no help for this module in the answer: the card stays closed')
+  closeAll()
+  const pair = (en) => ({ fr: 'fr ' + en, en })
+  answers = { 'POST /kybernos-office/open': openAnswer(), 'GET /kybernos-hub/suite': { modules: [{ id: 'kybernos-other', aide: { what: pair('wrong one') } }, { id: 'kybernos-office', titre: 'Office', aide: { what: pair('Edit a Word or Excel file.'), steps: [pair('Open it in Creations.'), pair('Press the pencil.')], where: pair('Creations'), good: pair('Nothing is overwritten.') } }] } }
+  T.openFile('/home/x/a.xlsx', 'a.xlsx'); await tick(); await tick()
+  must(one('office-help-card').hidden && one('office-help').getAttribute('aria-expanded') === 'false', 'closed at first')
+  one('office-help').click(); await tick(); await tick()
+  const text = one('office-help-card').textContent
+  must(!one('office-help-card').hidden && /Edit a Word or Excel file\./.test(text) && /Press the pencil\./.test(text) && /Where to find it: Creations/.test(text) && /Nothing is overwritten\./.test(text) && !/wrong one/.test(text), text)
+  must(one('office-help').getAttribute('aria-expanded') === 'true', 'the button says it is open')
+  one('office-help').click()
+  must(one('office-help-card').hidden, 'a second click closes it')
+  closeAll()
+  delete window.__KB_HELP__
 })
 
 // ── the promises a browser would break late ─────────────────────────────────────────────────────────────────

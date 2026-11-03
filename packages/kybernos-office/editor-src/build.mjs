@@ -1,4 +1,4 @@
-// Builds the two editor frames with esbuild. Run by scripts/build-office-editors.mjs from the work folder (where the pinned editors are
+// Builds the two editor frames with esbuild. Run by packages/kybernos-office/build-editors.mjs from the work folder (where the pinned editors are
 // installed): `node src/build.mjs <outdir>`. Writes <outdir>/sheet/{app.js,app.css,wasm_bg.wasm}, <outdir>/doc/{app.js,app.css,harfbuzz.wasm} and the
 // fonts the document editor asks for as `../assets/<name>` from its own address in <outdir>/assets/.
 import { build } from 'esbuild'

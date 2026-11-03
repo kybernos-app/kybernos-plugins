@@ -1,6 +1,6 @@
 // The Office editors on a real GUI: open a workbook and a document in their sandboxed frames, type into each with real key events, save, see the file on disk change
 // by that edit only, meet a conflict, undo, and look at what the frame can and cannot reach. Run it against the SANDBOX (scripts/sandbox/setup.sh && start.sh, then
-// `source scripts/sandbox/env.sh`) after `node scripts/build-office-editors.mjs --home "$DSH_HOME"`: it works on copies in a temp folder it removes again, but it writes in the
+// `source scripts/sandbox/env.sh`) after `node packages/kybernos-office/build-editors.mjs --home "$DSH_HOME"`: it works on copies in a temp folder it removes again, but it writes in the
 // plugin's own storage of the DSH it talks to.
 //
 // Named check-* on purpose: it needs a running DSH, the built editors and Chrome, so CI must not run it.
@@ -24,7 +24,7 @@ mkdirSync(shotDir, { recursive: true })
 
 // ── the files: a workbook made by the spreadsheet engine itself (so it is a real one), a document from the test generator ──
 const dshHome = process.env.DSH_HOME
-if (!dshHome || !existsSync(join(dshHome, 'kybernos', 'kybernos-office', 'editors', 'manifest.json'))) { console.log('Build the editors first: node scripts/build-office-editors.mjs --home "$DSH_HOME"'); process.exit(2) }
+if (!dshHome || !existsSync(join(dshHome, 'kybernos', 'kybernos-office', 'editors', 'manifest.json'))) { console.log('Build the editors first: node packages/kybernos-office/build-editors.mjs --home "$DSH_HOME"'); process.exit(2) }
 const engine = await import(pathToFileURL(join(dshHome, 'kybernos', 'kybernos-office', 'build', 'node_modules', '@ironcalc', 'wasm-xlsx', 'wasm.js')).href)
 engine.initSync({ module: readFileSync(join(dshHome, 'kybernos', 'kybernos-office', 'build', 'node_modules', '@ironcalc', 'wasm-xlsx', 'wasm_bg.wasm')) })
 const makeBook = () => {
