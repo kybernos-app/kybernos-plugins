@@ -35,7 +35,7 @@ The owner's order: what is visible first, then models, the cloud computer, billi
 | W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 14 (9) | same |
 | W3 | Cloud computer, account B | the server repo's play server + real Fly machines | 13 (6) | same, plus egress played on a real Linux machine (done 2026-11-03: `played` = played by hand on real resources, the kit is in the archive) |
 | W4 | Subscription, billing, team sharing | replica, then staging | 20 (10) | same, plus Stripe test-mode paths |
-| W5 | Regression, upgrade and rollback, fresh install, go / no-go | all | 7 (4) | the verdict rule above |
+| W5 | Regression, upgrade and rollback, fresh install, go / no-go | all | 7 (0) | the verdict rule above |
 
 W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 and the staging half of W4 wait for the owner's go on paid resources.
 
