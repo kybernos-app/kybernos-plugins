@@ -319,6 +319,60 @@ await okAsync('the « ? » of the bar draws the Suite\'s help card for this modu
   delete window.__KB_HELP__
 })
 
+await okAsync('embedded in the viewer: it opens read-only with nothing to decide, « Edit » turns the same box into the editor, and the box says if it holds unsaved changes', async () => {
+  const box = new Node('div')
+  body.appendChild(box)
+  answers = { 'POST /kybernos-office/open': openAnswer() }
+  const h = T.embedFile(box, '/home/x/budget.xlsx', 'budget.xlsx'); await tick(); await tick()
+  must(h !== null && typeof h.close === 'function' && h.dirty() === false, 'a handle with close and dirty')
+  must(find(box, 'office-embed').length === 1 && find(body, 'office-window').length === 0, 'drawn inside the box, not as the full-screen window')
+  must(find(box, 'office-close').length === 0 && find(box, 'office-title').length === 0, 'no close button and no name: the viewer has both')
+  must(T.current() === null, 'it is not the full-screen window')
+  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1') && find(body, 'office-gate').length === 0, 'read-only straight away: ' + frameOf().getAttribute('src'))
+  const ro = frameOf()
+  emit({ op: 'loaded', hash: HASH, readOnly: true }, ro.contentWindow)
+  must(/Read only/.test(one('office-status').textContent) && !one('office-edit').hidden && !one('office-edit').disabled && one('office-save').disabled, 'Edit is offered, Save is not')
+  one('office-edit').click()
+  const ed = frameOf()
+  must(ed !== ro && !ed.getAttribute('src').includes('ro=1') && ro.parent === null, 'the read-only frame is replaced by the editor')
+  emit({ op: 'loaded', hash: HASH }, ed.contentWindow)
+  must(one('office-edit').hidden && h.dirty() === false, 'Edit goes away once editing')
+  emit({ op: 'dirty', value: true }, ed.contentWindow)
+  must(h.dirty() === true && !one('office-save').disabled, 'a change is told to the viewer, and Save wakes up')
+  h.close()
+  must(find(body, 'office-embed').length === 0 && listeners.length === 0, 'closed by the viewer: the box is empty and the listeners are gone')
+  box.remove()
+  // a file with a certain loss: looking is free, editing asks first
+  answers = { 'POST /kybernos-office/open': openAnswer({ block: true, losses: [{ code: 'chart', level: 'loss', count: 1 }] }) }
+  const box2 = new Node('div')
+  body.appendChild(box2)
+  const h2 = T.embedFile(box2, '/home/x/chart.xlsx', 'chart.xlsx'); await tick(); await tick()
+  must(find(body, 'office-gate').length === 0 && frameOf().getAttribute('src').includes('ro=1'), 'a file with a loss still opens to look at, with no question')
+  one('office-edit').click()
+  must(visible('office-gate') && /1 chart/.test(one('office-gate').textContent), 'Edit asks, and says what is lost')
+  const row = one('office-gate').kids.find((k) => k.className === 'kyo-row')
+  row.kids[1].click()
+  must(!visible('office-gate') && frameOf().getAttribute('src').includes('ro=1'), 'Cancel keeps looking')
+  one('office-edit').click()
+  one('office-gate').kids.find((k) => k.className === 'kyo-row').kids[0].click()
+  must(!frameOf().getAttribute('src').includes('ro=1') && /1 chart/.test(one('office-notice').textContent), 'Edit anyway opens the editor and keeps the warning on screen')
+  // two embeds and the full-screen window do not get in each other's way; unloading the plugin closes them all
+  answers = { 'POST /kybernos-office/open': openAnswer() }
+  T.openFile('/home/x/other.xlsx', 'other.xlsx'); await tick(); await tick()
+  must(T.current() !== null && find(body, 'office-embed').length === 1, 'the window opens beside an embed')
+  closeAll()
+  must(find(body, 'office-embed').length === 1, 'closing the window leaves the embed')
+  h2.close(); box2.remove()
+  // errors: no close button in a box the viewer holds
+  answers = { 'POST /kybernos-office/open': { ok: false, error: 'not-found' } }
+  const box3 = new Node('div')
+  body.appendChild(box3)
+  T.embedFile(box3, '/home/x/gone.xlsx', 'gone.xlsx'); await tick(); await tick()
+  must(visible('office-error') && find(box3, 'kyo-btn').filter((b) => b.getAttribute('data-kb') === 'office-close').length === 0 && one('office-error').kids.find((k) => k.className === 'kyo-row').kids.length === 0, 'an error card has no close button in a box')
+  find(body, 'office-embed').forEach((n) => n.remove()); box3.remove()
+  must(T.embedFile(new Node('div'), '/home/x/a.txt', 'a.txt') === null, 'a name no editor takes opens nothing')
+})
+
 // ── the promises a browser would break late ─────────────────────────────────────────────────────────────────
 ok('static: no allow-same-origin anywhere, colours only from DSH tokens with a fallback, the host asked is our own', () => {
   const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')

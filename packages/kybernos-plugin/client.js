@@ -3966,6 +3966,8 @@ const KB_FR_EN = {
   'Retrouver l’origine': 'Find origin',
   'Modifier ce fichier': 'Edit this file',
   'Modifier': 'Edit',
+  'Tu as des changements non enregistrés dans ce document. Quitter sans enregistrer ?': 'You have unsaved changes in this document. Leave without saving?',
+  'aucun éditeur n’a pu l’ouvrir': 'no editor could open it',
   'Recherche dans les chats…': 'Searching chats…',
   'Livré par': 'Delivered by',
   'Dernier chat à en parler': 'Last chat to mention it',
@@ -19438,6 +19440,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           ? h('video', { className: 'kb6-avfull', src: kbArtRawUrl(path), controls: true, title: name })
           : h('audio', { className: 'kb6-avfull', src: kbArtRawUrl(path), controls: true, title: name }))
       }
+      // A file a declared editor can draw (the Office files): the editor shows it itself, read-only, and the bytes are never read as text.
+      const embedEditor = kbFileEditors.forName(name)
+      if (embedEditor !== null && embedEditor.embed !== null) return h(KbFileEmbed, { editor: embedEditor, path: path, name: name })
       if (load.state === 'loading') return h('div', { className: 'kbg-empty' }, kbt('kbui.loading'))
       if (load.state === 'error') return h('div', { className: 'kbg-empty' }, kbt('deliverables.notfound') + ' — ' + load.error)
       if (kind === 'html') return h('iframe', { className: 'kb6-frame', srcDoc: load.text, sandbox: 'allow-scripts', title: name })
@@ -20984,7 +20989,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const load = useArtLoad(path)
       const kind = kbArtType(name)
       return h('div', { className: 'kbg-root' },
-        h('button', { type: 'button', className: 'kbg-back', onClick: onBack }, '← ' + kbt('deliverables.back')),
+        h('button', { type: 'button', className: 'kbg-back', onClick: () => { if (kbEmbedCanLeave() === true) onBack() } }, '← ' + kbt('deliverables.back')),
         h('div', { className: 'kb4-pagehead kb6-vhead' },
           h('span', { className: 'kb6-vico kb8-sl-stage', 'data-kb': 'artview-ico' }, kbTiArt(kbTiOfName(name))),
           name,
@@ -21060,13 +21065,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             .catch(() => setOrigin({ found: false, error: kbe('Search unavailable') }))
         } catch (e) { setOrigin({ found: false, error: kbe('Search unavailable') }) }
       }
+      const leave = () => { if (kbEmbedCanLeave() === true) onClose() }
       React.useEffect(() => {
-        const onKey = (ev) => { if (ev.key === 'Escape') onClose() }
+        const onKey = (ev) => { if (ev.key === 'Escape') leave() }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
       }, [])
       return h('div', { className: 'kb6-popwrap', 'data-kb': 'art-popup' },
-        h('div', { className: 'kb6-popscrim', onClick: onClose, 'aria-hidden': 'true' }),
+        h('div', { className: 'kb6-popscrim', onClick: leave, 'aria-hidden': 'true' }),
         h('div', { className: 'kb6-pop', role: 'dialog', 'aria-label': name, 'aria-modal': 'true', style: (popWidth !== null) ? { width: popWidth + 'px' } : null },
           h('div', { className: 'kb6-popresize', 'data-kb': 'art-popup-resize', title: kbe('Resize (drag the left edge)'), onMouseDown: startPopResize }),
           h('div', { className: 'kb6-pophead' },
@@ -21079,7 +21085,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               h('button', { type: 'button', className: 'kb6-popx' + (popFull === true ? ' on' : ''), 'data-kb': 'art-popup-full', 'aria-pressed': popFull === true ? 'true' : 'false', title: kbe('Full page'), onClick: togglePopFull }, Icon('maximize2', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e) => setPopShare({ kind: 'deliverable', id: path, titre: name, path: path, anchor: kbAncreDe(e.currentTarget) }) }, Icon('share', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-origin', title: kbe('Find the chat and section that delivered this file'), 'aria-label': kbe('Find origin'), onClick: findOrigin }, Icon('rotateCcw', 14)),
-              h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-close', title: kbe('Close (Esc)'), 'aria-label': kbe('Close'), onClick: onClose }, '✕'))),
+              h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-close', title: kbe('Close (Esc)'), 'aria-label': kbe('Close'), onClick: leave }, '✕'))),
           origin !== null && origin !== undefined
             ? h('div', { className: 'kb6-origin', 'data-kb': 'art-popup-origin-result' },
               origin === 'loading'
@@ -21197,7 +21203,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     })()
     // <kb-file-editors>
     // The editors a plugin offers for the files of Creations (the Office files today): the viewer of a file shows « Edit » for the names a declared editor takes.
-    //   window.__KB_EDITORS__.register({ id, canEdit: (name) => boolean, open: (path, name) => void })
+    //   window.__KB_EDITORS__.register({ id, canEdit: (name) => boolean, open: (path, name) => void, embed?: (box, path, name) => { close(), dirty() } | null })
+    // `open` is the full-screen editor (the pencil); `embed` draws the file inside the viewer itself, read-only with « Edit » in its own bar.
     // The core knows no such plugin by name; with none declared the viewer shows no button.
     const kbFileEditors = (() => {
       const rows = []
@@ -21206,7 +21213,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         /** Declares an editor; returns the function that takes it back, or `null` when the entry is not one. */
         register: (entry) => {
           if (entry === null || typeof entry !== 'object' || typeof entry.id !== 'string' || typeof entry.canEdit !== 'function' || typeof entry.open !== 'function') return null
-          const mine = Object.freeze({ id: entry.id, canEdit: entry.canEdit, open: entry.open })
+          const mine = Object.freeze({ id: entry.id, canEdit: entry.canEdit, open: entry.open, embed: typeof entry.embed === 'function' ? entry.embed : null })
           rows.push(mine)
           let live = true
           return () => { if (!live) return; live = false; const i = rows.indexOf(mine); if (i >= 0) rows.splice(i, 1) }
@@ -21220,6 +21227,35 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       try { if (typeof window !== 'undefined') window.__KB_EDITORS__ = api } catch (e) { /* outside a browser */ }
       return api
     })()
+    // The file drawn by its editor inside the viewer (the popup and the page of a file): read-only first, « Edit » in the editor's own bar. The viewer asks before it is
+    // closed while the editor still holds changes that are not saved (`kbEmbedCanLeave`): leaving by another way (a menu row) is the browser's own.
+    const kbEmbedDirty = new Set() // one `() => boolean` per embedded editor on screen (the page of a file and its popup can both hold one)
+    const kbEmbedCanLeave = () => {
+      let dirty = false
+      try { dirty = [...kbEmbedDirty].some((f) => f() === true) } catch (e) { dirty = false }
+      if (dirty !== true) return true
+      try { return window.confirm(kbe('You have unsaved changes in this document. Leave without saving?')) === true } catch (e) { return true }
+    }
+    const KbFileEmbed = ({ editor, path, name }) => {
+      const boxRef = React.useRef(null)
+      const failedPair = React.useState(false)
+      const failed = failedPair[0]
+      const setFailed = failedPair[1]
+      React.useEffect(() => {
+        let handle = null
+        setFailed(false)
+        try { handle = editor.embed(boxRef.current, path, name) } catch (e) { handle = null }
+        if (handle === null || handle === undefined || typeof handle !== 'object') { setFailed(true); return undefined }
+        const mine = () => { try { return handle.dirty() === true } catch (e) { return false } }
+        kbEmbedDirty.add(mine)
+        return () => {
+          kbEmbedDirty.delete(mine)
+          try { handle.close() } catch (e) { /* already gone */ }
+        }
+      }, [path, name])
+      if (failed === true) return h('div', { className: 'kbg-empty' }, kbt('deliverables.notfound') + ' — ' + kbe('no editor could open it'))
+      return h('div', { className: 'kb6-embed', 'data-kb': 'art-embed', ref: boxRef })
+    }
     // One item of a source, drawn as the files are: a card (the grid) or a row (the list). It opens the item in the plugin's own page.
     const KbSrcItem = (p) => {
       const sx = p.sx
@@ -36774,6 +36810,7 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
 .kb6-snip{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;line-height:1.55;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;white-space:pre-line}
 /* ── Artefacts rejouables : quiz, flashcards, popup ─────────────────────── */
 .kb6-vhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.kb6-embed{height:calc(100vh - 230px);min-height:420px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-layer-1)}
 .kb6-imgwrap{display:flex;align-items:center;justify-content:center;padding:12px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
 /* Audio & vidéo en détail/popup (28/09) : lecteurs natifs plein cadre. */
 .kb6-avwrap{display:flex;align-items:center;justify-content:center;padding:16px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}

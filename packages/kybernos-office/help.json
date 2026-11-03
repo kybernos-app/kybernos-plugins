@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Ouvre un fichier .docx ou .xlsx dans Créations, puis clique sur le crayon.",
-      "en": "Open a .docx or .xlsx file in Creations, then click the pencil."
+      "fr": "Ouvre un .docx ou un .xlsx dans Créations : il s’affiche en lecture seule. Clique sur Modifier pour le changer.",
+      "en": "Open a .docx or .xlsx in Creations: it is shown read-only. Click Edit to change it."
     },
     {
       "fr": "Change ce que tu veux ; Enregistrer écrit le fichier sur ton ordinateur, Enregistrer une copie le laisse tel quel.",
