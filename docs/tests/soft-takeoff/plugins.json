@@ -212,6 +212,12 @@
       "why": "For the Kybernos phone app only; not used by the desktop DSH.",
       "unit": 3
     },
+    "kybernos-office": {
+      "state": "off",
+      "call": "recommended",
+      "why": "Word and Excel editor: an optional creation tool, off by default; its editors are built on the computer, and it writes only the files the person opens.",
+      "unit": 6
+    },
     "kybernos-plugin": {
       "state": "on",
       "call": "recommended",
