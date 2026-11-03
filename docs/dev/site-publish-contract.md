@@ -65,3 +65,14 @@ No cookie, no server function: static only.
 (account token on the person's computer) or `POST /v1/computer/sites` (the computer's token on a cloud computer), and says the link or the refusal in one plain sentence. It **asks the person first**, on both bodies,
 in plain words (« Publish the page on pizzaone.kaby.app ») because it puts something on the public internet; the mandate never covers it. A name is chosen with the person (Kaby proposes one, the server says if it is taken).
 `site_list` and `site_remove` read and take down the person's own sites (the removal asks first).
+
+## What the server built (kybernos-server, branch `claude/sites-vercel-publish`, commit 99998856, 2026-11-03; ADR 0067, runbook `docs/runbooks/sites.md`)
+
+The server half follows this contract, with these differences. The plugin (`site-publish.mjs`, `sayAnswer`) is written against them.
+
+- The limit per person is an owner setting (`sites_max_per_user`, default 3), not an environment variable; `too_many_sites` answers **403**, not 402.
+- Two more refusals: `403 taken_down` (a name the platform took down is held for good, not 30 days) and `409 try_again` (the person's own removed name is still being cleaned up, or the page changed while it was published). `429 busy` when the server is already publishing other pages (retry after 2 s).
+- The publish routes have their own 6 MiB body limit (a page at the 4 MiB limit is about 5.6 MB of base64): 5 MB passes, 7 MB is `413 payload_too_large`.
+- Static only is stricter than listed above: no `api/` folder, no middleware, no `package.json`, no `vercel.json` of the person's; the platform adds its own `vercel.json` (headers, clean URLs).
+- A job every 5 minutes (`sites-purge`) finishes orphaned builds and deletes the projects of ended pages. The migration is `0069_sites_vercel_publish`, to be renumbered when the line is merged.
+- Never run against the real Vercel API: the first run by hand must check that Vercel accepts `name` on the first deployment, that the static no-build settings work, that the build is ready within the 60 s the route waits, and that the page domain comes back `verified`. Deployment Protection must leave the production custom domain public.
