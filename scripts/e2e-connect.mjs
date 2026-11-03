@@ -2,7 +2,8 @@
 // Connects a SANDBOX DSH to one of the made-up accounts of a local replica through the device flow, without a browser: DSH starts a pairing,
 // the account approves it on the server's own route (what the activation page does when its button is pressed), DSH polls until « connected ».
 // Environment: DSH_HOME of the sandbox (source scripts/sandbox/env.sh), KB_E2E_* of scripts/lib-e2e-server.mjs.
-//   node scripts/e2e-connect.mjs --dsh 127.0.0.1:3098 --account a
+//   node scripts/e2e-connect.mjs --dsh 127.0.0.1:3098 --account a [--force]
+// --force pairs again even when the status says connected: the replica's session lasts about two hours, and the status keeps saying « connected » after the GUI asks « Sign in again ».
 import { cookieDeSession } from './cdp-lib.mjs'
 import { makeServer, readAccounts } from './lib-e2e-server.mjs'
 
@@ -13,14 +14,15 @@ if (!dsh || !who) { console.error('usage: --dsh host:port --account a|b'); proce
 if (/:(3080)$/.test(dsh)) { console.error('refusing to touch the real DSH on :3080'); process.exit(3) }
 const ck = cookieDeSession(dsh)
 if (ck === null) { console.error('no browser-session secret for this DSH_HOME'); process.exit(3) }
-const dshCall = async (method, path) => {
-  const r = await fetch('http://' + dsh + path, { method, headers: { 'content-type': 'application/json', cookie: ck.nom + '=' + ck.valeur, origin: 'http://' + dsh }, body: method === 'GET' ? undefined : '{}' })
+const dshCall = async (method, path, json = {}) => {
+  const r = await fetch('http://' + dsh + path, { method, headers: { 'content-type': 'application/json', cookie: ck.nom + '=' + ck.valeur, origin: 'http://' + dsh }, body: method === 'GET' ? undefined : JSON.stringify(json) })
   return r.json()
 }
 const s = makeServer()
 const acc = readAccounts(s.e)[who]
 if (!acc) { console.error('no such account in accounts.json'); process.exit(2) }
-if ((await dshCall('GET', '/kybernos-cloud/status')).connected === true) { console.log('already connected: nothing to do'); process.exit(0) }
+if (args.indexOf('--force') < 0 && (await dshCall('GET', '/kybernos-cloud/status')).connected === true) { console.log('already connected: nothing to do'); process.exit(0) }
+if (args.indexOf('--force') >= 0) await dshCall('POST', '/kybernos-cloud/disconnect', { confirm: true })
 const started = await dshCall('POST', '/kybernos-cloud/start')
 if (!started.ok || !started.pairing) { console.error('could not start the pairing: ' + JSON.stringify(started).slice(0, 200)); process.exit(1) }
 const u = new URL(started.pairing.activation_url)

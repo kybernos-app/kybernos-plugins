@@ -19,12 +19,46 @@ Text only: no screenshots, no logs, no personal paths (`AGENTS.md` rule 4). Evid
 
 **Baseline of the unit suite** (first W0-04 run, 2026-11-03, tip of `dev`): **0 red** of 628 files, 135 s. It is not a proof of 628 green tests: 27 kinds of skip are counted, and the ones that matter for the work in flight are the rendered part of the cloud client (footer chip, team switcher: react and react-dom not found), the Suite and Workers page GUI suites (playwright), the open-menu pass (jsdom) and the 29 Python tests of the call agent (livekit). They need a `node_modules` with react, react-dom, jsdom and playwright-core (`KB_NODE_MODULES`) before W1 and W3 mean what they say.
 
+## Wave W1 (2026-11-03): what a person sees, on the frozen build
+
+Script cases by the runner on three sandboxes (A desktop account, C never paired), the freeze applied (33 bundles on, 18 off, 3 services); Haiku walkthroughs through `scripts/takeoff-walk.mjs`. About five hours, most of it spent on the environment (see the process findings). **The wave is not at its gate**: no P0 is red, but P1 cases are red or blocked and nine defects are listed below.
+
+| Case | Result |
+|---|---|
+| W1-01 first-run wizard | pass (on C: needs an unpaired sandbox) |
+| W1-02 new-chat page | pass (after T-001, T-006) |
+| W1-04 dead clicks | pass |
+| W1-07 Theme page, W1-13, W1-15 (freeze live), W1-16, W1-17 (Slides) | pass |
+| W1-12 contrast, icons, hit targets | pass after T-007 (151 s) |
+| W1-05 Settings menu, search, titles, help | **red, P2**: one drift check, three index rows (T-009); the menu, titles and help checks pass |
+| W1-06 first-visit animations | red, test side: 22 stale assertions (T-005) |
+| W1-09 onboarding on a phone | red, test side: expects the old first-run flow (T-010); its drawer half passes |
+| W1-03 creations pages | blocked: needs a creation, and the replica model cannot make one |
+| W1-08, W1-10 | not run after the account A session expired; A is signed in again now, to run |
+| W1-11 Plugins page | blocked: `kybernos-registry` is frozen (owner question 6) |
+| W1-14 connectors gate | not applicable here: needs a server line with the public catalogue route (owner question 7) |
+| W1-20 newcomer (Haiku) | pass; the first « fail » was the driver (process finding 6) |
+| W1-21, W1-23 (Haiku) | informative: they found the small controls on a phone (T-013); their `repo_clean` was voided by my own edits |
+| W1-22 creator (Haiku) | blocked: the stand-in model answers one fixed sentence (process finding 11); it saw one text drift (T-012) |
+| W1-24 French speaker (Haiku) | partial: the wizard reads well in French up to the « Kaby » step; the plan page was not reached; one open question (T-011) |
+
 ## Defects
 
 | Defect | Case | Sev | Symptom (what the person sees) | Cause | Fix (commit) | Attempts | State |
 |---|---|---|---|---|---|---|---|
 | T-001 | W1-02 | P2 | none for a person: the check went red on a healthy page | The check asked every example card for a type tile, but the text examples (since the 2026-11-02 shelf rework) have an icon and a tag instead; and its video checks ran without the `--pictures` folder that holds the clips, which are media and not in git | `scripts/check-newchat-live.mjs`: tiles counted without text cards, video checks skipped unless `--pictures` is given (uncommitted) | 1 | fixed (8 checks green) |
-| T-002 | W1-02 | P2 | none: « on a phone the dialog fits the width and its main button can be reached » returns no dialog | Not the product: a probe in the same sandbox opens the Slides example dialog at 1400 px and at 390 px. The check depends on state left by the video block it now skips (the type is lit before the resize; the probe lights it after) | not found yet | 1 | open |
+| T-002 | W1-02 | P2 | none: « on a phone the dialog fits the width and its main button can be reached » returns no dialog | Not the product: a probe in the same sandbox opens the Slides example dialog at 1400 px and at 390 px. The check depends on state left by the video block it now skips (the type is lit before the resize; the probe lights it after) | none needed | 1 | closed: passes in the W1 run, not seen again (order-dependent) |
+| T-003 | W1-01 | P2 | none: the check went red on a healthy first run | Four stale assertions: Kaby is optional in the menu now, the Dashboards and Workspaces rows come from other bundles, the type tiles are counted without the Dashboards and Apps tiles | `scripts/check-onboarding-live.mjs` (uncommitted) | 1 | fixed (W1-01 green) |
+| T-004 | W1-05 | P2 | none: the Settings navigation check went red on a healthy menu | The Interface and System group rows changed (bundles on or off); the check expected a fixed list | `scripts/check-settings-nav-live.mjs`: those rows tolerant (uncommitted) | 1 | fixed |
+| T-005 | W1-06 | P2 | none | The first-visit help check expects a « ? How it works » label, which is a bare « ? » since 2026-11-02, and the Calls page, which is frozen | not done | 0 | open, test side |
+| T-006 | W1-02 | P2 | On a phone, with bundles off, a type tile label could be cut mid-word and its « Not enabled » tag could run out of the tile | The tile grid kept three columns under 480 px with a tag wider than the tile | `packages/kybernos-plugin/client.js`: a container rule under 480 px; new assertion in `check-newchat-live.mjs`, red without the rule and green with it (uncommitted) | 1 | fixed |
+| T-007 | W1-12 | P2 | Two controls had a hit area under 24 px: the Tools on/off switch and the « × » that deletes a theme | No minimum size on `.kbt2-sw` and `.kbth-st-x` | `min-height: 24px` on the switch (`kybernos-plugin`), `min-width` and `min-height: 24px` on the theme delete button (`kybernos-theme`) (uncommitted) | 2 | fixed (W1-12 green) |
+| T-008 | W1-20 | tool | A Haiku tester saw « Continue » do nothing | Not the product: the shared click helper picked a hidden duplicate of the button and clicked at once. Verified on the page: the button is not covered, the screen does not redraw | `scripts/takeoff-walk.mjs` clicks the visible element on top | 1 | closed |
+| T-009 | W1-05 | P2 | Searching the Settings for « families » or « live » on the Activity log, or « install a sector template » on Templates, opens the right page but the label promised is not on it (the page shows the families as unlabelled chips, a « Live » switch, and « Add templates to Kybernos ») | The search index rows were written for an earlier wording of those pages | not done: add the labels to the pages or retarget the rows (a UX call) | 0 | open |
+| T-010 | W1-09 | P2 | none | `check-onboarding-phone-live.mjs` expects the first-run flow of before the redesign (no welcome, model question first); 35 checks go red on the wizard as it is now | not done: W1-01 covers the desktop flow, W1-23 the phone by walkthrough | 0 | open, test side |
+| T-011 | W1-24 | P2 | After choosing Français in the first-run wizard and leaving it with the top-right « Passer », the new-chat page is in English | Not known: one Haiku run, not reproduced by a script; the language may only be saved by the wizard's last step | not done: reproduce by script, then decide whether skipping should keep the language | 0 | to triage |
+| T-012 | W1-22 | P3 | The Agent Teams empty state says « Create one with “New Agent Team” » and the page has a « Create » menu | A text that names a button that is not there (Haiku, one run) | not done | 0 | to confirm |
+| T-013 | W1-21, W1-23, W1-24 | P2 | Controls of the first-run wizard are small: EN 61×27, Skip 32×29, Back 59×29 on desktop; on a phone 29 to 31 px high, and the option links 27 px | No minimum size; the hit-target check floor is 24 px | not done: owner question 9 | 0 | open |
 
 ## Process findings
 
@@ -33,5 +67,14 @@ Text only: no screenshots, no logs, no personal paths (`AGENTS.md` rule 4). Evid
 3. **A failing check is not a failing product.** W1-02 was red for stale assertions and a missing media folder. Triage has to separate test, environment and product before a ticket counts against the product.
 4. **Green is not covered.** The suite is green with 27 kinds of skip, among them the rendered cloud client that the Cloud budget work will change. A skip is listed in every run summary and never counts as a pass.
 5. **Media are not in git** (`AGENTS.md` rule 4), so every check that plays a clip or a picture needs its folder given explicitly, or it must skip.
+6. **A tester tool is a part of the test.** The first « fail » of W1-20 was the shared click helper (a hidden duplicate button, a click before the page was ready). The walk driver now clicks the visible element on top; a case that fails for a tool reason is closed as `tool`, not counted against the product.
+7. **The leftovers sweeper stops sandboxes in the middle of a run** (no client for ten minutes, or older than three hours; a headless viewer does not always count as a client). The runner has `--before`, and a watcher loop restarts a stopped sandbox. The lasting fix is a `sandbox.keep` marker in the sweeper, which is the owner's tool.
+8. **`source scripts/sandbox/env.sh` changes `HOME`.** A recipe with `~` after it points into the sandbox. Absolute paths only.
+9. **The replica session of an account lasts about two hours, and « connected » stays true after it.** `e2e-connect.mjs --force` (disconnect, pair again) fixes it; the sandbox is restarted afterwards.
+10. **A killed live check can leave the sandbox changed.** W1-14 left a stand-in server registry with the model service switched off: every chat then failed with « not signed in » and four creation walkthroughs came back blocked. The cause was found by reading the server profile the plugin uses, not by the symptom. Look at `kybernos/servers.json` and the live-gate files after any timeout.
+11. **The stand-in model of the replica answers one fixed sentence.** It proves the model path works, not that anything can be created with it: the creation cases need another model.
+12. **Do not edit the repository while a tester runs.** It voids `repo_clean`: two Haiku verdicts were lost to it.
+13. **W1-01 and W1-24 need an unpaired sandbox** with `onboarding.json` set to `completed:false`; and the sandbox is a clone of the owner's profile, not a fresh install.
+14. **Haiku is good at measuring and at walking, weak at reading what a screen means.** Its « fail » verdicts were findings, not defects: each needs a script or a second look before it counts (T-011, T-012).
 
-State: `open` | `fixed` (case and ring green) | `flaky` | `wontfix` (owner decision, with the workaround) | `escalated` (3 attempts).
+State: `open` | `fixed` (case and ring green) | `closed` (not a product defect, or not seen again) | `to triage` | `to confirm` | `flaky` | `wontfix` (owner decision, with the workaround) | `escalated` (3 attempts).

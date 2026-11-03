@@ -48,6 +48,15 @@ try {
   check('the repository is reported untouched by a harmless case', verdict(out, 'W9-01').repo_clean === true)
   check('the log of a case is kept beside its verdict', existsSync(join(out, 'W9-02.log')))
 
+  // --before: runs ahead of every case; a failing one blocks the case instead of running it (a sandbox that could not be started again is not a red)
+  const count = join(work, 'before-count')
+  const okDir = join(work, 'out-before-ok')
+  run(['--out', okDir, '--cases', 'W9-01,W9-06', '--before', `echo x >> ${count}`])
+  check('--before runs ahead of every case', verdict(okDir, 'W9-01').verdict === 'pass' && readFileSync(count, 'utf8').trim().split('\n').length === 2)
+  const noDir = join(work, 'out-before-no')
+  run(['--out', noDir, '--cases', 'W9-01', '--before', 'exit 7'])
+  check('a failing --before blocks the case without running it', verdict(noDir, 'W9-01').verdict === 'blocked' && verdict(noDir, 'W9-01').last_lines.join(' ').includes('--before'))
+
   const stopDir = join(work, 'out-stop')
   mkdirSync(stopDir)
   writeFileSync(join(stopDir, 'STOP'), '')

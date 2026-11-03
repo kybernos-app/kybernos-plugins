@@ -273,9 +273,9 @@
       "unit": 7
     },
     "kybernos-slides": {
-      "state": "off",
+      "state": "on",
       "call": "owner",
-      "why": "Slides are being rebuilt (standalone HTML PoC); 3 unit tests, one live check.",
+      "why": "A session is building slide creation and editing, and the plugin's unit tests and live check are green (light wave 1). Off only if that work does not land before the takeoff.",
       "unit": 3
     },
     "kybernos-summary": {

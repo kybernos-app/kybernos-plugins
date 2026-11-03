@@ -76,15 +76,15 @@
       "wave": "W0",
       "prio": "P0",
       "area": "gate",
-      "title": "Sandbox DSH boots with the frozen bundle set and shows no « Failed to load plugins »",
+      "title": "Sandbox DSH boots with the frozen bundle set: the hub answers and the boot guard sees a normal boot",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/boot-check.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-freeze-live.mjs --boot-only",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "needs-build",
-      "note": "Needs the freeze applier (docs/tests/soft-takeoff/README.md, « Still to build »)."
+      "status": "ready",
+      "note": "Apply the freeze first: node scripts/soft-takeoff-freeze.mjs --profile <sandbox profile>, then restart the sandbox."
     },
     {
       "id": "W0-06",
@@ -186,15 +186,15 @@
       "wave": "W1",
       "prio": "P0",
       "area": "sidebar",
-      "title": "Every sidebar page opens and draws",
+      "title": "Creations, Agent Teams and Skills pages, and the skeleton screens",
       "runner": "script",
       "cmd": "source scripts/sandbox/env.sh && node scripts/check-pages-live.mjs",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "to-verify",
-      "note": "Confirm it honours KB_HOST and refuses :3080 before the first run."
+      "status": "ready",
+      "note": "Refuses :3080. Writes only to the sandbox (Skills source and Featured list, put back). That every sidebar page opens is covered by W1-04 and the walkthrough W1-21."
     },
     {
       "id": "W1-04",
@@ -217,12 +217,13 @@
       "area": "settings",
       "title": "Settings menu, search, titles and « ? » help are consistent",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-settings-nav-live.mjs && node scripts/check-settings-search-live.mjs && node scripts/check-page-titles-live.mjs && node scripts/check-help-live.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-settings-nav-live.mjs && node scripts/check-settings-search-live.mjs --frozen && node scripts/check-page-titles-live.mjs && node scripts/check-help-live.mjs",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "The search check runs with --frozen: pages of switched-off bundles are not in the menu and are listed as skipped. Three index rows still drift on the live pages (Activity log › Families and Live tail, Templates › Install a sector template): ledger T-009."
     },
     {
       "id": "W1-06",
@@ -309,7 +310,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "blocked",
+      "note": "The Plugins page needs kybernos-registry, which the freeze switches off. Owner question: do people manage plugins in the takeoff? If yes, switch it on in plugins.json and run this case."
     },
     {
       "id": "W1-12",
@@ -351,22 +353,23 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "to-verify",
+      "note": "Needs the replica on a server line that serves the public connectors catalogue route; the replica line asked for it is not decided yet."
     },
     {
       "id": "W1-15",
       "wave": "W1",
       "prio": "P0",
       "area": "freeze",
-      "title": "A bundle that is off has no menu entry, no Settings page and no route",
+      "title": "A bundle that is off is not loaded: every host route it has answers 404 on the frozen sandbox",
       "runner": "script",
-      "cmd": "node scripts/test-soft-takeoff-plan.mjs",
+      "cmd": "node scripts/test-soft-takeoff-plan.mjs && node scripts/test-soft-takeoff-freeze.mjs && source scripts/sandbox/env.sh && node scripts/check-freeze-live.mjs",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "needs-build",
-      "note": "Today the test only checks the list. The live half needs the freeze applier."
+      "status": "ready",
+      "note": "Menu entries and Settings pages of the off bundles are compared with the list in the walkthrough W1-21."
     },
     {
       "id": "W1-16",
@@ -409,9 +412,9 @@
       "wave": "W1",
       "prio": "P0",
       "area": "walkthrough",
-      "title": "Newcomer, day one: sign up, first run, first message, rename the chat, find the plan",
+      "title": "Newcomer, day one: first-run wizard, new-chat page, find the plan",
       "runner": "agent",
-      "brief": "Persona newcomer. Fresh sandbox, replica account. Do the first-day journey and record, for every screen, the visible title, any error text, any empty state, and anything that reads « undefined », « NaN » or untranslated.",
+      "brief": "Persona newcomer on an UNPAIRED sandbox (the wizard shows only when onboarding is not completed). Walk the first-run wizard to its end, then the new-chat page, then Settings to find the plan. Record, for every screen, the visible title, any error text, any empty state, and anything that reads « undefined », « NaN » or untranslated. Press every button with a real click; read the buttons of a look before clicking.",
       "env": "replica",
       "personas": [
         "A"

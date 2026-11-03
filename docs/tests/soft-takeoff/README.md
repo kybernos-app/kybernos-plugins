@@ -30,7 +30,7 @@ The owner's order: what is visible first, then models, the cloud computer, billi
 
 | Wave | Focus | Runs on | Cases (ready now) | Exit |
 |---|---|---|---|---|
-| W0 | Gates and environment | none / replica | 9 (7) | gates green, preflight proves a request reaches the server for both accounts, canaries behave |
+| W0 | Gates and environment | none / replica | 9 (8) | gates green, preflight proves a request reaches the server for both accounts, canaries behave |
 | W1 | What a person sees: first run, new chat, every page, Settings, languages, phone, five walkthroughs | sandbox + replica | 22 (20) | all P0 pass, ledger has no P0/P1 |
 | W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 11 (8) | same |
 | W3 | Cloud computer, account B | staging | 13 (5) | same, plus egress played on a real Linux machine |
@@ -54,7 +54,7 @@ W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 
 
 ## 4. The plugin freeze
 
-`plugins.json` is a proposal: **32 on, 19 off, 3 services** (not DSH bundles), of which 14 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
+`plugins.json` is a proposal: **33 on, 18 off, 3 services** (not DSH bundles), of which 14 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
 
 The freeze is applied to **sandbox profiles only**; the owner's real profile is never edited by this recette. Two things to check before it is final: turning Kaby off must not break a bundle that calls it (the boot and bundle-fault checks W0-05 and W5-05 must pass with it off), and `kybernos-computers` is the E2B sandbox with the person's own key, not the Kybernos Cloud Computer (that one lives in `kybernos-cloud`).
 
@@ -95,22 +95,38 @@ run a wave → verdict files → triage → ledger row → fix (one branch per d
 ```bash
 node scripts/test-soft-takeoff-plan.mjs                  # the plan is coherent
 bash scripts/sandbox/setup.sh                            # sandbox profile
+node scripts/soft-takeoff-freeze.mjs --profile <sandbox profile>   # apply plugins.json (--dry-run first; --undo puts it back); restart the sandbox
+node scripts/check-freeze-live.mjs                       # the frozen sandbox: hub normal, controls answer, every off bundle is 404 (W0-05, W1-15)
 KB_E2E_DIR=<private folder> KB_SERVER_DIR=<server checkout> bash scripts/e2e-teams-run.sh up
 source "$KB_E2E_DIR/env.sh" && bash scripts/e2e-teams-run.sh preflight
 ```
 
 Each case's `cmd` in `cases.json` is the command to run; agent cases use `tester-brief.md`.
 
+What the first full W1 run taught (details in `ledger.md`, « Process findings »):
+
+- **Three sandboxes.** A (desktop account, port 3098), B (second account, 3110) and C (3120, never paired: the first-run wizard shows only there, and `kybernos/onboarding.json` must say `completed:false`). Cases that change onboarding state (W1-01, W1-24) run on C only.
+- **The owner's leftovers sweeper stops sandboxes.** It stops one that has no client and no log activity for 10 minutes, or that is older than three hours, and a headless viewer does not always count as a client. Run the runner with `--before <command that starts the sandbox again if it is down>` and keep a watcher loop beside the Haiku testers. Not fixed at the source: see § 8 and § 9.
+- **`source scripts/sandbox/env.sh` changes `HOME`.** Every path in a recipe is absolute, never `~`.
+- **The replica session of an account lasts about two hours** and the DSH keeps saying « connected » after the GUI asks « Sign in again ». `node scripts/e2e-connect.mjs --dsh <host> --account a --force` disconnects and pairs again; restart the sandbox after it.
+- **A live check that is killed can leave the sandbox changed** (W1-14 left a stand-in server registry with the model service off: every chat then failed « not signed in »). After a timeout, look for `kybernos/servers.json` and `kybernos-cloud-live-gate*` in the sandbox profile before the next case.
+- **The walk driver** for the Haiku cases is `scripts/takeoff-walk.mjs` (steps in a JSON file; prompt in `tester-brief.md`). Do not edit the repository while a tester runs: it voids its `repo_clean`.
+- **The sandbox is a clone of the owner's profile**, not a fresh install: his sessions and automations show up in it.
+
+The suites that need a browser or React skip themselves when their dependencies are missing, and a skip is never a pass. To make them run, export before the runner: `NODE_PATH` (a `node_modules` with react and react-dom, for the cloud client), `KB_BENCH_DEPS` (a folder whose `node_modules` holds playwright, react@18 and react-dom@18), `KYBERNOS_JSDOM` (jsdom) and `KB_CHROMIUM` (a browser binary). Paths are the tester's own and never go in git.
+
 ## 8. Still to build (not built, on purpose)
 
-1. **Freeze applier.** A script that applies `plugins.json` to a sandbox profile (`dsh.profile.bundles`), refuses the real profile, and the live half of W1-15. Small.
+1. ~~Freeze applier~~ built: `scripts/soft-takeoff-freeze.mjs` (sandbox profiles only, backs up the profile, `--undo`) and its live check `scripts/check-freeze-live.mjs`. It proves the off bundles answer 404, not yet that their menu entries and Settings pages are gone: that is the walkthrough W1-21.
 2. **Canary for the agent cases** (W0-07: a tiny page with a known defect). The script canaries W0-08 and W0-09 exist.
 3. **Named tester agent.** `.claude/agents/takeoff-tester.md` is only loaded when a session starts: in the session that wrote it the agent type was « not found », so the light wave used a general-purpose agent on Haiku with the brief. Restart a session to load it.
 4. **A `node_modules` for the skipped suites.** The whole-suite run skips 27 kinds of test for want of react, react-dom, jsdom and playwright-core (among them the rendered cloud client: footer chip and team switcher). Provide one and point `KB_NODE_MODULES` at it. Small.
 5. **The several-accounts switch (W2-04).** Product work: a platform setting on the server and a refusal path in the cloud and models plugins. I searched the docs, READMEs and server modules on 2026-11-03 and found no such switch. Medium, after the owner decides what it forbids.
 6. **Local-model turn (W2-05) and failure simulation (W2-08).** Check what `fake-kybernos.mjs` already simulates first.
 7. **Staging for W3 and W4.** Hosts, Stripe test-mode wiring (not verified), Fly spend.
-8. **Orchestration.** A workflow that fans the Haiku testers out per wave. Running it needs the owner's explicit opt-in.
+8. **A way to keep a sandbox past the sweeper.** A `sandbox.keep` marker (with a maximum age) honoured by the owner's sweeper, `scripts/restes-de-tests.mjs`. Small; it changes the owner's own tool, so it waits for his word.
+9. **A model that can create.** The replica's stand-in model answers one fixed sentence, so W1-22 (ask for a skill, a command, a dashboard, a team) and the half of W1-03 that needs a creation cannot run. A cheap real model behind the replica, or a scripted model that writes the files, is needed.
+10. **Orchestration.** A workflow that fans the Haiku testers out per wave. Running it needs the owner's explicit opt-in.
 
 ## 9. Questions for the owner
 
@@ -121,3 +137,9 @@ Defaults are what I will do unless told otherwise.
 3. What does the several-accounts switch forbid: (a) two Kybernos accounts in one DSH, (b) two keys for one provider, (c) one account on several devices? *(default: a and b forbidden by an owner switch; c out of scope)*
 4. Which staging hosts may the testers sign in to with test accounts, is Stripe test mode already wired there, and is about one Fly computer-day of spend fine? *(no default: W3 and the staging half of W4 wait)*
 5. Pictures: Haiku collects and measures, Sonnet reads the decisive images. *(default: yes)*
+6. Can people manage plugins in the takeoff? `kybernos-registry` is frozen, so the Plugins page (W1-11) is not there. *(default: frozen, W1-11 blocked)*
+7. Which server line does the replica run for the connectors catalogue (W1-14 needs the public catalogue route)? *(no default: W1-14 waits)*
+8. Settings still talks about Kaby (Phone and channels, Learned skills) while the Kaby plugins are off. Hide it in the takeoff, or accept? *(default: accept, listed)*
+9. On a phone, the new-chat shelf shows 3 columns with 9.5 px labels (fits, small) or 2 columns with 12 px labels (larger, more scrolling); and controls are 27 to 31 px high where a thumb wants 44. What floor do the checks enforce? *(default: floor stays 24 px, the wizard and shelf are listed for you)*
+10. May I add the `sandbox.keep` marker to the leftovers sweeper (§ 8, item 8)? *(default: no, I keep the watcher loop)*
+11. A real cheap model for the creation cases (§ 8, item 9): which one, and a spending cap? *(no default: W1-22 waits)*

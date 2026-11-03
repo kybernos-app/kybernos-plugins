@@ -31095,6 +31095,9 @@ html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary
 .kb8-sh-types .kb8-sl-stage svg{width:calc(var(--kb-w) * .77);height:calc(var(--kb-w) * .53)}
 .kb8-sh-types .kb8-sl-label{padding:0 3px}
 @container kbnc (max-width:820px){.kb8-sh-types .kb8-sl-card{font-size:11px}.kb8-sh-types.has-sel .kb8-sl-card.is-on{font-size:12px}}
+/* A phone: four 70 px cards to a row. A label must fit on one line without breaking a word (Documen-t, Spreadsh-eet at 11px), and the « Not enabled » tag, wider than the card,
+   takes the card's width instead of sticking out on the left. (Three cards to a row would let the labels keep their size: an owner's choice.) */
+@container kbnc (max-width:480px){.kb8-sh-types .kb8-sl-card{font-size:9.5px}.kb8-sh-types .kb8-sl-card .kb8-sl-label{padding:0;letter-spacing:-.2px}.kb8-sh-types .kb8-sl-card .kb8-sl-tag{left:2px;right:2px;top:4px;padding:0 1px;letter-spacing:-.2px;font-size:9px;line-height:14px;text-align:center;overflow:hidden;text-overflow:ellipsis}}
 /* A type this install cannot make yet: shown, a little quieter, with a small tag. */
 .kb8-sl-card.is-off:not(.is-on):not(:hover):not(:focus-visible){color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary))}
 .kb8-sl-tag{position:absolute;top:6px;right:6px;z-index:1;padding:1px 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1));box-shadow:0 0 0 1px var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font-size:11px;font-weight:550;line-height:16px;white-space:nowrap;pointer-events:none}
@@ -34611,7 +34614,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
 .kbt2-tile{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-brand-primary);flex:0 0 auto;font-weight:700;font-size:16px}
 .kbt2-tile.sm{width:30px;height:30px;border-radius:9px;font-size:13px}
 .kbt2-tile.off{color:var(--dsw-alias-label-tertiary)}
-.kbt2-sw{position:relative;display:inline-flex;align-items:center;gap:8px;padding:0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}
+.kbt2-sw{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:24px;padding:0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer}
 .kbt2-sw:disabled{opacity:.5;cursor:default}
 .kbt2-sw-track{position:relative;width:34px;height:20px;border-radius:10px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);flex:none;box-sizing:border-box}
 .kbt2-sw.on .kbt2-sw-track{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}

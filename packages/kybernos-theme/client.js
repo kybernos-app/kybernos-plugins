@@ -2872,7 +2872,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 .kbth-st-look.del{padding:3px 10px;gap:8px;font-size:12.5px}
 .kbth-st-lookb{appearance:none;border:0;background:none;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);padding:4px 4px 4px 9px;display:inline-flex;align-items:center;gap:7px;cursor:pointer}
 .kbth-st-lookb i{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px var(--dsw-alias-border-l3)}
-.kbth-st-x{appearance:none;border:0;background:none;color:var(--dsw-alias-label-tertiary);font-size:15px;line-height:1;padding:4px 8px 4px 2px;cursor:pointer}
+.kbth-st-x{appearance:none;border:0;background:none;color:var(--dsw-alias-label-tertiary);font-size:15px;line-height:1;padding:4px 8px 4px 2px;min-width:24px;min-height:24px;cursor:pointer}
 .kbth-st-x:hover{color:var(--dsw-alias-state-error-primary)}
 .kbth-st-classic{border:1px solid var(--dsw-alias-border-l2);border-radius:14px}
 .kbth-st-classic>summary{cursor:pointer;padding:13px 16px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}

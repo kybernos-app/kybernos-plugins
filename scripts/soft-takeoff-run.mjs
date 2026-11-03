@@ -7,6 +7,7 @@
 //   --light    only the cases marked "light": true (the first, cheap wave)
 //   --force    also run cases whose status is not « ready » (to-verify, needs-build): they usually come back « blocked »
 //   --retry N  a case that fails is run N more times; if one of them passes it is « flaky » (listed, not counted red: the rule of run-all-tests.mjs)
+//   --before C a command run before every case and before every retry (e.g. one that starts the sandbox again if something stopped it); when it exits non-zero the case is « blocked »
 // Exit 0 when nothing failed or timed out, 1 otherwise, 2 on a refusal. Verdicts: pass | fail | flaky | blocked (exit 3 of a check = wrong environment) | timeout.
 // Refuses: a KB_HOST that is the real DSH (port 3080), an output folder inside the repository (evidence never goes to git).
 // A file named STOP in the output folder ends the run between two cases.
@@ -43,6 +44,7 @@ mkdirSync(outDir, { recursive: true })
 
 const timeoutMs = Number(opt('--timeout', '240')) * 1000
 const retries = Number(opt('--retry', '1'))
+const before = opt('--before', '')
 const git = () => spawnSync('git', ['status', '--porcelain'], { cwd: REPO, encoding: 'utf8' }).stdout
 
 const runOnce = (cmd, limit = timeoutMs) => new Promise((done) => {
@@ -64,12 +66,15 @@ const tail = (text) => text.split('\n').map((l) => l.replace(/\s+$/, '')).filter
 const rows = []
 for (const c of pick) {
   if (existsSync(join(outDir, 'STOP'))) { console.log('STOP file found: ending the run'); break }
-  const before = git()
+  const treeBefore = git()
   const limit = c.timeout ? c.timeout * 1000 : timeoutMs
-  let r = await runOnce(c.cmd, limit)
+  const ready = async () => (before === '' ? { code: 0, text: '' } : runOnce(before, 120000))
+  const prep = await ready()
+  let r = prep.code === 0 ? await runOnce(c.cmd, limit) : { code: 3, ms: prep.ms, text: 'the --before command failed (exit ' + prep.code + '):\n' + prep.text }
   let v = verdictOf(r.code)
   let attempts = 1
   for (let i = 0; i < retries && (v === 'fail' || v === 'timeout') && c.expect !== 'fail'; i++) {
+    await ready()
     const again = await runOnce(c.cmd, limit)
     attempts += 1
     if (verdictOf(again.code) === 'pass') { v = 'flaky'; r = { ...again, ms: r.ms + again.ms }; break }
@@ -79,7 +84,7 @@ for (const c of pick) {
   const verdict = {
     case: c.id, verdict: v, host: null, exit_code: typeof r.code === 'number' ? r.code : null, ms: r.ms, attempts,
     steps: [{ n: 1, did: 'ran: ' + c.cmd, saw: 'exit code ' + r.code, ok: v === 'pass' || v === 'flaky' }],
-    findings: [], needs_visual_review: [], last_lines: tail(r.text), repo_clean: git() === before,
+    findings: [], needs_visual_review: [], last_lines: tail(r.text), repo_clean: git() === treeBefore,
   }
   if (c.expect) verdict.canary = { expect: c.expect, ok: v === c.expect }
   writeFileSync(join(outDir, c.id + '.json'), JSON.stringify(verdict, null, 2) + '\n')
