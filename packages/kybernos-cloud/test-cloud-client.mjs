@@ -1113,6 +1113,31 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.ok(seen[seen.length - 1].node.data.message.startsWith('You are no longer in the team'))
     older.root.unmount()
   }
+  // 4b-2. W4 (J7, T-028) — the same refusal in a TEAM'S OWN DSH: it answers its team for good and nothing moves it, so « send it again in a moment » can never work. Once the account has been
+  // read again and the team is not in the list, the sentence says the window stays with that team and a button opens the person's own DSH (the same call as choosing Personal in the menu).
+  {
+    const raw = '404: {"message":"No such workspace in `x-kybernos-workspace`.","type":"invalid_request_error","param":null,"code":"workspace_not_found"}'
+    const asked = []
+    const fetchFn = async (url, init) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      asked.push((init && init.method ? init.method : 'GET') + ' ' + path)
+      return { ok: true, status: 200, json: async () => (path === '/refresh' ? { ok: true, connected: true, state: { team_dsh: 't1', workspaces: [{ id: 'p', name: 'My workspace', personal: true }], active_workspace_id: 't1' } } : { ok: false }) }
+    }
+    events.length = 0
+    const gone = await draw({ node: node({ code: 'INVALID_REQUEST', message: raw, time: Date.now() }), t: T }, { ok: false }, fetchFn)
+    const shown = seen[seen.length - 1].node.data
+    assert.equal(shown.message, 'You are no longer in this team, so the message was not sent. This window stays with that team: open Personal to carry on.', 'the sentence says what happened and where to go')
+    assert.ok(!/send it again|in a moment/.test(shown.message), 'no advice to send it again: it cannot work in this window')
+    assert.equal(shown.code, undefined, 'no engine badge beside it')
+    assert.ok(gone.html.includes('data-kb="turn-error-action"') && gone.html.includes('>Open Personal<'), 'a button opens Personal (its press is played in the real GUI: journey J7)')
+    gone.root.unmount()
+    // A team DSH whose team the person is still in is not that case: the refusal keeps its old sentence and has no button.
+    const still = async (url, init) => { const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, ''); return { ok: true, status: 200, json: async () => (path === '/refresh' ? { ok: true, connected: true, state: { team_dsh: 't1', workspaces: [{ id: 'p', personal: true, name: 'My workspace' }, { id: 't1', name: 'Alpha' }], active_workspace_id: 't1' } } : { ok: false }) } }
+    const kept = await draw({ node: node({ code: 'INVALID_REQUEST', message: raw, time: Date.now() }), t: T }, { ok: false }, still)
+    assert.ok(!kept.html.includes('turn-error-action') && !seen[seen.length - 1].node.data.message.startsWith('You are no longer in this team'), 'still a member: not told to leave')
+    kept.root.unmount()
+    ok('failure row: in a team\'s own DSH the person has left, the sentence says so and « Open Personal » is offered (no « send it again »)')
+  }
   // 4c. L3-76 / DL-20 — the host refused a turn whose model route still names the previous team: its sentence, in the shipped row, with no engine code.
   {
     const stale = await draw({ node: node({ code: 'UNKNOWN', message: 'Your messages would be billed to Acme. Try again.' }), t: T }, { ok: false })
@@ -1637,6 +1662,19 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await settle(120)
     assert.deepEqual(world.opened, [['http://127.0.0.1:3301/?token=abc', 'kybernos-team-t2']], 'and another team opens its own DSH')
     await act(async () => { foot.root.unmount() })
+
+    // A team's own DSH whose team has left the person's list (removed, or left): the card says so instead of « Personal » (this window cannot bill Personal: the model route names the team
+    // and the server refuses it), and « Open Personal » of the failure row (a window event) opens the personal DSH in its own window (W4, J7, T-028).
+    fresh('t1', { team_dsh: 't1', workspaces: [{ id: 'p', name: 'My workspace', personal: true, role: 'owner' }] })
+    world.teamDshPersonal = { ok: true, url: 'http://127.0.0.1:3080/', signed_url: 'http://127.0.0.1:3080/?token=zzz' }
+    foot = await draw()
+    const leftHtml = htmlDe(foot.el)
+    assert.ok(leftHtml.includes('Team you left') && !leftHtml.includes('kbfp-cardname" title="Personal"'), 'the card names the team the person left, not Personal: ' + leftHtml.slice(0, 300))
+    assert.ok((listeners['kybernos-cloud:open-personal'] || []).length === 1, 'the footer listens for « Open Personal »')
+    await act(async () => { for (const fn of listeners['kybernos-cloud:open-personal']) fn({ type: 'kybernos-cloud:open-personal' }); await new Promise((r) => setTimeout(r, 120)) })
+    assert.deepEqual(world.opened, [['http://127.0.0.1:3080/?token=zzz', 'kybernos-personal']], 'the personal DSH opens in its window')
+    await act(async () => { foot.root.unmount() })
+    assert.equal((listeners['kybernos-cloud:open-personal'] || []).length, 0, 'and the listener goes with the footer')
 
     // A personal DSH that an older version left on a team: choosing Personal puts it back (the only switch left in a page); a space the host does not know is refused and said.
     fresh('t1')
