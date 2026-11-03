@@ -44,4 +44,13 @@ ok('what was left out stays out: project config, other binaries, pictures outsid
 for (const ext of ['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'ods', 'odp']) assert.ok(new RegExp("'" + ext + "'").test(client), 'the client knows .' + ext)
 ok('the client sorts the same extensions into documents, spreadsheets and slides')
 
+// The viewer of a file offers « Edit » to the editors a plugin declared (docs/dev/office-editors-open-save-contract-2026-11-03.md); the core knows no editor by name.
+assert.ok(client.includes('window.__KB_EDITORS__ = api'), 'the core publishes the registry of file editors')
+const reg = client.slice(client.indexOf('const kbFileEditors = (() => {'), client.indexOf('// One item of a source, drawn as the files are'))
+assert.ok(/register: \(entry\) =>/.test(reg) && /forName: \(name\) =>/.test(reg) && /return \(\) => \{ if \(!live\) return/.test(reg), 'register takes an entry back, forName finds the editor of a name')
+assert.ok(!/kybernos-office|docx|xlsx/i.test(reg), 'the registry names no editor and no format')
+assert.ok(/const fileEditor = kbFileEditors\.forName\(name\)/.test(client) && /fileEditor !== null \? h\('button'[^\n]*'data-kb': 'art-popup-edit'/.test(client), 'the viewer draws the pencil only when an editor takes the name')
+assert.ok(/'Modifier ce fichier': 'Edit this file'/.test(client) && /'Modifier': 'Edit'/.test(client), 'the French words of the pencil')
+ok('the viewer offers Edit to a declared editor only, and the core names none')
+
 console.log('\n' + pass + ' passed')
