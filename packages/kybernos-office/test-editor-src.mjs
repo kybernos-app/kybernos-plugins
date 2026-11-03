@@ -9,6 +9,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { manifestOf, EDITORS, SHARED } from './build-editors.mjs'
+import { replaceDeck } from './editor-src/deck/serialize.js'
+import { FRENCH } from './editor-src/deck/i18n.js'
 import { createHost } from './office-host.mjs'
 import * as fsp from 'node:fs/promises'
 
@@ -19,6 +21,7 @@ const must = (cond, msg) => { if (!cond) throw new Error(msg) }
 
 const here = fileURLToPath(new URL('.', import.meta.url))
 const read = (p) => readFileSync(join(here, p), 'utf8')
+const DECK_SOURCES = readdirSync(join(here, 'editor-src', 'deck')).filter((f) => f.endsWith('.js')).sort().map((f) => 'deck/' + f)
 const pkg = JSON.parse(read('editors/package.json'))
 const lock = JSON.parse(read('editors/package-lock.json'))
 
@@ -43,11 +46,11 @@ ok('only esbuild declares an install script (it only checks its binary), and the
 })
 ok('the frame sources import only the pinned editors, React and each other; no network address, no eval', () => {
   const allowed = new Set([...Object.keys(pkg.dependencies)])
-  for (const f of ['sheet.jsx', 'doc.jsx', 'md.js', 'pdf.js', 'envelope.js']) {
+  for (const f of ['sheet.jsx', 'doc.jsx', 'md.js', 'pdf.js', 'envelope.js', ...DECK_SOURCES]) {
     const src = read('editor-src/' + f)
-    for (const m of src.matchAll(/from\s+'([^']+)'/g)) {
+    for (const m of src.matchAll(/(?:from|import)\s+'([^']+)'/g)) {
       const spec = m[1]
-      if (spec.startsWith('./')) continue
+      if (spec.startsWith('./') || spec.startsWith('../')) continue
       const name = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0]
       must(allowed.has(name), f + ' imports ' + spec + ', which is not pinned')
     }
@@ -70,6 +73,8 @@ ok('the envelope the frames speak is the one the page listens to', () => {
   must(/e\.source !== window\.parent/.test(env) && /ev\.source !== frame\.contentWindow/.test(page), 'both sides check who sent the message')
   must(/fetch\('\.\.\/__file'\)/.test(env) && /rel === '__file'/.test(read('routes.mjs')), 'the file is read from the route the host serves')
   must(/X-Office-Hash/.test(env) && /X-Office-Hash/.test(read('routes.mjs')), 'the hash header is the same on both sides')
+  const deck = read('editor-src/deck/index.js')
+  must(/from '\.\.\/envelope\.js'/.test(deck) && /listen\(\{/.test(deck) && /fetchFile\(\)/.test(deck) && /loaded\(f\.hash, READONLY\)/.test(deck), 'the deck frame speaks the same envelope (open, listen, loaded)')
 })
 ok('each editor exports the bytes in its own format and says dirty only for a change', () => {
   must(/toXlsx\(\)/.test(read('editor-src/sheet.jsx')) && /\.save\(\)/.test(read('editor-src/doc.jsx')), 'export calls')
@@ -78,6 +83,9 @@ ok('each editor exports the bytes in its own format and says dirty only for a ch
   // The document editor shows the file's name as its title (it says « Untitled » otherwise); the page puts it in the frame's address.
   must(/title=\{NAME\.replace\(/.test(read('editor-src/doc.jsx')) && /NAME = .*q\.get\('name'\)/.test(read('editor-src/envelope.js')), 'the document editor is titled with the file name')
   must(/getMarkdown\(\)/.test(read('editor-src/md.js')) && /dirty\(value\)/.test(read('editor-src/md.js')) && /saveAsCopy\(\)/.test(read('editor-src/pdf.js')) && /dirty\(value\)/.test(read('editor-src/pdf.js')), 'the Markdown and PDF frames export and tell dirty')
+  const deckFrame = read('editor-src/deck/index.js')
+  must(/exportBytes: \(\) =>/.test(deckFrame) && /new TextEncoder\(\)\.encode\(text\)/.test(deckFrame) && /dirty\(true\)/.test(deckFrame) && /dirty\(false\)/.test(deckFrame), 'the deck frame exports UTF-8 bytes and tells dirty for a touch only')
+  must(/edit: !READONLY/.test(deckFrame) && /if \(!READONLY\) state\.api\.setEditing\(true\)/.test(deckFrame), 'read-only is honoured by the deck frame')
   must(/editable: !READONLY/.test(read('editor-src/md.js')) && /READONLY \? \[\.\.\.NEVER, \.\.\.VIEW_ONLY\]/.test(read('editor-src/pdf.js')), 'read-only is honoured by the Markdown and PDF frames')
 })
 ok('the PDF viewer is copied as it is (its scripts and its wasm, not its demo files), and its glue imports it from the page', () => {
@@ -88,21 +96,50 @@ ok('the PDF viewer is copied as it is (its scripts and its wasm, not its demo fi
   must(/fontFallback: null/.test(read('editor-src/pdf.js')) && /ui: null, signature: null/.test(read('editor-src/pdf.js')), 'no web font is asked for')
 })
 
+ok('a deck frame is built twice from one runtime: the frame (an ES module) and the standalone page (one IIFE), in the same folder', () => {
+  const build = read('editor-src/build.mjs')
+  must(/entryPoints: \['src\/deck\/index\.js'\]/.test(build) && /format: 'iife', entryNames: 'standalone', entryPoints: \['src\/deck\/standalone\.js'\]/.test(build), 'both entries are built')
+  must(EDITORS.join() === 'sheet,doc,md,pdf,deck', 'the deck is an editor of the build: ' + EDITORS.join())
+  must(/start\(\{/.test(read('editor-src/deck/index.js')) && /start\(\{/.test(read('editor-src/deck/standalone.js')), 'both start the same runtime')
+  must(!/from '@tiptap/.test(read('editor-src/deck/runtime.js')), 'the runtime reaches Tiptap only through the module it is handed')
+})
+ok('every text the deck shows has a French entry', () => {
+  const used = new Set()
+  for (const f of DECK_SOURCES) {
+    if (f === 'deck/i18n.js') continue
+    for (const m of read('editor-src/' + f).matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)) used.add(m[1].replace(/\\'/g, "'").replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))))
+  }
+  const lacking = [...used].filter((k) => !Object.prototype.hasOwnProperty.call(FRENCH, k))
+  must(used.size > 60, 'only ' + used.size + ' texts found')
+  must(lacking.length === 0, 'no French for: ' + lacking.slice(0, 8).join(' | '))
+  for (const [en, fr] of Object.entries(FRENCH)) must(typeof fr === 'string' && fr !== '', 'the French of « ' + en + ' » is empty')
+})
+ok('a deck goes back as the same file with only its slides replaced', () => {
+  const file = '<!doctype html>\n<html><head><meta name="kybernos-deck" content="1"><style data-kd="theme">:root{--navy:#123}</style></head>\n<body><main id="deck">\n<div class="cell">old</div>\n</main><script data-kd="runtime">const a = "</main>"</script></body></html>\n'
+  const out = replaceDeck(file, '<div class="cell">new</div>\n<div class="cell">two</div>')
+  must(out === file.replace('<div class="cell">old</div>', '<div class="cell">new</div>\n<div class="cell">two</div>'), 'only the content of main#deck changes: ' + out)
+  must(replaceDeck(out, '<div class="cell">new</div>\n<div class="cell">two</div>') === out, 'replacing with the same slides is the identity')
+  must(replaceDeck(file, '$&$1$`') .includes('$&$1$`'), 'dollar signs in a slide are text')
+  let refused = false
+  try { replaceDeck('<html><body><main>none</main></body></html>', 'x') } catch (e) { refused = /not a Kybernos deck/.test(e.message) }
+  must(refused, 'a file without main#deck is refused')
+})
+
 await okAsync('the manifest the build writes lists every served file, the shared fonts included, with hashes the host then checks', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'kb-office-build-'))
-  for (const [p, c] of [['sheet/app.js', 'js'], ['sheet/app.css', 'css'], ['sheet/wasm_bg.wasm', 'wasm'], ['doc/app.js', 'js2'], ['doc/harfbuzz.wasm', 'hb'], ['md/app.js', 'js3'], ['md/app.css', 'css3'], ['pdf/app.js', 'js4'], ['pdf/embedpdf.js', 'js5'], ['pdf/pdfium.wasm', 'wasm5'], ['assets/Caladea-Bold.ttf', 'ttf'], ['licenses/OFL.txt', 'not served']]) {
+  for (const [p, c] of [['sheet/app.js', 'js'], ['sheet/app.css', 'css'], ['sheet/wasm_bg.wasm', 'wasm'], ['doc/app.js', 'js2'], ['doc/harfbuzz.wasm', 'hb'], ['md/app.js', 'js3'], ['md/app.css', 'css3'], ['pdf/app.js', 'js4'], ['pdf/embedpdf.js', 'js5'], ['pdf/pdfium.wasm', 'wasm5'], ['deck/app.js', 'js6'], ['deck/app.css', 'css6'], ['deck/standalone.js', 'js7'], ['deck/standalone.css', 'css7'], ['assets/Caladea-Bold.ttf', 'ttf'], ['licenses/OFL.txt', 'not served']]) {
     mkdirSync(join(dir, p, '..'), { recursive: true }); writeFileSync(join(dir, p), c)
   }
   const m = manifestOf(dir, EDITORS, 'v1')
-  must(SHARED.includes('assets') && m.version === 'v1' && m.editors.join() === 'sheet,doc,md,pdf', 'shape')
-  must(Object.keys(m.files).sort().join() === 'assets/Caladea-Bold.ttf,doc/app.js,doc/harfbuzz.wasm,md/app.css,md/app.js,pdf/app.js,pdf/embedpdf.js,pdf/pdfium.wasm,sheet/app.css,sheet/app.js,sheet/wasm_bg.wasm', 'files: ' + Object.keys(m.files).join())
+  must(SHARED.includes('assets') && m.version === 'v1' && m.editors.join() === 'sheet,doc,md,pdf,deck', 'shape')
+  must(Object.keys(m.files).sort().join() === 'assets/Caladea-Bold.ttf,deck/app.css,deck/app.js,deck/standalone.css,deck/standalone.js,doc/app.js,doc/harfbuzz.wasm,md/app.css,md/app.js,pdf/app.js,pdf/embedpdf.js,pdf/pdfium.wasm,sheet/app.css,sheet/app.js,sheet/wasm_bg.wasm', 'files: ' + Object.keys(m.files).join())
   must(m.files['sheet/app.js'].sha256 === createHash('sha256').update('js').digest('hex'), 'hash')
   writeFileSync(join(dir, 'manifest.json'), JSON.stringify(m))
   const host = createHost({ fs: fsp, home: join(dir, 'home'), editorsDir: dir, now: () => 1e12 })
   const open = (await import('node:fs')).writeFileSync
   void open
   const s = await host.status()
-  must(s.installed.sheet === true && s.installed.doc === true && s.installed.md === true && s.installed.pdf === true, 'all four installed')
+  must(s.installed.sheet === true && s.installed.doc === true && s.installed.md === true && s.installed.pdf === true && s.installed.deck === true, 'all five installed')
   const t = await (async () => { const { docx } = await import('./lib-test-files.mjs'); const p = join(dir, 'a.docx'); writeFileSync(p, docx()); return host.open(p) })()
   must(t.ok === true, 'open: ' + JSON.stringify(t))
   must((await host.serve(t.token, 'assets/Caladea-Bold.ttf')).ok === true, 'a font is served at <token>/assets/…, where the document editor asks for it')
