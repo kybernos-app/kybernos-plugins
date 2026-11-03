@@ -5848,7 +5848,19 @@ const computerTargetSet = async (req, body) => {
     return { ok: true, target }
   } catch (e) { return { ok: false, error: 'ecriture_impossible' } }
 }
+/** The model a task handed to a cloud computer runs with: the server asks for one when Kaby's crew names none. A fast, inexpensive model of the account's own list (the first of
+ *  these that the account has, else the first of its list), so a task never spends a premium model by default. Null when the account lists none. */
+const COMPUTER_TASK_MODELS = Object.freeze(['deepseek-v4.1-flash', 'claude-haiku-5.5', 'gpt-4.1-mini'])
+const computerTaskModel = () => {
+  try {
+    const s = readState()
+    const ids = s !== null && s.models !== undefined && s.models !== null && Array.isArray(s.models.ids) ? s.models.ids.filter((m) => typeof m === 'string') : []
+    const usual = COMPUTER_TASK_MODELS.find((m) => ids.includes(m))
+    return usual !== undefined ? usual : ids.length > 0 ? ids[0] : null
+  } catch (e) { return null }
+}
 const computerTurn = createComputerTurn({
+  model: computerTaskModel,
   apiCall,
   token: () => { try { const s = readState(); return isConnected(s) === true && typeof s.token === 'string' ? s.token : null } catch (e) { return null } },
   target: () => { const t = currentComputerTarget(); return t === null ? null : t.computer_id },
@@ -6518,7 +6530,7 @@ export {
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
   teamCache, teamPickStore, refreshTeamCache, emptyTeamCache, teamSelection, renderTeamPrompt, activeKybersOf, lessonsSwitches, TEAM_RELEVANCE,
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
-  refreshMemoryCache, memoryCache,
+  refreshMemoryCache, memoryCache, computerTaskModel,
   emptyMemoryCache, bumpMemoryCache, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, isLasting, keepCaptured, nearKnown, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,

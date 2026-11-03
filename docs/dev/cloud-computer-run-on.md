@@ -59,6 +59,10 @@ the way, and the cloud computer follows it:
   conversation (`GET /v1/me/kyby`), dispatches `POST /v1/kybers/{kyber_id}/threads/dispatch` with the `computer_id` and a fresh `client_turn_id`, and reads the answer back from
   `GET /v1/threads/{thread_id}/messages?after=<position>` for about two minutes. A task still running is said so (« its answer will arrive in your Kaby conversation ») and is
   never sent twice.
+- **The model**: the server asks for one (`model_required`) when Kaby's crew names none, and Kaby's has none. The host sends a fast, inexpensive model of the account's own list
+  (`computerTaskModel` in `kybernos-cloud/index.js`: `deepseek-v4.1-flash`, else `claude-haiku-5.5`, else `gpt-4.1-mini`, else the first of the list). Found by the first live try on 2026-11-03.
+- **One conversation, one task at a time**: a hosted turn goes into Kaby's single conversation (`GET /v1/me/kyby`, there is no route to make another thread), and the server refuses a
+  second one while a job of that thread waits (`turn_pending`), whoever sent it (Telegram included).
 - **Refusals in words**: `extra_cap_exhausted` (the member's extra budget, kybernos-server ADR 0066), `insufficient_quota`, `feature_not_in_plan`, `computer_unavailable`, `turn_pending`,
   `personal_workspace`, `rate_limited`, `hosted_busy`, `queue_full`. The server decides everything that is a decision (plan, budget, extra budget, waking); the host carries and bounds.
 
