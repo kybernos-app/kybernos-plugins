@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Ouvre un .docx ou un .xlsx dans Créations : il s’affiche en lecture seule. Clique sur Modifier pour le changer.",
-      "en": "Open a .docx or .xlsx in Creations: it is shown read-only. Click Edit to change it."
+      "fr": "Ouvre un .docx ou un .xlsx dans Créations ou dans l’onglet de droite du chat : lecture seule, puis Modifier.",
+      "en": "Open a .docx or .xlsx in Creations or in the chat’s right-hand tab: read-only, then click Edit."
     },
     {
       "fr": "Change ce que tu veux ; Enregistrer écrit le fichier sur ton ordinateur, Enregistrer une copie le laisse tel quel.",
@@ -18,8 +18,8 @@
     }
   ],
   "where": {
-    "fr": "Créations › un fichier Word ou Excel",
-    "en": "Creations › a Word or Excel file",
+    "fr": "Créations ou onglet de droite du chat › un fichier Word ou Excel",
+    "en": "Creations or the chat’s right-hand tab › a Word or Excel file",
     "page": false
   },
   "good": {

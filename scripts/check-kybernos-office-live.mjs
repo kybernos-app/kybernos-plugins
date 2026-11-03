@@ -1,5 +1,5 @@
 // The Office editors on a real GUI: open a workbook and a document in their sandboxed frames, type into each with real key events, save, see the file on disk change
-// by that edit only, meet a conflict, undo, and look at what the frame can and cannot reach. Run it against the SANDBOX (scripts/sandbox/setup.sh && start.sh, then
+// by that edit only, meet a conflict, undo, look at what the frame can and cannot reach, and open a .docx and an .xlsx from the right-hand file list of a chat. Run it against the SANDBOX (scripts/sandbox/setup.sh && start.sh, then
 // `source scripts/sandbox/env.sh`) after `node packages/kybernos-office/build-editors.mjs --home "$DSH_HOME"`: it works on copies in a temp folder it removes again, but it writes in the
 // plugin's own storage of the DSH it talks to.
 //
@@ -266,6 +266,79 @@ try {
     await sleep(400)
     check('closing the window leaves the viewer, Esc then closes the viewer', (await q(`!${hook('office-window')}`)) === true && (await q(`!${hook('art-popup')}`)) === true)
   } finally { try { rmSync(sample) } catch (e) { /* gone */ } }
+
+  // ── the right-hand tab of a chat: the workspace file list, a click on a .docx or .xlsx, the editor in DSH's own right pane (kept mounted when the person goes to another tab)
+  const repo = fileURLToPath(new URL('..', import.meta.url))
+  const paneDoc = join(repo, 'office-live-sample.docx')
+  const paneSheet = join(repo, 'office-live-sample.xlsx')
+  writeFileSync(paneDoc, DOC0)
+  writeFileSync(paneSheet, BOOK1)
+  try {
+    await page.send('Page.navigate', { url: 'http://' + authority + '/' })
+    await waitFor(page, 'document.body && document.body.innerText.length > 40', 30000)
+    await sleep(9000)
+    const tabNamed = (n) => `[...document.querySelectorAll('[role="tab"]')].find((e) => e.textContent.trim().startsWith(${JSON.stringify(n)}))`
+    const leaf = (n) => `[...document.querySelectorAll('*')].find((e) => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(n)})`
+    await q(`document.querySelector('button[aria-label="Open right sidebar"]').click()`)
+    await sleep(1500)
+    await q(`${leaf('Workspace files')}.click()`)
+    check('the right sidebar lists the workspace files', (await until(`!!${leaf('office-live-sample.docx')} && !!${leaf('office-live-sample.xlsx')}`, 15000)) === true)
+    await q(`${leaf('office-live-sample.docx')}.click()`)
+    check('a click on the .docx in the file list opens our editor in the tab', (await until(`!!document.querySelector('.kyo-pane [data-kb="office-frame"]')`, 20000)) === true)
+    check('the tab is named after the file', (await q(`!!${tabNamed('office-live-sample.docx')}`)) === true)
+    check('read-only first: Read only, Edit offered, Save off', (await q(`${hook('office-status')}.textContent === 'Read only' && !${hook('office-edit')}.hidden && ${hook('office-save')}.disabled && ${hook('office-frame')}.getAttribute('src').includes('ro=1')`)) === true)
+    await frameTarget(); await fq('location.reload()'); await sleep(3000)
+    check('the document is drawn in the pane (a page with the sample text)', (await until(`/Quarterly report/.test(document.body.innerText)`, 40000, true)) === true, JSON.stringify(frameLogs()))
+    await sleep(1500)
+    await page.shot(join(shotDir, '7a-pane-readonly.png'))
+    await q(`${hook('office-edit')}.click()`)
+    check('Edit turns the pane into the editor', (await until(`!${hook('office-frame')}.getAttribute('src').includes('ro=1') && ${hook('office-edit')}.hidden`, 10000)) === true)
+    await frameTarget(); await fq('location.reload()'); await sleep(3000)
+    await until(`!!document.querySelector('[contenteditable="true"], .ProseMirror')`, 40000, true)
+    await sleep(2500)
+    const pbox = await frameBox()
+    const pat = await fq(`(() => { const e = document.querySelector('.ProseMirror') || document.querySelector('[contenteditable="true"]'); const r = e.getBoundingClientRect(); return { x: r.left + 60, y: r.top + 30 } })()`)
+    await mouse({ x: pbox.x + (pat && pat.x ? pat.x : 300), y: pbox.y + (pat && pat.y ? pat.y : 200) })
+    await sleep(300)
+    await typeKeys(' PANE')
+    await sleep(1200)
+    check('typing in the pane turns Save on', (await saveEnabled()) === true && /Unsaved/.test(await status()), await status())
+    await q(`${hook('office-frame')}.__probe = 'same'`)
+    await q(`${tabNamed('Files')}.click()`)
+    await sleep(1500)
+    check('on another tab the editor stays mounted (hidden), not thrown away', (await q(`document.querySelectorAll('[data-kb="office-frame"]').length === 1`)) === true)
+    await page.shot(join(shotDir, '7b-pane-other-tab.png'))
+    await q(`${tabNamed('office-live-sample.docx')}.click()`)
+    await sleep(1500)
+    check('back on the tab: the very same editor, with what was typed still unsaved', (await q(`${hook('office-frame')}.__probe === 'same' && !${hook('office-save')}.disabled && /Unsaved/.test(${hook('office-status')}.textContent)`)) === true, await status())
+    await page.shot(join(shotDir, '7c-pane-back.png'))
+    await pressWindow('office-save')
+    await until(`/^Saved$/.test((${hook('office-status')} || {}).textContent || '')`, 20000)
+    const PD = readFileSync(paneDoc)
+    const pbody = textOfDoc(PD) || ''
+    check('saved from the pane: the file on disk is still a .docx and holds the typed text and the old one', !PD.equals(DOC0) && PD.subarray(0, 2).toString() === 'PK' && /PANE/.test(pbody) && /Quarterly report/.test(pbody), pbody.slice(0, 200))
+    check('after its own save the pane stays an editor (no reload back to read-only)', (await q(`!${hook('office-frame')}.getAttribute('src').includes('ro=1') && ${hook('office-edit')}.hidden`)) === true)
+    await page.shot(join(shotDir, '7d-pane-saved.png'))
+
+    // the workbook: a second tab, in its own right
+    await q(`${tabNamed('office-live-sample.docx')}.querySelector('[aria-label="Close"], button').click()`)
+    await sleep(800)
+    check('closing the tab takes the editor away', (await q(`!document.querySelector('[data-kb="office-frame"]')`)) === true)
+    await q(`${tabNamed('Files')}.click()`)
+    await sleep(1000)
+    await q(`${leaf('office-live-sample.xlsx')}.click()`)
+    check('a click on the .xlsx opens the workbook in the tab', (await until(`!!document.querySelector('.kyo-pane [data-kb="office-frame"]')`, 20000)) === true)
+    await frameTarget(); await fq('location.reload()'); await sleep(2500)
+    check('the grid is drawn in the pane', (await until(`document.querySelector('canvas') !== null`, 30000, true)) === true, JSON.stringify(frameLogs()))
+    await sleep(1500)
+    check('and says it is read-only', /Read only/.test(await status()) && (await saveEnabled()) === false, await status())
+    await page.shot(join(shotDir, '7e-pane-sheet.png'))
+    await q(`${tabNamed('office-live-sample.xlsx')}.querySelector('[aria-label="Close"], button').click()`)
+    await sleep(600)
+  } finally {
+    try { rmSync(paneDoc) } catch (e) { /* gone */ }
+    try { rmSync(paneSheet) } catch (e) { /* gone */ }
+  }
 
   // ── French
   await q(`window.__KB_EDITORS__.forName('budget.xlsx').open(${JSON.stringify(book)}, 'budget.xlsx')`)

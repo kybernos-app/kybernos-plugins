@@ -35,6 +35,7 @@
     }
   },
   "permissions": [
+    "ui.slot:sidebar.right.pane.tab",
     "host.routes:/kybernos-office:write",
     "fs.read:home",
     "fs.write:home",
