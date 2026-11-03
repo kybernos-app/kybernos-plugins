@@ -75,7 +75,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
 | Feedback box | `feedback` (POST: one line appended to `kybernos/feedback.jsonl`), `feedback/export` (GET: the file's content), `feedback/send` (POST: the same form posted to the linked server's relay with the device token). Strict write guard on all three (same-origin AND DSH's signed session, `session-guard.mjs`); Save and Copy send nothing, see "The feedback box" below |
-| Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
+| Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/leaflet.*` `kb-places.js` |
 
 ## The Automations board
 
@@ -256,7 +256,8 @@ The frame is as tall as its cards need (`fitHeight`), not a fixed height, and on
   (`kbfc-*`): no library, no image.
 - **Where the code is.** The layout, the routing of a wire, the offsets and the scale are the pure `KB-AUTOFLOW` block of `client.js`
   (`test-automation-flow.mjs`: no right-angle wire goes through a card of the default layout, for every style); `KbFlowCanvas` draws them.
-  React Flow (`@xyflow/react`, shipped for the team view) is not used here: the wires wrap around rows, which its built-in edges do not do.
+  This one canvas draws every graph of the plugin: the workflow and the runs of an automation, the Flow of the Journal (a chat, or a run in Sessions) and the Workflow tab
+  of an Agent Team. React Flow is gone (it could not wrap a wire around a row, and it carried its own dark-only colours).
 
 ### Sessions (executions, graph, logs, and what the Journal said)
 
