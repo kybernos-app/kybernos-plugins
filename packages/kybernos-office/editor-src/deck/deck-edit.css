@@ -62,3 +62,4 @@ body.grid.editing #deck{padding-top:calc(var(--top) + 18px)}
 body.grid .slide *{pointer-events:none}
 body.grid.editing .cell{cursor:grab}
 .cell.dragover{outline-color:#4a8bff!important}
+@media (max-width:760px){.tt-cap{display:none}}

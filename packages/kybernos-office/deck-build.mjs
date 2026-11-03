@@ -169,7 +169,8 @@ const fit = (items, width, room, max, min) => {
   return min
 }
 
-const slideHtml = (inner, { dark = false, transition = 'fade', notes = '', n }) => '<div class="cell"><section class="slide' + (dark ? ' dark' : '') + '" data-transition="' + transition + '" aria-label="Slide ' + n + '">' + inner
+// No aria-label on the slide: the player numbers the slides itself and the editor does not write that label back, so a slide nobody touched is saved as it was written.
+const slideHtml = (inner, { dark = false, transition = 'fade', notes = '' }) => '<div class="cell"><section class="slide' + (dark ? ' dark' : '') + '" data-transition="' + transition + '">' + inner
   + '<aside class="notes" data-e>' + esc(notes) + '</aside></section></div>'
 
 const LAYOUT = {
@@ -220,7 +221,7 @@ const LAYOUT = {
     const rowH = Math.min(64, Math.floor(440 / (s.table.rows.length + 1)))
     const size = rowH >= 56 ? 27 : rowH >= 44 ? 24 : 20
     const tr = (cells, tag) => '<tr style="height:' + rowH + 'px">' + cells.map((c) => '<' + tag + ' data-e>' + rich(c) + '</' + tag + '>').join('') + '</tr>'
-    return { inner: h1(s.title) + '<table class="t" style="' + pos(MARGIN, 190, CONTENT_W, rowH * (s.table.rows.length + 1)) + 'font-size:' + size + 'px;" data-e-table>' + tr(s.table.header, 'th') + s.table.rows.map((r) => tr(r, 'td')).join('') + '</table>' }
+    return { inner: h1(s.title) + '<table class="t" style="' + pos(MARGIN, 190, CONTENT_W, rowH * (s.table.rows.length + 1)) + 'font-size:' + size + 'px;" data-e-table><tbody>' + tr(s.table.header, 'th') + s.table.rows.map((r) => tr(r, 'td')).join('') + '</tbody></table>' }
   },
   quote: (s) => ({
     inner: (s.title ? h1(s.title) : '')
@@ -268,7 +269,7 @@ export function buildDeck (deck, assets, pictures = new Map()) {
       if (typeof src !== 'string' || !DATA_URI.test(src)) return fail('Slide ' + (i + 1) + ' (image): the picture "' + (s.image.path || 'data') + '" could not be read as a png, jpg, gif or webp file.')
       made = imageSlide(s, src)
     } else made = LAYOUT[s.layout](s, p)
-    cells.push(slideHtml(made.inner, { dark: made.dark === true, transition: s.transition, notes: s.notes, n: i + 1 }))
+    cells.push(slideHtml(made.inner, { dark: made.dark === true, transition: s.transition, notes: s.notes }))
   }
   const theme = ':root{--navy:' + p.primary + ';--gold:' + p.accent + ';--light:' + p.light + ';--grey:' + p.grey + ';--pale:' + p.pale + ';}'
   const html = '<!doctype html>\n<html lang="' + deck.language + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
