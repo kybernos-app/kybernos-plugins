@@ -1,8 +1,8 @@
 # Running a chat on the Cloud Computer — what exists, what does not
 
 The new-chat page shows the Cloud Computer and can wake it, put it to sleep and open it (`/kybernos-cloud/computer/{resume,suspend,open}`).
-The composer's environment popover lists it as **« Cloud Computer », disabled**, with its reason. This page is why it is disabled, and the
-smallest change that would enable it. Checked on 2026-10-15 in the server's code (`kybernos-server`, ADR 0052 and 0053); re-checked on 2026-10-24 against its `origin/dev`: what moved is marked below.
+Since 2026-11-03 the composer's environment menu also lists the person's cloud computers and **lets them choose one, like E2B** (see « How it is built » below):
+the chat stays a local session, and the agent hands missions to that computer. Checked on 2026-10-15 in the server's code (`kybernos-server`, ADR 0052 and 0053); re-checked on 2026-10-24 against its `origin/dev` and on 2026-11-03: what moved is marked below.
 
 ## What exists
 
@@ -25,7 +25,8 @@ Since 2026-10-15 the public dispatch route takes a computer: `POST /v1/kybers/{i
 - **DSH has no server-side conversation.** The route works on a *thread* (« one of your conversations with this kyber »); a DSH chat is a local
   session.
 
-So a DSH chat cannot be sent to the Cloud Computer today, and the composer says so instead of hiding the computer.
+So a DSH chat cannot be *moved* to the Cloud Computer (its messages are not a server thread). What can be done is to hand it **missions**: each one is a message of
+the person's own Kaby conversation, addressed to the chosen computer. That is what is built.
 
 ## The smallest change (step 1 done, steps 2 to 4 not built)
 
@@ -38,6 +39,36 @@ So a DSH chat cannot be sent to the Cloud Computer today, and the composer says 
    composer and its answer is shown as the answer of another machine; it does not make a local session.
 4. **Decisions that are the owner's**: whether such a turn counts against the run hours or the budget (ADR 0052 § 23); whether it is
    offered on every plan; what an approval looks like when the person is in DSH rather than in Telegram; and the owner's switch itself.
+
+## How it is built (2026-11-03): the E2B way, because no plugin can take over « Enter »
+
+The engine gives a plugin no way to divert what is typed in the composer (checked in 0.2.2-alpha.2, `dsh-client-ui-conversation`): the submit is *adjudication* (a `/` line goes to
+the input-trigger sources) and then the *default sink*, which the hub owns. So nothing here pretends to turn « Enter » into « send to that computer ». The E2B selector shows
+the way, and the cloud computer follows it:
+
+- **The menu** (`kybernos-computers/client.js`, `EnvSelector`): one row per cloud computer of the person (the list the Automations page draws, `GET /kybernos-cloud/computers`),
+  with its state in words; awake or asleep can be chosen (the server wakes a sleeping one for the task), one being set up or off cannot. Choosing a row stores it in the host;
+  choosing « This machine » or E2B clears it, and choosing a cloud computer puts E2B off. A computer that left the list clears the choice.
+- **Without the E2B plugin** (`kybernos-cloud/client.js`, `RunOn`, composer slot order 61): the cloud plugin draws the same menu with « This machine » and the cloud computers only, so the choice does not depend on
+  E2B being enabled. Where the E2B menu is up it raises `window.__KB_ENV_SELECTOR__` (and the event `kybernos-env-selector`), and the cloud menu draws nothing: never two buttons.
+- **The choice** (`kybernos-cloud/index.js`): `GET /kybernos-cloud/computer/target` and `POST /kybernos-cloud/computer/target/set` (`{ computer_id, name }`, or `{ computer_id: null }`),
+  kept in `kybernos-cloud-computer.json` in the DSH home (mode 0600). The write needs the same session cookie and origin as every write of the bundle.
+- **The prompt section** `kybernos:cloud-computer-target` (order 8710, after E2B's 8700): empty while nothing is chosen, so a chat that never chose one is unchanged. Chosen, it
+  tells the agent where the person wants their work done and to use the tool below, unless the person says otherwise or the work only touches files on this machine.
+- **The tool** `cloud_computer_task` (`kybernos-cloud/computer-turn.mjs`): one parameter, the mission (the model never names a computer, the person chose it). It reads Kaby's
+  conversation (`GET /v1/me/kyby`), dispatches `POST /v1/kybers/{kyber_id}/threads/dispatch` with the `computer_id` and a fresh `client_turn_id`, and reads the answer back from
+  `GET /v1/threads/{thread_id}/messages?after=<position>` for about two minutes. A task still running is said so (« its answer will arrive in your Kaby conversation ») and is
+  never sent twice.
+- **The model**: the server asks for one (`model_required`) when Kaby's crew names none, and Kaby's has none. The host sends a fast, inexpensive model of the account's own list
+  (`computerTaskModel` in `kybernos-cloud/index.js`: `deepseek-v4.1-flash`, else `claude-haiku-5.5`, else `gpt-4.1-mini`, else the first of the list). Found by the first live try on 2026-11-03.
+- **One conversation, one task at a time**: a hosted turn goes into Kaby's single conversation (`GET /v1/me/kyby`, there is no route to make another thread), and the server refuses a
+  second one while a job of that thread waits (`turn_pending`), whoever sent it (Telegram included).
+- **Refusals in words**: `extra_cap_exhausted` (the member's extra budget, kybernos-server ADR 0066), `insufficient_quota`, `feature_not_in_plan`, `computer_unavailable`, `turn_pending`,
+  `personal_workspace`, `rate_limited`, `hosted_busy`, `queue_full`. The server decides everything that is a decision (plan, budget, extra budget, waking); the host carries and bounds.
+
+What is **not** known: the public dispatch with a `computer_id` is not behind the owner's switch `channel_computer_turns_enabled` (that one is read by the messenger module only, `channels/service.ts`;
+the hosted service checks the plan's `feature_not_in_plan` and `computerServes`). Read in the code on 2026-11-03, **not run against a real server and computer**: the first live turn is the check. Not built: sending
+a document to the computer (the dispatch carries text only; a document needs a server feature).
 
 Rejected: a webhook automation seeded on the image to run « whatever the event says » — it turns the event into instructions, which is
 what the webhook prompt is built to prevent (`kbHookPrompt`), and the hook secret would have to be kept on this computer.

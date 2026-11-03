@@ -99,6 +99,18 @@ window.__ModuleLoader__.load({
         joinBrowser: 'Ouvrir dans le navigateur',
         joinNoPlan: 'Tu as rejoint « {name} », qui n\'a pas encore de formule. Tu es toujours dans « {here} ».',
         planNone: 'Aucune formule',
+        extra: 'Budget extra',
+        extraNone: 'Aucun — demande à un propriétaire ou à un admin',
+        extraValue: '{used} utilisés sur {cap} · {left} restants',
+        extraHint: 'Ce que les recharges de l’équipe peuvent payer pour toi sur 30 jours, au-delà de ta part du plan. Modèles {models} · Cloud {cloud} · Connecteurs {connectors}',
+        runOnTitle: 'Où tourne le travail',
+        runOnHere: 'Ce poste',
+        runOnHereSub: 'Le travail tourne sur la machine locale.',
+        runOnAwake: 'Cloud Computer · éveillé — la tâche y tourne.',
+        runOnAsleep: 'Cloud Computer · en veille — il se réveille pour la tâche.',
+        runOnWinding: 'Cloud Computer · se met en veille.',
+        runOnWaking: 'Cloud Computer · en préparation, pas encore prêt.',
+        runOnOff: 'Cloud Computer · indisponible pour le moment.',
         planChoose: 'Choisir une formule',
         profCompte: 'Compte',
         profParrain: 'Parrainage',
@@ -391,6 +403,18 @@ window.__ModuleLoader__.load({
         joinBrowser: 'Open in the browser',
         joinNoPlan: 'You joined “{name}”, which has no plan yet. You are still in “{here}”.',
         planNone: 'No plan',
+        extra: 'Extra budget',
+        extraNone: 'None — ask an owner or an admin',
+        extraValue: '{used} used of {cap} · {left} left',
+        extraHint: 'What the team’s top-ups may pay for you over 30 days, beyond your plan share. Models {models} · Cloud {cloud} · Connectors {connectors}',
+        runOnTitle: 'Where the work runs',
+        runOnHere: 'This machine',
+        runOnHereSub: 'The work runs on the local machine.',
+        runOnAwake: 'Cloud Computer · awake — the task runs there.',
+        runOnAsleep: 'Cloud Computer · asleep — it wakes up for the task.',
+        runOnWinding: 'Cloud Computer · going to sleep.',
+        runOnWaking: 'Cloud Computer · being set up, not ready yet.',
+        runOnOff: 'Cloud Computer · not available right now.',
         planChoose: 'Choose a plan',
         profCompte: 'Account',
         profParrain: 'Referral',
@@ -653,7 +677,20 @@ window.__ModuleLoader__.load({
    elle explique et propose « Se connecter ». Le tout ouvre la même fiche. */
 .kbf-root{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;max-width:100%;position:relative}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
-body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
+body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page,.kbro-root,.kbro-menu){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
+/* ── Où tourne le travail : un ordinateur cloud de la personne (même allure que le menu « Ce poste ▾ » du plugin E2B) ─────────────── */
+.kbro-root{position:relative;display:inline-flex;min-width:0}
+.kbro-btn{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 9px;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a93);font:inherit;font-size:12px;cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbro-btn:hover{border-color:var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
+.kbro-btn[data-on='true']{border-color:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary,#e9e9ee)}
+.kbro-dot{flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+.kbro-menu{position:absolute;bottom:calc(100% + 6px);inset-inline-start:0;z-index:62;min-width:210px;max-width:min(320px,86vw);padding:6px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,#191920);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));display:flex;flex-direction:column;gap:2px}
+.kbro-opt{display:flex;align-items:center;gap:8px;padding:7px 9px;border:none;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:start;cursor:pointer}
+.kbro-opt:hover:not(:disabled){background:var(--dsw-alias-bg-layer-3,rgba(127,127,127,.14))}
+.kbro-opt[data-on='true']{background:var(--dsw-alias-bg-layer-3,rgba(127,127,127,.22))}
+.kbro-opt:disabled{opacity:.45;cursor:default}
+.kbro-name{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.kbro-sub{display:block;font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a93);font-weight:400}
 /* Le sélecteur d'espace : la rangée du pied montre l'espace ACTIF ; sa page
    (classes kbws-*) porte la liste des espaces puis le réglage de synchronisation.
    ATTENTION : ce bloc vit DANS un template literal — jamais de backtick ici, il
@@ -1127,6 +1164,18 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     const planNameOf = (state, user, t) => {
       const info = planDeEspace(state, user)
       return info.none === true ? t('planNone') : (info.label !== null ? info.label : t('none'))
+    }
+    /** The member's own extra budget (kybernos-server ADR 0066) as the account card words it: the figure, and the hint with the part each pot took. Null where the plan carries none
+     *  (a personal space, an older server). A cap of 0 is a real answer, said as « none », since it is the default. */
+    const extraFaceOf = (extra, t) => {
+      if (extra === undefined || extra === null || typeof extra !== 'object') return null
+      const usd = (v) => '$' + v
+      const pots = extra.used_by_pot !== undefined && extra.used_by_pot !== null && typeof extra.used_by_pot === 'object' ? extra.used_by_pot : {}
+      const part = (k) => usd(typeof pots[k] === 'string' ? pots[k] : '0.00')
+      return {
+        value: Number(extra.cap_usd) === 0 ? t('extraNone') : t('extraValue').replace('{used}', usd(extra.used_usd)).replace('{cap}', usd(extra.cap_usd)).replace('{left}', usd(extra.left_usd)),
+        hint: t('extraHint').replace('{models}', part('models')).replace('{cloud}', part('cloud')).replace('{connectors}', part('connectors')),
+      }
     }
     // <space-face:end>
 
@@ -1690,6 +1739,11 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             className: props.fallback === true ? 'kbc-v kbc-v-fallback' : 'kbc-v',
             title: props.hint,
           }, props.value))
+        // The member's own extra budget (kybernos-server ADR 0066), told by the plan route for a team space and absent elsewhere (a personal space, an older server): nothing is drawn then.
+        const ExtraRow = (props) => {
+          const face = extraFaceOf(props.extra, t)
+          return face === null ? null : h(Row, { label: t('extra'), value: face.value, hint: face.hint })
+        }
 
         const CloudCard = (props) => {
           const [view, setView] = React.useState({ phase: 'loading' })
@@ -1836,7 +1890,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               h(Row, { label: t('email'), value: user.email || t('none') }),
               // The plan of the ACTIVE team, as the footer chip says it (the profile's `plan` is the account's word and reads « team » as soon as the person is in
               // any team, next to a chip that says « Solo Studio »): the card said « Plan team » for a personal Solo Studio space right after the pairing.
-              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && st.space_plan.key === 'none' ? t('planNone') : null) || (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') })))
+              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && st.space_plan.key === 'none' ? t('planNone') : null) || (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') }),
+              h(ExtraRow, { extra: st.space_plan !== undefined && st.space_plan !== null ? st.space_plan.extra : null })))
             body.push(h('div', { key: 'wl' },
               h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('workspaces')),
               h('div', { className: 'kbc-ws' }, workspaces.length === 0
@@ -3509,6 +3564,92 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
           { name: 'sidebar.footer.action', id: 'kybernos-cloud', order: 21 }, CloudFoot)),
         'kybernos-cloud: profile row in the sidebar footer')
+        // ── Where the work of a chat runs: one of the person's cloud computers ───────────────────────────────
+        // The same choice as the « This machine ▾ » menu of the E2B plugin (kybernos-computers), for a DSH where that plugin is off: the choice is kept by this host
+        // (`/kybernos-cloud/computer/target`), which tells the agent where to do the work and gives it the cloud_computer_task tool (computer-turn.mjs). Where the E2B menu is on, it
+        // carries the cloud rows itself and says so with `window.__KB_ENV_SELECTOR__`: this one draws nothing then, so there are never two buttons.
+        const RUNON_SUB = { awake: 'runOnAwake', asleep: 'runOnAsleep', winding_down: 'runOnWinding', waking: 'runOnWaking', off: 'runOnOff' }
+        const runOnCall = async (path, method, payload) => {
+          try {
+            const res = await fetch(path, {
+              method, credentials: 'same-origin', cache: 'no-store', headers: { 'content-type': 'application/json' },
+              body: method === 'POST' ? JSON.stringify(payload) : undefined,
+            })
+            return await res.json().catch(() => null)
+          } catch (e) { return null }
+        }
+        const RunOn = () => {
+          const [open, setOpen] = React.useState(false)
+          const [list, setList] = React.useState(null)
+          const [target, setTarget] = React.useState(null)
+          const bump = React.useState(0)[1]
+          const boxRef = React.useRef(null)
+          React.useEffect(() => {
+            let alive = true
+            const probe = async () => {
+              if (window.__KB_ENV_SELECTOR__ === true) return
+              const k = await runOnCall('/kybernos-cloud/computers', 'GET')
+              if (alive === true) setList(k !== null && k.ok === true && k.connected === true && Array.isArray(k.computers) ? k.computers.filter((c) => c !== null && typeof c === 'object' && typeof c.id === 'string').map((c) => ({ id: c.id, name: String(c.name || ''), state: String(c.state || 'off') })) : null)
+              const g = await runOnCall('/kybernos-cloud/computer/target', 'GET')
+              if (alive === true && g !== null && g.ok === true) setTarget(g.target !== null && typeof g.target === 'object' ? { id: String(g.target.computer_id), name: String(g.target.name || '') } : null)
+            }
+            void probe()
+            const timer = setInterval(() => { void probe() }, 30000)
+            const again = () => { bump((n) => n + 1); void probe() }
+            window.addEventListener('kybernos-env-selector', again)
+            return () => { alive = false; clearInterval(timer); window.removeEventListener('kybernos-env-selector', again) }
+          }, [])
+          // A computer that is gone from the list (deleted, or another account signed in) is no longer the choice: the host forgets it, so the agent is not told to use it.
+          React.useEffect(() => {
+            if (list === null || target === null || list.some((c) => c.id === target.id) === true) return
+            setTarget(null)
+            void runOnCall('/kybernos-cloud/computer/target/set', 'POST', { computer_id: null })
+          }, [list, target])
+          React.useEffect(() => {
+            if (open !== true) return
+            const away = (e) => { if (boxRef.current !== null && boxRef.current.contains(e.target) !== true) setOpen(false) }
+            const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+            document.addEventListener('mousedown', away)
+            document.addEventListener('keydown', esc)
+            return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc) }
+          }, [open])
+          if (window.__KB_ENV_SELECTOR__ === true || list === null || list.length === 0) return null
+          const choose = async (id) => {
+            setOpen(false)
+            const row = id === '' ? undefined : list.find((c) => c.id === id)
+            if (id !== '' && row === undefined) return
+            const set = await runOnCall('/kybernos-cloud/computer/target/set', 'POST', id === '' ? { computer_id: null } : { computer_id: id, name: row.name })
+            if (set === null || set.ok !== true) return
+            setTarget(set.target !== null && typeof set.target === 'object' ? { id: String(set.target.computer_id), name: String(set.target.name || '') } : null)
+          }
+          const options = [{ id: '', name: t('runOnHere'), sub: t('runOnHereSub'), disabled: false }]
+          for (const c of list) {
+            const key = RUNON_SUB[c.state] !== undefined ? c.state : 'off'
+            options.push({ id: c.id, name: c.name === '' ? 'Cloud Computer' : c.name, sub: t(RUNON_SUB[key]), disabled: key === 'off' || key === 'waking' })
+          }
+          const chosen = target !== null ? target.id : ''
+          return h('div', { ref: boxRef, className: 'kbro-root', 'data-kb': 'run-on-selector' },
+            h('button', {
+              type: 'button', className: 'kbro-btn', 'data-kb': 'run-on-button', 'data-on': target !== null ? 'true' : 'false',
+              title: t('runOnTitle'), 'aria-label': t('runOnTitle'), 'aria-haspopup': 'menu', 'aria-expanded': open === true ? 'true' : 'false',
+              onClick: () => setOpen(open !== true),
+            },
+              h('span', { className: 'kbro-dot' }),
+              target !== null ? (target.name !== '' ? target.name : 'Cloud Computer') : t('runOnHere'),
+              ' ▾'),
+            open === true
+              ? h('div', { className: 'kbro-menu', role: 'menu' },
+                  options.map((opt) => h('button', {
+                    key: opt.id === '' ? 'here' : opt.id, type: 'button', className: 'kbro-opt', role: 'menuitem', 'data-kb': 'run-on-' + (opt.id === '' ? 'here' : 'computer'),
+                    'data-on': opt.id === chosen ? 'true' : 'false', disabled: opt.disabled === true, onClick: () => { void choose(opt.id) },
+                  },
+                    h('span', { style: { minWidth: 0 } }, h('span', { className: 'kbro-name' }, opt.name), h('span', { className: 'kbro-sub' }, opt.sub)))))
+              : null)
+        }
+        try {
+          ctx.effect(() => slots.inject('conversation.input.left', () => slots.register(
+            { name: 'conversation.input.left', id: 'kybernos-cloud-run-on', order: 61 }, () => { try { return h(RunOn, null) } catch (e) { return null } })), 'kybernos-cloud: where the work runs (cloud computer)')
+        } catch (e) { /* the composer stays as DSH draws it */ }
         // The cues of a team space: the pills (a list slot each in the composer's dock and the new chat's options row, beside the other pills), the placeholder, and the accessor the
         // core plugin reads for the new chat's heading. A failure here leaves the composer as DSH draws it.
         try {

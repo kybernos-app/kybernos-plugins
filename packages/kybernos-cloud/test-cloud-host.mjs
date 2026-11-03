@@ -739,6 +739,8 @@ try {
     '/kybernos-cloud/computers/publish', '/kybernos-cloud/computers/tasks', '/kybernos-cloud/computers/runs', '/kybernos-cloud/computers/approvals', '/kybernos-cloud/computers/approvals/decide',
     // A pooled computer has just been handed its identity (loopback, nothing in the request): see 6f.
     '/kybernos-cloud/computer/claimed', '/kybernos-cloud/computer/route',
+    // The cloud computer a chat hands its work to, read and set by the composer's menu (computer-turn.mjs).
+    '/kybernos-cloud/computer/target', '/kybernos-cloud/computer/target/set',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
     '/kybernos-cloud/plans', '/kybernos-cloud/plans/quote', '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal',
     // A team's own DSH (team-instances.mjs; test-team-instances.mjs holds its rules).
@@ -1002,6 +1004,20 @@ try {
   assert.equal(sansPlan.key, 'none')
   assert.equal(sansPlan.label, null)
   ok('espace actif : le plan de CET espace est lu au serveur (/plan), au changement d espace et au rafraichissement ; une formule Team ne montre pas sa tranche')
+
+  // The member's own extra budget (kybernos-server ADR 0066) passes through as money text only; a field that is not money drops the whole line, a plan without it carries none.
+  const teamPlan = { source: 'subscription', status: 'active', plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 }
+  spacePlanBody = { ...teamPlan, extra: { cap_usd: '12.50', used_usd: '4.00', left_usd: '8.50', source: 'member', used_by_pot: { models: '3.00', cloud: '1.00', connectors: '0.00', other: '9.99', bad: '<b>' } } }
+  const avecExtra = (await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan
+  assert.deepEqual(avecExtra.extra, { cap_usd: '12.50', used_usd: '4.00', left_usd: '8.50', source: 'member', used_by_pot: { models: '3.00', cloud: '1.00', connectors: '0.00' } })
+  spacePlanBody = { ...teamPlan, extra: { cap_usd: '<script>', used_usd: '1.00', left_usd: '1.00', source: 'member' } }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.extra, undefined, 'not money: no line')
+  spacePlanBody = { ...teamPlan, extra: null }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.extra, undefined, 'a personal space or an older server: no line')
+  spacePlanBody = { ...teamPlan, extra: { cap_usd: '0.00', used_usd: '0.00', left_usd: '0.00', source: 'surprise' } }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.extra.source, 'none', 'an unknown source reads as none')
+  spacePlanBody = { source: 'none', status: 'none', plan: null, level: null, seats: 1, credit_balance_credits: 0 }
+  ok('espace actif : le budget extra du membre passe en texte d argent seulement, sinon aucune ligne')
 
   // ── The model route names the ACTIVE space ─────────────────────────────────
   // DSH's chat calls the « kybernos » route with the device token and nothing else: without `x-kybernos-workspace` the server bills the PERSONAL
@@ -2088,6 +2104,52 @@ try {
   assert.equal(typeof entry.text(), 'string')
   assert.ok(registeredTools.has('memory_write'), 'memory_write doit etre enregistre')
   assert.ok(registeredTools.has('memory_search'), 'memory_search doit etre enregistre')
+
+  // The cloud computer a chat hands its work to (computer-turn.mjs): the tool and the prompt section are mounted, the choice is set and read through the host, and nothing is written
+  // outside a throw-away DSH home (this test does not isolate it for the whole run).
+  {
+    const targetHome = mkdtempSync(join(tmpdir(), 'kybernos-cloud-target-'))
+    const savedHome = process.env.DSH_HOME
+    process.env.DSH_HOME = targetHome
+    try {
+      const COMPUTER_ID = '3f0c2a52-8d2f-4a35-9c11-0a5e6f6a7b01'
+      assert.ok(registeredTools.has('cloud_computer_task'), 'the cloud computer tool is registered')
+      assert.deepEqual(Object.keys(registeredTools.get('cloud_computer_task').parameters.properties), ['mission'], 'the model names no computer')
+      const section = promptContexts.get('kybernos:cloud-computer-target')
+      assert.ok(section !== undefined && Number.isFinite(section.order) && typeof section.text === 'function', 'the prompt section is mounted with a finite order')
+      assert.equal(section.text(), '', 'no choice: nothing is added to the prompt')
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target', 'GET')).body, { ok: true, target: null })
+      const picked = await hit('/kybernos-cloud/computer/target/set', 'POST', undefined, { computer_id: COMPUTER_ID, name: 'Home' })
+      assert.deepEqual(picked.body, { ok: true, target: { computer_id: COMPUTER_ID, name: 'Home' } })
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target', 'GET')).body.target, { computer_id: COMPUTER_ID, name: 'Home' })
+      assert.deepEqual(JSON.parse(readFileSync(join(targetHome, 'kybernos-cloud-computer.json'), 'utf8')), { version: 1, computer_id: COMPUTER_ID, name: 'Home' }, 'the choice is a small file of the DSH home')
+      assert.ok(section.text().includes('“Home”') && section.text().includes('cloud_computer_task'), 'the agent is told where the work goes')
+      assert.equal((await hit('/kybernos-cloud/computer/target/set', 'POST', undefined, { computer_id: 'not-a-uuid' })).body.error, 'ordinateur_invalide')
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target', 'GET')).body.target, { computer_id: COMPUTER_ID, name: 'Home' }, 'a refused choice changes nothing')
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target/set', 'POST', undefined, { computer_id: null })).body, { ok: true, target: null })
+      assert.equal(section.text(), '', 'the choice taken away: the prompt is as before')
+      assert.equal(existsSync(join(targetHome, 'kybernos-cloud-computer.json')), false)
+      const noSession = await hit('/kybernos-cloud/computer/target/set', 'POST', 'https://evil.example', { computer_id: COMPUTER_ID, name: 'x' })
+      assert.notEqual(noSession.body && noSession.body.ok, true, 'a foreign origin cannot choose the computer that spends the budget')
+      // The model a task runs with (the server asks for one): a fast one of the account's own list, never a premium one by default.
+      const savedState = readFileSync(statePath, 'utf8')
+      try {
+        const withIds = (ids) => writeFileSync(statePath, JSON.stringify({ ...JSON.parse(savedState), models: { ...(JSON.parse(savedState).models || {}), ids } }), { mode: 0o600 })
+        withIds(['claude-opus-5', 'claude-haiku-5.5', 'deepseek-v4.1-flash'])
+        assert.equal(mod.computerTaskModel(), 'deepseek-v4.1-flash', 'the usual fast model first')
+        withIds(['claude-opus-5', 'claude-haiku-5.5'])
+        assert.equal(mod.computerTaskModel(), 'claude-haiku-5.5', 'then the next usual one')
+        withIds(['zeta-1', 'alpha-2'])
+        assert.equal(mod.computerTaskModel(), 'zeta-1', 'none of the usual: the first of the list')
+        withIds([])
+        assert.equal(mod.computerTaskModel(), null, 'an account that lists none: no model, the server says so')
+      } finally { writeFileSync(statePath, savedState, { mode: 0o600 }) }
+      ok('ordinateur cloud : l\'outil et la section de prompt sont montes, le choix se pose, se lit et se retire par l\'hote, sans rien ecrire hors d\'un DSH_HOME jetable')
+    } finally {
+      if (savedHome === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = savedHome
+      rmSync(targetHome, { recursive: true, force: true })
+    }
+  }
   // Aucun outil n'expose kyber_id : un modele ne doit pas pouvoir viser un autre kyber.
   assert.equal(JSON.stringify(registeredTools.get('memory_write').parameters).indexOf('kyber_id'), -1)
   assert.ok(agentHooks.has('agent/turn-stopping'), 'la capture doit etre abonnee a la fin de tour')

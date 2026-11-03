@@ -36,7 +36,7 @@
 // catalogue). The subscription (glm, deepseek… available depending on the plan) is
 // applied by the proxy on every request — this plugin filters nothing.
 import { execFileSync, spawn } from 'node:child_process'
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import { appendFileSync, chmodSync, closeSync, copyFileSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -54,6 +54,7 @@ import { activeServer, stateFileName, llmBase, publicProfile } from './server-pr
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { computersOf } from './computers-view.mjs'
+import { createComputerTurn, targetOf, renderTargetPrompt, cloudComputerTaskTool } from './computer-turn.mjs'
 import { createPublish } from './computers-publish.mjs'
 import { identityOf } from './computer-identity.mjs'
 import { lireSecretSession, writeGuard } from './session-guard.mjs'
@@ -409,6 +410,23 @@ const ensureFolderFor = (state, id, outcome) => {
 /** 'none' | 'personal' | 'team' (team-space.mjs): the kind of the ACTIVE space, read from the state each time it is asked. */
 const spaceOf = (state) => spaceKind(state, state !== null && state !== undefined && state !== UNREADABLE ? espaceActif(state) : null)
 
+/** The member's own extra budget as the server's plan route words it (kybernos-server ADR 0066): billed dollars as text, three figures and where the cap comes from. Null when the plan carries
+ *  none (a personal space, a server from before it) or says anything else: nothing else passes, so the page draws money only from text that is money. */
+const EXTRA_USD = /^\d{1,7}(\.\d{1,4})?$/
+const extraLineOf = (raw) => {
+  if (raw === null || raw === undefined || typeof raw !== 'object') return null
+  const usd = (v) => (typeof v === 'string' && EXTRA_USD.test(v) ? v : null)
+  const cap = usd(raw.cap_usd)
+  const used = usd(raw.used_usd)
+  const left = usd(raw.left_usd)
+  if (cap === null || used === null || left === null) return null
+  const pots = {}
+  if (raw.used_by_pot !== null && typeof raw.used_by_pot === 'object') {
+    for (const k of ['models', 'cloud', 'connectors']) { const v = usd(raw.used_by_pot[k]); if (v !== null) pots[k] = v }
+  }
+  return { cap_usd: cap, used_usd: used, left_usd: left, source: raw.source === 'member' || raw.source === 'everyone' ? raw.source : 'none', used_by_pot: pots }
+}
+
 /** The plan of ONE space, as the server's `/plan` of that space answers it. The profile's `plan` (/v1/me) is the ACCOUNT's word and says « team »
  *  as soon as the person is in any team; the footer, the menu and the team features belong to the ACTIVE space, so they read this instead.
  *  Never throws and never disconnects: a server that does not answer leaves the account-level word as the fallback. */
@@ -431,8 +449,10 @@ const readSpacePlan = async (state, id) => {
   const kind = plan !== null && typeof plan.kind === 'string' ? plan.kind : null
   const label = name === null ? null : (kind === 'individual' && level !== null && level.toLowerCase() !== name.toLowerCase() ? name + ' ' + level : name)
   const credits = Number(b.credit_balance_credits)
+  const extra = extraLineOf(b.extra)
   return { workspace_id: id, key, name, level, label, status: typeof b.status === 'string' ? b.status : null,
     credit_balance_credits: Number.isFinite(credits) ? credits : null,
+    ...(extra !== null ? { extra } : {}),
     ...(res.grace !== null ? { mfa: { state: 'grace', ends: res.grace } } : {}) }
 }
 
@@ -4906,6 +4926,8 @@ const mountMemoryPrompt = (ctx) => {
   mountAgentSections(ctx, [
     { name: 'kybernos:memory', order: MEMORY_INJECT_ORDER, text: (agent) => renderMemoryPrompt(readStateForSpace(), { sessionId: sessionIdOfAgent(agent) }) },
     { name: TEAM_CHUNK_NAME, order: TEAM_CHUNK_ORDER, text: (agent) => renderTeamPrompt(readState(), sessionIdOfAgent(agent)) },
+    // Where the person wants this work done (the composer's cloud computer choice); empty while none is chosen. Just after E2B's chunk (8700).
+    { name: 'kybernos:cloud-computer-target', order: 8710, text: () => renderTargetPrompt(currentComputerTarget()) },
   ])
   // The human's message of each turn, to pick the memories that match it (see « The memories that matter »). Kept in a team space too: it writes nothing,
   // and the team lessons block ranks its lessons with the same word.
@@ -4916,6 +4938,10 @@ const mountMemoryPrompt = (ctx) => {
   const state = readState()
   // Fire-and-forget: a rejection here would be an unhandled one, which ends DSH. Each refresh also guards itself; this is the second wall.
   if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true).catch(() => {}); void refreshTeamCache(readState(), true).catch(() => {}) }, 1500)
+}
+
+const mountComputerTaskTool = (ctx) => {
+  ctx.inject(['tools'], (scope) => { scope.tools.register(cloudComputerTaskTool(computerTurn, TEXT_RESULT)) })
 }
 
 const mountMemoryTools = (ctx) => {
@@ -5791,6 +5817,57 @@ const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
 // Kaby's own chat is a native DSH conversation (kyby-native.mjs): which session it is, who Kaby is there, and the end of its turns written
 // on the person's thread. The hooks are mounted below (mountKybyNative); the page asks for the session through the two routes under /kyby/native.
 const kybyPointerFile = () => join(dshHome(), 'kybernos-kyby.json')
+// The cloud computer a chat on this machine hands its work to (computer-turn.mjs): the composer's menu sets it, a prompt section tells the agent and the tool `cloud_computer_task` carries the
+// mission. The choice is a small file of the DSH home (a computer's id and name, no secret), read once per file and kept until a write; no choice reads as null and changes nothing.
+const computerTargetFile = () => join(dshHome(), 'kybernos-cloud-computer.json')
+let computerTargetCache = { file: '', value: null }
+const currentComputerTarget = () => {
+  const file = computerTargetFile()
+  if (computerTargetCache.file === file) return computerTargetCache.value
+  let value = null
+  try { value = targetOf(JSON.parse(readFileSync(file, 'utf8'))) } catch (e) { value = null }
+  computerTargetCache = { file, value }
+  return value
+}
+const computerTargetRoute = async () => ({ ok: true, target: currentComputerTarget() })
+/** `{ computer_id, name }` chooses a computer, `{ computer_id: null }` takes the choice away. The server decides later whether the person may use it: this only remembers a choice. */
+const computerTargetSet = async (req, body) => {
+  const file = computerTargetFile()
+  const raw = body !== null && typeof body === 'object' ? body : {}
+  try {
+    if (raw.computer_id === null) {
+      rmSync(file, { force: true })
+      computerTargetCache = { file, value: null }
+      return { ok: true, target: null }
+    }
+    const target = targetOf(raw)
+    if (target === null) return { ok: false, error: 'ordinateur_invalide' }
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, JSON.stringify({ version: 1, ...target }), { mode: 0o600 })
+    computerTargetCache = { file, value: target }
+    return { ok: true, target }
+  } catch (e) { return { ok: false, error: 'ecriture_impossible' } }
+}
+/** The model a task handed to a cloud computer runs with: the server asks for one when Kaby's crew names none. A fast, inexpensive model of the account's own list (the first of
+ *  these that the account has, else the first of its list), so a task never spends a premium model by default. Null when the account lists none. */
+const COMPUTER_TASK_MODELS = Object.freeze(['deepseek-v4.1-flash', 'claude-haiku-5.5', 'gpt-4.1-mini'])
+const computerTaskModel = () => {
+  try {
+    const s = readState()
+    const ids = s !== null && s.models !== undefined && s.models !== null && Array.isArray(s.models.ids) ? s.models.ids.filter((m) => typeof m === 'string') : []
+    const usual = COMPUTER_TASK_MODELS.find((m) => ids.includes(m))
+    return usual !== undefined ? usual : ids.length > 0 ? ids[0] : null
+  } catch (e) { return null }
+}
+const computerTurn = createComputerTurn({
+  model: computerTaskModel,
+  apiCall,
+  token: () => { try { const s = readState(); return isConnected(s) === true && typeof s.token === 'string' ? s.token : null } catch (e) { return null } },
+  target: () => { const t = currentComputerTarget(); return t === null ? null : t.computer_id },
+  sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
+  now: () => Date.now(),
+  turnId: () => 'dshct_' + randomUUID().replace(/-/g, '').slice(0, 20),
+})
 // The name the person gave Kaby: kybernos-kaby-customisation publishes its profile under this symbol (no bundle imports another). It is validated again
 // where it is used (aliasOf), because it ends up in a prompt.
 const kabyGivenName = () => { try { const read = globalThis[Symbol.for('kybernos.kabyProfile')]; const p = typeof read === 'function' ? read() : null; return p !== null && typeof p === 'object' ? p.name : null } catch (e) { return null } }
@@ -5867,6 +5944,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('open') },
+  // The cloud computer a chat hands its work to: the composer's menu reads and sets it. It writes a choice that later spends the person's budget, so same origin strictly AND the signed session.
+  { path: '/kybernos-cloud/computer/target', method: 'GET', guarded: true, run: computerTargetRoute },
+  { path: '/kybernos-cloud/computer/target/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: computerTargetSet },
   { path: '/kybernos-cloud/computers', method: 'GET', guarded: true, run: computersRoute },
   // Sends (or takes away) automations on a computer: it writes on the person's behalf, so same origin strictly AND DSH's signed browser session.
   { path: '/kybernos-cloud/computers/publish', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 100000, run: (req, body) => computersPublish.publish(body) },
@@ -6424,6 +6504,7 @@ export function apply(ctx) {
   try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
   try { mountKabyAccount(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby account: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
+  try { mountComputerTaskTool(ctx) } catch (e) { console.error('[kybernos-cloud] cloud computer task tool: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] memory capture: ' + String((e && e.message) || e)) }
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] memory refresh: ' + String((e && e.message) || e)) }
@@ -6449,7 +6530,7 @@ export {
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
   teamCache, teamPickStore, refreshTeamCache, emptyTeamCache, teamSelection, renderTeamPrompt, activeKybersOf, lessonsSwitches, TEAM_RELEVANCE,
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
-  refreshMemoryCache, memoryCache,
+  refreshMemoryCache, memoryCache, computerTaskModel,
   emptyMemoryCache, bumpMemoryCache, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, isLasting, keepCaptured, nearKnown, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
