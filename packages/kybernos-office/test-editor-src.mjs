@@ -75,6 +75,8 @@ ok('each editor exports the bytes in its own format and says dirty only for a ch
   must(/toXlsx\(\)/.test(read('editor-src/sheet.jsx')) && /\.save\(\)/.test(read('editor-src/doc.jsx')), 'export calls')
   must(/dirty\(true\)/.test(read('editor-src/doc.jsx')) && /dirty\(s\.dirty\)/.test(read('editor-src/sheet.jsx')), 'dirty is told')
   must(/canEdit=\{!readOnly\}/.test(read('editor-src/sheet.jsx')) && /'view'/.test(read('editor-src/doc.jsx')), 'read-only is honoured by both')
+  // The document editor shows the file's name as its title (it says « Untitled » otherwise); the page puts it in the frame's address.
+  must(/title=\{NAME\.replace\(/.test(read('editor-src/doc.jsx')) && /NAME = .*q\.get\('name'\)/.test(read('editor-src/envelope.js')), 'the document editor is titled with the file name')
   must(/getMarkdown\(\)/.test(read('editor-src/md.js')) && /dirty\(value\)/.test(read('editor-src/md.js')) && /saveAsCopy\(\)/.test(read('editor-src/pdf.js')) && /dirty\(value\)/.test(read('editor-src/pdf.js')), 'the Markdown and PDF frames export and tell dirty')
   must(/editable: !READONLY/.test(read('editor-src/md.js')) && /READONLY \? \[\.\.\.NEVER, \.\.\.VIEW_ONLY\]/.test(read('editor-src/pdf.js')), 'read-only is honoured by the Markdown and PDF frames')
 })

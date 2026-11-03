@@ -136,14 +136,31 @@ window.__ModuleLoader__.load({
       // ── the window ───────────────────────────────────────────────────────────────────────────────────────────────────────
       const CSS = `
 .kyo-wrap{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#111);font:14px/20px system-ui,sans-serif}
-.kyo-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--dsw-alias-border-l2,#ddd);flex:none}
-.kyo-name{font-weight:600;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kyo-bar{container-type:inline-size;display:flex;align-items:center;gap:6px;padding:0 10px 0 14px;min-height:46px;border-bottom:1px solid var(--dsw-alias-border-l2,#ddd);flex:none}
+.kyo-name{font-weight:600;font-size:14px;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kyo-ext{flex:none;margin-right:6px;padding:1px 6px;border-radius:6px;background:var(--dsw-alias-bg-layer-3,#eee);color:var(--dsw-alias-label-secondary,#666);font-size:11px;font-weight:600;letter-spacing:.04em}
 .kyo-status{flex:1;min-width:0;color:var(--dsw-alias-label-secondary,#666);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kyo-status::before{content:'';display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;vertical-align:1px;background:var(--dsw-alias-label-tertiary,#999)}
+.kyo-status:empty::before{display:none}
+.kyo-status[data-tone=dirty]{color:var(--dsw-alias-label-primary,#111)}
+.kyo-status[data-tone=dirty]::before{background:var(--dsw-alias-state-warn-primary,#b26a00)}
+.kyo-status[data-tone=ok]::before{background:var(--dsw-alias-state-success-primary,#2e7d32)}
+.kyo-status[data-tone=busy]::before{animation:kyo-pulse 1s ease-in-out infinite}
 .kyo-status.kyo-bad{color:var(--dsw-alias-label-error,#b3261e)}
-.kyo-btn{height:30px;padding:0 12px;border:1px solid var(--dsw-alias-border-l3,#bbb);border-radius:15px;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.kyo-status.kyo-bad::before{background:var(--dsw-alias-label-error,#b3261e)}
+@keyframes kyo-pulse{50%{opacity:.3}}
+.kyo-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 14px;border:1px solid var(--dsw-alias-border-l3,#bbb);border-radius:16px;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,opacity .15s ease,transform .1s ease}
 .kyo-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover,#eee)}
+.kyo-btn:active:not(:disabled){transform:scale(.97)}
+.kyo-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b5bd6);outline-offset:2px}
 .kyo-btn:disabled{opacity:.4;cursor:not-allowed}
 .kyo-btn.kyo-primary{background:var(--dsw-alias-button-primary-fill,#111);border-color:transparent;color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kyo-btn.kyo-primary:hover:not(:disabled){background:var(--dsw-alias-button-primary-fill,#111);opacity:.88}
+.kyo-btn.kyo-primary:disabled{background:transparent;border-color:var(--dsw-alias-border-l3,#bbb);color:inherit}
+.kyo-btn.kyo-sec{border-color:transparent}
+.kyo-ico{flex:none}
+@container (max-width:560px){.kyo-btn.kyo-sec{width:32px;padding:0}.kyo-btn.kyo-sec .kyo-lbl{display:none}}
+@media (prefers-reduced-motion:reduce){.kyo-btn{transition:none}.kyo-status::before{animation:none!important}}
 .kyo-note{flex:none;padding:6px 12px;font-size:12px;background:var(--dsw-alias-bg-layer-2,#f5f5f5);border-bottom:1px solid var(--dsw-alias-border-l2,#ddd);color:var(--dsw-alias-label-secondary,#555)}
 .kyo-stage{flex:1;min-height:0;position:relative}
 .kyo-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
@@ -158,7 +175,7 @@ window.__ModuleLoader__.load({
 .kyo-pane-box{flex:1;min-height:0;display:flex;flex-direction:column}
 .kyo-pane-box>.kyo-wrap.kyo-embed{flex:1;height:auto;min-height:240px}
 .kyo-pane-wait{padding:16px;font-size:12px;color:var(--dsw-alias-label-secondary,#666)}
-.kyo-q{width:30px;padding:0;text-align:center;font-weight:600}
+.kyo-q{width:32px;padding:0;font-weight:600}
 .kyo-help{position:absolute;z-index:2;top:12px;right:12px;max-width:420px;max-height:calc(100% - 24px);overflow:auto;padding:16px 18px;border:1px solid var(--dsw-alias-border-l2,#ddd);border-radius:12px;background:var(--dsw-alias-bg-layer-2,#f8f8f8);box-shadow:0 8px 24px var(--dsw-alias-shadow-l3,rgba(0,0,0,.18))}
 .kyo-help[hidden]{display:none}
 .kyo-help h4{margin:0 0 6px;font-size:14px}
@@ -187,6 +204,30 @@ window.__ModuleLoader__.load({
         for (const kid of kids) if (kid !== null && kid !== undefined && kid !== false) n.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid)
         return n
       }
+
+      // 16px line icons for the bar. A host that cannot draw one (no createElementNS) gets the label alone: a missing icon never breaks the window.
+      const SVG_NS = 'http://www.w3.org/2000/svg'
+      const ICONS = {
+        save: 'M3 2.5h7.8L13.5 5.2V13a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5V3a.5.5 0 0 1 .5-.5ZM5.5 2.5v3h4v-3M5 13.5v-4h6v4',
+        copy: 'M5.5 5.5h7a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1ZM3.5 10.5v-7a1 1 0 0 1 1-1h6',
+        undo: 'M5.5 3 2.5 6l3 3M2.5 6h6a4 4 0 0 1 0 8H6',
+        close: 'M4 4l8 8M12 4l-8 8',
+        edit: 'M10.5 2.5l3 3-7.5 7.5H3v-3ZM9 4l3 3',
+      }
+      const icon = (name) => {
+        try {
+          if (typeof name !== 'string' || ICONS[name] === undefined || typeof document.createElementNS !== 'function') return null
+          const svg = document.createElementNS(SVG_NS, 'svg')
+          const attrs = { viewBox: '0 0 16 16', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', class: 'kyo-ico' }
+          for (const k of Object.keys(attrs)) svg.setAttribute(k, attrs[k])
+          const path = document.createElementNS(SVG_NS, 'path')
+          path.setAttribute('d', ICONS[name])
+          svg.appendChild(path)
+          return svg
+        } catch (e) { return null }
+      }
+      /** « XLSX » for « budget.xlsx »: the kind of file, in capitals, beside its name. Empty for a name with no extension. */
+      const kindOf = (n) => { const m = /\.([a-z0-9]{1,5})$/i.exec(String(n || '')); return m === null ? '' : m[1].toUpperCase() }
 
       // ── « ? How it works » ───────────────────────────────────────────────────────────────────────────────────
       // The window is plain DOM, so the SAME card the Suite shows is drawn here from the same data: GET /kybernos-hub/suite publishes every module's help
@@ -254,27 +295,31 @@ window.__ModuleLoader__.load({
         const pending = new Map()
 
         const nameEl = el('div', { class: 'kyo-name', 'data-kb': 'office-title', text: String(name || path), title: path })
+        const extEl = el('span', { class: 'kyo-ext', 'data-kb': 'office-kind', text: kindOf(name || path), hidden: kindOf(name || path) === '' })
         const statusEl = el('div', { class: 'kyo-status', 'data-kb': 'office-status', role: 'status', 'aria-live': 'polite' })
         const noteEl = el('div', { class: 'kyo-note', 'data-kb': 'office-notice', hidden: true })
         // The frame is never taken out of the page once it is there (an iframe that is moved loads again and loses what was typed): the cards sit in a layer above it.
         const layer = el('div', { class: 'kyo-layer', 'data-kb': 'office-layer', hidden: true })
         const stage = el('div', { class: 'kyo-stage' }, layer)
-        const btn = (label, key, run, primary) => el('button', { type: 'button', class: 'kyo-btn' + (primary ? ' kyo-primary' : ''), 'data-kb': key, text: label, onclick: run, disabled: true })
-        const saveBtn = btn(kt('Enregistrer', 'Save'), 'office-save', () => save('overwrite'), true)
-        const copyBtn = btn(kt('Enregistrer une copie', 'Save a copy'), 'office-copy', () => save('copy'))
-        const undoBtn = btn(kt('Annuler l’enregistrement', 'Undo last save'), 'office-undo', () => undo(false))
-        const closeBtn = el('button', { type: 'button', class: 'kyo-btn', 'data-kb': 'office-close', text: kt('Fermer', 'Close'), onclick: () => requestClose() })
-        const editBtn = el('button', { type: 'button', class: 'kyo-btn kyo-primary', 'data-kb': 'office-edit', text: kt('Modifier', 'Edit'), onclick: () => startEditing(), disabled: true })
+        const btn = (label, key, run, primary, ico) => el('button', { type: 'button', class: 'kyo-btn' + (primary ? ' kyo-primary' : ico ? ' kyo-sec' : ''), 'data-kb': key, title: label, 'aria-label': label, onclick: run, disabled: true }, icon(ico), el('span', { class: 'kyo-lbl', text: label }))
+        const saveBtn = btn(kt('Enregistrer', 'Save'), 'office-save', () => save('overwrite'), true, 'save')
+        const copyBtn = btn(kt('Enregistrer une copie', 'Save a copy'), 'office-copy', () => save('copy'), false, 'copy')
+        const undoBtn = btn(kt('Annuler l’enregistrement', 'Undo last save'), 'office-undo', () => undo(false), false, 'undo')
+        const closeBtn = el('button', { type: 'button', class: 'kyo-btn', 'data-kb': 'office-close', onclick: () => requestClose() }, icon('close'), el('span', { class: 'kyo-lbl', text: kt('Fermer', 'Close') }))
+        const editBtn = el('button', { type: 'button', class: 'kyo-btn kyo-primary', 'data-kb': 'office-edit', onclick: () => startEditing(), disabled: true }, icon('edit'), el('span', { class: 'kyo-lbl', text: kt('Modifier', 'Edit') }))
         // Embedded: the viewer already says the file's name and closes itself, so the bar has the status, « Edit » and the save buttons only.
         const bar = embedded
           ? el('div', { class: 'kyo-bar' }, statusEl, editBtn, saveBtn, copyBtn, undoBtn, helpButton(stage))
-          : el('div', { class: 'kyo-bar' }, nameEl, statusEl, saveBtn, copyBtn, undoBtn, helpButton(stage), closeBtn)
+          : el('div', { class: 'kyo-bar' }, nameEl, extEl, statusEl, saveBtn, copyBtn, undoBtn, helpButton(stage), closeBtn)
         const wrap = embedded
           ? el('div', { class: 'kyo-wrap kyo-embed', 'data-kb': 'office-embed', 'aria-label': String(name || path) }, bar, noteEl, stage)
           : el('div', { class: 'kyo-wrap', 'data-kb': 'office-window', role: 'dialog', 'aria-modal': 'true', 'aria-label': String(name || path) }, bar, noteEl, stage)
 
-        const status = (text, bad) => { statusEl.textContent = text; statusEl.className = 'kyo-status' + (bad ? ' kyo-bad' : '') }
+        // The dot before the status says it at a glance: grey = nothing to save, amber = unsaved changes, green = saved, pulsing = working, red = a problem.
+        const paintTone = () => statusEl.setAttribute('data-tone', statusEl.className.indexOf('kyo-bad') >= 0 ? 'bad' : state.busy ? 'busy' : state.dirty ? 'dirty' : state.saved ? 'ok' : 'idle')
+        const status = (text, bad) => { statusEl.textContent = text; statusEl.className = 'kyo-status' + (bad ? ' kyo-bad' : ''); paintTone() }
         const refresh = () => {
+          paintTone()
           const editing = state.token !== null && frame !== null && !state.busy
           saveBtn.disabled = !(editing && !state.readOnly && state.dirty)
           copyBtn.disabled = !(editing && !state.readOnly && state.dirty)
@@ -295,7 +340,7 @@ window.__ModuleLoader__.load({
         // ── the frame ──────────────────────────────────────────────────────────────
         const mountFrame = (readOnly) => {
           state.readOnly = readOnly
-          frame = el('iframe', { class: 'kyo-frame', 'data-kb': 'office-frame', title: String(name || path), sandbox: 'allow-scripts', referrerpolicy: 'no-referrer', allow: 'clipboard-read; clipboard-write', src: state.url + '?lang=' + lang() + (readOnly ? '&ro=1' : '') + (state.text ? '&mode=text' : '') })
+          frame = el('iframe', { class: 'kyo-frame', 'data-kb': 'office-frame', title: String(name || path), sandbox: 'allow-scripts', referrerpolicy: 'no-referrer', allow: 'clipboard-read; clipboard-write', src: state.url + '?lang=' + lang() + '&name=' + encodeURIComponent(baseName(name || path)) + (readOnly ? '&ro=1' : '') + (state.text ? '&mode=text' : '') })
           stage.insertBefore(frame, layer)
           layer.hidden = true
           status(kt('Ouverture…', 'Opening…'))
