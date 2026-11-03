@@ -30,7 +30,7 @@ export const SESSION_WRITE_PATHS = new Set([
   // L3-04 / L3-05: the fifteen that were at the Origin alone.
   '/kybernos-cloud/instructions/save', '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/telegram/pairing/cancel', '/kybernos-cloud/telegram/unlink',
   '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink', '/kybernos-cloud/kyby/computer',
-  '/kybernos-cloud/computer/open', '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/console/link',
+  '/kybernos-cloud/computer/open', '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/target/set', '/kybernos-cloud/console/link',
   '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal', '/kybernos-cloud/invitation/preview',
   // A team's own DSH: starting a process and copying a profile.
   '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/team-dsh/stop',

@@ -739,6 +739,8 @@ try {
     '/kybernos-cloud/computers/publish', '/kybernos-cloud/computers/tasks', '/kybernos-cloud/computers/runs', '/kybernos-cloud/computers/approvals', '/kybernos-cloud/computers/approvals/decide',
     // A pooled computer has just been handed its identity (loopback, nothing in the request): see 6f.
     '/kybernos-cloud/computer/claimed', '/kybernos-cloud/computer/route',
+    // The cloud computer a chat hands its work to, read and set by the composer's menu (computer-turn.mjs).
+    '/kybernos-cloud/computer/target', '/kybernos-cloud/computer/target/set',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
     '/kybernos-cloud/plans', '/kybernos-cloud/plans/quote', '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal',
     // A team's own DSH (team-instances.mjs; test-team-instances.mjs holds its rules).
@@ -2102,6 +2104,39 @@ try {
   assert.equal(typeof entry.text(), 'string')
   assert.ok(registeredTools.has('memory_write'), 'memory_write doit etre enregistre')
   assert.ok(registeredTools.has('memory_search'), 'memory_search doit etre enregistre')
+
+  // The cloud computer a chat hands its work to (computer-turn.mjs): the tool and the prompt section are mounted, the choice is set and read through the host, and nothing is written
+  // outside a throw-away DSH home (this test does not isolate it for the whole run).
+  {
+    const targetHome = mkdtempSync(join(tmpdir(), 'kybernos-cloud-target-'))
+    const savedHome = process.env.DSH_HOME
+    process.env.DSH_HOME = targetHome
+    try {
+      const COMPUTER_ID = '3f0c2a52-8d2f-4a35-9c11-0a5e6f6a7b01'
+      assert.ok(registeredTools.has('cloud_computer_task'), 'the cloud computer tool is registered')
+      assert.deepEqual(Object.keys(registeredTools.get('cloud_computer_task').parameters.properties), ['mission'], 'the model names no computer')
+      const section = promptContexts.get('kybernos:cloud-computer-target')
+      assert.ok(section !== undefined && Number.isFinite(section.order) && typeof section.text === 'function', 'the prompt section is mounted with a finite order')
+      assert.equal(section.text(), '', 'no choice: nothing is added to the prompt')
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target', 'GET')).body, { ok: true, target: null })
+      const picked = await hit('/kybernos-cloud/computer/target/set', 'POST', undefined, { computer_id: COMPUTER_ID, name: 'Home' })
+      assert.deepEqual(picked.body, { ok: true, target: { computer_id: COMPUTER_ID, name: 'Home' } })
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target', 'GET')).body.target, { computer_id: COMPUTER_ID, name: 'Home' })
+      assert.deepEqual(JSON.parse(readFileSync(join(targetHome, 'kybernos-cloud-computer.json'), 'utf8')), { version: 1, computer_id: COMPUTER_ID, name: 'Home' }, 'the choice is a small file of the DSH home')
+      assert.ok(section.text().includes('“Home”') && section.text().includes('cloud_computer_task'), 'the agent is told where the work goes')
+      assert.equal((await hit('/kybernos-cloud/computer/target/set', 'POST', undefined, { computer_id: 'not-a-uuid' })).body.error, 'ordinateur_invalide')
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target', 'GET')).body.target, { computer_id: COMPUTER_ID, name: 'Home' }, 'a refused choice changes nothing')
+      assert.deepEqual((await hit('/kybernos-cloud/computer/target/set', 'POST', undefined, { computer_id: null })).body, { ok: true, target: null })
+      assert.equal(section.text(), '', 'the choice taken away: the prompt is as before')
+      assert.equal(existsSync(join(targetHome, 'kybernos-cloud-computer.json')), false)
+      const noSession = await hit('/kybernos-cloud/computer/target/set', 'POST', 'https://evil.example', { computer_id: COMPUTER_ID, name: 'x' })
+      assert.notEqual(noSession.body && noSession.body.ok, true, 'a foreign origin cannot choose the computer that spends the budget')
+      ok('ordinateur cloud : l\'outil et la section de prompt sont montes, le choix se pose, se lit et se retire par l\'hote, sans rien ecrire hors d\'un DSH_HOME jetable')
+    } finally {
+      if (savedHome === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = savedHome
+      rmSync(targetHome, { recursive: true, force: true })
+    }
+  }
   // Aucun outil n'expose kyber_id : un modele ne doit pas pouvoir viser un autre kyber.
   assert.equal(JSON.stringify(registeredTools.get('memory_write').parameters).indexOf('kyber_id'), -1)
   assert.ok(agentHooks.has('agent/turn-stopping'), 'la capture doit etre abonnee a la fin de tour')
