@@ -175,6 +175,10 @@ try {
     ['/kybernos-cloud/console/link', {}],
     ['/kybernos-cloud/billing/checkout', { workspace_id: WS, plan: 'team' }],
     ['/kybernos-cloud/billing/portal', { workspace_id: WS }],
+    // The Publish button: a page of the Creations goes online, or comes down (the file named does not exist here, so nothing is read and nothing is sent).
+    ['/kybernos-cloud/sites/plan', { path: '/nowhere/index.html' }],
+    ['/kybernos-cloud/sites/publish', { path: '/nowhere/index.html', slug: 'essai-kaby' }],
+    ['/kybernos-cloud/sites/remove', { slug: 'essai-kaby' }],
     // Reads one invitation at the server with the token the caller holds: nothing is written, but a page is the only caller, so it joins the family.
     ['/kybernos-cloud/invitation/preview', { token: 'k3Zp9-Qw_7Lm2XvB0cR8sTnYh4JdUeA6oGfIiNaPqMc' }],
   ]

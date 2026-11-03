@@ -20,6 +20,8 @@ export const SESSION_WRITE_PATHS = new Set([
   '/kybernos-cloud/memory/settings/set', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss',
   '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/settings', '/kybernos-cloud/memory/tidy/undo', '/kybernos-cloud/memory/update',
   '/kybernos-cloud/models/sync', '/kybernos-cloud/poll', '/kybernos-cloud/refresh', '/kybernos-cloud/shares/revoke', '/kybernos-cloud/shares/set',
+  // The Publish button of the Creations: the person's click puts a page online, so the signed session is what proves it is a person in a browser.
+  '/kybernos-cloud/sites/plan', '/kybernos-cloud/sites/publish', '/kybernos-cloud/sites/remove',
   '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/space/create', '/kybernos-cloud/space/folder',
   '/kybernos-cloud/start', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/team/lessons/delete',
   '/kybernos-cloud/team/lessons/retire', '/kybernos-cloud/team/lessons/review', '/kybernos-cloud/team/skills/add', '/kybernos-cloud/team/skills/delete',
