@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PLAN = 'docs/tests/soft-takeoff'
 const RUNNERS = ['script', 'agent', 'owner']
-const STATUSES = ['ready', 'to-verify', 'needs-build', 'blocked']
+const STATUSES = ['ready', 'to-verify', 'needs-build', 'blocked', 'played']
 const ENVS = ['none', 'sandbox', 'replica', 'staging', 'machine']
 const PRIOS = ['P0', 'P1', 'P2']
 const STATES = ['on', 'off', 'service']
@@ -42,7 +42,7 @@ export function checkPlan ({ cases, plugins, readme, packages, exists }) {
     if (c.runner === 'script' && !c.cmd) bad.push(`${at}: a script case needs a cmd`)
     if (c.runner === 'agent' && !c.brief) bad.push(`${at}: an agent case needs a brief`)
     if (c.runner === 'owner' && !c.note) bad.push(`${at}: an owner case needs a note saying what is needed`)
-    if (['to-verify', 'needs-build'].includes(c.status) && !c.note) bad.push(`${at}: status ${c.status} needs a note saying what to confirm or build`)
+    if (['to-verify', 'needs-build', 'played'].includes(c.status) && !c.note) bad.push(`${at}: status ${c.status} needs a note saying what to confirm or build, or what was played and where the evidence is`)
     if (c.runner === 'script' && c.cmd && !c.cmd.startsWith('(server repo)')) {
       for (const p of c.cmd.match(PATH_IN_CMD) || []) if (!exists(p)) bad.push(`${at}: ${p} does not exist`)
       for (const m of c.cmd.matchAll(/e2e-teams-run\.sh run ((?:j\d+\s?)+)/g)) {

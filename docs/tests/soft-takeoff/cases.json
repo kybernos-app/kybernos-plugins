@@ -766,12 +766,12 @@
       "area": "computer",
       "title": "Account B: create a Cloud Computer, wake it, open its page by ticket; it is signed in and shows no first-run wizard",
       "runner": "owner",
-      "note": "Needs a staging server and a Fly machine (cost). Server-side play script: computers-play.ts in the server repo. It needs the owner's Fly organisation token (image push and `computers-play.ts`); whether the image is already on the registry cannot be seen without it.",
-      "env": "staging",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. A computer was made on the image p20, said ready in 55 to 64 s, « Open » gave a link the machine's gate accepted once (the second use is refused), the DSH on it is signed in to its owner (not the sign-in wizard, no first-run wizard) and its connection survives the platform's profile and workspace reads. Server side: the play server of the server repo (`computers-play.ts` + `computers-play-check.ts`), with `computers.always_on` added to its plan.",
+      "env": "machine",
       "personas": [
         "B"
       ],
-      "status": "blocked"
+      "status": "played"
     },
     {
       "id": "W3-04",
@@ -780,12 +780,12 @@
       "area": "computer",
       "title": "Account B: a chat turn on the computer is billed to the Cloud budget of the right workspace",
       "runner": "owner",
-      "note": "ADR 0059 section 7: each completed hour is billed; check the pot that moves.",
-      "env": "staging",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS, with a local model. One run and its model use were counted for the computer and its workspace (read from the ledger by the computer's own token: 1 run, 3.72 million nano-USD at the play's list price). The z.ai coding plan and the other keys of `.env.keys` were out of balance, so the model behind the route was a local Ollama `qwen3.5:9b`. Not read: which pot of the workspace moved (the hourly pass billed 4 completed hours).",
+      "env": "machine",
       "personas": [
         "B"
       ],
-      "status": "blocked",
+      "status": "played",
       "watch": [
         "cloud-budget"
       ]
@@ -797,12 +797,12 @@
       "area": "computer",
       "title": "Sleep and wake keep sessions, memory, skills (the volume)",
       "runner": "owner",
-      "note": "Check after a cold start and after a wake.",
-      "env": "staging",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. Files written in the workspace and the DSH home, a session, and the automation store are identical after sleep then wake (platform suspend/resume) and after a cold restart of the machine (`fly machine restart`); the DSH on it still lists the automation. The volume is ext4 on /data, 2 GB.",
+      "env": "machine",
       "personas": [
         "B"
       ],
-      "status": "blocked"
+      "status": "played"
     },
     {
       "id": "W3-06",
@@ -811,12 +811,12 @@
       "area": "security",
       "title": "Egress policy really holds on a Linux machine: closed, list, public",
       "runner": "owner",
-      "note": "The nftables rules were generated and read, but NOT loaded on Linux when the image doc was written (docs/dev/computers.md). Must be played on a real machine.",
-      "env": "staging",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS on a real Linux machine. nftables rules are loaded in all three modes. Closed: only the platform answers (example.com, example.org and a raw public address are refused). List (example.com): only example.com answers. Public: all three answer. The link-local metadata address is refused in all three. Not checked: a hostile process, IPv6, DNS tricks.",
+      "env": "machine",
       "personas": [
         "B"
       ],
-      "status": "blocked"
+      "status": "played"
     },
     {
       "id": "W3-07",
@@ -825,13 +825,13 @@
       "area": "security",
       "title": "Only the owner (and whoever the access setting allows) can open a computer; a removed member cannot",
       "runner": "owner",
-      "note": "Ticket route; try with a member, a removed member, a stranger. The rules are covered at server level (kybernos-server `test/computers.test.ts`, with the meter, Fly, console and Kyby files: 125 tests pass, 2026-11-03); the play on a real machine waits for the Fly access.",
-      "env": "staging",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. Ticket and gate across the three `access` settings with an owner, a member, an admin, a removed member and a stranger. `me`: only the owner opens (the admin gets 403, the rest 404). `admins`: owner and admin open. `all`: everybody in the team opens, and the member removed afterwards is refused (404) at once; the stranger is refused in every case.",
+      "env": "machine",
       "personas": [
         "A",
         "B"
       ],
-      "status": "blocked"
+      "status": "played"
     },
     {
       "id": "W3-08",
@@ -840,13 +840,13 @@
       "area": "two accounts",
       "title": "Account A on the desktop and account B on the cloud computer in one team: a skill A creates reaches B, a lesson B learns reaches A",
       "runner": "owner",
-      "note": "The scenario the owner asked for.",
-      "env": "staging",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. Account A on a desktop DSH (sandbox C paired to the play server, role admin) and account B on a cloud computer (owner) are in the SAME team space. A's skill reaches B: it is in the approved list on the computer, installs as a real folder on its volume, and is in the skills list of the computer's next agent request. B's lesson reaches A: it is in A's approved list, and the computer's own agent request carries it under « KYBERNOS TEAM LESSONS ». A's DSH on the personal space sees neither. The weak local model did not answer the code word (model, not product).",
+      "env": "machine",
       "personas": [
         "A",
         "B"
       ],
-      "status": "blocked"
+      "status": "played"
     },
     {
       "id": "W3-09",
@@ -855,12 +855,12 @@
       "area": "computer",
       "title": "A sleeping Free computer with no credit left is deleted after free_idle_delete_days",
       "runner": "owner",
-      "note": "Set the owner setting to a short value on staging. The deletion rule and the setting are covered at server level (`test/computers-meter.test.ts`, 125 tests pass with the other computers files, 2026-11-03); the play on a real server waits for the Fly access.",
-      "env": "staging",
+      "note": "Played by hand on real Fly machines, 2026-11-03 (evidence and replay kit: ~/kybernos-archive/soft-takeoff-2026-11-03/w3-fly/, kit/README.md; ledger section « Wave W3, real machines »). PASS. With `free_idle_delete_days` 7: a sleeping computer of a FREE workspace that still has credit is kept; once the credit is used up the hourly pass deletes it and its Fly app is gone; the idle computer of a PAID workspace of the same age is kept. The pass also wants the computer to be older than the delay (created_at), as a really idle one is; and a free workspace with no credit cannot make a computer at all (409 budget_exhausted).",
+      "env": "machine",
       "personas": [
         "B"
       ],
-      "status": "blocked"
+      "status": "played"
     },
     {
       "id": "W3-11",
