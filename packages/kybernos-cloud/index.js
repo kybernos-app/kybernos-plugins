@@ -5311,6 +5311,19 @@ export const approvalShown = (summary, description) => {
   const detail = flat(summary, 150)
   return detail === '' ? lead : lead + ' (' + detail + ')'
 }
+/** `mcp__vercel_mcp__deploy_to_vercel` and its arguments, as a line a person can read: « vercel mcp: deploy to vercel (name: pizzeria, files: 2 items) ». */
+export const connectorShown = (name, args) => {
+  const [, app, ...rest] = String(name).split('__')
+  const words = (v) => String(v ?? '').replace(/[_-]+/gu, ' ').trim()
+  const head = rest.length > 0 ? words(app) + ': ' + words(rest.join(' ')) : words(app || name)
+  const fields = []
+  for (const [key, value] of Object.entries(args !== null && typeof args === 'object' ? args : {})) {
+    if (fields.length >= 5) { fields.push('…'); break }
+    const shown = Array.isArray(value) ? value.length + ' items' : value !== null && typeof value === 'object' ? '{…}' : String(value ?? '').replace(/\s+/gu, ' ').trim()
+    fields.push(key + ': ' + (shown.length > 40 ? shown.slice(0, 39) + '…' : shown))
+  }
+  return approvalShown(fields.join(', '), head)
+}
 const turnApprovalSubject = (exec) => {
   const name = String((exec && exec.name) || '')
   const args = exec && exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
@@ -5319,10 +5332,11 @@ const turnApprovalSubject = (exec) => {
   if (name === 'bash') { const summary = text(args.command) || text(args.description) || 'bash'; return { kind: 'shell', summary, shown: approvalShown(summary, text(args.command) !== '' ? text(args.description) : '') } }
   if (name === 'write') { const summary = text(args.file_path) || 'write'; return { kind: 'write', summary, shown: summary } }
   if (name === 'edit') { const summary = text(args.file_path) || 'edit'; return { kind: 'edit', summary, shown: summary } }
-  let shown = ''
-  try { shown = JSON.stringify(args) } catch (e) { shown = '' }
-  const summary = (name + ' ' + shown).trim()
-  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary, shown: summary }
+  let raw = ''
+  try { raw = JSON.stringify(args) } catch (e) { raw = '' }
+  const summary = (name + ' ' + raw).trim()
+  // A connected app's tool carries its whole payload (a page to deploy, a mail with its body): the person is shown which app and which action, then each field cut short.
+  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary, shown: name.startsWith('mcp__') ? connectorShown(name, args) : summary }
 }
 const turnPlatform = async (method, path, body) => {
   const { api, token } = computerSelf()

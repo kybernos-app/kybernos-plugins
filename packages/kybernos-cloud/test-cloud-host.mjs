@@ -1733,6 +1733,10 @@ try {
           assert.ok(mod.approvalShown('x'.repeat(900), 'Lance le script').length <= 140 + 3 + 150, 'the command is cut when a sentence leads')
           assert.ok(mod.approvalShown('x'.repeat(900), '').length <= 380)
           assert.equal(mod.approvalShown('a\n\n   b', 'Fais  ça'), 'Fais ça (a b)', 'one line, spaces collapsed')
+          // A connected app's tool: the app and the action first, each field cut short, never the whole payload.
+          assert.equal(mod.connectorShown('mcp__vercel_mcp__deploy_to_vercel', { name: 'pizzeria', files: [{ file: 'index.html', data: '<html>' + 'x'.repeat(5000) }] }), 'vercel mcp: deploy to vercel (name: pizzeria, files: 1 items)')
+          assert.ok(mod.connectorShown('mcp__gmail__send_email', { to: 'a@example.test', body: 'y'.repeat(9000) }).length < 200)
+          assert.equal(mod.connectorShown('mcp__gmail__send_email', null), 'gmail: send email')
           // A no, an expired question, a platform that cannot be reached and a stopped task are refusals, never passes.
           // Each scenario has its own turn: the number of questions one turn may ask is bounded (below).
           const turnOf = async (id, extra = {}) => { nextSession = id; await turnHit('/kybernos-cloud/turn', { prompt: 'do it', jobId: JOB, ...extra }, 'Bearer kyd_computer'); return id }
