@@ -1,6 +1,6 @@
-// Builds the light Office editors (spreadsheet and document) from the versions pinned in editors/ (next to this file) and writes them where the
-// kybernos-office plugin serves them from: <DSH home>/kybernos/kybernos-office/editors/{sheet,doc}/… plus manifest.json with the sha256 of every file.
-// They are heavy (about 8 MB with the fonts and the spreadsheet engine), so they are never in git (AGENTS.md rule 4): this script makes them on demand.
+// Builds the light Office editors (spreadsheet, document, Markdown and PDF) from the versions pinned in editors/ (next to this file) and writes them where the
+// kybernos-office plugin serves them from: <DSH home>/kybernos/kybernos-office/editors/{sheet,doc,md,pdf}/… plus manifest.json with the sha256 of every file.
+// They are heavy (about 17 MB with the fonts, the spreadsheet engine and the PDF engine), so they are never in git (AGENTS.md rule 4): this script makes them on demand.
 //
 //   node packages/kybernos-office/build-editors.mjs [--home <DSH home>] [--work <folder>]
 //
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 
 const pkg = dirname(fileURLToPath(import.meta.url))
 
-export const EDITORS = ['sheet', 'doc']
+export const EDITORS = ['sheet', 'doc', 'md', 'pdf']
 // Folders served next to the editors: the fonts the document editor loads as `../assets/<name>.ttf` from its own address.
 export const SHARED = ['assets']
 
@@ -51,7 +51,7 @@ function main () {
     writeFileSync(stamp, sha256(lock))
   }
 
-  // 2. the sources of the two frames, built into a folder next to the target
+  // 2. the sources of the frames, built into a folder next to the target
   rmSync(join(work, 'src'), { recursive: true, force: true })
   cpSync(join(pkg, 'editor-src'), join(work, 'src'), { recursive: true })
   const fresh = join(base, 'editors.new')

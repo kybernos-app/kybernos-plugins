@@ -43,7 +43,7 @@ ok('only esbuild declares an install script (it only checks its binary), and the
 })
 ok('the frame sources import only the pinned editors, React and each other; no network address, no eval', () => {
   const allowed = new Set([...Object.keys(pkg.dependencies)])
-  for (const f of ['sheet.jsx', 'doc.jsx', 'envelope.js']) {
+  for (const f of ['sheet.jsx', 'doc.jsx', 'md.js', 'pdf.js', 'envelope.js']) {
     const src = read('editor-src/' + f)
     for (const m of src.matchAll(/from\s+'([^']+)'/g)) {
       const spec = m[1]
@@ -75,27 +75,38 @@ ok('each editor exports the bytes in its own format and says dirty only for a ch
   must(/toXlsx\(\)/.test(read('editor-src/sheet.jsx')) && /\.save\(\)/.test(read('editor-src/doc.jsx')), 'export calls')
   must(/dirty\(true\)/.test(read('editor-src/doc.jsx')) && /dirty\(s\.dirty\)/.test(read('editor-src/sheet.jsx')), 'dirty is told')
   must(/canEdit=\{!readOnly\}/.test(read('editor-src/sheet.jsx')) && /'view'/.test(read('editor-src/doc.jsx')), 'read-only is honoured by both')
+  must(/getMarkdown\(\)/.test(read('editor-src/md.js')) && /dirty\(value\)/.test(read('editor-src/md.js')) && /saveAsCopy\(\)/.test(read('editor-src/pdf.js')) && /dirty\(value\)/.test(read('editor-src/pdf.js')), 'the Markdown and PDF frames export and tell dirty')
+  must(/editable: !READONLY/.test(read('editor-src/md.js')) && /READONLY \? \[\.\.\.NEVER, \.\.\.VIEW_ONLY\]/.test(read('editor-src/pdf.js')), 'read-only is honoured by the Markdown and PDF frames')
+})
+ok('the PDF viewer is copied as it is (its scripts and its wasm, not its demo files), and its glue imports it from the page', () => {
+  const build = read('editor-src/build.mjs')
+  must(/external: \['\.\/embedpdf\.js'\]/.test(build) && /n === 'pdfium\.wasm'/.test(build), 'the viewer stays an import of the page and the wasm is copied')
+  must(/\^\[\\w\.-\]\+\\\.js\$/.test(build), 'only scripts are copied from its distribution, never the demo PDFs')
+  must(/import EmbedPDF from '\.\/embedpdf\.js'/.test(read('editor-src/pdf.js')), 'the frame imports the viewer from its own folder')
+  must(/fontFallback: null/.test(read('editor-src/pdf.js')) && /ui: null, signature: null/.test(read('editor-src/pdf.js')), 'no web font is asked for')
 })
 
 await okAsync('the manifest the build writes lists every served file, the shared fonts included, with hashes the host then checks', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'kb-office-build-'))
-  for (const [p, c] of [['sheet/app.js', 'js'], ['sheet/app.css', 'css'], ['sheet/wasm_bg.wasm', 'wasm'], ['doc/app.js', 'js2'], ['doc/harfbuzz.wasm', 'hb'], ['assets/Caladea-Bold.ttf', 'ttf'], ['licenses/OFL.txt', 'not served']]) {
+  for (const [p, c] of [['sheet/app.js', 'js'], ['sheet/app.css', 'css'], ['sheet/wasm_bg.wasm', 'wasm'], ['doc/app.js', 'js2'], ['doc/harfbuzz.wasm', 'hb'], ['md/app.js', 'js3'], ['md/app.css', 'css3'], ['pdf/app.js', 'js4'], ['pdf/embedpdf.js', 'js5'], ['pdf/pdfium.wasm', 'wasm5'], ['assets/Caladea-Bold.ttf', 'ttf'], ['licenses/OFL.txt', 'not served']]) {
     mkdirSync(join(dir, p, '..'), { recursive: true }); writeFileSync(join(dir, p), c)
   }
   const m = manifestOf(dir, EDITORS, 'v1')
-  must(SHARED.includes('assets') && m.version === 'v1' && m.editors.join() === 'sheet,doc', 'shape')
-  must(Object.keys(m.files).sort().join() === 'assets/Caladea-Bold.ttf,doc/app.js,doc/harfbuzz.wasm,sheet/app.css,sheet/app.js,sheet/wasm_bg.wasm', 'files: ' + Object.keys(m.files).join())
+  must(SHARED.includes('assets') && m.version === 'v1' && m.editors.join() === 'sheet,doc,md,pdf', 'shape')
+  must(Object.keys(m.files).sort().join() === 'assets/Caladea-Bold.ttf,doc/app.js,doc/harfbuzz.wasm,md/app.css,md/app.js,pdf/app.js,pdf/embedpdf.js,pdf/pdfium.wasm,sheet/app.css,sheet/app.js,sheet/wasm_bg.wasm', 'files: ' + Object.keys(m.files).join())
   must(m.files['sheet/app.js'].sha256 === createHash('sha256').update('js').digest('hex'), 'hash')
   writeFileSync(join(dir, 'manifest.json'), JSON.stringify(m))
   const host = createHost({ fs: fsp, home: join(dir, 'home'), editorsDir: dir, now: () => 1e12 })
   const open = (await import('node:fs')).writeFileSync
   void open
   const s = await host.status()
-  must(s.installed.sheet === true && s.installed.doc === true, 'both installed')
+  must(s.installed.sheet === true && s.installed.doc === true && s.installed.md === true && s.installed.pdf === true, 'all four installed')
   const t = await (async () => { const { docx } = await import('./lib-test-files.mjs'); const p = join(dir, 'a.docx'); writeFileSync(p, docx()); return host.open(p) })()
   must(t.ok === true, 'open: ' + JSON.stringify(t))
   must((await host.serve(t.token, 'assets/Caladea-Bold.ttf')).ok === true, 'a font is served at <token>/assets/…, where the document editor asks for it')
   must((await host.serve(t.token, 'licenses/OFL.txt')).ok === false, 'what is not in the manifest is not served')
+  const wasm = await host.serve(t.token, 'pdf/pdfium.wasm')
+  must(wasm.ok === true && wasm.type === 'application/wasm', 'the PDF engine is served as wasm')
 })
 
 console.log(failed === 0 ? '\nOFFICE EDITOR SOURCES — all ok' : '\nOFFICE EDITOR SOURCES — ' + failed + ' failure(s)')

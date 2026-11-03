@@ -3124,18 +3124,18 @@
       "defaut": null,
       "poids_ko": 64,
       "promesse": {
-        "fr": "Modifie les documents Word et les classeurs Excel de tes Créations dans un éditeur léger. On te dit ce qu’il ne saurait pas garder avant l’ouverture, un enregistrement n’écrase jamais un changement de Kaby, et Annuler remet le fichier.",
-        "en": "Edit the Word documents and Excel workbooks of your Creations in a light editor. You are told what it could not keep before the file opens, a save never overwrites a change Kaby made, and Undo puts the file back."
+        "fr": "Modifie les documents Word, classeurs Excel, notes Markdown et PDF de tes Créations dans un éditeur léger. On te dit ce qu’il ne saurait pas garder avant l’ouverture, rien n’écrase un changement de Kaby, et Annuler remet le fichier.",
+        "en": "Edit the Word documents, Excel workbooks, Markdown notes and PDFs of your Creations in a light editor. You are told what it could not keep before the file opens, a save never overwrites a change Kaby made, and Undo puts the file back."
       },
       "aide": {
         "what": {
-          "fr": "Ouvre les documents Word et les classeurs Excel de tes Créations et change-les directement. Avant d’ouvrir, on te dit ce que l’éditeur ne saurait pas garder dans ce fichier.",
-          "en": "Open the Word documents and Excel workbooks of your Creations and change them right there. Before it opens, you are told what the editor could not keep in that file."
+          "fr": "Ouvre les documents Word, classeurs Excel, notes Markdown et PDF de tes Créations et change-les directement. Avant d’ouvrir, on te dit ce que l’éditeur ne saurait pas garder dans ce fichier.",
+          "en": "Open the Word documents, Excel workbooks, Markdown notes and PDFs of your Creations and change them right there. Before it opens, you are told what the editor could not keep in that file."
         },
         "steps": [
           {
-            "fr": "Ouvre un .docx ou un .xlsx dans Créations ou dans l’onglet de droite du chat : lecture seule, puis Modifier.",
-            "en": "Open a .docx or .xlsx in Creations or in the chat’s right-hand tab: read-only, then click Edit."
+            "fr": "Ouvre un .docx, .xlsx, .md ou .pdf dans Créations ou l’onglet de droite du chat : lecture seule, puis Modifier.",
+            "en": "Open a .docx, .xlsx, .md or .pdf in Creations or the chat’s right-hand tab: read-only, then click Edit."
           },
           {
             "fr": "Change ce que tu veux ; Enregistrer écrit le fichier sur ton ordinateur, Enregistrer une copie le laisse tel quel.",
@@ -3147,8 +3147,8 @@
           }
         ],
         "where": {
-          "fr": "Créations ou onglet de droite du chat › un fichier Word ou Excel",
-          "en": "Creations or the chat’s right-hand tab › a Word or Excel file",
+          "fr": "Créations ou onglet de droite du chat › un fichier Word, Excel, Markdown ou PDF",
+          "en": "Creations or the chat’s right-hand tab › a Word, Excel, Markdown or PDF file",
           "page": false
         },
         "good": {

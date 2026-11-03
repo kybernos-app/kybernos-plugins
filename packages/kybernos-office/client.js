@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// kybernos-office — browser half: the window where the person edits the Office files of Creations (a .docx, an .xlsx).
+// kybernos-office — browser half: the window where the person edits the Office files of Creations (a .docx, an .xlsx) and its Markdown and PDF files.
 //
 // The core viewer of a file shows « Edit » when a plugin declared an editor that takes the file's name (`window.__KB_EDITORS__`, docs/dev/office-editors-open-save-contract-2026-11-03.md).
 // This plugin declares one. Its window is a full-screen layer with a bar (Save, Save a copy, Undo, Close) and, under it, the editor in a sandboxed iframe.
@@ -36,8 +36,11 @@ window.__ModuleLoader__.load({
       const kt = (fr, en) => (lang() === 'fr' ? fr : en)
       const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
-      /** Whether the editors take this file name: a .docx or an .xlsx that is not the lock file Word and Excel leave beside an open file. */
-      const canEdit = (name) => typeof name === 'string' && !name.startsWith('~$') && /\.(docx|xlsx)$/i.test(name)
+      /** Whether the editors take this file name: a .docx, .xlsx, .pdf or Markdown file that is not the lock file Word and Excel leave beside an open file. */
+      const canEdit = (name) => typeof name === 'string' && !name.startsWith('~$') && /\.(docx|xlsx|pdf|md|markdown)$/i.test(name)
+      /** The viewer of Creations draws what the editors draw, except Markdown: its own rendered preview stays, the pencil opens the editor. */
+      const isMarkdown = (name) => typeof name === 'string' && /\.(md|markdown)$/i.test(name)
+      const viewerDraws = (name) => canEdit(name) && !isMarkdown(name)
 
       // ── the host ─────────────────────────────────────────────────────────────────
       /** `{ ok, … }` always: a network failure, an unreadable answer or a refusal is an answer too. The session cookie travels with the request. */
@@ -63,11 +66,13 @@ window.__ModuleLoader__.load({
           'not-found': kt('Ce fichier est introuvable.', 'This file cannot be found.'),
           'not-a-file': kt('Ce chemin n’est pas un fichier.', 'This path is not a file.'),
           'not-allowed': kt('Les éditeurs n’ouvrent pas ce dossier.', 'The editors do not open this folder.'),
-          'unsupported-format': kt('Seuls les fichiers .docx et .xlsx s’ouvrent ici.', 'Only .docx and .xlsx files open here.'),
+          'unsupported-format': kt('Seuls les fichiers .docx, .xlsx, .pdf et .md s’ouvrent ici.', 'Only .docx, .xlsx, .pdf and .md files open here.'),
           'too-big': kt('Ce fichier dépasse 64 Mo.', 'This file is larger than 64 MB.'),
           'not-a-zip': kt('Ce fichier n’est pas un vrai document Office : il est peut-être abîmé.', 'This is not a real Office file: it may be damaged.'),
           'not-a-docx': kt('Ce fichier n’est pas un vrai document Word.', 'This is not a real Word document.'),
           'not-a-xlsx': kt('Ce fichier n’est pas un vrai classeur Excel.', 'This is not a real Excel workbook.'),
+          'not-a-pdf': kt('Ce fichier n’est pas un vrai PDF.', 'This is not a real PDF.'),
+          'not-text': kt('Ce fichier n’est pas du texte (UTF-8) : il ne s’ouvre pas comme du Markdown.', 'This file is not text (UTF-8): it does not open as Markdown.'),
           'invalid-output': kt('L’éditeur a rendu un fichier invalide : rien n’a été écrit.', 'The editor returned an invalid file: nothing was written.'),
           'unknown-token': kt('Ce lien a expiré : rouvre le fichier.', 'This link has expired: open the file again.'),
           'nothing-to-undo': kt('Il n’y a aucun enregistrement à annuler.', 'There is no save to undo.'),
@@ -93,6 +98,16 @@ window.__ModuleLoader__.load({
         'content-control': ['champ de formulaire', 'champs de formulaire', 'form field', 'form fields'],
         field: ['champ', 'champs', 'field', 'fields'],
         equation: ['équation', 'équations', 'equation', 'equations'],
+        'html-comment': ['commentaire HTML', 'commentaires HTML', 'HTML comment', 'HTML comments'],
+        html: ['balise HTML', 'balises HTML', 'HTML tag', 'HTML tags'],
+        footnote: ['note de bas de page', 'notes de bas de page', 'footnote', 'footnotes'],
+        'reference-link': ['lien par référence', 'liens par référence', 'reference link', 'reference links'],
+        math: ['formule', 'formules', 'formula', 'formulas'],
+        'wiki-link': ['lien [[wiki]]', 'liens [[wiki]]', '[[wiki]] link', '[[wiki]] links'],
+        encrypted: ['protection par mot de passe', 'protections par mot de passe', 'password protection', 'password protections'],
+        signature: ['signature numérique', 'signatures numériques', 'digital signature', 'digital signatures'],
+        form: ['formulaire', 'formulaires', 'form', 'forms'],
+        attachment: ['pièce jointe', 'pièces jointes', 'attachment', 'attachments'],
       }
       const thing = (l) => {
         const w = THINGS[l.code]
@@ -101,14 +116,18 @@ window.__ModuleLoader__.load({
         return n + ' ' + (lang() === 'fr' ? (n > 1 ? w[1] : w[0]) : (n > 1 ? w[3] : w[2]))
       }
       const list = (losses, level) => losses.filter((l) => l.level === level).map(thing).join(', ')
-      /** The notices to show above the editor: `{ loss, review, untested }`, each a sentence or ''. */
-      const notices = (losses) => {
+      /** The notices to show above the editor: `{ loss, review, untested, rewrite }`, each a sentence or ''. `editor` is the host's name for the frame ('md' has two views). */
+      const notices = (losses, editor) => {
         const ls = Array.isArray(losses) ? losses.filter((l) => plain(l) && typeof l.code === 'string') : []
         const loss = list(ls, 'loss')
         const review = list(ls, 'review')
         const untested = list(ls, 'untested')
+        const md = editor === 'md'
         return {
-          loss: loss === '' ? '' : kt('Cet éditeur ne sait pas garder : ' + loss + '. Si tu enregistres, ça disparaît du fichier.', 'This editor cannot keep: ' + loss + '. If you save, they are gone from the file.'),
+          loss: loss === '' ? '' : (md
+            ? kt('La vue « Éditeur » ne sait pas garder : ' + loss + '. Si tu enregistres depuis cette vue, ça disparaît du fichier. La vue « Texte » ne réécrit rien.', 'The “Editor” view cannot keep: ' + loss + '. If you save from that view, they are gone from the file. The “Text” view rewrites nothing.')
+            : kt('Cet éditeur ne sait pas garder : ' + loss + '. Si tu enregistres, ça disparaît du fichier.', 'This editor cannot keep: ' + loss + '. If you save, they are gone from the file.')),
+          rewrite: md ? kt('La vue « Éditeur » réécrit tout le fichier avec sa propre mise en forme (puces, espaces…). La vue « Texte » ne change que ce que tu tapes.', 'The “Editor” view rewrites the whole file in its own style (bullets, spacing…). The “Text” view changes only what you type.') : '',
           review: review === '' ? '' : kt('Gardé tel quel, mais cet éditeur ne sait pas l’accepter ni le refuser : ' + review + '.', 'Kept as they are, but this editor cannot accept or reject them: ' + review + '.'),
           untested: untested === '' ? '' : kt('Pas encore vérifié avec : ' + untested + '. Regarde le résultat : « Annuler l’enregistrement » remet le fichier comme avant.', 'Not checked yet with: ' + untested + '. Look at the result: “Undo last save” puts the file back.'),
         }
@@ -228,7 +247,7 @@ window.__ModuleLoader__.load({
         if (!embedded && current !== null) return null
         if (typeof path !== 'string' || path === '' || !canEdit(typeof name === 'string' ? name : path)) return null
         ensureStyle()
-        let state = { token: null, hash: null, dirty: false, saved: false, undo: false, readOnly: false, busy: false, editor: null, url: null, losses: null, block: false }
+        let state = { token: null, hash: null, dirty: false, saved: false, undo: false, readOnly: false, busy: false, editor: null, url: null, losses: null, block: false, text: false }
         let frame = null
         let alive = true
         let seq = 0
@@ -276,7 +295,7 @@ window.__ModuleLoader__.load({
         // ── the frame ──────────────────────────────────────────────────────────────
         const mountFrame = (readOnly) => {
           state.readOnly = readOnly
-          frame = el('iframe', { class: 'kyo-frame', 'data-kb': 'office-frame', title: String(name || path), sandbox: 'allow-scripts', referrerpolicy: 'no-referrer', allow: 'clipboard-read; clipboard-write', src: state.url + '?lang=' + lang() + (readOnly ? '&ro=1' : '') })
+          frame = el('iframe', { class: 'kyo-frame', 'data-kb': 'office-frame', title: String(name || path), sandbox: 'allow-scripts', referrerpolicy: 'no-referrer', allow: 'clipboard-read; clipboard-write', src: state.url + '?lang=' + lang() + (readOnly ? '&ro=1' : '') + (state.text ? '&mode=text' : '') })
           stage.insertBefore(frame, layer)
           layer.hidden = true
           status(kt('Ouverture…', 'Opening…'))
@@ -288,17 +307,21 @@ window.__ModuleLoader__.load({
           frame = null
           mountFrame(readOnly)
         }
+        // What the person is told above the editor once it is editable: a Markdown file is rewritten by its Editor view, and what the host could not promise is said.
+        const editNotes = (n) => [state.editor === 'md' && !state.text ? n.rewrite : '', n.review, n.untested].filter((x) => x !== '').join(' ')
         const startEditing = () => {
           if (!embedded || state.token === null || state.busy || !state.readOnly) return
-          const n = notices(state.losses)
+          const n = notices(state.losses, state.editor)
           if (state.block) {
-            card('office-gate', [{ text: n.loss }, { text: kt('Tu peux continuer à regarder le fichier : rien n’est écrit.', 'You can keep looking at the file: nothing is written.'), sub: true }], [
-              cardBtn(kt('Modifier quand même', 'Edit anyway'), () => { note(n.loss); swapFrame(false) }, true),
+            const md = state.editor === 'md'
+            card('office-gate', [{ text: n.loss }, { text: md ? kt('Tu peux modifier le texte lui-même, ou continuer à regarder : rien n’est écrit.', 'You can edit the text itself, or keep looking: nothing is written.') : kt('Tu peux continuer à regarder le fichier : rien n’est écrit.', 'You can keep looking at the file: nothing is written.'), sub: true }], [
+              md ? cardBtn(kt('Modifier le texte', 'Edit the text'), () => { state.text = true; note(''); swapFrame(false) }, true) : null,
+              cardBtn(md ? kt('Modifier dans l’éditeur quand même', 'Edit in the editor anyway') : kt('Modifier quand même', 'Edit anyway'), () => { state.text = false; note(n.loss); swapFrame(false) }, !md),
               cardBtn(kt('Annuler', 'Cancel'), () => mountBack()),
-            ])
+            ].filter((b) => b !== null))
             return
           }
-          note([n.review, n.untested].filter((x) => x !== '').join(' '))
+          note(editNotes(n))
           swapFrame(false)
         }
         const exportBytes = () => new Promise((resolve, reject) => {
@@ -414,9 +437,10 @@ window.__ModuleLoader__.load({
           const r = await postJson('/open', { path })
           if (!alive) return
           if (!r.ok) { status(errorText(r), true); card('office-error', [{ text: errorText(r) }], closer()); return }
-          state = Object.assign(state, { token: r.token, hash: HASH.test(String(r.hash)) ? r.hash : null, undo: r.undo === true, editor: r.editor, url: typeof r.url === 'string' && r.url.startsWith(BASE + '/v/') ? r.url : null, losses: r.losses, block: r.block === true })
-          const n = notices(r.losses)
-          if (!embedded) note([n.review, n.untested].filter((s) => s !== '').join(' '))
+          // A Markdown file the Editor view would rewrite is shown as its text, so nothing looks missing; the person chooses how to edit it.
+          state = Object.assign(state, { token: r.token, hash: HASH.test(String(r.hash)) ? r.hash : null, undo: r.undo === true, editor: r.editor, url: typeof r.url === 'string' && r.url.startsWith(BASE + '/v/') ? r.url : null, losses: r.losses, block: r.block === true, text: r.editor === 'md' && r.block === true })
+          const n = notices(r.losses, r.editor)
+          if (!embedded) note(editNotes(n))
           if (r.installed !== true || state.url === null) {
             status(errorText({ error: 'not-installed' }), true)
             card('office-not-installed', [
@@ -428,11 +452,13 @@ window.__ModuleLoader__.load({
           if (embedded) { mountFrame(true); return }
           if (r.block === true) {
             status(kt('À toi de choisir', 'Your choice'))
+            const md = r.editor === 'md'
             card('office-gate', [{ text: n.loss }, { text: kt('Tu peux l’ouvrir en lecture seule : rien n’est écrit.', 'You can open it read-only: nothing is written.'), sub: true }], [
-              cardBtn(kt('Ouvrir en lecture seule', 'Open read-only'), () => mountFrame(true), true),
-              cardBtn(kt('Modifier quand même', 'Edit anyway'), () => { note(n.loss); mountFrame(false) }),
+              cardBtn(kt('Ouvrir en lecture seule', 'Open read-only'), () => mountFrame(true), !md),
+              md ? cardBtn(kt('Modifier le texte', 'Edit the text'), () => { note(''); mountFrame(false) }, true) : null,
+              cardBtn(md ? kt('Modifier dans l’éditeur quand même', 'Edit in the editor anyway') : kt('Modifier quand même', 'Edit anyway'), () => { state.text = false; note(n.loss); mountFrame(false) }),
               cardBtn(kt('Annuler', 'Cancel'), () => finish()),
-            ])
+            ].filter((b) => b !== null))
             return
           }
           mountFrame(false)
@@ -444,7 +470,7 @@ window.__ModuleLoader__.load({
       const embedFile = (box, path, name) => openWindow(path, name, box)
 
       // ── the right-hand tab of a chat ───────────────────────────────────────────────────────────────────────────────
-      // A tab type of its own for .docx and .xlsx (`ctx.sidebarRightTabs`), ranked above DSH's file previews, with its body in the slot `sidebar.right.pane.tab`.
+      // A tab type of its own for .docx, .xlsx, .pdf and Markdown files (`ctx.sidebarRightTabs`), ranked above DSH's file previews, with its body in the slot `sidebar.right.pane.tab`.
       // DSH keeps such a body mounted while the tab lives (`keepMounted`): the document preview's own bodies are thrown away on every change of tab, and an editor
       // lost what had been typed. The file is drawn by the same editor as in Creations, read-only first, with « Edit » in its bar, so what a chat wrote is looked
       // at and changed where it appeared. Closing the tab with unsaved changes cannot be intercepted (the engine has no veto): the editor's own bar says « Unsaved changes ».
@@ -519,7 +545,7 @@ window.__ModuleLoader__.load({
             let dead = false
             send('/status', { method: 'GET' }).then((st) => {
               if (dead || !plain(st) || !st.ok || !plain(st.installed)) return
-              const patterns = [st.installed.doc === true ? '*.docx' : null, st.installed.sheet === true ? '*.xlsx' : null].filter((x) => x !== null)
+              const patterns = [st.installed.doc === true ? '*.docx' : null, st.installed.sheet === true ? '*.xlsx' : null, st.installed.md === true ? '*.md' : null, st.installed.md === true ? '*.markdown' : null, st.installed.pdf === true ? '*.pdf' : null].filter((x) => x !== null)
               if (patterns.length === 0) return
               off = tabs.register({ id: PANE_ID, kind: PANE_KIND, patterns, priority: 'extension', keepMounted: true, canOpen: (address) => typeof address === 'string' && address.startsWith(SESSION_FILE), title: paneTitle })
             }).catch(() => { /* no status: DSH keeps its own previews */ })
@@ -558,7 +584,7 @@ window.__ModuleLoader__.load({
 
       const start = (ctx) => {
         try {
-          declareWhenReady(ctx, 'kybernos-office: file editor', () => ({ id: 'office', canEdit, open: openFile, embed: embedFile }))
+          declareWhenReady(ctx, 'kybernos-office: file editor', () => ({ id: 'office', canEdit, embeds: viewerDraws, open: openFile, embed: embedFile }))
         } catch (e) { console.warn('[kybernos-office] editor not declared:', e) }
         try { startPane(ctx) } catch (e) { console.warn('[kybernos-office] right-hand tab not declared:', e) }
       }
@@ -566,7 +592,7 @@ window.__ModuleLoader__.load({
       return {
         name: NAME,
         apply: start,
-        __test: { canEdit, errorText, notices, thing, openFile, embedFile, makePaneBody, startPane, PANE_ID, PANE_KIND, paneTitle, baseName, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
+        __test: { canEdit, viewerDraws, isMarkdown, errorText, notices, thing, openFile, embedFile, makePaneBody, startPane, PANE_ID, PANE_KIND, paneTitle, baseName, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
       }
     } catch (e) {
       console.warn('[kybernos-office] disabled:', e)

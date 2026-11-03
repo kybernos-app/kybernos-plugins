@@ -8,13 +8,17 @@ import { listParts, readText } from './zip-lite.mjs'
 export const FORMATS = {
   docx: { editor: 'doc', root: 'word/document.xml', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
   xlsx: { editor: 'sheet', root: 'xl/workbook.xml', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  md: { editor: 'md', root: null, type: 'text/markdown' },
+  pdf: { editor: 'pdf', root: null, type: 'application/pdf' },
 }
+// The file suffixes (lower case) and the format each one is.
+const SUFFIXES = { docx: 'docx', xlsx: 'xlsx', md: 'md', markdown: 'md', pdf: 'pdf' }
 
-/** `docx` or `xlsx` for a file name the light editors can open; null for anything else. */
+/** `docx`, `xlsx`, `md` or `pdf` for a file name the light editors can open; null for anything else. */
 export const formatOf = (name) => {
   const m = /\.([A-Za-z0-9]+)$/.exec(String(name || ''))
   const ext = m === null ? '' : m[1].toLowerCase()
-  return Object.prototype.hasOwnProperty.call(FORMATS, ext) ? ext : null
+  return Object.prototype.hasOwnProperty.call(SUFFIXES, ext) ? SUFFIXES[ext] : null
 }
 
 const has = (parts, prefix) => { let n = 0; for (const k of parts.keys()) if (k.startsWith(prefix) && !k.endsWith('/')) n += 1; return n }
@@ -59,13 +63,64 @@ const docx = (buf, parts) => {
   return out.map((x) => ({ ...x, count: Math.max(1, Math.round(x.count)) }))
 }
 
+// Markdown: the editor writes the text again, so what it has no node for is dropped. The text is read without what is not prose: the front matter (set aside and put
+// back by the editor, so no loss) and code (kept as it is), then the guard looks for HTML, footnotes, reference links, math. A fence is read line by line.
+const prose = (text) => {
+  let body = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
+  const front = /^---[ \t]*\n[\s\S]*?\n---[ \t]*(\n|$)/.exec(body)
+  if (front !== null) body = body.slice(front[0].length)
+  const out = []
+  let fence = null
+  for (const line of body.split('\n')) {
+    const m = /^ {0,3}(`{3,}|~{3,})/.exec(line)
+    if (fence === null) {
+      if (m !== null) { fence = m[1]; continue }
+      out.push(line.replace(/`[^`]*`/g, ''))
+    } else if (m !== null && m[1][0] === fence[0] && m[1].length >= fence.length && /^ {0,3}[`~]+[ \t]*$/.test(line)) fence = null
+  }
+  return out.join('\n')
+}
+
+const markdown = (bytes) => {
+  if (!(bytes instanceof Uint8Array) || bytes.includes(0)) return { ok: false, reason: 'not-text' }
+  let text
+  try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes) } catch (e) { return { ok: false, reason: 'not-text' } }
+  const body = prose(text)
+  const out = []
+  const add = (code, level, n) => { if (n > 0) out.push({ code, level, count: n }) }
+  add('html-comment', 'loss', count(body, /<!--/g))
+  add('html', 'loss', count(body, /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>/g))
+  add('footnote', 'loss', count(body, /^ {0,3}\[\^[^\]\n]+\]:/gm))
+  add('reference-link', 'loss', count(body, /^ {0,3}\[(?!\^)[^\]\n]+\]:[ \t]*\S+/gm))
+  add('math', 'loss', count(body, /\$\$[\s\S]*?\$\$/g))
+  add('wiki-link', 'untested', count(body, /\[\[[^\]\n]+\]\]/g))
+  return { ok: true, losses: out, block: out.some((l) => l.level === 'loss') }
+}
+
+// PDF: read as bytes. What sits in compressed object streams (a catalog of a recent file) is not seen, so the notice for a form is a hint, not a promise.
+const pdf = (bytes) => {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 8) return { ok: false, reason: 'not-a-pdf' }
+  const text = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('latin1')
+  if (!text.slice(0, 1024).includes('%PDF-')) return { ok: false, reason: 'not-a-pdf' }
+  const out = []
+  const add = (code, level, n) => { if (n > 0) out.push({ code, level, count: n }) }
+  add('encrypted', 'loss', count(text, /\/Encrypt\s*(?:\d+\s+\d+\s+R|<<)/g))
+  add('signature', 'loss', count(text, /\/ByteRange\s*\[/g))
+  add('form', 'untested', count(text, /\/AcroForm\b/g))
+  add('attachment', 'untested', count(text, /\/EmbeddedFile\b/g))
+  return { ok: true, losses: out, block: out.some((l) => l.level === 'loss') }
+}
+
 /**
  * `{ ok: true, losses: [{ code, level, count }], block }` for a file a light editor may open (`block`: some loss is certain, ask first), or
- * `{ ok: false, reason }` — 'not-a-zip', 'zip64', 'part-too-big', 'too-many-parts' (the container) or `not-a-<format>` (a zip without the part that makes it one).
+ * `{ ok: false, reason }` — 'not-a-zip', 'zip64', 'part-too-big', 'too-many-parts' (the container), `not-a-<format>` (a zip without the part that makes it one),
+ * 'not-text' (a Markdown file that is not UTF-8 text) or 'not-a-pdf'.
  */
 export const inspect = (format, bytes) => {
   const spec = FORMATS[format]
   if (spec === undefined) return { ok: false, reason: 'unsupported-format' }
+  if (format === 'md') return markdown(bytes)
+  if (format === 'pdf') return pdf(bytes)
   try {
     const parts = listParts(bytes)
     if (!parts.has(spec.root)) return { ok: false, reason: 'not-a-' + format }
