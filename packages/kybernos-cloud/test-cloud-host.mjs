@@ -1003,6 +1003,20 @@ try {
   assert.equal(sansPlan.label, null)
   ok('espace actif : le plan de CET espace est lu au serveur (/plan), au changement d espace et au rafraichissement ; une formule Team ne montre pas sa tranche')
 
+  // The member's own extra budget (kybernos-server ADR 0066) passes through as money text only; a field that is not money drops the whole line, a plan without it carries none.
+  const teamPlan = { source: 'subscription', status: 'active', plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 }
+  spacePlanBody = { ...teamPlan, extra: { cap_usd: '12.50', used_usd: '4.00', left_usd: '8.50', source: 'member', used_by_pot: { models: '3.00', cloud: '1.00', connectors: '0.00', other: '9.99', bad: '<b>' } } }
+  const avecExtra = (await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan
+  assert.deepEqual(avecExtra.extra, { cap_usd: '12.50', used_usd: '4.00', left_usd: '8.50', source: 'member', used_by_pot: { models: '3.00', cloud: '1.00', connectors: '0.00' } })
+  spacePlanBody = { ...teamPlan, extra: { cap_usd: '<script>', used_usd: '1.00', left_usd: '1.00', source: 'member' } }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.extra, undefined, 'not money: no line')
+  spacePlanBody = { ...teamPlan, extra: null }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.extra, undefined, 'a personal space or an older server: no line')
+  spacePlanBody = { ...teamPlan, extra: { cap_usd: '0.00', used_usd: '0.00', left_usd: '0.00', source: 'surprise' } }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.extra.source, 'none', 'an unknown source reads as none')
+  spacePlanBody = { source: 'none', status: 'none', plan: null, level: null, seats: 1, credit_balance_credits: 0 }
+  ok('espace actif : le budget extra du membre passe en texte d argent seulement, sinon aucune ligne')
+
   // ── The model route names the ACTIVE space ─────────────────────────────────
   // DSH's chat calls the « kybernos » route with the device token and nothing else: without `x-kybernos-workspace` the server bills the PERSONAL
   // workspace, so a team member's chat never used the team's plan, pool or shared models, whatever the Cloud card said was active. The route carries
