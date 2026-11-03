@@ -105,7 +105,7 @@ export const sayAnswer = (res, slug) => {
     return { ok: true, text: (body.updated === true ? 'The page is updated: ' : 'The page is online: ') + body.url }
   }
   // Our own codes, said by the host before any call: this body cannot ask the person, or is not signed in.
-  if (code === 'not_asked_here') return { ok: false, text: 'A page is put online from Kaby\'s chat or from the phone, where the person is asked first. Say so; do not look for another way.' }
+  if (code === 'not_asked_here') return { ok: false, text: 'A page is put online from Kaby\'s chat (the « Kaby » entry of the sidebar) or from the phone, where the person is asked first. Tell them in one line to ask Kaby there, giving the file\'s path; do not look for another way.' }
   if (code === 'not_connected') return { ok: false, text: 'This computer is not signed in to a Kybernos account, so it cannot put a page online. Say so in one line.' }
   if (status === 0 && code === '') return { ok: false, text: 'The Kybernos server did not answer. Say so, and try again in a minute.' }
   if (status === 202) return { ok: false, retry: true, text: 'The page is still being put online. Call again in a few seconds with the same name; it is the same publication, not a second one.' }
