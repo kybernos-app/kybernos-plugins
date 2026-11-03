@@ -38,7 +38,9 @@
     "host.routes:/kybernos-office:write",
     "fs.read:home",
     "fs.write:home",
-    "fs.write:dsh-home"
+    "fs.write:dsh-home",
+    "exec:npm",
+    "exec:node"
   ],
   "claims": {
     "routePrefixes": [
