@@ -74,7 +74,7 @@ export function apply (ctx) {
     const direct = ctx.get('webServer')
     if (direct !== undefined) start(direct)
     else ctx.inject(['webServer'], (h) => start(h.webServer))
-    mountDeliver(ctx)
+    try { mountDeliver(ctx) } catch (e) { dire(`deliver_files not registered: ${e?.message ?? e}`) }
   } catch (e) {
     console.log('[kybernos-office] disabled: ' + String(e?.message ?? e))
   }
