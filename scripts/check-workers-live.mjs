@@ -65,7 +65,12 @@ try {
   const dotsOk = await val(`Array.from(document.querySelectorAll('[data-kb^="wk-card-"]')).every((li) => li.querySelectorAll('.kbwk-steps i').length === 4)`)
   check('four dots on every row', dotsOk === true)
   const evidence = await val(`Array.from(document.querySelectorAll('[data-kb^="wk-card-"] .kbwk-ev')).map((e) => e.querySelectorAll('li').length).join()`)
-  check('each checked row carries its lines of evidence in the details (five, four for ZCode which has no program to find)', typeof evidence === 'string' && evidence.split(',').length === 7 && evidence.split(',').slice(0, 6).every((n) => n === '5') && evidence.split(',')[6] === '4', evidence)
+  // A row that stays « Not turned on » is not checked, so it has no evidence to count: ZCode is one when its program is not mounted on the machine (a frozen or fresh profile), the seven-row case needs it mounted.
+  const zcodeNotOn = /zcode=Not turned on/.test(String(done))
+  const rowsWithEvidence = typeof evidence === 'string' ? evidence.split(',') : []
+  const sevenOk = rowsWithEvidence.length === 7 && rowsWithEvidence.slice(0, 6).every((n) => n === '5') && rowsWithEvidence[6] === '4'
+  const sixOk = zcodeNotOn && rowsWithEvidence.length === 6 && rowsWithEvidence.every((n) => n === '5')
+  check('each checked row carries its lines of evidence in the details (five, four for ZCode which has no program to find; a ZCode that is not turned on has none)', sevenOk || sixOk, evidence)
   g = await geometry()
   check('still lined up after the checks, whatever each row’s action is', same('nom') && same('chip') && same('steps') && same('ctlRight'), g)
 

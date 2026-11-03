@@ -46,9 +46,9 @@ Script cases by the runner on two sandboxes (A desktop account, C never paired);
 | W1-22 creator (Haiku) | blocked: the stand-in model answers one fixed sentence (process finding 11); one text drift (T-012) |
 | W1-24 French speaker (Haiku) | partial, on the earlier build; the question it raised is reproduced by script (T-011) |
 
-## Wave W2 (2026-11-03): preparation only, nothing run
+## Wave W2 (2026-11-03): preparation
 
-12 cases (9 ready). Prepared on the tip of `dev`; no heavy case was run and no sandbox was started for it.
+12 cases (9 ready) when prepared, on the tip of `dev`; nothing was run at that point (the run is the next section).
 
 | Case | State | What changed in the plan |
 |---|---|---|
@@ -63,6 +63,28 @@ Script cases by the runner on two sandboxes (A desktop account, C never paired);
 | W2-10 | ready | makes real requests to the free search engines; question 15 |
 
 The sandbox keeper moved from the scratchpad into the repo (`scripts/soft-takeoff-sandbox-up.sh`, tested), since the scratchpad is wiped on restart.
+
+## Wave W2 (2026-11-03): model consumption, run on the tip of `dev` (d3cbcc9c)
+
+Run by scripts only (no Haiku tester: every W2 case that can be mechanical now is a script). Disk 10 GB free before and after. Evidence in `~/kybernos-archive/soft-takeoff-2026-11-03/` (`w2-sandbox`, `w2-sandbox-2`, `w2-replica`, `w2-replica-j4`, `w2-replica-2`, `w2-failures`, `w2-local`, `w2-outside`).
+
+| Case | Verdict | Notes |
+|---|---|---|
+| W2-01 chat turn billed to the right space | pass | J1 15/15 |
+| W2-02 usage ledger and chip | partial | usage check 22/22; J5 26 of 31: the five reds are the « near » band, a calibration fault of the journey (T-020); the cap, the full state and the refusal at 402 all pass; not replayable in T1 for five hours |
+| W2-03 own key (sheet + add form) | flaky | 50 and 21 checks green; the add form went red once on the first attempt (a click on the card did not open the drawer) and green on the second (T-019) |
+| W2-04 several accounts | dropped | owner's default taken; product gap, no switch exists |
+| W2-05 local models page search | pass | |
+| W2-06 free LLMs, locked tier | pass | 12 checks; a real free turn is not promised (question 14) |
+| W2-07 Auto Routing | pass after fix | stale test: the sentence moved to the « ? » card (T-018) |
+| W2-08 Kybernos model failures | **fail, product** | 502 and 429 show the server's raw JSON to the person (T-021); 401 is turned into 502 « temporarily unavailable »; composer stays, next turn answers with no reload |
+| W2-09 welcome credit spent | not run | needs a fresh account on the replica (§ 8 item 12) |
+| W2-10 web search | pass | 25 checks, real requests to the free engines |
+| W2-11 Workers | pass after fix | ZCode « Not turned on » has no evidence rows: the check now accepts six rows then (T-022) |
+| W2-12 Ollama small model | pass | tev1:0.8b answered in 0.6 s (engine level) |
+| W2-13 models page (on C) | to-verify | three assertions red for want of one keyed provider (T-023) |
+| W2-14 local model in the composer | blocked | owner's question 16 |
+| W4-09 (J4), run to enable J5 | pass | 27/27; B is now a member of T1 on this replica |
 
 ## Defects
 
@@ -85,6 +107,12 @@ The sandbox keeper moved from the scratchpad into the repo (`scripts/soft-takeof
 | T-015 | W1-09 | P1 | none | `check-phone-width-live.mjs` passed with 2 checks and 16 « did not open »: on a phone, `openSettings` pressed the account chip, which sits in the closed drawer, off screen, and nothing opened; only the first page was ever measured | `live-page.mjs` `openSettings` presses the sidebar's own trigger when the chip opened nothing | this commit | 1 | fixed (33 ✓, 0 ✗) |
 | T-016 | W1-08 | P1 | none | The language check expected the Bricks, 3D modeller and Motion panels, the Atlas page and the Computers menu, which are off in the freeze (28 ✗ in the first run; it had not run since the account session expired) | `check-language-creation-live.mjs --frozen` skips a surface whose plugin is off and lists it | this commit | 1 | fixed, test side |
 | T-017 | W1-10 | P2 | none | One case asked for two opposite sandboxes: the account menu needs a connected account (A), the signed-out footer needs a never-paired one (C); it came back « blocked » on A and on C | split: W1-10 (A, account menu) and W1-18 (C, footer) | this commit | 1 | fixed, plan side |
+| T-018 | W2-07 | P2 | none | The Auto Routing check looked for the page's plain sentence under the title; since 80eb14d5 it lives in the « ? » card | `check-auto-live.mjs` opens the card and reads it there | 1 | fixed (pass) |
+| T-019 | W2-03 | P2 | none known | The add-provider check (`check-models-provider-live.mjs`) failed once on its first attempt (a click on the provider card did not open the drawer), passed on the retry; first log kept (`w2-sandbox-2/W2-03.attempt1.log`) | not diagnosed | 2 | flaky |
+| T-020 | W2-02 | P2 | none: the journey overshoots, the product agrees with itself | J5 sizes a turn's spend from the number of model requests the previous turn made (1 for the first turn of a chat, 2 afterwards), so the « normal » and « near » turns overshoot (52 % then 100 %, 68 % then 100 %): five reds, all in the near band; server, plan card, footer and menu all say the same percent | not fixed: the journey should use the count of the later turns (2) | 1 | open (test) |
+| T-021 | W2-08 | P1 | When the Kybernos model is down or busy the person reads `This turn failed502: {"message":"The model is temporarily unavailable.","type":"server_error","param":null,"code":"upstream_unavailable"} SERVER` (429: `...rate_limit_error... RATE_LIMIT`) after « Retried model request (5/5) » | The error line of the turn prints the server's body as it came; the plain sentence is inside it. A wrong key upstream (401) is hidden by the server as a 502, which is right | none yet. Where it is drawn (DSH's turn error, or something a plugin can reword) is not looked at: rule 1 forbids a new engine patch | 1 | open (product, needs a decision on where to fix) |
+| T-022 | W2-11 | P2 | none | The Workers check counted evidence rows for seven workers; ZCode reads « Not turned on » in the sandbox and has none | `check-workers-live.mjs` accepts six rows when ZCode is not turned on | 1 | fixed (pass) |
+| T-023 | W2-13 | P2 | none | The models page check needs one provider with a key to show the fold; the sandbox holds none (and A is connected, which fails its first assertion): on C, three reds | not fixed: the check should add a made-up key first, as the sheet check does for its provider | 1 | open (test) |
 
 ## Process findings
 
@@ -109,5 +137,8 @@ The sandbox keeper moved from the scratchpad into the repo (`scripts/soft-takeof
 19. **The stand-in model is a control port, not a fixed sentence.** `POST :8822/__/engine/reply` and `/__/engine/fail` on the replica set what it answers, how many tokens it bills and which provider calls fail; that is what makes the failure and credit cases (W2-08, W2-09) playable without a real model or a real key. Finding 11 is true of the default only.
 20. **A case title must say what its script proves.** W2-05 and W2-06 promised a real local turn and working free models; their scripts check a search and a locked state. The titles were corrected and the missing half became W2-12 and question 14.
 21. **A harness command that is not idempotent is a trap.** `e2e-teams-run.sh up` re-clones both sandboxes and recreates the accounts; `down` deletes the sandbox homes. The README says to use `preflight` and `run` only, and the keeper script is the only thing that restarts a sandbox.
+22. **A journey may depend on another one.** J5 crashed because account B was not yet in T1; only J4 (W4-09) makes it so. Dependencies between journeys are now in the W2 runbook and in the case note; the harness's `run` with no argument runs them in the right order.
+23. **A check can leave the sandbox in a state that breaks the next one.** Account A came back on the first-run wizard (`onboarding.json` `completed:false`), which blocked every chat and made the harness preflight fail with « no request reached the replica ». Whoever left it (a W1 onboarding case run on A is the suspect) is not known; the preflight caught it, and a diff of `onboarding.json` of A, B and C is now the first thing to look at.
+24. **Turn a walkthrough into a script when the screen text is mechanical.** W2-08 was an agent case; as a script (`check-model-failures-live.mjs`) it costs no model token, runs in two minutes, prints the sentences for a human to read and found a real defect (T-021) that a Haiku walk would only have described.
 
 State: `open` | `fixed` (case and ring green) | `closed` (not a product defect, or not seen again) | `to triage` | `to confirm` | `flaky` | `wontfix` (owner decision, with the workaround) | `escalated` (3 attempts).
