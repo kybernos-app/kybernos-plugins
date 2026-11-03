@@ -12250,11 +12250,7 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, { ok: iconTags !== null, tags: iconTags === null ? {} : iconTags, concepts: iconConcepts })
       } }), 'kybernos: route icon-tags')
-      // ── librairie React Flow (@xyflow/react 12.11.6, MIT) ──────────────────
-      // Ce dépôt n'a ni bundler ni node_modules : on sert le build UMD et sa
-      // feuille de style tels quels, et le client les charge à la demande. Le
-      // build UMD est autonome (aucun require externe hormis react /
-      // react-dom / react/jsx-runtime, tous fournis par le registre DSH).
+      // ── static libraries served as they are (no bundler, no node_modules) ──────────────────
       const serveVendor = (file, mime) => (req, res) => {
         // m6 : ces routes ne lisaient pas la methode — un PUT ou un DELETE
         // repondait 200 avec le fichier. Une ressource statique est GET/HEAD.
@@ -12268,10 +12264,6 @@ function boot(ctx) {
           res.end('not found: ' + file)
         }
       }
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/vendor/xyflow.js',
-        handler: serveVendor('xyflow.umd.js', 'text/javascript; charset=utf-8') }), 'kybernos: route vendor xyflow js')
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/vendor/xyflow.css',
-        handler: serveVendor('xyflow.css', 'text/css; charset=utf-8') }), 'kybernos: route vendor xyflow css')
       // ── Leaflet 1.9.4 (BSD-2) : build local pour le renderer MiniApp « places » ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/vendor/leaflet.js',
         handler: serveVendor('leaflet.js', 'text/javascript; charset=utf-8') }), 'kybernos: route vendor leaflet js')
@@ -12279,7 +12271,7 @@ function boot(ctx) {
         handler: serveVendor('leaflet.css', 'text/css; charset=utf-8') }), 'kybernos: route vendor leaflet css')
       // ── kb-places.js : module client lu à chaud sur le disque du plugin ──
       // Évalué par le chargeur kbPlacesLoad() de client.js (fetch + new Function,
-      // même patron que React Flow). Modifier le fichier puis recharger la page
+      // même patron que Leaflet). Modifier le fichier puis recharger la page
       // suffit — pas besoin de redéfinir le package cordis pour itérer.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/kb-places.js',
         handler: (req, res) => {

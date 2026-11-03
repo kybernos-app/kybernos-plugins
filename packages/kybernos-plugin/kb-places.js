@@ -233,7 +233,7 @@
   // ── Leaflet à la demande ──────────────────────────────────────────────────
   var plLeafletP = null
   // Copie locale servie par le plugin d'abord (route maison, marche hors
-  // internet), CDN en secours — même filet que React Flow côté client.
+  // internet), CDN en secours.
   var PL_LEAFLET_JS = ['/kybernos/vendor/leaflet.js', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js']
   var PL_LEAFLET_CSS = ['/kybernos/vendor/leaflet.css', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css']
   function plDark() {

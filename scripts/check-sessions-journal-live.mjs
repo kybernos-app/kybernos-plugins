@@ -60,7 +60,7 @@ try {
     await shot('sessions-story-' + first)
 
     console.log('\n── Flow ──')
-    check('Flow opens the flow of the run', (await clickSeg('Flow')) === true && (await waitFor(page, `!!document.querySelector('[data-kb="runs-sessions"] .wvs-fstage')`, 6000)) === true)
+    check('Flow opens the flow of the run', (await clickSeg('Flow')) === true && (await waitFor(page, `!!document.querySelector('[data-kb="runs-sessions"] .wvs-fgrid [data-kb="flow-canvas"] .kbfc-nd')`, 6000)) === true)
     await shot('sessions-flow-' + first)
 
     console.log('\n── Advanced ──')

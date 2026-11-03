@@ -15,7 +15,7 @@ const a = src.indexOf('// KB-STORY-VIEW-BEGIN')
 const b = src.indexOf('// KB-STORY-VIEW-END')
 assert.ok(a > 0 && b > a, 'the story model block was found')
 const code = src.slice(a, b)
-const names = ['wvsDur', 'wvsTime', 'wvsIsErr', 'wvsCrewAt', 'wvsPass', 'wvsCounts', 'wvsFeed', 'wvsGraph', 'wvsLayout', 'wvsArea', 'wvsSplit', 'wvsHost', 'WVS_MAX_NODES', 'WVS_NW']
+const names = ['wvsDur', 'wvsTime', 'wvsIsErr', 'wvsCrewAt', 'wvsPass', 'wvsCounts', 'wvsFeed', 'wvsGraph', 'wvsArea', 'wvsSplit', 'wvsHost', 'WVS_MAX_NODES']
 const box = { kbFmtNum: (n, o) => n.toFixed(o && o.minimumFractionDigits !== undefined ? o.minimumFractionDigits : 0), kbLocaleTag: () => 'en-US', URL, out: {} }
 vm.runInNewContext(code + '\n' + names.map((n) => 'out.' + n + ' = ' + n).join(';') + ';', box)
 // The model runs in its own realm: its arrays and objects have another prototype, which strict deep equality refuses. Results are copied across.
@@ -112,19 +112,7 @@ assert.equal(big.nodes.length, m.WVS_MAX_NODES)
 assert.equal(big.dropped, 50 - (m.WVS_MAX_NODES - 1))
 ok('the flow is capped, and says how many steps it left to the Story view')
 
-const L = m.wvsLayout(Array.from({ length: 7 }, () => ({ status: 'ok' })), 3, 66)
-assert.deepEqual(L.pos.map((p) => p.col), [0, 1, 2, 2, 1, 0, 0])
-assert.deepEqual(L.pos.map((p) => p.row), [0, 0, 0, 1, 1, 1, 2])
-assert.equal(L.edges.length, 6)
-assert.ok(/^M\d+ \d+ L\d+ \d+$/.test(L.edges[3].d))
-// a row change keeps the same column, so the line is vertical
-const e2 = L.edges[2].d.match(/\d+/g).map(Number)
-assert.equal(e2[0], e2[2])
-// the second row runs right to left: the line goes from the left edge of a box to the right edge of the next
-const e3 = L.edges[3].d.match(/\d+/g).map(Number)
-assert.equal(e3[0], L.pos[3].x)
-assert.equal(e3[2], L.pos[4].x + m.WVS_NW)
-ok('the boxes lie on a snake: a line only joins neighbours and never crosses another')
+// The boxes are laid out by the shared canvas (KbFlowCanvas / kbFlowGrid), whose own tests hold the layout.
 
 // ── charts ───────────────────────────────────────────────────────────────────────────────
 assert.equal(m.wvsArea([], 300, 96).ok, false)
