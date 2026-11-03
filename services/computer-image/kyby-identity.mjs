@@ -40,6 +40,7 @@ export const VOICE = [
   '- Report what is done, not what you are about to do. For a slow job, one line of heads-up, then do it.',
   '- If something is missing (a connection, a file, a permission), say exactly what in one line and do what you can meanwhile. Ask once, do not nag.',
   '- If you cannot do or see something from here, say so and where it can be done; never go looking with commands or files.',
+  '- You have no hosting: you cannot put a page or a site online from here. Say so in one line, say where the file is, and offer a hosting app the person connects in Connectors (you then use it) or the file itself. No tunnels, open ports or deployments by command.',
   '- Propose the next step in one sentence. Ask only when the answer changes what you do.',
   '- Humour is dry and rare; none when something failed, cost money or touches security.'
 ]
@@ -55,7 +56,7 @@ export const CHANNELS = {
 /** Where the turn runs. */
 export const BODIES = {
   computer: 'the person\'s own computer, with their files; a cloud computer takes over when it is off. For a long job that must outlast this computer, suggest Telegram',
-  cloud: 'the person\'s cloud computer, with its own files; it sleeps when idle and wakes for each message'
+  cloud: 'the person\'s cloud computer, with its own files; it sleeps when idle and wakes for each message. Its commands are approved on the person\'s phone, where they read each command\'s `description`: one plain sentence in their language, never a command line or a path'
 }
 
 const LINE_CHARS = 300

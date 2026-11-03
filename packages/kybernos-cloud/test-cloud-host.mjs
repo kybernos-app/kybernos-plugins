@@ -1724,8 +1724,15 @@ try {
           // A command waits for the answer, and goes when it is yes. The question carries the real command line, the turn and the computer's own token.
           assert.deepEqual(await run('bash', { command: 'curl -X POST https://hooks.example.test/x', description: 'harmless' }), { kind: 'allow' })
           const post = seen.find((c) => c.method === 'POST')
-          assert.deepEqual(post.body, { job_id: JOB, kind: 'shell', summary: 'curl -X POST https://hooks.example.test/x' })
+          assert.deepEqual(post.body, { job_id: JOB, kind: 'shell', summary: 'harmless (curl -X POST https://hooks.example.test/x)' }, 'the model\'s own sentence comes first, the command line after it')
           assert.equal(post.auth, 'Bearer kyd_computer')
+          // What the person is shown: the model's sentence, then the command cut short; with no sentence, the command alone; never more than the server keeps.
+          assert.equal(mod.approvalShown('mkdir -p /home/node/pizzeria && cat > index.html', 'Crée les fichiers du site'), 'Crée les fichiers du site (mkdir -p /home/node/pizzeria && cat > index.html)')
+          assert.equal(mod.approvalShown('ls /data', ''), 'ls /data')
+          assert.equal(mod.approvalShown('ls /data', '   \n '), 'ls /data')
+          assert.ok(mod.approvalShown('x'.repeat(900), 'Lance le script').length <= 140 + 3 + 150, 'the command is cut when a sentence leads')
+          assert.ok(mod.approvalShown('x'.repeat(900), '').length <= 380)
+          assert.equal(mod.approvalShown('a\n\n   b', 'Fais  ça'), 'Fais ça (a b)', 'one line, spaces collapsed')
           // A no, an expired question, a platform that cannot be reached and a stopped task are refusals, never passes.
           // Each scenario has its own turn: the number of questions one turn may ask is bounded (below).
           const turnOf = async (id, extra = {}) => { nextSession = id; await turnHit('/kybernos-cloud/turn', { prompt: 'do it', jobId: JOB, ...extra }, 'Bearer kyd_computer'); return id }
@@ -1755,11 +1762,12 @@ try {
           answers = ['allowed', 'allowed', 'allowed', 'allowed']
           seen.length = 0
           for (const command of ['ls /home', 'ls ~/.dsh', 'ls /data']) assert.deepEqual(await run('bash', { command }, capped), { kind: 'allow' }, command)
-          assert.deepEqual(seen.filter((c) => c.method === 'POST').map((c) => c.body.summary), ['ls /home', 'Question 2 in this task: ls ~/.dsh', 'Question 3 in this task: ls /data'])
+          assert.deepEqual(seen.filter((c) => c.method === 'POST').map((c) => c.body.summary), ['ls /home', '(2/3) ls ~/.dsh', '(3/3) ls /data'])
           const fourth = await run('bash', { command: 'sudo ls /data' }, capped)
           assert.equal(fourth.kind, 'deny')
           assert.match(fourth.reason, /already asked the person 3 times in this task/)
-          assert.match(fourth.reason, /say what you could not do/)
+          assert.match(fourth.reason, /write "go on"/, 'no button is left to tap once the questions are used up: the way on is a new message')
+          assert.doesNotMatch(fourth.reason, /Allow for this task/)
           assert.equal(seen.filter((c) => c.method === 'POST').length, 3, 'no fourth question reaches the person')
           // The person may still say « for the rest of this task » on one of the three: after that nothing is asked and nothing is capped.
           const calm = await turnOf('s-calm')
