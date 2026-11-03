@@ -109,8 +109,6 @@ export const sayAnswer = (res, slug) => {
   if (code === 'not_connected') return { ok: false, text: 'This computer is not signed in to a Kybernos account, so it cannot put a page online. Say so in one line.' }
   if (status === 0 && code === '') return { ok: false, text: 'The Kybernos server did not answer. Say so, and try again in a minute.' }
   if (status === 202) return { ok: false, retry: true, text: 'The page is still being put online. Call again in a few seconds with the same name; it is the same publication, not a second one.' }
-  if (status === 404 || code === 'not_found') return { ok: false, text: 'Putting a page online is not available on this server yet. Say so, and say where the file is.' }
-  if (status === 401 || status === 403) return { ok: false, text: 'This account cannot publish a page from here (' + (code || 'refused') + '). Say so in one line.' }
   const sentences = {
     invalid_slug: slugProblem(slug) ?? 'That name is not allowed.',
     reserved_slug: `"${slug}" is reserved: propose another name.`,
@@ -119,9 +117,15 @@ export const sayAnswer = (res, slug) => {
     too_big: 'The page is too big for the server: shrink the images or remove files.',
     invalid_files: 'The server refused some of the files: ' + dataLine(typeof body.message === 'string' ? body.message : '', 200),
     rate_limited: 'Too many publications in a minute: wait a moment, then try again.',
-    host_error: 'The hosting did not answer. Try again in a minute.'
+    host_error: 'The hosting did not answer. Try again in a minute.',
+    taken_down: `"${slug}" was taken down by us and cannot be used again: propose another name.`,
+    try_again: 'That name is being cleaned up, or the page changed while it was published: try again in a minute.',
+    busy: 'The server is busy publishing other pages: try again in a moment.'
   }
+  // The server's own codes come first: a 403 can be the plan's limit as well as a refusal.
   if (sentences[code] !== undefined) return { ok: false, text: sentences[code] }
+  if (status === 404 || code === 'not_found') return { ok: false, text: 'Putting a page online is not available on this server yet. Say so, and say where the file is.' }
+  if (status === 401 || status === 403) return { ok: false, text: 'This account cannot publish a page from here (' + (code || 'refused') + '). Say so in one line.' }
   return { ok: false, text: 'The page could not be put online (' + (code !== '' ? code : 'http ' + status) + '). Say so in one line; do not look for another way.' }
 }
 
