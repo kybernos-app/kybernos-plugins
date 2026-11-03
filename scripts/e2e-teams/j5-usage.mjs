@@ -63,7 +63,7 @@ export const run = async (ctx) => {
         const w0 = own5h(await budget(cookie))
         const spent = Number(w0.spent_usd)
         const need = Math.max(0.0001, CAP * (targetPct / 100) - spent)
-        const k = kOverride || ctx.calls || 4
+        const k = kOverride || mult()
         const perCall = need / k
         const prompt = Math.max(10, Math.round((perCall - 5 * 2e-6) / 0.5e-6))
         await ctx.engine({ text: 'Answer from the stand-in model.', prompt, completion: 5 })
@@ -71,10 +71,13 @@ export const run = async (ctx) => {
         const t = await g.send(`J5 ${who} turn to ${targetPct}%`)
         await g.until(() => chatCalls(ctx.rows(t)).length >= 1, 15000, 100)
         await sleep(4500)
-        ctx.calls = Math.max(1, chatCalls(ctx.rows(t)).filter((c) => c.status === 200).length)
         const w1 = own5h(await budget(cookie))
+        // what the turn really cost, in calls of the size just sent (a turn makes 1 to 4 billed requests, not always the same number): the next turn is sized on the larger of the last two
+        const m = (Number(w1.spent_usd) - spent) / (prompt * 0.5e-6 + 5 * 2e-6)
+        if (m >= 0.5) (ctx.mults = ctx.mults || []).push(m)
         return { spentBefore: spent, w: w1, accepted: chatCalls(ctx.rows(t)).filter((c) => c.status === 200).length, refused: chatCalls(ctx.rows(t)).filter((c) => c.status !== 200).length }
       }
+      const mult = () => Math.max(1, ...(ctx.mults || [4]).slice(-2))
       const settle = async (percent) => { // DSH refreshes after a turn: wait for the card to show what the server says
         const end = Date.now() + 25000
         let snap = null, lag = 0
@@ -88,18 +91,20 @@ export const run = async (ctx) => {
         return { snap, lag }
       }
 
-      // two cheap turns to learn how many model requests a turn makes in an established chat (the first turn of a chat also makes the title and classification requests);
-      // the targets below are spread over the steady number
-      await ctx.engine({ text: 'Answer from the stand-in model.', prompt: 100, completion: 5 })
-      let firstCalls = 0
+      // two small turns to learn what a turn costs in billed requests (the first turn of a chat also makes the title and classification requests, a retry after a 429 adds one):
+      // each is sized at about 1 % of the cap, so the server's own spend says how many calls' worth it was; the targets below are spread over the larger of the last two
+      const calPrompt = Math.max(100, Math.round((CAP * 0.01 - 5 * 2e-6) / 0.5e-6))
+      await ctx.engine({ text: 'Answer from the stand-in model.', prompt: calPrompt, completion: 5 })
+      const calMult = []
       for (const label of ['first', 'second']) {
+        const before = Number(own5h(await budget(cookie)).spent_usd)
         const tc = await g.send(`J5 ${who} calibration ${label}`)
         await g.until(() => chatCalls(ctx.rows(tc)).length >= 1, 15000, 100)
         await sleep(4500)
-        const n = Math.max(1, chatCalls(ctx.rows(tc)).filter((c) => c.status === 200).length)
-        if (label === 'first') firstCalls = n; else ctx.calls = n
+        calMult.push((Number(own5h(await budget(cookie)).spent_usd) - before) / (calPrompt * 0.5e-6 + 5 * 2e-6))
       }
-      note(`${who}: the first turn of a chat makes ${firstCalls} model requests, the next ones ${ctx.calls}`)
+      ctx.mults = calMult.map((m) => Math.max(1, m))
+      note(`${who}: the first turn of a chat costs ${calMult[0].toFixed(1)} calls' worth, the next one ${calMult[1].toFixed(1)}`)
 
       let w = own5h(await budget(cookie))
       note(`${who}: window 5 h at the start: ${w.used_percent}% of ${w.limit_usd} (scope ${w.scope})`)
@@ -124,7 +129,7 @@ export const run = async (ctx) => {
 
       // 75 % and more: small steps (a turn makes a varying number of requests), until the window is at 75 % or more and not yet used up
       let r2 = null
-      for (let i = 0; i < 6; i += 1) {
+      for (let i = 0; i < 10; i += 1) {
         const cur = own5h(await budget(cookie)).used_percent
         if (cur >= 75 && cur < 100) break
         r2 = await perTurn(Math.min(82, cur + 22))
@@ -172,7 +177,7 @@ export const run = async (ctx) => {
     rec[who] = states.map((s) => ({ state: s.state, server: s.server, lag: s.lag }))
   }
   await play('b', 'B (a member): the cap reaches him')
-  ctx.calls = undefined
+  ctx.mults = undefined
   await play('a', 'A (the owner): an owner-set cap reaches an owner')
   return finish()
 }

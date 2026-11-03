@@ -537,7 +537,7 @@
       "watch": [
         "cloud-budget"
       ],
-      "note": "Replica only. The first half (check-usage-live) needs no replica. J5 needs account B to be a member of T1, which only J4 (W4-09) does: run W4-09 first, once per replica. J5 spends the member's 5-hour allowance for good, so it cannot be replayed in the same team for five hours (it was run on 2026-11-03 about 13:00: 26 of 31 checks green; the five reds are the « near » band, see T-020).",
+      "note": "Replica only. The first half (check-usage-live) needs no replica. J5 needs account B to be a member of T1, which only J4 (W4-09) does: run W4-09 first, once per replica. J5 spends the member's 5-hour allowance for good, so it cannot be replayed in the same team for five hours: after a spent replica use `replica-reset` (README § 7c). Run on 2026-11-03: 26 of 31 (T-020), then 31 of 31 on a fresh replica once the journey sized its turns on what a turn really costs.",
       "timeout": 900
     },
     {
@@ -1041,7 +1041,7 @@
         "A"
       ],
       "status": "ready",
-      "note": "Runs from the kybernos-server checkout."
+      "note": "Runs from the kybernos-server checkout. NOT on the harness replica (8821): it lacks features the plan expects and its accounts are spent by the journeys. Start a dedicated one on other ports (`REPLICA_PORT=9810 REPLICA_STATE=<private file> REPLICA_SEED=catalogue REPLICA_COMPOSIO=1 REPLICA_INBOUND=1 REPLICA_COMPUTERS=1 REPLICA_WEBHOOK=1 node scripts/replica.ts`, never `REPLICA_STRIPE=cli`) and give the plan `--api http://localhost:9810 --control http://127.0.0.1:9811`. Run on 2026-11-03: 459 ok, 30 fail, 0 skipped (see T-027); about five minutes."
     },
     {
       "id": "W4-09",
@@ -1056,7 +1056,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: 27 of 27, twice (before and after the harness changes)."
     },
     {
       "id": "W4-10",
@@ -1074,7 +1075,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "J6 fills T3's pool with one big call; after that the replica's pool and A's 7-day allowance are spent for good (use `replica-reset`, README § 7c). Run on 2026-11-03: 8 of 8 once the journey refreshed the page of the team's own DSH after a role change (T-024)."
     },
     {
       "id": "W4-11",
@@ -1089,7 +1091,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: 13 of 16. Three reds, the same three the team-DSH session ticketed on 2026-11-02 (the canary is not in the request body of the personal chat, the OFF marker is not the first system message, the approved team lesson is not in B's team chat request); not triaged here (T-025)."
     },
     {
       "id": "W4-12",
@@ -1103,8 +1106,8 @@
       "personas": [
         "A"
       ],
-      "status": "to-verify",
-      "note": "Confirm which server these two checks talk to (stand-in or replica) before the first run."
+      "status": "ready",
+      "note": "Both checks fake the team routes on a sandbox: no server is involved. Run on 2026-11-03: the skills check passes; the automations check is red (T-029) and ends on a crash at 390 px."
     },
     {
       "id": "W4-13",
@@ -1119,7 +1122,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: J9 21 of 21 (T-026: a request of another workspace's DSH inside its window once made it red)."
     },
     {
       "id": "W4-14",
@@ -1137,7 +1141,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "J1 15 of 15 and J5 31 of 31 on 2026-11-03 (J5 needs W4-09 first and a fresh replica)."
     },
     {
       "id": "W4-18",
@@ -1152,7 +1157,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: J7 42 of 43, every width, language and theme green. The red is the removed-team step: after B is removed from the team he is working in, every message, even in a new chat, is still sent for that team and refused for at least 200 s (T-028)."
     },
     {
       "id": "W4-19",
@@ -1170,7 +1176,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "Run on 2026-11-03: 7 of 7 once the check accepted « Add budget » (the button was renamed from « Add credits »)."
     },
     {
       "id": "W4-20",
@@ -1200,7 +1207,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: pass (24 s)."
     },
     {
       "id": "W4-16",

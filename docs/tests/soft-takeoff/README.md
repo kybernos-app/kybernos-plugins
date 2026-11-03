@@ -34,7 +34,7 @@ The owner's order: what is visible first, then models, the cloud computer, billi
 | W1 | What a person sees: first run, new chat, every page, Settings, languages, phone, five walkthroughs | sandbox + replica | 23 (21) | all P0 pass, ledger has no P0/P1 |
 | W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 14 (9) | same |
 | W3 | Cloud computer, account B | staging | 13 (5) | same, plus egress played on a real Linux machine |
-| W4 | Subscription, billing, team sharing | replica, then staging | 20 (9) | same, plus Stripe test-mode paths |
+| W4 | Subscription, billing, team sharing | replica, then staging | 20 (10) | same, plus Stripe test-mode paths |
 | W5 | Regression, upgrade and rollback, fresh install, go / no-go | all | 7 (4) | the verdict rule above |
 
 W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 and the staging half of W4 wait for the owner's go on paid resources.
@@ -118,7 +118,7 @@ What the first full W1 run taught (details in `ledger.md`, « Process findings �
 Prepared and run on 2026-11-03 after the owner's go (§ 9, questions 13 to 15; results in `ledger.md`). W2 uses the same three sandboxes as W1 plus the replica.
 
 1. **Disk first.** `df -h /` must show 8 GB free or more (two sandboxes are APFS clones, but a chat and a replica add up). 10 GB were free on 2026-11-03.
-2. **Never run the harness's `up` or `down` again** (`scripts/e2e-teams-run.sh`): `up` clones A and B again and recreates the accounts, `down` deletes the sandbox homes. The replica is already up (API 8821, control 8822, recording proxy 8820); `preflight` and `run <journey>` are safe.
+2. **Never run the harness's `up` or `down` again** (`scripts/e2e-teams-run.sh`): `up` clones A and B again and recreates the accounts, `down` deletes the sandbox homes. The replica is already up (API 8821, control 8822, recording proxy 8820); `preflight`, `run <journey>` and `replica-reset` (§ 7c) are safe.
 3. **Start the sandboxes with the keeper**, not by hand: `bash scripts/soft-takeoff-sandbox-up.sh "$HOME/.kybernos-sandbox/<A root>:3098" "$HOME/.kybernos-sandbox/<B root>:3110"` (it refuses the owner's ports and any folder outside `~/.kybernos-sandbox`, never runs `setup.sh`). The same command is the runner's `--before` and, with `--keep 7200`, the watcher beside a Haiku tester. Tested by `scripts/test-soft-takeoff-sandbox-up.mjs`.
 4. **Pair both accounts again** if the replica session is older than two hours: `node scripts/e2e-connect.mjs --dsh <host> --account a --force`, same for `b`, then restart the sandbox.
 5. **Order inside W2** (as run on 2026-11-03, about two hours with the fixes): W2-03, W2-07, W2-11, W2-05 (sandbox only, no money, no network; ten minutes) → W2-13 on C → W2-01 (replica, one minute) → **W4-09 (J4) before W2-02**, because J5 needs account B to be a member of T1 and only J4 makes it so → W2-02 (J5 last: it spends the 5-hour allowance, so it cannot be replayed in the same team for five hours) → W2-08 (the replica fails the stand-in provider; five turns, two minutes) → W2-12 (Ollama) → W2-10 (outbound) → W2-06. W2-09 and W2-14 wait (§ 8 item 12, question 16).
@@ -126,6 +126,19 @@ Prepared and run on 2026-11-03 after the owner's go (§ 9, questions 13 to 15; r
 7. **Pin the model.** The cases that bill need the Kybernos stand-in chosen in the composer (not Auto); a walkthrough tester is told which model to pick in its brief.
 8. **Which cases touch the outside:** W2-10 (free search engines, real requests) and W2-12 (the machine's Ollama, loopback, under a second on the 0.8b model). The own-key half of W2-08 (a wrong key sent to a real provider) was not run: nothing plays it without a stand-in provider (§ 8 item 11). All others stay on the machine.
 9. **After a killed case** look for `kybernos/servers.json` and `kybernos-cloud-live-gate*` in the sandbox profile (the same trap as W1-14), and for a custom provider named `sheet-test` or `audit-test` left by W2-03.
+
+### 7c. A spent or expired replica (W4 journeys)
+
+The replica keeps its own clock and its own pools: a full pass of the journeys (J5 spends the 5-hour allowance, J6's pool fill spends T3's pool and A's 7-day allowance) leaves it unable to play them again, and the sessions of both accounts last about two hours. The way back, found on 2026-11-03, touches no sandbox:
+
+```bash
+export KB_E2E_DIR=<private folder> KB_SERVER_DIR=<server checkout>
+bash scripts/e2e-teams-run.sh replica-reset                       # a new replica and proxy: state, accounts, teams, plans, the pending invitation
+bash scripts/soft-takeoff-repair.sh "<A root>:3098" "<B root>:3110"   # pairs both sandboxes again (3 tries each), restarts them, pins the model, runs the preflight
+KB_E2E_SKIP_PREFLIGHT=1 bash scripts/e2e-teams-run.sh run j1 j2 j4 j5 j6 j7 j8 j9
+```
+
+Order matters: J4 before J5 (B must be a member of T1), J6 fills T3's pool, J9 reads the proxy log and counts every request in its window (a retry from another workspace's DSH is counted). The reset deletes the recording of the old replica: copy `proxy.jsonl` and the `result-J*.json` files to the archive first if they are evidence.
 
 The suites that need a browser or React skip themselves when their dependencies are missing, and a skip is never a pass. To make them run, export before the runner: `NODE_PATH` (a `node_modules` with react and react-dom, for the cloud client), `KB_BENCH_DEPS` (a folder whose `node_modules` holds playwright, react@18 and react-dom@18), `KYBERNOS_JSDOM` (jsdom) and `KB_CHROMIUM` (a browser binary). Paths are the tester's own and never go in git.
 

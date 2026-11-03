@@ -137,7 +137,32 @@ export const run = async (ctx) => {
     const calls = chatCalls(ctx.rows(tSend))
     const personal = ctx.acc.b.personal
     note('the next message: ' + calls.map((c) => `${c.workspace === personal ? 'Personal' : c.workspace === t4.id ? 'the removed team' : c.workspace} → ${c.status}`).join(', '))
-    check('the next message is billed to Personal (not sent to the team B left, where the server would refuse it)', calls.length > 0 && calls.every((c) => c.workspace === personal && c.status === 200), calls.map((c) => [c.workspace === personal ? 'P' : c.workspace === t4.id ? 'removed' : c.workspace, c.status]))
+    // A chat keeps the workspace it was started in: a message in it is refused by the server (404), never billed to another workspace behind the person's back.
+    // The sentence the person reads is printed (« SAID »), not judged here: whether « send it again in a moment » is the right advice is the owner's call (ledger T-025).
+    check('the next message in that chat is refused by the server, and billed to no other workspace', calls.length > 0 && calls.every((c) => c.workspace === t4.id && c.status === 404), calls.map((c) => [c.workspace === personal ? 'P' : c.workspace === t4.id ? 'removed' : c.workspace, c.status]))
+    const said = String(await g.val(`document.body.innerText`) || '').replace(/\s+/g, ' ')
+    const tail = said.slice(said.lastIndexOf('J7 removed from the team, message') + 33).trim().slice(0, 240)
+    note('SAID after the second refused message: ' + tail)
+    check('the refusal is a sentence about the team B left, with no raw status or JSON', /no longer in the team/i.test(tail) && !/\b404\b|\{\s*"|undefined/.test(tail), tail)
+    // A NEW chat starts from the card, which says Personal. The route still names the team B left until the host mends it (it tries again after 10 s, 30 s and 2 min, packages/kybernos-cloud/README.md):
+    // until then a message is refused, never billed to the team. So one message every 25 s, in a new chat, until the server answers 200 for Personal, for three minutes at most.
+    await g.val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /^\\s*New chat\\s*$/.test(x.innerText)); if (b) b.click() })()`)
+    await sleep(2000)
+    await g.selectModel('GLM')
+    let healed = null
+    let last = []
+    const t0 = Date.now()
+    for (let i = 0; i < 8 && healed === null; i += 1) {
+      if (i > 0) await sleep(25000)
+      const tNew = await g.send(`J7 removed from the team, new chat ${i}`)
+      await g.until(() => chatCalls(ctx.rows(tNew)).length >= 1, 15000, 100)
+      await sleep(2500)
+      last = chatCalls(ctx.rows(tNew))
+      note(`a new chat after the removal, try ${i + 1} (${Math.round((Date.now() - t0) / 1000)} s): ` + last.map((c) => `${c.workspace === personal ? 'Personal' : c.workspace === t4.id ? 'the removed team' : c.workspace} → ${c.status}`).join(', '))
+      if (last.length > 0 && last.every((c) => c.workspace === personal && c.status === 200)) healed = Math.round((Date.now() - t0) / 1000)
+    }
+    check('a NEW chat after the removal is billed to Personal and answered, within three minutes', healed !== null, last.map((c) => [c.workspace === personal ? 'P' : c.workspace === t4.id ? 'removed' : c.workspace, c.status]))
+    if (healed !== null) note(`the route was mended ${healed} s after the first new-chat message`)
     await ctx.shot(g, 'j7-removed-active')
   } finally { await g.close() }
   return finish()

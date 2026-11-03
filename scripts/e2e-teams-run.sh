@@ -3,6 +3,7 @@
 #   KB_E2E_DIR=<private folder, outside git>  KB_SERVER_DIR=<kybernos-server checkout>  bash scripts/e2e-teams-run.sh up
 #   bash scripts/e2e-teams-run.sh run [j1 j2 ... ]     (default: every journey; it first runs the preflight below and refuses to start without it)
 #   bash scripts/e2e-teams-run.sh preflight            proves that an agent request (with tools) reaches the replica and gets a 200, for BOTH accounts
+#   bash scripts/e2e-teams-run.sh replica-reset         a new replica (state, accounts, teams) with the sandboxes left alone: re-pair them with soft-takeoff-repair.sh
 #   bash scripts/e2e-teams-run.sh down                  stops everything it started and deletes the sandbox homes and the replica state
 # What it starts: the replica (REPLICA_SEED=catalogue, its own ports, its own state file, a database that is recreated at each launch), the recording proxy (the address the
 # server advertises and DSH uses), two sandbox DSH instances (scripts/sandbox/*: own HOME, own port; the second one has its own state folder), then the setup
@@ -45,8 +46,8 @@ export KB_WORKTREE="$ROOT"
 EOF
 }
 
-up() {
-  [ "$(df -k "$HOME" | awk 'NR==2{print $4}')" -gt 3000000 ] || { echo "less than 3 GB free: clean up before starting two sandboxes" >&2; exit 1; }
+# Steps 1 to 3 of `up`: the replica, the recording proxy, the accounts and teams. Also what `replica-reset` runs on its own.
+replica_up() {
   # 1. the replica: a copy of scripts/replica.ts whose imports are absolute and whose advertised address (PUBLIC_API_URL) is the proxy's, so that every link
   #    the server makes (invitation, console, activation) points at the address DSH uses.
   sed -e "s#from \"\\.\\./#from \"$KB_SERVER_DIR/#g" -e "s#from \"\\./lib/#from \"$KB_SERVER_DIR/scripts/lib/#g" -e "s#from \"\\./pg-server.ts\"#from \"$KB_SERVER_DIR/scripts/pg-server.ts\"#" \
@@ -68,6 +69,11 @@ up() {
   write_env; set +u; source "$ENVF"; set -u
   # 3. accounts, teams, plans, the pending invitation
   node "$ROOT/scripts/e2e-teams-setup.mjs"
+}
+
+up() {
+  [ "$(df -k "$HOME" | awk 'NR==2{print $4}')" -gt 3000000 ] || { echo "less than 3 GB free: clean up before starting two sandboxes" >&2; exit 1; }
+  replica_up
   # 4. two sandbox DSH instances pointed at the proxy
   export KYBERNOS_CLOUD_API="http://localhost:$WEB_PORT"
   ( export KB_SANDBOX_PORT="$PORT_A"; bash "$ROOT/scripts/sandbox/setup.sh" >/dev/null && pin_model "$SB_A/home" && bash "$ROOT/scripts/sandbox/start.sh" )
@@ -101,6 +107,18 @@ run() {
   node "$ROOT/scripts/check-teams-e2e.mjs" "$@"
 }
 
+# Starts the replica again from nothing (its state, its accounts and its recording are deleted; the proxy is started again too) and sets the accounts and teams up again, WITHOUT touching
+# the sandboxes. Needed when a replica is spent (a member's 5-hour or 7-day window is used up for good by the journeys, and the replica keeps its clock) or its sessions are two hours
+# old. Afterwards the two sandboxes must be paired again: scripts/soft-takeoff-repair.sh.
+replica_reset() {
+  [ -f "$ENVF" ] || { echo "run 'up' first (there is no environment to reset)" >&2; exit 1; }
+  # The proxy goes too: it keeps its recording file open, and replica_up deletes that file.
+  for f in proxy replica; do if alive "$KB_E2E_DIR/$f.pid"; then kill "$(cat "$KB_E2E_DIR/$f.pid")" 2>/dev/null || true; fi; rm -f "$KB_E2E_DIR/$f.pid"; done
+  sleep 2
+  replica_up
+  echo "replica-reset: replica :$API_PORT is new (accounts.json rewritten); pair the sandboxes again with scripts/soft-takeoff-repair.sh"
+}
+
 down() {
   for f in proxy replica; do alive "$KB_E2E_DIR/$f.pid" && kill "$(cat "$KB_E2E_DIR/$f.pid")" 2>/dev/null || true; done
   ( bash "$ROOT/scripts/sandbox/stop.sh" ) 2>/dev/null || true
@@ -115,6 +133,7 @@ case "${1:-}" in
   up) up ;;
   run) shift; run "$@" ;;
   preflight) preflight ;;
+  replica-reset) replica_reset ;;
   down) down ;;
-  *) echo "usage: e2e-teams-run.sh up | preflight | run [j1 ...] | down" >&2; exit 2 ;;
+  *) echo "usage: e2e-teams-run.sh up | preflight | run [j1 ...] | replica-reset | down" >&2; exit 2 ;;
 esac

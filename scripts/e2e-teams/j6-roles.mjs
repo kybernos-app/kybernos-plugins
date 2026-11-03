@@ -14,6 +14,8 @@ export const run = async (ctx) => {
   const inT3 = (await S.call('GET', `/v1/workspaces/${t3}/members`, { cookie: A.cookie })).body
   if (!(Array.isArray(inT3) ? inT3 : inT3.members || []).some((m) => (m.user_id || m.id) === B.id)) await S.call('POST', `/v1/workspaces/${t3}/members`, { cookie: A.cookie, json: { user_id: B.id, role: 'member' } })
   const refresh = (who) => { const host = ctx.as(who); const ck = cookieDeSession(host); return fetch('http://' + host + '/kybernos-cloud/refresh', { method: 'POST', headers: { 'content-type': 'application/json', cookie: ck.nom + '=' + ck.valeur, origin: 'http://' + host }, body: '{}' }).then((r) => r.json()) }
+  // The DSH a page is open on: since each team has its own DSH, B's menu in T3 is drawn by the DSH of T3, not by B's personal one, so the role is re-read on THAT page's own origin.
+  const refreshPage = (g) => g.val(`fetch('/kybernos-cloud/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).then((r) => r.json()).catch(() => null)`)
   const poolOf = async (cookie) => { const b = (await S.call('GET', `/v1/workspaces/${t3}/llm/budget`, { cookie })).body.windows; return b.filter((w) => w.kind === 'pool').map((w) => `${w.window_seconds}:${w.used_percent}${w.exhausted ? '!' : ''}`) }
   const menuFacts = async (g) => {
     await g.openMenu(); await sleep(900)
@@ -79,14 +81,14 @@ export const run = async (ctx) => {
     const row = (Array.isArray(mem) ? mem : mem.members).find((m) => (m.user_id || m.id) === B.id)
     const promote = await S.call('PATCH', `/v1/workspaces/${t3}/members/${B.id}`, { cookie: A.cookie, json: { role: 'admin' } })
     check('A made B an admin of T3', promote.status === 200, promote.status)
-    await refresh('b'); await gB.reload(); await sleep(2500)
+    await refresh('b'); await refreshPage(gB); await gB.reload(); await sleep(2500)
     const fa = await menuFacts(gB)
     note('B (admin), pool used up: ' + JSON.stringify({ manage: fa.manage, credits: fa.credits, role: fa.role }))
     check('B (admin), pool used up: « Manage » and « Add credits » appear', fa.manage === true && fa.credits === true, fa)
     await ctx.shot(gB, 'j6-admin-full')
     await gB.closeMenu()
     await S.call('PATCH', `/v1/workspaces/${t3}/members/${B.id}`, { cookie: A.cookie, json: { role: 'member' } })
-    await refresh('b'); await gB.reload(); await sleep(2500)
+    await refresh('b'); await refreshPage(gB); await gB.reload(); await sleep(2500)
     const fb = await menuFacts(gB)
     check('B (member again): both are gone', fb.manage === false && fb.credits === false, fb)
   } finally { await gB.close() }
