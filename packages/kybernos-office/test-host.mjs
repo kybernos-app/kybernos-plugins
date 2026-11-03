@@ -34,7 +34,7 @@ try {
     const fakeServer = () => { const routes = []; return { routes, register: (r) => { routes.push(r); return () => { r.gone = true } } } }
     const a = fakeServer()
     const effects = []
-    apply({ get: (k) => (k === 'webServer' ? a : undefined), effect: (fn, label) => effects.push([fn, label]), inject: () => { throw new Error('should not wait') } })
+    apply({ get: (k) => (k === 'webServer' ? a : undefined), effect: (fn, label) => effects.push([fn, label]), inject: (names) => { if (names.includes('webServer')) throw new Error('should not wait') } })
     const paths = a.routes.map((r) => r.path).sort()
     assert.deepEqual(paths, [ROUTE + '/open', ROUTE + '/save', ROUTE + '/stats', ROUTE + '/status', ROUTE + '/undo', ROUTE + '/v'])
     assert.equal(a.routes.find((r) => r.path === ROUTE + '/v').kind, 'prefix')
@@ -45,7 +45,7 @@ try {
     ok('switching the plugin off takes every route back')
 
     let waited = null
-    apply({ get: () => undefined, effect: () => {}, inject: (names, fn) => { waited = [names, fn] } })
+    apply({ get: () => undefined, effect: () => {}, inject: (names, fn) => { if (names.includes('webServer')) waited = [names, fn] } })
     assert.deepEqual(waited[0], ['webServer'])
     const b = fakeServer()
     waited[1]({ webServer: b })

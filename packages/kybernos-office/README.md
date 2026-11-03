@@ -9,7 +9,9 @@ PowerPoint (`.pptx`) is not built: it has no light editor (the contract keeps it
 
 Creations › open a `.docx`, `.xlsx` or `.pdf`: the viewer draws the file itself, read-only, with **Edit** in the editor's own bar (a file with things the light editor would lose asks first); the pencil in the viewer's bar opens the same editor full size. A Markdown file keeps the viewer's own rendered preview, and the pencil opens its editor. Leaving the viewer over unsaved changes asks first.
 
-In a chat, the right-hand tab: click a `.docx`, `.xlsx`, `.pdf` or `.md` in the workspace file list and it opens in a tab of its own, with the same editor (read-only first, **Edit** to change it). DSH keeps that tab mounted while it lives, so what was typed survives a trip to another tab; closing the tab with unsaved changes cannot be intercepted (the engine has no veto) and loses them. It is off by default (switch it on in the Suite), and its editors are built on the computer, not shipped:
+In a chat, the right-hand tab: click a `.docx`, `.xlsx`, `.pdf` or `.md` in the workspace file list and it opens in a tab of its own, with the same editor (read-only first, **Edit** to change it). DSH keeps that tab mounted while it lives, so what was typed survives a trip to another tab; closing the tab with unsaved changes cannot be intercepted (the engine has no veto) and loses them. Cards in the chat: the model has a tool of its own, `deliver_files`, to hand over the files it made. DSH draws them as cards under the answer (the same cards its own `present` tool gives, which the `minimal` preset does not carry); a click on a card opens it in that right-hand tab, so a document the chat wrote is read and edited where it appeared. The tool's description asks for new files for each request and not for files earlier chats left in the folder. Other files (`.pptx`, `.html`) open in DSH's own preview.
+
+It is off by default (switch it on in the Suite), and its editors are built on the computer, not shipped:
 
 ```bash
 node packages/kybernos-office/build-editors.mjs        # writes <DSH home>/kybernos/kybernos-office/editors/ (24 MB, never in git)
@@ -49,7 +51,8 @@ Versions are pinned in `editors/package.json` and locked, with integrity hashes,
 | `office-host.mjs` | The disk side: open, bytes, save, undo, serve, stats. Everything injected, tested on a temporary folder. |
 | `office-guard.mjs`, `zip-lite.mjs` | The pure side: the zip reader and what each format would lose. |
 | `routes.mjs` | The routes `/kybernos-office/*` with the Host fence, the signed-session write guard and the sandboxed `v/<token>/…` route. |
-| `index.js` | Host entry (`apply`), routes taken back when the plugin is switched off. |
+| `index.js` | Host entry (`apply`), routes taken back when the plugin is switched off; registers `deliver_files` and the observer that writes its cards. |
+| `deliver.mjs` | The `deliver_files` tool (pure: the DSH services are handed in) and the `deliverables/presented` record it writes after the call's result. |
 | `client.js` | The window (bar, cards, frame), full size or embedded in the viewer (`embed`) or in a right-hand tab (`sidebarRightTabs`, `keepMounted`), and its declaration to the core's `window.__KB_EDITORS__`. |
 | `editor-src/` | The four frames (`sheet.jsx`, `doc.jsx`, `md.js`, `pdf.js`) and the envelope they speak (`envelope.js`), built by `build.mjs`; the PDF viewer's own distribution is copied beside its frame as it is. |
 | `session-guard.mjs`, `lib-session-test.mjs` | Copies of the same files of `kybernos-maquettes` (the terminal's own session guard); keep them identical. |
@@ -60,11 +63,11 @@ Versions are pinned in `editors/package.json` and locked, with integrity hashes,
 
 ## What is not done
 
-- `.pptx`; the full editor (ONLYOFFICE) pack for review and `.pptx`; text edits inside a PDF's body (the light viewer annotates, it does not rewrite the page).
+- `.pptx` and the HTML mockups of a chat (a card opens them in DSH's own preview; the mockup editor works from Creations); the full editor (ONLYOFFICE) pack for review and `.pptx`; text edits inside a PDF's body (the light viewer annotates, it does not rewrite the page).
 - Markdown tables are re-aligned by the Editor view, and PDF form filling and signature fields have not been measured with real forms.
 - The editors' own menus are in English or the editor's own translation; they follow DSH's language only where the editor supports it (`lang=` is passed). They draw light inside their frame whatever the DSH theme is.
 - Spreadsheet changes are saved by IronCalc, which rewrites the whole workbook: what it cannot hold is said by the guard before it opens, and Undo keeps the file as it was.
 
 ## Tests
 
-`node test-guard.mjs && node test-disk.mjs && node test-host.mjs && node test-write-guard.mjs && node test-client.mjs && node test-editor-src.mjs`, then on the sandbox (`scripts/sandbox/setup.sh && start.sh`, build the editors into its home): `node scripts/check-kybernos-office-live.mjs`.
+`node test-guard.mjs && node test-disk.mjs && node test-host.mjs && node test-write-guard.mjs && node test-client.mjs && node test-editor-src.mjs && node test-deliver.mjs`, then on the sandbox (`scripts/sandbox/setup.sh && start.sh`, build the editors into its home): `node scripts/check-kybernos-office-live.mjs`.
