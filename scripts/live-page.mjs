@@ -222,9 +222,13 @@ export async function openSettings(page, opts = {}) {
     await waitFor(page, `document.readyState === 'complete'`, 15000)
     await sleep(1500)
     const chip = (await page.evalJs(chipJs, 4000)).val
+    const trigger = () => page.evalJs(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`, 4000)
     if (chip) { await click(chip.x, chip.y); await sleep(1000); await clickText(page, 'Settings') }
-    else await page.evalJs(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`, 4000)
-    if ((await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)) !== null) {
+    else await trigger()
+    let cells = await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)
+    // On a phone the account chip sits in the closed drawer, off screen: a press on it opens nothing. The sidebar's own trigger is then pressed.
+    if (cells === null && chip) { await trigger(); cells = await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000) }
+    if (cells !== null) {
       if (opts.fold !== 'keep') await showAllSettingsPages(page) // `fold: 'keep'`: the check is about the accordion itself
       return true
     }

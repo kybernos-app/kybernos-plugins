@@ -705,7 +705,8 @@ try {
   const menuLabels = () => q(`[...document.querySelectorAll('.kb4-menu .kb4-lab')].map((e) => e.textContent.trim())`)
   const hasLabels = (labels, want) => Array.isArray(labels) && want.every((w) => labels.includes(w))
   check('the menu wording follows without a reload: the finance pack renames the rows', (await waitFor(page, `['Back-office team', 'Statements and reports', 'Closings and reminders'].every((w) => [...document.querySelectorAll('.kb4-menu .kb4-lab')].some((e) => e.textContent.trim() === w))`, 10000)) === true, JSON.stringify(await menuLabels()))
-  check('rows the pack leaves alone keep their own words', hasLabels(await menuLabels(), ['Kaby', 'Skills']) || hasLabels(await menuLabels(), ['Kaby', 'Compétences']), JSON.stringify(await menuLabels()))
+  // Kaby is a row only while its plugin is on (it is off in the soft-takeoff freeze): the rows that stay must keep their own words, whichever are there.
+  check('rows the pack leaves alone keep their own words', hasLabels(await menuLabels(), ['Skills', 'Connectors']) || hasLabels(await menuLabels(), ['Compétences', 'Connecteurs']), JSON.stringify(await menuLabels()))
   await press('Reconciliation')
   for (let i = 0; i < 40 && ((onboardingNow() || {}).goals || []).length !== 4; i += 1) await sleep(250)
   check('a goal unticked is saved too', JSON.stringify((onboardingNow() || {}).goals) === JSON.stringify(['closing', 'variances', 'dunning', 'cash']), JSON.stringify((onboardingNow() || {}).goals))
@@ -740,11 +741,15 @@ try {
   for (const [name, arg, want] of pageRows) {
     await openView(arg)
     const got = await titleNow()
-    check('the ' + name + ' page is titled with the menu\'s word: ' + want, got === want && (await q(`[...document.querySelectorAll('.kb4-menu .kb4-lab')].some((e) => e.textContent.trim() === ${JSON.stringify(want)})`)) === true, JSON.stringify(got))
+    // Dashboards (a tile of Creations since 2026-11-02) and Workspaces (a section of the sidebar) are no rows of the menu: their title alone is checked.
+    const inMenu = (await q(`[...document.querySelectorAll('.kb4-menu .kb4-lab')].some((e) => e.textContent.trim() === ${JSON.stringify(want)})`)) === true
+    check('the ' + name + ' page is titled with the menu\'s word: ' + want, got === want && (inMenu || name === 'dashboards' || name === 'workspaces'), JSON.stringify(got))
   }
   await openView({ view: 'artifacts' })
   const tileNames = await q(`[...document.querySelectorAll('[data-kb="type-tiles"] .kb-type-lab')].map((e) => e.textContent.trim())`)
-  check('the Creations tiles come in the field\'s order: All, Documents, Spreadsheets, then the others as before', JSON.stringify(tileNames) === JSON.stringify(['All', 'Documents', 'Spreadsheets', 'Slides', 'Websites', 'Images', 'Audio & Video']), JSON.stringify(tileNames))
+  // Plugins add tiles of their own at the end (Dashboards, Apps): only the order of the others is the field's business.
+  const ownTiles = (tileNames || []).filter((n) => n !== 'Dashboards' && n !== 'Apps')
+  check('the Creations tiles come in the field\'s order: All, Documents, Spreadsheets, then the others as before', JSON.stringify(ownTiles) === JSON.stringify(['All', 'Documents', 'Spreadsheets', 'Slides', 'Websites', 'Images', 'Audio & Video']), JSON.stringify(tileNames))
   await page.shot(join(shotDir, 'pages-creations-law.png'))
   await openView({ view: 'skills' })
   const fieldDots = await q(`document.querySelectorAll('[data-kb="field-rows"] [data-kb="field-skill"] .kbsf-fdot').length`)

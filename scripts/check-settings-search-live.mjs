@@ -3,7 +3,10 @@
 // result opens the page and goes to the row, Escape clears before it closes anything — and the index does not drift: every row of
 // KB_SS_INDEX is looked for on its page (the labels it promises are the labels the page shows).
 //
-//   node scripts/check-settings-search-live.mjs [--worktree] [--shots <dir>] [--no-drift] [--lang fr]
+//   node scripts/check-settings-search-live.mjs [--worktree] [--shots <dir>] [--no-drift] [--lang fr] [--frozen]
+//
+// --frozen: the build under test has bundles switched off (the soft-takeoff freeze, docs/tests/soft-takeoff/plugins.json): a page that is not in the menu is
+// listed as skipped instead of failed, and the « API key » result of the code sandbox is not required when that page is absent. Without it every page must exist.
 //
 // --worktree: serve this checkout's core plugin client in the throw-away browser (scripts/lib-bundle-swap.mjs), so a change is checked before it
 // is merged. Without it the check runs on what `dsh web` serves.
@@ -93,7 +96,8 @@ try {
   await clearBox()
   await type('clé api')
   names = await resultNames()
-  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines, the code sandbox)', ['Add provider', 'Composio key', 'Default engine', 'API key'].every((n) => names.indexOf(n) >= 0), names)
+  const sandboxPage = args.indexOf('--frozen') < 0 || (await ev(`[...document.querySelectorAll('[class*="navList"] [data-kb-t]')].some((x) => x.dataset.kbT === 'kybernos-computers' || /code sandbox/i.test(x.textContent || ''))`)) === true
+  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines' + (sandboxPage ? ', the code sandbox' : '') + ')', ['Add provider', 'Composio key', 'Default engine'].concat(sandboxPage ? ['API key'] : []).every((n) => names.indexOf(n) >= 0), names)
   if (shotsDir !== null) await page.shot(shotsDir + '/search-2-apikey.png')
   await clearBox()
   await type('themme')
@@ -162,11 +166,12 @@ try {
     const LOC = (r) => kbSsLocalise(r, lang === 'fr' ? 'kybernos' : 'en', null)
     const KEYS = [...new Set(KB_SS_INDEX.map((r) => r[0]))]
     const missing = []
+    const skipped = []
     const readPage = async () => JSON.parse((await ev(`JSON.stringify((() => { const pane = document.querySelector('[data-slot="settings.section"]'); if (!pane) return []; const out = []; const w = document.createTreeWalker(pane, NodeFilter.SHOW_TEXT); for (let n = w.nextNode(); n; n = w.nextNode()) { const t = n.nodeValue.trim(); if (t) out.push(t) } return out })())`)) || '[]').map(kbSsNorm)
     for (const k of KEYS) {
       const rows = KB_SS_INDEX.filter((r) => r[0] === k)
       const pressed = await ev(`(() => { const c = [...document.querySelectorAll('[class*="navList"] [data-kb-t]')].find((x) => x.dataset.kbT === ${JSON.stringify(k)}); if (!c) return false; c.click(); return true })()`)
-      if (pressed !== true) { missing.push(k + ': no such page in the menu'); continue }
+      if (pressed !== true) { if (args.indexOf('--frozen') >= 0) { skipped.push(k); continue } missing.push(k + ': no such page in the menu'); continue }
       await sleep(1400)
       // The Theme page opens on its simple view (the look studio); the editor with the tabs is folded under it, and the studio has chips of its own that share some of the tabs' names.
       if (k === 'theme') await openThemeAdvanced(page)
@@ -183,6 +188,7 @@ try {
       }
       void tabs
     }
+    if (skipped.length > 0) console.log('  (frozen build: ' + String(skipped.length) + ' pages are not in the menu and were skipped: ' + skipped.join(', ') + ')')
     check('every row of the index is on its page, word for word, in ' + (lang === 'fr' ? 'French' : 'English') + ' (a label the page shows differently must be fixed in KB_SS_INDEX / KB_SS_FR)', missing.length === 0, missing)
   }
 } finally { await live.close() }

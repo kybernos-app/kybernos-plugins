@@ -1,0 +1,330 @@
+{
+  "comment": "PROPOSAL for the soft takeoff, not applied anywhere. state: on | off | service (not a DSH bundle). call: recommended = follows the rule below; owner = a judgement the owner has to make. unit = number of test*.mjs files in the package folder, counted 2026-11-03.",
+  "rule": "A bundle stays on when the first-time user meets it every day AND it has unit tests plus at least one live check, or it is the subject of a wave (models, cloud computer, billing, team). Everything else is off for the soft takeoff and comes back one by one once its own live check is green. The state is applied to a SANDBOX profile only; the owner's real profile is never edited by the recette.",
+  "bundles": {
+    "dsh-db-viewer": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Read-only SQLite viewer; 4 unit tests, appears only when a file is opened.",
+      "unit": 4
+    },
+    "dsh-media-player": {
+      "state": "off",
+      "call": "recommended",
+      "why": "1 unit test, no live check.",
+      "unit": 1
+    },
+    "dsh-mermaid": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Diagrams in the chat.",
+      "unit": 2
+    },
+    "dsh-subagent-maison": {
+      "state": "on",
+      "call": "recommended",
+      "why": "The agents the Workers page turns on: stays on while Workers is on.",
+      "unit": 4
+    },
+    "front-desk": {
+      "state": "service",
+      "call": "recommended",
+      "why": "Standalone service behind the front desk plugin. Not deployed for the soft takeoff.",
+      "unit": 0
+    },
+    "kybernos-atlas": {
+      "state": "off",
+      "call": "owner",
+      "why": "Workspace map: 2 unit tests, no live check.",
+      "unit": 2
+    },
+    "kybernos-auto": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Auto Routing; seven live checks.",
+      "unit": 12
+    },
+    "kybernos-bricks": {
+      "state": "off",
+      "call": "recommended",
+      "why": "Brick mockups: 4 unit tests, no live check; not a launch feature.",
+      "unit": 4
+    },
+    "kybernos-call": {
+      "state": "on",
+      "call": "owner",
+      "why": "Calls are well covered (13 unit tests, six live checks) but cost voice minutes: confirm the limit before exposing them.",
+      "unit": 13
+    },
+    "kybernos-changes": {
+      "state": "on",
+      "call": "recommended",
+      "why": "The Changes chip (git state of a chat).",
+      "unit": 1
+    },
+    "kybernos-cloud": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Account, plan, teams, Cloud Computer: the centre of W3 and W4.",
+      "unit": 55
+    },
+    "kybernos-composio": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Connectors: Discover shows the whole catalogue, Connect is gated by account.",
+      "unit": 11
+    },
+    "kybernos-computers": {
+      "state": "off",
+      "call": "owner",
+      "why": "E2B code sandbox with the person's own key. NOT the Kybernos Cloud Computer (that lives in kybernos-cloud). 4 unit tests, no live check.",
+      "unit": 4
+    },
+    "kybernos-dashboards": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Dashboards; three live checks and a render check.",
+      "unit": 8
+    },
+    "kybernos-db": {
+      "state": "off",
+      "call": "owner",
+      "why": "Apps (Tables): was off by default; server-side hosting is a separate unfinished lot.",
+      "unit": 18
+    },
+    "kybernos-flow": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Resume of cut turns and the queue; a chat behaviour every user meets.",
+      "unit": 2
+    },
+    "kybernos-free-llms": {
+      "state": "on",
+      "call": "recommended",
+      "why": "The Free plan has no quota: free models are what a new person can use at once.",
+      "unit": 9
+    },
+    "kybernos-front-desk": {
+      "state": "off",
+      "call": "recommended",
+      "why": "Public assistant of a shop: its service is not started and needs a model and a key.",
+      "unit": 9
+    },
+    "kybernos-gate": {
+      "state": "service",
+      "call": "recommended",
+      "why": "Not a DSH bundle: the sign-in gate baked into the cloud computer image. Needed by W3.",
+      "unit": 0
+    },
+    "kybernos-hub": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Suite panel, boot guard and safe mode. Cannot be off.",
+      "unit": 17
+    },
+    "kybernos-kaby-customisation": {
+      "state": "off",
+      "call": "recommended",
+      "why": "Kaby name, portrait and voice. Goes with Kaby.",
+      "unit": 2
+    },
+    "kybernos-kyber": {
+      "state": "off",
+      "call": "owner",
+      "why": "« Kaby ». Named unstable by the owner. Other bundles may call it: the W1 boot and bundle-fault checks must pass with it off before this is final.",
+      "unit": 2
+    },
+    "kybernos-language": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Language runtime and page; five live checks.",
+      "unit": 1
+    },
+    "kybernos-log": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Activity log: what leaves this machine. Useful evidence for W2.",
+      "unit": 2
+    },
+    "kybernos-maintenance": {
+      "state": "on",
+      "call": "recommended",
+      "why": "About page, update log and DSH compatibility.",
+      "unit": 6
+    },
+    "kybernos-memory": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Account and team memory; journey J2.",
+      "unit": 9
+    },
+    "kybernos-miniapps": {
+      "state": "off",
+      "call": "recommended",
+      "why": "Mini-apps are being replaced by mini web apps (audit of 2026-11-02, nothing built yet).",
+      "unit": 3
+    },
+    "kybernos-mobile": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Phone layout and remote control; 16 unit tests and five live checks.",
+      "unit": 16
+    },
+    "kybernos-modeles-locaux": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Local models (Ollama) are a stated focus of W2. No live check yet: W2-05 is the first.",
+      "unit": 7
+    },
+    "kybernos-modeleur": {
+      "state": "off",
+      "call": "owner",
+      "why": "3D modeller; 3 unit tests, one live check.",
+      "unit": 3
+    },
+    "kybernos-models": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Model catalogue and the single-key provider sheet: the centre of wave W2.",
+      "unit": 12
+    },
+    "kybernos-motion": {
+      "state": "off",
+      "call": "owner",
+      "why": "Motion makes video exports (heavy on the machine); 9 unit tests, one big live check. Visible differentiator: the owner decides.",
+      "unit": 9
+    },
+    "kybernos-multi-device": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Create-workspace dialog (private folder or own folder).",
+      "unit": 2
+    },
+    "kybernos-no-process": {
+      "state": "off",
+      "call": "recommended",
+      "why": "For the Kybernos phone app only; not used by the desktop DSH.",
+      "unit": 3
+    },
+    "kybernos-plugin": {
+      "state": "on",
+      "call": "recommended",
+      "why": "The core: Agent Teams, settings, new-chat page. Cannot be off.",
+      "unit": 151
+    },
+    "kybernos-pulse": {
+      "state": "off",
+      "call": "recommended",
+      "why": "« Widget »: the floating notification window. Named unstable by the owner.",
+      "unit": 6
+    },
+    "kybernos-refs": {
+      "state": "on",
+      "call": "owner",
+      "why": "Turns links in an answer into chips, so it touches every answer; 1 unit test, no live check. Keep on only if W1 walkthroughs see an answer with links render correctly.",
+      "unit": 1
+    },
+    "kybernos-registry": {
+      "state": "off",
+      "call": "owner",
+      "why": "Third-party plugins: the catalogue part is greyed for phase 3. Off removes the attack surface; the Suite then has no Plugins tab.",
+      "unit": 6
+    },
+    "kybernos-relance": {
+      "state": "off",
+      "call": "recommended",
+      "why": "Restarts DSH on port 3080 by default; the sandbox already leaves it out.",
+      "unit": 2
+    },
+    "kybernos-search": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Search everywhere; four live checks.",
+      "unit": 5
+    },
+    "kybernos-servers": {
+      "state": "off",
+      "call": "owner",
+      "why": "Company servers and server switching. Not needed to test the public product.",
+      "unit": 5
+    },
+    "kybernos-session-msg": {
+      "state": "off",
+      "call": "owner",
+      "why": "Messages between chats: new, 2 unit tests, one live check.",
+      "unit": 2
+    },
+    "kybernos-sessions": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Chat naming, sorting and categories; used by every chat.",
+      "unit": 20
+    },
+    "kybernos-skills": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Skills pages; eight live checks.",
+      "unit": 28
+    },
+    "kybernos-slash": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Commands page and the / menu.",
+      "unit": 7
+    },
+    "kybernos-slides": {
+      "state": "on",
+      "call": "owner",
+      "why": "A session is building slide creation and editing, and the plugin's unit tests and live check are green (light wave 1). Off only if that work does not land before the takeoff.",
+      "unit": 3
+    },
+    "kybernos-summary": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Summary tab of the right panel.",
+      "unit": 2
+    },
+    "kybernos-terminal": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Command blocks as terminals in the chat.",
+      "unit": 2
+    },
+    "kybernos-theme": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Theme page; live checks cover it (theme-studio, accent, display, contrast).",
+      "unit": 9
+    },
+    "kybernos-usage": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Usage chip and ledger; needed to prove consumption in W2 and W4.",
+      "unit": 4
+    },
+    "kybernos-webapp-creator": {
+      "state": "off",
+      "call": "owner",
+      "why": "14 unit tests, no live check; overlaps the mini web apps rework.",
+      "unit": 14
+    },
+    "kybernos-websearch": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Web search for agents; check-websearch-live.",
+      "unit": 6
+    },
+    "kybernos-workers": {
+      "state": "on",
+      "call": "recommended",
+      "why": "Workers page (Claude Code, Codex, ...).",
+      "unit": 4
+    },
+    "messaging": {
+      "state": "service",
+      "call": "owner",
+      "why": "Telegram bridge. The cloud-computer-by-Telegram switch is off by default on the server; stays out.",
+      "unit": 0
+    }
+  }
+}
