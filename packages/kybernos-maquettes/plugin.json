@@ -1,0 +1,54 @@
+{
+  "contract": 1,
+  "id": "kybernos/maquettes",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Mockups",
+    "fr": "Maquettes"
+  },
+  "description": {
+    "en": "Open the HTML screens Kaby drew for you and change them by clicking on the page: text, colours, sizes, blocks, pictures. Nothing else in the file moves.",
+    "fr": "Ouvre les écrans HTML que Kaby a dessinés pour toi et modifie-les en cliquant sur la page : textes, couleurs, tailles, blocs, images. Rien d’autre ne bouge dans le fichier."
+  },
+  "details": {
+    "en": "Each page of a mockup runs in a sandboxed frame with no access to this app, your session or any storage; the editor script (the only code that touches that page's elements, hence the ui.dom word) talks to the host through this page and a short list of calls. Folders are the ones you typed; the page names, the pictures you add and the snapshots for Undo are the only things written, the snapshots in this app's own folder, not in yours.",
+    "fr": "Chaque page d’une maquette tourne dans un cadre isolé, sans accès à cette application, à ta session ni à un stockage ; le script de l’éditeur (le seul code qui touche aux éléments de cette page, d’où le mot ui.dom) parle à l’hôte par cette page et une courte liste d’appels. Les dossiers sont ceux que tu as écrits ; seuls les fichiers de la page, les images que tu ajoutes et les copies pour Annuler sont écrits, ces copies dans le dossier propre de l’application, pas dans le tien."
+  },
+  "icon": "mockup",
+  "family": "create",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-maquettes",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0",
+    "plugins": {
+      "kybernos/core": "^1.0"
+    }
+  },
+  "permissions": [
+    "ui.slot:main.kybernos-business",
+    "ui.dom",
+    "host.routes:/kybernos-maquettes:write",
+    "fs.read:home",
+    "fs.write:home",
+    "fs.write:dsh-home"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-maquettes"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

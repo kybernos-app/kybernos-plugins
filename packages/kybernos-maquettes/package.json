@@ -1,0 +1,42 @@
+{
+  "name": "@local/kybernos-maquettes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Maquettes: open the HTML screens Kaby drew for you in a folder, and change them by clicking on the page: text, colours, sizes, blocks, pictures. Nothing else in the file moves.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "routes.mjs",
+    "maquette-host.mjs",
+    "maquette-lib.mjs",
+    "session-guard.mjs",
+    "vendor/parse5.mjs",
+    "vendor/postcss.mjs",
+    "vendor/NOTICES.md",
+    "editor/ky-edit.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js && node --check editor/ky-edit.js",
+    "test": "node test-lib.mjs && node test-disk.mjs && node test-host.mjs && node test-write-guard.mjs && node test-editor.mjs && node test-client.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

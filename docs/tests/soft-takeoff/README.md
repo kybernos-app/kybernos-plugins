@@ -7,7 +7,7 @@ A soft takeoff opens the product to a small invited audience, with a way back. T
 | File | What it holds |
 |---|---|
 | `cases.json` | The matrix: 86 cases in six waves, each with a priority, a runner (script, cheap agent or owner), an environment and a status |
-| `plugins.json` | The proposed bundle freeze: which of the 54 packages stay on, which go off for the takeoff, and why |
+| `plugins.json` | The proposed bundle freeze: which of the 55 packages stay on, which go off for the takeoff, and why |
 | `tester-brief.md` | The brief and the verdict format for the cheap tester (`.claude/agents/takeoff-tester.md` loads it) |
 | `ledger.md` | The defect ledger, text only, written by the lead session |
 | `scripts/soft-takeoff-run.mjs` | Runs the script cases and writes one verdict file each: the reference a cheap tester is compared with (`--light` runs the first wave) |
@@ -54,7 +54,7 @@ W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 
 
 ## 4. The plugin freeze
 
-`plugins.json` is a proposal: **33 on, 18 off, 3 services** (not DSH bundles), of which 14 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
+`plugins.json` is a proposal: **33 on, 19 off, 3 services** (not DSH bundles), of which 14 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
 
 The freeze is applied to **sandbox profiles only**; the owner's real profile is never edited by this recette. Two things to check before it is final: turning Kaby off must not break a bundle that calls it (the boot and bundle-fault checks W0-05 and W5-05 must pass with it off), and `kybernos-computers` is the E2B sandbox with the person's own key, not the Kybernos Cloud Computer (that one lives in `kybernos-cloud`).
 

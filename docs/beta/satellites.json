@@ -504,6 +504,15 @@
         "role": "the public assistant of a shop (a chat page, a site widget, Telegram) that runs as its own service on this computer: you set it up and run it from one page, and Kaby drafts its fiche through a tool; every change to what visitors see waits for your approval",
         "poids_ko": 900,
         "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-maquettes",
+        "nom": "@local/kybernos-maquettes",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "the HTML screens Kaby drew for you, opened in a Maquettes page and changed by clicking on them (text, colours, sizes, blocks, pictures); the file is patched in place, only what you touch changes",
+        "poids_ko": 512,
+        "lib_vendor": "parse5 + postcss (vendored, ESM)"
       }
     ]
   },
@@ -561,7 +570,8 @@
       "@local/kybernos-log",
       "@local/kybernos-webapp-creator",
       "@local/kybernos-db",
-      "@local/kybernos-front-desk"
+      "@local/kybernos-front-desk",
+      "@local/kybernos-maquettes"
     ]
   }
 }
