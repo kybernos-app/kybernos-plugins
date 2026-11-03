@@ -3368,8 +3368,8 @@ const KB_SS_INDEX = [
   ['widget', '', 'Tell me when', 'Something needs me, every run, or never.', '', 'prevenir notification quand echec accord automation terminee alerte'],
   ['widget', '', 'Banners and badge', 'One banner per event. A count on the tab and on the Dock.', '', 'banniere notification badge compteur dock onglet autorisation navigateur'],
   ['widget', '', 'Quiet automations', 'No banner when they finish.', '', 'silencieuse muette automation ne plus prevenir'],
-  ['activity log', '', 'Families', 'Tick the families to show: model calls, connectors, web search, tools, automatic titles and compactions.', '', 'famille famille filtre journal journal activite modele connecteur recherche web outil titre compactage sonde tokens'],
-  ['activity log', '', 'Live tail', 'Watch the calls arrive as they happen, or search a model, a tool, an error.', '', 'direct live flux temps reel defiler tail recherche modele outil session erreur journal activite envoie'],
+  ['activity log', '', 'Family', 'Tick the families to show: model calls, connectors, web search, tools, automatic titles and compactions.', '', 'famille famille filtre journal journal activite modele connecteur recherche web outil titre compactage sonde tokens'],
+  ['activity log', '', 'Live', 'Watch the calls arrive as they happen, or search a model, a tool, an error.', '', 'direct live flux temps reel defiler tail recherche modele outil session erreur journal activite envoie'],
 
   ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
   ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar', '', 'Identity'],
@@ -3410,7 +3410,7 @@ const KB_SS_INDEX = [
   ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine'],
   // The themes listing (A7): one row, because test-settings-search.mjs:39 requires a row for every page of the menu. The listing itself
   // is drawn from A6's GET /kybernos/themes, so this row finds the page; it holds no setting of its own.
-  ['templates', '', 'Install a sector template', 'The sector templates the catalogues you added offer, each with the level the verifier answered.', '', 'templates template market marketplace install sector packs'],
+  ['templates', '', 'From a catalogue', 'The sector templates the catalogues you added offer, each with the level the verifier answered.', '', 'templates template market marketplace install sector packs'],
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
@@ -3477,8 +3477,8 @@ const KB_SS_FR = {
   'widget|Tell me when': ['Prévenir', 'Quand quelque chose m’attend, à chaque run, ou jamais.'],
   'widget|Banners and badge': ['Bannières et badge', 'Une bannière par événement. Un nombre sur l’onglet et sur le Dock.'],
   'widget|Quiet automations': ['Automations silencieuses', 'Sans bannière quand elles finissent.'],
-  'activity log|Families': ['Familles', 'Coche les familles à afficher : appels modèle, connecteurs, recherche web, outils, titres automatiques et compactages.'],
-  'activity log|Live tail': ['En direct', 'Regarde les appels arriver au fil de l’eau, ou cherche un modèle, un outil, une erreur.'],
+  'activity log|Family': ['Famille', 'Coche les familles à afficher : appels modèle, connecteurs, recherche web, outils, titres automatiques et compactages.'],
+  'activity log|Live': ['En direct', 'Regarde les appels arriver au fil de l’eau, ou cherche un modèle, un outil, une erreur.'],
   'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.', 'Identité'],
   'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
   'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
@@ -3511,7 +3511,7 @@ const KB_SS_FR = {
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
   'about|Version': ['Version', '', 'Moteur DSH'],
   // The themes listing (A7): its French twin, required for every row of the index (test-settings-search.mjs:146).
-  'templates|Install a sector template': ['Installer un modèle sectoriel', 'Les modèles sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
+  'templates|From a catalogue': ['Depuis un catalogue', 'Les modèles sectoriels que publient les catalogues que tu as ajoutés, chacun avec le niveau que le vérificateur a rendu.'],
 }
 // The tabs and sections of the French pages.
 const KB_SS_SEC_FR = { Behaviour: 'Comportement', Essentials: 'Essentiel', 'Glass and background': 'Verre et fond', Colors: 'Couleurs', 'Text and shape': 'Texte et forme', Animation: 'Animation', Icons: 'Icônes', Accessibility: 'Accessibilité' }

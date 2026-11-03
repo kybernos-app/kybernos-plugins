@@ -3,7 +3,9 @@
 // Phone and channels), the one « ? How it works » button on every page, the article link on a card, and the lines that say what Usage,
 // Tools, Workers and Commands are for.
 //
-//   source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs [--shots <dir>]
+//   source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs [--shots <dir>] [--frozen]
+//
+//   --frozen   a build whose plugins are frozen (docs/tests/soft-takeoff/plugins.json): a page that is not in the menu is skipped, not red
 //
 // Needs a DSH that serves this checkout (scripts/sandbox/start.sh): the hub, the pages and the help.json catalogue are the checkout's.
 // Refuses :3080. Read-only: nothing here changes a setting (the browser is a throw-away one, its localStorage starts empty: that IS
@@ -13,6 +15,8 @@ import { openLivePage } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
+const frozen = args.includes('--frozen')
+const skipped = []
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
@@ -70,8 +74,8 @@ const lit = (id) => val(`(() => { const r = ${intro(id)}; if (!r) return null; r
 const mockState = (id) => val(`(() => { const r = ${intro(id)}; if (!r) return null; const o = (q) => { const e = r.querySelector(q); return e ? getComputedStyle(e).opacity : null }; return { t1: o('.kbhi-mm-st .t1'), t2: o('.kbhi-mm-st .t2'), t3: o('.kbhi-mm-st .t3'), done: o('.kbhi-mm-done'), go: o('.kbhi-mm-go'), hot: o('.kbhi-mm-row.hot') } })()`)
 const introText = (id) => val(`(() => { const r = ${intro(id)}; return r ? r.innerText.replace(/\\s+/g, ' ').trim() : '' })()`)
 
-// The « ? How it works » button of a page, whatever draws it: the Suite's, the core's header button, the Calls tab line. What a person sees.
-const pills = () => val(`(() => Array.from(document.querySelectorAll('button')).filter((b) => { const r = b.getBoundingClientRect(); if (r.width < 20 || r.height < 10) return false; const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return top !== null && b.contains(top) && /^\\??\\s*(How it works|Comment ça marche)$/.test(b.innerText.replace(/\\s+/g, ' ').trim()) }).map((b) => { const cs = getComputedStyle(b); const r = b.getBoundingClientRect(); return { h: Math.round(r.height), radius: cs.borderTopLeftRadius, border: cs.borderTopWidth, font: cs.fontSize, cls: b.className.split(' ')[0], kb: b.getAttribute('data-kb') || b.getAttribute('data-act') || '' } }))()`)
+// The « ? How it works » button of a page, whatever draws it: since 2026-11-02 a bare round « ? » whose label is « How it works » (aria-label and title). What a person sees.
+const pills = () => val(`(() => Array.from(document.querySelectorAll('button')).filter((b) => { const r = b.getBoundingClientRect(); if (r.width < 20 || r.height < 10) return false; const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return top !== null && b.contains(top) && /^(How it works|Comment ça marche)$/.test(b.getAttribute('aria-label') || '') && b.innerText.trim() === '?' }).map((b) => { const cs = getComputedStyle(b); const r = b.getBoundingClientRect(); return { h: Math.round(r.height), radius: cs.borderTopLeftRadius, border: cs.borderTopWidth, font: cs.fontSize, cls: b.className.split(' ')[0], kb: b.getAttribute('data-kb') || b.getAttribute('data-act') || '' } }))()`)
 
 try {
   await sleep(3000)
@@ -140,6 +144,7 @@ try {
   console.log('\n── one « ? How it works » button, the same on every page ──')
   const forms = []
   const looks = async (label, ok, getter) => {
+    if (ok !== true && frozen) { skipped.push(label); return }
     if (ok !== true) { check(label + ' — the page opens', false); return }
     await sleep(900)
     const p = await getter()
@@ -163,7 +168,7 @@ try {
   // The pages that style every button of their own (« button{font:inherit} »): the pill must not follow them.
   for (const label of ['Commands', 'Workers', 'Theme', 'Web Search', 'Kybernos Suite']) await looks(label, await goTo(label), pills)
   const shapes = new Set(forms.map((f) => f.split(':')[1]))
-  check('the same size, round ends, border and font on all of them (' + forms.length + ' pages)', forms.length >= 15 && shapes.size === 1 && [...shapes][0].startsWith('30/16px/1px/12.5px'), forms)
+  check('the same size, round ends, border and font on all of them (' + forms.length + ' pages)', forms.length >= 15 - skipped.length && shapes.size === 1 && [...shapes][0].startsWith('30/16px/1px/12.5px'), forms)
 
   // ═══ Phone and channels ═══
   console.log('\n── Phone and channels ──')
@@ -196,7 +201,7 @@ try {
   check('closed once, remembered', (await hasIntro('kybernos-plugin-presets')) === false && (await store('kybernos-plugin-presets')) === 'closed')
   await goTo('Models')
   // Models and Built-in plugins carry a help card only (a host for the pill, no animated introduction); the other pages of DSH have neither.
-  check('Models has the help pill and no animation (a host for the pill only)', (await poll(() => val(`!!document.querySelector('[data-kb="native-intro-host"]') && !!document.querySelector('[data-kb="help-button"][data-id="kybernos-plugin"][data-page="models"]')`), 8000)) === true && (await val(`!document.querySelector('[data-kb="help-intro"]')`)) === true)
+  check('Models has the help button and no animation', (await poll(() => val(`!!document.querySelector('[data-kb="help-button"][data-id="kybernos-plugin"][data-page="models"]')`), 8000)) === true && (await val(`!document.querySelector('[data-kb="help-intro"]')`)) === true)
   await goTo('General')
   check('the other DSH pages are left alone (General: no host, no animation)', (await val(`!document.querySelector('[data-kb="native-intro-host"]') && !document.querySelector('[data-kb="help-intro"]')`)) === true)
   await goTo('Agent presets')
@@ -244,7 +249,7 @@ try {
   await goTo('Tools')
   await sleep(1500)
   const tt = await cardText('kybernos-plugin', 'tools')
-  check('Tools says what it adds to a profile and points to Workers', tt !== null && /Tools add abilities to a DSH profile/.test(tt) && /own page, Workers/.test(tt), tt)
+  check('Tools says what it adds to a profile and says the coding assistants live in Workers', tt !== null && /Tools add abilities to a DSH profile/.test(tt) && /managed only in Workers/.test(tt), tt)
   await shot('tools')
   await goTo('Workers')
   await sleep(1500)

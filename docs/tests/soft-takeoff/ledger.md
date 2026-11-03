@@ -21,26 +21,30 @@ Text only: no screenshots, no logs, no personal paths (`AGENTS.md` rule 4). Evid
 
 ## Wave W1 (2026-11-03): what a person sees, on the frozen build
 
-Script cases by the runner on three sandboxes (A desktop account, C never paired), the freeze applied (33 bundles on, 18 off, 3 services); Haiku walkthroughs through `scripts/takeoff-walk.mjs`. About five hours, most of it spent on the environment (see the process findings). **The wave is not at its gate**: no P0 is red, but P1 cases are red or blocked and nine defects are listed below.
+Script cases by the runner on two sandboxes (A desktop account, C never paired); Haiku walkthroughs through `scripts/takeoff-walk.mjs`. **The first full pass was read on the wrong build**: five bundles the plan marks on were still disabled by the owner's patch (T-014). The freeze was corrected and the script cases were replayed on it (below); the five Haiku walkthroughs were not replayed.
 
-| Case | Result |
+**Gate (all P0 pass, no open P0/P1): not reached, for two reasons that are not product defects.** The P0 case W1-03 is blocked (no model that can create), and the P0 case W1-08 and the P1 case W1-13 were green only on the retry. No script case is red and no P0/P1 defect is open. Three more cases wait on an owner decision or a resource (W1-11, W1-14, W1-22). One defect is open for the owner (T-011).
+
+| Case | Result (corrected freeze) |
 |---|---|
-| W1-01 first-run wizard | pass (on C: needs an unpaired sandbox) |
-| W1-02 new-chat page | pass (after T-001, T-006) |
-| W1-04 dead clicks | pass |
-| W1-07 Theme page, W1-13, W1-15 (freeze live), W1-16, W1-17 (Slides) | pass |
-| W1-12 contrast, icons, hit targets | pass after T-007 (151 s) |
-| W1-05 Settings menu, search, titles, help | **red, P2**: one drift check, three index rows (T-009); the menu, titles and help checks pass |
-| W1-06 first-visit animations | red, test side: 22 stale assertions (T-005) |
-| W1-09 onboarding on a phone | red, test side: expects the old first-run flow (T-010); its drawer half passes |
+| W1-01 first-run wizard, desktop and the phone app's variant | pass on C (265 s; the phone script alone: 45 ✓) |
+| W1-02 new-chat page | pass |
+| W1-04 dead clicks | pass (626 s) |
+| W1-05 Settings menu, search, titles, help | pass (after T-005, T-009) |
+| W1-06 first-visit animations | pass (61 ✓, after T-005) |
+| W1-07 Theme page, W1-12 contrast, icons, hit targets | pass |
+| W1-08 languages | flaky: red once, green on the retry (18 min, the red log was not kept: the runner now keeps it); the audit of the French literals is green |
+| W1-09 phone width | pass (33 ✓; it was 2 ✓ and 16 skips before T-015) |
+| W1-10 account menu (A), W1-18 footer signed out (C) | pass, pass |
+| W1-13 Skills Featured | flaky: red once, green on the retry (red log not kept) |
+| W1-15 freeze live, W1-16, W1-17 (Slides) | pass (the freeze check now also sees an « on » bundle disabled in the patch: 22 ✓) |
 | W1-03 creations pages | blocked: needs a creation, and the replica model cannot make one |
-| W1-08, W1-10 | not run after the account A session expired; A is signed in again now, to run |
 | W1-11 Plugins page | blocked: `kybernos-registry` is frozen (owner question 6) |
 | W1-14 connectors gate | not applicable here: needs a server line with the public catalogue route (owner question 7) |
-| W1-20 newcomer (Haiku) | pass; the first « fail » was the driver (process finding 6) |
-| W1-21, W1-23 (Haiku) | informative: they found the small controls on a phone (T-013); their `repo_clean` was voided by my own edits |
-| W1-22 creator (Haiku) | blocked: the stand-in model answers one fixed sentence (process finding 11); it saw one text drift (T-012) |
-| W1-24 French speaker (Haiku) | partial: the wizard reads well in French up to the « Kaby » step; the plan page was not reached; one open question (T-011) |
+| W1-20 newcomer (Haiku) | pass, on the earlier build |
+| W1-21, W1-23 (Haiku) | informative, on the earlier build: small controls on a phone (T-013) |
+| W1-22 creator (Haiku) | blocked: the stand-in model answers one fixed sentence (process finding 11); one text drift (T-012) |
+| W1-24 French speaker (Haiku) | partial, on the earlier build; the question it raised is reproduced by script (T-011) |
 
 ## Defects
 
@@ -50,15 +54,19 @@ Script cases by the runner on three sandboxes (A desktop account, C never paired
 | T-002 | W1-02 | P2 | none: « on a phone the dialog fits the width and its main button can be reached » returns no dialog | Not the product: a probe in the same sandbox opens the Slides example dialog at 1400 px and at 390 px. The check depends on state left by the video block it now skips (the type is lit before the resize; the probe lights it after) | none needed | 1 | closed: passes in the W1 run, not seen again (order-dependent) |
 | T-003 | W1-01 | P2 | none: the check went red on a healthy first run | Four stale assertions: Kaby is optional in the menu now, the Dashboards and Workspaces rows come from other bundles, the type tiles are counted without the Dashboards and Apps tiles | `scripts/check-onboarding-live.mjs` (uncommitted) | 1 | fixed (W1-01 green) |
 | T-004 | W1-05 | P2 | none: the Settings navigation check went red on a healthy menu | The Interface and System group rows changed (bundles on or off); the check expected a fixed list | `scripts/check-settings-nav-live.mjs`: those rows tolerant (uncommitted) | 1 | fixed |
-| T-005 | W1-06 | P2 | none | The first-visit help check expects a « ? How it works » label, which is a bare « ? » since 2026-11-02, and the Calls page, which is frozen | not done | 0 | open, test side |
+| T-005 | W1-06 | P2 | none | The first-visit help check looked for a button whose text is « ? How it works »; since 2026-11-02 it is a bare « ? » labelled « How it works », and two pages (Calls, Atlas) are not in the frozen menu; the Models and Tools assertions described pages before the redesign | `check-help-intro-live.mjs` finds the button by its label, `--frozen` skips pages absent from the menu, the Models and Tools lines follow the pages | this commit | 1 | fixed, test side (61 ✓, 0 ✗ on the frozen build) |
 | T-006 | W1-02 | P2 | On a phone, with bundles off, a type tile label could be cut mid-word and its « Not enabled » tag could run out of the tile | The tile grid kept three columns under 480 px with a tag wider than the tile | `packages/kybernos-plugin/client.js`: a container rule under 480 px; new assertion in `check-newchat-live.mjs`, red without the rule and green with it (uncommitted) | 1 | fixed |
 | T-007 | W1-12 | P2 | Two controls had a hit area under 24 px: the Tools on/off switch and the « × » that deletes a theme | No minimum size on `.kbt2-sw` and `.kbth-st-x` | `min-height: 24px` on the switch (`kybernos-plugin`), `min-width` and `min-height: 24px` on the theme delete button (`kybernos-theme`) (uncommitted) | 2 | fixed (W1-12 green) |
 | T-008 | W1-20 | tool | A Haiku tester saw « Continue » do nothing | Not the product: the shared click helper picked a hidden duplicate of the button and clicked at once. Verified on the page: the button is not covered, the screen does not redraw | `scripts/takeoff-walk.mjs` clicks the visible element on top | 1 | closed |
-| T-009 | W1-05 | P2 | Searching the Settings for « families » or « live » on the Activity log, or « install a sector template » on Templates, opens the right page but the label promised is not on it (the page shows the families as unlabelled chips, a « Live » switch, and « Add templates to Kybernos ») | The search index rows were written for an earlier wording of those pages | not done: add the labels to the pages or retarget the rows (a UX call) | 0 | open |
-| T-010 | W1-09 | P2 | none | `check-onboarding-phone-live.mjs` expects the first-run flow of before the redesign (no welcome, model question first); 35 checks go red on the wizard as it is now | not done: W1-01 covers the desktop flow, W1-23 the phone by walkthrough | 0 | open, test side |
-| T-011 | W1-24 | P2 | After choosing Français in the first-run wizard and leaving it with the top-right « Passer », the new-chat page is in English | Not known: one Haiku run, not reproduced by a script; the language may only be saved by the wizard's last step | not done: reproduce by script, then decide whether skipping should keep the language | 0 | to triage |
+| T-009 | W1-05 | P2 | Searching the Settings for « families » or « live » on the Activity log, or « install a sector template » on Templates, opened the right page but the label promised was not on it | The index rows were written for an earlier wording of those pages | The three rows now promise what the pages show: « Family », « Live », « From a catalogue » (English and French) | this commit | 1 | fixed (the live search check is green, 15 ✓) |
+| T-010 | W1-09 | P2 | none | `check-onboarding-phone-live.mjs` failed at « the wizard opens » and 35 checks went red | My first reading (« the check expects the flow of before the redesign ») was wrong: the case ran it on A, which is signed in, so the wizard never opens. On C it passes whole (45 ✓, 0 ✗, six screens fit 390 × 844) | the phone wizard script moves from W1-09 to W1-01, persona C; persona C is added to the plan | this commit | 1 | closed: wrong persona, not a stale check |
+| T-011 | W1-24 | P2 | After choosing Français in the first-run wizard and leaving it with « Passer », the new-chat page is in English, and still is after a reload | Reproduced by script on C (`takeoff-walk`, evidence `repro-t011`). Not specific to « Passer »: the wizard keeps its language to itself and only writes it into `onboarding.json` (`lang: "fr"`); nothing applies it to the app's language (DSH's locale) | not done: a product call, see README § 9 question 12 | 0 | open, owner decision |
 | T-012 | W1-22 | P3 | The Agent Teams empty state says « Create one with “New Agent Team” » and the page has a « Create » menu | A text that names a button that is not there (Haiku, one run) | not done | 0 | to confirm |
 | T-013 | W1-21, W1-23, W1-24 | P2 | Controls of the first-run wizard are small: EN 61×27, Skip 32×29, Back 59×29 on desktop; on a phone 29 to 31 px high, and the option links 27 px | No minimum size; the hit-target check floor is 24 px | not done: owner question 9 | 0 | open |
+| T-014 | all W1 | P1 | none for a person, but every W1 verdict before this line was read on the wrong build: the Summary tab, the Calls page, the create-workspace dialog, the free models and Mermaid were missing from the « frozen » sandbox | `plugins.json` marks five bundles on (`kybernos-summary`, `kybernos-call`, `kybernos-multi-device`, `kybernos-free-llms`, `dsh-mermaid`) that the sandbox profile's `cordis.patch.yml` carries as `disabled: true`: a sandbox is cloned from the owner's profile, where he switched them off on 10-27. The freeze only took the « off » bundles out, and `check-freeze-live` only looks at the off side and at `/state` | `soft-takeoff-freeze.mjs` also takes the `disabled: true` line off a bundle the plan marks on (pure `enableOn`, backup of the patch, `--undo`); applied to A and C | this commit | 1 | fixed; the W1 cases were replayed (see the table) |
+| T-015 | W1-09 | P1 | none | `check-phone-width-live.mjs` passed with 2 checks and 16 « did not open »: on a phone, `openSettings` pressed the account chip, which sits in the closed drawer, off screen, and nothing opened; only the first page was ever measured | `live-page.mjs` `openSettings` presses the sidebar's own trigger when the chip opened nothing | this commit | 1 | fixed (33 ✓, 0 ✗) |
+| T-016 | W1-08 | P1 | none | The language check expected the Bricks, 3D modeller and Motion panels, the Atlas page and the Computers menu, which are off in the freeze (28 ✗ in the first run; it had not run since the account session expired) | `check-language-creation-live.mjs --frozen` skips a surface whose plugin is off and lists it | this commit | 1 | fixed, test side |
+| T-017 | W1-10 | P2 | none | One case asked for two opposite sandboxes: the account menu needs a connected account (A), the signed-out footer needs a never-paired one (C); it came back « blocked » on A and on C | split: W1-10 (A, account menu) and W1-18 (C, footer) | this commit | 1 | fixed, plan side |
 
 ## Process findings
 
@@ -76,5 +84,9 @@ Script cases by the runner on three sandboxes (A desktop account, C never paired
 12. **Do not edit the repository while a tester runs.** It voids `repo_clean`: two Haiku verdicts were lost to it.
 13. **W1-01 and W1-24 need an unpaired sandbox** with `onboarding.json` set to `completed:false`; and the sandbox is a clone of the owner's profile, not a fresh install.
 14. **Haiku is good at measuring and at walking, weak at reading what a screen means.** Its « fail » verdicts were findings, not defects: each needs a script or a second look before it counts (T-011, T-012).
+15. **A plan that says « on » must be checked as « on ».** The first freeze only removed what the plan marked off; five bundles marked on stayed disabled by the owner's own patch, and nothing noticed for a whole wave (T-014). The freeze now enables them.
+16. **« Did not open » and « not run » are not a pass.** The phone-width check printed 2 ✓ and 16 ○ and exited 0 (T-015). A run summary has to show the skips next to the passes, and a case with more skips than checks is read as blocked.
+17. **A case that needs two opposite sandboxes is two cases** (T-017): a connected account (A) and a never-paired one (C) cannot share one command.
+18. **A chained command hides what comes after its first failure.** W1-05 and W1-08 chain several scripts with `&&`: the later ones had never run before the earlier ones went green (the help check and the i18n audit).
 
 State: `open` | `fixed` (case and ring green) | `closed` (not a product defect, or not seen again) | `to triage` | `to confirm` | `flaky` | `wontfix` (owner decision, with the workaround) | `escalated` (3 attempts).

@@ -154,14 +154,15 @@
       "wave": "W1",
       "prio": "P0",
       "area": "first run",
-      "title": "First-run wizard: display mode, model choice, free-account offer, finish",
+      "title": "First-run wizard: display mode, model choice, free-account offer, finish; and the phone app's variant",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs && node scripts/check-onboarding-phone-live.mjs",
       "env": "sandbox",
       "personas": [
-        "A"
+        "C"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Runs on sandbox C only: the wizard opens only on a profile that was never paired and whose kybernos/onboarding.json says completed:false. On A (signed in) it does not open, and the phone variant fails at « the wizard opens » (T-010: a wrong persona, the check itself is current). Both scripts write the sandbox's settings and put them back."
     },
     {
       "id": "W1-02",
@@ -217,13 +218,13 @@
       "area": "settings",
       "title": "Settings menu, search, titles and « ? » help are consistent",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-settings-nav-live.mjs && node scripts/check-settings-search-live.mjs --frozen && node scripts/check-page-titles-live.mjs && node scripts/check-help-live.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-settings-nav-live.mjs && node scripts/check-settings-search-live.mjs --frozen && node scripts/check-page-titles-live.mjs && node scripts/check-help-live.mjs --frozen",
       "env": "sandbox",
       "personas": [
         "A"
       ],
       "status": "ready",
-      "note": "The search check runs with --frozen: pages of switched-off bundles are not in the menu and are listed as skipped. Three index rows still drift on the live pages (Activity log › Families and Live tail, Templates › Install a sector template): ledger T-009."
+      "note": "The search and help checks run with --frozen: pages of switched-off bundles (Calls, Atlas, Servers, Kaby…) are not in the menu and are listed as skipped, not red. The three index rows that drifted (Activity log › Family and Live, Templates › From a catalogue) were retargeted to the labels the pages show (T-009)."
     },
     {
       "id": "W1-06",
@@ -232,12 +233,13 @@
       "area": "help",
       "title": "First-visit animations and the article links",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --frozen",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "--frozen: a page that is not in the menu of the frozen build (Calls, Atlas) is skipped, not red."
     },
     {
       "id": "W1-07",
@@ -260,35 +262,37 @@
       "area": "language",
       "title": "English and French read as English and French; no French literal in English",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs && node scripts/audit-i18n-live.mjs --baseline",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs --frozen && node scripts/audit-i18n-live.mjs --baseline",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "--frozen: the surfaces of switched-off plugins (Bricks, 3D modeller, Motion, Atlas, the Computers menu) are skipped and listed, not red (T-016)."
     },
     {
       "id": "W1-09",
       "wave": "W1",
       "prio": "P0",
       "area": "phone",
-      "title": "Phone-width layout of the shell, Settings and first run",
+      "title": "Phone-width layout of the shell and Settings",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-mobile-live.mjs && node scripts/check-phone-width-live.mjs && node scripts/check-onboarding-phone-live.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-mobile-live.mjs && node scripts/check-phone-width-live.mjs",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "The first-run wizard on a phone is part of W1-01 (it needs the never-paired sandbox C)."
     },
     {
       "id": "W1-10",
       "wave": "W1",
       "prio": "P0",
       "area": "account",
-      "title": "Account menu and sidebar footer: plan, upgrade dialog, refusals of Subscribe",
+      "title": "Account menu of a connected account: plan, spaces, rows, sizes",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-account-menu-live.mjs && node scripts/check-footer-live.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-account-menu-live.mjs",
       "env": "sandbox",
       "personas": [
         "A"
@@ -296,7 +300,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "Needs a connected account (A): signed out, the card opens the off menu and the check exits 3. The signed-out footer is W1-18."
     },
     {
       "id": "W1-11",
@@ -406,6 +411,24 @@
       "watch": [
         "slides"
       ]
+    },
+    {
+      "id": "W1-18",
+      "wave": "W1",
+      "prio": "P0",
+      "area": "account",
+      "title": "Sidebar footer signed out and signed in: one button, its menus, the Upgrade dialog, refusals of Subscribe",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-footer-live.mjs --frozen",
+      "env": "sandbox",
+      "personas": [
+        "C"
+      ],
+      "status": "ready",
+      "watch": [
+        "cloud-budget"
+      ],
+      "note": "Runs on C (never paired): the signed-out footer must be there; the connected scenes are answered inside the page, nothing leaves the machine. On a connected sandbox it exits 3."
     },
     {
       "id": "W1-20",

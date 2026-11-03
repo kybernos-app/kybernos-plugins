@@ -34,7 +34,7 @@ export function checkPlan ({ cases, plugins, readme, packages, exists }) {
     if (!ENVS.includes(c.env)) bad.push(`${at}: env ${c.env}`)
     if (!PRIOS.includes(c.prio)) bad.push(`${at}: prio ${c.prio}`)
     if (!c.title) bad.push(`${at}: no title`)
-    if (!Array.isArray(c.personas) || c.personas.length === 0 || c.personas.some((p) => p !== 'A' && p !== 'B')) bad.push(`${at}: personas must be A and/or B`)
+    if (!Array.isArray(c.personas) || c.personas.length === 0 || c.personas.some((p) => p !== 'A' && p !== 'B' && p !== 'C')) bad.push(`${at}: personas must be A, B and/or C`)
     if (c.light !== undefined && (c.light !== true || c.runner !== 'script' || c.status !== 'ready')) bad.push(`${at}: a light case must be a ready script case`)
     if (c.expect !== undefined && (!['pass', 'fail'].includes(c.expect) || c.runner !== 'script')) bad.push(`${at}: expect must be pass or fail on a script case`)
     if (c.watch !== undefined && (!Array.isArray(c.watch) || c.watch.some((w) => !WATCHES.includes(w)))) bad.push(`${at}: unknown watch tag`)

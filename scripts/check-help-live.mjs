@@ -2,7 +2,9 @@
 // The help of the plugins, in a real GUI: the « ? How it works » button on the page of each plugin that has one, and the
 // help on the module's page in the Suite.
 //
-//   source scripts/sandbox/env.sh && node scripts/check-help-live.mjs [--shots <dir>]
+//   source scripts/sandbox/env.sh && node scripts/check-help-live.mjs [--shots <dir>] [--frozen]
+//
+//   --frozen   a build whose plugins are frozen (docs/tests/soft-takeoff/plugins.json): a page of a plugin that is off (Atlas) is skipped, not red
 //
 // Needs a DSH that serves this checkout (scripts/sandbox/start.sh): the help button and the catalogue's `aide` live in
 // the hub and in the plugins of the checkout. Refuses :3080. Read-only: nothing here changes a setting.
@@ -23,6 +25,7 @@ import { helpSource, describeHelpSource } from './lib-help-source.mjs'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
+const frozen = args.includes('--frozen')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
@@ -120,6 +123,7 @@ try {
   console.log('\n── pages that already had a help ──')
   for (const [label, dir] of OWN_HELP) {
     const went = await goTo(label)
+    if (went !== true && frozen) { console.log('  ○ ' + label + ' is not in the menu of this frozen build: skipped'); continue }
     check(label + ' — keeps its own help, no second button', went === true && (await helpButton(dir)) === false, { went })
   }
   // Auto Routing draws the shared « ? How it works » pill itself, in its own header (A5-19): exactly one, never a second one from the hub.

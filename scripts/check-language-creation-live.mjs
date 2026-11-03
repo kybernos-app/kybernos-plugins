@@ -2,7 +2,10 @@
 // The creation surfaces speak the language of the page, in a real GUI (WP-07a of the 2026-10-16 audit: A2-31, A2-08, A2-07, A2-19,
 // A2-18, A2-24, A1-23).
 //
-//   source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs [--shots <dir>] [--langs en,kybernos,es,ar]
+//   source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs [--shots <dir>] [--langs en,kybernos,es,ar] [--frozen]
+//
+//   --frozen   a build whose plugins are frozen (docs/tests/soft-takeoff/plugins.json): the surfaces of a plugin that is off (Bricks, 3D modeller, Motion, Atlas, the
+//              Computers environment menu) are skipped and listed, not red; the others are checked as always
 //
 // Needs a DSH that serves this checkout (scripts/sandbox/start.sh); refuses :3080 and any DSH home that is not a sandbox's. It never
 // touches DSH's own stored language: the language of Kybernos is set in the throw-away browser (localStorage `kybernos.theme.lang`, the
@@ -20,6 +23,8 @@ import { clickText, openLivePage, openSettings, waitFor } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
+const frozen = args.includes('--frozen')
+const skipped = new Set()
 const LANGS = (args.includes('--langs') ? args[args.indexOf('--langs') + 1] : 'en,kybernos,es,ar').split(',')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
@@ -104,7 +109,8 @@ try {
     const menuBtn = await val(`(document.querySelector('button.kbmob-menu') || { getAttribute: () => null }).getAttribute('aria-label')`)
     check('the menu button of the phone layout is named in the language of the page (A1-23)', menuBtn === (french ? 'Ouvrir le menu' : 'Open the menu'), menuBtn)
     const env = await val(`(document.querySelector('[data-kb="computer-env-button"]') || { innerText: '', title: '' }).innerText + ' | ' + (document.querySelector('[data-kb="computer-env-button"]') || { title: '' }).title`)
-    check('the composer\'s « where it runs » menu is in the language (A2-18)', french ? /Ce poste/.test(env) && /Environnement/.test(env) : /This machine/.test(env) && /Execution environment/.test(env), env)
+    if (frozen && env.replace(/[\s|]/g, '') === '') skipped.add('the composer\'s environment menu (Computers is off)')
+    else check('the composer\'s « where it runs » menu is in the language (A2-18)', french ? /Ce poste/.test(env) && /Environnement/.test(env) : /This machine/.test(env) && /Execution environment/.test(env), env)
 
     // ── the right sidebar: the start list, then each creation panel ──
     // The sandbox keeps the right pane from one run to the next (open or closed, with the tabs of the last run): open it if it is
@@ -117,7 +123,9 @@ try {
       await sleep(1000)
       start = await startList()
     }
-    const names = french ? ['Résumé', 'Briques', 'Slides', 'Modeleur'] : ['Summary', 'Bricks', 'Slides', '3D modeller']
+    // A panel of a plugin that is off is not in the list of a frozen build: it is neither required nor opened.
+    const OFF = frozen ? ['Bricks', '3D modeller', 'Motion'] : []
+    const names = (french ? ['Résumé', 'Briques', 'Slides', 'Modeleur'] : ['Summary', 'Bricks', 'Slides', '3D modeller']).filter((n) => !OFF.includes(french ? { Briques: 'Bricks', Modeleur: '3D modeller' }[n] || n : n))
     check('the right-sidebar start list names the creation panels in the language (A2-31)', names.every((n) => start.includes(n)), start.slice(0, 30))
     check('…and no French name in another language, no English name in French', french ? !start.includes('Bricks') && !start.includes('3D modeller') : !start.includes('Briques') && !start.includes('Modeleur'), start.slice(0, 30))
     await shot('start-' + lang)
@@ -132,6 +140,7 @@ try {
       { en: 'Dashboard', fr: 'Dashboard', root: '[data-kb="dashboards-pane"]', want: french ? ['Pas encore de dashboard'] : ['No dashboard yet'] },
     ]
     for (const p of PANELS) {
+      if (OFF.includes(p.en)) { skipped.add('the ' + p.en + ' panel (its plugin is off)'); continue }
       if (!(await click(rowByText(french ? p.fr : p.en)))) { check('the « ' + (french ? p.fr : p.en) + ' » row opens', false, start.slice(0, 30)); continue }
       const body = await waitFor(page, `(() => { const t = ${RIGHT_PANE}; return ${JSON.stringify(p.want)}.some((w) => t.includes(w)) ? t : '' })()`, 8000) || await val(RIGHT_PANE)
       check('the ' + p.en + ' panel opens', typeof body === 'string' && body !== '' && !/^Start/.test(body.split(' | ')[0] || ''), body)
@@ -145,7 +154,8 @@ try {
     }
 
     // ── the Atlas page (A2-19) ──
-    if (await openSettings(page, { minCells: 3 })) {
+    if (frozen) skipped.add('the Atlas page (its plugin is off)')
+    else if (await openSettings(page, { minCells: 3 })) {
       if (await clickText(page, 'Atlas')) {
         await sleep(1500)
         const atlas = await waitFor(page, `(() => { const e = document.querySelector('[data-kb="atlas"]'); return e ? e.innerText : '' })()`, 8000)
@@ -169,5 +179,6 @@ try {
 } finally {
   await live.close()
 }
+if (skipped.size > 0) console.log('\n  (frozen build, skipped: ' + [...skipped].join('; ') + ')')
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

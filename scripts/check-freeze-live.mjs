@@ -12,6 +12,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cookieDeSession } from './cdp-lib.mjs'
+import { profilePatch } from './dsh-home.mjs'
+import { enableOn } from './soft-takeoff-freeze.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const HOST = process.env.KB_HOST || ''
@@ -55,6 +57,11 @@ const controls = on.filter((d) => hostStateRoute(d))
 const answers = await Promise.all(controls.map(async (d) => [d, await get('/' + d + '/state')]))
 const dead = answers.filter(([, s]) => s === 404 || s === null).map(([d]) => d)
 check(`the /state route of the ${controls.length} bundles that are on answers (a 404 there would make the next checks meaningless)`, controls.length >= 3 && dead.length === 0, { dead })
+
+// A bundle marked on that the profile's patch carries as « disabled: true » never loads, and a bundle with no host route cannot tell (the freeze once left five of them off).
+const patch = profilePatch()
+if (patch === null) check('the profile patch can be read', false)
+else check('no bundle marked on is disabled in the profile patch', enableOn(patch, plan).enabled.length === 0, enableOn(patch, plan).enabled)
 
 let swept = 0
 for (const dir of off) {

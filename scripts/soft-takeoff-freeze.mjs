@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Applies the bundle freeze of docs/tests/soft-takeoff/plugins.json to a SANDBOX profile: every bundle marked « off » is taken out of dsh.profile.bundles
-// (its link stays in the dependencies, so putting it back is one line). The owner's real profile is never touched.
+// (its link stays in the dependencies, so putting it back is one line), and every bundle marked « on » that the profile's patch (cordis.patch.yml) carries
+// as « disabled: true » (a sandbox is cloned from the owner's profile, where he has switched some off) has that line taken out, or it would never load.
+// The owner's real profile is never touched.
 //
 //   node scripts/soft-takeoff-freeze.mjs --profile <sandbox home>/.dsh/profiles/web [--plan <plugins.json>] [--dry-run] [--undo]
 //
-// The first run keeps the profile's package.json as package.json.takeoff-orig; --undo puts it back. The sandbox DSH must be restarted to load the change
+// The first run keeps the profile's package.json and cordis.patch.yml as <file>.takeoff-orig; --undo puts them back. The sandbox DSH must be restarted to load the change
 // (scripts/sandbox/stop.sh, then start.sh). Refuses any profile that is not inside a `.kybernos-sandbox` folder (real path, links resolved).
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -27,6 +29,19 @@ export const freeze = (bundles, plan, nameOf) => {
   return { next: bundles.filter((b) => !drop.has(b)), removed, absent, kept: bundles.length - removed.length }
 }
 
+/** Pure. `patchText`: the profile's cordis.patch.yml. A « - id: X » entry followed by « disabled: true » loses that line when the plan marks X on. Returns { next, enabled }. */
+export const enableOn = (patchText, plan) => {
+  const lines = patchText.split('\n')
+  const out = []
+  const enabled = []
+  for (let i = 0; i < lines.length; i += 1) {
+    out.push(lines[i])
+    const m = /^- id: (\S+)\s*$/.exec(lines[i])
+    if (m !== null && i + 1 < lines.length && /^\s+disabled: true\s*$/.test(lines[i + 1]) && plan.bundles && plan.bundles[m[1]] && plan.bundles[m[1]].state === 'on') { enabled.push(m[1]); i += 1 }
+  }
+  return { next: out.join('\n'), enabled }
+}
+
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   const argv = process.argv.slice(2)
   const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d }
@@ -36,10 +51,13 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   const pkgFile = join(resolve(profile), 'package.json')
   if (!isSandboxFile(pkgFile)) refuse('not a sandbox profile (the folder must be inside a .kybernos-sandbox folder): ' + profile)
   const backup = pkgFile + '.takeoff-orig'
+  const patchFile = join(resolve(profile), 'cordis.patch.yml')
+  const patchBackup = patchFile + '.takeoff-orig'
   if (argv.includes('--undo')) {
     if (!existsSync(backup)) refuse('nothing to undo: no ' + backup)
     copyFileSync(backup, pkgFile)
-    console.log('restored the profile package.json from its backup; restart the sandbox')
+    if (existsSync(patchBackup)) copyFileSync(patchBackup, patchFile)
+    console.log('restored the profile package.json and patch from their backups; restart the sandbox')
     process.exit(0)
   }
   const plan = JSON.parse(readFileSync(resolve(opt('--plan', join(REPO, 'docs/tests/soft-takeoff/plugins.json'))), 'utf8'))
@@ -50,10 +68,19 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   const r = freeze(list, plan, nameOf)
   console.log(`${r.removed.length} bundles taken out, ${r.absent.length} already absent, ${r.kept} kept${argv.includes('--dry-run') ? ' (dry run: nothing written)' : ''}`)
   for (const n of r.removed) console.log('  - ' + n)
-  if (!argv.includes('--dry-run') && r.removed.length > 0) {
+  const patch = existsSync(patchFile) ? enableOn(readFileSync(patchFile, 'utf8'), plan) : { next: '', enabled: [] }
+  console.log(`${patch.enabled.length} bundles marked on were disabled in the patch${argv.includes('--dry-run') ? ' (dry run: nothing written)' : ''}`)
+  for (const n of patch.enabled) console.log('  + ' + n)
+  if (!argv.includes('--dry-run') && (r.removed.length > 0 || patch.enabled.length > 0)) {
     if (!existsSync(backup)) copyFileSync(pkgFile, backup)
-    pkg.dsh.profile.bundles = r.next
-    writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n')
+    if (r.removed.length > 0) {
+      pkg.dsh.profile.bundles = r.next
+      writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n')
+    }
+    if (patch.enabled.length > 0) {
+      if (!existsSync(patchBackup)) copyFileSync(patchFile, patchBackup)
+      writeFileSync(patchFile, patch.next)
+    }
     console.log('written; restart the sandbox (scripts/sandbox/stop.sh, then start.sh)')
   }
 }

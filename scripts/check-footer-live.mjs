@@ -1,7 +1,8 @@
 // The sidebar footer on a REAL page: ONE button (the profile row, or « Sign in / Sign up »), the menu it opens in both states, the links,
 // the Upgrade dialog with every state of « Subscribe », and DSH's account popover never showing.
 //
-//   source scripts/sandbox/env.sh && node scripts/check-footer-live.mjs [--shots /tmp/shots]
+//   source scripts/sandbox/env.sh && node scripts/check-footer-live.mjs [--shots /tmp/shots] [--frozen]
+//   --frozen: a build whose plugins are frozen (docs/tests/soft-takeoff/plugins.json): the place of the Servers page, which is off there, is not checked
 //
 // Background: the settings seat of DSH's sidebar renders the ACCOUNT launcher (slot `settings.launcher`); its trigger opens a popover
 // « Settings / Feedback / Sign in ». The footer used to click that trigger to reach Settings. Now the core plugin owns the seam
@@ -775,7 +776,9 @@ try {
     const heads = flow.filter((x) => x.head).map((x) => x.t)
     check('the group headers are the eight folds, in order: no « Account » header any more, and none named like a page (« Kybernos »)', heads.join('|') === 'Models & routing|Agents|Skills & tools|Memory & context|Voice & calls|Interface|Devices & cloud|System' && !heads.includes('Account') && !heads.includes('Kybernos'), heads)
     const at = flow.findIndex((x) => x.head && x.t === 'Devices & cloud')
-    check('Servers (kept where it was) is first under Devices & cloud', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers', flow.slice(at, at + 3))
+    // On a frozen build (--frozen, docs/tests/soft-takeoff/plugins.json) the Servers page is off: the fold then opens on the next page, which is not a defect.
+    if (process.argv.includes('--frozen') && !flow.some((x) => x.key === 'kybernos-servers')) console.log('  ○ Servers is not in the menu of this frozen build: its place under Devices & cloud is not checked')
+    else check('Servers (kept where it was) is first under Devices & cloud', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers', flow.slice(at, at + 3))
     const mem = flow.findIndex((x) => x.head && x.t === 'Memory & context')
     const memEnd = flow.findIndex((x, i) => i > mem && x.head)
     const memGroup = flow.slice(mem + 1, memEnd < 0 ? flow.length : memEnd).map((x) => x.key)

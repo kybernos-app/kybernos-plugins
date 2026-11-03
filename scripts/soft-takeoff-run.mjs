@@ -73,14 +73,18 @@ for (const c of pick) {
   let r = prep.code === 0 ? await runOnce(c.cmd, limit) : { code: 3, ms: prep.ms, text: 'the --before command failed (exit ' + prep.code + '):\n' + prep.text }
   let v = verdictOf(r.code)
   let attempts = 1
+  const failedTexts = []
   for (let i = 0; i < retries && (v === 'fail' || v === 'timeout') && c.expect !== 'fail'; i++) {
     await ready()
+    failedTexts.push(r.text)
     const again = await runOnce(c.cmd, limit)
     attempts += 1
     if (verdictOf(again.code) === 'pass') { v = 'flaky'; r = { ...again, ms: r.ms + again.ms }; break }
     r = { ...again, ms: r.ms + again.ms }
   }
   writeFileSync(join(outDir, c.id + '.log'), r.text)
+  // A case that went red and then green is « flaky »: the log of the red attempt is what tells why, so it is kept beside the final one.
+  failedTexts.forEach((t, i) => writeFileSync(join(outDir, c.id + '.attempt' + (i + 1) + '.log'), t))
   const verdict = {
     case: c.id, verdict: v, host: null, exit_code: typeof r.code === 'number' ? r.code : null, ms: r.ms, attempts,
     steps: [{ n: 1, did: 'ran: ' + c.cmd, saw: 'exit code ' + r.code, ok: v === 'pass' || v === 'flaky' }],

@@ -40,6 +40,7 @@ try {
   check('exit 3 is blocked, not fail', verdict(out, 'W9-03').verdict === 'blocked')
   check('a case past its own timeout is a timeout, killed', verdict(out, 'W9-04').verdict === 'timeout' && verdict(out, 'W9-04').ms < 10000)
   check('fail then pass on the single retry is flaky, with two attempts', verdict(out, 'W9-05').verdict === 'flaky' && verdict(out, 'W9-05').attempts === 2)
+  check('the log of the red attempt of a flaky case is kept beside the final one', existsSync(join(out, 'W9-05.attempt1.log')))
   check('a canary that gets the verdict it expects is ok, a wrong one is flagged', verdict(out, 'W9-06').canary.ok && verdict(out, 'W9-07').canary.ok && verdict(out, 'W9-08').canary.ok === false)
   const sum = JSON.parse(readFileSync(join(out, 'summary.json'), 'utf8'))
   check('a wrong canary counts as red; flaky and blocked do not', sum.red.includes('W9-08') && sum.red.includes('W9-02') && !sum.red.includes('W9-05') && !sum.red.includes('W9-03'))

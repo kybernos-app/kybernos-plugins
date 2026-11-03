@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freeze } from './soft-takeoff-freeze.mjs'
+import { enableOn, freeze } from './soft-takeoff-freeze.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const RUN = join(REPO, 'scripts/soft-takeoff-freeze.mjs')
@@ -23,6 +23,11 @@ const r = freeze(bundles, plan, (d) => names[d])
 check('a bundle marked off is taken out, the others and the engine\'s own stay', JSON.stringify(r.next) === JSON.stringify(['@deepseek-ai/dsh-base', '@local/kybernos', '@local/kybernos-theme']) && r.removed.join() === '@local/kybernos-pulse')
 check('an off bundle the profile never had is reported absent, not an error; a service is left alone', r.absent.includes('@local/kybernos-kyber') && r.absent.includes('kybernos-nope') && !r.next.includes('messaging'))
 check('applying it twice gives the same list', JSON.stringify(freeze(r.next, plan, (d) => names[d]).next) === JSON.stringify(r.next))
+
+const patchText = '- id: computer-use-cua-native\n  disabled: true\n- id: kybernos-summary\n  disabled: true\n- id: kybernos-pulse\n  disabled: true\n- id: kybernos-theme\n  config:\n    x: 1\n- id: kybernos-call\n'
+const en = enableOn(patchText, { bundles: { 'kybernos-summary': { state: 'on' }, 'kybernos-pulse': { state: 'off' }, 'kybernos-call': { state: 'on' } } })
+check('a bundle marked on loses its « disabled: true » line, nothing else moves', en.enabled.join() === 'kybernos-summary' && en.next === patchText.replace('- id: kybernos-summary\n  disabled: true\n', '- id: kybernos-summary\n'))
+check('a bundle marked off, or one the plan does not name, keeps its disabled line; applying it twice changes nothing', en.next.includes('kybernos-pulse\n  disabled: true') && en.next.includes('computer-use-cua-native\n  disabled: true') && enableOn(en.next, { bundles: { 'kybernos-summary': { state: 'on' } } }).next === en.next)
 
 const root = mkdtempSync(join(tmpdir(), 'kb-freeze-'))
 try {
@@ -42,6 +47,14 @@ try {
   run(['--profile', prof, '--plan', join(root, 'plan.json')])
   check('a second run does not overwrite that backup', readFileSync(file + '.takeoff-orig', 'utf8') === original)
   check('--undo puts the original back', run(['--profile', prof, '--undo']).status === 0 && readFileSync(file, 'utf8') === original)
+
+  // the patch: a bundle marked on that the profile's patch disables is enabled on a real run, and --undo puts the patch back
+  const patchFile = join(prof, 'cordis.patch.yml')
+  writeFileSync(patchFile, patchText)
+  writeFileSync(join(root, 'plan2.json'), JSON.stringify({ bundles: { 'kybernos-summary': { state: 'on' } } }))
+  const ran2 = run(['--profile', prof, '--plan', join(root, 'plan2.json')])
+  check('a real run enables the on bundle in the patch and keeps the original patch beside it', ran2.status === 0 && !/kybernos-summary\n  disabled/.test(readFileSync(patchFile, 'utf8')) && readFileSync(patchFile + '.takeoff-orig', 'utf8') === patchText)
+  check('--undo puts the patch back too', run(['--profile', prof, '--undo']).status === 0 && readFileSync(patchFile, 'utf8') === patchText)
 
   const outside = join(root, 'web')
   mkdirSync(outside)

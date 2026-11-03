@@ -6,7 +6,7 @@ A soft takeoff opens the product to a small invited audience, with a way back. T
 
 | File | What it holds |
 |---|---|
-| `cases.json` | The matrix: 82 cases in six waves, each with a priority, a runner (script, cheap agent or owner), an environment and a status |
+| `cases.json` | The matrix: 83 cases in six waves, each with a priority, a runner (script, cheap agent or owner), an environment and a status |
 | `plugins.json` | The proposed bundle freeze: which of the 54 packages stay on, which go off for the takeoff, and why |
 | `tester-brief.md` | The brief and the verdict format for the cheap tester (`.claude/agents/takeoff-tester.md` loads it) |
 | `ledger.md` | The defect ledger, text only, written by the lead session |
@@ -31,7 +31,7 @@ The owner's order: what is visible first, then models, the cloud computer, billi
 | Wave | Focus | Runs on | Cases (ready now) | Exit |
 |---|---|---|---|---|
 | W0 | Gates and environment | none / replica | 9 (8) | gates green, preflight proves a request reaches the server for both accounts, canaries behave |
-| W1 | What a person sees: first run, new chat, every page, Settings, languages, phone, five walkthroughs | sandbox + replica | 22 (20) | all P0 pass, ledger has no P0/P1 |
+| W1 | What a person sees: first run, new chat, every page, Settings, languages, phone, five walkthroughs | sandbox + replica | 23 (21) | all P0 pass, ledger has no P0/P1 |
 | W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 11 (8) | same |
 | W3 | Cloud computer, account B | staging | 13 (5) | same, plus egress played on a real Linux machine |
 | W4 | Subscription, billing, team sharing | replica, then staging | 20 (9) | same, plus Stripe test-mode paths |
@@ -47,7 +47,7 @@ W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 
 | T2 staging | A deployed test server, Stripe **test mode**, and a real Fly Cloud Computer for account B | Fly and model spend | only with the owner's go, **hosts named by the owner at go** |
 | T3 production | Unauthenticated acceptance checks (`--deployed`) and the owner's own single purchase | none | agents never sign in on production |
 
-- **Account A** is the desktop: a sandbox DSH with a personal space and two teams. **Account B** is the account whose DSH runs on a Cloud Computer (T2), or a second sandbox on T1 for the cases that do not need a machine (W4-20 first, then W3-08).
+- **Account A** is the desktop: a sandbox DSH with a personal space and two teams. **Account B** is the account whose DSH runs on a Cloud Computer (T2), or a second sandbox on T1 for the cases that do not need a machine (W4-20 first, then W3-08). **Persona C** is the newcomer: a sandbox that was never paired with an account, for the cases that need the first-run wizard (W1-01, W1-24).
 - Accounts are made up. On T1 they are generated into `accounts.json` (mode 0600) in a private folder outside git. On T2 they use the test mail domain and Stripe test cards only.
 - The runner refuses ports 3080, 8791 and 8792, runs under a sandbox HOME, and needs about 3 GB of disk per sandbox (15 GB were free on 2026-11-03).
 - Evidence (screenshots, logs, verdict files) goes to `<private folder>/soft-takeoff/<run>/`, never to git (`AGENTS.md` rule 4).
@@ -88,7 +88,7 @@ run a wave → verdict files → triage → ledger row → fix (one branch per d
 - **Fixes** follow `AGENTS.md`: zero new engine patches, the dead-code rider, English in new text. A fix merges into `dev` only when its case and its ring are green, and gets a cheap regression test so the case becomes a permanent script.
 - **Flaky.** A case that fails once and passes twice on re-run is `flaky` in the ledger and is not counted red (the rule of `run-all-tests.mjs`).
 - **Stop rules.** A `STOP` file in the output folder ends a run between two checks (`check-all-live.mjs` already honours it); any run that reaches port 3080 is aborted; each wave has a token cap.
-- **Time and cost.** Measured on the light wave: a Haiku tester that reads the brief and `cases.json` spends 70k to 100k tokens on a trivial scripted case (three runs: 71k, 87k, 99k, mostly re-read context), far above the 5k first assumed. So **a script case is run by `scripts/soft-takeoff-run.mjs` and costs no model token**; Haiku runs the 12 agent cases (about 150k each, still an estimate: about 1.8M tokens) and re-does one script case in five as a cross-check (about 10 x 80k). The lead pastes the case into the prompt instead of letting the tester read the matrix. The 116-check battery of 2026-10-30 took about 3 hours, so the 20 ready W1 scripts are roughly half an hour; say the duration before each run and replay only suspects on a fresh sandbox. The matrix has 54 scripted cases and 12 agent cases. The other 16 cases are the owner's.
+- **Time and cost.** Measured on the light wave: a Haiku tester that reads the brief and `cases.json` spends 70k to 100k tokens on a trivial scripted case (three runs: 71k, 87k, 99k, mostly re-read context), far above the 5k first assumed. So **a script case is run by `scripts/soft-takeoff-run.mjs` and costs no model token**; Haiku runs the 12 agent cases (about 150k each, still an estimate: about 1.8M tokens) and re-does one script case in five as a cross-check (about 10 x 80k). The lead pastes the case into the prompt instead of letting the tester read the matrix. The 116-check battery of 2026-10-30 took about 3 hours, so the 20 ready W1 scripts are roughly half an hour; say the duration before each run and replay only suspects on a fresh sandbox. The matrix has 55 scripted cases and 12 agent cases. The other 16 cases are the owner's.
 
 ## 7. Running it, once the go is given
 
@@ -143,3 +143,4 @@ Defaults are what I will do unless told otherwise.
 9. On a phone, the new-chat shelf shows 3 columns with 9.5 px labels (fits, small) or 2 columns with 12 px labels (larger, more scrolling); and controls are 27 to 31 px high where a thumb wants 44. What floor do the checks enforce? *(default: floor stays 24 px, the wizard and shelf are listed for you)*
 10. May I add the `sandbox.keep` marker to the leftovers sweeper (§ 8, item 8)? *(default: no, I keep the watcher loop)*
 11. A real cheap model for the creation cases (§ 8, item 9): which one, and a spending cap? *(no default: W1-22 waits)*
+12. When someone picks a language in the first-run wizard (say Français), should the app itself switch to it? Today the wizard only reads in that language and records it (T-011); the app stays in English until the person changes it in Settings › Language. *(default: left as is, listed; a French-speaking newcomer lands in English)*
