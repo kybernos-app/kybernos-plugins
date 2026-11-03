@@ -66,6 +66,8 @@ import { actionKey, readItems as askRead, writeItems as askWrite, verdict as ask
 import { knowledgeTool } from './kyby-knowledge.mjs'
 import { accountTool } from './kyby-account.mjs'
 import { createSiteTools, siteShown } from './site-publish.mjs'
+import { createPageMap, createSitePages } from './site-page.mjs'
+import { readJson, writeJson } from './kyby-files.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { activeAutomationsIn, createTeamInstances, personalHomeOf, personalOnlyRoute, shouldExit, teamOfEnv } from './team-instances.mjs'
@@ -5179,10 +5181,10 @@ const rememberTurnSession = (id, jobId, budgetMs) => {
 // `todo_write` (the plan the model keeps for itself: one session event, nothing outside the chat); the plugins' `memory_search`, `connections_list`, `connections_search_tools` (the catalogue
 // of a connected app's actions), `kaby_journal`, `kaby_knowledge`, `kaby_account`, `computer_list` (the sandboxes this machine tracks: a file on its own disk, no call out; it is NOT the
 // person's list of cloud computers, which is what the model took it for), `computer_read` (a file of a sandbox the person already allowed to start) and `site_list` (the person's own pages
-// online, read at the server). `site_publish` and `site_remove` put something on the public internet or take it down: ASKED, and in no mandate. ASKED (not listed): the engine's
+// online, read at the server) and `deliver_files` (the Office plugin's cards: it only names files that already exist in the chat's folder, nothing is written or sent). `site_publish` and `site_remove` put something on the public internet or take it down: ASKED, and in no mandate. ASKED (not listed): the engine's
 // `bash`, `write`, `edit`; `memory_write`, `lesson_write` and `lesson_search` (which counts the lessons it returns as used: a write), `connections_execute`, `computer_start/exec/write/stop/pause/
 // resume/task`, `relancer_dsh`, `kybernos_report_feedback` (it sends), `creer_slides`, `animer_briques`, `modeliser` and the motion and dashboards tools (they write files), and every `mcp__` tool.
-export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read', 'site_list'])
+export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read', 'site_list', 'deliver_files'])
 // How long one unanswered question is waited for. The person is on a chat, not at a desk: five minutes, and never past the end of the turn (the runner says how long the turn may last), so that
 // the model still has time to answer with what it knows (measured on WhatsApp: a question put at minute 4 outlived the 10-minute turn, which ended with no words at all).
 const turnGateWaitMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_WAIT_MS); return Number.isFinite(v) && v > 0 ? v : 5 * 60_000 }
@@ -5311,6 +5313,12 @@ const mountKabyAccount = (ctx) => {
 // It is only done where the person is asked first, because it makes something public: Kaby's own chat on the Mac (nativeGate) and a turn of a cloud computer (turnGate). Anywhere else the
 // tool says so and does nothing. The server waits up to 60 s for the host, hence the long timeout.
 const SITES_TIMEOUT_MS = 90_000
+/** A call to the server with the person's own account token (the sites' routes of the person, not of a cloud computer). */
+const sitesViaAccount = (method, path, body) => {
+  const state = readState()
+  if (state === null || state === UNREADABLE || isConnected(state) !== true) return { status: 401, body: { error: 'not_connected' } }
+  return apiCall(path, { method, token: state.token, ...(body === undefined ? {} : { body }), timeoutMs: SITES_TIMEOUT_MS })
+}
 const mountKabySites = (ctx) => {
   // Read at each call, not at mount: the environment of a cloud computer is what tells which body this is.
   const onComputer = () => computerSelf().id !== ''
@@ -5319,11 +5327,7 @@ const mountKabySites = (ctx) => {
     return onComputer() ? turnRootOf(ctx, id) : nativeRootOf(ctx, id)
   }
   const notHere = { status: 0, body: { error: 'not_asked_here' } }
-  const viaAccount = (method, path, body) => {
-    const state = readState()
-    if (state === null || state === UNREADABLE || isConnected(state) !== true) return { status: 401, body: { error: 'not_connected' } }
-    return apiCall(path, { method, token: state.token, ...(body === undefined ? {} : { body }), timeoutMs: SITES_TIMEOUT_MS })
-  }
+  const viaAccount = sitesViaAccount
   const deps = {
     async publish (body, exec) {
       const root = askedRoot(exec)
@@ -5342,6 +5346,18 @@ const mountKabySites = (ctx) => {
     for (const tool of createSiteTools(deps)) scope.tools.register(tool)
   })
 }
+
+// ── The Publish button of Creations (site-page.mjs) ────────────────────────────────────────────────────────────────────────────────────
+// The person clicks on a page of their Creations: that click is the yes, so these routes do not ask again (Kaby's tool does, in its chat). They carry the person's account token like the
+// tool does and read the page from the person's own folder. The writes need the signed session as well as the origin: they make something public.
+const sitePages = createSitePages({
+  call: sitesViaAccount,
+  map: createPageMap({ file: () => join(dshHome(), 'kybernos', 'sites-published.json'), readJson, writeJson })
+})
+const sitesListRoute = () => sitePages.list()
+const sitesPlanRoute = (req, body) => sitePages.plan(body)
+const sitesPublishRoute = (req, body) => sitePages.publish(body)
+const sitesRemoveRoute = (req, body) => sitePages.remove(body)
 
 /** What the person reads when the gate asks: the model's own plain sentence first, the command after it for whoever wants to check. `summary` stays the action itself (it is what an « allow once » is matched on). */
 export const approvalShown = (summary, description) => {
@@ -6153,6 +6169,11 @@ const ROUTES = [
   { path: '/kybernos-cloud/connections/item', method: 'GET', guarded: true, run: connections.itemRoute },
   { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: connections.linkRoute },
   { path: '/kybernos-cloud/connections/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: connections.deleteRoute },
+  // The Publish button of Creations: the pages the person has online, what a page would send, putting it online, taking it down.
+  { path: '/kybernos-cloud/sites', method: 'GET', guarded: true, run: sitesListRoute },
+  { path: '/kybernos-cloud/sites/plan', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: sitesPlanRoute },
+  { path: '/kybernos-cloud/sites/publish', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: sitesPublishRoute },
+  { path: '/kybernos-cloud/sites/remove', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: sitesRemoveRoute },
   { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
   { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, session: true, run: memoryTidyScanRoute },
   { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, session: true, body: true, cap: 65536, run: memoryTidyApplyRoute },

@@ -97,7 +97,7 @@ export function createHost ({ fs, home, userHome = null, log = () => {}, now = D
     if (p === '~' || p.startsWith('~/')) { if (userHome === null) return refuse(400, 'not-absolute', 'The path must start with /.'); p = join(userHome, p.slice(1)) }
     if (!isAbsolute(p)) return refuse(400, 'not-absolute', 'The path must start with /.')
     const format = formatOf(p)
-    if (format === null) return refuse(415, 'unsupported-format', 'Only .docx, .xlsx, .pdf and .md files open in the light editors.')
+    if (format === null) return refuse(415, 'unsupported-format', 'Only .docx, .xlsx, .pdf, .md and .deck.html files open in the light editors.')
     let real
     try { real = await fs.realpath(resolve(p)) } catch (e) { return refuse(404, 'not-found', 'This file cannot be found.') }
     if (await sensitive(real)) return refuse(403, 'not-allowed', 'This folder is not opened by the editors.')
@@ -233,5 +233,24 @@ export function createHost ({ fs, home, userHome = null, log = () => {}, now = D
 
   const stats = async () => ({ ...(await loadStats()) })
 
-  return { open, bytes, save, undo, serve, status, stats, who, hasUndo: async (token) => { const t = who(token); return t === null ? false : hasUndo(t.path) } }
+  /**
+   * What the deck builder inlines into a new deck: the base style sheet and the player of the installed deck editor (`editors/deck/standalone.css` and `.js`), each checked against
+   * the manifest like any served file. `{ ok: true, css, js }`, or a refusal when the deck editor is not installed or a file does not match its manifest.
+   */
+  const deckAssets = async () => {
+    const m = await readManifest()
+    if (m === null || !Array.isArray(m.editors) || !m.editors.includes('deck')) return refuse(503, 'not-installed', 'The deck editor is not installed.')
+    const out = {}
+    for (const [key, name] of [['css', 'deck/standalone.css'], ['js', 'deck/standalone.js']]) {
+      const entry = m.files[name]
+      if (entry === undefined) return refuse(503, 'not-installed', 'The deck editor is not installed.')
+      let buf
+      try { buf = await fs.readFile(join(editors, name)) } catch (e) { return refuse(503, 'not-installed', 'The deck editor is not installed.') }
+      if (sha256(buf) !== entry.sha256) return refuse(500, 'corrupt', 'An editor file does not match its manifest.')
+      out[key] = buf.toString('utf8')
+    }
+    return { ok: true, css: out.css, js: out.js, version: m.version }
+  }
+
+  return { open, bytes, save, undo, serve, status, stats, who, deckAssets, hasUndo: async (token) => { const t = who(token); return t === null ? false : hasUndo(t.path) } }
 }

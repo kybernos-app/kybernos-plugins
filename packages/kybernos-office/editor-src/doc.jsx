@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { DocxEditor, useFonts } from '@docx-editor.dev/react'
 import { packagedFonts } from '@docx-editor.dev/fonts'
 import '@docx-editor.dev/core/styles/editor.css'
-import { LANG, READONLY, dirty, errorText, fail, fetchFile, listen, loaded } from './envelope.js'
+import { LANG, NAME, READONLY, dirty, errorText, fail, fetchFile, listen, loaded } from './envelope.js'
 
 class Boundary extends React.Component {
   state = { err: null }
@@ -16,7 +16,7 @@ class Boundary extends React.Component {
 
 function Editor ({ bytes, readOnly, edRef, onChange }) {
   const fonts = useFonts(packagedFonts())
-  return <DocxEditor ref={edRef} document={bytes} mode={readOnly ? 'view' : 'edit'} fonts={fonts} locale={LANG} onChange={onChange} />
+  return <DocxEditor ref={edRef} document={bytes} mode={readOnly ? 'view' : 'edit'} fonts={fonts} locale={LANG} title={NAME.replace(/\.docx$/i, '')} onChange={onChange} />
 }
 
 function App () {

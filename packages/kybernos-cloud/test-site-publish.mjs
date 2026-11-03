@@ -111,6 +111,7 @@ try {
   ok('no name, no removal', (await remove.execute({}, exec)).ok === false)
   const refused = createSiteTools({ publish: deps.publish, remove: async () => ({ status: 0, body: { error: 'not_asked_here' } }) })[2]
   ok('a body that cannot ask the person does not remove, and says why', /where the person is asked first/.test((await refused.execute({ name: 'pizzaone' }, exec)).text))
+  ok('the refusal sends the person to Kaby\'s chat, in one line, and not elsewhere', (() => { const t = sayAnswer({ status: 0, body: { error: 'not_asked_here' } }, 'x').text; return /« Kaby » entry of the sidebar/.test(t) && /do not look for another way/.test(t) })())
   ok('the host\'s own refusals are said', /asked first/.test(sayAnswer({ status: 0, body: { error: 'not_asked_here' } }, 'x').text) && /not signed in/.test(sayAnswer({ status: 401, body: { error: 'not_connected' } }, 'x').text))
 } finally {
   rmSync(root, { recursive: true, force: true })

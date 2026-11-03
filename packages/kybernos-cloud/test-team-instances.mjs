@@ -85,7 +85,7 @@ try {
   }
   ok('every bundle kept out of a team\'s profile is a real bundle of this repository (' + PERSONAL_ONLY_BUNDLES.length + ')')
 
-  for (const path of ['/kybernos-cloud/kyber', '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/native/set', '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/whatsapp/unlink', '/kybernos-cloud/computer/open', '/kybernos-cloud/computer/claimed']) {
+  for (const path of ['/kybernos-cloud/kyber', '/kybernos-cloud/kyby/mandate', '/kybernos-cloud/kyby/native/set', '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/whatsapp/unlink', '/kybernos-cloud/computer/open', '/kybernos-cloud/sites', '/kybernos-cloud/sites/publish', '/kybernos-cloud/computer/claimed']) {
     assert.equal(personalOnlyRoute(path), true, path + ' belongs to the account')
   }
   for (const path of ['/kybernos-cloud/status', '/kybernos-cloud/computers', '/kybernos-cloud/computers/publish', '/kybernos-cloud/kyberx', '/kybernos-cloud/space/active', '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/memory/list', '/other/kybernos-cloud/kyber', undefined, 7]) {

@@ -1,0 +1,27 @@
+// 24px line icons of the editing chrome (the look of the Tiptap templates).
+export const ICONS = {
+  undo: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11\"/></svg>",
+  redo: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m15 14 5-5-5-5\"/><path d=\"M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13\"/></svg>",
+  bold: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8\"/></svg>",
+  italic: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><line x1=\"19\" x2=\"10\" y1=\"4\" y2=\"4\"/><line x1=\"14\" x2=\"5\" y1=\"20\" y2=\"20\"/><line x1=\"15\" x2=\"9\" y1=\"4\" y2=\"20\"/></svg>",
+  underline: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 4v6a6 6 0 0 0 12 0V4\"/><line x1=\"4\" x2=\"20\" y1=\"20\" y2=\"20\"/></svg>",
+  strike: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M16 4H9a3 3 0 0 0-2.83 4\"/><path d=\"M14 12a4 4 0 0 1 0 8H6\"/><line x1=\"4\" x2=\"20\" y1=\"12\" y2=\"12\"/></svg>",
+  highlight: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m9 11-6 6v3h9l3-3\"/><path d=\"m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4\"/></svg>",
+  list: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><line x1=\"8\" x2=\"21\" y1=\"6\" y2=\"6\"/><line x1=\"8\" x2=\"21\" y1=\"12\" y2=\"12\"/><line x1=\"8\" x2=\"21\" y1=\"18\" y2=\"18\"/><line x1=\"3\" x2=\"3.01\" y1=\"6\" y2=\"6\"/><line x1=\"3\" x2=\"3.01\" y1=\"12\" y2=\"12\"/><line x1=\"3\" x2=\"3.01\" y1=\"18\" y2=\"18\"/></svg>",
+  alignl: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><line x1=\"21\" x2=\"3\" y1=\"6\" y2=\"6\"/><line x1=\"15\" x2=\"3\" y1=\"12\" y2=\"12\"/><line x1=\"17\" x2=\"3\" y1=\"18\" y2=\"18\"/></svg>",
+  alignc: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><line x1=\"21\" x2=\"3\" y1=\"6\" y2=\"6\"/><line x1=\"17\" x2=\"7\" y1=\"12\" y2=\"12\"/><line x1=\"19\" x2=\"5\" y1=\"18\" y2=\"18\"/></svg>",
+  alignr: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><line x1=\"21\" x2=\"3\" y1=\"6\" y2=\"6\"/><line x1=\"21\" x2=\"9\" y1=\"12\" y2=\"12\"/><line x1=\"21\" x2=\"7\" y1=\"18\" y2=\"18\"/></svg>",
+  lineh: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M11 6h10\"/><path d=\"M11 12h10\"/><path d=\"M11 18h10\"/><path d=\"m3 8 3-3 3 3\"/><path d=\"m3 16 3 3 3-3\"/><path d=\"M6 5v14\"/></svg>",
+  type: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><polyline points=\"4 7 4 4 20 4 20 7\"/><line x1=\"9\" x2=\"15\" y1=\"20\" y2=\"20\"/><line x1=\"12\" x2=\"12\" y1=\"4\" y2=\"20\"/></svg>",
+  square: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/></svg>",
+  image: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" ry=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\"/></svg>",
+  copy: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>",
+  trash: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 6h18\"/><path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\"/><path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\"/><line x1=\"10\" x2=\"10\" y1=\"11\" y2=\"17\"/><line x1=\"14\" x2=\"14\" y1=\"11\" y2=\"17\"/></svg>",
+  plus: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>",
+  down: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>",
+  left: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>",
+  right: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>",
+  layout: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect width=\"18\" height=\"14\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M8 21h8\"/><path d=\"M12 17v4\"/></svg>",
+  heading: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 12h12\"/><path d=\"M6 20V4\"/><path d=\"M18 20V4\"/></svg>",
+  blank: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect width=\"18\" height=\"14\" x=\"3\" y=\"5\" rx=\"2\"/></svg>"
+}

@@ -4,11 +4,13 @@
 //  - tells the page when something changed, and hands the bytes of what it made when the page asks for them,
 //  - never writes anything: the DSH page saves, after the person pressed Save.
 //
-//   page -> frame   { ky: 'office', op: 'export', id }   { op: 'reload' }   { op: 'saved' }     (read-only is asked in the frame's address: ?ro=1)
+//   page -> frame   { ky: 'office', op: 'export', id }   { op: 'reload' }   { op: 'saved' }     (read-only is asked in the frame's address: ?ro=1; its name: ?name=)
 //   frame -> page   { op: 'loaded', hash, readOnly }   { op: 'dirty', value }   { op: 'exported', id, bytes | error }   { op: 'error', message }
 const q = new URLSearchParams(location.search)
 export const LANG = q.get('lang') === 'fr' ? 'fr' : 'en'
 export const READONLY = q.get('ro') === '1'
+// The file's name, for the editors that show one (the document editor's title bar); it is only a label, the frame never uses it to read or write.
+export const NAME = (q.get('name') || '').slice(0, 200)
 
 const tell = (msg, transfer) => { try { window.parent.postMessage({ ky: 'office', ...msg }, '*', transfer || []) } catch (e) { /* no parent: opened on its own */ } }
 export const loaded = (hash, readOnly) => tell({ op: 'loaded', hash, readOnly })

@@ -1,0 +1,8 @@
+@page{size:1280px 720px;margin:0}
+@media print{
+html,body{overflow:visible;height:auto;background:#fff}
+#bar,#nb,#pv,#fmt,#bubble,#slash,#pop,.selbox{display:none!important}
+#deck{position:static;transform:none;width:1280px;height:auto;background:none;display:block}
+.cell{position:relative;inset:auto;display:block!important;width:1280px;height:720px;break-after:page;page-break-after:always}
+.frag{opacity:1!important}
+}

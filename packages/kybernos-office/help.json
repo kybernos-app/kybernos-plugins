@@ -1,12 +1,12 @@
 {
   "what": {
-    "fr": "Ouvre les documents Word, classeurs Excel, notes Markdown et PDF de tes Créations et change-les directement. Avant d’ouvrir, on te dit ce que l’éditeur ne saurait pas garder dans ce fichier.",
-    "en": "Open the Word documents, Excel workbooks, Markdown notes and PDFs of your Creations and change them right there. Before it opens, you are told what the editor could not keep in that file."
+    "fr": "Ouvre les Word, Excel, Markdown, PDF et présentations (.deck.html) de tes Créations et change-les sur place. Avant d’ouvrir, on te dit ce que l’éditeur ne saurait pas garder.",
+    "en": "Open the Word, Excel, Markdown, PDF and slide deck (.deck.html) files of your Creations and change them in place. Before it opens, you are told what the editor could not keep."
   },
   "steps": [
     {
-      "fr": "Ouvre un .docx, .xlsx, .md ou .pdf dans Créations ou l’onglet de droite du chat : lecture seule, puis Modifier.",
-      "en": "Open a .docx, .xlsx, .md or .pdf in Creations or the chat’s right-hand tab: read-only, then click Edit."
+      "fr": "Ouvre un .docx, .xlsx, .md, .pdf ou .deck.html dans Créations ou l’onglet de droite du chat : lecture seule, puis Modifier.",
+      "en": "Open a .docx, .xlsx, .md, .pdf or .deck.html in Creations or the chat’s right-hand tab: read-only, then click Edit."
     },
     {
       "fr": "Change ce que tu veux ; Enregistrer écrit le fichier sur ton ordinateur, Enregistrer une copie le laisse tel quel.",
@@ -18,12 +18,12 @@
     }
   ],
   "where": {
-    "fr": "Créations ou onglet de droite du chat › un fichier Word, Excel, Markdown ou PDF",
-    "en": "Creations or the chat’s right-hand tab › a Word, Excel, Markdown or PDF file",
+    "fr": "Créations ou onglet de droite du chat › un fichier Word, Excel, Markdown, PDF ou une présentation",
+    "en": "Creations or the chat’s right-hand tab › a Word, Excel, Markdown, PDF or slide deck file",
     "page": false
   },
   "good": {
-    "fr": "Si Kaby a changé le fichier pendant que tu le modifiais, rien n’est écrasé : tu choisis de recharger ou d’enregistrer une copie. Tes fichiers restent chez toi.",
-    "en": "If Kaby changed the file while you were editing it, nothing is overwritten: you choose to reload or to save a copy. Your files stay on your computer."
+    "fr": "Si Kaby change le fichier pendant que tu le modifies, rien n’est écrasé : tu recharges ou tu enregistres une copie. Une présentation demandée à un chat arrive en carte, modifiable ici.",
+    "en": "If Kaby changes the file while you edit it, nothing is overwritten: you reload or save a copy. A presentation asked of a chat arrives as a card, editable here."
   }
 }
