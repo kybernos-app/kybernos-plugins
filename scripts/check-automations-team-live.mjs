@@ -179,6 +179,8 @@ try {
   // Rows and sheets fade in: wait for the end of the animation, or the picture shows a half-drawn screen.
   const shot = async (name) => { if (shotsDir !== null) { try { await sleep(650); await page.shot(join(shotsDir, name + '.png')) } catch (e) { /* no screenshot */ } } }
   const scrollTo = (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (e) e.scrollIntoView({ block: 'center' }); return !!e })()`)
+  // The first .kba-lcard of the page is the « Ideas from Kaby » card (kybernos-plugin); the list of automations is the one that holds the rows.
+  const LIST_CARD = '.kba-lcard:has(.kba-rowline)'
   const text = async (sel) => (await val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? e.innerText.replace(/\\s+/g, ' ').trim() : '' })()`)) || ''
   const has = async (expr, ms) => (await waitFor(page, expr, ms || 8000)) !== null
   const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`
@@ -240,7 +242,7 @@ try {
   const seg = await text('[data-kb="automations-sections"]')
   check('the sections are Yours, Discover and Team, with the initial of the team', /Yours/.test(seg) && /Discover/.test(seg) && /A\s*Team/.test(seg), seg)
   await has(`document.querySelectorAll('.kba-rowline:not(.kba-rowline-head)').length >= 4`, 15000)
-  const yoursText = await text('.kba-lcard')
+  const yoursText = await text(LIST_CARD)
   check('Yours: a copy from the team is marked, and what the person proposed says so', /Team copy/.test(yoursText) && /Proposed to Acme Studio/.test(yoursText), yoursText.slice(0, 400))
   check('every row of Yours has the « Propose to team… » action', (await count('[data-kb="action-propose"]')) === 5)
   await shot('01-yours-with-marks')
@@ -389,7 +391,7 @@ try {
   await shot('11-install-done')
   await pressOk('[data-kb="team-sheet-go"]', undefined, '« Open in Yours »')
   await sleep(500)
-  check('Open in Yours closes the sheet and shows Yours with the new copy marked as a team copy', !(await has(q('[data-kb="team-sheet"]') + ' !== null', 800)) && /Daily stock check/.test(await text('.kba-lcard')) && (await val(`document.querySelector('[data-kb="section-yours"]').classList.contains('on')`)) === true)
+  check('Open in Yours closes the sheet and shows Yours with the new copy marked as a team copy', !(await has(q('[data-kb="team-sheet"]') + ' !== null', 800)) && /Daily stock check/.test(await text(LIST_CARD)) && (await val(`document.querySelector('[data-kb="section-yours"]').classList.contains('on')`)) === true)
   await shot('12-yours-after-install')
   // missing apps
   await goTeam()
@@ -559,7 +561,7 @@ try {
     ['plan_required', { ok: false, error: 'plan_required' }, spaceStatus(false, 'plus'), 'plan', /Team automations come with the Team plan/, '30-lock-plan'],
     ['signed out', { ok: false, connected: false, error: 'non connecte' }, { ok: true, connected: false }, 'signin', /Sign in to see your team’s automations/, '31-lock-signin'],
     ['personal space', { ok: false, error: 'plan_required' }, spaceStatus(true, null), 'personal', /Team automations are for team spaces/, '32-lock-personal'],
-    ['not on this server', { ok: false, error: 'not_on_this_server' }, spaceStatus(false, null), 'server', /Not available on this server/, '33-lock-server'],
+    ['not on this server (« coming soon », no action: the server half is not built)', { ok: false, error: 'not_on_this_server' }, spaceStatus(false, null), 'soon', /Team automations are coming soon/, '33-lock-server'],
     ['session over', { ok: false, error: 'reconnect_required' }, spaceStatus(false, null), 'reconnect', /Your Kybernos session has expired/, '34-lock-reconnect'],
     ['something else', { ok: false, error: 'conflict' }, spaceStatus(false, null), 'other', /Team automations are not answering/, '35-lock-other'],
   ]
@@ -571,7 +573,8 @@ try {
     if (kind === 'plan') check('...it says the plan of the space when the account state knows it, and links to the page of the plans in a new tab', /Your plan is Plus\./.test(t) && (await val(`document.querySelector('[data-kb="team-lock-plans"]').getAttribute('href')`)) === 'https://console.example.test/plans' && (await val(`document.querySelector('[data-kb="team-lock-plans"]').getAttribute('target')`)) === '_blank', t)
     await shot(name)
     const btn = await val(`Array.from(document.querySelectorAll('[data-kb="team-locked"] .kbta-lock-acts > *')).map((b) => b.innerText.trim())`)
-    check('...its buttons are there, and a press on each lands on it', btn.length >= 1 && (await Promise.all(btn.map((b, i) => spot('[data-kb="team-locked"] .kbta-lock-acts > *', b)))).every((s) => s && s.lands === true), btn)
+    if (kind === 'soon') check('...and it offers no button (nothing to retry, no page to open)', btn.length === 0, btn)
+    else check('...its buttons are there, and a press on each lands on it', btn.length >= 1 && (await Promise.all(btn.map((b, i) => spot('[data-kb="team-locked"] .kbta-lock-acts > *', b)))).every((s) => s && s.lands === true), btn)
   }
   check('the segment shows a lock when the tab is locked', await has(`document.querySelector('[data-kb="section-team"] .kbta-lockico') !== null`, 4000))
   fx.lock = null; fx.status = null

@@ -1041,7 +1041,7 @@
         "A"
       ],
       "status": "ready",
-      "note": "Runs from the kybernos-server checkout. NOT on the harness replica (8821): it lacks features the plan expects and its accounts are spent by the journeys. Start a dedicated one on other ports (`REPLICA_PORT=9810 REPLICA_STATE=<private file> REPLICA_SEED=catalogue REPLICA_COMPOSIO=1 REPLICA_INBOUND=1 REPLICA_COMPUTERS=1 REPLICA_WEBHOOK=1 node scripts/replica.ts`, never `REPLICA_STRIPE=cli`) and give the plan `--api http://localhost:9810 --control http://127.0.0.1:9811`. Run on 2026-11-03: 459 ok, 30 fail, 0 skipped (see T-027); about five minutes."
+      "note": "Runs from the kybernos-server checkout. NOT on the harness replica (8821): it lacks features the plan expects and its accounts are spent by the journeys. Start a dedicated one on other ports (`REPLICA_PORT=9810 REPLICA_STATE=<private file> REPLICA_SEED=catalogue REPLICA_COMPOSIO=1 REPLICA_INBOUND=1 REPLICA_COMPUTERS=1 REPLICA_WEBHOOK=1 node scripts/replica.ts`, never `REPLICA_STRIPE=cli`) and give the plan `--api http://localhost:9810 --control http://127.0.0.1:9811`. Run on 2026-11-03: 459 ok, 30 fail, 0 skipped (see T-027: read by code, 0 product defects, 14 stale tests, 15 replica gaps, 1 not pinned down, the fixes are in the server repo); about five minutes."
     },
     {
       "id": "W4-09",
@@ -1092,7 +1092,7 @@
         "B"
       ],
       "status": "ready",
-      "note": "Run on 2026-11-03: 13 of 16. Three reds, the same three the team-DSH session ticketed on 2026-11-02 (the canary is not in the request body of the personal chat, the OFF marker is not the first system message, the approved team lesson is not in B's team chat request); not triaged here (T-025)."
+      "note": "Run on 2026-11-03: 13 of 16 on the owner's cloned profile (default agent preset « minimal », whose prompt has no plugin sections: the canary, the memory-off marker and the team lesson are never in a request); 15 of 15 on the `standard` preset, which the harness and `soft-takeoff-repair.sh` now pin (`pin-model.mjs --preset`). J2's lesson step starts B's team DSH again after the approval, because a running team DSH re-reads the approved lessons every 5 minutes at most (T-025)."
     },
     {
       "id": "W4-12",
@@ -1107,7 +1107,7 @@
         "A"
       ],
       "status": "ready",
-      "note": "Both checks fake the team routes on a sandbox: no server is involved. Run on 2026-11-03: the skills check passes; the automations check is red (T-029) and ends on a crash at 390 px."
+      "note": "Both checks fake the team routes on a sandbox: no server is involved. Run on 2026-11-03: the skills check passes; the automations check passes after the test was brought in line with the page (203 checks; T-029)."
     },
     {
       "id": "W4-13",
