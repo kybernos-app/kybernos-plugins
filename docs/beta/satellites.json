@@ -513,6 +513,15 @@
         "role": "the HTML screens Kaby drew for you, opened in a Maquettes page and changed by clicking on them (text, colours, sizes, blocks, pictures); the file is patched in place, only what you touch changes",
         "poids_ko": 512,
         "lib_vendor": "parse5 + postcss (vendored, ESM)"
+      },
+      {
+        "dir": "kybernos-office",
+        "nom": "@local/kybernos-office",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "the Word documents and Excel workbooks of your Creations, opened in a light editor: the file is checked first for what the editor would lose, a save never overwrites a change made meanwhile, and Undo puts the file back (the editors are built on the computer from pinned versions, not shipped)",
+        "poids_ko": 64,
+        "lib_vendor": null
       }
     ]
   },
@@ -571,7 +580,8 @@
       "@local/kybernos-webapp-creator",
       "@local/kybernos-db",
       "@local/kybernos-front-desk",
-      "@local/kybernos-maquettes"
+      "@local/kybernos-maquettes",
+      "@local/kybernos-office"
     ]
   }
 }
