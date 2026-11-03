@@ -754,6 +754,8 @@ try {
     '/kybernos-cloud/computer/target', '/kybernos-cloud/computer/target/set',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
     '/kybernos-cloud/plans', '/kybernos-cloud/plans/quote', '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal',
+    // The Publish button of Creations (site-page.mjs; test-site-page.mjs holds its rules).
+    '/kybernos-cloud/sites', '/kybernos-cloud/sites/plan', '/kybernos-cloud/sites/publish', '/kybernos-cloud/sites/remove',
     // A team's own DSH (team-instances.mjs; test-team-instances.mjs holds its rules).
     '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/team-dsh/stop', '/kybernos-cloud/team-dsh/list', '/kybernos-cloud/team-dsh/personal',
   ]

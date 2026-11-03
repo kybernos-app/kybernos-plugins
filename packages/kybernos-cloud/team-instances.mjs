@@ -46,7 +46,7 @@ export const PERSONAL_ONLY_BUNDLES = [
 ]
 
 /** The routes of the cloud bundle that act on the account's Kaby, its messaging doors or its Home computer: a team's DSH answers them `personal_only`, whatever page asks. */
-export const personalOnlyRoute = (path) => typeof path === 'string' && /^\/kybernos-cloud\/(?:kyber$|kyby\/|telegram\/|whatsapp\/|computer\/)/u.test(path)
+export const personalOnlyRoute = (path) => typeof path === 'string' && /^\/kybernos-cloud\/(?:kyber$|kyby\/|telegram\/|whatsapp\/|computer\/|sites(?:\/|$))/u.test(path)
 
 const TEAM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u
 

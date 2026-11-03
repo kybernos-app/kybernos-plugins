@@ -40,7 +40,7 @@ export const slugFor = (args) => {
 }
 
 const refuse = (error, message) => ({ ok: false, error, message })
-const fileCheck = (rel) => {
+export const fileCheck = (rel) => {
   if (rel.length > LIMITS.pathChars) return `The path ${dataLine(rel, 60)} is longer than ${LIMITS.pathChars} characters.`
   if (!EXTENSIONS.has(extname(rel).toLowerCase())) return `${dataLine(rel, 60)} is not a kind of file a page may hold (html, css, js, images, fonts, json, text).`
   return null
