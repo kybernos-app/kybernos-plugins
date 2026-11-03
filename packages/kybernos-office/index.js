@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import * as fsp from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { deckTool } from './deck-tool.mjs'
 import { deliverTool, writeCard } from './deliver.mjs'
 import { createHost } from './office-host.mjs'
 import { mountRoutes } from './routes.mjs'
@@ -43,21 +44,26 @@ async function loadDefineTool () {
 const toDefinition = (o) => ({ name: o.name, description: o.description, parameters: o.parameters, output: { schema: { type: 'json' }, render: (args, value) => o.render(args, value) }, execute: o.execute })
 const literalDefinition = (o) => ({ name: o.name, description: o.description, parameters: { type: 'object', properties: o.parameters }, output: { schema: {}, render: (args, value) => o.render(args, value) }, execute: o.execute })
 
+/** The disk the `create_deck` tool writes to and reads pictures from (it checks every path is inside the working folder before it asks). */
+const DECK_IO = { stat: fsp.stat, readFile: fsp.readFile, writeFile: fsp.writeFile, mkdir: (dir) => fsp.mkdir(dir, { recursive: true }), rename: fsp.rename }
+
 /**
- * The `deliver_files` tool and the observer that writes the card. Every service is read at call time with `get` (a property read of a service this plugin did not inject throws), and
- * nothing here may stop DSH from starting: a missing service or a refusal is logged and the editors go on without the tool.
+ * The `deliver_files` tool (and the observer that writes its card) and, when the host is given, the `create_deck` tool. Every service is read at call time with `get` (a property read of a
+ * service this plugin did not inject throws), and nothing here may stop DSH from starting: a missing service or a refusal is logged and the editors go on without the tools.
  */
-export function mountDeliver (ctx) {
+export function mountDeliver (ctx, host = null) {
   const wanted = ['tools', 'fs', 'agents', 'workingDirectory']
   const start = (c) => {
     try {
       const get = (n) => c.get(n)
       if (wanted.some((n) => get(n) === undefined)) { dire('deliver_files not registered: a DSH service is missing'); return }
+      const register = (tool) => loadDefineTool().then((defineTool) => {
+        try { get('tools').register(defineTool !== undefined ? defineTool(toDefinition(tool.options)) : literalDefinition(tool.options)) } catch (e) { dire(`${tool.options.name} not registered: ${e?.message ?? e}`) }
+      }).catch((e) => dire(`${tool.options.name} not registered: ${e?.message ?? e}`))
       const tool = deliverTool(() => ({ fs: get('fs'), agents: get('agents'), workingDirectory: get('workingDirectory') }))
-      loadDefineTool().then((defineTool) => {
-        try { get('tools').register(defineTool !== undefined ? defineTool(toDefinition(tool.options)) : literalDefinition(tool.options)) } catch (e) { dire(`deliver_files not registered: ${e?.message ?? e}`) }
-      }).catch((e) => dire(`deliver_files not registered: ${e?.message ?? e}`))
+      register(tool)
       ctx.on('tools/result', (exec, result) => { try { writeCard(tool.pending, exec, result) } catch (e) { dire(`card not written: ${e?.message ?? e}`) } })
+      if (host !== null && host !== undefined && typeof host.deckAssets === 'function') register(deckTool(() => ({ workingDirectory: get('workingDirectory'), deckAssets: () => host.deckAssets(), io: DECK_IO })))
     } catch (e) { dire(`deliver_files not registered: ${e?.message ?? e}`) }
   }
   if (wanted.every((n) => ctx.get(n) !== undefined)) start(ctx)
@@ -74,7 +80,7 @@ export function apply (ctx) {
     const direct = ctx.get('webServer')
     if (direct !== undefined) start(direct)
     else ctx.inject(['webServer'], (h) => start(h.webServer))
-    try { mountDeliver(ctx) } catch (e) { dire(`deliver_files not registered: ${e?.message ?? e}`) }
+    try { mountDeliver(ctx, host) } catch (e) { dire(`deliver_files not registered: ${e?.message ?? e}`) }
   } catch (e) {
     console.log('[kybernos-office] disabled: ' + String(e?.message ?? e))
   }

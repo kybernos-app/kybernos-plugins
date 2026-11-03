@@ -4,7 +4,7 @@
 //   node packages/kybernos-office/test-disk.mjs
 import * as fsp from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, symlinkSync, statSync, chmodSync, utimesSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, symlinkSync, statSync, chmodSync, utimesSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHost, editorHtml } from './office-host.mjs'
@@ -166,6 +166,42 @@ const docPath = put('report.docx', docx({ text: 'Original' }))
   check('the counter is a file in the plugin\'s own storage', existsSync(join(home, 'kybernos', 'kybernos-office', 'stats.json')))
   const broken = createHost({ fs: { ...fsp, writeFile: async () => { throw new Error('disk full') }, mkdir: async () => { throw new Error('disk full') } }, home: join(base, 'other-home'), userHome, now: () => tick })
   check('a counter that cannot be written never blocks an open', (await broken.open(sheetPath)).ok === true)
+}
+
+// ── a slide deck: HTML the editor reads as data ───────────────────────────────────
+{
+  const DECK = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="kybernos-deck" content="1"><title>T</title></head>\n<body><main id="deck">\n<div class="cell"><section class="slide"><h1 data-e>One</h1></section></div>\n</main></body></html>\n'
+  const deckPath = put('talk.deck.html', DECK)
+  const o = await host.open(deckPath)
+  check('a deck opens: format deck, editor deck, nothing to lose', o.ok === true && o.format === 'deck' && o.editor === 'deck' && o.block === false && o.losses.length === 0 && o.url === undefined)
+  check('a plain .html file is not opened by the editors', (await host.open(put('page.html', DECK))).code === 'unsupported-format')
+  check('a .deck.html that is not a deck is refused with the reason', (await host.open(put('fake.deck.html', '<html><body>hi</body></html>'))).code === 'not-a-deck')
+  check('a .deck.html that is not text is refused', (await host.open(put('bin.deck.html', Buffer.from([60, 0, 62])))).code === 'not-text')
+  const edited = DECK.replace('One', 'Two')
+  const saved = await host.save(o.token, Buffer.from(edited), { base: o.hash })
+  check('the edited deck is written over the file, with its undo', saved.ok === true && readFileSync(deckPath, 'utf8') === edited && saved.undo === true)
+  const o2 = await host.open(deckPath)
+  const bad = await host.save(o2.token, Buffer.from('<html>not a deck</html>'), { base: sha(Buffer.from(edited)) })
+  check('a save that is not a deck is refused and nothing is written', bad.code === 'invalid-output' && readFileSync(deckPath, 'utf8') === edited)
+  check('an empty deck save is refused', (await host.save(o2.token, Buffer.alloc(0), { base: sha(Buffer.from(edited)) })).code === 'bad-size')
+  check('what the deck editor installs is told apart from the others', (await host.status()).installed.deck === false)
+  // The player the builder inlines: only when the deck editor is installed and its files hash as the manifest says.
+  const dir = join(home, 'kybernos', 'kybernos-office', 'editors')
+  mkdirSync(join(dir, 'deck'), { recursive: true })
+  const css = '.slide{}'; const js = '(()=>{})()'
+  writeFileSync(join(dir, 'deck', 'app.js'), 'x'); writeFileSync(join(dir, 'deck', 'standalone.css'), css); writeFileSync(join(dir, 'deck', 'standalone.js'), js)
+  const man = { version: 'd1', editors: ['deck'], files: { 'deck/app.js': { sha256: sha('x') }, 'deck/standalone.css': { sha256: sha(css) }, 'deck/standalone.js': { sha256: sha(js) } } }
+  writeFileSync(join(dir, 'manifest.json'), JSON.stringify(man))
+  tick += 10000
+  const a = await host.deckAssets()
+  check('the player and its style sheet are read from the installed deck editor', a.ok === true && a.css === css && a.js === js && a.version === 'd1' && (await host.status()).installed.deck === true)
+  writeFileSync(join(dir, 'deck', 'standalone.js'), '(()=>{evil()})()')
+  check('a player that no longer matches its manifest is refused', (await host.deckAssets()).code === 'corrupt')
+  writeFileSync(join(dir, 'manifest.json'), JSON.stringify({ ...man, files: { 'deck/app.js': man.files['deck/app.js'] } }))
+  tick += 10000
+  check('a deck editor without its player is « not installed »', (await host.deckAssets()).code === 'not-installed')
+  rmSync(dir, { recursive: true, force: true })
+  tick += 10000
 }
 
 // ── time stays out of the file ─────────────────────────────────────────────────

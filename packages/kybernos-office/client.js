@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// kybernos-office — browser half: the window where the person edits the Office files of Creations (a .docx, an .xlsx) and its Markdown and PDF files.
+// kybernos-office — browser half: the window where the person edits the Office files of Creations (a .docx, an .xlsx), its Markdown and PDF files and its slide decks (.deck.html).
 //
 // The core viewer of a file shows « Edit » when a plugin declared an editor that takes the file's name (`window.__KB_EDITORS__`, docs/dev/office-editors-open-save-contract-2026-11-03.md).
 // This plugin declares one. Its window is a full-screen layer with a bar (Save, Save a copy, Undo, Close) and, under it, the editor in a sandboxed iframe.
@@ -36,8 +36,8 @@ window.__ModuleLoader__.load({
       const kt = (fr, en) => (lang() === 'fr' ? fr : en)
       const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
-      /** Whether the editors take this file name: a .docx, .xlsx, .pdf or Markdown file that is not the lock file Word and Excel leave beside an open file. */
-      const canEdit = (name) => typeof name === 'string' && !name.startsWith('~$') && /\.(docx|xlsx|pdf|md|markdown)$/i.test(name)
+      /** Whether the editors take this file name: a .docx, .xlsx, .pdf, Markdown or .deck.html (a slide deck) file that is not the lock file Word and Excel leave beside an open file. */
+      const canEdit = (name) => typeof name === 'string' && !name.startsWith('~$') && /\.(docx|xlsx|pdf|md|markdown|deck\.html)$/i.test(name)
       /** The viewer of Creations draws what the editors draw, except Markdown: its own rendered preview stays, the pencil opens the editor. */
       const isMarkdown = (name) => typeof name === 'string' && /\.(md|markdown)$/i.test(name)
       const viewerDraws = (name) => canEdit(name) && !isMarkdown(name)
@@ -66,12 +66,13 @@ window.__ModuleLoader__.load({
           'not-found': kt('Ce fichier est introuvable.', 'This file cannot be found.'),
           'not-a-file': kt('Ce chemin n’est pas un fichier.', 'This path is not a file.'),
           'not-allowed': kt('Les éditeurs n’ouvrent pas ce dossier.', 'The editors do not open this folder.'),
-          'unsupported-format': kt('Seuls les fichiers .docx, .xlsx, .pdf et .md s’ouvrent ici.', 'Only .docx, .xlsx, .pdf and .md files open here.'),
+          'unsupported-format': kt('Seuls les fichiers .docx, .xlsx, .pdf, .md et .deck.html s’ouvrent ici.', 'Only .docx, .xlsx, .pdf, .md and .deck.html files open here.'),
           'too-big': kt('Ce fichier dépasse 64 Mo.', 'This file is larger than 64 MB.'),
           'not-a-zip': kt('Ce fichier n’est pas un vrai document Office : il est peut-être abîmé.', 'This is not a real Office file: it may be damaged.'),
           'not-a-docx': kt('Ce fichier n’est pas un vrai document Word.', 'This is not a real Word document.'),
           'not-a-xlsx': kt('Ce fichier n’est pas un vrai classeur Excel.', 'This is not a real Excel workbook.'),
           'not-a-pdf': kt('Ce fichier n’est pas un vrai PDF.', 'This is not a real PDF.'),
+          'not-a-deck': kt('Ce fichier n’est pas une présentation faite ici : il ne s’ouvre pas comme des slides.', 'This is not a slide deck made here: it does not open as slides.'),
           'not-text': kt('Ce fichier n’est pas du texte (UTF-8) : il ne s’ouvre pas comme du Markdown.', 'This file is not text (UTF-8): it does not open as Markdown.'),
           'invalid-output': kt('L’éditeur a rendu un fichier invalide : rien n’a été écrit.', 'The editor returned an invalid file: nothing was written.'),
           'unknown-token': kt('Ce lien a expiré : rouvre le fichier.', 'This link has expired: open the file again.'),
@@ -108,6 +109,7 @@ window.__ModuleLoader__.load({
         signature: ['signature numérique', 'signatures numériques', 'digital signature', 'digital signatures'],
         form: ['formulaire', 'formulaires', 'form', 'forms'],
         attachment: ['pièce jointe', 'pièces jointes', 'attachment', 'attachments'],
+        'active-content': ['contenu actif (script, cadre, action)', 'contenus actifs (script, cadre, action)', 'piece of active content (script, frame, event)', 'pieces of active content (script, frame, event)'],
       }
       const thing = (l) => {
         const w = THINGS[l.code]
@@ -515,7 +517,7 @@ window.__ModuleLoader__.load({
       const embedFile = (box, path, name) => openWindow(path, name, box)
 
       // ── the right-hand tab of a chat ───────────────────────────────────────────────────────────────────────────────
-      // A tab type of its own for .docx, .xlsx, .pdf and Markdown files (`ctx.sidebarRightTabs`), ranked above DSH's file previews, with its body in the slot `sidebar.right.pane.tab`.
+      // A tab type of its own for .docx, .xlsx, .pdf, Markdown and .deck.html (slide deck) files (`ctx.sidebarRightTabs`), ranked above DSH's file previews, with its body in the slot `sidebar.right.pane.tab`.
       // DSH keeps such a body mounted while the tab lives (`keepMounted`): the document preview's own bodies are thrown away on every change of tab, and an editor
       // lost what had been typed. The file is drawn by the same editor as in Creations, read-only first, with « Edit » in its bar, so what a chat wrote is looked
       // at and changed where it appeared. Closing the tab with unsaved changes cannot be intercepted (the engine has no veto): the editor's own bar says « Unsaved changes ».
@@ -590,7 +592,7 @@ window.__ModuleLoader__.load({
             let dead = false
             send('/status', { method: 'GET' }).then((st) => {
               if (dead || !plain(st) || !st.ok || !plain(st.installed)) return
-              const patterns = [st.installed.doc === true ? '*.docx' : null, st.installed.sheet === true ? '*.xlsx' : null, st.installed.md === true ? '*.md' : null, st.installed.md === true ? '*.markdown' : null, st.installed.pdf === true ? '*.pdf' : null].filter((x) => x !== null)
+              const patterns = [st.installed.doc === true ? '*.docx' : null, st.installed.sheet === true ? '*.xlsx' : null, st.installed.md === true ? '*.md' : null, st.installed.md === true ? '*.markdown' : null, st.installed.pdf === true ? '*.pdf' : null, st.installed.deck === true ? '*.deck.html' : null].filter((x) => x !== null)
               if (patterns.length === 0) return
               off = tabs.register({ id: PANE_ID, kind: PANE_KIND, patterns, priority: 'extension', keepMounted: true, canOpen: (address) => typeof address === 'string' && address.startsWith(SESSION_FILE), title: paneTitle })
             }).catch(() => { /* no status: DSH keeps its own previews */ })
