@@ -22755,6 +22755,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (state === 'running') return kbt('tasks.runs.running')
       return run.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.runs.unread')
     }
+    // The chat's Journal shell, set by the workflows-v2 block further down (it stays null if that block did not start): the Sessions pane reads a run with it.
+    let kbJournalShell = null
     const KbRunsPane = (props) => {
       const runs = props.runs
       const locale = kbBoardLocale()
@@ -22886,23 +22888,24 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           usesRows),
         asked.length === 0 ? null : h('div', { className: 'kba-card kbrn-card' },
           h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
-          asked.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))),
-          (() => {
-            const lesson = lessonPair[0]
-            if (lesson === undefined || lesson === null || typeof lesson !== 'object') return null
-            const made = lesson.skill !== null && lesson.skill !== undefined ? lesson.skill : null
-            return h('div', { className: 'kba-card kbrn-card', 'data-kb': 'journal-lesson' },
-              h('span', { className: 'kba-tabver mono' }, kbt('tasks.lesson.title')),
-              (made !== null
-                ? h('div', null, kbt(made.state === 'pending' ? 'tasks.lesson.pending' : (made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto')).replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
-                : (lesson.streak >= lesson.stableAfter
-                  ? h('div', { className: 'kbrn-lesson' },
-                    h('span', null, kbt('tasks.lesson.stable').replace('{n}', String(lesson.streak))),
-                    h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'lesson-create', onClick: createSkill }, kbt('tasks.lesson.create')),
-                    h('span', { className: 'dim' }, kbt(lesson.autoSkill === true ? 'tasks.lesson.soon' : 'tasks.lesson.hint')))
-                  : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
-              (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
-          })())
+          asked.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))))
+      // What the runs teach belongs to the automation, not to one run: it stays under the open run whichever way the run is read.
+      const lessonCard = (() => {
+        const lesson = lessonPair[0]
+        if (lesson === undefined || lesson === null || typeof lesson !== 'object') return null
+        const made = lesson.skill !== null && lesson.skill !== undefined ? lesson.skill : null
+        return h('div', { className: 'kba-card kbrn-card', 'data-kb': 'journal-lesson' },
+          h('span', { className: 'kba-tabver mono' }, kbt('tasks.lesson.title')),
+          (made !== null
+            ? h('div', null, kbt(made.state === 'pending' ? 'tasks.lesson.pending' : (made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto')).replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
+            : (lesson.streak >= lesson.stableAfter
+              ? h('div', { className: 'kbrn-lesson' },
+                h('span', null, kbt('tasks.lesson.stable').replace('{n}', String(lesson.streak))),
+                h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'lesson-create', onClick: createSkill }, kbt('tasks.lesson.create')),
+                h('span', { className: 'dim' }, kbt(lesson.autoSkill === true ? 'tasks.lesson.soon' : 'tasks.lesson.hint')))
+              : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
+          (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
+      })()
       // The list of executions: a dot, the date, how it ended. The newest eight; the rest are one press away, and the chosen run is always shown.
       const idxShown = runs.map((r, i) => i).filter((i) => moreRuns === true || i < 8 || keys[i] === selKey)
       const listCol = h('div', { className: 'kbrn-runs', 'data-kb': 'runs-list' },
@@ -22916,13 +22919,18 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         (sel !== null ? h('span', { key: 'd' }, kbt('tasks.runs.duration') + ' ' + durOf(sel) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls))) : null),
         (sel !== null ? h('span', { key: 'a' }, asked.length === 0 ? kbt('tasks.runs.noapproval') : kbt('tasks.runs.approvalsn').replace('{n}', String(asked.length))) : null))
       const badge = h('span', { className: 'kbrn-badge ' + (state === 'failed' ? 'bad' : (state === 'completed' ? 'ok' : 'idle')) }, kbRunStateText(state, durOf(sel), selRun))
+      const stage = h('div', { className: 'kbrn-stage' + (insp !== null ? ' insp' : '') }, h('div', { className: 'kbrn-main' }, graph, about), insp)
+      // The run is read as the chat's Journal (Story, Flow); « Advanced » is this pane's own view of it (who ran, the graph, the inspector, the cards).
+      // A run with no chat, or a host where the Journal did not start, keeps that view as it was.
+      const asJournal = selId !== null && kbJournalShell !== null
       return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-sessions' },
         h('div', { className: 'kbrn-strip', 'data-kb': 'runs-strip' }, [[kbt('tasks.runs.stat.runs'), String(stats.runs), false], [kbt('tasks.runs.stat.failed'), String(stats.failed), stats.failed > 0], [kbt('tasks.runs.stat.median'), kbRunFmtDur(stats.median), false], [kbt('tasks.runs.stat.slowest'), kbRunFmtDur(stats.slowest), false]].map((x, k) => h('span', { key: k, className: x[2] === true ? 'bad' : '' }, x[0] + ' ', h('b', null, x[1])))),
         h('div', { className: 'kbrn-sess' }, listCol,
           h('div', { className: 'kbrn-xp' },
-            h('div', { className: 'kbrn-xph' }, h('div', { className: 'kbrn-xpt' }, h('h3', null, kbRunFmtDT(selRun.at, locale), badge), meta), openChat),
+            h('div', { className: 'kbrn-xph' }, h('div', { className: 'kbrn-xpt' }, h('h3', null, kbRunFmtDT(selRun.at, locale), badge), asJournal ? null : meta), openChat),
             failNote, readNote,
-            h('div', { className: 'kbrn-stage' + (insp !== null ? ' insp' : '') }, h('div', { className: 'kbrn-main' }, graph, about), insp))),
+            asJournal ? h(kbJournalShell, { key: selId, sessionId: selId, embedded: true, classic: h(React.Fragment, null, meta, stage) }) : stage,
+            lessonCard)),
         h('div', { className: 'kba-hint' }, kbt('tasks.runs.hint')))
     }
     // ── Discover: ready-made starting points (the pure part is the KB-AUTOTPL block at the top of this file) ────────────────────────────
@@ -41595,6 +41603,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 
         function WV2Shell(props) {
           const sessionId = (props && (props.sessionId || (props.session && props.session.id))) || null
+          // Embedded (the Sessions pane of an automation): no big title, the chat's input bar and scroll are not touched, and « Advanced » is what the host passes as `classic`.
+          const embedded = props && props.embedded === true
+          const rootCls = 'wv2-root wvs-root' + (embedded ? ' wvs-embed' : '')
           const modePair = React.useState('story')
           const mode = modePair[0]
           const dPair = React.useState({ state: sessionId ? 'loading' : 'empty', story: null, nonce: 0 })
@@ -41607,12 +41618,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const stageRef = React.useRef(null)
           // Like the classic tab, the Journal takes the height the chat's input bar uses; it comes back with the next chat tab.
           React.useEffect(() => {
+            if (embedded) return undefined
             const root = document.documentElement
             root.classList.add('wv2-actif')
             return () => { root.classList.remove('wv2-actif') }
           }, [mode])
           // The chat keeps its scroll position when a tab opens (DSH): a long chat would open the Journal in the middle of the story. It starts at its own top.
           React.useEffect(() => {
+            if (embedded) return
             try {
               for (let e = document.querySelector('.wvs-root, .wvs-classic'); e !== null && e !== document.body; e = e.parentElement) { if (e.scrollTop > 0) e.scrollTop = 0 }
             } catch (err) { /* nothing to scroll */ }
@@ -41640,15 +41653,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const seg = El('div', { className: 'wvs-seg', role: 'group', 'aria-label': kbe('How to read the Journal') },
             [['story', kbe('Story')], ['flow', kbe('Flow')], ['classic', kbe('Advanced')]].map((d) => El('button', { key: d[0], type: 'button', 'aria-pressed': mode === d[0], className: mode === d[0] ? 'on' : '', onClick: () => modePair[1](d[0]) }, d[1])))
           // Advanced = the sections of the Journal as they were (Timeline, Graph, Cascade, Step detail, Analysis).
+          // A run whose journal cannot be read keeps the host's own view of it, without the Journal's bar.
+          if (embedded && (D.state === 'error' || D.state === 'empty')) return props.classic !== undefined ? props.classic : null
           if (mode === 'classic' || D.state === 'error' || D.state === 'empty') {
-            return El('div', { className: 'wvs-classic' },
-              El('div', { className: 'wv2-root wvs-barwrap' },
+            return El('div', { className: 'wvs-classic' + (embedded ? ' wvs-embed' : '') },
+              El('div', { className: 'wv2-root wvs-barwrap' + (embedded ? ' wvs-embed' : '') },
                 El('div', { className: 'wvs-bar' }, seg),
                 D.state === 'error' ? El('section', { className: 'wv2-panel', 'data-kb': 'wvs-unavailable' }, El('p', { className: 'wvs-muted' }, kbe('The new Journal views are not available yet: restart Kybernos once. The sections of the Journal are below.'))) : null),
-              El(WorkflowsV2Tab, props))
+              embedded ? (props.classic !== undefined ? props.classic : null) : El(WorkflowsV2Tab, props))
           }
           if (D.story === null) {
-            return El('div', { className: 'wv2-root wvs-root' }, El('div', { className: 'wvs-bar' }, seg),
+            return El('div', { className: rootCls }, El('div', { className: 'wvs-bar' }, seg),
               El('section', { className: 'wv2-panel', 'data-kb': 'wvs-loading' }, El('p', { className: 'wvs-muted' }, kbe('Reading the journal…'))))
           }
           const st = D.story
@@ -41662,7 +41677,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             model !== null ? El('span', { className: 'wvs-chip', title: model.provider || '' }, Icon('cpu', 12), ' ', wvsModelName(model) + (st.models.length > 1 ? ' +' + (st.models.length - 1) : '')) : null,
             st.droppedMoments > 0 ? El('span', { className: 'wvs-chip warn' }, kbe('Older moments left out') + ' · ' + st.droppedMoments) : null)
           const head = El('header', { className: 'wvs-top' },
-            El('div', { className: 'wvs-title' },
+            embedded ? null : El('div', { className: 'wvs-title' },
               El('div', { className: 'wv2-idline' }, kbe('Chat') + (st.chat.title ? ' · ' + st.chat.title : '')),
               El('h1', { className: 'wv2-h1' }, kbe('Journal'))),
             El('div', { className: 'wvs-bar' }, seg,
@@ -41670,17 +41685,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               El('button', { type: 'button', className: 'wv2-chip' + (ui.share ? ' on' : ''), 'aria-pressed': ui.share, 'data-kb': 'wvs-share-btn', onClick: () => set({ share: !ui.share, shareState: 'idle' }) }, Icon('link', 12), ' ', kbe('Share')),
               El('button', { type: 'button', className: 'wv2-ghost wvs-refresh', 'aria-label': kbe('Refresh'), title: kbe('Refresh'), onClick: () => dPair[1]((d) => Object.assign({}, d, { nonce: d.nonce + 1 })) }, Icon('refresh', 14))))
           if (st.moments.length === 0) {
-            return El('div', { className: 'wv2-root wvs-root' }, head, chips, El('section', { className: 'wv2-panel', 'data-kb': 'wvs-empty' }, El('p', { className: 'wvs-muted' }, kbe('Nothing to show yet. The Journal fills in as the chat works.'))))
+            return El('div', { className: rootCls }, head, chips, El('section', { className: 'wv2-panel', 'data-kb': 'wvs-empty' }, El('p', { className: 'wvs-muted' }, kbe('Nothing to show yet. The Journal fills in as the chat works.'))))
           }
           const kpis = El(WVSKpis, { story: st })
           const shareSheet = ui.share ? El(WVSShare, { story: st, ui: ui, set: set, logos: logos, sessionId: sessionId }) : null
           if (mode === 'flow') {
-            return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos, stageRef: stageRef }))
+            return El('div', { className: rootCls }, head, chips, shareSheet, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos, stageRef: stageRef }))
           }
           const rows = wvsFeed(st, ui.filter, ui.crew)
           const pg = wvsPage(rows, ui.page, ui.size)
           const selM = ui.sel !== null ? st.moments.filter((m) => m.id === ui.sel)[0] || null : null
-          return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis,
+          return El('div', { className: rootCls }, head, chips, shareSheet, kpis,
             ui.ins ? El(WVSInsights, { story: st, ui: ui, set: set }) : null,
             El(WVSCrews, { story: st, ui: ui, set: set }),
             El(WVSFilters, { story: st, ui: ui, set: set }),
@@ -41699,6 +41714,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 .wvs-classic > .wvs-barwrap{flex:0 0 auto;min-height:0;padding:16px 24px 0;gap:8px}
 .wvs-classic > .wv2-root:not(.wvs-barwrap){flex:1 1 auto}
 .wvs-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* embedded in the Sessions pane of an automation: the pane draws the frame and the padding */
+.wv2-root.wvs-embed{padding:0;min-height:0;background:transparent}
+.wvs-root.wvs-embed{padding-top:0}
+.wvs-classic.wvs-embed > .wvs-barwrap{padding:0 0 10px}
 @media (max-width:720px){.wvs-root{padding-top:44px}.wvs-classic > .wvs-barwrap{padding-top:44px}}
 .wvs-title{display:flex;flex-direction:column;gap:3px;min-width:0}
 .wvs-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -41847,6 +41866,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         /* ── enregistrement : onglet du chat ── */
         ctx.effect(() => styles.insert(WV2_CSS), 'workflows-v2: journal styles')
         ctx.effect(() => styles.insert(WVS_CSS), 'workflows-v2: story styles')
+        kbJournalShell = WV2Shell
         ctx.effect(() => slots.inject('conversation.view', () => slots.register(
           { name: 'conversation.view', id: WV2_TYPE, order: 6, label: kbt('wv2.tab') }, WV2Shell)), kbe('workflows-v2: execution journal tab'))
       } catch (wv2Error) {
