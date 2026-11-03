@@ -1254,7 +1254,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "played",
+      "note": "Played 2026-11-03 on the tip of dev: 646 test files, 646 green, 0 red in 138 s. The runner lists 27 kinds of skip (GUI suites that need playwright, react or jsdom, the Python call-agent tests, the real server); a skip is not a pass, and the live battery (W5-02) covers the GUI part."
     },
     {
       "id": "W5-02",
@@ -1268,7 +1269,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "played",
+      "note": "Played 2026-11-03 on sandbox A, 107 minutes: of 129 checks 55 pass, 74 are red (40 fail, 19 time out, 15 not run). NOT green. The 50 reds of bundles that are on were replayed alone on a quiet machine with A paired again: 2 pass (usage, workers), 48 stay red, so the load of the first run is not the cause. 17 more reds are checks of bundles the freeze switches off (Tables, Front desk, Kaby customisation, Mockups, Office, Modeleur, Motion, Pulse, Registry, Servers, Session messages, Mini-apps): the log says so (« db_off », 404, « not loaded »), not replayed. 7 not replayed because they restart the sandbox or rewrite settings (join, five language checks, settings-nav-i18n). Grouped causes and what is still undiagnosed: ledger section « Wave W5 », T-035, T-036. Evidence: ~/kybernos-archive/soft-takeoff-2026-11-03/w5/ (W5-02.log, live/, live3/)."
     },
     {
       "id": "W5-03",
@@ -1283,7 +1285,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "played",
+      "note": "Played 2026-11-03 on a fresh replica (accounts A and B): the preflight passed on its own (an agent request answered 200 for both), then all 8 journeys passed, 173 of 173 checks (J1 15, J2 17, J4 27, J5 31, J6 8, J7 47, J8 7, J9 21); the journeys ran with the preflight skipped because it had just passed. The first attempt stopped at the preflight: the leftovers sweeper had stopped the two sandboxes during the repair, and `soft-takeoff-repair.sh` needs them UP first (ledger finding 38)."
     },
     {
       "id": "W5-04",
@@ -1298,7 +1301,7 @@
         "A"
       ],
       "status": "to-verify",
-      "note": "Confirm what check-suite-update-tls covers: the upgrade from the previous release and the rollback must both be played on an isolated instance (own HOME, DSH_HOME and npm prefix), never on the real engine."
+      "note": "Run 2026-11-03: `test-lifecycle-engine.mjs` and `check-suite-update-tls.mjs` pass (16/16 on the second: TLS verified, a signed catalogue accepted, a document changed by one byte refused, a flipped bit / truncated / over-long / plain-http archive refused, robot never run). They play the update and the rollback against local fixtures, not a real previous release on a clean instance: that stays to verify, and is the same machine as W5-06 (owner)."
     },
     {
       "id": "W5-05",
@@ -1312,7 +1315,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "played",
+      "note": "Played 2026-11-03: `test-safe-mode.mjs` passes; `check-bundle-faults.mjs` broke each of 57 bundles in 8 ways (456 injections) in a throw-away copy of the sandbox profile. The guarantee of AGENTS.md rule 2 held: DSH started every time (the hanging top-level `await` leaves the banner unprinted, as the script documents, and the server still answers), no other bundle lost a boot line, no other bundle lost a route. The first run printed 74 reds, all « the failure is not visible in the log »: 66 of them were bundles the lab's profile does not load (it is a copy of the owner's profile, which switches 9 bundles off and does not declare kybernos-gate, kybernos-no-process and kybernos-relance), so there is nothing to name; the script now skips that assertion for a bundle its profile does not load (ledger T-033). The 8 left are real but minor: a broken package.json of the 4 maison sub-agent providers leaves no line in the log (T-034, P3)."
     },
     {
       "id": "W5-06",

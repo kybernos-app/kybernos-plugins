@@ -192,6 +192,18 @@ const stopDsh = async () => {
   await sleep(300)
   child = null
 }
+// The lab is a clone of the profile it was made from. A bundle that profile does not load (not in its `dsh.profile.bundles`, or switched off with `disabled: true` in the patch) never runs,
+// so a fault in it cannot show in the log. Its start-up guarantee is still checked (DSH starts, nothing else is lost); only « the failure is named in the log » does not apply to it.
+const profileLoads = (b) => {
+  const dir = join(DSH_HOME, 'profiles', 'web')
+  let declared
+  let patch
+  try { declared = new Set((JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).dsh?.profile?.bundles ?? []).map((x) => (typeof x === 'string' ? x : x.name))) } catch (e) { return true }
+  try { patch = readFileSync(join(dir, 'cordis.patch.yml'), 'utf8').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n') } catch (e) { patch = '' }
+  const names = [dirTail(b), packageName(b)]
+  const named = names.some((n) => declared.has(n) || new RegExp('^\\s*(?:-\\s*)?name:\\s*[\'"]?' + escapeRe(n) + '[\'"]?\\s*$', 'm').test(patch))
+  return named && !names.some((n) => new RegExp('^\\s*-\\s*id:\\s*' + escapeRe(n) + '\\s*\\n\\s*disabled:\\s*true', 'm').test(patch))
+}
 const readLog = () => { try { return readFileSync(LOG, 'utf8') } catch (e) { return '' } }
 const norm = (l) => l.replace(/\/Users\/[^\s'")\]]+/g, '<path>').replace(/\d+/g, '#').trim()
 // The hub warns when several boots in a row ended without a working GUI. That line depends on the HISTORY of the boots of the sandbox (this script starts DSH
@@ -272,12 +284,13 @@ for (const b of bundles) {
     const mine = ownTags(b)
     const lostOther = lost.filter((l) => !mine.has(tagOf(l)))
     const routesLost = Object.entries(BASE_ROUTES).filter(([p, st]) => st === 200 && routes[p] !== 200).map(([p]) => p)
-    const named = namedIn(b, log)
+    const off = !profileLoads(b)
+    const named = off || namedIn(b, log)
     const gui = GUI ? await guiText() : null
     // Routes of another bundle that vanished because of THIS bundle are a failure; the broken one's own are expected.
     const foreign = routesLost.filter((p) => !ownRoute(p, b))
     row.lostOther = lostOther.length; row.routesLost = routesLost.length
-    note(`${b} / ${f}: started in ${s.ms} ms, other bundles' boot lines lost ${lostOther.length}, own routes lost ${routesLost.length - foreign.length}, foreign routes lost ${foreign.length}, failure named in the log ${named ? 'yes' : 'NO'}${gui ? ', GUI ' + (gui.ok && !/Failed to load plugins/.test(gui.text) ? 'renders' : 'BROKEN') : ''}`)
+    note(`${b} / ${f}: started in ${s.ms} ms, other bundles' boot lines lost ${lostOther.length}, own routes lost ${routesLost.length - foreign.length}, foreign routes lost ${foreign.length}, failure named in the log ${off ? 'n/a, bundle not loaded by this profile' : named ? 'yes' : 'NO'}${gui ? ', GUI ' + (gui.ok && !/Failed to load plugins/.test(gui.text) ? 'renders' : 'BROKEN') : ''}`)
     if (lostOther.length > 0) failures.push(`${b} / ${f}: other bundles lost boot lines: ${lostOther.slice(0, 3).join(' | ')}`)
     if (foreign.length > 0) failures.push(`${b} / ${f}: routes of other bundles lost: ${foreign.join(', ')}`)
     if (!named) failures.push(`${b} / ${f}: the failure is not visible in the log`)
