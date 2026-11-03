@@ -518,7 +518,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "Replica only. The stand-in model bills the tokens it is told to (POST :8822/__/engine/reply), so the amounts are exact. Needs the replica up and account A paired (see README § 7b)."
     },
     {
       "id": "W2-02",
@@ -535,7 +536,9 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "Replica only. J5 spends the member's 5-hour allowance for good: run it once per five hours per team (KB_E2E_J5_TEAM=t2 plays it in the other team). The first half (check-usage-live) needs no replica.",
+      "timeout": 900
     },
     {
       "id": "W2-03",
@@ -549,7 +552,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Starts a fake OpenAI-compatible provider on the loopback and adds then deletes one custom provider in the sandbox. No real key, nothing leaves the machine."
     },
     {
       "id": "W2-04",
@@ -571,29 +575,45 @@
       "wave": "W2",
       "prio": "P0",
       "area": "local models",
-      "title": "Local models: detection, install progress, a real turn on a small model",
+      "title": "Local models: the page searches for new models and says where the list comes from",
       "runner": "script",
       "cmd": "source scripts/sandbox/env.sh && node scripts/check-ollama-search-live.mjs",
       "env": "machine",
       "personas": [
         "A"
       ],
-      "status": "to-verify",
-      "note": "The script only covers the search. The real turn needs Ollama and one small model on the test machine: add a W2-05b agent step."
+      "status": "ready",
+      "note": "Read-only, nothing is installed. The real turn on a small model is W2-12."
+    },
+    {
+      "id": "W2-12",
+      "wave": "W2",
+      "prio": "P0",
+      "area": "local models",
+      "title": "A real turn on a small local model: pick it, send a message, get an answer, the chip says it is free",
+      "runner": "agent",
+      "brief": "On sandbox A open Settings › AI provider and models, find the Ollama local models, pick tev1:0.8b (already on this machine, 811 MB: pull nothing), start a new chat on it, send « Say hello in one short sentence » and wait for the answer. Record the model name shown in the composer, the answer, how long it took, and whether anything says it costs money. Then stop Ollama's model (not the server) and send again: record the sentence shown.",
+      "env": "machine",
+      "personas": [
+        "A"
+      ],
+      "status": "ready",
+      "note": "Uses the real Ollama of the test machine and only the 0.8b model (the 9b ones are the owner's; do not load them). A turn takes seconds; the machine's CPU is busy for that time."
     },
     {
       "id": "W2-06",
       "wave": "W2",
       "prio": "P1",
       "area": "free models",
-      "title": "Free models work with no account and no key",
+      "title": "Free LLMs page with the free tier locked: it says so in one sentence, draws no green dot, keeps Connect off",
       "runner": "script",
       "cmd": "source scripts/sandbox/env.sh && node scripts/check-free-llms-live.mjs",
       "env": "sandbox",
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "to-verify",
+      "note": "The old title promised « free models work with no account and no key ». The script proves the honest locked state with answers it fakes itself (OpenCode Zen answered 403 free_tier_locked on 2026-10-16). Whether a real free model answers a real turn today is NOT tested by any script: ask the owner (README § 9, question 14)."
     },
     {
       "id": "W2-07",
@@ -614,15 +634,15 @@
       "wave": "W2",
       "prio": "P0",
       "area": "failures",
-      "title": "Provider failures read as plain sentences: bad key, 429, timeout, out of credit",
+      "title": "Failures read as plain sentences, and the chat stays usable: the Kybernos model down, a bad key, out of credit",
       "runner": "agent",
-      "brief": "Point one route at the fake server in scripts/fake-kybernos.mjs, make it answer 401, 429, 500 and a hang. For each, record the sentence shown and whether the chat stays usable.",
+      "brief": "Two paths. (1) Kybernos model on the replica: on sandbox A send one message that works; then POST http://127.0.0.1:8822/__/engine/fail with {\"match\":\"prov.example.test\",\"status\":503} (this fails every call to the stand-in's provider, back-up included), send again, and record the sentence. Repeat with status 429 and 401, and with {\"n\":1} (one failure, the next call works). Always end with {\"match\":\"\"}. (2) Own key: add a custom provider with a deliberately wrong key against a real provider's address, send a message, record the sentence. For each, record the sentence, the buttons, and whether the next message (after the fix) goes through without a reload.",
       "env": "replica",
       "personas": [
         "A"
       ],
-      "status": "to-verify",
-      "note": "Check what fake-kybernos.mjs can already simulate before building more."
+      "status": "ready",
+      "note": "Corrected 2026-11-03: scripts/fake-kybernos.mjs fakes only cloud account and invitation routes, not a model. The replica's control port 8822 is the tool: POST /__/engine/fail {match, status, n} (match is a substring of the deployment's base address; the seed's is https://prov.example.test/v1) and POST /__/engine/reply. What is NOT covered: a timeout or a 429 on an OWN key (no stand-in provider answers those; check-provider-sheet-live.mjs has a loopback fake that could grow them, README § 8 item 11). The replica keeps the failure in memory until {\"match\":\"\"} or a restart."
     },
     {
       "id": "W2-09",
@@ -631,15 +651,16 @@
       "area": "credit",
       "title": "Free person with the welcome credit spent: the composer says what to do (top up or upgrade), not a technical error",
       "runner": "agent",
-      "brief": "Spend the welcome credit on the replica (owner setting welcome_credit_cents small), send a message, record the sentence and the buttons.",
+      "brief": "On the replica, use a person who has only the welcome credit (a new account, not A: the credit is given once per mailbox). Spend it with POST http://127.0.0.1:8822/__/engine/reply {\"completion\": <enough tokens to pass the credit>} and one message, then send another. Record the sentence in the composer, the buttons, and where each leads (top up, upgrade). Put the stand-in back to {\"completion\":1}.",
       "env": "replica",
       "personas": [
         "A"
       ],
-      "status": "ready",
+      "status": "to-verify",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "To confirm before the first run: the size of welcome_credit_cents on the replica (owner setting), and that a fresh test account can be made without re-running `up` (it re-clones both sandboxes). Until then, a weaker version can play on account A by spending its 5-hour allowance (W2-02 does that)."
     },
     {
       "id": "W2-10",
@@ -653,7 +674,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Makes REAL requests to the free search engines (an engine test and one search through DSH's seam) and stores then removes a made-up key. It undoes its writes. Owner's OK for outbound traffic: README § 9, question 15."
     },
     {
       "id": "W2-11",
@@ -667,7 +689,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Reads and checks only: never installs, never types a key."
     },
     {
       "id": "W3-01",

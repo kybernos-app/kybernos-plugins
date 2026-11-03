@@ -46,6 +46,24 @@ Script cases by the runner on two sandboxes (A desktop account, C never paired);
 | W1-22 creator (Haiku) | blocked: the stand-in model answers one fixed sentence (process finding 11); one text drift (T-012) |
 | W1-24 French speaker (Haiku) | partial, on the earlier build; the question it raised is reproduced by script (T-011) |
 
+## Wave W2 (2026-11-03): preparation only, nothing run
+
+12 cases (9 ready). Prepared on the tip of `dev`; no heavy case was run and no sandbox was started for it.
+
+| Case | State | What changed in the plan |
+|---|---|---|
+| W2-01, W2-02 | ready | notes: replica only; J5 spends the 5-hour allowance, once per five hours per team |
+| W2-03, W2-07, W2-11 | ready | sandbox only, nothing leaves the machine (the scripts say so in their headers) |
+| W2-04 | needs-build | still no several-accounts switch in the product; question 13 |
+| W2-05 | ready | retitled: the script covers the search only |
+| W2-12 | ready (new) | the real turn on `tev1:0.8b`, which is already on the machine; replaces the « W2-05b » promised in the old note |
+| W2-06 | to-verify | the old title promised more than the script proves (locked tier told honestly, answers faked by the script); question 14 |
+| W2-08 | ready | brief rewritten: `fake-kybernos.mjs` fakes no model; the replica's control port does (`/__/engine/fail`, `/__/engine/reply`). A 429 or a timeout on an own key is not coverable (§ 8 item 11) |
+| W2-09 | to-verify | the welcome credit is given once per mailbox, so account A cannot replay it; a fresh account needs a harness step (§ 8 item 12) |
+| W2-10 | ready | makes real requests to the free search engines; question 15 |
+
+The sandbox keeper moved from the scratchpad into the repo (`scripts/soft-takeoff-sandbox-up.sh`, tested), since the scratchpad is wiped on restart.
+
 ## Defects
 
 | Defect | Case | Sev | Symptom (what the person sees) | Cause | Fix (commit) | Attempts | State |
@@ -88,5 +106,8 @@ Script cases by the runner on two sandboxes (A desktop account, C never paired);
 16. **« Did not open » and « not run » are not a pass.** The phone-width check printed 2 ✓ and 16 ○ and exited 0 (T-015). A run summary has to show the skips next to the passes, and a case with more skips than checks is read as blocked.
 17. **A case that needs two opposite sandboxes is two cases** (T-017): a connected account (A) and a never-paired one (C) cannot share one command.
 18. **A chained command hides what comes after its first failure.** W1-05 and W1-08 chain several scripts with `&&`: the later ones had never run before the earlier ones went green (the help check and the i18n audit).
+19. **The stand-in model is a control port, not a fixed sentence.** `POST :8822/__/engine/reply` and `/__/engine/fail` on the replica set what it answers, how many tokens it bills and which provider calls fail; that is what makes the failure and credit cases (W2-08, W2-09) playable without a real model or a real key. Finding 11 is true of the default only.
+20. **A case title must say what its script proves.** W2-05 and W2-06 promised a real local turn and working free models; their scripts check a search and a locked state. The titles were corrected and the missing half became W2-12 and question 14.
+21. **A harness command that is not idempotent is a trap.** `e2e-teams-run.sh up` re-clones both sandboxes and recreates the accounts; `down` deletes the sandbox homes. The README says to use `preflight` and `run` only, and the keeper script is the only thing that restarts a sandbox.
 
 State: `open` | `fixed` (case and ring green) | `closed` (not a product defect, or not seen again) | `to triage` | `to confirm` | `flaky` | `wontfix` (owner decision, with the workaround) | `escalated` (3 attempts).
