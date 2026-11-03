@@ -65,7 +65,8 @@ const VOICE_TRAITS = [
   ['dry, rare humour, none on failure, cost or security', /Humour is dry and rare; none when something failed, cost money or touches security/]
 ]
 for (const [name, re] of VOICE_TRAITS) ok('voice: ' + name, re.test(NATIVE) && re.test(CLOUD), name)
-ok('the voice stays under the 1,650-character cap (1,500 until 2026-11-03: the line on hosting)', VOICE.join('\n').length <= 1650, VOICE.join('\n').length)
+ok('the voice names the tool that puts a page online, and forbids detours', VOICE.some((l) => /site_publish/.test(l) && /<name>\.kaby\.app/.test(l) && /asked first/.test(l) && /Never use tunnels/.test(l)))
+ok('the voice stays under the 1,650-character cap (1,500 until 2026-11-03: the line on putting a page online)', VOICE.join('\n').length <= 1650, VOICE.join('\n').length)
 
 // ── where and when ───────────────────────────────────────────────────────────
 ok('the channel line comes from the channel table', NATIVE.includes(CHANNELS.chat) && CLOUD.includes(CHANNELS.telegram))

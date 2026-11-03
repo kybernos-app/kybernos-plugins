@@ -108,7 +108,7 @@ const SUPPORT_ITEM = {
 const market = { mode: 'legacy', items: [SUPPORT_ITEM], hidden: [], pageSize: 200, listCalls: 0, failPage: null, endless: false, byAddressStatus: null }
 const teamApi = { workspace: '11111111-1111-4111-8111-111111111111', role: 'member', rows: [], next: 1, fail: null }
 const invites = { calls: [], answer: null }
-const seen = { memberReads: 0, computerListReads: 0, team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
+const seen = { memberReads: 0, computerListReads: 0, sites: [], team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
 // que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
@@ -303,6 +303,17 @@ const api = createServer((req, res) => {
         if (computerActionAnswer !== null) return send(computerActionAnswer.status, computerActionAnswer.body)
         if (m[1] === 'ticket') return send(200, { url: 'https://cmp-home.computers.test/__gate/ticket?t=single-use', expires_in: 60, computer_id: 'cmp-home' })
         return send(200, { computer: { id: 'cmp-home', state: m[1] === 'resume' ? 'resuming' : 'suspending', desired: m[1] === 'resume' ? 'running' : 'suspended' } })
+      }
+    }
+    // Pages put online (docs/dev/site-publish-contract.md): the person's account route.
+    {
+      const m = /^\/v1\/sites(?:\/([a-z0-9-]+))?$/.exec(req.url)
+      if (m !== null) {
+        if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+        seen.sites.push({ method: req.method, slug: m[1] ?? null, body })
+        if (req.method === 'POST') return send(200, { slug: body.slug, url: 'https://' + body.slug + '.kaby.app', state: 'live', updated: false, files: body.files.length })
+        if (req.method === 'DELETE') return m[1] === 'pizzaone' ? send(200, { removed: true }) : send(404, { error: 'not_found' })
+        return send(200, { sites: [{ slug: 'pizzaone', url: 'https://pizzaone.kaby.app', title: 'Pizza One', state: 'live' }] })
       }
     }
     if (req.url === '/v1/workspaces/ws-1/computers' && req.method === 'GET') {
@@ -1688,7 +1699,7 @@ try {
         assert.equal(typeof gate, 'function', 'la garde est montee')
         const seen = []
         // A QUESTION is a POST: the background poll for answers (a GET every KYBERNOS_TURN_GATE_POLL_MS = 5 ms here) may fire at any moment on a loaded machine and is not one.
-        const questions = () => seen.filter((c) => c.method === 'POST').length
+        const questions = () => seen.filter((c) => c.method === 'POST' && c.path === '/v1/computer/approvals').length
         let answers = ['pending', 'allowed']
         let unreachable = false
         const realFetch = globalThis.fetch
@@ -1696,6 +1707,7 @@ try {
           const u = new URL(String(url))
           seen.push({ method: init.method, path: u.pathname, body: init.body ? JSON.parse(init.body) : null, auth: init.headers && init.headers.authorization })
           if (unreachable) throw new Error('down')
+          if (u.pathname === '/v1/computer/sites') return new Response(JSON.stringify({ slug: 'pizzaone', url: 'https://pizzaone.kaby.app', state: 'live', updated: false }), { status: 200 })
           if (init.method === 'POST') return new Response(JSON.stringify({ id: 'ap-1', state: 'pending', expires_at: '2099-01-01T00:00:00Z' }), { status: 200 })
           return new Response(JSON.stringify({ id: 'ap-1', state: answers.shift() ?? 'pending' }), { status: 200 })
         }
@@ -1740,6 +1752,30 @@ try {
           // A no, an expired question, a platform that cannot be reached and a stopped task are refusals, never passes.
           // Each scenario has its own turn: the number of questions one turn may ask is bounded (below).
           const turnOf = async (id, extra = {}) => { nextSession = id; await turnHit('/kybernos-cloud/turn', { prompt: 'do it', jobId: JOB, ...extra }, 'Bearer kyd_computer'); return id }
+          // Putting a page on the public internet is asked about, in plain words (the address it will have, never the files); reading the list of one's pages is not.
+          assert.equal(mod.TURN_GATE_SAFE_TOOLS.has('site_list'), true)
+          for (const acting of ['site_publish', 'site_remove']) assert.equal(mod.TURN_GATE_SAFE_TOOLS.has(acting), false, acting + ' is asked about')
+          await turnOf('s-site')
+          answers = ['allowed']
+          const sitesBefore = seen.length
+          assert.deepEqual(await run('site_publish', { path: '/home/node/pizzaone/index.html', name: 'pizzaone' }, 's-site'), { kind: 'allow' })
+          const sitePost = seen.slice(sitesBefore).find((c) => c.method === 'POST')
+          assert.deepEqual(sitePost.body, { job_id: JOB, kind: 'other', summary: 'Publish a page on the internet at pizzaone.kaby.app (from pizzaone/index.html)' })
+          answers = ['denied']
+          const siteDenied = await run('site_remove', { name: 'pizzaone' }, 's-site')
+          assert.equal(siteDenied.kind, 'deny')
+          assert.equal(seen.filter((c) => c.method === 'POST').at(-1).body.summary, '(2/3) Take down the page pizzaone.kaby.app')
+          // The page itself goes through the computer's own route, with the turn it belongs to; a session this route did not make cannot publish.
+          const pageDir = mkdtempSync(join(tmpdir(), 'cloud-page-'))
+          writeFileSync(join(pageDir, 'index.html'), '<h1>Pizza One</h1>')
+          const sitePublish = registeredTools.get('site_publish')
+          const published = await sitePublish.execute({ path: pageDir, name: 'pizzaone' }, { agent: { id: 's-site' } })
+          assert.ok(published.ok === true && /https:\/\/pizzaone\.kaby\.app/.test(published.text), published.text)
+          const siteCalls = () => seen.filter((c) => c.path === '/v1/computer/sites')
+          assert.deepEqual([siteCalls().length, siteCalls()[0].auth, siteCalls()[0].body.job_id, siteCalls()[0].body.slug, siteCalls()[0].body.files.map((f) => f.path)], [1, 'Bearer kyd_computer', JOB, 'pizzaone', ['index.html']])
+          assert.equal((await sitePublish.execute({ path: pageDir, name: 'pizzaone' }, { agent: { id: 'someone-elses-session' } })).ok, false)
+          assert.equal(siteCalls().length, 1, 'a session this route did not make sends nothing')
+          rmSync(pageDir, { recursive: true, force: true })
           answers = ['denied']
           const denied = await run('bash', { command: 'rm -rf ~' })
           assert.equal(denied.kind, 'deny')
@@ -2430,6 +2466,35 @@ try {
       delete process.env.KYBERNOS_COMPUTER_ID
       assert.ok(fromComputer.ok === true && /sees only the workspace it belongs to/.test(fromComputer.text) && /I cannot see them from a cloud computer/.test(fromComputer.text), fromComputer.text)
       assert.equal(seen.computerListReads, readsBefore + 1, 'no call for the list of computers from a cloud computer')
+      // A page is put online through the person's account (the server hosts it at <name>.kaby.app): in Kaby's chat, after the person said yes; from any other chat nothing is sent.
+      const publish = registeredTools.get('site_publish')
+      assert.ok(publish !== undefined && registeredTools.has('site_list') && registeredTools.has('site_remove'), 'the three site tools are registered')
+      const pageDir = join(home, 'pizzaone')
+      mkdirSync(pageDir, { recursive: true })
+      writeFileSync(join(pageDir, 'index.html'), '<h1>Pizza One</h1>')
+      const sitesBefore = seen.sites.length
+      assert.equal((await publish.execute({ path: pageDir, name: 'pizzaone' }, { agent: { id: 'session-someone-else' } })).ok, false, 'another chat cannot publish')
+      assert.equal(seen.sites.length, sitesBefore, 'nothing was sent for another chat')
+      const kabyPage = await publish.execute({ path: pageDir, name: 'pizzaone' }, { agent: { id: KABY } })
+      assert.ok(kabyPage.ok === true && /https:\/\/pizzaone\.kaby\.app/.test(kabyPage.text), kabyPage.text)
+      const sent = seen.sites.at(-1)
+      assert.deepEqual([sent.method, sent.body.slug, sent.body.files.map((f) => f.path), sent.body.job_id], ['POST', 'pizzaone', ['index.html'], undefined], 'the account route, no turn')
+      const asking = []
+      fakeApproval = { request: async (req) => { asking.push(req); return 'allowed-once' } }
+      assert.deepEqual(await run('site_publish', { path: pageDir, name: 'pizzaone' }), { kind: 'allow' })
+      assert.equal(asking.length, 1, 'the person is asked first in Kaby\'s chat')
+      assert.match(asking[0].reason, /^Publish a page on the internet at pizzaone\.kaby\.app \(from .*\/pizzaone\)$/)
+      assert.equal(await run('site_list', {}).then((r) => r.kind), 'allow')
+      assert.equal(asking.length, 1, 'reading the list of pages is not asked')
+      assert.ok(/pizzaone\.kaby\.app — Pizza One/.test((await registeredTools.get('site_list').execute({})).text))
+      assert.ok(/is taken down/.test((await registeredTools.get('site_remove').execute({ name: 'pizzaone' }, { agent: { id: KABY } })).text))
+      assert.equal((await registeredTools.get('site_remove').execute({ name: 'pizzaone' }, { agent: { id: 'session-someone-else' } })).ok, false, 'another chat cannot take a page down')
+      process.env.KYBERNOS_COMPUTER_ID = 'cmp-1'
+      process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_computer'
+      assert.ok(/not readable from a cloud computer/.test((await registeredTools.get('site_list').execute({})).text), 'a cloud computer does not read the list')
+      assert.ok(/cannot be taken down from a cloud computer/.test((await registeredTools.get('site_remove').execute({ name: 'pizzaone' }, { agent: { id: KABY } })).text), 'nor take a page down')
+      delete process.env.KYBERNOS_COMPUTER_ID
+      delete process.env.KYBERNOS_COMPUTER_TOKEN
     } finally {
       fakeApproval = undefined
       if (homeSaved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = homeSaved
