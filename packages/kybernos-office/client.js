@@ -135,6 +135,10 @@ window.__ModuleLoader__.load({
 .kyo-card .kyo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .kyo-sub{color:var(--dsw-alias-label-secondary,#666);font-size:12px}
 .kyo-wrap.kyo-embed{position:relative;inset:auto;z-index:auto;width:100%;height:100%;min-height:420px}
+.kyo-pane{display:flex;flex-direction:column;height:100%;min-height:0}
+.kyo-pane-box{flex:1;min-height:0;display:flex;flex-direction:column}
+.kyo-pane-box>.kyo-wrap.kyo-embed{flex:1;height:auto;min-height:240px}
+.kyo-pane-wait{padding:16px;font-size:12px;color:var(--dsw-alias-label-secondary,#666)}
 .kyo-q{width:30px;padding:0;text-align:center;font-weight:600}
 .kyo-help{position:absolute;z-index:2;top:12px;right:12px;max-width:420px;max-height:calc(100% - 24px);overflow:auto;padding:16px 18px;border:1px solid var(--dsw-alias-border-l2,#ddd);border-radius:12px;background:var(--dsw-alias-bg-layer-2,#f8f8f8);box-shadow:0 8px 24px var(--dsw-alias-shadow-l3,rgba(0,0,0,.18))}
 .kyo-help[hidden]{display:none}
@@ -439,6 +443,91 @@ window.__ModuleLoader__.load({
       /** The viewer of Creations shows the file in this box, read-only, with « Edit » in its bar. Returns `{ close, dirty }`, or null. */
       const embedFile = (box, path, name) => openWindow(path, name, box)
 
+      // ── the right-hand tab of a chat ───────────────────────────────────────────────────────────────────────────────
+      // A tab type of its own for .docx and .xlsx (`ctx.sidebarRightTabs`), ranked above DSH's file previews, with its body in the slot `sidebar.right.pane.tab`.
+      // DSH keeps such a body mounted while the tab lives (`keepMounted`): the document preview's own bodies are thrown away on every change of tab, and an editor
+      // lost what had been typed. The file is drawn by the same editor as in Creations, read-only first, with « Edit » in its bar, so what a chat wrote is looked
+      // at and changed where it appeared. Closing the tab with unsaved changes cannot be intercepted (the engine has no veto): the editor's own bar says « Unsaved changes ».
+      const PANE_ID = 'kybernos-office'
+      const PANE_KIND = 'kybernos-office'
+      const PANE_SLOT = 'sidebar.right.pane.tab'
+      const SESSION_FILE = 'dsh-resource://file/session/'
+      const baseName = (p) => String(p || '').split(/[\\/]/).pop()
+      const paneTitle = (address) => { const n = baseName(String(address || '').replace(/[?#].*$/, '')); try { return decodeURIComponent(n) } catch (e) { return n } }
+
+      /** The tab body, built with the host's React the first time it is needed. Props are the slot's: `useTabInfo` (the tab's address and navigation) and `useResource` (the file's absolute path and version). */
+      const makePaneBody = (React) => {
+        const h = React.createElement
+        return function KbOfficePane (props) {
+          const info = typeof props.useTabInfo === 'function' ? props.useTabInfo() : null
+          const tab = plain(info) && plain(info.tab) ? info.tab : null
+          const address = tab !== null && typeof tab.contentId === 'string' ? tab.contentId : ''
+          const meta = typeof props.useResource === 'function' && address !== '' ? props.useResource(address) : null
+          const value = plain(meta) && plain(meta.value) ? meta.value : null
+          const path = value !== null && typeof value.absolutePath === 'string' && value.absolutePath !== '' ? value.absolutePath : null
+          const version = value !== null && typeof value.version === 'string' ? value.version : ''
+          const revision = tab !== null && plain(tab.navigation) && typeof tab.navigation.revision === 'number' ? tab.navigation.revision : 0
+          const boxRef = React.useRef(null)
+          const live = React.useRef({ handle: null, open: null, revision, version })
+
+          React.useEffect(() => {
+            const box = boxRef.current
+            if (path === null || box === null || box === undefined) return undefined
+            const l = live.current
+            l.open = () => embedFile(box, path, baseName(path))
+            l.handle = l.open()
+            return () => { const hd = l.handle; l.handle = null; l.open = null; if (hd !== null) { try { hd.close() } catch (e) { /* already gone */ } } }
+          }, [path])
+
+          // Opened again from the file list, or the file changed on disk: show it again, but only while it is shown read-only. Once the person is editing, the
+          // host refuses a save over a newer file and says so; a reload here would also throw them out of edit mode after their own save.
+          React.useEffect(() => {
+            const l = live.current
+            if (l.revision === revision && l.version === version) return
+            l.revision = revision
+            l.version = version
+            if (l.handle === null || l.open === null) return
+            let again = false
+            try { again = l.handle.dirty() !== true && plain(l.handle.state()) && l.handle.state().readOnly === true } catch (e) { again = false }
+            if (!again) return
+            try { l.handle.close() } catch (e) { /* already gone */ }
+            l.handle = l.open()
+          }, [revision, version])
+
+          return h('div', { className: 'kyo-pane', 'data-kb': 'office-pane' },
+            path === null ? h('div', { className: 'kyo-pane-wait' }, kt('Ouverture…', 'Opening…')) : null,
+            h('div', { className: 'kyo-pane-box', ref: boxRef }))
+        }
+      }
+
+      /**
+       * Declares the tab type and its body, for the suffixes whose editor is installed (without editors DSH keeps its own previews).
+       * `ctx.inject` waits for the services, and nothing is asked of an engine that does not have them.
+       */
+      const startPane = (ctx) => {
+        if (typeof ctx.inject !== 'function') return
+        ctx.inject(['slots', 'sidebarRightTabs'], (scope) => {
+          const slots = scope !== undefined && scope !== null ? scope.slots : null
+          const tabs = scope !== undefined && scope !== null ? scope.sidebarRightTabs : null
+          if (slots === null || slots === undefined || tabs === null || tabs === undefined || typeof tabs.register !== 'function') return
+          let Body = null
+          try { Body = makePaneBody(require('react')) } catch (e) { Body = null }
+          if (Body === null) return
+          scope.effect(() => slots.inject(PANE_SLOT, () => slots.register({ name: PANE_SLOT, key: PANE_ID }, Body)), 'kybernos-office: the body of the right-hand tab')
+          scope.effect(() => {
+            let off = null
+            let dead = false
+            send('/status', { method: 'GET' }).then((st) => {
+              if (dead || !plain(st) || !st.ok || !plain(st.installed)) return
+              const patterns = [st.installed.doc === true ? '*.docx' : null, st.installed.sheet === true ? '*.xlsx' : null].filter((x) => x !== null)
+              if (patterns.length === 0) return
+              off = tabs.register({ id: PANE_ID, kind: PANE_KIND, patterns, priority: 'extension', keepMounted: true, canOpen: (address) => typeof address === 'string' && address.startsWith(SESSION_FILE), title: paneTitle })
+            }).catch(() => { /* no status: DSH keeps its own previews */ })
+            return () => { dead = true; try { if (typeof off === 'function') off() } catch (e) { /* already taken back */ } off = null }
+          }, 'kybernos-office: the type of the right-hand tab')
+        })
+      }
+
       // ── declared to the core ─────────────────────────────────────────────────────
       // The order in which two plugins are applied is DSH's, so the core's registry is waited for, not assumed.
       const declareWhenReady = (ctx, label, entry) => ctx.effect(() => {
@@ -471,12 +560,13 @@ window.__ModuleLoader__.load({
         try {
           declareWhenReady(ctx, 'kybernos-office: file editor', () => ({ id: 'office', canEdit, open: openFile, embed: embedFile }))
         } catch (e) { console.warn('[kybernos-office] editor not declared:', e) }
+        try { startPane(ctx) } catch (e) { console.warn('[kybernos-office] right-hand tab not declared:', e) }
       }
 
       return {
         name: NAME,
         apply: start,
-        __test: { canEdit, errorText, notices, thing, openFile, embedFile, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
+        __test: { canEdit, errorText, notices, thing, openFile, embedFile, makePaneBody, startPane, PANE_ID, PANE_KIND, paneTitle, baseName, CSS, lang, kt, BASE, REGISTRY, HASH, current: () => current },
       }
     } catch (e) {
       console.warn('[kybernos-office] disabled:', e)
