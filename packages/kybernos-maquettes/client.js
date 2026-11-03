@@ -90,13 +90,13 @@ window.__ModuleLoader__.load({
 
       /** The first message of the chat Kaby is asked in: what the person asked for on text the editor cannot change by hand. Written for them to read and send. */
       const askSentence = (items, ctx) => {
-        const F = (ctx && ctx.lang) === 'fr'
+        const pick = (fr, en) => ((ctx && ctx.lang) === 'fr' ? fr : en)
         const name = ctx && ctx.name ? ctx.name : ''
         const dir = ctx && ctx.dir ? ctx.dir : ''
         const file = ctx && ctx.file ? ctx.file : ''
-        const lines = items.map((it) => '- ' + (it.tag ? '[' + it.tag + '] ' : '') + '« ' + it.text + ' »' + (it.locked ? (F ? ' (texte construit par un script de la page)' : ' (text built by a script of the page)') : ''))
-        const where = (F ? 'Dans la maquette « ' + name + ' »' : 'In the maquette “' + name + '”') + (file ? (F ? ', page ' : ', page ') + file : '') + (dir ? (F ? ' (dossier ' : ' (folder ') + dir + ')' : '')
-        return where + (F ? ', peux-tu faire ces changements à ma place ?' : ', can you make these changes for me?') + '\n' + lines.join('\n')
+        const lines = items.map((it) => '- ' + (it.tag ? '[' + it.tag + '] ' : '') + '« ' + it.text + ' »' + (it.locked ? pick(' (texte construit par un script de la page)', ' (text built by a script of the page)') : ''))
+        const where = pick('Dans la maquette « ' + name + ' »', 'In the mockup “' + name + '”') + (file ? ', page ' + file : '') + (dir ? pick(' (dossier ', ' (folder ') + dir + ')' : '')
+        return where + pick(', peux-tu faire ces changements à ma place ?', ', can you make these changes for me?') + '\n' + lines.join('\n')
       }
 
       /**
@@ -236,7 +236,7 @@ window.__ModuleLoader__.load({
               title,
               session.pages.length > 1 ? h('div', { className: 'kbmq-pages', role: 'tablist', 'data-kb': 'maquettes-pages' }, session.pages.map((p) => h('button', { key: p, type: 'button', role: 'tab', 'aria-selected': p === session.page, className: 'kbmq-tab', 'data-page': p, onClick: () => { if (p !== session.page) open({ id: session.id, name: session.name, dir: session.dir }, p) } }, p))) : null,
               error !== '' ? h('div', { className: 'kbmq-banner', role: 'alert', 'data-kb': 'maquettes-error' }, error) : null,
-              h('iframe', { key: session.token, ref: frame, className: 'kbmq-frame', 'data-kb': 'maquettes-frame', src: session.url, sandbox: SANDBOX, title: kt('Maquette : ', 'Maquette: ') + session.name + ' — ' + session.page }))
+              h('iframe', { key: session.token, ref: frame, className: 'kbmq-frame', 'data-kb': 'maquettes-frame', src: session.url, sandbox: SANDBOX, title: kt('Maquette : ', 'Mockup: ') + session.name + ' — ' + session.page }))
           }
 
           const body = folders === null

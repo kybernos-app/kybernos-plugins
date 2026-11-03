@@ -64,6 +64,6 @@ cd packages/kybernos-maquettes && npm test
 ```
 
 `test-lib.mjs` (114 checks of the patch rules), `test-disk.mjs` (the disk: tokens, apply, rollback, undo, pictures), `test-host.mjs` (the routes over a real HTTP
-listener), `test-write-guard.mjs` (every write refused without the signed session), `test-editor.mjs` (the editor script: no way out but the bridge, the English of every
+listener), `test-write-guard.mjs` (every write refused without the signed session), `test-editor.mjs` (the editor script: no way out but the bridge, the French of every
 sentence), `test-client.mjs` (the DSH page, the bridge, the sandbox). The page in a real browser: `node scripts/check-kybernos-maquettes-live.mjs` against the sandbox
 (`docs/dev/live-testing.md`).
