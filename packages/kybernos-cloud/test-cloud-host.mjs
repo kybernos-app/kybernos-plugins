@@ -2141,6 +2141,8 @@ try {
         assert.equal(mod.computerTaskModel(), 'claude-haiku-5.5', 'then the next usual one')
         withIds(['zeta-1', 'alpha-2'])
         assert.equal(mod.computerTaskModel(), 'zeta-1', 'none of the usual: the first of the list')
+        withIds(['zeta-1', 'gpt-4.1-mini'])
+        assert.equal(mod.computerTaskModel(), 'zeta-1', 'an old model is not preferred over the first of the list')
         withIds([])
         assert.equal(mod.computerTaskModel(), null, 'an account that lists none: no model, the server says so')
       } finally { writeFileSync(statePath, savedState, { mode: 0o600 }) }

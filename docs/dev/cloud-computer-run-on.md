@@ -60,7 +60,7 @@ the way, and the cloud computer follows it:
   `GET /v1/threads/{thread_id}/messages?after=<position>` for about two minutes. A task still running is said so (« its answer will arrive in your Kaby conversation ») and is
   never sent twice.
 - **The model**: the server asks for one (`model_required`) when Kaby's crew names none, and Kaby's has none. The host sends a fast, inexpensive model of the account's own list
-  (`computerTaskModel` in `kybernos-cloud/index.js`: `deepseek-v4.1-flash`, else `claude-haiku-5.5`, else `gpt-4.1-mini`, else the first of the list). Found by the first live try on 2026-11-03.
+  (`computerTaskModel` in `kybernos-cloud/index.js`: `deepseek-v4.1-flash`, else `claude-haiku-5.5`, else the first of the list; an older model such as `gpt-4.1-mini` is never preferred). Found by the first live try on 2026-11-03.
 - **One conversation, one task at a time**: a hosted turn goes into Kaby's single conversation (`GET /v1/me/kyby`, there is no route to make another thread), and the server refuses a
   second one while a job of that thread waits (`turn_pending`), whoever sent it (Telegram included).
 - **Refusals in words**: `extra_cap_exhausted` (the member's extra budget, kybernos-server ADR 0066), `insufficient_quota`, `feature_not_in_plan`, `computer_unavailable`, `turn_pending`,
