@@ -373,6 +373,103 @@ await okAsync('embedded in the viewer: it opens read-only with nothing to decide
   must(T.embedFile(new Node('div'), '/home/x/a.txt', 'a.txt') === null, 'a name no editor takes opens nothing')
 })
 
+await okAsync('the right-hand tab: a tab type for the installed suffixes only, kept mounted, taken back with the plugin; its body opens the file the tab reports, read-only', async () => {
+  // a minimal React: elements as plain objects, refs and effects kept by call order, run by hand
+  let hookAt = 0
+  let hooks = []
+  const fakeReact = {
+    createElement: (type, props, ...kids) => ({ type, props: props || {}, kids }),
+    useRef: (v) => { const i = hookAt++; if (hooks[i] === undefined) hooks[i] = { ref: { current: v } }; return hooks[i].ref },
+    useEffect: (fn, deps) => { const i = hookAt++; const prev = hooks[i]; const changed = prev === undefined || deps === undefined || deps.length !== prev.deps.length || deps.some((d, k) => d !== prev.deps[k]); hooks[i] = { deps, cleanup: prev ? prev.cleanup : undefined, run: changed ? fn : null, prev } },
+  }
+  const p2 = definition.factory(() => fakeReact)
+  const T2 = p2.__test
+  const registered = []
+  const bodies = []
+  const offs = []
+  const tabs = { register: (d) => { registered.push(d); return () => { registered.splice(registered.indexOf(d), 1) } } }
+  const slots = { inject: (name, fn) => fn(), register: (def, comp) => { bodies.push({ def, comp }); return () => { bodies.length = 0 } } }
+  const scope = { slots, sidebarRightTabs: tabs, effect: (fn) => { offs.push(fn()) } }
+  const ctxFor = (extra) => ({ inject: (names, cb) => { ctxFor.names = names; cb(Object.assign({}, scope, extra)) } })
+
+  // 1. only the suffixes whose editor is installed
+  answers = { 'GET /kybernos-office/status': { ok: true, installed: { doc: true, sheet: false } } }
+  T2.startPane(ctxFor({}))
+  await tick(); await tick()
+  must(ctxFor.names.join() === 'slots,sidebarRightTabs', 'it asks for the two services and nothing else')
+  const def = registered[0]
+  must(registered.length === 1 && def.id === T2.PANE_ID && def.kind === T2.PANE_KIND && def.patterns.join() === '*.docx' && def.priority === 'extension', JSON.stringify(registered))
+  must(def.keepMounted === true, 'DSH keeps the body mounted through a change of tab: what was typed must survive it')
+  must(bodies.length === 1 && bodies[0].def.name === 'sidebar.right.pane.tab' && bodies[0].def.key === T2.PANE_ID, 'the body is keyed by the type id')
+  must(def.canOpen('dsh-resource://file/session/s1/a%20b.docx') === true && def.canOpen('dsh-resource://file/absolute/home/a.docx') === false && def.canOpen(7) === false, 'only files of the session\'s workspace')
+  must(def.title('dsh-resource://file/session/s1/docs/a%20b.docx') === 'a b.docx' && def.title('dsh-resource://file/session/s1/100%.docx') === '100%.docx', 'the chip says the file name, decoded when it can be')
+  offs.splice(0).forEach((f) => { if (typeof f === 'function') f() })
+  must(registered.length === 0, 'taken back with the plugin')
+  answers = { 'GET /kybernos-office/status': { ok: true, installed: { doc: true, sheet: true } } }
+  T2.startPane(ctxFor({})); await tick(); await tick()
+  must(registered.length === 1 && registered[0].patterns.join() === '*.docx,*.xlsx', 'both editors installed: both suffixes')
+  offs.splice(0).forEach((f) => { if (typeof f === 'function') f() })
+  answers = { 'GET /kybernos-office/status': { ok: true, installed: { doc: false, sheet: false } } }
+  T2.startPane(ctxFor({})); await tick(); await tick()
+  must(registered.length === 0, 'no editor installed: DSH keeps its own previews')
+  answers = { 'GET /kybernos-office/status': { ok: false, error: 'network' } }
+  T2.startPane(ctxFor({})); await tick(); await tick()
+  must(registered.length === 0, 'no answer from the host: nothing declared')
+  offs.splice(0).forEach((f) => { if (typeof f === 'function') f() })
+  let called = 0
+  T2.startPane({ inject: () => { called += 1 } }); T2.startPane({})
+  must(called === 1, 'an engine without the services is never asked for more; a context without inject is left alone')
+
+  // 2. the body
+  const info = (revision) => () => ({ tab: { contentId: 'dsh-resource://file/session/s1/budget.xlsx', navigation: { revision } } })
+  const resource = (version) => () => ({ status: 'ready', value: { absolutePath: '/home/x/budget.xlsx', version } })
+  const Body = T2.makePaneBody(fakeReact)
+  const box = new Node('div')
+  body.appendChild(box)
+  const render = (props) => { hookAt = 0; const tree = Body(props); const withRef = (n) => (n && n.props && n.props.ref ? n : (n && n.kids ? n.kids.map(withRef).find(Boolean) : null)); const r = withRef(tree); if (r) r.props.ref.current = box; return tree }
+  const flush = () => { for (const hk of hooks) if (hk && hk.run) { if (typeof hk.cleanup === 'function') hk.cleanup(); const out = hk.run(); hk.cleanup = out; hk.run = null } }
+  const opened = (from) => calls.slice(from).filter((c) => c.url.endsWith('/kybernos-office/open')).length
+  answers = { 'POST /kybernos-office/open': openAnswer() }
+  const before = calls.length
+  let tree = render({ useTabInfo: info(1), useResource: resource('v1') })
+  must(tree.props['data-kb'] === 'office-pane', 'the body draws its own pane')
+  flush(); await tick(); await tick()
+  const opens = calls.slice(before).filter((c) => c.url.endsWith('/kybernos-office/open'))
+  must(opens.length === 1 && JSON.parse(opens[0].init.body).path === '/home/x/budget.xlsx', 'it opens the ABSOLUTE path the tab\'s resource reports: ' + JSON.stringify(opens.map((c) => c.init.body)))
+  must(find(box, 'office-embed').length === 1 && frameOf().getAttribute('src').includes('ro=1'), 'read-only in the pane\'s box')
+  emit({ op: 'loaded', hash: HASH, readOnly: true }, frameOf().contentWindow)
+  // drawn again with nothing new: the editor is left alone
+  const first = frameOf()
+  render({ useTabInfo: info(1), useResource: resource('v1') }); flush(); await tick(); await tick()
+  must(opened(before) === 1 && frameOf() === first, 'a redraw with the same file does not open it again')
+  // opened again from the file list (revision + 1), nothing typed: the file is shown again, in the same box
+  render({ useTabInfo: info(2), useResource: resource('v1') }); flush(); await tick(); await tick()
+  must(opened(before) === 2 && find(box, 'office-embed').length === 1, 'opened again from the list: the file is shown again, in the same box')
+  // the file changed on disk while shown read-only: shown again
+  render({ useTabInfo: info(2), useResource: resource('v2') }); flush(); await tick(); await tick()
+  must(opened(before) === 3 && find(box, 'office-embed').length === 1, 'a file changed on disk is shown again while it is only being looked at')
+  // Edit, then the file changes on disk (another version, another visit): the editor is left alone, typed or not
+  emit({ op: 'loaded', hash: HASH, readOnly: true }, frameOf().contentWindow)
+  one('office-edit').click()
+  emit({ op: 'loaded', hash: HASH }, frameOf().contentWindow)
+  const editing = frameOf()
+  render({ useTabInfo: info(3), useResource: resource('v3') }); flush(); await tick(); await tick()
+  must(frameOf() === editing && opened(before) === 3, 'while editing, a change on disk or a second visit never reloads (the save says if the file moved)')
+  emit({ op: 'dirty', value: true }, frameOf().contentWindow)
+  render({ useTabInfo: info(4), useResource: resource('v4') }); flush(); await tick(); await tick()
+  must(frameOf() === editing && opened(before) === 3, 'unsaved changes are never thrown away')
+  // the path is not known yet: a wait line, nothing opened
+  hooks = []; hookAt = 0
+  const n0 = calls.length
+  tree = render({ useTabInfo: info(1), useResource: () => ({ status: 'none', value: null }) }); flush(); await tick()
+  must(tree.kids.some((k) => k && k.props && /kyo-pane-wait/.test(k.props.class || k.props.className || '')) && calls.length === n0, 'no path yet: it waits and asks nothing')
+  tree = render({}); flush()
+  must(tree.props['data-kb'] === 'office-pane' && calls.length === n0, 'no tab information at all: still a pane, nothing asked')
+  closeAll()
+  find(body, 'office-embed').forEach((n) => n.remove()); box.remove()
+  for (const hk of hooks) if (hk && typeof hk.cleanup === 'function') hk.cleanup()
+})
+
 // ── the promises a browser would break late ─────────────────────────────────────────────────────────────────
 ok('static: no allow-same-origin anywhere, colours only from DSH tokens with a fallback, the host asked is our own', () => {
   const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
