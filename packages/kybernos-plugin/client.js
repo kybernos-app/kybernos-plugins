@@ -19442,7 +19442,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       }
       // A file a declared editor can draw (the Office files): the editor shows it itself, read-only, and the bytes are never read as text.
       const embedEditor = kbFileEditors.forName(name)
-      if (embedEditor !== null && embedEditor.embed !== null) return h(KbFileEmbed, { editor: embedEditor, path: path, name: name })
+      if (embedEditor !== null && embedEditor.embed !== null && embedEditor.embeds(name) === true) return h(KbFileEmbed, { editor: embedEditor, path: path, name: name })
       if (load.state === 'loading') return h('div', { className: 'kbg-empty' }, kbt('kbui.loading'))
       if (load.state === 'error') return h('div', { className: 'kbg-empty' }, kbt('deliverables.notfound') + ' — ' + load.error)
       if (kind === 'html') return h('iframe', { className: 'kb6-frame', srcDoc: load.text, sandbox: 'allow-scripts', title: name })
@@ -21203,8 +21203,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     })()
     // <kb-file-editors>
     // The editors a plugin offers for the files of Creations (the Office files today): the viewer of a file shows « Edit » for the names a declared editor takes.
-    //   window.__KB_EDITORS__.register({ id, canEdit: (name) => boolean, open: (path, name) => void, embed?: (box, path, name) => { close(), dirty() } | null })
-    // `open` is the full-screen editor (the pencil); `embed` draws the file inside the viewer itself, read-only with « Edit » in its own bar.
+    //   window.__KB_EDITORS__.register({ id, canEdit: (name) => boolean, open: (path, name) => void, embed?: (box, path, name) => { close(), dirty() } | null, embeds?: (name) => boolean })
+    // `open` is the full-screen editor (the pencil); `embed` draws the file inside the viewer itself, read-only with « Edit » in its own bar, for the names `embeds`
+    // takes (all of them when it is not given): a name it leaves out keeps the viewer's own preview, with the pencil for the editor.
     // The core knows no such plugin by name; with none declared the viewer shows no button.
     const kbFileEditors = (() => {
       const rows = []
@@ -21213,7 +21214,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         /** Declares an editor; returns the function that takes it back, or `null` when the entry is not one. */
         register: (entry) => {
           if (entry === null || typeof entry !== 'object' || typeof entry.id !== 'string' || typeof entry.canEdit !== 'function' || typeof entry.open !== 'function') return null
-          const mine = Object.freeze({ id: entry.id, canEdit: entry.canEdit, open: entry.open, embed: typeof entry.embed === 'function' ? entry.embed : null })
+          const mine = Object.freeze({ id: entry.id, canEdit: entry.canEdit, open: entry.open, embed: typeof entry.embed === 'function' ? entry.embed : null, embeds: typeof entry.embeds === 'function' ? (name) => { try { return entry.embeds(name) === true } catch (e) { return false } } : () => true })
           rows.push(mine)
           let live = true
           return () => { if (!live) return; live = false; const i = rows.indexOf(mine); if (i >= 0) rows.splice(i, 1) }

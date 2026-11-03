@@ -215,7 +215,7 @@
     "kybernos-office": {
       "state": "off",
       "call": "recommended",
-      "why": "Word and Excel editor: an optional creation tool, off by default; its editors are built on the computer, and it writes only the files the person opens.",
+      "why": "Word, Excel, Markdown and PDF editor: an optional creation tool, off by default; its editors are built on the computer, and it writes only the files the person opens.",
       "unit": 6
     },
     "kybernos-plugin": {

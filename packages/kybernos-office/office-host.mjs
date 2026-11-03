@@ -97,7 +97,7 @@ export function createHost ({ fs, home, userHome = null, log = () => {}, now = D
     if (p === '~' || p.startsWith('~/')) { if (userHome === null) return refuse(400, 'not-absolute', 'The path must start with /.'); p = join(userHome, p.slice(1)) }
     if (!isAbsolute(p)) return refuse(400, 'not-absolute', 'The path must start with /.')
     const format = formatOf(p)
-    if (format === null) return refuse(415, 'unsupported-format', 'Only .docx and .xlsx files open in the light editors.')
+    if (format === null) return refuse(415, 'unsupported-format', 'Only .docx, .xlsx, .pdf and .md files open in the light editors.')
     let real
     try { real = await fs.realpath(resolve(p)) } catch (e) { return refuse(404, 'not-found', 'This file cannot be found.') }
     if (await sensitive(real)) return refuse(403, 'not-allowed', 'This folder is not opened by the editors.')
@@ -157,7 +157,8 @@ export function createHost ({ fs, home, userHome = null, log = () => {}, now = D
   const save = async (token, data, { base = null, mode = 'overwrite' } = {}) => {
     const t = who(token)
     if (t === null) return refuse(404, 'unknown-token', 'This link has expired: open the file again.')
-    if (!Buffer.isBuffer(data) || data.length === 0 || data.length > MAX_FILE) return refuse(413, 'bad-size', 'The saved file is empty or larger than 64 MB.')
+    // A note may be emptied on purpose: only a Markdown file can be saved with nothing in it.
+    if (!Buffer.isBuffer(data) || (data.length === 0 && t.format !== 'md') || data.length > MAX_FILE) return refuse(413, 'bad-size', 'The saved file is empty or larger than 64 MB.')
     const seen = inspect(t.format, data)
     if (!seen.ok) { await bump(t.format, 'refused'); return refuse(422, 'invalid-output', 'The editor returned something that is not a valid ' + t.format + ' file; nothing was written.') }
     if (mode === 'copy') {

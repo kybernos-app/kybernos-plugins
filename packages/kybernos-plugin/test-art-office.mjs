@@ -55,7 +55,21 @@ ok('the viewer offers Edit to a declared editor only, and the core names none')
 
 // A file a declared editor can draw is drawn by it INSIDE the viewer (read-only, with its own « Edit »), never read as text: the sidebar shows the document, not « file is binary ».
 assert.ok(/embed: typeof entry\.embed === 'function' \? entry\.embed : null/.test(reg), 'the registry keeps the optional embed of an editor')
-assert.ok(/const embedEditor = kbFileEditors\.forName\(name\)\s*\n\s*if \(embedEditor !== null && embedEditor\.embed !== null\) return h\(KbFileEmbed/.test(client), 'ArtBody hands such a file to the editor before it looks at the text')
+assert.ok(/const embedEditor = kbFileEditors\.forName\(name\)\s*\n\s*if \(embedEditor !== null && embedEditor\.embed !== null && embedEditor\.embeds\(name\) === true\) return h\(KbFileEmbed/.test(client), 'ArtBody hands such a file to the editor before it looks at the text')
+// An editor may leave a name to the viewer's own preview (`embeds`: Markdown keeps its rendered preview, the pencil still opens the editor); without `embeds` it takes all its names.
+assert.ok(/embeds: typeof entry\.embeds === 'function' \? \(name\) => \{ try \{ return entry\.embeds\(name\) === true \} catch \(e\) \{ return false \} \} : \(\) => true/.test(reg), 'the registry keeps the optional embeds of an editor, true for every name by default')
+{
+  const win = {}
+  new Function('window', reg)(win)
+  const api = win.__KB_EDITORS__
+  const open = () => {}
+  api.register({ id: 'all', canEdit: (n) => /\.docx$/.test(n), open, embed: () => null })
+  api.register({ id: 'some', canEdit: (n) => /\.md$/.test(n), open, embed: () => null, embeds: (n) => !/\.md$/.test(n) })
+  api.register({ id: 'broken', canEdit: (n) => /\.pdf$/.test(n), open, embed: () => null, embeds: () => { throw new Error('boom') } })
+  assert.equal(api.forName('a.docx').embeds('a.docx'), true, 'no embeds: every name is drawn by the editor')
+  assert.equal(api.forName('a.md').embeds('a.md'), false, 'embeds can leave a name to the viewer')
+  assert.equal(api.forName('a.pdf').embeds('a.pdf'), false, 'an embeds that throws leaves the name to the viewer')
+}
 assert.ok(client.indexOf('const embedEditor = kbFileEditors.forName(name)') < client.indexOf("if (load.state === 'error') return h('div', { className: 'kbg-empty' }, kbt('deliverables.notfound')"), 'and before the « preview unavailable » of a binary file')
 // Leaving the viewer with changes the editor still holds asks first (the popup: Esc, the scrim, the cross; the page: Back).
 assert.ok(/const leave = \(\) => \{ if \(kbEmbedCanLeave\(\) === true\) onClose\(\) \}/.test(client) && /onClick: leave \}, '✕'/.test(client) && /className: 'kb6-popscrim', onClick: leave/.test(client) && /if \(ev\.key === 'Escape'\) leave\(\)/.test(client), 'the popup asks before it closes')

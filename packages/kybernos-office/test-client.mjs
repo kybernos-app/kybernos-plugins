@@ -88,7 +88,7 @@ await okAsync('the factory returns a plugin, and a broken environment gives a di
 await okAsync('apply declares one editor to the core\'s registry; the cleanup takes it back, closes a window that is open and removes the style', async () => {
   const effects = []
   plugin.apply({ effect: (fn, label) => effects.push({ label, off: fn() }) })
-  must(registered.length === 1 && registered[0].id === 'office' && typeof registered[0].canEdit === 'function' && typeof registered[0].open === 'function', 'entry: ' + JSON.stringify(Object.keys(registered[0] || {})))
+  must(registered.length === 1 && registered[0].id === 'office' && typeof registered[0].canEdit === 'function' && typeof registered[0].open === 'function' && typeof registered[0].embeds === 'function' && registered[0].embeds('a.md') === false && registered[0].embeds('a.pdf') === true, 'entry: ' + JSON.stringify(Object.keys(registered[0] || {})))
   answers = { 'POST /kybernos-office/open': openAnswer() }
   registered[0].open('/home/x/budget.xlsx', 'budget.xlsx')
   must(find(body, 'office-window').length === 1 && head.kids.length === 1, 'window and style are there')
@@ -120,7 +120,7 @@ ok('the notices say what is lost, what is kept as is and what is unverified, in 
   must(T.thing({ code: 'something-new', count: 4 }) === '4 something-new', 'an unknown code still prints')
 })
 ok('every error code a person can reach has its own words, in both languages', () => {
-  for (const code of ['network', 'sign-in required', 'origin refused', 'not-found', 'not-a-file', 'not-allowed', 'unsupported-format', 'too-big', 'not-a-zip', 'not-a-docx', 'not-a-xlsx', 'invalid-output', 'unknown-token', 'nothing-to-undo', 'not-installed']) {
+  for (const code of ['network', 'sign-in required', 'origin refused', 'not-found', 'not-a-file', 'not-allowed', 'unsupported-format', 'too-big', 'not-a-zip', 'not-a-docx', 'not-a-xlsx', 'not-a-pdf', 'not-text', 'invalid-output', 'unknown-token', 'nothing-to-undo', 'not-installed']) {
     resolved = 'en'; const en = T.errorText({ error: code })
     resolved = 'fr'; const fr = T.errorText({ error: code })
     must(en !== fr && en.length > 8 && fr.length > 8, code)
@@ -269,6 +269,91 @@ await okAsync('notices for what is kept or unverified show above the editor with
   must(!one('office-notice').hidden && /2 tracked changes/.test(one('office-notice').textContent) && /1 picture/.test(one('office-notice').textContent), one('office-notice').textContent)
   closeAll()
 })
+// ── Markdown and PDF ─────────────────────────────────────────────────────────────────
+ok('the editors also take .pdf and Markdown; the viewer of Creations draws all of them but Markdown, which keeps its own preview', () => {
+  must(T.canEdit('a.pdf') && T.canEdit('B.PDF') && T.canEdit('notes.md') && T.canEdit('README.markdown') && T.canEdit('x.MD'), 'good names')
+  must(!T.canEdit('a.mdx') && !T.canEdit('a.pdfx') && !T.canEdit('md') && !T.canEdit('a.txt') && !T.canEdit('~$a.pdf'), 'bad names')
+  must(T.viewerDraws('a.pdf') === true && T.viewerDraws('a.docx') === true && T.viewerDraws('notes.md') === false && T.viewerDraws('R.MARKDOWN') === false && T.viewerDraws('a.txt') === false, 'the viewer keeps its own Markdown preview')
+})
+ok('Markdown and PDF losses are named in both languages, and the Editor view of Markdown says what it does to the file', () => {
+  const md = [{ code: 'html', level: 'loss', count: 2 }, { code: 'footnote', level: 'loss', count: 1 }, { code: 'wiki-link', level: 'untested', count: 3 }]
+  resolved = 'en'
+  let n = T.notices(md, 'md')
+  must(n.loss.includes('2 HTML tags') && n.loss.includes('1 footnote') && /Text.* view rewrites nothing/.test(n.loss) && n.untested.includes('3 [[wiki]] links') && /rewrites the whole file/.test(n.rewrite), JSON.stringify(n))
+  resolved = 'fr'
+  n = T.notices(md, 'md')
+  must(n.loss.includes('2 balises HTML') && n.loss.includes('1 note de bas de page') && n.untested.includes('3 liens [[wiki]]') && /réécrit tout le fichier/.test(n.rewrite), JSON.stringify(n))
+  resolved = 'en'
+  must(T.notices(md, 'doc').rewrite === '' && T.notices(md).rewrite === '', 'the other editors say nothing about a rewrite')
+  const pdf = T.notices([{ code: 'encrypted', level: 'loss', count: 1 }, { code: 'signature', level: 'loss', count: 2 }, { code: 'form', level: 'untested', count: 1 }, { code: 'attachment', level: 'untested', count: 2 }], 'pdf')
+  must(pdf.loss.includes('1 password protection') && pdf.loss.includes('2 digital signatures') && pdf.untested.includes('1 form') && pdf.untested.includes('2 attachments'), JSON.stringify(pdf))
+})
+await okAsync('a Markdown file with nothing to lose opens in the Editor view and says that the editor rewrites the file; a PDF opens straight away', async () => {
+  answers = { 'POST /kybernos-office/open': openAnswer({ format: 'md', editor: 'md', url: `/kybernos-office/v/${TOKEN}/md/index.html` }) }
+  T.openFile('/home/x/notes.md', 'notes.md'); await tick(); await tick()
+  must(frameOf().getAttribute('src') === `/kybernos-office/v/${TOKEN}/md/index.html?lang=en`, 'src: ' + frameOf().getAttribute('src'))
+  must(!one('office-notice').hidden && /rewrites the whole file/.test(one('office-notice').textContent), 'the notice: ' + one('office-notice').textContent)
+  closeAll()
+  answers = { 'POST /kybernos-office/open': openAnswer({ format: 'pdf', editor: 'pdf', url: `/kybernos-office/v/${TOKEN}/pdf/index.html`, losses: [{ code: 'form', level: 'untested', count: 1 }] }) }
+  T.openFile('/home/x/a.pdf', 'a.pdf'); await tick(); await tick()
+  must(frameOf().getAttribute('src') === `/kybernos-office/v/${TOKEN}/pdf/index.html?lang=en` && !/rewrites/.test(one('office-notice').textContent) && /1 form/.test(one('office-notice').textContent), 'a PDF: ' + one('office-notice').textContent)
+  closeAll()
+})
+await okAsync('a Markdown file the Editor view would rewrite offers its text first: read-only and « Edit the text » mount the text view, « Edit in the editor anyway » the Editor view with the warning', async () => {
+  const blocked = () => openAnswer({ format: 'md', editor: 'md', url: `/kybernos-office/v/${TOKEN}/md/index.html`, block: true, losses: [{ code: 'html', level: 'loss', count: 1 }] })
+  const row = () => one('office-gate').kids.find((k) => k.className === 'kyo-row')
+  answers = { 'POST /kybernos-office/open': blocked() }
+  T.openFile('/home/x/page.md', 'page.md'); await tick(); await tick()
+  must(visible('office-gate') && find(body, 'office-frame').length === 0 && /1 HTML tag/.test(one('office-gate').textContent), 'the gate speaks first')
+  must(row().kids.length === 4 && /Edit the text/.test(row().kids[1].textContent), 'four choices: ' + row().kids.map((k) => k.textContent).join(' | '))
+  row().kids[0].click()
+  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1&mode=text'), 'read-only shows the text, so nothing looks missing: ' + frameOf().getAttribute('src'))
+  closeAll()
+  answers = { 'POST /kybernos-office/open': blocked() }
+  T.openFile('/home/x/page.md', 'page.md'); await tick(); await tick()
+  row().kids[1].click()
+  must(frameOf().getAttribute('src').endsWith('?lang=en&mode=text') && one('office-notice').hidden, 'editing the text: the text view, no warning needed: ' + frameOf().getAttribute('src'))
+  closeAll()
+  answers = { 'POST /kybernos-office/open': blocked() }
+  T.openFile('/home/x/page.md', 'page.md'); await tick(); await tick()
+  row().kids[2].click()
+  must(frameOf().getAttribute('src').endsWith('?lang=en') && /1 HTML tag/.test(one('office-notice').textContent) && !one('office-notice').hidden, 'the Editor view anyway keeps the warning on screen: ' + frameOf().getAttribute('src'))
+  closeAll()
+  answers = { 'POST /kybernos-office/open': blocked() }
+  T.openFile('/home/x/page.md', 'page.md'); await tick(); await tick()
+  row().kids[3].click()
+  must(find(body, 'office-window').length === 0, 'cancel closes')
+  // an .xlsx keeps its three choices
+  answers = { 'POST /kybernos-office/open': openAnswer({ block: true, losses: [{ code: 'chart', level: 'loss', count: 1 }] }) }
+  T.openFile('/home/x/chart.xlsx', 'chart.xlsx'); await tick(); await tick()
+  must(row().kids.length === 3, 'the other formats still have three choices')
+  closeAll()
+})
+await okAsync('embedded Markdown with a loss: shown as text, « Edit » asks, and « Edit the text » swaps in the text view without ro', async () => {
+  const box = new Node('div')
+  body.appendChild(box)
+  answers = { 'POST /kybernos-office/open': openAnswer({ format: 'md', editor: 'md', url: `/kybernos-office/v/${TOKEN}/md/index.html`, block: true, losses: [{ code: 'math', level: 'loss', count: 1 }] }) }
+  const h = T.embedFile(box, '/home/x/m.md', 'm.md'); await tick(); await tick()
+  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1&mode=text'), 'read-only text first: ' + frameOf().getAttribute('src'))
+  emit({ op: 'loaded', hash: HASH, readOnly: true }, frameOf().contentWindow)
+  one('office-edit').click()
+  const gate = one('office-gate')
+  must(/1 formula/.test(gate.textContent) && gate.kids.find((k) => k.className === 'kyo-row').kids.length === 3, 'the gate: ' + gate.textContent)
+  gate.kids.find((k) => k.className === 'kyo-row').kids[0].click()
+  must(frameOf().getAttribute('src').endsWith('?lang=en&mode=text'), 'the text view, editable: ' + frameOf().getAttribute('src'))
+  h.close()
+  box.remove()
+  answers = { 'POST /kybernos-office/open': openAnswer({ format: 'md', editor: 'md', url: `/kybernos-office/v/${TOKEN}/md/index.html` }) }
+  const box2 = new Node('div')
+  body.appendChild(box2)
+  const h2 = T.embedFile(box2, '/home/x/m.md', 'm.md'); await tick(); await tick()
+  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1'), 'a clean Markdown file is read as the Editor view: ' + frameOf().getAttribute('src'))
+  emit({ op: 'loaded', hash: HASH, readOnly: true }, frameOf().contentWindow)
+  one('office-edit').click()
+  must(!frameOf().getAttribute('src').includes('ro=1') && !frameOf().getAttribute('src').includes('mode=text') && /rewrites the whole file/.test(one('office-notice').textContent), 'Edit: the Editor view, with the notice')
+  h2.close()
+  box2.remove()
+})
 await okAsync('editors not installed, a refusal from the host, and an address that is not ours each end in a card, never a blank frame', async () => {
   answers = { 'POST /kybernos-office/open': openAnswer({ installed: false }) }
   T.openFile('/home/x/a.xlsx', 'a.xlsx'); await tick(); await tick()
@@ -408,6 +493,14 @@ await okAsync('the right-hand tab: a tab type for the installed suffixes only, k
   answers = { 'GET /kybernos-office/status': { ok: true, installed: { doc: true, sheet: true } } }
   T2.startPane(ctxFor({})); await tick(); await tick()
   must(registered.length === 1 && registered[0].patterns.join() === '*.docx,*.xlsx', 'both editors installed: both suffixes')
+  offs.splice(0).forEach((f) => { if (typeof f === 'function') f() })
+  answers = { 'GET /kybernos-office/status': { ok: true, installed: { doc: true, sheet: true, md: true, pdf: true } } }
+  T2.startPane(ctxFor({})); await tick(); await tick()
+  must(registered.length === 1 && registered[0].patterns.join() === '*.docx,*.xlsx,*.md,*.markdown,*.pdf', 'Markdown and PDF editors installed: their suffixes too: ' + registered[0].patterns.join())
+  offs.splice(0).forEach((f) => { if (typeof f === 'function') f() })
+  answers = { 'GET /kybernos-office/status': { ok: true, installed: { doc: false, sheet: false, md: false, pdf: true } } }
+  T2.startPane(ctxFor({})); await tick(); await tick()
+  must(registered.length === 1 && registered[0].patterns.join() === '*.pdf', 'only the PDF editor installed: only .pdf')
   offs.splice(0).forEach((f) => { if (typeof f === 'function') f() })
   answers = { 'GET /kybernos-office/status': { ok: true, installed: { doc: false, sheet: false } } }
   T2.startPane(ctxFor({})); await tick(); await tick()

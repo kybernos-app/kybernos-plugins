@@ -84,3 +84,44 @@ export const xlsx = (opts = {}) => {
   if (o.macro) parts['xl/vbaProject.bin'] = Buffer.from([1, 2, 3])
   return zip(parts)
 }
+
+/** A Markdown file. `opts`: `{ text, front, comment, html, footnote, ref, math, wiki, code, crlf }`: the things the guard looks for, and `code` puts them inside a fence (where they are no loss). */
+export const md = (opts = {}) => {
+  const o = opts
+  const lines = []
+  if (o.front) lines.push('---', 'title: A note', 'tags: [a, b]', '---', '')
+  lines.push('# ' + (o.text === undefined ? 'Notes' : o.text), '', 'Some *prose* with a [link](https://example.com).', '', '- one', '- two', '')
+  const extra = []
+  if (o.comment) extra.push('<!-- a note for later -->')
+  if (o.html) extra.push('<div class="x">raw html</div>')
+  if (o.footnote) extra.push('A claim.[^1]', '', '[^1]: The source.')
+  if (o.ref) extra.push('See [the docs][d].', '', '[d]: https://example.com/docs')
+  if (o.math) extra.push('$$ a^2 + b^2 = c^2 $$')
+  if (o.wiki) extra.push('See [[Another page]].')
+  if (o.code) lines.push('```html', ...extra, '```', '')
+  else lines.push(...extra)
+  const text = lines.join('\n') + '\n'
+  return Buffer.from(o.crlf ? text.replace(/\n/g, '\r\n') : text, 'utf8')
+}
+
+/** A one-page PDF with a text line. `opts`: `{ text, encrypt, signature, form, attachment }`. A real xref table, so readers open it. */
+export const pdf = (opts = {}) => {
+  const o = opts
+  const content = `BT /F1 12 Tf 20 100 Td (${o.text === undefined ? 'Hello PDF' : o.text}) Tj ET`
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R' + (o.form ? ' /AcroForm << /Fields [] >>' : '') + ' >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ]
+  if (o.signature) objs.push('<< /Type /Sig /Filter /Adobe.PPKLite /ByteRange [0 10 20 30] /Contents <00> >>')
+  if (o.attachment) objs.push('<< /Type /EmbeddedFile /Length 0 >>\nstream\n\nendstream')
+  let body = '%PDF-1.4\n'
+  const at = []
+  objs.forEach((x, i) => { at.push(body.length); body += `${i + 1} 0 obj\n${x}\nendobj\n` })
+  const xref = body.length
+  body += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + at.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('')
+  body += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R${o.encrypt ? ' /Encrypt 9 0 R' : ''} >>\nstartxref\n${xref}\n%%EOF\n`
+  return Buffer.from(body, 'latin1')
+}

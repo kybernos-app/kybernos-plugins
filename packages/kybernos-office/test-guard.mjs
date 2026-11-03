@@ -4,7 +4,7 @@
 //   node packages/kybernos-office/test-guard.mjs
 import { listParts, readPart, readText } from './zip-lite.mjs'
 import { FORMATS, formatOf, inspect } from './office-guard.mjs'
-import { docx, xlsx, zip } from './lib-test-files.mjs'
+import { docx, xlsx, zip, md, pdf } from './lib-test-files.mjs'
 
 let failed = 0
 const check = (label, ok, detail) => {
@@ -39,9 +39,10 @@ const levels = (r) => Object.fromEntries(r.losses.map((l) => [l.code, l.level]))
 // ── which names open in a light editor ─────────────────────────────────────────
 {
   check('docx and xlsx open, in any case', formatOf('/a/b.docx') === 'docx' && formatOf('REPORT.XLSX') === 'xlsx' && formatOf('x.y.Docx') === 'docx')
-  check('the formats of the other slices do not open yet', formatOf('deck.pptx') === null && formatOf('old.doc') === null && formatOf('old.xls') === null && formatOf('a.odt') === null)
+  check('Markdown (.md, .markdown) and PDF open, in any case', formatOf('/a/notes.md') === 'md' && formatOf('README.MARKDOWN') === 'md' && formatOf('Paper.PDF') === 'pdf')
+  check('the formats that have no light editor do not open', formatOf('deck.pptx') === null && formatOf('old.doc') === null && formatOf('old.xls') === null && formatOf('a.odt') === null)
   check('no extension, a dotfile, a lookalike: nothing', formatOf('docx') === null && formatOf('') === null && formatOf(null) === null && formatOf('a.docx.exe') === null && formatOf('a.constructor') === null)
-  check('each format names its editor', FORMATS.docx.editor === 'doc' && FORMATS.xlsx.editor === 'sheet')
+  check('each format names its editor', FORMATS.docx.editor === 'doc' && FORMATS.xlsx.editor === 'sheet' && FORMATS.md.editor === 'md' && FORMATS.pdf.editor === 'pdf')
 }
 
 // ── the guard: a file that is what it says ─────────────────────────────────────
@@ -64,6 +65,34 @@ const levels = (r) => Object.fromEntries(r.losses.map((l) => [l.code, l.level]))
   check('docx: pictures, fields, content controls are « untested »', u.ok && u.block === false && levels(u).image === 'untested' && levels(u).field === 'untested' && levels(u)['content-control'] === 'untested', JSON.stringify(u))
   check('docx: a macro is a loss', inspect('docx', docx({ macro: true })).block === true)
   check('the counts say how many (two tracked runs)', inspect('docx', docx({ tracked: true })).losses.find((e) => e.code === 'tracked-changes').count === 2)
+}
+
+// ── the guard: Markdown (the editor writes the text again: what it has no node for is dropped) ──────────────────
+{
+  const plain = inspect('md', md())
+  check('a plain note opens with nothing to say', plain.ok === true && plain.losses.length === 0 && plain.block === false, JSON.stringify(plain))
+  check('a note with a YAML front matter is no loss (the editor sets it aside and puts it back)', inspect('md', md({ front: true })).losses.length === 0)
+  const all = inspect('md', md({ front: true, comment: true, html: true, footnote: true, ref: true, math: true, wiki: true }))
+  const lv = levels(all)
+  check('md: an HTML comment, HTML, a footnote, a reference link and math are losses, and the person is asked first', all.ok && all.block === true && lv['html-comment'] === 'loss' && lv.html === 'loss' && lv.footnote === 'loss' && lv['reference-link'] === 'loss' && lv.math === 'loss', JSON.stringify(all.losses))
+  check('md: a wiki link is « untested »: a notice, not a block on its own', levels(inspect('md', md({ wiki: true })))['wiki-link'] === 'untested' && inspect('md', md({ wiki: true })).block === false)
+  check('md: the same things inside a code fence are code, so no loss', inspect('md', md({ comment: true, html: true, footnote: true, math: true, code: true })).losses.length === 0)
+  check('md: inline code is not read for HTML either', inspect('md', Buffer.from('Use `<div>` and `<!-- x -->` in text.\n')).losses.length === 0)
+  check('md: an autolink and an email in angle brackets are not HTML', inspect('md', Buffer.from('<https://example.com> and <me@example.com>\n')).losses.length === 0)
+  check('md: a CRLF file is read the same way', inspect('md', md({ crlf: true, comment: true })).losses.some((l) => l.code === 'html-comment'))
+  check('md: the count says how many tags (an element has two)', inspect('md', md({ html: true })).losses.find((l) => l.code === 'html').count === 2)
+  check('md: an empty file is a valid note', inspect('md', Buffer.alloc(0)).ok === true)
+  check('md: bytes that are not UTF-8 text are refused', inspect('md', Buffer.from([0x68, 0x00, 0x69])).reason === 'not-text' && inspect('md', Buffer.from([0xff, 0xfe, 0x41])).reason === 'not-text')
+}
+
+// ── the guard: PDF ───────────────────────────────────────────────────────────────
+{
+  const p = inspect('pdf', pdf())
+  check('a plain PDF opens with nothing to say', p.ok === true && p.losses.length === 0 && p.block === false, JSON.stringify(p))
+  const rich = inspect('pdf', pdf({ encrypt: true, signature: true, form: true, attachment: true }))
+  check('pdf: a password and a signature are losses (asked first); a form and an attachment are « untested »', rich.ok && rich.block === true && levels(rich).encrypted === 'loss' && levels(rich).signature === 'loss' && levels(rich).form === 'untested' && levels(rich).attachment === 'untested', JSON.stringify(rich.losses))
+  check('pdf: a form alone is a notice, no block', inspect('pdf', pdf({ form: true })).block === false)
+  check('pdf: text with a .pdf name, a short buffer and a non-buffer are refused', inspect('pdf', Buffer.from('this is plain text pretending to be a pdf')).reason === 'not-a-pdf' && inspect('pdf', Buffer.alloc(3)).reason === 'not-a-pdf' && inspect('pdf', 'x').reason === 'not-a-pdf')
 }
 
 // ── the guard: a file that is not what it says ─────────────────────────────────

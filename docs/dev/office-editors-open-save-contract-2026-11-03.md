@@ -72,7 +72,7 @@ This slots into the steps of the free-options study; it adds a thin host first s
 | Step | Work | Size | Gate |
 |---|---|---|---|
 | A | Adapter interface, envelope, guard runner, conflict and snapshot rules, with a fake editor | S | contract tests pass on the fake |
-| B | Markdown and PDF light adapters (smallest, already measured) | S | contract test per adapter |
+| B | Markdown and PDF light adapters (smallest, already measured) | S | contract test per adapter. **Built 2026-11-03** in `packages/kybernos-office` (`md` and `pdf` frames; guard, host tests and the live check `scripts/check-kybernos-office-live.mjs`); PDF engine runs in the frame, not in a worker (sandboxed frame) |
 | C | Sheet adapter (IronCalc) with the xlsx guard | S to M | rich fixture refused or warned, 48 formulas green |
 | D | Document adapter (eigenpal) with the docx guard; review routed to the full tier | S to M | review fixture routed to full |
 | E | Full tier through the same adapter (the pack host of step 2 in the study) | M to L | legal gate before default install |

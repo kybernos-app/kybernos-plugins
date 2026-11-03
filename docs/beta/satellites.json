@@ -519,7 +519,7 @@
         "nom": "@local/kybernos-office",
         "tier": 2,
         "obligatoire": false,
-        "role": "the Word documents and Excel workbooks of your Creations, opened in a light editor: the file is checked first for what the editor would lose, a save never overwrites a change made meanwhile, and Undo puts the file back (the editors are built on the computer from pinned versions, not shipped)",
+        "role": "the Word documents, Excel workbooks, Markdown notes and PDFs of your Creations, opened in a light editor: the file is checked first for what the editor would lose, a save never overwrites a change made meanwhile, and Undo puts the file back (the editors are built on the computer from pinned versions, not shipped)",
         "poids_ko": 64,
         "lib_vendor": null
       }

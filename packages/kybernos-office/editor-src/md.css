@@ -1,0 +1,42 @@
+html,body,#app{margin:0;height:100%}
+#app{display:flex;flex-direction:column;background:#fff;color:#1c1c1e;font:14px/1.5 system-ui,sans-serif}
+.kymd-top{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #e1e3e8;background:#f6f7f9}
+.kymd-modes{display:flex;border:1px solid #c9ccd4;border-radius:8px;overflow:hidden}
+.kymd-mode{border:0;background:#fff;padding:4px 12px;font:inherit;cursor:pointer;color:#333}
+.kymd-mode.on{background:#1c1c1e;color:#fff}
+.kymd-tb{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.kymd-tb[hidden]{display:none}
+.kymd-tb button{min-width:30px;height:28px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font:inherit;font-size:13px;cursor:pointer;color:#222}
+.kymd-tb button:hover{background:#e8eaef}
+.kymd-tb button.on{background:#dfe4f5;border-color:#b6c0e6}
+.kymd-tb .kymd-sep{width:1px;height:18px;margin:0 4px;background:#d3d6dd}
+.kymd-linkbar{flex:none;display:flex;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid #e1e3e8;background:#fffbea}
+.kymd-linkbar[hidden]{display:none}
+.kymd-linkbar input{flex:1;min-width:0;height:28px;padding:0 8px;border:1px solid #c9ccd4;border-radius:6px;font:inherit}
+.kymd-linkbar button{height:28px;padding:0 12px;border:1px solid #c9ccd4;border-radius:14px;background:#fff;font:inherit;font-size:13px;cursor:pointer}
+.kymd-linkbar button.kymd-ok{background:#1c1c1e;border-color:#1c1c1e;color:#fff}
+.kymd-rich{flex:1;min-height:0;overflow:auto;padding:16px clamp(12px,5vw,48px)}
+.kymd-rich[hidden]{display:none}
+.kymd-rich .ProseMirror{max-width:820px;margin:0 auto;outline:none;min-height:100%}
+.kymd-src{flex:1;min-height:0;width:100%;box-sizing:border-box;margin:0;padding:16px clamp(12px,5vw,48px);border:0;outline:none;resize:none;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#1c1c1e;background:#fff}
+.kymd-src[hidden]{display:none}
+.kymd-rich .ProseMirror h1,.kymd-rich .ProseMirror h2,.kymd-rich .ProseMirror h3{line-height:1.25;margin:1.2em 0 .4em}
+.kymd-rich .ProseMirror h1{font-size:24px}
+.kymd-rich .ProseMirror h2{font-size:20px}
+.kymd-rich .ProseMirror h3{font-size:16px}
+.kymd-rich .ProseMirror p{margin:.6em 0}
+.kymd-rich .ProseMirror a{color:#2457d6;text-decoration:underline}
+.kymd-rich .ProseMirror code{padding:1px 5px;border-radius:4px;background:#eef0f4;font:.9em ui-monospace,SFMono-Regular,Menlo,monospace}
+.kymd-rich .ProseMirror pre{padding:12px 14px;border-radius:8px;background:#f1f2f5;overflow:auto}
+.kymd-rich .ProseMirror pre code{padding:0;background:transparent}
+.kymd-rich .ProseMirror blockquote{margin:.8em 0;padding-left:14px;border-left:3px solid #c9ccd4;color:#555}
+.kymd-rich .ProseMirror hr{border:0;border-top:1px solid #d3d6dd;margin:1.2em 0}
+.kymd-rich .ProseMirror img{max-width:100%}
+.kymd-rich .ProseMirror table{border-collapse:collapse;margin:.8em 0;width:100%}
+.kymd-rich .ProseMirror th,.kymd-rich .ProseMirror td{border:1px solid #d3d6dd;padding:6px 10px;vertical-align:top;min-width:60px}
+.kymd-rich .ProseMirror th{background:#f1f2f5;text-align:left}
+.kymd-rich .ProseMirror ul[data-type="taskList"]{list-style:none;padding-left:4px}
+.kymd-rich .ProseMirror ul[data-type="taskList"] li{display:flex;gap:8px;align-items:flex-start}
+.kymd-rich .ProseMirror ul[data-type="taskList"] li>label{flex:none;margin-top:3px}
+.kymd-rich .ProseMirror ul[data-type="taskList"] li>div{flex:1}
+.kymd-rich .ProseMirror .selectedCell{background:#dfe4f5}
