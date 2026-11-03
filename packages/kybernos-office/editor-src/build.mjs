@@ -1,7 +1,8 @@
-// Builds the four editor frames with esbuild. Run by packages/kybernos-office/build-editors.mjs from the work folder (where the pinned editors are
+// Builds the five editor frames with esbuild. Run by packages/kybernos-office/build-editors.mjs from the work folder (where the pinned editors are
 // installed): `node src/build.mjs <outdir>`. Writes <outdir>/sheet/{app.js,app.css,wasm_bg.wasm}, <outdir>/doc/{app.js,app.css,harfbuzz.wasm},
-// <outdir>/md/{app.js,app.css}, <outdir>/pdf/{app.js,app.css} plus the PDF viewer's own distribution beside it, and the fonts the document editor asks
-// for as `../assets/<name>` from its own address in <outdir>/assets/.
+// <outdir>/md/{app.js,app.css}, <outdir>/pdf/{app.js,app.css} plus the PDF viewer's own distribution beside it, <outdir>/deck/{app.js,app.css} (the deck editor frame)
+// and <outdir>/deck/{standalone.js,standalone.css} (the runtime a generated deck file carries), and the fonts the document editor asks for as `../assets/<name>`
+// from its own address in <outdir>/assets/.
 import { build } from 'esbuild'
 import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -47,3 +48,8 @@ await build({ ...common, entryPoints: ['src/pdf.js'], outdir: join(out, 'pdf'), 
 const shipped = readdirSync(dist).filter((n) => /^[\w.-]+\.js$/.test(n) || n === 'pdfium.wasm')
 if (!shipped.includes('embedpdf.js') || !shipped.includes('pdfium.wasm')) { console.error('the PDF viewer package has no embedpdf.js or pdfium.wasm'); process.exit(1) }
 for (const n of shipped) copyFileSync(join(dist, n), join(out, 'pdf', n))
+
+// The deck: the editor frame, and the same runtime without Tiptap or the envelope as one classic script + one style sheet that a generated deck file inlines.
+mkdirSync(join(out, 'deck'), { recursive: true })
+await build({ ...common, entryPoints: ['src/deck/index.js'], outdir: join(out, 'deck') })
+await build({ ...common, format: 'iife', entryNames: 'standalone', entryPoints: ['src/deck/standalone.js'], outdir: join(out, 'deck') })

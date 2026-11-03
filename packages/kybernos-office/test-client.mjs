@@ -39,6 +39,7 @@ const one = (hook) => { const f = find(body, hook); must(f.length === 1, hook + 
 const visible = (hook) => { const f = find(body, hook); if (f.length === 0) return false; let n = f[0]; while (n) { if (n.hidden) return false; n = n.parent }; return true }
 globalThis.document = {
   createElement: (t) => { const n = new Node(t); if (t === 'iframe') n.contentWindow = { sent: [], postMessage (m, to) { this.sent.push({ m, to }) } }; return n },
+  createElementNS: (ns, t) => { const n = new Node(t); n.ns = ns; return n },
   createTextNode: (t) => new Text(t), body, head,
 }
 
@@ -75,6 +76,8 @@ const TOKEN = '0123456789abcdef0123456789abcdef'
 const openAnswer = (over) => Object.assign({ ok: true, token: TOKEN, name: 'budget.xlsx', format: 'xlsx', editor: 'sheet', size: 100, hash: HASH, losses: [], block: false, installed: true, undo: false, url: `/kybernos-office/v/${TOKEN}/sheet/index.html` }, over)
 const emit = (data, source) => listeners.filter((l) => l.type === 'message').forEach((l) => l.fn({ source, data: Object.assign({ ky: 'office' }, data) }))
 const frameOf = () => one('office-frame')
+// The address of the frame without the file's name it also carries (the name is only a label: checked once, below).
+const srcOf = () => frameOf().getAttribute('src').replace(/&name=[^&]*/, '')
 const closeAll = () => { if (T.current() !== null) { T.current().close() } }
 
 console.log('Kybernos office: the browser half')
@@ -137,7 +140,14 @@ await okAsync('open: a bar with the name, the buttons off until something change
   must(one('office-title').textContent === 'budget.xlsx', 'title')
   const f = frameOf()
   must(f.getAttribute('sandbox') === 'allow-scripts' && !/allow-same-origin/.test(f.getAttribute('sandbox')), 'sandbox: ' + f.getAttribute('sandbox'))
-  must(f.getAttribute('src') === `/kybernos-office/v/${TOKEN}/sheet/index.html?lang=en`, 'src: ' + f.getAttribute('src'))
+  must(srcOf() === `/kybernos-office/v/${TOKEN}/sheet/index.html?lang=en`, 'src: ' + srcOf())
+  // The frame is told the file's name (the document editor shows it as its title instead of « Untitled »); it is a label, the frame reads and writes by its token only.
+  must(/[?&]name=budget\.xlsx(&|$)/.test(f.getAttribute('src')), 'the name goes to the frame: ' + f.getAttribute('src'))
+  // The bar: the kind of file beside its name, an icon in each button, and a dot in front of the status that follows what there is to save.
+  must(one('office-kind').textContent === 'XLSX' && !one('office-kind').hidden, 'kind badge')
+  for (const k of ['office-save', 'office-copy', 'office-undo', 'office-close']) must(one(k).kids.some((n) => n.tag === 'svg' && n.ns === 'http://www.w3.org/2000/svg' && n.kids.length === 1 && n.kids[0].tag === 'path'), k + ' has its icon')
+  for (const k of ['office-save', 'office-copy', 'office-undo']) must(one(k).getAttribute('title') === one(k).getAttribute('aria-label') && one(k).getAttribute('aria-label') !== '', k + ' names itself when its label is folded away')
+  must(one('office-status').getAttribute('data-tone') === 'idle', 'tone before any change: ' + one('office-status').getAttribute('data-tone'))
   must(f.getAttribute('referrerpolicy') === 'no-referrer', 'referrer')
   must(one('office-save').disabled && one('office-copy').disabled && one('office-undo').disabled, 'buttons start off')
   must(JSON.parse(lastCall('/open').init.body).path === '/home/x/budget.xlsx', 'the path asked')
@@ -152,7 +162,7 @@ await okAsync('the frame\'s messages: only its own window is heard; "dirty" turn
   emit({ op: 'loaded', hash: HASH2, readOnly: false }, f.contentWindow)
   emit({ op: 'dirty', value: true }, f.contentWindow)
   must(!one('office-save').disabled && !one('office-copy').disabled, 'save on after dirty')
-  must(/Unsaved/.test(one('office-status').textContent), 'status: ' + one('office-status').textContent)
+  must(/Unsaved/.test(one('office-status').textContent) && one('office-status').getAttribute('data-tone') === 'dirty', 'status: ' + one('office-status').textContent + ' / ' + one('office-status').getAttribute('data-tone'))
   window.postMessage = undefined
   listeners.filter((l) => l.type === 'message').forEach((l) => l.fn({ source: f.contentWindow, data: { op: 'dirty', value: false } }))
   must(!one('office-save').disabled, 'a message without the envelope is ignored')
@@ -173,7 +183,7 @@ await okAsync('Save: the page asks the frame for the bytes, posts them with the 
   must(f.contentWindow.sent.some((s) => s.m.op === 'saved'), 'frame told')
   must(one('office-save').disabled && !one('office-undo').disabled && one('office-status').textContent === 'Saved', 'after the save: ' + one('office-status').textContent)
   emit({ op: 'dirty', value: false }, f.contentWindow)
-  must(one('office-status').textContent === 'Saved', 'the frame saying « clean » right after a save does not replace « Saved »: ' + one('office-status').textContent)
+  must(one('office-status').textContent === 'Saved' && one('office-status').getAttribute('data-tone') === 'ok', 'the frame saying « clean » right after a save does not replace « Saved »: ' + one('office-status').textContent)
 })
 await okAsync('Save as a copy sends mode=copy and keeps the changes unsaved', async () => {
   const f = frameOf()
@@ -248,7 +258,7 @@ await okAsync('a file with a certain loss asks before the editor opens: read-onl
   must(/1 chart/.test(one('office-gate').textContent), 'it says what is lost')
   const row = one('office-gate').kids.find((k) => k.className === 'kyo-row')
   row.kids[0].click()
-  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1') && !visible('office-gate'), 'read-only src: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en&ro=1') && !visible('office-gate'), 'read-only src: ' + srcOf())
   const f = frameOf()
   emit({ op: 'loaded', hash: HASH, readOnly: true }, f.contentWindow)
   emit({ op: 'dirty', value: true }, f.contentWindow)
@@ -291,12 +301,12 @@ ok('Markdown and PDF losses are named in both languages, and the Editor view of 
 await okAsync('a Markdown file with nothing to lose opens in the Editor view and says that the editor rewrites the file; a PDF opens straight away', async () => {
   answers = { 'POST /kybernos-office/open': openAnswer({ format: 'md', editor: 'md', url: `/kybernos-office/v/${TOKEN}/md/index.html` }) }
   T.openFile('/home/x/notes.md', 'notes.md'); await tick(); await tick()
-  must(frameOf().getAttribute('src') === `/kybernos-office/v/${TOKEN}/md/index.html?lang=en`, 'src: ' + frameOf().getAttribute('src'))
+  must(srcOf() === `/kybernos-office/v/${TOKEN}/md/index.html?lang=en`, 'src: ' + srcOf())
   must(!one('office-notice').hidden && /rewrites the whole file/.test(one('office-notice').textContent), 'the notice: ' + one('office-notice').textContent)
   closeAll()
   answers = { 'POST /kybernos-office/open': openAnswer({ format: 'pdf', editor: 'pdf', url: `/kybernos-office/v/${TOKEN}/pdf/index.html`, losses: [{ code: 'form', level: 'untested', count: 1 }] }) }
   T.openFile('/home/x/a.pdf', 'a.pdf'); await tick(); await tick()
-  must(frameOf().getAttribute('src') === `/kybernos-office/v/${TOKEN}/pdf/index.html?lang=en` && !/rewrites/.test(one('office-notice').textContent) && /1 form/.test(one('office-notice').textContent), 'a PDF: ' + one('office-notice').textContent)
+  must(srcOf() === `/kybernos-office/v/${TOKEN}/pdf/index.html?lang=en` && !/rewrites/.test(one('office-notice').textContent) && /1 form/.test(one('office-notice').textContent), 'a PDF: ' + one('office-notice').textContent)
   closeAll()
 })
 await okAsync('a Markdown file the Editor view would rewrite offers its text first: read-only and « Edit the text » mount the text view, « Edit in the editor anyway » the Editor view with the warning', async () => {
@@ -307,17 +317,17 @@ await okAsync('a Markdown file the Editor view would rewrite offers its text fir
   must(visible('office-gate') && find(body, 'office-frame').length === 0 && /1 HTML tag/.test(one('office-gate').textContent), 'the gate speaks first')
   must(row().kids.length === 4 && /Edit the text/.test(row().kids[1].textContent), 'four choices: ' + row().kids.map((k) => k.textContent).join(' | '))
   row().kids[0].click()
-  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1&mode=text'), 'read-only shows the text, so nothing looks missing: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en&ro=1&mode=text'), 'read-only shows the text, so nothing looks missing: ' + srcOf())
   closeAll()
   answers = { 'POST /kybernos-office/open': blocked() }
   T.openFile('/home/x/page.md', 'page.md'); await tick(); await tick()
   row().kids[1].click()
-  must(frameOf().getAttribute('src').endsWith('?lang=en&mode=text') && one('office-notice').hidden, 'editing the text: the text view, no warning needed: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en&mode=text') && one('office-notice').hidden, 'editing the text: the text view, no warning needed: ' + srcOf())
   closeAll()
   answers = { 'POST /kybernos-office/open': blocked() }
   T.openFile('/home/x/page.md', 'page.md'); await tick(); await tick()
   row().kids[2].click()
-  must(frameOf().getAttribute('src').endsWith('?lang=en') && /1 HTML tag/.test(one('office-notice').textContent) && !one('office-notice').hidden, 'the Editor view anyway keeps the warning on screen: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en') && /1 HTML tag/.test(one('office-notice').textContent) && !one('office-notice').hidden, 'the Editor view anyway keeps the warning on screen: ' + srcOf())
   closeAll()
   answers = { 'POST /kybernos-office/open': blocked() }
   T.openFile('/home/x/page.md', 'page.md'); await tick(); await tick()
@@ -334,20 +344,20 @@ await okAsync('embedded Markdown with a loss: shown as text, « Edit » asks, an
   body.appendChild(box)
   answers = { 'POST /kybernos-office/open': openAnswer({ format: 'md', editor: 'md', url: `/kybernos-office/v/${TOKEN}/md/index.html`, block: true, losses: [{ code: 'math', level: 'loss', count: 1 }] }) }
   const h = T.embedFile(box, '/home/x/m.md', 'm.md'); await tick(); await tick()
-  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1&mode=text'), 'read-only text first: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en&ro=1&mode=text'), 'read-only text first: ' + srcOf())
   emit({ op: 'loaded', hash: HASH, readOnly: true }, frameOf().contentWindow)
   one('office-edit').click()
   const gate = one('office-gate')
   must(/1 formula/.test(gate.textContent) && gate.kids.find((k) => k.className === 'kyo-row').kids.length === 3, 'the gate: ' + gate.textContent)
   gate.kids.find((k) => k.className === 'kyo-row').kids[0].click()
-  must(frameOf().getAttribute('src').endsWith('?lang=en&mode=text'), 'the text view, editable: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en&mode=text'), 'the text view, editable: ' + srcOf())
   h.close()
   box.remove()
   answers = { 'POST /kybernos-office/open': openAnswer({ format: 'md', editor: 'md', url: `/kybernos-office/v/${TOKEN}/md/index.html` }) }
   const box2 = new Node('div')
   body.appendChild(box2)
   const h2 = T.embedFile(box2, '/home/x/m.md', 'm.md'); await tick(); await tick()
-  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1'), 'a clean Markdown file is read as the Editor view: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en&ro=1'), 'a clean Markdown file is read as the Editor view: ' + srcOf())
   emit({ op: 'loaded', hash: HASH, readOnly: true }, frameOf().contentWindow)
   one('office-edit').click()
   must(!frameOf().getAttribute('src').includes('ro=1') && !frameOf().getAttribute('src').includes('mode=text') && /rewrites the whole file/.test(one('office-notice').textContent), 'Edit: the Editor view, with the notice')
@@ -374,7 +384,7 @@ await okAsync('the window speaks French when the language is French', async () =
   resolved = 'fr'
   answers = { 'POST /kybernos-office/open': openAnswer() }
   T.openFile('/home/x/a.xlsx', 'a.xlsx'); await tick(); await tick()
-  must(one('office-save').textContent === 'Enregistrer' && one('office-close').textContent === 'Fermer' && frameOf().getAttribute('src').endsWith('?lang=fr'), 'french')
+  must(one('office-save').textContent === 'Enregistrer' && one('office-close').textContent === 'Fermer' && srcOf().endsWith('?lang=fr'), 'french')
   closeAll()
   resolved = 'en'
 })
@@ -413,7 +423,7 @@ await okAsync('embedded in the viewer: it opens read-only with nothing to decide
   must(find(box, 'office-embed').length === 1 && find(body, 'office-window').length === 0, 'drawn inside the box, not as the full-screen window')
   must(find(box, 'office-close').length === 0 && find(box, 'office-title').length === 0, 'no close button and no name: the viewer has both')
   must(T.current() === null, 'it is not the full-screen window')
-  must(frameOf().getAttribute('src').endsWith('?lang=en&ro=1') && find(body, 'office-gate').length === 0, 'read-only straight away: ' + frameOf().getAttribute('src'))
+  must(srcOf().endsWith('?lang=en&ro=1') && find(body, 'office-gate').length === 0, 'read-only straight away: ' + srcOf())
   const ro = frameOf()
   emit({ op: 'loaded', hash: HASH, readOnly: true }, ro.contentWindow)
   must(/Read only/.test(one('office-status').textContent) && !one('office-edit').hidden && !one('office-edit').disabled && one('office-save').disabled, 'Edit is offered, Save is not')
@@ -570,7 +580,7 @@ ok('static: no allow-same-origin anywhere, colours only from DSH tokens with a f
   const css = T.CSS
   const bare = css.replace(/var\(--[a-z0-9-]+,\s*[^)]*\)/g, '').match(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g) || []
   must(bare.filter((c) => c !== '#fff').length === 0, 'hard-coded colours outside a var(): ' + bare.join(','))
-  must(!/https?:\/\//.test(src), 'no absolute address in the client')
+  must(!/https?:\/\//.test(src.replace("'http://www.w3.org/2000/svg'", '')), 'no absolute address in the client (the SVG namespace is a name, not an address)')
   must(T.BASE === '/kybernos-office' && T.REGISTRY === '__KB_EDITORS__', 'route and registry names')
 })
 

@@ -1,0 +1,65 @@
+/* edit chrome: the look of Tiptap's editor templates (light card UI, rounded 8px buttons, violet accent) */
+#fmt,#bubble,#slash,#pop{--ink:#111827;--mute:#6b7280;--line:#e5e7eb;--hov:rgba(15,23,42,.06);--brand:#6229ff;--brand-soft:rgba(98,41,255,.1);font:14px/1.2 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink)}
+#fmt{display:none;position:fixed;left:0;right:0;top:0;height:96px;padding:6px 14px;flex-direction:column;justify-content:center;gap:2px;background:#fff;z-index:30;border-bottom:1px solid var(--line)}
+body.editing #fmt{display:flex}
+#fmt .row{display:flex;align-items:center;gap:2px;white-space:nowrap;overflow-x:auto;scrollbar-width:none;height:40px}
+.tt-grp{display:flex;align-items:center;gap:2px;flex:none}
+.tt-sep{width:1px;height:20px;background:var(--line);margin:0 8px;flex:none}
+.tt-cap{font-size:11px;font-weight:600;color:#9aa0ac;letter-spacing:.05em;text-transform:uppercase;margin:0 8px 0 2px}
+.tt-btn,#fmt select{font:inherit;font-size:13.5px;font-weight:500;color:#4b5563;background:transparent;border:0;border-radius:8px;min-width:32px;height:32px;padding:0 8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.tt-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tt-btn:hover{background:var(--hov);color:var(--ink)}
+.tt-btn.act{background:var(--brand-soft);color:var(--brand)}
+.tt-btn:focus-visible,#fmt select:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.tt-btn.pri{background:var(--brand);color:#fff}
+.tt-btn.pri:hover{background:#4f1fd1;color:#fff}
+.tt-btn.danger:hover{background:#fee2e2;color:var(--kd-danger,#b91c1c)}
+#fmt select{border:1px solid var(--line);background:#fff;min-width:78px;padding:0 4px 0 8px}
+.tt-a{font-weight:700;font-size:15px;line-height:1;border-bottom:3px solid var(--c,#26272b);padding:0 1px 1px}
+.tt-chip{width:14px;height:14px;border-radius:4px;border:1px solid #c5cad6;background:var(--c,#fff)}
+#fmt #f-msg{margin-left:auto;padding-left:16px;font-size:13px;color:var(--kd-warn,#92400e);flex:none}
+#fmt #f-msg button{height:26px;background:#fef3c7;border-radius:6px;border:0;margin-left:8px;font:inherit;font-weight:600;color:var(--kd-warn,#92400e);cursor:pointer}
+.tt-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 32px rgba(16,24,40,.16),0 2px 6px rgba(16,24,40,.06)}
+#bubble{display:none;position:fixed;z-index:60;padding:4px;gap:2px;align-items:center}
+#bubble.on{display:flex}
+#bubble .tt-sep{margin:0 4px;height:18px}
+#pop{display:none;position:fixed;width:244px;padding:10px;flex-wrap:wrap;gap:8px;z-index:70}
+#pop.on{display:flex}
+#pop .swc{width:24px;height:24px;min-width:24px;padding:0;border:1px solid rgba(15,23,42,.18);border-radius:50%;font-size:13px;color:#6b7280;cursor:pointer;background-clip:padding-box}
+#pop .swc:hover{outline:2px solid var(--brand);outline-offset:1px}
+#pop .mi{width:100%;justify-content:flex-start;padding:0 10px;height:36px;gap:10px}
+#pop .cust{width:100%;display:flex;align-items:center;gap:8px;margin-top:2px;color:#4b5563;font-size:13px}
+#pop input[type=color]{width:40px;height:26px;border:1px solid var(--line);border-radius:6px;background:none;padding:0}
+#slash{display:none;position:fixed;z-index:80;width:290px;max-height:min(330px,62vh);overflow:auto;padding:6px}
+#slash.on{display:block}
+#slash .sl-g{font-size:11px;font-weight:600;color:#9aa0ac;letter-spacing:.05em;text-transform:uppercase;padding:8px 8px 4px}
+#slash .sl-it{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;border-radius:8px;padding:5px 8px;cursor:pointer;font:inherit;color:inherit}
+#slash .sl-it.sel{background:var(--hov)}
+#slash .sl-ic{width:34px;height:34px;flex:none;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;color:#4b5563;background:#fff}
+#slash .sl-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#slash .sl-tt{display:block;font-size:14px;font-weight:500}
+#slash .sl-d{display:block;font-size:12px;color:var(--mute);margin-top:2px}
+#slash .sl-none{padding:12px;color:var(--mute);font-size:13px}
+body.editing .ProseMirror{word-wrap:break-word;white-space:pre-wrap;white-space:break-spaces;font-variant-ligatures:none;outline:none}
+body.editing .ProseMirror[data-bare] .ln{line-height:inherit}
+body.editing .ProseMirror li>.ln{margin:0}
+body.editing .ProseMirror a{color:inherit;text-decoration:underline}
+body.editing .ProseMirror img.ProseMirror-separator{display:inline!important;border:none!important;margin:0!important}
+body.editing .ProseMirror .ln.is-empty::before{content:attr(data-placeholder);float:left;height:0;pointer-events:none;color:#9aa0ac;font:400 15px/1.2 Inter,system-ui,sans-serif;letter-spacing:0;text-align:left}
+body.editing .ProseMirror ::selection{background:rgba(98,41,255,.28)}
+.selbox{position:absolute;outline:2px solid #6229ff;outline-offset:1px;pointer-events:none;z-index:50}
+.selbox .grip{position:absolute;left:-2px;top:-26px;width:28px;height:24px;background:#6229ff;color:#fff;cursor:move;pointer-events:auto;font:700 16px/24px system-ui;text-align:center;border-radius:6px 6px 0 0;font-style:normal;user-select:none}
+.selbox.low .grip{top:0;left:0;border-radius:0 0 6px 0}
+.selbox .rz{position:absolute;right:-9px;bottom:-9px;width:18px;height:18px;background:#6229ff;border:2px solid #fff;border-radius:5px;cursor:nwse-resize;pointer-events:auto}
+.tt-btn.sz{border:1px solid var(--line);background:#fff;min-width:84px}
+body.editing #bar{background:#fff;border-top:1px solid #e5e7eb;color:#4b5563}
+body.editing #bar button{background:#fff;color:#374151;border-color:#e5e7eb}
+body.editing #bar button:hover{border-color:#6229ff}
+body.editing #bar #save{background:#6229ff;border-color:#6229ff;color:#fff}
+body.editing #nb{background:#fff;color:#374151;border-top:1px solid #e5e7eb}
+body.editing #deck{box-shadow:0 8px 40px rgba(20,24,40,.2)}
+body.grid.editing #deck{padding-top:calc(var(--top) + 18px)}
+body.grid .slide *{pointer-events:none}
+body.grid.editing .cell{cursor:grab}
+.cell.dragover{outline-color:#4a8bff!important}
+@media (max-width:760px){.tt-cap{display:none}}

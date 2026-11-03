@@ -43,7 +43,7 @@ Setting: `editors.<format>` = `light` or `full`, default `light` where a light t
 | pdf | EmbedPDF | ONLYOFFICE (text edits, evaluated, not tested) | the person wants to rewrite body text; encrypted file |
 | md | Tiptap, or the raw text view | none needed | the guard finds HTML, footnotes, reference links, math (then raw text view) |
 | pptx | none | ONLYOFFICE | always; an HTML deck is a different file type, created as such |
-| html deck | own editor | none | never |
+| html deck (`*.deck.html`) | own editor (built 2026-11-03, see « Slide decks ») | none | never |
 
 ## The guard, per format
 
@@ -53,6 +53,7 @@ What `inspect(bytes)` looks for before a light open:
 - **docx:** `w:ins`, `w:del`, `w:moveFrom` and `w:moveTo` (tracked changes), `word/comments.xml`, `w:sdt` (content controls), `w:fldSimple` and complex fields, `word/media/*`, footnote and endnote parts, equations.
 - **pdf:** `/Encrypt`, `/AcroForm`, signature fields, an embedded file.
 - **md:** comment `<!--`, any HTML tag, `[^x]:` footnotes, `[x]: url` references, `$$` blocks, `[[wiki]]` links. Front matter is not a loss: the editor sets it aside and puts it back.
+- **deck (`*.deck.html`):** the file must carry `<meta name="kybernos-deck">` and a `<main id="deck">`, else it is refused (`not-a-deck`). A `<script>`, `<iframe>`, `<object>`, `<embed>` or `on…=` handler inside the slides is a loss: the editor reads the slides as data and does not keep it.
 - **pptx:** always routed to the full tier, so no scan.
 
 The guard errs towards flagging. A false alarm costs a click; a silent loss costs a file.
@@ -87,6 +88,15 @@ This slots into the steps of the free-options study; it adds a thin host first s
 - **Folders.** Registered by typing the full path (no picker); home and the disk root are refused; only top-level `.html` pages are edited.
 - **What stays out.** Scripts of a maquette get an in-memory storage shim; text a script builds is patched at its literal in the data file when it is found, otherwise the editor writes the request for Kaby (never sent by itself).
 - **Gate.** 114 checks of the patch rules, 67 of the disk layer, the routes over a real listener, every write refused without the session, the editor script (no way out but the bridge, English for every sentence), the DSH page; `scripts/check-kybernos-maquettes-live.mjs` plays the whole flow on a real GUI (51 checks: add, open, real click and typing, save, undo, a dropped picture, both languages, a narrow window). Playing it found and fixed a data-loss bug (typing over a whole text saved an empty text).
+
+## Slide decks (built 2026-11-03)
+
+A deck is ONE self-contained HTML file named `<name>.deck.html`, written by the `create_deck` tool of this plugin (`deck-tool.mjs`, the layout code is `deck-build.mjs`) and opened in the right-hand tab and in Creations by the `deck` editor. A `.pptx` written by a script can only be previewed in DSH, never edited: that is why the model is told (tool description) to make decks, and a `.pptx` only when PowerPoint itself is asked for.
+
+- **The file.** `<main id="deck">` holds the slides (1280 × 720 px each, placed in pixels): `div.cell > section.slide[.dark][data-transition] > h1[data-e], div.b[data-e] (text block, `ctr` centres, `frag` + `data-step` appears step by step), ul.bul, table.t[data-e-table], div.chart[data-chart JSON], img.pic, aside.notes[data-e]`. The head carries the marker `<meta name="kybernos-deck" content="1">`, `<style data-kd="base">` (the player's style sheet), `<style data-kd="theme">` (the palette as CSS variables) and the player as one inline `<script data-kd="runtime">`. The file therefore plays on its own in any browser (arrow keys, grid, presenter window, full screen, print); it is only EDITED here.
+- **Editing.** The editor frame never runs the file's script. It fetches the file as text, parses it as data, drops anything that is not a slide (scripts, frames, `on…` handlers), draws the slides with its own current player and style sheet, and, on `export`, writes ONLY the content of `<main id="deck">` back into the original text: the head, the theme and the inline player stay as they were. Same sandbox, same CSP, same envelope as the other editors.
+- **Where the player comes from.** The deck editor's build writes `editors/deck/standalone.js` and `standalone.css` next to the frame (`app.js`, `app.css`); the host hands them, hash-checked against the manifest, to the builder (`host.deckAssets()`). No deck can be made when the editor is not installed, and the tool says so.
+- **Folder rule.** `create_deck` writes inside the working folder only, replaces only a file that already is a deck, and embeds the pictures of `image` slides (png, jpg, gif, webp, at most 4 MB each; never SVG) so the deck stays one file.
 
 ## Still open, none of it settled by the spikes
 
