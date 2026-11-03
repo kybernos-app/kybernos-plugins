@@ -665,14 +665,14 @@
       "wave": "W2",
       "prio": "P0",
       "area": "failures",
-      "title": "The Kybernos model fails (503, 429, 401, one failure): what the person reads, and the chat stays usable",
+      "title": "The Kybernos model fails (503, 429, 401, one failure): a plain card tells the person what happened, and the chat stays usable",
       "runner": "script",
       "env": "replica",
       "personas": [
         "A"
       ],
       "status": "ready",
-      "note": "Turned into a script on 2026-11-03 (scripts/check-model-failures-live.mjs): the replica's control port makes the stand-in provider fail, the script reads the sentence on the page and prints it. The script decides the mechanical part (something is said, no raw JSON/undefined/stack, composer still there, next turn answers); whether the sentence tells the person the right thing is for the owner to read (every sentence is printed). The own-key half (a wrong key on a real provider, a 429 or a timeout on an own key) is not covered: no stand-in provider answers those (README § 8 item 11). Red on 2026-11-03: the person reads the server's raw JSON (T-021).",
+      "note": "Turned into a script on 2026-11-03 (scripts/check-model-failures-live.mjs): the replica's control port makes the stand-in provider fail, the script reads the sentence on the page and prints it. The script decides the mechanical part (something is said, no raw JSON/undefined/stack, composer still there, next turn answers); whether the sentence tells the person the right thing is for the owner to read (every sentence is printed). The own-key half (a wrong key on a real provider, a 429 or a timeout on an own key) is not covered: no stand-in provider answers those (README § 8 item 11). Red on its first run (the person read the server's raw JSON, T-021), green since the plain card; the engine's own red row keeps the raw body.",
       "cmd": "source \"$KB_E2E_DIR/env.sh\" && node scripts/check-model-failures-live.mjs"
     },
     {

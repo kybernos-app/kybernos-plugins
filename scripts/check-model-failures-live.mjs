@@ -4,8 +4,9 @@
 //
 //   source "$KB_E2E_DIR/env.sh" && node scripts/check-model-failures-live.mjs        (KB_E2E_HOME_A / KB_E2E_HOST_A of the replica harness; no sandbox env: it changes HOME)
 //
-// A script decides only what is mechanical: something is said within the time limit, what is said carries no raw JSON, `undefined`, stack or provider address, the composer is still
-// there, and the next turn answers once the failure ends. WHETHER the sentence is the right one for the person (what it tells them to do) is not decided here: every sentence is
+// A script decides only what is mechanical: something is said within the time limit, the plugin's plain card (« The model isn't answering right now » / « The model is busy »)
+// stands above the box with no raw JSON, `undefined`, stack or provider address, the composer is still there, and the next turn answers once the failure ends. The engine's own red row
+// keeps the server's raw body (« This turn failed502: {…} »): it is the engine's, there is no engine patch, so it is printed (« SAID ») but not judged. WHETHER the sentence is the right one for the person (what it tells them to do) is not decided here: every sentence is
 // printed (« SAID … ») for the owner or a second reader. The failure is always ended, whatever happens.
 // Exit 0 all green, 1 a check failed, 3 inconclusive (no replica, no composer).
 import { makeContext, openGui, sleep, chatCalls } from './e2e-teams/common.mjs'
@@ -60,7 +61,10 @@ try {
     const r = await turn()
     console.log(`  SAID (${status}, ${r.seconds} s, server statuses ${JSON.stringify(r.statuses)}): ${r.said}`)
     check(`${status}: the person is told something within ${LIMIT / 1000} s`, r.spoke && !r.answered, r)
-    check(`${status}: what is said has no raw JSON, undefined, stack or provider address`, !LEAK.test(r.said), r.said)
+    const card = await g.val(`(() => { const c = document.querySelector('[data-kb="model-down"]'); return c ? { kind: c.getAttribute('data-kind'), text: c.innerText.replace(/\\s+/g, ' ').trim() } : null })()`)
+    console.log(`  CARD (${status}): ${card === null ? 'none' : card.text}`)
+    check(`${status}: a plain card stands above the box (${status === 429 ? 'busy' : 'down'})`, card !== null && card.kind === (status === 429 ? 'busy' : 'down'), card)
+    check(`${status}: the card has no raw JSON, undefined, stack, status code or provider address`, card !== null && !LEAK.test(card.text) && !/\b(50\d|429|401)\b/.test(card.text), card)
     check(`${status}: the composer is still there`, await composerOk())
     await post('/__/engine/fail', { match: '' })
   }
@@ -75,6 +79,7 @@ try {
   await post('/__/engine/fail', { match: '' })
   const back = await turn()
   check('the next turn answers with no reload', back.answered, back)
+  check('and the card is gone with the new turn', (await g.val(`!document.querySelector('[data-kb="model-down"]')`)) === true)
 } finally {
   try { await post('/__/engine/fail', { match: '' }) } catch (e) { /* the replica is gone */ }
   try { await ctx.engine({ text: "Hello from the replica's stand-in model.", prompt: 1, completion: 1 }) } catch (e) { /* idem */ }
