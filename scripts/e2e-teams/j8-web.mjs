@@ -38,7 +38,7 @@ export const run = async (ctx) => {
   await asRole('member')
   const owner = await view('a', A, 'owner')
   note('owner: ' + JSON.stringify({ pool: owner.poolShown, buy: owner.buy, buyText: owner.buyText, buyDisabled: owner.buyDisabled, rows: owner.rows }))
-  check('owner: the pool card is on the page with the four windows of the plan and « Add credits »', owner.poolShown === true && owner.rows.length === 4 && owner.buy === true && /credits/i.test(owner.buyText || ''), owner)
+  check('owner: the pool card is on the page with the four windows of the plan and « Add credits » (« Add budget » since the extra-budget rename)', owner.poolShown === true && owner.rows.length === 4 && owner.buy === true && /credits|budget/i.test(owner.buyText || ''), owner)
   const member = await view('b', B, 'member')
   note('member: ' + JSON.stringify({ pool: member.poolShown, buy: member.buy, text: (member.text || '').slice(0, 160) }))
   check('member: the pool card is on the page (read only) with the four windows, and no « Add credits »', member.poolShown === true && member.rows.length === 4 && member.buy === false, member)
@@ -53,7 +53,7 @@ export const run = async (ctx) => {
   check('owner and admin read « Below you can lower what each member may use »; the member does not', /lower what each member may use/.test(owner.text || '') && /lower what each member may use/.test(admin.text || '') && !/lower what each member may use/.test(member.text || ''), { owner: (owner.text || '').slice(0, 140), member: (member.text || '').slice(0, 140) })
   // T3: the pool is used up when J6 ran before this journey
   const full = await view('a', A, 'owner-t3', { team: t3 })
-  note('T3 (pool ' + (/Add credits/.test(full.text || '') ? 'with the button' : 'no button') + '): button ' + JSON.stringify({ buy: full.buy, disabled: full.buyDisabled, text: full.buyText }))
+  note('T3 (pool ' + (/Add (credits|budget)/.test(full.text || '') ? 'with the button' : 'no button') + '): button ' + JSON.stringify({ buy: full.buy, disabled: full.buyDisabled, text: full.buyText }))
   const budget = (await S.call('GET', `/v1/workspaces/${t3.id}/llm/budget`, { cookie: A.cookie })).body.windows.filter((w) => w.kind === 'pool')
   note('T3 pool on the server: ' + budget.map((w) => `${w.window_seconds}:${w.used_percent}${w.exhausted ? '!' : ''}`).join(' '))
   check('T3 (pool used up or not): the owner sees the pool card and the button is offered', full.poolShown === true && full.buy === true, full)
