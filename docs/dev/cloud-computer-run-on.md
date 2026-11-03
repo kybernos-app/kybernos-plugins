@@ -49,6 +49,8 @@ the way, and the cloud computer follows it:
 - **The menu** (`kybernos-computers/client.js`, `EnvSelector`): one row per cloud computer of the person (the list the Automations page draws, `GET /kybernos-cloud/computers`),
   with its state in words; awake or asleep can be chosen (the server wakes a sleeping one for the task), one being set up or off cannot. Choosing a row stores it in the host;
   choosing « This machine » or E2B clears it, and choosing a cloud computer puts E2B off. A computer that left the list clears the choice.
+- **Without the E2B plugin** (`kybernos-cloud/client.js`, `RunOn`, composer slot order 61): the cloud plugin draws the same menu with « This machine » and the cloud computers only, so the choice does not depend on
+  E2B being enabled. Where the E2B menu is up it raises `window.__KB_ENV_SELECTOR__` (and the event `kybernos-env-selector`), and the cloud menu draws nothing: never two buttons.
 - **The choice** (`kybernos-cloud/index.js`): `GET /kybernos-cloud/computer/target` and `POST /kybernos-cloud/computer/target/set` (`{ computer_id, name }`, or `{ computer_id: null }`),
   kept in `kybernos-cloud-computer.json` in the DSH home (mode 0600). The write needs the same session cookie and origin as every write of the bundle.
 - **The prompt section** `kybernos:cloud-computer-target` (order 8710, after E2B's 8700): empty while nothing is chosen, so a chat that never chose one is unchanged. Chosen, it

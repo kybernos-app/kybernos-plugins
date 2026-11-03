@@ -45,4 +45,9 @@ for (const lang of ['en', 'kybernos']) {
 assert.ok(!/envCloudSub/.test(src), 'the « not available from a chat » sentence is gone')
 ok('every state sentence exists in English and in Kybernos\' French (the locale id « kybernos », not « fr »)')
 
+// 6. the cloud plugin has a menu of its own for a DSH where this plugin is off: this menu says it is up, and says so again when it goes
+assert.ok(/window\.__KB_ENV_SELECTOR__ = true/.test(src) && /delete window\.__KB_ENV_SELECTOR__/.test(src), 'the flag goes up with the menu and down with it')
+assert.ok(/new Event\('kybernos-env-selector'\)/.test(src), 'the other menu is told')
+ok('the cloud plugin\'s own menu is told when this one is up (never two buttons)')
+
 console.log('\n' + pass + ' checks passed')

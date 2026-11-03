@@ -442,7 +442,11 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
         safe('kybernos-computers: composer selector', () => {
           const off = slots.inject('conversation.input.left', () => slots.register(
             { name: 'conversation.input.left', id: 'kybernos-computers-env', order: 60 }, EnvSelector))
-          return off
+          // This menu carries the person's cloud computers too; the cloud plugin has a menu of its own for a DSH where this plugin is off, and draws nothing while this flag is up.
+          const tell = () => { try { window.dispatchEvent(new Event('kybernos-env-selector')) } catch (e) { /* no window */ } }
+          window.__KB_ENV_SELECTOR__ = true
+          tell()
+          return () => { off(); try { delete window.__KB_ENV_SELECTOR__ } catch (e) { /* gone */ } tell() }
         })
 
         /** The page's head: its title and its « ? » through the Suite's Title (one style for every page title, the button right after the text); the bare title where the Suite is not there. */
