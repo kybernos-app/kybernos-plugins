@@ -473,7 +473,7 @@ const PAGE_ROOTS = [
   ['kybernos-free-llms/client.js', '.kfl-root'],
   ['kybernos-modeles-locaux/client.js', '.kml-root'],
   ['kybernos-computers/client.js', ':is(.kcc-root,.kbenv-root,.kbenv-menu)'],
-  ['kybernos-cloud/client.js', ':is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page)'],
+  ['kybernos-cloud/client.js', ':is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page,.kbro-root,.kbro-menu)'],
   ['kybernos-models/client.js', '.kbm-root.kbmp'],
   ['kybernos-plugin/client.js', ':is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick)'],
   ['kybernos-skills/client.js', '.kbs-root'],

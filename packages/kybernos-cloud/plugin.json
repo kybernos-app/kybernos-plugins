@@ -30,6 +30,7 @@
   "permissions": [
     "ui.slot:conversation.chat.node",
     "ui.slot:conversation.composer.dock",
+    "ui.slot:conversation.input.left",
     "ui.slot:conversation.hero.options",
     "ui.slot:settings.section",
     "ui.slot:shell.quota-notice",
