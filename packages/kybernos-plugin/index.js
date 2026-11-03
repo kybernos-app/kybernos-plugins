@@ -31,6 +31,7 @@ import { createJournalLinks } from './journal-link.mjs'
 import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
+import { KB_OFFICE_EXTS, kbIsOfficeLock } from './art-office.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
@@ -6810,6 +6811,8 @@ function boot(ctx) {
     const ARTIFACT_EXTS = new Set([
       'quiz', 'deck', 'cards', 'resume', 'fiche', 'engine', 'miniapp',
       'html', 'htm', 'md', 'markdown', 'txt', 'rst', 'pdf', 'csv', 'json', 'yaml', 'yml',
+      // Documents, workbooks and decks a chat writes (art-office.mjs): they were missing, so a .docx / .xlsx / .pptx never reached the sidebar.
+      ...KB_OFFICE_EXTS,
       // Médias (26/09 : « j'ai créé des images et des vidéos mais je ne les
       // vois pas ») : images servies par /kybernos/art-raw (kind image),
       // audio/vidéo rendus par la carte lecteur du client. BORNÉS au dossier
@@ -6833,6 +6836,7 @@ function boot(ctx) {
     const SOURCE_NAMES = /^(package|package-lock|pnpm-workspace|tsconfig|jsconfig|vite\.config|vitest\.config|next\.config|webpack\.config|babel\.config|jest\.config|\.?eslintrc|\.?prettierrc|cordis|manifest)\./i
     const isLivrableName = (name, path) => {
       if (SOURCE_NAMES.test(String(name || ''))) return false
+      if (kbIsOfficeLock(name)) return false
       const ext = kbArtifactExtOf(name)
       if (ext === '' || !ARTIFACT_EXTS.has(ext)) return false
       // Un média ne compte comme livrable que SOUS un dossier artifacts/ :
