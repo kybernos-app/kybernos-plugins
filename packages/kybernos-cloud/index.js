@@ -5850,7 +5850,7 @@ const computerTargetSet = async (req, body) => {
 }
 /** The model a task handed to a cloud computer runs with: the server asks for one when Kaby's crew names none. A fast, inexpensive model of the account's own list (the first of
  *  these that the account has, else the first of its list), so a task never spends a premium model by default. Null when the account lists none. */
-const COMPUTER_TASK_MODELS = Object.freeze(['deepseek-v4.1-flash', 'claude-haiku-5.5', 'gpt-4.1-mini'])
+const COMPUTER_TASK_MODELS = Object.freeze(['deepseek-v4.1-flash', 'claude-haiku-5.5'])
 const computerTaskModel = () => {
   try {
     const s = readState()
