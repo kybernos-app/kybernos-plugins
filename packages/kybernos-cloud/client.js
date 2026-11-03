@@ -99,6 +99,10 @@ window.__ModuleLoader__.load({
         joinBrowser: 'Ouvrir dans le navigateur',
         joinNoPlan: 'Tu as rejoint « {name} », qui n\'a pas encore de formule. Tu es toujours dans « {here} ».',
         planNone: 'Aucune formule',
+        extra: 'Budget extra',
+        extraNone: 'Aucun — demande à un propriétaire ou à un admin',
+        extraValue: '{used} utilisés sur {cap} · {left} restants',
+        extraHint: 'Ce que les recharges de l’équipe peuvent payer pour toi sur 30 jours, au-delà de ta part du plan. Modèles {models} · Cloud {cloud} · Connecteurs {connectors}',
         planChoose: 'Choisir une formule',
         profCompte: 'Compte',
         profParrain: 'Parrainage',
@@ -391,6 +395,10 @@ window.__ModuleLoader__.load({
         joinBrowser: 'Open in the browser',
         joinNoPlan: 'You joined “{name}”, which has no plan yet. You are still in “{here}”.',
         planNone: 'No plan',
+        extra: 'Extra budget',
+        extraNone: 'None — ask an owner or an admin',
+        extraValue: '{used} used of {cap} · {left} left',
+        extraHint: 'What the team’s top-ups may pay for you over 30 days, beyond your plan share. Models {models} · Cloud {cloud} · Connectors {connectors}',
         planChoose: 'Choose a plan',
         profCompte: 'Account',
         profParrain: 'Referral',
@@ -1128,6 +1136,18 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const info = planDeEspace(state, user)
       return info.none === true ? t('planNone') : (info.label !== null ? info.label : t('none'))
     }
+    /** The member's own extra budget (kybernos-server ADR 0066) as the account card words it: the figure, and the hint with the part each pot took. Null where the plan carries none
+     *  (a personal space, an older server). A cap of 0 is a real answer, said as « none », since it is the default. */
+    const extraFaceOf = (extra, t) => {
+      if (extra === undefined || extra === null || typeof extra !== 'object') return null
+      const usd = (v) => '$' + v
+      const pots = extra.used_by_pot !== undefined && extra.used_by_pot !== null && typeof extra.used_by_pot === 'object' ? extra.used_by_pot : {}
+      const part = (k) => usd(typeof pots[k] === 'string' ? pots[k] : '0.00')
+      return {
+        value: Number(extra.cap_usd) === 0 ? t('extraNone') : t('extraValue').replace('{used}', usd(extra.used_usd)).replace('{cap}', usd(extra.cap_usd)).replace('{left}', usd(extra.left_usd)),
+        hint: t('extraHint').replace('{models}', part('models')).replace('{cloud}', part('cloud')).replace('{connectors}', part('connectors')),
+      }
+    }
     // <space-face:end>
 
     // <plan-top:begin> « Upgrade » is for a plan that has something above it, and it only opens a page: it is only offered where that page can open
@@ -1690,6 +1710,11 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             className: props.fallback === true ? 'kbc-v kbc-v-fallback' : 'kbc-v',
             title: props.hint,
           }, props.value))
+        // The member's own extra budget (kybernos-server ADR 0066), told by the plan route for a team space and absent elsewhere (a personal space, an older server): nothing is drawn then.
+        const ExtraRow = (props) => {
+          const face = extraFaceOf(props.extra, t)
+          return face === null ? null : h(Row, { label: t('extra'), value: face.value, hint: face.hint })
+        }
 
         const CloudCard = (props) => {
           const [view, setView] = React.useState({ phase: 'loading' })
@@ -1836,7 +1861,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               h(Row, { label: t('email'), value: user.email || t('none') }),
               // The plan of the ACTIVE team, as the footer chip says it (the profile's `plan` is the account's word and reads « team » as soon as the person is in
               // any team, next to a chip that says « Solo Studio »): the card said « Plan team » for a personal Solo Studio space right after the pairing.
-              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && st.space_plan.key === 'none' ? t('planNone') : null) || (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') })))
+              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && st.space_plan.key === 'none' ? t('planNone') : null) || (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') }),
+              h(ExtraRow, { extra: st.space_plan !== undefined && st.space_plan !== null ? st.space_plan.extra : null })))
             body.push(h('div', { key: 'wl' },
               h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('workspaces')),
               h('div', { className: 'kbc-ws' }, workspaces.length === 0

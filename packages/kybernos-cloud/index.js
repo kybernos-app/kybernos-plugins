@@ -409,6 +409,23 @@ const ensureFolderFor = (state, id, outcome) => {
 /** 'none' | 'personal' | 'team' (team-space.mjs): the kind of the ACTIVE space, read from the state each time it is asked. */
 const spaceOf = (state) => spaceKind(state, state !== null && state !== undefined && state !== UNREADABLE ? espaceActif(state) : null)
 
+/** The member's own extra budget as the server's plan route words it (kybernos-server ADR 0066): billed dollars as text, three figures and where the cap comes from. Null when the plan carries
+ *  none (a personal space, a server from before it) or says anything else: nothing else passes, so the page draws money only from text that is money. */
+const EXTRA_USD = /^\d{1,7}(\.\d{1,4})?$/
+const extraLineOf = (raw) => {
+  if (raw === null || raw === undefined || typeof raw !== 'object') return null
+  const usd = (v) => (typeof v === 'string' && EXTRA_USD.test(v) ? v : null)
+  const cap = usd(raw.cap_usd)
+  const used = usd(raw.used_usd)
+  const left = usd(raw.left_usd)
+  if (cap === null || used === null || left === null) return null
+  const pots = {}
+  if (raw.used_by_pot !== null && typeof raw.used_by_pot === 'object') {
+    for (const k of ['models', 'cloud', 'connectors']) { const v = usd(raw.used_by_pot[k]); if (v !== null) pots[k] = v }
+  }
+  return { cap_usd: cap, used_usd: used, left_usd: left, source: raw.source === 'member' || raw.source === 'everyone' ? raw.source : 'none', used_by_pot: pots }
+}
+
 /** The plan of ONE space, as the server's `/plan` of that space answers it. The profile's `plan` (/v1/me) is the ACCOUNT's word and says « team »
  *  as soon as the person is in any team; the footer, the menu and the team features belong to the ACTIVE space, so they read this instead.
  *  Never throws and never disconnects: a server that does not answer leaves the account-level word as the fallback. */
@@ -431,8 +448,10 @@ const readSpacePlan = async (state, id) => {
   const kind = plan !== null && typeof plan.kind === 'string' ? plan.kind : null
   const label = name === null ? null : (kind === 'individual' && level !== null && level.toLowerCase() !== name.toLowerCase() ? name + ' ' + level : name)
   const credits = Number(b.credit_balance_credits)
+  const extra = extraLineOf(b.extra)
   return { workspace_id: id, key, name, level, label, status: typeof b.status === 'string' ? b.status : null,
     credit_balance_credits: Number.isFinite(credits) ? credits : null,
+    ...(extra !== null ? { extra } : {}),
     ...(res.grace !== null ? { mfa: { state: 'grace', ends: res.grace } } : {}) }
 }
 

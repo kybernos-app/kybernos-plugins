@@ -718,7 +718,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
 {
   const m = source.match(/\/\/ <space-face:begin>[\s\S]*?\/\/ <space-face:end>/)
   assert.ok(m !== null, 'the workspace face is a marked block')
-  const face = new Function(m[0] + '\nreturn { espaceVue, espaceActifVue, planDeEspace, planNameOf, initiales }')()
+  const face = new Function(m[0] + '\nreturn { espaceVue, espaceActifVue, planDeEspace, planNameOf, extraFaceOf, initiales }')()
   const dict = { wsPersonal: 'Personal', spaceTitle: 'Team', planNone: 'No plan', none: '—' }
   const t = (k) => dict[k] !== undefined ? dict[k] : k
   const personal = { id: 'p', name: 'My workspace', personal: true }
@@ -741,6 +741,19 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   assert.equal(face.planNameOf({}, {}, t), '—', 'unknown stays « — »')
   assert.equal(face.planNameOf({}, { plan: 'team' }, t), 'Team', 'no read of the space: the account\'s word, as before')
   ok('one source for a workspace\'s name and initials (Personal/PE in the card, the menu and both lists) and for its plan (« No plan » for a team without one)')
+
+  // The member's own extra budget (kybernos-server ADR 0066): the account card's row, from the plan route's line. Nothing is drawn where the plan carries none.
+  const words = { extraNone: 'None', extraValue: '{used} used of {cap} · {left} left', extraHint: 'Models {models} · Cloud {cloud} · Connectors {connectors}' }
+  const tx = (k) => words[k] !== undefined ? words[k] : k
+  assert.equal(face.extraFaceOf(undefined, tx), null, 'an older server or a personal space: no row')
+  assert.equal(face.extraFaceOf(null, tx), null)
+  assert.deepEqual(face.extraFaceOf({ cap_usd: '12.50', used_usd: '4.00', left_usd: '8.50', source: 'member', used_by_pot: { models: '3.00', cloud: '1.00', connectors: '0.00' } }, tx),
+    { value: '$4.00 used of $12.50 · $8.50 left', hint: 'Models $3.00 · Cloud $1.00 · Connectors $0.00' })
+  assert.equal(face.extraFaceOf({ cap_usd: '0.00', used_usd: '0.00', left_usd: '0.00', source: 'none', used_by_pot: {} }, tx).value, 'None', 'a cap of 0 is the default and is said as « none »')
+  assert.equal(face.extraFaceOf({ cap_usd: '5.00', used_usd: '5.00', left_usd: '0.00', source: 'everyone' }, tx).hint, 'Models $0.00 · Cloud $0.00 · Connectors $0.00', 'no breakdown given: zeros, never a crash')
+  for (const k of ['extra', 'extraNone', 'extraValue', 'extraHint']) assert.equal((source.match(new RegExp('\\n        ' + k + ': '.replace(/ /g, ' '), 'g')) || []).length, 2, k + ' exists in English and in French')
+  assert.ok(/h\(ExtraRow, \{ extra: st\.space_plan !== undefined && st\.space_plan !== null \? st\.space_plan\.extra : null \}\)/.test(source), 'the account card draws the row right after the plan')
+  ok('the account card tells the member\'s extra budget (figure, « none » for the default 0, per-pot hint) and draws nothing where the plan carries none')
 }
 
 // AC-09 / AC-02 wiring that needs a click to see: the dialog has its heading and what a team is, the plan slot offers « Choose a plan » on the plan page.
