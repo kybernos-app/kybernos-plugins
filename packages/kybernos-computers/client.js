@@ -62,7 +62,11 @@ window.__ModuleLoader__.load({
         envE2bSub: 'Ephemeral cloud microVM — code runs off this machine.',
         envE2bNoKey: 'E2B key required — Settings › Code sandbox (E2B).',
         envCloud: 'Cloud Computer',
-        envCloudSub: 'Not available from a chat yet — write to your assistant on Telegram.',
+        envCloudAwake: 'Cloud Computer · awake — the task runs there.',
+        envCloudAsleep: 'Cloud Computer · asleep — it wakes up for the task.',
+        envCloudWinding: 'Cloud Computer · going to sleep.',
+        envCloudWaking: 'Cloud Computer · being set up, not ready yet.',
+        envCloudOff: 'Cloud Computer · not available right now.',
         pageIntro: 'Run the code of your agents in a throwaway cloud computer (E2B) instead of on this machine. You bring your own E2B key: the usage is billed to your E2B account.',
         pageKeyPlaceholder: 'Paste your E2B key',
         pageKeyHint: 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.',
@@ -92,7 +96,11 @@ window.__ModuleLoader__.load({
         envE2bSub: 'MicroVM cloud éphémère — le code tourne hors du poste.',
         envE2bNoKey: 'Clé E2B requise — Réglages › Bac à sable de code (E2B).',
         envCloud: 'Cloud Computer',
-        envCloudSub: 'Pas encore disponible depuis un chat — écris à ton assistant sur Telegram.',
+        envCloudAwake: 'Cloud Computer · éveillé — la tâche y tourne.',
+        envCloudAsleep: 'Cloud Computer · en veille — il se réveille pour la tâche.',
+        envCloudWinding: 'Cloud Computer · se met en veille.',
+        envCloudWaking: 'Cloud Computer · en préparation, pas encore prêt.',
+        envCloudOff: 'Cloud Computer · indisponible pour le moment.',
         pageIntro: 'Exécute le code de tes agents dans un ordinateur cloud jetable (E2B) plutôt que sur cette machine. Tu apportes ta propre clé E2B : l’usage est facturé sur ton compte E2B.',
         pageKeyPlaceholder: 'Colle ta clé E2B',
         pageKeyHint: 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.',
@@ -305,14 +313,27 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
               return await res.json().catch(() => null)
             } catch { return null }
           }
+        // The cloud bundle's own routes (same origin, the page's session cookie goes with them): the cloud computer chosen for chats.
+        const callCloud = async (path, method, payload) => {
+            try {
+              const res = await fetch(path, {
+                method, credentials: 'same-origin', cache: 'no-store',
+                headers: { 'content-type': 'application/json' },
+                body: method === 'POST' ? JSON.stringify(payload === undefined ? {} : payload) : undefined,
+              })
+              return await res.json().catch(() => null)
+            } catch { return null }
+          }
         const EnvSelector = () => {
           const [open, setOpen] = React.useState(false)
           const [env, setEnv] = React.useState(() => {
             try { return window.localStorage.getItem('kybernos.computer.env') === 'e2b' ? 'e2b' : 'desktop' } catch { return 'desktop' }
           })
           const [keyPresent, setKeyPresent] = React.useState(null)
-          // The person's Cloud Computer (read from the cloud bundle): null when signed out or when it cannot be read.
+          // The person's cloud computers (read from the cloud bundle, the list the Automations page draws): null when signed out or when it cannot be read.
           const [cloud, setCloud] = React.useState(null)
+          // The cloud computer the person chose for their chats (kept by the host, told to the agent as a prompt section like E2B): { id, name } or null.
+          const [target, setTarget] = React.useState(null)
           const boxRef = React.useRef(null)
 
           React.useEffect(() => {
@@ -320,12 +341,13 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
             const probe = async () => {
               const s = await callEnv('/status')
               if (alive === true) setKeyPresent(s !== null && s.ok === true && s.keyPresent === true)
-              // Shown, never chosen: no route runs a chat turn on that computer yet (docs/dev/cloud-computer-run-on.md).
               try {
-                const r = await fetch('/kybernos-cloud/kyber', { cache: 'no-store', credentials: 'same-origin' })
+                const r = await fetch('/kybernos-cloud/computers', { cache: 'no-store', credentials: 'same-origin' })
                 const k = r.ok === true ? await r.json().catch(() => null) : null
-                if (alive === true) setCloud(k !== null && k.ok === true && k.connected === true ? { state: k.home !== null && typeof k.home === 'object' ? String(k.home.state || '') : '' } : null)
+                if (alive === true) setCloud(k !== null && k.ok === true && k.connected === true && Array.isArray(k.computers) ? k.computers.filter((c) => c !== null && typeof c === 'object' && typeof c.id === 'string').map((c) => ({ id: c.id, name: String(c.name || ''), state: String(c.state || 'off') })) : null)
               } catch { if (alive === true) setCloud(null) }
+              const g = await callCloud('/kybernos-cloud/computer/target', 'GET')
+              if (alive === true && g !== null && g.ok === true) setTarget(g.target !== null && typeof g.target === 'object' ? { id: String(g.target.computer_id), name: String(g.target.name || '') } : null)
               const e = await callEnv('/env')
               if (alive === true && e !== null && e.ok === true) {
                 setEnv(e.env)
@@ -339,6 +361,12 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
             window.addEventListener('kybernos-computers:key', again)
             return () => { alive = false; clearInterval(timer); window.removeEventListener('kybernos-computers:key', again) }
           }, [])
+          // A computer that is gone from the list (deleted, or another account signed in) is no longer the choice: the host forgets it, so the agent is not told to use it.
+          React.useEffect(() => {
+            if (cloud === null || target === null || cloud.some((c) => c.id === target.id) === true) return
+            setTarget(null)
+            void callCloud('/kybernos-cloud/computer/target/set', 'POST', { computer_id: null })
+          }, [cloud, target])
           React.useEffect(() => {
             if (open !== true) return
             const away = (e) => { if (boxRef.current !== null && boxRef.current.contains(e.target) !== true) setOpen(false) }
@@ -350,6 +378,26 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
 
           const choose = async (value) => {
             setOpen(false)
+            // A cloud computer and E2B are two ways to work off this machine, never both: choosing one clears the other, choosing « this machine » clears both.
+            if (value.startsWith('cloud:')) {
+              const id = value.slice(6)
+              const row = cloud !== null ? cloud.find((c) => c.id === id) : undefined
+              const set = await callCloud('/kybernos-cloud/computer/target/set', 'POST', { computer_id: id, name: row !== undefined ? row.name : '' })
+              if (set === null || set.ok !== true) return
+              setTarget({ id: String(set.target.computer_id), name: String(set.target.name || '') })
+              if (env !== 'desktop') {
+                const back = await callEnv('/env/set', 'POST', { env: 'desktop' })
+                if (back !== null && back.ok === true) {
+                  setEnv(back.env)
+                  try { window.localStorage.setItem('kybernos.computer.env', back.env) } catch { /* private mode */ }
+                }
+              }
+              return
+            }
+            if (target !== null) {
+              const cleared = await callCloud('/kybernos-cloud/computer/target/set', 'POST', { computer_id: null })
+              if (cleared !== null && cleared.ok === true) setTarget(null)
+            }
             const made = await callEnv('/env/set', 'POST', { env: value })
             if (made !== null && made.ok === true) {
               setEnv(made.env)
@@ -362,21 +410,29 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
             { id: 'desktop', name: t('envDesktop'), sub: t('envDesktopSub'), disabled: false },
             { id: 'e2b', name: 'E2B', sub: keyPresent === true ? t('envE2bSub') : t('envE2bNoKey'), disabled: keyPresent === false },
           ]
-          if (cloud !== null) options.push({ id: 'cloud', name: t('envCloud'), sub: t('envCloudSub'), disabled: true })
+          // One row per cloud computer: awake or asleep ones can be chosen (the server wakes a sleeping one for the task), one being set up or off cannot.
+          const CLOUD_SUB = { awake: 'envCloudAwake', asleep: 'envCloudAsleep', winding_down: 'envCloudWinding', waking: 'envCloudWaking', off: 'envCloudOff' }
+          if (cloud !== null) {
+            for (const c of cloud) {
+              const key = CLOUD_SUB[c.state] !== undefined ? c.state : 'off'
+              options.push({ id: 'cloud:' + c.id, name: c.name === '' ? t('envCloud') : c.name, sub: t(CLOUD_SUB[key]), disabled: key === 'off' || key === 'waking' })
+            }
+          }
+          const chosen = target !== null ? 'cloud:' + target.id : isE2b ? 'e2b' : 'desktop'
           return h('div', { ref: boxRef, className: 'kbenv-root', 'data-kb': 'computer-env-selector' },
             h('button', {
-              className: 'kbenv-btn', 'data-kb': 'computer-env-button', 'data-on': isE2b ? 'true' : 'false',
+              className: 'kbenv-btn', 'data-kb': 'computer-env-button', 'data-on': isE2b || target !== null ? 'true' : 'false',
               title: t('envTitle'), 'aria-label': t('envTitle'), 'aria-expanded': open === true ? 'true' : 'false',
               onClick: () => setOpen(open !== true),
             },
               h('span', { className: 'kbenv-dot' }),
-              isE2b ? 'E2B' : t('envDesktop'),
+              target !== null ? (target.name !== '' ? target.name : t('envCloud')) : isE2b ? 'E2B' : t('envDesktop'),
               ' ▾'),
             open === true
               ? h('div', { className: 'kbenv-menu', role: 'menu' },
                   options.map((opt) => h('button', {
                     key: opt.id, className: 'kbenv-opt', role: 'menuitem', 'data-kb': 'computer-env-' + opt.id,
-                    'data-on': opt.id === (isE2b ? 'e2b' : 'desktop') ? 'true' : 'false',
+                    'data-on': opt.id === chosen ? 'true' : 'false',
                     disabled: opt.disabled === true, onClick: () => { void choose(opt.id) },
                   },
                     h('span', {}, h('span', { className: 'kbenv-name' }, opt.name), h('span', { className: 'kbenv-sub' }, opt.sub)))))
