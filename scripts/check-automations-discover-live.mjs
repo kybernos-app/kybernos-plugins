@@ -161,7 +161,8 @@ try {
   await shot('cards')
 
   console.log('\n── Workflow ──')
-  check('the detail has three tabs, Workflow, Sessions and Where it runs: no Webhook tab, no Journal tab', (await val(`Array.from(document.querySelectorAll('[data-kb="detail-tabs"] [role="tab"]')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Workflow|Sessions · 6|Where it runs')
+  check('the detail has four tabs, Overview, Workflow, Sessions and Where it runs: no Webhook tab, no Journal tab, and it opens on the Overview', (await val(`Array.from(document.querySelectorAll('[data-kb="detail-tabs"] [role="tab"]')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Overview|Workflow|Sessions · 6|Where it runs' && (await q('[data-kb="automation-sheet"]')) === 1)
+  await click('[data-kb="tab-flow"]')
   check('the Workflow opens on the cards: the trigger, the three steps and the record of the run', (await poll(async () => (await q('[data-kb="flow-card"]')) === 5, 5000)) === true)
   check('Flow, Text and Code are three quiet icons in the toolbar of the canvas, Flow first and chosen', (await val(`Array.from(document.querySelectorAll('[data-kb="flow-canvas"] [data-kb^="view-"]')).map((b) => b.dataset.kb + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join()`)) === 'view-flow*,view-text,view-code')
   check('the title of every card stays inside it (two lines at most, nothing spills)', await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).every((n) => { const r = n.getBoundingClientRect(); return Array.from(n.querySelectorAll('.kbfc-tt b, .kbfc-ft')).every((c) => c.getBoundingClientRect().bottom <= r.bottom + 1 && c.getBoundingClientRect().right <= r.right + 1) })`))

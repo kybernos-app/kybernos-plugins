@@ -5016,6 +5016,68 @@ const KB_FR_EN = {
   'Histoire de cette conversation': 'Story of this chat',
   'moments': 'moments',
   'Rien ne correspond à ce filtre.': 'Nothing matches this filter.',
+  // the Overview sheet of an automation
+  'Consigne': 'Prompt',
+  'Modifier dans le chat': 'Edit in chat',
+  'Modifier le texte': 'Edit text',
+  'lignes de plus': 'more lines',
+  'Le texte fait foi. Le modèle peut le suivre autrement à chaque exécution : les étapes ne sont que ce qu’on lit dedans.': 'The text is the source. The model may follow it differently each run, so the steps are only what we read in it.',
+  'Quand': 'When',
+  'Une seule fois': 'One time',
+  'Répétition': 'Repeat',
+  'Fuseau horaire': 'Time zone',
+  'système': 'system',
+  'Prochaine exécution': 'Next run',
+  'Oui': 'Yes',
+  'Afficher l’adresse': 'Show address',
+  'Créer un webhook': 'Create webhook',
+  'répété': 'repeats',
+  'Où ça tourne': 'Where it runs',
+  'Cet ordinateur': 'This computer',
+  'Dossier': 'Folder',
+  'Un nouveau chat à chaque exécution': 'A new chat each run',
+  'Toujours le même chat': 'Always the same chat',
+  'Chaque exécution est postée dans une seule conversation. Pour changer, utilise « Modifier dans le chat ».': 'Every run is posted in one conversation. To change it, use “Edit in chat”.',
+  'Chaque exécution ouvre son propre chat dans ce dossier. Pour changer, utilise « Modifier dans le chat ».': 'Each run opens its own chat in this folder. To change it, use “Edit in chat”.',
+  'Changer': 'Change',
+  'Qui s’en charge': 'Who does it',
+  'choisi pour cette automatisation': 'chosen for this automation',
+  'modèle par défaut du profil, aucun choisi': 'profile default, none chosen',
+  'Vus aussi': 'Also seen',
+  'Équipe d’agents': 'Agent team',
+  'Aucun vu': 'None seen',
+  'Pas encore exécutée': 'Not run yet',
+  'Aucune exécution lue pour l’instant': 'No run read yet',
+  'Ce qu’elle peut utiliser': 'What it can use',
+  'vu dans les {n} dernières exécutions': 'seen in the last {n} runs',
+  'Applications': 'Apps',
+  'Demandées': 'Asked for',
+  'Sécurité': 'Safety',
+  'Validations': 'Approvals',
+  'Durée maximale': 'Time limit',
+  'min': 'min',
+  'Si j’écris dedans': 'If I write in it',
+  'L’exécution s’arrête': 'The run stops',
+  'L’exécution se termine': 'The run finishes',
+  'Me prévenir': 'Notify me',
+  'Rien': 'Nothing',
+  'Notification': 'Push',
+  'E-mail': 'Email',
+  '{n} dernières sessions': 'last {n} sessions',
+  'Lecture des journaux…': 'Reading the journals…',
+  'non chiffré': 'not priced',
+  'Appels d’outils par exécution': 'Tool calls per run',
+  'Exécutions récentes': 'Recent runs',
+  'Toutes les {n} sessions': 'All {n} sessions',
+  '{a} exécutions sur {b} terminées': '{a} of {b} completed',
+  'médiane': 'median',
+  'dernière exécution': 'last run',
+  '{n} étapes trouvées dans le texte': '{n} steps found in the text',
+  'indicatif : ce qui s’est vraiment passé est dans chaque session': 'indicative: what really happened is in each session',
+  'Afficher': 'Show',
+  'Selon un horaire': 'On a schedule',
+  'Webhook': 'Webhook',
+  'Aucun journal n’a pu être lu': 'No journal could be read',
 }
 // kbe(en[, fr]) — text whose BASE is English (decision D1). The call site holds the ENGLISH text; its French twin is the KB_FR_EN key whose value it is
 // (two keys that share one English text are told apart by the explicit `fr` argument: `kbe(' answered', ' répondues')`). Rendering follows kbt:
@@ -8366,6 +8428,55 @@ const kbRunUses = (history, sums, limit) => {
   }
   const top = (map) => [...map.values()].sort((a, b) => b.count - a.count || (a.name < b.name ? -1 : 1)).slice(0, 8)
   return { runs: runs.length, read, models: top(models), latest, skills: top(skills), apps: top(apps), tools: top(tools), agents: [...agents.values()].slice(0, 8), chosen }
+}
+/** How many lines of the prompt the sheet of an automation shows before it folds, and how many of the newest runs its cards read. */
+const KB_ASHEET_HEAD = 3
+const KB_ASHEET_RUNS = 5
+/**
+ * What the sheet of an automation says about it, read from its fields (no guess): the first lines of its prompt, how it starts, where its
+ * runs land, what it may do, when it stops. The page writes the words around these values.
+ *   { head, more, lines, mode: 'cron'|'once'|'webhook', zone, hooked, chat: 'new'|'home', approvals: 'ask'|'auto', maxMinutes, onWrite: 'finish'|'stop', notify, needs, cloud }
+ * `cloud` is the name of the cloud computer it was sent to, null while it runs here; `hooked` is true when it has a webhook (the only trigger, or one more).
+ */
+const kbAutoSheetOf = (t) => {
+  const x = t !== null && typeof t === 'object' ? t : {}
+  const sc = x.schedule !== null && typeof x.schedule === 'object' ? x.schedule : {}
+  const lines = String(typeof x.prompt === 'string' ? x.prompt : '').split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '')
+  return {
+    head: lines.slice(0, KB_ASHEET_HEAD), more: Math.max(0, lines.length - KB_ASHEET_HEAD), lines: lines.length,
+    mode: sc.mode === 'webhook' ? 'webhook' : (sc.mode === 'once' ? 'once' : 'cron'),
+    zone: typeof sc.tz === 'string' ? sc.tz : '',
+    hooked: x.trigger !== null && x.trigger !== undefined && typeof x.trigger === 'object' && x.trigger.type === 'webhook',
+    chat: x.sessionMode === 'home' ? 'home' : 'new',
+    approvals: x.approvals === 'auto' ? 'auto' : 'ask',
+    maxMinutes: Number.isInteger(x.maxMinutes) === true && x.maxMinutes > 0 ? x.maxMinutes : 0,
+    onWrite: x.onPersonWrites === 'stop' ? 'stop' : 'finish',
+    notify: Array.isArray(x.notify) === true ? x.notify.filter((n) => n === 'push' || n === 'email') : [],
+    needs: Array.isArray(x.needs) === true ? x.needs.filter((n) => typeof n === 'string' && n !== '') : [],
+    cloud: x.cloud !== null && x.cloud !== undefined && typeof x.cloud === 'object' ? String(x.cloud.name || '') : null,
+  }
+}
+/**
+ * The cost of the newest runs, from the Journal's own figures of each (`costs[sessionId]` = { costEur, tokens, unpriced }, or null when its journal could not be read):
+ *   { eur, tokens, unpriced, read, runs, pending }   `eur` is null when no run read has a price (a free or unpriced model); `read` counts the journals that answered, `pending` those not asked yet
+ * (`costs[id]` undefined): a figure is only said once nothing is pending, so a sum that is still growing is never shown.
+ */
+const kbAutoSheetCostOf = (ids, costs) => {
+  let eur = null
+  let tokens = 0
+  let unpriced = 0
+  let read = 0
+  let pending = 0
+  for (const id of Array.isArray(ids) === true ? ids : []) {
+    const c = costs !== null && typeof costs === 'object' ? costs[id] : undefined
+    if (c === undefined) { pending += 1; continue }
+    if (c === null || typeof c !== 'object') continue
+    read += 1
+    if (typeof c.costEur === 'number' && Number.isFinite(c.costEur) === true) eur = (eur === null ? 0 : eur) + c.costEur
+    if (typeof c.tokens === 'number' && Number.isFinite(c.tokens) === true) tokens += c.tokens
+    if (typeof c.unpriced === 'number' && Number.isFinite(c.unpriced) === true) unpriced += c.unpriced
+  }
+  return { eur, tokens, unpriced, read, runs: Array.isArray(ids) === true ? ids.length : 0, pending }
 }
 // ── The proof of a supervised trial, as the gate panel reads it ──────────────
 // The proof is B2's ProofReport, stored by B3 and sent whole on `trial-report`. This block only bounds it for the screen: it claims
@@ -22490,6 +22601,118 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (state === 'running') return kbt('tasks.runs.running')
       return run.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.runs.unread')
     }
+    // ── The sheet of an automation (its Overview tab) ──────────────────────────────────────────────────────────────────────
+    // What it is and how it runs, on one page: the prompt, when it starts, where its runs land, who does it, what it used, what it may do, what it cost.
+    // Everything is read from the automation, its newest runs and their journals; nothing is guessed. Where a thing can already be edited (the schedule's
+    // panel, « Edit in chat »), the card sends the person there: an edit of the definition voids its certification, so it is never a side effect of a click.
+    const kbAutoSheetCosts = new Map()
+    const KbAutoSheet = (props) => {
+      const t = props.task
+      const f = kbAutoSheetOf(t)
+      const uses = props.uses
+      const sums = props.sums !== null && typeof props.sums === 'object' ? props.sums : {}
+      const locale = kbBoardLocale()
+      const runs = kbRunsOf(t.history)
+      // One entry per chat: an automation that keeps to ONE chat has the same session on many runs, and its journal must be counted once.
+      const ids = Array.from(new Set(runs.filter((r) => r.sessionId !== null).slice(0, KB_ASHEET_RUNS).map((r) => r.sessionId)))
+      const key = ids.join(',')
+      const fullPair = React.useState(false)
+      const costTick = React.useState(0)
+      React.useEffect(() => {
+        let alive = true
+        const todo = ids.filter((id) => kbAutoSheetCosts.has(id) !== true)
+        const read = async () => {
+          for (const id of todo) {
+            let st = null
+            try { const r = await fetch('/kybernos/journal?sessionId=' + encodeURIComponent(id)); const j = r.ok === true ? await r.json() : null; st = j !== null && j !== undefined && j.ok === true && j.story !== null && j.story !== undefined && j.story.stats !== null && typeof j.story.stats === 'object' ? j.story.stats : null } catch (e) { st = null }
+            const tk = st !== null && st.tokens !== null && typeof st.tokens === 'object' ? (Number(st.tokens.input) || 0) + (Number(st.tokens.output) || 0) + (Number(st.tokens.crews) || 0) : 0
+            kbAutoSheetCosts.set(id, st === null ? null : { costEur: typeof st.costEur === 'number' ? st.costEur : null, tokens: tk, unpriced: typeof st.unpriced === 'number' ? st.unpriced : 0 })
+            if (alive !== true) return
+            costTick[1]((n) => n + 1)
+          }
+        }
+        read()
+        return () => { alive = false }
+      }, [key])
+      const costs = {}
+      for (const id of ids) costs[id] = kbAutoSheetCosts.has(id) === true ? kbAutoSheetCosts.get(id) : undefined
+      const cost = kbAutoSheetCostOf(ids, costs)
+      const stats = kbRunStats(runs, sums)
+      // The verdict of a run is its journal's when it was read, the history's otherwise (kbRunState): the bars and the figures say the same.
+      const bars = runs.slice(0, 10).map((r) => (kbRunState(r, r.sessionId !== null ? sums[r.sessionId] : undefined) === 'failed' ? 'bad' : 'ok')).reverse()
+      const last = runs.length > 0 ? runs[0] : null
+      const lastSum = last !== null && last.sessionId !== null ? sums[last.sessionId] : undefined
+      const kv = (k, label, val, first) => h('div', { key: k, className: 'kba-sk' + (first === true ? ' first' : ''), 'data-kb': 'sheet-' + k },
+        h('span', { className: 'kba-sk-k' }, label), h('span', { className: 'kba-sk-v' }, val))
+      const small = (k, text) => h('small', { key: k }, text)
+      const btn = (k, label, onClick) => h('button', { key: k, type: 'button', className: 'kba-btn', 'data-kb': 'sheet-' + k, onClick }, label)
+      const chip = (name, n, title) => h('span', { key: name, className: 'kba-use', title: title || name }, name, (n > 1 ? h('i', null, '×' + n) : null))
+      const none = (k, text) => small(k, text)
+      const card = (k, icon, title, hint, actions, children) => h('section', { key: k, className: 'kba-card kba-sheet-card', 'data-kb': 'sheet-card-' + k },
+        h('div', { className: 'kba-sheet-ch' }, Icon(icon, 15), h('span', null, title), (hint !== '' ? h('span', { className: 'kba-sheet-hint' }, hint) : null), h('span', { style: { flex: 1 } }), actions),
+        children)
+      const full = fullPair[0] === true
+      const prompt = card('prompt', 'fileText', kbe('Prompt'), '',
+        [btn('edit-chat', kbe('Edit in chat'), props.onEditChat), btn('edit-text', kbe('Edit text'), props.onEditText)],
+        [h('pre', { key: 'p', className: 'kba-sheet-prompt' + (full ? ' full' : ''), 'data-kb': 'sheet-prompt-text' }, full ? String(t.prompt || '') : f.head.join('\n')),
+          (f.more > 0 ? h('button', { key: 'm', type: 'button', className: 'kba-sheet-more', 'data-kb': 'sheet-prompt-more', 'aria-expanded': full ? 'true' : 'false', onClick: () => fullPair[1](!full) },
+            full ? kbe('Show less') : '… ' + f.more + ' ' + kbe('more lines')) : null),
+          h('div', { key: 'n', className: 'kba-sheet-note' }, kbe('The text is the source. The model may follow it differently each run, so the steps are only what we read in it.'))])
+      const trigger = f.mode === 'webhook' ? kbe('Webhook') : (f.mode === 'once' ? kbe('One time') : kbe('On a schedule'))
+      const when = card('when', 'clock', kbe('When'), '', btn('edit-when', kbe('Edit'), props.onEdit), [
+        kv('trigger', kbe('Trigger'), trigger, true),
+        kv('repeat', kbe('Repeat'), f.mode === 'webhook' ? '—' : [props.scheduleLabel, small('r', f.mode === 'once' ? kbe('once') : kbe('repeats'))]),
+        kv('zone', kbe('Time zone'), f.zone === '' ? '—' : [f.zone, (f.zone === props.machineTz ? small('z', kbe('system')) : null)]),
+        kv('next', kbe('Next run'), props.nextRun !== '' ? props.nextRun : '—'),
+        kv('webhook', kbe('Webhook'), f.hooked ? [kbe('Yes'), btn('hook-show', kbe('Show address'), props.onShowHook)] : [kbe('None'), btn('hook-create', kbe('Create webhook'), props.onCreateHook)])])
+      const where = card('where', 'folder', kbe('Where it runs'), '', btn('edit-where', kbe('Change'), props.onWhere), [
+        kv('computer', kbe('Computer'), f.cloud !== null ? f.cloud : kbe('This computer'), true),
+        kv('folder', kbe('Folder'), props.folderText),
+        kv('chat', kbe('Chat'), f.chat === 'home' ? kbe('Always the same chat') : kbe('A new chat each run')),
+        kv('chat-note', '', small('c', f.chat === 'home' ? kbe('Every run is posted in one conversation. To change it, use “Edit in chat”.') : kbe('Each run opens its own chat in this folder. To change it, use “Edit in chat”.')))])
+      const others = uses.models.filter((m) => m.name !== uses.latest)
+      const who = card('who', 'cpu', kbe('Who does it'), '', null, uses.read === 0
+        ? [kv('model', kbe('Model'), none('m', runs.length === 0 ? kbe('Not run yet') : kbe('No run read yet')), true)]
+        : [kv('model', kbe('Model'), uses.latest !== '' ? [h('span', { key: 'm', className: 'kba-use mono' }, uses.latest), small('c', uses.chosen === true ? kbe('chosen for this automation') : kbe('profile default, none chosen'))] : none('m', kbe('None seen')), true),
+          (others.length > 0 ? kv('also', kbe('Also seen'), others.map((m) => h('span', { key: m.name, className: 'kba-use mono' }, m.name))) : null),
+          (uses.agents.length > 0 ? kv('team', kbe('Agent team'), uses.agents.map((a) => chip(a.name + (a.model !== '' ? ' · ' + a.model : ''), 0, a.name))) : null)])
+      const seenHint = uses.read > 0 ? kbe('seen in the last {n} runs').replace('{n}', () => String(uses.read)) : ''
+      const canUse = card('uses', 'plug', kbe('What it can use'), seenHint, null, [
+        kv('apps', kbe('Apps'), uses.apps.length > 0 ? uses.apps.map((x) => h('span', { key: x.name, className: 'kbtd-appchip kba-appuse', title: x.name }, kbTplApp(x.name, props.logos), x.name, (x.count > 1 ? h('i', null, '×' + x.count) : null))) : none('a', kbe('None seen')), true),
+        (f.needs.length > 0 ? kv('needs', kbe('Asked for'), f.needs.map((n) => h('span', { key: n, className: 'kbtd-appchip kba-appuse', title: n }, kbTplApp(n, props.logos), n))) : null),
+        kv('skills', kbe('Skills'), uses.skills.length > 0 ? uses.skills.map((x) => chip(x.name, x.count)) : none('s', kbe('None seen'))),
+        kv('tools', kbe('Tools'), uses.tools.length > 0 ? uses.tools.map((x) => h('span', { key: x.name, className: 'kba-use mono', title: x.name }, x.name, (x.count > 1 ? h('i', null, '×' + x.count) : null))) : none('t', kbe('None seen')))])
+      const safety = card('safety', 'lock', kbe('Safety'), '', btn('edit-safety', kbe('Edit'), props.onEdit), [
+        kv('approvals', kbe('Approvals'), f.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'), true),
+        kv('limit', kbe('Time limit'), f.maxMinutes > 0 ? f.maxMinutes + ' ' + kbe('min') : kbe('None')),
+        kv('onwrite', kbe('If I write in it'), f.onWrite === 'stop' ? kbe('The run stops') : kbe('The run finishes')),
+        kv('notify', kbe('Notify me'), f.notify.length > 0 ? f.notify.map((n) => (n === 'push' ? kbe('Push') : kbe('Email'))).join(', ') : kbe('Nothing'))])
+      const calls = ids.map((id) => { const s = sums[id]; return s !== undefined && s !== null && typeof s.nodeCount === 'number' ? s.nodeCount : null })
+      const costBig = cost.pending > 0 || cost.read === 0 || cost.eur === null ? '—' : kbFmtMoney(cost.eur, 'EUR', 2)
+      const costSub = ids.length === 0 ? kbe('Not run yet') : (cost.pending > 0 ? kbe('Reading the journals…') : cost.read === 0 ? kbe('No journal could be read')
+        : (cost.tokens > 0 ? kbFmtNum(cost.tokens) + ' ' + kbe('tokens') : kbe('No model call')) + (cost.unpriced > 0 || (cost.eur === null && cost.tokens > 0) ? ' · ' + kbe('not priced') : ''))
+      const costCard = card('cost', 'chart', kbe('Cost'), ids.length > 0 ? kbe('last {n} sessions').replace('{n}', () => String(ids.length)) : '', null, [
+        h('div', { key: 'b', className: 'kba-sheet-bigrow' }, h('span', { className: 'kba-sheet-big', 'data-kb': 'sheet-cost-total' }, costBig), h('span', { className: 'kba-sheet-note' }, costSub)),
+        (calls.some((n) => n !== null) ? h('div', { key: 'c', className: 'kba-sheet-note', 'data-kb': 'sheet-calls' }, kbe('Tool calls per run') + ': ' + calls.map((n) => (n === null ? '—' : String(n))).join(' · ')) : null)])
+      const doneN = stats.runs - stats.failed
+      const runsLine = stats.runs === 0 ? kbe('Not run yet')
+        : kbe('{a} of {b} completed').replace('{a}', () => String(doneN)).replace('{b}', () => String(stats.runs))
+          + (stats.median !== null ? ' · ' + kbe('median') + ' ' + kbRunFmtDur(stats.median) : '')
+          + (last !== null && last.at !== '' ? ' · ' + kbe('last run') + ' ' + kbRunFmtDT(last.at, locale) + (lastSum !== undefined && lastSum !== null && typeof lastSum.durationMs === 'number' ? ', ' + kbRunFmtDur(lastSum.durationMs) : '') : '')
+      const recent = card('runs', 'waypoints', kbe('Recent runs'), '', btn('all-sessions', kbe('All {n} sessions').replace('{n}', () => String(stats.runs)) + ' ›', props.onSessions), [
+        h('div', { key: 'l', className: 'kba-sheet-runs' },
+          (bars.length > 0 ? h('span', { className: 'kba-sheet-bars', role: 'img', 'aria-label': runsLine }, bars.map((b, i) => h('i', { key: i, className: b === 'bad' ? 'bad' : '' }))) : null),
+          h('span', { className: 'kba-sheet-note', 'data-kb': 'sheet-runs-line' }, runsLine)),
+        (props.steps > 0 ? h('div', { key: 's', className: 'kba-sheet-fold', 'data-kb': 'sheet-steps' },
+          h('span', null, kbe('{n} steps found in the text').replace('{n}', () => String(props.steps))), h('span', { className: 'kba-sheet-note' }, kbe('indicative: what really happened is in each session')),
+          h('span', { style: { flex: 1 } }), btn('steps-show', kbe('Show'), props.onWorkflow)) : null)])
+      return h('div', { className: 'kba-sheet', 'data-kb': 'automation-sheet' },
+        prompt,
+        h('div', { className: 'kba-sheet-g2' }, when, where),
+        h('div', { className: 'kba-sheet-g2' }, who, canUse),
+        h('div', { className: 'kba-sheet-g2' }, safety, costCard),
+        recent)
+    }
     // The chat's Journal shell, set by the workflows-v2 block further down (it stays null if that block did not start): the Sessions pane reads a run with it.
     let kbJournalShell = null
     const KbRunsPane = (props) => {
@@ -24500,7 +24723,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         read()
         return () => { alive = false; if (timer !== null) clearTimeout(timer) }
       }, [cloudIds])
-      const tabPair = React.useState('flow')
+      const tabPair = React.useState('overview')
       const tab = tabPair[0]
       const setTab = tabPair[1]
       const viewPair = React.useState('flow')
@@ -25063,7 +25286,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const viewBtn = (v, icn) => h('button', { key: v, type: 'button', className: 'kbfc-tb', 'aria-pressed': view === v ? 'true' : 'false', 'data-kb': 'view-' + v, title: kbt('tasks.view.' + v), 'aria-label': kbt('tasks.view.' + v), onClick: () => { setView(v); if (v !== 'flow') setNodeSel(null) } }, Icon(icn, 15))
         const viewBtns = [viewBtn('flow', 'flowView'), viewBtn('text', 'textView'), viewBtn('code', 'codeView')]
         const frame = (inner) => h('div', { className: 'kbfc kbfc-frame', 'data-kb': 'flow-frame' }, h('div', { className: 'kbfc-body' }, inner), h('div', { className: 'kbfc-tools' }, viewBtns), h('span', { className: 'kbfc-note' }, kbt('tasks.flow.hint')))
-        const bodyEl = tab === 'where'
+        const folderOf = (() => { const c = kbWsChoice(t.workspaceHint, kbPinsSnapshots().items); return c.kind === 'ws' ? c.name : kbt(c.kind === 'gone' ? 'tasks.ws.meta.gone' : 'tasks.ws.meta.dedicated') })()
+        const bodyEl = tab === 'overview'
+          ? h(KbAutoSheet, { key: t.id, task: t, uses: wfUses, sums: wfSums, logos: appLogos, scheduleLabel: kbScheduleLabel(t), nextRun: t.nextRun ? kbWhenOf(t.nextRun) : '', machineTz: kbMachineTz(), folderText: folderOf, steps: kbTaskSteps(t).length,
+            onEditChat: () => editInChat(t), onEditText: () => { setView('text'); setTab('flow'); setNodeSel(null) }, onEdit: () => setModal(t), onWhere: () => setTab('where'), onWorkflow: () => setTab('flow'), onSessions: () => setTab('sessions'),
+            onCreateHook: () => { setTab('flow'); genHook() }, onShowHook: () => { setTab('flow'); setNodeSel('hook') } })
+          : tab === 'where'
           ? h(KbWhereTab, { key: t.id, task: t, computers: computersPair[0].list, connected: computersPair[0].connected === true, tasks: tasks,
             link: async (cloud) => { let r = null; try { r = await host.call('kybers/tasks', { action: 'cloud-link', id: t.id, cloud }) } catch (e) { r = null } return r !== null && r !== undefined && r.ok === true },
             onChanged: refresh })
@@ -25152,6 +25380,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             onRefuse: () => gateAskRefuse(t),
           }),
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'detail-tabs' },
+            h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'overview' ? 'true' : 'false', className: tab === 'overview' ? 'on' : '', 'data-kb': 'tab-overview', onClick: () => setTab('overview') }, kbe('Overview')),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'flow' ? 'true' : 'false', className: tab === 'flow' ? 'on' : '', 'data-kb': 'tab-flow', onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'sessions' ? 'true' : 'false', className: tab === 'sessions' ? 'on' : '', 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? kbwRunsFor(cloudRunsPair[0][t.cloud.computerId], t.id).length : kbRunsOf(t.history).length))),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'where' ? 'true' : 'false', className: tab === 'where' ? 'on' : '', 'data-kb': 'tab-where', onClick: () => setTab('where') }, kbt('tasks.tab.where'))),
@@ -25196,7 +25425,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
       const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
         boardView === 'cards'
-          ? h(KbAutoCards, { load: machineLoadPair[0], tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }), onGateReview: (t) => gateReview(t) })
+          ? h(KbAutoCards, { load: machineLoadPair[0], tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('overview'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }), onGateReview: (t) => gateReview(t) })
           : h(KbAutoBoard, {
           view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr, load: machineLoadPair[0],
           onRetry: () => { setLoadErr(null); refresh() },
@@ -25254,7 +25483,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           : (boardEl !== null ? boardEl : h('div', { className: 'kba-card kba-lcard' },
             kbaListHead(),
             filtered.map((a, i) => h('div', { key: a.id, className: 'kba-rowline' + kbIn(i) },
-              h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
+              h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('overview'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name, a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' ? h('span', { className: 'kbwr-mark', 'data-kb': 'row-cloud', title: kbt('kbwr.row.mark'), role: 'img', 'aria-label': kbt('kbwr.row.mark') }, Icon('cloud', 13)) : null), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
                 a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') + (kbtaRowShared(a._t, team) !== null ? ' kbta-wraprow' : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel), kbtaRowShared(a._t, team), h(KbGateBadge, { gate: kbGateOf(a._t), hidden: a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' })),
@@ -36763,6 +36992,30 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-urow b{font-weight:500;color:var(--dsw-alias-label-tertiary);font-size:11px}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
+.kba-sheet{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kba-sheet-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.kba-sheet-g2{grid-template-columns:minmax(0,1fr)}}
+.kba-card.kba-sheet-card{padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kba-sheet-ch{display:flex;align-items:center;gap:8px;min-height:30px;font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kba-sheet-hint{font-weight:400;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kba-sk{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:13px}
+.kba-sk.first{border-top:0}
+.kba-sk-k{color:var(--dsw-alias-label-secondary)}
+.kba-sk-v{min-width:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kba-sk-v small{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kba-sheet-prompt{margin:0;font:inherit;font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--dsw-alias-label-primary)}
+.kba-sheet-prompt.full{max-height:360px;overflow:auto}
+.kba-sheet-more{align-self:flex-start;border:0;background:transparent;padding:2px 0;font:inherit;font-size:12.5px;color:var(--dsw-alias-brand-primary);cursor:pointer}
+.kba-sheet-more:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}
+.kba-sheet-note{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kba-sheet-bigrow{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:4px 0 2px}
+.kba-sheet-big{font-size:26px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kba-sheet-runs{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.kba-sheet-bars{display:inline-flex;align-items:flex-end;gap:3px;height:22px}
+.kba-sheet-bars i{display:block;width:8px;height:100%;border-radius:2px;background:var(--dsw-alias-state-success-primary)}
+.kba-sheet-bars i.bad{background:var(--dsw-alias-state-error-primary)}
+.kba-sheet-fold{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;font-size:13px;color:var(--dsw-alias-label-primary)}
+.kba-sheet .kba-btn{height:28px;padding:0 10px;font-size:12.5px}
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
 .kba-more{position:relative;display:inline-flex}
 .kba-morebtn{padding:0 9px}
