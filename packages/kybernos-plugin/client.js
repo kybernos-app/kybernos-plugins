@@ -3964,6 +3964,8 @@ const KB_FR_EN = {
   'Fermer (Échap)': 'Close (Esc)',
   'Retrouver le chat et la section qui ont livré ce fichier': 'Find the chat and section that delivered this file',
   'Retrouver l’origine': 'Find origin',
+  'Modifier ce fichier': 'Edit this file',
+  'Modifier': 'Edit',
   'Recherche dans les chats…': 'Searching chats…',
   'Livré par': 'Delivered by',
   'Dernier chat à en parler': 'Last chat to mention it',
@@ -21009,6 +21011,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const popShare = popSharePair[0]
       const setPopShare = popSharePair[1]
       const kind = kbArtType(name)
+      const fileEditor = kbFileEditors.forName(name)
       const popWidthPair = React.useState(null)
       const popWidth = popWidthPair[0]
       const setPopWidth = popWidthPair[1]
@@ -21072,6 +21075,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               h('div', { className: 'kb6-popname' }, name),
               h('div', { className: 'kb6-popsub' }, kind.label + ' · ' + path)),
             h('div', { className: 'kb6-popactions' },
+              fileEditor !== null ? h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-edit', title: kbe('Edit this file'), 'aria-label': kbe('Edit'), onClick: () => { try { fileEditor.open(path, name) } catch (e) { /* the editor cannot open: nothing happens */ } } }, Icon('pencil', 14)) : null,
               h('button', { type: 'button', className: 'kb6-popx' + (popFull === true ? ' on' : ''), 'data-kb': 'art-popup-full', 'aria-pressed': popFull === true ? 'true' : 'false', title: kbe('Full page'), onClick: togglePopFull }, Icon('maximize2', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e) => setPopShare({ kind: 'deliverable', id: path, titre: name, path: path, anchor: kbAncreDe(e.currentTarget) }) }, Icon('share', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-origin', title: kbe('Find the chat and section that delivered this file'), 'aria-label': kbe('Find origin'), onClick: findOrigin }, Icon('rotateCcw', 14)),
@@ -21189,6 +21193,31 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         subscribe: (f) => { subs.add(f); return () => { subs.delete(f) } },
       }
       try { if (typeof window !== 'undefined') window.__KB_CREATIONS__ = api } catch (e) { /* outside a browser */ }
+      return api
+    })()
+    // <kb-file-editors>
+    // The editors a plugin offers for the files of Creations (the Office files today): the viewer of a file shows « Edit » for the names a declared editor takes.
+    //   window.__KB_EDITORS__.register({ id, canEdit: (name) => boolean, open: (path, name) => void })
+    // The core knows no such plugin by name; with none declared the viewer shows no button.
+    const kbFileEditors = (() => {
+      const rows = []
+      const api = {
+        v: 1,
+        /** Declares an editor; returns the function that takes it back, or `null` when the entry is not one. */
+        register: (entry) => {
+          if (entry === null || typeof entry !== 'object' || typeof entry.id !== 'string' || typeof entry.canEdit !== 'function' || typeof entry.open !== 'function') return null
+          const mine = Object.freeze({ id: entry.id, canEdit: entry.canEdit, open: entry.open })
+          rows.push(mine)
+          let live = true
+          return () => { if (!live) return; live = false; const i = rows.indexOf(mine); if (i >= 0) rows.splice(i, 1) }
+        },
+        /** The declared editor that takes this file name, or null. */
+        forName: (name) => {
+          for (const r of rows) { try { if (r.canEdit(name) === true) return r } catch (e) { /* an editor that cannot say takes nothing */ } }
+          return null
+        },
+      }
+      try { if (typeof window !== 'undefined') window.__KB_EDITORS__ = api } catch (e) { /* outside a browser */ }
       return api
     })()
     // One item of a source, drawn as the files are: a card (the grid) or a row (the list). It opens the item in the plugin's own page.

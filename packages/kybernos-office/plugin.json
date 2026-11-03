@@ -1,0 +1,54 @@
+{
+  "contract": 1,
+  "id": "kybernos/office",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Office",
+    "fr": "Office"
+  },
+  "description": {
+    "en": "Edit the Word documents and Excel workbooks of your Creations in a light editor. You are told what it could not keep before the file opens, a save never overwrites a change Kaby made, and Undo puts the file back.",
+    "fr": "Modifie les documents Word et les classeurs Excel de tes Créations dans un éditeur léger. On te dit ce qu’il ne saurait pas garder avant l’ouverture, un enregistrement n’écrase jamais un changement de Kaby, et Annuler remet le fichier."
+  },
+  "details": {
+    "en": "Each file opens in a sandboxed frame with no access to this app, your session or any storage, and a policy that lets it talk to nobody but this computer. The frame shows the bytes of the file and hands back the bytes of what you made; this page saves them, after you press Save. The folder of the file is the only place written (the file itself, or a copy next to it); the bytes before each save are kept in this app’s own folder for Undo. The editors are built on this computer from pinned versions, not shipped with the plugin.",
+    "fr": "Chaque fichier s’ouvre dans un cadre isolé, sans accès à cette application, à ta session ni à un stockage, et avec une règle qui ne le laisse parler qu’à cet ordinateur. Le cadre montre le contenu du fichier et rend le contenu de ce que tu as fait ; cette page l’enregistre, après ton clic sur Enregistrer. Le dossier du fichier est le seul endroit écrit (le fichier lui-même, ou une copie à côté) ; le contenu d’avant chaque enregistrement est gardé dans le dossier propre de l’application pour Annuler. Les éditeurs sont construits sur cet ordinateur à partir de versions figées, ils ne sont pas livrés avec le plugin."
+  },
+  "icon": "office",
+  "family": "create",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-office",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0",
+    "plugins": {
+      "kybernos/core": "^1.0"
+    }
+  },
+  "permissions": [
+    "host.routes:/kybernos-office:write",
+    "fs.read:home",
+    "fs.write:home",
+    "fs.write:dsh-home",
+    "exec:npm",
+    "exec:node"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-office"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

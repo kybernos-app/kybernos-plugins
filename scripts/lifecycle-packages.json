@@ -208,6 +208,10 @@
     {
       "dir": "kybernos-maquettes",
       "nom": "@local/kybernos-maquettes"
+    },
+    {
+      "dir": "kybernos-office",
+      "nom": "@local/kybernos-office"
     }
   ]
 }
