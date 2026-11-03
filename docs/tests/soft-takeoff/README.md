@@ -134,9 +134,11 @@ The replica keeps its own clock and its own pools: a full pass of the journeys (
 ```bash
 export KB_E2E_DIR=<private folder> KB_SERVER_DIR=<server checkout>
 bash scripts/e2e-teams-run.sh replica-reset                       # a new replica and proxy: state, accounts, teams, plans, the pending invitation
-bash scripts/soft-takeoff-repair.sh "<A root>:3098" "<B root>:3110"   # pairs both sandboxes again (3 tries each), restarts them, pins the model, runs the preflight
+bash scripts/soft-takeoff-repair.sh "<A root>:3098" "<B root>:3110"   # pairs both sandboxes again (3 tries each), restarts them, pins the model and the `standard` agent preset, runs the preflight
 KB_E2E_SKIP_PREFLIGHT=1 bash scripts/e2e-teams-run.sh run j1 j2 j4 j5 j6 j7 j8 j9
 ```
+
+The preset is pinned because a sandbox is cloned from the owner's profile, whose default preset (`minimal`) has a one-line prompt with none of the plugins' blocks: J2 reads « absent » on it (`KB_E2E_PRESET` overrides). A sandbox set up before this change needs `node scripts/pin-model.mjs --home <sandbox home> --preset standard` once, and a restart.
 
 Order matters: J4 before J5 (B must be a member of T1), J6 fills T3's pool, J9 reads the proxy log and counts every request in its window (a retry from another workspace's DSH is counted). The reset deletes the recording of the old replica: copy `proxy.jsonl` and the `result-J*.json` files to the archive first if they are evidence.
 
@@ -177,3 +179,5 @@ Defaults are what I will do unless told otherwise.
 14. **Free models (W2-06).** *(answered 2026-11-03: default taken)* Is a real free model supposed to answer today, with no account and no key? The script only proves the locked state is told honestly. *(default: not promised; the page is checked, no real turn)*
 15. **May W2 touch the outside?** *(answered 2026-11-03: yes to all three, default taken)* The free search engines (W2-10), one wrong key sent to a real provider (W2-08), and the real Ollama on this machine with the 0.8b model only (W2-12). *(default: yes to all three; no key of yours, no paid call)*
 16. **Local model in the composer (W2-14).** The only model wired in DSH is your qwen3.5:9b (8.3 GB loaded on this 16 GB machine, which also runs the sandboxes), and the small test model `tev1:0.8b` is not in the signed catalogue so the page cannot wire it. (a) one turn on the 9b in the sandbox, (b) wire the 0.8b by hand in the sandbox's configuration, (c) leave the DSH side of local models to you. *(default: c; the engine itself is checked by W2-12)*
+17. **Your default agent preset is « Minimal ».** With it a chat's system prompt is one line and none of the plugins' prompt blocks reach the model: not your personal memories, not an approved team lesson. The memory tools (`memory_search`, `lesson_search`) still answer. Is that what you want for your own chats? *(default: left as is, listed; the recette sandboxes run `standard`, which carries the blocks)*
+18. **A lesson the owner approves can take up to 5 minutes to reach a teammate's running team DSH** (`TEAM_TUNING.ttlMs`); a DSH that starts after the approval has it at once. Acceptable, or should opening the team's lessons page, or the approval, refresh it sooner? *(default: acceptable, listed; J2 restarts the member's DSH)*

@@ -27,6 +27,6 @@ for pair in "$1" "$2"; do
     bash "$HERE/sandbox/stop.sh" >/dev/null 2>&1; bash "$HERE/sandbox/start.sh" >/dev/null 2>&1 )
   account=b
 done
-for home in "$KB_E2E_HOME_A" "$KB_E2E_HOME_B"; do node "$HERE/pin-model.mjs" --home "$home" "${KB_E2E_MODEL_PROVIDER:-kybernos}" "${KB_E2E_MODEL:-glm}" | tail -1; done
+for home in "$KB_E2E_HOME_A" "$KB_E2E_HOME_B"; do node "$HERE/pin-model.mjs" --home "$home" "${KB_E2E_MODEL_PROVIDER:-kybernos}" "${KB_E2E_MODEL:-glm}" | tail -1; node "$HERE/pin-model.mjs" --home "$home" --preset "${KB_E2E_PRESET:-standard}" | tail -1; done
 sleep 6
 bash "$HERE/e2e-teams-run.sh" preflight 2>&1 | tail -3

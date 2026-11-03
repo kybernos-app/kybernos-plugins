@@ -94,10 +94,19 @@ export const run = async (ctx) => {
     check('A\'s T1 DSH is up (the team lessons are written in the DSH of the team)', teamA.open.ok === true, teamA.open)
     const added = teamA.open.ok === true ? await teamA.call('POST', '/kybernos-cloud/team/lessons/add', { text: `Team rule ${tag}: always end a reply with the word ahoy.` }) : { ok: false }
     check('A (owner) proposed a team lesson through the page\'s own route and it is approved', added.ok === true && added.lesson && added.lesson.status === 'approved', added)
+    // A team's DSH re-reads the approved lessons at most every 5 minutes (TEAM_TUNING.ttlMs in team-lessons.mjs), so one that is already running when the owner approves a lesson
+    // shows it later (a measured 0 approved in its status a minute after the write). B's own DSH of T1 is stopped here: it starts again below, reads the list at boot, and is what a
+    // member who opens the team after the approval gets.
+    const stopped = await hostB('POST', '/kybernos-cloud/team-dsh/stop', { workspace_id: t1 })
+    note('B\'s T1 DSH stopped so that it starts again with the lesson approved: ' + JSON.stringify(stopped).slice(0, 120))
     const gB = await openGui(ctx.as('b'))
     try {
       await sleep(2500)
       await gB.goTo(t1, /E2E Alpha/); await sleep(1500)
+      const teamB = await ctx.teamOf('b', t1)
+      let seen = 0
+      for (let i = 0; i < 20 && seen < 1; i += 1) { const st = await teamB.call('GET', '/kybernos-cloud/team/status').catch(() => null); seen = (st && st.team && st.team.counts && st.team.counts.approved) || 0; if (seen < 1) await sleep(1000) }
+      check('B\'s T1 DSH holds the approved lesson before the turn (read at its start)', seen >= 1, { approved: seen })
       await gB.selectModel('GLM')
       const tb = await gB.send('J2 lesson probe in the team')
       await gB.until(() => mainCalls(ctx.rows(tb)).length >= 1, 15000, 100); await sleep(2000)

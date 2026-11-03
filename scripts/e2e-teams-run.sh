@@ -34,8 +34,9 @@ SB_B="$HOME/.kybernos-sandbox/$SB_NAME-b"
 start_bg() { local pidf="$1" logf="$2" cwd="$3"; shift 3; ( cd "$cwd" && exec perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' -- "$@" ) >> "$logf" 2>&1 < /dev/null & echo $! > "$pidf"; }
 alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
 
-# Pins the default model of one sandbox profile (scripts/pin-model.mjs refuses any file outside a .kybernos-sandbox folder).
-pin_model() { node "$ROOT/scripts/pin-model.mjs" --home "$1" "${KB_E2E_MODEL_PROVIDER:-kybernos}" "${KB_E2E_MODEL:-glm}"; }
+# Pins the default model and the default agent preset of one sandbox profile (scripts/pin-model.mjs refuses any file outside a .kybernos-sandbox folder). The owner's profile may
+# start chats on the « minimal » preset, which has no plugin prompt sections: the memory journeys (J2) need `standard` (override with KB_E2E_PRESET).
+pin_model() { node "$ROOT/scripts/pin-model.mjs" --home "$1" "${KB_E2E_MODEL_PROVIDER:-kybernos}" "${KB_E2E_MODEL:-glm}" && node "$ROOT/scripts/pin-model.mjs" --home "$1" --preset "${KB_E2E_PRESET:-standard}"; }
 
 write_env() {
   cat > "$ENVF" <<EOF

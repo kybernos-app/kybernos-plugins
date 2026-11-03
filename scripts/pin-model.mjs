@@ -3,10 +3,15 @@
 //
 //   node scripts/pin-model.mjs <sandbox home>/.dsh/profiles/web/cordis.patch.yml <provider> <model>
 //   node scripts/pin-model.mjs --home <sandbox home> [<provider> <model>]       (defaults: kybernos glm)
+//   node scripts/pin-model.mjs --home <sandbox home> --preset <name>            (the agent preset a new chat starts with; see « the preset » below)
 //
 // Why: `scripts/sandbox/setup.sh` clones the owner's profile and copies no key. The owner's default model (the `agent-default-model` block of cordis.patch.yml) is a provider the
 // sandbox holds no key for, so every agent turn of a journey died with « no credential for provider route … » and nothing reached the replica: the whole 2026-10-24 run of the
 // two-account journeys (A3) was void for that reason. The route `kybernos` is the one the connected account adds; the local replica serves the model `glm` on it.
+//
+// The preset: the owner's profile may start every chat on the « minimal » agent preset, whose system prompt is one line (« You are a helpful software engineer assistant. ») and
+// carries none of the plugins' prompt sections (the personal memory, the team lessons, the memory-off marker). A sandbox cloned from it answers the journeys' memory checks with
+// « the canary is not in the request » although nothing is wrong (J2, 13/16 on 2026-11-03, 15/16 on `standard`). `--preset standard` sets `selectedDefault` of the preset registry.
 //
 // It edits ONE file and refuses any file that is not inside a `.kybernos-sandbox` folder (by its real path, so a link into ~/.dsh does not get through). Nothing else is read or written.
 import { existsSync, readFileSync, realpathSync, renameSync, writeFileSync } from 'node:fs'
@@ -17,6 +22,7 @@ export const DEFAULT_PROVIDER = 'kybernos'
 export const DEFAULT_MODEL = 'glm'
 
 const BLOCK = /(- id: agent-default-model\n  name: "@deepseek-ai\/dsh-agent-default-model"\n  config:\n    provider: )([^\n]+)(\n    model: )([^\n]+)/
+const PRESET_BLOCK = /(- id: agent-preset-registry\n  name: "@deepseek-ai\/dsh-agent-preset-registry"\n  config:\n(?:    [^\n]*\n)*?    selectedDefault: )([^\n]+)/
 const SAFE_WORD = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/
 
 /** True when `file` really lives inside a `.kybernos-sandbox` folder (symlinks resolved, `..` collapsed). */
@@ -54,6 +60,30 @@ export const pinModel = (file, provider = DEFAULT_PROVIDER, model = DEFAULT_MODE
   return { file: abs, before: r.before, after: r.after, changed: r.changed }
 }
 
+/** Sets `selectedDefault` of the agent preset registry in a profile's text. Pure. Returns `{ text, before, changed }`; throws when the registry or the line is not there. */
+export const pinPresetText = (text, preset) => {
+  if (!SAFE_WORD.test(preset)) throw new Error('refused: the preset must be a plain id (' + JSON.stringify(preset) + ')')
+  const m = PRESET_BLOCK.exec(text)
+  if (!m) throw new Error('no agent-preset-registry block with a selectedDefault in this file (the engine changed its shape, or the profile has no explicit default preset)')
+  const before = m[2].trim()
+  return { text: text.replace(PRESET_BLOCK, (all, a) => a + preset), before, after: preset, changed: before !== preset }
+}
+
+/** Pins the default agent preset of `file` (a sandbox profile). Same guards and write as `pinModel`. */
+export const pinPreset = (file, preset) => {
+  if (!isSandboxFile(file)) throw new Error('refused: ' + JSON.stringify(file) + ' is not a file inside a .kybernos-sandbox folder (this tool only pins sandbox profiles, never the real ~/.dsh)')
+  const abs = resolve(file)
+  const r = pinPresetText(readFileSync(abs, 'utf8'), preset)
+  if (r.changed) {
+    const tmp = abs + '.pin-tmp'
+    writeFileSync(tmp, r.text)
+    renameSync(tmp, abs)
+  }
+  const back = PRESET_BLOCK.exec(readFileSync(abs, 'utf8'))
+  if (!back || back[2].trim() !== preset) throw new Error('the preset does not read back as ' + preset + ' after the write')
+  return { file: abs, before: r.before, after: preset, changed: r.changed }
+}
+
 /** The profile file of a sandbox HOME. */
 export const profileOf = (sandboxHome) => join(sandboxHome, '.dsh', 'profiles', 'web', 'cordis.patch.yml')
 
@@ -65,6 +95,11 @@ if (isMain) {
     let rest
     if (argv[0] === '--home') { file = profileOf(argv[1] || ''); rest = argv.slice(2) } else { file = argv[0]; rest = argv.slice(1) }
     if (!file) throw new Error('usage: pin-model.mjs <cordis.patch.yml> <provider> <model>   or   pin-model.mjs --home <sandbox home> [<provider> <model>]')
+    if (rest[0] === '--preset') {
+      const p = pinPreset(file, rest[1] || '')
+      console.log('preset ' + p.before + ' -> ' + p.after + (p.changed ? '' : ' (already)') + '  in ' + dirname(dirname(dirname(dirname(p.file)))).split(sep).slice(-2).join('/'))
+      process.exit(0)
+    }
     const r = pinModel(file, rest[0] || DEFAULT_PROVIDER, rest[1] || DEFAULT_MODEL)
     console.log('pinned ' + r.before.provider + '/' + r.before.model + ' -> ' + r.after.provider + '/' + r.after.model + (r.changed ? '' : ' (already)') + '  in ' + dirname(dirname(dirname(dirname(r.file)))).split(sep).slice(-2).join('/'))
   } catch (e) {
