@@ -12,7 +12,7 @@ const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)),
 const parts = src.split('// KB-AUTORUNS-BEGIN')
 if (parts.length !== 2) { console.error('exactly one KB-AUTORUNS block expected in client.js'); process.exit(1) }
 const block = parts[1].split('// KB-AUTORUNS-END')[0]
-const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbRunBars', 'kbRunUses', 'kbRunAgo', 'kbRunCardFigures']
+const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbRunBars', 'kbRunUses', 'kbRunAgo', 'kbRunCardFigures', 'kbAutoSheetOf', 'kbAutoSheetCostOf', 'KB_ASHEET_HEAD']
 const m = await import('data:text/javascript,' + encodeURIComponent('const KB_RUNS_NOTE_WINDOW_MS = 600000\n' + block.replace(/^const KB_RUNS_NOTE_WINDOW_MS[^\n]*\n/m, '') + '\nexport { ' + names.join(', ') + ' }'))
 
 let fails = 0
@@ -216,6 +216,34 @@ eq('the Sessions pane reads a run as the chat\'s Journal, embedded, with its own
 eq('embedded, the Journal leaves the chat alone: no « Journal » title, no input bar hidden, no scroll reset, and a journal that cannot be read gives the host view', (() => { const shell = src.slice(src.indexOf('function WV2Shell(props) {'), src.indexOf('const WVS_CSS = `')); return shell.indexOf("const embedded = props && props.embedded === true") >= 0 && /if \(embedded\) return undefined\s+const root = document\.documentElement/.test(shell) && /if \(embedded\) return\s+try \{/.test(shell) && shell.indexOf('embedded ? null : El(\'div\', { className: \'wvs-title\' }') >= 0 && shell.indexOf("if (embedded && (D.state === 'error' || D.state === 'empty')) return props.classic") >= 0 })(), true)
 eq('the lessons belong to the automation: one card under the open run, whichever way the run is read', src.indexOf('const lessonCard = (() => {') >= 0 && src.indexOf('            lessonCard)),') >= 0 && src.indexOf("'data-kb': 'journal-lesson'") === src.lastIndexOf("'data-kb': 'journal-lesson'"), true)
 eq('the old rows of the Sessions tab are gone', src.indexOf('kba-srow') < 0 && src.indexOf('sessionRows') < 0, true)
+/* ── The sheet of an automation (its Overview tab) ──────────────────────────────────────────────────────────────────────── */
+{
+  const none = m.kbAutoSheetOf(null)
+  eq('nothing is read as a local automation that asks first, in a new chat each run, with no limit', [none.mode, none.chat, none.approvals, none.maxMinutes, none.onWrite, none.hooked, none.cloud, none.lines], ['cron', 'new', 'ask', 0, 'finish', false, null, 0])
+  const f = m.kbAutoSheetOf({
+    prompt: '1. First\n\n2. Second\r\n3. Third\n4. Fourth\n5. Fifth', schedule: { mode: 'once', tz: 'Europe/Paris', at: '2026-11-05T09:00' },
+    trigger: { type: 'webhook', hookId: 'h' }, sessionMode: 'home', approvals: 'auto', maxMinutes: 30, onPersonWrites: 'stop', notify: ['push', 'sms', 'email'], needs: ['gmail', '', 7], cloud: { computerId: 'c', name: 'Studio' },
+  })
+  eq('the prompt shows its first lines, blank ones left out, and counts the others', [f.head, f.more, f.lines], [['1. First', '2. Second', '3. Third'], 2, 5])
+  eq('how it starts and where it runs', [f.mode, f.zone, f.hooked, f.chat, f.cloud], ['once', 'Europe/Paris', true, 'home', 'Studio'])
+  eq('what it may do and when it stops', [f.approvals, f.maxMinutes, f.onWrite, f.notify, f.needs], ['auto', 30, 'stop', ['push', 'email'], ['gmail']])
+  eq('a webhook-only automation says so', m.kbAutoSheetOf({ schedule: { mode: 'webhook' } }).mode, 'webhook')
+  eq('a limit that is not a whole number of minutes is no limit', [m.kbAutoSheetOf({ maxMinutes: 2.5 }).maxMinutes, m.kbAutoSheetOf({ maxMinutes: -3 }).maxMinutes, m.kbAutoSheetOf({ maxMinutes: '30' }).maxMinutes], [0, 0, 0])
+  eq('a short prompt does not fold', [m.kbAutoSheetOf({ prompt: 'one line' }).more, m.KB_ASHEET_HEAD], [0, 3])
+  const c = m.kbAutoSheetCostOf(['a', 'b', 'c', 'd'], { a: { costEur: 0.04, tokens: 1000, unpriced: 0 }, b: { costEur: 0.01, tokens: 500, unpriced: 1 }, c: null })
+  eq('the cost adds the journals that were read; one that could not be read counts for nothing, one not asked yet is pending (the page says nothing of the sum until none is)', [c.eur, c.tokens, c.unpriced, c.read, c.runs, c.pending], [0.05, 1500, 1, 2, 4, 1])
+  eq('no price is no amount, not zero: a free or unpriced model shows its tokens only', m.kbAutoSheetCostOf(['a'], { a: { costEur: null, tokens: 900, unpriced: 0 } }), { eur: null, tokens: 900, unpriced: 0, read: 1, runs: 1, pending: 0 })
+  eq('no run, or none read, is nothing to add', [m.kbAutoSheetCostOf([], {}), m.kbAutoSheetCostOf(['a'], {}).read], [{ eur: null, tokens: 0, unpriced: 0, read: 0, runs: 0, pending: 0 }, 0])
+}
+{
+  const sheet = src.slice(src.indexOf('const KbAutoSheet = (props) => {'), src.indexOf("    // The chat's Journal shell, set by the workflows-v2 block further down"))
+  eq('the sheet writes nothing: it never calls the host and never acts on a task, its only call is the journal read of the newest runs', sheet.indexOf('host.call') < 0 && sheet.indexOf('act(') < 0 && (sheet.match(/fetch\(/g) || []).length === 1 && sheet.indexOf("'/kybernos/journal?sessionId='") >= 0, true)
+  eq('it reads at most the newest five runs, once each (the answer is kept for the session)', [src.indexOf('const KB_ASHEET_RUNS = 5') >= 0, sheet.indexOf('kbAutoSheetCosts.has(id)') >= 0], [true, true])
+  eq('a chat that several runs share is read and counted once', sheet.indexOf('Array.from(new Set(runs.filter((r) => r.sessionId !== null)') >= 0, true)
+  eq('the page opens on the sheet, and an automation opened from a list lands on it', src.indexOf("const tabPair = React.useState('overview')") >= 0 && src.indexOf("onOpen: (id) => { setDetail(id); setTab('overview'); setNodeSel(null) }") >= 0, true)
+  eq('the sheet sends a change to where it is already made: the schedule panel, « Edit in chat », the Where it runs tab; the webhook uses the page\'s own generator', ['onEdit: () => setModal(t)', 'onEditChat: () => editInChat(t)', "onWhere: () => setTab('where')", 'onCreateHook: () => { setTab(\'flow\'); genHook() }'].every((x) => src.indexOf(x) >= 0), true)
+  eq('no colour of its own: the sheet\'s CSS is tokens only', (() => { const css = src.slice(src.indexOf('.kba-sheet{display:flex'), src.indexOf('.kba-flowwrap{flex:1')); return css.length > 200 && !/#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(css) })(), true)
+}
 eq('the pure block holds no DOM, no network, no React', !/\b(document|window|fetch|React|localStorage)\b/.test(block.replace(/\/\/[^\n]*/g, '')), true)
 
 if (fails > 0) { console.log('\n' + fails + ' FAILED'); process.exit(1) }
