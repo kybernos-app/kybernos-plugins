@@ -65,6 +65,7 @@ import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as jo
 import { actionKey, readItems as askRead, writeItems as askWrite, verdict as askVerdict, denyReason as askDeny, continuationText as askContinuation, ofRun as askOfRun, toContinue as askToContinue } from './automation-approvals.mjs'
 import { knowledgeTool } from './kyby-knowledge.mjs'
 import { accountTool } from './kyby-account.mjs'
+import { createSiteTools, siteShown } from './site-publish.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { activeAutomationsIn, createTeamInstances, personalHomeOf, personalOnlyRoute, shouldExit, teamOfEnv } from './team-instances.mjs'
@@ -5177,10 +5178,11 @@ const rememberTurnSession = (id, jobId, budgetMs) => {
 // Audit of 2026-10-20, every tool a computer can have, by what it does. READS (listed here): the engine's `read`, `read_image`, `web_search`, `web_fetch`, `job_list`, `schedule_list` and
 // `todo_write` (the plan the model keeps for itself: one session event, nothing outside the chat); the plugins' `memory_search`, `connections_list`, `connections_search_tools` (the catalogue
 // of a connected app's actions), `kaby_journal`, `kaby_knowledge`, `kaby_account`, `computer_list` (the sandboxes this machine tracks: a file on its own disk, no call out; it is NOT the
-// person's list of cloud computers, which is what the model took it for) and `computer_read` (a file of a sandbox the person already allowed to start). ASKED (not listed): the engine's
+// person's list of cloud computers, which is what the model took it for), `computer_read` (a file of a sandbox the person already allowed to start) and `site_list` (the person's own pages
+// online, read at the server). `site_publish` and `site_remove` put something on the public internet or take it down: ASKED, and in no mandate. ASKED (not listed): the engine's
 // `bash`, `write`, `edit`; `memory_write`, `lesson_write` and `lesson_search` (which counts the lessons it returns as used: a write), `connections_execute`, `computer_start/exec/write/stop/pause/
 // resume/task`, `relancer_dsh`, `kybernos_report_feedback` (it sends), `creer_slides`, `animer_briques`, `modeliser` and the motion and dashboards tools (they write files), and every `mcp__` tool.
-export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read'])
+export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read', 'site_list'])
 // How long one unanswered question is waited for. The person is on a chat, not at a desk: five minutes, and never past the end of the turn (the runner says how long the turn may last), so that
 // the model still has time to answer with what it knows (measured on WhatsApp: a question put at minute 4 outlived the 10-minute turn, which ended with no words at all).
 const turnGateWaitMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_WAIT_MS); return Number.isFinite(v) && v > 0 ? v : 5 * 60_000 }
@@ -5303,6 +5305,44 @@ const mountKabyAccount = (ctx) => {
   })
 }
 
+// ── Putting a page online: <name>.kaby.app, hosted by the server on our Vercel (site-publish.mjs, docs/dev/site-publish-contract.md) ──────────────────
+// This side builds the bundle (a file or a folder, with the server's limits) and passes the answer on in one plain sentence. On the person's computer the call carries their account token
+// (`POST /v1/sites`); on a cloud computer it carries the computer's own token and the turn it belongs to (`POST /v1/computer/sites`, so the server checks the person is still there).
+// It is only done where the person is asked first, because it makes something public: Kaby's own chat on the Mac (nativeGate) and a turn of a cloud computer (turnGate). Anywhere else the
+// tool says so and does nothing. The server waits up to 60 s for the host, hence the long timeout.
+const SITES_TIMEOUT_MS = 90_000
+const mountKabySites = (ctx) => {
+  // Read at each call, not at mount: the environment of a cloud computer is what tells which body this is.
+  const onComputer = () => computerSelf().id !== ''
+  const askedRoot = (exec) => {
+    const id = exec && exec.agent ? exec.agent.id : undefined
+    return onComputer() ? turnRootOf(ctx, id) : nativeRootOf(ctx, id)
+  }
+  const notHere = { status: 0, body: { error: 'not_asked_here' } }
+  const viaAccount = (method, path, body) => {
+    const state = readState()
+    if (state === null || state === UNREADABLE || isConnected(state) !== true) return { status: 401, body: { error: 'not_connected' } }
+    return apiCall(path, { method, token: state.token, ...(body === undefined ? {} : { body }), timeoutMs: SITES_TIMEOUT_MS })
+  }
+  const deps = {
+    async publish (body, exec) {
+      const root = askedRoot(exec)
+      if (root === null) return notHere
+      if (!onComputer()) return viaAccount('POST', '/v1/sites', body)
+      const jobId = turnJobs.get(root)
+      const { api, token } = computerSelf()
+      if (jobId === undefined || api === '' || token === '') return notHere
+      return apiFetch('/v1/computer/sites', { method: 'POST', token, base: api, body: { ...body, job_id: jobId }, timeoutMs: SITES_TIMEOUT_MS })
+    },
+    // A cloud computer neither reads the person's list nor takes a page down: the route it holds is the publish one only (docs/dev/site-publish-contract.md).
+    list: () => (onComputer() ? null : viaAccount('GET', '/v1/sites')),
+    remove: (slug, exec) => (onComputer() ? null : askedRoot(exec) === null ? notHere : viaAccount('DELETE', '/v1/sites/' + encodeURIComponent(slug)))
+  }
+  ctx.inject(['tools'], (scope) => {
+    for (const tool of createSiteTools(deps)) scope.tools.register(tool)
+  })
+}
+
 /** What the person reads when the gate asks: the model's own plain sentence first, the command after it for whoever wants to check. `summary` stays the action itself (it is what an « allow once » is matched on). */
 export const approvalShown = (summary, description) => {
   const flat = (v, max) => { const s = String(v ?? '').replace(/\s+/gu, ' ').trim(); return s.length > max ? s.slice(0, max - 1) + '…' : s }
@@ -5310,6 +5350,19 @@ export const approvalShown = (summary, description) => {
   if (lead === '') return flat(summary, 380)
   const detail = flat(summary, 150)
   return detail === '' ? lead : lead + ' (' + detail + ')'
+}
+/** `mcp__vercel_mcp__deploy_to_vercel` and its arguments, as a line a person can read: « vercel mcp: deploy to vercel (name: pizzeria, files: 2 items) ». */
+export const connectorShown = (name, args) => {
+  const [, app, ...rest] = String(name).split('__')
+  const words = (v) => String(v ?? '').replace(/[_-]+/gu, ' ').trim()
+  const head = rest.length > 0 ? words(app) + ': ' + words(rest.join(' ')) : words(app || name)
+  const fields = []
+  for (const [key, value] of Object.entries(args !== null && typeof args === 'object' ? args : {})) {
+    if (fields.length >= 5) { fields.push('…'); break }
+    const shown = Array.isArray(value) ? value.length + ' items' : value !== null && typeof value === 'object' ? '{…}' : String(value ?? '').replace(/\s+/gu, ' ').trim()
+    fields.push(key + ': ' + (shown.length > 40 ? shown.slice(0, 39) + '…' : shown))
+  }
+  return approvalShown(fields.join(', '), head)
 }
 const turnApprovalSubject = (exec) => {
   const name = String((exec && exec.name) || '')
@@ -5319,10 +5372,13 @@ const turnApprovalSubject = (exec) => {
   if (name === 'bash') { const summary = text(args.command) || text(args.description) || 'bash'; return { kind: 'shell', summary, shown: approvalShown(summary, text(args.command) !== '' ? text(args.description) : '') } }
   if (name === 'write') { const summary = text(args.file_path) || 'write'; return { kind: 'write', summary, shown: summary } }
   if (name === 'edit') { const summary = text(args.file_path) || 'edit'; return { kind: 'edit', summary, shown: summary } }
-  let shown = ''
-  try { shown = JSON.stringify(args) } catch (e) { shown = '' }
-  const summary = (name + ' ' + shown).trim()
-  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary, shown: summary }
+  // Putting a page on the public internet: the person reads the address it will have, not the arguments.
+  if (name === 'site_publish' || name === 'site_remove') { const shown = siteShown(name, args); return { kind: 'other', summary: shown, shown } }
+  let raw = ''
+  try { raw = JSON.stringify(args) } catch (e) { raw = '' }
+  const summary = (name + ' ' + raw).trim()
+  // A connected app's tool carries its whole payload (a page to deploy, a mail with its body): the person is shown which app and which action, then each field cut short.
+  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary, shown: name.startsWith('mcp__') ? connectorShown(name, args) : summary }
 }
 const turnPlatform = async (method, path, body) => {
   const { api, token } = computerSelf()
@@ -5383,7 +5439,7 @@ const turnGate = (ctx) => async (exec, next) => {
 // The tools of our plugins that change something outside the chat (a memory or a lesson, a connected app, a cloud sandbox, DSH itself) ask the person through DSH's own approval card
 // (`approval.request`, the same one the engine uses for a command), in Kaby's chat only. The engine's tools (a command, a file) keep DSH's own policy, which the chat is set to
 // « ask » when it is made, so they are not asked twice here. What only reads is not asked. With no way to ask, or a failed ask, the answer is no.
-const NATIVE_ASK_TOOLS = new Set(['memory_write', 'lesson_write', 'connections_execute', 'computer_exec', 'computer_write', 'computer_start', 'computer_stop', 'computer_pause', 'computer_resume', 'computer_task', 'relancer_dsh'])
+const NATIVE_ASK_TOOLS = new Set(['memory_write', 'lesson_write', 'connections_execute', 'computer_exec', 'computer_write', 'computer_start', 'computer_stop', 'computer_pause', 'computer_resume', 'computer_task', 'relancer_dsh', 'site_publish', 'site_remove'])
 const nativeRootOf = (ctx, id) => {
   const pointer = readPointer(kybyPointerFile())
   if (pointer === null) return null
@@ -6513,6 +6569,7 @@ export function apply(ctx) {
   try { mountKabyJournal(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby journal: ' + String((e && e.message) || e)) }
   try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
   try { mountKabyAccount(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby account: ' + String((e && e.message) || e)) }
+  try { mountKabySites(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby sites: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
   try { mountComputerTaskTool(ctx) } catch (e) { console.error('[kybernos-cloud] cloud computer task tool: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }
