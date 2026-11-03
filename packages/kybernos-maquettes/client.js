@@ -149,7 +149,7 @@ window.__ModuleLoader__.load({
         const h = React.createElement
         const { useState, useEffect, useRef, useCallback } = React
         const ask = (text) => { try { if (typeof window.__KB_ASK__ === 'function') return window.__KB_ASK__(text) !== false } catch (e) { /* the chat could not open */ } return false }
-        const help = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: NAME }) : null)
+        const help = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-maquettes' }) : null)
 
         const Icon = ({ d, size }) => h('svg', { width: size || 16, height: size || 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }, h('path', { d }))
         const ICON = {

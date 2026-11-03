@@ -57,7 +57,7 @@ for (const name of NAMES) {
   let target = null;
   postcss.parse(css).walkRules((r) => { if (!target && r.parent.type === 'root' && /^\.[\w-]+$/.test(r.selector.trim())) r.each((d) => { if (!target && d.type === 'decl' && d.prop === 'color') target = { selector: r.selector.trim(), prop: 'color', was: d.value }; }); });
   const dsh = FIX[name]['dsh.css'];
-  if (!target) { console.log('skip ' + name + ': no .class rule with color in <style>'); continue; }
+  if (!target) { console.log('SKIPPED: ' + name + ': no .class rule with color in <style>'); continue; }
   const r = applyRules(html, { 'dsh.css': dsh }, [{ type: 'rule', file: null, styleId, selector: target.selector, prop: 'color', after: '#c14915' }]);
   ok(r.errors.length === 0 && r.html !== html, `${name}: rule ${target.selector} color ${target.was} -> #c14915 written in the <style> block`);
   const a = html.split('\n'), b = r.html.split('\n');
