@@ -13,12 +13,12 @@ body.editing #fmt{display:flex}
 .tt-btn:focus-visible,#fmt select:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 .tt-btn.pri{background:var(--brand);color:#fff}
 .tt-btn.pri:hover{background:#4f1fd1;color:#fff}
-.tt-btn.danger:hover{background:#fee2e2;color:#b91c1c}
+.tt-btn.danger:hover{background:#fee2e2;color:var(--kd-danger,#b91c1c)}
 #fmt select{border:1px solid var(--line);background:#fff;min-width:78px;padding:0 4px 0 8px}
 .tt-a{font-weight:700;font-size:15px;line-height:1;border-bottom:3px solid var(--c,#26272b);padding:0 1px 1px}
 .tt-chip{width:14px;height:14px;border-radius:4px;border:1px solid #c5cad6;background:var(--c,#fff)}
-#fmt #f-msg{margin-left:auto;padding-left:16px;font-size:13px;color:#92400e;flex:none}
-#fmt #f-msg button{height:26px;background:#fef3c7;border-radius:6px;border:0;margin-left:8px;font:inherit;font-weight:600;color:#92400e;cursor:pointer}
+#fmt #f-msg{margin-left:auto;padding-left:16px;font-size:13px;color:var(--kd-warn,#92400e);flex:none}
+#fmt #f-msg button{height:26px;background:#fef3c7;border-radius:6px;border:0;margin-left:8px;font:inherit;font-weight:600;color:var(--kd-warn,#92400e);cursor:pointer}
 .tt-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 32px rgba(16,24,40,.16),0 2px 6px rgba(16,24,40,.06)}
 #bubble{display:none;position:fixed;z-index:60;padding:4px;gap:2px;align-items:center}
 #bubble.on{display:flex}
@@ -40,13 +40,13 @@ body.editing #fmt{display:flex}
 #slash .sl-tt{display:block;font-size:14px;font-weight:500}
 #slash .sl-d{display:block;font-size:12px;color:var(--mute);margin-top:2px}
 #slash .sl-none{padding:12px;color:var(--mute);font-size:13px}
-.ProseMirror{word-wrap:break-word;white-space:pre-wrap;white-space:break-spaces;font-variant-ligatures:none;outline:none}
-.ProseMirror[data-bare] .ln{line-height:inherit}
-.ProseMirror li>.ln{margin:0}
-.ProseMirror a{color:inherit;text-decoration:underline}
-.ProseMirror img.ProseMirror-separator{display:inline!important;border:none!important;margin:0!important}
-.ProseMirror .ln.is-empty::before{content:attr(data-placeholder);float:left;height:0;pointer-events:none;color:#9aa0ac;font:400 15px/1.2 Inter,system-ui,sans-serif;letter-spacing:0;text-align:left}
-.ProseMirror ::selection{background:rgba(98,41,255,.28)}
+body.editing .ProseMirror{word-wrap:break-word;white-space:pre-wrap;white-space:break-spaces;font-variant-ligatures:none;outline:none}
+body.editing .ProseMirror[data-bare] .ln{line-height:inherit}
+body.editing .ProseMirror li>.ln{margin:0}
+body.editing .ProseMirror a{color:inherit;text-decoration:underline}
+body.editing .ProseMirror img.ProseMirror-separator{display:inline!important;border:none!important;margin:0!important}
+body.editing .ProseMirror .ln.is-empty::before{content:attr(data-placeholder);float:left;height:0;pointer-events:none;color:#9aa0ac;font:400 15px/1.2 Inter,system-ui,sans-serif;letter-spacing:0;text-align:left}
+body.editing .ProseMirror ::selection{background:rgba(98,41,255,.28)}
 .selbox{position:absolute;outline:2px solid #6229ff;outline-offset:1px;pointer-events:none;z-index:50}
 .selbox .grip{position:absolute;left:-2px;top:-26px;width:28px;height:24px;background:#6229ff;color:#fff;cursor:move;pointer-events:auto;font:700 16px/24px system-ui;text-align:center;border-radius:6px 6px 0 0;font-style:normal;user-select:none}
 .selbox.low .grip{top:0;left:0;border-radius:0 0 6px 0}

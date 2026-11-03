@@ -17,7 +17,7 @@ h1{position:absolute;left:88px;top:44px;width:1104px;height:130px;margin:0;font:
 .bul li{position:relative;margin:0 0 .55em}
 .bul li::before{content:"";position:absolute;left:-.9em;top:.55em;width:.42em;height:.42em;background:var(--gold);border-radius:50%}
 .bul.gap li{margin-bottom:1em}
-.t{position:absolute;border-collapse:collapse;font-size:27px}
+.t{position:absolute;border-collapse:collapse;font-size:28px}
 .t th{background:var(--navy);color:#fff;text-align:left;padding:0 22px;font-weight:700}
 .t td{background:var(--light);color:#333;padding:0 22px;border-top:2px solid #fff}
 .t tr{height:20%}

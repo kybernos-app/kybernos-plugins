@@ -219,7 +219,7 @@ const LAYOUT = {
   },
   table: (s) => {
     const rowH = Math.min(64, Math.floor(440 / (s.table.rows.length + 1)))
-    const size = rowH >= 56 ? 27 : rowH >= 44 ? 24 : 20
+    const size = rowH >= 56 ? 28 : rowH >= 44 ? 24 : 20
     const tr = (cells, tag) => '<tr style="height:' + rowH + 'px">' + cells.map((c) => '<' + tag + ' data-e>' + rich(c) + '</' + tag + '>').join('') + '</tr>'
     return { inner: h1(s.title) + '<table class="t" style="' + pos(MARGIN, 190, CONTENT_W, rowH * (s.table.rows.length + 1)) + 'font-size:' + size + 'px;" data-e-table><tbody>' + tr(s.table.header, 'th') + s.table.rows.map((r) => tr(r, 'td')).join('') + '</tbody></table>' }
   },

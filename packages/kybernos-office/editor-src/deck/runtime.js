@@ -4,6 +4,8 @@
 // `framed`: the deck runs in the sandboxed editor frame of the DSH page (no window, no fullscreen, no print, no download: the page around saves).
 // `onTouch()`: called when the person changed something (the page enables « Save »).
 import { T, getLang, setLang } from './i18n.js'
+// Search words of the « / » menu: the English ones, plus their French twins from the dictionary when the page speaks French.
+const kw = (en) => en + ' ' + T(en)
 import { ICONS } from './icons.js'
 import { chromeHtml } from './chrome.js'
 import { drawChart } from './charts.js'
@@ -253,17 +255,17 @@ addEventListener('pointerup', () => { pdown = false; setTimeout(placeBubble, 0);
 
 /* "/" menu: add things without leaving the keyboard */
 const SLASH_ITEMS = [
-  { g: T('Text'), t: T('Bulleted list'), d: T('A simple list'), k: 'bullet list puces liste', i: 'list', run: ed => ed.chain().focus().toggleBulletList().run() },
-  { g: T('Text'), t: T('Plain text'), d: T('Removes the list'), k: 'normal paragraph paragraphe', i: 'type', run: ed => ed.chain().focus().liftListItem('listItem').run() },
+  { g: T('Text'), t: T('Bulleted list'), d: T('A simple list'), k: kw('bullet list'), i: 'list', run: ed => ed.chain().focus().toggleBulletList().run() },
+  { g: T('Text'), t: T('Plain text'), d: T('Removes the list'), k: kw('normal paragraph'), i: 'type', run: ed => ed.chain().focus().liftListItem('listItem').run() },
   { g: T('Insert'), t: T('Image'), d: T('Choose a file'), k: 'photo picture image', i: 'image', run: () => E('#f-img').click() },
-  { g: T('Insert'), t: T('Text box'), d: T('A new block of text'), k: 'text box texte bloc', i: 'type', run: () => addBlock(false) },
-  { g: T('Insert'), t: T('Shape'), d: T('A coloured rectangle'), k: 'shape rectangle square forme carre', i: 'square', run: () => addBlock(true) },
-  { g: T('Slides'), t: T('New slide'), d: T('Title and text, after this one'), k: 'slide page add ajouter', i: 'layout', run: () => addSlide('text') },
-  { g: T('Slides'), t: T('New section'), d: T('Title on a dark background'), k: 'section chapter chapitre', i: 'heading', run: () => addSlide('section') },
-  { g: T('Slides'), t: T('Blank slide'), d: T('An empty page'), k: 'blank empty blanche vide', i: 'blank', run: () => addSlide('blank') },
-  { g: T('Slides'), t: T('Duplicate the slide'), d: T('A copy right after'), k: 'copy duplicate copier', i: 'copy', run: () => dupSlide() },
-  { g: T('Block'), t: T('Duplicate this block'), d: T('An offset copy'), k: 'copy duplicate copier', i: 'copy', run: () => dupBlock() },
-  { g: T('Block'), t: T('Delete this block'), d: T('With “Undo” right after'), k: 'delete remove effacer supprimer', i: 'trash', run: () => deleteBlock() },
+  { g: T('Insert'), t: T('Text box'), d: T('A new block of text'), k: kw('text box'), i: 'type', run: () => addBlock(false) },
+  { g: T('Insert'), t: T('Shape'), d: T('A coloured rectangle'), k: kw('shape rectangle square'), i: 'square', run: () => addBlock(true) },
+  { g: T('Slides'), t: T('New slide'), d: T('Title and text, after this one'), k: kw('slide page add'), i: 'layout', run: () => addSlide('text') },
+  { g: T('Slides'), t: T('New section'), d: T('Title on a dark background'), k: kw('section chapter'), i: 'heading', run: () => addSlide('section') },
+  { g: T('Slides'), t: T('Blank slide'), d: T('An empty page'), k: kw('blank empty'), i: 'blank', run: () => addSlide('blank') },
+  { g: T('Slides'), t: T('Duplicate the slide'), d: T('A copy right after'), k: kw('copy duplicate'), i: 'copy', run: () => dupSlide() },
+  { g: T('Block'), t: T('Duplicate this block'), d: T('An offset copy'), k: kw('copy duplicate'), i: 'copy', run: () => dupBlock() },
+  { g: T('Block'), t: T('Delete this block'), d: T('With “Undo” right after'), k: kw('delete remove'), i: 'trash', run: () => deleteBlock() },
 ];
 let slashProps = null, slashIdx = 0;
 const SLASH = {
@@ -377,7 +379,7 @@ function addSlide(layout) {
   const t = document.createElement('div'); t.className = 'cell'; let body;
   if (layout === 'section') {
     const nums = $$('.slide.dark .b[style*="border-radius:50%"]').map(e => parseInt(e.textContent, 10) || 0), n = String(Math.max(0, ...nums) + 1).padStart(2, '0');
-    body = `<section class="slide dark" data-transition="fade"><div class="b ctr" style="left:88px;top:159px;width:121px;height:121px;border-radius:50%;background:#D4A843;color:#1E2761;font:700 53px Georgia,serif" data-e>${n}</div><h1 style="left:88px;top:310px;width:983px;height:128px;font-size:59px" data-e>${T('Section title')}</h1><div class="b" style="left:88px;top:469px;width:907px;height:60px;font-size:27px;color:#CADCFC" data-e>${T('Subtitle')}</div><aside class="notes" data-e></aside></section>`;
+    body = `<section class="slide dark" data-transition="fade"><div class="b ctr" style="left:88px;top:159px;width:121px;height:121px;border-radius:50%;background:#D4A843;color:#1E2761;font:700 53px Georgia,serif" data-e>${n}</div><h1 style="left:88px;top:310px;width:983px;height:128px;font-size:59px" data-e>${T('Section title')}</h1><div class="b" style="left:88px;top:469px;width:907px;height:60px;font-size:28px;color:#CADCFC" data-e>${T('Subtitle')}</div><aside class="notes" data-e></aside></section>`;
   } else if (layout === 'text') {
     body = `<section class="slide" data-transition="fade"><h1 data-e>${T('New title')}</h1><div class="b" style="left:88px;top:220px;width:1104px;height:380px;font-size:32px;color:#333333" data-e><ul class="bul"><li>${T('First point')}</li><li>${T('Second point')}</li></ul></div><aside class="notes" data-e></aside></section>`;
   } else body = '<section class="slide" data-transition="fade"><aside class="notes" data-e></aside></section>';

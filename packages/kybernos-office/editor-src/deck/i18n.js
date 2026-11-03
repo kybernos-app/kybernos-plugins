@@ -105,13 +105,22 @@ const FR = {
   'Title and text': 'Titre et texte',
   'Title and text, after this one': 'Titre et texte, après celle-ci',
   'Title on a dark background': 'Titre sur fond sombre',
-  'Type “/” to add…': 'Tapez « / » pour ajouter…',
+  'Type “/” to add…': 'Tape « / » pour ajouter…',
   'Underline (Ctrl+U)': 'Souligné (Ctrl+U)',
   'Undo': 'Annuler',
   'Undo (Ctrl+Z)': 'Annuler (Ctrl+Z)',
   'Unreadable image.': 'Image illisible.',
   'With “Undo” right after': 'Avec « Annuler » juste après',
   'step': 'étape',
+  'bullet list': 'puces liste',
+  'normal paragraph': 'paragraphe normal',
+  'text box': 'texte bloc',
+  'shape rectangle square': 'forme rectangle carré',
+  'slide page add': 'diapo page ajouter',
+  'section chapter': 'section chapitre',
+  'blank empty': 'blanche vide',
+  'copy duplicate': 'copier dupliquer',
+  'delete remove': 'effacer supprimer'
 }
 
 let lang = 'en'
