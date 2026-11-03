@@ -1158,7 +1158,7 @@
         "B"
       ],
       "status": "ready",
-      "note": "Run on 2026-11-03: J7 42 of 43, every width, language and theme green. The red is the removed-team step: after B is removed from the team he is working in, every message, even in a new chat, is still sent for that team and refused for at least 200 s (T-028)."
+      "note": "Run on 2026-11-03: J7 42 of 43 (the removed-team step was a product defect, T-028), then 47 of 47 on a fresh replica after the cloud client fix: a team's own DSH the person has left says « Team you left », tells them to open Personal and offers the button. J7's removal step can only be replayed on a fresh pairing (`replica-reset`, README § 7c)."
     },
     {
       "id": "W4-19",
@@ -1224,7 +1224,7 @@
         "B"
       ],
       "status": "to-verify",
-      "note": "Check which of J4/J6 already cover each door."
+      "note": "Check which of J4/J6 already cover each door. J7 covers the desktop team door (the removed member's window: T-028, fixed)."
     },
     {
       "id": "W4-17",

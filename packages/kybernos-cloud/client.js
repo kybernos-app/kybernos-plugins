@@ -180,6 +180,9 @@ window.__ModuleLoader__.load({
         rowTeamGone: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH met tes équipes à jour : renvoie-le dans un instant.',
         rowTeamGoneNow: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH est maintenant dans {name} : renvoie-le.',
         rowRouteStale: 'Tes messages seraient facturés à {name}. Réessaie.',
+        rowTeamLeft: 'Tu n\'es plus dans cette équipe, donc le message n\'est pas parti. Cette fenêtre reste liée à cette équipe : ouvre Personal pour continuer.',
+        rowTeamLeftOpen: 'Ouvrir Personal',
+        teamLeftName: 'Équipe quittée',
         rowRetryDown: 'Le serveur Kybernos « {name} » ({host}) ne répond pas : DSH continue d\'essayer',
         quotaNoPlan: '{name} n\'a pas encore de formule : personne ne peut y utiliser les modèles.',
         quotaNoPlanAdmin: ' Choisis-en une pour les activer.',
@@ -483,6 +486,9 @@ window.__ModuleLoader__.load({
         rowTeamGone: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is updating your teams: send it again in a moment.',
         rowTeamGoneNow: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is now in {name}: send it again.',
         rowRouteStale: 'Your messages would be billed to {name}. Try again.',
+        rowTeamLeft: 'You are no longer in this team, so the message was not sent. This window stays with that team: open Personal to carry on.',
+        rowTeamLeftOpen: 'Open Personal',
+        teamLeftName: 'Team you left',
         rowRetryDown: 'The Kybernos server “{name}” ({host}) is not answering: DSH keeps retrying',
         quotaNoPlan: '{name} has no plan yet, so nobody in it can use the models.',
         quotaNoPlanAdmin: ' Choose a plan to turn them on.',
@@ -1142,11 +1148,22 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     const espaceActifEntry = (st) => {
       const espaces = st !== null && st !== undefined && Array.isArray(st.workspaces) ? st.workspaces : []
       const actif = st !== null && st !== undefined && typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
-      return espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
+      const trouve = espaces.filter((w) => w !== null && w.id === actif)[0]
+      // A team's own DSH whose team is no longer in the person's list (they were removed, or left): it keeps billing that team, which the server refuses. The card must not fall back to the
+      // first entry (Personal): it would say « Personal » on a window that cannot bill it (recette W4, J7).
+      if (trouve === undefined && teamLeft(st) === true) return null
+      return trouve || espaces[0] || null
     }
-    /** The ACTIVE workspace of a status, as `espaceVue` shows it (« Team » when the list is empty). */
+    /** True in a team's own DSH (`team_dsh`) when that team is not in the person's list any more. Never throws. */
+    const teamLeft = (st) => {
+      if (st === null || st === undefined || typeof st.team_dsh !== 'string' || st.team_dsh === '') return false
+      const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
+      return espaces.filter((w) => w !== null && typeof w === 'object' && w.id === st.team_dsh).length === 0
+    }
+    /** The ACTIVE workspace of a status, as `espaceVue` shows it (« Team » when the list is empty, « Team you left » in the DSH of a team the person is no longer in). */
     const espaceActifVue = (st, t) => {
       const courant = espaceActifEntry(st)
+      if (courant === null && teamLeft(st) === true) return { name: t('teamLeftName'), initials: '–' }
       return courant !== null && courant.name ? espaceVue(courant, t) : { name: t('spaceTitle'), initials: initiales(t('spaceTitle'), '') }
     }
     /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word (`user.plan`, « team » as soon as the person
@@ -3186,6 +3203,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             void load()
             void refreshHost(gap).then((read) => { if (read === true && liveRef.current === true) return load(); return undefined }).catch(() => null)
           }, [load, refreshHost])
+          // The failure row of a team's own DSH whose team the person has left asks, with « Open Personal », for the person's own DSH: the same call as choosing Personal in the menu.
+          React.useEffect(() => {
+            const toPersonal = () => {
+              const mine = (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && spaceIsPersonal(w) === true)[0]
+              void openOwnDsh(mine !== undefined ? mine.id : '', mine !== undefined ? espaceVue(mine, t).name : 'Personal', true)
+            }
+            window.addEventListener('kybernos-cloud:open-personal', toPersonal)
+            return () => window.removeEventListener('kybernos-cloud:open-personal', toPersonal)
+          }, [state, t])
           React.useEffect(() => {
             const again = () => { if (document.visibilityState === 'visible') refreshThenLoad(HOST_REFRESH_GAP_MS) }
             // A failed turn that shows the host's teams are out of date (the error row below) asks for the same thing, at once.
@@ -3734,6 +3760,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             const nowPair = React.useState(null)
             const nowIn = nowPair[0]
             const setNowIn = nowPair[1]
+            // True once the account has been read again and this DSH is a team's own whose team the person is no longer in: the sentence then says so and offers the way out.
+            const leftPair = React.useState(false)
+            const left = leftPair[0]
+            const setLeft = leftPair[1]
             React.useEffect(() => {
               if (teamGone !== true || failureIsRecent(data) !== true) return undefined
               let on = true
@@ -3743,6 +3773,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 const spaces = st !== null && Array.isArray(st.workspaces) ? st.workspaces : []
                 const here = spaces.filter((w) => w !== null && typeof w === 'object' && w.id === st.active_workspace_id)[0]
                 if (on === true && here !== undefined) setNowIn(espaceVue(here, t).name)
+                if (on === true && teamLeft(st) === true) setLeft(true)
               }).catch(() => null)
               return () => { on = false }
             }, [teamGone, data.seq])
@@ -3753,7 +3784,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               return () => { on = false }
             }, [quotaRefused])
             let say = null
-            if (teamGone === true) {
+            if (teamGone === true && left === true) {
+              // A team's own DSH answers its team for good and nothing moves it: sending again cannot work here. The way on is the person's own space, in its own window.
+              say = { text: t('rowTeamLeft'), label: t('rowTeamLeftOpen'), run: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open-personal')) } catch (e) { /* Event absent */ } } }
+            } else if (teamGone === true) {
               say = { text: nowIn !== null && nowIn !== '' ? quotaFill(t('rowTeamGoneNow'), { name: nowIn }) : t('rowTeamGone'), label: null, run: null }
             } else if (staleRoute !== null) {
               say = { text: quotaFill(t('rowRouteStale'), { name: staleRoute[1] }), label: null, run: null }
