@@ -73,6 +73,9 @@ RUN --mount=type=bind,from=kbsrc,target=/kbsrc \
       git clone --depth 1 --branch "${KB_REF}" https://github.com/kybernos-app/kybernos-plugins.git /opt/kybernos-plugins \
       && cd /opt/kybernos-plugins && git log --oneline -1; \
     fi
+# A computer never carries the phone-only bundles (`@local/kybernos-no-process` would take the place of the real program launcher and the first boot would roll the install back).
+COPY --chown=node:node leave-out-phone-only.mjs /tmp/leave-out-phone-only.mjs
+RUN node /tmp/leave-out-phone-only.mjs /opt/kybernos-plugins && rm /tmp/leave-out-phone-only.mjs
 RUN cd /opt/kybernos-plugins && ./kybernos-install
 
 # A volume mounted over ~/.dsh starts empty: the entrypoint seeds it from this copy of the installed profile.
