@@ -756,6 +756,23 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   ok('the account card tells the member\'s extra budget (figure, « none » for the default 0, per-pot hint) and draws nothing where the plan carries none')
 }
 
+// Where the work of a chat runs: the cloud plugin's own menu, for a DSH where the E2B plugin (and its menu) is off. Pinned at source level (the rendered part needs react).
+{
+  const i = source.indexOf('const RunOn = ')
+  const comp = source.slice(i, source.indexOf("'kybernos-cloud: where the work runs (cloud computer)'", i))
+  assert.ok(i > 0 && comp.length > 0, 'the component exists and is mounted')
+  assert.ok(/id: 'kybernos-cloud-run-on', order: 61/.test(comp) && comp.includes("slots.inject('conversation.input.left'"), 'it sits in the composer, right after the E2B menu (order 60)')
+  assert.ok(/window\.__KB_ENV_SELECTOR__ === true \|\| list === null \|\| list\.length === 0\) return null/.test(comp), 'it draws nothing where the E2B menu is up, signed out, or with no computer: never two buttons')
+  assert.ok(/'\/kybernos-cloud\/computers'/.test(comp) && /'\/kybernos-cloud\/computer\/target'/.test(comp), 'it reads the computers and the choice from the host')
+  assert.ok(/'\/kybernos-cloud\/computer\/target\/set', 'POST', id === '' \? \{ computer_id: null \} : \{ computer_id: id, name: row\.name \}/.test(comp), '« This machine » forgets the choice, a row stores it')
+  assert.ok(/disabled: key === 'off' \|\| key === 'waking'/.test(comp), 'a computer that is off or being set up cannot be chosen')
+  assert.ok(/list\.some\(\(c\) => c\.id === target\.id\) === true\) return/.test(comp), 'a computer that left the list clears the choice')
+  assert.ok(/addEventListener\('kybernos-env-selector'/.test(comp), 'it hears the E2B menu come and go')
+  assert.ok(/try \{ return h\(RunOn, null\) \} catch \(e\) \{ return null \}/.test(source), 'a failure of the component leaves the composer as DSH draws it')
+  for (const k of ['runOnTitle', 'runOnHere', 'runOnHereSub', 'runOnAwake', 'runOnAsleep', 'runOnWinding', 'runOnWaking', 'runOnOff']) assert.equal((source.match(new RegExp('\\n        ' + k + ': ', 'g')) || []).length, 2, k + ' exists in English and in French')
+  ok('where the work runs: a menu of the cloud plugin, silent while the E2B menu is up, one row per computer, fr/en')
+}
+
 // AC-09 / AC-02 wiring that needs a click to see: the dialog has its heading and what a team is, the plan slot offers « Choose a plan » on the plan page.
 {
   const i = source.indexOf('const NewSpacePanel = ')
