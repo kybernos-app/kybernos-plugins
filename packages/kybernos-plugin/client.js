@@ -41582,6 +41582,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'nm.none.s.in': ['You are signed in, but no model is available to answer. Add one to start.', 'Tu es connecté, mais aucun modèle n’est disponible pour répondre. Ajoutes-en un pour commencer.', 'Has iniciado sesión, pero no hay ningún modelo disponible para responder. Añade uno para empezar.', 'لقد سجّلت الدخول، لكن لا يتوفر أي نموذج للإجابة. أضف نموذجًا للبدء.'],
       'nm.none.signin': ['Sign in to Kybernos', 'Me connecter à Kybernos', 'Iniciar sesión en Kybernos', 'تسجيل الدخول إلى Kybernos'],
       'nm.none.add': ['Add a model', 'Ajouter un modèle', 'Añadir un modelo', 'إضافة نموذج'],
+      // « The model isn't answering »: the card under a failed turn whose model was down or busy (kbObModelDown).
+      'nm.down.t.down': ['The model isn’t answering right now', 'Le modèle ne répond pas pour le moment', 'El modelo no responde en este momento', 'النموذج لا يستجيب في الوقت الحالي'],
+      'nm.down.s.down': ['Your message wasn’t answered. Try again in a moment, or pick another model in the selector below.', 'Ton message n’a pas reçu de réponse. Réessaie dans un instant, ou choisis un autre modèle dans le sélecteur ci-dessous.', 'Tu mensaje no recibió respuesta. Vuelve a intentarlo en un momento o elige otro modelo en el selector de abajo.', 'لم تتلقَّ رسالتك ردًا. حاول مجددًا بعد قليل، أو اختر نموذجًا آخر من المحدد أدناه.'],
+      'nm.down.t.busy': ['The model is busy', 'Le modèle est très sollicité', 'El modelo está muy solicitado', 'النموذج مشغول حاليًا'],
+      'nm.down.s.busy': ['Too many requests at once. Wait a little, then try again, or pick another model in the selector below.', 'Trop de demandes en même temps. Attends un peu puis réessaie, ou choisis un autre modèle dans le sélecteur ci-dessous.', 'Demasiadas solicitudes a la vez. Espera un poco y vuelve a intentarlo, o elige otro modelo en el selector de abajo.', 'طلبات كثيرة في وقت واحد. انتظر قليلًا ثم حاول مجددًا، أو اختر نموذجًا آخر من المحدد أدناه.'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
       'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI provider and models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA et modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI provider and models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI provider and models.'],
       // The model question (two answers, the other ways one quiet line below).
@@ -42062,6 +42067,28 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         ref: m === null ? null : m[2],
         prompt: last !== null && last !== undefined && typeof last.prompt === 'string' ? last.prompt : '',
       }
+    }
+    /**
+     * The failure of a model that could not answer just now, read like `kbObNeedModel` from the chat's nodes and navigation: `{ turn, kind, prompt }` or null. `kind` is
+     * 'busy' for the engine's rate-limit code and 'down' for its server code: how a 429 and a 502 of the Kybernos server come back (the engine prints their body as it
+     * came). Only the LATEST turn counts, so the card is gone as soon as the person sends again, and back if that turn fails the same way.
+     */
+    const kbObModelDown = (nodes, nav) => {
+      if (!Array.isArray(nodes)) return null
+      const turns = Array.isArray(nav) ? nav : []
+      const last = turns.length > 0 ? turns[turns.length - 1] : null
+      const lastTurn = last !== null && last !== undefined && typeof last.turn === 'number' ? last.turn : null
+      let hit = null
+      for (const n of nodes) {
+        if (n === null || n === undefined || typeof n !== 'object' || n.kind !== 'turn-error' || n.data === null || typeof n.data !== 'object') continue
+        const kind = n.data.code === 'RATE_LIMIT' ? 'busy' : n.data.code === 'SERVER' ? 'down' : null
+        if (kind === null) continue
+        const turn = typeof n.data.turn === 'number' ? n.data.turn : null
+        if (hit === null || (turn !== null && (hit.turn === null || turn >= hit.turn))) hit = { turn: turn, kind: kind }
+      }
+      if (hit === null) return null
+      if (lastTurn !== null && hit.turn !== null && hit.turn < lastTurn) return null
+      return { turn: hit.turn, kind: hit.kind, prompt: last !== null && last !== undefined && typeof last.prompt === 'string' ? last.prompt : '' }
     }
     /**
      * Whether the engine's shared model catalog (`ctx.modelDirectories.catalog.store.getSnapshot()`: `{ status, value: { groups: [{ id, models }] } | null }`)
@@ -44556,6 +44583,39 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-need-model', order: 20 }, KbNeedModel)), 'kybers: “a model is missing” card')
+    // ── « The model isn't answering right now »: a failed turn whose model was down or busy ───────────────
+    // The engine's red « This turn failed » row prints the server's answer as it came (`502: {"message": …}`): that row is the engine's and stays in the failed turn (no engine
+    // patch). This card, above the box and in the same dock, says it in a person's words (the model is down, or busy) and puts the message back on request. It goes when
+    // the person sends again, and can be closed.
+    const KbModelDown = (props) => {
+      const p = props !== null && props !== undefined ? props : {}
+      const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
+      const useChat = typeof p.useChat === 'function' ? p.useChat : null
+      const nodes = useChat !== null ? useChat((c) => { try { return c.nodes.valuesCache } catch (e) { return null } }) : null
+      const nav = useChat !== null ? useChat((c) => { try { return c.navigation.current } catch (e) { return null } }) : null
+      const down = kbObModelDown(nodes, nav)
+      const stateKey = down === null ? '' : String(down.turn)
+      const awayPair = React.useState('')
+      const phasePair = React.useState('idle')
+      React.useEffect(() => { phasePair[1]('idle') }, [stateKey])
+      if (down === null || awayPair[0] === stateKey) return null
+      const lang = kbNmLang()
+      const L = KB_OB_LANGS.find((l) => l.id === lang) || KB_OB_LANGS[0]
+      const T = (key, vars) => kbObText(lang, key, vars)
+      const which = down.kind === 'busy' ? 'busy' : 'down'
+      const title = which === 'busy' ? T('nm.down.t.busy') : T('nm.down.t.down')
+      const sentence = which === 'busy' ? T('nm.down.s.busy') : T('nm.down.s.down')
+      const putBack = () => { try { kbPrefillDraft(down.prompt, 0, sid) } catch (e) { /* the person types it again */ } phasePair[1]('back') }
+      return h('div', { className: 'kbnm', dir: L.rtl ? 'rtl' : 'ltr', lang: L.id, 'data-kb': 'model-down', 'data-kind': which, role: 'region', 'aria-label': title },
+        h('button', { type: 'button', className: 'kbnm-x', 'aria-label': T('close'), onClick: () => awayPair[1](stateKey) }, '\u00d7'),
+        h('div', { className: 'kbnm-t' }, title),
+        h('div', { className: 'kbnm-s' }, sentence),
+        phasePair[0] === 'back'
+          ? h('div', { className: 'kbnm-ok' }, T('nm.resent'))
+          : h('div', { className: 'kbnm-row' }, h('button', { type: 'button', className: 'kbnm-btn kbnm-primary', 'data-kb': 'model-down-resend', onClick: putBack }, T('nm.resend'))))
+    }
+    ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
+      { name: 'conversation.input.dock', id: 'kybernos-model-down', order: 21 }, KbModelDown)), 'kybernos: “the model is not answering” card')
     ctx.effect(() => styles.insert([
       '.kbnm{position:relative;width:calc(100% - 32px);max-width:748px;margin:0 auto 10px;padding:14px 16px;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-2);display:flex;flex-direction:column;gap:8px}',
       '.kbnm-t{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);padding-inline-end:24px}',
