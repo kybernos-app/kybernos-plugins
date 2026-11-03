@@ -3797,6 +3797,71 @@ const kbOpenSettingsPage = (names) => {
 // VALUE is the English text the code holds. A phrase the table does not know is shown in English. Entries marked « demo data » are fixture strings,
 // not interface labels: they translate to themselves.
 const KB_FR_EN = {
+  // ── Publish button of the Creations (KbPublishDialog) ──
+  "Publier": "Publish",
+  "En ligne": "Online",
+  "Publier cette page": "Publish this page",
+  "Page en ligne": "Online page",
+  "Mettre en ligne": "Put online",
+  "Vérification de la page…": "Checking the page…",
+  "Mise en ligne…": "Putting it online…",
+  "Retrait en cours…": "Taking it down…",
+  "L’adresse de la page": "The address of the page",
+  "Choisis un nom pour l’adresse.": "Choose a name for the address.",
+  "Un nom compte de 3 à 32 lettres, chiffres ou tirets, sans tiret au début ni à la fin.": "A name is 3 to 32 letters, digits or hyphens, with no hyphen at the start or the end.",
+  "Ce nom est réservé : choisis-en un autre.": "That name is reserved: choose another.",
+  "Ce nom a été retiré par Kybernos et ne peut plus servir : choisis-en un autre.": "That name was taken down by Kybernos and cannot be used again: choose another.",
+  "Ce nom est déjà pris par quelqu’un d’autre : choisis-en un autre.": "That name is already used by someone else: choose another.",
+  "Tu as déjà une page avec ce nom : la mettre en ligne remplace l’ancienne.": "You already have a page with this name: putting this one online replaces it.",
+  "La page et les fichiers qu’elle utilise": "The page and the files it uses",
+  "Non envoyés": "Not sent",
+  "Une page n’utilise que les fichiers de son dossier, de types web courants.": "A page only uses files of its own folder, of the usual web kinds.",
+  "Public : toute personne qui a l’adresse peut l’ouvrir. Ne publie pas d’informations privées.": "Public: anyone who has the address can open it. Do not publish private information.",
+  "Pages en ligne": "Pages online",
+  "Tu n’es pas connecté à Kybernos. Les pages sont mises en ligne depuis ton compte.": "You are not signed in to Kybernos. Pages are put online from your account.",
+  "Se connecter à Kybernos": "Sign in to Kybernos",
+  "La page est en ligne.": "The page is online.",
+  "La page est mise à jour.": "The page is updated.",
+  "Adresse copiée": "Address copied",
+  "Ouvrir la page": "Open the page",
+  "Mettre à jour": "Update",
+  "Retirer…": "Take down…",
+  "Dernier envoi": "Last sent",
+  "La page est une copie. Après avoir modifié le fichier, appuie sur Mettre à jour pour envoyer la nouvelle version.": "The page is a copy. After you edit the file, press Update to send the new version.",
+  "Retirer cette page ?": "Take down this page?",
+  "L’adresse ne fonctionne plus tout de suite. Ton fichier reste où il est.": "The address stops working right away. Your file stays where it is.",
+  "Retirer la page": "Take down",
+  "Laisser en ligne": "Keep it online",
+  "La page est retirée. Son adresse ne fonctionne plus.": "The page is taken down. Its address no longer works.",
+  "Retirée par Kybernos": "Taken down by Kybernos",
+  "Cette page ne respectait pas les conditions d’utilisation. Si tu penses que c’est une erreur, écris à Kybernos en donnant l’adresse ci-dessus.": "This page broke the terms of use. If you think this is a mistake, contact Kybernos and give the address above.",
+  "Choisir un autre nom": "Choose another name",
+  "Tu as atteint la limite de pages en ligne": "You have reached the limit of pages online",
+  "Retires-en une pour mettre celle-ci en ligne.": "Take one down to put this one online.",
+  "Cette page est trop lourde pour le serveur : une page pèse 4 Mo au plus.": "This page is too big for the server: a page can be 4 MB at most.",
+  "Cette page pèse": "This page is",
+  "Une page pèse 4 Mo au plus.": "A page can be 4 MB at most.",
+  "Les fichiers les plus lourds": "The largest files",
+  "Allège-les ou retire-les, puis réessaie.": "Make these smaller or remove them, then try again.",
+  "Seule une page HTML de tes Créations peut être mise en ligne.": "Only an HTML page of your Creations can be put online.",
+  "Ce fichier n’existe plus.": "That file does not exist any more.",
+  "Le serveur a refusé certains fichiers.": "The server refused some of the files.",
+  "Trop de mises en ligne en une minute : attends un instant, puis réessaie.": "Too many publications in a minute: wait a moment, then try again.",
+  "L’hébergement n’a pas répondu. Rien n’a changé : réessaie dans une minute.": "The hosting did not answer. Nothing was changed: try again in a minute.",
+  "Ce nom est en cours de nettoyage, ou la page a changé pendant la mise en ligne : réessaie dans une minute.": "That name is being cleaned up, or the page changed while it was put online: try again in a minute.",
+  "Le serveur met d’autres pages en ligne : réessaie dans un instant.": "The server is busy putting other pages online: try again in a moment.",
+  "La page est encore en cours de mise en ligne. Appuie de nouveau dans quelques secondes : c’est la même page, pas une deuxième.": "The page is still being put online. Press the button again in a few seconds: it is the same page, not a second one.",
+  "Kybernos n’a pas répondu. Rien n’a changé : réessaie dans une minute.": "Kybernos did not answer. Nothing was changed: try again in a minute.",
+  "La mise en ligne de pages n’est pas encore disponible sur ce serveur.": "Putting a page online is not available on this server yet.",
+  "La page n’a pas pu être mise en ligne.": "The page could not be put online.",
+  "Publier…": "Publish…",
+  "Ouvrir la page en ligne": "Open online page",
+  "Mettre à jour la page en ligne": "Update online page",
+  "Retirer la page en ligne…": "Take down online page…",
+  "Mise à jour de la page en ligne…": "Updating the online page…",
+  "Page en ligne mise à jour": "Online page updated",
+  "Cette page est en ligne : voir ses options": "This page is online: see its options",
+  "Mettre cette page en ligne sur internet": "Put this page online on the internet",
   'aperçu tronqué': 'preview truncated',
   'Session + Lead': 'Session + Lead',
   // ── Onglet « Outils » (02/10) : entrées manquantes de l'en-tête, des filtres et du tableau ──
@@ -13318,6 +13383,288 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return kbPortalDe(fiche)
     }
 
+    // ── Publish: a page of the Creations goes online at <name>.kaby.app ─────────────────────────────────────────────────────────────────────
+    // The Publish button (header of the preview, « … » menu of a tile) is the person's yes: nothing asks again here, Kaby's own tool does in its chat. The routes are the Cloud
+    // plugin's `/kybernos-cloud/sites*` (site-page.mjs): they carry the account, read the page from its folder and answer a CODE, which this file words. The button and the « Online »
+    // mark are drawn only where those routes answer (not in a team's own DSH, not on a server without the feature, not without the Cloud plugin).
+    const KB_SITE_NAME_RE = /^[a-z0-9](?:[a-z0-9-]{1,30})[a-z0-9]$/
+    const kbIsPage = (name) => /\.html?$/i.test(String(name === null || name === undefined ? '' : name))
+    const kbSites = (() => {
+      let st = { phase: 'idle', connected: false, sites: [], count: 0, max: null, at: 0, reserved: [] }
+      let inflight = null
+      const subs = new Set()
+      const set = (patch) => { st = Object.assign({}, st, patch); subs.forEach((f) => { try { f() } catch (e) { /* a listener that is gone */ } }) }
+      const post = (url, body) => fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        .then((r) => r.json().catch(() => null))
+        .then((j) => (j !== null && typeof j === 'object' ? j : { ok: false, error: 'no_answer' }))
+        .catch(() => ({ ok: false, error: 'no_answer' }))
+      // The list the account holds, at most every 30 s unless forced. `off`: the routes are not here; `unknown`: they are, the server did not answer.
+      const load = (force) => {
+        if (inflight !== null) return inflight
+        if (force !== true && st.at > 0 && Date.now() - st.at < 30000) return Promise.resolve(st)
+        inflight = fetch('/kybernos-cloud/sites', { credentials: 'same-origin' }).then((r) => r.json().catch(() => null)).catch(() => null).then((j) => {
+          inflight = null
+          if (j === null || typeof j !== 'object') set({ phase: 'off', at: Date.now() })
+          else if (j.ok === true && j.available !== false) set({ phase: 'ready', connected: j.connected === true, sites: Array.isArray(j.sites) ? j.sites : [], count: Number(j.count) || 0, at: Date.now() })
+          else if (j.ok === false && (j.error === 'no_answer' || /^http_5/.test(String(j.error)))) set({ phase: st.phase === 'ready' ? 'ready' : 'unknown', at: Date.now() })
+          else set({ phase: 'off', at: Date.now() })
+          return st
+        })
+        return inflight
+      }
+      const live = (s) => s !== null && s !== undefined && s.state !== 'taken_down'
+      const words = (code, r) => {
+        const x = r !== null && r !== undefined && typeof r === 'object' ? r : {}
+        switch (code) {
+          case 'slug_taken': return kbe('That name is already used by someone else: choose another.')
+          case 'invalid_slug': return kbe('A name is 3 to 32 letters, digits or hyphens, with no hyphen at the start or the end.')
+          case 'reserved_slug': return kbe('That name is reserved: choose another.')
+          case 'taken_down': return kbe('That name was taken down by Kybernos and cannot be used again: choose another.')
+          case 'too_many_sites': return kbe('You have reached the limit of pages online') + (typeof x.max === 'number' ? ' (' + x.max + ')' : '') + '. ' + kbe('Take one down to put this one online.')
+          case 'too_big': return kbe('This page is too big for the server: a page can be 4 MB at most.')
+          case 'invalid_files': return kbe('The server refused some of the files.')
+          case 'rate_limited': return kbe('Too many publications in a minute: wait a moment, then try again.')
+          case 'host_error': return kbe('The hosting did not answer. Nothing was changed: try again in a minute.')
+          case 'try_again': return kbe('That name is being cleaned up, or the page changed while it was put online: try again in a minute.')
+          case 'busy': return kbe('The server is busy putting other pages online: try again in a moment.')
+          case 'building': return kbe('The page is still being put online. Press the button again in a few seconds: it is the same page, not a second one.')
+          case 'no_answer': return kbe('Kybernos did not answer. Nothing was changed: try again in a minute.')
+          case 'invalid_path': return kbe('Only an HTML page of your Creations can be put online.')
+          case 'not_found': return x.plan === true ? kbe('That file does not exist any more.') : kbe('Putting a page online is not available on this server yet.')
+          case 'not_on_this_server': return kbe('Putting a page online is not available on this server yet.')
+          default: return kbe('The page could not be put online.')
+        }
+      }
+      return {
+        words: words,
+        state: () => st,
+        subscribe: (f) => { subs.add(f); load(false); return () => { subs.delete(f) } },
+        load: load,
+        shown: () => st.phase === 'ready' || st.phase === 'unknown',
+        siteOf: (path) => st.sites.find((s) => live(s) && Array.isArray(s.paths) && s.paths.indexOf(path) >= 0) || null,
+        downOf: (path) => st.sites.find((s) => s.state === 'taken_down' && Array.isArray(s.paths) && s.paths.indexOf(path) >= 0) || null,
+        plan: (path) => post('/kybernos-cloud/sites/plan', { path: path }).then((r) => { if (r.ok === true && Array.isArray(r.reserved)) set({ reserved: r.reserved }); return r }),
+        publish: (path, name) => post('/kybernos-cloud/sites/publish', Object.assign({ path: path }, typeof name === 'string' && name !== '' ? { name: name } : {})).then((r) => {
+          if (r.ok === true) load(true)
+          else if (typeof r.max === 'number') set({ max: r.max })
+          return r
+        }),
+        remove: (slug) => post('/kybernos-cloud/sites/remove', { slug: slug }).then((r) => { if (r.ok === true || r.error === 'not_found') load(true); return r }),
+      }
+    })()
+    const useKbSites = () => {
+      const pair = React.useState(0)
+      React.useEffect(() => kbSites.subscribe(() => pair[1]((n) => n + 1)), [])
+      return kbSites.state()
+    }
+    const kbSiteWhen = (iso) => {
+      try { return new Date(iso).toLocaleString(kbLocaleTag(), { dateStyle: 'medium', timeStyle: 'short' }) } catch (e) { return '' }
+    }
+    const kbSiteFiles = (n) => (n === 1 ? kbe('1 file', '1 fichier') : n + ' ' + kbe('files', 'fichiers'))
+    const KbPublishDialog = (p0) => {
+      const item = p0.item
+      const onClose = p0.onClose
+      const sites = useKbSites()
+      const viewPair = React.useState('loading')
+      const view = viewPair[0]
+      const setView = viewPair[1]
+      const planPair = React.useState(null)
+      const plan = planPair[0]
+      const setPlan = planPair[1]
+      const namePair = React.useState('')
+      const name = namePair[0]
+      const setName = namePair[1]
+      const notePair = React.useState(null)
+      const note = notePair[0]
+      const setNote = notePair[1]
+      const shownPair = React.useState(null)
+      const shown = shownPair[0]
+      const setShown = shownPair[1]
+      const downPair = React.useState(null)
+      const downSlug = downPair[0]
+      const setDownSlug = downPair[1]
+      const copiedPair = React.useState(false)
+      const copied = copiedPair[0]
+      const setCopied = copiedPair[1]
+      const blockPair = React.useState(null)
+      const block = blockPair[0]
+      const setBlock = blockPair[1]
+      const tickPair = React.useState(0)
+      const setTick = tickPair[1]
+      const cardRef = React.useRef(null)
+      const alive = React.useRef(true)
+      React.useEffect(() => {
+        alive.current = true
+        const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); onClose() } }
+        const onResize = () => setTick((n) => n + 1)
+        window.addEventListener('keydown', onKey, true)
+        window.addEventListener('resize', onResize)
+        try { if (cardRef.current !== null) cardRef.current.focus() } catch (e) { /* focus */ }
+        return () => { alive.current = false; window.removeEventListener('keydown', onKey, true); window.removeEventListener('resize', onResize) }
+      }, [])
+      // What the page would send and what the account already holds, read together; the first screen is decided by both.
+      React.useEffect(() => {
+        ;(async () => {
+          const got = await Promise.all([kbSites.load(true), kbSites.plan(item.path)])
+          if (alive.current !== true) return
+          const pl = got[1]
+          if (pl.ok !== true) { setBlock(pl); setView('blocked'); return }
+          setPlan(pl)
+          setName(pl.slug)
+          const on = kbSites.siteOf(item.path)
+          if (on !== null) {
+            setShown(on)
+            if (item.view === 'confirm') { setDownSlug(on.slug); setView('confirm') } else setView('online')
+            return
+          }
+          setView(kbSites.downOf(item.path) !== null ? 'takendown' : 'ready')
+        })()
+      }, [])
+
+      const reserved = Array.isArray(sites.reserved) ? sites.reserved : []
+      const own = sites.sites.filter((s) => s.state !== 'taken_down')
+      const nameProblem = (() => {
+        if (name === '') return kbe('Choose a name for the address.')
+        if (KB_SITE_NAME_RE.test(name) !== true || name.indexOf('--') >= 0) return kbSites.words('invalid_slug')
+        if (reserved.indexOf(name) >= 0 || name.indexOf('kb-') === 0) return kbSites.words('reserved_slug')
+        if (sites.sites.some((s) => s.slug === name && s.state === 'taken_down')) return kbSites.words('taken_down')
+        return null
+      })()
+      const replaces = nameProblem === null && own.some((s) => s.slug === name && (shown === null || shown.slug !== name))
+      const needSignin = sites.phase === 'ready' && sites.connected !== true
+      const say = (kind, text, code) => setNote({ kind: kind, text: text, code: code })
+
+      const send = async (slug, back) => {
+        setNote(null)
+        setView('sending')
+        const r = await kbSites.publish(item.path, slug)
+        if (alive.current !== true) return
+        if (r.ok === true) {
+          setShown({ slug: r.slug, url: r.url, updated_at: new Date().toISOString(), files: r.files })
+          setView('online')
+          say('ok', r.updated === true ? kbe('The page is updated.') : kbe('The page is online.'))
+          return
+        }
+        setView(back)
+        if (r.error !== 'not_connected') say('err', kbSites.words(r.error, r), r.error)
+        if (r.error === 'not_connected') kbSites.load(true)
+      }
+      const takeDown = async () => {
+        const slug = downSlug
+        setNote(null)
+        setView('removing')
+        const r = await kbSites.remove(slug)
+        if (alive.current !== true) return
+        if (r.ok === true || r.error === 'not_found') { setShown(null); setView('gone'); return }
+        setView('confirm')
+        say('err', kbSites.words(r.error, r))
+      }
+      const copy = (url) => {
+        try { if (navigator.clipboard !== null && navigator.clipboard !== undefined) navigator.clipboard.writeText(url).then(() => { if (alive.current === true) setCopied(true) }, () => { /* refused: the address stays on screen */ }) } catch (e) { /* no clipboard */ }
+      }
+      const open = (url) => { try { window.open(url, '_blank', 'noopener') } catch (e) { /* refused: the address stays on screen */ } }
+
+      const vw = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1200
+      const vh = (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 800
+      const a = item.anchor
+      const ancre = a !== null && a !== undefined && vw > 600
+      let styleCarte
+      if (ancre === true) {
+        const w = Math.min(400, vw - 24)
+        const left = Math.max(12, Math.min(a.right - w, vw - w - 12))
+        const placeSous = vh - a.bottom - 20
+        styleCarte = (placeSous < 380 && a.top > placeSous)
+          ? { left: left, width: w, bottom: vh - a.top + 8, maxHeight: Math.max(260, a.top - 20) }
+          : { left: left, width: w, top: a.bottom + 8, maxHeight: Math.max(260, placeSous) }
+      }
+      const noteBox = note !== null ? h('div', { className: 'kbsp-msg kbsp-msg-' + note.kind, role: 'status', 'data-kb': 'publish-note' }, note.text) : null
+      const fact = (icon, text, mark) => h('div', { className: 'kbpb-fact', 'data-kb': mark }, Icon(icon, 14), h('span', null, text))
+      const title = (view === 'online' || view === 'confirm' || view === 'removing' || view === 'gone' || view === 'takendown') ? kbe('Online page') : kbe('Publish this page')
+      const head = h('div', { className: 'kbsp-head' },
+        h('div', { className: 'kbsp-headtxt' },
+          h('h3', { className: 'kbsp-title' }, title),
+          h('div', { className: 'kbsp-sub', title: item.path }, item.name)),
+        h('button', { type: 'button', className: 'kbsp-ibtn', 'data-kb': 'publish-close', title: kbt('kbui.close'), 'aria-label': kbt('kbui.close'), onClick: onClose }, Icon('x', 16)))
+      const closeFoot = h('div', { className: 'kbpb-foot' }, h('button', { type: 'button', className: 'kb6-btn', 'data-kb': 'publish-done', onClick: onClose }, kbt('kbui.close')))
+      let body
+      let foot = null
+      if (view === 'loading' || view === 'sending' || view === 'removing') {
+        body = h('div', { className: 'kbsp-body', 'data-kb': 'publish-wait' },
+          h('div', { className: 'kbpb-wait', role: 'status' }, Icon('loader', 16), h('span', null, view === 'loading' ? kbe('Checking the page…') : (view === 'sending' ? kbe('Putting it online…') : kbe('Taking it down…')))))
+      } else if (view === 'blocked') {
+        const largest = block !== null && Array.isArray(block.largest) ? block.largest : []
+        body = h('div', { className: 'kbsp-body', 'data-kb': 'publish-blocked' },
+          h('div', { className: 'kbsp-msg kbsp-msg-err' }, block !== null && block.error === 'too_big'
+            ? (typeof block.bytes === 'number' ? kbe('This page is') + ' ' + kbFmtSize(block.bytes) + '. ' : '') + kbe('A page can be 4 MB at most.')
+            : (block !== null && block.error === 'invalid_files' && typeof block.message === 'string' ? block.message : kbSites.words(block !== null ? block.error : 'x', { plan: true }))),
+          (largest.length > 0 ? h('div', { className: 'kbsp-hint' }, kbe('The largest files') + kbfSep() + largest.map((f) => f.path + ' (' + kbFmtSize(f.bytes) + ')').join(', ') + '. ' + kbe('Make these smaller or remove them, then try again.')) : null))
+        foot = closeFoot
+      } else if (view === 'ready') {
+        const left = plan !== null && Array.isArray(plan.left_out) ? plan.left_out : []
+        body = h('div', { className: 'kbsp-body', 'data-kb': 'publish-ready' },
+          (needSignin === true ? h('div', { className: 'kbsp-box', 'data-kb': 'publish-signin' },
+            h('div', { className: 'kbsp-boxtxt' }, kbe('You are not signed in to Kybernos. Pages are put online from your account.')),
+            h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary kbsp-wide', 'data-kb': 'publish-connect', onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* no event */ } onClose() } }, kbe('Sign in to Kybernos'))) : null),
+          h('div', { className: 'kbpb-label' }, kbe('The address of the page')),
+          h('div', { className: 'kbpb-addr' + (nameProblem !== null ? ' bad' : ''), 'data-kb': 'publish-address' },
+            h('input', { type: 'text', value: name, autoFocus: true, spellCheck: false, autoCapitalize: 'none', 'aria-label': kbe('The address of the page'), 'aria-invalid': nameProblem !== null ? 'true' : 'false', 'data-kb': 'publish-name', maxLength: 32,
+              onChange: (e) => { setNote(null); setName(String(e.target.value).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')) },
+              onKeyDown: (e) => { if (e.key === 'Enter' && nameProblem === null && needSignin !== true) send(name, 'ready') } }),
+            h('span', null, '.kaby.app')),
+          (nameProblem !== null ? h('div', { className: 'kbsp-msg kbsp-msg-err', 'data-kb': 'publish-name-problem' }, nameProblem)
+            : (replaces === true ? h('div', { className: 'kbsp-hint', 'data-kb': 'publish-replaces' }, kbe('You already have a page with this name: putting this one online replaces it.')) : null)),
+          fact('fileCheck', kbe('The page and the files it uses') + kbfSep() + (plan !== null ? kbSiteFiles(plan.files) + ' · ' + kbFmtSize(plan.bytes) : ''), 'publish-sent'),
+          (left.length > 0 ? fact('info', kbe('Not sent') + kbfSep() + left.slice(0, 4).map((l) => l.path).join(', ') + (left.length > 4 ? ' +' + (left.length - 4) : '') + '. ' + kbe('A page only uses files of its own folder, of the usual web kinds.'), 'publish-left') : null),
+          fact('globe', kbe('Public: anyone who has the address can open it. Do not publish private information.'), 'publish-public'),
+          fact('link', kbe('Pages online') + kbfSep() + own.length + (typeof sites.max === 'number' ? kbe(' of ', ' sur ') + sites.max : ''), 'publish-count'),
+          noteBox,
+          ((note !== null && note.code === 'too_many_sites') || (typeof sites.max === 'number' && own.length >= sites.max)
+            ? h('div', { className: 'kbpb-pages', 'data-kb': 'publish-pages' }, own.map((s) => h('div', { className: 'kbpb-prow', key: s.slug },
+              h('span', { className: 'kbpb-pname', title: s.url }, s.slug + '.kaby.app'),
+              h('button', { type: 'button', className: 'kb6-btn', 'data-kb': 'publish-free', onClick: () => { setDownSlug(s.slug); setNote(null); setView('confirm') } }, kbe('Take down…'))))) : null))
+        foot = h('div', { className: 'kbpb-foot' },
+          h('button', { type: 'button', className: 'kb6-btn', 'data-kb': 'publish-cancel', onClick: onClose }, kbt('kbui.cancel')),
+          h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary', 'data-kb': 'publish-go', disabled: nameProblem !== null || needSignin === true, onClick: () => send(name, 'ready') }, Icon('globe', 14), kbe('Put online')))
+      } else if (view === 'online') {
+        body = h('div', { className: 'kbsp-body', 'data-kb': 'publish-online' },
+          h('div', { className: 'kbpb-ok' }, Icon('check', 14), kbe('Online')),
+          h('a', { className: 'kbpb-url', href: shown !== null ? shown.url : '#', target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'publish-url' }, shown !== null ? shown.url : ''),
+          (shown !== null && shown.updated_at ? h('div', { className: 'kbsp-hint' }, kbe('Last sent') + kbfSep() + kbSiteWhen(shown.updated_at) + (shown.files ? ' · ' + kbSiteFiles(shown.files) : '')) : null),
+          h('div', { className: 'kbpb-row' },
+            h('button', { type: 'button', className: 'kb6-btn', 'data-kb': 'publish-copy', onClick: () => shown !== null && copy(shown.url) }, Icon('copy', 14), copied === true ? kbe('Address copied') : kbt('kbui.copylink')),
+            h('button', { type: 'button', className: 'kb6-btn', 'data-kb': 'publish-open', onClick: () => shown !== null && open(shown.url) }, Icon('globe', 14), kbe('Open the page'))),
+          fact('info', kbe('The page is a copy. After you edit the file, press Update to send the new version.'), 'publish-copyinfo'),
+          noteBox)
+        foot = h('div', { className: 'kbpb-foot' },
+          h('button', { type: 'button', className: 'kb6-btn', 'data-kb': 'publish-down', onClick: () => { setDownSlug(shown !== null ? shown.slug : null); setNote(null); setView('confirm') } }, Icon('trash', 14), kbe('Take down…')),
+          h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary', 'data-kb': 'publish-update', onClick: () => shown !== null && send(shown.slug, 'online') }, Icon('refresh', 14), kbe('Update')))
+      } else if (view === 'confirm') {
+        body = h('div', { className: 'kbsp-body', 'data-kb': 'publish-confirm' },
+          h('div', { className: 'kbsp-boxh' }, kbe('Take down this page?')),
+          h('div', { className: 'kbpb-url' }, (downSlug === null ? '' : 'https://' + downSlug + '.kaby.app')),
+          fact('info', kbe('The address stops working right away. Your file stays where it is.'), 'publish-confirm-info'),
+          noteBox)
+        foot = h('div', { className: 'kbpb-foot' },
+          h('button', { type: 'button', className: 'kb6-btn', 'data-kb': 'publish-keep', onClick: () => { setNote(null); setView(shown !== null && shown.slug === downSlug ? 'online' : 'ready') } }, kbe('Keep it online')),
+          h('button', { type: 'button', className: 'kb6-btn kbpb-danger', 'data-kb': 'publish-takedown', onClick: takeDown }, Icon('trash', 14), kbe('Take down')))
+      } else if (view === 'gone') {
+        body = h('div', { className: 'kbsp-body', 'data-kb': 'publish-gone' }, h('div', { className: 'kbsp-msg kbsp-msg-ok' }, kbe('The page is taken down. Its address no longer works.')))
+        foot = closeFoot
+      } else {
+        const down = kbSites.downOf(item.path)
+        body = h('div', { className: 'kbsp-body', 'data-kb': 'publish-takendown' },
+          h('div', { className: 'kbsp-boxh' }, kbe('Taken down by Kybernos')),
+          h('div', { className: 'kbpb-url' }, down !== null ? down.url : ''),
+          h('div', { className: 'kbsp-boxtxt' }, kbe('This page broke the terms of use. If you think this is a mistake, contact Kybernos and give the address above.')))
+        foot = h('div', { className: 'kbpb-foot' },
+          h('button', { type: 'button', className: 'kb6-btn', onClick: onClose }, kbt('kbui.close')),
+          h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary', 'data-kb': 'publish-another', onClick: () => { setName(''); setView('ready') } }, kbe('Choose another name')))
+      }
+      const fiche = h('div', { className: 'kbsp-overlay' + (ancre === true ? ' anch' : ' center'), 'data-kb': 'publish-dialog', onMouseDown: (e) => { if (e.target === e.currentTarget) onClose() } },
+        h('div', { className: 'kbsp-card kbpb-card', ref: cardRef, role: 'dialog', 'aria-label': title, tabIndex: -1, style: styleCarte, 'data-kb': 'publish-card', 'data-view': view, onMouseDown: (e) => e.stopPropagation() }, head, body, foot))
+      return kbPortalDe(fiche)
+    }
+
 
     const TeamsHub = () => {
       const s = useStore()
@@ -19148,6 +19495,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const namePair = React.useState(a.name || '')
       const newName = namePair[0]
       const setNewName = namePair[1]
+      useKbSites()
+      const siteOn = kbIsPage(a.name) ? kbSites.siteOf(a.path) : null
+      const sitesHere = kbIsPage(a.name) && kbSites.shown()
       const item = (id, icon, label, danger, onClick, mark) => h('button', { type: 'button', key: id, className: 'kb6-menu-item' + (danger === true ? ' danger' : ''), 'data-kb': mark, onClick: onClick }, Icon(icon, 14), h('span', null, label))
       if (renaming === true) {
         return h('div', { className: 'kb6-menu', onClick: (e) => e.stopPropagation() },
@@ -19166,6 +19516,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           item('duplicate', 'package', kbt('kbui.duplicate'), false, () => { setOpen(false); onAction('duplicate', a) }, 'action-clone'),
           item('share', 'share', kbt('kbui.share'), false, () => { setOpen(false); onAction('share', a, { anchor: btnRectRef.current }) }),
           item('copylink', 'link', hosted === true ? kbt('kbui.copylink') : kbt('kbui.copylink.hosted'), false, () => { setOpen(false); onAction('copy-link', a) }),
+          (sitesHere !== true ? null : (siteOn === null
+            ? item('publish', 'globe', kbe('Publish…'), false, () => { setOpen(false); onAction('publish', a, { anchor: btnRectRef.current }) }, 'action-publish')
+            : [
+              item('site-open', 'globe', kbe('Open online page'), false, () => { setOpen(false); onAction('site-open', a) }, 'action-site-open'),
+              item('site-update', 'refresh', kbe('Update online page'), false, () => { setOpen(false); onAction('site-update', a) }, 'action-site-update'),
+              item('site-down', 'trash', kbe('Take down online page…'), true, () => { setOpen(false); onAction('site-down', a, { anchor: btnRectRef.current }) }, 'action-site-down'),
+            ])),
           item('delete', 'trash', kbt('kbui.delete'), true, () => { setOpen(false); onAction('delete', a) })) : null))
     }
     // Pieces produites en serie : six « SPEC.md » cote a cote portaient le meme
@@ -19183,6 +19540,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return kbArtPlain(lines[0]).slice(0, 96)
     }
     const KbArtCard = ({ a, onOpen, preview, onAction, pinned, onPin, read, appear }) => {
+      useKbSites()
+      const siteOn = kbIsPage(a.name) ? kbSites.siteOf(a.path) : null
       const t = kbArtType(a.name)
       // Répertoire, taille et première ligne masqués sur la carte (demande
       // 26/09, maquette « barre fine + média plein-cadre ») : la barre ne
@@ -19211,7 +19570,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             onClick: (e) => { e.stopPropagation(); if (typeof onPin === 'function') onPin(a.path) },
           }, Icon('star', 13)),
           (typeof onAction === 'function' ? h(KbArtMenu, { a: a, hosted: false, onAction: onAction, pinned: pinned, onPin: onPin }) : null)),
-        h('div', { className: 'kb6-prev kb6-prev-' + t.id + (t.id === 'miniapp' ? ' kb6-prev-mini' : ''), 'data-kb': 'art-prev', onClick: open }, contenu))
+        h('div', { className: 'kb6-prev kb6-prev-' + t.id + (t.id === 'miniapp' ? ' kb6-prev-mini' : ''), 'data-kb': 'art-prev', onClick: open }, contenu),
+        // The header row of a tile has no room left for a word: the mark floats over the corner of the preview.
+        (siteOn !== null ? h('span', { className: 'kb6-online kb6-online-float', 'data-kb': 'art-online', title: siteOn.url }, h('span', { className: 'kb6-online-dot', 'aria-hidden': 'true' }), kbe('Online')) : null))
     }
     // ── Artefacts rejouables ────────────────────────────────────────────────
     // Contrat partage du systeme Kybernos : un artefact a un `kind`, un `title`
@@ -21015,6 +21376,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const popSharePair = React.useState(null)
       const popShare = popSharePair[0]
       const setPopShare = popSharePair[1]
+      const popPubPair = React.useState(null)
+      const popPub = popPubPair[0]
+      const setPopPub = popPubPair[1]
+      useKbSites()
+      const pageOnline = kbIsPage(name) ? kbSites.siteOf(path) : null
+      const canPublish = kbIsPage(name) && kbSites.shown()
       const kind = kbArtType(name)
       const fileEditor = kbFileEditors.forName(name)
       const popWidthPair = React.useState(null)
@@ -21083,6 +21450,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h('div', { className: 'kb6-popactions' },
               fileEditor !== null ? h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-edit', title: kbe('Edit this file'), 'aria-label': kbe('Edit'), onClick: () => { try { fileEditor.open(path, name) } catch (e) { /* the editor cannot open: nothing happens */ } } }, Icon('pencil', 14)) : null,
               h('button', { type: 'button', className: 'kb6-popx' + (popFull === true ? ' on' : ''), 'data-kb': 'art-popup-full', 'aria-pressed': popFull === true ? 'true' : 'false', title: kbe('Full page'), onClick: togglePopFull }, Icon('maximize2', 14)),
+              canPublish === true ? h('button', { type: 'button', className: 'kb6-popx kb6-pubbtn' + (pageOnline !== null ? ' live' : ''), 'data-kb': 'art-popup-publish', title: pageOnline !== null ? kbe('This page is online: see its options') : kbe('Put this page online on the internet'), onClick: (e) => setPopPub({ path: path, name: name, view: null, anchor: kbAncreDe(e.currentTarget) }) }, Icon('globe', 14), h('span', null, pageOnline !== null ? kbe('Online') : kbe('Publish'))) : null,
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e) => setPopShare({ kind: 'deliverable', id: path, titre: name, path: path, anchor: kbAncreDe(e.currentTarget) }) }, Icon('share', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-origin', title: kbe('Find the chat and section that delivered this file'), 'aria-label': kbe('Find origin'), onClick: findOrigin }, Icon('rotateCcw', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-close', title: kbe('Close (Esc)'), 'aria-label': kbe('Close'), onClick: leave }, '✕'))),
@@ -21099,7 +21467,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                   : h('span', { className: 'kb6-origin-line' }, origin.error !== null && origin.error !== undefined ? origin.error : kbe('No chat mentions this file')))
             : null,
           h('div', { className: 'kb6-popbody' }, h(ArtBody, { name: name, load: load, path: path })),
-          (popShare !== null ? h(KbShareDialog, { item: popShare, onClose: () => setPopShare(null) }) : null))
+          (popShare !== null ? h(KbShareDialog, { item: popShare, onClose: () => setPopShare(null) }) : null),
+          (popPub !== null ? h(KbPublishDialog, { item: popPub, onClose: () => setPopPub(null) }) : null))
       )
     }
     class KbBoundary extends React.Component {
@@ -21514,6 +21883,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const artSharePair = React.useState(null)
       const artShare = artSharePair[0]
       const setArtShare = artSharePair[1]
+      // The Publish dialog of a page, posed by the tile's menu (actions 'publish' and 'site-down'); `useKbSites` makes the « Online » marks follow the account.
+      const artPubPair = React.useState(null)
+      const artPublish = artPubPair[0]
+      const setArtPublish = artPubPair[1]
+      useKbSites()
       const doAction = (action, a, extra) => {
         // `menuPath` appartenait à une version où le menu était piloté par la
         // page ; il vit maintenant dans KbArtMenu. L'appel résiduel levait
@@ -21525,6 +21899,26 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           // Projets et Kybers) — niveau d'accès choisi, puis, si « Lien public »,
           // le push artefact + audience 'link' que la fiche porte elle-même.
           setArtShare({ kind: 'deliverable', id: a.path, titre: a.name, path: a.path, anchor: (extra !== undefined && extra !== null && extra.anchor !== undefined) ? extra.anchor : null })
+          return
+        }
+        if (action === 'publish' || action === 'site-down') {
+          setArtPublish({ path: a.path, name: a.name, view: action === 'site-down' ? 'confirm' : null, anchor: (extra !== undefined && extra !== null && extra.anchor !== undefined) ? extra.anchor : null })
+          return
+        }
+        if (action === 'site-open') {
+          const on = kbSites.siteOf(a.path)
+          if (on !== null) { try { window.open(on.url, '_blank', 'noopener') } catch (e) { /* refused: nothing opens */ } }
+          return
+        }
+        if (action === 'site-update') {
+          // The person asked for exactly this: the page is sent again under the name it already has, and the line at the top says how it went.
+          const on = kbSites.siteOf(a.path)
+          if (on === null) return
+          setNote(kbe('Updating the online page…'))
+          kbSites.publish(a.path, on.slug).then((r) => {
+            setNote(r.ok === true ? kbe('Online page updated') : kbSites.words(r.error, r).slice(0, 120))
+            try { timerSvc.timeout(() => setNote(null), 3200) } catch (e) { setNote(null) }
+          })
           return
         }
         if (action === 'download') {
@@ -21720,7 +22114,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('div', { className: 'kb6-lmain' },
             h('div', { className: 'kb6-ltop' },
               h('div', { className: 'kb6-lrowname' }, a.name),
-              h('span', { className: 'kb6-type', style: { background: a.type.tint, '--kb6-ink': a.type.color } }, a.type.label)),
+              h('span', { className: 'kb6-type', style: { background: a.type.tint, '--kb6-ink': a.type.color } }, a.type.label),
+              (kbIsPage(a.name) && kbSites.siteOf(a.path) !== null ? h('span', { className: 'kb6-online', 'data-kb': 'art-online', title: kbSites.siteOf(a.path).url }, h('span', { className: 'kb6-online-dot', 'aria-hidden': 'true' }), kbe('Online')) : null)),
             h('div', { className: 'kb6-lrowsub', title: dateTip }, metaBits.slice(1).join(' · ')),
             (snippet !== '' ? h('div', { className: 'kb6-snip' }, snippet) : null)),
           h('div', { className: 'kb6-lacts' },
@@ -21733,7 +22128,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         (reste > 0 ? h('button', { type: 'button', className: 'kb6-more', 'data-kb': 'art-more', title: kbt('deliverables.more').replace('{n}', String(reste)), onClick: () => setReveal(reveal + KB_ART_STEP) },
           kbt('deliverables.more').replace('{n}', String(reste)),
           h('span', { className: 'kb6-morechev', 'aria-hidden': 'true' }, '⌄')) : null),
-        (artShare !== null ? h(KbShareDialog, { item: artShare, onClose: () => setArtShare(null) }) : null)))
+        (artShare !== null ? h(KbShareDialog, { item: artShare, onClose: () => setArtShare(null) }) : null),
+        (artPublish !== null ? h(KbPublishDialog, { item: artPublish, onClose: () => setArtPublish(null) }) : null)))
     }
     const KB_CP = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-composio') } catch (e) { return false } })()
     // The Dashboards satellite is in the boot list: its menu row shows, and its page mounts on 'main.kybernos-dashboards'.
@@ -29041,7 +29437,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       yanked: kbThEn('Withdrawn', 'Retiré'),
       revoked: kbThEn('Revoked', 'Révoqué'),
     })[String(level)] ?? String(level === null || level === undefined ? '' : level)
-    const kbThMono = { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontWeight: 400 }
     /** The menu words a pack brings, as one readable line (« Visits » for the tasks row). */
     const kbThWords = (pack) => {
       const menu = kbThPlain(pack) && kbThPlain(pack.words) && kbThPlain(pack.words.menu) ? pack.words.menu : null
@@ -29053,7 +29448,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // <kb-themes-gallery>
     // Pure helpers of the page: what the gallery lists, what a plugin is called, what a cover looks like. No fetch, no state.
     const kbThHash = (s) => { let x = 2166136261; const t = String(s); for (let i = 0; i < t.length; i++) { x ^= t.charCodeAt(i); x = Math.imul(x, 16777619) } return x >>> 0 }
-    const kbThAccent = (v) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : '#6b7280')
     /** The cover of a theme: DRAWN from its id and its colour, never a picture file (AGENTS rule 4: no media in git). */
     const kbThCover = (id, accent) => {
       const n = kbThHash(id)
@@ -30747,7 +31141,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // CSS `order` on our own element moves it (no engine patch). It listens: the dock entry receives the composer's draft
     // (`p.input.draft`) and lights the template the text sounds like. One colour on the page: the theme's accent.
     const kbNcBootIds = () => { try { return (((window.__DSH_BOOT__ || {}).entries) || []).map((e) => (e !== null && e !== undefined ? e.id : '')) } catch (e) { return [] } }
-    const kbNcCalm = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true } catch (e) { return false } }
     // The catalogue of examples, asked of the host once per page load (the last good answer is kept) and again each time a new chat appears, so a picture the host loaded
     // meanwhile shows. The host answers from its disk copy, else from the text shipped with the plugin: this never waits on the network.
     let kbNcCatData = null
@@ -37035,6 +37428,40 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbsp-teamrow.off{opacity:.6}
 @media (max-width:600px){.kbsp-inv{flex-wrap:wrap}.kbsp-in{flex-basis:100%}.kbsp-sel{flex:1;max-width:none}}
 `), 'kybers: mockup v7 styles')
+    ctx.effect(() => styles.insert(`
+/* The Publish button of a page of the Creations and its dialog (KbPublishDialog); the card, head and body are the Share dialog's (.kbsp-*). */
+.kb6-pubbtn{display:inline-flex;align-items:center;gap:6px}
+.kb6-pubbtn.live{color:var(--dsw-alias-state-success-primary);border-color:var(--dsw-alias-state-success-primary)}
+.kb6-online{display:inline-flex;align-items:center;gap:5px;flex:none;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--dsw-alias-state-success-primary);border:1px solid var(--dsw-alias-state-success-primary)}
+.kb6-online-dot{width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-success-primary)}
+.kb6-card{position:relative}
+.kb6-online-float{position:absolute;right:8px;bottom:8px;background:var(--dsw-alias-bg-layer-1);pointer-events:none}
+.kbpb-card{width:min(400px,calc(100vw - 24px))}
+.kbpb-label{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbpb-addr{display:flex;align-items:center;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
+.kbpb-addr:focus-within{outline:1px solid var(--dsw-alias-brand-primary)}
+.kbpb-addr.bad{border-color:var(--dsw-alias-state-error-primary)}
+.kbpb-addr input{flex:1;min-width:0;height:36px;border:none;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:0 4px 0 10px;outline:none}
+.kbpb-addr span{flex:none;padding:0 10px 0 0;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kbpb-fact{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbpb-fact svg{flex:none;margin-top:2px}
+.kbpb-foot{display:flex;gap:8px;padding:10px 16px 16px}
+.kbpb-foot .kb6-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.kbpb-row{display:flex;gap:8px;flex-wrap:wrap}
+.kbpb-row .kb6-btn{display:inline-flex;align-items:center;gap:6px}
+.kbpb-url{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);word-break:break-all;text-decoration:none}
+a.kbpb-url:hover{text-decoration:underline}
+.kbpb-ok{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--dsw-alias-state-success-primary)}
+.kbpb-wait{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dsw-alias-label-secondary);padding:12px 0}
+.kbpb-wait svg{animation:kbpb-spin 1s linear infinite}
+@keyframes kbpb-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.kbpb-wait svg{animation:none}}
+.kbpb-pages{display:flex;flex-direction:column;gap:4px}
+.kbpb-prow{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.kbpb-pname{min-width:0;flex:1;font-size:13px;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbpb-danger{background:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary);color:#fff}
+.kbpb-danger:hover{filter:brightness(1.06)}
+`), 'kybers: publish styles')
     ctx.effect(() => styles.insert(`
 /* The canvas of a workflow and of a run (KbFlowCanvas). Colours of a style are custom properties on its class; a rule below reads them. */
 .kbfc,.kbfc-sample{--cv-bg:var(--dsw-alias-bg-layer-1);--cv-dot:color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent);--nd-bg:var(--dsw-alias-bg-layer-2);--nd-line:var(--dsw-alias-border-l2);--nd-ink:var(--dsw-alias-label-primary);--nd-sub:var(--dsw-alias-label-tertiary);--wire:var(--dsw-alias-label-tertiary);--wire-dim:var(--dsw-alias-border-l2);--chip:var(--dsw-alias-bg-base);--lbl:var(--dsw-alias-bg-layer-2);--ok:var(--dsw-alias-state-success-primary);--bad:var(--dsw-alias-state-error-primary);--sh:rgba(0,0,0,.25)}

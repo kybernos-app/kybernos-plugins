@@ -76,3 +76,21 @@ The server half follows this contract, with these differences. The plugin (`site
 - Static only is stricter than listed above: no `api/` folder, no middleware, no `package.json`, no `vercel.json` of the person's; the platform adds its own `vercel.json` (headers, clean URLs).
 - A job every 5 minutes (`sites-purge`) finishes orphaned builds and deletes the projects of ended pages. The migration is `0069_sites_vercel_publish`, to be renumbered when the line is merged.
 - Never run against the real Vercel API: the first run by hand must check that Vercel accepts `name` on the first deployment, that the static no-build settings work, that the build is ready within the 60 s the route waits, and that the page domain comes back `verified`. Deployment Protection must leave the production custom domain public.
+
+## The Publish button of Creations (2026-11-03; `site-page.mjs`, `KbPublishDialog` in `kybernos-plugin/client.js`)
+
+An HTML file of the Creations has a **Publish** button (header of its preview) and a « Publish… » row in its tile's « … » menu. The click is the person's yes, so nothing asks again: it works in a chat in
+Full access, where Kaby's own tool cannot ask (the engine refuses `approval.request` under the policy `never`). It is the same server contract as the tool, with the person's account token.
+
+- **Routes** (Cloud plugin, personal DSH only: a team's own DSH answers `403 personal_only` and draws no button): `GET /kybernos-cloud/sites` (the account's pages, each with the files it came from; origin
+  checked), `POST …/sites/plan` `{path}` (what would be sent: nothing leaves), `POST …/sites/publish` `{path, name?}`, `POST …/sites/remove` `{slug}` (these three: origin **and** the signed session).
+- **What is sent**: the file as `index.html`, and the files it names inside its own folder (`src`, `href`, `poster`, `srcset`, `url(…)`, `@import`, other pages of the folder, followed through style sheets and
+  other pages), at the same relative paths so the links keep working. Never a file outside the folder, behind a link, hidden, in `node_modules`, or of a kind the server refuses: those are listed as « Not sent ».
+  The server's limits apply (50 files, 2 MB each, 4 MB in all): over them, the dialog stops before anything leaves and names the largest files.
+- **Which file is which page** is remembered on the computer (`<DSH home>/kybernos/sites-published.json`, `{ path: slug }`, the newest 300): the tile's « Online » mark, « Update » (same name) and « Take down » follow it.
+  A page Kaby put online through the tool is not in it (its path is not recorded): it shows in the count but not on a tile.
+- **The name** is proposed from the page's `<title>` and checked as the person types (the host's pattern and reserved names; `plan` sends the reserved list). Whether another person holds it is only known at
+  « Put online » (`409 slug_taken`, said on the form): the server has no « is this name free » route. The maximum number of pages is not in the list either: the dialog shows « n of max » once a refusal has told it.
+- **Where it is not drawn**: no Cloud plugin, a team's DSH, a server without the feature (`404`): the button is absent, not dead. Signed out: the dialog asks to sign in.
+- Live check: `scripts/check-publish-button-live.mjs` (sandbox, with a stand-in server that answers like the contract), 35 checks.
+
