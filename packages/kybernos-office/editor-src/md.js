@@ -66,20 +66,20 @@ const TOOLS = [
   null,
   ['undo', '↶', t('Annuler', 'Undo')], ['redo', '↷', t('Rétablir', 'Redo')]
 ]
-const toolbar = el('div', { class: 'tb', id: 'md-tools', role: 'toolbar', 'aria-label': t('Mise en forme', 'Formatting') })
+const toolbar = el('div', { class: 'kymd-tb', id: 'md-tools', role: 'toolbar', 'aria-label': t('Mise en forme', 'Formatting') })
 for (const tool of TOOLS) {
-  if (tool === null) { toolbar.appendChild(el('span', { class: 'sep' })); continue }
+  if (tool === null) { toolbar.appendChild(el('span', { class: 'kymd-sep' })); continue }
   toolbar.appendChild(el('button', { type: 'button', 'data-c': tool[0], title: tool[2], 'aria-label': tool[2], text: tool[1] }))
 }
-const modeEd = el('button', { type: 'button', id: 'm-ed', class: 'mode on', text: t('Éditeur', 'Editor') })
-const modeSrc = el('button', { type: 'button', id: 'm-src', class: 'mode', text: t('Texte', 'Text') })
-const top = el('div', { class: 'top' }, el('div', { class: 'modes', role: 'group', 'aria-label': t('Affichage', 'View') }, modeEd, modeSrc), toolbar)
+const modeEd = el('button', { type: 'button', id: 'm-ed', class: 'kymd-mode on', text: t('Éditeur', 'Editor') })
+const modeSrc = el('button', { type: 'button', id: 'm-src', class: 'kymd-mode', text: t('Texte', 'Text') })
+const top = el('div', { class: 'kymd-top' }, el('div', { class: 'kymd-modes', role: 'group', 'aria-label': t('Affichage', 'View') }, modeEd, modeSrc), toolbar)
 const linkInput = el('input', { type: 'url', id: 'md-link', placeholder: t('Adresse du lien', 'Link address'), 'aria-label': t('Adresse du lien', 'Link address') })
-const linkOk = el('button', { type: 'button', class: 'ok', text: 'OK' })
+const linkOk = el('button', { type: 'button', class: 'kymd-ok', text: 'OK' })
 const linkOff = el('button', { type: 'button', text: t('Retirer le lien', 'Remove link') })
-const linkBar = el('div', { class: 'linkbar', id: 'md-linkbar', hidden: true }, linkInput, linkOk, linkOff)
-const richEl = el('div', { class: 'rich', id: 'md-rich' })
-const textEl = el('textarea', { class: 'src', id: 'md-text', spellcheck: 'false', 'aria-label': t('Texte Markdown', 'Markdown text'), hidden: true })
+const linkBar = el('div', { class: 'kymd-linkbar', id: 'md-linkbar', hidden: true }, linkInput, linkOk, linkOff)
+const richEl = el('div', { class: 'kymd-rich', id: 'md-rich' })
+const textEl = el('textarea', { class: 'kymd-src', id: 'md-text', spellcheck: 'false', 'aria-label': t('Texte Markdown', 'Markdown text'), hidden: true })
 app.append(top, linkBar, richEl, textEl)
 
 // ── the Editor view ──────────────────────────────────────────────────────────
