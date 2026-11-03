@@ -537,7 +537,7 @@
       "watch": [
         "cloud-budget"
       ],
-      "note": "Replica only. J5 spends the member's 5-hour allowance for good: run it once per five hours per team (KB_E2E_J5_TEAM=t2 plays it in the other team). The first half (check-usage-live) needs no replica.",
+      "note": "Replica only. The first half (check-usage-live) needs no replica. J5 needs account B to be a member of T1, which only J4 (W4-09) does: run W4-09 first, once per replica. J5 spends the member's 5-hour allowance for good, so it cannot be replayed in the same team for five hours: after a spent replica use `replica-reset` (README § 7c). Run on 2026-11-03: 26 of 31 (T-020), then 31 of 31 on a fresh replica once the journey sized its turns on what a turn really costs.",
       "timeout": 900
     },
     {
@@ -545,15 +545,31 @@
       "wave": "W2",
       "prio": "P0",
       "area": "own key",
-      "title": "Own key: one key per provider, saved by name, never shown, model list follows",
+      "title": "Own key: the provider sheet and the Add provider form (key checked on paste, saved by name, every model listed)",
       "runner": "script",
-      "cmd": "source scripts/sandbox/env.sh && node scripts/check-provider-sheet-live.mjs && node scripts/check-models-provider-live.mjs && node scripts/check-models-live.mjs",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-provider-sheet-live.mjs && node scripts/check-models-provider-live.mjs",
       "env": "sandbox",
       "personas": [
         "A"
       ],
       "status": "ready",
-      "note": "Starts a fake OpenAI-compatible provider on the loopback and adds then deletes one custom provider in the sandbox. No real key, nothing leaves the machine."
+      "note": "Starts a fake OpenAI-compatible provider on the loopback and adds then deletes one custom provider in the sandbox. No real key, nothing leaves the machine.",
+      "timeout": 360
+    },
+    {
+      "id": "W2-13",
+      "wave": "W2",
+      "prio": "P1",
+      "area": "own key",
+      "title": "The AI provider and models page: a short first view, the providers with no key folded under one line, the sheet of a model",
+      "runner": "script",
+      "cmd": "source scripts/sandbox/env.sh && node scripts/check-models-live.mjs",
+      "env": "sandbox",
+      "personas": [
+        "C"
+      ],
+      "status": "to-verify",
+      "note": "Split from W2-03 on 2026-11-03. Needs C (the first view asserts « Kybernos Cloud not connected »). Three assertions (the fold under one line, \"7 in view\", the fold opens) are red there for want of ONE provider with a key: the page folds only when some providers have a key and some do not (kbPvFold), and a sandbox holds no key, so all seven wait and nothing folds. Test assumption, not a product defect (T-018): the check should add a made-up key first, as check-provider-sheet-live does for its own provider."
     },
     {
       "id": "W2-04",
@@ -567,8 +583,8 @@
       "personas": [
         "A"
       ],
-      "status": "needs-build",
-      "note": "No such owner switch exists today (searched docs, READMEs and server modules on 2026-11-03). Needs a platform setting on the server and a refusal path in kybernos-cloud / kybernos-models. Decision to take first: does the switch also limit devices per account?"
+      "status": "blocked",
+      "note": "Dropped from the takeoff by the owner on 2026-11-03 (question 13, default taken). A product gap, not a failure: no owner switch for several accounts exists (searched docs, READMEs and server modules). Stays in the ledger as a gap."
     },
     {
       "id": "W2-05",
@@ -590,15 +606,30 @@
       "wave": "W2",
       "prio": "P0",
       "area": "local models",
-      "title": "A real turn on a small local model: pick it, send a message, get an answer, the chip says it is free",
-      "runner": "agent",
-      "brief": "On sandbox A open Settings › AI provider and models, find the Ollama local models, pick tev1:0.8b (already on this machine, 811 MB: pull nothing), start a new chat on it, send « Say hello in one short sentence » and wait for the answer. Record the model name shown in the composer, the answer, how long it took, and whether anything says it costs money. Then stop Ollama's model (not the server) and send again: record the sentence shown.",
+      "title": "A small local model answers a one-line request through Ollama (engine up, model installed, under 60 s)",
+      "runner": "script",
       "env": "machine",
       "personas": [
         "A"
       ],
       "status": "ready",
-      "note": "Uses the real Ollama of the test machine and only the 0.8b model (the 9b ones are the owner's; do not load them). A turn takes seconds; the machine's CPU is busy for that time."
+      "note": "Engine level only: it does not prove DSH has the model in its picker (W2-14). Loopback only, pulls nothing, never loads the 9 GB models.",
+      "cmd": "node scripts/check-ollama-turn.mjs"
+    },
+    {
+      "id": "W2-14",
+      "wave": "W2",
+      "prio": "P1",
+      "area": "local models",
+      "title": "A turn from the composer on a local model wired in DSH",
+      "runner": "agent",
+      "brief": "On sandbox A, pick the wired local model in the composer's model menu, send « Say hello in one short sentence », record the model name shown, the answer, the time, and whether anything says it costs money.",
+      "env": "machine",
+      "personas": [
+        "A"
+      ],
+      "status": "blocked",
+      "note": "Blocked on 2026-11-03: the only model wired in DSH is the owner's qwen3.5:9b (8.3 GB loaded on a 16 GB machine that also runs the sandboxes), and the model menu of A shows only Kybernos Cloud. tev1:0.8b is not in the signed catalogue, so the page cannot wire it. Owner decision: README § 9, question 16."
     },
     {
       "id": "W2-06",
@@ -613,7 +644,7 @@
         "A"
       ],
       "status": "to-verify",
-      "note": "The old title promised « free models work with no account and no key ». The script proves the honest locked state with answers it fakes itself (OpenCode Zen answered 403 free_tier_locked on 2026-10-16). Whether a real free model answers a real turn today is NOT tested by any script: ask the owner (README § 9, question 14)."
+      "note": "The old title promised « free models work with no account and no key ». The script proves the honest locked state with answers it fakes itself (OpenCode Zen answered 403 free_tier_locked on 2026-10-16). Whether a real free model answers a real turn today is NOT tested by any script: owner decision 2026-11-03: not promised, only the locked state is checked (README § 9, question 14)."
     },
     {
       "id": "W2-07",
@@ -634,15 +665,15 @@
       "wave": "W2",
       "prio": "P0",
       "area": "failures",
-      "title": "Failures read as plain sentences, and the chat stays usable: the Kybernos model down, a bad key, out of credit",
-      "runner": "agent",
-      "brief": "Two paths. (1) Kybernos model on the replica: on sandbox A send one message that works; then POST http://127.0.0.1:8822/__/engine/fail with {\"match\":\"prov.example.test\",\"status\":503} (this fails every call to the stand-in's provider, back-up included), send again, and record the sentence. Repeat with status 429 and 401, and with {\"n\":1} (one failure, the next call works). Always end with {\"match\":\"\"}. (2) Own key: add a custom provider with a deliberately wrong key against a real provider's address, send a message, record the sentence. For each, record the sentence, the buttons, and whether the next message (after the fix) goes through without a reload.",
+      "title": "The Kybernos model fails (503, 429, 401, one failure): a plain card tells the person what happened, and the chat stays usable",
+      "runner": "script",
       "env": "replica",
       "personas": [
         "A"
       ],
       "status": "ready",
-      "note": "Corrected 2026-11-03: scripts/fake-kybernos.mjs fakes only cloud account and invitation routes, not a model. The replica's control port 8822 is the tool: POST /__/engine/fail {match, status, n} (match is a substring of the deployment's base address; the seed's is https://prov.example.test/v1) and POST /__/engine/reply. What is NOT covered: a timeout or a 429 on an OWN key (no stand-in provider answers those; check-provider-sheet-live.mjs has a loopback fake that could grow them, README § 8 item 11). The replica keeps the failure in memory until {\"match\":\"\"} or a restart."
+      "note": "Turned into a script on 2026-11-03 (scripts/check-model-failures-live.mjs): the replica's control port makes the stand-in provider fail, the script reads the sentence on the page and prints it. The script decides the mechanical part (something is said, no raw JSON/undefined/stack, composer still there, next turn answers); whether the sentence tells the person the right thing is for the owner to read (every sentence is printed). The own-key half (a wrong key on a real provider, a 429 or a timeout on an own key) is not covered: no stand-in provider answers those (README § 8 item 11). Red on its first run (the person read the server's raw JSON, T-021), green since the plain card; the engine's own red row keeps the raw body.",
+      "cmd": "source \"$KB_E2E_DIR/env.sh\" && node scripts/check-model-failures-live.mjs"
     },
     {
       "id": "W2-09",
@@ -675,7 +706,7 @@
         "A"
       ],
       "status": "ready",
-      "note": "Makes REAL requests to the free search engines (an engine test and one search through DSH's seam) and stores then removes a made-up key. It undoes its writes. Owner's OK for outbound traffic: README § 9, question 15."
+      "note": "Makes REAL requests to the free search engines (an engine test and one search through DSH's seam) and stores then removes a made-up key. It undoes its writes. Outbound traffic allowed by the owner on 2026-11-03 (README § 9, question 15)."
     },
     {
       "id": "W2-11",
@@ -1010,7 +1041,7 @@
         "A"
       ],
       "status": "ready",
-      "note": "Runs from the kybernos-server checkout."
+      "note": "Runs from the kybernos-server checkout. NOT on the harness replica (8821): it lacks features the plan expects and its accounts are spent by the journeys. Start a dedicated one on other ports (`REPLICA_PORT=9810 REPLICA_STATE=<private file> REPLICA_SEED=catalogue REPLICA_COMPOSIO=1 REPLICA_INBOUND=1 REPLICA_COMPUTERS=1 REPLICA_WEBHOOK=1 node scripts/replica.ts`, never `REPLICA_STRIPE=cli`) and give the plan `--api http://localhost:9810 --control http://127.0.0.1:9811`. Run on 2026-11-03: 459 ok, 30 fail, 0 skipped (see T-027); about five minutes."
     },
     {
       "id": "W4-09",
@@ -1025,7 +1056,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: 27 of 27, twice (before and after the harness changes)."
     },
     {
       "id": "W4-10",
@@ -1043,7 +1075,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "J6 fills T3's pool with one big call; after that the replica's pool and A's 7-day allowance are spent for good (use `replica-reset`, README § 7c). Run on 2026-11-03: 8 of 8 once the journey refreshed the page of the team's own DSH after a role change (T-024)."
     },
     {
       "id": "W4-11",
@@ -1058,7 +1091,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: 13 of 16. Three reds, the same three the team-DSH session ticketed on 2026-11-02 (the canary is not in the request body of the personal chat, the OFF marker is not the first system message, the approved team lesson is not in B's team chat request); not triaged here (T-025)."
     },
     {
       "id": "W4-12",
@@ -1072,8 +1106,8 @@
       "personas": [
         "A"
       ],
-      "status": "to-verify",
-      "note": "Confirm which server these two checks talk to (stand-in or replica) before the first run."
+      "status": "ready",
+      "note": "Both checks fake the team routes on a sandbox: no server is involved. Run on 2026-11-03: the skills check passes; the automations check is red (T-029) and ends on a crash at 390 px."
     },
     {
       "id": "W4-13",
@@ -1088,7 +1122,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: J9 21 of 21 (T-026: a request of another workspace's DSH inside its window once made it red)."
     },
     {
       "id": "W4-14",
@@ -1106,7 +1141,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "J1 15 of 15 and J5 31 of 31 on 2026-11-03 (J5 needs W4-09 first and a fresh replica)."
     },
     {
       "id": "W4-18",
@@ -1121,7 +1157,8 @@
         "A",
         "B"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: J7 42 of 43, every width, language and theme green. The red is the removed-team step: after B is removed from the team he is working in, every message, even in a new chat, is still sent for that team and refused for at least 200 s (T-028)."
     },
     {
       "id": "W4-19",
@@ -1139,7 +1176,8 @@
       "status": "ready",
       "watch": [
         "cloud-budget"
-      ]
+      ],
+      "note": "Run on 2026-11-03: 7 of 7 once the check accepted « Add budget » (the button was renamed from « Add credits »)."
     },
     {
       "id": "W4-20",
@@ -1169,7 +1207,8 @@
       "personas": [
         "A"
       ],
-      "status": "ready"
+      "status": "ready",
+      "note": "Run on 2026-11-03: pass (24 s)."
     },
     {
       "id": "W4-16",

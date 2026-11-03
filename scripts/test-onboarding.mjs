@@ -14,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors, kbObSections, kbObThemeOf, kbObThemeSeam, kbObThemeApplied'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObModelDown, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors, kbObSections, kbObThemeOf, kbObThemeSeam, kbObThemeApplied'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -334,6 +334,28 @@ eq('every text the card asks for exists', [...src.matchAll(/\bT\('(nm\.[a-z.]+)'
 eq('the card sits above the composer, in the input dock', /name: 'conversation\.input\.dock', id: 'kybernos-need-model'/.test(src), true)
 eq('the card reads the failure from the chat, not from the DOM', /useChat\(\(c\) => \{ try \{ return c\.nodes\.valuesCache/.test(src), true)
 eq('the card puts the message back, it does not send it', /kbPrefillDraft\(need\.prompt/.test(src) && !/inputActions\.submit|\.submit\(\)/.test(src.slice(src.indexOf('const KbNeedModel'), src.indexOf('const KbNeedModel') + 6000)), true)
+
+/* ── 7b''. The card under a failed turn whose model was down or busy (T-021 of the soft-takeoff recette) ──────────────────── */
+// The engine prints the server's body as it came (`502: {"message": …}`, code SERVER; `429: …`, code RATE_LIMIT) in its red row, which stays: this card says it in plain words.
+const down = mod.kbObModelDown
+const RAW502 = '502: {"message":"The model is temporarily unavailable.","type":"server_error","param":null,"code":"upstream_unavailable"}'
+eq('no nodes, junk: nothing', [down(null, []), down(undefined, null), down('x', 7), down({}, [])].every((v) => v === null), true)
+eq('no failed turn: nothing', down([other], [{ turn: 1, prompt: 'hi' }]), null)
+eq('a missing key is not this card\'s (the card above has it)', down([errNode(1, 'MISSING_CREDENTIAL', SENTENCE)], [{ turn: 1, prompt: 'hi' }]), null)
+eq('a 502 (code SERVER) reads as « down », with the message to put back',
+  JSON.stringify(down([other, errNode(1, 'SERVER', RAW502)], [{ turn: 1, prompt: 'Hello?' }])), JSON.stringify({ turn: 1, kind: 'down', prompt: 'Hello?' }))
+eq('a 429 (code RATE_LIMIT) reads as « busy »', down([errNode(1, 'RATE_LIMIT', '429: slow down')], [{ turn: 1, prompt: 'a' }]).kind, 'busy')
+eq('only the latest turn counts: after a new message the card is gone', down([errNode(1, 'SERVER', RAW502)], [{ turn: 1, prompt: 'a' }, { turn: 2, prompt: 'b' }]), null)
+eq('and it is back when that new turn fails the same way, with that turn\'s message',
+  JSON.stringify(down([errNode(1, 'SERVER', RAW502), errNode(2, 'RATE_LIMIT', '429')], [{ turn: 1, prompt: 'a' }, { turn: 2, prompt: 'b' }])), JSON.stringify({ turn: 2, kind: 'busy', prompt: 'b' }))
+eq('the card never shows the server\'s body: its texts hold no JSON, no status code and no technical word',
+  ['nm.down.t.down', 'nm.down.s.down', 'nm.down.t.busy', 'nm.down.s.busy'].every((k) => mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((t) => t.length > 8 && !/[{}]|\b(50[0-9]|429|json|server_error|upstream)\b/i.test(t))), true)
+eq('the card sits in the input dock, beside the other one', /name: 'conversation\.input\.dock', id: 'kybernos-model-down'/.test(src), true)
+{
+  const card = src.slice(src.indexOf('const KbModelDown'), src.indexOf("id: 'kybernos-model-down'"))
+  eq('it reads the failure from the chat, puts the message back and never sends it', /useChat\(\(c\) => \{ try \{ return c\.nodes\.valuesCache/.test(card) && /kbPrefillDraft\(down\.prompt/.test(card) && !/inputActions\.submit|\.submit\(\)/.test(card), true)
+  eq('it can be closed, and carries a hook for the checks', /kbnm-x/.test(card) && /'data-kb': 'model-down'/.test(card), true)
+}
 
 /* ── 7b'. The card before any failure: the engine's catalog holds no model at all (AC-03, account campaign 2026-10-18) ──────────── */
 // The picker says « No models available. » with nothing to do about it (the engine's own words): the dock says it in a person's words and offers the two ways forward.

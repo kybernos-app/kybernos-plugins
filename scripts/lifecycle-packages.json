@@ -204,6 +204,10 @@
     {
       "dir": "kybernos-front-desk",
       "nom": "@local/kybernos-front-desk"
+    },
+    {
+      "dir": "kybernos-maquettes",
+      "nom": "@local/kybernos-maquettes"
     }
   ]
 }

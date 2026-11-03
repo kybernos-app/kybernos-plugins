@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Des écrans HTML, dessinés par toi ou par Kaby, que tu changes en cliquant dessus : texte, couleur, taille, blocs, images. Seul ce que tu touches change dans le fichier.",
+    "en": "HTML screens, drawn by you or by Kaby, that you change by clicking on them: text, colour, size, blocks, pictures. Only what you touch changes in the file."
+  },
+  "steps": [
+    {
+      "fr": "Écris le chemin complet du dossier de la maquette (~/Documents/ma-maquette), puis Ajouter.",
+      "en": "Type the full path of the mockup's folder (~/Documents/my-mockup), then Add."
+    },
+    {
+      "fr": "Ouvre-la, puis Modifier sur la page : clique sur un texte pour l’écrire, sur un bloc pour le déplacer ou le changer.",
+      "en": "Open it, then Edit on the page: click a text to write over it, or a block to move or change it."
+    },
+    {
+      "fr": "Enregistrer écrit le fichier sur ton ordinateur. Annuler revient à avant le dernier enregistrement.",
+      "en": "Save writes the file on your computer. Undo goes back to before the last save."
+    }
+  ],
+  "where": {
+    "fr": "Créations › Maquettes",
+    "en": "Creations › Mockups",
+    "page": true
+  },
+  "good": {
+    "fr": "Un texte que la page fabrique avec un script ne se change pas à la main : l’éditeur t’aide à le demander à Kaby. Tes fichiers restent chez toi.",
+    "en": "A text the page builds with a script cannot be changed by hand: the editor helps you ask Kaby. Your files stay on your computer."
+  }
+}

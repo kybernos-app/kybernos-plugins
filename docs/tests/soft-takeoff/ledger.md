@@ -46,9 +46,9 @@ Script cases by the runner on two sandboxes (A desktop account, C never paired);
 | W1-22 creator (Haiku) | blocked: the stand-in model answers one fixed sentence (process finding 11); one text drift (T-012) |
 | W1-24 French speaker (Haiku) | partial, on the earlier build; the question it raised is reproduced by script (T-011) |
 
-## Wave W2 (2026-11-03): preparation only, nothing run
+## Wave W2 (2026-11-03): preparation
 
-12 cases (9 ready). Prepared on the tip of `dev`; no heavy case was run and no sandbox was started for it.
+12 cases (9 ready) when prepared, on the tip of `dev`; nothing was run at that point (the run is the next section).
 
 | Case | State | What changed in the plan |
 |---|---|---|
@@ -63,6 +63,46 @@ Script cases by the runner on two sandboxes (A desktop account, C never paired);
 | W2-10 | ready | makes real requests to the free search engines; question 15 |
 
 The sandbox keeper moved from the scratchpad into the repo (`scripts/soft-takeoff-sandbox-up.sh`, tested), since the scratchpad is wiped on restart.
+
+## Wave W2 (2026-11-03): model consumption, run on the tip of `dev` (d3cbcc9c)
+
+Run by scripts only (no Haiku tester: every W2 case that can be mechanical now is a script). Disk 10 GB free before and after. Evidence in `~/kybernos-archive/soft-takeoff-2026-11-03/` (`w2-sandbox`, `w2-sandbox-2`, `w2-replica`, `w2-replica-j4`, `w2-replica-2`, `w2-failures`, `w2-local`, `w2-outside`).
+
+| Case | Verdict | Notes |
+|---|---|---|
+| W2-01 chat turn billed to the right space | pass | J1 15/15 |
+| W2-02 usage ledger and chip | pass after fix | usage check 22/22; J5 26 of 31 first (the « near » band overshot, a calibration fault of the journey, T-020), then 31 of 31 on a fresh replica once the journey sized its turns on what a turn really costs |
+| W2-03 own key (sheet + add form) | flaky | 50 and 21 checks green; the add form went red once on the first attempt (a click on the card did not open the drawer) and green on the second (T-019) |
+| W2-04 several accounts | dropped | owner's default taken; product gap, no switch exists |
+| W2-05 local models page search | pass | |
+| W2-06 free LLMs, locked tier | pass | 12 checks; a real free turn is not promised (question 14) |
+| W2-07 Auto Routing | pass after fix | stale test: the sentence moved to the « ? » card (T-018) |
+| W2-08 Kybernos model failures | pass after fix | first run red: 502 and 429 showed the server's raw JSON to the person (T-021). Fixed with a plain card above the box (16 checks green on the replica); the engine's own red row still prints the raw body, it is the engine's. 401 is turned into 502 « temporarily unavailable » by the server; composer stays, next turn answers with no reload |
+| W2-09 welcome credit spent | not run | needs a fresh account on the replica (§ 8 item 12) |
+| W2-10 web search | pass | 25 checks, real requests to the free engines |
+| W2-11 Workers | pass after fix | ZCode « Not turned on » has no evidence rows: the check now accepts six rows then (T-022) |
+| W2-12 Ollama small model | pass | tev1:0.8b answered in 0.6 s (engine level) |
+| W2-13 models page (on C) | to-verify | three assertions red for want of one keyed provider (T-023) |
+| W2-14 local model in the composer | blocked | owner's question 16 |
+| W4-09 (J4), run to enable J5 | pass | 27/27; B is now a member of T1 on this replica |
+
+## Wave W4, replica half (2026-11-03): the two-account journeys and the server plan
+
+Run by scripts, on the tip of `dev` (41c531a1) plus the journey fixes below. The replica had been spent by the W2 run (A: « 100% of your 7 days allowance is used »), so the harness got a `replica-reset` command (new replica and proxy, accounts, teams and plans again, sandboxes untouched; README § 7c) and `scripts/soft-takeoff-repair.sh` (pairs A and B again, restarts them, pins the model, runs the preflight). Three resets in all. Evidence in `~/kybernos-archive/soft-takeoff-2026-11-03/`: `w4-replica-4` (all eight journeys: log, `result-J*.json`, proxy log, shots), `w4-replica-5` (J4, J5 and J7 replays), `w4-local` (W4-12, W4-15), `w4-server` (acceptance logs). Disk 8.9 GB free after.
+
+| Case | Verdict | Notes |
+|---|---|---|
+| W4-09 invitation, acceptance, joining (J4) | pass | 27/27, twice |
+| W4-10 roles follow the role (J6) | pass after fix | first 4 reds of the journey, test side (T-024); 8/8 |
+| W4-11 memory isolation (J2) | fail, ticketed earlier | 13/16; the same three reds the team-DSH session ticketed on 2026-11-02 (T-025) |
+| W4-13 one DSH per team (J9) | pass | 21/21 (a stray request once made it red, T-026) |
+| W4-14 per-workspace billing and usage (J1 + J5) | pass after fix | J1 15/15; J5 31/31 on a fresh replica (T-020) |
+| W4-15 join by link | pass | 24 s |
+| W4-18 account menu, 1 to 5 spaces (J7) | fail, product | 42/43; every width, language and theme green; the removed-team step is red (T-028) |
+| W4-19 the server's team page (J8) | pass after fix | 7/7 once the check accepted « Add budget » (T-030) |
+| W4-12 team skills and automations | fail | the skills check passes; the automations check has four reds and ends on a crash at 390 px (T-029) |
+| W4-08 server acceptance plan | fail, environment and test side | harness replica: 443 ok, 41 fail, 5 skipped; dedicated replica: 459 ok, 30 fail, 0 skipped (T-027) |
+| W4-16, W4-20 (agent) | not run | W4-16's removal path is what J7 plays (T-028); W4-20 needs the walk driver on two sandboxes |
 
 ## Defects
 
@@ -85,6 +125,19 @@ The sandbox keeper moved from the scratchpad into the repo (`scripts/soft-takeof
 | T-015 | W1-09 | P1 | none | `check-phone-width-live.mjs` passed with 2 checks and 16 « did not open »: on a phone, `openSettings` pressed the account chip, which sits in the closed drawer, off screen, and nothing opened; only the first page was ever measured | `live-page.mjs` `openSettings` presses the sidebar's own trigger when the chip opened nothing | this commit | 1 | fixed (33 ✓, 0 ✗) |
 | T-016 | W1-08 | P1 | none | The language check expected the Bricks, 3D modeller and Motion panels, the Atlas page and the Computers menu, which are off in the freeze (28 ✗ in the first run; it had not run since the account session expired) | `check-language-creation-live.mjs --frozen` skips a surface whose plugin is off and lists it | this commit | 1 | fixed, test side |
 | T-017 | W1-10 | P2 | none | One case asked for two opposite sandboxes: the account menu needs a connected account (A), the signed-out footer needs a never-paired one (C); it came back « blocked » on A and on C | split: W1-10 (A, account menu) and W1-18 (C, footer) | this commit | 1 | fixed, plan side |
+| T-018 | W2-07 | P2 | none | The Auto Routing check looked for the page's plain sentence under the title; since 80eb14d5 it lives in the « ? » card | `check-auto-live.mjs` opens the card and reads it there | 1 | fixed (pass) |
+| T-019 | W2-03 | P2 | none known | The add-provider check (`check-models-provider-live.mjs`) failed once on its first attempt (a click on the provider card did not open the drawer), passed on the retry; first log kept (`w2-sandbox-2/W2-03.attempt1.log`) | not diagnosed | 2 | flaky |
+| T-020 | W2-02 | P2 | none: the journey overshoots, the product agrees with itself | J5 sizes a turn's spend from the number of model requests the previous turn made (1 for the first turn of a chat, 2 afterwards), so the « normal » and « near » turns overshoot (52 % then 100 %, 68 % then 100 %): five reds, all in the near band; server, plan card, footer and menu all say the same percent | `scripts/e2e-teams/j5-usage.mjs`: the two calibration turns are sized at about 1 % of the cap and the server's own spend says how many calls' worth a turn costs (1 to 4, a retry after a 429 adds one); each turn is then sized on the larger of the last two, and the near-band loop may take ten steps | 2 | fixed (31/31 on a fresh replica) |
+| T-021 | W2-08 | P1 | When the Kybernos model is down or busy the person reads `This turn failed502: {"message":"The model is temporarily unavailable.","type":"server_error","param":null,"code":"upstream_unavailable"} SERVER` (429: `...rate_limit_error... RATE_LIMIT`) after « Retried model request (5/5) » | The error line of the turn prints the server's body as it came; the plain sentence is inside it. A wrong key upstream (401) is hidden by the server as a 502, which is right | `kbObModelDown` + `KbModelDown` in `packages/kybernos-plugin/client.js` (a plain card in the input dock, like the missing-key card; no engine patch); tests in `scripts/test-onboarding.mjs`; replay 16/16 | 2 | fixed (the engine's raw row stays) |
+| T-022 | W2-11 | P2 | none | The Workers check counted evidence rows for seven workers; ZCode reads « Not turned on » in the sandbox and has none | `check-workers-live.mjs` accepts six rows when ZCode is not turned on | 1 | fixed (pass) |
+| T-023 | W2-13 | P2 | none | The models page check needs one provider with a key to show the fold; the sandbox holds none (and A is connected, which fails its first assertion): on C, three reds | not fixed: the check should add a made-up key first, as the sheet check does for its provider | 1 | open (test) |
+| T-024 | W4-10 | P2 | none | J6's two role steps asked B's personal DSH to refresh (`refresh('b')`) and then reloaded the page, but the role belongs to the team's own DSH that the page talks to: the card kept the old role (4 reds) | `scripts/e2e-teams/j6-roles.mjs` also refreshes the page's own origin before the reload | 1 | fixed (8/8) |
+| T-025 | W4-11 | P2 | to confirm | J2 13/16. Red: the canary is not in the body of the personal chat's model request (`mains: 1`: the memory is read by the `memory_search` tool, which does answer with it); the OFF marker is not the first system message of the team chat request (`1`); the lesson an owner approves is not in B's team chat request. The first two look like checks written for the single-instance DSH; the third could be a product defect (a team lesson that does not reach a member) | not triaged here: ticketed by the team-DSH session on 2026-11-02 | 0 | open, to confirm |
+| T-026 | W4-13 | P3 | none | J9 once counted a 402 from another workspace's DSH (a title request retried by T3's DSH) inside its window and went red; green on the replay (21/21) | none: J9 reads a window other DSHs can write into | 0 | closed, not seen again |
+| T-027 | W4-08 | P2 | none known | The server plan on the harness replica: 41 reds, of which 23 are features the replica does not serve (503 `connections_disabled`, `remote_disabled`, `teamspace_disabled`, `hosted_runs_disabled`), A5 comes from the recording proxy (`CLIENT_IP_HEADER` unset) and X-group ones from budget used up by the journeys. On a dedicated replica (Composio, inbound, computers): 30 reds, 0 skipped: the M1 and M2 ones are `remote_disabled` and `teamspace_disabled` (no switch on the replica turns these on), and **J3, X1 to X4, X6 to X8 and X10 get 402 `insufficient_quota` « Your budget for the last 30 days is used up » on a fresh replica**, P3b gets 422 `quantity_out_of_range` « Between 10 and 2000 packs » | not fixed: kybernos-server repo. The plan's expectations (what the Free plan can spend, the top-up pack range) look older than the catalogue, as the commit `acceptance X4: size the three parallel calls to the Free plan's budget` already hinted | 1 | open, server repo (test side until read) |
+| T-028 | W4-18, W4-16 | P2 | After B is removed from the team he is working in, the card says « Personal » but every message, even in a new chat, is still sent for that team and refused (404) for at least 200 s; the person reads « You are no longer in the team this chat was billed to, so the message was not sent. DSH is updating your teams: send it again in a moment. » and sending again never works | A DSH answers one space for good (one DSH per team); the stale route is mended « after 10 s, 30 s and 2 min » (`packages/kybernos-cloud/README.md`) but the journey saw no mend in 200 s; and the sentence advises a retry that cannot help. Replay: `run j7` on a fresh pairing (evidence `w4-replica-5/run-j7b.log`, screenshot `j7-removed-active`) | `j7-shapes.mjs` now plays what the product says it does (a refused message is billed to no one; a NEW chat is billed to Personal within three minutes); the product side is not fixed: it needs a decision (close the team's DSH and open Personal, or say « open your personal space ») | 2 | open, owner decision |
+| T-029 | W4-12 | P2 | to confirm | `check-automations-team-live.mjs` (team routes faked, no server): « Yours: a copy from the team is marked » reads the text of the new « Ideas from Kaby » block; « Open in Yours… » shows no marked copy; the « not on this server » lock now says « Soon Team automations are coming soon… » and the check finds no buttons in it; and at 390 px the press on `team-install` of « Daily stock check » does not land (`lands:false`, something covers it), after which the check crashes reading the sheet's box (`sheetBox` undefined) | not triaged: the first three look like drift of the page against the check, the 390 px one could be a real overlap | 1 | open, to confirm |
+| T-030 | W4-19 | P3 | none | J8 looked for « Add credits »; the button is « Add budget » since the extra-budget rename | `scripts/e2e-teams/j8-web.mjs` accepts « Add budget » | 1 | fixed (7/7) |
 
 ## Process findings
 
@@ -109,5 +162,13 @@ The sandbox keeper moved from the scratchpad into the repo (`scripts/soft-takeof
 19. **The stand-in model is a control port, not a fixed sentence.** `POST :8822/__/engine/reply` and `/__/engine/fail` on the replica set what it answers, how many tokens it bills and which provider calls fail; that is what makes the failure and credit cases (W2-08, W2-09) playable without a real model or a real key. Finding 11 is true of the default only.
 20. **A case title must say what its script proves.** W2-05 and W2-06 promised a real local turn and working free models; their scripts check a search and a locked state. The titles were corrected and the missing half became W2-12 and question 14.
 21. **A harness command that is not idempotent is a trap.** `e2e-teams-run.sh up` re-clones both sandboxes and recreates the accounts; `down` deletes the sandbox homes. The README says to use `preflight` and `run` only, and the keeper script is the only thing that restarts a sandbox.
+22. **A journey may depend on another one.** J5 crashed because account B was not yet in T1; only J4 (W4-09) makes it so. Dependencies between journeys are now in the W2 runbook and in the case note; the harness's `run` with no argument runs them in the right order.
+23. **A check can leave the sandbox in a state that breaks the next one.** Account A came back on the first-run wizard (`onboarding.json` `completed:false`), which blocked every chat and made the harness preflight fail with « no request reached the replica ». Whoever left it (a W1 onboarding case run on A is the suspect) is not known; the preflight caught it, and a diff of `onboarding.json` of A, B and C is now the first thing to look at.
+24. **Turn a walkthrough into a script when the screen text is mechanical.** W2-08 was an agent case; as a script (`check-model-failures-live.mjs`) it costs no model token, runs in two minutes, prints the sentences for a human to read and found a real defect (T-021) that a Haiku walk would only have described.
 
 State: `open` | `fixed` (case and ring green) | `closed` (not a product defect, or not seen again) | `to triage` | `to confirm` | `flaky` | `wontfix` (owner decision, with the workaround) | `escalated` (3 attempts).
+25. **A full pass of the journeys spends the replica.** J5 uses the 5-hour allowance of a member for good, J6's pool fill uses T3's pool and A's 7-day allowance, and the sessions of both accounts last two hours: a second pass finds every chat refused. `bash scripts/e2e-teams-run.sh replica-reset` and `scripts/soft-takeoff-repair.sh` give a clean replica in a few minutes (README § 7c); copy the proxy log and the `result-J*.json` first.
+26. **Size a test turn on what it cost, not on how many calls it made.** J5 guessed the cost from a request count that changes from turn to turn (title, classification, a retry after a 429); it overshot three times (T-020). The server's own spend after a calibration turn is the truth.
+27. **After a removal the DSH may be unusable until it is paired again.** J7's removal step cannot be replayed on the same pairing (the card cannot go back to the team: `goTo` failed); replay it after `replica-reset` and a re-pair.
+28. **A server plan needs its own replica.** The harness replica is configured for the journeys (accounts spent, features off, a recording proxy): the server's acceptance plan run on it reports the environment as defects. A dedicated replica on other ports with the plan's switches cut the reds from 41 to 30 and showed which are about the plan against the catalogue (T-027).
+29. **A rename is a test change too.** « Add credits » became « Add budget » and a role refresh moved to the team's own DSH: two of the four W4 journey reds were stale checks (T-024, T-030), which is why a journey red is read as test, environment or product before it is a ticket (finding 3).

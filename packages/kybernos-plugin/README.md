@@ -794,6 +794,12 @@ and in a chat, never beside the key card above (that one wins when a turn failed
 an engine does not expose the catalog. The engine's red « This turn failed » row, with its raw sentence, is the engine's and stays in the
 transcript: the card under it is the plain-language version.
 
+A second card, in the same dock (`kybernos-model-down`, `data-kb="model-down"`), covers a model that could not answer *right now*: the engine's codes `SERVER` (a 502
+of the Kybernos server) and `RATE_LIMIT` (a 429) print the server's raw body (`502: {"message":…}`) in the red row, which stays. The card says « The model isn't answering
+right now » (or « The model is busy »), tells the person to try again or pick another model in the selector, and puts their message back in the box (never sends it).
+It follows the latest turn only and can be closed. Read by `kbObModelDown`, tested in `scripts/test-onboarding.mjs` and, against the replica's failing stand-in model,
+by `scripts/check-model-failures-live.mjs` (soft-takeoff W2-08).
+
 ## Tests
 
 ```bash

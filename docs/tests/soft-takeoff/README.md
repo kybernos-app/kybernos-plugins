@@ -6,8 +6,8 @@ A soft takeoff opens the product to a small invited audience, with a way back. T
 
 | File | What it holds |
 |---|---|
-| `cases.json` | The matrix: 84 cases in six waves, each with a priority, a runner (script, cheap agent or owner), an environment and a status |
-| `plugins.json` | The proposed bundle freeze: which of the 54 packages stay on, which go off for the takeoff, and why |
+| `cases.json` | The matrix: 86 cases in six waves, each with a priority, a runner (script, cheap agent or owner), an environment and a status |
+| `plugins.json` | The proposed bundle freeze: which of the 55 packages stay on, which go off for the takeoff, and why |
 | `tester-brief.md` | The brief and the verdict format for the cheap tester (`.claude/agents/takeoff-tester.md` loads it) |
 | `ledger.md` | The defect ledger, text only, written by the lead session |
 | `scripts/soft-takeoff-run.mjs` | Runs the script cases and writes one verdict file each: the reference a cheap tester is compared with (`--light` runs the first wave) |
@@ -32,9 +32,9 @@ The owner's order: what is visible first, then models, the cloud computer, billi
 |---|---|---|---|---|
 | W0 | Gates and environment | none / replica | 9 (8) | gates green, preflight proves a request reaches the server for both accounts, canaries behave |
 | W1 | What a person sees: first run, new chat, every page, Settings, languages, phone, five walkthroughs | sandbox + replica | 23 (21) | all P0 pass, ledger has no P0/P1 |
-| W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 12 (9) | same |
+| W2 | Model consumption: Kybernos model, own key, local, free, failures, credit, several accounts | sandbox + replica | 14 (9) | same |
 | W3 | Cloud computer, account B | staging | 13 (5) | same, plus egress played on a real Linux machine |
-| W4 | Subscription, billing, team sharing | replica, then staging | 20 (9) | same, plus Stripe test-mode paths |
+| W4 | Subscription, billing, team sharing | replica, then staging | 20 (10) | same, plus Stripe test-mode paths |
 | W5 | Regression, upgrade and rollback, fresh install, go / no-go | all | 7 (4) | the verdict rule above |
 
 W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 and the staging half of W4 wait for the owner's go on paid resources.
@@ -54,7 +54,7 @@ W4's replica journeys do not need W3: they can start as soon as W2 is green. W3 
 
 ## 4. The plugin freeze
 
-`plugins.json` is a proposal: **33 on, 18 off, 3 services** (not DSH bundles), of which 14 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
+`plugins.json` is a proposal: **33 on, 19 off, 3 services** (not DSH bundles), of which 14 are judgement calls marked `owner`. Off for the takeoff: Widget (`kybernos-pulse`), Kaby (`kybernos-kyber`, `kybernos-kaby-customisation`), the front desk and Telegram bridge, the three mini-app style creators (mini-apps, Bricks, Webapp creator), and the other bundles that have no live check yet. A bundle comes back one at a time once its own live check is green.
 
 The freeze is applied to **sandbox profiles only**; the owner's real profile is never edited by this recette. Two things to check before it is final: turning Kaby off must not break a bundle that calls it (the boot and bundle-fault checks W0-05 and W5-05 must pass with it off), and `kybernos-computers` is the E2B sandbox with the person's own key, not the Kybernos Cloud Computer (that one lives in `kybernos-cloud`).
 
@@ -88,7 +88,7 @@ run a wave → verdict files → triage → ledger row → fix (one branch per d
 - **Fixes** follow `AGENTS.md`: zero new engine patches, the dead-code rider, English in new text. A fix merges into `dev` only when its case and its ring are green, and gets a cheap regression test so the case becomes a permanent script.
 - **Flaky.** A case that fails once and passes twice on re-run is `flaky` in the ledger and is not counted red (the rule of `run-all-tests.mjs`).
 - **Stop rules.** A `STOP` file in the output folder ends a run between two checks (`check-all-live.mjs` already honours it); any run that reaches port 3080 is aborted; each wave has a token cap.
-- **Time and cost.** Measured on the light wave: a Haiku tester that reads the brief and `cases.json` spends 70k to 100k tokens on a trivial scripted case (three runs: 71k, 87k, 99k, mostly re-read context), far above the 5k first assumed. So **a script case is run by `scripts/soft-takeoff-run.mjs` and costs no model token**; Haiku runs the 13 agent cases (about 150k each, still an estimate: about 2M tokens) and re-does one script case in five as a cross-check (about 10 x 80k). The lead pastes the case into the prompt instead of letting the tester read the matrix. The 116-check battery of 2026-10-30 took about 3 hours, so the 20 ready W1 scripts are roughly half an hour; say the duration before each run and replay only suspects on a fresh sandbox. The matrix has 55 scripted cases and 13 agent cases. The other 16 cases are the owner's.
+- **Time and cost.** Measured on the light wave: a Haiku tester that reads the brief and `cases.json` spends 70k to 100k tokens on a trivial scripted case (three runs: 71k, 87k, 99k, mostly re-read context), far above the 5k first assumed. So **a script case is run by `scripts/soft-takeoff-run.mjs` and costs no model token**; Haiku runs the 12 agent cases (about 150k each, still an estimate: about 1.8M tokens) and re-does one script case in five as a cross-check (about 10 x 80k). The lead pastes the case into the prompt instead of letting the tester read the matrix. The 116-check battery of 2026-10-30 took about 3 hours, so the 20 ready W1 scripts are roughly half an hour; say the duration before each run and replay only suspects on a fresh sandbox. The matrix has 58 scripted cases and 12 agent cases. The other 16 cases are the owner's.
 
 ## 7. Running it, once the go is given
 
@@ -115,17 +115,30 @@ What the first full W1 run taught (details in `ledger.md`, « Process findings �
 
 ### 7b. Running W2 (models and consumption)
 
-Prepared 2026-11-03, **not run**: it needs the owner's go (§ 9, questions 13 to 15). W2 uses the same three sandboxes as W1 plus the replica.
+Prepared and run on 2026-11-03 after the owner's go (§ 9, questions 13 to 15; results in `ledger.md`). W2 uses the same three sandboxes as W1 plus the replica.
 
 1. **Disk first.** `df -h /` must show 8 GB free or more (two sandboxes are APFS clones, but a chat and a replica add up). 10 GB were free on 2026-11-03.
-2. **Never run the harness's `up` or `down` again** (`scripts/e2e-teams-run.sh`): `up` clones A and B again and recreates the accounts, `down` deletes the sandbox homes. The replica is already up (API 8821, control 8822, recording proxy 8820); `preflight` and `run <journey>` are safe.
+2. **Never run the harness's `up` or `down` again** (`scripts/e2e-teams-run.sh`): `up` clones A and B again and recreates the accounts, `down` deletes the sandbox homes. The replica is already up (API 8821, control 8822, recording proxy 8820); `preflight`, `run <journey>` and `replica-reset` (§ 7c) are safe.
 3. **Start the sandboxes with the keeper**, not by hand: `bash scripts/soft-takeoff-sandbox-up.sh "$HOME/.kybernos-sandbox/<A root>:3098" "$HOME/.kybernos-sandbox/<B root>:3110"` (it refuses the owner's ports and any folder outside `~/.kybernos-sandbox`, never runs `setup.sh`). The same command is the runner's `--before` and, with `--keep 7200`, the watcher beside a Haiku tester. Tested by `scripts/test-soft-takeoff-sandbox-up.mjs`.
 4. **Pair both accounts again** if the replica session is older than two hours: `node scripts/e2e-connect.mjs --dsh <host> --account a --force`, same for `b`, then restart the sandbox.
-5. **Order inside W2:** W2-03, W2-07, W2-11 (sandbox only, no money, no network) → W2-05 → W2-01, W2-02 (replica; J5 last because it spends the allowance) → W2-08, W2-09 (agent cases on the replica) → W2-12 (real Ollama turn) → W2-10 (outbound traffic) → W2-06.
+5. **Order inside W2** (as run on 2026-11-03, about two hours with the fixes): W2-03, W2-07, W2-11, W2-05 (sandbox only, no money, no network; ten minutes) → W2-13 on C → W2-01 (replica, one minute) → **W4-09 (J4) before W2-02**, because J5 needs account B to be a member of T1 and only J4 makes it so → W2-02 (J5 last: it spends the 5-hour allowance, so it cannot be replayed in the same team for five hours) → W2-08 (the replica fails the stand-in provider; five turns, two minutes) → W2-12 (Ollama) → W2-10 (outbound) → W2-06. W2-09 and W2-14 wait (§ 8 item 12, question 16).
 6. **Steering the stand-in model** (control port 8822, no sign-in): `POST /__/engine/reply {text, prompt, completion, delay_ms, gap_ms}` sets the answer and the tokens billed per call; `POST /__/engine/fail {match, status, n}` makes the calls whose provider address contains `match` answer `status` (the seed's address is `prov.example.test`), `{match:""}` ends it. Both live in memory: after a restart of the replica they are back to the default (« Hello from the replica's stand-in model. », 1 and 1 tokens). A tester must end every failure it starts.
 7. **Pin the model.** The cases that bill need the Kybernos stand-in chosen in the composer (not Auto); a walkthrough tester is told which model to pick in its brief.
-8. **Which cases touch the outside:** W2-10 (free search engines, real requests), W2-12 (the machine's Ollama, CPU for a few seconds), W2-08 path 2 (one wrong key sent to a real provider, which refuses it). All others stay on the machine.
+8. **Which cases touch the outside:** W2-10 (free search engines, real requests) and W2-12 (the machine's Ollama, loopback, under a second on the 0.8b model). The own-key half of W2-08 (a wrong key sent to a real provider) was not run: nothing plays it without a stand-in provider (§ 8 item 11). All others stay on the machine.
 9. **After a killed case** look for `kybernos/servers.json` and `kybernos-cloud-live-gate*` in the sandbox profile (the same trap as W1-14), and for a custom provider named `sheet-test` or `audit-test` left by W2-03.
+
+### 7c. A spent or expired replica (W4 journeys)
+
+The replica keeps its own clock and its own pools: a full pass of the journeys (J5 spends the 5-hour allowance, J6's pool fill spends T3's pool and A's 7-day allowance) leaves it unable to play them again, and the sessions of both accounts last about two hours. The way back, found on 2026-11-03, touches no sandbox:
+
+```bash
+export KB_E2E_DIR=<private folder> KB_SERVER_DIR=<server checkout>
+bash scripts/e2e-teams-run.sh replica-reset                       # a new replica and proxy: state, accounts, teams, plans, the pending invitation
+bash scripts/soft-takeoff-repair.sh "<A root>:3098" "<B root>:3110"   # pairs both sandboxes again (3 tries each), restarts them, pins the model, runs the preflight
+KB_E2E_SKIP_PREFLIGHT=1 bash scripts/e2e-teams-run.sh run j1 j2 j4 j5 j6 j7 j8 j9
+```
+
+Order matters: J4 before J5 (B must be a member of T1), J6 fills T3's pool, J9 reads the proxy log and counts every request in its window (a retry from another workspace's DSH is counted). The reset deletes the recording of the old replica: copy `proxy.jsonl` and the `result-J*.json` files to the archive first if they are evidence.
 
 The suites that need a browser or React skip themselves when their dependencies are missing, and a skip is never a pass. To make them run, export before the runner: `NODE_PATH` (a `node_modules` with react and react-dom, for the cloud client), `KB_BENCH_DEPS` (a folder whose `node_modules` holds playwright, react@18 and react-dom@18), `KYBERNOS_JSDOM` (jsdom) and `KB_CHROMIUM` (a browser binary). Paths are the tester's own and never go in git.
 
@@ -136,7 +149,7 @@ The suites that need a browser or React skip themselves when their dependencies 
 3. **Named tester agent.** `.claude/agents/takeoff-tester.md` is only loaded when a session starts: in the session that wrote it the agent type was « not found », so the light wave used a general-purpose agent on Haiku with the brief. Restart a session to load it.
 4. **A `node_modules` for the skipped suites.** The whole-suite run skips 27 kinds of test for want of react, react-dom, jsdom and playwright-core (among them the rendered cloud client: footer chip and team switcher). Provide one and point `KB_NODE_MODULES` at it. Small.
 5. **The several-accounts switch (W2-04).** Product work: a platform setting on the server and a refusal path in the cloud and models plugins. I searched the docs, READMEs and server modules on 2026-11-03 and found no such switch. Medium, after the owner decides what it forbids.
-6. ~~Local-model turn and failure simulation~~ prepared 2026-11-03: the local turn is W2-12 (Ollama and `tev1:0.8b` are on the machine); the Kybernos-model failures use the replica's control port (`/__/engine/fail`), not `fake-kybernos.mjs`, which only fakes cloud account and invitation routes (§ 7b).
+6. ~~Local-model turn and failure simulation~~ built 2026-11-03: `scripts/check-ollama-turn.mjs` (W2-12, engine level) and `scripts/check-model-failures-live.mjs` (W2-08), which uses the replica's control port (`/__/engine/fail`), not `fake-kybernos.mjs` (it only fakes cloud account and invitation routes). What is still missing is the DSH side of a local turn (W2-14, question 16).
 7. **Staging for W3 and W4.** Hosts, Stripe test-mode wiring (not verified), Fly spend.
 8. **A way to keep a sandbox past the sweeper.** A `sandbox.keep` marker (with a maximum age) honoured by the owner's sweeper, `scripts/restes-de-tests.mjs`. Small; it changes the owner's own tool, so it waits for his word.
 9. **A model that can create.** The replica's stand-in model answers one fixed sentence, so W1-22 (ask for a skill, a command, a dashboard, a team) and the half of W1-03 that needs a creation cannot run. A cheap real model behind the replica, or a scripted model that writes the files, is needed.
@@ -160,6 +173,7 @@ Defaults are what I will do unless told otherwise.
 10. May I add the `sandbox.keep` marker to the leftovers sweeper (§ 8, item 8)? *(default: no, I keep the watcher loop)*
 11. A real cheap model for the creation cases (§ 8, item 9): which one, and a spending cap? *(no default: W1-22 waits)*
 12. When someone picks a language in the first-run wizard (say Français), should the app itself switch to it? Today the wizard only reads in that language and records it (T-011); the app stays in English until the person changes it in Settings › Language. *(default: left as is, listed; a French-speaking newcomer lands in English)*
-13. **W2-04, the several-accounts switch.** Build it (a platform setting on the server and a refusal in the cloud and models plugins) or drop the case from the takeoff? And does it also limit the devices of one account? *(default: drop it from the takeoff, keep it in the ledger as a product gap; a and b forbidden by the switch if you build it)*
-14. **Free models (W2-06).** Is a real free model supposed to answer today, with no account and no key? The script only proves the locked state is told honestly. *(default: not promised; the page is checked, no real turn)*
-15. **May W2 touch the outside?** The free search engines (W2-10), one wrong key sent to a real provider (W2-08), and the real Ollama on this machine with the 0.8b model only (W2-12). *(default: yes to all three; no key of yours, no paid call)*
+13. **W2-04, the several-accounts switch.** *(answered 2026-11-03: default taken, the case is dropped from the takeoff)* Build it (a platform setting on the server and a refusal in the cloud and models plugins) or drop the case from the takeoff? And does it also limit the devices of one account? *(default: drop it from the takeoff, keep it in the ledger as a product gap; a and b forbidden by the switch if you build it)*
+14. **Free models (W2-06).** *(answered 2026-11-03: default taken)* Is a real free model supposed to answer today, with no account and no key? The script only proves the locked state is told honestly. *(default: not promised; the page is checked, no real turn)*
+15. **May W2 touch the outside?** *(answered 2026-11-03: yes to all three, default taken)* The free search engines (W2-10), one wrong key sent to a real provider (W2-08), and the real Ollama on this machine with the 0.8b model only (W2-12). *(default: yes to all three; no key of yours, no paid call)*
+16. **Local model in the composer (W2-14).** The only model wired in DSH is your qwen3.5:9b (8.3 GB loaded on this 16 GB machine, which also runs the sandboxes), and the small test model `tev1:0.8b` is not in the signed catalogue so the page cannot wire it. (a) one turn on the 9b in the sandbox, (b) wire the 0.8b by hand in the sandbox's configuration, (c) leave the DSH side of local models to you. *(default: c; the engine itself is checked by W2-12)*
