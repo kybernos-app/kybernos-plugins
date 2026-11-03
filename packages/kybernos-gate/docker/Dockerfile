@@ -16,7 +16,8 @@
 #            branch and changes every day, and never a work branch. The repository is cloned AT BUILD TIME and nothing
 #            in the container fetches anything later: restarting it, or redeploying with the build cache, runs the same
 #            code. To update, change KB_REF to the new tag and rebuild without the cache (`docker compose build --no-cache`).
-#   DSH_VER  DSH version; keep it inside the range declared in dsh-compat.json
+#   DSH_VER  DSH version; keep it inside the range declared in dsh-compat.json. A version with a folder in
+#            engine-locks/ is installed from that lock (the same packages as the adopted engine, byte for byte).
 #
 # Runtime environment (see packages/kybernos-gate/README.md for all of them)
 #   KYBERNOS_GATE_PASSWORD or KYBERNOS_GATE_PASSWORD_HASH   required: the container refuses to start without one
@@ -42,9 +43,23 @@ ENV HOME=/home/node \
 WORKDIR /home/node
 
 ARG DSH_VER=0.2.0-rc.2
-RUN npm install -g "@deepseek-ai/dsh@${DSH_VER}" \
-      --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs \
-      --no-audit --no-fund \
+# A version that has a lock in engine-locks/ (the one the Kybernos installer made for the adopted engine) is installed FROM
+# THAT LOCK: `npm install -g` takes the newest package inside each `~` range of DSH's own package.json, and on 2026-11-03
+# the cordis packages and pi-ai moved under the same DSH version (33 packages), which broke the first turn of every cloud
+# computer built that day. A version with no lock keeps the plain global install.
+COPY --chown=node:node engine-locks /tmp/engine-locks
+RUN if [ -f "/tmp/engine-locks/${DSH_VER}/package-lock.json" ]; then \
+      mkdir -p /home/node/engine /home/node/.npm-global/bin \
+      && cp "/tmp/engine-locks/${DSH_VER}/package.json" "/tmp/engine-locks/${DSH_VER}/package-lock.json" /home/node/engine/ \
+      && cd /home/node/engine \
+      && npm ci --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs --no-audit --no-fund \
+      && ln -s /home/node/engine/node_modules/.bin/dsh /home/node/.npm-global/bin/dsh; \
+    else \
+      npm install -g "@deepseek-ai/dsh@${DSH_VER}" \
+        --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs \
+        --no-audit --no-fund; \
+    fi \
+    && rm -rf /tmp/engine-locks \
     && dsh --version
 
 # `dsh plugin install` (run by kybernos-install to install the profile) shells out to pnpm and fails without it
