@@ -78,6 +78,16 @@ This slots into the steps of the free-options study; it adds a thin host first s
 | E | Full tier through the same adapter (the pack host of step 2 in the study) | M to L | legal gate before default install |
 | F | Slides: HTML deck as its own format; pptx in the pack only | M | real PowerPoint and Keynote open of a pack-saved deck |
 
+## The HTML mockup editor, built (2026-11-03)
+
+`packages/kybernos-maquettes` (satellite, off by default; `README.md` there is the reference). It follows the contract above with these choices the spike left open:
+
+- **Where the page runs.** In an `<iframe sandbox>` without `allow-same-origin` with `Content-Security-Policy: sandbox`, on an unguessable in-memory token; the editor reaches the host only by `postMessage` to the DSH page, which forwards an allowlist of calls with the session cookie and its own token. Every write route takes a strict same-origin request and the signed session cookie (`route-origin-rule.md`).
+- **Where the copies live.** `.prev` and `.orig` snapshots are in `<DSH home>/kybernos/kybernos-maquettes/snapshots/`, never in the person's folder; Undo and Reset refuse (`409 changed-since`) when the files changed since the editor's last save, so a hand edit or Kaby's is not overwritten by a restore.
+- **Folders.** Registered by typing the full path (no picker); home and the disk root are refused; only top-level `.html` pages are edited.
+- **What stays out.** Scripts of a maquette get an in-memory storage shim; text a script builds is patched at its literal in the data file when it is found, otherwise the editor writes the request for Kaby (never sent by itself).
+- **Gate.** 114 checks of the patch rules, 67 of the disk layer, the routes over a real listener, every write refused without the session, the editor script (no way out but the bridge, English for every sentence), the DSH page; `scripts/check-kybernos-maquettes-live.mjs` plays the whole flow on a real GUI (51 checks: add, open, real click and typing, save, undo, a dropped picture, both languages, a narrow window). Playing it found and fixed a data-loss bug (typing over a whole text saved an empty text).
+
 ## Still open, none of it settled by the spikes
 
 - A real PowerPoint, Keynote or Google Slides open of a deck saved by the pack (the owner's own check).
