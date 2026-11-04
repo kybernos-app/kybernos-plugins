@@ -42709,14 +42709,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         const said = { site: S.site, profile: S.social, words: S.words }
         return S.site.trim() !== '' || S.social.trim() !== '' || S.words.trim() !== '' || S.aboutSaved ? said : null
       }
+      // An abandoned pairing would sit on the host until it expires: the card of Kybernos Cloud does the same on « Cancel ». Not one that has just succeeded: on the phone the
+      // wizard goes from the waiting screen straight to the chat (no « connected » screen), and the account it has just connected must stay (J03-02).
+      const dropPairing = () => { if (S.screen === 'cloud-wait' && S.model !== 'cloud') call('/kybernos-cloud/disconnect', 'POST', { confirm: true }) }
       const finish = (openSettingsNames) => {
         if (finished) return
         finished = true
         const reachedModel = kbObStepOf(S.screen) === 'model' || ['about', 'agents', 'kit', 'plan', 'done'].indexOf(S.screen) >= 0
         // A model that already works counts as the choice; leaving the step without any is « later ».
         const model = S.model !== null ? S.model : (reachedModel ? (S.ready !== null ? S.ready : 'later') : null)
-        // An abandoned pairing would sit on the host until it expires: the card of Kybernos Cloud does the same on « Cancel ».
-        if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+        dropPairing()
         // Leaving while a model is still downloading: it keeps downloading, and connects itself when it is done.
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card or from a page that suggests the kit (standalone), the wizard is not the first run: the
@@ -42818,8 +42820,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const decideLater = () => {
         // On the phone « Skip » is not « later »: with no model the chat has nothing to say, so the way to one is said again (a model that already works still counts).
         if (S.phone && S.model === null && S.ready === null) {
-          // an abandoned pairing would sit on the host until it expires
-          if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+          dropPairing()
           go('nomodel')
           return
         }

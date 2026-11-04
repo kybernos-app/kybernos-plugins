@@ -221,6 +221,8 @@ try {
   fake.accountConnected = true
   check('once the account is connected the wizard closes (no « connected » screen)', (await waitClosed(30000)) !== null, await h1())
   await sleep(1500)
+  // J03-02: finishing from the waiting screen used to cancel the pairing that had just succeeded, and the phone was signed out 0.7 s after connecting.
+  check('the account that was just connected is not disconnected again (the host was never asked to)', fake.calls.includes('cloud-poll') && !fake.calls.includes('cloud-disconnect'), fake.calls.join(','))
   check('the first run is recorded as done, with the account as the model', onboarding().completed === true && onboarding().model === 'cloud', JSON.stringify({ completed: onboarding().completed, model: onboarding().model }))
 
   /* ── 8. Does it fit a phone? ────────────────────────────────────────── */
