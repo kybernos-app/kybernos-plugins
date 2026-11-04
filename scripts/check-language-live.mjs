@@ -74,7 +74,8 @@ try {
   // ═══ 1b. the help and its animation ══════════════════════════════════════
   console.log('\n── help and animation ──')
   const helpBtn = JSON.parse(await val(`(() => { const b = document.querySelector('[data-act="help"]'); return b ? JSON.stringify({ text: b.innerText.replace(/\\s+/g, ' ').trim(), open: b.getAttribute('aria-expanded'), title: b.getAttribute('title') || '' }) : 'null' })()`))
-  check('a "? How it works" button is in the page header, with a tooltip', helpBtn !== null && /How it works/.test(helpBtn.text) && helpBtn.title.length > 5, helpBtn)
+  // Since 2026-11-02 the button is a bare round « ? » and its words are the tooltip.
+  check('a round "?" help button is in the page header, with a tooltip', helpBtn !== null && (helpBtn.text === '?' || /How it works/.test(helpBtn.text)) && helpBtn.title.length > 5, helpBtn)
   check('on the first visit (nothing is translated yet) the help is OPEN', helpBtn !== null && helpBtn.open === 'true' && (await val(`!!document.querySelector('[data-help="panel"]')`)) === true)
   await shot('01b-help')
   const helpText = String(await val(`(document.querySelector('[data-help="panel"]') || { innerText: '' }).innerText`))

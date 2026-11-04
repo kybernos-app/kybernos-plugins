@@ -16,8 +16,10 @@ import { join } from 'node:path'
 import { connect } from './cdp-lib.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { startBackend } from './lib-mobile-remote-backend.mjs'
+import { frozenOff } from './lib-live-bundles.mjs'
 
 const args = process.argv.slice(2)
+const kabyOff = frozenOff(args).has('kybernos-kyber')   // --frozen: Kaby is off in the soft-takeoff build, so its conversation bridge is not there
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
 const HOST = process.env.KB_HOST || '127.0.0.1:3080'
 const DSH_HOME = process.env.DSH_HOME || ''
@@ -151,18 +153,22 @@ try {
   check('Kaby\'s page resumes the SAME pairing (the storage is the browser\'s), without a new code', await until(P, `window.__kb.state === 'running'`, 30000), await state(P))
   await sleep(6000)
 
-  // Kaby's page opens Kaby's conversation: DSH has no address for it, the bridge in kybernos-kyber does it.
-  console.log('Android: Kaby\'s app opens Kaby\'s conversation')
-  const t0 = Date.now()
-  const onKaby = `(() => { const d = document.getElementById('app').contentDocument; return !!d.querySelector('[data-kb="kybernos-kyber-dock"]') && !!d.querySelector('textarea, [contenteditable="true"], [role="textbox"]') })()`
-  const bridged = await until(P, onKaby, 90000)
-  console.log('  . Kaby\'s chat was on screen ' + ((Date.now() - t0) / 1000 + 6).toFixed(1) + ' s after the page started running')
-  const kyby = await ev(P, `(() => { const w = document.getElementById('app').contentWindow; try { return { sid: w.__KB_KYBER__.state().kybySid, failed: w.__KB_KYBER__.state().openFailed, cur: w.localStorage.getItem('dsh.sessions.current'), path: w.parent.location.pathname } } catch (e) { return String(e) } })()`)
-  check('DSH shows Kaby\'s own chat (its strip sits above the composer of that chat and no other), and it is the session the host remembers', bridged === true && kyby !== null && typeof kyby === 'object' && typeof kyby.cur === 'string' && kyby.cur.includes(kyby.sid), kyby)
-  // The strip is ONE line in the app, never open by itself: the conversation is what the person came for.
-  const folded = await ev(P, `(() => { const d = document.getElementById('app').contentDocument; return !!d.querySelector('[data-kb="kybernos-kyber-dock"]') && !d.querySelector('[data-kb="kybernos-kyber-strip"].open') })()`)
-  check('the strip above the composer is one line, nothing open', folded === true)
-  await shot(P, 'a4-kaby-chat')
+  if (kabyOff) {
+    console.log('  ○ skipped: Kaby (kybernos-kyber) is off in this frozen build: its conversation bridge and strip are not checked')
+  } else {
+    // Kaby's page opens Kaby's conversation: DSH has no address for it, the bridge in kybernos-kyber does it.
+    console.log('Android: Kaby\'s app opens Kaby\'s conversation')
+    const t0 = Date.now()
+    const onKaby = `(() => { const d = document.getElementById('app').contentDocument; return !!d.querySelector('[data-kb="kybernos-kyber-dock"]') && !!d.querySelector('textarea, [contenteditable="true"], [role="textbox"]') })()`
+    const bridged = await until(P, onKaby, 90000)
+    console.log('  . Kaby\'s chat was on screen ' + ((Date.now() - t0) / 1000 + 6).toFixed(1) + ' s after the page started running')
+    const kyby = await ev(P, `(() => { const w = document.getElementById('app').contentWindow; try { return { sid: w.__KB_KYBER__.state().kybySid, failed: w.__KB_KYBER__.state().openFailed, cur: w.localStorage.getItem('dsh.sessions.current'), path: w.parent.location.pathname } } catch (e) { return String(e) } })()`)
+    check('DSH shows Kaby\'s own chat (its strip sits above the composer of that chat and no other), and it is the session the host remembers', bridged === true && kyby !== null && typeof kyby === 'object' && typeof kyby.cur === 'string' && kyby.cur.includes(kyby.sid), kyby)
+    // The strip is ONE line in the app, never open by itself: the conversation is what the person came for.
+    const folded = await ev(P, `(() => { const d = document.getElementById('app').contentDocument; return !!d.querySelector('[data-kb="kybernos-kyber-dock"]') && !d.querySelector('[data-kb="kybernos-kyber-strip"].open') })()`)
+    check('the strip above the composer is one line, nothing open', folded === true)
+  }
+  if (!kabyOff) await shot(P, 'a4-kaby-chat')
 
   // The remote's page does not take that decision: it is the whole computer.
   await P.send('Page.navigate', { url: ORIGIN + '/__kb/' })

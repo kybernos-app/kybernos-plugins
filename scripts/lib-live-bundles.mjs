@@ -32,6 +32,9 @@ export const LIVE_NEEDS = {
   'check-pulse-live.mjs': ['kybernos-pulse'],
   'check-servers-live.mjs': ['kybernos-servers'],
   'check-session-msg-live.mjs': ['kybernos-session-msg'],
+  // The template plan asks the Registry (`theme-installer.mjs`, action `plan`): with it off the answer is `no-registry` and nothing after « Install template » can run.
+  'check-themes-gallery-live.mjs': ['kybernos-registry'],
+  'check-themes-install-live.mjs': ['kybernos-registry'],
 }
 
 /**
@@ -42,10 +45,21 @@ export const LIVE_MIN_SECONDS = {
   'check-dead-clicks-live.mjs': 450,
   'check-display-live.mjs': 1800,
   'check-onboarding-live.mjs': 450,
+  'check-connectors-matrix-live.mjs': 300,
+  'check-automation-load-live.mjs': 420,
+  'check-language-live.mjs': 600,
+  'check-language-disk-live.mjs': 300,
+  'check-language-run-live.mjs': 300,
+  'check-settings-nav-i18n-live.mjs': 240,
+  'check-footer-live.mjs': 300,
+  'check-phone-width-live.mjs': 300,
+  'check-theme-live.mjs': 1500,
+  'check-themes-gallery-live.mjs': 600,
+  'check-themes-install-live.mjs': 400,
 }
 
 /** The checks that read `--frozen` themselves (a page of an off bundle is skipped, not read as a defect). The runner hands them the flag; a test keeps this list and the scripts in step. */
-export const FROZEN_AWARE = new Set(['check-bundle-guards-live.mjs', 'check-creation-sources-live.mjs', 'check-footer-live.mjs', 'check-help-intro-live.mjs', 'check-help-live.mjs', 'check-language-creation-live.mjs', 'check-menu-business-live.mjs', 'check-settings-search-live.mjs', 'check-write-guard-live.mjs'])
+export const FROZEN_AWARE = new Set(['check-bundle-guards-live.mjs', 'check-creation-sources-live.mjs', 'check-footer-live.mjs', 'check-help-intro-live.mjs', 'check-help-live.mjs', 'check-language-creation-live.mjs', 'check-menu-business-live.mjs', 'check-phone-apps-live.mjs', 'check-settings-search-live.mjs', 'check-write-guard-live.mjs'])
 
 /**
  * The package dirs the plan switches off, for a check that runs with `--frozen` (an empty set otherwise: the check reads what it finds).
