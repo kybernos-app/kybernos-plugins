@@ -36855,8 +36855,9 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-tabver{font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kba-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .kba-sesscroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px}
-.kba-sub{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0 0 14px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
-.kba-sub button{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.kba-sub{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0 0 14px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.kba-sub::-webkit-scrollbar{display:none}
+.kba-sub button{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none;white-space:nowrap}
 .kba-sub button:hover{color:var(--dsw-alias-label-primary)}
 .kba-sub button.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 .kbtd{display:flex;flex-direction:column;gap:14px;min-width:0}
