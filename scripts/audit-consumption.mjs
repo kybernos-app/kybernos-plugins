@@ -4,6 +4,7 @@
 // the usage rows of the workspace (`GET /llm/usage`), the credit balance of the workspace (`GET /plan`, the welcome credit being spent) and the budget window (`GET /llm/budget`).
 //
 //   node scripts/audit-consumption.mjs --scenario quote --api http://localhost:8841 --control http://127.0.0.1:8842     (J12-10: the price of a cloud computer, 72 choices, against Fly's public grid x 4; the region's own factor is private, so it is INFERRED and must fit all 72)
+//   node scripts/audit-consumption.mjs --scenario pots --api http://localhost:8841 --control http://127.0.0.1:8842     (J08-02: a Plus plan with a welcome credit; the windows, the order of payment, the credit)
 //   node scripts/audit-consumption.mjs --scenario models --api http://localhost:8841 --control http://127.0.0.1:8842 [--price-in 0.50 --price-out 2.00]
 //
 // The replica must give a new person a welcome credit (`node scripts/replica-owner-settings.mjs ... welcome_credit_cents=2000`, or `bash scripts/user-journey-acceptance.sh --keep`). Loopback only.
@@ -123,18 +124,93 @@ async function models (c, api, control, priceIn, priceOut) {
   return results
 }
 
+/** J08-02 (Models pot, over HTTP): which money pays a call, in which order, and what each place shows. The Cloud and Connectors pots are metered by the server's own `test/pot-meter.test.ts` and `test/computers-meter.test.ts`. */
+async function pots (c, priceIn, priceOut) {
+  const results = []
+  const notes = []
+  const check = (id, ok, detail) => { results.push({ id, ok }); console.log(`  ${ok ? '✓' : '✗'} ${id}${detail ? ' — ' + detail : ''}`) }
+  const person = await signUp(c, 'pots')
+  const ws = (await c.call('GET', '/v1/workspaces', { cookie: person.cookie })).body.workspaces.find((w) => w.personal).id
+  const key = (await c.call('POST', '/v1/keys', { cookie: person.cookie, json: { name: 'pots', workspace_id: ws } })).body.key
+  const get = async (path) => (await c.call('GET', `/v1/workspaces/${ws}${path}`, { cookie: person.cookie })).body
+  const co = await c.call('POST', `/v1/workspaces/${ws}/billing/checkout`, { cookie: person.cookie, json: { plan: 'solo', component: 'solo', quantity: 1, currency: 'USD', interval: 'year' } })
+  if (co.status !== 200) { console.error(`audit-consumption: the Plus checkout answered ${co.status}`); process.exit(2) }
+  await c.ctl('/__/stripe/pay', { session_id: co.body.session_id })
+  const plan = await get('/plan')
+  if (plan.level !== 'Plus') { console.error(`audit-consumption: the plan is « ${plan.level} » after payment`); process.exit(2) }
+  if (!(Number(plan.credit_balance_usd) > 0)) { console.error('audit-consumption: no welcome credit; set welcome_credit_cents on the replica first'); process.exit(2) }
+
+  // P1 the plan route against the published offers: three budgets, and each window a share of the Models budget (the launch files write 8.5, 12.5 and 25 percent)
+  const offers = (await c.call('GET', '/v1/offers')).body
+  const level = offers.plans.find((p) => p.key === 'solo').components.find((x) => x.key === 'solo')
+  const wantWindows = new Map([[18000, 0.085], [86400, 0.125], [604800, 0.25], [2592000, 1]].map(([sec, share]) => [sec, Number(level.budgets.models) * share]))
+  const shown = new Map(plan.allowances.map((a) => [a.window_seconds, Number(a.limit_usd)]))
+  check('P1 the plan shows the offers\' three budgets', JSON.stringify(plan.budgets) === JSON.stringify(level.budgets), JSON.stringify(plan.budgets))
+  check('P2 each window is its share of the Models budget', [...wantWindows].every(([sec, usd]) => Math.abs((shown.get(sec) ?? -1) - usd) < 0.0006), [...wantWindows].map(([sec, usd]) => `${sec / 3600}h ${shown.get(sec)} of ${usd.toFixed(3)}`).join('; '))
+
+  const call = async (p, o) => {
+    await c.ctl('/__/engine/reply', { text: 'ok', prompt: p, completion: o })
+    return c.call('POST', '/v1/chat/completions', { headers: { authorization: `Bearer ${key}` }, json: { model: 'glm', messages: [{ role: 'user', content: 'hello' }], max_tokens: 50 } })
+  }
+  const credit = async () => usdToNano((await get('/plan')).credit_balance_usd)
+  const windows = async () => (await get('/llm/budget')).windows
+  const spentIn = (ws2, sec) => Number(ws2.find((w) => w.window_seconds === sec).spent_usd)
+  const priceNano = (p, o) => nanoCost(p, o, priceIn, priceOut)
+
+  // P3 a call inside every window is paid by the plan: the windows move together and the credit does not move
+  const c0 = await credit()
+  const small = await call(1000, 500)
+  const w1 = await windows()
+  const billedSmall = spentIn(w1, 2592000)
+  const multiple = billedSmall * 1e9 / priceNano(1000, 500)
+  check('P3 a call inside the windows is paid by the plan: every window shows it, the credit does not move', small.status === 200 && w1.every((w) => Math.abs(Number(w.spent_usd) - billedSmall) < 0.0006) && (await credit()) === c0, `windows show ${billedSmall} dollars, credit ${c0 / 1e9} before and after`)
+  check('P4 what the window shows is the price times one whole multiple', Number.isInteger(Math.round(multiple * 100) / 100) && multiple >= 1, `${multiple.toFixed(3)} times the price by hand`)
+
+  // P5 a call that crosses the 5-hour window is still wholly the plan's (overshoot is accepted by the design), and the credit is still untouched
+  const bigIn = Math.ceil(((wantWindows.get(18000) - billedSmall) / multiple) * 1e9 / (priceIn * 1000)) + 200000
+  const big = await call(bigIn, 10)
+  const w2 = await windows()
+  const short = w2.find((w) => w.window_seconds === 18000)
+  check('P5 the call that crosses the 5-hour window is wholly the plan\'s: the credit does not move', big.status === 200 && Number(short.spent_usd) > Number(short.limit_usd) && (await credit()) === c0, `5 h window ${short.spent_usd} of ${short.limit_usd}, credit ${(await credit()) / 1e9}`)
+
+  // P8 the published tariffs of the two other pots carry the same multiple as the model bill: the provider costs are the owner's settings of the launch (0.0005 an action, 0.0092 an awake hour, 0.55 a month asleep: the server tests set the same three)
+  const tariffs = offers.tariffs || {}
+  const asked = [['connector_action', 0.0005], ['cloud_hour_awake', 0.0092], ['cloud_month_asleep', 0.55]].map(([k, provider]) => [k, Number((tariffs[k] || {}).usd) / provider])
+  check('P8 the connector action, the awake hour and the sleeping month are published at the same multiple as a model call', asked.every(([, m]) => Math.abs(m - multiple) < 0.01), asked.map(([k, m]) => `${k} ${m.toFixed(3)}`).join('; ') + `; models ${multiple.toFixed(3)}`)
+
+  // P6 what happens next is a DECISION of the product (2026-10-23, reservations.ts): a used-up plan window is lifted by the credit, short ones too. Measured, and reported when it makes paid credit go
+  // first while the month's budget is unspent.
+  const month0 = spentIn(w2, 2592000)
+  const c1 = await credit()
+  const next = await call(1000, 500)
+  const w3 = await windows()
+  const paidByCredit = c1 - (await credit())
+  const month1 = spentIn(w3, 2592000)
+  check('P6 the next call is answered', next.status === 200, `answered ${next.status}`)
+  check('P7 the call that follows is paid by the credit by exactly its price times the multiple', Math.abs(paidByCredit / 1e9 - billedSmall) < 0.0006, `credit down ${paidByCredit / 1e9}, one call is ${billedSmall}`)
+  const monthLeft = Number(level.budgets.models) - month1
+  if (paidByCredit > 0 && monthLeft > 0) notes.push(`once the 5-hour window is full the credit pays, while ${monthLeft.toFixed(2)} of the month's ${level.budgets.models} dollars of Models budget are unspent (the 30-day window moved ${(month1 - month0).toFixed(4)}): the short windows are lifted by credit, as reservations.ts says (2026-10-23), while ADR 0059 §11 and ADR 0066 (« window >= 28 days ») still say they are not`)
+  const lifted = w3.filter((w) => w.lifted_by_topup).map((w) => `${w.window_seconds / 3600}h`)
+  notes.push(`windows shown as « lifted by credit »: ${lifted.join(', ') || 'none'}`)
+  for (const n of notes) console.log('  · ' + n)
+  return results
+}
+
 async function main () {
   const argv = process.argv.slice(2)
   const opt = (n, d = '') => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d }
   const api = opt('--api').replace(/\/$/, '')
   const control = opt('--control').replace(/\/$/, '')
   const scenario = opt('--scenario')
-  if (!api || !control || !scenario) { console.error('usage: audit-consumption --scenario models --api <loopback url> --control <loopback url> [--price-in 0.50 --price-out 2.00]'); process.exit(2) }
+  if (!api || !control || !scenario) { console.error('usage: audit-consumption --scenario models|quote|pots --api <loopback url> --control <loopback url> [--price-in 0.50 --price-out 2.00]'); process.exit(2) }
   if (!isLoopback(api) || !isLoopback(control)) { console.error('audit-consumption: both addresses must be loopback (a replica, never a real server)'); process.exit(2) }
-  if (scenario !== 'models' && scenario !== 'quote') { console.error(`audit-consumption: scenario « ${scenario} » is not built yet (models and quote only; pots, connectors and computer are J08-02, J11-06, J12-07)`); process.exit(2) }
+  if (!['models', 'quote', 'pots'].includes(scenario)) { console.error(`audit-consumption: scenario « ${scenario} » is not built (models, quote, pots; the Cloud and Connectors pots are metered by the server's own test/pot-meter.test.ts and test/computers-meter.test.ts)`); process.exit(2) }
   const client = makeClient(api, control)
   let results
-  if (scenario === 'quote') { console.log('J12-10 what a cloud computer costs a month, by hand from Fly\'s grid'); results = await quote(client) } else {
+  if (scenario === 'quote') { console.log('J12-10 what a cloud computer costs a month, by hand from Fly\'s grid'); results = await quote(client) } else if (scenario === 'pots') {
+    console.log('J08-02 which money pays a model call, in which order, on a Plus plan with a welcome credit')
+    results = await pots(client, Number(opt('--price-in', '0.50')), Number(opt('--price-out', '2.00')))
+  } else {
     console.log('J10-02 what a model call costs, by hand and in every place the server says it')
     results = await models(client, api, control, Number(opt('--price-in', '0.50')), Number(opt('--price-out', '2.00')))
   }

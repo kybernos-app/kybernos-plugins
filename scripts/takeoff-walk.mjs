@@ -5,7 +5,7 @@
 //   source scripts/sandbox/env.sh && node scripts/takeoff-walk.mjs --steps <steps.json> --out <folder outside the repo> [--width 390 --height 844 --touch]
 //
 // A step is one of: {"open":"/"} {"click":"Visible text"} {"aria":"aria-label or title of an icon-only control"} {"settings":"Page label"} {"type":"text"} {"key":"Escape|Enter|Tab"} {"wait":ms} {"look":"label"} {"shot":"name"}
-//   look  records the title, the dialog on top, the headings, the first buttons, every « undefined » / « NaN » / « [object » in the text, what runs past the right edge
+//   look  records the title, the dialog on top, the headings, the first buttons, every « undefined » / « NaN » / « [object » in the text, controls that overlap each other, text cut by a box that hides its overflow (without an ellipsis), what runs past the right edge
 //         of the viewport, controls smaller than 32 px, and the console errors since the last look. shot saves <out>/<nn>-<name>.png.
 // Output: one JSON line per step on stdout and <out>/walk.json. Exit 0 when every step ran (a step that finds nothing to click is a result, not a crash), 1 when the walk
 // could not run, 2 on a refusal. Refuses: the real DSH (port 3080), an output folder inside the repository (screenshots never go to git), a step list that is not valid.
@@ -98,6 +98,25 @@ export const LOOK_SCRIPT = `(() => {
     badText: Array.from(text.matchAll(/.{0,30}(undefined|NaN|\\[object|\\bnull\\b).{0,30}/g)).slice(0, 8).map((m) => m[0].replace(/\\s+/g, ' ')),
     pastRightEdge: Array.from(root.querySelectorAll('*')).filter((e) => vis(e) && e.getBoundingClientRect().right > vw + 1 && getComputedStyle(e).position !== 'fixed').slice(0, 8).map((e) => ({ what: label(e) || e.tagName.toLowerCase(), rect: rect(e) })),
     scrollsSideways: document.documentElement.scrollWidth > vw + 1,
+    overlaps: (() => {
+      const out = []
+      const els = controls.slice(0, 80)
+      for (let i = 0; i < els.length; i += 1) for (let j = i + 1; j < els.length; j += 1) {
+        if (els[i].contains(els[j]) || els[j].contains(els[i])) continue
+        const p = els[i].getBoundingClientRect()
+        const q = els[j].getBoundingClientRect()
+        const w = Math.min(p.right, q.right) - Math.max(p.left, q.left)
+        const h = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top)
+        if (w > 4 && h > 4) out.push({ a: label(els[i]) || els[i].tagName.toLowerCase(), b: label(els[j]) || els[j].tagName.toLowerCase(), by: [Math.round(w), Math.round(h)] })
+      }
+      return out.slice(0, 8)
+    })(),
+    clippedText: Array.from(root.querySelectorAll('*')).filter((e) => {
+      if (!vis(e) || (e.innerText || '').trim() === '') return false
+      const s = getComputedStyle(e)
+      if (!/hidden|clip/.test(s.overflowX + s.overflowY) || s.textOverflow === 'ellipsis') return false
+      return e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1
+    }).slice(0, 8).map((e) => ({ what: label(e) || e.tagName.toLowerCase(), box: rect(e), content: [e.scrollWidth, e.scrollHeight] })),
     small: controls.filter((e) => { const r = e.getBoundingClientRect(); return r.width < 32 || r.height < 32 }).slice(0, 12).map((e) => ({ what: label(e) || e.tagName.toLowerCase(), rect: rect(e) })),
     viewport: [vw, document.documentElement.clientHeight],
     textStart: text.trim().slice(0, 300).replace(/\\s+/g, ' '),

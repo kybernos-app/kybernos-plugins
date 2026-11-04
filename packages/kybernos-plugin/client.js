@@ -661,6 +661,7 @@ let kbLocaleRead = () => 'en'
       'deliverables.title': { kybernos: 'Créations', en: 'Creations' },
       'deliverables.desc': { kybernos: 'Tout ce que tes Agent Teams ont produit — pages, scripts, docs et decks. Ouvres-en un pour le visualiser.', en: 'Everything your Agent Teams produced — pages, scripts, docs and decks. Open one to view it.' },
       'deliverables.empty': { kybernos: 'Aucune création générée pour l\'instant.', en: 'No creations yet.' },
+      'deliverables.nomatch': { kybernos: 'Aucune création ne correspond à la recherche ou aux filtres.', en: 'No creation matches your search or filters.' },
       'deliverables.share': { kybernos: 'Partager', en: 'Share' },
       'deliverables.copied': { kybernos: 'Chemin copié', en: 'Path copied' },
       'deliverables.all': { kybernos: 'Tous', en: 'All' },
@@ -10150,6 +10151,7 @@ body:not([data-ds-dark-theme]) .kb6-type{color:color-mix(in srgb,var(--kb6-ink) 
 .kb6-search-inline > svg,.kb6-search-inline .kb-icon{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
 .kb6-search-inline input{flex:1;min-width:0;width:auto;height:100%;background:transparent;border:0;border-radius:0;padding:0;font:inherit;font-size:13.5px;color:var(--dsw-alias-label-primary);outline:none}
 .kb6-search-inline input::placeholder{color:var(--dsw-alias-label-secondary)}
+.kb6-search-inline input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
 .kb6-cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
 .kb6-ccard{border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1);padding:16px;display:flex;flex-direction:column;gap:10px}
 .kb6-ccard.on{border-color:var(--dsw-alias-brand-primary)}
@@ -18763,7 +18765,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       { id: 'deck', label: 'Deck', exts: ['deck'], ico: 'grid', tint: 'rgba(217,70,239,0.16)', color: '#f0abfc' },
       { id: 'cards', label: 'Cards', exts: ['cards'], ico: 'list', tint: 'rgba(34,197,94,0.16)', color: '#86efac' },
       { id: 'resume', label: kbe('Summary'), exts: ['resume'], ico: 'fileText', tint: 'rgba(139,92,246,0.16)', color: '#c4b5fd' },
-      { id: 'fiche', label: 'Fiche', exts: ['fiche'], ico: 'library', tint: 'rgba(245,158,11,0.16)', color: '#fcd34d' },
+      { id: 'fiche', label: kbe('Study sheet', 'Fiche'), exts: ['fiche'], ico: 'library', tint: 'rgba(245,158,11,0.16)', color: '#fcd34d' },
       { id: 'engine', label: 'Diagram', exts: ['engine'], ico: 'zap', tint: 'rgba(132,204,22,0.16)', color: '#bef264' },
       { id: 'data', label: 'Data', exts: ['json', 'yaml', 'yml', 'toml', 'lock', 'sha256', 'csv'], ico: 'settings', tint: 'rgba(20,184,166,0.16)', color: '#5eead4' },
       { id: 'image', label: 'Image', exts: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'bmp', 'ico'], ico: 'image', tint: 'rgba(236,72,153,0.16)', color: '#f9a8d4' },
@@ -19193,6 +19195,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (days === 0 || Number.isFinite(nowMs) !== true || typeof mtimeMs !== 'number' || Number.isFinite(mtimeMs) !== true) return true
       return (nowMs - mtimeMs) <= days * 86400000
     }
+    // Whether something the person set (a search, a type, the favourites star, a period) narrows the list: an empty list is then « nothing matches », not « no creations yet ».
+    const kbArtNarrowed = (query, fav, types, period) => String(query === undefined || query === null ? '' : query).trim() !== '' || fav === true || (Array.isArray(types) && types.length > 0) || period === '7' || period === '30'
     // A count of Creations as the page says it: the host lists at most ARTIFACT_LIMIT files and flags a cut list (`artifactsCut`), so that list reads « 500+ », never a bare 500.
     const kbArtCountLabel = (n, cut) => String(n) + (cut === true ? '+' : '')
     // Delete takes the file for good (no trash): it goes ahead only when the person says yes, and with no way to ask nothing is deleted. `ask` is window.confirm.
@@ -21965,7 +21969,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h(KbArtMenu, { a: a, hosted: false, onAction: doAction, pinned: pinned, onPin: togglePin })))
         })) : null),
         (vp.mode === 'cards' && shown.length > 0 ? h('div', { className: 'kb6-grid' }, shown.map((a, i) => h(KbArtCard, { key: a.path, a: a, appear: kbIn(i), onOpen: () => openArtifact(a), preview: (prev[a.path] !== null && prev[a.path] !== undefined) ? prev[a.path] : null, onAction: doAction, pinned: pins[a.path] === true, onPin: togglePin, read: (p) => host.call('kybers/art-read', { path: p }) }))) : null),
-        (shown.length === 0 && srcShown.length === 0 ? h('div', { className: 'kbg-empty' }, kbt('deliverables.empty')) : null),
+        (shown.length === 0 && srcShown.length === 0 ? h('div', { className: 'kbg-empty', 'data-kb': 'art-empty' }, kbt(kbArtNarrowed(q, tbArts[0].fav, selTypes, tbArts[0].period) ? 'deliverables.nomatch' : 'deliverables.empty')) : null),
         (reste > 0 ? h('button', { type: 'button', className: 'kb6-more', 'data-kb': 'art-more', title: kbt('deliverables.more').replace('{n}', String(reste)), onClick: () => setReveal(reveal + KB_ART_STEP) },
           kbt('deliverables.more').replace('{n}', String(reste)),
           h('span', { className: 'kb6-morechev', 'aria-hidden': 'true' }, '⌄')) : null),

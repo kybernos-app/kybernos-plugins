@@ -33,7 +33,7 @@ const tEntry = (key) => {
   return { fr: m[1], en: m[2] }
 }
 const askText = tEntry('deliv.delete.confirm')
-const mk = (lang) => new Function('kbt', src.slice(a, b) + '\nreturn { kbArtPlain, kbArtInPeriod, kbArtCountLabel, kbArtDeleteOk }')((key) => {
+const mk = (lang) => new Function('kbt', src.slice(a, b) + '\nreturn { kbArtPlain, kbArtInPeriod, kbArtNarrowed, kbArtCountLabel, kbArtDeleteOk }')((key) => {
   assert.equal(key, 'deliv.delete.confirm', 'the rules read only the delete question')
   return lang === 'fr' ? askText.fr : askText.en
 })
@@ -246,6 +246,26 @@ const rules = mk('en')
   assert.equal(first({ text: '' }), '')
   assert.match(src, /return kbArtPlain\(lines\[0\]\)\.slice\(0, 96\)/, 'the subtitle uses the shared strip')
   ok('T2-21: the card subtitle (kbArtFirstLine) behaves as before and shares the strip')
+}
+
+// ── UJ-29 / UJ-30 / UJ-31 (user-journey recette 2026-11-04) ───────────────────────────────────────────────────────
+{
+  const n = rules.kbArtNarrowed
+  assert.equal(n('', false, [], undefined), false, 'nothing set: the list is simply empty')
+  assert.equal(n('zz-no-match', false, [], undefined), true, 'a search narrows the list')
+  assert.equal(n('   ', false, [], undefined), false, 'blanks are no search')
+  assert.equal(n('', true, [], undefined), true, 'the favourites star narrows the list')
+  assert.equal(n('', false, ['slides'], undefined), true, 'a type narrows the list')
+  assert.equal(n('', false, [], '7'), true, 'a period narrows the list')
+  assert.equal(n('', false, [], 'all'), false, 'no period is no filter')
+  assert.equal(n(undefined, undefined, undefined, undefined), false, 'missing values are no filter')
+  assert.match(src, /kbt\(kbArtNarrowed\(q, tbArts\[0\]\.fav, selTypes, tbArts\[0\]\.period\) \? 'deliverables\.nomatch' : 'deliverables\.empty'\)/, 'the empty state of the list says which of the two it is')
+  const nm = tEntry('deliverables.nomatch')
+  assert.ok(/recherche/u.test(nm.fr) && /search/u.test(nm.en), 'the « nothing matches » text exists in both languages')
+  assert.doesNotMatch(src, /label: 'Fiche'/, 'the type list holds no French label in the English interface')
+  assert.match(src, /label: kbe\('Study sheet', 'Fiche'\)/, 'the Fiche type is labelled through kbe: English first, French when the interface is French')
+  assert.match(src, /\.kb6-search-inline input\[type=search\]::-webkit-search-cancel-button\{[^}]*display:none/, 'the browser\'s own clear cross is hidden: the toolbar draws its own')
+  ok('UJ-29/30/31: « nothing matches » is told apart from « no creations yet », the Fiche type reads in English, one clear cross in the search field')
 }
 
 console.log('\n' + pass + ' checks passed')

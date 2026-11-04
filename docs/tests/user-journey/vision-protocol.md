@@ -21,6 +21,8 @@ Before the first vision batch the lead makes a copy of the sandbox profile (neve
 
 Each vision walker gets the planted pages in a normal batch, without being told. **Recall** is the share of the ten it reports. Under 8 of 10, a vision batch cannot say « nothing wrong » about a page: the page goes to the triage model with the pictures. At 8 or more, a walker's « nothing found » on a page counts as `no finding` (never `pass`) and one page in five is still re-read by the triage model.
 
+**Measured 2026-11-04** (`scripts/user-journey-seed-defects.mjs`, sandbox A, 18 pictures: the ten planted defects and eight clean pictures, shuffled with a fixed seed; the reader saw the pictures and the page names only, never the key). A fresh Haiku reader found 7 of 10 (5 of the 8 picture defects and both measure defects), with 1 false alarm on 8 clean pictures. It missed `undefined` in a gauge label, an empty list that says nothing, and two tabs overlapping by 12 px. The look's own measures (`overlaps`, `clippedText`, `badText`, `pastRightEdge`, `scrollsSideways`) saw 6 of 10, including the three the reader missed except the empty list. Together they covered 9 of 10; the one nobody saw is a state defect (a list with no words) that only a rubric question (3, « any state missing ») can ask. So: under the 8-of-10 bar a Haiku batch alone cannot say « nothing wrong », and the batch ships with the measures of its own pictures; the union passes the bar. The first calibration was thrown away: three planted defects (two buttons, a figure, a title) were not visibly in the picture, which is why `score` counts only pictures where the plant was seen to change the page.
+
 ## 2. What the walker must record (nothing else)
 
 For each screen: the route and title; the pixel width and height of the window; for every heading, card, button and input the measured rectangle (`getBoundingClientRect`); the text exactly as printed; every rectangle that crosses its parent's or the window's right edge; every control under 32 px; every text whose contrast against its background is under 4.5:1 (computed from the style, not guessed from the picture); every string that matches `undefined|NaN|[object|\{\{|%s`; the console errors since the last screen; two pictures (full window, and the area of anything flagged). `scripts/takeoff-walk.mjs` already records most of this in its `look` step.
@@ -41,7 +43,7 @@ Questions 2, 5 and 7 are ergonomics; they give **enhancements**, not bugs, unles
 
 ## 4. Waves of looking
 
-The look matrix (J18-09) is pairwise: 11 languages, 6 themes (default plus the three sector themes plus light and dark of the default), 3 widths (390, 768, 1440) and 8 page types, about 40 combinations in which every pair appears once. The money screens (J06-10) and the phone screens (J03-11, J04-07) are their own sets because they must be seen in every state, not in a sample.
+The look matrix (J18-09) is pairwise: 11 languages, 6 themes (default plus the three sector themes plus light and dark of the default), 3 widths (390, 768, 1440) and 8 page types, 88 combinations (`node scripts/pairwise.mjs`; 66, the product of languages and themes, is the floor) in which every pair appears at least once. The money screens (J06-10) and the phone screens (J03-11, J04-07) are their own sets because they must be seen in every state, not in a sample.
 
 ## 5. Limits
 
