@@ -246,6 +246,8 @@ export function optionsOutil (magasin) {
       + "“2d” renders a scale drawing — ops: {op:'line',x1,y1,x2,y2} | {op:'rect',x,y,w,h} | "
       + "{op:'circle',cx,cy,r} | {op:'ellipse',cx,cy,rx,ry} | {op:'arc',cx,cy,r,a0,a1} | "
       + "{op:'poly',points:[[x,y]…],closed} | {op:'path',d} | {op:'text',x,y,text} | {op:'arrow',x1,y1,x2,y2}. "
+      + 'Placement in “3d”: a `box` is placed by its MINIMUM CORNER (x,y,z) and spans x..x+w, y..y+d, z..z+h; `cyl`, `cone`, `tube` and `sphere` are placed by their CENTRE (cx,cy), with `z` the base. '
+      + 'To put a box on the axis of a cylinder at (cx,cy), give it x = cx − w/2 and y = cy − d/2, or its parts come out apart. '
       + 'Each op accepts `stroke`, `fill`, `width`, `group`. The ops are laid in the order of the array. '
       + 'The user can draw strokes OVER the model (the brush of the panel) to show what they want changed: '
       + '`relire: true` returns those strokes in normalised coordinates 0..1 (origin top-left corner) '
