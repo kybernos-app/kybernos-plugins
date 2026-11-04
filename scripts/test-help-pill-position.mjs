@@ -23,7 +23,7 @@ console.log('the core plugin: the pill on Creations, Workspaces, Tools and Setti
 {
   const src = read('kybernos-plugin', 'client.js')
   check('a helper draws the Suite\'s pill for a page card of the bundle', /const kbPagePill = \(page, lead, title\) => \{[^\n]*window\.__KB_HELP__\.Help[^\n]*id: 'kybernos-plugin', page: page/.test(src))
-  check('Creations: on the title row', /h\('div', \{ className: 'kb6-titlerow' \}, h\('div', \{ className: 'kb6-title' \}, kbDomainTitle\('deliverables', kbt\('deliverables\.title'\)\)\), kbPagePill\('creations', kbt\('deliverables\.desc'\)/.test(src))
+  check('Creations: on the title row', /h\('div', \{ className: 'kb6-titlerow' \}, h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('deliverables', kbt\('deliverables\.title'\)\)\), kbPagePill\('creations', kbt\('deliverables\.desc'\)/.test(src))
   check('Workspaces: on the title row', /h\('div', \{ className: 'kb6-titlerow' \}, h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('projects', kbt\('kbui\.projects'\)\)\), kbPagePill\('workspaces', kbt\('kbui\.project\.holds'\)/.test(src))
   check('Tools: in the page head, right after the title text', /pageHead\(\{ as: 'h1', className: 'kbt2-h1', id: 'kybernos-plugin', page: 'tools', lead: leadTools, title: kbt\('kbui\.tools'\) \}\)/.test(src))
   check('Settings › Automations: in the head of the page, right after the title text', /h\(KbacHead, \{ title: kbt\('kbui\.automations\.set'\), sub: kbt\('kbauto\.set\.sub'\), help: 'automation-settings' \}\)/.test(src) && /pageHead\(\{ id: 'kybernos-plugin', page: props\.help, lead: props\.sub, title: props\.title \}\)/.test(src))
