@@ -297,6 +297,8 @@ window.__ModuleLoader__.load({
         '.kbpu-opt small{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a9096);margin-top:1px}',
         '.kbpu-sw{position:relative;width:38px;height:22px;border-radius:999px;border:0;background:var(--dsw-alias-border-l3,rgba(255,255,255,.2));padding:0;cursor:pointer;flex:none}',
         '.kbpu-sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-base,#151517);transition:transform .15s}',
+        // the switch is 22 px high: an invisible area around it brings the target to 28 px (the hit-target audit accepts nothing of ours under 24 px without one)
+        '.kbpu-sw::before{content:"";position:absolute;inset:-3px}',
         '.kbpu-sw[aria-checked="true"]{background:var(--dsw-alias-state-success-primary,#22c55e)}',
         '.kbpu-sw[aria-checked="true"]::after{transform:translateX(16px)}',
         '.kbpu-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.1));background:var(--dsw-alias-bg-layer-3,transparent);color:var(--dsw-alias-label-secondary,#cfd3d6);border-radius:999px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}',

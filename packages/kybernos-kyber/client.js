@@ -1124,7 +1124,7 @@ window.__ModuleLoader__.load({
         '.kbky-crow+.kbky-crow{border-top:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
         '.kbky-ta{display:flex;flex-direction:column;min-width:0}.kbky-ta b{font-size:14px;font-weight:600}',
         '.kbky-ta .kbky-btn{align-self:flex-start;margin-top:8px}',
-        '.kbky-ta span{font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}.kbky-ta span.warn{color:var(--dsw-alias-state-warn-label,#a8530a)}',
+        '.kbky-ta span{font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}.kbky-ta>span.warn{color:var(--dsw-alias-state-warn-label,#a8530a)}',
         '.kbky-ra{display:flex;gap:8px;align-items:center}',
         '.kbky-iconlink{display:inline-flex;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-sw{position:relative;width:40px;height:24px;flex:none;padding:0;border:0;border-radius:99px;cursor:pointer;background:var(--dsw-alias-border-l2,rgba(127,127,127,.45))}',

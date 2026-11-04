@@ -951,4 +951,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   ok('a service that throws is survived', (await T.askFirst({ binding: () => { throw new Error('boom') } }, 's', 2, 1)) === false)
 }
 
+// the amber of a warning LINE must not win over the chip in the title (UJ-49: « Beta » read 2.44:1): the line is a direct child of the text block, the chip is not
+ok('the warning line colour only reaches the line under the name, not a chip inside the title', /\.kbky-ta>span\.warn\{color:var\(--dsw-alias-state-warn-label/.test(src) && !/\.kbky-ta span\.warn\{/.test(src))
+
 process.exit(fail > 0 ? 1 : 0)

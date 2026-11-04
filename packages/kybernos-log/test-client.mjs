@@ -123,6 +123,7 @@ ok('the button is outside the table element', /kblg-list[\s\S]{0,600}kblg-more/.
 // ── the page title has no style of its own: the Settings frame sets it (`.kbhp-title`), the page only keeps a hook class ──
 ok('the page draws its head through pageHead, with the hook class kblg-title', /pageHead\(\{ id: 'kybernos-log', lead: L\('lead'\), title: L\('title'\), className: 'kblg-title' \}\)/.test(src))
 ok('no rule of the bundle sizes or weighs the title (kblg-title)', !/\.kblg-title\s*[{,]/.test(src) && !/<h2[^>]*fontSize/.test(src))
+ok('the warning count and the warning text read in a darker amber, not the bare warn colour (2.15:1 on white, UJ-49)', /\.kblg-card\.is-warn b\{color:color-mix\(/.test(src) && /\.kblg-warn\{color:color-mix\(/.test(src) && !/state-warn-primary,#f59e0b\)\}/.test(src))
 console.log((fails.length === 0 ? '✓ ' : '✗ ') + pass + ' passed' + (fails.length === 0 ? '' : ', ' + fails.length + ' failed'))
 for (const f of fails) console.log('   ✗ ' + f)
 process.exit(fails.length === 0 ? 0 : 1)
