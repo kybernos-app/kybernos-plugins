@@ -109,7 +109,7 @@ ok('the button is outside the table element', /kblg-list[\s\S]{0,600}kblg-more/.
     let comp = null
     plugin.apply({ effect: (fn) => fn(), slots: { inject: (n, make) => { make(); return noop }, register: (spec, c) => { comp = c; return noop } } })
     const el = comp()
-    return { tree: typeof el.type === 'function' ? el.type(el.props) : el, S: plugin.__test.S, Title: win.__KB_HELP__ === undefined ? null : win.__KB_HELP__.Title }
+    return { tree: typeof el.type === 'function' ? el.type(el.props) : el, S: plugin.__test.S, toolOf: plugin.__test.toolOf, Title: win.__KB_HELP__ === undefined ? null : win.__KB_HELP__.Title }
   }
   const find = (node, test, out = []) => { if (node === null || typeof node !== 'object') return out; if (test(node)) out.push(node); for (const c of node.children || []) find(c, test, out); return out }
   const withSuite = draw(true)
@@ -119,6 +119,19 @@ ok('the button is outside the table element', /kblg-list[\s\S]{0,600}kblg-more/.
   ok('…while « Metadata only » (a privacy statement, not a description) stays on the page', find(withSuite.tree, (n) => n.props && n.props.className === 'kblg-priv').length === 1)
   const without = draw(false)
   ok('without the Suite: no card, the bare title in the shared class, and the description stays under the title', find(without.tree, (n) => n.type === Help).length === 0 && find(without.tree, (n) => n.type === 'h2' && n.props.className === 'kbhp-title kblg-title').length === 1 && find(without.tree, (n) => n.props && n.props.className === 'kblg-lead').length === 1)
+  // UJ-211: a result is named after ITS call (same id), not the nearest call below it
+
+  const toolOf = draw(false).toolOf
+  // newest first: a step that made two calls records both calls, then both results
+  const list = [
+    { type: 'tool', kind: 'result', session: 's', callId: 'c2' },
+    { type: 'tool', kind: 'result', session: 's', callId: 'c1' },
+    { type: 'tool', kind: 'call', session: 's', callId: 'c2', tool: 'write' },
+    { type: 'tool', kind: 'call', session: 's', callId: 'c1', tool: 'skill' },
+  ]
+  ok('two calls in one step: each result names its own call (skill, write), not the last call recorded', toolOf(list, 0) === 'write' && toolOf(list, 1) === 'skill')
+  const old = [{ type: 'tool', kind: 'result', session: 's' }, { type: 'tool', kind: 'call', session: 's', tool: 'bash' }]
+  ok('an event written before ids existed still falls back to the nearest call', toolOf(old, 0) === 'bash')
 }
 // ── the page title has no style of its own: the Settings frame sets it (`.kbhp-title`), the page only keeps a hook class ──
 ok('the page draws its head through pageHead, with the hook class kblg-title', /pageHead\(\{ id: 'kybernos-log', lead: L\('lead'\), title: L\('title'\), className: 'kblg-title' \}\)/.test(src))

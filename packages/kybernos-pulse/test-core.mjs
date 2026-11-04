@@ -56,6 +56,9 @@ const failed = turn.concat([ev('turn/end', { reason: { kind: 'error', error: { c
 const f = readRun(failed)
 assert.equal(f.phase, 'failed'); assert.equal(f.code, 'NO_CREDENTIAL'); assert.equal(f.message, 'No credit left'); assert.equal(f.endedAt, 2000)
 ok('an error reason is failed, with the engine\'s own code and message')
+const quota = turn.concat([ev('turn/end', { reason: { kind: 'error', error: { code: 'QUOTA', message: '402: {"message":"Insufficient credit","type":"x"}' } } }, 2500)])
+assert.equal(readRun(quota).message, 'Insufficient credit')
+ok('a provider\'s JSON answer is shown as its message, not raw (UJ-174)')
 const again = done.concat([ev('turn/start', {}, 9000)])
 assert.equal(readRun(again).phase, 'running')
 ok('a new turn after an end is running again: only the last turn counts')
@@ -99,6 +102,20 @@ const again1 = await pass1(r.state, NOW + 40000)
 assert.equal(again1.added.length, 0); assert.equal(again1.state.inbox.length, 1)
 ok('a finished run is announced once')
 
+// UJ-173: a failed card is settled by a later good run of the same automation, and stays listed as history
+{
+  const failedCard = cleanItem({ id: 'r:session-f', kind: 'failed', at: 1000, taskId: 'tk1', task: 'Digest', sessionId: 'session-f' })
+  const otherCard = cleanItem({ id: 'r:session-o', kind: 'failed', at: 1000, taskId: 'tk2', task: 'Other', sessionId: 'session-o' })
+  const goodCard = cleanItem({ id: 'r:session-g', kind: 'done', at: 2000, taskId: 'tk1', task: 'Digest', sessionId: 'session-g' })
+  const next = inboxPut([failedCard, otherCard], goodCard)
+  const settled = next.find((x) => x.id === 'r:session-f')
+  assert.deepEqual([settled.kind, settled.todo, settled.resolved], ['failed', false, true])
+  assert.equal(next.find((x) => x.id === 'r:session-o').todo, true)
+  assert.equal(normalizeState({ inbox: next }).inbox.find((x) => x.id === 'r:session-f').todo, false)
+  const earlier = cleanItem({ id: 'r:session-e', kind: 'done', at: 500, taskId: 'tk2', task: 'Other', sessionId: 'session-e' })
+  assert.equal(inboxPut([otherCard], earlier).find((x) => x.id === 'r:session-o').todo, true)
+  ok('a later good run settles the failed cards of its automation only; an earlier one does not; it survives a reload')
+}
 // UJ-172: a run the person stopped is remembered (never read again) and says nothing: not « done », not « failed ».
 const tStop = [{ id: 't-stop', name: 'Stopped by hand', history: [{ at: at(0), sessionId: 'session-stop', status: 'fired' }] }]
 journals['session-stop'] = { phase: 'running', calls: 1, startedAt: NOW }

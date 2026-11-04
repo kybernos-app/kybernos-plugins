@@ -116,6 +116,13 @@ export const applySettings = (current, patch) => {
  * Times are epoch milliseconds or null. Same rule as the Automations page: the verdict is the engine's `turn/end` reason, not a reading of
  * the text of the answer.
  */
+/** A provider's answer reaches us as `402: {"message":"…","type":"…"}`: a card shows the `message` only. */
+export const reasonOf = (raw) => {
+  const text = typeof raw === 'string' ? raw : ''
+  const hit = /"message"\s*:\s*"((?:[^"\\]|\\.){1,300})(?:"|$)/.exec(text)
+  return hit === null ? text : hit[1].replace(/\\"/g, '"')
+}
+
 export const readRun = (events) => {
   const list = Array.isArray(events) ? events : []
   let start = -1
@@ -145,7 +152,7 @@ export const readRun = (events) => {
     if (reason !== null && (reason.kind === 'aborted' || reason.kind === 'interrupted')) return { phase: 'stopped', calls, startedAt, endedAt }
     if (reason === null || reason.kind !== 'error') return { phase: 'done', calls, startedAt, endedAt }
     const err = obj(reason.error)
-    return { phase: 'failed', calls, startedAt, endedAt, code: err !== null ? one(err.code, 60) : '', message: err !== null ? one(err.message, 200) : '' }
+    return { phase: 'failed', calls, startedAt, endedAt, code: err !== null ? one(err.code, 60) : '', message: err !== null ? one(reasonOf(err.message), 200) : '' }
   }
   if (asked.size > 0) return { phase: 'waiting', calls, startedAt, tool: asked.values().next().value }
   return { phase: 'running', calls, startedAt }
@@ -186,7 +193,8 @@ export const cleanItem = (raw) => {
     id: r.id,
     kind: r.kind,
     tone: TONE[r.kind],
-    todo: r.kind !== 'done',
+    todo: r.kind !== 'done' && r.resolved !== true,
+    ...(r.kind === 'failed' && r.resolved === true ? { resolved: true } : {}),
     task: one(r.task, NAME_MAX) || 'Automation',
     taskId: one(r.taskId, 80),
     sessionId: typeof r.sessionId === 'string' && SESSION_ID_RE.test(r.sessionId) ? r.sessionId : '',
@@ -202,7 +210,11 @@ export const cleanItem = (raw) => {
   return item
 }
 
-export const inboxPut = (inbox, item) => [item].concat(inbox.filter((x) => x.id !== item.id)).slice(0, INBOX_MAX)
+export const inboxPut = (inbox, item) => {
+  // A later good run of the same automation settles its failed cards (the retry worked): they stay listed as history, no longer to do.
+  const next = item.kind === 'done' && item.source === 'scheduler' && item.taskId !== '' ? inbox.map((x) => (x.kind === 'failed' && x.source === 'scheduler' && x.taskId === item.taskId && x.at <= item.at && x.resolved !== true ? cleanItem({ ...x, resolved: true }) : x)) : inbox
+  return [item].concat(next.filter((x) => x.id !== item.id)).slice(0, INBOX_MAX)
+}
 export const inboxRemove = (inbox, id) => inbox.filter((x) => x.id !== id)
 
 /** A finished run of an automation the person made quiet: listed, but silent (no banner, no count). Failures and approvals are never quiet. */

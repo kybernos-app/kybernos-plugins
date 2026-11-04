@@ -570,6 +570,7 @@ let kbLocaleRead = () => 'en'
       'tasks.gate.badge.failed': { kybernos: 'Échec des vérifications', en: 'Checks failed' },
       'tasks.gate.badge.refused': { kybernos: 'Refusée', en: 'Refused' },
       'tasks.gate.err.unknown-action': { kybernos: 'Cet hôte ne connaît pas encore cette action.', en: 'This host does not know that action yet.' },
+      'tasks.err.approval': { kybernos: 'Pas encore approuvée : ouvre « Certification » sous l’automatisation, lance les vérifications et l’essai, puis approuve-la.', en: 'Not approved yet: open “Certification” under the automation, run the checks and the trial, then approve it.' },
       'tasks.gate.err.approval': { kybernos: 'Il faut ton approbation avant de l’allumer.', en: 'Your approval is needed before switching it on.' },
       'tasks.gate.err.not-found': { kybernos: 'Automation introuvable : elle a peut-être été supprimée.', en: 'Automation not found: it may have been deleted.' },
       'tasks.gate.err.signin': { kybernos: 'Session expirée : reconnecte-toi.', en: 'Session expired: sign in again.' },
@@ -7746,6 +7747,7 @@ const KB_TASK_ERRORS = {
   'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
   'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace', 'runs in the cloud': 'tasks.err.cloud',
   'not running': 'tasks.err.notrunning', 'could not stop': 'tasks.err.stopfail', 'invalid duration': 'tasks.err.duration',
+  'approval required': 'tasks.err.approval',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END

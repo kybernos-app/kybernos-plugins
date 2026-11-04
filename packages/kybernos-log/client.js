@@ -106,6 +106,14 @@ window.__ModuleLoader__.load({
       // A tool result carries no tool name (the harness records the call and its answer separately). The list holds both and is
       // newest first, so the call FOLLOWS its answer: the nearest one of the same session below names the row (« bash · ok »).
       const toolOf = (list, i) => {
+        // A call and its result carry the same id: a step that makes several calls records the calls first and the results after, so the nearest call below is the wrong one.
+        const id = list[i].callId
+        if (typeof id === 'string' && id !== '') {
+          for (let j = 0; j < list.length; j++) {
+            const x = list[j]
+            if (x !== undefined && x.callId === id && x.kind === 'call' && typeof x.tool === 'string' && x.session === list[i].session) return x.tool
+          }
+        }
         for (let j = i + 1; j < list.length; j++) {
           const x = list[j]
           if (x === undefined || x.session !== list[i].session) continue
