@@ -12,8 +12,8 @@
 //   5. a small table of the same app is still searched in the page, with no request to the host;
 //   6. no console error.
 //
-// SANDBOX ONLY (exit 3 against :3080 and without a sandbox DSH_HOME): it seeds the real-estate template and adds ~5,100 rows to its Properties table (kept; a later run adds
-// only what is missing). The Tables bundle must be on in the sandbox profile. Nothing is sent to a model. Exit code: 0 all green, 1 a check failed, 3 not run.
+// SANDBOX ONLY (exit 3 against :3080 and without a sandbox DSH_HOME): it seeds the real-estate template and adds ~5,100 rows to its Properties table, which it removes again at the end
+// (`--keep` leaves them, and a later run then adds only what is missing): the checks that count the sample rows of the templates read the sample afterwards (UJ-152). The Tables bundle must be on in the sandbox profile. Nothing is sent to a model. Exit code: 0 all green, 1 a check failed, 3 not run.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { cookieDeSession } from './cdp-lib.mjs'
@@ -69,6 +69,7 @@ const setSearch = (value) => ev(`(() => { const e = document.querySelector(${JSO
 const typeInto = async (value, gap = 45) => { for (let k = 1; k <= value.length; k += 1) { await setSearch(value.slice(0, k)); await sleep(gap) } }
 const clearSearch = () => setSearch('')
 
+let tidy = null
 try {
   await page.send('Runtime.enable', {})
   await sleep(2500)
@@ -76,10 +77,21 @@ try {
   const dbId = seeded.json && seeded.json.db
   check('the real-estate database exists (made now or by an earlier run)', seeded.status === 200 && typeof dbId === 'string', seeded)
   let state = await get('/kybernos-db/state')
+  // On a fresh clone the state does not list the app the same instant the seed answers: wait for it (up to 10 s) before judging.
+  for (let n = 0; n < 20 && !state.dbs.find((d) => d.id === dbId); n += 1) { await sleep(500); state = await get('/kybernos-db/state') }
   const db = state.dbs.find((d) => d.id === dbId)
   const obj = db && db.objects.find((o) => o.key === 'property')
   check('it has a Properties table', obj !== undefined && obj !== null, db && db.objects.map((o) => o.key))
   const titleKey = obj.title
+  tidy = process.argv.includes('--keep') ? null : async () => {
+    const ids = (await get('/kybernos-db/records?db=' + dbId + '&object=property&limit=50000')).records.filter((r) => /^Zeta lot \d+$/.test(r.values[titleKey])).map((r) => r.id)
+    const t0 = Date.now()
+    for (let i = 0; i < ids.length && Date.now() - t0 < 240000; i += 25) {
+      await ev(`(async () => { await Promise.all(${JSON.stringify(ids.slice(i, i + 25))}.map((id) => fetch('/kybernos-db/write', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ db: ${JSON.stringify(dbId)}, object: 'property', op: 'delete', id }) }))); return 1 })()`, 30000)
+    }
+    const left = (await get('/kybernos-db/state')).dbs.find((d) => d.id === dbId).objects.find((o) => o.key === 'property').count
+    console.log('     (the ' + ids.length + ' rows of this check were removed again; Properties holds ' + left + ' rows)')
+  }
   const required = obj.fields.filter((f) => f.required === true || f.key === titleKey)
   const valueFor = (f, i) => (f.type === 'number' || f.type === 'money' ? i : f.type === 'choice' ? f.options[0].key : f.type === 'date' ? '2026-01-01' : f.type === 'email' ? 'p' + i + '@example.com' : 'Zeta lot ' + i)
   const make = (i) => { const v = {}; for (const f of required) v[f.key] = f.key === titleKey ? 'Zeta lot ' + i : valueFor(f, i); return v }
@@ -189,6 +201,7 @@ try {
   fail += 1
   console.log('  ✗ the run stopped: ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).join(' | ') : e))
 } finally {
+  if (tidy !== null) await tidy().catch((e) => console.log('     (the rows of this check could not be removed: ' + (e && e.message ? e.message : e) + ')'))
   await live.close().catch(() => {})
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
