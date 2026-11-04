@@ -13,4 +13,12 @@ check('a median above its budget is « over », at the budget it is « within »
 check('a name with no proposed budget says so', against('nothing', { median: 1 }) === 'no budget')
 check('every proposed budget is a positive number of milliseconds', Object.values(BUDGETS_MS).every((n) => Number.isFinite(n) && n > 0))
 
+// UJ-53: the Settings time was 2.6 s on every run because it counted the fixed waits openSettings makes before the press; it is now taken from the press
+const { readFileSync } = await import('node:fs')
+const here = new URL('.', import.meta.url)
+const script = readFileSync(new URL('measure-budgets-live.mjs', here), 'utf8')
+const live = readFileSync(new URL('live-page.mjs', here), 'utf8')
+check('the Settings time is read from the press, not around the whole openSettings call', /openSettings\(page, \{ tries: 1, timing \}\)/.test(script) && /timing\.shownAt - timing\.pressedAt/.test(script) && !/t0 = Date\.now\(\)\s*\n\s*if \(await openSettings/.test(script))
+check('openSettings stamps the press and the moment the navigation is drawn when it is given a timing', /opts\.timing\.pressedAt = Date\.now\(\)/.test(live) && /opts\.timing\.shownAt = Date\.now\(\)/.test(live))
+
 process.exit(fails === 0 ? 0 : 1)

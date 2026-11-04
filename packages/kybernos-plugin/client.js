@@ -21844,7 +21844,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       })()
       const headRow = h('div', { className: 'kb6-headrow' },
         h('div', { className: 'kb6-headcol' },
-          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations', kbt('deliverables.desc'), kbDomainTitle('deliverables', kbt('deliverables.title')))),
+          h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations', kbt('deliverables.desc'), kbDomainTitle('deliverables', kbt('deliverables.title')))),
           kbSubFallback('kb6-desc', kbt('deliverables.desc'), 'div')),
         h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length + srcAll.length : 0, shown: hasPayload === true ? sorted.length + srcShown.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
       // Nothing has been read yet. The page used to draw seven invented files (a mock-up) until the host answered; it now
@@ -29738,7 +29738,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         ]
       }
       const galleryPage = () => [
-        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Templates', 'Modèles'))),
+        h('div', { key: 'h', className: 'kb6-head' }, h('h1', { className: 'kb6-title' }, kbThEn('Templates', 'Modèles'))),
         h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A template gives Kybernos the words, the look and the plugins of your trade. Installing one never touches your chats, memory or workspaces.', 'Un modèle donne à Kybernos les mots, le style et les plugins de ton métier. L’installer ne touche jamais à tes conversations, à ta mémoire ni à tes espaces.')),
         error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
         entries.length > 0
@@ -29924,7 +29924,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // `.kb6-head` carries the common top margin, like Creations).
     // "Documents" stays hidden by KB_SHOW_DOCS: its page and its entry
     // only exist if the flag is raised.
-    const kbPageHead = (title) => h('div', { className: 'kb6-head' }, h('div', { className: 'kb6-title' }, title))
+    const kbPageHead = (title) => h('div', { className: 'kb6-head' }, h('h1', { className: 'kb6-title' }, title))
     const KbSkillsView = (props) => {
       // Session displayed by the host (same source as KybersMain): it follows the
       // session selection, so the page reloads on the right project.

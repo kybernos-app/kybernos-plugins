@@ -201,4 +201,11 @@ ok('the French names of Automations and Workspaces are the same in the sidebar, 
   ok('the object is spelt « Mini-app » on every label (the Creations filter, the card line, the badges, the messages)')
 }
 
+{
+  // UJ-52: a page's title is a heading, so that a screen reader's list of headings is not empty (Creations, Templates and Documents drew it as a div)
+  assert.ok(!/h\('div', \{ className: 'kb6-title'(?!, style)/.test(src), 'no page title is drawn as a div: every `kb6-title` of a page head is an h1')
+  assert.ok(/h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('deliverables'/.test(src), 'the Creations page title is an h1')
+  ok('the titles of Creations, Templates and Documents are h1 headings, like the other pages')
+}
+
 console.log('\n' + pass + ' verifications OK')

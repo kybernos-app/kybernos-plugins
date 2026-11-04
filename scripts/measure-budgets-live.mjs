@@ -6,7 +6,7 @@
 // What is timed, each `--runs` times, from a clean load (a measured number needs a quiet machine: stop other live runs first):
 //   shell     navigating to the address until the sidebar and the composer are drawn (« start-up time » as the person sees it);
 //   <page>    pressing a sidebar entry until its page title is on screen (Skills, Creations, Automations, Connectors);
-//   settings  opening the Settings dialog until its navigation is drawn.
+//   settings  from the press that opens the Settings dialog until its navigation is drawn (the 1 s pause between the account chip and its menu is in it).
 // Not here: the first token of a model answer (needs a real or stand-in model: the replica journeys time it) and a 5,000-row table (scripts/check-tables-big-live.mjs).
 // The budgets are PROPOSALS (the owner decides them): a median above its budget is reported « over », and the exit code stays 0, because a first measure sets a baseline and
 // does not gate. Exit 0 measured, 1 could not run, 3 not a sandbox.
@@ -60,8 +60,9 @@ async function main () {
       await page.send('Page.navigate', { url: 'http://' + host + '/' })
       await waitFor(page, shellReady, 30000)
       await sleep(1200)
-      t0 = Date.now()
-      if (await openSettings(page, { tries: 1 })) add('settings', Date.now() - t0)
+      // from the press on the account chip (and the 1 s the menu needs to open) to the navigation drawn: not the waits openSettings makes before the press (UJ-53)
+      const timing = {}
+      if (await openSettings(page, { tries: 1, timing }) && timing.pressedAt && timing.shownAt) add('settings', timing.shownAt - timing.pressedAt)
     }
   } finally { await live.close() }
   const report = {}
