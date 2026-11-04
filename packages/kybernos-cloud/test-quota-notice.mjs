@@ -272,5 +272,17 @@ console.log("a window whose limit is zero (Free, credit spent)")
   check("a team pool is not changed by the flag", team !== null && /comes back/.test(team.text), team && team.text)
 }
 
+console.log('a failed payment on a personal space')
+{
+  const r = notice(facts(personal, [], { payment_blocked: true }))
+  check('it names « your plan », not the server\'s own name for the space (« My workspace »)', r !== null && r.text.startsWith('The last payment for your plan failed:') && !/My workspace/.test(r.text), r && r.text)
+  const f = plain(quotaNoticeText(facts(personal, [], { payment_blocked: true }), fr, NOW))
+  check('in French', f !== null && /^Le dernier paiement de ton offre a échoué/.test(f.text) && !/My workspace/.test(f.text), f && f.text)
+  const tm = notice(facts(team('owner'), [], { payment_blocked: true }))
+  check('a team keeps its own name', tm !== null && tm.text.startsWith('The last payment for Acme Crew failed:'), tm && tm.text)
+  const meter = quotaMeterOf(facts(personal, [], { payment_blocked: true }), t, NOW)
+  check('the meter\'s title says the same', meter !== null && /^The last payment for your plan failed:/.test(meter.title.replace(/\u00a0/g, ' ')), meter && meter.title)
+}
+
 if (failed > 0) { console.log('\n' + failed + ' check(s) FAILED'); process.exit(1) }
 console.log('\nall checks OK')
