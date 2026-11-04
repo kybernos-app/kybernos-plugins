@@ -25448,7 +25448,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
               h('h1', { className: 'kb6-title' }, kbDomainTitle('tasks', kbt('tasks.title'))),
-              h(KbHelpButton, { open: guide === true, dataKb: 'automation-help', title: kbt('tasks.help'), onClick: () => setGuide(guide === false) }))),
+              // The empty « Yours » tab already shows the home the « ? » would open: there the button would do nothing visible, so it is not drawn (UJ-15).
+              (list.length === 0 && section === 'yours' ? null : h(KbHelpButton, { open: guide === true, dataKb: 'automation-help', title: kbt('tasks.help'), onClick: () => setGuide(guide === false) })))),
           (list.length > 0 && section === 'yours'
             ? h(KbToolbar, {
               state: tbAutoView,
@@ -25467,10 +25468,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               trailing: autoActions,
             })
             : h('div', { className: 'kb6-headacts' }, autoActions))),
-        // Aide ( ? ) : l'accueil onboarding rouvre AU-DESSUS de la liste quand
-        // des automations existent déjà (quand la liste est vide, il est déjà
-        // à l'écran).
-        (guide === true && list.length > 0 && section === 'yours' ? kbaOnboard(true) : null),
+        // Aide ( ? ) : l'accueil onboarding rouvre AU-DESSUS de la liste, sur chaque onglet ;
+        // seul l'onglet « Yours » vide l'a déjà à l'écran (et n'a alors pas de « ? »).
+        (guide === true && !(list.length === 0 && section === 'yours') ? kbaOnboard(true) : null),
         h('div', { className: 'kbld-row' },
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'automations-sections' },
             ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id))).concat([kbtaSegment(team, section, () => setSection('team'))])),
