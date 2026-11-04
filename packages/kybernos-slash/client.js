@@ -2454,13 +2454,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         // (01/10) Bilingual label, read from __KB_I18N_ACTIVE__ (language state
         // set by the theme bundle before the others): an English shell
         // reads « Commands ».
-        const kbslLabel = (fr, en) => {
-          try {
-            const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
-            const loc = (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined) ? String(a.lang).toLowerCase() : ''
-            return loc.indexOf('en') === 0 ? en : fr
-          } catch (e) { return fr }
-        }
+        // (UJ-54) French only for French (« kybernos » and fr*), English for every other language and for nothing, like the page itself (kbslLang): an added
+        // language (Spanish, Arabic…) used to read « Commandes » in the Settings menu.
+        const kbslLabel = (fr, en) => (kbslLang() === 'fr' ? fr : en)
         ctx.effect(() => slots.inject('settings.section', () => slots.register(
           { name: 'settings.section', id: 'kybernos-slash', order: 27, label: kbslLabel('Commandes', 'Commands') }, KbSettings)), 'kybernos-slash: section reglages')
       }

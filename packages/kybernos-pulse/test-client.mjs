@@ -245,6 +245,7 @@ ok('no hard-coded colour outside a var() fallback', !/#[0-9a-fA-F]{3,8}\b|rgb\(|
 ok('the page only talks to its own host', [...source.matchAll(/fetch\(\s*([^,)]+)/g)].every((m) => /kybernos-pulse/.test(m[1]) || /path\b/.test(m[1])) && !/https?:\/\//.test(source.replace(/\/\/ .*$/gm, '').replace(/xlink|w3\.org/g, '')))
 ok('no eval, no innerHTML on the main page, no document.write', !/\beval\(|new Function\(|document\.write/.test(source) && (source.match(/\.innerHTML\s*=/g) || []).length === 1)
 ok('the state route and the two write routes are the only ones used', [...new Set([...source.matchAll(/'(\/kybernos-pulse\/[a-z]+)'/g)].map((m) => m[1]))].sort().join() === '/kybernos-pulse/inbox,/kybernos-pulse/settings,/kybernos-pulse/state')
+ok('the 22 px switches have an invisible hit area (UJ-49)', /\.kbpu-sw::before\{content:"";position:absolute;inset:-3px\}/.test(source))
 
 console.log('\n' + (total - failures) + '/' + total + ' passed')
 process.exit(failures > 0 ? 1 : 0)

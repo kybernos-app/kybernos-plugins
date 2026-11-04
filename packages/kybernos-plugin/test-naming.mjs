@@ -201,4 +201,22 @@ ok('the French names of Automations and Workspaces are the same in the sidebar, 
   ok('the object is spelt « Mini-app » on every label (the Creations filter, the card line, the badges, the messages)')
 }
 
+{
+  // UJ-52: a page's title is a heading, so that a screen reader's list of headings is not empty (Creations, Templates and Documents drew it as a div)
+  assert.ok(!/h\('div', \{ className: 'kb6-title'(?!, style)/.test(src), 'no page title is drawn as a div: every `kb6-title` of a page head is an h1')
+  assert.ok(/h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('deliverables'/.test(src), 'the Creations page title is an h1')
+  ok('the titles of Creations, Templates and Documents are h1 headings, like the other pages')
+}
+
+{
+  // UJ-54: a word of a new-chat type tile wider than its tile (77 px at 1440, 69 px at 768 and 390: about 12 letters at 11 px) broke in the middle (« Automatisatio / n »)
+  const tiles = [...src.matchAll(/'kbnc\.t\.([a-z0-9]+)': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)].map((m) => ({ id: m[1], fr: m[2], en: m[3] }))
+  assert.ok(tiles.length >= 14, 'the tile labels are read from the dictionary (' + tiles.length + ')')
+  const words = (x) => x.replace(/\\u00ad/g, '\u00ad').split(/[\s-]+/)
+  const bare = tiles.filter((x) => words(x.fr).some((w) => !w.includes('\u00ad') && w.length >= 13))
+  assert.deepStrictEqual(bare.map((x) => x.id + ': ' + x.fr), [], 'a French tile word of 13 letters or more carries a soft hyphen (\\u00ad) so that it breaks at a syllable')
+  assert.ok(tiles.every((x) => words(x.en).every((w) => w.length < 13)), 'no English tile word is 13 letters or more')
+  ok('no new-chat tile word wider than its tile breaks in the middle: the long French word carries a soft hyphen')
+}
+
 console.log('\n' + pass + ' verifications OK')

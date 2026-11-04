@@ -4935,11 +4935,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           // @local/kybernos-language, which sets `__KB_I18N_ACTIVE__` as soon as it
           // activates. This plugin only READS the global — can be switched off without
           // breaking the theme: without language, the label falls back to French.
+          // (UJ-54) French for « kybernos » and fr*; every other language (an added one: Spanish, Arabic…) reads English, as the product's strings do.
           const kbthLabel = (fr, en) => {
             try {
               const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
               const loc = (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined) ? String(a.lang).toLowerCase() : ''
-              return loc.indexOf('en') === 0 ? en : fr
+              return (loc === '' || loc === 'kybernos' || loc.split(/[-_]/)[0] === 'fr') ? fr : en
             } catch (e) { return fr }
           }
           // (29/09) The “Appearance” block of General ▸ (DSH) is hidden: the

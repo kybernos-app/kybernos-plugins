@@ -1147,5 +1147,8 @@ console.log('\n── the page title: one head, no style of its own ──')
 ok('the « AI provider and models » page draws its title and its « ? » as one pageHead (h1, hook kbm-h1), not a button in the providers toolbar', /pageHead\(\{ id: 'kybernos-models', title: m\('kb\.models\.surface\.entry'\), as: 'h1', className: 'kbm-h1' \}\)/.test(src) && !/h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-models' \}\)/.test(src))
 ok('no rule of the bundle sizes or weighs the title (.kbm-h1): the Settings frame sets it', !/\.kbm-h1\s*[{,]/.test(src))
 
+console.log('\n── contrast: the warning tag keeps its amber border and reads in a darker amber (UJ-49) ──')
+ok('the « Config error » tag text is the amber mixed into the primary label colour, never the bare warn colour (2.15:1 on white)', /\.kbpv-tag-warn\{color:color-mix\(in srgb,var\(--dsw-alias-state-warn-label[^}]*label-primary[^}]*\);border-color:var\(--dsw-alias-state-warn-primary\)\}/.test(src))
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)

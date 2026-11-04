@@ -1361,7 +1361,8 @@ let kbLocaleRead = () => 'en'
       'kbnc.t.website': { kybernos: 'Site web', en: 'Website' },
       'kbnc.t.miniapp': { kybernos: 'Mini-app', en: 'Mini-app' },
       'kbnc.t.dashboard': { kybernos: 'Tableau de bord', en: 'Dashboard' },
-      'kbnc.t.automation': { kybernos: 'Automatisation', en: 'Automation' },
+      // (UJ-54) \u00ad = a soft hyphen: « Automatisation » (14 letters) is wider than its 77 px tile at 1440 px and 69 px at 768 and 390, and broke as « Automatisatio / n »; it now breaks as « Automa- / tisation »
+      'kbnc.t.automation': { kybernos: 'Automa\u00adtisation', en: 'Automation' },
       'kbnc.t.team': { kybernos: 'Agent Team', en: 'Agent Team' },
       'kbnc.t.skill': { kybernos: 'Skill', en: 'Skill' },
       'kbnc.t.plugin': { kybernos: 'Plugin', en: 'Plugin' },
@@ -21844,7 +21845,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       })()
       const headRow = h('div', { className: 'kb6-headrow' },
         h('div', { className: 'kb6-headcol' },
-          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations', kbt('deliverables.desc'), kbDomainTitle('deliverables', kbt('deliverables.title')))),
+          h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations', kbt('deliverables.desc'), kbDomainTitle('deliverables', kbt('deliverables.title')))),
           kbSubFallback('kb6-desc', kbt('deliverables.desc'), 'div')),
         h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length + srcAll.length : 0, shown: hasPayload === true ? sorted.length + srcShown.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
       // Nothing has been read yet. The page used to draw seven invented files (a mock-up) until the host answered; it now
@@ -29738,7 +29739,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         ]
       }
       const galleryPage = () => [
-        h('div', { key: 'h', className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbThEn('Templates', 'Modèles'))),
+        h('div', { key: 'h', className: 'kb6-head' }, h('h1', { className: 'kb6-title' }, kbThEn('Templates', 'Modèles'))),
         h('p', { key: 's', className: 'kbg-sub' }, kbThEn('A template gives Kybernos the words, the look and the plugins of your trade. Installing one never touches your chats, memory or workspaces.', 'Un modèle donne à Kybernos les mots, le style et les plugins de ton métier. L’installer ne touche jamais à tes conversations, à ta mémoire ni à tes espaces.')),
         error !== null ? h('p', { key: 'e', className: 'kbg-note', role: 'alert' }, '⚠ ' + String(error)) : null,
         entries.length > 0
@@ -29924,7 +29925,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // `.kb6-head` carries the common top margin, like Creations).
     // "Documents" stays hidden by KB_SHOW_DOCS: its page and its entry
     // only exist if the flag is raised.
-    const kbPageHead = (title) => h('div', { className: 'kb6-head' }, h('div', { className: 'kb6-title' }, title))
+    const kbPageHead = (title) => h('div', { className: 'kb6-head' }, h('h1', { className: 'kb6-title' }, title))
     const KbSkillsView = (props) => {
       // Session displayed by the host (same source as KybersMain): it follows the
       // session selection, so the page reloads on the right project.
@@ -36370,7 +36371,8 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb6-headacts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin-inline-start:auto;padding-top:6px}
 /* No wrap: the search field shrinks (min-width:0) instead of dropping the view switch and the menu to a second line, which pushed the whole page down when the magnifier was pressed. */
-.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;justify-content:flex-end;padding-top:6px}
+/* The tools wrap when the column is narrower than they are (UJ-55: at 768 px with the sidebar open the Automations toolbar was 479 px in a 432 px column and its « Create » button was cut by the window) */
+.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:wrap;row-gap:6px;justify-content:flex-end;padding-top:6px}
 .kb6-tb-tools .kb6-tb-search{flex:0 1 280px;min-width:0;margin-inline-end:6px}
 .kb6-tb-ghost{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:var(--kb6-tb-h);border-radius:999px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;position:relative;padding:0}
 .kb6-tb-ghost:hover,.kb6-tb-ghost.open{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}

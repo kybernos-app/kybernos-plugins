@@ -102,8 +102,9 @@ const theme = async (dark) => {
   const after = await val(`document.documentElement.getAttribute('data-kb-theme') || (document.body.hasAttribute('data-ds-dark-theme') ? 'dark' : 'light')`)
   return (after === 'dark') === dark
 }
+// The menu has no Dashboards row any more (folded into Creations while the plugin is a source of its registry): the page opens through the door other bundles use.
 const openDashboards = async () => {
-  await val(`(() => { const b = Array.from(document.querySelectorAll('.kb4-menu .kb4-item')).find((x) => (x.querySelector('.kb4-lab') || {}).textContent === 'Dashboards'); if (b) b.click(); return !!b })()`)
+  await val(`(() => { if (window.__KB_OPEN__) { window.__KB_OPEN__({ view: 'dashboards' }); return true } const b = Array.from(document.querySelectorAll('.kb4-menu .kb4-item')).find((x) => (x.querySelector('.kb4-lab') || {}).textContent === 'Dashboards'); if (b) b.click(); return !!b })()`)
   return (await poll(() => val(`!!document.querySelector('[data-kb="dashboards-page"]')`), 15000)) === true
 }
 
@@ -148,7 +149,7 @@ try {
 
 
   console.log('\n── 2. the Presets gallery ──')
-  check('the Dashboards page opens from the menu', await openDashboards())
+  check('the Dashboards page opens (through the core\'s door: the menu row is folded into Creations)', await openDashboards())
   await poll(() => val(`document.querySelectorAll('[data-kb="dashboards-preset"]').length >= 3`), 15000)
   const gallery = await val(`(() => { const cards = Array.from(document.querySelectorAll('[data-kb="dashboards-preset"]')); return { n: cards.length, first: cards.slice(0, 3).map((c) => ({ id: c.getAttribute('data-id'), tpl: (c.querySelector('[data-kb="preset-template"]') || {}).textContent || null, name: (c.querySelector('h3') || {}).textContent, btn: !!c.querySelector('[data-act="use-preset"]'), clipped: Array.from(c.querySelectorAll('h3, p, .kbdb-pill')).filter((e) => e.scrollWidth > e.clientWidth + 1).length })), others: cards.filter((c) => c.querySelector('[data-kb="preset-template"]')).length } })()`)
   check('the gallery shows the three templates\' dashboards first, each card with a pill naming its template and a button', gallery.n >= 9 && gallery.first.map((c) => c.tpl).sort().join() === Object.values(NAMES).sort().join() && gallery.first.every((c) => c.btn) && gallery.others === 3, gallery)

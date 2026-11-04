@@ -39,9 +39,12 @@ const pickMode = async (name) => {
   await goToSettingsPage(page, 'Theme', { settleMs: 1500 })
   await openThemeAdvanced(page) // the mode cards sit in the Advanced editor, folded under the simple view
   const before = await ev(`(() => { const c = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => /current/i.test(x.innerText || '')); return c ? (c.innerText || '').trim().split('\\n')[0] : null })()`)
-  const at = await ev(`(() => { const e = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => (x.innerText || '').trim().startsWith(${JSON.stringify(name)})); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
+  const at = await ev(`(() => { const e = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => (x.innerText || '').trim().startsWith(${JSON.stringify(name)})); if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
   if (at === null) throw new Error('the Theme page has no « ' + name + ' » mode card')
+  await sleep(300) // the card is scrolled into view first: below the fold the click lands on nothing and the pass would silently stay in the old mode (UJ-51)
   await click(at.x, at.y); await sleep(1500)
+  const now = await ev(`(() => { const c = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => /current/i.test(x.innerText || '')); return c ? (c.innerText || '').trim().split('\\n')[0] : null })()`)
+  if (typeof now !== 'string' || !now.startsWith(name)) throw new Error('the « ' + name + ' » card was pressed but the current mode is « ' + now + ' »')
   return before
 }
 
