@@ -49,6 +49,7 @@ const st = (plan) => ({ ok: true, state: { user: { plan } } })
 check('no user / empty / free → free', T.planOf(null) === 'free' && T.planOf({}) === 'free' && T.planOf(st('')) === 'free' && T.planOf(st('free')) === 'free' && T.planOf(st('FREE')) === 'free')
 check('solo, studio, scale and legacy individual plans → solo', ['solo', 'studio', 'scale', 'pro', 'max'].every((p) => T.planOf(st(p)) === 'solo'))
 check('team-* seats → team', T.planOf(st('team-solo')) === 'team' && T.planOf(st('team-studio')) === 'team' && T.planOf(st('team-scale')) === 'team' && T.planOf(st('team')) === 'team')
+check('the plan line reads the space label the server gave, else the plan key with a capital, else Free (never « Solo » for a Plus or a Pro)', T.planLabelOf({ state: { space_plan: { label: 'Plus' }, user: { plan: 'plus' } } }) === 'Plus' && T.planLabelOf({ state: { user: { plan: 'studio' } } }) === 'Studio' && T.planLabelOf({ state: { space_plan: { label: ' pro ' }, user: { plan: 'studio' } } }) === 'Pro' && T.planLabelOf(null) === 'Free' && T.planLabelOf({ state: { user: {} } }) === 'Free' && T.planLabelOf(st('')) === 'Free')
 
 // ── ages
 console.log('ages')
@@ -79,7 +80,7 @@ check('mode=meaning is sent only with a query, only for memories', T.listUrl('me
 
 console.log('search by meaning')
 check('every fallback reason has its own sentence', ['sens_desactive', 'offre_requise', 'sens_indisponible', 'serveur_ancien', 'credits_epuises', 'embedding_invalide'].every((c) => T.meaningWhy(c).length > 10 && T.meaningWhy(c).indexOf('Something went wrong') < 0))
-check('the plan reason names the tier the host sent, Solo by default', /Solo plan/.test(T.meaningWhy('offre_requise')) && /Team plan/.test(T.meaningWhy('offre_requise', 'team')) && /Solo plan/.test(T.meaningWhy('offre_requise', 'unheard-of')))
+check('the plan reason names the tier the host sent; with none it says the feature is not in the plan, never a plan name of its own', /Solo plan/.test(T.meaningWhy('offre_requise', 'solo')) && /Team plan/.test(T.meaningWhy('offre_requise', 'team')) && T.meaningWhy('offre_requise') === 'Search by meaning is not included in your plan.' && T.meaningWhy('offre_requise', 'unheard-of') === 'Search by meaning is not included in your plan.')
 check('the switch reason points to Customize', /Customize/.test(T.meaningWhy('sens_desactive')))
 check('an unknown code falls back to the generic words, never to undefined', typeof T.meaningWhy('zzz') === 'string' && /zzz/.test(T.meaningWhy('zzz')) && T.meaningWhy(undefined).length > 0)
 check('« N of M words » only when some of several words were missing', T.wordsLabel(2, 3) === '2 of 3 words' && T.wordsLabel(1, 2) === '1 of 2 words' && T.wordsLabel(3, 3) === null && T.wordsLabel(1, 1) === null && T.wordsLabel(undefined, undefined) === null && T.wordsLabel(0, 3) === null && T.wordsLabel('2', 3) === null)
@@ -312,7 +313,7 @@ console.log('tidy up')
     const clear = placed.every((i) => A.every((n) => { const d = [n.x * 1000 - 9, n.y * 540 - 9, n.x * 1000 + 9, n.y * 540 + 9]; return apart(box(i), d) }))
     return at[0] !== undefined && Math.abs(at[0].y - (0.5 * 540 - 16)) < 1e-9 && pairs && free && clear && at[4] === undefined && at[5] === undefined && at[2] !== undefined && T.mapLabelSpots([], C)[0] === undefined
   })())
-  check('map: what the map says when it cannot be drawn (switch off, plan, credits, signed out, anything else)', T.mapWords('sens_desactive')[0] === 'The map needs Search by meaning' && /Kybernos embedding model/.test(T.mapWords('sens_desactive')[1]) && T.mapWords('offre_requise', 'solo')[0] === 'The map needs the Solo plan' && T.mapWords('offre_requise')[0] === 'The map needs the Solo plan' && T.mapWords('credits_epuises')[0] === 'You are out of credits' && T.mapWords('non connecte')[0] === 'Not connected' && T.mapWords('embedding_invalide')[0] === 'The map could not be drawn' && T.mapWords('indisponible')[0] === 'The map needs a restart' && T.mapWords('reconnexion_requise')[1] === 'Your Kybernos session has expired: reconnect.' && T.mapWords('quelque_chose_d_inconnu')[0] === 'The map could not be drawn')
+  check('map: what the map says when it cannot be drawn (switch off, plan, credits, signed out, anything else)', T.mapWords('sens_desactive')[0] === 'The map needs Search by meaning' && /Kybernos embedding model/.test(T.mapWords('sens_desactive')[1]) && T.mapWords('offre_requise', 'solo')[0] === 'The map needs the Solo plan' && T.mapWords('offre_requise')[0] === 'The map is not included in your plan' && T.mapWords('credits_epuises')[0] === 'You are out of credits' && T.mapWords('non connecte')[0] === 'Not connected' && T.mapWords('embedding_invalide')[0] === 'The map could not be drawn' && T.mapWords('indisponible')[0] === 'The map needs a restart' && T.mapWords('reconnexion_requise')[1] === 'Your Kybernos session has expired: reconnect.' && T.mapWords('quelque_chose_d_inconnu')[0] === 'The map could not be drawn')
   check('map: the page has its pieces and talks only to the plugin\'s own route, which the host serves (GET, same-origin guarded)', /const MapPane/.test(SOURCE) && /'\/kybernos-cloud\/memory\/meaning-map'/.test(SOURCE) && (() => { const host = readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8'); return /path: '\/kybernos-cloud\/memory\/meaning-map', method: 'GET', guarded: true/.test(host) })() && !/fetch\('https?:/.test(SOURCE))
   check('map: the choice is kept only once a map was really drawn, and the lessons never offer it', /onReady: \(\) => writeLayout\('map'\)/.test(SOURCE) && /if \(v === 'list'\) writeLayout\('list'\)/.test(SOURCE) && /const mapOn = mems && layout === 'map'/.test(SOURCE) && /disabled: !mems/.test(SOURCE))
   check('who merged: automatic or you', T.logWho({ by: 'auto' }) === 'Automatic · 80 %+' && T.logWho({ by: 'you' }) === 'You' && T.logWho({}) === 'You')
@@ -463,7 +464,7 @@ console.log('suggested memories')
 // T2-30: Customize used to say « The map is not built yet » next to a Map tab that exists
 console.log('Customize')
 {
-  check('the plan note of Customize no longer claims the map is not built (the Map is a tab of the page), in either language', !/map is not built|carte n’est pas encore construite/i.test(SOURCE) && SOURCE.includes("kt('Ton offre : ', 'Your plan: '), h('b', null, PLAN_NAME[plan]), '.'"))
+  check('the plan note of Customize no longer claims the map is not built (the Map is a tab of the page), in either language', !/map is not built|carte n’est pas encore construite/i.test(SOURCE) && SOURCE.includes("kt('Ton offre : ', 'Your plan: '), h('b', null, planLabelOf(status.raw)), '.'"))
   check('and the Map the note used to deny is really there: the MapPane and its View switch', SOURCE.includes('const MapPane = (') && SOURCE.includes("{ v: 'map', l: [Ico('map')"))
 }
 

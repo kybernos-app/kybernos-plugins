@@ -77,7 +77,16 @@ window.__ModuleLoader__.load({
         if (raw === '' || raw === 'free') return 'free'
         return raw.indexOf('team') === 0 ? 'team' : 'solo'
       }
-      const PLAN_NAME = { free: 'Free', solo: 'Solo', team: 'Team' }
+      /** The plan's name as the person reads it everywhere else: the label the server gave the space (« Plus », « Pro », « Team »), else the plan key with a capital, else « Free ». Never an invented name. */
+      const planLabelOf = (status) => {
+        const cap = (m) => (typeof m === 'string' && m.trim() !== '' ? m.trim().charAt(0).toUpperCase() + m.trim().slice(1) : null)
+        const state = status !== null && status !== undefined && status.state !== undefined && status.state !== null && typeof status.state === 'object' ? status.state : null
+        if (state === null) return 'Free'
+        const space = state.space_plan !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? cap(state.space_plan.label) : null
+        if (space !== null) return space
+        const own = state.user !== undefined && state.user !== null ? cap(state.user.plan) : null
+        return own !== null ? own : 'Free'
+      }
 
       /** Minutes → « now », « 12m », « 3h », « 2d ». */
       const ageLabel = (minutes) => {
@@ -157,12 +166,13 @@ window.__ModuleLoader__.load({
       const readMode = () => { try { return window.localStorage.getItem(MODE_KEY) === 'meaning' ? 'meaning' : 'relevance' } catch (e) { return 'relevance' } }
       const writeMode = (v) => { try { window.localStorage.setItem(MODE_KEY, v) } catch (e) { /* private window */ } }
 
+      // The server names no tier today (`required_tier` is never sent): then the sentence says the feature is not in the plan, never a plan name the page invented.
       const TIER_NAME = { solo: 'Solo', team: 'Team', free: 'Free' }
       /** Why a meaning search is not being done (host codes of /memory/index and of the list's `search.fallback`), as a sentence. */
       const meaningWhy = (code, tier) => {
         const c = String(code === undefined || code === null ? '' : code)
         if (c === 'sens_desactive') return kt('La recherche par sens est désactivée. Active-la dans Personnaliser.', 'Search by meaning is off. Turn it on in Customize.')
-        if (c === 'offre_requise') return kt('La recherche par sens demande l’offre ' + (TIER_NAME[tier] || 'Solo') + '.', 'Search by meaning needs the ' + (TIER_NAME[tier] || 'Solo') + ' plan.')
+        if (c === 'offre_requise') return TIER_NAME[tier] !== undefined ? kt('La recherche par sens demande l’offre ' + TIER_NAME[tier] + '.', 'Search by meaning needs the ' + TIER_NAME[tier] + ' plan.') : kt('La recherche par sens n’est pas incluse dans ton offre.', 'Search by meaning is not included in your plan.')
         if (c === 'sens_indisponible' || c === 'serveur_ancien') return kt('Ton serveur Kybernos ne sait pas encore chercher par sens.', 'Your Kybernos server cannot search by meaning yet.')
         if (c === 'credits_epuises') return kt('Tu n’as plus de crédits.', 'You are out of credits.')
         if (c === 'embedding_invalide') return kt('Le service d’embeddings a renvoyé quelque chose d’inattendu.', 'The embedding service sent back something unexpected.')
@@ -236,7 +246,7 @@ window.__ModuleLoader__.load({
       const mapWords = (code, tier) => {
         const c = String(code === undefined || code === null ? '' : code)
         if (c === 'sens_desactive') return [kt('La carte a besoin de la recherche par sens', 'The map needs Search by meaning'), kt('La carte place chaque souvenir selon son sens, avec les mêmes embeddings que la recherche par sens, qui est désactivée. Une fois activée, elle envoie le texte des souvenirs dessinés (150 au maximum) au modèle d’embeddings de Kybernos, et rien d’autre.', 'The map places each memory by what it means, with the same embeddings as Search by meaning, which is off. Turned on, it sends the text of the memories drawn (150 at most) to the Kybernos embedding model, and nothing else.')]
-        if (c === 'offre_requise') return [kt('La carte demande l’offre ' + (TIER_NAME[tier] || 'Solo'), 'The map needs the ' + (TIER_NAME[tier] || 'Solo') + ' plan'), kt('Elle utilise le modèle d’embeddings, que ton offre n’inclut pas. La liste et la recherche par mots continuent de fonctionner.', 'It uses the embeddings model, which your plan does not include. The list and the search by words keep working.')]
+        if (c === 'offre_requise') return [TIER_NAME[tier] !== undefined ? kt('La carte demande l’offre ' + TIER_NAME[tier], 'The map needs the ' + TIER_NAME[tier] + ' plan') : kt('La carte n’est pas incluse dans ton offre', 'The map is not included in your plan'), kt('Elle utilise le modèle d’embeddings, que ton offre n’inclut pas. La liste et la recherche par mots continuent de fonctionner.', 'It uses the embeddings model, which your plan does not include. The list and the search by words keep working.')]
         if (c === 'credits_epuises') return [kt('Tu n’as plus de crédits', 'You are out of credits'), kt('Placer les souvenirs utilise le modèle d’embeddings, facturé sur ton compte comme le chat.', 'Placing the memories uses the embeddings model, billed to your account like chat.')]
         if (c === 'non connecte') return [kt('Non connecté', 'Not connected'), kt('Les souvenirs vivent dans ton compte Kybernos Cloud : connecte-le pour voir la carte.', 'Memories live in your Kybernos Cloud account: connect it to see the map.')]
         if (c === 'indisponible') return [kt('La carte demande un redémarrage', 'The map needs a restart'), kt('Le plugin Kybernos Cloud a été mis à jour : redémarre DSH pour voir la carte.', 'The Kybernos Cloud plugin was updated: restart DSH to see the map.')]
@@ -1835,7 +1845,7 @@ window.__ModuleLoader__.load({
           }
         }
         return h(SettingRow, { label: kt('Recherche par sens', 'Search by meaning'), desc: kt('Retrouve un souvenir avec d’autres mots que ceux avec lesquels il a été écrit. Le texte de chaque souvenir est envoyé au modèle d’embeddings de Kybernos pour le placer par sens : c’est donc désactivé tant que tu ne l’actives pas.', 'Find a memory with other words than it was written with. The text of each memory is sent to the Kybernos embedding model to place it by meaning, so this is off until you turn it on.'),
-          chip: on && idx.loaded === true && idx.allowed === false ? PlanChip(TIER_NAME[idx.requiredTier] || 'Solo') : null, locked, live,
+          chip: on && idx.loaded === true && idx.allowed === false ? PlanChip(TIER_NAME[idx.requiredTier] || kt('Offre supérieure', 'Higher plan')) : null, locked, live,
           why: !cloud ? kt('Connecte d’abord un compte Kybernos Cloud.', 'Connect a Kybernos Cloud account first.') : (stale ? kt('Le plugin cloud a été mis à jour : redémarre DSH pour l’utiliser.', 'The cloud plugin was updated: restart DSH to use this.') : (mem !== null && mem.memories !== true ? kt('Active d’abord Souvenirs.', 'Turn on Memories first.') : null)),
           control: h(YesNo, { name: kt('Recherche par sens', 'Search by meaning'), value: on, onChange: onToggle }) })
       }
@@ -2135,7 +2145,7 @@ window.__ModuleLoader__.load({
         const setLes = async (patch) => { const r = await api('/kybernos-memory/settings/set', patch); if (r.ok !== true) notify(friendlyError(r.error)); refresh() }
         const note = !cloud
           ? h('div', { className: 'kbmem-note warn' }, Ico('cloud'), h('div', null, h('b', null, kt('Non connecté. ', 'Not connected. ')), kt('Les souvenirs vivent dans ton compte Kybernos Cloud, ils ne peuvent donc pas être modifiés ici. Les leçons sont stockées sur cet ordinateur et continuent de fonctionner.', 'Memories live in your Kybernos Cloud account, so they cannot be changed here. Lessons are stored on this machine and keep working.')))
-          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, kt('Ton offre : ', 'Your plan: '), h('b', null, PLAN_NAME[plan]), '.'))
+          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, kt('Ton offre : ', 'Your plan: '), h('b', null, planLabelOf(status.raw)), '.'))
         const memUnavailable = mem === null
         const lesUnavailable = les === null
         const lastCapture = settings.capture === null ? null : h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, kt('Dernière capture : ' + captureWords(settings.capture), 'Last capture: ' + captureWords(settings.capture)))
@@ -2257,7 +2267,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { lessonCluster, suggestSkill, importCounts, importWords, importCountWords, importError, IMPORT_SHOWN, sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { planLabelOf, lessonCluster, suggestSkill, importCounts, importWords, importCountWords, importError, IMPORT_SHOWN, sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')

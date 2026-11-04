@@ -65,8 +65,8 @@ defaults below are already on, so the first screen is one line of status and the
   to the Kybernos embedding model). The search field offers *Relevance | Meaning* (the choice is saved per
   browser). Turning the switch on checks, once, what your plan and server allow (one 2-letter embedding,
   never a memory); then « Index my memories » embeds them in batches and the rows show « NN% match ».
-  When it cannot be done — switch off, plan too low (the embeddings model needs the Solo plan on the
-  dev tier: `model-not-available-plan`), a server without pgvector or that predates the routes, no
+  When it cannot be done — switch off, plan too low (the embeddings model is not in the plan: `model_not_in_plan`;
+  the server names no tier, so the page says « not included in your plan »), a server without pgvector or that predates the routes, no
   budget left — the page shows the relevance matches and says why, with a link to Customize.
 - **Tidy up** (Customize → *Clean up now*, the schedule, then a banner on the page): finds near-duplicates among the
   memories and among the lessons, on this machine. Suggestions are groups (« Merge 3 into 1 », « Remove the outdated
