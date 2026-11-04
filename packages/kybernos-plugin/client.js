@@ -523,6 +523,7 @@ let kbLocaleRead = () => 'en'
       'tasks.gate.st.static-failed': { kybernos: 'Vérifications échouées', en: 'Checks failed' },
       'tasks.gate.st.static-passed': { kybernos: 'Vérifications passées', en: 'Checks passed' },
       'tasks.gate.st.trial-done': { kybernos: 'Essai terminé', en: 'Trial done' },
+      'tasks.gate.st.trial-failed': { kybernos: 'Essai échoué', en: 'Trial failed' },
       'tasks.gate.st.awaiting-approval': { kybernos: 'À approuver', en: 'Awaiting approval' },
       'tasks.gate.st.approved': { kybernos: 'Approuvée', en: 'Approved' },
       'tasks.gate.st.refused': { kybernos: 'Refusée', en: 'Refused' },
@@ -573,6 +574,8 @@ let kbLocaleRead = () => 'en'
       'tasks.gate.err.phone': { kybernos: 'Cette action n’est pas disponible depuis le téléphone.', en: 'That action is not available from the phone.' },
       'tasks.gate.err.other': { kybernos: 'L’hôte a refusé : rien n’a changé.', en: 'The host refused: nothing changed.' },
       'tasks.proof.title': { kybernos: 'Preuve de l’essai', en: 'Trial proof' },
+      'tasks.proof.failed': { kybernos: 'L’essai a échoué : {why}', en: 'The trial failed: {why}' },
+      'tasks.proof.failed.plain': { kybernos: 'L’essai a échoué avant d’avoir pu se terminer.', en: 'The trial failed before it could finish.' },
       'tasks.proof.sideeffect.ok': { kybernos: 'Rien n’est sorti de la machine.', en: 'Nothing left the machine.' },
       'tasks.proof.sideeffect.bad': { kybernos: 'Quelque chose a pu sortir de la machine : l’approbation est fermée.', en: 'Something could have left the machine: approval is closed.' },
       'tasks.proof.sideeffect.unknown': { kybernos: 'Aucune preuve pour l’instant : rien n’est affirmé.', en: 'No proof yet: nothing is claimed.' },
@@ -7884,9 +7887,14 @@ const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
   for (const t of Array.isArray(tasks) ? tasks : []) {
     if (t === null || typeof t !== 'object' || typeof t.id !== 'string') continue
     const hist = Array.isArray(t.history) === true ? t.history : []
+    // The newest line that is a run: a trial after a failed run must not hide that failure.
+    let lastRun = hist.length - 1
+    while (lastRun >= 0 && hist[lastRun] !== null && typeof hist[lastRun] === 'object' && hist[lastRun].status === 'trial') lastRun -= 1
     for (let i = 0; i < hist.length; i += 1) {
       const e = hist[i]
       if (e === null || typeof e !== 'object') continue
+      // A supervised trial is not a run of the automation (no session; its evidence is the gate's trial proof).
+      if (e.status === 'trial') continue
       const atMs = Date.parse(e.at)
       if (Number.isFinite(atMs) !== true || atMs > nowMs + 60000) continue
       const sessionId = typeof e.sessionId === 'string' && e.sessionId.length > 0 ? e.sessionId : null
@@ -7895,7 +7903,7 @@ const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
       const outcome = live !== null && live !== undefined && typeof outcomeOf === 'function' ? outcomeOf(sessionId) : null
       const state = kbBoardRunState(status, live, outcome)
       const why = typeof e.error === 'string' && e.error !== '' ? e.error : (state === 'failed' && outcome !== null && outcome !== undefined && typeof outcome.message === 'string' ? outcome.message : '')
-      out.push({ key: t.id + '@' + String(e.at) + '#' + String(i), taskId: t.id, atMs, state, sessionId, via: e.via === 'webhook' ? 'webhook' : 'schedule', error: why, last: i === hist.length - 1, live: live === undefined ? null : live })
+      out.push({ key: t.id + '@' + String(e.at) + '#' + String(i), taskId: t.id, atMs, state, sessionId, via: e.via === 'webhook' ? 'webhook' : 'schedule', error: why, last: i === lastRun, live: live === undefined ? null : live })
     }
   }
   return out
@@ -8233,6 +8241,8 @@ const kbRunsOf = (history) => {
   const entries = []
   for (const e of list) {
     if (e === null || typeof e !== 'object') continue
+    // A supervised trial leaves a line in the history (no session of its own); it is not a run of the automation, its evidence is the trial proof of the gate panel.
+    if (e.status === 'trial') continue
     const ms = new Date(e.at).getTime()
     entries.push({
       at: typeof e.at === 'string' ? e.at : '',
@@ -8501,6 +8511,12 @@ const KB_GATE_PROOF_TEXT_MAX = 120
 const kbProofText = (v, max) => {
   const s = typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim() : ''
   return s.length > max ? s.slice(0, max - 1) + '…' : s
+}
+/** The words of a failure for a person: a provider's answer often reaches us as `402: {"message":"…","type":"…"}`, and only its `message` is for reading. */
+const kbProofReason = (v) => {
+  const raw = typeof v === 'string' ? v : ''
+  const hit = /"message"\s*:\s*"((?:[^"\\]|\\.){1,300})(?:"|$)/.exec(raw)
+  return kbProofText(hit !== null ? hit[1].replace(/\\"/g, '"') : raw, KB_GATE_PROOF_TEXT_MAX)
 }
 const kbProofMs = (v) => { const ms = typeof v === 'string' ? Date.parse(v) : NaN; return Number.isFinite(ms) === true ? ms : null }
 /** A gate view (or anything shaped like one) → what the proof block draws, and what it must not claim. */
@@ -23118,12 +23134,15 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const running = props.running === true
       const state = p.present !== true ? 'none' : (running === true || p.outcome.state === 'open' ? 'running' : 'done')
       const sideKey = p.sideEffectFree === true ? 'tasks.proof.sideeffect.ok' : (p.sideEffectFree === false ? 'tasks.proof.sideeffect.bad' : 'tasks.proof.sideeffect.unknown')
-      const sideTone = p.sideEffectFree === true ? 'ok' : (p.sideEffectFree === false ? 'bad' : 'idle')
+      const trialFailed = p.present === true && p.outcome.state === 'failed'
+      // « Nothing left the machine » stays true of a trial that never got to act, but it is not good news next to a failure: no green.
+      const sideTone = p.sideEffectFree === true ? (trialFailed === true ? 'idle' : 'ok') : (p.sideEffectFree === false ? 'bad' : 'idle')
       const row = (key, value) => h('div', { key: key, className: 'kbgate-prow' }, h('span', { className: 'kbgate-plab' }, value))
       return h('div', { className: 'kbgate-proof', 'data-kb': 'gate-proof', 'data-state': state, 'data-sideeffect': p.sideEffectFree === true ? 'true' : (p.sideEffectFree === false ? 'false' : 'unknown') },
         h('div', { className: 'kbgate-proof-h' },
           h('span', { className: 'kbgate-sub-t', 'data-kb-i18n': 'tasks.proof.title' }, kbt('tasks.proof.title')),
           (p.durationMs !== null ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.duration').replace('{d}', () => kbRunFmtDur(p.durationMs))) : null)),
+        (trialFailed === true ? h('p', { className: 'kbgate-fail', role: 'alert', 'data-kb': 'gate-proof-failed' }, (kbProofReason(p.outcome.message) !== '' ? kbt('tasks.proof.failed').replace('{why}', () => kbProofReason(p.outcome.message)) : kbt('tasks.proof.failed.plain'))) : null),
         h('span', { className: 'kbgate-side ' + sideTone, 'data-kb-i18n': sideKey }, kbt(sideKey)),
         h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.proof.tools.title' }, kbt('tasks.proof.tools.title'))),
         (p.toolRows.length === 0
@@ -23141,7 +23160,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         (p.errors.length === 0 ? null : h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.proof.errors.title' }, kbt('tasks.proof.errors.title')))),
         (p.errors.length === 0
           ? null
-          : h('ul', { className: 'kbgate-list' }, p.errors.map((e, i) => h('li', { key: i }, h('span', null, (e.where !== '' ? e.where + ' · ' : '') + e.message), null)))),
+          : h('ul', { className: 'kbgate-list' }, p.errors.map((e, i) => h('li', { key: i }, h('span', null, (e.where !== '' ? e.where + ' · ' : '') + kbProofReason(e.message)), null)))),
         (p.errorsHidden > 0 ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.errors.more').replace('{n}', () => String(p.errorsHidden))) : null))
     }
 
@@ -23155,6 +23174,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const cloud = props.cloud === true
       const locked = cloud === true || g.known !== true
       const proof = kbProofOf(g)
+      // A trial that did not finish keeps the rung `trial-done` on the record (it is not clean, so nothing climbs), but the chip must not read as a good result.
+      const trialFailed = g.status === 'trial-done' && proof.present === true && proof.outcome.state === 'failed'
+      const statusKey = trialFailed === true ? 'tasks.gate.st.trial-failed' : KB_GATE_ST_KEY[g.status]
+      const statusTone = trialFailed === true ? 'bad' : kbGateTone(g.status)
       const steps = kbGateSteps(g)
       const findings = kbGateFindings(g)
       const hintKey = KB_GATE_HINT_KEY[g.status] !== undefined ? KB_GATE_HINT_KEY[g.status] : ''
@@ -23166,7 +23189,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return h('div', { className: 'kbgate-header-block kbgate', 'data-kb': 'gate-panel', 'data-open': open === true ? 'true' : 'false', 'data-status': g.status, 'data-known': g.known === true ? 'true' : 'false', role: 'region', 'aria-label': kbt('tasks.gate.panel.title') },
         h('div', { className: 'kbgate-head' },
           h('span', { className: 'kbgate-title', 'data-kb-i18n': 'tasks.gate.panel.title' }, kbt('tasks.gate.panel.title')),
-          h('span', { className: 'kbgate-status ' + kbGateTone(g.status), 'data-kb-i18n': KB_GATE_ST_KEY[g.status] }, kbt(KB_GATE_ST_KEY[g.status])),
+          h('span', { className: 'kbgate-status ' + statusTone, 'data-kb-i18n': statusKey }, kbt(statusKey)),
           (findings.blockers > 0 ? h('span', { className: 'kbgate-chip bad', title: kbt('tasks.gate.severity.blocker') }, String(findings.blockers)) : null),
           h('span', { className: 'kbgate-ladder' }, steps.steps.map((s) => h('button', {
             key: s.id, type: 'button', className: 'kbgate-step' + (s.done === true ? ' done' : '') + (s.blocked === true ? ' blocked' : ''),
@@ -36725,6 +36748,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbgate-step[disabled]{cursor:default;opacity:.55}
 .kbgate-btn{height:28px;padding:0 11px;font-size:12.5px;border-radius:12px}
 .kbgate-hint{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbgate-fail{margin:0;font-size:12.5px;font-weight:600;color:var(--dsw-alias-state-error-primary);overflow-wrap:anywhere}
 .kbgate-warn{margin:0;font-size:12.5px;color:var(--dsw-alias-state-warn-primary);overflow-wrap:anywhere}
 .kbgate-body{display:flex;flex-direction:column;gap:8px;padding-top:4px;border-top:1px dashed var(--dsw-alias-border-l1)}
 .kbgate-intro{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}

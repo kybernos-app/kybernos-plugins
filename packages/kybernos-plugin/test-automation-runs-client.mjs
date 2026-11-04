@@ -23,6 +23,7 @@ const eq = (label, got, want) => {
 const Z = (d, h, mi, s) => new Date(Date.UTC(2026, 9, d, h, mi, s || 0)).toISOString()
 
 /* ── History lines → runs ────────────────────────────────────────────────── */
+eq('UJ-214: a supervised trial line (no session) is not a run: it neither counts nor reads « Success »', m.kbRunsOf([{ at: Z(10, 8, 0), status: 'trial', gateId: 'g1', sessionId: null }, { at: Z(11, 8, 0), sessionId: 'session-a', status: 'fired' }]).map((r) => r.sessionId), ['session-a'])
 eq('no history, or something that is not a list, is no run', [m.kbRunsOf(undefined), m.kbRunsOf(null), m.kbRunsOf('x'), m.kbRunsOf([])], [[], [], [], []])
 {
   const history = [

@@ -119,6 +119,8 @@ const T = (id, o) => Object.assign({ id, name: id, active: true, approvals: 'ask
   eq('keys are unique', new Set(runs.map((r) => r.key)).size, 3)
   eq('an entry dated far in the future is not a run (clock skew up to a minute is)', m.kbBoardRuns([T('f', { history: [H(NOW + 3600000, 'fired', 's-end'), H(NOW + 30000, 'fired', 's-end')] })], liveOf, NOW).length, 1)
   eq('webhook runs are marked', m.kbBoardRuns([T('w', { history: [H(NOW - 5000, 'fired', 's-end', { via: 'webhook' })] })], liveOf, NOW)[0].via, 'webhook')
+  const withTrial = m.kbBoardRuns([T('tr', { history: [H(NOW - 20000, 'error', null, { error: 'boom' }), { at: new Date(NOW - 10000).toISOString(), status: 'trial', gateId: 'g1', sessionId: null }] })], liveOf, NOW)
+  eq('UJ-214: a supervised trial is not a run of the board, and does not hide the failure of the run before it', withTrial.map((r) => [r.state, r.last]), [['failed', true]])
   eq('hostile input does not throw', m.kbBoardRuns([null, 3, { id: 5 }, { id: 'z', history: 'no' }], liveOf, NOW), [])
 }
 
