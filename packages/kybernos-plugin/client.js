@@ -6965,8 +6965,20 @@ const kbCronWindow = (cron) => {
 // The window as a schedule (a step of 1 is written "8-20"): the minute and the weekdays are the ones given.
 const kbCronWindowOf = (mi, from, to, step, days) => String(mi) + ' ' + String(from) + '-' + String(to) + (step > 1 ? '/' + String(step) : '') + ' * * ' + days
 // A one-time date as written in the automation's own zone: "One time · Sat, Oct 17 · 10:00".
-const kbOnceLabel = (at, tr, nowYear, locale, zoneName) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/.exec(String(at || ''))
+// A date written with `Z` or an offset is an instant, not a wall-clock time (the reminder tool writes it in UTC): it is read in `readZone`, the automation's
+// own zone, or the person's, so the board's first time and its « Today · 14:52 » agree (UJ-175).
+const kbOnceLabel = (at, tr, nowYear, locale, zoneName, readZone) => {
+  let m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/.exec(String(at || ''))
+  if (m !== null && /(?:Z|[+-]\d{2}:?\d{2})$/i.test(String(at).trim()) === true && typeof readZone === 'string' && readZone.length > 0) {
+    const ms = Date.parse(String(at).trim())
+    if (Number.isFinite(ms) === true) {
+      try {
+        const parts = {}
+        for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: readZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms))) parts[x.type] = x.value
+        m = [null, parts.year, parts.month, parts.day, parts.hour, parts.minute]
+      } catch (e) { /* unknown zone: the date as written */ }
+    }
+  }
   if (m === null) return tr('tasks.onetime')
   const year = Number.isFinite(nowYear) === true ? nowYear : new Date().getFullYear()
   return tr('tasks.onetime') + ' · ' + kbDayLabel(Number(m[1]), Number(m[2]), Number(m[3]), locale, Number(m[1]) !== year) + ' · ' + m[4].padStart(2, '0') + ':' + m[5] + (typeof zoneName === 'string' && zoneName.length > 0 ? ' (' + zoneName + ')' : '')
@@ -7081,7 +7093,7 @@ const kbTriggerParts = (t, tr, locale, viewerZone) => {
   const sc = t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule : {}
   const away = typeof sc.tz === 'string' && sc.tz.length > 0 && typeof viewerZone === 'string' && viewerZone.length > 0 && sc.tz !== viewerZone
   const zoneName = away === true ? kbZoneLabel(sc.tz) : ''
-  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr, undefined, locale, zoneName) : kbCronHuman(sc.cron || '', tr, locale, zoneName))
+  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr, undefined, locale, zoneName, typeof sc.tz === 'string' && sc.tz.length > 0 ? sc.tz : viewerZone) : kbCronHuman(sc.cron || '', tr, locale, zoneName))
   const hooked = t !== null && typeof t === 'object' && t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook' && sc.mode !== 'webhook'
   const tip = sc.mode === 'webhook' ? '' : (sc.mode === 'once' ? (away === true ? sc.tz : '') : String(sc.cron || '').trim() + (away === true ? ' · ' + sc.tz : ''))
   return { label, hooked, tip }
