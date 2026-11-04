@@ -2143,7 +2143,10 @@ const budgetWindowView = (w) => {
   const percent = exhausted ? 100 : budgetPercent(w)
   if (percent === null) return null
   const at = typeof w.resets_at === 'string' && Number.isFinite(Date.parse(w.resets_at)) ? new Date(Date.parse(w.resets_at)).toISOString() : null
-  return { kind: w.kind, window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan', used_percent: percent, exhausted, resets_at: exhausted ? at : null }
+  const view = { kind: w.kind, window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan', used_percent: percent, exhausted, resets_at: exhausted ? at : null }
+  // A window whose limit is zero is not an allowance that fills and empties: nothing comes back into it (a Free space, once its credit is spent). A flag, not an amount.
+  if (exhausted && w.limit_usd !== null && w.limit_usd !== undefined && Number(w.limit_usd) === 0) view.empty = true
+  return view
 }
 
 /** What stopped the person's last call, for the notice that replaces DSH's « Request quota exhausted » (its own words, the same for every refusal: a window used up,

@@ -166,6 +166,7 @@ window.__ModuleLoader__.load({
         quotaPaymentAdmin: ' Règle-le dans Facturation.',
         quotaPaymentMember: ' Demande à un propriétaire ou à un admin de {name}.',
         quotaUsedUp: '{pct}\u00a0% de ton quota de {window}{cap} est utilisé — il revient {when}.',
+        quotaNoAllowance: 'Ton crédit est utilisé — cette offre n\'a pas de quota propre.',
         quotaUsedUpTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé — il revient {when}.',
         quotaNear: '{pct}\u00a0% de ton quota de {window}{cap} est utilisé.',
         quotaNearTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé.',
@@ -472,6 +473,7 @@ window.__ModuleLoader__.load({
         quotaPaymentAdmin: ' Fix it in Billing.',
         quotaPaymentMember: ' Ask an owner or admin of {name}.',
         quotaUsedUp: '{pct}% of your {window} allowance{cap} is used — it comes back {when}.',
+        quotaNoAllowance: 'Your credit is used up — this plan has no allowance of its own.',
         quotaUsedUpTeam: '{pct}% of the {window} allowance of {name} is used — it comes back {when}.',
         quotaNear: '{pct}% of your {window} allowance{cap} is used.',
         quotaNearTeam: '{pct}% of the {window} allowance of {name} is used.',
@@ -1358,6 +1360,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const window = quotaWindowLabel(w.window_seconds, t)
       const cap = !team && w.scope === 'team' ? quotaFill(t('quotaCap'), { name }) : ''
       if (w.exhausted !== true) return quotaFill(t(team ? 'quotaNearTeam' : 'quotaNear'), { pct: w.used_percent, window, cap, name })
+      // A window with a limit of zero never fills back (a Free space whose credit is spent): saying it « comes back » would promise what does not happen.
+      if (w.empty === true && !team) return t('quotaNoAllowance')
       const when = quotaWhen(w.resets_at, now, t) || quotaFill(t('quotaBackUnknown'), { window })
       return quotaFill(t(team ? 'quotaUsedUpTeam' : 'quotaUsedUp'), { pct: 100, window, cap, name, when })
     }

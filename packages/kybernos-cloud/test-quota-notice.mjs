@@ -260,5 +260,17 @@ console.log('a team with no plan (AC-02: the 402 of a plan-less team read « Req
   check('a session the server ended is said by the notice, not DSH\'s « Request quota exhausted »', /info\.r\.status === 'revoked'/.test(source) && /ended \? t\('sessionEnded'\)/.test(source))
 }
 
+console.log("a window whose limit is zero (Free, credit spent)")
+{
+  const r = notice(facts(personal, [out(2592000, { empty: true })]))
+  check("it does not promise that the allowance comes back (there is none), and it says how to go on", r !== null && r.text === "Your credit is used up \u2014 this plan has no allowance of its own. Upgrade or add credits to go on now." && !/comes back|allowance is used/.test(r.text), r && r.text)
+  const f = plain(quotaNoticeText(facts(personal, [out(2592000, { empty: true })]), fr, NOW))
+  check("in French, with \u00ab tu \u00bb", f !== null && /^Ton cr\u00e9dit est utilis\u00e9/.test(f.text) && !/revient/.test(f.text), f && f.text)
+  const real = notice(facts(personal, [out(2592000, { resets_at: inH(72) })]))
+  check("a used-up window with a real limit still says when it comes back", real !== null && /it comes back in about 3 days\./.test(real.text), real && real.text)
+  const team = notice(facts({ id: "w2", name: "Acme Crew", role: "admin", personal: false }, [out(2592000, { kind: "pool", empty: true })]))
+  check("a team pool is not changed by the flag", team !== null && /comes back/.test(team.text), team && team.text)
+}
+
 if (failed > 0) { console.log('\n' + failed + ' check(s) FAILED'); process.exit(1) }
 console.log('\nall checks OK')
