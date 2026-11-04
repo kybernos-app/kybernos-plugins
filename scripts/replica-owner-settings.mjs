@@ -46,7 +46,7 @@ export function parsePairs (args) {
 /** Signs in as the replica's seeded owner (password, then the authenticator code) and returns the session cookie. Throws with the status on a refusal. */
 export async function ownerCookie (api, owner) {
   const cookieOf = (r) => (r.headers.getSetCookie ? r.headers.getSetCookie() : []).map((c) => c.split(';')[0]).join('; ')
-  const call = (method, path, { json, cookie } = {}) => fetch(api + path, { method, redirect: 'manual', headers: { origin: api, 'x-test-ip': '198.18.7.7', ...(json ? { 'content-type': 'application/json' } : {}), ...(cookie ? { cookie } : {}) }, body: json ? JSON.stringify(json) : undefined })
+  const call = (method, path, { json, cookie } = {}) => fetch(api + path, { method, redirect: 'manual', headers: { origin: api, 'x-test-ip': `198.18.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250) + 1}`, ...(json ? { 'content-type': 'application/json' } : {}), ...(cookie ? { cookie } : {}) }, body: json ? JSON.stringify(json) : undefined })
   const first = await call('POST', '/api/auth/sign-in/email', { json: { email: owner.email, password: owner.password } })
   const firstBody = await first.json().catch(() => ({}))
   if (first.status !== 200 || firstBody.twoFactorRedirect !== true) throw new Error(`sign-in: no second-factor step (${first.status})`)
@@ -68,7 +68,7 @@ async function main () {
   if (!owner) { console.error('replica-owner-settings: the state file has no owner (start the replica with REPLICA_SEED)'); process.exit(2) }
   let cookie
   try { cookie = await ownerCookie(api, owner) } catch (e) { console.error(String(e.message)); process.exit(1) }
-  const call = (method, path, { json, cookie: c } = {}) => fetch(api + path, { method, redirect: 'manual', headers: { origin: api, 'x-test-ip': '198.18.7.7', ...(json ? { 'content-type': 'application/json' } : {}), ...(c ? { cookie: c } : {}) }, body: json ? JSON.stringify(json) : undefined })
+  const call = (method, path, { json, cookie: c } = {}) => fetch(api + path, { method, redirect: 'manual', headers: { origin: api, 'x-test-ip': `198.18.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250) + 1}`, ...(json ? { 'content-type': 'application/json' } : {}), ...(c ? { cookie: c } : {}) }, body: json ? JSON.stringify(json) : undefined })
   let bad = 0
   for (const p of pairs) {
     const r = await call('PUT', `/v1/admin/billing/settings/${p.name}`, { cookie, json: { value: p.value } })

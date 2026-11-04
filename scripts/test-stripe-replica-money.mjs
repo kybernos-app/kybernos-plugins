@@ -34,7 +34,7 @@ export function makeClient (api, control) {
   return { call, ctl }
 }
 
-async function signUp ({ call, ctl }, label) {
+export async function signUp ({ call, ctl }, label) {
   const email = `money-${label}-${Date.now().toString(36)}@replica.test`
   const made = await call('POST', '/api/auth/sign-up/email', { json: { email, password: PASSWORD, name: 'Money Person' } })
   if (made.status !== 200) throw new Error(`sign-up ${made.status} ${made.text.slice(0, 120)}`)
