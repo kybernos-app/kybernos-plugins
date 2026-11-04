@@ -34930,7 +34930,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
           tab === 'folder' ? h(KbTplFolder, { lang }) : catalogue))
     }
     const KB_MARKET_CSS = [
-      '.kbtm-page{display:flex;flex-direction:column;gap:14px;padding:4px 2px 24px;max-width:720px;box-sizing:border-box}',
+      '.kbtm-page{display:flex;flex-direction:column;gap:14px;padding:0 0 24px;max-width:720px;box-sizing:border-box}',
       '.kbtm-head{display:flex;flex-direction:column;gap:6px}',
       '.kbtm-sub{margin:0;font-size:13px;color:var(--dsw-alias-label-secondary)}',
       '.kbtm-note,.kbtm-why{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
@@ -34969,7 +34969,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
       '.kbtm-src-note{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary)}',
       '.kbtm-src-err{color:var(--dsw-alias-state-error-primary)}',
       '.kbtm-headrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
-      '.kbtm-open{flex:none}',
+      '.kbtm-headrow .kbtm-open{flex:none;height:30px}',
       '.kbtm-primary{height:34px;padding:0 18px;border:0;border-radius:17px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted);font:inherit;font-size:13px;font-weight:600;cursor:pointer}',
       '.kbtm-primary:disabled{opacity:.4;cursor:not-allowed}',
       '.kbtm-secondary{height:32px;padding:0 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:16px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer}',

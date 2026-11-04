@@ -20,7 +20,7 @@ const check = (name, ok, detail) => {
 }
 // Wide by design: a map, a provider grid, a card grid of modules.
 const WIDE = new Set(['Atlas', 'AI provider and models', 'Kybernos Suite'])
-// The title of this page follows a 44 px icon, the icon starts at the frame's left edge.
+// The title of this page follows a 30 px icon (the height of a title row), the icon starts at the frame's left edge.
 const AFTER_ICON = new Set(['Phone and channels'])
 // DSH's own page (its title is the engine's, not ours) and a page whose title is not a heading.
 const SKIP = new Set(['IM bots', 'Connectors'])
@@ -59,8 +59,8 @@ try {
   check('a title is found on most pages', measured.length >= 24, measured.length)
   const offX = measured.filter(([c, r]) => !AFTER_ICON.has(c) && r.x !== 272)
   check('every title starts at x 272', offX.length === 0, offX.map(([c, r]) => c + ' x ' + r.x))
-  const offIcon = measured.filter(([c, r]) => AFTER_ICON.has(c) && r.x !== 328)
-  check('a title after the 44 px icon starts at x 328 (the icon at 272)', offIcon.length === 0, offIcon.map(([c, r]) => c + ' x ' + r.x))
+  const offIcon = measured.filter(([c, r]) => AFTER_ICON.has(c) && r.x !== 314)
+  check('a title after the 30 px icon starts at x 314 (the icon at 272)', offIcon.length === 0, offIcon.map(([c, r]) => c + ' x ' + r.x))
   // The height of the title is the shell's (it was 54 before the Settings header grew a « Back to workspace » row and a search field: 107 to 109 now), so it is read from the pages
   // themselves: the highest title is the reference and none sits more than 3 px under it (a taller help button, the engine's own pages).
   const refY = Math.min(...measured.map(([c, r]) => r.y))

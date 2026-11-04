@@ -1032,9 +1032,11 @@ window.__ModuleLoader__.load({
 .kbpc-head.kbpc-head-solo{grid-template-areas:"ic ttl chip help x";align-items:center}
 .kbpc-head.kbpc-head-solo .kbpc-title,.kbpc-head.kbpc-head-solo .kbpc-ttl{align-self:center}
 /* The page has no help column and no cross: the « ? » is inside its title. */
-.kbpc-head.kbpc-head-page{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"ic ttl chip" "ic lead chip"}
+.kbpc-head.kbpc-head-page .kbpc-ic{box-sizing:border-box;width:30px;height:30px;border-radius:9px}
+.kbpc-head.kbpc-head-page .kbpc-ic svg{width:16px;height:16px}
+.kbpc-head.kbpc-head-page{grid-template-columns:30px minmax(0,1fr) auto;grid-template-areas:"ic ttl chip" "ic lead chip"}
 .kbpc-head.kbpc-head-page.kbpc-head-solo{grid-template-areas:"ic ttl chip"}
-@media (max-width:520px){.kbpc-head.kbpc-head-page{grid-template-columns:44px minmax(0,1fr);grid-template-areas:"ic ttl" "lead lead"}.kbpc-head.kbpc-head-page.kbpc-head-solo{grid-template-areas:"ic ttl"}}
+@media (max-width:520px){.kbpc-head.kbpc-head-page{grid-template-columns:30px minmax(0,1fr);grid-template-areas:"ic ttl" "lead lead"}.kbpc-head.kbpc-head-page.kbpc-head-solo{grid-template-areas:"ic ttl"}}
 @media (max-width:520px){.kbpc-head.kbpc-head-solo{grid-template-areas:"ic ttl help x";row-gap:0}}
 .kbpc-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}
 @media (max-width:760px){.kbpc-cols{grid-template-columns:minmax(0,1fr)}}

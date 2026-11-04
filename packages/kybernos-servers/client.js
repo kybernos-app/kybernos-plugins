@@ -45,6 +45,7 @@ window.__ModuleLoader__.load({
 .kbsv-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .kbsv-sub{margin:2px 0 0;font-size:13px;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kbsv-head .kbsv-btn{height:30px}
 .kbsv-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 16px;border-radius:18px;border:.5px solid var(--dsw-alias-border-l3,rgba(0,0,0,.12));background:transparent;color:inherit;font:inherit;font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none}
 .kbsv-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05))}
 .kbsv-btn:disabled{cursor:not-allowed;opacity:.4}

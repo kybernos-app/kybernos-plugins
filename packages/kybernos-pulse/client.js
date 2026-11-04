@@ -276,7 +276,7 @@ window.__ModuleLoader__.load({
 
       // ── styles: the Settings page, and the panel (shared with the Mac menu-bar app: see the PANEL-CORE block)
       const PAGE_CSS = [
-        '.kbpu-page{display:flex;flex-direction:column;gap:16px;max-width:720px;padding:4px 2px 24px;color:var(--dsw-alias-label-primary,#e8eaec)}',
+        '.kbpu-page{display:flex;flex-direction:column;gap:16px;max-width:720px;padding:0 0 24px;color:var(--dsw-alias-label-primary,#e8eaec)}',
         '.kbpu-lead{margin:2px 0 0;color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:13px;line-height:1.5}',
         '.kbpu-block{border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.1));border-radius:14px;background:var(--dsw-alias-bg-layer-2,transparent);overflow:hidden}',
         '.kbpu-block>h3{margin:0;padding:12px 16px 6px;font-size:13px;font-weight:600}',
