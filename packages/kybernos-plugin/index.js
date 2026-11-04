@@ -617,7 +617,15 @@ const kbMakeTrigger = (deps) => {
             continue
           }
           const due = Date.parse(t.nextRun)
-          if (due > nowMs) continue
+          if (due > nowMs) {
+            // The clock went back since this slot was computed (UJ-158): every writer of `nextRun` takes the first slot after the time it read, so a slot later than the
+            // first one after NOW can only come from a clock that was ahead. Left alone it keeps a recurring automation silent until that wrong instant.
+            if (t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'cron') {
+              const expected = kbComputeNextRun(t, nowMs)
+              if (expected !== null && due > expected) t.nextRun = new Date(expected).toISOString()
+            }
+            continue
+          }
           dueList.push({ t, dueMs: due })
         }
         // The cap: `admit` names which due runs may start now, oldest first. The others are not touched, so they are still due on the

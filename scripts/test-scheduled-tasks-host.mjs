@@ -356,6 +356,20 @@ const rig = (tasks, over) => {
   eq('second tick is idle', (await r.trigger.tick()).fired, 0)
   eq('an idle tick writes nothing', r.m.st.writes, 2)
 }
+{ // UJ-158: the clock went back after a slot was computed on the wrong clock
+  const ahead = new Date(T0 + 135 * 60000).toISOString()
+  const r = rig([dueTask({ schedule: { mode: 'cron', cron: '*/5 * * * *', tz: 'UTC' }, nextRun: ahead })])
+  const a = await r.trigger.tick()
+  const saved = JSON.parse(r.m.st.text)[0]
+  eq('a recurring slot later than the next one from now is brought back to it', saved.nextRun, '2026-10-05T08:05:00.000Z')
+  eq('...and nothing fired for it', a.fired, 0)
+  const ok = rig([dueTask({ schedule: { mode: 'cron', cron: '*/5 * * * *', tz: 'UTC' }, nextRun: new Date(T0 + 3 * 60000).toISOString() })])
+  await ok.trigger.tick()
+  eq('a slot that is the next one is left alone', JSON.parse(ok.m.st.text)[0].nextRun, new Date(T0 + 3 * 60000).toISOString())
+  const once = rig([dueTask({ schedule: { mode: 'once', at: '2026-10-06T08:00:00Z' }, nextRun: '2026-10-06T08:00:00.000Z' })])
+  await once.trigger.tick()
+  eq('a one-time slot in the future is never moved', JSON.parse(once.m.st.text)[0].nextRun, '2026-10-06T08:00:00.000Z')
+}
 { // a failed bookkeeping write can no longer start the same run again
   const r = rig([dueTask()])
   r.m.st.failWriteAfter = 1 // the claim is written, the record is not
