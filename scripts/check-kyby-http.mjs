@@ -22,8 +22,8 @@ import { openLivePage, waitFor } from './live-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
-const serveFile = args.find((a) => !a.startsWith('--') && a !== (args[args.indexOf('--shots') + 1]))
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
+const serveFile = args.find((a) => !a.startsWith('--') && a !== shotDir)
 if (serveFile === undefined || !existsSync(serveFile)) { console.error('○ inconclusive: give the file written by `node scripts/telegram-live.ts --serve <file.json>` (and keep that process running).'); process.exit(3) }
 if ((process.env.KB_HOST || '127.0.0.1:3080') === '127.0.0.1:3080') { console.error('○ inconclusive: run it from the sandbox shell (`source scripts/sandbox/env.sh`), never against the user\'s own DSH.'); process.exit(3) }
 const srv = JSON.parse(readFileSync(serveFile, 'utf8'))
