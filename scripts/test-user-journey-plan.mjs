@@ -6,7 +6,9 @@
 //   node scripts/test-user-journey-plan.mjs
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { commandOf, derive } from './user-journey-run.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PLAN = 'docs/tests/user-journey'
@@ -99,6 +101,11 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   check('every journey is described in journeys.md', Object.keys(real.cases.journeys).every((j) => load(`${PLAN}/journeys.md`).includes(`## ${j} `)))
   check('the journeys cover the surfaces the owner named', ['site', 'desktop', 'phone-app', 'phone-remote', 'server-pages', 'shell'].every((s) => Object.values(real.cases.journeys).some((d) => d.surface === s)))
   check('money moves only on the staging server, the replica, or in the owner\'s hands', real.cases.cases.filter((c) => /top-up|renewal|refund|dispute|checkout/i.test(c.title) && c.runner === 'agent').every((c) => ['staging', 'replica'].includes(c.env || real.cases.journeys[c.id.slice(0, 3)].env)))
+
+  // The runner executes what `derive` makes of each `how`: a note in words after the command must never reach the shell.
+  const shellBad = (plan) => derive(plan, {}).cases.filter((c) => spawnSync('bash', ['-n', '-c', c.cmd], { encoding: 'utf8' }).status !== 0).map((c) => c.id)
+  check('every ready script case becomes a shell command that parses (the notes in words are left out)', shellBad(real.cases).length === 0, shellBad(real.cases).join(', '))
+  check('a trailing note is cut, a subshell or a quoted bracket is not', commandOf('node a.mjs --x 1 (a note, with (nested) words)') === 'node a.mjs --x 1' && commandOf('bash -c "(cd x && ls)"') === 'bash -c "(cd x && ls)"' && commandOf('echo $(date)') === 'echo $(date)')
 
   // the checker must fail on a plan that is wrong (otherwise it proves nothing)
   const clone = () => JSON.parse(JSON.stringify({ cases: real.cases }))

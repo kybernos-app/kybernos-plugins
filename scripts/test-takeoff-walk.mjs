@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { LOOK_SCRIPT, checkSteps, findScript } from './takeoff-walk.mjs'
+import { LOOK_SCRIPT, checkSteps, findAriaScript, findScript } from './takeoff-walk.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let pass = 0
@@ -30,6 +30,10 @@ check('the page script of a look is well formed', parses)
 let finds = true
 try { new Function('return ' + findScript('it\'s « Continue »')) } catch (e) { finds = false }
 check('the page script of a click is well formed, whatever the text', finds)
+let findsAria = true
+try { new Function('return ' + findAriaScript('Open "the" menu \\ it\'s')) } catch (e) { findsAria = false }
+check('the page script of an aria press is well formed, whatever the label', findsAria)
+check('an aria step is accepted, and refused when empty', checkSteps([{ aria: 'Open the menu' }]).length === 0 && checkSteps([{ aria: '  ' }]).length === 1)
 
 const dir = mkdtempSync(join(tmpdir(), 'walk-test-'))
 try {

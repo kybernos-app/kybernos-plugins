@@ -4,7 +4,7 @@
 //
 //   source scripts/sandbox/env.sh && node scripts/takeoff-walk.mjs --steps <steps.json> --out <folder outside the repo> [--width 390 --height 844 --touch]
 //
-// A step is one of: {"open":"/"} {"click":"Visible text"} {"settings":"Page label"} {"type":"text"} {"key":"Escape|Enter|Tab"} {"wait":ms} {"look":"label"} {"shot":"name"}
+// A step is one of: {"open":"/"} {"click":"Visible text"} {"aria":"aria-label or title of an icon-only control"} {"settings":"Page label"} {"type":"text"} {"key":"Escape|Enter|Tab"} {"wait":ms} {"look":"label"} {"shot":"name"}
 //   look  records the title, the dialog on top, the headings, the first buttons, every « undefined » / « NaN » / « [object » in the text, what runs past the right edge
 //         of the viewport, controls smaller than 32 px, and the console errors since the last look. shot saves <out>/<nn>-<name>.png.
 // Output: one JSON line per step on stdout and <out>/walk.json. Exit 0 when every step ran (a step that finds nothing to click is a result, not a crash), 1 when the walk
@@ -17,7 +17,7 @@ import { goToSettingsPage, openLivePage, openSettings } from './live-page.mjs'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const KEYS = { Escape: { key: 'Escape', code: 'Escape', vk: 27 }, Enter: { key: 'Enter', code: 'Enter', vk: 13 }, Tab: { key: 'Tab', code: 'Tab', vk: 9 } }
-const KINDS = ['open', 'click', 'settings', 'type', 'key', 'wait', 'look', 'shot']
+const KINDS = ['open', 'click', 'aria', 'settings', 'type', 'key', 'wait', 'look', 'shot']
 
 /** Everything wrong with a list of steps, as sentences. Pure. */
 export function checkSteps (steps) {
@@ -37,6 +37,23 @@ export function checkSteps (steps) {
   })
   return bad
 }
+
+/** The page-side script of an `aria` step: the centre of the icon-only control (no text of its own) whose aria-label or title is that text, exact first and then contained, or null. Same on-top rule as `click`. */
+export const findAriaScript = (label) => `(() => {
+  const want = ${JSON.stringify(label)}.trim().toLowerCase()
+  const lab = (e) => String(e.getAttribute('aria-label') || e.getAttribute('title') || '').trim().toLowerCase()
+  const all = Array.from(document.querySelectorAll('[aria-label], [title]')).filter((e) => { const r = e.getBoundingClientRect(); return r.width >= 4 && r.height >= 4 })
+  const exact = all.filter((e) => lab(e) === want)
+  for (const e of exact.length ? exact : all.filter((e) => lab(e).includes(want))) {
+    e.scrollIntoView({ block: 'center' })
+    const r = e.getBoundingClientRect()
+    const x = r.left + r.width / 2
+    const y = r.top + r.height / 2
+    const top = document.elementFromPoint(x, y)
+    if (top && (top === e || e.contains(top) || top.contains(e))) return { x, y }
+  }
+  return null
+})()`
 
 /** The page-side script of a `click`: the centre of the element a person would press for that text, or null. Only what is really on top at its own centre counts: a hidden twin of a
  *  button (a step that is leaving, a phone variant) comes first in the document and must not take the press (the shared clickText of live-page.mjs picks it). */
@@ -107,15 +124,15 @@ async function walk (steps, out, opts) {
       const row = { n: i + 1, step: s, ok: true }
       try {
         if (kind === 'open') { await page.send('Page.navigate', { url: 'http://' + authority + v }); await sleep(2500) }
-        else if (kind === 'click') {
-          const at = (await page.evalJs(findScript(v), 6000)).val
+        else if (kind === 'click' || kind === 'aria') {
+          const at = (await page.evalJs(kind === 'aria' ? findAriaScript(v) : findScript(v), 6000)).val
           row.ok = !!at
           if (at) {
             await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: at.x, y: at.y })
             await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: at.x, y: at.y, button: 'left', clickCount: 1 })
             await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: at.x, y: at.y, button: 'left', clickCount: 1 })
             await sleep(800)
-          } else row.note = 'nothing visible on top with that exact text'
+          } else row.note = kind === 'aria' ? 'no visible control on top with that aria-label or title' : 'nothing visible on top with that exact text'
         }
         else if (kind === 'settings') {
           const opened = await openSettings(page)

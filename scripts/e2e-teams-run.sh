@@ -18,10 +18,12 @@ ROOT="$(cd "$HERE/.." && pwd)"
 : "${KB_E2E_DIR:?set KB_E2E_DIR to a private folder outside git}"
 : "${KB_SERVER_DIR:?set KB_SERVER_DIR to the kybernos-server checkout}"
 mkdir -p "$KB_E2E_DIR" && chmod 700 "$KB_E2E_DIR"
-API_PORT="${KB_E2E_API_PORT:-8821}"        # the replica itself (its mailbox/control port is +1)
-WEB_PORT="${KB_E2E_WEB_PORT:-8820}"        # the recording proxy: the address the server advertises and DSH uses
+# A harness that is already up keeps its ports in the environment file (sourced by the caller): they are read back from KB_E2E_API / KB_E2E_WEB / KB_E2E_HOST_A / KB_E2E_HOST_B,
+# so `run`, `preflight` and `replica-reset` talk to the harness that is running, not to the default ports.
+API_PORT="${KB_E2E_API_PORT:-${KB_E2E_API:-:8821}}"; API_PORT="${API_PORT##*:}"        # the replica itself (its mailbox/control port is +1)
+WEB_PORT="${KB_E2E_WEB_PORT:-${KB_E2E_WEB:-:8820}}"; WEB_PORT="${WEB_PORT##*:}"        # the recording proxy: the address the server advertises and DSH uses
 CTRL_PORT=$((API_PORT + 1))
-PORT_A="${KB_E2E_PORT_A:-3098}"; PORT_B="${KB_E2E_PORT_B:-3110}"
+PORT_A="${KB_E2E_PORT_A:-${KB_E2E_HOST_A:-:3098}}"; PORT_A="${PORT_A##*:}"; PORT_B="${KB_E2E_PORT_B:-${KB_E2E_HOST_B:-:3110}}"; PORT_B="${PORT_B##*:}"
 for p in "$API_PORT" "$WEB_PORT" "$CTRL_PORT" "$PORT_A" "$PORT_B"; do
   case "$p" in 8791|8792|3080) echo "refusing port $p: it belongs to the owner's own replica / DSH" >&2; exit 2 ;; esac
 done

@@ -6,7 +6,7 @@ It extends the soft-takeoff recette (`docs/tests/soft-takeoff/`, 86 cases, its r
 
 | File | What it holds |
 |---|---|
-| `cases.json` | The matrix: 260 cases in 22 journeys. 108 scripted, 99 agent, 7 vision and 46 owner cases. Each has a priority, a runner, an environment and a status |
+| `cases.json` | The matrix: 261 cases in 22 journeys. 110 scripted, 98 agent, 7 vision and 46 owner cases. Each has a priority, a runner, an environment and a status |
 | `journeys.md` | The story of each journey: who, path, what is broken on purpose, where the expected value comes from |
 | `known-gaps.md` | 29 candidates found by reading, before any test: missing handlers, stale words, features not built. KG-13 (no provider-busy fallback, no server-side Auto), KG-26 (build the replica from `origin/dev`, not the older local `dev`) and KG-27 (the mails Stripe sends are a dashboard setting) are not expected by one case but shape how the run is set up |
 | `vision-protocol.md` | How a cheap model collects and measures, how its recall is measured with ten planted defects, the rubric the stronger model applies |
