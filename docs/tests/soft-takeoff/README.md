@@ -20,6 +20,8 @@ A soft takeoff opens the product to a small invited audience, with a way back. T
 
 P0 = money wrong, data leaking between spaces, cannot start or sign in. P1 = a visible defect in a core flow. P2 = polish.
 
+**Where the verdict is read today:** the single go / no-go page (W5-07) sits at the end of [`../user-journey/ledger.md`](../user-journey/ledger.md); it reads this ledger and the user-journey one, and lists the open P0 and P1 items so the owner signs once.
+
 ## 1b. The light wave and the work in flight
 
 `--light` marks 13 cheap cases (the gates, the canaries, and the tests of two features other sessions are building): it validates the process before the heavy waves, not the product. Cases also carry `watch`: **cloud-budget** (the session on Cloud budget and billing: Extra Cloud card, budget message, Cloud Computer in the composer, attachments for a machine) and **slides** (the session on slide creation and editing). Their code is not in `dev` yet, so the first run is a baseline; run those cases again when their branches land and any new red is theirs.
