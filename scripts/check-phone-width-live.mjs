@@ -71,6 +71,10 @@ const drawerGo = async (label) => {
 const settingsPage = async (label) => {
   await reload()
   if ((await openSettings(page, { minCells: 3 })) !== true) return false
+  // A headless page takes the focus at its FIRST pointer event, and the browser then scrolls the focused cell (« General ») back into view: the list jumped to the top
+  // between the measure and the tap, and every cell below the fold opened « Usage ». A real phone has the focus from the start. Give it the pointer once, before measuring.
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1, y: 1 })
+  await sleep(700)
   const c = await ev(`(() => { const e = Array.from(document.querySelectorAll('[class*="navCell"]')).find((x) => x.innerText.trim() === ${JSON.stringify(label)}); if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
   if (c === null || c.__err) return false
   await press(c.x, c.y)

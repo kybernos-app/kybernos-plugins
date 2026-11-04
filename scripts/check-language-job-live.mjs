@@ -35,6 +35,8 @@ const jobState = async () => JSON.parse(await val(`fetch('/kybernos/i18n-job?lan
 
 try {
   await val(`localStorage.removeItem('kybernos.notifs.v1')`)
+  // The note of a translation run is quiet by default (Settings › Language › « Announce when a translation run is done », d9ec57e5): this check is about the note, so it switches it on, as the setting does.
+  await val(`localStorage.setItem('kybernos.notifs.announce', '1')`)
   await openSettings(LANGUAGE)
   const has = await val(`!!document.querySelector('[data-lang="es"]')`)
   if (has !== true) await flow.addLanguage('es', null)

@@ -60,7 +60,7 @@ const pending = []
 let answering = false
 // 'cap': the phase of the cap (every request hangs until released). 'call' / 'text': the lighter-run phases (the model calls the sub-agent tool / answers).
 let mode = 'cap'
-const probe = { systems: [], toolNames: null, called: null, toolResult: null, where: [], keys: null }
+const probe = { systems: [], toolNames: null, called: null, toolResult: null, where: [], keys: null, ctx: [] }
 const systemOf = (j) => (Array.isArray(j.messages) ? j.messages.filter((m) => m.role === 'system').map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n') : '')
 const toolCall = (res, name, args) => {
   const base = { id: 'chatcmpl-stub', object: 'chat.completion.chunk', created: 1, model: 'stub-1' }
@@ -90,6 +90,7 @@ const server = createServer((req, res) => {
       const tool = msgs.filter((m) => m.role === 'tool').pop()
       probe.systems.push(systemOf(j))
       probe.keys = Object.keys(j)
+      probe.ctx = msgs.filter((m) => m.role === 'user').map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).slice(0, 420))
       probe.where.push((Array.isArray(j.messages) ? j.messages : []).map((m) => (m.role + ':' + (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).length + (/Do not start sub-agents|The computer is busy/.test(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)) ? ':NOTE' : ''))).join(' '))
       probe.toolNames = j.tools.map((t) => (t.function ? t.function.name : ''))
       if (tool !== undefined) { probe.toolResult = typeof tool.content === 'string' ? tool.content : JSON.stringify(tool.content); sse(res, 'OK'); return }
@@ -175,7 +176,7 @@ try {
   const hot = await poll(() => probe.toolResult !== null || (probe.systems.length > 0 && probe.called === null), 90000)
   check('a run held more than ten minutes started anyway, though a very busy machine has no room', started().join() === 'st-load-hot', started())
   // The engine puts the plugins' `systemPrompt.context` blocks in a user-role context message, not in the `system` one: look in every message.
-  check('the real request to the model carries the line: do not start sub-agents (in the context message, on every step)', probe.where.length >= 1 && probe.where.every((w) => /:NOTE/.test(w)), probe.where)
+  check('the real request to the model carries the line: do not start sub-agents (in the context message, on every step)', probe.where.length >= 1 && probe.where.every((w) => /:NOTE/.test(w)), { where: probe.where, user: probe.ctx })
   check('the model had a sub-agent tool to call (otherwise the next check proves nothing)', probe.called !== null, probe.toolNames)
   check('the call came back to the model as an error that says the computer is very busy', hot && probe.toolResult !== null && /Sub-agent not started/.test(probe.toolResult) && /very busy/.test(probe.toolResult), probe.toolResult)
   const hotView = (await loadRoute()).json
