@@ -4,7 +4,7 @@
 //
 //   import { createFlow } from './lib-language-flow.mjs'
 //   const flow = await createFlow(page)         // page from openLivePage()
-//   await flow.pseudoLanguage('es')             // add it, translate it (stubbed LLM), use it
+//   await flow.pseudoLanguage(TEST_LANG.id)     // add it, translate it (stubbed LLM), use it
 //   …measure…
 //   await flow.restoreEnglish()                 // ALWAYS, in a finally
 //
@@ -87,6 +87,18 @@ export const assertEnglishStored = () => {
   }
   return stored
 }
+
+// The languages the live checks translate. Each must be one DSH does NOT ship: DSH 0.2.2-alpha.2 carries its own es, fr, de, ja, ru, pt-BR
+// and zh dictionaries, and for a language it already has the Language page leaves DSH's half out on purpose, so a check that waits for
+// DSH's texts finds none (W5-02, finding 49). `it` is the language of the family; `nl` is a second one for the checks that need two.
+// `es` stays in the table for `--user-copy es` of check-language-run-live.mjs (the maintainer's own file), never as a test language.
+export const TEST_LANGS = {
+  it: { id: 'it', native: 'Italiano', english: 'Italian', search: 'ital' },
+  nl: { id: 'nl', native: 'Nederlands', english: 'Dutch', search: 'neder' },
+  es: { id: 'es', native: 'Español', english: 'Spanish', search: 'esp' },
+}
+export const TEST_LANG = TEST_LANGS.it
+export const SECOND_LANG = TEST_LANGS.nl
 
 export const SETTINGS = ['Settings', 'Paramètres', 'Réglages']
 // The nav entry first: under a translated UI, « Language » is also a row of the General page.

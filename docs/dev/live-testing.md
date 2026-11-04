@@ -98,6 +98,16 @@ The profile name defaults to `web` (`KB_PROFILE`).
 node scripts/check-language-live.mjs --shots /tmp/shots   # screenshots of every step
 ```
 
+**Which language the language checks translate.** `check-language-live`, `-disk`, `-run` and `-job` translate `TEST_LANG` of
+`lib-language-flow.mjs` (`it`, Italiano; `nl` as the second one where two are needed). It must be a language DSH does **not** ship:
+DSH 0.2.2-alpha.2 has its own es, fr, de, ja, ru, pt-BR and zh dictionaries, and for such a language the Language page leaves DSH's
+half out on purpose, so a check that waits for DSH's texts finds none (W5-02, finding 49). To change it, change the table there,
+nothing else. They need a model that is *listed* (the Start button is disabled without one), not one that answers: the stub in the
+page answers. A sandbox cloned from the maintainer's profile lists models (providers whose key variables the sandbox does not set).
+`check-language-job-live` is the other way round: the translation is run by the HOST, so it needs a listed model with **no key** to fail
+on. A fresh sandbox has that; one paired with the replica does not (the host falls back to the working route and really translates), and
+the check then ends inconclusive (3) and cancels the run.
+
 The LLM is replaced by a stub in the page (each string comes back as `⟦text⟧`), so
 the run is free and deterministic; everything else is real — the page, the ISO
 list, the engine, the localStorage stores, DSH's locale service and dictionaries.
@@ -605,7 +615,7 @@ was picked on a sandbox with no account).
 
 ```bash
 node scripts/check-language-run-live.mjs --worktree --shots /tmp/shots    # this checkout's client, screenshots of the key steps
-node scripts/check-language-run-live.mjs --worktree --user-copy           # start from a COPY of ~/.dsh/kybernos/i18n/es.json
+node scripts/check-language-run-live.mjs --worktree --user-copy es        # start from a COPY of ~/.dsh/kybernos/i18n/es.json (`it` when no id is given)
 ```
 
 It replays an incident that really happened: a language whose texts were all written by a test run (`⟦…⟧`) and reached the
@@ -616,7 +626,7 @@ disk end up clean and a reload does not bring the marks back. D: a run cut with 
 alone while the heartbeat is fresh, and left alone when the automatic resume is off.
 
 The « disk » is a throw-away folder behind the real route code and the model is a stub in the page, so your `~/.dsh` is never
-written (`--user-copy` only reads `es.json`, once, into that folder); nothing presses « Use », so DSH's language is untouched.
+written (`--user-copy <id>` only reads `<id>.json`, once, into that folder); nothing presses « Use », so DSH's language is untouched.
 `openLivePage` sets `window.__KB_I18N_PSEUDO_OK__ = true` for every other script, because they translate with the
 pseudo-translating stub; this one switches it with `localStorage.__kb_pseudo_ok` instead, since the guard is what it tests.
 
