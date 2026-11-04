@@ -137,6 +137,9 @@ Order of the rounds, each needing the one before it green unless marked parallel
 node scripts/test-user-journey-plan.mjs                          # the plan is coherent
 KB_SERVER_DIR=<server checkout> node scripts/test-user-journey-plan.mjs   # also checks the server test files the cases name
 node scripts/test-soft-takeoff-plan.mjs                          # the plan this one extends
+node scripts/user-journey-run.mjs --out <folder outside git> --env none --list   # what a run would play; drop --list to play it (one verdict file per case)
+eval "$(KB_SERVER_DIR=<server checkout> bash scripts/user-journey-replica.sh up 8851 <folder>)"   # a disposable replica for one case or one agent; `down` stops it
+node scripts/user-journey-coverage.mjs <evidence folder>... --list         # what has really been played: the latest verdict of each case, and the cases without one
 ```
 
 Each case's `how` is the command, the brief or the owner's request. Script commands that start with `(server repo)`, `(website repo)`, `(mobile repo)` or `(desktop repo)` run from that checkout; those that start with `(to build)` do not exist yet and their case is `needs-build`. Evidence (pictures, verdict files, recorded traffic) goes to a private folder outside git, never to the repository.
