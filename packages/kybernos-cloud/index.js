@@ -60,6 +60,7 @@ import { identityOf } from './computer-identity.mjs'
 import { lireSecretSession, writeGuard } from './session-guard.mjs'
 import { createMandateStore } from './kyby-mandate-store.mjs'
 import { createConnectorAsks } from './connector-ask.mjs'
+import { createUntrustedChats, riskOf, bringsUntrusted, hostOf, hostsIn } from './untrusted-turn.mjs'
 import { LIST_TEXT, UNATTENDED_NEVER, createUnattended } from './kyby-unattended.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
@@ -5503,23 +5504,70 @@ const chatRootOf = (ctx, agentId) => {
 const inAutomationRun = (agent) => {
   try { const r = globalThis[Symbol.for('kybernos.automationRuns')]; return r !== null && typeof r === 'object' && typeof r.local === 'function' && r.local(agent) === true } catch (e) { return false }
 }
-const ordinaryAsk = async (ctx, exec, name) => {
-  if (!ORDINARY_ASK_TOOLS.has(name) || exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
+/** The question to the person, whatever the chat's policy: `null` = the call goes on, else the gate's answer (the engine's card, or a refusal). `text` is `{ en, fr }`. */
+const askPerson = async (ctx, exec, text) => {
   const approval = ctx.get('approval')
   if (approval === undefined || approval === null) return null
   let policy = 'ask'
   try { if (typeof approval.effectivePolicy === 'function') policy = approval.effectivePolicy(exec.agent.session) } catch (e) { policy = 'ask' }
-  const args = exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
-  const slug = typeof args.tool_slug === 'string' ? args.tool_slug.trim() : ''
-  const [app, ...action] = slug.split('_')
-  const shown = connectorShown(slug === '' ? 'mcp__connected_app' : 'mcp__' + app.toLowerCase() + '__' + action.join('_').toLowerCase(), args.params).slice(0, 500)
-  const text = { en: 'Connected app: ' + shown, fr: 'Application connectée : ' + shown }
   if (policy !== 'never') return { kind: 'ask', reason: text.en, displayReason: text }
   if (inAutomationRun(exec.agent)) return null
   const outcome = await connectorAsks.ask({ sessionId: chatRootOf(ctx, exec.agent.id), text, signal: exec.signal })
   if (outcome === 'allowed') return null
   const why = outcome === 'rejected' ? 'they refused it' : outcome === 'timeout' ? 'they did not answer in time' : outcome === 'cancelled' ? 'the task was stopped' : 'too many questions are waiting'
   return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' }
+}
+const ordinaryAsk = async (ctx, exec, name) => {
+  if (!ORDINARY_ASK_TOOLS.has(name) || exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
+  const args = exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
+  const slug = typeof args.tool_slug === 'string' ? args.tool_slug.trim() : ''
+  const [app, ...action] = slug.split('_')
+  const shown = connectorShown(slug === '' ? 'mcp__connected_app' : 'mcp__' + app.toLowerCase() + '__' + action.join('_').toLowerCase(), args.params).slice(0, 500)
+  return askPerson(ctx, exec, { en: 'Connected app: ' + shown, fr: 'Application connectée : ' + shown })
+}
+// ── A chat that has just read the web (journey UJ-163) ──────────────────────────────────────────────────────────
+// What a page or a search result says is not the person's word. From the moment a chat has read web content until the person speaks again, a command, a write outside the working folder, a fetch
+// of an address nobody gave it and whatever is kept or repeated later (memory, a published site, a reminder) ask first, in every mode, with the same card as a connected app
+// (untrusted-turn.mjs says what counts). Before any web content is read, nothing changes: Full access still runs without a question. An automation run is left as it was (the person approved the
+// automation as a whole), and so is Kaby's own chat (its gate is above).
+const untrustedChats = createUntrustedChats()
+const cwdOf = (agent) => { try { const c = agent.session.header.cwd; return typeof c === 'string' ? c : '' } catch (e) { return '' } }
+const untrustedAsk = async (ctx, exec, name) => {
+  if (exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
+  const chat = chatRootOf(ctx, exec.agent.id)
+  if (chat === '' || untrustedChats.tainted(chat) === null || inAutomationRun(exec.agent)) return null
+  const risk = riskOf(name, exec.arguments, { cwd: cwdOf(exec.agent), known: (host) => untrustedChats.knows(chat, host) })
+  if (risk === null || nativeRootOf(ctx, exec.agent.id) !== null) return null
+  return askPerson(ctx, exec, risk.text)
+}
+/** The hooks that tell a chat what it has read and what the person said (tools/result, session/event); every failure here lets the call go on. */
+const mountUntrusted = (ctx) => {
+  ctx.on('tools/result', (exec, result) => {
+    try {
+      if (exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return
+      const name = String(exec.name || '')
+      const chat = chatRootOf(ctx, exec.agent.id)
+      if (chat === '') return
+      const failed = result !== null && typeof result === 'object' && result.isError === true
+      if (name === 'web_fetch' && !failed) untrustedChats.know(chat, hostOf(exec.arguments && exec.arguments.url))
+      if (!failed && bringsUntrusted(name, result)) untrustedChats.note(chat, name)
+    } catch (e) { /* the call is not held up by this */ }
+  })
+  ctx.on('session/event', (session, event) => {
+    try {
+      if (session === null || session === undefined || event === null || typeof event !== 'object' || event.type !== 'user/message') return
+      const data = event.data
+      const source = data !== null && typeof data === 'object' ? data.source : null
+      if (source === null || typeof source !== 'object' || source.kind !== 'user') return
+      const chat = chatRootOf(ctx, session.id)
+      if (chat === '') return
+      for (const part of Array.isArray(data.content) ? data.content : []) {
+        if (part !== null && typeof part === 'object' && typeof part.text === 'string') for (const host of hostsIn(part.text)) untrustedChats.know(chat, host)
+      }
+      untrustedChats.clear(chat)
+    } catch (e) { /* a message is not held up by this */ }
+  })
+  ctx.on('agent/disposed', ({ agent }) => { try { untrustedChats.forget(agent.session.id) } catch (e) { /* gone */ } })
 }
 const nativeGate = (ctx) => async (exec, next) => {
   const name = String((exec && exec.name) || '')
@@ -5533,10 +5581,16 @@ const nativeGate = (ctx) => async (exec, next) => {
       const own = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
       if (own !== null && unattended.isRun(own)) { noteRefusal(own, name); return { kind: 'deny', reason: 'This is a scheduled run: the person is not here to answer, and nothing may be scheduled. Leave it, and say in your last message what needs them.' } }
     }
-    return next()
+    const afterWeb = await untrustedAsk(ctx, exec, name)
+    return afterWeb === null ? next() : afterWeb
   }
   const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
-  if (root === null) { const asked = await ordinaryAsk(ctx, exec, name); return asked === null ? next() : asked }
+  if (root === null) {
+    const asked = await ordinaryAsk(ctx, exec, name)
+    if (asked !== null) return asked
+    const afterWeb = await untrustedAsk(ctx, exec, name)
+    return afterWeb === null ? next() : afterWeb
+  }
   // The person's mandate covers some of our tools, inside daily limits: no question. Anything it does not cover, or past a limit, is asked as before, except during a scheduled run (nobody answers).
   const waking = unattended.isRun(root)
   if (mandateStore.allow(name, root, waking ? 'automation' : undefined).allow === true) return next()
@@ -5672,7 +5726,7 @@ const toolGate = (ctx) => {
   const native = nativeGate(ctx)
   return (exec, next) => (computerSelf().id === '' ? native(exec, next) : cloud(exec, () => auto(exec, next)))
 }
-const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', toolGate(ctx)) }
+const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', toolGate(ctx)); mountUntrusted(ctx) }
 const turnStart = async (req, body) => {
   if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
   const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
