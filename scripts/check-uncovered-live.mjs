@@ -54,7 +54,7 @@ const read = (js) => g.val(js)
 const mine = ctx.hostOf('a')
 // A sandbox is a clone of the owner's profile, where he may have switched some modules off (`disabled: true` in cordis.patch.yml): a module that never loaded cannot be judged.
 const loaded = await read(`performance.getEntriesByType('resource').map((e) => e.name).join(' ')`)
-const missing = ['dsh-mermaid', 'kybernos-refs'].filter((m) => !String(loaded).includes(m))
+const missing = ['dsh-mermaid', 'kybernos-refs', 'kybernos-bricks', 'dsh-media-player'].filter((m) => !String(loaded).includes(m))
 if (missing.length > 0) { console.error('○ inconclusive: ' + missing.join(', ') + ' did not load in this sandbox (switched off in its profile: take the « disabled: true » line out of cordis.patch.yml and restart it, see scripts/soft-takeoff-freeze.mjs)'); process.exit(3) }
 
 try {
@@ -148,7 +148,7 @@ try {
     const opened = await g.pressText('Databases')
     await sleep(2500)
     const panel = String(await g.body())
-    check('the Databases tab opens from the right sidebar and names the database', opened === true && /zz-j19-12/.test(panel), panel.slice(-300))
+    check('the Databases tab opens from the right sidebar and names the database', opened === true && /zz-j19-12/.test(panel), { opened, panel: panel.slice(-300) })
     check('its four views are offered (Diagram, Charts, Data, SQL)', /Diagram/.test(panel) && /Charts/.test(panel) && /Data/.test(panel) && /SQL/.test(panel), panel.slice(-300))
   } finally { rmSync(kyberDir, { recursive: true, force: true }) }
 
@@ -208,7 +208,10 @@ try {
     if (files !== true) console.log('    (no « Workspace files » entry; the page ends with: ' + String(await g.body()).replace(/\\s+/g, ' ').slice(-300) + ')')
     const file = await g.pressText('j19-12-tone.wav')
     await sleep(2500)
-    const player = await read(`JSON.stringify({ n: document.querySelectorAll('audio[controls]').length, duration: (document.querySelector('audio') || {}).duration, text: Array.from(document.querySelectorAll('audio')).map((a) => a.closest('div') && a.closest('div').parentElement.innerText.replace(/\\s+/g, ' ').slice(0, 120)).join(' ') })`)
+    const readPlayer = () => read(`JSON.stringify({ n: document.querySelectorAll('audio[controls]').length, duration: (document.querySelector('audio') || {}).duration, text: Array.from(document.querySelectorAll('audio')).map((a) => a.closest('div') && a.closest('div').parentElement.innerText.replace(/\\s+/g, ' ').slice(0, 120)).join(' ') })`)
+    // the file's metadata arrives a moment after the player is drawn: read it until it is there (up to 10 s) rather than once after a fixed wait
+    let player = await readPlayer()
+    for (let t = 0; t < 20 && !(typeof player === 'string' && typeof JSON.parse(player).duration === 'number'); t += 1) { await sleep(500); player = await readPlayer() }
     const p = typeof player === 'string' ? JSON.parse(player) : {}
     check('the Files sidebar lists the audio file and opens it', files === true && file === true, { files, file })
     check('it is a real player (an audio element with controls), not « Preview is not available »', p.n === 1 && !/not available/i.test(String(await g.body())), p)
