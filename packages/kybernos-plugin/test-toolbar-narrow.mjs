@@ -9,7 +9,8 @@ const ok = (name, cond) => { if (!cond) fails += 1; console.log((cond ? '  ✓ '
 const rule = (sel) => { const m = src.match(new RegExp('\\n' + sel.replace(/[.]/g, '\\.') + '\\{([^}]*)\\}')); return m === null ? null : m[1] }
 
 const tools = rule('.kb6-tb-tools')
-ok('the tools group of a page toolbar is a flex row that wraps', tools !== null && /display:flex/.test(tools) && /flex-wrap:wrap/.test(tools) && !/flex-wrap:nowrap/.test(tools))
+ok('the tools group of a page toolbar is a flex row that stays on one line while the window is wide (the search field shrinks first)', tools !== null && /display:flex/.test(tools) && /flex-wrap:nowrap/.test(tools) && !/flex-wrap:wrap/.test(tools))
+ok('...and wraps in a narrow window', /@media \(max-width:900px\)\{\.kb6-tb-tools\{flex-wrap:wrap/.test(src))
 ok('it still sits at the end of the row and its search may shrink', tools !== null && /margin-inline-start:auto/.test(tools) && /\.kb6-tb-tools \.kb6-tb-search\{flex:0 1 280px;min-width:0/.test(src))
 ok('the row that holds it wraps too (the trailing buttons drop under the tools)', /\n\.kb6-tb-row\{[^}]*flex-wrap:wrap/.test(src))
 
