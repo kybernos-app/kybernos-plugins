@@ -33245,6 +33245,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 /* Le retour : le gabarit d'une ligne de navigation du shell (14/22, poids 500),
    pose a la place du titre « Settings ». */
 .kbsb{display:inline-flex;align-items:center;gap:6px;margin:0;padding:2px 6px 2px 0;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;font-weight:500;line-height:22px;cursor:pointer}
+html[dir="rtl"] .kbsb svg{transform:scaleX(-1)}
 /* (29/09) Champ de recherche de l'en-tête Réglages : même matière que la
    recherche unifiée KbToolbar, posé sous le bouton de retour.
    (30/09) Il DÉBORDAIT de la colonne de nav — input figé à 180 px = boîte de
