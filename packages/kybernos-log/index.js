@@ -34,6 +34,19 @@ const ERROR_MAX = 180
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const clampText = (v, max) => (typeof v === 'string' && v !== '' ? (v.length > max ? v.slice(0, max - 1) + '…' : v) : undefined)
+/** What a person reads of a provider's failure: the status prefix (« 429: ») goes, and a JSON body (« {"error":{"message":"…","type":"rate_limit_error"}} ») gives its message, never its braces. */
+export const failureSentence = (raw) => {
+  const text = String(raw).replace(/^\d{3}: /, '').trim()
+  if (!text.startsWith('{')) return text
+  try {
+    const body = JSON.parse(text)
+    const found = isObj(body) ? (typeof body.message === 'string' ? body.message : (isObj(body.error) && typeof body.error.message === 'string' ? body.error.message : null)) : null
+    if (found !== null && found.trim() !== '') return found.trim()
+  } catch { /* not whole JSON */ }
+  const cut = text.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)/)
+  if (cut === null) return text
+  try { return JSON.parse('"' + cut[1].replace(/\\$/, '') + '"') } catch { return cut[1] }
+}
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0)
 
 /** Local calendar day, YYYY-MM-DD (the person's day, not UTC: the ledger taught that lesson). */
@@ -122,7 +135,7 @@ export const classifyEvent = (sessionId, event, state = {}) => {
       ...(typeof data.provider === 'string' ? { provider: data.provider } : {}),
       ...(typeof data.retry === 'number' ? { attempt: data.retry } : {}),
       ...(typeof fail.code === 'string' ? { error: clampText(fail.code, ERROR_MAX) } : {}),
-      ...(typeof fail.message === 'string' ? { detail: clampText(String(fail.message).replace(/^\d{3}: /, ''), ERROR_MAX) } : {})
+      ...(typeof fail.message === 'string' ? { detail: clampText(failureSentence(fail.message), ERROR_MAX) } : {})
     }
   }
   if (type === 'tool/call') {

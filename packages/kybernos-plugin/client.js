@@ -34915,7 +34915,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub)+*{margin-top:20px}
       return h('div', { className: 'kbtm-page', 'data-kb': 'kb-market', 'aria-busy': etat.phase === 'loading' ? 'true' : 'false' },
         h('div', { className: 'kbtm-head' },
           h('div', { className: 'kbtm-headrow' },
-            pageHead({ className: 'kbtm-h1', title: say(['Modèles', 'Templates']) }),
+            pageHead({ className: 'kbtm-h1', id: 'kybernos-plugin', page: 'templates', title: say(['Modèles', 'Templates']) }),
             h('button', { type: 'button', className: 'kbm-btn kbtm-open kbtm-secondary', 'data-kb': 'kb-tpl-open-gallery', onClick: () => { try { window.__KB_OPEN__({ view: 'themes' }) } catch (e) { /* the page is not there */ } } }, say(['Ouvrir les modèles', 'Open Templates']))),
           h('p', { className: 'kbtm-sub' }, say(['Ajoute des modèles à Kybernos, depuis un dossier de cet ordinateur ou depuis un catalogue. Pour en choisir un pour ton travail, ouvre les modèles ici, ou crée une app depuis la page Apps.', 'Add templates to Kybernos, from a folder on this computer or from a catalogue. To pick one for your work, open the templates here, or start an app from the Apps page.']))),
         h('div', { className: 'kbtm-tabs', role: 'tablist', 'aria-label': say(['Ajouter un modèle', 'Add a template']) },
@@ -42218,6 +42218,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     /** A pack text (`{ en, fr… }`) in a language: that language, else English, else nothing. */
     const kbObPackText = (lang, t) => (t !== null && t !== undefined && typeof t === 'object' ? (typeof t[lang] === 'string' ? t[lang] : (typeof t.en === 'string' ? t.en : '')) : '')
     /** The pack of a domain id, or null. */
+    /** The heading of the starter kit: « A starter kit for <field> », except for the catch-all field (« Something else » is a choice, not a field to name in a sentence) and when no field is chosen. */
+    const kbObKitTitleKey = (pack) => (pack !== null && pack !== undefined && pack.id !== 'general' ? 'k.t' : 'k.t0')
     const kbObPackOf = (packs, id) => (Array.isArray(packs) && typeof id === 'string' ? (packs.find((p) => p !== null && typeof p === 'object' && p.id === id) || null) : null)
     /** The goals of a pack that are in `ids`, in the pack's order (an id the pack does not know is ignored). */
     const kbObGoalsOf = (pack, ids) => (pack === null || !Array.isArray(pack.goals) || !Array.isArray(ids) ? [] : pack.goals.filter((g) => ids.indexOf(g.id) >= 0))
@@ -43812,7 +43814,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         kit: () => {
           const s = step()
           if (!S.kitOnly) s.appendChild(eyebrow('kit'))
-          s.appendChild(h('h1', null, curPack() !== null ? T('k.t', { job: packName(curPack()) }) : T('k.t0')))
+          s.appendChild(h('h1', null, kbObKitTitleKey(curPack()) === 'k.t' ? T('k.t', { job: packName(curPack()) }) : T('k.t0')))
           s.appendChild(h('p', 'kb-ob-sub', T('k.s')))
           // Opened later from Settings, the kit is where the field and the goals are changed: each pick is saved at once and moves the menu wording.
           if (S.kitOnly) {
