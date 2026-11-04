@@ -321,3 +321,50 @@ Round 1 (scripts that need no account and no money), the public-site read, the s
 (Taken at the first full run, as in `soft-takeoff/ledger.md`: the verdict is « no new red against this baseline », never « zero red ».)
 
 2026-11-04, on `claude/journey-fixes` (dev tip + 4 commits): 653 test files in 134 s, 653 green, 0 red (the first run had 1 red, `test-layout.mjs`: the catalogue embeds `help.json`, rebuilt with `node scripts/build-catalog.mjs`). 27 kinds of skip (Playwright, jsdom, livekit, react are not installed on this machine): a skip is not a pass. Pre-push gate on the same tree: `garde-depot` 0 error(s), 30 warning(s); lifecycle 90 assertions, 0 failed; paquet 111 assertions, 0 failed.
+
+2026-11-04, on `dev` baa151ef (round 5 merged): 665 test files in 321 s, 665 green, 0 red (1 flaky: `packages/kybernos-mobile/test-pwa.mjs`, red in the parallel run and green alone).
+
+## Go / no-go (W5-07, 2026-11-04)
+
+One page, so the owner signs once. It reads both ledgers: the soft-takeoff one (`T-xxx`, [soft-takeoff/ledger.md](../soft-takeoff/ledger.md)) and this one (`UJ-xx`). The rule is in [soft-takeoff/README.md](../soft-takeoff/README.md) section 1: every P0 case passes, at least 90 % of P1 pass, no P0 or P1 defect open, no new red in the unit suite.
+
+**Reading today: NO-GO.** No P0 defect is open and the unit suite is green, but 7 P1 defects are open, 26 P0 cases of this recette fail or are blocked, and 38 P0 cases were not played (30 of them are the owner's). P1 cases: 77 pass of 131 (16 fail, 6 blocked, 32 not played). Of the 261 cases: 141 pass, 40 fail, 9 blocked, 71 not played.
+
+| | P0 cases (124) | P1 cases (131) |
+|---|---|---|
+| pass | 60 | 77 |
+| fail or blocked | 26 | 22 |
+| not played | 38 (30 owner, 8 agent or script) | 32 |
+
+### Open P1 defects (the owner decides, none is a quick code fix)
+
+| Row | What a person meets | The call |
+|---|---|---|
+| UJ-01 | the pricing page sells credits (1,000 / 20,000 / 50,000 a month, a 15 dollar top-up « adds 15,000 credits », Free « 1,000 credits per month »); the server catalogue is in dollars and gives Free no monthly budget | one set of figures: page or catalogue |
+| UJ-02 | the legal pages carry 16 « to verify before publication » placeholders (privacy 5, DPA 1, sub-processors 2, in each language) | the lawyer, before opening |
+| UJ-09 | Free has no monthly budget, so a new person's first message fails with a 402 unless the welcome credit is on | state the value and keep it on, on production and staging |
+| UJ-20 | every server e-mail is one fixed English plain-text template (the app has 11 languages), with no brand, support or legal link | follow the person's language before opening, or not |
+| UJ-25 | `GET /v1/models` publishes a price a quarter of what a call is billed (4.000 times, ADR 0059) and lets anyone read the private multiple | show the billed prices, or none |
+| UJ-163, UJ-203 | with no approval card the model that follows a web page, or a connected app's write, can run commands, write files, fetch an outward address and create a standing automation, in every mode tried, Read Only included | a card for writes and commands, even in Full access |
+
+P1 defects of this recette already fixed in `dev`: UJ-39 (install on a fresh profile), UJ-89 (the first-run wizard disconnected after a good pairing), UJ-165 (the trial run id was masked, no automation could be approved). Soft takeoff: T-014, T-015, T-016 and T-021 (the four P1) are fixed.
+
+### P0 cases that fail or are blocked (26), by cause
+
+- Same root as an open P1: J01-04 (UJ-02), J10-02 (UJ-25), J20-05 (UJ-163), J21-01 and J21-02 (UJ-01).
+- Fixed in `dev`, verdict older than the fix, to replay: J03-02 (UJ-89), J14-03 (UJ-165, then played live with a real model; UJ-166, P3, stays open), J08-07 (UJ-77, the desktop half is fixed).
+- Plan, payment and notification screens: J06-08 and J06-10 (P2 and P3 rows UJ-04 to UJ-06, UJ-18, UJ-72 to UJ-75, UJ-123 to UJ-130, UJ-194).
+- Open P2 or P3 rows only, no decision blocking the opening: J03-03, J04-02, J05-10, J10-03 (cached tokens, UJ-80; see also UJ-208, ADR 0049 is « proposed »), J14-11, J19-01 (UJ-137, the same replay as J14-11), J15-01, J15-05, J15-07, J16-01, J16-05, J17-02, J18-03, J19-02, J19-04, J20-07.
+
+### What was not played
+
+- The owner's 46 cases (30 are P0): real Stripe cards, 3DS, declines and disputes; the Fly instance and his own machines; the staging half of soft-takeoff W4 (13 cases); real iPhone and Android (the phone `d07528dc` only with his go); store accounts; fresh install on a machine that never saw Kybernos (W5-06 is J02-08, with J02-07 and J02-10).
+- 25 other cases: see `node scripts/user-journey-coverage.mjs <evidence> --list`.
+
+### Also waiting for the owner
+
+- T-035: `plugins.json` says `kybernos-slides` is on for the freeze, the sandbox profile does not list it. Plan or profile? The freeze follows his answer.
+- T-011 (P2): after « Français » in the first-run wizard and « Passer », the new-chat page stays in English, even after a reload (the wizard keeps its language to itself and nothing applies it to the app): a product call.
+- Soft takeoff T-037 (P3, the page titles of Templates, Widget, Servers and Phone and channels) is fixed with this page.
+
+**To turn this into a GO:** decide the 7 P1 rows above, replay the four stale P0 verdicts, play the owner's P0 cases, and run the full unit suite once more.
