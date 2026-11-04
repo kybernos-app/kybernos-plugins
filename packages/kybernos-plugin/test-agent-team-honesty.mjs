@@ -64,21 +64,12 @@ console.log('  ✓ the automatic and per-role summaries say they are declared an
   console.log('  ✓ « Delete this Agent Team » is disabled with « Not available yet » and the page no longer promises the removal')
 }
 
-// ── The workflow step names can be read in both themes (L1-80, 2026-10-25): the ink of a step is a fixed light beige, so its background is fixed and dark ──
+// ── The workflow of a team is drawn by the shared canvas, so its steps follow the theme like every other graph (2026-11-04) ──
+// It used to be a vendored React Flow with fixed dark hex colours under a fixed light ink (« mixed theme », L1-80): the steps are now KbFlowCanvas cards, whose colours are tokens with a dark twin.
 {
-  const rule = (sel) => { const m = new RegExp("'" + sel.replace(/[.]/g, '\\.') + '\\{([^}]*)\\}\'').exec(src); assert.ok(m !== null, sel + ' exists'); return m[1] }
-  const prop = (body, name) => { const m = new RegExp('(?:^|;)' + name + ':([^;]+)').exec(body); return m === null ? null : m[1].trim() }
-  const lum = (hex) => { const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }
-  const ratio = (x, y) => { const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05) }
-  const node = rule('.kb2-node')
-  const bg = prop(node, 'background')
-  assert.match(bg, /^#[0-9A-Fa-f]{6}$/, 'the step background is a fixed colour, not a theme token (a light theme turned it white under a beige ink): ' + bg)
-  const ink = prop(node, 'color')
-  assert.match(ink, /^#[0-9A-Fa-f]{6}$/)
-  const sub = prop(rule('.kb2-nsub'), 'color')
-  assert.match(sub, /^#[0-9A-Fa-f]{6}$/)
-  assert.ok(ratio(ink, bg) >= 4.5, 'the step name reads at ' + ratio(ink, bg).toFixed(2) + ':1 (4.5 needed)')
-  assert.ok(ratio(sub, bg) >= 4.5, 'the step subtitle reads at ' + ratio(sub, bg).toFixed(2) + ':1 (4.5 needed)')
-  console.log('  ✓ a workflow step is dark under its light ink in every theme (name ' + ratio(ink, bg).toFixed(1) + ':1, subtitle ' + ratio(sub, bg).toFixed(1) + ':1)')
+  assert.ok(!/\.kb2-node\b|\.kb2-nsub\b|react-flow|xyflow/.test(src), 'the fixed-colour step styles and the vendored React Flow are gone')
+  const pane = src.slice(src.indexOf('const wfPickPair = React.useState(null)'))
+  assert.ok(/h\(KbFlowCanvas, \{\s+nodes: kbWfCards\(graphe\)/.test(pane), 'the Workflow tab draws its steps with the shared canvas')
+  console.log('  ✓ a workflow step is a card of the shared canvas: no fixed colour, no second graph library')
 }
 console.log('\n5 checks passed')

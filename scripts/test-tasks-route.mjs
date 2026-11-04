@@ -681,7 +681,7 @@ writeFileSync(file, good)
 
 /* ── The MCP gate: only the sessions of an ask automation, and their sub-agents ── */
 {
-  eq('the plugin installs two tools/pre-execute listeners: the MCP gate first, then the sub-agent limit', (listeners['tools/pre-execute'] || []).length, 2)
+  eq('the plugin installs three tools/pre-execute listeners: the MCP gate first, then the sub-agent limit, then the refusal of DSH\'s schedule_create (automation_remind is the way)', (listeners['tools/pre-execute'] || []).length, 3)
   const gate = listeners['tools/pre-execute'][0]
   const ALLOW = { kind: 'allow' }
   const run = (agent, name, args) => gate({ name, arguments: args, agent, callId: 'c1' }, async () => ALLOW)

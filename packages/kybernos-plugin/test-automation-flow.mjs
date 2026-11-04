@@ -36,6 +36,7 @@ const chain = (n, triggers) => { const c = []; for (let i = 0; i < triggers; i++
   eq('a third trigger is an ordinary card, not a third lane', m.kbFlowGrid(chain(0, 3)).map((x) => x.lane), [0, 1, 0])
   eq('the number of columns can change', m.kbFlowGrid(chain(5, 1), 3).map((x) => x.row + ',' + x.col).join(' '), '0,0 0,1 0,2 1,0 1,1 1,2')
   eq('no card, no place', m.kbFlowGrid([]), [])
+  eq('without a trigger the steps start at the first place (the steps of an Agent Team)', m.kbFlowGrid(chain(5, 0)).map((x) => x.row + ',' + x.col).join(' '), '0,0 0,1 0,2 0,3 1,0')
 }
 {
   const st = m.kbFlowStyleOf('auto')

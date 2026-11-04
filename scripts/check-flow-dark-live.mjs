@@ -34,6 +34,9 @@ try {
     await page.send('Page.reload', { ignoreCache: true }); await sleep(3500)
     await clickText(page, 'Automations'); await sleep(1800)
     await q(`(() => { const n = document.querySelector('.kba-rowline .kba-name'); if (n) n.click() })()`)
+    // An automation opens on its Overview: the graph is on the Workflow tab.
+    await waitFor(page, `!!document.querySelector('[data-kb="tab-flow"]')`, 12000)
+    await q(`(() => { const b = document.querySelector('[data-kb="tab-flow"]'); if (b) b.click() })()`)
     await waitFor(page, `!!document.querySelector('[data-kb="flow-card"]')`, 12000)
     const light = await measure(false)
     const dark = await measure(true)
@@ -54,6 +57,9 @@ try {
     await sleep(1500)
     await clickText(page, 'Automations'); await sleep(1800)
     await q(`(() => { const n = document.querySelector('.kba-rowline .kba-name'); if (n) n.click() })()`)
+    // An automation opens on its Overview: the graph is on the Workflow tab.
+    await waitFor(page, `!!document.querySelector('[data-kb="tab-flow"]')`, 12000)
+    await q(`(() => { const b = document.querySelector('[data-kb="tab-flow"]'); if (b) b.click() })()`)
     await waitFor(page, `!!document.querySelector('[data-kb="flow-card"]')`, 12000)
     const real = await q(`(() => { const lum = ${LUM}; const cv = document.querySelector('[data-kb="flow-canvas"]'); const card = document.querySelector('[data-kb="flow-card"]'); return { theme: document.documentElement.getAttribute('data-kb-theme'), cv: lum(getComputedStyle(cv).backgroundColor), card: lum(getComputedStyle(card).backgroundColor), ink: lum(getComputedStyle(card.querySelector('b, strong, span') || card).color) } })()`)
     await page.shot(join(shotDir, 'flow-real-dark-' + id + '.png')).catch(() => null)

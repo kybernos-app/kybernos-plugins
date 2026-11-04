@@ -909,7 +909,6 @@ let kbLocaleRead = () => 'en'
       'ui.addkyber': { kybernos: 'Ajouter une Agent Team', en: 'Add an Agent Team' },
       'ui.start': { kybernos: 'début', en: 'start' },
       'ui.noworkspace': { kybernos: 'Aucun workspace pour l\'instant.', en: 'No workspace yet.' },
-      'canvas.noreactflow': { kybernos: 'module UMD sans export ReactFlow', en: 'UMD module with no ReactFlow export' },
       'crew.attempts.sub': { kybernos: '  pour ce rôle dans ce run', en: ' for this role in this run' },
       'crew.cachewrite.mid': { kybernos: ' · cache écrit ', en: ' · cache write ' },
       'voice.cap.checking': { kybernos: 'Voix : vérification des capacités…', en: 'Voice: checking capabilities…' },
@@ -935,7 +934,6 @@ let kbLocaleRead = () => 'en'
       'kbui.help.flash': { kybernos: 'Aide · raccourcis · journal des versions.', en: 'Help · shortcuts · release notes.' },
       'kbui.runs.locally': { kybernos: 'Tourne en local sur ta machine', en: 'Runs locally on your machine' },
       'crew.pricing.mid2': { kybernos: ' ·  tarifs ', en: ' ·  pricing ' },
-      'reactflow.down': { kybernos: 'React Flow indisponible : ni la copie locale (/kybernos/vendor/xyflow.js) ni le CDN ne répondent.', en: 'React Flow unavailable: neither the local copy (/kybernos/vendor/xyflow.js) nor the CDN responds.' },
 
       // ── Chaînes UI du plugin (fr/en) ────────────────────────────────────
       // Chantier i18n : les libellés qui étaient codés en dur passent par kbt().
@@ -4678,7 +4676,6 @@ const KB_FR_EN = {
   'Rechercher une session…': 'Search a session…',
   'Recharger les runs': 'Reload the runs',
   'depuis ': 'since ',
-  'React Flow injoignable (local puis CDN)': 'React Flow unreachable (local, then CDN)',
   'Demande': 'Request',
   ' absente du store': ' missing from the store',
   'le membre ne porte pas de sessionId': 'the member carries no sessionId',
@@ -5019,6 +5016,68 @@ const KB_FR_EN = {
   'Histoire de cette conversation': 'Story of this chat',
   'moments': 'moments',
   'Rien ne correspond à ce filtre.': 'Nothing matches this filter.',
+  // the Overview sheet of an automation
+  'Consigne': 'Prompt',
+  'Modifier dans le chat': 'Edit in chat',
+  'Modifier le texte': 'Edit text',
+  'lignes de plus': 'more lines',
+  'Le texte fait foi. Le modèle peut le suivre autrement à chaque exécution : les étapes ne sont que ce qu’on lit dedans.': 'The text is the source. The model may follow it differently each run, so the steps are only what we read in it.',
+  'Quand': 'When',
+  'Une seule fois': 'One time',
+  'Répétition': 'Repeat',
+  'Fuseau horaire': 'Time zone',
+  'système': 'system',
+  'Prochaine exécution': 'Next run',
+  'Oui': 'Yes',
+  'Afficher l’adresse': 'Show address',
+  'Créer un webhook': 'Create webhook',
+  'répété': 'repeats',
+  'Où ça tourne': 'Where it runs',
+  'Cet ordinateur': 'This computer',
+  'Dossier': 'Folder',
+  'Un nouveau chat à chaque exécution': 'A new chat each run',
+  'Toujours le même chat': 'Always the same chat',
+  'Chaque exécution est postée dans une seule conversation. Pour changer, utilise « Modifier dans le chat ».': 'Every run is posted in one conversation. To change it, use “Edit in chat”.',
+  'Chaque exécution ouvre son propre chat dans ce dossier. Pour changer, utilise « Modifier dans le chat ».': 'Each run opens its own chat in this folder. To change it, use “Edit in chat”.',
+  'Changer': 'Change',
+  'Qui s’en charge': 'Who does it',
+  'choisi pour cette automatisation': 'chosen for this automation',
+  'modèle par défaut du profil, aucun choisi': 'profile default, none chosen',
+  'Vus aussi': 'Also seen',
+  'Équipe d’agents': 'Agent team',
+  'Aucun vu': 'None seen',
+  'Pas encore exécutée': 'Not run yet',
+  'Aucune exécution lue pour l’instant': 'No run read yet',
+  'Ce qu’elle peut utiliser': 'What it can use',
+  'vu dans les {n} dernières exécutions': 'seen in the last {n} runs',
+  'Applications': 'Apps',
+  'Demandées': 'Asked for',
+  'Sécurité': 'Safety',
+  'Validations': 'Approvals',
+  'Durée maximale': 'Time limit',
+  'min': 'min',
+  'Si j’écris dedans': 'If I write in it',
+  'L’exécution s’arrête': 'The run stops',
+  'L’exécution se termine': 'The run finishes',
+  'Me prévenir': 'Notify me',
+  'Rien': 'Nothing',
+  'Notification': 'Push',
+  'E-mail': 'Email',
+  '{n} dernières sessions': 'last {n} sessions',
+  'Lecture des journaux…': 'Reading the journals…',
+  'non chiffré': 'not priced',
+  'Appels d’outils par exécution': 'Tool calls per run',
+  'Exécutions récentes': 'Recent runs',
+  'Toutes les {n} sessions': 'All {n} sessions',
+  '{a} exécutions sur {b} terminées': '{a} of {b} completed',
+  'médiane': 'median',
+  'dernière exécution': 'last run',
+  '{n} étapes trouvées dans le texte': '{n} steps found in the text',
+  'indicatif : ce qui s’est vraiment passé est dans chaque session': 'indicative: what really happened is in each session',
+  'Afficher': 'Show',
+  'Selon un horaire': 'On a schedule',
+  'Webhook': 'Webhook',
+  'Aucun journal n’a pu être lu': 'No journal could be read',
 }
 // kbe(en[, fr]) — text whose BASE is English (decision D1). The call site holds the ENGLISH text; its French twin is the KB_FR_EN key whose value it is
 // (two keys that share one English text are told apart by the explicit `fr` argument: `kbe(' answered', ' répondues')`). Rendering follows kbt:
@@ -6611,84 +6670,42 @@ function traduire(topo) {
   return lignes.join('\n')
 }
 
-/* Carte d'une seule étape — ce que le clic sur un nœud ReactFlow affiche. */
+/* Carte d'une seule étape — ce que le clic sur une carte du canvas affiche. */
 function traduireEtape(topo, id) {
   const st = (topo.stages || []).find((s) => s.id === id)
   if (!st) return null
   return traduire({ topology: topo.topology, stages: [st], roles: topo.roles })
 }
 
-/* ── Nœuds/edges ReactFlow : colonnes = profondeur repliée modulo 4 ──────── */
+/* ── Cartes et liens du canvas : une carte par étape, un lien par entrée (le canvas commun les place) ──────── */
 function versGraphe(topo) {
   const stages = topo.stages || []
-  const prof = {}
-  const profondeur = (id, vu) => {
-    if (prof[id] !== undefined) return prof[id]
-    if (vu.indexOf(id) >= 0) return 0
-    const st = stages.find((s) => s.id === id)
-    const entrees = (st && st.inputs) || []
-    const d = entrees.length === 0 ? 0 : 1 + Math.max(...entrees.map((e) => profondeur(e, vu.concat(id))))
-    prof[id] = d
-    return d
-  }
-  for (const st of stages) profondeur(st.id, [])
-  const MAX_COLONNES = 4
-  const rang = {}
-  const noeuds = stages.map((st) => {
-    const d = prof[st.id]
-    const k = d % MAX_COLONNES
-    rang[k] = (rang[k] === undefined) ? 0 : rang[k] + 1
-    return {
-      id: st.id,
-      type: 'kbWf',
-      data: { label: st.id, roles: st.roles || [], mode: st.mode, adversarial: st.adversarial === true, maxRounds: st.maxRounds },
-      position: { x: k * 260, y: rang[k] * 130 },
-    }
-  })
+  const noeuds = stages.map((st) => ({ id: st.id, label: st.id, roles: st.roles || [], mode: st.mode, adversarial: st.adversarial === true, maxRounds: st.maxRounds }))
   const aretes = []
   for (const st of stages) {
-    for (const entree of st.inputs || []) aretes.push({ id: entree + '->' + st.id, source: entree, target: st.id, animated: st.adversarial === true })
+    for (const entree of st.inputs || []) aretes.push({ from: entree, to: st.id, adversarial: st.adversarial === true })
   }
   return { noeuds, aretes }
 }
   return { lireKyberYml: lireKyberYml, valider: valider, traduire: traduire, traduireEtape: traduireEtape, versGraphe: versGraphe }
 })()
 
-// Type de nœud React Flow de l'onglet Workflow : une étape = boîte avec ses
-// rôles et son mode ; une réfutation porte la bordure d'écart (kbflow-ecart).
-let kbWfTypes = null
-let kbWfTypesPour = null
-// Design du graphe Workflow = langage Crew v2 (kb2-node : glyphe coloré, label
-// gras, sous-texte gris, badge pill, canvas pointillé) — même anatomie que
-// Kb2Node, glyphes mappés sur le MODE de l'étape.
+// Cartes du graphe de l'onglet Workflow (le canvas commun, KbFlowCanvas) : une étape = une carte avec ses
+// rôles et son mode ; une réfutation porte le glyphe et la couleur d'écart.
 const KB_WF_MODES = {
-  once: { c: '#5B8DEF', g: '▶', b: 'once' },
-  forEach: { c: '#6CC6BC', g: '●', b: 'per item' },
-  untilConverged: { c: '#B99CF0', g: '↻', b: 'converge' },
+  once: { k: 'ai', g: '▶', b: 'once' },
+  forEach: { k: 'conn', g: '●', b: 'per item' },
+  untilConverged: { k: 'act', g: '↻', b: 'converge' },
 }
-const kbWfNodeTypesOf = (XY) => {
-  if (kbWfTypesPour === XY && kbWfTypes !== null) return kbWfTypes
-  const Handle = XY.Handle
-  const Position = XY.Position
-  const KbWfStageNode = (p) => {
-    const d = (p.data !== null && p.data !== undefined) ? p.data : {}
-    const roles = Array.isArray(d.roles) ? d.roles.join(', ') : ''
-    const nt = (KB_WF_MODES[String(d.mode)] !== undefined) ? KB_WF_MODES[String(d.mode)] : KB_WF_MODES.once
-    const adv = d.adversarial === true
-    const sous = roles + (roles !== '' ? ' · ' : '') + String(d.mode === undefined ? 'once' : d.mode) + ((d.mode === 'untilConverged' && d.maxRounds >= 1) ? ' · ' + String(d.maxRounds) : '')
-    return h('div', { className: 'kb2-node', 'data-kb': 'wf-node' },
-      (Handle !== undefined && Handle !== null) ? h(Handle, { type: 'target', position: Position.Left, isConnectable: false }) : null,
-      h('span', { className: 'kb2-nicon', style: { color: adv === true ? '#C9A45C' : nt.c } }, adv === true ? '⇄' : nt.g),
-      h('span', { className: 'kb2-nbody' },
-        h('span', { className: 'kb2-nlabel' }, String(d.label === undefined ? '?' : d.label)),
-        h('span', { className: 'kb2-nsub' }, sous)),
-      h('span', { className: 'kb2-nbadge ' + (adv === true ? 'kb2-bst-rejected' : 'kb2-bst-pending') }, adv === true ? kbe('adversarial') : kbe(nt.b)),
-      (Handle !== undefined && Handle !== null) ? h(Handle, { type: 'source', position: Position.Right, isConnectable: false }) : null)
-  }
-  kbWfTypesPour = XY
-  kbWfTypes = { kbWf: KbWfStageNode }
-  return kbWfTypes
-}
+const KB_WF_ADV = { k: 'trg', g: '⇄' }
+const kbWfCards = (graphe) => graphe.noeuds.map((d) => {
+  const roles = Array.isArray(d.roles) ? d.roles.join(', ') : ''
+  const nt = (KB_WF_MODES[String(d.mode)] !== undefined) ? KB_WF_MODES[String(d.mode)] : KB_WF_MODES.once
+  const adv = d.adversarial === true
+  const mode = String(d.mode === undefined ? 'once' : d.mode) + ((d.mode === 'untilConverged' && d.maxRounds >= 1) ? ' · ' + String(d.maxRounds) : '')
+  const label = adv === true ? kbe('adversarial') : kbe(nt.b)
+  return { id: String(d.id), trg: false, kind: adv === true ? KB_WF_ADV.k : nt.k, icon: adv === true ? KB_WF_ADV.g : nt.g, title: String(d.label === undefined ? '?' : d.label), kindLabel: label, sub: roles, chips: [roles !== '' ? roles : mode], st: null, desc: mode, cells: [], tip: roles + (roles !== '' ? ' · ' : '') + mode }
+})
 
 const kbCollect = async (args) => {
   console.log('[kybers] collect: start', { sid: (args !== null && args !== undefined) ? args.sessionId : null, kbSid: kbSid })
@@ -8412,6 +8429,60 @@ const kbRunUses = (history, sums, limit) => {
   const top = (map) => [...map.values()].sort((a, b) => b.count - a.count || (a.name < b.name ? -1 : 1)).slice(0, 8)
   return { runs: runs.length, read, models: top(models), latest, skills: top(skills), apps: top(apps), tools: top(tools), agents: [...agents.values()].slice(0, 8), chosen }
 }
+/** How many lines of the prompt the sheet of an automation shows before it folds, and how many of the newest runs its cards read. */
+const KB_ASHEET_HEAD = 3
+const KB_ASHEET_RUNS = 5
+/**
+ * What the sheet of an automation says about it, read from its fields (no guess): the first lines of its prompt, how it starts, where its
+ * runs land, what it may do, when it stops. The page writes the words around these values.
+ *   { head, more, lines, mode: 'cron'|'once'|'webhook', zone, hooked, chat: 'new'|'home', approvals: 'ask'|'auto', maxMinutes, onWrite: 'finish'|'stop', notify, needs, cloud }
+ * `cloud` is the name of the cloud computer it was sent to, null while it runs here; `hooked` is true when it has a webhook (the only trigger, or one more).
+ */
+// A reminder (made by the agent's automation_remind): one date, in one chat, always asking first. It has no certification to show, so its page leaves the gate panel out.
+// A one-time automation that has had its run: that run switched it off, so it is done, not paused.
+const kbOnceDone = (t) => t !== null && typeof t === 'object' && t.active === false && t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once'
+  && ((t.lastRun !== null && t.lastRun !== undefined) || (Array.isArray(t.history) === true && t.history.length > 0))
+const kbIsReminder = (t) => t !== null && typeof t === 'object' && t.origin !== null && typeof t.origin === 'object' && t.origin.recipe === 'reminder'
+const kbAutoSheetOf = (t) => {
+  const x = t !== null && typeof t === 'object' ? t : {}
+  const sc = x.schedule !== null && typeof x.schedule === 'object' ? x.schedule : {}
+  const lines = String(typeof x.prompt === 'string' ? x.prompt : '').split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '')
+  return {
+    head: lines.slice(0, KB_ASHEET_HEAD), more: Math.max(0, lines.length - KB_ASHEET_HEAD), lines: lines.length,
+    mode: sc.mode === 'webhook' ? 'webhook' : (sc.mode === 'once' ? 'once' : 'cron'),
+    zone: typeof sc.tz === 'string' ? sc.tz : '',
+    hooked: x.trigger !== null && x.trigger !== undefined && typeof x.trigger === 'object' && x.trigger.type === 'webhook',
+    chat: x.sessionMode === 'home' ? 'home' : 'new',
+    approvals: x.approvals === 'auto' ? 'auto' : 'ask',
+    maxMinutes: Number.isInteger(x.maxMinutes) === true && x.maxMinutes > 0 ? x.maxMinutes : 0,
+    onWrite: x.onPersonWrites === 'stop' ? 'stop' : 'finish',
+    notify: Array.isArray(x.notify) === true ? x.notify.filter((n) => n === 'push' || n === 'email') : [],
+    needs: Array.isArray(x.needs) === true ? x.needs.filter((n) => typeof n === 'string' && n !== '') : [],
+    cloud: x.cloud !== null && x.cloud !== undefined && typeof x.cloud === 'object' ? String(x.cloud.name || '') : null,
+  }
+}
+/**
+ * The cost of the newest runs, from the Journal's own figures of each (`costs[sessionId]` = { costEur, tokens, unpriced }, or null when its journal could not be read):
+ *   { eur, tokens, unpriced, read, runs, pending }   `eur` is null when no run read has a price (a free or unpriced model); `read` counts the journals that answered, `pending` those not asked yet
+ * (`costs[id]` undefined): a figure is only said once nothing is pending, so a sum that is still growing is never shown.
+ */
+const kbAutoSheetCostOf = (ids, costs) => {
+  let eur = null
+  let tokens = 0
+  let unpriced = 0
+  let read = 0
+  let pending = 0
+  for (const id of Array.isArray(ids) === true ? ids : []) {
+    const c = costs !== null && typeof costs === 'object' ? costs[id] : undefined
+    if (c === undefined) { pending += 1; continue }
+    if (c === null || typeof c !== 'object') continue
+    read += 1
+    if (typeof c.costEur === 'number' && Number.isFinite(c.costEur) === true) eur = (eur === null ? 0 : eur) + c.costEur
+    if (typeof c.tokens === 'number' && Number.isFinite(c.tokens) === true) tokens += c.tokens
+    if (typeof c.unpriced === 'number' && Number.isFinite(c.unpriced) === true) unpriced += c.unpriced
+  }
+  return { eur, tokens, unpriced, read, runs: Array.isArray(ids) === true ? ids.length : 0, pending }
+}
 // ── The proof of a supervised trial, as the gate panel reads it ──────────────
 // The proof is B2's ProofReport, stored by B3 and sent whole on `trial-report`. This block only bounds it for the screen: it claims
 // nothing the host did not say, and `sideEffectFree` stays `null` (never `true`) until a proof exists — "nothing left the machine"
@@ -8509,13 +8580,14 @@ const kbFlowStyleOf = (id) => KB_FLOW_STYLES.filter((s) => s.id === id)[0] || KB
 
 /**
  * Which row, column and lane each card takes. `cards` = [{ id, trg }] in the order of the chain; the leading triggers (at most two)
- * share the first column, one lane each; the other cards follow, `cols` to a row.
+ * share the first column, one lane each; the other cards follow, `cols` to a row (from the first place when no card is a trigger).
  */
 const kbFlowGrid = (cards, cols) => {
   const c = (cols | 0) >= 2 ? cols | 0 : KB_FLOW_COLS
   const out = []
   let lane = 0
-  let slot = 1
+  // The first place is the triggers'; a graph that has none (the steps of an Agent Team) starts there with its first step.
+  let slot = cards.length > 0 && cards[0].trg === true ? 1 : 0
   let lead = true
   for (const k of cards) {
     if (lead === true && k.trg === true && lane < 2) { out.push({ id: k.id, row: 0, col: 0, lane }); lane += 1; continue }
@@ -16148,7 +16220,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const crewState = crewStatePair[0]
       const setCrewState = crewStatePair[1]
 
-      // Onglet Workflow — lecture du kyber.yml du kyber, graphe React Flow et
+      // Onglet Workflow — lecture du kyber.yml du kyber, graphe (canvas commun) et
       // traduction en clair DÉTERMINISTE (jamais un LLM ici). Les états vivent
       // en tête de composant (règle des hooks : l'onglet est conditionnel).
       const wfDataPair = React.useState({ etat: 'init', yml: '', topo: null })
@@ -16157,9 +16229,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const wfPickPair = React.useState(null)
       const wfPick = wfPickPair[0]
       const setWfPick = wfPickPair[1]
-      const wfAssetPair = React.useState({ status: 'init', XY: null })
-      const wfAsset = wfAssetPair[0]
-      const setWfAsset = wfAssetPair[1]
       // Sens 2 : la phrase → proposition yml, toujours relue en français avant
       // toute écriture ; wfRev recharge le graphe depuis le disque après Apply.
       const wfPhrasePair = React.useState('')
@@ -16198,7 +16267,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           return undefined
         }
         charger()
-        kbFlowLoad().then((st) => { if (vivant === true && st !== null && st !== undefined) setWfAsset({ status: st.status, XY: st.XY }) }).catch(() => { /* React Flow indisponible */ })
         return () => { vivant = false }
       }, [tab, (typeof s.detailPath === 'string') ? s.detailPath : '', wfRev])
       const wfProposer = async () => {
@@ -16414,31 +16482,23 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       }
       const pane = (() => {
         if (tab === 'Workflow') {
-          // Le graphe des étapes (React Flow, même habillage que Crew) au-dessus
+          // Le graphe des étapes (le canvas commun, comme l'automatisation) au-dessus
           // de la traduction en clair du kyber.yml. Aucune donnée de démo : le
           // texte vient de la déclaration, calculé — jamais deviné.
-          const XY = (wfAsset !== null && wfAsset.XY !== null && wfAsset.XY !== undefined) ? wfAsset.XY : null
           const topo = wfData.topo
           const verif = (topo !== null) ? kbWfTraducteur.valider(topo) : { erreurs: [], avertissements: [] }
-          const graphe = (topo !== null && XY !== null && wfData.etat === 'ok') ? kbWfTraducteur.versGraphe(topo) : null
+          const graphe = (topo !== null && wfData.etat === 'ok') ? kbWfTraducteur.versGraphe(topo) : null
           const carte = (wfPick !== null && topo !== null) ? kbWfTraducteur.traduireEtape(topo, wfPick) : null
           return h('div', { style: card },
             (wfData.etat === 'chargement' || wfData.etat === 'init') ? h('span', { className: 'kb8-sub' }, kbe('Reading the team file…')) : null,
             (wfData.etat === 'vide') ? h('span', { className: 'kb8-sub' }, kbt('ui.noyaml')) : null,
             (wfData.etat === 'vide' && wfData.err) ? h('div', { className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: '12px', wordBreak: 'break-all' } }, String(wfData.err)) : null,
-            (wfData.etat === 'ok' && XY === null) ? h('span', { className: 'kb8-sub' }, kbt('reactflow.down')) : null,
-            (graphe !== null) ? h('div', { className: 'kbflow-wrap kb2-canvas', style: { height: '520px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #3A3835' } },
-              h(XY.ReactFlow, {
-                nodes: graphe.noeuds, edges: graphe.aretes, nodeTypes: kbWfNodeTypesOf(XY),
-                fitView: true, fitViewOptions: { padding: 0.14, maxZoom: 1 }, minZoom: 0.2, maxZoom: 1.5,
-                nodesConnectable: false, elementsSelectable: true, proOptions: { hideAttribution: true },
-                onNodeClick: (ev, nd) => { try { setWfPick(wfPick === String(nd.id) ? null : String(nd.id)) } catch (e) { /* clic graphe */ } },
-              }),
-              h('div', { className: 'kb2-legend' },
-                h('span', null, h('b', { style: { color: '#5B8DEF' } }, '▶'), kbe(' once')),
-                h('span', null, h('b', { style: { color: '#6CC6BC' } }, '●'), kbe(' per item')),
-                h('span', null, h('b', { style: { color: '#B99CF0' } }, '↻'), ' converge'),
-                h('span', null, h('b', { style: { color: '#C9A45C' } }, '⇄'), ' adversarial'))) : null,
+            (graphe !== null) ? h(KbFlowCanvas, {
+              nodes: kbWfCards(graphe), links: graphe.aretes.map((e) => ({ from: e.from, to: e.to, label: null, tone: null })),
+              selId: wfPick, onSelect: (id) => { try { setWfPick(wfPick === String(id) ? null : String(id)) } catch (e) { /* clic graphe */ } },
+              storeKey: 'team.' + String(kyber.id), fitHeight: 520 }) : null,
+            (graphe !== null) ? h('div', { className: 'kb8-sub', style: { display: 'flex', gap: '14px', flexWrap: 'wrap' } },
+              [[KB_WF_MODES.once, kbe(' once')], [KB_WF_MODES.forEach, kbe(' per item')], [KB_WF_MODES.untilConverged, ' converge'], [{ k: KB_WF_ADV.k, g: KB_WF_ADV.g }, ' adversarial']].map((x, i) => h('span', { key: i, className: 'kbfc-k-' + x[0].k }, h('b', { style: { color: 'var(--k)' } }, x[0].g), x[1]))) : null,
             (carte !== null) ? h('div', { style: { background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', padding: '10px 12px', fontSize: '12.5px', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column', gap: '6px' } },
               h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
                 h('span', { style: { fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, kbe('Stage "') + wfPick + kbe('"')),
@@ -16882,23 +16942,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghostteam') : (k.kyber + ' · ' + k.where))),
           (k.attached === true ? h('span', { style: pillTOn, 'data-kb': 'team-skill-pill' }, 'Attached') : null)))))
     }
-    // ── React Flow (@xyflow/react) : chargement paresseux ────────────────────
-    // Ce dépôt n'a ni bundler ni node_modules. Le host sert le build UMD sous
-    // /kybernos/vendor/xyflow.js (route ajoutée dans index.js). Tant que le host
-    // n'a pas redémarré cette route répond 404 : on bascule alors sur le CDN, à
-    // version épinglée. Le module n'est évalué qu'une seule fois.
-    const KBFLOW_VER = '12.11.6'
-    const KBFLOW_JS = ['/kybernos/vendor/xyflow.js', 'https://unpkg.com/@xyflow/react@' + KBFLOW_VER + '/dist/umd/index.js']
-    const KBFLOW_CSS = ['/kybernos/vendor/xyflow.css', 'https://unpkg.com/@xyflow/react@' + KBFLOW_VER + '/dist/base.css']
-    let kbFlowState = { status: 'idle', XY: null, source: null, error: null }
-    let kbFlowWaiters = []
-    let kbFlowSubs = []
-    const kbFlowEmit = () => {
-      const w = kbFlowWaiters
-      kbFlowWaiters = []
-      for (const fn of w) { try { fn(kbFlowState) } catch (e) { /* waiteur mort */ } }
-      for (const fn of kbFlowSubs) { try { fn(kbFlowState) } catch (e) { /* abonne mort */ } }
-    }
     const kbStyleOnce = (id, css) => {
       try {
         if (typeof document === 'undefined' || document === null) return
@@ -16910,46 +16953,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (head !== null && head !== undefined) head.appendChild(st)
       } catch (e) { /* feuille deja presente */ }
     }
-    const kbFlowEval = (src) => {
-      const dom = (() => { try { return require('react-dom') } catch (e) { return undefined } })()
-      const jsx = (() => { try { return require('react/jsx-runtime') } catch (e) { return undefined } })()
-      const shim = { React: React, ReactDOM: dom, jsxRuntime: jsx }
-      const run = new Function('globalThis', 'self', 'exports', 'module', 'define', src)
-      run(shim, shim, undefined, undefined, undefined)
-      return (shim.ReactFlow !== undefined && shim.ReactFlow !== null) ? shim.ReactFlow : null
-    }
-    const kbFlowLoad = () => {
-      if (kbFlowState.status === 'ok' || kbFlowState.status === 'failed') return Promise.resolve(kbFlowState)
-      if (kbFlowState.status === 'loading') return new Promise((res) => { kbFlowWaiters.push(res) })
-      kbFlowState = { status: 'loading', XY: null, source: null, error: null }
-      const p = new Promise((res) => { kbFlowWaiters.push(res) })
-      const tryCss = (i) => {
-        if (i >= KBFLOW_CSS.length) return
-        fetch(KBFLOW_CSS[i], { method: 'GET' })
-          .then((r) => { if (r === null || r === undefined || r.ok !== true) throw new Error('HTTP'); return r.text() })
-          .then((css) => kbStyleOnce('kb-xyflow-css', css))
-          .catch(() => tryCss(i + 1))
-      }
-      const tryJs = (i) => {
-        if (i >= KBFLOW_JS.length) {
-          kbFlowState = { status: 'failed', XY: null, source: null, error: kbe('React Flow unreachable (local, then CDN)') }
-          kbFlowEmit(); return
-        }
-        fetch(KBFLOW_JS[i], { method: 'GET' })
-          .then((r) => { if (r === null || r === undefined || r.ok !== true) throw new Error('HTTP'); return r.text() })
-          .then((src) => {
-            const XY = kbFlowEval(src)
-            if (XY === null) throw new Error(kbt('canvas.noreactflow'))
-            kbFlowState = { status: 'ok', XY: XY, source: KBFLOW_JS[i], error: null }
-            kbFlowEmit()
-            tryCss(0)
-          })
-          .catch(() => tryJs(i + 1))
-      }
-      tryJs(0)
-      return p
-    }
-
     // ── masquage du compositeur de chat sur les vues Crew ────────────────────
     // Le compositeur appartient à la coque de conversation (il reste visible sur
     // Trajectory aussi). On le masque uniquement tant qu'une vue Crew est montée.
@@ -16982,178 +16985,16 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // kbStyleOnce est idempotent — un second appel avec la même clé ne fait rien.
     try { kbStyleOnce('kb-composer-css', KB_COMPOSER_CSS) } catch (e) { /* DOM pas prêt */ }
 
-    // ── Crew v2 styles: the tab is gone, the nodes of the Workflow graph (.kb2-node, .kb2-nicon) still use them ──
-    // Mock-up palette: literals (capture contract 07) with a fallback to the DSH tokens.
+    // ── What is left of the Crew v2 styles: the tab, its journal and its graph are gone; these four classes are still drawn by the Agent Team panel ──
+    // (the panel's own sheet defines them too, and the two sheets merge: keep both until one of them is proved enough).
     const KB2_CSS =
-      '.kb2-root{flex-grow:1;display:flex;min-height:0;background:var(--dsw-alias-bg-base,#1A1918);color:var(--dsw-alias-label-primary,#DCD6CB);font-size:13px}' +
-      '.kb2-root.kb2-emptyview{align-items:center;justify-content:center}' +
-      // Colonne exécutions (240 px).
-      '.kb2-side{width:240px;flex-shrink:0;box-sizing:border-box;padding:20px 12px;border-right:1px solid var(--dsw-alias-border-l1,#2E2C2A);background:var(--dsw-alias-bg-layer-1,#1E1D1C);display:flex;flex-direction:column;gap:18px;overflow-y:auto}' +
-      '.kb2-side-h{padding:0 8px;font-size:11px;letter-spacing:.08em;color:#8E8A82;font-family:ui-monospace,Menlo,monospace}' +
-      '.kb2-team{display:flex;flex-direction:column;gap:2px}' +
-      '.kb2-team-h{display:flex;align-items:center;gap:8px;padding:0 8px 6px}' +
-      '.kb2-mono{width:22px;height:22px;border-radius:6px;background:#26251F;color:#DCD6CB;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,monospace}' +
-      '.kb2-team-n{font-size:13px;font-weight:600}' +
-      '.kb2-team-c{margin-left:auto;font-size:11px;color:#8E8A82}' +
-      '.kb2-call{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;height:32px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:#DCD6CB;font-size:12.5px;font-family:inherit;cursor:pointer;text-align:left}' +
-      '.kb2-call:hover{background:rgba(255,255,255,.05)}' +
-      '.kb2-call.on{background:rgba(201,164,92,.14);box-shadow:inset 0 0 0 1px rgba(201,164,92,.35)}' +
-      '.kb2-call-n{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8E8A82}' +
-      '.kb2-call-s{flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '.kb2-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}' +
-      '.kb2-dot-pending{background:#6E6A63}.kb2-dot-active{background:#5B8DEF}.kb2-dot-waiting{background:#B99CF0;animation:kb2pulse 1.6s infinite}.kb2-dot-done{background:#7FC98A}.kb2-dot-rejected{background:#E9A197}' +
-      '@keyframes kb2pulse{0%,100%{opacity:1}50%{opacity:.35}}' +
-      // Colonne canevas.
-      '.kb2-main{flex-grow:1;display:flex;flex-direction:column;min-width:0}' +
       '.kb2-head{height:64px;flex-shrink:0;box-sizing:border-box;padding:0 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
-      '.kb2-tag{font-family:ui-monospace,Menlo,monospace;font-size:11px;padding:4px 8px;border-radius:6px;background:rgba(201,164,92,.16);color:#C9A45C;white-space:nowrap}' +
-      '.kb2-headt{flex-grow:1;min-width:0}' +
       '.kb2-title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.kb2-meta{font-size:11px;color:#8E8A82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.kb2-btn{height:32px;padding:0 12px;border:1px solid var(--dsw-alias-border-l2,#34322F);border-radius:9px;background:transparent;color:#DCD6CB;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap}' +
-      '.kb2-btn:hover{background:rgba(255,255,255,.05)}' +
-      '.kb2-fold{width:30px;padding:0;font-size:14px;line-height:1;color:#8E8A82}' +
-      // Colonnes adaptatives : si l'utilisateur déplie sur une fenêtre étroite,
-      // les colonnes rétrécissent plutôt que d'écraser le canevas.
-      '@media (max-width:1280px){.kb2-side{width:200px}.kb2-right{width:300px}}' +
-      '@media (max-width:1100px){.kb2-side{width:170px}.kb2-right{width:260px}}' +
-      '.kb2-play{border-color:rgba(201,164,92,.4);color:#C9A45C}' +
-      '.kb2-mode-on{border-color:rgba(91,141,239,.45);color:#8FB8DE}' +
-      // Bannière gate (maquette « Journal de session »).
-      '.kb2-banner{display:flex;align-items:center;gap:10px;margin:10px 20px 0;padding:9px 14px;border-radius:10px;background:rgba(185,156,240,.1);border:1px solid rgba(185,156,240,.45);font-size:12.5px;color:#B99CF0;animation:kb2pulse 2.2s ease-in-out infinite}' +
-      '@media(prefers-reduced-motion:reduce){.kb2-banner{animation:none}}' +
-      '.kb2-banner button{height:26px;padding:0 10px;border-radius:7px;border:1px solid rgba(185,156,240,.5);background:transparent;color:#B99CF0;font-size:11.5px;cursor:pointer;font-family:inherit;white-space:nowrap}' +
-      // Onglets de section (Chronologie · Graphe · Cascade · Coûts).
-      '.kb2-sectabs{display:flex;gap:2px;padding:8px 20px 0;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
-      '.kb2-sectab{height:30px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:#8E8A82;font-size:12.5px;cursor:pointer;font-family:inherit}' +
-      '.kb2-sectab:hover{color:#DCD6CB}' +
-      '.kb2-sectab.on{color:#C9A45C;border-bottom-color:#C9A45C;font-weight:600}' +
-      // Tableaux (cascade, coûts).
-      '.kb2-tablewrap{flex-grow:1;overflow:auto;padding:14px 20px}' +
-      '.kb2-table{border-collapse:collapse;width:100%;font-size:12.5px;color:#DCD6CB}' +
-      '.kb2-table th{text-align:left;font-size:10.5px;color:#8E8A82;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
-      '.kb2-table td{padding:7px 10px;border-bottom:1px solid rgba(46,44,42,.5);vertical-align:top}' +
-      '.kb2-table tr:hover td{background:rgba(255,255,255,.03)}' +
-      '.kb2-table .mono{font-family:ui-monospace,Menlo,monospace;font-size:11.5px}' +
-      // En-tête de session (maquette) — variables DSH.
-      '.kb2-sesshead{padding:14px 20px 6px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
-      '.kb2-sessline{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8E8A82);}' +
-      '.kb2-sesstitle{font-size:16px;font-weight:650;color:var(--dsw-alias-label-primary,#DCD6CB)}' +
-      '.kb2-sessstat{font-size:11.5px;color:var(--dsw-alias-label-secondary,#A8A49B)}' +
-      // Chronologie.
-      '.kb2-chrono{display:flex;flex-direction:column;gap:8px}' +
-      '.kb2-chr-hint{font-size:11px;color:var(--dsw-alias-label-tertiary,#8E8A82);padding:2px 0}' +
-      '.kb2-chr-list{display:flex;flex-direction:column;gap:1px}' +
-      '.kb2-chr-row{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary,#DCD6CB);font-size:12.5px;font-family:inherit;cursor:pointer;text-align:left}' +
-      '.kb2-chr-row:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.04))}' +
-      '.kb2-chr-row.on{background:rgba(201,164,92,.12);box-shadow:inset 0 0 0 1px rgba(201,164,92,.35)}' +
-      '.kb2-chr-t{color:var(--dsw-alias-label-tertiary,#8E8A82);flex-shrink:0}' +
-      '.kb2-chr-tag{color:#C9A45C;flex-shrink:0}' +
-      '.kb2-chr-title{flex-grow:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.kb2-chr-st{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8E8A82);flex-shrink:0}' +
-      '.kb2-chr-evts{display:flex;flex-direction:column;gap:1px;margin-top:8px;padding-top:8px;border-top:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
-      // Bouton Répondre de l'inspecteur (gate).
-      '.kb2-ansbtn{align-self:flex-start;border-color:rgba(185,156,240,.5);color:#B99CF0;margin-top:2px}' +
-      // ── Refonte « Journal de session » : pile de cartes (tokens DSH) ──────
-      '.kb2j-root{flex-grow:1;display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding:16px 20px;background:var(--dsw-alias-bg-base,#1A1918);color:var(--dsw-alias-label-primary,#DCD6CB);font-size:13px}' +
-      '.kb2j-card{background:var(--dsw-alias-bg-layer-1,#14161D);border:1px solid var(--dsw-alias-border-l1,#262A33);border-radius:12px;padding:16px 20px;display:flex;flex-direction:column;gap:12px;flex-shrink:0}' +
-      '.kb2j-hrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}' +
-      '.kb2j-brand{font-size:13px;font-weight:700;letter-spacing:.22em;color:#C9A45C;padding-right:16px;border-right:1px solid var(--dsw-alias-border-l1,#2A2E38)}' +
-      '.kb2j-ht{display:flex;flex-direction:column;gap:2px;flex:1;min-width:220px}' +
-      '.kb2j-meta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#8B93A7);}' +
-      '.kb2j-title{font-size:19px;font-weight:650;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
-      '.kb2j-hact{display:flex;align-items:center;gap:8px;margin-left:auto}' +
-      '.kb2j-badge{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:99px;border:1px solid rgba(201,164,92,.45);background:rgba(201,164,92,.1);color:#E5B567;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}' +
-      '.kb2j-chips{display:flex;gap:6px;flex-wrap:wrap}' +
-      '.kb2j-chip{height:26px;padding:0 12px;border-radius:99px;border:1px solid var(--dsw-alias-border-l1,#2A2E38);background:var(--dsw-alias-bg-layer-2,#171A21);color:var(--dsw-alias-label-secondary,#9AA2B1);font-size:12px;cursor:pointer;font-family:inherit}' +
-      '.kb2j-chip:hover{color:var(--dsw-alias-label-primary,#D8DCE6)}' +
-      '.kb2j-chip.on{border-color:rgba(201,164,92,.55);color:#E5B567;background:rgba(201,164,92,.1);font-weight:600}' +
-      '.kb2j-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}' +
-      '@media (max-width:1100px){.kb2j-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}' +
-      '.kb2j-tile{display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:10px;background:var(--dsw-alias-bg-layer-2,#161A22);border:1px solid rgba(255,255,255,.10);min-width:0}' +
-      '.kb2j-tk{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
-      '.kb2j-tv{font-size:21px;font-weight:700;color:var(--dsw-alias-label-primary,#E8EAF0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.kb2j-tile.amb .kb2j-tv{color:#E5B567}' +
-      '.kb2j-ts{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#6B7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.kb2j-tl{position:relative;height:52px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#101623) 6%,transparent);overflow:hidden}' +
-      '.kb2j-tl>span{position:absolute;top:12px;height:8px;border-radius:4px;min-width:6px;box-shadow:0 0 0 1px rgba(0,0,0,.35)}' +
-      '.kb2j-tlticks{position:absolute;left:0;right:0;bottom:6px;display:flex;justify-content:space-between;padding:0 8px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#6B7280)}' +
-      '.kb2j-cardh{display:flex;align-items:center;gap:12px}' +
-      '.kb2j-cardt{font-size:16px;font-weight:650;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
-      '.kb2j-tools{margin-left:auto;display:flex;gap:6px}' +
-      '.kb2j-card .kb2-canvas{height:440px;flex-grow:1}' +
-      '.kb2j-card .kb2-tablewrap{padding:0;overflow:visible;flex-grow:0}' +
-      '.kb2j-drow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}' +
-      '.kb2j-tagchip{font-family:ui-monospace,Menlo,monospace;font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(201,164,92,.14);color:#C9A45C;white-space:nowrap}' +
-      '.kb2j-dt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:200px}' +
-      '.kb2j-dtitle{font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
-      '.kb2j-dmeta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#8B93A7)}' +
-      '.kb2j-dstats{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}' +
-      '.kb2j-dstat{display:flex;flex-direction:column;gap:1px;align-items:flex-end}' +
-      '.kb2j-dk{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
-      '.kb2j-dv{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
-      '.kb2j-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}' +
-      '@media (max-width:1100px){.kb2j-two{grid-template-columns:1fr}}' +
-      '.kb2j-colwrap{display:flex;flex-direction:column;gap:6px;min-width:0}' +
-      '.kb2j-subh{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
-      '.kb2j-jour{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;padding:4px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#0E1118) 3%,transparent)}' +
-      '.kb2j-inspwrap .kb2-igrid,.kb2j-inspwrap .kb2-io,.kb2j-inspwrap .kb2-ioh{max-width:100%}' +
-            '.kb2-canvas{flex-grow:1;position:relative;min-height:0;background-color:#101318;background-image:radial-gradient(#22252B 1px,transparent 1px);background-size:24px 24px}' +
-      '.kb2-canvas .react-flow{background:transparent}' +
-      '.kb2-canvas .react-flow__attribution{display:none}' +
-      '.kb2-canvas .react-flow__handle{width:8px;height:8px;border-radius:50%;background:#1A1918;border:1.5px solid #6E6A63}' +
-      '.kb2-canvas .react-flow__node{cursor:pointer}' +
-      '.kb2-canvas .react-flow__node.selected .kb2-node{border-color:#C9A45C}' +
-      '.kb2-node{position:relative;display:flex;align-items:center;gap:9px;min-width:118px;padding:9px 11px;border-radius:10px;border:1.5px solid #3A3835;background:#232220;font-size:12px;color:#DCD6CB}' +
-      '.kb2-nicon{width:16px;text-align:center;font-size:14px;flex-shrink:0}' +
-      '.kb2-nicon.big{width:22px;height:22px;border-radius:7px;background:#26251F;display:inline-flex;align-items:center;justify-content:center;font-size:15px}' +
-      '.kb2-nbody{display:flex;flex-direction:column;gap:2px;min-width:0}' +
-      '.kb2-nlabel{max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:600;white-space:nowrap}' +
-      '.kb2-nsub{font-size:11.5px;color:#8E8A82;white-space:nowrap}' +
-      '.kb2-nbadge{position:absolute;top:-9px;right:10px;font-size:9.5px;padding:1px 7px;border-radius:99px;background:#1A1918;border:1px solid}' +
-      '.kb2-bst-pending{color:#8E8A82;border-color:#3A3835}.kb2-bst-active{color:#5B8DEF;border-color:rgba(91,141,239,.5)}.kb2-bst-waiting{color:#B99CF0;border-color:rgba(185,156,240,.5);animation:kb2pulse 1.6s infinite}.kb2-bst-done{color:#7FC98A;border-color:rgba(127,201,138,.5)}.kb2-bst-rejected{color:#E9A197;border-color:rgba(233,161,151,.5)}' +
-      '.kb2-legend{position:absolute;left:20px;bottom:14px;display:flex;gap:14px;font-size:11px;color:#8E8A82;pointer-events:none;z-index:4}' +
-      '.kb2-legend b{font-weight:400}' +
-      '.kb2-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8E8A82;font-size:13px;padding:24px;text-align:center}' +
-      // Colonne journal + inspecteur (340 px).
-      '.kb2-right{width:340px;flex-shrink:0;box-sizing:border-box;border-left:1px solid var(--dsw-alias-border-l1,#2E2C2A);background:var(--dsw-alias-bg-layer-1,#1E1D1C);display:flex;flex-direction:column;min-height:0}' +
-      '.kb2-jour{flex-grow:1;min-height:0;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:2px}' +
-      '.kb2-jrow{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;padding:5px 8px;border:0;border-radius:7px;background:transparent;cursor:pointer;font-family:inherit;font-size:12px;color:inherit;text-align:left}' +
-      '.kb2-jrow:hover{background:rgba(255,255,255,.05)}' +
-      '.kb2-jrow.cur{background:rgba(201,164,92,.12)}' +
-      '.kb2-jrow.ghost{opacity:.18}' +
-      '.kb2-jt{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8E8A82;width:44px;flex-shrink:0;text-align:left}' +
-      '.kb2-jchip{font-size:10px;padding:1px 6px;border-radius:99px;flex-shrink:0;background:#26251F}' +
-      '.kb2-ch-T{color:#5B8DEF}.kb2-ch-M{color:#6CC6BC}.kb2-ch-L{color:#8E8A82}.kb2-ch-V{color:#B99CF0}.kb2-ch-X{color:#8FB8DE}' +
-      '.kb2-jmsg{flex-grow:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#CFCAC1}' +
-      '.kb2-jmark{flex-shrink:0;width:16px;text-align:center}' +
-      '.kb2-jempty{padding:12px 8px;font-size:13px;color:#8E8A82}' +
-      '.kb2-insp{margin:12px;padding:14px;border-radius:12px;background:#252423;border:1px solid #34322F;display:flex;flex-direction:column;gap:9px;flex-shrink:0}' +
-      '.kb2-insp-t{font-size:11px;letter-spacing:.08em;color:#8E8A82;font-family:ui-monospace,Menlo,monospace}' +
-      '.kb2-ihead{display:flex;align-items:center;gap:10px}' +
-      '.kb2-iwrap{flex-grow:1;min-width:0}' +
-      '.kb2-ilabel{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.kb2-isub{font-size:11px;color:#8E8A82}' +
-      '.kb2-st{font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid;white-space:nowrap}' +
-      '.kb2-ioh{font-size:11px;color:#8E8A82;letter-spacing:.06em}' +
-      '.kb2-io{padding:8px 10px;border-radius:8px;background:#1A1918;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#CFCAC1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.kb2-igrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:12px}' +
-      '.kb2-ispan{grid-column:span 2}' +
-      '.kb2-ik{color:#8E8A82;font-size:11px}' +
-      '.kb2-iv{color:#DCD6CB;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.kb2-iv.mono{font-family:ui-monospace,Menlo,monospace;font-size:11px}' +
-      // Pills de run dans l'en-tête (ex-onglet Runs, absorbe).
-      '.kb2-hpills{display:flex;gap:5px;flex-wrap:wrap;max-width:420px;justify-content:flex-end}' +
-      '.kb2-hpill{font-size:10.5px;padding:2px 8px;border-radius:99px;border:1px solid #3A3835;color:#8E8A82;white-space:nowrap;font-family:ui-monospace,Menlo,monospace}' +
-      '.kb2-hpill.ok{color:#7FC98A;border-color:rgba(127,201,138,.4)}' +
-      '.kb2-hpill.err{color:#E9A197;border-color:rgba(233,161,151,.4)}' +
-      '.kb2-hpill.wrn{color:#E8B85C;border-color:rgba(232,184,92,.4)}' +
-      // Chip issue+durée dans les rangées du journal.
-      '.kb2-jx{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:#8E8A82;font-family:ui-monospace,Menlo,monospace}' +
-      '.kb2-jdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}'
+      '.kb2-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8E8A82;font-size:13px;padding:24px;text-align:center}'
     // ── Onglet « Kybernos Crew v2 » (suite) : composant ───────────────────────
     // La maquette (docs/plan-cablage-crew-v2.md) : 3 colonnes — exécutions
-    // (240 px) / canevas React Flow (flex) / journal + inspecteur (340 px).
+    // (240 px) / canevas (flex) / journal + inspecteur (340 px).
     // Les données viennent de la route host `kybers/calls` (deriveCalls) :
     // nœuds {id,type,x,y,label,sub,st,io,g}, fils {from,to,kind}, événements
     // {t,who,msg,mark}. Replay : 650 ms/pas (contrat maquette).
@@ -19988,7 +19829,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // ── Renderer « places » : module externe à chaud (kb-places.js) ─────
     // Le vrai code vit dans kybernos-plugin/kb-places.js, servi par la route
     // /kybernos/kb-places.js et évalué ici via fetch + new Function — même
-    // patron que React Flow. Itérer = éditer le fichier et recharger la page.
+    // patron que le chargeur de Leaflet. Itérer = éditer le fichier et recharger la page.
     const KBPLACES_SRCS = ['/kybernos/kb-places.js']
     let kbPlacesState = { status: 'idle', mod: null, error: null }
     let kbPlacesWaiters = []
@@ -22610,7 +22451,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const lay = kbFlowCoords(cards, props.links, { style, offsets })
       // `fitHeight` (px): the frame is as tall as the canvas needs, up to that, instead of a fixed height (a run of four cards is not shown in a big empty frame).
       const kFit = props.fitHeight > 0 ? (size.w > 0 ? Math.max(KB_FLOW_MIN_SCALE, Math.min(1, (size.w - 8) / lay.W)) : 1) : null
-      const k = kFit !== null ? kFit : kbFlowScale(lay.W, lay.H, size.w, size.h)
+      const kAuto = kFit !== null ? kFit : kbFlowScale(lay.W, lay.H, size.w, size.h)
+      // The person's own zoom (+ / −) wins over the fit until « fit » is pressed.
+      const zoomPair = React.useState(null)
+      const k = zoomPair[0] !== null ? zoomPair[0] : kAuto
+      const zoomTo = (z) => zoomPair[1](Math.max(0.4, Math.min(1.4, Math.round(z * 100) / 100)))
       const frameH = kFit !== null ? Math.min(props.fitHeight, Math.max(220, Math.round(lay.H * k) + 16)) : props.height
       const layRef = React.useRef(lay)
       layRef.current = lay
@@ -22658,7 +22503,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const w = lay.wires[i]
         if (w === null) return
         const src = props.nodes.filter((n) => n.id === l.from)[0]
-        const cls = 'kbfc-k-' + (src !== undefined ? src.kind : 'gry') + (l.tone === 'ok' ? ' ok' : (l.tone === 'bad' ? ' bad' : (l.tone === 'dim' ? ' dim' : '')))
+        const cls = 'kbfc-k-' + (src !== undefined ? src.kind : 'gry') + (l.tone === 'ok' ? ' ok' : (l.tone === 'bad' ? ' bad' : (l.tone === 'wait' ? ' wait' : (l.tone === 'dim' ? ' dim' : ''))))
         wires.push(h('path', { key: 'w' + i, className: 'kbfc-wire ' + cls, d: w.d }))
         if (style.arrow === true) wires.push(h('path', { key: 'a' + i, className: 'kbfc-arr ' + cls, d: 'M' + (w.x2 - 10) + ' ' + (w.y2 - 5.5) + ' L' + w.x2 + ' ' + w.y2 + ' L' + (w.x2 - 10) + ' ' + (w.y2 + 5.5) + 'Z' }))
         if (l.label !== null && l.label !== undefined && l.label !== '') labels.push(h('span', { key: 'l' + i, className: 'kbfc-el' + (l.tone === 'bad' ? ' bad' : '') + (l.tone === 'ok' ? ' ok' : ''), style: { left: w.mid[0], top: w.mid[1] } }, l.label))
@@ -22666,9 +22511,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const card = (n) => {
         const p = lay.pos[n.id]
         const kind = n.kindLabel
+        // 'ok' and 'bad' as before; 'wait' (needs someone) and 'skip' (did not run) are drawn too.
+        const stc = n.st === 'bad' || n.st === 'skip' || n.st === 'wait' ? n.st : ''
         return h('div', {
           key: n.id, role: 'button', tabIndex: 0, 'data-kb': 'flow-card', 'data-id': n.id, 'aria-label': n.title,
-          className: 'kbfc-nd kbfc-k-' + n.kind + (props.selId === n.id ? ' sel' : '') + (n.st === 'skip' ? ' skip' : '') + (n.st === 'bad' ? ' bad' : ''),
+          className: 'kbfc-nd kbfc-k-' + n.kind + (props.selId === n.id ? ' sel' : '') + (stc !== '' ? ' ' + stc : '') + (n.dim === true ? ' dim' : ''),
           style: { left: p.x, top: p.y, width: KB_FLOW_NW, height: style.nh },
           title: n.tip !== undefined ? n.tip : undefined,
           onPointerDown: (e) => onDown(e, n), onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp,
@@ -22679,12 +22526,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           hasOut(n.id) ? h('i', { className: 'kbfc-pt po' }) : null,
           h('span', { className: 'kbfc-kl' }, h('span', { className: 'kbfc-g' }, n.icon), kind),
           h('span', { className: 'kbfc-top' },
-            h('span', { className: 'kbfc-ic' }, n.icon),
+            // `logo` = the SVG of an app (the connectors catalogue's own), drawn on a white tile; without it the icon or the initial.
+            (typeof n.logo === 'string' ? h('span', { className: 'kbfc-ic logo', dangerouslySetInnerHTML: { __html: n.logo } }) : h('span', { className: 'kbfc-ic' }, n.icon)),
             h('span', { className: 'kbfc-tt' }, h('b', null, n.title), h('em', { className: 'kbfc-kd' }, n.sub !== '' ? kind + ' · ' + n.sub : kind))),
           h('span', { className: 'kbfc-ds' }, h('span', { className: 'kbfc-r' }, h('span', null, String(kind).toUpperCase()), n.chips.length > 0 ? h('span', null, n.chips[0]) : null), n.desc !== '' ? h('em', { className: 'kbfc-dx' }, n.desc) : null),
           h('span', { className: 'kbfc-st3' }, n.cells.map((c, i) => h('span', { key: i }, h('i', null, c[0]), h('strong', null, c[1])))),
-          h('span', { className: 'kbfc-ft' }, n.chips.map((c, i) => h('span', { key: i, className: 'kbfc-ch' }, n.st !== null && i === 0 ? h('i', { className: 'kbfc-dot ' + (n.st === 'bad' ? 'bad' : (n.st === 'skip' ? 'skip' : '')) }) : null, c))),
-          n.st !== null ? h('i', { className: 'kbfc-sd ' + (n.st === 'bad' ? 'bad' : (n.st === 'skip' ? 'skip' : '')) }) : null)
+          h('span', { className: 'kbfc-ft' }, n.chips.map((c, i) => h('span', { key: i, className: 'kbfc-ch' }, n.st !== null && i === 0 ? h('i', { className: 'kbfc-dot ' + stc }) : null, c))),
+          n.st !== null ? h('i', { className: 'kbfc-sd ' + stc }) : null)
       }
       const arranged = Object.keys(offsets).length > 0
       return h('div', { className: 'kbfc kbfc-th-' + style.id, ref: rootRef, 'data-kb': 'flow-canvas', 'data-style': style.id, style: { height: frameH } },
@@ -22696,6 +22544,9 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               props.nodes.map(card)))),
         h('div', { className: 'kbfc-tools' },
           (arranged === true ? h('button', { type: 'button', className: 'kbfc-tb', 'data-kb': 'flow-reset', title: kbt('flow.tidy'), onClick: tidy }, Icon('rotateCcw', 13), h('span', null, kbt('flow.tidy'))) : null),
+          h('button', { type: 'button', className: 'kbfc-tb', 'data-kb': 'flow-zoom-in', 'aria-label': kbe('Zoom in'), title: kbe('Zoom in'), onClick: () => zoomTo(k + 0.1) }, '+'),
+          h('button', { type: 'button', className: 'kbfc-tb', 'data-kb': 'flow-zoom-out', 'aria-label': kbe('Zoom out'), title: kbe('Zoom out'), onClick: () => zoomTo(k - 0.1) }, '−'),
+          (zoomPair[0] !== null ? h('button', { type: 'button', className: 'kbfc-tb', 'data-kb': 'flow-zoom-fit', 'aria-label': kbe('Fit to the window'), title: kbe('Fit to the window'), onClick: () => zoomPair[1](null) }, Icon('maximize2', 13)) : null),
           h('button', { type: 'button', className: 'kbfc-tb', 'data-kb': 'flow-style', 'aria-expanded': menu === true ? 'true' : 'false', title: kbt('flow.style.title'), onClick: () => setMenu(!menu) }, Icon('palette', 13), h('span', null, kbt('flow.style.' + style.id))),
           props.extra !== undefined ? props.extra : null),
         (menu === true ? h('div', { className: 'kbfc-menu', role: 'menu', 'data-kb': 'flow-style-menu' },
@@ -22755,6 +22606,120 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (state === 'running') return kbt('tasks.runs.running')
       return run.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.runs.unread')
     }
+    // ── The sheet of an automation (its Overview tab) ──────────────────────────────────────────────────────────────────────
+    // What it is and how it runs, on one page: the prompt, when it starts, where its runs land, who does it, what it used, what it may do, what it cost.
+    // Everything is read from the automation, its newest runs and their journals; nothing is guessed. Where a thing can already be edited (the schedule's
+    // panel, « Edit in chat »), the card sends the person there: an edit of the definition voids its certification, so it is never a side effect of a click.
+    const kbAutoSheetCosts = new Map()
+    const KbAutoSheet = (props) => {
+      const t = props.task
+      const f = kbAutoSheetOf(t)
+      const uses = props.uses
+      const sums = props.sums !== null && typeof props.sums === 'object' ? props.sums : {}
+      const locale = kbBoardLocale()
+      const runs = kbRunsOf(t.history)
+      // One entry per chat: an automation that keeps to ONE chat has the same session on many runs, and its journal must be counted once.
+      const ids = Array.from(new Set(runs.filter((r) => r.sessionId !== null).slice(0, KB_ASHEET_RUNS).map((r) => r.sessionId)))
+      const key = ids.join(',')
+      const fullPair = React.useState(false)
+      const costTick = React.useState(0)
+      React.useEffect(() => {
+        let alive = true
+        const todo = ids.filter((id) => kbAutoSheetCosts.has(id) !== true)
+        const read = async () => {
+          for (const id of todo) {
+            let st = null
+            try { const r = await fetch('/kybernos/journal?sessionId=' + encodeURIComponent(id)); const j = r.ok === true ? await r.json() : null; st = j !== null && j !== undefined && j.ok === true && j.story !== null && j.story !== undefined && j.story.stats !== null && typeof j.story.stats === 'object' ? j.story.stats : null } catch (e) { st = null }
+            const tk = st !== null && st.tokens !== null && typeof st.tokens === 'object' ? (Number(st.tokens.input) || 0) + (Number(st.tokens.output) || 0) + (Number(st.tokens.crews) || 0) : 0
+            kbAutoSheetCosts.set(id, st === null ? null : { costEur: typeof st.costEur === 'number' ? st.costEur : null, tokens: tk, unpriced: typeof st.unpriced === 'number' ? st.unpriced : 0 })
+            if (alive !== true) return
+            costTick[1]((n) => n + 1)
+          }
+        }
+        read()
+        return () => { alive = false }
+      }, [key])
+      const costs = {}
+      for (const id of ids) costs[id] = kbAutoSheetCosts.has(id) === true ? kbAutoSheetCosts.get(id) : undefined
+      const cost = kbAutoSheetCostOf(ids, costs)
+      const stats = kbRunStats(runs, sums)
+      // The verdict of a run is its journal's when it was read, the history's otherwise (kbRunState): the bars and the figures say the same.
+      const bars = runs.slice(0, 10).map((r) => (kbRunState(r, r.sessionId !== null ? sums[r.sessionId] : undefined) === 'failed' ? 'bad' : 'ok')).reverse()
+      const last = runs.length > 0 ? runs[0] : null
+      const lastSum = last !== null && last.sessionId !== null ? sums[last.sessionId] : undefined
+      const kv = (k, label, val, first) => h('div', { key: k, className: 'kba-sk' + (first === true ? ' first' : ''), 'data-kb': 'sheet-' + k },
+        h('span', { className: 'kba-sk-k' }, label), h('span', { className: 'kba-sk-v' }, val))
+      const small = (k, text) => h('small', { key: k }, text)
+      const btn = (k, label, onClick) => h('button', { key: k, type: 'button', className: 'kba-btn', 'data-kb': 'sheet-' + k, onClick }, label)
+      const chip = (name, n, title) => h('span', { key: name, className: 'kba-use', title: title || name }, name, (n > 1 ? h('i', null, '×' + n) : null))
+      const none = (k, text) => small(k, text)
+      const card = (k, icon, title, hint, actions, children) => h('section', { key: k, className: 'kba-card kba-sheet-card', 'data-kb': 'sheet-card-' + k },
+        h('div', { className: 'kba-sheet-ch' }, Icon(icon, 15), h('span', null, title), (hint !== '' ? h('span', { className: 'kba-sheet-hint' }, hint) : null), h('span', { style: { flex: 1 } }), actions),
+        children)
+      const full = fullPair[0] === true
+      const prompt = card('prompt', 'fileText', kbe('Prompt'), '',
+        [btn('edit-chat', kbe('Edit in chat'), props.onEditChat), btn('edit-text', kbe('Edit text'), props.onEditText)],
+        [h('pre', { key: 'p', className: 'kba-sheet-prompt' + (full ? ' full' : ''), 'data-kb': 'sheet-prompt-text' }, full ? String(t.prompt || '') : f.head.join('\n')),
+          (f.more > 0 ? h('button', { key: 'm', type: 'button', className: 'kba-sheet-more', 'data-kb': 'sheet-prompt-more', 'aria-expanded': full ? 'true' : 'false', onClick: () => fullPair[1](!full) },
+            full ? kbe('Show less') : '… ' + f.more + ' ' + kbe('more lines')) : null),
+          h('div', { key: 'n', className: 'kba-sheet-note' }, kbe('The text is the source. The model may follow it differently each run, so the steps are only what we read in it.'))])
+      const trigger = f.mode === 'webhook' ? kbe('Webhook') : (f.mode === 'once' ? kbe('One time') : kbe('On a schedule'))
+      const when = card('when', 'clock', kbe('When'), '', btn('edit-when', kbe('Edit'), props.onEdit), [
+        kv('trigger', kbe('Trigger'), trigger, true),
+        kv('repeat', kbe('Repeat'), f.mode === 'webhook' ? '—' : [props.scheduleLabel, small('r', f.mode === 'once' ? kbe('once') : kbe('repeats'))]),
+        kv('zone', kbe('Time zone'), f.zone === '' ? '—' : [f.zone, (f.zone === props.machineTz ? small('z', kbe('system')) : null)]),
+        kv('next', kbe('Next run'), props.nextRun !== '' ? props.nextRun : '—'),
+        kv('webhook', kbe('Webhook'), f.hooked ? [kbe('Yes'), btn('hook-show', kbe('Show address'), props.onShowHook)] : [kbe('None'), btn('hook-create', kbe('Create webhook'), props.onCreateHook)])])
+      const where = card('where', 'folder', kbe('Where it runs'), '', btn('edit-where', kbe('Change'), props.onWhere), [
+        kv('computer', kbe('Computer'), f.cloud !== null ? f.cloud : kbe('This computer'), true),
+        kv('folder', kbe('Folder'), props.folderText),
+        kv('chat', kbe('Chat'), f.chat === 'home' ? kbe('Always the same chat') : kbe('A new chat each run')),
+        kv('chat-note', '', small('c', f.chat === 'home' ? kbe('Every run is posted in one conversation. To change it, use “Edit in chat”.') : kbe('Each run opens its own chat in this folder. To change it, use “Edit in chat”.')))])
+      const others = uses.models.filter((m) => m.name !== uses.latest)
+      const who = card('who', 'cpu', kbe('Who does it'), '', null, uses.read === 0
+        ? [kv('model', kbe('Model'), none('m', runs.length === 0 ? kbe('Not run yet') : kbe('No run read yet')), true)]
+        : [kv('model', kbe('Model'), uses.latest !== '' ? [h('span', { key: 'm', className: 'kba-use mono' }, uses.latest), small('c', uses.chosen === true ? kbe('chosen for this automation') : kbe('profile default, none chosen'))] : none('m', kbe('None seen')), true),
+          (others.length > 0 ? kv('also', kbe('Also seen'), others.map((m) => h('span', { key: m.name, className: 'kba-use mono' }, m.name))) : null),
+          (uses.agents.length > 0 ? kv('team', kbe('Agent team'), uses.agents.map((a) => chip(a.name + (a.model !== '' ? ' · ' + a.model : ''), 0, a.name))) : null)])
+      const seenHint = uses.read > 0 ? kbe('seen in the last {n} runs').replace('{n}', () => String(uses.read)) : ''
+      const canUse = card('uses', 'plug', kbe('What it can use'), seenHint, null, [
+        kv('apps', kbe('Apps'), uses.apps.length > 0 ? uses.apps.map((x) => h('span', { key: x.name, className: 'kbtd-appchip kba-appuse', title: x.name }, kbTplApp(x.name, props.logos), x.name, (x.count > 1 ? h('i', null, '×' + x.count) : null))) : none('a', kbe('None seen')), true),
+        (f.needs.length > 0 ? kv('needs', kbe('Asked for'), f.needs.map((n) => h('span', { key: n, className: 'kbtd-appchip kba-appuse', title: n }, kbTplApp(n, props.logos), n))) : null),
+        kv('skills', kbe('Skills'), uses.skills.length > 0 ? uses.skills.map((x) => chip(x.name, x.count)) : none('s', kbe('None seen'))),
+        kv('tools', kbe('Tools'), uses.tools.length > 0 ? uses.tools.map((x) => h('span', { key: x.name, className: 'kba-use mono', title: x.name }, x.name, (x.count > 1 ? h('i', null, '×' + x.count) : null))) : none('t', kbe('None seen')))])
+      const safety = card('safety', 'lock', kbe('Safety'), '', btn('edit-safety', kbe('Edit'), props.onEdit), [
+        kv('approvals', kbe('Approvals'), f.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'), true),
+        kv('limit', kbe('Time limit'), f.maxMinutes > 0 ? f.maxMinutes + ' ' + kbe('min') : kbe('None')),
+        kv('onwrite', kbe('If I write in it'), f.onWrite === 'stop' ? kbe('The run stops') : kbe('The run finishes')),
+        kv('notify', kbe('Notify me'), f.notify.length > 0 ? f.notify.map((n) => (n === 'push' ? kbe('Push') : kbe('Email'))).join(', ') : kbe('Nothing'))])
+      const calls = ids.map((id) => { const s = sums[id]; return s !== undefined && s !== null && typeof s.nodeCount === 'number' ? s.nodeCount : null })
+      const costBig = cost.pending > 0 || cost.read === 0 || cost.eur === null ? '—' : kbFmtMoney(cost.eur, 'EUR', 2)
+      const costSub = ids.length === 0 ? kbe('Not run yet') : (cost.pending > 0 ? kbe('Reading the journals…') : cost.read === 0 ? kbe('No journal could be read')
+        : (cost.tokens > 0 ? kbFmtNum(cost.tokens) + ' ' + kbe('tokens') : kbe('No model call')) + (cost.unpriced > 0 || (cost.eur === null && cost.tokens > 0) ? ' · ' + kbe('not priced') : ''))
+      const costCard = card('cost', 'chart', kbe('Cost'), ids.length > 0 ? kbe('last {n} sessions').replace('{n}', () => String(ids.length)) : '', null, [
+        h('div', { key: 'b', className: 'kba-sheet-bigrow' }, h('span', { className: 'kba-sheet-big', 'data-kb': 'sheet-cost-total' }, costBig), h('span', { className: 'kba-sheet-note' }, costSub)),
+        (calls.some((n) => n !== null) ? h('div', { key: 'c', className: 'kba-sheet-note', 'data-kb': 'sheet-calls' }, kbe('Tool calls per run') + ': ' + calls.map((n) => (n === null ? '—' : String(n))).join(' · ')) : null)])
+      const doneN = stats.runs - stats.failed
+      const runsLine = stats.runs === 0 ? kbe('Not run yet')
+        : kbe('{a} of {b} completed').replace('{a}', () => String(doneN)).replace('{b}', () => String(stats.runs))
+          + (stats.median !== null ? ' · ' + kbe('median') + ' ' + kbRunFmtDur(stats.median) : '')
+          + (last !== null && last.at !== '' ? ' · ' + kbe('last run') + ' ' + kbRunFmtDT(last.at, locale) + (lastSum !== undefined && lastSum !== null && typeof lastSum.durationMs === 'number' ? ', ' + kbRunFmtDur(lastSum.durationMs) : '') : '')
+      const recent = card('runs', 'waypoints', kbe('Recent runs'), '', btn('all-sessions', kbe('All {n} sessions').replace('{n}', () => String(stats.runs)) + ' ›', props.onSessions), [
+        h('div', { key: 'l', className: 'kba-sheet-runs' },
+          (bars.length > 0 ? h('span', { className: 'kba-sheet-bars', role: 'img', 'aria-label': runsLine }, bars.map((b, i) => h('i', { key: i, className: b === 'bad' ? 'bad' : '' }))) : null),
+          h('span', { className: 'kba-sheet-note', 'data-kb': 'sheet-runs-line' }, runsLine)),
+        (props.steps > 0 ? h('div', { key: 's', className: 'kba-sheet-fold', 'data-kb': 'sheet-steps' },
+          h('span', null, kbe('{n} steps found in the text').replace('{n}', () => String(props.steps))), h('span', { className: 'kba-sheet-note' }, kbe('indicative: what really happened is in each session')),
+          h('span', { style: { flex: 1 } }), btn('steps-show', kbe('Show'), props.onWorkflow)) : null)])
+      return h('div', { className: 'kba-sheet', 'data-kb': 'automation-sheet' },
+        prompt,
+        h('div', { className: 'kba-sheet-g2' }, when, where),
+        h('div', { className: 'kba-sheet-g2' }, who, canUse),
+        h('div', { className: 'kba-sheet-g2' }, safety, costCard),
+        recent)
+    }
+    // The chat's Journal shell, set by the workflows-v2 block further down (it stays null if that block did not start): the Sessions pane reads a run with it.
+    let kbJournalShell = null
     const KbRunsPane = (props) => {
       const runs = props.runs
       const locale = kbBoardLocale()
@@ -22886,23 +22851,24 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           usesRows),
         asked.length === 0 ? null : h('div', { className: 'kba-card kbrn-card' },
           h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
-          asked.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))),
-          (() => {
-            const lesson = lessonPair[0]
-            if (lesson === undefined || lesson === null || typeof lesson !== 'object') return null
-            const made = lesson.skill !== null && lesson.skill !== undefined ? lesson.skill : null
-            return h('div', { className: 'kba-card kbrn-card', 'data-kb': 'journal-lesson' },
-              h('span', { className: 'kba-tabver mono' }, kbt('tasks.lesson.title')),
-              (made !== null
-                ? h('div', null, kbt(made.state === 'pending' ? 'tasks.lesson.pending' : (made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto')).replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
-                : (lesson.streak >= lesson.stableAfter
-                  ? h('div', { className: 'kbrn-lesson' },
-                    h('span', null, kbt('tasks.lesson.stable').replace('{n}', String(lesson.streak))),
-                    h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'lesson-create', onClick: createSkill }, kbt('tasks.lesson.create')),
-                    h('span', { className: 'dim' }, kbt(lesson.autoSkill === true ? 'tasks.lesson.soon' : 'tasks.lesson.hint')))
-                  : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
-              (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
-          })())
+          asked.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))))
+      // What the runs teach belongs to the automation, not to one run: it stays under the open run whichever way the run is read.
+      const lessonCard = (() => {
+        const lesson = lessonPair[0]
+        if (lesson === undefined || lesson === null || typeof lesson !== 'object') return null
+        const made = lesson.skill !== null && lesson.skill !== undefined ? lesson.skill : null
+        return h('div', { className: 'kba-card kbrn-card', 'data-kb': 'journal-lesson' },
+          h('span', { className: 'kba-tabver mono' }, kbt('tasks.lesson.title')),
+          (made !== null
+            ? h('div', null, kbt(made.state === 'pending' ? 'tasks.lesson.pending' : (made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto')).replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
+            : (lesson.streak >= lesson.stableAfter
+              ? h('div', { className: 'kbrn-lesson' },
+                h('span', null, kbt('tasks.lesson.stable').replace('{n}', String(lesson.streak))),
+                h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'lesson-create', onClick: createSkill }, kbt('tasks.lesson.create')),
+                h('span', { className: 'dim' }, kbt(lesson.autoSkill === true ? 'tasks.lesson.soon' : 'tasks.lesson.hint')))
+              : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
+          (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
+      })()
       // The list of executions: a dot, the date, how it ended. The newest eight; the rest are one press away, and the chosen run is always shown.
       const idxShown = runs.map((r, i) => i).filter((i) => moreRuns === true || i < 8 || keys[i] === selKey)
       const listCol = h('div', { className: 'kbrn-runs', 'data-kb': 'runs-list' },
@@ -22916,13 +22882,18 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         (sel !== null ? h('span', { key: 'd' }, kbt('tasks.runs.duration') + ' ' + durOf(sel) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls))) : null),
         (sel !== null ? h('span', { key: 'a' }, asked.length === 0 ? kbt('tasks.runs.noapproval') : kbt('tasks.runs.approvalsn').replace('{n}', String(asked.length))) : null))
       const badge = h('span', { className: 'kbrn-badge ' + (state === 'failed' ? 'bad' : (state === 'completed' ? 'ok' : 'idle')) }, kbRunStateText(state, durOf(sel), selRun))
+      const stage = h('div', { className: 'kbrn-stage' + (insp !== null ? ' insp' : '') }, h('div', { className: 'kbrn-main' }, graph, about), insp)
+      // The run is read as the chat's Journal (Story, Flow); « Advanced » is this pane's own view of it (who ran, the graph, the inspector, the cards).
+      // A run with no chat, or a host where the Journal did not start, keeps that view as it was.
+      const asJournal = selId !== null && kbJournalShell !== null
       return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-sessions' },
         h('div', { className: 'kbrn-strip', 'data-kb': 'runs-strip' }, [[kbt('tasks.runs.stat.runs'), String(stats.runs), false], [kbt('tasks.runs.stat.failed'), String(stats.failed), stats.failed > 0], [kbt('tasks.runs.stat.median'), kbRunFmtDur(stats.median), false], [kbt('tasks.runs.stat.slowest'), kbRunFmtDur(stats.slowest), false]].map((x, k) => h('span', { key: k, className: x[2] === true ? 'bad' : '' }, x[0] + ' ', h('b', null, x[1])))),
         h('div', { className: 'kbrn-sess' }, listCol,
           h('div', { className: 'kbrn-xp' },
-            h('div', { className: 'kbrn-xph' }, h('div', { className: 'kbrn-xpt' }, h('h3', null, kbRunFmtDT(selRun.at, locale), badge), meta), openChat),
+            h('div', { className: 'kbrn-xph' }, h('div', { className: 'kbrn-xpt' }, h('h3', null, kbRunFmtDT(selRun.at, locale), badge), asJournal ? null : meta), openChat),
             failNote, readNote,
-            h('div', { className: 'kbrn-stage' + (insp !== null ? ' insp' : '') }, h('div', { className: 'kbrn-main' }, graph, about), insp))),
+            asJournal ? h(kbJournalShell, { key: selId, sessionId: selId, embedded: true, classic: h(React.Fragment, null, meta, stage) }) : stage,
+            lessonCard)),
         h('div', { className: 'kba-hint' }, kbt('tasks.runs.hint')))
     }
     // ── Discover: ready-made starting points (the pure part is the KB-AUTOTPL block at the top of this file) ────────────────────────────
@@ -23078,7 +23049,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               h('span', { role: 'switch', 'aria-checked': t.active !== false ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), 'data-kb': 'card-toggle', className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0,
                 onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') props.onGateReview(t); else props.onToggle(t) } },
                 onClick: (e) => { e.stopPropagation(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') props.onGateReview(t); else props.onToggle(t) } }, h('span', { className: 'kba-toggle-knob' }))),
-            (attn || t.active === false || kbGateBadge(kbGateOf(t)) !== '' ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, h(KbGateBadge, { gate: kbGateOf(t), hidden: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' }), t.active === false ? h('span', { className: 'kbcc-badge' }, kbt('tasks.cards.paused')) : null) : null),
+            (attn || t.active === false || kbGateBadge(kbGateOf(t)) !== '' ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, h(KbGateBadge, { gate: kbGateOf(t), hidden: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' }), t.active === false ? h('span', { className: 'kbcc-badge' }, kbOnceDone(t) === true ? kbe('Done') : kbt('tasks.cards.paused')) : null) : null),
             weight !== null ? kbLdBlock(weight, kbt('tasks.board.chip.running')) : null,
             h('div', { className: 'kbcc-figs' },
               fig('last', f.lastMs !== null ? (kbRunAgo(f.lastMs, now, locale) || kbWhenOf(f.lastAt)) : kbt('tasks.cards.never')),
@@ -24757,7 +24728,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         read()
         return () => { alive = false; if (timer !== null) clearTimeout(timer) }
       }, [cloudIds])
-      const tabPair = React.useState('flow')
+      const tabPair = React.useState('overview')
       const tab = tabPair[0]
       const setTab = tabPair[1]
       const viewPair = React.useState('flow')
@@ -25113,6 +25084,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         let lastCls = ''
         if (runIds.indexOf(t.id) >= 0) { lastLabel = kbt('tasks.board.chip.running'); lastCls = 'run' }
         else if (cloudLinked === true) { lastLabel = kbt(cloudWait === true ? 'kbwr.row.cloudWait' : kbwDirty(t) === true ? 'kbwr.row.cloudDirty' : cloudBad === true ? 'kbwr.row.cloudFailed' : 'kbwr.row.cloud').replace('{name}', () => String(t.cloud.name)); lastCls = cloudWait === true || kbwDirty(t) === true ? 'cloudwarn' : cloudBad === true ? 'fail' : 'cloud' }
+        else if (kbOnceDone(t) === true) { lastLabel = failed ? kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)) : kbe('Done'); lastCls = failed ? 'fail' : 'ok' }
         else if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
@@ -25320,7 +25292,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         const viewBtn = (v, icn) => h('button', { key: v, type: 'button', className: 'kbfc-tb', 'aria-pressed': view === v ? 'true' : 'false', 'data-kb': 'view-' + v, title: kbt('tasks.view.' + v), 'aria-label': kbt('tasks.view.' + v), onClick: () => { setView(v); if (v !== 'flow') setNodeSel(null) } }, Icon(icn, 15))
         const viewBtns = [viewBtn('flow', 'flowView'), viewBtn('text', 'textView'), viewBtn('code', 'codeView')]
         const frame = (inner) => h('div', { className: 'kbfc kbfc-frame', 'data-kb': 'flow-frame' }, h('div', { className: 'kbfc-body' }, inner), h('div', { className: 'kbfc-tools' }, viewBtns), h('span', { className: 'kbfc-note' }, kbt('tasks.flow.hint')))
-        const bodyEl = tab === 'where'
+        const folderOf = (() => { const c = kbWsChoice(t.workspaceHint, kbPinsSnapshots().items); return c.kind === 'ws' ? c.name : kbt(c.kind === 'gone' ? 'tasks.ws.meta.gone' : 'tasks.ws.meta.dedicated') })()
+        const bodyEl = tab === 'overview'
+          ? h(KbAutoSheet, { key: t.id, task: t, uses: wfUses, sums: wfSums, logos: appLogos, scheduleLabel: kbScheduleLabel(t), nextRun: t.nextRun ? kbWhenOf(t.nextRun) : '', machineTz: kbMachineTz(), folderText: folderOf, steps: kbTaskSteps(t).length,
+            onEditChat: () => editInChat(t), onEditText: () => { setView('text'); setTab('flow'); setNodeSel(null) }, onEdit: () => setModal(t), onWhere: () => setTab('where'), onWorkflow: () => setTab('flow'), onSessions: () => setTab('sessions'),
+            onCreateHook: () => { setTab('flow'); genHook() }, onShowHook: () => { setTab('flow'); setNodeSel('hook') } })
+          : tab === 'where'
           ? h(KbWhereTab, { key: t.id, task: t, computers: computersPair[0].list, connected: computersPair[0].connected === true, tasks: tasks,
             link: async (cloud) => { let r = null; try { r = await host.call('kybers/tasks', { action: 'cloud-link', id: t.id, cloud }) } catch (e) { r = null } return r !== null && r !== undefined && r.ok === true },
             onChanged: refresh })
@@ -25394,7 +25371,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           // The gate of this automation, ABOVE the tabs so it stays readable on all three. Collapsed it is one strip: the status,
           // the three rungs and the one step a person is expected to take. Expanded it holds the checks, the trial and its proof,
           // and the two decisions — the only way to an approval is the click on `gate-approve`.
-          h(KbGatePanel, {
+          kbIsReminder(t) === true ? null : h(KbGatePanel, {
             key: 'gate',
             gate: kbGateOf(t),
             task: t,
@@ -25409,6 +25386,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             onRefuse: () => gateAskRefuse(t),
           }),
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'detail-tabs' },
+            h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'overview' ? 'true' : 'false', className: tab === 'overview' ? 'on' : '', 'data-kb': 'tab-overview', onClick: () => setTab('overview') }, kbe('Overview')),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'flow' ? 'true' : 'false', className: tab === 'flow' ? 'on' : '', 'data-kb': 'tab-flow', onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'sessions' ? 'true' : 'false', className: tab === 'sessions' ? 'on' : '', 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? kbwRunsFor(cloudRunsPair[0][t.cloud.computerId], t.id).length : kbRunsOf(t.history).length))),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'where' ? 'true' : 'false', className: tab === 'where' ? 'on' : '', 'data-kb': 'tab-where', onClick: () => setTab('where') }, kbt('tasks.tab.where'))),
@@ -25453,7 +25431,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
       const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
         boardView === 'cards'
-          ? h(KbAutoCards, { load: machineLoadPair[0], tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }), onGateReview: (t) => gateReview(t) })
+          ? h(KbAutoCards, { load: machineLoadPair[0], tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('overview'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }), onGateReview: (t) => gateReview(t) })
           : h(KbAutoBoard, {
           view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr, load: machineLoadPair[0],
           onRetry: () => { setLoadErr(null); refresh() },
@@ -25511,7 +25489,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           : (boardEl !== null ? boardEl : h('div', { className: 'kba-card kba-lcard' },
             kbaListHead(),
             filtered.map((a, i) => h('div', { key: a.id, className: 'kba-rowline' + kbIn(i) },
-              h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
+              h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('overview'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name, a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' ? h('span', { className: 'kbwr-mark', 'data-kb': 'row-cloud', title: kbt('kbwr.row.mark'), role: 'img', 'aria-label': kbt('kbwr.row.mark') }, Icon('cloud', 13)) : null), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
                 a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') + (kbtaRowShared(a._t, team) !== null ? ' kbta-wraprow' : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel), kbtaRowShared(a._t, team), h(KbGateBadge, { gate: kbGateOf(a._t), hidden: a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' })),
@@ -30895,8 +30873,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // ── Conversation tabs absorbed by Crew v2 (26/09) and then by the Journal tab (29/09) ──────────
     // The « Kybernos Crew », « Crew Model Execution », « Runs » and crew2 (« Workflows ») views are no longer registered and their
     // components are gone: what they showed (executed model, tokens, durations, outcomes, deviations, stopReason) lives in the
-    // header, the journal and the inspector of the Journal tab. KB2_CSS stays: the nodes of the Workflow graph (.kb2-node,
-    // .kb2-nicon) are drawn with it.
+    // header, the journal and the inspector of the Journal tab. KB2_CSS keeps the four classes the Agent Team panel still draws.
     ctx.effect(() => styles.insert(KB2_CSS), 'kybers: styles crew v2');
     // Team Insight (fiche AI Team) : styles propres au préfixe `kbi-`, posés à
     // part du reste (une révision cassée ici ne peut pas emporter les styles
@@ -37021,6 +36998,30 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-urow b{font-weight:500;color:var(--dsw-alias-label-tertiary);font-size:11px}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
+.kba-sheet{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kba-sheet-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.kba-sheet-g2{grid-template-columns:minmax(0,1fr)}}
+.kba-card.kba-sheet-card{padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kba-sheet-ch{display:flex;align-items:center;gap:8px;min-height:30px;font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kba-sheet-hint{font-weight:400;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kba-sk{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:13px}
+.kba-sk.first{border-top:0}
+.kba-sk-k{color:var(--dsw-alias-label-secondary)}
+.kba-sk-v{min-width:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kba-sk-v small{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kba-sheet-prompt{margin:0;font:inherit;font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--dsw-alias-label-primary)}
+.kba-sheet-prompt.full{max-height:360px;overflow:auto}
+.kba-sheet-more{align-self:flex-start;border:0;background:transparent;padding:2px 0;font:inherit;font-size:12.5px;color:var(--dsw-alias-brand-primary);cursor:pointer}
+.kba-sheet-more:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}
+.kba-sheet-note{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kba-sheet-bigrow{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:4px 0 2px}
+.kba-sheet-big{font-size:26px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kba-sheet-runs{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.kba-sheet-bars{display:inline-flex;align-items:flex-end;gap:3px;height:22px}
+.kba-sheet-bars i{display:block;width:8px;height:100%;border-radius:2px;background:var(--dsw-alias-state-success-primary)}
+.kba-sheet-bars i.bad{background:var(--dsw-alias-state-error-primary)}
+.kba-sheet-fold{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;font-size:13px;color:var(--dsw-alias-label-primary)}
+.kba-sheet .kba-btn{height:28px;padding:0 10px;font-size:12.5px}
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
 .kba-more{position:relative;display:inline-flex}
 .kba-morebtn{padding:0 9px}
@@ -37464,7 +37465,7 @@ a.kbpb-url:hover{text-decoration:underline}
 `), 'kybers: publish styles')
     ctx.effect(() => styles.insert(`
 /* The canvas of a workflow and of a run (KbFlowCanvas). Colours of a style are custom properties on its class; a rule below reads them. */
-.kbfc,.kbfc-sample{--cv-bg:var(--dsw-alias-bg-layer-1);--cv-dot:color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent);--nd-bg:var(--dsw-alias-bg-layer-2);--nd-line:var(--dsw-alias-border-l2);--nd-ink:var(--dsw-alias-label-primary);--nd-sub:var(--dsw-alias-label-tertiary);--wire:var(--dsw-alias-label-tertiary);--wire-dim:var(--dsw-alias-border-l2);--chip:var(--dsw-alias-bg-base);--lbl:var(--dsw-alias-bg-layer-2);--ok:var(--dsw-alias-state-success-primary);--bad:var(--dsw-alias-state-error-primary);--sh:rgba(0,0,0,.25)}
+.kbfc,.kbfc-sample{--cv-bg:var(--dsw-alias-bg-layer-1);--cv-dot:color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent);--nd-bg:var(--dsw-alias-bg-layer-2);--nd-line:var(--dsw-alias-border-l2);--nd-ink:var(--dsw-alias-label-primary);--nd-sub:var(--dsw-alias-label-tertiary);--wire:var(--dsw-alias-label-tertiary);--wire-dim:var(--dsw-alias-border-l2);--chip:var(--dsw-alias-bg-base);--lbl:var(--dsw-alias-bg-layer-2);--ok:var(--dsw-alias-state-success-primary);--bad:var(--dsw-alias-state-error-primary);--wait:var(--dsw-alias-state-warn-primary);--sh:rgba(0,0,0,.25)}
 .kbfc-th-nr{--cv-bg:#F0F0EE;--cv-dot:#D8D8D4;--nd-bg:#DDE6EF;--nd-line:#8FA6BE;--nd-ink:#1D2630;--nd-sub:#4C5A69;--wire:#8A8A86;--wire-dim:#C9C9C4;--chip:rgba(255,255,255,.7);--lbl:#F8F8F6}
 .kbfc-th-bp{--cv-bg:#0C2A4B;--cv-dot:#1C4A7A;--nd-bg:#103B69;--nd-line:#4FB3E8;--nd-ink:#E6F4FF;--nd-sub:#9CC9EA;--wire:#7FD0FF;--wire-dim:#2D6196;--chip:rgba(127,208,255,.14);--lbl:#0C2A4B}
 .kbfc-th-pp{--cv-bg:#F6F1E6;--cv-dot:#DDD3BD;--nd-bg:#FFFDF8;--nd-line:#8C7F66;--nd-ink:#2D281E;--nd-sub:#7A6F58;--wire:#6B5F4A;--wire-dim:#CBBFA4;--chip:#F0E8D6;--lbl:#F6F1E6}
@@ -37608,6 +37609,14 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
 .kbfc .kbfc-arr.bad{fill:var(--bad)}
 .kbfc .kbfc-arr.dim{fill:var(--wire-dim)}
 .kbfc-th-mx .kbfc-wire.dim{stroke-dasharray:.1 7}
+/* a card that waits for someone, a card out of the crew that is highlighted, an app's logo (a white tile, as in the Journal's story) */
+.kbfc .kbfc-wire.wait{stroke:var(--wait);stroke-width:2.2;stroke-dasharray:6 5}
+.kbfc .kbfc-arr.wait{fill:var(--wait)}
+.kbfc-nd.wait{border-color:var(--wait)}
+.kbfc-dot.wait,.kbfc-sd.wait{background:var(--wait)}
+.kbfc-nd.dim{opacity:.35}
+.kbfc .kbfc-ic.logo{background:#fff;padding:4px;box-sizing:border-box;border:1px solid var(--nd-line)}
+.kbfc .kbfc-ic.logo svg{width:100%;height:100%;display:block}
 `), 'kybers: styles automation canvas')
 
     // ── Brand: the K, the "Kybernos" wordmark, the tab icon and title ──────────────────────
@@ -39839,7 +39848,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
 /* nœuds : déplaçables à la souris */
 .wv2-node{cursor:grab;touch-action:none}
 .wv2-node.dragging{cursor:grabbing}
-/* style « flow » : carte claire à la xyflow, comme l onglet Workflows */
+/* style « flow » : carte claire et nette, comme l onglet Workflows */
 .wv2-node.st-flow{background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:3px;padding:8px 10px;
   box-shadow:0 1px 2px color-mix(in srgb,var(--dsw-alias-bg-mask-1) 55%,transparent)}
 .wv2-node.st-flow:hover{background:var(--dsw-alias-bg-layer-3)}
@@ -40920,9 +40929,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         // KB-STORY-VIEW-BEGIN
         const WVS_INK = ['var(--wv-act-orch)', 'var(--wv-act-doer)', 'var(--wv-act-checker)', 'var(--wv-act-connector)', 'var(--wv-brand)', 'var(--wv-act-human)']
         const WVS_MAX_NODES = 30
-        const WVS_NW = 244
-        const WVS_GX = 84
-        const WVS_GY = 56
         const wvsNum = (v) => (typeof v === 'number' && Number.isFinite(v) === true ? v : null)
         const wvsDur = (ms) => {
           const n = wvsNum(ms)
@@ -41067,28 +41073,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             nodes.push(prev)
           }
           return { nodes: nodes, dropped: dropped }
-        }
-        /** Boxes on a snake of `cols` columns (left to right, then right to left): neighbours in the list are neighbours on the page, so a line never crosses another. */
-        const wvsLayout = (nodes, cols, nh) => {
-          const pos = nodes.map((n, i) => {
-            const row = Math.floor(i / cols)
-            const k = i % cols
-            const col = row % 2 === 0 ? k : cols - 1 - k
-            return { x: 20 + col * (WVS_NW + WVS_GX), y: 20 + row * (nh + WVS_GY), row: row, col: col }
-          })
-          const edges = []
-          for (let i = 1; i < nodes.length; i += 1) {
-            const a = pos[i - 1]
-            const b = pos[i]
-            let d
-            if (a.row === b.row) {
-              const ltr = b.col > a.col
-              d = 'M' + (ltr ? a.x + WVS_NW : a.x) + ' ' + (a.y + nh / 2) + ' L' + (ltr ? b.x : b.x + WVS_NW) + ' ' + (b.y + nh / 2)
-            } else d = 'M' + (a.x + WVS_NW / 2) + ' ' + (a.y + nh) + ' L' + (b.x + WVS_NW / 2) + ' ' + b.y
-            edges.push({ id: 'e' + i, d: d, status: nodes[i].status })
-          }
-          const rows = Math.ceil(nodes.length / cols)
-          return { pos: pos, edges: edges, w: 20 + cols * WVS_NW + (cols - 1) * WVS_GX + 20, h: 20 + rows * nh + (rows - 1) * WVS_GY + 20 }
         }
         /** The cumulative cost (or tokens when nothing is priced) as one line and its area, in a w x h box; x is the call number, not the clock (a chat left alone for a day would be flat). */
         const wvsArea = (series, w, h) => {
@@ -41394,13 +41378,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             list.length > 8 ? El('div', { className: 'wvs-muted' }, kbe('Showing the first') + ' 8 / ' + list.length) : null)
         }
 
+        // The Flow of a Journal is drawn by the shared canvas (KbFlowCanvas), the same cards, wires, styles and themes as the workflow of an automation.
+        // A kind of moment takes the colour of the kind of card that looks most like it; the state of the step is the card's own.
+        const WVS_CARD = { trigger: 'trg', connector: 'conn', crew: 'conn', skill: 'ai', memory: 'act', handover: 'trg', output: 'ai' }
         function WVSFlow(props) {
           const st = props.story
           const G = wvsGraph(st)
-          const detail = props.ui.nd === true
-          const nh = detail ? 96 : 66
-          const L = wvsLayout(G.nodes, 3, nh)
-          const zoom = props.ui.zoom !== null ? props.ui.zoom : Math.max(0.4, Math.min(1, (props.ui.stageW - 12) / L.w))
           const crews = st.crews
           const hi = props.ui.crew
           const selNode = G.nodes.filter((n) => n.refs.indexOf(props.ui.sel) >= 0)[0] || null
@@ -41415,33 +41398,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             const W = wvsWords(n.m, st)
             return { k: W.actor, t: n.kind === 'connector' ? n.m.connector.action : wvsClip(W.text, 52), s: n.count > 1 ? '× ' + n.count + (n.durMs > 0 ? ' · ' + wvsDur(n.durMs) : '') : [wvsTime(n.at), wvsNum(n.m && n.m.durMs) !== null ? wvsDur(n.m.durMs) : null].filter((v) => v).join(' · ') }
           }
-          const nodes = G.nodes.map((n, i) => {
-            const p = L.pos[i]
+          const cards = G.nodes.map((n) => {
             const w = nodeWords(n)
             const o = n.kind === 'handover' ? wvsOutcome(n.m.outcome) : null
-            return El('button', { key: n.id, type: 'button', className: 'wvs-node s-' + n.status + (props.ui.sel !== null && n.refs.indexOf(props.ui.sel) >= 0 ? ' on' : '') + (inCrew(n) ? '' : ' dim'), style: { left: p.x, top: p.y, width: WVS_NW, height: nh }, onClick: () => props.set({ sel: n.refs[0] }) },
-              n.kind === 'trigger' ? El('span', { className: 'wvs-tile k-trigger' }, Icon(n.auto ? 'clock' : 'messageSquare', 16)) : wvsTile(n.m, props.logos),
-              El('span', { className: 'wvs-nb' }, El('span', { className: 'wvs-nk' }, w.k), El('span', { className: 'wvs-nt' }, w.t), detail ? El('span', { className: 'wvs-ns' }, w.s) : null,
-                detail && (n.errors > 0 || o !== null || n.status === 'wait') ? El('span', { className: 'wvs-nchips' }, n.errors > 0 ? El('span', { className: 'wvs-pill ' + (n.open > 0 ? 'err' : 'wait') }, n.open > 0 ? kbe('Error') : kbe('Recovered')) : null, o !== null ? El('span', { className: 'wvs-pill ' + o[1] }, o[0]) : null) : null),
-              El('span', { className: 'wv2-led t-' + (n.status === 'err' ? 'err' : (n.status === 'wait' ? 'wait' : 'ok')) }))
+            const svg = n.kind === 'connector' && n.m.connector && props.logos !== null && props.logos !== undefined ? props.logos[kbTplSlug(n.m.connector.name)] : undefined
+            const state = n.status === 'err' ? kbe('Error') : (n.status === 'wait' ? kbe('Waiting', 'En attente') : (n.errors > 0 ? kbe('Recovered') : kbe('Done')))
+            return { id: n.id, trg: n.kind === 'trigger', kind: WVS_CARD[n.kind] || 'gry', icon: Icon(n.kind === 'trigger' ? (n.auto ? 'clock' : 'messageSquare') : (WVS_ICON[n.kind] || 'zap'), 15), logo: typeof svg === 'string' ? svg : undefined, title: w.t, kindLabel: w.k, sub: w.s, chips: [o !== null ? o[0] : state, w.s], st: n.status === 'err' ? 'bad' : (n.status === 'wait' ? 'wait' : 'ok'), dim: !inCrew(n), desc: '', cells: [], tip: w.k + ' · ' + w.t }
           })
+          const links = G.nodes.slice(1).map((n, i) => ({ from: G.nodes[i].id, to: n.id, label: null, tone: !inCrew(G.nodes[i]) || !inCrew(n) ? 'dim' : (n.status === 'err' ? 'bad' : (n.status === 'wait' ? 'wait' : null)) }))
           return El('div', { className: 'wvs-flow' },
-            El('div', { className: 'wvs-ftools' },
-              El('span', { className: 'wvs-muted' }, crews.length > 0 ? kbe('Pick a crew above to highlight its steps.') : ''),
-              El('button', { type: 'button', className: 'wv2-chip' + (detail ? ' on' : ''), 'aria-pressed': detail, onClick: () => props.set({ nd: !detail }) }, kbe('Details on nodes'))),
+            El('div', { className: 'wvs-ftools' }, El('span', { className: 'wvs-muted' }, crews.length > 0 ? kbe('Pick a crew above to highlight its steps.') : '')),
             El('div', { className: 'wvs-fgrid' },
-              El('div', { className: 'wvs-fstage', ref: props.stageRef },
-                El('div', { className: 'wvs-fsize', style: { width: L.w * zoom, height: L.h * zoom } },
-                  El('div', { className: 'wvs-fcanvas', style: { width: L.w, height: L.h, transform: 'scale(' + zoom + ')' } },
-                    El('svg', { className: 'wvs-fedges', width: L.w, height: L.h, 'aria-hidden': 'true' },
-                      El('defs', null, ['ok', 'wait', 'err'].map((k) => El('marker', { key: k, id: 'wvs-arr-' + k, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, El('path', { d: 'M0 0L10 5L0 10z', fill: k === 'ok' ? 'var(--wv-mut)' : (k === 'wait' ? 'var(--wv-warn)' : 'var(--wv-err)') })))),
-                      L.edges.map((e) => El('path', { key: e.id, d: e.d, fill: 'none', className: 'wvs-edge s-' + e.status, markerEnd: 'url(#wvs-arr-' + e.status + ')' }))),
-                    nodes)),
-                El('div', { className: 'wvs-zoom' },
-                  El('button', { type: 'button', 'aria-label': kbe('Zoom in'), onClick: () => props.set({ zoom: Math.min(1.4, +(zoom + 0.1).toFixed(2)) }) }, '+'),
-                  El('button', { type: 'button', 'aria-label': kbe('Zoom out'), onClick: () => props.set({ zoom: Math.max(0.4, +(zoom - 0.1).toFixed(2)) }) }, '−'),
-                  El('button', { type: 'button', 'aria-label': kbe('Fit to the window'), title: kbe('Fit to the window'), onClick: () => props.set({ zoom: null }) }, Icon('maximize2', 14))),
-                El('div', { className: 'wvs-legend' }, El('span', null, El('i', { className: 'ok' }), kbe('Done')), El('span', null, El('i', { className: 'wait' }), kbe('Waiting', 'En attente')), El('span', null, El('i', { className: 'err' }), kbe('Error')))),
+              El(KbFlowCanvas, { nodes: cards, links: links, selId: selNode !== null ? selNode.id : null, onSelect: (id) => { const n = G.nodes.filter((x) => x.id === id)[0]; if (n !== undefined) props.set({ sel: n.refs[0] }) }, storeKey: 'journal.' + String(st.chat.id), fitHeight: 640 }),
               El('aside', { className: 'wvs-finsp' },
                 selNode !== null && props.ui.sel !== null
                   ? [El(WVSDetail, { key: 'd', m: st.moments.filter((m) => m.id === props.ui.sel)[0] || selNode.m, story: st, logos: props.logos, ui: props.ui, set: props.set }),
@@ -41595,24 +41563,28 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 
         function WV2Shell(props) {
           const sessionId = (props && (props.sessionId || (props.session && props.session.id))) || null
+          // Embedded (the Sessions pane of an automation): no big title, the chat's input bar and scroll are not touched, and « Advanced » is what the host passes as `classic`.
+          const embedded = props && props.embedded === true
+          const rootCls = 'wv2-root wvs-root' + (embedded ? ' wvs-embed' : '')
           const modePair = React.useState('story')
           const mode = modePair[0]
           const dPair = React.useState({ state: sessionId ? 'loading' : 'empty', story: null, nonce: 0 })
           const D = dPair[0]
-          const uiPair = React.useState(() => ({ filter: 'all', crew: 'all', sel: null, ins: true, more: {}, nd: false, zoom: null, stageW: 900, copied: false, page: 1, size: wvsSizeNow(), share: false, inc: WVS_INC0, shareState: 'idle', shareMsg: '' }))
+          const uiPair = React.useState(() => ({ filter: 'all', crew: 'all', sel: null, ins: true, more: {}, copied: false, page: 1, size: wvsSizeNow(), share: false, inc: WVS_INC0, shareState: 'idle', shareMsg: '' }))
           const ui = uiPair[0]
           // A new filter or crew starts again at the first page.
           const set = (p) => uiPair[1]((u) => Object.assign({}, u, p, ('filter' in p || 'crew' in p) && !('page' in p) ? { page: 1 } : {}))
           const logos = kbUseAppLogos()
-          const stageRef = React.useRef(null)
           // Like the classic tab, the Journal takes the height the chat's input bar uses; it comes back with the next chat tab.
           React.useEffect(() => {
+            if (embedded) return undefined
             const root = document.documentElement
             root.classList.add('wv2-actif')
             return () => { root.classList.remove('wv2-actif') }
           }, [mode])
           // The chat keeps its scroll position when a tab opens (DSH): a long chat would open the Journal in the middle of the story. It starts at its own top.
           React.useEffect(() => {
+            if (embedded) return
             try {
               for (let e = document.querySelector('.wvs-root, .wvs-classic'); e !== null && e !== document.body; e = e.parentElement) { if (e.scrollTop > 0) e.scrollTop = 0 }
             } catch (err) { /* nothing to scroll */ }
@@ -41630,25 +41602,20 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             const id = running ? setInterval(load, 8000) : null
             return () => { cancel = true; if (id !== null) clearInterval(id) }
           }, [sessionId, running, D.nonce])
-          React.useEffect(() => {
-            const measure = () => { const el = stageRef.current; if (el) uiPair[1]((u) => (u.stageW === el.clientWidth ? u : Object.assign({}, u, { stageW: el.clientWidth }))) }
-            measure()
-            window.addEventListener('resize', measure)
-            return () => window.removeEventListener('resize', measure)
-          }, [mode, D.state])
-
           const seg = El('div', { className: 'wvs-seg', role: 'group', 'aria-label': kbe('How to read the Journal') },
             [['story', kbe('Story')], ['flow', kbe('Flow')], ['classic', kbe('Advanced')]].map((d) => El('button', { key: d[0], type: 'button', 'aria-pressed': mode === d[0], className: mode === d[0] ? 'on' : '', onClick: () => modePair[1](d[0]) }, d[1])))
           // Advanced = the sections of the Journal as they were (Timeline, Graph, Cascade, Step detail, Analysis).
+          // A run whose journal cannot be read keeps the host's own view of it, without the Journal's bar.
+          if (embedded && (D.state === 'error' || D.state === 'empty')) return props.classic !== undefined ? props.classic : null
           if (mode === 'classic' || D.state === 'error' || D.state === 'empty') {
-            return El('div', { className: 'wvs-classic' },
-              El('div', { className: 'wv2-root wvs-barwrap' },
+            return El('div', { className: 'wvs-classic' + (embedded ? ' wvs-embed' : '') },
+              El('div', { className: 'wv2-root wvs-barwrap' + (embedded ? ' wvs-embed' : '') },
                 El('div', { className: 'wvs-bar' }, seg),
                 D.state === 'error' ? El('section', { className: 'wv2-panel', 'data-kb': 'wvs-unavailable' }, El('p', { className: 'wvs-muted' }, kbe('The new Journal views are not available yet: restart Kybernos once. The sections of the Journal are below.'))) : null),
-              El(WorkflowsV2Tab, props))
+              embedded ? (props.classic !== undefined ? props.classic : null) : El(WorkflowsV2Tab, props))
           }
           if (D.story === null) {
-            return El('div', { className: 'wv2-root wvs-root' }, El('div', { className: 'wvs-bar' }, seg),
+            return El('div', { className: rootCls }, El('div', { className: 'wvs-bar' }, seg),
               El('section', { className: 'wv2-panel', 'data-kb': 'wvs-loading' }, El('p', { className: 'wvs-muted' }, kbe('Reading the journal…'))))
           }
           const st = D.story
@@ -41662,7 +41629,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             model !== null ? El('span', { className: 'wvs-chip', title: model.provider || '' }, Icon('cpu', 12), ' ', wvsModelName(model) + (st.models.length > 1 ? ' +' + (st.models.length - 1) : '')) : null,
             st.droppedMoments > 0 ? El('span', { className: 'wvs-chip warn' }, kbe('Older moments left out') + ' · ' + st.droppedMoments) : null)
           const head = El('header', { className: 'wvs-top' },
-            El('div', { className: 'wvs-title' },
+            embedded ? null : El('div', { className: 'wvs-title' },
               El('div', { className: 'wv2-idline' }, kbe('Chat') + (st.chat.title ? ' · ' + st.chat.title : '')),
               El('h1', { className: 'wv2-h1' }, kbe('Journal'))),
             El('div', { className: 'wvs-bar' }, seg,
@@ -41670,17 +41637,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               El('button', { type: 'button', className: 'wv2-chip' + (ui.share ? ' on' : ''), 'aria-pressed': ui.share, 'data-kb': 'wvs-share-btn', onClick: () => set({ share: !ui.share, shareState: 'idle' }) }, Icon('link', 12), ' ', kbe('Share')),
               El('button', { type: 'button', className: 'wv2-ghost wvs-refresh', 'aria-label': kbe('Refresh'), title: kbe('Refresh'), onClick: () => dPair[1]((d) => Object.assign({}, d, { nonce: d.nonce + 1 })) }, Icon('refresh', 14))))
           if (st.moments.length === 0) {
-            return El('div', { className: 'wv2-root wvs-root' }, head, chips, El('section', { className: 'wv2-panel', 'data-kb': 'wvs-empty' }, El('p', { className: 'wvs-muted' }, kbe('Nothing to show yet. The Journal fills in as the chat works.'))))
+            return El('div', { className: rootCls }, head, chips, El('section', { className: 'wv2-panel', 'data-kb': 'wvs-empty' }, El('p', { className: 'wvs-muted' }, kbe('Nothing to show yet. The Journal fills in as the chat works.'))))
           }
           const kpis = El(WVSKpis, { story: st })
           const shareSheet = ui.share ? El(WVSShare, { story: st, ui: ui, set: set, logos: logos, sessionId: sessionId }) : null
           if (mode === 'flow') {
-            return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos, stageRef: stageRef }))
+            return El('div', { className: rootCls }, head, chips, shareSheet, kpis, El(WVSCrews, { story: st, ui: ui, set: set }), El(WVSFlow, { story: st, ui: ui, set: set, logos: logos }))
           }
           const rows = wvsFeed(st, ui.filter, ui.crew)
           const pg = wvsPage(rows, ui.page, ui.size)
           const selM = ui.sel !== null ? st.moments.filter((m) => m.id === ui.sel)[0] || null : null
-          return El('div', { className: 'wv2-root wvs-root' }, head, chips, shareSheet, kpis,
+          return El('div', { className: rootCls }, head, chips, shareSheet, kpis,
             ui.ins ? El(WVSInsights, { story: st, ui: ui, set: set }) : null,
             El(WVSCrews, { story: st, ui: ui, set: set }),
             El(WVSFilters, { story: st, ui: ui, set: set }),
@@ -41699,6 +41666,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 .wvs-classic > .wvs-barwrap{flex:0 0 auto;min-height:0;padding:16px 24px 0;gap:8px}
 .wvs-classic > .wv2-root:not(.wvs-barwrap){flex:1 1 auto}
 .wvs-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* embedded in the Sessions pane of an automation: the pane draws the frame and the padding */
+.wv2-root.wvs-embed{padding:0;min-height:0;background:transparent}
+.wvs-root.wvs-embed{padding-top:0}
+.wvs-classic.wvs-embed > .wvs-barwrap{padding:0 0 10px}
 @media (max-width:720px){.wvs-root{padding-top:44px}.wvs-classic > .wvs-barwrap{padding-top:44px}}
 .wvs-title{display:flex;flex-direction:column;gap:3px;min-width:0}
 .wvs-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -41772,7 +41743,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 .wvs-tile.k-handover{color:var(--wv-warn-ink)}.wvs-tile.k-output{color:var(--wv-act-orch)}.wvs-tile.k-message,.wvs-tile.k-trigger{color:var(--wv-ink)}
 .wvs-body{display:flex;flex-direction:column;gap:5px;min-width:0}
 .wvs-head{display:flex;align-items:baseline;gap:6px;width:100%;padding:0;border:0;background:transparent;color:var(--wv-ink);font:inherit;text-align:start;cursor:pointer;min-height:32px;align-self:stretch}
-.wvs-head:focus-visible,.wvs-link:focus-visible,.wvs-crew:focus-visible,.wvs-node:focus-visible,.wvs-seg button:focus-visible,.wvs-ib:focus-visible{outline:2px solid var(--wv-accent);outline-offset:2px}
+.wvs-head:focus-visible,.wvs-link:focus-visible,.wvs-crew:focus-visible,.wvs-seg button:focus-visible,.wvs-ib:focus-visible{outline:2px solid var(--wv-accent);outline-offset:2px}
 .wvs-actor{font-weight:600;flex:none}
 .wvs-dot{width:7px;height:7px;border-radius:50%;flex:none;align-self:center}
 .wvs-text{color:var(--wv-ink);min-width:0;overflow-wrap:anywhere}
@@ -41824,29 +41795,13 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 .wvs-ftools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 .wvs-fgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start}
 @media (max-width:980px){.wvs-fgrid{grid-template-columns:1fr}}
-.wvs-fstage{position:relative;overflow:auto;min-height:420px;max-height:640px;background:var(--wv-panel);border:1px solid var(--wv-line);border-radius:10px;background-image:radial-gradient(var(--wv-line2) 1px,transparent 1px);background-size:18px 18px}
-.wvs-fcanvas{position:relative;transform-origin:0 0}
-.wvs-fedges{position:absolute;left:0;top:0;pointer-events:none}
-.wvs-edge{stroke:var(--wv-mut);stroke-width:1.6}.wvs-edge.s-wait{stroke:var(--wv-warn);stroke-dasharray:6 5}.wvs-edge.s-err{stroke:var(--wv-err)}
-.wvs-node{position:absolute;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;text-align:start;background:var(--wv-panel);border:1px solid var(--wv-line3);border-radius:12px;color:var(--wv-ink);font:inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.wvs-node:hover{background:var(--wv-hover)}.wvs-node.on{border-color:var(--wv-brand);box-shadow:0 0 0 2px var(--wv-brand)}
-.wvs-node.s-wait{border-color:var(--wv-warn);background:var(--wv-accent-soft)}.wvs-node.s-err{border-color:var(--wv-err)}
-.wvs-node.dim{opacity:.35}
-.wvs-node .wv2-led{position:absolute;top:10px;right:10px}
-.wvs-nb{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;padding-inline-end:12px}
-.wvs-nk{font-size:11px;color:var(--wv-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wvs-nt{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wvs-ns{font-size:11px;color:var(--wv-mut)}.wvs-nchips{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
-.wvs-zoom{position:sticky;left:10px;bottom:10px;display:inline-flex;flex-direction:column;border:1px solid var(--wv-line3);border-radius:8px;background:var(--wv-panel);overflow:hidden;margin:0 0 10px 10px}
-.wvs-zoom button{width:34px;height:34px;border:0;background:transparent;color:var(--wv-ink);font:inherit;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}.wvs-zoom button:hover{background:var(--wv-hover)}
-.wvs-legend{position:sticky;left:50%;bottom:10px;display:inline-flex;gap:14px;padding:5px 12px;border:1px solid var(--wv-line3);border-radius:999px;background:var(--wv-panel);font-size:11px;color:var(--wv-mut);transform:translateX(-30%)}
-.wvs-legend span{display:inline-flex;align-items:center;gap:6px}.wvs-legend i{width:16px;height:0;border-top:2px solid var(--wv-mut)}.wvs-legend i.wait{border-top:2px dashed var(--wv-warn)}.wvs-legend i.err{border-top-color:var(--wv-err)}
 .wvs-finsp{display:flex;flex-direction:column;gap:12px;min-width:0}
 `
 
         /* ── enregistrement : onglet du chat ── */
         ctx.effect(() => styles.insert(WV2_CSS), 'workflows-v2: journal styles')
         ctx.effect(() => styles.insert(WVS_CSS), 'workflows-v2: story styles')
+        kbJournalShell = WV2Shell
         ctx.effect(() => slots.inject('conversation.view', () => slots.register(
           { name: 'conversation.view', id: WV2_TYPE, order: 6, label: kbt('wv2.tab') }, WV2Shell)), kbe('workflows-v2: execution journal tab'))
       } catch (wv2Error) {

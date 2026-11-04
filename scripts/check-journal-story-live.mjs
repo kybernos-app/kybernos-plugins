@@ -352,11 +352,12 @@ const run = async () => {
       await clickLabel('Flow', '.wvs-seg')
       await sleep(700)
       await shot('5-flow')
-      ok('Flow draws boxes', (await count('.wvs-node')) > 0, String(await count('.wvs-node')))
-      ok('Flow draws lines between them', (await count('.wvs-edge')) > 0 || (await count('.wvs-node')) < 2)
-      if (await click('.wvs-node')) {
+      // The Flow is drawn by the shared canvas (KbFlowCanvas): its cards are `.kbfc-nd`, its wires `.kbfc-wire`.
+      ok('Flow draws boxes', (await count('.wvs-fgrid .kbfc-nd')) > 0, String(await count('.wvs-fgrid .kbfc-nd')))
+      ok('Flow draws lines between them', (await count('.wvs-fgrid .kbfc-wire')) > 0 || (await count('.wvs-fgrid .kbfc-nd')) < 2)
+      if (await click('.wvs-fgrid .kbfc-nd')) {
         await sleep(300)
-        ok('a box is selected and its card is beside the flow', (await count('.wvs-node.on')) > 0 && (await count('.wvs-finsp')) > 0)
+        ok('a box is selected and its card is beside the flow', (await count('.wvs-fgrid .kbfc-nd.sel')) > 0 && (await count('.wvs-finsp')) > 0)
         await shot('6-flow-node')
       }
       // advanced = the old sections

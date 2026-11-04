@@ -75,7 +75,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
 | Feedback box | `feedback` (POST: one line appended to `kybernos/feedback.jsonl`), `feedback/export` (GET: the file's content), `feedback/send` (POST: the same form posted to the linked server's relay with the device token). Strict write guard on all three (same-origin AND DSH's signed session, `session-guard.mjs`); Save and Copy send nothing, see "The feedback box" below |
-| Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
+| Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/leaflet.*` `kb-places.js` |
 
 ## The Automations board
 
@@ -256,7 +256,8 @@ The frame is as tall as its cards need (`fitHeight`), not a fixed height, and on
   (`kbfc-*`): no library, no image.
 - **Where the code is.** The layout, the routing of a wire, the offsets and the scale are the pure `KB-AUTOFLOW` block of `client.js`
   (`test-automation-flow.mjs`: no right-angle wire goes through a card of the default layout, for every style); `KbFlowCanvas` draws them.
-  React Flow (`@xyflow/react`, shipped for the team view) is not used here: the wires wrap around rows, which its built-in edges do not do.
+  This one canvas draws every graph of the plugin: the workflow and the runs of an automation, the Flow of the Journal (a chat, or a run in Sessions) and the Workflow tab
+  of an Agent Team. React Flow is gone (it could not wrap a wire around a row, and it carried its own dark-only colours).
 
 ### Sessions (executions, graph, logs, and what the Journal said)
 
@@ -264,13 +265,17 @@ Nothing is written, nothing is guessed from what a model said.
 
 - A line of figures (runs, failed, median duration, slowest), then the list of executions: a dot, the date, how it ended and how many tool
   calls (the newest eight, the chosen run whatever its age, then « N more »). On the right the open run: its date and a badge (how it
-  ended), a line that says who ran (the model and why), how long, how many calls and whether anything asked for an approval, then its
+  ended), then the run **read as the chat's Journal** (the same shell as the chat's Journal tab, embedded: no big title, the chat's input bar
+  and scroll left alone): **Story** (the default: figures, the cost per model, the apps with their logos, the skills used and created, the
+  approvals with who allowed them, the files and links delivered), **Flow**, and **Advanced**, which is this pane's own view of the run:
+  a line that says who ran (the model and why), how long, how many calls and whether anything asked for an approval, then its
   **graph**, drawn on the same canvas as the workflow (a card per tool call: title, duration, what it stands for, status, and on each wire the
   size of what the step handed on; more than seven tool calls show the first six and a "+N more steps" card). A card opens an
   **inspector** at its right (this run: status, think and run time, output size; what it did; what it got and gave, one line each and « Show
-  raw data » for the 420 characters; what it used), and a failed run opens on the step that failed.
-- Under it: what that run used (Agent Team, skills, connectors, tools; each card of the graph says what its call stands for), the
-  **approvals** that were asked (nothing when none was), and the **Lessons** card: how many runs in a row the
+  raw data » for the 420 characters; what it used), and a failed run opens on the step that failed. A run with no chat, a chat whose journal
+  cannot be read, or a host where the Journal did not start shows that Advanced view directly (the Journal is read with `GET /kybernos/journal`).
+- In Advanced, under the graph: what that run used (Agent Team, skills, connectors, tools; each card of the graph says what its call stands for)
+  and the **approvals** that were asked (nothing when none was). Under the open run, in every view, the **Lessons** card: how many runs in a row the
   automation has had since its last failure, and, once that reaches the number chosen in Settings › Automations, a **Create skill** button
   (see « Stable automations become skills » below).
 - A **run** is one session. `tasks.json` also keeps, for a failed run, a line the run wrote about itself afterwards (it has no session

@@ -161,7 +161,8 @@ try {
   await shot('cards')
 
   console.log('\n── Workflow ──')
-  check('the detail has three tabs, Workflow, Sessions and Where it runs: no Webhook tab, no Journal tab', (await val(`Array.from(document.querySelectorAll('[data-kb="detail-tabs"] [role="tab"]')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Workflow|Sessions · 6|Where it runs')
+  check('the detail has four tabs, Overview, Workflow, Sessions and Where it runs: no Webhook tab, no Journal tab, and it opens on the Overview', (await val(`Array.from(document.querySelectorAll('[data-kb="detail-tabs"] [role="tab"]')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Overview|Workflow|Sessions · 6|Where it runs' && (await q('[data-kb="automation-sheet"]')) === 1)
+  await click('[data-kb="tab-flow"]')
   check('the Workflow opens on the cards: the trigger, the three steps and the record of the run', (await poll(async () => (await q('[data-kb="flow-card"]')) === 5, 5000)) === true)
   check('Flow, Text and Code are three quiet icons in the toolbar of the canvas, Flow first and chosen', (await val(`Array.from(document.querySelectorAll('[data-kb="flow-canvas"] [data-kb^="view-"]')).map((b) => b.dataset.kb + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join()`)) === 'view-flow*,view-text,view-code')
   check('the title of every card stays inside it (two lines at most, nothing spills)', await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).every((n) => { const r = n.getBoundingClientRect(); return Array.from(n.querySelectorAll('.kbfc-tt b, .kbfc-ft')).every((c) => c.getBoundingClientRect().bottom <= r.bottom + 1 && c.getBoundingClientRect().right <= r.right + 1) })`))
@@ -223,6 +224,8 @@ try {
   check('the panel of a step says what it uses: the model (and whose), the Agent Team, what the step names', (await poll(() => q('[data-kb="step-uses"]'), 3000)) === 1 && /alpha-1 \(acme\) · the profile's default/.test(await text('[data-kb="step-uses"]')) && /researcher · beta-2, checker/.test(await text('[data-kb="step-uses"]')) && /Named in this step\s+numbers/.test(await text('[data-kb="step-uses"]')), await text('[data-kb="step-uses"]'))
   await shot('uses')
   await click('[data-kb="tab-sessions"]')
+  // A run with a readable chat opens as the Journal (Story first); « Advanced » is the view of this pane that this check reads.
+  await poll(() => val(`(() => { if (document.querySelector('[data-kb="run-about"]')) return 1; const b = [...document.querySelectorAll('[data-kb="runs-sessions"] .wvs-seg button')].find((x) => x.textContent.trim() === 'Advanced'); if (b) { b.click(); return 1 } return 0 })()`), 6000)
   check('in Sessions, Who ran adds the Agent Team, the skills, the connectors and the tools of that run', (await poll(() => q('[data-kb="run-about"]'), 6000)) === 1 && /Agent team\s+researcher · beta-2, checker/.test(await text('[data-kb="run-about"]')) && /Connectors\s+gmail ×3, notion/.test(await text('[data-kb="run-about"]')) && /Skills\s+numbers ×2/.test(await text('[data-kb="run-about"]')), (await text('[data-kb="run-about"]')).slice(0, 200))
   check('...and the graph says what each call stands for: a tool, a connector, a teammate', (await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).map((c) => c.textContent).join('|')`)).replace(/\s+/g, ' ').match(/Connector/g) !== null && /· researcher/.test(await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).map((c) => c.textContent).join('|')`)) && /· gmail/.test(await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).map((c) => c.textContent).join('|')`)))
   await val(`window.fetch = window.__kbFetch0`)
