@@ -7,10 +7,13 @@
 // One chat turn does the work of three modules: the stand-in answers with a text that holds a valid ```mermaid fence, a fence that cannot be drawn and a sentence with two
 // links, then the checks read the page (the diagram card and its Code/Diagram switch, the error card with the parser's reason and the source kept, one chip per block of links with
 // the link hidden and a card with the host, the address and « Open ») and Settings › Activity log (the call is listed, the body of the answer is not; the session title, made from the words said, is, and is printed as a NOTE).
-// A second turn has the stand-in call the `animer_briques` tool, and the Bricks panel's route and tab are read back.
-// Still not covered here: the database viewer (needs a Tables database), the media player (needs a media file in the Files sidebar), the queue handles of the conversation flow
-// (need a turn held open): J19-12 stays `partial` until they are.
+// A second turn has the stand-in call the `animer_briques` tool, and the Bricks panel's route is read back. The database viewer is read on a small SQLite file the check
+// makes in the sandbox's `kybers/` folder (and removes): the routes, the refusals (a write, two statements, a path), and the panel in the right sidebar.
+// Still not covered here: the media player (needs a media file in the Files sidebar) and the queue handles of the conversation flow (need a turn held open).
 // Exit 0 all green, 1 a check failed, 3 inconclusive (no replica, no composer).
+import { mkdirSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { makeContext, openGui, sleep } from './e2e-teams/common.mjs'
 import { goToSettingsPage, openSettings } from './live-page.mjs'
 
@@ -45,6 +48,7 @@ const host = ctx.as('a')
 let g
 try { g = await openGui(host); await sleep(2500); await g.selectModel('GLM') } catch (e) { console.error('○ inconclusive: ' + e.message); process.exit(3) }
 const read = (js) => g.val(js)
+const mine = ctx.hostOf('a')
 // A sandbox is a clone of the owner's profile, where he may have switched some modules off (`disabled: true` in cordis.patch.yml): a module that never loaded cannot be judged.
 const loaded = await read(`performance.getEntriesByType('resource').map((e) => e.name).join(' ')`)
 const missing = ['dsh-mermaid', 'kybernos-refs'].filter((m) => !String(loaded).includes(m))
@@ -103,13 +107,54 @@ try {
     check('Settings can be opened to read the Activity log', false, 'the Settings dialog did not open')
   }
 
+  console.log('Database viewer')
+  const kyberDir = join(process.env.KB_E2E_HOME_A, '.dsh', 'kybers', 'zz-j19-12')
+  try {
+    mkdirSync(kyberDir, { recursive: true })
+    const db = new DatabaseSync(join(kyberDir, 'donnees.sqlite'))
+    db.exec("CREATE TABLE clients (id INTEGER PRIMARY KEY, nom TEXT NOT NULL, ville TEXT); CREATE TABLE commandes (id INTEGER PRIMARY KEY, client_id INTEGER REFERENCES clients(id), total REAL); INSERT INTO clients (nom, ville) VALUES ('Alice', 'Lyon'), ('Bob', 'Nice'), ('Chloé', 'Lille'); INSERT INTO commandes (client_id, total) VALUES (1, 12.5), (1, 30), (2, 8)")
+    db.close()
+    const get = (path) => mine('GET', path)
+    const bases = await get('/dsh-db-viewer/bases')
+    const mineBase = bases && Array.isArray(bases.bases) ? bases.bases.find((b) => b.id === 'zz-j19-12') : undefined
+    check('the database is listed with its tables and their row counts', mineBase !== undefined && mineBase.tables.some((t) => t.nom === 'clients' && t.compte === 3) && mineBase.tables.some((t) => t.nom === 'commandes' && t.compte === 3), bases)
+    const schema = await get('/dsh-db-viewer/schema?base=zz-j19-12')
+    check('the schema has the columns and the foreign key (commandes to clients)', schema && Array.isArray(schema.relations) && schema.relations.some((r) => r.parent === 'clients' && r.enfant === 'commandes'), schema)
+    const rows = await get('/dsh-db-viewer/rows?base=zz-j19-12&table=clients&limit=2')
+    check('the rows route returns the first rows asked for', rows && Array.isArray(rows.lignes) && rows.lignes.length === 2 && rows.compte === 3, rows)
+    const q = await get('/dsh-db-viewer/query?base=zz-j19-12&sql=' + encodeURIComponent('SELECT c.nom, SUM(o.total) AS t FROM clients c JOIN commandes o ON o.client_id = c.id GROUP BY c.nom ORDER BY c.nom'))
+    check('a SELECT with a join and a group answers', q && Array.isArray(q.lignes) && q.lignes.length === 2 && JSON.stringify(q.lignes).includes('42.5'), q)
+    const refusals = [
+      ['a write', "DELETE FROM clients", 'read-only'],
+      ['two statements', 'SELECT 1; SELECT 2', 'one-statement'],
+      ['an empty query', '', 'empty-query'],
+    ]
+    for (const [what, sql, code] of refusals) {
+      const r = await get('/dsh-db-viewer/query?base=zz-j19-12&sql=' + encodeURIComponent(sql))
+      check(`${what} is refused with the code « ${code} »`, r && r.code === code, r)
+    }
+    const after = await get('/dsh-db-viewer/rows?base=zz-j19-12&table=clients&limit=10')
+    check('and nothing was written: the three clients are still there', after && after.compte === 3, after)
+    const traversal = await get('/dsh-db-viewer/rows?base=' + encodeURIComponent('../../etc/passwd') + '&table=clients')
+    check('a path in place of a database name is refused', traversal && (traversal.code === 'unknown-base' || /erreur|error/i.test(JSON.stringify(traversal))) && !('lignes' in traversal), traversal)
+
+    // the panel: the right sidebar's « Start » list offers Databases (a fresh page, the Bricks panel of the turn above is not in the way)
+    await g.reload()
+    await read(`(() => { const b = document.querySelector('button[aria-label="Open right sidebar"]'); if (b) b.click() })()`)
+    await sleep(1200)
+    const opened = await g.pressText('Databases')
+    await sleep(2500)
+    const panel = String(await g.body())
+    check('the Databases tab opens from the right sidebar and names the database', opened === true && /zz-j19-12/.test(panel), panel.slice(-300))
+    check('its four views are offered (Diagram, Charts, Data, SQL)', /Diagram/.test(panel) && /Charts/.test(panel) && /Data/.test(panel) && /SQL/.test(panel), panel.slice(-300))
+  } finally { rmSync(kyberDir, { recursive: true, force: true }) }
+
   console.log('Bricks')
   await ctx.script([{ name: 'animer_briques', arguments: { prompt: 'a small red house' } }], 0)
   await ctx.engine({ text: 'J19-12 bricks laid.', prompt: 2, completion: 2 })
   await g.send('J19-12 bricks please')
   await g.until(async () => String(await g.body()).includes('J19-12 bricks laid'), LIMIT, 500)
   await sleep(2000)
-  const mine = ctx.hostOf('a')
   const state = await mine('GET', '/kybernos-bricks/state')
   check('the Bricks route answers after the tool call', state !== null && typeof state === 'object', state)
   check('and holds an order for the session (a model, not an empty store)', state !== null && JSON.stringify(state).length > 40 && !/"error"/.test(JSON.stringify(state)), JSON.stringify(state).slice(0, 200))
