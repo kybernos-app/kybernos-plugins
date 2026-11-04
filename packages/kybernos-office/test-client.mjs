@@ -168,6 +168,21 @@ await okAsync('the frame\'s messages: only its own window is heard; "dirty" turn
   must(!one('office-save').disabled, 'a message without the envelope is ignored')
   listeners.filter((l) => l.type === 'message').forEach((l) => l.fn({ source: f.contentWindow, data: 'text' }))
 })
+await okAsync('an engine word (« unreachable ») is worded for a person; any other problem keeps its own words', async () => {
+  const f = frameOf()
+  emit({ op: 'error', message: 'unreachable' }, f.contentWindow)
+  let said = one('office-status').textContent
+  must(/could not open this file/.test(said) && !/unreachable/.test(said) && one('office-status').getAttribute('data-tone') === 'bad', 'engine word: ' + said + ' / ' + one('office-status').getAttribute('data-tone'))
+  emit({ op: 'error', message: 'RuntimeError: memory access out of bounds' }, f.contentWindow)
+  must(/could not open this file/.test(one('office-status').textContent), 'a trap: ' + one('office-status').textContent)
+  emit({ op: 'error', message: 'The file is too big for this editor' }, f.contentWindow)
+  said = one('office-status').textContent
+  must(/has a problem: The file is too big for this editor/.test(said), 'a plain message passes: ' + said)
+  resolved = 'fr'
+  emit({ op: 'error', message: 'unreachable' }, f.contentWindow)
+  must(/n’a pas pu être ouvert/.test(one('office-status').textContent), 'french: ' + one('office-status').textContent)
+  resolved = 'en'
+})
 await okAsync('Save: the page asks the frame for the bytes, posts them with the token and the hash it read, then tells the frame it is saved', async () => {
   const f = frameOf()
   answers['POST /kybernos-office/save'] = { ok: true, hash: HASH, size: 3, undo: true }
