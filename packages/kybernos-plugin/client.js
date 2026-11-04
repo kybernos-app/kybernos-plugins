@@ -8438,6 +8438,11 @@ const KB_ASHEET_RUNS = 5
  *   { head, more, lines, mode: 'cron'|'once'|'webhook', zone, hooked, chat: 'new'|'home', approvals: 'ask'|'auto', maxMinutes, onWrite: 'finish'|'stop', notify, needs, cloud }
  * `cloud` is the name of the cloud computer it was sent to, null while it runs here; `hooked` is true when it has a webhook (the only trigger, or one more).
  */
+// A reminder (made by the agent's automation_remind): one date, in one chat, always asking first. It has no certification to show, so its page leaves the gate panel out.
+// A one-time automation that has had its run: that run switched it off, so it is done, not paused.
+const kbOnceDone = (t) => t !== null && typeof t === 'object' && t.active === false && t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once'
+  && ((t.lastRun !== null && t.lastRun !== undefined) || (Array.isArray(t.history) === true && t.history.length > 0))
+const kbIsReminder = (t) => t !== null && typeof t === 'object' && t.origin !== null && typeof t.origin === 'object' && t.origin.recipe === 'reminder'
 const kbAutoSheetOf = (t) => {
   const x = t !== null && typeof t === 'object' ? t : {}
   const sc = x.schedule !== null && typeof x.schedule === 'object' ? x.schedule : {}
@@ -23044,7 +23049,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               h('span', { role: 'switch', 'aria-checked': t.active !== false ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), 'data-kb': 'card-toggle', className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0,
                 onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') props.onGateReview(t); else props.onToggle(t) } },
                 onClick: (e) => { e.stopPropagation(); if (kbGateToggleIntent(kbGateOf(t), t) === 'review') props.onGateReview(t); else props.onToggle(t) } }, h('span', { className: 'kba-toggle-knob' }))),
-            (attn || t.active === false || kbGateBadge(kbGateOf(t)) !== '' ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, h(KbGateBadge, { gate: kbGateOf(t), hidden: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' }), t.active === false ? h('span', { className: 'kbcc-badge' }, kbt('tasks.cards.paused')) : null) : null),
+            (attn || t.active === false || kbGateBadge(kbGateOf(t)) !== '' ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, h(KbGateBadge, { gate: kbGateOf(t), hidden: t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' }), t.active === false ? h('span', { className: 'kbcc-badge' }, kbOnceDone(t) === true ? kbe('Done') : kbt('tasks.cards.paused')) : null) : null),
             weight !== null ? kbLdBlock(weight, kbt('tasks.board.chip.running')) : null,
             h('div', { className: 'kbcc-figs' },
               fig('last', f.lastMs !== null ? (kbRunAgo(f.lastMs, now, locale) || kbWhenOf(f.lastAt)) : kbt('tasks.cards.never')),
@@ -25079,6 +25084,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         let lastCls = ''
         if (runIds.indexOf(t.id) >= 0) { lastLabel = kbt('tasks.board.chip.running'); lastCls = 'run' }
         else if (cloudLinked === true) { lastLabel = kbt(cloudWait === true ? 'kbwr.row.cloudWait' : kbwDirty(t) === true ? 'kbwr.row.cloudDirty' : cloudBad === true ? 'kbwr.row.cloudFailed' : 'kbwr.row.cloud').replace('{name}', () => String(t.cloud.name)); lastCls = cloudWait === true || kbwDirty(t) === true ? 'cloudwarn' : cloudBad === true ? 'fail' : 'cloud' }
+        else if (kbOnceDone(t) === true) { lastLabel = failed ? kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)) : kbe('Done'); lastCls = failed ? 'fail' : 'ok' }
         else if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
@@ -25365,7 +25371,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           // The gate of this automation, ABOVE the tabs so it stays readable on all three. Collapsed it is one strip: the status,
           // the three rungs and the one step a person is expected to take. Expanded it holds the checks, the trial and its proof,
           // and the two decisions — the only way to an approval is the click on `gate-approve`.
-          h(KbGatePanel, {
+          kbIsReminder(t) === true ? null : h(KbGatePanel, {
             key: 'gate',
             gate: kbGateOf(t),
             task: t,
