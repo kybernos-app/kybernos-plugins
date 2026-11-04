@@ -93,14 +93,12 @@ try {
 
   // Settings: every section, by position (labels change with the language).
   await flow.openSettings(null)
+  // The cells of the navigation, and only those: an earlier version took every button of the nearest big container, which on the General page includes « Replay » (the first-run
+  // wizard), « Yes » / « No » and the dropdowns, so the audit pressed them as if they were pages, restarted the wizard and changed settings (UJ-41).
   const NAV = (i) => `(() => {
-    const back = Array.from(document.querySelectorAll('button,a,[role=button]')).find((e) => /back to workspace|retour au workspace/i.test(e.innerText || ''))
-    if (!back) return null
-    let box = back
-    for (let k = 0; k < 8 && box.parentElement; k += 1) { box = box.parentElement; if (box.querySelectorAll('button,a,[role=button],[role=tab]').length > 12) break }
-    const items = Array.from(box.querySelectorAll('button,a,[role=button],[role=tab],[role=menuitem]')).filter((e) => {
+    const items = Array.from(document.querySelectorAll('button[class*="navCell"]')).filter((e) => {
       const r = e.getBoundingClientRect(); const t = (e.innerText || '').trim()
-      return r.width > 20 && r.height > 12 && t && !/back to workspace|retour au workspace/i.test(t) && !/search|rechercher/i.test(t)
+      return r.width > 20 && r.height > 12 && t
     })
     if (${i} < 0) return JSON.stringify(items.map((e) => (e.innerText || '').trim().split('\\n')[0]))
     const e = items[${i}]

@@ -391,6 +391,8 @@ console.log('the styles')
   check('on a phone the intro\'s cross is a 44 px target and the drawn mock (9 px text) is not drawn', /@media \(max-width:700px\)\{[^}]*\}\.kbhi-mm\{display:none\}\.kbhi-x\{[^}]*width:44px;height:44px\}/.test(SOURCE))
   // the phone rule only wins if it comes AFTER the base rules it overrides (the first version sat before them and the cross stayed 26 x 36)
   check('the phone rule of the intro comes after the base rules of .kbhi-x, .kbhi-h and .kbhi-mm', (() => { const m = SOURCE.indexOf('@media (max-width:700px){.kbhi{'); return m > SOURCE.indexOf("'.kbhi-x{position:absolute") && m > SOURCE.indexOf("'.kbhi-h{font-size") && m > SOURCE.indexOf("'.kbhi-mm{direction:ltr") && SOURCE.indexOf("'.kbhi-x{position:absolute") > 0 })())
+  // UJ-42: the card sits in the pane BESIDE the sidebar, not in the window: a window width cannot tell how much room the text has (768 px window = 488 px pane = a 90 px text column, one word per line)
+  check('the intro card wraps its text under the drawing when the pane is narrow (flex-wrap, not a fixed 300 px column)', /\.kbhi\{[^}]*display:flex;flex-wrap:wrap/.test(SOURCE) && /\.kbhi-text\{[^}]*flex:1 1 260px/.test(SOURCE) && !/\.kbhi\{[^}]*grid-template-columns:300px/.test(SOURCE))
   check('the loop is 12 s, like the Language page’s', /kbhi-k-hot 12s infinite/.test(SOURCE) && /kbhi-k-s3 12s infinite/.test(SOURCE))
   check('the link of the card is drawn as a link (not a second button)', /\.kbhp-link\{/.test(SOURCE) && /\.kbhp-foot\{/.test(SOURCE))
   // A page that styles every button of its own (« .kbwk button », « .kbsl-scope :where(button) », « .kbsu button » set font:inherit) must not
