@@ -119,6 +119,10 @@ const T = (id, o) => Object.assign({ id, name: id, active: true, approvals: 'ask
   eq('keys are unique', new Set(runs.map((r) => r.key)).size, 3)
   eq('an entry dated far in the future is not a run (clock skew up to a minute is)', m.kbBoardRuns([T('f', { history: [H(NOW + 3600000, 'fired', 's-end'), H(NOW + 30000, 'fired', 's-end')] })], liveOf, NOW).length, 1)
   eq('webhook runs are marked', m.kbBoardRuns([T('w', { history: [H(NOW - 5000, 'fired', 's-end', { via: 'webhook' })] })], liveOf, NOW)[0].via, 'webhook')
+  const withTrial = m.kbBoardRuns([T('tr', { history: [H(NOW - 20000, 'error', null, { error: 'boom' }), { at: new Date(NOW - 10000).toISOString(), status: 'trial', gateId: 'g1', sessionId: null }] })], liveOf, NOW)
+  eq('UJ-214: a supervised trial is not a run of the board, and does not hide the failure of the run before it', withTrial.map((r) => [r.state, r.last]), [['failed', true]])
+  const withSkip = m.kbBoardRuns([T('sk', { history: [H(NOW - 20000, 'error', null, { error: 'boom' }), H(NOW - 10000, 'skipped', null, { error: 'approval required' })] })], liveOf, NOW)
+  eq('UJ-167: a skipped tick is not filed on the board as « started »', withSkip.map((r) => r.state), ['failed'])
   eq('hostile input does not throw', m.kbBoardRuns([null, 3, { id: 5 }, { id: 'z', history: 'no' }], liveOf, NOW), [])
 }
 
@@ -130,6 +134,8 @@ const T = (id, o) => Object.assign({ id, name: id, active: true, approvals: 'ask
   const bad = { failed: true, code: 'MISSING_CREDENTIAL', message: 'no credential for provider route zai' }
   eq('an ended session whose last turn failed is a failed run', m.kbBoardRunState('fired', ended, bad), 'failed')
   eq('...one whose turn did not fail, or has no verdict, is still just ended', [m.kbBoardRunState('fired', ended, { failed: false }), m.kbBoardRunState('fired', ended, null), m.kbBoardRunState('fired', ended, undefined)], ['ended', 'ended', 'ended'])
+  eq('UJ-172: a session whose last turn was cut short is a stopped run, not an ended one', m.kbBoardRunState('fired', ended, { failed: false, stopped: true }), 'stopped')
+  eq('...and a running one is running, whatever an older verdict said', m.kbBoardRunState('fired', running, { failed: false, stopped: true }), 'running')
   eq('a session that is running or waiting is that, whatever an older verdict said', [m.kbBoardRunState('fired', running, bad), m.kbBoardRunState('fired', waiting, bad)], ['running', 'waiting'])
   eq('a session this page cannot see stays `started`: a verdict is not enough to claim', m.kbBoardRunState('fired', null, bad), 'started')
   const liveOf = (sid) => ({ 's-bad': ended, 's-ok': ended, 's-run': running }[sid] || null)

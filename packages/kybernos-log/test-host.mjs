@@ -64,6 +64,12 @@ const eq = (label, a, b) => ok(label + ' — ' + JSON.stringify(a) + ' ≠ ' + J
   eq('a registered job has no verdict yet', classifyEvent('s', { type: 'job/registered', data: { kind: 'bash' } }).status, undefined)
   eq('a completed turn says so', classifyEvent('s', { type: 'turn/end', data: { reason: { kind: 'completed' } } }).status, 'completed')
   eq('a failed turn says so', classifyEvent('s', { type: 'turn/end', data: { reason: { kind: 'error' } } }).status, 'failed')
+  // UJ-216: the row of a failed turn says why, in words (the 402 body is read for its message, as the retry rows do)
+  eq('a failed turn carries the reason in words', classifyEvent('s', { type: 'turn/end', data: { reason: { kind: 'error', error: { code: 'QUOTA', message: '402: {"message":"Your budget is used up.","type":"insufficient_quota"}' } } } }).detail, 'Your budget is used up.')
+  // UJ-211: the call and its result carry the same id, so the page can pair them
+  const callEv = classifyEvent('s', { type: 'tool/call', data: { name: 'skill', callId: 'call-7' } })
+  const resEv = classifyEvent('s', { type: 'tool/result', data: { message: { isError: false, source: { callId: 'call-7' } } } })
+  eq('a call and its result share the call id', [callEv.callId, resEv.callId], ['call-7', 'call-7'])
   eq('an unknown event says nothing', classifyEvent('s', { type: 'noise/whatever' }, state), null)
 }
 

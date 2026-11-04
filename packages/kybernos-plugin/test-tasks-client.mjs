@@ -110,6 +110,7 @@ eq('...in French', mod.kbOnceLabel('2026-10-17T10:00', fr, 2026, 'fr'), 'Une seu
 eq('...05/10 can no longer be read as the 10th of May', /\b0?5\/10\b/.test(mod.kbOnceLabel('2026-10-05T09:05', en, 2026, 'en')), false)
 eq('...it names another zone', mod.kbOnceLabel('2026-10-17T10:00', en, 2026, 'en', 'Kolkata'), 'One time \u00b7 Sat, Oct 17 \u00b7 10:00 (Kolkata)')
 eq('a zone is shown by its city', [mod.kbZoneLabel('Asia/Kolkata'), mod.kbZoneLabel('America/Argentina/Buenos_Aires'), mod.kbZoneLabel('UTC'), mod.kbZoneLabel(''), mod.kbZoneLabel(undefined)].join('|'), 'Kolkata|Buenos Aires|UTC||')
+eq('UJ-175: a date written in UTC (Z) is read in the zone it is shown in, not as written', [mod.kbOnceLabel('2026-11-04T13:52:00Z', en, 2026, 'en', '', 'Europe/Paris'), mod.kbOnceLabel('2026-11-04T13:52:00Z', en, 2026, 'en', '', 'UTC'), mod.kbOnceLabel('2026-11-04T13:52', en, 2026, 'en', '', 'Europe/Paris')].join(' | '), ['One time \u00b7 Wed, Nov 4 \u00b7 14:52', 'One time \u00b7 Wed, Nov 4 \u00b7 13:52', 'One time \u00b7 Wed, Nov 4 \u00b7 13:52'].join(' | '))
 eq('an unreadable date is just "One time" (it used to be an empty cell)', mod.kbOnceLabel('', en, 2026) + '|' + mod.kbOnceLabel(undefined, en, 2026), 'One time|One time')
 eq('a run time is shown in the zone of the automation (New York)', mod.kbFmtWhen('2026-10-12T12:00:00.000Z', 'America/New_York'), '12/10 08:00')
 eq('...Tokyo', mod.kbFmtWhen('2026-10-12T12:00:00.000Z', 'Asia/Tokyo'), '12/10 21:00')

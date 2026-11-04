@@ -81,5 +81,11 @@ console.log('text blocks in a right-to-left page (A2-26)')
   check('…and the Connectors sign-in sentence is an element of its own, not a loose text node beside <br>', /h\('b', null, kbt\('kb\.cp\.kc\.signin\.title'\)\), h\('br'\), h\('span', null, kbt\('kb\.cp\.kc\.signin\.body'\)\)/.test(comp))
 }
 
+console.log('the back arrow of Settings in a right-to-left page (UJ-131)')
+{
+  check('the arrow of « Back to workspace » is mirrored under a right-to-left page, like the chevrons of the menu', /html\[dir="rtl"\] \.kbsb svg\{transform:scaleX\(-1\)\}/.test(SRC))
+  check('…and the arrow is still the one icon of the button (arrowLeft), mirrored by the rule, not swapped', /Icon\('arrowLeft', 15\), h\('span', \{ className: 'kbsb-label' \}/.test(SRC))
+}
+
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

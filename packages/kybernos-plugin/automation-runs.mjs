@@ -187,7 +187,7 @@ export const summarizeRun = (events, options) => {
     startedAt: startedMs !== null ? new Date(startedMs).toISOString() : null,
     endedAt: endedMs !== null ? new Date(endedMs).toISOString() : null,
     durationMs: startedMs !== null && endedMs !== null && endedMs >= startedMs ? endedMs - startedMs : null,
-    outcome: verdict.open === true ? { state: 'open' } : (verdict.failed === true ? { state: 'failed', code: verdict.code, message: verdict.message } : { state: 'completed' }),
+    outcome: verdict.open === true ? { state: 'open' } : (verdict.failed === true ? { state: 'failed', code: verdict.code, message: verdict.message } : (verdict.stopped === true ? { state: 'stopped' } : { state: 'completed' })),
     models,
     selected,
     turns,

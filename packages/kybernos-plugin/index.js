@@ -617,7 +617,15 @@ const kbMakeTrigger = (deps) => {
             continue
           }
           const due = Date.parse(t.nextRun)
-          if (due > nowMs) continue
+          if (due > nowMs) {
+            // The clock went back since this slot was computed (UJ-158): every writer of `nextRun` takes the first slot after the time it read, so a slot later than the
+            // first one after NOW can only come from a clock that was ahead. Left alone it keeps a recurring automation silent until that wrong instant.
+            if (t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'cron') {
+              const expected = kbComputeNextRun(t, nowMs)
+              if (expected !== null && due > expected) t.nextRun = new Date(expected).toISOString()
+            }
+            continue
+          }
           dueList.push({ t, dueMs: due })
         }
         // The cap: `admit` names which due runs may start now, oldest first. The others are not touched, so they are still due on the
@@ -3518,6 +3526,7 @@ function boot(ctx) {
             name: 'kybernos:automation-load',
             order: 160,
             interpolate: false,
+            required: true,
             text: (context) => { try { return kbRunDepth(context.agent) > 0 ? autoLoadNote(autoLoadFresh(kbLoadLast, Date.now())) : '' } catch (e) { return '' } },
           })
         } catch (e) { console.log('[kybers] automation load note not injected: ' + String((e && e.message) || e)) }
@@ -13166,7 +13175,7 @@ function boot(ctx) {
                 handle = await persistence.open(id, 'read')
                 const read = await handle.read()
                 const verdict = lastTurnOutcome(read !== null && read !== undefined ? read.events : null)
-                if (verdict.open !== true) outcomes[id] = verdict.failed === true ? { failed: true, code: verdict.code, message: verdict.message } : { failed: false }
+                if (verdict.open !== true) outcomes[id] = verdict.failed === true ? { failed: true, code: verdict.code, message: verdict.message } : (verdict.stopped === true ? { failed: false, stopped: true } : { failed: false })
               } catch (e) { /* unreadable or gone: no verdict */ } finally {
                 try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
               }

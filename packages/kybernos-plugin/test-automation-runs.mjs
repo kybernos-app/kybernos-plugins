@@ -48,6 +48,7 @@ const okRun = [
   assert.equal(r.endedAt, new Date(T0 + 28_410).toISOString())
   assert.equal(r.durationMs, 28_310)
   assert.deepEqual(r.outcome, { state: 'completed' })
+  assert.deepEqual(summarizeRun([ev('turn/start', 100, { turn: 1 }), ev('turn/end', 900, { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } })]).outcome, { state: 'stopped' })
   assert.deepEqual(r.models, [{ provider: 'acme', model: 'alpha-1' }])
   assert.equal(r.selected, false)
   assert.deepEqual([r.turns, r.steps, r.toolCalls, r.nodeCount], [1, 3, 3, 3])

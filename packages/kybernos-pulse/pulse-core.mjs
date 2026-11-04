@@ -112,9 +112,17 @@ export const applySettings = (current, patch) => {
  *   { phase: 'waiting', calls, startedAt, tool }                    an approval was asked and not decided yet
  *   { phase: 'done',    calls, startedAt, endedAt }                 the last turn ended without an error
  *   { phase: 'failed',  calls, startedAt, endedAt, code, message }  the last turn ended with an error reason
+ *   { phase: 'stopped', calls, startedAt, endedAt }                 the last turn was cut short (the person stopped it): nothing is claimed, no card
  * Times are epoch milliseconds or null. Same rule as the Automations page: the verdict is the engine's `turn/end` reason, not a reading of
  * the text of the answer.
  */
+/** A provider's answer reaches us as `402: {"message":"…","type":"…"}`: a card shows the `message` only. */
+export const reasonOf = (raw) => {
+  const text = typeof raw === 'string' ? raw : ''
+  const hit = /"message"\s*:\s*"((?:[^"\\]|\\.){1,300})(?:"|$)/.exec(text)
+  return hit === null ? text : hit[1].replace(/\\"/g, '"')
+}
+
 export const readRun = (events) => {
   const list = Array.isArray(events) ? events : []
   let start = -1
@@ -141,9 +149,10 @@ export const readRun = (events) => {
   if (endEv !== null && end >= start) {
     const endedAt = num(endEv.time)
     const reason = obj(obj(endEv.data) && obj(endEv.data).reason)
+    if (reason !== null && (reason.kind === 'aborted' || reason.kind === 'interrupted')) return { phase: 'stopped', calls, startedAt, endedAt }
     if (reason === null || reason.kind !== 'error') return { phase: 'done', calls, startedAt, endedAt }
     const err = obj(reason.error)
-    return { phase: 'failed', calls, startedAt, endedAt, code: err !== null ? one(err.code, 60) : '', message: err !== null ? one(err.message, 200) : '' }
+    return { phase: 'failed', calls, startedAt, endedAt, code: err !== null ? one(err.code, 60) : '', message: err !== null ? one(reasonOf(err.message), 200) : '' }
   }
   if (asked.size > 0) return { phase: 'waiting', calls, startedAt, tool: asked.values().next().value }
   return { phase: 'running', calls, startedAt }
@@ -184,7 +193,8 @@ export const cleanItem = (raw) => {
     id: r.id,
     kind: r.kind,
     tone: TONE[r.kind],
-    todo: r.kind !== 'done',
+    todo: r.kind !== 'done' && r.resolved !== true,
+    ...(r.kind === 'failed' && r.resolved === true ? { resolved: true } : {}),
     task: one(r.task, NAME_MAX) || 'Automation',
     taskId: one(r.taskId, 80),
     sessionId: typeof r.sessionId === 'string' && SESSION_ID_RE.test(r.sessionId) ? r.sessionId : '',
@@ -200,7 +210,11 @@ export const cleanItem = (raw) => {
   return item
 }
 
-export const inboxPut = (inbox, item) => [item].concat(inbox.filter((x) => x.id !== item.id)).slice(0, INBOX_MAX)
+export const inboxPut = (inbox, item) => {
+  // A later good run of the same automation settles its failed cards (the retry worked): they stay listed as history, no longer to do.
+  const next = item.kind === 'done' && item.source === 'scheduler' && item.taskId !== '' ? inbox.map((x) => (x.kind === 'failed' && x.source === 'scheduler' && x.taskId === item.taskId && x.at <= item.at && x.resolved !== true ? cleanItem({ ...x, resolved: true }) : x)) : inbox
+  return [item].concat(next.filter((x) => x.id !== item.id)).slice(0, INBOX_MAX)
+}
 export const inboxRemove = (inbox, id) => inbox.filter((x) => x.id !== id)
 
 /** A finished run of an automation the person made quiet: listed, but silent (no banner, no count). Failures and approvals are never quiet. */
@@ -230,7 +244,7 @@ export const normalizeState = (raw) => {
   if (seen !== null) {
     for (const [sid, v] of Object.entries(seen)) {
       const e = obj(v)
-      if (SESSION_ID_RE.test(sid) && e !== null && (e.phase === 'done' || e.phase === 'failed' || e.phase === 'waiting' || e.phase === 'running') && num(e.at) !== null) st.seen[sid] = { phase: e.phase, at: e.at }
+      if (SESSION_ID_RE.test(sid) && e !== null && (e.phase === 'done' || e.phase === 'failed' || e.phase === 'stopped' || e.phase === 'waiting' || e.phase === 'running') && num(e.at) !== null) st.seen[sid] = { phase: e.phase, at: e.at }
     }
   }
   // The two maps of this batch: absent in a file written by the previous version, which is a normal state (no migration).
@@ -486,7 +500,7 @@ export const watchStep = async ({ tasks, state, readRunOf, now, gates = [], entr
   let reads = 0
   for (const c of list) {
     const prev = st.seen[c.sessionId]
-    if (prev !== undefined && (prev.phase === 'done' || prev.phase === 'failed')) continue
+    if (prev !== undefined && (prev.phase === 'done' || prev.phase === 'failed' || prev.phase === 'stopped')) continue
     if (reads >= READS_PER_PASS) break
     reads += 1
     let run = null
@@ -500,6 +514,8 @@ export const watchStep = async ({ tasks, state, readRunOf, now, gates = [], entr
     if (!isNew) continue
     if (run.phase !== 'waiting') st.inbox = inboxRemove(st.inbox, 'w:' + c.sessionId)
     if (quiet && run.phase !== 'waiting') continue
+    // A run the person stopped is their own act: it is remembered (never read again) and says nothing, neither « done » nor « failed ».
+    if (run.phase === 'stopped') continue
     const item = itemFor(c, run, now)
     if (item === null) continue
     if (quiet) { item.bannered = true }

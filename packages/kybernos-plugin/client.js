@@ -210,6 +210,8 @@ let kbLocaleRead = () => 'en'
       'tasks.no.session': { kybernos: 'Aucune session', en: 'No session' },
       'tasks.paused': { kybernos: 'En pause', en: 'Paused' },
       'tasks.failed.at': { kybernos: 'Échec · {when}', en: 'Failed · {when}' },
+      'tasks.skipped.at': { kybernos: 'Ignorée · {when}', en: 'Skipped · {when}' },
+      'tasks.skipped.approval': { kybernos: 'Ignorée · {when} : pas encore approuvée', en: 'Skipped · {when}: not approved yet' },
       'tasks.notify.on': { kybernos: 'notifications activées', en: 'notifications on' },
       'tasks.runson.local': { kybernos: 'cet ordinateur', en: 'this computer' },
       'tasks.ws.label': { kybernos: 'Workspace', en: 'Workspace' },
@@ -379,6 +381,8 @@ let kbLocaleRead = () => 'en'
       'tasks.runs.stat.slowest': { kybernos: 'Plus lente', en: 'Slowest' },
       'tasks.runs.completedin': { kybernos: 'Terminée en {d}', en: 'Completed in {d}' },
       'tasks.runs.failedin': { kybernos: 'Échec en {d}', en: 'Failed in {d}' },
+      'tasks.runs.stopped': { kybernos: 'Arrêtée', en: 'Stopped' },
+      'tasks.runs.stoppedin': { kybernos: 'Arrêtée après {d}', en: 'Stopped after {d}' },
       'tasks.runs.failed': { kybernos: 'Échec', en: 'Failed' },
       'tasks.runs.running': { kybernos: 'En cours', en: 'Running' },
       'tasks.runs.unread': { kybernos: 'Non lue', en: 'Not read' },
@@ -489,12 +493,14 @@ let kbLocaleRead = () => 'en'
       'tasks.board.st.failed': { kybernos: 'Échec : {why}', en: 'Failed: {why}' },
       'tasks.board.st.failed.plain': { kybernos: 'Échec.', en: 'Failed.' },
       'tasks.board.st.ended': { kybernos: 'La session est terminée. Ouvre-la pour voir le résultat.', en: 'The session has ended. Open it to see the result.' },
+      'tasks.board.st.stopped': { kybernos: 'Arrêtée avant la fin. Ouvre la session pour voir où elle s’est arrêtée.', en: 'Stopped before it finished. Open the session to see where it stopped.' },
       'tasks.board.st.started': { kybernos: 'Lancée. L’état de sa session n’est pas visible ici.', en: 'Started. The state of its session is not visible here.' },
       'tasks.board.chip.planned': { kybernos: 'Prévue', en: 'Planned' },
       'tasks.board.chip.running': { kybernos: 'En cours', en: 'Running' },
       'tasks.board.chip.waiting': { kybernos: 'Attend ton accord', en: 'Waiting for you' },
       'tasks.board.chip.failed': { kybernos: 'Échec', en: 'Failed' },
       'tasks.board.chip.ended': { kybernos: 'Terminée', en: 'Finished' },
+      'tasks.board.chip.stopped': { kybernos: 'Arrêtée', en: 'Stopped' },
       'tasks.board.chip.started': { kybernos: 'Lancée', en: 'Started' },
       'tasks.sug.chip': { kybernos: 'Suggérée', en: 'Suggested' },
       'tasks.sug.add': { kybernos: 'Ajouter', en: 'Add' },
@@ -519,6 +525,7 @@ let kbLocaleRead = () => 'en'
       'tasks.gate.st.static-failed': { kybernos: 'Vérifications échouées', en: 'Checks failed' },
       'tasks.gate.st.static-passed': { kybernos: 'Vérifications passées', en: 'Checks passed' },
       'tasks.gate.st.trial-done': { kybernos: 'Essai terminé', en: 'Trial done' },
+      'tasks.gate.st.trial-failed': { kybernos: 'Essai échoué', en: 'Trial failed' },
       'tasks.gate.st.awaiting-approval': { kybernos: 'À approuver', en: 'Awaiting approval' },
       'tasks.gate.st.approved': { kybernos: 'Approuvée', en: 'Approved' },
       'tasks.gate.st.refused': { kybernos: 'Refusée', en: 'Refused' },
@@ -563,12 +570,15 @@ let kbLocaleRead = () => 'en'
       'tasks.gate.badge.failed': { kybernos: 'Échec des vérifications', en: 'Checks failed' },
       'tasks.gate.badge.refused': { kybernos: 'Refusée', en: 'Refused' },
       'tasks.gate.err.unknown-action': { kybernos: 'Cet hôte ne connaît pas encore cette action.', en: 'This host does not know that action yet.' },
+      'tasks.err.approval': { kybernos: 'Pas encore approuvée : ouvre « Certification » sous l’automatisation, lance les vérifications et l’essai, puis approuve-la.', en: 'Not approved yet: open “Certification” under the automation, run the checks and the trial, then approve it.' },
       'tasks.gate.err.approval': { kybernos: 'Il faut ton approbation avant de l’allumer.', en: 'Your approval is needed before switching it on.' },
       'tasks.gate.err.not-found': { kybernos: 'Automation introuvable : elle a peut-être été supprimée.', en: 'Automation not found: it may have been deleted.' },
       'tasks.gate.err.signin': { kybernos: 'Session expirée : reconnecte-toi.', en: 'Session expired: sign in again.' },
       'tasks.gate.err.phone': { kybernos: 'Cette action n’est pas disponible depuis le téléphone.', en: 'That action is not available from the phone.' },
       'tasks.gate.err.other': { kybernos: 'L’hôte a refusé : rien n’a changé.', en: 'The host refused: nothing changed.' },
       'tasks.proof.title': { kybernos: 'Preuve de l’essai', en: 'Trial proof' },
+      'tasks.proof.failed': { kybernos: 'L’essai a échoué : {why}', en: 'The trial failed: {why}' },
+      'tasks.proof.failed.plain': { kybernos: 'L’essai a échoué avant d’avoir pu se terminer.', en: 'The trial failed before it could finish.' },
       'tasks.proof.sideeffect.ok': { kybernos: 'Rien n’est sorti de la machine.', en: 'Nothing left the machine.' },
       'tasks.proof.sideeffect.bad': { kybernos: 'Quelque chose a pu sortir de la machine : l’approbation est fermée.', en: 'Something could have left the machine: approval is closed.' },
       'tasks.proof.sideeffect.unknown': { kybernos: 'Aucune preuve pour l’instant : rien n’est affirmé.', en: 'No proof yet: nothing is claimed.' },
@@ -6955,8 +6965,20 @@ const kbCronWindow = (cron) => {
 // The window as a schedule (a step of 1 is written "8-20"): the minute and the weekdays are the ones given.
 const kbCronWindowOf = (mi, from, to, step, days) => String(mi) + ' ' + String(from) + '-' + String(to) + (step > 1 ? '/' + String(step) : '') + ' * * ' + days
 // A one-time date as written in the automation's own zone: "One time · Sat, Oct 17 · 10:00".
-const kbOnceLabel = (at, tr, nowYear, locale, zoneName) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/.exec(String(at || ''))
+// A date written with `Z` or an offset is an instant, not a wall-clock time (the reminder tool writes it in UTC): it is read in `readZone`, the automation's
+// own zone, or the person's, so the board's first time and its « Today · 14:52 » agree (UJ-175).
+const kbOnceLabel = (at, tr, nowYear, locale, zoneName, readZone) => {
+  let m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/.exec(String(at || ''))
+  if (m !== null && /(?:Z|[+-]\d{2}:?\d{2})$/i.test(String(at).trim()) === true && typeof readZone === 'string' && readZone.length > 0) {
+    const ms = Date.parse(String(at).trim())
+    if (Number.isFinite(ms) === true) {
+      try {
+        const parts = {}
+        for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: readZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms))) parts[x.type] = x.value
+        m = [null, parts.year, parts.month, parts.day, parts.hour, parts.minute]
+      } catch (e) { /* unknown zone: the date as written */ }
+    }
+  }
   if (m === null) return tr('tasks.onetime')
   const year = Number.isFinite(nowYear) === true ? nowYear : new Date().getFullYear()
   return tr('tasks.onetime') + ' · ' + kbDayLabel(Number(m[1]), Number(m[2]), Number(m[3]), locale, Number(m[1]) !== year) + ' · ' + m[4].padStart(2, '0') + ':' + m[5] + (typeof zoneName === 'string' && zoneName.length > 0 ? ' (' + zoneName + ')' : '')
@@ -7071,7 +7093,7 @@ const kbTriggerParts = (t, tr, locale, viewerZone) => {
   const sc = t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule : {}
   const away = typeof sc.tz === 'string' && sc.tz.length > 0 && typeof viewerZone === 'string' && viewerZone.length > 0 && sc.tz !== viewerZone
   const zoneName = away === true ? kbZoneLabel(sc.tz) : ''
-  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr, undefined, locale, zoneName) : kbCronHuman(sc.cron || '', tr, locale, zoneName))
+  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr, undefined, locale, zoneName, typeof sc.tz === 'string' && sc.tz.length > 0 ? sc.tz : viewerZone) : kbCronHuman(sc.cron || '', tr, locale, zoneName))
   const hooked = t !== null && typeof t === 'object' && t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook' && sc.mode !== 'webhook'
   const tip = sc.mode === 'webhook' ? '' : (sc.mode === 'once' ? (away === true ? sc.tz : '') : String(sc.cron || '').trim() + (away === true ? ' · ' + sc.tz : ''))
   return { label, hooked, tip }
@@ -7737,6 +7759,7 @@ const KB_TASK_ERRORS = {
   'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
   'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace', 'runs in the cloud': 'tasks.err.cloud',
   'not running': 'tasks.err.notrunning', 'could not stop': 'tasks.err.stopfail', 'invalid duration': 'tasks.err.duration',
+  'approval required': 'tasks.err.approval',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -7863,15 +7886,16 @@ const kbBoardLiveOf = (listSnap, statusMap) => {
 }
 // The state of one run: 'failed' (it did not start: the reason is on the entry; or its last turn ended with an error,
 // which the host read from the engine's own `turn/end` reason), 'waiting' (the engine holds a question for the
-// person), 'running', 'ended' (the engine lists the session and it is neither running nor waiting, and no failed
-// turn is known), 'started' (the run began and this page cannot see its session: the outcome is not claimed).
+// person), 'running', 'stopped' (the last turn was cut short, usually by the person: it did not complete), 'ended' (the engine lists the session
+// and it is neither running nor waiting, and no failed turn is known), 'started' (the run began and this page cannot see its session: the outcome is not claimed).
 // `outcome` is the host's verdict on the last turn ({ failed, message }) or null when it has none: no verdict, no claim.
 const kbBoardRunState = (status, live, outcome) => {
   if (status === 'error') return 'failed'
   if (live === null || live === undefined) return 'started'
   if (live.waiting !== null) return 'waiting'
   if (live.running === true) return 'running'
-  return outcome !== null && outcome !== undefined && outcome.failed === true ? 'failed' : 'ended'
+  if (outcome !== null && outcome !== undefined && outcome.failed === true) return 'failed'
+  return outcome !== null && outcome !== undefined && outcome.stopped === true ? 'stopped' : 'ended'
 }
 // Every run of every automation, from the histories: { key, taskId, atMs, state, sessionId, via, error, last, live }.
 const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
@@ -7879,9 +7903,14 @@ const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
   for (const t of Array.isArray(tasks) ? tasks : []) {
     if (t === null || typeof t !== 'object' || typeof t.id !== 'string') continue
     const hist = Array.isArray(t.history) === true ? t.history : []
+    // The newest line that is a run: a trial after a failed run must not hide that failure.
+    let lastRun = hist.length - 1
+    while (lastRun >= 0 && hist[lastRun] !== null && typeof hist[lastRun] === 'object' && (hist[lastRun].status === 'trial' || hist[lastRun].status === 'skipped')) lastRun -= 1
     for (let i = 0; i < hist.length; i += 1) {
       const e = hist[i]
       if (e === null || typeof e !== 'object') continue
+      // A supervised trial, or a tick the gate skipped, is not a run of the automation (no session): the board would file it as « started ».
+      if (e.status === 'trial' || e.status === 'skipped') continue
       const atMs = Date.parse(e.at)
       if (Number.isFinite(atMs) !== true || atMs > nowMs + 60000) continue
       const sessionId = typeof e.sessionId === 'string' && e.sessionId.length > 0 ? e.sessionId : null
@@ -7890,7 +7919,7 @@ const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
       const outcome = live !== null && live !== undefined && typeof outcomeOf === 'function' ? outcomeOf(sessionId) : null
       const state = kbBoardRunState(status, live, outcome)
       const why = typeof e.error === 'string' && e.error !== '' ? e.error : (state === 'failed' && outcome !== null && outcome !== undefined && typeof outcome.message === 'string' ? outcome.message : '')
-      out.push({ key: t.id + '@' + String(e.at) + '#' + String(i), taskId: t.id, atMs, state, sessionId, via: e.via === 'webhook' ? 'webhook' : 'schedule', error: why, last: i === hist.length - 1, live: live === undefined ? null : live })
+      out.push({ key: t.id + '@' + String(e.at) + '#' + String(i), taskId: t.id, atMs, state, sessionId, via: e.via === 'webhook' ? 'webhook' : 'schedule', error: why, last: i === lastRun, live: live === undefined ? null : live })
     }
   }
   return out
@@ -7962,7 +7991,7 @@ const kbBoardColumns = (tasks, runs, plan, nowMs) => {
   const running = runs.filter((r) => r.state === 'running').sort((a, b) => b.atMs - a.atMs)
   const waiting = runs.filter((r) => r.state === 'waiting').sort((a, b) => a.atMs - b.atMs)
   const failed = runs.filter((r) => r.state === 'failed' && r.last === true && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
-  const done = runs.filter((r) => (r.state === 'ended' || r.state === 'started') && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
+  const done = runs.filter((r) => (r.state === 'ended' || r.state === 'stopped' || r.state === 'started') && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
   return {
     upcoming, running, approve: waiting.concat(failed), done: done.slice(0, KB_BOARD_DONE_MAX), doneMore: Math.max(0, done.length - KB_BOARD_DONE_MAX),
     hooks, paused: pausedIds.size, cannotFire: plan !== null && plan !== undefined && Array.isArray(plan.cannotFire) === true ? plan.cannotFire : [],
@@ -7970,13 +7999,14 @@ const kbBoardColumns = (tasks, runs, plan, nowMs) => {
   }
 }
 // The runs and planned runs of each visible day, a same automation's runs of one day folded into one entry.
-// Precedence of the folded state: waiting, failed, running, then `mixed` (past and planned together), planned, ended, started.
+// Precedence of the folded state: waiting, failed, running, then `mixed` (past and planned together), planned, ended, stopped, started.
 const kbBoardGroupState = (items) => {
   const has = (s) => items.some((i) => i.state === s)
   for (const s of ['waiting', 'failed', 'running']) { if (has(s) === true) return s }
-  const past = items.some((i) => i.state === 'ended' || i.state === 'started')
+  const past = items.some((i) => i.state === 'ended' || i.state === 'stopped' || i.state === 'started')
   if (has('planned') === true) return past === true ? 'mixed' : 'planned'
-  return has('ended') === true ? 'ended' : 'started'
+  if (has('ended') === true) return 'ended'
+  return has('stopped') === true ? 'stopped' : 'started'
 }
 const kbBoardDays = (items, dayKeys, zone) => {
   const wanted = new Set(dayKeys)
@@ -8227,6 +8257,9 @@ const kbRunsOf = (history) => {
   const entries = []
   for (const e of list) {
     if (e === null || typeof e !== 'object') continue
+    // A supervised trial leaves a line in the history (no session of its own); it is not a run of the automation, its evidence is the trial proof of the gate panel.
+    // A tick the gate skipped (UJ-167) is no run either: it has no session, and it would count as a success. The list row says it in words.
+    if (e.status === 'trial' || e.status === 'skipped') continue
     const ms = new Date(e.at).getTime()
     entries.push({
       at: typeof e.at === 'string' ? e.at : '',
@@ -8292,12 +8325,13 @@ const kbRunFmtHm = (iso, locale) => {
   try { return new Intl.DateTimeFormat(locale || 'en', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms)) } catch (e) { return '' }
 }
 
-/** How a run stands: 'failed' | 'completed' | 'running' | 'unread'. The history's own « error » or the engine's error verdict makes it failed. */
+/** How a run stands: 'failed' | 'completed' | 'stopped' (cut short, usually by the person) | 'running' | 'unread'. The history's own « error » or the engine's error verdict makes it failed. */
 const kbRunState = (run, sum) => {
   if (run !== null && run !== undefined && run.status === 'error') return 'failed'
   const st = sum !== null && sum !== undefined && sum.outcome !== null && typeof sum.outcome === 'object' ? sum.outcome.state : ''
   if (st === 'failed') return 'failed'
   if (st === 'completed') return 'completed'
+  if (st === 'stopped') return 'stopped'
   if (st === 'open') return 'running'
   return 'unread'
 }
@@ -8495,6 +8529,12 @@ const kbProofText = (v, max) => {
   const s = typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim() : ''
   return s.length > max ? s.slice(0, max - 1) + '…' : s
 }
+/** The words of a failure for a person: a provider's answer often reaches us as `402: {"message":"…","type":"…"}`, and only its `message` is for reading. */
+const kbProofReason = (v) => {
+  const raw = typeof v === 'string' ? v : ''
+  const hit = /"message"\s*:\s*"((?:[^"\\]|\\.){1,300})(?:"|$)/.exec(raw)
+  return kbProofText(hit !== null ? hit[1].replace(/\\"/g, '"') : raw, KB_GATE_PROOF_TEXT_MAX)
+}
 const kbProofMs = (v) => { const ms = typeof v === 'string' ? Date.parse(v) : NaN; return Number.isFinite(ms) === true ? ms : null }
 /** A gate view (or anything shaped like one) → what the proof block draws, and what it must not claim. */
 const kbProofOf = (rec) => {
@@ -8530,7 +8570,7 @@ const kbProofOf = (rec) => {
     endedAt: endedMs !== null ? trial.endedAt : null,
     durationMs: startedMs !== null && endedMs !== null && endedMs >= startedMs ? endedMs - startedMs : null,
     outcome: {
-      state: verdict.state === 'completed' || verdict.state === 'open' || verdict.state === 'failed' ? verdict.state : null,
+      state: verdict.state === 'completed' || verdict.state === 'open' || verdict.state === 'failed' || verdict.state === 'stopped' ? verdict.state : null,
       code: kbProofText(verdict.code, 60),
       message: kbProofText(verdict.message, KB_GATE_PROOF_TEXT_MAX),
     },
@@ -22609,6 +22649,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       if (state === 'failed') return dur === '—' ? kbt('tasks.runs.failed') : kbt('tasks.runs.failedin').replace('{d}', dur)
       if (state === 'completed') return kbt('tasks.runs.completedin').replace('{d}', dur)
       if (state === 'running') return kbt('tasks.runs.running')
+      if (state === 'stopped') return dur === '—' ? kbt('tasks.runs.stopped') : kbt('tasks.runs.stoppedin').replace('{d}', dur)
       return run.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.runs.unread')
     }
     // ── The sheet of an automation (its Overview tab) ──────────────────────────────────────────────────────────────────────
@@ -23110,12 +23151,15 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const running = props.running === true
       const state = p.present !== true ? 'none' : (running === true || p.outcome.state === 'open' ? 'running' : 'done')
       const sideKey = p.sideEffectFree === true ? 'tasks.proof.sideeffect.ok' : (p.sideEffectFree === false ? 'tasks.proof.sideeffect.bad' : 'tasks.proof.sideeffect.unknown')
-      const sideTone = p.sideEffectFree === true ? 'ok' : (p.sideEffectFree === false ? 'bad' : 'idle')
+      const trialFailed = p.present === true && p.outcome.state === 'failed'
+      // « Nothing left the machine » stays true of a trial that never got to act, but it is not good news next to a failure: no green.
+      const sideTone = p.sideEffectFree === true ? (trialFailed === true ? 'idle' : 'ok') : (p.sideEffectFree === false ? 'bad' : 'idle')
       const row = (key, value) => h('div', { key: key, className: 'kbgate-prow' }, h('span', { className: 'kbgate-plab' }, value))
       return h('div', { className: 'kbgate-proof', 'data-kb': 'gate-proof', 'data-state': state, 'data-sideeffect': p.sideEffectFree === true ? 'true' : (p.sideEffectFree === false ? 'false' : 'unknown') },
         h('div', { className: 'kbgate-proof-h' },
           h('span', { className: 'kbgate-sub-t', 'data-kb-i18n': 'tasks.proof.title' }, kbt('tasks.proof.title')),
           (p.durationMs !== null ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.duration').replace('{d}', () => kbRunFmtDur(p.durationMs))) : null)),
+        (trialFailed === true ? h('p', { className: 'kbgate-fail', role: 'alert', 'data-kb': 'gate-proof-failed' }, (kbProofReason(p.outcome.message) !== '' ? kbt('tasks.proof.failed').replace('{why}', () => kbProofReason(p.outcome.message)) : kbt('tasks.proof.failed.plain'))) : null),
         h('span', { className: 'kbgate-side ' + sideTone, 'data-kb-i18n': sideKey }, kbt(sideKey)),
         h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.proof.tools.title' }, kbt('tasks.proof.tools.title'))),
         (p.toolRows.length === 0
@@ -23133,7 +23177,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         (p.errors.length === 0 ? null : h('div', { className: 'kbgate-sub' }, h('span', { 'data-kb-i18n': 'tasks.proof.errors.title' }, kbt('tasks.proof.errors.title')))),
         (p.errors.length === 0
           ? null
-          : h('ul', { className: 'kbgate-list' }, p.errors.map((e, i) => h('li', { key: i }, h('span', null, (e.where !== '' ? e.where + ' · ' : '') + e.message), null)))),
+          : h('ul', { className: 'kbgate-list' }, p.errors.map((e, i) => h('li', { key: i }, h('span', null, (e.where !== '' ? e.where + ' · ' : '') + kbProofReason(e.message)), null)))),
         (p.errorsHidden > 0 ? h('span', { className: 'kbgate-dim' }, kbt('tasks.proof.errors.more').replace('{n}', () => String(p.errorsHidden))) : null))
     }
 
@@ -23147,6 +23191,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const cloud = props.cloud === true
       const locked = cloud === true || g.known !== true
       const proof = kbProofOf(g)
+      // A trial that did not finish keeps the rung `trial-done` on the record (it is not clean, so nothing climbs), but the chip must not read as a good result.
+      const trialFailed = g.status === 'trial-done' && proof.present === true && proof.outcome.state === 'failed'
+      const statusKey = trialFailed === true ? 'tasks.gate.st.trial-failed' : KB_GATE_ST_KEY[g.status]
+      const statusTone = trialFailed === true ? 'bad' : kbGateTone(g.status)
       const steps = kbGateSteps(g)
       const findings = kbGateFindings(g)
       const hintKey = KB_GATE_HINT_KEY[g.status] !== undefined ? KB_GATE_HINT_KEY[g.status] : ''
@@ -23158,7 +23206,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       return h('div', { className: 'kbgate-header-block kbgate', 'data-kb': 'gate-panel', 'data-open': open === true ? 'true' : 'false', 'data-status': g.status, 'data-known': g.known === true ? 'true' : 'false', role: 'region', 'aria-label': kbt('tasks.gate.panel.title') },
         h('div', { className: 'kbgate-head' },
           h('span', { className: 'kbgate-title', 'data-kb-i18n': 'tasks.gate.panel.title' }, kbt('tasks.gate.panel.title')),
-          h('span', { className: 'kbgate-status ' + kbGateTone(g.status), 'data-kb-i18n': KB_GATE_ST_KEY[g.status] }, kbt(KB_GATE_ST_KEY[g.status])),
+          h('span', { className: 'kbgate-status ' + statusTone, 'data-kb-i18n': statusKey }, kbt(statusKey)),
           (findings.blockers > 0 ? h('span', { className: 'kbgate-chip bad', title: kbt('tasks.gate.severity.blocker') }, String(findings.blockers)) : null),
           h('span', { className: 'kbgate-ladder' }, steps.steps.map((s) => h('button', {
             key: s.id, type: 'button', className: 'kbgate-step' + (s.done === true ? ' done' : '') + (s.blocked === true ? ' blocked' : ''),
@@ -23374,7 +23422,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           out.push(btn('journal', 'journal', kbt('tasks.board.act.journal'), () => props.openTask(it.taskId), false))
         }
         // A session the page cannot see (deleted, or not in the list) is not offered: the button would lead nowhere.
-        if (it.state === 'ended' && sid !== null) out.push(btn('session', 'session', kbt('tasks.board.act.session'), () => openSession(sid), false))
+        if ((it.state === 'ended' || it.state === 'stopped') && sid !== null) out.push(btn('session', 'session', kbt('tasks.board.act.session'), () => openSession(sid), false))
         return out
       }
       const kbClip160 = (s) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > 160 ? t.slice(0, 159) + '…' : t }
@@ -23386,10 +23434,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (it.state === 'running') return kbt('tasks.board.st.running')
         if (it.state === 'failed') { const why = kbClip160(it.error); return why !== '' ? kbt('tasks.board.st.failed').replace('{why}', why) : kbt('tasks.board.st.failed.plain') }
         if (it.state === 'ended') return kbt('tasks.board.st.ended')
+        if (it.state === 'stopped') return kbt('tasks.board.st.stopped')
         if (it.state === 'started') return kbt('tasks.board.st.started')
         return ''
       }
-      const CHIP = { planned: 'tasks.board.chip.planned', mixed: 'tasks.board.chip.planned', running: 'tasks.board.chip.running', waiting: 'tasks.board.chip.waiting', failed: 'tasks.board.chip.failed', ended: 'tasks.board.chip.ended', started: 'tasks.board.chip.started' }
+      const CHIP = { planned: 'tasks.board.chip.planned', mixed: 'tasks.board.chip.planned', running: 'tasks.board.chip.running', waiting: 'tasks.board.chip.waiting', failed: 'tasks.board.chip.failed', ended: 'tasks.board.chip.ended', stopped: 'tasks.board.chip.stopped', started: 'tasks.board.chip.started' }
       const CHIPCLS = { running: 'run', waiting: 'warn', failed: 'err', ended: 'ok' }
       const stateChip = (state) => h('span', { className: 'kbbd-chip ' + (CHIPCLS[state] || ''), 'data-state': state }, kbt(CHIP[state] || 'tasks.board.chip.started'))
       const cadence = (t) => {
@@ -23481,6 +23530,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         if (state === 'ended') return h('span', { className: 'kbbd-sgn ok' }, Icon('check', 13))
         if (state === 'waiting') return h('span', { className: 'kbbd-sgn warn' }, Icon('pause', 13))
         if (state === 'running') return h('span', { className: 'kbbd-sgn' }, h('span', { className: 'kbbd-pulse' }))
+        if (state === 'stopped') return h('span', { className: 'kbbd-sgn' }, Icon('square', 12))
         if (state === 'started') return h('span', { className: 'kbbd-sgn idle' }, h('span', { className: 'kbbd-pip' }))
         return null
       }
@@ -23541,7 +23591,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           h('span', { className: 'kbbd-caltitle', 'data-kb': 'board-title' }, title)),
         h('span', { className: 'kbbd-seg', role: 'group', 'aria-label': kbt('tasks.board.cal.scale') },
           ['week', 'month'].map((mode) => h('button', { key: mode, type: 'button', 'data-kb': 'board-mode', 'data-v': mode, 'aria-pressed': cal.mode === mode ? 'true' : 'false', onClick: () => setCal({ mode, offset: 0, sel: null }) }, kbt(mode === 'week' ? 'tasks.board.cal.week' : 'tasks.board.cal.month')))))
-      const legend = h('div', { className: 'kbbd-legend' }, [['ok', 'ended'], ['warn', 'waiting'], ['err', 'failed'], ['run', 'running'], ['idle', 'started'], ['planned', 'planned']].map((x) => h('span', { key: x[1] }, h('i', { className: x[0] }), kbt(CHIP[x[1]]))))
+      const legend = h('div', { className: 'kbbd-legend' }, [['ok', 'ended'], ['warn', 'waiting'], ['err', 'failed'], ['run', 'running'], ['idle', 'stopped'], ['idle', 'started'], ['planned', 'planned']].map((x) => h('span', { key: x[1] }, h('i', { className: x[0] }), kbt(CHIP[x[1]]))))
       let detail = h('p', { className: 'kbbd-foot' }, kbt('tasks.board.cal.hint'))
       if (selected !== null) {
         const t = byId.get(selected.taskId)
@@ -25080,6 +25130,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const items = list.map((t) => {
         const hist = Array.isArray(t.history) === true ? t.history : []
         const last = hist.length > 0 ? hist[hist.length - 1] : null
+        // The newest line that is not a trial: a tick the gate skipped (nothing ran) must not read as « No session » (UJ-167).
+        const lastLine = hist.slice().reverse().find((e) => e !== null && typeof e === 'object' && e.status !== 'trial') || null
         const cloudLinked = t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object'
         const cloudBad = cloudLinked === true && kbwRunBad(kbwRunLast(cloudRunsPair[0][t.cloud.computerId], t.id)) === true
         const cloudWait = cloudLinked === true && kbwPending(cloudAsksPair[0][t.cloud.computerId], t.id).length > 0
@@ -25092,11 +25144,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         else if (kbOnceDone(t) === true) { lastLabel = failed ? kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)) : kbe('Done'); lastCls = failed ? 'fail' : 'ok' }
         else if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
+        else if (lastLine !== null && lastLine.status === 'skipped') { lastLabel = kbt(lastLine.error === 'approval required' ? 'tasks.skipped.approval' : 'tasks.skipped.at').replace('{when}', kbWhenOf(lastLine.at)); lastCls = 'fail' }
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
         const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
           id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt) + (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? ' \u00b7 ' + kbt('kbwr.row.sub').replace('{name}', () => String(t.cloud.name)) : '') + (kbtaRowMark(t) !== '' ? ' · ' + kbtaRowMark(t) : ''), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
-          sessions: cloudHist !== null ? cloudHist.length : hist.length, succ: kbRunBars(cloudHist !== null ? cloudHist : t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
+          sessions: cloudHist !== null ? cloudHist.length : hist.filter((e) => e !== null && typeof e === 'object' && e.status !== 'trial' && e.status !== 'skipped').length, succ: kbRunBars(cloudHist !== null ? cloudHist : t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
           weight: kbLdRowWeight(machineLoadPair[0], t, runIds.indexOf(t.id) >= 0, Date.now()),
         }
       })
@@ -33245,6 +33298,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 /* Le retour : le gabarit d'une ligne de navigation du shell (14/22, poids 500),
    pose a la place du titre « Settings ». */
 .kbsb{display:inline-flex;align-items:center;gap:6px;margin:0;padding:2px 6px 2px 0;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;font-weight:500;line-height:22px;cursor:pointer}
+html[dir="rtl"] .kbsb svg{transform:scaleX(-1)}
 /* (29/09) Champ de recherche de l'en-tête Réglages : même matière que la
    recherche unifiée KbToolbar, posé sous le bouton de retour.
    (30/09) Il DÉBORDAIT de la colonne de nav — input figé à 180 px = boîte de
@@ -36714,6 +36768,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbgate-step[disabled]{cursor:default;opacity:.55}
 .kbgate-btn{height:28px;padding:0 11px;font-size:12.5px;border-radius:12px}
 .kbgate-hint{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbgate-fail{margin:0;font-size:12.5px;font-weight:600;color:var(--dsw-alias-state-error-primary);overflow-wrap:anywhere}
 .kbgate-warn{margin:0;font-size:12.5px;color:var(--dsw-alias-state-warn-primary);overflow-wrap:anywhere}
 .kbgate-body{display:flex;flex-direction:column;gap:8px;padding-top:4px;border-top:1px dashed var(--dsw-alias-border-l1)}
 .kbgate-intro{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}

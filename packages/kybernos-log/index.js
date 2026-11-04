@@ -141,7 +141,8 @@ export const classifyEvent = (sessionId, event, state = {}) => {
   if (type === 'tool/call') {
     const tool = clampText(data.name, 60)
     if (tool === undefined) return null
-    return { ...base, type: toolKind(tool), kind: 'call', tool }
+    const callId = clampText(data.callId, 80)
+    return { ...base, type: toolKind(tool), kind: 'call', tool, ...(callId !== undefined ? { callId } : {}) }
   }
   // What a tool answered: the harness records it separately from the call, and it carries the outcome (isError) and, when
   // it failed, an error code. Without it the page could not say « result » at all — a tool call and its result were one row.
@@ -150,7 +151,9 @@ export const classifyEvent = (sessionId, event, state = {}) => {
     const ok = message.isError !== true
     const info = isObj(data.error) ? data.error : {}
     const code = clampText(info.code, 40) || clampText(info.message, 80)
-    return { ...base, type: 'tool', kind: 'result', ok, ...(code !== undefined ? { detail: code } : {}) }
+    const source = isObj(message.source) ? message.source : {}
+    const callId = clampText(source.callId, 80)
+    return { ...base, type: 'tool', kind: 'result', ok, ...(callId !== undefined ? { callId } : {}), ...(code !== undefined ? { detail: code } : {}) }
   }
   if (type === 'approval/asked' || type === 'approval/decided') {
     return { ...base, type: 'approval', kind: type === 'approval/asked' ? 'asked' : 'decided' }
@@ -165,7 +168,9 @@ export const classifyEvent = (sessionId, event, state = {}) => {
   if (type === 'turn/end') {
     const reason = isObj(data.reason) ? data.reason : {}
     const failed = reason.kind !== undefined && reason.kind !== 'completed'
-    return { ...base, type: 'session', kind: 'turn-end', status: failed ? 'failed' : 'completed', ...(failed ? { error: clampText(String(reason.kind), ERROR_MAX) } : {}) }
+    // A turn that failed says why in words (« Your budget is used up »), as the retry rows do, not only the kind of ending.
+    const why = failed && isObj(reason.error) && typeof reason.error.message === 'string' ? clampText(failureSentence(reason.error.message), ERROR_MAX) : undefined
+    return { ...base, type: 'session', kind: 'turn-end', status: failed ? 'failed' : 'completed', ...(failed ? { error: clampText(String(reason.kind), ERROR_MAX) } : {}), ...(why !== undefined ? { detail: why } : {}) }
   }
   return null
 }

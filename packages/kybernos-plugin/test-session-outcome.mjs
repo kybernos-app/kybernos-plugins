@@ -30,9 +30,17 @@ const failedTurn = [
 {
   const done = [{ type: 'turn/start', data: { turn: 1 } }, { type: 'turn/end', data: { turn: 1, reason: { kind: 'completed' } } }]
   assert.deepEqual(lastTurnOutcome(done), { open: false, failed: false })
-  assert.deepEqual(lastTurnOutcome([{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'aborted' } } }]), { open: false, failed: false })
   assert.deepEqual(lastTurnOutcome([{ type: 'turn/start' }, { type: 'turn/end', data: {} }]), { open: false, failed: false })
   ok('any other ending is not a failure (only the engine\'s `error` kind is)')
+}
+{
+  // UJ-172: a run the person stopped is not a completed run. The engine closes its turn with `aborted` (the cause inside), or `interrupted` when it was closed under it.
+  const stopped = [{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'aborted', reason: { kind: 'user' } } } }]
+  assert.deepEqual(lastTurnOutcome(stopped), { open: false, failed: false, stopped: true })
+  assert.deepEqual(lastTurnOutcome([{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'aborted' } } }]), { open: false, failed: false, stopped: true })
+  assert.deepEqual(lastTurnOutcome([{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'interrupted' } } }]), { open: false, failed: false, stopped: true })
+  assert.equal(lastTurnOutcome(stopped.concat([{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'completed' } } }])).stopped, undefined)
+  ok('a turn cut short (stopped by the person, or interrupted) is `stopped`, never a completed or a failed one; a later good turn replaces it')
 }
 {
   assert.deepEqual(lastTurnOutcome(failedTurn.concat([{ type: 'turn/start', seq: 30, data: { turn: 2 } }])), { open: true })
@@ -74,7 +82,7 @@ mkdirSync(process.env.DSH_HOME, { recursive: true })
 const disposers = []
 try {
   const mod = await import(pathToFileURL(join(copy, 'index.js')).href)
-  const journals = { 'session-bad': failedTurn, 'session-good': [{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'completed' } } }], 'session-open': [{ type: 'turn/start' }] }
+  const journals = { 'session-bad': failedTurn, 'session-good': [{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'completed' } } }], 'session-open': [{ type: 'turn/start' }], 'session-stopped': [{ type: 'turn/start' }, { type: 'turn/end', data: { reason: { kind: 'aborted', reason: { kind: 'user' } } } }] }
   const opened = []
   const persistence = { open: async (id) => {
     opened.push(id)
@@ -103,6 +111,8 @@ try {
   assert.equal(r.json.outcomes['session-bad'].code, 'MISSING_CREDENTIAL')
   assert.deepEqual(r.json.outcomes['session-good'], { failed: false })
   ok('the route gives the verdict of each finished session')
+  assert.deepEqual((await get('?ids=session-stopped')).json.outcomes['session-stopped'], { failed: false, stopped: true })
+  ok('a session the person stopped is served as stopped')
   assert.equal(Object.prototype.hasOwnProperty.call(r.json.outcomes, 'session-open'), false)
   assert.equal(Object.prototype.hasOwnProperty.call(r.json.outcomes, 'session-gone'), false)
   ok('a session still running, or one that cannot be read, is absent: no verdict is claimed')

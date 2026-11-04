@@ -26,7 +26,7 @@ if (ui.trim() === '') { console.error('the <kbgate-ui> region is empty'); proces
 const boardNames = ['KB_GATE_STATUSES', 'KB_GATE_FINDINGS_MAX', 'KB_GATE_MSG_MAX', 'KB_INIT_MAX', 'KB_INIT_VISIBLE',
   'kbGateOf', 'kbGateTone', 'kbGateSteps', 'kbGateCanApprove', 'kbGateCanActivate', 'kbGateCanRefuse', 'kbGateToggleIntent',
   'kbGateFindings', 'kbGateBadge', 'kbGateError', 'kbInitView']
-const runsNames = ['KB_GATE_TOOLS_MAX', 'KB_GATE_EFFECTS_MAX', 'KB_GATE_ERRORS_MAX', 'kbProofOf', 'kbRunFmtDur']
+const runsNames = ['KB_GATE_TOOLS_MAX', 'KB_GATE_EFFECTS_MAX', 'KB_GATE_ERRORS_MAX', 'kbProofOf', 'kbProofReason', 'kbRunFmtDur']
 const G = await import('data:text/javascript,' + encodeURIComponent(boardBlock + '\nexport { ' + boardNames.join(', ') + ' }'))
 const R = await import('data:text/javascript,' + encodeURIComponent(runsBlock + '\nexport { ' + runsNames.join(', ') + ' }'))
 
@@ -165,6 +165,10 @@ const PROOF = {
   eq('the duration comes from the two instants', [p.durationMs, R.kbRunFmtDur(p.durationMs)], [6500, '6.5 s'])
   eq('no endedAt, no duration', R.kbProofOf(view('trial-done', 'none', false, { trial: Object.assign({}, PROOF, { endedAt: null }) })).durationMs, null)
   eq('an unparsable endedAt is no duration either', R.kbProofOf(view('trial-done', 'none', false, { trial: Object.assign({}, PROOF, { endedAt: 'yesterday' }) })).durationMs, null)
+  const quota = '402: {"message":"Your budget for the last 5 hours is used up.","type":"insufficient_quota","param":null,"code":"insufficient_quota"}'
+  eq('UJ-214: a provider\'s JSON answer is read for its message, not shown raw', [R.kbProofReason(quota), R.kbProofReason('plain words'), R.kbProofReason(undefined), R.kbProofReason('boom: {"message":"cut in the mid')], ['Your budget for the last 5 hours is used up.', 'plain words', '', 'cut in the mid'])
+  const failedTrial = R.kbProofOf(view('trial-done', 'none', false, { trial: Object.assign({}, PROOF, { outcome: { state: 'failed', code: 'QUOTA', message: quota } }) }))
+  eq('UJ-214: a failed trial keeps its failed outcome and its message for the page', [failedTrial.outcome.state, failedTrial.outcome.code], ['failed', 'QUOTA'])
   eq('an open outcome is reported as open (the poll keeps going)', R.kbProofOf(view('trial-done', 'none', false, { trial: Object.assign({}, PROOF, { outcome: { state: 'open' } }) })).outcome.state, 'open')
 }
 
@@ -237,9 +241,9 @@ const PROOF = {
   eq('draft, static-passed and unknown are idle', ['draft', 'static-passed', 'unknown'].map(G.kbGateTone), ['idle', 'idle', 'idle'])
 }
 
-/* ── i18n: the 94 keys, both twins, defined once ─────────────────────────── */
+/* ── i18n: the 97 keys, both twins, defined once ─────────────────────────── */
 const KEYS = [
-  'tasks.gate.st.draft', 'tasks.gate.st.static-failed', 'tasks.gate.st.static-passed', 'tasks.gate.st.trial-done',
+  'tasks.gate.st.draft', 'tasks.gate.st.static-failed', 'tasks.gate.st.static-passed', 'tasks.gate.st.trial-done', 'tasks.gate.st.trial-failed',
   'tasks.gate.st.awaiting-approval', 'tasks.gate.st.approved', 'tasks.gate.st.refused', 'tasks.gate.st.activated', 'tasks.gate.st.unknown',
   'tasks.gate.hint.static-failed', 'tasks.gate.hint.awaiting-approval', 'tasks.gate.hint.approved', 'tasks.gate.hint.refused', 'tasks.gate.hint.unknown',
   'tasks.gate.panel.title', 'tasks.gate.panel.intro', 'tasks.gate.review', 'tasks.gate.collapse',
@@ -252,7 +256,7 @@ const KEYS = [
   'tasks.gate.approved.toast', 'tasks.gate.refused.toast', 'tasks.gate.activate.gated', 'tasks.gate.unavailable',
   'tasks.gate.badge.awaiting', 'tasks.gate.badge.failed', 'tasks.gate.badge.refused',
   'tasks.gate.err.unknown-action', 'tasks.gate.err.approval', 'tasks.gate.err.not-found', 'tasks.gate.err.signin', 'tasks.gate.err.phone', 'tasks.gate.err.other',
-  'tasks.proof.title', 'tasks.proof.sideeffect.ok', 'tasks.proof.sideeffect.bad', 'tasks.proof.sideeffect.unknown',
+  'tasks.proof.title', 'tasks.proof.failed', 'tasks.proof.failed.plain', 'tasks.proof.sideeffect.ok', 'tasks.proof.sideeffect.bad', 'tasks.proof.sideeffect.unknown',
   'tasks.proof.tools.title', 'tasks.proof.tools.none', 'tasks.proof.access.read', 'tasks.proof.access.write',
   'tasks.proof.outcome.ok', 'tasks.proof.outcome.failed', 'tasks.proof.outcome.open', 'tasks.proof.outcome.refused',
   'tasks.proof.effects.title', 'tasks.proof.effects.none', 'tasks.proof.effects.more', 'tasks.proof.errors.title', 'tasks.proof.errors.more',
@@ -278,15 +282,15 @@ for (const line of src.split('\n')) {
   counts.set(t[1], (counts.get(t[1]) || 0) + 1)
 }
 {
-  eq('the declared list holds 94 keys', KEYS.length, 94)
-  eq('no key is declared twice in this test', new Set(KEYS).size, 94)
+  eq('the declared list holds 97 keys', KEYS.length, 97)
+  eq('no key is declared twice in this test', new Set(KEYS).size, 97)
   const missing = KEYS.filter((k) => table.has(k) !== true)
-  eq('all 94 keys are in KB_T', missing, [])
+  eq('all 97 keys are in KB_T', missing, [])
   const twins = KEYS.filter((k) => typeof table.get(k).kybernos !== 'string' || table.get(k).kybernos.trim() === '' || typeof table.get(k).en !== 'string' || table.get(k).en.trim() === '')
   eq('every key has a French and an English twin', twins, [])
   const dirty = KEYS.filter((k) => table.has(k) === true && counts.get(k) !== 1)
   eq('no key is defined twice', dirty, [])
-  // Every key this batch uses is one of the 94: a typo shows here instead of a raw key on the screen.
+  // Every key this batch uses is one of the 97: a typo shows here instead of a raw key on the screen.
   const used = new Set()
   for (const text of [ui, boardBlock.slice(boardBlock.indexOf("'tasks.gate.badge.awaiting'") - 4000), runsBlock]) {
     for (const m of text.matchAll(/kbt\('([A-Za-z0-9_.-]+)'\)/g)) used.add(m[1])
