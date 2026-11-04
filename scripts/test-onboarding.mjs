@@ -14,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObModelDown, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors, kbObSections, kbObThemeOf, kbObThemeSeam, kbObThemeApplied'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObModelDown, kbObNoModel, kbObPackText, kbObPackOf, kbObKitTitleKey, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors, kbObSections, kbObThemeOf, kbObThemeSeam, kbObThemeApplied'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -115,6 +115,7 @@ const packs = loadPacks(root + 'packages/kybernos-plugin/domains').packs
 const pack = (id) => mod.kbObPackOf(packs, id)
 const edu = pack('edu')
 eq('a field of work is found by its id, anything else is null', [pack('edu').id, mod.kbObPackOf(packs, 'nope'), mod.kbObPackOf(null, 'edu'), mod.kbObPackOf(packs, 7)], ['edu', null, null, null])
+eq('the kit heading names a real field and never the catch-all « Something else » (UJ-10)', [mod.kbObKitTitleKey(edu), mod.kbObKitTitleKey(pack('general')), mod.kbObKitTitleKey(null)], ['k.t', 'k.t0', 'k.t0'])
 eq('a pack text reads in its language, else in English, else nothing', [mod.kbObPackText('fr', edu.name), mod.kbObPackText('es', edu.name), mod.kbObPackText('en', { en: 'x' }), mod.kbObPackText('fr', null), mod.kbObPackText('en', { fr: 'seulement' })], ['Éducation', 'Education', 'x', '', ''])
 const names2 = (kit) => [kit.skills.map((x) => x.name), kit.teams]
 eq('the kit of some goals is their skills and teams, each once, in the pack\'s order (not the order they were ticked)',

@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  classifyEvent, filterEvents, aggregate, createJournal, mountRoutes, journalPath, dayKey, toolKind
+  classifyEvent, failureSentence, filterEvents, aggregate, createJournal, mountRoutes, journalPath, dayKey, toolKind
 } from './index.js'
 
 let pass = 0
@@ -32,6 +32,16 @@ const eq = (label, a, b) => ok(label + ' — ' + JSON.stringify(a) + ' ≠ ' + J
 
   const retry = classifyEvent('session-abc', { type: 'llm/retry', time: 1400, data: { provider: 'kimi', retry: 2, maxRetries: 10, failure: { code: 'RATE_LIMIT', message: '429: quota exhausted' } } }, state)
   eq('retry → an error code and a cleaned detail', { type: retry.type, kind: retry.kind, error: retry.error, detail: retry.detail, attempt: retry.attempt }, { type: 'llm', kind: 'retry', error: 'RATE_LIMIT', detail: 'quota exhausted', attempt: 2 })
+
+  // A provider's JSON body is a sentence for a person, not braces (UJ-22: the Detail column showed {"message":"Th… with rate_limit_error and budget_held inside).
+  const body = '{"error":{"message":"The 5 hours allowance is used.","type":"rate_limit_error","code":"budget_held"}}'
+  eq('a JSON failure gives its message', failureSentence('429: ' + body), 'The 5 hours allowance is used.')
+  eq('a flat JSON failure gives its message', failureSentence('{"message":"Too many requests","type":"rate_limit_error"}'), 'Too many requests')
+  eq('a JSON failure cut by a limit still gives what it said', failureSentence('{"message":"The 5 hours allowance is used and comes back in about 5 hours","type":"rate_li'), 'The 5 hours allowance is used and comes back in about 5 hours')
+  eq('a plain failure only loses its status', [failureSentence('503: upstream down'), failureSentence('no status here')], ['upstream down', 'no status here'])
+  eq('JSON with no message is left as it came', failureSentence('{"code":1}'), '{"code":1}')
+  const jsonRetry = classifyEvent('session-abc', { type: 'llm/retry', time: 1450, data: { provider: 'kybernos', retry: 1, failure: { code: 'rate_limit_error', message: '429: ' + body } } }, state)
+  eq('a retry whose failure is a JSON body keeps the sentence, not the body', jsonRetry.detail, 'The 5 hours allowance is used.')
 
   const titleReq = classifyEvent('session-abc', { type: 'session/title-llm-request', time: 1500, data: { route: { provider: 'kimi', model: 'k3.1-pro' } } }, state)
   eq('title request → title/request', { type: titleReq.type, kind: titleReq.kind, model: titleReq.model }, { type: 'title', kind: 'request', model: 'k3.1-pro' })

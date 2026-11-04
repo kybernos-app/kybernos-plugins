@@ -179,5 +179,12 @@ console.log('which source the cards come from (check-help-live)')
   check('the live check says the source of the cards before it compares them', /describeHelpSource\(source\)/.test(live) && /helpSource\(\{ repo: REPO, home: dshHome\(\) \}\)/.test(live))
 }
 
+console.log('the settings pages that draw their own title still carry the « ? »')
+{
+  const help = JSON.parse(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'help.json'), 'utf8'))
+  const client = readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')
+  check('Settings > Templates names its card, and the card exists (UJ-23: it was the only page without)', help.pages.templates !== undefined && /pageHead\(\{[^}]*page: 'templates'/.test(client))
+}
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

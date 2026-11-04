@@ -286,6 +286,39 @@
         "fr": "Désactiver n’efface rien : les fichiers, réglages et données du module restent sur ce poste.",
         "en": "Turning off erases nothing: the module’s files, settings and data stay on this machine."
       }
+    },
+    "templates": {
+      "title": {
+        "fr": "Modèles",
+        "en": "Templates"
+      },
+      "what": {
+        "fr": "Un modèle règle l’apparence de Kybernos, ou démarre une app depuis un point de départ. Ici tu en ajoutes de nouveaux, depuis un dossier de cet ordinateur ou depuis un catalogue.",
+        "en": "A template sets how Kybernos looks, or starts an app from a ready-made starting point. Here you add new ones, from a folder on this computer or from a catalogue."
+      },
+      "steps": [
+        {
+          "fr": "Choisis d’où vient le modèle : « Depuis un dossier » (il est sur cet ordinateur) ou « Depuis un catalogue » (il est proposé en ligne).",
+          "en": "Pick where the template comes from: “From a folder” (it is on this computer) or “From a catalogue” (it is offered online)."
+        },
+        {
+          "fr": "Lis ce que le modèle contient avant de l’ajouter : un modèle refusé indique pourquoi.",
+          "en": "Read what the template holds before adding it: a refused template says why."
+        },
+        {
+          "fr": "Pour en choisir un pour ton travail, appuie sur « Ouvrir les modèles », ou crée une app depuis la page Apps.",
+          "en": "To pick one for your work, press “Open Templates”, or start an app from the Apps page."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Modèles",
+        "en": "Settings › Templates",
+        "page": true
+      },
+      "good": {
+        "fr": "Ajouter un modèle ne change rien tant que tu ne l’as pas choisi.",
+        "en": "Adding a template changes nothing until you choose it."
+      }
     }
   }
 }

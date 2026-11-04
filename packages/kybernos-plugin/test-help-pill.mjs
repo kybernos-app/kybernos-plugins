@@ -23,6 +23,7 @@ console.log('the help button of Agent Teams and Automations')
   check('its style is the pill’s: 30 px high, round ends, a border, the disc alone inside (padding 6 px both sides), no fixed 26 px disc', css !== null && /height:30px/.test(css[0]) && /border-radius:16px/.test(css[0]) && /padding:0 6px/.test(css[0]) && !/width:26px/.test(css[0]), css && css[0])
   check('the disc has its own style', /\.kb6-helpq\{[^}]*border-radius:50%/.test(src))
   check('Agent Teams and Automations still hang their panels on it', /h\(KbHelpButton, \{ open: helpOpen === true, dataKb: 'kybers-help'/.test(src) && /h\(KbHelpButton, \{ open: guide === true, dataKb: 'automation-help'/.test(src))
+  check('Automations draws no « ? » where the home it would open is already on screen, and opens the guide on the other tabs (UJ-15)', /list\.length === 0 && section === 'yours' \? null : h\(KbHelpButton, \{ open: guide === true, dataKb: 'automation-help'/.test(src) && /guide === true && !\(list\.length === 0 && section === 'yours'\) \? kbaOnboard\(true\)/.test(src))
   check('no other bare « ? » help button is left in a title row (the pages share this one)', (src.match(/className: 'kb6-helpbtn'/g) || []).length === 1)
 }
 
