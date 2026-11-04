@@ -21,7 +21,10 @@ const paquets = [...reels, { dir: 'kybernos-libre', nom: '@local/kybernos-libre'
 const FICHIER_PAQUETS = join(HOME, 'paquets-test.json')
 const sats = JSON.parse(readFileSync(join(REPO, 'docs/beta/satellites.json'), 'utf8'))
 const socle = sats.socle.bundles.map((b) => b.nom)
-const tous = [...sats.socle.bundles, ...sats.satellites.bundles].map((b) => b.nom)
+// A satellite marked `defaut: "inactif"` (the phone-only bundle) is not part of « everything is active » on a profile with no activation file (UJ-39).
+const inactifs = sats.satellites.bundles.filter((b) => b.defaut === 'inactif').map((b) => b.nom)
+const gerees = [...sats.socle.bundles, ...sats.satellites.bundles].map((b) => b.nom)
+const tous = gerees.filter((n) => !inactifs.includes(n))
 writeFileSync(join(PROFIL, 'package.json'), JSON.stringify({
   name: 'dsh-profile-web', private: true,
   dependencies: Object.fromEntries(paquets.map((p) => [p.nom, 'link:' + dossierBundle(REPO, p.dir)])),
@@ -67,7 +70,7 @@ try {
   cliSat('--desactiver', 'kybernos-language'); cliSat('--activer', 'kybernos-language')
   ok('an existing null in dsh.profile.bundles is cleaned', bundles().every((b) => typeof b === 'string'), JSON.stringify(bundles().filter((b) => typeof b !== 'string')))
   rmSync(join(HOME, 'kybernos', 'satellites-actives.json'), { force: true })
-  const nonGeres = paquets.map((p) => p.nom).filter((n) => !tous.includes(n))
+  const nonGeres = paquets.map((p) => p.nom).filter((n) => !gerees.includes(n))
   ok('fixture check: some packages are managed by neither socle nor satellites (kybernos-libre)', nonGeres.includes('@local/kybernos-libre'), nonGeres.join())
   console.log('── satellites --desactiver: one satellite, and the profile follows ──')
   r = cliSat('--desactiver', 'kybernos-language')
@@ -83,7 +86,7 @@ try {
 
   console.log('── on --dry ──')
   r = cli('on', '--dry')
-  ok('dry run changes nothing', r.code === 0 && /DRY/.test(r.out) && bundles().length === paquets.length + 1 && !existsSync(join(HOME, 'kybernos', 'boot-state.json')), r.out + ' | bundles=' + bundles().length + ' expected=' + (paquets.length + 1) + ' missing=' + ['@deepseek-ai/dsh-base', ...paquets.map((p) => p.nom)].filter((b) => !bundles().includes(b)).join(','))
+  ok('dry run changes nothing', r.code === 0 && /DRY/.test(r.out) && bundles().length === paquets.filter((p) => !inactifs.includes(p.nom)).length + 1 && !existsSync(join(HOME, 'kybernos', 'boot-state.json')), r.out + ' | bundles=' + bundles().length + ' expected=' + (paquets.filter((p) => !inactifs.includes(p.nom)).length + 1) + ' missing=' + ['@deepseek-ai/dsh-base', ...paquets.map((p) => p.nom)].filter((b) => !bundles().includes(b)).join(','))
 
   console.log('── on ──')
   r = cli('on')

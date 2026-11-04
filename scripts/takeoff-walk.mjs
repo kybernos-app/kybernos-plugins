@@ -88,7 +88,10 @@ export const LOOK_SCRIPT = `(() => {
   const root = dialog || document
   const rect = (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] }
   const label = (e) => ((e.innerText || e.getAttribute('aria-label') || e.getAttribute('title') || '').trim().split('\\n')[0] || '').slice(0, 60)
-  const controls = Array.from(root.querySelectorAll('button, a[href], [role=button], input, select, textarea')).filter(vis)
+  const vh = document.documentElement.clientHeight
+  // What a person can press: drawn, not transparent, and at least partly inside the window (a closed drawer or a menu at opacity 0 is not on the screen).
+  const onscreen = (e) => { const r = e.getBoundingClientRect(); return r.right > 0 && r.bottom > 0 && r.left < vw && r.top < vh && (typeof e.checkVisibility !== 'function' || e.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) }
+  const controls = Array.from(root.querySelectorAll('button, a[href], [role=button], input, select, textarea')).filter(vis).filter(onscreen)
   return {
     title: document.title,
     dialog: dialog ? { label: dialog.getAttribute('aria-label') || label(dialog), rect: rect(dialog) } : null,
@@ -118,7 +121,7 @@ export const LOOK_SCRIPT = `(() => {
       return e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1
     }).slice(0, 8).map((e) => ({ what: label(e) || e.tagName.toLowerCase(), box: rect(e), content: [e.scrollWidth, e.scrollHeight] })),
     small: controls.filter((e) => { const r = e.getBoundingClientRect(); return r.width < 32 || r.height < 32 }).slice(0, 12).map((e) => ({ what: label(e) || e.tagName.toLowerCase(), rect: rect(e) })),
-    viewport: [vw, document.documentElement.clientHeight],
+    viewport: [vw, vh],
     textStart: text.trim().slice(0, 300).replace(/\\s+/g, ' '),
   }
 })()`
