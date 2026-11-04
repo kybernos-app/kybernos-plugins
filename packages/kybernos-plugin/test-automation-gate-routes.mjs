@@ -320,7 +320,7 @@ const boot = async (options) => {
     },
     sessions: { get: (id) => (ctl.sessions.indexOf(id) >= 0 ? { id } : undefined) },
     sessionController: {
-      async create () { const id = 'sess-' + (ctl.sessions.length + 1); ctl.sessions.push(id); return { ok: true, value: { sessionId: id } } },
+      async create () { const id = 'session-6c1f0f43-8f63-4b8e-9d1b-' + String(ctl.sessions.length + 1).padStart(12, '0'); ctl.sessions.push(id); return { ok: true, value: { sessionId: id } } },
       async prompt (a) { ctl.prompts.push(a); return { ok: true } },
       async selectModel () { return { ok: true } },
     },

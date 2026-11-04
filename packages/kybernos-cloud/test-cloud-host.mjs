@@ -2401,10 +2401,12 @@ try {
       assert.equal(asked.length, 1)
       assert.equal(asked[0].toolName, 'memory_write')
       assert.ok(/memory_write/.test(asked[0].reason), 'the card says what is asked: ' + asked[0].reason)
-      outcome = 'denied'
+      outcome = 'rejected'
       const refused = await run('connections_execute', { tool: 'GMAIL_SEND_EMAIL' })
       assert.equal(refused.kind, 'deny', 'the person said no')
       assert.ok(/did not allow/.test(refused.reason) && /Do not try it again/.test(refused.reason))
+      assert.ok(/they refused it/.test(refused.reason), 'the engine\'s word for Reject is « rejected »: the model is told the person refused, not that the question failed: ' + refused.reason)
+      outcome = 'denied'
       for (const t of ['computer_exec', 'computer_write', 'lesson_write', 'relancer_dsh']) assert.equal((await run(t, {})).kind, 'deny', t + ' asks too')
       const count = asked.length
       for (const safe of ['memory_search', 'kaby_journal', 'kaby_knowledge', 'connections_list', 'lesson_search', 'computer_list', 'bash', 'read']) assert.deepEqual(await run(safe, {}), { kind: 'allow' }, safe)

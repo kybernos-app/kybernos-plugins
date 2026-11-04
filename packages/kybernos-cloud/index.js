@@ -5503,7 +5503,8 @@ const nativeGate = (ctx) => async (exec, next) => {
   try {
     outcome = await approval.request({ agent: exec.agent, toolName: name, reason: turnApprovalSubject(exec).shown.slice(0, 500), signal: exec.signal })
   } catch (e) { outcome = 'unavailable' }
-  return outcome === 'allowed-once' ? next() : refuse(outcome === 'denied' ? 'they refused it' : 'it could not be asked')
+  // The engine says « rejected » when the person presses Reject (« denied » is kept for older hosts): either way they refused, it was not a failure to ask (UJ-168).
+  return outcome === 'allowed-once' ? next() : refuse(outcome === 'rejected' || outcome === 'denied' ? 'they refused it' : 'it could not be asked')
 }
 // ── An automation that asks first, on a cloud computer (ADR 0052 § 15) ──────────────────────────────────────────
 // The core plugin (kybernos) publishes which sessions are runs of an automation published to this computer that asks first (`Symbol.for('kybernos.automationRuns')`); this gate asks the
