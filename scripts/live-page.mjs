@@ -45,6 +45,24 @@ export const KEY_DIALOG_SCRIPT = `(() => {
   new MutationObserver(press).observe(document, { childList: true, subtree: true })
 })()`
 
+// A check killed at its limit (check-all-live.mjs sends SIGTERM) never reaches close(): its throw-away profile, about 170 MB, stayed in the
+// temp folder (116 of them, 20 GB, on 2026-11-04). Every open page is remembered here and swept when the process ends, however it ends.
+const OPEN = new Set()
+let swept = false
+function sweepOpen () {
+  for (const o of OPEN) {
+    try { o.chrome.kill() } catch (e) { /* gone */ }
+    try { rmSync(o.profile, { recursive: true, force: true }) } catch (e) { /* busy */ }
+  }
+  OPEN.clear()
+}
+function hookSweep () {
+  if (swept) return
+  swept = true
+  process.once('exit', sweepOpen)
+  for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => process.exit(1))
+}
+
 /** `{ page, close }`, or throws a readable error (no Chrome, GUI down, 401). */
 export async function openLivePage(opts = {}) {
   const authority = opts.authority || process.env.KB_HOST || '127.0.0.1:3080'
@@ -60,6 +78,9 @@ export async function openLivePage(opts = {}) {
     '--use-mock-keychain', '--password-store=basic',
     '--no-first-run', '--no-default-browser-check', '--window-size=' + (opts.width || 1400) + ',' + (opts.height || 900), 'about:blank',
   ], { stdio: 'ignore' })
+  const mine = { chrome, profile }
+  OPEN.add(mine)
+  hookSweep()
   const base = 'http://127.0.0.1:' + port
   let target = null
   for (let i = 0; i < 60 && target === null; i += 1) {
@@ -74,6 +95,7 @@ export async function openLivePage(opts = {}) {
     try { chrome.kill() } catch (e) { /* gone */ }
     await sleep(300)
     try { rmSync(profile, { recursive: true, force: true }) } catch (e) { /* busy */ }
+    OPEN.delete(mine)
   }
   if (target === null) { await close(); throw new Error('Chrome did not start (port ' + port + ')') }
 

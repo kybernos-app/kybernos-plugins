@@ -131,6 +131,10 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   const slowBad = Object.entries(LIVE_MIN_SECONDS).filter(([f, n]) => !existsSync(join(REPO, 'scripts', f)) || !Number.isFinite(n) || n < 150).map(([f]) => f)
   check('every check with its own time limit exists and asks for more than the default', slowBad.length === 0, slowBad.join(', '))
 
+  // a check killed at its limit must not leave its Chrome profile (170 MB each) in the temp folder
+  const livePage = load('scripts/live-page.mjs')
+  check('live-page sweeps the Chrome profiles of the pages still open when the process ends or is killed', /process\.once\('exit', sweepOpen\)/.test(livePage) && /'SIGTERM'/.test(livePage) && /OPEN\.delete\(mine\)/.test(livePage))
+
   // the checker must fail on a plan that is wrong (otherwise it proves nothing)
   const clone = () => JSON.parse(JSON.stringify({ cases: real.cases, plugins: real.plugins }))
   const withReal = (o) => ({ ...real, ...o })
