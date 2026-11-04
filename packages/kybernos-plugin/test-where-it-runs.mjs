@@ -150,7 +150,7 @@ assert.ok(/fetch\('\/kybernos-cloud\/computers\/runs\?computerId=' \+ encodeURIC
 assert.ok(/fetch\('\/kybernos-cloud\/computers\/runs\?computerId=' \+ encodeURIComponent\(id\), \{ cache: 'no-store'/.test(cli), 'the page asks once per computer for the list and the count')
 assert.ok(/h\(KbCloudSessions, \{ key: t\.id, task: t, computers: computersPair\[0\]\.list, localCount: kbRunsOf\(t\.history\)\.length, local: localPane \}\)\s+: localPane/.test(cli), 'the tab Sessions of a linked automation shows the cloud runs, and the sessions from here when it ran here before')
 assert.ok(/kbwRunsFor\(cloudRunsPair\[0\]\[t\.cloud\.computerId\], t\.id\)\.length : kbRunsOf\(t\.history\)\.length/.test(cli), 'the tab counts the runs it shows')
-assert.ok(/sessions: cloudHist !== null \? cloudHist\.length : hist\.length, succ: kbRunBars\(cloudHist !== null \? cloudHist : t\.history\)/.test(cli), 'the list counts and draws the cloud runs for an automation that runs there, not the sessions from before it was sent')
+assert.ok(/sessions: cloudHist !== null \? cloudHist\.length : hist\.filter\(\(e\) => e !== null && typeof e === 'object' && e\.status !== 'trial' && e\.status !== 'skipped'\)\.length, succ: kbRunBars\(cloudHist !== null \? cloudHist : t\.history\)/.test(cli), 'the list counts and draws the cloud runs for an automation that runs there, not the sessions from before it was sent')
 const cloudRuns = cli.slice(cli.indexOf('const KbCloudRuns = '), cli.indexOf('const KbCloudSessions = '))
 assert.ok(cloudRuns.indexOf('prompt') < 0 && cloudRuns.indexOf('result') < 0, 'the runs pane knows no prompt and no result: only the time and how it ended')
 assert.ok(/\.kbwr-run\{/.test(cli) && /\.kbwr-rout\.err\{/.test(cli), 'its styles are under kbwr-')
