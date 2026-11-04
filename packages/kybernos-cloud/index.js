@@ -5476,6 +5476,25 @@ const nativeRootOf = (ctx, id) => {
 // not a wall (a command can hide a name, and the chat is meant to run in a workspace-write sandbox that keeps it out of the files); the records are signed, so a file changed by anything but the
 // Settings route is void.
 const mentionsMandate = (exec) => { try { return /kyby-mandate/i.test(JSON.stringify((exec && exec.arguments) ?? {})) } catch (e) { return false } }
+// ── An app the person connected, used from an ordinary chat (journey UJ-203) ─────────────────────────────────────
+// A connected app acts for real (a mail goes out, an issue is opened, something is paid). `connections_execute` is our tool, so the engine knew nothing of it and ran it in every mode with no
+// card, Read Only included; only Kaby's own chat asked. In a chat whose approval policy is « ask » the person now sees DSH's own card first, as for a command. Under « never » the person chose
+// not to be asked and the engine rejects every card without showing it, so the call is left as it was (a refusal « the user rejected » that no one pressed would be worse); a host with no
+// approval service keeps the same older behaviour, since the engine would refuse the question as « not supported ». A policy that cannot be read counts as « ask »: the engine decides.
+const ORDINARY_ASK_TOOLS = new Set(['connections_execute'])
+const ordinaryAsk = (ctx, exec, name) => {
+  if (!ORDINARY_ASK_TOOLS.has(name) || exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
+  const approval = ctx.get('approval')
+  if (approval === undefined || approval === null) return null
+  let policy = 'ask'
+  try { if (typeof approval.effectivePolicy === 'function') policy = approval.effectivePolicy(exec.agent.session) } catch (e) { policy = 'ask' }
+  if (policy === 'never') return null
+  const args = exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
+  const slug = typeof args.tool_slug === 'string' ? args.tool_slug.trim() : ''
+  const [app, ...action] = slug.split('_')
+  const shown = connectorShown(slug === '' ? 'mcp__connected_app' : 'mcp__' + app.toLowerCase() + '__' + action.join('_').toLowerCase(), args.params).slice(0, 500)
+  return { kind: 'ask', reason: 'Connected app: ' + shown, displayReason: { en: 'Connected app: ' + shown, fr: 'Application connectée : ' + shown } }
+}
 const nativeGate = (ctx) => async (exec, next) => {
   const name = String((exec && exec.name) || '')
   if (mentionsMandate(exec)) {
@@ -5491,7 +5510,7 @@ const nativeGate = (ctx) => async (exec, next) => {
     return next()
   }
   const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
-  if (root === null) return next()
+  if (root === null) { const asked = ordinaryAsk(ctx, exec, name); return asked === null ? next() : asked }
   // The person's mandate covers some of our tools, inside daily limits: no question. Anything it does not cover, or past a limit, is asked as before, except during a scheduled run (nobody answers).
   const waking = unattended.isRun(root)
   if (mandateStore.allow(name, root, waking ? 'automation' : undefined).allow === true) return next()

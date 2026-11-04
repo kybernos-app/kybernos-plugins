@@ -4204,6 +4204,27 @@ try {
       // Another chat is none of its business, and the prompt carries the block for Kaby only.
       assert.deepEqual(await run('memory_write', { content: 'x' }, 'session-someone-else'), { kind: 'allow' })
       assert.equal((await view()).usedToday.memory, 2, 'another chat is not counted')
+      // An app the person connected, used from an ordinary chat (journey UJ-203): DSH's own card when the chat asks, nothing added when the person chose never to be asked.
+      const ordinary = (args) => run('connections_execute', args, 'session-someone-else')
+      const issue = { tool_slug: 'GITHUB_CREATE_AN_ISSUE', params: { repo: 'made-up/demo', title: 'A made-up issue' } }
+      const kabyApproval = fakeApproval
+      fakeApproval = { request: async () => 'allowed-once', effectivePolicy: () => 'ask' }
+      const card = await ordinary(issue)
+      assert.equal(card.kind, 'ask', 'a chat that asks: the engine puts its card before the app acts')
+      assert.match(card.reason, /^Connected app: github: create an issue/)
+      assert.match(card.reason, /repo: made-up\/demo/)
+      assert.match(card.displayReason.fr, /^Application connectée : /)
+      assert.deepEqual(await run('connections_list', {}, 'session-someone-else'), { kind: 'allow' }, 'what only reads passes without a question')
+      assert.deepEqual(await ordinary({ ...issue, tool_slug: '' }).then((r) => r.kind), 'ask', 'an action with no name still asks')
+      fakeApproval = { request: async () => 'allowed-once', effectivePolicy: () => 'never' }
+      assert.deepEqual(await ordinary(issue), { kind: 'allow' }, 'a chat set to never ask: the person chose, the engine would reject the card unseen')
+      fakeApproval = { request: async () => 'allowed-once' }
+      assert.equal((await ordinary(issue)).kind, 'ask', 'a policy the service does not tell counts as ask')
+      fakeApproval = { request: async () => 'allowed-once', effectivePolicy: () => { throw new Error('no session') } }
+      assert.equal((await ordinary(issue)).kind, 'ask', 'a policy that cannot be read counts as ask')
+      fakeApproval = undefined
+      assert.deepEqual(await ordinary(issue), { kind: 'allow' }, 'a host with no approval service keeps what it did')
+      fakeApproval = kabyApproval
       await new Promise((r) => setTimeout(r, 1100))
       assert.match(kyText(), /\[MANDATE\]\nThe person signed this standing permission on \d{4}-\d{2}-\d{2}\. Without asking, you may: write your memory and your lessons \(up to 40 a day\); use your cloud computer/)
       assert.equal(promptContexts.get('kybernos:kyby').text({ agent: { session: { id: 'session-someone-else' } } }), '', 'no block for a chat that is not Kaby\'s')
