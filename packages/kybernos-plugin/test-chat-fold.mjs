@@ -70,7 +70,7 @@ const css = block.slice(cssStart + 'styles.insert(`'.length, block.lastIndexOf('
   assert.match(css, /@media \(min-width:701px\)\{[\s\S]*data-kb-chat-fold="1"\][^{]*header\.actions"\] > :not\(\.kbfold-root\):not\(:has\(\[data-act="hangup-header"\]\)\)\{display:none!important\}/, 'actions hidden, our root and a live call spared')
   assert.match(css, /header"\] > \[class\*="tabs"\]\{display:none!important\}/, 'tabs row hidden')
   assert.match(css, /header"\] > \[class\*="titleRow"\]\{align-self:start\}/, 'the title row keeps its place when the tabs row goes (the title does not slide down)')
-  assert.match(css, /composer\.dock"\] > :not\(\[data-kb="changes"\]\)\{display:none!important\}/, 'status chips hidden')
+  assert.match(css, /composer\.dock"\] > :not\(\[data-kb="changes"\]\):not\(\[data-kb="connector-ask"\]\)\{display:none!important\}/, 'status chips hidden, except the save chip and the question of a connected app (a call waits for the person\'s tap, journey UJ-203)')
   assert.match(css, /\[data-kb="changes"\]\[data-state="ok"\],[^{]*\[data-kb="changes"\]\[data-state="unavailable"\]\{display:none!important\}/, 'a healthy save chip and the « tracking unavailable » chip (nothing to act on) hidden')
   assert.ok(!/\.kbch-|\.kbcl-/.test(css), 'no class of another bundle is named (the bundles share one class namespace)')
   assert.match(css, /@media \(max-width:700px\)\{\.kbfold-root\{display:none\}\}/, 'the phone keeps its own parked actions')

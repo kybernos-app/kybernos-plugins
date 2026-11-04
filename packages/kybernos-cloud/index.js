@@ -59,6 +59,7 @@ import { createPublish } from './computers-publish.mjs'
 import { identityOf } from './computer-identity.mjs'
 import { lireSecretSession, writeGuard } from './session-guard.mjs'
 import { createMandateStore } from './kyby-mandate-store.mjs'
+import { createConnectorAsks } from './connector-ask.mjs'
 import { LIST_TEXT, UNATTENDED_NEVER, createUnattended } from './kyby-unattended.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
@@ -5478,22 +5479,47 @@ const nativeRootOf = (ctx, id) => {
 const mentionsMandate = (exec) => { try { return /kyby-mandate/i.test(JSON.stringify((exec && exec.arguments) ?? {})) } catch (e) { return false } }
 // ── An app the person connected, used from an ordinary chat (journey UJ-203) ─────────────────────────────────────
 // A connected app acts for real (a mail goes out, an issue is opened, something is paid). `connections_execute` is our tool, so the engine knew nothing of it and ran it in every mode with no
-// card, Read Only included; only Kaby's own chat asked. In a chat whose approval policy is « ask » the person now sees DSH's own card first, as for a command. Under « never » the person chose
-// not to be asked and the engine rejects every card without showing it, so the call is left as it was (a refusal « the user rejected » that no one pressed would be worse); a host with no
-// approval service keeps the same older behaviour, since the engine would refuse the question as « not supported ». A policy that cannot be read counts as « ask »: the engine decides.
+// card, Read Only included; only Kaby's own chat asked. Now the person is asked in an ordinary chat too:
+//   · policy « ask » (Workspace Write, Read Only): the engine's own card, by answering `{ kind: 'ask' }` from `tools/pre-execute`;
+//   · policy « never » (Full access): the engine rejects every card without showing it, so the question is ours (connector-ask.mjs): the call waits here and the chat's composer dock shows the engine's
+//     card factory (client.js, `KbConnectorAsk`); the person's tap is POSTed to `/kybernos-cloud/connector-asks/answer`. An automation run (the person approved the automation as a whole, nobody is
+//     there to answer) and a host with no approval service are left as they were; a policy that cannot be read counts as « ask ».
 const ORDINARY_ASK_TOOLS = new Set(['connections_execute'])
-const ordinaryAsk = (ctx, exec, name) => {
+const connectorAsks = createConnectorAsks()
+/** The chat a call belongs to: the top of its `parentSession` chain (a sub-agent asks in its parent's chat), or '' when it cannot be told. */
+const chatRootOf = (ctx, agentId) => {
+  let current = agentId
+  let root = ''
+  for (let depth = 0; depth < 8 && typeof current === 'string' && current !== ''; depth += 1) {
+    root = current
+    const sessions = ctx.get('sessions')
+    const live = sessions !== undefined && sessions !== null && typeof sessions.get === 'function' ? sessions.get(current) : undefined
+    const parent = live && live.header ? live.header.parentSession : undefined
+    current = typeof parent === 'string' && parent !== '' ? parent : undefined
+  }
+  return root
+}
+/** True for a session the scheduler made for an automation run, or one below it (the core plugin says so; absent, nothing is). */
+const inAutomationRun = (agent) => {
+  try { const r = globalThis[Symbol.for('kybernos.automationRuns')]; return r !== null && typeof r === 'object' && typeof r.local === 'function' && r.local(agent) === true } catch (e) { return false }
+}
+const ordinaryAsk = async (ctx, exec, name) => {
   if (!ORDINARY_ASK_TOOLS.has(name) || exec === null || typeof exec !== 'object' || exec.agent === undefined || exec.agent === null) return null
   const approval = ctx.get('approval')
   if (approval === undefined || approval === null) return null
   let policy = 'ask'
   try { if (typeof approval.effectivePolicy === 'function') policy = approval.effectivePolicy(exec.agent.session) } catch (e) { policy = 'ask' }
-  if (policy === 'never') return null
   const args = exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
   const slug = typeof args.tool_slug === 'string' ? args.tool_slug.trim() : ''
   const [app, ...action] = slug.split('_')
   const shown = connectorShown(slug === '' ? 'mcp__connected_app' : 'mcp__' + app.toLowerCase() + '__' + action.join('_').toLowerCase(), args.params).slice(0, 500)
-  return { kind: 'ask', reason: 'Connected app: ' + shown, displayReason: { en: 'Connected app: ' + shown, fr: 'Application connectée : ' + shown } }
+  const text = { en: 'Connected app: ' + shown, fr: 'Application connectée : ' + shown }
+  if (policy !== 'never') return { kind: 'ask', reason: text.en, displayReason: text }
+  if (inAutomationRun(exec.agent)) return null
+  const outcome = await connectorAsks.ask({ sessionId: chatRootOf(ctx, exec.agent.id), text, signal: exec.signal })
+  if (outcome === 'allowed') return null
+  const why = outcome === 'rejected' ? 'they refused it' : outcome === 'timeout' ? 'they did not answer in time' : outcome === 'cancelled' ? 'the task was stopped' : 'too many questions are waiting'
+  return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' }
 }
 const nativeGate = (ctx) => async (exec, next) => {
   const name = String((exec && exec.name) || '')
@@ -5510,7 +5536,7 @@ const nativeGate = (ctx) => async (exec, next) => {
     return next()
   }
   const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
-  if (root === null) { const asked = ordinaryAsk(ctx, exec, name); return asked === null ? next() : asked }
+  if (root === null) { const asked = await ordinaryAsk(ctx, exec, name); return asked === null ? next() : asked }
   // The person's mandate covers some of our tools, inside daily limits: no question. Anything it does not cover, or past a limit, is asked as before, except during a scheduled run (nobody answers).
   const waking = unattended.isRun(root)
   if (mandateStore.allow(name, root, waking ? 'automation' : undefined).allow === true) return next()
@@ -6041,6 +6067,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/whatsapp/pairing/cancel', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body, 'whatsapp') },
   { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
   // Kaby's mandate: what the person lets it do without asking (kyby-mandate.mjs). Reading is open to the page; signing needs the strict Origin and the signed session, like every write here.
+  // The card of a connected app in a chat set to « never ask » (connector-ask.mjs): the page reads the questions of its chat and sends the person's tap. Only the person's own page answers (strict origin, signed session).
+  { path: '/kybernos-cloud/connector-asks', method: 'GET', guarded: true, run: (req) => ({ ok: true, asks: connectorAsks.list(queryOf(req).get('session') || '') }) },
+  { path: '/kybernos-cloud/connector-asks/answer', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 512, run: (req, body) => connectorAsks.answer(body !== null && typeof body === 'object' ? body.id : undefined, body !== null && typeof body === 'object' ? body.answer : undefined) },
   { path: '/kybernos-cloud/kyby/mandate', method: 'GET', guarded: true, run: () => ({ ok: true, ...mandateStore.view() }) },
   { path: '/kybernos-cloud/kyby/mandate/log', method: 'GET', guarded: true, run: () => ({ ok: true, entries: mandateStore.log() }) },
   { path: '/kybernos-cloud/kyby/mandate/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => mandateStore.set(body) },

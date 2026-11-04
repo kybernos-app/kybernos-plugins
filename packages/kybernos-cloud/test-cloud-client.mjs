@@ -217,6 +217,17 @@ for (const key of ['teamDshStarting', 'teamDshFailed', 'teamDshReady', 'teamDshO
 for (const gone of ['space/busy', 'space/for-folder', 'space/applied', 'own_dsh', 'turn_running', 'follow-chat']) assert.equal(clientSource.includes(gone), false, 'the page no longer knows ' + gone + ': a team has a DSH of its own, nothing waits for a reply or follows a chat')
 assert.ok(/window\.setInterval\(again, 30000\)[\s\S]{0,200}visibilitychange[\s\S]{0,200}'focus'/.test(clientSource), 'le pied relit /status tout seul (toutes les 30 s, au retour de la fenetre)')
 sok('pied de sidebar : la pastille relit /status toute seule (30 s, retour de fenetre), elle ne reste plus connectee apres une revocation')
+// A connected app in a chat set to never ask (journey UJ-203, connector-ask.mjs): the engine's own approval card, drawn from the composer dock, answered through the host; a plain card of the
+// same words when the factory is not handed over (a question nobody can see would hold the call).
+assert.ok(/slots\.inject\('conversation\.composer\.dock'[\s\S]{0,200}id: 'kybernos-cloud-connector-ask'/.test(clientSource), 'la carte d une application connectee a sa place dans le dock du composer')
+assert.ok(/props\.renderFactorySlot\('conversation\.approval\.card', \{ requestKey: 'kb-connector-'/.test(clientSource), 'elle utilise la carte d approbation du moteur')
+assert.ok(clientSource.includes("'/kybernos-cloud/connector-asks?session='") && clientSource.includes("'/kybernos-cloud/connector-asks/answer'"), 'elle lit les questions de SON chat et envoie le choix a l hote')
+assert.ok(clientSource.includes("'data-kb': 'connector-ask-allow'") && clientSource.includes("'data-kb': 'connector-ask-reject'"), 'une carte simple prend le relais si la fabrique manque')
+// Two rules of CSS keep that card on screen: the dock row wraps under it, and the simple view of a chat (core plugin) does not fold it away with the other cues (it did, until the live run).
+assert.ok(clientSource.includes('[data-composer-dock]:has([data-kb="connector-ask"]){flex-wrap:wrap}'), 'la rangee du dock passe a la ligne sous la carte')
+const corePluginSource = readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8')
+assert.ok(corePluginSource.includes('[data-slot="conversation.composer.dock"] > :not([data-kb="changes"]):not([data-kb="connector-ask"]){display:none!important}'), 'la vue simple du chat ne replie pas la carte d une application connectee')
+sok('application connectee en Full access : la carte du moteur dans le dock du composer, le choix part a l hote, une carte simple en repli')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null

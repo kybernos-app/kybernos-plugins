@@ -14,7 +14,7 @@ sessionSource.secret = () => SESSION_SECRET
 /** Every POST route of the bundle that needs the signed session cookie (`session: true` in ROUTES). */
 export const SESSION_WRITE_PATHS = new Set([
   '/kybernos-cloud/artifacts/detail', '/kybernos-cloud/artifacts/push', '/kybernos-cloud/chat/ensure', '/kybernos-cloud/chats/push',
-  '/kybernos-cloud/connections/delete', '/kybernos-cloud/connections/link', '/kybernos-cloud/disconnect', '/kybernos-cloud/invitation/accept',
+  '/kybernos-cloud/connections/delete', '/kybernos-cloud/connections/link', '/kybernos-cloud/connector-asks/answer', '/kybernos-cloud/disconnect', '/kybernos-cloud/invitation/accept',
   '/kybernos-cloud/kyby/mandate/set', '/kybernos-cloud/kyby/native/set', '/kybernos-cloud/marketplace/install', '/kybernos-cloud/members/invite', '/kybernos-cloud/members/remove',
   '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/delete', '/kybernos-cloud/memory/index/run',
   '/kybernos-cloud/memory/settings/set', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss',
