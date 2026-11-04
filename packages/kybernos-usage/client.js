@@ -540,7 +540,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         h('div', { className: 'kbus-r' }, h('span', null, w.label), h('span', { className: 'kbus-v' }, h('b', null, w.pct + NB + '%'), w.back !== null ? ' · ' + L('resetsIn', { t: w.back }) : '')),
         h('div', { className: 'kbus-meter ' + tone(w.pct), 'data-kb': 'kybernos-usage-window' }, h('i', { style: { width: w.pct + '%' } })))))
       const CreditsRow = ({ credits }) => (credits === null ? null : h('div', { className: 'kbus-lim' },
-        h('div', { className: 'kbus-r' }, h('span', null, L('credits')), h('span', { className: 'kbus-v' }, h('b', null, Math.round(credits).toLocaleString(lang().slice(0, 2) === 'fr' ? 'fr-FR' : 'en-US')), ' ' + L('creditsUnit')))))
+        h('div', { className: 'kbus-r' }, h('span', null, L('credits')), h('span', { className: 'kbus-v' }, h('b', null, Math.round(credits).toLocaleString(lang().slice(0, 2) === 'fr' || lang() === 'kybernos' ? 'fr-FR' : 'en-US')), ' ' + L('creditsUnit')))))
 
       // ── the chip and its card ────────────────────────────────────────────────────────────────────────────────
       // Every session the store knows (the chat and its sub-agents) is reported to the host, throttled: the host turns
