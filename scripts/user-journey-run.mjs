@@ -16,6 +16,24 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PREFIXES = { '(server repo)': 'KB_SERVER_DIR', '(website repo)': 'KB_WEBSITE_DIR', '(mobile repo)': 'KB_MOBILE_DIR', '(desktop repo)': 'KB_DESKTOP_DIR' }
 
 /** The derived soft-takeoff plan: `{ comment, waves, cases }` for the script cases that can run now. Pure. */
+/** The shell command of a `how`: the text before a trailing « (note in words) », which the plan keeps for the person who reads it (the note may hold parentheses of its own). */
+export function commandOf (how) {
+  const t = String(how).trimEnd()
+  if (!t.endsWith(')')) return t
+  let depth = 0
+  for (let i = t.length - 1; i >= 0; i--) {
+    if (t[i] === ')') depth += 1
+    else if (t[i] === '(') {
+      depth -= 1
+      if (depth === 0) {
+        const before = t.slice(0, i)
+        return /\s$/.test(before) && /^\([A-Za-z]/.test(t.slice(i)) && !/[$\\]\s*$/.test(before) ? before.trimEnd() : t
+      }
+    }
+  }
+  return t
+}
+
 export function derive (plan, { journeys = null, cases = null, envs = null } = {}) {
   const out = []
   for (const c of plan.cases) {
@@ -25,7 +43,7 @@ export function derive (plan, { journeys = null, cases = null, envs = null } = {
     if (journeys && !journeys.includes(c.id.slice(0, 3))) continue
     if (cases && !cases.includes(c.id)) continue
     if (envs && !envs.includes(env)) continue
-    let cmd = c.how
+    let cmd = commandOf(c.how)
     for (const [prefix, variable] of Object.entries(PREFIXES)) {
       if (cmd.startsWith(prefix)) cmd = `cd "$${variable}" && ${cmd.slice(prefix.length).trim()}`
     }
