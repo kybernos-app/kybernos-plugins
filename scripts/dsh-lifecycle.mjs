@@ -31,7 +31,7 @@ import { installerLanceur, installerOutils, planLanceur, retirerLanceur } from '
 import { depsReelles as depsOuverture, ouvrir as ouvrirKybernos } from './kybernos-open.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
-  photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
+  photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire, inactifsParDefaut,
   planUpgrade, inspecterFraicheur, motifDeRetrait, migrerProfil
 } from './lifecycle-engine.mjs'
 // Checking a received archive: the package manifest is the only
@@ -106,7 +106,11 @@ function lireSatellitesActives () {
   }
 }
 const ACTIVES = lireSatellitesActives()
-const PACKAGES_ACTIFS = ACTIVES === null ? PACKAGES : PACKAGES.filter((p) => ACTIVES.includes(p.nom))
+// No activation file yet (a fresh profile) = everything, except the satellites the manifest marks `defaut: "inactif"` (see inactifsParDefaut).
+const INACTIFS = inactifsParDefaut(LIRE_SATELLITES(REPO)?.satellites?.bundles ?? [])
+const PACKAGES_ACTIFS = ACTIVES === null ? PACKAGES.filter((p) => !INACTIFS.has(p.nom)) : PACKAGES.filter((p) => ACTIVES.includes(p.nom))
+// What the install and upgrade link and activate: the names to keep, or null when nothing has to be left out (an activation file lists them, or no satellite is off by default).
+const ACTIVES_A_LIER = ACTIVES !== null ? ACTIVES : (INACTIFS.size === 0 ? null : PACKAGES_ACTIFS.map((p) => p.nom))
 let COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
 
 const ALLOW_SCRIPTS = '--allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs'
@@ -490,6 +494,20 @@ const opts = {
 const portGui = opts.port
 
 const quitter = (code, ...messages) => { for (const m of messages) console.log(m); process.exit(code) }
+
+// `--help` / `-h` print the usage and change nothing: the installer used to ignore them, so `./kybernos-install --help` installed.
+if (args.includes('--help') || args.includes('-h')) {
+  quitter(0, [
+    'Kybernos installer (the garage robot). Nothing is written by --help.',
+    '',
+    '  ./kybernos-install                    checks, puts DSH in place if it is missing, grafts the plugin (a safety photo is taken first)',
+    '  ./kybernos-install --dry              shows what would be done, touches nothing',
+    '  ./kybernos-install --restart --force  also restarts the DSH that is running, so the plugin\'s host code loads',
+    '  ./kybernos-install --autostart        also starts Kybernos by itself at login (--no-autostart: never)',
+    '',
+    '  node scripts/dsh-lifecycle.mjs doctor|install|upgrade|rollback|uninstall|verify|service [--force] [--dry] [--json] [--url <url>] [--photo <folder>] [version]'
+  ].join('\n'))
+}
 const journalOp = (op) => journaliser({ fs: fsReel, journal: JOURNAL, op })
 // Links left by an earlier Kybernos archive install (or pointing at a folder that is gone) are re-pointed by install/upgrade only.
 const liensReprise = []
@@ -908,7 +926,7 @@ if (ordre === 'satellites') {
       const liste = activesResolues({ brut, satellites: manifeste.satellites?.bundles ?? [], socle })
       if (liste !== null) return liste.filter((n) => !socle.includes(n))
     } catch (e) { /* absent or unreadable: fall through */ }
-    return tous.map((s) => s.nom).filter((n) => !socle.includes(n))
+    return tous.map((s) => s.nom).filter((n) => !socle.includes(n) && !INACTIFS.has(n))
   }
   // Write the activation file AND bring the profile in line with it, otherwise the
   // change only shows up at the next install/upgrade. Needs a DSH restart to apply.
@@ -997,7 +1015,7 @@ if (ordre === 'safe-mode') {
       const liste = activesResolues({ brut, satellites: manifeste.satellites?.bundles ?? [], socle })
       if (liste !== null) return liste.filter((n) => !socle.includes(n))
     } catch (e) { /* absent */ }
-    return tous.map((s) => s.nom).filter((n) => !socle.includes(n))
+    return tous.map((s) => s.nom).filter((n) => !socle.includes(n) && !INACTIFS.has(n))
   }
   const sous = args[1] && !args[1].startsWith('-') ? args[1] : 'status'
   const etat = lireEtat()
@@ -1297,7 +1315,7 @@ async function faireInstall () {
     try { await installerProfil() } catch (e) { await abandonner(e) }
   }
   console.log('  🔗 linking the repository packages to the profile…')
-  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
+  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES_A_LIER, reprendre: true, rapporter: rapporterLien })
   direLiensReprise()
   console.log('  📦 installing the profile (pnpm)…')
   try { await installerProfil() } catch (e) { await abandonner(e) }
@@ -1429,7 +1447,7 @@ if (ordre === 'upgrade') {
     const migration = migrerProfil({ fs: fsReel, profilDir: PROFIL_DIR, cible })
     for (const r of migration.retires) console.log(`     ↳ profile row \`${r}\` removed from cordis.patch.yml (it takes no \`mode\` on DSH ${cible}; the photo keeps the old file)`)
     for (const r of migration.gardes) console.log(`     ⚠ profile row \`${r}\` in cordis.patch.yml carries more than \`mode\`: left as it is — if DSH stops at boot on it, remove its \`mode\` by hand`)
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES_A_LIER, reprendre: true, rapporter: rapporterLien })
     direLiensReprise()
     console.log('  🧶 re-applying the engine patches…')
     await poserPatchs()

@@ -1,6 +1,6 @@
 # User-journey recette: from the first visit to leaving, on every surface
 
-Prepared 2026-11-04. **Nothing has been run.** No profile, DSH, server, Stripe account or machine was touched: this folder is the plan and its guard, not a result.
+Prepared and first run 2026-11-04. This folder is the plan, its guard and the ledger of what the runs found (`ledger.md`: findings, passes with a real measure, the unit-suite baseline); the evidence (pictures, logs, verdict files) stays outside git. Nothing was run against the owner's own DSH, a live server, a real Stripe account or a real machine: the money paths ran on the replica's Stripe stand-in, and the steps that need a real card or a real device are the owner's.
 
 It extends the soft-takeoff recette (`docs/tests/soft-takeoff/`, 86 cases, its runner, its ledger and its tester brief) and does not replace it: a case here with `covers` re-uses a soft-takeoff case instead of repeating it. What it adds is what that recette left out: the public site and its legal pages, the phone app, the Electron app, install from source, the phone remote, every payment failure, refund and dispute, the e-mails, the consumption maths of models and cloud computers, pushing work to a computer, Kaby, every kind of creation, automations and skills, 11 languages and the themes, resilience, security and a way out.
 

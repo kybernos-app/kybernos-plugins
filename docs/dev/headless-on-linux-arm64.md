@@ -61,6 +61,10 @@ Same kit, run inside an arm64 Android 16 emulator (kernel 6.6, 4 GB, SELinux enf
 - **The `bash` tool is refused** in the default `workspace-write` mode (no bubblewrap, `landlock_create_ruleset` returns ENOSYS under proot). `DSH_PERMISSION_MODE=danger-full-access` works; so does a config-only override (sandbox `danger-full-access` with approval `ask`); a custom mode name breaks the `sandboxPolicy` service. Whether the web UI asks before running is not verified.
 - Survival: screen off 4 min, app in the background 4 min and forced Doze 3 min: alive. **45 extra child processes: Android killed `dsh web`** (« Trimming phantom processes », 22 kills); with `settings_enable_monitor_phantom_procs=false` everything survived. `dsh web` idle counts ~8 processes for Android; the limit is 32 per device.
 
+## Replayed 2026-11-04 (user-journey recette, case J02-12)
+
+`node scripts/check-headless-linux.mjs` replays the install of the committed tree in a clean `debian:bookworm-slim` arm64 container (Docker Desktop, no emulation) and checks Node, the engine version of `dsh-compat.json`, that the headless profile composes, the bundle count and that `dsh web` refuses the bare address. The first replay on engine 0.2.2-alpha.2 **failed**: `./kybernos-install` activated the phone-only `@local/kybernos-no-process` on a fresh profile, it missed `@deepseek-ai/dsh-subprocess`, nine entries stayed inactive and the installer rolled everything back. Since then `docs/beta/satellites.json` marks that bundle `"defaut": "inactif"` and an absent activation file no longer switches it on (`scripts/test-lifecycle-fresh-profile.mjs`).
+
 ## What this does not prove
 
 - On a real phone: battery and thermal throttling, a vendor ROM's SELinux rules (upstream documents ROMs that forbid links in app data), the Linux Terminal VM's own memory ceiling, storage on a phone; the emulator covers proot's cost, the phantom process killer and Doze only (see above).

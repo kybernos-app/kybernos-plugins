@@ -445,6 +445,13 @@ export function activesResolues ({ brut, satellites, socle }) {
   return [...new Set([...socle, ...liste, ...parDefaut])]
 }
 
+// The satellites a fresh profile must NOT switch on: those the manifest marks `"defaut": "inactif"` (the phone-only bundle, which swaps the real program launcher for an
+// in-app one: loaded on a computer it misses `@deepseek-ai/dsh-subprocess`, leaves nine entries inactive and the installer rolls the whole install back, UJ-39).
+// An absent activation file means « everything is active » EXCEPT these. Returns a Set of names.
+export function inactifsParDefaut (satellites) {
+  return new Set((Array.isArray(satellites) ? satellites : []).filter((s) => s && s.defaut === 'inactif').map((s) => s.nom))
+}
+
 // What has to be written in `desactives`: the « active by default » satellites
 // that were just switched off (without it, the next read would turn them back on).
 export function desactivesAEcrire ({ liste, satellites }) {
