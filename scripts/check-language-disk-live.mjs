@@ -19,6 +19,8 @@
 //
 // ⚠ Like that script, it makes DSH persist its language preference (it switches to the
 // pseudo-language and puts English back; refuses to start unless DSH is in English).
+// The language is TEST_LANG of lib-language-flow.mjs (`it`): one DSH does not ship, so the DSH half of its pack is really translated
+// and written (for a language DSH ships, the page leaves that half out on purpose, W5-02 finding 49).
 //
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive.
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -26,7 +28,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openLivePage, waitFor } from './live-page.mjs'
-import { createFlow, assertEnglishStored, storedLocale, fakeDiskRoute, LANGUAGE } from './lib-language-flow.mjs'
+import { createFlow, assertEnglishStored, storedLocale, fakeDiskRoute, LANGUAGE, TEST_LANG as T } from './lib-language-flow.mjs'
 import { swapBundles, SHARED_TREE } from './lib-bundle-swap.mjs'
 
 const useWorktree = process.argv.slice(2).includes('--worktree')
@@ -75,14 +77,14 @@ try {
 
   // ═══ 2. translating writes the file ══════════════════════════════════════
   console.log('\n── translating writes the file ──')
-  await flow.pseudoLanguage('es')
-  const nKb = await browserCount('es')
-  const nDsh = await browserDshCount('es')
+  await flow.pseudoLanguage(T.id)
+  const nKb = await browserCount(T.id)
+  const nDsh = await browserDshCount(T.id)
   check('the translation did produce texts in the browser', nKb > 100 && nDsh > 1000, { nKb, nDsh })
-  const arrived = await poll(() => { const p = disk.store.read('es'); return p !== null && Object.keys(p.kb).length === nKb && Object.keys(p.dsh).length === nDsh && p.meta.complete === true }, 25000)
-  const pack = disk.store.read('es')
-  check('the es.json file appeared on the disk, complete (Kybernos + DSH)', arrived === true || !!arrived, { kb: pack && Object.keys(pack.kb).length, dsh: pack && Object.keys(pack.dsh).length, nKb, nDsh })
-  check('… with the native name of the language and the "finished" record', pack !== null && pack.label === 'Español' && pack.meta.complete === true && pack.meta.total > 1000, pack && { label: pack.label, meta: pack.meta })
+  const arrived = await poll(() => { const p = disk.store.read(T.id); return p !== null && Object.keys(p.kb).length === nKb && Object.keys(p.dsh).length === nDsh && p.meta.complete === true }, 25000)
+  const pack = disk.store.read(T.id)
+  check('the ' + T.id + '.json file appeared on the disk, complete (Kybernos + DSH)', arrived === true || !!arrived, { kb: pack && Object.keys(pack.kb).length, dsh: pack && Object.keys(pack.dsh).length, nKb, nDsh })
+  check('… with the native name of the language and the "finished" record', pack !== null && pack.label === T.native && pack.meta.complete === true && pack.meta.total > 1000, pack && { label: pack.label, meta: pack.meta })
   check('… the texts are the browser ones (⟦…⟧ from the test stub)', pack !== null && Object.values(pack.kb).every((t) => t.indexOf('⟦') >= 0) && Object.values(pack.dsh).every((t) => t.indexOf('⟦') >= 0))
   const posts = disk.requests.filter((r) => r.method === 'POST')
   check('sent in small chunks during the translation, not for every text', posts.length >= 1 && posts.length < 60, posts.length)
@@ -90,16 +92,16 @@ try {
 
   // ═══ 3. a browser with nothing ═══════════════════════════════════════════
   console.log('\n── a new browser gets the language back from the disk ──')
-  // DSH remembers "es" (it is the stored preference); the browser's own copy is wiped.
+  // DSH remembers the language (it is the stored preference); the browser's own copy is wiped.
   const postsBefore = disk.requests.filter((r) => r.method === 'POST').length
   await val(`localStorage.clear()`)
   await page.send('Page.reload', {})
-  const back = await poll(async () => (await browserCount('es')) === nKb && (await browserDshCount('es')) === nDsh, 40000)
-  check('the texts came back from the disk into the browser (Kybernos + DSH)', !!back, { kb: await browserCount('es'), dsh: await browserDshCount('es'), nKb, nDsh })
-  check('… with the registry, the native name and the record', (await val(`JSON.parse(localStorage.getItem('kybernos.i18n.langs') || '[]').includes('es') && JSON.parse(localStorage.getItem('kybernos.i18n.labels') || '{}').es === 'Español' && JSON.parse(localStorage.getItem('kybernos.i18n.meta.es') || '{}').complete === true`)) === true)
-  const inEs = await waitFor(page, `document.documentElement.lang === 'es'`, 40000)
+  const back = await poll(async () => (await browserCount(T.id)) === nKb && (await browserDshCount(T.id)) === nDsh, 40000)
+  check('the texts came back from the disk into the browser (Kybernos + DSH)', !!back, { kb: await browserCount(T.id), dsh: await browserDshCount(T.id), nKb, nDsh })
+  check('… with the registry, the native name and the record', (await val(`JSON.parse(localStorage.getItem('kybernos.i18n.langs') || '[]').includes(${JSON.stringify(T.id)}) && JSON.parse(localStorage.getItem('kybernos.i18n.labels') || '{}')[${JSON.stringify(T.id)}] === ${JSON.stringify(T.native)} && JSON.parse(localStorage.getItem('kybernos.i18n.meta.${T.id}') || '{}').complete === true`)) === true)
+  const inLang = await waitFor(page, `document.documentElement.lang === ${JSON.stringify(T.id)}`, 40000)
   await sleep(3500)
-  check('DSH, which remembers "es", switches back to the language by itself (a single reload)', inEs !== null && (await val(`document.documentElement.lang`)) === 'es')
+  check('DSH, which remembers "' + T.id + '", switches back to the language by itself (a single reload)', inLang !== null && (await val(`document.documentElement.lang`)) === T.id)
   check('… and the interface is really translated (⟦…⟧ texts on screen)', (await val(`(document.body.innerText.match(/⟦/g) || []).length`)) > 5)
   check('nothing was written back to the disk by this browser (it only read)', disk.requests.filter((r) => r.method === 'POST').length === postsBefore, disk.requests.filter((r) => r.method === 'POST').length - postsBefore)
   check('the language is in the DSH selector (Settings › General)', await (async () => {
@@ -109,25 +111,25 @@ try {
     await flow.openDshLanguageMenu()
     const opts = await flow.dshLanguageOptions()
     await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape' })
-    return Array.isArray(opts) && opts.some((o) => /Español/.test(o))
+    return Array.isArray(opts) && opts.some((o) => o.includes(T.native))
   })())
   check('DSH is back on English (nothing left over)', storedLocale() === 'en', storedLocale())
 
   // ═══ 4. removing ═════════════════════════════════════════════════════════
   console.log('\n── removing a language removes the file ──')
   await openSettings(LANGUAGE)
-  await clickSel('[data-lang="es"] [data-act="menu"]'); await sleep(500)
-  await clickSel('[data-lang="es"] [data-act="remove"]'); await sleep(600)
-  await clickSel('[data-lang="es"] [data-act="confirm-remove"]')
-  const gone = await poll(() => disk.store.read('es') === null, 8000)
+  await clickSel(`[data-lang="${T.id}"] [data-act="menu"]`); await sleep(500)
+  await clickSel(`[data-lang="${T.id}"] [data-act="remove"]`); await sleep(600)
+  await clickSel(`[data-lang="${T.id}"] [data-act="confirm-remove"]`)
+  const gone = await poll(() => disk.store.read(T.id) === null, 8000)
   check('the file disappeared from the disk', !!gone)
-  check('… and the removal is remembered (tombstone) for the other browsers', disk.store.removed().es > 0, disk.store.removed())
-  check('… the browser keeps nothing of it', (await browserCount('es')) === 0 && (await val(`!JSON.parse(localStorage.getItem('kybernos.i18n.langs') || '[]').includes('es')`)) === true)
+  check('… and the removal is remembered (tombstone) for the other browsers', disk.store.removed()[T.id] > 0, disk.store.removed())
+  check('… the browser keeps nothing of it', (await browserCount(T.id)) === 0 && (await val(`!JSON.parse(localStorage.getItem('kybernos.i18n.langs') || '[]').includes(${JSON.stringify(T.id)})`)) === true)
   await reload()
   await sleep(2500)
-  check('after a reload, the language does not come back', (await val(`!document.querySelector('[data-lang="es"]')`)) === true && (await browserCount('es')) === 0)
+  check('after a reload, the language does not come back', (await val(`!document.querySelector('[data-lang="${T.id}"]')`)) === true && (await browserCount(T.id)) === 0)
   await openSettings(LANGUAGE)
-  check('… and the page does not list it', (await val(`!document.querySelector('[data-lang="es"]')`)) === true)
+  check('… and the page does not list it', (await val(`!document.querySelector('[data-lang="${T.id}"]')`)) === true)
 
   // ═══ 5. no disk: the browser copy is untouched, and the page says so ═════
   console.log('\n── no disk (host down, route missing) ──')

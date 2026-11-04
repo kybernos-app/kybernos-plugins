@@ -19,10 +19,14 @@
 // afterwards. It refuses to start if DSH's stored language is not "en", so it
 // can never overwrite a choice of yours.
 //
+// The language it translates is TEST_LANG (`it`) of lib-language-flow.mjs, and SECOND_LANG (`nl`) for the failure half-way: both are
+// languages DSH does not ship (for one it ships, the page leaves DSH's half out on purpose, W5-02 finding 49). `de` and `ar` are used
+// for what does not depend on DSH's half (a failing model, the right-to-left layout).
+//
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive.
 import { mkdirSync } from 'node:fs'
 import { openLivePage, waitFor } from './live-page.mjs'
-import { createFlow, assertEnglishStored, storedLocale, LANGUAGE } from './lib-language-flow.mjs'
+import { createFlow, assertEnglishStored, storedLocale, LANGUAGE, TEST_LANG as T, SECOND_LANG as S } from './lib-language-flow.mjs'
 import { collectIn, analyse } from './lib-i18n-audit.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
@@ -130,56 +134,56 @@ try {
   check('the ISO 639-1 list is shown (182 languages, English and French already being there)', isoCount === 182, isoCount)
   check('each entry carries the native name, the English name and the code', (await val(`(() => { const e = document.querySelector('.kbln-iso-i[data-iso="de"]'); return e ? e.innerText.replace(/\\n/g,' ') : '' })()`)) === 'Deutsch German de')
   check('the 20 popular languages are offered as shortcuts', (await val(`document.querySelectorAll('.kbln-chip').length`)) === 20)
-  check('tooltips: add button, chips and list entries ("Add Spanish (es)")', /ISO 639-1/.test(await titleOf('[data-act="add-language"]')) && (await titleOf('.kbln-chip[data-iso="es"]')) === 'Add Spanish (es)' && (await titleOf('.kbln-iso-i[data-iso="de"]')) === 'Add German (de)', [await titleOf('[data-act="add-language"]'), await titleOf('.kbln-chip[data-iso="es"]'), await titleOf('.kbln-iso-i[data-iso="de"]')])
-  await typeInPicker('esp')
+  check('tooltips: add button, chips and list entries ("Add ' + T.english + ' (' + T.id + ')")', /ISO 639-1/.test(await titleOf('[data-act="add-language"]')) && (await titleOf(`.kbln-chip[data-iso="${T.id}"]`)) === 'Add ' + T.english + ' (' + T.id + ')' && (await titleOf('.kbln-iso-i[data-iso="de"]')) === 'Add German (de)', [await titleOf('[data-act="add-language"]'), await titleOf(`.kbln-chip[data-iso="${T.id}"]`), await titleOf('.kbln-iso-i[data-iso="de"]')])
+  await typeInPicker(T.search)
   const found = await val(`Array.from(document.querySelectorAll('.kbln-iso-i')).map(e => e.innerText.replace(/\\n/g,' '))`)
-  check('search filters by name ("esp" → Español)', found.length >= 1 && found.some((t) => /Español/.test(t)) && found.length < 10, found)
+  check('search filters by name ("' + T.search + '" → ' + T.native + ')', found.length >= 1 && found.some((t) => t.includes(T.native)) && found.length < 10, found)
   await typeInPicker('japanese')
   check('search also accepts the English name ("japanese" → 日本語)', (await val(`Array.from(document.querySelectorAll('.kbln-iso-i')).some(e => /日本語/.test(e.innerText))`)) === true)
   await typeInPicker('zzzz')
   check('no result: clear message', /No language matches/.test(String(await val('document.querySelector(".kbln-add").innerText'))))
-  await typeInPicker('esp')
-  await clickSel('.kbln-iso [data-iso="es"]'); await sleep(900)
-  check('choosing a language ADDS it to the list', await hasRow('es'))
-  check('… and starts NOTHING by itself (no model call, no bar)', (await val('window.__KB_TEST__.calls')) === 0 && (await val(`!document.querySelector('[data-lang="es"] [role="progressbar"]')`)) === true)
+  await typeInPicker(T.search)
+  await clickSel(`.kbln-iso [data-iso="${T.id}"]`); await sleep(900)
+  check('choosing a language ADDS it to the list', await hasRow(T.id))
+  check('… and starts NOTHING by itself (no model call, no bar)', (await val('window.__KB_TEST__.calls')) === 0 && (await val(`!document.querySelector('[data-lang="${T.id}"] [role="progressbar"]')`)) === true)
   check('the picker closes', (await val(`!document.querySelector('.kbln-iso')`)) === true)
-  const esText = String(await rowText('es'))
-  check('the row says how many texts and how much time, before starting', /Not translated yet · about [\d,\s ]+ texts · around \d+ min/.test(esText), esText)
-  check('the "Start translation" button is there', (await val(`(() => { const b = document.querySelector('[data-lang="es"] [data-act="start"]'); return !!b && b.innerText.trim() === 'Start translation' })()`)) === true, esText)
-  check('tooltips: "Start translation" explains the action, the row explains the estimate', /Translates the interface into this language/.test(await titleOf('[data-lang="es"] [data-act="start"]')) && /Estimated from the number of texts/.test(await titleOf('[data-lang="es"] .kbln-lang-meta')), [await titleOf('[data-lang="es"] [data-act="start"]'), await titleOf('[data-lang="es"] .kbln-lang-meta')])
+  const langText = String(await rowText(T.id))
+  check('the row says how many texts and how much time, before starting', /Not translated yet · about [\d,\s ]+ texts · around \d+ min/.test(langText), langText)
+  check('the "Start translation" button is there', (await val(`(() => { const b = document.querySelector('[data-lang="${T.id}"] [data-act="start"]'); return !!b && b.innerText.trim() === 'Start translation' })()`)) === true, langText)
+  check('tooltips: "Start translation" explains the action, the row explains the estimate', /Translates the interface into this language/.test(await titleOf(`[data-lang="${T.id}"] [data-act="start"]`)) && /Estimated from the number of texts/.test(await titleOf(`[data-lang="${T.id}"] .kbln-lang-meta`)), [await titleOf(`[data-lang="${T.id}"] [data-act="start"]`), await titleOf(`[data-lang="${T.id}"] .kbln-lang-meta`)])
   await shot('03-added')
 
   // ═══ 3. translating ══════════════════════════════════════════════════════
   console.log('\n── translating: Start button, progress bar ──')
-  await clickSel('[data-lang="es"] [data-act="start"]')
+  await clickSel(`[data-lang="${T.id}"] [data-act="start"]`)
   await sleep(1200)
   await shot('04-running')
-  const mid = JSON.parse(await val(`JSON.stringify({ bar: !!document.querySelector('[data-lang="es"] [role="progressbar"]'), now: Number((document.querySelector('[data-lang="es"] [role="progressbar"]')||{getAttribute(){return -1}}).getAttribute('aria-valuenow')), txt: document.querySelector('[data-lang="es"]').innerText.replace(/\\n+/g,' | ') })`))
+  const mid = JSON.parse(await val(`JSON.stringify({ bar: !!document.querySelector('[data-lang="${T.id}"] [role="progressbar"]'), now: Number((document.querySelector('[data-lang="${T.id}"] [role="progressbar"]')||{getAttribute(){return -1}}).getAttribute('aria-valuenow')), txt: document.querySelector('[data-lang="${T.id}"]').innerText.replace(/\\n+/g,' | ') })`))
   check('a progress bar appears in the row', mid.bar === true, mid)
   check('it advances (aria-valuenow > 0)', mid.now > 0 && mid.now < 100, mid)
   check('"X of Y texts" and the time left are shown', /\d[\d,\s ]* of \d[\d,\s ]* texts/.test(mid.txt), mid.txt)
   check('three detailed areas (menus/chat/settings, advanced, messages)', /Menus, chat and settings/.test(mid.txt) && /Advanced screens and plugins/.test(mid.txt) && /Messages and details/.test(mid.txt), mid.txt)
-  check('a Pause button is offered, no duplicate "Start"', (await val(`!!document.querySelector('[data-lang="es"] [data-act="pause"]') && !document.querySelector('[data-lang="es"] [data-act="start"]')`)) === true, mid.txt)
-  check('tooltips during the translation: Pause, bar, and each of the three areas explained', /Nothing is lost/.test(await titleOf('[data-lang="es"] [data-act="pause"]')) && /translated so far/.test(await titleOf('[data-lang="es"] [role="progressbar"]')) && (await val(`Array.from(document.querySelectorAll('[data-lang="es"] .kbln-areas > span[title]')).map((e) => e.getAttribute('title')).filter(Boolean).length`)) === 3, [await titleOf('[data-lang="es"] [data-act="pause"]'), await titleOf('[data-lang="es"] [role="progressbar"]')])
+  check('a Pause button is offered, no duplicate "Start"', (await val(`!!document.querySelector('[data-lang="${T.id}"] [data-act="pause"]') && !document.querySelector('[data-lang="${T.id}"] [data-act="start"]')`)) === true, mid.txt)
+  check('tooltips during the translation: Pause, bar, and each of the three areas explained', /Nothing is lost/.test(await titleOf(`[data-lang="${T.id}"] [data-act="pause"]`)) && /translated so far/.test(await titleOf(`[data-lang="${T.id}"] [role="progressbar"]`)) && (await val(`Array.from(document.querySelectorAll('[data-lang="${T.id}"] .kbln-areas > span[title]')).map((e) => e.getAttribute('title')).filter(Boolean).length`)) === 3, [await titleOf(`[data-lang="${T.id}"] [data-act="pause"]`), await titleOf(`[data-lang="${T.id}"] [role="progressbar"]`)])
   const b0 = await val('window.__KB_TEST__.batches[0]')
-  check('the English name of the language is sent with the request ("Spanish"), source "fr"', b0 && b0.lang === 'es' && b0.name === 'Spanish' && b0.source === 'fr', b0)
+  check('the English name of the language is sent with the request ("' + T.english + '"), source "fr"', b0 && b0.lang === T.id && b0.name === T.english && b0.source === 'fr', b0)
   check('several batches are launched (parallel translation)', (await waitFor(page, `window.__KB_TEST__.calls >= 6`, 8000)) !== null)
 
-  await clickSel('[data-lang="es"] [data-act="pause"]'); await sleep(1500)
+  await clickSel(`[data-lang="${T.id}"] [data-act="pause"]`); await sleep(1500)
   await shot('05-paused')
-  const paused = String(await rowText('es'))
+  const paused = String(await rowText(T.id))
   check('Pause: the row says "Paused at N%" and offers "Resume translation"', /Paused at \d+%/.test(paused) && /Resume translation/.test(paused), paused)
-  check('Pause: what is translated is kept', (await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.es')||'{}')).length`)) > 0)
+  check('Pause: what is translated is kept', (await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.${T.id}')||'{}')).length`)) > 0)
   const callsAtPause = await val('window.__KB_TEST__.calls')
   await sleep(900)
   check('Pause: no more model calls', (await val('window.__KB_TEST__.calls')) === callsAtPause)
-  await clickSel('[data-lang="es"] [data-act="start"]')
-  check('Resume: the translation goes all the way', (await waitReady('es', 60000)) !== null, await rowText('es'))
+  await clickSel(`[data-lang="${T.id}"] [data-act="start"]`)
+  check('Resume: the translation goes all the way', (await waitReady(T.id, 60000)) !== null, await rowText(T.id))
   await shot('06-ready')
-  const readyText = String(await rowText('es'))
+  const readyText = String(await rowText(T.id))
   check('"Ready · translated on <date> · N texts" and "Use" button', /Ready · translated on .+ · [\d,\s ]+ texts/.test(readyText) && /Use/.test(readyText) && !/Resume/.test(readyText), readyText)
-  check('tooltips: "Use" warns about the reload, the "⋯" menu is named', /page reloads/.test(await titleOf('[data-lang="es"] [data-act="use"]')) && (await titleOf('[data-lang="es"] [data-act="menu"]')) === 'More actions', [await titleOf('[data-lang="es"] [data-act="use"]'), await titleOf('[data-lang="es"] [data-act="menu"]')])
-  const stores = JSON.parse(await val(`JSON.stringify({ kb: Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.es')||'{}')).length, dsh: Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.es')||'{}')).length, meta: JSON.parse(localStorage.getItem('kybernos.i18n.meta.es')||'{}') })`))
+  check('tooltips: "Use" warns about the reload, the "⋯" menu is named', /page reloads/.test(await titleOf(`[data-lang="${T.id}"] [data-act="use"]`)) && (await titleOf(`[data-lang="${T.id}"] [data-act="menu"]`)) === 'More actions', [await titleOf(`[data-lang="${T.id}"] [data-act="use"]`), await titleOf(`[data-lang="${T.id}"] [data-act="menu"]`)])
+  const stores = JSON.parse(await val(`JSON.stringify({ kb: Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.${T.id}')||'{}')).length, dsh: Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.${T.id}')||'{}')).length, meta: JSON.parse(localStorage.getItem('kybernos.i18n.meta.${T.id}')||'{}') })`))
   check('Kybernos (≈ 2 700) AND DSH (≈ 2 200) are both translated', stores.kb > 2000 && stores.dsh > 1500, stores)
   check('meta: complete, essentials ready', stores.meta.complete === true && stores.meta.essentials === true, stores.meta)
   check('nothing reloaded the page by itself (the active language is still English)', (await val(`document.documentElement.lang`)) === 'en')
@@ -211,31 +215,31 @@ try {
   // ═══ 4b. a failure half-way: what is translated is kept ═════════════════
   console.log('\n── failure half-way: progress is kept ──')
   await val(`window.__KB_TEST__.failAfter = window.__KB_TEST__.calls + 7`)
-  await addLanguage('it', null)
-  await clickSel('[data-lang="it"] [data-act="start"]')
-  await waitFor(page, `!!document.querySelector('[data-lang="it"] [role="alert"]')`, 40000)
+  await addLanguage(S.id, null)
+  await clickSel(`[data-lang="${S.id}"] [data-act="start"]`)
+  await waitFor(page, `!!document.querySelector('[data-lang="${S.id}"] [role="alert"]')`, 40000)
   await shot('07b-error-midway')
   // A warning is a dot and a summary on the row (« Stopped at N% »); its cause and what is kept are in the detail the row's toggle opens.
-  await val(`(() => { const t = document.querySelector('[data-lang="it"] [data-act="toggle"]'); if (t && t.getAttribute('aria-expanded') !== 'true') t.click() })()`)
+  await val(`(() => { const t = document.querySelector('[data-lang="${S.id}"] [data-act="toggle"]'); if (t && t.getAttribute('aria-expanded') !== 'true') t.click() })()`)
   await sleep(500)
-  const mid2 = String(await rowText('it'))
-  const pct2 = Number(await val(`Number((document.querySelector('[data-lang="it"] [role="progressbar"]')||{getAttribute(){return -1}}).getAttribute('aria-valuenow'))`))
+  const mid2 = String(await rowText(S.id))
+  const pct2 = Number(await val(`Number((document.querySelector('[data-lang="${S.id}"] [role="progressbar"]')||{getAttribute(){return -1}}).getAttribute('aria-valuenow'))`))
   check('the bar shows the progress gained before the failure', pct2 > 0 && pct2 < 100, pct2)
   check('the message states the cause AND that what was done is kept', /needs an API key that isn’t set/.test(mid2) && /already translated is kept/.test(mid2), mid2)
   check('"Stopped at N%" and "Resume translation"', /Stopped at \d+%/.test(mid2) && /Resume translation/.test(mid2), mid2)
   await val(`window.__KB_TEST__.failAfter = null`)
   // What the failed run kept, by the name each text has on the wire: the resume must send none of them, and
   // everything else (the size of the corpus is NOT a constant here: it grows with every bundle and DSH version).
-  const keptWires = JSON.parse(await val(`JSON.stringify(Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.it')||'{}')).map((k) => 'kb:' + k).concat(Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.it')||'{}')).map((k) => 'dsh:' + k)))`))
+  const keptWires = JSON.parse(await val(`JSON.stringify(Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.${S.id}')||'{}')).map((k) => 'kb:' + k).concat(Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.${S.id}')||'{}')).map((k) => 'dsh:' + k)))`))
   const keptBefore = keptWires.length
   const batchesBefore2 = Number(await val('window.__KB_TEST__.batches.length'))
-  await clickSel('[data-lang="it"] [data-act="start"]')
-  check('the resume starts from what was done and finishes', (await waitReady('it', 60000)) !== null, await rowText('it'))
+  await clickSel(`[data-lang="${S.id}"] [data-act="start"]`)
+  check('the resume starts from what was done and finishes', (await waitReady(S.id, 60000)) !== null, await rowText(S.id))
   const sentKeys = JSON.parse(await val(`JSON.stringify(window.__KB_TEST__.batches.slice(${batchesBefore2}).filter((b) => b.source === 'fr').reduce((a, b) => a.concat(b.keys), []))`))
-  const totalIt = Number(await val(`(JSON.parse(localStorage.getItem('kybernos.i18n.meta.it') || '{}')).total`))
+  const totalHalf = Number(await val(`(JSON.parse(localStorage.getItem('kybernos.i18n.meta.${S.id}') || '{}')).total`))
   const keptSet = new Set(keptWires)
   const resent = sentKeys.filter((w) => keptSet.has(w)).length
-  check('the resume sent only what was missing (not the ' + keptBefore + ' already translated)', keptBefore > 0 && totalIt > keptBefore && resent === 0 && sentKeys.length === totalIt - keptBefore, { keptBefore, sent: sentKeys.length, resent, total: totalIt })
+  check('the resume sent only what was missing (not the ' + keptBefore + ' already translated)', keptBefore > 0 && totalHalf > keptBefore && resent === 0 && sentKeys.length === totalHalf - keptBefore, { keptBefore, sent: sentKeys.length, resent, total: totalHalf })
 
   // ═══ 5. removing a language ══════════════════════════════════════════════
   console.log('\n── removing a language ──')
@@ -324,17 +328,18 @@ try {
   await openDshLanguageMenu()
   const opts = await dshLanguageOptions()
   await shot('08c-dsh-menu')
-  check('the DSH selector lists the translated languages in addition to English and 中文', ['Español', 'العربية', 'English', '中文'].every((o) => opts.includes(o)), opts)
+  check('the DSH selector lists the translated languages in addition to English and 中文', [T.native, 'العربية', 'English', '中文'].every((o) => opts.includes(o)), opts)
   check('the "Kybernos" entry is now called "Français"', opts.includes('Français') && !opts.includes('Kybernos'), opts)
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' })
   await sleep(300)
-  await pickDshLanguage('Español', 'es')
-  check('choosing Español IN DSH: Kybernos follows (same language on both sides)', (await val(`localStorage.getItem('kybernos.theme.lang')`)) === 'es', await val(`localStorage.getItem('kybernos.theme.lang')`))
-  // An element counts by its OWN text: the composer chip « This machine ▾ » is a button with a caret (and a child element), so it is neither a leaf nor the bare text.
-  const shellEs = await val(ownTextCount(`/^⟦(Full access|This machine|Into the Unknown)⟧(\\s*[▾▼⌄])?$/`))
-  check('… and the DSH interface AND the Kybernos one are translated', shellEs >= 2 && /⟦(Agent Teams|Kybers)⟧/.test(String(await val('document.body.innerText'))), shellEs)
+  await pickDshLanguage(T.native, T.id)
+  check('choosing ' + T.native + ' IN DSH: Kybernos follows (same language on both sides)', (await val(`localStorage.getItem('kybernos.theme.lang')`)) === T.id, await val(`localStorage.getItem('kybernos.theme.lang')`))
+  // An element counts by its OWN text: the composer chip « Full access ▾ » is a button with a caret (and a child element), so it is neither a leaf nor the bare text.
+  // The composer asks for a workspace first now (« Choose a workspace to start »): « This machine » and « Into the Unknown » are not drawn until one is chosen, « New Session » and « New chat » always are.
+  const shellDsh = await val(ownTextCount(`/^⟦(Full access|This machine|Into the Unknown|New Session|New chat)⟧(\\s*[▾▼⌄])?$/`))
+  check('… and the DSH interface AND the Kybernos one are translated', shellDsh >= 2 && /⟦(Agent Teams|Kybers)⟧/.test(String(await val('document.body.innerText'))), shellDsh)
   await openSettings(LANGUAGE)
-  check('the Settings › Language page shows the same active language (DSH → Kybernos sync)', (await val(`!!document.querySelector('[data-lang="es"].on')`)) === true)
+  check('the Settings › Language page shows the same active language (DSH → Kybernos sync)', (await val(`!!document.querySelector('[data-lang="${T.id}"].on')`)) === true)
   await clickSel('[data-lang="en"] [data-act="use"]')
   await sleep(2500)
   await waitFor(page, `document.documentElement.lang === 'en'`, 20000)
@@ -356,7 +361,7 @@ try {
   await openDshLanguageMenu()
   const optsOff = await dshLanguageOptions()
   await shot('08d-plugin-off-menu')
-  check('plugin off: the list of available translations is KEPT (Español, العربية)', ['Español', 'العربية', 'English'].every((o) => optsOff.includes(o)), optsOff)
+  check('plugin off: the list of available translations is KEPT (' + T.native + ', العربية)', [T.native, 'العربية', 'English'].every((o) => optsOff.includes(o)), optsOff)
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' })
   await sleep(300)
   await pickDshLanguage('العربية', 'ar')
@@ -374,16 +379,16 @@ try {
   await languagePlugin(true)
   await reload()
 
-  // ═══ 7. using Spanish: the whole interface follows ═══════════════════════
+  // ═══ 7. using the test language: the whole interface follows ═══════════════════════
   console.log('\n── using the language: the whole interface follows ──')
   await openSettings(LANGUAGE)
-  await clickSel('[data-lang="es"] [data-act="use"]')
+  await clickSel(`[data-lang="${T.id}"] [data-act="use"]`)
   await sleep(2500)
-  await waitFor(page, `document.documentElement.lang === 'es'`, 20000)
+  await waitFor(page, `document.documentElement.lang === ${JSON.stringify(T.id)}`, 20000)
   await reload()
-  check('the document language is "es", direction ltr', (await val(`document.documentElement.lang + '/' + document.documentElement.dir`)) === 'es/ltr', await val(`document.documentElement.lang + '/' + document.documentElement.dir`))
+  check('the document language is "' + T.id + '", direction ltr', (await val(`document.documentElement.lang + '/' + document.documentElement.dir`)) === T.id + '/ltr', await val(`document.documentElement.lang + '/' + document.documentElement.dir`))
   const home = analyse(JSON.parse((await val(collectIn(null), 10000)) || '[]'))
-  await shot('09-home-es')
+  await shot('09-home-' + T.id)
   check('home: Kybernos texts AND DSH texts go through the system (⟦…⟧)', home.translated >= 30, { translated: home.translated, enLeft: home.en.slice(0, 8) })
   const dshTexts = await val(ownTextCount(`/^⟦(Show \\d+ more sessions|This machine|Full access|Into the Unknown|New Session)⟧(\\s*[▾▼⌄])?$/`))
   check('texts from the DSH CORE are translated ("Full access", "This machine", "Into the Unknown"…)', dshTexts >= 2, dshTexts)
@@ -393,14 +398,14 @@ try {
   await openSettings(LANGUAGE)
   await sleep(1500)
   check('the Language page itself follows the chosen language', /⟦/.test(String(await val('(document.querySelector(".kbln-page") || { innerText: "" }).innerText'))))
-  check('the "Español" row is marked active', (await val(`!!document.querySelector('[data-lang="es"].on')`)) === true)
-  await shot('10-page-es')
+  check('the "' + T.native + '" row is marked active', (await val(`!!document.querySelector('[data-lang="${T.id}"].on')`)) === true)
+  await shot('10-page-' + T.id)
 
   await openSettings(['General', 'Général'])
   await sleep(1500)
   const generalText = String(await val('document.body.innerText'))
-  await shot('11-general-es')
-  check('the DSH language selector (Settings › General) offers Español, and DSH is translated there', /Español/.test(generalText) && /⟦Name each chat when it ends⟧|⟦Font size⟧/.test(generalText), generalText.slice(0, 160))
+  await shot('11-general-' + T.id)
+  check('the DSH language selector (Settings › General) offers ' + T.native + ', and DSH is translated there', generalText.includes(T.native) && /⟦Name each chat when it ends⟧|⟦Font size⟧/.test(generalText), generalText.slice(0, 160))
 
   // ═══ 8. settings pages written with hardcoded text ═══════════════════════
   console.log('\n── settings pages with hardcoded text (live translation) ──')
@@ -409,9 +414,9 @@ try {
   const first = analyse(JSON.parse((await val(collectIn(SECTION), 10000)) || '[]'))
   await sleep(7000)
   const later = analyse(JSON.parse((await val(collectIn(SECTION), 10000)) || '[]'))
-  await shot('12-workers-es')
-  const learned = Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.live.es')||'{}')).length`))
-  check('hardcoded texts were learned and cached (kybernos.i18n.live.es)', learned > 5, learned)
+  await shot('12-workers-' + T.id)
+  const learned = Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.live.${T.id}')||'{}')).length`))
+  check('hardcoded texts were learned and cached (kybernos.i18n.live.' + T.id + ')', learned > 5, learned)
   check('the "Workers" page (hardcoded French) is translated: almost no French left visible (and it already is at the first measurement: learning is fast)', later.fr.length <= 3 && later.translated >= first.translated && later.translated > 10, { first: { ok: first.translated, fr: first.fr.length }, later: { ok: later.translated, fr: later.fr.length, left: later.fr.slice(0, 6) } })
   check('going back to the page: instant from the cache (no new call)', await (async () => {
     const callsBefore = await val('window.__KB_TEST__.calls')
@@ -426,7 +431,7 @@ try {
     await mouse(pos.x, pos.y); await sleep(5000)
   }
   const menuItems = await val(`Array.from(document.querySelectorAll('[role="menu"] [role="menuitem"]')).map(e => e.innerText.replace(/\\n/g,' ').trim())`)
-  await shot('13-account-menu-es')
+  await shot('13-account-menu-' + T.id)
   check('the account menu (another plugin, with its own fr/en tables) is translated live', Array.isArray(menuItems) && menuItems.length >= 4 && menuItems.filter((t) => t.indexOf('⟦') >= 0).length >= Math.floor(menuItems.length / 2), menuItems)
   // The guarantee is read on French chat titles that the maintainer's own DSH holds: a fresh sandbox has none, so there is nothing to compare there. Said, not failed.
   await reload()
