@@ -178,6 +178,30 @@ export async function clickText(page, text, opts = {}) {
 }
 
 /**
+ * The new-chat composer takes no first message until a workspace is chosen (« Choose a workspace to start »). Opens the chooser under the composer and picks the first
+ * workspace that is not the dedicated Automations one. Resolves `true` when nothing needs choosing (the composer is usable already) or the choice was made.
+ */
+export async function chooseWorkspace(page) {
+  const needs = async () => (await page.evalJs(`/Choose a workspace to start/.test(document.body.innerText)`, 4000)).val === true
+  // a page still loading has neither the composer nor the chooser: wait for one of them before deciding that nothing needs choosing
+  await waitFor(page, `document.querySelector('[contenteditable="true"], textarea') !== null || [...document.querySelectorAll('button')].some((e) => e.getAttribute('aria-label') === 'Choose workspace')`, 10000)
+  if (!(await needs())) return true
+  const press = async (expr) => {
+    const pos = (await page.evalJs(expr, 4000)).val
+    if (typeof pos !== 'string') return false
+    const { x, y } = JSON.parse(pos)
+    for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 })
+    return true
+  }
+  const centre = `const r = b.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 })`
+  if (!(await press(`(() => { const b = [...document.querySelectorAll('button')].find((e) => e.getAttribute('aria-label') === 'Choose workspace'); if (!b) return null; ${centre} })()`))) return false
+  if ((await waitFor(page, `document.querySelector('[role="menu"] [role="menuitem"]') !== null`, 8000)) === null) return false
+  const picked = await press(`(() => { const b = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((e) => { const t = (e.innerText || '').trim(); return t !== '' && t !== 'Automations' && !/^Add workspace/.test(t) }); if (!b) return null; ${centre} })()`)
+  if (!picked) return false
+  return (await waitFor(page, `!/Choose a workspace to start/.test(document.body.innerText)`, 12000)) !== null
+}
+
+/**
  * Make sure the DSH holds at least one conversation, for a check that opens one (the phone tour, the phone measures). A fresh sandbox has none: a first message is
  * typed into the empty composer and sent (no model is configured there, so the turn fails; what matters is that DSH now holds a real session, titled `text`).
  * Never on the user's own DSH (:3080): that one has its conversations and a check must not write there. Resolves `true` when a conversation is there.
@@ -189,6 +213,7 @@ export async function ensureConversation(page, opts = {}) {
   // the list of sessions arrives a moment after the page
   for (let i = 0; i < 20; i += 1) { if ((await rows()) > 0) return true; await sleep(400) }
   if (authority === '127.0.0.1:3080') return false
+  if ((await chooseWorkspace(page)) !== true) return false
   const pos = (await page.evalJs(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + 40, y: r.y + r.height / 2 }) })()`, 4000)).val
   if (typeof pos !== 'string') return false
   const { x, y } = JSON.parse(pos)

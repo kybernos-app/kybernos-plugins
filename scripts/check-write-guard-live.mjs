@@ -24,8 +24,10 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, openSettings, waitFor } from './live-page.mjs'
 import { cookieDeSession } from './cdp-lib.mjs'
+import { frozenOff, routeIsOff } from './lib-live-bundles.mjs'
 
 const args = process.argv.slice(2)
+const OFF = frozenOff() // --frozen: the routes and pages of a bundle the plan switches off are not played (absent by design)
 const HOST = process.env.KB_HOST || '127.0.0.1:3080'
 if (HOST === '127.0.0.1:3080' && !args.includes('--allow-real')) {
   console.error('✗ this check writes to the instance it talks to, and that is the real DSH (127.0.0.1:3080).')
@@ -174,7 +176,7 @@ try {
   console.log('every covered write: refused to a local program, answered to the page')
   const origin = 'http://' + HOST
   const cookie = session.nom + '=' + session.valeur
-  for (const [method, path, body] of GUARDED) {
+  for (const [method, path, body] of GUARDED.filter(([, path]) => !routeIsOff(OFF, path))) {
     const a = await ask(method, path, {}, body)
     const b = await ask(method, path, { origin: 'http://evil.example', cookie }, body)
     const c = await ask(method, path, { origin }, body)
@@ -182,7 +184,7 @@ try {
     const p = await fromPage(method, path, body)
     check(method + ' ' + path + ': the signed-in page is answered (' + p + ')', p !== 401 && p !== 403 && p > 0 && p < 500, p)
   }
-  for (const [method, path, body] of REFUSAL_ONLY) {
+  for (const [method, path, body] of REFUSAL_ONLY.filter(([, path]) => !routeIsOff(OFF, path))) {
     const a = await ask(method, path, {}, body)
     const b = await ask(method, path, { origin: 'http://evil.example', cookie }, body)
     const c = await ask(method, path, { origin }, body)
@@ -261,6 +263,8 @@ try {
     check('Memory & Lessons: the host stored context = true again', on !== null && on.settings && on.settings.context === true, on)
 
     // Code sandbox (E2B): a key that is not an E2B key (POST /kybernos-computers/key/set answers cle_invalide; nothing is stored).
+    if (OFF.has('kybernos-computers')) console.log('  ○ Code sandbox (E2B) is off in this frozen build: its page is not played')
+    else {
     await gotoNav('Code sandbox (E2B)')
     check('Code sandbox (E2B): the key field is there', await typeInto('input[type=password][placeholder="Paste your E2B key"]', 'not-an-e2b-key') === true)
     await sleep(300)
@@ -270,6 +274,7 @@ try {
     const status = await readJson('/kybernos-computers/status')
     check('Code sandbox (E2B): the host refused the key on its own rule (keyPresent stays false), not the guard\'s', status !== null && status.keyPresent === false, status)
     await shot('write-guard-cloud-computers')
+    }
 
     // L3-04: the Account page's custom instructions (the « Kybernos » section of Settings), typed and saved with real clicks. The page's POST to /kybernos-cloud/instructions/save carries the
     // Origin and DSH's session cookie by itself, and the host writes the marked section of THIS instance's AGENTS.md (what every agent reads); the same text sent by a bare program was refused above.

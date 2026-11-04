@@ -165,7 +165,8 @@ try {
     await click('[data-kb="gate-refuse"]')
     await sleep(700)
     // The confirm dialog: its label is the same key as the gesture.
-    await q(`(() => { const b = [...document.querySelectorAll('button')].find((x) => { const t = window.__KB_T__['tasks.gate.refuse']; return t && ((x.textContent || '').trim() === t.kybernos || (x.textContent || '').trim() === t.en) }); if (b) b.click(); return b !== null })()`)
+    // The panel's own « Refuse » is under the dialog and carries the same label: the confirm is the last one in the page (the dialog is added at its end).
+    await q(`(() => { const all = [...document.querySelectorAll('button')].filter((x) => { const t = window.__KB_T__['tasks.gate.refuse']; return t && ((x.textContent || '').trim() === t.kybernos || (x.textContent || '').trim() === t.en) }); const b = all[all.length - 1]; if (b) b.click(); return b !== undefined })()`)
     await sleep(1800)
     const bodies = await q(`window.__kbApproveBodies`)
     const one = Array.isArray(bodies) && bodies.length > 0 ? bodies[bodies.length - 1] : null

@@ -8,10 +8,10 @@
 //
 // What it checks, in a real page:
 //   1. the host routes answer through the page's own origin, and a write that is not JSON is refused;
-//   2. the Kybernos menu has a Dashboards row, right before Agent Teams, and it opens the page the bundle provides;
+//   2. the Dashboards row is folded into Creations (a source of the core's registry), and the page opens through the door other bundles use;
 //   3. the gallery offers the presets; using one writes a file and draws the dashboard with real data of this DSH;
 //   4. the motion: the entrance animations run and finish;
-//   5. the right-pane tab opens by itself when a dashboard is filed under the chat on screen, and shows it;
+//   5. the right-pane tab shows the dashboard filed under the chat on screen (it opens on the agent's own write, not when the page files one);
 //   6. another bundle can open the page on a dashboard (`window.__KB_OPEN__`, `window.__KB_DASHBOARDS__`);
 //   7. a narrow window does not overflow, and the page leaves the rest of the menu alone.
 //
@@ -21,7 +21,7 @@
 // SAFETY: the sandbox has its own DSH_HOME; the only things written are its own dashboards. Exit code 0 / 1 / 3.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage } from './live-page.mjs'
+import { openLivePage, ensureConversation } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -42,7 +42,6 @@ const shot = async (name) => { if (shotDir !== null) { try { mkdirSync(shotDir, 
 const poll = async (fn, ms = 12000) => { const end = Date.now() + ms; for (;;) { const v = await fn(); if (v) return v; if (Date.now() > end) return v; await sleep(250) } }
 const mouse = async (x, y) => { await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y }); await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 }); await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 }) }
 const api = (path, body, headers) => val(`fetch(${JSON.stringify(path)}, ${body === undefined ? (headers ? `{ headers: ${JSON.stringify(headers)} }` : '{}') : `{ method: 'POST', headers: Object.assign({ 'content-type': 'application/json' }, ${JSON.stringify(headers || {})}), body: ${JSON.stringify(JSON.stringify(body))} }`}).then(async (r) => JSON.stringify({ status: r.status, body: await r.json().catch(() => null) })).catch((e) => JSON.stringify({ status: 0, error: String(e) }))`).then((s) => JSON.parse(s))
-const clickMenuRow = (label) => val(`(() => { const row = Array.from(document.querySelectorAll('.kb4-menu .kb4-item')).find((b) => (b.querySelector('.kb4-lab') || {}).textContent === ${JSON.stringify(label)}); if (!row) return false; row.click(); return true })()`)
 
 try {
   await sleep(3000)
@@ -64,25 +63,26 @@ try {
   check('the preset became a dashboard file', made0 !== undefined && made0.widgets >= 6, made0)
 
   console.log('\n── 2. the right-pane tab (first: it needs the chat the page opens on) ──')
-  // a session must be mounted for the right sidebar: write a first message from the empty composer (no model here, the turn fails, that is fine)
-  const composer = await poll(() => val(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + 40, y: r.y + r.height / 2 }) })()`), 8000)
-  if (typeof composer === 'string') {
-    const { x, y } = JSON.parse(composer)
-    await mouse(x, y)
-    await sleep(300)
-    await page.send('Input.insertText', { text: 'Dashboards check' })
-    await sleep(300)
-    await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' })
-    await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await sleep(2500)
+  // a session must be mounted for the right sidebar: the GUI makes one (a workspace is chosen first; no model here, the turn fails, that is fine),
+  // then the first row of the list is opened when the page did not land on a chat by itself
+  await ensureConversation(page, { text: 'Dashboards check' })
+  if (!(await val(`window.__KB_DASHBOARDS__ && typeof window.__KB_DASHBOARDS__.session() === 'string'`))) {
+    await val(`(() => { const r = document.querySelector('[data-row-key^="session:"]'); if (r) r.click() })()`)
+    await sleep(1500)
   }
   const sid = await poll(() => val(`window.__KB_DASHBOARDS__ && window.__KB_DASHBOARDS__.session()`), 10000)
   check('the plugin knows the chat on screen', typeof sid === 'string' && sid.length > 0, sid)
   if (typeof sid === 'string' && sid.length > 0) {
     const open = await api('/kybernos-dashboards/open', { id: 'usage-tokens', session: sid })
     check('a dashboard is filed under that chat', open.status === 200, open)
-    const tab = await poll(() => val(`!!document.querySelector('[data-kb="dashboards-pane"]')`), 20000)
-    check('the Dashboard tab opens by itself on the right', tab === true)
+    // Since 2026-11-02 the tab opens on the AGENT's own write (the host moves `at` for that only; a sandbox has no model to make one): filing a dashboard from the page must not pop it
+    await sleep(4000)
+    check('filing a dashboard from the page does not open the Dashboard tab by itself (only the agent\'s write does)', (await val(`!!document.querySelector('[data-kb="dashboards-pane"]')`)) === false)
+    // so the person opens it, from the start list of the right pane (a « Dashboard » row after the sidebar's own Collapse button)
+    await val(`(() => { const b = document.querySelector('button[aria-label="Open right sidebar"]'); if (b) b.click() })()`)
+    await sleep(1200)
+    const tabOpened = await val(`(() => { const all = Array.from(document.querySelectorAll('button')); const i = all.findIndex((b) => b.getAttribute('aria-label') === 'Collapse right sidebar'); const b = all.slice(i).find((x) => x.innerText.trim() === 'Dashboard'); if (!b) return false; b.click(); return true })()`)
+    check('the Dashboard tab is in the start list of the right pane, and opens', tabOpened === true && (await poll(() => val(`!!document.querySelector('[data-kb="dashboards-pane"]')`), 20000)) === true)
     const inPane = await poll(() => val(`document.querySelectorAll('[data-kb="dashboards-pane"] .kbdb-w').length >= 6`), 15000)
     check('and shows the dashboard', inPane === true)
     await shot('4-pane')
@@ -92,15 +92,17 @@ try {
   }
 
   console.log('\n── 3. the menu ──')
-  const menu = await poll(() => val(`(() => { const rows = Array.from(document.querySelectorAll('.kb4-menu .kb4-item .kb4-lab')).map((e) => e.textContent); return rows.indexOf('Dashboards') >= 0 ? JSON.stringify(rows) : null })()`), 20000)
+  // the row is folded into Creations while the plugin declares itself a source (foldsRow): the menu keeps the other rows, Creations carries the Dashboards tile
+  await page.send('Page.navigate', { url: 'http://' + host + '/' })
+  await sleep(8000)
+  const menu = await poll(() => val(`(() => { const rows = Array.from(document.querySelectorAll('.kb4-menu .kb4-item .kb4-lab')).map((e) => e.textContent); return rows.length >= 3 ? JSON.stringify(rows) : null })()`), 20000)
   const rows = menu ? JSON.parse(menu) : []
-  check('the Kybernos menu shows Dashboards', rows.includes('Dashboards'), rows)
-  check('it sits right before Agent Teams', rows.indexOf('Dashboards') >= 0 && rows[rows.indexOf('Dashboards') + 1] === (rows.find((r) => /Agent Teams|AI Teams|Équipes/.test(r)) || '#none'), rows)
-  check('the other rows are all still there', ['Projects', 'Deliverables', 'Automations', 'Skills'].every((r) => rows.some((x) => x.indexOf(r.slice(0, 5)) === 0)) || rows.length >= 6, rows)
+  check('the Kybernos menu has no Dashboards row of its own (folded into Creations)', rows.length > 0 && !rows.includes('Dashboards') && rows.includes('Creations'), rows)
+  check('the other rows are all still there', ['Automations', 'Connectors', 'Skills', 'Creations'].every((r) => rows.some((x) => x.indexOf(r.slice(0, 5)) === 0)), rows)
   await shot('1-menu')
   const opened = await val(`window.__KB_OPEN__ && window.__KB_OPEN__.views && window.__KB_OPEN__.views.indexOf('dashboards') >= 0`)
   check('other bundles can open the page (window.__KB_OPEN__ lists it)', opened === true)
-  check('the row opens the page the bundle provides', (await clickMenuRow('Dashboards')) === true && (await poll(() => val(`!!document.querySelector('[data-kb="dashboards-page"]')`), 15000)) === true)
+  check('the door other bundles use opens the page the bundle provides', (await val(`(() => { window.__KB_OPEN__({ view: 'dashboards' }); return true })()`)) === true && (await poll(() => val(`!!document.querySelector('[data-kb="dashboards-page"]')`), 15000)) === true)
   await sleep(600)
   check('with several dashboards and no default it opens the gallery, with one it opens it', await poll(() => val(`document.querySelector('[data-kb="dashboards-page"]').getAttribute('data-screen') === 'gallery' || !!document.querySelector('[data-kb="dashboards-grid"]')`), 10000) === true)
 
@@ -175,7 +177,7 @@ try {
   await toGallery()
   const minis = await poll(() => val(`(() => { const m = document.querySelectorAll('[data-kb="dashboards-preset"] .kbdb-gmini'); return m.length >= 9 && Array.from(m).every((x) => x.querySelectorAll('svg').length >= 5) ? m.length : 0 })()`), 8000)
   check('the gallery sketches every preset in colour (a picture per widget)', minis >= 9, minis)
-  // the sandbox has its own, empty ledger: book a little usage through the real route (two observations: a baseline, then a delta)
+  // the sandbox has its own ledger (empty when it is new, with earlier days once other checks have run): book a little usage through the real route (two observations: a baseline, then a delta)
   const obs = (u) => api('/kybernos-usage/observe', { sessionId: 'dash-live-1', provider: 'anthropic', model: 'sonnet-5-5', title: 'Dashboards live check', usage: u })
   await obs({ uncachedInputTokens: 1000, outputTokens: 100, cacheReadTokens: 0, cacheWriteTokens: 0 })
   await obs({ uncachedInputTokens: 61000, outputTokens: 5100, cacheReadTokens: 20000, cacheWriteTokens: 0 })
@@ -183,15 +185,19 @@ try {
   const hmCells = await poll(() => val(`document.querySelectorAll('.kbdb-hm').length`), 8000)
   check('its heatmap has a square per day of the 120', hmCells === 120, hmCells)
   const fav = await val(`(() => { const c = Array.from(document.querySelectorAll('.kbdb-w[data-type="card"]')).find((w) => /Favorite model/.test(w.textContent)); return c ? c.querySelector('.kbdb-kpi-v').textContent : null })()`)
-  check('the favorite model is named from this ledger', fav === 'sonnet-5-5', fav)
+  // the favorite is whatever this ledger holds the most of (the booked 86 000 tokens only win in an empty one)
+  const booked = (await api('/kybernos-usage/summary?days=120')).body.models || {}
+  const tokensOf = (t) => ['u', 'o', 'cr', 'cw'].reduce((a, k) => a + (Number(t[k]) || 0), 0)
+  const topKey = Object.keys(booked).sort((a, b) => tokensOf(booked[b]) - tokensOf(booked[a]))[0] || ''
+  check('the favorite model is named from this ledger', fav !== null && fav === topKey.slice(topKey.indexOf('/') + 1), { fav, topKey })
   const filled = await val(`document.querySelectorAll('rect.kbdb-hm4, rect.kbdb-hm3, rect.kbdb-hm2, rect.kbdb-hm1').length`)
-  check('the day with tokens is lit on the heatmap', filled === 1, filled)
+  check('the day with tokens is lit on the heatmap', filled >= 1, filled)
   const tiles = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('.kbdb-w[data-type="card"] .kbdb-kpi-v')).map((e) => e.textContent))`))
   check('its six tiles read the ledger of this DSH', tiles.length === 7 && tiles.every((t) => t !== ''), tiles)
   await shot('4b-usage-overview')
 
   console.log('\n── 5. leaving things as they were ──')
-  await clickMenuRow('Dashboards')
+  await val(`window.__KB_OPEN__({ view: 'dashboards' })`)
   await poll(() => val(`!!document.querySelector('[data-kb="dashboards-page"]')`), 8000)
   await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 800, deviceScaleFactor: 1, mobile: false })
   await sleep(1200)

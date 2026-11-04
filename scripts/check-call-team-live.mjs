@@ -144,9 +144,11 @@ try {
   await clickText('Workflow')
   await poll(() => val(`!document.querySelector('[aria-label^="Voice call with"]')`), 5000) // the member cards are gone with their tab
   await clickText(MEMBERS_TAB)
-  await poll(async () => (await buttons()).length > 0, 15000)
+  // The cards are drawn again (a member's name is on screen); with the seam gone they carry no call button at all (an older build kept them in the markup, hidden).
+  await poll(() => val(`/Scout/.test(document.body.innerText)`), 15000)
+  await sleep(1500)
   const b2 = await buttons()
-  check('with the seam gone, the buttons that are still on the card are hidden', b2.length > 0 && b2.every((b) => b.shown === false), b2)
+  check('with the seam gone, no call button is shown on the member cards (none drawn, or hidden)', (await val(`/Scout/.test(document.body.innerText)`)) === true && b2.every((b) => b.shown === false), b2)
   await shot('team-without-bundle')
 } catch (e) {
   fail += 1

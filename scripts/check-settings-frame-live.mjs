@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // One frame for the pages of Settings (UX audit 2026-10-20): switching page must not move the title. Every page's box starts at x 272 and is
-// 720 px wide (the three wide pages say so), and its title sits at y 54, give or take the 3 px of a help button taller than the title
+// 720 px wide (the three wide pages say so), and its title sits at the same height as the others (give or take the 3 px of a help button taller than the title
 // it shares a row with. Measured on the real GUI, for the title of every page of the menu.
 //
 //   node scripts/check-settings-frame-live.mjs [--worktree] [--width 1400]
@@ -61,8 +61,11 @@ try {
   check('every title starts at x 272', offX.length === 0, offX.map(([c, r]) => c + ' x ' + r.x))
   const offIcon = measured.filter(([c, r]) => AFTER_ICON.has(c) && r.x !== 328)
   check('a title after the 44 px icon starts at x 328 (the icon at 272)', offIcon.length === 0, offIcon.map(([c, r]) => c + ' x ' + r.x))
-  const offY = measured.filter(([c, r]) => r.y < 54 || r.y > 57)
-  check('every title sits at y 54, or up to 57 beside a taller help button', offY.length === 0, offY.map(([c, r]) => c + ' y ' + r.y))
+  // The height of the title is the shell's (it was 54 before the Settings header grew a « Back to workspace » row and a search field: 107 to 109 now), so it is read from the pages
+  // themselves: the highest title is the reference and none sits more than 3 px under it (a taller help button, the engine's own pages).
+  const refY = Math.min(...measured.map(([c, r]) => r.y))
+  const offY = measured.filter(([c, r]) => r.y > refY + 3)
+  check('every title sits at the same height (the highest is at y ' + refY + '), give or take 3 px beside a taller help button', offY.length === 0, offY.map(([c, r]) => c + ' y ' + r.y))
   const offBox = rows.filter(([c, r]) => !SKIP.has(c) && r.boxX !== null && r.boxX !== 272)
   check('every page box starts at x 272', offBox.length === 0, offBox.map(([c, r]) => c + ' ' + r.boxX))
   const offW = rows.filter(([c, r]) => !SKIP.has(c) && r.boxW !== null && (WIDE.has(c) ? r.boxW <= 720 : r.boxW !== 720))

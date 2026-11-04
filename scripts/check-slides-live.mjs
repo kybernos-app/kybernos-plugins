@@ -15,7 +15,7 @@
 // Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage } from './live-page.mjs'
+import { openLivePage, ensureConversation } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -54,6 +54,9 @@ try {
   await sleep(2500)
   await dismissGetStarted()
   await sleep(500)
+  // The right sidebar belongs to a conversation: a fresh instance opens on the new-chat home, which has none.
+  await ensureConversation(page)
+  await sleep(800)
   // The layout and the deck survive in the sandbox from one run to the next: each step does only what is still to do.
   await val(`(() => { const b = document.querySelector('button[aria-label="Open right sidebar"]'); if (b) b.click() })()`)
   await sleep(1200)

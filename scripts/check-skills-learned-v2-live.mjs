@@ -10,10 +10,10 @@
 // NOT covered: a model writing the skill after the click (the unit tests play skill_propose), and the Team sheet (the sandbox has no team).
 //
 // Exit 0 all good, 1 a check failed, 3 not run (no GUI, not a sandbox).
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, truncateSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import zlib from 'node:zlib'
-import { openLivePage, waitFor, clickText, openSettings, goToSettingsPage, ensureConversation } from './live-page.mjs'
+import { openLivePage, waitFor, clickText, openSettings, goToSettingsPage, ensureConversation, chooseWorkspace } from './live-page.mjs'
 
 const authority = process.env.KB_HOST || '127.0.0.1:3080'
 if (authority === '127.0.0.1:3080' || !process.env.DSH_HOME) { console.error('○ not run: sandbox only (source scripts/sandbox/env.sh first); it writes chats, skills and settings'); process.exit(3) }
@@ -36,7 +36,10 @@ const FILES = ['skills-learned.json', 'skills-learned.audit.jsonl', 'skills-lear
 const SKILLS = ['live-weekly-report', 'live-forgotten-one', 'live-auto-made']
 const OLD = ['live-old-1', 'live-old-2', 'live-old-3']
 const ASK = 'Write the release notes from the commits since the last tag, grouped by feature.'
+// The frame this check adds to the journal of the real chat it opens: it is cut off again at the end. Left there, DSH reads the log as « torn » and no new chat can be made in that workspace.
+let journalBack = null
 const clean = () => {
+  if (journalBack !== null) { try { if (statSync(journalBack.file).size > journalBack.size) truncateSync(journalBack.file, journalBack.size) } catch (e) { /* the chat is gone */ } journalBack = null }
   for (const f of FILES) rmSync(join(dsh, 'kybernos', f), { force: true })
   rmSync(join(dsh, 'kybernos', 'skills-learned-versions'), { recursive: true, force: true })
   for (const n of SKILLS) rmSync(join(dsh, 'skills', n), { recursive: true, force: true })
@@ -91,13 +94,28 @@ try {
   console.log('a task that comes back, noticed under a finished answer')
   check('a real conversation is created by the GUI, with the same kind of ask', (await ensureConversation(page, { text: ASK })) === true)
   await sleep(2500)
-  const sid = await ev(`(() => { const rows = Array.from(document.querySelectorAll('[data-row-key^="session:"]')); const r = rows.find((x) => x.textContent.indexOf('release') >= 0 || x.textContent.indexOf('Write the') >= 0) || rows[0]; return r ? r.getAttribute('data-row-key').slice(8) : null })()`)
+  // The ask has to be the FIRST message of a chat the host reads as the person's own: one of a regular workspace (not Kaby's folder, an automation, the phone bridge or the three made up above) that
+  // holds no message yet. « New chat » then a workspace makes such a blank chat (a model would have answered a message typed here, and the host would have the answer, not the ask).
+  await clickText(page, 'New chat').catch(() => null)
+  await sleep(800)
+  await chooseWorkspace(page)
+  await sleep(1500)
+  const OTHERS = /\.dsh-kybernos|telegram-bridge|kybernos-automations|--live-v2-check--/
+  const blank = (f) => { const b = readFileSync(f); const at = []; for (let i = 0; i + 3 < b.length; i += 1) if (b[i] === 0x28 && b[i + 1] === 0xb5 && b[i + 2] === 0x2f && b[i + 3] === 0xfd) at.push(i); at.push(b.length); return at.slice(0, -1).every((from, k) => { try { return !/"type":"user\/message"/.test(zlib.zstdDecompressSync(b.subarray(from, at[k + 1])).toString('utf8')) } catch (e) { return false } }) }
+  const regular = () => { let best = null; for (const slug of readdirSync(join(dsh, 'sessions'))) { if (OTHERS.test(slug)) continue; for (const id of readdirSync(join(dsh, 'sessions', slug))) { const f = join(dsh, 'sessions', slug, id, 'session.v4.jsonl.zstd'); if (existsSync(f) && (best === null || statSync(f).mtimeMs > best.at) && blank(f)) best = { id, at: statSync(f).mtimeMs } } } return best === null ? null : best.id }
+  const sid = regular()
   check('the session has an id', typeof sid === 'string' && sid.length > 0, sid)
   // no model in the sandbox, so DSH never journals the message of a turn that fails: it is added as DSH writes one (one more zstd frame)
   let jfile = null
   for (const slug of readdirSync(join(dsh, 'sessions'))) { const f = join(dsh, 'sessions', slug, sid, 'session.v4.jsonl.zstd'); if (existsSync(f)) jfile = f }
   check('the journal of that session is on disk', jfile !== null, sid)
-  if (jfile !== null) appendFileSync(jfile, zlib.zstdCompressSync(Buffer.from(JSON.stringify({ type: 'user/message', time: Date.now(), data: { content: ASK, source: { kind: 'user' } } }) + '\n')))
+  // once only: a second frame with the same message (a rerun of this check finds the chat of the last one) leaves a log DSH calls corrupt, and no new chat can be made in that workspace
+  const holdsAsk = (f) => { const b = readFileSync(f); const at = []; for (let i = 0; i + 3 < b.length; i += 1) if (b[i] === 0x28 && b[i + 1] === 0xb5 && b[i + 2] === 0x2f && b[i + 3] === 0xfd) at.push(i); at.push(b.length); return at.slice(0, -1).some((s, k) => { try { return zlib.zstdDecompressSync(b.subarray(s, at[k + 1])).toString().includes(ASK) } catch (e) { return false } }) }
+  if (jfile !== null && !holdsAsk(jfile)) { journalBack = { file: jfile, size: statSync(jfile).size } }
+  if (jfile !== null && !holdsAsk(jfile)) appendFileSync(jfile, zlib.zstdCompressSync(Buffer.from(JSON.stringify({ type: 'user/message', time: Date.now(), data: { content: ASK, source: { kind: 'user' } } }) + '\n')))
+  // Search everywhere reads the chats it indexes: the one made just now (and the frame added to it above) is taken into the index before the host is asked.
+  await post('/kybernos-search/start', {})
+  for (let i = 0; i < 30; i += 1) { const st = await get('/kybernos-search/status'); if (st !== null && st.state === 'ready' && st.chats >= 4) break; await sleep(500) }
   let notice = null
   for (let i = 0; i < 12 && (notice === null || notice.notice === null); i += 1) { notice = await get('/kybernos-skills/learned/notice?sessionId=' + encodeURIComponent(sid)); if (notice === null || notice.notice === null) await sleep(1500) }
   check('the host notices it: the 4th chat (or later) with that ask, on 4 days at least, named by three words', notice !== null && notice.ok === true && notice.notice !== null && notice.notice.n >= 4 && notice.notice.dates.length >= 4 && typeof notice.notice.label === 'string', notice)
@@ -122,8 +140,13 @@ try {
   await mk(SKILLS[0], 3, 2)
   await mk(SKILLS[1], 1, 41)
   learned.appendAudit(dsh, { act: 'created', skill: SKILLS[2], by: 'kaby', mode: 'auto', kind: 'auto', ver: 1, score: 91, sig: [] }, Date.now() - DAY)
-  // a blank chat
+  // A blank chat. The card asks the host once per chat on screen, when the chat mounts: the chat this check made earlier (and left blank) was drawn BEFORE the week had anything to say,
+  // and « New chat » brings the same blank session back, so the page is loaded again to make the chat mount with the journal written.
+  await page.send('Page.reload', { ignoreCache: true })
+  await sleep(4500)
   await clickText(page, 'New chat').catch(() => null)
+  await sleep(800)
+  await chooseWorkspace(page) // the dock of a blank chat is mounted once a workspace is chosen
   await waitFor(page, `!!document.querySelector('[data-kb="learned-week"]')`, 15000)
   await sleep(600)
   await shot('03-week')

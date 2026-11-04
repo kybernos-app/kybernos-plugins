@@ -12,8 +12,11 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
+import { frozenOff } from './lib-live-bundles.mjs'
 
 const args = process.argv.slice(2)
+// --frozen: Apps (kybernos-db) is off in the soft-takeoff freeze, so it declares no row and no page: that part is not played, nothing is read as a defect.
+const appsOff = frozenOff().has('kybernos-db')
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
 if (shotsDir !== null) mkdirSync(shotsDir, { recursive: true })
 const host = process.env.KB_HOST || ''
@@ -65,14 +68,17 @@ try {
   const rects = await ev(`${ROWS}.map((e) => { const r = e.getBoundingClientRect(); const i = e.querySelector('.kb4-ico').getBoundingClientRect(); const l = e.querySelector('.kb4-lab'); return { y: r.top, w: r.width, h: r.height, icoX: i.left, lab: l.scrollWidth <= l.clientWidth + 1 } })`)
   check('every row is as tall and as wide as its neighbours, its icon is aligned and its label is not cut', rects.every((r) => Math.abs(r.h - rects[0].h) <= 1 && Math.abs(r.w - rects[0].w) <= 1 && Math.abs(r.icoX - rects[0].icoX) <= 1 && r.lab === true), rects)
   check('they are laid one under the other with no gap that would be a header', rects.every((r, i) => i === 0 || r.y - rects[i - 1].y <= rects[0].h + 8), rects.map((r) => r.y))
-  check('the registry holds the Apps row, and the menu does not scroll sideways', (await ev(`window.__KB_MENU__.v === 1 && window.__KB_MENU__.ids().indexOf('tables') >= 0 && (() => { const m = document.querySelector('.kb4-menu'); return m.scrollWidth <= m.clientWidth + 1 })()`)) === true)
+  check('the registry holds the Apps row, and the menu does not scroll sideways', (await ev(`window.__KB_MENU__.v === 1 && (window.__KB_MENU__.ids().indexOf('tables') >= 0 || ${appsOff}) && (() => { const m = document.querySelector('.kb4-menu'); return m.scrollWidth <= m.clientWidth + 1 })()`)) === true)
   await shot('01-fixed-menu')
 
   console.log('Apps opens the gallery')
-  check('the Apps page is opened (it is reached from Creations now)', (await ev(`window.__KB_OPEN__({ view: 'tables' }) === true`)) === true)
-  await waitFor(page, `document.querySelector('[data-kb="apps-gallery"]') !== null`, 8000).catch(() => null)
-  check('the gallery is on screen and Creations is the one selected row', (await ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`)) === true && JSON.stringify(await selected()) === JSON.stringify(['Creations']), await selected())
-  await shot('02-apps')
+  if (appsOff) console.log('  ○ Apps is off in this frozen build: its page is not played')
+  else {
+    check('the Apps page is opened (it is reached from Creations now)', (await ev(`window.__KB_OPEN__({ view: 'tables' }) === true`)) === true)
+    await waitFor(page, `document.querySelector('[data-kb="apps-gallery"]') !== null`, 8000).catch(() => null)
+    check('the gallery is on screen and Creations is the one selected row', (await ev(`document.querySelector('[data-kb="apps-gallery"]') !== null`)) === true && JSON.stringify(await selected()) === JSON.stringify(['Creations']), await selected())
+    await shot('02-apps')
+  }
 
   console.log('rows a plugin declares sit flat after Agent Teams')
   const refused = await ev(`(() => window.__KB_MENU__.register({ id: 'themes', group: 'business', icon: 'users', labelKey: 'x' }) === null)()`)
@@ -94,7 +100,7 @@ try {
   const sel2 = await selected()
   check('it becomes the one selected row and the declared page is gone', JSON.stringify(sel2) === JSON.stringify(['Skills']) && (await ev(`document.querySelector('[data-kb-page="checka"]') === null`)) === true, sel2)
   check('the second declared row opens its own page', (await click(row('Check Beta'))) === true && (await ev(`document.querySelector('[data-kb-page="checkb"]') !== null`)) === true)
-  check('window.__KB_OPEN__.views lists the declared rows next to the core\'s', (await ev(`(() => { const v = window.__KB_OPEN__.views; return v.indexOf('checka') >= 0 && v.indexOf('checkb') >= 0 && v.indexOf('skills') >= 0 && v.indexOf('tables') >= 0 })()`)) === true)
+  check('window.__KB_OPEN__.views lists the declared rows next to the core\'s', (await ev(`(() => { const v = window.__KB_OPEN__.views; return v.indexOf('checka') >= 0 && v.indexOf('checkb') >= 0 && v.indexOf('skills') >= 0 && (v.indexOf('tables') >= 0 || ${appsOff}) })()`)) === true)
 
   console.log('a plugin that goes away takes its rows with it')
   await ev(`(() => { window.__chk.off.forEach((f) => f()); return 1 })()`)

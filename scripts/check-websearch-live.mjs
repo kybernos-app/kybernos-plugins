@@ -19,8 +19,15 @@ if (shotsDir !== null) mkdirSync(shotsDir, { recursive: true })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
+let offline = 0
 const check = (name, ok, detail) => {
   if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
+}
+// The free engines are answered by other people's servers (Exa's free endpoint, DuckDuckGo, Brave): from a network they refuse (a bot challenge, « rate limited ») nothing comes back, and that says
+// nothing about the page. Such an answer is `not measured` (exit 3), never a failure.
+const THEIRS = /no web search engine answered|nothing found|rate limited|timed? ?out/i
+const outside = (name, ok, detail) => {
+  if (ok !== true && typeof detail === 'string' && THEIRS.test(detail)) { offline += 1; console.log('  ○ ' + name + ' — not measured: ' + detail.slice(0, 160)) } else check(name, ok, detail)
 }
 const api = async (path, body) => {
   const r = await fetch('http://' + HOST + path, body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://' + HOST }, body: JSON.stringify(body) })
@@ -130,13 +137,13 @@ try {
   await sleep(300)
   await press(rowSel('exa-free') + ' [data-act="test"]')
   const tested = await waitFor(page, `(document.querySelector('${rowSel('exa-free')} [data-kb="websearch-test-result"]') || {}).textContent || null`, 40000)
-  check('Test answers with a count and a time', typeof tested === 'string' && /^✓ \d+ results/.test(tested), tested)
+  outside('Test answers with a count and a time', typeof tested === 'string' && /^✓ \d+ results/.test(tested), tested)
   await press('[data-act="seam-test"]')
   const seamed = await waitFor(page, `(document.querySelector('[data-kb="websearch-seam-result"]') || {}).textContent || null`, 60000)
-  check('a search through DSH\'s web seam comes back with results', typeof seamed === 'string' && /^✓ \d+ results via /.test(seamed), seamed)
+  outside('a search through DSH\'s web seam comes back with results', typeof seamed === 'string' && /^✓ \d+ results via /.test(seamed), seamed)
   await sleep(500)
   const lastLine = await ev(`(document.querySelector('[data-kb="websearch-last"]') || {}).textContent`)
-  check('the page shows which engine answered last', typeof lastLine === 'string' && /Last search: .+ results/.test(lastLine), lastLine)
+  outside('the page shows which engine answered last', typeof lastLine === 'string' && /Last search: .+ results/.test(lastLine), lastLine)
   if (shotsDir !== null) await page.shot(shotsDir + '/websearch-after-search.png')
 
   console.log('sites')
@@ -154,5 +161,5 @@ try {
   await live.close()
 }
 
-console.log('\n' + (fail === 0 ? 'ALL GREEN — ' + pass + ' checks' : fail + ' check(s) FAILED, ' + pass + ' passed'))
-process.exit(fail === 0 ? 0 : 1)
+console.log('\n' + (fail === 0 ? (offline === 0 ? 'ALL GREEN — ' : offline + ' not measured (no free engine answered from this network) — ') + pass + ' checks' : fail + ' check(s) FAILED, ' + pass + ' passed'))
+process.exit(fail > 0 ? 1 : offline > 0 ? 3 : 0)

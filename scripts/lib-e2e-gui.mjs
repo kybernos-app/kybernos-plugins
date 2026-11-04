@@ -2,7 +2,7 @@
 // Used by the teams end-to-end journeys (scripts/check-teams-e2e.mjs). Refuses the real DSH on :3080.
 //   const g = await openGui('127.0.0.1:3098')   // DSH_HOME must be the sandbox's (source scripts/sandbox/env.sh)
 import { readFileSync, existsSync } from 'node:fs'
-import { openLivePage, waitFor } from './live-page.mjs'
+import { openLivePage, waitFor, chooseWorkspace } from './live-page.mjs'
 import { cookieDeSession } from './cdp-lib.mjs'
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -20,6 +20,7 @@ export const MODEL_BUTTON_JS = `(() => { const b = document.querySelector('butto
 export const selectModelOn = async (g, name = 'GLM') => {
   const fail = (why) => { throw new Error(`selectModel(${JSON.stringify(name)}): ${why}`) }
   let last = null
+  if (g.page && typeof g.page.evalJs === 'function') await chooseWorkspace(g.page)   // a profile with several workspaces opens the new chat on « Choose a workspace to start », where the composer has no model button yet (a test's stand-in page has no browser to ask)
   const button = async () => { const b = await g.modelButton(); last = b; return b && b.err === undefined && b.visible === true ? b : null }
   // 1. what the composer says. A page still loading (a first load after a restart, a switch of space) gets 20 s to draw its composer: a journey opens the page and goes on.
   const seen = await g.until(async () => {
