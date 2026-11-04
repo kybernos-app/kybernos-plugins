@@ -9,12 +9,13 @@
 // the link hidden and a card with the host, the address and « Open ») and Settings › Activity log (the call is listed, the body of the answer is not; the session title, made from the words said, is, and is printed as a NOTE).
 // A second turn has the stand-in call the `animer_briques` tool, and the Bricks panel's route is read back. The database viewer is read on a small SQLite file the check
 // makes in the sandbox's `kybers/` folder (and removes): the routes, the refusals (a write, two statements, a path), and the panel in the right sidebar.
-// Still not covered here: the media player (needs a media file in the Files sidebar) and the queue handles of the conversation flow (need a turn held open).
+// The conversation flow is read with a turn held open by the stand-in (`delay_ms`): two messages wait in the queue dock, a handle is on each, Alt+Up on the second puts it first, and the
+// replies come in that order. The media player is read on a 0.2 s silent WAV the check writes in the chat's folder (and removes), opened from the Files sidebar.
 // Exit 0 all green, 1 a check failed, 3 inconclusive (no replica, no composer).
-import { mkdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { makeContext, openGui, sleep } from './e2e-teams/common.mjs'
+import { cwdOf, mainCalls, makeContext, openGui, sleep } from './e2e-teams/common.mjs'
 import { goToSettingsPage, openSettings } from './live-page.mjs'
 
 let pass = 0
@@ -47,6 +48,8 @@ try { ctx = await makeContext() } catch (e) { console.error('○ inconclusive: '
 const host = ctx.as('a')
 let g
 try { g = await openGui(host); await sleep(2500); await g.selectModel('GLM') } catch (e) { console.error('○ inconclusive: ' + e.message); process.exit(3) }
+const startedAt = Date.now()
+let wavPath = null
 const read = (js) => g.val(js)
 const mine = ctx.hostOf('a')
 // A sandbox is a clone of the owner's profile, where he may have switched some modules off (`disabled: true` in cordis.patch.yml): a module that never loaded cannot be judged.
@@ -158,8 +161,63 @@ try {
   const state = await mine('GET', '/kybernos-bricks/state')
   check('the Bricks route answers after the tool call', state !== null && typeof state === 'object', state)
   check('and holds an order for the session (a model, not an empty store)', state !== null && JSON.stringify(state).length > 40 && !/"error"/.test(JSON.stringify(state)), JSON.stringify(state).slice(0, 200))
+
+  console.log('Conversation flow (queue)')
+  await g.reload()
+  await ctx.engine({ text: 'J19-12 queue reply.', prompt: 1, completion: 1, delay_ms: 12000 })
+  await g.send('J19-12 q-one')
+  await sleep(2500)
+  await g.send('J19-12 q-two')
+  await sleep(800)
+  await g.send('J19-12 q-three')
+  await sleep(1500)
+  const dock = await g.until(() => g.exists('[data-queue-dock] button[aria-expanded]'), 8000)
+  check('two messages sent while the turn runs wait in the queue dock', dock === true && /2 queued/i.test(String(await g.text('[data-queue-dock]'))), await g.text('[data-queue-dock]'))
+  await g.press('[data-queue-dock] button[aria-expanded]')
+  await sleep(800)
+  const order = () => read(`Array.from(document.querySelectorAll('[data-queue-dock] li')).map((r) => r.innerText.replace(/\\s+/g, ' ').trim()).join('|')`)
+  const handles = await read(`Array.from(document.querySelectorAll('[data-queue-dock] li')).map((r) => !!r.querySelector('[aria-label*="reorder"]'))`)
+  check('each queued row has a reorder handle', Array.isArray(handles) && handles.length === 2 && handles.every((x) => x === true), handles)
+  const before = await order()
+  await read(`(() => { const h = document.querySelectorAll('[data-queue-dock] li')[1].querySelector('[aria-label*="reorder"]'); if (h) h.focus() })()`)
+  for (const type of ['keyDown', 'keyUp']) await g.page.send('Input.dispatchKeyEvent', { type, key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38, modifiers: 1 })
+  await sleep(1500)
+  const after = await order()
+  check('Alt+Up on the second handle puts that message first', /q-two/.test(String(before).split('|')[0]) && /q-three/.test(String(after).split('|')[0]), { before, after })
+  await g.until(async () => (String(await g.body()).match(/J19-12 queue reply\./g) || []).length >= 3, 90000, 1000)
+  const text = String(await g.body())
+  check('the replies come in the new order (q-three was answered before q-two)', text.lastIndexOf('J19-12 q-three') > -1 && text.lastIndexOf('J19-12 q-three') < text.lastIndexOf('J19-12 q-two'), { three: text.lastIndexOf('J19-12 q-three'), two: text.lastIndexOf('J19-12 q-two') })
+
+  console.log('Media player')
+  const cwd = cwdOf(mainCalls(ctx.rows(startedAt))[0])
+  if (typeof cwd !== 'string' || cwd === '') check('the chat\'s folder is known (the first request of the turn names it)', false, cwd)
+  else {
+    // 0.2 s of silence: 8 kHz, mono, 8-bit PCM
+    const data = Buffer.alloc(1600, 128)
+    const h = Buffer.alloc(44)
+    h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVEfmt ', 8); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(8000, 24); h.writeUInt32LE(8000, 28); h.writeUInt16LE(1, 32); h.writeUInt16LE(8, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40)
+    wavPath = join(cwd, 'j19-12-tone.wav')
+    writeFileSync(wavPath, Buffer.concat([h, data]))
+    // the sidebar may still hold the Bricks / Databases tabs of the sections above: a new tab shows the Start page
+    await read(`(() => { const b = document.querySelector('button[aria-label="Open right sidebar"]'); if (b) b.click() })()`)
+    await sleep(1200)
+    await read(`(() => { const b = document.querySelector('button[aria-label="New tab"]'); if (b) b.click() })()`)
+    await sleep(1200)
+    const files = await g.pressText('Workspace files')
+    await sleep(2000)
+    if (files !== true) console.log('    (no « Workspace files » entry; the page ends with: ' + String(await g.body()).replace(/\\s+/g, ' ').slice(-300) + ')')
+    const file = await g.pressText('j19-12-tone.wav')
+    await sleep(2500)
+    const player = await read(`JSON.stringify({ n: document.querySelectorAll('audio[controls]').length, duration: (document.querySelector('audio') || {}).duration, text: Array.from(document.querySelectorAll('audio')).map((a) => a.closest('div') && a.closest('div').parentElement.innerText.replace(/\\s+/g, ' ').slice(0, 120)).join(' ') })`)
+    const p = typeof player === 'string' ? JSON.parse(player) : {}
+    check('the Files sidebar lists the audio file and opens it', files === true && file === true, { files, file })
+    check('it is a real player (an audio element with controls), not « Preview is not available »', p.n === 1 && !/not available/i.test(String(await g.body())), p)
+    check('the player has loaded the file (a duration of about 0.2 s)', typeof p.duration === 'number' && p.duration > 0.1 && p.duration < 0.5, p)
+    check('the file name, its size and « Open separately » are shown with it', /j19-12-tone\.wav/.test(p.text || '') && /KB|bytes|B\b/.test(p.text || '') && /Open separately/.test(p.text || ''), p)
+  }
 } finally {
-  try { await ctx.engine({ text: "Hello from the replica's stand-in model.", prompt: 1, completion: 1 }) } catch (e) { /* the replica is gone */ }
+  if (wavPath !== null) rmSync(wavPath, { force: true })
+  try { await ctx.engine({ text: "Hello from the replica's stand-in model.", prompt: 1, completion: 1, delay_ms: 0 }) } catch (e) { /* the replica is gone */ }
   try { await g.live.close() } catch (e) { /* closed */ }
 }
 
