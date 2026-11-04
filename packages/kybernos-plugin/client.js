@@ -1477,6 +1477,7 @@ let kbLocaleRead = () => 'en'
       'kbnc.cc.err.no_computer': { kybernos: 'Pas encore d’ordinateur.', en: 'No computer yet.' },
       'kbnc.cc.err.not_connected': { kybernos: 'Connecte-toi à Kybernos.', en: 'Sign in to Kybernos.' },
       'kbnc.cc.err.refused': { kybernos: 'Le serveur a refusé.', en: 'The server refused.' },
+      'kbnc.cc.err.server_unreachable': { kybernos: 'Le serveur Kybernos ne répond pas : réessaie dans un instant.', en: 'The Kybernos server did not answer: try again in a moment.' },
       'kbnc.cc.err.unreachable': { kybernos: 'DSH ne répond pas.', en: 'DSH did not answer.' },
       'kbnc.cc.sub.awake': { kybernos: 'Continue de travailler quand ton portable est éteint.', en: 'Keeps working when your laptop is off.' },
       'kbnc.cc.sub.none': { kybernos: 'Créé à ton premier message Telegram qui demande d’agir.', en: 'Made at your first Telegram message that asks it to act.' },
@@ -9273,7 +9274,7 @@ const kbNcActions = (cloud) => {
   return []
 }
 /** The server's short refusal code → the key of the sentence the card shows. Anything else is « refused »; a network failure is « unreachable ». */
-const KB_NC_REFUSALS = ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected']
+const KB_NC_REFUSALS = ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected', 'server_unreachable']
 const kbNcRefusalKey = (answer) => {
   const a = kbNcObj(answer)
   if (a === null) return 'unreachable'
