@@ -210,6 +210,8 @@ let kbLocaleRead = () => 'en'
       'tasks.no.session': { kybernos: 'Aucune session', en: 'No session' },
       'tasks.paused': { kybernos: 'En pause', en: 'Paused' },
       'tasks.failed.at': { kybernos: 'Échec · {when}', en: 'Failed · {when}' },
+      'tasks.skipped.at': { kybernos: 'Ignorée · {when}', en: 'Skipped · {when}' },
+      'tasks.skipped.approval': { kybernos: 'Ignorée · {when} : pas encore approuvée', en: 'Skipped · {when}: not approved yet' },
       'tasks.notify.on': { kybernos: 'notifications activées', en: 'notifications on' },
       'tasks.runson.local': { kybernos: 'cet ordinateur', en: 'this computer' },
       'tasks.ws.label': { kybernos: 'Workspace', en: 'Workspace' },
@@ -7889,12 +7891,12 @@ const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
     const hist = Array.isArray(t.history) === true ? t.history : []
     // The newest line that is a run: a trial after a failed run must not hide that failure.
     let lastRun = hist.length - 1
-    while (lastRun >= 0 && hist[lastRun] !== null && typeof hist[lastRun] === 'object' && hist[lastRun].status === 'trial') lastRun -= 1
+    while (lastRun >= 0 && hist[lastRun] !== null && typeof hist[lastRun] === 'object' && (hist[lastRun].status === 'trial' || hist[lastRun].status === 'skipped')) lastRun -= 1
     for (let i = 0; i < hist.length; i += 1) {
       const e = hist[i]
       if (e === null || typeof e !== 'object') continue
-      // A supervised trial is not a run of the automation (no session; its evidence is the gate's trial proof).
-      if (e.status === 'trial') continue
+      // A supervised trial, or a tick the gate skipped, is not a run of the automation (no session): the board would file it as « started ».
+      if (e.status === 'trial' || e.status === 'skipped') continue
       const atMs = Date.parse(e.at)
       if (Number.isFinite(atMs) !== true || atMs > nowMs + 60000) continue
       const sessionId = typeof e.sessionId === 'string' && e.sessionId.length > 0 ? e.sessionId : null
@@ -8242,7 +8244,8 @@ const kbRunsOf = (history) => {
   for (const e of list) {
     if (e === null || typeof e !== 'object') continue
     // A supervised trial leaves a line in the history (no session of its own); it is not a run of the automation, its evidence is the trial proof of the gate panel.
-    if (e.status === 'trial') continue
+    // A tick the gate skipped (UJ-167) is no run either: it has no session, and it would count as a success. The list row says it in words.
+    if (e.status === 'trial' || e.status === 'skipped') continue
     const ms = new Date(e.at).getTime()
     entries.push({
       at: typeof e.at === 'string' ? e.at : '',
@@ -25113,6 +25116,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const items = list.map((t) => {
         const hist = Array.isArray(t.history) === true ? t.history : []
         const last = hist.length > 0 ? hist[hist.length - 1] : null
+        // The newest line that is not a trial: a tick the gate skipped (nothing ran) must not read as « No session » (UJ-167).
+        const lastLine = hist.slice().reverse().find((e) => e !== null && typeof e === 'object' && e.status !== 'trial') || null
         const cloudLinked = t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object'
         const cloudBad = cloudLinked === true && kbwRunBad(kbwRunLast(cloudRunsPair[0][t.cloud.computerId], t.id)) === true
         const cloudWait = cloudLinked === true && kbwPending(cloudAsksPair[0][t.cloud.computerId], t.id).length > 0
@@ -25125,11 +25130,12 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         else if (kbOnceDone(t) === true) { lastLabel = failed ? kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)) : kbe('Done'); lastCls = failed ? 'fail' : 'ok' }
         else if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
+        else if (lastLine !== null && lastLine.status === 'skipped') { lastLabel = kbt(lastLine.error === 'approval required' ? 'tasks.skipped.approval' : 'tasks.skipped.at').replace('{when}', kbWhenOf(lastLine.at)); lastCls = 'fail' }
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
         const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
           id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt) + (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? ' \u00b7 ' + kbt('kbwr.row.sub').replace('{name}', () => String(t.cloud.name)) : '') + (kbtaRowMark(t) !== '' ? ' · ' + kbtaRowMark(t) : ''), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
-          sessions: cloudHist !== null ? cloudHist.length : hist.length, succ: kbRunBars(cloudHist !== null ? cloudHist : t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
+          sessions: cloudHist !== null ? cloudHist.length : hist.filter((e) => e !== null && typeof e === 'object' && e.status !== 'trial' && e.status !== 'skipped').length, succ: kbRunBars(cloudHist !== null ? cloudHist : t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
           weight: kbLdRowWeight(machineLoadPair[0], t, runIds.indexOf(t.id) >= 0, Date.now()),
         }
       })

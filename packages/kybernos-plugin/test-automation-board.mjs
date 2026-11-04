@@ -121,6 +121,8 @@ const T = (id, o) => Object.assign({ id, name: id, active: true, approvals: 'ask
   eq('webhook runs are marked', m.kbBoardRuns([T('w', { history: [H(NOW - 5000, 'fired', 's-end', { via: 'webhook' })] })], liveOf, NOW)[0].via, 'webhook')
   const withTrial = m.kbBoardRuns([T('tr', { history: [H(NOW - 20000, 'error', null, { error: 'boom' }), { at: new Date(NOW - 10000).toISOString(), status: 'trial', gateId: 'g1', sessionId: null }] })], liveOf, NOW)
   eq('UJ-214: a supervised trial is not a run of the board, and does not hide the failure of the run before it', withTrial.map((r) => [r.state, r.last]), [['failed', true]])
+  const withSkip = m.kbBoardRuns([T('sk', { history: [H(NOW - 20000, 'error', null, { error: 'boom' }), H(NOW - 10000, 'skipped', null, { error: 'approval required' })] })], liveOf, NOW)
+  eq('UJ-167: a skipped tick is not filed on the board as « started »', withSkip.map((r) => r.state), ['failed'])
   eq('hostile input does not throw', m.kbBoardRuns([null, 3, { id: 5 }, { id: 'z', history: 'no' }], liveOf, NOW), [])
 }
 
