@@ -3297,7 +3297,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             waiting !== null && waiting.kind === 'loader' ? h('div', { className: 'kbth-hint', role: 'status' }, kt('En attente de l’animation… colle la commande dans le chat. Cette fenêtre la détecte seule.', 'Waiting for the animation… paste the command in the chat. This window detects it by itself.')) : null,
             copied === 'fail' ? h('div', { className: 'kbth-hint' }, kt('Copie impossible : sélectionne la commande ci-dessus.', 'Copy failed: select the command above.')) : null))
         const picker = h('div', { className: 'kbth-mdlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbth-ld-mt', tabIndex: -1, ref: dlg, 'data-kb': 'ld-picker', onKeyDown: (e) => e.stopPropagation() },
-          h('div', { className: 'kbth-mhd' }, h('h3', { id: 'kbth-ld-mt' }, kt('Ajouter une animation', 'Add an animation')), h('span', { className: 'kbth-hint' }, String(sel.length), ' ', 'sur', ' ', String(LD_MAX), ' ', kt('dans la rotation', 'in the rotation')),
+          h('div', { className: 'kbth-mhd' }, h('h3', { id: 'kbth-ld-mt' }, kt('Ajouter une animation', 'Add an animation')), h('span', { className: 'kbth-hint' }, String(sel.length), ' ', kt('sur', 'of'), ' ', String(LD_MAX), ' ', kt('dans la rotation', 'in the rotation')),
             h('button', { type: 'button', className: 'kbth-mx', 'aria-label': kt('Fermer', 'Close'), onClick: close }, '×')),
           h('div', { className: 'kbth-mbody' },
             h('div', { className: 'kbth-pills' },
