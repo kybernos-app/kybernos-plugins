@@ -968,6 +968,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 /* The chat's simple view hides every other thing in the composer's dock; these cues say whose space the message goes to, so they stay (the selector is made heavier than the fold's). */
 html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer.dock"] > .kbcue[data-kb="space-cue"]{display:inline-flex!important}
 @media (max-width:520px){.kbcue-pill{font-size:11.5px;padding:0 8px}}
+/* The question of a connected app (journey UJ-203) takes the dock's whole row, as the engine's own card takes the composer's: the context gauge wraps under it instead of squeezing it. */
+[data-composer-dock]:has([data-kb="connector-ask"]){flex-wrap:wrap}
 /* Rail replié : la carte se réduit à sa tuile, centrée. */
 .kbfp-tight2 .kbfp-card{justify-content:center;padding:4px;width:auto}
 .kbfp-tight2 .kbfp-cardtxt,.kbfp-tight2 .kbfp-ico{display:none}
@@ -3696,6 +3698,47 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             return () => { try { delete window.__KB_SPACE_CUE__ } catch (e) { /* gone */ } }
           }, 'kybernos-cloud: space cue for the core plugin')
         } catch (e) { /* the cues are optional */ }
+
+        // ── The card of a connected app in a chat set to « never ask » (journey UJ-203, connector-ask.mjs) ───────────────────────────────
+        // The host holds the call and says what waits for THIS chat; this asks it every second and draws the engine's own approval card (the factory `conversation.approval.card`, handed to
+        // every slot as `renderFactorySlot`) in the composer dock: the same card as for a command, with the person's tap sent to the host. If the factory is not there, a plain card of
+        // the same words: a question that cannot be seen would hold the call until it times out.
+        const KbConnectorAsk = (props) => {
+          const sessionId = props !== null && props !== undefined && typeof props.sessionId === 'string' ? props.sessionId : ''
+          const [asks, setAsks] = React.useState([])
+          React.useEffect(() => {
+            let alive = true
+            const look = async () => {
+              try { if (typeof document !== 'undefined' && document.hidden === true) return } catch (e) { /* no document */ }
+              const res = await runOnCall('/kybernos-cloud/connector-asks?session=' + encodeURIComponent(sessionId), 'GET')
+              if (alive && res !== null && Array.isArray(res.asks)) setAsks((prev) => (JSON.stringify(prev) === JSON.stringify(res.asks) ? prev : res.asks))
+            }
+            look()
+            const timer = setInterval(look, 1000)
+            return () => { alive = false; clearInterval(timer) }
+          }, [sessionId])
+          const first = asks[0]
+          if (first === undefined || first === null || first.text === null || typeof first.text !== 'object') return null
+          const text = lang() === 'fr' ? first.text.fr : first.text.en
+          const title = asks.length > 1 ? text + ' (1/' + asks.length + ')' : text
+          const answer = (verdict) => { runOnCall('/kybernos-cloud/connector-asks/answer', 'POST', { id: first.id, answer: verdict }).then(() => setAsks((prev) => prev.filter((x) => x.id !== first.id))) }
+          if (props !== null && props !== undefined && typeof props.renderFactorySlot === 'function') {
+            return h('div', { 'data-kb': 'connector-ask', style: { flex: '1 1 100%', minWidth: 0, boxSizing: 'border-box' } },
+              props.renderFactorySlot('conversation.approval.card', { requestKey: 'kb-connector-' + first.id, title, canAnswer: () => true, onAllow: () => answer('allow'), onReject: () => answer('reject') }))
+          }
+          const fr = lang() === 'fr'
+          const btn = { height: 32, padding: '0 14px', borderRadius: 16, border: '1px solid var(--dsw-alias-border-l2, #444)', background: 'transparent', color: 'inherit', font: 'inherit', cursor: 'pointer' }
+          return h('div', { 'data-kb': 'connector-ask', role: 'alertdialog', 'aria-label': title, style: { flex: '1 1 100%', boxSizing: 'border-box', margin: '8px auto', maxWidth: 'var(--dsh-chat-content-width, 720px)', padding: 12, border: '1px solid #f0a020', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 10 } },
+            h('div', { style: { fontSize: 13, color: '#f0a020' } }, fr ? 'En attente d’approbation' : 'Waiting for approval'),
+            h('div', null, title),
+            h('div', { style: { display: 'flex', gap: 8, justifyContent: 'flex-end' } },
+              h('button', { type: 'button', style: btn, 'data-kb': 'connector-ask-reject', onClick: () => answer('reject') }, fr ? 'Refuser' : 'Reject'),
+              h('button', { type: 'button', style: { ...btn, background: 'var(--dsw-alias-label-primary, #fff)', color: 'var(--dsw-alias-label-primary-inverted, #000)' }, 'data-kb': 'connector-ask-allow', onClick: () => answer('allow') }, fr ? 'Autoriser une fois' : 'Allow once')))
+        }
+        try {
+          ctx.effect(() => slots.inject('conversation.composer.dock', () => slots.register(
+            { name: 'conversation.composer.dock', id: 'kybernos-cloud-connector-ask', order: 1 }, (props) => { try { return h(KbConnectorAsk, props) } catch (e) { return null } })), 'kybernos-cloud: the card of a connected app in Full access')
+        } catch (e) { /* the chat stays as DSH draws it */ }
 
         // ── The quota notice ──────────────────────────────────────────────────────
         // DSH's own notice says « Request quota exhausted » for every refusal; this one (claimed through the `shell.quota-notice` chain, QUOTA only) asks the host

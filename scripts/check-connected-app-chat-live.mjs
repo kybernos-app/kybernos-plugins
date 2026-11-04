@@ -5,7 +5,7 @@
 //   export KB_E2E_API=… KB_E2E_WEB=… KB_E2E_CONTROL=… KB_E2E_DIR=… KB_SERVER_DIR=…        (a replica made by scripts/user-journey-replica.sh, REPLICA_COMPOSIO=1 is on there)
 //   export KB_PROXY_LOG=<file of scripts/recording-proxy.mjs in front of the replica> DSH_API=http://localhost:<its port>   (the sandbox DSH talks to the proxy; the proxy scripts the model's tool calls)
 //   KB_SANDBOX_ROOT=… KB_SANDBOX_PORT=… source scripts/sandbox/env.sh                       (a sandbox signed in to that replica as an account that may connect an app)
-//   node scripts/check-connected-app-chat-live.mjs [--out <folder>]
+//   node scripts/check-connected-app-chat-live.mjs [--out <folder>] [--only A]
 //
 // The model is a SCRIPTED STAND-IN: the proxy answers the next agent turn with the tool call this file asks for (POST /__proxy/script), the replica answers the turn that follows with a
 // fixed sentence. What is tested is therefore the product around the model: the card, the gate, the call, what is shown. The stand-in executes nothing outside the machine; a made-up
@@ -88,7 +88,8 @@ try {
 
   // ── A. an ordinary chat ──────────────────────────────────────────────────────────────────────────────────────────────────────────
   console.log('\nA. an ordinary chat')
-  // Full access runs with the approval policy « never » (the person chose not to be asked: the engine rejects every card, so none is raised); the two other modes ask. Journey UJ-203:
+  // Three modes, one card each. Workspace Write and Read Only ask with the engine's own card (the plugin answers the engine's `tools/pre-execute` with « ask »). Full access runs with the
+  // approval policy « never »: the engine rejects every card unseen, so the plugin holds the call and draws the same card itself (connector-ask.mjs, composer dock). Journey UJ-203:
   // before the gate, the app ran with no card in every mode, Read Only included.
   const unfold = async (mode, tag) => {
     const folded = await g.val(`(() => { const e = Array.from(document.querySelectorAll('*')).filter((e) => e.children.length <= 2 && /^Completed in/.test((e.innerText || '').trim())).pop(); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2 } })()`)
@@ -98,25 +99,17 @@ try {
     note('ordinary chat ' + mode + ', unfolded, says: ' + JSON.stringify(open.slice(-300)))
     return open
   }
-  for (const mode of ['Full access', 'Workspace Write', 'Read Only']) {
-    const tag = mode.replace(/\s+/g, '-').toLowerCase()
+  // A new chat in `mode` (the profile's default is Full access), the stub model on.
+  const freshChat = async (mode) => {
     await g.pressText('New chat'); await sleep(1800)
     if (mode !== 'Full access') { await g.pressText('Full access'); await sleep(600); await g.pressText(mode); await sleep(600) }
     await g.selectModel('GLM')
+  }
+  for (const mode of ['Full access', 'Workspace Write', 'Read Only']) {
+    const tag = mode.replace(/\s+/g, '-').toLowerCase()
+    await freshChat(mode)
     const before = await executions()
     const at = await ask('Open an issue on GitHub titled A ' + mode + ' ' + stamp, { tool_slug: 'GITHUB_CREATE_AN_ISSUE', params: { repo: 'replica-test/demo', title: 'A ' + mode + ' ' + stamp } })
-    if (mode === 'Full access') {
-      const ran = await waitExec(before)
-      await sleep(2500)
-      const asked = await cardOf()
-      await shot('a-' + tag)
-      const got = await modelGot(at)
-      report['ordinary ' + mode] = { ran: ran === true, asked, modelGot: got, page: (await readChat()).slice(-400) }
-      check('ordinary chat, ' + mode + ': the person chose never to be asked, so the app action runs with no card (the stand-in executed once)', ran === true && asked === null && (await executions()) === before + 1, { before, after: await executions(), asked })
-      check('ordinary chat, ' + mode + ': the model got the provider\'s answer back', typeof got === 'string' && got.includes('"ok":true'), got)
-      report['ordinary ' + mode].unfolded = (await unfold(mode, tag)).slice(-700)
-      continue
-    }
     const card = await g.until(async () => cardOf(), 20000, 400)
     await sleep(2500)
     await shot('a-' + tag + '-card')
@@ -124,29 +117,46 @@ try {
     report['ordinary ' + mode] = { card, executionsWhileWaiting: waiting - before }
     check('ordinary chat, ' + mode + ': a card asks first (« Allow once » and Reject) and nothing is executed while it waits', !!card && waiting === before, { card, before, waiting })
     check('ordinary chat, ' + mode + ': the card says which app and what it will do', !!card && /github: create an issue/i.test(card.text) && card.text.includes('A ' + mode + ' ' + stamp), card && card.text)
+    if (card) check('ordinary chat, ' + mode + ': the card sits inside the window, buttons Allow once and Reject', card.rect[0] >= 0 && card.rect[1] >= 0 && card.rect[2] > 200 && card.buttons.includes('Allow once') && card.buttons.includes('Reject'), card)
     const pressed = await g.pressText('Allow once')
     await sleep(5000)
     const got = await modelGot(at)
     check('ordinary chat, ' + mode + ': Allow once runs it once and the model gets the provider\'s answer', pressed === true && (await executions()) === before + 1 && typeof got === 'string' && got.includes('"ok":true'), { pressed, before, after: await executions(), got })
+    check('ordinary chat, ' + mode + ': the card is gone once answered', (await cardOf()) === null)
     await shot('a-' + tag + '-after')
-    if (mode === 'Read Only') {
-      // Reject, in a chat of its own.
-      await g.pressText('New chat'); await sleep(1800)
-      await g.pressText('Full access'); await sleep(600); await g.pressText('Read Only'); await sleep(600)
-      await g.selectModel('GLM')
-      const b2 = await executions()
-      const at2 = await ask('Open an issue on GitHub titled A reject ' + stamp, { tool_slug: 'GITHUB_CREATE_AN_ISSUE', params: { repo: 'replica-test/demo', title: 'A reject ' + stamp } })
-      const card2 = await g.until(async () => cardOf(), 20000, 400)
-      const rejected = card2 ? await g.pressText('Reject') : false
-      await sleep(5000)
-      const got2 = await modelGot(at2)
-      report['ordinary reject'] = { card: card2, modelGot: got2 }
-      check('ordinary chat, Read Only: Reject executes nothing and the card is gone', !!card2 && rejected === true && (await executions()) === b2 && (await cardOf()) === null, { card: !!card2, rejected, b2, after: await executions() })
-      check('ordinary chat, Read Only: the model is told the person refused', typeof got2 === 'string' && /reject|refus/i.test(got2), got2)
-      await shot('a-reject-after')
-    }
+    report['ordinary ' + mode].unfolded = (await unfold(mode, tag)).slice(-700)
+  }
+  // Reject, in a chat of its own, in the mode with the engine's card and in the mode with ours.
+  for (const mode of ['Read Only', 'Full access']) {
+    const tag = mode.replace(/\s+/g, '-').toLowerCase()
+    await freshChat(mode)
+    const b2 = await executions()
+    const at2 = await ask('Open an issue on GitHub titled A reject ' + mode + ' ' + stamp, { tool_slug: 'GITHUB_CREATE_AN_ISSUE', params: { repo: 'replica-test/demo', title: 'A reject ' + mode + ' ' + stamp } })
+    const card2 = await g.until(async () => cardOf(), 20000, 400)
+    const rejected = card2 ? await g.pressText('Reject') : false
+    await sleep(5000)
+    const got2 = await modelGot(at2)
+    report['ordinary reject ' + mode] = { card: card2, modelGot: got2 }
+    check('ordinary chat, ' + mode + ': Reject executes nothing and the card is gone', !!card2 && rejected === true && (await executions()) === b2 && (await cardOf()) === null, { card: !!card2, rejected, b2, after: await executions() })
+    check('ordinary chat, ' + mode + ': the model is told the person refused', typeof got2 === 'string' && /reject|refus|did not allow/i.test(got2), got2)
+    await shot('a-reject-' + tag + '-after')
+  }
+  // A card belongs to its chat: asked in one chat, left unanswered, it is not drawn in another.
+  {
+    await freshChat('Full access')
+    const b3 = await executions()
+    await ask('Open an issue on GitHub titled A other ' + stamp, { tool_slug: 'GITHUB_CREATE_AN_ISSUE', params: { repo: 'replica-test/demo', title: 'A other ' + stamp } })
+    const held = await g.until(async () => cardOf(), 20000, 400)
+    await freshChat('Full access')
+    await sleep(2500)
+    const elsewhere = await cardOf()
+    await shot('a-other-chat')
+    check('ordinary chat, Full access: a question left open in one chat is not drawn in another chat', !!held && elsewhere === null && (await executions()) === b3, { held: !!held, elsewhere, b3, after: await executions() })
+    // the question stays held (30 minutes at most) until the sandbox is thrown away: it holds one turn of a throwaway chat, nothing else
   }
 
+  // `--only A` plays the ordinary chat alone (the quick replay of a change to its card).
+  if (arg('--only', '') !== 'A') {
   // ── B. Kaby's own chat ───────────────────────────────────────────────────────────────────────────────────────────────────────────
   console.log('\nB. Kaby\'s own chat')
   const scenario = async (label, args, press, expectRuns) => {
@@ -213,6 +223,7 @@ try {
     check('once the Connectors list shows the connection as expired, the model is told to reconnect it', typeof b5.modelGot === 'string' && /reconnect/i.test(b5.modelGot), { listed: report.listedAfterExpiry, modelGot: b5.modelGot })
     check('once the list shows it as expired the card does not ask the person to allow a call that cannot run (no card, or a card that says so)', b5.card === null || /expired|reconnect/i.test(b5.card.text.replace(/\{.*\}/, '')), b5.card && b5.card.text)
     await setStatus(standAccount.id, 'ACTIVE')
+  }
   }
 } catch (e) {
   check('the run reached its end', false, String((e && e.stack) || e).slice(0, 500))

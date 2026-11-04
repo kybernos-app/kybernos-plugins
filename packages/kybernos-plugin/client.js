@@ -33717,7 +33717,8 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
   /* The header is a grid of two rows (the title, the tabs) at least 76 px high: with the tabs gone the title row used to stretch over both and the title slid down. It stays
      where it was (top row, its own height): folding no longer moves the title, nor the chat under it. */
   html[data-kb-chat-fold="1"] [data-slot="conversation.session.header"] > [class*="titleRow"]{align-self:start}
-  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > :not([data-kb="changes"]){display:none!important}
+  /* The question of a connected app in a chat set to never ask (kybernos-cloud, connector-ask) is not a cue to fold: a call is waiting for the person's tap. */
+  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > :not([data-kb="changes"]):not([data-kb="connector-ask"]){display:none!important}
   html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="ok"],
   html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="unavailable"]{display:none!important}
 }

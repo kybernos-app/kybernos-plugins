@@ -3397,6 +3397,8 @@ function boot(ctx) {
     const kbRememberComputerRun = (id, taskId, ref) => { kbComputerRuns.set(id, { taskId, ref }); if (kbComputerRuns.size > 500) kbComputerRuns.delete(kbComputerRuns.keys().next().value) }
     try {
       globalThis[Symbol.for('kybernos.automationRuns')] = Object.freeze({
+        /** True for a session the scheduler made for an automation run on THIS machine, or one below it (a sub-agent): nobody is there to answer a question of ours, the automation was approved as a whole. */
+        local: (agent) => kbRunDepth(agent) > 0,
         /** The run an agent belongs to (itself or a session it was started under): `{ root, taskId, ref }`, or null. */
         of: (agent) => {
           const store = ctx.get('sessions')

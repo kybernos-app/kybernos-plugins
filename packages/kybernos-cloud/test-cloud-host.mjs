@@ -758,6 +758,8 @@ try {
     '/kybernos-cloud/sites', '/kybernos-cloud/sites/plan', '/kybernos-cloud/sites/publish', '/kybernos-cloud/sites/remove',
     // A team's own DSH (team-instances.mjs; test-team-instances.mjs holds its rules).
     '/kybernos-cloud/team-dsh/open', '/kybernos-cloud/team-dsh/stop', '/kybernos-cloud/team-dsh/list', '/kybernos-cloud/team-dsh/personal',
+    // The card of a connected app in a chat set to never ask (connector-ask.mjs).
+    '/kybernos-cloud/connector-asks', '/kybernos-cloud/connector-asks/answer',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
@@ -4216,8 +4218,52 @@ try {
       assert.match(card.displayReason.fr, /^Application connectée : /)
       assert.deepEqual(await run('connections_list', {}, 'session-someone-else'), { kind: 'allow' }, 'what only reads passes without a question')
       assert.deepEqual(await ordinary({ ...issue, tool_slug: '' }).then((r) => r.kind), 'ask', 'an action with no name still asks')
-      fakeApproval = { request: async () => 'allowed-once', effectivePolicy: () => 'never' }
-      assert.deepEqual(await ordinary(issue), { kind: 'allow' }, 'a chat set to never ask: the person chose, the engine would reject the card unseen')
+      // A chat set to never ask (Full access): the engine rejects every card unseen, so the question is ours (connector-ask.mjs): the call waits, the page lists it, the person's tap answers.
+      fakeApproval = { request: async () => { throw new Error('the engine card must not be used under never') }, effectivePolicy: () => 'never' }
+      const CHAT = 'session-someone-else'
+      const answer_ = async (body, { origin = 'http://127.0.0.1:3080', cookie = true } = {}) => {
+        const req = fakeReq('POST', origin, body, '/kybernos-cloud/connector-asks/answer')
+        req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+        if (cookie) req.headers = { ...req.headers, cookie: browserHeaders().cookie }
+        const res = fakeRes()
+        await routes.get('/kybernos-cloud/connector-asks/answer')(req, res)
+        return res
+      }
+      const waitingOf = async (chat) => (await hit('/kybernos-cloud/connector-asks?session=' + encodeURIComponent(chat), 'GET')).body.asks
+      let held = ordinary(issue)
+      let settledEarly = false
+      held.then(() => { settledEarly = true })
+      await new Promise((r) => setTimeout(r, 60))
+      assert.equal(settledEarly, false, 'never: the call waits for the person')
+      const shownAsks = await waitingOf(CHAT)
+      assert.equal(shownAsks.length, 1)
+      assert.match(shownAsks[0].text.en, /^Connected app: github: create an issue \(repo: made-up\/demo/)
+      assert.match(shownAsks[0].text.fr, /^Application connectée : /)
+      assert.deepEqual(await waitingOf('session-another-chat'), [], 'another chat does not see it')
+      assert.equal((await answer_({ id: shownAsks[0].id, answer: 'allow' }, { cookie: false })).status, 401, 'a bare request (no session cookie) cannot answer')
+      assert.equal((await answer_({ id: shownAsks[0].id, answer: 'allow' }, { origin: 'https://evil.example' })).status, 403, 'a page of another origin cannot answer')
+      assert.equal((await answer_({ id: shownAsks[0].id, answer: 'maybe' })).body.error, 'bad_answer')
+      assert.equal((await answer_({ id: 'no-such-question', answer: 'allow' })).body.error, 'unknown')
+      assert.equal(settledEarly, false, 'none of those let the call go')
+      assert.equal((await answer_({ id: shownAsks[0].id, answer: 'allow' })).body.ok, true)
+      assert.deepEqual(await held, { kind: 'allow' }, 'Allow once: the call goes')
+      assert.deepEqual(await waitingOf(CHAT), [], 'the answered question is gone')
+      held = ordinary(issue)
+      await new Promise((r) => setTimeout(r, 40))
+      assert.equal((await answer_({ id: (await waitingOf(CHAT))[0].id, answer: 'reject' })).body.ok, true)
+      const refusedOwn = await held
+      assert.equal(refusedOwn.kind, 'deny', 'Reject: the call does not go')
+      assert.match(refusedOwn.reason, /did not allow this action \(they refused it\)/)
+      const stop = new AbortController()
+      const stopped = gate({ name: 'connections_execute', arguments: issue, agent: { id: CHAT }, signal: stop.signal }, allowed)
+      await new Promise((r) => setTimeout(r, 40))
+      assert.equal((await waitingOf(CHAT)).length, 1)
+      stop.abort()
+      assert.match((await stopped).reason, /the task was stopped/, 'a turn that is stopped takes its question with it')
+      assert.deepEqual(await waitingOf(CHAT), [])
+      globalThis[Symbol.for('kybernos.automationRuns')] = { local: () => true }
+      try { assert.deepEqual(await ordinary(issue), { kind: 'allow' }, 'a run of an automation (approved as a whole, nobody there to answer) is not asked') } finally { delete globalThis[Symbol.for('kybernos.automationRuns')] }
+      assert.deepEqual(await waitingOf(CHAT), [], 'and it asked nothing')
       fakeApproval = { request: async () => 'allowed-once' }
       assert.equal((await ordinary(issue)).kind, 'ask', 'a policy the service does not tell counts as ask')
       fakeApproval = { request: async () => 'allowed-once', effectivePolicy: () => { throw new Error('no session') } }
